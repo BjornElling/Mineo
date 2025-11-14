@@ -42,11 +42,13 @@ function generateVersion() {
   }
 
   // Hent totalt antal commits (build number)
-  const buildNumber = runGitCommand('git rev-list --count HEAD');
-  if (!buildNumber) {
+  // Tilføj 1 fordi vi er i pre-commit hook - denne commit er ikke talt endnu
+  const currentCount = runGitCommand('git rev-list --count HEAD');
+  if (!currentCount) {
     console.warn('⚠️  Could not get commit count. Using fallback version.');
     return FALLBACK_VERSION;
   }
+  const buildNumber = parseInt(currentCount) + 1;
 
   // Hent dato for seneste commit
   const commitDate = runGitCommand('git log -1 --format=%cd --date=format:%Y.%m');

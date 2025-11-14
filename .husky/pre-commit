@@ -1,4 +1,8 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# Pre-commit checks kan tilføjes her senere
+# Generer nyt versionsnummer (inkluderer den kommende commit)
+node scripts/generate-version.js
+
+# Tilføj den opdaterede version.js til commit
+git add src/config/version.js
