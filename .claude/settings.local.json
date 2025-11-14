@@ -9,7 +9,8 @@
       "Bash(findstr:*)",
       "Bash(npm install:*)",
       "Bash(npx husky init)",
-      "Bash(node scripts/generate-version.js:*)"
+      "Bash(node scripts/generate-version.js:*)",
+      "Bash(git rev-list:*)"
     ],
     "deny": [],
     "ask": []
