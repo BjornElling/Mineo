@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Generer nyt versionsnummer baseret på ny commit
+node scripts/generate-version.js
+
+# Tilføj den opdaterede version.js til næste commit hvis der er ændringer
+git add src/config/version.js
+
+# Amend den sidste commit med den opdaterede version
+git commit --amend --no-edit --no-verify
