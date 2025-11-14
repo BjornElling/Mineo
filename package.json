@@ -1,0 +1,61 @@
+{
+  "name": "mineo",
+  "version": "0.1.0",
+  "description": "MINEO - Web-baseret erstatningsberegner til EAL- og ASL-opgørelser",
+  "author": "Bjørn Elling",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bjorn-elling/mineo.git"
+  },
+  "keywords": [
+    "erstatning",
+    "erstatningsopgørelse",
+    "erstatningsberegner",
+    "EAL",
+    "erstatningsansvarsloven",
+    "ASL",
+    "arbejdsskadesikringsloven"
+  ],
+  "private": false,
+  "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^7.3.5",
+    "@mui/material": "^7.3.5",
+    "@mui/x-date-pickers": "^8.17.0",
+    "ag-grid-community": "^34.3.1",
+    "ag-grid-react": "^34.3.1",
+    "dayjs": "^1.11.19",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.9.5",
+    "zustand": "^5.0.8"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitejs/plugin-react-swc": "^4.2.1",
+    "vite": "^7.2.2"
+  }
+}
