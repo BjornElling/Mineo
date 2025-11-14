@@ -1,6 +1,6 @@
 # MINEO Erstatningsberegner
 
-**MINEO** er en web-baseret dansk erstatningsberegner til EAL (Erstatningsansvarsloven) og ASL (Arbejdsskadesikringsloven) sager.
+**MINEO** er en web-baseret dansk erstatningsberegner til at opgøre krav efter Erstatningsansvarsloven og Arbejdsskadesikringsloven.
 
 ## 🎯 Om projektet
 
@@ -9,11 +9,10 @@ MINEO er en moderne web-applikation udviklet til at hjælpe advokater og sagsbeh
 ## ✨ Features
 
 - 🖥️ **Browser-baseret** - Kører i alle moderne browsere
-- 📱 **Responsivt design** - Fungerer på desktop, tablet og mobil
-- 💾 **Gem/Hent funktionalitet** - Download og gendan dine data som JSON-filer
+- 💾 **Gem/Hent funktionalitet** - Indtastede oplysninger gemmes i krypteret .eo format
 - 📄 **PDF-generering** - Generer professionelle opgørelser direkte fra browseren
-- 🔒 **Privat** - Alle data forbliver på din computer (ingen cloud)
-- 📊 **Excel-lignende tabeller** - Indtast data hurtigt med keyboard navigation og copy/paste
+- 🔒 **Privat** - Alle data forbliver på din egen computer
+- 📊 **Simpelt og intuitativt** - Funktionaliteter er velkendt, og regneark opfører sig som Excel
 
 ## 🚀 Teknologier
 
@@ -133,5 +132,5 @@ MINEO er udviklet med hjælp fra Claude AI.
 
 ---
 
-**Version**: 0.1.0 (Under udvikling)
-**Status**: MVP fase
+**Version**: 0.0.0-dev (Versionsnummer genereres automatisk ved commit)
+**Status**: Under udvikling

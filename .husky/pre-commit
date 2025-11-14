@@ -1,0 +1,5 @@
+# Generer nyt versionsnummer
+node scripts/generate-version.js
+
+# Tilføj den opdaterede version.js til commit
+git add src/config/version.js

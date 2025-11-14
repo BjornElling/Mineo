@@ -20,6 +20,7 @@ import {
   isGreaterThanZero,
   isNonEmptyString,
 } from './pdfFormatters';
+import { VERSION } from '../../config/version';
 
 /**
  * Generer og download PDF for arbejdsskadesatser
@@ -67,6 +68,9 @@ export const generateSatserPdf = (year, satser) => {
   if (satser && satser.referencer) {
     currentY = addReferenserSection(doc, satser.referencer, currentY);
   }
+
+  // Tilføj footer med versionsnummer
+  addFooter(doc);
 
   // Download PDF
   doc.save(`Arbejdsskadesatser ${year}.pdf`);
@@ -319,4 +323,26 @@ const addTable = (doc, rows, header, startY) => {
   // autoTable gemmer finalY på doc objektet
   const finalY = doc.lastAutoTable?.finalY || startY + 50;
   return finalY + SECTION_SPACER;
+};
+
+/**
+ * Tilføj footer med versionsnummer
+ */
+const addFooter = (doc) => {
+  const pageHeight = doc.internal.pageSize.height;
+  const pageWidth = doc.internal.pageSize.width;
+
+  doc.setFontSize(6);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(200, 200, 200);
+
+  // Tilføj roteret versionsnummer i bunden til højre
+  const footerText = `Mineo.dk // ${VERSION}`;
+
+  // Beregn position: 0,5 cm fra højre kant, 0,5 cm over bunden
+  const x = pageWidth - 5; // 0,5 cm fra højre kant
+  const y = pageHeight - 5; // 0,5 cm over bunden
+
+  // Roter tekst 90 grader mod uret
+  doc.text(footerText, x, y, { angle: 90 });
 };

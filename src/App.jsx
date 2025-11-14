@@ -4,6 +4,7 @@ import { ThemeProvider, createTheme } from '@mui/material';
 import MainLayout from './components/layout/MainLayout';
 import Stamdata from './components/pages/Stamdata';
 import Satser from './components/pages/Satser';
+import Om from './components/pages/Om';
 
 const theme = createTheme({
   palette: {
@@ -38,6 +39,15 @@ const SatserPage = React.memo(() => (
 ));
 
 /**
+ * Om page wrapper component
+ */
+const OmPage = React.memo(() => (
+  <MainLayout>
+    <Om />
+  </MainLayout>
+));
+
+/**
  * Hovedkomponent for MINEO applikationen
  */
 function App() {
@@ -48,6 +58,7 @@ function App() {
           <Route path="/" element={<Navigate to="/stamdata" replace />} />
           <Route path="/stamdata" element={<StamdataPage />} />
           <Route path="/satser" element={<SatserPage />} />
+          <Route path="/om" element={<OmPage />} />
           <Route
             path="*"
             element={
