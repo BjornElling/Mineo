@@ -1,5 +1,0 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
-# Generer nyt versionsnummer baseret på ny commit
-node scripts/generate-version.js

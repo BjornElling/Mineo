@@ -10,7 +10,11 @@
       "Bash(npm install:*)",
       "Bash(npx husky init)",
       "Bash(node scripts/generate-version.js:*)",
-      "Bash(git rev-list:*)"
+      "Bash(git rev-list:*)",
+      "Bash(del .huskypost-commit)",
+      "Bash(rm:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
