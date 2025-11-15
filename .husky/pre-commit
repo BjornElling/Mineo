@@ -10,3 +10,4 @@ node scripts/generate-version.js
 
 # Tilføj filen igen til commit
 git add src/config/version.js
+
