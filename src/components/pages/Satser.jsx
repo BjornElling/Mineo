@@ -6,6 +6,7 @@ import StyledYearField from '../inputs/StyledYearField';
 import { MIN_YEAR, MAX_YEAR } from '../../config/dateRanges';
 import { getSatserForYear } from '../../data/regulationRates';
 import { generateSatserPdf } from '../../utils/pdf/satserPdf';
+import { usePersistedForm } from '../../hooks/usePersistedForm';
 
 // Formaterings-funktioner
 const formatKroner = (value) => {
@@ -72,22 +73,25 @@ const DataRow = ({ label, value, rightAlign = true }) => {
  * Indeholder information om relevante satser for erstatningsberegninger.
  */
 const Satser = React.memo(() => {
-  const [aar, setAar] = React.useState(MAX_YEAR.toString());
+  const { values, handleChange } = usePersistedForm('satser', {
+    aar: MAX_YEAR.toString(),
+  });
+
   const [satser, setSatser] = React.useState(() => getSatserForYear(MAX_YEAR));
   const [gyldigtAar, setGyldigtAar] = React.useState(MAX_YEAR);
   const [harFejl, setHarFejl] = React.useState(false);
 
   // Opdater satser når årstal ændres og er gyldigt
   React.useEffect(() => {
-    if (aar.length === 4) {
-      const year = parseInt(aar, 10);
+    if (values.aar.length === 4) {
+      const year = parseInt(values.aar, 10);
       if (year >= MIN_YEAR && year <= MAX_YEAR) {
         const data = getSatserForYear(year);
         setSatser(data);
         setGyldigtAar(year);
       }
     }
-  }, [aar]);
+  }, [values.aar]);
 
   // Håndter download af PDF
   const handleDownloadPdf = React.useCallback(() => {
@@ -117,12 +121,12 @@ const Satser = React.memo(() => {
         >
           <FieldLabel>Angiv år:</FieldLabel>
           <StyledYearField
-            value={aar}
-            onChange={(e) => setAar(e.target.value)}
+            value={values.aar}
+            onChange={handleChange('aar')}
             onErrorChange={setHarFejl}
             minYear={MIN_YEAR}
             maxYear={MAX_YEAR}
-            width={80}               
+            width={80}
           />
           <Box sx={{ flex: 1 }} />
           {!harFejl && (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material';
+import { FormPersistenceProvider } from './contexts/FormPersistenceContext.jsx';
 import MainLayout from './components/layout/MainLayout';
 import Stamdata from './components/pages/Stamdata';
 import Satser from './components/pages/Satser';
@@ -63,24 +64,26 @@ const OmPage = React.memo(() => (
 function App() {
   return (
     <ThemeProvider theme={theme}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Navigate to="/stamdata" replace />} />
-          <Route path="/stamdata" element={<StamdataPage />} />
-          <Route path="/satser" element={<SatserPage />} />
-          <Route path="/renteberegning" element={<RenteberegningPage />} />
-          <Route path="/om" element={<OmPage />} />
-          <Route
-            path="*"
-            element={
-              <div style={{ padding: '40px' }}>
-                <h2>404 - Side ikke fundet</h2>
-                <p>URL: {window.location.pathname}</p>
-              </div>
-            }
-          />
-        </Routes>
-      </BrowserRouter>
+      <FormPersistenceProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Navigate to="/stamdata" replace />} />
+            <Route path="/stamdata" element={<StamdataPage />} />
+            <Route path="/satser" element={<SatserPage />} />
+            <Route path="/renteberegning" element={<RenteberegningPage />} />
+            <Route path="/om" element={<OmPage />} />
+            <Route
+              path="*"
+              element={
+                <div style={{ padding: '40px' }}>
+                  <h2>404 - Side ikke fundet</h2>
+                  <p>URL: {window.location.pathname}</p>
+                </div>
+              }
+            />
+          </Routes>
+        </BrowserRouter>
+      </FormPersistenceProvider>
     </ThemeProvider>
   );
 }

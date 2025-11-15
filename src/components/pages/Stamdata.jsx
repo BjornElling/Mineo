@@ -8,6 +8,8 @@ import ContentBox from '../common/ContentBox';
 import StyledTextField from '../inputs/StyledTextField';
 import StyledDropdown from '../inputs/StyledDropdown';
 import StyledDateField from '../inputs/StyledDateField';
+// Importer persistence hook
+import { usePersistedForm } from '../../hooks/usePersistedForm';
 
 // Skadestype-valgmuligheder
 const skadestyper = ['Arbejdsulykke', 'Erhvervssygdom'];
@@ -34,16 +36,18 @@ const SectionHeader = ({ children }) => (
  * baseret på valgt skadestype.
  */
 const Stamdata = React.memo(() => {
-  // State for alle felter
-  const [journalnr, setJournalnr] = React.useState('');
-  const [advokat, setAdvokat] = React.useState('');
-  const [sagsbehandler, setSagsbehandler] = React.useState('');
-  const [skadelidte, setSkadelidte] = React.useState('');
-  const [skadestype, setSkadestype] = React.useState('');
-  const [skadesdato, setSkadesdato] = React.useState('');
+  // Brug persisted form hook
+  const { values, handleChange } = usePersistedForm('stamdata', {
+    journalnr: '',
+    advokat: '',
+    sagsbehandler: '',
+    skadelidte: '',
+    skadestype: '',
+    skadesdato: '',
+  });
 
   // Dynamisk dato-label baseret på skadestype
-  const datoLabel = skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadesdato';
+  const datoLabel = values.skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadesdato';
 
   return (
     <Box>
@@ -66,8 +70,8 @@ const Stamdata = React.memo(() => {
           >
             <FieldLabel>Journalnr.:</FieldLabel>
             <StyledTextField
-              value={journalnr}
-              onChange={(e) => setJournalnr(e.target.value)}
+              value={values.journalnr}
+              onChange={handleChange('journalnr')}
               width={220}
             />
           </Box>
@@ -82,8 +86,8 @@ const Stamdata = React.memo(() => {
           >
             <FieldLabel>Advokat/sagsbehandler:</FieldLabel>
             <StyledTextField
-              value={advokat}
-              onChange={(e) => setAdvokat(e.target.value)}
+              value={values.advokat}
+              onChange={handleChange('advokat')}
               placeholder="(init.)"
               width={80}
               sx={{
@@ -99,8 +103,8 @@ const Stamdata = React.memo(() => {
               /
             </Typography>
             <StyledTextField
-              value={sagsbehandler}
-              onChange={(e) => setSagsbehandler(e.target.value)}
+              value={values.sagsbehandler}
+              onChange={handleChange('sagsbehandler')}
               placeholder="(init.)"
               width={80}
               sx={{
@@ -124,8 +128,8 @@ const Stamdata = React.memo(() => {
           >
             <FieldLabel>Skadelidtes navn:</FieldLabel>
             <StyledTextField
-              value={skadelidte}
-              onChange={(e) => setSkadelidte(e.target.value)}
+              value={values.skadelidte}
+              onChange={handleChange('skadelidte')}
               width={350}
             />
           </Box>
@@ -140,8 +144,8 @@ const Stamdata = React.memo(() => {
           >
             <FieldLabel>Skadestype:</FieldLabel>
             <StyledDropdown
-              value={skadestype}
-              onChange={(e) => setSkadestype(e.target.value)}
+              value={values.skadestype}
+              onChange={handleChange('skadestype')}
               placeholder="Vælg skadestype"
               width={175}
             >
@@ -163,8 +167,8 @@ const Stamdata = React.memo(() => {
           >
             <FieldLabel>{datoLabel}:</FieldLabel>
             <StyledDateField
-              value={skadesdato}
-              onChange={(e) => setSkadesdato(e.target.value)}
+              value={values.skadesdato}
+              onChange={handleChange('skadesdato')}
               minDate={MIN_SKADESDATO}
               maxDate={TODAY}
             />

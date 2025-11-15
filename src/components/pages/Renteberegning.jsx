@@ -26,6 +26,7 @@ import StyledIntegerField from '../inputs/StyledIntegerField';
 import StyledAmountField from '../inputs/StyledAmountField';
 import { calculateProcessInterest, formatAmount } from '../../utils/interestCalculator';
 import { generateRentePdf } from '../../utils/pdf/rentePdf';
+import { usePersistedForm } from '../../hooks/usePersistedForm';
 
 const TAB_KEYS = {
   RATES: 'rates',
@@ -185,13 +186,47 @@ const technicalAssumptions = [
 ];
 
 const Renteberegning = React.memo(() => {
+  // Brug persisted form hook
+  const { values: persistedValues, setValues: setPersistedValues } = usePersistedForm('renteberegning', {
+    beregningsdato: '',
+    belob: '',
+    renterFra: '',
+    tillaegstid: '',
+    enhed: 'dage',
+    enhedSelected: false,
+  });
+
   const [activeTab, setActiveTab] = React.useState(TAB_KEYS.CALCULATION);
-  const [formValues, setFormValues] = React.useState(() => ({ beregningsdato: '' }));
-  const [rentekravRow, setRentekravRow] = React.useState(() => ({ ...rentekravInitialRow }));
+  const [formValues, setFormValues] = React.useState(() => ({ beregningsdato: persistedValues.beregningsdato }));
+  const [rentekravRow, setRentekravRow] = React.useState(() => ({
+    belob: persistedValues.belob,
+    renterFra: persistedValues.renterFra,
+    tillaegstid: persistedValues.tillaegstid,
+    enhed: persistedValues.enhed,
+    enhedSelected: persistedValues.enhedSelected,
+  }));
 
   // Committed værdier der kun opdateres ved onBlur
-  const [committedFormValues, setCommittedFormValues] = React.useState(() => ({ beregningsdato: '' }));
-  const [committedRentekravRow, setCommittedRentekravRow] = React.useState(() => ({ ...rentekravInitialRow }));
+  const [committedFormValues, setCommittedFormValues] = React.useState(() => ({ beregningsdato: persistedValues.beregningsdato }));
+  const [committedRentekravRow, setCommittedRentekravRow] = React.useState(() => ({
+    belob: persistedValues.belob,
+    renterFra: persistedValues.renterFra,
+    tillaegstid: persistedValues.tillaegstid,
+    enhed: persistedValues.enhed,
+    enhedSelected: persistedValues.enhedSelected,
+  }));
+
+  // Synkroniser med persistence når committed værdier ændres
+  React.useEffect(() => {
+    setPersistedValues({
+      beregningsdato: committedFormValues.beregningsdato,
+      belob: committedRentekravRow.belob,
+      renterFra: committedRentekravRow.renterFra,
+      tillaegstid: committedRentekravRow.tillaegstid,
+      enhed: committedRentekravRow.enhed,
+      enhedSelected: committedRentekravRow.enhedSelected,
+    });
+  }, [committedFormValues, committedRentekravRow, setPersistedValues]);
 
   const handleTabChange = React.useCallback((_, value) => {
     setActiveTab(value);
@@ -361,7 +396,7 @@ const RatesTabContent = React.memo(() => (
       <SectionDescription>
         Fast tillægsprocent, der tilskrives udlånsrenten, jf. rentelovens § 5, stk. 2.
       </SectionDescription>
-      <InterestRatesTable rows={surchargeRates} />
+      <InterestRatesTable rows={surchargeRates} dateColumnHeader="Forfaldsdato" rateColumnHeader="Sats" />
     </ContentBox>
   </Box>
 ));
@@ -704,7 +739,7 @@ const TechnicalAssumptionsList = ({ items }) => (
   </Box>
 );
 
-const InterestRatesTable = ({ rows }) => (
+const InterestRatesTable = ({ rows, dateColumnHeader = 'Rentedato', rateColumnHeader = 'Sats' }) => (
   <Box
     sx={{
       mt: 3,
@@ -734,9 +769,9 @@ const InterestRatesTable = ({ rows }) => (
     >
       <TableHead>
         <TableRow>
-          <TableCell>Rentedato</TableCell>
+          <TableCell>{dateColumnHeader}</TableCell>
           <TableCell align="right" sx={{ paddingRight: '60px !important' }}>
-            Sats
+            {rateColumnHeader}
           </TableCell>
         </TableRow>
       </TableHead>
