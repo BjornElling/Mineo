@@ -53,10 +53,13 @@ import { MIN_SKADESDATO } from '../../config/dateRanges';
 
 ### Centraliserede komponenter
 Alle UI-komponenter bruger de centraliserede versioner:
-- `StyledTextField` - Basis tekstfelt (auto-trim, moderne design)
-- `StyledDropdown` - Dropdown (arver fra StyledTextField)
+- `StyledTextField` - Basis tekstfelt (auto-trim, moderne design, floating error messages)
 - `StyledDateField` - Intelligent dato-felt (dd-mm-åååå, auto-formatering)
-- `ContentBox` - Standardiserede containere
+- `StyledDropdown` - Dropdown (arver fra StyledTextField)
+- `StyledIntegerField` - Heltal med min/max validering (tømmer 0-værdier)
+- `StyledAmountField` - Beløbsfelt med dansk tusindtalsseparator og 2 decimaler
+- `StyledPercentField` - Procentfelt med 2 decimaler
+- `ContentBox` - Standardiserede containere (1000px bredde, 20px border-radius)
 
 ### Dato-konfiguration
 Alt relateret til datoer bruger `src/config/dateRanges.js`:
@@ -64,7 +67,10 @@ Alt relateret til datoer bruger `src/config/dateRanges.js`:
 import { MIN_SKADESDATO, MAX_YEAR, TODAY } from '../../config/dateRanges';
 ```
 
-**Årlig opdatering**: Kun `MAX_YEAR` i `dateRanges.js` skal ændres én gang om året.
+**Årlig opdatering**:
+1. Opdater `MAX_YEAR` i `dateRanges.js`
+2. Tilføj nye rentesatser i `src/data/interestRates.js`
+3. Tilføj nye lovregulerede satser i `src/data/regulationRates.js`
 
 ### Tab-navigation
 `Container.jsx` fanger Tab/Shift+Tab og holder fokus inden for indholdsvinduet (cirkulær navigation).

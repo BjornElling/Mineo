@@ -2,7 +2,7 @@
 
 Dette dokument indeholder **komplet kontekst** om MINEO-projektet til brug i fremtidige AI-samtaler.
 
-**Sidst opdateret**: 2025-11-12
+**Sidst opdateret**: 2025-11-15
 **Version**: 0.1.0 (MVP Under udvikling)
 
 ---
@@ -28,23 +28,21 @@ MINEO er en moderne React-baseret web-applikation til beregning af erstatningsop
 ### Core teknologier
 ```json
 {
-  "framework": "React 18.3+",
+  "framework": "React 18.3.1",
   "language": "JavaScript (ES6+)",
-  "build_tool": "Vite 7.2+",
-  "ui_framework": "Material-UI (MUI) v7.3+",
-  "state_management": "Zustand 5.0+",
-  "routing": "React Router v7.9+",
-  "date_handling": "dayjs + MUI X Date Pickers v8.17+",
-  "tables": "AG Grid Community Edition (MIT License)",
-  "pdf_generation": "jsPDF 3.0 + jspdf-autotable 5.0",
-  "package_manager": "npm"
+  "build_tool": "Vite 7.2.2 med SWC plugin",
+  "ui_framework": "Material-UI (MUI) v7.2.0",
+  "routing": "React Router v7.6.4",
+  "pdf_generation": "jsPDF 2.5.2 + jspdf-autotable 3.8.4",
+  "package_manager": "npm",
+  "styling": "Emotion (CSS-in-JS) + Ubuntu font fra Google Fonts"
 }
 ```
 
 ### Alle dependencies er kommercielt-venlige
 - ✅ Alle har MIT eller kompatible open source licenser
-- ✅ AG Grid Community Edition (ikke Pro - ingen licens-gebyr)
 - ✅ Ingen proprietære dependencies
+- ✅ 100% open source stack
 
 ---
 
@@ -53,88 +51,91 @@ MINEO er en moderne React-baseret web-applikation til beregning af erstatningsop
 ```
 mineo/
 ├── public/
-│   └── assets/
-│       └── fonts/
-│           └── Ubuntu/
-│               ├── Ubuntu-Regular.ttf
-│               ├── Ubuntu-Medium.ttf
-│               ├── Ubuntu-Bold.ttf
-│               ├── Ubuntu-Italic.ttf
-│               ├── Ubuntu-MediumItalic.ttf
-│               └── Ubuntu-BoldItalic.ttf
+│   └── favicon.ico                       # Favicon
 │
 ├── src/
-│   ├── main.jsx                          # Vite entry point
-│   ├── App.jsx                           # Root component
-│   ├── index.css                         # Global CSS + font-faces
+│   ├── main.jsx                          # React Router entry point
+│   ├── App.jsx                           # Router configuration
 │   │
 │   ├── components/
 │   │   ├── common/
 │   │   │   └── ContentBox.jsx            # Standardiserede white box containere
 │   │   │
-│   │   ├── inputs/
-│   │   │   ├── StyledTextField.jsx       # Basis tekstfelt (auto-trim, moderne design)
+│   │   ├── inputs/                       # Input-komponenter med centraliseret styling
+│   │   │   ├── StyledTextField.jsx       # Basis tekstfelt (auto-trim, floating errors)
+│   │   │   ├── StyledDateField.jsx       # Intelligent dato-felt (dd-mm-åååå)
 │   │   │   ├── StyledDropdown.jsx        # Dropdown med inherited styling
-│   │   │   └── StyledDateField.jsx       # Intelligent dato-felt
+│   │   │   ├── StyledIntegerField.jsx    # Heltal med min/max validering
+│   │   │   ├── StyledAmountField.jsx     # Beløbsfelt med dansk formatering
+│   │   │   └── StyledPercentField.jsx    # Procentfelt med 2 decimaler
 │   │   │
 │   │   ├── layout/
-│   │   │   ├── MainLayout.jsx            # Hoved-layout med routing
-│   │   │   ├── SideMenu.jsx              # Venstre sidemenu
-│   │   │   └── Container.jsx             # Content-område med tab-trap
+│   │   │   ├── MainLayout.jsx            # Hovedlayout med side-menu
+│   │   │   ├── SideMenu.jsx              # Navigationsmenu til venstre
+│   │   │   └── Container.jsx             # Indholdscontainer med tab-navigation
 │   │   │
 │   │   └── pages/
-│   │       └── Stamdata.jsx              # Stamdata-side (MVP)
+│   │       ├── Stamdata.jsx              # Grunddata (skadedato, skadevolder, etc.)
+│   │       ├── Satser.jsx                # Lovregulerede satser (tidl. Stor Tabel)
+│   │       ├── Renteberegning.jsx        # Renteberegning med tabs og tabeller
+│   │       └── Om.jsx                    # Om-siden med projektinfo
 │   │
 │   ├── config/
-│   │   └── dateRanges.js                 # Centraliseret dato-konfiguration
+│   │   ├── dateRanges.js                 # Centraliseret dato-konfiguration
+│   │   └── version.js                    # Auto-genereret versionsnummer
+│   │
+│   ├── data/                             # Datafiler med lovregulerede satser
+│   │   ├── interestRates.js              # Referencesatser og tillægssatser (2005-2025)
+│   │   └── regulationRates.js            # Lovregulerede satser (2008-2025)
+│   │
+│   ├── utils/
+│   │   └── pdfGenerator.js               # PDF-generering med jsPDF
 │   │
 │   └── styles/
-│       └── typography.css                # Centraliserede text-styles
+│       └── globals.css                   # Globale styles med Ubuntu font
+│
+├── scripts/
+│   └── generate-version.js               # Auto-versionering ved commit
 │
 ├── node_modules/                         # Dependencies (gitignored)
 │
 ├── .gitignore                            # Git ignore-fil
+├── .husky/                               # Git hooks (pre-commit)
+│   └── pre-commit                        # Kører auto-versionering
+│
 ├── index.html                            # HTML template
-├── vite.config.js                        # Vite konfiguration
+├── vite.config.js                        # Vite konfiguration med SWC
 ├── package.json                          # NPM dependencies
 ├── package-lock.json                     # NPM lockfile
 │
 ├── README.md                             # Projekt README
 ├── LICENSE                               # MIT License
-├── CONTRIBUTING.md                       # Bidragsguide
-├── CHANGELOG.md                          # Version history
-├── COPYRIGHT.txt                         # Copyright notice
+├── CLAUDE.md                             # AI instruktioner
 └── project_content.md                    # Dette dokument
 ```
 
-### Kommende struktur (endnu ikke implementeret)
+### Kommende struktur (planlagt for fremtidige versioner)
 ```
 src/
-├── hooks/                                # Custom React hooks
+├── hooks/                                # Custom React hooks (planlagt)
 │   ├── useStorTabel.js
 │   ├── useBeregninger.js
 │   ├── useGemHent.js
 │   └── useAutoSave.js
 │
-├── utils/                                # Utility functions
-│   ├── beregninger/
+├── utils/                                # Utility functions (delvist implementeret)
+│   ├── pdfGenerator.js                   # ✅ Implementeret
+│   ├── beregninger/                      # Planlagt
 │   │   ├── aarsloen.js
 │   │   ├── erhvervsevnetab.js
 │   │   └── rente.js
-│   ├── formatering.js
-│   ├── validering.js
-│   └── dateUtils.js
+│   ├── formatering.js                    # Planlagt
+│   ├── validering.js                     # Planlagt
+│   └── dateUtils.js                      # Planlagt
 │
-├── data/                                 # Statisk data
-│   ├── regulationRates.js
-│   └── constants.js
-│
-└── store/                                # Zustand state management
+└── store/                                # State management (hvis nødvendigt)
     ├── index.js
     └── slices/
-        ├── globalSlice.js
-        ├── aarsLoenSlice.js
-        └── renteSlice.js
 ```
 
 ---
@@ -142,11 +143,11 @@ src/
 ## 🎨 DESIGN-SYSTEM OG KOMPONENTER
 
 ### Centraliserede komponenter
-Alle UI-komponenter skal bruge de centraliserede versioner for konsistent styling:
+Alle UI-komponenter skal bruge de centraliserede versioner for konsistent styling.
 
-#### StyledTextField
+#### StyledTextField (basis komponent)
 ```javascript
-import StyledTextField from '@/components/inputs/StyledTextField';
+import StyledTextField from '../inputs/StyledTextField';
 
 <StyledTextField
   value={value}
@@ -157,21 +158,109 @@ import StyledTextField from '@/components/inputs/StyledTextField';
 ```
 
 **Features**:
-- Auto-trim ved blur
+- Auto-trim ved blur (fjerner mellemrum før/efter)
 - Placeholder forsvinder ved fokus
+- Floating error messages (absolut positioneret, påvirker ikke layout)
 - Moderne, fladt design med afrundede hjørner (10px)
-- Konsistent styling på tværs af app
+- Konsistent styling på tværs af hele appen
+- Basis for alle andre input-komponenter
+
+#### StyledDateField
+```javascript
+import StyledDateField from '../inputs/StyledDateField';
+
+<StyledDateField
+  value={dato}
+  onChange={(e) => setDato(e.target.value)}
+  minDate="2005-01-01"
+  maxDate="2025-12-31"
+  width={160}
+/>
+```
+
+**Features**:
+- Format: dd-mm-åååå (dansk dato-format)
+- Accepterer separatorer: - . : mellemrum (konverteres automatisk til -)
+- Auto-padding: "1-1-1" → "01-01-1" når separator indtastes
+- Intelligent år-fortolkning ved blur:
+  - 1 ciffer → 200x (f.eks. "5" → 2005)
+  - 2 cifre → smart fortolkning (f.eks. "24" → 2024, "95" → 1995)
+  - 3 cifre → fejl (ugyldig)
+  - 4 cifre → bruges direkte
+- Real-time validering:
+  - Dag: 1-31 (afhængigt af måned)
+  - Måned: 1-12
+  - Skudår-logik for februar
+  - Min/max dato-interval
+- Floating error messages (påvirker ikke layout)
+- Rød kant ved fejl (både under indtastning og ved blur)
+
+#### StyledIntegerField
+```javascript
+import StyledIntegerField from '../inputs/StyledIntegerField';
+
+<StyledIntegerField
+  value={value}
+  onChange={(e) => setValue(e.target.value)}
+  minValue={1}
+  maxValue={100}
+  width={120}
+  placeholder="1-100"
+/>
+```
+
+**Features**:
+- Accepterer kun tal (0-9)
+- Min/max validering med fejlmeddelelse
+- Tømmer automatisk værdien 0 ved blur
+- Floating error message ved out-of-range
+
+#### StyledAmountField
+```javascript
+import StyledAmountField from '../inputs/StyledAmountField';
+
+<StyledAmountField
+  value={value}
+  onChange={(e) => setValue(e.target.value)}
+  width={160}
+  placeholder="0,00"
+/>
+```
+
+**Features**:
+- Dansk formatering: tusindtalsseparator (.) og komma (,) decimalseparator
+- Maksimalt 2 decimaler (hård afskæring, ingen afrunding)
+- Auto-formatering ved blur: "1234,5" → "1.234,50"
+- Fjerner 0 og negative værdier ved blur
+- Kun positive beløb tilladt
+
+#### StyledPercentField
+```javascript
+import StyledPercentField from '../inputs/StyledPercentField';
+
+<StyledPercentField
+  value={value}
+  onChange={(e) => setValue(e.target.value)}
+  width={120}
+  placeholder="0,00"
+/>
+```
+
+**Features**:
+- Maksimalt 2 decimaler
+- Auto-formatering ved blur: "5,5" → "5,50"
+- Dansk decimal-separator (komma)
 
 #### StyledDropdown
 ```javascript
-import StyledDropdown from '@/components/inputs/StyledDropdown';
+import StyledDropdown from '../inputs/StyledDropdown';
 import { MenuItem } from '@mui/material';
 
 <StyledDropdown
   value={value}
   onChange={(e) => setValue(e.target.value)}
   placeholder="Vælg mulighed"
-  width={175}
+  width={200}
 >
   <MenuItem value="option1">Mulighed 1</MenuItem>
   <MenuItem value="option2">Mulighed 2</MenuItem>
@@ -183,41 +272,11 @@ import { MenuItem } from '@mui/material';
 - Placeholder vises indtil værdi vælges
 - Delete/Backspace sletter valgt værdi
 
-#### StyledDateField
-```javascript
-import StyledDateField from '@/components/inputs/StyledDateField';
-
-<StyledDateField
-  value={dato}
-  onChange={(e) => setDato(e.target.value)}
-  minDate={MIN_SKADESDATO}
-  maxDate={TODAY}
-  width={150}
-/>
-```
-
-**Features**:
-- Format: dd-mm-åååå
-- Accepterer separatorer: - . : mellemrum (konverterer til -)
-- Auto-padding: "1-1-1" → "01-01-1" når separator indtastes
-- Intelligent år-fortolkning ved blur:
-  - 1 ciffer → 200x (1 → 2001)
-  - 2 cifre → 19xx eller 20xx (intelligent baseret på nuværende år + 5)
-  - 3 cifre → fejl
-  - 4 cifre → brug som de er
-- Validering:
-  - Dag: 1-31
-  - Måned: 1-12
-  - Skudår-logik for februar
-  - Min/max dato-ranges
-- Fejlmeddelelser svæver absolut (påvirker ikke layout)
-- Rød kant ved fejl (også under indtastning)
-
 #### ContentBox
 ```javascript
-import ContentBox from '@/components/common/ContentBox';
+import ContentBox from '../common/ContentBox';
 
-<ContentBox width={800}>
+<ContentBox width={1000}>
   {/* Indhold */}
 </ContentBox>
 ```
@@ -225,17 +284,20 @@ import ContentBox from '@/components/common/ContentBox';
 **Features**:
 - Hvid baggrund (#ffffff)
 - Afrundede hjørner (20px)
-- Subtle shadow og border
+- Subtle shadow og border (rgba(0, 0, 0, 0.08))
 - Konsistent padding (40px 32px)
 - Konsistent margin (40px 0)
+- Standard bredde: 1000px (kan customizes)
 
 ### Typography
-Defineret i `src/styles/typography.css`:
+Defineret i `src/styles/globals.css`:
 
-- **Font**: Ubuntu (Regular 400, Medium 500, Bold 700)
-- **Page title**: 34px, font-weight 500, margin-bottom 40px
-- **Section header**: 18px, font-weight 500, margin-bottom 28px
-- **Field labels**: 14px, font-weight 500
+- **Font**: Ubuntu (Regular 400, Medium 500, Bold 700) via Google Fonts
+- **Page title** (.page-title): 34px, font-weight 500, margin-bottom 40px
+- **Section header** (.section-header): 18px, font-weight 500, margin-bottom 28px
+- **Field labels** (.field-label): 14px, font-weight 500
+- **Body text** (.body-text): 16px, line-height 1.6
+- **Body text secondary** (.body-text-secondary): 16px, color: rgba(0,0,0,0.7)
 
 ### Farver
 - **Background**: #f8f9fa (light gray)
@@ -269,11 +331,11 @@ export const dateRanges = {
 };
 ```
 
-**Årlig opdatering**:
-1. Åbn `src/config/dateRanges.js`
-2. Ændre: `export const MAX_YEAR = 2026;`
-3. Tilføj satser i `regulationRates.js`
-4. Færdig! Alle felter opdateret
+**Årlig opdatering** (kun 3 filer skal ændres):
+1. Åbn `src/config/dateRanges.js` → Opdater `MAX_YEAR`
+2. Åbn `src/data/interestRates.js` → Tilføj nye rentesatser
+3. Åbn `src/data/regulationRates.js` → Tilføj nye lovregulerede satser
+4. Færdig! Alle felter opdateret på tværs af hele appen
 
 ### 2. Tab-navigation trap
 **Problem**: Tab skulle ikke hoppe ud af indholdsvinduet til sidemenu.
@@ -305,11 +367,23 @@ export const dateRanges = {
 **Problem**: Styling var spredt over mange filer.
 
 **Løsning**:
-- StyledTextField som basis
-- StyledDropdown arver fra StyledTextField
+- StyledTextField som basis for alle input-komponenter
 - StyledDateField arver fra StyledTextField
+- StyledDropdown arver fra StyledTextField
+- StyledIntegerField arver fra StyledTextField
+- StyledAmountField arver fra StyledTextField
+- StyledPercentField arver fra StyledTextField
 - ContentBox for alle containere
 - Ændringer ét sted slår igennem overalt
+
+### 5. Auto-versionering via Git hooks
+**Problem**: Versionsnummer skulle opdateres manuelt.
+
+**Løsning**: Husky pre-commit hook
+- `scripts/generate-version.js` tæller git commits
+- Genererer `src/config/version.js` automatisk
+- Format: `0.0.X` hvor X er antal commits
+- Køres automatisk ved hver commit
 
 ---
 
@@ -433,24 +507,47 @@ npm run preview
 ## 🔮 ROADMAP
 
 ### Version 0.1.0 (MVP) - I gang
-- [x] Projekt setup med Vite
-- [x] MainLayout med SideMenu
-- [x] Centraliserede komponenter (StyledTextField, StyledDropdown, StyledDateField, ContentBox)
-- [x] Stamdata-side med intelligent dato-input
-- [x] Typography-system med Ubuntu font
-- [x] Tab-navigation trap
-- [x] Dokumentation (README, LICENSE, CONTRIBUTING, CHANGELOG)
-- [ ] Alle sider implementeret
-- [ ] Beregninger virker
-- [ ] PDF-generering
-- [ ] Gem/Hent
+- [x] Projekt setup med Vite + SWC
+- [x] React Router v7 integration
+- [x] MainLayout med SideMenu og routing
+- [x] Centraliserede input-komponenter:
+  - [x] StyledTextField (basis komponent)
+  - [x] StyledDateField (intelligent dato-håndtering)
+  - [x] StyledDropdown
+  - [x] StyledIntegerField (min/max validering)
+  - [x] StyledAmountField (dansk formatering)
+  - [x] StyledPercentField
+- [x] ContentBox komponent
+- [x] Floating error messages (absolut positionering)
+- [x] Tab-navigation trap i Container
+- [x] Typography-system med Ubuntu font (Google Fonts)
+- [x] Auto-versionering via Husky pre-commit hook
+- [x] Centraliseret dato-konfiguration (dateRanges.js)
+- [x] Datafiler (interestRates.js, regulationRates.js)
+- [x] Implementerede sider:
+  - [x] Stamdata (grunddata med felter)
+  - [x] Satser (lovregulerede satser)
+  - [x] Renteberegning (med floating tabs og tabeller)
+  - [x] Om (projektinformation)
+- [x] Dokumentation (README, LICENSE, CLAUDE.md, project_content.md)
+- [ ] PDF-generering (pdfGenerator.js eksisterer, men ikke integreret)
+- [ ] Gem/Hent funktionalitet
+- [ ] Beregninger (årsløn, erhvervsevnetab, rente)
 - [ ] Deploy til hosting
 
-### Version 0.2.0
+### Version 0.2.0 (Planlagt)
+- [ ] Fuldt funktionel beregningslogik
+- [ ] PDF-export af opgørelser
+- [ ] Gem/Hent til JSON-fil
+- [ ] Auto-save til localStorage
+- [ ] Print-funktion
+
+### Version 0.3.0 (Fremtid)
 - [ ] PWA offline support
-- [ ] Auto-save
 - [ ] Dark mode
 - [ ] Export til Excel
+- [ ] Import fra tidligere format (.eo)
+- [ ] Historik/log over beregninger
 
 ---
 
@@ -471,12 +568,17 @@ npm run preview
 - Spørg ved tvivl
 
 ### Vigtige detaljer
-- Vite (ikke Create React App)
-- MUI v7 (ikke v5)
-- Tab-trap i Container
-- Floating error messages
-- Ubuntu font
-- Dansk sprog i kode
+- Vite 7.2.2 med SWC plugin (IKKE Create React App)
+- MUI v7.2.0 (IKKE v5)
+- React Router v7.6.4
+- Alle input-komponenter arver fra StyledTextField
+- Tab-trap i Container.jsx (cirkulær navigation)
+- Floating error messages (absolut positionering)
+- Ubuntu font via Google Fonts
+- Dansk sprog i kode og kommentarer
+- Auto-versionering via Husky git hooks
+- Centraliseret dato-konfiguration i dateRanges.js
+- Årlig opdatering: kun 3 filer (dateRanges.js, interestRates.js, regulationRates.js)
 
 ---
 

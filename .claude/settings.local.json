@@ -16,7 +16,9 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(move IntegerField.jsx StyledIntegerField.jsx)",
-      "Bash(move AmountField.jsx StyledAmountField.jsx)"
+      "Bash(move AmountField.jsx StyledAmountField.jsx)",
+      "Bash(del \"c:\\Users\\bjell\\Mineo\\CONTRIBUTING.md\")",
+      "Bash(del \"c:\\Users\\bjell\\Mineo\\CHANGELOG.md\")"
     ],
     "deny": [],
     "ask": []
