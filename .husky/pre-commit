@@ -1,16 +1,11 @@
 #!/usr/bin/env sh
+. "$(dirname "$0")/_/husky.sh"
 
-# Afbryd hooken ved første fejl
+# Stop på første fejl
 set -e
 
-# --- Generér versionsnummer ---
-echo "🔧 Genererer automatisk versionsnummer..."
+# Generér ny versionsfil
+node scripts/generate-version.js
 
-# Kør scriptet via npx (mere kompatibelt end 'node')
-npx node scripts/generate-version.js
-
-# --- Tilføj opdateret version.js ---
-echo "📝 Tilføjer version.js til commit..."
+# Tilføj filen igen til commit
 git add src/config/version.js
-
-echo "✅ Versionsfil opdateret og tilføjet til commit!"
