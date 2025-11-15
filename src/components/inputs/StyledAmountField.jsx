@@ -23,6 +23,7 @@ const StyledAmountField = React.forwardRef(({
   value = '',
   onChange,
   placeholder = '0,00',
+  sx,
   ...otherProps
 }, ref) => {
   const [internalValue, setInternalValue] = React.useState(value);
@@ -153,6 +154,13 @@ const StyledAmountField = React.forwardRef(({
       onBlur={handleBlur}
       placeholder={placeholder}
       width={width}
+      sx={{
+        '& .MuiInputBase-input': {
+          textAlign: 'right',
+          fontVariantNumeric: 'tabular-nums',
+        },
+        ...sx,
+      }}
       {...otherProps}
     />
   );

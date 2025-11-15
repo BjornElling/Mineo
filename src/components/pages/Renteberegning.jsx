@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   Box,
   Tabs,
@@ -31,60 +31,135 @@ const TAB_KEYS = {
 
 const ENHED_OPTIONS = [
   { value: 'dage', label: 'Dage' },
+  { value: 'uger', label: 'Uger' },
   { value: 'maaneder', label: 'Måneder' },
-  { value: 'aar', label: 'År' },
 ];
 
 const calculationSections = [
   {
     key: 'beregningsdato',
     title: 'Beregningsdato',
+    description: 'Angiv hvilken dato renten skal beregnes til.',
     fields: [
       {
         id: 'beregningsdato',
         label: 'Rente beregnes til og med',
         type: 'date',
-        width: 160,
+        width: 180,
         minDate: MIN_CALCULATION_DATE,
         maxDate: `${MAX_CALCULATION_YEAR}-12-31`,
-      },
-      {
-        id: 'testInteger',
-        label: 'Test heltal (1-100)',
-        type: 'integer',
-        width: 120,
-        minValue: 1,
-        maxValue: 100,
-      },
-      {
-        id: 'testAmount',
-        label: 'Test beløb',
-        type: 'amount',
-        width: 160,
-      },
-    ],
-  },
-  {
-    key: 'rentekrav',
-    title: 'Rentekrav',
-    description:
-      'Disse felter kommer til at svare til rentekrav-tabellen i det tidligere projekt. Indtastningerne er endnu ikke aktive.',
-    fields: [
-      { id: 'belob', label: 'Beløb', type: 'text', width: 240, placeholder: 'fx 75.000 kr.' },
-      { id: 'periodestart', label: 'Periodestart', type: 'date', width: 160 },
-      { id: 'periodeslut', label: 'Periodeslut', type: 'date', width: 160 },
-      { id: 'tillaegstid', label: 'Tillægstid (mdr.)', type: 'text', width: 140, placeholder: 'fx 3' },
-      {
-        id: 'enhed',
-        label: 'Enhed',
-        type: 'dropdown',
-        width: 200,
-        placeholder: 'Vælg enhed',
-        options: ENHED_OPTIONS,
       },
     ],
   },
 ];
+
+const rentekravInitialRow = {
+  belob: '',
+  renterFra: '',
+  tillaegstid: '',
+  enhed: 'dage',
+};
+
+const createDate = (year, monthIndex, day) => {
+  const date = new Date(year, monthIndex, day);
+  date.setFullYear(year);
+  return date;
+};
+
+const parseDanishDate = (value) => {
+  if (!value || typeof value !== 'string') {
+    return null;
+  }
+
+  const parts = value.split('-');
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  const [dayStr, monthStr, yearStr] = parts;
+  if (dayStr.length < 1 || monthStr.length < 1 || yearStr.length !== 4) {
+    return null;
+  }
+
+  const day = Number(dayStr);
+  const month = Number(monthStr);
+  const year = Number(yearStr);
+
+  if (
+    Number.isNaN(day) ||
+    Number.isNaN(month) ||
+    Number.isNaN(year) ||
+    day < 1 ||
+    month < 1 ||
+    month > 12
+  ) {
+    return null;
+  }
+
+  const date = createDate(year, month - 1, day);
+
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return null;
+  }
+
+  return date;
+};
+
+const addDays = (date, days) => {
+  const result = new Date(date.getTime());
+  result.setDate(result.getDate() + days);
+  return result;
+};
+
+const addMonths = (date, months) => {
+  if (!months) {
+    return new Date(date.getTime());
+  }
+
+  const day = date.getDate();
+  const targetMonth = date.getMonth() + months;
+  const targetYear = date.getFullYear() + Math.floor(targetMonth / 12);
+  const normalizedMonth = ((targetMonth % 12) + 12) % 12;
+
+  const result = createDate(targetYear, normalizedMonth, 1);
+  const daysInTargetMonth = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+  result.setDate(Math.min(day, daysInTargetMonth));
+
+  return result;
+};
+
+const formatDanishDate = (date) => {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
+const calculateActualInterestDate = (rowValues) => {
+  const baseDate = parseDanishDate(rowValues.renterFra);
+  if (!baseDate) {
+    return null;
+  }
+
+  const tillaeg = Number.parseInt(rowValues.tillaegstid, 10);
+  const extra = Number.isNaN(tillaeg) ? 0 : tillaeg;
+  let result = baseDate;
+
+  switch (rowValues.enhed) {
+    case 'uger':
+      result = addDays(baseDate, extra * 7);
+      break;
+    case 'maaneder':
+      result = addMonths(baseDate, extra);
+      break;
+    case 'dage':
+    default:
+      result = addDays(baseDate, extra);
+      break;
+  }
+
+  return formatDanishDate(result);
+};
 
 const technicalAssumptions = [
   'Rente beregnes i henhold til rentelovens § 5',
@@ -93,19 +168,10 @@ const technicalAssumptions = [
   'Der beregnes ikke renters rente',
 ];
 
-const createInitialFormValues = () => {
-  const defaults = {};
-  calculationSections.forEach((section) => {
-    section.fields.forEach((field) => {
-      defaults[field.id] = '';
-    });
-  });
-  return defaults;
-};
-
 const Renteberegning = React.memo(() => {
   const [activeTab, setActiveTab] = React.useState(TAB_KEYS.CALCULATION);
-  const [formValues, setFormValues] = React.useState(() => createInitialFormValues());
+  const [formValues, setFormValues] = React.useState(() => ({ beregningsdato: '' }));
+  const [rentekravRow, setRentekravRow] = React.useState(() => ({ ...rentekravInitialRow }));
 
   const handleTabChange = React.useCallback((_, value) => {
     setActiveTab(value);
@@ -115,6 +181,14 @@ const Renteberegning = React.memo(() => {
     (fieldId) => (event) => {
       const value = event?.target?.value ?? '';
       setFormValues((prev) => ({ ...prev, [fieldId]: value }));
+    },
+    []
+  );
+
+  const handleRentekravChange = React.useCallback(
+    (fieldId) => (event) => {
+      const value = event?.target?.value ?? '';
+      setRentekravRow((prev) => ({ ...prev, [fieldId]: value }));
     },
     []
   );
@@ -177,7 +251,12 @@ const Renteberegning = React.memo(() => {
       {activeTab === TAB_KEYS.RATES ? (
         <RatesTabContent />
       ) : (
-        <CalculationTabContent formValues={formValues} onFieldChange={handleFieldChange} />
+        <CalculationTabContent
+          formValues={formValues}
+          onFieldChange={handleFieldChange}
+          rentekravRow={rentekravRow}
+          onRentekravChange={handleRentekravChange}
+        />
       )}
     </Box>
   );
@@ -215,12 +294,12 @@ const RatesTabContent = React.memo(() => (
   </Box>
 ));
 
-const CalculationTabContent = React.memo(({ formValues, onFieldChange }) => (
+const CalculationTabContent = React.memo(({ formValues, onFieldChange, rentekravRow, onRentekravChange }) => (
   <Box>
     {calculationSections.map((section) => (
       <ContentBox key={section.key}>
         <SectionHeader>{section.title}</SectionHeader>
-        <SectionDescription>{section.description}</SectionDescription>
+        {section.description && <SectionDescription>{section.description}</SectionDescription>}
         {section.fields.map((field) => (
           <FieldRow key={field.id} label={field.label}>
             {renderFieldInput({
@@ -232,6 +311,8 @@ const CalculationTabContent = React.memo(({ formValues, onFieldChange }) => (
         ))}
       </ContentBox>
     ))}
+
+    <BeregnetRenteSection rowValues={rentekravRow} onRowChange={onRentekravChange} />
 
     <ContentBox>
       <SectionHeader>Beregningstekniske forudsætninger</SectionHeader>
@@ -263,11 +344,21 @@ const renderFieldInput = ({ field, value, onChange }) => {
       <StyledDateField
         value={value}
         onChange={onChange}
-        width={field.width}
-        placeholder={field.placeholder || 'dd-mm-åååå'}
         minDate={field.minDate}
         maxDate={field.maxDate}
       />
+    );
+  }
+
+  if (field.type === 'dropdown') {
+    return (
+      <StyledDropdown value={value} onChange={onChange} width={field.width} placeholder={field.placeholder}>
+        {field.options?.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </StyledDropdown>
     );
   }
 
@@ -295,41 +386,161 @@ const renderFieldInput = ({ field, value, onChange }) => {
     );
   }
 
-  if (field.type === 'dropdown') {
-    return (
-      <StyledDropdown value={value} onChange={onChange} width={field.width} placeholder={field.placeholder}>
-        {field.options?.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </StyledDropdown>
-    );
-  }
-
   return (
     <StyledTextField
       value={value}
       onChange={onChange}
       width={field.width}
       placeholder={field.placeholder}
-      multiline={field.multiline}
-      minRows={field.minRows}
     />
   );
 };
 
+const BeregnetRenteSection = ({ rowValues, onRowChange }) => (
+  <ContentBox>
+    <SectionHeader>Beregnet rente</SectionHeader>
+    <BeregnetRenteTable rowValues={rowValues} onRowChange={onRowChange} />
+  </ContentBox>
+);
+
+// =======================================================================
+// BeregnetRenteTable – RENSKRIVET SOM ÆGTE TABEL
+// Brug af MUI Table, TableRow og TableCell
+// Tillægstid ligger i én celle med flex layout
+// =======================================================================
+
+const BeregnetRenteTable = ({ rowValues, onRowChange }) => {
+  const actualInterestDate = React.useMemo(
+    () => calculateActualInterestDate(rowValues),
+    [rowValues]
+  );
+
+  return (
+    <Table
+      size="small"
+      sx={{
+        border: '1px solid #e5e7eb',
+        borderRadius: '16px',
+        overflow: 'hidden',
+        '& .MuiTableCell-root': {
+          fontSize: '0.9rem',
+          textAlign: 'center',
+        },
+        '& thead th': {
+          backgroundColor: '#f8fafc',
+          fontWeight: 600,
+          borderBottom: '1px solid #e5e7eb !important',
+        },
+      }}
+    >
+      {/* ------------------------------------------------------------
+         Tabel-header
+      ------------------------------------------------------------ */}
+      <TableHead>
+        <TableRow>
+          <TableCell>Fordring</TableCell>
+          <TableCell>Beløb</TableCell>
+          <TableCell>Renter fra</TableCell>
+          <TableCell>Evt. tillægstid</TableCell>
+          <TableCell>Rentedato</TableCell>
+          <TableCell>Beregnet rente</TableCell>
+          <TableCell>Specifikation</TableCell>
+        </TableRow>
+      </TableHead>
+
+      {/* ------------------------------------------------------------
+         Data-rækken (1 fordring)
+      ------------------------------------------------------------ */}
+      <TableBody>
+        <TableRow>
+          {/* Fordringsnummer */}
+          <TableCell>
+            <Typography sx={{ fontWeight: 600 }}>1</Typography>
+          </TableCell>
+
+          {/* Beløb */}
+          <TableCell>
+            <StyledAmountField
+              value={rowValues.belob}
+              onChange={onRowChange('belob')}
+              width={130}
+              placeholder="0,00 kr."
+            />
+          </TableCell>
+
+          {/* Renter fra */}
+          <TableCell>
+            <StyledDateField
+              value={rowValues.renterFra}
+              onChange={onRowChange('renterFra')}
+              minDate={MIN_CALCULATION_DATE}
+              maxDate={`${MAX_CALCULATION_YEAR}-12-31`}
+            />
+          </TableCell>
+
+          {/* Evt. tillægstid – NOTE: én celle med flex layout */}
+          <TableCell>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 1,
+              }}
+            >
+              <Typography sx={{ fontWeight: 600 }}>+</Typography>
+
+              <StyledIntegerField
+                value={rowValues.tillaegstid}
+                onChange={onRowChange('tillaegstid')}
+                width={48}
+                placeholder="0"
+                minValue={0}
+                maxValue={99}
+              />
+
+              <StyledDropdown
+                value={rowValues.enhed}
+                onChange={onRowChange('enhed')}
+                width={130}
+              >
+                {ENHED_OPTIONS.map((o) => (
+                  <MenuItem key={o.value} value={o.value}>
+                    {o.label}
+                  </MenuItem>
+                ))}
+              </StyledDropdown>
+            </Box>
+          </TableCell>
+
+          {/* Rentedato */}
+          <TableCell>
+            <Typography sx={{ color: 'var(--color-text-secondary)' }}>
+              {actualInterestDate || '--'}
+            </Typography>
+          </TableCell>
+
+          {/* Beregnet rente */}
+          <TableCell>
+            <Typography sx={{ color: 'var(--color-text-secondary)' }}>
+              0,00 kr.
+            </Typography>
+          </TableCell>
+
+          {/* Specifikation */}
+          <TableCell>
+            <Typography sx={{ color: 'var(--color-text-secondary)' }}>
+              -
+            </Typography>
+          </TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
+  );
+};
+
 const TechnicalAssumptionsList = ({ items }) => (
-  <Box
-    component="ul"
-    sx={{
-      margin: 0,
-      paddingLeft: '20px',
-      color: 'var(--color-text-primary)',
-      fontSize: '16px',
-      lineHeight: 1.6,
-    }}
-  >
+  <Box component="ul" sx={{ margin: 0, paddingLeft: '20px', color: 'var(--color-text-primary)', lineHeight: 1.6 }}>
     {items.map((item) => (
       <Box component="li" key={item} sx={{ marginBottom: '8px' }}>
         {item}
@@ -369,7 +580,9 @@ const InterestRatesTable = ({ rows }) => (
       <TableHead>
         <TableRow>
           <TableCell>Rentedato</TableCell>
-          <TableCell align="right" sx={{ paddingRight: '60px !important' }}>Sats</TableCell>
+          <TableCell align="right" sx={{ paddingRight: '60px !important' }}>
+            Sats
+          </TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -389,3 +602,16 @@ RatesTabContent.displayName = 'RatesTabContent';
 CalculationTabContent.displayName = 'CalculationTabContent';
 
 export default Renteberegning;
+
+
+
+
+
+
+
+
+
+
+
+
+

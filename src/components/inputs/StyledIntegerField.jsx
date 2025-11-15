@@ -26,10 +26,17 @@ const StyledIntegerField = React.forwardRef(({
   minValue,
   maxValue,
   placeholder = '',
+  sx,
   ...otherProps
 }, ref) => {
   const [errorState, setErrorState] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState('');
+  const maxDigits = React.useMemo(() => {
+    if (typeof maxValue === 'number') {
+      return Math.abs(maxValue).toString().length;
+    }
+    return null;
+  }, [maxValue]);
 
   // Valider værdi mod min/max
   const validateValue = (val) => {
@@ -72,6 +79,11 @@ const StyledIntegerField = React.forwardRef(({
 
     // Tillad kun cifre (0-9)
     input = input.replace(/[^0-9]/g, '');
+
+    // Begræns antal cifre baseret på maxValue
+    if (maxDigits !== null && input.length > maxDigits) {
+      input = input.slice(0, maxDigits);
+    }
 
     if (onChange) {
       const syntheticEvent = {
@@ -119,6 +131,12 @@ const StyledIntegerField = React.forwardRef(({
       width={width}
       error={errorState}
       helperText={errorMessage}
+      sx={{
+        '& .MuiInputBase-input': {
+          textAlign: 'center',
+        },
+        ...sx,
+      }}
       {...otherProps}
     />
   );

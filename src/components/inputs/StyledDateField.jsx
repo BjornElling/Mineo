@@ -30,6 +30,7 @@ const StyledDateField = React.forwardRef(({
   maxDate,
   error = false,
   helperText = '',
+  sx,
   ...otherProps
 }, ref) => {
   const [internalValue, setInternalValue] = React.useState(value);
@@ -86,19 +87,34 @@ const StyledDateField = React.forwardRef(({
     return null;
   };
 
+  const createDate = (year, monthIndex, day) => {
+    const date = new Date(year, monthIndex, day);
+    date.setFullYear(year); // Sikrer korrekt år også for 0-99
+    return date;
+  };
+
+  const parseISODate = (isoDate) => {
+    if (!isoDate) return null;
+    const [year, month, day] = isoDate.split('-').map(Number);
+    return createDate(year, month - 1, day);
+  };
+
   // Valider mod min/max datoer
   const validateDateRange = (dateStr) => {
     if (!dateStr || dateStr.length < 10) return true; // Ikke komplet endnu
 
     const [day, month, year] = dateStr.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
+    const date = createDate(year, month - 1, day);
 
-    if (minDate && maxDate) {
-      const min = new Date(minDate);
-      const max = new Date(maxDate);
-      if (date < min || date > max) {
-        return `Dato skal være mellem ${formatISOToDanish(minDate)} og ${formatISOToDanish(maxDate)}`;
-      }
+    const min = parseISODate(minDate);
+    const max = parseISODate(maxDate);
+
+    if (min && date < min) {
+      return `Dato skal være fra ${formatISOToDanish(minDate)} og frem`;
+    }
+
+    if (max && date > max) {
+      return `Dato skal være senest ${formatISOToDanish(maxDate)}`;
     }
 
     return true;
@@ -179,6 +195,11 @@ const StyledDateField = React.forwardRef(({
   // Håndter input-ændringer
   const handleChange = (e) => {
     let input = e.target.value;
+    const inputType = e.nativeEvent?.inputType || '';
+    const isDeleting =
+      inputType === 'deleteContentBackward' ||
+      inputType === 'deleteContentForward' ||
+      inputType === 'deleteContent';
 
     // Erstat alle ikke-tal med bindestreg
     input = input.replace(/\D/g, '-');
@@ -196,8 +217,8 @@ const StyledDateField = React.forwardRef(({
     // Håndter dag (dd)
     if (parts[0]) {
       let day = parts[0].slice(0, 2);
-      // Hvis der er indtastet en separator efter enkelt ciffer, pad med 0
-      if (parts.length > 1 && day.length === 1) {
+      // Hvis der er indtastet en separator efter enkelt ciffer, pad med 0, men ikke mens der slettes
+      if (!isDeleting && parts.length > 1 && day.length === 1) {
         day = day.padStart(2, '0');
       }
       formatted = day;
@@ -207,7 +228,7 @@ const StyledDateField = React.forwardRef(({
     if (parts.length > 1) {
       let month = parts[1].slice(0, 2);
       // Hvis der er indtastet en separator efter enkelt ciffer, pad med 0
-      if (parts.length > 2 && month.length === 1) {
+      if (!isDeleting && parts.length > 2 && month.length === 1) {
         month = month.padStart(2, '0');
       }
       formatted += '-' + month;
@@ -318,6 +339,12 @@ const StyledDateField = React.forwardRef(({
       width={width}
       error={error || errorState}
       helperText={helperText || errorMessage}
+      sx={{
+        '& .MuiInputBase-input': {
+          textAlign: 'center',
+        },
+        ...sx,
+      }}
       {...otherProps}
     />
   );

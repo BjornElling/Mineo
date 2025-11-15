@@ -167,7 +167,6 @@ const Stamdata = React.memo(() => {
               onChange={(e) => setSkadesdato(e.target.value)}
               minDate={MIN_SKADESDATO}
               maxDate={TODAY}
-              width={120}
             />
           </Box>
         </ContentBox>
