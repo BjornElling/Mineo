@@ -1,5 +1,16 @@
-# Generer nyt versionsnummer (inkluderer den kommende commit)
-node scripts/generate-version.js
+#!/usr/bin/env sh
 
-# Tilføj den opdaterede version.js til commit
+# Afbryd hooken ved første fejl
+set -e
+
+# --- Generér versionsnummer ---
+echo "🔧 Genererer automatisk versionsnummer..."
+
+# Kør scriptet via npx (mere kompatibelt end 'node')
+npx node scripts/generate-version.js
+
+# --- Tilføj opdateret version.js ---
+echo "📝 Tilføjer version.js til commit..."
 git add src/config/version.js
+
+echo "✅ Versionsfil opdateret og tilføjet til commit!"

@@ -1,95 +1,78 @@
 #!/usr/bin/env node
 
 /**
- * Version Generator Script
- *
- * Genererer automatisk versionsnummer baseret på git commit history.
- * Format: yyyy.mm.build hvor:
- * - yyyy: År for seneste commit
- * - mm: Måned for seneste commit
- * - build: Totalt antal commits (kontinuerligt stigende)
- *
- * Køres automatisk ved hver commit via git pre-commit hook.
+ * Automatisk versionsgenerator
+ * Format: YYYY.MM.BUILD
  */
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+const { execSync } = require("child_process");
+const fs = require("fs");
+const path = require("path");
 
-const VERSION_FILE = path.join(__dirname, '../src/config/version.js');
-const FALLBACK_VERSION = '0.0.0-dev';
+const VERSION_FILE = path.join(__dirname, "../src/config/version.js");
+const FALLBACK_VERSION = "0.0.0-dev";
 
-/**
- * Kør git kommando og returner output
- */
-function runGitCommand(command) {
+/** Hjælpefunktion til sikre git-kald */
+function run(command) {
   try {
-    return execSync(command, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
-  } catch (error) {
+    return execSync(command, { encoding: "utf8" }).trim();
+  } catch {
     return null;
   }
 }
 
-/**
- * Generer versionsnummer fra git
- */
+/** Generér version baseret på git */
 function generateVersion() {
-  // Tjek om vi er i et git repository
-  const isGitRepo = runGitCommand('git rev-parse --is-inside-work-tree');
-  if (!isGitRepo) {
-    console.warn('⚠️  Not in a git repository. Using fallback version.');
+  // Er vi i et git repo?
+  if (!run("git rev-parse --is-inside-work-tree")) {
+    console.warn("⚠️ Ikke i et git repository. Bruger fallback-version.");
     return FALLBACK_VERSION;
   }
 
-  // Hent totalt antal commits (build number)
-  // Tilføj 1 fordi vi er i pre-commit hook - denne commit er ikke talt endnu
-  const currentCount = runGitCommand('git rev-list --count HEAD');
-  if (!currentCount) {
-    console.warn('⚠️  Could not get commit count. Using fallback version.');
-    return FALLBACK_VERSION;
-  }
-  const buildNumber = parseInt(currentCount) + 1;
-
-  // Hent dato for seneste commit
-  const commitDate = runGitCommand('git log -1 --format=%cd --date=format:%Y.%m');
-  if (!commitDate) {
-    console.warn('⚠️  Could not get commit date. Using fallback version.');
+  // Har vi overhovedet commits?
+  const hasCommits = run("git rev-parse HEAD");
+  if (!hasCommits) {
+    console.warn("⚠️ Ingen commits endnu. Bruger fallback-version.");
     return FALLBACK_VERSION;
   }
 
-  // Generer version: yyyy.mm.build
+  // Et samlet kald for performance
+  const commitDate = run("git log -1 --format=%cd --date=format:%Y.%m");
+  const commitCount = run("git rev-list --count HEAD");
+
+  if (!commitDate || !commitCount) {
+    console.warn("⚠️ Kunne ikke hente git metadata. Bruger fallback-version.");
+    return FALLBACK_VERSION;
+  }
+
+  const buildNumber = parseInt(commitCount, 10) + 1;
   return `${commitDate}.${buildNumber}`;
 }
 
-/**
- * Opdater version.js fil
- */
+/** Opdater version.js */
 function updateVersionFile(version) {
   const buildDate = new Date().toISOString();
 
   const content = `/**
- * Version Configuration
+ * Version Configuration (autogenereret)
  *
- * Dette fil genereres automatisk ved hver commit via git pre-commit hook.
- * Format: yyyy.mm.build hvor build er totalt antal commits.
- *
- * Redigér IKKE denne fil manuelt!
+ * Redigér IKKE filen manuelt.
+ * Format: YYYY.MM.BUILD
  */
 
 export const VERSION = '${version}';
 export const BUILD_DATE = '${buildDate}';
 `;
 
-  fs.writeFileSync(VERSION_FILE, content, 'utf8');
-  console.log(`✅ Version updated to: ${version}`);
+  try {
+    fs.writeFileSync(VERSION_FILE, content, "utf8");
+    console.log(`✅ Version updated to: ${version}`);
+  } catch (err) {
+    console.error("❌ Kunne ikke skrive til version.js:", err.message);
+    process.exit(1);
+  }
 }
 
-// Main execution
-try {
-  const version = generateVersion();
-  updateVersionFile(version);
-  process.exit(0);
-} catch (error) {
-  console.error('❌ Error generating version:', error.message);
-  process.exit(1);
-}
+// Programflow
+const version = generateVersion();
+updateVersionFile(version);
