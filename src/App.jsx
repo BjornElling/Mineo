@@ -4,6 +4,7 @@ import { ThemeProvider, createTheme } from '@mui/material';
 import MainLayout from './components/layout/MainLayout';
 import Stamdata from './components/pages/Stamdata';
 import Satser from './components/pages/Satser';
+import Renteberegning from './components/pages/Renteberegning';
 import Om from './components/pages/Om';
 
 const theme = createTheme({
@@ -39,6 +40,15 @@ const SatserPage = React.memo(() => (
 ));
 
 /**
+ * Renteberegning page wrapper component
+ */
+const RenteberegningPage = React.memo(() => (
+  <MainLayout>
+    <Renteberegning />
+  </MainLayout>
+));
+
+/**
  * Om page wrapper component
  */
 const OmPage = React.memo(() => (
@@ -58,6 +68,7 @@ function App() {
           <Route path="/" element={<Navigate to="/stamdata" replace />} />
           <Route path="/stamdata" element={<StamdataPage />} />
           <Route path="/satser" element={<SatserPage />} />
+          <Route path="/renteberegning" element={<RenteberegningPage />} />
           <Route path="/om" element={<OmPage />} />
           <Route
             path="*"

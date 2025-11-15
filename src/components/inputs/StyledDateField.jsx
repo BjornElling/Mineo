@@ -93,17 +93,11 @@ const StyledDateField = React.forwardRef(({
     const [day, month, year] = dateStr.split('-').map(Number);
     const date = new Date(year, month - 1, day);
 
-    if (minDate) {
+    if (minDate && maxDate) {
       const min = new Date(minDate);
-      if (date < min) {
-        return `Dato må ikke være før ${formatISOToDanish(minDate)}`;
-      }
-    }
-
-    if (maxDate) {
       const max = new Date(maxDate);
-      if (date > max) {
-        return `Dato må ikke være efter ${formatISOToDanish(maxDate)}`;
+      if (date < min || date > max) {
+        return `Dato skal være mellem ${formatISOToDanish(minDate)} og ${formatISOToDanish(maxDate)}`;
       }
     }
 
@@ -116,6 +110,25 @@ const StyledDateField = React.forwardRef(({
     return `${day.padStart(2, '0')}-${month.padStart(2, '0')}-${year}`;
   };
 
+  // Hjælpefunktion til at tjekke om en dato er formatmæssigt gyldig
+  const isDateFormatValid = (day, month, year) => {
+    const dayNum = parseInt(day, 10);
+    const monthNum = parseInt(month, 10);
+
+    // Grundlæggende validering af dag og måned
+    if (dayNum < 1 || dayNum > 31) return false;
+    if (monthNum < 1 || monthNum > 12) return false;
+
+    // Hvis vi har et år, tjek med det specifikke år
+    if (year && year.length === 4) {
+      const yearNum = parseInt(year, 10);
+      return isValidDate(dayNum, monthNum, yearNum);
+    }
+
+    // Ellers tjek med et skudår for at tillade maksimale dage
+    return isValidDate(dayNum, monthNum, 2024);
+  };
+
   // Central valideringsfunktion
   const validateDate = (dateStr) => {
     const parts = dateStr.split('-');
@@ -123,53 +136,33 @@ const StyledDateField = React.forwardRef(({
     const month = parts[1] || '';
     const year = parts[2] || '';
 
-    // Tjek dd hvis 2 cifre er indtastet
-    if (day.length === 2) {
-      const dayNum = parseInt(day, 10);
-      if (dayNum < 1 || dayNum > 31) {
-        setErrorState(true);
-        setErrorMessage('Dag skal være mellem 1 og 31');
-        return;
-      }
-    }
-
-    // Tjek mm hvis 2 cifre er indtastet
-    if (month.length === 2) {
-      const dayNum = parseInt(day, 10);
-      const monthNum = parseInt(month, 10);
-
-      if (monthNum < 1 || monthNum > 12) {
-        setErrorState(true);
-        setErrorMessage('Måned skal være mellem 1 og 12');
-        return;
-      }
-
-      // Tjek om dd er gyldig for denne måned (inkl. skudår-logik for februar)
-      if (day.length === 2) {
-        // Brug et vilkårligt skudår for at tjekke maksimale dage
-        const testYear = 2024; // Et skudår
-        if (!isValidDate(dayNum, monthNum, testYear)) {
-          setErrorState(true);
-          setErrorMessage('Ugyldig dato for denne måned');
-          return;
-        }
-      }
-    }
-
-    // Tjek åååå hvis 4 cifre er indtastet
-    if (year.length === 4 && day.length === 2 && month.length === 2) {
-      const dayNum = parseInt(day, 10);
-      const monthNum = parseInt(month, 10);
-      const yearNum = parseInt(year, 10);
-
-      // Tjek om dd-mm er gyldig for dette specifikke år
-      if (!isValidDate(dayNum, monthNum, yearNum)) {
+    // Tjek format hvis dag og måned er indtastet
+    if (day.length === 2 && month.length === 2) {
+      if (!isDateFormatValid(day, month, year)) {
         setErrorState(true);
         setErrorMessage('Ugyldig dato');
         return;
       }
+    } else if (day.length === 2) {
+      // Tjek kun dag
+      const dayNum = parseInt(day, 10);
+      if (dayNum < 1 || dayNum > 31) {
+        setErrorState(true);
+        setErrorMessage('Ugyldig dato');
+        return;
+      }
+    } else if (month.length === 2) {
+      // Tjek kun måned
+      const monthNum = parseInt(month, 10);
+      if (monthNum < 1 || monthNum > 12) {
+        setErrorState(true);
+        setErrorMessage('Ugyldig dato');
+        return;
+      }
+    }
 
-      // Tjek om datoen er inden for de tilladte fra- og til-datoer
+    // Tjek interval hvis komplet dato (dd-mm-åååå)
+    if (year.length === 4 && day.length === 2 && month.length === 2) {
       const rangeError = validateDateRange(dateStr);
       if (rangeError !== true) {
         setErrorState(true);
@@ -247,60 +240,72 @@ const StyledDateField = React.forwardRef(({
   const handleBlur = (e) => {
     const parts = internalValue.split('-');
 
-    // Kun fortolk år hvis alle dele er til stede
-    if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
-      // Pad dag og måned med foranstående 0 hvis nødvendigt
-      const day = parts[0].padStart(2, '0');
-      const month = parts[1].padStart(2, '0');
-      const year = parts[2];
-      let finalValue = `${day}-${month}-${year}`;
-
-      // Tjek om år har ugyldig længde (3 cifre er ikke tilladt)
-      if (year.length === 3) {
-        setErrorState(true);
-        setErrorMessage('Ugyldig dato');
-        return;
-      }
-
-      // Intelligent år-fortolkning kun for 1-2 cifre
-      if (year.length === 1 || year.length === 2) {
-        const interpretedYear = interpretYear(year);
-        if (interpretedYear !== null) {
-          finalValue = `${day}-${month}-${interpretedYear}`;
-          setInternalValue(finalValue);
-
-          if (onChange) {
-            const syntheticEvent = {
-              ...e,
-              target: {
-                ...e.target,
-                value: finalValue
-              }
-            };
-            onChange(syntheticEvent);
-          }
-        }
-      } else {
-        // Selv hvis året allerede er 4 cifre, skal vi stadig opdatere med paddede dag/måned
-        if (finalValue !== internalValue) {
-          setInternalValue(finalValue);
-
-          if (onChange) {
-            const syntheticEvent = {
-              ...e,
-              target: {
-                ...e.target,
-                value: finalValue
-              }
-            };
-            onChange(syntheticEvent);
-          }
-        }
-      }
-
-      // Kør validering på den endelige værdi
-      validateDate(finalValue);
+    // Hvis feltet er tomt, ryd fejl og afslut
+    if (!internalValue || internalValue.trim() === '') {
+      setErrorState(false);
+      setErrorMessage('');
+      return;
     }
+
+    // Hvis feltet indeholder noget, skal det være en komplet dato
+    if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) {
+      setErrorState(true);
+      setErrorMessage('Ugyldig dato');
+      return;
+    }
+
+    // Alle dele er til stede - fortsæt med formatering og validering
+    // Pad dag og måned med foranstående 0 hvis nødvendigt
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2];
+    let finalValue = `${day}-${month}-${year}`;
+
+    // Tjek om år har ugyldig længde (3 cifre er ikke tilladt)
+    if (year.length === 3) {
+      setErrorState(true);
+      setErrorMessage('Ugyldig dato');
+      return;
+    }
+
+    // Intelligent år-fortolkning kun for 1-2 cifre
+    if (year.length === 1 || year.length === 2) {
+      const interpretedYear = interpretYear(year);
+      if (interpretedYear !== null) {
+        finalValue = `${day}-${month}-${interpretedYear}`;
+        setInternalValue(finalValue);
+
+        if (onChange) {
+          const syntheticEvent = {
+            ...e,
+            target: {
+              ...e.target,
+              value: finalValue
+            }
+          };
+          onChange(syntheticEvent);
+        }
+      }
+    } else {
+      // Selv hvis året allerede er 4 cifre, skal vi stadig opdatere med paddede dag/måned
+      if (finalValue !== internalValue) {
+        setInternalValue(finalValue);
+
+        if (onChange) {
+          const syntheticEvent = {
+            ...e,
+            target: {
+              ...e.target,
+              value: finalValue
+            }
+          };
+          onChange(syntheticEvent);
+        }
+      }
+    }
+
+    // Kør validering på den endelige værdi
+    validateDate(finalValue);
   };
 
   return (

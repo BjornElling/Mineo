@@ -104,7 +104,7 @@ const StyledTextField = React.forwardRef(({
         },
         '& .MuiFormHelperText-root': {
           position: 'absolute',
-          bottom: '-20px',
+          bottom: '-17px',
           left: '0',
           margin: '0',
           whiteSpace: 'nowrap',

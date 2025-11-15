@@ -14,7 +14,9 @@
       "Bash(del .huskypost-commit)",
       "Bash(rm:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(move IntegerField.jsx StyledIntegerField.jsx)",
+      "Bash(move AmountField.jsx StyledAmountField.jsx)"
     ],
     "deny": [],
     "ask": []
