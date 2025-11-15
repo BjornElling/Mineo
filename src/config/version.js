@@ -7,5 +7,5 @@
  * Redigér IKKE denne fil manuelt!
  */
 
-export const VERSION = '2025.11.12';
-export const BUILD_DATE = '2025-11-15T12:24:46.169Z';
+export const VERSION = '2025.11.13';
+export const BUILD_DATE = '2025-11-15T12:38:23.910Z';
