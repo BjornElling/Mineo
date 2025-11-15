@@ -132,6 +132,7 @@ const Satser = React.memo(() => {
           {!harFejl && (
             <Box
               onClick={handleDownloadPdf}
+              tabIndex={-1}
               sx={{
                 width: '32px',
                 height: '32px',

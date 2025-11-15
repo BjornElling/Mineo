@@ -79,7 +79,21 @@ export const FormPersistenceProvider = ({ children }) => {
 export const useFormPersistence = () => {
   const context = React.useContext(FormPersistenceContext);
   if (!context) {
-    throw new Error('useFormPersistence skal bruges inden for en FormPersistenceProvider');
+    // Hvis context ikke er tilgængelig (f.eks. ved bfcache), genindlæs siden
+    console.warn('FormPersistenceContext ikke tilgængelig - genindlæser siden');
+
+    // Brug setTimeout for at sikre at fejlen ikke blokerer rendering
+    setTimeout(() => {
+      window.location.reload();
+    }, 0);
+
+    // Returner et dummy objekt for at undgå fejl mens siden genindlæses
+    return {
+      getPersistedData: () => null,
+      persistData: () => {},
+      clearPageData: () => {},
+      clearAllData: () => {},
+    };
   }
   return context;
 };

@@ -15,35 +15,46 @@ const Container = React.memo(({ children }) => {
   // Håndter tab-navigation og enter-navigation for at holde fokus inden for containeren
   const handleKeyDown = React.useCallback((e) => {
     // Håndter både Tab og Enter
-    if ((e.key !== 'Tab' && e.key !== 'Enter') || !containerRef.current) return;
+    if (e.key !== 'Tab' && e.key !== 'Enter') return;
+    if (!containerRef.current) return;
 
-    // Find alle fokuserbare elementer inden for containeren
-    const focusableElements = containerRef.current.querySelectorAll(
-      'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    );
+    // Find KUN input, select og textarea elementer (IKKE knapper, tabs, osv.)
+    const focusableElements = Array.from(
+      containerRef.current.querySelectorAll(
+        'input:not([disabled]):not([type="hidden"]):not([type="button"]), select:not([disabled]), textarea:not([disabled])'
+      )
+    ).filter((el) => {
+      // Filtrer elementer der ikke er synlige
+      const style = window.getComputedStyle(el);
+
+      // Tjek om det er en rigtig knap (BUTTON-tag)
+      const isButtonElement = el.tagName === 'BUTTON';
+
+      // MUI Select bruger input med role="button", så vi skal tillade input-elementer med button role
+      // men ekskludere faktiske button-elementer
+      const isInputWithButtonRole = el.tagName === 'INPUT' && el.getAttribute('role') === 'button';
+
+      return (
+        !isButtonElement &&
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        el.offsetParent !== null // Dette tjekker om elementet eller nogen forælder er skjult
+      );
+    });
 
     if (focusableElements.length === 0) return;
 
-    // Hvis der kun er ét inputfelt, lad Tab og Enter fjerne fokus
-    if (focusableElements.length === 1) {
-      if (e.key === 'Tab' || e.key === 'Enter') {
-        e.preventDefault();
-        document.activeElement.blur();
-      }
-      return;
-    }
-
     const firstElement = focusableElements[0];
     const lastElement = focusableElements[focusableElements.length - 1];
-    const currentIndex = Array.from(focusableElements).indexOf(document.activeElement);
+    const currentIndex = focusableElements.indexOf(document.activeElement);
 
     // Enter opfører sig som Tab (går til næste felt)
     if (e.key === 'Enter') {
       e.preventDefault();
 
       if (currentIndex === -1 || currentIndex === focusableElements.length - 1) {
-        // Hvis ikke fokuseret eller på sidste element, hop til første
-        firstElement.focus();
+        // Hvis ikke fokuseret eller på sidste element, blur fokus
+        document.activeElement.blur();
       } else {
         // Ellers hop til næste element
         focusableElements[currentIndex + 1].focus();
@@ -51,18 +62,32 @@ const Container = React.memo(({ children }) => {
       return;
     }
 
-    // Tab navigation
+    // Tab navigation - ALTID prevent default for at forhindre at forlade containeren
+    e.preventDefault();
+
     if (e.shiftKey) {
-      // Shift+Tab: Hvis på første element, hop til sidste
-      if (document.activeElement === firstElement) {
-        e.preventDefault();
+      // Shift+Tab - cirkulær navigation
+      if (currentIndex === -1) {
+        // Hvis intet er fokuseret, fokuser på sidste element
         lastElement.focus();
+      } else if (currentIndex === 0) {
+        // Hvis på første element, hop til sidste element (cirkulær)
+        lastElement.focus();
+      } else {
+        // Ellers hop til forrige element
+        focusableElements[currentIndex - 1].focus();
       }
     } else {
-      // Tab: Hvis på sidste element, hop til første
-      if (document.activeElement === lastElement) {
-        e.preventDefault();
+      // Tab - cirkulær navigation
+      if (currentIndex === -1) {
+        // Hvis intet er fokuseret, fokuser på første element
         firstElement.focus();
+      } else if (currentIndex === focusableElements.length - 1) {
+        // Hvis på sidste element, hop til første element (cirkulær)
+        firstElement.focus();
+      } else {
+        // Ellers hop til næste element
+        focusableElements[currentIndex + 1].focus();
       }
     }
   }, []);

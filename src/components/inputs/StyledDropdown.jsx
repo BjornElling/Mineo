@@ -27,9 +27,13 @@ const StyledDropdown = React.forwardRef(({
   placeholder = '',
   value,
   onChange,
+  onFocus,
   children,
+  sx,
   ...otherProps
 }, ref) => {
+  const [open, setOpen] = React.useState(false);
+
   // Håndter sletning af værdi via Backspace/Delete
   const handleKeyDown = React.useCallback((e) => {
     if ((e.key === 'Backspace' || e.key === 'Delete') && value) {
@@ -44,7 +48,29 @@ const StyledDropdown = React.forwardRef(({
         onChange(syntheticEvent);
       }
     }
+
+    // Åbn dropdown når Enter eller Space trykkes
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setOpen(true);
+    }
   }, [value, onChange]);
+
+  const handleFocus = React.useCallback((e) => {
+    // Åbn dropdown automatisk når den får fokus via Tab
+    setOpen(true);
+    if (onFocus) {
+      onFocus(e);
+    }
+  }, [onFocus]);
+
+  const handleClose = React.useCallback(() => {
+    setOpen(false);
+  }, []);
+
+  const handleOpen = React.useCallback(() => {
+    setOpen(true);
+  }, []);
 
   return (
     <StyledTextField
@@ -53,9 +79,13 @@ const StyledDropdown = React.forwardRef(({
       value={value}
       onChange={onChange}
       onKeyDown={handleKeyDown}
+      onFocus={handleFocus}
       displayEmpty
       width={width}
       SelectProps={{
+        open,
+        onClose: handleClose,
+        onOpen: handleOpen,
         displayEmpty: true,
         renderValue: (selected) => {
           if (!selected || selected === '') {
@@ -67,6 +97,24 @@ const StyledDropdown = React.forwardRef(({
           );
           return selectedChild ? selectedChild.props.children : selected;
         },
+      }}
+      sx={{
+        // Fokus-indikator for dropdown-felter - matcher almindelige input-felter
+        '& .MuiOutlinedInput-root.Mui-focused fieldset': {
+          borderColor: '#1976d2 !important',
+          borderWidth: '1px !important',
+        },
+        // Keyboard-fokus (Tab) via :has — moderne browsere
+        '& .MuiOutlinedInput-root:has(input:focus) fieldset': {
+          borderColor: '#1976d2 !important',
+          borderWidth: '1px !important',
+        },
+        // Fokus-indikator når dropdown er åben (klik eller keyboard)
+        '& .MuiOutlinedInput-root[aria-expanded="true"] fieldset': {
+          borderColor: '#1976d2 !important',
+          borderWidth: '1px !important',
+        },
+        ...sx,
       }}
       {...otherProps}
     >

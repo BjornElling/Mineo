@@ -118,6 +118,49 @@ const Om = React.memo(() => {
       </ContentBox>
 
       {/* ------------------------------------------------------ */}
+      {/* Persondata */}
+      {/* ------------------------------------------------------ */}
+      <ContentBox>
+        <SectionHeader>Persondata</SectionHeader>
+
+        <Typography className="field-label" sx={{ marginBottom: '16px' }}>
+          MINEO er udviklet som en client-side applikation i React. Dette betyder,
+          at al databehandling udelukkende finder sted i brugerens browser på
+          brugerens egen computer.
+        </Typography>
+
+        <Typography className="field-label" sx={{ marginBottom: '16px' }}>
+          Programmet kommunikerer ikke med nogen server, og der indsamles, gemmes
+          eller transmitteres ingen data - hverken persondata, brugsstatistik eller
+          anden information. De indtastede oplysninger forbliver alene på brugerens
+          computer og slettes automatisk, når browseren lukkes.
+        </Typography>
+
+        <Typography className="field-label">
+          Applikationen anvender sessionStorage til midlertidig lagring af formulardata
+          mellem sider i programmet, men disse data eksisterer udelukkende lokalt i
+          browserens hukommelse og forsvinder ved lukning af browseren.
+        </Typography>
+      </ContentBox>
+
+      {/* ------------------------------------------------------ */}
+      {/* Versionsinformation */}
+      {/* ------------------------------------------------------ */}
+      <ContentBox>
+        <SectionHeader>Teknisk</SectionHeader>
+
+        <Typography className="field-label" sx={{ marginBottom: '16px' }}>
+          MINEO er udviklet af en jurist, der ved mere om paragraffer end om koder.
+          Programmet er grundigt testet, men fejl kan forekomme. Sørg derfor altid
+          for at kontrollere beregningerne.
+        </Typography>
+
+        <Typography className="field-label">
+          <strong>Aktuel version:</strong> {VERSION}
+        </Typography>
+      </ContentBox>
+
+      {/* ------------------------------------------------------ */}
       {/* Kontakt */}
       {/* ------------------------------------------------------ */}
       <ContentBox>
@@ -177,23 +220,6 @@ const Om = React.memo(() => {
           </Box>
 
         </Box>
-      </ContentBox>
-
-      {/* ------------------------------------------------------ */}
-      {/* Versionsinformation */}
-      {/* ------------------------------------------------------ */}
-      <ContentBox>
-        <SectionHeader>Teknisk</SectionHeader>
-
-        <Typography className="field-label" sx={{ marginBottom: '16px' }}>
-          MINEO er udviklet af en jurist, der ved mere om paragraffer end om koder. 
-          Programmet er grundigt testet, men fejl kan forekomme. Sørg derfor altid 
-          for at kontrollere beregningerne.
-        </Typography>
-
-        <Typography className="field-label">
-          <strong>Aktuel version:</strong> {VERSION}
-        </Typography>
       </ContentBox>
 
     </Box>

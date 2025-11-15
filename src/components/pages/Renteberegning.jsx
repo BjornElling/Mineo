@@ -57,11 +57,24 @@ const calculationSections = [
 ];
 
 const rentekravInitialRow = {
+  id: null, // Vil blive sat til et unikt ID når rækken oprettes
   belob: '',
   renterFra: '',
   tillaegstid: '',
   enhed: 'dage',
   enhedSelected: false, // Holder styr på om brugeren har aktivt valgt en enhed
+};
+
+// Hjælpefunktion til at tjekke om en række er tom
+const isRowEmpty = (row) => {
+  return !row.belob && !row.renterFra && !row.tillaegstid;
+};
+
+// Hjælpefunktion til at generere unikt ID
+let rowIdCounter = 0;
+const generateRowId = () => {
+  rowIdCounter += 1;
+  return `row_${Date.now()}_${rowIdCounter}`;
 };
 
 const createDate = (year, monthIndex, day) => {
@@ -189,44 +202,47 @@ const Renteberegning = React.memo(() => {
   // Brug persisted form hook
   const { values: persistedValues, setValues: setPersistedValues } = usePersistedForm('renteberegning', {
     beregningsdato: '',
-    belob: '',
-    renterFra: '',
-    tillaegstid: '',
-    enhed: 'dage',
-    enhedSelected: false,
+    rentekravRows: [{ ...rentekravInitialRow, id: generateRowId() }],
+    activeTab: TAB_KEYS.CALCULATION,
   });
 
-  const [activeTab, setActiveTab] = React.useState(TAB_KEYS.CALCULATION);
+  const [activeTab, setActiveTab] = React.useState(persistedValues.activeTab || TAB_KEYS.CALCULATION);
   const [formValues, setFormValues] = React.useState(() => ({ beregningsdato: persistedValues.beregningsdato }));
-  const [rentekravRow, setRentekravRow] = React.useState(() => ({
-    belob: persistedValues.belob,
-    renterFra: persistedValues.renterFra,
-    tillaegstid: persistedValues.tillaegstid,
-    enhed: persistedValues.enhed,
-    enhedSelected: persistedValues.enhedSelected,
-  }));
+
+  // Initialiser rows - hvis der ikke er nogen, opret en tom række
+  const [rentekravRows, setRentekravRows] = React.useState(() => {
+    const rows = persistedValues.rentekravRows;
+    if (!rows || rows.length === 0) {
+      return [{ ...rentekravInitialRow, id: generateRowId() }];
+    }
+    // Sørg for at alle rækker har et ID
+    return rows.map(row => ({
+      ...row,
+      id: row.id || generateRowId()
+    }));
+  });
 
   // Committed værdier der kun opdateres ved onBlur
   const [committedFormValues, setCommittedFormValues] = React.useState(() => ({ beregningsdato: persistedValues.beregningsdato }));
-  const [committedRentekravRow, setCommittedRentekravRow] = React.useState(() => ({
-    belob: persistedValues.belob,
-    renterFra: persistedValues.renterFra,
-    tillaegstid: persistedValues.tillaegstid,
-    enhed: persistedValues.enhed,
-    enhedSelected: persistedValues.enhedSelected,
-  }));
+  const [committedRentekravRows, setCommittedRentekravRows] = React.useState(() => {
+    const rows = persistedValues.rentekravRows;
+    if (!rows || rows.length === 0) {
+      return [{ ...rentekravInitialRow, id: generateRowId() }];
+    }
+    return rows.map(row => ({
+      ...row,
+      id: row.id || generateRowId()
+    }));
+  });
 
   // Synkroniser med persistence når committed værdier ændres
   React.useEffect(() => {
     setPersistedValues({
       beregningsdato: committedFormValues.beregningsdato,
-      belob: committedRentekravRow.belob,
-      renterFra: committedRentekravRow.renterFra,
-      tillaegstid: committedRentekravRow.tillaegstid,
-      enhed: committedRentekravRow.enhed,
-      enhedSelected: committedRentekravRow.enhedSelected,
+      rentekravRows: committedRentekravRows,
+      activeTab: activeTab,
     });
-  }, [committedFormValues, committedRentekravRow, setPersistedValues]);
+  }, [committedFormValues, committedRentekravRows, activeTab, setPersistedValues]);
 
   const handleTabChange = React.useCallback((_, value) => {
     setActiveTab(value);
@@ -249,51 +265,84 @@ const Renteberegning = React.memo(() => {
     [formValues]
   );
 
+  // Funktion til automatisk håndtering af rækker
+  const manageRows = React.useCallback((rows) => {
+    let newRows = [...rows];
+
+    // Fjern tomme rækker (bortset fra den sidste)
+    newRows = newRows.filter((row, index) => {
+      const isEmpty = isRowEmpty(row);
+      const isLastRow = index === newRows.length - 1;
+      return !isEmpty || isLastRow;
+    });
+
+    // Sørg for at der altid er mindst én række
+    if (newRows.length === 0) {
+      newRows = [{ ...rentekravInitialRow, id: generateRowId() }];
+    }
+
+    // Tjek om den sidste række er tom - hvis ikke, tilføj en ny tom række
+    const lastRow = newRows[newRows.length - 1];
+    if (!isRowEmpty(lastRow)) {
+      newRows.push({ ...rentekravInitialRow, id: generateRowId() });
+    }
+
+    return newRows;
+  }, []);
+
   const handleRentekravChange = React.useCallback(
-    (fieldId) => (event) => {
+    (rowId, fieldId) => (event) => {
       const value = event?.target?.value ?? '';
 
-      // Specialhåndtering for dropdown (enhed)
-      if (fieldId === 'enhed') {
-        setRentekravRow((prev) => ({ ...prev, [fieldId]: value, enhedSelected: true }));
-        setCommittedRentekravRow((prev) => ({ ...prev, [fieldId]: value, enhedSelected: true }));
-      } else {
-        setRentekravRow((prev) => ({ ...prev, [fieldId]: value }));
-      }
+      setRentekravRows((prevRows) => {
+        const newRows = prevRows.map((row) => {
+          if (row.id !== rowId) return row;
+
+          // Specialhåndtering for dropdown (enhed)
+          if (fieldId === 'enhed') {
+            return { ...row, [fieldId]: value, enhedSelected: true };
+          }
+          return { ...row, [fieldId]: value };
+        });
+
+        return newRows;
+      });
     },
     []
   );
 
   const handleRentekravBlur = React.useCallback(
-    (fieldId) => (event) => {
+    (rowId, fieldId) => (event) => {
       // Brug værdien fra event hvis den findes (efter auto-formatering)
       const valueToCommit = event?.target?.value ?? '';
 
-      // Opdater først rentekravRow med den formaterede værdi
-      setRentekravRow((prev) => {
-        const newValue = { ...prev, [fieldId]: valueToCommit };
+      // Opdater først rentekravRows med den formaterede værdi
+      setRentekravRows((prevRows) => {
+        const newRows = prevRows.map((row) => {
+          if (row.id !== rowId) return row;
 
-        // Hvis brugeren indtaster tillægstid, marker at enhed er valgt
-        if (fieldId === 'tillaegstid' && valueToCommit && parseInt(valueToCommit, 10) > 0) {
-          newValue.enhedSelected = true;
-        }
+          const newValue = { ...row, [fieldId]: valueToCommit };
+
+          // Hvis brugeren indtaster tillægstid, marker at enhed er valgt
+          if (fieldId === 'tillaegstid' && valueToCommit && parseInt(valueToCommit, 10) > 0) {
+            newValue.enhedSelected = true;
+          }
+
+          return newValue;
+        });
+
+        // Kør row management på de opdaterede rows
+        const managedRows = manageRows(newRows);
 
         // Derefter commit værdien (via setTimeout for at sikre state er opdateret)
         setTimeout(() => {
-          setCommittedRentekravRow((prevCommitted) => {
-            const committedValue = { ...prevCommitted, [fieldId]: valueToCommit };
-            // Synkroniser enhedSelected til committed state
-            if (fieldId === 'tillaegstid' && valueToCommit && parseInt(valueToCommit, 10) > 0) {
-              committedValue.enhedSelected = true;
-            }
-            return committedValue;
-          });
+          setCommittedRentekravRows(managedRows);
         }, 0);
 
-        return newValue;
+        return managedRows;
       });
     },
-    []
+    [manageRows]
   );
 
   return (
@@ -358,11 +407,11 @@ const Renteberegning = React.memo(() => {
           formValues={formValues}
           onFieldChange={handleFieldChange}
           onFieldBlur={handleFieldBlur}
-          rentekravRow={rentekravRow}
+          rentekravRows={rentekravRows}
           onRentekravChange={handleRentekravChange}
           onRentekravBlur={handleRentekravBlur}
           committedFormValues={committedFormValues}
-          committedRentekravRow={committedRentekravRow}
+          committedRentekravRows={committedRentekravRows}
         />
       )}
     </Box>
@@ -405,11 +454,11 @@ const CalculationTabContent = React.memo(({
   formValues,
   onFieldChange,
   onFieldBlur,
-  rentekravRow,
+  rentekravRows,
   onRentekravChange,
   onRentekravBlur,
   committedFormValues,
-  committedRentekravRow
+  committedRentekravRows
 }) => (
   <Box>
     {calculationSections.map((section) => (
@@ -430,11 +479,11 @@ const CalculationTabContent = React.memo(({
     ))}
 
     <BeregnetRenteSection
-      rowValues={rentekravRow}
+      rows={rentekravRows}
       onRowChange={onRentekravChange}
       onRowBlur={onRentekravBlur}
       beregningsdato={committedFormValues.beregningsdato}
-      committedRowValues={committedRentekravRow}
+      committedRows={committedRentekravRows}
     />
 
     <ContentBox>
@@ -523,15 +572,15 @@ const renderFieldInput = ({ field, value, onChange, onBlur }) => {
   );
 };
 
-const BeregnetRenteSection = ({ rowValues, onRowChange, onRowBlur, beregningsdato, committedRowValues }) => (
+const BeregnetRenteSection = ({ rows, onRowChange, onRowBlur, beregningsdato, committedRows }) => (
   <ContentBox>
     <SectionHeader>Beregnet rente</SectionHeader>
     <BeregnetRenteTable
-      rowValues={rowValues}
+      rows={rows}
       onRowChange={onRowChange}
       onRowBlur={onRowBlur}
       beregningsdato={beregningsdato}
-      committedRowValues={committedRowValues}
+      committedRows={committedRows}
     />
   </ContentBox>
 );
@@ -540,27 +589,7 @@ const BeregnetRenteSection = ({ rowValues, onRowChange, onRowBlur, beregningsdat
 // BeregnetRenteTable – dropdown 10px smallere, specifikation 10px bredere
 // =======================================================================
 
-const BeregnetRenteTable = ({ rowValues, onRowChange, onRowBlur, beregningsdato, committedRowValues }) => {
-  // Beregn rentedato baseret på COMMITTED værdier
-  const actualInterestDate = React.useMemo(
-    () => calculateActualInterestDate(committedRowValues),
-    [committedRowValues]
-  );
-
-  // Beregn renten baseret på COMMITTED værdier
-  const calculatedInterest = React.useMemo(() => {
-    if (!committedRowValues.belob || !actualInterestDate || !beregningsdato) {
-      return null;
-    }
-
-    try {
-      return calculateProcessInterest(committedRowValues.belob, actualInterestDate, beregningsdato);
-    } catch (error) {
-      console.error('Fejl ved renteberegning:', error);
-      return null;
-    }
-  }, [committedRowValues.belob, actualInterestDate, beregningsdato]);
-
+const BeregnetRenteTable = ({ rows, onRowChange, onRowBlur, beregningsdato, committedRows }) => {
   return (
     <Table
       size="small"
@@ -593,137 +622,171 @@ const BeregnetRenteTable = ({ rowValues, onRowChange, onRowBlur, beregningsdato,
       </TableHead>
 
       <TableBody>
-        <TableRow>
-
-          {/* Beløb */}
-          <TableCell>
-            <StyledAmountField
-              value={rowValues.belob}
-              onChange={onRowChange('belob')}
-              onBlur={onRowBlur('belob')}
-              width={120}
-              placeholder="0,00 kr."
-            />
-          </TableCell>
-
-          {/* Renter fra */}
-          <TableCell>
-            <StyledDateField
-              value={rowValues.renterFra}
-              onChange={onRowChange('renterFra')}
-              onBlur={onRowBlur('renterFra')}
-              minDate={MIN_CALCULATION_DATE}
-              maxDate={`${MAX_CALCULATION_YEAR}-12-31`}
-            />
-          </TableCell>
-
-          {/* Evt. tillægstid */}
-          <TableCell>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: 1.5,
-              }}
-            >
-              <Typography sx={{ fontWeight: 600 }}>+</Typography>
-
-              <StyledIntegerField
-                value={rowValues.tillaegstid}
-                onChange={onRowChange('tillaegstid')}
-                onBlur={onRowBlur('tillaegstid')}
-                width={50}
-                placeholder="0"
-                minValue={0}
-                maxValue={99}
-              />
-
-              <StyledDropdown
-                value={rowValues.enhed}
-                onChange={onRowChange('enhed')}
-                onBlur={onRowBlur('enhed')}
-                width={140}   // ← 10 px smallere
-                sx={{
-                  '& .MuiSelect-select': { textAlign: 'left' },
-                }}
-              >
-                {ENHED_OPTIONS.map((o) => (
-                  <MenuItem key={o.value} value={o.value}>
-                    {o.label}
-                  </MenuItem>
-                ))}
-              </StyledDropdown>
-            </Box>
-          </TableCell>
-
-          {/* Rentedato (beregnes fra committed værdier) */}
-          <TableCell>
-            <Typography sx={{ color: 'var(--color-text-secondary)' }}>
-              {actualInterestDate || '--'}
-            </Typography>
-          </TableCell>
-
-          {/* Beregnet rente */}
-          <TableCell>
-            <Typography sx={{ color: 'var(--color-text-secondary)' }}>
-              {calculatedInterest !== null ? `${formatAmount(calculatedInterest)} kr.` : '0,00 kr.'}
-            </Typography>
-          </TableCell>
-
-          {/* Specifikation */}
-          <TableCell>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {calculatedInterest !== null ? (
-                <Box
-                  onClick={() => {
-                    // Generer PDF-specifikation
-                    const actualDate = calculateActualInterestDate(committedRowValues);
-                    if (committedRowValues.belob && actualDate && beregningsdato) {
-                      generateRentePdf(committedRowValues.belob, actualDate, beregningsdato);
-                    }
-                  }}
-                  sx={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s',
-                    '&:hover': {
-                      backgroundColor: '#e3f2fd',
-                    },
-                    '&:active': {
-                      backgroundColor: '#bbdefb',
-                    },
-                  }}
-                >
-                  <Download
-                    sx={{
-                      fontSize: '24px',
-                      color: '#1976d2',
-                    }}
-                  />
-                </Box>
-              ) : (
-                <Typography sx={{ color: 'var(--color-text-secondary)' }}>
-                  -
-                </Typography>
-              )}
-            </Box>
-          </TableCell>
-
-        </TableRow>
+        {rows.map((row) => (
+          <BeregnetRenteRow
+            key={row.id}
+            row={row}
+            committedRow={committedRows.find((r) => r.id === row.id) || row}
+            onRowChange={onRowChange}
+            onRowBlur={onRowBlur}
+            beregningsdato={beregningsdato}
+          />
+        ))}
       </TableBody>
     </Table>
+  );
+};
+
+const BeregnetRenteRow = ({ row, committedRow, onRowChange, onRowBlur, beregningsdato }) => {
+  // Beregn rentedato baseret på COMMITTED værdier
+  const actualInterestDate = React.useMemo(
+    () => calculateActualInterestDate(committedRow),
+    [committedRow]
+  );
+
+  // Beregn renten baseret på COMMITTED værdier
+  const calculatedInterest = React.useMemo(() => {
+    if (!committedRow.belob || !actualInterestDate || !beregningsdato) {
+      return null;
+    }
+
+    try {
+      return calculateProcessInterest(committedRow.belob, actualInterestDate, beregningsdato);
+    } catch (error) {
+      console.error('Fejl ved renteberegning:', error);
+      return null;
+    }
+  }, [committedRow.belob, actualInterestDate, beregningsdato]);
+
+  return (
+    <TableRow>
+      {/* Beløb */}
+      <TableCell>
+        <StyledAmountField
+          value={row.belob}
+          onChange={onRowChange(row.id, 'belob')}
+          onBlur={onRowBlur(row.id, 'belob')}
+          width={120}
+          placeholder="0,00 kr."
+        />
+      </TableCell>
+
+      {/* Renter fra */}
+      <TableCell>
+        <StyledDateField
+          value={row.renterFra}
+          onChange={onRowChange(row.id, 'renterFra')}
+          onBlur={onRowBlur(row.id, 'renterFra')}
+          minDate={MIN_CALCULATION_DATE}
+          maxDate={`${MAX_CALCULATION_YEAR}-12-31`}
+        />
+      </TableCell>
+
+      {/* Evt. tillægstid */}
+      <TableCell>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 1.5,
+          }}
+        >
+          <Typography sx={{ fontWeight: 600 }}>+</Typography>
+
+          <StyledIntegerField
+            value={row.tillaegstid}
+            onChange={onRowChange(row.id, 'tillaegstid')}
+            onBlur={onRowBlur(row.id, 'tillaegstid')}
+            width={50}
+            placeholder="0"
+            minValue={0}
+            maxValue={99}
+          />
+
+          <StyledDropdown
+            value={row.enhed}
+            onChange={onRowChange(row.id, 'enhed')}
+            onBlur={onRowBlur(row.id, 'enhed')}
+            width={140}
+            sx={{
+              '& .MuiSelect-select': { textAlign: 'left' },
+            }}
+          >
+            {ENHED_OPTIONS.map((o) => (
+              <MenuItem key={o.value} value={o.value}>
+                {o.label}
+              </MenuItem>
+            ))}
+          </StyledDropdown>
+        </Box>
+      </TableCell>
+
+      {/* Rentedato (beregnes fra committed værdier) */}
+      <TableCell>
+        <Typography sx={{ color: 'var(--color-text-secondary)' }}>
+          {actualInterestDate || '--'}
+        </Typography>
+      </TableCell>
+
+      {/* Beregnet rente */}
+      <TableCell>
+        <Typography sx={{ color: 'var(--color-text-secondary)' }}>
+          {calculatedInterest !== null ? `${formatAmount(calculatedInterest)} kr.` : '0,00 kr.'}
+        </Typography>
+      </TableCell>
+
+      {/* Specifikation */}
+      <TableCell>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {calculatedInterest !== null ? (
+            <Box
+              onClick={() => {
+                // Generer PDF-specifikation
+                const actualDate = calculateActualInterestDate(committedRow);
+                if (committedRow.belob && actualDate && beregningsdato) {
+                  generateRentePdf(committedRow.belob, actualDate, beregningsdato);
+                }
+              }}
+              tabIndex={-1}
+              sx={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+                '&:hover': {
+                  backgroundColor: '#e3f2fd',
+                },
+                '&:active': {
+                  backgroundColor: '#bbdefb',
+                },
+              }}
+            >
+              <Download
+                sx={{
+                  fontSize: '24px',
+                  color: '#1976d2',
+                }}
+              />
+            </Box>
+          ) : (
+            <Typography sx={{ color: 'var(--color-text-secondary)' }}>
+              -
+            </Typography>
+          )}
+        </Box>
+      </TableCell>
+    </TableRow>
   );
 };
 

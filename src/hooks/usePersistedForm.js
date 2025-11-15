@@ -22,8 +22,13 @@ export const usePersistedForm = (pageKey, initialValues) => {
 
   // Initialiser state med gemt data hvis det findes, ellers brug initialValues
   const [values, setValues] = React.useState(() => {
-    const persisted = getPersistedData(pageKey);
-    return persisted || initialValues;
+    try {
+      const persisted = getPersistedData(pageKey);
+      return persisted || initialValues;
+    } catch (error) {
+      console.error('Fejl ved indlæsning af gemte data:', error);
+      return initialValues;
+    }
   });
 
   // Gem data til sessionStorage hver gang values ændres

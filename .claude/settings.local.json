@@ -21,7 +21,8 @@
       "Bash(del \"c:\\Users\\bjell\\Mineo\\CHANGELOG.md\")",
       "Bash(nul)",
       "Bash(timeout /t 3 /nobreak)",
-      "Bash(move c:UsersbjellMineosrccontextsFormPersistenceContext.js c:UsersbjellMineosrccontextsFormPersistenceContext.jsx)"
+      "Bash(move c:UsersbjellMineosrccontextsFormPersistenceContext.js c:UsersbjellMineosrccontextsFormPersistenceContext.jsx)",
+      "Bash(npm ls:*)"
     ],
     "deny": [],
     "ask": []

@@ -62,6 +62,22 @@ const OmPage = React.memo(() => (
  * Hovedkomponent for MINEO applikationen
  */
 function App() {
+  // Håndter browser back/forward cache (bfcache) for at undgå React hook fejl
+  React.useEffect(() => {
+    const handlePageShow = (event) => {
+      // Hvis siden kommer fra bfcache, genindlæs den
+      if (event.persisted) {
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, []);
+
   return (
     <ThemeProvider theme={theme}>
       <FormPersistenceProvider>
