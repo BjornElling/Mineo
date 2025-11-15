@@ -2,7 +2,6 @@
 
 echo "HUSKY PRE-COMMIT KØRER"
 
-# Stop på første fejl
 set -e
 
 # Generér ny versionsfil
@@ -10,4 +9,3 @@ node scripts/generate-version.js
 
 # Tilføj filen igen til commit
 git add src/config/version.js
-

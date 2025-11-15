@@ -1,11 +1,9 @@
 /**
- * Version Configuration
+ * Version Configuration (autogenereret)
  *
- * Dette fil genereres automatisk ved hver commit via git pre-commit hook.
- * Format: yyyy.mm.build hvor build er totalt antal commits.
- *
- * Redigér IKKE denne fil manuelt!
+ * Redigér IKKE filen manuelt.
+ * Format: YYYY.MM.BUILD
  */
 
-export const VERSION = '2025.11.13';
-export const BUILD_DATE = '2025-11-15T12:38:23.910Z';
+export const VERSION = '2025.11.18';
+export const BUILD_DATE = '2025-11-15T13:11:01.026Z';

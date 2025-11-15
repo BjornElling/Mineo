@@ -38,7 +38,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "prepare": "husky"
+    "prepare": "husky install"
+
   },
   "browserslist": {
     "production": [
