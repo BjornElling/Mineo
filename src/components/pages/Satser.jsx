@@ -122,7 +122,7 @@ const Satser = React.memo(() => {
             onErrorChange={setHarFejl}
             minYear={MIN_YEAR}
             maxYear={MAX_YEAR}
-            width={80}
+            width={80}               
           />
           <Box sx={{ flex: 1 }} />
           {!harFejl && (

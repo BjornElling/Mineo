@@ -67,6 +67,7 @@ const StyledTextField = React.forwardRef(({
       onFocus={handleFocus}
       onBlur={handleBlur}
       placeholder={isFocused ? '' : placeholder}
+      autoComplete="off"
       size="small"
       variant="outlined"
       sx={{

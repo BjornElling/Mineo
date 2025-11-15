@@ -18,7 +18,9 @@
       "Bash(move IntegerField.jsx StyledIntegerField.jsx)",
       "Bash(move AmountField.jsx StyledAmountField.jsx)",
       "Bash(del \"c:\\Users\\bjell\\Mineo\\CONTRIBUTING.md\")",
-      "Bash(del \"c:\\Users\\bjell\\Mineo\\CHANGELOG.md\")"
+      "Bash(del \"c:\\Users\\bjell\\Mineo\\CHANGELOG.md\")",
+      "Bash(nul)",
+      "Bash(timeout /t 3 /nobreak)"
     ],
     "deny": [],
     "ask": []

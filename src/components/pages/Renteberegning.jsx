@@ -11,6 +11,7 @@ import {
   TableRow,
   MenuItem,
 } from '@mui/material';
+import { Download } from '@mui/icons-material';
 import ContentBox from '../common/ContentBox';
 import {
   referenceRates,
@@ -23,6 +24,8 @@ import StyledTextField from '../inputs/StyledTextField';
 import StyledDropdown from '../inputs/StyledDropdown';
 import StyledIntegerField from '../inputs/StyledIntegerField';
 import StyledAmountField from '../inputs/StyledAmountField';
+import { calculateProcessInterest, formatAmount } from '../../utils/interestCalculator';
+import { generateRentePdf } from '../../utils/pdf/rentePdf';
 
 const TAB_KEYS = {
   RATES: 'rates',
@@ -39,7 +42,6 @@ const calculationSections = [
   {
     key: 'beregningsdato',
     title: 'Beregningsdato',
-    description: 'Angiv hvilken dato renten skal beregnes til.',
     fields: [
       {
         id: 'beregningsdato',
@@ -58,6 +60,7 @@ const rentekravInitialRow = {
   renterFra: '',
   tillaegstid: '',
   enhed: 'dage',
+  enhedSelected: false, // Holder styr på om brugeren har aktivt valgt en enhed
 };
 
 const createDate = (year, monthIndex, day) => {
@@ -136,29 +139,42 @@ const formatDanishDate = (date) => {
 };
 
 const calculateActualInterestDate = (rowValues) => {
-  const baseDate = parseDanishDate(rowValues.renterFra);
-  if (!baseDate) {
+  try {
+    const baseDate = parseDanishDate(rowValues.renterFra);
+    if (!baseDate) {
+      return null;
+    }
+
+    const tillaeg = Number.parseInt(rowValues.tillaegstid, 10);
+    const extra = Number.isNaN(tillaeg) ? 0 : tillaeg;
+
+    // Hvis brugeren ikke har valgt en enhed eller der er ingen tillægstid, brug bare basisdatoen
+    if (!rowValues.enhedSelected || extra === 0) {
+      return formatDanishDate(baseDate);
+    }
+
+    let result = baseDate;
+
+    switch (rowValues.enhed) {
+      case 'uger':
+        result = addDays(baseDate, extra * 7);
+        break;
+      case 'maaneder':
+        result = addMonths(baseDate, extra);
+        break;
+      case 'dage':
+        result = addDays(baseDate, extra);
+        break;
+      default:
+        result = baseDate;
+        break;
+    }
+
+    return formatDanishDate(result);
+  } catch (error) {
+    console.error('Fejl ved beregning af rentedato:', error);
     return null;
   }
-
-  const tillaeg = Number.parseInt(rowValues.tillaegstid, 10);
-  const extra = Number.isNaN(tillaeg) ? 0 : tillaeg;
-  let result = baseDate;
-
-  switch (rowValues.enhed) {
-    case 'uger':
-      result = addDays(baseDate, extra * 7);
-      break;
-    case 'maaneder':
-      result = addMonths(baseDate, extra);
-      break;
-    case 'dage':
-    default:
-      result = addDays(baseDate, extra);
-      break;
-  }
-
-  return formatDanishDate(result);
 };
 
 const technicalAssumptions = [
@@ -173,6 +189,10 @@ const Renteberegning = React.memo(() => {
   const [formValues, setFormValues] = React.useState(() => ({ beregningsdato: '' }));
   const [rentekravRow, setRentekravRow] = React.useState(() => ({ ...rentekravInitialRow }));
 
+  // Committed værdier der kun opdateres ved onBlur
+  const [committedFormValues, setCommittedFormValues] = React.useState(() => ({ beregningsdato: '' }));
+  const [committedRentekravRow, setCommittedRentekravRow] = React.useState(() => ({ ...rentekravInitialRow }));
+
   const handleTabChange = React.useCallback((_, value) => {
     setActiveTab(value);
   }, []);
@@ -185,10 +205,58 @@ const Renteberegning = React.memo(() => {
     []
   );
 
+  const handleFieldBlur = React.useCallback(
+    (fieldId) => (event) => {
+      // Brug værdien fra event hvis den findes (efter auto-formatering), ellers fra formValues
+      const valueToCommit = event?.target?.value ?? formValues[fieldId];
+      setCommittedFormValues((prev) => ({ ...prev, [fieldId]: valueToCommit }));
+    },
+    [formValues]
+  );
+
   const handleRentekravChange = React.useCallback(
     (fieldId) => (event) => {
       const value = event?.target?.value ?? '';
-      setRentekravRow((prev) => ({ ...prev, [fieldId]: value }));
+
+      // Specialhåndtering for dropdown (enhed)
+      if (fieldId === 'enhed') {
+        setRentekravRow((prev) => ({ ...prev, [fieldId]: value, enhedSelected: true }));
+        setCommittedRentekravRow((prev) => ({ ...prev, [fieldId]: value, enhedSelected: true }));
+      } else {
+        setRentekravRow((prev) => ({ ...prev, [fieldId]: value }));
+      }
+    },
+    []
+  );
+
+  const handleRentekravBlur = React.useCallback(
+    (fieldId) => (event) => {
+      // Brug værdien fra event hvis den findes (efter auto-formatering)
+      const valueToCommit = event?.target?.value ?? '';
+
+      // Opdater først rentekravRow med den formaterede værdi
+      setRentekravRow((prev) => {
+        const newValue = { ...prev, [fieldId]: valueToCommit };
+
+        // Hvis brugeren indtaster tillægstid, marker at enhed er valgt
+        if (fieldId === 'tillaegstid' && valueToCommit && parseInt(valueToCommit, 10) > 0) {
+          newValue.enhedSelected = true;
+        }
+
+        // Derefter commit værdien (via setTimeout for at sikre state er opdateret)
+        setTimeout(() => {
+          setCommittedRentekravRow((prevCommitted) => {
+            const committedValue = { ...prevCommitted, [fieldId]: valueToCommit };
+            // Synkroniser enhedSelected til committed state
+            if (fieldId === 'tillaegstid' && valueToCommit && parseInt(valueToCommit, 10) > 0) {
+              committedValue.enhedSelected = true;
+            }
+            return committedValue;
+          });
+        }, 0);
+
+        return newValue;
+      });
     },
     []
   );
@@ -254,8 +322,12 @@ const Renteberegning = React.memo(() => {
         <CalculationTabContent
           formValues={formValues}
           onFieldChange={handleFieldChange}
+          onFieldBlur={handleFieldBlur}
           rentekravRow={rentekravRow}
           onRentekravChange={handleRentekravChange}
+          onRentekravBlur={handleRentekravBlur}
+          committedFormValues={committedFormValues}
+          committedRentekravRow={committedRentekravRow}
         />
       )}
     </Box>
@@ -294,7 +366,16 @@ const RatesTabContent = React.memo(() => (
   </Box>
 ));
 
-const CalculationTabContent = React.memo(({ formValues, onFieldChange, rentekravRow, onRentekravChange }) => (
+const CalculationTabContent = React.memo(({
+  formValues,
+  onFieldChange,
+  onFieldBlur,
+  rentekravRow,
+  onRentekravChange,
+  onRentekravBlur,
+  committedFormValues,
+  committedRentekravRow
+}) => (
   <Box>
     {calculationSections.map((section) => (
       <ContentBox key={section.key}>
@@ -306,13 +387,20 @@ const CalculationTabContent = React.memo(({ formValues, onFieldChange, rentekrav
               field,
               value: formValues[field.id],
               onChange: onFieldChange(field.id),
+              onBlur: onFieldBlur(field.id),
             })}
           </FieldRow>
         ))}
       </ContentBox>
     ))}
 
-    <BeregnetRenteSection rowValues={rentekravRow} onRowChange={onRentekravChange} />
+    <BeregnetRenteSection
+      rowValues={rentekravRow}
+      onRowChange={onRentekravChange}
+      onRowBlur={onRentekravBlur}
+      beregningsdato={committedFormValues.beregningsdato}
+      committedRowValues={committedRentekravRow}
+    />
 
     <ContentBox>
       <SectionHeader>Beregningstekniske forudsætninger</SectionHeader>
@@ -338,12 +426,13 @@ const FieldRow = ({ label, children }) => (
   </Box>
 );
 
-const renderFieldInput = ({ field, value, onChange }) => {
+const renderFieldInput = ({ field, value, onChange, onBlur }) => {
   if (field.type === 'date') {
     return (
       <StyledDateField
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
         minDate={field.minDate}
         maxDate={field.maxDate}
       />
@@ -352,7 +441,7 @@ const renderFieldInput = ({ field, value, onChange }) => {
 
   if (field.type === 'dropdown') {
     return (
-      <StyledDropdown value={value} onChange={onChange} width={field.width} placeholder={field.placeholder}>
+      <StyledDropdown value={value} onChange={onChange} onBlur={onBlur} width={field.width} placeholder={field.placeholder}>
         {field.options?.map((option) => (
           <MenuItem key={option.value} value={option.value}>
             {option.label}
@@ -367,6 +456,7 @@ const renderFieldInput = ({ field, value, onChange }) => {
       <StyledIntegerField
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
         width={field.width}
         placeholder={field.placeholder}
         minValue={field.minValue}
@@ -380,6 +470,7 @@ const renderFieldInput = ({ field, value, onChange }) => {
       <StyledAmountField
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
         width={field.width}
         placeholder={field.placeholder}
       />
@@ -390,30 +481,50 @@ const renderFieldInput = ({ field, value, onChange }) => {
     <StyledTextField
       value={value}
       onChange={onChange}
+      onBlur={onBlur}
       width={field.width}
       placeholder={field.placeholder}
     />
   );
 };
 
-const BeregnetRenteSection = ({ rowValues, onRowChange }) => (
+const BeregnetRenteSection = ({ rowValues, onRowChange, onRowBlur, beregningsdato, committedRowValues }) => (
   <ContentBox>
     <SectionHeader>Beregnet rente</SectionHeader>
-    <BeregnetRenteTable rowValues={rowValues} onRowChange={onRowChange} />
+    <BeregnetRenteTable
+      rowValues={rowValues}
+      onRowChange={onRowChange}
+      onRowBlur={onRowBlur}
+      beregningsdato={beregningsdato}
+      committedRowValues={committedRowValues}
+    />
   </ContentBox>
 );
 
 // =======================================================================
-// BeregnetRenteTable – RENSKRIVET SOM ÆGTE TABEL
-// Brug af MUI Table, TableRow og TableCell
-// Tillægstid ligger i én celle med flex layout
+// BeregnetRenteTable – dropdown 10px smallere, specifikation 10px bredere
 // =======================================================================
 
-const BeregnetRenteTable = ({ rowValues, onRowChange }) => {
+const BeregnetRenteTable = ({ rowValues, onRowChange, onRowBlur, beregningsdato, committedRowValues }) => {
+  // Beregn rentedato baseret på COMMITTED værdier
   const actualInterestDate = React.useMemo(
-    () => calculateActualInterestDate(rowValues),
-    [rowValues]
+    () => calculateActualInterestDate(committedRowValues),
+    [committedRowValues]
   );
+
+  // Beregn renten baseret på COMMITTED værdier
+  const calculatedInterest = React.useMemo(() => {
+    if (!committedRowValues.belob || !actualInterestDate || !beregningsdato) {
+      return null;
+    }
+
+    try {
+      return calculateProcessInterest(committedRowValues.belob, actualInterestDate, beregningsdato);
+    } catch (error) {
+      console.error('Fejl ved renteberegning:', error);
+      return null;
+    }
+  }, [committedRowValues.belob, actualInterestDate, beregningsdato]);
 
   return (
     <Table
@@ -422,48 +533,40 @@ const BeregnetRenteTable = ({ rowValues, onRowChange }) => {
         border: '1px solid #e5e7eb',
         borderRadius: '16px',
         overflow: 'hidden',
+        tableLayout: 'fixed',
+        width: '930px',
         '& .MuiTableCell-root': {
           fontSize: '0.9rem',
           textAlign: 'center',
+          whiteSpace: 'nowrap',
         },
         '& thead th': {
           backgroundColor: '#f8fafc',
           fontWeight: 600,
-          borderBottom: '1px solid #e5e7eb !important',
         },
       }}
     >
-      {/* ------------------------------------------------------------
-         Tabel-header
-      ------------------------------------------------------------ */}
       <TableHead>
         <TableRow>
-          <TableCell>Fordring</TableCell>
-          <TableCell>Beløb</TableCell>
-          <TableCell>Renter fra</TableCell>
-          <TableCell>Evt. tillægstid</TableCell>
-          <TableCell>Rentedato</TableCell>
-          <TableCell>Beregnet rente</TableCell>
-          <TableCell>Specifikation</TableCell>
+          <TableCell sx={{ width: '140px' }}>Beløb</TableCell>
+          <TableCell sx={{ width: '130px' }}>Renter fra</TableCell>
+          <TableCell sx={{ width: '250px' }}>Evt. tillægstid</TableCell>
+          <TableCell sx={{ width: '130px' }}>Rentedato</TableCell>
+          <TableCell sx={{ width: '120px' }}>Beregnet rente</TableCell>
+          <TableCell sx={{ width: '130px' }}>Specifikation</TableCell>
         </TableRow>
       </TableHead>
 
-      {/* ------------------------------------------------------------
-         Data-rækken (1 fordring)
-      ------------------------------------------------------------ */}
       <TableBody>
         <TableRow>
-          {/* Fordringsnummer */}
-          <TableCell>
-            <Typography sx={{ fontWeight: 600 }}>1</Typography>
-          </TableCell>
 
           {/* Beløb */}
           <TableCell>
             <StyledAmountField
               value={rowValues.belob}
               onChange={onRowChange('belob')}
-              width={130}
+              onBlur={onRowBlur('belob')}
+              width={120}
               placeholder="0,00 kr."
             />
           </TableCell>
@@ -473,19 +576,20 @@ const BeregnetRenteTable = ({ rowValues, onRowChange }) => {
             <StyledDateField
               value={rowValues.renterFra}
               onChange={onRowChange('renterFra')}
+              onBlur={onRowBlur('renterFra')}
               minDate={MIN_CALCULATION_DATE}
               maxDate={`${MAX_CALCULATION_YEAR}-12-31`}
             />
           </TableCell>
 
-          {/* Evt. tillægstid – NOTE: én celle med flex layout */}
+          {/* Evt. tillægstid */}
           <TableCell>
             <Box
               sx={{
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                gap: 1,
+                gap: 1.5,
               }}
             >
               <Typography sx={{ fontWeight: 600 }}>+</Typography>
@@ -493,7 +597,8 @@ const BeregnetRenteTable = ({ rowValues, onRowChange }) => {
               <StyledIntegerField
                 value={rowValues.tillaegstid}
                 onChange={onRowChange('tillaegstid')}
-                width={48}
+                onBlur={onRowBlur('tillaegstid')}
+                width={50}
                 placeholder="0"
                 minValue={0}
                 maxValue={99}
@@ -502,7 +607,11 @@ const BeregnetRenteTable = ({ rowValues, onRowChange }) => {
               <StyledDropdown
                 value={rowValues.enhed}
                 onChange={onRowChange('enhed')}
-                width={130}
+                onBlur={onRowBlur('enhed')}
+                width={140}   // ← 10 px smallere
+                sx={{
+                  '& .MuiSelect-select': { textAlign: 'left' },
+                }}
               >
                 {ENHED_OPTIONS.map((o) => (
                   <MenuItem key={o.value} value={o.value}>
@@ -513,7 +622,7 @@ const BeregnetRenteTable = ({ rowValues, onRowChange }) => {
             </Box>
           </TableCell>
 
-          {/* Rentedato */}
+          {/* Rentedato (beregnes fra committed værdier) */}
           <TableCell>
             <Typography sx={{ color: 'var(--color-text-secondary)' }}>
               {actualInterestDate || '--'}
@@ -523,21 +632,67 @@ const BeregnetRenteTable = ({ rowValues, onRowChange }) => {
           {/* Beregnet rente */}
           <TableCell>
             <Typography sx={{ color: 'var(--color-text-secondary)' }}>
-              0,00 kr.
+              {calculatedInterest !== null ? `${formatAmount(calculatedInterest)} kr.` : '0,00 kr.'}
             </Typography>
           </TableCell>
 
           {/* Specifikation */}
           <TableCell>
-            <Typography sx={{ color: 'var(--color-text-secondary)' }}>
-              -
-            </Typography>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {calculatedInterest !== null ? (
+                <Box
+                  onClick={() => {
+                    // Generer PDF-specifikation
+                    const actualDate = calculateActualInterestDate(committedRowValues);
+                    if (committedRowValues.belob && actualDate && beregningsdato) {
+                      generateRentePdf(committedRowValues.belob, actualDate, beregningsdato);
+                    }
+                  }}
+                  sx={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s',
+                    '&:hover': {
+                      backgroundColor: '#e3f2fd',
+                    },
+                    '&:active': {
+                      backgroundColor: '#bbdefb',
+                    },
+                  }}
+                >
+                  <Download
+                    sx={{
+                      fontSize: '24px',
+                      color: '#1976d2',
+                    }}
+                  />
+                </Box>
+              ) : (
+                <Typography sx={{ color: 'var(--color-text-secondary)' }}>
+                  -
+                </Typography>
+              )}
+            </Box>
           </TableCell>
+
         </TableRow>
       </TableBody>
     </Table>
   );
 };
+
+
 
 const TechnicalAssumptionsList = ({ items }) => (
   <Box component="ul" sx={{ margin: 0, paddingLeft: '20px', color: 'var(--color-text-primary)', lineHeight: 1.6 }}>
@@ -602,16 +757,3 @@ RatesTabContent.displayName = 'RatesTabContent';
 CalculationTabContent.displayName = 'CalculationTabContent';
 
 export default Renteberegning;
-
-
-
-
-
-
-
-
-
-
-
-
-

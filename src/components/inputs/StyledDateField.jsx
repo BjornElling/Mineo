@@ -26,6 +26,7 @@ const StyledDateField = React.forwardRef(({
   width = 120,
   value = '',
   onChange,
+  onBlur,
   minDate,
   maxDate,
   error = false,
@@ -265,6 +266,10 @@ const StyledDateField = React.forwardRef(({
     if (!internalValue || internalValue.trim() === '') {
       setErrorState(false);
       setErrorMessage('');
+      // Kald ekstern onBlur hvis den findes
+      if (onBlur) {
+        onBlur(e);
+      }
       return;
     }
 
@@ -272,6 +277,10 @@ const StyledDateField = React.forwardRef(({
     if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) {
       setErrorState(true);
       setErrorMessage('Ugyldig dato');
+      // Kald ekstern onBlur hvis den findes
+      if (onBlur) {
+        onBlur(e);
+      }
       return;
     }
 
@@ -286,6 +295,10 @@ const StyledDateField = React.forwardRef(({
     if (year.length === 3) {
       setErrorState(true);
       setErrorMessage('Ugyldig dato');
+      // Kald ekstern onBlur hvis den findes
+      if (onBlur) {
+        onBlur(e);
+      }
       return;
     }
 
@@ -327,6 +340,18 @@ const StyledDateField = React.forwardRef(({
 
     // Kør validering på den endelige værdi
     validateDate(finalValue);
+
+    // Kald ekstern onBlur efter auto-formatering er færdig
+    if (onBlur) {
+      const syntheticEvent = {
+        ...e,
+        target: {
+          ...e.target,
+          value: finalValue
+        }
+      };
+      onBlur(syntheticEvent);
+    }
   };
 
   return (

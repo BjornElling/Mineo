@@ -22,6 +22,7 @@ const StyledAmountField = React.forwardRef(({
   width = 120,
   value = '',
   onChange,
+  onBlur,
   placeholder = '0,00',
   sx,
   ...otherProps
@@ -85,6 +86,10 @@ const StyledAmountField = React.forwardRef(({
   // Håndter blur for at formatere
   const handleBlur = (e) => {
     if (!internalValue || internalValue.trim() === '') {
+      // Kald ekstern onBlur hvis den findes
+      if (onBlur) {
+        onBlur(e);
+      }
       return;
     }
 
@@ -93,16 +98,28 @@ const StyledAmountField = React.forwardRef(({
 
     // Hvis værdien ikke er et gyldigt tal eller er 0 eller mindre, tøm feltet
     if (isNaN(numericValue) || numericValue <= 0) {
-      setInternalValue('');
+      const finalValue = '';
+      setInternalValue(finalValue);
       if (onChange) {
         const syntheticEvent = {
           ...e,
           target: {
             ...e.target,
-            value: ''
+            value: finalValue
           }
         };
         onChange(syntheticEvent);
+      }
+      // Kald ekstern onBlur efter formatering er færdig
+      if (onBlur) {
+        const syntheticEvent = {
+          ...e,
+          target: {
+            ...e.target,
+            value: finalValue
+          }
+        };
+        onBlur(syntheticEvent);
       }
       return;
     }
@@ -143,6 +160,18 @@ const StyledAmountField = React.forwardRef(({
         }
       };
       onChange(syntheticEvent);
+    }
+
+    // Kald ekstern onBlur efter formatering er færdig
+    if (onBlur) {
+      const syntheticEvent = {
+        ...e,
+        target: {
+          ...e.target,
+          value: formatted
+        }
+      };
+      onBlur(syntheticEvent);
     }
   };
 
