@@ -30,6 +30,8 @@
     "dayjs": "^1.11.19",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
+    "jspreadsheet-ce": "^4.13.1",
+    "jsuites": "^4.17.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.6",

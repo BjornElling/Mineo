@@ -5,5 +5,5 @@
  * Format: YYYY.MM.BUILD
  */
 
-export const VERSION = '2025.11.22';
-export const BUILD_DATE = '2025-11-16T18:53:28.815Z';
+export const VERSION = '2025.11.23';
+export const BUILD_DATE = '2025-11-16T20:59:21.504Z';
