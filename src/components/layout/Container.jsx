@@ -48,16 +48,39 @@ const Container = React.memo(({ children }) => {
     const lastElement = focusableElements[focusableElements.length - 1];
     const currentIndex = focusableElements.indexOf(document.activeElement);
 
-    // Enter opfører sig som Tab (går til næste felt)
+    // Hjælpefunktion til at fokusere og selektere indhold i et element
+    const focusAndSelect = (element) => {
+      element.focus();
+
+      // Selekter indhold hvis elementet har en værdi (ikke tom eller placeholder)
+      // Brug setTimeout for at sikre at fokus er sat før vi selekterer
+      setTimeout(() => {
+        if (element.value && element.value.trim() !== '') {
+          // Tjek om det er en MUI Select (har aria-haspopup="listbox")
+          const isSelect = element.getAttribute('aria-haspopup') === 'listbox';
+
+          if (!isSelect) {
+            // For normale input-felter: selekter alt tekst
+            element.select();
+          }
+          // For dropdowns: gør ingenting ekstra (de kan ikke selekteres)
+        }
+      }, 0);
+    };
+
+    // Enter opfører sig PRÆCIS som Tab (cirkulær navigation)
     if (e.key === 'Enter') {
       e.preventDefault();
 
-      if (currentIndex === -1 || currentIndex === focusableElements.length - 1) {
-        // Hvis ikke fokuseret eller på sidste element, blur fokus
-        document.activeElement.blur();
+      if (currentIndex === -1) {
+        // Hvis intet er fokuseret, fokuser på første element
+        focusAndSelect(firstElement);
+      } else if (currentIndex === focusableElements.length - 1) {
+        // Hvis på sidste element, hop til første element (cirkulær navigation - samme som Tab)
+        focusAndSelect(firstElement);
       } else {
         // Ellers hop til næste element
-        focusableElements[currentIndex + 1].focus();
+        focusAndSelect(focusableElements[currentIndex + 1]);
       }
       return;
     }
@@ -69,25 +92,25 @@ const Container = React.memo(({ children }) => {
       // Shift+Tab - cirkulær navigation
       if (currentIndex === -1) {
         // Hvis intet er fokuseret, fokuser på sidste element
-        lastElement.focus();
+        focusAndSelect(lastElement);
       } else if (currentIndex === 0) {
         // Hvis på første element, hop til sidste element (cirkulær)
-        lastElement.focus();
+        focusAndSelect(lastElement);
       } else {
         // Ellers hop til forrige element
-        focusableElements[currentIndex - 1].focus();
+        focusAndSelect(focusableElements[currentIndex - 1]);
       }
     } else {
       // Tab - cirkulær navigation
       if (currentIndex === -1) {
         // Hvis intet er fokuseret, fokuser på første element
-        firstElement.focus();
+        focusAndSelect(firstElement);
       } else if (currentIndex === focusableElements.length - 1) {
         // Hvis på sidste element, hop til første element (cirkulær)
-        firstElement.focus();
+        focusAndSelect(firstElement);
       } else {
         // Ellers hop til næste element
-        focusableElements[currentIndex + 1].focus();
+        focusAndSelect(focusableElements[currentIndex + 1]);
       }
     }
   }, []);

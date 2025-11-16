@@ -465,11 +465,25 @@ const addSpecificationTable = (doc, periods, endDate, startY) => {
  * Tilføj beregningsprincipper
  */
 const addCalculationPrinciples = (doc, startDate, startY) => {
+  const pageHeight = doc.internal.pageSize.height;
+  const bottomMargin = 20; // Bundmargen til footer
+
+  // Beregn hvor meget plads beregningsprincipper kræver
+  const requiredSpace = 6 + (3 * 6) + 6; // Titel + 3 linjer + spacer = ca. 30mm
+
+  // Tjek om der er nok plads på nuværende side
+  let y = startY;
+  if (y + requiredSpace > pageHeight - bottomMargin) {
+    // Ikke nok plads - tilføj ny side
+    doc.addPage();
+    y = MARGINS.top;
+  }
+
   doc.setFontSize(FONT_SIZES.normal);
   doc.setFont('helvetica', 'bold');
-  doc.text('Beregningsprincipper:', MARGINS.left, startY);
+  doc.text('Beregningsprincipper:', MARGINS.left, y);
 
-  let y = startY + 6;
+  y += 6;
 
   doc.setFont('helvetica', 'normal');
 
@@ -500,19 +514,25 @@ const addCalculationPrinciples = (doc, startDate, startY) => {
 };
 
 /**
- * Tilføj footer med versionsnummer
+ * Tilføj footer med versionsnummer på alle sider
  */
 const addFooter = (doc) => {
   const pageHeight = doc.internal.pageSize.height;
   const pageWidth = doc.internal.pageSize.width;
+  const totalPages = doc.internal.getNumberOfPages();
 
-  doc.setFontSize(6);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(200, 200, 200);
+  // Gennemgå alle sider og tilføj footer
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
 
-  const footerText = `Mineo.dk // ${VERSION}`;
-  const x = pageWidth - 5;
-  const y = pageHeight - 5;
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(200, 200, 200);
 
-  doc.text(footerText, x, y, { angle: 90 });
+    const footerText = `Mineo.dk // ${VERSION}`;
+    const x = pageWidth - 5;
+    const y = pageHeight - 5;
+
+    doc.text(footerText, x, y, { angle: 90 });
+  }
 };

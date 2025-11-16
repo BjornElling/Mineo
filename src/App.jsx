@@ -6,6 +6,8 @@ import MainLayout from './components/layout/MainLayout';
 import Stamdata from './components/pages/Stamdata';
 import Satser from './components/pages/Satser';
 import Renteberegning from './components/pages/Renteberegning';
+import Aarslon from './components/pages/Aarslon';
+import Indstillinger from './components/pages/Indstillinger';
 import Om from './components/pages/Om';
 
 const theme = createTheme({
@@ -50,6 +52,24 @@ const RenteberegningPage = React.memo(() => (
 ));
 
 /**
+ * Aarslon page wrapper component
+ */
+const AarslonPage = React.memo(() => (
+  <MainLayout>
+    <Aarslon />
+  </MainLayout>
+));
+
+/**
+ * Indstillinger page wrapper component
+ */
+const IndstillingerPage = React.memo(() => (
+  <MainLayout>
+    <Indstillinger />
+  </MainLayout>
+));
+
+/**
  * Om page wrapper component
  */
 const OmPage = React.memo(() => (
@@ -87,6 +107,8 @@ function App() {
             <Route path="/stamdata" element={<StamdataPage />} />
             <Route path="/satser" element={<SatserPage />} />
             <Route path="/renteberegning" element={<RenteberegningPage />} />
+            <Route path="/aarsloen" element={<AarslonPage />} />
+            <Route path="/indstillinger" element={<IndstillingerPage />} />
             <Route path="/om" element={<OmPage />} />
             <Route
               path="*"

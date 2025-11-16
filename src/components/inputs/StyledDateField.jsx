@@ -110,12 +110,8 @@ const StyledDateField = React.forwardRef(({
     const min = parseISODate(minDate);
     const max = parseISODate(maxDate);
 
-    if (min && date < min) {
-      return `Dato skal være fra ${formatISOToDanish(minDate)} og frem`;
-    }
-
-    if (max && date > max) {
-      return `Dato skal være senest ${formatISOToDanish(maxDate)}`;
+    if ((min && date < min) || (max && date > max)) {
+      return `Dato skal være mellem ${formatISOToDanish(minDate)} og ${formatISOToDanish(maxDate)}`;
     }
 
     return true;
@@ -202,14 +198,18 @@ const StyledDateField = React.forwardRef(({
       inputType === 'deleteContentForward' ||
       inputType === 'deleteContent';
 
-    // Erstat alle ikke-tal med bindestreg
-    input = input.replace(/\D/g, '-');
+    // Erstat kun separator-karakterer (mellemrum, punktum, kolon) med bindestreg
+    // Men behold eksisterende bindestreger for nu
+    input = input.replace(/[ .:]/g, '-');
 
     // Kollaps flere bindestreger i træk til én enkelt bindestreg
     input = input.replace(/-+/g, '-');
 
     // Fjern bindestreger fra starten
     input = input.replace(/^-+/, '');
+
+    // Fjern alle ikke-tal og ikke-bindestreger (fx hvis brugeren har kopieret mærkelig tekst ind)
+    input = input.replace(/[^\d-]/g, '');
 
     // Split i dele
     const parts = input.split('-');
@@ -218,20 +218,12 @@ const StyledDateField = React.forwardRef(({
     // Håndter dag (dd)
     if (parts[0]) {
       let day = parts[0].slice(0, 2);
-      // Hvis der er indtastet en separator efter enkelt ciffer, pad med 0, men ikke mens der slettes
-      if (!isDeleting && parts.length > 1 && day.length === 1) {
-        day = day.padStart(2, '0');
-      }
       formatted = day;
     }
 
     // Håndter måned (mm)
     if (parts.length > 1) {
       let month = parts[1].slice(0, 2);
-      // Hvis der er indtastet en separator efter enkelt ciffer, pad med 0
-      if (!isDeleting && parts.length > 2 && month.length === 1) {
-        month = month.padStart(2, '0');
-      }
       formatted += '-' + month;
     }
 

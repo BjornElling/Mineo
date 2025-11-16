@@ -32,6 +32,8 @@ const StyledDropdown = React.forwardRef(({
   sx,
   ...otherProps
 }, ref) => {
+  const inputRef = React.useRef(null);
+
   // Håndter sletning af værdi via Backspace/Delete
   const handleKeyDown = React.useCallback((e) => {
     if ((e.key === 'Backspace' || e.key === 'Delete') && value) {
@@ -48,9 +50,31 @@ const StyledDropdown = React.forwardRef(({
     }
   }, [value, onChange]);
 
+  // Når dropdown-menuen lukkes efter et valg, sørg for at fokus forbliver på input-feltet
+  const handleClose = React.useCallback(() => {
+    // Brug setTimeout for at sikre at MUI's lukkemekanisme er færdig
+    setTimeout(() => {
+      if (inputRef.current) {
+        // Find det faktiske input-element inden i StyledTextField
+        const input = inputRef.current.querySelector('input');
+        if (input) {
+          input.focus();
+        }
+      }
+    }, 0);
+  }, []);
+
   return (
     <StyledTextField
-      ref={ref}
+      ref={(node) => {
+        // Kombiner vores interne ref med den externe ref
+        inputRef.current = node;
+        if (typeof ref === 'function') {
+          ref(node);
+        } else if (ref) {
+          ref.current = node;
+        }
+      }}
       select
       value={value}
       onChange={onChange}
@@ -60,6 +84,7 @@ const StyledDropdown = React.forwardRef(({
       width={width}
       SelectProps={{
         displayEmpty: true,
+        onClose: handleClose,
         renderValue: (selected) => {
           if (!selected || selected === '') {
             return <span style={{ color: 'rgba(0, 0, 0, 0.4)' }}>{placeholder}</span>;
