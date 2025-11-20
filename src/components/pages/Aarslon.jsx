@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import ContentBox from '../common/ContentBox';
 import StyledPercentField from '../inputs/StyledPercentField';
 import StyledRadioButton from '../inputs/StyledRadioButton';
@@ -18,9 +18,6 @@ const Aarslon = React.memo(() => {
   const [storeBededagPct, setStoreBededagPct] = React.useState('');
   const [pensionPct, setPensionPct] = React.useState('');
   const [loenperiode, setLoenperiode] = React.useState('maaned');
-
-  // Ref til AarsloenTable for at kalde sortTable
-  const tableRef = React.useRef(null);
 
   return (
     <Box>
@@ -174,36 +171,18 @@ const Aarslon = React.memo(() => {
 
       {/* Container 2: Indtægtsoplysninger */}
       <ContentBox sx={{ marginTop: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-          <Typography
-            variant="h6"
-            sx={{
-              fontFamily: 'Ubuntu',
-              fontWeight: 500
-            }}
-          >
-            Indtægtsoplysninger
-          </Typography>
-
-          <Button
-            variant="contained"
-            onClick={() => tableRef.current?.sortTable()}
-            sx={{
-              fontFamily: 'Ubuntu',
-              fontSize: '14px',
-              textTransform: 'none',
-              backgroundColor: '#1976d2',
-              '&:hover': {
-                backgroundColor: '#1565c0'
-              }
-            }}
-          >
-            Sorter tabel
-          </Button>
-        </Box>
+        <Typography
+          variant="h6"
+          sx={{
+            fontFamily: 'Ubuntu',
+            fontWeight: 500,
+            marginBottom: 2
+          }}
+        >
+          Indtægtsoplysninger
+        </Typography>
 
         <AarsloenTable
-          ref={tableRef}
           loenperiode={loenperiode}
           satser={{
             ferie: feriePct,

@@ -23,7 +23,8 @@
       "Bash(timeout /t 3 /nobreak)",
       "Bash(move c:UsersbjellMineosrccontextsFormPersistenceContext.js c:UsersbjellMineosrccontextsFormPersistenceContext.jsx)",
       "Bash(npm ls:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(timeout /t 5 /nobreak)"
     ],
     "deny": [],
     "ask": []
