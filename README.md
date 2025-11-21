@@ -257,5 +257,5 @@ MINEO er udviklet med hjælp fra Claude AI.
 
 ---
 
-**Version**: 2025.11.26
+**Version**: 2025.11.28
 **Status**: Under udvikling
