@@ -1,4 +1,4 @@
-import { VERSION } from '../config/version';
+import { VERSION, FILE_FORMAT_VERSION } from '../config/version';
 import { collectAllData, hasRealData, countFilledFields } from './dataCollection';
 import { encryptToString } from './encryption';
 import { generateFilename, downloadFile } from './fileHelpers';
@@ -61,8 +61,8 @@ export const saveToFile = async () => {
 
     // 4. Opbyg fil-struktur med metadata
     const fileData = {
-      // Format version (til fremtidig kompatibilitet)
-      version: '1.0.0',
+      // Format version (til fremtidig kompatibilitet - bruger nu central konstant)
+      version: FILE_FORMAT_VERSION,
 
       // Metadata
       _metadata: {
@@ -113,50 +113,20 @@ export const saveToFile = async () => {
           const isValid = await verifyFileHandle(fileHandle);
 
           if (isValid) {
-            // Handle er gyldigt - spørg om overskrivning
-            const confirmOverwrite = window.confirm(
-              `Vil du overskrive den eksisterende fil?\n\n${savedFilePath}\n\nKlik OK for at overskrive automatisk, eller Annuller for at vælge ny placering.`
-            );
-
-            if (confirmOverwrite) {
-              logInfo('✓ Bruger bekræfter overskrivning - gemmer direkte uden file picker');
-              shouldUseExistingHandle = true;
-            } else {
-              logInfo('Bruger vælger ny placering');
-              fileHandle = null; // Nulstil så vi åbner file picker
-            }
+            // Handle er gyldigt - brug det direkte (browseren håndterer overskrivning)
+            logInfo('✓ File handle er gyldigt - gemmer direkte');
+            shouldUseExistingHandle = true;
           } else {
-            // Handle er ugyldigt - slet fra IndexedDB
+            // Handle er ugyldigt - slet fra IndexedDB og åbn file picker
             logWarning('File handle er ikke længere gyldigt - sletter fra IndexedDB');
             await deleteFileHandleFromIndexedDB();
             fileHandle = null;
           }
         } else {
-          // Stamdata ændret - foreslå nyt filnavn
+          // Stamdata ændret - åbn file picker med nyt foreslået filnavn
           logWarning(`Filnavn matcher IKKE: forventet "${expectedFilename}", fandt "${savedFilePath}"`);
-
-          const useNewName = window.confirm(
-            `Stamdata er ændret siden sidste gem.\n\nNyt foreslået filnavn: ${expectedFilename}\n\nKlik OK for at gemme med nyt navn, eller Annuller for at beholde det gamle navn (${savedFilePath}).`
-          );
-
-          if (useNewName) {
-            // Nyt navn - åbn file picker
-            logInfo('Bruger vælger nyt filnavn - åbner file picker');
-            fileHandle = null;
-          } else {
-            // Behold gammelt navn - valider handle
-            logInfo('Bruger beholder gammelt filnavn');
-
-            const isValid = await verifyFileHandle(fileHandle);
-
-            if (isValid) {
-              shouldUseExistingHandle = true;
-            } else {
-              logWarning('File handle er ikke længere gyldigt - åbner file picker');
-              await deleteFileHandleFromIndexedDB();
-              fileHandle = null;
-            }
-          }
+          logInfo('Stamdata er ændret - åbner file picker med nyt foreslået filnavn');
+          fileHandle = null;
         }
       }
 
@@ -194,42 +164,20 @@ export const saveToFile = async () => {
       // Fallback til klassisk download (Firefox, osv.)
       logWarning('File System Access API ikke tilgængelig - bruger fallback download');
 
+      // Generer filnavn baseret på stamdata eller brug gemt navn
       const lastSavedPath = sessionStorage.getItem('mineo_lastSavedFilePath');
+      const currentFilename = generateFilename(fileData.data);
 
-      if (lastSavedPath) {
-        const confirmOverwrite = window.confirm(
-          `Vil du overskrive den eksisterende fil?\n\n${lastSavedPath}\n\nKlik OK for at overskrive, eller Annuller for at gemme med nyt navn.`
-        );
-
-        if (confirmOverwrite) {
-          filename = lastSavedPath;
-          logInfo(`Genbruger filnavn: ${filename}`);
-        } else {
-          const baseName = generateFilename(fileData.data);
-          const newName = prompt('Indtast filnavn (uden .eo):', baseName);
-
-          if (!newName) {
-            logInfo('Bruger annullerede fil-navngivning');
-            throw new Error('Gem annulleret');
-          }
-
-          filename = `${newName.trim()}.eo`;
-          logInfo(`Nyt filnavn valgt: ${filename}`);
-        }
+      // Brug sidste gemte filnavn hvis stamdata er uændret, ellers brug nyt baseret på stamdata
+      if (lastSavedPath && lastSavedPath.startsWith(currentFilename.split('_')[0])) {
+        filename = lastSavedPath;
+        logInfo(`Genbruger filnavn: ${filename}`);
       } else {
-        const baseName = generateFilename(fileData.data);
-        const newName = prompt('Indtast filnavn (uden .eo):', baseName);
-
-        if (!newName) {
-          logInfo('Bruger annullerede fil-navngivning');
-          throw new Error('Gem annulleret');
-        }
-
-        filename = `${newName.trim()}.eo`;
-        logInfo(`Nyt filnavn valgt: ${filename}`);
+        filename = `${currentFilename}.eo`;
+        logInfo(`Nyt filnavn genereret: ${filename}`);
       }
 
-      // Download fil
+      // Download fil (browseren håndterer "filen eksisterer allerede" hvis relevant)
       logInfo('Downloader fil...');
       downloadFile(encrypted, filename, 'application/octet-stream');
       logInfo('✓ Fil downloadet');
@@ -251,7 +199,10 @@ export const saveToFile = async () => {
 
   } catch (error) {
     logOperationEnd('Gem fil', false);
-    logError('Gem-operation fejlede:', error);
+
+    // Sikkerhed: Log kun fejltype, ikke følsomme data
+    const safeErrorMessage = error.message.replace(/\b\d{6}-\d{4}\b/g, '[CPR]'); // Maskér CPR-numre
+    logError('Gem-operation fejlede:', safeErrorMessage);
 
     // Genkast med brugervenlig besked
     if (error.message.includes('Ingen data')) {
@@ -259,6 +210,9 @@ export const saveToFile = async () => {
     }
     if (error.message.includes('Ingen udfyldte felter')) {
       throw error; // Bevar validerings-fejl som er
+    }
+    if (error.message.includes('annulleret')) {
+      throw error; // Bevar annullerings-besked
     }
 
     throw new Error(`Kunne ikke gemme fil: ${error.message}`);

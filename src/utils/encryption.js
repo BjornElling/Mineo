@@ -7,13 +7,23 @@ const PASSWORD = 'MINEO_ERSTATNINGSBEREGNING_2025';
 const SALT = 'mineo_salt_2025';
 const ITERATIONS = 100000;
 
+// Cache til afledt nøgle (performance-optimering)
+// Nøglen beregnes én gang og genbruges for hele sessionen
+let cachedKey = null;
+
 /**
  * Afleder krypteringsnøgle fra password ved hjælp af PBKDF2.
  * Matcher Python-implementeringens PBKDF2HMAC med SHA256.
+ * Nøglen caches for at undgå genberegning (100.000 iterationer er CPU-tungt).
  *
  * @returns {string} Afledt krypteringsnøgle
  */
 const deriveKey = () => {
+  // Returner cached nøgle hvis den allerede er beregnet
+  if (cachedKey !== null) {
+    return cachedKey;
+  }
+
   try {
     // PBKDF2 key derivation (matcher Python's PBKDF2HMAC)
     const key = CryptoJS.PBKDF2(PASSWORD, SALT, {
@@ -22,7 +32,12 @@ const deriveKey = () => {
       hasher: CryptoJS.algo.SHA256,
     });
 
-    return key.toString();
+    const keyString = key.toString();
+
+    // Cache nøglen for fremtidige kald
+    cachedKey = keyString;
+
+    return keyString;
   } catch (error) {
     console.error('Fejl ved key derivation:', error);
     throw new Error('Kunne ikke generere krypteringsnøgle');
@@ -163,14 +178,17 @@ export const decryptData = (fileContent) => {
     return data;
 
   } catch (error) {
-    // Genkast med brugervenlig besked
-    if (error.message.includes('Checksum')) {
-      throw error; // Bevar checksum-fejl som er
+    // Sikkerhed: Maskér følsomme data i fejlbeskeder
+    const safeErrorMessage = error.message.replace(/\b\d{6}-\d{4}\b/g, '[CPR]'); // Maskér CPR-numre
+
+    // Genkast med brugervenlig besked (uden følsomme data)
+    if (safeErrorMessage.includes('Checksum')) {
+      throw new Error(safeErrorMessage);
     }
-    if (error.message.includes('Dekryptering fejlede')) {
-      throw error; // Bevar dekrypterings-fejl som er
+    if (safeErrorMessage.includes('Dekryptering fejlede')) {
+      throw new Error(safeErrorMessage);
     }
-    throw new Error(`Kunne ikke indlæse fil: ${error.message}`);
+    throw new Error(`Kunne ikke indlæse fil: ${safeErrorMessage}`);
   }
 };
 

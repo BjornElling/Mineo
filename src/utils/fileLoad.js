@@ -2,6 +2,7 @@ import { clearAllData, saveDataToSessionStorage, countFilledFields, collectAllDa
 import { decryptFromString } from './encryption';
 import { selectFile, readFile } from './fileHelpers';
 import { logOperationStart, logOperationEnd, logDataStats, logInfo, logWarning, logError } from './logger';
+import { FILE_FORMAT_VERSION, MAX_FILE_SIZE } from '../config/version';
 import {
   isFileSystemAccessSupported,
   openFileWithPicker,
@@ -59,6 +60,13 @@ export const loadFromFile = async () => {
         throw new Error('Valgt fil er ikke en .eo fil');
       }
 
+      // Valider filstørrelse (sikkerhedstjek)
+      if (file.size > MAX_FILE_SIZE) {
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        const maxSizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
+        throw new Error(`Filen er for stor (${sizeMB} MB). Maksimum: ${maxSizeMB} MB`);
+      }
+
       // Læs fil via file handle
       logInfo('Læser fil via File System Access API...');
       fileContent = await readFromFileHandle(fileHandle);
@@ -83,6 +91,13 @@ export const loadFromFile = async () => {
         throw new Error('Valgt fil er ikke en .eo fil');
       }
 
+      // Valider filstørrelse (sikkerhedstjek)
+      if (file.size > MAX_FILE_SIZE) {
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        const maxSizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
+        throw new Error(`Filen er for stor (${sizeMB} MB). Maksimum: ${maxSizeMB} MB`);
+      }
+
       // Læs fil
       logInfo('Læser fil...');
       fileContent = await readFile(file);
@@ -100,9 +115,38 @@ export const loadFromFile = async () => {
     }
     logInfo('✓ Data dekrypteret og valideret (checksum OK)');
 
-    // Valider fil-struktur
+    // Valider grundlæggende fil-struktur
     if (!decrypted.data) {
       throw new Error("Ugyldig fil-struktur (mangler 'data' sektion)");
+    }
+
+    if (typeof decrypted.data !== 'object' || decrypted.data === null) {
+      throw new Error("Ugyldig fil-struktur ('data' sektion er ikke et objekt)");
+    }
+
+    // Valider at data-sektionen indeholder de forventede sektioner
+    const expectedSections = [
+      'stamdata',
+      'skadeserstatning',
+      'erhvervsevnetab',
+      'fremtidigeUdgifter',
+      'aegtefaelle',
+      'forsørgertab',
+      'tortgodtgørelse'
+    ];
+
+    const dataSections = Object.keys(decrypted.data);
+    const hasValidSections = expectedSections.some(section => dataSections.includes(section));
+
+    if (!hasValidSections) {
+      throw new Error('Ugyldig fil-struktur (mangler forventede data-sektioner)');
+    }
+
+    // Valider at hver sektion er et objekt
+    for (const section of dataSections) {
+      if (typeof decrypted.data[section] !== 'object' || decrypted.data[section] === null) {
+        throw new Error(`Ugyldig data-struktur i sektion '${section}' (ikke et objekt)`);
+      }
     }
 
     // VIGTIGT: Tjek om der allerede er data i programmet
@@ -123,12 +167,12 @@ export const loadFromFile = async () => {
       logInfo('Bruger bekræftede overskrivning af eksisterende data');
     }
 
-    // Tjek version
+    // Tjek version (bruger nu central konstant)
     const fileVersion = decrypted.version || 'ukendt';
     logInfo(`Fil version: ${fileVersion}`);
 
-    if (fileVersion !== '1.0.0') {
-      logWarning(`⚠ Version mismatch: forventet 1.0.0, fandt ${fileVersion}`);
+    if (fileVersion !== FILE_FORMAT_VERSION) {
+      logWarning(`⚠ Version mismatch: forventet ${FILE_FORMAT_VERSION}, fandt ${fileVersion}`);
       // Fortsæt alligevel, men log advarsel
     }
 
@@ -201,7 +245,10 @@ export const loadFromFile = async () => {
 
   } catch (error) {
     logOperationEnd('Hent fil', false);
-    logError('Hent-operation fejlede:', error);
+
+    // Sikkerhed: Log kun fejltype, ikke følsomme data
+    const safeErrorMessage = error.message.replace(/\b\d{6}-\d{4}\b/g, '[CPR]'); // Maskér CPR-numre
+    logError('Hent-operation fejlede:', safeErrorMessage);
 
     // Genkast med brugervenlig besked
     if (error.message.includes('annullerede')) {
@@ -212,6 +259,12 @@ export const loadFromFile = async () => {
     }
     if (error.message.includes('dekryptere')) {
       throw error; // Bevar dekrypterings-fejl
+    }
+    if (error.message.includes('for stor')) {
+      throw error; // Bevar filstørrelses-fejl
+    }
+    if (error.message.includes('Ugyldig fil-struktur')) {
+      throw error; // Bevar struktur-fejl
     }
 
     throw new Error(`Kunne ikke indlæse fil: ${error.message}`);
