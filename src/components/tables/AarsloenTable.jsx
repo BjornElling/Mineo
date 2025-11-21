@@ -1,13 +1,31 @@
 import React from "react";
 import { Box } from "@mui/material";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
+import TableAmountInput from "../inputs/table/TableAmountInput";
+import TableIntegerInput from "../inputs/table/TableIntegerInput";
+import TableYearInput from "../inputs/table/TableYearInput";
+import TableWeekInput from "../inputs/table/TableWeekInput";
+import TableDateInput from "../inputs/table/TableDateInput";
 
-const AarsloenTable = ({ loenperiode, satser }) => {
-  // State for tabeldata (2 rækker til at starte med)
-  const [tableData, setTableData] = React.useState([
+const AarsloenTable = ({ loenperiode, satser, tableData, onTableDataChange }) => {
+  // Default tabeldata
+  const defaultTableData = [
     { id: 0, col0: "", col1: "", col2: "", col3: "", col4: "", col5: "", col6: "", col10: "" },
     { id: 1, col0: "", col1: "", col2: "", col3: "", col4: "", col5: "", col6: "", col10: "" },
-  ]);
+  ];
+
+  // Intern state til visning under indtastning
+  const [internalTableData, setInternalTableData] = React.useState(tableData || defaultTableData);
+
+  // Synkroniser intern state med props når props ændres (fx ved genindlæsning)
+  React.useEffect(() => {
+    if (tableData) {
+      setInternalTableData(tableData);
+    }
+  }, [tableData]);
+
+  // Funktion til at gemme til persistence (kun ved blur)
+  const persistTableData = onTableDataChange || (() => {});
 
   // State for sortering
   const [sortColumn, setSortColumn] = React.useState(null);
@@ -115,7 +133,7 @@ const AarsloenTable = ({ loenperiode, satser }) => {
       setSortColumn(columnIndex);
       setSortDirection(newDirection);
 
-      const sorted = [...tableData].sort((a, b) => {
+      const sorted = [...internalTableData].sort((a, b) => {
         const colKey = `col${columnIndex}`;
         let aVal = a[colKey] || "";
         let bVal = b[colKey] || "";
@@ -142,27 +160,33 @@ const AarsloenTable = ({ loenperiode, satser }) => {
           : String(bVal).localeCompare(String(aVal));
       });
 
-      setTableData(sorted);
+      setInternalTableData(sorted);
+      persistTableData(sorted);
     },
-    [tableData, sortColumn, sortDirection, calculateRow]
+    [internalTableData, sortColumn, sortDirection, calculateRow, persistTableData]
   );
 
   /** -----------------------------------------------------------
-   *  Funktion: Håndter ændringer i input-felter
+   *  Funktion: Håndter ændringer i input-felter (kun lokal state)
    * ----------------------------------------------------------- */
   const handleInputChange = React.useCallback((rowId, colKey, value) => {
-    setTableData((prev) =>
+    // Opdater kun intern state under indtastning - gem til persistence sker ved blur
+    setInternalTableData((prev) =>
       prev.map((row) => (row.id === rowId ? { ...row, [colKey]: value } : row))
     );
   }, []);
 
   /** -----------------------------------------------------------
-   *  Funktion: Håndter onBlur (trigger beregninger)
+   *  Funktion: Håndter onBlur (gem saneret værdi til persistence)
    * ----------------------------------------------------------- */
-  const handleInputBlur = React.useCallback(() => {
-    // Trigger re-render for at opdatere beregninger
-    setTableData((prev) => [...prev]);
-  }, []);
+  const handleFieldBlur = React.useCallback((rowId, colKey, value) => {
+    // Ved blur: opdater med den sanerede værdi og gem til persistence
+    const newData = internalTableData.map((row) =>
+      row.id === rowId ? { ...row, [colKey]: value } : row
+    );
+    setInternalTableData(newData);
+    persistTableData(newData);
+  }, [internalTableData, persistTableData]);
 
   /** -----------------------------------------------------------
    *  Funktion: Tab-navigation
@@ -189,7 +213,7 @@ const AarsloenTable = ({ loenperiode, satser }) => {
             nextCol = editableColumns[currentEditableIndex + 1];
           } else {
             // Gå til første kolonne i næste række
-            nextRow = (currentRow + 1) % tableData.length;
+            nextRow = (currentRow + 1) % internalTableData.length;
             nextCol = editableColumns[0];
           }
         } else {
@@ -200,7 +224,7 @@ const AarsloenTable = ({ loenperiode, satser }) => {
             nextCol = editableColumns[currentEditableIndex - 1];
           } else {
             // Gå til sidste kolonne i forrige række
-            nextRow = (currentRow - 1 + tableData.length) % tableData.length;
+            nextRow = (currentRow - 1 + internalTableData.length) % internalTableData.length;
             nextCol = editableColumns[editableColumns.length - 1];
           }
         }
@@ -219,7 +243,7 @@ const AarsloenTable = ({ loenperiode, satser }) => {
         }, 0);
       }
     },
-    [tableData]
+    [internalTableData]
   );
 
   /** -----------------------------------------------------------
@@ -269,15 +293,18 @@ const AarsloenTable = ({ loenperiode, satser }) => {
                   whiteSpace: "pre-line",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
+                  position: "relative",
                 }}
                 onClick={() => handleSort(idx)}
               >
                 {header}
                 <SwapVertIcon
                   sx={{
-                    verticalAlign: "middle",
-                    ml: 0.5,
-                    opacity: sortColumn === idx ? 1 : 0.3,
+                    position: "absolute",
+                    bottom: 2,
+                    right: 2,
+                    fontSize: "14px",
+                    color: sortColumn === idx ? "#1976d2" : "rgba(0, 0, 0, 0.3)",
                   }}
                 />
               </th>
@@ -287,7 +314,7 @@ const AarsloenTable = ({ loenperiode, satser }) => {
 
         {/* Data rækker */}
         <tbody>
-          {tableData.map((row, rowIdx) => {
+          {internalTableData.map((row, rowIdx) => {
             const calculated = calculateRow(row);
 
             return (
@@ -297,64 +324,103 @@ const AarsloenTable = ({ loenperiode, satser }) => {
                   backgroundColor: rowIdx % 2 === 0 ? "#ffffff" : "#f5f5f5",
                 }}
               >
-                {/* Kolonne 0 */}
-                <td style={{ padding: "4px", border: "1px solid #e0e0e0", textAlign: "center", overflow: "hidden" }}>
-                  <input
-                    ref={(el) => (inputRefs.current[`${rowIdx}-0`] = el)}
-                    type="text"
-                    value={row.col0}
-                    onChange={(e) => handleInputChange(row.id, "col0", e.target.value)}
-                    onBlur={handleInputBlur}
-                    onKeyDown={(e) => handleKeyDown(e, rowIdx, 0)}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      outline: "none",
-                      backgroundColor: "transparent",
-                      textAlign: "center",
-                      fontSize: "inherit",
-                    }}
-                  />
+                {/* Kolonne 0: Måned/Uge fra/Dato fra */}
+                <td style={{ padding: 0, border: "1px solid #e0e0e0", textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {loenperiode === "maaned" && (
+                    <TableIntegerInput
+                      key={`${row.id}-col0-${loenperiode}`}
+                      inputRef={(el) => (inputRefs.current[`${rowIdx}-0`] = el)}
+                      value={row.col0}
+                      onChange={(e) => handleInputChange(row.id, "col0", e.target.value)}
+                      onBlur={(e) => handleFieldBlur(row.id, "col0", e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, rowIdx, 0)}
+                      minValue={1}
+                      maxValue={12}
+                      sx={{ fontSize: "11px" }}
+                    />
+                  )}
+                  {loenperiode === "uge" && (
+                    <TableWeekInput
+                      key={`${row.id}-col0-${loenperiode}`}
+                      inputRef={(el) => (inputRefs.current[`${rowIdx}-0`] = el)}
+                      value={row.col0}
+                      onChange={(e) => handleInputChange(row.id, "col0", e.target.value)}
+                      onBlur={(e) => handleFieldBlur(row.id, "col0", e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, rowIdx, 0)}
+                      minYear={2005}
+                      maxYear={2030}
+                      sx={{ fontSize: "11px" }}
+                    />
+                  )}
+                  {loenperiode === "dag" && (
+                    <TableDateInput
+                      key={`${row.id}-col0-${loenperiode}`}
+                      inputRef={(el) => (inputRefs.current[`${rowIdx}-0`] = el)}
+                      value={row.col0}
+                      onChange={(e) => handleInputChange(row.id, "col0", e.target.value)}
+                      onBlur={(e) => handleFieldBlur(row.id, "col0", e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, rowIdx, 0)}
+                      minDate="2005-01-01"
+                      maxDate={row.col1 && row.col1.length === 10 ? row.col1.split("-").reverse().join("-") : "2030-12-31"}
+                      sx={{ fontSize: "11px" }}
+                    />
+                  )}
                 </td>
 
-                {/* Kolonne 1 */}
-                <td style={{ padding: "4px", border: "1px solid #e0e0e0", textAlign: "center", overflow: "hidden" }}>
-                  <input
-                    ref={(el) => (inputRefs.current[`${rowIdx}-1`] = el)}
-                    type="text"
-                    value={row.col1}
-                    onChange={(e) => handleInputChange(row.id, "col1", e.target.value)}
-                    onBlur={handleInputBlur}
-                    onKeyDown={(e) => handleKeyDown(e, rowIdx, 1)}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      outline: "none",
-                      backgroundColor: "transparent",
-                      textAlign: "center",
-                      fontSize: "inherit",
-                    }}
-                  />
+                {/* Kolonne 1: År/Uge til/Dato til */}
+                <td style={{ padding: 0, border: "1px solid #e0e0e0", textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {loenperiode === "maaned" && (
+                    <TableYearInput
+                      key={`${row.id}-col1-${loenperiode}`}
+                      inputRef={(el) => (inputRefs.current[`${rowIdx}-1`] = el)}
+                      value={row.col1}
+                      onChange={(e) => handleInputChange(row.id, "col1", e.target.value)}
+                      onBlur={(e) => handleFieldBlur(row.id, "col1", e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, rowIdx, 1)}
+                      minYear={2005}
+                      maxYear={2030}
+                      sx={{ fontSize: "11px" }}
+                    />
+                  )}
+                  {loenperiode === "uge" && (
+                    <TableWeekInput
+                      key={`${row.id}-col1-${loenperiode}`}
+                      inputRef={(el) => (inputRefs.current[`${rowIdx}-1`] = el)}
+                      value={row.col1}
+                      onChange={(e) => handleInputChange(row.id, "col1", e.target.value)}
+                      onBlur={(e) => handleFieldBlur(row.id, "col1", e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, rowIdx, 1)}
+                      minYear={2005}
+                      maxYear={2030}
+                      sx={{ fontSize: "11px" }}
+                    />
+                  )}
+                  {loenperiode === "dag" && (
+                    <TableDateInput
+                      key={`${row.id}-col1-${loenperiode}`}
+                      inputRef={(el) => (inputRefs.current[`${rowIdx}-1`] = el)}
+                      value={row.col1}
+                      onChange={(e) => handleInputChange(row.id, "col1", e.target.value)}
+                      onBlur={(e) => handleFieldBlur(row.id, "col1", e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, rowIdx, 1)}
+                      minDate={row.col0 && row.col0.length === 10 ? row.col0.split("-").reverse().join("-") : "2005-01-01"}
+                      maxDate="2030-12-31"
+                      sx={{ fontSize: "11px" }}
+                    />
+                  )}
                 </td>
 
                 {/* Kolonne 2-6: Lønposter */}
                 {[2, 3, 4, 5, 6].map((colIdx) => (
-                  <td key={colIdx} style={{ padding: "4px", border: "1px solid #e0e0e0", textAlign: "right", overflow: "hidden" }}>
-                    <input
-                      ref={(el) => (inputRefs.current[`${rowIdx}-${colIdx}`] = el)}
-                      type="text"
+                  <td key={colIdx} style={{ padding: 0, border: "1px solid #e0e0e0", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <TableAmountInput
+                      inputRef={(el) => (inputRefs.current[`${rowIdx}-${colIdx}`] = el)}
                       value={row[`col${colIdx}`]}
                       onChange={(e) => handleInputChange(row.id, `col${colIdx}`, e.target.value)}
-                      onBlur={handleInputBlur}
+                      onBlur={(e) => handleFieldBlur(row.id, `col${colIdx}`, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, rowIdx, colIdx)}
-                      style={{
-                        width: "100%",
-                        border: "none",
-                        outline: "none",
-                        backgroundColor: "transparent",
-                        textAlign: "right",
-                          fontSize: "inherit",
-                      }}
+                      placeholder=""
+                      sx={{ fontSize: "11px" }}
                     />
                   </td>
                 ))}
@@ -368,6 +434,7 @@ const AarsloenTable = ({ loenperiode, satser }) => {
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
+                    color: calculated.col7 === 0 ? "rgba(0, 0, 0, 0.4)" : "inherit",
                   }}
                 >
                   {formatNumber(calculated.col7)}
@@ -382,6 +449,7 @@ const AarsloenTable = ({ loenperiode, satser }) => {
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
+                    color: calculated.col8 === 0 ? "rgba(0, 0, 0, 0.4)" : "inherit",
                   }}
                 >
                   {formatNumber(calculated.col8)}
@@ -396,27 +464,22 @@ const AarsloenTable = ({ loenperiode, satser }) => {
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
+                    color: calculated.col9 === 0 ? "rgba(0, 0, 0, 0.4)" : "inherit",
                   }}
                 >
                   {formatNumber(calculated.col9)}
                 </td>
 
                 {/* Kolonne 10: ATP */}
-                <td style={{ padding: "4px", border: "1px solid #e0e0e0", textAlign: "right", overflow: "hidden" }}>
-                  <input
-                    ref={(el) => (inputRefs.current[`${rowIdx}-10`] = el)}
-                    type="text"
+                <td style={{ padding: 0, border: "1px solid #e0e0e0", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <TableAmountInput
+                    inputRef={(el) => (inputRefs.current[`${rowIdx}-10`] = el)}
                     value={row.col10}
                     onChange={(e) => handleInputChange(row.id, "col10", e.target.value)}
-                    onBlur={handleInputBlur}
+                    onBlur={(e) => handleFieldBlur(row.id, "col10", e.target.value)}
                     onKeyDown={(e) => handleKeyDown(e, rowIdx, 10)}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      outline: "none",
-                      backgroundColor: "transparent",
-                      textAlign: "right",
-                    }}
+                    placeholder=""
+                    sx={{ fontSize: "11px" }}
                   />
                 </td>
 
@@ -429,6 +492,7 @@ const AarsloenTable = ({ loenperiode, satser }) => {
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
+                    color: calculated.col11 === 0 ? "rgba(0, 0, 0, 0.4)" : "inherit",
                   }}
                 >
                   {formatNumber(calculated.col11)}

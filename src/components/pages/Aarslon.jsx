@@ -4,6 +4,7 @@ import ContentBox from '../common/ContentBox';
 import StyledPercentField from '../inputs/StyledPercentField';
 import StyledRadioButton from '../inputs/StyledRadioButton';
 import AarsloenTable from '../tables/AarsloenTable';
+import { usePersistedForm } from '../../hooks/usePersistedForm';
 
 /**
  * Årsløn-side
@@ -11,13 +12,32 @@ import AarsloenTable from '../tables/AarsloenTable';
  * Beregner årsløn baseret på satser og indtægtsoplysninger
  */
 const Aarslon = React.memo(() => {
-  // State for satser
-  const [feriePct, setFeriePct] = React.useState('');
-  const [fritvalgPct, setFritvalgPct] = React.useState('');
-  const [shPct, setShPct] = React.useState('');
-  const [storeBededagPct, setStoreBededagPct] = React.useState('');
-  const [pensionPct, setPensionPct] = React.useState('');
-  const [loenperiode, setLoenperiode] = React.useState('maaned');
+  // Persisted state for satser
+  const { values, setValues } = usePersistedForm('aarslon', {
+    feriePct: '',
+    fritvalgPct: '',
+    shPct: '',
+    storeBededagPct: '',
+    pensionPct: '',
+    loenperiode: 'maaned',
+    tableData: [
+      { id: 0, col0: '', col1: '', col2: '', col3: '', col4: '', col5: '', col6: '', col10: '' },
+      { id: 1, col0: '', col1: '', col2: '', col3: '', col4: '', col5: '', col6: '', col10: '' },
+    ],
+  });
+
+  // Destrukturér værdier for nem adgang
+  const { feriePct, fritvalgPct, shPct, storeBededagPct, pensionPct, loenperiode, tableData } = values;
+
+  // Hjælpefunktion til at opdatere enkeltfelter
+  const updateField = (fieldName) => (e) => {
+    setValues(prev => ({ ...prev, [fieldName]: e.target.value }));
+  };
+
+  // Funktion til at opdatere tabeldata
+  const handleTableDataChange = React.useCallback((newTableData) => {
+    setValues(prev => ({ ...prev, tableData: newTableData }));
+  }, [setValues]);
 
   return (
     <Box>
@@ -42,7 +62,7 @@ const Aarslon = React.memo(() => {
             </Typography>
             <StyledPercentField
               value={feriePct}
-              onChange={(e) => setFeriePct(e.target.value)}
+              onChange={updateField('feriePct')}
               placeholder="0 %"
               sx={{ width: '100px' }}
             />
@@ -55,7 +75,7 @@ const Aarslon = React.memo(() => {
             </Typography>
             <StyledPercentField
               value={fritvalgPct}
-              onChange={(e) => setFritvalgPct(e.target.value)}
+              onChange={updateField('fritvalgPct')}
               placeholder="0 %"
               sx={{ width: '100px' }}
             />
@@ -68,7 +88,7 @@ const Aarslon = React.memo(() => {
             </Typography>
             <StyledPercentField
               value={shPct}
-              onChange={(e) => setShPct(e.target.value)}
+              onChange={updateField('shPct')}
               placeholder="0 %"
               sx={{ width: '100px' }}
             />
@@ -81,7 +101,7 @@ const Aarslon = React.memo(() => {
             </Typography>
             <StyledPercentField
               value={storeBededagPct}
-              onChange={(e) => setStoreBededagPct(e.target.value)}
+              onChange={updateField('storeBededagPct')}
               placeholder="0 %"
               sx={{ width: '100px' }}
             />
@@ -94,7 +114,7 @@ const Aarslon = React.memo(() => {
             </Typography>
             <StyledPercentField
               value={pensionPct}
-              onChange={(e) => setPensionPct(e.target.value)}
+              onChange={updateField('pensionPct')}
               placeholder="0 %"
               sx={{ width: '100px' }}
             />
@@ -107,7 +127,7 @@ const Aarslon = React.memo(() => {
           <StyledRadioButton
             label="Lønperiode:"
             value={loenperiode}
-            onChange={(e) => setLoenperiode(e.target.value)}
+            onChange={updateField('loenperiode')}
             row={true}
             options={[
               { value: 'maaned', label: 'Månedsløn' },
@@ -134,6 +154,8 @@ const Aarslon = React.memo(() => {
             bededag: storeBededagPct,
             pension: pensionPct
           }}
+          tableData={tableData}
+          onTableDataChange={handleTableDataChange}
         />
       </ContentBox>
     </Box>
