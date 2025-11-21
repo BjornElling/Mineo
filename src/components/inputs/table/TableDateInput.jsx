@@ -18,6 +18,7 @@ const TableDateInput = React.memo(({
   value = '',
   onChange,
   onBlur,
+  onKeyDown,
   minDate,
   maxDate,
   placeholder = '',
@@ -29,6 +30,8 @@ const TableDateInput = React.memo(({
   const [hasError, setHasError] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState('');
   const [isFocused, setIsFocused] = React.useState(false);
+  const originalValueRef = React.useRef(value);
+  const internalInputRef = React.useRef(null);
 
   // Sync internal value med external value
   React.useEffect(() => {
@@ -309,14 +312,61 @@ const TableDateInput = React.memo(({
     }
   };
 
+  // Håndter focus - gem oprindelig værdi
+  const handleFocus = (e) => {
+    setIsFocused(true);
+    originalValueRef.current = internalValue;
+    // Gendan caret-farve (kan være skjult efter Escape)
+    e.target.style.caretColor = '';
+  };
+
+  // Håndter Escape-tast for at fortryde ændringer
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      // Gendan den oprindelige værdi
+      setInternalValue(originalValueRef.current);
+      if (onChange) {
+        const syntheticEvent = {
+          target: { value: originalValueRef.current }
+        };
+        onChange(syntheticEvent);
+      }
+      // Ryd eventuelle fejl og genvalider oprindelig værdi
+      if (originalValueRef.current && originalValueRef.current.trim() !== '') {
+        validateDate(originalValueRef.current);
+      } else {
+        setHasError(false);
+        setErrorMessage('');
+      }
+      // Fjern tekstmarkør visuelt men behold fokus
+      if (internalInputRef.current) {
+        internalInputRef.current.setSelectionRange(0, 0);
+        internalInputRef.current.style.caretColor = 'transparent';
+      }
+    }
+    // Kald ekstern onKeyDown hvis den findes
+    if (onKeyDown) {
+      onKeyDown(e);
+    }
+  };
+
   return (
     <Tooltip title={hasError && !isFocused ? errorMessage : ''} arrow placement="top">
       <InputBase
-        inputRef={inputRef}
+        inputRef={(node) => {
+          internalInputRef.current = node;
+          if (typeof inputRef === 'function') {
+            inputRef(node);
+          } else if (inputRef) {
+            inputRef.current = node;
+          }
+        }}
         value={internalValue}
         onChange={handleChange}
-        onFocus={() => setIsFocused(true)}
+        onFocus={handleFocus}
         onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
         sx={{
           width: '100%',

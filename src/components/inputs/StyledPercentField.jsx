@@ -26,12 +26,15 @@ const StyledPercentField = React.forwardRef(({
   onChange,
   onBlur,
   onFocus,
+  onKeyDown,
   placeholder = '0 %',
   sx,
   ...otherProps
 }, ref) => {
   const [internalValue, setInternalValue] = React.useState(value);
   const [hasFocus, setHasFocus] = React.useState(false);
+  const originalValueRef = React.useRef(value);
+  const inputRef = React.useRef(null);
 
   // Sync internal value med external value
   React.useEffect(() => {
@@ -102,6 +105,8 @@ const StyledPercentField = React.forwardRef(({
   // Håndter focus
   const handleFocus = (e) => {
     setHasFocus(true);
+    // Gem oprindelig værdi (med % suffix) FØR vi fjerner det
+    originalValueRef.current = internalValue;
 
     // Fjern % suffix når feltet får fokus
     let rawValue = internalValue;
@@ -112,6 +117,31 @@ const StyledPercentField = React.forwardRef(({
 
     if (onFocus) {
       onFocus(e);
+    }
+  };
+
+  // Håndter Escape-tast for at fortryde ændringer
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      // Gendan den oprindelige værdi (med % suffix)
+      setInternalValue(originalValueRef.current);
+      if (onChange) {
+        const syntheticEvent = {
+          target: { value: originalValueRef.current }
+        };
+        onChange(syntheticEvent);
+      }
+      // Fjern tekstmarkør visuelt men behold fokus
+      const input = inputRef.current?.querySelector('input');
+      if (input) {
+        input.setSelectionRange(0, 0);
+        input.style.caretColor = 'transparent';
+      }
+    }
+    // Kald ekstern onKeyDown hvis den findes
+    if (onKeyDown) {
+      onKeyDown(e);
     }
   };
 
@@ -227,11 +257,19 @@ const StyledPercentField = React.forwardRef(({
 
   return (
     <StyledTextField
-      ref={ref}
+      ref={(node) => {
+        inputRef.current = node;
+        if (typeof ref === 'function') {
+          ref(node);
+        } else if (ref) {
+          ref.current = node;
+        }
+      }}
       value={internalValue}
       onChange={handleChange}
       onBlur={handleBlur}
       onFocus={handleFocus}
+      onKeyDown={handleKeyDown}
       placeholder={hasFocus ? '' : placeholder}
       width={width}
       sx={{

@@ -23,11 +23,14 @@ const StyledAmountField = React.forwardRef(({
   value = '',
   onChange,
   onBlur,
+  onKeyDown,
   placeholder = '0,00',
   sx,
   ...otherProps
 }, ref) => {
   const [internalValue, setInternalValue] = React.useState(value);
+  const originalValueRef = React.useRef(value);
+  const inputRef = React.useRef(null);
 
   // Sync internal value med external value
   React.useEffect(() => {
@@ -175,12 +178,51 @@ const StyledAmountField = React.forwardRef(({
     }
   };
 
+  // Håndter focus - gem oprindelig værdi
+  const handleFocus = (e) => {
+    originalValueRef.current = internalValue;
+  };
+
+  // Håndter Escape-tast for at fortryde ændringer
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      // Gendan den oprindelige værdi
+      setInternalValue(originalValueRef.current);
+      if (onChange) {
+        const syntheticEvent = {
+          target: { value: originalValueRef.current }
+        };
+        onChange(syntheticEvent);
+      }
+      // Fjern tekstmarkør visuelt men behold fokus
+      const input = inputRef.current?.querySelector('input');
+      if (input) {
+        input.setSelectionRange(0, 0);
+        input.style.caretColor = 'transparent';
+      }
+    }
+    // Kald ekstern onKeyDown hvis den findes
+    if (onKeyDown) {
+      onKeyDown(e);
+    }
+  };
+
   return (
     <StyledTextField
-      ref={ref}
+      ref={(node) => {
+        inputRef.current = node;
+        if (typeof ref === 'function') {
+          ref(node);
+        } else if (ref) {
+          ref.current = node;
+        }
+      }}
       value={internalValue}
       onChange={handleChange}
       onBlur={handleBlur}
+      onFocus={handleFocus}
+      onKeyDown={handleKeyDown}
       placeholder={placeholder}
       width={width}
       sx={{

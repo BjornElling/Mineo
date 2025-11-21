@@ -23,6 +23,7 @@ const StyledIntegerField = React.forwardRef(({
   width = 120,
   value = '',
   onChange,
+  onKeyDown,
   minValue,
   maxValue,
   placeholder = '',
@@ -31,6 +32,8 @@ const StyledIntegerField = React.forwardRef(({
 }, ref) => {
   const [errorState, setErrorState] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState('');
+  const originalValueRef = React.useRef(value);
+  const inputRef = React.useRef(null);
   const maxDigits = React.useMemo(() => {
     if (typeof maxValue === 'number') {
       return Math.abs(maxValue).toString().length;
@@ -126,12 +129,50 @@ const StyledIntegerField = React.forwardRef(({
     validateValue(value);
   };
 
+  // Håndter focus - gem oprindelig værdi
+  const handleFocus = (e) => {
+    originalValueRef.current = value;
+  };
+
+  // Håndter Escape-tast for at fortryde ændringer
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      // Gendan den oprindelige værdi
+      if (onChange) {
+        const syntheticEvent = {
+          target: { value: originalValueRef.current }
+        };
+        onChange(syntheticEvent);
+      }
+      // Fjern tekstmarkør visuelt men behold fokus
+      const input = inputRef.current?.querySelector('input');
+      if (input) {
+        input.setSelectionRange(0, 0);
+        input.style.caretColor = 'transparent';
+      }
+    }
+    // Kald ekstern onKeyDown hvis den findes
+    if (onKeyDown) {
+      onKeyDown(e);
+    }
+  };
+
   return (
     <StyledTextField
-      ref={ref}
+      ref={(node) => {
+        inputRef.current = node;
+        if (typeof ref === 'function') {
+          ref(node);
+        } else if (ref) {
+          ref.current = node;
+        }
+      }}
       value={value}
       onChange={handleChange}
       onBlur={handleBlur}
+      onFocus={handleFocus}
+      onKeyDown={handleKeyDown}
       placeholder={placeholder}
       width={width}
       error={errorState}

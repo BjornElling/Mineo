@@ -27,6 +27,7 @@ const StyledDateField = React.forwardRef(({
   value = '',
   onChange,
   onBlur,
+  onKeyDown,
   minDate,
   maxDate,
   error = false,
@@ -37,6 +38,8 @@ const StyledDateField = React.forwardRef(({
   const [internalValue, setInternalValue] = React.useState(value);
   const [errorState, setErrorState] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState('');
+  const originalValueRef = React.useRef(value);
+  const inputRef = React.useRef(null);
 
   // Sync internal value med external value
   React.useEffect(() => {
@@ -262,6 +265,43 @@ const StyledDateField = React.forwardRef(({
     }
   };
 
+  // Håndter focus - gem oprindelig værdi
+  const handleFocus = (e) => {
+    originalValueRef.current = internalValue;
+  };
+
+  // Håndter Escape-tast for at fortryde ændringer
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      // Gendan den oprindelige værdi
+      setInternalValue(originalValueRef.current);
+      if (onChange) {
+        const syntheticEvent = {
+          target: { value: originalValueRef.current }
+        };
+        onChange(syntheticEvent);
+      }
+      // Ryd eventuelle fejl og genvalider oprindelig værdi
+      if (originalValueRef.current && originalValueRef.current.trim() !== '') {
+        validateDate(originalValueRef.current);
+      } else {
+        setErrorState(false);
+        setErrorMessage('');
+      }
+      // Fjern tekstmarkør visuelt men behold fokus
+      const input = inputRef.current?.querySelector('input');
+      if (input) {
+        input.setSelectionRange(0, 0);
+        input.style.caretColor = 'transparent';
+      }
+    }
+    // Kald ekstern onKeyDown hvis den findes
+    if (onKeyDown) {
+      onKeyDown(e);
+    }
+  };
+
   // Håndter blur for at finalisere dato
   const handleBlur = (e) => {
     const parts = internalValue.split('-');
@@ -360,10 +400,19 @@ const StyledDateField = React.forwardRef(({
 
   return (
     <StyledTextField
-      ref={ref}
+      ref={(node) => {
+        inputRef.current = node;
+        if (typeof ref === 'function') {
+          ref(node);
+        } else if (ref) {
+          ref.current = node;
+        }
+      }}
       value={internalValue}
       onChange={handleChange}
       onBlur={handleBlur}
+      onFocus={handleFocus}
+      onKeyDown={handleKeyDown}
       placeholder="dd-mm-åååå"
       width={width}
       error={error || errorState}

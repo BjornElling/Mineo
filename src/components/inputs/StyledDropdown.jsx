@@ -28,15 +28,34 @@ const StyledDropdown = React.forwardRef(({
   value,
   onChange,
   onFocus,
+  onKeyDown,
   children,
   sx,
   ...otherProps
 }, ref) => {
   const inputRef = React.useRef(null);
+  const originalValueRef = React.useRef(value);
 
-  // Håndter sletning af værdi via Backspace/Delete
+  // Håndter focus - gem oprindelig værdi
+  const handleFocus = React.useCallback((e) => {
+    originalValueRef.current = value;
+    if (onFocus) {
+      onFocus(e);
+    }
+  }, [value, onFocus]);
+
+  // Håndter sletning af værdi via Backspace/Delete og Escape for at fortryde
   const handleKeyDown = React.useCallback((e) => {
-    if ((e.key === 'Backspace' || e.key === 'Delete') && value) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      // Gendan den oprindelige værdi
+      if (onChange) {
+        const syntheticEvent = {
+          target: { value: originalValueRef.current }
+        };
+        onChange(syntheticEvent);
+      }
+    } else if ((e.key === 'Backspace' || e.key === 'Delete') && value) {
       e.preventDefault();
       // Opret et syntetisk event med tom værdi
       const syntheticEvent = {
@@ -48,7 +67,11 @@ const StyledDropdown = React.forwardRef(({
         onChange(syntheticEvent);
       }
     }
-  }, [value, onChange]);
+    // Kald ekstern onKeyDown hvis den findes
+    if (onKeyDown) {
+      onKeyDown(e);
+    }
+  }, [value, onChange, onKeyDown]);
 
   // Når dropdown-menuen lukkes efter et valg, sørg for at fokus forbliver på input-feltet
   const handleClose = React.useCallback(() => {
@@ -79,7 +102,7 @@ const StyledDropdown = React.forwardRef(({
       value={value}
       onChange={onChange}
       onKeyDown={handleKeyDown}
-      onFocus={onFocus}
+      onFocus={handleFocus}
       width={width}
       SelectProps={{
         displayEmpty: true,

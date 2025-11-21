@@ -25,14 +25,31 @@ const StyledTextField = React.forwardRef(({
   value,
   onChange,
   onBlur,
+  onKeyDown,
   sx = {},
   ...otherProps
 }, ref) => {
   const [isFocused, setIsFocused] = React.useState(false);
+  const originalValueRef = React.useRef(value);
+  const inputRef = React.useRef(null);
+
+  // Kombiner refs
+  const combinedRef = React.useCallback((node) => {
+    inputRef.current = node;
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      ref.current = node;
+    }
+  }, [ref]);
 
   const handleFocus = React.useCallback((e) => {
     setIsFocused(true);
-  }, []);
+    // Gendan caret-farve (kan være skjult efter Escape)
+    e.target.style.caretColor = '';
+    // Gem den oprindelige værdi når feltet får fokus
+    originalValueRef.current = value;
+  }, [value]);
 
   const handleBlur = React.useCallback((e) => {
     setIsFocused(false);
@@ -59,15 +76,45 @@ const StyledTextField = React.forwardRef(({
     }
   }, [value, onChange, onBlur]);
 
+  // Håndter Escape-tast for at fortryde ændringer
+  const handleKeyDown = React.useCallback((e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      // Gendan den oprindelige værdi
+      if (onChange) {
+        const syntheticEvent = {
+          target: { value: originalValueRef.current }
+        };
+        onChange(syntheticEvent);
+      }
+      // Fjern tekstmarkør visuelt men behold fokus for Tab-navigation
+      const input = inputRef.current?.querySelector('input');
+      if (input) {
+        // Flyt cursor til starten og fjern selection
+        input.setSelectionRange(0, 0);
+        // Skjul caret visuelt
+        input.style.caretColor = 'transparent';
+      }
+    }
+    // Kald ekstern onKeyDown hvis den findes
+    if (onKeyDown) {
+      onKeyDown(e);
+    }
+  }, [onChange, onKeyDown]);
+
   return (
     <TextField
-      ref={ref}
+      ref={combinedRef}
       value={value}
       onChange={onChange}
       onFocus={handleFocus}
       onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
       placeholder={isFocused ? '' : placeholder}
       autoComplete="off"
+      InputProps={{
+        ...otherProps.InputProps,
+      }}
       size="small"
       variant="outlined"
       sx={{
