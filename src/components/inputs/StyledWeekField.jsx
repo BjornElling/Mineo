@@ -43,6 +43,20 @@ const StyledWeekField = React.forwardRef(({
     setInternalValue(value);
   }, [value]);
 
+  // Central valideringsfunktion (defineres senere i koden)
+  const validateWeekRef = React.useRef();
+
+  // Valider eksisterende værdi når komponenten mounter eller når value ændres
+  React.useEffect(() => {
+    if (value && value.trim() !== '' && validateWeekRef.current) {
+      validateWeekRef.current(value);
+    } else {
+      // Hvis værdien er tom, ryd fejl
+      setErrorState(false);
+      setErrorMessage('');
+    }
+  }, [value, minYear, maxYear]); // Genvalider hvis min/max grænser ændres
+
   // Tjek om et år har 53 uger (ISO 8601)
   const yearHas53Weeks = (year) => {
     // ISO 8601: Et år har 53 uger hvis 31. december falder på en torsdag,
@@ -107,7 +121,7 @@ const StyledWeekField = React.forwardRef(({
   };
 
   // Central valideringsfunktion
-  const validateWeek = (weekStr) => {
+  const validateWeek = React.useCallback((weekStr) => {
     const parts = weekStr.split('/');
     const week = parts[0] || '';
     const year = parts[1] || '';
@@ -152,7 +166,12 @@ const StyledWeekField = React.forwardRef(({
     // Hvis vi kom hertil uden fejl, ryd fejlstatus
     setErrorState(false);
     setErrorMessage('');
-  };
+  }, [minYear, maxYear]);
+
+  // Gem validateWeek i ref så useEffect kan bruge den
+  React.useEffect(() => {
+    validateWeekRef.current = validateWeek;
+  }, [validateWeek]);
 
   // Håndter input-ændringer
   const handleChange = (e) => {

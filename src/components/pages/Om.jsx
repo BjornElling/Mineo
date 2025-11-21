@@ -1,6 +1,8 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../common/ContentBox';
+import FieldLabel from '../common/FieldLabel';
+import SectionHeader from '../common/SectionHeader';
 import { VERSION, BUILD_DATE } from '../../config/version';
 
 // 🔥 IMPORT AF MUI IKONER TIL KONTAKT-SEKTIONEN
@@ -8,20 +10,6 @@ import PersonIcon from '@mui/icons-material/Person';
 import EmailIcon from '@mui/icons-material/Email';
 import LanguageIcon from '@mui/icons-material/Language';
 import GitHubIcon from '@mui/icons-material/GitHub';
-
-// Section Header-komponent
-const SectionHeader = ({ children }) => (
-  <Typography className="section-header" component="div">
-    {children}
-  </Typography>
-);
-
-// Label til datafelter
-const FieldLabel = ({ children }) => (
-  <Typography className="field-label">
-    {children}
-  </Typography>
-);
 
 // Række med label og værdi
 const DataRow = ({ label, value }) => {

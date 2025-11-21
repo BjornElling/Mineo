@@ -17,15 +17,16 @@
   --font-weight-semibold: 500;
   --font-weight-bold: 600;
 
-  /* Font sizes */
-  --font-size-h1: 34px;
-  --font-size-h2: 24px;
-  --font-size-h3: 20px;
-  --font-size-section: 16px;
-  --font-size-body: 16px;
-  --font-size-label: 14px;
-  --font-size-small: 13px;
-  --font-size-menu: 15px;
+  /* Font sizes - Synkroniseret med MUI Theme (App.jsx) */
+  /* VIGTIGT: Primær kilde er MUI Theme. Disse values er kun til CSS-klasser. */
+  --font-size-h1: 34px;      /* Matcher theme.typography.h4 */
+  --font-size-h2: 24px;      /* Matcher theme.typography.h5 */
+  --font-size-h3: 18px;      /* Matcher theme.typography.h6 */
+  --font-size-section: 18px; /* Matcher theme.typography.h6 */
+  --font-size-body: 14px;    /* Matcher theme.typography.body1 - ÆNDRET FRA 16px */
+  --font-size-label: 14px;   /* Matcher theme.typography.body1 */
+  --font-size-small: 12px;   /* Matcher theme.typography.body2 */
+  --font-size-menu: 14px;    /* Matcher theme.typography.body1 - ÆNDRET FRA 15px */
 }
 
 /* ==================== Hovedoverskrifter (Side-titler) ==================== */
@@ -150,8 +151,8 @@
   :root {
     --font-size-h1: 28px;
     --font-size-h2: 22px;
-    --font-size-section: 15px;
-    --font-size-body: 15px;
+    --font-size-section: 16px;
+    --font-size-body: 14px;    /* Holder samme størrelse på mobile */
     --font-size-menu: 14px;
   }
 }

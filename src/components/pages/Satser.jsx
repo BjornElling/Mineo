@@ -2,6 +2,8 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import ContentBox from '../common/ContentBox';
+import FieldLabel from '../common/FieldLabel';
+import SectionHeader from '../common/SectionHeader';
 import StyledYearField from '../inputs/StyledYearField';
 import { MIN_YEAR, MAX_YEAR } from '../../config/dateRanges';
 import { getSatserForYear } from '../../data/regulationRates';
@@ -23,20 +25,6 @@ const formatProcent = (value) => {
   if (value === null || value === undefined || value === '') return '';
   return `${value.toString().replace('.', ',')} %`;
 };
-
-// Section Header-komponent
-const SectionHeader = ({ children }) => (
-  <Typography className="section-header" component="div">
-    {children}
-  </Typography>
-);
-
-// Field Label-komponent
-const FieldLabel = ({ children }) => (
-  <Typography className="field-label">
-    {children}
-  </Typography>
-);
 
 // Række-komponent for label-værdi par
 const DataRow = ({ label, value, rightAlign = true }) => {

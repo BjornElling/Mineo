@@ -5,6 +5,8 @@ import { Box, Typography, MenuItem } from '@mui/material';
 import { MIN_SKADESDATO, TODAY } from '../../config/dateRanges';
 // Importer centrale komponenter
 import ContentBox from '../common/ContentBox';
+import FieldLabel from '../common/FieldLabel';
+import SectionHeader from '../common/SectionHeader';
 import StyledTextField from '../inputs/StyledTextField';
 import StyledDropdown from '../inputs/StyledDropdown';
 import StyledDateField from '../inputs/StyledDateField';
@@ -13,20 +15,6 @@ import { usePersistedForm } from '../../hooks/usePersistedForm';
 
 // Skadestype-valgmuligheder
 const skadestyper = ['Arbejdsulykke', 'Erhvervssygdom'];
-
-// Field Label-komponent
-const FieldLabel = ({ children }) => (
-  <Typography className="field-label">
-    {children}
-  </Typography>
-);
-
-// Section Header-komponent
-const SectionHeader = ({ children }) => (
-  <Typography className="section-header" component="div">
-    {children}
-  </Typography>
-);
 
 /**
  * Stamdata-komponent til sagsinformation og skadelidtes detaljer

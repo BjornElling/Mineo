@@ -80,7 +80,6 @@ const StyledDropdown = React.forwardRef(({
       onChange={onChange}
       onKeyDown={handleKeyDown}
       onFocus={onFocus}
-      displayEmpty
       width={width}
       SelectProps={{
         displayEmpty: true,

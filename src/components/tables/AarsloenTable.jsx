@@ -228,7 +228,7 @@ const AarsloenTable = ({ loenperiode, satser }) => {
   const headers = getHeaders();
 
   return (
-    <Box sx={{ fontFamily: "Ubuntu, sans-serif", overflow: "auto" }}>
+    <Box sx={{ overflow: "auto" }}>
       <table
         style={{
           borderCollapse: "collapse",
@@ -312,7 +312,6 @@ const AarsloenTable = ({ loenperiode, satser }) => {
                       outline: "none",
                       backgroundColor: "transparent",
                       textAlign: "center",
-                      fontFamily: "Ubuntu, sans-serif",
                       fontSize: "inherit",
                     }}
                   />
@@ -333,7 +332,6 @@ const AarsloenTable = ({ loenperiode, satser }) => {
                       outline: "none",
                       backgroundColor: "transparent",
                       textAlign: "center",
-                      fontFamily: "Ubuntu, sans-serif",
                       fontSize: "inherit",
                     }}
                   />
@@ -355,8 +353,7 @@ const AarsloenTable = ({ loenperiode, satser }) => {
                         outline: "none",
                         backgroundColor: "transparent",
                         textAlign: "right",
-                        fontFamily: "Ubuntu, sans-serif",
-                        fontSize: "inherit",
+                          fontSize: "inherit",
                       }}
                     />
                   </td>
@@ -419,7 +416,6 @@ const AarsloenTable = ({ loenperiode, satser }) => {
                       outline: "none",
                       backgroundColor: "transparent",
                       textAlign: "right",
-                      fontFamily: "Ubuntu, sans-serif",
                     }}
                   />
                 </td>

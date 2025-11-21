@@ -39,7 +39,7 @@ const StyledIntegerField = React.forwardRef(({
   }, [maxValue]);
 
   // Valider værdi mod min/max
-  const validateValue = (val) => {
+  const validateValue = React.useCallback((val) => {
     if (!val || val.trim() === '') {
       setErrorState(false);
       setErrorMessage('');
@@ -71,7 +71,12 @@ const StyledIntegerField = React.forwardRef(({
 
     setErrorState(false);
     setErrorMessage('');
-  };
+  }, [minValue, maxValue]);
+
+  // Valider eksisterende værdi når komponenten mounter eller når value/min/max ændres
+  React.useEffect(() => {
+    validateValue(value);
+  }, [value, validateValue]);
 
   // Håndter input-ændringer
   const handleChange = (e) => {

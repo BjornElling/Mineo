@@ -45,7 +45,7 @@ const Indstillinger = React.memo(() => {
   return (
     <Box>
       <ContentBox>
-        <Typography variant="h5" sx={{ fontFamily: 'Ubuntu', fontWeight: 500, marginBottom: 3 }}>
+        <Typography variant="h5" sx={{ marginBottom: 3 }}>
           Indstillinger
         </Typography>
 
@@ -62,10 +62,10 @@ const Indstillinger = React.memo(() => {
             '&:hover': { backgroundColor: '#f5f5f5' },
           }}>
             <Box>
-              <Typography sx={{ fontFamily: 'Ubuntu', fontWeight: 500, fontSize: '14px' }}>
+              <Typography sx={{ fontWeight: 500 }}>
                 Mørk tilstand
               </Typography>
-              <Typography sx={{ fontFamily: 'Ubuntu', fontSize: '12px', color: 'rgba(0, 0, 0, 0.6)' }}>
+              <Typography variant="body2" color="text.secondary">
                 Skift til mørkt tema for bedre læsning om aftenen
               </Typography>
             </Box>
@@ -85,10 +85,10 @@ const Indstillinger = React.memo(() => {
             '&:hover': { backgroundColor: '#f5f5f5' },
           }}>
             <Box>
-              <Typography sx={{ fontFamily: 'Ubuntu', fontWeight: 500, fontSize: '14px' }}>
+              <Typography sx={{ fontWeight: 500 }}>
                 Notifikationer
               </Typography>
-              <Typography sx={{ fontFamily: 'Ubuntu', fontSize: '12px', color: 'rgba(0, 0, 0, 0.6)' }}>
+              <Typography variant="body2" color="text.secondary">
                 Vis beskeder om gemte filer og advarsler
               </Typography>
             </Box>
@@ -108,10 +108,10 @@ const Indstillinger = React.memo(() => {
             '&:hover': { backgroundColor: '#f5f5f5' },
           }}>
             <Box>
-              <Typography sx={{ fontFamily: 'Ubuntu', fontWeight: 500, fontSize: '14px' }}>
+              <Typography sx={{ fontWeight: 500 }}>
                 Automatisk gem
               </Typography>
-              <Typography sx={{ fontFamily: 'Ubuntu', fontSize: '12px', color: 'rgba(0, 0, 0, 0.6)' }}>
+              <Typography variant="body2" color="text.secondary">
                 Gem automatisk hvert 5. minut
               </Typography>
             </Box>
@@ -131,10 +131,10 @@ const Indstillinger = React.memo(() => {
             '&:hover': { backgroundColor: '#f5f5f5' },
           }}>
             <Box>
-              <Typography sx={{ fontFamily: 'Ubuntu', fontWeight: 500, fontSize: '14px' }}>
+              <Typography sx={{ fontWeight: 500 }}>
                 Avanceret tilstand
               </Typography>
-              <Typography sx={{ fontFamily: 'Ubuntu', fontSize: '12px', color: 'rgba(0, 0, 0, 0.6)' }}>
+              <Typography variant="body2" color="text.secondary">
                 Vis ekstra felter og funktioner for erfarne brugere
               </Typography>
             </Box>
@@ -148,7 +148,7 @@ const Indstillinger = React.memo(() => {
 
         {/* Radio button eksempler */}
         <Box sx={{ marginTop: 4 }}>
-          <Typography variant="h6" sx={{ fontFamily: 'Ubuntu', fontWeight: 500, marginBottom: 3 }}>
+          <Typography variant="h6" sx={{ marginBottom: 3 }}>
             Præferencer
           </Typography>
 
@@ -186,20 +186,13 @@ const Indstillinger = React.memo(() => {
 
         {/* Test af StyledWeekField */}
         <Box sx={{ marginTop: 4 }}>
-          <Typography variant="h6" sx={{ fontFamily: 'Ubuntu', fontWeight: 500, marginBottom: 3 }}>
+          <Typography variant="h6" sx={{ marginBottom: 3 }}>
             Test: Uge-felt
           </Typography>
 
           <Box sx={{ padding: 2, borderRadius: '10px', backgroundColor: '#f9f9f9' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Typography
-                sx={{
-                  fontFamily: 'Ubuntu',
-                  fontSize: '14px',
-                  minWidth: '150px',
-                  color: 'rgba(0, 0, 0, 0.87)'
-                }}
-              >
+              <Typography sx={{ minWidth: '150px' }}>
                 Indtast uge:
               </Typography>
               <StyledWeekField
@@ -209,25 +202,11 @@ const Indstillinger = React.memo(() => {
                 maxYear={MAX_YEAR}
                 width={150}
               />
-              <Typography
-                sx={{
-                  fontFamily: 'Ubuntu',
-                  fontSize: '12px',
-                  color: 'rgba(0, 0, 0, 0.6)',
-                  fontStyle: 'italic'
-                }}
-              >
+              <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                 Værdi: {testWeek || '(tom)'}
               </Typography>
             </Box>
-            <Typography
-              sx={{
-                fontFamily: 'Ubuntu',
-                fontSize: '12px',
-                color: 'rgba(0, 0, 0, 0.6)',
-                marginTop: 2
-              }}
-            >
+            <Typography variant="body2" color="text.secondary" sx={{ marginTop: 2 }}>
               Test funktioner: År-fortolkning (1-4 cifre), ISO 8601 validering (52/53 uger), auto-formatering til uu/åååå
             </Typography>
           </Box>

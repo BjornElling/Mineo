@@ -1,10 +1,10 @@
 # MINEO Erstatningsberegner
 
-**MINEO** er en web-baseret dansk erstatningsberegner til at opgøre krav efter Erstatningsansvarsloven og Arbejdsskadesikringsloven.
+**MINEO** er en web-baseret erstatningsberegner til at opgøre krav efter Erstatningsansvarsloven og Arbejdsskadesikringsloven.
 
 ## 🎯 Om projektet
 
-MINEO er en moderne web-applikation udviklet til at hjælpe advokater og sagsbehandlere med at lave erstatningsopgørelser. Programmet kører 100% i browseren og kræver ingen installation.
+MINEO er en gratis open source applikation udviklet til at hjælpe advokater og sagsbehandlere med at lave erstatningsopgørelser. Programmet kører 100% i browseren og kræver ingen installation.
 
 ## ✨ Features
 
@@ -109,10 +109,7 @@ Alle input-komponenter arver fra **StyledTextField** for konsistent udseende:
 ### Intelligent datohåndtering
 - Auto-formattering til dd-mm-åååå under indtastning
 - Accepterer flere separatorer (-, ., :, mellemrum) → konverteres til bindestreg
-- Intelligent år-fortolkning:
-  - 1 ciffer → 200x (f.eks. "5" → 2005)
-  - 2 cifre → smart fortolkning (f.eks. "24" → 2024, "95" → 1995)
-  - 4 cifre → bruges direkte
+- Intelligent år-fortolkning
 - Real-time validering af datogyldighed (inkl. skudår)
 - Interval-validering mod min/max datoer
 - Centraliseret dato-konfiguration i [dateRanges.js](src/config/dateRanges.js)
@@ -260,5 +257,5 @@ MINEO er udviklet med hjælp fra Claude AI.
 
 ---
 
-**Version**: 0.0.0-dev (Versionsnummer genereres automatisk ved commit)
+**Version**: 2025.11.26
 **Status**: Under udvikling

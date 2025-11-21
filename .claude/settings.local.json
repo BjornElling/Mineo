@@ -24,7 +24,9 @@
       "Bash(move c:UsersbjellMineosrccontextsFormPersistenceContext.js c:UsersbjellMineosrccontextsFormPersistenceContext.jsx)",
       "Bash(npm ls:*)",
       "Bash(npm run:*)",
-      "Bash(timeout /t 5 /nobreak)"
+      "Bash(timeout /t 5 /nobreak)",
+      "Bash(node:*)",
+      "Bash(del \"c:\\Users\\bjell\\Mineo\\src\\components\\common\\SectionDescription.jsx\")"
     ],
     "deny": [],
     "ask": []

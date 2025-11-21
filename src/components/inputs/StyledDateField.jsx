@@ -43,6 +43,18 @@ const StyledDateField = React.forwardRef(({
     setInternalValue(value);
   }, [value]);
 
+  // Valider eksisterende værdi når komponenten mounter eller når value ændres
+  React.useEffect(() => {
+    if (value && value.trim() !== '') {
+      validateDate(value);
+    } else {
+      // Hvis værdien er tom, ryd fejl
+      setErrorState(false);
+      setErrorMessage('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, minDate, maxDate]); // Genvalider hvis min/max grænser ændres
+
   // Tjek om år er skudår
   const isLeapYear = (year) => {
     return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);

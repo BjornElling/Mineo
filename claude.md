@@ -95,10 +95,48 @@ MyComponent.displayName = 'MyComponent';
 export default MyComponent;
 ```
 
-## 🎨 Styling
+## 🎨 Styling & Tema
+
+### Centraliseret tema-system
+**VIGTIGT**: Font, farver og skriftstørrelser er centraliseret til **kun 2 steder**:
+
+1. **`src/index.css`** (Global CSS)
+   - Font-face declarations for Ubuntu (Regular, Medium, Bold + Italic)
+   - Global font: `* { font-family: 'Ubuntu', sans-serif; }`
+
+2. **`src/App.jsx`** (MUI Theme) - **PRIMÆR KILDE**
+   - Font: `fontFamily: 'Ubuntu, sans-serif'`
+   - Farver: `text.primary`, `text.secondary`, `primary.main`
+   - Skriftstørrelser: `h4`, `h5`, `h6`, `body1`, `body2`
+   - **Dette er den ENESTE kilde til skriftstørrelser**
+
+**VIGTIGT**: `src/styles/typography.css` indeholder CSS variables, men disse er **sekundære** og synkroniseret med MUI Theme. Hvis du skal ændre skriftstørrelser, gør det KUN i `src/App.jsx` MUI tema, og opdater derefter CSS variables til at matche.
+
+### Brug tema-værdier i komponenter
+```javascript
+// ✅ RIGTIGT - Brug tema-værdier
+<Typography variant="h6">Overskrift</Typography>
+<Typography variant="body1">Normal tekst</Typography>
+<Typography variant="body2" color="text.secondary">Lille tekst</Typography>
+<Box sx={{ color: 'primary.main' }}>Blå tekst</Box>
+
+// ❌ FORKERT - Hardcod ALDRIG font, farver eller størrelser
+<Typography sx={{ fontFamily: 'Ubuntu', fontSize: '14px', color: 'rgba(0,0,0,0.87)' }}>
+```
+
+### Standard værdier
 - **Font**: Ubuntu (Regular 400, Medium 500, Bold 700)
+- **Farver**:
+  - `text.primary`: rgba(0, 0, 0, 0.87)
+  - `text.secondary`: rgba(0, 0, 0, 0.6)
+  - `primary.main`: #1976d2
+- **Skriftstørrelser**:
+  - `h4`: 34px / 700 weight
+  - `h5`: 24px / 500 weight
+  - `h6`: 18px / 500 weight
+  - `body1`: 14px
+  - `body2`: 12px
 - **Background**: #f8f9fa
-- **White boxes**: #ffffff
 - **Border radius**: 10px (felter), 20px (containere)
 
 ## 📚 Komplet dokumentation

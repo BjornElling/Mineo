@@ -22,28 +22,13 @@ const Aarslon = React.memo(() => {
   return (
     <Box>
       {/* Header */}
-      <Typography
-        variant="h4"
-        sx={{
-          fontFamily: 'Ubuntu',
-          fontWeight: 700,
-          marginBottom: 3,
-          color: 'rgba(0, 0, 0, 0.87)'
-        }}
-      >
+      <Typography variant="h4" sx={{ marginBottom: 3 }}>
         Årslønsberegning
       </Typography>
 
       {/* Container 1: Satser */}
       <ContentBox>
-        <Typography
-          variant="h6"
-          sx={{
-            fontFamily: 'Ubuntu',
-            fontWeight: 500,
-            marginBottom: 2
-          }}
-        >
+        <Typography variant="h6" sx={{ marginBottom: 2 }}>
           Satser
         </Typography>
 
@@ -52,14 +37,7 @@ const Aarslon = React.memo(() => {
 
           {/* Feriegodtgørelse/-tillæg */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography
-              sx={{
-                fontFamily: 'Ubuntu',
-                fontSize: '14px',
-                minWidth: '200px',
-                color: 'rgba(0, 0, 0, 0.87)'
-              }}
-            >
+            <Typography sx={{ minWidth: '200px' }}>
               Feriegodtgørelse/-tillæg:
             </Typography>
             <StyledPercentField
@@ -72,14 +50,7 @@ const Aarslon = React.memo(() => {
 
           {/* Fritvalg */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography
-              sx={{
-                fontFamily: 'Ubuntu',
-                fontSize: '14px',
-                minWidth: '200px',
-                color: 'rgba(0, 0, 0, 0.87)'
-              }}
-            >
+            <Typography sx={{ minWidth: '200px' }}>
               Fritvalg:
             </Typography>
             <StyledPercentField
@@ -92,14 +63,7 @@ const Aarslon = React.memo(() => {
 
           {/* SH-/Særlig Opsparing */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography
-              sx={{
-                fontFamily: 'Ubuntu',
-                fontSize: '14px',
-                minWidth: '200px',
-                color: 'rgba(0, 0, 0, 0.87)'
-              }}
-            >
+            <Typography sx={{ minWidth: '200px' }}>
               SH-/Særlig Opsparing:
             </Typography>
             <StyledPercentField
@@ -112,14 +76,7 @@ const Aarslon = React.memo(() => {
 
           {/* Store Bededagstillæg */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography
-              sx={{
-                fontFamily: 'Ubuntu',
-                fontSize: '14px',
-                minWidth: '200px',
-                color: 'rgba(0, 0, 0, 0.87)'
-              }}
-            >
+            <Typography sx={{ minWidth: '200px' }}>
               Store Bededagstillæg:
             </Typography>
             <StyledPercentField
@@ -132,14 +89,7 @@ const Aarslon = React.memo(() => {
 
           {/* Arbejdsgivers pensionsbidrag */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography
-              sx={{
-                fontFamily: 'Ubuntu',
-                fontSize: '14px',
-                minWidth: '200px',
-                color: 'rgba(0, 0, 0, 0.87)'
-              }}
-            >
+            <Typography sx={{ minWidth: '200px' }}>
               Arbejdsgivers pensionsbidrag:
             </Typography>
             <StyledPercentField
@@ -171,14 +121,7 @@ const Aarslon = React.memo(() => {
 
       {/* Container 2: Indtægtsoplysninger */}
       <ContentBox sx={{ marginTop: 3 }}>
-        <Typography
-          variant="h6"
-          sx={{
-            fontFamily: 'Ubuntu',
-            fontWeight: 500,
-            marginBottom: 2
-          }}
-        >
+        <Typography variant="h6" sx={{ marginBottom: 2 }}>
           Indtægtsoplysninger
         </Typography>
 

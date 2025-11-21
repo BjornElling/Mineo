@@ -18,9 +18,39 @@ const theme = createTheme({
     secondary: {
       main: '#dc004e',
     },
+    text: {
+      primary: 'rgba(0, 0, 0, 0.87)',
+      secondary: 'rgba(0, 0, 0, 0.6)',
+    },
   },
   typography: {
     fontFamily: 'Ubuntu, sans-serif',
+    fontSize: 15, // Standard skriftstørrelse i px
+    h4: {
+      fontWeight: 700,
+      fontSize: '34px',
+    },
+    h5: {
+      fontWeight: 500,
+      fontSize: '24px',
+    },
+    h6: {
+      fontWeight: 500,
+      fontSize: '18px',
+    },
+    body1: {
+      fontSize: '15px',
+    },
+    body2: {
+      fontSize: '12px',
+    },
+  },
+  components: {
+    MuiTypography: {
+      defaultProps: {
+        color: 'text.primary',
+      },
+    },
   },
 });
 

@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import ContentBox from '../common/ContentBox';
+import SectionHeader from '../common/SectionHeader';
 import {
   referenceRates,
   surchargeRates,
@@ -418,33 +419,21 @@ const Renteberegning = React.memo(() => {
   );
 });
 
-const SectionHeader = ({ children }) => (
-  <Typography className="section-header" component="div">
-    {children}
-  </Typography>
-);
-
-const SectionDescription = ({ children }) => (
-  <Typography className="body-text-secondary" sx={{ marginBottom: '24px' }}>
-    {children}
-  </Typography>
-);
-
 const RatesTabContent = React.memo(() => (
   <Box>
     <ContentBox>
       <SectionHeader>Referencesats</SectionHeader>
-      <SectionDescription>
+      <Typography>
         Nationalbankens udlånsrente pr. 1. januar og 1. juli, jf. rentelovens § 5.
-      </SectionDescription>
+      </Typography>
       <InterestRatesTable rows={referenceRates} />
     </ContentBox>
 
     <ContentBox>
       <SectionHeader>Tillægssats</SectionHeader>
-      <SectionDescription>
+      <Typography>
         Fast tillægsprocent, der tilskrives udlånsrenten, jf. rentelovens § 5, stk. 2.
-      </SectionDescription>
+      </Typography>
       <InterestRatesTable rows={surchargeRates} dateColumnHeader="Forfaldsdato" rateColumnHeader="Sats" />
     </ContentBox>
   </Box>
@@ -464,7 +453,7 @@ const CalculationTabContent = React.memo(({
     {calculationSections.map((section) => (
       <ContentBox key={section.key}>
         <SectionHeader>{section.title}</SectionHeader>
-        {section.description && <SectionDescription>{section.description}</SectionDescription>}
+        {section.description && <Typography>{section.description}</Typography>}
         {section.fields.map((field) => (
           <FieldRow key={field.id} label={field.label}>
             {renderFieldInput({
@@ -600,13 +589,13 @@ const BeregnetRenteTable = ({ rows, onRowChange, onRowBlur, beregningsdato, comm
         tableLayout: 'fixed',
         width: '930px',
         '& .MuiTableCell-root': {
-          fontSize: '0.9rem',
+          fontSize: (theme) => theme.typography.body1.fontSize,
           textAlign: 'center',
           whiteSpace: 'nowrap',
         },
         '& thead th': {
           backgroundColor: '#f8fafc',
-          fontWeight: 600,
+          fontWeight: (theme) => theme.typography.h6.fontWeight,
         },
       }}
     >
@@ -638,6 +627,37 @@ const BeregnetRenteTable = ({ rows, onRowChange, onRowBlur, beregningsdato, comm
 };
 
 const BeregnetRenteRow = ({ row, committedRow, onRowChange, onRowBlur, beregningsdato }) => {
+  // Beregn dynamisk maxDate for "Renter fra" baseret på beregningsdato
+  const dynamicMaxDate = React.useMemo(() => {
+    // Hvis beregningsdato er tom eller ugyldig, brug standard max-dato
+    if (!beregningsdato || typeof beregningsdato !== 'string') {
+      return `${MAX_CALCULATION_YEAR}-12-31`;
+    }
+
+    // Parse beregningsdato (dd-mm-åååå) til ISO format (åååå-mm-dd)
+    const parts = beregningsdato.split('-');
+    if (parts.length !== 3) {
+      return `${MAX_CALCULATION_YEAR}-12-31`;
+    }
+
+    const [day, month, year] = parts;
+
+    // Valider at vi har gyldige dele
+    if (!day || !month || !year || year.length !== 4) {
+      return `${MAX_CALCULATION_YEAR}-12-31`;
+    }
+
+    // Konverter til ISO format
+    const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
+    // Tjek om denne dato er før standard max-dato
+    const beregningsDatoObj = new Date(isoDate);
+    const standardMaxDatoObj = new Date(`${MAX_CALCULATION_YEAR}-12-31`);
+
+    // Returner den mindste af de to datoer
+    return beregningsDatoObj < standardMaxDatoObj ? isoDate : `${MAX_CALCULATION_YEAR}-12-31`;
+  }, [beregningsdato]);
+
   // Beregn rentedato baseret på COMMITTED værdier
   const actualInterestDate = React.useMemo(
     () => calculateActualInterestDate(committedRow),
@@ -678,7 +698,7 @@ const BeregnetRenteRow = ({ row, committedRow, onRowChange, onRowBlur, beregning
           onChange={onRowChange(row.id, 'renterFra')}
           onBlur={onRowBlur(row.id, 'renterFra')}
           minDate={MIN_CALCULATION_DATE}
-          maxDate={`${MAX_CALCULATION_YEAR}-12-31`}
+          maxDate={dynamicMaxDate}
         />
       </TableCell>
 
@@ -819,10 +839,11 @@ const InterestRatesTable = ({ rows, dateColumnHeader = 'Rentedato', rateColumnHe
           border: 'none',
           paddingLeft: '50px',
           paddingRight: '50px',
+          fontSize: (theme) => theme.typography.body1.fontSize,
         },
         '& thead th': {
           backgroundColor: '#f8fafc',
-          fontWeight: 600,
+          fontWeight: (theme) => theme.typography.h6.fontWeight,
           borderBottom: '1px solid #e5e7eb !important',
         },
         '& tbody tr:nth-of-type(odd)': {

@@ -35,13 +35,11 @@ const StyledRadioButton = React.forwardRef(({
         <FormLabel
           component="legend"
           sx={{
-            fontFamily: 'Ubuntu, sans-serif',
-            fontSize: '14px',
             fontWeight: 500,
-            color: 'rgba(0, 0, 0, 0.87)',
+            color: 'text.primary',
             marginBottom: 1,
             '&.Mui-focused': {
-              color: 'rgba(0, 0, 0, 0.87)',
+              color: 'text.primary',
             },
           }}
         >
@@ -62,12 +60,8 @@ const StyledRadioButton = React.forwardRef(({
             control={
               <Radio
                 sx={{
-                  color: 'rgba(0, 0, 0, 0.54)',
                   '&.Mui-checked': {
-                    color: '#1976d2', // Blå farve når valgt
-                  },
-                  '&:hover': {
-                    backgroundColor: 'rgba(25, 118, 210, 0.04)',
+                    color: 'primary.main',
                   },
                 }}
               />
@@ -75,9 +69,7 @@ const StyledRadioButton = React.forwardRef(({
             label={option.label}
             sx={{
               '& .MuiFormControlLabel-label': {
-                fontFamily: 'Ubuntu, sans-serif',
-                fontSize: '14px',
-                color: 'rgba(0, 0, 0, 0.87)',
+                color: 'text.primary',
               },
             }}
           />

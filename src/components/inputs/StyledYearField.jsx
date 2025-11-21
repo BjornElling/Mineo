@@ -39,6 +39,37 @@ const StyledYearField = React.forwardRef(({
     setInternalValue(value);
   }, [value]);
 
+  // Valider eksisterende værdi når komponenten mounter eller når value/min/max ændres
+  React.useEffect(() => {
+    if (value && value.trim() !== '' && value.length === 4) {
+      const yearNum = parseInt(value, 10);
+      if (!isNaN(yearNum)) {
+        const rangeError = validateYearRange(yearNum);
+        if (rangeError !== true) {
+          setErrorState(true);
+          setErrorMessage(rangeError);
+          if (onErrorChange) {
+            onErrorChange(true);
+          }
+        } else {
+          setErrorState(false);
+          setErrorMessage('');
+          if (onErrorChange) {
+            onErrorChange(false);
+          }
+        }
+      }
+    } else {
+      // Tom værdi eller ikke 4 cifre - ryd fejl
+      setErrorState(false);
+      setErrorMessage('');
+      if (onErrorChange) {
+        onErrorChange(false);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, minYear, maxYear]);
+
   // Intelligent år-fortolkning (genbrugt fra StyledDateField)
   const interpretYear = React.useCallback((yearStr) => {
     const currentYear = new Date().getFullYear();

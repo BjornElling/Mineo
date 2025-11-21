@@ -10,6 +10,7 @@ const fs = require("fs");
 const path = require("path");
 
 const VERSION_FILE = path.join(__dirname, "../src/config/version.js");
+const README_FILE = path.join(__dirname, "../README.md");
 const FALLBACK_VERSION = "0.0.0-dev";
 
 /** Hjælpefunktion til sikre git-kald */
@@ -62,6 +63,19 @@ function updateVersionFile(version) {
 
 export const VERSION = '${version}';
 export const BUILD_DATE = '${buildDate}';
+
+/**
+ * Filformat version - ændres kun hvis datastrukturen ændres.
+ * Bruges til at validere kompatibilitet mellem forskellige versioner af programmet.
+ */
+export const FILE_FORMAT_VERSION = '1.0.0';
+
+/**
+ * Maksimum filstørrelse for .eo filer (1 MB).
+ * Beskytter mod memory-problemer ved indlæsning af store filer.
+ * .eo filer indeholder kun tekstdata og forventes at være < 100 KB.
+ */
+export const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1 MB i bytes
 `;
 
   try {
@@ -73,6 +87,26 @@ export const BUILD_DATE = '${buildDate}';
   }
 }
 
+/** Opdater README.md med ny version */
+function updateReadme(version) {
+  try {
+    let content = fs.readFileSync(README_FILE, "utf8");
+
+    // Find og erstat version-linjen
+    content = content.replace(
+      /\*\*Version\*\*: .+/,
+      `**Version**: ${version}`
+    );
+
+    fs.writeFileSync(README_FILE, content, "utf8");
+    console.log(`✅ README.md updated with version: ${version}`);
+  } catch (err) {
+    console.warn(`⚠️ Kunne ikke opdatere README.md: ${err.message}`);
+    // Vi fortsætter selv hvis README-opdatering fejler
+  }
+}
+
 // Programflow
 const version = generateVersion();
 updateVersionFile(version);
+updateReadme(version);

@@ -89,7 +89,6 @@ const Overlay = React.memo(({ message, type = 'success', onClose }) => {
           color: colorScheme.text,
           fontWeight: 600,
           fontSize: '15px',
-          fontFamily: 'Ubuntu, sans-serif',
           textAlign: 'center',
           margin: 0,
           whiteSpace: 'pre-line', // Tillad line breaks i beskeder

@@ -14,7 +14,7 @@ export const MIN_YEAR = 2005;
 // Minimums-datoer (historiske grænser)
 export const MIN_SKADESDATO = '2005-01-01';
 
-// Dagens dato (beregnes dynamisk)
+// Dags dato (beregnes dynamisk)
 export const TODAY = new Date().toISOString().split('T')[0];
 
 /**

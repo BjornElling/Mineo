@@ -34,10 +34,10 @@ const StyledToggleSwitch = React.forwardRef(({
       disabled={disabled}
       sx={{
         '& .MuiSwitch-switchBase.Mui-checked': {
-          color: '#1976d2', // Blå farve når aktiveret
+          color: 'primary.main',
         },
         '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-          backgroundColor: '#1976d2', // Blå track når aktiveret
+          backgroundColor: 'primary.main',
         },
       }}
       {...otherProps}
@@ -53,9 +53,7 @@ const StyledToggleSwitch = React.forwardRef(({
         labelPlacement={labelPlacement}
         sx={{
           '& .MuiFormControlLabel-label': {
-            fontFamily: 'Ubuntu, sans-serif',
-            fontSize: '14px',
-            color: 'rgba(0, 0, 0, 0.87)',
+            color: 'text.primary',
           },
         }}
       />
