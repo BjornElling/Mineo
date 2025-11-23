@@ -20,6 +20,7 @@ const TableAmountInput = React.memo(({
   onChange,
   onBlur,
   onKeyDown,
+  onErrorChange,
   placeholder = '0,00',
   inputRef,
   sx,
@@ -35,6 +36,13 @@ const TableAmountInput = React.memo(({
   React.useEffect(() => {
     setInternalValue(value);
   }, [value]);
+
+  // Notificer parent om fejl-status ændringer
+  React.useEffect(() => {
+    if (onErrorChange) {
+      onErrorChange(hasError);
+    }
+  }, [hasError, onErrorChange]);
 
   // Håndter input-ændringer
   const handleChange = (e) => {

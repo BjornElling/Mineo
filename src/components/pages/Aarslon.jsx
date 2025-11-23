@@ -20,10 +20,7 @@ const Aarslon = React.memo(() => {
     storeBededagPct: '',
     pensionPct: '',
     loenperiode: 'maaned',
-    tableData: [
-      { id: 0, col0: '', col1: '', col2: '', col3: '', col4: '', col5: '', col6: '', col10: '' },
-      { id: 1, col0: '', col1: '', col2: '', col3: '', col4: '', col5: '', col6: '', col10: '' },
-    ],
+    tableData: [],
   });
 
   // Destrukturér værdier for nem adgang

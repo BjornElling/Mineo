@@ -49,6 +49,114 @@ import StyledTextField from '../inputs/StyledTextField';
 import { MIN_SKADESDATO } from '../../config/dateRanges';
 ```
 
+## 💬 Kommentar-standard
+
+**VIGTIGT**: Følg disse regler konsekvent i HELE kodebasen.
+
+### JSDoc-stil (til funktioner og komponenter)
+Bruges til **al funktionsdokumentation** - giver IDE IntelliSense og auto-completion:
+
+```javascript
+/**
+ * Beregner procesrente for en given periode
+ *
+ * @param {string} startDato - Startdato i format dd-mm-åååå
+ * @param {string} slutDato - Slutdato i format dd-mm-åååå
+ * @param {number} beloeb - Beløb i kr.
+ * @returns {number} Beregnet rente i kr.
+ */
+const beregnRente = (startDato, slutDato, beloeb) => {
+  // Implementation
+};
+```
+
+**Regler for JSDoc:**
+- Start med beskrivelse af hvad funktionen gør
+- Brug `@param {type} navn - Beskrivelse` for alle parametre
+- Brug `@returns {type} Beskrivelse` for returværdi
+- Hold beskrivelser korte og præcise
+- Brug dansk sprog i beskrivelser
+
+### Inline kommentarer (til kode-logik)
+Bruges til **forklaringer af kompleks logik** inden i funktioner:
+
+```javascript
+// Konverter dansk dato til ISO-format for validering
+const isoDate = danishDate.split('-').reverse().join('-');
+
+// Sikkerhed mod uendelig rekursion
+if (depth > 10) return null;
+```
+
+**Regler for inline kommentarer:**
+- Forklar **hvorfor**, ikke **hvad** (undgå redundante kommentarer)
+- Placer kommentaren **lige over** den kode den beskriver
+- Hold dem korte (max én linje når muligt)
+- Brug kun når logikken ikke er selvforklarende
+
+### ❌ Undgå disse typer kommentarer
+
+**Forbudte kommentar-typer:**
+```javascript
+// ❌ Tidsbundne bemærkninger
+// Denne linje er ny
+// Tilføjet 2024-11-15
+
+// ❌ Redundante kommentarer (gentager koden)
+// Sæt værdi til 10
+const value = 10;
+
+// ❌ Udkommenteret kode (slet det!)
+// const oldFunction = () => { ... };
+
+// ❌ Overskrift-stil med linjer (brug JSDoc i stedet)
+/** -----------------------------------------------------------
+ *  Funktion: Håndter ændringer
+ * ----------------------------------------------------------- */
+
+// ❌ Emojis i kommentarer
+// 🔥 VIGTIGT: Dette er...
+```
+
+### ✅ Gode kommentar-eksempler
+
+```javascript
+/**
+ * Formaterer beløb til dansk format med tusindtalsseparator
+ *
+ * @param {number} amount - Beløb i kr.
+ * @returns {string} Formateret beløb (fx "1.234,56")
+ */
+const formatAmount = (amount) => {
+  // Rund til 2 decimaler før formatering
+  const rounded = Math.round(amount * 100) / 100;
+
+  // Brug dansk locale for tusindtalsseparator
+  return rounded.toLocaleString('da-DK', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+};
+```
+
+### JSX-kommentarer
+I JSX bruges `{/* ... */}` syntaks:
+
+```javascript
+return (
+  <Box>
+    {/* Hovedindhold */}
+    <ContentBox>
+      {/* Felt til skadesdato */}
+      <StyledDateField
+        label="Skadesdato"
+        value={skadesdato}
+      />
+    </ContentBox>
+  </Box>
+);
+```
+
 ## 🔑 Vigtige designbeslutninger
 
 ### Centraliserede komponenter

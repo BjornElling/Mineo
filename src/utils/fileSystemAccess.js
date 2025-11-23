@@ -49,24 +49,6 @@ export const openFileWithPicker = async () => {
 };
 
 /**
- * Henter sti til brugerens skrivebord
- *
- * @returns {Promise<FileSystemDirectoryHandle|null>} Directory handle til skrivebord
- */
-const getDesktopDirectory = async () => {
-  try {
-    // Forsøg at få adgang til brugerdatamappe først
-    const homeDir = await window.navigator.storage.getDirectory();
-
-    // Dette virker desværre ikke direkte i browsere - vi kan ikke navigere til skrivebord
-    // Browser-begrænsning: File System Access API kan ikke specificere start-mappe
-    return null;
-  } catch (error) {
-    return null;
-  }
-};
-
-/**
  * Gemmer fil via File System Access API
  * Viser rigtig File Explorer til at vælge placering
  *
@@ -160,62 +142,5 @@ export const readFromFileHandle = async (fileHandle) => {
   } catch (error) {
     logError('Fejl ved læsning fra fil:', error);
     throw new Error(`Kunne ikke læse fil: ${error.message}`);
-  }
-};
-
-/**
- * Serialiserer FileSystemFileHandle til JSON (til sessionStorage)
- * File handles kan ikke gemmes direkte, så vi gemmer metadata
- *
- * @param {FileSystemFileHandle} handle - File handle
- * @returns {Object} Serialiserbar data
- */
-export const serializeFileHandle = (handle) => {
-  return {
-    name: handle.name,
-    kind: handle.kind,
-    // Vi kan ikke serialisere selve handle, kun metadata
-    // Handle skal anmodes igen ved næste session
-  };
-};
-
-/**
- * Validerer at et file handle stadig har adgang
- *
- * @param {FileSystemFileHandle} handle - File handle
- * @returns {Promise<boolean>} True hvis adgang er OK
- */
-export const verifyFileHandlePermission = async (handle) => {
-  try {
-    // Tjek read permission
-    const readPermission = await handle.queryPermission({ mode: 'read' });
-
-    // Tjek write permission
-    const writePermission = await handle.queryPermission({ mode: 'readwrite' });
-
-    if (readPermission === 'granted' && writePermission === 'granted') {
-      return true;
-    }
-
-    // Anmod om permission hvis ikke granted
-    if (readPermission !== 'granted') {
-      const newReadPermission = await handle.requestPermission({ mode: 'read' });
-      if (newReadPermission !== 'granted') {
-        return false;
-      }
-    }
-
-    if (writePermission !== 'granted') {
-      const newWritePermission = await handle.requestPermission({ mode: 'readwrite' });
-      if (newWritePermission !== 'granted') {
-        return false;
-      }
-    }
-
-    return true;
-
-  } catch (error) {
-    logWarning('Kunne ikke verificere file handle permission:', error);
-    return false;
   }
 };

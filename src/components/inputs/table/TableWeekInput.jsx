@@ -19,6 +19,7 @@ const TableWeekInput = React.memo(({
   onChange,
   onBlur,
   onKeyDown,
+  onErrorChange,
   minYear,
   maxYear,
   placeholder = '',
@@ -80,6 +81,13 @@ const TableWeekInput = React.memo(({
     setHasError(false);
     setErrorMessage('');
   }, [value, minYear, maxYear, yearHas53Weeks]);
+
+  // Notificer parent om fejl-status ændringer
+  React.useEffect(() => {
+    if (onErrorChange) {
+      onErrorChange(hasError);
+    }
+  }, [hasError, onErrorChange]);
 
   // Valider uge-gyldighed
   const isValidWeek = (week, year) => {

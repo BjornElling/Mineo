@@ -19,6 +19,7 @@ const TableDateInput = React.memo(({
   onChange,
   onBlur,
   onKeyDown,
+  onErrorChange,
   minDate,
   maxDate,
   placeholder = '',
@@ -173,6 +174,13 @@ const TableDateInput = React.memo(({
       setErrorMessage('');
     }
   }, [value, validateDate]);
+
+  // Notificer parent om fejl-status ændringer
+  React.useEffect(() => {
+    if (onErrorChange) {
+      onErrorChange(hasError);
+    }
+  }, [hasError, onErrorChange]);
 
   // Håndter input-ændringer
   const handleChange = (e) => {

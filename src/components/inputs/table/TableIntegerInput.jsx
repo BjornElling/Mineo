@@ -18,6 +18,7 @@ const TableIntegerInput = React.memo(({
   onChange,
   onBlur,
   onKeyDown,
+  onErrorChange,
   minValue,
   maxValue,
   placeholder = '',
@@ -61,6 +62,13 @@ const TableIntegerInput = React.memo(({
     setHasError(false);
     setErrorMessage('');
   }, [value, minValue, maxValue]);
+
+  // Notificer parent om fejl-status ændringer
+  React.useEffect(() => {
+    if (onErrorChange) {
+      onErrorChange(hasError);
+    }
+  }, [hasError, onErrorChange]);
 
   // Valider værdi mod min/max
   const validateValue = React.useCallback((val) => {

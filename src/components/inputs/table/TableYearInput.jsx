@@ -19,6 +19,7 @@ const TableYearInput = React.memo(({
   onChange,
   onBlur,
   onKeyDown,
+  onErrorChange,
   minYear,
   maxYear,
   placeholder = '',
@@ -62,6 +63,13 @@ const TableYearInput = React.memo(({
     setHasError(false);
     setErrorMessage('');
   }, [value, minYear, maxYear]);
+
+  // Notificer parent om fejl-status ændringer
+  React.useEffect(() => {
+    if (onErrorChange) {
+      onErrorChange(hasError);
+    }
+  }, [hasError, onErrorChange]);
 
   // Intelligent år-fortolkning
   const interpretYear = React.useCallback((yearStr) => {

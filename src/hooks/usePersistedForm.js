@@ -32,7 +32,13 @@ export const usePersistedForm = (pageKey, initialValues) => {
   });
 
   // Gem data til sessionStorage hver gang values ændres
+  const skipInitialPersist = React.useRef(!getPersistedData(pageKey));
+
   React.useEffect(() => {
+    if (skipInitialPersist.current) {
+      skipInitialPersist.current = false;
+      return;
+    }
     persistData(pageKey, values);
   }, [values, pageKey, persistData]);
 

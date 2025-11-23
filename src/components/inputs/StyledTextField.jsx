@@ -31,42 +31,27 @@ const StyledTextField = React.forwardRef(({
 }, ref) => {
   const [isFocused, setIsFocused] = React.useState(false);
   const originalValueRef = React.useRef(value);
-  const inputRef = React.useRef(null);
+  const isEditingRef = React.useRef(false);
+  const inputElementRef = React.useRef(null);
 
-  // Kombiner refs
-  const combinedRef = React.useCallback((node) => {
-    inputRef.current = node;
-    if (typeof ref === 'function') {
-      ref(node);
-    } else if (ref) {
-      ref.current = node;
-    }
-  }, [ref]);
-
-  const handleFocus = React.useCallback((e) => {
+  const handleFocus = React.useCallback(() => {
     setIsFocused(true);
-    // Gendan caret-farve (kan være skjult efter Escape)
-    e.target.style.caretColor = '';
-    // Gem den oprindelige værdi når feltet får fokus
-    originalValueRef.current = value;
+    // Gem kun oprindelig værdi hvis vi starter en ny edit-session
+    if (!isEditingRef.current) {
+      originalValueRef.current = value;
+      isEditingRef.current = true;
+    }
   }, [value]);
 
   const handleBlur = React.useCallback((e) => {
     setIsFocused(false);
+    isEditingRef.current = false;
 
     // Trim mellemrum før og efter
     if (value && typeof value === 'string') {
       const trimmedValue = value.trim();
       if (trimmedValue !== value && onChange) {
-        // Opret et syntetisk event med den trimmede værdi
-        const syntheticEvent = {
-          ...e,
-          target: {
-            ...e.target,
-            value: trimmedValue
-          }
-        };
-        onChange(syntheticEvent);
+        onChange({ target: { value: trimmedValue } });
       }
     }
 
@@ -82,18 +67,11 @@ const StyledTextField = React.forwardRef(({
       e.preventDefault();
       // Gendan den oprindelige værdi
       if (onChange) {
-        const syntheticEvent = {
-          target: { value: originalValueRef.current }
-        };
-        onChange(syntheticEvent);
+        onChange({ target: { value: originalValueRef.current } });
       }
-      // Fjern tekstmarkør visuelt men behold fokus for Tab-navigation
-      const input = inputRef.current?.querySelector('input');
-      if (input) {
-        // Flyt cursor til starten og fjern selection
-        input.setSelectionRange(0, 0);
-        // Skjul caret visuelt
-        input.style.caretColor = 'transparent';
+      // Flyt cursor til starten og fjern selection
+      if (inputElementRef.current) {
+        inputElementRef.current.setSelectionRange(0, 0);
       }
     }
     // Kald ekstern onKeyDown hvis den findes
@@ -104,7 +82,8 @@ const StyledTextField = React.forwardRef(({
 
   return (
     <TextField
-      ref={combinedRef}
+      ref={ref}
+      inputRef={inputElementRef}
       value={value}
       onChange={onChange}
       onFocus={handleFocus}

@@ -1,35 +1,14 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../common/ContentBox';
-import FieldLabel from '../common/FieldLabel';
 import SectionHeader from '../common/SectionHeader';
 import { VERSION, BUILD_DATE } from '../../config/version';
 
-// 🔥 IMPORT AF MUI IKONER TIL KONTAKT-SEKTIONEN
+// Import af MUI ikoner til kontakt-sektionen
 import PersonIcon from '@mui/icons-material/Person';
 import EmailIcon from '@mui/icons-material/Email';
 import LanguageIcon from '@mui/icons-material/Language';
 import GitHubIcon from '@mui/icons-material/GitHub';
-
-// Række med label og værdi
-const DataRow = ({ label, value }) => {
-  if (!value) return null;
-
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        marginBottom: '16px'
-      }}
-    >
-      <FieldLabel>{label}:</FieldLabel>
-      <Typography className="field-label" sx={{ textAlign: 'right', marginLeft: '16px' }}>
-        {value}
-      </Typography>
-    </Box>
-  );
-};
 
 /**
  * Om-komponent

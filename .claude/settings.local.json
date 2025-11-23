@@ -26,7 +26,8 @@
       "Bash(npm run:*)",
       "Bash(timeout /t 5 /nobreak)",
       "Bash(node:*)",
-      "Bash(del \"c:\\Users\\bjell\\Mineo\\src\\components\\common\\SectionDescription.jsx\")"
+      "Bash(del \"c:\\Users\\bjell\\Mineo\\src\\components\\common\\SectionDescription.jsx\")",
+      "Bash(clip)"
     ],
     "deny": [],
     "ask": []

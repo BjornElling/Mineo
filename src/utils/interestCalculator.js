@@ -8,7 +8,7 @@
  * - Halvårlige periodebaserede renteberegninger
  */
 
-import { referenceRates, surchargeRates } from '../data/interestRates';
+import { referenceRates } from '../data/interestRates';
 
 /**
  * Konverterer dansk datoformat (dd-mm-åååå) til Date-objekt.

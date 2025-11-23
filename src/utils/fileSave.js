@@ -15,6 +15,7 @@ import {
   verifyFileHandle,
   deleteFileHandleFromIndexedDB,
 } from './fileHandleStorage';
+import { convertAarslonForFile } from './aarsloenDataConverter';
 
 /**
  * Gemmer alle applikationsdata til krypteret .eo fil.
@@ -40,6 +41,13 @@ export const saveToFile = async () => {
     logInfo('Indsamler data fra sessionStorage...');
     const allData = collectAllData();
     logDataStats(allData, 'Indsamlet data');
+
+    // 1b. Konverter årsløn-data til fil-format (kun aktive kolonner)
+    if (allData.aarslon) {
+      logInfo('Konverterer årsløn-data til fil-format...');
+      allData.aarslon = convertAarslonForFile(allData.aarslon);
+      logInfo('✓ Årsløn-data konverteret');
+    }
 
     // 2. Valider at vi har egentlige data at gemme
     if (!hasRealData(allData)) {

@@ -1,4 +1,4 @@
-import { clearAllData, saveDataToSessionStorage, countFilledFields, collectAllData, hasRealData } from './dataCollection';
+import { clearAllData, saveDataToSessionStorage, countFilledFields, collectAllData } from './dataCollection';
 import { decryptFromString } from './encryption';
 import { selectFile, readFile } from './fileHelpers';
 import { logOperationStart, logOperationEnd, logDataStats, logInfo, logWarning, logError } from './logger';
@@ -11,6 +11,7 @@ import {
 import {
   saveFileHandleToIndexedDB,
 } from './fileHandleStorage';
+import { convertAarslonFromFile } from './aarsloenDataConverter';
 
 /**
  * Indlæser data fra krypteret .eo fil.
@@ -152,7 +153,7 @@ export const loadFromFile = async () => {
     // VIGTIGT: Tjek om der allerede er data i programmet
     // Hvis ja, advar brugeren før vi overskriver
     const existingData = collectAllData();
-    const hasExistingData = hasRealData(existingData);
+    const hasExistingData = countFilledFields(existingData) > 0;
 
     if (hasExistingData) {
       const confirmOverwrite = window.confirm(
@@ -181,6 +182,13 @@ export const loadFromFile = async () => {
     logInfo(`Forventet antal felter: ${expectedFieldCount || 'ikke angivet'}`);
 
     logDataStats(decrypted.data, 'Dekrypteret data');
+
+    // 3b. Konverter årsløn-data fra fil-format til internt format
+    if (decrypted.data.aarslon) {
+      logInfo('Konverterer årsløn-data fra fil-format...');
+      decrypted.data.aarslon = convertAarslonFromFile(decrypted.data.aarslon);
+      logInfo('✓ Årsløn-data konverteret');
+    }
 
     // 4. TØM ALLE eksisterende felter (KRITISK!)
     logInfo('Rydder alle eksisterende data fra sessionStorage...');
