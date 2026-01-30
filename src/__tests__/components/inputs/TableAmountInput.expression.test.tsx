@@ -132,13 +132,21 @@ describe('TableAmountInput expression behavior', () => {
     setEditingCell(null);
     const editor = getEditor();
     expect(editor).not.toBeNull();
-    const accepted = editor?.prepareEditFromKey('(');
+
+    // prepareEditFromKey trigger state-ændringer og skal wrappes i act()
+    let accepted: boolean | undefined;
+    act(() => {
+      accepted = editor?.prepareEditFromKey('(');
+    });
     expect(accepted).toBe(true);
 
     setEditingCell(gridCell);
     expect(input).toHaveValue('(');
 
-    const rejected = editor?.prepareEditFromKey('a');
+    let rejected: boolean | undefined;
+    act(() => {
+      rejected = editor?.prepareEditFromKey('a');
+    });
     expect(rejected).toBe(false);
   });
 

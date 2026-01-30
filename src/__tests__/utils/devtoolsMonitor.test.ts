@@ -27,6 +27,9 @@ describe('devtoolsMonitor', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-01-25T00:00:00Z'));
 
+    // Undertrykker stderr output - monitoren fanger stadig beskederne
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
     const stop = monitor.startDevtoolsMonitor();
     console.warn('dup');
     console.warn('dup');
@@ -38,10 +41,16 @@ describe('devtoolsMonitor', () => {
 
     expect(monitor.getDevtoolsIssueSnapshot().issues.length).toBe(2);
     stop();
+    warnSpy.mockRestore();
   });
 
   it('orders newest issue first', async () => {
     const monitor = await loadMonitor();
+
+    // Undertrykker stderr output - monitoren fanger stadig beskederne
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
     const stop = monitor.startDevtoolsMonitor();
 
     console.warn('first');
@@ -51,6 +60,8 @@ describe('devtoolsMonitor', () => {
     expect(snapshot.issues[0]?.level).toBe('error');
     expect(snapshot.lastIssue?.level).toBe('error');
     stop();
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   it('filters known extension noise in unhandledrejection', async () => {

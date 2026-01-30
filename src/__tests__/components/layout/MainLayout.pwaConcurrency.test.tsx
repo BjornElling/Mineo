@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
@@ -63,7 +63,11 @@ describe('MainLayout (PWA concurrency)', () => {
       fileName: 'A.eo',
       ignoredFileCount: 0,
     };
-    window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
+
+    // dispatchEvent trigger asynkrone state-ændringer og skal wrappes i act()
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
+    });
 
     await screen.findByText('Advarsel før indlæsning');
 
@@ -75,7 +79,10 @@ describe('MainLayout (PWA concurrency)', () => {
       fileName: 'B.eo',
       ignoredFileCount: 0,
     };
-    window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
+    });
 
     await screen.findByText('Ny fil blev forsøgt åbnet – prøv igen når du er færdig');
 
