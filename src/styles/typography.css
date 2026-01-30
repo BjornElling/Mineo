@@ -1,0 +1,239 @@
+/* typography.css – Tekstformatering for MINEO */
+/*
+  ARKITEKTURPRINCIP:
+  - className er single source of truth for typografi
+  - MUI Typography neutraliseres globalt
+  - Alle typografi-klasser, der bruges på <Typography>,
+    scopes eksplicit til .MuiTypography-root for korrekt specificitet
+*/
+
+/* ==================== CSS Variabler ==================== */
+:root {
+  /* Farver – synkroniseret med MUI Theme (App.tsx) */
+  --color-primary: #1976d2;
+  --color-text-primary: rgba(0, 0, 0, 0.87);
+  --color-text-secondary: rgba(0, 0, 0, 0.6);
+  --color-active-bg: rgba(25, 118, 210, 0.08);
+  --color-active-bg-hover: rgba(25, 118, 210, 0.12);
+
+  /* Font weights */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 600;
+  --font-weight-extra-bold: 700;
+
+  /* Font sizes – matcher MUI theme, men bruges kun via klasser */
+  --font-size-page-title: 34px;
+  --font-size-section-title: 24px;
+  --font-size-subsection-title: 18px;
+  --font-size-subheading: 15px;
+  --font-size-text: 14px;
+  --font-size-text-table: 13px;
+
+  /* Line height */
+  --line-height-base: 1.4;
+
+  /* Font family */
+  --font-family-base: 'Montserrat', sans-serif;
+
+  /*
+    Debug typography coloring (font-style markers)
+    - Default: OFF (normal program colors)
+    - ON: red/green/blue markers to visually verify typography classes
+
+    Controlled via `document.documentElement.dataset.mineoFontStyleColors`
+    set by `src/contexts/AppSettingsContext.tsx`.
+  */
+  --mineo-color-section-header: var(--color-text-primary);
+  --mineo-color-row-text: var(--color-text-primary);
+  --mineo-color-row-subheading: var(--color-text-primary);
+
+  /* MUI Typography default (debug marker) */
+  --mineo-color-mui-typography-default: var(--color-text-primary);
+
+  /* Grid table text (debug marker) */
+  --mineo-color-grid-table-text: var(--color-text-primary);
+}
+
+:root[data-mineo-font-style-colors='on'] {
+  --mineo-color-section-header: blue;
+  --mineo-color-row-text: red;
+  --mineo-color-row-subheading: green;
+  --mineo-color-mui-typography-default: #ff1493;
+  --mineo-color-grid-table-text: #9370db; /* Medium Purple */
+}
+
+/* ==================== Global neutralisering af MUI Typography ==================== */
+/* Typography må ikke medbringe implicit adfærd */
+.MuiTypography-root {
+  margin: 0;
+  padding: 0;
+  display: block;
+}
+
+/* ==================== Default body-tekst for Typography ==================== */
+/* Bruges når ingen specifik typografi-klasse er angivet */
+.MuiTypography-root {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-text);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-base);
+}
+
+/* ==================== Base tekstklasse ==================== */
+.MuiTypography-root.text-base {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-text);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-base);
+}
+
+/* ==================== Side-titler ==================== */
+.MuiTypography-root.page-title {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-page-title);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  margin-bottom: 40px;
+  line-height: var(--line-height-base);
+}
+
+/* ==================== Sektion-overskrifter ==================== */
+.MuiTypography-root.section-header {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-subsection-title);
+  font-weight: var(--font-weight-medium);
+  color: var(--mineo-color-section-header);
+  margin-bottom: 26px;
+  line-height: var(--line-height-base);
+}
+
+/* ==================== Body tekst ==================== */
+.MuiTypography-root.body-text {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-text);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-base);
+}
+
+.MuiTypography-root.body-text-secondary {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-text);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-base);
+}
+
+/* ==================== Tekst til rækker ==================== */
+/* Layout styres i layout.css – her er kun typografi */
+.MuiTypography-root.row--text {
+  font-family: var(--font-family-base);
+  font-size: 15px;
+  font-weight: var(--font-weight-regular);
+  color: var(--mineo-color-row-text);
+  line-height: var(--line-height-base);
+}
+
+.MuiTypography-root.row--subheading {
+  font-family: var(--font-family-base);
+  font-size: 16px;
+  font-weight: var(--font-weight-medium);
+  color: var(--mineo-color-row-subheading);
+  line-height: var(--line-height-base);
+}
+
+/* ==================== Labels ==================== */
+.MuiTypography-root.row--label-offset__label {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-text);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-base);
+}
+
+/* ==================== Menu tekst ==================== */
+.MuiTypography-root.menu-text {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-text);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-base);
+  text-transform: none;
+}
+
+.MuiTypography-root.menu-text:hover {
+  color: var(--color-text-primary);
+}
+
+.MuiTypography-root.menu-text.active {
+  font-weight: var(--font-weight-regular);
+  color: var(--color-primary);
+}
+
+/* ==================== Menu item states ==================== */
+.MuiTypography-root.menu-item {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-text);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-secondary);
+  text-transform: none;
+  transition:
+    background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.MuiTypography-root.menu-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+  color: var(--color-text-primary);
+}
+
+.MuiTypography-root.menu-item.active {
+  font-weight: var(--font-weight-regular);
+  color: var(--color-primary);
+  background-color: var(--color-active-bg);
+}
+
+.MuiTypography-root.menu-item.active:hover {
+  background-color: var(--color-active-bg-hover);
+}
+
+/* ==================== Links ==================== */
+.MuiTypography-root.icon-text-link,
+.icon-text-link {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--color-text-secondary);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: color 0.2s ease;
+}
+
+.MuiTypography-root.icon-text-link:hover,
+.icon-text-link:hover {
+  color: var(--color-primary);
+  text-decoration-color: currentColor;
+}
+
+/* ==================== Hjælpeklasser ==================== */
+.MuiTypography-root.text-muted {
+  color: var(--color-text-secondary);
+}
+
+.MuiTypography-root.text-primary {
+  color: var(--color-primary);
+}
+
+.MuiTypography-root.text-bold {
+  font-weight: var(--font-weight-bold);
+}
+
+/*
+  NOTE:
+  - Typography er bevidst gjort semantisk-neutral
+  - Alle visuelle beslutninger ligger i className
+  - Ingen komponent-props (variant/component) er nødvendige
+*/

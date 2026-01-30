@@ -1,0 +1,41 @@
+{
+  "short_name": "MINEO",
+  "name": "MINEO Erstatningsberegner",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#e9ecef",
+  "background_color": "#ffffff",
+  "file_handlers": [
+    {
+      "action": "/open",
+      "accept": {
+        "application/x-eo": [".eo"],
+        "application/octet-stream": [".eo"],
+        "application/json": [".eo"]
+      },
+      "icons": [
+        { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,151 @@
+import React from 'react';
+import { act, render, waitFor } from '@testing-library/react';
+import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
+import { FormPersistenceProvider, useFormPersistence } from '../../contexts/FormPersistenceContext';
+import type { StorageKey } from '../../config/storageManifest';
+
+const stampStamdata = (skadelidte: string) => ({
+  journalnr: '',
+  advokat: '',
+  sagsbehandler: '',
+  skadelidte,
+  skadestype: '',
+  skadesdato: '',
+});
+
+const stampSatser = (aargang: number) => ({
+  aargang,
+});
+
+const persistedWrapper = (data: unknown) => ({
+  version: PERSISTED_DATA_VERSION,
+  timestamp: Date.now(),
+  data,
+});
+
+const emptySnapshot = (): Record<StorageKey, unknown | undefined> => ({
+  stamdata: undefined,
+  satser: undefined,
+  aarsloen: undefined,
+  renteberegning: undefined,
+  varigemen: undefined,
+  erstatningsopgoerelse: undefined,
+});
+
+describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
+  it('rolls back sessionStorage and cache when sessionStorage setItem fails mid-apply', async () => {
+    sessionStorage.clear();
+    sessionStorage.setItem('mineo_stamdata', JSON.stringify(persistedWrapper(stampStamdata('X'))));
+
+    let ctx: ReturnType<typeof useFormPersistence> | null = null;
+    const Capture = () => {
+      const value = useFormPersistence();
+      React.useEffect(() => {
+        ctx = value;
+      }, [value]);
+      return null;
+    };
+
+    render(
+      <FormPersistenceProvider>
+        <Capture />
+      </FormPersistenceProvider>
+    );
+
+    await waitFor(() => {
+      expect(ctx).not.toBeNull();
+    });
+
+    expect(ctx!.getPersistedData('stamdata')?.skadelidte).toBe('X');
+
+    let injectedFailures = 0;
+    const storageProto = Object.getPrototypeOf(window.sessionStorage) as { setItem: (key: string, value: string) => void };
+    const originalSetItem = storageProto.setItem;
+    const setItemSpy = vi.spyOn(storageProto, 'setItem').mockImplementation((key: string, value: string) => {
+      if (injectedFailures === 0) {
+        injectedFailures += 1;
+        throw new Error('Injected failure');
+      }
+      return originalSetItem.call(window.sessionStorage, key, value);
+    });
+
+    const next = emptySnapshot();
+    next.stamdata = stampStamdata('Y');
+
+    let error: unknown;
+    await act(async () => {
+      try {
+        ctx!.replaceAllPersistedData(next);
+      } catch (e) {
+        error = e;
+      }
+    });
+
+    setItemSpy.mockRestore();
+
+    expect(error).toBeInstanceOf(Error);
+    expect(sessionStorage.getItem('mineo_stamdata')).toContain('X');
+    expect(ctx!.getPersistedData('stamdata')?.skadelidte).toBe('X');
+  });
+
+  it('rolls back when a later write fails (no partial apply)', async () => {
+    sessionStorage.clear();
+    sessionStorage.setItem('mineo_stamdata', JSON.stringify(persistedWrapper(stampStamdata('X'))));
+    sessionStorage.setItem('mineo_satser', JSON.stringify(persistedWrapper(stampSatser(2020))));
+
+    let ctx: ReturnType<typeof useFormPersistence> | null = null;
+    const Capture = () => {
+      const value = useFormPersistence();
+      React.useEffect(() => {
+        ctx = value;
+      }, [value]);
+      return null;
+    };
+
+    render(
+      <FormPersistenceProvider>
+        <Capture />
+      </FormPersistenceProvider>
+    );
+
+    await waitFor(() => {
+      expect(ctx).not.toBeNull();
+    });
+
+    expect(ctx!.getPersistedData('stamdata')?.skadelidte).toBe('X');
+    expect(ctx!.getPersistedData('satser')?.aargang).toBe(2020);
+
+    let callCount = 0;
+    const storageProto = Object.getPrototypeOf(window.sessionStorage) as { setItem: (key: string, value: string) => void };
+    const originalSetItem = storageProto.setItem;
+    const setItemSpy = vi.spyOn(storageProto, 'setItem').mockImplementation((key: string, value: string) => {
+      callCount += 1;
+      if (callCount === 2) {
+        throw new Error('Injected failure');
+      }
+      return originalSetItem.call(window.sessionStorage, key, value);
+    });
+
+    const next = emptySnapshot();
+    next.stamdata = stampStamdata('Y');
+    next.satser = stampSatser(2021);
+
+    let error: unknown;
+    await act(async () => {
+      try {
+        ctx!.replaceAllPersistedData(next);
+      } catch (e) {
+        error = e;
+      }
+    });
+
+    setItemSpy.mockRestore();
+
+    expect(error).toBeInstanceOf(Error);
+    expect(sessionStorage.getItem('mineo_stamdata')).toContain('X');
+    expect(sessionStorage.getItem('mineo_satser')).toContain('2020');
+    expect(sessionStorage.getItem('mineo_varigemen')).toBeNull();
+    expect(ctx!.getPersistedData('stamdata')?.skadelidte).toBe('X');
+    expect(ctx!.getPersistedData('satser')?.aargang).toBe(2020);
+  });
+});

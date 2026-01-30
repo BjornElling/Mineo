@@ -1,0 +1,280 @@
+import React from 'react';
+import { Box, Typography } from '@mui/material';
+import { VERSION, BUILD_DATE } from '../../config/version';
+import { requestPwaInstall } from '../../utils/pwaInstallPrompt';
+import ContentBox from '../layout/ContentBox';
+
+// Import af MUI ikoner til kontakt-sektionen
+import PersonIcon from '@mui/icons-material/Person';
+import EmailIcon from '@mui/icons-material/Email';
+import LanguageIcon from '@mui/icons-material/Language';
+import GitHubIcon from '@mui/icons-material/GitHub';
+import BrowserUpdatedIcon from '@mui/icons-material/BrowserUpdated';
+
+/**
+ * Om-komponent
+ */
+const Om = React.memo(() => {
+  const buildDate = new Date(BUILD_DATE);
+  const _formattertDato = buildDate.toLocaleDateString('da-DK', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const handleInstallClick = React.useCallback((event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    void requestPwaInstall();
+  }, []);
+
+  return (
+    <Box>
+      {/* Side-header */}
+      <Typography className="page-title">Om MINEO</Typography>
+
+      {/* ------------------------------------------------------ */}
+      {/* Beskrivelse */}
+      {/* ------------------------------------------------------ */}
+      <ContentBox className="content-box flow--16">
+        <Typography className="section-header">Programmet</Typography>
+
+        <Typography className="row--text">
+          MINEO er et specialiseret regneprogram til advokater,
+          arbejdsskadekonsulenter og andre fagpersoner, hvis arbejde
+          indebærer at beregne erstatning i arbejdsskadesager.
+        </Typography>
+
+        <Typography className="row--text">
+          Programmet forudsætter, at du har et godt kendskab til emnet. Personskadesager
+          er komplekse og beror på en lang række matematiske og juridiske forudsætninger,
+          der ikke altid er indlysende.
+        </Typography>
+
+        <Typography className="row--text">
+          Selvom der er indlagt fejlkontrol i programmet, kan det ikke forhindre dig i at
+          lægge forkerte forudsætninger til grund. Sørg for at vide, hvad du laver, og 
+          kontroller altid dine beregninger grundigt.
+        </Typography>
+
+      </ContentBox>
+
+      {/* ------------------------------------------------------ */}
+      {/* Teknisk */}
+      {/* ------------------------------------------------------ */}
+      <ContentBox className="content-box flow--16">
+        <Typography className="section-header">Teknisk</Typography>
+
+        <Typography className="row--text">
+          For at kunne dobbeltklikke på lokale .eo-filer og åbne dem direkte i MINEO, skal du installere et
+          hjælpeprogram. Det kan enten hentes&nbsp;
+          <Box
+            component="a"
+            href="#installer"
+            onClick={handleInstallClick}
+            className="icon-text-link"
+            sx={{ display: 'inline' }}
+          >her</Box>
+          , eller ved at klikke på installationsikonet yderst til højre i browserens adressebar (Google Chrome: {' '}
+          <BrowserUpdatedIcon fontSize="small" sx={{ verticalAlign: 'text-bottom' }} />
+          {' '}Microsoft Edge: {' '}
+          <Box
+            component="svg"
+            sx={{ width: 20, height: 20, verticalAlign: 'text-bottom' }}
+            viewBox="0 0 20 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M15 3C15 2.72386 14.7761 2.5 14.5 2.5C14.2239 2.5 14 2.72386 14 3V5H12C11.7239 5 11.5 5.22386 11.5 5.5C11.5 5.77614 11.7239 6 12 6H14V8C14 8.27614 14.2239 8.5 14.5 8.5C14.7761 8.5 15 8.27614 15 8V6H17C17.2761 6 17.5 5.77614 17.5 5.5C17.5 5.22386 17.2761 5 17 5L15 5V3ZM4.5 17C3.67157 17 3 16.3284 3 15.5V4.5C3 3.67157 3.67157 3 4.5 3H9C9.82843 3 10.5 3.67157 10.5 4.5V9.5H15.5C16.3284 9.5 17 10.1716 17 11V15.5C17 16.3284 16.3284 17 15.5 17H4.5ZM10.5 10.5V16H15.5C15.7761 16 16 15.7761 16 15.5V11C16 10.7239 15.7761 10.5 15.5 10.5H10.5ZM9.5 16V10.5H4V15.5C4 15.7589 4.19675 15.9718 4.44888 15.9974C4.46569 15.9991 4.48274 16 4.5 16H9.5ZM9.5 4.5C9.5 4.22386 9.27614 4 9 4H4.5C4.22386 4 4 4.22386 4 4.5V9.5H9.5V4.5Z" fill="#212121"/>
+          </Box>).
+        </Typography>
+
+        <Typography className="row--text">
+          Bemærk, at hjælpeprogrammet forudsætter, at du har Google Chrome eller Microsoft Edge installeret.
+        </Typography>
+
+      </ContentBox>
+
+      {/* ------------------------------------------------------ */}
+      {/* Persondata */}
+      {/* ------------------------------------------------------ */}
+      <ContentBox className="content-box flow--16">
+        <Typography className="section-header">Persondata</Typography>
+
+        <Typography className="row--text">
+          MINEO er udviklet som en client-side applikation. Det indebærer, at al 
+          databehandling finder sted i browseren på brugerens egen computer.
+        </Typography>
+
+        <Typography className="row--text">
+          Programmet kommunikerer ikke med nogen server under brug, og der indsamles, 
+          gemmes eller transmitteres ingen data - hverken persondata, brugsstatistik 
+          eller anden information.
+        </Typography>
+
+        <Typography className="row--text">
+          Mens programmet kører, bliver de indtastede oplysninger midlertidigt gemt
+          i browserens hukommelse, som nulstilles når browseren lukkes.
+        </Typography>
+      </ContentBox>
+
+      {/* ------------------------------------------------------ */}
+      {/* Licens */}
+      {/* ------------------------------------------------------ */}
+      <ContentBox className="content-box flow--16">
+        <Typography className="section-header">Licensvilkår</Typography>
+
+        {/* Licensforklaring */}
+        <Typography className="row--text">
+          Programmet er gratis at bruge og udgives under{' '}
+          <Box component="a" href="/LICENSE" className="icon-text-link" sx={{ display: 'inline' }}>
+            MIT-licensen
+          </Box>
+          , hvilket indebærer:
+        </Typography>
+
+        {/* Punktopstilling */}
+        <Box className="list-container">
+
+          <Box className="numbered-list-item">
+            <Typography className="row--text">1)</Typography>
+            <Typography className="row--text">
+              Du kan bruge programmet frit - også til kommercielle formål.
+            </Typography>
+          </Box>
+
+          <Box className="numbered-list-item">
+            <Typography className="row--text">2)</Typography>
+            <Typography className="row--text">
+              Kildekoden er frit tilgængelig og må ændres, forbedres og videreudvikles.
+            </Typography>
+          </Box>
+
+          <Box className="numbered-list-item" sx={{ marginBottom: 0 }}>
+            <Typography className="row--text">3)</Typography>
+            <Typography className="row--text">
+              Programmet leveres &quot;som det er&quot; uden nogen form for garanti.
+            </Typography>
+          </Box>
+
+        </Box>
+
+        <Typography className="row--text">
+          Ved brug af programmet skal du være opmærksom på, at det er udviklet af en jurist, 
+          der ved mere om paragraffer end om koder. Programmet er grundigt testet, men fejl 
+          kan forekomme. Sørg derfor altid for at kontrollere dine beregninger.
+        </Typography>
+
+      </ContentBox>
+
+      {/* ------------------------------------------------------ */}
+      {/* Kontakt */}
+      {/* ------------------------------------------------------ */}
+      <ContentBox className="content-box flow--16">
+        <Typography className="section-header">Kontakt</Typography>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+          {/* Udvikler (ikke link) */}
+          <Box className="icon-text-row">
+            <PersonIcon fontSize="small" sx={{ flexShrink: 0 }} />
+            <Typography className="row--text">
+              Bjørn Elling
+            </Typography>
+          </Box>
+
+          {/* Email (link) */}
+          <Box className="icon-text-row">
+            <EmailIcon fontSize="small" sx={{ flexShrink: 0 }} />
+            <Typography
+              className="row--text icon-text-link"
+              component="a"
+              href="mailto:bj.elling@gmail.com"
+            >
+              bj.elling@gmail.com
+            </Typography>
+          </Box>
+
+          {/* Hjemmeside (link) */}
+          <Box className="icon-text-row">
+            <LanguageIcon fontSize="small" sx={{ flexShrink: 0 }} />
+            <Typography
+              className="row--text icon-text-link"
+              component="a"
+              href="https://mineo.dk"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              mineo.dk
+            </Typography>
+          </Box>
+
+          {/* GitHub (link) */}
+          <Box className="icon-text-row">
+            <GitHubIcon fontSize="small" sx={{ flexShrink: 0 }} />
+            <Typography
+              className="row--text icon-text-link"
+              component="a"
+              href="https://github.com/BjornElling/Mineo"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              github.com/BjornElling/Mineo
+            </Typography>
+          </Box>
+
+        </Box>
+      </ContentBox>
+
+      {/* ------------------------------------------------------ */}
+      {/* Status */}
+      {/* ------------------------------------------------------ */}
+      <ContentBox className="content-box flow--16">
+        <Typography className="section-header">Status</Typography>
+
+        <Typography className="row--text">
+          Programmet er fortsat under udvikling og vil løbende få opdateringer og nye funktionaliteter. 
+          Disse er nogle af de planlagte opdateringer:
+        </Typography>
+
+        <Box
+          component="ul"
+          className="list-container"
+          sx={{ marginTop: 0, marginBottom: 0, paddingLeft: '20px', color: 'var(--color-text-primary)', lineHeight: 1.6 }}
+        >
+          <Box component="li" sx={{ marginBottom: '8px' }}>
+            Bedre håndtering af skadelidte, der ikke arbejder mandag-fredag, men fx kun arbejder i weekenden
+          </Box>
+          <Box component="li" sx={{ marginBottom: '8px' }}>
+            Mulighed for automatisk beregning af sociale ydelser
+          </Box>
+          <Box component="li" sx={{ marginBottom: '8px' }}>
+            Simpel adgang til at overføre beregnede ydelser fra EET-beregneren til TAF-beregneren
+          </Box>
+          <Box component="li" sx={{ marginBottom: '8px' }}>
+            Opgørelse af forsørgertabserstatning
+          </Box>
+          <Box component="li" sx={{ marginBottom: 0 }}>
+            Håndtering af ferieperioder for delvist raskmeldte i TAF-beregninger
+          </Box>
+        </Box>
+
+        <Typography className="row--text">
+          Eftersom der er tale om et program, der udvikles i fritiden og alene er drevet af personlig interesse, 
+          er der ikke en tidsplan for, hvornår forbedringer vil blive implementeret.
+        </Typography>
+
+        <Typography className="row--text">
+          Aktuel version: {VERSION}
+        </Typography>
+
+      </ContentBox>
+
+    </Box>
+  );
+});
+
+Om.displayName = 'Om';
+
+export default Om;

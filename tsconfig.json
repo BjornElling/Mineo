@@ -1,0 +1,46 @@
+{
+  "compilerOptions": {
+    /* Output / runtime target */
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+
+    /* React */
+    "jsx": "react-jsx",
+    "useDefineForClassFields": true,
+
+    /* Strictness */
+    "strict": true,
+    "noImplicitAny": false,
+    "useUnknownInCatchVariables": false,
+
+    /* Performance / dev ergonomi */
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "incremental": false,
+
+    /* Type resolution */
+    "resolveJsonModule": true,
+    "types": ["vite/client", "node"],
+
+    /* Inference cost control */
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+
+    /* Diagnostics noise */
+    "forceConsistentCasingInFileNames": true
+  },
+
+  "include": ["src"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "src/test/setup.ts"
+  ]
+}

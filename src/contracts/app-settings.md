@@ -1,0 +1,34 @@
+# Programindstillinger (App Settings) — Mineo
+
+## Formål
+Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser) og **ikke** er en del af sagen.
+
+Disse indstillinger er typisk:
+- UI/debug-visning
+- udvikler-/diagnostik-flags
+
+## Normativ regel: må aldrig gemmes i `.eo`
+`.eo`-filer er **trust-critical** og må kun indeholde **schema-valideret brugerinput** (sagsdata).
+
+Programindstillinger er **ikke** sagsdata og **må derfor aldrig**:
+- ligge i `FormPersistenceContext` / sessionStorage `STORAGE_KEYS`
+- indgå i `.eo` save/load
+- være en del af nogen Zod-skemaer som repræsenterer persisted user input
+
+Konsekvens:
+- Hvis en `.eo`-fil deles med en kollega eller flyttes til en anden maskine, må programindstillinger ikke “smugles med”.
+
+## Teknisk implementering
+- Programindstillinger persisteres i **`localStorage`** under en dedikeret nøgle: `mineo_app_settings_v1`
+- Skema og defaults: `src/settings/appSettingsSchema.ts`
+- Læs/skriv + sideeffekter (fx CSS toggles): `src/contexts/AppSettingsContext.tsx`
+
+`.eo` persistence opererer på sessionStorage keys fra manifestet:
+- Manifest: `src/config/storageManifest.ts`
+- Save/Load: `src/utils/fileSave.ts` og `src/utils/fileLoad.ts`
+
+## Designkrav (sikkerhed og forudsigelighed)
+- **Fail-safe**: hvis `localStorage` er blokeret/fejler, må app’en stadig fungere (fallback til in-memory state).
+- **Schema-alignment**: settings skal valideres via Zod; invalid/ukendt data skal falde tilbage til defaults.
+- **Ingen netværk/telemetri**: settings må ikke forårsage data-overførsel ud af browseren.
+

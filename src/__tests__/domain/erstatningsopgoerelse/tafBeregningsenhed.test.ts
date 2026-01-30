@@ -1,0 +1,75 @@
+import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { computeTafBeregningsenhed, TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR, TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
+
+const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
+  const base = structuredClone(ERSTATNINGSOPGOERELSE_INITIAL_VALUES);
+  return { ...base, ...patch };
+};
+
+describe('computeTafBeregningsenhed', () => {
+  it('defaults to months', () => {
+    const values = makeValues({});
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
+  });
+
+  it('returns workdays when "Beregnes ud fra" is "Angivet dagsløn"', () => {
+    const values = makeValues({ beregnesUdFra: 'Angivet dagsløn' });
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.ARBEJDSDAGE);
+  });
+
+  it('returns months when "Beregnes ud fra" is "Angivet månedsløn"', () => {
+    const values = makeValues({ beregnesUdFra: 'Angivet månedsløn' });
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
+  });
+
+  it('returns workdays when "Beregnes ud fra" is "Beregningsperiode" and "Øvrigt fravær uden løn" has a non-zero day count', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      oevrigtFravaerUdenLoen: 'Ja',
+      oevrigeFravaersdage: 1,
+    });
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.ARBEJDSDAGE);
+  });
+
+  it('does not switch to workdays when "Øvrigt fravær uden løn" is enabled but day count is 0', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      oevrigtFravaerUdenLoen: 'Ja',
+      oevrigeFravaersdage: 0,
+    });
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
+  });
+
+  it('is forced to workdays when any employment has non-standard holiday pay', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          loenPaaHelligdage: 'SH-udbetaling',
+        },
+      ],
+    });
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.ARBEJDSDAGE);
+  });
+
+  it('is forced to workdays when any employment does not have full pay during vacation', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          fuldLoenUnderFerie: 'Nej',
+        },
+      ],
+    });
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.ARBEJDSDAGE);
+  });
+});
+
+describe('TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR', () => {
+  it('is 4.8% of a month per workday', () => {
+    expect(TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR).toBe(0.048);
+  });
+});

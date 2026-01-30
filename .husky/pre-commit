@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+
+echo "HUSKY PRE-COMMIT KØRER"
+
+set -e
+
+# Generér ny versionsfil
+node scripts/generate-version.js
+
+# Tilføj filerne igen til commit
+git add src/config/version.ts README.md

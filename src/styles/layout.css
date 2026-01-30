@@ -1,0 +1,200 @@
+/* layout.css - Layout-klasser for MINEO */
+
+/* ==================== CSS Variabler ==================== */
+:root {
+  /* Spacing */
+  --spacing-row-vertical: 16px;
+  --spacing-gap: 16px;
+
+  /* Heights */
+  --min-height-row: 40px;
+
+  /* Widths */
+  --label-width-default: 250px;
+  --label-width-wide: 700px;
+  --content-box-max-width: 1200px;
+
+  /* Border radius */
+  --border-radius-small: 10px;
+  --border-radius-large: 20px;
+
+  /* Colors */
+  --color-background-white: #ffffff;
+  --color-hover: rgba(0, 0, 0, 0.04);
+  --color-shadow: rgba(0, 0, 0, 0.08);
+  --color-border: rgba(0, 0, 0, 0.08);
+}
+
+/* ==================== Content Box Container ==================== */
+.content-box {
+  width: var(--content-box-max-width);
+  background-color: var(--color-background-white);
+  border-radius: var(--border-radius-large);
+  padding: 40px 32px;
+  margin: 40px 0;
+  box-shadow: 0 2px 6px var(--color-shadow);
+  border: 1px solid var(--color-border);
+}
+
+/* ==================== Række-layouts ==================== */
+/* Base række-klasse - fælles egenskaber for alle rækker */
+.row {
+  min-height: var(--min-height-row);
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  margin-top: var(--spacing-row-vertical);
+  margin-bottom: var(--spacing-row-vertical);
+  font-size: 15px;
+}
+
+/* .row--text: Layout for tekstrækkeer (typography i typography.css) */
+.row--text {
+  min-height: var(--min-height-row);
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  font-size: 15px;
+}
+
+/* .row--subheading: Underoverskrift med ekstra spacing */
+.MuiTypography-root.row--subheading,
+.row--subheading {
+  min-height: var(--min-height-row);
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  margin-top: 24px;
+  margin-bottom: var(--spacing-row-vertical);
+  font-size: 16px;
+}
+
+/* .row--label-offset: Label + indrykket felt */
+.row--label-offset {
+  --label-width: var(--label-width-default);
+  min-height: var(--min-height-row);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-gap);
+  align-items: center;
+  box-sizing: border-box;
+  margin-top: var(--spacing-row-vertical);
+  margin-bottom: var(--spacing-row-vertical);
+  font-size: 15px;
+}
+
+.row--label-offset__label {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--min-height-row);
+  box-sizing: border-box;
+  width: var(--label-width);
+  min-width: var(--label-width);
+}
+
+.row--label-offset__content {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+}
+
+/* .row--label-right: Label + højrestillet element */
+.row--label-right {
+  --label-width: var(--label-width-wide);
+  min-height: var(--min-height-row);
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  justify-content: space-between;
+  padding: 0 12px;
+  margin-top: var(--spacing-row-vertical);
+  margin-bottom: var(--spacing-row-vertical);
+  font-size: 15px;
+}
+
+/* .row--label-right-hover: Label + højrestillet element med hover */
+.row--label-right-hover {
+  --label-width: var(--label-width-wide);
+  min-height: var(--min-height-row);
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  justify-content: space-between;
+  padding: 0 12px;
+  border-radius: var(--border-radius-small);
+  transition: background-color 0.15s ease;
+  margin-top: var(--spacing-row-vertical);
+  margin-bottom: var(--spacing-row-vertical);
+  width: 100%;
+  font-size: 15px;
+}
+
+.row--label-right-hover__label,
+.hover-row__label {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--min-height-row);
+  box-sizing: border-box;
+  width: var(--label-width);
+  min-width: var(--label-width);
+  margin: 0;
+}
+
+.row--label-right-hover__content {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.row--label-right-hover:hover {
+  background-color: var(--color-hover);
+}
+
+/* ==================== Grid og Flex hjælpere ==================== */
+/* Ikon + tekst på samme linje */
+.icon-text-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Nummereret liste-element med grid */
+.numbered-list-item {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  margin-bottom: 8px;
+}
+
+/* Container til indrykkede lister */
+.list-container {
+  margin-left: 10px;
+}
+
+/* ==================== Flow / Spacing utilities ==================== */
+/* Sikrer præcis 16px afstand mellem direkte children, uden at interne margins/paddings "lægger sig oven i" */
+.flow--16 > * {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.flow--16 > * + * {
+  margin-top: 16px !important;
+}
+
+.flow--16 > ul,
+.flow--16 > ol {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Neutraliser row--text's faste række-højde i "flow"-layouts (fx Om-siden) */
+.flow--16 .row--text {
+  min-height: unset !important;
+  display: block !important;
+}
+
+/* NOTE:
+   MINEO understøtter ikke mobil/tablet. Responsiv styling skal ikke ligge globalt. */
