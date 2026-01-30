@@ -71,11 +71,11 @@ npm run preview      # Preview production build
    - Tilføj lovbestemte satser for det nye år
 
 **Statistiske satser**
-   - Åbn [src\data\statistiskLoenudviklingRates.ts](src\data\statistiskLoenudviklingRates.ts)
+   - Åbn [src/data/statistiskLoenudviklingRates.ts](src/data/statistiskLoenudviklingRates.ts)
    - Tilføj statistiske satser for det nye år
 
 **Dato-intervaler**
-   - Åbn [src/config/dateRanges.ts](src/config/dateRanges.js)
+   - Åbn [src/config/dateRanges.ts](src/config/dateRanges.ts)
    - Opdater tilladte intervaller og `MAX_YEAR` til det nye år
    - OBS: Vil gradvist blive udfaset og erstattet af dynamiske værdier
 
@@ -93,5 +93,6 @@ MIT License - Se [LICENSE](LICENSE) filen for detaljer.
 
 ---
 
-**Version**: 2026.01.3
+**Version**: 2026.01.4
+
 **Status**: Under udvikling
