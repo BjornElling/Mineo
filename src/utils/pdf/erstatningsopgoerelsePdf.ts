@@ -6,7 +6,7 @@
 
 import jsPDF from 'jspdf';
 import { FONT_SIZES, MARGINS } from './pdfConfig';
-import { addFooter } from './pdfHelpers';
+import { addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish, subtractOneDay } from '../../types/branded';
 import type { FieldErrorBySource } from '../../types/fieldErrors';
@@ -92,17 +92,27 @@ interface SelectedElements {
 }
 
 /**
+ * Options for erstatningsopgørelse PDF
+ */
+interface ErstatningsopgoerelsePdfOptions {
+  visBrevhoved?: boolean;
+}
+
+/**
  * Generer og download PDF for erstatningsopgørelse
  *
  * @param {StamdataValues} stamdataValues - Stamdata fra FormPersistence
  * @param {ErstatningsopgoerelseValues} eoValues - EO-oplysninger fra FormPersistence
  * @param {SelectedElements} selectedElements - Valgte elementer til PDF
+ * @param {ErstatningsopgoerelsePdfOptions} options - Valgfrie indstillinger
  */
 export const generateErstatningsopgoerelsePdf = (
   stamdataValues: StamdataValues,
   eoValues: ErstatningsopgoerelseValues,
-  _selectedElements: SelectedElements
+  _selectedElements: SelectedElements,
+  options: ErstatningsopgoerelsePdfOptions = {}
 ) => {
+  const { visBrevhoved = false } = options;
   const lineHeight = 5;
   const doubleLineHeight = lineHeight * 2;
 
@@ -131,6 +141,17 @@ export const generateErstatningsopgoerelsePdf = (
   });
 
   let currentY = MARGINS.top;
+
+  // Tilføj brevhoved hvis aktiveret
+  if (visBrevhoved) {
+    const brevhovedData: BrevhovedData = {
+      skadelidte: stamdataValues.skadelidte,
+      skadestype: stamdataValues.skadestype,
+      skadesdato: stamdataValues.skadesdato,
+      journalnr: stamdataValues.journalnr,
+    };
+    currentY = addBrevhoved(doc, brevhovedData);
+  }
 
   // Tilføj titel (fed skrift)
   doc.setFontSize(FONT_SIZES.title);

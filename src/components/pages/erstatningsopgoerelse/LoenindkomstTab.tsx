@@ -28,6 +28,7 @@ import { formatDanishDate, parseISODate } from '../../../utils/dateUtils';
 import { isLoenperiodeValue } from '../../../utils/zodTypeGuards';
 import { generateAnsaettelsesforholdId } from '../../../utils/eoConverters';
 import { loadReguleringPdfModule } from '../../../utils/pdf/pdfLoader';
+import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
 import {
   getAlleLoenmodtagerOrg,
   getAlleArbejdsgiverOrg,
@@ -752,13 +753,23 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
       applyAlmindeligLoenPaaShDageRegel: boolean;
     }) => {
       try {
+        // Hent stamdata
+        const stamdata = getPersistedData('stamdata');
+
+        // Udled visBrevhoved fra settings
+        const visBrevhoved = getVisBrevhoved(settings, 'regulering');
+
         const { generateReguleringPdf } = await loadReguleringPdfModule();
-        generateReguleringPdf(params);
+        generateReguleringPdf({
+          ...params,
+          visBrevhoved,
+          stamdata,
+        });
       } catch (error) {
         console.error('Kunne ikke indlæse PDF-modulet for regulering:', error);
       }
     },
-    []
+    [getPersistedData, settings]
   );
 
   /**

@@ -7,7 +7,7 @@
 import jsPDF from 'jspdf';
 import autoTable, { type CellHookData, type RowInput } from 'jspdf-autotable';
 import { COLORS, MARGINS, TABLE_STYLES, SECTION_SPACER } from './pdfConfig';
-import { addTitle, addFooter } from './pdfHelpers';
+import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
 import type { ISODateString } from '../../types/branded';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import type { VarigeMenBeregningResult } from '../../domain/varigemen/varigeMenCalculations';
@@ -251,6 +251,7 @@ type GenerateVarigeMenPdfParams = Readonly<{
   beregningsdato: ISODateString | undefined;
   beregningsResultat: VarigeMenBeregningResult;
   stamdata: StamdataValues | null;
+  visBrevhoved?: boolean;
 }>;
 
 export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void => {
@@ -260,7 +261,8 @@ export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void =
     mengrad,
     beregningsdato,
     beregningsResultat,
-    stamdata
+    stamdata,
+    visBrevhoved = false,
   } = params;
 
   // Opret nyt PDF-dokument (A4, portrait)
@@ -280,6 +282,17 @@ export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void =
   });
 
   let currentY = MARGINS.top;
+
+  // Tilføj brevhoved hvis aktiveret
+  if (visBrevhoved && stamdata) {
+    const brevhovedData: BrevhovedData = {
+      skadelidte: stamdata.skadelidte,
+      skadestype: stamdata.skadestype,
+      skadesdato: stamdata.skadesdato,
+      journalnr: stamdata.journalnr,
+    };
+    currentY = addBrevhoved(doc, brevhovedData);
+  }
 
   // Tilføj titel
   currentY = addTitle(doc, 'Ménberegning', currentY);

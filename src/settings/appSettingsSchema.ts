@@ -14,6 +14,34 @@ import { z } from 'zod';
  * - `src/contracts/app-settings.md` (normative documentation for this separation)
  */
 
+/**
+ * Brevhoved-indstillinger for PDF-dokumenter
+ *
+ * Bestemmer hvilke PDF-typer der skal have brevhoved med skadelidtes navn,
+ * skadestype, skadesdato og sagsnr.
+ */
+export const brevhovedIndstillingerSchema = z.object({
+  erstatningsopgoerelse: z.boolean(),
+  shDage: z.boolean(),
+  renteberegning: z.boolean(),
+  regulering: z.boolean(),
+  varigeMen: z.boolean(),
+  satser: z.boolean(),
+  aarsloensberegning: z.boolean(),
+});
+
+export type BrevhovedIndstillinger = z.infer<typeof brevhovedIndstillingerSchema>;
+
+export const DEFAULT_BREVHOVED_INDSTILLINGER: BrevhovedIndstillinger = {
+  erstatningsopgoerelse: true,
+  shDage: false,
+  renteberegning: false,
+  regulering: false,
+  varigeMen: false,
+  satser: false,
+  aarsloensberegning: false,
+};
+
 export const appSettingsSchema = z
   .object({
     showContentBoxReportButton: z.boolean(),
@@ -28,6 +56,8 @@ export const appSettingsSchema = z
     defaultOverenskomstArbejdsgiver: z.string(),
     // Fil-placering (IndexedDB handle ID - validering sker runtime, ikke i schema)
     defaultDirectoryHandleId: z.string().optional(),
+    // Brevhoved-indstillinger for PDF-dokumenter
+    brevhovedIndstillinger: brevhovedIndstillingerSchema,
   })
   .strict();
 
@@ -46,6 +76,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   defaultOverenskomstArbejdsgiver: 'ALLE',
   // Fil-placering (undefined = brug desktop som fallback)
   defaultDirectoryHandleId: undefined,
+  // Brevhoved-indstillinger
+  brevhovedIndstillinger: DEFAULT_BREVHOVED_INDSTILLINGER,
 };
 
 /**

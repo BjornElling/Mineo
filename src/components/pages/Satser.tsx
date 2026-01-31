@@ -6,6 +6,9 @@ import { getSatserForYear, satserAngivAarYearBounds } from '../../data/regulatio
 import { loadSatserPdfModule } from '../../utils/pdf/pdfLoader';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { satserSchema } from '../../schemas/formSchemas';
+import { useFormPersistence } from '../../contexts/FormPersistenceContext';
+import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { getVisBrevhoved } from '../../utils/pdf/pdfBrevhoved';
 import {
   selectSatserAargangErrorMessage,
   selectSatserCanDownload,
@@ -84,6 +87,9 @@ const Satser = React.memo(() => {
     }
   );
 
+  const { getPersistedData } = useFormPersistence();
+  const { settings } = useAppSettings();
+
   const [satser, setSatser] = React.useState(() => getSatserForYear(MAX_SATSER_YEAR));
   const [gyldigtAar, setGyldigtAar] = React.useState(MAX_SATSER_YEAR);
 
@@ -124,13 +130,19 @@ const Satser = React.memo(() => {
   const handleDownloadPdf = React.useCallback(async () => {
     if (satser && gyldigtAar) {
       try {
+        // Hent stamdata
+        const stamdata = getPersistedData('stamdata');
+
+        // Udled visBrevhoved fra settings
+        const visBrevhoved = getVisBrevhoved(settings, 'satser');
+
         const { generateSatserPdf } = await loadSatserPdfModule();
-        generateSatserPdf(gyldigtAar, satser);
+        generateSatserPdf(gyldigtAar, satser, { visBrevhoved, stamdata });
       } catch (error) {
         console.error('Kunne ikke indlæse PDF-modulet for satser:', error);
       }
     }
-  }, [satser, gyldigtAar]);
+  }, [satser, gyldigtAar, getPersistedData, settings]);
 
   return (
     <Box>

@@ -15,6 +15,9 @@ import { minIsoDate } from '../../utils/dateUtils';
 import type { RentekravRow } from '../../schemas/formSchemas';
 import type { RentekravDraftRow } from '../../domain/renteberegning/tableDraftRows';
 import { computeRentekravCalculation, type RentekravCalculationResult } from '../../domain/renteberegning/renteEngine';
+import { useFormPersistence } from '../../contexts/FormPersistenceContext';
+import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { getVisBrevhoved } from '../../utils/pdf/pdfBrevhoved';
 
 const ENHED_OPTIONS = [
   { value: 'dage', label: 'Dage' },
@@ -52,6 +55,8 @@ type BeregnetRenteRowProps = Readonly<{
 
 const BeregnetRenteRow = React.memo(
   ({ row, committedRow, rowIndex, onFieldChange, onRowBlur, beregningsdato, onError, beregningsdatoHasError }: BeregnetRenteRowProps) => {
+    const { getPersistedData } = useFormPersistence();
+    const { settings } = useAppSettings();
     const [renterFraHasError, setRenterFraHasError] = React.useState(false);
 
     const dynamicMaxDate = React.useMemo((): ISODateString => {
@@ -165,11 +170,21 @@ const BeregnetRenteRow = React.memo(
                   }
 
                   try {
+                    // Hent stamdata
+                    const stamdata = getPersistedData('stamdata');
+
+                    // Udled visBrevhoved fra settings
+                    const visBrevhoved = getVisBrevhoved(settings, 'renteberegning');
+
                     const { generateRentePdf } = await loadRentePdfModule();
                     generateRentePdf(
                       validatedCalculation.beloeb,
                       validatedCalculation.actualInterestDate,
-                      validatedCalculation.beregningsdato
+                      validatedCalculation.beregningsdato,
+                      {
+                        visBrevhoved,
+                        stamdata,
+                      }
                     );
                   } catch (error) {
                     onError('Kunne ikke indlæse PDF-modulet for rente', 'BeregnetRenteRow.PDFGeneration', error);

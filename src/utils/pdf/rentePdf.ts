@@ -7,10 +7,29 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { COLORS, MARGINS, FONT_SIZES, TABLE_STYLES, SECTION_SPACER } from './pdfConfig';
-import { addTitle, addFooter, parseDanishDate, formatDanishDate, formatAmount, formatPercent } from './pdfHelpers';
+import { addTitle, addFooter, addBrevhoved, parseDanishDate, formatDanishDate, formatAmount, formatPercent, type BrevhovedData } from './pdfHelpers';
 import { countInclusiveUtcDays } from '../utcDayMath';
 import type { RateEntry } from '../../data/interestRates';
 import { referenceRates, surchargeRates } from '../../data/interestRates';
+import type { ISODateString } from '../../types/branded';
+
+/**
+ * Stamdata til Rente PDF
+ */
+export interface RenteStamdata {
+  skadelidte?: string;
+  skadestype?: string;
+  skadesdato?: ISODateString;
+  journalnr?: string;
+}
+
+/**
+ * Options for Rente PDF
+ */
+export interface RentePdfOptions {
+  visBrevhoved?: boolean;
+  stamdata?: RenteStamdata | null;
+}
 
 /**
  * Beregner antal dage i et givet år (365 eller 366)
@@ -169,8 +188,15 @@ const generateDetailedSpecification = (amount, interestStartDate, calculationDat
  * @param {string|number} amount - Hovedstol
  * @param {string} interestStartDate - Rentens startdato (dd-mm-åååå)
  * @param {string} calculationDate - Beregningens slutdato (dd-mm-åååå)
+ * @param {RentePdfOptions} options - Valgfrie indstillinger
  */
-export const generateRentePdf = (amount, interestStartDate, calculationDate) => {
+export const generateRentePdf = (
+  amount,
+  interestStartDate,
+  calculationDate,
+  options: RentePdfOptions = {}
+) => {
+  const { visBrevhoved = false, stamdata = null } = options;
   // Generer detaljeret specifikation
   const periods = generateDetailedSpecification(amount, interestStartDate, calculationDate);
 
@@ -204,6 +230,17 @@ export const generateRentePdf = (amount, interestStartDate, calculationDate) => 
   });
 
   let currentY = MARGINS.top;
+
+  // Tilføj brevhoved hvis aktiveret
+  if (visBrevhoved && stamdata) {
+    const brevhovedData: BrevhovedData = {
+      skadelidte: stamdata.skadelidte,
+      skadestype: stamdata.skadestype,
+      skadesdato: stamdata.skadesdato,
+      journalnr: stamdata.journalnr,
+    };
+    currentY = addBrevhoved(doc, brevhovedData);
+  }
 
   // Tilføj titel
   currentY = addTitle(doc, 'Procesrente', currentY);

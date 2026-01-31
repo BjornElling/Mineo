@@ -20,6 +20,8 @@ import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
 import { useNavigate } from 'react-router-dom';
 import { generateVarigeMenPdf } from '../../../utils/pdf/varigeMenPdf';
 import { varigeMenPrGradYearBounds } from '../../../data/regulationRates';
+import { useAppSettings } from '../../../contexts/AppSettingsContext';
+import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
 
 const VARIGE_MEN_BEREGNINGSDATO_MIN = toISODateString(
   `${varigeMenPrGradYearBounds.minYear}-01-01`
@@ -46,6 +48,7 @@ const MenberegningTab: React.FC<{
   });
 
   const { getPersistedData } = useFormPersistence();
+  const { settings } = useAppSettings();
   const navigate = useNavigate();
 
   // State til rystebevægelse animation
@@ -176,6 +179,9 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
     // Hent stamdata
     const stamdata = getPersistedData('stamdata');
 
+    // Udled visBrevhoved fra settings
+    const visBrevhoved = getVisBrevhoved(settings, 'varigeMen');
+
     // Generer PDF
     generateVarigeMenPdf({
       fodselsdato: coerceToISODateString(values.fodselsdato),
@@ -184,8 +190,9 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
       beregningsdato: coerceToISODateString(values.beregningsdato),
       beregningsResultat: beregningsResultat,
       stamdata,
+      visBrevhoved,
     });
-  }, [beregningsFejl, manglendeFelter, beregningsResultat, values, stamValues.skadesdato, fodselsdatoError, mengradError, beregningsdatoError, getPersistedData]);
+  }, [beregningsFejl, manglendeFelter, beregningsResultat, values, stamValues.skadesdato, fodselsdatoError, mengradError, beregningsdatoError, getPersistedData, settings]);
 
   const skadesdatoLabel = React.useMemo(() => {
     if (stamValues.skadestype === 'Erhvervssygdom') return 'Anmeldelsesdato';

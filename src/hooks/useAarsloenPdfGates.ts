@@ -23,6 +23,8 @@ import { harTabelValideringsFejl } from '../utils/aarsloenValidation';
 import { hasAtLeastOneValidRow } from '../utils/aarsloenTableCalculations';
 import { stamdataSchema } from '../schemas/formSchemas';
 import type { StorageKey } from '../config/storageManifest';
+import type { AppSettings } from '../settings/appSettingsSchema';
+import { getVisBrevhoved } from '../utils/pdf/pdfBrevhoved';
 
 // ============================================================================
 // TYPES
@@ -44,6 +46,7 @@ interface UseAarsloenPdfGatesProps {
   harFatalBeregningsFejl: boolean;
   tabelRef: React.RefObject<AarsloenTableHandle | null>;
   getPersistedData: <K extends StorageKey>(formName: K) => unknown;
+  settings: AppSettings;
 }
 
 interface UseAarsloenPdfGatesReturn {
@@ -75,6 +78,7 @@ export const useAarsloenPdfGates = ({
   harFatalBeregningsFejl,
   tabelRef,
   getPersistedData,
+  settings,
 }: UseAarsloenPdfGatesProps): UseAarsloenPdfGatesReturn => {
   const {
     tableData,
@@ -222,6 +226,9 @@ export const useAarsloenPdfGates = ({
     // Hent valideret stamdata
     const stamdata = getValidatedStamdata();
 
+    // Udled visBrevhoved fra settings
+    const visBrevhoved = getVisBrevhoved(settings, 'aarsloensberegning');
+
     // Ingen fejl - generer PDF
     try {
       const { generateAarsloenPdf } = await loadAarsloenPdfModule();
@@ -247,6 +254,7 @@ export const useAarsloenPdfGates = ({
         beregningsData,
         fejlmeddelelser,
         stamdata,
+        visBrevhoved,
       });
     } catch (error) {
       logError('Kunne ikke generere årsløn PDF', {
@@ -290,12 +298,15 @@ export const useAarsloenPdfGates = ({
     // Hent valideret stamdata
     const stamdata = getValidatedStamdata();
 
+    // Udled visBrevhoved fra settings
+    const visBrevhoved = getVisBrevhoved(settings, 'shDage');
+
     // Konverter perioder til format som PDF-generatoren forventer
     const perioder = periodeData.perioder || [];
 
     try {
       const { generateSHDagePdf } = await loadSHDagePdfModule();
-      generateSHDagePdf(perioder, stamdata);
+      generateSHDagePdf(perioder, stamdata, { visBrevhoved });
     } catch (error) {
       logError('Kunne ikke generere SH-dage PDF', {
         context: 'useAarsloenPdfGates.handleSHDagePdfDownload',

@@ -19,15 +19,37 @@ import {
   isGreaterThanZero,
   isNonEmptyString,
 } from './pdfFormatters';
-import { addTitle, addFooter } from './pdfHelpers';
+import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
+import type { ISODateString } from '../../types/branded';
+
+/**
+ * Stamdata til Satser PDF
+ */
+export interface SatserStamdata {
+  skadelidte?: string;
+  skadestype?: string;
+  skadesdato?: ISODateString;
+  journalnr?: string;
+}
+
+/**
+ * Options for Satser PDF
+ */
+export interface SatserPdfOptions {
+  visBrevhoved?: boolean;
+  stamdata?: SatserStamdata | null;
+}
 
 /**
  * Generer og download PDF for arbejdsskadesatser
  *
  * @param {number} year - Året satserne gælder for
  * @param {Object} satser - Satser data fra getSatserForYear()
+ * @param {SatserPdfOptions} options - Valgfrie indstillinger
  */
-export const generateSatserPdf = (year, satser) => {
+export const generateSatserPdf = (year, satser, options: SatserPdfOptions = {}) => {
+  const { visBrevhoved = false, stamdata = null } = options;
+
   // Opret nyt PDF-dokument (A4, portrait)
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -45,6 +67,17 @@ export const generateSatserPdf = (year, satser) => {
   });
 
   let currentY = MARGINS.top;
+
+  // Tilføj brevhoved hvis aktiveret
+  if (visBrevhoved && stamdata) {
+    const brevhovedData: BrevhovedData = {
+      skadelidte: stamdata.skadelidte,
+      skadestype: stamdata.skadestype,
+      skadesdato: stamdata.skadesdato,
+      journalnr: stamdata.journalnr,
+    };
+    currentY = addBrevhoved(doc, brevhovedData);
+  }
 
   // Tilføj titel
   currentY = addTitle(doc, `Arbejdsskadesatser ${year}`, currentY);

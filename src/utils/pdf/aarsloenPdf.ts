@@ -7,7 +7,7 @@
 import jsPDF from 'jspdf';
 import autoTable, { type CellDef, type CellHookData, type RowInput } from 'jspdf-autotable';
 import { COLORS, MARGINS, FONT_SIZES, TABLE_STYLES, SECTION_SPACER } from './pdfConfig';
-import { addTitle, addFooter } from './pdfHelpers';
+import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
 import { calculateAarsloenRowDerived, type AarsloenSatserInput } from '../aarsloenTableCalculations';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { AarsloenTableRow, LoenPaaHelligdage, Loenperiode, StamdataValues } from '../../schemas/formSchemas';
@@ -719,6 +719,7 @@ type GenerateAarsloenPdfParams = Readonly<{
   beregningsData: AarsloenBeregningResult;
   fejlmeddelelser: readonly string[];
   stamdata: StamdataValues | null;
+  visBrevhoved?: boolean;
 }>;
 
 export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => {
@@ -736,7 +737,8 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
     shDageAntal,
     beregningsData,
     fejlmeddelelser,
-    stamdata
+    stamdata,
+    visBrevhoved = false,
   } = params;
 
   // Opret nyt PDF-dokument (A4, portrait)
@@ -756,6 +758,17 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
   });
 
   let currentY = MARGINS.top;
+
+  // Tilføj brevhoved hvis aktiveret
+  if (visBrevhoved && stamdata) {
+    const brevhovedData: BrevhovedData = {
+      skadelidte: stamdata.skadelidte,
+      skadestype: stamdata.skadestype,
+      skadesdato: stamdata.skadesdato,
+      journalnr: stamdata.journalnr,
+    };
+    currentY = addBrevhoved(doc, brevhovedData);
+  }
 
   // Tilføj titel
   currentY = addTitle(doc, 'Årslønsberegning', currentY);

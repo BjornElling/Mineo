@@ -13,6 +13,7 @@ import { useFormPersistence } from '../../contexts/FormPersistenceContext';
 import { useAarsloenBeregning } from '../../hooks/useAarsloenBeregning';
 import { useOmregningToggle } from '../../hooks/useOmregningToggle';
 import { useAarsloenPdfGates } from '../../hooks/useAarsloenPdfGates';
+import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { formatCurrency } from '../../utils/formatUtils';
 import { aarsloenSchema } from '../../schemas/formSchemas';
 import { isLoenperiodeValue, isLoenPaaHelligdageValue } from '../../utils/zodTypeGuards';
@@ -64,6 +65,7 @@ const Aarsloen = React.memo(() => {
 
   // Destrukturér værdier for nem adgang
   const { getPersistedData } = useFormPersistence();
+  const { settings } = useAppSettings();
 
   const {
     feriePct, fritvalgPct, shSoPct, storeBededagPct, pensionPct, loenperiode, tableData,
@@ -122,6 +124,7 @@ const Aarsloen = React.memo(() => {
     harFatalBeregningsFejl,
     tabelRef,
     getPersistedData,
+    settings,
   });
 
   // ============================================================================

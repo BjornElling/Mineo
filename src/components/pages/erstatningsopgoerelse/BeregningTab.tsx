@@ -13,6 +13,8 @@ import { formatISOToDanish } from '../../../utils/dateValidation';
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
 import { useErstatningsopgoerelseAggregation } from '../../../calculation/useErstatningsopgoerelseAggregation';
 import AggregationResultView from './components/AggregationResultView';
+import { useAppSettings } from '../../../contexts/AppSettingsContext';
+import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
 
 const formatDateLongDisplay = (isoDate: string | undefined): string => {
   const danish = formatISOToDanish(isoDate ?? '');
@@ -53,6 +55,7 @@ const BeregningTab = React.memo<BeregningTabProps>(({ setActiveTab, isActive }) 
   // ============================================================================
 
   const navigate = useNavigate();
+  const { settings } = useAppSettings();
   const stamdataValues = usePersistedSection('stamdata');
   const eoValues = usePersistedSection('erstatningsopgoerelse');
   const stamdataErrors = useFieldErrorsBySourceForSection('stamdata');
@@ -211,13 +214,16 @@ const BeregningTab = React.memo<BeregningTabProps>(({ setActiveTab, isActive }) 
       return;
     }
 
+    // Udled visBrevhoved fra settings
+    const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
+
     try {
       const { generateErstatningsopgoerelsePdf } = await loadErstatningsopgoerelsePdfModule();
-      generateErstatningsopgoerelsePdf(stamdataValues, eoValues, selectedElements);
+      generateErstatningsopgoerelsePdf(stamdataValues, eoValues, selectedElements, { visBrevhoved });
     } catch (error) {
       console.error('Kunne ikke indlæse PDF-modulet for erstatningsopgørelse:', error);
     }
-  }, [stamdataValues, eoValues, selectedElements]);
+  }, [stamdataValues, eoValues, selectedElements, settings]);
 
   // ============================================================================
   // RENDER

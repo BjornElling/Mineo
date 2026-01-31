@@ -8,10 +8,28 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { COLORS, MARGINS, FONT_SIZES, TABLE_STYLES, SECTION_SPACER } from './pdfConfig';
 import { beregnHelligdage } from '../shDageBeregning';
-import { addTitle, addFooter } from './pdfHelpers';
+import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
 import { formatToISO, parseISODate } from '../dateUtils';
 import { diffUtcDays } from '../utcDayMath';
 import { MONTH_NAMES_DA } from '../dateFormatting';
+import type { ISODateString } from '../../types/branded';
+
+/**
+ * Stamdata til SH-dage PDF
+ */
+export interface SHDageStamdata {
+  skadelidte?: string;
+  skadestype?: string;
+  skadesdato?: ISODateString;
+  journalnr?: string;
+}
+
+/**
+ * Options for SH-dage PDF
+ */
+export interface SHDagePdfOptions {
+  visBrevhoved?: boolean;
+}
 
 /**
  * Danske ugedagsnavne
@@ -236,9 +254,15 @@ const formaterPeriodeOversigt = (perioder) => {
  * Generer og download PDF for SH-dage
  *
  * @param {Array} perioder - Array af {start: Date, end: Date} periode-objekter
- * @param {Object} stamdata - Stamdata objekt med navn, skadesdato, journalnr (optional)
+ * @param {SHDageStamdata | null} stamdata - Stamdata objekt med navn, skadesdato, journalnr (optional)
+ * @param {SHDagePdfOptions} options - Valgfrie indstillinger
  */
-export const generateSHDagePdf = (perioder, _stamdata = null) => {
+export const generateSHDagePdf = (
+  perioder,
+  stamdata: SHDageStamdata | null = null,
+  options: SHDagePdfOptions = {}
+) => {
+  const { visBrevhoved = false } = options;
   // Opret nyt PDF-dokument (A4, portrait)
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -256,6 +280,17 @@ export const generateSHDagePdf = (perioder, _stamdata = null) => {
   });
 
   let currentY = MARGINS.top;
+
+  // Tilføj brevhoved hvis aktiveret
+  if (visBrevhoved && stamdata) {
+    const brevhovedData: BrevhovedData = {
+      skadelidte: stamdata.skadelidte,
+      skadestype: stamdata.skadestype,
+      skadesdato: stamdata.skadesdato,
+      journalnr: stamdata.journalnr,
+    };
+    currentY = addBrevhoved(doc, brevhovedData);
+  }
 
   // Tilføj titel
   currentY = addTitle(doc, 'SH-dage', currentY);

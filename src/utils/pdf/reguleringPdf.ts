@@ -7,7 +7,7 @@
 import jsPDF from 'jspdf';
 import autoTable, { type CellHookData, type RowInput } from 'jspdf-autotable';
 import { COLORS, MARGINS, FONT_SIZES, TABLE_STYLES, SECTION_SPACER } from './pdfConfig';
-import { addTitle, addFooter } from './pdfHelpers';
+import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
 import { formatCurrency, formatPercent } from '../formatUtils';
 import { parseDanishDate, formatDanishDate } from '../dateUtils';
 import { aarsloenMax } from '../../data/regulationRates';
@@ -21,7 +21,17 @@ import {
   getStatistiskLoenudvikling,
   type StatistiskLoenudviklingId,
 } from '../../data/statistiskLoenudviklingRates';
-import type { DanishDateString } from '../../types/branded';
+import type { DanishDateString, ISODateString } from '../../types/branded';
+
+/**
+ * Stamdata til Regulering PDF
+ */
+export interface ReguleringStamdata {
+  skadelidte?: string;
+  skadestype?: string;
+  skadesdato?: ISODateString;
+  journalnr?: string;
+}
 
 type PdfDoc = jsPDF & {
   lastAutoTable?: {
@@ -36,6 +46,8 @@ type ReguleringPdfParams = Readonly<{
   statistikModelLabel: string | undefined;
   interval: Readonly<{ fraDato: DanishDateString; tilDato: DanishDateString }>;
   applyAlmindeligLoenPaaShDageRegel: boolean;
+  visBrevhoved?: boolean;
+  stamdata?: ReguleringStamdata | null;
 }>;
 
 type TableColumn = Readonly<{
@@ -279,6 +291,8 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
     statistikModelLabel,
     interval,
     applyAlmindeligLoenPaaShDageRegel,
+    visBrevhoved = false,
+    stamdata = null,
   } = params;
 
   const doc = new jsPDF({
@@ -296,6 +310,18 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
   });
 
   let currentY = MARGINS.top;
+
+  // Tilføj brevhoved hvis aktiveret
+  if (visBrevhoved && stamdata) {
+    const brevhovedData: BrevhovedData = {
+      skadelidte: stamdata.skadelidte,
+      skadestype: stamdata.skadestype,
+      skadesdato: stamdata.skadesdato,
+      journalnr: stamdata.journalnr,
+    };
+    currentY = addBrevhoved(doc, brevhovedData);
+  }
+
   currentY = addTitle(doc, 'Regulering', currentY);
 
   doc.setFontSize(FONT_SIZES.normal);
