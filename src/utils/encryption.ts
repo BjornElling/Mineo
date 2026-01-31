@@ -3,8 +3,8 @@ import CryptoJS from 'crypto-js';
 // =============================================================================
 // KRYPTERINGSKONSTANTER
 // =============================================================================
-const PASSWORD = 'MINEO_ERSTATNINGSBEREGNING_2025';
-const SALT = 'mineo_salt_2025';
+const PASSWORD = 'WILL_ONLY_PROVIDE_OBFUSCATION_NOT_TRUE_ENCRYPTION';
+const SALT = 'deliberate_design_choice';
 const ITERATIONS = 100000;
 
 /**

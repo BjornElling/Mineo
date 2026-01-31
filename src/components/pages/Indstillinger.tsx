@@ -304,43 +304,75 @@ const Indstillinger = React.memo(() => {
           </Box>
         </Box>
 
-        <Box className="row--label-right-hover">
+        <Box className="row--label-right-hover" sx={{ alignItems: 'flex-start' }}>
           <Typography className="row--text">Indsæt brevhoved i</Typography>
           <Box className="row--label-right-hover__content">
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-              {([
-                { key: 'erstatningsopgoerelse', label: 'Erstatningsopgørelse' },
-                { key: 'shDage', label: 'SH-dage' },
-                { key: 'renteberegning', label: 'Renteberegning' },
-                { key: 'regulering', label: 'Regulering' },
-                { key: 'varigeMen', label: 'Varige mén' },
-                { key: 'satser', label: 'Satser' },
-                { key: 'aarsloensberegning', label: 'Årslønsberegning' },
-              ] as const).map(({ key, label }) => (
-                <FormControlLabel
-                  key={key}
-                  control={
-                    <Checkbox
-                      checked={settings.brevhovedIndstillinger[key]}
-                      onChange={(e) => {
-                        const newBrevhovedIndstillinger: BrevhovedIndstillinger = {
-                          ...settings.brevhovedIndstillinger,
-                          [key]: e.target.checked,
-                        };
-                        updateSettings({ brevhovedIndstillinger: newBrevhovedIndstillinger });
-                      }}
-                      size="small"
-                    />
-                  }
-                  label={label}
-                  sx={{
-                    marginRight: 1,
-                    '& .MuiFormControlLabel-label': {
-                      fontSize: '0.875rem',
-                    },
-                  }}
-                />
-              ))}
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0 }}>
+              {/* Første række: Erstatningsopgørelse, SH-dage, Renteberegning */}
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                {([
+                  { key: 'erstatningsopgoerelse', label: 'Erstatningsopgørelse' },
+                  { key: 'shDage', label: 'SH-dage' },
+                  { key: 'renteberegning', label: 'Renteberegning' },
+                ] as const).map(({ key, label }) => (
+                  <FormControlLabel
+                    key={key}
+                    control={
+                      <Checkbox
+                        checked={settings.brevhovedIndstillinger[key]}
+                        onChange={(e) => {
+                          const newBrevhovedIndstillinger: BrevhovedIndstillinger = {
+                            ...settings.brevhovedIndstillinger,
+                            [key]: e.target.checked,
+                          };
+                          updateSettings({ brevhovedIndstillinger: newBrevhovedIndstillinger });
+                        }}
+                        size="small"
+                      />
+                    }
+                    label={label}
+                    sx={{
+                      marginRight: 1,
+                      '& .MuiFormControlLabel-label': {
+                        fontSize: '0.875rem',
+                      },
+                    }}
+                  />
+                ))}
+              </Box>
+              {/* Anden række: Regulering, Varige mén, Satser, Årslønsberegning */}
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                {([
+                  { key: 'regulering', label: 'Regulering' },
+                  { key: 'varigeMen', label: 'Varige mén' },
+                  { key: 'satser', label: 'Satser' },
+                  { key: 'aarsloensberegning', label: 'Årslønsberegning' },
+                ] as const).map(({ key, label }) => (
+                  <FormControlLabel
+                    key={key}
+                    control={
+                      <Checkbox
+                        checked={settings.brevhovedIndstillinger[key]}
+                        onChange={(e) => {
+                          const newBrevhovedIndstillinger: BrevhovedIndstillinger = {
+                            ...settings.brevhovedIndstillinger,
+                            [key]: e.target.checked,
+                          };
+                          updateSettings({ brevhovedIndstillinger: newBrevhovedIndstillinger });
+                        }}
+                        size="small"
+                      />
+                    }
+                    label={label}
+                    sx={{
+                      marginRight: 1,
+                      '& .MuiFormControlLabel-label': {
+                        fontSize: '0.875rem',
+                      },
+                    }}
+                  />
+                ))}
+              </Box>
             </Box>
           </Box>
         </Box>
