@@ -189,6 +189,41 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     [visualOptions]
   );
 
+  const visualOptionLabels = React.useMemo(() => {
+    return visualOptions.map((opt) => {
+      if (opt.kind === 'empty') return '';
+      if (getOptionLabel) return getOptionLabel(opt.value);
+      const label = opt.children;
+      if (typeof label === 'string' || typeof label === 'number') return String(label);
+      return '';
+    });
+  }, [getOptionLabel, visualOptions]);
+
+  const findNextMatchIndex = React.useCallback(
+    (key: string, currentIndex: number) => {
+      const normalizedKey = key.toLocaleLowerCase('da-DK');
+      const matchingIndices: number[] = [];
+
+      visualOptionLabels.forEach((label, index) => {
+        const trimmed = label.trim();
+        if (trimmed.length === 0) return;
+        const firstChar = trimmed.charAt(0).toLocaleLowerCase('da-DK');
+        if (firstChar === normalizedKey) {
+          matchingIndices.push(index);
+        }
+      });
+
+      if (matchingIndices.length === 0) return -1;
+
+      const currentPos = matchingIndices.indexOf(currentIndex);
+      if (currentPos === -1) return matchingIndices[0];
+
+      const nextPos = (currentPos + 1) % matchingIndices.length;
+      return matchingIndices[nextPos];
+    },
+    [visualOptionLabels]
+  );
+
   const selectedIndex = React.useMemo(() => {
     if (resolvedValue === undefined) return hasEmptyOption ? 0 : -1;
     const index = visualOptions.findIndex((opt) => opt.kind === 'value' && opt.value === resolvedValue);
@@ -274,6 +309,33 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       handleClose('select');
     },
     [allowEmpty, handleClose, name, onChange]
+  );
+
+  const handleTypeahead = React.useCallback(
+    (event: React.KeyboardEvent<HTMLElement>) => {
+      if (event.altKey || event.ctrlKey || event.metaKey) return false;
+      if (event.key.length !== 1) return false;
+
+      const trimmedKey = event.key.trim();
+      if (trimmedKey.length !== 1) return false;
+
+      const currentIndex = open ? (highlightedIndex >= 0 ? highlightedIndex : selectedIndex) : selectedIndex;
+      const nextIndex = findNextMatchIndex(trimmedKey, currentIndex);
+      if (nextIndex < 0) return false;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (open) {
+        setHighlightedIndex(nextIndex);
+        return true;
+      }
+
+      const nextValue = getValueAtVisualIndex(nextIndex);
+      handleSelect(nextValue);
+      return true;
+    },
+    [findNextMatchIndex, getValueAtVisualIndex, handleSelect, highlightedIndex, open, selectedIndex]
   );
 
   const containerSxBase: SxProps<Theme> = {
@@ -460,6 +522,10 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
               handleClose('escapeKeyDown');
               return;
             }
+
+            if (handleTypeahead(e)) {
+              return;
+            }
           }
 
           if (e.key === 'Backspace' || e.key === 'Delete') {
@@ -469,6 +535,10 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
               // UNDTAGELSE TIL "INGEN LIVE PREVIEW": Commit øjeblikkeligt ved DELETE/Backspace
               handleSelect(undefined);
             }
+            return;
+          }
+
+          if (handleTypeahead(e)) {
             return;
           }
 

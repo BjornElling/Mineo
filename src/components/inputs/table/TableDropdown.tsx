@@ -75,19 +75,49 @@ const TableDropdown = React.memo(
     const handleKeyDown = React.useCallback(
       (e: React.KeyboardEvent<HTMLElement>) => {
         if (readOnly) return;
-        if (!allowEmpty) return;
-        if (e.key !== 'Backspace' && e.key !== 'Delete') return;
 
         const activeEl = (e.target instanceof HTMLElement ? e.target : null) ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
         const expandedHost = activeEl?.closest('[aria-expanded]') as HTMLElement | null;
         const expanded = expandedHost?.getAttribute('aria-expanded') === 'true';
         if (expanded) return;
 
+        if (e.key === 'Backspace' || e.key === 'Delete') {
+          if (!allowEmpty) return;
+          e.preventDefault();
+          e.stopPropagation();
+          onChange?.({ target: { value: '' } });
+          return;
+        }
+
+        if (e.altKey || e.ctrlKey || e.metaKey) return;
+        if (e.key.length !== 1) return;
+        const trimmedKey = e.key.trim();
+        if (trimmedKey.length !== 1) return;
+
+        const normalizedKey = trimmedKey.toLocaleLowerCase('da-DK');
+        const matchingIndices: number[] = [];
+        options.forEach((opt, index) => {
+          const label = opt.label.trim();
+          if (label.length === 0) return;
+          const firstChar = label.charAt(0).toLocaleLowerCase('da-DK');
+          if (firstChar === normalizedKey) {
+            matchingIndices.push(index);
+          }
+        });
+
+        if (matchingIndices.length === 0) return;
+
+        const currentIndex = typeof value === 'string' ? options.findIndex((opt) => opt.value === value) : -1;
+        const currentPos = matchingIndices.indexOf(currentIndex);
+        const nextPos = currentPos === -1 ? 0 : (currentPos + 1) % matchingIndices.length;
+        const nextValue = options[matchingIndices[nextPos]]?.value;
+        if (typeof nextValue !== 'string') return;
+
         e.preventDefault();
         e.stopPropagation();
-        onChange?.({ target: { value: '' } });
+        onChange?.({ target: { value: nextValue } });
       },
-      [allowEmpty, onChange, readOnly]
+      [allowEmpty, onChange, options, readOnly, value]
     );
 
     return (

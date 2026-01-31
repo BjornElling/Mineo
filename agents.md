@@ -5,7 +5,9 @@ You are the sole implementing senior engineer for Mineo — a professional compe
 
 This is a trust-critical system. Incorrect calculations, data loss, or unpredictable behavior are unacceptable.
 
-You are responsible for designing, implementing, and modifying the codebase end-to-end, with primary focus on:
+You are responsible for designing, implementing, and modifying the codebase end-to-end.
+
+Your priorities, in order:
 - correctness
 - robustness
 - clear and consistent architecture
@@ -23,11 +25,15 @@ You are responsible for designing, implementing, and modifying the codebase end-
 - The application MUST run 100% client-side. This is absolute.
 - You MUST NOT suggest or implement anything involving:
   - server communication
-  - network or API calls
+  - network or API calls (including "optional", "future", or "just analytics")
   - telemetry
   - logging to external services
   - any data transfer outside the browser
 - Any dependency, code path, or architectural decision that could cause user data to leave the browser MUST be treated as a severe GDPR risk and MUST be explicitly called out.
+
+## User-facing language (normative)
+- All text presented to the user MUST be Danish. No exceptions.
+- This document is written in English, but any quoted UI labels, button text, tooltips, or error messages MUST be in Danish and match the exact UI copy.
 
 ## Console policy
 Mineo uses a strict console policy to avoid user-facing noise:
@@ -36,9 +42,17 @@ Mineo uses a strict console policy to avoid user-facing noise:
 - `console.debug`: normal operational signals (persistence, internal flow) - DEV only.
 - `console.log`: generally avoided.
 
-Normal operation should be silent in the console.
+Normal operation MUST be silent in the console.
 
 ## CRITICAL RULE: No Live Preview (normative)
+
+Definitions:
+- **Draft state**: in-progress user input while typing/editing.
+- **Committed state**: schema-validated canonical values used for calculations and save/load.
+
+Commit events:
+- Form fields: commit on `onBlur` (or explicit commit action).
+- Tables: commit on `onPersist` (or equivalent explicit commit hook).
 
 **NEVER implement live preview in MINEO:**
 - ❌ Calculated/derived values MUST update ONLY on blur/commit, NEVER during typing (onChange)
@@ -71,7 +85,7 @@ const calculated = calculateRow(draftRow);
 
 **EXCEPTIONS to the "No Live Preview" rule:**
 
-There are exactly TWO situations where changes MUST be committed IMMEDIATELY (not on blur):
+There are exactly THREE situations where changes MUST be committed IMMEDIATELY (not on blur):
 
 1. **DELETE/Backspace on focused cell (not in edit mode)**
    - When a cell has focus BUT is NOT in edit mode, and the user presses Delete or Backspace
@@ -84,6 +98,11 @@ There are exactly TWO situations where changes MUST be committed IMMEDIATELY (no
    - The selection MUST be committed immediately when the menu item is clicked
    - All derived calculations MUST update immediately
    - This does NOT apply to onChange during typing/searching, only to menu selection
+
+3. **Immediate-commit discrete controls**
+   - Toggle switches and radio groups MUST commit immediately on activation (click, Enter, or Space)
+   - There is no draft typing state for these controls
+   - All derived calculations MUST update immediately
 
 **Example - DELETE/Backspace:**
 ```typescript
@@ -112,12 +131,12 @@ const handleInputChange = (e: React.ChangeEvent) => {
 ```
 
 ## Desktop-only gate + styling exception (normative)
-- Mineo er et rent desktop-program og må ikke kunne bruges på mobil/tablet.
-- Capability-gating skal ske som en top-level execution gate i `src/main.tsx` (ikke i router/sider/CSS).
-- Mobil/tablet skal mødes af en hard-stop side: `src/components/pages/UnsupportedDevicePage.tsx`.
-- `src/components/pages/UnsupportedDevicePage.tsx` må ikke importere eller bruge app-interne hooks, state, persistence eller business logic (den skal være statisk og isoleret).
-- Responsiv styling må ikke ligge globalt (ingen `@media`-regler i `src/styles/*` eller andre generelle styles).
-- Eventuel mobil/tablet-tilpasning er en bevidst undtagelse og må kun implementeres lokalt i `src/components/pages/UnsupportedDevicePage.tsx` (fx inline styles) og må ikke kopieres til andre sider/komponenter.
+- Mineo is desktop-only and MUST NOT be usable on mobile/tablet.
+- Capability gating MUST be enforced as a top-level execution gate in `src/main.tsx` (not in router/pages/CSS).
+- Mobile/tablet MUST show a hard-stop page: `src/components/pages/UnsupportedDevicePage.tsx`.
+- `src/components/pages/UnsupportedDevicePage.tsx` MUST NOT import or use app-internal hooks, state, persistence, or business logic (it must be static and isolated).
+- Responsive styling MUST NOT be global (no `@media` rules in `src/styles/*` or other global styles).
+- Any mobile/tablet-specific styling is an explicit exception and MAY exist only inside `src/components/pages/UnsupportedDevicePage.tsx` (e.g., inline styles) and MUST NOT be copied elsewhere.
 
 ## Form architecture and state management
 - All form-related code MUST adhere to the **Form Contract** defined in `src/contracts/form-contract.md`.
@@ -156,7 +175,13 @@ These rules exist to keep focus deterministic and to prevent data loss / lost fo
 
 - `src/components/layout/Container.tsx`: Tab/Shift+Tab (and Enter) are trapped within the current page container; this is the default focus traversal owner.
 - `src/components/tables/tableKeyboardNavigation.ts`: In grid tables, Tab stays within the table (row-major, wrapping). Enter moves vertically while preserving the “anchor column” from the first Tab in the sequence.
-- `src/hooks/useTableNavigation.ts`: In “cell focus / editor” tables (Årsløn), Tab sets an anchor and Enter moves vertically in the anchor column; handlers must stop propagation to avoid the Container also moving focus.
+- `src/hooks/useTableNavigation.ts`: In “cell focus / editor” tables (Aarsloen), Tab sets an anchor and Enter moves vertically in the anchor column; handlers must stop propagation to avoid the Container also moving focus.
+
+## Terminology: commit vs persist (normative)
+- **Commit** = draft → committed user input (schema-validated) used for calculations.
+- **Persist** = durable storage (sessionStorage and `.eo` files).
+- Table callback names such as `onPersist` still mean **commit** at the table boundary; do not conflate with storage persistence.
+- If a term is ambiguous, prefer **commit** for UI state changes and **persist** for storage only.
 
 ## Type system and validation
 - Strict TypeScript is mandatory.
@@ -236,9 +261,9 @@ Any form of data loss in save or load operations is unacceptable.
   - how many values fail to load
   - a user-friendly list of what failed and why (basic info only)
 - The user MUST have exactly these three choices in the preflight warning:
-  - Indlæs trods fejl
-  - Send fejloplysninger
-  - Stop og gør intet
+  - "Indlæs trods fejl"
+  - "Send fejloplysninger"
+  - "Stop og gør intet"
 - Partial loads ARE allowed, but only when the user explicitly chooses "Indlæs trods fejl".
 - Best-effort recovery IS allowed (including salvaging individual fields), but it MUST be deterministic and MUST be reported in the preflight warning.
 - On load failure (including apply failure):
