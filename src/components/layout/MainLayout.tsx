@@ -27,6 +27,8 @@ import {
   type DevtoolsIssueSnapshot,
 } from '../../utils/devtoolsMonitor';
 import type { BugReportExtraSection } from '../../utils/bugReport';
+import { getUserMessage, isCalculationError } from '../../utils/errorMessages';
+import { EncryptionError } from '../../utils/encryption';
 
 /**
  * Hovedlayout for applikationen
@@ -73,6 +75,17 @@ const parseSessionJson = (value: string | null): unknown => {
   } catch {
     return value;
   }
+};
+
+const resolveLoadError = (error: unknown): { message: string; expected: boolean } => {
+  if (error instanceof Error && isCalculationError(error) && error.code === 'FILE_LOAD_FAILED') {
+    const expected = error.cause instanceof EncryptionError;
+    return { message: getUserMessage(error), expected };
+  }
+  if (error instanceof Error) {
+    return { message: error.message || 'Kunne ikke hente fil', expected: false };
+  }
+  return { message: 'Kunne ikke hente fil', expected: false };
 };
 
 const buildPreflightBugReportError = (result: LoadFileResult): Error => {
@@ -264,10 +277,13 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
         await requestApplyLoadedSnapshot(result, { message: `Hentet${devFieldCountSuffix}`, type: 'success' }, false);
       }
     } catch (error) {
-      console.error('Hent fejlede:', error);
+      const resolved = resolveLoadError(error);
+      if (!resolved.expected) {
+        console.error('Hent fejlede:', error);
+      }
       isUserFeedbackRef.current = true;
       setOverlay({
-        message: (error as Error)?.message || 'Kunne ikke hente fil',
+        message: resolved.message,
         type: 'error',
       });
     }
@@ -307,10 +323,13 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
 
       return 'error';
     } catch (error) {
-      console.error('Hent (PWA) fejlede:', error);
+      const resolved = resolveLoadError(error);
+      if (!resolved.expected) {
+        console.error('Hent (PWA) fejlede:', error);
+      }
       isUserFeedbackRef.current = true;
       setOverlay({
-        message: (error as Error)?.message || 'Kunne ikke hente fil',
+        message: resolved.message,
         type: 'error',
       });
       pendingPwaRequestRef.current = null;

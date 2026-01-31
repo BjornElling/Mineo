@@ -24,7 +24,6 @@
     "@mui/icons-material": "^7.3.7",
     "@mui/material": "^7.3.7",
     "@mui/x-date-pickers": "^8.26.0",
-    "crypto-js": "^4.2.0",
     "dayjs": "^1.11.19",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.0.0",

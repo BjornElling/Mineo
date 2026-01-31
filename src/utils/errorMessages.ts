@@ -80,6 +80,7 @@ export type ErrorCode = keyof typeof ERROR_MESSAGES;
  */
 export class CalculationError extends Error {
   code: ErrorCode;
+  cause?: unknown;
 
   /**
    * Opret CalculationError
@@ -87,11 +88,19 @@ export class CalculationError extends Error {
    * @param {ErrorCode} code - Type-sikker fejl-kode
    * @param {string} [technicalMessage] - Teknisk besked til logs (valgfri)
    */
-  constructor(code: ErrorCode, technicalMessage?: string) {
+  constructor(code: ErrorCode, technicalMessageOrOptions?: string | { technicalMessage?: string; cause?: unknown }) {
+    const technicalMessage =
+      typeof technicalMessageOrOptions === 'string'
+        ? technicalMessageOrOptions
+        : technicalMessageOrOptions?.technicalMessage;
+    const cause =
+      typeof technicalMessageOrOptions === 'string' ? undefined : technicalMessageOrOptions?.cause;
+
     // Brug bruger-besked som Error.message hvis ingen teknisk besked
     super(technicalMessage || ERROR_MESSAGES[code]);
     this.name = 'CalculationError';
     this.code = code;
+    this.cause = cause;
 
     // Bevar stack trace (kun moderne browsers)
     if (Error.captureStackTrace) {

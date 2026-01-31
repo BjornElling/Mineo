@@ -274,7 +274,7 @@ const verifyAfterSave = async (
     // Dekrypter filen
     let decrypted: unknown;
     try {
-      decrypted = decryptFromString(fileContent);
+      decrypted = await decryptFromString(fileContent);
       logInfo('✓ Fil kan dekrypteres korrekt');
     } catch (error) {
       logError('⚠ KRITISK: Fil kan IKKE dekrypteres!');
@@ -484,7 +484,7 @@ export const saveToFile = async (
 
     // 5. Krypter data
     logInfo('Krypterer data...');
-    const encrypted = encryptToString(fileData);
+    const encrypted = await encryptToString(fileData);
     logInfo(`✓ Data krypteret (${encrypted.length} bytes)`);
 
     // 6. Gem fil (File System Access API eller fallback)

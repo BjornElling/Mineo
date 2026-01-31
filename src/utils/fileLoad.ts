@@ -1,5 +1,5 @@
 import { countFilledFields } from './dataCollection';
-import { decryptFromString } from './encryption';
+import { decryptFromString, EncryptionError } from './encryption';
 import { selectFile, readFile, type ResolvedDirectory, getStartInValue } from './fileHelpers';
 import {
   logOperationStart,
@@ -20,6 +20,7 @@ import {
 } from './fileSystemAccess';
 import type { LoadFileResult } from '../types/fileOperations';
 import { eoFileContainerLoadSchema, type EoFileContainerLoad } from '../schemas/eoFileSchema';
+import { CalculationError } from './errorMessages';
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -153,13 +154,16 @@ export const loadFromFile = async (
     logDebug('Dekrypterer data...');
     let decrypted: unknown;
     try {
-      decrypted = decryptFromString(fileContent);
+      decrypted = await decryptFromString(fileContent);
     } catch (error) {
+      if (error instanceof EncryptionError) {
+        throw new CalculationError('FILE_LOAD_FAILED', { cause: error });
+      }
       const message = error instanceof Error ? error.message : 'Ukendt fejl';
       logError('Dekryptering fejlede', { context: 'loadFromFile.decrypt', error: error instanceof Error ? error : undefined });
       throw new Error(`Kunne ikke dekryptere fil: ${message}`);
     }
-    logDebug('✓ Data dekrypteret (checksum OK)');
+    logDebug('✓ Data dekrypteret (integritet OK)');
 
     const fileContainer = normalizeDecryptedContainer(decrypted);
     const fileData = fileContainer.data;
@@ -325,6 +329,11 @@ export const loadFromFile = async (
         : undefined,
     };
   } catch (error) {
+    if (error instanceof CalculationError && error.code === 'FILE_LOAD_FAILED') {
+      logOperationEnd('Hent fil', true);
+      throw error;
+    }
+
     logOperationEnd('Hent fil', false);
 
     const message = error instanceof Error ? error.message : 'Ukendt fejl';
@@ -363,13 +372,16 @@ export const loadFromFileHandle = async (
     logDebug('Dekrypterer data...');
     let decrypted: unknown;
     try {
-      decrypted = decryptFromString(fileContent);
+      decrypted = await decryptFromString(fileContent);
     } catch (error) {
+      if (error instanceof EncryptionError) {
+        throw new CalculationError('FILE_LOAD_FAILED', { cause: error });
+      }
       const message = error instanceof Error ? error.message : 'Ukendt fejl';
       logError('Dekryptering fejlede', { context: 'loadFromFileHandle.decrypt', error: error instanceof Error ? error : undefined });
       throw new Error(`Kunne ikke dekryptere fil: ${message}`);
     }
-    logDebug('✓ Data dekrypteret (checksum OK)');
+    logDebug('✓ Data dekrypteret (integritet OK)');
 
     const fileContainer = normalizeDecryptedContainer(decrypted);
     const fileData = fileContainer.data;
@@ -536,6 +548,11 @@ export const loadFromFileHandle = async (
         : undefined,
     };
   } catch (error) {
+    if (error instanceof CalculationError && error.code === 'FILE_LOAD_FAILED') {
+      logOperationEnd('Hent fil', true);
+      throw error;
+    }
+
     logOperationEnd('Hent fil', false);
 
     const message = error instanceof Error ? error.message : 'Ukendt fejl';
@@ -563,7 +580,12 @@ export const validateEoFile = async (file: File): Promise<boolean> => {
       return false;
     }
 
-    return typeof parsed.data === 'string' && typeof parsed.checksum === 'string' && typeof parsed.version === 'string';
+    return (
+      parsed.version === 1 &&
+      parsed.alg === 'A256GCM' &&
+      typeof parsed.ivB64 === 'string' &&
+      typeof parsed.ctB64 === 'string'
+    );
   } catch (error) {
     logError('Fil-validering fejlede', { context: 'validateEoFile', error: error instanceof Error ? error : undefined });
     return false;

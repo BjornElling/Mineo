@@ -1,220 +1,172 @@
-import CryptoJS from 'crypto-js';
+import { z } from 'zod';
 
 // =============================================================================
-// KRYPTERINGSKONSTANTER
+// OBFUSCATION + INTEGRITET (IKKE HEMMELIGHOLDELSE)
 // =============================================================================
-const PASSWORD = 'WILL_ONLY_PROVIDE_OBFUSCATION_NOT_TRUE_ENCRYPTION';
-const SALT = 'deliberate_design_choice';
-const ITERATIONS = 100000;
+// Format-kontrakt:
+// - KEY_MATERIAL -> UTF-8 -> SHA-256 -> raw AES-256 key
+// - AES-GCM med 96-bit IV og 128-bit tag
+// - ivB64/ctB64 er standard base64 (ikke URL-safe)
+const KEY_MATERIAL = 'MINEO_OBFUSCATION_KEY_V1';
+const AES_GCM_IV_BYTES = 12;
 
-/**
- * Fil-struktur efter kryptering
- */
-interface EncryptedFileStructure {
-  version: string;
-  checksum: string;
-  data: string;
+export class EncryptionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'EncryptionError';
+  }
 }
 
-// Cache til afledt nøgle (performance-optimering)
-// Nøglen beregnes én gang og genbruges for hele sessionen
-let cachedKey: string | null = null;
+const encryptedFileSchema = z.object({
+  version: z.number().int(),
+  alg: z.literal('A256GCM'),
+  ivB64: z.string(),
+  ctB64: z.string(),
+});
 
-/**
- * Afleder krypteringsnøgle fra password ved hjælp af PBKDF2.
- * Matcher Python-implementeringens PBKDF2HMAC med SHA256.
- * Nøglen caches for at undgå genberegning (100.000 iterationer er CPU-tungt).
- */
-const deriveKey = (): string => {
-  // Returner cached nøgle hvis den allerede er beregnet
-  if (cachedKey !== null) {
-    return cachedKey;
+export type EncryptedFileStructure = z.infer<typeof encryptedFileSchema>;
+
+let cachedKey: CryptoKey | null = null;
+
+const getSubtle = (): SubtleCrypto => {
+  const cryptoObj = globalThis.crypto;
+  if (!cryptoObj || !cryptoObj.subtle) {
+    throw new Error('Kryptering understøttes ikke i denne browser');
   }
+  return cryptoObj.subtle;
+};
 
+const base64Encode = (bytes: Uint8Array): string => {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+};
+
+const base64Decode = (b64: string): Uint8Array => {
+  if (b64.trim() !== b64 || b64.trim() === '') {
+    throw new EncryptionError('Ugyldigt filformat');
+  }
   try {
-    // PBKDF2 key derivation (matcher Python's PBKDF2HMAC)
-    const key = CryptoJS.PBKDF2(PASSWORD, SALT, {
-      keySize: 256 / 32, // 32 bytes = 256 bits
-      iterations: ITERATIONS,
-      hasher: CryptoJS.algo.SHA256,
-    });
-
-    const keyString = key.toString();
-
-    // Cache nøglen for fremtidige kald
-    cachedKey = keyString;
-
-    return keyString;
-  } catch (_error) {
-    console.error('Fejl ved key derivation:', _error);
-    throw new Error('Kunne ikke generere krypteringsnøgle');
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  } catch {
+    throw new EncryptionError('Ugyldigt filformat');
   }
 };
 
-/**
- * Beregner SHA-256 checksum af data.
- */
-const calculateChecksum = (data: string): string => {
-  try {
-    const hash = CryptoJS.SHA256(data);
-    return hash.toString(CryptoJS.enc.Hex);
-  } catch (_error) {
-    console.error('Fejl ved checksum-beregning:', _error);
-    throw new Error('Kunne ikke beregne checksum');
-  }
+const deriveKey = async (): Promise<CryptoKey> => {
+  if (cachedKey) return cachedKey;
+
+  const subtle = getSubtle();
+  const material = new TextEncoder().encode(KEY_MATERIAL);
+  const hash = await subtle.digest('SHA-256', material);
+  const key = await subtle.importKey('raw', hash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+  cachedKey = key;
+  return key;
 };
 
 /**
- * Krypterer data med AES-256.
- * Følger samme struktur som Python-implementeringen:
- * 1. JSON stringify
- * 2. Beregn checksum
- * 3. Krypter med AES
- * 4. Base64-encode
- * 5. Returner struktur med checksum + encrypted data + version
+ * Krypterer data til en obfuskeret container med integritet (AES-GCM).
  */
-export const encryptData = (data: unknown): EncryptedFileStructure => {
+export const encryptData = async (data: unknown): Promise<EncryptedFileStructure> => {
+  const jsonString = JSON.stringify(data, null, 2);
+  const key = await deriveKey();
+  const iv = globalThis.crypto.getRandomValues(new Uint8Array(AES_GCM_IV_BYTES));
+  const plaintext = new TextEncoder().encode(jsonString);
+
+  let ciphertext: ArrayBuffer;
   try {
-    // 1. Serialiser data til JSON
-    const jsonString = JSON.stringify(data, null, 2);
-
-    // 2. Beregn checksum af original JSON
-    const checksum = calculateChecksum(jsonString);
-
-    // 3. Aflæs krypteringsnøgle
-    const key = deriveKey();
-
-    // 4. Krypter data med AES
-    const encrypted = CryptoJS.AES.encrypt(jsonString, key, {
-      mode: CryptoJS.mode.CBC,
-      padding: CryptoJS.pad.Pkcs7,
-    });
-
-    // 5. Base64-encode krypteret data
-    const encryptedB64 = encrypted.toString();
-
-    // 6. Returner fil-struktur (matcher Python's format)
-    return {
-      version: '1.0',
-      checksum: checksum,
-      data: encryptedB64,
-    };
-
-  } catch (_error) {
-    console.error('Fejl ved kryptering:', _error);
-    throw new Error(`Kryptering fejlede: ${_error.message}`);
+    ciphertext = await getSubtle().encrypt({ name: 'AES-GCM', iv, tagLength: 128 }, key, plaintext);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Ukendt fejl';
+    throw new Error(`Kryptering fejlede: ${message}`);
   }
+
+  return {
+    version: 1,
+    alg: 'A256GCM',
+    ivB64: base64Encode(iv),
+    ctB64: base64Encode(new Uint8Array(ciphertext)),
+  };
 };
 
 /**
- * Dekrypterer data med AES-256 og validerer integritet.
- * Følger samme validering som Python-implementeringen:
- * 1. Valider fil-struktur
- * 2. Dekrypter data
- * 3. Valider checksum (KRITISK!)
- * 4. Parse JSON
+ * Dekrypterer data fra obfuskeret container.
  */
-export const decryptData = (fileContent: unknown): unknown => {
-  try {
-    // 1. Valider fil-struktur
-    if (!fileContent || typeof fileContent !== 'object') {
-      throw new Error('Ugyldigt filformat (ikke et objekt)');
-    }
-
-    const container = fileContent as Record<string, unknown>;
-
-    if (!container.data || !container.checksum) {
-      throw new Error("Ugyldigt filformat (mangler 'data' eller 'checksum')");
-    }
-
-    const encryptedB64 = container.data;
-    const expectedChecksum = container.checksum;
-
-    if (typeof encryptedB64 !== 'string' || typeof expectedChecksum !== 'string') {
-      throw new Error("Ugyldigt filformat ('data' eller 'checksum' har forkert type)");
-    }
-
-    // 2. Aflæs krypteringsnøgle
-    const key = deriveKey();
-
-    // 3. Dekrypter data
-    let decrypted;
-    try {
-      decrypted = CryptoJS.AES.decrypt(encryptedB64, key, {
-        mode: CryptoJS.mode.CBC,
-        padding: CryptoJS.pad.Pkcs7,
-      });
-    } catch {
-      throw new Error('Dekryptering fejlede (ugyldig nøgle eller korrupt fil)');
-    }
-
-    // 4. Konverter til UTF-8 string
-    let jsonString;
-    try {
-      jsonString = decrypted.toString(CryptoJS.enc.Utf8);
-    } catch {
-      throw new Error('Kunne ikke dekode dekrypteret data');
-    }
-
-    if (!jsonString) {
-      throw new Error('Dekryptering fejlede (tomt resultat - forkert nøgle?)');
-    }
-
-    // 5. Valider checksum FØR JSON parsing (kritisk sikkerhedstjek!)
-    const actualChecksum = calculateChecksum(jsonString);
-    if (actualChecksum !== expectedChecksum) {
-      throw new Error('Checksum matcher ikke (filen kan være korrupt)');
-    }
-
-    // 6. Parse JSON (nu vi ved data er valid)
-    let data: unknown;
-    try {
-      data = JSON.parse(jsonString);
-    } catch (_error) {
-      const message = _error instanceof Error ? _error.message : 'Ukendt fejl';
-      throw new Error(`Kunne ikke parse JSON data: ${message}`);
-    }
-
-    // 7. Valider at data er et objekt
-    if (!data || typeof data !== 'object') {
-      throw new Error('Ugyldig data i fil (ikke et objekt)');
-    }
-
-    return data;
-
-  } catch (_error) {
-    // Sikkerhed: Maskér følsomme data i fejlbeskeder
-    const safeErrorMessage = _error.message.replace(/\b\d{6}-\d{4}\b/g, '[CPR]'); // Maskér CPR-numre
-
-    // Genkast med brugervenlig besked (uden følsomme data)
-    if (safeErrorMessage.includes('Checksum')) {
-      throw new Error(safeErrorMessage);
-    }
-    if (safeErrorMessage.includes('Dekryptering fejlede')) {
-      throw new Error(safeErrorMessage);
-    }
-    throw new Error(`Kunne ikke indlæse fil: ${safeErrorMessage}`);
+export const decryptData = async (fileContent: unknown): Promise<unknown> => {
+  const parsed = encryptedFileSchema.safeParse(fileContent);
+  if (!parsed.success) {
+    throw new EncryptionError('Ugyldigt filformat');
   }
+
+  if (parsed.data.version !== 1) {
+    throw new EncryptionError('Ikke understøttet filversion');
+  }
+
+  const { ivB64, ctB64 } = parsed.data;
+  const ivBytes = base64Decode(ivB64);
+  const iv = new Uint8Array(ivBytes.byteLength);
+  iv.set(ivBytes);
+  const ciphertextBytes = base64Decode(ctB64);
+  const ciphertext = new Uint8Array(ciphertextBytes.byteLength);
+  ciphertext.set(ciphertextBytes);
+
+  if (iv.length !== AES_GCM_IV_BYTES) {
+    throw new EncryptionError('Ugyldigt filformat');
+  }
+
+  const key = await deriveKey();
+
+  let plaintext: ArrayBuffer;
+  try {
+    plaintext = await getSubtle().decrypt({ name: 'AES-GCM', iv, tagLength: 128 }, key, ciphertext);
+  } catch {
+    throw new EncryptionError('Dekryptering fejlede');
+  }
+
+  const jsonString = new TextDecoder().decode(plaintext);
+  if (!jsonString) {
+    throw new EncryptionError('Dekryptering fejlede');
+  }
+
+  let data: unknown;
+  try {
+    data = JSON.parse(jsonString);
+  } catch {
+    throw new EncryptionError('Ugyldigt filformat');
+  }
+
+  if (!data || typeof data !== 'object') {
+    throw new EncryptionError('Ugyldigt filformat');
+  }
+
+  return data;
 };
 
 /**
  * Krypterer data og returner som JSON-string klar til fil-gemning.
  */
-export const encryptToString = (data: unknown): string => {
-  const encrypted = encryptData(data);
+export const encryptToString = async (data: unknown): Promise<string> => {
+  const encrypted = await encryptData(data);
   return JSON.stringify(encrypted, null, 2);
 };
 
 /**
  * Dekrypterer data fra JSON-string.
  */
-export const decryptFromString = (jsonString: string): unknown => {
-  // Parse JSON fil
+export const decryptFromString = async (jsonString: string): Promise<unknown> => {
   let fileContent: unknown;
   try {
     fileContent = JSON.parse(jsonString);
   } catch {
-    throw new Error('Ugyldigt filformat (ikke gyldig JSON)');
+    throw new EncryptionError('Ugyldigt filformat');
   }
 
   return decryptData(fileContent);
