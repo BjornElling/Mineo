@@ -365,6 +365,28 @@ export type TableError =
       reason: 'no_valid_rows';
     };
 
+export type AarsloenTableRowIssueLevel = 'error' | 'warning';
+
+export type AarsloenTableRowIssue = Readonly<{
+  rowId: string;
+  level: AarsloenTableRowIssueLevel;
+}>;
+
+export type AarsloenTableFirstErrorReason = 'input' | 'missing';
+
+export type AarsloenTableFirstErrorCell = Readonly<{
+  rowId: string;
+  colKey: AarsloenTableColumnKey;
+  reason: AarsloenTableFirstErrorReason;
+}>;
+
+export type AarsloenTableValidationSummary = Readonly<{
+  rowIssues: AarsloenTableRowIssue[];
+  hasErrors: boolean;
+  hasWarnings: boolean;
+  firstErrorCell?: AarsloenTableFirstErrorCell;
+}>;
+
 // =============================================================================
 // COMPONENT REF HANDLES
 // =============================================================================
@@ -374,6 +396,8 @@ export type TableError =
  */
 export interface AarsloenTableHandle {
   getErrors: () => TableError[];
+  getValidationSummary: () => AarsloenTableValidationSummary;
+  showMissingEntryError: (cell: AarsloenTableFirstErrorCell) => void;
   flashError: (error: Extract<TableError, { kind: 'cell' }>) => void;
 }
 
@@ -427,8 +451,5 @@ export interface FileHandleWithMetadata {
   name: string;
   lastModified: number;
 }
-
-
-
 
 

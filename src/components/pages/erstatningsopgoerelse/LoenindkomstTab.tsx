@@ -1158,16 +1158,16 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
             <Typography className="row--subheading">Indtægtsoplysninger</Typography>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text">Lønperiode:</Typography>
+              <Typography className="row--text">Løn indtastes som:</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledRadioButton
                   value={af.loenperiode}
                   onChange={handleLoenperiodeChange(af.id)}
                   row={true}
                   options={[
-                    { value: LOENPERIODE.MAANED, label: 'Månedsløn' },
-                    { value: LOENPERIODE.UGE, label: 'Ugeløn' },
-                    { value: LOENPERIODE.DAG, label: 'Dagsløn' },
+                    { value: LOENPERIODE.MAANED, label: 'Måned' },
+                    { value: LOENPERIODE.UGE, label: 'Uge' },
+                    { value: LOENPERIODE.DAG, label: 'Dato' },
                   ]}
                 />
               </Box>
@@ -1397,7 +1397,6 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 LoenindkomstTab.displayName = 'LoenindkomstTab';
 
 export default LoenindkomstTab;
-
 
 
 

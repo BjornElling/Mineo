@@ -41,6 +41,7 @@ export type TableAmountInputProps = Readonly<{
   onChange?: (e: TableAmountInputChangeEvent) => void;
   onBlur?: (e: TableAmountInputCommitEvent) => void;
   onErrorChange?: (info: TableInputErrorInfo) => void;
+  externalErrorMessage?: string;
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
 }>;
@@ -96,7 +97,19 @@ const areAmountValuesEqual = (left: TableAmountInputValue, right: TableAmountInp
   return left.value === right.value;
 };
 const TableAmountInput = React.memo(
-  ({ gridCell, locked = false, value, canBeNegative = true, placeholder = '', onChange, onBlur, onErrorChange, inputRef, sx }: TableAmountInputProps) => {
+  ({
+    gridCell,
+    locked = false,
+    value,
+    canBeNegative = true,
+    placeholder = '',
+    onChange,
+    onBlur,
+    onErrorChange,
+    externalErrorMessage,
+    inputRef,
+    sx,
+  }: TableAmountInputProps) => {
     const grid = useGridCore();
     const cellFocused = areSameGridCell(grid.focusedCell, gridCell);
     const isEditing = areSameGridCell(grid.editingCell, gridCell);
@@ -269,7 +282,9 @@ const TableAmountInput = React.memo(
     );
 
     const a11yErrorId = React.useId();
-    const showError = touched && hasError && !isFocused;
+    const externalErrorText = (externalErrorMessage ?? '').trim();
+    const hasExternalError = externalErrorText !== '';
+    const showError = (hasExternalError || (touched && hasError)) && !isFocused;
     const hasExpressionError = touched && hasError && isExpressionErrorMessage(errorMessage);
     const displayValue = hasExpressionError ? 'Fejl' : toDisplayString(value);
 
@@ -352,7 +367,7 @@ const TableAmountInput = React.memo(
 
     return (
       <Box sx={{ position: 'relative', width: '100%', height: '100%', ...sx }}>
-        <Tooltip title={showError ? errorMessage : ''} arrow placement="top">
+        <Tooltip title={showError ? (hasExternalError ? externalErrorText : errorMessage) : ''} arrow placement="top">
           <Box sx={{ width: '100%', height: '100%' }}>
             <InputBase
               inputRef={(el) => {
@@ -408,7 +423,7 @@ const TableAmountInput = React.memo(
             />
             {showError ? (
               <span id={a11yErrorId} style={visuallyHiddenStyle}>
-                {errorMessage}
+                {hasExternalError ? externalErrorText : errorMessage}
               </span>
             ) : null}
             {value?.kind === 'expression' ? (
@@ -437,5 +452,4 @@ const TableAmountInput = React.memo(
 TableAmountInput.displayName = 'TableAmountInput';
 
 export default TableAmountInput;
-
 

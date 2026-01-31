@@ -51,6 +51,7 @@ export type TableDateInputProps = Readonly<{
 
   onErrorChange?: (info: TableInputErrorInfo) => void;
   onRegisterSanitize?: (sanitize: TableDateSanitizeCallback) => void;
+  externalErrorMessage?: string;
 
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
@@ -183,6 +184,7 @@ const TableDateInput = React.memo(
     noValidRangeCause,
     twoDigitYearPolicy = 'infer',
     placeholder = '',
+    externalErrorMessage,
     inputRef,
     sx,
   }: TableDateInputProps) => {
@@ -373,7 +375,9 @@ const TableDateInput = React.memo(
     );
 
     const a11yErrorId = React.useId();
-    const showError = touched && hasError && !isFocused;
+    const externalErrorText = (externalErrorMessage ?? '').trim();
+    const hasExternalError = externalErrorText !== '';
+    const showError = (hasExternalError || (touched && hasError)) && !isFocused;
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
@@ -440,7 +444,7 @@ const TableDateInput = React.memo(
       };
     }, [editorHandle, grid, gridCell]);
 
-    const tooltipText = boundsStatus.kind !== 'ok' ? boundsStatus.message : errorMessage;
+    const tooltipText = hasExternalError ? externalErrorText : boundsStatus.kind !== 'ok' ? boundsStatus.message : errorMessage;
 
     const visuallyHiddenStyle: React.CSSProperties = {
       position: 'absolute',

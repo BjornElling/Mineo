@@ -31,6 +31,7 @@ export type TableYearInputProps = Readonly<{
   onChange?: (e: TableYearInputChangeEvent) => void;
   onBlur?: (e: TableYearInputChangeEvent) => void;
   onErrorChange?: (info: TableInputErrorInfo) => void;
+  externalErrorMessage?: string;
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
 }>;
@@ -110,6 +111,7 @@ const TableYearInput = React.memo(
     onChange,
     onBlur,
     onErrorChange,
+    externalErrorMessage,
     inputRef,
     sx,
   }: TableYearInputProps) => {
@@ -244,8 +246,10 @@ const TableYearInput = React.memo(
     );
 
     const a11yErrorId = React.useId();
-    const showError = (hasConfigError || (touched && hasError)) && !isFocused;
-    const tooltipText = hasConfigError ? configErrorMessage : errorMessage;
+    const externalErrorText = (externalErrorMessage ?? '').trim();
+    const hasExternalError = externalErrorText !== '';
+    const showError = (hasExternalError || hasConfigError || (touched && hasError)) && !isFocused;
+    const tooltipText = hasExternalError ? externalErrorText : hasConfigError ? configErrorMessage : errorMessage;
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {

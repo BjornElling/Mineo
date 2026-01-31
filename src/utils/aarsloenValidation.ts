@@ -5,9 +5,10 @@
  */
 
 import type { AarsloenTableRow, LoenPaaHelligdage, Loenperiode } from '../schemas/formSchemas';
-import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../types/common';
+import { LOEN_PAA_HELLIGDAGE } from '../types/common';
 import { formatPercent } from './formatUtils';
-import { hasCompletePeriodForLoenperiode, isAarsloenRowEffectivelyEmpty, isAarsloenTableCellEffectivelyEmpty } from './aarsloenTableCalculations';
+import { hasCompletePeriodForLoenperiode } from './aarsloenTableCalculations';
+import { getAarsloenTableValidation } from './aarsloenTableValidation';
 
 /**
  * Tjekker om der er valideringsfejl i tabeldata
@@ -24,26 +25,7 @@ export const harTabelValideringsFejl = (
     return false;
   }
 
-  return tableData.some((row) => {
-    if (isAarsloenRowEffectivelyEmpty(row)) return false;
-    if (loenperiode === LOENPERIODE.MAANED) {
-      // Manglende år i månedsperiode
-      const fraEmpty = isAarsloenTableCellEffectivelyEmpty(row.col0_maaned);
-      const tilEmpty = isAarsloenTableCellEffectivelyEmpty(row.col1_maaned);
-      return fraEmpty !== tilEmpty;
-    } else if (loenperiode === LOENPERIODE.UGE) {
-      // Manglende uge-til
-      const fraEmpty = isAarsloenTableCellEffectivelyEmpty(row.col0_uge);
-      const tilEmpty = isAarsloenTableCellEffectivelyEmpty(row.col1_uge);
-      return fraEmpty !== tilEmpty;
-    } else if (loenperiode === LOENPERIODE.DAG) {
-      // Manglende til-dato
-      const fraEmpty = isAarsloenTableCellEffectivelyEmpty(row.col0_dag);
-      const tilEmpty = isAarsloenTableCellEffectivelyEmpty(row.col1_dag);
-      return fraEmpty !== tilEmpty;
-    }
-    return false;
-  });
+  return getAarsloenTableValidation({ rows: tableData, loenperiode }).summary.hasErrors;
 };
 
 /**
@@ -131,4 +113,3 @@ export const harTabelData = (
 
   return tableData.some((row) => hasCompletePeriodForLoenperiode(row, loenperiode));
 };
-

@@ -11,9 +11,16 @@ import { MAX_YEAR, MIN_YEAR, dateRanges_aarsloen, formatToISO } from '../../conf
 import type { AarsloenTableRow, Loenperiode } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import type { AarsloenTableColumnKey, AarsloenTableHandle, TableError } from '../../types/common';
+import type {
+  AarsloenTableColumnKey,
+  AarsloenTableFirstErrorCell,
+  AarsloenTableHandle,
+  AarsloenTableValidationSummary,
+  TableError,
+} from '../../types/common';
 import { initialRow, generateRowId } from '../../utils/eoConverters';
-import { calculateAarsloenRowDerived, hasAtLeastOneValidRow, isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
+import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
+import { getAarsloenTableValidation, isAarsloenTableValueEffectivelyEmptyForValidation } from '../../utils/aarsloenTableValidation';
 
 import { StandardGridHeaderCell, StandardGridTable, getStandardGridBodyRowStyle, getStandardGridCellStyle } from './StandardGridTable';
 import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridModel';
@@ -31,7 +38,7 @@ export type AarsloenTableProps = {
   satser: AarsloenTableSatser;
   tableData: AarsloenTableRow[];
   onTableDataChange?: (data: AarsloenTableRow[]) => void;
-  onValidationChange?: (errors: TableError[]) => void;
+  onValidationChange?: (summary: AarsloenTableValidationSummary) => void;
   useSmallFont?: boolean;
 };
 
@@ -272,56 +279,18 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
       [getSatserInput]
     );
 
-    const getAllErrors = React.useCallback((): TableError[] => {
-      const errors: TableError[] = [];
-      const editableColIdxs = [0, 1, 2, 3, 4, 5] as const;
-
-      const getEditableColKey = (colIdx: (typeof editableColIdxs)[number]): AarsloenTableColumnKey => {
-        if (colIdx === 0) return loenperiode === 'maaned' ? 'col0_maaned' : loenperiode === 'uge' ? 'col0_uge' : 'col0_dag';
-        if (colIdx === 1) return loenperiode === 'maaned' ? 'col1_maaned' : loenperiode === 'uge' ? 'col1_uge' : 'col1_dag';
-        if (colIdx === 2) return 'col2';
-        if (colIdx === 3) return 'col3';
-        if (colIdx === 4) return 'col4';
-        return 'col5';
-      };
-
-      for (const row of rowsState.draft) {
-        for (const colIdx of editableColIdxs) {
-          const colKey = getEditableColKey(colIdx);
-          const cellKey = `${row.id}:${colKey}`;
-          if (cellErrorsByCellKeyRef.current[cellKey]) {
-            errors.push({ kind: 'cell', issue: 'invalid', rowId: row.id, colKey });
-          }
-        }
-      }
-
-      for (const row of rowsState.draft) {
-        if (isRowEmpty(row)) continue;
-
-        if (loenperiode === 'maaned') {
-          if (row.col0_maaned && !row.col1_maaned) errors.push({ kind: 'cell', issue: 'partial_period', rowId: row.id, colKey: 'col1_maaned' });
-          if (!row.col0_maaned && row.col1_maaned) errors.push({ kind: 'cell', issue: 'partial_period', rowId: row.id, colKey: 'col0_maaned' });
-        } else if (loenperiode === 'uge') {
-          if (row.col0_uge && !row.col1_uge) errors.push({ kind: 'cell', issue: 'partial_period', rowId: row.id, colKey: 'col1_uge' });
-          if (!row.col0_uge && row.col1_uge) errors.push({ kind: 'cell', issue: 'partial_period', rowId: row.id, colKey: 'col0_uge' });
-        } else {
-          if (row.col0_dag && !row.col1_dag) errors.push({ kind: 'cell', issue: 'partial_period', rowId: row.id, colKey: 'col1_dag' });
-          if (!row.col0_dag && row.col1_dag) errors.push({ kind: 'cell', issue: 'partial_period', rowId: row.id, colKey: 'col0_dag' });
-        }
-      }
-
-      const hasAtLeastOneValidRowResult = hasAtLeastOneValidRow(rowsState.draft, loenperiode, getSatserInput());
-      if (!hasAtLeastOneValidRowResult) {
-        errors.push({ kind: 'table', reason: 'no_valid_rows' });
-      }
-
-      return errors;
-    }, [getSatserInput, rowsState.draft, loenperiode]);
+    const getValidationResult = React.useCallback(() => {
+      return getAarsloenTableValidation({
+        rows: committedTableData,
+        loenperiode,
+        cellErrorsByCellKey: cellErrorsByCellKeyRef.current,
+      });
+    }, [committedTableData, loenperiode]);
 
     const notifyValidationChange = React.useCallback(() => {
       if (!onValidationChange) return;
-      onValidationChange(getAllErrors());
-    }, [getAllErrors, onValidationChange]);
+      onValidationChange(getValidationResult().summary);
+    }, [getValidationResult, onValidationChange]);
 
     React.useEffect(() => {
       notifyValidationChange();
@@ -415,6 +384,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
     }, [getSortValueByColId, rowsState.draft, sortState]);
 
     const [errorCell, setErrorCell] = React.useState<{ rowId: string; colIdx: number } | null>(null);
+    const [externalCellError, setExternalCellError] = React.useState<{ rowId: string; colKey: AarsloenTableColumnKey; message: string } | null>(null);
     const cellRefsByCellKeyRef = React.useRef<Record<string, HTMLInputElement | null>>({});
     const registerCellRef = React.useCallback(
       (rowId: string, colIdx: number) => (el: HTMLInputElement | null) => {
@@ -422,6 +392,51 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
       },
       []
     );
+
+    const resolveColIdxFromKey = React.useCallback((colKey: AarsloenTableColumnKey): number => {
+      return colKey.startsWith('col0_') ? 0 : colKey.startsWith('col1_') ? 1 : Number.parseInt(colKey.slice(3), 10);
+    }, []);
+
+    const isVisibleColKey = React.useCallback(
+      (colKey: AarsloenTableColumnKey): boolean => {
+        if (colKey === 'col0_maaned' || colKey === 'col1_maaned') return loenperiode === 'maaned';
+        if (colKey === 'col0_uge' || colKey === 'col1_uge') return loenperiode === 'uge';
+        if (colKey === 'col0_dag' || colKey === 'col1_dag') return loenperiode === 'dag';
+        return true;
+      },
+      [loenperiode]
+    );
+
+    const getExternalErrorMessage = React.useCallback(
+      (rowId: string, colKey: AarsloenTableColumnKey): string | undefined => {
+        if (!externalCellError) return undefined;
+        if (externalCellError.rowId !== rowId) return undefined;
+        if (externalCellError.colKey !== colKey) return undefined;
+        if (!isVisibleColKey(colKey)) return undefined;
+        return externalCellError.message;
+      },
+      [externalCellError, isVisibleColKey]
+    );
+
+    React.useEffect(() => {
+      if (!externalCellError) return;
+      if (!isVisibleColKey(externalCellError.colKey)) {
+        setExternalCellError(null);
+        return;
+      }
+      const row = committedTableData.find((item) => item.id === externalCellError.rowId);
+      if (!row) {
+        setExternalCellError(null);
+        return;
+      }
+      const value = row[externalCellError.colKey];
+      const isEmpty = isAarsloenTableValueEffectivelyEmptyForValidation(value);
+      const cellKey = `${externalCellError.rowId}:${externalCellError.colKey}`;
+      const hasInputError = Boolean(cellErrorsByCellKeyRef.current[cellKey]);
+      if (!isEmpty || hasInputError) {
+        setExternalCellError(null);
+      }
+    }, [committedTableData, externalCellError, isVisibleColKey]);
 
     const getCellStyle = (rowId: string, colIdx: number, baseStyle: React.CSSProperties = {}): React.CSSProperties => {
       return {
@@ -433,10 +448,25 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
     React.useImperativeHandle(
       ref,
       () => ({
-        getErrors: () => getAllErrors(),
+        getErrors: (): TableError[] => getValidationResult().errors,
+        getValidationSummary: (): AarsloenTableValidationSummary => getValidationResult().summary,
+        showMissingEntryError: (cell: AarsloenTableFirstErrorCell) => {
+          if (cell.reason !== 'missing') return;
+          if (!isVisibleColKey(cell.colKey)) return;
+          setExternalCellError({
+            rowId: cell.rowId,
+            colKey: cell.colKey,
+            message: 'Indtastning mangler',
+          });
+          const colIdx = resolveColIdxFromKey(cell.colKey);
+          if (!Number.isFinite(colIdx)) return;
+          const el = cellRefsByCellKeyRef.current[`${cell.rowId}:${colIdx}`];
+          if (!el) return;
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        },
         flashError: (error) => {
           const colKey = error.colKey;
-          const colIdx = colKey.startsWith('col0_') ? 0 : colKey.startsWith('col1_') ? 1 : Number.parseInt(colKey.slice(3), 10);
+          const colIdx = resolveColIdxFromKey(colKey);
           if (!Number.isFinite(colIdx)) return;
           const el = cellRefsByCellKeyRef.current[`${error.rowId}:${colIdx}`];
           if (!el) return;
@@ -445,7 +475,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
           window.setTimeout(() => setErrorCell(null), 2000);
         },
       }),
-      [getAllErrors]
+      [getValidationResult, isVisibleColKey, resolveColIdxFromKey]
     );
 
     const formatNumber = React.useCallback((num: number | null | undefined): string => {
@@ -543,6 +573,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       onChange={(e) => handleInputChange(row.id, 'col0_maaned', e.target.value)}
                       onBlur={(e) => handleFieldBlur(row.id, 'col0_maaned', e.target.value)}
                       onErrorChange={(info) => handleErrorChange(row.id, 'col0_maaned', info)}
+                      externalErrorMessage={getExternalErrorMessage(row.id, 'col0_maaned')}
                       minValue={1}
                       maxValue={12}
                     />
@@ -555,6 +586,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       onChange={(e) => handleInputChange(row.id, 'col0_uge', e.target.value)}
                       onBlur={(e) => handleFieldBlur(row.id, 'col0_uge', e.target.value)}
                       onErrorChange={(info) => handleErrorChange(row.id, 'col0_uge', info)}
+                      externalErrorMessage={getExternalErrorMessage(row.id, 'col0_uge')}
                       minYear={MIN_YEAR}
                       maxYear={MAX_YEAR}
                     />
@@ -567,6 +599,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       onChange={(e) => handleInputChange(row.id, 'col0_dag', e.target.value)}
                       onBlur={(e) => handleFieldBlur(row.id, 'col0_dag', e.target.value)}
                       onErrorChange={(info) => handleErrorChange(row.id, 'col0_dag', info)}
+                      externalErrorMessage={getExternalErrorMessage(row.id, 'col0_dag')}
                       minDate={dateRanges_aarsloen.tabelAarsloenFra.min}
                       maxDate={formatToISO(committedRow.col1_dag ?? '') || dateRanges_aarsloen.tabelAarsloenFra.fallbackMax}
                       specialRangeErrors={{ fraTilRole: 'fra' }}
@@ -589,6 +622,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       onChange={(e) => handleInputChange(row.id, 'col1_maaned', e.target.value)}
                       onBlur={(e) => handleFieldBlur(row.id, 'col1_maaned', e.target.value)}
                       onErrorChange={(info) => handleErrorChange(row.id, 'col1_maaned', info)}
+                      externalErrorMessage={getExternalErrorMessage(row.id, 'col1_maaned')}
                       minYear={MIN_YEAR}
                       maxYear={MAX_YEAR}
                     />
@@ -601,6 +635,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       onChange={(e) => handleInputChange(row.id, 'col1_uge', e.target.value)}
                       onBlur={(e) => handleFieldBlur(row.id, 'col1_uge', e.target.value)}
                       onErrorChange={(info) => handleErrorChange(row.id, 'col1_uge', info)}
+                      externalErrorMessage={getExternalErrorMessage(row.id, 'col1_uge')}
                       minYear={MIN_YEAR}
                       maxYear={MAX_YEAR}
                     />
@@ -613,6 +648,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       onChange={(e) => handleInputChange(row.id, 'col1_dag', e.target.value)}
                       onBlur={(e) => handleFieldBlur(row.id, 'col1_dag', e.target.value)}
                       onErrorChange={(info) => handleErrorChange(row.id, 'col1_dag', info)}
+                      externalErrorMessage={getExternalErrorMessage(row.id, 'col1_dag')}
                       minDate={formatToISO(committedRow.col0_dag ?? '') || dateRanges_aarsloen.tabelAarsloenTil.fallbackMin}
                       maxDate={dateRanges_aarsloen.tabelAarsloenTil.max}
                       specialRangeErrors={{ fraTilRole: 'til' }}
@@ -636,6 +672,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                         value={row[colKey]}
                         onBlur={(e) => handleFieldBlur(row.id, colKey, e.target.value)}
                         onErrorChange={(info) => handleErrorChange(row.id, colKey, info)}
+                        externalErrorMessage={getExternalErrorMessage(row.id, colKey)}
                         placeholder=""
                       />
                     </td>
@@ -697,4 +734,3 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
 AarsloenTable.displayName = 'AarsloenTable';
 
 export default AarsloenTable;
-

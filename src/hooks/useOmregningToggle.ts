@@ -52,6 +52,7 @@ const toggleReducer = (state: ToggleState, action: ToggleAction): ToggleState =>
 interface UseOmregningToggleProps {
   initialEnabled: boolean;
   tabelHarFejl: boolean;
+  hasValidPeriod: boolean;
   tabelRef: React.RefObject<AarsloenTableHandle | null>;
   toggleRef: React.RefObject<StyledToggleSwitchHandle | null>;
   onEnabledChange: (enabled: boolean) => void;
@@ -77,6 +78,7 @@ interface UseOmregningToggleReturn {
 export const useOmregningToggle = ({
   initialEnabled,
   tabelHarFejl,
+  hasValidPeriod,
   tabelRef,
   toggleRef,
   onEnabledChange,
@@ -104,13 +106,9 @@ export const useOmregningToggle = ({
         // Trigger shake-animation på toggle
         toggleRef.current?.shake();
 
-        // Flash første fejl-celle
-        const errors = tabelRef.current?.getErrors();
-        if (errors && errors.length > 0) {
-          const firstError = errors[0];
-          if (firstError.kind === 'cell') {
-            tabelRef.current?.flashError(firstError);
-          }
+        const summary = tabelRef.current?.getValidationSummary();
+        if (summary?.firstErrorCell && summary.firstErrorCell.reason === 'missing') {
+          tabelRef.current?.showMissingEntryError(summary.firstErrorCell);
         }
 
         // Blokér toggle-ændring
@@ -131,6 +129,14 @@ export const useOmregningToggle = ({
       onEnabledChange(false);
     }
   }, [tabelHarFejl, state.enabled, onEnabledChange]);
+
+  // Automatisk deaktivering hvis perioden ikke er gyldig (fx skift af lønperiode)
+  React.useEffect(() => {
+    if (!hasValidPeriod && state.enabled) {
+      dispatch({ type: 'DISABLE' });
+      onEnabledChange(false);
+    }
+  }, [hasValidPeriod, state.enabled, onEnabledChange]);
 
   return {
     enabled: state.enabled,

@@ -27,6 +27,7 @@ export type TableIntegerInputProps = Readonly<{
   onChange?: (e: TableIntegerInputChangeEvent) => void;
   onBlur?: (e: TableIntegerInputChangeEvent) => void;
   onErrorChange?: (info: TableInputErrorInfo) => void;
+  externalErrorMessage?: string;
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
 }>;
@@ -79,7 +80,20 @@ const commitIntegerDraft = (
 };
 
 const TableIntegerInput = React.memo(
-  ({ gridCell, locked = false, value, minValue, maxValue, placeholder = '', onChange, onBlur, onErrorChange, inputRef, sx }: TableIntegerInputProps) => {
+  ({
+    gridCell,
+    locked = false,
+    value,
+    minValue,
+    maxValue,
+    placeholder = '',
+    onChange,
+    onBlur,
+    onErrorChange,
+    externalErrorMessage,
+    inputRef,
+    sx,
+  }: TableIntegerInputProps) => {
     const grid = useGridCore();
     const cellFocused = areSameGridCell(grid.focusedCell, gridCell);
     const isEditing = areSameGridCell(grid.editingCell, gridCell);
@@ -217,8 +231,10 @@ const TableIntegerInput = React.memo(
     );
 
     const a11yErrorId = React.useId();
-    const showError = (hasConfigError || (touched && hasError)) && !isFocused;
-    const tooltipText = hasConfigError ? configErrorMessage : errorMessage;
+    const externalErrorText = (externalErrorMessage ?? '').trim();
+    const hasExternalError = externalErrorText !== '';
+    const showError = (hasExternalError || hasConfigError || (touched && hasError)) && !isFocused;
+    const tooltipText = hasExternalError ? externalErrorText : hasConfigError ? configErrorMessage : errorMessage;
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {

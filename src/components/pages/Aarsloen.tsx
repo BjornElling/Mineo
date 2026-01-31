@@ -17,6 +17,7 @@ import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { formatCurrency } from '../../utils/formatUtils';
 import { aarsloenSchema } from '../../schemas/formSchemas';
 import { isLoenperiodeValue, isLoenPaaHelligdageValue } from '../../utils/zodTypeGuards';
+import { harTabelData } from '../../utils/aarsloenValidation';
 import {
   selectAarsloenShowFerieFields,
   selectAarsloenShowShDageFields,
@@ -25,8 +26,8 @@ import {
 import type { z } from 'zod';
 import type {
   AarsloenTableHandle,
+  AarsloenTableValidationSummary,
   StyledToggleSwitchHandle,
-  TableError,
 } from '../../types/common';
 import { LOEN_PAA_HELLIGDAGE, LOENPERIODE } from '../../types/common';
 import type { StyledPercentFieldValueChangeEvent } from '../inputs/StyledPercentField';
@@ -81,10 +82,16 @@ const Aarsloen = React.memo(() => {
   // CUSTOM HOOKS - Separation of concerns
   // ============================================================================
 
+  const hasValidPeriod = React.useMemo(
+    () => harTabelData(values.tableData, values.loenperiode),
+    [values.loenperiode, values.tableData]
+  );
+
   // Toggle state management (single source of truth)
   const { enabled: omregningAktiveret, handleToggle: handleOmregningToggle } = useOmregningToggle({
     initialEnabled: values.omregningTilFuldtAar,
     tabelHarFejl,
+    hasValidPeriod,
     tabelRef,
     toggleRef,
     onEnabledChange: (enabled) => {
@@ -200,8 +207,8 @@ const Aarsloen = React.memo(() => {
   /**
    * Callback fra AarsloenTable når validerings-status ændres (type-safe)
    */
-  const handleValidationChange = React.useCallback((errors: TableError[]) => {
-    setTabelHarFejl(errors.length > 0);
+  const handleValidationChange = React.useCallback((summary: AarsloenTableValidationSummary) => {
+    setTabelHarFejl(summary.hasErrors);
   }, []);
 
   // Derived boolean for conditional rendering
@@ -358,16 +365,16 @@ const Aarsloen = React.memo(() => {
 
         {/* Lønperiode med radioknapper */}
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Lønperiode:</Typography>
+          <Typography className="row--text">Løn indtastes som:</Typography>
           <Box className="row--label-right-hover__content">
             <StyledRadioButton
               value={loenperiode}
               onChange={handleLoenperiodeChange}
               row={true}
               options={[
-                { value: LOENPERIODE.MAANED, label: 'Månedsløn' },
-                { value: LOENPERIODE.UGE, label: 'Ugeløn' },
-                { value: LOENPERIODE.DAG, label: 'Dagsløn' },
+                { value: LOENPERIODE.MAANED, label: 'Måned' },
+                { value: LOENPERIODE.UGE, label: 'Uge' },
+                { value: LOENPERIODE.DAG, label: 'Dato' },
               ]}
             />
           </Box>
@@ -706,8 +713,4 @@ const Aarsloen = React.memo(() => {
 Aarsloen.displayName = 'Aarsloen';
 
 export default Aarsloen;
-
-
-
-
 
