@@ -18,6 +18,7 @@ import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhe
 import { calculateTafArbejdsdageBreakdown, calculateTafAntalMaaneder } from './tafCalculations';
 import { calculateFerieHverdageMinusSHDage } from './ferieCalculations';
 import { computeTafOverlapWithBeregningsperiode } from './beregningsperiodeTafOverlap';
+import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoDebugIndkomstModel';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -77,6 +78,10 @@ export type DebugRowId =
   | `taf.ferie.${string}`
   | 'taf.andelSfggILoenen'
   | 'taf.tidligereModtagetTaf'
+  | `loenindkomst.${string}.arbejdsstedNavn`
+  | `loenindkomst.${string}.satserSkadestidspunkt`
+  | `loenindkomst.${string}.loenoplysninger`
+  | `offentligeYdelser.${string}`
   | `oevrigekrav.${string}`
   | 'saerligekommentarer';
 
@@ -2150,6 +2155,68 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     label: '- baseret på',
     displayValue: loenBaseretPaaDisplay.displayValue,
     status: loenBaseretPaaDisplay.status,
+  });
+
+  return rows;
+};
+
+const formatStatusMessage = (status: DebugStatus, message: string): string => {
+  if (status === 'ok') return '-';
+  const trimmed = message.trim();
+  if (trimmed === '' || trimmed === '-') {
+    return status === 'error' ? 'Fejl (Indtastning mangler)' : 'Advarsel (Indtastning mangler)';
+  }
+  return `${status === 'error' ? 'Fejl' : 'Advarsel'} (${trimmed})`;
+};
+
+export const buildEODebugIndkomstRows = (
+  values: ErstatningsopgoerelseValues,
+  skadesdato: ISODateString | undefined
+): DebugRowModel[] => {
+  const rows: DebugRowModel[] = [];
+
+  const sections = buildIndkomstSectionStatuses(values.loenindkomstAnsaettelsesforhold ?? [], skadesdato);
+  sections.forEach((section) => {
+    if (!section.hasArbejdsstedNavn) {
+      rows.push({
+        id: `loenindkomst.${section.id}.arbejdsstedNavn`,
+        label: 'Navn på arbejdssted',
+        displayValue: '-',
+        status: 'warning',
+      });
+    }
+
+    rows.push({
+      id: `loenindkomst.${section.id}.satserSkadestidspunkt`,
+      label: 'Satser på skadestidspunktet',
+      displayValue: formatStatusMessage(section.satserStatus, section.satserMessage),
+      status: section.satserStatus,
+    });
+
+    rows.push({
+      id: `loenindkomst.${section.id}.loenoplysninger`,
+      label: 'Alle lønoplysninger indtastet korrekt',
+      displayValue: formatStatusMessage(section.tableStatus, section.tableMessage),
+      status: section.tableStatus,
+    });
+  });
+
+  return rows;
+};
+
+export const buildEODebugOffentligeYdelserRows = (
+  values: ErstatningsopgoerelseValues
+): DebugRowModel[] => {
+  const rows: DebugRowModel[] = [];
+  const debugRows = buildOffentligeYdelserDebugRows(values.offentligeYdelserRows ?? []);
+
+  debugRows.forEach((row) => {
+    rows.push({
+      id: `offentligeYdelser.${row.id}`,
+      label: row.label,
+      displayValue: formatStatusMessage(row.status, row.message),
+      status: row.status,
+    });
   });
 
   return rows;

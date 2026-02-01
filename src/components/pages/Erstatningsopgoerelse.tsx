@@ -8,7 +8,7 @@ import { useAppSettings } from '../../contexts/AppSettingsContext';
 import EOOplysningerTab from './erstatningsopgoerelse/EOOplysningerTab';
 import LoenindkomstTab from './erstatningsopgoerelse/LoenindkomstTab';
 import OffentligeYdelserTab from './erstatningsopgoerelse/OffentligeYdelserTab';
-import BeregningTab from './erstatningsopgoerelse/BeregningTab';
+import EOberegningTab from './erstatningsopgoerelse/EOberegningTab';
 import EODebug from './erstatningsopgoerelse/EODebug';
 import EODebugTabel from './erstatningsopgoerelse/EODebugTabel';
 
@@ -263,7 +263,11 @@ const Erstatningsopgoerelse = React.memo(() => {
             hidden={activeTab !== TAB_KEYS.BEREGNING}
             sx={{ display: activeTab === TAB_KEYS.BEREGNING ? 'block' : 'none' }}
           >
-            <BeregningTab setActiveTab={setActiveTab} isActive={activeTab === TAB_KEYS.BEREGNING} />
+            <EOberegningTab
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              isActive={activeTab === TAB_KEYS.BEREGNING}
+            />
           </Box>
         )}
         {showDebugTab && (visitedTabs[TAB_KEYS.DEBUG] || activeTab === TAB_KEYS.DEBUG) ? (

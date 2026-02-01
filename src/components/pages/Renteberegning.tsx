@@ -6,7 +6,7 @@ import { renteberegningSchema } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import useRentekravRows from '../tables/useRentekravRows';
 import { createEmptyRentekravCommittedRow, createRentekravRowId } from '../../domain/renteberegning/rentekravTableModel';
-import BeregningTab from './renteberegning/BeregningTab';
+import RenteberegningTab from './renteberegning/RenteberegningTab';
 import RentesatserTab from './renteberegning/RentesatserTab';
 
 /**
@@ -116,7 +116,7 @@ const Renteberegning = React.memo(() => {
       {activeTab === TAB_KEYS.RATES ? (
         <RentesatserTab />
       ) : (
-        <BeregningTab
+        <RenteberegningTab
           beregningsdato={values.beregningsdato}
           onBeregningsdatoChange={handleBeregningsdatoChange}
           rentekravRows={rentekrav.draftRows}

@@ -31,7 +31,7 @@ const TechnicalAssumptionsList = ({ items }: TechnicalAssumptionsListProps) => (
   </Box>
 );
 
-export interface BeregningTabProps {
+export interface RenteberegningTabProps {
   beregningsdato: ISODateString | undefined;
   onBeregningsdatoChange: (event: { target: { value: unknown } }) => void;
   rentekravRows: RentekravDraftRow[];
@@ -41,7 +41,7 @@ export interface BeregningTabProps {
   onError: (message: string, context: string, error?: unknown) => void;
 }
 
-const BeregningTab = React.memo(({
+const RenteberegningTab = React.memo(({
   beregningsdato,
   onBeregningsdatoChange,
   rentekravRows,
@@ -49,7 +49,7 @@ const BeregningTab = React.memo(({
   onRentekravBlur,
   committedRentekravById,
   onError,
-}: BeregningTabProps) => {
+}: RenteberegningTabProps) => {
   const [beregningsdatoHasError, setBeregningsdatoHasError] = React.useState(false);
   const handleInsertToday = React.useCallback(() => {
     const isoToday = dateToISO(new Date());
@@ -127,6 +127,6 @@ const BeregningTab = React.memo(({
   );
 });
 
-BeregningTab.displayName = 'BeregningTab';
+RenteberegningTab.displayName = 'RenteberegningTab';
 
-export default BeregningTab;
+export default RenteberegningTab;

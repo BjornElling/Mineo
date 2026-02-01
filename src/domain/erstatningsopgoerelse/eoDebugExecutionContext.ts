@@ -4,13 +4,13 @@ import type { FieldErrorBySource } from '../../types/fieldErrors';
 /**
  * Type aliases for læsbarhed
  */
-type StamdataValues = PersistedSectionMap['stamdata'];
-type StamdataFieldName = Extract<keyof StamdataValues, string>;
-type StamdataFieldErrorsBySource = Partial<Record<StamdataFieldName, FieldErrorBySource>>;
+export type StamdataValues = PersistedSectionMap['stamdata'];
+export type StamdataFieldName = Extract<keyof StamdataValues, string>;
+export type StamdataFieldErrorsBySource = Partial<Record<StamdataFieldName, FieldErrorBySource>>;
 
-type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];
-type ErstatningsopgoerelseFieldName = Extract<keyof ErstatningsopgoerelseValues, string>;
-type ErstatningsopgoerelseFieldErrorsBySource = Partial<Record<ErstatningsopgoerelseFieldName, FieldErrorBySource>>;
+export type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];
+export type ErstatningsopgoerelseFieldName = Extract<keyof ErstatningsopgoerelseValues, string>;
+export type ErstatningsopgoerelseFieldErrorsBySource = Partial<Record<ErstatningsopgoerelseFieldName, FieldErrorBySource>>;
 
 /**
  * Fælles execution-context for alle EODebug builders

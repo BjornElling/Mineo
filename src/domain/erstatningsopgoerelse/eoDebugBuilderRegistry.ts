@@ -6,6 +6,8 @@ import {
   buildEODebugErstatningsopgoerelseRows,
   buildEODebugForligRows,
   buildEODebugAesRows,
+  buildEODebugIndkomstRows,
+  buildEODebugOffentligeYdelserRows,
   buildEODebugSvieSmerteRows,
   buildEODebugTafBeregningsgrundlagRows,
   buildEODebugTaftRows,
@@ -72,6 +74,23 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
   },
 
   {
+    section: 'loenindkomst',
+    run: (ctx) =>
+      buildEODebugIndkomstRows(
+        ctx.eoValues,
+        ctx.stamdataValues.skadesdato
+      ),
+  },
+
+  {
+    section: 'offentlige-ydelser',
+    run: (ctx) =>
+      buildEODebugOffentligeYdelserRows(
+        ctx.eoValues
+      ),
+  },
+
+  {
     section: 'sviesmerte',
     run: (ctx) => {
       // Context beregnes lokalt i builder
@@ -132,6 +151,34 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
 ] as const;
 
 /**
+ * Udfører et givent set af builders og isolerer fejl pr. builder
+ *
+ * @param entries - Builder entries (kan bruges i tests)
+ * @param ctx - Execution context med alle nødvendige værdier og fejl
+ * @returns Array af alle DebugRowModel fra alle builders
+ */
+export const executeEODebugBuilderEntries = (
+  entries: ReadonlyArray<EODebugBuilderEntry>,
+  ctx: EODebugExecutionContext
+): DebugRowModel[] => {
+  return entries.flatMap((entry) => {
+    try {
+      return entry.run(ctx);
+    } catch (error) {
+      const message = error instanceof Error && error.message.trim() !== '' ? error.message : 'Ukendt fejl';
+      return [
+        {
+          id: `debug.builder.${entry.section}.exception`,
+          label: `Fejl i debug-builder (${entry.section})`,
+          displayValue: `Fejl (Builder-fejl: ${message})`,
+          status: 'error',
+        },
+      ];
+    }
+  });
+};
+
+/**
  * Udfører alle builders fra registry og returnerer samlet liste
  *
  * MEGET simpelt - ingen switch, ingen casting, ingen exhaustiveness-illusion.
@@ -142,5 +189,5 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
 export const executeAllEODebugBuilders = (
   ctx: EODebugExecutionContext
 ): DebugRowModel[] => {
-  return EO_DEBUG_BUILDERS.flatMap((entry) => entry.run(ctx));
+  return executeEODebugBuilderEntries(EO_DEBUG_BUILDERS, ctx);
 };

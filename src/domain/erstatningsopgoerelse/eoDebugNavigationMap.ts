@@ -5,13 +5,7 @@
  * for at understøtte klikbare links i Beregning-fanen.
  */
 
-import type { DebugRowId as StamdataDebugRowId } from './eoDebugStamdataModel';
-import type { DebugRowId as ErstatningsopgoerelseDebugRowId } from './eoDebugErstatningsopgoerelseModel';
-
-/**
- * Union af alle DebugRowId types fra forskellige modeller
- */
-type DebugRowId = StamdataDebugRowId | ErstatningsopgoerelseDebugRowId;
+// Intentionally no DebugRowId union here: navigation accepts string input to avoid runtime crashes.
 
 /**
  * SectionId er canonical - bruges både i NavigationTarget OG data-section-id attributes
@@ -23,6 +17,8 @@ export type SectionId =
   | 'erstatningsopgoerelse'
   | 'forlig'
   | 'aes'
+  | 'loenindkomst'
+  | 'offentlige-ydelser'
   | 'sviesmerte'
   | 'taf-beregningsgrundlag'
   | 'taf'
@@ -39,7 +35,7 @@ export type SectionId =
 export type NavigationTarget =
   | {
       kind: 'erstatningsopgoerelse-tab';
-      tabId: 'eo_oplysninger';
+      tabId: 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser';
       sectionId?: SectionId;
       tabName: string; // Fanenavn (fx "EO oplysninger")
       sectionTitle: string; // ContentBox overskrift (fx "Forlig", "AES-afgørelser")
@@ -59,14 +55,14 @@ export type NavigationTarget =
  * Exhaustive mapping fra DebugRowId til NavigationTarget
  *
  * VIGTIGT:
- * - Throws i development mode ved ukendt ID (ingen silent failures)
- * - Production fallback returnerer 'unsupported' kind
- * - TypeScript sikrer compile-time exhaustiveness via unions
+ * - Ukendte IDs returnerer altid 'unsupported' (ingen runtime-crash)
+ * - Mapping er bevidst tolerant for at undgå at blokere visning i Beregning-fanen
+ * - TypeScript kan ikke håndhæve exhaustiveness her pga. string-input
  *
  * @param rowId - DebugRowId fra builder-funktioner
  * @returns NavigationTarget med kind, path og metadata
  */
-export const getNavigationTargetFromRowId = (rowId: DebugRowId): NavigationTarget => {
+export const getNavigationTargetFromRowId = (rowId: string): NavigationTarget => {
   // ============================================================================
   // STAMDATA ROWS
   // ============================================================================
@@ -97,6 +93,32 @@ export const getNavigationTargetFromRowId = (rowId: DebugRowId): NavigationTarge
       tabId: 'eo_oplysninger',
       tabName: 'EO oplysninger',
       sectionTitle: 'Erstatningsopgørelse',
+    };
+  }
+
+  // ============================================================================
+  // LØNINDKOMST TAB
+  // ============================================================================
+
+  if (rowId.startsWith('loenindkomst.')) {
+    return {
+      kind: 'erstatningsopgoerelse-tab',
+      tabId: 'loenindkomst',
+      tabName: 'Lønindkomst',
+      sectionTitle: 'Lønindkomst',
+    };
+  }
+
+  // ============================================================================
+  // OFFENTLIGE YDELSER TAB
+  // ============================================================================
+
+  if (rowId.startsWith('offentligeYdelser.')) {
+    return {
+      kind: 'erstatningsopgoerelse-tab',
+      tabId: 'offentlige_ydelser',
+      tabName: 'Offentlige ydelser',
+      sectionTitle: 'Offentlige ydelser',
     };
   }
 
@@ -202,13 +224,9 @@ export const getNavigationTargetFromRowId = (rowId: DebugRowId): NavigationTarge
   // UKENDT ID - THROW I DEV, FALLBACK I PRODUCTION
   // ============================================================================
 
-  if (process.env.NODE_ENV === 'development') {
-    throw new Error(`Ukendt DebugRowId i navigation-map: ${rowId}`);
-  }
-
   return {
     kind: 'unsupported',
-    displayPath: 'Ukendt',
+    displayPath: rowId,
     reason: `Navigation ikke implementeret for ${rowId}`,
   };
 };

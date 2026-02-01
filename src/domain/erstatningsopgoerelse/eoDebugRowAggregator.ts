@@ -5,25 +5,20 @@
  * Returnerer grupperet efter status (error/warning) til visning i Beregning-fanen.
  *
  * REFACTORET: Bruger nu centraliseret builder-registry som single source of truth.
- * Ingen risiko for divergens mellem EODebug og BeregningTab.
+ * Ingen risiko for divergens mellem EODebug og EOberegningTab.
  */
 
 import type { DebugRowModel } from '../debug/eoDebugTypes';
 import type { NavigationTarget } from './eoDebugNavigationMap';
-import type { PersistedSectionMap } from '../../config/persistenceRegistry';
-import type { FieldErrorBySource } from '../../types/fieldErrors';
-import type { EODebugExecutionContext } from './eoDebugExecutionContext';
+import type {
+  EODebugExecutionContext,
+  StamdataValues,
+  StamdataFieldErrorsBySource,
+  ErstatningsopgoerelseValues,
+  ErstatningsopgoerelseFieldErrorsBySource,
+} from './eoDebugExecutionContext';
 import { getNavigationTargetFromRowId } from './eoDebugNavigationMap';
 import { executeAllEODebugBuilders } from './eoDebugBuilderRegistry';
-
-// Type aliases for læsbarhed
-type StamdataValues = PersistedSectionMap['stamdata'];
-type StamdataFieldName = Extract<keyof StamdataValues, string>;
-type StamdataFieldErrorsBySource = Partial<Record<StamdataFieldName, FieldErrorBySource>>;
-
-type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];
-type ErstatningsopgoerelseFieldName = Extract<keyof ErstatningsopgoerelseValues, string>;
-type ErstatningsopgoerelseFieldErrorsBySource = Partial<Record<ErstatningsopgoerelseFieldName, FieldErrorBySource>>;
 
 /**
  * DebugRowModel udvidet med navigation-metadata
@@ -48,14 +43,14 @@ export type BeregningErrorSummary = {
  */
 const addNavigationMetadata = (row: DebugRowModel): DebugRowWithNavigation => ({
   ...row,
-  navigation: getNavigationTargetFromRowId(row.id as any), // Cast nødvendig pga forskellige DebugRowId unions
+  navigation: getNavigationTargetFromRowId(row.id),
 });
 
 /**
  * Samler alle debug-rows fra registry og tilføjer navigation
  *
  * FORENKLET: Bruger nu centraliseret builder-registry.
- * Ingen risiko for divergens mellem EODebug og BeregningTab.
+ * Ingen risiko for divergens mellem EODebug og EOberegningTab.
  *
  * @param stamdataValues - Stamdata values fra FormPersistence
  * @param stamdataErrors - Stamdata field errors by source

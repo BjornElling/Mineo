@@ -160,4 +160,23 @@ describe('collectAllDebugRows', () => {
     expect(asKeyed(first.errors)).toEqual(asKeyed(second.errors));
     expect(asKeyed(first.warnings)).toEqual(asKeyed(second.warnings));
   });
+
+  it('marks unknown row ids as unsupported navigation', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [makeRow('debug.unknown.row', 'warning')],
+      },
+    ]);
+
+    const { allRows } = collectAllDebugRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      eoErrors
+    );
+
+    expect(allRows).toHaveLength(1);
+    expect(allRows[0].navigation.kind).toBe('unsupported');
+  });
 });

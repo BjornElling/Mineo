@@ -35,7 +35,8 @@ const formatDateLongDisplay = (isoDate: string | undefined): string => {
 
 type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
 
-interface BeregningTabProps {
+interface EOberegningTabProps {
+  activeTab: TabKey;
   setActiveTab: (tab: TabKey) => void;
   isActive: boolean;
 }
@@ -49,7 +50,7 @@ interface BeregningTabProps {
  * - Tilbyder navigation til fejlkilder med scroll-to-sektion
  * - Forbereder download-funktionalitet (inaktiv i denne version)
  */
-const BeregningTab = React.memo<BeregningTabProps>(({ setActiveTab, isActive }) => {
+const EOberegningTab = React.memo<EOberegningTabProps>(({ activeTab, setActiveTab, isActive }) => {
   // ============================================================================
   // DATA INDSAMLING FRA FORMPERSISTENCE
   // ============================================================================
@@ -87,6 +88,8 @@ const BeregningTab = React.memo<BeregningTabProps>(({ setActiveTab, isActive }) 
   // NAVIGATION-HÅNDTERING
   // ============================================================================
 
+  const [pendingNavigation, setPendingNavigation] = React.useState<NavigationTarget | null>(null);
+
   /**
    * Ekstraher fejlmeddelelse fra displayValue
    *
@@ -120,21 +123,21 @@ const BeregningTab = React.memo<BeregningTabProps>(({ setActiveTab, isActive }) 
         case 'erstatningsopgoerelse-tab':
           // Switch til korrekt fane
           setActiveTab(target.tabId);
-          // Scroll til sektion hvis angivet
-          if (target.sectionId) {
-            scrollToSection(target.sectionId);
-          }
+          // Scroll til sektion når fanen er aktiv
+          setPendingNavigation(target.sectionId ? target : null);
           break;
 
         case 'stamdata-page':
           // Naviger til Stamdata-siden
           navigate('/stamdata');
+          setPendingNavigation(null);
           break;
 
         case 'unsupported':
           if (process.env.NODE_ENV === 'development') {
             console.warn(`Navigation ikke understøttet: ${target.reason}`);
           }
+          setPendingNavigation(null);
           break;
 
         default: {
@@ -144,8 +147,18 @@ const BeregningTab = React.memo<BeregningTabProps>(({ setActiveTab, isActive }) 
         }
       }
     },
-    [setActiveTab, navigate]
+    [setActiveTab, navigate, setPendingNavigation]
   );
+
+  React.useEffect(() => {
+    if (!pendingNavigation || pendingNavigation.kind !== 'erstatningsopgoerelse-tab' || !pendingNavigation.sectionId) {
+      return;
+    }
+    if (activeTab !== pendingNavigation.tabId) return;
+
+    scrollToSection(pendingNavigation.sectionId);
+    setPendingNavigation(null);
+  }, [activeTab, pendingNavigation, scrollToSection]);
 
   // ============================================================================
   // CHECKBOX STATE FOR ERSTATNINGSOPGØRELSE-DOWNLOAD
@@ -163,9 +176,6 @@ const BeregningTab = React.memo<BeregningTabProps>(({ setActiveTab, isActive }) 
     }),
     []
   );
-
-  const skadelidteNavn = typeof stamdataValues?.skadelidte === 'string' ? stamdataValues.skadelidte.trim() : '';
-  const visSkadelidteNavn = skadelidteNavn !== '';
 
   const svieSmerteRow = allRows.find((row) => row.id === 'sviesmerte.beregnetPeriode');
   const svieSmerteDisplayParts = (svieSmerteRow?.displayValue ?? '-')
@@ -345,25 +355,12 @@ const BeregningTab = React.memo<BeregningTabProps>(({ setActiveTab, isActive }) 
       <ContentBox>
         <Typography className="section-header">Beregning</Typography>
 
-        {visSkadelidteNavn ? (
-          <Box className="row--label-right-hover">
-            <Typography className="row--text" sx={{ fontWeight: '500 !important' }}>
-              {skadelidteNavn}
-            </Typography>
-            <Box className="row--label-right-hover__content">
-              <Typography className="row--text" sx={{ fontWeight: '500 !important' }}>
-                {erstatningsopgoerelseTitel}
-              </Typography>
-            </Box>
-          </Box>
-        ) : (
-          <Box className="row--label-right-hover">
-            <Typography className="row--text" sx={{ fontWeight: '500 !important' }}>
-              {erstatningsopgoerelseTitel}
-            </Typography>
-            <Box className="row--label-right-hover__content" />
-          </Box>
-        )}
+        <Box className="row--label-right-hover">
+          <Typography className="row--text" sx={{ fontWeight: '500 !important' }}>
+            {erstatningsopgoerelseTitel}
+          </Typography>
+          <Box className="row--label-right-hover__content" />
+        </Box>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">{skadesdatoLabel}</Typography>
@@ -548,12 +545,6 @@ const BeregningTab = React.memo<BeregningTabProps>(({ setActiveTab, isActive }) 
   );
 });
 
-BeregningTab.displayName = 'BeregningTab';
+EOberegningTab.displayName = 'EOberegningTab';
 
-export default BeregningTab;
-
-
-
-
-
-
+export default EOberegningTab;
