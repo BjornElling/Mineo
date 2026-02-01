@@ -1404,10 +1404,18 @@ const EODebug = () => {
       ...oevrigtFravaerDates,
     ]);
 
+    const beregningsenhed = computeTafBeregningsenhed({
+      beregnesUdFra: erstatningsopgoerelseValues.beregnesUdFra,
+      loenindkomstAnsaettelsesforhold: erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? [],
+      oevrigtFravaerUdenLoen: erstatningsopgoerelseValues.oevrigtFravaerUdenLoen,
+      oevrigeFravaersdage: erstatningsopgoerelseValues.oevrigeFravaersdage,
+    });
+
     const isWorkday = (iso: ISODateString, dateObj: Date): boolean => {
       const dow = dateObj.getDay();
       const erHverdag = dow >= 1 && dow <= 5;
       if (!erHverdag) return false;
+      if (beregningsenhed === TAF_BEREGNES_SOM.MAANEDER) return true;
       if (shDays.has(iso)) return false;
       if (allFerieDates.has(iso)) return false;
       return true;
