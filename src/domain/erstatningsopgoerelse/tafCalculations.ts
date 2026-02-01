@@ -24,8 +24,9 @@ export const calculateKalenderdageInclusive = (
 export const calculateTafAntalMaaneder = (
   fra: ISODateString | undefined,
   til: ISODateString | undefined,
-  ferieperioder: readonly FerieperiodeRow[],
-  loseFeriedage: number
+  _ferieperioder: readonly FerieperiodeRow[],
+  loseFeriedage: number,
+  oevrigeFravaersdage: number = 0
 ): number | null => {
   /**
    * Inclusive day-by-day iteration is intentional:
@@ -46,21 +47,6 @@ export const calculateTafAntalMaaneder = (
     currentDate.setDate(currentDate.getDate() + 1);
   }
 
-  // Fjern ferieperiode-dage
-  for (const feriePeriode of ferieperioder) {
-    if (!feriePeriode.fra || !feriePeriode.til) continue;
-    if (feriePeriode.fra > feriePeriode.til) continue;
-
-    const ferieFraDate = isoDateToDate(feriePeriode.fra);
-    const ferieTilDate = isoDateToDate(feriePeriode.til);
-
-    const ferieDate = new Date(ferieFraDate);
-    while (ferieDate <= ferieTilDate) {
-      periodeDage.delete(formatToISO(ferieDate));
-      ferieDate.setDate(ferieDate.getDate() + 1);
-    }
-  }
-
   // Beregn måned-værdier: hver dag tæller som 1/antal-dage-i-måneden
   let antalMaaneder = 0;
   for (const isoStr of periodeDage) {
@@ -70,10 +56,10 @@ export const calculateTafAntalMaaneder = (
     antalMaaneder += 1 / dageIMaaned;
   }
 
-  // Fradrag for løse feriedage
-  const loseFeriedageFradrag = loseFeriedage * 0.048;
+  // Fradrag for øvrige fraværsdage (4,8 % måned pr. dag).
+  const oevrigeFravaersdageFradrag = Math.max(0, oevrigeFravaersdage) * 0.048;
 
-  const resultat = antalMaaneder - loseFeriedageFradrag;
+  const resultat = antalMaaneder - oevrigeFravaersdageFradrag;
 
   // Sørg for at resultatet aldrig bliver negativt
   const begrænsedResultat = Math.max(0, resultat);

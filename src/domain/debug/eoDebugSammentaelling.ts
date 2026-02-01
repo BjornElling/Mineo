@@ -1,7 +1,7 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { FieldErrorsForSection } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
-import { subtractOneDay } from '../../types/branded';
+import { dateToISO, subtractOneDay } from '../../types/branded';
 import { formatCurrency, parseAmount } from '../../utils/formatUtils';
 import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
 import { debugTabelColumnId } from './eoDebugLoenTypes';
@@ -10,6 +10,9 @@ import type { EODebugModel } from './eoDebugModel';
 import { buildEODebugSvieSmerteRows, buildEODebugTaftRows } from '../erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
 import { calculateTafArbejdsdageBreakdown } from '../erstatningsopgoerelse/tafCalculations';
 import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/beregningsperiodeTafOverlap';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../erstatningsopgoerelse/tafBeregningsenhed';
+import { buildFerieDageSet, buildSHDageSet } from './eoDebugRegulationCore';
+import { isoDateToDate } from '../dates/isoDate';
 import { getAarsloenErrorRowIdSet, getOffentligeYdelserErrorRowIdSet } from './eoDebugRowValidation';
 
 export type SvieSmerteContext = Readonly<{
@@ -35,11 +38,13 @@ export type SammentaellingControl = Readonly<{
   loseFeriedage: number;
   oevrigeFravaersdage: number;
   warningEligible: boolean;
+  feriedageCount?: number | null;
 }>;
 
 export type SammentaellingControlStatus = 'ok' | 'warning' | 'error';
 
 export type SammentaellingModel = Readonly<{
+  beregningsenhed: TafBeregningsenhed;
   beregningsperiode: SammentaellingControl;
   taf: SammentaellingControl;
   svieSmerteSygedage: SammentaellingControl;
@@ -146,15 +151,28 @@ export const getSammentaellingControlStatus = (control: SammentaellingControl): 
 };
 
 export const buildSammentaellingDisplayRows = (model: SammentaellingModel): SammentaellingDisplayRow[] => {
+  const formatFeriedage = (value: number | null | undefined): string => {
+    const resolved = typeof value === 'number' && Number.isFinite(value) ? value : 0;
+    return resolved.toLocaleString('da-DK');
+  };
+
+  const beregningsperiodeLabel = model.beregningsenhed === TAF_BEREGNES_SOM.MAANEDER
+    ? `Arbejdsdage i beregningsperiode (+ ${formatFeriedage(model.beregningsperiode.feriedageCount)} ferie- og SH-dage)`
+    : 'Arbejdsdage i beregningsperiode';
+
+  const tafLabel = model.beregningsenhed === TAF_BEREGNES_SOM.MAANEDER
+    ? `Arbejdsdage i TAF-periode (+ ${formatFeriedage(model.taf.feriedageCount)} ferie- og SH-dage)`
+    : 'Arbejdsdage i TAF-periode';
+
   const rows: SammentaellingDisplayRow[] = [
     {
       key: 'arbejdsdage-beregning',
-      label: 'Arbejdsdage i beregningsperiode',
+      label: beregningsperiodeLabel,
       control: model.beregningsperiode,
     },
     {
       key: 'arbejdsdage-taf',
-      label: 'Arbejdsdage i TAF-periode',
+      label: tafLabel,
       control: model.taf,
     },
     {
@@ -188,6 +206,87 @@ const getIsoRange = (
   if (!fra || !til) return null;
   if (fra > til) return null;
   return { fra, til };
+};
+
+const allocateWeekdayDates = (args: {
+  range: Readonly<{ fra: ISODateString; til: ISODateString }> | null;
+  count: number;
+  shDays: ReadonlySet<ISODateString>;
+  reserved: Set<ISODateString>;
+}): ReadonlySet<ISODateString> => {
+  const { range, count, shDays, reserved } = args;
+  if (!range || count <= 0) return new Set<ISODateString>();
+
+  const selected = new Set<ISODateString>();
+  let remaining = Math.max(0, Math.trunc(count));
+  if (remaining === 0) return selected;
+
+  const start = isoDateToDate(range.fra);
+  const end = isoDateToDate(range.til);
+
+  const current = new Date(start);
+  while (current <= end) {
+    if (remaining <= 0) break;
+    const dow = current.getDay();
+    const erHverdag = dow >= 1 && dow <= 5;
+    if (!erHverdag) {
+      current.setDate(current.getDate() + 1);
+      continue;
+    }
+    const iso = dateToISO(current);
+    if (!iso) {
+      current.setDate(current.getDate() + 1);
+      continue;
+    }
+    if (shDays.has(iso) || reserved.has(iso)) {
+      current.setDate(current.getDate() + 1);
+      continue;
+    }
+    selected.add(iso);
+    reserved.add(iso);
+    remaining -= 1;
+    current.setDate(current.getDate() + 1);
+  }
+
+  return selected;
+};
+
+const buildShDatesInRange = (
+  range: Readonly<{ fra: ISODateString; til: ISODateString }> | null
+): ReadonlySet<ISODateString> => {
+  if (!range) return new Set<ISODateString>();
+  return buildSHDageSet(range.fra, range.til);
+};
+
+const buildFerieDatesInRange = (
+  values: ErstatningsopgoerelseValues,
+  range: Readonly<{ fra: ISODateString; til: ISODateString }> | null
+): ReadonlySet<ISODateString> => {
+  if (!range) return new Set<ISODateString>();
+
+  const shDays = buildSHDageSet(range.fra, range.til);
+  const ferieperioder = [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])];
+  const ferieDates = buildFerieDageSet(
+    { ferieperioder, tafPerioder: values.tafPerioder ?? [] },
+    shDays,
+    range.fra,
+    range.til
+  );
+
+  const reserved = new Set<ISODateString>(ferieDates);
+  const oevrigeFravaersdageCount =
+    values.oevrigtFravaerUdenLoen === 'Ja' && typeof values.oevrigeFravaersdage === 'number'
+      ? values.oevrigeFravaersdage
+      : 0;
+
+  const oevrigtFravaerDates = allocateWeekdayDates({
+    range,
+    count: oevrigeFravaersdageCount,
+    shDays,
+    reserved,
+  });
+
+  return new Set<ISODateString>([...ferieDates, ...oevrigtFravaerDates]);
 };
 
 const formatDaInt = (value: number): string => value.toLocaleString('da-DK');
@@ -325,9 +424,34 @@ export const buildEODebugSammentaellingModel = (args: {
 
   const svieSmerteRows = buildEODebugSvieSmerteRows(values, errors, svieSmerteContext);
   const taftRows = buildEODebugTaftRows(values, errors, taftContext);
+  const beregningsenhed = computeTafBeregningsenhed(values);
 
   const beregningsRange = getIsoRange(values.periodeTilBeregningFra, values.periodeTilBeregningTil);
   const erstatningsRange = getIsoRange(values.vedroererPeriodeFra, values.vedroererPeriodeTil);
+
+  const beregningsFerieDates = buildFerieDatesInRange(values, beregningsRange);
+  const beregningsShDates = buildShDatesInRange(beregningsRange);
+  const beregningsFeriedageCount = beregningsFerieDates.size + beregningsShDates.size;
+
+  const tafFerieDates = (() => {
+    const collected = new Set<ISODateString>();
+    for (const periode of values.tafPerioder ?? []) {
+      const range = getIsoRange(periode.fra, periode.til);
+      const set = buildFerieDatesInRange(values, range);
+      set.forEach((iso) => collected.add(iso));
+    }
+    return collected;
+  })();
+  const tafShDates = (() => {
+    const collected = new Set<ISODateString>();
+    for (const periode of values.tafPerioder ?? []) {
+      const range = getIsoRange(periode.fra, periode.til);
+      const set = buildShDatesInRange(range);
+      set.forEach((iso) => collected.add(iso));
+    }
+    return collected;
+  })();
+  const tafFeriedageCount = tafFerieDates.size + tafShDates.size;
 
   const beregningsArbejdsdage = countArbejdsdageInRange(model, beregningsRange);
   const tafArbejdsdageFromTable = countTafDaysFromTable(model);
@@ -378,7 +502,10 @@ export const buildEODebugSammentaellingModel = (args: {
       sum += parsed;
       parsedCount += 1;
     }
-    return parsedCount > 0 ? Math.trunc(sum) : null;
+    const base = parsedCount > 0 ? Math.trunc(sum) : null;
+    if (base === null) return null;
+    if (beregningsenhed !== TAF_BEREGNES_SOM.MAANEDER) return base;
+    return base + tafFeriedageCount;
   })();
 
   const beregningsperiodeArbejdsdage = (() => {
@@ -412,7 +539,9 @@ export const buildEODebugSammentaellingModel = (args: {
         ? values.oevrigeFravaersdage
         : 0;
 
-    return Math.max(0, breakdown.tafDage - oevrigeFravaersdageValue);
+    const base = Math.max(0, breakdown.tafDage - oevrigeFravaersdageValue);
+    if (beregningsenhed !== TAF_BEREGNES_SOM.MAANEDER) return base;
+    return base + beregningsFeriedageCount;
   })();
 
   const beregningsBeregnetDisplay = formatOptionalInt(beregningsperiodeArbejdsdage);
@@ -434,6 +563,7 @@ export const buildEODebugSammentaellingModel = (args: {
   }, 0);
 
   return {
+    beregningsenhed,
     beregningsperiode: {
       beregnetDisplay: beregningsBeregnetDisplay,
       tabelDisplay: beregningsTabelDisplay,
@@ -442,6 +572,7 @@ export const buildEODebugSammentaellingModel = (args: {
       loseFeriedage: beregningsLoseFeriedage,
       oevrigeFravaersdage: beregningsOevrigeFravaersdage,
       warningEligible: beregningsWarningEligible,
+      feriedageCount: beregningsFeriedageCount,
     },
     taf: {
       beregnetDisplay: tafBeregnetDisplay,
@@ -451,6 +582,7 @@ export const buildEODebugSammentaellingModel = (args: {
       loseFeriedage: tafLoseFeriedage,
       oevrigeFravaersdage: 0,
       warningEligible: true,
+      feriedageCount: tafFeriedageCount,
     },
     svieSmerteSygedage: {
       beregnetDisplay: svieSmerteSygedageDisplays.beregnet,

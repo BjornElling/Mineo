@@ -10,6 +10,7 @@ import { buildLoenindkomstColumns } from './eoDebugLoenColumns';
 import { debugTabelColumnId, type DebugTabelWageColumnKey } from './eoDebugLoenTypes';
 import { isoDateToDate } from '../dates/isoDate';
 import { getAarsloenErrorRowIdSet, getOffentligeYdelserErrorRowIdSet } from './eoDebugRowValidation';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
 
 export type DebugTabelDateSource = Readonly<{
   label: string;
@@ -591,6 +592,7 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
 
   const dates = buildDateList(tableFra, tableTil);
   const isoIndex = buildIsoIndex(dates);
+  const beregningsenhed = computeTafBeregningsenhed(values);
   const shDays = buildSHSet(tableFra, tableTil);
   const explicitFerie = buildExplicitFerieSet(values, shDays);
   const loseFerie = buildLoseFeriedageSet(values, shDays, explicitFerie);
@@ -630,7 +632,7 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
     isShByIndex[i] = sh;
     const ferie = allFerieDates.has(iso);
     isFerieByIndex[i] = ferie;
-    isWorkdayByIndex[i] = weekday && !sh && !ferie;
+    isWorkdayByIndex[i] = beregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? weekday : (weekday && !sh && !ferie);
     const withinBeregnings = beregningsRange ? iso >= beregningsRange.fra && iso <= beregningsRange.til : false;
     isWithinBeregningsByIndex[i] = withinBeregnings;
   }

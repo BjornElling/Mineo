@@ -5,6 +5,7 @@ import type { EODebugModel } from '../../../../domain/debug/eoDebugModel';
 import { buildEODebugModel } from '../../../../domain/debug/eoDebugModel';
 import type { SammentaellingModel } from '../../../../domain/debug/eoDebugSammentaelling';
 import { buildEODebugSammentaellingModel } from '../../../../domain/debug/eoDebugSammentaelling';
+import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import EODebugTabel from '../../../../components/pages/erstatningsopgoerelse/EODebugTabel';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
 
@@ -78,6 +79,7 @@ const makeSammentaelling = (patch: Partial<SammentaellingModel>): Sammentaelling
   } as const;
 
   const base: SammentaellingModel = {
+    beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
     beregningsperiode: baseControl,
     taf: baseControl,
     svieSmerteSygedage: baseControl,

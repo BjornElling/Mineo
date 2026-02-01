@@ -45,6 +45,9 @@ import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../.
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from '../../../domain/erstatningsopgoerelse/eoDebugIndkomstModel';
 import { isoDateToDate } from '../../../domain/dates/isoDate';
 import { ydelsestyper, type Periodisering } from '../../../data/ydelsestyper';
+import { calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/tafCalculations';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
+import { computeTafOverlapWithBeregningsperiode } from '../../../domain/erstatningsopgoerelse/beregningsperiodeTafOverlap';
 
 // Debug strategy:
 // - We intentionally read errors by source (input/schema/rule) to expose diagnostics.
@@ -493,6 +496,7 @@ type IndkomstRow = Readonly<{
   label: string;
   displayValue: string;
   status: DebugStatus;
+  value: number;
 }>;
 
 const EODebug = () => {
@@ -1467,6 +1471,7 @@ const EODebug = () => {
           label,
           displayValue: formatCurrency(total),
           status: 'ok',
+          value: total,
         });
       }
     });
@@ -1526,11 +1531,114 @@ const EODebug = () => {
         label,
         displayValue: formatCurrency(total),
         status: 'ok',
+        value: total,
       });
     }
 
     return { loenRows, ydelseRows };
   }, [erstatningsopgoerelseValues]);
+
+  const referenceloenRow = React.useMemo(() => {
+    if (erstatningsopgoerelseValues.beregnesUdFra !== 'Beregningsperiode') return null;
+
+    const entries = [
+      ...indkomstIBeregningsperioden.loenRows,
+      ...indkomstIBeregningsperioden.ydelseRows,
+    ]
+      .map((row) => row.value)
+      .filter((value) => Number.isFinite(value) && value > 0);
+
+    if (entries.length === 0) {
+      return { label: '-', displayValue: '-', status: 'ok' as DebugStatus };
+    }
+
+    const periodeFra = erstatningsopgoerelseValues.periodeTilBeregningFra;
+    const periodeTil = erstatningsopgoerelseValues.periodeTilBeregningTil;
+    if (!periodeFra || !periodeTil || periodeFra > periodeTil) {
+      return { label: '-', displayValue: '-', status: 'error' as DebugStatus };
+    }
+
+    const overlap = computeTafOverlapWithBeregningsperiode({
+      beregningsperiode: { fra: periodeFra, til: periodeTil },
+      tafPerioder: (erstatningsopgoerelseValues.tafPerioder ?? []).map((periode) => ({
+        id: periode.id,
+        fra: periode.fra,
+        til: periode.til,
+      })),
+    });
+    if (overlap.firstOverlapMessage) {
+      return { label: '-', displayValue: '-', status: 'error' as DebugStatus };
+    }
+
+    const arbejdsdage = (() => {
+      if (
+        erstatningsopgoerelseValues.oevrigtFravaerUdenLoen === 'Ja' &&
+        erstatningsopgoerelseValues.oevrigeFravaersdage === undefined
+      ) {
+        return null;
+      }
+      const beregningsFerieperioder = erstatningsopgoerelseValues.fravaerPerioder ?? [];
+      const loseFeriedage = typeof erstatningsopgoerelseValues.uspecificeredeFerieFridage === 'number'
+        ? erstatningsopgoerelseValues.uspecificeredeFerieFridage
+        : 0;
+      const breakdown = calculateTafArbejdsdageBreakdown(periodeFra, periodeTil, beregningsFerieperioder, loseFeriedage);
+      if (!breakdown) return null;
+      const oevrigeFravaersdageValue =
+        erstatningsopgoerelseValues.oevrigtFravaerUdenLoen === 'Ja' &&
+        typeof erstatningsopgoerelseValues.oevrigeFravaersdage === 'number'
+          ? erstatningsopgoerelseValues.oevrigeFravaersdage
+          : 0;
+      return Math.max(0, breakdown.tafDage - oevrigeFravaersdageValue);
+    })();
+
+    const maaneder = (() => {
+      if (
+        erstatningsopgoerelseValues.oevrigtFravaerUdenLoen === 'Ja' &&
+        erstatningsopgoerelseValues.oevrigeFravaersdage === undefined
+      ) {
+        return null;
+      }
+
+      const oevrigeFravaersdageValue =
+        erstatningsopgoerelseValues.oevrigtFravaerUdenLoen === 'Ja' &&
+        typeof erstatningsopgoerelseValues.oevrigeFravaersdage === 'number'
+          ? erstatningsopgoerelseValues.oevrigeFravaersdage
+          : 0;
+      return calculateTafAntalMaaneder(
+        periodeFra,
+        periodeTil,
+        [],
+        0,
+        oevrigeFravaersdageValue
+      );
+    })();
+
+    const beregnesSom = computeTafBeregningsenhed({
+      beregnesUdFra: erstatningsopgoerelseValues.beregnesUdFra,
+      loenindkomstAnsaettelsesforhold: erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? [],
+      oevrigtFravaerUdenLoen: erstatningsopgoerelseValues.oevrigtFravaerUdenLoen,
+      oevrigeFravaersdage: erstatningsopgoerelseValues.oevrigeFravaersdage,
+    });
+
+    const divisor = beregnesSom === TAF_BEREGNES_SOM.MAANEDER ? maaneder : arbejdsdage;
+    const divisorLabel = beregnesSom === TAF_BEREGNES_SOM.MAANEDER ? 'måneder' : 'arbejdsdage';
+    if (!divisor || !Number.isFinite(divisor) || divisor <= 0) {
+      return { label: '-', displayValue: '-', status: 'error' as DebugStatus };
+    }
+
+    const sum = entries.reduce((acc, value) => acc + value, 0);
+    const formattedEntries = entries.map((value) => formatCurrency(value));
+    const divisorDisplay = beregnesSom === TAF_BEREGNES_SOM.MAANEDER
+      ? divisor.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+      : Math.trunc(divisor).toLocaleString('da-DK');
+
+    const label = formattedEntries.length === 1
+      ? `${formattedEntries[0]} kr. / ${divisorDisplay} ${divisorLabel} =`
+      : `(${formattedEntries.join(' + ')} kr.) / ${divisorDisplay} ${divisorLabel} =`;
+
+    const displayValue = formatCurrency(sum / divisor);
+    return { label, displayValue, status: 'ok' as DebugStatus };
+  }, [erstatningsopgoerelseValues, indkomstIBeregningsperioden]);
 
   return (
     <Box>
@@ -1788,6 +1896,20 @@ const EODebug = () => {
                 </Box>
               );
             })}
+
+            <Typography className="row--subheading">Referenceløn</Typography>
+
+            {referenceloenRow && (
+              <Box className="row--label-right-hover" sx={{ '--label-width': '360px' }}>
+                <Typography className="row--text" sx={{ minWidth: '360px' }}>
+                  {referenceloenRow.label}
+                </Typography>
+                <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                  <Typography className="row--text">{referenceloenRow.displayValue}</Typography>
+                  {getStatusIcon(referenceloenRow.status)}
+                </Box>
+              </Box>
+            )}
           </>
         )}
 

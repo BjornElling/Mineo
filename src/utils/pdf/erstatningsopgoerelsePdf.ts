@@ -196,17 +196,35 @@ export const generateErstatningsopgoerelsePdf = (
   // ERSTATNINGSPERIODE SEKTION
   // ============================================================================
 
-  // Erstatningsperiode på én linje (fed skrift)
+  // Erstatningsperiode med datoer på separate linjer
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(FONT_SIZES.header);
 
-  const periodeFra = formatDateShort(eoValues.vedroererPeriodeFra);
-  const periodeTil = formatDateShort(eoValues.vedroererPeriodeTil);
+  const periodeFra = eoValues.vedroererPeriodeFra;
+  const periodeTil = eoValues.vedroererPeriodeTil;
 
   if (periodeFra && periodeTil) {
+    // "Erstatningsperiode" med fed skrift og header-størrelse (uden kolon)
     currentY = addWrappedText(
       doc,
-      `Erstatningsperiode: ${periodeFra} - ${periodeTil}`,
+      'Erstatningsperiode',
+      MARGINS.left,
+      currentY,
+      lineHeight,
+      fullWidth
+    );
+
+    // Større afstand før datoerne
+    currentY += lineHeight / 2;
+
+    // Datoerne med normal skrift og normal størrelse i langt format
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(FONT_SIZES.normal);
+    const periodeFraLang = formatDateLong(periodeFra);
+    const periodeTilLang = formatDateLong(periodeTil);
+    currentY = addWrappedText(
+      doc,
+      `${periodeFraLang} - ${periodeTilLang}`,
       MARGINS.left,
       currentY,
       lineHeight,
@@ -770,50 +788,54 @@ export const generateErstatningsopgoerelsePdf = (
       if (skadesdato) {
         const skadesdatoFormateret = formatDateShort(skadesdato);
         if (skadesdatoFormateret) {
+          const maanedsloenenUdgoer = eoValues.maanedsloenenUdgoer;
+          const beloebDisplay = maanedsloenenUdgoer !== undefined ? `${formatCurrency(parseAmount(maanedsloenenUdgoer))}${NBSP}kr.` : '';
+
+          let leftText = '';
           if (loenBaseretPaa && loenBaseretPaa.trim() !== '') {
-            currentY = addWrappedText(
-              doc,
-              `Månedslønnen er på baggrund af ${loenBaseretPaa} fastsat per ${skadesdatoFormateret} til`,
-              MARGINS.left,
-              currentY,
-              lineHeight,
-              fullWidth
-            );
+            leftText = `Månedslønnen er på baggrund af ${loenBaseretPaa} fastsat per ${skadesdatoFormateret} til`;
           } else {
-            currentY = addWrappedText(
-              doc,
-              `Månedslønnen er fastsat per ${skadesdatoFormateret} til`,
-              MARGINS.left,
-              currentY,
-              lineHeight,
-              fullWidth
-            );
+            leftText = `Månedslønnen er fastsat per ${skadesdatoFormateret} til`;
           }
+
+          const pageWidth = doc.internal.pageSize.width;
+          const beloebWidth = doc.getTextWidth(beloebDisplay);
+          const wrapPadding = doc.getTextWidth('0000000000');
+          const leftMaxWidth = Math.max(30, pageWidth - MARGINS.left - MARGINS.right - beloebWidth - 5 - wrapPadding);
+          const leftLines = doc.splitTextToSize(ensureNonBreakingKr(leftText), leftMaxWidth);
+          doc.text(leftLines, MARGINS.left, currentY);
+          const beloebY = currentY + lineHeight * (leftLines.length - 1);
+          doc.setFont('helvetica', 'bold');
+          doc.text(beloebDisplay, pageWidth - MARGINS.right, beloebY, { align: 'right' });
+          doc.setFont('helvetica', 'normal');
+          currentY += lineHeight * leftLines.length;
         }
       }
     } else if (beregnesUdFra === 'Angivet dagsløn') {
       if (skadesdato) {
         const skadesdatoFormateret = formatDateShort(skadesdato);
         if (skadesdatoFormateret) {
+          const dagsloenenUdgoer = eoValues.dagsloenenUdgoer;
+          const beloebDisplay = dagsloenenUdgoer !== undefined ? `${formatCurrency(parseAmount(dagsloenenUdgoer))}${NBSP}kr.` : '';
+
+          let leftText = '';
           if (loenBaseretPaa && loenBaseretPaa.trim() !== '') {
-            currentY = addWrappedText(
-              doc,
-              `Dagslønnen er på baggrund af ${loenBaseretPaa} fastsat per ${skadesdatoFormateret} til`,
-              MARGINS.left,
-              currentY,
-              lineHeight,
-              fullWidth
-            );
+            leftText = `Dagslønnen er på baggrund af ${loenBaseretPaa} fastsat per ${skadesdatoFormateret} til`;
           } else {
-            currentY = addWrappedText(
-              doc,
-              `Dagslønnen er fastsat per ${skadesdatoFormateret} til`,
-              MARGINS.left,
-              currentY,
-              lineHeight,
-              fullWidth
-            );
+            leftText = `Dagslønnen er fastsat per ${skadesdatoFormateret} til`;
           }
+
+          const pageWidth = doc.internal.pageSize.width;
+          const beloebWidth = doc.getTextWidth(beloebDisplay);
+          const wrapPadding = doc.getTextWidth('0000000000');
+          const leftMaxWidth = Math.max(30, pageWidth - MARGINS.left - MARGINS.right - beloebWidth - 5 - wrapPadding);
+          const leftLines = doc.splitTextToSize(ensureNonBreakingKr(leftText), leftMaxWidth);
+          doc.text(leftLines, MARGINS.left, currentY);
+          const beloebY = currentY + lineHeight * (leftLines.length - 1);
+          doc.setFont('helvetica', 'bold');
+          doc.text(beloebDisplay, pageWidth - MARGINS.right, beloebY, { align: 'right' });
+          doc.setFont('helvetica', 'normal');
+          currentY += lineHeight * leftLines.length;
         }
       }
     }

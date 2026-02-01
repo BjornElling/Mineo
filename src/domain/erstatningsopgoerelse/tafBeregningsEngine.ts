@@ -32,7 +32,15 @@ export const computeTafEngine = (input: TafEngineInputSnapshot): TafEngineOutput
   const rows = tafPerioder.map((row) => {
     const loseFeriedage = typeof row.loseFeriedage === 'number' ? row.loseFeriedage : 0;
     const value = visAntalMaaneder
-      ? calculateTafAntalMaaneder(row.fra, row.til, ferieperioder, loseFeriedage)
+      ? calculateTafAntalMaaneder(
+        row.fra,
+        row.til,
+        ferieperioder,
+        loseFeriedage,
+        erstatningsopgoerelse.oevrigtFravaerUdenLoen === 'Ja' && typeof erstatningsopgoerelse.oevrigeFravaersdage === 'number'
+          ? erstatningsopgoerelse.oevrigeFravaersdage
+          : 0
+      )
       : calculateTafAntalArbejdsdage(row.fra, row.til, ferieperioder, loseFeriedage);
     if (value === null) {
       // Missing dates yield null for TAF; this is a deliberate domain decision, not an error state.

@@ -22,7 +22,15 @@ export const buildTafDerived = (args: {
   for (const row of args.tafPerioder) {
     const loseFeriedage = typeof row.loseFeriedage === 'number' ? row.loseFeriedage : 0;
     derivedById[row.id] = visAntalMaaneder
-      ? calculateTafAntalMaaneder(row.fra, row.til, args.ferieperioder, loseFeriedage)
+      ? calculateTafAntalMaaneder(
+        row.fra,
+        row.til,
+        args.ferieperioder,
+        loseFeriedage,
+        args.values.oevrigtFravaerUdenLoen === 'Ja' && typeof args.values.oevrigeFravaersdage === 'number'
+          ? args.values.oevrigeFravaersdage
+          : 0
+      )
       : calculateTafAntalArbejdsdage(row.fra, row.til, args.ferieperioder, loseFeriedage);
   }
 

@@ -1084,7 +1084,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 {getChecked(values.oevrigtFravaerUdenLoen) && (
                   <>
                     <Box className="row--label-right-hover">
-                      <Typography className="row--text">Antal fraværsdage</Typography>
+                      <Typography className="row--text">Antal fraværsdage (mandag-fredag)</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledIntegerField
                           width={80}
@@ -1097,7 +1097,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                     </Box>
 
                     <Box className="row--label-right-hover">
-                      <Typography className="row--text">Beskrivelse</Typography>
+                      <Typography className="row--text">Årsag til fravær</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledTextField
                           width={300}

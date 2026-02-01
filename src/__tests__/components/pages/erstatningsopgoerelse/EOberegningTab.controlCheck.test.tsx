@@ -8,6 +8,7 @@ import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
 import type { EODebugSnapshot } from '../../../../domain/debug/eoDebugSnapshot';
 import type { SammentaellingControl, SammentaellingDisplayRow, SammentaellingModel } from '../../../../domain/debug/eoDebugSammentaelling';
 import { getSammentaellingControlStatus } from '../../../../domain/debug/eoDebugSammentaelling';
+import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 import type { EODebugModel } from '../../../../domain/debug/eoDebugModel';
@@ -86,6 +87,7 @@ const makeControl = (patch: Partial<SammentaellingControl>): SammentaellingContr
 const makeSnapshot = (rows: SammentaellingDisplayRow[], revision = 'rev-1'): EODebugSnapshot => {
   const baseControl = makeControl({});
   const sammentaelling: SammentaellingModel = {
+    beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
     beregningsperiode: baseControl,
     taf: baseControl,
     svieSmerteSygedage: baseControl,

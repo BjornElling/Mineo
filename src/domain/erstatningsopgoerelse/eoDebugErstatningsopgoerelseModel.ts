@@ -2034,7 +2034,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
   });
 
   const arbejdsdageRow = (() => {
-    if (!isAngivetDagsloen) {
+    if (!isBeregningsperiode) {
       return { label: 'Arbejdsdage', displayValue: '-', status: 'ok' as DebugStatus };
     }
     if (!beregningsperiodeRangeOk || !periodeFra || !periodeTil) {
@@ -2057,9 +2057,6 @@ export const buildEODebugTafBeregningsgrundlagRows = (
         : 0;
     const samletArbejdsdage = Math.max(0, breakdown.tafDage - oevrigeFravaersdageValue);
 
-    const fraDanish = isoToDanish(periodeFra) ?? periodeFra;
-    const tilDanish = isoToDanish(periodeTil) ?? periodeTil;
-    const label = `Arbejdsdage (${fraDanish} - ${tilDanish})`;
     const components: Array<{ value: number; label: string }> = [
       { value: breakdown.arbejdsdage, label: 'hverdage' },
       { value: breakdown.shDage, label: 'SH-dage' },
@@ -2068,11 +2065,9 @@ export const buildEODebugTafBeregningsgrundlagRows = (
       { value: oevrigeFravaersdageValue, label: 'øvrige fraværsdage' },
     ];
     const parts = components
-      .filter((component) => component.value !== 0)
       .map((component) => `${formatDaNumber(component.value)} ${component.label}`);
-    const displayValue = parts.length > 0
-      ? `${parts.join(' - ')} = ${formatDaNumber(samletArbejdsdage)} arbejdsdage`
-      : `${formatDaNumber(samletArbejdsdage)} arbejdsdage`;
+    const label = `${parts.join(' - ')} =`;
+    const displayValue = `${formatDaNumber(samletArbejdsdage)} arbejdsdage`;
 
     return { label, displayValue, status: 'ok' as DebugStatus };
   })();
@@ -2089,22 +2084,69 @@ export const buildEODebugTafBeregningsgrundlagRows = (
   });
 
   const maanederRow = (() => {
-    if (!isAngivetMaanedsloen) {
+    if (!isBeregningsperiode) {
       return { label: 'Måneder', displayValue: '-', status: 'ok' as DebugStatus };
     }
     if (!beregningsperiodeRangeOk || !periodeFra || !periodeTil) {
       return { label: 'Måneder', displayValue: 'Fejl (Beregningsperioden er ugyldig)', status: 'error' as DebugStatus };
     }
 
-    const maaneder = calculateTafAntalMaaneder(periodeFra, periodeTil, [], 0);
+    const oevrigeFravaersdageValue =
+      values.oevrigtFravaerUdenLoen === 'Ja' && typeof values.oevrigeFravaersdage === 'number'
+        ? values.oevrigeFravaersdage
+        : 0;
+    const maaneder = calculateTafAntalMaaneder(
+      periodeFra,
+      periodeTil,
+      values.fravaerPerioder ?? [],
+      typeof values.uspecificeredeFerieFridage === 'number' ? values.uspecificeredeFerieFridage : 0,
+      oevrigeFravaersdageValue
+    );
     if (maaneder === null) {
       return { label: 'Måneder', displayValue: 'Fejl (Ugyldig periode)', status: 'error' as DebugStatus };
     }
 
-    const fraDanish = isoToDanish(periodeFra) ?? periodeFra;
-    const tilDanish = isoToDanish(periodeTil) ?? periodeTil;
-    const label = `Måneder (${fraDanish} - ${tilDanish})`;
-    const formatted = maaneder.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    if (values.oevrigtFravaerUdenLoen === 'Ja' && values.oevrigeFravaersdage === undefined) {
+      return { label: 'Måneder', displayValue: 'Fejl (Antal fraværsdage mangler)', status: 'error' as DebugStatus };
+    }
+
+    const periodeDage = new Set<ISODateString>();
+    const fraDate = isoDateToDate(periodeFra);
+    const tilDate = isoDateToDate(periodeTil);
+    const currentDate = new Date(fraDate);
+    while (currentDate <= tilDate) {
+      const iso = dateToISO(currentDate);
+      if (iso) periodeDage.add(iso);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    const beregnMaanederForDage = (dage: ReadonlySet<ISODateString>): number => {
+      let total = 0;
+      for (const isoStr of dage) {
+        const year = Number.parseInt(isoStr.slice(0, 4), 10);
+        const month = Number.parseInt(isoStr.slice(5, 7), 10);
+        const dageIMaaned = new Date(year, month, 0).getDate();
+        total += 1 / dageIMaaned;
+      }
+      return total;
+    };
+
+    const totalMaaneder = beregnMaanederForDage(periodeDage);
+    const fravaerMaaneder = oevrigeFravaersdageValue * 0.048;
+
+    const formatMaaneder = (value: number): string =>
+      value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const fravaerBeskrivelse = values.oevrigeFravaersdageBeskrivelse?.trim();
+    const fravaerLabelTekst = fravaerBeskrivelse && fravaerBeskrivelse !== ''
+      ? `fraværsdage pga. ${fravaerBeskrivelse}`
+      : 'fraværsdage';
+    const fravaerLabel = `${formatDaNumber(oevrigeFravaersdageValue)} ${fravaerLabelTekst} uden løn x 4,8 % måned`;
+    const label = `${formatMaaneder(totalMaaneder)} - ${formatMaaneder(fravaerMaaneder)} måneder (${fravaerLabel}) =`;
+    const roundedTotalMaaneder = Math.round(totalMaaneder * 100) / 100;
+    const roundedFravaerMaaneder = Math.round(fravaerMaaneder * 100) / 100;
+    const maanederEfterFradrag = Math.max(0, Math.round((roundedTotalMaaneder - roundedFravaerMaaneder) * 100) / 100);
+    const formatted = formatMaaneder(maanederEfterFradrag);
     const displayValue = `${formatted} måneder`;
 
     return { label, displayValue, status: 'ok' as DebugStatus };

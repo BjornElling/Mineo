@@ -31,7 +31,7 @@ describe('calculateKalenderdageInclusive', () => {
 
 describe('calculateTafAntalMaaneder', () => {
   it('is DST-neutral and inclusive across month boundaries', () => {
-    const months = calculateTafAntalMaaneder(iso('2024-03-30'), iso('2024-04-02'), [], 0);
+    const months = calculateTafAntalMaaneder(iso('2024-03-30'), iso('2024-04-02'), [], 0, 0);
     expect(months).toBe(0.13);
   });
 });
