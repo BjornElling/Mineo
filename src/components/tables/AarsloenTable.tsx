@@ -255,10 +255,14 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
       }
     }, [rowsState.draft]);
 
+    // KRITISK INVARIANT: Table*Input-komponenter SKAL kalde handleErrorChange deterministisk
+    // ved alle transitions mellem {ingen fejl ↔ fejl} og {fejl A ↔ fejl B}.
+    // Hvis error-emission throttles/debounces/kun sker på blur, kan tabel-validering blive stale.
     const handleErrorChange = React.useCallback((rowId: string, colKey: AarsloenTableColumnKey, info: TableInputErrorInfo) => {
       const key = `${rowId}:${colKey}`;
       if (info.hasError) cellErrorsByCellKeyRef.current[key] = true;
       else delete cellErrorsByCellKeyRef.current[key];
+      notifyValidationRef.current();
     }, []);
 
     const getSatserInput = React.useCallback(() => {
@@ -291,6 +295,11 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
       if (!onValidationChange) return;
       onValidationChange(getValidationResult().summary);
     }, [getValidationResult, onValidationChange]);
+
+    const notifyValidationRef = React.useRef(notifyValidationChange);
+    React.useEffect(() => {
+      notifyValidationRef.current = notifyValidationChange;
+    }, [notifyValidationChange]);
 
     React.useEffect(() => {
       notifyValidationChange();

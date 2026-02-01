@@ -1,4 +1,3 @@
-import type { AmountValue } from '../schemas/amountExpressionSchema';
 import type { AarsloenTableRow, Loenperiode } from '../schemas/formSchemas';
 import type {
   AarsloenTableColumnKey,
@@ -6,6 +5,7 @@ import type {
   AarsloenTableValidationSummary,
   TableError,
 } from '../types/common';
+import { isAmountValueStrict, isEffectivelyEmptyNumber, isZeroOnlyString } from './tableValidationCommon';
 
 export type AarsloenTableCellErrorMap = Readonly<Record<string, true>>;
 
@@ -14,18 +14,6 @@ export type AarsloenTableValidationResult = Readonly<{
   errors: TableError[];
 }>;
 
-const ZERO_ONLY_PATTERN = /^0+(?:[.,]0+)?$/;
-
-const isZeroOnlyString = (value: string): boolean => {
-  return ZERO_ONLY_PATTERN.test(value.trim());
-};
-
-const isAmountValue = (value: unknown): value is AmountValue => {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as AmountValue;
-  return candidate.kind === 'number' || candidate.kind === 'expression';
-};
-
 export const isAarsloenTableValueEffectivelyEmptyForValidation = (value: unknown): boolean => {
   if (value === undefined || value === null) return true;
   if (typeof value === 'string') {
@@ -33,9 +21,11 @@ export const isAarsloenTableValueEffectivelyEmptyForValidation = (value: unknown
     if (trimmed === '') return true;
     return isZeroOnlyString(trimmed);
   }
-  if (typeof value === 'number') return value === 0;
-  if (isAmountValue(value)) {
-    if (value.kind === 'number') return value.value === 0;
+  if (typeof value === 'number') return isEffectivelyEmptyNumber(value);
+  if (isAmountValueStrict(value)) {
+    if (value.kind === 'number') return isEffectivelyEmptyNumber(value.value);
+    if (isEffectivelyEmptyNumber(value.value)) return true;
+    if (value.expression.trim() === '') return true;
     return isZeroOnlyString(value.expression);
   }
   return false;

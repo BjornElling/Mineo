@@ -9,6 +9,7 @@ import { buildOffentligeYdelserColumns, parseOffentligDato } from './eoDebugOffe
 import { buildLoenindkomstColumns } from './eoDebugLoenColumns';
 import { debugTabelColumnId, type DebugTabelWageColumnKey } from './eoDebugLoenTypes';
 import { isoDateToDate } from '../dates/isoDate';
+import { getAarsloenErrorRowIdSet, getOffentligeYdelserErrorRowIdSet } from './eoDebugRowValidation';
 
 export type DebugTabelDateSource = Readonly<{
   label: string;
@@ -435,11 +436,15 @@ const buildTafRangeSet = (values: ErstatningsopgoerelseValues): ReadonlySet<ISOD
   return set;
 };
 
-const collectMinMaxOffentligeYdelser = (rows: readonly OffentligeYdelserRow[]): { min: ISODateString | undefined; max: ISODateString | undefined } => {
+const collectMinMaxOffentligeYdelser = (
+  rows: readonly OffentligeYdelserRow[],
+  errorRowIds: ReadonlySet<string>
+): { min: ISODateString | undefined; max: ISODateString | undefined } => {
   let min: ISODateString | undefined;
   let max: ISODateString | undefined;
 
   for (const row of rows) {
+    if (errorRowIds.has(row.id)) continue;
     const ydelsestype = row.ydelsestype?.trim() ?? '';
     if (ydelsestype === '') continue;
 
@@ -454,14 +459,20 @@ const collectMinMaxOffentligeYdelser = (rows: readonly OffentligeYdelserRow[]): 
   return { min, max };
 };
 
-const collectMinMaxLoenindkomst = (ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold']): { min: ISODateString | undefined; max: ISODateString | undefined } => {
+const collectMinMaxLoenindkomst = (
+  ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'],
+  errorRowIdsByIndex: ReadonlyArray<ReadonlySet<string>>
+): { min: ISODateString | undefined; max: ISODateString | undefined } => {
   let min: ISODateString | undefined;
   let max: ISODateString | undefined;
 
-  for (const af of ansaettelsesforhold) {
+  for (let index = 0; index < ansaettelsesforhold.length; index += 1) {
+    const af = ansaettelsesforhold[index];
+    const errorRowIds = errorRowIdsByIndex[index] ?? new Set<string>();
     const rows = af.indtaegtsoplysningerTableData ?? [];
 
     for (const row of rows) {
+      if (errorRowIds.has(row.id)) continue;
       if (isAarsloenRowEffectivelyEmpty(row)) {
         continue;
       }
@@ -562,8 +573,13 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
   const beregningsFra = values.periodeTilBeregningFra;
   const beregningsTil = values.periodeTilBeregningTil;
 
-  const loenBounds = collectMinMaxLoenindkomst(values.loenindkomstAnsaettelsesforhold ?? []);
-  const ydelserBounds = collectMinMaxOffentligeYdelser(values.offentligeYdelserRows ?? []);
+  const loenErrorRowIdsByIndex = (values.loenindkomstAnsaettelsesforhold ?? []).map((af) =>
+    getAarsloenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)
+  );
+  const offentligeErrorRowIds = getOffentligeYdelserErrorRowIdSet(values.offentligeYdelserRows ?? []);
+
+  const loenBounds = collectMinMaxLoenindkomst(values.loenindkomstAnsaettelsesforhold ?? [], loenErrorRowIdsByIndex);
+  const ydelserBounds = collectMinMaxOffentligeYdelser(values.offentligeYdelserRows ?? [], offentligeErrorRowIds);
 
   const sources: DebugTabelDateSource[] = [
     { label: 'Erstatningsperiode', fra: erstatningsFra, til: erstatningsTil },
@@ -732,6 +748,7 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
     tableTil,
     columnWidthPx: DEFAULT_COLUMN_WIDTH_PX,
     integrityTolerance: INTEGRITY_TOLERANCE_KR,
+    errorRowIdsByIndex: loenErrorRowIdsByIndex,
   });
 
   const { columns: offentlige, integrityIssues: offentligeIssues } = buildOffentligeYdelserColumns({
@@ -741,6 +758,7 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
     shDays,
     sygedagpengeShCutoff: SYGEDAGPENGE_SH_CUTOFF,
     integrityTolerance: INTEGRITY_TOLERANCE_KR,
+    errorRowIds: offentligeErrorRowIds,
   });
   const offentligeColumns: DebugTabelColumnData[] = offentlige.map((c, idx) => ({
     id: debugTabelColumnId.offentlig(c.typeKey),

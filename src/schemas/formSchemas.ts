@@ -591,21 +591,21 @@ const aesAfgoerelserSchema = z.object({
     path: ['menAfgoerelseDato'],
   })
   .refine((data) => {
-    if (data.midlertidigtEetAfgorelse === 'Ja' && !data.midlertidigEETAfgoerelseDato) {
+    if (data.midlertidigtEetAfgorelse === 'Ja' && !data.midlertidigEETAfgoerelseDato && !data.midlertidigEETVirkningsdato) {
       return false;
     }
     return true;
   }, {
-    message: 'Afgørelsesdato skal udfyldes når afgørelse er "Ja"',
+    message: 'Afgørelsesdato eller virkningsdato skal udfyldes når afgørelse er "Ja"',
     path: ['midlertidigEETAfgoerelseDato'],
   })
   .refine((data) => {
-    if (data.endeligtEetAfgorelse === 'Ja' && !data.endeligEETAfgoerelseDato) {
+    if (data.endeligtEetAfgorelse === 'Ja' && !data.endeligEETAfgoerelseDato && !data.endeligEETVirkningsdato) {
       return false;
     }
     return true;
   }, {
-    message: 'Afgørelsesdato skal udfyldes når afgørelse er "Ja"',
+    message: 'Afgørelsesdato eller virkningsdato skal udfyldes når afgørelse er "Ja"',
     path: ['endeligEETAfgoerelseDato'],
   });
 
@@ -820,5 +820,4 @@ export interface FormulaEvaluationResult {
   result: number | null;
   error: string | null;
 }
-
 

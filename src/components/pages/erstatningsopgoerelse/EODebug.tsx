@@ -9,11 +9,13 @@ import type { EODebugExecutionContext } from '../../../domain/erstatningsopgoere
 import { EO_DEBUG_BUILDERS } from '../../../domain/erstatningsopgoerelse/eoDebugBuilderRegistry';
 import { aarsloenMax } from '../../../data/regulationRates';
 import {
+  getEffektiveSatserForDato,
   getEffektiveSatserForPeriode,
   getOverenskomst,
   getOverenskomstMetaById,
   getReguleringsDatoIntervalForOverenskomst,
   resolveOverenskomstRef,
+  type OverenskomstId,
 } from '../../../data/overenskomstRates';
 import {
   getReguleringsDatoIntervalForStatistikModel,
@@ -28,7 +30,7 @@ import { useFormFieldErrorsBySource } from '../../../hooks/useFormFieldErrors';
 import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
 import type { ISODateString } from '../../../types/branded';
 import { dateToISO, isoToDanish, isISODateString, subtractOneDay, toISODateString } from '../../../types/branded';
-import { addDays, addMonths, formatToISO, parseDanishDate, parseISODate, parseWeekString } from '../../../utils/dateUtils';
+import { addDays, addMonths, formatDanishDate, formatToISO, parseDanishDate, parseISODate, parseWeekString } from '../../../utils/dateUtils';
 import { formatCurrency, formatPercent, parseAmount } from '../../../utils/formatUtils';
 import { amountValueToDisplayString } from '../../../utils/expressionAmount';
 import { formatDecimal } from '../../../domain/debug/eoDebugFormat';
@@ -38,8 +40,15 @@ import StandardDisplayTable, {
   type StandardDisplayTableRow,
 } from '../../tables/StandardDisplayTable';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../../schemas/formSchemas';
+import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../../utils/aarsloenTableCalculations';
+import { getAarsloenTableValidation, isAarsloenTableValueEffectivelyEmptyForValidation } from '../../../utils/aarsloenTableValidation';
+import {
+  getOffentligeYdelserRowFilledState,
+  getOffentligeYdelserTableValidation,
+  isOffentligeYdelserTableValueEffectivelyEmptyForValidation,
+} from '../../../utils/offentligeYdelserTableValidation';
+import { buildAarsloenCellErrors, buildOffentligeYdelserCellErrors } from '../../../domain/debug/eoDebugRowValidation';
 import { isoDateToDate } from '../../../domain/dates/isoDate';
 import { ydelsestyper, type Periodisering } from '../../../data/ydelsestyper';
 
@@ -204,6 +213,115 @@ const percentFromDecimal = (value: number | null | undefined): number => {
   if (value === null || value === undefined) return 0;
   if (!Number.isFinite(value)) return 0;
   return Math.round(value * 10000) / 100;
+};
+
+type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
+
+const getReguleringsDatoForAnsaettelsesforhold = (
+  af: Ansaettelsesforhold,
+  skadesdato: ISODateString | undefined
+): ISODateString | undefined => {
+  return af.saerligFraDatoRegulering || skadesdato;
+};
+
+const validateStoreBededagSatser = (
+  loenPaaHelligdage: string,
+  inputValue: number | undefined,
+  reguleringsDato: ISODateString | undefined
+): boolean => {
+  if (!reguleringsDato) return false;
+  const dateObj = parseISODate(reguleringsDato);
+  if (!dateObj) return false;
+
+  const cutoffDate = new Date(2024, 0, 1);
+  const isFrom2024 = dateObj >= cutoffDate;
+
+  let expectedPct: number;
+  if (loenPaaHelligdage === 'Almindelig løn' && isFrom2024) {
+    expectedPct = 0.45;
+  } else {
+    expectedPct = 0;
+  }
+
+  const actualValue = inputValue ?? 0;
+  return Math.abs(actualValue - expectedPct) > 0.01;
+};
+
+const validateFeriePct = (
+  fuldLoenUnderFerie: Ansaettelsesforhold['fuldLoenUnderFerie'],
+  inputValue: number | undefined
+): boolean => {
+  const actualValue = inputValue ?? 0;
+  if (actualValue >= 12) return false;
+  return true;
+};
+
+const validateOverenskomstSats = (
+  overenskomstId: string | undefined,
+  fieldName: 'fritvalgPct' | 'shSoPct' | 'pensionPct',
+  inputValue: number | undefined,
+  reguleringsDato: ISODateString | undefined,
+  applyAlmindeligLoenPaaShDageRegel: boolean
+): boolean => {
+  if (!overenskomstId) return false;
+  if (!reguleringsDato) return false;
+
+  const dateObj = parseISODate(reguleringsDato);
+  if (!dateObj) return false;
+
+  const danishDate = formatDanishDate(dateObj);
+
+  const ref = resolveOverenskomstRef(overenskomstId);
+  if (!ref) return false;
+
+  const satser = getEffektiveSatserForDato({
+    overenskomstId: ref.baseId as OverenskomstId,
+    dato: danishDate,
+    applyAlmindeligLoenPaaShDageRegel,
+  });
+  if (!satser) return false;
+
+  let expectedValue: number;
+  if (fieldName === 'fritvalgPct') {
+    expectedValue = satser.fritvalg ?? 0;
+  } else if (fieldName === 'shSoPct') {
+    expectedValue = satser.shSoSats ?? 0;
+  } else {
+    expectedValue = satser.agPension ?? 0;
+  }
+
+  const expectedPct = expectedValue * 100;
+  const actualValue = inputValue ?? 0;
+  return Math.abs(actualValue - expectedPct) > 0.01;
+};
+
+const resolveSatserErrorField = (
+  af: Ansaettelsesforhold,
+  skadesdato: ISODateString | undefined
+): string | null => {
+  const reguleringsDato = getReguleringsDatoForAnsaettelsesforhold(af, skadesdato);
+  const applyAlmindeligLoenPaaShDageRegel = af.loenPaaHelligdage === 'Almindelig løn';
+
+  if (validateFeriePct(af.fuldLoenUnderFerie, af.feriePct)) {
+    return 'Feriegodtgørelse/-tillæg';
+  }
+  if (validateOverenskomstSats(af.overenskomstId, 'fritvalgPct', af.fritvalgPct, reguleringsDato, applyAlmindeligLoenPaaShDageRegel)) {
+    return 'Fritvalg';
+  }
+  if (validateOverenskomstSats(af.overenskomstId, 'shSoPct', af.shSoPct, reguleringsDato, applyAlmindeligLoenPaaShDageRegel)) {
+    return 'SH/SO-sats';
+  }
+  if (validateStoreBededagSatser(af.loenPaaHelligdage, af.storeBededagPct, reguleringsDato)) {
+    return 'Store Bededagstillæg';
+  }
+  if (validateOverenskomstSats(af.overenskomstId, 'pensionPct', af.pensionPct, reguleringsDato, applyAlmindeligLoenPaaShDageRegel)) {
+    return 'Arbejdsgivers pensionsbidrag';
+  }
+  return null;
+};
+
+const buildTableCellErrors = (rows: readonly AarsloenTableRow[], loenperiode: Loenperiode): Record<string, true> => {
+  return buildAarsloenCellErrors(rows, loenperiode);
 };
 
 const buildFormulaText = (components: FormulaComponents, visibility: FormulaVisibility): string => {
@@ -1302,6 +1420,93 @@ const EODebug = () => {
     skadestype,
   ]);
 
+  const indkomstSections = React.useMemo(() => {
+    return loenindkomstAnsaettelsesforhold.map((af, index) => {
+      const baseHeaderText = index === 0 ? 'Ansættelsesforhold' : `Ansættelsesforhold ${index + 1}`;
+      const headerText = af.navnPaaArbejdssted?.trim()
+        ? `${baseHeaderText} (${af.navnPaaArbejdssted.trim()})`
+        : baseHeaderText;
+
+      const satserErrorField = resolveSatserErrorField(af, skadesdato);
+      const satserStatus: DebugStatus = satserErrorField ? 'error' : 'ok';
+      const satserMessage = satserErrorField
+        ? `Forkert værdi indtastet i ${satserErrorField}`
+        : '-';
+
+      const tableRows = af.indtaegtsoplysningerTableData ?? [];
+      const cellErrors = buildTableCellErrors(tableRows, af.loenperiode);
+      const tableValidation = getAarsloenTableValidation({
+        rows: tableRows,
+        loenperiode: af.loenperiode,
+        cellErrorsByCellKey: cellErrors,
+      });
+
+      let tableStatus: DebugStatus = 'ok';
+      let tableMessage = '-';
+      if (tableValidation.summary.hasErrors) {
+        tableStatus = 'error';
+        tableMessage = tableValidation.summary.firstErrorCell?.reason === 'input'
+          ? 'Fejl i indtastning'
+          : 'Manglende indtastning';
+      } else if (tableValidation.summary.hasWarnings) {
+        tableStatus = 'warning';
+        tableMessage = 'Manglende indtastning';
+      }
+
+      return {
+        id: af.id,
+        headerText,
+        satserStatus,
+        satserMessage,
+        tableStatus,
+        tableMessage,
+      };
+    });
+  }, [loenindkomstAnsaettelsesforhold, skadesdato]);
+
+  const offentligeYdelserDebugRows = React.useMemo(() => {
+    const rows = erstatningsopgoerelseValues.offentligeYdelserRows ?? [];
+    if (rows.length === 0) return [];
+
+    const cellErrors = buildOffentligeYdelserCellErrors(rows);
+    const validation = getOffentligeYdelserTableValidation({
+      rows,
+      cellErrorsByCellKey: cellErrors,
+    });
+    const issuesByRowId = new Map(validation.summary.rowIssues.map((issue) => [issue.rowId, issue]));
+
+    const result: Array<{ id: string; label: string; status: DebugStatus; message: string }> = [];
+
+    for (const row of rows) {
+      const { hasAnyFilled } = getOffentligeYdelserRowFilledState(row);
+
+      if (!hasAnyFilled) continue;
+
+      const typeKey = row.ydelsestype?.trim() ?? '';
+      const label = typeKey === '' ? 'Ydelsestype ikke valgt' : (ydelsestyper[typeKey]?.label ?? typeKey);
+
+      const issue = issuesByRowId.get(row.id);
+      let status: DebugStatus = 'ok';
+      let message = '-';
+      if (issue?.level === 'error') {
+        status = 'error';
+        message = issue.reason === 'input' ? 'Fejl i indtastning' : 'Manglende indtastning';
+      } else if (issue?.level === 'warning') {
+        status = 'warning';
+        message = 'Manglende indtastning';
+      }
+
+      result.push({
+        id: row.id,
+        label,
+        status,
+        message,
+      });
+    }
+
+    return result;
+  }, [erstatningsopgoerelseValues.offentligeYdelserRows]);
+
   const differencekravDatoRow = React.useMemo(() => {
     return rowsBySection.get('aes')?.find((row) => (row.id as string) === 'aes.differencekravDato');
   }, [rowsBySection]);
@@ -1787,6 +1992,46 @@ const EODebug = () => {
       </ContentBox>
 
       <ContentBox className="content-box">
+        <Typography className="section-header">Indkomst</Typography>
+
+        {indkomstSections.map((section) => (
+          <Box key={section.id} sx={{ mb: 2 }}>
+            <Typography className="row--subheading">{section.headerText}</Typography>
+
+            <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+              <Typography className="row--text">Satser på skadestidspunktet</Typography>
+              <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                <Typography className="row--text">{section.satserMessage}</Typography>
+                {getStatusIcon(section.satserStatus)}
+              </Box>
+            </Box>
+
+            <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+              <Typography className="row--text">Alle lønoplysninger indtastet korrekt</Typography>
+              <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                <Typography className="row--text">{section.tableMessage}</Typography>
+                {getStatusIcon(section.tableStatus)}
+              </Box>
+            </Box>
+          </Box>
+        ))}
+
+        <Typography className="row--subheading">Offentlige ydelser</Typography>
+
+        {offentligeYdelserDebugRows.map((row) => {
+          return (
+            <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+              <Typography className="row--text">{row.label}</Typography>
+              <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                <Typography className="row--text">{row.message}</Typography>
+                {getStatusIcon(row.status)}
+              </Box>
+            </Box>
+          );
+        })}
+      </ContentBox>
+
+      <ContentBox className="content-box">
         <Typography className="section-header">Tabt arbejdsfortjeneste</Typography>
 
         {rowsBySection.get('taf')?.filter((row) => (row.id as string) === 'taf.ophoerSkyldes').map((row) => {
@@ -1959,6 +2204,3 @@ const EODebug = () => {
 };
 
 export default EODebug;
-
-
-

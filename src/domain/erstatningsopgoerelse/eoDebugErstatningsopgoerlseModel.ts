@@ -287,12 +287,18 @@ export const buildEODebugAesRows = (
   // Tjek om varige mén toggle er Ja men dato mangler
   const menAfgoerelseDatoMangler = varigeMenErSynlig && !isNonEmptyString(danishMenAfgoerelseDato);
 
-  // Tjek om midlertidig EET toggle er Ja men dato mangler
-  const midlertidigEETAfgoerelseDatoMangler =
-    midlertidigEetErSynlig && !isNonEmptyString(danishMidlertidigEETAfgoerelseDato);
+  const harMidlertidigEETVirkningsdato = isNonEmptyString(danishMidlertidigEETVirkningsdato);
+  const harMidlertidigEETAfgoerelseDato = isNonEmptyString(danishMidlertidigEETAfgoerelseDato);
 
-  // Tjek om endelig EET toggle er Ja men dato mangler
-  const endeligEETAfgoerelseDatoMangler = endeligEetErSynlig && !isNonEmptyString(danishEndeligEETAfgoerelseDato);
+  // Tjek om midlertidig EET toggle er Ja men der mangler dato (hverken afgørelsesdato eller virkningsdato)
+  const midlertidigEETAfgoerelseDatoMangler =
+    midlertidigEetErSynlig && !harMidlertidigEETAfgoerelseDato && !harMidlertidigEETVirkningsdato;
+
+  const harEndeligEETVirkningsdato = isNonEmptyString(danishEndeligEETVirkningsdato);
+  const harEndeligEETAfgoerelseDato = isNonEmptyString(danishEndeligEETAfgoerelseDato);
+
+  // Tjek om endelig EET toggle er Ja men der mangler dato (hverken afgørelsesdato eller virkningsdato)
+  const endeligEETAfgoerelseDatoMangler = endeligEetErSynlig && !harEndeligEETAfgoerelseDato && !harEndeligEETVirkningsdato;
 
   // Varige mén afgørelsesdato - vis fejl hvis toggle er Ja men dato mangler
   const menAfgoerelseDatoResolved = resolveDebugDisplay({
@@ -310,7 +316,7 @@ export const buildEODebugAesRows = (
     emptyState: 'ok',
   });
   const midlertidigEETAfgoerelseDatoDisplay = midlertidigEETAfgoerelseDatoMangler
-    ? 'Fejl (Afgørelsesdato mangler)'
+    ? 'Fejl (Afgørelsesdato eller virkningsdato mangler)'
     : midlertidigEETAfgoerelseDatoResolved.displayValue;
   const midlertidigEETAfgoerelseDatoStatus: DebugStatus = midlertidigEETAfgoerelseDatoMangler
     ? 'error'
@@ -323,7 +329,7 @@ export const buildEODebugAesRows = (
     emptyState: 'ok',
   });
   const endeligEETAfgoerelseDatoDisplay = endeligEETAfgoerelseDatoMangler
-    ? 'Fejl (Afgørelsesdato mangler)'
+    ? 'Fejl (Afgørelsesdato eller virkningsdato mangler)'
     : endeligEETAfgoerelseDatoResolved.displayValue;
   const endeligEETAfgoerelseDatoStatus: DebugStatus = endeligEETAfgoerelseDatoMangler ? 'error' : endeligEETAfgoerelseDatoResolved.status;
 
@@ -347,7 +353,7 @@ export const buildEODebugAesRows = (
       }
       if (harMidlertidigAfgoerelsesdatoFejl) {
         if (midlertidigEETAfgoerelseDatoMangler) {
-          parts.push('Afgørelsesdato mangler');
+          parts.push('Afgørelsesdato eller virkningsdato mangler');
         } else {
           parts.push(...midlertidigEETAfgoerelseDatoErrors.map((e) => e.message.trim()));
         }
@@ -355,13 +361,13 @@ export const buildEODebugAesRows = (
       return { displayValue: `Fejl (${parts.join('; ')})`, status: 'error' as DebugStatus };
     }
 
-    // Hvis både virkningsdato og afgørelsesdato er udfyldt, brug virkningsdato
-    if (isNonEmptyString(danishMidlertidigEETVirkningsdato) && isNonEmptyString(danishMidlertidigEETAfgoerelseDato)) {
+    // Hvis virkningsdato er udfyldt, brug den
+    if (harMidlertidigEETVirkningsdato) {
       return { displayValue: danishMidlertidigEETVirkningsdato.trim(), status: 'ok' as DebugStatus };
     }
 
     // Hvis kun afgørelsesdato er udfyldt, brug den
-    if (isNonEmptyString(danishMidlertidigEETAfgoerelseDato)) {
+    if (harMidlertidigEETAfgoerelseDato) {
       return { displayValue: danishMidlertidigEETAfgoerelseDato.trim(), status: 'ok' as DebugStatus };
     }
 
@@ -389,7 +395,7 @@ export const buildEODebugAesRows = (
       }
       if (harEndeligAfgoerelsesdatoFejl) {
         if (endeligEETAfgoerelseDatoMangler) {
-          parts.push('Afgørelsesdato mangler');
+          parts.push('Afgørelsesdato eller virkningsdato mangler');
         } else {
           parts.push(...endeligEETAfgoerelseDatoErrors.map((e) => e.message.trim()));
         }
@@ -397,13 +403,13 @@ export const buildEODebugAesRows = (
       return { displayValue: `Fejl (${parts.join('; ')})`, status: 'error' as DebugStatus };
     }
 
-    // Hvis både virkningsdato og afgørelsesdato er udfyldt, brug virkningsdato
-    if (isNonEmptyString(danishEndeligEETVirkningsdato) && isNonEmptyString(danishEndeligEETAfgoerelseDato)) {
+    // Hvis virkningsdato er udfyldt, brug den
+    if (harEndeligEETVirkningsdato) {
       return { displayValue: danishEndeligEETVirkningsdato.trim(), status: 'ok' as DebugStatus };
     }
 
     // Hvis kun afgørelsesdato er udfyldt, brug den
-    if (isNonEmptyString(danishEndeligEETAfgoerelseDato)) {
+    if (harEndeligEETAfgoerelseDato) {
       return { displayValue: danishEndeligEETAfgoerelseDato.trim(), status: 'ok' as DebugStatus };
     }
 

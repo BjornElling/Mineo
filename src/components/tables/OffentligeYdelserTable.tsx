@@ -10,6 +10,18 @@ import type { OffentligeYdelserRow } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { ydelsestyper, ydelsestypeKeys } from '../../data/ydelsestyper';
+import type {
+  OffentligeYdelserTableColumnKey,
+  OffentligeYdelserTableFirstErrorCell,
+  OffentligeYdelserTableHandle,
+  OffentligeYdelserTableValidationSummary,
+} from '../../types/common';
+import {
+  buildOffentligeYdelserCellKey,
+  getOffentligeYdelserTableValidation,
+  isOffentligeYdelserTableValueEffectivelyEmptyForValidation,
+  parseOffentligeYdelserCellKey,
+} from '../../utils/offentligeYdelserTableValidation';
 import { StandardGridHeaderCell, StandardGridTable, getStandardGridBodyRowStyle, getStandardGridCellStyle } from './StandardGridTable';
 import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridModel';
 
@@ -23,7 +35,7 @@ export type OffentligeYdelserTableProps = {
   tableData: OffentligeYdelserRow[];
   derivedByRowId?: ReadonlyMap<string, OffentligeYdelserDerivedCellValues>;
   onTableDataChange?: (data: OffentligeYdelserRow[]) => void;
-  onValidationChange?: (hasErrors: boolean) => void;
+  onValidationChange?: (summary: OffentligeYdelserTableValidationSummary) => void;
 };
 
 const MIN_VISIBLE_ROWS = 2;
@@ -59,7 +71,7 @@ const fingerprintTableData = (rows: readonly OffentligeYdelserRow[]): string => 
   );
 };
 
-const OffentligeYdelserTable = React.forwardRef<HTMLDivElement, OffentligeYdelserTableProps>(
+const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, OffentligeYdelserTableProps>(
   ({ tableData, derivedByRowId, onTableDataChange, onValidationChange }, ref) => {
     const defaultTableData = React.useMemo<OffentligeYdelserRow[]>(
       () => [
@@ -71,15 +83,22 @@ const OffentligeYdelserTable = React.forwardRef<HTMLDivElement, OffentligeYdelse
 
     const lastPersistedFingerprintRef = React.useRef<string | null>(null);
     const pendingPersistRef = React.useRef<OffentligeYdelserRow[] | null>(null);
+    const committedRowsRef = React.useRef<OffentligeYdelserRow[]>([]);
+    const committedRowIdsRef = React.useRef<Set<string>>(new Set());
+    const syncCommittedRowIds = React.useCallback((rows: OffentligeYdelserRow[]) => {
+      committedRowIdsRef.current = new Set(rows.map((row) => row.id));
+    }, []);
 
     const persistTableData = React.useCallback(
       (internalData: OffentligeYdelserRow[]) => {
         if (!onTableDataChange) return;
+        committedRowsRef.current = internalData;
+        syncCommittedRowIds(internalData);
         lastPersistedFingerprintRef.current = fingerprintTableData(internalData);
         onTableDataChange(internalData);
-        onValidationChange?.(Object.keys(cellErrorsByCellKeyRef.current).length > 0);
+        notifyValidationRef.current();
       },
-      [onTableDataChange, onValidationChange]
+      [onTableDataChange, onValidationChange, syncCommittedRowIds]
     );
 
     const createEmptyRow = React.useCallback((): OffentligeYdelserRow => {
@@ -97,6 +116,8 @@ const OffentligeYdelserTable = React.forwardRef<HTMLDivElement, OffentligeYdelse
       const initial = tableData.length > 0 ? normalizeRows(tableData) : normalizeRows(defaultTableData);
       // Treat the initial normalized rows as "synced" so blur without edits does not trigger persistence.
       lastPersistedFingerprintRef.current = fingerprintTableData(initial);
+      committedRowsRef.current = initial;
+      syncCommittedRowIds(initial);
       return initial;
     });
 
@@ -108,13 +129,19 @@ const OffentligeYdelserTable = React.forwardRef<HTMLDivElement, OffentligeYdelse
           return;
         }
         lastPersistedFingerprintRef.current = fingerprint;
+        committedRowsRef.current = normalizedData;
+        syncCommittedRowIds(normalizedData);
         setInternalTableData(normalizedData);
+        notifyValidationRef.current();
         return;
       }
       const normalizedDefault = normalizeRows(defaultTableData);
       lastPersistedFingerprintRef.current = fingerprintTableData(normalizedDefault);
+      committedRowsRef.current = normalizedDefault;
+      syncCommittedRowIds(normalizedDefault);
       setInternalTableData(normalizedDefault);
-    }, [defaultTableData, normalizeRows, tableData]);
+      notifyValidationRef.current();
+    }, [defaultTableData, normalizeRows, tableData, syncCommittedRowIds]);
 
     const cellErrorsByCellKeyRef = React.useRef<Record<string, true>>({});
 
@@ -123,10 +150,9 @@ const OffentligeYdelserTable = React.forwardRef<HTMLDivElement, OffentligeYdelse
       const current = cellErrorsByCellKeyRef.current;
 
       for (const cellKey of Object.keys(current)) {
-        const separatorIdx = cellKey.indexOf(':');
-        if (separatorIdx < 0) continue;
-        const rowId = cellKey.slice(0, separatorIdx);
-        if (!validRowIds.has(rowId)) {
+        const parsed = parseOffentligeYdelserCellKey(cellKey);
+        if (!parsed) continue;
+        if (!validRowIds.has(parsed.rowId)) {
           delete current[cellKey];
         }
       }
@@ -159,13 +185,15 @@ const OffentligeYdelserTable = React.forwardRef<HTMLDivElement, OffentligeYdelse
     }, [persistTableData, internalTableData]);
 
     const handleErrorChange = React.useCallback(
-      (rowId: string, colKey: string) => (errorInfo: TableInputErrorInfo) => {
-        const cellKey = `${rowId}:${colKey}`;
+      (rowId: string, colKey: OffentligeYdelserTableColumnKey) => (errorInfo: TableInputErrorInfo) => {
+        if (!committedRowIdsRef.current.has(rowId)) return;
+        const cellKey = buildOffentligeYdelserCellKey(rowId, colKey);
         if (errorInfo.hasError) {
           cellErrorsByCellKeyRef.current[cellKey] = true;
         } else {
           delete cellErrorsByCellKeyRef.current[cellKey];
         }
+        notifyValidationRef.current();
       },
       []
     );
@@ -192,9 +220,9 @@ const OffentligeYdelserTable = React.forwardRef<HTMLDivElement, OffentligeYdelse
       [sortState.primary?.colId, sortState.primary?.dir, sortState.secondary?.colId, sortState.secondary?.dir]
     );
 
-  const parseAmountForSort = React.useCallback((raw: AmountValue | undefined): number | undefined => {
-    return amountValueToNumber(raw);
-  }, []);
+    const parseAmountForSort = React.useCallback((raw: AmountValue | undefined): number | undefined => {
+      return amountValueToNumber(raw);
+    }, []);
 
     const getSortValueByColId = React.useCallback(
       (colId: string) => {
@@ -236,8 +264,99 @@ const OffentligeYdelserTable = React.forwardRef<HTMLDivElement, OffentligeYdelse
       });
     }, [getSortValueByColId, internalTableData, sortState]);
 
+    const [externalCellError, setExternalCellError] = React.useState<{ rowId: string; colKey: OffentligeYdelserTableColumnKey; message: string } | null>(null);
+    const cellRefsByCellKeyRef = React.useRef<Record<string, HTMLElement | null>>({});
+    const registerCellRef = React.useCallback(
+      (rowId: string, colIdx: number) => (el: HTMLElement | null) => {
+        cellRefsByCellKeyRef.current[`${rowId}:${colIdx}`] = el;
+      },
+      []
+    );
+
+    const resolveColIdxFromKey = React.useCallback((colKey: OffentligeYdelserTableColumnKey): number => {
+      switch (colKey) {
+        case 'fraDato':
+          return 0;
+        case 'tilDato':
+          return 1;
+        case 'ydelse':
+          return 2;
+        case 'tillaeg':
+          return 3;
+        case 'ydelsestype':
+          return 4;
+        default:
+          return -1;
+      }
+    }, []);
+
+    const getExternalErrorMessage = React.useCallback(
+      (rowId: string, colKey: OffentligeYdelserTableColumnKey): string | undefined => {
+        if (!externalCellError) return undefined;
+        if (externalCellError.rowId !== rowId) return undefined;
+        if (externalCellError.colKey !== colKey) return undefined;
+        return externalCellError.message;
+      },
+      [externalCellError]
+    );
+
+    React.useEffect(() => {
+      if (!externalCellError) return;
+      const rows = committedRowsRef.current;
+      const row = rows.find((item) => item.id === externalCellError.rowId);
+      if (!row) {
+        setExternalCellError(null);
+        return;
+      }
+      const value = row[externalCellError.colKey];
+      const isEmpty = isOffentligeYdelserTableValueEffectivelyEmptyForValidation(value);
+      const cellKey = buildOffentligeYdelserCellKey(externalCellError.rowId, externalCellError.colKey);
+      const hasInputError = Boolean(cellErrorsByCellKeyRef.current[cellKey]);
+      if (!isEmpty || hasInputError) {
+        setExternalCellError(null);
+      }
+    }, [externalCellError]);
+
+    const getValidationResult = React.useCallback(() => {
+      return getOffentligeYdelserTableValidation({
+        rows: committedRowsRef.current,
+        cellErrorsByCellKey: cellErrorsByCellKeyRef.current,
+      });
+    }, []);
+
+    const notifyValidationChange = React.useCallback(() => {
+      if (!onValidationChange) return;
+      onValidationChange(getValidationResult().summary);
+    }, [getValidationResult, onValidationChange]);
+
+    const notifyValidationRef = React.useRef(notifyValidationChange);
+    React.useEffect(() => {
+      notifyValidationRef.current = notifyValidationChange;
+    }, [notifyValidationChange]);
+
+    React.useImperativeHandle(
+      ref,
+      () => ({
+        getValidationSummary: (): OffentligeYdelserTableValidationSummary => getValidationResult().summary,
+        showMissingEntryError: (cell: OffentligeYdelserTableFirstErrorCell) => {
+          if (cell.reason !== 'missing') return;
+          setExternalCellError({
+            rowId: cell.rowId,
+            colKey: cell.colKey,
+            message: 'Indtastning mangler',
+          });
+          const colIdx = resolveColIdxFromKey(cell.colKey);
+          if (!Number.isFinite(colIdx)) return;
+          const el = cellRefsByCellKeyRef.current[`${cell.rowId}:${colIdx}`];
+          if (!el) return;
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        },
+      }),
+      [getValidationResult, resolveColIdxFromKey]
+    );
+
     return (
-      <div ref={ref}>
+      <div>
         <StandardGridTable tableWidth="1130px">
           <colgroup>
             <col style={{ width: '120px' }} />
@@ -323,6 +442,8 @@ const OffentligeYdelserTable = React.forwardRef<HTMLDivElement, OffentligeYdelse
                       onChange={(e) => setRow(row.id, { fraDato: e.target.value })}
                       onBlur={(e) => commitRowUpdate(row.id, { fraDato: e.target.value })}
                       onErrorChange={handleErrorChange(row.id, 'fraDato')}
+                      externalErrorMessage={getExternalErrorMessage(row.id, 'fraDato')}
+                      inputRef={registerCellRef(row.id, 0)}
                       minDate={dateRanges_offentligeYdelser.fraDato.min}
                       maxDate={asValidDateBound(row.tilDato) ?? dateRanges_offentligeYdelser.fraDato.fallbackMax}
                       specialRangeErrors={{ fraTilRole: 'fra' }}
@@ -337,6 +458,8 @@ const OffentligeYdelserTable = React.forwardRef<HTMLDivElement, OffentligeYdelse
                       onChange={(e) => setRow(row.id, { tilDato: e.target.value })}
                       onBlur={(e) => commitRowUpdate(row.id, { tilDato: e.target.value })}
                       onErrorChange={handleErrorChange(row.id, 'tilDato')}
+                      externalErrorMessage={getExternalErrorMessage(row.id, 'tilDato')}
+                      inputRef={registerCellRef(row.id, 1)}
                       minDate={asValidDateBound(row.fraDato) ?? dateRanges_offentligeYdelser.tilDato.fallbackMin}
                       maxDate={dateRanges_offentligeYdelser.tilDato.max}
                       specialRangeErrors={{ fraTilRole: 'til' }}
@@ -350,6 +473,8 @@ const OffentligeYdelserTable = React.forwardRef<HTMLDivElement, OffentligeYdelse
                       value={row.ydelse}
                       onBlur={(e) => commitRowUpdate(row.id, { ydelse: e.target.value })}
                       onErrorChange={handleErrorChange(row.id, 'ydelse')}
+                      externalErrorMessage={getExternalErrorMessage(row.id, 'ydelse')}
+                      inputRef={registerCellRef(row.id, 2)}
                       placeholder=""
                     />
                   </td>
@@ -360,6 +485,8 @@ const OffentligeYdelserTable = React.forwardRef<HTMLDivElement, OffentligeYdelse
                       value={row.tillaeg}
                       onBlur={(e) => commitRowUpdate(row.id, { tillaeg: e.target.value })}
                       onErrorChange={handleErrorChange(row.id, 'tillaeg')}
+                      externalErrorMessage={getExternalErrorMessage(row.id, 'tillaeg')}
+                      inputRef={registerCellRef(row.id, 3)}
                       placeholder=""
                     />
                   </td>
@@ -371,6 +498,8 @@ const OffentligeYdelserTable = React.forwardRef<HTMLDivElement, OffentligeYdelse
                       onChange={(e) => commitRowUpdate(row.id, { ydelsestype: e.target.value || '' })}
                       placeholder="Vælg..."
                       options={ydelsestypeOptions}
+                      externalErrorMessage={getExternalErrorMessage(row.id, 'ydelsestype')}
+                      inputRef={registerCellRef(row.id, 4)}
                     />
                   </td>
 

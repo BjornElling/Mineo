@@ -86,11 +86,12 @@ export const buildOffentligeYdelserColumns = (args: {
   shDays: ReadonlySet<ISODateString>;
   sygedagpengeShCutoff: ISODateString;
   integrityTolerance: number;
+  errorRowIds: ReadonlySet<string>;
 }): Readonly<{
   columns: ReadonlyArray<OffentligYdelseCoreColumn>;
   integrityIssues: ReadonlyArray<DebugTabelIntegrityIssue>;
 }> => {
-  const { dates, isoIndex, values, shDays, sygedagpengeShCutoff, integrityTolerance } = args;
+  const { dates, isoIndex, values, shDays, sygedagpengeShCutoff, integrityTolerance, errorRowIds } = args;
 
   const byType = new Map<string, Float64Array>();
   const typeOrder: string[] = [];
@@ -102,6 +103,7 @@ export const buildOffentligeYdelserColumns = (args: {
   >();
 
   for (const row of values.offentligeYdelserRows ?? []) {
+    if (errorRowIds.has(row.id)) continue;
     const typeKey = row.ydelsestype?.trim() ?? '';
     if (typeKey === '') {
       // Fejl hvis beløb er angivet uden ydelsestype

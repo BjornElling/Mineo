@@ -348,6 +348,10 @@ export type AarsloenTableColumnKey =
   | 'col4'
   | 'col5';
 
+export type OffentligeYdelserTableColumnKey = 'fraDato' | 'tilDato' | 'ydelse' | 'tillaeg' | 'ydelsestype';
+
+export type OffentligeYdelserTableCellErrorMap = Readonly<Record<string, true>>;
+
 /**
  * Tabel-fejl type (trust-critical):
  * - Cellefejl bindes til `rowId` (ikke row-index), så sortering ikke kan forveksle rækker.
@@ -387,6 +391,31 @@ export type AarsloenTableValidationSummary = Readonly<{
   firstErrorCell?: AarsloenTableFirstErrorCell;
 }>;
 
+export type OffentligeYdelserTableRowIssueLevel = 'error' | 'warning';
+
+export type OffentligeYdelserTableRowIssueReason = 'input' | 'missing';
+
+export type OffentligeYdelserTableRowIssue = Readonly<{
+  rowId: string;
+  level: OffentligeYdelserTableRowIssueLevel;
+  reason: OffentligeYdelserTableRowIssueReason;
+}>;
+
+export type OffentligeYdelserTableFirstErrorReason = 'input' | 'missing';
+
+export type OffentligeYdelserTableFirstErrorCell = Readonly<{
+  rowId: string;
+  colKey: OffentligeYdelserTableColumnKey;
+  reason: OffentligeYdelserTableFirstErrorReason;
+}>;
+
+export type OffentligeYdelserTableValidationSummary = Readonly<{
+  rowIssues: OffentligeYdelserTableRowIssue[];
+  hasErrors: boolean;
+  hasWarnings: boolean;
+  firstErrorCell?: OffentligeYdelserTableFirstErrorCell;
+}>;
+
 // =============================================================================
 // COMPONENT REF HANDLES
 // =============================================================================
@@ -399,6 +428,11 @@ export interface AarsloenTableHandle {
   getValidationSummary: () => AarsloenTableValidationSummary;
   showMissingEntryError: (cell: AarsloenTableFirstErrorCell) => void;
   flashError: (error: Extract<TableError, { kind: 'cell' }>) => void;
+}
+
+export interface OffentligeYdelserTableHandle {
+  getValidationSummary: () => OffentligeYdelserTableValidationSummary;
+  showMissingEntryError: (cell: OffentligeYdelserTableFirstErrorCell) => void;
 }
 
 /**
@@ -451,5 +485,4 @@ export interface FileHandleWithMetadata {
   name: string;
   lastModified: number;
 }
-
 

@@ -256,28 +256,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     };
   }, [values.forligDato, values.forligAnsvarsgradProcent, values.forligAnsvarsgradBroek]);
 
-  // Cross-field validering: Midlertidig EET virkningsdato kræver afgørelsesdato
-  const midlertidigEETVirkningsdatoFejl = React.useMemo(() => {
-    const harVirkningsdato = values.midlertidigEETVirkningsdato !== undefined && values.midlertidigEETVirkningsdato !== null;
-    const harAfgoerelsesdato = values.midlertidigEETAfgoerelseDato !== undefined && values.midlertidigEETAfgoerelseDato !== null;
-    const fejl = harVirkningsdato && !harAfgoerelsesdato;
-    return {
-      harFejl: fejl,
-      fejlbesked: fejl ? 'Afgørelsesdato mangler' : '',
-    };
-  }, [values.midlertidigEETVirkningsdato, values.midlertidigEETAfgoerelseDato]);
-
-  // Cross-field validering: Endelig EET virkningsdato kræver afgørelsesdato
-  const endeligEETVirkningsdatoFejl = React.useMemo(() => {
-    const harVirkningsdato = values.endeligEETVirkningsdato !== undefined && values.endeligEETVirkningsdato !== null;
-    const harAfgoerelsesdato = values.endeligEETAfgoerelseDato !== undefined && values.endeligEETAfgoerelseDato !== null;
-    const fejl = harVirkningsdato && !harAfgoerelsesdato;
-    return {
-      harFejl: fejl,
-      fejlbesked: fejl ? 'Afgørelsesdato mangler' : '',
-    };
-  }, [values.endeligEETVirkningsdato, values.endeligEETAfgoerelseDato]);
-
   // Error reporting for debug/diagnostics (runtime-only).
   // These are intentionally reported to the central field-error model so EODebug can reflect current invalid inputs
   // even when the committed persisted value remains unchanged (draft ≠ committed).
@@ -361,15 +339,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     source: 'rule',
   });
   const reportForligDatoRuleError = useFormFieldErrorReporter('erstatningsopgoerelse', 'forligDato', { severity: 'error', source: 'rule' });
-  const reportMidlertidigEETVirkningsdatoRuleError = useFormFieldErrorReporter('erstatningsopgoerelse', 'midlertidigEETVirkningsdato', {
-    severity: 'error',
-    source: 'rule',
-  });
-  const reportEndeligEETVirkningsdatoRuleError = useFormFieldErrorReporter('erstatningsopgoerelse', 'endeligEETVirkningsdato', {
-    severity: 'error',
-    source: 'rule',
-  });
-
   React.useEffect(() => {
     const msg = forligFejl.harFejl ? forligFejl.fejlbesked : undefined;
     reportForligAnsvarsgradProcentRuleError(msg);
@@ -384,20 +353,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   React.useEffect(() => {
     reportForligDatoRuleError(forligDatoFejl.harFejl ? forligDatoFejl.fejlbesked : undefined);
   }, [forligDatoFejl.fejlbesked, forligDatoFejl.harFejl, reportForligDatoRuleError]);
-
-  React.useEffect(() => {
-    reportMidlertidigEETVirkningsdatoRuleError(
-      midlertidigEETVirkningsdatoFejl.harFejl ? midlertidigEETVirkningsdatoFejl.fejlbesked : undefined
-    );
-  }, [
-    midlertidigEETVirkningsdatoFejl.fejlbesked,
-    midlertidigEETVirkningsdatoFejl.harFejl,
-    reportMidlertidigEETVirkningsdatoRuleError,
-  ]);
-
-  React.useEffect(() => {
-    reportEndeligEETVirkningsdatoRuleError(endeligEETVirkningsdatoFejl.harFejl ? endeligEETVirkningsdatoFejl.fejlbesked : undefined);
-  }, [endeligEETVirkningsdatoFejl.fejlbesked, endeligEETVirkningsdatoFejl.harFejl, reportEndeligEETVirkningsdatoRuleError]);
 
   const svie = useSvieSmerteRows({ values, setValues, resyncToken: formVersion });
   const taf = useTafRows({ values, setValues, resyncToken: formVersion });
@@ -819,8 +774,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                     minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
                   }}
                   noValidRangeCause="Skadesdato"
-                  error={midlertidigEETVirkningsdatoFejl.harFejl}
-                  helperText={midlertidigEETVirkningsdatoFejl.fejlbesked}
                 />
               </Box>
             </Box>
@@ -875,8 +828,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                     minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
                   }}
                   noValidRangeCause="Skadesdato"
-                  error={endeligEETVirkningsdatoFejl.harFejl}
-                  helperText={endeligEETVirkningsdatoFejl.fejlbesked}
                 />
               </Box>
             </Box>

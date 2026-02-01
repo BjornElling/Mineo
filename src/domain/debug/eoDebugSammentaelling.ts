@@ -9,6 +9,7 @@ import type { EODebugModel } from './eoDebugModel';
 import { buildEODebugSvieSmerteRows, buildEODebugTaftRows } from '../erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
 import { calculateTafArbejdsdageBreakdown } from '../erstatningsopgoerelse/tafCalculations';
 import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/beregningsperiodeTafOverlap';
+import { getAarsloenErrorRowIdSet, getOffentligeYdelserErrorRowIdSet } from './eoDebugRowValidation';
 
 export type SvieSmerteContext = Readonly<{
   skadesdatoISO: ISODateString | undefined;
@@ -65,9 +66,10 @@ const getIsoRange = (
 
 const formatDaInt = (value: number): string => value.toLocaleString('da-DK');
 
-const formatOptionalInt = (value: number | null): string => (value === null ? '-' : formatDaInt(value));
+const formatOptionalInt = (value: number | null): string => (value === null || value === 0 ? '-' : formatDaInt(value));
 
-const formatOptionalAmount = (value: number | null): string => (value === null ? '-' : formatCurrency(value));
+const formatOptionalAmount = (value: number | null): string =>
+  value === null || value === 0 ? '-' : formatCurrency(value);
 
 const isDanishNumberString = (value: string): boolean => {
   if (value.trim() === '') return false;
@@ -347,6 +349,7 @@ export const buildEODebugSammentaellingModel = (args: {
 
       (values.loenindkomstAnsaettelsesforhold ?? []).forEach((af, index) => {
         const rows = af.indtaegtsoplysningerTableData ?? [];
+        const errorRowIds = getAarsloenErrorRowIdSet(rows, af.loenperiode);
         let hasInput = false;
         let beregnetTotal = 0;
 
@@ -359,6 +362,7 @@ export const buildEODebugSammentaellingModel = (args: {
         };
 
         for (const row of rows) {
+          if (errorRowIds.has(row.id)) continue;
           if (isAarsloenRowEffectivelyEmpty(row)) continue;
           hasInput = true;
           const derived = calculateAarsloenRowDerived(row, satser);
@@ -394,8 +398,10 @@ export const buildEODebugSammentaellingModel = (args: {
     offentligeYdelser: (() => {
       const totalsByType = new Map<string, number>();
       const order: string[] = [];
+      const errorRowIds = getOffentligeYdelserErrorRowIdSet(values.offentligeYdelserRows ?? []);
 
       for (const row of values.offentligeYdelserRows ?? []) {
+        if (errorRowIds.has(row.id)) continue;
         const typeKey = row.ydelsestype?.trim() ?? '';
         if (typeKey === '') continue;
         const total = parseAmount(row.ydelse) + parseAmount(row.tillaeg);

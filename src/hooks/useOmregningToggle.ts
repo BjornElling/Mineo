@@ -1,16 +1,3 @@
-/**
- * Custom hook for omregning toggle state management
- *
- * Ansvar:
- * - Håndterer toggle state via reducer (single source of truth)
- * - Synkroniserer med persisted state
- * - Håndterer validering før toggle-aktivering
- * - Shake animation for fejl-feedback
- *
- * VIGTIGT: Denne hook eliminerer dobbelt state-tracking.
- * Reducer er SSoT, persisted state opdateres kun når reducer ændres.
- */
-
 import React from 'react';
 import type { AarsloenTableHandle, StyledToggleSwitchHandle } from '../types/common';
 import type { CommitEvent, CommitHandler } from '../components/inputs/fieldEvents';
@@ -31,15 +18,12 @@ type ToggleAction =
 // REDUCER
 // ============================================================================
 
-/**
- * Reducer for toggle state (simpel - ingen auto-enable/disable længere)
- */
 const toggleReducer = (state: ToggleState, action: ToggleAction): ToggleState => {
   switch (action.type) {
     case 'ENABLE':
-      return { enabled: true };
+      return state.enabled ? state : { enabled: true };
     case 'DISABLE':
-      return { enabled: false };
+      return !state.enabled ? state : { enabled: false };
     default:
       return state;
   }
@@ -64,16 +48,13 @@ interface UseOmregningToggleReturn {
 }
 
 /**
- * Hook der håndterer omregning toggle state
+ * Hook der håndterer omregning-toggle.
  *
- * VIGTIGT: Ingen automatisk enable/disable - kun manuel toggle med validering.
- * Dette gør state mere forudsigelig og letter at ræsonnere om.
- *
- * @param initialEnabled - Initial værdi fra persisted state
- * @param tabelHarFejl - Om tabellen har valideringsfejl
- * @param tabelRef - Ref til tabel-komponenten
- * @param toggleRef - Ref til toggle-komponenten
- * @param onEnabledChange - Callback når toggle ændres (til at opdatere persisted state)
+ * Principper:
+ * - Reducer er single source of truth
+ * - initialEnabled bruges kun ved init
+ * - Manuel enable blokeres tidligt ved ugyldige forhold (→ shake)
+ * - Auto-disable-effects fungerer som sikkerhedsnet
  */
 export const useOmregningToggle = ({
   initialEnabled,
@@ -83,46 +64,62 @@ export const useOmregningToggle = ({
   toggleRef,
   onEnabledChange,
 }: UseOmregningToggleProps): UseOmregningToggleReturn => {
-  const [state, dispatch] = React.useReducer(toggleReducer, {
-    enabled: initialEnabled,
-  });
-
-  // Synkroniser reducer med persisted state ved mount/rehydration
-  React.useEffect(() => {
-    if (state.enabled !== initialEnabled) {
-      dispatch({ type: initialEnabled ? 'ENABLE' : 'DISABLE' });
-    }
-  }, [initialEnabled, state.enabled]);
+  // 🔒 initialEnabled bruges KUN ved init
+  const [state, dispatch] = React.useReducer(
+    toggleReducer,
+    initialEnabled,
+    (initial) => ({ enabled: initial })
+  );
 
   /**
-   * Håndter toggle-ændring med validering
+   * Håndter brugerens toggle-interaktion
    */
   const handleToggle = React.useCallback(
     (event: CommitEvent<boolean>) => {
       const newValue = event.target.value;
 
-      // Hvis bruger prøver at tænde toggle OG der er fejl i tabel
-      if (newValue && tabelHarFejl) {
-        // Trigger shake-animation på toggle
+      // Blokér manuel enable hvis:
+      // - tabellen har fejl
+      // - perioden er ugyldig / tabellen er tom
+      if (newValue && (tabelHarFejl || !hasValidPeriod)) {
+        // Altid ryst toggle ved ugyldig aktivering
         toggleRef.current?.shake();
 
-        const summary = tabelRef.current?.getValidationSummary();
-        if (summary?.firstErrorCell && summary.firstErrorCell.reason === 'missing') {
-          tabelRef.current?.showMissingEntryError(summary.firstErrorCell);
+        // Hvis der er tabel-fejl, guid brugeren til den relevante celle
+        if (tabelHarFejl) {
+          const summary = tabelRef.current?.getValidationSummary();
+          if (summary?.firstErrorCell) {
+            if (summary.firstErrorCell.reason === 'missing') {
+              tabelRef.current?.showMissingEntryError(summary.firstErrorCell);
+            } else {
+              tabelRef.current?.flashError({
+                kind: 'cell',
+                issue: 'invalid',
+                rowId: summary.firstErrorCell.rowId,
+                colKey: summary.firstErrorCell.colKey,
+              });
+            }
+          }
         }
 
-        // Blokér toggle-ændring
+        // Ingen state-ændring
         return;
       }
 
-      // Ingen fejl - opdater state
+      // Gyldig ændring → opdater reducer + persisted state
       dispatch({ type: newValue ? 'ENABLE' : 'DISABLE' });
       onEnabledChange(newValue);
     },
-    [tabelHarFejl, tabelRef, toggleRef, onEnabledChange]
+    [
+      tabelHarFejl,
+      hasValidPeriod, // vigtigt: undgå stale closure
+      tabelRef,
+      toggleRef,
+      onEnabledChange,
+    ]
   );
 
-  // Automatisk deaktivering hvis fejl opstår mens toggle er tændt
+  // Automatisk deaktivering hvis tabel-fejl opstår mens toggle er tændt
   React.useEffect(() => {
     if (tabelHarFejl && state.enabled) {
       dispatch({ type: 'DISABLE' });
@@ -130,7 +127,7 @@ export const useOmregningToggle = ({
     }
   }, [tabelHarFejl, state.enabled, onEnabledChange]);
 
-  // Automatisk deaktivering hvis perioden ikke er gyldig (fx skift af lønperiode)
+  // Automatisk deaktivering hvis perioden bliver ugyldig
   React.useEffect(() => {
     if (!hasValidPeriod && state.enabled) {
       dispatch({ type: 'DISABLE' });

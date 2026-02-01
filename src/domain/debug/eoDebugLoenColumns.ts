@@ -126,9 +126,11 @@ const shouldIncludeWageColumn = (
   rows: readonly AarsloenTableRow[],
   loenperiode: Loenperiode,
   satser: Parameters<typeof getWageAmountsForRow>[1],
-  key: (typeof WAGE_COLUMNS)[number]['key']
+  key: (typeof WAGE_COLUMNS)[number]['key'],
+  errorRowIds: ReadonlySet<string>
 ): boolean => {
   for (const row of rows) {
+    if (errorRowIds.has(row.id)) continue;
     if (isAarsloenRowEffectivelyEmpty(row)) continue;
     const interval = parseAarsloenRowInterval(row, loenperiode);
     if (!interval) continue;
@@ -190,6 +192,7 @@ export const buildLoenindkomstColumns = (args: {
   tableTil: ISODateString;
   columnWidthPx: number;
   integrityTolerance: number;
+  errorRowIdsByIndex: ReadonlyArray<ReadonlySet<string>>;
 }): Readonly<{ columns: ReadonlyArray<DebugTabelColumnData>; integrityIssues: ReadonlyArray<DebugTabelIntegrityIssue> }> => {
   const {
     dates,
@@ -207,6 +210,7 @@ export const buildLoenindkomstColumns = (args: {
     tableTil,
     columnWidthPx,
     integrityTolerance,
+    errorRowIdsByIndex,
   } = args;
 
   const columns: DebugTabelColumnData[] = [];
@@ -265,6 +269,7 @@ export const buildLoenindkomstColumns = (args: {
   for (let afIndex = 0; afIndex < ansaettelser.length; afIndex += 1) {
     const af = ansaettelser[afIndex];
     const suffix = hasMultiple ? ` (${afIndex + 1})` : '';
+    const errorRowIds = errorRowIdsByIndex[afIndex] ?? new Set<string>();
 
     const tafValues: string[] = dates.map((iso, rowIndex) => {
       if (!isWithinErstatningsByIndex[rowIndex] && !isWithinBeregningsByIndex[rowIndex]) return '';
@@ -313,7 +318,7 @@ export const buildLoenindkomstColumns = (args: {
     } as const;
 
     const includeKeys = WAGE_COLUMNS.filter((col) =>
-      shouldIncludeWageColumn(af.indtaegtsoplysningerTableData ?? [], af.loenperiode, satser, col.key)
+      shouldIncludeWageColumn(af.indtaegtsoplysningerTableData ?? [], af.loenperiode, satser, col.key, errorRowIds)
     );
 
     // NOTE: Float64Array is intentional for deterministic summation and legacy parity.
@@ -329,6 +334,7 @@ export const buildLoenindkomstColumns = (args: {
 
     const rows = af.indtaegtsoplysningerTableData ?? [];
     for (const row of rows) {
+      if (errorRowIds.has(row.id)) continue;
       if (isAarsloenRowEffectivelyEmpty(row)) continue;
       const interval = parseAarsloenRowInterval(row, af.loenperiode);
       if (!interval) {

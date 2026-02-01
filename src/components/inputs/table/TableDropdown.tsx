@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { MenuItem, Select, type SelectChangeEvent } from '@mui/material';
+import { MenuItem, Select, Tooltip, type SelectChangeEvent } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { assignRef } from './assignRef';
 
 /**
  * TableDropdown (table-cell select)
@@ -43,6 +44,8 @@ export type TableDropdownProps = (TableDropdownPropsAllowEmpty | TableDropdownPr
     options: readonly TableDropdownOption[];
     onChange?: (e: TableDropdownChangeEvent) => void;
     onBlur?: (e: React.FocusEvent<HTMLElement>) => void;
+    externalErrorMessage?: string;
+    inputRef?: React.Ref<HTMLElement>;
     sx?: SxProps<Theme>;
   }>;
 
@@ -55,6 +58,8 @@ const TableDropdown = React.memo(
     options,
     onChange,
     onBlur,
+    externalErrorMessage,
+    inputRef,
     sx,
     ...rest
   }: TableDropdownProps) => {
@@ -120,85 +125,116 @@ const TableDropdown = React.memo(
       [allowEmpty, onChange, options, readOnly, value]
     );
 
+    const a11yErrorId = React.useId();
+    const externalErrorText = (externalErrorMessage ?? '').trim();
+    const showError = externalErrorText !== '';
+
+    const visuallyHiddenStyle: React.CSSProperties = {
+      position: 'absolute',
+      width: 1,
+      height: 1,
+      padding: 0,
+      margin: -1,
+      overflow: 'hidden',
+      clip: 'rect(0, 0, 0, 0)',
+      whiteSpace: 'nowrap',
+      border: 0,
+    };
+
     return (
-      <span data-mineo-table-dropdown="true" style={{ display: 'block' }} onKeyDownCapture={handleKeyDown}>
-        <Select
-          value={value ?? ''}
-          onChange={handleChange}
-          onBlur={onBlur}
-          // Note: MUI Select key handling differs by variant/implementation.
-          // Capture handler on the wrapper is the single source of truth for clear-on-Delete.
-          displayEmpty={allowEmpty}
-          size="small"
-          variant={appearance === 'loose' ? 'outlined' : 'standard'}
-          disabled={readOnly}
-          sx={{
-            width: '100%',
-            fontSize: '13px',
-            fontFamily: '"Montserrat", sans-serif',
-            color: 'inherit',
-            fontFeatureSettings: '"tnum"',
-            ...(appearance === 'loose'
-              ? {
-                  backgroundColor: '#ffffff',
-                  borderRadius: '10px',
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(0, 0, 0, 0.12)',
-                    borderWidth: '1px',
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(0, 0, 0, 0.25)',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#1976d2',
-                    borderWidth: '1px',
-                  },
-                  '& .MuiSelect-select:focus': {
-                    backgroundColor: 'transparent',
-                  },
-                }
-              : {
-                  height: '100%',
-                  border: '1px solid',
-                  borderColor: 'transparent',
-                  borderRadius: '4px',
-                  '&:focus-within': {
-                    borderColor: 'primary.main',
-                  },
-                }),
-            ...(appearance === 'grid'
-              ? {
-                  '& .MuiSelect-select': {
-                    paddingTop: '4px',
-                    paddingBottom: '4px',
-                    paddingLeft: '8px',
-                    paddingRight: '24px',
-                  },
-                }
-              : {}),
-            '& .MuiInputBase-input': {
-              font: 'inherit',
-              fontSize: 'inherit',
-              lineHeight: 'inherit',
-              color: 'inherit',
-            },
-            '&:before': { display: 'none' },
-            '&:after': { display: 'none' },
-            ...sx,
-          }}
+      <Tooltip title={showError ? externalErrorText : ''} arrow placement="top">
+        <span
+          data-mineo-table-dropdown="true"
+          style={{ display: 'block' }}
+          onKeyDownCapture={handleKeyDown}
+          ref={(el) => assignRef(inputRef, el)}
         >
-          {allowEmpty ? (
-            <MenuItem value="">
-              <em style={{ color: 'rgba(0,0,0,0.4)' }}>{placeholder}</em>
-            </MenuItem>
+          <Select
+            value={value ?? ''}
+            onChange={handleChange}
+            onBlur={onBlur}
+            // Note: MUI Select key handling differs by variant/implementation.
+            // Capture handler on the wrapper is the single source of truth for clear-on-Delete.
+            displayEmpty={allowEmpty}
+            size="small"
+            variant={appearance === 'loose' ? 'outlined' : 'standard'}
+            disabled={readOnly}
+            inputProps={{
+              'aria-describedby': showError ? a11yErrorId : undefined,
+            }}
+            sx={{
+              width: '100%',
+              fontSize: '13px',
+              fontFamily: '"Montserrat", sans-serif',
+              color: 'inherit',
+              fontFeatureSettings: '"tnum"',
+              ...(appearance === 'loose'
+                ? {
+                    backgroundColor: '#ffffff',
+                    borderRadius: '10px',
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: showError ? '#d32f2f' : 'rgba(0, 0, 0, 0.12)',
+                      borderWidth: '1px',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: showError ? '#d32f2f' : 'rgba(0, 0, 0, 0.25)',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#1976d2',
+                      borderWidth: '1px',
+                    },
+                    '& .MuiSelect-select:focus': {
+                      backgroundColor: 'transparent',
+                    },
+                  }
+                : {
+                    height: '100%',
+                    border: '1px solid',
+                    borderColor: showError ? '#d32f2f' : 'transparent',
+                    borderRadius: '4px',
+                    '&:focus-within': {
+                      borderColor: '#1976d2',
+                    },
+                  }),
+              ...(appearance === 'grid'
+                ? {
+                    '& .MuiSelect-select': {
+                      paddingTop: '4px',
+                      paddingBottom: '4px',
+                      paddingLeft: '8px',
+                      paddingRight: '24px',
+                    },
+                  }
+                : {}),
+              '& .MuiInputBase-input': {
+                font: 'inherit',
+                fontSize: 'inherit',
+                lineHeight: 'inherit',
+                color: 'inherit',
+              },
+              '&:before': { display: 'none' },
+              '&:after': { display: 'none' },
+              ...sx,
+            }}
+          >
+            {allowEmpty ? (
+              <MenuItem value="">
+                <em style={{ color: 'rgba(0,0,0,0.4)' }}>{placeholder}</em>
+              </MenuItem>
+            ) : null}
+            {options.map((opt) => (
+              <MenuItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </MenuItem>
+            ))}
+          </Select>
+          {showError ? (
+            <span id={a11yErrorId} style={visuallyHiddenStyle}>
+              {externalErrorText}
+            </span>
           ) : null}
-          {options.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </span>
+        </span>
+      </Tooltip>
     );
   }
 );
