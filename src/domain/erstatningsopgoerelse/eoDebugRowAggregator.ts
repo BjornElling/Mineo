@@ -38,6 +38,151 @@ export type BeregningErrorSummary = {
   allRows: ReadonlyArray<DebugRowWithNavigation>;
 };
 
+type DebugStatus = DebugRowModel['status'];
+
+const severityRank: Readonly<Record<DebugStatus, number>> = {
+  ok: 0,
+  warning: 1,
+  error: 2,
+};
+
+const toSeverityRank = (status: DebugStatus | undefined): number => {
+  if (!status) return 0;
+  return severityRank[status] ?? 0;
+};
+
+const resolveDependencyIds = (
+  row: DebugRowWithNavigation,
+  allIdsSorted: ReadonlyArray<string>,
+  rowIdSet: ReadonlySet<string>
+): ReadonlyArray<string> => {
+  const specs = row.dependsOn ?? [];
+  if (specs.length === 0) return [];
+
+  const resolved = new Set<string>();
+  for (const spec of specs) {
+    if (spec.kind === 'id') {
+      if (spec.id !== row.id && rowIdSet.has(spec.id)) {
+        resolved.add(spec.id);
+      }
+    } else {
+      for (const candidateId of allIdsSorted) {
+        if (candidateId === row.id) continue;
+        if (candidateId.startsWith(spec.prefix)) {
+          resolved.add(candidateId);
+        }
+      }
+    }
+  }
+
+  return Array.from(resolved);
+};
+
+const buildDependencyGraph = (
+  rows: ReadonlyArray<DebugRowWithNavigation>
+): ReadonlyMap<string, ReadonlyArray<string>> => {
+  const allIds = rows.map((row) => row.id);
+  const allIdsSorted = Array.from(new Set(allIds)).sort((a, b) => a.localeCompare(b));
+  const rowIdSet = new Set(allIdsSorted);
+  const depsById = new Map<string, ReadonlyArray<string>>();
+  rows.forEach((row) => {
+    depsById.set(row.id, resolveDependencyIds(row, allIdsSorted, rowIdSet));
+  });
+  return depsById;
+};
+
+const detectDependencyCycles = (
+  ids: ReadonlyArray<string>,
+  depsById: ReadonlyMap<string, ReadonlyArray<string>>
+): ReadonlySet<string> => {
+  const state = new Map<string, 0 | 1 | 2>();
+  const stack: string[] = [];
+  const inCycle = new Set<string>();
+
+  const visit = (id: string): void => {
+    const currentState = state.get(id) ?? 0;
+    if (currentState === 1) {
+      const index = stack.indexOf(id);
+      if (index >= 0) {
+        for (let i = index; i < stack.length; i += 1) {
+          inCycle.add(stack[i]);
+        }
+      }
+      inCycle.add(id);
+      return;
+    }
+    if (currentState === 2) return;
+
+    state.set(id, 1);
+    stack.push(id);
+
+    const parents = depsById.get(id) ?? [];
+    parents.forEach(visit);
+
+    stack.pop();
+    state.set(id, 2);
+  };
+
+  ids.forEach(visit);
+  return inCycle;
+};
+
+const buildMaxAncestorSeverityMap = (
+  ids: ReadonlyArray<string>,
+  depsById: ReadonlyMap<string, ReadonlyArray<string>>,
+  statusById: ReadonlyMap<string, DebugStatus>,
+  inCycle: ReadonlySet<string>
+): ReadonlyMap<string, number> => {
+  const memo = new Map<string, number>();
+
+  const compute = (id: string): number => {
+    if (inCycle.has(id)) return 0;
+    const cached = memo.get(id);
+    if (cached !== undefined) return cached;
+
+    let maxSeverity = 0;
+    const parents = depsById.get(id) ?? [];
+    for (const parentId of parents) {
+      if (inCycle.has(parentId)) continue;
+      const parentSeverity = toSeverityRank(statusById.get(parentId));
+      const ancestorSeverity = compute(parentId);
+      if (parentSeverity > maxSeverity) maxSeverity = parentSeverity;
+      if (ancestorSeverity > maxSeverity) maxSeverity = ancestorSeverity;
+    }
+
+    memo.set(id, maxSeverity);
+    return maxSeverity;
+  };
+
+  ids.forEach((id) => {
+    if (!memo.has(id)) compute(id);
+  });
+
+  return memo;
+};
+
+const shouldSuppressRow = (
+  row: DebugRowWithNavigation,
+  maxAncestorSeverityById: ReadonlyMap<string, number>
+): boolean => {
+  const rowSeverity = toSeverityRank(row.status);
+  if (rowSeverity === 0) return false;
+  const maxAncestorSeverity = maxAncestorSeverityById.get(row.id) ?? 0;
+  return maxAncestorSeverity >= rowSeverity;
+};
+
+const findDuplicateIds = (rows: ReadonlyArray<DebugRowWithNavigation>): ReadonlyArray<string> => {
+  const counts = new Map<string, number>();
+  rows.forEach((row) => {
+    counts.set(row.id, (counts.get(row.id) ?? 0) + 1);
+  });
+  const duplicates: string[] = [];
+  counts.forEach((count, id) => {
+    if (count > 1) duplicates.push(id);
+  });
+  return duplicates.sort((a, b) => a.localeCompare(b));
+};
+
 /**
  * Tilføjer navigation-metadata til DebugRowModel
  */
@@ -77,10 +222,38 @@ export const collectAllDebugRows = (
 
   // Tilføj navigation-metadata til alle rows
   const rowsWithNavigation = allRows.map(addNavigationMetadata);
+  const duplicateIds = findDuplicateIds(rowsWithNavigation);
+  if (duplicateIds.length > 0) {
+    throw new Error(
+      `Duplikat-id fundet i debug-rows: ${duplicateIds.join(', ')}. ` +
+        'Debug-ids skal være entydige for at sikre korrekt suppression.'
+    );
+  }
+  const statusById = new Map(rowsWithNavigation.map((row) => [row.id, row.status]));
+  const ids = rowsWithNavigation.map((row) => row.id);
+  const depsById = buildDependencyGraph(rowsWithNavigation);
+  const inCycle = detectDependencyCycles(ids, depsById);
+  if (inCycle.size > 0) {
+    const idsPreview = Array.from(inCycle)
+      .sort((a, b) => a.localeCompare(b))
+      .slice(0, 10);
+    const suffix = inCycle.size > idsPreview.length ? ' …' : '';
+    const message = `Debug dependency cycle detected (no suppression applied for cycle nodes): ${idsPreview.join(
+      ', '
+    )}${suffix}`;
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+      throw new Error(message);
+    }
+  }
+  const maxAncestorSeverityById = buildMaxAncestorSeverityMap(ids, depsById, statusById, inCycle);
 
   // Filtrer og gruppér efter status
-  const errors = rowsWithNavigation.filter((r) => r.status === 'error');
-  const warnings = rowsWithNavigation.filter((r) => r.status === 'warning');
+  const errors = rowsWithNavigation.filter(
+    (r) => r.status === 'error' && !shouldSuppressRow(r, maxAncestorSeverityById)
+  );
+  const warnings = rowsWithNavigation.filter(
+    (r) => r.status === 'warning' && !shouldSuppressRow(r, maxAncestorSeverityById)
+  );
 
   return { errors, warnings, allRows: rowsWithNavigation };
 };

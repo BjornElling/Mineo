@@ -2,7 +2,7 @@ import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { FieldErrorBySource } from '../../types/fieldErrors';
 import { isoToDanish } from '../../types/branded';
 import { collectPresentFieldErrors, isNonEmptyString, resolveDebugDisplay } from './eoDebugCommon';
-import type { DebugStatus } from '../debug/eoDebugTypes';
+import type { DebugRowModel, DebugStatus } from '../debug/eoDebugTypes';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -15,13 +15,6 @@ export type DebugRowId =
   | 'stamdata.skadelidte'
   | 'stamdata.skadestype'
   | 'stamdata.skadesdato';
-
-export type DebugRowModel = {
-  id: DebugRowId;
-  label: string;
-  displayValue: string;
-  status: DebugStatus;
-};
 
 type StamdataValues = PersistedSectionMap['stamdata'];
 type StamdataFieldName = Extract<keyof StamdataValues, string>;

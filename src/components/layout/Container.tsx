@@ -1,5 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
+import { ScrollContainerProvider } from '../../contexts/ScrollContainerContext';
+import ScrollToTopButton from '../ui/ScrollToTopButton';
 
 /**
  * Container komponent til content-område
@@ -386,23 +388,26 @@ const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
   }, [getFocusableElements, getNearestExpanded, getWidgetHost, invalidateCache, isPopupWidget]);
 
   return (
-    <Box
-      ref={containerRef}
-      data-mineo-scroll-container="true"
-      onKeyDown={handleKeyDown}
-      sx={{
-        flex: 1,
-        padding: 3,
-        backgroundColor: '#f8f9fa',
-        overflowY: 'auto',
-        overflowX: 'auto',
-        height: '100vh'
-      }}
-    >
-      <Box sx={{ width: '1000px', paddingLeft: '50px', paddingTop: '50px' }}>
-        {children}
+    <ScrollContainerProvider containerRef={containerRef}>
+      <Box
+        ref={containerRef}
+        data-mineo-scroll-container="true"
+        onKeyDown={handleKeyDown}
+        sx={{
+          flex: 1,
+          padding: 3,
+          backgroundColor: '#f8f9fa',
+          overflowY: 'auto',
+          overflowX: 'auto',
+          height: '100vh'
+        }}
+      >
+        <Box sx={{ width: '1000px', paddingLeft: '50px', paddingTop: '50px' }}>
+          {children}
+        </Box>
+        <ScrollToTopButton />
       </Box>
-    </Box>
+    </ScrollContainerProvider>
   );
 });
 

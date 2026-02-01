@@ -10,7 +10,7 @@ import { detectOverlappingPeriods } from './periodOverlapDetection';
 import { formatCurrency } from '../../utils/formatUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { buildNoValidDateRangeMessage, collectPresentFieldErrors, isNonEmptyString, resolveDebugDisplay } from './eoDebugCommon';
-import type { DebugRowGroup, DebugStatus } from '../debug/eoDebugTypes';
+import type { DebugRowGroup, DebugRowModel, DebugStatus } from '../debug/eoDebugTypes';
 import { isoDateToDate } from '../dates/isoDate';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
@@ -84,14 +84,6 @@ export type DebugRowId =
   | `offentligeYdelser.${string}`
   | `oevrigekrav.${string}`
   | 'saerligekommentarer';
-
-export type DebugRowModel = {
-  id: DebugRowId;
-  label: string;
-  displayValue: string;
-  status: DebugStatus;
-  group?: DebugRowGroup;
-};
 
 type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];
 type ErstatningsopgoerelseFieldName = Extract<keyof ErstatningsopgoerelseValues, string>;
@@ -263,6 +255,10 @@ export const buildEODebugForligRows = (
       label: 'Beregnet ansvarsgrad',
       displayValue: beregnetAnsvarsgrad,
       status: 'ok',
+      dependsOn: [
+        { kind: 'id', id: 'forlig.ansvarsgradProcent' },
+        { kind: 'id', id: 'forlig.ansvarsgradBroek' },
+      ],
     },
     {
       id: 'forlig.dato',
@@ -469,6 +465,11 @@ export const buildEODebugAesRows = (
       displayValue: beregnetMidlertidigEETStartdato.displayValue,
       status: beregnetMidlertidigEETStartdato.status,
       group: 'aes.midlertidigtEet',
+      dependsOn: [
+        { kind: 'id', id: 'aes.midlertidigtEetAfgorelse' },
+        { kind: 'id', id: 'aes.midlertidigEETAfgoerelseDato' },
+        { kind: 'id', id: 'aes.midlertidigEETVirkningsdato' },
+      ],
     },
     {
       id: 'aes.endeligtEetAfgorelse',
@@ -495,6 +496,11 @@ export const buildEODebugAesRows = (
       displayValue: beregnetEndeligEETStartdato.displayValue,
       status: beregnetEndeligEETStartdato.status,
       group: 'aes.endeligtEet',
+      dependsOn: [
+        { kind: 'id', id: 'aes.endeligtEetAfgorelse' },
+        { kind: 'id', id: 'aes.endeligEETAfgoerelseDato' },
+        { kind: 'id', id: 'aes.endeligEETVirkningsdato' },
+      ],
     },
     {
       id: 'aes.verserendeKlageEet',
@@ -891,6 +897,11 @@ export const buildEODebugSvieSmerteRows = (
     label: satserPerDagMax.label,
     displayValue: satserPerDagMax.displayValue,
     status: satserPerDagMax.status,
+    dependsOn: [
+      { kind: 'id', id: 'sviesmerte.satserAar' },
+      { kind: 'id', id: 'forlig.ansvarsgradProcent' },
+      { kind: 'id', id: 'forlig.ansvarsgradBroek' },
+    ],
   });
 
   // 4) Svie/smerte krav i tidligere erstatningsopgørelser (ok hvis tomt)
@@ -1055,6 +1066,10 @@ export const buildEODebugSvieSmerteRows = (
     label: 'Svie/smerteperioder i erstatningsperioden',
     displayValue: beregnetPeriodeResult.displayValue,
     status: beregnetPeriodeResult.status,
+    dependsOn: [
+      { kind: 'id', id: 'erstatningsopgoerelse.vedroererPeriode' },
+      { kind: 'prefix', prefix: 'sviesmerte.periode.' },
+    ],
   });
 
   // 7) Antal svie/smerte dage i erstatningsperioden
@@ -1184,6 +1199,9 @@ export const buildEODebugSvieSmerteRows = (
     label: 'Antal svie/smerte dage i erstatningsperioden',
     displayValue: antalDageResult.displayValue,
     status: antalDageResult.status,
+    dependsOn: [
+      { kind: 'id', id: 'sviesmerte.beregnetPeriode' },
+    ],
   });
 
   // 8) Beregnet svie/smerte beløb
@@ -1302,6 +1320,11 @@ export const buildEODebugSvieSmerteRows = (
     label: 'Beregnet svie/smerte',
     displayValue: beregnetBeloebResult.displayValue,
     status: beregnetBeloebResult.status,
+    dependsOn: [
+      { kind: 'id', id: 'sviesmerte.antalDage' },
+      { kind: 'id', id: 'sviesmerte.satserAar' },
+      { kind: 'id', id: 'sviesmerte.delvisSygemeldingSats' },
+    ],
   });
 
   return rows;
@@ -1760,6 +1783,9 @@ export const buildEODebugTafBeregningsgrundlagRows = (
       }
     })(),
     status: 'ok',
+    dependsOn: [
+      { kind: 'id', id: 'taf.beregningsgrundlag.beregnesUdFra' },
+    ],
   });
 
   const beregnesUdFra = values.beregnesUdFra;
@@ -2058,6 +2084,10 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     label: arbejdsdageRow.label,
     displayValue: arbejdsdageRow.displayValue,
     status: arbejdsdageRow.status,
+    dependsOn: [
+      { kind: 'id', id: 'taf.beregningsgrundlag.beregningsperiode' },
+      { kind: 'id', id: 'taf.beregningsgrundlag.oevrigeFravaersdage' },
+    ],
   });
 
   const maanederRow = (() => {
@@ -2087,6 +2117,9 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     label: maanederRow.label,
     displayValue: maanederRow.displayValue,
     status: maanederRow.status,
+    dependsOn: [
+      { kind: 'id', id: 'taf.beregningsgrundlag.beregningsperiode' },
+    ],
   });
 
   const maanedsloenDisplay = (() => {
@@ -2112,6 +2145,9 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     label: 'Månedslønnen udgør',
     displayValue: maanedsloenDisplay.displayValue,
     status: maanedsloenDisplay.status,
+    dependsOn: [
+      { kind: 'id', id: 'taf.beregningsgrundlag.beregnesUdFra' },
+    ],
   });
 
   const dagsloenDisplay = (() => {
@@ -2137,6 +2173,9 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     label: 'Dagslønnen udgør',
     displayValue: dagsloenDisplay.displayValue,
     status: dagsloenDisplay.status,
+    dependsOn: [
+      { kind: 'id', id: 'taf.beregningsgrundlag.beregnesUdFra' },
+    ],
   });
 
   const loenBaseretPaaDisplay = (() => {
@@ -2155,6 +2194,9 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     label: '- baseret på',
     displayValue: loenBaseretPaaDisplay.displayValue,
     status: loenBaseretPaaDisplay.status,
+    dependsOn: [
+      { kind: 'id', id: 'taf.beregningsgrundlag.beregnesUdFra' },
+    ],
   });
 
   return rows;

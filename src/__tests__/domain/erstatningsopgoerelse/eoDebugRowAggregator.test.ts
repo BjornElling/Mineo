@@ -56,11 +56,16 @@ const eoErrors: Partial<
   Record<Extract<keyof PersistedSectionMap['erstatningsopgoerelse'], string>, FieldErrorBySource>
 > = {};
 
-const makeRow = (id: string, status: DebugRowModel['status']): DebugRowModel => ({
+const makeRow = (
+  id: string,
+  status: DebugRowModel['status'],
+  dependsOn?: DebugRowModel['dependsOn']
+): DebugRowModel => ({
   id,
   label: id,
   displayValue: id,
   status,
+  dependsOn,
 });
 
 describe('collectAllDebugRows', () => {
@@ -178,5 +183,163 @@ describe('collectAllDebugRows', () => {
 
     expect(allRows).toHaveLength(1);
     expect(allRows[0].navigation.kind).toBe('unsupported');
+  });
+
+  it('throws when duplicate row ids are produced by builders', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('duplicate.row', 'warning'),
+          makeRow('duplicate.row', 'error'),
+        ],
+      },
+    ]);
+
+    expect(() =>
+      collectAllDebugRows(
+        STAMDATA_INITIAL_VALUES,
+        stamdataErrors,
+        ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+        eoErrors
+      )
+    ).toThrow('Duplikat-id fundet i debug-rows');
+  });
+
+  it('does not suppress child error when parent has warning', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('parent.warning', 'warning'),
+          makeRow('child.error', 'error', [{ kind: 'id', id: 'parent.warning' }]),
+        ],
+      },
+    ]);
+
+    const { errors, warnings } = collectAllDebugRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      eoErrors
+    );
+
+    expect(errors.map((row) => row.id)).toEqual(['child.error']);
+    expect(warnings.map((row) => row.id)).toEqual(['parent.warning']);
+  });
+
+  it('suppresses child error when parent has error', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('parent.error', 'error'),
+          makeRow('child.error', 'error', [{ kind: 'id', id: 'parent.error' }]),
+        ],
+      },
+    ]);
+
+    const { errors, warnings } = collectAllDebugRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      eoErrors
+    );
+
+    expect(errors.map((row) => row.id)).toEqual(['parent.error']);
+    expect(warnings).toEqual([]);
+  });
+
+  it('suppresses child warning when parent has warning', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('parent.warning', 'warning'),
+          makeRow('child.warning', 'warning', [{ kind: 'id', id: 'parent.warning' }]),
+        ],
+      },
+    ]);
+
+    const { errors, warnings } = collectAllDebugRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      eoErrors
+    );
+
+    expect(errors).toEqual([]);
+    expect(warnings.map((row) => row.id)).toEqual(['parent.warning']);
+  });
+
+  it('suppresses child when any prefix-matched parent has blocking severity', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('sviesmerte.periode.alpha', 'ok'),
+          makeRow('sviesmerte.periode.beta', 'error'),
+          makeRow('sviesmerte.beregnetPeriode', 'warning', [{ kind: 'prefix', prefix: 'sviesmerte.periode.' }]),
+        ],
+      },
+    ]);
+
+    const { errors, warnings } = collectAllDebugRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      eoErrors
+    );
+
+    expect(errors.map((row) => row.id)).toEqual(['sviesmerte.periode.beta']);
+    expect(warnings).toEqual([]);
+  });
+
+  it('keeps child rows when dependencies are missing', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('child.warning', 'warning', [{ kind: 'id', id: 'parent.missing' }]),
+        ],
+      },
+    ]);
+
+    const { errors, warnings } = collectAllDebugRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      eoErrors
+    );
+
+    expect(errors).toEqual([]);
+    expect(warnings.map((row) => row.id)).toEqual(['child.warning']);
+  });
+
+  it('throws on dependency cycles in test environment', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('cycle.a', 'error', [{ kind: 'id', id: 'cycle.b' }]),
+          makeRow('cycle.b', 'error', [{ kind: 'id', id: 'cycle.a' }]),
+        ],
+      },
+    ]);
+
+    const previousEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'test';
+    try {
+      expect(() =>
+        collectAllDebugRows(
+          STAMDATA_INITIAL_VALUES,
+          stamdataErrors,
+          ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+          eoErrors
+        )
+      ).toThrow('Debug dependency cycle detected');
+    } finally {
+      process.env.NODE_ENV = previousEnv;
+    }
   });
 });

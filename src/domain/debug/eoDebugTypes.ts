@@ -97,12 +97,18 @@ export type DebugRowGroup =
   | 'aes.oevrigt'
   | 'aes.differencekrav';
 
+export type DependencySpec =
+  | Readonly<{ kind: 'id'; id: string }>
+  | Readonly<{ kind: 'prefix'; prefix: string }>;
+
 export type DebugRowModel = {
   id: string;
   label: string;
   displayValue: string;
+  // Status er rækkens max-severity for UI (ikke issue-niveau).
   status: DebugStatus;
   group?: DebugRowGroup;
+  dependsOn?: ReadonlyArray<DependencySpec>;
 };
 
 /**

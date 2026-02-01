@@ -159,15 +159,13 @@ export const generateErstatningsopgoerelsePdf = (
   const fullWidth = doc.internal.pageSize.width - MARGINS.left - MARGINS.right;
   currentY = addWrappedText(doc, titel, MARGINS.left, currentY, lineHeight, fullWidth);
 
-  // Tilføj erstatningsperiode (normal skrift)
+  // Tilføj opgørelsesdato (normal skrift)
   doc.setFontSize(FONT_SIZES.normal);
   doc.setFont('helvetica', 'normal');
 
-  const periodeFra = formatDateShort(eoValues.vedroererPeriodeFra);
-  const periodeTil = formatDateShort(eoValues.vedroererPeriodeTil);
-
-  if (periodeFra && periodeTil) {
-    currentY = addWrappedText(doc, `${periodeFra} - ${periodeTil}`, MARGINS.left, currentY, lineHeight, fullWidth);
+  if (eoValues.opgørelseLavetDen) {
+    const opgørelseDato = formatDateLong(eoValues.opgørelseLavetDen);
+    currentY = addWrappedText(doc, `Lavet ${opgørelseDato}`, MARGINS.left, currentY, lineHeight, fullWidth);
     currentY += lineHeight;
   }
 
@@ -197,6 +195,35 @@ export const generateErstatningsopgoerelsePdf = (
   // ============================================================================
 
   currentY += doubleLineHeight;
+
+  // ============================================================================
+  // ERSTATNINGSPERIODE SEKTION
+  // ============================================================================
+
+  // Erstatningsperiode på én linje (fed skrift)
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(FONT_SIZES.header);
+
+  const periodeFra = formatDateShort(eoValues.vedroererPeriodeFra);
+  const periodeTil = formatDateShort(eoValues.vedroererPeriodeTil);
+
+  if (periodeFra && periodeTil) {
+    currentY = addWrappedText(
+      doc,
+      `Erstatningsperiode: ${periodeFra} - ${periodeTil}`,
+      MARGINS.left,
+      currentY,
+      lineHeight,
+      fullWidth
+    );
+    currentY += lineHeight;
+  }
+
+  // ============================================================================
+  // SVIE- OG SMERTEGODTGRELSE SEKTION
+  // ============================================================================
+
+  currentY += lineHeight;
 
   // Overskrift: Svie- og smertegodtgørelse (fed skrift)
   doc.setFont('helvetica', 'bold');
