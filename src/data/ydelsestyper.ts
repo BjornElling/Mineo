@@ -9,6 +9,7 @@ export type Periodisering = 'kalenderdage' | 'hverdage' | 'arbejdsdage';
 
 export interface YdelsestypeConfig {
   label: string;
+  debugLabel?: string;
   periodisering: Periodisering;
   periodiseringLabel: string;  // Vises i readonly-kolonne
 }
@@ -30,7 +31,8 @@ export const ydelsestyper: Record<string, YdelsestypeConfig> = {
     periodiseringLabel: 'Kalenderdage',
   },
   ledighedsydelse: {
-    label: 'Ledigheds-\nydelse',
+    label: 'Ledighedsydelse',
+    debugLabel: 'Ledigheds-\nydelse',
     periodisering: 'kalenderdage',
     periodiseringLabel: 'Kalenderdage',
   },
@@ -50,7 +52,8 @@ export const ydelsestyper: Record<string, YdelsestypeConfig> = {
     periodiseringLabel: 'Kalenderdage',
   },
   revalideringsydelse: {
-    label: 'Revaliderings-\nydelse',
+    label: 'Revalideringsydelse',
+    debugLabel: 'Revaliderings-\nydelse',
     periodisering: 'kalenderdage',
     periodiseringLabel: 'Kalenderdage',
   },

@@ -29,9 +29,15 @@ vi.mock('../../../../domain/debug/eoDebugModel', () => ({
   buildEODebugModel: vi.fn(),
 }));
 
-vi.mock('../../../../domain/debug/eoDebugSammentaelling', () => ({
-  buildEODebugSammentaellingModel: vi.fn(),
-}));
+vi.mock('../../../../domain/debug/eoDebugSammentaelling', async () => {
+  const actual = await vi.importActual<typeof import('../../../../domain/debug/eoDebugSammentaelling')>(
+    '../../../../domain/debug/eoDebugSammentaelling'
+  );
+  return {
+    ...actual,
+    buildEODebugSammentaellingModel: vi.fn(),
+  };
+});
 
 const makeModel = (patch: Partial<EODebugModel>): EODebugModel => {
   const base: EODebugModel = {

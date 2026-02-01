@@ -1,6 +1,7 @@
-import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { FieldErrorsForSection } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
+import { subtractOneDay } from '../../types/branded';
 import { formatCurrency, parseAmount } from '../../utils/formatUtils';
 import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
 import { debugTabelColumnId } from './eoDebugLoenTypes';
@@ -36,6 +37,8 @@ export type SammentaellingControl = Readonly<{
   warningEligible: boolean;
 }>;
 
+export type SammentaellingControlStatus = 'ok' | 'warning' | 'error';
+
 export type SammentaellingModel = Readonly<{
   beregningsperiode: SammentaellingControl;
   taf: SammentaellingControl;
@@ -54,6 +57,129 @@ export type SammentaellingEntry = Readonly<{
   label: string;
   control: SammentaellingControl;
 }>;
+
+export type SammentaellingDisplayRow = Readonly<{
+  key: string;
+  label: string;
+  control: SammentaellingControl;
+}>;
+
+export const buildSvieSmerteContext = (
+  stamdataValues: StamdataValues,
+  eoValues: ErstatningsopgoerelseValues
+): SvieSmerteContext => {
+  const erErhvervssygdom = stamdataValues.skadestype === 'Erhvervssygdom';
+  const menAfgoerelseDatoForTabel =
+    eoValues.varigeMenAfgorelse === 'Ja' ? subtractOneDay(eoValues.menAfgoerelseDato) : undefined;
+  const verserendeKlageMen = eoValues.verserendeKlageMen === 'Ja';
+
+  return {
+    skadesdatoISO: stamdataValues.skadesdato,
+    erErhvervssygdom,
+    menAfgoerelseDatoForTabel,
+    verserendeKlageMen,
+  };
+};
+
+export const buildTaftContext = (
+  stamdataValues: StamdataValues,
+  eoValues: ErstatningsopgoerelseValues
+): TaftContext => {
+  const erErhvervssygdom = stamdataValues.skadestype === 'Erhvervssygdom';
+  const endeligEETBeregnetDato =
+    eoValues.endeligtEetAfgorelse === 'Ja'
+      ? eoValues.endeligEETVirkningsdato || eoValues.endeligEETAfgoerelseDato
+      : undefined;
+  const verserendeKlageEet = eoValues.verserendeKlageEet === 'Ja';
+
+  return {
+    skadesdatoISO: stamdataValues.skadesdato,
+    erErhvervssygdom,
+    endeligEETBeregnetDato,
+    differencekravDato: eoValues.differencekravDato,
+    verserendeKlageEet,
+  };
+};
+
+export const getSammentaellingWarningMeta = (
+  control: SammentaellingControl
+): Readonly<{ tabel: number; lose: number; oevrige: number; beregnet: number }> | null => {
+  if (!control.warningEligible) return null;
+  if (control.beregnetValue === null || control.tabelValue === null) return null;
+  if (control.beregnetValue === control.tabelValue) return null;
+
+  if (control.tabelValue - control.loseFeriedage - control.oevrigeFravaersdage !== control.beregnetValue) {
+    return null;
+  }
+
+  return {
+    tabel: control.tabelValue,
+    lose: control.loseFeriedage,
+    oevrige: control.oevrigeFravaersdage,
+    beregnet: control.beregnetValue,
+  };
+};
+
+export const getSammentaellingControlStatus = (control: SammentaellingControl): SammentaellingControlStatus => {
+  // Explicit domain choice: tiny tolerance (0.005) for floating rounding; 0 and null are treated as empty ("-") in UI.
+  const EPS = 0.005;
+  const normalizedBeregnet = control.beregnetValue === null || control.beregnetValue === 0 ? null : control.beregnetValue;
+  const normalizedTabel = control.tabelValue === null || control.tabelValue === 0 ? null : control.tabelValue;
+
+  if (normalizedBeregnet === null && normalizedTabel === null) {
+    return 'ok';
+  }
+
+  if (
+    typeof normalizedBeregnet === 'number' &&
+    typeof normalizedTabel === 'number' &&
+    Number.isFinite(normalizedBeregnet) &&
+    Number.isFinite(normalizedTabel) &&
+    Math.abs(normalizedBeregnet - normalizedTabel) <= EPS
+  ) {
+    return 'ok';
+  }
+  if (getSammentaellingWarningMeta(control)) {
+    return 'warning';
+  }
+  return 'error';
+};
+
+export const buildSammentaellingDisplayRows = (model: SammentaellingModel): SammentaellingDisplayRow[] => {
+  const rows: SammentaellingDisplayRow[] = [
+    {
+      key: 'arbejdsdage-beregning',
+      label: 'Arbejdsdage i beregningsperiode',
+      control: model.beregningsperiode,
+    },
+    {
+      key: 'arbejdsdage-taf',
+      label: 'Arbejdsdage i TAF-periode',
+      control: model.taf,
+    },
+    {
+      key: 'svie-smerte-sygedage',
+      label: 'Svie/smerte, sygedage',
+      control: model.svieSmerteSygedage,
+    },
+    {
+      key: 'svie-smerte-delvise',
+      label: 'Svie/smerte, delvise sygedage',
+      control: model.svieSmerteDelvise,
+    },
+  ];
+
+  const ekstraRows = [...model.loenindkomst, ...model.offentligeYdelser];
+  ekstraRows.forEach((entry) => {
+    rows.push({
+      key: entry.key,
+      label: entry.label,
+      control: entry.control,
+    });
+  });
+
+  return rows;
+};
 
 const getIsoRange = (
   fra: ISODateString | undefined,

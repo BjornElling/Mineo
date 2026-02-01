@@ -5,12 +5,17 @@ import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { erstatningsopgoerelseSchema } from '../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { useFormPersistence } from '../../contexts/FormPersistenceContext';
 import EOOplysningerTab from './erstatningsopgoerelse/EOOplysningerTab';
 import LoenindkomstTab from './erstatningsopgoerelse/LoenindkomstTab';
 import OffentligeYdelserTab from './erstatningsopgoerelse/OffentligeYdelserTab';
 import EOberegningTab from './erstatningsopgoerelse/EOberegningTab';
 import EODebug from './erstatningsopgoerelse/EODebug';
 import EODebugTabel from './erstatningsopgoerelse/EODebugTabel';
+import { buildEODebugSnapshot, type EODebugSnapshot } from '../../domain/debug/eoDebugSnapshot';
+import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
+import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 
 const TAB_KEYS = {
   EO_OPLYSNINGER: 'eo_oplysninger',
@@ -28,6 +33,7 @@ type TabKey = typeof TAB_KEYS[keyof typeof TAB_KEYS];
  */
 const Erstatningsopgoerelse = React.memo(() => {
   const { settings } = useAppSettings();
+  const { getPersistedData, getFieldErrorsBySource, getSectionRevision, getFieldErrorRevision } = useFormPersistence();
   const showDebugTab = settings.showEODebugMenu;
 
   const allowedTabs = React.useMemo(() => {
@@ -70,6 +76,63 @@ const Erstatningsopgoerelse = React.memo(() => {
     'erstatningsopgoerelse',
     initialValues
   );
+
+  const persistenceRefs = React.useRef({
+    getPersistedData,
+    getFieldErrorsBySource,
+    getSectionRevision,
+    getFieldErrorRevision,
+  });
+  persistenceRefs.current = { getPersistedData, getFieldErrorsBySource, getSectionRevision, getFieldErrorRevision };
+
+  const buildDebugRevision = React.useCallback((): string => {
+    const { getSectionRevision: readSectionRevision, getFieldErrorRevision: readFieldErrorRevision } = persistenceRefs.current;
+    return [
+      readSectionRevision('stamdata'),
+      readSectionRevision('erstatningsopgoerelse'),
+      readFieldErrorRevision('stamdata'),
+      readFieldErrorRevision('erstatningsopgoerelse'),
+    ].join('-');
+  }, []);
+
+  const buildDebugSnapshot = React.useCallback((): EODebugSnapshot => {
+    const persistedStamdata = persistenceRefs.current.getPersistedData('stamdata');
+    const persistedEO = persistenceRefs.current.getPersistedData('erstatningsopgoerelse');
+
+    const resolvedStamdata: StamdataValues = { ...STAMDATA_INITIAL_VALUES, ...(persistedStamdata ?? {}) };
+    const resolvedEO: ErstatningsopgoerelseValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, ...(persistedEO ?? {}) };
+
+    const stamdataErrors = persistenceRefs.current.getFieldErrorsBySource('stamdata');
+    const eoErrors = persistenceRefs.current.getFieldErrorsBySource('erstatningsopgoerelse');
+
+    const revision = buildDebugRevision();
+
+    return buildEODebugSnapshot({
+      revision,
+      stamdataValues: resolvedStamdata,
+      eoValues: resolvedEO,
+      stamdataErrors,
+      eoErrors,
+    });
+  }, [buildDebugRevision]);
+
+  const buildDebugSnapshotRef = React.useRef(buildDebugSnapshot);
+  React.useEffect(() => {
+    buildDebugSnapshotRef.current = buildDebugSnapshot;
+  }, [buildDebugSnapshot]);
+
+  const [eoDebugSnapshot, setEoDebugSnapshot] = React.useState<EODebugSnapshot | null>(null);
+
+  React.useEffect(() => {
+    // Snapshot build is intentionally bound to tab entry to avoid expensive recalculation during input.
+    if (activeTab === TAB_KEYS.BEREGNING || activeTab === TAB_KEYS.DEBUG_TABEL) {
+      setEoDebugSnapshot(buildDebugSnapshotRef.current());
+    } else {
+      setEoDebugSnapshot(null);
+    }
+  }, [activeTab]);
+
+  const currentDebugRevision = buildDebugRevision();
 
   const handleTabChange = React.useCallback(
     (_event: React.SyntheticEvent, value: unknown) => {
@@ -267,6 +330,8 @@ const Erstatningsopgoerelse = React.memo(() => {
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               isActive={activeTab === TAB_KEYS.BEREGNING}
+              debugSnapshot={eoDebugSnapshot}
+              currentDebugRevision={currentDebugRevision}
             />
           </Box>
         )}
@@ -285,7 +350,10 @@ const Erstatningsopgoerelse = React.memo(() => {
             hidden={activeTab !== TAB_KEYS.DEBUG_TABEL}
             sx={{ display: activeTab === TAB_KEYS.DEBUG_TABEL ? 'block' : 'none' }}
           >
-            <EODebugTabel />
+            <EODebugTabel
+              debugSnapshot={activeTab === TAB_KEYS.DEBUG_TABEL ? eoDebugSnapshot : null}
+              currentDebugRevision={currentDebugRevision}
+            />
           </Box>
         ) : null}
       </Box>

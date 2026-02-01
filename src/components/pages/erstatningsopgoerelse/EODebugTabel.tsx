@@ -6,13 +6,20 @@ import ContentBox from '../../layout/ContentBox';
 
 import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { buildEODebugModel } from '../../../domain/debug/eoDebugModel';
-import { buildEODebugSammentaellingModel } from '../../../domain/debug/eoDebugSammentaelling';
-import type { SammentaellingControl } from '../../../domain/debug/eoDebugSammentaelling';
+import {
+  buildEODebugSammentaellingModel,
+  buildSammentaellingDisplayRows,
+  buildSvieSmerteContext,
+  buildTaftContext,
+  getSammentaellingControlStatus,
+  getSammentaellingWarningMeta,
+  type SammentaellingControl,
+} from '../../../domain/debug/eoDebugSammentaelling';
 import { CSV_DELIMITER, escapeCsvCell, normalizeCsvHeader, toCsvScalar } from '../../../domain/debug/eoDebugCsv';
 import { formatCurrency, parseAmount } from '../../../utils/formatUtils';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { ISODateString } from '../../../types/branded';
-import { isoToDanish, subtractOneDay } from '../../../types/branded';
+import { isoToDanish } from '../../../types/branded';
 import { downloadFile } from '../../../utils/fileHelpers';
 import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
 import { useFormFieldErrorsBySource } from '../../../hooks/useFormFieldErrors';
@@ -20,6 +27,7 @@ import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import VirtualizedDisplayTable from '../../tables/VirtualizedDisplayTable';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
 
 const ROW_HEIGHT = 28;
 
@@ -30,7 +38,12 @@ const isDanishNumberString = (value: string): boolean => {
   return /^-?\d{1,3}(\.\d{3})*(,\d+)?$/.test(value) || /^-?\d+(,\d+)?$/.test(value);
 };
 
-const EODebugTabel = React.memo(() => {
+type EODebugTabelProps = {
+  debugSnapshot?: EODebugSnapshot | null;
+  currentDebugRevision?: string;
+};
+
+const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }: EODebugTabelProps) => {
   const theme = useTheme();
   const { getPersistedData } = useFormPersistence();
 
@@ -47,63 +60,39 @@ const EODebugTabel = React.memo(() => {
   const deferredStamdata = React.useDeferredValue(stamdataValues);
   const deferredEO = React.useDeferredValue(erstatningsopgoerelseValues);
 
-  const svieSmerteContext = React.useMemo(() => {
-    const erErhvervssygdom = deferredStamdata.skadestype === 'Erhvervssygdom';
-    const menAfgoerelseDatoForTabel =
-      deferredEO.varigeMenAfgorelse === 'Ja' ? subtractOneDay(deferredEO.menAfgoerelseDato) : undefined;
-    const verserendeKlageMen = deferredEO.verserendeKlageMen === 'Ja';
-
-    return {
-      skadesdatoISO: deferredStamdata.skadesdato,
-      erErhvervssygdom,
-      menAfgoerelseDatoForTabel,
-      verserendeKlageMen,
-    };
-  }, [
-    deferredStamdata.skadesdato,
-    deferredStamdata.skadestype,
-    deferredEO.menAfgoerelseDato,
-    deferredEO.varigeMenAfgorelse,
-    deferredEO.verserendeKlageMen,
-  ]);
-
-  const taftContext = React.useMemo(() => {
-    const erErhvervssygdom = deferredStamdata.skadestype === 'Erhvervssygdom';
-    const endeligEETBeregnetDato =
-      deferredEO.endeligtEetAfgorelse === 'Ja'
-        ? deferredEO.endeligEETVirkningsdato || deferredEO.endeligEETAfgoerelseDato
-        : undefined;
-    const verserendeKlageEet = deferredEO.verserendeKlageEet === 'Ja';
-
-    return {
-      skadesdatoISO: deferredStamdata.skadesdato,
-      erErhvervssygdom,
-      endeligEETBeregnetDato,
-      differencekravDato: deferredEO.differencekravDato,
-      verserendeKlageEet,
-    };
-  }, [
-    deferredStamdata.skadesdato,
-    deferredStamdata.skadestype,
-    deferredEO.differencekravDato,
-    deferredEO.endeligEETAfgoerelseDato,
-    deferredEO.endeligEETVirkningsdato,
-    deferredEO.endeligtEetAfgorelse,
-    deferredEO.verserendeKlageEet,
-  ]);
-
-  const model = React.useMemo(() => buildEODebugModel(deferredEO), [deferredEO]);
-  const sammentaelling = React.useMemo(
-    () =>
-      buildEODebugSammentaellingModel({
-        values: deferredEO,
-        errors: erstatningsopgoerelseFieldErrors,
-        model,
-        svieSmerteContext,
-        taftContext,
-      }),
-    [deferredEO, erstatningsopgoerelseFieldErrors, model, svieSmerteContext, taftContext]
+  const svieSmerteContext = React.useMemo(
+    () => buildSvieSmerteContext(deferredStamdata, deferredEO),
+    [deferredStamdata, deferredEO]
   );
+
+  const taftContext = React.useMemo(
+    () => buildTaftContext(deferredStamdata, deferredEO),
+    [deferredStamdata, deferredEO]
+  );
+
+  const model = React.useMemo(() => {
+    if (debugSnapshot && debugSnapshot.revision === currentDebugRevision) return debugSnapshot.model;
+    return buildEODebugModel(deferredEO);
+  }, [debugSnapshot, currentDebugRevision, deferredEO]);
+
+  const sammentaelling = React.useMemo(() => {
+    if (debugSnapshot && debugSnapshot.revision === currentDebugRevision) return debugSnapshot.sammentaelling;
+    return buildEODebugSammentaellingModel({
+      values: deferredEO,
+      errors: erstatningsopgoerelseFieldErrors,
+      model,
+      svieSmerteContext,
+      taftContext,
+    });
+  }, [
+    debugSnapshot,
+    currentDebugRevision,
+    deferredEO,
+    erstatningsopgoerelseFieldErrors,
+    model,
+    svieSmerteContext,
+    taftContext,
+  ]);
 
   const formatIso = React.useCallback((iso: ISODateString | undefined): string => {
     if (!iso) return '-';
@@ -159,25 +148,19 @@ const EODebugTabel = React.memo(() => {
     };
 
     const renderControl = (control: SammentaellingControl): React.ReactElement => {
-      if (control.beregnetDisplay === control.tabelDisplay) {
+      const status = getSammentaellingControlStatus(control);
+      if (status === 'ok') {
         return <Check sx={{ color: 'green', fontSize: 20 }} />;
       }
 
-      if (
-        control.warningEligible &&
-        control.beregnetValue !== null &&
-        control.tabelValue !== null &&
-        control.beregnetValue !== control.tabelValue &&
-        control.tabelValue - control.loseFeriedage - control.oevrigeFravaersdage === control.beregnetValue
-      ) {
+      if (status === 'warning') {
+        const warningMeta = getSammentaellingWarningMeta(control);
+        if (!warningMeta) {
+          return <WarningAmber sx={{ color: 'orange', fontSize: 20 }} />;
+        }
         return (
           <Tooltip
-            title={getWarningTooltipText(
-              control.tabelValue,
-              control.loseFeriedage,
-              control.oevrigeFravaersdage,
-              control.beregnetValue
-            )}
+            title={getWarningTooltipText(warningMeta.tabel, warningMeta.lose, warningMeta.oevrige, warningMeta.beregnet)}
           >
             <WarningAmber sx={{ color: 'orange', fontSize: 20 }} />
           </Tooltip>
@@ -187,51 +170,10 @@ const EODebugTabel = React.memo(() => {
       return <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />;
     };
 
-    const { beregningsperiode, taf, svieSmerteSygedage, svieSmerteDelvise, loenindkomst, offentligeYdelser } =
-      sammentaelling;
-
-    rows.push({
-      key: 'arbejdsdage-beregning',
-      cells: [
-        'Arbejdsdage i beregningsperiode',
-        beregningsperiode.beregnetDisplay,
-        beregningsperiode.tabelDisplay,
-        renderControl(beregningsperiode),
-      ],
-    });
-
-    rows.push({
-      key: 'arbejdsdage-taf',
-      cells: [
-        'Arbejdsdage i TAF-periode',
-        taf.beregnetDisplay,
-        taf.tabelDisplay,
-        renderControl(taf),
-      ],
-    });
-
-    rows.push({
-      key: 'svie-smerte-sygedage',
-      cells: [
-        'Svie/smerte, sygedage',
-        svieSmerteSygedage.beregnetDisplay,
-        svieSmerteSygedage.tabelDisplay,
-        renderControl(svieSmerteSygedage),
-      ],
-    });
-
-    rows.push({
-      key: 'svie-smerte-delvise',
-      cells: [
-        'Svie/smerte, delvise sygedage',
-        svieSmerteDelvise.beregnetDisplay,
-        svieSmerteDelvise.tabelDisplay,
-        renderControl(svieSmerteDelvise),
-      ],
-    });
-
-    const ekstraRows = [...loenindkomst, ...offentligeYdelser];
-    ekstraRows.forEach((entry, index) => {
+    const useSnapshot = debugSnapshot && debugSnapshot.revision === currentDebugRevision;
+    const displayRows = useSnapshot ? debugSnapshot.sammentaellingRows : buildSammentaellingDisplayRows(sammentaelling);
+    displayRows.forEach((entry, index) => {
+      const isFirstExtraRow = index === 4 && displayRows.length > 4;
       rows.push({
         key: entry.key,
         cells: [
@@ -240,14 +182,13 @@ const EODebugTabel = React.memo(() => {
           entry.control.tabelDisplay,
           renderControl(entry.control),
         ],
-        rowSx:
-          index === 0
-            ? {
-                '& .MuiTableCell-root': {
-                  borderTop: '1px solid #e5e7eb !important',
-                },
-              }
-            : undefined,
+        rowSx: isFirstExtraRow
+          ? {
+              '& .MuiTableCell-root': {
+                borderTop: '1px solid #e5e7eb !important',
+              },
+            }
+          : undefined,
       });
     });
 

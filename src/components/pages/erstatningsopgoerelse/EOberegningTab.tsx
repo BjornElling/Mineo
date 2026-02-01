@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Checkbox, FormControlLabel, Tooltip } from '@mui/material';
 import { Download, ErrorOutline, WarningAmber } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
+import BugReportButton from '../../errors/BugReportButton';
+import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import { useFieldErrorsBySourceForSection } from '../../../hooks/useFormFieldErrors';
 import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { collectAllDebugRows } from '../../../domain/erstatningsopgoerelse/eoDebugRowAggregator';
@@ -15,6 +17,9 @@ import { useErstatningsopgoerelseAggregation } from '../../../calculation/useErs
 import AggregationResultView from './components/AggregationResultView';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
+import { getSammentaellingControlStatus, type SammentaellingDisplayRow } from '../../../domain/debug/eoDebugSammentaelling';
+import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
+import { buildControlMismatchReport, type ControlMismatchReport } from '../../../domain/debug/eoDebugMismatchReport';
 
 const formatDateLongDisplay = (isoDate: string | undefined): string => {
   const danish = formatISOToDanish(isoDate ?? '');
@@ -39,6 +44,8 @@ interface EOberegningTabProps {
   activeTab: TabKey;
   setActiveTab: (tab: TabKey) => void;
   isActive: boolean;
+  debugSnapshot: EODebugSnapshot | null;
+  currentDebugRevision: string;
 }
 
 /**
@@ -50,7 +57,9 @@ interface EOberegningTabProps {
  * - Tilbyder navigation til fejlkilder med scroll-to-sektion
  * - Forbereder download-funktionalitet (inaktiv i denne version)
  */
-const EOberegningTab = React.memo<EOberegningTabProps>(({ activeTab, setActiveTab, isActive }) => {
+const EOberegningTab = React.memo<EOberegningTabProps>((
+  { activeTab, setActiveTab, isActive, debugSnapshot, currentDebugRevision }
+) => {
   // ============================================================================
   // DATA INDSAMLING FRA FORMPERSISTENCE
   // ============================================================================
@@ -61,6 +70,72 @@ const EOberegningTab = React.memo<EOberegningTabProps>(({ activeTab, setActiveTa
   const eoValues = usePersistedSection('erstatningsopgoerelse');
   const stamdataErrors = useFieldErrorsBySourceForSection('stamdata');
   const eoErrors = useFieldErrorsBySourceForSection('erstatningsopgoerelse');
+
+  const [controlMismatchDialogOpen, setControlMismatchDialogOpen] = React.useState(false);
+  const [controlMismatchRows, setControlMismatchRows] = React.useState<SammentaellingDisplayRow[]>([]);
+  const [controlMismatchReport, setControlMismatchReport] = React.useState<ControlMismatchReport | null>(null);
+  const [controlMismatchReportError, setControlMismatchReportError] = React.useState<Error | null>(null);
+  const hasRunControlCheckRef = React.useRef(false);
+  const debugSnapshotRef = React.useRef<EODebugSnapshot | null>(null);
+  debugSnapshotRef.current = debugSnapshot;
+
+  const buildControlMismatchError = React.useCallback((report: ControlMismatchReport): Error => {
+    const lines = report.mismatches.map((row) => {
+      return `${row.label}: beregnet=${row.beregnet}, tabel=${row.tabel}`;
+    });
+    return new Error(['Sammentælling kontroluoverensstemmelser', ...lines].join('\n'));
+  }, []);
+
+  const controlMismatchReportExtras = React.useCallback(() => {
+    if (!controlMismatchReport) return [];
+    return [
+      { title: 'Kontroluoverensstemmelse (snapshot)', data: controlMismatchReport },
+    ];
+  }, [controlMismatchReport]);
+
+  const runControlCheckOnceOnTabEntryRef = React.useRef<() => void>(() => {});
+  runControlCheckOnceOnTabEntryRef.current = () => {
+    const snapshot = debugSnapshotRef.current;
+    if (!snapshot) return;
+    if (snapshot.revision !== currentDebugRevision) return;
+    if (!snapshot.hasControlErrors) {
+      setControlMismatchRows([]);
+      setControlMismatchReport(null);
+      setControlMismatchReportError(null);
+      setControlMismatchDialogOpen(false);
+      return;
+    }
+
+    const mismatches = snapshot.sammentaellingRows.filter(
+      (row) => getSammentaellingControlStatus(row.control) === 'error'
+    );
+
+    if (mismatches.length === 0) {
+      setControlMismatchRows([]);
+      setControlMismatchReport(null);
+      setControlMismatchReportError(null);
+      setControlMismatchDialogOpen(false);
+      return;
+    }
+
+    const report = buildControlMismatchReport(snapshot, mismatches);
+    setControlMismatchRows(mismatches);
+    setControlMismatchReport(report);
+    setControlMismatchReportError(buildControlMismatchError(report));
+    setControlMismatchDialogOpen(true);
+  };
+
+  React.useEffect(() => {
+    if (!isActive) {
+      // Navigation-guard: reset when leaving tab so entry is explicit.
+      hasRunControlCheckRef.current = false;
+      setControlMismatchDialogOpen(false);
+      return;
+    }
+    if (hasRunControlCheckRef.current) return;
+    hasRunControlCheckRef.current = true;
+    runControlCheckOnceOnTabEntryRef.current();
+  }, [isActive]);
 
   // ============================================================================
   // SAMLE ALLE DEBUG-ROWS MED NAVIGATION
@@ -541,6 +616,50 @@ const EOberegningTab = React.memo<EOberegningTabProps>(({ activeTab, setActiveTa
           </Box>
         </Box>
       </ContentBox>
+
+      <ConfirmationDialog
+        open={controlMismatchDialogOpen}
+        title="Uoverensstemmelse i kontrolberegning"
+        message={
+          <Box>
+            <Typography variant="body2" sx={{ marginBottom: 1 }}>
+              Der er konstateret en uoverensstemmelse mellem de beregnede værdier og en bagvedliggende
+              kontrolberegning. Det er en sikkerhedsforanstaltning, der ikke nødvendigvis betyder, at
+              beregningen er forkert - men kontroller den grundigt.
+            </Typography>
+            <Typography variant="body2" sx={{ marginBottom: 0.5 }}>
+              Uoverensstemmelser:
+            </Typography>
+            <Box component="ul" sx={{ margin: 0, paddingLeft: 2 }}>
+              {controlMismatchRows.map((row) => (
+                <li key={row.key}>
+                  <Typography variant="body2">
+                    {row.label}: Beregnet {row.control.beregnetDisplay} · Tabel {row.control.tabelDisplay}
+                  </Typography>
+                </li>
+              ))}
+            </Box>
+          </Box>
+        }
+        cancelText="Luk"
+        confirmText="OK"
+        confirmColor="primary"
+        onCancel={() => setControlMismatchDialogOpen(false)}
+        onConfirm={() => setControlMismatchDialogOpen(false)}
+        extraActions={
+          controlMismatchReportError ? (
+            <BugReportButton
+              variant="outlined"
+              label="Send fejloplysninger"
+              context={{
+                source: 'Beregning-fane: Kontroluoverensstemmelse i sammentælling',
+                error: controlMismatchReportError,
+              }}
+              getExtraSections={controlMismatchReportExtras}
+            />
+          ) : null
+        }
+      />
     </Box>
   );
 });

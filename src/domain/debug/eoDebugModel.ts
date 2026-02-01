@@ -183,53 +183,21 @@ const computeSummaryTableRange = (
   let tableTil: ISODateString | undefined = undefined;
 
   if (combinedMinFra) {
-    const fraDate = new Date(combinedMinFra);
-    const day = fraDate.getDate();
-
-    if (day === 1) {
-      fraDate.setMonth(fraDate.getMonth() - 1);
-      fraDate.setDate(1);
-    } else {
-      fraDate.setDate(1);
-    }
-
+    const fraDate = isoDateToDate(combinedMinFra);
     const year = fraDate.getFullYear();
     const month = fraDate.getMonth() + 1;
     tableFra = `${year}-${String(month).padStart(2, '0')}-01` as ISODateString;
   }
 
   if (combinedMaxTil) {
-    const tilDate = new Date(combinedMaxTil);
+    const tilDate = isoDateToDate(combinedMaxTil);
     const year = tilDate.getFullYear();
     const month = tilDate.getMonth() + 1;
     const lastDayOfMonth = new Date(year, month, 0).getDate();
-    const currentDay = tilDate.getDate();
-
-    if (currentDay === lastDayOfMonth) {
-      tilDate.setMonth(tilDate.getMonth() - 1);
-      const prevMonth = tilDate.getMonth() + 1;
-      const prevYear = tilDate.getFullYear();
-      const lastDayOfPrevMonth = new Date(prevYear, prevMonth, 0).getDate();
-      tableTil = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(lastDayOfPrevMonth).padStart(2, '0')}` as ISODateString;
-    } else {
-      tableTil = `${year}-${String(month).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}` as ISODateString;
-    }
+    tableTil = `${year}-${String(month).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}` as ISODateString;
   }
 
   return { fra: tableFra, til: tableTil };
-};
-
-const getFirstDayOfPreviousMonth = (iso: ISODateString): ISODateString | undefined => {
-  const d = isoDateToDate(iso);
-  const first = new Date(d.getFullYear(), d.getMonth() - 1, 1);
-  return dateToISO(first);
-};
-
-const getLastDayOfNextMonth = (iso: ISODateString): ISODateString | undefined => {
-  const d = isoDateToDate(iso);
-  // month+2 with day=0 yields the last day of the next month (local time)
-  const last = new Date(d.getFullYear(), d.getMonth() + 2, 0);
-  return dateToISO(last);
 };
 
 type ParsedInterval = Readonly<{ start: Date; end: Date }>;
@@ -591,11 +559,11 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
   const combinedMinFra = sources.reduce<ISODateString | undefined>((acc, s) => minISO(acc, s.fra), undefined);
   const combinedMaxTil = sources.reduce<ISODateString | undefined>((acc, s) => maxISO(acc, s.til), undefined);
 
-  const tableFra = combinedMinFra ? getFirstDayOfPreviousMonth(combinedMinFra) : undefined;
-  const tableTil = combinedMaxTil ? getLastDayOfNextMonth(combinedMaxTil) : undefined;
+  const { fra: summaryTableFra, til: summaryTableTil } = computeSummaryTableRange(combinedMinFra, combinedMaxTil);
+  const tableFra = summaryTableFra;
+  const tableTil = summaryTableTil;
 
   if (!tableFra || !tableTil || tableFra > tableTil) {
-    const { fra: summaryTableFra, til: summaryTableTil } = computeSummaryTableRange(combinedMinFra, combinedMaxTil);
     return {
       sources,
       combinedMinFra,
@@ -802,8 +770,7 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
     ...offentligeIssues,
   ];
 
-  // Summary table uses legacy UI-logic for "Tabelperiode (definerende)" (distinct from table range).
-  const { fra: summaryTableFra, til: summaryTableTil } = computeSummaryTableRange(combinedMinFra, combinedMaxTil);
+  // Summary table uses the same range as the debug table (month boundaries).
   const tafColumnIds = columnData
     .filter((col) => col.id.startsWith('loen:') && col.id.endsWith(':taf'))
     .map((col) => col.id);

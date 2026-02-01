@@ -258,7 +258,7 @@ export const buildOffentligeYdelserColumns = (args: {
 
   const columns = typeOrder.map((typeKey) => {
     const config = ydelsestyper[typeKey];
-    const header = config?.label ?? typeKey;
+    const header = config?.debugLabel ?? config?.label ?? typeKey;
     const amountsByIndex = byType.get(typeKey) ?? new Float64Array(dates.length);
     return { typeKey, header, amountsByIndex };
   });

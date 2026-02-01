@@ -35,6 +35,7 @@ import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
 import {
   type ErstatningsopgoerelseValues,
   arbejdsstatusEnum,
+  afsluttesMedEnum,
   beregningsmetodeEnum,
   helbredsstatusEnum,
 } from '../../../schemas/formSchemas';
@@ -195,6 +196,12 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     const parsed = beregningsmetodeEnum.safeParse(event.target.value);
     if (!parsed.success) return;
     setValues((prev) => ({ ...prev, beregnesUdFra: parsed.data }));
+  }, [setValues]);
+
+  const handleAfsluttesMedChange = React.useCallback((event: ValueChangeEvent<unknown>) => {
+    const parsed = afsluttesMedEnum.safeParse(event.target.value);
+    if (!parsed.success) return;
+    setValues((prev) => ({ ...prev, erstatningsopgoerelseAfsluttesMed: parsed.data }));
   }, [setValues]);
 
   type IsoDateFieldName =
@@ -617,6 +624,26 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               <MenuItem value="Førtidspension">Førtidspension</MenuItem>
               <MenuItem value="Seniorpension">Seniorpension</MenuItem>
               <MenuItem value="Folkepension">Folkepension</MenuItem>
+            </StyledDropdown>
+          </Box>
+        </Box>
+
+        <Typography className="row--subheading">Bekræftelse</Typography>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Erstatningsopgørelse afsluttes med</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledDropdown
+              allowEmpty={false}
+              width={220}
+              value={values.erstatningsopgoerelseAfsluttesMed}
+              onChange={handleAfsluttesMedChange}
+            >
+              {afsluttesMedEnum.options.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
             </StyledDropdown>
           </Box>
         </Box>

@@ -30,6 +30,7 @@ export const createErstatningsopgoerelseInitialValues = (settings?: AppSettings)
   vedroererPeriodeFra: undefined,
   vedroererPeriodeTil: undefined,
   revideretOpgoerelse: 'Nej',
+  erstatningsopgoerelseAfsluttesMed: safeSettings.erstatningsopgoerelseAfsluttesMed,
 
   // Forlig
   forligAnsvarsgradProcent: undefined,

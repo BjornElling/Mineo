@@ -5,6 +5,7 @@ import SideMenu from './SideMenu';
 import Container from './Container';
 import Overlay from '../ui/Overlay';
 import ConfirmationDialog from '../ui/ConfirmationDialog';
+import ScrollToTopButton from '../ui/ScrollToTopButton';
 import BugReportButton from '../errors/BugReportButton';
 import DevtoolsIssueNotice from '../errors/DevtoolsIssueNotice';
 import { saveToFile } from '../../utils/fileSave';
@@ -686,6 +687,8 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
           getExtraSections={buildDevtoolsReportExtras}
         />
       )}
+
+      <ScrollToTopButton />
     </Box>
   );
 });

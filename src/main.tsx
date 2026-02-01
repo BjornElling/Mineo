@@ -1,9 +1,5 @@
 // src/main.tsx
 // Standard entrypunkt for Vite + React
-// IMPORTANT:
-// Must be imported before any MUI components are initialized.
-// Required to satisfy MUI :focus-visible support detection.
-import 'focus-visible';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';

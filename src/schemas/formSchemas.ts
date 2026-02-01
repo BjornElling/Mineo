@@ -290,6 +290,9 @@ export type Arbejdsstatus = z.infer<typeof arbejdsstatusEnum>;
 export const beregningsmetodeEnum = z.enum(['Beregningsperiode', 'Angivet månedsløn', 'Angivet dagsløn']);
 export type Beregningsmetode = z.infer<typeof beregningsmetodeEnum>;
 
+export const afsluttesMedEnum = z.enum(['Bekræftet godkendt', 'Underskrift-linje']);
+export type AfsluttesMed = z.infer<typeof afsluttesMedEnum>;
+
 // =============================================================================
 // STAMDATA SCHEMA
 // =============================================================================
@@ -680,6 +683,7 @@ const erstatningsopgoerelseBaseSchema = z.object({
   vedroererPeriodeFra: optionalIsoDateString,
   vedroererPeriodeTil: optionalIsoDateString,
   revideretOpgoerelse: jaNejEnum,
+  erstatningsopgoerelseAfsluttesMed: afsluttesMedEnum,
 
   // Forlig
   forligAnsvarsgradProcent: percentageDecimal,
@@ -820,4 +824,3 @@ export interface FormulaEvaluationResult {
   result: number | null;
   error: string | null;
 }
-
