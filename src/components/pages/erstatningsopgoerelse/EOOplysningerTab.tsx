@@ -217,7 +217,8 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     | 'differencekravDato'
     | 'sidsteDagAnsaettelsesforhold'
     | 'periodeTilBeregningFra'
-    | 'periodeTilBeregningTil';
+    | 'periodeTilBeregningTil'
+    | 'angivetLoenOpreguleresFraDato';
 
   const handleIsoDateBlur = React.useCallback(
     (fieldName: IsoDateFieldName) =>
@@ -417,6 +418,11 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 
   const skalKomprimereIndtaegtFoerSkaden =
     !erFoersteOpgoerelse && getChecked(values.komprimerBeregningEfterFoersteOpgoerelse);
+
+  const angivetLoenOpreguleringLabel = React.useMemo(() => {
+    const loenLabel = values.beregnesUdFra === 'Angivet månedsløn' ? 'månedsløn' : 'dagsløn';
+    return `Det angivne beløb afspejler ${loenLabel}en per dato (hvis forskellige fra skadesdato)`;
+  }, [values.beregnesUdFra]);
 
   const statusSubheaderLabel = React.useMemo(() => {
     const label = formatLabelDayAfterIsoDate(
@@ -1144,6 +1150,18 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                     width={300}
                     value={values.loenBaseretPaa || ''}
                     onCommit={handleChange('loenBaseretPaa')}
+                  />
+                </Box>
+              </Box>
+            )}
+
+            {(values.beregnesUdFra === 'Angivet månedsløn' || values.beregnesUdFra === 'Angivet dagsløn') && (
+              <Box className="row--label-right-hover">
+                <Typography className="row--text">{angivetLoenOpreguleringLabel}</Typography>
+                <Box className="row--label-right-hover__content">
+                  <StyledDateField
+                    value={values.angivetLoenOpreguleresFraDato}
+                    onCommit={handleIsoDateBlur('angivetLoenOpreguleresFraDato')}
                   />
                 </Box>
               </Box>

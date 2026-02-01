@@ -39,10 +39,10 @@ const addWrappedText = (
  * Månedsnavn på dansk (med små bogstaver)
  */
 /**
- * Formaterer ISO-dato til dansk datoformat (d/m yyyy)
+ * Formaterer ISO-dato til dansk datoformat (dd-mm-yyyy)
  *
  * @param {ISODateString} isoDate - Dato i ISO-format (yyyy-mm-dd)
- * @returns {string} Formateret dato (d/m yyyy)
+ * @returns {string} Formateret dato (dd-mm-yyyy)
  */
 const formatDateShort = (isoDate: ISODateString | undefined): string => {
   if (!isoDate) return '';
@@ -50,12 +50,8 @@ const formatDateShort = (isoDate: ISODateString | undefined): string => {
   const danish = isoToDanish(isoDate);
   if (!danish) return '';
 
-  // Konverter dd-mm-yyyy til d/m yyyy
-  const [day, month, year] = danish.split('-');
-  const d = parseInt(day, 10); // Fjern leading zero
-  const m = parseInt(month, 10); // Fjern leading zero
-
-  return `${d}/${m} ${year}`;
+  // danish er allerede i dd-mm-yyyy format, så returner direkte
+  return danish;
 };
 
 /**
@@ -297,32 +293,28 @@ export const generateErstatningsopgoerelsePdf = (
 
   if (varigeMenAfgorelse === 'Nej' && opgørelseLavetDen) {
     const dato = formatDateLong(opgørelseLavetDen);
+    const tekst = `Der er den ${dato} ikke truffet afgørelse om varige mén.`;
+    const medKlage = verserendeKlageMen === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst;
     currentY = addWrappedText(
       doc,
-      `Der er den ${dato} ikke truffet afgørelse om varige mén.`,
+      medKlage,
       MARGINS.left,
       currentY,
       lineHeight,
       fullWidth
     );
-    if (verserendeKlageMen === 'Ja') {
-      currentY = addWrappedText(doc, 'Afgørelsen er påklaget.', MARGINS.left, currentY, lineHeight, fullWidth);
-    }
   } else if (varigeMenAfgorelse === 'Ja' && menAfgoerelseDato) {
     const dato = formatDateLong(menAfgoerelseDato);
+    const tekst = `Der er den ${dato} truffet afgørelse om varige mén.`;
+    const medKlage = verserendeKlageMen === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst;
     currentY = addWrappedText(
       doc,
-      `Der er den ${dato} truffet afgørelse om varige mén.`,
+      medKlage,
       MARGINS.left,
       currentY,
       lineHeight,
       fullWidth
     );
-
-    // Hvis påklaget, tilføj ekstra sætning
-    if (verserendeKlageMen === 'Ja') {
-      currentY = addWrappedText(doc, 'Afgørelsen er påklaget.', MARGINS.left, currentY, lineHeight, fullWidth);
-    }
   }
 
   const emptyErrors: Partial<Record<keyof ErstatningsopgoerelseValues, FieldErrorBySource>> = {};
@@ -496,6 +488,335 @@ export const generateErstatningsopgoerelsePdf = (
     doc.text(beloebDisplay, pageWidth - MARGINS.right, beloebY, { align: 'right' });
     doc.setFont('helvetica', 'normal');
     currentY += lineHeight * leftLines.length;
+  }
+
+  // ============================================================================
+  // TABT ARBEJDSFORTJENESTE SEKTION
+  // ============================================================================
+
+  currentY += doubleLineHeight;
+
+  // Overskrift: Tabt arbejdsfortjeneste (fed skrift)
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(FONT_SIZES.header);
+  currentY = addWrappedText(doc, 'Tabt arbejdsfortjeneste', MARGINS.left, currentY, lineHeight, fullWidth);
+  currentY += lineHeight;
+
+  // Underoverskrift: Status (fed skrift)
+  doc.setFontSize(FONT_SIZES.normal);
+  currentY = addWrappedText(doc, 'Status', MARGINS.left, currentY, lineHeight, fullWidth);
+
+  // Normal skrift for resten
+  doc.setFont('helvetica', 'normal');
+
+  // Arbejdsstatus-tekst
+  const arbejdsstatus = eoValues.tafArbejdsstatus;
+
+  if (arbejdsstatus && periodeTilISO) {
+    const dagenEfterPeriodeTil = formatDateLong(getDayAfter(periodeTilISO));
+
+    if (arbejdsstatus === 'Uarbejdsdygtig') {
+      currentY = addWrappedText(
+        doc,
+        `Den ${dagenEfterPeriodeTil} var skadelidte fortsat uarbejdsdygtig.`,
+        MARGINS.left,
+        currentY,
+        lineHeight,
+        fullWidth
+      );
+    } else if (arbejdsstatus === 'Delvist raskmeldt') {
+      currentY = addWrappedText(
+        doc,
+        `Den ${dagenEfterPeriodeTil} var skadelidte fortsat delvist uarbejdsdygtig.`,
+        MARGINS.left,
+        currentY,
+        lineHeight,
+        fullWidth
+      );
+    } else if (arbejdsstatus === 'Fuldt arbejdsdygtig') {
+      currentY = addWrappedText(
+        doc,
+        `Den ${dagenEfterPeriodeTil} var skadelidte fuldt arbejdsdygtig.`,
+        MARGINS.left,
+        currentY,
+        lineHeight,
+        fullWidth
+      );
+    } else if (arbejdsstatus === 'Fleksjob') {
+      currentY = addWrappedText(
+        doc,
+        `Den ${dagenEfterPeriodeTil} var skadelidte i fleksjob.`,
+        MARGINS.left,
+        currentY,
+        lineHeight,
+        fullWidth
+      );
+    } else if (arbejdsstatus === 'Revalidering') {
+      currentY = addWrappedText(
+        doc,
+        `Den ${dagenEfterPeriodeTil} var skadelidte i revalidering.`,
+        MARGINS.left,
+        currentY,
+        lineHeight,
+        fullWidth
+      );
+    } else if (arbejdsstatus === 'Uddannelse') {
+      currentY = addWrappedText(
+        doc,
+        `Den ${dagenEfterPeriodeTil} var skadelidte i uddannelse.`,
+        MARGINS.left,
+        currentY,
+        lineHeight,
+        fullWidth
+      );
+    } else if (arbejdsstatus === 'Førtidspension') {
+      currentY = addWrappedText(
+        doc,
+        `Den ${dagenEfterPeriodeTil} var skadelidte på førtidspension.`,
+        MARGINS.left,
+        currentY,
+        lineHeight,
+        fullWidth
+      );
+    } else if (arbejdsstatus === 'Seniorpension') {
+      currentY = addWrappedText(
+        doc,
+        `Den ${dagenEfterPeriodeTil} var skadelidte på seniorpension.`,
+        MARGINS.left,
+        currentY,
+        lineHeight,
+        fullWidth
+      );
+    } else if (arbejdsstatus === 'Folkepension') {
+      currentY = addWrappedText(
+        doc,
+        `Den ${dagenEfterPeriodeTil} var skadelidte på folkepension.`,
+        MARGINS.left,
+        currentY,
+        lineHeight,
+        fullWidth
+      );
+    }
+  }
+
+  // Erhvervsevnetabsafgørelse-tekst
+  const endeligtEetAfgorelse = eoValues.endeligtEetAfgorelse;
+  const midlertidigtEetAfgorelse = eoValues.midlertidigtEetAfgorelse;
+  const verserendeKlageEet = eoValues.verserendeKlageEet;
+  const differencekravDato = eoValues.differencekravDato;
+
+  if (endeligtEetAfgorelse === 'Ja') {
+    const virkningsdato = eoValues.endeligEETVirkningsdato;
+    const afgoerelseDato = eoValues.endeligEETAfgoerelseDato;
+
+    if (virkningsdato) {
+      const virkningsdatoFormateret = formatDateLong(virkningsdato);
+      const tekst = `Der er truffet endelig erhvervsevnetabsafgørelse med virkning fra ${virkningsdatoFormateret}.`;
+      const medKlage = verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst;
+      currentY = addWrappedText(
+        doc,
+        medKlage,
+        MARGINS.left,
+        currentY,
+        lineHeight,
+        fullWidth
+      );
+    } else if (afgoerelseDato) {
+      const afgoerelseDatoFormateret = formatDateLong(afgoerelseDato);
+      const tekst = `Der er den ${afgoerelseDatoFormateret} truffet endelig erhvervsevnetabsafgørelse.`;
+      const medKlage = verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst;
+      currentY = addWrappedText(
+        doc,
+        medKlage,
+        MARGINS.left,
+        currentY,
+        lineHeight,
+        fullWidth
+      );
+    }
+  } else if (midlertidigtEetAfgorelse === 'Ja') {
+    const virkningsdato = eoValues.midlertidigEETVirkningsdato;
+    const afgoerelseDato = eoValues.midlertidigEETAfgoerelseDato;
+
+    if (virkningsdato) {
+      const virkningsdatoFormateret = formatDateLong(virkningsdato);
+      const tekst = `Der er truffet midlertidig erhvervsevnetabsafgørelse med virkning fra ${virkningsdatoFormateret}.`;
+      const medKlage = verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst;
+      currentY = addWrappedText(
+        doc,
+        medKlage,
+        MARGINS.left,
+        currentY,
+        lineHeight,
+        fullWidth
+      );
+    } else if (afgoerelseDato) {
+      const afgoerelseDatoFormateret = formatDateLong(afgoerelseDato);
+      const tekst = `Der er den ${afgoerelseDatoFormateret} truffet midlertidig erhvervsevnetabsafgørelse.`;
+      const medKlage = verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst;
+      currentY = addWrappedText(
+        doc,
+        medKlage,
+        MARGINS.left,
+        currentY,
+        lineHeight,
+        fullWidth
+      );
+    }
+  } else if (opgørelseLavetDen) {
+    // Hvis hverken endelig eller midlertidig afgørelse er truffet
+    const dato = formatDateLong(opgørelseLavetDen);
+    const tekst = `Der er pr. ${dato} ikke truffet afgørelse om erhvervsevnetab med 15 % eller derover.`;
+    const medKlage = verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst;
+    currentY = addWrappedText(
+      doc,
+      medKlage,
+      MARGINS.left,
+      currentY,
+      lineHeight,
+      fullWidth
+    );
+  }
+
+  // Differencekrav-tekst
+  if (differencekravDato) {
+    const differencekravDatoFormateret = formatDateLong(differencekravDato);
+    currentY = addWrappedText(
+      doc,
+      `Der er opgjort differencekrav i sagen den ${differencekravDatoFormateret}.`,
+      MARGINS.left,
+      currentY,
+      lineHeight,
+      fullWidth
+    );
+  }
+
+  // TAF-perioder
+  currentY += lineHeight;
+
+  doc.setFont('helvetica', 'bold');
+  currentY = addWrappedText(
+    doc,
+    'Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste',
+    MARGINS.left,
+    currentY,
+    lineHeight,
+    fullWidth
+  );
+
+  doc.setFont('helvetica', 'normal');
+
+  const tafPerioder = eoValues.tafPerioder || [];
+  const tafPerioderLines: string[] = [];
+
+  for (const periode of tafPerioder) {
+    if (periode.fra && periode.til) {
+      const fra = formatDateShort(periode.fra);
+      const til = formatDateShort(periode.til);
+      if (fra && til) {
+        tafPerioderLines.push(`${fra} - ${til}`);
+      }
+    }
+  }
+
+  const hasTafPerioder = tafPerioderLines.length > 0;
+
+  if (!hasTafPerioder) {
+    currentY = addWrappedText(doc, 'Ingen', MARGINS.left, currentY, lineHeight, fullWidth);
+  } else {
+    for (const line of tafPerioderLines) {
+      currentY = addWrappedText(doc, line, MARGINS.left, currentY, lineHeight, fullWidth);
+    }
+
+    // Kun hvis der ER TAF-perioder, vis resten af indholdet
+    currentY += lineHeight;
+
+    // Indkomst på skadestidspunktet
+    doc.setFont('helvetica', 'bold');
+    currentY = addWrappedText(
+      doc,
+      'Indkomst på skadestidspunktet',
+      MARGINS.left,
+      currentY,
+      lineHeight,
+      fullWidth
+    );
+
+    doc.setFont('helvetica', 'normal');
+
+    const beregnesUdFra = eoValues.beregnesUdFra;
+    const loenBaseretPaa = eoValues.loenBaseretPaa;
+    const skadesdato = stamdataValues.skadesdato;
+
+    if (beregnesUdFra === 'Beregningsperiode') {
+      const periodeTilBeregningFra = eoValues.periodeTilBeregningFra;
+      const periodeTilBeregningTil = eoValues.periodeTilBeregningTil;
+
+      if (periodeTilBeregningFra && periodeTilBeregningTil) {
+        const fraFormateret = formatDateShort(periodeTilBeregningFra);
+        const tilFormateret = formatDateShort(periodeTilBeregningTil);
+        if (fraFormateret && tilFormateret) {
+          currentY = addWrappedText(
+            doc,
+            `Beregnes på baggrund af indkomsten i perioden ${fraFormateret} - ${tilFormateret}.`,
+            MARGINS.left,
+            currentY,
+            lineHeight,
+            fullWidth
+          );
+        }
+      }
+    } else if (beregnesUdFra === 'Angivet månedsløn') {
+      if (skadesdato) {
+        const skadesdatoFormateret = formatDateShort(skadesdato);
+        if (skadesdatoFormateret) {
+          if (loenBaseretPaa && loenBaseretPaa.trim() !== '') {
+            currentY = addWrappedText(
+              doc,
+              `Månedslønnen er på baggrund af ${loenBaseretPaa} fastsat per ${skadesdatoFormateret} til`,
+              MARGINS.left,
+              currentY,
+              lineHeight,
+              fullWidth
+            );
+          } else {
+            currentY = addWrappedText(
+              doc,
+              `Månedslønnen er fastsat per ${skadesdatoFormateret} til`,
+              MARGINS.left,
+              currentY,
+              lineHeight,
+              fullWidth
+            );
+          }
+        }
+      }
+    } else if (beregnesUdFra === 'Angivet dagsløn') {
+      if (skadesdato) {
+        const skadesdatoFormateret = formatDateShort(skadesdato);
+        if (skadesdatoFormateret) {
+          if (loenBaseretPaa && loenBaseretPaa.trim() !== '') {
+            currentY = addWrappedText(
+              doc,
+              `Dagslønnen er på baggrund af ${loenBaseretPaa} fastsat per ${skadesdatoFormateret} til`,
+              MARGINS.left,
+              currentY,
+              lineHeight,
+              fullWidth
+            );
+          } else {
+            currentY = addWrappedText(
+              doc,
+              `Dagslønnen er fastsat per ${skadesdatoFormateret} til`,
+              MARGINS.left,
+              currentY,
+              lineHeight,
+              fullWidth
+            );
+          }
+        }
+      }
+    }
   }
 
   // TODO: Tilføj resten af PDF-indholdet baseret på selectedElements

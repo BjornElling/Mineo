@@ -577,15 +577,25 @@ const EODebug = () => {
       const manuelReguleringNavnDisplay = manuelReguleringNavnRaw === '' ? '-' : manuelReguleringNavnRaw;
       const manuelReguleringNavnStatus: DebugStatus = manuelReguleringNavnRaw === '' ? 'warning' : 'ok';
 
-      const saerligDato = isISODateString(af.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined;
       const skadesdatoIso = isISODateString(skadesdato) ? skadesdato : undefined;
-      const reguleringsdato = saerligDato ?? skadesdatoIso;
+      const saerligDato = isISODateString(af.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined;
+      const angivetLoenDato = isISODateString(erstatningsopgoerelseValues.angivetLoenOpreguleresFraDato)
+        ? erstatningsopgoerelseValues.angivetLoenOpreguleresFraDato
+        : undefined;
+      const reguleringsdato = erstatningsopgoerelseValues.beregnesUdFra !== 'Beregningsperiode'
+        ? (angivetLoenDato ?? skadesdatoIso)
+        : (saerligDato ?? skadesdatoIso);
       const reguleringsdatoDisplay = formatIsoValue(reguleringsdato);
-      const reguleringsdatoLabel = saerligDato
-        ? 'Startdato (Manuel reguleringsdato)'
-        : skadestype === 'Erhvervssygdom'
-          ? 'Startdato (Anmeldedato)'
-          : 'Startdato (Skadesdato)';
+      const reguleringsdatoLabel = (() => {
+        if (erstatningsopgoerelseValues.beregnesUdFra !== 'Beregningsperiode' && angivetLoenDato) {
+          const loenLabel = erstatningsopgoerelseValues.beregnesUdFra === 'Angivet månedsløn' ? 'månedsløn' : 'dagsløn';
+          return `Reguleringsdato (Angivet ${loenLabel}, angivet reguleringsdato)`;
+        }
+        if (erstatningsopgoerelseValues.beregnesUdFra === 'Beregningsperiode' && saerligDato) {
+          return 'Reguleringsdato (Beregningsperiode, angivet reguleringsdato)';
+        }
+        return 'Reguleringsdato (Skadesdato)';
+      })();
       const reguleringsdatoStatus: DebugStatus = reguleringsdatoDisplay === '-' ? 'error' : 'ok';
 
       const periodeTil = isISODateString(vedroererPeriodeTil)
@@ -1262,22 +1272,22 @@ const EODebug = () => {
       if (!isIngen) {
         rows.push(
           {
-            id: 'regulering.dato',
+            id: 'regulering.reguleringsdato',
             label: reguleringsdatoLabel,
             displayValue: reguleringsdatoDisplay,
             status: reguleringsdatoStatus,
-          },
-          {
-            id: 'regulering.slutdato',
-            label: 'Sidste dato i erstatningsperiode',
-            displayValue: periodeTilDisplay,
-            status: periodeTilStatus,
           },
           {
             id: 'regulering.startvaerdi',
             label: 'Reguleringsværdi på start-dato',
             displayValue: startDateRow.display,
             status: startDateRow.status,
+          },
+          {
+            id: 'regulering.slutdato',
+            label: 'Sidste dato i erstatningsperiode',
+            displayValue: periodeTilDisplay,
+            status: periodeTilStatus,
           },
           {
             id: 'regulering.slutvaerdi',
@@ -1304,7 +1314,8 @@ const EODebug = () => {
     vedroererPeriodeTil,
     ferieperioder,
     skadesdato,
-    skadestype,
+    erstatningsopgoerelseValues.angivetLoenOpreguleresFraDato,
+    erstatningsopgoerelseValues.beregnesUdFra,
   ]);
 
   const indkomstSections = React.useMemo(() => {
@@ -1683,119 +1694,127 @@ const EODebug = () => {
             );
           })}
 
-        <Typography className="row--subheading">Ferie i beregningsperioden:</Typography>
+        {erstatningsopgoerelseValues.beregnesUdFra === 'Beregningsperiode' && (
+          <>
+            <Typography className="row--subheading">Ferie i beregningsperioden:</Typography>
 
-        {rowsBySection.get('taf-beregningsgrundlag')
-          ?.filter((row) => row.id.startsWith('taf.beregningsgrundlag.ferie.'))
-          .map((row) => {
-            const labelWidth = row.id.startsWith('taf.beregningsgrundlag.ferie.') ? '340px' : LABEL_WIDTH;
-            return (
-              <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': labelWidth }}>
-                <Typography className="row--text" sx={{ minWidth: labelWidth }}>
-                  {row.label}
-                </Typography>
-                <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                  <Typography className="row--text">{row.displayValue}</Typography>
-                  {getStatusIcon(row.status)}
+            {rowsBySection.get('taf-beregningsgrundlag')
+              ?.filter((row) => row.id.startsWith('taf.beregningsgrundlag.ferie.'))
+              .map((row) => {
+                const labelWidth = row.id.startsWith('taf.beregningsgrundlag.ferie.') ? '340px' : LABEL_WIDTH;
+                return (
+                  <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': labelWidth }}>
+                    <Typography className="row--text" sx={{ minWidth: labelWidth }}>
+                      {row.label}
+                    </Typography>
+                    <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                      <Typography className="row--text">{row.displayValue}</Typography>
+                      {getStatusIcon(row.status)}
+                    </Box>
+                  </Box>
+                );
+              })}
+
+            <Typography className="row--subheading">Øvrigt fravær i beregningsperioden:</Typography>
+
+            {rowsBySection.get('taf-beregningsgrundlag')
+              ?.filter(
+                (row) =>
+                  (row.id as string) === 'taf.beregningsgrundlag.uspecificeredeFerieFridage' ||
+                  (row.id as string) === 'taf.beregningsgrundlag.oevrigtFravaerUdenLoen' ||
+                  (row.id as string) === 'taf.beregningsgrundlag.oevrigeFravaersdage' ||
+                  (row.id as string) === 'taf.beregningsgrundlag.oevrigeFravaersdageBeskrivelse'
+              )
+              .map((row) => {
+                return (
+                  <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                    <Typography className="row--text">{row.label}</Typography>
+                    <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                      <Typography className="row--text">{row.displayValue}</Typography>
+                      {getStatusIcon(row.status)}
+                    </Box>
+                  </Box>
+                );
+              })}
+
+            <Typography className="row--subheading">Beregningsperiode</Typography>
+
+            {rowsBySection.get('taf-beregningsgrundlag')
+              ?.filter(
+                (row) =>
+                  (row.id as string) === 'taf.beregningsgrundlag.arbejdsdage' ||
+                  (row.id as string) === 'taf.beregningsgrundlag.maaneder'
+              )
+              .map((row) => {
+                const labelWidth = '360px';
+                const rightAlignValue = (row.id as string) === 'taf.beregningsgrundlag.arbejdsdage';
+                return (
+                  <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': labelWidth }}>
+                    <Typography className="row--text" sx={{ minWidth: labelWidth }}>
+                      {row.label}
+                    </Typography>
+                    <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                      <Typography className="row--text" sx={rightAlignValue ? { textAlign: 'right' } : undefined}>
+                        {row.displayValue}
+                      </Typography>
+                      {getStatusIcon(row.status)}
+                    </Box>
+                  </Box>
+                );
+              })}
+
+            <Typography className="row--subheading">Indkomst i beregningsperioden</Typography>
+
+            {indkomstIBeregningsperioden.loenRows.map((row) => {
+              return (
+                <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                  <Typography className="row--text">{row.label}</Typography>
+                  <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                    <Typography className="row--text">{row.displayValue}</Typography>
+                    {getStatusIcon(row.status)}
+                  </Box>
                 </Box>
-              </Box>
-            );
-          })}
+              );
+            })}
 
-        <Typography className="row--subheading">Øvrigt fravær i beregningsperioden:</Typography>
-
-        {rowsBySection.get('taf-beregningsgrundlag')
-          ?.filter(
-            (row) =>
-              (row.id as string) === 'taf.beregningsgrundlag.uspecificeredeFerieFridage' ||
-              (row.id as string) === 'taf.beregningsgrundlag.oevrigtFravaerUdenLoen' ||
-              (row.id as string) === 'taf.beregningsgrundlag.oevrigeFravaersdage' ||
-              (row.id as string) === 'taf.beregningsgrundlag.oevrigeFravaersdageBeskrivelse'
-          )
-          .map((row) => {
-            return (
-              <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-                <Typography className="row--text">{row.label}</Typography>
-                <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                  <Typography className="row--text">{row.displayValue}</Typography>
-                  {getStatusIcon(row.status)}
+            {indkomstIBeregningsperioden.ydelseRows.map((row) => {
+              return (
+                <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                  <Typography className="row--text">{row.label}</Typography>
+                  <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                    <Typography className="row--text">{row.displayValue}</Typography>
+                    {getStatusIcon(row.status)}
+                  </Box>
                 </Box>
-              </Box>
-            );
-          })}
+              );
+            })}
+          </>
+        )}
 
-        <Typography className="row--subheading">Beregningsperiode</Typography>
+        {erstatningsopgoerelseValues.beregnesUdFra !== 'Beregningsperiode' && (
+          <>
+            <Typography className="row--subheading">Angivet løn:</Typography>
 
-        {rowsBySection.get('taf-beregningsgrundlag')
-          ?.filter(
-            (row) =>
-              (row.id as string) === 'taf.beregningsgrundlag.arbejdsdage' ||
-              (row.id as string) === 'taf.beregningsgrundlag.maaneder'
-          )
-          .map((row) => {
-            const labelWidth = '360px';
-            const rightAlignValue = (row.id as string) === 'taf.beregningsgrundlag.arbejdsdage';
-            return (
-              <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': labelWidth }}>
-                <Typography className="row--text" sx={{ minWidth: labelWidth }}>
-                  {row.label}
-                </Typography>
-                <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                  <Typography className="row--text" sx={rightAlignValue ? { textAlign: 'right' } : undefined}>
-                    {row.displayValue}
-                  </Typography>
-                  {getStatusIcon(row.status)}
-                </Box>
-              </Box>
-            );
-          })}
-
-        <Typography className="row--subheading">Indkomst i beregningsperioden</Typography>
-
-        {indkomstIBeregningsperioden.loenRows.map((row) => {
-          return (
-            <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-              <Typography className="row--text">{row.label}</Typography>
-              <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                <Typography className="row--text">{row.displayValue}</Typography>
-                {getStatusIcon(row.status)}
-              </Box>
-            </Box>
-          );
-        })}
-
-        {indkomstIBeregningsperioden.ydelseRows.map((row) => {
-          return (
-            <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-              <Typography className="row--text">{row.label}</Typography>
-              <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                <Typography className="row--text">{row.displayValue}</Typography>
-                {getStatusIcon(row.status)}
-              </Box>
-            </Box>
-          );
-        })}
-
-        <Typography className="row--subheading">Angivet løn:</Typography>
-
-        {rowsBySection.get('taf-beregningsgrundlag')
-          ?.filter(
-            (row) =>
-              (row.id as string) === 'taf.beregningsgrundlag.maanedsloen' ||
-              (row.id as string) === 'taf.beregningsgrundlag.dagsloen' ||
-              (row.id as string) === 'taf.beregningsgrundlag.loenBaseretPaa'
-          )
-          .map((row) => {
-            return (
-              <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-                <Typography className="row--text">{row.label}</Typography>
-                <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                  <Typography className="row--text">{row.displayValue}</Typography>
-                  {getStatusIcon(row.status)}
-                </Box>
-              </Box>
-            );
-          })}
+            {rowsBySection.get('taf-beregningsgrundlag')
+              ?.filter(
+                (row) =>
+                  (row.id as string) === 'taf.beregningsgrundlag.maanedsloen' ||
+                  (row.id as string) === 'taf.beregningsgrundlag.dagsloen' ||
+                  (row.id as string) === 'taf.beregningsgrundlag.loenBaseretPaa'
+              )
+              .map((row) => {
+                return (
+                  <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                    <Typography className="row--text">{row.label}</Typography>
+                    <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                      <Typography className="row--text">{row.displayValue}</Typography>
+                      {getStatusIcon(row.status)}
+                    </Box>
+                  </Box>
+                );
+              })}
+          </>
+        )}
 
       </ContentBox>
 

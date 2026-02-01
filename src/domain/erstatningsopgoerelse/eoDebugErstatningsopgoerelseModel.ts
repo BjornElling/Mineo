@@ -70,6 +70,7 @@ export type DebugRowId =
   | 'taf.beregningsgrundlag.maanedsloen'
   | 'taf.beregningsgrundlag.dagsloen'
   | 'taf.beregningsgrundlag.loenBaseretPaa'
+  | 'taf.beregningsgrundlag.angivetLoenOpreguleresFraDato'
   | 'taf.beregningsgrundlag.arbejdsdage'
   | 'taf.beregningsgrundlag.maaneder'
   | 'taf.beregnesSom'
@@ -1752,7 +1753,8 @@ export const buildEODebugTaftRows = (
 
 export const buildEODebugTafBeregningsgrundlagRows = (
   values: ErstatningsopgoerelseValues,
-  errors: ErstatningsopgoerelseFieldErrorsBySource
+  errors: ErstatningsopgoerelseFieldErrorsBySource,
+  stamdataValues: PersistedSectionMap['stamdata']
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
 
@@ -1820,11 +1822,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     const filledCount = [hasFra, hasTil].filter(Boolean).length;
 
     if (!isBeregningsperiode) {
-      if (filledCount === 0) return { displayValue: '-', status: 'ok' as DebugStatus };
-      return {
-        displayValue: 'Advarsel (Beregnes ud fra er ikke sat til Beregningsperiode)',
-        status: 'warning' as DebugStatus,
-      };
+      return { displayValue: '-', status: 'ok' as DebugStatus };
     }
     if (periodeErrorValue) {
       return { displayValue: periodeErrorValue, status: hasPeriodeErrorSeverity ? 'error' as DebugStatus : 'warning' as DebugStatus };
@@ -2122,82 +2120,83 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     ],
   });
 
-  const maanedsloenDisplay = (() => {
-    if (beregnesUdFra !== 'Angivet månedsløn') {
+  if (beregnesUdFra === 'Angivet månedsløn') {
+    const maanedsloenDisplay = (() => {
       const display = formatCurrency(amountValueToNumber(values.maanedsloenenUdgoer));
       if (display.trim() === '') {
-        return { displayValue: '-', status: 'ok' as DebugStatus };
+        return { displayValue: 'Fejl (Månedsløn mangler)', status: 'error' as DebugStatus };
       }
-      return {
-        displayValue: 'Advarsel (Beregnes ud fra er ikke sat til Angivet månedsløn)',
-        status: 'warning' as DebugStatus,
-      };
-    }
-    const display = formatCurrency(amountValueToNumber(values.maanedsloenenUdgoer));
-    if (display.trim() === '') {
-      return { displayValue: 'Fejl (Månedsløn mangler)', status: 'error' as DebugStatus };
-    }
-    return { displayValue: display, status: 'ok' as DebugStatus };
-  })();
+      return { displayValue: display, status: 'ok' as DebugStatus };
+    })();
 
-  rows.push({
-    id: 'taf.beregningsgrundlag.maanedsloen',
-    label: 'Månedslønnen udgør',
-    displayValue: maanedsloenDisplay.displayValue,
-    status: maanedsloenDisplay.status,
-    dependsOn: [
-      { kind: 'id', id: 'taf.beregningsgrundlag.beregnesUdFra' },
-    ],
-  });
+    rows.push({
+      id: 'taf.beregningsgrundlag.maanedsloen',
+      label: 'Månedslønnen udgør',
+      displayValue: maanedsloenDisplay.displayValue,
+      status: maanedsloenDisplay.status,
+      dependsOn: [
+        { kind: 'id', id: 'taf.beregningsgrundlag.beregnesUdFra' },
+      ],
+    });
+  }
 
-  const dagsloenDisplay = (() => {
-    if (beregnesUdFra !== 'Angivet dagsløn') {
+  if (beregnesUdFra === 'Angivet dagsløn') {
+    const dagsloenDisplay = (() => {
       const display = formatCurrency(amountValueToNumber(values.dagsloenenUdgoer));
       if (display.trim() === '') {
-        return { displayValue: '-', status: 'ok' as DebugStatus };
+        return { displayValue: 'Fejl (Dagsløn mangler)', status: 'error' as DebugStatus };
       }
-      return {
-        displayValue: 'Advarsel (Beregnes ud fra er ikke sat til Angivet dagsløn)',
-        status: 'warning' as DebugStatus,
-      };
-    }
-    const display = formatCurrency(amountValueToNumber(values.dagsloenenUdgoer));
-    if (display.trim() === '') {
-      return { displayValue: 'Fejl (Dagsløn mangler)', status: 'error' as DebugStatus };
-    }
-    return { displayValue: display, status: 'ok' as DebugStatus };
-  })();
+      return { displayValue: display, status: 'ok' as DebugStatus };
+    })();
 
-  rows.push({
-    id: 'taf.beregningsgrundlag.dagsloen',
-    label: 'Dagslønnen udgør',
-    displayValue: dagsloenDisplay.displayValue,
-    status: dagsloenDisplay.status,
-    dependsOn: [
-      { kind: 'id', id: 'taf.beregningsgrundlag.beregnesUdFra' },
-    ],
-  });
+    rows.push({
+      id: 'taf.beregningsgrundlag.dagsloen',
+      label: 'Dagslønnen udgør',
+      displayValue: dagsloenDisplay.displayValue,
+      status: dagsloenDisplay.status,
+      dependsOn: [
+        { kind: 'id', id: 'taf.beregningsgrundlag.beregnesUdFra' },
+      ],
+    });
+  }
 
-  const loenBaseretPaaDisplay = (() => {
-    if (beregnesUdFra !== 'Angivet månedsløn' && beregnesUdFra !== 'Angivet dagsløn') {
-      return { displayValue: '-', status: 'ok' as DebugStatus };
-    }
-    return resolveDebugDisplay({
+  if (beregnesUdFra === 'Angivet månedsløn' || beregnesUdFra === 'Angivet dagsløn') {
+    const loenBaseretPaaDisplay = resolveDebugDisplay({
       value: values.loenBaseretPaa,
       errors: errors.loenBaseretPaa,
       emptyState: 'warning',
     });
-  })();
 
-  rows.push({
-    id: 'taf.beregningsgrundlag.loenBaseretPaa',
-    label: '- baseret på',
-    displayValue: loenBaseretPaaDisplay.displayValue,
-    status: loenBaseretPaaDisplay.status,
-    dependsOn: [
-      { kind: 'id', id: 'taf.beregningsgrundlag.beregnesUdFra' },
-    ],
-  });
+    rows.push({
+      id: 'taf.beregningsgrundlag.loenBaseretPaa',
+      label: '- baseret på',
+      displayValue: loenBaseretPaaDisplay.displayValue,
+      status: loenBaseretPaaDisplay.status,
+      dependsOn: [
+        { kind: 'id', id: 'taf.beregningsgrundlag.beregnesUdFra' },
+      ],
+    });
+  }
+
+  if (beregnesUdFra === 'Angivet månedsløn' || beregnesUdFra === 'Angivet dagsløn') {
+    const loenLabel = beregnesUdFra === 'Angivet månedsløn' ? 'månedsløn' : 'dagsløn';
+    const opreguleresLabel = `Det angivne beløb afspejler ${loenLabel}en den`;
+
+    const opreguleresFraISO = values.angivetLoenOpreguleresFraDato || stamdataValues.skadesdato;
+    const opreguleresFraDisplay = opreguleresFraISO ? isoToDanish(opreguleresFraISO) : undefined;
+
+    const hasMissingRequired = !values.angivetLoenOpreguleresFraDato && !stamdataValues.skadesdato;
+
+    rows.push({
+      id: 'taf.beregningsgrundlag.angivetLoenOpreguleresFraDato',
+      label: opreguleresLabel,
+      displayValue: opreguleresFraDisplay ?? '-',
+      status: hasMissingRequired ? 'error' : 'ok',
+      dependsOn: [
+        { kind: 'id', id: 'taf.beregningsgrundlag.beregnesUdFra' },
+      ],
+    });
+  }
 
   return rows;
 };

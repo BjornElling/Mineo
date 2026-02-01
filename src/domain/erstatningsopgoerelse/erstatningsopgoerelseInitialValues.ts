@@ -92,6 +92,7 @@ export const createErstatningsopgoerelseInitialValues = (settings?: AppSettings)
   maanedsloenenUdgoer: undefined,
   dagsloenenUdgoer: undefined,
   loenBaseretPaa: '',
+  angivetLoenOpreguleresFraDato: undefined,
 
   // Sygeferiegodtgørelse
   ferieMedLon: 'Nej',

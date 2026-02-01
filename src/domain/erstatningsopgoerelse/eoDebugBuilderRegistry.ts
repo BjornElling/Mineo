@@ -111,7 +111,8 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
     run: (ctx) =>
       buildEODebugTafBeregningsgrundlagRows(
         ctx.eoValues,
-        ctx.eoErrors
+        ctx.eoErrors,
+        ctx.stamdataValues
       ),
   },
 

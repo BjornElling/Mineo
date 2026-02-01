@@ -10,6 +10,7 @@ import { ydelsestyper } from '../../data/ydelsestyper';
 import { getEffektiveSatserForDato, resolveOverenskomstRef, type OverenskomstId } from '../../data/overenskomstRates';
 import type { DebugStatus } from '../debug/eoDebugTypes';
 import { buildAarsloenCellErrors, buildOffentligeYdelserCellErrors } from '../debug/eoDebugRowValidation';
+import { formatCurrency, parseAmount } from '../../utils/formatUtils';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -190,33 +191,75 @@ export const buildOffentligeYdelserDebugRows = (
   });
   const issuesByRowId = new Map(validation.summary.rowIssues.map((issue) => [issue.rowId, issue]));
 
-  const result: OffentligeYdelserDebugRow[] = [];
+  type OffentligeYdelserDebugRowDraft = {
+    id: string;
+    label: string;
+    firstErrorMessage?: string;
+    firstWarningMessage?: string;
+    sum: number;
+  };
+
+  const result: OffentligeYdelserDebugRowDraft[] = [];
+  const grouped = new Map<string, OffentligeYdelserDebugRowDraft>();
 
   for (const row of rows) {
     const { hasAnyFilled } = getOffentligeYdelserRowFilledState(row);
     if (!hasAnyFilled) continue;
 
     const typeKey = row.ydelsestype?.trim() ?? '';
+    const groupKey = typeKey === '' ? 'mangler-ydelsestype' : `ydelsestype-${typeKey}`;
     const label = typeKey === '' ? 'Ydelsestype ikke valgt' : (ydelsestyper[typeKey]?.label ?? typeKey);
 
-    const issue = issuesByRowId.get(row.id);
-    let status: DebugStatus = 'ok';
-    let message = '-';
-    if (issue?.level === 'error') {
-      status = 'error';
-      message = issue.reason === 'input' ? 'Fejl i indtastning' : 'Manglende indtastning';
-    } else if (issue?.level === 'warning') {
-      status = 'warning';
-      message = 'Manglende indtastning';
+    let group = grouped.get(groupKey);
+    if (!group) {
+      group = {
+        id: groupKey,
+        label,
+        sum: 0,
+      };
+      grouped.set(groupKey, group);
+      result.push(group);
     }
 
-    result.push({
-      id: row.id,
-      label,
-      status,
-      message,
-    });
+    const issue = issuesByRowId.get(row.id);
+    if (!issue || issue.level !== 'error') {
+      group.sum += parseAmount(row.ydelse) + parseAmount(row.tillaeg);
+    }
+
+    if (issue?.level === 'error') {
+      if (!group.firstErrorMessage) {
+        group.firstErrorMessage = issue.reason === 'input' ? 'Fejl i indtastning' : 'Manglende indtastning';
+      }
+      continue;
+    }
+
+    if (issue?.level === 'warning' && !group.firstWarningMessage) {
+      group.firstWarningMessage = 'Manglende indtastning';
+    }
   }
 
-  return result;
+  return result.map((row) => {
+    if (row.firstErrorMessage) {
+      return {
+        id: row.id,
+        label: row.label,
+        status: 'error' as DebugStatus,
+        message: row.firstErrorMessage,
+      };
+    }
+    if (row.firstWarningMessage) {
+      return {
+        id: row.id,
+        label: row.label,
+        status: 'warning' as DebugStatus,
+        message: row.firstWarningMessage,
+      };
+    }
+    return {
+      id: row.id,
+      label: row.label,
+      status: 'ok' as DebugStatus,
+      message: formatCurrency(row.sum),
+    };
+  });
 };

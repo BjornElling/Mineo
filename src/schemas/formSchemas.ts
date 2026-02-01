@@ -654,6 +654,7 @@ const indtaegtFoerSkadenSchema = z.object({
   maanedsloenenUdgoer: nonNegativeAmountValue,
   dagsloenenUdgoer: nonNegativeAmountValue,
   loenBaseretPaa: optionalString,
+  angivetLoenOpreguleresFraDato: optionalIsoDateString,
 }).strict();
 
 /**
