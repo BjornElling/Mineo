@@ -21,16 +21,15 @@ import {
   getStatistiskLoenudvikling,
   type StatistiskLoenudviklingId,
 } from '../../data/statistiskLoenudviklingRates';
-import type { DanishDateString, ISODateString } from '../../types/branded';
+import type { DanishDateString } from '../../types/branded';
 
 /**
  * Stamdata til Regulering PDF
  */
 export interface ReguleringStamdata {
-  skadelidte?: string;
-  skadestype?: string;
-  skadesdato?: ISODateString;
   journalnr?: string;
+  advokat?: string;
+  sagsbehandler?: string;
 }
 
 type PdfDoc = jsPDF & {
@@ -314,10 +313,9 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved && stamdata) {
     const brevhovedData: BrevhovedData = {
-      skadelidte: stamdata.skadelidte,
-      skadestype: stamdata.skadestype,
-      skadesdato: stamdata.skadesdato,
       journalnr: stamdata.journalnr,
+      advokat: stamdata.advokat,
+      sagsbehandler: stamdata.sagsbehandler,
     };
     currentY = addBrevhoved(doc, brevhovedData);
   }

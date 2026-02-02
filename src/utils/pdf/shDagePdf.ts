@@ -12,16 +12,14 @@ import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelp
 import { formatToISO, parseISODate } from '../dateUtils';
 import { diffUtcDays } from '../utcDayMath';
 import { MONTH_NAMES_DA } from '../dateFormatting';
-import type { ISODateString } from '../../types/branded';
 
 /**
  * Stamdata til SH-dage PDF
  */
 export interface SHDageStamdata {
-  skadelidte?: string;
-  skadestype?: string;
-  skadesdato?: ISODateString;
   journalnr?: string;
+  advokat?: string;
+  sagsbehandler?: string;
 }
 
 /**
@@ -284,10 +282,9 @@ export const generateSHDagePdf = (
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved && stamdata) {
     const brevhovedData: BrevhovedData = {
-      skadelidte: stamdata.skadelidte,
-      skadestype: stamdata.skadestype,
-      skadesdato: stamdata.skadesdato,
       journalnr: stamdata.journalnr,
+      advokat: stamdata.advokat,
+      sagsbehandler: stamdata.sagsbehandler,
     };
     currentY = addBrevhoved(doc, brevhovedData);
   }

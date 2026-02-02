@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PDF Generator for Erstatningsopgørelse
  *
  * Genererer PDF-dokument med komplet erstatningsopgørelse
@@ -141,10 +141,14 @@ export const generateErstatningsopgoerelsePdf = (
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved) {
     const brevhovedData: BrevhovedData = {
-      skadelidte: stamdataValues.skadelidte,
-      skadestype: stamdataValues.skadestype,
-      skadesdato: stamdataValues.skadesdato,
       journalnr: stamdataValues.journalnr,
+      advokat: stamdataValues.advokat,
+      sagsbehandler: stamdataValues.sagsbehandler,
+      // UND TAGELSE: EOberegning-tab bruger "Opgørelse lavet den" i stedet for dags dato.
+      // Hvis opgørelseLavetDen mangler, vises dato-linjen ikke i brevhovedet.
+      dagsDatoLabel: '',
+      dagsDatoISO: eoValues.opgørelseLavetDen,
+      useDagsDatoFallback: false,
     };
     currentY = addBrevhoved(doc, brevhovedData);
   }
@@ -155,13 +159,22 @@ export const generateErstatningsopgoerelsePdf = (
   const fullWidth = doc.internal.pageSize.width - MARGINS.left - MARGINS.right;
   currentY = addWrappedText(doc, titel, MARGINS.left, currentY, lineHeight, fullWidth);
 
-  // Tilføj opgørelsesdato (normal skrift)
+  // Tilføj erstatningsperiode-datoer direkte under titel
   doc.setFontSize(FONT_SIZES.normal);
   doc.setFont('helvetica', 'normal');
-
-  if (eoValues.opgørelseLavetDen) {
-    const opgørelseDato = formatDateLong(eoValues.opgørelseLavetDen);
-    currentY = addWrappedText(doc, `Lavet ${opgørelseDato}`, MARGINS.left, currentY, lineHeight, fullWidth);
+  const periodeFra = eoValues.vedroererPeriodeFra;
+  const periodeTil = eoValues.vedroererPeriodeTil;
+  if (periodeFra && periodeTil) {
+    const periodeFraLang = formatDateShort(periodeFra);
+    const periodeTilLang = formatDateShort(periodeTil);
+    currentY = addWrappedText(
+      doc,
+      `${periodeFraLang} - ${periodeTilLang}`,
+      MARGINS.left,
+      currentY,
+      lineHeight,
+      fullWidth
+    );
     currentY += lineHeight;
   }
 
@@ -187,57 +200,12 @@ export const generateErstatningsopgoerelsePdf = (
   }
 
   // ============================================================================
-  // SVIE- OG SMERTEGODTGRELSE SEKTION
+  // SVIE- OG SMERTEGODTGØRELSE SEKTION
   // ============================================================================
 
   currentY += doubleLineHeight;
-
-  // ============================================================================
-  // ERSTATNINGSPERIODE SEKTION
-  // ============================================================================
-
-  // Erstatningsperiode med datoer på separate linjer
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(FONT_SIZES.header);
-
-  const periodeFra = eoValues.vedroererPeriodeFra;
-  const periodeTil = eoValues.vedroererPeriodeTil;
-
-  if (periodeFra && periodeTil) {
-    // "Erstatningsperiode" med fed skrift og header-størrelse (uden kolon)
-    currentY = addWrappedText(
-      doc,
-      'Erstatningsperiode',
-      MARGINS.left,
-      currentY,
-      lineHeight,
-      fullWidth
-    );
-
-    // Større afstand før datoerne
-    currentY += lineHeight / 2;
-
-    // Datoerne med normal skrift og normal størrelse i langt format
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(FONT_SIZES.normal);
-    const periodeFraLang = formatDateLong(periodeFra);
-    const periodeTilLang = formatDateLong(periodeTil);
-    currentY = addWrappedText(
-      doc,
-      `${periodeFraLang} - ${periodeTilLang}`,
-      MARGINS.left,
-      currentY,
-      lineHeight,
-      fullWidth
-    );
-    currentY += lineHeight;
-  }
-
-  // ============================================================================
-  // SVIE- OG SMERTEGODTGRELSE SEKTION
-  // ============================================================================
-
   currentY += lineHeight;
+
 
   // Overskrift: Svie- og smertegodtgørelse (fed skrift)
   doc.setFont('helvetica', 'bold');
@@ -943,3 +911,4 @@ const erSvieSmerteopgjortFremTil = (
   // Sammenlign med targetDate
   return senestetilDato === targetDate;
 };
+

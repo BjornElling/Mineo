@@ -17,10 +17,9 @@ import type { ISODateString } from '../../types/branded';
  * Stamdata til Rente PDF
  */
 export interface RenteStamdata {
-  skadelidte?: string;
-  skadestype?: string;
-  skadesdato?: ISODateString;
   journalnr?: string;
+  advokat?: string;
+  sagsbehandler?: string;
 }
 
 /**
@@ -234,10 +233,9 @@ export const generateRentePdf = (
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved && stamdata) {
     const brevhovedData: BrevhovedData = {
-      skadelidte: stamdata.skadelidte,
-      skadestype: stamdata.skadestype,
-      skadesdato: stamdata.skadesdato,
       journalnr: stamdata.journalnr,
+      advokat: stamdata.advokat,
+      sagsbehandler: stamdata.sagsbehandler,
     };
     currentY = addBrevhoved(doc, brevhovedData);
   }
@@ -472,5 +470,3 @@ const addCalculationPrinciples = (doc, startDate, startY) => {
 
   return y + SECTION_SPACER;
 };
-
-

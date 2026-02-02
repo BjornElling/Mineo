@@ -22,10 +22,12 @@ import type { ISODateString } from '../../types/branded';
  * - PDF skal kunne genereres uden brevhoved
  */
 export interface PdfStamdata {
-  skadelidte?: string;
-  skadestype?: string;
-  skadesdato?: ISODateString;
   journalnr?: string;
+  dagsDatoISO?: ISODateString;
+  dagsDatoLabel?: string;
+  useDagsDatoFallback?: boolean;
+  advokat?: string;
+  sagsbehandler?: string;
 }
 
 /**

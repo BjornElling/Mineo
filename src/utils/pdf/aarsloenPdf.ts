@@ -762,10 +762,9 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved && stamdata) {
     const brevhovedData: BrevhovedData = {
-      skadelidte: stamdata.skadelidte,
-      skadestype: stamdata.skadestype,
-      skadesdato: stamdata.skadesdato,
       journalnr: stamdata.journalnr,
+      advokat: stamdata.advokat,
+      sagsbehandler: stamdata.sagsbehandler,
     };
     currentY = addBrevhoved(doc, brevhovedData);
   }
@@ -834,6 +833,4 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
   // Download PDF
   doc.save(filename);
 };
-
-
 

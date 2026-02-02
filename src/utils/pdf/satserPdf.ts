@@ -20,16 +20,14 @@ import {
   isNonEmptyString,
 } from './pdfFormatters';
 import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
-import type { ISODateString } from '../../types/branded';
 
 /**
  * Stamdata til Satser PDF
  */
 export interface SatserStamdata {
-  skadelidte?: string;
-  skadestype?: string;
-  skadesdato?: ISODateString;
   journalnr?: string;
+  advokat?: string;
+  sagsbehandler?: string;
 }
 
 /**
@@ -71,10 +69,9 @@ export const generateSatserPdf = (year, satser, options: SatserPdfOptions = {}) 
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved && stamdata) {
     const brevhovedData: BrevhovedData = {
-      skadelidte: stamdata.skadelidte,
-      skadestype: stamdata.skadestype,
-      skadesdato: stamdata.skadesdato,
       journalnr: stamdata.journalnr,
+      advokat: stamdata.advokat,
+      sagsbehandler: stamdata.sagsbehandler,
     };
     currentY = addBrevhoved(doc, brevhovedData);
   }

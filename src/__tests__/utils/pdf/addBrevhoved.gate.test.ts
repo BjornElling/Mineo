@@ -1,7 +1,6 @@
 /// <reference types="vitest/globals" />
 
 import { addBrevhoved, type BrevhovedData } from '../../../utils/pdf/pdfHelpers';
-import { toISODateString } from '../../../types/branded';
 
 /**
  * Test af brevhoved-gate logik
@@ -36,7 +35,9 @@ describe('addBrevhoved gate logic', () => {
 
   it('returnerer MARGINS.top når ingen brevhoved-data findes', () => {
     const mockDoc = createMockDoc();
-    const data: BrevhovedData = {};
+    const data: BrevhovedData = {
+      useDagsDatoFallback: false,
+    };
 
     const result = addBrevhoved(mockDoc, data);
 
@@ -51,9 +52,6 @@ describe('addBrevhoved gate logic', () => {
   it('kalder doc.text når brevhoved-data findes', () => {
     const mockDoc = createMockDoc();
     const data: BrevhovedData = {
-      skadelidte: 'Test Person',
-      skadestype: 'Arbejdsulykke',
-      skadesdato: toISODateString('2024-01-15'),
       journalnr: 'SAG-123',
     };
 
@@ -66,12 +64,12 @@ describe('addBrevhoved gate logic', () => {
     expect(mockDoc.text).toHaveBeenCalled();
     expect(mockDoc.setFont).toHaveBeenCalled();
 
-    // Skal have skrevet skadelidtes navn (fed)
-    expect(mockDoc.setFont).toHaveBeenCalledWith('helvetica', 'bold');
+    // Skal have skrevet sagsnummer (normal)
+    expect(mockDoc.setFont).toHaveBeenCalledWith('helvetica', 'normal');
 
     // Tekst skal være højre-aligneret (align: 'right' option)
     expect(mockDoc.text).toHaveBeenCalledWith(
-      'Test Person',
+      'J.nr. SAG-123',
       expect.any(Number),
       expect.any(Number),
       expect.objectContaining({ align: 'right' })
@@ -81,8 +79,8 @@ describe('addBrevhoved gate logic', () => {
   it('respekterer partial brevhoved-data', () => {
     const mockDoc = createMockDoc();
     const data: BrevhovedData = {
-      skadelidte: 'Partial Data',
-      // Kun skadelidte, ingen andre felter
+      journalnr: 'SAG-456',
+      // Kun journalnr, ingen andre felter
     };
 
     const result = addBrevhoved(mockDoc, data);
@@ -93,12 +91,60 @@ describe('addBrevhoved gate logic', () => {
     expect(mockDoc.text).toHaveBeenCalled();
   });
 
+  it('tilføjer advokat/sagsbehandler suffix når journalnr findes', () => {
+    const mockDoc = createMockDoc();
+    const data: BrevhovedData = {
+      journalnr: 'SAG-789',
+      advokat: 'AB',
+      sagsbehandler: 'CD',
+      useDagsDatoFallback: false,
+    };
+
+    addBrevhoved(mockDoc, data);
+
+    expect(mockDoc.text).toHaveBeenCalledWith(
+      'J.nr. SAG-789 AB/CD',
+      expect.any(Number),
+      expect.any(Number),
+      expect.objectContaining({ align: 'right' })
+    );
+  });
+
+  it('tilføjer kun advokat eller sagsbehandler suffix når kun én er angivet', () => {
+    const mockDoc = createMockDoc();
+    const advokatData: BrevhovedData = {
+      journalnr: 'SAG-321',
+      advokat: 'AB',
+      useDagsDatoFallback: false,
+    };
+    addBrevhoved(mockDoc, advokatData);
+    expect(mockDoc.text).toHaveBeenCalledWith(
+      'J.nr. SAG-321 AB',
+      expect.any(Number),
+      expect.any(Number),
+      expect.objectContaining({ align: 'right' })
+    );
+
+    const mockDoc2 = createMockDoc();
+    const sagsbehandlerData: BrevhovedData = {
+      journalnr: 'SAG-654',
+      sagsbehandler: 'CD',
+      useDagsDatoFallback: false,
+    };
+    addBrevhoved(mockDoc2, sagsbehandlerData);
+    expect(mockDoc2.text).toHaveBeenCalledWith(
+      'J.nr. SAG-654 CD',
+      expect.any(Number),
+      expect.any(Number),
+      expect.objectContaining({ align: 'right' })
+    );
+  });
+
   it('håndterer tomme strenge som "ingen data"', () => {
     const mockDoc = createMockDoc();
     const data: BrevhovedData = {
-      skadelidte: '',
-      skadestype: '',
       journalnr: '',
+      useDagsDatoFallback: false,
     };
 
     const result = addBrevhoved(mockDoc, data);
@@ -113,7 +159,6 @@ describe('addBrevhoved gate logic', () => {
       const mockDoc = createMockDoc();
       const visBrevhoved = false;
       const stamdata: BrevhovedData = {
-        skadelidte: 'Test Person',
         journalnr: 'SAG-123',
       };
 
@@ -132,7 +177,6 @@ describe('addBrevhoved gate logic', () => {
       const mockDoc = createMockDoc();
       const visBrevhoved = true;
       const stamdata: BrevhovedData = {
-        skadelidte: 'Test Person',
         journalnr: 'SAG-123',
       };
 

@@ -10,15 +10,18 @@ import { VERSION } from '../../config/version';
 import type { DanishDateString, ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
 import { formatDanishDate as formatDanishDateStrict, parseDanishDate as parseDanishDateStrict } from '../dateUtils';
+import { TODAY } from '../../config/dateRanges';
 
 /**
  * Brevhoved-data til PDF-dokumenter
  */
 export type BrevhovedData = Readonly<{
-  skadelidte?: string;
-  skadestype?: string;
-  skadesdato?: ISODateString;
   journalnr?: string;
+  dagsDatoISO?: ISODateString;
+  dagsDatoLabel?: string;
+  useDagsDatoFallback?: boolean;
+  advokat?: string;
+  sagsbehandler?: string;
 }>;
 
 /**
@@ -137,9 +140,9 @@ const formatISODateReadable = (isoDate: ISODateString | undefined): string => {
  * Tilføj brevhoved til PDF-dokument
  *
  * Indsætter et brevhoved øverst til højre på dokumentet med:
- * - Skadelidtes navn (fed, højre-aligneret)
- * - Skadestype og skadesdato (højre-aligneret)
- * - Journalnummer (højre-aligneret)
+ * - Sagsnummer (højre-aligneret)
+ * - (linjeafstand)
+ * - Dags dato (højre-aligneret) eller en eksplicit overstyring
  *
  * VIGTIGT: Brevhovedet er et overlay - det påvirker IKKE placeringen af hovedindholdet.
  * Funktionen returnerer altid MARGINS.top uanset om brevhoved indsættes eller ej.
@@ -149,10 +152,20 @@ const formatISODateReadable = (isoDate: ISODateString | undefined): string => {
  * @returns {number} Altid MARGINS.top (brevhoved er overlay)
  */
 export const addBrevhoved = (doc, data: BrevhovedData): number => {
-  const { skadelidte, skadestype, skadesdato, journalnr } = data;
+  const { journalnr, dagsDatoISO, dagsDatoLabel, useDagsDatoFallback, advokat, sagsbehandler } = data;
+  const trimmedJournalnr = typeof journalnr === 'string' ? journalnr.trim() : '';
+  const resolvedDatoISO = dagsDatoISO ?? (useDagsDatoFallback === false ? undefined : TODAY);
+  const resolvedDatoText = resolvedDatoISO ? formatISODateReadable(resolvedDatoISO) : '';
+  const resolvedDatoLabel = (dagsDatoLabel ?? '').trim();
+  const hasDatoLine = resolvedDatoText !== '';
+  const hasJournalnr = trimmedJournalnr !== '';
+  const trimmedAdvokat = typeof advokat === 'string' ? advokat.trim() : '';
+  const trimmedSagsbehandler = typeof sagsbehandler === 'string' ? sagsbehandler.trim() : '';
+  const hasAdvokat = trimmedAdvokat !== '';
+  const hasSagsbehandler = trimmedSagsbehandler !== '';
 
   // Hvis ingen data, returner standard startposition (ingen overlay)
-  if (!skadelidte && !skadestype && !skadesdato && !journalnr) {
+  if (!hasDatoLine && !hasJournalnr) {
     return MARGINS.top;
   }
 
@@ -164,36 +177,25 @@ export const addBrevhoved = (doc, data: BrevhovedData): number => {
 
   doc.setFontSize(FONT_SIZES.normal - 1); // 1px mindre end normal (9 i stedet for 10)
 
-  // Skadelidtes navn (fed, højre-aligneret)
-  if (skadelidte) {
-    doc.setFont('helvetica', 'bold');
-    doc.text(skadelidte, rightX, currentY, { align: 'right' });
+  // Sagsnummer (normal, højre-aligneret)
+  if (hasJournalnr) {
+    const roleSuffix = hasAdvokat && hasSagsbehandler
+      ? ` ${trimmedAdvokat}/${trimmedSagsbehandler}`
+      : hasAdvokat
+        ? ` ${trimmedAdvokat}`
+        : hasSagsbehandler
+          ? ` ${trimmedSagsbehandler}`
+          : '';
+    doc.setFont('helvetica', 'normal');
+    doc.text(`J.nr. ${trimmedJournalnr}${roleSuffix}`, rightX, currentY, { align: 'right' });
     currentY += lineHeight;
   }
 
-  // Skadestype og skadesdato (normal, højre-aligneret)
+  // Dato (normal, højre-aligneret)
   doc.setFont('helvetica', 'normal');
-  if (skadestype && skadesdato) {
-    const datoTekst = formatISODateReadable(skadesdato);
-    const erErhvervssygdom = skadestype === 'Erhvervssygdom';
-    const anmeldt = erErhvervssygdom ? 'anmeldt ' : '';
-    doc.text(`${skadestype} ${anmeldt}${datoTekst}`, rightX, currentY, { align: 'right' });
-    currentY += lineHeight;
-  } else if (skadestype) {
-    doc.text(skadestype, rightX, currentY, { align: 'right' });
-    currentY += lineHeight;
-  } else if (skadesdato) {
-    const datoTekst = formatISODateReadable(skadesdato);
-    doc.text(`Skadesdato: ${datoTekst}`, rightX, currentY, { align: 'right' });
-    currentY += lineHeight;
-  }
-
-  // Halv linjes afstand mellem skadestype-linje og journalnummer
-  currentY += lineHeight / 2;
-
-  // Journalnummer (højre-aligneret)
-  if (journalnr) {
-    doc.text(`Sagsnr.: ${journalnr}`, rightX, currentY, { align: 'right' });
+  if (hasDatoLine) {
+    const dateLine = resolvedDatoLabel ? `${resolvedDatoLabel} ${resolvedDatoText}` : resolvedDatoText;
+    doc.text(dateLine, rightX, currentY, { align: 'right' });
   }
 
   // Returner ALTID MARGINS.top - brevhoved er overlay og påvirker ikke hovedindholdet
