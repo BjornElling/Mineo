@@ -650,7 +650,7 @@ export const generateErstatningsopgoerelsePdf = (
   } else if (opgørelseLavetDen) {
     // Hvis hverken endelig eller midlertidig afgørelse er truffet
     const dato = formatDateLong(opgørelseLavetDen);
-    const tekst = `Der er pr. ${dato} ikke truffet afgørelse om erhvervsevnetab med 15 % eller derover.`;
+    const tekst = `Der er den ${dato} ikke truffet afgørelse om erhvervsevnetab med 15 % eller derover.`;
     const medKlage = verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst;
     currentY = addWrappedText(
       doc,

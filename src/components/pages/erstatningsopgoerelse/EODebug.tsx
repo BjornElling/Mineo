@@ -2133,72 +2133,74 @@ const EODebug = () => {
       </ContentBox>
 
       
-      <ContentBox className="content-box">
-        <Typography className="section-header">Regulering</Typography>
+      {beregnesTabtArbejdsfortjeneste && (
+        <ContentBox className="content-box">
+          <Typography className="section-header">Regulering</Typography>
 
-        {reguleringSections.map((section) => {
-          return (
-            <Box key={section.id} sx={{ mb: 2 }}>
-              <Typography className="row--subheading">{section.headerText}</Typography>
+          {reguleringSections.map((section) => {
+            return (
+              <Box key={section.id} sx={{ mb: 2 }}>
+                <Typography className="row--subheading">{section.headerText}</Typography>
 
-              {section.rows.map((row) => (
-                <Box key={`${section.id}-${row.id}`} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-                  <Typography className="row--text">{row.label}</Typography>
-                  <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                    <Typography className="row--text">{row.displayValue}</Typography>
-                    {getStatusIcon(row.status)}
+                {section.rows.map((row) => (
+                  <Box key={`${section.id}-${row.id}`} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                    <Typography className="row--text">{row.label}</Typography>
+                    <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                      <Typography className="row--text">{row.displayValue}</Typography>
+                      {getStatusIcon(row.status)}
+                    </Box>
                   </Box>
-                </Box>
-              ))}
+                ))}
 
-              {section.showTable ? (
-                section.table ? (
-                  <>
-                    <StandardDisplayTable
-                      useSmallFont
-                      columns={section.table.columns}
-                      rows={section.table.rows.length > 0
-                        ? section.table.rows
-                        : ([
-                            {
-                              key: `${section.id}-tom`,
-                              cells: [
-                                section.hasDateRange ? 'Ingen reguleringsrækker i perioden.' : 'Mangler datoer til visning.',
-                                ...section.table.columns.slice(1).map(() => '-'),
-                              ],
-                            },
-                          ] satisfies StandardDisplayTableRow[])}
-                      containerSx={{ mt: 1, mb: 4 }}
-                    />
-                    {section.indeksTable ? (
+                {section.showTable ? (
+                  section.table ? (
+                    <>
                       <StandardDisplayTable
                         useSmallFont
-                        columns={section.indeksTable.columns}
-                        rows={section.indeksTable.rows}
-                        tableSx={{
-                          '& td:nth-of-type(5), & th:nth-of-type(5)': {
-                            whiteSpace: 'pre-line',
-                            wordBreak: 'break-word',
-                          },
-                        }}
-                        containerSx={{ mt: 1 }}
+                        columns={section.table.columns}
+                        rows={section.table.rows.length > 0
+                          ? section.table.rows
+                          : ([
+                              {
+                                key: `${section.id}-tom`,
+                                cells: [
+                                  section.hasDateRange ? 'Ingen reguleringsrækker i perioden.' : 'Mangler datoer til visning.',
+                                  ...section.table.columns.slice(1).map(() => '-'),
+                                ],
+                              },
+                            ] satisfies StandardDisplayTableRow[])}
+                        containerSx={{ mt: 1, mb: 4 }}
                       />
-                    ) : (
-                      <Typography className="row--text" sx={{ mt: 1 }}>
-                        Mangler datoer til visning af reguleringstabel.
-                      </Typography>
-                    )}
-                  </>
-                ) : (
-                  <Typography className="row--text" sx={{ mt: 1 }}>
-                    Mangler datoer til visning af reguleringstabel.
-                  </Typography>
-                )
-              ) : null}
-            </Box>
-          );
-        })}
-      </ContentBox>
+                      {section.indeksTable ? (
+                        <StandardDisplayTable
+                          useSmallFont
+                          columns={section.indeksTable.columns}
+                          rows={section.indeksTable.rows}
+                          tableSx={{
+                            '& td:nth-of-type(5), & th:nth-of-type(5)': {
+                              whiteSpace: 'pre-line',
+                              wordBreak: 'break-word',
+                            },
+                          }}
+                          containerSx={{ mt: 1 }}
+                        />
+                      ) : (
+                        <Typography className="row--text" sx={{ mt: 1 }}>
+                          Mangler datoer til visning af reguleringstabel.
+                        </Typography>
+                      )}
+                    </>
+                  ) : (
+                    <Typography className="row--text" sx={{ mt: 1 }}>
+                      Mangler datoer til visning af reguleringstabel.
+                    </Typography>
+                  )
+                ) : null}
+              </Box>
+            );
+          })}
+        </ContentBox>
+      )}
 
       <ContentBox className="content-box">
         <Typography className="section-header">Øvrige erstatningskrav</Typography>
