@@ -180,7 +180,7 @@
   margin-bottom: 0 !important;
 }
 
-.flow--16 > * + * {
+.flow--16 > :not(.content-box-report-btn) + :not(.content-box-report-btn) {
   margin-top: 16px !important;
 }
 
@@ -188,12 +188,18 @@
 .flow--16 > ol {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
+  padding-left: 30px !important;
+}
+
+.flow--16 li {
+  padding-left: 6px !important;
 }
 
 /* Neutraliser row--text's faste række-højde i "flow"-layouts (fx Om-siden) */
 .flow--16 .row--text {
   min-height: unset !important;
   display: block !important;
+  padding: 0 12px !important;
 }
 
 /* NOTE:

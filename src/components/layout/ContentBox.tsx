@@ -70,6 +70,7 @@ const ContentBox = React.memo(({ className, sx, children, disableReport = false,
         <Tooltip title="Rapportér fejl eller forbedringsønske" arrow placement="top-start">
           <Fab
             size="small"
+            className="content-box-report-btn"
             onClick={handleOpenReport}
             tabIndex={-1}
             sx={{
