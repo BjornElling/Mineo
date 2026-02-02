@@ -221,6 +221,7 @@ export interface ErstatningsopgoerelseValues {
   differencekravDato: string;
 
   // Svie/smerte godtgørelse
+  beregnesSvieSmerteGodtgoerelse: 'Ja' | 'Nej';
   svieSmerteHelbredsstatus: '' | 'Sygemeldt' | 'Delvist Sygemeldt' | 'Raskmeldt';
   tidligereSsMax: 'Ja' | 'Nej';
   svieSmertePerioder: SvieSmertePeriodeRow[];
@@ -230,6 +231,7 @@ export interface ErstatningsopgoerelseValues {
   svieSmerteAktuelPeriode: AmountValue | undefined;
 
   // Tabt arbejdsfortjeneste
+  beregnesTabtArbejdsfortjeneste: 'Ja' | 'Nej';
   tafArbejdsstatus: '' | 'Uarbejdsdygtig' | 'Delvist raskmeldt' | 'Fuldt arbejdsdygtig' | 'Fleksjob' | 'Revalidering' | 'Førtidspension' | 'Seniorpension';
   tafPerioder: TafPeriodeRow[];
   ferieperioder: FerieperiodeRow[];
@@ -485,4 +487,5 @@ export interface FileHandleWithMetadata {
   name: string;
   lastModified: number;
 }
+
 

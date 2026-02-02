@@ -57,6 +57,7 @@ export const createErstatningsopgoerelseInitialValues = (settings?: AppSettings)
   differencekravDato: undefined,
 
   // Svie/smerte godtgørelse
+  beregnesSvieSmerteGodtgoerelse: 'Ja',
   svieSmerteHelbredsstatus: undefined,
   tidligereSsMax: 'Nej',
   svieSmertePerioder: ensureSvieRows(undefined),
@@ -66,6 +67,7 @@ export const createErstatningsopgoerelseInitialValues = (settings?: AppSettings)
   svieSmerteAktuelPeriode: undefined,
 
   // Tabt arbejdsfortjeneste
+  beregnesTabtArbejdsfortjeneste: 'Ja',
   tafArbejdsstatus: undefined,
   tafPerioder: ensureTafRows(undefined),
   ferieperioder: ensureTafFerieRows(undefined),
@@ -142,3 +144,5 @@ export const createErstatningsopgoerelseInitialValues = (settings?: AppSettings)
  * Bevaret for bagudkompatibilitet med tests
  */
 export const ERSTATNINGSOPGOERELSE_INITIAL_VALUES = createErstatningsopgoerelseInitialValues();
+
+

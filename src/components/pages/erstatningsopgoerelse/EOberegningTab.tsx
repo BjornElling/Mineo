@@ -169,13 +169,11 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
    * Ekstraher fejlmeddelelse fra displayValue
    *
    * Format: "Fejl (meddelelse)" eller "Advarsel (meddelelse)" eller bare værdi
-   * Returner: meddelelsen UDEN "Fejl:" prefix, eller "(Indtastning mangler)" hvis tom værdi
+   * Returner: meddelelsen UDEN "Fejl:" prefix, eller tom streng hvis ukendt format
    */
   const extractErrorMessage = React.useCallback((displayValue: string): string => {
-    // Tjek om værdien er tom (bindestreg)
-    if (displayValue === '-' || displayValue.trim() === '') {
-      return '(Indtastning mangler)';
-    }
+    const trimmed = displayValue.trim();
+    if (trimmed === '' || trimmed === '-') return '';
 
     // Tjek om displayValue indeholder "Fejl (" eller "Advarsel ("
     const fejlMatch = displayValue.match(/^Fejl \((.+)\)$/);
@@ -188,8 +186,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       return `(${advarselMatch[1]})`;
     }
 
-    // Hvis displayValue ikke matcher pattern, returner "(Indtastning mangler)"
-    return '(Indtastning mangler)';
+    // Ukendt format - returner displayValue uændret for at undgå falsk semantik
+    return displayValue;
   }, []);
 
   const handleNavigate = React.useCallback(
@@ -252,17 +250,24 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     []
   );
 
+  const beregnesSvieSmerte = eoValues?.beregnesSvieSmerteGodtgoerelse === 'Ja';
+  const beregnesTabtArbejdsfortjeneste = eoValues?.beregnesTabtArbejdsfortjeneste === 'Ja';
+
   const svieSmerteRow = allRows.find((row) => row.id === 'sviesmerte.beregnetPeriode');
-  const svieSmerteDisplayParts = (svieSmerteRow?.displayValue ?? '-')
+  const svieSmerteDisplayParts = (beregnesSvieSmerte ? (svieSmerteRow?.displayValue ?? '-') : '-')
     .split('\n')
     .map((value) => value.trim())
     .filter((value) => value !== '' && value !== '-');
   const svieSmerteLines = svieSmerteDisplayParts;
   const svieSmerteLabel = svieSmerteLines.length > 1 ? 'Svie/smerteperioder' : 'Svie/smerteperiode';
   const harSvieSmertePerioder =
-    (eoValues?.svieSmertePerioder ?? []).some((row) => row.fra || row.til || row.tilstand) && svieSmerteLines.length > 0;
+    beregnesSvieSmerte &&
+    (eoValues?.svieSmertePerioder ?? []).some((row) => row.fra || row.til || row.tilstand) &&
+    svieSmerteLines.length > 0;
 
-  const tafRows = allRows.filter((row) => row.id.startsWith('taf.periode.'));
+  const tafRows = beregnesTabtArbejdsfortjeneste
+    ? allRows.filter((row) => row.id.startsWith('taf.periode.'))
+    : [];
   const tafPerioderLabels = tafRows
     .filter((row) => row.id !== 'taf.periode.empty' && row.label.trim() !== '-')
     .map((row) => {
@@ -271,6 +276,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     })
     .filter((value) => value !== '');
   const harTafPerioder =
+    beregnesTabtArbejdsfortjeneste &&
     (eoValues?.tafPerioder ?? []).some((row) => row.fra || row.til || typeof row.loseFeriedage === 'number') &&
     tafPerioderLabels.length > 0;
   const tafPerioderLines = tafPerioderLabels;
@@ -327,7 +333,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
             return (
               <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': '400px' }}>
                 <Typography className="row--text">
-                  {row.label} {errorMessage}
+                  {row.label}{errorMessage ? ` ${errorMessage}` : ''}
                 </Typography>
                 <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
                   {row.navigation.kind === 'erstatningsopgoerelse-tab' && (
@@ -381,7 +387,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
             return (
               <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': '400px' }}>
                 <Typography className="row--text">
-                  {row.label} {warningMessage}
+                  {row.label}{warningMessage ? ` ${warningMessage}` : ''}
                 </Typography>
                 <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
                   {row.navigation.kind === 'erstatningsopgoerelse-tab' && (

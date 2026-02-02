@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Data-aggregering for Beregning-fanen
  *
  * Samler alle DebugRowModel fra centraliseret builder-registry og tilføjer navigation-metadata.
@@ -191,6 +191,29 @@ const addNavigationMetadata = (row: DebugRowModel): DebugRowWithNavigation => ({
   navigation: getNavigationTargetFromRowId(row.id),
 });
 
+const shouldHideRowForEoValues = (
+  row: DebugRowWithNavigation,
+  values: ErstatningsopgoerelseValues
+): boolean => {
+  // Skjul rækker der er eksplicit fravalgt i UI.
+  if (values.beregnesSvieSmerteGodtgoerelse === 'Nej' && row.id.startsWith('sviesmerte.')) {
+    return true;
+  }
+  if (values.beregnesTabtArbejdsfortjeneste === 'Nej') {
+    // NOTE:
+    // loenindkomst.* filtreres sammen med TAF, da lønindkomst
+    // udelukkende anvendes til Tabt Arbejdsfortjeneste.
+    // Hvis lønindkomst senere bliver et selvstændigt domæne,
+    // skal denne filtrering og EODebug UI genovervejes.
+    if (row.id.startsWith('taf.')) return true;
+    // Lønindkomst-sektionen er kun relevant når TAF beregnes.
+    if (row.id.startsWith('loenindkomst.')) return true;
+  }
+  return false;
+};
+
+
+
 /**
  * Samler alle debug-rows fra registry og tilføjer navigation
  *
@@ -222,16 +245,17 @@ export const collectAllDebugRows = (
 
   // Tilføj navigation-metadata til alle rows
   const rowsWithNavigation = allRows.map(addNavigationMetadata);
-  const duplicateIds = findDuplicateIds(rowsWithNavigation);
+  const visibleRows = rowsWithNavigation.filter((row) => !shouldHideRowForEoValues(row, erstatningsopgoerelseValues));
+  const duplicateIds = findDuplicateIds(visibleRows);
   if (duplicateIds.length > 0) {
     throw new Error(
       `Duplikat-id fundet i debug-rows: ${duplicateIds.join(', ')}. ` +
         'Debug-ids skal være entydige for at sikre korrekt suppression.'
     );
   }
-  const statusById = new Map(rowsWithNavigation.map((row) => [row.id, row.status]));
-  const ids = rowsWithNavigation.map((row) => row.id);
-  const depsById = buildDependencyGraph(rowsWithNavigation);
+  const statusById = new Map(visibleRows.map((row) => [row.id, row.status]));
+  const ids = visibleRows.map((row) => row.id);
+  const depsById = buildDependencyGraph(visibleRows);
   const inCycle = detectDependencyCycles(ids, depsById);
   if (inCycle.size > 0) {
     const idsPreview = Array.from(inCycle)
@@ -248,12 +272,15 @@ export const collectAllDebugRows = (
   const maxAncestorSeverityById = buildMaxAncestorSeverityMap(ids, depsById, statusById, inCycle);
 
   // Filtrer og gruppér efter status
-  const errors = rowsWithNavigation.filter(
+  const errors = visibleRows.filter(
     (r) => r.status === 'error' && !shouldSuppressRow(r, maxAncestorSeverityById)
   );
-  const warnings = rowsWithNavigation.filter(
+  const warnings = visibleRows.filter(
     (r) => r.status === 'warning' && !shouldSuppressRow(r, maxAncestorSeverityById)
   );
 
-  return { errors, warnings, allRows: rowsWithNavigation };
+  return { errors, warnings, allRows: visibleRows };
 };
+
+
+

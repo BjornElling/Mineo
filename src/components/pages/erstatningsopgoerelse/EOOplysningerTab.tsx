@@ -907,82 +907,172 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
         <Typography className="section-header">Svie/smerte godtgørelse</Typography>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Tidligere beregnet S/S til max.</Typography>
+          <Typography className="row--text">Beregnes der svie/smerte godtgørelse i opgørelsen</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
-              checked={getChecked(values.tidligereSsMax)}
-              onCommit={handleToggleChange('tidligereSsMax')}
+              checked={getChecked(values.beregnesSvieSmerteGodtgoerelse)}
+              onCommit={handleToggleChange('beregnesSvieSmerteGodtgoerelse')}
             />
           </Box>
         </Box>
 
-        {!getChecked(values.tidligereSsMax) && (
+        {getChecked(values.beregnesSvieSmerteGodtgoerelse) && (
+          <>
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">Tidligere beregnet S/S til max.</Typography>
+              <Box className="row--label-right-hover__content">
+                <StyledToggleSwitch
+                  checked={getChecked(values.tidligereSsMax)}
+                  onCommit={handleToggleChange('tidligereSsMax')}
+                />
+              </Box>
+            </Box>
+
+            {!getChecked(values.tidligereSsMax) && (
+              <>
+                <Typography className="row--subheading">Periode:</Typography>
+                <SvieSmerteTable
+                  rows={svie.draftRows}
+                  committedById={svie.committedById}
+                  derivedById={svie.derivedById}
+                  overlappingIds={svie.overlappingIds}
+                  skadesdatoISO={skadesdatoISO}
+                  menAfgoerelseDato={menAfgoerelseDatoForTabel}
+                  erErhvervssygdom={erErhvervssygdom}
+                  verserendeKlageMen={verserendeKlageMen}
+                  onFieldChange={svie.onFieldChange}
+                  onRowBlur={(rowId) => svie.onFieldBlur(rowId)}
+                />
+
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">Hvilket års svie/smerte satser lægges til grund?</Typography>
+                  <Box className="row--label-right-hover__content">
+                    <StyledYearField
+                      width={100}
+                      value={values.svieSmerteSatserAar}
+                      onCommit={handleNumberBlur('svieSmerteSatserAar')}
+                      onFieldError={reportSvieSmerteSatserAarInputError}
+                      minYear={MIN_YEAR}
+                      maxYear={MAX_YEAR}
+                    />
+                  </Box>
+                </Box>
+
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">Svie/smerte sats ved delvis sygemelding:</Typography>
+                  <Box className="row--label-right-hover__content">
+                    <StyledRadioButton
+                      value={values.svieSmerteDelvisSygemeldingSats}
+                      onChange={handleChange('svieSmerteDelvisSygemeldingSats')}
+                      row={true}
+                      options={[
+                        { value: 'fuld', label: 'Fuld sats' },
+                        { value: 'halv', label: 'Halv sats' },
+                      ]}
+                    />
+                  </Box>
+                </Box>
+
+                <Typography className="row--subheading">Tidligere svie/smerte godtgørelse</Typography>
+
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">Svie/smerte krav i tidligere erstatningsopgørelser:</Typography>
+                  <Box className="row--label-right-hover__content">
+                    <StyledAmountField
+                      width={150}
+                      value={values.svieSmerteTidligereTotal}
+                      onCommit={handleAmountBlur('svieSmerteTidligereTotal')}
+                      onFieldError={reportSvieSmerteTidligereTotalInputError}
+                    />
+                  </Box>
+                </Box>
+
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode:</Typography>
+                  <Box className="row--label-right-hover__content">
+                    <StyledAmountField
+                      width={150}
+                      value={values.svieSmerteAktuelPeriode}
+                      onCommit={handleAmountBlur('svieSmerteAktuelPeriode')}
+                      onFieldError={reportSvieSmerteAktuelPeriodeInputError}
+                    />
+                  </Box>
+                </Box>
+              </>
+            )}
+          </>
+        )}
+      </ContentBox>
+
+      {/* Sektion 6: Tabt arbejdsfortjeneste */}
+      <ContentBox className="content-box" data-section-id="taf">
+        <Typography className="section-header">Tabt arbejdsfortjeneste</Typography>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Beregnes der tabt arbejdsfortjeneste i opgørelsen</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledToggleSwitch
+              checked={getChecked(values.beregnesTabtArbejdsfortjeneste)}
+              onCommit={handleToggleChange('beregnesTabtArbejdsfortjeneste')}
+            />
+          </Box>
+        </Box>
+
+        {getChecked(values.beregnesTabtArbejdsfortjeneste) && (
           <>
             <Typography className="row--subheading">Periode:</Typography>
-            <SvieSmerteTable
-              rows={svie.draftRows}
-              committedById={svie.committedById}
-              derivedById={svie.derivedById}
-              overlappingIds={svie.overlappingIds}
+            <TAFPeriodeTable
+              rows={taf.draftRows}
+              committedById={taf.committedById}
+              overlappingIds={taf.overlappingIds}
+              onFieldChange={taf.onFieldChange}
+              onRowBlur={(rowId) => taf.onFieldBlur(rowId)}
+              derivedById={tafDerived.derivedById}
+              derivedColumnHeader={tafDerived.kolonneOverskrift}
+              overlapWithBeregningsperiodeByRowId={beregningsperiodeTafOverlap.overlapMessageByRowId}
               skadesdatoISO={skadesdatoISO}
-              menAfgoerelseDato={menAfgoerelseDatoForTabel}
+              endeligEETBeregnetDato={endeligEETBeregnetDato}
+              differencekravDato={values.differencekravDato}
               erErhvervssygdom={erErhvervssygdom}
-              verserendeKlageMen={verserendeKlageMen}
-              onFieldChange={svie.onFieldChange}
-              onRowBlur={(rowId) => svie.onFieldBlur(rowId)}
+              verserendeKlageEet={verserendeKlageEet}
             />
 
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Hvilket års svie/smerte satser lægges til grund?</Typography>
-              <Box className="row--label-right-hover__content">
-                <StyledYearField
-                  width={100}
-                  value={values.svieSmerteSatserAar}
-                  onCommit={handleNumberBlur('svieSmerteSatserAar')}
-                  onFieldError={reportSvieSmerteSatserAarInputError}
-                  minYear={MIN_YEAR}
-                  maxYear={MAX_YEAR}
-                />
-              </Box>
-            </Box>
+            <Typography className="row--subheading">Evt. ferie i perioden:</Typography>
+            <FerieperiodeTable
+              rows={ferie.draftRows}
+              committedById={ferie.committedById}
+              feriedageById={ferieFeriedageById}
+              onFieldChange={ferie.onFieldChange}
+              onRowBlur={(rowId) => ferie.onFieldBlur(rowId)}
+              skadesdatoISO={skadesdatoISO}
+              endeligEETBeregnetDato={endeligEETBeregnetDato}
+              differencekravDato={values.differencekravDato}
+              erErhvervssygdom={erErhvervssygdom}
+              verserendeKlageEet={verserendeKlageEet}
+            />
+
+            <Typography className="row--subheading">Øvrigt</Typography>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text">Svie/smerte sats ved delvis sygemelding:</Typography>
-              <Box className="row--label-right-hover__content">
-                <StyledRadioButton
-                  value={values.svieSmerteDelvisSygemeldingSats}
-                  onChange={handleChange('svieSmerteDelvisSygemeldingSats')}
-                  row={true}
-                  options={[
-                    { value: 'fuld', label: 'Fuld sats' },
-                    { value: 'halv', label: 'Halv sats' },
-                  ]}
-                />
-              </Box>
-            </Box>
-
-            <Typography className="row--subheading">Tidligere svie/smerte godtgørelse</Typography>
-
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Svie/smerte krav i tidligere erstatningsopgørelser:</Typography>
+              <Typography className="row--text">Evt. allerede modtaget tabt arbejdsfortjeneste for nuværende erstatningsperiode:</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledAmountField
                   width={150}
-                  value={values.svieSmerteTidligereTotal}
-                  onCommit={handleAmountBlur('svieSmerteTidligereTotal')}
-                  onFieldError={reportSvieSmerteTidligereTotalInputError}
+                  value={values.tidligereModtagetTaf}
+                  onCommit={handleAmountBlur('tidligereModtagetTaf')}
+                  onFieldError={reportTidligereModtagetTafInputError}
                 />
               </Box>
             </Box>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text">Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode:</Typography>
+              <Typography className="row--text">Andel af løn i perioden, der består af sygeferiegodtgørelse</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledAmountField
                   width={150}
-                  value={values.svieSmerteAktuelPeriode}
-                  onCommit={handleAmountBlur('svieSmerteAktuelPeriode')}
-                  onFieldError={reportSvieSmerteAktuelPeriodeInputError}
+                  value={values.andelSfggILoenen}
+                  onCommit={handleAmountBlur('andelSfggILoenen')}
+                  onFieldError={reportAndelSfggILoenenInputError}
                 />
               </Box>
             </Box>
@@ -991,7 +1081,8 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       </ContentBox>
 
       {/* Sektion 5: Indtægt før skaden */}
-      <ContentBox className="content-box" data-section-id="taf-beregningsgrundlag">
+      {getChecked(values.beregnesTabtArbejdsfortjeneste) && (
+        <ContentBox className="content-box" data-section-id="taf-beregningsgrundlag">
         <Typography className="section-header">Indtægt før skaden</Typography>
 
         <Box className="row--label-right-hover">
@@ -1169,70 +1260,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           </>
         )}
       </ContentBox>
-
-      {/* Sektion 6: Tabt arbejdsfortjeneste */}
-      <ContentBox className="content-box" data-section-id="taf">
-        <Typography className="section-header">Tabt arbejdsfortjeneste</Typography>
-
-        <Typography className="row--subheading">Periode:</Typography>
-        <TAFPeriodeTable
-          rows={taf.draftRows}
-          committedById={taf.committedById}
-          overlappingIds={taf.overlappingIds}
-          onFieldChange={taf.onFieldChange}
-          onRowBlur={(rowId) => taf.onFieldBlur(rowId)}
-          derivedById={tafDerived.derivedById}
-          derivedColumnHeader={tafDerived.kolonneOverskrift}
-          overlapWithBeregningsperiodeByRowId={beregningsperiodeTafOverlap.overlapMessageByRowId}
-          skadesdatoISO={skadesdatoISO}
-          endeligEETBeregnetDato={endeligEETBeregnetDato}
-          differencekravDato={values.differencekravDato}
-          erErhvervssygdom={erErhvervssygdom}
-          verserendeKlageEet={verserendeKlageEet}
-        />
-
-        <Typography className="row--subheading">Evt. ferie i perioden:</Typography>
-        <FerieperiodeTable
-          rows={ferie.draftRows}
-          committedById={ferie.committedById}
-          feriedageById={ferieFeriedageById}
-          onFieldChange={ferie.onFieldChange}
-          onRowBlur={(rowId) => ferie.onFieldBlur(rowId)}
-          skadesdatoISO={skadesdatoISO}
-          endeligEETBeregnetDato={endeligEETBeregnetDato}
-          differencekravDato={values.differencekravDato}
-          erErhvervssygdom={erErhvervssygdom}
-          verserendeKlageEet={verserendeKlageEet}
-        />
-
-
-
-        <Typography className="row--subheading">Øvrigt</Typography>
-
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Evt. allerede modtaget tabt arbejdsfortjeneste for nuværende erstatningsperiode:</Typography>
-          <Box className="row--label-right-hover__content">
-            <StyledAmountField
-              width={150}
-              value={values.tidligereModtagetTaf}
-              onCommit={handleAmountBlur('tidligereModtagetTaf')}
-              onFieldError={reportTidligereModtagetTafInputError}
-            />
-          </Box>
-        </Box>
-
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Andel af løn i perioden, der består af sygeferiegodtgørelse</Typography>
-          <Box className="row--label-right-hover__content">
-            <StyledAmountField
-              width={150}
-              value={values.andelSfggILoenen}
-              onCommit={handleAmountBlur('andelSfggILoenen')}
-              onFieldError={reportAndelSfggILoenenInputError}
-            />
-          </Box>
-        </Box>
-      </ContentBox>
+      )}
 
       {/* Sektion 7: Øvrige erstatningskrav */}
       <ContentBox className="content-box" data-section-id="oevrige-krav">
@@ -1275,3 +1303,16 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 EOOplysningerTab.displayName = 'EOOplysningerTab';
 
 export default EOOplysningerTab;
+
+
+
+
+
+
+
+
+
+
+
+
+

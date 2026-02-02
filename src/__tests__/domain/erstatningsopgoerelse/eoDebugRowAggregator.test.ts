@@ -130,6 +130,55 @@ describe('collectAllDebugRows', () => {
     });
   });
 
+  it('filters sviesmerte rows when svie/smerte beregning er fravalgt', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('sviesmerte.beregnetPeriode', 'warning'),
+          makeRow('stamdata.journalnr', 'ok'),
+        ],
+      },
+    ]);
+
+    const eoValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, beregnesSvieSmerteGodtgoerelse: 'Nej' as const };
+    const { errors, warnings, allRows } = collectAllDebugRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      eoValues,
+      eoErrors
+    );
+
+    expect(allRows.map((row) => row.id)).toEqual(['stamdata.journalnr']);
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+  });
+
+  it('filters taf- og loenindkomst-rows when TAF beregning er fravalgt', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('taf.periode.test', 'error'),
+          makeRow('loenindkomst.af1.loenoplysninger', 'warning'),
+          makeRow('stamdata.journalnr', 'ok'),
+        ],
+      },
+    ]);
+
+    const eoValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, beregnesTabtArbejdsfortjeneste: 'Nej' as const };
+    const { errors, warnings, allRows } = collectAllDebugRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      eoValues,
+      eoErrors
+    );
+
+    expect(allRows.map((row) => row.id)).toEqual(['stamdata.journalnr']);
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+  });
+
   it('returns deterministic output for identical input', () => {
     registry.__setBuilders([
       {

@@ -616,6 +616,7 @@ const aesAfgoerelserSchema = z.object({
  * Svie/smerte godtgørelse sub-schema
  */
 const svieSmerteSchema = z.object({
+  beregnesSvieSmerteGodtgoerelse: jaNejEnum.default('Ja'),
   svieSmerteHelbredsstatus: z.preprocess(normalizeEmptyToUndefined, helbredsstatusEnum.optional()),
   tidligereSsMax: jaNejEnum,
   svieSmertePerioder: z.array(svieSmertePeriodeRowSchema),
@@ -630,6 +631,7 @@ const svieSmerteSchema = z.object({
  * Tabt arbejdsfortjeneste (TAF) sub-schema
  */
 const tafSchema = z.object({
+  beregnesTabtArbejdsfortjeneste: jaNejEnum.default('Ja'),
   tafArbejdsstatus: z.preprocess(normalizeEmptyToUndefined, arbejdsstatusEnum.optional()),
   tafPerioder: z.array(tafPeriodeRowSchema),
   ferieperioder: z.array(ferieperiodeRowSchema),
