@@ -1,8 +1,9 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { VERSION, BUILD_DATE } from '../../config/version';
+import { VERSION } from '../../config/version';
 import { requestPwaInstall } from '../../utils/pwaInstallPrompt';
 import ContentBox from '../layout/ContentBox';
+import LicenseModal from '../ui/LicenseModal';
 
 // Import af MUI ikoner til kontakt-sektionen
 import PersonIcon from '@mui/icons-material/Person';
@@ -15,18 +16,20 @@ import BrowserUpdatedIcon from '@mui/icons-material/BrowserUpdated';
  * Om-komponent
  */
 const Om = React.memo(() => {
-  const buildDate = new Date(BUILD_DATE);
-  const _formattertDato = buildDate.toLocaleDateString('da-DK', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  const [licenseOpen, setLicenseOpen] = React.useState(false);
 
   const handleInstallClick = React.useCallback((event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
     void requestPwaInstall();
+  }, []);
+
+  const handleLicenseClick = React.useCallback((event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    setLicenseOpen(true);
+  }, []);
+
+  const handleLicenseClose = React.useCallback(() => {
+    setLicenseOpen(false);
   }, []);
 
   return (
@@ -53,8 +56,8 @@ const Om = React.memo(() => {
         </Typography>
 
         <Typography className="row--text">
-          Selvom der er indlagt fejlkontrol i programmet, kan det ikke forhindre dig i at
-          lægge forkerte forudsætninger til grund. Sørg for at vide, hvad du laver, og 
+          Selvom der er indlagt en vis fejlkontrol i programmet, kan det ikke forhindre dig 
+          i at lægge forkerte forudsætninger til grund. Sørg for at vide, hvad du laver, og 
           kontrollér altid dine beregninger grundigt.
         </Typography>
 
@@ -101,7 +104,7 @@ const Om = React.memo(() => {
         </Box>
 
         <Typography className="row--text">
-          Bemærk, at hjælpeprogrammet forudsætter, at du har Google Chrome eller Microsoft Edge installeret.
+          Bemærk, at hjælpeprogrammet kun kan installeres, hvis du benytter Google Chrome eller Microsoft Edge.
         </Typography>
 
       </ContentBox>
@@ -138,7 +141,13 @@ const Om = React.memo(() => {
         {/* Licensforklaring */}
         <Typography className="row--text">
           Programmet er gratis at bruge og udgives under{' '}
-          <Box component="a" href="/LICENSE" className="icon-text-link" sx={{ display: 'inline' }}>
+          <Box
+            component="a"
+            href="#"
+            onClick={handleLicenseClick}
+            className="icon-text-link"
+            sx={{ display: 'inline' }}
+          >
             MIT-licensen
           </Box>
           , hvilket indebærer:
@@ -280,6 +289,12 @@ const Om = React.memo(() => {
         </Typography>
 
       </ContentBox>
+
+      {/* License Modal */}
+      <LicenseModal
+        open={licenseOpen}
+        onClose={handleLicenseClose}
+      />
 
     </Box>
   );
