@@ -510,6 +510,8 @@ const EODebug = () => {
 
   const beregnesSvieSmerte = erstatningsopgoerelseValues.beregnesSvieSmerteGodtgoerelse === 'Ja';
   const beregnesTabtArbejdsfortjeneste = erstatningsopgoerelseValues.beregnesTabtArbejdsfortjeneste === 'Ja';
+  const midlertidigtEetErSynlig = erstatningsopgoerelseValues.midlertidigtEetAfgorelse === 'Ja';
+  const endeligtEetErSynlig = erstatningsopgoerelseValues.endeligtEetAfgorelse === 'Ja';
 
   const stamdataFieldErrors = useFormFieldErrorsBySource('stamdata');
   const erstatningsopgoerelseFieldErrors = useFormFieldErrorsBySource('erstatningsopgoerelse');
@@ -1720,7 +1722,14 @@ const EODebug = () => {
 
         <Typography className="row--subheading">Midlertidigt erhvervsevnetab</Typography>
 
-        {aesMidlertidigtRows.map((row) => {
+        {aesMidlertidigtRows.filter((row) => {
+          if (midlertidigtEetErSynlig) return true;
+          return !(
+            row.id === 'aes.midlertidigEETAfgoerelseDato' ||
+            row.id === 'aes.midlertidigEETVirkningsdato' ||
+            row.id === 'aes.beregnetMidlertidigEETStartdato'
+          );
+        }).map((row) => {
           return (
             <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
               <Typography className="row--text">{row.label}</Typography>
@@ -1734,7 +1743,14 @@ const EODebug = () => {
 
         <Typography className="row--subheading">Endeligt erhvervsevnetab</Typography>
 
-        {aesEndeligtRows.map((row) => {
+        {aesEndeligtRows.filter((row) => {
+          if (endeligtEetErSynlig) return true;
+          return !(
+            row.id === 'aes.endeligEETAfgoerelseDato' ||
+            row.id === 'aes.endeligEETVirkningsdato' ||
+            row.id === 'aes.beregnetEndeligEETStartdato'
+          );
+        }).map((row) => {
           return (
             <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
               <Typography className="row--text">{row.label}</Typography>

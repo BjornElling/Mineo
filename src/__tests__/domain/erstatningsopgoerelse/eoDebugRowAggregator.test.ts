@@ -179,6 +179,58 @@ describe('collectAllDebugRows', () => {
     expect(warnings).toEqual([]);
   });
 
+  it('filters midlertidigt EET-rows when midlertidig EET afgørelse er "Nej"', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('aes.midlertidigEETAfgoerelseDato', 'error'),
+          makeRow('aes.midlertidigEETVirkningsdato', 'warning'),
+          makeRow('aes.beregnetMidlertidigEETStartdato', 'error'),
+          makeRow('stamdata.journalnr', 'ok'),
+        ],
+      },
+    ]);
+
+    const eoValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, midlertidigtEetAfgorelse: 'Nej' as const };
+    const { errors, warnings, allRows } = collectAllDebugRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      eoValues,
+      eoErrors
+    );
+
+    expect(allRows.map((row) => row.id)).toEqual(['stamdata.journalnr']);
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+  });
+
+  it('filters endeligt EET-rows when endelig EET afgørelse er "Nej"', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('aes.endeligEETAfgoerelseDato', 'error'),
+          makeRow('aes.endeligEETVirkningsdato', 'warning'),
+          makeRow('aes.beregnetEndeligEETStartdato', 'error'),
+          makeRow('stamdata.journalnr', 'ok'),
+        ],
+      },
+    ]);
+
+    const eoValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, endeligtEetAfgorelse: 'Nej' as const };
+    const { errors, warnings, allRows } = collectAllDebugRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      eoValues,
+      eoErrors
+    );
+
+    expect(allRows.map((row) => row.id)).toEqual(['stamdata.journalnr']);
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+  });
+
   it('returns deterministic output for identical input', () => {
     registry.__setBuilders([
       {
