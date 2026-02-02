@@ -14,6 +14,7 @@ import type { AarsloenTableRow, LoenPaaHelligdage, Loenperiode, StamdataValues }
 import type { PeriodeResult } from '../periodeBeregning';
 import type { AarsloenBeregningResult } from '../../types/common';
 import { amountValueToDisplayString, amountValueToNumber } from '../expressionAmount';
+import { TODAY } from '../../config/dateRanges';
 
 type PdfDoc = jsPDF & {
   lastAutoTable?: {
@@ -760,11 +761,12 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
   let currentY = MARGINS.top;
 
   // Tilføj brevhoved hvis aktiveret
-  if (visBrevhoved && stamdata) {
+  if (visBrevhoved) {
     const brevhovedData: BrevhovedData = {
-      journalnr: stamdata.journalnr,
-      advokat: stamdata.advokat,
-      sagsbehandler: stamdata.sagsbehandler,
+      journalnr: stamdata?.journalnr,
+      advokat: stamdata?.advokat,
+      sagsbehandler: stamdata?.sagsbehandler,
+      dagsDatoISO: TODAY,
     };
     currentY = addBrevhoved(doc, brevhovedData);
   }
@@ -833,4 +835,3 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
   // Download PDF
   doc.save(filename);
 };
-

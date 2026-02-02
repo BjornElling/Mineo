@@ -11,6 +11,7 @@ import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelp
 import type { ISODateString } from '../../types/branded';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import type { VarigeMenBeregningResult } from '../../domain/varigemen/varigeMenCalculations';
+import { TODAY } from '../../config/dateRanges';
 
 type PdfDoc = jsPDF & {
   lastAutoTable?: {
@@ -284,11 +285,12 @@ export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void =
   let currentY = MARGINS.top;
 
   // Tilføj brevhoved hvis aktiveret
-  if (visBrevhoved && stamdata) {
+  if (visBrevhoved) {
     const brevhovedData: BrevhovedData = {
-      journalnr: stamdata.journalnr,
-      advokat: stamdata.advokat,
-      sagsbehandler: stamdata.sagsbehandler,
+      journalnr: stamdata?.journalnr,
+      advokat: stamdata?.advokat,
+      sagsbehandler: stamdata?.sagsbehandler,
+      dagsDatoISO: TODAY,
     };
     currentY = addBrevhoved(doc, brevhovedData);
   }

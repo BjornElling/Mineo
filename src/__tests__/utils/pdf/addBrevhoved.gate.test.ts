@@ -1,22 +1,18 @@
 /// <reference types="vitest/globals" />
 
 import { addBrevhoved, type BrevhovedData } from '../../../utils/pdf/pdfHelpers';
+import { toISODateString } from '../../../types/branded';
 
 /**
- * Test af brevhoved-gate logik
+ * Test af brevhoved-rendering
  *
  * FORMÅL:
- * - Bevise at brevhoved-logikken respekterer visBrevhoved-flaget
- * - Bevise at addBrevhoved kun kaldes når det skal
- * - Sikre at PDF-generatorer følger kontrakten
- *
- * STRATEGI:
- * - Teste gate-logik ved at mocke jsPDF doc-objektet
- * - Spore kald til doc.text() og doc.setFont()
- * - Verificere at brevhoved-kald kun sker ved korrekte betingelser
+ * - Dato-linjen skal altid vises når addBrevhoved kaldes
+ * - Journalnr-linjen er den eneste betingede linje
+ * - PDF-generatorer styrer om brevhoved kaldes (visBrevhoved)
  */
 
-describe('addBrevhoved gate logic', () => {
+describe('addBrevhoved rendering', () => {
   // Helper: Opret mock PDF-dokument
   const createMockDoc = () => {
     const mockDoc = {
@@ -33,10 +29,10 @@ describe('addBrevhoved gate logic', () => {
     return mockDoc;
   };
 
-  it('returnerer MARGINS.top når ingen brevhoved-data findes', () => {
+  it('render dato-linjen altid', () => {
     const mockDoc = createMockDoc();
     const data: BrevhovedData = {
-      useDagsDatoFallback: false,
+      dagsDatoISO: toISODateString('2026-02-02'),
     };
 
     const result = addBrevhoved(mockDoc, data);
@@ -44,15 +40,19 @@ describe('addBrevhoved gate logic', () => {
     // Skal ALTID returnere MARGINS.top (brevhoved er overlay - påvirker ikke layout)
     expect(result).toBe(40);
 
-    // Ingen tekst skal være skrevet
-    expect(mockDoc.text).not.toHaveBeenCalled();
-    expect(mockDoc.setFont).not.toHaveBeenCalled();
+    // Dato-linjen skal altid skrives
+    expect(mockDoc.text).toHaveBeenCalledTimes(1);
+    expect(mockDoc.setFont).toHaveBeenCalledWith('helvetica', 'normal');
+    const [text] = mockDoc.text.mock.calls[0];
+    expect(typeof text).toBe('string');
+    expect(text.trim()).not.toBe('');
   });
 
   it('kalder doc.text når brevhoved-data findes', () => {
     const mockDoc = createMockDoc();
     const data: BrevhovedData = {
       journalnr: 'SAG-123',
+      dagsDatoISO: toISODateString('2026-02-02'),
     };
 
     const result = addBrevhoved(mockDoc, data);
@@ -80,6 +80,7 @@ describe('addBrevhoved gate logic', () => {
     const mockDoc = createMockDoc();
     const data: BrevhovedData = {
       journalnr: 'SAG-456',
+      dagsDatoISO: toISODateString('2026-02-02'),
       // Kun journalnr, ingen andre felter
     };
 
@@ -97,7 +98,7 @@ describe('addBrevhoved gate logic', () => {
       journalnr: 'SAG-789',
       advokat: 'AB',
       sagsbehandler: 'CD',
-      useDagsDatoFallback: false,
+      dagsDatoISO: toISODateString('2026-02-02'),
     };
 
     addBrevhoved(mockDoc, data);
@@ -115,7 +116,7 @@ describe('addBrevhoved gate logic', () => {
     const advokatData: BrevhovedData = {
       journalnr: 'SAG-321',
       advokat: 'AB',
-      useDagsDatoFallback: false,
+      dagsDatoISO: toISODateString('2026-02-02'),
     };
     addBrevhoved(mockDoc, advokatData);
     expect(mockDoc.text).toHaveBeenCalledWith(
@@ -129,7 +130,7 @@ describe('addBrevhoved gate logic', () => {
     const sagsbehandlerData: BrevhovedData = {
       journalnr: 'SAG-654',
       sagsbehandler: 'CD',
-      useDagsDatoFallback: false,
+      dagsDatoISO: toISODateString('2026-02-02'),
     };
     addBrevhoved(mockDoc2, sagsbehandlerData);
     expect(mockDoc2.text).toHaveBeenCalledWith(
@@ -140,18 +141,31 @@ describe('addBrevhoved gate logic', () => {
     );
   });
 
-  it('håndterer tomme strenge som "ingen data"', () => {
+  it('viser dato-linjen selv når journalnr er tom streng', () => {
     const mockDoc = createMockDoc();
     const data: BrevhovedData = {
       journalnr: '',
-      useDagsDatoFallback: false,
+      dagsDatoISO: toISODateString('2026-02-02'),
     };
 
     const result = addBrevhoved(mockDoc, data);
 
-    // Tomme strenge tæller som "ingen data"
+    // Dato-linjen skal stadig skrives
     expect(result).toBe(40);
-    expect(mockDoc.text).not.toHaveBeenCalled();
+    expect(mockDoc.text).toHaveBeenCalledTimes(1);
+  });
+
+  it('bruger den dato der leveres fra kaldestedet', () => {
+    const mockDoc = createMockDoc();
+    const data: BrevhovedData = {
+      journalnr: 'SAG-777',
+      dagsDatoISO: toISODateString('2026-01-15'),
+    };
+
+    addBrevhoved(mockDoc, data);
+
+    const calls = mockDoc.text.mock.calls.map((call) => call[0]);
+    expect(calls.some((text) => String(text).includes('15. januar 2026'))).toBe(true);
   });
 
   describe('PDF generator gate pattern (integration)', () => {
@@ -160,6 +174,7 @@ describe('addBrevhoved gate logic', () => {
       const visBrevhoved = false;
       const stamdata: BrevhovedData = {
         journalnr: 'SAG-123',
+        dagsDatoISO: toISODateString('2026-02-02'),
       };
 
       // Simuler PDF-generator gate
@@ -178,6 +193,7 @@ describe('addBrevhoved gate logic', () => {
       const visBrevhoved = true;
       const stamdata: BrevhovedData = {
         journalnr: 'SAG-123',
+        dagsDatoISO: toISODateString('2026-02-02'),
       };
 
       // Simuler PDF-generator gate
@@ -192,19 +208,19 @@ describe('addBrevhoved gate logic', () => {
       expect(currentY).toBe(40);
     });
 
-    it('simulerer korrekt gate-logik: visBrevhoved=true + null stamdata → ingen kald', () => {
+    it('simulerer korrekt gate-logik: visBrevhoved=true + null stamdata → kald', () => {
       const mockDoc = createMockDoc();
       const visBrevhoved = true;
       const stamdata = null;
 
       // Simuler PDF-generator gate
       let currentY = 40; // MARGINS.top
-      if (visBrevhoved && stamdata) {
-        currentY = addBrevhoved(mockDoc, stamdata);
+      if (visBrevhoved) {
+        currentY = addBrevhoved(mockDoc, { dagsDatoISO: toISODateString('2026-02-02') });
       }
 
-      // Brevhoved skal IKKE være kaldt (stamdata er null)
-      expect(mockDoc.text).not.toHaveBeenCalled();
+      // Brevhoved skal være kaldt (dato-linjen vises altid)
+      expect(mockDoc.text).toHaveBeenCalled();
       expect(currentY).toBe(40);
     });
   });

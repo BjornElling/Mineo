@@ -14,6 +14,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues, SvieSmertePeriodeRow 
 import { buildEODebugSvieSmerteRows } from '../../domain/erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
 import { formatCurrency, parseAmount } from '../formatUtils';
 import { MONTH_NAMES_DA } from '../dateFormatting';
+import { TODAY } from '../../config/dateRanges';
 
 const NBSP = '\u00A0';
 
@@ -145,10 +146,7 @@ export const generateErstatningsopgoerelsePdf = (
       advokat: stamdataValues.advokat,
       sagsbehandler: stamdataValues.sagsbehandler,
       // UND TAGELSE: EOberegning-tab bruger "Opgørelse lavet den" i stedet for dags dato.
-      // Hvis opgørelseLavetDen mangler, vises dato-linjen ikke i brevhovedet.
-      dagsDatoLabel: '',
-      dagsDatoISO: eoValues.opgørelseLavetDen,
-      useDagsDatoFallback: false,
+      dagsDatoISO: eoValues.opgørelseLavetDen ?? TODAY,
     };
     currentY = addBrevhoved(doc, brevhovedData);
   }

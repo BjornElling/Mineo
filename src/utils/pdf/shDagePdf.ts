@@ -12,6 +12,7 @@ import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelp
 import { formatToISO, parseISODate } from '../dateUtils';
 import { diffUtcDays } from '../utcDayMath';
 import { MONTH_NAMES_DA } from '../dateFormatting';
+import { TODAY } from '../../config/dateRanges';
 
 /**
  * Stamdata til SH-dage PDF
@@ -280,11 +281,12 @@ export const generateSHDagePdf = (
   let currentY = MARGINS.top;
 
   // Tilføj brevhoved hvis aktiveret
-  if (visBrevhoved && stamdata) {
+  if (visBrevhoved) {
     const brevhovedData: BrevhovedData = {
-      journalnr: stamdata.journalnr,
-      advokat: stamdata.advokat,
-      sagsbehandler: stamdata.sagsbehandler,
+      journalnr: stamdata?.journalnr,
+      advokat: stamdata?.advokat,
+      sagsbehandler: stamdata?.sagsbehandler,
+      dagsDatoISO: TODAY,
     };
     currentY = addBrevhoved(doc, brevhovedData);
   }

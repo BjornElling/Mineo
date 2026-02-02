@@ -5,21 +5,19 @@
  * Eliminerer code duplication mellem PDF-filer
  */
 
+import jsPDF from 'jspdf';
 import { FONT_SIZES, MARGINS } from './pdfConfig';
 import { VERSION } from '../../config/version';
 import type { DanishDateString, ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
 import { formatDanishDate as formatDanishDateStrict, parseDanishDate as parseDanishDateStrict } from '../dateUtils';
-import { TODAY } from '../../config/dateRanges';
 
 /**
  * Brevhoved-data til PDF-dokumenter
  */
 export type BrevhovedData = Readonly<{
   journalnr?: string;
-  dagsDatoISO?: ISODateString;
-  dagsDatoLabel?: string;
-  useDagsDatoFallback?: boolean;
+  dagsDatoISO: ISODateString;
   advokat?: string;
   sagsbehandler?: string;
 }>;
@@ -32,7 +30,7 @@ export type BrevhovedData = Readonly<{
  * @param {number} startY - Start Y-position
  * @returns {number} Ny Y-position efter titel
  */
-export const addTitle = (doc, title: string, startY: number): number => {
+export const addTitle = (doc: jsPDF, title: string, startY: number): number => {
   doc.setFontSize(FONT_SIZES.title);
   doc.setFont('helvetica', 'bold');
   doc.text(title, MARGINS.left, startY);
@@ -45,10 +43,10 @@ export const addTitle = (doc, title: string, startY: number): number => {
  *
  * @param {jsPDF} doc - PDF-dokumentet
  */
-export const addFooter = (doc): void => {
+export const addFooter = (doc: jsPDF): void => {
   const pageHeight = doc.internal.pageSize.height;
   const pageWidth = doc.internal.pageSize.width;
-  const totalPages = doc.internal.getNumberOfPages();
+  const totalPages = typeof doc.getNumberOfPages === 'function' ? doc.getNumberOfPages() : 1;
 
   // Gennemgå alle sider og tilføj footer
   for (let i = 1; i <= totalPages; i++) {
@@ -93,8 +91,8 @@ export const formatDanishDate = (date: Date): string => {
  * @param {number} amount - Beløb at formatere
  * @returns {string} Formateret beløb (fx "1.234,56")
  */
-export const formatAmount = (amount) => {
-  if (amount === null || amount === undefined || isNaN(amount)) {
+export const formatAmount = (amount: number | null | undefined): string => {
+  if (amount === null || amount === undefined || !Number.isFinite(amount)) {
     return '0,00';
   }
 
@@ -110,7 +108,10 @@ export const formatAmount = (amount) => {
  * @param {number} percent - Procentværdi
  * @returns {string} Formateret procent (fx "12,50 %")
  */
-export const formatPercent = (percent) => {
+export const formatPercent = (percent: number | null | undefined): string => {
+  if (percent === null || percent === undefined || !Number.isFinite(percent)) {
+    return '0,00 %';
+  }
   return `${percent.toFixed(2).replace('.', ',')} %`;
 };
 
@@ -127,11 +128,15 @@ const formatISODateReadable = (isoDate: ISODateString | undefined): string => {
   const [day, month, year] = danish.split('-');
   const d = parseInt(day, 10);
   const m = parseInt(month, 10) - 1;
+  const y = parseInt(year, 10);
 
   const monthNames = [
     'januar', 'februar', 'marts', 'april', 'maj', 'juni',
     'juli', 'august', 'september', 'oktober', 'november', 'december'
   ];
+
+  if (!Number.isFinite(d) || !Number.isFinite(m) || !Number.isFinite(y)) return '';
+  if (d < 1 || d > 31 || m < 0 || m >= monthNames.length || y < 1900 || y > 2100) return '';
 
   return `${d}. ${monthNames[m]} ${year}`;
 };
@@ -140,9 +145,8 @@ const formatISODateReadable = (isoDate: ISODateString | undefined): string => {
  * Tilføj brevhoved til PDF-dokument
  *
  * Indsætter et brevhoved øverst til højre på dokumentet med:
- * - Sagsnummer (højre-aligneret)
- * - (linjeafstand)
- * - Dags dato (højre-aligneret) eller en eksplicit overstyring
+ * - Journalnummer-linje (højre-aligneret) når journalnr findes
+ * - Dato-linje (højre-aligneret) altid
  *
  * VIGTIGT: Brevhovedet er et overlay - det påvirker IKKE placeringen af hovedindholdet.
  * Funktionen returnerer altid MARGINS.top uanset om brevhoved indsættes eller ej.
@@ -151,23 +155,18 @@ const formatISODateReadable = (isoDate: ISODateString | undefined): string => {
  * @param {BrevhovedData} data - Brevhoved-data
  * @returns {number} Altid MARGINS.top (brevhoved er overlay)
  */
-export const addBrevhoved = (doc, data: BrevhovedData): number => {
-  const { journalnr, dagsDatoISO, dagsDatoLabel, useDagsDatoFallback, advokat, sagsbehandler } = data;
+export const addBrevhoved = (doc: jsPDF, data: BrevhovedData): number => {
+  const { journalnr, dagsDatoISO, advokat, sagsbehandler } = data;
   const trimmedJournalnr = typeof journalnr === 'string' ? journalnr.trim() : '';
-  const resolvedDatoISO = dagsDatoISO ?? (useDagsDatoFallback === false ? undefined : TODAY);
-  const resolvedDatoText = resolvedDatoISO ? formatISODateReadable(resolvedDatoISO) : '';
-  const resolvedDatoLabel = (dagsDatoLabel ?? '').trim();
-  const hasDatoLine = resolvedDatoText !== '';
+  const resolvedDatoText = formatISODateReadable(dagsDatoISO);
+  if (!resolvedDatoText) {
+    throw new Error('CRITICAL: Brevhoved kræver en gyldig dagsDatoISO');
+  }
   const hasJournalnr = trimmedJournalnr !== '';
   const trimmedAdvokat = typeof advokat === 'string' ? advokat.trim() : '';
   const trimmedSagsbehandler = typeof sagsbehandler === 'string' ? sagsbehandler.trim() : '';
   const hasAdvokat = trimmedAdvokat !== '';
   const hasSagsbehandler = trimmedSagsbehandler !== '';
-
-  // Hvis ingen data, returner standard startposition (ingen overlay)
-  if (!hasDatoLine && !hasJournalnr) {
-    return MARGINS.top;
-  }
 
   // Brevhoved-overlay setup
   const pageWidth = doc.internal.pageSize.width;
@@ -193,10 +192,10 @@ export const addBrevhoved = (doc, data: BrevhovedData): number => {
 
   // Dato (normal, højre-aligneret)
   doc.setFont('helvetica', 'normal');
-  if (hasDatoLine) {
-    const dateLine = resolvedDatoLabel ? `${resolvedDatoLabel} ${resolvedDatoText}` : resolvedDatoText;
-    doc.text(dateLine, rightX, currentY, { align: 'right' });
-  }
+  doc.text(resolvedDatoText, rightX, currentY, { align: 'right' });
+
+  // Reset font-size til normal for at undgå lækage
+  doc.setFontSize(FONT_SIZES.normal);
 
   // Returner ALTID MARGINS.top - brevhoved er overlay og påvirker ikke hovedindholdet
   return MARGINS.top;

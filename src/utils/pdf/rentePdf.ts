@@ -12,6 +12,7 @@ import { countInclusiveUtcDays } from '../utcDayMath';
 import type { RateEntry } from '../../data/interestRates';
 import { referenceRates, surchargeRates } from '../../data/interestRates';
 import type { ISODateString } from '../../types/branded';
+import { TODAY } from '../../config/dateRanges';
 
 /**
  * Stamdata til Rente PDF
@@ -231,11 +232,12 @@ export const generateRentePdf = (
   let currentY = MARGINS.top;
 
   // Tilføj brevhoved hvis aktiveret
-  if (visBrevhoved && stamdata) {
+  if (visBrevhoved) {
     const brevhovedData: BrevhovedData = {
-      journalnr: stamdata.journalnr,
-      advokat: stamdata.advokat,
-      sagsbehandler: stamdata.sagsbehandler,
+      journalnr: stamdata?.journalnr,
+      advokat: stamdata?.advokat,
+      sagsbehandler: stamdata?.sagsbehandler,
+      dagsDatoISO: TODAY,
     };
     currentY = addBrevhoved(doc, brevhovedData);
   }

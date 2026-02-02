@@ -7,7 +7,7 @@
  * - Alle nye fælles PDF-parametre skal tilføjes her
  *
  * KONTRAKT:
- * - stamdata er valgfri (PDF'en degraderer pænt hvis manglende)
+ * - stamdata er valgfri (dato-linjen kræver dagsDatoISO fra kaldestedet, journalnr-linjen er betinget)
  * - visBrevhoved default false hvis undefined
  * - Ingen domæneparametre må tilføjes her (kun tværgående concerns)
  */
@@ -19,13 +19,11 @@ import type { ISODateString } from '../../types/branded';
  *
  * Alle felter er valgfri fordi:
  * - Bruger kan have tomme stamdata
- * - PDF skal kunne genereres uden brevhoved
+ * - Dato-linjen kræver dagsDatoISO fra kaldestedet, journalnr-linjen er betinget
  */
 export interface PdfStamdata {
   journalnr?: string;
   dagsDatoISO?: ISODateString;
-  dagsDatoLabel?: string;
-  useDagsDatoFallback?: boolean;
   advokat?: string;
   sagsbehandler?: string;
 }

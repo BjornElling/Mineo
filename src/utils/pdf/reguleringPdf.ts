@@ -11,6 +11,7 @@ import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelp
 import { formatCurrency, formatPercent } from '../formatUtils';
 import { parseDanishDate, formatDanishDate } from '../dateUtils';
 import { aarsloenMax } from '../../data/regulationRates';
+import { TODAY } from '../../config/dateRanges';
 import {
   getEffektiveSatserForPeriode,
   getOverenskomst,
@@ -311,11 +312,12 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
   let currentY = MARGINS.top;
 
   // Tilføj brevhoved hvis aktiveret
-  if (visBrevhoved && stamdata) {
+  if (visBrevhoved) {
     const brevhovedData: BrevhovedData = {
-      journalnr: stamdata.journalnr,
-      advokat: stamdata.advokat,
-      sagsbehandler: stamdata.sagsbehandler,
+      journalnr: stamdata?.journalnr,
+      advokat: stamdata?.advokat,
+      sagsbehandler: stamdata?.sagsbehandler,
+      dagsDatoISO: TODAY,
     };
     currentY = addBrevhoved(doc, brevhovedData);
   }

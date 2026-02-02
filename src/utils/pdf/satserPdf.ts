@@ -20,6 +20,7 @@ import {
   isNonEmptyString,
 } from './pdfFormatters';
 import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
+import { TODAY } from '../../config/dateRanges';
 
 /**
  * Stamdata til Satser PDF
@@ -67,11 +68,12 @@ export const generateSatserPdf = (year, satser, options: SatserPdfOptions = {}) 
   let currentY = MARGINS.top;
 
   // Tilføj brevhoved hvis aktiveret
-  if (visBrevhoved && stamdata) {
+  if (visBrevhoved) {
     const brevhovedData: BrevhovedData = {
-      journalnr: stamdata.journalnr,
-      advokat: stamdata.advokat,
-      sagsbehandler: stamdata.sagsbehandler,
+      journalnr: stamdata?.journalnr,
+      advokat: stamdata?.advokat,
+      sagsbehandler: stamdata?.sagsbehandler,
+      dagsDatoISO: TODAY,
     };
     currentY = addBrevhoved(doc, brevhovedData);
   }
