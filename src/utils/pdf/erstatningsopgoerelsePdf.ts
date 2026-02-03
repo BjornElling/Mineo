@@ -1093,18 +1093,21 @@ export const generateErstatningsopgoerelsePdf = (
               oevrigeFravaersdageValue,
               eoValues
             );
-            if (maaneder !== null && maaneder > 0) {
-              const maanederText = formatMaanederTrimmed(maaneder);
-              const maanedsloen = breakdown.samlet / maaneder;
-              currentY = addWrappedText(
-                doc,
-                `Månedsløn: ${formatCurrency(breakdown.samlet)}${NBSP}kr. / ${maanederText} måneder = ${formatCurrency(maanedsloen)}${NBSP}kr.`,
-                MARGINS.left,
-                currentY,
-                lineHeight,
-                fullWidth
-              );
-            }
+              if (maaneder !== null && maaneder > 0) {
+                const maanederText = formatMaanederTrimmed(maaneder);
+                const maanedsloen = breakdown.samlet / maaneder;
+                currentY = addLeftRightText(
+                  doc,
+                  `Månedsløn: ${formatCurrency(breakdown.samlet)}${NBSP}kr. / ${maanederText} måneder =`,
+                  `${formatCurrency(maanedsloen)}${NBSP}kr.`,
+                  MARGINS.left,
+                  currentY,
+                  lineHeight,
+                  MARGINS.right,
+                  doc.getTextWidth('000.000.000,00'),
+                  { rightFontStyle: 'normal' }
+                );
+              }
           }
         }
       } else if (beregnesUdFra === 'Angivet månedsløn') {
@@ -1217,15 +1220,16 @@ export const generateErstatningsopgoerelsePdf = (
 
       const tafRanges = buildTafRanges(eoValues);
 
-      const canBuildAsl =
-        ensartetModel &&
-        loenudviklingBasis === 'Statistik' &&
-        loenudviklingLabel.startsWith('ASL-') &&
-        typeof baseIndexValue === 'number' &&
-        baseIndexValue > 0 &&
-        typeof maanedsloenBase === 'number' &&
-        maanedsloenBase > 0 &&
-        tafRanges.length > 0;
+        let loenudviklingTotal: number | null = null;
+        const canBuildAsl =
+          ensartetModel &&
+          loenudviklingBasis === 'Statistik' &&
+          loenudviklingLabel.startsWith('ASL-') &&
+          typeof baseIndexValue === 'number' &&
+          baseIndexValue > 0 &&
+          typeof maanedsloenBase === 'number' &&
+          maanedsloenBase > 0 &&
+          tafRanges.length > 0;
 
       if (!canBuildAsl) {
         currentY = addWrappedText(
@@ -1238,8 +1242,8 @@ export const generateErstatningsopgoerelsePdf = (
         );
       } else {
         const segments = buildAslReguleringsSegments(tafRanges);
-        let total = 0;
-        const rightMaxWidth = doc.getTextWidth('000.000.000,00');
+          let total = 0;
+          const rightMaxWidth = doc.getTextWidth('000.000.000,00');
 
         for (const segment of segments) {
           const indexValue = aarsloenMax[segment.year as keyof typeof aarsloenMax];
@@ -1282,55 +1286,6 @@ export const generateErstatningsopgoerelsePdf = (
           );
         }
 
-        currentY = addLeftRightText(
-          doc,
-          'I alt',
-          `${formatCurrency(total)}${NBSP}kr.`,
-          MARGINS.left,
-          currentY,
-          lineHeight,
-          MARGINS.right,
-          rightMaxWidth,
-          { rightFontStyle: 'normal', lineAboveRightWidth: 26.5, lineAboveRightOffset: 4 }
-        );
-      }
-
-      // Indtægter i erstatningsperioden (TAF-perioden)
-      if (tafRanges.length > 0) {
-        currentY += lineHeight * 2;
-        doc.setFont('helvetica', 'bold');
-        currentY = addWrappedText(doc, 'Indtægter i erstatningsperioden', MARGINS.left, currentY, lineHeight, fullWidth);
-        doc.setFont('helvetica', 'normal');
-
-        const indtaegtEntries: Array<{ label: string; amount: number }> = [];
-        const indtaegter = buildIncomeForRanges(eoValues, tafRanges);
-        indtaegter.employers.forEach((entry) => {
-          const label = entry.name !== '' ? entry.name : 'Arbejdssted';
-          indtaegtEntries.push({ label, amount: entry.amount });
-        });
-        indtaegter.benefits.forEach((entry) => {
-          indtaegtEntries.push({ label: entry.label, amount: entry.amount });
-        });
-
-        const rightMaxWidth = doc.getTextWidth('000.000.000,00');
-        for (const entry of indtaegtEntries) {
-          currentY = addLeftRightText(
-            doc,
-            entry.label,
-            `${formatCurrency(entry.amount)}${NBSP}kr.`,
-            MARGINS.left,
-            currentY,
-            lineHeight,
-            MARGINS.right,
-            rightMaxWidth,
-            { rightFontStyle: 'normal' }
-          );
-        }
-
-        if (indtaegtEntries.length === 0) {
-          currentY = addWrappedText(doc, 'Ingen', MARGINS.left, currentY, lineHeight, fullWidth);
-        } else if (indtaegtEntries.length > 1) {
-          const total = indtaegtEntries.reduce((acc, entry) => acc + entry.amount, 0);
           currentY = addLeftRightText(
             doc,
             'I alt',
@@ -1342,8 +1297,93 @@ export const generateErstatningsopgoerelsePdf = (
             rightMaxWidth,
             { rightFontStyle: 'normal', lineAboveRightWidth: 26.5, lineAboveRightOffset: 4 }
           );
+          loenudviklingTotal = total;
         }
-      }
+
+        // Indtægter i erstatningsperioden (TAF-perioden)
+        let tafIndtaegterTotal: number | null = null;
+        if (tafRanges.length > 0) {
+          currentY += lineHeight;
+          doc.setFont('helvetica', 'bold');
+          currentY = addWrappedText(doc, 'Indtægter i erstatningsperioden', MARGINS.left, currentY, lineHeight, fullWidth);
+          doc.setFont('helvetica', 'normal');
+
+        const indtaegtEntries: Array<{ label: string; amount: number }> = [];
+        const indtaegter = buildIncomeForRanges(eoValues, tafRanges);
+        indtaegter.employers.forEach((entry) => {
+          const label = entry.name !== '' ? entry.name : 'Arbejdssted';
+          indtaegtEntries.push({ label, amount: entry.amount });
+        });
+          indtaegter.benefits.forEach((entry) => {
+            indtaegtEntries.push({ label: entry.label, amount: entry.amount });
+          });
+
+          if (indtaegtEntries.length > 0) {
+            tafIndtaegterTotal = indtaegtEntries.reduce((acc, entry) => acc + entry.amount, 0);
+          }
+
+          const rightMaxWidth = doc.getTextWidth('000.000.000,00');
+          for (const entry of indtaegtEntries) {
+            currentY = addLeftRightText(
+              doc,
+              entry.label,
+              `${formatCurrency(entry.amount)}${NBSP}kr.`,
+              MARGINS.left,
+              currentY,
+              lineHeight,
+              MARGINS.right,
+              rightMaxWidth,
+              { rightFontStyle: 'normal' }
+            );
+          }
+
+          if (indtaegtEntries.length === 0) {
+            currentY = addWrappedText(doc, 'Ingen', MARGINS.left, currentY, lineHeight, fullWidth);
+          } else if (indtaegtEntries.length > 1) {
+            const total = indtaegtEntries.reduce((acc, entry) => acc + entry.amount, 0);
+            currentY = addLeftRightText(
+              doc,
+              'I alt',
+              `${formatCurrency(total)}${NBSP}kr.`,
+              MARGINS.left,
+              currentY,
+              lineHeight,
+              MARGINS.right,
+              rightMaxWidth,
+              { rightFontStyle: 'normal', lineAboveRightWidth: 26.5, lineAboveRightOffset: 4 }
+            );
+          }
+        }
+
+        if (typeof loenudviklingTotal === 'number' && typeof tafIndtaegterTotal === 'number') {
+          currentY += lineHeight;
+          doc.setFont('helvetica', 'bold');
+          currentY = addWrappedText(
+            doc,
+            'Beregnet krav på tabt arbejdsfortjeneste',
+            MARGINS.left,
+            currentY,
+            lineHeight,
+            fullWidth
+          );
+          doc.setFont('helvetica', 'normal');
+
+          const rightMaxWidth = doc.getTextWidth('000.000.000,00');
+          const leftText = `${formatCurrency(loenudviklingTotal)}${NBSP}kr. - ${formatCurrency(tafIndtaegterTotal)}${NBSP}kr. =`;
+          const diff = loenudviklingTotal - tafIndtaegterTotal;
+          const rightText = `${formatCurrency(diff)}${NBSP}kr.`;
+          currentY = addLeftRightText(
+            doc,
+            leftText,
+            rightText,
+            MARGINS.left,
+            currentY,
+            lineHeight,
+            MARGINS.right,
+            rightMaxWidth,
+            { rightFontStyle: 'bold' }
+          );
+        }
     }
 
   // TODO: Tilføj resten af PDF-indholdet baseret på selectedElements
