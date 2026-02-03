@@ -1594,14 +1594,20 @@ const EODebug = () => {
       const loseFeriedage = typeof erstatningsopgoerelseValues.uspecificeredeFerieFridage === 'number'
         ? erstatningsopgoerelseValues.uspecificeredeFerieFridage
         : 0;
-      const breakdown = calculateTafArbejdsdageBreakdown(periodeFra, periodeTil, beregningsFerieperioder, loseFeriedage);
-      if (!breakdown) return null;
       const oevrigeFravaersdageValue =
         erstatningsopgoerelseValues.oevrigtFravaerUdenLoen === 'Ja' &&
         typeof erstatningsopgoerelseValues.oevrigeFravaersdage === 'number'
           ? erstatningsopgoerelseValues.oevrigeFravaersdage
           : 0;
-      return Math.max(0, breakdown.tafDage - oevrigeFravaersdageValue);
+      const breakdown = calculateTafArbejdsdageBreakdown(
+        periodeFra,
+        periodeTil,
+        beregningsFerieperioder,
+        loseFeriedage,
+        { kind: 'beregningsgrundlag', oevrigeFravaersdage: oevrigeFravaersdageValue }
+      );
+      if (!breakdown) return null;
+      return Math.max(0, breakdown.tafDage);
     })();
 
     const maaneder = (() => {

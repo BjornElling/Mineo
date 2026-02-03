@@ -34,4 +34,17 @@ describe('calculateTafAntalMaaneder', () => {
     const months = calculateTafAntalMaaneder(iso('2024-03-30'), iso('2024-04-02'), [], 0, 0);
     expect(months).toBe(0.13);
   });
+
+  it('ignores ferieperioder and loose ferie days for month-based calculations', () => {
+    const ferieperioder = [
+      { id: 'fp-1', fra: iso('2024-01-10'), til: iso('2024-01-12') },
+    ];
+    const months = calculateTafAntalMaaneder(iso('2024-01-01'), iso('2024-01-31'), ferieperioder, 5, 0);
+    expect(months).toBe(1);
+  });
+
+  it('subtracts only øvrigt fravær uden løn (4.8% per day) for month-based beregningsgrundlag', () => {
+    const months = calculateTafAntalMaaneder(iso('2024-01-01'), iso('2024-01-31'), [], 0, 1);
+    expect(months).toBe(0.95);
+  });
 });

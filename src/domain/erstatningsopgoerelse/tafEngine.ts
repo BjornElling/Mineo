@@ -27,11 +27,9 @@ export const buildTafDerived = (args: {
         row.til,
         args.ferieperioder,
         loseFeriedage,
-        args.values.oevrigtFravaerUdenLoen === 'Ja' && typeof args.values.oevrigeFravaersdage === 'number'
-          ? args.values.oevrigeFravaersdage
-          : 0
+        0
       )
-      : calculateTafAntalArbejdsdage(row.fra, row.til, args.ferieperioder, loseFeriedage);
+      : calculateTafAntalArbejdsdage(row.fra, row.til, args.ferieperioder, loseFeriedage, { kind: 'taf' });
   }
 
   return { derivedById, kolonneOverskrift, beregningsenhed };

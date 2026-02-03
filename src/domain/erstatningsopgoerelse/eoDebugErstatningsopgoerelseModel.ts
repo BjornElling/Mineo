@@ -1578,7 +1578,8 @@ export const buildEODebugTaftRows = (
         fraISO,
         tilISO,
         ferieperioder,
-        loseFeriedage
+        loseFeriedage,
+        { kind: 'taf' }
       );
 
       rows.push({
@@ -2046,23 +2047,29 @@ export const buildEODebugTafBeregningsgrundlagRows = (
 
     const beregningsFerieperioder = values.fravaerPerioder ?? [];
     const loseFeriedage = typeof values.uspecificeredeFerieFridage === 'number' ? values.uspecificeredeFerieFridage : 0;
-    const breakdown = calculateTafArbejdsdageBreakdown(periodeFra, periodeTil, beregningsFerieperioder, loseFeriedage);
-    if (!breakdown) {
-      return { label: 'Arbejdsdage', displayValue: 'Fejl (Ugyldig periode)', status: 'error' as DebugStatus };
-    }
-
     const oevrigeFravaersdageValue =
       values.oevrigtFravaerUdenLoen === 'Ja' && typeof values.oevrigeFravaersdage === 'number'
         ? values.oevrigeFravaersdage
         : 0;
-    const samletArbejdsdage = Math.max(0, breakdown.tafDage - oevrigeFravaersdageValue);
+    const breakdown = calculateTafArbejdsdageBreakdown(
+      periodeFra,
+      periodeTil,
+      beregningsFerieperioder,
+      loseFeriedage,
+      { kind: 'beregningsgrundlag', oevrigeFravaersdage: oevrigeFravaersdageValue }
+    );
+    if (!breakdown) {
+      return { label: 'Arbejdsdage', displayValue: 'Fejl (Ugyldig periode)', status: 'error' as DebugStatus };
+    }
+
+    const samletArbejdsdage = Math.max(0, breakdown.tafDage);
 
     const components: Array<{ value: number; label: string }> = [
       { value: breakdown.arbejdsdage, label: 'hverdage' },
       { value: breakdown.shDage, label: 'SH-dage' },
       { value: breakdown.feriedage, label: 'feriedage' },
       { value: breakdown.loseFeriedage, label: 'løse feriedage' },
-      { value: oevrigeFravaersdageValue, label: 'øvrige fraværsdage' },
+      { value: breakdown.oevrigeFravaersdage, label: 'øvrige fraværsdage' },
     ];
     const parts = components
       .map((component) => `${formatDaNumber(component.value)} ${component.label}`);

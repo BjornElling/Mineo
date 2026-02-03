@@ -23,13 +23,13 @@ describe('computeTafBeregningsenhed', () => {
     expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
   });
 
-  it('returns workdays when "Beregnes ud fra" is "Beregningsperiode" and "Øvrigt fravær uden løn" has a non-zero day count', () => {
+  it('does not switch to workdays when "Øvrigt fravær uden løn" has a non-zero day count', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
       oevrigtFravaerUdenLoen: 'Ja',
       oevrigeFravaersdage: 1,
     });
-    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.ARBEJDSDAGE);
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
   });
 
   it('does not switch to workdays when "Øvrigt fravær uden løn" is enabled but day count is 0', () => {

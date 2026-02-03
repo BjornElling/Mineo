@@ -37,11 +37,9 @@ export const computeTafEngine = (input: TafEngineInputSnapshot): TafEngineOutput
         row.til,
         ferieperioder,
         loseFeriedage,
-        erstatningsopgoerelse.oevrigtFravaerUdenLoen === 'Ja' && typeof erstatningsopgoerelse.oevrigeFravaersdage === 'number'
-          ? erstatningsopgoerelse.oevrigeFravaersdage
-          : 0
+        0
       )
-      : calculateTafAntalArbejdsdage(row.fra, row.til, ferieperioder, loseFeriedage);
+      : calculateTafAntalArbejdsdage(row.fra, row.til, ferieperioder, loseFeriedage, { kind: 'taf' });
     if (value === null) {
       // Missing dates yield null for TAF; this is a deliberate domain decision, not an error state.
       return { id: row.id, value: null };

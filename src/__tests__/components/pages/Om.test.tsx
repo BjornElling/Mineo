@@ -6,7 +6,7 @@ import Om from '../../../components/pages/Om';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 
 // Mock LICENSE filen
-vi.mock('../../../../LICENSE?raw', () => ({
+vi.mock('../../../assets/LICENSE.txt?raw', () => ({
   default: 'MIT License\n\nCopyright (c) 2026 Test\n\nPermission is hereby granted...',
 }));
 

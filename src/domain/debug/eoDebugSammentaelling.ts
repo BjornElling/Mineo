@@ -531,15 +531,20 @@ export const buildEODebugSammentaellingModel = (args: {
     }
 
     const beregningsFerieperioder = values.fravaerPerioder ?? [];
-    const breakdown = calculateTafArbejdsdageBreakdown(periodeFra, periodeTil, beregningsFerieperioder, 0);
-    if (!breakdown) return null;
-
     const oevrigeFravaersdageValue =
       values.oevrigtFravaerUdenLoen === 'Ja' && typeof values.oevrigeFravaersdage === 'number'
         ? values.oevrigeFravaersdage
         : 0;
+    const breakdown = calculateTafArbejdsdageBreakdown(
+      periodeFra,
+      periodeTil,
+      beregningsFerieperioder,
+      0,
+      { kind: 'beregningsgrundlag', oevrigeFravaersdage: oevrigeFravaersdageValue }
+    );
+    if (!breakdown) return null;
 
-    const base = Math.max(0, breakdown.tafDage - oevrigeFravaersdageValue);
+    const base = Math.max(0, breakdown.tafDage);
     if (beregningsenhed !== TAF_BEREGNES_SOM.MAANEDER) return base;
     return base + beregningsFeriedageCount;
   })();

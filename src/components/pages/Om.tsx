@@ -33,7 +33,7 @@ const Om = React.memo(() => {
   }, []);
 
   return (
-    <Box>
+    <Box className="om-page">
       {/* Side-header */}
       <Typography className="page-title">Om MINEO</Typography>
 

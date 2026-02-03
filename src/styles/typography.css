@@ -137,6 +137,11 @@
   line-height: var(--line-height-base);
 }
 
+/* Om-siden: lidt større linjeafstand for bedre læsbarhed af længere tekst */
+.om-page .MuiTypography-root.row--text {
+  line-height: 1.6;
+}
+
 .MuiTypography-root.row--subheading {
   font-family: var(--font-family-base);
   font-size: 16px;

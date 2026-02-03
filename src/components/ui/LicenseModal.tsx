@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography, IconButton, useTheme } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import licenseText from '../../../LICENSE?raw';
+import licenseText from '../../assets/LICENSE.txt?raw';
 
 type LicenseModalProps = {
   open: boolean;

@@ -32,8 +32,12 @@ describe('tafBeregningsEngine', () => {
     expect(output.rows).toEqual([{ id: 'row-1', value: 1 }]);
   });
 
-  it('rounds month values to two decimals via underlying calculation', () => {
-    const values = baseValues();
+  it('ignores øvrigt fravær uden løn in TAF-perioder (ingen fradrag i kravet)', () => {
+    const values = {
+      ...baseValues(),
+      oevrigtFravaerUdenLoen: 'Ja' as const,
+      oevrigeFravaersdage: 1,
+    };
     const tafPerioder: TafPeriodeRow[] = [
       {
         id: 'row-1',
@@ -49,7 +53,7 @@ describe('tafBeregningsEngine', () => {
       ferieperioder: [],
     });
 
-    expect(output.rows[0]?.value).toBe(0.95);
+    expect(output.rows[0]?.value).toBe(1);
   });
 
   it('computes arbejdsdage when beregnesUdFra forces dagsloen', () => {

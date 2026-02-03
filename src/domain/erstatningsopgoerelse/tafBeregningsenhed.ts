@@ -9,10 +9,29 @@ export const TAF_BEREGNES_SOM = {
 export type TafBeregningsenhed = (typeof TAF_BEREGNES_SOM)[keyof typeof TAF_BEREGNES_SOM];
 
 /**
- * Central omregningsfaktor for "løse feriedage og andre fraværsdage" når TAF beregnes i måneder.
+ * Centrale beregningsprincipper for beregning og fraværsdage
  *
  * Domæneprincip (normativt):
- * - 1 arbejdsdag svarer til 4,8% af en måned.
+ * - Der foretages to adskilte beregninger: beregningsgrundlaget (referenceperioden før skaden)
+ *   og selve TAF-kravet. De opgøres altid efter samme princip: måneder eller arbejdsdage.
+ * - Valget mellem måneder og arbejdsdage er beregningsteknisk og uafhængigt af lønperiode
+ *   (månedsløn/dagsløn).
+ *
+ * Måneder:
+ * - SH-dage og feriedage udgår aldrig, hverken af beregningsgrundlaget eller TAF-perioden.
+ * - "Øvrigt fravær uden løn" reducerer kun beregningsgrundlaget (4,8% af en måned pr. dag),
+ *   aldrig selve TAF-kravet.
+ *
+ * Arbejdsdage:
+ * - SH-dage og feriedage udgår af både beregningsgrundlaget og TAF-perioden.
+ * - Løse feriedage placeres på de første hverdage, der ikke i forvejen er SH-dage eller
+ *   daterede feriedage. Der er separate indtastninger for løse feriedage i
+ *   beregningsgrundlaget og TAF-perioden.
+ * - "Øvrigt fravær uden løn" reducerer kun beregningsgrundlaget, aldrig selve TAF-kravet.
+ *
+ * Øvrige fraværsdage i TAF-perioden:
+ * - Hvis sådanne dage skal udgå af TAF-kravet, håndteres det ved at brugeren udelader dagene
+ *   i de angivne TAF-perioder (ingen automatisk fradrag).
  *
  * Bemærk:
  * - Faktoren er udtrykt som "måneder pr. arbejdsdag".
@@ -44,8 +63,10 @@ const JA: JaNej = 'Ja';
  *    så beregnes TAF som `Arbejdsdage`.
  *
  * Bemærkning (domæneprincip, til brug ved fremtidig implementering):
- * - Når TAF beregnes i måneder, indebærer det at "løse feriedage" og andre fraværsdage
- *   beregnes som 4,8% af en måned.
+ * - Beregningsgrundlag og TAF-krav følger altid samme princip (måneder/arbejdsdage).
+ * - "Øvrigt fravær uden løn" påvirker kun beregningsgrundlaget, aldrig TAF-kravet.
+ * - Fraværsdage, som skal udgå af TAF-kravet, håndteres ved at brugeren udelader dagene
+ *   i TAF-perioderne.
  *
  * VIGTIGT:
  * - Funktionen er ren (pure) og må kun afhænge af schema-valideret (committed) input.
@@ -65,13 +86,6 @@ export const computeTafBeregningsenhed = (values: TafBeregningsenhedInput): TafB
   );
 
   if (loenindkomstOverstyrerTilArbejdsdage) return TAF_BEREGNES_SOM.ARBEJDSDAGE;
-
-  const harOevrigtFravaerUdenLoenMedAntalDage =
-    values.beregnesUdFra === 'Beregningsperiode' &&
-    values.oevrigtFravaerUdenLoen === JA &&
-    values.oevrigeFravaersdage !== undefined &&
-    values.oevrigeFravaersdage !== 0;
-  if (harOevrigtFravaerUdenLoenMedAntalDage) return TAF_BEREGNES_SOM.ARBEJDSDAGE;
 
   if (values.beregnesUdFra === BEREGNES_UD_FRA_DAGSLOEN) return TAF_BEREGNES_SOM.ARBEJDSDAGE;
 

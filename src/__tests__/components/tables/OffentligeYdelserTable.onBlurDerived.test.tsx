@@ -122,7 +122,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
     });
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('updates derived cells only on blur when entering an already-canonical amount (no normalization delta)', async () => {
     const user = userEvent.setup();
@@ -263,5 +263,5 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
       expect(onPersist).toHaveBeenCalledTimes(1);
       expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00' });
     });
-  });
+  }, TEST_TIMEOUT_MS);
 });
