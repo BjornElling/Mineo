@@ -245,7 +245,7 @@ export const beregnArbejdsdageOgMaaneder = (
 
   return {
     arbejdsdage,
-    maaneder: Math.round(maaneder * 100) / 100
+    maaneder
   };
 };
 

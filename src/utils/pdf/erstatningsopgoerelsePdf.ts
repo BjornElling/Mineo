@@ -8,13 +8,17 @@ import jsPDF from 'jspdf';
 import { FONT_SIZES, MARGINS } from './pdfConfig';
 import { addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
 import type { ISODateString } from '../../types/branded';
-import { isoToDanish, subtractOneDay } from '../../types/branded';
+import { isISODateString, isoToDanish, subtractOneDay } from '../../types/branded';
 import type { FieldErrorBySource } from '../../types/fieldErrors';
 import type { ErstatningsopgoerelseValues, StamdataValues, SvieSmertePeriodeRow } from '../../schemas/formSchemas';
 import { buildEODebugSvieSmerteRows } from '../../domain/erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
-import { formatCurrency, parseAmount } from '../formatUtils';
+import { beregnArbejdsdageOgMaaneder } from '../../domain/debug/eoDebugRegulationCore';
+import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../aarsloenTableCalculations';
+import { formatCurrency, formatPercent, parseAmount } from '../formatUtils';
 import { MONTH_NAMES_DA } from '../dateFormatting';
+import { aarsloenMax } from '../../data/regulationRates';
 import { TODAY } from '../../config/dateRanges';
+import { calculateTafAntalMaaneder } from '../../domain/erstatningsopgoerelse/tafCalculations';
 
 const NBSP = '\u00A0';
 
@@ -32,8 +36,215 @@ const addWrappedText = (
 ): number => {
   const safeText = ensureNonBreakingKr(text);
   const lines = doc.splitTextToSize(safeText, maxWidth);
-  doc.text(lines, x, y);
-  return y + lineHeight * lines.length;
+  const pageHeight = doc.internal.pageSize.height;
+  const contentBottom = pageHeight - MARGINS.bottom;
+
+  let currentY = y;
+  let startIndex = 0;
+  while (startIndex < lines.length) {
+    const availableLines = Math.floor((contentBottom - currentY) / lineHeight);
+    if (availableLines <= 0) {
+      doc.addPage();
+      currentY = MARGINS.top;
+      continue;
+    }
+    const endIndex = Math.min(lines.length, startIndex + availableLines);
+    const chunk = lines.slice(startIndex, endIndex);
+    doc.text(chunk, x, currentY);
+    currentY += lineHeight * chunk.length;
+    startIndex = endIndex;
+    if (startIndex < lines.length) {
+      doc.addPage();
+      currentY = MARGINS.top;
+    }
+  }
+
+  return currentY;
+};
+
+const addLeftRightText = (
+  doc: jsPDF,
+  leftText: string,
+  rightText: string,
+  x: number,
+  y: number,
+  lineHeight: number,
+  rightPadding: number,
+  maxRightWidth: number,
+  options?: Readonly<{
+    rightFontStyle?: 'normal' | 'bold';
+    lineAboveRightWidth?: number;
+    lineAboveRightOffset?: number;
+  }>
+): number => {
+  const pageHeight = doc.internal.pageSize.height;
+  const contentBottom = pageHeight - MARGINS.bottom;
+  const pageWidth = doc.internal.pageSize.width;
+  const rightWidth = Math.min(maxRightWidth, doc.getTextWidth(rightText));
+  const wrapPadding = doc.getTextWidth('000000');
+  const leftMaxWidth = Math.max(30, pageWidth - x - rightPadding - rightWidth - 5 - wrapPadding);
+  const leftLines = doc.splitTextToSize(ensureNonBreakingKr(leftText), leftMaxWidth);
+  let currentY = y;
+  const neededHeight = lineHeight * leftLines.length;
+  if (currentY + neededHeight > contentBottom) {
+    doc.addPage();
+    currentY = MARGINS.top;
+  }
+  doc.text(leftLines, x, currentY);
+  const rightY = currentY + lineHeight * (leftLines.length - 1);
+  const rightFontStyle = options?.rightFontStyle ?? 'bold';
+  doc.setFont('helvetica', rightFontStyle);
+  doc.text(rightText, pageWidth - rightPadding, rightY, { align: 'right' });
+  if (options?.lineAboveRightWidth) {
+    const lineWidth = options.lineAboveRightWidth;
+    const lineEnd = pageWidth - rightPadding;
+    const lineStart = lineEnd - lineWidth;
+    const offset = options.lineAboveRightOffset ?? 2;
+    doc.setLineWidth(0.2);
+    doc.line(lineStart, rightY - offset, lineEnd, rightY - offset);
+  }
+  doc.setFont('helvetica', 'normal');
+  return currentY + lineHeight * leftLines.length;
+};
+
+const formatMaanederTrimmed = (value: number): string => {
+  const rounded = Math.round(value * 10000) / 10000;
+  return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+};
+
+const formatPercentDelta = (value: number): string => {
+  const abs = Math.abs(value);
+  const rounded = Math.round(abs * 100) / 100;
+  return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+};
+
+const formatPercentFixed2 = (value: number): string => {
+  if (!Number.isFinite(value)) return '-';
+  return `${value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+};
+
+type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
+
+const getIsoRange = (
+  fra: ISODateString | undefined,
+  til: ISODateString | undefined
+): IsoRange | undefined => {
+  if (!fra || !til) return undefined;
+  if (fra > til) return undefined;
+  return { fra, til };
+};
+
+const mergeRanges = (ranges: readonly IsoRange[]): IsoRange[] => {
+  if (ranges.length <= 1) return [...ranges];
+  const sorted = [...ranges].sort((a, b) => (a.fra < b.fra ? -1 : 1));
+  const merged: IsoRange[] = [];
+  for (const range of sorted) {
+    const last = merged[merged.length - 1];
+    if (!last) {
+      merged.push(range);
+      continue;
+    }
+    const nextStart = range.fra;
+    const lastEndPlusOne = getDayAfter(last.til);
+    if (nextStart <= last.til || nextStart <= lastEndPlusOne) {
+      const newTil = range.til > last.til ? range.til : last.til;
+      merged[merged.length - 1] = { fra: last.fra, til: newTil };
+      continue;
+    }
+    merged.push(range);
+  }
+  return merged;
+};
+
+type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
+
+const resolveReguleringsdato = (
+  eoValues: ErstatningsopgoerelseValues,
+  af: Ansaettelsesforhold | undefined,
+  skadesdato: ISODateString | undefined
+): ISODateString | undefined => {
+  const saerligDato = isISODateString(af?.saerligFraDatoRegulering)
+    ? af?.saerligFraDatoRegulering
+    : undefined;
+  const angivetLoenDato = isISODateString(eoValues.angivetLoenOpreguleresFraDato)
+    ? eoValues.angivetLoenOpreguleresFraDato
+    : undefined;
+  if (eoValues.beregnesUdFra !== 'Beregningsperiode') {
+    return angivetLoenDato ?? skadesdato;
+  }
+  return saerligDato ?? skadesdato;
+};
+
+const resolveMaanedsloenBase = (
+  eoValues: ErstatningsopgoerelseValues
+): number | null => {
+  if (eoValues.beregnesUdFra === 'Angivet månedsløn') {
+    const value = eoValues.maanedsloenenUdgoer;
+    return value !== undefined ? parseAmount(value) : null;
+  }
+  if (eoValues.beregnesUdFra !== 'Beregningsperiode') return null;
+
+  let total = 0;
+  for (const af of eoValues.loenindkomstAnsaettelsesforhold ?? []) {
+    const rows = af.indtaegtsoplysningerTableData ?? [];
+    const satser = {
+      feriePct: af.feriePct,
+      fritvalgPct: af.fritvalgPct,
+      shSoPct: af.shSoPct,
+      storeBededagPct: af.storeBededagPct,
+      pensionPct: af.pensionPct,
+    };
+    for (const row of rows) {
+      if (isAarsloenRowEffectivelyEmpty(row)) continue;
+      const derived = calculateAarsloenRowDerived(row, satser);
+      total += derived.samlet;
+    }
+  }
+
+  const periodeFra = eoValues.periodeTilBeregningFra;
+  const periodeTil = eoValues.periodeTilBeregningTil;
+  if (!periodeFra || !periodeTil || periodeFra > periodeTil) return null;
+  const oevrigeFravaersdageValue =
+    eoValues.oevrigtFravaerUdenLoen === 'Ja' && typeof eoValues.oevrigeFravaersdage === 'number'
+      ? eoValues.oevrigeFravaersdage
+      : 0;
+  const maaneder = calculateMaanederForInterval(periodeFra, periodeTil, oevrigeFravaersdageValue, eoValues);
+  if (!maaneder || maaneder <= 0) return null;
+  return total / maaneder;
+};
+
+const calculateMaanederForInterval = (
+  fra: ISODateString,
+  til: ISODateString,
+  oevrigeFravaersdage: number,
+  eoValues: ErstatningsopgoerelseValues
+): number | null => {
+  if (fra > til) return null;
+  return calculateTafAntalMaaneder(
+    fra,
+    til,
+    eoValues.fravaerPerioder ?? [],
+    typeof eoValues.uspecificeredeFerieFridage === 'number' ? eoValues.uspecificeredeFerieFridage : 0,
+    oevrigeFravaersdage
+  );
+};
+
+const buildAslReguleringsSegments = (ranges: readonly IsoRange[]): ReadonlyArray<IsoRange & { year: number }> => {
+  const segments: Array<IsoRange & { year: number }> = [];
+  for (const range of ranges) {
+    let currentStart = range.fra;
+    while (currentStart <= range.til) {
+      const year = Number(currentStart.slice(0, 4));
+      if (!Number.isFinite(year)) break;
+      const yearEnd = `${year}-12-31` as ISODateString;
+      const segmentEnd = range.til < yearEnd ? range.til : yearEnd;
+      segments.push({ fra: currentStart, til: segmentEnd, year });
+      const nextStartDate = getDayAfter(segmentEnd);
+      if (nextStartDate <= currentStart) break;
+      currentStart = nextStartDate;
+    }
+  }
+  return segments;
 };
 
 /**
@@ -299,6 +510,23 @@ export const generateErstatningsopgoerelsePdf = (
       lineHeight,
       fullWidth
     );
+
+    if (menAfgoerelseDato && isISODateString(menAfgoerelseDato)) {
+      const ophoerDato = subtractOneDay(menAfgoerelseDato as ISODateString);
+      if (ophoerDato) {
+        const erOpgjortTilDagenFoer = erSvieSmerteopgjortFremTil(eoValues.svieSmertePerioder, ophoerDato);
+        if (erOpgjortTilDagenFoer) {
+          currentY = addWrappedText(
+            doc,
+            'Afgørelsen bringer retten til svie- og smertegodtgørelse til ophør.',
+            MARGINS.left,
+            currentY,
+            lineHeight,
+            fullWidth
+          );
+        }
+      }
+    }
   }
 
   const emptyErrors: Partial<Record<keyof ErstatningsopgoerelseValues, FieldErrorBySource>> = {};
@@ -732,25 +960,184 @@ export const generateErstatningsopgoerelsePdf = (
     const loenBaseretPaa = eoValues.loenBaseretPaa;
     const skadesdato = stamdataValues.skadesdato;
 
-    if (beregnesUdFra === 'Beregningsperiode') {
-      const periodeTilBeregningFra = eoValues.periodeTilBeregningFra;
-      const periodeTilBeregningTil = eoValues.periodeTilBeregningTil;
+      if (beregnesUdFra === 'Beregningsperiode') {
+        const periodeTilBeregningFra = eoValues.periodeTilBeregningFra;
+        const periodeTilBeregningTil = eoValues.periodeTilBeregningTil;
 
-      if (periodeTilBeregningFra && periodeTilBeregningTil) {
-        const fraFormateret = formatDateShort(periodeTilBeregningFra);
-        const tilFormateret = formatDateShort(periodeTilBeregningTil);
-        if (fraFormateret && tilFormateret) {
-          currentY = addWrappedText(
+        if (periodeTilBeregningFra && periodeTilBeregningTil) {
+          const fraFormateret = formatDateShort(periodeTilBeregningFra);
+          const tilFormateret = formatDateShort(periodeTilBeregningTil);
+          if (fraFormateret && tilFormateret) {
+            currentY = addWrappedText(
+              doc,
+              `Beregnes på baggrund af indkomsten i perioden ${fraFormateret} - ${tilFormateret}.`,
+              MARGINS.left,
+              currentY,
+              lineHeight,
+              fullWidth
+            );
+            currentY += lineHeight;
+          }
+        }
+
+        const ansaettelser = eoValues.loenindkomstAnsaettelsesforhold ?? [];
+        const ansaettelserMedData = ansaettelser.filter((af) =>
+          (af.indtaegtsoplysningerTableData ?? []).some((row) => !isAarsloenRowEffectivelyEmpty(row))
+        );
+        const ansaettelserNavne = ansaettelserMedData
+          .map((af) => (af.navnPaaArbejdssted ?? '').trim())
+          .filter((value, index, arr) => value !== '' && arr.indexOf(value) === index);
+
+        for (const navnAf of ansaettelserNavne) {
+          doc.text(navnAf, MARGINS.left, currentY);
+          const nameWidth = doc.getTextWidth(navnAf);
+          doc.setLineWidth(0.2);
+          doc.line(MARGINS.left, currentY + 1, MARGINS.left + nameWidth, currentY + 1);
+          currentY += lineHeight;
+        }
+
+        type IndkomstBreakdown = {
+          ferieberet: number;
+          fpFvShSo: number;
+          pension: number;
+          atp: number;
+          samlet: number;
+        };
+
+        const breakdown: IndkomstBreakdown = ansaettelserMedData.reduce<IndkomstBreakdown>((acc, af) => {
+          const satser = {
+            feriePct: af.feriePct,
+            fritvalgPct: af.fritvalgPct,
+            shSoPct: af.shSoPct,
+            storeBededagPct: af.storeBededagPct,
+            pensionPct: af.pensionPct,
+          };
+          for (const row of af.indtaegtsoplysningerTableData ?? []) {
+            if (isAarsloenRowEffectivelyEmpty(row)) continue;
+            const derived = calculateAarsloenRowDerived(row, satser);
+            const atp = parseAmount(row.col5);
+            acc.ferieberet += derived.ferieberet;
+            acc.fpFvShSo += derived.fpFvShSo;
+            acc.pension += derived.pension;
+            acc.atp += atp;
+            acc.samlet += derived.samlet;
+          }
+          return acc;
+        }, {
+          ferieberet: 0,
+          fpFvShSo: 0,
+          pension: 0,
+          atp: 0,
+          samlet: 0,
+        });
+
+        if (ansaettelserMedData.length > 0) {
+          const primaryAf = ansaettelserMedData[0];
+          const feriePct = typeof primaryAf.feriePct === 'number' ? primaryAf.feriePct : 0;
+          const fritvalgPct = typeof primaryAf.fritvalgPct === 'number' ? primaryAf.fritvalgPct : 0;
+          const shSoPct = typeof primaryAf.shSoPct === 'number' ? primaryAf.shSoPct : 0;
+          const storeBededagPct = typeof primaryAf.storeBededagPct === 'number' ? primaryAf.storeBededagPct : 0;
+          const pensionPct = typeof primaryAf.pensionPct === 'number' ? primaryAf.pensionPct : 0;
+
+          const pctParts: string[] = [];
+          if (feriePct !== 0) pctParts.push(`Feriepenge (${formatPercent(feriePct)})`);
+          if (fritvalgPct !== 0) pctParts.push(`Fritvalg (${formatPercent(fritvalgPct)})`);
+          if (shSoPct !== 0) pctParts.push(`S/H (${formatPercent(shSoPct)})`);
+          if (storeBededagPct !== 0) pctParts.push(`Store Bededag (${formatPercentFixed2(storeBededagPct)})`);
+          const fpLabel = pctParts.length > 0
+            ? pctParts.join(' + ')
+            : 'Feriepenge m.v.';
+
+          currentY = addLeftRightText(
             doc,
-            `Beregnes på baggrund af indkomsten i perioden ${fraFormateret} - ${tilFormateret}.`,
+            'Ferieberettiget indkomst i beregningsperioden',
+            `${formatCurrency(breakdown.ferieberet)}${NBSP}kr.`,
             MARGINS.left,
             currentY,
             lineHeight,
-            fullWidth
+            MARGINS.right,
+            doc.getTextWidth('000.000.000,00'),
+            { rightFontStyle: 'normal' }
           );
+
+          currentY = addLeftRightText(
+            doc,
+            fpLabel,
+            `${formatCurrency(breakdown.fpFvShSo)}${NBSP}kr.`,
+            MARGINS.left,
+            currentY,
+            lineHeight,
+            MARGINS.right,
+            doc.getTextWidth('000.000.000,00'),
+            { rightFontStyle: 'normal' }
+          );
+
+          const pensionLabel = pensionPct !== 0
+            ? `Arbejdsgivers pensionsbidrag (${formatPercent(pensionPct)} af løn + tillæg)`
+            : 'Arbejdsgivers pensionsbidrag';
+          currentY = addLeftRightText(
+            doc,
+            pensionLabel,
+            `${formatCurrency(breakdown.pension)}${NBSP}kr.`,
+            MARGINS.left,
+            currentY,
+            lineHeight,
+            MARGINS.right,
+            doc.getTextWidth('000.000.000,00'),
+            { rightFontStyle: 'normal' }
+          );
+
+          currentY = addLeftRightText(
+            doc,
+            'Arbejdsgivers ATP-bidrag og anden indkomst uden tillæg',
+            `${formatCurrency(breakdown.atp)}${NBSP}kr.`,
+            MARGINS.left,
+            currentY,
+            lineHeight,
+            MARGINS.right,
+            doc.getTextWidth('000.000.000,00'),
+            { rightFontStyle: 'normal' }
+          );
+
+          currentY = addLeftRightText(
+            doc,
+            'I alt:',
+            `${formatCurrency(breakdown.samlet)}${NBSP}kr.`,
+            MARGINS.left,
+            currentY,
+            lineHeight,
+            MARGINS.right,
+            doc.getTextWidth('000.000.000,00'),
+            { rightFontStyle: 'normal', lineAboveRightWidth: 26.5, lineAboveRightOffset: 4 }
+          );
+          currentY += lineHeight;
+
+          const oevrigeFravaersdageValue =
+            eoValues.oevrigtFravaerUdenLoen === 'Ja' && typeof eoValues.oevrigeFravaersdage === 'number'
+              ? eoValues.oevrigeFravaersdage
+              : 0;
+          if (periodeTilBeregningFra && periodeTilBeregningTil) {
+            const maaneder = calculateMaanederForInterval(
+              periodeTilBeregningFra,
+              periodeTilBeregningTil,
+              oevrigeFravaersdageValue,
+              eoValues
+            );
+            if (maaneder !== null && maaneder > 0) {
+              const maanederText = formatMaanederTrimmed(maaneder);
+              const maanedsloen = breakdown.samlet / maaneder;
+              currentY = addWrappedText(
+                doc,
+                `Månedsløn: ${formatCurrency(breakdown.samlet)}${NBSP}kr. / ${maanederText} måneder = ${formatCurrency(maanedsloen)}${NBSP}kr.`,
+                MARGINS.left,
+                currentY,
+                lineHeight,
+                fullWidth
+              );
+            }
+          }
         }
-      }
-    } else if (beregnesUdFra === 'Angivet månedsløn') {
+      } else if (beregnesUdFra === 'Angivet månedsløn') {
       if (skadesdato) {
         const skadesdatoFormateret = formatDateShort(skadesdato);
         if (skadesdatoFormateret) {
@@ -777,11 +1164,11 @@ export const generateErstatningsopgoerelsePdf = (
           currentY += lineHeight * leftLines.length;
         }
       }
-    } else if (beregnesUdFra === 'Angivet dagsløn') {
-      if (skadesdato) {
-        const skadesdatoFormateret = formatDateShort(skadesdato);
-        if (skadesdatoFormateret) {
-          const dagsloenenUdgoer = eoValues.dagsloenenUdgoer;
+      } else if (beregnesUdFra === 'Angivet dagsløn') {
+        if (skadesdato) {
+          const skadesdatoFormateret = formatDateShort(skadesdato);
+          if (skadesdatoFormateret) {
+            const dagsloenenUdgoer = eoValues.dagsloenenUdgoer;
           const beloebDisplay = dagsloenenUdgoer !== undefined ? `${formatCurrency(parseAmount(dagsloenenUdgoer))}${NBSP}kr.` : '';
 
           let leftText = '';
@@ -800,12 +1187,151 @@ export const generateErstatningsopgoerelsePdf = (
           const beloebY = currentY + lineHeight * (leftLines.length - 1);
           doc.setFont('helvetica', 'bold');
           doc.text(beloebDisplay, pageWidth - MARGINS.right, beloebY, { align: 'right' });
-          doc.setFont('helvetica', 'normal');
-          currentY += lineHeight * leftLines.length;
+            doc.setFont('helvetica', 'normal');
+            currentY += lineHeight * leftLines.length;
+          }
         }
       }
+
+      // Indkomst, hvis skaden ikke var indtrådt
+      currentY += lineHeight;
+      doc.setFont('helvetica', 'bold');
+      currentY = addWrappedText(doc, 'Indkomst, hvis skaden ikke var indtrådt', MARGINS.left, currentY, lineHeight, fullWidth);
+
+      doc.setFont('helvetica', 'normal');
+      currentY = addWrappedText(
+        doc,
+        'Opgøres som lønnen på skadesdatoen tillagt efterfølgende lønstigninger.',
+        MARGINS.left,
+        currentY,
+        lineHeight,
+        fullWidth
+      );
+
+      const ansaettelser = eoValues.loenindkomstAnsaettelsesforhold ?? [];
+      const aktivLoenudvikling = ansaettelser.filter((af) => af.loenudviklingBeregningsgrundlag && af.loenudviklingBeregningsgrundlag !== 'Ingen');
+      const loenudviklingBasis = aktivLoenudvikling[0]?.loenudviklingBeregningsgrundlag;
+      const loenudviklingModel = aktivLoenudvikling[0]?.loenudviklingStatistikModel ?? '';
+      const ensartetModel = aktivLoenudvikling.every((af) =>
+        af.loenudviklingBeregningsgrundlag === loenudviklingBasis &&
+        (af.loenudviklingStatistikModel ?? '') === loenudviklingModel
+      );
+
+      const loenudviklingLabel = (() => {
+        if (!loenudviklingBasis) return '-';
+        if (loenudviklingBasis === 'Statistik' && loenudviklingModel.trim() !== '') return loenudviklingModel.trim();
+        if (loenudviklingBasis === 'Manuelt angivet') {
+          const manuelNavn = aktivLoenudvikling[0]?.loenudviklingManuelNavn?.trim();
+          return manuelNavn && manuelNavn !== '' ? manuelNavn : 'Manuelt angivet';
+        }
+        return loenudviklingBasis;
+      })();
+
+      currentY = addWrappedText(
+        doc,
+        `Lønudvikling beregnes ud fra ${loenudviklingLabel}.`,
+        MARGINS.left,
+        currentY,
+        lineHeight,
+        fullWidth
+      );
+      currentY += lineHeight;
+
+      const skadesdatoIso = isISODateString(stamdataValues.skadesdato) ? stamdataValues.skadesdato : undefined;
+      const reguleringsdato = resolveReguleringsdato(eoValues, aktivLoenudvikling[0], skadesdatoIso);
+      const reguleringsYear = reguleringsdato ? Number(reguleringsdato.slice(0, 4)) : NaN;
+      const baseIndexValue = Number.isFinite(reguleringsYear)
+        ? aarsloenMax[reguleringsYear as keyof typeof aarsloenMax]
+        : undefined;
+      const maanedsloenBase = resolveMaanedsloenBase(eoValues);
+
+      const tafRanges = mergeRanges(
+        (eoValues.tafPerioder ?? [])
+          .map((row) => {
+            if (!isISODateString(row.fra) || !isISODateString(row.til)) return undefined;
+            return getIsoRange(row.fra, row.til);
+          })
+          .filter((range): range is IsoRange => Boolean(range))
+      );
+
+      const canBuildAsl =
+        ensartetModel &&
+        loenudviklingBasis === 'Statistik' &&
+        loenudviklingLabel.startsWith('ASL-') &&
+        typeof baseIndexValue === 'number' &&
+        baseIndexValue > 0 &&
+        typeof maanedsloenBase === 'number' &&
+        maanedsloenBase > 0 &&
+        tafRanges.length > 0;
+
+      if (!canBuildAsl) {
+        currentY = addWrappedText(
+          doc,
+          'Lønudvikling kan ikke beregnes for den valgte opsætning.',
+          MARGINS.left,
+          currentY,
+          lineHeight,
+          fullWidth
+        );
+      } else {
+        const segments = buildAslReguleringsSegments(tafRanges);
+        let total = 0;
+        const rightMaxWidth = doc.getTextWidth('000.000.000,00');
+
+        for (const segment of segments) {
+          const indexValue = aarsloenMax[segment.year as keyof typeof aarsloenMax];
+          if (typeof indexValue !== 'number' || indexValue <= 0) continue;
+
+          const maanederStats = beregnArbejdsdageOgMaaneder(
+            segment.fra,
+            segment.til,
+            new Set<ISODateString>(),
+            new Set<ISODateString>()
+          );
+          const maaneder = maanederStats.maaneder;
+          if (!Number.isFinite(maaneder) || maaneder <= 0) continue;
+
+          const deltaPct = (indexValue / baseIndexValue - 1) * 100;
+          const roundedDeltaPct = Math.round(deltaPct * 100) / 100;
+          const roundedMaaneder = Math.round(maaneder * 10000) / 10000;
+          const factorText = Math.abs(roundedDeltaPct) < 0.00001
+            ? ''
+            : ` x (100 % ${roundedDeltaPct >= 0 ? '+' : '-'} ${formatPercentDelta(roundedDeltaPct)} %)`;
+          const roundedMaanedsloenBase = Math.round(maanedsloenBase * 100) / 100;
+          const maanederText = formatMaanederTrimmed(roundedMaaneder);
+          const maanedsloenText = formatCurrency(roundedMaanedsloenBase);
+          const fraDisplay = formatDateShort(segment.fra);
+          const tilDisplay = formatDateShort(segment.til);
+          const leftText = `${fraDisplay} - ${tilDisplay}: ${maanederText} måneder á ${maanedsloenText}${NBSP}kr.${factorText} =`;
+          const amount = roundedMaanedsloenBase * roundedMaaneder * (1 + roundedDeltaPct / 100);
+          total += amount;
+          const rightText = `${formatCurrency(amount)}${NBSP}kr.`;
+          currentY = addLeftRightText(
+            doc,
+            leftText,
+            rightText,
+            MARGINS.left,
+            currentY,
+            lineHeight,
+            MARGINS.right,
+            rightMaxWidth,
+            { rightFontStyle: 'normal' }
+          );
+        }
+
+        currentY = addLeftRightText(
+          doc,
+          'I alt',
+          `${formatCurrency(total)}${NBSP}kr.`,
+          MARGINS.left,
+          currentY,
+          lineHeight,
+          MARGINS.right,
+          rightMaxWidth,
+          { rightFontStyle: 'normal', lineAboveRightWidth: 26.5, lineAboveRightOffset: 4 }
+        );
+      }
     }
-  }
 
   // TODO: Tilføj resten af PDF-indholdet baseret på selectedElements
 
@@ -909,4 +1435,3 @@ const erSvieSmerteopgjortFremTil = (
   // Sammenlign med targetDate
   return senestetilDato === targetDate;
 };
-

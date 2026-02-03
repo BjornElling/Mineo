@@ -236,7 +236,7 @@ export const getReguleringsDatoIntervalForStatistikModel = (rawModel: string): R
   const trimmed = rawModel.trim();
   if (trimmed === '') return undefined;
 
-  if (trimmed === 'ASL-Årslønsmaksimum') {
+  if (trimmed === 'ASL-årslønsmaksimum') {
     const bounds = getYearBoundsForYearlyRate(aarsloenMax);
     if (!bounds) return undefined;
     return {

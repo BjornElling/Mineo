@@ -152,6 +152,11 @@ const formatIndexValue = (value: number): string => {
   return value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+const formatMaanederTrimmed = (value: number): string => {
+  const rounded = Math.round(value * 10000) / 10000;
+  return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+};
+
 const detectDecimalPlaces = (values: readonly number[], maxPlaces = 4): number => {
   let max = 0;
   for (const value of values) {
@@ -610,8 +615,62 @@ const EODebug = () => {
       const periodeTil = isISODateString(vedroererPeriodeTil)
         ? vedroererPeriodeTil
         : undefined;
+      const periodeFra = isISODateString(erstatningsopgoerelseValues.vedroererPeriodeFra)
+        ? erstatningsopgoerelseValues.vedroererPeriodeFra
+        : undefined;
       const periodeTilDisplay = formatIsoValue(periodeTil);
       const periodeTilStatus: DebugStatus = periodeTilDisplay === '-' ? 'error' : 'ok';
+
+      const sidsteTafDatoISkadetPeriode = (() => {
+        if (!periodeTil) return undefined;
+        const periodRange = periodeFra && periodeFra <= periodeTil ? { fra: periodeFra, til: periodeTil } : null;
+
+        let latest: ISODateString | undefined = undefined;
+        for (const row of tafPerioder ?? []) {
+          if (!isISODateString(row.fra) || !isISODateString(row.til)) continue;
+          if (row.fra > row.til) continue;
+
+          if (periodRange) {
+            if (row.til < periodRange.fra || row.fra > periodRange.til) continue;
+            const candidate = row.til > periodRange.til ? periodRange.til : row.til;
+            if (!latest || candidate > latest) latest = candidate;
+            continue;
+          }
+
+          if (!latest || row.til > latest) latest = row.til;
+        }
+
+        return latest;
+      })();
+
+      const foersteTafDatoISkadetPeriode = (() => {
+        if (!periodeTil) return undefined;
+        const periodRange = periodeFra && periodeFra <= periodeTil ? { fra: periodeFra, til: periodeTil } : null;
+
+        let earliest: ISODateString | undefined = undefined;
+        for (const row of tafPerioder ?? []) {
+          if (!isISODateString(row.fra) || !isISODateString(row.til)) continue;
+          if (row.fra > row.til) continue;
+
+          if (periodRange) {
+            if (row.til < periodRange.fra || row.fra > periodRange.til) continue;
+            const candidate = row.fra < periodRange.fra ? periodRange.fra : row.fra;
+            if (!earliest || candidate < earliest) earliest = candidate;
+            continue;
+          }
+
+          if (!earliest || row.fra < earliest) earliest = row.fra;
+        }
+
+        return earliest;
+      })();
+
+      const sidsteTafDatoDisplay = formatIsoValue(sidsteTafDatoISkadetPeriode);
+      const sidsteTafDatoStatus: DebugStatus = sidsteTafDatoDisplay === '-' ? 'error' : 'ok';
+      const foersteTafDatoDisplay = formatIsoValue(foersteTafDatoISkadetPeriode);
+      const foersteTafDatoStatus: DebugStatus = foersteTafDatoDisplay === '-' ? 'error' : 'ok';
+      const tafStartIso = foersteTafDatoISkadetPeriode;
+      const tafEndIso = sidsteTafDatoISkadetPeriode;
 
       const reguleringsRange = (() => {
         if (loenudviklingBasis === 'Overenskomst') {
@@ -637,28 +696,153 @@ const EODebug = () => {
       })();
 
       const startDateRow = (() => {
-        if (!reguleringsdato || !reguleringsRange.min) {
+        if (!foersteTafDatoISkadetPeriode || !reguleringsRange.min) {
           return { display: '-', status: 'error' as DebugStatus };
         }
-        return reguleringsRange.min <= reguleringsdato
+        return reguleringsRange.min <= foersteTafDatoISkadetPeriode
           ? { display: 'Ja', status: 'ok' as DebugStatus }
           : { display: 'Nej', status: 'error' as DebugStatus };
       })();
 
       const endDateRow = (() => {
-        if (!periodeTil || !reguleringsRange.max) {
+        if (!sidsteTafDatoISkadetPeriode || !reguleringsRange.max) {
           return { display: '-', status: 'error' as DebugStatus };
         }
-        return reguleringsRange.max >= periodeTil
+        return reguleringsRange.max >= sidsteTafDatoISkadetPeriode
           ? { display: 'Ja', status: 'ok' as DebugStatus }
           : { display: 'Nej', status: 'warning' as DebugStatus };
       })();
 
       const indeksRowIsos: ISODateString[] = [];
 
+      const baseIndex = (() => {
+        if (!reguleringsdato) return null;
+        if (loenudviklingBasis === 'Overenskomst') {
+          if (!af.overenskomstId) return null;
+          const overenskomstRef = resolveOverenskomstRef(af.overenskomstId);
+          if (!overenskomstRef) return null;
+          const reguleringsdatoDanish = isoToDanish(reguleringsdato);
+          if (!reguleringsdatoDanish) return null;
+          const applyAlmindeligLoenPaaShDageRegel =
+            af.loenPaaHelligdage === loenPaaHelligdageSchema.enum['Almindelig løn'];
+          const sats = getEffektiveSatserForDato({
+            overenskomstId: overenskomstRef.baseId,
+            dato: reguleringsdatoDanish,
+            applyAlmindeligLoenPaaShDageRegel,
+          });
+          if (!sats) return null;
+          const allSatser = getOverenskomst(overenskomstRef.baseId)?.satser ?? [];
+          const hasShSo = allSatser.some((entry) => entry.shSoSats !== null);
+          const hasFritvalg = allSatser.some((entry) => entry.fritvalg !== null);
+          const hasAgPension = allSatser.some((entry) => entry.agPension !== null);
+          return {
+            components: {
+              baseValue: sats.grundloen ?? 0,
+              feriePct: typeof af.feriePct === 'number' ? af.feriePct : 0,
+              fritvalgPct: percentFromDecimal(sats.fritvalg),
+              shSoPct: percentFromDecimal(sats.shSoSats),
+              pensionPct: percentFromDecimal(sats.agPension),
+              storeBededagPct: 0,
+            },
+            visibility: {
+              showFritvalg: hasFritvalg,
+              showShSo: hasShSo,
+              showPension: hasAgPension,
+              showStoreBededag: false,
+            },
+          };
+        }
+        if (loenudviklingBasis === 'Manuelt angivet') {
+          const baseRow = (af.loenudviklingManuelTableData ?? [])[0];
+          if (!baseRow) return null;
+          return {
+            components: {
+              baseValue: parseAmount(baseRow.grundloen),
+              feriePct: typeof af.feriePct === 'number' ? af.feriePct : 0,
+              fritvalgPct: parsePercentInput(baseRow.fritvalg),
+              shSoPct: parsePercentInput(baseRow.shSoSats),
+              pensionPct: parsePercentInput(baseRow.agPension),
+              storeBededagPct: 0,
+            },
+            visibility: { showFritvalg: true, showShSo: true, showPension: true, showStoreBededag: false },
+          };
+        }
+        if (loenudviklingBasis === 'Statistik') {
+          const modelLabel = af.loenudviklingStatistikModel ?? '';
+          if (modelLabel.trim() === '') return null;
+          if (modelLabel.trim().startsWith('ASL-')) {
+            const start = parseISODate(reguleringsdato);
+            if (!start) return null;
+            const value = aarsloenMax[start.getFullYear() as keyof typeof aarsloenMax];
+            if (typeof value !== 'number') return null;
+            return {
+              components: {
+                baseValue: value,
+                feriePct: typeof af.feriePct === 'number' ? af.feriePct : 0,
+                fritvalgPct: typeof af.fritvalgPct === 'number' ? af.fritvalgPct : 0,
+                shSoPct: typeof af.shSoPct === 'number' ? af.shSoPct : 0,
+                pensionPct: typeof af.pensionPct === 'number' ? af.pensionPct : 0,
+                storeBededagPct: 0,
+              },
+              visibility: { showFritvalg: true, showShSo: true, showPension: true, showStoreBededag: false },
+            };
+          }
+          const modelId = resolveStatistikModelIdFromLabel(modelLabel);
+          if (!modelId) return null;
+          const model = getStatistiskLoenudvikling(modelId);
+          if (!model) return null;
+          const periodStarts = model.indeksvaerdier
+            .map((value) => {
+              const match = value.kvartal.match(/^(\d{4})K([1-4])$/);
+              if (!match) return null;
+              const year = Number(match[1]);
+              const quarter = Number(match[2]);
+              if (!Number.isFinite(year) || !Number.isFinite(quarter)) return null;
+              const month = (quarter - 1) * 3;
+              const startIso = formatToISO(new Date(year, month, 1));
+              if (!startIso) return null;
+              return { startIso, indeks: value.indeks };
+            })
+            .filter((row): row is Readonly<{ startIso: ISODateString; indeks: number }> => Boolean(row))
+            .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+          if (periodStarts.length === 0) return null;
+          if (periodStarts[0].startIso > reguleringsdato) return null;
+          let candidate = periodStarts[0];
+          for (const period of periodStarts) {
+            if (period.startIso > reguleringsdato) break;
+            candidate = period;
+          }
+          return {
+            components: {
+              baseValue: candidate.indeks,
+              feriePct: typeof af.feriePct === 'number' ? af.feriePct : 0,
+              fritvalgPct: typeof af.fritvalgPct === 'number' ? af.fritvalgPct : 0,
+              shSoPct: typeof af.shSoPct === 'number' ? af.shSoPct : 0,
+              pensionPct: typeof af.pensionPct === 'number' ? af.pensionPct : 0,
+              storeBededagPct: 0,
+            },
+            visibility: { showFritvalg: true, showShSo: true, showPension: true, showStoreBededag: false },
+          };
+        }
+        return null;
+      })();
+
+      const reguleringsvaerdiRow = (() => {
+        if (!reguleringsdato) {
+          return { display: '-', status: 'error' as DebugStatus };
+        }
+        if (!baseIndex) {
+          return { display: 'Nej', status: 'error' as DebugStatus };
+        }
+        return { display: 'Ja', status: 'ok' as DebugStatus };
+      })();
+
       const indeksTable = (() => {
         if (!loenudviklingBasis || loenudviklingBasis === 'Ingen') return null;
-        if (!reguleringsdato) return null;
+        if (!tafStartIso) return null;
+        if (!tafEndIso) return null;
+        if (tafStartIso > tafEndIso) return null;
+        if (!baseIndex) return null;
 
         const feriePct = typeof af.feriePct === 'number' ? af.feriePct : 0;
         const tafRanges = (tafPerioder ?? [])
@@ -672,8 +856,8 @@ const EODebug = () => {
             if (!af.overenskomstId) return [];
             const ref = resolveOverenskomstRef(af.overenskomstId);
             if (!ref) return [];
-            const fraDato = isoToDanish(reguleringsdato);
-            const tilDato = isoToDanish(periodeTil ?? reguleringsdato);
+            const fraDato = isoToDanish(tafStartIso);
+            const tilDato = isoToDanish(tafEndIso);
             if (!fraDato || !tilDato) return [];
 
             const satser = getEffektiveSatserForPeriode({
@@ -706,7 +890,7 @@ const EODebug = () => {
               .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
 
             const applyStoreBededagRegulering =
-              applyAlmindeligLoenPaaShDageRegel && reguleringsdato < STORE_BEDEDAG_START && (periodeTil ?? reguleringsdato) >= STORE_BEDEDAG_START;
+              applyAlmindeligLoenPaaShDageRegel && tafStartIso < STORE_BEDEDAG_START && tafEndIso >= STORE_BEDEDAG_START;
 
             if (applyStoreBededagRegulering) {
               const baseForStore = [...periodStarts]
@@ -746,7 +930,7 @@ const EODebug = () => {
             return periodStarts.map((period, index) => ({
               ...period,
               visibility,
-              endIso: index < periodStarts.length - 1 ? subtractOneDay(periodStarts[index + 1]?.startIso) : periodeTil,
+              endIso: index < periodStarts.length - 1 ? subtractOneDay(periodStarts[index + 1]?.startIso) : tafEndIso,
             }));
           }
 
@@ -763,12 +947,12 @@ const EODebug = () => {
               };
 
               const periodStarts = [
-                { startIso: reguleringsdato, components: baseComponents },
+                { startIso: tafStartIso, components: baseComponents },
                 ...rows.slice(1).map((row) => {
                   const startIso = parseDanishToISO(row.dato);
                   if (!startIso) return null;
-                  if (startIso < reguleringsdato) return null;
-                  if (periodeTil && startIso > periodeTil) return null;
+                  if (startIso < tafStartIso) return null;
+                  if (tafEndIso && startIso > tafEndIso) return null;
                   const components: FormulaComponents = {
                     baseValue: parseAmount(row.grundloen),
                     feriePct,
@@ -784,7 +968,7 @@ const EODebug = () => {
                 .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
 
               const applyStoreBededagRegulering =
-                applyAlmindeligLoenPaaShDageRegel && reguleringsdato < STORE_BEDEDAG_START && (periodeTil ?? reguleringsdato) >= STORE_BEDEDAG_START;
+                applyAlmindeligLoenPaaShDageRegel && tafStartIso < STORE_BEDEDAG_START && tafEndIso >= STORE_BEDEDAG_START;
 
               if (applyStoreBededagRegulering) {
                 const baseForStore = [...periodStarts]
@@ -817,7 +1001,7 @@ const EODebug = () => {
               return periodStarts.map((period, index) => ({
                 ...period,
                 visibility: { showFritvalg: true, showShSo: true, showPension: true, showStoreBededag: applyStoreBededagRegulering },
-                endIso: index < periodStarts.length - 1 ? subtractOneDay(periodStarts[index + 1]?.startIso) : periodeTil,
+                endIso: index < periodStarts.length - 1 ? subtractOneDay(periodStarts[index + 1]?.startIso) : tafEndIso,
               }));
             }
 
@@ -830,8 +1014,8 @@ const EODebug = () => {
             if (modelLabel.trim() === '') return [];
 
             if (modelLabel.trim().startsWith('ASL-')) {
-              const start = parseISODate(reguleringsdato);
-              const end = parseISODate(periodeTil ?? reguleringsdato);
+              const start = parseISODate(tafStartIso);
+              const end = parseISODate(tafEndIso);
               if (!start || !end) return [];
               const startYear = start.getFullYear();
               const endYear = end.getFullYear();
@@ -860,7 +1044,7 @@ const EODebug = () => {
                   .map((period, index) => ({
                     ...period,
                     visibility: { showFritvalg: true, showShSo: true, showPension: true, showStoreBededag: false },
-                    endIso: index < periodStarts.length - 1 ? subtractOneDay(periodStarts[index + 1]?.startIso) : periodeTil,
+                    endIso: index < periodStarts.length - 1 ? subtractOneDay(periodStarts[index + 1]?.startIso) : tafEndIso,
                   }));
               }
 
@@ -897,23 +1081,15 @@ const EODebug = () => {
             return periodStarts.map((period, index) => ({
               ...period,
               visibility: { showFritvalg: true, showShSo: true, showPension: true, showStoreBededag: false },
-              endIso: index < periodStarts.length - 1 ? subtractOneDay(periodStarts[index + 1]?.startIso) : periodeTil,
+              endIso: index < periodStarts.length - 1 ? subtractOneDay(periodStarts[index + 1]?.startIso) : tafEndIso,
             }));
           }
 
           return [];
         })();
 
-        const basePeriod = findPeriodForDate(periods, reguleringsdato);
-        const baseComponents: FormulaComponents = basePeriod?.components ?? {
-          baseValue: 0,
-          feriePct,
-          fritvalgPct: 0,
-          shSoPct: 0,
-          pensionPct: 0,
-          storeBededagPct: 0,
-        };
-        const baseVisibility: FormulaVisibility = basePeriod?.visibility ?? { showFritvalg: true, showShSo: true, showPension: true, showStoreBededag: false };
+        const baseComponents: FormulaComponents = baseIndex.components;
+        const baseVisibility: FormulaVisibility = baseIndex.visibility;
         const isStatistik = loenudviklingBasis === 'Statistik';
         const statistikModelLabel = af.loenudviklingStatistikModel ?? '';
         const isAslModel = isStatistik && statistikModelLabel.trim().startsWith('ASL-');
@@ -931,36 +1107,43 @@ const EODebug = () => {
 
         const baseValueRaw = isStatistik ? baseComponents.baseValue : computeFormulaValue(baseComponents);
         const baseFormula = isStatistik ? formatStatValue(baseValueRaw) : buildFormulaText(baseComponents, baseVisibility);
+        const basePeriod = findPeriodForDate(periods, tafStartIso);
+        const basePeriodComponents = basePeriod?.components ?? baseComponents;
+        const basePeriodVisibility = basePeriod?.visibility ?? baseVisibility;
+        const basePeriodValueRaw = isStatistik ? basePeriodComponents.baseValue : computeFormulaValue(basePeriodComponents);
+        const basePeriodFormula = isStatistik
+          ? formatStatValue(basePeriodValueRaw)
+          : buildFormulaText(basePeriodComponents, basePeriodVisibility);
 
         // Byg SH-dage og feriedage set for beregning af arbejdsdage
-        const eoRange = periodeTil ? { fra: reguleringsdato, til: periodeTil } : null;
+        const eoRange = tafEndIso ? { fra: tafStartIso, til: tafEndIso } : null;
         const shDageSet = eoRange ? buildSHDageSet(eoRange.fra, eoRange.til) : new Set<ISODateString>();
         const ferieDageSet = eoRange
           ? buildFerieDageSet({ ferieperioder, tafPerioder }, shDageSet, eoRange.fra, eoRange.til)
           : new Set<ISODateString>();
 
-        const rowIsos: ISODateString[] = [reguleringsdato];
+        const rowIsos: ISODateString[] = [tafStartIso];
 
         const sortedPeriods = periods
-          .filter((period) => period.startIso > reguleringsdato)
-          .filter((period) => !periodeTil || period.startIso <= periodeTil);
+          .filter((period) => period.startIso > tafStartIso)
+          .filter((period) => !tafEndIso || period.startIso <= tafEndIso);
 
         // Beregn arbejdsdage og måneder for base-periode
-        const baseEndIso = sortedPeriods.length > 0 ? subtractOneDay(sortedPeriods[0].startIso) : periodeTil;
-        const baseStats = baseEndIso && periodeTil
-          ? beregnArbejdsdageOgMaaneder(reguleringsdato, baseEndIso, shDageSet, ferieDageSet)
+        const baseEndIso = sortedPeriods.length > 0 ? subtractOneDay(sortedPeriods[0].startIso) : tafEndIso;
+        const baseStats = baseEndIso && tafEndIso
+          ? beregnArbejdsdageOgMaaneder(tafStartIso, baseEndIso, shDageSet, ferieDageSet)
           : { arbejdsdage: 0, maaneder: 0 };
 
         const rows: StandardDisplayTableRow[] = [
           {
             key: `regulering-indeks-${af.id}-base`,
             cells: [
-              formatIsoValue(reguleringsdato),
+              formatIsoValue(tafStartIso),
               baseEndIso ? formatIsoValue(baseEndIso) : '-',
               baseStats.arbejdsdage.toString(),
-              formatDecimal(baseStats.maaneder, 2),
-              baseFormula,
-              formatIndexValue(100)
+              formatMaanederTrimmed(baseStats.maaneder),
+              isStatistik ? `${basePeriodFormula} /\n${baseFormula}` : `(${basePeriodFormula}) /\n(${baseFormula})`,
+              baseValueRaw > 0 ? formatIndexValue((basePeriodValueRaw / baseValueRaw) * 100) : '-'
             ],
           },
         ];
@@ -977,10 +1160,10 @@ const EODebug = () => {
           const indexValue = baseValueRaw > 0 ? formatIndexValue((valueRaw / baseValueRaw) * 100) : '-';
 
           // Beregn arbejdsdage og måneder for denne periode
-          const periodEndIso = i < sortedPeriods.length - 1 ? subtractOneDay(sortedPeriods[i + 1].startIso) : periodeTil;
-          const periodStats = periodEndIso && periodeTil
-            ? beregnArbejdsdageOgMaaneder(period.startIso, periodEndIso, shDageSet, ferieDageSet)
-            : { arbejdsdage: 0, maaneder: 0 };
+            const periodEndIso = i < sortedPeriods.length - 1 ? subtractOneDay(sortedPeriods[i + 1].startIso) : tafEndIso;
+            const periodStats = periodEndIso && tafEndIso
+              ? beregnArbejdsdageOgMaaneder(period.startIso, periodEndIso, shDageSet, ferieDageSet)
+              : { arbejdsdage: 0, maaneder: 0 };
 
           rows.push({
             key: `regulering-indeks-${af.id}-${period.startIso}`,
@@ -988,7 +1171,7 @@ const EODebug = () => {
               formatIsoValue(period.startIso),
               periodEndIso ? formatIsoValue(periodEndIso) : '-',
               periodStats.arbejdsdage.toString(),
-              formatDecimal(periodStats.maaneder, 2),
+              formatMaanederTrimmed(periodStats.maaneder),
               displayFormula,
               indexValue
             ],
@@ -1017,18 +1200,19 @@ const EODebug = () => {
 
       const reguleringTable = (() => {
         if (!loenudviklingBasis || loenudviklingBasis === 'Ingen') return null;
-        if (!reguleringsdato || !periodeTil) return null;
-        if (reguleringsdato > periodeTil) return null;
+        if (!tafStartIso || !tafEndIso) return null;
+        if (tafStartIso > tafEndIso) return null;
+        if (!baseIndex) return null;
         const rowIsoSet = indeksRowIsos.length > 0 ? new Set(indeksRowIsos) : null;
 
         if (loenudviklingBasis === 'Overenskomst') {
             const isAlmindeligLoen = af.loenPaaHelligdage === loenPaaHelligdageSchema.enum['Almindelig løn'];
             const applyStoreBededagRegulering =
-              isAlmindeligLoen && reguleringsdato < STORE_BEDEDAG_START && periodeTil >= STORE_BEDEDAG_START;
+              isAlmindeligLoen && tafStartIso < STORE_BEDEDAG_START && tafEndIso >= STORE_BEDEDAG_START;
             const overenskomstRef = af.overenskomstId ? resolveOverenskomstRef(af.overenskomstId) : undefined;
             if (!overenskomstRef) return null;
-            const fraDato = isoToDanish(reguleringsdato);
-            const tilDato = isoToDanish(periodeTil);
+            const fraDato = isoToDanish(tafStartIso);
+            const tilDato = isoToDanish(tafEndIso);
             if (!fraDato || !tilDato) return null;
             const satser = getEffektiveSatserForPeriode({
               overenskomstId: overenskomstRef.baseId,
@@ -1070,7 +1254,7 @@ const EODebug = () => {
               .sort((a, b) => (a.iso < b.iso ? -1 : 1));
 
             const baseSats = [...satsWithIso]
-              .filter((entry) => entry.iso <= reguleringsdato)
+              .filter((entry) => entry.iso <= tafStartIso)
               .sort((a, b) => (a.iso < b.iso ? 1 : -1))[0];
             if (!baseSats) return null;
 
@@ -1097,9 +1281,9 @@ const EODebug = () => {
               });
             };
 
-            addRow(reguleringsdato, baseSats.sats, 0);
+            addRow(tafStartIso, baseSats.sats, 0);
 
-            const laterSatser = satsWithIso.filter((entry) => entry.iso > reguleringsdato);
+            const laterSatser = satsWithIso.filter((entry) => entry.iso > tafStartIso);
             let storeBededagInserted = false;
 
             for (const entry of laterSatser) {
@@ -1111,7 +1295,7 @@ const EODebug = () => {
               addRow(entry.iso, entry.sats, bededagPct);
             }
 
-            if (applyStoreBededagRegulering && !storeBededagInserted && STORE_BEDEDAG_START > reguleringsdato && STORE_BEDEDAG_START <= periodeTil) {
+            if (applyStoreBededagRegulering && !storeBededagInserted && STORE_BEDEDAG_START > tafStartIso && STORE_BEDEDAG_START <= tafEndIso) {
               addRow(STORE_BEDEDAG_START, baseSats.sats, STORE_BEDEDAG_PCT);
             }
 
@@ -1120,9 +1304,9 @@ const EODebug = () => {
           if (loenudviklingBasis === 'Manuelt angivet') {
             const rows = af.loenudviklingManuelTableData
               .map((row, rowIndex): StandardDisplayTableRow | null => {
-                const iso = rowIndex === 0 && reguleringsdato ? reguleringsdato : parseDanishToISO(row.dato);
+                const iso = rowIndex === 0 && tafStartIso ? tafStartIso : parseDanishToISO(row.dato);
                 if (!iso) return null;
-                if (iso < reguleringsdato || iso > periodeTil) return null;
+                if (iso < tafStartIso || iso > tafEndIso) return null;
                 if (rowIsoSet && !rowIsoSet.has(iso)) return null;
                 return {
                   key: `manual-${af.id}-${row.id}`,
@@ -1156,25 +1340,26 @@ const EODebug = () => {
             const modelLabel = af.loenudviklingStatistikModel ?? '';
             if (modelLabel.trim() === '') return null;
 
-            const includeBase = Boolean(rowIsoSet?.has(reguleringsdato));
+            const includeBase = Boolean(rowIsoSet?.has(tafStartIso));
 
             if (modelLabel.trim().startsWith('ASL-')) {
-              const start = parseISODate(reguleringsdato);
-              const end = parseISODate(periodeTil);
-              if (!start || !end) return null;
+              const start = parseISODate(tafStartIso);
+              const end = parseISODate(tafEndIso);
+              const regDate = reguleringsdato ? parseISODate(reguleringsdato) : null;
+              if (!start || !end || !regDate) return null;
               const startYear = start.getFullYear();
               const endYear = end.getFullYear();
-              const baseYearIso = formatToISO(new Date(startYear, 0, 1));
+              const regYear = regDate.getFullYear();
 
               const rows: StandardDisplayTableRow[] = [];
-              if (includeBase) {
-                const baseValue = aarsloenMax[startYear as keyof typeof aarsloenMax];
-                if (typeof baseValue === 'number') {
-                  rows.push({
-                    key: `asl-${af.id}-${startYear}-base`,
-                    cells: [String(startYear), formatCurrency(baseValue)],
-                  });
-                }
+              const regValue = aarsloenMax[regYear as keyof typeof aarsloenMax];
+              if (typeof regValue === 'number') {
+                rows.push({
+                  key: `asl-${af.id}-${regYear}-reg`,
+                  cells: [String(regYear), formatCurrency(regValue)],
+                });
+              } else {
+                return null;
               }
 
               for (let year = startYear; year <= endYear; year += 1) {
@@ -1182,8 +1367,7 @@ const EODebug = () => {
                 if (typeof value !== 'number') continue;
                 const rowIso = formatToISO(new Date(year, 0, 1));
                 if (!rowIso) continue;
-                if (rowIso === baseYearIso && includeBase) continue;
-                if (rowIsoSet && !rowIsoSet.has(rowIso)) continue;
+                if (year === regYear) continue;
                 rows.push({
                   key: `asl-${af.id}-${year}`,
                   cells: [String(year), formatCurrency(value)],
@@ -1219,8 +1403,8 @@ const EODebug = () => {
               .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
 
             let basePeriod = periodStarts[0];
-            for (const period of periodStarts) {
-              if (period.startIso > reguleringsdato) break;
+              for (const period of periodStarts) {
+              if (period.startIso > tafStartIso) break;
               basePeriod = period;
             }
 
@@ -1230,7 +1414,7 @@ const EODebug = () => {
                 key: `stat-${af.id}-base`,
                 cells: [
                   basePeriod.kvartal,
-                  formatIsoValue(reguleringsdato),
+                  formatIsoValue(tafStartIso),
                   basePeriod.indeks.toLocaleString('da-DK', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
                 ],
               });
@@ -1287,6 +1471,18 @@ const EODebug = () => {
             status: reguleringsdatoStatus,
           },
           {
+            id: 'regulering.reguleringsvaerdi',
+            label: 'Reguleringsværdi på reguleringsdato',
+            displayValue: reguleringsvaerdiRow.display,
+            status: reguleringsvaerdiRow.status,
+          },
+          {
+            id: 'regulering.foersteTafDato',
+            label: 'Første dato i TAF-periode',
+            displayValue: foersteTafDatoDisplay,
+            status: foersteTafDatoStatus,
+          },
+          {
             id: 'regulering.startvaerdi',
             label: 'Reguleringsværdi på start-dato',
             displayValue: startDateRow.display,
@@ -1294,9 +1490,9 @@ const EODebug = () => {
           },
           {
             id: 'regulering.slutdato',
-            label: 'Sidste dato i erstatningsperiode',
-            displayValue: periodeTilDisplay,
-            status: periodeTilStatus,
+            label: 'Sidste dato i TAF-periode',
+            displayValue: sidsteTafDatoDisplay,
+            status: sidsteTafDatoStatus,
           },
           {
             id: 'regulering.slutvaerdi',
@@ -1314,7 +1510,7 @@ const EODebug = () => {
         showTable: !isIngen,
         table: reguleringTable,
         indeksTable,
-        hasDateRange: Boolean(reguleringsdato && periodeTil),
+        hasDateRange: Boolean(reguleringsdato && tafEndIso),
       };
     });
   }, [
@@ -2086,11 +2282,20 @@ const EODebug = () => {
 
             {rowsBySection.get('taf')?.filter((row) => row.id.startsWith('taf.periode.')).map((row) => {
               const labelWidth = row.id.startsWith('taf.periode.') ? '340px' : LABEL_WIDTH;
+              const hasMultipleLines = row.displayValue.includes('\n');
               return (
                 <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': labelWidth }}>
                   <Typography className="row--text" sx={{ minWidth: labelWidth }}>{row.label}</Typography>
                   <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                    <Typography className="row--text">{row.displayValue}</Typography>
+                    <Typography
+                      className="row--text"
+                      sx={{
+                        whiteSpace: hasMultipleLines ? 'pre-line' : 'normal',
+                        textAlign: hasMultipleLines ? 'right' : 'left',
+                      }}
+                    >
+                      {row.displayValue}
+                    </Typography>
                     {getStatusIcon(row.status)}
                   </Box>
                 </Box>
@@ -2149,18 +2354,30 @@ const EODebug = () => {
                 <Typography className="row--subheading">{section.headerText}</Typography>
 
                 {section.rows.map((row) => (
-                  <Box key={`${section.id}-${row.id}`} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-                    <Typography className="row--text">{row.label}</Typography>
-                    <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                      <Typography className="row--text">{row.displayValue}</Typography>
-                      {getStatusIcon(row.status)}
+                  <React.Fragment key={`${section.id}-${row.id}`}>
+                    {row.id === 'regulering.reguleringsdato' ? (
+                      <Box sx={{ height: '1px', backgroundColor: 'grey.300', my: 0, mx: '12px' }} />
+                    ) : null}
+                    {row.id === 'regulering.foersteTafDato' ? (
+                      <Box sx={{ height: '1px', backgroundColor: 'grey.300', my: 0, mx: '12px' }} />
+                    ) : null}
+                    {row.id === 'regulering.slutdato' ? (
+                      <Box sx={{ height: '1px', backgroundColor: 'grey.300', my: 0, mx: '12px' }} />
+                    ) : null}
+                    <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                      <Typography className="row--text">{row.label}</Typography>
+                      <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                        <Typography className="row--text">{row.displayValue}</Typography>
+                        {getStatusIcon(row.status)}
+                      </Box>
                     </Box>
-                  </Box>
+                  </React.Fragment>
                 ))}
 
                 {section.showTable ? (
                   section.table ? (
                     <>
+                      <Box sx={{ height: '1px', backgroundColor: 'grey.300', my: 0, mx: '12px' }} />
                       <StandardDisplayTable
                         useSmallFont
                         columns={section.table.columns}
@@ -2244,8 +2461,3 @@ const EODebug = () => {
 };
 
 export default EODebug;
-
-
-
-
-

@@ -1226,7 +1226,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                     allowEmpty={true}
                     placeholder="Vælg..."
                   >
-                    <MenuItem value="ASL-Årslønsmaksimum">ASL-Årslønsmaksimum</MenuItem>
+                    <MenuItem value="ASL-årslønsmaksimum">ASL-årslønsmaksimum</MenuItem>
                     <MenuItem value="ILON12 (Danmarks Statistik)">ILON12 (Danmarks Statistik)</MenuItem>
                     <MenuItem value="SBLON2 (Danmarks Statistik)">SBLON2 (Danmarks Statistik)</MenuItem>
                   </StyledDropdown>

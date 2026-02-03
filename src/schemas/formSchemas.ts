@@ -344,7 +344,7 @@ export type LoenudviklingBeregningsgrundlag = z.infer<typeof loenudviklingBeregn
  * Statistik-model for lønudvikling
  */
 export const loenudviklingStatistikModelEnum = z.enum([
-  'ASL-Årslønsmaksimum',
+  'ASL-årslønsmaksimum',
   'ILON12 (Danmarks Statistik)',
   'SBLON2 (Danmarks Statistik)',
 ]);

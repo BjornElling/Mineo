@@ -1450,6 +1450,8 @@ export const buildEODebugTaftRows = (
   const ferieperioder = values.ferieperioder ?? [];
 
   const formatDaNumber = (n: number): string => n.toLocaleString('da-DK');
+  const formatDaNumberFixed2 = (n: number): string =>
+    n.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   // Detektér overlappende perioder
   const tafOverlappingIds = detectOverlappingPeriods(perioder);
@@ -1582,12 +1584,21 @@ export const buildEODebugTaftRows = (
         { kind: 'taf' }
       );
 
+      const antalMaaneder = calculateTafAntalMaaneder(
+        fraISO,
+        tilISO,
+        ferieperioder,
+        loseFeriedage,
+        0
+      );
+      const maanederDisplay = antalMaaneder === null ? '-' : `${formatDaNumberFixed2(antalMaaneder)} måneder`;
+
       rows.push({
         id: `taf.periode.${periode.id}`,
         label: periodeLabel,
         displayValue:
           breakdown
-            ? `${formatDaNumber(breakdown.arbejdsdage)} hverdage - ${formatDaNumber(breakdown.shDage)} SH-dage - ${formatDaNumber(breakdown.feriedage)} feriedage - ${formatDaNumber(breakdown.loseFeriedage)} løse feriedage = ${formatDaNumber(breakdown.tafDage)} TAF-dage`
+            ? `${formatDaNumber(breakdown.arbejdsdage)} hverdage - ${formatDaNumber(breakdown.shDage)} SH-dage - ${formatDaNumber(breakdown.feriedage)} feriedage - ${formatDaNumber(breakdown.loseFeriedage)} løse feriedage = ${formatDaNumber(breakdown.tafDage)} TAF-dage\n${maanederDisplay}`
             : '-',
         status: breakdown ? 'ok' : 'error',
       });
@@ -2141,8 +2152,10 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     const totalMaaneder = beregnMaanederForDage(periodeDage);
     const fravaerMaaneder = oevrigeFravaersdageValue * 0.048;
 
-    const formatMaaneder = (value: number): string =>
-      value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formatMaaneder = (value: number): string => {
+      const rounded = Math.round(value * 100) / 100;
+      return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    };
 
     const fravaerBeskrivelse = values.oevrigeFravaersdageBeskrivelse?.trim();
     const fravaerLabelTekst = fravaerBeskrivelse && fravaerBeskrivelse !== ''
