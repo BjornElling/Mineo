@@ -108,6 +108,41 @@ const addLeftRightText = (
   return currentY + lineHeight * leftLines.length;
 };
 
+const addSectionHeader = (
+  doc: jsPDF,
+  text: string,
+  currentY: number,
+  lineHeight: number,
+  doubleLineHeight: number,
+  maxWidth: number
+): number => {
+  let nextY = currentY + doubleLineHeight;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(FONT_SIZES.header);
+  nextY = addWrappedText(doc, text, MARGINS.left, nextY, lineHeight, maxWidth);
+  nextY += lineHeight;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(FONT_SIZES.normal);
+  return nextY;
+};
+
+const addSubheader = (
+  doc: jsPDF,
+  text: string,
+  currentY: number,
+  lineHeight: number,
+  maxWidth: number,
+  options?: Readonly<{ addTopSpacing?: boolean }>
+): number => {
+  const addTopSpacing = options?.addTopSpacing ?? true;
+  let nextY = addTopSpacing ? currentY + lineHeight : currentY;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(FONT_SIZES.normal);
+  nextY = addWrappedText(doc, text, MARGINS.left, nextY, lineHeight, maxWidth);
+  doc.setFont('helvetica', 'normal');
+  return nextY;
+};
+
 const formatMaanederTrimmed = (value: number): string => {
   const rounded = Math.round(value * 10000) / 10000;
   return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
@@ -382,19 +417,16 @@ export const generateErstatningsopgoerelsePdf = (
   // SVIE- OG SMERTEGODTGØRELSE SEKTION
   // ============================================================================
 
-  currentY += doubleLineHeight;
-  currentY += lineHeight;
+  currentY = addSectionHeader(
+    doc,
+    'Svie- og smertegodtgørelse',
+    currentY,
+    lineHeight,
+    doubleLineHeight,
+    fullWidth
+  );
 
-
-  // Overskrift: Svie- og smertegodtgørelse (fed skrift)
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(FONT_SIZES.header);
-  currentY = addWrappedText(doc, 'Svie- og smertegodtgørelse', MARGINS.left, currentY, lineHeight, fullWidth);
-  currentY += lineHeight;
-
-  // Underoverskrift: Status (fed skrift)
-  doc.setFontSize(FONT_SIZES.normal);
-  currentY = addWrappedText(doc, 'Status', MARGINS.left, currentY, lineHeight, fullWidth);
+  currentY = addSubheader(doc, 'Status', currentY, lineHeight, fullWidth, { addTopSpacing: false });
 
   // Normal skrift for resten
   doc.setFont('helvetica', 'normal');
@@ -525,11 +557,7 @@ export const generateErstatningsopgoerelsePdf = (
       ? 'Sygeperioder, hvor der beregnes svie- og smertegodtgørelse'
       : 'Sygeperiode, hvor der beregnes svie- og smertegodtgørelse';
 
-  currentY += lineHeight;
-  doc.setFont('helvetica', 'bold');
-  currentY = addWrappedText(doc, periodeHeading, MARGINS.left, currentY, lineHeight, fullWidth);
-
-  doc.setFont('helvetica', 'normal');
+  currentY = addSubheader(doc, periodeHeading, currentY, lineHeight, fullWidth);
   if (!hasSvieSmertePerioder) {
     currentY = addWrappedText(doc, 'Ingen', MARGINS.left, currentY, lineHeight, fullWidth);
   }
@@ -538,11 +566,7 @@ export const generateErstatningsopgoerelsePdf = (
       currentY = addWrappedText(doc, line, MARGINS.left, currentY, lineHeight, fullWidth);
     }
 
-    currentY += lineHeight;
-    doc.setFont('helvetica', 'bold');
-    currentY = addWrappedText(doc, 'Beregningsgrundlag', MARGINS.left, currentY, lineHeight, fullWidth);
-
-    doc.setFont('helvetica', 'normal');
+    currentY = addSubheader(doc, 'Beregningsgrundlag', currentY, lineHeight, fullWidth);
     const satserAar = eoValues.svieSmerteSatserAar !== undefined ? String(eoValues.svieSmerteSatserAar) : '-';
     currentY = addWrappedText(
       doc,
@@ -590,19 +614,7 @@ export const generateErstatningsopgoerelsePdf = (
       }
     }
 
-    currentY += lineHeight;
-
-    doc.setFont('helvetica', 'bold');
-    currentY = addWrappedText(
-      doc,
-      'Beregnet krav på svie- og smertegodtgørelse',
-      MARGINS.left,
-      currentY,
-      lineHeight,
-      fullWidth
-    );
-
-    doc.setFont('helvetica', 'normal');
+    currentY = addSubheader(doc, 'Beregnet krav på svie- og smertegodtgørelse', currentY, lineHeight, fullWidth);
     const counts = parseSvieSmerteCounts(antalDageRow?.displayValue ?? '');
     const perDagNumber = parsedSatser.perDag ? parseAmount(parsedSatser.perDag) : NaN;
     const perDagAmount = Number.isFinite(perDagNumber) ? perDagNumber : null;
@@ -676,17 +688,16 @@ export const generateErstatningsopgoerelsePdf = (
   // TABT ARBEJDSFORTJENESTE SEKTION
   // ============================================================================
 
-  currentY += doubleLineHeight;
+  currentY = addSectionHeader(
+    doc,
+    'Tabt arbejdsfortjeneste',
+    currentY,
+    lineHeight,
+    doubleLineHeight,
+    fullWidth
+  );
 
-  // Overskrift: Tabt arbejdsfortjeneste (fed skrift)
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(FONT_SIZES.header);
-  currentY = addWrappedText(doc, 'Tabt arbejdsfortjeneste', MARGINS.left, currentY, lineHeight, fullWidth);
-  currentY += lineHeight;
-
-  // Underoverskrift: Status (fed skrift)
-  doc.setFontSize(FONT_SIZES.normal);
-  currentY = addWrappedText(doc, 'Status', MARGINS.left, currentY, lineHeight, fullWidth);
+  currentY = addSubheader(doc, 'Status', currentY, lineHeight, fullWidth, { addTopSpacing: false });
 
   // Normal skrift for resten
   doc.setFont('helvetica', 'normal');
@@ -874,19 +885,13 @@ export const generateErstatningsopgoerelsePdf = (
   }
 
   // TAF-perioder
-  currentY += lineHeight;
-
-  doc.setFont('helvetica', 'bold');
-  currentY = addWrappedText(
+  currentY = addSubheader(
     doc,
     'Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste',
-    MARGINS.left,
     currentY,
     lineHeight,
     fullWidth
   );
-
-  doc.setFont('helvetica', 'normal');
 
   const tafPerioder = eoValues.tafPerioder || [];
   const tafPerioderLines: string[] = [];
@@ -910,21 +915,8 @@ export const generateErstatningsopgoerelsePdf = (
       currentY = addWrappedText(doc, line, MARGINS.left, currentY, lineHeight, fullWidth);
     }
 
-    // Kun hvis der ER TAF-perioder, vis resten af indholdet
-    currentY += lineHeight;
-
-    // Indkomst på skadestidspunktet
-    doc.setFont('helvetica', 'bold');
-    currentY = addWrappedText(
-      doc,
-      'Indkomst på skadestidspunktet',
-      MARGINS.left,
-      currentY,
-      lineHeight,
-      fullWidth
-    );
-
-    doc.setFont('helvetica', 'normal');
+      // Kun hvis der ER TAF-perioder, vis resten af indholdet
+      currentY = addSubheader(doc, 'Indkomst på skadestidspunktet', currentY, lineHeight, fullWidth);
 
     const beregnesUdFra = eoValues.beregnesUdFra;
     const loenBaseretPaa = eoValues.loenBaseretPaa;
@@ -1167,11 +1159,7 @@ export const generateErstatningsopgoerelsePdf = (
       }
 
       // Indkomst, hvis skaden ikke var indtrådt
-      currentY += lineHeight;
-      doc.setFont('helvetica', 'bold');
-      currentY = addWrappedText(doc, 'Indkomst, hvis skaden ikke var indtrådt', MARGINS.left, currentY, lineHeight, fullWidth);
-
-      doc.setFont('helvetica', 'normal');
+      currentY = addSubheader(doc, 'Indkomst, hvis skaden ikke var indtrådt', currentY, lineHeight, fullWidth);
       currentY = addWrappedText(
         doc,
         'Opgøres som lønnen på skadesdatoen tillagt efterfølgende lønstigninger.',
@@ -1303,10 +1291,7 @@ export const generateErstatningsopgoerelsePdf = (
         // Indtægter i erstatningsperioden (TAF-perioden)
         let tafIndtaegterTotal: number | null = null;
         if (tafRanges.length > 0) {
-          currentY += lineHeight;
-          doc.setFont('helvetica', 'bold');
-          currentY = addWrappedText(doc, 'Indtægter i erstatningsperioden', MARGINS.left, currentY, lineHeight, fullWidth);
-          doc.setFont('helvetica', 'normal');
+          currentY = addSubheader(doc, 'Indtægter i erstatningsperioden', currentY, lineHeight, fullWidth);
 
         const indtaegtEntries: Array<{ label: string; amount: number }> = [];
         const indtaegter = buildIncomeForRanges(eoValues, tafRanges);
@@ -1356,17 +1341,7 @@ export const generateErstatningsopgoerelsePdf = (
         }
 
         if (typeof loenudviklingTotal === 'number' && typeof tafIndtaegterTotal === 'number') {
-          currentY += lineHeight;
-          doc.setFont('helvetica', 'bold');
-          currentY = addWrappedText(
-            doc,
-            'Beregnet krav på tabt arbejdsfortjeneste',
-            MARGINS.left,
-            currentY,
-            lineHeight,
-            fullWidth
-          );
-          doc.setFont('helvetica', 'normal');
+          currentY = addSubheader(doc, 'Beregnet krav på tabt arbejdsfortjeneste', currentY, lineHeight, fullWidth);
 
           const rightMaxWidth = doc.getTextWidth('000.000.000,00');
           const leftText = `${formatCurrency(loenudviklingTotal)}${NBSP}kr. - ${formatCurrency(tafIndtaegterTotal)}${NBSP}kr. =`;
@@ -1383,6 +1358,65 @@ export const generateErstatningsopgoerelsePdf = (
             rightMaxWidth,
             { rightFontStyle: 'bold' }
           );
+        }
+
+        // Øvrige krav
+        currentY = addSectionHeader(doc, 'Øvrige krav', currentY, lineHeight, doubleLineHeight, fullWidth);
+
+        const oevrigeKravRows = eoValues.oevrigeKravPerioder ?? [];
+        const kravEntries: Array<{ dateText: string; udgiftTil: string; amount: number | null }> = [];
+        for (const row of oevrigeKravRows) {
+          const dateText = row.dato ? formatDateShort(row.dato) ?? '' : '';
+          const udgiftTil = (row.udgiftTil ?? '').trim();
+          const amountValue = row.beloeb !== undefined ? parseAmount(row.beloeb) : NaN;
+          const amount = Number.isFinite(amountValue) ? amountValue : null;
+          if (dateText === '' && udgiftTil === '' && amount === null) continue;
+          kravEntries.push({ dateText, udgiftTil, amount });
+        }
+
+        if (kravEntries.length === 0) {
+          currentY = addWrappedText(doc, 'Ingen', MARGINS.left, currentY, lineHeight, fullWidth);
+        } else {
+          const rightMaxWidth = doc.getTextWidth('000.000.000,00');
+          const indent = '  ';
+          let total = 0;
+
+          for (const entry of kravEntries) {
+            const dateText = entry.dateText !== '' ? entry.dateText : '-';
+            currentY = addWrappedText(doc, dateText, MARGINS.left, currentY, lineHeight, fullWidth);
+
+            const udgiftText = entry.udgiftTil !== '' ? entry.udgiftTil : '-';
+            const amountText =
+              typeof entry.amount === 'number' ? `${formatCurrency(entry.amount)}${NBSP}kr.` : '-';
+            if (typeof entry.amount === 'number') {
+              total += entry.amount;
+            }
+            currentY = addLeftRightText(
+              doc,
+              `${indent}${udgiftText}`,
+              amountText,
+              MARGINS.left,
+              currentY,
+              lineHeight,
+              MARGINS.right,
+              rightMaxWidth,
+              { rightFontStyle: 'normal' }
+            );
+          }
+
+          if (kravEntries.length > 1) {
+            currentY = addLeftRightText(
+              doc,
+              'I alt',
+              `${formatCurrency(total)}${NBSP}kr.`,
+              MARGINS.left,
+              currentY,
+              lineHeight,
+              MARGINS.right,
+              rightMaxWidth,
+              { rightFontStyle: 'bold', lineAboveRightWidth: 26.5, lineAboveRightOffset: 4 }
+            );
+          }
         }
     }
 
