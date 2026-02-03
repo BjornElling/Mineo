@@ -92,8 +92,8 @@ const makeSnapshot = (rows: SammentaellingDisplayRow[], revision = 'rev-1'): EOD
     taf: baseControl,
     svieSmerteSygedage: baseControl,
     svieSmerteDelvise: baseControl,
-    loenindkomst: [],
-    offentligeYdelser: [],
+    beregningsperiodeIndtaegter: [],
+    tafIndtaegter: [],
   };
 
   const hasControlErrors = rows.some((row) => getSammentaellingControlStatus(row.control) === 'error');

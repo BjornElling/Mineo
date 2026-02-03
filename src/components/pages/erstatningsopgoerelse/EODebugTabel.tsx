@@ -8,12 +8,13 @@ import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatning
 import { buildEODebugModel } from '../../../domain/debug/eoDebugModel';
 import {
   buildEODebugSammentaellingModel,
-  buildSammentaellingDisplayRows,
+  buildSammentaellingDisplayTables,
   buildSvieSmerteContext,
   buildTaftContext,
   getSammentaellingControlStatus,
   getSammentaellingWarningMeta,
   type SammentaellingControl,
+  type SammentaellingDisplayRow,
 } from '../../../domain/debug/eoDebugSammentaelling';
 import { CSV_DELIMITER, escapeCsvCell, normalizeCsvHeader, toCsvScalar } from '../../../domain/debug/eoDebugCsv';
 import { formatCurrency, parseAmount } from '../../../utils/formatUtils';
@@ -138,9 +139,7 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
     model.summaryTableTil,
   ]);
 
-  const sammentaellingRows = React.useMemo((): StandardDisplayTableRow[] => {
-    const rows: StandardDisplayTableRow[] = [];
-
+  const sammentaellingTables = React.useMemo(() => {
     const formatDaValue = (value: number): string => value.toLocaleString('da-DK');
 
     const getWarningTooltipText = (tabel: number, lose: number, oevrige: number, beregnet: number): string => {
@@ -171,10 +170,12 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
     };
 
     const useSnapshot = debugSnapshot && debugSnapshot.revision === currentDebugRevision;
-    const displayRows = useSnapshot ? debugSnapshot.sammentaellingRows : buildSammentaellingDisplayRows(sammentaelling);
-    displayRows.forEach((entry, index) => {
-      const isFirstExtraRow = index === 4 && displayRows.length > 4;
-      rows.push({
+    const displayTables = useSnapshot
+      ? debugSnapshot.sammentaellingTables
+      : buildSammentaellingDisplayTables(sammentaelling);
+
+    const toTableRows = (displayRows: readonly SammentaellingDisplayRow[]): StandardDisplayTableRow[] => {
+      return displayRows.map((entry) => ({
         key: entry.key,
         cells: [
           entry.label,
@@ -182,18 +183,15 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
           entry.control.tabelDisplay,
           renderControl(entry.control),
         ],
-        rowSx: isFirstExtraRow
-          ? {
-              '& .MuiTableCell-root': {
-                borderTop: '1px solid #e5e7eb !important',
-              },
-            }
-          : undefined,
-      });
-    });
+      }));
+    };
 
-    return rows;
-  }, [sammentaelling]);
+    return {
+      basis: toTableRows(displayTables.basis),
+      beregningsperiode: toTableRows(displayTables.beregningsperiode),
+      taf: toTableRows(displayTables.taf),
+    };
+  }, [sammentaelling, debugSnapshot, currentDebugRevision]);
 
   const tableColumns = React.useMemo(() => {
     return model.columns.map((c) => ({
@@ -295,15 +293,39 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
       <ContentBox className="content-box">
         <Typography className="section-header">Sammentælling</Typography>
 
+          <StandardDisplayTable
+            useSmallFont
+            columns={[
+              { header: 'Enhed', align: 'left', width: 520 },
+              { header: 'Beregnet', align: 'center', width: 160 },
+              { header: 'Tabel', align: 'center', width: 160 },
+              { header: 'Kontrol', align: 'center', width: 120 },
+            ]}
+            rows={sammentaellingTables.basis}
+            containerSx={{ mb: 4 }}
+          />
+
+          <StandardDisplayTable
+            useSmallFont
+            columns={[
+              { header: 'Beregningsperiode', align: 'left', width: 520 },
+              { header: 'Beregnet', align: 'center', width: 160 },
+              { header: 'Tabel', align: 'center', width: 160 },
+              { header: 'Kontrol', align: 'center', width: 120 },
+            ]}
+            rows={sammentaellingTables.beregningsperiode}
+            containerSx={{ mb: 4 }}
+          />
+
         <StandardDisplayTable
           useSmallFont
           columns={[
-            { header: 'Enhed', align: 'left', width: 520 },
+            { header: 'TAF-periode', align: 'left', width: 520 },
             { header: 'Beregnet', align: 'center', width: 160 },
             { header: 'Tabel', align: 'center', width: 160 },
             { header: 'Kontrol', align: 'center', width: 120 },
           ]}
-          rows={sammentaellingRows}
+          rows={sammentaellingTables.taf}
         />
       </ContentBox>
 

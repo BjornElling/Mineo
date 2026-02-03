@@ -3,17 +3,15 @@ import type { FieldErrorsForSection } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, subtractOneDay } from '../../types/branded';
 import { formatCurrency, parseAmount } from '../../utils/formatUtils';
-import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
 import { debugTabelColumnId } from './eoDebugLoenTypes';
-import { ydelsestyper } from '../../data/ydelsestyper';
 import type { EODebugModel } from './eoDebugModel';
 import { buildEODebugSvieSmerteRows, buildEODebugTaftRows } from '../erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
 import { calculateTafArbejdsdageBreakdown } from '../erstatningsopgoerelse/tafCalculations';
 import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/beregningsperiodeTafOverlap';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../erstatningsopgoerelse/tafBeregningsenhed';
+import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, type IsoRange } from '../erstatningsopgoerelse/indtaegtPerioder';
 import { buildFerieDageSet, buildSHDageSet } from './eoDebugRegulationCore';
 import { isoDateToDate } from '../dates/isoDate';
-import { getAarsloenErrorRowIdSet, getOffentligeYdelserErrorRowIdSet } from './eoDebugRowValidation';
 
 export type SvieSmerteContext = Readonly<{
   skadesdatoISO: ISODateString | undefined;
@@ -49,8 +47,8 @@ export type SammentaellingModel = Readonly<{
   taf: SammentaellingControl;
   svieSmerteSygedage: SammentaellingControl;
   svieSmerteDelvise: SammentaellingControl;
-  loenindkomst: readonly SammentaellingEntry[];
-  offentligeYdelser: readonly SammentaellingEntry[];
+  beregningsperiodeIndtaegter: readonly SammentaellingEntry[];
+  tafIndtaegter: readonly SammentaellingEntry[];
 }>;
 
 type SvieSmerteCounts = Readonly<{ sygedage: number; delviseSygedage: number }>;
@@ -150,7 +148,13 @@ export const getSammentaellingControlStatus = (control: SammentaellingControl): 
   return 'error';
 };
 
-export const buildSammentaellingDisplayRows = (model: SammentaellingModel): SammentaellingDisplayRow[] => {
+export type SammentaellingDisplayTables = Readonly<{
+  basis: readonly SammentaellingDisplayRow[];
+  beregningsperiode: readonly SammentaellingDisplayRow[];
+  taf: readonly SammentaellingDisplayRow[];
+}>;
+
+export const buildSammentaellingDisplayTables = (model: SammentaellingModel): SammentaellingDisplayTables => {
   const formatFeriedage = (value: number | null | undefined): string => {
     const resolved = typeof value === 'number' && Number.isFinite(value) ? value : 0;
     return resolved.toLocaleString('da-DK');
@@ -164,7 +168,7 @@ export const buildSammentaellingDisplayRows = (model: SammentaellingModel): Samm
     ? `Arbejdsdage i TAF-periode (+ ${formatFeriedage(model.taf.feriedageCount)} ferie- og SH-dage)`
     : 'Arbejdsdage i TAF-periode';
 
-  const rows: SammentaellingDisplayRow[] = [
+  const basisRows: SammentaellingDisplayRow[] = [
     {
       key: 'arbejdsdage-beregning',
       label: beregningsperiodeLabel,
@@ -187,16 +191,28 @@ export const buildSammentaellingDisplayRows = (model: SammentaellingModel): Samm
     },
   ];
 
-  const ekstraRows = [...model.loenindkomst, ...model.offentligeYdelser];
-  ekstraRows.forEach((entry) => {
-    rows.push({
-      key: entry.key,
-      label: entry.label,
-      control: entry.control,
-    });
-  });
+  const beregningsperiodeRows = model.beregningsperiodeIndtaegter.map((entry) => ({
+    key: entry.key,
+    label: entry.label,
+    control: entry.control,
+  }));
 
-  return rows;
+  const tafRows = model.tafIndtaegter.map((entry) => ({
+    key: entry.key,
+    label: entry.label,
+    control: entry.control,
+  }));
+
+  return {
+    basis: basisRows,
+    beregningsperiode: beregningsperiodeRows,
+    taf: tafRows,
+  };
+};
+
+export const buildSammentaellingDisplayRows = (model: SammentaellingModel): SammentaellingDisplayRow[] => {
+  const tables = buildSammentaellingDisplayTables(model);
+  return [...tables.basis, ...tables.beregningsperiode, ...tables.taf];
 };
 
 const getIsoRange = (
@@ -325,6 +341,55 @@ const sumDebugTableColumn = (
   let sum = 0;
   let hasValue = false;
   for (let rowIndex = 0; rowIndex < model.rowCount; rowIndex += 1) {
+    const cell = model.getCell(rowIndex, columnId as never);
+    const trimmed = String(cell ?? '').trim();
+    if (trimmed === '' || trimmed === '-') continue;
+    if (!isDanishNumberString(trimmed)) continue;
+    const parsed = parseAmount(trimmed);
+    if (!Number.isFinite(parsed)) continue;
+    sum += parsed;
+    hasValue = true;
+  }
+
+  return { sum: hasValue ? sum : null, hasColumn: true };
+};
+
+const buildRangeMask = (dates: readonly ISODateString[], ranges: readonly IsoRange[]): readonly boolean[] => {
+  if (ranges.length === 0) return [];
+  return dates.map((iso) => ranges.some((range) => iso >= range.fra && iso <= range.til));
+};
+
+const sumDebugTableColumnInRanges = (
+  model: EODebugModel,
+  columnId: string,
+  ranges: readonly IsoRange[]
+): { sum: number | null; hasColumn: boolean } => {
+  if (model.rowCount === 0) return { sum: null, hasColumn: false };
+  const hasColumn = model.columns.some((col) => col.id === columnId);
+  if (!hasColumn) return { sum: null, hasColumn: false };
+  if (ranges.length === 0) return { sum: null, hasColumn: true };
+
+  const mask = buildRangeMask(model.tableData.dates, ranges);
+  if (mask.length === 0) return { sum: null, hasColumn: true };
+
+  const raw = model.columnRawValues.get(columnId as never);
+  if (raw) {
+    let sum = 0;
+    let hasValue = false;
+    for (let i = 0; i < raw.length; i += 1) {
+      if (!mask[i]) continue;
+      const value = raw[i] ?? 0;
+      if (value === 0) continue;
+      sum += value;
+      hasValue = true;
+    }
+    return { sum: hasValue ? sum : null, hasColumn: true };
+  }
+
+  let sum = 0;
+  let hasValue = false;
+  for (let rowIndex = 0; rowIndex < model.rowCount; rowIndex += 1) {
+    if (!mask[rowIndex]) continue;
     const cell = model.getCell(rowIndex, columnId as never);
     const trimmed = String(cell ?? '').trim();
     if (trimmed === '' || trimmed === '-') continue;
@@ -567,6 +632,56 @@ export const buildEODebugSammentaellingModel = (args: {
     return sum + next;
   }, 0);
 
+  const beregningsperiodeRange = buildBeregningsperiodeRange(values);
+  const beregningsperiodeRanges = beregningsperiodeRange ? [beregningsperiodeRange] : [];
+  const tafRanges = buildTafRanges(values);
+
+  const buildIndtaegtEntries = (ranges: readonly IsoRange[], scopeLabel: string): SammentaellingEntry[] => {
+    const income = buildIncomeForRanges(values, ranges);
+    const entries: SammentaellingEntry[] = [];
+
+    income.employers.forEach((entry, index) => {
+      const baseLabel = index === 0 ? 'Ansættelsesforhold' : `Ansættelsesforhold ${index + 1}`;
+      const navn = entry.name.trim();
+      const label = navn !== '' ? `${baseLabel} (${navn})` : baseLabel;
+      const columnId = debugTabelColumnId.loenWage(entry.index, 'samlet');
+      const tabel = sumDebugTableColumnInRanges(model, columnId, ranges);
+      entries.push({
+        key: `sammentaelling.${scopeLabel}.loen.${entry.id}`,
+        label,
+        control: {
+          beregnetDisplay: formatOptionalAmount(entry.amount),
+          tabelDisplay: formatOptionalAmount(tabel.sum),
+          beregnetValue: entry.amount,
+          tabelValue: tabel.sum,
+          loseFeriedage: 0,
+          oevrigeFravaersdage: 0,
+          warningEligible: false,
+        },
+      });
+    });
+
+    income.benefits.forEach((entry) => {
+      const columnId = entry.typeKey ? debugTabelColumnId.offentlig(entry.typeKey) : '';
+      const tabel = columnId !== '' ? sumDebugTableColumnInRanges(model, columnId, ranges) : { sum: null, hasColumn: false };
+      entries.push({
+        key: `sammentaelling.${scopeLabel}.ydelse.${entry.typeKey || entry.label}`,
+        label: entry.label,
+        control: {
+          beregnetDisplay: formatOptionalAmount(entry.amount),
+          tabelDisplay: formatOptionalAmount(tabel.sum),
+          beregnetValue: entry.amount,
+          tabelValue: tabel.sum,
+          loseFeriedage: 0,
+          oevrigeFravaersdage: 0,
+          warningEligible: false,
+        },
+      });
+    });
+
+    return entries;
+  };
+
   return {
     beregningsenhed,
     beregningsperiode: {
@@ -607,92 +722,7 @@ export const buildEODebugSammentaellingModel = (args: {
       oevrigeFravaersdage: 0,
       warningEligible: false,
     },
-    loenindkomst: (() => {
-      const entries: SammentaellingEntry[] = [];
-
-      (values.loenindkomstAnsaettelsesforhold ?? []).forEach((af, index) => {
-        const rows = af.indtaegtsoplysningerTableData ?? [];
-        const errorRowIds = getAarsloenErrorRowIdSet(rows, af.loenperiode);
-        let hasInput = false;
-        let beregnetTotal = 0;
-
-        const satser = {
-          feriePct: af.feriePct,
-          fritvalgPct: af.fritvalgPct,
-          shSoPct: af.shSoPct,
-          storeBededagPct: af.storeBededagPct,
-          pensionPct: af.pensionPct,
-        };
-
-        for (const row of rows) {
-          if (errorRowIds.has(row.id)) continue;
-          if (isAarsloenRowEffectivelyEmpty(row)) continue;
-          hasInput = true;
-          const derived = calculateAarsloenRowDerived(row, satser);
-          beregnetTotal += derived.samlet;
-        }
-
-        if (!hasInput) return;
-
-        const baseLabel = index === 0 ? 'Ansættelsesforhold' : `Ansættelsesforhold ${index + 1}`;
-        const navn = typeof af.navnPaaArbejdssted === 'string' ? af.navnPaaArbejdssted.trim() : '';
-        const label = navn !== '' ? `${baseLabel} (${navn})` : baseLabel;
-
-        const columnId = debugTabelColumnId.loenWage(index, 'samlet');
-        const tabel = sumDebugTableColumn(model, columnId);
-
-        entries.push({
-          key: `sammentaelling.loen.${af.id}`,
-          label,
-          control: {
-            beregnetDisplay: formatOptionalAmount(beregnetTotal),
-            tabelDisplay: formatOptionalAmount(tabel.sum),
-            beregnetValue: beregnetTotal,
-            tabelValue: tabel.sum,
-            loseFeriedage: 0,
-            oevrigeFravaersdage: 0,
-            warningEligible: false,
-          },
-        });
-      });
-
-      return entries;
-    })(),
-    offentligeYdelser: (() => {
-      const totalsByType = new Map<string, number>();
-      const order: string[] = [];
-      const errorRowIds = getOffentligeYdelserErrorRowIdSet(values.offentligeYdelserRows ?? []);
-
-      for (const row of values.offentligeYdelserRows ?? []) {
-        if (errorRowIds.has(row.id)) continue;
-        const typeKey = row.ydelsestype?.trim() ?? '';
-        if (typeKey === '') continue;
-        const total = parseAmount(row.ydelse) + parseAmount(row.tillaeg);
-        if (total === 0) continue;
-        if (!totalsByType.has(typeKey)) order.push(typeKey);
-        totalsByType.set(typeKey, (totalsByType.get(typeKey) ?? 0) + total);
-      }
-
-      return order.map((typeKey) => {
-        const label = ydelsestyper[typeKey]?.label ?? typeKey;
-        const beregnetTotal = totalsByType.get(typeKey) ?? 0;
-        const columnId = debugTabelColumnId.offentlig(typeKey);
-        const tabel = sumDebugTableColumn(model, columnId);
-
-        return {
-          key: `sammentaelling.ydelse.${typeKey}`,
-          label,
-          control: {
-            beregnetDisplay: formatOptionalAmount(beregnetTotal),
-            tabelDisplay: formatOptionalAmount(tabel.sum),
-            beregnetValue: beregnetTotal,
-            tabelValue: tabel.sum,
-            loseFeriedage: 0,
-            oevrigeFravaersdage: 0,
-            warningEligible: false,
-          },
-        };
-      });
-    })(),
+    beregningsperiodeIndtaegter: buildIndtaegtEntries(beregningsperiodeRanges, 'beregningsperiode'),
+    tafIndtaegter: buildIndtaegtEntries(tafRanges, 'taf'),
   };
 };

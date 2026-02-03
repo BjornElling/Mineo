@@ -3,11 +3,13 @@ import type { FieldErrorsForSection } from '../../types/fieldErrors';
 import { buildEODebugModel } from './eoDebugModel';
 import {
   buildEODebugSammentaellingModel,
+  buildSammentaellingDisplayTables,
   buildSammentaellingDisplayRows,
   buildSvieSmerteContext,
   buildTaftContext,
   getSammentaellingControlStatus,
   type SammentaellingDisplayRow,
+  type SammentaellingDisplayTables,
   type SammentaellingModel,
 } from './eoDebugSammentaelling';
 import type { EODebugModel } from './eoDebugModel';
@@ -25,6 +27,7 @@ export type EODebugSnapshot = Readonly<{
   createdAt: string;
   model: EODebugModel;
   sammentaelling: SammentaellingModel;
+  sammentaellingTables: SammentaellingDisplayTables;
   sammentaellingRows: readonly SammentaellingDisplayRow[];
   // Must remain equivalent to sammentaellingRows.some(status === 'error').
   hasControlErrors: boolean;
@@ -54,6 +57,7 @@ export const buildEODebugSnapshot = (args: {
     svieSmerteContext,
     taftContext,
   });
+  const sammentaellingTables = buildSammentaellingDisplayTables(sammentaelling);
   const sammentaellingRows = buildSammentaellingDisplayRows(sammentaelling);
   const hasControlErrors = sammentaellingRows.some(
     (row) => getSammentaellingControlStatus(row.control) === 'error'
@@ -64,6 +68,7 @@ export const buildEODebugSnapshot = (args: {
     createdAt: new Date().toISOString(),
     model,
     sammentaelling,
+    sammentaellingTables,
     sammentaellingRows,
     hasControlErrors,
     stamdataValues,

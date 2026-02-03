@@ -84,8 +84,8 @@ const makeSammentaelling = (patch: Partial<SammentaellingModel>): Sammentaelling
     taf: baseControl,
     svieSmerteSygedage: baseControl,
     svieSmerteDelvise: baseControl,
-    loenindkomst: [],
-    offentligeYdelser: [],
+    beregningsperiodeIndtaegter: [],
+    tafIndtaegter: [],
   };
   return { ...base, ...patch };
 };

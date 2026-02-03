@@ -10,14 +10,7 @@ import { addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
 import type { ISODateString } from '../../types/branded';
 import { isISODateString, isoToDanish, subtractOneDay } from '../../types/branded';
 import type { FieldErrorBySource } from '../../types/fieldErrors';
-import type {
-  AarsloenTableRow,
-  ErstatningsopgoerelseValues,
-  Loenperiode,
-  OffentligeYdelserRow,
-  StamdataValues,
-  SvieSmertePeriodeRow,
-} from '../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, StamdataValues, SvieSmertePeriodeRow } from '../../schemas/formSchemas';
 import { buildEODebugSvieSmerteRows } from '../../domain/erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
 import { beregnArbejdsdageOgMaaneder } from '../../domain/debug/eoDebugRegulationCore';
 import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../aarsloenTableCalculations';
@@ -26,9 +19,7 @@ import { MONTH_NAMES_DA } from '../dateFormatting';
 import { aarsloenMax } from '../../data/regulationRates';
 import { TODAY } from '../../config/dateRanges';
 import { calculateTafAntalMaaneder } from '../../domain/erstatningsopgoerelse/tafCalculations';
-import { parseDanishDate, parseWeekString } from '../dateUtils';
-import { countInclusiveUtcDays } from '../utcDayMath';
-import { ydelsestyper } from '../../data/ydelsestyper';
+import { buildIncomeForRanges, buildTafRanges } from '../../domain/erstatningsopgoerelse/indtaegtPerioder';
 
 const NBSP = '\u00A0';
 
@@ -135,114 +126,7 @@ const formatPercentFixed2 = (value: number): string => {
 
 type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
 
-type DateInterval = Readonly<{ start: Date; end: Date }>;
-
-const getIsoRange = (
-  fra: ISODateString | undefined,
-  til: ISODateString | undefined
-): IsoRange | undefined => {
-  if (!fra || !til) return undefined;
-  if (fra > til) return undefined;
-  return { fra, til };
-};
-
-const mergeRanges = (ranges: readonly IsoRange[]): IsoRange[] => {
-  if (ranges.length <= 1) return [...ranges];
-  const sorted = [...ranges].sort((a, b) => (a.fra < b.fra ? -1 : 1));
-  const merged: IsoRange[] = [];
-  for (const range of sorted) {
-    const last = merged[merged.length - 1];
-    if (!last) {
-      merged.push(range);
-      continue;
-    }
-    const nextStart = range.fra;
-    const lastEndPlusOne = getDayAfter(last.til);
-    if (nextStart <= last.til || nextStart <= lastEndPlusOne) {
-      const newTil = range.til > last.til ? range.til : last.til;
-      merged[merged.length - 1] = { fra: last.fra, til: newTil };
-      continue;
-    }
-    merged.push(range);
-  }
-  return merged;
-};
-
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
-
-const isoDateToUtcDate = (isoDate: ISODateString): Date => {
-  const [yearStr, monthStr, dayStr] = isoDate.split('-');
-  const year = Number.parseInt(yearStr, 10);
-  const month = Number.parseInt(monthStr, 10);
-  const day = Number.parseInt(dayStr, 10);
-  return new Date(Date.UTC(year, month - 1, day));
-};
-
-const getOverlapDays = (interval: DateInterval, ranges: readonly IsoRange[]): number => {
-  if (ranges.length === 0) return 0;
-  let total = 0;
-  for (const range of ranges) {
-    const rangeStart = isoDateToUtcDate(range.fra);
-    const rangeEnd = isoDateToUtcDate(range.til);
-    const start = interval.start > rangeStart ? interval.start : rangeStart;
-    const end = interval.end < rangeEnd ? interval.end : rangeEnd;
-    if (start > end) continue;
-    const days = countInclusiveUtcDays(start, end);
-    if (days) total += days;
-  }
-  return total;
-};
-
-const parseAarsloenRowInterval = (row: AarsloenTableRow, loenperiode: Loenperiode): DateInterval | null => {
-  if (loenperiode === 'maaned') {
-    const monthRaw = row.col0_maaned?.trim() ?? '';
-    const yearRaw = row.col1_maaned?.trim() ?? '';
-    if (monthRaw === '' || yearRaw === '') return null;
-
-    const month = Number.parseInt(monthRaw, 10);
-    const year = Number.parseInt(yearRaw, 10);
-    if (!Number.isFinite(month) || !Number.isFinite(year)) return null;
-    if (month < 1 || month > 12) return null;
-    if (year < 1900 || year > 2100) return null;
-
-    const start = new Date(Date.UTC(year, month - 1, 1));
-    const end = new Date(Date.UTC(year, month, 0));
-    return { start, end };
-  }
-
-  if (loenperiode === 'uge') {
-    const fraUge = row.col0_uge?.trim() ?? '';
-    const tilUge = row.col1_uge?.trim() ?? '';
-    if (fraUge === '' || tilUge === '') return null;
-
-    const fra = parseWeekString(fraUge);
-    const til = parseWeekString(tilUge);
-    if (!fra || !til) return null;
-    if (fra.start > til.end) return null;
-    return { start: fra.start, end: til.end };
-  }
-
-  const fraDato = row.col0_dag?.trim() ?? '';
-  const tilDato = row.col1_dag?.trim() ?? '';
-  if (fraDato === '' || tilDato === '') return null;
-
-  const fra = parseDanishDate(fraDato);
-  const til = parseDanishDate(tilDato);
-  if (!fra || !til) return null;
-  if (fra > til) return null;
-  return { start: fra, end: til };
-};
-
-const parseOffentligInterval = (row: OffentligeYdelserRow): DateInterval | null => {
-  const fraStr = row.fraDato?.trim() ?? '';
-  const tilStr = row.tilDato?.trim() ?? '';
-  if (fraStr === '' || tilStr === '') return null;
-  const fra = parseDanishDate(fraStr);
-  const til = parseDanishDate(tilStr);
-  if (!fra || !til) return null;
-  if (fra > til) return null;
-  return { start: fra, end: til };
-};
 
 const resolveReguleringsdato = (
   eoValues: ErstatningsopgoerelseValues,
@@ -1331,14 +1215,7 @@ export const generateErstatningsopgoerelsePdf = (
         : undefined;
       const maanedsloenBase = resolveMaanedsloenBase(eoValues);
 
-      const tafRanges = mergeRanges(
-        (eoValues.tafPerioder ?? [])
-          .map((row) => {
-            if (!isISODateString(row.fra) || !isISODateString(row.til)) return undefined;
-            return getIsoRange(row.fra, row.til);
-          })
-          .filter((range): range is IsoRange => Boolean(range))
-      );
+      const tafRanges = buildTafRanges(eoValues);
 
       const canBuildAsl =
         ensartetModel &&
@@ -1426,54 +1303,14 @@ export const generateErstatningsopgoerelsePdf = (
         doc.setFont('helvetica', 'normal');
 
         const indtaegtEntries: Array<{ label: string; amount: number }> = [];
-
-        for (const af of eoValues.loenindkomstAnsaettelsesforhold ?? []) {
-          const satser = {
-            feriePct: af.feriePct,
-            fritvalgPct: af.fritvalgPct,
-            shSoPct: af.shSoPct,
-            storeBededagPct: af.storeBededagPct,
-            pensionPct: af.pensionPct,
-          };
-          let sum = 0;
-          for (const row of af.indtaegtsoplysningerTableData ?? []) {
-            if (isAarsloenRowEffectivelyEmpty(row)) continue;
-            const interval = parseAarsloenRowInterval(row, af.loenperiode);
-            if (!interval) continue;
-            const totalDays = countInclusiveUtcDays(interval.start, interval.end);
-            if (!totalDays || totalDays <= 0) continue;
-            const overlapDays = getOverlapDays(interval, tafRanges);
-            if (overlapDays <= 0) continue;
-            const derived = calculateAarsloenRowDerived(row, satser);
-            const fraction = overlapDays / totalDays;
-            sum += derived.samlet * fraction;
-          }
-          if (sum > 0) {
-            const label = (af.navnPaaArbejdssted ?? '').trim() || 'Arbejdssted';
-            indtaegtEntries.push({ label, amount: sum });
-          }
-        }
-
-        const ydelseByLabel = new Map<string, number>();
-        for (const row of eoValues.offentligeYdelserRows ?? []) {
-          const interval = parseOffentligInterval(row);
-          if (!interval) continue;
-          const totalDays = countInclusiveUtcDays(interval.start, interval.end);
-          if (!totalDays || totalDays <= 0) continue;
-          const overlapDays = getOverlapDays(interval, tafRanges);
-          if (overlapDays <= 0) continue;
-          const amount = parseAmount(row.ydelse) + parseAmount(row.tillaeg);
-          if (!Number.isFinite(amount) || amount <= 0) continue;
-          const fraction = overlapDays / totalDays;
-          const labelKey = (row.ydelsestype ?? '').trim();
-          const label = labelKey !== '' ? (ydelsestyper[labelKey]?.label ?? labelKey) : 'Offentlig ydelse';
-          ydelseByLabel.set(label, (ydelseByLabel.get(label) ?? 0) + amount * fraction);
-        }
-
-        for (const [label, amount] of ydelseByLabel.entries()) {
-          if (amount <= 0) continue;
-          indtaegtEntries.push({ label, amount });
-        }
+        const indtaegter = buildIncomeForRanges(eoValues, tafRanges);
+        indtaegter.employers.forEach((entry) => {
+          const label = entry.name !== '' ? entry.name : 'Arbejdssted';
+          indtaegtEntries.push({ label, amount: entry.amount });
+        });
+        indtaegter.benefits.forEach((entry) => {
+          indtaegtEntries.push({ label: entry.label, amount: entry.amount });
+        });
 
         const rightMaxWidth = doc.getTextWidth('000.000.000,00');
         for (const entry of indtaegtEntries) {
