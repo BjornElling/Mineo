@@ -180,11 +180,15 @@ const formatPercentFixed2 = (value: number): string => {
   return `${value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
 };
 
+export const resolveUdkastStempelValue = (value: unknown): boolean => {
+  return value === 'Ja';
+};
+
 const addUdkastWatermark = (doc: jsPDF): void => {
   const text = 'UDKAST';
   const pageWidth = doc.internal.pageSize.width;
   const pageHeight = doc.internal.pageSize.height;
-  const centerX = pageWidth / 2 + 20;
+  const centerX = pageWidth / 2 + 18;
   const centerY = pageHeight / 2 - 80;
   const diagonal = Math.sqrt(pageWidth * pageWidth + pageHeight * pageHeight);
 
@@ -260,7 +264,8 @@ export const generateErstatningsopgoerelsePdf = (
   _selectedElements: SelectedElements,
   options: ErstatningsopgoerelsePdfOptions = {}
 ) => {
-  const { visBrevhoved = false, visUdkastStempel = false } = options;
+  const { visBrevhoved = false } = options;
+  const visUdkastStempel = options.visUdkastStempel ?? resolveUdkastStempelValue(eoValues.indsaetUdkastStempel);
   const afsluttesMed = options.erstatningsopgoerelseAfsluttesMed;
   const lineHeight = 5;
   const doubleLineHeight = lineHeight * 2;

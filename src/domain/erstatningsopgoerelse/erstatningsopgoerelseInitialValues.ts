@@ -17,7 +17,14 @@ import { appSettingsSchema, DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilt
  * @param settings AppSettings med standardværdier (optional for bagudkompatibilitet)
  * @returns ErstatningsopgoerelseValues med korrekte defaults
  */
-export const createErstatningsopgoerelseInitialValues = (settings?: AppSettings): PersistedSectionMap['erstatningsopgoerelse'] => {
+/**
+ * Opretter initiale EO-værdier ud fra AppSettings.
+ *
+ * KRITISK KONTRAKT:
+ * - Må KUN anvendes ved oprettelse af NYE sagsdata
+ * - Må ALDRIG anvendes ved load/merge af eksisterende data
+ */
+const createNewEOInitialValuesFromSettings = (settings?: AppSettings): PersistedSectionMap['erstatningsopgoerelse'] => {
   // Valider settings én gang ved grænsefladen til sagsdata
   const parsed = settings ? appSettingsSchema.safeParse(settings) : { success: false as const };
   const safeSettings = parsed.success ? parsed.data : DEFAULT_APP_SETTINGS;
@@ -141,8 +148,16 @@ export const createErstatningsopgoerelseInitialValues = (settings?: AppSettings)
 };
 
 /**
+ * Opretter initial values for erstatningsopgørelse med settings-baserede standardværdier
+ *
+ * VIGTIGT: Må kun anvendes ved oprettelse af NY sagsdata (ikke ved load/redigering).
+ */
+export const createErstatningsopgoerelseInitialValues = (settings?: AppSettings): PersistedSectionMap['erstatningsopgoerelse'] => {
+  return createNewEOInitialValuesFromSettings(settings);
+};
+
+/**
  * @deprecated Brug createErstatningsopgoerelseInitialValues(settings) i stedet
  * Bevaret for bagudkompatibilitet med tests
  */
 export const ERSTATNINGSOPGOERELSE_INITIAL_VALUES = createErstatningsopgoerelseInitialValues();
-

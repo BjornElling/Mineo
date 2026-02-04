@@ -18,6 +18,11 @@ Programindstillinger er **ikke** sagsdata og **må derfor aldrig**:
 Konsekvens:
 - Hvis en `.eo`-fil deles med en kollega eller flyttes til en anden maskine, må programindstillinger ikke “smugles med”.
 
+## Kontrakter (normative, ikke-forklarende)
+- **AppSettings er kun defaults** og må kun bruges ved oprettelse af NY sagsdata.
+- **EO-data er altid fuldt udfyldt** (ingen implicitte defaults ved load/merge).
+- **PDF-laget læser aldrig fra AppSettings**; PDF bygger udelukkende på EO-data (og eksplicitte options).
+
 ## Teknisk implementering
 - Programindstillinger persisteres i **`localStorage`** under en dedikeret nøgle: `mineo_app_settings_v1`
 - Skema og defaults: `src/settings/appSettingsSchema.ts`
@@ -31,4 +36,3 @@ Konsekvens:
 - **Fail-safe**: hvis `localStorage` er blokeret/fejler, må app’en stadig fungere (fallback til in-memory state).
 - **Schema-alignment**: settings skal valideres via Zod; invalid/ukendt data skal falde tilbage til defaults.
 - **Ingen netværk/telemetri**: settings må ikke forårsage data-overførsel ud af browseren.
-
