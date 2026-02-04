@@ -12,6 +12,7 @@ import { isoToDanish } from '../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import { buildErstatningsopgoerelsePdfModel, type MoneyOre, type Calculable } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { formatCurrency, formatPercent } from '../formatUtils';
+import { TAF_BEREGNES_SOM } from '../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { TODAY } from '../../config/dateRanges';
 
 const NBSP = '\u00A0';
@@ -647,20 +648,33 @@ export const generateErstatningsopgoerelsePdf = (
         currentY += lineHeight;
       }
 
-      if (indkomst.totalBreakdown && indkomst.maaneder) {
-        const maanederText = formatMaanederTrimmed(indkomst.maaneder);
+      if (indkomst.totalBreakdown) {
         const arbejdsgiverTotals = indkomst.arbejdssteder.map((arbejdssted) =>
           formatCurrencyFromOre(arbejdssted.breakdown.samletOre)
         );
-        const basisText = arbejdsgiverTotals.length > 1
-          ? `Månedsløn (${arbejdsgiverTotals.join(' + ')}${NBSP}kr.) / ${maanederText} måneder =`
-          : `Månedsløn: ${formatMoneyOreWithKr(indkomst.totalBreakdown.samletOre)} / ${maanederText} måneder =`;
-        safeAddLeftRightText(
-          basisText,
-          renderMoneyWithKr(indkomst.maanedsloen),
-          doc.getTextWidth('000.000.000,00'),
-          { rightFontStyle: 'normal' }
-        );
+        if (indkomst.beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE && indkomst.arbejdsdage) {
+          const arbejdsdageText = indkomst.arbejdsdage.toLocaleString('da-DK');
+          const basisText = arbejdsgiverTotals.length > 1
+            ? `Dagsløn: (${arbejdsgiverTotals.join(' + ')}${NBSP}kr.) / ${arbejdsdageText} arbejdsdage =`
+            : `Dagsløn: ${formatMoneyOreWithKr(indkomst.totalBreakdown.samletOre)} / ${arbejdsdageText} arbejdsdage =`;
+          safeAddLeftRightText(
+            basisText,
+            renderMoneyWithKr(indkomst.dagsloen),
+            doc.getTextWidth('000.000.000,00'),
+            { rightFontStyle: 'normal' }
+          );
+        } else if (indkomst.maaneder) {
+          const maanederText = formatMaanederTrimmed(indkomst.maaneder);
+          const basisText = arbejdsgiverTotals.length > 1
+            ? `Månedsløn (${arbejdsgiverTotals.join(' + ')}${NBSP}kr.) / ${maanederText} måneder =`
+            : `Månedsløn: ${formatMoneyOreWithKr(indkomst.totalBreakdown.samletOre)} / ${maanederText} måneder =`;
+          safeAddLeftRightText(
+            basisText,
+            renderMoneyWithKr(indkomst.maanedsloen),
+            doc.getTextWidth('000.000.000,00'),
+            { rightFontStyle: 'normal' }
+          );
+        }
       }
     } else if (indkomst?.beregnesUdFra === 'Angivet månedsløn') {
       if (indkomst.skadesdato) {
@@ -733,15 +747,22 @@ export const generateErstatningsopgoerelsePdf = (
         const rightMaxWidth = doc.getTextWidth('000.000.000,00');
         for (const segment of loenudvikling.beregnedeSegmenter) {
           const roundedDeltaPct = Math.round(segment.deltaPct * 100) / 100;
-          const roundedMaaneder = Math.round(segment.maaneder * 10000) / 10000;
           const factorText = Math.abs(roundedDeltaPct) < 0.00001
             ? ''
             : ` x (100 % ${roundedDeltaPct >= 0 ? '+' : '-'} ${formatPercentDelta(roundedDeltaPct)} %)`;
-          const maanederText = formatMaanederTrimmed(roundedMaaneder);
-          const maanedsloenText = formatCurrencyFromOre(segment.maanedsloenOre);
           const fraDisplay = formatDateShort(segment.fra);
           const tilDisplay = formatDateShort(segment.til);
-          const leftText = `${fraDisplay} - ${tilDisplay}: ${maanederText} måneder á ${maanedsloenText}${NBSP}kr.${factorText} =`;
+          let leftText = '';
+          if (segment.kind === 'arbejdsdage') {
+            const arbejdsdageText = segment.arbejdsdage.toLocaleString('da-DK');
+            const dagsloenText = formatCurrencyFromOre(segment.dagsloenOre);
+            leftText = `${fraDisplay} - ${tilDisplay}: ${arbejdsdageText} arbejdsdage á ${dagsloenText}${NBSP}kr.${factorText} =`;
+          } else {
+            const roundedMaaneder = Math.round(segment.maaneder * 10000) / 10000;
+            const maanederText = formatMaanederTrimmed(roundedMaaneder);
+            const maanedsloenText = formatCurrencyFromOre(segment.maanedsloenOre);
+            leftText = `${fraDisplay} - ${tilDisplay}: ${maanederText} måneder á ${maanedsloenText}${NBSP}kr.${factorText} =`;
+          }
           const rightText = formatMoneyOreWithKr(segment.amountOre);
           safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'normal' });
         }

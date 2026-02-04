@@ -9,6 +9,8 @@ import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../.
 import { formatPercent, roundHalfAwayFromZero } from '../../utils/formatUtils';
 import { buildIncomeForRanges, buildTafRanges, type IsoRange } from './indtaegtPerioder';
 import { calculateTafAntalMaaneder } from './tafCalculations';
+import { calculateTafArbejdsdageBreakdown } from './tafCalculations';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from './tafBeregningsenhed';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../config/dateRanges';
 import { computeRowDateBounds } from './rowDateBounds';
@@ -17,6 +19,7 @@ import { detectOverlappingPeriods } from './periodOverlapDetection';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { isoDateToDate } from '../dates/isoDate';
 import { isOevrigeKravRowEmpty, isSvieSmerteRowEmpty, isTafRowEmpty } from './rowEmpty';
+import { beregnHelligdage } from '../../utils/shDageBeregning';
 
 export type MoneyOre = number;
 
@@ -77,6 +80,7 @@ export type TabtArbejdsfortjenestePdfModel = Readonly<{
   differencekravLinje: string | null;
   tafPerioderLinjer: readonly string[];
   harTafPerioder: boolean;
+  tafBeregningsenhed: TafBeregningsenhed;
   indkomstSkadestidspunkt: IndkomstSkadestidspunktPdfModel | null;
   loenudvikling: LoenudviklingPdfModel | null;
   tafIndtaegter: TafIndtaegterPdfModel | null;
@@ -84,6 +88,7 @@ export type TabtArbejdsfortjenestePdfModel = Readonly<{
 }>;
 
 export type IndkomstSkadestidspunktPdfModel = Readonly<{
+  beregningsenhed: TafBeregningsenhed;
   beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'];
   loenBaseretPaa: string | null;
   skadesdato: ISODateString | null;
@@ -108,23 +113,38 @@ export type IndkomstSkadestidspunktPdfModel = Readonly<{
     atpOre: MoneyOre;
     samletOre: MoneyOre;
   }> | null;
+  arbejdsdage: number | null;
   maaneder: number | null;
   maanedsloen: Calculable<MoneyOre>;
   dagsloen: Calculable<MoneyOre>;
   beregningsperiodeLabel: string | null;
 }>;
 
-export type LoenudviklingPdfModel = Readonly<{
-  loenudviklingLabel: string;
-  loenudviklingTotal: Calculable<MoneyOre>;
-  beregnedeSegmenter: readonly {
+export type LoenudviklingSegment =
+  | Readonly<{
+    kind: 'maaneder';
     fra: ISODateString;
     til: ISODateString;
     maaneder: number;
     maanedsloenOre: MoneyOre;
     deltaPct: number;
     amountOre: MoneyOre;
-  }[];
+  }>
+  | Readonly<{
+    kind: 'arbejdsdage';
+    fra: ISODateString;
+    til: ISODateString;
+    arbejdsdage: number;
+    dagsloenOre: MoneyOre;
+    deltaPct: number;
+    amountOre: MoneyOre;
+  }>;
+
+export type LoenudviklingPdfModel = Readonly<{
+  loenudviklingLabel: string;
+  loenudviklingTotal: Calculable<MoneyOre>;
+  beregningsenhed: TafBeregningsenhed;
+  beregnedeSegmenter: readonly LoenudviklingSegment[];
 }>;
 
 export type TafIndtaegterPdfModel = Readonly<{
@@ -188,6 +208,171 @@ const formatDateLong = (isoDate: ISODateString | undefined): string => {
   const m = Number.parseInt(month, 10) - 1;
   if (!Number.isFinite(d) || !Number.isFinite(m) || !year) return '';
   return `${d}. ${MONTH_NAMES_DA[m]} ${year}`;
+};
+
+const isoDateToUtcDate = (isoDate: ISODateString): Date => {
+  const [yearStr, monthStr, dayStr] = isoDate.split('-');
+  const year = Number.parseInt(yearStr, 10);
+  const month = Number.parseInt(monthStr, 10);
+  const day = Number.parseInt(dayStr, 10);
+  return new Date(Date.UTC(year, month - 1, day));
+};
+
+const formatUtcToIso = (date: Date): ISODateString => {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}` as ISODateString;
+};
+
+const addUtcDays = (date: Date, days: number): Date => {
+  const next = new Date(date.getTime());
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
+};
+
+const isWeekdayUtc = (date: Date): boolean => {
+  const dayOfWeek = date.getUTCDay();
+  return dayOfWeek >= 1 && dayOfWeek <= 5;
+};
+
+const toNonNegativeInt = (value: number): number => {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.trunc(value));
+};
+
+const formatLocalToIso = (date: Date): ISODateString => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}` as ISODateString;
+};
+
+const buildFerieDageSet = (
+  ferieperioder: readonly { fra?: ISODateString; til?: ISODateString }[],
+  datoSet: ReadonlySet<ISODateString>
+): Set<ISODateString> => {
+  const ferieDageSet = new Set<ISODateString>();
+  for (const periode of ferieperioder) {
+    if (!periode.fra || !periode.til) continue;
+    if (periode.fra > periode.til) continue;
+    const ferieFra = isoDateToUtcDate(periode.fra);
+    const ferieTil = isoDateToUtcDate(periode.til);
+    let ferieCurrent = new Date(ferieFra);
+    while (ferieCurrent <= ferieTil) {
+      const isoStr = formatUtcToIso(ferieCurrent);
+      if (datoSet.has(isoStr) && isWeekdayUtc(ferieCurrent)) {
+        ferieDageSet.add(isoStr);
+      }
+      ferieCurrent = addUtcDays(ferieCurrent, 1);
+    }
+  }
+  return ferieDageSet;
+};
+
+const buildShDageSet = (
+  fraDate: Date,
+  tilDate: Date,
+  datoSet: ReadonlySet<ISODateString>
+): Set<ISODateString> => {
+  const shDageSet = new Set<ISODateString>();
+  for (let year = fraDate.getUTCFullYear(); year <= tilDate.getUTCFullYear(); year += 1) {
+    const helligdage = beregnHelligdage(year);
+    for (const helligdag of helligdage) {
+      const isoStr = formatLocalToIso(helligdag);
+      const dow = helligdag.getDay();
+      const erHverdag = dow >= 1 && dow <= 5;
+      if (erHverdag && datoSet.has(isoStr)) {
+        shDageSet.add(isoStr);
+      }
+    }
+  }
+  return shDageSet;
+};
+
+const collectTafArbejdsdageForRange = (
+  fra: ISODateString,
+  til: ISODateString,
+  ferieperioder: readonly { fra?: ISODateString; til?: ISODateString }[],
+  loseFeriedage: number
+): Set<ISODateString> => {
+  const fraDate = isoDateToUtcDate(fra);
+  const tilDate = isoDateToUtcDate(til);
+
+  const datoSet = new Set<ISODateString>();
+  let currentDate = new Date(fraDate);
+  while (currentDate <= tilDate) {
+    datoSet.add(formatUtcToIso(currentDate));
+    currentDate = addUtcDays(currentDate, 1);
+  }
+
+  const ferieDageSet = buildFerieDageSet(ferieperioder, datoSet);
+  const shDageSet = buildShDageSet(fraDate, tilDate, datoSet);
+  const blockedLoseFerie = new Set<ISODateString>([...ferieDageSet, ...shDageSet]);
+
+  const placedLoseFeriedage = new Set<ISODateString>();
+  let remainingLoseFeriedage = toNonNegativeInt(loseFeriedage);
+  if (remainingLoseFeriedage > 0) {
+    let candidate = new Date(fraDate);
+    while (candidate <= tilDate && remainingLoseFeriedage > 0) {
+      const isoStr = formatUtcToIso(candidate);
+      if (isWeekdayUtc(candidate) && !blockedLoseFerie.has(isoStr)) {
+        placedLoseFeriedage.add(isoStr);
+        remainingLoseFeriedage -= 1;
+      }
+      candidate = addUtcDays(candidate, 1);
+    }
+  }
+
+  const arbejdsdage = new Set<ISODateString>();
+  for (const isoStr of datoSet) {
+    const date = isoDateToUtcDate(isoStr);
+    if (!isWeekdayUtc(date)) continue;
+    if (ferieDageSet.has(isoStr)) continue;
+    if (shDageSet.has(isoStr)) continue;
+    if (placedLoseFeriedage.has(isoStr)) continue;
+    arbejdsdage.add(isoStr);
+  }
+
+  return arbejdsdage;
+};
+
+const buildTafArbejdsdageSet = (values: ErstatningsopgoerelseValues): Set<ISODateString> => {
+  const ferieperioder = values.ferieperioder ?? [];
+  const rows = values.tafPerioder ?? [];
+  const arbejdsdage = new Set<ISODateString>();
+
+  for (const row of rows) {
+    if (isTafRowEmpty(row)) continue;
+    const fra = row.fra;
+    const til = row.til;
+    if (!fra || !til) {
+      throw new Error('TAF-periode mangler fra/til');
+    }
+    if (!isISODateString(fra) || !isISODateString(til) || fra > til) {
+      throw new Error('TAF-periode er ugyldig');
+    }
+    const loseFeriedage = typeof row.loseFeriedage === 'number' ? row.loseFeriedage : 0;
+    const set = collectTafArbejdsdageForRange(fra, til, ferieperioder, loseFeriedage);
+    set.forEach((dato) => arbejdsdage.add(dato));
+  }
+
+  return arbejdsdage;
+};
+
+const countTafArbejdsdageInRange = (arbejdsdage: ReadonlySet<ISODateString>, fra: ISODateString, til: ISODateString): number => {
+  const fraDate = isoDateToUtcDate(fra);
+  const tilDate = isoDateToUtcDate(til);
+  let count = 0;
+  let currentDate = new Date(fraDate);
+  while (currentDate <= tilDate) {
+    const iso = formatUtcToIso(currentDate);
+    if (arbejdsdage.has(iso)) {
+      count += 1;
+    }
+    currentDate = addUtcDays(currentDate, 1);
+  }
+  return count;
 };
 
 const parseForligsgrad = (values: ErstatningsopgoerelseValues): { factor: number | null; label: string | null } => {
@@ -535,7 +720,8 @@ const buildTafPerioderLinjer = (rows: TafPeriodeRow[]): string[] => {
 };
 const buildIndkomstSkadestidspunkt = (
   values: ErstatningsopgoerelseValues,
-  stamdataValues: StamdataValues
+  stamdataValues: StamdataValues,
+  tafBeregningsenhed: TafBeregningsenhed
 ): IndkomstSkadestidspunktPdfModel | null => {
   const beregnesUdFra = values.beregnesUdFra;
   const loenBaseretPaa = values.loenBaseretPaa?.trim() ?? '';
@@ -558,6 +744,7 @@ const buildIndkomstSkadestidspunkt = (
 
   const arbejdssteder: Array<IndkomstSkadestidspunktPdfModel['arbejdssteder'][number]> = [];
   let totalBreakdown: IndkomstSkadestidspunktPdfModel['totalBreakdown'] = null;
+  let arbejdsdage: number | null = null;
   let maaneder: number | null = null;
   let maanedsloen: Calculable<MoneyOre> = notCalculableMoney('Ikke angivet');
   let dagsloen: Calculable<MoneyOre> = notCalculableMoney('Ikke angivet');
@@ -654,6 +841,22 @@ const buildIndkomstSkadestidspunkt = (
         const base = fromOre(totalBreakdown.samletOre) / maanederResult;
         maanedsloen = asCalculable(toOre(roundKroner(base)));
       }
+
+      const loseFeriedage = typeof values.uspecificeredeFerieFridage === 'number' ? values.uspecificeredeFerieFridage : 0;
+      const arbejdsdageBreakdown = calculateTafArbejdsdageBreakdown(
+        periodeTilBeregning.fra,
+        periodeTilBeregning.til,
+        values.fravaerPerioder ?? [],
+        loseFeriedage,
+        { kind: 'beregningsgrundlag', oevrigeFravaersdage }
+      );
+      if (arbejdsdageBreakdown) {
+        arbejdsdage = Math.max(0, arbejdsdageBreakdown.tafDage);
+        if (arbejdsdage > 0 && totalBreakdown && tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE) {
+          const base = fromOre(totalBreakdown.samletOre) / arbejdsdage;
+          dagsloen = asCalculable(toOre(roundKroner(base)));
+        }
+      }
     }
   } else if (beregnesUdFra === 'Angivet månedsløn') {
     const value = amountValueToNumber(values.maanedsloenenUdgoer);
@@ -672,6 +875,7 @@ const buildIndkomstSkadestidspunkt = (
   }
 
   return {
+    beregningsenhed: tafBeregningsenhed,
     beregnesUdFra,
     loenBaseretPaa: loenBaseretPaa !== '' ? loenBaseretPaa : null,
     skadesdato,
@@ -679,6 +883,7 @@ const buildIndkomstSkadestidspunkt = (
     ansaettelserNavne,
     arbejdssteder,
     totalBreakdown,
+    arbejdsdage,
     maaneder,
     maanedsloen,
     dagsloen,
@@ -688,7 +893,9 @@ const buildIndkomstSkadestidspunkt = (
 
 const buildLoenudviklingModel = (
   values: ErstatningsopgoerelseValues,
-  stamdataValues: StamdataValues
+  stamdataValues: StamdataValues,
+  tafBeregningsenhed: TafBeregningsenhed,
+  indkomstSkadestidspunkt: IndkomstSkadestidspunktPdfModel | null
 ): LoenudviklingPdfModel => {
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
   const aktiv = ansaettelser.filter((af) => af.loenudviklingBeregningsgrundlag && af.loenudviklingBeregningsgrundlag !== 'Ingen');
@@ -715,61 +922,96 @@ const buildLoenudviklingModel = (
   const baseIndexValue = Number.isFinite(reguleringsYear)
     ? aarsloenMax[reguleringsYear as keyof typeof aarsloenMax]
     : undefined;
-  const maanedsloenBase = resolveMaanedsloenBase(values);
+  const maanedsloenBase = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? resolveMaanedsloenBase(values) : null;
+  const dagsloenBase = tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
+    ? resolveDagsloenBase(values, indkomstSkadestidspunkt)
+    : null;
 
   const tafRanges = buildTafRanges(values);
+  const baseLoen = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? maanedsloenBase : dagsloenBase;
   const canBuildAsl =
     ensartet &&
     basis === 'Statistik' &&
     loenudviklingLabel.startsWith('ASL-') &&
     typeof baseIndexValue === 'number' &&
     baseIndexValue > 0 &&
-    typeof maanedsloenBase === 'number' &&
-    maanedsloenBase > 0 &&
+    typeof baseLoen === 'number' &&
+    baseLoen > 0 &&
     tafRanges.length > 0;
 
   if (!canBuildAsl) {
-    return { loenudviklingLabel, loenudviklingTotal: notCalculableMoney('Kan ikke beregnes'), beregnedeSegmenter: [] };
+    return {
+      loenudviklingLabel,
+      loenudviklingTotal: notCalculableMoney('Kan ikke beregnes'),
+      beregningsenhed: tafBeregningsenhed,
+      beregnedeSegmenter: [],
+    };
   }
 
-  if (typeof maanedsloenBase !== 'number') {
-    throw new Error('Månedsløn kan ikke beregnes for lønudvikling');
+  if (typeof baseLoen !== 'number') {
+    throw new Error('Grundløn kan ikke beregnes for lønudvikling');
   }
 
   const segments = buildAslReguleringsSegments(tafRanges);
   const beregnedeSegmenter: Array<LoenudviklingPdfModel['beregnedeSegmenter'][number]> = [];
+  const tafArbejdageSet = tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE ? buildTafArbejdsdageSet(values) : null;
+  const baseLoenRounded = roundKroner(baseLoen);
+  const baseLoenOre = toOre(baseLoenRounded);
   let total = 0;
 
   for (const segment of segments) {
     const indexValue = aarsloenMax[segment.year as keyof typeof aarsloenMax];
     if (typeof indexValue !== 'number' || indexValue <= 0) continue;
 
-    const maanederStats = beregnArbejdsdageOgMaaneder(
-      segment.fra,
-      segment.til,
-      new Set<ISODateString>(),
-      new Set<ISODateString>()
-    );
-    const maaneder = maanederStats.maaneder;
-    if (!Number.isFinite(maaneder) || maaneder <= 0) continue;
-
     const deltaPct = (indexValue / baseIndexValue - 1) * 100;
-    const amount = maanedsloenBase * maaneder * (1 + deltaPct / 100);
-    total += amount;
+    const roundedDeltaPct = roundHalfAwayFromZero(deltaPct, 2);
+    if (tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER) {
+      const maanederStats = beregnArbejdsdageOgMaaneder(
+        segment.fra,
+        segment.til,
+        new Set<ISODateString>(),
+        new Set<ISODateString>()
+      );
+      const maanederRaw = maanederStats.maaneder;
+      if (!Number.isFinite(maanederRaw) || maanederRaw <= 0) continue;
+      const maaneder = Math.round(maanederRaw * 10_000) / 10_000;
 
-    beregnedeSegmenter.push({
-      fra: segment.fra,
-      til: segment.til,
-      maaneder,
-      maanedsloenOre: toOre(roundKroner(maanedsloenBase)),
-      deltaPct,
-      amountOre: toOre(roundKroner(amount)),
-    });
+      const amount = baseLoenRounded * maaneder * (1 + roundedDeltaPct / 100);
+      total += amount;
+
+      beregnedeSegmenter.push({
+        kind: 'maaneder',
+        fra: segment.fra,
+        til: segment.til,
+        maaneder,
+        maanedsloenOre: baseLoenOre,
+        deltaPct: roundedDeltaPct,
+        amountOre: toOre(roundKroner(amount)),
+      });
+    } else {
+      if (!tafArbejdageSet) continue;
+      const arbejdsdage = countTafArbejdsdageInRange(tafArbejdageSet, segment.fra, segment.til);
+      if (!Number.isFinite(arbejdsdage) || arbejdsdage <= 0) continue;
+
+      const amount = baseLoenRounded * arbejdsdage * (1 + roundedDeltaPct / 100);
+      total += amount;
+
+      beregnedeSegmenter.push({
+        kind: 'arbejdsdage',
+        fra: segment.fra,
+        til: segment.til,
+        arbejdsdage,
+        dagsloenOre: baseLoenOre,
+        deltaPct: roundedDeltaPct,
+        amountOre: toOre(roundKroner(amount)),
+      });
+    }
   }
 
   return {
     loenudviklingLabel,
     loenudviklingTotal: asCalculable(toOre(roundKroner(total))),
+    beregningsenhed: tafBeregningsenhed,
     beregnedeSegmenter,
   };
 };
@@ -868,8 +1110,19 @@ const buildTabtArbejdsfortjenesteModel = (
   const tafPerioderLinjer = buildTafPerioderLinjer(values.tafPerioder ?? []);
   const harTafPerioder = tafPerioderLinjer.length > 0;
 
-  const indkomstSkadestidspunkt = harTafPerioder ? buildIndkomstSkadestidspunkt(values, stamdataValues) : null;
-  const loenudvikling = harTafPerioder ? buildLoenudviklingModel(values, stamdataValues) : null;
+  const tafBeregningsenhed = computeTafBeregningsenhed({
+    beregnesUdFra: values.beregnesUdFra,
+    loenindkomstAnsaettelsesforhold: values.loenindkomstAnsaettelsesforhold ?? [],
+    oevrigtFravaerUdenLoen: values.oevrigtFravaerUdenLoen,
+    oevrigeFravaersdage: values.oevrigeFravaersdage,
+  });
+
+  const indkomstSkadestidspunkt = harTafPerioder
+    ? buildIndkomstSkadestidspunkt(values, stamdataValues, tafBeregningsenhed)
+    : null;
+  const loenudvikling = harTafPerioder
+    ? buildLoenudviklingModel(values, stamdataValues, tafBeregningsenhed, indkomstSkadestidspunkt)
+    : null;
 
   const tafRanges = buildTafRanges(values);
   const tafIndtaegter = harTafPerioder ? buildTafIndtaegterModel(values, tafRanges) : null;
@@ -894,6 +1147,7 @@ const buildTabtArbejdsfortjenesteModel = (
     differencekravLinje,
     tafPerioderLinjer,
     harTafPerioder,
+    tafBeregningsenhed,
     indkomstSkadestidspunkt,
     loenudvikling,
     tafIndtaegter,
@@ -997,6 +1251,20 @@ const resolveMaanedsloenBase = (eoValues: ErstatningsopgoerelseValues): number |
   );
   if (!maaneder || maaneder <= 0) return null;
   return total / maaneder;
+};
+
+const resolveDagsloenBase = (
+  eoValues: ErstatningsopgoerelseValues,
+  indkomstSkadestidspunkt: IndkomstSkadestidspunktPdfModel | null
+): number | null => {
+  if (eoValues.beregnesUdFra === 'Angivet dagsløn') {
+    const value = amountValueToNumber(eoValues.dagsloenenUdgoer);
+    return value !== undefined ? value : null;
+  }
+  if (eoValues.beregnesUdFra !== 'Beregningsperiode') return null;
+  if (!indkomstSkadestidspunkt) return null;
+  if (indkomstSkadestidspunkt.dagsloen.status !== 'ok') return null;
+  return fromOre(indkomstSkadestidspunkt.dagsloen.value);
 };
 
 const getDayAfter = (isoDate: ISODateString): ISODateString => {
