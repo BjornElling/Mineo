@@ -54,6 +54,7 @@ export const appSettingsSchema = z
     defaultLoenPaaHelligdage: z.enum(['Almindelig løn', 'SH-udbetaling', 'Ingen']),
     defaultOverenskomstLoenmodtager: z.string(),
     defaultOverenskomstArbejdsgiver: z.string(),
+    defaultIndsaetUdkastStempel: z.boolean(),
     // Fil-placering (IndexedDB handle ID - validering sker runtime, ikke i schema)
     defaultDirectoryHandleId: z.string().optional(),
     // Brevhoved-indstillinger for PDF-dokumenter
@@ -74,6 +75,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   defaultLoenPaaHelligdage: 'Almindelig løn',
   defaultOverenskomstLoenmodtager: 'ALLE',
   defaultOverenskomstArbejdsgiver: 'ALLE',
+  defaultIndsaetUdkastStempel: true,
   // Fil-placering (undefined = brug desktop som fallback)
   defaultDirectoryHandleId: undefined,
   // Brevhoved-indstillinger
@@ -123,4 +125,3 @@ export const resolveDefaultOverenskomstFilter = (settings?: AppSettings): Overen
     arbejdsgiver: safeSettings.defaultOverenskomstArbejdsgiver === 'ALLE' ? undefined : safeSettings.defaultOverenskomstArbejdsgiver,
   };
 };
-

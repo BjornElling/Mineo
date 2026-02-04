@@ -27,6 +27,7 @@ export const createErstatningsopgoerelseInitialValues = (settings?: AppSettings)
   eoNummer: undefined,
   eoLedsagetekst: '',
   opgørelseLavetDen: undefined,
+  indsaetUdkastStempel: safeSettings.defaultIndsaetUdkastStempel ? 'Ja' : 'Nej',
   vedroererPeriodeFra: undefined,
   vedroererPeriodeTil: undefined,
   revideretOpgoerelse: 'Nej',
@@ -144,5 +145,4 @@ export const createErstatningsopgoerelseInitialValues = (settings?: AppSettings)
  * Bevaret for bagudkompatibilitet med tests
  */
 export const ERSTATNINGSOPGOERELSE_INITIAL_VALUES = createErstatningsopgoerelseInitialValues();
-
 

@@ -235,28 +235,6 @@ const Indstillinger = React.memo(() => {
         </Box>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Opgørelse afsluttes med</Typography>
-          <Box className="row--label-right-hover__content">
-            <StyledDropdown
-              allowEmpty={false}
-              value={resolvedAfsluttesMed}
-              onChange={(e) => {
-                if (isAfsluttesMedOption(e.target.value)) {
-                  updateSettings({ erstatningsopgoerelseAfsluttesMed: e.target.value });
-                }
-              }}
-              width={220}
-            >
-              {afsluttesMedOptions.map((option) => (
-                <MenuItem key={option} value={option}>
-                  {option}
-                </MenuItem>
-              ))}
-            </StyledDropdown>
-          </Box>
-        </Box>
-
-        <Box className="row--label-right-hover">
           <Typography className="row--text">Placering til gemte filer</Typography>
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -301,6 +279,42 @@ const Indstillinger = React.memo(() => {
                 </Tooltip>
               )}
             </Box>
+          </Box>
+        </Box>
+      </ContentBox>
+
+      <ContentBox className="content-box">
+        <Typography className="section-header">Dokumenter</Typography>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Udkast-stempel på nye dokumenter</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledToggleSwitch
+              checked={settings.defaultIndsaetUdkastStempel}
+              onCommit={(e: CommitEvent<boolean>) => updateSettings({ defaultIndsaetUdkastStempel: e.target.value })}
+            />
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Opgørelse afsluttes med</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledDropdown
+              allowEmpty={false}
+              value={resolvedAfsluttesMed}
+              onChange={(e) => {
+                if (isAfsluttesMedOption(e.target.value)) {
+                  updateSettings({ erstatningsopgoerelseAfsluttesMed: e.target.value });
+                }
+              }}
+              width={220}
+            >
+              {afsluttesMedOptions.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </StyledDropdown>
           </Box>
         </Box>
 
@@ -380,8 +394,6 @@ const Indstillinger = React.memo(() => {
 
       <ContentBox className="content-box">
         <Typography className="section-header">Beregningsteknisk</Typography>
-
-        <Typography className="row--subheading">Erhvervsevnetab</Typography>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Endelig EET-afgørelse kan gøre tidligere udbetalt midl. EET til endeligt med tilbagevirkende kraft</Typography>

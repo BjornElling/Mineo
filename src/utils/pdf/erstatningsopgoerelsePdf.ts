@@ -180,6 +180,30 @@ const formatPercentFixed2 = (value: number): string => {
   return `${value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
 };
 
+const addUdkastWatermark = (doc: jsPDF): void => {
+  const text = 'UDKAST';
+  const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+  const centerX = pageWidth / 2 + 20;
+  const centerY = pageHeight / 2 - 80;
+  const diagonal = Math.sqrt(pageWidth * pageWidth + pageHeight * pageHeight);
+
+  const baseFontSize = 100;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(baseFontSize);
+  const widthAtBase = doc.getTextWidth(text) || 1;
+  const targetWidth = diagonal * 0.9;
+  const computedSize = (targetWidth / widthAtBase) * baseFontSize;
+  const fontSize = Math.min(170, Math.max(80, computedSize));
+
+  doc.setFontSize(fontSize);
+  doc.setTextColor(245);
+  doc.text(text, centerX, centerY, { align: 'center', angle: -45 });
+  doc.setTextColor(0);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(FONT_SIZES.normal);
+};
+
 /**
  * Månedsnavn på dansk (med små bogstaver)
  */
@@ -219,6 +243,7 @@ interface SelectedElements {
 interface ErstatningsopgoerelsePdfOptions {
   visBrevhoved?: boolean;
   erstatningsopgoerelseAfsluttesMed?: 'Bekræftet godkendt' | 'Underskrift-linje';
+  visUdkastStempel?: boolean;
 }
 
 /**
@@ -235,7 +260,7 @@ export const generateErstatningsopgoerelsePdf = (
   _selectedElements: SelectedElements,
   options: ErstatningsopgoerelsePdfOptions = {}
 ) => {
-  const { visBrevhoved = false } = options;
+  const { visBrevhoved = false, visUdkastStempel = false } = options;
   const afsluttesMed = options.erstatningsopgoerelseAfsluttesMed;
   const lineHeight = 5;
   const doubleLineHeight = lineHeight * 2;
@@ -264,10 +289,17 @@ export const generateErstatningsopgoerelsePdf = (
   const contentBottom = pageHeight - MARGINS.bottom;
   const pageContentHeight = contentBottom - MARGINS.top;
 
+  const addNewPage = () => {
+    doc.addPage();
+    currentY = MARGINS.top;
+    if (visUdkastStempel) {
+      addUdkastWatermark(doc);
+    }
+  };
+
   const ensureSpace = (height: number) => {
     if (currentY + height > contentBottom) {
-      doc.addPage();
-      currentY = MARGINS.top;
+      addNewPage();
     }
   };
 
@@ -359,6 +391,10 @@ export const generateErstatningsopgoerelsePdf = (
       });
     }
   };
+
+  if (visUdkastStempel) {
+    addUdkastWatermark(doc);
+  }
 
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved && model.brevhoved) {
@@ -1023,4 +1059,3 @@ export const generateErstatningsopgoerelsePdf = (
   // Download PDF
   doc.save(`${titel}.pdf`);
 };
-

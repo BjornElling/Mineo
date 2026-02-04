@@ -596,6 +596,16 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           </Box>
         </Box>
 
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Indsæt udkast-stempel</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledToggleSwitch
+              checked={getChecked(values.indsaetUdkastStempel)}
+              onCommit={handleToggleChange('indsaetUdkastStempel')}
+            />
+          </Box>
+        </Box>
+
         <Typography className="row--subheading">{statusSubheaderLabel}</Typography>
 
         <Box className="row--label-right-hover">
@@ -1303,7 +1313,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 EOOplysningerTab.displayName = 'EOOplysningerTab';
 
 export default EOOplysningerTab;
-
 
 
 

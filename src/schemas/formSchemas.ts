@@ -683,6 +683,7 @@ const erstatningsopgoerelseBaseSchema = z.object({
   eoNummer: optionalString,
   eoLedsagetekst: optionalString,
   opgørelseLavetDen: optionalIsoDateString,
+  indsaetUdkastStempel: jaNejEnum.default('Ja'),
   vedroererPeriodeFra: optionalIsoDateString,
   vedroererPeriodeTil: optionalIsoDateString,
   revideretOpgoerelse: jaNejEnum,
