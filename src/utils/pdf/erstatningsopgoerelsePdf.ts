@@ -1,4 +1,4 @@
-﻿/**
+/**
  * PDF Generator for Erstatningsopgørelse
  *
  * Genererer PDF-dokument med komplet erstatningsopgørelse
@@ -76,6 +76,7 @@ const addLeftRightText = (
     rightFontStyle?: 'normal' | 'bold';
     lineAboveRightWidth?: number;
     lineAboveRightOffset?: number;
+    leftNoWrap?: boolean;
   }>
 ): number => {
   const pageHeight = doc.internal.pageSize.height;
@@ -84,7 +85,7 @@ const addLeftRightText = (
   const rightWidth = Math.min(maxRightWidth, doc.getTextWidth(rightText));
   const wrapPadding = doc.getTextWidth('000000');
   const leftMaxWidth = Math.max(30, pageWidth - x - rightPadding - rightWidth - 5 - wrapPadding);
-  const leftLines = doc.splitTextToSize(ensureNonBreakingKr(leftText), leftMaxWidth);
+  const leftLines = options?.leftNoWrap ? [ensureNonBreakingKr(leftText)] : doc.splitTextToSize(ensureNonBreakingKr(leftText), leftMaxWidth);
   let currentY = y;
   const neededHeight = lineHeight * leftLines.length;
   if (currentY + neededHeight > contentBottom) {
@@ -106,6 +107,58 @@ const addLeftRightText = (
   }
   doc.setFont('helvetica', 'normal');
   return currentY + lineHeight * leftLines.length;
+};
+
+const addLeftRightTextSingleLine = (
+  doc: jsPDF,
+  leftText: string,
+  rightText: string,
+  x: number,
+  y: number,
+  lineHeight: number,
+  rightPadding: number,
+  options?: Readonly<{
+    rightFontStyle?: 'normal' | 'bold';
+    lineAboveRightWidth?: number;
+    lineAboveRightOffset?: number;
+  }>
+): number => {
+  const pageHeight = doc.internal.pageSize.height;
+  const contentBottom = pageHeight - MARGINS.bottom;
+  const pageWidth = doc.internal.pageSize.width;
+
+  let currentY = y;
+  if (currentY + lineHeight > contentBottom) {
+    doc.addPage();
+    currentY = MARGINS.top;
+  }
+
+  doc.text(ensureNonBreakingKr(leftText), x, currentY);
+  const rightFontStyle = options?.rightFontStyle ?? 'bold';
+  doc.setFont('helvetica', rightFontStyle);
+  doc.text(rightText, pageWidth - rightPadding, currentY, { align: 'right' });
+  if (options?.lineAboveRightWidth) {
+    const lineWidth = options.lineAboveRightWidth;
+    const lineEnd = pageWidth - rightPadding;
+    const lineStart = lineEnd - lineWidth;
+    const offset = options.lineAboveRightOffset ?? 2;
+    doc.setLineWidth(0.2);
+    doc.line(lineStart, currentY - offset, lineEnd, currentY - offset);
+  }
+  doc.setFont('helvetica', 'normal');
+  return currentY + lineHeight;
+};
+
+const fitTextToWidth = (doc: jsPDF, text: string, maxWidth: number): string => {
+  if (doc.getTextWidth(text) <= maxWidth) return text;
+  const ellipsis = '…';
+  const ellipsisWidth = doc.getTextWidth(ellipsis);
+  if (ellipsisWidth >= maxWidth) return '';
+  let trimmed = text;
+  while (trimmed.length > 0 && doc.getTextWidth(trimmed) + ellipsisWidth > maxWidth) {
+    trimmed = trimmed.slice(0, -1);
+  }
+  return trimmed.length > 0 ? `${trimmed}${ellipsis}` : '';
 };
 
 const addSectionHeader = (
@@ -271,6 +324,7 @@ const formatDateShort = (isoDate: ISODateString | undefined): string => {
   return danish;
 };
 
+
 /**
  * Formaterer ISO-dato til fuldt dansk format (d. måned yyyy)
  *
@@ -309,6 +363,7 @@ interface SelectedElements {
  */
 interface ErstatningsopgoerelsePdfOptions {
   visBrevhoved?: boolean;
+  erstatningsopgoerelseAfsluttesMed?: 'Bekræftet godkendt' | 'Underskrift-linje';
 }
 
 /**
@@ -326,6 +381,7 @@ export const generateErstatningsopgoerelsePdf = (
   options: ErstatningsopgoerelsePdfOptions = {}
 ) => {
   const { visBrevhoved = false } = options;
+  const afsluttesMed = options.erstatningsopgoerelseAfsluttesMed;
   const lineHeight = 5;
   const doubleLineHeight = lineHeight * 2;
 
@@ -545,6 +601,11 @@ export const generateErstatningsopgoerelsePdf = (
   const satserPerDagMaxRow = svieSmerteRows.find((row) => row.id === 'sviesmerte.satserPerDagMax');
   const antalDageRow = svieSmerteRows.find((row) => row.id === 'sviesmerte.antalDage');
   const beregnetBeloebRow = svieSmerteRows.find((row) => row.id === 'sviesmerte.beregnetBeloeb');
+  const svieSmerteTotal = (() => {
+    const raw = beregnetBeloebRow?.displayValue ?? '';
+    const parsed = parseAmount(raw);
+    return Number.isFinite(parsed) ? parsed : 0;
+  })();
 
   const periodeDisplay = beregnetPeriodeRow?.displayValue ?? '-';
   const periodeLines = periodeDisplay
@@ -907,6 +968,9 @@ export const generateErstatningsopgoerelsePdf = (
   }
 
   const hasTafPerioder = tafPerioderLines.length > 0;
+  let loenudviklingTotal: number | null = null;
+  let tafIndtaegterTotal: number | null = null;
+  let tabtArbejdsfortjenesteTotal = 0;
 
   if (!hasTafPerioder) {
     currentY = addWrappedText(doc, 'Ingen', MARGINS.left, currentY, lineHeight, fullWidth);
@@ -1070,7 +1134,7 @@ export const generateErstatningsopgoerelsePdf = (
             lineHeight,
             MARGINS.right,
             doc.getTextWidth('000.000.000,00'),
-            { rightFontStyle: 'normal', lineAboveRightWidth: 26.5, lineAboveRightOffset: 4 }
+            { rightFontStyle: 'normal', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
           );
           currentY += lineHeight;
 
@@ -1208,7 +1272,7 @@ export const generateErstatningsopgoerelsePdf = (
 
       const tafRanges = buildTafRanges(eoValues);
 
-        let loenudviklingTotal: number | null = null;
+        loenudviklingTotal = null;
         const canBuildAsl =
           ensartetModel &&
           loenudviklingBasis === 'Statistik' &&
@@ -1283,13 +1347,13 @@ export const generateErstatningsopgoerelsePdf = (
             lineHeight,
             MARGINS.right,
             rightMaxWidth,
-            { rightFontStyle: 'normal', lineAboveRightWidth: 26.5, lineAboveRightOffset: 4 }
+            { rightFontStyle: 'normal', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
           );
           loenudviklingTotal = total;
         }
 
         // Indtægter i erstatningsperioden (TAF-perioden)
-        let tafIndtaegterTotal: number | null = null;
+        tafIndtaegterTotal = null;
         if (tafRanges.length > 0) {
           currentY = addSubheader(doc, 'Indtægter i erstatningsperioden', currentY, lineHeight, fullWidth);
 
@@ -1335,7 +1399,7 @@ export const generateErstatningsopgoerelsePdf = (
               lineHeight,
               MARGINS.right,
               rightMaxWidth,
-              { rightFontStyle: 'normal', lineAboveRightWidth: 26.5, lineAboveRightOffset: 4 }
+              { rightFontStyle: 'normal', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
             );
           }
         }
@@ -1346,6 +1410,7 @@ export const generateErstatningsopgoerelsePdf = (
           const rightMaxWidth = doc.getTextWidth('000.000.000,00');
           const leftText = `${formatCurrency(loenudviklingTotal)}${NBSP}kr. - ${formatCurrency(tafIndtaegterTotal)}${NBSP}kr. =`;
           const diff = loenudviklingTotal - tafIndtaegterTotal;
+          tabtArbejdsfortjenesteTotal = diff;
           const rightText = `${formatCurrency(diff)}${NBSP}kr.`;
           currentY = addLeftRightText(
             doc,
@@ -1360,67 +1425,192 @@ export const generateErstatningsopgoerelsePdf = (
           );
         }
 
-        // Øvrige krav
-        currentY = addSectionHeader(doc, 'Øvrige krav', currentY, lineHeight, doubleLineHeight, fullWidth);
+  }
 
-        const oevrigeKravRows = eoValues.oevrigeKravPerioder ?? [];
-        const kravEntries: Array<{ dateText: string; udgiftTil: string; amount: number | null }> = [];
-        for (const row of oevrigeKravRows) {
-          const dateText = row.dato ? formatDateShort(row.dato) ?? '' : '';
-          const udgiftTil = (row.udgiftTil ?? '').trim();
-          const amountValue = row.beloeb !== undefined ? parseAmount(row.beloeb) : NaN;
-          const amount = Number.isFinite(amountValue) ? amountValue : null;
-          if (dateText === '' && udgiftTil === '' && amount === null) continue;
-          kravEntries.push({ dateText, udgiftTil, amount });
-        }
+  // Øvrige krav
+  currentY = addSectionHeader(doc, 'Øvrige krav', currentY, lineHeight, doubleLineHeight, fullWidth);
 
-        if (kravEntries.length === 0) {
-          currentY = addWrappedText(doc, 'Ingen', MARGINS.left, currentY, lineHeight, fullWidth);
-        } else {
-          const rightMaxWidth = doc.getTextWidth('000.000.000,00');
-          const indent = '  ';
-          let total = 0;
+  const oevrigeKravRows = eoValues.oevrigeKravPerioder ?? [];
+  const kravEntries: Array<{ dateText: string; udgiftTil: string; amount: number | null }> = [];
+  for (const row of oevrigeKravRows) {
+    const dateText = row.dato ? formatDateShort(row.dato) ?? '' : '';
+    const udgiftTil = (row.udgiftTil ?? '').trim();
+    const amountValue = row.beloeb !== undefined ? parseAmount(row.beloeb) : NaN;
+    const amount = Number.isFinite(amountValue) ? amountValue : null;
+    if (dateText === '' && udgiftTil === '' && amount === null) continue;
+    kravEntries.push({ dateText, udgiftTil, amount });
+  }
 
-          for (const entry of kravEntries) {
-            const dateText = entry.dateText !== '' ? entry.dateText : '-';
-            currentY = addWrappedText(doc, dateText, MARGINS.left, currentY, lineHeight, fullWidth);
+  const oevrigeKravTotal = kravEntries.reduce((acc, entry) => {
+    return typeof entry.amount === 'number' ? acc + entry.amount : acc;
+  }, 0);
 
-            const udgiftText = entry.udgiftTil !== '' ? entry.udgiftTil : '-';
-            const amountText =
-              typeof entry.amount === 'number' ? `${formatCurrency(entry.amount)}${NBSP}kr.` : '-';
-            if (typeof entry.amount === 'number') {
-              total += entry.amount;
-            }
-            currentY = addLeftRightText(
-              doc,
-              `${indent}${udgiftText}`,
-              amountText,
-              MARGINS.left,
-              currentY,
-              lineHeight,
-              MARGINS.right,
-              rightMaxWidth,
-              { rightFontStyle: 'normal' }
-            );
-          }
+  if (kravEntries.length === 0) {
+    currentY = addWrappedText(doc, 'Ingen', MARGINS.left, currentY, lineHeight, fullWidth);
+  } else {
+    const indentX = MARGINS.left;
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const contentBottom = pageHeight - MARGINS.bottom;
+    const rightX = pageWidth - MARGINS.right;
+    const totalMaxWidth = doc.getTextWidth('000.000.000,00');
+    const rightMaxWidth = totalMaxWidth;
+    const leftMaxWidth = Math.max(30, rightX - totalMaxWidth - indentX - 5);
+    let total = 0;
 
-          if (kravEntries.length > 1) {
-            currentY = addLeftRightText(
-              doc,
-              'I alt',
-              `${formatCurrency(total)}${NBSP}kr.`,
-              MARGINS.left,
-              currentY,
-              lineHeight,
-              MARGINS.right,
-              rightMaxWidth,
-              { rightFontStyle: 'bold', lineAboveRightWidth: 26.5, lineAboveRightOffset: 4 }
-            );
-          }
-        }
+    for (const entry of kravEntries) {
+      const udgiftText = entry.udgiftTil !== '' ? entry.udgiftTil : '-';
+      const dateSuffix = entry.dateText !== '' ? `, ${entry.dateText}` : '';
+      const amountText =
+        typeof entry.amount === 'number' ? `${formatCurrency(entry.amount)}${NBSP}kr.` : '-';
+      if (typeof entry.amount === 'number') {
+        total += entry.amount;
+      }
+
+      if (currentY + lineHeight > contentBottom) {
+        doc.addPage();
+        currentY = MARGINS.top;
+      }
+
+      const leftText = fitTextToWidth(
+        doc,
+        ensureNonBreakingKr(`${udgiftText}${dateSuffix}`),
+        leftMaxWidth
+      );
+      currentY = addLeftRightTextSingleLine(
+        doc,
+        leftText,
+        amountText,
+        indentX,
+        currentY,
+        lineHeight,
+        MARGINS.right,
+        { rightFontStyle: 'normal' }
+      );
     }
 
+    if (kravEntries.length > 1) {
+      currentY = addLeftRightText(
+        doc,
+        'I alt',
+        `${formatCurrency(total)}${NBSP}kr.`,
+        MARGINS.left,
+        currentY,
+        lineHeight,
+        MARGINS.right,
+        rightMaxWidth,
+        { rightFontStyle: 'bold', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
+      );
+    }
+  }
+
+  currentY = addSectionHeader(
+    doc,
+    'Samlet erstatningskrav',
+    currentY,
+    lineHeight,
+    doubleLineHeight,
+    fullWidth
+  );
+
+  const periodeFraKort = formatDateShort(eoValues.vedroererPeriodeFra);
+  const periodeTilKort = formatDateShort(eoValues.vedroererPeriodeTil);
+  const periodeText =
+    periodeFraKort && periodeTilKort
+      ? `Det samlede krav for perioden ${periodeFraKort} - ${periodeTilKort} udgør:`
+      : 'Det samlede krav udgør:';
+  currentY = addWrappedText(doc, periodeText, MARGINS.left, currentY, lineHeight, fullWidth);
+  currentY += lineHeight;
+
+  const summaryRightMaxWidth = doc.getTextWidth('000.000.000,00');
+  const oevrigeKravDisplay = oevrigeKravTotal;
+  const samletTotal = svieSmerteTotal + tabtArbejdsfortjenesteTotal + oevrigeKravDisplay;
+
+  currentY = addLeftRightText(
+    doc,
+    'Svie- og smertegodtgørelse',
+    `${formatCurrency(svieSmerteTotal)}${NBSP}kr.`,
+    MARGINS.left,
+    currentY,
+    lineHeight,
+    MARGINS.right,
+    summaryRightMaxWidth,
+    { rightFontStyle: 'normal' }
+  );
+  currentY = addLeftRightText(
+    doc,
+    'Tabt arbejdsfortjeneste',
+    `${formatCurrency(tabtArbejdsfortjenesteTotal)}${NBSP}kr.`,
+    MARGINS.left,
+    currentY,
+    lineHeight,
+    MARGINS.right,
+    summaryRightMaxWidth,
+    { rightFontStyle: 'normal' }
+  );
+  currentY = addLeftRightText(
+    doc,
+    'Øvrige krav',
+    `${formatCurrency(oevrigeKravDisplay)}${NBSP}kr.`,
+    MARGINS.left,
+    currentY,
+    lineHeight,
+    MARGINS.right,
+    summaryRightMaxWidth,
+    { rightFontStyle: 'normal' }
+  );
+  doc.setFont('helvetica', 'bold');
+  currentY = addLeftRightText(
+    doc,
+    'Erstatningskrav i alt',
+    `${formatCurrency(samletTotal)}${NBSP}kr.`,
+    MARGINS.left,
+    currentY,
+    lineHeight,
+    MARGINS.right,
+    summaryRightMaxWidth,
+    { rightFontStyle: 'bold', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
+  );
+  doc.setFont('helvetica', 'normal');
   // TODO: Tilføj resten af PDF-indholdet baseret på selectedElements
+  const saerligeKommentarer = (eoValues.saerligeKommentarer ?? '').trim();
+  if (saerligeKommentarer !== '') {
+    currentY = addSectionHeader(doc, 'Særlige bemærkninger', currentY, lineHeight, doubleLineHeight, fullWidth);
+    currentY = addWrappedText(doc, saerligeKommentarer, MARGINS.left, currentY, lineHeight, fullWidth);
+  }
+  currentY += doubleLineHeight;
+  if (afsluttesMed === 'Bekræftet godkendt') {
+    currentY = addWrappedText(
+      doc,
+      'Opgørelsen er gennemgået af skadelidte, som har bekræftet, at oplysningerne i opgørelsen er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevant oplysninger, som skadelidte er bekendt med.',
+      MARGINS.left,
+      currentY,
+      lineHeight,
+      fullWidth
+    );
+  } else {
+    currentY = addWrappedText(
+      doc,
+      'Opgørelsen er gennemgået af skadelidte, som ved sin underskrift nedenfor bekræfter, at oplysningerne i opgørelsen er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevant oplysninger, som skadelidte er bekendt med.',
+      MARGINS.left,
+      currentY,
+      lineHeight,
+      fullWidth
+    );
+    currentY += lineHeight * 2;
+    const skadelidteNavn = (stamdataValues.skadelidte ?? '').trim() || '*skadelidtes navn*';
+    const dateX = MARGINS.left;
+    const dateLine = '____ / ____ - ____________';
+    const sigX = MARGINS.left + 90;
+    const sigLine = '________________________________________';
+    doc.text(dateLine, dateX, currentY);
+    doc.text(sigLine, sigX, currentY);
+    currentY += lineHeight;
+    const dateCenterX = dateX + doc.getTextWidth(dateLine) / 2;
+    const sigCenterX = sigX + doc.getTextWidth(sigLine) / 2;
+    doc.text('Dato', dateCenterX, currentY, { align: 'center' });
+    doc.text(skadelidteNavn, sigCenterX, currentY, { align: 'center' });
+  }
 
   // Tilføj footer med versionsnummer
   addFooter(doc);

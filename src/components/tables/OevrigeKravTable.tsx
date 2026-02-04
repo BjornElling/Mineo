@@ -85,7 +85,10 @@ const OevrigeKravTable = React.memo(
                   width={130}
                   value={committed?.beloeb}
                   onDraftChange={(e) => onFieldChange(row.id, 'beloeb')(e.target.value)}
-                  onCommit={() => {
+                  onCommit={(e) => {
+                    if (e.target.value === undefined) {
+                      onFieldChange(row.id, 'beloeb')('');
+                    }
                     onRowBlur(row.id);
                   }}
                   allowNegative={false}

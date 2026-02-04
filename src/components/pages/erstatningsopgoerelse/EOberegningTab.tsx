@@ -310,7 +310,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 
     try {
       const { generateErstatningsopgoerelsePdf } = await loadErstatningsopgoerelsePdfModule();
-      generateErstatningsopgoerelsePdf(stamdataValues, eoValues, selectedElements, { visBrevhoved });
+      generateErstatningsopgoerelsePdf(stamdataValues, eoValues, selectedElements, {
+        visBrevhoved,
+        erstatningsopgoerelseAfsluttesMed: settings.erstatningsopgoerelseAfsluttesMed,
+      });
     } catch (error) {
       console.error('Kunne ikke indlæse PDF-modulet for erstatningsopgørelse:', error);
     }
