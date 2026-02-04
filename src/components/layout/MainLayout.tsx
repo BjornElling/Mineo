@@ -258,7 +258,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
       // Resolve default directory for file picker startIn
       const resolvedDirectory = await resolveDefaultDirectoryHandle(settings);
 
-      const result: LoadFileResult = await loadFromFile(resolvedDirectory);
+      const result: LoadFileResult = await loadFromFile(resolvedDirectory, { settings });
 
       if (result.cancelled) {
         return;
@@ -295,7 +295,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
     try {
       setPendingLoadResult(null);
       setPendingOverwriteApply(null);
-      const result: LoadFileResult = await loadFromFileHandle(request.fileHandle, { requestId: request.id });
+      const result: LoadFileResult = await loadFromFileHandle(request.fileHandle, { requestId: request.id, settings });
 
       if (result.cancelled) {
         return 'cancelled';

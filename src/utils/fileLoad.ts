@@ -13,6 +13,7 @@ import {
 import { FILE_FORMAT_VERSION, MAX_FILE_SIZE } from '../config/version';
 import { STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
 import { nullToUndefinedDeep, persistenceSchemaFingerprint, persistenceSchemas } from '../config/persistenceRegistry';
+import { buildPersistenceDefaults, type PersistedSectionDefaults } from '../config/persistenceDefaults';
 import {
   isFileSystemAccessSupported,
   openFileWithPicker,
@@ -21,6 +22,8 @@ import {
 import type { LoadFileResult } from '../types/fileOperations';
 import { eoFileContainerLoadSchema, type EoFileContainerLoad } from '../schemas/eoFileSchema';
 import { CalculationError } from './errorMessages';
+import { applyDefaultsDeep, stripUnknownFieldsBySchema, type UnknownPath } from './persistenceLoadSanitization';
+import type { AppSettings } from '../settings/appSettingsSchema';
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -81,8 +84,23 @@ const formatPathSegments = (segments: Array<string | number>): string => {
   return out === '' ? '(root)' : out;
 };
 
+const toLoadIssuePath = (sectionKey: StorageKey, path: UnknownPath): string => {
+  const detailPath = path.length > 0 ? formatPathSegments(path) : '(root)';
+  return detailPath === '(root)' ? sectionKey : `${sectionKey}.${detailPath}`;
+};
+
+const applyDefaultsForSection = (
+  sectionKey: StorageKey,
+  value: unknown,
+  defaults: PersistedSectionDefaults
+): unknown => {
+  const sectionDefaults = defaults[sectionKey];
+  return sectionDefaults ? applyDefaultsDeep(value, sectionDefaults) : value;
+};
+
 export const loadFromFile = async (
-  resolvedDirectory?: ResolvedDirectory
+  resolvedDirectory?: ResolvedDirectory,
+  options?: { settings?: AppSettings }
 ): Promise<LoadFileResult> => {
   logOperationStart('Hent fil');
 
@@ -168,6 +186,7 @@ export const loadFromFile = async (
     const fileContainer = normalizeDecryptedContainer(decrypted);
     const fileData = fileContainer.data;
     const loadIssues: LoadIssue[] = [];
+    const defaults = buildPersistenceDefaults(options?.settings);
 
     const fileVersion = fileContainer.version || 'ukendt';
     logDebug(`Fil version: ${fileVersion}`);
@@ -180,17 +199,6 @@ export const loadFromFile = async (
 
     const expectedFieldCount = fileContainer._metadata?.fieldCount;
     const fileSchemaHash = fileContainer._metadata?.schemaHash;
-    if (!fileSchemaHash) {
-      loadIssues.push({
-        path: '_metadata.schemaHash',
-        reason: 'Filen mangler schema-signatur og kan være gemt i en anden version',
-      });
-    } else if (fileSchemaHash !== persistenceSchemaFingerprint) {
-      loadIssues.push({
-        path: '_metadata.schemaHash',
-        reason: 'Filen er gemt med et andet data-schema og kan derfor mangle felter i denne version',
-      });
-    }
     logDebug(`Forventet antal felter: ${expectedFieldCount ?? 'ikke angivet'}`);
 
     logDataStats(fileData as unknown as Record<string, unknown>, 'Dekrypteret data');
@@ -198,15 +206,6 @@ export const loadFromFile = async (
     const fileFieldCount = countFilledFields(fileData as unknown as Record<string, unknown>);
     if (fileFieldCount === 0) {
       throw new Error('Filen indeholder ingen udfyldte felter');
-    }
-
-    // Trust-critical (opdateret): mismatch må ikke stoppe indlæsning, men skal preflight-advares.
-    if (expectedFieldCount !== undefined && fileFieldCount !== expectedFieldCount) {
-      const diff = fileFieldCount - expectedFieldCount;
-      loadIssues.push({
-        path: '_metadata.fieldCount',
-        reason: `Filen indeholder et andet antal gemte værdier end forventet (forventet ${expectedFieldCount}, fandt ${fileFieldCount}, diff ${diff})`,
-      });
     }
 
     const sectionsPresent = (Object.keys(STORAGE_KEYS) as StorageKey[]).filter(
@@ -220,7 +219,18 @@ export const loadFromFile = async (
 
       const schema = persistenceSchemas[sectionKey];
       const normalized = nullToUndefinedDeep(raw);
-      const direct = schema.safeParse(normalized);
+      const stripped = stripUnknownFieldsBySchema(schema, normalized);
+      if (stripped.unknownPaths.length > 0) {
+        stripped.unknownPaths.forEach((path) => {
+          loadIssues.push({
+            path: toLoadIssuePath(sectionKey, path),
+            reason: 'Feltet findes ikke i denne version og blev ikke indlæst',
+          });
+        });
+      }
+
+      const withDefaults = applyDefaultsForSection(sectionKey, stripped.sanitized, defaults);
+      const direct = schema.safeParse(withDefaults);
       if (direct.success) {
         snapshot[sectionKey] = direct.data;
         continue;
@@ -346,7 +356,7 @@ export const loadFromFile = async (
 
 export const loadFromFileHandle = async (
   fileHandle: FileSystemFileHandle,
-  options?: { requestId?: string }
+  options?: { requestId?: string; settings?: AppSettings }
 ): Promise<LoadFileResult> => {
   logOperationStart('Hent fil');
 
@@ -386,6 +396,7 @@ export const loadFromFileHandle = async (
     const fileContainer = normalizeDecryptedContainer(decrypted);
     const fileData = fileContainer.data;
     const loadIssues: LoadIssue[] = [];
+    const defaults = buildPersistenceDefaults(options?.settings);
 
     const fileVersion = fileContainer.version || 'ukendt';
     logDebug(`Fil version: ${fileVersion}`);
@@ -398,17 +409,6 @@ export const loadFromFileHandle = async (
 
     const expectedFieldCount = fileContainer._metadata?.fieldCount;
     const fileSchemaHash = fileContainer._metadata?.schemaHash;
-    if (!fileSchemaHash) {
-      loadIssues.push({
-        path: '_metadata.schemaHash',
-        reason: 'Filen mangler schema-signatur og kan være gemt i en anden version',
-      });
-    } else if (fileSchemaHash !== persistenceSchemaFingerprint) {
-      loadIssues.push({
-        path: '_metadata.schemaHash',
-        reason: 'Filen er gemt med et andet data-schema og kan derfor mangle felter i denne version',
-      });
-    }
     logDebug(`Forventet antal felter: ${expectedFieldCount ?? 'ikke angivet'}`);
 
     logDataStats(fileData as unknown as Record<string, unknown>, 'Dekrypteret data');
@@ -416,15 +416,6 @@ export const loadFromFileHandle = async (
     const fileFieldCount = countFilledFields(fileData as unknown as Record<string, unknown>);
     if (fileFieldCount === 0) {
       throw new Error('Filen indeholder ingen udfyldte felter');
-    }
-
-    // Trust-critical (opdateret): mismatch må ikke stoppe indlæsning, men skal preflight-advares.
-    if (expectedFieldCount !== undefined && fileFieldCount !== expectedFieldCount) {
-      const diff = fileFieldCount - expectedFieldCount;
-      loadIssues.push({
-        path: '_metadata.fieldCount',
-        reason: `Filen indeholder et andet antal gemte værdier end forventet (forventet ${expectedFieldCount}, fandt ${fileFieldCount}, diff ${diff})`,
-      });
     }
 
     const sectionsPresent = (Object.keys(STORAGE_KEYS) as StorageKey[]).filter(
@@ -438,7 +429,18 @@ export const loadFromFileHandle = async (
 
       const schema = persistenceSchemas[sectionKey];
       const normalized = nullToUndefinedDeep(raw);
-      const direct = schema.safeParse(normalized);
+      const stripped = stripUnknownFieldsBySchema(schema, normalized);
+      if (stripped.unknownPaths.length > 0) {
+        stripped.unknownPaths.forEach((path) => {
+          loadIssues.push({
+            path: toLoadIssuePath(sectionKey, path),
+            reason: 'Feltet findes ikke i denne version og blev ikke indlæst',
+          });
+        });
+      }
+
+      const withDefaults = applyDefaultsForSection(sectionKey, stripped.sanitized, defaults);
+      const direct = schema.safeParse(withDefaults);
       if (direct.success) {
         snapshot[sectionKey] = direct.data;
         continue;
