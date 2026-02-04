@@ -12,6 +12,7 @@ import { getEffektiveSatserForDato, getEffektiveSatserForPeriode, resolveOverens
 import { parsePercentToDecimal } from '../../utils/formatUtils';
 import { beregnHelligdage } from '../../utils/shDageBeregning';
 import { isoDateToDate } from '../dates/isoDate';
+import { beregnArbejdsdageOgMaaneder } from '../erstatningsopgoerelse/arbejdsdageMaaneder';
 
 const STORE_BEDEDAG_PCT = 0.0045;
 const STORE_BEDEDAG_START = '2024-01-01';
@@ -207,47 +208,7 @@ export const buildFerieDageSet = (
   return allFerie;
 };
 
-export const beregnArbejdsdageOgMaaneder = (
-  fra: ISODateString,
-  til: ISODateString,
-  shDage: Set<ISODateString>,
-  ferieDage: Set<ISODateString>
-): { arbejdsdage: number; maaneder: number } => {
-  const fraDate = isoDateToDate(fra);
-  const tilDate = isoDateToDate(til);
-
-  let arbejdsdage = 0;
-  let maaneder = 0;
-
-  const current = new Date(fraDate);
-  while (current <= tilDate) {
-    const iso = dateToISO(current);
-    if (iso) {
-      const dow = current.getDay();
-      const erHverdag = dow >= 1 && dow <= 5;
-      const erSH = shDage.has(iso);
-      const erFerie = ferieDage.has(iso);
-
-      // Arbejdsdag = hverdag OG ikke SH OG ikke ferie
-      if (erHverdag && !erSH && !erFerie) {
-        arbejdsdage++;
-      }
-
-      // Måneder: hver dag tæller som 1/dage-i-måneden
-      const year = current.getFullYear();
-      const month = current.getMonth() + 1;
-      const dageIMaaned = new Date(year, month, 0).getDate();
-      maaneder += 1 / dageIMaaned;
-    }
-
-    current.setDate(current.getDate() + 1);
-  }
-
-  return {
-    arbejdsdage,
-    maaneder
-  };
-};
+ 
 
 export function buildRegulationTimeline(input: RegulationCoreInput): RegulationIndexTimeline {
   const eoRange = getEoRange(input.eoValues);

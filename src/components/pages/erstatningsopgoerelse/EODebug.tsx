@@ -34,7 +34,8 @@ import { addDays, addMonths, formatDanishDate, formatToISO, parseDanishDate, par
 import { formatCurrency, formatPercent, parseAmount } from '../../../utils/formatUtils';
 import { amountValueToDisplayString } from '../../../utils/expressionAmount';
 import { formatDecimal } from '../../../domain/debug/eoDebugFormat';
-import { buildSHDageSet, buildFerieDageSet, beregnArbejdsdageOgMaaneder } from '../../../domain/debug/eoDebugRegulationCore';
+import { buildSHDageSet, buildFerieDageSet } from '../../../domain/debug/eoDebugRegulationCore';
+import { beregnArbejdsdageOgMaaneder } from '../../../domain/erstatningsopgoerelse/arbejdsdageMaaneder';
 import StandardDisplayTable, {
   type StandardDisplayTableColumn,
   type StandardDisplayTableRow,

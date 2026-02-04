@@ -12,7 +12,15 @@ vi.mock('../../../assets/LICENSE.txt?raw', () => ({
  * Helper til at rendere LicenseModal med MUI theme
  */
 const renderLicenseModal = (props: { open: boolean; onClose: () => void }) => {
-  const theme = createTheme();
+  const theme = createTheme({
+    components: {
+      MuiButtonBase: {
+        defaultProps: {
+          disableRipple: true,
+        },
+      },
+    },
+  });
   return render(
     <ThemeProvider theme={theme}>
       <LicenseModal {...props} />

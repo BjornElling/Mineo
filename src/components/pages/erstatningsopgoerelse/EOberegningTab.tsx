@@ -299,6 +299,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   // PDF DOWNLOAD-HÅNDTERING
   // ============================================================================
 
+  const [pdfError, setPdfError] = React.useState<string | null>(null);
+
   const handleDownloadPdf = React.useCallback(async () => {
     if (!stamdataValues || !eoValues) {
       console.error('Manglende data for PDF-generering');
@@ -314,8 +316,11 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         visBrevhoved,
         erstatningsopgoerelseAfsluttesMed: settings.erstatningsopgoerelseAfsluttesMed,
       });
+      setPdfError(null);
     } catch (error) {
-      console.error('Kunne ikke indlæse PDF-modulet for erstatningsopgørelse:', error);
+      console.error('Kunne ikke generere PDF for erstatningsopgørelse:', error);
+      const message = error instanceof Error ? error.message : 'Ukendt fejl ved PDF-generering';
+      setPdfError(`PDF kan ikke genereres: ${message}`);
     }
   }, [stamdataValues, eoValues, selectedElements, settings]);
 
@@ -377,6 +382,12 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
               </Box>
             );
           })}
+        </ContentBox>
+      )}
+      {pdfError && (
+        <ContentBox>
+          <Typography className="section-header">Fejl</Typography>
+          <Typography className="row--text">{pdfError}</Typography>
         </ContentBox>
       )}
       {/* ========================================================================
