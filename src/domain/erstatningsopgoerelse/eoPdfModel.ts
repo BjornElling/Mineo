@@ -495,16 +495,6 @@ const buildSvieSmerteModel = (
   const menDato = values.menAfgoerelseDato;
   const verserendeKlageMen = values.verserendeKlageMen;
 
-  if (varigeMenAfgorelse === 'Nej' && opgLavetDen) {
-    const dato = formatDateLong(opgLavetDen);
-    const tekst = `Der er den ${dato} ikke truffet afgørelse om varige mén.`;
-    statusLinjer.push(verserendeKlageMen === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
-  } else if (varigeMenAfgorelse === 'Ja' && menDato) {
-    const dato = formatDateLong(menDato);
-    const tekst = `Der er den ${dato} truffet afgørelse om varige mén.`;
-    statusLinjer.push(verserendeKlageMen === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
-  }
-
   const periodeSynlig = beregnes && values.tidligereSsMax === 'Nej';
   const context = {
     skadesdatoISO: stamdataValues.skadesdato,
@@ -587,6 +577,16 @@ const buildSvieSmerteModel = (
           : `Den ${dagenEfter} var skadelidte raskmeldt.`
       );
     }
+  }
+
+  if (varigeMenAfgorelse === 'Nej' && opgLavetDen) {
+    const dato = formatDateLong(opgLavetDen);
+    const tekst = `Der er den ${dato} ikke truffet afgørelse om varige mén.`;
+    statusLinjer.push(verserendeKlageMen === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
+  } else if (varigeMenAfgorelse === 'Ja' && menDato) {
+    const dato = formatDateLong(menDato);
+    const tekst = `Der er den ${dato} truffet afgørelse om varige mén.`;
+    statusLinjer.push(verserendeKlageMen === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
   }
 
   if (varigeMenAfgorelse === 'Ja' && menDato) {
