@@ -169,7 +169,7 @@ const TAFPeriodeTable = React.memo(
               tilCutoffError && overlapError ? `${tilCutoffError}; ${overlapError}` : tilCutoffError ?? overlapError;
 
             return (
-              <TableRow key={row.id}>
+              <TableRow key={row.id} data-mineo-row-id={row.id}>
                 <TableCell>
                   <StyledDateField
                     value={fraISO}

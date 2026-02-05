@@ -130,7 +130,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
       loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
       saerligFraDatoRegulering: undefined,
       indtaegtsoplysningerTableData: [],
-      loenudviklingBeregningsgrundlag: 'Ingen',
+      loenudviklingBeregningsgrundlag: undefined,
       loenudviklingStatistikModel: undefined,
       loenudviklingManuelNavn: '',
       loenudviklingManuelTableData: [],

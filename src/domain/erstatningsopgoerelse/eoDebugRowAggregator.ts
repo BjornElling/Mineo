@@ -36,6 +36,7 @@ export type BeregningErrorSummary = {
   errors: ReadonlyArray<DebugRowWithNavigation>;
   warnings: ReadonlyArray<DebugRowWithNavigation>;
   allRows: ReadonlyArray<DebugRowWithNavigation>;
+  relevantRows: ReadonlyArray<DebugRowWithNavigation>;
 };
 
 type DebugStatus = DebugRowModel['status'];
@@ -57,8 +58,6 @@ const resolveDependencyIds = (
   rowIdSet: ReadonlySet<string>
 ): ReadonlyArray<string> => {
   const specs = row.dependsOn ?? [];
-  if (specs.length === 0) return [];
-
   const resolved = new Set<string>();
   for (const spec of specs) {
     if (spec.kind === 'id') {
@@ -74,7 +73,6 @@ const resolveDependencyIds = (
       }
     }
   }
-
   return Array.from(resolved);
 };
 
@@ -165,6 +163,8 @@ const shouldSuppressRow = (
   row: DebugRowWithNavigation,
   maxAncestorSeverityById: ReadonlyMap<string, number>
 ): boolean => {
+  // Policy (explicit): suppress child rows when an ancestor has equal or higher severity.
+  // This keeps Beregning-fanen focused on root-cause rows and avoids duplicate fault reporting.
   const rowSeverity = toSeverityRank(row.status);
   if (rowSeverity === 0) return false;
   const maxAncestorSeverity = maxAncestorSeverityById.get(row.id) ?? 0;
@@ -191,13 +191,14 @@ const addNavigationMetadata = (row: DebugRowModel): DebugRowWithNavigation => ({
   navigation: getNavigationTargetFromRowId(row.id),
 });
 
-const shouldHideRowForEoValues = (
+const isRowRelevantForEoValues = (
   row: DebugRowWithNavigation,
   values: ErstatningsopgoerelseValues
 ): boolean => {
-  // Skjul rækker der er eksplicit fravalgt i UI.
+  // Domain relevance rules:
+  // A row is irrelevant when the corresponding feature is explicitly disabled.
   if (values.beregnesSvieSmerteGodtgoerelse === 'Nej' && row.id.startsWith('sviesmerte.')) {
-    return true;
+    return false;
   }
   if (values.beregnesTabtArbejdsfortjeneste === 'Nej') {
     // NOTE:
@@ -205,9 +206,9 @@ const shouldHideRowForEoValues = (
     // udelukkende anvendes til Tabt Arbejdsfortjeneste.
     // Hvis lønindkomst senere bliver et selvstændigt domæne,
     // skal denne filtrering og EODebug UI genovervejes.
-    if (row.id.startsWith('taf.')) return true;
+    if (row.id.startsWith('taf.')) return false;
     // Lønindkomst-sektionen er kun relevant når TAF beregnes.
-    if (row.id.startsWith('loenindkomst.')) return true;
+    if (row.id.startsWith('loenindkomst.')) return false;
   }
   if (values.midlertidigtEetAfgorelse === 'Nej') {
     // NOTE:
@@ -220,7 +221,7 @@ const shouldHideRowForEoValues = (
       row.id === 'aes.midlertidigEETVirkningsdato' ||
       row.id === 'aes.beregnetMidlertidigEETStartdato'
     ) {
-      return true;
+      return false;
     }
   }
   if (values.endeligtEetAfgorelse === 'Nej') {
@@ -229,10 +230,10 @@ const shouldHideRowForEoValues = (
       row.id === 'aes.endeligEETVirkningsdato' ||
       row.id === 'aes.beregnetEndeligEETStartdato'
     ) {
-      return true;
+      return false;
     }
   }
-  return false;
+  return true;
 };
 
 
@@ -270,17 +271,20 @@ export const collectAllDebugRows = (
 
   // Tilføj navigation-metadata til alle rows
   const rowsWithNavigation = allRows.map(addNavigationMetadata);
-  const visibleRows = rowsWithNavigation.filter((row) => !shouldHideRowForEoValues(row, erstatningsopgoerelseValues));
-  const duplicateIds = findDuplicateIds(visibleRows);
+  // Duplicate-id check MUST run before relevance filtering.
+  const duplicateIds = findDuplicateIds(rowsWithNavigation);
   if (duplicateIds.length > 0) {
     throw new Error(
       `Duplikat-id fundet i debug-rows: ${duplicateIds.join(', ')}. ` +
         'Debug-ids skal være entydige for at sikre korrekt suppression.'
     );
   }
-  const statusById = new Map(visibleRows.map((row) => [row.id, row.status]));
-  const ids = visibleRows.map((row) => row.id);
-  const depsById = buildDependencyGraph(visibleRows);
+  const relevantRows = rowsWithNavigation.filter((row) =>
+    isRowRelevantForEoValues(row, erstatningsopgoerelseValues)
+  );
+  const statusById = new Map(relevantRows.map((row) => [row.id, row.status]));
+  const ids = relevantRows.map((row) => row.id);
+  const depsById = buildDependencyGraph(relevantRows);
   const inCycle = detectDependencyCycles(ids, depsById);
   if (inCycle.size > 0) {
     const idsPreview = Array.from(inCycle)
@@ -290,21 +294,18 @@ export const collectAllDebugRows = (
     const message = `Debug dependency cycle detected (no suppression applied for cycle nodes): ${idsPreview.join(
       ', '
     )}${suffix}`;
-    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-      throw new Error(message);
-    }
+    // Fail-closed in all environments: cycles make suppression non-deterministic.
+    throw new Error(message);
   }
   const maxAncestorSeverityById = buildMaxAncestorSeverityMap(ids, depsById, statusById, inCycle);
 
   // Filtrer og gruppér efter status
-  const errors = visibleRows.filter(
+  const errors = relevantRows.filter(
     (r) => r.status === 'error' && !shouldSuppressRow(r, maxAncestorSeverityById)
   );
-  const warnings = visibleRows.filter(
+  const warnings = relevantRows.filter(
     (r) => r.status === 'warning' && !shouldSuppressRow(r, maxAncestorSeverityById)
   );
 
-  return { errors, warnings, allRows: visibleRows };
+  return { errors, warnings, allRows: rowsWithNavigation, relevantRows };
 };
-
-

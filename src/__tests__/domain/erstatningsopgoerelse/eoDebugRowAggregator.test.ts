@@ -97,7 +97,7 @@ describe('collectAllDebugRows', () => {
     });
   });
 
-  it('returns errors and warnings that are subsets of allRows', () => {
+  it('returns errors and warnings that are subsets of relevantRows', () => {
     registry.__setBuilders([
       {
         name: 'builder-1',
@@ -112,14 +112,14 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const { errors, warnings, allRows } = collectAllDebugRows(
+    const { errors, warnings, relevantRows } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
       eoErrors
     );
 
-    const allIds = new Set(allRows.map((row) => row.id));
+    const allIds = new Set(relevantRows.map((row) => row.id));
     errors.forEach((row) => {
       expect(allIds.has(row.id)).toBe(true);
       expect(row.status).toBe('error');
@@ -142,14 +142,15 @@ describe('collectAllDebugRows', () => {
     ]);
 
     const eoValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, beregnesSvieSmerteGodtgoerelse: 'Nej' as const };
-    const { errors, warnings, allRows } = collectAllDebugRows(
+    const { errors, warnings, allRows, relevantRows } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       eoValues,
       eoErrors
     );
 
-    expect(allRows.map((row) => row.id)).toEqual(['stamdata.journalnr']);
+    expect(relevantRows.map((row) => row.id)).toEqual(['stamdata.journalnr']);
+    expect(allRows.map((row) => row.id)).toEqual(['sviesmerte.beregnetPeriode', 'stamdata.journalnr']);
     expect(errors).toEqual([]);
     expect(warnings).toEqual([]);
   });
@@ -167,14 +168,19 @@ describe('collectAllDebugRows', () => {
     ]);
 
     const eoValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, beregnesTabtArbejdsfortjeneste: 'Nej' as const };
-    const { errors, warnings, allRows } = collectAllDebugRows(
+    const { errors, warnings, allRows, relevantRows } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       eoValues,
       eoErrors
     );
 
-    expect(allRows.map((row) => row.id)).toEqual(['stamdata.journalnr']);
+    expect(relevantRows.map((row) => row.id)).toEqual(['stamdata.journalnr']);
+    expect(allRows.map((row) => row.id)).toEqual([
+      'taf.periode.test',
+      'loenindkomst.af1.loenoplysninger',
+      'stamdata.journalnr',
+    ]);
     expect(errors).toEqual([]);
     expect(warnings).toEqual([]);
   });
@@ -193,14 +199,20 @@ describe('collectAllDebugRows', () => {
     ]);
 
     const eoValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, midlertidigtEetAfgorelse: 'Nej' as const };
-    const { errors, warnings, allRows } = collectAllDebugRows(
+    const { errors, warnings, allRows, relevantRows } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       eoValues,
       eoErrors
     );
 
-    expect(allRows.map((row) => row.id)).toEqual(['stamdata.journalnr']);
+    expect(relevantRows.map((row) => row.id)).toEqual(['stamdata.journalnr']);
+    expect(allRows.map((row) => row.id)).toEqual([
+      'aes.midlertidigEETAfgoerelseDato',
+      'aes.midlertidigEETVirkningsdato',
+      'aes.beregnetMidlertidigEETStartdato',
+      'stamdata.journalnr',
+    ]);
     expect(errors).toEqual([]);
     expect(warnings).toEqual([]);
   });
@@ -219,14 +231,20 @@ describe('collectAllDebugRows', () => {
     ]);
 
     const eoValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, endeligtEetAfgorelse: 'Nej' as const };
-    const { errors, warnings, allRows } = collectAllDebugRows(
+    const { errors, warnings, allRows, relevantRows } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       eoValues,
       eoErrors
     );
 
-    expect(allRows.map((row) => row.id)).toEqual(['stamdata.journalnr']);
+    expect(relevantRows.map((row) => row.id)).toEqual(['stamdata.journalnr']);
+    expect(allRows.map((row) => row.id)).toEqual([
+      'aes.endeligEETAfgoerelseDato',
+      'aes.endeligEETVirkningsdato',
+      'aes.beregnetEndeligEETStartdato',
+      'stamdata.journalnr',
+    ]);
     expect(errors).toEqual([]);
     expect(warnings).toEqual([]);
   });
@@ -263,6 +281,7 @@ describe('collectAllDebugRows', () => {
       rows.map((row) => ({ id: row.id, status: row.status }));
 
     expect(asKeyed(first.allRows)).toEqual(asKeyed(second.allRows));
+    expect(asKeyed(first.relevantRows)).toEqual(asKeyed(second.relevantRows));
     expect(asKeyed(first.errors)).toEqual(asKeyed(second.errors));
     expect(asKeyed(first.warnings)).toEqual(asKeyed(second.warnings));
   });
@@ -275,7 +294,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const { allRows } = collectAllDebugRows(
+    const { allRows, relevantRows } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
@@ -284,6 +303,8 @@ describe('collectAllDebugRows', () => {
 
     expect(allRows).toHaveLength(1);
     expect(allRows[0].navigation.kind).toBe('unsupported');
+    expect(relevantRows).toHaveLength(1);
+    expect(relevantRows[0].navigation.kind).toBe('unsupported');
   });
 
   it('throws when duplicate row ids are produced by builders', () => {
@@ -417,7 +438,31 @@ describe('collectAllDebugRows', () => {
     expect(warnings.map((row) => row.id)).toEqual(['child.warning']);
   });
 
-  it('throws on dependency cycles in test environment', () => {
+  it('suppresses loenindkomst regulering child rows via explicit dependsOn', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('loenindkomst.af1.regulering.valgt', 'error'),
+          makeRow('loenindkomst.af1.regulering.alleVaerdier', 'error', [
+            { kind: 'id', id: 'loenindkomst.af1.regulering.valgt' },
+          ]),
+        ],
+      },
+    ]);
+
+    const { errors, warnings } = collectAllDebugRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      eoErrors
+    );
+
+    expect(errors.map((row) => row.id)).toEqual(['loenindkomst.af1.regulering.valgt']);
+    expect(warnings).toEqual([]);
+  });
+
+  it('throws on dependency cycles', () => {
     registry.__setBuilders([
       {
         name: 'builder-1',
@@ -428,19 +473,87 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const previousEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'test';
-    try {
-      expect(() =>
-        collectAllDebugRows(
-          STAMDATA_INITIAL_VALUES,
-          stamdataErrors,
-          ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
-          eoErrors
-        )
-      ).toThrow('Debug dependency cycle detected');
-    } finally {
-      process.env.NODE_ENV = previousEnv;
-    }
+    expect(() =>
+      collectAllDebugRows(
+        STAMDATA_INITIAL_VALUES,
+        stamdataErrors,
+        ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+        eoErrors
+      )
+    ).toThrow('Debug dependency cycle detected');
+  });
+
+  it('throws on duplicate ids even when one duplicate row is irrelevant for current values', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('dup.hidden.or.visible', 'error'),
+          makeRow('dup.hidden.or.visible', 'warning'),
+          makeRow('taf.periode.test', 'error'),
+        ],
+      },
+    ]);
+
+    const eoValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, beregnesTabtArbejdsfortjeneste: 'Nej' as const };
+
+    expect(() =>
+      collectAllDebugRows(
+        STAMDATA_INITIAL_VALUES,
+        stamdataErrors,
+        eoValues,
+        eoErrors
+      )
+    ).toThrow('Duplikat-id fundet i debug-rows');
+  });
+
+  it('throws on cycle among rows that remain relevant after filtering', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('cycle.visible.a', 'error', [{ kind: 'id', id: 'cycle.visible.b' }]),
+          makeRow('cycle.visible.b', 'error', [{ kind: 'id', id: 'cycle.visible.a' }]),
+          makeRow('taf.periode.hidden', 'error', [{ kind: 'id', id: 'taf.periode.hidden.2' }]),
+          makeRow('taf.periode.hidden.2', 'error', [{ kind: 'id', id: 'taf.periode.hidden' }]),
+        ],
+      },
+    ]);
+
+    const eoValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, beregnesTabtArbejdsfortjeneste: 'Nej' as const };
+
+    expect(() =>
+      collectAllDebugRows(
+        STAMDATA_INITIAL_VALUES,
+        stamdataErrors,
+        eoValues,
+        eoErrors
+      )
+    ).toThrow('Debug dependency cycle detected');
+  });
+
+  it('treats unknown status values as non-blocking severity', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          {
+            ...makeRow('parent.unknown', 'ok'),
+            status: 'invalid-status' as unknown as DebugRowModel['status'],
+          },
+          makeRow('child.warning', 'warning', [{ kind: 'id', id: 'parent.unknown' }]),
+        ],
+      },
+    ]);
+
+    const { errors, warnings } = collectAllDebugRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      eoErrors
+    );
+
+    expect(errors).toEqual([]);
+    expect(warnings.map((row) => row.id)).toEqual(['child.warning']);
   });
 });

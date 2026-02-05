@@ -10,6 +10,7 @@ import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { collectAllDebugRows } from '../../../domain/erstatningsopgoerelse/eoDebugRowAggregator';
 import type { NavigationTarget } from '../../../domain/erstatningsopgoerelse/eoDebugNavigationMap';
 import { scrollToSection } from '../../../utils/scrollToSection';
+import { scrollToDebugRow } from '../../../utils/scrollToDebugRow';
 import { loadErstatningsopgoerelsePdfModule } from '../../../utils/pdf/pdfLoader';
 import { formatISOToDanish } from '../../../utils/dateValidation';
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
@@ -148,13 +149,13 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   // SAMLE ALLE DEBUG-ROWS MED NAVIGATION
   // ============================================================================
 
-  const { errors, warnings, allRows } = React.useMemo(() => {
+  const { errors, warnings, relevantRows } = React.useMemo(() => {
     if (!isActive) {
-      return { errors: [], warnings: [], allRows: [] };
+      return { errors: [], warnings: [], allRows: [], relevantRows: [] };
     }
     // Return tom liste hvis data ikke er loaded endnu
     if (!stamdataValues || !eoValues) {
-      return { errors: [], warnings: [], allRows: [] };
+      return { errors: [], warnings: [], allRows: [], relevantRows: [] };
     }
 
     return collectAllDebugRows(stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors);
@@ -170,7 +171,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   // NAVIGATION-HÅNDTERING
   // ============================================================================
 
-  const [pendingNavigation, setPendingNavigation] = React.useState<NavigationTarget | null>(null);
+  const [pendingNavigation, setPendingNavigation] = React.useState<{
+    target: NavigationTarget;
+    debugRowId: string;
+  } | null>(null);
 
   /**
    * Ekstraher fejlmeddelelse fra displayValue
@@ -198,13 +202,13 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   }, []);
 
   const handleNavigate = React.useCallback(
-    (target: NavigationTarget) => {
+    (target: NavigationTarget, debugRowId: string) => {
       switch (target.kind) {
         case 'erstatningsopgoerelse-tab':
           // Switch til korrekt fane
           setActiveTab(target.tabId);
-          // Scroll til sektion når fanen er aktiv
-          setPendingNavigation(target.sectionId ? target : null);
+          // Scroll til specifik række + evt. sektion når fanen er aktiv
+          setPendingNavigation({ target, debugRowId });
           break;
 
         case 'stamdata-page':
@@ -231,14 +235,39 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   );
 
   React.useEffect(() => {
-    if (!pendingNavigation || pendingNavigation.kind !== 'erstatningsopgoerelse-tab' || !pendingNavigation.sectionId) {
+    if (!pendingNavigation || pendingNavigation.target.kind !== 'erstatningsopgoerelse-tab') {
       return;
     }
-    if (activeTab !== pendingNavigation.tabId) return;
+    if (activeTab !== pendingNavigation.target.tabId) return;
 
-    scrollToSection(pendingNavigation.sectionId);
+    let cancelled = false;
+    const runRowScroll = () => {
+      if (cancelled) return;
+      scrollToDebugRow(pendingNavigation.debugRowId);
+    };
+
+    if (pendingNavigation.target.sectionId) {
+      scrollToSection(pendingNavigation.target.sectionId, {
+        onSuccess: () => {
+          if (cancelled) return;
+          requestAnimationFrame(() => {
+            runRowScroll();
+          });
+        },
+        onFailure: () => {
+          runRowScroll();
+        },
+      });
+    } else {
+      runRowScroll();
+    }
+
     setPendingNavigation(null);
-  }, [activeTab, pendingNavigation, scrollToSection]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, pendingNavigation, scrollToSection, scrollToDebugRow]);
 
   // ============================================================================
   // CHECKBOX STATE FOR ERSTATNINGSOPGØRELSE-DOWNLOAD
@@ -260,7 +289,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   const beregnesSvieSmerte = eoValues?.beregnesSvieSmerteGodtgoerelse === 'Ja';
   const beregnesTabtArbejdsfortjeneste = eoValues?.beregnesTabtArbejdsfortjeneste === 'Ja';
 
-  const svieSmerteRow = allRows.find((row) => row.id === 'sviesmerte.beregnetPeriode');
+  const svieSmerteRow = relevantRows.find((row) => row.id === 'sviesmerte.beregnetPeriode');
   const svieSmerteDisplayParts = (beregnesSvieSmerte ? (svieSmerteRow?.displayValue ?? '-') : '-')
     .split('\n')
     .map((value) => value.trim())
@@ -273,7 +302,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     svieSmerteLines.length > 0;
 
   const tafRows = beregnesTabtArbejdsfortjeneste
-    ? allRows.filter((row) => row.id.startsWith('taf.periode.'))
+    ? relevantRows.filter((row) => row.id.startsWith('taf.periode.'))
     : [];
   const tafPerioderLabels = tafRows
     .filter((row) => row.id !== 'taf.periode.empty' && row.label.trim() !== '-')
@@ -354,9 +383,17 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                       </Typography>
                       <Typography
                         className="row--text icon-text-link"
-                        component="span"
-                        onClick={() => handleNavigate(row.navigation)}
-                        sx={{ cursor: 'pointer' }}
+                        component="button"
+                        type="button"
+                        onClick={() => handleNavigate(row.navigation, row.id)}
+                        sx={{
+                          cursor: 'pointer',
+                          border: 0,
+                          background: 'transparent',
+                          p: 0,
+                          m: 0,
+                          font: 'inherit',
+                        }}
                       >
                         {row.navigation.sectionTitle}
                       </Typography>
@@ -369,9 +406,17 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                       </Typography>
                       <Typography
                         className="row--text icon-text-link"
-                        component="span"
-                        onClick={() => handleNavigate(row.navigation)}
-                        sx={{ cursor: 'pointer' }}
+                        component="button"
+                        type="button"
+                        onClick={() => handleNavigate(row.navigation, row.id)}
+                        sx={{
+                          cursor: 'pointer',
+                          border: 0,
+                          background: 'transparent',
+                          p: 0,
+                          m: 0,
+                          font: 'inherit',
+                        }}
                       >
                         {row.navigation.sectionTitle}
                       </Typography>
@@ -408,9 +453,17 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                       </Typography>
                       <Typography
                         className="row--text icon-text-link"
-                        component="span"
-                        onClick={() => handleNavigate(row.navigation)}
-                        sx={{ cursor: 'pointer' }}
+                        component="button"
+                        type="button"
+                        onClick={() => handleNavigate(row.navigation, row.id)}
+                        sx={{
+                          cursor: 'pointer',
+                          border: 0,
+                          background: 'transparent',
+                          p: 0,
+                          m: 0,
+                          font: 'inherit',
+                        }}
                       >
                         {row.navigation.sectionTitle}
                       </Typography>
@@ -423,9 +476,17 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                       </Typography>
                       <Typography
                         className="row--text icon-text-link"
-                        component="span"
-                        onClick={() => handleNavigate(row.navigation)}
-                        sx={{ cursor: 'pointer' }}
+                        component="button"
+                        type="button"
+                        onClick={() => handleNavigate(row.navigation, row.id)}
+                        sx={{
+                          cursor: 'pointer',
+                          border: 0,
+                          background: 'transparent',
+                          p: 0,
+                          m: 0,
+                          font: 'inherit',
+                        }}
                       >
                         {row.navigation.sectionTitle}
                       </Typography>

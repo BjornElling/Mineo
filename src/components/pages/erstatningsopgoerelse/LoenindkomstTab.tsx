@@ -120,7 +120,7 @@ const createBlankAnsaettelsesforhold = (settings: AppSettings): Ansaettelsesforh
 
     saerligFraDatoRegulering: undefined,
     indtaegtsoplysningerTableData: [],
-    loenudviklingBeregningsgrundlag: 'Ingen',
+    loenudviklingBeregningsgrundlag: undefined,
     loenudviklingStatistikModel: undefined,
     loenudviklingManuelNavn: '',
     loenudviklingManuelTableData: [],
@@ -665,8 +665,14 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 
   const handleLoenudviklingBeregningsgrundlagChange = React.useCallback(
     (id: string) =>
-      (event: StyledDropdownChangeEvent<string>) => {
-        const parsed = loenudviklingBeregningsgrundlagEnum.safeParse(event.target.value);
+      (event: StyledDropdownChangeEvent<string | undefined>) => {
+        const raw = event.target.value;
+        if (!raw) {
+          setLoenindkomstManuelReguleringInputError(id, false);
+          updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingBeregningsgrundlag: undefined }));
+          return;
+        }
+        const parsed = loenudviklingBeregningsgrundlagEnum.safeParse(raw);
         if (!parsed.success) return;
         if (parsed.data !== 'Manuelt angivet') {
           setLoenindkomstManuelReguleringInputError(id, false);
@@ -830,7 +836,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
             ? `Satser per ${saerligFraDatoReguleringLabel}`
             : 'Satser på skadestidspunktet'
           : 'Satser';
-        const loenudviklingBasis = af.loenudviklingBeregningsgrundlag ?? 'Ingen';
+        const loenudviklingBasis = af.loenudviklingBeregningsgrundlag;
         const loenudviklingBaseDate = getLoenudviklingBaseDate(af);
         const shouldShowReguleringsDatoInterval =
           loenudviklingBasis === 'Overenskomst' ||
@@ -859,7 +865,12 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
           : baseHeaderText;
 
         return (
-          <ContentBox key={af.id} className="content-box" sx={{ position: 'relative', marginBottom: isLastAnsaettelsesforhold ? '60px' : '40px' }}>
+          <ContentBox
+            key={af.id}
+            className="content-box"
+            data-mineo-row-id={af.id}
+            sx={{ position: 'relative', marginBottom: isLastAnsaettelsesforhold ? '60px' : '40px' }}
+          >
             <Typography className="section-header">{headerText}</Typography>
 
             <Box className="row--label-right-hover">
@@ -1207,7 +1218,8 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                   width={220}
                   value={loenudviklingBasis}
                   onChange={handleLoenudviklingBeregningsgrundlagChange(af.id)}
-                  allowEmpty={false}
+                  allowEmpty={true}
+                  placeholder="Vælg..."
                 >
                   <MenuItem value="Overenskomst">Overenskomst</MenuItem>
                   <MenuItem value="Statistik">Statistik</MenuItem>
@@ -1409,8 +1421,6 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 LoenindkomstTab.displayName = 'LoenindkomstTab';
 
 export default LoenindkomstTab;
-
-
 
 
 

@@ -566,14 +566,13 @@ const EODebug = () => {
       const headerText = af.navnPaaArbejdssted ? `${baseHeaderText} (${af.navnPaaArbejdssted})` : baseHeaderText;
 
       const loenudviklingBasis = af.loenudviklingBeregningsgrundlag;
-      const isIngen = loenudviklingBasis === 'Ingen';
 
       const selectedValue = (() => {
-        if (!loenudviklingBasis) return { display: '-', ok: false };
+        if (!loenudviklingBasis) return { display: 'Nej', ok: false };
         if (loenudviklingBasis === 'Ingen') return { display: 'Ingen', ok: true };
         if (loenudviklingBasis === 'Manuelt angivet') return { display: 'Manuelt angivet', ok: true };
         if (loenudviklingBasis === 'Overenskomst') {
-          if (!af.overenskomstId) return { display: '-', ok: false };
+          if (!af.overenskomstId) return { display: 'Nej', ok: false };
           const meta = getOverenskomstMetaById(af.overenskomstId);
           if (!meta) return { display: af.overenskomstId, ok: true };
           const loenPart = meta.loenmodtagerOrg[0] || '';
@@ -581,7 +580,7 @@ const EODebug = () => {
           return { display: `${meta.navn} (${loenPart} / ${arbPart})`, ok: true };
         }
         if (loenudviklingBasis === 'Statistik') {
-          if (!af.loenudviklingStatistikModel) return { display: '-', ok: false };
+          if (!af.loenudviklingStatistikModel) return { display: 'Nej', ok: false };
           return { display: af.loenudviklingStatistikModel, ok: true };
         }
         return { display: loenudviklingBasis, ok: true };
@@ -652,7 +651,9 @@ const EODebug = () => {
       })();
 
       const showReguleringDetails =
-        alleReguleringsvaerdierRow.status === 'ok' && alleReguleringsvaerdierRow.display === 'Ja';
+        selectedValue.ok &&
+        alleReguleringsvaerdierRow.status === 'ok' &&
+        alleReguleringsvaerdierRow.display === 'Ja';
 
       const skadesdatoIso = isISODateString(skadesdato) ? skadesdato : undefined;
       const saerligDato = isISODateString(af.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined;
@@ -1516,61 +1517,63 @@ const EODebug = () => {
         },
       ];
 
-      if (loenudviklingBasis === 'Manuelt angivet') {
+      if (selectedValue.ok) {
+        if (loenudviklingBasis === 'Manuelt angivet') {
+          rows.push({
+            id: 'regulering.navn',
+            label: 'Navn på reguleringsform',
+            displayValue: manuelReguleringNavnDisplay,
+            status: manuelReguleringNavnStatus,
+          });
+        }
+
         rows.push({
-          id: 'regulering.navn',
-          label: 'Navn på reguleringsform',
-          displayValue: manuelReguleringNavnDisplay,
-          status: manuelReguleringNavnStatus,
+          id: 'regulering.alleVaerdier',
+          label: 'Alle reguleringsværdier udfyldt',
+          displayValue: alleReguleringsvaerdierRow.display,
+          status: alleReguleringsvaerdierRow.status,
         });
-      }
 
-      rows.push({
-        id: 'regulering.alleVaerdier',
-        label: 'Alle reguleringsværdier udfyldt',
-        displayValue: alleReguleringsvaerdierRow.display,
-        status: alleReguleringsvaerdierRow.status,
-      });
-
-      if (showReguleringDetails) {
-        rows.push(
-          {
-            id: 'regulering.reguleringsdato',
-            label: reguleringsdatoLabel,
-            displayValue: reguleringsdatoDisplay,
-            status: reguleringsdatoStatus,
-          },
-          {
-            id: 'regulering.reguleringsvaerdi',
-            label: 'Reguleringsværdi på reguleringsdato',
-            displayValue: reguleringsvaerdiRow.display,
-            status: reguleringsvaerdiRow.status,
-          },
-          {
-            id: 'regulering.foersteTafDato',
-            label: 'Første dato i TAF-periode',
-            displayValue: foersteTafDatoDisplay,
-            status: foersteTafDatoStatus,
-          },
-          {
-            id: 'regulering.startvaerdi',
-            label: 'Reguleringsværdi på start-dato',
-            displayValue: startDateRow.display,
-            status: startDateRow.status,
-          },
-          {
-            id: 'regulering.slutdato',
-            label: 'Sidste dato i TAF-periode',
-            displayValue: sidsteTafDatoDisplay,
-            status: sidsteTafDatoStatus,
-          },
-          {
-            id: 'regulering.slutvaerdi',
-            label: 'Reguleringsværdi på slut-dato',
-            displayValue: endDateRow.display,
-            status: endDateRow.status,
-          }
-        );
+        if (showReguleringDetails) {
+          rows.push(
+            {
+              id: 'regulering.reguleringsdato',
+              label: reguleringsdatoLabel,
+              displayValue: reguleringsdatoDisplay,
+              status: reguleringsdatoStatus,
+            },
+            {
+              id: 'regulering.reguleringsvaerdi',
+              label: 'Reguleringsværdi på reguleringsdato',
+              displayValue: reguleringsvaerdiRow.display,
+              status: reguleringsvaerdiRow.status,
+            },
+            {
+              id: 'regulering.foersteTafDato',
+              label: 'Første dato i TAF-periode',
+              displayValue: foersteTafDatoDisplay,
+              status: foersteTafDatoStatus,
+            },
+            {
+              id: 'regulering.startvaerdi',
+              label: 'Reguleringsværdi på start-dato',
+              displayValue: startDateRow.display,
+              status: startDateRow.status,
+            },
+            {
+              id: 'regulering.slutdato',
+              label: 'Sidste dato i TAF-periode',
+              displayValue: sidsteTafDatoDisplay,
+              status: sidsteTafDatoStatus,
+            },
+            {
+              id: 'regulering.slutvaerdi',
+              label: 'Reguleringsværdi på slut-dato',
+              displayValue: endDateRow.display,
+              status: endDateRow.status,
+            }
+          );
+        }
       }
 
       return {

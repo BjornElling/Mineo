@@ -1774,6 +1774,17 @@ export const buildEODebugTafBeregningsgrundlagRows = (
   const rows: DebugRowModel[] = [];
 
   const formatDaNumber = (n: number): string => n.toLocaleString('da-DK');
+  const tafBeregnesSom = (() => {
+    switch (values.beregnesUdFra) {
+      case 'Angivet månedsløn':
+        return TAF_BEREGNES_SOM.MAANEDER;
+      case 'Angivet dagsløn':
+        return TAF_BEREGNES_SOM.ARBEJDSDAGE;
+      case 'Beregningsperiode':
+      default:
+        return computeTafBeregningsenhed(values);
+    }
+  })();
 
   rows.push({
     id: 'taf.beregningsgrundlag.beregnesUdFra',
@@ -1788,17 +1799,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
   rows.push({
     id: 'taf.beregnesSom',
     label: 'TAF beregnes som',
-    displayValue: (() => {
-      switch (values.beregnesUdFra) {
-        case 'Angivet månedsløn':
-          return TAF_BEREGNES_SOM.MAANEDER;
-        case 'Angivet dagsløn':
-          return TAF_BEREGNES_SOM.ARBEJDSDAGE;
-        case 'Beregningsperiode':
-        default:
-          return computeTafBeregningsenhed(values);
-      }
-    })(),
+    displayValue: tafBeregnesSom,
     status: 'ok',
     dependsOn: [
       { kind: 'id', id: 'taf.beregningsgrundlag.beregnesUdFra' },
@@ -2093,16 +2094,18 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     return { label, displayValue, status: 'ok' as DebugStatus };
   })();
 
-  rows.push({
-    id: 'taf.beregningsgrundlag.arbejdsdage',
-    label: arbejdsdageRow.label,
-    displayValue: arbejdsdageRow.displayValue,
-    status: arbejdsdageRow.status,
-    dependsOn: [
-      { kind: 'id', id: 'taf.beregningsgrundlag.beregningsperiode' },
-      { kind: 'id', id: 'taf.beregningsgrundlag.oevrigeFravaersdage' },
-    ],
-  });
+  if (tafBeregnesSom === TAF_BEREGNES_SOM.ARBEJDSDAGE) {
+    rows.push({
+      id: 'taf.beregningsgrundlag.arbejdsdage',
+      label: arbejdsdageRow.label,
+      displayValue: arbejdsdageRow.displayValue,
+      status: arbejdsdageRow.status,
+      dependsOn: [
+        { kind: 'id', id: 'taf.beregningsgrundlag.beregningsperiode' },
+        { kind: 'id', id: 'taf.beregningsgrundlag.oevrigeFravaersdage' },
+      ],
+    });
+  }
 
   const maanederRow = (() => {
     if (!isBeregningsperiode) {
@@ -2175,15 +2178,17 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     return { label, displayValue, status: 'ok' as DebugStatus };
   })();
 
-  rows.push({
-    id: 'taf.beregningsgrundlag.maaneder',
-    label: maanederRow.label,
-    displayValue: maanederRow.displayValue,
-    status: maanederRow.status,
-    dependsOn: [
-      { kind: 'id', id: 'taf.beregningsgrundlag.beregningsperiode' },
-    ],
-  });
+  if (tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER) {
+    rows.push({
+      id: 'taf.beregningsgrundlag.maaneder',
+      label: maanederRow.label,
+      displayValue: maanederRow.displayValue,
+      status: maanederRow.status,
+      dependsOn: [
+        { kind: 'id', id: 'taf.beregningsgrundlag.beregningsperiode' },
+      ],
+    });
+  }
 
   if (beregnesUdFra === 'Angivet månedsløn') {
     const maanedsloenDisplay = (() => {
@@ -2324,12 +2329,17 @@ export const buildEODebugIndkomstRows = (
       message = 'Statistisk beregningsmodel er ikke valgt';
     }
 
+    const valgtReguleringRowId = `loenindkomst.${ansaettelsesforhold.id}.regulering.valgt` as const;
     rows.push({
-      id: `loenindkomst.${ansaettelsesforhold.id}.regulering.valgt`,
+      id: valgtReguleringRowId,
       label: 'Valgt regulering',
       displayValue: formatStatusMessage(status, message),
       status,
     });
+    const harGyldigValgtRegulering = status === 'ok';
+    if (!harGyldigValgtRegulering) {
+      return;
+    }
 
     const alleReguleringsvaerdierRow = (() => {
       if (loenudviklingBasis === 'Ingen') {
@@ -2401,6 +2411,7 @@ export const buildEODebugIndkomstRows = (
           harManuelNavn ? manuelNavn : 'Navn på reguleringsform mangler'
         ),
         status: harManuelNavn ? 'ok' : 'warning',
+        dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
       });
     }
 
@@ -2409,6 +2420,7 @@ export const buildEODebugIndkomstRows = (
       label: 'Alle reguleringsværdier udfyldt',
       displayValue: alleReguleringsvaerdierRow.displayValue,
       status: alleReguleringsvaerdierRow.status,
+      dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
     });
   });
 

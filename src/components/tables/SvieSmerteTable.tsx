@@ -145,7 +145,7 @@ const SvieSmerteTable = React.memo(
                   : overlapError;
 
             return (
-              <TableRow key={row.id}>
+              <TableRow key={row.id} data-mineo-row-id={row.id}>
                 <TableCell>
                   <StyledDateField
                     value={fraISO}

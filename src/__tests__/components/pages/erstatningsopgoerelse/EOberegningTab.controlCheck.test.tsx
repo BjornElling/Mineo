@@ -26,7 +26,7 @@ vi.mock('../../../../hooks/useFormFieldErrors', () => ({
 }));
 
 vi.mock('../../../../domain/erstatningsopgoerelse/eoDebugRowAggregator', () => ({
-  collectAllDebugRows: () => ({ errors: [], warnings: [], allRows: [] }),
+  collectAllDebugRows: () => ({ errors: [], warnings: [], allRows: [], relevantRows: [] }),
 }));
 
 vi.mock('../../../../calculation/useErstatningsopgoerelseAggregation', () => ({
