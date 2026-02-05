@@ -1527,12 +1527,14 @@ const EODebug = () => {
           });
         }
 
-        rows.push({
-          id: 'regulering.alleVaerdier',
-          label: 'Alle reguleringsværdier udfyldt',
-          displayValue: alleReguleringsvaerdierRow.display,
-          status: alleReguleringsvaerdierRow.status,
-        });
+        if (loenudviklingBasis !== 'Ingen') {
+          rows.push({
+            id: 'regulering.alleVaerdier',
+            label: 'Alle reguleringsværdier udfyldt',
+            displayValue: alleReguleringsvaerdierRow.display,
+            status: alleReguleringsvaerdierRow.status,
+          });
+        }
 
         if (showReguleringDetails) {
           rows.push(

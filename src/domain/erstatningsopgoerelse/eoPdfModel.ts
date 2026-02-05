@@ -898,6 +898,8 @@ const buildLoenudviklingModel = (
   indkomstSkadestidspunkt: IndkomstSkadestidspunktPdfModel | null
 ): LoenudviklingPdfModel => {
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
+  const alleIngen =
+    ansaettelser.length > 0 && ansaettelser.every((af) => af.loenudviklingBeregningsgrundlag === 'Ingen');
   const aktiv = ansaettelser.filter((af) => af.loenudviklingBeregningsgrundlag && af.loenudviklingBeregningsgrundlag !== 'Ingen');
   const basis = aktiv[0]?.loenudviklingBeregningsgrundlag;
   const model = aktiv[0]?.loenudviklingStatistikModel ?? '';
@@ -907,6 +909,7 @@ const buildLoenudviklingModel = (
   );
 
   const loenudviklingLabel = (() => {
+    if (alleIngen) return 'Ingen';
     if (!basis) return '-';
     if (basis === 'Statistik' && model.trim() !== '') return model.trim();
     if (basis === 'Manuelt angivet') {
@@ -929,6 +932,11 @@ const buildLoenudviklingModel = (
 
   const tafRanges = buildTafRanges(values);
   const baseLoen = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? maanedsloenBase : dagsloenBase;
+  const canBuildWithoutRegulering =
+    alleIngen &&
+    typeof baseLoen === 'number' &&
+    baseLoen > 0 &&
+    tafRanges.length > 0;
   const canBuildAsl =
     ensartet &&
     basis === 'Statistik' &&
@@ -939,7 +947,7 @@ const buildLoenudviklingModel = (
     baseLoen > 0 &&
     tafRanges.length > 0;
 
-  if (!canBuildAsl) {
+  if (!canBuildAsl && !canBuildWithoutRegulering) {
     return {
       loenudviklingLabel,
       loenudviklingTotal: notCalculableMoney('Kan ikke beregnes'),
@@ -958,6 +966,61 @@ const buildLoenudviklingModel = (
   const baseLoenRounded = roundKroner(baseLoen);
   const baseLoenOre = toOre(baseLoenRounded);
   let total = 0;
+
+  if (canBuildWithoutRegulering) {
+    for (const segment of tafRanges) {
+      if (tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER) {
+        const maanederStats = beregnArbejdsdageOgMaaneder(
+          segment.fra,
+          segment.til,
+          new Set<ISODateString>(),
+          new Set<ISODateString>()
+        );
+        const maanederRaw = maanederStats.maaneder;
+        if (!Number.isFinite(maanederRaw) || maanederRaw <= 0) continue;
+        const maaneder = Math.round(maanederRaw * 10_000) / 10_000;
+        const amount = baseLoenRounded * maaneder;
+        total += amount;
+
+        beregnedeSegmenter.push({
+          kind: 'maaneder',
+          fra: segment.fra,
+          til: segment.til,
+          maaneder,
+          maanedsloenOre: baseLoenOre,
+          deltaPct: 0,
+          amountOre: toOre(roundKroner(amount)),
+        });
+      } else {
+        if (!tafArbejdageSet) continue;
+        const arbejdsdage = countTafArbejdsdageInRange(tafArbejdageSet, segment.fra, segment.til);
+        if (!Number.isFinite(arbejdsdage) || arbejdsdage <= 0) continue;
+        const amount = baseLoenRounded * arbejdsdage;
+        total += amount;
+
+        beregnedeSegmenter.push({
+          kind: 'arbejdsdage',
+          fra: segment.fra,
+          til: segment.til,
+          arbejdsdage,
+          dagsloenOre: baseLoenOre,
+          deltaPct: 0,
+          amountOre: toOre(roundKroner(amount)),
+        });
+      }
+    }
+
+    return {
+      loenudviklingLabel,
+      loenudviklingTotal: asCalculable(toOre(roundKroner(total))),
+      beregningsenhed: tafBeregningsenhed,
+      beregnedeSegmenter,
+    };
+  }
+
+  if (typeof baseIndexValue !== 'number' || baseIndexValue <= 0) {
+    throw new Error('ASL-indeksværdi mangler for lønudvikling');
+  }
 
   for (const segment of segments) {
     const indexValue = aarsloenMax[segment.year as keyof typeof aarsloenMax];

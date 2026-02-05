@@ -35,4 +35,16 @@ describe('buildEODebugIndkomstRows regulering visibility', () => {
 
     expect(reguleringRowIds).toEqual([`${prefix}valgt`]);
   });
+
+  it('returns only "Valgt regulering" when basis is Ingen', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Ingen';
+    const prefix = `loenindkomst.${af.id}.regulering.`;
+
+    const rows = buildEODebugIndkomstRows(values, undefined, {});
+    const reguleringRowIds = rows.filter((row) => row.id.startsWith(prefix)).map((row) => row.id);
+
+    expect(reguleringRowIds).toEqual([`${prefix}valgt`]);
+  });
 });

@@ -266,7 +266,7 @@ export const generateErstatningsopgoerelsePdf = (
 ) => {
   const { visBrevhoved = false } = options;
   const visUdkastStempel = options.visUdkastStempel ?? resolveUdkastStempelValue(eoValues.indsaetUdkastStempel);
-  const afsluttesMed = options.erstatningsopgoerelseAfsluttesMed;
+  const afsluttesMed = options.erstatningsopgoerelseAfsluttesMed ?? eoValues.erstatningsopgoerelseAfsluttesMed;
   const lineHeight = 5;
   const doubleLineHeight = lineHeight * 2;
   const model = buildErstatningsopgoerelsePdfModel(stamdataValues, eoValues, { dagsDatoISO: TODAY });
@@ -737,7 +737,7 @@ export const generateErstatningsopgoerelsePdf = (
           const leftLines = doc.splitTextToSize(ensureNonBreakingKr(leftText), leftMaxWidth);
           doc.text(leftLines, MARGINS.left, currentY);
           const beloebY = currentY + lineHeight * (leftLines.length - 1);
-          doc.setFont('helvetica', 'bold');
+          doc.setFont('helvetica', 'normal');
           doc.text(beloebDisplay, pageWidth - MARGINS.right, beloebY, { align: 'right' });
           doc.setFont('helvetica', 'normal');
           currentY += lineHeight * leftLines.length;
@@ -772,15 +772,20 @@ export const generateErstatningsopgoerelsePdf = (
     }
 
     // Indkomst, hvis skaden ikke var indtrådt
+    const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
+    const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = loenudvikling?.loenudviklingLabel === 'Ingen'
+      ? 'Opgøres på baggrund af lønnen på skadesdatoen.'
+      : 'Opgøres som lønnen på skadesdatoen tillagt efterfølgende lønstigninger.';
     renderSubheaderWithWrappedText(
       'Indkomst, hvis skaden ikke var indtrådt',
-      'Opgøres som lønnen på skadesdatoen tillagt efterfølgende lønstigninger.'
+      indkomstHvisSkadeIkkeIndtraadtBeskrivelse
     );
 
-    const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
     if (loenudvikling) {
-      safeAddWrappedText(`Lønudvikling beregnes ud fra ${loenudvikling.loenudviklingLabel}.`);
-      currentY += lineHeight;
+      if (loenudvikling.loenudviklingLabel !== 'Ingen') {
+        safeAddWrappedText(`Lønudvikling beregnes ud fra ${loenudvikling.loenudviklingLabel}.`);
+        currentY += lineHeight;
+      }
 
       if (loenudvikling.loenudviklingTotal.status !== 'ok') {
         safeAddWrappedText('Lønudvikling kan ikke beregnes for den valgte opsætning.');
@@ -808,12 +813,14 @@ export const generateErstatningsopgoerelsePdf = (
           safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'normal' });
         }
 
-        safeAddLeftRightText(
-          'I alt',
-          formatMoneyOreWithKr(loenudvikling.loenudviklingTotal.value),
-          rightMaxWidth,
-          { rightFontStyle: 'normal', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
-        );
+        if (loenudvikling.beregnedeSegmenter.length > 1) {
+          safeAddLeftRightText(
+            'I alt',
+            formatMoneyOreWithKr(loenudvikling.loenudviklingTotal.value),
+            rightMaxWidth,
+            { rightFontStyle: 'normal', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
+          );
+        }
       }
     }
 
@@ -925,11 +932,11 @@ export const generateErstatningsopgoerelsePdf = (
       },
       renderRow: (entry) => {
         const udgiftText = entry.udgiftTil !== '' ? entry.udgiftTil : '-';
-        const dateSuffix = entry.dateText !== '' ? `, ${entry.dateText}` : '';
+        const leftLabel = entry.dateText !== '' ? `${entry.dateText}: ${udgiftText}` : udgiftText;
         const amountText = formatMoneyOreWithKr(entry.amountOre);
         const leftText = fitTextToWidth(
           doc,
-          ensureNonBreakingKr(`${udgiftText}${dateSuffix}`),
+          ensureNonBreakingKr(leftLabel),
           kravLeftMaxWidth
         );
         currentY = addLeftRightTextSingleLine(
@@ -940,7 +947,7 @@ export const generateErstatningsopgoerelsePdf = (
           currentY,
           lineHeight,
           MARGINS.right,
-          { rightFontStyle: 'normal' }
+          { rightFontStyle: kravEntries.length === 1 ? 'bold' : 'normal' }
         );
       },
     });
@@ -1028,7 +1035,7 @@ export const generateErstatningsopgoerelsePdf = (
   if (afsluttesMed === 'Bekræftet godkendt') {
     currentY = addWrappedText(
       doc,
-      'Opgørelsen er gennemgået af skadelidte, som har bekræftet, at oplysningerne i opgørelsen er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevant oplysninger, som skadelidte er bekendt med.',
+      'Opgørelsen er gennemgået af skadelidte, som har bekræftet, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevant oplysninger, som skadelidte er bekendt med.',
       MARGINS.left,
       currentY,
       lineHeight,
@@ -1037,7 +1044,7 @@ export const generateErstatningsopgoerelsePdf = (
   } else {
     currentY = addWrappedText(
       doc,
-      'Opgørelsen er gennemgået af skadelidte, som ved sin underskrift nedenfor bekræfter, at oplysningerne i opgørelsen er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevant oplysninger, som skadelidte er bekendt med.',
+      'Opgørelsen er gennemgået af skadelidte, som ved sin underskrift nedenfor bekræfter, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevant oplysninger, som skadelidte er bekendt med.',
       MARGINS.left,
       currentY,
       lineHeight,

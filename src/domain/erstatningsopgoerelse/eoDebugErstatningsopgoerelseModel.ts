@@ -2415,13 +2415,15 @@ export const buildEODebugIndkomstRows = (
       });
     }
 
-    rows.push({
-      id: `loenindkomst.${ansaettelsesforhold.id}.regulering.alleVaerdier`,
-      label: 'Alle reguleringsværdier udfyldt',
-      displayValue: alleReguleringsvaerdierRow.displayValue,
-      status: alleReguleringsvaerdierRow.status,
-      dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
-    });
+    if (loenudviklingBasis !== 'Ingen') {
+      rows.push({
+        id: `loenindkomst.${ansaettelsesforhold.id}.regulering.alleVaerdier`,
+        label: 'Alle reguleringsværdier udfyldt',
+        displayValue: alleReguleringsvaerdierRow.displayValue,
+        status: alleReguleringsvaerdierRow.status,
+        dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
+      });
+    }
   });
 
   return rows;

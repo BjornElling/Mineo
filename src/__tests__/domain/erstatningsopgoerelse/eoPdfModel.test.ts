@@ -217,4 +217,41 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     expect(entries.length).toBe(1);
     expect(entries[0].amountOre).toBe(3333);
   });
+
+  it('beregner loenudvikling uden regulering, naar alle ansaettelsesforhold er sat til Ingen', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmountValue(1000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-02'), til: iso('2024-01-02'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '02-01-2024',
+          tilDato: '02-01-2024',
+          ydelse: asAmountValue(100),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
+
+    expect(loenudvikling).not.toBeNull();
+    expect(loenudvikling?.loenudviklingLabel).toBe('Ingen');
+    expect(loenudvikling?.loenudviklingTotal.status).toBe('ok');
+    expect(loenudvikling?.loenudviklingTotal.status === 'ok' ? loenudvikling.loenudviklingTotal.value : null).toBe(100000);
+    expect(loenudvikling?.beregnedeSegmenter).toHaveLength(1);
+    expect(loenudvikling?.beregnedeSegmenter[0]?.deltaPct).toBe(0);
+  });
 });

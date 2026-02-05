@@ -348,7 +348,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       const { generateErstatningsopgoerelsePdf } = await loadErstatningsopgoerelsePdfModule();
       generateErstatningsopgoerelsePdf(stamdataValues, eoValues, selectedElements, {
         visBrevhoved,
-        erstatningsopgoerelseAfsluttesMed: settings.erstatningsopgoerelseAfsluttesMed,
+        erstatningsopgoerelseAfsluttesMed: eoValues.erstatningsopgoerelseAfsluttesMed,
         visUdkastStempel: eoValues.indsaetUdkastStempel === 'Ja',
       });
     } catch (error) {
