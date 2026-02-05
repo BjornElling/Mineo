@@ -1,4 +1,5 @@
 import { formatAsAmount } from './formatUtils';
+import { containsAnyDigit, normalizeTrailingSeparator, normalizeZero, truncateToScale } from './amountInputUtils';
 import type { AmountValue } from '../schemas/amountExpressionSchema';
 
 export type ExpressionErrorCode =
@@ -30,7 +31,6 @@ export type AmountParseResult =
 export type AmountParseOptions = Readonly<{
   precision: number;
   allowNegative: boolean;
-  round: (value: number) => number;
   maxIntegerDigits?: number;
   maxRawLength?: number;
 }>;
@@ -88,9 +88,6 @@ const parseNumberToken = (
     if (/[^0-9]/.test(decimalRaw)) {
       return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' } };
     }
-    if (precision >= 0 && decimalRaw.length > precision) {
-      return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: `Max ${precision} decimaler` } };
-    }
   }
 
   const integerDigits = integerRaw === '' ? '0' : integerRaw.replace(/\./g, '');
@@ -98,13 +95,20 @@ const parseNumberToken = (
     return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: 'Beløb er for stort' } };
   }
 
-  const normalized = decimalRaw !== undefined ? `${integerDigits},${decimalRaw}` : integerDigits;
+  const normalizedIntegerDigits = integerDigits.replace(/^0+(?=\d)/, '');
+  const truncatedDecimal =
+    decimalRaw !== undefined && precision >= 0 ? decimalRaw.slice(0, precision) : decimalRaw;
+
+  const normalized =
+    truncatedDecimal !== undefined && truncatedDecimal !== ''
+      ? `${normalizedIntegerDigits},${truncatedDecimal}`
+      : normalizedIntegerDigits;
   const numericValue = Number.parseFloat(normalized.replace(',', '.'));
   if (!Number.isFinite(numericValue)) {
     return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' } };
   }
 
-  return { ok: true, value: numericValue, normalized };
+  return { ok: true, value: truncateToScale(numericValue, precision), normalized };
 };
 
 const tokenizeExpression = (
@@ -275,9 +279,30 @@ const evaluateExpressionTokens = (tokens: Token[]): { ok: true; value: number } 
   return parsed;
 };
 
+/**
+ * Parse amount input deterministically.
+ *
+ * Invariants:
+ * - Trims surrounding whitespace.
+ * - Removes trailing decimal separator (e.g. "18," -> "18").
+ * - Truncates all decimals beyond `precision` (no rounding).
+ * - Normalizes -0 to 0.
+ * - Returns undefined when input contains no digits.
+ */
+/**
+ * Parser for beløb/udtryk.
+ *
+ * Invariants:
+ * - Normalisering (trailing separator, tomme/ikke-ciffer input) sker her.
+ * - Alle numeriske resultater afskæres til `precision` (ingen afrunding),
+ *   både for rene tal og udtryksresultater.
+ */
 export const parseAmountInput = (draft: string, options: AmountParseOptions): AmountParseResult => {
-  const trimmed = draft.trim();
+  const trimmed = normalizeTrailingSeparator(draft);
   if (trimmed === '') {
+    return { ok: true, value: undefined, isExpression: false };
+  }
+  if (!containsAnyDigit(trimmed)) {
     return { ok: true, value: undefined, isExpression: false };
   }
   if (options.maxRawLength !== undefined && trimmed.length > options.maxRawLength) {
@@ -309,7 +334,7 @@ export const parseAmountInput = (draft: string, options: AmountParseOptions): Am
 
     return {
       ok: true,
-      value: { kind: 'number', value: options.round(signed) },
+      value: { kind: 'number', value: normalizeZero(truncateToScale(signed, options.precision)) },
       isExpression: false,
     };
   }
@@ -324,14 +349,15 @@ export const parseAmountInput = (draft: string, options: AmountParseOptions): Am
     return { ok: false, error: { kind: 'expression', message: evaluated.error.message } };
   }
 
-  const rounded = options.round(evaluated.value);
-  if (!options.allowNegative && rounded < 0) {
+  const truncated = truncateToScale(evaluated.value, options.precision);
+  const normalizedValue = normalizeZero(truncated);
+  if (!options.allowNegative && normalizedValue < 0) {
     return { ok: false, error: { kind: 'expression', message: 'Beløb kan ikke være negativt' } };
   }
 
   return {
     ok: true,
-    value: { kind: 'expression', expression: tokenized.normalizedExpression, value: rounded },
+    value: { kind: 'expression', expression: tokenized.normalizedExpression, value: normalizedValue },
     isExpression: true,
     normalizedExpression: tokenized.normalizedExpression,
   };

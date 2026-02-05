@@ -51,6 +51,11 @@ export type UseDraftFieldConfig<TModel> = {
   commitOnEnter?: boolean;
 
   clearErrorOnDraftChange?: boolean;
+  /**
+   * UX policy: when the draft becomes empty, treat it as "no validation state".
+   * This clears local error + touched without committing or parsing.
+   */
+  clearTouchedOnEmptyDraft?: boolean;
 };
 
 export type UseDraftFieldResult = {
@@ -91,6 +96,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
     commitOnBlur = true,
     commitOnEnter = true,
     clearErrorOnDraftChange = true,
+    clearTouchedOnEmptyDraft = false,
   } = config;
 
   /**
@@ -194,8 +200,12 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       if (clearErrorOnDraftChange) {
         setError(undefined);
       }
+      if (clearTouchedOnEmptyDraft && nextDraft === '') {
+        setError(undefined);
+        setTouched(false);
+      }
     },
-    [clearErrorOnDraftChange]
+    [clearErrorOnDraftChange, clearTouchedOnEmptyDraft]
   );
 
   const cancel = React.useCallback(() => {

@@ -77,10 +77,10 @@ describe('TableAmountInput expression behavior', () => {
     setEditingCell(null);
 
     expect(onBlur).not.toHaveBeenCalled();
-    expect(input).toHaveValue('Fejl');
+    expect(input).toHaveValue('1+');
 
     await user.click(input);
-    expect(input).toHaveValue('Fejl');
+    expect(input).toHaveValue('1+');
 
     setEditingCell(gridCell);
     expect(input).toHaveValue('1+');
@@ -160,5 +160,68 @@ describe('TableAmountInput expression behavior', () => {
     expect(onBlur).not.toHaveBeenCalled();
 
     setEditingCell(null);
+  });
+
+  it('clears error state when draft is emptied', async () => {
+    const user = userEvent.setup();
+    const { input, onBlur, setEditingCell } = setup(undefined);
+
+    await user.click(input);
+    await user.type(input, '1+');
+    await user.tab();
+
+    setEditingCell(null);
+
+    expect(onBlur).not.toHaveBeenCalled();
+    expect(input).toHaveValue('1+');
+
+    setEditingCell(gridCell);
+    await user.clear(input);
+    await user.tab();
+
+    expect(onBlur).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          value: undefined,
+        },
+      })
+    );
+    expect(input).toHaveValue('');
+  });
+
+  it('normalizes -0 to 0 on commit', async () => {
+    const user = userEvent.setup();
+    const { input, onBlur } = setup(undefined);
+
+    await user.click(input);
+    await user.type(input, '-0');
+    await user.tab();
+
+    expect(onBlur).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          value: { kind: 'number', value: 0 },
+        },
+      })
+    );
+    expect(input).toHaveValue('0,00');
+  });
+
+  it('removes all non-allowed characters on paste', async () => {
+    const user = userEvent.setup();
+    const { input, onBlur } = setup(undefined);
+
+    await user.click(input);
+    await user.paste(input, 'ab1c2,3d');
+    await user.tab();
+
+    expect(onBlur).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          value: { kind: 'number', value: 12.3 },
+        },
+      })
+    );
+    expect(input).toHaveValue('12,30');
   });
 });

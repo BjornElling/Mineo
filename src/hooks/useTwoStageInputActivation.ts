@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { readClipboardText } from '../utils/clipboardUtils';
 
 export type TwoStageStartSource = 'click' | 'key' | 'paste';
 
@@ -94,9 +95,13 @@ export const useTwoStageInputActivation = <TElement extends HTMLElement>(
     if (disabled) return;
     if (isEditorOpen) return;
 
-    const text = e.clipboardData?.getData('text') ?? '';
+    const text = readClipboardText(e);
     const normalized = typeof normalizePasteText === 'function' ? normalizePasteText(text) : text;
-    if (normalized === '') return;
+    if (normalized === '') {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
 
     e.preventDefault();
     e.stopPropagation();

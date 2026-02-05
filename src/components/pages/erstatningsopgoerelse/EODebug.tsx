@@ -506,13 +506,14 @@ type IndkomstRow = Readonly<{
 }>;
 
 const EODebug = () => {
-  const { getPersistedData } = useFormPersistence();
+  const { getPersistedData, getLoenindkomstManuelReguleringInputErrors } = useFormPersistence();
   const stamdataValues = React.useMemo(() => {
     return { ...STAMDATA_INITIAL_VALUES, ...(getPersistedData('stamdata') ?? {}) };
   }, [getPersistedData]);
   const erstatningsopgoerelseValues = React.useMemo(() => {
     return { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, ...(getPersistedData('erstatningsopgoerelse') ?? {}) };
   }, [getPersistedData]);
+  const manuelReguleringInputErrors = getLoenindkomstManuelReguleringInputErrors();
 
   const beregnesSvieSmerte = erstatningsopgoerelseValues.beregnesSvieSmerteGodtgoerelse === 'Ja';
   const beregnesTabtArbejdsfortjeneste = erstatningsopgoerelseValues.beregnesTabtArbejdsfortjeneste === 'Ja';
@@ -532,8 +533,9 @@ const EODebug = () => {
       stamdataErrors: stamdataFieldErrors,
       eoValues: erstatningsopgoerelseValues,
       eoErrors: erstatningsopgoerelseFieldErrors,
+      loenindkomstManuelReguleringInputErrors: manuelReguleringInputErrors,
     }),
-    [stamdataValues, stamdataFieldErrors, erstatningsopgoerelseValues, erstatningsopgoerelseFieldErrors]
+    [stamdataValues, stamdataFieldErrors, erstatningsopgoerelseValues, erstatningsopgoerelseFieldErrors, manuelReguleringInputErrors]
   );
 
   // ============================================================================
@@ -591,6 +593,66 @@ const EODebug = () => {
           : '';
       const manuelReguleringNavnDisplay = manuelReguleringNavnRaw === '' ? '-' : manuelReguleringNavnRaw;
       const manuelReguleringNavnStatus: DebugStatus = manuelReguleringNavnRaw === '' ? 'warning' : 'ok';
+      const hasManuelInputError =
+        loenudviklingBasis === 'Manuelt angivet' && Boolean(manuelReguleringInputErrors[af.id]);
+
+      const alleReguleringsvaerdierRow = (() => {
+        if (loenudviklingBasis === 'Ingen') {
+          return { display: 'Ingen', status: 'ok' as DebugStatus };
+        }
+        if (!loenudviklingBasis) {
+          return { display: 'Nej', status: 'error' as DebugStatus };
+        }
+        if (loenudviklingBasis !== 'Manuelt angivet') {
+          return { display: 'Ja', status: 'ok' as DebugStatus };
+        }
+        if (hasManuelInputError) {
+          return { display: 'Ugyldig indtastning', status: 'error' as DebugStatus };
+        }
+
+        const manuelRows = af.loenudviklingManuelTableData ?? [];
+        const aktiveRows = manuelRows.filter((row) => {
+          const dato = row.dato ?? '';
+          const feriepenge = row.feriepenge ?? '';
+          const shSoSats = row.shSoSats ?? '';
+          const fritvalg = row.fritvalg ?? '';
+          const agPension = row.agPension ?? '';
+          return (
+            dato.trim() !== '' ||
+            feriepenge.trim() !== '' ||
+            shSoSats.trim() !== '' ||
+            fritvalg.trim() !== '' ||
+            agPension.trim() !== '' ||
+            row.grundloen !== undefined
+          );
+        });
+
+        if (aktiveRows.length === 0) {
+          return { display: 'Nej', status: 'error' as DebugStatus };
+        }
+
+        const grundloenOk = aktiveRows.every((row) => row.grundloen !== undefined);
+
+        const supplementFields = [
+          'feriepenge',
+          'shSoSats',
+          'fritvalg',
+          'agPension',
+        ] as const;
+
+        const usedSupplements = supplementFields.filter((field) =>
+          aktiveRows.some((row) => (row[field] ?? '').trim() !== '')
+        );
+        const supplementsOk = usedSupplements.every((field) =>
+          aktiveRows.every((row) => (row[field] ?? '').trim() !== '')
+        );
+
+        const ok = grundloenOk && supplementsOk;
+        return { display: ok ? 'Ja' : 'Nej', status: ok ? 'ok' : 'error' as DebugStatus };
+      })();
+
+      const showReguleringDetails =
+        alleReguleringsvaerdierRow.status === 'ok' && alleReguleringsvaerdierRow.display === 'Ja';
 
       const skadesdatoIso = isISODateString(skadesdato) ? skadesdato : undefined;
       const saerligDato = isISODateString(af.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined;
@@ -1463,7 +1525,14 @@ const EODebug = () => {
         });
       }
 
-      if (!isIngen) {
+      rows.push({
+        id: 'regulering.alleVaerdier',
+        label: 'Alle reguleringsværdier udfyldt',
+        displayValue: alleReguleringsvaerdierRow.display,
+        status: alleReguleringsvaerdierRow.status,
+      });
+
+      if (showReguleringDetails) {
         rows.push(
           {
             id: 'regulering.reguleringsdato',
@@ -1508,7 +1577,7 @@ const EODebug = () => {
         id: af.id,
         headerText,
         rows,
-        showTable: !isIngen,
+        showTable: showReguleringDetails,
         table: reguleringTable,
         indeksTable,
         hasDateRange: Boolean(reguleringsdato && tafEndIso),

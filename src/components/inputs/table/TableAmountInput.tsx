@@ -9,15 +9,15 @@ import { assignRef } from './assignRef';
 import { type TableInputErrorInfo } from './tableInputContracts';
 import { filterAmountExpressionKeyDown } from '../inputKeyFilters';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import { sanitizePastedAmount } from '../../../utils/amountInputUtils';
+import { readClipboardText } from '../../../utils/clipboardUtils';
 import {
   amountValueToDisplayString,
   amountValueToDraftString,
   formatExpressionErrorMessage,
-  isExpressionErrorMessage,
   parseAmountInput,
 } from '../../../utils/expressionAmount';
 import { stripAmountGroupingSeparators } from '../../../utils/draftNormalization';
-import { roundByMethod } from '../../../utils/rounding';
 
 export type TableAmountInputValue = AmountValue | undefined;
 
@@ -50,10 +50,6 @@ const TABLE_AMOUNT_PRECISION = 2;
 const MAX_AMOUNT_RAW_LENGTH = 64;
 const MAX_AMOUNT_INTEGER_DIGITS = 20;
 
-const roundToPrecision = (value: number): number => {
-  return roundByMethod(value, TABLE_AMOUNT_PRECISION, 'halfAwayFromZero');
-};
-
 const mapCaretFromGroupedAmount = (draft: string, caret: number): number => {
   if (caret <= 0) return 0;
   const before = draft.slice(0, caret);
@@ -68,7 +64,6 @@ const commitAmountDraft = (
   const parsed = parseAmountInput(draft, {
     precision: TABLE_AMOUNT_PRECISION,
     allowNegative: canBeNegative,
-    round: roundToPrecision,
     maxIntegerDigits: MAX_AMOUNT_INTEGER_DIGITS,
     maxRawLength: MAX_AMOUNT_RAW_LENGTH,
   });
@@ -130,6 +125,7 @@ const TableAmountInput = React.memo(
     const pendingClickCaretRef = React.useRef<number | null>(null);
     const skipCaretRestoreRef = React.useRef(false);
     const latestCommittedValueRef = React.useRef<TableAmountInputValue>(value);
+    const hadErrorOnEditStartRef = React.useRef(false);
 
     const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, canBeNegative });
 
@@ -166,10 +162,12 @@ const TableAmountInput = React.memo(
       if (!isEditing) {
         keyInitiatedEditRef.current = false;
         pendingClickCaretRef.current = null;
+        hadErrorOnEditStartRef.current = false;
         return;
       }
       // Click-initiated edit: initialize the draft from the current committed value.
       if (!keyInitiatedEditRef.current) {
+        hadErrorOnEditStartRef.current = hasErrorRef.current;
         if (hasErrorRef.current) {
           originalValueOnEditStartRef.current = draftRef.current;
           pendingClickCaretRef.current = null;
@@ -197,8 +195,7 @@ const TableAmountInput = React.memo(
     const commitAndEmitBlur = React.useCallback(
       (rawDraft: string) => {
         setTouched(true);
-        const normalized = rawDraft.trim();
-        const committed = commitAmountDraft(normalized, { canBeNegative: latest.current.canBeNegative });
+        const committed = commitAmountDraft(rawDraft, { canBeNegative: latest.current.canBeNegative });
 
         if (!committed.ok) {
           setHasError(true);
@@ -207,8 +204,13 @@ const TableAmountInput = React.memo(
           return;
         }
 
-        // Invariant: no-op commits must not emit blur.
-        if (areAmountValuesEqual(committed.value, latestCommittedValueRef.current)) {
+        const isNoop = areAmountValuesEqual(committed.value, latestCommittedValueRef.current);
+        const shouldEmitNoop =
+          isNoop &&
+          hadErrorOnEditStartRef.current &&
+          rawDraft.trim() === '';
+        // Invariant: no-op commits must not emit blur (except to clear prior error state).
+        if (isNoop && !shouldEmitNoop) {
           setHasError(false);
           setErrorMessage('');
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
@@ -226,9 +228,13 @@ const TableAmountInput = React.memo(
     const handleChange = React.useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         if (isReadOnly) return;
-        const nextDraft = e.target.value ?? '';
+        const nextDraft = sanitizePastedAmount(e.target.value ?? '');
+        hadErrorOnEditStartRef.current = hadErrorOnEditStartRef.current || hasErrorRef.current;
         setHasError(false);
         setErrorMessage('');
+        if (nextDraft === '') {
+          setTouched(false);
+        }
         setDraft(nextDraft);
         // VIGTIGT: Ingen live preview + Escape kr‘ver at vi IKKE l‘kker draft til parent under edit.
         // Parent opdateres kun ved commit (onBlur/commitAndEmitBlur).
@@ -281,12 +287,47 @@ const TableAmountInput = React.memo(
       [isEditing]
     );
 
+    const handlePaste = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        if (!isEditing) return;
+        const raw = readClipboardText(e);
+        const sanitized = sanitizePastedAmount(raw);
+
+        e.preventDefault();
+        e.stopPropagation();
+        if (sanitized === '') return;
+
+        const input = inputElRef.current;
+        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
+        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
+        const nextDraft = draft.slice(0, start) + sanitized + draft.slice(end);
+        hadErrorOnEditStartRef.current = hadErrorOnEditStartRef.current || hasErrorRef.current;
+        setHasError(false);
+        setErrorMessage('');
+        if (nextDraft === '') {
+          setTouched(false);
+        }
+        setDraft(nextDraft);
+
+        const nextCaret = start + sanitized.length;
+        requestAnimationFrame(() => {
+          const el = inputElRef.current;
+          if (!el) return;
+          try {
+            el.setSelectionRange(nextCaret, nextCaret);
+          } catch {
+            // no-op
+          }
+        });
+      },
+      [draft, isEditing]
+    );
+
     const a11yErrorId = React.useId();
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
     const showError = (hasExternalError || (touched && hasError)) && !isFocused;
-    const hasExpressionError = touched && hasError && isExpressionErrorMessage(errorMessage);
-    const displayValue = hasExpressionError ? 'Fejl' : toDisplayString(value);
+    const displayValue = !isEditing && touched && hasError ? draft : toDisplayString(value);
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
@@ -381,6 +422,7 @@ const TableAmountInput = React.memo(
               onFocus={handleFocus}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
               onDoubleClick={handleDoubleClick}
               placeholder={cellFocused && !isReadOnly ? '' : placeholder}
               inputProps={{
@@ -452,4 +494,3 @@ const TableAmountInput = React.memo(
 TableAmountInput.displayName = 'TableAmountInput';
 
 export default TableAmountInput;
-

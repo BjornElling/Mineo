@@ -91,7 +91,7 @@ describe('MainLayout (PWA concurrency)', () => {
     });
 
     const calls = loadFromFileHandleMock.mock.calls;
-    expect(calls[0]?.[1]).toEqual({ requestId: 'pwa-open-1' });
+    expect(calls[0]?.[1]).toEqual(expect.objectContaining({ requestId: 'pwa-open-1' }));
     expect(calls.some((c) => c[1]?.requestId === 'pwa-open-2')).toBe(false);
   });
 });

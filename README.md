@@ -17,8 +17,8 @@ Programmet er gratis og kan frit benyttes i kommercielle sammenhænge. Alle bere
 ## 📦 Installation
 
 ### Forudsætninger
-- Node.js 18+
-- npm
+- Node.js 18+ (med npm)
+- Git
 
 ### Kom i gang
 
@@ -93,6 +93,6 @@ MIT License - Se [LICENSE](LICENSE) filen for detaljer.
 
 ---
 
-**Version**: 2026.02.37
+**Version**: 2026.02.38
 
 **Status**: Under udvikling

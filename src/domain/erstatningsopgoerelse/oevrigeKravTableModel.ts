@@ -7,7 +7,6 @@ import { isOevrigeKravRowEmpty } from './rowEmpty';
 import type { OevrigeKravDraftRow } from './tableDraftRows';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToDraftString, parseAmountInput } from '../../utils/expressionAmount';
-import { roundHalfAwayFromZero } from '../../utils/formatUtils';
 
 export const createOevrigeKravRowId = (): RowId => createRowId('oevrige_krav_row');
 
@@ -46,12 +45,9 @@ export const committedToOevrigeKravDraftRows = (rows: OevrigeKravRow[]): Oevrige
 };
 
 const parseOptionalAmountFromString = (value: string, prev?: AmountValue): AmountValue | undefined => {
-  const trimmed = value.trim();
-  if (trimmed === '') return undefined;
-  const parsed = parseAmountInput(trimmed, {
+  const parsed = parseAmountInput(value, {
     precision: 2,
     allowNegative: false,
-    round: (v) => roundHalfAwayFromZero(v, 2),
   });
   if (!parsed.ok) return prev;
   return parsed.value;

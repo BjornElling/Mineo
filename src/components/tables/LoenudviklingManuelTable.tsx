@@ -21,6 +21,7 @@ import { parsePercentToDecimal } from '../../utils/formatUtils';
 export type LoenudviklingManuelTableProps = Readonly<{
   tableData: LoenudviklingManuelRow[];
   onTableDataChange?: (data: LoenudviklingManuelRow[]) => void;
+  onInputErrorChange?: (hasError: boolean) => void;
   baseDateDisplay: string;
   baseDateErrorMessage?: string;
   useSmallFont?: boolean;
@@ -187,7 +188,14 @@ const ReadOnlyDateCell = React.memo(
 ReadOnlyDateCell.displayName = 'ReadOnlyDateCell';
 
 const LoenudviklingManuelTable = React.memo(
-  ({ tableData, onTableDataChange, baseDateDisplay, baseDateErrorMessage, useSmallFont = false }: LoenudviklingManuelTableProps) => {
+  ({
+    tableData,
+    onTableDataChange,
+    onInputErrorChange,
+    baseDateDisplay,
+    baseDateErrorMessage,
+    useSmallFont = false,
+  }: LoenudviklingManuelTableProps) => {
     const defaultTableData = React.useMemo<LoenudviklingManuelRow[]>(
       () => [
         { ...initialLoenudviklingManuelRow, id: generateLoenudviklingRowId() },
@@ -252,6 +260,15 @@ const LoenudviklingManuelTable = React.memo(
     }, [defaultTableData, normalizeRows, tableData]);
 
     const cellErrorsByCellKeyRef = React.useRef<Record<string, true>>({});
+    const lastInputErrorStateRef = React.useRef<boolean | null>(null);
+
+    const notifyInputErrorChange = React.useCallback(() => {
+      if (!onInputErrorChange) return;
+      const hasError = Object.keys(cellErrorsByCellKeyRef.current).length > 0;
+      if (lastInputErrorStateRef.current === hasError) return;
+      lastInputErrorStateRef.current = hasError;
+      onInputErrorChange(hasError);
+    }, [onInputErrorChange]);
 
     React.useEffect(() => {
       const validRowIds = new Set(internalTableData.map((row) => row.id));
@@ -265,7 +282,8 @@ const LoenudviklingManuelTable = React.memo(
           delete current[cellKey];
         }
       }
-    }, [internalTableData]);
+      notifyInputErrorChange();
+    }, [internalTableData, notifyInputErrorChange]);
 
     const setRow = React.useCallback((rowId: string, updates: Partial<LoenudviklingManuelRow>) => {
       setInternalTableData((prev) => prev.map((row) => (row.id === rowId ? { ...row, ...updates } : row)));
@@ -300,9 +318,14 @@ const LoenudviklingManuelTable = React.memo(
         } else {
           delete cellErrorsByCellKeyRef.current[cellKey];
         }
+        notifyInputErrorChange();
       },
-      []
+      [notifyInputErrorChange]
     );
+
+    React.useEffect(() => {
+      notifyInputErrorChange();
+    }, [notifyInputErrorChange]);
 
     const [sortState, setSortState] = React.useState<GridSortState>({});
     const baseRowId = internalTableData[0]?.id ?? null;

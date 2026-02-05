@@ -17,6 +17,7 @@ const ctx: EODebugExecutionContext = {
   stamdataErrors: {},
   eoValues: ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
   eoErrors: {},
+  loenindkomstManuelReguleringInputErrors: {},
 };
 
 describe('executeEODebugBuilderEntries', () => {

@@ -5,6 +5,8 @@ import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { filterAmountExpressionKeyDown } from './inputKeyFilters';
 import { stripAmountGroupingSeparators } from '../../utils/draftNormalization';
+import { sanitizePastedAmount } from '../../utils/amountInputUtils';
+import { readClipboardText } from '../../utils/clipboardUtils';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import {
   amountValueToDisplayString,
@@ -13,8 +15,6 @@ import {
   isExpressionErrorMessage,
   parseAmountInput,
 } from '../../utils/expressionAmount';
-import { roundHalfAwayFromZero } from '../../utils/formatUtils';
-import { assertNever } from '../../utils/assertNever';
 import {
   createCommitEvent,
   createDraftChangeEvent,
@@ -36,14 +36,11 @@ export type StyledAmountFieldProps = {
   placeholder?: string;
   allowNegative?: boolean;
   /**
-   * Rounding policy applied to all commits.
+   * Precision applied to all commits (afskæring, ikke afrunding).
    *
-   * Default: `precision=2` and `roundingMode='halfAwayFromZero'`.
-   *
-   * Note: rounding is applied during commit parsing so `useDraftField` (resync/format) operates on the canonical committed value.
+   * Default: `precision=2`.
    */
   precision?: number;
-  roundingMode?: StyledAmountFieldRoundingMode;
   disabled?: boolean;
 
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
@@ -63,8 +60,6 @@ export type StyledAmountFieldProps = {
 
   sx?: SxProps<Theme>;
 };
-
-export type StyledAmountFieldRoundingMode = 'halfAwayFromZero';
 
 const clampInt = (value: number, min: number, max: number): number => {
   return Math.max(min, Math.min(max, value));
@@ -90,7 +85,6 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       placeholder = '0,00',
       allowNegative = true,
       precision = 2,
-      roundingMode = 'halfAwayFromZero',
       disabled,
       onFocus,
       onBlur,
@@ -128,24 +122,11 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       [resolvedPrecision]
     );
 
-    const round = React.useCallback(
-      (v: number): number => {
-        switch (roundingMode) {
-          case 'halfAwayFromZero':
-            return roundHalfAwayFromZero(v, resolvedPrecision);
-          default:
-            return assertNever(roundingMode);
-        }
-      },
-      [resolvedPrecision, roundingMode]
-    );
-
     const parseAmount: DraftParse<AmountValue | undefined> = React.useCallback(
       (draft, { mode }) => {
         const parsed = parseAmountInput(draft, {
           precision: resolvedPrecision,
           allowNegative,
-          round,
           maxIntegerDigits: MAX_AMOUNT_INTEGER_DIGITS,
           maxRawLength: MAX_AMOUNT_RAW_LENGTH,
         });
@@ -160,7 +141,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
         }
         return { ok: false, kind: 'invalid', message: parsed.error.message };
       },
-      [allowNegative, resolvedPrecision, round]
+      [allowNegative, resolvedPrecision]
     );
 
     const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
@@ -168,12 +149,12 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
         value,
         format: formatAmount,
         parse: parseAmount,
-        normalizeDraftOnCommit: (draft) => draft.trim(),
         onCommit: (nextValue) => {
           onCommit?.(createCommitEvent(nextValue));
         },
         inputElementRef,
         clearErrorOnDraftChange: true,
+        clearTouchedOnEmptyDraft: true,
         commitOnBlur: false,
       });
 
@@ -199,13 +180,16 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
     }, [localHasError, onLocalErrorChange]);
 
     const skipNextBlurCommitRef = React.useRef(false);
+    const hadErrorOnEditStartRef = React.useRef(false);
     const pendingClickCaretRef = React.useRef<number | null>(null);
 
     const handleDraftChange = React.useCallback(
       (nextDraft: string) => {
+        const cleanedDraft = sanitizePastedAmount(nextDraft);
+        // UX policy: tomt draft betyder "ingen valideringstilstand".
         skipNextBlurCommitRef.current = false;
-        setDraft(nextDraft);
-        onDraftChange?.(createDraftChangeEvent(nextDraft));
+        setDraft(cleanedDraft);
+        onDraftChange?.(createDraftChangeEvent(cleanedDraft));
       },
       [onDraftChange, setDraft]
     );
@@ -220,8 +204,10 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
     const activation = useTwoStageInputActivation<HTMLInputElement>({
       disabled: Boolean(disabled),
       getDraftForKey,
+      normalizePasteText: sanitizePastedAmount,
       onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
       onStartEditing: (source) => {
+        hadErrorOnEditStartRef.current = Boolean(visibleLocalError?.message);
         if (source !== 'click') return;
         if (isExpressionErrorMessage(visibleLocalError?.message)) {
           pendingClickCaretRef.current = null;
@@ -305,8 +291,41 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       [activation, onCommit, onKeyDown, onKeyDownBase, setDraft]
     );
 
-    const hasExpressionError = isExpressionErrorMessage(visibleLocalError?.message);
-    const displayDraft = activation.isEditorOpen ? draft : hasExpressionError ? 'Fejl' : formatAmount(value);
+    const displayDraft = activation.isEditorOpen ? draft : localHasError ? draft : formatAmount(value);
+
+    const handlePaste = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        if (!activation.isEditorOpen) {
+          activation.handlePaste(e);
+          return;
+        }
+
+        const raw = readClipboardText(e);
+        const sanitized = sanitizePastedAmount(raw);
+
+        e.preventDefault();
+        e.stopPropagation();
+        if (sanitized === '') return;
+
+        const input = inputElementRef.current;
+        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
+        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
+        const nextDraft = draft.slice(0, start) + sanitized + draft.slice(end);
+        handleDraftChange(nextDraft);
+
+        const nextCaret = start + sanitized.length;
+        requestAnimationFrame(() => {
+          const el = inputElementRef.current;
+          if (!el) return;
+          try {
+            el.setSelectionRange(nextCaret, nextCaret);
+          } catch {
+            // no-op
+          }
+        });
+      },
+      [activation, draft, handleDraftChange]
+    );
 
     return (
       <StyledTextFieldBase
@@ -319,11 +338,13 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
           onBlurBase(e);
           if (activation.isEditorOpen) {
             const unchanged = value?.kind === 'expression' ? draft === amountValueToDraftString(value, resolvedPrecision) : draft === formatAmount(value);
-            if (!skipNextBlurCommitRef.current && !unchanged) {
+            const shouldForceCommit = draft === '' && value === undefined && hadErrorOnEditStartRef.current;
+            if (!skipNextBlurCommitRef.current && (!unchanged || shouldForceCommit)) {
               commit();
             }
             if (activation.isEditorOpen) activation.closeEditor();
             skipNextBlurCommitRef.current = false;
+            hadErrorOnEditStartRef.current = false;
           }
           onBlur?.(e);
         }}
@@ -335,7 +356,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
         helperText={resolvedErrorMessage}
         onMouseDown={activation.handleMouseDown}
         onClick={activation.handleClick}
-        onPaste={activation.handlePaste}
+        onPaste={handlePaste}
         htmlInputAttributes={{ inputMode: 'decimal', readOnly: !activation.isEditorOpen }}
         sx={{
           '& .MuiInputBase-input': {
@@ -372,5 +393,3 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
 StyledAmountField.displayName = 'StyledAmountField';
 
 export default StyledAmountField;
-
-

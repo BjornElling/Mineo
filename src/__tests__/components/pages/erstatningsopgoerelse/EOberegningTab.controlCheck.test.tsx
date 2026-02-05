@@ -5,6 +5,7 @@ import { vi } from 'vitest';
 
 import EOberegningTab from '../../../../components/pages/erstatningsopgoerelse/EOberegningTab';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
+import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
 import type { EODebugSnapshot } from '../../../../domain/debug/eoDebugSnapshot';
 import type { SammentaellingControl, SammentaellingDisplayRow, SammentaellingModel } from '../../../../domain/debug/eoDebugSammentaelling';
 import { getSammentaellingControlStatus } from '../../../../domain/debug/eoDebugSammentaelling';
@@ -118,7 +119,9 @@ const renderTab = (props: React.ComponentProps<typeof EOberegningTab>) => {
   return render(
     <MemoryRouter>
       <AppSettingsProvider>
-        <EOberegningTab {...props} />
+        <FormPersistenceProvider>
+          <EOberegningTab {...props} />
+        </FormPersistenceProvider>
       </AppSettingsProvider>
     </MemoryRouter>
   );
@@ -170,13 +173,15 @@ describe('EOberegningTab kontroltjek', () => {
     rerender(
       <MemoryRouter>
         <AppSettingsProvider>
-          <EOberegningTab
-            activeTab="beregning"
-            setActiveTab={vi.fn()}
-            isActive={true}
-            debugSnapshot={snapshot}
-            currentDebugRevision={snapshot.revision}
-          />
+          <FormPersistenceProvider>
+            <EOberegningTab
+              activeTab="beregning"
+              setActiveTab={vi.fn()}
+              isActive={true}
+              debugSnapshot={snapshot}
+              currentDebugRevision={snapshot.revision}
+            />
+          </FormPersistenceProvider>
         </AppSettingsProvider>
       </MemoryRouter>
     );
@@ -187,13 +192,15 @@ describe('EOberegningTab kontroltjek', () => {
     rerender(
       <MemoryRouter>
         <AppSettingsProvider>
-          <EOberegningTab
-            activeTab="beregning"
-            setActiveTab={vi.fn()}
-            isActive={true}
-            debugSnapshot={snapshot}
-            currentDebugRevision={snapshot.revision}
-          />
+          <FormPersistenceProvider>
+            <EOberegningTab
+              activeTab="beregning"
+              setActiveTab={vi.fn()}
+              isActive={true}
+              debugSnapshot={snapshot}
+              currentDebugRevision={snapshot.revision}
+            />
+          </FormPersistenceProvider>
         </AppSettingsProvider>
       </MemoryRouter>
     );

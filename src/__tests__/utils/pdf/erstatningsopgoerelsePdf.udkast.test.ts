@@ -1,4 +1,6 @@
 /// <reference types="vitest/globals" />
+import type { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
+import type { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 const mockInstances: MockJsPDF[] = [];
 
@@ -13,6 +15,8 @@ class MockJsPDF {
   setProperties = vi.fn();
   splitTextToSize = vi.fn((text: string) => [text]);
   getTextWidth = vi.fn((text: string) => text.length);
+  getNumberOfPages = vi.fn(() => 1);
+  setPage = vi.fn();
   line = vi.fn();
   setLineWidth = vi.fn();
   addPage = vi.fn();
@@ -27,12 +31,11 @@ class MockJsPDF {
 vi.mock('jspdf', () => ({ default: MockJsPDF }));
 
 describe('erstatningsopgoerelsePdf udkaststempel', () => {
-  const { STAMDATA_INITIAL_VALUES } = await import('../../../domain/stamdata/stamdataInitialValues');
-  const { createErstatningsopgoerelseInitialValues } = await import('../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues');
-  const { generateErstatningsopgoerelsePdf, resolveUdkastStempelValue } = await import('../../../utils/pdf/erstatningsopgoerelsePdf');
+  let baseStamdata: typeof STAMDATA_INITIAL_VALUES;
+  let baseEo: ReturnType<typeof createErstatningsopgoerelseInitialValues>;
+  let generateErstatningsopgoerelsePdf: typeof import('../../../utils/pdf/erstatningsopgoerelsePdf').generateErstatningsopgoerelsePdf;
+  let resolveUdkastStempelValue: typeof import('../../../utils/pdf/erstatningsopgoerelsePdf').resolveUdkastStempelValue;
 
-  const baseStamdata = structuredClone(STAMDATA_INITIAL_VALUES);
-  const baseEo = createErstatningsopgoerelseInitialValues();
   const selected = {
     opgoerelse: true,
     loenindkomst: false,
@@ -42,6 +45,17 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
     okSatser: false,
     sygeferiegodtgoerelse: false,
   };
+
+  beforeAll(async () => {
+    const { STAMDATA_INITIAL_VALUES } = await import('../../../domain/stamdata/stamdataInitialValues');
+    const { createErstatningsopgoerelseInitialValues } = await import('../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues');
+    const pdfModule = await import('../../../utils/pdf/erstatningsopgoerelsePdf');
+
+    baseStamdata = structuredClone(STAMDATA_INITIAL_VALUES);
+    baseEo = createErstatningsopgoerelseInitialValues();
+    generateErstatningsopgoerelsePdf = pdfModule.generateErstatningsopgoerelsePdf;
+    resolveUdkastStempelValue = pdfModule.resolveUdkastStempelValue;
+  });
 
   const hasUdkastCall = (instance: MockJsPDF | null): boolean => {
     if (!instance) return false;

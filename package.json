@@ -27,7 +27,7 @@
     "dayjs": "^1.11.19",
     "focus-visible": "^5.2.1",
     "html2canvas": "^1.4.1",
-    "jspdf": "^4.0.0",
+    "jspdf": "^4.1.0",
     "jspdf-autotable": "^5.0.7",
     "mathjs": "^15.1.0",
     "prop-types": "^15.8.1",

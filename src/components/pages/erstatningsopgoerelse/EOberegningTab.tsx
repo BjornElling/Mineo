@@ -20,6 +20,7 @@ import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
 import { getSammentaellingControlStatus, type SammentaellingDisplayRow } from '../../../domain/debug/eoDebugSammentaelling';
 import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
 import { buildControlMismatchReport, type ControlMismatchReport } from '../../../domain/debug/eoDebugMismatchReport';
+import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
 
 const formatDateLongDisplay = (isoDate: string | undefined): string => {
   const danish = formatISOToDanish(isoDate ?? '');
@@ -56,6 +57,10 @@ interface EOberegningTabProps {
  * - Viser fejl og warnings i separate ContentBox'e
  * - Tilbyder navigation til fejlkilder med scroll-to-sektion
  * - Forbereder download-funktionalitet (inaktiv i denne version)
+ *
+ * Designprincipper (normative):
+ * - Fejl/advarsler i contentboxe må kun komme fra EODebug-rows (ingen generiske runtime-fejl).
+ * - Download af PDF blokeres altid ved fejl, men aldrig ved advarsler.
  */
 const EOberegningTab = React.memo<EOberegningTabProps>((
   { activeTab, setActiveTab, isActive, debugSnapshot, currentDebugRevision }
@@ -66,10 +71,12 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 
   const navigate = useNavigate();
   const { settings } = useAppSettings();
+  const { getLoenindkomstManuelReguleringInputErrors } = useFormPersistence();
   const stamdataValues = usePersistedSection('stamdata');
   const eoValues = usePersistedSection('erstatningsopgoerelse');
   const stamdataErrors = useFieldErrorsBySourceForSection('stamdata');
   const eoErrors = useFieldErrorsBySourceForSection('erstatningsopgoerelse');
+  const manuelReguleringInputErrors = getLoenindkomstManuelReguleringInputErrors();
 
   const [controlMismatchDialogOpen, setControlMismatchDialogOpen] = React.useState(false);
   const [controlMismatchRows, setControlMismatchRows] = React.useState<SammentaellingDisplayRow[]>([]);
@@ -150,8 +157,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       return { errors: [], warnings: [], allRows: [] };
     }
 
-    return collectAllDebugRows(stamdataValues, stamdataErrors, eoValues, eoErrors);
-  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors]);
+    return collectAllDebugRows(stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors);
+  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors]);
 
   // ============================================================================
   // SAMLET ERSTATNINGSOPGØRELSE (AGGREGATION)
@@ -299,8 +306,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   // PDF DOWNLOAD-HÅNDTERING
   // ============================================================================
 
-  const [pdfError, setPdfError] = React.useState<string | null>(null);
-
   const handleDownloadPdf = React.useCallback(async () => {
     if (!stamdataValues || !eoValues) {
       console.error('Manglende data for PDF-generering');
@@ -317,11 +322,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         erstatningsopgoerelseAfsluttesMed: settings.erstatningsopgoerelseAfsluttesMed,
         visUdkastStempel: eoValues.indsaetUdkastStempel === 'Ja',
       });
-      setPdfError(null);
     } catch (error) {
       console.error('Kunne ikke generere PDF for erstatningsopgørelse:', error);
-      const message = error instanceof Error ? error.message : 'Ukendt fejl ved PDF-generering';
-      setPdfError(`PDF kan ikke genereres: ${message}`);
     }
   }, [stamdataValues, eoValues, selectedElements, settings]);
 
@@ -383,12 +385,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
               </Box>
             );
           })}
-        </ContentBox>
-      )}
-      {pdfError && (
-        <ContentBox>
-          <Typography className="section-header">Fejl</Typography>
-          <Typography className="row--text">{pdfError}</Typography>
         </ContentBox>
       )}
       {/* ========================================================================

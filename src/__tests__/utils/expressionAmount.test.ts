@@ -1,11 +1,9 @@
 import { parseAmountInput } from '../../utils/expressionAmount';
-import { roundHalfAwayFromZero } from '../../utils/formatUtils';
 
 const parse = (input: string, overrides?: Partial<Parameters<typeof parseAmountInput>[1]>) =>
   parseAmountInput(input, {
     precision: 2,
     allowNegative: true,
-    round: (value) => roundHalfAwayFromZero(value, 2),
     ...overrides,
   });
 
@@ -58,6 +56,86 @@ describe('parseAmountInput', () => {
     if (!result.ok) return;
     expect(result.value?.kind).toBe('number');
     expect(result.value?.value).toBe(7);
+  });
+
+  it('truncates decimals beyond precision', () => {
+    const result = parse('1,2345');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value?.kind).toBe('number');
+    expect(result.value?.value).toBe(1.23);
+  });
+
+  it('truncates expression results beyond precision', () => {
+    const result = parse('10/3');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value?.kind).toBe('expression');
+    expect(result.value?.value).toBe(3.33);
+  });
+
+  it('accepts trailing decimal separator in plain numbers', () => {
+    const result = parse('18,');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value?.kind).toBe('number');
+    expect(result.value?.value).toBe(18);
+  });
+
+  it('returns undefined when input has no digits', () => {
+    const result = parse('() + -');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value).toBeUndefined();
+  });
+
+  it('returns undefined for empty input variants', () => {
+    const resultWhitespace = parse('   ');
+    expect(resultWhitespace.ok).toBe(true);
+    if (!resultWhitespace.ok) return;
+    expect(resultWhitespace.value).toBeUndefined();
+
+    const resultParens = parse('()');
+    expect(resultParens.ok).toBe(true);
+    if (!resultParens.ok) return;
+    expect(resultParens.value).toBeUndefined();
+
+    const resultPlus = parse('+');
+    expect(resultPlus.ok).toBe(true);
+    if (!resultPlus.ok) return;
+    expect(resultPlus.value).toBeUndefined();
+  });
+
+  it('normalizes negative zero to zero', () => {
+    const result = parse('-0');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value?.kind).toBe('number');
+    expect(result.value?.value).toBe(0);
+    expect(Object.is(result.value?.value, -0)).toBe(false);
+  });
+
+  it('returns undefined for plus-only input', () => {
+    const result = parse('+');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value).toBeUndefined();
+  });
+
+  it('returns undefined for empty whitespace', () => {
+    const result = parse('   ');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value).toBeUndefined();
+  });
+
+  it('normalizes -0 to 0', () => {
+    const result = parse('-0');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value?.kind).toBe('number');
+    expect(Object.is(result.value?.value, -0)).toBe(false);
+    expect(result.value?.value).toBe(0);
   });
 
   it('reports invalid characters in expressions', () => {

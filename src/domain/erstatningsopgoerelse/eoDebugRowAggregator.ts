@@ -253,7 +253,8 @@ export const collectAllDebugRows = (
   stamdataValues: StamdataValues,
   stamdataErrors: StamdataFieldErrorsBySource,
   erstatningsopgoerelseValues: ErstatningsopgoerelseValues,
-  erstatningsopgoerelseErrors: ErstatningsopgoerelseFieldErrorsBySource
+  erstatningsopgoerelseErrors: ErstatningsopgoerelseFieldErrorsBySource,
+  loenindkomstManuelReguleringInputErrors: Readonly<Record<string, true>> = {}
 ): BeregningErrorSummary => {
   // Opret execution context
   const ctx: EODebugExecutionContext = {
@@ -261,6 +262,7 @@ export const collectAllDebugRows = (
     stamdataErrors,
     eoValues: erstatningsopgoerelseValues,
     eoErrors: erstatningsopgoerelseErrors,
+    loenindkomstManuelReguleringInputErrors,
   };
 
   // Udfør alle builders fra registry
@@ -304,6 +306,5 @@ export const collectAllDebugRows = (
 
   return { errors, warnings, allRows: visibleRows };
 };
-
 
 

@@ -7,7 +7,8 @@
  * - jest-dom matchers skal udvides på den globale expect
  */
 import * as matchers from '@testing-library/jest-dom/matchers';
-import { cleanup } from '@testing-library/react';
+import { cleanup, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 // Udvid den globale expect med jest-dom matchers
 // Typesafe cast af globalThis.expect
@@ -73,6 +74,94 @@ if (!HTMLElement.prototype.scrollTo) {
     }
   };
 }
+
+Object.defineProperty(window, 'DataTransfer', {
+  configurable: true,
+  value: undefined,
+});
+Object.defineProperty(globalThis, 'DataTransfer', {
+  configurable: true,
+  value: undefined,
+});
+
+Object.defineProperty(window, 'ClipboardEvent', {
+  configurable: true,
+  value: undefined,
+});
+Object.defineProperty(globalThis, 'ClipboardEvent', {
+  configurable: true,
+  value: undefined,
+});
+
+const clipboardStore = { text: '' };
+
+Object.defineProperty(window.Event.prototype, 'clipboardData', {
+  configurable: true,
+  get() {
+    if ((this as Event).type !== 'paste') return undefined;
+    return {
+      getData: (type: string) => {
+        if (type === 'text' || type === 'text/plain') return clipboardStore.text;
+        return '';
+      },
+    };
+  },
+});
+
+const isDataTransfer = (value: unknown): value is DataTransfer => {
+  return typeof value === 'object' && value !== null && typeof (value as DataTransfer).getData === 'function';
+};
+
+const readClipboardArg = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  if (isDataTransfer(value)) {
+    return value.getData('text') || value.getData('text/plain') || '';
+  }
+  return '';
+};
+
+const originalUserEventSetup = userEvent.setup.bind(userEvent);
+userEvent.setup = ((...args: Parameters<typeof originalUserEventSetup>) => {
+  const api = originalUserEventSetup(...args);
+  api.paste = (async (...pasteArgs: Parameters<typeof api.paste>) => {
+    const firstArg = pasteArgs[0];
+    const secondArg = pasteArgs[1];
+    const hasExplicitTarget = firstArg instanceof Element;
+    const target = hasExplicitTarget
+      ? firstArg
+      : (api.config.document.activeElement instanceof Element ? api.config.document.activeElement : null);
+    const text = hasExplicitTarget ? readClipboardArg(secondArg) : readClipboardArg(firstArg);
+
+    if (!target) return;
+    clipboardStore.text = text;
+
+    await act(async () => {
+      const pasteEvent = new Event('paste', { bubbles: true, cancelable: true });
+      Object.defineProperty(pasteEvent, 'clipboardData', {
+        configurable: true,
+        get: () => ({
+          getData: (type: string) => (type === 'text' || type === 'text/plain' ? text : ''),
+        }),
+      });
+      target.dispatchEvent(pasteEvent);
+
+      if (pasteEvent.defaultPrevented) return;
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return;
+
+      const start = typeof target.selectionStart === 'number' ? target.selectionStart : target.value.length;
+      const end = typeof target.selectionEnd === 'number' ? target.selectionEnd : start;
+      const next = target.value.slice(0, start) + text + target.value.slice(end);
+      target.value = next;
+
+      const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+      Object.defineProperty(inputEvent, 'data', { configurable: true, value: text });
+      Object.defineProperty(inputEvent, 'inputType', { configurable: true, value: 'insertFromPaste' });
+      target.dispatchEvent(inputEvent);
+    });
+  }) as typeof api.paste;
+
+  return api;
+}) as typeof userEvent.setup;
 
 /**
  * Cleanup after each test.

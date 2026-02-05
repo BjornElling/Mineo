@@ -1,4 +1,4 @@
-import type { PersistedSectionMap } from '../../config/persistenceRegistry';
+﻿import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { FieldErrorBySource } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, isoToDanish, subtractOneDay } from '../../types/branded';
@@ -82,6 +82,9 @@ export type DebugRowId =
   | `loenindkomst.${string}.arbejdsstedNavn`
   | `loenindkomst.${string}.satserSkadestidspunkt`
   | `loenindkomst.${string}.loenoplysninger`
+  | `loenindkomst.${string}.regulering.valgt`
+  | `loenindkomst.${string}.regulering.navn`
+  | `loenindkomst.${string}.regulering.alleVaerdier`
   | `offentligeYdelser.${string}`
   | `oevrigekrav.${string}`
   | 'saerligekommentarer';
@@ -2274,7 +2277,8 @@ const formatStatusMessage = (status: DebugStatus, message: string): string => {
 
 export const buildEODebugIndkomstRows = (
   values: ErstatningsopgoerelseValues,
-  skadesdato: ISODateString | undefined
+  skadesdato: ISODateString | undefined,
+  manualReguleringInputErrors: Readonly<Record<string, true>> = {}
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
 
@@ -2301,6 +2305,110 @@ export const buildEODebugIndkomstRows = (
       label: 'Alle lønoplysninger indtastet korrekt',
       displayValue: formatStatusMessage(section.tableStatus, section.tableMessage),
       status: section.tableStatus,
+    });
+  });
+
+  (values.loenindkomstAnsaettelsesforhold ?? []).forEach((ansaettelsesforhold) => {
+    const loenudviklingBasis = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
+    let status: DebugStatus = 'ok';
+    let message = '-';
+
+    if (!loenudviklingBasis) {
+      status = 'error';
+      message = 'Lønudvikling beregnes ud fra er ikke valgt';
+    } else if (loenudviklingBasis === 'Overenskomst' && !ansaettelsesforhold.overenskomstId) {
+      status = 'error';
+      message = 'Overenskomst er ikke valgt';
+    } else if (loenudviklingBasis === 'Statistik' && !ansaettelsesforhold.loenudviklingStatistikModel) {
+      status = 'error';
+      message = 'Statistisk beregningsmodel er ikke valgt';
+    }
+
+    rows.push({
+      id: `loenindkomst.${ansaettelsesforhold.id}.regulering.valgt`,
+      label: 'Valgt regulering',
+      displayValue: formatStatusMessage(status, message),
+      status,
+    });
+
+    const alleReguleringsvaerdierRow = (() => {
+      if (loenudviklingBasis === 'Ingen') {
+        return { displayValue: 'Ingen', status: 'ok' as DebugStatus };
+      }
+      if (!loenudviklingBasis) {
+        return { displayValue: 'Nej', status: 'error' as DebugStatus };
+      }
+      if (loenudviklingBasis !== 'Manuelt angivet') {
+        return { displayValue: 'Ja', status: 'ok' as DebugStatus };
+      }
+
+      if (manualReguleringInputErrors[ansaettelsesforhold.id]) {
+        return {
+          displayValue: formatStatusMessage('error', 'Ugyldig indtastning'),
+          status: 'error' as DebugStatus,
+        };
+      }
+
+      const manuelRows = ansaettelsesforhold.loenudviklingManuelTableData ?? [];
+      const aktiveRows = manuelRows.filter((row) => {
+        const dato = row.dato ?? '';
+        const feriepenge = row.feriepenge ?? '';
+        const shSoSats = row.shSoSats ?? '';
+        const fritvalg = row.fritvalg ?? '';
+        const agPension = row.agPension ?? '';
+        return (
+          dato.trim() !== '' ||
+          feriepenge.trim() !== '' ||
+          shSoSats.trim() !== '' ||
+          fritvalg.trim() !== '' ||
+          agPension.trim() !== '' ||
+          row.grundloen !== undefined
+        );
+      });
+
+      if (aktiveRows.length === 0) {
+        return { displayValue: 'Nej', status: 'error' as DebugStatus };
+      }
+
+      const grundloenOk = aktiveRows.every((row) => row.grundloen !== undefined);
+
+      const supplementFields = [
+        'feriepenge',
+        'shSoSats',
+        'fritvalg',
+        'agPension',
+      ] as const;
+
+      const usedSupplements = supplementFields.filter((field) =>
+        aktiveRows.some((row) => (row[field] ?? '').trim() !== '')
+      );
+      const supplementsOk = usedSupplements.every((field) =>
+        aktiveRows.every((row) => (row[field] ?? '').trim() !== '')
+      );
+
+      const ok = grundloenOk && supplementsOk;
+      return { displayValue: ok ? 'Ja' : 'Nej', status: ok ? 'ok' : 'error' as DebugStatus };
+    })();
+
+    if (loenudviklingBasis === 'Manuelt angivet') {
+      const manuelNavn = (ansaettelsesforhold.loenudviklingManuelNavn ?? '').trim();
+      const harManuelNavn = manuelNavn !== '';
+      rows.push({
+        id: `loenindkomst.${ansaettelsesforhold.id}.regulering.navn`,
+        label: 'Navn på reguleringsform',
+        displayValue: formatStatusMessage(
+          harManuelNavn ? 'ok' : 'warning',
+          harManuelNavn ? manuelNavn : 'Navn på reguleringsform mangler'
+        ),
+        status: harManuelNavn ? 'ok' : 'warning',
+      });
+    }
+
+    rows.push({
+      id: `loenindkomst.${ansaettelsesforhold.id}.regulering.alleVaerdier`,
+      label: 'Alle reguleringsværdier udfyldt',
+      displayValue: alleReguleringsvaerdierRow.displayValue,
+      status: alleReguleringsvaerdierRow.status,
     });
   });
 

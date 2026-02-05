@@ -143,7 +143,7 @@ type ReguleringsDatoInterval = Readonly<{ fraDato: string; tilDato: string }>;
 
 const LoenindkomstTab = React.memo(({ form }: Props) => {
   const { values, setValues } = form;
-  const { getPersistedData } = useFormPersistence();
+  const { getPersistedData, setLoenindkomstManuelReguleringInputError } = useFormPersistence();
   const { settings } = useAppSettings();
 
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
@@ -668,9 +668,12 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
       (event: StyledDropdownChangeEvent<string>) => {
         const parsed = loenudviklingBeregningsgrundlagEnum.safeParse(event.target.value);
         if (!parsed.success) return;
+        if (parsed.data !== 'Manuelt angivet') {
+          setLoenindkomstManuelReguleringInputError(id, false);
+        }
         updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingBeregningsgrundlag: parsed.data }));
       },
-    [updateAnsaettelsesforhold]
+    [setLoenindkomstManuelReguleringInputError, updateAnsaettelsesforhold]
   );
 
   const handleLoenudviklingStatistikModelChange = React.useCallback(
@@ -694,6 +697,13 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
         updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingManuelTableData: newTableData }));
       },
     [updateAnsaettelsesforhold]
+  );
+
+  const handleManuelReguleringInputErrorChange = React.useCallback(
+    (id: string) => (hasError: boolean) => {
+      setLoenindkomstManuelReguleringInputError(id, hasError);
+    },
+    [setLoenindkomstManuelReguleringInputError]
   );
 
   const resolveOverenskomstLabel = React.useCallback((overenskomstId: string | undefined): string => {
@@ -733,6 +743,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 
   const handleDeleteConfirm = React.useCallback(() => {
     if (!deleteTargetId) return;
+    setLoenindkomstManuelReguleringInputError(deleteTargetId, false);
     setValues((prev) => ({
       ...prev,
       loenindkomstAnsaettelsesforhold: prev.loenindkomstAnsaettelsesforhold.filter(
@@ -741,7 +752,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     }));
     setDeleteDialogOpen(false);
     setDeleteTargetId(null);
-  }, [deleteTargetId, setValues]);
+  }, [deleteTargetId, setLoenindkomstManuelReguleringInputError, setValues]);
 
   const handleDownloadReguleringPdf = React.useCallback(
     async (params: {
@@ -1249,6 +1260,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                 <LoenudviklingManuelTable
                   tableData={af.loenudviklingManuelTableData}
                   onTableDataChange={handleLoenudviklingManuelTableChange(af.id)}
+                  onInputErrorChange={handleManuelReguleringInputErrorChange(af.id)}
                   baseDateDisplay={loenudviklingBaseDate.display}
                   baseDateErrorMessage={loenudviklingBaseDate.display === '' ? loenudviklingBaseDate.errorMessage : undefined}
                   useSmallFont={true}
@@ -1397,7 +1409,6 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 LoenindkomstTab.displayName = 'LoenindkomstTab';
 
 export default LoenindkomstTab;
-
 
 
 

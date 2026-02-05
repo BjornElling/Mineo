@@ -42,10 +42,10 @@ describe('StyledAmountField expression behavior', () => {
     await user.tab();
 
     expect(onCommit).not.toHaveBeenCalled();
-    expect(input).toHaveValue('Fejl');
+    expect(input).toHaveValue('1+');
 
     await user.click(input);
-    expect(input).toHaveValue('Fejl');
+    expect(input).toHaveValue('1+');
 
     await openEditor(user, input);
     // Critical: error draft must survive and re-open exactly as entered.
@@ -76,5 +76,69 @@ describe('StyledAmountField expression behavior', () => {
 
     expect(input).toHaveValue('1+2');
     expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  it('clears error state when draft is emptied', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn<OnCommit>();
+    const input = renderField(undefined, onCommit);
+
+    await openEditor(user, input);
+    await user.type(input, '1+');
+    await user.tab();
+
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(input).toHaveValue('1+');
+
+    await openEditor(user, input);
+    await user.clear(input);
+    await user.tab();
+
+    expect(onCommit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          value: undefined,
+        },
+      })
+    );
+    expect(input).toHaveValue('');
+  });
+
+  it('normalizes -0 to 0 on commit', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn<OnCommit>();
+    const input = renderField(undefined, onCommit);
+
+    await openEditor(user, input);
+    await user.type(input, '-0');
+    await user.tab();
+
+    expect(onCommit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          value: { kind: 'number', value: 0 },
+        },
+      })
+    );
+    expect(input).toHaveValue('0,00');
+  });
+
+  it('removes all non-allowed characters on paste', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn<OnCommit>();
+    const input = renderField(undefined, onCommit);
+
+    await user.click(input);
+    await user.paste(input, 'ab1c2,3d');
+    await user.tab();
+
+    expect(onCommit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          value: { kind: 'number', value: 12.3 },
+        },
+      })
+    );
+    expect(input).toHaveValue('12,30');
   });
 });

@@ -148,6 +148,14 @@ type FormPersistenceContextValue = {
   clearFieldErrors: (pageKey: StorageKey) => void;
   clearAllFieldErrors: () => void;
   /**
+   * Runtime-only input error flags for manuel regulering (per ansættelsesforhold).
+   *
+   * NOTE: These are NOT persisted and must be cleared on authoritative state replacement.
+   */
+  getLoenindkomstManuelReguleringInputErrors: () => Readonly<Record<string, true>>;
+  setLoenindkomstManuelReguleringInputError: (ansaettelsesforholdId: string, hasError: boolean) => void;
+  clearLoenindkomstManuelReguleringInputErrors: () => void;
+  /**
    * Runtime-only field errors.
    *
    * Architectural invariants:
@@ -296,6 +304,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
   });
 
   const [fieldErrors, setFieldErrors] = React.useState<FieldErrorCache>(() => createEmptyFieldErrorCache());
+  const [manuelReguleringInputErrors, setManuelReguleringInputErrors] = React.useState<Record<string, true>>({});
   const [sectionRevisions, setSectionRevisions] = React.useState<Record<StorageKey, number>>(() => {
     return Object.keys(persistenceSchemas).reduce((acc, key) => {
       acc[key as StorageKey] = 0;
@@ -558,6 +567,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         { hydrated: true, schemaFingerprint: CURRENT_VERSION, lastCommittedAt: Date.now() }
       );
       setFieldErrors(createEmptyFieldErrorCache());
+      setManuelReguleringInputErrors({});
       setSectionRevisions((prev) => {
         const next = { ...prev };
         for (const key of Object.keys(persistenceSchemas) as StorageKey[]) {
@@ -607,6 +617,9 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       sessionStorage.removeItem(storageKey);
       syncSection(pageKey, null);
       setFieldErrors((prev) => ({ ...prev, [pageKey]: {} }));
+      if (pageKey === 'erstatningsopgoerelse') {
+        setManuelReguleringInputErrors({});
+      }
       setSectionRevisions((prev) => {
         const next = { ...prev };
         next[pageKey] = (prev[pageKey] ?? 0) + 1;
@@ -640,6 +653,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       setCache(emptyCache);
       formPersistenceStore.getState().clearAll({ hydrated: true, schemaFingerprint: CURRENT_VERSION, lastCommittedAt: Date.now() });
       setFieldErrors(createEmptyFieldErrorCache());
+      setManuelReguleringInputErrors({});
       setSectionRevisions((prev) => {
         const next = { ...prev };
         for (const key of Object.keys(persistenceSchemas) as StorageKey[]) {
@@ -724,6 +738,9 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
 
   const clearFieldErrors = React.useCallback((pageKey: StorageKey) => {
     setFieldErrors((prev) => ({ ...prev, [pageKey]: {} }));
+    if (pageKey === 'erstatningsopgoerelse') {
+      setManuelReguleringInputErrors({});
+    }
     setFieldErrorRevisions((prev) => {
       const next = { ...prev };
       next[pageKey] = (prev[pageKey] ?? 0) + 1;
@@ -733,6 +750,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
 
   const clearAllFieldErrors = React.useCallback(() => {
     setFieldErrors(createEmptyFieldErrorCache());
+    setManuelReguleringInputErrors({});
     setFieldErrorRevisions((prev) => {
       const next = { ...prev };
       for (const key of Object.keys(persistenceSchemas) as StorageKey[]) {
@@ -750,6 +768,32 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     return fieldErrorRevisions[pageKey] ?? 0;
   }, [fieldErrorRevisions]);
 
+  const getLoenindkomstManuelReguleringInputErrors = React.useCallback(() => {
+    return manuelReguleringInputErrors;
+  }, [manuelReguleringInputErrors]);
+
+  const setLoenindkomstManuelReguleringInputError = React.useCallback(
+    (ansaettelsesforholdId: string, hasError: boolean) => {
+      setManuelReguleringInputErrors((prev) => {
+        const nextHasError = Boolean(hasError);
+        const prevHasError = Boolean(prev[ansaettelsesforholdId]);
+        if (prevHasError === nextHasError) return prev;
+        const next = { ...prev };
+        if (nextHasError) {
+          next[ansaettelsesforholdId] = true;
+        } else {
+          delete next[ansaettelsesforholdId];
+        }
+        return next;
+      });
+    },
+    []
+  );
+
+  const clearLoenindkomstManuelReguleringInputErrors = React.useCallback(() => {
+    setManuelReguleringInputErrors({});
+  }, []);
+
   const value = React.useMemo(
     () => ({
       getPersistedData,
@@ -763,6 +807,9 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       setFieldError,
       clearFieldErrors,
       clearAllFieldErrors,
+      getLoenindkomstManuelReguleringInputErrors,
+      setLoenindkomstManuelReguleringInputError,
+      clearLoenindkomstManuelReguleringInputErrors,
       authoritativeSnapshotEpoch,
       getSectionRevision,
       getFieldErrorRevision,
@@ -782,6 +829,9 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       setFieldError,
       clearFieldErrors,
       clearAllFieldErrors,
+      getLoenindkomstManuelReguleringInputErrors,
+      setLoenindkomstManuelReguleringInputError,
+      clearLoenindkomstManuelReguleringInputErrors,
       authoritativeSnapshotEpoch,
       getSectionRevision,
       getFieldErrorRevision,

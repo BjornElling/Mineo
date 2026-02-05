@@ -11,6 +11,7 @@ export type StamdataFieldErrorsBySource = Partial<Record<StamdataFieldName, Fiel
 export type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];
 export type ErstatningsopgoerelseFieldName = Extract<keyof ErstatningsopgoerelseValues, string>;
 export type ErstatningsopgoerelseFieldErrorsBySource = Partial<Record<ErstatningsopgoerelseFieldName, FieldErrorBySource>>;
+export type LoenindkomstManuelReguleringInputErrors = Readonly<Record<string, true>>;
 
 /**
  * Fælles execution-context for alle EODebug builders
@@ -23,4 +24,5 @@ export type EODebugExecutionContext = {
   stamdataErrors: StamdataFieldErrorsBySource;
   eoValues: ErstatningsopgoerelseValues;
   eoErrors: ErstatningsopgoerelseFieldErrorsBySource;
+  loenindkomstManuelReguleringInputErrors: LoenindkomstManuelReguleringInputErrors;
 };
