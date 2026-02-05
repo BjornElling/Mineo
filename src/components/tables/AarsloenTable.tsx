@@ -24,6 +24,7 @@ import { getAarsloenTableValidation, isAarsloenTableValueEffectivelyEmptyForVali
 
 import { StandardGridHeaderCell, StandardGridTable, getStandardGridBodyRowStyle, getStandardGridCellStyle } from './StandardGridTable';
 import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridModel';
+import { applyRowRemovalFocusPlan, buildRowRemovalFocusPlan, type RowRemovalFocusPlan } from './tableRowFocus';
 
 export type AarsloenTableSatser = {
   ferie?: number;
@@ -81,6 +82,9 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
     const lastPersistedDataRef = React.useRef<AarsloenTableRow[] | null>(null);
     const lastPersistedFingerprintRef = React.useRef<string | null>(null);
     const pendingPersistRef = React.useRef<AarsloenTableRow[] | null>(null);
+    const tableRef = React.useRef<HTMLTableElement | null>(null);
+    const pendingRowFocusPlanRef = React.useRef<RowRemovalFocusPlan | null>(null);
+    const visibleRowIdsRef = React.useRef<readonly string[]>([]);
 
     const persistTableData = React.useCallback(
       (internalData: AarsloenTableRow[]) => {
@@ -225,6 +229,18 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
         setRowsState((prev) => {
           const updated = updateCellValueInTable(prev.draft, rowId, colKey, value);
           const managed = manageRows(updated);
+          const focusPlan = buildRowRemovalFocusPlan({
+            table: tableRef.current,
+            prevRows: prev.draft,
+            nextRows: managed,
+            visibleRowIds: visibleRowIdsRef.current,
+            getRowId: (row) => row.id,
+          });
+          if (focusPlan) {
+            // Last-plan-wins by design: only the final commit in a render cycle should decide focus restoration.
+            pendingRowFocusPlanRef.current = focusPlan;
+          }
+
           // KRITISK: Sammenlign mod prev.committed (ikke prev.draft)
           // handleFieldBlur er en commit-handler - baseline skal ALTID være committed
           const managedFingerprint = fingerprintTableData(managed);
@@ -391,6 +407,18 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
         getSortValueByColId,
       });
     }, [getSortValueByColId, rowsState.draft, sortState]);
+    const visibleRowIds = React.useMemo(() => visibleRows.map((row) => row.id), [visibleRows]);
+
+    React.useLayoutEffect(() => {
+      visibleRowIdsRef.current = visibleRowIds;
+    }, [visibleRowIds]);
+
+    React.useLayoutEffect(() => {
+      const plan = pendingRowFocusPlanRef.current;
+      if (!plan) return;
+      applyRowRemovalFocusPlan({ table: tableRef.current, plan, visibleRowIds });
+      pendingRowFocusPlanRef.current = null;
+    }, [visibleRowIds]);
 
     const [errorCell, setErrorCell] = React.useState<{ rowId: string; colIdx: number } | null>(null);
     const [externalCellError, setExternalCellError] = React.useState<{ rowId: string; colKey: AarsloenTableColumnKey; message: string } | null>(null);
@@ -518,6 +546,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
     return (
       <StandardGridTable
         tableWidth="1130px"
+        tableRef={tableRef}
         useSmallFont={useSmallFont}
         beforeTable={
           <style>

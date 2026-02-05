@@ -11,6 +11,7 @@ import { gridCellKey, areSameGridCellOrBothNull } from './gridCoreUtils';
 import type { GridCellCoord, GridCoreController, GridCellEditorHandle, GridOpenEditSource, FocusPlan } from './gridCoreTypes';
 import { handleTableBlurCapture, handleTableDoubleClickCapture, handleTableFocusCapture, handleTableKeyDownCapture, handleTablePointerDownCapture } from './tableKeyboardNavigation';
 import type { GridSortDirection, GridSortRole } from './gridModel';
+import { assignRef } from '../inputs/table/assignRef';
 
 export type StandardGridTableProps = Readonly<{
   /**
@@ -29,6 +30,10 @@ export type StandardGridTableProps = Readonly<{
    */
   containerSx?: Record<string, unknown>;
   /**
+   * Optional table ref for focus coordination.
+   */
+  tableRef?: React.Ref<HTMLTableElement>;
+  /**
    * DANGER: Disables GridCore navigation entirely.
    *
    * Default: false (navigation enabled).
@@ -46,9 +51,10 @@ export const StandardGridTable = React.memo(
     tableLayout = 'fixed',
     useSmallFont = false,
     containerSx,
+    tableRef,
     __dangerouslyDisableGridNavigation = false,
   }: StandardGridTableProps) => {
-    const tableRef = React.useRef<HTMLTableElement | null>(null);
+    const internalTableRef = React.useRef<HTMLTableElement | null>(null);
 
     const editorRegistryRef = React.useRef<Map<string, GridCellEditorHandle>>(new Map());
 
@@ -230,7 +236,7 @@ export const StandardGridTable = React.memo(
     // Forudsætning: <table> ref ændrer sig ikke (ingen dynamisk key, ingen conditional mount).
     // Hvis table-elementet remounter, vil registry fail-fast ved double attach.
     React.useEffect(() => {
-      const table = tableRef.current;
+      const table = internalTableRef.current;
       if (!table) return;
       attachGridCoreToTable(table, controller);
       return () => {
@@ -286,7 +292,10 @@ export const StandardGridTable = React.memo(
         {beforeTable}
         <GridCoreProvider value={contextValue}>
           <table
-            ref={tableRef}
+            ref={(node) => {
+              internalTableRef.current = node;
+              assignRef(tableRef, node);
+            }}
             data-mineo-table-navigation="true"
             onKeyDownCapture={!__dangerouslyDisableGridNavigation ? handleTableKeyDownCapture : undefined}
             onBlurCapture={!__dangerouslyDisableGridNavigation ? handleTableBlurCapture : undefined}

@@ -24,6 +24,7 @@ import {
 } from '../../utils/offentligeYdelserTableValidation';
 import { StandardGridHeaderCell, StandardGridTable, getStandardGridBodyRowStyle, getStandardGridCellStyle } from './StandardGridTable';
 import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridModel';
+import { applyRowRemovalFocusPlan, buildRowRemovalFocusPlan, type RowRemovalFocusPlan } from './tableRowFocus';
 
 export type OffentligeYdelserDerivedCellValues = Readonly<{
   periodiseringLabel: string;
@@ -85,6 +86,9 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
     const pendingPersistRef = React.useRef<OffentligeYdelserRow[] | null>(null);
     const committedRowsRef = React.useRef<OffentligeYdelserRow[]>([]);
     const committedRowIdsRef = React.useRef<Set<string>>(new Set());
+    const tableRef = React.useRef<HTMLTableElement | null>(null);
+    const pendingRowFocusPlanRef = React.useRef<RowRemovalFocusPlan | null>(null);
+    const visibleRowIdsRef = React.useRef<readonly string[]>([]);
     const syncCommittedRowIds = React.useCallback((rows: OffentligeYdelserRow[]) => {
       committedRowIdsRef.current = new Set(rows.map((row) => row.id));
     }, []);
@@ -167,6 +171,18 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
         setInternalTableData((prev) => {
           const updated = prev.map((row) => (row.id === rowId ? { ...row, ...updates } : row));
           const normalized = normalizeRows(updated);
+          const focusPlan = buildRowRemovalFocusPlan({
+            table: tableRef.current,
+            prevRows: prev,
+            nextRows: normalized,
+            visibleRowIds: visibleRowIdsRef.current,
+            getRowId: (row) => row.id,
+          });
+          if (focusPlan) {
+            // Last-plan-wins by design: only the final commit in a render cycle should decide focus restoration.
+            pendingRowFocusPlanRef.current = focusPlan;
+          }
+
           // Only persist when the normalized result differs from what we've last told the parent.
           if (lastPersistedFingerprintRef.current !== fingerprintTableData(normalized)) {
             pendingPersistRef.current = normalized;
@@ -263,6 +279,18 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
         getSortValueByColId,
       });
     }, [getSortValueByColId, internalTableData, sortState]);
+    const visibleRowIds = React.useMemo(() => visibleRows.map((row) => row.id), [visibleRows]);
+
+    React.useLayoutEffect(() => {
+      visibleRowIdsRef.current = visibleRowIds;
+    }, [visibleRowIds]);
+
+    React.useLayoutEffect(() => {
+      const plan = pendingRowFocusPlanRef.current;
+      if (!plan) return;
+      applyRowRemovalFocusPlan({ table: tableRef.current, plan, visibleRowIds });
+      pendingRowFocusPlanRef.current = null;
+    }, [visibleRowIds]);
 
     const [externalCellError, setExternalCellError] = React.useState<{ rowId: string; colKey: OffentligeYdelserTableColumnKey; message: string } | null>(null);
     const cellRefsByCellKeyRef = React.useRef<Record<string, HTMLElement | null>>({});
@@ -357,7 +385,7 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
 
     return (
       <div>
-        <StandardGridTable tableWidth="1130px">
+        <StandardGridTable tableWidth="1130px" tableRef={tableRef}>
           <colgroup>
             <col style={{ width: '120px' }} />
             <col style={{ width: '120px' }} />

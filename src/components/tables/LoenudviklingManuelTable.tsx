@@ -11,6 +11,7 @@ import { useGridCore } from './gridCoreContext';
 import type { GridCellCoord, GridCellEditorHandle } from './gridCoreTypes';
 import { StandardGridHeaderCell, StandardGridTable, getStandardGridBodyRowStyle, getStandardGridCellStyle } from './StandardGridTable';
 import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridModel';
+import { applyRowRemovalFocusPlan, buildRowRemovalFocusPlan, type RowRemovalFocusPlan } from './tableRowFocus';
 import { coerceToISODateString } from '../../types/branded';
 import { initialLoenudviklingManuelRow, generateLoenudviklingRowId } from '../../utils/eoConverters';
 import type { LoenudviklingManuelRow } from '../../schemas/formSchemas';
@@ -205,6 +206,9 @@ const LoenudviklingManuelTable = React.memo(
     );
 
     const pendingPersistRef = React.useRef<LoenudviklingManuelRow[] | null>(null);
+    const tableRef = React.useRef<HTMLTableElement | null>(null);
+    const pendingRowFocusPlanRef = React.useRef<RowRemovalFocusPlan | null>(null);
+    const visibleRowIdsRef = React.useRef<readonly string[]>([]);
 
     const createEmptyRow = React.useCallback((): LoenudviklingManuelRow => {
       return { ...initialLoenudviklingManuelRow, id: generateLoenudviklingRowId() };
@@ -294,6 +298,18 @@ const LoenudviklingManuelTable = React.memo(
         setInternalTableData((prev) => {
           const updated = prev.map((row) => (row.id === rowId ? { ...row, ...updates } : row));
           const normalized = normalizeRows(updated);
+          const focusPlan = buildRowRemovalFocusPlan({
+            table: tableRef.current,
+            prevRows: prev,
+            nextRows: normalized,
+            visibleRowIds: visibleRowIdsRef.current,
+            getRowId: (row) => row.id,
+          });
+          if (focusPlan) {
+            // Last-plan-wins by design: only the final commit in a render cycle should decide focus restoration.
+            pendingRowFocusPlanRef.current = focusPlan;
+          }
+
           if (lastPersistedFingerprintRef.current !== fingerprintTableData(normalized)) {
             pendingPersistRef.current = normalized;
           }
@@ -374,9 +390,21 @@ const LoenudviklingManuelTable = React.memo(
         getSortValueByColId,
       });
     }, [getSortValueByColId, internalTableData, isRowEmptyForSort, sortState]);
+    const visibleRowIds = React.useMemo(() => visibleRows.map((row) => row.id), [visibleRows]);
+
+    React.useLayoutEffect(() => {
+      visibleRowIdsRef.current = visibleRowIds;
+    }, [visibleRowIds]);
+
+    React.useLayoutEffect(() => {
+      const plan = pendingRowFocusPlanRef.current;
+      if (!plan) return;
+      applyRowRemovalFocusPlan({ table: tableRef.current, plan, visibleRowIds });
+      pendingRowFocusPlanRef.current = null;
+    }, [visibleRowIds]);
 
     return (
-      <StandardGridTable tableWidth="1130px" useSmallFont={useSmallFont}>
+      <StandardGridTable tableWidth="1130px" useSmallFont={useSmallFont} tableRef={tableRef}>
         <colgroup>
           <col style={{ width: '140px' }} />
           <col style={{ width: '140px' }} />
