@@ -3,6 +3,29 @@ import { applyRowRemovalFocusPlan, buildRowRemovalFocusPlan, type RowRemovalFocu
 
 type Row = { id: string };
 
+const createNonEmptyClientRectList = (): DOMRectList => {
+  const rect = {
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 20,
+    top: 0,
+    right: 100,
+    bottom: 20,
+    left: 0,
+    toJSON: () => ({}),
+  } as DOMRect;
+  const listLike = {
+    0: rect,
+    length: 1,
+    item: (index: number) => (index === 0 ? rect : null),
+    [Symbol.iterator]: function* iterator() {
+      yield rect;
+    },
+  };
+  return listLike as unknown as DOMRectList;
+};
+
 const buildTable = (params: {
   rowIds: readonly string[];
   colCount: number;
@@ -34,6 +57,10 @@ const buildTable = (params: {
       const createInput = () => {
         const input = document.createElement('input');
         input.type = 'text';
+        Object.defineProperty(input, 'getClientRects', {
+          configurable: true,
+          value: () => createNonEmptyClientRectList(),
+        });
         td.appendChild(input);
         inputs.push(input);
       };
@@ -211,6 +238,29 @@ describe('tableRowFocus', () => {
       visibleRowIds: ['r1', 'r2', 'r3', 'r4'],
     });
     expect(plan).toEqual({ targetIndex: 1, colIndex: 1 });
+
+    applyRowRemovalFocusPlan({ table, plan: plan!, visibleRowIds: ['r1', 'r3'] });
+    expect(document.activeElement).toBe(expectedTarget);
+  });
+
+  it('restores focus when the removed row is actually unmounted from DOM before apply', () => {
+    const { table, getInput } = buildTable({ rowIds: ['r1', 'r2', 'r3'], colCount: 1 });
+    const activeInput = getInput('r2', 0);
+    const expectedTarget = getInput('r3', 0);
+    expect(activeInput).not.toBeNull();
+    expect(expectedTarget).not.toBeNull();
+
+    activeInput!.focus();
+    const plan = buildPlan({
+      table,
+      prevIds: ['r1', 'r2', 'r3'],
+      nextIds: ['r1', 'r3'],
+      visibleRowIds: ['r1', 'r2', 'r3'],
+    });
+    expect(plan).toEqual({ targetIndex: 1, colIndex: 0 });
+
+    const removedRow = table.querySelector('tbody tr[data-mineo-row-id="r2"]');
+    removedRow?.remove();
 
     applyRowRemovalFocusPlan({ table, plan: plan!, visibleRowIds: ['r1', 'r3'] });
     expect(document.activeElement).toBe(expectedTarget);

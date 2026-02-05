@@ -38,6 +38,7 @@ const isElementVisible = (el: HTMLElement): boolean => {
   const style = window.getComputedStyle(el);
   if (style.display === 'none') return false;
   if (style.visibility === 'hidden') return false;
+  if (el.getClientRects().length === 0 && style.position !== 'fixed') return false;
   return true;
 };
 
@@ -66,9 +67,16 @@ const getActiveCellInfo = (table: HTMLTableElement): ActiveCellInfo | null => {
 };
 
 const getRowById = (table: HTMLTableElement, rowId: string): HTMLTableRowElement | null => {
-  const escapedRowId = CSS.escape(rowId);
-  const row = table.querySelector(`tbody tr[data-mineo-row-id="${escapedRowId}"]`);
-  return row instanceof HTMLTableRowElement ? row : null;
+  if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+    const escapedRowId = CSS.escape(rowId);
+    const row = table.querySelector(`tbody tr[data-mineo-row-id="${escapedRowId}"]`);
+    return row instanceof HTMLTableRowElement ? row : null;
+  }
+
+  const rows = Array.from(table.querySelectorAll('tbody tr[data-mineo-row-id]')).filter(
+    (row): row is HTMLTableRowElement => row instanceof HTMLTableRowElement
+  );
+  return rows.find((row) => row.getAttribute('data-mineo-row-id') === rowId) ?? null;
 };
 
 const getFirstFocusableInCell = (cell: HTMLTableCellElement): HTMLElement | null => {
@@ -125,6 +133,14 @@ export const applyRowRemovalFocusPlan = (params: ApplyPlanParams): void => {
 
   const row = getRowById(table, targetRowId);
   if (!row) return;
+
+  if (import.meta.env.DEV) {
+    const firstDataRow = table.querySelector('tbody tr[data-mineo-row-id]');
+    if (firstDataRow instanceof HTMLTableRowElement && row.cells.length !== firstDataRow.cells.length) {
+      console.warn('Fokus-gendan i tabel afbrudt: colSpan/kolonnestruktur matcher ikke mellem rækker.');
+      return;
+    }
+  }
 
   const cell = row.cells[plan.colIndex];
   if (!cell) return;
