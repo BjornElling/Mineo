@@ -82,6 +82,16 @@ export const buildPersistenceDefaults = (settings?: AppSettings): PersistedSecti
       maanedsloennetMedFerielon: 'Nej',
       forstSfgEfterSygelon: 'Nej',
 
+      eoBilagSelection: {
+        opgoerelse: true,
+        loenindkomst: true,
+        offentligeYdelser: true,
+        shDage: true,
+        regulering: true,
+        okSatser: true,
+        sygeferiegodtgoerelse: false,
+      },
+
       loenindkomstAnsaettelsesforhold: [
         {
           id: 'ansaettelsesforhold_1',

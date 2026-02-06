@@ -18,6 +18,11 @@ import { TODAY } from '../../config/dateRanges';
 import { amountValueToDisplayString, amountValueToNumber } from '../expressionAmount';
 import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../aarsloenTableCalculations';
 import { ydelsestyper } from '../../data/ydelsestyper';
+import { beregnHelligdage } from '../shDageBeregning';
+import { diffUtcDays } from '../utcDayMath';
+import { aarsloenMax } from '../../data/regulationRates';
+import { buildFerieDageSet, buildSHDageSet } from '../../domain/debug/eoDebugRegulationCore';
+import { beregnArbejdsdageOgMaaneder } from '../../domain/erstatningsopgoerelse/arbejdsdageMaaneder';
 
 const NBSP = '\u00A0';
 
@@ -113,6 +118,287 @@ const OFFENTLIGE_YDELSER_HEADERS = [
   'I alt',
   'Ydelsestype',
 ] as const;
+
+const SH_DAGE_WEEKDAY_NAMES = [
+  'Søndag',
+  'Mandag',
+  'Tirsdag',
+  'Onsdag',
+  'Torsdag',
+  'Fredag',
+  'Lørdag',
+] as const;
+
+type SHDageTableRow = Readonly<{
+  ugedag: string;
+  datoDisplay: string;
+  helligdagNavn: string;
+  erSHDag: boolean;
+}>;
+
+type ReguleringIndexRow = Readonly<{
+  fraDato: string;
+  tilDato: string;
+  indeksberegning: string;
+  indeks: string;
+}>;
+
+const formatDateFromDateObjectLong = (date: Date): string => {
+  return `${date.getDate()}. ${MONTH_NAMES_DA[date.getMonth()]} ${date.getFullYear()}`;
+};
+
+const calculatePaaskedag = (year: number): Date => {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+};
+
+const identifyHelligdag = (date: Date, paaskedag: Date): string | null => {
+  const year = date.getFullYear();
+  if (date.getMonth() === 0 && date.getDate() === 1) return 'Nytårsdag';
+  if (date.getMonth() === 11 && date.getDate() === 25) return 'Juledag';
+  if (date.getMonth() === 11 && date.getDate() === 26) return 'Anden juledag';
+
+  const diffDays = diffUtcDays(date, paaskedag);
+  if (diffDays === -3) return 'Skærtorsdag';
+  if (diffDays === -2) return 'Langfredag';
+  if (diffDays === 0) return 'Påskedag';
+  if (diffDays === 1) return 'Anden påskedag';
+  if (diffDays === 26 && year <= 2023) return 'Store bededag';
+  if (diffDays === 39) return 'Kristi himmelfartsdag';
+  if (diffDays === 49) return 'Pinsedag';
+  if (diffDays === 50) return 'Anden pinsedag';
+  return null;
+};
+
+const parseIsoDateToLocalDate = (iso: ISODateString | undefined): Date | null => {
+  if (!iso) return null;
+  const [yearPart, monthPart, dayPart] = iso.split('-');
+  const year = Number.parseInt(yearPart ?? '', 10);
+  const month = Number.parseInt(monthPart ?? '', 10);
+  const day = Number.parseInt(dayPart ?? '', 10);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+  return date;
+};
+
+const findHelligdageInRange = (fra: ISODateString | undefined, til: ISODateString | undefined): SHDageTableRow[] => {
+  const start = parseIsoDateToLocalDate(fra);
+  const end = parseIsoDateToLocalDate(til);
+  if (!start || !end || start > end) return [];
+
+  const startYear = start.getFullYear();
+  const endYear = end.getFullYear();
+  const rows: Array<SHDageTableRow & { sortTs: number }> = [];
+
+  for (let year = startYear; year <= endYear; year += 1) {
+    const paaskedag = calculatePaaskedag(year);
+    const helligdage = beregnHelligdage(year);
+    for (const helligdag of helligdage) {
+      if (helligdag < start || helligdag > end) continue;
+      const helligdagNavn = identifyHelligdag(helligdag, paaskedag);
+      if (!helligdagNavn) continue;
+      const dayOfWeek = helligdag.getDay();
+      const erSHDag = dayOfWeek >= 1 && dayOfWeek <= 5;
+      rows.push({
+        ugedag: SH_DAGE_WEEKDAY_NAMES[dayOfWeek],
+        datoDisplay: formatDateFromDateObjectLong(helligdag),
+        helligdagNavn,
+        erSHDag,
+        sortTs: helligdag.getTime(),
+      });
+    }
+  }
+
+  rows.sort((a, b) => a.sortTs - b.sortTs);
+  return rows.map(({ sortTs: _sortTs, ...row }) => row);
+};
+
+const parseOptionalIsoDate = (value: unknown): ISODateString | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return undefined;
+  const [yearPart, monthPart, dayPart] = trimmed.split('-');
+  const year = Number.parseInt(yearPart ?? '', 10);
+  const month = Number.parseInt(monthPart ?? '', 10);
+  const day = Number.parseInt(dayPart ?? '', 10);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return undefined;
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return undefined;
+  return trimmed as ISODateString;
+};
+
+const formatDateIso = (date: Date): ISODateString => {
+  const year = String(date.getFullYear());
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}` as ISODateString;
+};
+
+const subtractOneDayIso = (iso: ISODateString): ISODateString => {
+  const date = parseIsoDateToLocalDate(iso);
+  if (!date) return iso;
+  date.setDate(date.getDate() - 1);
+  return formatDateIso(date);
+};
+
+const maxIso = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
+const minIso = (a: ISODateString, b: ISODateString): ISODateString => (a < b ? a : b);
+
+const resolveTafDateBounds = (
+  eoValues: ErstatningsopgoerelseValues
+): Readonly<{ foerste: ISODateString; sidste: ISODateString }> | null => {
+  const periodeFra = parseOptionalIsoDate(eoValues.vedroererPeriodeFra);
+  const periodeTil = parseOptionalIsoDate(eoValues.vedroererPeriodeTil);
+  const periodRange =
+    periodeFra && periodeTil && periodeFra <= periodeTil
+      ? { fra: periodeFra, til: periodeTil }
+      : null;
+
+  let foerste: ISODateString | undefined;
+  let sidste: ISODateString | undefined;
+
+  for (const row of eoValues.tafPerioder ?? []) {
+    const rowFra = parseOptionalIsoDate(row.fra);
+    const rowTil = parseOptionalIsoDate(row.til);
+    if (!rowFra || !rowTil || rowFra > rowTil) continue;
+
+    let fra = rowFra;
+    let til = rowTil;
+    if (periodRange) {
+      if (til < periodRange.fra || fra > periodRange.til) continue;
+      fra = maxIso(fra, periodRange.fra);
+      til = minIso(til, periodRange.til);
+      if (fra > til) continue;
+    }
+
+    foerste = foerste ? minIso(foerste, fra) : fra;
+    sidste = sidste ? maxIso(sidste, til) : til;
+  }
+
+  if (!foerste || !sidste) return null;
+  return { foerste, sidste };
+};
+
+const resolveReguleringsdato = (
+  stamdataValues: StamdataValues,
+  eoValues: ErstatningsopgoerelseValues,
+  ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]
+): ISODateString | undefined => {
+  const skadesdato = parseOptionalIsoDate(stamdataValues.skadesdato);
+  const angivetLoenDato = parseOptionalIsoDate(eoValues.angivetLoenOpreguleresFraDato);
+  const saerligDato = parseOptionalIsoDate(ansaettelsesforhold.saerligFraDatoRegulering);
+  if (eoValues.beregnesUdFra === 'Beregningsperiode') {
+    return saerligDato ?? skadesdato;
+  }
+  return angivetLoenDato ?? skadesdato;
+};
+
+const buildReguleringsvaerdierRows = (
+  reguleringsdato: ISODateString | undefined,
+  tafFra: ISODateString,
+  tafTil: ISODateString,
+  statistikModel: string | undefined
+): ReadonlyArray<Readonly<{ venstre: string; hoejre: string }>> => {
+  const model = (statistikModel ?? '').trim();
+  if (!model.startsWith('ASL-') || !reguleringsdato) return [];
+
+  const regDate = parseIsoDateToLocalDate(reguleringsdato);
+  const tafFraDate = parseIsoDateToLocalDate(tafFra);
+  const tafTilDate = parseIsoDateToLocalDate(tafTil);
+  if (!regDate || !tafFraDate || !tafTilDate) return [];
+
+  const regYear = regDate.getFullYear();
+  const startYear = tafFraDate.getFullYear();
+  const endYear = tafTilDate.getFullYear();
+
+  const rows: Array<{ venstre: string; hoejre: string }> = [];
+  const regValue = aarsloenMax[regYear as keyof typeof aarsloenMax];
+  if (typeof regValue === 'number') {
+    rows.push({ venstre: String(regYear), hoejre: formatCurrency(regValue) });
+  }
+  for (let year = startYear; year <= endYear; year += 1) {
+    if (year === regYear) continue;
+    const value = aarsloenMax[year as keyof typeof aarsloenMax];
+    if (typeof value !== 'number') continue;
+    rows.push({ venstre: String(year), hoejre: formatCurrency(value) });
+  }
+  return rows;
+};
+
+const buildReguleringIndexRows = (params: Readonly<{
+  eoValues: ErstatningsopgoerelseValues;
+  reguleringsdato: ISODateString | undefined;
+  tafFra: ISODateString;
+  tafTil: ISODateString;
+  statistikModel: string | undefined;
+}>): readonly ReguleringIndexRow[] => {
+  const { eoValues, reguleringsdato, tafFra, tafTil, statistikModel } = params;
+  const model = (statistikModel ?? '').trim();
+  if (!model.startsWith('ASL-') || !reguleringsdato) return [];
+
+  const regDate = parseIsoDateToLocalDate(reguleringsdato);
+  if (!regDate) return [];
+  const regYear = regDate.getFullYear();
+  const baseValue = aarsloenMax[regYear as keyof typeof aarsloenMax];
+  if (typeof baseValue !== 'number' || baseValue <= 0) return [];
+
+  const tafFraDate = parseIsoDateToLocalDate(tafFra);
+  const tafTilDate = parseIsoDateToLocalDate(tafTil);
+  if (!tafFraDate || !tafTilDate || tafFraDate > tafTilDate) return [];
+
+  const periodStarts: ISODateString[] = [tafFra];
+  for (let year = tafFraDate.getFullYear() + 1; year <= tafTilDate.getFullYear(); year += 1) {
+    const jan1 = `${year}-01-01` as ISODateString;
+    if (jan1 > tafFra && jan1 <= tafTil) {
+      periodStarts.push(jan1);
+    }
+  }
+  periodStarts.sort((a, b) => (a < b ? -1 : 1));
+
+  const shDageSet = buildSHDageSet(tafFra, tafTil);
+  const ferieDageSet = buildFerieDageSet(eoValues, shDageSet, tafFra, tafTil);
+
+  const rows: ReguleringIndexRow[] = [];
+  for (let i = 0; i < periodStarts.length; i += 1) {
+    const fraIso = periodStarts[i];
+    const tilIso = i < periodStarts.length - 1 ? subtractOneDayIso(periodStarts[i + 1]) : tafTil;
+    if (fraIso > tilIso) continue;
+
+    const year = parseIsoDateToLocalDate(fraIso)?.getFullYear();
+    if (!year) continue;
+    const value = aarsloenMax[year as keyof typeof aarsloenMax];
+    if (typeof value !== 'number') continue;
+
+    const stats = beregnArbejdsdageOgMaaneder(fraIso, tilIso, shDageSet, ferieDageSet);
+    const formulaText =
+      Math.abs(value - baseValue) < 0.000001
+        ? formatCurrency(value)
+        : `${formatCurrency(value)} /\n${formatCurrency(baseValue)}`;
+    const indeksValue = (value / baseValue) * 100;
+    rows.push({
+      fraDato: formatDateShort(fraIso),
+      tilDato: formatDateShort(tilIso),
+      indeksberegning: formulaText,
+      indeks: indeksValue.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    });
+  }
+
+  return rows;
+};
 
 export const resolveUdkastStempelValue = (value: unknown): boolean => {
   return value === 'Ja';
@@ -658,9 +944,6 @@ export const generateErstatningsopgoerelsePdf = (
   }
 
   const unsupportedSelections = [
-    ['SH-dage', selectedElements.shDage],
-    ['Regulering', selectedElements.regulering],
-    ['OK-satser', selectedElements.okSatser],
     ['Sygeferiegodtgørelse', selectedElements.sygeferiegodtgoerelse],
   ].filter(([, isSelected]) => isSelected).map(([label]) => label);
 
@@ -1505,7 +1788,303 @@ export const generateErstatningsopgoerelsePdf = (
     renderOffentligeYdelserTable();
   }
 
+  if (selectedElements.shDage) {
+    type PdfDoc = jsPDF & {
+      lastAutoTable?: {
+        finalY?: number;
+      };
+    };
+
+    const formatRangeLong = (fra: ISODateString | undefined, til: ISODateString | undefined): string => {
+      const fraDisplay = formatDateLong(fra);
+      const tilDisplay = formatDateLong(til);
+      return `${fraDisplay || '-'} - ${tilDisplay || '-'}`;
+    };
+
+    const renderShDageTable = (rows: readonly SHDageTableRow[]) => {
+      const antalShDage = rows.filter((row) => row.erSHDag).length;
+      const tableRows: RowInput[] = [
+        [
+          { content: 'Ugedag', styles: { fontStyle: 'bold', halign: 'left' } },
+          { content: 'Dato', styles: { fontStyle: 'bold', halign: 'left' } },
+          { content: 'Helligdag', styles: { fontStyle: 'bold', halign: 'left' } },
+          { content: 'SH-dag', styles: { fontStyle: 'bold', halign: 'center' } },
+        ],
+      ];
+
+      for (const row of rows) {
+        tableRows.push([
+          { content: row.ugedag, styles: { halign: 'left' } },
+          { content: row.datoDisplay, styles: { halign: 'left' } },
+          { content: row.helligdagNavn, styles: { halign: 'left' } },
+          { content: row.erSHDag ? 'x' : '', styles: { halign: 'center' } },
+        ]);
+      }
+
+      tableRows.push([
+        { content: 'SH-dage i alt', styles: { fontStyle: 'bold', halign: 'left', fillColor: false } },
+        { content: '', styles: { fontStyle: 'bold', fillColor: false } },
+        { content: '', styles: { fontStyle: 'bold', fillColor: false } },
+        { content: String(antalShDage), styles: { fontStyle: 'bold', halign: 'center', fillColor: false } },
+      ]);
+
+      const doc = writer.getDoc() as PdfDoc;
+      autoTable(doc, {
+        startY: writer.getY(),
+        head: [],
+        body: tableRows,
+        margin: { left: MARGINS.left, right: MARGINS.right },
+        styles: {
+          font: 'helvetica',
+          fontSize: 7,
+          cellPadding: 1.5,
+          textColor: COLORS.text,
+        },
+        columnStyles: {
+          0: { cellWidth: 'auto' },
+          1: { cellWidth: 'auto' },
+          2: { cellWidth: 'auto' },
+          3: { cellWidth: 25 },
+        },
+        didParseCell: (data: CellHookData) => {
+          const lastRowIndex = tableRows.length - 1;
+          if (data.row.index === 0) {
+            data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+            return;
+          }
+          if (data.row.index === lastRowIndex) {
+            data.cell.styles.fillColor = false;
+            return;
+          }
+          data.cell.styles.fillColor =
+            data.row.index % 2 === 0 ? TABLE_STYLES.alternateRowBackgroundColor : false;
+        },
+      });
+
+      writer.setY((doc.lastAutoTable?.finalY ?? writer.getY()) + lineHeight);
+    };
+
+    writer.addPage();
+    writer.setFont('helvetica', 'bold');
+    writer.setFontSize(FONT_SIZES.title);
+    safeAddWrappedText('SH-dage');
+    writer.setFont('helvetica', 'normal');
+    writer.setFontSize(FONT_SIZES.normal);
+    writer.addSpacer(lineHeight);
+
+    safeAddWrappedText('Søgnehelligdage er helligdage, der falder på hverdage (mandag-fredag).');
+    writer.addSpacer(lineHeight);
+
+    if (eoValues.beregnesUdFra === 'Beregningsperiode') {
+      writer.addSpacer(lineHeight);
+      renderSubheader('Beregningsperiode', lineHeight, { addTopSpacing: false });
+      safeAddWrappedText(formatRangeLong(eoValues.periodeTilBeregningFra, eoValues.periodeTilBeregningTil));
+      writer.addSpacer(lineHeight);
+      const beregningsperiodeHelligdage = findHelligdageInRange(eoValues.periodeTilBeregningFra, eoValues.periodeTilBeregningTil);
+      if (beregningsperiodeHelligdage.length === 0) {
+        safeAddWrappedText('Ingen helligdage');
+        writer.addSpacer(lineHeight * 2);
+      } else {
+        renderShDageTable(beregningsperiodeHelligdage);
+        writer.addSpacer(lineHeight);
+      }
+    }
+
+    renderSubheader('Erstatningsperiode', lineHeight, { addTopSpacing: false });
+    safeAddWrappedText(formatRangeLong(eoValues.vedroererPeriodeFra, eoValues.vedroererPeriodeTil));
+    writer.addSpacer(lineHeight);
+    const erstatningsperiodeHelligdage = findHelligdageInRange(eoValues.vedroererPeriodeFra, eoValues.vedroererPeriodeTil);
+    if (erstatningsperiodeHelligdage.length === 0) {
+      safeAddWrappedText('Ingen helligdage');
+    } else {
+      renderShDageTable(erstatningsperiodeHelligdage);
+    }
+  }
+
   // Tilføj footer med versionsnummer
+  if (selectedElements.regulering) {
+    type PdfDoc = jsPDF & {
+      lastAutoTable?: {
+        finalY?: number;
+      };
+    };
+
+    const renderReguleringIndeksTable = (rows: readonly ReguleringIndexRow[]) => {
+      if (rows.length === 0) {
+        safeAddWrappedText('Ingen reguleringsrækker i perioden.');
+        return;
+      }
+
+      const tableRows: RowInput[] = [
+        [
+          { content: 'Fra-dato', styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: 'Til-dato', styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: 'Indeksberegning', styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: 'Indeks', styles: { fontStyle: 'bold', halign: 'center' } },
+        ],
+      ];
+
+      for (const row of rows) {
+        tableRows.push([
+          { content: row.fraDato, styles: { halign: 'center' } },
+          { content: row.tilDato, styles: { halign: 'center' } },
+          { content: row.indeksberegning, styles: { halign: 'right' } },
+          { content: row.indeks, styles: { halign: 'right' } },
+        ]);
+      }
+
+      const doc = writer.getDoc() as PdfDoc;
+      autoTable(doc, {
+        startY: writer.getY(),
+        head: [],
+        body: tableRows,
+        margin: { left: MARGINS.left, right: MARGINS.right },
+        styles: {
+          font: 'helvetica',
+          fontSize: 7,
+          cellPadding: 1.5,
+          textColor: COLORS.text,
+        },
+        didParseCell: (data: CellHookData) => {
+          if (data.row.index === 0) {
+            data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+            return;
+          }
+          data.cell.styles.fillColor =
+            data.row.index % 2 === 0 ? TABLE_STYLES.alternateRowBackgroundColor : false;
+        },
+      });
+
+      writer.setY((doc.lastAutoTable?.finalY ?? writer.getY()) + lineHeight);
+    };
+
+    const renderReguleringsvaerdierTable = (
+      rows: ReadonlyArray<Readonly<{ venstre: string; hoejre: string }>>
+    ) => {
+      if (rows.length === 0) {
+        safeAddWrappedText('Ingen reguleringsværdier.');
+        return;
+      }
+
+      const tableRows: RowInput[] = [
+        [
+          { content: 'År', styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: 'Maksimum årsløn', styles: { fontStyle: 'bold', halign: 'center' } },
+        ],
+        ...rows.map((row) => [
+          { content: row.venstre, styles: { halign: 'center' as const } },
+          { content: row.hoejre, styles: { halign: 'right' as const } },
+        ]),
+      ];
+
+      const doc = writer.getDoc() as PdfDoc;
+      autoTable(doc, {
+        startY: writer.getY(),
+        head: [],
+        body: tableRows,
+        margin: { left: MARGINS.left, right: MARGINS.right },
+        styles: {
+          font: 'helvetica',
+          fontSize: 7,
+          cellPadding: 1.5,
+          textColor: COLORS.text,
+        },
+        didParseCell: (data: CellHookData) => {
+          if (data.row.index === 0) {
+            data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+            return;
+          }
+          data.cell.styles.fillColor =
+            data.row.index % 2 === 0 ? TABLE_STYLES.alternateRowBackgroundColor : false;
+        },
+      });
+
+      writer.setY((doc.lastAutoTable?.finalY ?? writer.getY()) + lineHeight);
+    };
+
+    const foersteAnsaettelsesforhold = eoValues.loenindkomstAnsaettelsesforhold?.[0];
+    writer.addPage();
+    writer.setFont('helvetica', 'bold');
+    writer.setFontSize(FONT_SIZES.title);
+    safeAddWrappedText('Regulering');
+    writer.setFont('helvetica', 'normal');
+    writer.setFontSize(FONT_SIZES.normal);
+    writer.addSpacer(lineHeight);
+
+    if (!foersteAnsaettelsesforhold) {
+      safeAddWrappedText('Ingen ansættelsesforhold.');
+    } else {
+      const tafBounds = resolveTafDateBounds(eoValues);
+      const rightWidth = writer.getTextWidth('000.000.000,00');
+      safeAddLeftRightText(
+        'Første dato i TAF-periode',
+        tafBounds ? formatDateShort(tafBounds.foerste) : '',
+        rightWidth,
+        { rightFontStyle: 'normal' }
+      );
+      safeAddLeftRightText(
+        'Sidste dato i TAF-periode',
+        tafBounds ? formatDateShort(tafBounds.sidste) : '',
+        rightWidth,
+        { rightFontStyle: 'normal' }
+      );
+      writer.addSpacer(lineHeight);
+
+      const underoverskrift = foersteAnsaettelsesforhold.navnPaaArbejdssted?.trim() || 'Ansættelsesforhold 1';
+      renderSubheader(underoverskrift, lineHeight, { addTopSpacing: false });
+      writer.addSpacer(lineHeight);
+
+      const valgtRegulering = (() => {
+        const grundlag = foersteAnsaettelsesforhold.loenudviklingBeregningsgrundlag;
+        if (!grundlag) return '-';
+        if (grundlag === 'Statistik') return foersteAnsaettelsesforhold.loenudviklingStatistikModel?.trim() || '-';
+        if (grundlag === 'Overenskomst') return foersteAnsaettelsesforhold.overenskomstId?.trim() || '-';
+        if (grundlag === 'Manuelt angivet') return 'Manuelt angivet';
+        return 'Ingen';
+      })();
+
+      const reguleringsdato = resolveReguleringsdato(stamdataValues, eoValues, foersteAnsaettelsesforhold);
+
+      safeAddLeftRightText('Valgt regulering', valgtRegulering, rightWidth, { rightFontStyle: 'normal' });
+      safeAddLeftRightText(
+        'Reguleringsdato (Skadesdato)',
+        formatDateShort(reguleringsdato),
+        rightWidth,
+        { rightFontStyle: 'normal' }
+      );
+      writer.addSpacer(lineHeight);
+      safeAddWrappedText('Reguleringsværdier:');
+      writer.addSpacer(lineHeight);
+
+      const reguleringsvaerdierRows =
+        tafBounds
+          ? buildReguleringsvaerdierRows(
+              reguleringsdato,
+              tafBounds.foerste,
+              tafBounds.sidste,
+              foersteAnsaettelsesforhold.loenudviklingStatistikModel
+            )
+          : [];
+      renderReguleringsvaerdierTable(reguleringsvaerdierRows);
+
+      writer.addSpacer(lineHeight);
+      safeAddWrappedText('Beregnet regulering');
+      writer.addSpacer(lineHeight);
+
+      const reguleringTableRows =
+        tafBounds
+          ? buildReguleringIndexRows({
+              eoValues,
+              reguleringsdato,
+              tafFra: tafBounds.foerste,
+              tafTil: tafBounds.sidste,
+              statistikModel: foersteAnsaettelsesforhold.loenudviklingStatistikModel,
+            })
+          : [];
+      renderReguleringIndeksTable(reguleringTableRows);
+    }
+  }
+
   writer.addFooter();
 
   // Download PDF

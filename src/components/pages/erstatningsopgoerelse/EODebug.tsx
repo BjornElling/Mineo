@@ -1198,6 +1198,22 @@ const EODebug = () => {
           ? beregnArbejdsdageOgMaaneder(tafStartIso, baseEndIso, shDageSet, ferieDageSet)
           : { arbejdsdage: 0, maaneder: 0 };
 
+        const isSameNumericValue = (left: number, right: number): boolean =>
+          Math.abs(left - right) < 1e-9;
+        const buildIndexFormulaDisplay = (
+          numeratorDisplay: string,
+          denominatorDisplay: string,
+          numeratorValue: number,
+          denominatorValue: number
+        ): string => {
+          if (isSameNumericValue(numeratorValue, denominatorValue)) {
+            return isStatistik ? numeratorDisplay : `(${numeratorDisplay})`;
+          }
+          return isStatistik
+            ? `${numeratorDisplay} /\n${denominatorDisplay}`
+            : `(${numeratorDisplay}) /\n(${denominatorDisplay})`;
+        };
+
         const rows: StandardDisplayTableRow[] = [
           {
             key: `regulering-indeks-${af.id}-base`,
@@ -1206,7 +1222,7 @@ const EODebug = () => {
               baseEndIso ? formatIsoValue(baseEndIso) : '-',
               baseStats.arbejdsdage.toString(),
               formatMaanederTrimmed(baseStats.maaneder),
-              isStatistik ? `${basePeriodFormula} /\n${baseFormula}` : `(${basePeriodFormula}) /\n(${baseFormula})`,
+              buildIndexFormulaDisplay(basePeriodFormula, baseFormula, basePeriodValueRaw, baseValueRaw),
               baseValueRaw > 0 ? formatIndexValue((basePeriodValueRaw / baseValueRaw) * 100) : '-'
             ],
           },
@@ -1220,7 +1236,12 @@ const EODebug = () => {
           const periodVisibility = period.visibility ?? { showFritvalg: true, showShSo: true, showPension: true, showStoreBededag: false };
           const valueRaw = isStatistik ? period.components.baseValue : computeFormulaValue(period.components);
           const formula = buildFormulaText(period.components, periodVisibility);
-          const displayFormula = isStatistik ? `${formatStatValue(valueRaw)} /\n${baseFormula}` : `(${formula}) /\n(${baseFormula})`;
+          const displayFormula = buildIndexFormulaDisplay(
+            isStatistik ? formatStatValue(valueRaw) : formula,
+            baseFormula,
+            valueRaw,
+            baseValueRaw
+          );
           const indexValue = baseValueRaw > 0 ? formatIndexValue((valueRaw / baseValueRaw) * 100) : '-';
 
           // Beregn arbejdsdage og måneder for denne periode

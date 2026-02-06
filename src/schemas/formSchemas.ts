@@ -669,6 +669,16 @@ const sygeferiegodtgoerelseSchema = z.object({
   andelSfggILoenen: nonNegativeAmountValue,
 }).strict();
 
+const eoBilagSelectionSchema = z.object({
+  opgoerelse: z.literal(true),
+  loenindkomst: z.boolean(),
+  offentligeYdelser: z.boolean(),
+  shDage: z.boolean(),
+  regulering: z.boolean(),
+  okSatser: z.boolean(),
+  sygeferiegodtgoerelse: z.boolean(),
+}).strict();
+
 /**
  * Erstatningsopgørelse form values
  *
@@ -715,6 +725,9 @@ const erstatningsopgoerelseBaseSchema = z.object({
 
   // Kommentarer
   saerligeKommentarer: optionalString,
+
+  // EOberegning - bilag
+  eoBilagSelection: eoBilagSelectionSchema,
 }).strict();
 // VIGTIGT: Cross-field validering (fx forlig procent vs brøk) håndteres KUN i UI-laget
 // .refine() validering må ALDRIG blokere deserialisering - alt gemt data skal kunne indlæses

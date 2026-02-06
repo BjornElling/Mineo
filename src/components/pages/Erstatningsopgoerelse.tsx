@@ -332,6 +332,7 @@ const Erstatningsopgoerelse = React.memo(() => {
               isActive={activeTab === TAB_KEYS.BEREGNING}
               debugSnapshot={eoDebugSnapshot}
               currentDebugRevision={currentDebugRevision}
+              setEOValues={form.setValues}
             />
           </Box>
         )}

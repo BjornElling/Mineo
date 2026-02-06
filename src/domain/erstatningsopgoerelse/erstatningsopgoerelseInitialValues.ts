@@ -144,6 +144,17 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
 
   // Kommentarer
   saerligeKommentarer: '',
+
+  // EOberegning - bilag
+  eoBilagSelection: {
+    opgoerelse: true,
+    loenindkomst: true,
+    offentligeYdelser: true,
+    shDage: true,
+    regulering: true,
+    okSatser: true,
+    sygeferiegodtgoerelse: false,
+  },
   };
 };
 

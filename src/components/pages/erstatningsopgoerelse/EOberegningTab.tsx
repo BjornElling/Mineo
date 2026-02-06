@@ -22,6 +22,7 @@ import { getSammentaellingControlStatus, type SammentaellingDisplayRow } from '.
 import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
 import { buildControlMismatchReport, type ControlMismatchReport } from '../../../domain/debug/eoDebugMismatchReport';
 import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
+import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 
 const formatDateLongDisplay = (isoDate: string | undefined): string => {
   const danish = formatISOToDanish(isoDate ?? '');
@@ -48,6 +49,7 @@ interface EOberegningTabProps {
   isActive: boolean;
   debugSnapshot: EODebugSnapshot | null;
   currentDebugRevision: string;
+  setEOValues: React.Dispatch<React.SetStateAction<ErstatningsopgoerelseValues>>;
 }
 
 /**
@@ -64,7 +66,7 @@ interface EOberegningTabProps {
  * - Download af PDF blokeres altid ved fejl, men aldrig ved advarsler.
  */
 const EOberegningTab = React.memo<EOberegningTabProps>((
-  { activeTab, setActiveTab, isActive, debugSnapshot, currentDebugRevision }
+  { activeTab, setActiveTab, isActive, debugSnapshot, currentDebugRevision, setEOValues }
 ) => {
   // ============================================================================
   // DATA INDSAMLING FRA FORMPERSISTENCE
@@ -273,15 +275,31 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   // CHECKBOX STATE FOR ERSTATNINGSOPGØRELSE-DOWNLOAD
   // ============================================================================
 
-  const [selectedElements, setSelectedElements] = React.useState({
-    opgoerelse: true,
-    loenindkomst: false,
-    offentligeYdelser: false,
-    shDage: false,
-    regulering: false,
-    okSatser: false,
+  const selectedElements = eoValues?.eoBilagSelection ?? {
+    opgoerelse: true as const,
+    loenindkomst: true,
+    offentligeYdelser: true,
+    shDage: true,
+    regulering: true,
+    okSatser: true,
     sygeferiegodtgoerelse: false,
-  });
+  };
+
+  const updateSelectedElement = React.useCallback(
+    (
+      key: Exclude<keyof ErstatningsopgoerelseValues['eoBilagSelection'], 'opgoerelse'>,
+      checked: boolean
+    ) => {
+      setEOValues((prev) => ({
+        ...prev,
+        eoBilagSelection: {
+          ...prev.eoBilagSelection,
+          [key]: checked,
+        },
+      }));
+    },
+    [setEOValues]
+  );
 
   const beregnesSvieSmerte = eoValues?.beregnesSvieSmerteGodtgoerelse === 'Ja';
   const beregnesTabtArbejdsfortjeneste = eoValues?.beregnesTabtArbejdsfortjeneste === 'Ja';
@@ -664,10 +682,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                   <Checkbox
                     checked={selectedElements.loenindkomst}
                     onChange={(event) => {
-                      setSelectedElements((prev) => ({
-                        ...prev,
-                        loenindkomst: event.target.checked,
-                      }));
+                      updateSelectedElement('loenindkomst', event.target.checked);
                     }}
                   />
                 )}
@@ -678,10 +693,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                   <Checkbox
                     checked={selectedElements.offentligeYdelser}
                     onChange={(event) => {
-                      setSelectedElements((prev) => ({
-                        ...prev,
-                        offentligeYdelser: event.target.checked,
-                      }));
+                      updateSelectedElement('offentligeYdelser', event.target.checked);
                     }}
                   />
                 )}
@@ -690,15 +702,36 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
             </Box>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <FormControlLabel
-                control={<Checkbox checked={selectedElements.shDage} disabled />}
+                control={(
+                  <Checkbox
+                    checked={selectedElements.shDage}
+                    onChange={(event) => {
+                      updateSelectedElement('shDage', event.target.checked);
+                    }}
+                  />
+                )}
                 label="SH-dage"
               />
               <FormControlLabel
-                control={<Checkbox checked={selectedElements.regulering} disabled />}
+                control={(
+                  <Checkbox
+                    checked={selectedElements.regulering}
+                    onChange={(event) => {
+                      updateSelectedElement('regulering', event.target.checked);
+                    }}
+                  />
+                )}
                 label="Regulering"
               />
               <FormControlLabel
-                control={<Checkbox checked={selectedElements.okSatser} disabled />}
+                control={(
+                  <Checkbox
+                    checked={selectedElements.okSatser}
+                    onChange={(event) => {
+                      updateSelectedElement('okSatser', event.target.checked);
+                    }}
+                  />
+                )}
                 label="OK-satser"
               />
             </Box>
