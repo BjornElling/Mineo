@@ -6,7 +6,7 @@ import { svieSmertePrDag, svieSmerteMax } from '../../data/regulationRates';
 import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import { computeRowDateBounds } from './rowDateBounds';
 import { validateISODateRange } from '../../utils/dateValidation';
-import { detectOverlappingPeriods } from './periodOverlapDetection';
+import { detectConflictingSvieSmerteOverlaps, detectOverlappingPeriods } from './periodOverlapDetection';
 import { formatCurrency } from '../../utils/formatUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { buildNoValidDateRangeMessage, collectPresentFieldErrors, isNonEmptyString, resolveDebugDisplay } from './eoDebugCommon';
@@ -19,6 +19,7 @@ import { calculateTafArbejdsdageBreakdown, calculateTafAntalMaaneder } from './t
 import { calculateFerieHverdageMinusSHDage } from './ferieCalculations';
 import { computeTafOverlapWithBeregningsperiode } from './beregningsperiodeTafOverlap';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoDebugIndkomstModel';
+import { mergeDateRanges } from './periodMerging';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -521,52 +522,6 @@ export const buildEODebugAesRows = (
   ];
 };
 
-/**
- * Beregner antal dage mellem to datoer (begge inklusiv)
- *
- * @param startDate - Start dato (ISO format)
- * @param endDate - Slut dato (ISO format)
- * @returns Antal dage inkl. både start og slutdato
- */
-/**
- * Sammenfletter overlappende eller tilstødende perioder
- *
- * @param periods - Array af perioder med fra/til datoer (ISO format)
- * @returns Array af sammenflettet perioder
- */
-const mergePeriods = (periods: { fra: Date; til: Date }[]): { fra: Date; til: Date }[] => {
-  if (periods.length === 0) return [];
-
-  // Sortér perioder efter startdato
-  const sorted = [...periods].sort((a, b) => a.fra.getTime() - b.fra.getTime());
-
-  const merged: { fra: Date; til: Date }[] = [];
-  let current = sorted[0];
-
-  for (let i = 1; i < sorted.length; i++) {
-    const next = sorted[i];
-
-    // Tjek om næste periode overlapper eller følger umiddelbart efter current
-    const oneDayAfterCurrent = new Date(current.til);
-    oneDayAfterCurrent.setDate(oneDayAfterCurrent.getDate() + 1);
-
-    if (next.fra <= oneDayAfterCurrent) {
-      // Flettet sammen - udvid current til at inkludere next
-      current = {
-        fra: current.fra,
-        til: next.til > current.til ? next.til : current.til,
-      };
-    } else {
-      // Ingen overlap - gem current og start ny periode
-      merged.push(current);
-      current = next;
-    }
-  }
-
-  merged.push(current);
-  return merged;
-};
-
 export const buildEODebugSvieSmerteRows = (
   values: ErstatningsopgoerelseValues,
   errors: ErstatningsopgoerelseFieldErrorsBySource,
@@ -598,9 +553,7 @@ export const buildEODebugSvieSmerteRows = (
   // 2) Periode rows fra tabellen - kun hvis synlig
   const perioder = periodeErSynlig ? (values.svieSmertePerioder ?? []) : [];
   const harPerioder = perioder.length > 0 && perioder.some((p) => p.fra || p.til || p.tilstand);
-
-  // Detektér overlappende perioder
-  const svieSmerteOverlappingIds = detectOverlappingPeriods(perioder);
+  const svieSmerteOverlappingIds = detectConflictingSvieSmerteOverlaps(perioder);
 
   // Samler alle periode-fejl til senere brug
   const periodeFejlBeskeder: string[] = [];
@@ -637,6 +590,12 @@ export const buildEODebugSvieSmerteRows = (
       // baseret på samme bounds som tabellen (computeRowDateBounds + validateISODateRange).
       const fraISO = periode.fra;
       const tilISO = periode.til;
+      const periodeLabel = (() => {
+        if (!fraISO || !tilISO) return 'Periode';
+        const fraDanishLabel = isoToDanish(fraISO);
+        const tilDanishLabel = isoToDanish(tilISO);
+        return fraDanishLabel && tilDanishLabel ? `Periode (${fraDanishLabel} - ${tilDanishLabel})` : 'Periode';
+      })();
 
       const bounds = computeRowDateBounds({
         skadesdatoMinDate: skadesdatoMinRule.minDate,
@@ -695,9 +654,7 @@ export const buildEODebugSvieSmerteRows = (
         (m): m is string => typeof m === 'string' && m.trim() !== ''
       );
 
-      // Tjek for overlappende periode
       const hasOverlap = svieSmerteOverlappingIds.has(periode.id);
-
       const harFejl = computedRangeMessages.length > 0 || hasOverlap;
 
       // Hvis ikke alle felter er udfyldt, vis fejl
@@ -706,7 +663,7 @@ export const buildEODebugSvieSmerteRows = (
         periodeFejlBeskeder.push(displayValue);
         rows.push({
           id: `sviesmerte.periode.${periode.id}`,
-          label: 'Periode',
+          label: periodeLabel,
           displayValue,
           status: 'error',
         });
@@ -717,13 +674,12 @@ export const buildEODebugSvieSmerteRows = (
       if (harFejl) {
         const allMessages = computedRangeMessages.map((m) => m.trim()).filter((m) => m !== '');
 
-        // Prioritér overlap-fejl over andre fejl
         const errorMessages = hasOverlap ? 'Der er overlappende perioder' : allMessages.join('; ');
         const displayValue = `Fejl (${errorMessages})`;
         periodeFejlBeskeder.push(displayValue);
         rows.push({
           id: `sviesmerte.periode.${periode.id}`,
-          label: 'Periode',
+          label: periodeLabel,
           displayValue,
           status: 'error',
         });
@@ -739,7 +695,7 @@ export const buildEODebugSvieSmerteRows = (
         periodeFejlBeskeder.push(displayValue);
         rows.push({
           id: `sviesmerte.periode.${periode.id}`,
-          label: 'Periode',
+          label: periodeLabel,
           displayValue,
           status: 'error',
         });
@@ -756,7 +712,7 @@ export const buildEODebugSvieSmerteRows = (
           periodeFejlBeskeder.push(displayValue);
           rows.push({
             id: `sviesmerte.periode.${periode.id}`,
-            label: 'Periode',
+            label: periodeLabel,
             displayValue,
             status: 'error',
           });
@@ -783,7 +739,7 @@ export const buildEODebugSvieSmerteRows = (
         periodeFejlBeskeder.push(displayValue);
         rows.push({
           id: `sviesmerte.periode.${periode.id}`,
-          label: 'Periode',
+          label: periodeLabel,
           displayValue,
           status: 'error',
         });
@@ -1002,7 +958,7 @@ export const buildEODebugSvieSmerteRows = (
         if (periods.length === 0) return [];
 
         // Flet perioder sammen
-        const merged = mergePeriods(periods);
+        const merged = mergeDateRanges(periods, { mergeAdjacent: true });
 
         // Klip perioder til afgrænsningerne
         return merged
@@ -1154,7 +1110,7 @@ export const buildEODebugSvieSmerteRows = (
       const processPeriodGroupDays = (periods: { fra: Date; til: Date }[]): number => {
         if (periods.length === 0) return 0;
 
-        const merged = mergePeriods(periods);
+        const merged = mergeDateRanges(periods, { mergeAdjacent: true });
 
         const constrained = merged
           .map((p) => {
@@ -1449,15 +1405,13 @@ export const buildEODebugTaftRows = (
   // 1) Periode-rækker fra tabellen
   const perioder = values.tafPerioder ?? [];
   const harPerioder = perioder.length > 0 && perioder.some((p) => p.fra || p.til);
+  const tafOverlappingIds = detectOverlappingPeriods(perioder);
 
   const ferieperioder = values.ferieperioder ?? [];
 
   const formatDaNumber = (n: number): string => n.toLocaleString('da-DK');
   const formatDaNumberFixed2 = (n: number): string =>
     n.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  // Detektér overlappende perioder
-  const tafOverlappingIds = detectOverlappingPeriods(perioder);
 
   if (!harPerioder) {
     rows.push({
@@ -1478,9 +1432,6 @@ export const buildEODebugTaftRows = (
 
       // Spring over rækker hvor intet er udfyldt
       if (noneFilled) return;
-
-      // Tjek for overlappende periode
-      const hasOverlap = tafOverlappingIds.has(periode.id);
 
       // Hvis ikke alle felter er udfyldt, vis fejl
       if (!allFilled) {
@@ -1557,6 +1508,7 @@ export const buildEODebugTaftRows = (
         (m): m is string => typeof m === 'string' && m.trim() !== ''
       );
 
+      const hasOverlap = tafOverlappingIds.has(periode.id);
       if (hasOverlap || computedRangeMessages.length > 0) {
         const errorMessages = hasOverlap ? 'Der er overlappende perioder' : computedRangeMessages.join('; ');
         rows.push({

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * PDF Generator for Erstatningsopgørelse
  *
  * Genererer PDF-dokument med komplet erstatningsopgørelse

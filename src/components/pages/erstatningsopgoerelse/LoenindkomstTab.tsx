@@ -411,6 +411,20 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     [setValues]
   );
 
+  const setSatsErrorsForAnsaettelsesforhold = React.useCallback(
+    (id: string, af: Ansaettelsesforhold) => {
+      const errors = validateAllSatserForAnsaettelsesforhold(af);
+      setSatsErrors((prev) => {
+        if (Object.keys(errors).length === 0) {
+          const { [id]: _, ...rest } = prev;
+          return rest;
+        }
+        return { ...prev, [id]: errors };
+      });
+    },
+    [validateAllSatserForAnsaettelsesforhold]
+  );
+
   const handleTextCommit = React.useCallback(
     (id: string, field: keyof Pick<Ansaettelsesforhold, 'navnPaaArbejdssted' | 'loenudviklingManuelNavn'>) =>
       (event: CommitEvent<string | undefined>) => {
@@ -437,30 +451,23 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
   const handleOverenskomstChange = React.useCallback(
     (id: string) =>
       (e: StyledDropdownChangeEvent<string | undefined>) => {
+        const nextOverenskomstId = normalizeOptionalFreeText(e.target.value);
         updateAnsaettelsesforhold(id, (prev) => ({
           ...prev,
-          overenskomstId: normalizeOptionalFreeText(e.target.value),
+          overenskomstId: nextOverenskomstId,
         }));
 
         // Revalider alle satser når overenskomst ændres
-        const ansaettelsesforhold = values.loenindkomstAnsaettelsesforhold.find(af => af.id === id);
+        const ansaettelsesforhold = values.loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
         if (ansaettelsesforhold) {
           const updatedAf = {
             ...ansaettelsesforhold,
-            overenskomstId: normalizeOptionalFreeText(e.target.value),
+            overenskomstId: nextOverenskomstId,
           };
-          const errors = validateAllSatserForAnsaettelsesforhold(updatedAf);
-
-          setSatsErrors((prev) => {
-            if (Object.keys(errors).length === 0) {
-              const { [id]: _, ...rest } = prev;
-              return rest;
-            }
-            return { ...prev, [id]: errors };
-          });
+          setSatsErrorsForAnsaettelsesforhold(id, updatedAf);
         }
       },
-    [updateAnsaettelsesforhold, values.loenindkomstAnsaettelsesforhold, validateAllSatserForAnsaettelsesforhold]
+    [setSatsErrorsForAnsaettelsesforhold, updateAnsaettelsesforhold, values.loenindkomstAnsaettelsesforhold]
   );
 
   const handleSidsteArbejdsdagCommit = React.useCallback(
@@ -474,23 +481,16 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
   const handleSaerligFraDatoReguleringCommit = React.useCallback(
     (id: string) =>
       (event: CommitEvent<Ansaettelsesforhold['saerligFraDatoRegulering']>) => {
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, saerligFraDatoRegulering: event.target.value }));
+        const nextSaerligFraDatoRegulering = event.target.value;
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, saerligFraDatoRegulering: nextSaerligFraDatoRegulering }));
 
         const ansaettelsesforhold = values.loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
         if (!ansaettelsesforhold) return;
 
-        const updatedAf = { ...ansaettelsesforhold, saerligFraDatoRegulering: event.target.value };
-        const errors = validateAllSatserForAnsaettelsesforhold(updatedAf);
-
-        setSatsErrors((prev) => {
-          if (Object.keys(errors).length === 0) {
-            const { [id]: _, ...rest } = prev;
-            return rest;
-          }
-          return { ...prev, [id]: errors };
-        });
+        const updatedAf = { ...ansaettelsesforhold, saerligFraDatoRegulering: nextSaerligFraDatoRegulering };
+        setSatsErrorsForAnsaettelsesforhold(id, updatedAf);
       },
-    [updateAnsaettelsesforhold, validateAllSatserForAnsaettelsesforhold, values.loenindkomstAnsaettelsesforhold]
+    [setSatsErrorsForAnsaettelsesforhold, updateAnsaettelsesforhold, values.loenindkomstAnsaettelsesforhold]
   );
 
   const handleFeriePctCommit = React.useCallback(
@@ -611,48 +611,14 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
         if (!parsed.success) return;
         updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenPaaHelligdage: parsed.data }));
 
-        // Revalider Store Bededagstillaeg og Fritvalg naar "Loen paa helligdage" aendres
+        // Revalider alle satser når "Løn på helligdage" ændres.
         const ansaettelsesforhold = values.loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
         if (!ansaettelsesforhold) return;
 
         const updatedAf = { ...ansaettelsesforhold, loenPaaHelligdage: parsed.data };
-        const reguleringsDato = getReguleringsDatoForAnsaettelsesforhold(updatedAf);
-        const applyAlmindeligLoenPaaShDageRegel = parsed.data === 'Almindelig løn';
-
-        const storeBededagError = validateStoreBededag(parsed.data, updatedAf.storeBededagPct, reguleringsDato);
-        const fritvalgError = validateSats(
-          updatedAf.overenskomstId,
-          'fritvalgPct',
-          updatedAf.fritvalgPct,
-          reguleringsDato,
-          applyAlmindeligLoenPaaShDageRegel
-        );
-
-        setSatsErrors((prev) => {
-          let nextErrors: SatsErrorState = { ...(prev[id] || {}) };
-
-          if (storeBededagError) {
-            nextErrors.storeBededagPct = storeBededagError;
-          } else {
-            const { storeBededagPct: _, ...rest } = nextErrors;
-            nextErrors = rest;
-          }
-
-          if (fritvalgError) {
-            nextErrors.fritvalgPct = fritvalgError;
-          } else {
-            const { fritvalgPct: _, ...rest } = nextErrors;
-            nextErrors = rest;
-          }
-
-          if (Object.keys(nextErrors).length === 0) {
-            const { [id]: __, ...restAf } = prev;
-            return restAf;
-          }
-          return { ...prev, [id]: nextErrors };
-        });
+        setSatsErrorsForAnsaettelsesforhold(id, updatedAf);
       },
-    [getReguleringsDatoForAnsaettelsesforhold, updateAnsaettelsesforhold, values.loenindkomstAnsaettelsesforhold, validateSats, validateStoreBededag]
+    [setSatsErrorsForAnsaettelsesforhold, updateAnsaettelsesforhold, values.loenindkomstAnsaettelsesforhold]
   );
 
   const handleTableDataChange = React.useCallback(
@@ -1421,10 +1387,6 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 LoenindkomstTab.displayName = 'LoenindkomstTab';
 
 export default LoenindkomstTab;
-
-
-
-
 
 
 

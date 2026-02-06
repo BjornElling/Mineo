@@ -6,7 +6,7 @@ import { calculateKalenderdageInclusive } from '../../domain/erstatningsopgoerel
 import { isSvieSmerteRowEmpty } from '../../domain/erstatningsopgoerelse/rowEmpty';
 import type { SvieSmerteDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
 import { committedToSvieDraftRows, createEmptySvieCommittedRow, createSvieRowId, ensureSvieRows, svieDraftToCommittedRow, type SvieSmerteDerived } from '../../domain/erstatningsopgoerelse/svieSmerteTableModel';
-import { detectOverlappingPeriods } from '../../domain/erstatningsopgoerelse/periodOverlapDetection';
+import { detectConflictingSvieSmerteOverlaps } from '../../domain/erstatningsopgoerelse/periodOverlapDetection';
 
 export type UseSvieSmerteRowsArgs = Readonly<{
   values: ErstatningsopgoerelseValues;
@@ -68,9 +68,10 @@ const useSvieSmerteRows = ({ values, setValues, resyncToken }: UseSvieSmerteRows
 
   const derivedById = React.useMemo(() => deriveSvieSmerteById(committedRowsEnsured), [committedRowsEnsured]);
 
-  const overlappingIds = React.useMemo(() => {
-    return detectOverlappingPeriods(committedRowsEnsured);
-  }, [committedRowsEnsured]);
+  const overlappingIds = React.useMemo(
+    () => detectConflictingSvieSmerteOverlaps(committedRowsEnsured),
+    [committedRowsEnsured]
+  );
 
   return {
     ...svieRows,
@@ -82,4 +83,3 @@ const useSvieSmerteRows = ({ values, setValues, resyncToken }: UseSvieSmerteRows
 };
 
 export default useSvieSmerteRows;
-

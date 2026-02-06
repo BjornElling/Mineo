@@ -11,6 +11,7 @@ import { parseAmount } from '../../utils/formatUtils';
 import { parseDanishDate, parseWeekString } from '../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { ydelsestyper } from '../../data/ydelsestyper';
+import { mergeIsoDateRanges } from './periodMerging';
 
 export type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
 
@@ -50,27 +51,6 @@ const getIsoRange = (fra: ISODateString | undefined, til: ISODateString | undefi
   if (!fra || !til) return undefined;
   if (fra > til) return undefined;
   return { fra, til };
-};
-
-const mergeRanges = (ranges: readonly IsoRange[]): IsoRange[] => {
-  if (ranges.length <= 1) return [...ranges];
-  const sorted = [...ranges].sort((a, b) => (a.fra < b.fra ? -1 : 1));
-  const merged: IsoRange[] = [];
-  for (const range of sorted) {
-    const last = merged[merged.length - 1];
-    if (!last) {
-      merged.push(range);
-      continue;
-    }
-    const nextStart = range.fra;
-    if (nextStart <= last.til) {
-      const newTil = range.til > last.til ? range.til : last.til;
-      merged[merged.length - 1] = { fra: last.fra, til: newTil };
-      continue;
-    }
-    merged.push(range);
-  }
-  return merged;
 };
 
 const getOverlapDays = (interval: DateInterval, ranges: readonly IsoRange[]): number => {
@@ -146,7 +126,7 @@ export const buildTafRanges = (values: ErstatningsopgoerelseValues): IsoRange[] 
       return getIsoRange(row.fra, row.til);
     })
     .filter((range): range is IsoRange => Boolean(range));
-  return mergeRanges(ranges);
+  return mergeIsoDateRanges(ranges, { mergeAdjacent: true });
 };
 
 export const buildBeregningsperiodeRange = (
@@ -162,7 +142,7 @@ export const buildIncomeForRanges = (
   values: ErstatningsopgoerelseValues,
   rawRanges: readonly IsoRange[]
 ): IncomePeriodResult => {
-  const ranges = mergeRanges(rawRanges);
+  const ranges = mergeIsoDateRanges(rawRanges, { mergeAdjacent: true });
   if (ranges.length === 0) return { employers: [], benefits: [] };
 
   const employers: IncomeEmployerAmount[] = [];

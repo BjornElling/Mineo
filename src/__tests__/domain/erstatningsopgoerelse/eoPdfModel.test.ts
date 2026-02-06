@@ -3,7 +3,10 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
 import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
+import type { LoenudviklingPdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
 import { buildErstatningsopgoerelsePdfModel, ensureMoneyOre } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
+import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
+import { beregningsmetodeEnum, loenPaaHelligdageSchema, loenudviklingStatistikModelEnum } from '../../../schemas/formSchemas';
 
 const iso = (value: string) => toISODateString(value);
 
@@ -17,6 +20,43 @@ const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): Erstatningsopg
 const makeStamdata = (patch: Partial<StamdataValues>): StamdataValues => {
   const base = structuredClone(STAMDATA_INITIAL_VALUES);
   return { ...base, ...patch };
+};
+
+type LoenSegment = LoenudviklingPdfModel['beregnedeSegmenter'][number];
+type IsoRange = Readonly<{ fra: string; til: string }>;
+
+const nextDayIso = (isoDate: string): string => {
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+};
+
+const assertSortedAndContinuous = (segments: readonly LoenSegment[]): void => {
+  for (let i = 1; i < segments.length; i += 1) {
+    expect(segments[i - 1].fra <= segments[i].fra).toBe(true);
+    expect(segments[i - 1].til < segments[i].fra).toBe(true);
+  }
+};
+
+const assertCoveragePerRange = (segments: readonly LoenSegment[], ranges: readonly IsoRange[]): void => {
+  assertSortedAndContinuous(segments);
+  for (const range of ranges) {
+    const covered = segments
+      .filter((segment) => segment.fra >= range.fra && segment.til <= range.til);
+    expect(covered.length).toBeGreaterThan(0);
+    expect(covered[0].fra).toBe(range.fra);
+    expect(covered[covered.length - 1].til).toBe(range.til);
+    for (let i = 1; i < covered.length; i += 1) {
+      expect(covered[i].fra).toBe(nextDayIso(covered[i - 1].til));
+    }
+  }
+};
+
+const assertTotalMatchesSegmentSum = (loenudvikling: LoenudviklingPdfModel | null | undefined): void => {
+  expect(loenudvikling?.loenudviklingTotal.status).toBe('ok');
+  if (!loenudvikling || loenudvikling.loenudviklingTotal.status !== 'ok') return;
+  const segmentSum = loenudvikling.beregnedeSegmenter.reduce((sum, segment) => sum + segment.amountOre, 0);
+  expect(loenudvikling.loenudviklingTotal.value).toBe(segmentSum);
 };
 
 describe('buildErstatningsopgoerelsePdfModel', () => {
@@ -254,4 +294,418 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     expect(loenudvikling?.beregnedeSegmenter).toHaveLength(1);
     expect(loenudvikling?.beregnedeSegmenter[0]?.deltaPct).toBe(0);
   });
+
+  it('afviser TAF naar loenudviklingsstrategi ikke er valgt', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
+      maanedsloenenUdgoer: asAmountValue(25000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2024',
+          tilDato: '01-01-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: undefined,
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    expect(() => buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
+      .toThrow('Loenudviklingsstrategi er ikke valgt');
+  });
+
+  it('afviser valgt manuel strategi med manglende reguleringsraekker', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
+      maanedsloenenUdgoer: asAmountValue(25000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2024',
+          tilDato: '01-01-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+          feriePct: 12.5,
+          loenudviklingManuelNavn: 'Manuel test',
+          loenudviklingManuelTableData: [],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    expect(() => buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
+      .toThrow('Loenudvikling kan ikke beregnes: manuelle reguleringsraekker mangler');
+  });
+
+  it('afviser manuel strategi med manglende feriepct', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
+      maanedsloenenUdgoer: asAmountValue(25000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2024',
+          tilDato: '01-01-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+          feriePct: undefined,
+          loenudviklingManuelNavn: 'Manuel test',
+          loenudviklingManuelTableData: [
+            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+          ],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    expect(() => buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
+      .toThrow('Loenudvikling kan ikke beregnes: feriepct mangler');
+  });
+
+  it('afviser overenskomststrategi med manglende feriepct', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
+      maanedsloenenUdgoer: asAmountValue(25000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2024',
+          tilDato: '01-01-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
+          overenskomstId: 'bygge-anlaeg',
+          feriePct: undefined,
+          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    expect(() => buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
+      .toThrow('Loenudvikling kan ikke beregnes: feriepct mangler');
+  });
+
+  it('beregner statistik-loenudvikling med konsistente segmenter', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
+      maanedsloenenUdgoer: asAmountValue(35000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2025-12-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2024',
+          tilDato: '01-01-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Statistik',
+          loenudviklingStatistikModel: loenudviklingStatistikModelEnum.enum['ASL-årslønsmaksimum'],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
+
+    expect(loenudvikling?.beregningsenhed).toBe(TAF_BEREGNES_SOM.MAANEDER);
+    expect((loenudvikling?.beregnedeSegmenter.length ?? 0) > 0).toBe(true);
+    assertSortedAndContinuous(loenudvikling?.beregnedeSegmenter ?? []);
+    assertCoveragePerRange(loenudvikling?.beregnedeSegmenter ?? [], [{ fra: '2024-01-01', til: '2025-12-31' }]);
+    assertTotalMatchesSegmentSum(loenudvikling);
+  });
+
+  it('beregner overenskomst-regulering over flere skift', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
+      maanedsloenenUdgoer: asAmountValue(30000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-02-01'), til: iso('2025-06-01'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-02-2024',
+          tilDato: '01-02-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
+          overenskomstId: 'bygge-anlaeg',
+          feriePct: 12.5,
+          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
+
+    expect(loenudvikling?.loenudviklingTotal.status).toBe('ok');
+    expect((loenudvikling?.beregnedeSegmenter.length ?? 0) > 1).toBe(true);
+    assertSortedAndContinuous(loenudvikling?.beregnedeSegmenter ?? []);
+    assertCoveragePerRange(loenudvikling?.beregnedeSegmenter ?? [], [{ fra: '2024-02-01', til: '2025-06-01' }]);
+    assertTotalMatchesSegmentSum(loenudvikling);
+  });
+
+  it('beregner manuel regulering med flere TAF-perioder', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
+      maanedsloenenUdgoer: asAmountValue(28000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-03-31'), loseFeriedage: undefined },
+        { id: 'taf-2', fra: iso('2024-05-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2024',
+          tilDato: '01-01-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+          feriePct: 12.5,
+          loenudviklingManuelNavn: 'Manuel test',
+          loenudviklingManuelTableData: [
+            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+            { id: 'm2', dato: '01-07-2024', grundloen: asAmountValue(110), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+          ],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
+
+    expect(loenudvikling?.loenudviklingTotal.status).toBe('ok');
+    expect(loenudvikling?.beregnedeSegmenter.length).toBeGreaterThanOrEqual(2);
+    assertSortedAndContinuous(loenudvikling?.beregnedeSegmenter ?? []);
+    assertCoveragePerRange(loenudvikling?.beregnedeSegmenter ?? [], [
+      { fra: '2024-01-01', til: '2024-03-31' },
+      { fra: '2024-05-01', til: '2024-12-31' },
+    ]);
+    assertTotalMatchesSegmentSum(loenudvikling);
+  });
+
+  it('segmenterer manuel regulering korrekt ved startdato lig range.til', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
+      maanedsloenenUdgoer: asAmountValue(28000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2024',
+          tilDato: '01-01-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+          feriePct: 12.5,
+          loenudviklingManuelNavn: 'Manuel test',
+          loenudviklingManuelTableData: [
+            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+            { id: 'm2', dato: '31-01-2024', grundloen: asAmountValue(110), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+          ],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
+
+    expect(segments.length).toBe(2);
+    expect(segments[0].fra).toBe('2024-01-01');
+    expect(segments[0].til).toBe('2024-01-30');
+    expect(segments[1].fra).toBe('2024-01-31');
+    expect(segments[1].til).toBe('2024-01-31');
+  });
+
+  it('segmenterer manuel regulering korrekt ved startdato lig range.fra + 1 dag', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
+      maanedsloenenUdgoer: asAmountValue(28000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2024',
+          tilDato: '01-01-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+          feriePct: 12.5,
+          loenudviklingManuelNavn: 'Manuel test',
+          loenudviklingManuelTableData: [
+            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+            { id: 'm2', dato: '02-01-2024', grundloen: asAmountValue(110), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+          ],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
+
+    expect(segments.length).toBe(2);
+    expect(segments[0].fra).toBe('2024-01-01');
+    expect(segments[0].til).toBe('2024-01-01');
+    expect(segments[1].fra).toBe('2024-01-02');
+    expect(segments[1].til).toBe('2024-01-31');
+  });
+
+  it('ignorerer manuel startdato lig range.fra uden dubletsegment', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
+      maanedsloenenUdgoer: asAmountValue(28000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2024',
+          tilDato: '01-01-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+          feriePct: 12.5,
+          loenudviklingManuelNavn: 'Manuel test',
+          loenudviklingManuelTableData: [
+            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+            { id: 'm2', dato: '01-01-2024', grundloen: asAmountValue(110), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+          ],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
+
+    expect(segments.length).toBe(1);
+    expect(segments[0].fra).toBe('2024-01-01');
+    expect(segments[0].til).toBe('2024-01-31');
+  });
+
+  it('fejler hurtigt ved inkonsistente ansaettelser i loenudvikling', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
+      maanedsloenenUdgoer: asAmountValue(25000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2024',
+          tilDato: '01-01-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          id: 'a1',
+          loenudviklingBeregningsgrundlag: 'Statistik',
+          loenudviklingStatistikModel: loenudviklingStatistikModelEnum.enum['ASL-årslønsmaksimum'],
+        },
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          id: 'a2',
+          loenudviklingBeregningsgrundlag: 'Statistik',
+          loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    expect(() => buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
+      .toThrow('Inkonsistente loenudviklingsindstillinger');
+  });
 });
+
+
+
+

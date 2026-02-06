@@ -185,4 +185,40 @@ describe('tafBeregningsEngine', () => {
 
     expect(normalizeOutput(outputA.rows)).toEqual(normalizeOutput(outputB.rows));
   });
+
+  it('sammenlaegger overlap og tilstødende TAF-perioder i beregningen', () => {
+    const values = {
+      ...baseValues(),
+      beregnesUdFra: 'Angivet dagsløn' as const,
+    };
+    const tafPerioder: TafPeriodeRow[] = [
+      {
+        id: 'row-1',
+        fra: toISODateString('2024-02-05'),
+        til: toISODateString('2024-02-09'),
+        loseFeriedage: 0,
+      },
+      {
+        id: 'row-2',
+        fra: toISODateString('2024-02-10'),
+        til: toISODateString('2024-02-12'),
+        loseFeriedage: 0,
+      },
+      {
+        id: 'row-3',
+        fra: toISODateString('2024-02-08'),
+        til: toISODateString('2024-02-14'),
+        loseFeriedage: 0,
+      },
+    ];
+
+    const output = computeTafEngine({
+      erstatningsopgoerelse: values,
+      tafPerioder,
+      ferieperioder: [],
+    });
+
+    expect(output.rows).toHaveLength(1);
+    expect(output.rows[0]?.value).toBe(8);
+  });
 });

@@ -86,5 +86,40 @@ describe('SvieSmerteTable', () => {
     render(<TestHarness />);
     expect(screen.getByText('269')).toBeInTheDocument();
   });
-});
 
+  it('marks overlapping rows when svie/smerte periods overlap with different tilstand', () => {
+    const values: ErstatningsopgoerelseValues = {
+      ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      svieSmertePerioder: [
+        {
+          id: 'row-1',
+          fra: toISODateString('2023-06-22'),
+          til: toISODateString('2024-07-31'),
+          tilstand: 'sygemeldt',
+        },
+        {
+          id: 'row-2',
+          fra: toISODateString('2024-09-01'),
+          til: toISODateString('2024-09-16'),
+          tilstand: 'sygemeldt',
+        },
+        {
+          id: 'row-3',
+          fra: toISODateString('2024-07-15'),
+          til: toISODateString('2024-08-15'),
+          tilstand: 'delvist-sygemeldt',
+        },
+      ],
+    };
+
+    const TestHarness = () => {
+      const [state, setState] = React.useState<ErstatningsopgoerelseValues>(values);
+      const svie = useSvieSmerteRows({ values: state, setValues: setState, resyncToken: 0 });
+      const ids = Array.from(svie.overlappingIds).sort().join(',');
+      return <div data-testid="overlap-ids">{ids}</div>;
+    };
+
+    render(<TestHarness />);
+    expect(screen.getByTestId('overlap-ids').textContent).toBe('row-1,row-3');
+  });
+});

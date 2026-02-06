@@ -121,6 +121,31 @@ describe('Svie/smerte beregning', () => {
       const result = getAntalDage(values);
       expect(result).toBe('269 sygedage');
     });
+
+    it('marks beregnet periode as error when periods overlap with different tilstand', () => {
+      const values = makeValues({
+        vedroererPeriodeFra: iso('2023-06-22'),
+        vedroererPeriodeTil: iso('2024-09-16'),
+        svieSmertePerioder: [
+          { id: '1', fra: iso('2023-06-22'), til: iso('2024-07-31'), tilstand: 'sygemeldt' },
+          { id: '2', fra: iso('2024-09-01'), til: iso('2024-09-16'), tilstand: 'sygemeldt' },
+          { id: '3', fra: iso('2024-07-15'), til: iso('2024-08-15'), tilstand: 'delvist-sygemeldt' },
+        ],
+      });
+      const context = {
+        skadesdatoISO: iso('2023-01-01'),
+        erErhvervssygdom: false,
+        menAfgoerelseDatoForTabel: undefined,
+        verserendeKlageMen: false,
+      };
+
+      const rows = buildEODebugSvieSmerteRows(values, {}, context);
+      const beregnetPeriode = rows.find((row) => row.id === 'sviesmerte.beregnetPeriode');
+      const overlapPeriode = rows.find((row) => row.id === 'sviesmerte.periode.1');
+      expect(beregnetPeriode?.status).toBe('error');
+      expect(beregnetPeriode?.displayValue).toContain('Fejl (Der er overlappende perioder)');
+      expect(overlapPeriode?.label).toBe('Periode (22-06-2023 - 31-07-2024)');
+    });
   });
 
   describe('Forlig - procent', () => {

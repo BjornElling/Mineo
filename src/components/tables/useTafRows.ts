@@ -56,4 +56,3 @@ const useTafRows = ({ values, setValues, resyncToken }: UseTafRowsArgs): UseTafR
 };
 
 export default useTafRows;
-

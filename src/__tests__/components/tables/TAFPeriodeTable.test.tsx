@@ -5,6 +5,51 @@ import { toISODateString } from '../../../types/branded';
 import TAFPeriodeTable from '../../../components/tables/TAFPeriodeTable';
 
 describe('TAFPeriodeTable', () => {
+  it('shows internal overlap error on date fields when period overlaps another TAF period', () => {
+    const row: TafDraftRow = { id: 'row1', fra: '', til: '', loseFeriedage: '' };
+    const committedById = new Map<string, TafPeriodeRow>([
+      [
+        'row1',
+        {
+          id: 'row1',
+          fra: toISODateString('2025-01-01'),
+          til: toISODateString('2025-01-10'),
+          loseFeriedage: undefined,
+        },
+      ],
+    ]);
+
+    render(
+      <TAFPeriodeTable
+        rows={[row]}
+        committedById={committedById}
+        overlappingIds={new Set(['row1'])}
+        onFieldChange={() => () => undefined}
+        onRowBlur={() => undefined}
+        derivedById={{}}
+        derivedColumnHeader="Antal måneder"
+        overlapWithBeregningsperiodeByRowId={{}}
+        skadesdatoISO={undefined}
+        endeligEETBeregnetDato={undefined}
+        differencekravDato={undefined}
+        erErhvervssygdom={false}
+        verserendeKlageEet={false}
+      />
+    );
+
+    const input = screen.getByDisplayValue('01-01-2025');
+    const describedBy = input.getAttribute('aria-describedby') ?? '';
+    const errorId = describedBy
+      .split(' ')
+      .map((v) => v.trim())
+      .find((v) => v.endsWith('-error'));
+
+    expect(errorId).toBeTruthy();
+    const errorNode = errorId ? document.getElementById(errorId) : null;
+    expect(errorNode).not.toBeNull();
+    expect(errorNode?.textContent).toBe('Der er overlappende perioder');
+  });
+
   it('shows beregningsperiode-vs-TAF overlap error on the affected date fields', () => {
     const row: TafDraftRow = { id: 'row1', fra: '', til: '', loseFeriedage: '' };
     const committedById = new Map<string, TafPeriodeRow>([

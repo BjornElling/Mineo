@@ -23,6 +23,8 @@ import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
 import { buildControlMismatchReport, type ControlMismatchReport } from '../../../domain/debug/eoDebugMismatchReport';
 import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
+import { isoToDanish } from '../../../types/branded';
 
 const formatDateLongDisplay = (isoDate: string | undefined): string => {
   const danish = formatISOToDanish(isoDate ?? '');
@@ -316,16 +318,28 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     (eoValues?.svieSmertePerioder ?? []).some((row) => row.fra || row.til || row.tilstand) &&
     svieSmerteLines.length > 0;
 
-  const tafRows = beregnesTabtArbejdsfortjeneste
-    ? relevantRows.filter((row) => row.id.startsWith('taf.periode.'))
-    : [];
-  const tafPerioderLabels = tafRows
-    .filter((row) => row.id !== 'taf.periode.empty' && row.label.trim() !== '-')
-    .map((row) => {
-      const match = row.label.match(/\(([^)]+)\)/);
-      return match ? match[1].trim() : row.label.trim();
-    })
-    .filter((value) => value !== '');
+  const tafPerioderLabels = React.useMemo(() => {
+    if (!beregnesTabtArbejdsfortjeneste || !eoValues) return [];
+
+    const tafPeriodeRows = relevantRows.filter((row) => row.id.startsWith('taf.periode.') && row.id !== 'taf.periode.empty');
+    const tafPeriodeFejl = tafPeriodeRows
+      .filter((row) => row.status === 'error')
+      .map((row) => row.displayValue.trim())
+      .filter((value, index, arr) => value !== '' && arr.indexOf(value) === index);
+
+    if (tafPeriodeFejl.length > 0) {
+      return tafPeriodeFejl;
+    }
+
+    const ranges = buildTafRanges(eoValues);
+    return ranges
+      .map((range) => {
+        const fra = isoToDanish(range.fra);
+        const til = isoToDanish(range.til);
+        return fra && til ? `${fra} - ${til}` : '';
+      })
+      .filter((value) => value !== '');
+  }, [beregnesTabtArbejdsfortjeneste, eoValues, relevantRows]);
   const harTafPerioder =
     beregnesTabtArbejdsfortjeneste &&
     (eoValues?.tafPerioder ?? []).some((row) => row.fra || row.til || typeof row.loseFeriedage === 'number') &&
