@@ -11,7 +11,7 @@ import { addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
 import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode, OffentligeYdelserRow, StamdataValues } from '../../schemas/formSchemas';
-import { buildErstatningsopgoerelsePdfModel, type MoneyOre, type Calculable } from '../../domain/erstatningsopgoerelse/eoPdfModel';
+import { buildErstatningsopgoerelsePdfModel, type MoneyOre, type Calculable, type LoenudviklingSegment } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { formatAsAmount, formatCurrency, formatPercent } from '../formatUtils';
 import { TAF_BEREGNES_SOM } from '../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { TODAY } from '../../config/dateRanges';
@@ -21,8 +21,14 @@ import { ydelsestyper } from '../../data/ydelsestyper';
 import { beregnHelligdage } from '../shDageBeregning';
 import { diffUtcDays } from '../utcDayMath';
 import { aarsloenMax } from '../../data/regulationRates';
-import { buildFerieDageSet, buildSHDageSet } from '../../domain/debug/eoDebugRegulationCore';
-import { beregnArbejdsdageOgMaaneder } from '../../domain/erstatningsopgoerelse/arbejdsdageMaaneder';
+import {
+  getEffektiveSatserForDato,
+  getEffektiveSatserForPeriode,
+  getOverenskomst,
+  getOverenskomstMetaById,
+  resolveOverenskomstRef,
+} from '../../data/overenskomstRates';
+import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../data/statistiskLoenudviklingRates';
 
 const NBSP = '\u00A0';
 
@@ -142,6 +148,30 @@ type ReguleringIndexRow = Readonly<{
   indeksberegning: string;
   indeks: string;
 }>;
+
+type ReguleringValuesTableData = Readonly<{
+  columns: readonly string[];
+  rows: ReadonlyArray<ReadonlyArray<string>>;
+}>;
+
+type FormulaComponents = Readonly<{
+  baseValue: number;
+  feriePct: number;
+  fritvalgPct: number;
+  shSoPct: number;
+  pensionPct: number;
+  storeBededagPct: number;
+}>;
+
+type FormulaVisibility = Readonly<{
+  showFritvalg: boolean;
+  showShSo: boolean;
+  showPension: boolean;
+  showStoreBededag: boolean;
+}>;
+
+const STORE_BEDEDAG_START = '2024-01-01' as ISODateString;
+const STORE_BEDEDAG_PCT = 0.45;
 
 type PdfAutoTableDoc = jsPDF & {
   lastAutoTable?: {
@@ -289,22 +319,15 @@ const parseOptionalIsoDate = (value: unknown): ISODateString | undefined => {
   return trimmed as ISODateString;
 };
 
-const formatDateIso = (date: Date): ISODateString => {
-  const year = String(date.getFullYear());
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}` as ISODateString;
-};
-
-const subtractOneDayIso = (iso: ISODateString): ISODateString => {
-  const date = parseIsoDateToLocalDate(iso);
-  if (!date) return iso;
-  date.setDate(date.getDate() - 1);
-  return formatDateIso(date);
-};
-
 const maxIso = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
 const minIso = (a: ISODateString, b: ISODateString): ISODateString => (a < b ? a : b);
+const resolveReguleringTableStartIso = (
+  reguleringsdato: ISODateString | undefined,
+  tafFra: ISODateString
+): ISODateString => {
+  if (!reguleringsdato) return tafFra;
+  return reguleringsdato < tafFra ? reguleringsdato : tafFra;
+};
 
 const resolveTafDateBounds = (
   eoValues: ErstatningsopgoerelseValues
@@ -355,97 +378,395 @@ const resolveReguleringsdato = (
   return angivetLoenDato ?? skadesdato;
 };
 
-const buildReguleringsvaerdierRows = (
-  reguleringsdato: ISODateString | undefined,
-  tafFra: ISODateString,
-  tafTil: ISODateString,
-  statistikModel: string | undefined
-): ReadonlyArray<Readonly<{ venstre: string; hoejre: string }>> => {
-  const model = (statistikModel ?? '').trim();
-  if (!model.startsWith('ASL-') || !reguleringsdato) return [];
-
-  const regDate = parseIsoDateToLocalDate(reguleringsdato);
-  const tafFraDate = parseIsoDateToLocalDate(tafFra);
-  const tafTilDate = parseIsoDateToLocalDate(tafTil);
-  if (!regDate || !tafFraDate || !tafTilDate) return [];
-
-  const regYear = regDate.getFullYear();
-  const startYear = tafFraDate.getFullYear();
-  const endYear = tafTilDate.getFullYear();
-
-  const rows: Array<{ venstre: string; hoejre: string }> = [];
-  const regValue = aarsloenMax[regYear as keyof typeof aarsloenMax];
-  if (typeof regValue === 'number') {
-    rows.push({ venstre: String(regYear), hoejre: formatCurrency(regValue) });
-  }
-  for (let year = startYear; year <= endYear; year += 1) {
-    if (year === regYear) continue;
-    const value = aarsloenMax[year as keyof typeof aarsloenMax];
-    if (typeof value !== 'number') continue;
-    rows.push({ venstre: String(year), hoejre: formatCurrency(value) });
-  }
-  return rows;
+const parseDanishToISO = (value: string | undefined): ISODateString | undefined => {
+  if (!value || value.trim() === '') return undefined;
+  const match = value.trim().match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (!match) return undefined;
+  const [, dayStr, monthStr, yearStr] = match;
+  return parseOptionalIsoDate(`${yearStr}-${monthStr}-${dayStr}`);
 };
 
-const buildReguleringIndexRows = (params: Readonly<{
-  eoValues: ErstatningsopgoerelseValues;
+const resolveStatistikModelIdFromLabel = (
+  label: string | undefined
+): StatistiskLoenudviklingId | undefined => {
+  if (!label) return undefined;
+  const trimmed = label.trim();
+  if (trimmed.startsWith('ILON12')) return 'ILON12' as StatistiskLoenudviklingId;
+  if (trimmed.startsWith('SBLON2')) return 'SBLON2' as StatistiskLoenudviklingId;
+  return undefined;
+};
+
+const formatOverenskomstPercent = (value: number | null | undefined): string => {
+  if (value === null || value === undefined) return '-';
+  const pct = Math.round(value * 10000) / 100;
+  return formatPercent(pct);
+};
+
+const formatOverenskomstAmount = (value: number | null | undefined): string => {
+  if (value === null || value === undefined) return '-';
+  return formatCurrency(value);
+};
+
+const detectDecimalPlaces = (values: readonly number[], maxPlaces = 4): number => {
+  let max = 0;
+  for (const value of values) {
+    if (!Number.isFinite(value)) continue;
+    let places = 0;
+    for (; places < maxPlaces; places += 1) {
+      const scaled = value * 10 ** places;
+      if (Math.abs(scaled - Math.round(scaled)) < 1e-9) break;
+    }
+    if (places > max) max = places;
+  }
+  return max;
+};
+
+const percentFromDecimal = (value: number | null | undefined): number => {
+  if (value === null || value === undefined) return 0;
+  if (!Number.isFinite(value)) return 0;
+  return Math.round(value * 10000) / 100;
+};
+
+const formatPercentFixed2 = (value: number): string => {
+  if (!Number.isFinite(value)) return '-';
+  return `${value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+};
+
+const buildFormulaText = (components: FormulaComponents, visibility: FormulaVisibility): string => {
+  const baseValue = Number.isFinite(components.baseValue) ? components.baseValue : 0;
+  const feriePct = Number.isFinite(components.feriePct) ? components.feriePct : 0;
+  const fritvalgPct = Number.isFinite(components.fritvalgPct) ? components.fritvalgPct : 0;
+  const shSoPct = Number.isFinite(components.shSoPct) ? components.shSoPct : 0;
+  const pensionPct = Number.isFinite(components.pensionPct) ? components.pensionPct : 0;
+  const storeBededagPct = Number.isFinite(components.storeBededagPct) ? components.storeBededagPct : 0;
+
+  const baseStr = formatCurrency(baseValue);
+  const middleParts = [
+    formatPercent(100),
+    ...(feriePct !== 0 ? [formatPercent(feriePct)] : []),
+    ...(visibility.showFritvalg && fritvalgPct !== 0 ? [formatPercent(fritvalgPct)] : []),
+    ...(visibility.showShSo && shSoPct !== 0 ? [formatPercent(shSoPct)] : []),
+    ...(visibility.showStoreBededag && storeBededagPct !== 0 ? [formatPercentFixed2(storeBededagPct)] : []),
+  ];
+  const middle = middleParts.join(' + ');
+  if (visibility.showPension) {
+    const pensionParts = [
+      formatPercent(100),
+      ...(pensionPct !== 0 ? [formatPercent(pensionPct)] : []),
+    ];
+    return `${baseStr} x (${middle}) x (${pensionParts.join(' + ')})`;
+  }
+  return `${baseStr} x (${middle})`;
+};
+
+const computeFormulaValue = (components: FormulaComponents): number => {
+  const baseValue = Number.isFinite(components.baseValue) ? components.baseValue : 0;
+  const feriePct = Number.isFinite(components.feriePct) ? components.feriePct : 0;
+  const fritvalgPct = Number.isFinite(components.fritvalgPct) ? components.fritvalgPct : 0;
+  const shSoPct = Number.isFinite(components.shSoPct) ? components.shSoPct : 0;
+  const pensionPct = Number.isFinite(components.pensionPct) ? components.pensionPct : 0;
+  const storeBededagPct = Number.isFinite(components.storeBededagPct) ? components.storeBededagPct : 0;
+  const tillaeg = feriePct + fritvalgPct + shSoPct + storeBededagPct;
+  return baseValue * (1 + tillaeg / 100) * (1 + pensionPct / 100);
+};
+
+const resolveValgtReguleringDisplay = (
+  ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]
+): string => {
+  const grundlag = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
+  if (!grundlag) return '-';
+  if (grundlag === 'Statistik') return ansaettelsesforhold.loenudviklingStatistikModel?.trim() || '-';
+  if (grundlag === 'Overenskomst') {
+    const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
+    if (!overenskomstId) return '-';
+    const meta = getOverenskomstMetaById(overenskomstId);
+    if (!meta) return overenskomstId;
+    const loenPart = meta.loenmodtagerOrg[0] || '';
+    const arbPart = meta.arbejdsgiverOrg[0] || '';
+    return `${meta.navn} (${loenPart} / ${arbPart})`;
+  }
+  if (grundlag === 'Manuelt angivet') return 'Manuelt angivet';
+  return 'Ingen';
+};
+
+const buildReguleringsvaerdierTableData = (params: Readonly<{
+  ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
   reguleringsdato: ISODateString | undefined;
   tafFra: ISODateString;
   tafTil: ISODateString;
-  statistikModel: string | undefined;
+}>): ReguleringValuesTableData | null => {
+  const { ansaettelsesforhold, reguleringsdato, tafFra, tafTil } = params;
+  // Bevidst forskel: Reguleringsværdier-tabellen må starte tidligere end TAF ved tidlig reguleringsdato.
+  const reguleringTableStartIso = resolveReguleringTableStartIso(reguleringsdato, tafFra);
+  const grundlag = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
+
+  if (grundlag === 'Overenskomst') {
+    const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
+    if (!overenskomstId) return null;
+    const ref = resolveOverenskomstRef(overenskomstId);
+    if (!ref) return null;
+    const fraDato = isoToDanish(reguleringTableStartIso);
+    const tilDato = isoToDanish(tafTil);
+    if (!fraDato || !tilDato) return null;
+
+    const satser = getEffektiveSatserForPeriode({
+      overenskomstId: ref.baseId,
+      fraDato,
+      tilDato,
+      applyAlmindeligLoenPaaShDageRegel: ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn',
+    }).slice().reverse();
+    const allSatser = getOverenskomst(ref.baseId)?.satser ?? satser;
+    const hasGrundloen = allSatser.some((sats) => sats.grundloen !== null);
+    const hasShSo = allSatser.some((sats) => sats.shSoSats !== null);
+    const hasFritvalg = allSatser.some((sats) => sats.fritvalg !== null);
+    const hasAgPension = allSatser.some((sats) => sats.agPension !== null);
+    const hasSfgg = allSatser.some((sats) => sats.sfgg !== null);
+    const hasSfggFaglKbh = allSatser.some((sats) => sats.sfggFaglKbh !== null);
+    const hasSfggFaglProv = allSatser.some((sats) => sats.sfggFaglProv !== null);
+    const hasSfggUfaglKbh = allSatser.some((sats) => sats.sfggUfaglKbh !== null);
+    const hasSfggUfaglProv = allSatser.some((sats) => sats.sfggUfaglProv !== null);
+    const columns = [
+      'Fra-dato',
+      ...(hasGrundloen ? ['Grundløn'] : []),
+      ...(hasShSo ? ['SH/SO'] : []),
+      ...(hasFritvalg ? ['Fritvalg'] : []),
+      ...(hasAgPension ? ['AG pension'] : []),
+      ...(hasSfgg ? ['SFGG'] : []),
+      ...(hasSfggFaglKbh ? ['SFGG fagl. Kbh'] : []),
+      ...(hasSfggFaglProv ? ['SFGG fagl. prov'] : []),
+      ...(hasSfggUfaglKbh ? ['SFGG ufagl. Kbh'] : []),
+      ...(hasSfggUfaglProv ? ['SFGG ufagl. prov'] : []),
+    ] as const;
+    const rows = satser.map((sats) => {
+      const row: string[] = [sats.fraDato];
+      if (hasGrundloen) row.push(formatOverenskomstAmount(sats.grundloen));
+      if (hasShSo) row.push(formatOverenskomstPercent(sats.shSoSats));
+      if (hasFritvalg) row.push(formatOverenskomstPercent(sats.fritvalg));
+      if (hasAgPension) row.push(formatOverenskomstPercent(sats.agPension));
+      if (hasSfgg) row.push(formatOverenskomstAmount(sats.sfgg));
+      if (hasSfggFaglKbh) row.push(formatOverenskomstAmount(sats.sfggFaglKbh));
+      if (hasSfggFaglProv) row.push(formatOverenskomstAmount(sats.sfggFaglProv));
+      if (hasSfggUfaglKbh) row.push(formatOverenskomstAmount(sats.sfggUfaglKbh));
+      if (hasSfggUfaglProv) row.push(formatOverenskomstAmount(sats.sfggUfaglProv));
+      return row;
+    });
+    return { columns, rows };
+  }
+
+  if (grundlag === 'Manuelt angivet') {
+    const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
+    const rows = (ansaettelsesforhold.loenudviklingManuelTableData ?? [])
+      .map((row, index) => {
+        const iso = index === 0 ? reguleringTableStartIso : parseDanishToISO(row.dato);
+        if (!iso || iso < reguleringTableStartIso || iso > tafTil) return null;
+        return {
+          iso,
+          cells: [
+            formatDateShort(iso),
+            amountValueToDisplayString(row.grundloen, 2) || '-',
+            feriePctDisplay,
+            row.feriepenge?.trim() || '-',
+            row.shSoSats?.trim() || '-',
+            row.fritvalg?.trim() || '-',
+            row.agPension?.trim() || '-',
+          ],
+        };
+      })
+      .filter((row): row is Readonly<{ iso: ISODateString; cells: string[] }> => Boolean(row))
+      .sort((a, b) => (a.iso < b.iso ? -1 : 1))
+      .map((row) => row.cells);
+    return {
+      columns: ['Dato', 'Grundløn', 'Feriegodtgørelse', 'Feriepenge', 'SH/SO', 'Fritvalg', 'AG pension'],
+      rows,
+    };
+  }
+
+  if (grundlag === 'Statistik') {
+    const modelLabel = (ansaettelsesforhold.loenudviklingStatistikModel ?? '').trim();
+    if (modelLabel === '') return null;
+
+    if (modelLabel.startsWith('ASL-')) {
+      const regDate = parseIsoDateToLocalDate(reguleringsdato);
+      const tafFraDate = parseIsoDateToLocalDate(reguleringTableStartIso);
+      const tafTilDate = parseIsoDateToLocalDate(tafTil);
+      if (!regDate || !tafFraDate || !tafTilDate) return null;
+      const regYear = regDate.getFullYear();
+      const startYear = tafFraDate.getFullYear();
+      const endYear = tafTilDate.getFullYear();
+      const rows: string[][] = [];
+      const regValue = aarsloenMax[regYear as keyof typeof aarsloenMax];
+      if (typeof regValue === 'number') rows.push([String(regYear), formatCurrency(regValue)]);
+      for (let year = startYear; year <= endYear; year += 1) {
+        if (year === regYear) continue;
+        const value = aarsloenMax[year as keyof typeof aarsloenMax];
+        if (typeof value !== 'number') continue;
+        rows.push([String(year), formatCurrency(value)]);
+      }
+      return { columns: ['År', 'Maksimum årsløn'], rows };
+    }
+
+    const modelId = resolveStatistikModelIdFromLabel(modelLabel);
+    if (!modelId) return null;
+    const model = getStatistiskLoenudvikling(modelId);
+    if (!model) return null;
+
+    const periodStarts = model.indeksvaerdier
+      .flatMap((value) => {
+        const match = value.kvartal.match(/^(\d{4})K([1-4])$/);
+        if (!match) return [];
+        const year = Number(match[1]);
+        const quarter = Number(match[2]);
+        if (!Number.isFinite(year) || !Number.isFinite(quarter)) return [];
+        const month = (quarter - 1) * 3 + 1;
+        const startIso = parseOptionalIsoDate(`${year}-${String(month).padStart(2, '0')}-01`);
+        if (!startIso) return [];
+        return [{ kvartal: value.kvartal, startIso, indeks: value.indeks }];
+      })
+      .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+    if (periodStarts.length === 0) return null;
+
+    const decimals = detectDecimalPlaces(model.indeksvaerdier.map((value) => value.indeks));
+    const formatIndex = (value: number) =>
+      value.toLocaleString('da-DK', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+
+    let basePeriod = periodStarts[0];
+    for (const period of periodStarts) {
+      if (period.startIso > reguleringTableStartIso) break;
+      basePeriod = period;
+    }
+
+    const rows: string[][] = [[basePeriod.kvartal, formatDateShort(reguleringTableStartIso), formatIndex(basePeriod.indeks)]];
+    for (const period of periodStarts) {
+      if (period.startIso <= reguleringTableStartIso) continue;
+      if (period.startIso > tafTil) continue;
+      rows.push([period.kvartal, formatDateShort(period.startIso), formatIndex(period.indeks)]);
+    }
+    return { columns: ['Kvartal', 'Startdato', 'Indeks'], rows };
+  }
+
+  return null;
+};
+
+const buildReguleringIndexRows = (params: Readonly<{
+  segments: readonly LoenudviklingSegment[];
+  ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
+  reguleringsdato: ISODateString | undefined;
 }>): readonly ReguleringIndexRow[] => {
-  const { eoValues, reguleringsdato, tafFra, tafTil, statistikModel } = params;
-  const model = (statistikModel ?? '').trim();
-  if (!model.startsWith('ASL-') || !reguleringsdato) return [];
+  const { segments, ansaettelsesforhold, reguleringsdato } = params;
 
-  const regDate = parseIsoDateToLocalDate(reguleringsdato);
-  if (!regDate) return [];
-  const regYear = regDate.getFullYear();
-  const baseValue = aarsloenMax[regYear as keyof typeof aarsloenMax];
-  if (typeof baseValue !== 'number' || baseValue <= 0) return [];
+  if (
+    ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Overenskomst' &&
+    reguleringsdato &&
+    ansaettelsesforhold.overenskomstId
+  ) {
+    const ref = resolveOverenskomstRef(ansaettelsesforhold.overenskomstId);
+    const baseDato = isoToDanish(reguleringsdato);
+    if (ref && baseDato) {
+      const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
+      const baseSats = getEffektiveSatserForDato({
+        overenskomstId: ref.baseId,
+        dato: baseDato,
+        applyAlmindeligLoenPaaShDageRegel,
+      });
+      if (baseSats) {
+        const allSatser = getOverenskomst(ref.baseId)?.satser ?? [];
+        const hasShSo = allSatser.some((sats) => sats.shSoSats !== null);
+        const hasFritvalg = allSatser.some((sats) => sats.fritvalg !== null);
+        const hasAgPension = allSatser.some((sats) => sats.agPension !== null);
+        const tafStartIso = segments[0]?.fra;
+        const tafEndIso = segments[segments.length - 1]?.til;
+        const applyStoreBededagRegulering = Boolean(
+          tafStartIso &&
+          tafEndIso &&
+          applyAlmindeligLoenPaaShDageRegel &&
+          tafStartIso < STORE_BEDEDAG_START &&
+          tafEndIso >= STORE_BEDEDAG_START
+        );
+        const feriePct = typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0;
+        const baseComponents: FormulaComponents = {
+          baseValue: baseSats.grundloen ?? 0,
+          feriePct,
+          fritvalgPct: percentFromDecimal(baseSats.fritvalg),
+          shSoPct: percentFromDecimal(baseSats.shSoSats),
+          pensionPct: percentFromDecimal(baseSats.agPension),
+          storeBededagPct: 0,
+        };
+        const baseVisibility: FormulaVisibility = {
+          showFritvalg: hasFritvalg,
+          showShSo: hasShSo,
+          showPension: hasAgPension,
+          showStoreBededag: false,
+        };
+        const baseFormula = buildFormulaText(baseComponents, baseVisibility);
+        const baseValueRaw = computeFormulaValue(baseComponents);
 
-  const tafFraDate = parseIsoDateToLocalDate(tafFra);
-  const tafTilDate = parseIsoDateToLocalDate(tafTil);
-  if (!tafFraDate || !tafTilDate || tafFraDate > tafTilDate) return [];
+        return segments.map((segment) => {
+          const segmentDato = isoToDanish(segment.fra);
+          const sats = segmentDato
+            ? getEffektiveSatserForDato({
+                overenskomstId: ref.baseId,
+                dato: segmentDato,
+                applyAlmindeligLoenPaaShDageRegel,
+              })
+            : undefined;
 
-  const periodStarts: ISODateString[] = [tafFra];
-  for (let year = tafFraDate.getFullYear() + 1; year <= tafTilDate.getFullYear(); year += 1) {
-    const jan1 = `${year}-01-01` as ISODateString;
-    if (jan1 > tafFra && jan1 <= tafTil) {
-      periodStarts.push(jan1);
+          if (!sats) {
+            const indeksValue = 100 + segment.deltaPct;
+            const indeksDisplay = indeksValue.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return {
+              fraDato: formatDateShort(segment.fra),
+              tilDato: formatDateShort(segment.til),
+              indeksberegning: Math.abs(indeksValue - 100) < 0.000001 ? '100,00' : `${indeksDisplay} /\n100,00`,
+              indeks: indeksDisplay,
+            };
+          }
+
+          const storeBededagPct =
+            applyStoreBededagRegulering && segment.fra >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
+          const components: FormulaComponents = {
+            baseValue: sats.grundloen ?? 0,
+            feriePct,
+            fritvalgPct: percentFromDecimal(sats.fritvalg),
+            shSoPct: percentFromDecimal(sats.shSoSats),
+            pensionPct: percentFromDecimal(sats.agPension),
+            storeBededagPct,
+          };
+          const visibility: FormulaVisibility = {
+            showFritvalg: hasFritvalg,
+            showShSo: hasShSo,
+            showPension: hasAgPension,
+            showStoreBededag: applyStoreBededagRegulering,
+          };
+          const formula = buildFormulaText(components, visibility);
+          const valueRaw = computeFormulaValue(components);
+          const indeksValue = 100 + segment.deltaPct;
+          const indeksDisplay = indeksValue.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          const isSameNumericValue = Math.abs(valueRaw - baseValueRaw) < 1e-9;
+          const indeksberegning = isSameNumericValue
+            ? `(${formula})`
+            : `(${formula}) /\n(${baseFormula})`;
+          return {
+            fraDato: formatDateShort(segment.fra),
+            tilDato: formatDateShort(segment.til),
+            indeksberegning,
+            indeks: indeksDisplay,
+          };
+        });
+      }
     }
   }
-  periodStarts.sort((a, b) => (a < b ? -1 : 1));
 
-  const shDageSet = buildSHDageSet(tafFra, tafTil);
-  const ferieDageSet = buildFerieDageSet(eoValues, shDageSet, tafFra, tafTil);
-
-  const rows: ReguleringIndexRow[] = [];
-  for (let i = 0; i < periodStarts.length; i += 1) {
-    const fraIso = periodStarts[i];
-    const tilIso = i < periodStarts.length - 1 ? subtractOneDayIso(periodStarts[i + 1]) : tafTil;
-    if (fraIso > tilIso) continue;
-
-    const year = parseIsoDateToLocalDate(fraIso)?.getFullYear();
-    if (!year) continue;
-    const value = aarsloenMax[year as keyof typeof aarsloenMax];
-    if (typeof value !== 'number') continue;
-
-    const stats = beregnArbejdsdageOgMaaneder(fraIso, tilIso, shDageSet, ferieDageSet);
-    const formulaText =
-      Math.abs(value - baseValue) < 0.000001
-        ? formatCurrency(value)
-        : `${formatCurrency(value)} /\n${formatCurrency(baseValue)}`;
-    const indeksValue = (value / baseValue) * 100;
-    rows.push({
-      fraDato: formatDateShort(fraIso),
-      tilDato: formatDateShort(tilIso),
+  return segments.map((segment) => {
+    const indeksValue = 100 + segment.deltaPct;
+    const indeksDisplay = indeksValue.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formulaText = Math.abs(indeksValue - 100) < 0.000001 ? '100,00' : `${indeksDisplay} /\n100,00`;
+    return {
+      fraDato: formatDateShort(segment.fra),
+      tilDato: formatDateShort(segment.til),
       indeksberegning: formulaText,
-      indeks: indeksValue.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-    });
-  }
-
-  return rows;
+      indeks: indeksDisplay,
+    };
+  });
 };
 
 export const resolveUdkastStempelValue = (value: unknown): boolean => {
@@ -1386,7 +1707,15 @@ export const generateErstatningsopgoerelsePdf = (
 
     if (loenudvikling) {
       if (loenudvikling.loenudviklingLabel !== 'Ingen') {
-        safeAddWrappedText(`Lønudvikling beregnes ud fra ${loenudvikling.loenudviklingLabel}.`);
+        const loenudviklingLabelDisplay = (() => {
+          if (loenudvikling.loenudviklingLabel !== 'Overenskomst') {
+            return loenudvikling.loenudviklingLabel;
+          }
+          const foersteAnsaettelsesforhold = eoValues.loenindkomstAnsaettelsesforhold?.[0];
+          if (!foersteAnsaettelsesforhold) return loenudvikling.loenudviklingLabel;
+          return resolveValgtReguleringDisplay(foersteAnsaettelsesforhold);
+        })();
+        safeAddWrappedText(`Lønudvikling beregnes ud fra ${loenudviklingLabelDisplay}.`);
         writer.advanceY(lineHeight);
       }
 
@@ -1773,7 +2102,7 @@ export const generateErstatningsopgoerelsePdf = (
     renderOffentligeYdelserTable();
   }
 
-  if (selectedElements.shDage) {
+  const renderShDageSection = () => {
     const formatRangeLong = (fra: ISODateString | undefined, til: ISODateString | undefined): string => {
       const fraDisplay = formatDateLong(fra);
       const tilDisplay = formatDateLong(til);
@@ -1852,7 +2181,7 @@ export const generateErstatningsopgoerelsePdf = (
     } else {
       renderShDageTable(erstatningsperiodeHelligdage);
     }
-  }
+  };
 
   // Tilføj footer med versionsnummer
   if (selectedElements.regulering) {
@@ -1876,7 +2205,7 @@ export const generateErstatningsopgoerelsePdf = (
         tableRows.push([
           { content: row.fraDato, styles: { halign: 'center' } },
           { content: row.tilDato, styles: { halign: 'center' } },
-          { content: row.indeksberegning, styles: { halign: 'right' } },
+          { content: row.indeksberegning, styles: { halign: 'center' } },
           { content: row.indeks, styles: { halign: 'right' } },
         ]);
       }
@@ -1890,23 +2219,23 @@ export const generateErstatningsopgoerelsePdf = (
       writer.setY(finalY + lineHeight);
     };
 
-    const renderReguleringsvaerdierTable = (
-      rows: ReadonlyArray<Readonly<{ venstre: string; hoejre: string }>>
-    ) => {
-      if (rows.length === 0) {
+    const renderReguleringsvaerdierTable = (tableData: ReguleringValuesTableData | null) => {
+      if (!tableData || tableData.rows.length === 0) {
         safeAddWrappedText('Ingen reguleringsværdier.');
         return;
       }
 
       const tableRows: RowInput[] = [
-        [
-          { content: 'År', styles: { fontStyle: 'bold', halign: 'center' } },
-          { content: 'Maksimum årsløn', styles: { fontStyle: 'bold', halign: 'center' } },
-        ],
-        ...rows.map((row) => [
-          { content: row.venstre, styles: { halign: 'center' as const } },
-          { content: row.hoejre, styles: { halign: 'right' as const } },
-        ]),
+        tableData.columns.map((column) => ({
+          content: column,
+          styles: { fontStyle: 'bold', halign: 'center' as const },
+        })),
+        ...tableData.rows.map((row) =>
+          row.map((value) => ({
+            content: value,
+            styles: { halign: 'center' as const },
+          }))
+        ),
       ];
 
       const doc = writer.getDoc();
@@ -1925,6 +2254,7 @@ export const generateErstatningsopgoerelsePdf = (
       safeAddWrappedText('Ingen ansættelsesforhold.');
     } else {
       const tafBounds = resolveTafDateBounds(eoValues);
+      writer.addSpacer(lineHeight);
       writeLabelValueLine(
         'Første dato i TAF-periode',
         tafBounds ? formatDateShort(tafBounds.foerste) : ''
@@ -1933,20 +2263,13 @@ export const generateErstatningsopgoerelsePdf = (
         'Sidste dato i TAF-periode',
         tafBounds ? formatDateShort(tafBounds.sidste) : ''
       );
-      writer.addSpacer(lineHeight);
+      writer.addSpacer(lineHeight * 2);
 
       const underoverskrift = foersteAnsaettelsesforhold.navnPaaArbejdssted?.trim() || 'Ansættelsesforhold 1';
       renderSubheader(underoverskrift, lineHeight, { addTopSpacing: false });
       writer.addSpacer(lineHeight);
 
-      const valgtRegulering = (() => {
-        const grundlag = foersteAnsaettelsesforhold.loenudviklingBeregningsgrundlag;
-        if (!grundlag) return '-';
-        if (grundlag === 'Statistik') return foersteAnsaettelsesforhold.loenudviklingStatistikModel?.trim() || '-';
-        if (grundlag === 'Overenskomst') return foersteAnsaettelsesforhold.overenskomstId?.trim() || '-';
-        if (grundlag === 'Manuelt angivet') return 'Manuelt angivet';
-        return 'Ingen';
-      })();
+      const valgtRegulering = resolveValgtReguleringDisplay(foersteAnsaettelsesforhold);
 
       const reguleringsdato = resolveReguleringsdato(stamdataValues, eoValues, foersteAnsaettelsesforhold);
       writeLabelValueLine('Valgt regulering', valgtRegulering);
@@ -1956,35 +2279,33 @@ export const generateErstatningsopgoerelsePdf = (
       );
       writer.addSpacer(lineHeight);
       safeAddWrappedText('Reguleringsværdier:');
-      writer.addSpacer(lineHeight);
 
-      const reguleringsvaerdierRows =
+      const reguleringsvaerdierTableData =
         tafBounds
-          ? buildReguleringsvaerdierRows(
-              reguleringsdato,
-              tafBounds.foerste,
-              tafBounds.sidste,
-              foersteAnsaettelsesforhold.loenudviklingStatistikModel
-            )
-          : [];
-      renderReguleringsvaerdierTable(reguleringsvaerdierRows);
-
-      writer.addSpacer(lineHeight);
-      safeAddWrappedText('Beregnet regulering');
-      writer.addSpacer(lineHeight);
-
-      const reguleringTableRows =
-        tafBounds
-          ? buildReguleringIndexRows({
-              eoValues,
+          ? buildReguleringsvaerdierTableData({
+              ansaettelsesforhold: foersteAnsaettelsesforhold,
               reguleringsdato,
               tafFra: tafBounds.foerste,
               tafTil: tafBounds.sidste,
-              statistikModel: foersteAnsaettelsesforhold.loenudviklingStatistikModel,
             })
-          : [];
+          : null;
+      renderReguleringsvaerdierTable(reguleringsvaerdierTableData);
+
+      writer.addSpacer(lineHeight);
+      safeAddWrappedText('Beregnet regulering');
+
+      // Bevidst forskel: Indeks-tabellen følger de beregnede TAF-segmenter og dermed TAF-start.
+      const reguleringTableRows = buildReguleringIndexRows({
+        segments: model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [],
+        ansaettelsesforhold: foersteAnsaettelsesforhold,
+        reguleringsdato,
+      });
       renderReguleringIndeksTable(reguleringTableRows);
     }
+  }
+
+  if (selectedElements.shDage) {
+    renderShDageSection();
   }
 
   writer.addFooter();
@@ -1992,5 +2313,3 @@ export const generateErstatningsopgoerelsePdf = (
   // Download PDF
   writer.save(`${titel}.pdf`);
 };
-
-

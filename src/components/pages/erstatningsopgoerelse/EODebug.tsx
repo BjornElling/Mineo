@@ -73,6 +73,14 @@ const parseDanishToISO = (value: string | undefined): ISODateString | undefined 
   return formatToISO(parsed);
 };
 
+const resolveReguleringTableStartIso = (
+  reguleringsdato: ISODateString | undefined,
+  tafStartIso: ISODateString
+): ISODateString => {
+  if (!reguleringsdato) return tafStartIso;
+  return reguleringsdato < tafStartIso ? reguleringsdato : tafStartIso;
+};
+
 const formatIsoValue = (iso: ISODateString | undefined): string => {
   if (!iso) return '-';
   return isoToDanish(iso) ?? '-';
@@ -777,7 +785,6 @@ const EODebug = () => {
           : { display: 'Nej', status: 'warning' as DebugStatus };
       })();
 
-      const indeksRowIsos: ISODateString[] = [];
 
       const baseIndex = (() => {
         if (!reguleringsdato) return null;
@@ -870,7 +877,6 @@ const EODebug = () => {
             .filter((row): row is Readonly<{ startIso: ISODateString; indeks: number }> => Boolean(row))
             .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
           if (periodStarts.length === 0) return null;
-          if (periodStarts[0].startIso > reguleringsdato) return null;
           let candidate = periodStarts[0];
           for (const period of periodStarts) {
             if (period.startIso > reguleringsdato) break;
@@ -907,6 +913,7 @@ const EODebug = () => {
         if (!tafEndIso) return null;
         if (tafStartIso > tafEndIso) return null;
         if (!baseIndex) return null;
+        // Bevidst forskel: Indeks-tabellen følger altid TAF-start (ikke reguleringsdato).
 
         const feriePct = typeof af.feriePct === 'number' ? af.feriePct : 0;
         const tafRanges = (tafPerioder ?? [])
@@ -1186,8 +1193,6 @@ const EODebug = () => {
           ? buildFerieDageSet({ ferieperioder, tafPerioder }, shDageSet, eoRange.fra, eoRange.til)
           : new Set<ISODateString>();
 
-        const rowIsos: ISODateString[] = [tafStartIso];
-
         const sortedPeriods = periods
           .filter((period) => period.startIso > tafStartIso)
           .filter((period) => !tafEndIso || period.startIso <= tafEndIso);
@@ -1261,7 +1266,6 @@ const EODebug = () => {
               indexValue
             ],
           });
-          rowIsos.push(period.startIso);
         }
 
         const columns: StandardDisplayTableColumn[] = [
@@ -1279,7 +1283,6 @@ const EODebug = () => {
           centeredCol('Indeks', 120),
         ];
 
-        indeksRowIsos.push(...rowIsos);
         return { columns, rows };
       })();
 
@@ -1288,15 +1291,16 @@ const EODebug = () => {
         if (!tafStartIso || !tafEndIso) return null;
         if (tafStartIso > tafEndIso) return null;
         if (!baseIndex) return null;
-        const rowIsoSet = indeksRowIsos.length > 0 ? new Set(indeksRowIsos) : null;
+        // Bevidst forskel: Reguleringstabellen (satser) må starte tidligere end TAF ved tidlig reguleringsdato.
+        const reguleringTableStartIso = resolveReguleringTableStartIso(reguleringsdato, tafStartIso);
 
         if (loenudviklingBasis === 'Overenskomst') {
             const isAlmindeligLoen = af.loenPaaHelligdage === loenPaaHelligdageSchema.enum['Almindelig løn'];
             const applyStoreBededagRegulering =
-              isAlmindeligLoen && tafStartIso < STORE_BEDEDAG_START && tafEndIso >= STORE_BEDEDAG_START;
+              isAlmindeligLoen && reguleringTableStartIso < STORE_BEDEDAG_START && tafEndIso >= STORE_BEDEDAG_START;
             const overenskomstRef = af.overenskomstId ? resolveOverenskomstRef(af.overenskomstId) : undefined;
             if (!overenskomstRef) return null;
-            const fraDato = isoToDanish(tafStartIso);
+            const fraDato = isoToDanish(reguleringTableStartIso);
             const tilDato = isoToDanish(tafEndIso);
             if (!fraDato || !tilDato) return null;
             const satser = getEffektiveSatserForPeriode({
@@ -1339,13 +1343,12 @@ const EODebug = () => {
               .sort((a, b) => (a.iso < b.iso ? -1 : 1));
 
             const baseSats = [...satsWithIso]
-              .filter((entry) => entry.iso <= tafStartIso)
+              .filter((entry) => entry.iso <= reguleringTableStartIso)
               .sort((a, b) => (a.iso < b.iso ? 1 : -1))[0];
             if (!baseSats) return null;
 
             const rows: StandardDisplayTableRow[] = [];
             const addRow = (labelIso: ISODateString, sats: (typeof satser)[number], storeBededagPct: number) => {
-              if (rowIsoSet && !rowIsoSet.has(labelIso)) return;
               const cells: React.ReactNode[] = [isoToDanish(labelIso) ?? labelIso];
               if (hasGrundloen) {
                 cells.push(formatOverenskomstAmount(sats.grundloen));
@@ -1366,9 +1369,9 @@ const EODebug = () => {
               });
             };
 
-            addRow(tafStartIso, baseSats.sats, 0);
+            addRow(reguleringTableStartIso, baseSats.sats, 0);
 
-            const laterSatser = satsWithIso.filter((entry) => entry.iso > tafStartIso);
+            const laterSatser = satsWithIso.filter((entry) => entry.iso > reguleringTableStartIso);
             let storeBededagInserted = false;
 
             for (const entry of laterSatser) {
@@ -1380,7 +1383,7 @@ const EODebug = () => {
               addRow(entry.iso, entry.sats, bededagPct);
             }
 
-            if (applyStoreBededagRegulering && !storeBededagInserted && STORE_BEDEDAG_START > tafStartIso && STORE_BEDEDAG_START <= tafEndIso) {
+            if (applyStoreBededagRegulering && !storeBededagInserted && STORE_BEDEDAG_START > reguleringTableStartIso && STORE_BEDEDAG_START <= tafEndIso) {
               addRow(STORE_BEDEDAG_START, baseSats.sats, STORE_BEDEDAG_PCT);
             }
 
@@ -1389,10 +1392,9 @@ const EODebug = () => {
           if (loenudviklingBasis === 'Manuelt angivet') {
             const rows = af.loenudviklingManuelTableData
               .map((row, rowIndex): StandardDisplayTableRow | null => {
-                const iso = rowIndex === 0 && tafStartIso ? tafStartIso : parseDanishToISO(row.dato);
+                const iso = rowIndex === 0 && reguleringTableStartIso ? reguleringTableStartIso : parseDanishToISO(row.dato);
                 if (!iso) return null;
-                if (iso < tafStartIso || iso > tafEndIso) return null;
-                if (rowIsoSet && !rowIsoSet.has(iso)) return null;
+                if (iso < reguleringTableStartIso || iso > tafEndIso) return null;
                 return {
                   key: `manual-${af.id}-${row.id}`,
                   cells: [
@@ -1425,10 +1427,10 @@ const EODebug = () => {
             const modelLabel = af.loenudviklingStatistikModel ?? '';
             if (modelLabel.trim() === '') return null;
 
-            const includeBase = Boolean(rowIsoSet?.has(tafStartIso));
+            const includeBase = true;
 
             if (modelLabel.trim().startsWith('ASL-')) {
-              const start = parseISODate(tafStartIso);
+              const start = parseISODate(reguleringTableStartIso);
               const end = parseISODate(tafEndIso);
               const regDate = reguleringsdato ? parseISODate(reguleringsdato) : null;
               if (!start || !end || !regDate) return null;
@@ -1489,7 +1491,7 @@ const EODebug = () => {
 
             let basePeriod = periodStarts[0];
               for (const period of periodStarts) {
-              if (period.startIso > tafStartIso) break;
+              if (period.startIso > reguleringTableStartIso) break;
               basePeriod = period;
             }
 
@@ -1499,7 +1501,7 @@ const EODebug = () => {
                 key: `stat-${af.id}-base`,
                 cells: [
                   basePeriod.kvartal,
-                  formatIsoValue(tafStartIso),
+                  formatIsoValue(reguleringTableStartIso),
                   basePeriod.indeks.toLocaleString('da-DK', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
                 ],
               });
@@ -1507,7 +1509,6 @@ const EODebug = () => {
 
             for (const period of periodStarts) {
               if (basePeriod && period.startIso === basePeriod.startIso && includeBase) continue;
-              if (rowIsoSet && !rowIsoSet.has(period.startIso)) continue;
               rows.push({
                 key: `stat-${af.id}-${period.kvartal}`,
                 cells: [
