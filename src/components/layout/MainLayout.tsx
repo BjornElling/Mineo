@@ -270,11 +270,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
           return;
         }
 
-        const devFieldCountSuffix =
-          import.meta.env.DEV && result.fieldCountWarning
-            ? `\n\nTEKNISK (dev): Forventet ${result.fieldCountWarning.expected} felter, fandt ${result.fieldCountWarning.actual}`
-            : '';
-        await requestApplyLoadedSnapshot(result, { message: `Hentet${devFieldCountSuffix}`, type: 'success' }, false);
+        await requestApplyLoadedSnapshot(result, { message: 'Hentet', type: 'success' }, false);
       }
     } catch (error) {
       const resolved = resolveLoadError(error);
