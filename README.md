@@ -1,8 +1,8 @@
 # MINEO Erstatningsberegner
 
-**MINEO** er en browserbaseret erstatningsberegner, der er udviklet til at hjælpe advokater og sagsbehandlere med at lave beregninger og opgørelser i arbejdsskadesager. 
+**MINEO** er en browserbaseret erstatningsberegner, der er udviklet til at hjælpe advokater og sagsbehandlere med at lave beregninger og opgørelser i arbejdsskadesager.
 
-Programmet er gratis og kan frit benyttes i kommercielle sammenhænge. Alle beregninger sker client-side, dvs. på brugerens egen computer, og der udveksles ingen data med serveren. Indtastede oplysninger kan gemmes lokalt i krypterede .eo filer. 
+Programmet er gratis og kan frit benyttes i kommercielle sammenhænge. Alle beregninger sker client-side, dvs. på brugerens egen computer, og der udveksles ingen data med serveren. Indtastede oplysninger kan gemmes lokalt i krypterede .eo filer.
 
 ## 🚀 Teknologier
 
@@ -39,7 +39,7 @@ Programmet er gratis og kan frit benyttes i kommercielle sammenhænge. Alle bere
    ```
 
 4. **Åbn i browser**
-   - Gå til `http://localhost:5173`
+   - Gå til `http://localhost:3000`
 
 ### NPM scripts
 ```bash
@@ -47,13 +47,6 @@ npm run dev          # Start development server (Vite)
 npm run build        # Build til production
 npm run preview      # Preview production build
 ```
-
-### Versionering
-[src/config/version.ts](src/config/version.ts):
-- Vises i formatet åååå.mm.#commit
-- Auto-genereres ved hver commit via git hooks
-- Baseret på antal commits i repository
-- Bruges til at vise versionsnummer i applikationen
 
 
 ## 📝 Løbende opdatering
@@ -79,6 +72,13 @@ npm run preview      # Preview production build
    - Opdater tilladte intervaller og `MAX_YEAR` til det nye år
    - OBS: Vil gradvist blive udfaset og erstattet af dynamiske værdier
 
+### Versionering
+[src/config/version.ts](src/config/version.ts):
+- Vises i formatet åååå.mm.#commit
+- Auto-genereres ved hver commit via git hooks
+- Baseret på antal commits i repository
+- Bruges til at vise versionsnummer i applikationen
+
 
 ## 📄 Licens
 
@@ -93,6 +93,6 @@ MIT License - Se [LICENSE](LICENSE) filen for detaljer.
 
 ---
 
-**Version**: 2026.02.48
+**Version**: 2026.02.49
 
 **Status**: Under udvikling

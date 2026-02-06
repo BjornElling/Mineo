@@ -105,7 +105,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   it('throws for unsupported selected PDF elements', () => {
     const selectedWithUnsupported = {
       ...selected,
-      loenindkomst: true,
+      sygeferiegodtgoerelse: true,
     };
 
     expect(() => generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selectedWithUnsupported, { visUdkastStempel: false }))

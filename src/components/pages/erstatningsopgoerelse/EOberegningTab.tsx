@@ -718,17 +718,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
               <FormControlLabel
                 control={(
                   <Checkbox
-                    checked={selectedElements.shDage}
-                    onChange={(event) => {
-                      updateSelectedElement('shDage', event.target.checked);
-                    }}
-                  />
-                )}
-                label="SH-dage"
-              />
-              <FormControlLabel
-                control={(
-                  <Checkbox
                     checked={selectedElements.regulering}
                     onChange={(event) => {
                       updateSelectedElement('regulering', event.target.checked);
@@ -740,19 +729,26 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
               <FormControlLabel
                 control={(
                   <Checkbox
-                    checked={selectedElements.okSatser}
+                    checked={selectedElements.shDage}
                     onChange={(event) => {
-                      updateSelectedElement('okSatser', event.target.checked);
+                      updateSelectedElement('shDage', event.target.checked);
                     }}
                   />
                 )}
-                label="OK-satser"
+                label="SH-dage"
               />
-            </Box>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <FormControlLabel
-                control={<Checkbox checked={selectedElements.sygeferiegodtgoerelse} disabled />}
-                label="Sygeferiegodtgørelse"
+                control={(
+                  <Checkbox
+                    checked={selectedElements.sygeferiegodtgoerelse}
+                    disabled
+                  />
+                )}
+                label={(
+                  <span style={{ textDecoration: 'line-through' }}>
+                    Sygeferiegodtgørelse
+                  </span>
+                )}
               />
             </Box>
           </Box>
