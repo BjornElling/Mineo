@@ -20,6 +20,7 @@ import { calculateFerieHverdageMinusSHDage } from './ferieCalculations';
 import { computeTafOverlapWithBeregningsperiode } from './beregningsperiodeTafOverlap';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoDebugIndkomstModel';
 import { mergeDateRanges } from './periodMerging';
+import { buildMergedTafGroups } from './tafBeregningsEngine';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -1403,9 +1404,9 @@ export const buildEODebugTaftRows = (
   };
 
   // 1) Periode-rækker fra tabellen
-  const perioder = values.tafPerioder ?? [];
+  const perioder = buildMergedTafGroups(values.tafPerioder ?? []);
   const harPerioder = perioder.length > 0 && perioder.some((p) => p.fra || p.til);
-  const tafOverlappingIds = detectOverlappingPeriods(perioder);
+  const tafOverlappingIds = detectOverlappingPeriods(values.tafPerioder ?? []);
 
   const ferieperioder = values.ferieperioder ?? [];
 

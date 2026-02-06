@@ -207,6 +207,7 @@ const renderStandardPdfTable = (params: Readonly<{
     didParseCell: (data: CellHookData) => {
       if (data.row.index === 0) {
         data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+        data.cell.styles.valign = 'bottom';
         return;
       }
       if (transparentSet.has(data.row.index)) {
@@ -525,21 +526,24 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
     const hasSfggFaglProv = allSatser.some((sats) => sats.sfggFaglProv !== null);
     const hasSfggUfaglKbh = allSatser.some((sats) => sats.sfggUfaglKbh !== null);
     const hasSfggUfaglProv = allSatser.some((sats) => sats.sfggUfaglProv !== null);
+    const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
     const columns = [
       'Fra-dato',
       ...(hasGrundloen ? ['Grundløn'] : []),
+      ...(hasGrundloen ? ['Ferie\ngodtgørelse'] : []),
       ...(hasShSo ? ['SH/SO'] : []),
       ...(hasFritvalg ? ['Fritvalg'] : []),
       ...(hasAgPension ? ['AG pension'] : []),
       ...(hasSfgg ? ['SFGG'] : []),
-      ...(hasSfggFaglKbh ? ['SFGG fagl. Kbh'] : []),
-      ...(hasSfggFaglProv ? ['SFGG fagl. prov'] : []),
-      ...(hasSfggUfaglKbh ? ['SFGG ufagl. Kbh'] : []),
-      ...(hasSfggUfaglProv ? ['SFGG ufagl. prov'] : []),
+      ...(hasSfggFaglKbh ? ['SFGG\nfagl. Kbh'] : []),
+      ...(hasSfggFaglProv ? ['SFGG\nfagl. prov'] : []),
+      ...(hasSfggUfaglKbh ? ['SFGG\nufagl. Kbh'] : []),
+      ...(hasSfggUfaglProv ? ['SFGG\nufagl. prov'] : []),
     ] as const;
     const rows = satser.map((sats) => {
       const row: string[] = [sats.fraDato];
       if (hasGrundloen) row.push(formatOverenskomstAmount(sats.grundloen));
+      if (hasGrundloen) row.push(feriePctDisplay);
       if (hasShSo) row.push(formatOverenskomstPercent(sats.shSoSats));
       if (hasFritvalg) row.push(formatOverenskomstPercent(sats.fritvalg));
       if (hasAgPension) row.push(formatOverenskomstPercent(sats.agPension));
@@ -775,12 +779,10 @@ export const resolveUdkastStempelValue = (value: unknown): boolean => {
 
 const udkastWatermarkCache = new Map<string, string | null>();
 
-const getUdkastWatermarkDataUrl = (pageWidth: number, pageHeight: number): string | null => {
+const getUdkastWatermarkPngDataUrl = (pageWidth: number, pageHeight: number): string | null => {
   const cacheKey = `${pageWidth.toFixed(3)}x${pageHeight.toFixed(3)}`;
   const cached = udkastWatermarkCache.get(cacheKey);
-  if (cached !== undefined) {
-    return cached;
-  }
+  if (cached !== undefined) return cached;
 
   if (typeof document === 'undefined') {
     udkastWatermarkCache.set(cacheKey, null);
@@ -788,29 +790,27 @@ const getUdkastWatermarkDataUrl = (pageWidth: number, pageHeight: number): strin
   }
 
   const canvas = document.createElement('canvas');
-  // Match side-ratio for at undgå forvrængning ved draw-to-page.
-  const pxScale = 14;
-  canvas.width = Math.max(1200, Math.round(pageWidth * pxScale));
-  canvas.height = Math.max(1600, Math.round(pageHeight * pxScale));
+  const pxScale = 8;
+  canvas.width = Math.max(900, Math.round(pageWidth * pxScale));
+  canvas.height = Math.max(1300, Math.round(pageHeight * pxScale));
   const ctx = canvas.getContext('2d');
   if (!ctx) {
     udkastWatermarkCache.set(cacheKey, null);
     return null;
   }
 
-  // Opaque white background avoids alpha-edge fringing in PDF viewers at zoom.
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Transparent image with only watermark text to keep content selectable and avoid opaque overlays.
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.translate(canvas.width / 2, canvas.height / 2);
   ctx.rotate((-45 * Math.PI) / 180);
-  const fontSize = Math.round(Math.min(canvas.width, canvas.height) * 0.18);
+  const fontSize = Math.round(Math.min(canvas.width, canvas.height) * 0.20);
   ctx.font = `700 ${fontSize}px Arial, sans-serif`;
-  ctx.fillStyle = '#f2f2f2';
+  ctx.fillStyle = 'rgba(235,235,235,0.42)';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('UDKAST', 0, 0);
 
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+  const dataUrl = canvas.toDataURL('image/png');
   udkastWatermarkCache.set(cacheKey, dataUrl);
   return dataUrl;
 };
@@ -818,14 +818,13 @@ const getUdkastWatermarkDataUrl = (pageWidth: number, pageHeight: number): strin
 const addUdkastWatermark = (doc: jsPDF): void => {
   const pageWidth = doc.internal.pageSize.width;
   const pageHeight = doc.internal.pageSize.height;
-  const watermarkDataUrl = getUdkastWatermarkDataUrl(pageWidth, pageHeight);
-
+  const watermarkDataUrl = getUdkastWatermarkPngDataUrl(pageWidth, pageHeight);
   if (watermarkDataUrl) {
-    doc.addImage(watermarkDataUrl, 'JPEG', 0, 0, pageWidth, pageHeight, undefined, 'NONE');
+    doc.addImage(watermarkDataUrl, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'NONE');
     return;
   }
 
-  // Fallback hvis canvas ikke er tilgængelig i runtime.
+  // Fallback if canvas is unavailable at runtime.
   const text = 'UDKAST';
   const centerX = pageWidth / 2 + 18;
   const centerY = pageHeight / 2 - 80;
@@ -1340,7 +1339,7 @@ export const generateErstatningsopgoerelsePdf = (
     visUdkastStempel,
     onLayoutFallback: warnLayoutFallback,
   });
-  writer.setDisplayMode('100%');
+  writer.setDisplayMode('fullheight');
 
   // Dokumentets metadata
   writer.setProperties({
@@ -1977,6 +1976,9 @@ export const generateErstatningsopgoerelsePdf = (
     startBilagPage('Lønindkomst');
 
     const ansaettelser = eoValues.loenindkomstAnsaettelsesforhold ?? [];
+    if (ansaettelser.length > 0) {
+      writer.addSpacer(lineHeight);
+    }
     if (ansaettelser.length === 0) {
       safeAddWrappedText('Ingen ansættelsesforhold.');
     } else {
@@ -2000,6 +2002,17 @@ export const generateErstatningsopgoerelsePdf = (
           })()
         );
         writer.addSpacer(lineHeight);
+        if (
+          ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Overenskomst' &&
+          (ansaettelsesforhold.overenskomstId?.trim() ?? '') !== ''
+        ) {
+          writeLabelValueLine('Overenskomst', resolveValgtReguleringDisplay(ansaettelsesforhold));
+          writeLabelValueLine(
+            'Reguleringsdato (Skadesdato)',
+            formatDateShort(resolveReguleringsdato(stamdataValues, eoValues, ansaettelsesforhold))
+          );
+          writer.addSpacer(lineHeight);
+        }
         if (!isZeroPct(ansaettelsesforhold.feriePct)) {
           writeLabelValueLine('Feriegodtgørelse/-tillæg:', formatPctFromInput(ansaettelsesforhold.feriePct));
         }
@@ -2097,7 +2110,8 @@ export const generateErstatningsopgoerelsePdf = (
     };
 
     startBilagPage('Offentlige ydelser');
-    renderSubheader('Ydelser fra offentlige myndigheder, herunder midlertidigt erhvervsevnetab.', lineHeight, { addTopSpacing: false });
+    writer.addSpacer(lineHeight);
+    safeAddWrappedText('Ydelser fra offentlige myndigheder, herunder midlertidigt erhvervsevnetab.');
     writer.addSpacer(lineHeight);
     renderOffentligeYdelserTable();
   }
@@ -2154,7 +2168,8 @@ export const generateErstatningsopgoerelsePdf = (
 
     startBilagPage('SH-dage');
 
-    safeAddWrappedText('Søgnehelligdage er helligdage, der falder på hverdage (mandag-fredag).');
+    writer.addSpacer(lineHeight);
+    safeAddWrappedText('Helligdage, der falder på hverdage (mandag-fredag).');
     writer.addSpacer(lineHeight);
 
     if (eoValues.beregnesUdFra === 'Beregningsperiode') {
@@ -2247,10 +2262,10 @@ export const generateErstatningsopgoerelsePdf = (
       writer.setY(finalY + lineHeight);
     };
 
-    const foersteAnsaettelsesforhold = eoValues.loenindkomstAnsaettelsesforhold?.[0];
+    const ansaettelser = eoValues.loenindkomstAnsaettelsesforhold ?? [];
     startBilagPage('Regulering');
 
-    if (!foersteAnsaettelsesforhold) {
+    if (ansaettelser.length === 0) {
       safeAddWrappedText('Ingen ansættelsesforhold.');
     } else {
       const tafBounds = resolveTafDateBounds(eoValues);
@@ -2265,42 +2280,43 @@ export const generateErstatningsopgoerelsePdf = (
       );
       writer.addSpacer(lineHeight * 2);
 
-      const underoverskrift = foersteAnsaettelsesforhold.navnPaaArbejdssted?.trim() || 'Ansættelsesforhold 1';
-      renderSubheader(underoverskrift, lineHeight, { addTopSpacing: false });
-      writer.addSpacer(lineHeight);
+      for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
+        const underoverskrift = ansaettelsesforhold.navnPaaArbejdssted?.trim() || `Ansættelsesforhold ${index + 1}`;
+        renderSubheader(underoverskrift, lineHeight, { addTopSpacing: index > 0 });
+        writer.addSpacer(lineHeight);
 
-      const valgtRegulering = resolveValgtReguleringDisplay(foersteAnsaettelsesforhold);
+        const valgtRegulering = resolveValgtReguleringDisplay(ansaettelsesforhold);
+        const reguleringsdato = resolveReguleringsdato(stamdataValues, eoValues, ansaettelsesforhold);
+        writeLabelValueLine('Valgt regulering', valgtRegulering);
+        writeLabelValueLine(
+          'Reguleringsdato (Skadesdato)',
+          formatDateShort(reguleringsdato)
+        );
+        writer.addSpacer(lineHeight);
+        safeAddWrappedText('Reguleringsværdier:');
 
-      const reguleringsdato = resolveReguleringsdato(stamdataValues, eoValues, foersteAnsaettelsesforhold);
-      writeLabelValueLine('Valgt regulering', valgtRegulering);
-      writeLabelValueLine(
-        'Reguleringsdato (Skadesdato)',
-        formatDateShort(reguleringsdato)
-      );
-      writer.addSpacer(lineHeight);
-      safeAddWrappedText('Reguleringsværdier:');
+        const reguleringsvaerdierTableData =
+          tafBounds
+            ? buildReguleringsvaerdierTableData({
+                ansaettelsesforhold,
+                reguleringsdato,
+                tafFra: tafBounds.foerste,
+                tafTil: tafBounds.sidste,
+              })
+            : null;
+        renderReguleringsvaerdierTable(reguleringsvaerdierTableData);
 
-      const reguleringsvaerdierTableData =
-        tafBounds
-          ? buildReguleringsvaerdierTableData({
-              ansaettelsesforhold: foersteAnsaettelsesforhold,
-              reguleringsdato,
-              tafFra: tafBounds.foerste,
-              tafTil: tafBounds.sidste,
-            })
-          : null;
-      renderReguleringsvaerdierTable(reguleringsvaerdierTableData);
+        writer.addSpacer(lineHeight);
+        safeAddWrappedText('Beregnet regulering');
 
-      writer.addSpacer(lineHeight);
-      safeAddWrappedText('Beregnet regulering');
-
-      // Bevidst forskel: Indeks-tabellen følger de beregnede TAF-segmenter og dermed TAF-start.
-      const reguleringTableRows = buildReguleringIndexRows({
-        segments: model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [],
-        ansaettelsesforhold: foersteAnsaettelsesforhold,
-        reguleringsdato,
-      });
-      renderReguleringIndeksTable(reguleringTableRows);
+        // Bevidst forskel: Indeks-tabellen følger de beregnede TAF-segmenter og dermed TAF-start.
+        const reguleringTableRows = buildReguleringIndexRows({
+          segments: model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [],
+          ansaettelsesforhold,
+          reguleringsdato,
+        });
+        renderReguleringIndeksTable(reguleringTableRows);
+      }
     }
   }
 

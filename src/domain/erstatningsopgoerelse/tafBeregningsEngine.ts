@@ -25,14 +25,14 @@ const roundTafValue = (value: number): number => {
   return Math.round(value * 100) / 100;
 };
 
-type MergedTafGroup = Readonly<{
+export type MergedTafGroup = Readonly<{
   id: string;
   fra: TafPeriodeRow['fra'];
   til: TafPeriodeRow['til'];
   loseFeriedage: number;
 }>;
 
-const buildMergedTafGroups = (rows: ReadonlyArray<TafPeriodeRow>): ReadonlyArray<MergedTafGroup> => {
+export const buildMergedTafGroups = (rows: ReadonlyArray<TafPeriodeRow>): ReadonlyArray<MergedTafGroup> => {
   const invalidRows = rows
     .filter((row) => {
       if (!row.fra || !row.til) return true;

@@ -698,11 +698,11 @@ const perioderCoverDate = (perioder: Array<{ fra: Date; til: Date }>, target: IS
   return false;
 };
 
-const buildTafPerioderLinjer = (rows: TafPeriodeRow[]): string[] => {
+const buildTafPerioderLinjer = (values: ErstatningsopgoerelseValues): string[] => {
+  const rows = values.tafPerioder ?? [];
   const nonEmpty = rows.filter((row) => !isTafRowEmpty(row));
   if (nonEmpty.length === 0) return [];
 
-  const lines: string[] = [];
   for (const row of nonEmpty) {
     const fra = row.fra;
     const til = row.til;
@@ -712,8 +712,13 @@ const buildTafPerioderLinjer = (rows: TafPeriodeRow[]): string[] => {
     if (!isISODateString(fra) || !isISODateString(til) || fra > til) {
       throw new Error('TAF-periode er ugyldig');
     }
-    const fraText = formatDateShort(fra);
-    const tilText = formatDateShort(til);
+  }
+
+  const ranges = buildTafRanges(values);
+  const lines: string[] = [];
+  for (const range of ranges) {
+    const fraText = formatDateShort(range.fra);
+    const tilText = formatDateShort(range.til);
     if (!fraText || !tilText) {
       throw new Error('TAF-periode er ugyldig');
     }
@@ -1598,7 +1603,7 @@ const buildTabtArbejdsfortjenesteModel = (
     ? `Der er opgjort differencekrav i sagen den ${formatDateLong(values.differencekravDato)}.`
     : null;
 
-  const tafPerioderLinjer = buildTafPerioderLinjer(values.tafPerioder ?? []);
+  const tafPerioderLinjer = buildTafPerioderLinjer(values);
   const harTafPerioder = tafPerioderLinjer.length > 0;
 
   const tafBeregningsenhed = computeTafBeregningsenhed({
