@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PDF Generator for Erstatningsopgørelse
  *
  * Genererer PDF-dokument med komplet erstatningsopgørelse
@@ -142,6 +142,54 @@ type ReguleringIndexRow = Readonly<{
   indeksberegning: string;
   indeks: string;
 }>;
+
+type PdfAutoTableDoc = jsPDF & {
+  lastAutoTable?: {
+    finalY?: number;
+  };
+};
+
+const STANDARD_PDF_TABLE_FONT_SIZE = 8;
+const STANDARD_PDF_TABLE_CELL_PADDING = 1.5;
+
+const renderStandardPdfTable = (params: Readonly<{
+  doc: jsPDF;
+  startY: number;
+  body: RowInput[];
+  columnStyles?: NonNullable<Parameters<typeof autoTable>[1]>['columnStyles'];
+  transparentRowIndices?: readonly number[];
+}>): number => {
+  const { doc, startY, body, columnStyles, transparentRowIndices = [] } = params;
+  const transparentSet = new Set(transparentRowIndices);
+
+  autoTable(doc, {
+    startY,
+    head: [],
+    body,
+    margin: { left: MARGINS.left, right: MARGINS.right },
+    styles: {
+      font: 'helvetica',
+      fontSize: STANDARD_PDF_TABLE_FONT_SIZE,
+      cellPadding: STANDARD_PDF_TABLE_CELL_PADDING,
+      textColor: COLORS.text,
+    },
+    columnStyles,
+    didParseCell: (data: CellHookData) => {
+      if (data.row.index === 0) {
+        data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+        return;
+      }
+      if (transparentSet.has(data.row.index)) {
+        data.cell.styles.fillColor = false;
+        return;
+      }
+      data.cell.styles.fillColor =
+        data.row.index % 2 === 0 ? TABLE_STYLES.alternateRowBackgroundColor : false;
+    },
+  });
+
+  return ((doc as PdfAutoTableDoc).lastAutoTable?.finalY ?? startY);
+};
 
 const formatDateFromDateObjectLong = (date: Date): string => {
   return `${date.getDate()}. ${MONTH_NAMES_DA[date.getMonth()]} ${date.getFullYear()}`;
@@ -1015,6 +1063,26 @@ export const generateErstatningsopgoerelsePdf = (
     );
   };
 
+  const standardRightMaxWidth = writer.getTextWidth('000.000.000,00');
+
+  const writeBodyText = (text: string) => {
+    safeAddWrappedText(text);
+  };
+
+  const writeLabelValueLine = (label: string, value: string) => {
+    safeAddLeftRightText(label, value, standardRightMaxWidth, { rightFontStyle: 'normal' });
+  };
+
+  const startBilagPage = (titleText: string) => {
+    writer.addPage();
+    writer.setFont('helvetica', 'bold');
+    writer.setFontSize(FONT_SIZES.title);
+    writeBodyText(titleText);
+    writer.setFont('helvetica', 'normal');
+    writer.setFontSize(FONT_SIZES.normal);
+    writer.addSpacer(lineHeight);
+  };
+
   const renderAtomicTableChunks = <T,>(params: Readonly<{
     rows: readonly T[];
     renderHeader: () => void;
@@ -1484,12 +1552,6 @@ export const generateErstatningsopgoerelsePdf = (
   }
 
   if (selectedElements.loenindkomst) {
-    type PdfDoc = jsPDF & {
-      lastAutoTable?: {
-        finalY?: number;
-      };
-    };
-
     const formatAmountCell = (value: AarsloenTableRow['col2']): string => amountValueToDisplayString(value, 2);
 
     const renderLoenindkomstTable = (
@@ -1568,43 +1630,22 @@ export const generateErstatningsopgoerelsePdf = (
         );
       }
 
-      const doc = writer.getDoc() as PdfDoc;
+      const doc = writer.getDoc();
       const columnCount = headers.length;
       const defaultCellWidth = Math.min(22, Math.max(13, 170 / columnCount));
       const columnStyles = Object.fromEntries(
         Array.from({ length: columnCount }, (_, index) => [index, { cellWidth: defaultCellWidth }])
       );
-      autoTable(doc, {
+      const finalY = renderStandardPdfTable({
+        doc,
         startY: writer.getY(),
-        head: [],
         body: tableRows,
-        margin: { left: MARGINS.left, right: MARGINS.right },
-        styles: {
-          font: 'helvetica',
-          fontSize: 7,
-          cellPadding: 1.5,
-          textColor: COLORS.text,
-        },
         columnStyles,
-        didParseCell: (data: CellHookData) => {
-          if (data.row.index === 0) {
-            data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-            return;
-          }
-          data.cell.styles.fillColor =
-            data.row.index % 2 === 0 ? TABLE_STYLES.alternateRowBackgroundColor : false;
-        },
       });
-      writer.setY((doc.lastAutoTable?.finalY ?? writer.getY()) + lineHeight);
+      writer.setY(finalY + lineHeight);
     };
 
-    writer.addPage();
-    writer.setFont('helvetica', 'bold');
-    writer.setFontSize(FONT_SIZES.title);
-    safeAddWrappedText('Lønindkomst');
-    writer.setFont('helvetica', 'normal');
-    writer.setFontSize(FONT_SIZES.normal);
-    writer.addSpacer(lineHeight);
+    startBilagPage('Lønindkomst');
 
     const ansaettelser = eoValues.loenindkomstAnsaettelsesforhold ?? [];
     if (ansaettelser.length === 0) {
@@ -1615,13 +1656,11 @@ export const generateErstatningsopgoerelsePdf = (
         const arbejdsstedNavn = ansaettelsesforhold.navnPaaArbejdssted?.trim() || fallbackNavn;
         renderSubheader(arbejdsstedNavn, lineHeight, { addTopSpacing: index > 0 });
         writer.addSpacer(lineHeight);
-        safeAddLeftRightText(
+        writeLabelValueLine(
           'Ansat på skadestidspunktet',
-          formatJaNej(ansaettelsesforhold.ansatPaaSkadestidspunktet),
-          writer.getTextWidth('000.000.000,00'),
-          { rightFontStyle: 'normal' }
+          formatJaNej(ansaettelsesforhold.ansatPaaSkadestidspunktet)
         );
-        safeAddLeftRightText(
+        writeLabelValueLine(
           'Medlem opsagt',
           (() => {
             const isOpsagt = ansaettelsesforhold.ansaettelsesforholdOphoert;
@@ -1629,50 +1668,23 @@ export const generateErstatningsopgoerelsePdf = (
             const sidsteArbejdsdag = formatDateLong(ansaettelsesforhold.sidsteArbejdsdag);
             if (!sidsteArbejdsdag) return 'Ja';
             return `Ja, sidste arbejdsdag ${sidsteArbejdsdag}`;
-          })(),
-          writer.getTextWidth('000.000.000,00'),
-          { rightFontStyle: 'normal' }
+          })()
         );
         writer.addSpacer(lineHeight);
         if (!isZeroPct(ansaettelsesforhold.feriePct)) {
-          safeAddLeftRightText(
-            'Feriegodtgørelse/-tillæg:',
-            formatPctFromInput(ansaettelsesforhold.feriePct),
-            writer.getTextWidth('000.000.000,00'),
-            { rightFontStyle: 'normal' }
-          );
+          writeLabelValueLine('Feriegodtgørelse/-tillæg:', formatPctFromInput(ansaettelsesforhold.feriePct));
         }
         if (!isZeroPct(ansaettelsesforhold.fritvalgPct)) {
-          safeAddLeftRightText(
-            'Fritvalg:',
-            formatPctFromInput(ansaettelsesforhold.fritvalgPct),
-            writer.getTextWidth('000.000.000,00'),
-            { rightFontStyle: 'normal' }
-          );
+          writeLabelValueLine('Fritvalg:', formatPctFromInput(ansaettelsesforhold.fritvalgPct));
         }
         if (!isZeroPct(ansaettelsesforhold.shSoPct)) {
-          safeAddLeftRightText(
-            'SH/SO-sats:',
-            formatPctFromInput(ansaettelsesforhold.shSoPct),
-            writer.getTextWidth('000.000.000,00'),
-            { rightFontStyle: 'normal' }
-          );
+          writeLabelValueLine('SH/SO-sats:', formatPctFromInput(ansaettelsesforhold.shSoPct));
         }
         if (!isZeroPct(ansaettelsesforhold.storeBededagPct)) {
-          safeAddLeftRightText(
-            'Store Bededagstillæg:',
-            formatPctFromInput(ansaettelsesforhold.storeBededagPct),
-            writer.getTextWidth('000.000.000,00'),
-            { rightFontStyle: 'normal' }
-          );
+          writeLabelValueLine('Store Bededagstillæg:', formatPctFromInput(ansaettelsesforhold.storeBededagPct));
         }
         if (!isZeroPct(ansaettelsesforhold.pensionPct)) {
-          safeAddLeftRightText(
-            'Arbejdsgivers pensionsbidrag:',
-            formatPctFromInput(ansaettelsesforhold.pensionPct),
-            writer.getTextWidth('000.000.000,00'),
-            { rightFontStyle: 'normal' }
-          );
+          writeLabelValueLine('Arbejdsgivers pensionsbidrag:', formatPctFromInput(ansaettelsesforhold.pensionPct));
         }
         writer.addSpacer(lineHeight);
         renderLoenindkomstTable(ansaettelsesforhold);
@@ -1681,12 +1693,6 @@ export const generateErstatningsopgoerelsePdf = (
   }
 
   if (selectedElements.offentligeYdelser) {
-    type PdfDoc = jsPDF & {
-      lastAutoTable?: {
-        finalY?: number;
-      };
-    };
-
     const isOffentligeYdelserRowEmpty = (row: OffentligeYdelserRow): boolean => {
       return (
         (row.fraDato?.trim() ?? '') === '' &&
@@ -1741,7 +1747,7 @@ export const generateErstatningsopgoerelsePdf = (
         );
       }
 
-      const doc = writer.getDoc() as PdfDoc;
+      const doc = writer.getDoc();
       const columnStyles = {
         0: { cellWidth: 29 },
         1: { cellWidth: 29 },
@@ -1751,50 +1757,23 @@ export const generateErstatningsopgoerelsePdf = (
         5: { cellWidth: 29 },
       };
 
-      autoTable(doc, {
+      const finalY = renderStandardPdfTable({
+        doc,
         startY: writer.getY(),
-        head: [],
         body: tableRows,
-        margin: { left: MARGINS.left, right: MARGINS.right },
-        styles: {
-          font: 'helvetica',
-          fontSize: 7,
-          cellPadding: 1.5,
-          textColor: COLORS.text,
-        },
         columnStyles,
-        didParseCell: (data: CellHookData) => {
-          if (data.row.index === 0) {
-            data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-            return;
-          }
-          data.cell.styles.fillColor =
-            data.row.index % 2 === 0 ? TABLE_STYLES.alternateRowBackgroundColor : false;
-        },
       });
 
-      writer.setY((doc.lastAutoTable?.finalY ?? writer.getY()) + lineHeight);
+      writer.setY(finalY + lineHeight);
     };
 
-    writer.addPage();
-    writer.setFont('helvetica', 'bold');
-    writer.setFontSize(FONT_SIZES.title);
-    safeAddWrappedText('Offentlige ydelser');
-    writer.setFont('helvetica', 'normal');
-    writer.setFontSize(FONT_SIZES.normal);
-    writer.addSpacer(lineHeight);
+    startBilagPage('Offentlige ydelser');
     renderSubheader('Ydelser fra offentlige myndigheder, herunder midlertidigt erhvervsevnetab.', lineHeight, { addTopSpacing: false });
     writer.addSpacer(lineHeight);
     renderOffentligeYdelserTable();
   }
 
   if (selectedElements.shDage) {
-    type PdfDoc = jsPDF & {
-      lastAutoTable?: {
-        finalY?: number;
-      };
-    };
-
     const formatRangeLong = (fra: ISODateString | undefined, til: ISODateString | undefined): string => {
       const fraDisplay = formatDateLong(fra);
       const tilDisplay = formatDateLong(til);
@@ -1828,49 +1807,23 @@ export const generateErstatningsopgoerelsePdf = (
         { content: String(antalShDage), styles: { fontStyle: 'bold', halign: 'center', fillColor: false } },
       ]);
 
-      const doc = writer.getDoc() as PdfDoc;
-      autoTable(doc, {
+      const doc = writer.getDoc();
+      const finalY = renderStandardPdfTable({
+        doc,
         startY: writer.getY(),
-        head: [],
         body: tableRows,
-        margin: { left: MARGINS.left, right: MARGINS.right },
-        styles: {
-          font: 'helvetica',
-          fontSize: 7,
-          cellPadding: 1.5,
-          textColor: COLORS.text,
-        },
         columnStyles: {
           0: { cellWidth: 'auto' },
           1: { cellWidth: 'auto' },
           2: { cellWidth: 'auto' },
           3: { cellWidth: 25 },
         },
-        didParseCell: (data: CellHookData) => {
-          const lastRowIndex = tableRows.length - 1;
-          if (data.row.index === 0) {
-            data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-            return;
-          }
-          if (data.row.index === lastRowIndex) {
-            data.cell.styles.fillColor = false;
-            return;
-          }
-          data.cell.styles.fillColor =
-            data.row.index % 2 === 0 ? TABLE_STYLES.alternateRowBackgroundColor : false;
-        },
+        transparentRowIndices: [tableRows.length - 1],
       });
-
-      writer.setY((doc.lastAutoTable?.finalY ?? writer.getY()) + lineHeight);
+      writer.setY(finalY + lineHeight);
     };
 
-    writer.addPage();
-    writer.setFont('helvetica', 'bold');
-    writer.setFontSize(FONT_SIZES.title);
-    safeAddWrappedText('SH-dage');
-    writer.setFont('helvetica', 'normal');
-    writer.setFontSize(FONT_SIZES.normal);
-    writer.addSpacer(lineHeight);
+    startBilagPage('SH-dage');
 
     safeAddWrappedText('Søgnehelligdage er helligdage, der falder på hverdage (mandag-fredag).');
     writer.addSpacer(lineHeight);
@@ -1903,11 +1856,6 @@ export const generateErstatningsopgoerelsePdf = (
 
   // Tilføj footer med versionsnummer
   if (selectedElements.regulering) {
-    type PdfDoc = jsPDF & {
-      lastAutoTable?: {
-        finalY?: number;
-      };
-    };
 
     const renderReguleringIndeksTable = (rows: readonly ReguleringIndexRow[]) => {
       if (rows.length === 0) {
@@ -1933,29 +1881,13 @@ export const generateErstatningsopgoerelsePdf = (
         ]);
       }
 
-      const doc = writer.getDoc() as PdfDoc;
-      autoTable(doc, {
+      const doc = writer.getDoc();
+      const finalY = renderStandardPdfTable({
+        doc,
         startY: writer.getY(),
-        head: [],
         body: tableRows,
-        margin: { left: MARGINS.left, right: MARGINS.right },
-        styles: {
-          font: 'helvetica',
-          fontSize: 7,
-          cellPadding: 1.5,
-          textColor: COLORS.text,
-        },
-        didParseCell: (data: CellHookData) => {
-          if (data.row.index === 0) {
-            data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-            return;
-          }
-          data.cell.styles.fillColor =
-            data.row.index % 2 === 0 ? TABLE_STYLES.alternateRowBackgroundColor : false;
-        },
       });
-
-      writer.setY((doc.lastAutoTable?.finalY ?? writer.getY()) + lineHeight);
+      writer.setY(finalY + lineHeight);
     };
 
     const renderReguleringsvaerdierTable = (
@@ -1977,56 +1909,29 @@ export const generateErstatningsopgoerelsePdf = (
         ]),
       ];
 
-      const doc = writer.getDoc() as PdfDoc;
-      autoTable(doc, {
+      const doc = writer.getDoc();
+      const finalY = renderStandardPdfTable({
+        doc,
         startY: writer.getY(),
-        head: [],
         body: tableRows,
-        margin: { left: MARGINS.left, right: MARGINS.right },
-        styles: {
-          font: 'helvetica',
-          fontSize: 7,
-          cellPadding: 1.5,
-          textColor: COLORS.text,
-        },
-        didParseCell: (data: CellHookData) => {
-          if (data.row.index === 0) {
-            data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-            return;
-          }
-          data.cell.styles.fillColor =
-            data.row.index % 2 === 0 ? TABLE_STYLES.alternateRowBackgroundColor : false;
-        },
       });
-
-      writer.setY((doc.lastAutoTable?.finalY ?? writer.getY()) + lineHeight);
+      writer.setY(finalY + lineHeight);
     };
 
     const foersteAnsaettelsesforhold = eoValues.loenindkomstAnsaettelsesforhold?.[0];
-    writer.addPage();
-    writer.setFont('helvetica', 'bold');
-    writer.setFontSize(FONT_SIZES.title);
-    safeAddWrappedText('Regulering');
-    writer.setFont('helvetica', 'normal');
-    writer.setFontSize(FONT_SIZES.normal);
-    writer.addSpacer(lineHeight);
+    startBilagPage('Regulering');
 
     if (!foersteAnsaettelsesforhold) {
       safeAddWrappedText('Ingen ansættelsesforhold.');
     } else {
       const tafBounds = resolveTafDateBounds(eoValues);
-      const rightWidth = writer.getTextWidth('000.000.000,00');
-      safeAddLeftRightText(
+      writeLabelValueLine(
         'Første dato i TAF-periode',
-        tafBounds ? formatDateShort(tafBounds.foerste) : '',
-        rightWidth,
-        { rightFontStyle: 'normal' }
+        tafBounds ? formatDateShort(tafBounds.foerste) : ''
       );
-      safeAddLeftRightText(
+      writeLabelValueLine(
         'Sidste dato i TAF-periode',
-        tafBounds ? formatDateShort(tafBounds.sidste) : '',
-        rightWidth,
-        { rightFontStyle: 'normal' }
+        tafBounds ? formatDateShort(tafBounds.sidste) : ''
       );
       writer.addSpacer(lineHeight);
 
@@ -2044,13 +1949,10 @@ export const generateErstatningsopgoerelsePdf = (
       })();
 
       const reguleringsdato = resolveReguleringsdato(stamdataValues, eoValues, foersteAnsaettelsesforhold);
-
-      safeAddLeftRightText('Valgt regulering', valgtRegulering, rightWidth, { rightFontStyle: 'normal' });
-      safeAddLeftRightText(
+      writeLabelValueLine('Valgt regulering', valgtRegulering);
+      writeLabelValueLine(
         'Reguleringsdato (Skadesdato)',
-        formatDateShort(reguleringsdato),
-        rightWidth,
-        { rightFontStyle: 'normal' }
+        formatDateShort(reguleringsdato)
       );
       writer.addSpacer(lineHeight);
       safeAddWrappedText('Reguleringsværdier:');
@@ -2090,3 +1992,5 @@ export const generateErstatningsopgoerelsePdf = (
   // Download PDF
   writer.save(`${titel}.pdf`);
 };
+
+
