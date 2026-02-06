@@ -1351,7 +1351,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                   setDeleteTargetId(af.id);
                   setDeleteDialogOpen(true);
                 }}
-                sx={{ position: 'absolute', bottom: -28, right: 70 }}
+                sx={{ position: 'absolute', bottom: -28, right: 114 }}
               />
             )}
 
@@ -1366,7 +1366,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                 setAddTargetId(af.id);
                 setAddDialogOpen(true);
               }}
-              sx={{ position: 'absolute', bottom: -28, right: 0 }}
+              sx={{ position: 'absolute', bottom: -28, right: 44 }}
             />
           </ContentBox>
         );
@@ -1421,7 +1421,6 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 LoenindkomstTab.displayName = 'LoenindkomstTab';
 
 export default LoenindkomstTab;
-
 
 
 

@@ -273,18 +273,15 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   // CHECKBOX STATE FOR ERSTATNINGSOPGØRELSE-DOWNLOAD
   // ============================================================================
 
-  const selectedElements = React.useMemo(
-    () => ({
-      opgoerelse: true,
-      loenindkomst: false,
-      offentligeYdelser: false,
-      shDage: false,
-      regulering: false,
-      okSatser: false,
-      sygeferiegodtgoerelse: false,
-    }),
-    []
-  );
+  const [selectedElements, setSelectedElements] = React.useState({
+    opgoerelse: true,
+    loenindkomst: false,
+    offentligeYdelser: false,
+    shDage: false,
+    regulering: false,
+    okSatser: false,
+    sygeferiegodtgoerelse: false,
+  });
 
   const beregnesSvieSmerte = eoValues?.beregnesSvieSmerteGodtgoerelse === 'Ja';
   const beregnesTabtArbejdsfortjeneste = eoValues?.beregnesTabtArbejdsfortjeneste === 'Ja';
@@ -663,11 +660,31 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
             </Box>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <FormControlLabel
-                control={<Checkbox checked={selectedElements.loenindkomst} disabled />}
+                control={(
+                  <Checkbox
+                    checked={selectedElements.loenindkomst}
+                    onChange={(event) => {
+                      setSelectedElements((prev) => ({
+                        ...prev,
+                        loenindkomst: event.target.checked,
+                      }));
+                    }}
+                  />
+                )}
                 label="Lønindkomst"
               />
               <FormControlLabel
-                control={<Checkbox checked={selectedElements.offentligeYdelser} disabled />}
+                control={(
+                  <Checkbox
+                    checked={selectedElements.offentligeYdelser}
+                    onChange={(event) => {
+                      setSelectedElements((prev) => ({
+                        ...prev,
+                        offentligeYdelser: event.target.checked,
+                      }));
+                    }}
+                  />
+                )}
                 label="Offentlige ydelser"
               />
             </Box>

@@ -5,15 +5,19 @@
  */
 
 import jsPDF from 'jspdf';
-import { FONT_SIZES, MARGINS } from './pdfConfig';
+import autoTable, { type CellHookData, type RowInput } from 'jspdf-autotable';
+import { COLORS, FONT_SIZES, MARGINS, TABLE_STYLES } from './pdfConfig';
 import { addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
-import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
+import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode, OffentligeYdelserRow, StamdataValues } from '../../schemas/formSchemas';
 import { buildErstatningsopgoerelsePdfModel, type MoneyOre, type Calculable } from '../../domain/erstatningsopgoerelse/eoPdfModel';
-import { formatCurrency, formatPercent } from '../formatUtils';
+import { formatAsAmount, formatCurrency, formatPercent } from '../formatUtils';
 import { TAF_BEREGNES_SOM } from '../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { TODAY } from '../../config/dateRanges';
+import { amountValueToDisplayString, amountValueToNumber } from '../expressionAmount';
+import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../aarsloenTableCalculations';
+import { ydelsestyper } from '../../data/ydelsestyper';
 
 const NBSP = '\u00A0';
 
@@ -62,27 +66,116 @@ const formatPercentDelta = (value: number): string => {
   return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 };
 
+const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
+
+const formatPctFromInput = (value: number | undefined): string => {
+  return `${(value ?? 0).toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} %`;
+};
+
+const isZeroPct = (value: number | undefined): boolean => Math.abs(value ?? 0) < 0.000001;
+
+const getLoenindkomstTableHeaders = (loenperiode: Loenperiode): readonly string[] => {
+  const periodColumns =
+    loenperiode === 'maaned'
+      ? ['Måned', 'År']
+      : loenperiode === 'uge'
+        ? ['Uge fra', 'Uge til']
+        : ['Dato fra', 'Dato til'];
+
+  return [
+    ...periodColumns,
+    'Grundløn',
+    'Tillæg',
+    'Ikke-pens. giv. løn',
+    'ATP og \nikke-FB løn',
+    'Ferieberet. \nløn',
+    'FP/FV/SH/\nSO/St.B.',
+    'Arb.g. Pension',
+    'Samlet løn',
+  ];
+};
+
+const resolvePeriodColumns = (row: AarsloenTableRow, loenperiode: Loenperiode): readonly [string, string] => {
+  if (loenperiode === 'maaned') {
+    return [row.col0_maaned?.trim() ?? '', row.col1_maaned?.trim() ?? ''];
+  }
+  if (loenperiode === 'uge') {
+    return [row.col0_uge?.trim() ?? '', row.col1_uge?.trim() ?? ''];
+  }
+  return [row.col0_dag?.trim() ?? '', row.col1_dag?.trim() ?? ''];
+};
+
+const OFFENTLIGE_YDELSER_HEADERS = [
+  'Fra-dato',
+  'Til-dato',
+  'Ydelse',
+  'Evt. tillæg',
+  'I alt',
+  'Ydelsestype',
+] as const;
+
 export const resolveUdkastStempelValue = (value: unknown): boolean => {
   return value === 'Ja';
 };
 
+const udkastWatermarkCache = new Map<string, string | null>();
+
+const getUdkastWatermarkDataUrl = (pageWidth: number, pageHeight: number): string | null => {
+  const cacheKey = `${pageWidth.toFixed(3)}x${pageHeight.toFixed(3)}`;
+  const cached = udkastWatermarkCache.get(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  if (typeof document === 'undefined') {
+    udkastWatermarkCache.set(cacheKey, null);
+    return null;
+  }
+
+  const canvas = document.createElement('canvas');
+  // Match side-ratio for at undgå forvrængning ved draw-to-page.
+  const pxScale = 14;
+  canvas.width = Math.max(1200, Math.round(pageWidth * pxScale));
+  canvas.height = Math.max(1600, Math.round(pageHeight * pxScale));
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    udkastWatermarkCache.set(cacheKey, null);
+    return null;
+  }
+
+  // Opaque white background avoids alpha-edge fringing in PDF viewers at zoom.
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate((-45 * Math.PI) / 180);
+  const fontSize = Math.round(Math.min(canvas.width, canvas.height) * 0.18);
+  ctx.font = `700 ${fontSize}px Arial, sans-serif`;
+  ctx.fillStyle = '#f2f2f2';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('UDKAST', 0, 0);
+
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+  udkastWatermarkCache.set(cacheKey, dataUrl);
+  return dataUrl;
+};
+
 const addUdkastWatermark = (doc: jsPDF): void => {
-  const text = 'UDKAST';
   const pageWidth = doc.internal.pageSize.width;
   const pageHeight = doc.internal.pageSize.height;
+  const watermarkDataUrl = getUdkastWatermarkDataUrl(pageWidth, pageHeight);
+
+  if (watermarkDataUrl) {
+    doc.addImage(watermarkDataUrl, 'JPEG', 0, 0, pageWidth, pageHeight, undefined, 'NONE');
+    return;
+  }
+
+  // Fallback hvis canvas ikke er tilgængelig i runtime.
+  const text = 'UDKAST';
   const centerX = pageWidth / 2 + 18;
   const centerY = pageHeight / 2 - 80;
-  const diagonal = Math.sqrt(pageWidth * pageWidth + pageHeight * pageHeight);
-
-  const baseFontSize = 100;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(baseFontSize);
-  const widthAtBase = doc.getTextWidth(text) || 1;
-  const targetWidth = diagonal * 0.9;
-  const computedSize = (targetWidth / widthAtBase) * baseFontSize;
-  const fontSize = Math.min(170, Math.max(80, computedSize));
-
-  doc.setFontSize(fontSize);
+  doc.setFontSize(130);
   doc.setTextColor(245);
   doc.text(text, centerX, centerY, { align: 'center', angle: -45 });
   doc.setTextColor(0);
@@ -107,6 +200,33 @@ const formatDateShort = (isoDate: ISODateString | undefined): string => {
 
   // danish er allerede i dd-mm-yyyy format, så returner direkte
   return danish;
+};
+
+const MONTH_NAMES_DA = [
+  'januar',
+  'februar',
+  'marts',
+  'april',
+  'maj',
+  'juni',
+  'juli',
+  'august',
+  'september',
+  'oktober',
+  'november',
+  'december',
+] as const;
+
+const formatDateLong = (isoDate: ISODateString | undefined): string => {
+  const short = formatDateShort(isoDate);
+  if (!short) return '';
+  const [day, month, year] = short.split('-');
+  const monthIndex = Number.parseInt(month ?? '', 10) - 1;
+  const dayNumber = Number.parseInt(day ?? '', 10);
+  if (!Number.isFinite(dayNumber) || monthIndex < 0 || monthIndex >= MONTH_NAMES_DA.length) {
+    return short;
+  }
+  return `${dayNumber}. ${MONTH_NAMES_DA[monthIndex]} ${year}`;
 };
 
 const createPdfCursor = (params: Readonly<{
@@ -300,6 +420,11 @@ const createPdfCursor = (params: Readonly<{
     setProperties: (props: Parameters<jsPDF['setProperties']>[0]) => doc.setProperties(props),
     setFontSize: (size: number) => doc.setFontSize(size),
     setFont,
+    getDoc: () => doc,
+    getY: () => y,
+    setY: (nextY: number) => {
+      y = nextY;
+    },
     ensureSpace,
     advanceY: (delta: number) => {
       y += delta;
@@ -322,6 +447,7 @@ const createPdfCursor = (params: Readonly<{
     getTextWidth: (text: string) => doc.getTextWidth(text),
     fitTextToWidth: (text: string, maxWidth: number) => fitTextToWidth(doc, text, maxWidth),
     getFullWidth: () => fullWidth,
+    addPage,
     getPageContentHeight: () => pageContentHeight,
     renderAtomicBlock: (estimatedHeight: number, render: () => void) => {
       ensureSpace(estimatedHeight);
@@ -337,6 +463,9 @@ type PdfWriter = {
   setProperties: (props: Parameters<jsPDF['setProperties']>[0]) => void;
   setFontSize: (size: number) => void;
   setFont: (fontName: string, fontStyle: string) => void;
+  getDoc: () => jsPDF;
+  getY: () => number;
+  setY: (nextY: number) => void;
   addSpacer: (height: number) => void;
   advanceY: (delta: number) => void;
   writeWrappedText: (text: string) => void;
@@ -381,6 +510,7 @@ type PdfWriter = {
   getTextWidth: (text: string) => number;
   fitTextToWidth: (text: string, maxWidth: number) => string;
   getPageWidth: () => number;
+  addPage: () => void;
   addFooter: () => void;
   save: (filename: string) => void;
 };
@@ -456,6 +586,9 @@ const createPdfWriter = (params: Readonly<{
     setProperties: cursor.setProperties,
     setFontSize: cursor.setFontSize,
     setFont: cursor.setFont,
+    getDoc: cursor.getDoc,
+    getY: cursor.getY,
+    setY: cursor.setY,
     addSpacer: (height: number) => {
       cursor.ensureSpace(height);
       cursor.advanceY(height);
@@ -477,6 +610,7 @@ const createPdfWriter = (params: Readonly<{
     getTextWidth: cursor.getTextWidth,
     fitTextToWidth: cursor.fitTextToWidth,
     getPageWidth: () => MARGINS.left + cursor.getFullWidth() + MARGINS.right,
+    addPage: cursor.addPage,
     addFooter: cursor.addFooter,
     save: cursor.save,
   };
@@ -524,8 +658,6 @@ export const generateErstatningsopgoerelsePdf = (
   }
 
   const unsupportedSelections = [
-    ['Lønindkomst', selectedElements.loenindkomst],
-    ['Offentlige ydelser', selectedElements.offentligeYdelser],
     ['SH-dage', selectedElements.shDage],
     ['Regulering', selectedElements.regulering],
     ['OK-satser', selectedElements.okSatser],
@@ -1049,7 +1181,6 @@ export const generateErstatningsopgoerelsePdf = (
   safeAddLeftRightText('Erstatningskrav i alt', formatMoneyOreWithKr(model.samlet.totalOre), summaryRightMaxWidth, { rightFontStyle: 'bold', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
   );
   writer.setFont('helvetica', 'normal');
-  // TODO: Tilføj resten af PDF-indholdet baseret på selectedElements
   const saerligeKommentarer = model.saerligeKommentarer;
   if (saerligeKommentarer) {
     renderSectionHeader('Særlige bemærkninger', lineHeight);
@@ -1069,14 +1200,314 @@ export const generateErstatningsopgoerelsePdf = (
     writer.writeSignatureBlock(dateLine, sigLine, dateX, sigX, skadelidteNavn);
   }
 
+  if (selectedElements.loenindkomst) {
+    type PdfDoc = jsPDF & {
+      lastAutoTable?: {
+        finalY?: number;
+      };
+    };
+
+    const formatAmountCell = (value: AarsloenTableRow['col2']): string => amountValueToDisplayString(value, 2);
+
+    const renderLoenindkomstTable = (
+      ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]
+    ) => {
+      const hasNonZeroAmount = (value: AarsloenTableRow['col2']): boolean => {
+        const numeric = amountValueToNumber(value);
+        return numeric !== undefined && Math.abs(numeric) > 0.000001;
+      };
+
+      const rows = (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).filter((row) => {
+        if (isAarsloenRowEffectivelyEmpty(row)) return false;
+        const hasAnyIncomeInput =
+          hasNonZeroAmount(row.col2) ||
+          hasNonZeroAmount(row.col3) ||
+          hasNonZeroAmount(row.col4) ||
+          hasNonZeroAmount(row.col5);
+        return hasAnyIncomeInput;
+      });
+      if (rows.length === 0) {
+        safeAddWrappedText('Ingen rækker i indtægtsoplysninger.');
+        return;
+      }
+
+      const allHeaders = getLoenindkomstTableHeaders(ansaettelsesforhold.loenperiode);
+      const inputColumnDefs = [
+        { index: 2, key: 'col2' as const },
+        { index: 3, key: 'col3' as const },
+        { index: 4, key: 'col4' as const },
+        { index: 5, key: 'col5' as const },
+      ];
+      const visibleInputColumns = inputColumnDefs.filter((column) =>
+        rows.some((row) => hasNonZeroAmount(row[column.key]))
+      );
+      const headers = [
+        allHeaders[0],
+        allHeaders[1],
+        ...visibleInputColumns.map((column) => allHeaders[column.index]),
+        allHeaders[6],
+        allHeaders[7],
+        allHeaders[8],
+        allHeaders[9],
+      ];
+      const satser = {
+        feriePct: ansaettelsesforhold.feriePct,
+        fritvalgPct: ansaettelsesforhold.fritvalgPct,
+        shSoPct: ansaettelsesforhold.shSoPct,
+        storeBededagPct: ansaettelsesforhold.storeBededagPct,
+        pensionPct: ansaettelsesforhold.pensionPct,
+      };
+
+      const tableRows: RowInput[] = [
+        headers.map((header) => ({
+          content: header,
+          styles: { fontStyle: 'bold', halign: 'center' as const },
+        })),
+      ];
+
+      for (const row of rows) {
+        const [col0, col1] = resolvePeriodColumns(row, ansaettelsesforhold.loenperiode);
+        const derived = calculateAarsloenRowDerived(row, satser);
+        const rowValues = [
+          col0,
+          col1,
+          ...visibleInputColumns.map((column) => formatAmountCell(row[column.key])),
+          formatAsAmount(derived.ferieberet, 2),
+          formatAsAmount(derived.fpFvShSo, 2),
+          formatAsAmount(derived.pension, 2),
+          formatAsAmount(derived.samlet, 2),
+        ];
+        tableRows.push(
+          rowValues.map((value, index) => ({
+            content: value,
+            styles: { halign: index < 2 ? 'center' : 'right' as const },
+          }))
+        );
+      }
+
+      const doc = writer.getDoc() as PdfDoc;
+      const columnCount = headers.length;
+      const defaultCellWidth = Math.min(22, Math.max(13, 170 / columnCount));
+      const columnStyles = Object.fromEntries(
+        Array.from({ length: columnCount }, (_, index) => [index, { cellWidth: defaultCellWidth }])
+      );
+      autoTable(doc, {
+        startY: writer.getY(),
+        head: [],
+        body: tableRows,
+        margin: { left: MARGINS.left, right: MARGINS.right },
+        styles: {
+          font: 'helvetica',
+          fontSize: 7,
+          cellPadding: 1.5,
+          textColor: COLORS.text,
+        },
+        columnStyles,
+        didParseCell: (data: CellHookData) => {
+          if (data.row.index === 0) {
+            data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+            return;
+          }
+          data.cell.styles.fillColor =
+            data.row.index % 2 === 0 ? TABLE_STYLES.alternateRowBackgroundColor : false;
+        },
+      });
+      writer.setY((doc.lastAutoTable?.finalY ?? writer.getY()) + lineHeight);
+    };
+
+    writer.addPage();
+    writer.setFont('helvetica', 'bold');
+    writer.setFontSize(FONT_SIZES.title);
+    safeAddWrappedText('Lønindkomst');
+    writer.setFont('helvetica', 'normal');
+    writer.setFontSize(FONT_SIZES.normal);
+    writer.addSpacer(lineHeight);
+
+    const ansaettelser = eoValues.loenindkomstAnsaettelsesforhold ?? [];
+    if (ansaettelser.length === 0) {
+      safeAddWrappedText('Ingen ansættelsesforhold.');
+    } else {
+      for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
+        const fallbackNavn = `Ansættelsesforhold ${index + 1}`;
+        const arbejdsstedNavn = ansaettelsesforhold.navnPaaArbejdssted?.trim() || fallbackNavn;
+        renderSubheader(arbejdsstedNavn, lineHeight, { addTopSpacing: index > 0 });
+        writer.addSpacer(lineHeight);
+        safeAddLeftRightText(
+          'Ansat på skadestidspunktet',
+          formatJaNej(ansaettelsesforhold.ansatPaaSkadestidspunktet),
+          writer.getTextWidth('000.000.000,00'),
+          { rightFontStyle: 'normal' }
+        );
+        safeAddLeftRightText(
+          'Medlem opsagt',
+          (() => {
+            const isOpsagt = ansaettelsesforhold.ansaettelsesforholdOphoert;
+            if (!isOpsagt) return 'Nej';
+            const sidsteArbejdsdag = formatDateLong(ansaettelsesforhold.sidsteArbejdsdag);
+            if (!sidsteArbejdsdag) return 'Ja';
+            return `Ja, sidste arbejdsdag ${sidsteArbejdsdag}`;
+          })(),
+          writer.getTextWidth('000.000.000,00'),
+          { rightFontStyle: 'normal' }
+        );
+        writer.addSpacer(lineHeight);
+        if (!isZeroPct(ansaettelsesforhold.feriePct)) {
+          safeAddLeftRightText(
+            'Feriegodtgørelse/-tillæg:',
+            formatPctFromInput(ansaettelsesforhold.feriePct),
+            writer.getTextWidth('000.000.000,00'),
+            { rightFontStyle: 'normal' }
+          );
+        }
+        if (!isZeroPct(ansaettelsesforhold.fritvalgPct)) {
+          safeAddLeftRightText(
+            'Fritvalg:',
+            formatPctFromInput(ansaettelsesforhold.fritvalgPct),
+            writer.getTextWidth('000.000.000,00'),
+            { rightFontStyle: 'normal' }
+          );
+        }
+        if (!isZeroPct(ansaettelsesforhold.shSoPct)) {
+          safeAddLeftRightText(
+            'SH/SO-sats:',
+            formatPctFromInput(ansaettelsesforhold.shSoPct),
+            writer.getTextWidth('000.000.000,00'),
+            { rightFontStyle: 'normal' }
+          );
+        }
+        if (!isZeroPct(ansaettelsesforhold.storeBededagPct)) {
+          safeAddLeftRightText(
+            'Store Bededagstillæg:',
+            formatPctFromInput(ansaettelsesforhold.storeBededagPct),
+            writer.getTextWidth('000.000.000,00'),
+            { rightFontStyle: 'normal' }
+          );
+        }
+        if (!isZeroPct(ansaettelsesforhold.pensionPct)) {
+          safeAddLeftRightText(
+            'Arbejdsgivers pensionsbidrag:',
+            formatPctFromInput(ansaettelsesforhold.pensionPct),
+            writer.getTextWidth('000.000.000,00'),
+            { rightFontStyle: 'normal' }
+          );
+        }
+        writer.addSpacer(lineHeight);
+        renderLoenindkomstTable(ansaettelsesforhold);
+      }
+    }
+  }
+
+  if (selectedElements.offentligeYdelser) {
+    type PdfDoc = jsPDF & {
+      lastAutoTable?: {
+        finalY?: number;
+      };
+    };
+
+    const isOffentligeYdelserRowEmpty = (row: OffentligeYdelserRow): boolean => {
+      return (
+        (row.fraDato?.trim() ?? '') === '' &&
+        (row.tilDato?.trim() ?? '') === '' &&
+        row.ydelse === undefined &&
+        row.tillaeg === undefined &&
+        (row.ydelsestype?.trim() ?? '') === ''
+      );
+    };
+
+    const renderOffentligeYdelserTable = () => {
+      const rows = (eoValues.offentligeYdelserRows ?? []).filter((row) => !isOffentligeYdelserRowEmpty(row));
+      if (rows.length === 0) {
+        safeAddWrappedText('Ingen rækker i offentlige ydelser.');
+        return;
+      }
+
+      const tableRows: RowInput[] = [
+        OFFENTLIGE_YDELSER_HEADERS.map((header) => ({
+          content: header,
+          styles: { fontStyle: 'bold', halign: 'center' as const },
+        })),
+      ];
+
+      for (const row of rows) {
+        const ydelsestypeKey = row.ydelsestype?.trim() ?? '';
+        const ydelsestypeLabel = ydelsestypeKey ? (ydelsestyper[ydelsestypeKey]?.label ?? ydelsestypeKey) : '';
+        const ydelseValue = amountValueToNumber(row.ydelse) ?? 0;
+        const tillaegValue = amountValueToNumber(row.tillaeg) ?? 0;
+        const samletValue = ydelseValue + tillaegValue;
+        const samletDisplay =
+          row.ydelse !== undefined || row.tillaeg !== undefined
+            ? formatAsAmount(samletValue, 2)
+            : '';
+        const rowValues = [
+          row.fraDato?.trim() ?? '',
+          row.tilDato?.trim() ?? '',
+          amountValueToDisplayString(row.ydelse, 2),
+          amountValueToDisplayString(row.tillaeg, 2),
+          samletDisplay,
+          ydelsestypeLabel,
+        ];
+        tableRows.push(
+          rowValues.map((value, index) => {
+            const halign: 'center' | 'left' | 'right' =
+              index <= 1 ? 'center' : 'right';
+            return {
+              content: value,
+              styles: { halign },
+            };
+          })
+        );
+      }
+
+      const doc = writer.getDoc() as PdfDoc;
+      const columnStyles = {
+        0: { cellWidth: 29 },
+        1: { cellWidth: 29 },
+        2: { cellWidth: 29 },
+        3: { cellWidth: 29 },
+        4: { cellWidth: 29 },
+        5: { cellWidth: 29 },
+      };
+
+      autoTable(doc, {
+        startY: writer.getY(),
+        head: [],
+        body: tableRows,
+        margin: { left: MARGINS.left, right: MARGINS.right },
+        styles: {
+          font: 'helvetica',
+          fontSize: 7,
+          cellPadding: 1.5,
+          textColor: COLORS.text,
+        },
+        columnStyles,
+        didParseCell: (data: CellHookData) => {
+          if (data.row.index === 0) {
+            data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+            return;
+          }
+          data.cell.styles.fillColor =
+            data.row.index % 2 === 0 ? TABLE_STYLES.alternateRowBackgroundColor : false;
+        },
+      });
+
+      writer.setY((doc.lastAutoTable?.finalY ?? writer.getY()) + lineHeight);
+    };
+
+    writer.addPage();
+    writer.setFont('helvetica', 'bold');
+    writer.setFontSize(FONT_SIZES.title);
+    safeAddWrappedText('Offentlige ydelser');
+    writer.setFont('helvetica', 'normal');
+    writer.setFontSize(FONT_SIZES.normal);
+    writer.addSpacer(lineHeight);
+    renderSubheader('Ydelser fra offentlige myndigheder, herunder midlertidigt erhvervsevnetab.', lineHeight, { addTopSpacing: false });
+    writer.addSpacer(lineHeight);
+    renderOffentligeYdelserTable();
+  }
+
   // Tilføj footer med versionsnummer
   writer.addFooter();
 
   // Download PDF
   writer.save(`${titel}.pdf`);
 };
-
-
-
-
-
