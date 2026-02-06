@@ -34,87 +34,8 @@ const ensureNonBreakingKr = (value: string): string => {
   return value.replace(/(-?\d[\d.,]*)\s+kr\./g, `$1${NBSP}kr.`);
 };
 
-const addWrappedText = (
-  doc: jsPDF,
-  text: string,
-  x: number,
-  y: number,
-  lineHeight: number,
-  maxWidth: number
-): number => {
-  const safeText = ensureNonBreakingKr(text);
-  const lines = doc.splitTextToSize(safeText, maxWidth);
-  doc.text(lines, x, y);
-  return y + lineHeight * lines.length;
-};
-
-const addLeftRightText = (
-  doc: jsPDF,
-  leftText: string,
-  rightText: string,
-  x: number,
-  y: number,
-  lineHeight: number,
-  rightPadding: number,
-  maxRightWidth: number,
-  options?: Readonly<{
-    rightFontStyle?: 'normal' | 'bold';
-    lineAboveRightWidth?: number;
-    lineAboveRightOffset?: number;
-    leftNoWrap?: boolean;
-  }>
-): number => {
-  const pageWidth = doc.internal.pageSize.width;
-  const rightWidth = Math.min(maxRightWidth, doc.getTextWidth(rightText));
-  const wrapPadding = doc.getTextWidth('000000');
-  const leftMaxWidth = Math.max(30, pageWidth - x - rightPadding - rightWidth - 5 - wrapPadding);
-  const leftLines = options?.leftNoWrap ? [ensureNonBreakingKr(leftText)] : doc.splitTextToSize(ensureNonBreakingKr(leftText), leftMaxWidth);
-  doc.text(leftLines, x, y);
-  const rightY = y + lineHeight * (leftLines.length - 1);
-  const rightFontStyle = options?.rightFontStyle ?? 'bold';
-  doc.setFont('helvetica', rightFontStyle);
-  doc.text(rightText, pageWidth - rightPadding, rightY, { align: 'right' });
-  if (options?.lineAboveRightWidth) {
-    const lineWidth = options.lineAboveRightWidth;
-    const lineEnd = pageWidth - rightPadding;
-    const lineStart = lineEnd - lineWidth;
-    const offset = options.lineAboveRightOffset ?? 2;
-    doc.setLineWidth(0.2);
-    doc.line(lineStart, rightY - offset, lineEnd, rightY - offset);
-  }
-  doc.setFont('helvetica', 'normal');
-  return y + lineHeight * leftLines.length;
-};
-
-const addLeftRightTextSingleLine = (
-  doc: jsPDF,
-  leftText: string,
-  rightText: string,
-  x: number,
-  y: number,
-  lineHeight: number,
-  rightPadding: number,
-  options?: Readonly<{
-    rightFontStyle?: 'normal' | 'bold';
-    lineAboveRightWidth?: number;
-    lineAboveRightOffset?: number;
-  }>
-): number => {
-  const pageWidth = doc.internal.pageSize.width;
-  doc.text(ensureNonBreakingKr(leftText), x, y);
-  const rightFontStyle = options?.rightFontStyle ?? 'bold';
-  doc.setFont('helvetica', rightFontStyle);
-  doc.text(rightText, pageWidth - rightPadding, y, { align: 'right' });
-  if (options?.lineAboveRightWidth) {
-    const lineWidth = options.lineAboveRightWidth;
-    const lineEnd = pageWidth - rightPadding;
-    const lineStart = lineEnd - lineWidth;
-    const offset = options.lineAboveRightOffset ?? 2;
-    doc.setLineWidth(0.2);
-    doc.line(lineStart, y - offset, lineEnd, y - offset);
-  }
-  doc.setFont('helvetica', 'normal');
-  return y + lineHeight;
+const normalizeTextForPdf = (value: string): string => {
+  return ensureNonBreakingKr(value.replace(/\r\n/g, '\n'));
 };
 
 const fitTextToWidth = (doc: jsPDF, text: string, maxWidth: number): string => {
@@ -129,40 +50,6 @@ const fitTextToWidth = (doc: jsPDF, text: string, maxWidth: number): string => {
   return trimmed.length > 0 ? `${trimmed}${ellipsis}` : '';
 };
 
-const addSectionHeader = (
-  doc: jsPDF,
-  text: string,
-  currentY: number,
-  lineHeight: number,
-  doubleLineHeight: number,
-  maxWidth: number
-): number => {
-  let nextY = currentY + doubleLineHeight;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(FONT_SIZES.header);
-  nextY = addWrappedText(doc, text, MARGINS.left, nextY, lineHeight, maxWidth);
-  nextY += lineHeight;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(FONT_SIZES.normal);
-  return nextY;
-};
-
-const addSubheader = (
-  doc: jsPDF,
-  text: string,
-  currentY: number,
-  lineHeight: number,
-  maxWidth: number,
-  options?: Readonly<{ addTopSpacing?: boolean }>
-): number => {
-  const addTopSpacing = options?.addTopSpacing ?? true;
-  let nextY = addTopSpacing ? currentY + lineHeight : currentY;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(FONT_SIZES.normal);
-  nextY = addWrappedText(doc, text, MARGINS.left, nextY, lineHeight, maxWidth);
-  doc.setFont('helvetica', 'normal');
-  return nextY;
-};
 
 const formatMaanederTrimmed = (value: number): string => {
   const rounded = Math.round(value * 10000) / 10000;
@@ -173,11 +60,6 @@ const formatPercentDelta = (value: number): string => {
   const abs = Math.abs(value);
   const rounded = Math.round(abs * 100) / 100;
   return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-};
-
-const formatPercentFixed2 = (value: number): string => {
-  if (!Number.isFinite(value)) return '-';
-  return `${value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
 };
 
 export const resolveUdkastStempelValue = (value: unknown): boolean => {
@@ -227,6 +109,379 @@ const formatDateShort = (isoDate: ISODateString | undefined): string => {
   return danish;
 };
 
+const createPdfCursor = (params: Readonly<{
+  lineHeight: number;
+  visUdkastStempel: boolean;
+  onLayoutFallback: (message: string) => void;
+}>) => {
+  const { lineHeight, visUdkastStempel, onLayoutFallback } = params;
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const pageHeight = doc.internal.pageSize.height;
+  const contentBottom = pageHeight - MARGINS.bottom;
+  const fullWidth = doc.internal.pageSize.width - MARGINS.left - MARGINS.right;
+  const pageContentHeight = contentBottom - MARGINS.top;
+  let y = MARGINS.top;
+  let activeFont = { fontName: 'helvetica', fontStyle: 'normal' as string };
+
+  const addPage = () => {
+    doc.addPage();
+    y = MARGINS.top;
+    if (visUdkastStempel) {
+      addUdkastWatermark(doc);
+    }
+  };
+
+  const ensureSpace = (height: number) => {
+    if (y + height > contentBottom) {
+      addPage();
+    }
+  };
+
+  const splitWrappedLines = (text: string, maxWidth: number): string[] => {
+    return doc.splitTextToSize(normalizeTextForPdf(text), maxWidth) as string[];
+  };
+
+  const setFont = (fontName: string, fontStyle: string) => {
+    doc.setFont(fontName, fontStyle);
+    activeFont = { fontName, fontStyle };
+  };
+
+  const withFontStyle = (fontStyle: 'normal' | 'bold', fn: () => void) => {
+    const previous = activeFont;
+    setFont(previous.fontName, fontStyle);
+    try {
+      fn();
+    } finally {
+      setFont(previous.fontName, previous.fontStyle);
+    }
+  };
+
+  const measureTextWidthWithFont = (text: string, fontStyle: 'normal' | 'bold'): number => {
+    let measured = 0;
+    withFontStyle(fontStyle, () => {
+      measured = doc.getTextWidth(text);
+    });
+    return measured;
+  };
+
+  const writeWrappedText = (text: string, maxWidth = fullWidth, x = MARGINS.left) => {
+    const lines = splitWrappedLines(text, maxWidth);
+    for (const line of lines) {
+      ensureSpace(lineHeight);
+      doc.text(line, x, y);
+      y += lineHeight;
+    }
+  };
+
+  const writeLeftRightText = (
+    leftText: string,
+    rightText: string,
+    x: number,
+    rightPadding: number,
+    options?: Readonly<{
+      rightFontStyle?: 'normal' | 'bold';
+      lineAboveRightWidth?: number;
+      lineAboveRightOffset?: number;
+      leftNoWrap?: boolean;
+      minRightColumnWidth?: number;
+    }>
+  ) => {
+    const pageWidth = doc.internal.pageSize.width;
+    const rightFontStyle = options?.rightFontStyle ?? 'bold';
+    const maxRightDrawableWidth = Math.max(10, pageWidth - x - rightPadding - 5);
+    const actualRightWidth = measureTextWidthWithFont(rightText, rightFontStyle);
+    const minRightWidth = options?.minRightColumnWidth ?? 0;
+    const rightWidth = Math.max(actualRightWidth, minRightWidth);
+    const wrapPadding = doc.getTextWidth('000000');
+    const hasRightOverflow = rightWidth > maxRightDrawableWidth;
+    const leftMaxWidth = hasRightOverflow
+      ? Math.max(30, pageWidth - x - rightPadding - 5)
+      : Math.max(30, pageWidth - x - rightPadding - rightWidth - 5 - wrapPadding);
+    const leftLines = options?.leftNoWrap ? [normalizeTextForPdf(leftText)] : splitWrappedLines(leftText, leftMaxWidth);
+
+    if (hasRightOverflow) {
+      onLayoutFallback('højre kolonne er bredere end tilgængelig plads; flytter beløb til egen linje.');
+      for (const line of leftLines) {
+        ensureSpace(lineHeight);
+        doc.text(line, x, y);
+        y += lineHeight;
+      }
+
+      const rightLines = splitWrappedLines(rightText, maxRightDrawableWidth);
+      for (const line of rightLines) {
+        ensureSpace(lineHeight);
+        withFontStyle(rightFontStyle, () => {
+          doc.text(line, pageWidth - rightPadding, y, { align: 'right' });
+        });
+        y += lineHeight;
+      }
+
+      if (options?.lineAboveRightWidth) {
+        const lineWidth = options.lineAboveRightWidth;
+        const lineEnd = pageWidth - rightPadding;
+        const lineStart = lineEnd - lineWidth;
+        const offset = options.lineAboveRightOffset ?? 2;
+        doc.setLineWidth(0.2);
+        doc.line(lineStart, y - lineHeight - offset, lineEnd, y - lineHeight - offset);
+      }
+      return;
+    }
+
+    leftLines.forEach((line, index) => {
+      ensureSpace(lineHeight);
+      doc.text(line, x, y);
+      const isLastLine = index === leftLines.length - 1;
+      if (isLastLine) {
+        withFontStyle(rightFontStyle, () => {
+          doc.text(rightText, pageWidth - rightPadding, y, { align: 'right' });
+        });
+        if (options?.lineAboveRightWidth) {
+          const lineWidth = options.lineAboveRightWidth;
+          const lineEnd = pageWidth - rightPadding;
+          const lineStart = lineEnd - lineWidth;
+          const offset = options.lineAboveRightOffset ?? 2;
+          doc.setLineWidth(0.2);
+          doc.line(lineStart, y - offset, lineEnd, y - offset);
+        }
+      }
+      y += lineHeight;
+    });
+  };
+
+  const writeLeftRightTextSingleLine = (
+    leftText: string,
+    rightText: string,
+    x: number,
+    rightPadding: number,
+    options?: Readonly<{
+      rightFontStyle?: 'normal' | 'bold';
+      lineAboveRightWidth?: number;
+      lineAboveRightOffset?: number;
+    }>
+  ) => {
+    writeLeftRightText(leftText, rightText, x, rightPadding, { ...options, leftNoWrap: true });
+  };
+
+  const writeUnderlinedLabel = (text: string, x: number) => {
+    ensureSpace(lineHeight);
+    const normalized = normalizeTextForPdf(text).replace(/\n/g, ' ');
+    doc.text(normalized, x, y);
+    const labelWidth = doc.getTextWidth(normalized);
+    doc.setLineWidth(0.2);
+    doc.line(x, y + 1, x + labelWidth, y + 1);
+    y += lineHeight;
+  };
+
+  const writeSignatureBlock = (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => {
+    ensureSpace(lineHeight);
+    doc.text(dateLine, dateX, y);
+    doc.text(sigLine, sigX, y);
+    y += lineHeight;
+    ensureSpace(lineHeight);
+    const dateCenterX = dateX + doc.getTextWidth(dateLine) / 2;
+    const sigCenterX = sigX + doc.getTextWidth(sigLine) / 2;
+    doc.text('Dato', dateCenterX, y, { align: 'center' });
+    doc.text(skadelidteNavn, sigCenterX, y, { align: 'center' });
+    y += lineHeight;
+  };
+
+  const measureWrappedTextHeight = (text: string) => {
+    const lines = splitWrappedLines(text, fullWidth);
+    return lineHeight * lines.length;
+  };
+
+  return {
+    setDisplayMode: (mode: string) => doc.setDisplayMode(mode),
+    setProperties: (props: Parameters<jsPDF['setProperties']>[0]) => doc.setProperties(props),
+    setFontSize: (size: number) => doc.setFontSize(size),
+    setFont,
+    ensureSpace,
+    advanceY: (delta: number) => {
+      y += delta;
+    },
+    writeWrappedText,
+    writeLeftRightText,
+    writeLeftRightTextSingleLine,
+    writeUnderlinedLabel,
+    writeSignatureBlock,
+    writeBrevhoved: (brevhovedData: BrevhovedData) => {
+      y = addBrevhoved(doc, brevhovedData);
+    },
+    addUdkastWatermark: () => {
+      if (visUdkastStempel) {
+        addUdkastWatermark(doc);
+      }
+    },
+    splitWrappedLines,
+    measureWrappedTextHeight,
+    getTextWidth: (text: string) => doc.getTextWidth(text),
+    fitTextToWidth: (text: string, maxWidth: number) => fitTextToWidth(doc, text, maxWidth),
+    getFullWidth: () => fullWidth,
+    getPageContentHeight: () => pageContentHeight,
+    renderAtomicBlock: (estimatedHeight: number, render: () => void) => {
+      ensureSpace(estimatedHeight);
+      render();
+    },
+    addFooter: () => addFooter(doc),
+    save: (filename: string) => doc.save(filename),
+  };
+};
+
+type PdfWriter = {
+  setDisplayMode: (mode: string) => void;
+  setProperties: (props: Parameters<jsPDF['setProperties']>[0]) => void;
+  setFontSize: (size: number) => void;
+  setFont: (fontName: string, fontStyle: string) => void;
+  addSpacer: (height: number) => void;
+  advanceY: (delta: number) => void;
+  writeWrappedText: (text: string) => void;
+  writeLeftRightText: (
+    leftText: string,
+    rightText: string,
+    options?: Readonly<{
+      rightFontStyle?: 'normal' | 'bold';
+      lineAboveRightWidth?: number;
+      lineAboveRightOffset?: number;
+      leftNoWrap?: boolean;
+      minRightColumnWidth?: number;
+    }>
+  ) => void;
+  writeLeftRightTextSingleLine: (
+    leftText: string,
+    rightText: string,
+    options?: Readonly<{
+      rightFontStyle?: 'normal' | 'bold';
+      lineAboveRightWidth?: number;
+      lineAboveRightOffset?: number;
+    }>
+  ) => void;
+  writeSectionHeader: (text: string, nextLineHeight: number) => void;
+  writeSubheader: (
+    text: string,
+    nextLineHeight: number,
+    options?: Readonly<{ addTopSpacing?: boolean }>
+  ) => void;
+  writeSubheaderWithWrappedText: (subheaderText: string, bodyText: string) => void;
+  writeAtomicTableChunks: <T>(params: Readonly<{
+    rows: readonly T[];
+    renderHeader: () => void;
+    renderRow: (row: T) => void;
+    estimateRowHeight: number;
+    headerHeight: number;
+  }>) => void;
+  writeUnderlinedLabel: (text: string, x: number) => void;
+  writeSignatureBlock: (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => void;
+  writeBrevhoved: (brevhovedData: BrevhovedData) => void;
+  addUdkastWatermark: () => void;
+  getTextWidth: (text: string) => number;
+  fitTextToWidth: (text: string, maxWidth: number) => string;
+  getPageWidth: () => number;
+  addFooter: () => void;
+  save: (filename: string) => void;
+};
+
+const createPdfWriter = (params: Readonly<{
+  lineHeight: number;
+  doubleLineHeight: number;
+  visUdkastStempel: boolean;
+  onLayoutFallback: (message: string) => void;
+}>): PdfWriter => {
+  const { lineHeight, doubleLineHeight, visUdkastStempel, onLayoutFallback } = params;
+  const cursor = createPdfCursor({ lineHeight, visUdkastStempel, onLayoutFallback });
+
+  const writeSectionHeader = (text: string, nextLineHeight: number) => {
+    const estimatedHeaderHeight = doubleLineHeight + lineHeight;
+    cursor.ensureSpace(estimatedHeaderHeight + nextLineHeight);
+    cursor.advanceY(doubleLineHeight);
+    cursor.setFont('helvetica', 'bold');
+    cursor.setFontSize(FONT_SIZES.header);
+    cursor.writeWrappedText(text);
+    cursor.advanceY(lineHeight);
+    cursor.setFont('helvetica', 'normal');
+    cursor.setFontSize(FONT_SIZES.normal);
+  };
+
+  const writeSubheader = (
+    text: string,
+    nextLineHeight: number,
+    options?: Readonly<{ addTopSpacing?: boolean }>
+  ) => {
+    const addTopSpacing = options?.addTopSpacing ?? true;
+    const headerHeight = cursor.measureWrappedTextHeight(text) + (addTopSpacing ? lineHeight : 0);
+    cursor.ensureSpace(headerHeight + nextLineHeight);
+    if (addTopSpacing) {
+      cursor.advanceY(lineHeight);
+    }
+    cursor.setFont('helvetica', 'bold');
+    cursor.setFontSize(FONT_SIZES.normal);
+    cursor.writeWrappedText(text);
+    cursor.setFont('helvetica', 'normal');
+  };
+
+  const writeSubheaderWithWrappedText = (subheaderText: string, bodyText: string) => {
+    const bodyHeight = cursor.measureWrappedTextHeight(bodyText);
+    writeSubheader(subheaderText, bodyHeight);
+    cursor.writeWrappedText(bodyText);
+  };
+
+  const writeAtomicTableChunks = <T,>(params: Readonly<{
+    rows: readonly T[];
+    renderHeader: () => void;
+    renderRow: (row: T) => void;
+    estimateRowHeight: number;
+    headerHeight: number;
+  }>) => {
+    const { rows, renderHeader, renderRow, estimateRowHeight, headerHeight } = params;
+    const rowsPerChunk = Math.max(
+      1,
+      Math.floor((cursor.getPageContentHeight() - headerHeight) / estimateRowHeight)
+    );
+    for (let i = 0; i < rows.length; i += rowsPerChunk) {
+      const chunk = rows.slice(i, i + rowsPerChunk);
+      const estimatedChunkHeight = headerHeight + estimateRowHeight * chunk.length;
+      cursor.renderAtomicBlock(estimatedChunkHeight, () => {
+        renderHeader();
+        chunk.forEach((row) => renderRow(row));
+      });
+    }
+  };
+
+  return {
+    setDisplayMode: cursor.setDisplayMode,
+    setProperties: cursor.setProperties,
+    setFontSize: cursor.setFontSize,
+    setFont: cursor.setFont,
+    addSpacer: (height: number) => {
+      cursor.ensureSpace(height);
+      cursor.advanceY(height);
+    },
+    advanceY: cursor.advanceY,
+    writeWrappedText: cursor.writeWrappedText,
+    writeLeftRightText: (leftText, rightText, options) =>
+      cursor.writeLeftRightText(leftText, rightText, MARGINS.left, MARGINS.right, options),
+    writeLeftRightTextSingleLine: (leftText, rightText, options) =>
+      cursor.writeLeftRightTextSingleLine(leftText, rightText, MARGINS.left, MARGINS.right, options),
+    writeSectionHeader,
+    writeSubheader,
+    writeSubheaderWithWrappedText,
+    writeAtomicTableChunks,
+    writeUnderlinedLabel: cursor.writeUnderlinedLabel,
+    writeSignatureBlock: cursor.writeSignatureBlock,
+    writeBrevhoved: cursor.writeBrevhoved,
+    addUdkastWatermark: cursor.addUdkastWatermark,
+    getTextWidth: cursor.getTextWidth,
+    fitTextToWidth: cursor.fitTextToWidth,
+    getPageWidth: () => MARGINS.left + cursor.getFullWidth() + MARGINS.right,
+    addFooter: cursor.addFooter,
+    save: cursor.save,
+  };
+};
+
 
 /**
  * Interface for valgte elementer
@@ -261,87 +516,70 @@ interface ErstatningsopgoerelsePdfOptions {
 export const generateErstatningsopgoerelsePdf = (
   stamdataValues: StamdataValues,
   eoValues: ErstatningsopgoerelseValues,
-  _selectedElements: SelectedElements,
+  selectedElements: SelectedElements,
   options: ErstatningsopgoerelsePdfOptions = {}
 ) => {
+  if (!selectedElements.opgoerelse) {
+    throw new Error('PDF-generering kræver, at elementet "Opgørelse" er valgt.');
+  }
+
+  const unsupportedSelections = [
+    ['Lønindkomst', selectedElements.loenindkomst],
+    ['Offentlige ydelser', selectedElements.offentligeYdelser],
+    ['SH-dage', selectedElements.shDage],
+    ['Regulering', selectedElements.regulering],
+    ['OK-satser', selectedElements.okSatser],
+    ['Sygeferiegodtgørelse', selectedElements.sygeferiegodtgoerelse],
+  ].filter(([, isSelected]) => isSelected).map(([label]) => label);
+
+  if (unsupportedSelections.length > 0) {
+    throw new Error(
+      `Valgte PDF-elementer er ikke understøttet endnu: ${unsupportedSelections.join(', ')}.`
+    );
+  }
+
   const { visBrevhoved = false } = options;
   const visUdkastStempel = options.visUdkastStempel ?? resolveUdkastStempelValue(eoValues.indsaetUdkastStempel);
   const afsluttesMed = options.erstatningsopgoerelseAfsluttesMed ?? eoValues.erstatningsopgoerelseAfsluttesMed;
   const lineHeight = 5;
   const doubleLineHeight = lineHeight * 2;
   const model = buildErstatningsopgoerelsePdfModel(stamdataValues, eoValues, { dagsDatoISO: TODAY });
-
-  // Opret nyt PDF-dokument (A4, portrait)
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  });
-  doc.setDisplayMode('100%');
-
   const titel = model.titel;
 
+  const warnLayoutFallback = (message: string) => {
+    console.warn(`PDF-layout: ${message}`);
+  };
+
+  const writer = createPdfWriter({
+    lineHeight,
+    doubleLineHeight,
+    visUdkastStempel,
+    onLayoutFallback: warnLayoutFallback,
+  });
+  writer.setDisplayMode('100%');
+
   // Dokumentets metadata
-  doc.setProperties({
+  writer.setProperties({
     title: titel,
     subject: 'Erstatningsberegning',
     author: 'MINEO',
     creator: 'MINEO',
   });
 
-  let currentY = MARGINS.top;
-  const pageHeight = doc.internal.pageSize.height;
-  const contentBottom = pageHeight - MARGINS.bottom;
-  const pageContentHeight = contentBottom - MARGINS.top;
-
-  const addNewPage = () => {
-    doc.addPage();
-    currentY = MARGINS.top;
-    if (visUdkastStempel) {
-      addUdkastWatermark(doc);
-    }
-  };
-
-  const ensureSpace = (height: number) => {
-    if (currentY + height > contentBottom) {
-      addNewPage();
-    }
-  };
-
-  const renderAtomicBlock = (estimatedHeight: number, render: () => void) => {
-    ensureSpace(estimatedHeight);
-    render();
-  };
-
   const renderSectionHeader = (text: string, nextLineHeight: number) => {
-    const estimatedHeaderHeight = doubleLineHeight + lineHeight;
-    ensureSpace(estimatedHeaderHeight + nextLineHeight);
-    currentY = addSectionHeader(doc, text, currentY, lineHeight, doubleLineHeight, fullWidth);
+    writer.writeSectionHeader(text, nextLineHeight);
   };
 
   const renderSubheader = (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => {
-    const addTopSpacing = options?.addTopSpacing ?? true;
-    const headerHeight = measureWrappedTextHeight(text) + (addTopSpacing ? lineHeight : 0);
-    ensureSpace(headerHeight + nextLineHeight);
-    currentY = addSubheader(doc, text, currentY, lineHeight, fullWidth, options);
+    writer.writeSubheader(text, nextLineHeight, options);
   };
 
   const safeAddWrappedText = (text: string) => {
-    const lines = doc.splitTextToSize(ensureNonBreakingKr(text), fullWidth);
-    const estimatedHeight = lineHeight * lines.length;
-    ensureSpace(estimatedHeight);
-    currentY = addWrappedText(doc, text, MARGINS.left, currentY, lineHeight, fullWidth);
-  };
-
-  const measureWrappedTextHeight = (text: string) => {
-    const lines = doc.splitTextToSize(ensureNonBreakingKr(text), fullWidth);
-    return lineHeight * lines.length;
+    writer.writeWrappedText(text);
   };
 
   const renderSubheaderWithWrappedText = (subheaderText: string, bodyText: string) => {
-    const bodyHeight = measureWrappedTextHeight(bodyText);
-    renderSubheader(subheaderText, bodyHeight);
-    safeAddWrappedText(bodyText);
+    writer.writeSubheaderWithWrappedText(subheaderText, bodyText);
   };
 
   const safeAddLeftRightText = (
@@ -355,25 +593,10 @@ export const generateErstatningsopgoerelsePdf = (
       leftNoWrap?: boolean;
     }>
   ) => {
-    const pageWidth = doc.internal.pageSize.width;
-    const rightWidth = Math.min(rightMaxWidth, doc.getTextWidth(rightText));
-    const wrapPadding = doc.getTextWidth('000000');
-    const leftMaxWidth = Math.max(30, pageWidth - MARGINS.left - MARGINS.right - rightWidth - 5 - wrapPadding);
-    const leftLines = options?.leftNoWrap
-      ? [ensureNonBreakingKr(leftText)]
-      : doc.splitTextToSize(ensureNonBreakingKr(leftText), leftMaxWidth);
-    const estimatedHeight = lineHeight * leftLines.length;
-    ensureSpace(estimatedHeight);
-    currentY = addLeftRightText(
-      doc,
+    writer.writeLeftRightText(
       leftText,
       rightText,
-      MARGINS.left,
-      currentY,
-      lineHeight,
-      MARGINS.right,
-      rightMaxWidth,
-      options
+      { ...options, minRightColumnWidth: rightMaxWidth }
     );
   };
 
@@ -382,24 +605,19 @@ export const generateErstatningsopgoerelsePdf = (
     renderHeader: () => void;
     renderRow: (row: T) => void;
     estimateRowHeight: number;
-    maxContentHeight: number;
     headerHeight: number;
   }>) => {
-    const { rows, renderHeader, renderRow, estimateRowHeight, maxContentHeight, headerHeight } = params;
-    const rowsPerChunk = Math.max(1, Math.floor((maxContentHeight - headerHeight) / estimateRowHeight));
-    for (let i = 0; i < rows.length; i += rowsPerChunk) {
-      const chunk = rows.slice(i, i + rowsPerChunk);
-      const estimatedChunkHeight = headerHeight + estimateRowHeight * chunk.length;
-      renderAtomicBlock(estimatedChunkHeight, () => {
-        renderHeader();
-        chunk.forEach((row) => renderRow(row));
-      });
-    }
+    const { rows, renderHeader, renderRow, estimateRowHeight, headerHeight } = params;
+    writer.writeAtomicTableChunks({ rows, renderHeader, renderRow, estimateRowHeight, headerHeight });
   };
 
-  if (visUdkastStempel) {
-    addUdkastWatermark(doc);
-  }
+  const assertModelInvariant = (condition: boolean, message: string) => {
+    if (condition) return;
+    const invariantMessage = `Inkonsekvent PDF-model: ${message}`;
+    throw new Error(invariantMessage);
+  };
+
+  writer.addUdkastWatermark();
 
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved && model.brevhoved) {
@@ -410,41 +628,33 @@ export const generateErstatningsopgoerelsePdf = (
       // UND TAGELSE: EOberegning-tab bruger "Opgørelse lavet den" i stedet for dags dato.
       dagsDatoISO: model.brevhoved.dagsDatoISO,
     };
-    currentY = addBrevhoved(doc, brevhovedData);
+    writer.writeBrevhoved(brevhovedData);
   }
 
   // Tilføj titel (fed skrift)
-  doc.setFontSize(FONT_SIZES.title);
-  doc.setFont('helvetica', 'bold');
-  const fullWidth = doc.internal.pageSize.width - MARGINS.left - MARGINS.right;
-  currentY = addWrappedText(doc, titel, MARGINS.left, currentY, lineHeight, fullWidth);
+  writer.setFontSize(FONT_SIZES.title);
+  writer.setFont('helvetica', 'bold');
+  safeAddWrappedText(titel);
 
   // Tilføj erstatningsperiode-datoer direkte under titel
-  doc.setFontSize(FONT_SIZES.normal);
-  doc.setFont('helvetica', 'normal');
+  writer.setFontSize(FONT_SIZES.normal);
+  writer.setFont('helvetica', 'normal');
   if (model.periodeDisplay) {
-    currentY = addWrappedText(
-      doc,
-      model.periodeDisplay,
-      MARGINS.left,
-      currentY,
-      lineHeight,
-      fullWidth
-    );
-    currentY += lineHeight;
+    safeAddWrappedText(model.periodeDisplay);
+    writer.advanceY(lineHeight);
   }
 
   // Tilføj skadelidtes navn (fed skrift)
-  doc.setFont('helvetica', 'bold');
+  writer.setFont('helvetica', 'bold');
   if (model.skadelidteNavn) {
-    currentY = addWrappedText(doc, model.skadelidteNavn, MARGINS.left, currentY, lineHeight, fullWidth);
+    safeAddWrappedText(model.skadelidteNavn);
   }
 
   // Tilføj skadestype og skadesdato (normal skrift)
-  doc.setFont('helvetica', 'normal');
+  writer.setFont('helvetica', 'normal');
   if (model.skadestypeLinje) {
-    currentY = addWrappedText(doc, model.skadestypeLinje, MARGINS.left, currentY, lineHeight, fullWidth);
-    currentY += lineHeight;
+    safeAddWrappedText(model.skadestypeLinje);
+    writer.advanceY(lineHeight);
   }
 
   // ============================================================================
@@ -456,43 +666,33 @@ export const generateErstatningsopgoerelsePdf = (
   renderSubheader('Status', lineHeight, { addTopSpacing: false });
 
   // Normal skrift for resten
-  doc.setFont('helvetica', 'normal');
+  writer.setFont('helvetica', 'normal');
 
     for (const line of model.svieSmerte.statusLinjer) {
-      currentY = addWrappedText(doc, line, MARGINS.left, currentY, lineHeight, fullWidth);
+      safeAddWrappedText(line);
     }
 
   renderSubheader(model.svieSmerte.periodeHeading, lineHeight);
+  assertModelInvariant(
+    model.svieSmerte.harPerioder === (model.svieSmerte.periodeLinjer.length > 0),
+    'svieSmerte.harPerioder matcher ikke svieSmerte.periodeLinjer.'
+  );
   if (!model.svieSmerte.beregnes) {
-    currentY = addWrappedText(doc, 'Ingen', MARGINS.left, currentY, lineHeight, fullWidth);
+    safeAddWrappedText('Ingen');
   } else if (!model.svieSmerte.harPerioder) {
-    currentY = addWrappedText(doc, 'Ingen', MARGINS.left, currentY, lineHeight, fullWidth);
+    safeAddWrappedText('Ingen');
   } else {
     for (const line of model.svieSmerte.periodeLinjer) {
-      currentY = addWrappedText(doc, line, MARGINS.left, currentY, lineHeight, fullWidth);
+      safeAddWrappedText(line);
     }
 
     renderSubheader('Beregningsgrundlag', lineHeight);
     const satserAar = model.svieSmerte.satserAar !== null ? String(model.svieSmerte.satserAar) : '-';
-    currentY = addWrappedText(
-      doc,
-      `Beregningen af godtgørelse foretages ud fra satserne i år ${satserAar}.`,
-      MARGINS.left,
-      currentY,
-      lineHeight,
-      fullWidth
-    );
+    safeAddWrappedText(`Beregningen af godtgørelse foretages ud fra satserne i år ${satserAar}.`);
 
     const perDagDisplayWithKr = renderMoneyWithKr(model.svieSmerte.satserPerDag);
     const maxDisplayWithKr = renderMoneyWithKr(model.svieSmerte.satserMax);
-    currentY = addWrappedText(
-      doc,
-      `Taksten udgør ${perDagDisplayWithKr} pr. sygedag, dog højst ${maxDisplayWithKr}`,
-      MARGINS.left,
-      currentY,
-      lineHeight,
-      fullWidth
-    );
+    safeAddWrappedText(`Taksten udgår ${perDagDisplayWithKr} pr. sygedag, dog højst ${maxDisplayWithKr}`);
 
     const tidligere = model.svieSmerte.tidligere;
     const aktuel = model.svieSmerte.aktuel;
@@ -508,7 +708,7 @@ export const generateErstatningsopgoerelsePdf = (
         tekst = `Der er tidligere modtaget ${aktuelDisplay} for denne periode.`;
       }
       if (tekst) {
-        currentY = addWrappedText(doc, tekst, MARGINS.left, currentY, lineHeight, fullWidth);
+        safeAddWrappedText(tekst);
       }
     }
     renderSubheader('Beregnet krav på svie- og smertegodtgørelse', lineHeight);
@@ -556,18 +756,8 @@ export const generateErstatningsopgoerelsePdf = (
       return `${base}${deductions.length > 0 ? ` ${deductions.join(' ')}` : ''}${maxSuffix} =`;
     })();
 
-    const pageWidth = doc.internal.pageSize.width;
     const beloebDisplay = formatMoneyOreWithKr(model.svieSmerte.totalOre);
-    const beloebWidth = doc.getTextWidth(beloebDisplay);
-    const wrapPadding = doc.getTextWidth('0000000000');
-    const leftMaxWidth = Math.max(30, pageWidth - MARGINS.left - MARGINS.right - beloebWidth - 5 - wrapPadding);
-    const leftLines = doc.splitTextToSize(ensureNonBreakingKr(lineLeft), leftMaxWidth);
-    doc.text(leftLines, MARGINS.left, currentY);
-    const beloebY = currentY + lineHeight * (leftLines.length - 1);
-    doc.setFont('helvetica', 'bold');
-    doc.text(beloebDisplay, pageWidth - MARGINS.right, beloebY, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-    currentY += lineHeight * leftLines.length;
+    safeAddLeftRightText(lineLeft, beloebDisplay, writer.getTextWidth('000.000.000,00'), { rightFontStyle: 'bold' });
   }
   // ============================================================================
   // TABT ARBEJDSFORTJENESTE SEKTION
@@ -578,25 +768,18 @@ export const generateErstatningsopgoerelsePdf = (
   renderSubheader('Status', lineHeight, { addTopSpacing: false });
 
   // Normal skrift for resten
-  doc.setFont('helvetica', 'normal');
+  writer.setFont('helvetica', 'normal');
 
     for (const line of model.tabtArbejdsfortjeneste.statusLinjer) {
-      currentY = addWrappedText(doc, line, MARGINS.left, currentY, lineHeight, fullWidth);
+      safeAddWrappedText(line);
     }
 
     for (const line of model.tabtArbejdsfortjeneste.eetLinjer) {
-      currentY = addWrappedText(doc, line, MARGINS.left, currentY, lineHeight, fullWidth);
+      safeAddWrappedText(line);
     }
 
   if (model.tabtArbejdsfortjeneste.differencekravLinje) {
-    currentY = addWrappedText(
-      doc,
-      model.tabtArbejdsfortjeneste.differencekravLinje,
-      MARGINS.left,
-      currentY,
-      lineHeight,
-      fullWidth
-    );
+    safeAddWrappedText(model.tabtArbejdsfortjeneste.differencekravLinje);
   }
 
   // TAF-perioder
@@ -604,89 +787,46 @@ export const generateErstatningsopgoerelsePdf = (
 
   const tafPerioderLines = model.tabtArbejdsfortjeneste.tafPerioderLinjer;
   const hasTafPerioder = model.tabtArbejdsfortjeneste.harTafPerioder;
+  assertModelInvariant(hasTafPerioder === (tafPerioderLines.length > 0), 'harTafPerioder matcher ikke tafPerioderLinjer.');
 
   if (!hasTafPerioder) {
-    currentY = addWrappedText(doc, 'Ingen', MARGINS.left, currentY, lineHeight, fullWidth);
+    safeAddWrappedText('Ingen');
   } else {
     for (const line of tafPerioderLines) {
-      currentY = addWrappedText(doc, line, MARGINS.left, currentY, lineHeight, fullWidth);
+      safeAddWrappedText(line);
     }
     // Kun hvis der ER TAF-perioder, vis resten af indholdet
     renderSubheader('Indkomst på skadestidspunktet', lineHeight);
     const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
     if (indkomst?.beregningsperiodeLabel) {
-      currentY = addWrappedText(doc, indkomst.beregningsperiodeLabel, MARGINS.left, currentY, lineHeight, fullWidth);
-      currentY += lineHeight;
+      safeAddWrappedText(indkomst.beregningsperiodeLabel);
+      writer.advanceY(lineHeight);
     }
 
     if (indkomst?.beregnesUdFra === 'Beregningsperiode') {
       for (const arbejdssted of indkomst.arbejdssteder) {
-        doc.text(arbejdssted.navn, MARGINS.left, currentY);
-        const nameWidth = doc.getTextWidth(arbejdssted.navn);
-        doc.setLineWidth(0.2);
-        doc.line(MARGINS.left, currentY + 1, MARGINS.left + nameWidth, currentY + 1);
-        currentY += lineHeight;
+        writer.writeUnderlinedLabel(arbejdssted.navn, MARGINS.left);
 
-        currentY = addLeftRightText(
-          doc,
-          'Ferieberettiget indkomst i beregningsperioden',
-          formatMoneyOreWithKr(arbejdssted.breakdown.ferieberetOre),
-          MARGINS.left,
-          currentY,
-          lineHeight,
-          MARGINS.right,
-          doc.getTextWidth('000.000.000,00'),
+        safeAddLeftRightText('Ferieberettiget indkomst i beregningsperioden', formatMoneyOreWithKr(arbejdssted.breakdown.ferieberetOre), writer.getTextWidth('000.000.000,00'),
           { rightFontStyle: 'normal' }
         );
 
-        currentY = addLeftRightText(
-          doc,
-          arbejdssted.fpLabel,
-          formatMoneyOreWithKr(arbejdssted.breakdown.fpFvShSoOre),
-          MARGINS.left,
-          currentY,
-          lineHeight,
-          MARGINS.right,
-          doc.getTextWidth('000.000.000,00'),
+        safeAddLeftRightText(arbejdssted.fpLabel, formatMoneyOreWithKr(arbejdssted.breakdown.fpFvShSoOre), writer.getTextWidth('000.000.000,00'),
           { rightFontStyle: 'normal' }
         );
 
-        currentY = addLeftRightText(
-          doc,
-          arbejdssted.pensionLabel,
-          formatMoneyOreWithKr(arbejdssted.breakdown.pensionOre),
-          MARGINS.left,
-          currentY,
-          lineHeight,
-          MARGINS.right,
-          doc.getTextWidth('000.000.000,00'),
+        safeAddLeftRightText(arbejdssted.pensionLabel, formatMoneyOreWithKr(arbejdssted.breakdown.pensionOre), writer.getTextWidth('000.000.000,00'),
           { rightFontStyle: 'normal' }
         );
 
-        currentY = addLeftRightText(
-          doc,
-          'Arbejdsgivers ATP-bidrag og anden indkomst uden tillæg',
-          formatMoneyOreWithKr(arbejdssted.breakdown.atpOre),
-          MARGINS.left,
-          currentY,
-          lineHeight,
-          MARGINS.right,
-          doc.getTextWidth('000.000.000,00'),
+        safeAddLeftRightText('Arbejdsgivers ATP-bidrag og anden indkomst uden tillæg', formatMoneyOreWithKr(arbejdssted.breakdown.atpOre), writer.getTextWidth('000.000.000,00'),
           { rightFontStyle: 'normal' }
         );
 
-        currentY = addLeftRightText(
-          doc,
-          'I alt:',
-          formatMoneyOreWithKr(arbejdssted.breakdown.samletOre),
-          MARGINS.left,
-          currentY,
-          lineHeight,
-          MARGINS.right,
-          doc.getTextWidth('000.000.000,00'),
+        safeAddLeftRightText('I alt:', formatMoneyOreWithKr(arbejdssted.breakdown.samletOre), writer.getTextWidth('000.000.000,00'),
           { rightFontStyle: 'normal', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
         );
-        currentY += lineHeight;
+        writer.advanceY(lineHeight);
       }
 
       if (indkomst.totalBreakdown) {
@@ -701,7 +841,7 @@ export const generateErstatningsopgoerelsePdf = (
           safeAddLeftRightText(
             basisText,
             renderMoneyWithKr(indkomst.dagsloen),
-            doc.getTextWidth('000.000.000,00'),
+            writer.getTextWidth('000.000.000,00'),
             { rightFontStyle: 'normal' }
           );
         } else if (indkomst.maaneder) {
@@ -712,7 +852,7 @@ export const generateErstatningsopgoerelsePdf = (
           safeAddLeftRightText(
             basisText,
             renderMoneyWithKr(indkomst.maanedsloen),
-            doc.getTextWidth('000.000.000,00'),
+            writer.getTextWidth('000.000.000,00'),
             { rightFontStyle: 'normal' }
           );
         }
@@ -730,17 +870,7 @@ export const generateErstatningsopgoerelsePdf = (
             leftText = `Månedslønnen er fastsat per ${skadesdatoFormateret} til`;
           }
 
-          const pageWidth = doc.internal.pageSize.width;
-          const beloebWidth = doc.getTextWidth(beloebDisplay);
-          const wrapPadding = doc.getTextWidth('0000000000');
-          const leftMaxWidth = Math.max(30, pageWidth - MARGINS.left - MARGINS.right - beloebWidth - 5 - wrapPadding);
-          const leftLines = doc.splitTextToSize(ensureNonBreakingKr(leftText), leftMaxWidth);
-          doc.text(leftLines, MARGINS.left, currentY);
-          const beloebY = currentY + lineHeight * (leftLines.length - 1);
-          doc.setFont('helvetica', 'normal');
-          doc.text(beloebDisplay, pageWidth - MARGINS.right, beloebY, { align: 'right' });
-          doc.setFont('helvetica', 'normal');
-          currentY += lineHeight * leftLines.length;
+          safeAddLeftRightText(leftText, beloebDisplay, writer.getTextWidth('000.000.000,00'), { rightFontStyle: 'normal' });
         }
       }
     } else if (indkomst?.beregnesUdFra === 'Angivet dagsløn') {
@@ -756,17 +886,7 @@ export const generateErstatningsopgoerelsePdf = (
             leftText = `Dagslønnen er fastsat per ${skadesdatoFormateret} til`;
           }
 
-          const pageWidth = doc.internal.pageSize.width;
-          const beloebWidth = doc.getTextWidth(beloebDisplay);
-          const wrapPadding = doc.getTextWidth('0000000000');
-          const leftMaxWidth = Math.max(30, pageWidth - MARGINS.left - MARGINS.right - beloebWidth - 5 - wrapPadding);
-          const leftLines = doc.splitTextToSize(ensureNonBreakingKr(leftText), leftMaxWidth);
-          doc.text(leftLines, MARGINS.left, currentY);
-          const beloebY = currentY + lineHeight * (leftLines.length - 1);
-          doc.setFont('helvetica', 'bold');
-          doc.text(beloebDisplay, pageWidth - MARGINS.right, beloebY, { align: 'right' });
-          doc.setFont('helvetica', 'normal');
-          currentY += lineHeight * leftLines.length;
+          safeAddLeftRightText(leftText, beloebDisplay, writer.getTextWidth('000.000.000,00'), { rightFontStyle: 'bold' });
         }
       }
     }
@@ -784,13 +904,13 @@ export const generateErstatningsopgoerelsePdf = (
     if (loenudvikling) {
       if (loenudvikling.loenudviklingLabel !== 'Ingen') {
         safeAddWrappedText(`Lønudvikling beregnes ud fra ${loenudvikling.loenudviklingLabel}.`);
-        currentY += lineHeight;
+        writer.advanceY(lineHeight);
       }
 
       if (loenudvikling.loenudviklingTotal.status !== 'ok') {
         safeAddWrappedText('Lønudvikling kan ikke beregnes for den valgte opsætning.');
       } else {
-        const rightMaxWidth = doc.getTextWidth('000.000.000,00');
+        const rightMaxWidth = writer.getTextWidth('000.000.000,00');
         for (const segment of loenudvikling.beregnedeSegmenter) {
           const roundedDeltaPct = Math.round(segment.deltaPct * 100) / 100;
           const factorText = Math.abs(roundedDeltaPct) < 0.00001
@@ -827,47 +947,24 @@ export const generateErstatningsopgoerelsePdf = (
     // Indtægter i erstatningsperioden (TAF-perioden)
     const tafIndtaegter = model.tabtArbejdsfortjeneste.tafIndtaegter;
     if (tafIndtaegter) {
+      assertModelInvariant(
+        tafIndtaegter.total.status === 'ok' || tafIndtaegter.total.status === 'not_calculable',
+        'tafIndtaegter.total har en uventet status.'
+      );
       renderSubheader('Indtægter i erstatningsperioden', lineHeight);
-      const rightMaxWidth = doc.getTextWidth('000.000.000,00');
+      const rightMaxWidth = writer.getTextWidth('000.000.000,00');
       for (const entry of tafIndtaegter.entries) {
-        currentY = addLeftRightText(
-          doc,
-          entry.label,
-          formatMoneyOreWithKr(entry.amountOre),
-          MARGINS.left,
-          currentY,
-          lineHeight,
-          MARGINS.right,
-          rightMaxWidth,
-          { rightFontStyle: 'normal' }
+        safeAddLeftRightText(entry.label, formatMoneyOreWithKr(entry.amountOre), rightMaxWidth, { rightFontStyle: 'normal' }
         );
       }
 
       if (tafIndtaegter.entries.length === 0) {
-        currentY = addWrappedText(doc, 'Ingen', MARGINS.left, currentY, lineHeight, fullWidth);
+        safeAddWrappedText('Ingen');
       } else if (tafIndtaegter.entries.length > 1 && tafIndtaegter.total.status === 'ok') {
-        currentY = addLeftRightText(
-          doc,
-          'I alt',
-          formatMoneyOreWithKr(tafIndtaegter.total.value),
-          MARGINS.left,
-          currentY,
-          lineHeight,
-          MARGINS.right,
-          rightMaxWidth,
-          { rightFontStyle: 'normal', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
+        safeAddLeftRightText('I alt', formatMoneyOreWithKr(tafIndtaegter.total.value), rightMaxWidth, { rightFontStyle: 'normal', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
         );
       } else if (tafIndtaegter.entries.length > 1) {
-        currentY = addLeftRightText(
-          doc,
-          'I alt',
-          '—',
-          MARGINS.left,
-          currentY,
-          lineHeight,
-          MARGINS.right,
-          rightMaxWidth,
-          { rightFontStyle: 'normal', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
+        safeAddLeftRightText('I alt', '—', rightMaxWidth, { rightFontStyle: 'normal', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
         );
       }
     }
@@ -877,33 +974,15 @@ export const generateErstatningsopgoerelsePdf = (
     if (loenudviklingTotal && tafTotal && loenudviklingTotal.status === 'ok' && tafTotal.status === 'ok') {
       renderSubheader('Beregnet krav på tabt arbejdsfortjeneste', lineHeight);
 
-      const rightMaxWidth = doc.getTextWidth('000.000.000,00');
+      const rightMaxWidth = writer.getTextWidth('000.000.000,00');
       const leftText = `${formatMoneyOreWithKr(loenudviklingTotal.value)} - ${formatMoneyOreWithKr(tafTotal.value)} =`;
       const rightText = formatMoneyOreWithKr(model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre);
-      currentY = addLeftRightText(
-        doc,
-        leftText,
-        rightText,
-        MARGINS.left,
-        currentY,
-        lineHeight,
-        MARGINS.right,
-        rightMaxWidth,
-        { rightFontStyle: 'bold' }
+      safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'bold' }
       );
     } else if (model.tabtArbejdsfortjeneste.harTafPerioder) {
       renderSubheader('Beregnet krav på tabt arbejdsfortjeneste', lineHeight);
-      const rightMaxWidth = doc.getTextWidth('000.000.000,00');
-      currentY = addLeftRightText(
-        doc,
-        'Beregnet krav på tabt arbejdsfortjeneste',
-        '—',
-        MARGINS.left,
-        currentY,
-        lineHeight,
-        MARGINS.right,
-        rightMaxWidth,
-        { rightFontStyle: 'bold' }
+      const rightMaxWidth = writer.getTextWidth('000.000.000,00');
+      safeAddLeftRightText('Beregnet krav på tabt arbejdsfortjeneste', '—', rightMaxWidth, { rightFontStyle: 'bold' }
       );
     }
   }
@@ -911,21 +990,20 @@ export const generateErstatningsopgoerelsePdf = (
   // Øvrige krav (chunked atomic blocks)
   const kravEntries = model.oevrigeKrav.entries;
   const kravIndentX = MARGINS.left;
-  const kravPageWidth = doc.internal.pageSize.width;
+  const kravPageWidth = writer.getPageWidth();
   const kravRightX = kravPageWidth - MARGINS.right;
-  const kravTotalMaxWidth = doc.getTextWidth('000.000.000,00');
+  const kravTotalMaxWidth = writer.getTextWidth('000.000.000,00');
   const kravRightMaxWidth = kravTotalMaxWidth;
   const kravLeftMaxWidth = Math.max(30, kravRightX - kravTotalMaxWidth - kravIndentX - 5);
   const kravHeaderHeight = lineHeight * 4;
 
   if (kravEntries.length === 0) {
     renderSectionHeader('Øvrige krav', lineHeight);
-    currentY = addWrappedText(doc, 'Ingen', MARGINS.left, currentY, lineHeight, fullWidth);
+    safeAddWrappedText('Ingen');
   } else {
     renderAtomicTableChunks({
       rows: kravEntries,
       estimateRowHeight: lineHeight,
-      maxContentHeight: pageContentHeight,
       headerHeight: kravHeaderHeight,
       renderHeader: () => {
         renderSectionHeader('Øvrige krav', lineHeight);
@@ -934,36 +1012,18 @@ export const generateErstatningsopgoerelsePdf = (
         const udgiftText = entry.udgiftTil !== '' ? entry.udgiftTil : '-';
         const leftLabel = entry.dateText !== '' ? `${entry.dateText}: ${udgiftText}` : udgiftText;
         const amountText = formatMoneyOreWithKr(entry.amountOre);
-        const leftText = fitTextToWidth(
-          doc,
+        const leftText = writer.fitTextToWidth(
           ensureNonBreakingKr(leftLabel),
           kravLeftMaxWidth
         );
-        currentY = addLeftRightTextSingleLine(
-          doc,
-          leftText,
-          amountText,
-          kravIndentX,
-          currentY,
-          lineHeight,
-          MARGINS.right,
-          { rightFontStyle: kravEntries.length === 1 ? 'bold' : 'normal' }
+        writer.writeLeftRightTextSingleLine(leftText, amountText, { rightFontStyle: kravEntries.length === 1 ? 'bold' : 'normal' }
         );
       },
     });
 
     if (kravEntries.length > 1) {
-      ensureSpace(lineHeight * 2);
-      currentY = addLeftRightText(
-        doc,
-        'I alt',
-        formatMoneyOreWithKr(model.oevrigeKrav.totalOre),
-        MARGINS.left,
-        currentY,
-        lineHeight,
-        MARGINS.right,
-        kravRightMaxWidth,
-        { rightFontStyle: 'bold', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
+      writer.addSpacer(lineHeight * 2);
+      safeAddLeftRightText('I alt', formatMoneyOreWithKr(model.oevrigeKrav.totalOre), kravRightMaxWidth, { rightFontStyle: 'bold', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
       );
     }
   }
@@ -975,99 +1035,48 @@ export const generateErstatningsopgoerelsePdf = (
     periodeFraKort && periodeTilKort
       ? `Det samlede krav for perioden ${periodeFraKort} - ${periodeTilKort} udgør:`
       : 'Det samlede krav udgør:';
-  currentY = addWrappedText(doc, periodeText, MARGINS.left, currentY, lineHeight, fullWidth);
-  currentY += lineHeight;
+  safeAddWrappedText(periodeText);
+  writer.advanceY(lineHeight);
 
-  const summaryRightMaxWidth = doc.getTextWidth('000.000.000,00');
-  currentY = addLeftRightText(
-    doc,
-    'Svie- og smertegodtgørelse',
-    formatMoneyOreWithKr(model.samlet.svieSmerteOre),
-    MARGINS.left,
-    currentY,
-    lineHeight,
-    MARGINS.right,
-    summaryRightMaxWidth,
-    { rightFontStyle: 'normal' }
+  const summaryRightMaxWidth = writer.getTextWidth('000.000.000,00');
+  safeAddLeftRightText('Svie- og smertegodtgørelse', formatMoneyOreWithKr(model.samlet.svieSmerteOre), summaryRightMaxWidth, { rightFontStyle: 'normal' }
   );
-  currentY = addLeftRightText(
-    doc,
-    'Tabt arbejdsfortjeneste',
-    formatMoneyOreWithKr(model.samlet.tabtArbejdsfortjenesteOre),
-    MARGINS.left,
-    currentY,
-    lineHeight,
-    MARGINS.right,
-    summaryRightMaxWidth,
-    { rightFontStyle: 'normal' }
+  safeAddLeftRightText('Tabt arbejdsfortjeneste', formatMoneyOreWithKr(model.samlet.tabtArbejdsfortjenesteOre), summaryRightMaxWidth, { rightFontStyle: 'normal' }
   );
-  currentY = addLeftRightText(
-    doc,
-    'Øvrige krav',
-    formatMoneyOreWithKr(model.samlet.oevrigeKravOre),
-    MARGINS.left,
-    currentY,
-    lineHeight,
-    MARGINS.right,
-    summaryRightMaxWidth,
-    { rightFontStyle: 'normal' }
+  safeAddLeftRightText('Øvrige krav', formatMoneyOreWithKr(model.samlet.oevrigeKravOre), summaryRightMaxWidth, { rightFontStyle: 'normal' }
   );
-  doc.setFont('helvetica', 'bold');
-  currentY = addLeftRightText(
-    doc,
-    'Erstatningskrav i alt',
-    formatMoneyOreWithKr(model.samlet.totalOre),
-    MARGINS.left,
-    currentY,
-    lineHeight,
-    MARGINS.right,
-    summaryRightMaxWidth,
-    { rightFontStyle: 'bold', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
+  writer.setFont('helvetica', 'bold');
+  safeAddLeftRightText('Erstatningskrav i alt', formatMoneyOreWithKr(model.samlet.totalOre), summaryRightMaxWidth, { rightFontStyle: 'bold', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
   );
-  doc.setFont('helvetica', 'normal');
+  writer.setFont('helvetica', 'normal');
   // TODO: Tilføj resten af PDF-indholdet baseret på selectedElements
   const saerligeKommentarer = model.saerligeKommentarer;
   if (saerligeKommentarer) {
     renderSectionHeader('Særlige bemærkninger', lineHeight);
-    currentY = addWrappedText(doc, saerligeKommentarer, MARGINS.left, currentY, lineHeight, fullWidth);
+    safeAddWrappedText(saerligeKommentarer);
   }
-  currentY += doubleLineHeight;
+  writer.advanceY(doubleLineHeight);
   if (afsluttesMed === 'Bekræftet godkendt') {
-    currentY = addWrappedText(
-      doc,
-      'Opgørelsen er gennemgået af skadelidte, som har bekræftet, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevant oplysninger, som skadelidte er bekendt med.',
-      MARGINS.left,
-      currentY,
-      lineHeight,
-      fullWidth
-    );
+    safeAddWrappedText('Opgørelsen er gennemgået af skadelidte, som har bekræftet, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevant oplysninger, som skadelidte er bekendt med.');
   } else {
-    currentY = addWrappedText(
-      doc,
-      'Opgørelsen er gennemgået af skadelidte, som ved sin underskrift nedenfor bekræfter, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevant oplysninger, som skadelidte er bekendt med.',
-      MARGINS.left,
-      currentY,
-      lineHeight,
-      fullWidth
-    );
-    currentY += lineHeight * 2;
+    safeAddWrappedText('Opgørelsen er gennemgået af skadelidte, som ved sin underskrift nedenfor bekræfter, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevant oplysninger, som skadelidte er bekendt med.');
+    writer.advanceY(lineHeight * 2);
     const skadelidteNavn = (stamdataValues.skadelidte ?? '').trim() || '*skadelidtes navn*';
     const dateX = MARGINS.left;
     const dateLine = '____ / ____ - ____________';
     const sigX = MARGINS.left + 90;
     const sigLine = '________________________________________';
-    doc.text(dateLine, dateX, currentY);
-    doc.text(sigLine, sigX, currentY);
-    currentY += lineHeight;
-    const dateCenterX = dateX + doc.getTextWidth(dateLine) / 2;
-    const sigCenterX = sigX + doc.getTextWidth(sigLine) / 2;
-    doc.text('Dato', dateCenterX, currentY, { align: 'center' });
-    doc.text(skadelidteNavn, sigCenterX, currentY, { align: 'center' });
+    writer.writeSignatureBlock(dateLine, sigLine, dateX, sigX, skadelidteNavn);
   }
 
   // Tilføj footer med versionsnummer
-  addFooter(doc);
+  writer.addFooter();
 
   // Download PDF
-  doc.save(`${titel}.pdf`);
+  writer.save(`${titel}.pdf`);
 };
+
+
+
+
+

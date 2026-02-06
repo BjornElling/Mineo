@@ -1,4 +1,4 @@
-﻿# Calculation Pipeline Note - Mineo (Fase 3)
+# Calculation Pipeline Note - Mineo (Fase 3)
 
 ## Formaal
 Definerer en audit-venlig beregningspipeline som fast struktur mellem input-snapshot og output-schema.

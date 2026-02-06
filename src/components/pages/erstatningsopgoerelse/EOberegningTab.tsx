@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Checkbox, FormControlLabel, Tooltip } from '@mui/material';
 import { Download, ErrorOutline, WarningAmber } from '@mui/icons-material';

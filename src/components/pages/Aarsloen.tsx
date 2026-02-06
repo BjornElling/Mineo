@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Box, Typography, MenuItem } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import StyledPercentField from '../inputs/StyledPercentField';

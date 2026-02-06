@@ -1,8 +1,11 @@
-#!/usr/bin/env sh
+﻿#!/usr/bin/env sh
 
 echo "HUSKY PRE-COMMIT KØRER"
 
 set -e
+
+# Stop commit hvis der er encoding/mojibake-fejl
+npm run check:mojibake
 
 # Generér ny versionsfil
 node scripts/generate-version.js

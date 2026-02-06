@@ -1,4 +1,4 @@
-﻿import type { PersistedSectionMap } from '../../config/persistenceRegistry';
+import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { FieldErrorBySource } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, isoToDanish, subtractOneDay } from '../../types/branded';

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Data-aggregering for Beregning-fanen
  *
  * Samler alle DebugRowModel fra centraliseret builder-registry og tilføjer navigation-metadata.

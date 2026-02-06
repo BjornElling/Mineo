@@ -1,4 +1,4 @@
-﻿# Calculation Boundary Note - Mineo (Fase 3)
+# Calculation Boundary Note - Mineo (Fase 3)
 
 ## Formaal
 Fastlaegger en haard graense mellem **input**, **beregning** og **output** for trust-kritiske beregninger.

@@ -1,4 +1,4 @@
-﻿# Engine Test Strategy Note - Mineo (Fase 3)
+# Engine Test Strategy Note - Mineo (Fase 3)
 
 ## Formaal
 Definerer teststrategi for beregningslagets engines baseret paa den laaste pipeline.
