@@ -511,16 +511,11 @@ const buildSvieSmerteModel = (
   };
 
   const perioder = periodeSynlig ? validateSvieSmertePerioder(values, context) : [];
-  const harPerioder = perioder.length > 0;
-
-  const periodeHeading =
-    perioder.length > 1
-      ? 'Sygeperioder, hvor der beregnes svie- og smertegodtgørelse'
-      : 'Sygeperiode, hvor der beregnes svie- og smertegodtgørelse';
+  const harInputPerioder = perioder.length > 0;
 
   const vedroererFra = values.vedroererPeriodeFra;
   const vedroererTil = values.vedroererPeriodeTil;
-  if (harPerioder && (!vedroererFra || !vedroererTil)) {
+  if (harInputPerioder && (!vedroererFra || !vedroererTil)) {
     throw new Error('Vedrører perioden mangler for svie/smerte'); // invariant: dækket af validator
   }
 
@@ -542,7 +537,7 @@ const buildSvieSmerteModel = (
   }
 
   const constrained: Array<{ fra: Date; til: Date; isDelvist: boolean }> = [];
-  if (harPerioder && vedroererFra && vedroererTil) {
+  if (harInputPerioder && vedroererFra && vedroererTil) {
     const vedroererFraDate = isoDateToDate(vedroererFra);
     const vedroererTilDate = isoDateToDate(vedroererTil);
     let maxDate = vedroererTilDate;
@@ -565,6 +560,12 @@ const buildSvieSmerteModel = (
     applyConstraint(sygemeldtPeriods, false);
     applyConstraint(delvistPeriods, true);
   }
+
+  const harPerioder = constrained.length > 0;
+  const periodeHeading =
+    constrained.length > 1
+      ? 'Sygeperioder, hvor der beregnes svie- og smertegodtgørelse'
+      : 'Sygeperiode, hvor der beregnes svie- og smertegodtgørelse';
 
   constrained.sort((a, b) => a.fra.getTime() - b.fra.getTime());
 
@@ -622,19 +623,19 @@ const buildSvieSmerteModel = (
     .reduce((sum, p) => sum + (countInclusiveUtcDays(p.fra, p.til) ?? 0), 0);
 
   const satserAarValue = values.svieSmerteSatserAar;
-  if (harPerioder && typeof satserAarValue !== 'number') {
+  if (harInputPerioder && typeof satserAarValue !== 'number') {
     throw new Error('År for svie/smerte-sats mangler'); // invariant: dækket af validator
   }
 
   const delvisFaktor: 1 | 0.5 = values.svieSmerteDelvisSygemeldingSats === 'fuld' ? 1 : 0.5;
-  if (harPerioder && !values.svieSmerteDelvisSygemeldingSats) {
+  if (harInputPerioder && !values.svieSmerteDelvisSygemeldingSats) {
     throw new Error('Sats ved delvis sygemelding mangler'); // invariant: dækket af validator
   }
 
   let satserPerDag: Calculable<MoneyOre> = notCalculableMoney('Satser kan ikke beregnes');
   let satserMax: Calculable<MoneyOre> = notCalculableMoney('Satser kan ikke beregnes');
   let forligLabel: string | null = null;
-  if (harPerioder && typeof satserAarValue === 'number') {
+  if (harInputPerioder && typeof satserAarValue === 'number') {
     const satsPerDag = svieSmertePrDag[satserAarValue as keyof typeof svieSmertePrDag];
     const satsMax = svieSmerteMax[satserAarValue as keyof typeof svieSmerteMax];
     if (!satsPerDag || !satsMax) {

@@ -32,6 +32,7 @@ import {
 } from '../../data/overenskomstRates';
 import { getStatistiskLoenudvikling } from '../../data/statistiskLoenudviklingRates';
 import { formatKRLSatstabelDisplay, getKRLSatstabel, isKRLSatstabelId, type KRLSatstabelId } from '../../data/KRLrates';
+import { clampTafRow, resolveTafConstraintBounds } from '../../domain/erstatningsopgoerelse/tafPeriodConstraints';
 import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
@@ -287,32 +288,16 @@ const resolveReguleringTableStartIso = (
 const resolveTafDateBounds = (
   eoValues: ErstatningsopgoerelseValues
 ): Readonly<{ foerste: ISODateString; sidste: ISODateString }> | null => {
-  const periodeFra = parseOptionalIsoDate(eoValues.vedroererPeriodeFra);
-  const periodeTil = parseOptionalIsoDate(eoValues.vedroererPeriodeTil);
-  const periodRange =
-    periodeFra && periodeTil && periodeFra <= periodeTil
-      ? { fra: periodeFra, til: periodeTil }
-      : null;
+  const tafBounds = resolveTafConstraintBounds(eoValues);
 
   let foerste: ISODateString | undefined;
   let sidste: ISODateString | undefined;
 
   for (const row of eoValues.tafPerioder ?? []) {
-    const rowFra = parseOptionalIsoDate(row.fra);
-    const rowTil = parseOptionalIsoDate(row.til);
-    if (!rowFra || !rowTil || rowFra > rowTil) continue;
-
-    let fra = rowFra;
-    let til = rowTil;
-    if (periodRange) {
-      if (til < periodRange.fra || fra > periodRange.til) continue;
-      fra = maxIso(fra, periodRange.fra);
-      til = minIso(til, periodRange.til);
-      if (fra > til) continue;
-    }
-
-    foerste = foerste ? minIso(foerste, fra) : fra;
-    sidste = sidste ? maxIso(sidste, til) : til;
+    const clamped = clampTafRow(row, tafBounds);
+    if (!clamped) continue;
+    foerste = foerste ? minIso(foerste, clamped.fra) : clamped.fra;
+    sidste = sidste ? maxIso(sidste, clamped.til) : clamped.til;
   }
 
   if (!foerste || !sidste) return null;
@@ -1829,9 +1814,9 @@ export const generateErstatningsopgoerelsePdf = (
     model.svieSmerte.harPerioder === (model.svieSmerte.periodeLinjer.length > 0),
     'svieSmerte.harPerioder matcher ikke svieSmerte.periodeLinjer.'
   );
-  if (!model.svieSmerte.beregnes) {
+  if (!model.svieSmerte.harPerioder) {
     safeAddWrappedText('Ingen');
-  } else if (!model.svieSmerte.harPerioder) {
+  } else if (!model.svieSmerte.beregnes) {
     safeAddWrappedText('Ingen');
   } else {
     for (const line of model.svieSmerte.periodeLinjer) {
