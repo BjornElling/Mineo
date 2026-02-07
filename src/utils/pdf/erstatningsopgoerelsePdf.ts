@@ -475,7 +475,18 @@ const resolveValgtReguleringDisplay = (
     return `${meta.navn} (${loenPart} / ${arbPart})`;
   }
   if (grundlag === 'Manuelt angivet') return 'Manuelt angivet';
-  if (grundlag === 'KRL satstabel') return ansaettelsesforhold.loenudviklingKRLSatstabel ?? '-';
+  if (grundlag === 'KRL satstabel') {
+    const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel;
+    if (!krlId) return '-';
+    // Formatér som "KRL-satstabel (KTO, kommuner)"
+    const parts = krlId.split(' ');
+    if (parts.length === 2) {
+      const [type, org] = parts;
+      const orgFormatted = org.replace(/[()]/g, ''); // Fjern parenteser fra "(kommuner)"
+      return `KRL-satstabel (${type}, ${orgFormatted})`;
+    }
+    return `KRL-satstabel (${krlId})`;
+  }
   return 'Ingen';
 };
 
@@ -2610,11 +2621,14 @@ export const generateErstatningsopgoerelsePdf = (
 
         const valgtRegulering = resolveValgtReguleringDisplay(ansaettelsesforhold);
         const reguleringsdato = resolveReguleringsdato(stamdataValues, eoValues, ansaettelsesforhold);
-        writeLabelValueLine('Valgt regulering', valgtRegulering);
-        writeLabelValueLine(
-          'Reguleringsdato (Skadesdato)',
-          formatDateShort(reguleringsdato)
-        );
+        writeLabelValueLine('Regulering anvendt', valgtRegulering);
+
+        // Vis lønudvikling-beskrivelse i stedet for "Reguleringsdato (Skadesdato)"
+        const loenudviklingBeskrivelse =
+          ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Ingen'
+            ? 'Opgøres på baggrund af lønnen på skadesdatoen.'
+            : 'Opgøres som lønnen på skadesdatoen tillagt efterfølgende lønstigninger.';
+        safeAddWrappedText(loenudviklingBeskrivelse);
         writer.addSpacer(lineHeight);
         safeAddWrappedText('Reguleringsværdier:');
 
@@ -2640,6 +2654,12 @@ export const generateErstatningsopgoerelsePdf = (
           reguleringsdato,
         });
         renderReguleringIndeksTable(reguleringTableRows);
+
+        // Vis KRL-reference når KRL er valgt
+        if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'KRL satstabel') {
+          writer.addSpacer(lineHeight);
+          safeAddWrappedText("KRL's tabeller for satsregulering kan genfindes på https://www.krl.dk/#/sats");
+        }
       }
     }
   }

@@ -638,15 +638,45 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
         const raw = event.target.value;
         if (!raw) {
           setLoenindkomstManuelReguleringInputError(id, false);
-          updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingBeregningsgrundlag: undefined }));
+          // Når grundlag cleares, nulstil også alle tilknyttede felter
+          updateAnsaettelsesforhold(id, (prev) => ({
+            ...prev,
+            loenudviklingBeregningsgrundlag: undefined,
+            loenudviklingStatistikModel: undefined,
+            loenudviklingKRLSatstabel: undefined,
+            loenudviklingManuelNavn: '',
+            loenudviklingManuelTableData: [],
+          }));
           return;
         }
         const parsed = loenudviklingBeregningsgrundlagEnum.safeParse(raw);
         if (!parsed.success) return;
+
+        // Nulstil fejl-state for manuelt angivet hvis nødvendigt
         if (parsed.data !== 'Manuelt angivet') {
           setLoenindkomstManuelReguleringInputError(id, false);
         }
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingBeregningsgrundlag: parsed.data }));
+
+        // Centraliseret state-oprydning: nulstil alle felter der ikke er relevante for det nye grundlag
+        updateAnsaettelsesforhold(id, (prev) => {
+          const updates: Partial<Ansaettelsesforhold> = {
+            loenudviklingBeregningsgrundlag: parsed.data,
+          };
+
+          // Nulstil felter der kun hører til andre grundlag
+          if (parsed.data !== 'Statistik') {
+            updates.loenudviklingStatistikModel = undefined;
+          }
+          if (parsed.data !== 'KRL satstabel') {
+            updates.loenudviklingKRLSatstabel = undefined;
+          }
+          if (parsed.data !== 'Manuelt angivet') {
+            updates.loenudviklingManuelNavn = '';
+            updates.loenudviklingManuelTableData = [];
+          }
+
+          return { ...prev, ...updates };
+        });
       },
     [setLoenindkomstManuelReguleringInputError, updateAnsaettelsesforhold]
   );
@@ -1271,10 +1301,11 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                     allowEmpty={true}
                     placeholder="Vælg..."
                   >
-                    <MenuItem value="KTO (kommuner)">KTO (kommuner)</MenuItem>
-                    <MenuItem value="SHK (kommuner)">SHK (kommuner)</MenuItem>
-                    <MenuItem value="KTO (regioner)">KTO (regioner)</MenuItem>
-                    <MenuItem value="SHK (regioner)">SHK (regioner)</MenuItem>
+                    {krlSatstabelEnum.options.map((satstabel) => (
+                      <MenuItem key={satstabel} value={satstabel}>
+                        {satstabel}
+                      </MenuItem>
+                    ))}
                   </StyledDropdown>
                 </Box>
               </Box>
