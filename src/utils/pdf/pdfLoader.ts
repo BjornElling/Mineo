@@ -7,6 +7,7 @@ const moduleLoaders = {
   shDage: () => import('./shDagePdf'),
   aarsloen: () => import('./aarsloenPdf'),
   regulering: () => import('./reguleringPdf'),
+  krl: () => import('./krlPdf'),
   erstatningsopgoerelse: () => import('./erstatningsopgoerelsePdf'),
 };
 
@@ -28,4 +29,5 @@ export const loadRentePdfModule = () => loadModule('rente');
 export const loadSHDagePdfModule = () => loadModule('shDage');
 export const loadAarsloenPdfModule = () => loadModule('aarsloen');
 export const loadReguleringPdfModule = () => loadModule('regulering');
+export const loadKRLPdfModule = () => loadModule('krl');
 export const loadErstatningsopgoerelsePdfModule = () => loadModule('erstatningsopgoerelse');

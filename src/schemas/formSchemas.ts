@@ -338,7 +338,7 @@ export type LoenPaaHelligdage = z.infer<typeof loenPaaHelligdageSchema>;
 /**
  * Lønudvikling beregningsgrundlag
  */
-export const loenudviklingBeregningsgrundlagEnum = z.enum(['Overenskomst', 'Statistik', 'Manuelt angivet', 'Ingen']);
+export const loenudviklingBeregningsgrundlagEnum = z.enum(['Overenskomst', 'Statistik', 'KRL satstabel', 'Manuelt angivet', 'Ingen']);
 export type LoenudviklingBeregningsgrundlag = z.infer<typeof loenudviklingBeregningsgrundlagEnum>;
 
 /**
@@ -350,6 +350,17 @@ export const loenudviklingStatistikModelEnum = z.enum([
   'SBLON2 (Danmarks Statistik)',
 ]);
 export type LoenudviklingStatistikModel = z.infer<typeof loenudviklingStatistikModelEnum>;
+
+/**
+ * KRL satstabel
+ */
+export const krlSatstabelEnum = z.enum([
+  'KTO (kommuner)',
+  'SHK (kommuner)',
+  'KTO (regioner)',
+  'SHK (regioner)',
+]);
+export type KRLSatstabelValg = z.infer<typeof krlSatstabelEnum>;
 
 /**
  * Årsløn tabelrække
@@ -770,6 +781,7 @@ export const loenindkomstAnsaettelsesforholdSchema = z.object({
   // Lønudvikling
   loenudviklingBeregningsgrundlag: z.preprocess(normalizeEmptyToUndefined, loenudviklingBeregningsgrundlagEnum.optional()),
   loenudviklingStatistikModel: z.preprocess(normalizeEmptyToUndefined, loenudviklingStatistikModelEnum.optional()),
+  loenudviklingKRLSatstabel: z.preprocess(normalizeEmptyToUndefined, krlSatstabelEnum.optional()),
   loenudviklingManuelNavn: optionalString,
   loenudviklingManuelTableData: z.array(loenudviklingManuelRowSchema).default([]),
 

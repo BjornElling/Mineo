@@ -2279,6 +2279,9 @@ export const buildEODebugIndkomstRows = (
     } else if (loenudviklingBasis === 'Statistik' && !ansaettelsesforhold.loenudviklingStatistikModel) {
       status = 'error';
       message = 'Statistisk beregningsmodel er ikke valgt';
+    } else if (loenudviklingBasis === 'KRL satstabel' && !ansaettelsesforhold.loenudviklingKRLSatstabel) {
+      status = 'error';
+      message = 'KRL satstabel er ikke valgt';
     }
 
     const valgtReguleringRowId = `loenindkomst.${ansaettelsesforhold.id}.regulering.valgt` as const;

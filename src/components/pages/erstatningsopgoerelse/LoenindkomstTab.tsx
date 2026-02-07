@@ -20,6 +20,7 @@ import {
   loenPaaHelligdageSchema,
   loenudviklingBeregningsgrundlagEnum,
   loenudviklingStatistikModelEnum,
+  krlSatstabelEnum,
   type ErstatningsopgoerelseValues,
 } from '../../../schemas/formSchemas';
 import { LOENPERIODE } from '../../../types/common';
@@ -27,7 +28,7 @@ import type { ISODateString } from '../../../types/branded';
 import { createDate, formatDanishDate, parseISODate } from '../../../utils/dateUtils';
 import { isLoenperiodeValue } from '../../../utils/zodTypeGuards';
 import { generateAnsaettelsesforholdId } from '../../../utils/eoConverters';
-import { loadReguleringPdfModule } from '../../../utils/pdf/pdfLoader';
+import { loadReguleringPdfModule, loadKRLPdfModule } from '../../../utils/pdf/pdfLoader';
 import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
 import {
   getAlleLoenmodtagerOrg,
@@ -40,6 +41,7 @@ import {
   type OverenskomstId,
 } from '../../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../../data/statistiskLoenudviklingRates';
+import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
 import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { appSettingsSchema, DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../../settings/appSettingsSchema';
@@ -122,6 +124,7 @@ const createBlankAnsaettelsesforhold = (settings: AppSettings): Ansaettelsesforh
     indtaegtsoplysningerTableData: [],
     loenudviklingBeregningsgrundlag: undefined,
     loenudviklingStatistikModel: undefined,
+    loenudviklingKRLSatstabel: undefined,
     loenudviklingManuelNavn: '',
     loenudviklingManuelTableData: [],
     // Overenskomst-filter: initialiseres fra settings ved oprettelse (centraliseret mapping)
@@ -663,6 +666,21 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     [updateAnsaettelsesforhold]
   );
 
+  const handleLoenudviklingKRLSatstabelChange = React.useCallback(
+    (id: string) =>
+      (event: StyledDropdownChangeEvent<string | undefined>) => {
+        const raw = event.target.value;
+        if (!raw) {
+          updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingKRLSatstabel: undefined }));
+          return;
+        }
+        const parsed = krlSatstabelEnum.safeParse(raw);
+        if (!parsed.success) return;
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingKRLSatstabel: parsed.data }));
+      },
+    [updateAnsaettelsesforhold]
+  );
+
   const handleLoenudviklingManuelTableChange = React.useCallback(
     (id: string) =>
       (newTableData: Ansaettelsesforhold['loenudviklingManuelTableData']) => {
@@ -755,6 +773,20 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     [getPersistedData, settings]
   );
 
+  const handleDownloadKRLPdf = React.useCallback(
+    async () => {
+      try {
+        const stamdata = getPersistedData('stamdata');
+        const visBrevhoved = getVisBrevhoved(settings, 'regulering');
+        const { generateKRLPdf } = await loadKRLPdfModule();
+        generateKRLPdf({ visBrevhoved, stamdata });
+      } catch (error) {
+        console.error('Kunne ikke indlæse PDF-modulet for KRL satstabel:', error);
+      }
+    },
+    [getPersistedData, settings]
+  );
+
   /**
    * Handler til at opdatere filtre for et specifikt Ansættelsesforhold (persisted i sagsdata)
    *
@@ -806,7 +838,8 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
         const loenudviklingBaseDate = getLoenudviklingBaseDate(af);
         const shouldShowReguleringsDatoInterval =
           loenudviklingBasis === 'Overenskomst' ||
-          (loenudviklingBasis === 'Statistik' && Boolean(af.loenudviklingStatistikModel));
+          (loenudviklingBasis === 'Statistik' && Boolean(af.loenudviklingStatistikModel)) ||
+          (loenudviklingBasis === 'KRL satstabel' && Boolean(af.loenudviklingKRLSatstabel));
 
         const reguleringsDatoIntervalData: ReguleringsDatoInterval | undefined = (() => {
           if (!shouldShowReguleringsDatoInterval) return undefined;
@@ -815,6 +848,9 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
           }
           if (loenudviklingBasis === 'Statistik') {
             return getReguleringsDatoIntervalForStatistikModel(af.loenudviklingStatistikModel ?? '');
+          }
+          if (loenudviklingBasis === 'KRL satstabel' && af.loenudviklingKRLSatstabel) {
+            return getReguleringsDatoIntervalForKRL(af.loenudviklingKRLSatstabel as KRLSatstabelId);
           }
           return undefined;
         })();
@@ -1189,6 +1225,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                 >
                   <MenuItem value="Overenskomst">Overenskomst</MenuItem>
                   <MenuItem value="Statistik">Statistik</MenuItem>
+                  <MenuItem value="KRL satstabel">KRL satstabel</MenuItem>
                   <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
                   <MenuItem value="Ingen">Ingen</MenuItem>
                 </StyledDropdown>
@@ -1218,6 +1255,26 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                     <MenuItem value="ASL-årslønsmaksimum">ASL-årslønsmaksimum</MenuItem>
                     <MenuItem value="ILON12 (Danmarks Statistik)">ILON12 (Danmarks Statistik)</MenuItem>
                     <MenuItem value="SBLON2 (Danmarks Statistik)">SBLON2 (Danmarks Statistik)</MenuItem>
+                  </StyledDropdown>
+                </Box>
+              </Box>
+            ) : null}
+
+            {loenudviklingBasis === 'KRL satstabel' ? (
+              <Box className="row--label-right-hover">
+                <Typography className="row--text">Satstabel</Typography>
+                <Box className="row--label-right-hover__content">
+                  <StyledDropdown
+                    width={270}
+                    value={af.loenudviklingKRLSatstabel}
+                    onChange={handleLoenudviklingKRLSatstabelChange(af.id)}
+                    allowEmpty={true}
+                    placeholder="Vælg..."
+                  >
+                    <MenuItem value="KTO (kommuner)">KTO (kommuner)</MenuItem>
+                    <MenuItem value="SHK (kommuner)">SHK (kommuner)</MenuItem>
+                    <MenuItem value="KTO (regioner)">KTO (regioner)</MenuItem>
+                    <MenuItem value="SHK (regioner)">SHK (regioner)</MenuItem>
                   </StyledDropdown>
                 </Box>
               </Box>
@@ -1258,13 +1315,17 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                       <Box
                         onClick={() => {
                           if (!hasReguleringsDatoInterval) return;
+                          if (!reguleringsDatoIntervalData) return;
+                          if (loenudviklingBasis === 'KRL satstabel') {
+                            void handleDownloadKRLPdf();
+                            return;
+                          }
                           if (
                             loenudviklingBasis !== 'Overenskomst' &&
                             loenudviklingBasis !== 'Statistik'
                           ) {
                             return;
                           }
-                          if (!reguleringsDatoIntervalData) return;
                           void handleDownloadReguleringPdf({
                             overenskomstLabel: resolveOverenskomstLabel(af.overenskomstId),
                             loenudviklingBasis,
