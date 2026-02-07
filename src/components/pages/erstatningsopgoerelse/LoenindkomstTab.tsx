@@ -928,7 +928,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 
             {showMedlemOpsagt ? (
               <Box className="row--label-right-hover">
-                <Typography className="row--text">Opsagt fra stilling</Typography>
+                <Typography className="row--text">Opsagt fra stillingen</Typography>
                 <Box className="row--label-right-hover__content">
                   <StyledToggleSwitch
                     checked={af.ansaettelsesforholdOphoert}

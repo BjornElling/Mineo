@@ -2061,7 +2061,7 @@ export const generateErstatningsopgoerelsePdf = (
     });
     const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = loenudvikling?.loenudviklingLabel === 'Ingen'
       ? `Opgøres på baggrund af ${loenSkadesdatoText}.`
-      : `Opgøres som ${loenSkadesdatoText} tillagt efterfølgende lønstigninger.`;
+      : `Beregnes som ${loenSkadesdatoText} tillagt efterfølgende lønstigninger.`;
     renderSubheaderWithWrappedText(
       'Indkomst, hvis skaden ikke var indtrådt',
       indkomstHvisSkadeIkkeIndtraadtBeskrivelse
@@ -2232,9 +2232,9 @@ export const generateErstatningsopgoerelsePdf = (
   }
   writer.advanceY(doubleLineHeight);
   if (afsluttesMed === 'Bekræftet godkendt') {
-    safeAddWrappedText('Opgørelsen er gennemgået af skadelidte, som har bekræftet, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevant oplysninger, som skadelidte er bekendt med.');
+    safeAddWrappedText('Opgørelsen er gennemgået af skadelidte, som har bekræftet, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevante oplysninger, som skadelidte er bekendt med.');
   } else {
-    safeAddWrappedText('Opgørelsen er gennemgået af skadelidte, som ved sin underskrift nedenfor bekræfter, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevant oplysninger, som skadelidte er bekendt med.');
+    safeAddWrappedText('Opgørelsen er gennemgået af skadelidte, som ved sin underskrift nedenfor bekræfter, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevante oplysninger, som skadelidte er bekendt med.');
     writer.advanceY(lineHeight * 2);
     const skadelidteNavn = (stamdataValues.skadelidte ?? '').trim() || '*skadelidtes navn*';
     const dateX = MARGINS.left;
@@ -2357,7 +2357,7 @@ export const generateErstatningsopgoerelsePdf = (
           formatJaNej(ansaettelsesforhold.ansatPaaSkadestidspunktet)
         );
         writeLabelValueLine(
-          'Opsagt fra stilling',
+          'Opsagt fra stillingen',
           (() => {
             const isOpsagt = ansaettelsesforhold.ansaettelsesforholdOphoert;
             if (!isOpsagt) return 'Nej';
@@ -2674,7 +2674,7 @@ export const generateErstatningsopgoerelsePdf = (
           continue;
         }
         writeLabelValueLine(
-          'Opgøres som',
+          'Beregnes som',
           `${loenSkadesdatoText} tillagt efterfølgende lønstigninger.`
         );
         writer.addSpacer(lineHeight);
