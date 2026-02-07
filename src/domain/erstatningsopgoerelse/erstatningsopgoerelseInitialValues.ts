@@ -79,7 +79,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   tafArbejdsstatus: undefined,
   tafPerioder: ensureTafRows(undefined),
   ferieperioder: ensureTafFerieRows(undefined),
-  medlemmetOpsagt: 'Nej',
+  opsagtFraStilling: 'Nej',
   sidsteDagAnsaettelsesforhold: undefined,
   tidligereModtagetTaf: undefined,
 

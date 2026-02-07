@@ -2357,7 +2357,7 @@ export const generateErstatningsopgoerelsePdf = (
           formatJaNej(ansaettelsesforhold.ansatPaaSkadestidspunktet)
         );
         writeLabelValueLine(
-          'Medlem opsagt',
+          'Opsagt fra stilling',
           (() => {
             const isOpsagt = ansaettelsesforhold.ansaettelsesforholdOphoert;
             if (!isOpsagt) return 'Nej';

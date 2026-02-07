@@ -647,7 +647,7 @@ const tafSchema = z.object({
   tafArbejdsstatus: z.preprocess(normalizeEmptyToUndefined, arbejdsstatusEnum.optional()),
   tafPerioder: z.array(tafPeriodeRowSchema),
   ferieperioder: z.array(ferieperiodeRowSchema),
-  medlemmetOpsagt: jaNejEnum,
+  opsagtFraStilling: jaNejEnum,
   sidsteDagAnsaettelsesforhold: optionalIsoDateString,
   tidligereModtagetTaf: nonNegativeAmountValue,
 }).strict();

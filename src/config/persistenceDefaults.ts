@@ -68,7 +68,7 @@ export const buildPersistenceDefaults = (settings?: AppSettings): PersistedSecti
       beregnesTabtArbejdsfortjeneste: 'Ja',
       tafPerioder: [],
       ferieperioder: [],
-      medlemmetOpsagt: 'Nej',
+      opsagtFraStilling: 'Nej',
 
       oevrigeKravPerioder: [],
       offentligeYdelserRows: [],

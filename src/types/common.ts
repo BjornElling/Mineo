@@ -235,7 +235,7 @@ export interface ErstatningsopgoerelseValues {
   tafArbejdsstatus: '' | 'Uarbejdsdygtig' | 'Delvist raskmeldt' | 'Fuldt arbejdsdygtig' | 'Fleksjob' | 'Revalidering' | 'Førtidspension' | 'Seniorpension';
   tafPerioder: TafPeriodeRow[];
   ferieperioder: FerieperiodeRow[];
-  medlemmetOpsagt: 'Ja' | 'Nej';
+  opsagtFraStilling: 'Ja' | 'Nej';
 
   // Øvrige erstatningskrav
   oevrigeKravPerioder: OevrigeKravRow[];
