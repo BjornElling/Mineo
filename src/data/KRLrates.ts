@@ -134,6 +134,25 @@ const KRL_IDS: ReadonlyArray<{ id: KRLSatstabelId; colIndex: 1 | 2 | 3 | 4 }> = 
   { id: 'SHK (regioner)', colIndex: 4 },
 ];
 
+export const isKRLSatstabelId = (value: string | undefined): value is KRLSatstabelId => {
+  const trimmed = value?.trim();
+  if (!trimmed) return false;
+  return KRL_IDS.some((entry) => entry.id === trimmed);
+};
+
+export const formatKRLSatstabelDisplay = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return '-';
+  // Formatér som "KRL-satstabel (KTO, kommuner)"
+  const parts = trimmed.split(' ');
+  if (parts.length === 2) {
+    const [type, org] = parts;
+    const orgFormatted = org.replace(/[()]/g, ''); // Fjern parenteser fra "(kommuner)"
+    return `KRL-satstabel (${type}, ${orgFormatted})`;
+  }
+  return `KRL-satstabel (${trimmed})`;
+};
+
 const buildSatstabelFromCombined = (
   id: KRLSatstabelId,
   colIndex: 1 | 2 | 3 | 4

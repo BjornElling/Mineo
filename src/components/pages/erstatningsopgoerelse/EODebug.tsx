@@ -23,7 +23,7 @@ import {
   type Kvartal,
   type StatistiskLoenudviklingId,
 } from '../../../data/statistiskLoenudviklingRates';
-import { getKRLSatstabel, getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
+import { formatKRLSatstabelDisplay, getKRLSatstabel, getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
 import { loenPaaHelligdageSchema } from '../../../schemas/formSchemas';
 import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
@@ -594,7 +594,7 @@ const EODebug = () => {
         }
         if (loenudviklingBasis === 'KRL satstabel') {
           if (!af.loenudviklingKRLSatstabel) return { display: 'Nej', ok: false };
-          return { display: af.loenudviklingKRLSatstabel, ok: true };
+          return { display: formatKRLSatstabelDisplay(af.loenudviklingKRLSatstabel), ok: true };
         }
         return { display: loenudviklingBasis, ok: true };
       })();

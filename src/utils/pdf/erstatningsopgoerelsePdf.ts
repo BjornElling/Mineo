@@ -31,7 +31,7 @@ import {
   resolveOverenskomstRef,
 } from '../../data/overenskomstRates';
 import { getStatistiskLoenudvikling } from '../../data/statistiskLoenudviklingRates';
-import { getKRLSatstabel, type KRLSatstabelId } from '../../data/KRLrates';
+import { formatKRLSatstabelDisplay, getKRLSatstabel, isKRLSatstabelId, type KRLSatstabelId } from '../../data/KRLrates';
 import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
@@ -330,6 +330,21 @@ const resolveReguleringsdato = (
   skadesdato: stamdataValues.skadesdato,
 });
 
+const resolveLoenSkadesdatoText = (params: {
+  subject: 'Lønnen' | 'lønnen';
+  skadesdato: ISODateString | undefined;
+  saerligFraDatoRegulering: ISODateString | undefined;
+}): string => {
+  const { subject, skadesdato, saerligFraDatoRegulering } = params;
+  if (saerligFraDatoRegulering && skadesdato && saerligFraDatoRegulering !== skadesdato) {
+    const formatted = formatDateLong(saerligFraDatoRegulering);
+    if (formatted) {
+      return `${subject} opgjort per ${formatted}`;
+    }
+  }
+  return `${subject} på skadesdatoen`;
+};
+
 const parseDanishToISO = parseDanishToIsoShared;
 
 const resolveStatistikModelIdFromLabel = resolveStatistikModelId;
@@ -478,14 +493,7 @@ const resolveValgtReguleringDisplay = (
   if (grundlag === 'KRL satstabel') {
     const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel;
     if (!krlId) return '-';
-    // Formatér som "KRL-satstabel (KTO, kommuner)"
-    const parts = krlId.split(' ');
-    if (parts.length === 2) {
-      const [type, org] = parts;
-      const orgFormatted = org.replace(/[()]/g, ''); // Fjern parenteser fra "(kommuner)"
-      return `KRL-satstabel (${type}, ${orgFormatted})`;
-    }
-    return `KRL-satstabel (${krlId})`;
+    return formatKRLSatstabelDisplay(krlId);
   }
   return 'Ingen';
 };
@@ -2037,9 +2045,23 @@ export const generateErstatningsopgoerelsePdf = (
 
     // Indkomst, hvis skaden ikke var indtrådt
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
+    const saerligFraDatoLoenudvikling = (() => {
+      const ansaettelser = eoValues.loenindkomstAnsaettelsesforhold ?? [];
+      const active = ansaettelser.filter(
+        (af) => af.loenudviklingBeregningsgrundlag && af.loenudviklingBeregningsgrundlag !== 'Ingen'
+      );
+      if (active.length === 0) return undefined;
+      return parseOptionalIsoDate(active[0].saerligFraDatoRegulering);
+    })();
+    const skadesdatoIso = parseOptionalIsoDate(stamdataValues.skadesdato);
+    const loenSkadesdatoText = resolveLoenSkadesdatoText({
+      subject: 'lønnen',
+      skadesdato: skadesdatoIso,
+      saerligFraDatoRegulering: saerligFraDatoLoenudvikling,
+    });
     const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = loenudvikling?.loenudviklingLabel === 'Ingen'
-      ? 'Opgøres på baggrund af lønnen på skadesdatoen.'
-      : 'Opgøres som lønnen på skadesdatoen tillagt efterfølgende lønstigninger.';
+      ? `Opgøres på baggrund af ${loenSkadesdatoText}.`
+      : `Opgøres som ${loenSkadesdatoText} tillagt efterfølgende lønstigninger.`;
     renderSubheaderWithWrappedText(
       'Indkomst, hvis skaden ikke var indtrådt',
       indkomstHvisSkadeIkkeIndtraadtBeskrivelse
@@ -2049,7 +2071,9 @@ export const generateErstatningsopgoerelsePdf = (
       if (loenudvikling.loenudviklingLabel !== 'Ingen') {
         const loenudviklingLabelDisplay = (() => {
           if (loenudvikling.loenudviklingLabel !== 'Overenskomst') {
-            return loenudvikling.loenudviklingLabel;
+            return isKRLSatstabelId(loenudvikling.loenudviklingLabel)
+              ? formatKRLSatstabelDisplay(loenudvikling.loenudviklingLabel)
+              : loenudvikling.loenudviklingLabel;
           }
           const foersteAnsaettelsesforhold = eoValues.loenindkomstAnsaettelsesforhold?.[0];
           if (!foersteAnsaettelsesforhold) return loenudvikling.loenudviklingLabel;
@@ -2343,8 +2367,9 @@ export const generateErstatningsopgoerelsePdf = (
           })()
         );
         writer.addSpacer(lineHeight);
-        if (ansaettelsesforhold.harOverenskomst) {
-          writeLabelValueLine('Overenskomst', resolveOverenskomstDisplay(ansaettelsesforhold.overenskomstId));
+        const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
+        if (overenskomstId) {
+          writeLabelValueLine('Overenskomst', resolveOverenskomstDisplay(overenskomstId));
           writer.addSpacer(lineHeight);
         }
         if (!isZeroPct(ansaettelsesforhold.feriePct)) {
@@ -2386,41 +2411,57 @@ export const generateErstatningsopgoerelsePdf = (
         return;
       }
 
-      const tableRows: RowInput[] = [
-        OFFENTLIGE_YDELSER_HEADERS.map((header) => ({
-          content: header,
-          styles: { fontStyle: 'bold', halign: 'center' as const },
-        })),
-      ];
+      const headerRow: RowInput = OFFENTLIGE_YDELSER_HEADERS.map((header) => ({
+        content: header,
+        styles: { fontStyle: 'bold', halign: 'center' as const },
+      }));
 
+      const buildTableRows = (groupRows: OffentligeYdelserRow[]): RowInput[] => {
+        const tableRows: RowInput[] = [headerRow];
+        for (const row of groupRows) {
+          const ydelsestypeKey = row.ydelsestype?.trim() ?? '';
+          const ydelsestypeLabel = ydelsestypeKey ? (ydelsestyper[ydelsestypeKey]?.label ?? ydelsestypeKey) : '';
+          const ydelseValue = amountValueToNumber(row.ydelse) ?? 0;
+          const tillaegValue = amountValueToNumber(row.tillaeg) ?? 0;
+          const samletValue = ydelseValue + tillaegValue;
+          const samletDisplay =
+            row.ydelse !== undefined || row.tillaeg !== undefined
+              ? formatAsAmount(samletValue, 2)
+              : '';
+          const rowValues = [
+            row.fraDato?.trim() ?? '',
+            row.tilDato?.trim() ?? '',
+            amountValueToDisplayString(row.ydelse, 2),
+            amountValueToDisplayString(row.tillaeg, 2),
+            samletDisplay,
+            ydelsestypeLabel,
+          ];
+          tableRows.push(
+            rowValues.map((value, index) => {
+              const halign: 'center' | 'left' | 'right' =
+                index <= 1 ? 'center' : 'right';
+              return {
+                content: value,
+                styles: { halign },
+              };
+            })
+          );
+        }
+        return tableRows;
+      };
+
+      const grouped = new Map<string, OffentligeYdelserRow[]>();
+      const groupOrder: string[] = [];
       for (const row of rows) {
         const ydelsestypeKey = row.ydelsestype?.trim() ?? '';
-        const ydelsestypeLabel = ydelsestypeKey ? (ydelsestyper[ydelsestypeKey]?.label ?? ydelsestypeKey) : '';
-        const ydelseValue = amountValueToNumber(row.ydelse) ?? 0;
-        const tillaegValue = amountValueToNumber(row.tillaeg) ?? 0;
-        const samletValue = ydelseValue + tillaegValue;
-        const samletDisplay =
-          row.ydelse !== undefined || row.tillaeg !== undefined
-            ? formatAsAmount(samletValue, 2)
-            : '';
-        const rowValues = [
-          row.fraDato?.trim() ?? '',
-          row.tilDato?.trim() ?? '',
-          amountValueToDisplayString(row.ydelse, 2),
-          amountValueToDisplayString(row.tillaeg, 2),
-          samletDisplay,
-          ydelsestypeLabel,
-        ];
-        tableRows.push(
-          rowValues.map((value, index) => {
-            const halign: 'center' | 'left' | 'right' =
-              index <= 1 ? 'center' : 'right';
-            return {
-              content: value,
-              styles: { halign },
-            };
-          })
-        );
+        const ydelsestypeLabel = ydelsestypeKey
+          ? (ydelsestyper[ydelsestypeKey]?.label ?? ydelsestypeKey)
+          : 'Ikke angivet';
+        if (!grouped.has(ydelsestypeLabel)) {
+          grouped.set(ydelsestypeLabel, []);
+          groupOrder.push(ydelsestypeLabel);
+        }
+        grouped.get(ydelsestypeLabel)?.push(row);
       }
 
       const doc = writer.getDoc();
@@ -2433,14 +2474,19 @@ export const generateErstatningsopgoerelsePdf = (
         5: { cellWidth: 29 },
       };
 
-      const finalY = renderStandardPdfTable({
-        doc,
-        startY: writer.getY(),
-        body: tableRows,
-        columnStyles,
-      });
-
-      writer.setY(finalY + lineHeight);
+      for (const [index, label] of groupOrder.entries()) {
+        if (index > 0) writer.addSpacer(lineHeight);
+        renderSubheader(label, lineHeight, { addTopSpacing: false });
+        writer.addSpacer(lineHeight);
+        const tableRows = buildTableRows(grouped.get(label) ?? []);
+        const finalY = renderStandardPdfTable({
+          doc,
+          startY: writer.getY(),
+          body: tableRows,
+          columnStyles,
+        });
+        writer.setY(finalY + lineHeight);
+      }
     };
 
     startBilagPage('Offentlige ydelser');
@@ -2604,15 +2650,6 @@ export const generateErstatningsopgoerelsePdf = (
     } else {
       const tafBounds = resolveTafDateBounds(eoValues);
       writer.addSpacer(lineHeight);
-      writeLabelValueLine(
-        'Første dato i TAF-periode',
-        tafBounds ? formatDateShort(tafBounds.foerste) : ''
-      );
-      writeLabelValueLine(
-        'Sidste dato i TAF-periode',
-        tafBounds ? formatDateShort(tafBounds.sidste) : ''
-      );
-      writer.addSpacer(lineHeight * 2);
 
       for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
         const underoverskrift = ansaettelsesforhold.navnPaaArbejdssted?.trim() || `Ansættelsesforhold ${index + 1}`;
@@ -2621,14 +2658,25 @@ export const generateErstatningsopgoerelsePdf = (
 
         const valgtRegulering = resolveValgtReguleringDisplay(ansaettelsesforhold);
         const reguleringsdato = resolveReguleringsdato(stamdataValues, eoValues, ansaettelsesforhold);
+        const skadesdatoIso = parseOptionalIsoDate(stamdataValues.skadesdato);
+        const saerligFraDatoIso = parseOptionalIsoDate(ansaettelsesforhold.saerligFraDatoRegulering);
+        const loenSkadesdatoText = resolveLoenSkadesdatoText({
+          subject: 'Lønnen',
+          skadesdato: skadesdatoIso,
+          saerligFraDatoRegulering: saerligFraDatoIso,
+        });
         writeLabelValueLine('Regulering anvendt', valgtRegulering);
 
         // Vis lønudvikling-beskrivelse i stedet for "Reguleringsdato (Skadesdato)"
-        const loenudviklingBeskrivelse =
-          ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Ingen'
-            ? 'Opgøres på baggrund af lønnen på skadesdatoen.'
-            : 'Opgøres som lønnen på skadesdatoen tillagt efterfølgende lønstigninger.';
-        safeAddWrappedText(loenudviklingBeskrivelse);
+        if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Ingen') {
+          writeLabelValueLine('Opgøres på baggrund af', loenSkadesdatoText);
+          writer.addSpacer(lineHeight);
+          continue;
+        }
+        writeLabelValueLine(
+          'Opgøres som',
+          `${loenSkadesdatoText} tillagt efterfølgende lønstigninger.`
+        );
         writer.addSpacer(lineHeight);
         safeAddWrappedText('Reguleringsværdier:');
 
@@ -2658,7 +2706,7 @@ export const generateErstatningsopgoerelsePdf = (
         // Vis KRL-reference når KRL er valgt
         if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'KRL satstabel') {
           writer.addSpacer(lineHeight);
-          safeAddWrappedText("KRL's tabeller for satsregulering kan genfindes på https://www.krl.dk/#/sats");
+          safeAddWrappedText("KRL's sats-tabeller kan genfindes på https://www.krl.dk/#/sats");
         }
       }
     }

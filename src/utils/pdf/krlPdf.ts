@@ -179,7 +179,7 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
   doc.setFontSize(FONT_SIZES.normal);
   doc.setFont('helvetica', 'normal');
   doc.text(
-    'Tabellen indeholder KRL\'s reguleringsprocenter. De kan genfindes på https://www.krl.dk/#/sats',
+    'KRL\'s sats-tabeller kan genfindes på https://www.krl.dk/#/sats',
     MARGINS.left,
     finalY + 8,
     { maxWidth: pageWidth - MARGINS.left - MARGINS.right },
