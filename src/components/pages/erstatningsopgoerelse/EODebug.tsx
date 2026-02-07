@@ -23,6 +23,7 @@ import {
   type Kvartal,
   type StatistiskLoenudviklingId,
 } from '../../../data/statistiskLoenudviklingRates';
+import { getKRLSatstabel, getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
 import { loenPaaHelligdageSchema } from '../../../schemas/formSchemas';
 import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
@@ -591,6 +592,10 @@ const EODebug = () => {
           if (!af.loenudviklingStatistikModel) return { display: 'Nej', ok: false };
           return { display: af.loenudviklingStatistikModel, ok: true };
         }
+        if (loenudviklingBasis === 'KRL satstabel') {
+          if (!af.loenudviklingKRLSatstabel) return { display: 'Nej', ok: false };
+          return { display: af.loenudviklingKRLSatstabel, ok: true };
+        }
         return { display: loenudviklingBasis, ok: true };
       })();
 
@@ -764,6 +769,16 @@ const EODebug = () => {
         if (loenudviklingBasis === 'Manuelt angivet') {
           return getRangeForManualRegulering(reguleringsdato, af.loenudviklingManuelTableData);
         }
+        if (loenudviklingBasis === 'KRL satstabel') {
+          const krlId = af.loenudviklingKRLSatstabel as KRLSatstabelId | undefined;
+          if (!krlId) return {};
+          const interval = getReguleringsDatoIntervalForKRL(krlId);
+          if (!interval) return {};
+          return {
+            min: parseDanishToISO(interval.fraDato),
+            max: parseDanishToISO(interval.tilDato),
+          };
+        }
         return {};
       })();
 
@@ -892,6 +907,37 @@ const EODebug = () => {
               storeBededagPct: 0,
             },
             visibility: { showFritvalg: true, showShSo: true, showPension: true, showStoreBededag: false },
+          };
+        }
+        if (loenudviklingBasis === 'KRL satstabel') {
+          const krlId = af.loenudviklingKRLSatstabel as KRLSatstabelId | undefined;
+          if (!krlId) return null;
+          const tabel = getKRLSatstabel(krlId);
+          if (!tabel || tabel.vaerdier.length === 0) return null;
+          const periodStarts = tabel.vaerdier
+            .map((v) => {
+              const startIso = parseDanishToISO(v.fraDato);
+              if (!startIso) return null;
+              return { startIso, reguleringsPct: v.reguleringsPct };
+            })
+            .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+            .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+          if (periodStarts.length === 0) return null;
+          let candidate = periodStarts[0];
+          for (const period of periodStarts) {
+            if (period.startIso > reguleringsdato) break;
+            candidate = period;
+          }
+          return {
+            components: {
+              baseValue: 100 + candidate.reguleringsPct,
+              feriePct: 0,
+              fritvalgPct: 0,
+              shSoPct: 0,
+              pensionPct: 0,
+              storeBededagPct: 0,
+            },
+            visibility: { showFritvalg: false, showShSo: false, showPension: false, showStoreBededag: false },
           };
         }
         return null;
@@ -1156,15 +1202,48 @@ const EODebug = () => {
             }));
           }
 
+          if (loenudviklingBasis === 'KRL satstabel') {
+            const krlId = af.loenudviklingKRLSatstabel as KRLSatstabelId | undefined;
+            if (!krlId) return [];
+            const tabel = getKRLSatstabel(krlId);
+            if (!tabel || tabel.vaerdier.length === 0) return [];
+            const periodStarts = tabel.vaerdier
+              .map((v) => {
+                const startIso = parseDanishToISO(v.fraDato);
+                if (!startIso) return null;
+                return {
+                  startIso,
+                  components: {
+                    baseValue: 100 + v.reguleringsPct,
+                    feriePct: 0,
+                    fritvalgPct: 0,
+                    shSoPct: 0,
+                    pensionPct: 0,
+                    storeBededagPct: 0,
+                  },
+                };
+              })
+              .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+              .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+            return periodStarts.map((period, index) => ({
+              ...period,
+              visibility: { showFritvalg: false, showShSo: false, showPension: false, showStoreBededag: false },
+              endIso: index < periodStarts.length - 1 ? subtractOneDay(periodStarts[index + 1]?.startIso) : tafEndIso,
+            }));
+          }
+
           return [];
         })();
 
         const baseComponents: FormulaComponents = baseIndex.components;
         const baseVisibility: FormulaVisibility = baseIndex.visibility;
         const isStatistik = loenudviklingBasis === 'Statistik';
+        const isKRL = loenudviklingBasis === 'KRL satstabel';
+        const isSimpleIndex = isStatistik || isKRL;
         const statistikModelLabel = af.loenudviklingStatistikModel ?? '';
         const isAslModel = isStatistik && statistikModelLabel.trim().startsWith('ASL-');
         const statDecimalPlaces = (() => {
+          if (isKRL) return 4;
           if (!isStatistik || isAslModel) return 2;
           const modelId = resolveStatistikModelIdFromLabel(statistikModelLabel);
           if (!modelId) return 2;
@@ -1176,13 +1255,13 @@ const EODebug = () => {
           ? formatCurrency
           : (value: number) => value.toLocaleString('da-DK', { minimumFractionDigits: statDecimalPlaces, maximumFractionDigits: statDecimalPlaces });
 
-        const baseValueRaw = isStatistik ? baseComponents.baseValue : computeFormulaValue(baseComponents);
-        const baseFormula = isStatistik ? formatStatValue(baseValueRaw) : buildFormulaText(baseComponents, baseVisibility);
+        const baseValueRaw = isSimpleIndex ? baseComponents.baseValue : computeFormulaValue(baseComponents);
+        const baseFormula = isSimpleIndex ? formatStatValue(baseValueRaw) : buildFormulaText(baseComponents, baseVisibility);
         const basePeriod = findPeriodForDate(periods, tafStartIso);
         const basePeriodComponents = basePeriod?.components ?? baseComponents;
         const basePeriodVisibility = basePeriod?.visibility ?? baseVisibility;
-        const basePeriodValueRaw = isStatistik ? basePeriodComponents.baseValue : computeFormulaValue(basePeriodComponents);
-        const basePeriodFormula = isStatistik
+        const basePeriodValueRaw = isSimpleIndex ? basePeriodComponents.baseValue : computeFormulaValue(basePeriodComponents);
+        const basePeriodFormula = isSimpleIndex
           ? formatStatValue(basePeriodValueRaw)
           : buildFormulaText(basePeriodComponents, basePeriodVisibility);
 
@@ -1212,9 +1291,9 @@ const EODebug = () => {
           denominatorValue: number
         ): string => {
           if (isSameNumericValue(numeratorValue, denominatorValue)) {
-            return isStatistik ? numeratorDisplay : `(${numeratorDisplay})`;
+            return isSimpleIndex ? numeratorDisplay : `(${numeratorDisplay})`;
           }
-          return isStatistik
+          return isSimpleIndex
             ? `${numeratorDisplay} /\n${denominatorDisplay}`
             : `(${numeratorDisplay}) /\n(${denominatorDisplay})`;
         };
@@ -1239,10 +1318,10 @@ const EODebug = () => {
           if (!hasTafOverlap) continue;
 
           const periodVisibility = period.visibility ?? { showFritvalg: true, showShSo: true, showPension: true, showStoreBededag: false };
-          const valueRaw = isStatistik ? period.components.baseValue : computeFormulaValue(period.components);
+          const valueRaw = isSimpleIndex ? period.components.baseValue : computeFormulaValue(period.components);
           const formula = buildFormulaText(period.components, periodVisibility);
           const displayFormula = buildIndexFormulaDisplay(
-            isStatistik ? formatStatValue(valueRaw) : formula,
+            isSimpleIndex ? formatStatValue(valueRaw) : formula,
             baseFormula,
             valueRaw,
             baseValueRaw
@@ -1527,6 +1606,56 @@ const EODebug = () => {
 
               return { columns, rows };
             }
+
+        if (loenudviklingBasis === 'KRL satstabel') {
+          const krlId = af.loenudviklingKRLSatstabel as KRLSatstabelId | undefined;
+          if (!krlId) return null;
+          const tabel = getKRLSatstabel(krlId);
+          if (!tabel || tabel.vaerdier.length === 0) return null;
+
+          const formatKrlPct = (value: number): string =>
+            value.toLocaleString('da-DK', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' %';
+
+          const periodStarts = tabel.vaerdier
+            .map((v) => {
+              const startIso = parseDanishToISO(v.fraDato);
+              if (!startIso) return null;
+              return { startIso, fraDato: v.fraDato, reguleringsPct: v.reguleringsPct };
+            })
+            .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+            .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+
+          let basePeriod = periodStarts[0];
+          for (const period of periodStarts) {
+            if (period.startIso > reguleringTableStartIso) break;
+            basePeriod = period;
+          }
+
+          const rows: StandardDisplayTableRow[] = [];
+          if (basePeriod) {
+            rows.push({
+              key: `krl-${af.id}-base`,
+              cells: [isoToDanish(reguleringTableStartIso) ?? reguleringTableStartIso, formatKrlPct(basePeriod.reguleringsPct)],
+            });
+          }
+
+          for (const period of periodStarts) {
+            if (period.startIso <= reguleringTableStartIso) continue;
+            if (period.startIso > tafEndIso) continue;
+            rows.push({
+              key: `krl-${af.id}-${period.fraDato}`,
+              cells: [period.fraDato, formatKrlPct(period.reguleringsPct)],
+            });
+          }
+
+          const columns: StandardDisplayTableColumn[] = [
+            centeredCol('Fra-dato', 120),
+            centeredCol('Reguleringsprocent', 160),
+          ];
+
+          return { columns, rows };
+        }
+
             return null;
         })();
 

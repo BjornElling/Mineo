@@ -458,6 +458,19 @@ function validateLoenudviklingKonsistens(values: ErstatningsopgoerelseValues): V
     }
   }
 
+  if (firstGrundlag === 'KRL satstabel') {
+    const firstKrl = active[0].loenudviklingKRLSatstabel ?? '';
+    for (let i = 1; i < active.length; i += 1) {
+      if ((active[i].loenudviklingKRLSatstabel ?? '') !== firstKrl) {
+        errors.push({
+          path: `loenindkomstAnsaettelsesforhold[${i}].loenudviklingKRLSatstabel`,
+          message: 'KRL satstabel skal være ens på tværs af ansættelsesforhold',
+          severity: 'error',
+        });
+      }
+    }
+  }
+
   return errors;
 }
 

@@ -23,6 +23,7 @@ import { beregnHelligdage } from '../../utils/shDageBeregning';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/common';
 import { getEffektiveSatserForDato, getEffektiveSatserForPeriode, resolveOverenskomstRef } from '../../data/overenskomstRates';
 import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../data/statistiskLoenudviklingRates';
+import { getKRLSatstabel, type KRLSatstabelId } from '../../data/KRLrates';
 import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
@@ -888,7 +889,7 @@ const buildIndkomstSkadestidspunkt = (
   };
 };
 
-type LoenudviklingStrategiV3 = 'ingen' | 'statistik' | 'overenskomst' | 'manual';
+type LoenudviklingStrategiV3 = 'ingen' | 'statistik' | 'overenskomst' | 'manual' | 'krl';
 type LoenreguleringsSegmentV3 = Readonly<IsoRange & { deltaPct: number }>;
 type LoenudviklingRowsV3 = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'];
 type LoenudviklingAfV3 = LoenudviklingRowsV3[number];
@@ -916,6 +917,13 @@ type KonsolideretLoenudviklingV3 =
     reguleringsdato: ISODateString | undefined;
     feriePct: number;
     manualRows: readonly LoenudviklingManualRowV3[];
+    tafRanges: readonly IsoRange[];
+  }>
+  | Readonly<{
+    strategi: 'krl';
+    label: string;
+    reguleringsdato: ISODateString | undefined;
+    krlSatstabelId: KRLSatstabelId;
     tafRanges: readonly IsoRange[];
   }>;
 
@@ -1051,7 +1059,8 @@ const resolveReguleringsStrategiV3 = (
     basis === 'Statistik' ? 'statistik'
       : basis === 'Overenskomst' ? 'overenskomst'
         : basis === 'Manuelt angivet' ? 'manual'
-          : 'ingen';
+          : basis === 'KRL satstabel' ? 'krl'
+            : 'ingen';
 
   if (strategi === 'statistik') {
     assertUniformV3(active, (af) => (af.loenudviklingStatistikModel ?? '').trim(), 'statistikmodel');
@@ -1062,6 +1071,8 @@ const resolveReguleringsStrategiV3 = (
   } else if (strategi === 'manual') {
     assertUniformV3(active, (af) => normalizeManualRowsV3(af.loenudviklingManuelTableData ?? []), 'manuelle reguleringsraekker');
     assertUniformV3(active, (af) => af.feriePct ?? null, 'feriepct');
+  } else if (strategi === 'krl') {
+    assertUniformV3(active, (af) => af.loenudviklingKRLSatstabel ?? '', 'KRL satstabel');
   }
 
   const skadesdato = isISODateString(stamdataValues.skadesdato) ? stamdataValues.skadesdato : undefined;
@@ -1076,7 +1087,9 @@ const resolveReguleringsStrategiV3 = (
       ? ((active[0].loenudviklingStatistikModel ?? '').trim() || '-')
       : strategi === 'manual'
         ? (active[0].loenudviklingManuelNavn?.trim() || 'Manuelt angivet')
-        : basis;
+        : strategi === 'krl'
+          ? (active[0].loenudviklingKRLSatstabel ?? '-')
+          : basis;
 
   if (strategi === 'statistik') {
     return {
@@ -1135,6 +1148,24 @@ const resolveReguleringsStrategiV3 = (
         reguleringsdato,
         feriePct: active[0].feriePct,
         manualRows: active[0].loenudviklingManuelTableData ?? [],
+        tafRanges,
+      },
+    };
+  }
+
+  if (strategi === 'krl') {
+    const krlId = active[0].loenudviklingKRLSatstabel;
+    if (!krlId) {
+      throw new Error('Loenudvikling kan ikke beregnes: KRL satstabel mangler');
+    }
+    return {
+      strategi,
+      label,
+      konsolideret: {
+        strategi,
+        label,
+        reguleringsdato,
+        krlSatstabelId: krlId as KRLSatstabelId,
         tafRanges,
       },
     };
@@ -1219,6 +1250,60 @@ const buildLoenudviklingFromStatistikV3 = (
   }
   if (segments.length === 0) {
     throw new Error('Loenudvikling kan ikke beregnes: ingen statistiksegmenter');
+  }
+  return segments;
+};
+
+const buildLoenudviklingFromKRLV3 = (
+  konsolideret: KonsolideretLoenudviklingV3
+): ReadonlyArray<LoenreguleringsSegmentV3> => {
+  if (konsolideret.strategi !== 'krl') {
+    throw new Error('Loenudvikling kan ikke beregnes: KRL-strategi mangler');
+  }
+  if (!konsolideret.reguleringsdato) {
+    throw new Error('Loenudvikling kan ikke beregnes: reguleringsdato mangler');
+  }
+  const tabel = getKRLSatstabel(konsolideret.krlSatstabelId);
+  if (!tabel || tabel.vaerdier.length === 0) {
+    throw new Error('Loenudvikling kan ikke beregnes: KRL satstabel mangler');
+  }
+
+  // Byg sorteret liste af periodestarter med ISO-datoer
+  const periodStarts = tabel.vaerdier
+    .map((v) => {
+      const startIso = parseDanishToIso(v.fraDato);
+      if (!startIso) return null;
+      return { startIso, reguleringsPct: v.reguleringsPct };
+    })
+    .filter((entry): entry is Readonly<{ startIso: ISODateString; reguleringsPct: number }> => Boolean(entry))
+    .sort((a, b) => a.startIso.localeCompare(b.startIso));
+
+  // Find basisindeks ved reguleringsdato
+  const baseEntry = findLatestByDateInSortedListV3(periodStarts, konsolideret.reguleringsdato, 'krl:base');
+  if (!baseEntry) {
+    throw new Error('Loenudvikling kan ikke beregnes: mangler KRL basisindeks');
+  }
+  const basePct = baseEntry.reguleringsPct;
+
+  // Byg segmenter for hvert taf-interval
+  const segments: LoenreguleringsSegmentV3[] = [];
+  for (const range of konsolideret.tafRanges) {
+    const starts = new Set<ISODateString>();
+    for (const entry of periodStarts) {
+      if (entry.startIso > range.fra && entry.startIso <= range.til) starts.add(entry.startIso);
+    }
+    for (const segment of buildSegmentsFromStartDatesV3(range, starts)) {
+      const idxEntry = findLatestByDateInSortedListV3(periodStarts, segment.fra, 'krl:segment');
+      if (!idxEntry) {
+        throw new Error('Loenudvikling kan ikke beregnes: mangler KRL indeks for segment');
+      }
+      // Indeksforhold: deltaPct = ((100 + periodePct) / (100 + basePct) - 1) * 100
+      const deltaPct = roundHalfAwayFromZero(((100 + idxEntry.reguleringsPct) / (100 + basePct) - 1) * 100, 2);
+      segments.push({ ...segment, deltaPct });
+    }
+  }
+  if (segments.length === 0) {
+    throw new Error('Loenudvikling kan ikke beregnes: ingen KRL segmenter');
   }
   return segments;
 };
@@ -1427,6 +1512,7 @@ const buildLoenudviklingModelV3 = (
     if (konsolideret.strategi === 'statistik') return buildLoenudviklingFromStatistikV3(konsolideret);
     if (konsolideret.strategi === 'overenskomst') return buildLoenudviklingFromOverenskomstV3(konsolideret);
     if (konsolideret.strategi === 'manual') return buildLoenudviklingFromManualV3(konsolideret);
+    if (konsolideret.strategi === 'krl') return buildLoenudviklingFromKRLV3(konsolideret);
     throw new Error('Loenudvikling kan ikke beregnes: ukendt strategi');
   })();
 

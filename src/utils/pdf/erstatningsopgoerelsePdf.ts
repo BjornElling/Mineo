@@ -31,6 +31,7 @@ import {
   resolveOverenskomstRef,
 } from '../../data/overenskomstRates';
 import { getStatistiskLoenudvikling } from '../../data/statistiskLoenudviklingRates';
+import { getKRLSatstabel, type KRLSatstabelId } from '../../data/KRLrates';
 import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
@@ -474,6 +475,7 @@ const resolveValgtReguleringDisplay = (
     return `${meta.navn} (${loenPart} / ${arbPart})`;
   }
   if (grundlag === 'Manuelt angivet') return 'Manuelt angivet';
+  if (grundlag === 'KRL satstabel') return ansaettelsesforhold.loenudviklingKRLSatstabel ?? '-';
   return 'Ingen';
 };
 
@@ -645,6 +647,40 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
     return { columns: ['Kvartal', 'Startdato', 'Indeks'], rows };
   }
 
+  if (grundlag === 'KRL satstabel') {
+    const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel as KRLSatstabelId | undefined;
+    if (!krlId) return null;
+    const tabel = getKRLSatstabel(krlId);
+    if (!tabel || tabel.vaerdier.length === 0) return null;
+
+    const formatKrlPct = (value: number): string =>
+      value.toLocaleString('da-DK', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' %';
+
+    const periodStarts = tabel.vaerdier
+      .map((v) => {
+        const startIso = parseDanishToISO(v.fraDato);
+        if (!startIso) return null;
+        return { startIso, fraDato: v.fraDato, reguleringsPct: v.reguleringsPct };
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+      .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+
+    // Find basisperiode
+    let basePeriod = periodStarts[0];
+    for (const period of periodStarts) {
+      if (period.startIso > reguleringTableStartIso) break;
+      basePeriod = period;
+    }
+
+    const rows: string[][] = [[basePeriod.fraDato, formatKrlPct(basePeriod.reguleringsPct)]];
+    for (const period of periodStarts) {
+      if (period.startIso <= reguleringTableStartIso) continue;
+      if (period.startIso > tafTil) continue;
+      rows.push([period.fraDato, formatKrlPct(period.reguleringsPct)]);
+    }
+    return { columns: ['Fra-dato', 'Reguleringsprocent'], rows };
+  }
+
   return null;
 };
 
@@ -661,8 +697,11 @@ const buildReguleringIndexRows = (params: Readonly<{
   const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
   const statistikModelLabel = (ansaettelsesforhold.loenudviklingStatistikModel ?? '').trim();
   const isStatistik = loenudviklingBasis === 'Statistik';
+  const isKRL = loenudviklingBasis === 'KRL satstabel';
+  const isSimpleIndex = isStatistik || isKRL;
   const isAslModel = isStatistik && statistikModelLabel.startsWith('ASL-');
   const statDecimalPlaces = (() => {
+    if (isKRL) return 4;
     if (!isStatistik || isAslModel) return 2;
     const modelId = resolveStatistikModelIdFromLabel(statistikModelLabel);
     if (!modelId) return 2;
@@ -852,16 +891,47 @@ const buildReguleringIndexRows = (params: Readonly<{
         visibility: { showFritvalg: true, showShSo: true, showPension: true, showStoreBededag: false },
       };
     }
+    if (isKRL) {
+      const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel as KRLSatstabelId | undefined;
+      if (!krlId) return null;
+      const tabel = getKRLSatstabel(krlId);
+      if (!tabel || tabel.vaerdier.length === 0) return null;
+      const periodStarts = tabel.vaerdier
+        .map((v) => {
+          const startIso = parseDanishToISO(v.fraDato);
+          if (!startIso) return null;
+          return { startIso, reguleringsPct: v.reguleringsPct };
+        })
+        .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+        .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+      if (periodStarts.length === 0) return null;
+      let candidate = periodStarts[0];
+      for (const period of periodStarts) {
+        if (period.startIso > reguleringsdato) break;
+        candidate = period;
+      }
+      return {
+        components: {
+          baseValue: 100 + candidate.reguleringsPct,
+          feriePct: 0,
+          fritvalgPct: 0,
+          shSoPct: 0,
+          pensionPct: 0,
+          storeBededagPct: 0,
+        },
+        visibility: { showFritvalg: false, showShSo: false, showPension: false, showStoreBededag: false },
+      };
+    }
     return null;
   })();
 
   const baseComponents = baseIndex?.components;
   const baseVisibility = baseIndex?.visibility;
   const baseValueRaw = baseComponents
-    ? (isStatistik ? baseComponents.baseValue : computeFormulaValue(baseComponents))
+    ? (isSimpleIndex ? baseComponents.baseValue : computeFormulaValue(baseComponents))
     : null;
   const baseFormula = baseComponents && baseVisibility
-    ? (isStatistik ? formatStatValue(baseComponents.baseValue) : buildFormulaText(baseComponents, baseVisibility))
+    ? (isSimpleIndex ? formatStatValue(baseComponents.baseValue) : buildFormulaText(baseComponents, baseVisibility))
     : null;
 
   const periods: ReguleringsPeriode[] = (() => {
@@ -1008,6 +1078,34 @@ const buildReguleringIndexRows = (params: Readonly<{
         visibility: { showFritvalg: true, showShSo: true, showPension: true, showStoreBededag: false },
       }));
     }
+    if (isKRL) {
+      const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel as KRLSatstabelId | undefined;
+      if (!krlId) return [];
+      const tabel = getKRLSatstabel(krlId);
+      if (!tabel || tabel.vaerdier.length === 0) return [];
+      const periodStarts = tabel.vaerdier
+        .map((v) => {
+          const startIso = parseDanishToISO(v.fraDato);
+          if (!startIso) return null;
+          return {
+            startIso,
+            components: {
+              baseValue: 100 + v.reguleringsPct,
+              feriePct: 0,
+              fritvalgPct: 0,
+              shSoPct: 0,
+              pensionPct: 0,
+              storeBededagPct: 0,
+            },
+          };
+        })
+        .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+        .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+      return periodStarts.map((period) => ({
+        ...period,
+        visibility: { showFritvalg: false, showShSo: false, showPension: false, showStoreBededag: false },
+      }));
+    }
     return [];
   })();
 
@@ -1030,14 +1128,14 @@ const buildReguleringIndexRows = (params: Readonly<{
     const period = findPeriodForDate(periods, segment.fra);
     const components = period?.components ?? baseComponents;
     const visibility = period?.visibility ?? baseVisibility;
-    const valueRaw = isStatistik ? components.baseValue : computeFormulaValue(components);
-    const formula = isStatistik ? formatStatValue(valueRaw) : buildFormulaText(components, visibility);
+    const valueRaw = isSimpleIndex ? components.baseValue : computeFormulaValue(components);
+    const formula = isSimpleIndex ? formatStatValue(valueRaw) : buildFormulaText(components, visibility);
     const indeksValue = baseValueRaw > 0 ? (valueRaw / baseValueRaw) * 100 : Number.NaN;
     const indeksDisplay = Number.isFinite(indeksValue) ? formatIndexValue(indeksValue) : '-';
     return {
       fraDato: formatDateShort(segment.fra),
       tilDato: formatDateShort(segment.til),
-      indeksberegning: buildIndexFormulaDisplay(formula, baseFormula, valueRaw, baseValueRaw, isStatistik),
+      indeksberegning: buildIndexFormulaDisplay(formula, baseFormula, valueRaw, baseValueRaw, isSimpleIndex),
       indeks: indeksDisplay,
       loenudvikling: formatLoenudviklingFromIndex(indeksValue),
     };
