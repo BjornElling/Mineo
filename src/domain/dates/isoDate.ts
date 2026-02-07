@@ -8,7 +8,7 @@ export const parseIsoDateOrUndefined = (value: string | undefined): ISODateStrin
 };
 
 /**
- * Converts an `ISODateString` to a local-time `Date` without timezone shifts.
+ * Converts an `ISODateString` to a UTC date-only `Date` without timezone shifts.
  *
  * Trust-critical invariant:
  * - This must never silently return an invalid date for a value that claims to be an `ISODateString`.
@@ -24,15 +24,15 @@ export const isoDateToDate = (isoDate: ISODateString): Date => {
   const month = Number.parseInt(monthStr, 10);
   const day = Number.parseInt(dayStr, 10);
 
-  const date = new Date(year, month - 1, day);
+  const date = new Date(Date.UTC(year, month - 1, day));
   // Defensive: ensure year stays correct across edge cases.
-  date.setFullYear(year);
+  date.setUTCFullYear(year);
 
   if (
     Number.isNaN(date.getTime()) ||
-    date.getFullYear() !== year ||
-    date.getMonth() !== month - 1 ||
-    date.getDate() !== day
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
   ) {
     throw new Error(`isoDateToDate produced invalid Date for: ${isoDate}`);
   }

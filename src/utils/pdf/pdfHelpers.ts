@@ -9,8 +9,9 @@ import jsPDF from 'jspdf';
 import { FONT_SIZES, MARGINS } from './pdfConfig';
 import { VERSION } from '../../config/version';
 import type { DanishDateString, ISODateString } from '../../types/branded';
-import { isoToDanish } from '../../types/branded';
+ 
 import { formatDanishDate as formatDanishDateStrict, parseDanishDate as parseDanishDateStrict } from '../dateUtils';
+import { formatIsoDateLong } from '../dateFormatting';
 
 /**
  * Brevhoved-data til PDF-dokumenter
@@ -115,31 +116,7 @@ export const formatPercent = (percent: number | null | undefined): string => {
   return `${percent.toFixed(2).replace('.', ',')} %`;
 };
 
-/**
- * Formaterer ISO-dato til læsbar dansk tekst (d. måned åååå)
- */
-const formatISODateReadable = (isoDate: ISODateString | undefined): string => {
-  if (!isoDate) return '';
-
-  const danish = isoToDanish(isoDate);
-  if (!danish) return '';
-
-  // Konverter dd-mm-yyyy til d. måned yyyy
-  const [day, month, year] = danish.split('-');
-  const d = parseInt(day, 10);
-  const m = parseInt(month, 10) - 1;
-  const y = parseInt(year, 10);
-
-  const monthNames = [
-    'januar', 'februar', 'marts', 'april', 'maj', 'juni',
-    'juli', 'august', 'september', 'oktober', 'november', 'december'
-  ];
-
-  if (!Number.isFinite(d) || !Number.isFinite(m) || !Number.isFinite(y)) return '';
-  if (d < 1 || d > 31 || m < 0 || m >= monthNames.length || y < 1900 || y > 2100) return '';
-
-  return `${d}. ${monthNames[m]} ${year}`;
-};
+const formatISODateReadable = (isoDate: ISODateString | undefined): string => formatIsoDateLong(isoDate);
 
 /**
  * Tilføj brevhoved til PDF-dokument

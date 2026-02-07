@@ -6,6 +6,7 @@
  */
 
 import type { ISODateString } from '../../types/branded';
+import { createDate } from '../../utils/dateUtils';
 import type { DateRange, OverlapResult } from './eoDebugTypes';
 
 /**
@@ -16,6 +17,7 @@ import type { DateRange, OverlapResult } from './eoDebugTypes';
  * @returns -1 hvis a < b, 0 hvis a === b, 1 hvis a > b
  */
 export function compareIso(a: ISODateString, b: ISODateString): -1 | 0 | 1 {
+  // Invariant: ISODateString er altid "YYYY-MM-DD" (date-only, UTC).
   if (a < b) return -1;
   if (a > b) return 1;
   return 0;
@@ -120,23 +122,23 @@ export function getIsoRange(
 
   // Parse start-dato
   const [startYear, startMonth, startDay] = start.split('-').map(Number);
-  const current = new Date(startYear, startMonth - 1, startDay);
+  const current = createDate(startYear, startMonth - 1, startDay);
 
   // Parse slut-dato
   const [endYear, endMonth, endDay] = end.split('-').map(Number);
-  const endDate = new Date(endYear, endMonth - 1, endDay);
+  const endDate = createDate(endYear, endMonth - 1, endDay);
 
   // Byg array af datoer
   while (current <= endDate) {
-    const year = current.getFullYear();
-    const month = String(current.getMonth() + 1).padStart(2, '0');
-    const day = String(current.getDate()).padStart(2, '0');
+    const year = current.getUTCFullYear();
+    const month = String(current.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(current.getUTCDate()).padStart(2, '0');
     const isoDate = `${year}-${month}-${day}` as ISODateString;
 
     result.push(isoDate);
 
     // Næste dag
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
   return result;

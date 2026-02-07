@@ -3,7 +3,8 @@ import { Box, Tooltip, Typography } from '@mui/material';
 import { ContentPasteGo } from '@mui/icons-material';
 import { MIN_CALCULATION_DATE, MAX_CALCULATION_YEAR } from '../../../data/interestRates';
 import StyledDateField from '../../inputs/StyledDateField';
-import { dateToISO, toISODateString } from '../../../types/branded';
+import { toISODateString } from '../../../types/branded';
+import { getTodayLocalISO } from '../../../utils/dateUtils';
 import BeregnetRenteTable from '../../tables/BeregnetRenteTable';
 import ContentBox from '../../layout/ContentBox';
 import type { RentekravRow } from '../../../schemas/formSchemas';
@@ -52,9 +53,7 @@ const RenteberegningTab = React.memo(({
 }: RenteberegningTabProps) => {
   const [beregningsdatoHasError, setBeregningsdatoHasError] = React.useState(false);
   const handleInsertToday = React.useCallback(() => {
-    const isoToday = dateToISO(new Date());
-    if (!isoToday) return;
-    onBeregningsdatoChange({ target: { value: isoToday } });
+    onBeregningsdatoChange({ target: { value: getTodayLocalISO() } });
   }, [onBeregningsdatoChange]);
 
   return (

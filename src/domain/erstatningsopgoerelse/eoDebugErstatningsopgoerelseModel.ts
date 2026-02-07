@@ -20,7 +20,6 @@ import { calculateFerieHverdageMinusSHDage } from './ferieCalculations';
 import { computeTafOverlapWithBeregningsperiode } from './beregningsperiodeTafOverlap';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoDebugIndkomstModel';
 import { mergeDateRanges } from './periodMerging';
-import { buildMergedTafGroups } from './tafBeregningsEngine';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -1404,7 +1403,7 @@ export const buildEODebugTaftRows = (
   };
 
   // 1) Periode-rækker fra tabellen
-  const perioder = buildMergedTafGroups(values.tafPerioder ?? []);
+  const perioder = values.tafPerioder ?? [];
   const harPerioder = perioder.length > 0 && perioder.some((p) => p.fra || p.til);
   const tafOverlappingIds = detectOverlappingPeriods(values.tafPerioder ?? []);
 
@@ -2094,7 +2093,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     while (currentDate <= tilDate) {
       const iso = dateToISO(currentDate);
       if (iso) periodeDage.add(iso);
-      currentDate.setDate(currentDate.getDate() + 1);
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
 
     const beregnMaanederForDage = (dage: ReadonlySet<ISODateString>): number => {
@@ -2102,7 +2101,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
       for (const isoStr of dage) {
         const year = Number.parseInt(isoStr.slice(0, 4), 10);
         const month = Number.parseInt(isoStr.slice(5, 7), 10);
-        const dageIMaaned = new Date(year, month, 0).getDate();
+        const dageIMaaned = new Date(Date.UTC(year, month, 0)).getUTCDate();
         total += 1 / dageIMaaned;
       }
       return total;

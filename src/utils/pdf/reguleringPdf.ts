@@ -9,7 +9,7 @@ import autoTable, { type CellHookData, type RowInput } from 'jspdf-autotable';
 import { COLORS, MARGINS, FONT_SIZES, TABLE_STYLES, SECTION_SPACER } from './pdfConfig';
 import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
 import { formatCurrency, formatPercent } from '../formatUtils';
-import { parseDanishDate, formatDanishDate } from '../dateUtils';
+import { parseDanishDate, formatDanishDate, createDate } from '../dateUtils';
 import { aarsloenMax } from '../../data/regulationRates';
 import { TODAY } from '../../config/dateRanges';
 import {
@@ -237,7 +237,7 @@ const buildStatistikTable = (
     if (!start || !end) return null;
 
     const rows: string[][] = [];
-    for (let year = start.getFullYear(); year <= end.getFullYear(); year += 1) {
+    for (let year = start.getUTCFullYear(); year <= end.getUTCFullYear(); year += 1) {
       const value = aarsloenMax[year as keyof typeof aarsloenMax];
       if (typeof value !== 'number') continue;
       rows.push([String(year), formatCurrency(value)]);
@@ -266,7 +266,7 @@ const buildStatistikTable = (
       const year = Number(match[1]);
       const quarter = Number(match[2]);
       const month = (quarter - 1) * 3 + 1;
-      const startDate = formatDanishDate(new Date(year, month - 1, 1));
+      const startDate = formatDanishDate(createDate(year, month - 1, 1));
       return [
         value.kvartal,
         startDate,

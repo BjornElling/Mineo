@@ -11,6 +11,11 @@
  * - Ingen domain-kode må parse datoer direkte med new Date() eller Date.parse()
  * - Brug ALTID ISODateString og DanishDateString branded types
  *
+ * DATO-ONLY KONTRAKT (normativ):
+ * - Alle Date-objekter repræsenterer kalenderdage uden tid.
+ * - Date-objekter SKAL behandles som UTC-dage (brug getUTC* / setUTC*).
+ * - Mindste enhed er dage; timer/minutter/sekunder er uden for domænet.
+ *
  * Branded types sikrer at værdier er validerede før brug i domæne-laget.
  * En ISODateString er ikke bare en string - det er en VALIDERET ISO-dato.
  *
@@ -62,11 +67,12 @@ export function isISODateString(value: unknown): value is ISODateString {
   if (day < 1 || day > 31) return false;
 
   // Valider at datoen er gyldig (fx 31. februar)
-  const date = new Date(year, month - 1, day);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCFullYear(year);
   return (
-    date.getFullYear() === year &&
-    date.getMonth() === month - 1 &&
-    date.getDate() === day
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
   );
 }
 
@@ -120,11 +126,12 @@ export function isDanishDateString(value: unknown): value is DanishDateString {
   if (day < 1 || day > 31) return false;
 
   // Valider at datoen er gyldig (fx 31. februar)
-  const date = new Date(year, month - 1, day);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCFullYear(year);
   return (
-    date.getFullYear() === year &&
-    date.getMonth() === month - 1 &&
-    date.getDate() === day
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
   );
 }
 
@@ -214,10 +221,20 @@ export function parseISODate(isoDate: ISODateString | undefined): Date | undefin
   if (!isISODateString(isoDate)) return undefined;
 
   const [year, month, day] = isoDate.split('-').map(Number);
-  // Brug lokal tid, ikke UTC (undgå timezone-problemer)
-  const date = new Date(year, month - 1, day);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  // Defensive: ensure year stays correct across edge cases.
+  date.setUTCFullYear(year);
 
-  return isNaN(date.getTime()) ? undefined : date;
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return undefined;
+  }
+
+  return date;
 }
 
 /**
@@ -232,9 +249,9 @@ export function dateToISO(date: Date | undefined): ISODateString | undefined {
   }
 
   // Manuel formatering (undgå timezone-problemer med toISOString)
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
   const isoString = `${year}-${month}-${day}`;
 
   return isISODateString(isoString) ? isoString : undefined;
@@ -258,7 +275,7 @@ export function subtractOneDay(isoDate: ISODateString | undefined): ISODateStrin
 
   // Træk én dag fra
   const newDate = new Date(date.getTime());
-  newDate.setDate(newDate.getDate() - 1);
+  newDate.setUTCDate(newDate.getUTCDate() - 1);
 
   return dateToISO(newDate);
 }

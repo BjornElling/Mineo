@@ -13,7 +13,7 @@ import {
   stamdataSchema,
   type VarigeMenValues,
 } from '../../../schemas/formSchemas';
-import { coerceToISODateString, toISODateString } from '../../../types/branded';
+import { coerceToISODateString, parseISODate, toISODateString } from '../../../types/branded';
 import { beregnVarigeMenGodtgoerelse } from '../../../domain/varigemen/varigeMenCalculations';
 import { usePersistedForm } from '../../../hooks/usePersistedForm';
 import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
@@ -22,6 +22,8 @@ import { generateVarigeMenPdf } from '../../../utils/pdf/varigeMenPdf';
 import { varigeMenPrGradYearBounds } from '../../../data/regulationRates';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
+import { formatIsoDateLong } from '../../../utils/dateFormatting';
+import { getTodayLocalISO } from '../../../utils/dateUtils';
 
 const VARIGE_MEN_BEREGNINGSDATO_MIN = toISODateString(
   `${varigeMenPrGradYearBounds.minYear}-01-01`
@@ -98,20 +100,17 @@ const alderVedSkade = React.useMemo(() => {
 
   if (!fodselsdatoISO || !skadesdatoISO) return undefined;
 
-  const [fYear, fMonth, fDay] = fodselsdatoISO.split('-').map(Number);
-  const [sYear, sMonth, sDay] = skadesdatoISO.split('-').map(Number);
+  const fodselsdato = parseISODate(fodselsdatoISO);
+  const skadesdato = parseISODate(skadesdatoISO);
 
-  const fodselsdato = new Date(fYear, fMonth - 1, fDay);
-  const skadesdato = new Date(sYear, sMonth - 1, sDay);
+  if (!fodselsdato || !skadesdato) return undefined;
 
-  if (isNaN(fodselsdato.getTime()) || isNaN(skadesdato.getTime())) return undefined;
-
-  let alder = skadesdato.getFullYear() - fodselsdato.getFullYear();
+  let alder = skadesdato.getUTCFullYear() - fodselsdato.getUTCFullYear();
 
   if (
-    skadesdato.getMonth() < fodselsdato.getMonth() ||
-    (skadesdato.getMonth() === fodselsdato.getMonth() &&
-      skadesdato.getDate() < fodselsdato.getDate())
+    skadesdato.getUTCMonth() < fodselsdato.getUTCMonth() ||
+    (skadesdato.getUTCMonth() === fodselsdato.getUTCMonth() &&
+      skadesdato.getUTCDate() < fodselsdato.getUTCDate())
   ) {
     alder--;
   }
@@ -201,14 +200,9 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
   }, [stamValues.skadestype]);
 
   const formatSkadesdato = (iso: string | undefined): string => {
-    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso))
-      return 'Mangler (angiv i Stamdata)';
-    const [yyyy, mm, dd] = iso.split('-');
-    const dateObj = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
-    if (isNaN(dateObj.getTime())) return 'Mangler (angiv i Stamdata)';
-    return `${dateObj.getDate()}. ${dateObj.toLocaleString('da-DK', {
-      month: 'long',
-    })} ${dateObj.getFullYear()}`;
+    if (!iso) return 'Mangler (angiv i Stamdata)';
+    const formatted = formatIsoDateLong(coerceToISODateString(iso) ?? undefined);
+    return formatted || 'Mangler (angiv i Stamdata)';
   };
 
   return (
@@ -322,18 +316,9 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
           <Tooltip title="Indsæt dags dato" arrow>
             <Box
               onClick={() => {
-                const today = new Date();
-                const isoToday = coerceToISODateString(
-                  `${today.getFullYear()}-${String(
-                    today.getMonth() + 1
-                  ).padStart(2, '0')}-${String(today.getDate()).padStart(
-                    2,
-                    '0'
-                  )}`
-                );
                 setValues((prev) => ({
                   ...prev,
-                  beregningsdato: isoToday,
+                  beregningsdato: getTodayLocalISO(),
                 }));
               }}
               tabIndex={-1}

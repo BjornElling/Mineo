@@ -8,7 +8,7 @@ import type { ISODateString } from '../../types/branded';
 import { isISODateString } from '../../types/branded';
 import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
 import { parseAmount } from '../../utils/formatUtils';
-import { parseDanishDate, parseWeekString } from '../../utils/dateUtils';
+import { createDate, parseDanishDate, parseWeekString } from '../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { ydelsestyper } from '../../data/ydelsestyper';
 import { mergeIsoDateRanges } from './periodMerging';
@@ -36,7 +36,7 @@ export type IncomePeriodResult = Readonly<{
 }>;
 
 const toUtcDay = (date: Date): Date => {
-  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  return createDate(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
 };
 
 const isoDateToUtcDate = (isoDate: ISODateString): Date => {
@@ -44,7 +44,7 @@ const isoDateToUtcDate = (isoDate: ISODateString): Date => {
   const year = Number.parseInt(yearStr, 10);
   const month = Number.parseInt(monthStr, 10);
   const day = Number.parseInt(dayStr, 10);
-  return new Date(Date.UTC(year, month - 1, day));
+  return createDate(year, month - 1, day);
 };
 
 const getIsoRange = (fra: ISODateString | undefined, til: ISODateString | undefined): IsoRange | undefined => {
@@ -80,8 +80,8 @@ const parseAarsloenRowInterval = (row: AarsloenTableRow, loenperiode: Loenperiod
     if (month < 1 || month > 12) return null;
     if (year < 1900 || year > 2100) return null;
 
-    const start = new Date(Date.UTC(year, month - 1, 1));
-    const end = new Date(Date.UTC(year, month, 0));
+    const start = createDate(year, month - 1, 1);
+    const end = createDate(year, month, 0);
     return { start, end };
   }
 

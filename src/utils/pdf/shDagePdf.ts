@@ -9,9 +9,10 @@ import autoTable from 'jspdf-autotable';
 import { COLORS, MARGINS, FONT_SIZES, TABLE_STYLES, SECTION_SPACER } from './pdfConfig';
 import { beregnHelligdage } from '../shDageBeregning';
 import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
-import { formatToISO, parseISODate } from '../dateUtils';
+import type { ISODateString } from '../../types/branded';
+import { formatToISO, parseISODate, addDays, createDate } from '../dateUtils';
 import { diffUtcDays } from '../utcDayMath';
-import { MONTH_NAMES_DA } from '../dateFormatting';
+import { formatUtcDateLong } from '../dateFormatting';
 import { TODAY } from '../../config/dateRanges';
 
 /**
@@ -45,20 +46,20 @@ const UGEDAGE = [
  * @returns {string|null} Helligdagsnavn eller null
  */
 const identificerHelligdag = (dato, paaske) => {
-  const aar = dato.getFullYear();
+  const aar = dato.getUTCFullYear();
 
   // Nytårsdag
-  if (dato.getMonth() === 0 && dato.getDate() === 1) {
+  if (dato.getUTCMonth() === 0 && dato.getUTCDate() === 1) {
     return 'Nytårsdag';
   }
 
   // Juledag
-  if (dato.getMonth() === 11 && dato.getDate() === 25) {
+  if (dato.getUTCMonth() === 11 && dato.getUTCDate() === 25) {
     return 'Juledag';
   }
 
   // Anden juledag
-  if (dato.getMonth() === 11 && dato.getDate() === 26) {
+  if (dato.getUTCMonth() === 11 && dato.getUTCDate() === 26) {
     return 'Anden juledag';
   }
 
@@ -83,12 +84,7 @@ const identificerHelligdag = (dato, paaske) => {
  * @param {Date} date - Datoen at formatere
  * @returns {string} Formateret dato
  */
-const formatDanskDato = (date) => {
-  const dag = date.getDate();
-  const maaned = date.getMonth();
-  const aar = date.getFullYear();
-  return `${dag}. ${MONTH_NAMES_DA[maaned]} ${aar}`;
-};
+const formatDanskDato = (date) => formatUtcDateLong(date);
 
 /**
  * Tjek om to datoer er samme dag
@@ -98,9 +94,9 @@ const formatDanskDato = (date) => {
  * @returns {boolean} True hvis samme dag
  */
 const _erSammeDag = (date1, date2) => {
-  return date1.getFullYear() === date2.getFullYear() &&
-         date1.getMonth() === date2.getMonth() &&
-         date1.getDate() === date2.getDate();
+  return date1.getUTCFullYear() === date2.getUTCFullYear() &&
+         date1.getUTCMonth() === date2.getUTCMonth() &&
+         date1.getUTCDate() === date2.getUTCDate();
 };
 
 /**
@@ -125,7 +121,7 @@ const beregnPaaskedag = (year) => {
   const month = Math.floor((h + l - 7 * m + 114) / 31);
   const day = ((h + l - 7 * m + 114) % 31) + 1;
 
-  return new Date(year, month - 1, day);
+  return createDate(year, month - 1, day);
 };
 
 /**
@@ -138,22 +134,22 @@ const findSHDageIPerioder = (perioder) => {
   const helligdageIPeriode: any[] = [];
 
   // Saml alle datoer fra alle perioder
-  const alleDatoer = new Set<string>();
+  const alleDatoer = new Set<ISODateString>();
   perioder.forEach(({ start, end }) => {
-    const currentDate = new Date(start);
+    let currentDate = new Date(start);
     while (currentDate <= end) {
       const isoStr = formatToISO(currentDate);
-      if (isoStr) alleDatoer.add(isoStr);
-      currentDate.setDate(currentDate.getDate() + 1);
+      alleDatoer.add(isoStr);
+      currentDate = addDays(currentDate, 1);
     }
   });
 
   // Find alle år i perioderne
   const aarSet = new Set<number>();
   alleDatoer.forEach(dateStr => {
-    const date = parseISODate(dateStr as any); // dateStr er allerede valideret ISO string
+    const date = parseISODate(dateStr);
     if (date) {
-      aarSet.add(date.getFullYear());
+      aarSet.add(date.getUTCFullYear());
     }
   });
 
@@ -167,9 +163,9 @@ const findSHDageIPerioder = (perioder) => {
 
       // Tjek om helligdagen er i vores datoer
       if (helligdagStr && alleDatoer.has(helligdagStr)) {
-        const ugedag = UGEDAGE[helligdag.getDay()];
+        const ugedag = UGEDAGE[helligdag.getUTCDay()];
         const helligdagNavn = identificerHelligdag(helligdag, paaske);
-        const erHverdag = helligdag.getDay() >= 1 && helligdag.getDay() <= 5;
+        const erHverdag = helligdag.getUTCDay() >= 1 && helligdag.getUTCDay() <= 5;
 
         if (helligdagNavn) {
           helligdageIPeriode.push({
@@ -210,8 +206,7 @@ const sammenlaegPerioder = (perioder) => {
     const sidstePeriode = sammensatte[sammensatte.length - 1];
 
     // Tjek om perioder overlapper eller er sammenhængende (med 1 dags margin)
-    const naesteDag = new Date(sidstePeriode.end);
-    naesteDag.setDate(naesteDag.getDate() + 1);
+    const naesteDag = addDays(sidstePeriode.end, 1);
 
     if (fra <= naesteDag) {
       // Sammensæt perioder

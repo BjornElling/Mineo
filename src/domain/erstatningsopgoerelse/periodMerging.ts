@@ -22,7 +22,7 @@ const addDaysIso = (isoDate: ISODateString, days: number): ISODateString => {
     throw new Error(`Kunne ikke parse ISO-dato: ${isoDate}`);
   }
   const nextDate = new Date(date.getTime());
-  nextDate.setDate(nextDate.getDate() + days);
+  nextDate.setUTCDate(nextDate.getUTCDate() + days);
   const nextIso = dateToISO(nextDate);
   if (!nextIso) {
     throw new Error(`Kunne ikke formatere ISO-dato efter dagforskydning: ${isoDate}`);
@@ -89,4 +89,3 @@ export const mergeDateRanges = <TRange extends MergeableDateRange>(
     return { fra: fraDate, til: tilDate };
   });
 };
-

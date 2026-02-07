@@ -48,8 +48,8 @@ const MAX_CANONICAL_WEEK_LENGTH = 7; // uu/åååå
 const MAX_WEEK_DRAFT_LENGTH = MAX_CANONICAL_WEEK_LENGTH + 2;
 
 const yearHas53Weeks = (year: number): boolean => {
-  const dec31 = new Date(year, 11, 31);
-  const dayOfWeek = dec31.getDay();
+  const dec31 = new Date(Date.UTC(year, 11, 31));
+  const dayOfWeek = dec31.getUTCDay();
   const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
   return dayOfWeek === 4 || (isLeapYear && dayOfWeek === 5);
 };

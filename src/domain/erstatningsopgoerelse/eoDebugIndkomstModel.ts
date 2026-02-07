@@ -1,6 +1,6 @@
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { formatDanishDate, parseISODate } from '../../utils/dateUtils';
+import { createDate, formatDanishDate, parseISODate } from '../../utils/dateUtils';
 import { getAarsloenTableValidation } from '../../utils/aarsloenTableValidation';
 import {
   getOffentligeYdelserRowFilledState,
@@ -47,7 +47,7 @@ const validateStoreBededagSatser = (
   const dateObj = parseISODate(reguleringsDato);
   if (!dateObj) return false;
 
-  const cutoffDate = new Date(2024, 0, 1);
+  const cutoffDate = createDate(2024, 0, 1);
   const isFrom2024 = dateObj >= cutoffDate;
 
   let expectedPct: number;

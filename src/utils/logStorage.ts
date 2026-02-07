@@ -158,7 +158,7 @@ async function cleanupOldEntries(): Promise<void> {
 
     // 1. Slet entries ældre end MAX_AGE_DAYS
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - MAX_AGE_DAYS);
+    cutoffDate.setUTCDate(cutoffDate.getUTCDate() - MAX_AGE_DAYS);
     const cutoffTimestamp = cutoffDate.toISOString();
 
     const oldEntriesRequest = timestampIndex.openCursor(

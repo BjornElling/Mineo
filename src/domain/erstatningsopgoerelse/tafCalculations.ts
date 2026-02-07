@@ -2,6 +2,7 @@ import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { beregnHelligdage } from '../../utils/shDageBeregning';
+import { addDays, formatToISO, parseISODate } from '../../utils/dateUtils';
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR } from './tafBeregningsenhed';
 
 // TODO(a): Gennemgå hele appen for brug af begreberne "arbejdsdage" vs. "hverdage" og verificér at labels/tekster matcher beregningerne ift. fradrag/ikke-fradrag af SH-dage.
@@ -13,32 +14,12 @@ export const calculateKalenderdageInclusive = (
   if (!fra || !til) return null;
   if (fra > til) return null;
 
-  const fraDate = isoDateToUtcDate(fra);
-  const tilDate = isoDateToUtcDate(til);
+  const fraDate = parseISODate(fra);
+  const tilDate = parseISODate(til);
+  if (!fraDate || !tilDate) return null;
 
   const days = countInclusiveUtcDays(fraDate, tilDate);
   return days !== null && days >= 1 ? days : null;
-};
-
-const isoDateToUtcDate = (isoDate: ISODateString): Date => {
-  const [yearStr, monthStr, dayStr] = isoDate.split('-');
-  const year = Number.parseInt(yearStr, 10);
-  const month = Number.parseInt(monthStr, 10);
-  const day = Number.parseInt(dayStr, 10);
-  return new Date(Date.UTC(year, month - 1, day));
-};
-
-const formatUtcToIso = (date: Date): ISODateString => {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  return `${year}-${month}-${day}` as ISODateString;
-};
-
-const addUtcDays = (date: Date, days: number): Date => {
-  const next = new Date(date.getTime());
-  next.setUTCDate(next.getUTCDate() + days);
-  return next;
 };
 
 const toNonNegativeInt = (value: number): number => {
@@ -82,15 +63,16 @@ export const calculateTafAntalMaaneder = (
   if (!fra || !til) return null;
   if (fra > til) return null;
 
-  const fraDate = isoDateToUtcDate(fra);
-  const tilDate = isoDateToUtcDate(til);
+  const fraDate = parseISODate(fra);
+  const tilDate = parseISODate(til);
+  if (!fraDate || !tilDate) return null;
 
   // Opbyg set af alle dage i perioden
   const periodeDage = new Set<ISODateString>();
   let currentDate = new Date(fraDate);
   while (currentDate <= tilDate) {
-    periodeDage.add(formatUtcToIso(currentDate));
-    currentDate = addUtcDays(currentDate, 1);
+    periodeDage.add(formatToISO(currentDate));
+    currentDate = addDays(currentDate, 1);
   }
 
   // Beregn måned-værdier: hver dag tæller som 1/antal-dage-i-måneden
@@ -98,7 +80,7 @@ export const calculateTafAntalMaaneder = (
   for (const isoStr of periodeDage) {
     const year = Number.parseInt(isoStr.slice(0, 4), 10);
     const month = Number.parseInt(isoStr.slice(5, 7), 10);
-    const dageIMaaned = new Date(year, month, 0).getDate();
+    const dageIMaaned = new Date(Date.UTC(year, month, 0)).getUTCDate();
     antalMaaneder += 1 / dageIMaaned;
   }
 
@@ -161,15 +143,16 @@ export const calculateTafArbejdsdageBreakdown = (
   if (!fra || !til) return null;
   if (fra > til) return null;
 
-  const fraDate = isoDateToUtcDate(fra);
-  const tilDate = isoDateToUtcDate(til);
+  const fraDate = parseISODate(fra);
+  const tilDate = parseISODate(til);
+  if (!fraDate || !tilDate) return null;
 
   const datoSet = new Set<ISODateString>();
   let antalHverdage = 0;
 
   let currentDate = new Date(fraDate);
   while (currentDate <= tilDate) {
-    const isoStr = formatUtcToIso(currentDate);
+    const isoStr = formatToISO(currentDate);
     datoSet.add(isoStr);
 
     const dayOfWeek = currentDate.getUTCDay();
@@ -177,7 +160,7 @@ export const calculateTafArbejdsdageBreakdown = (
       antalHverdage += 1;
     }
 
-    currentDate = addUtcDays(currentDate, 1);
+    currentDate = addDays(currentDate, 1);
   }
 
   const ferieDageSet = new Set<ISODateString>();
@@ -185,36 +168,30 @@ export const calculateTafArbejdsdageBreakdown = (
     if (!feriePeriode.fra || !feriePeriode.til) continue;
     if (feriePeriode.fra > feriePeriode.til) continue;
 
-    const ferieFra = isoDateToUtcDate(feriePeriode.fra);
-    const ferieTil = isoDateToUtcDate(feriePeriode.til);
+    const ferieFra = parseISODate(feriePeriode.fra);
+    const ferieTil = parseISODate(feriePeriode.til);
+    if (!ferieFra || !ferieTil) continue;
 
     let ferieCurrent = new Date(ferieFra);
     while (ferieCurrent <= ferieTil) {
-      const isoStr = formatUtcToIso(ferieCurrent);
+      const isoStr = formatToISO(ferieCurrent);
       if (datoSet.has(isoStr)) {
         const dow = ferieCurrent.getUTCDay();
         if (dow >= 1 && dow <= 5) {
           ferieDageSet.add(isoStr);
         }
       }
-      ferieCurrent = addUtcDays(ferieCurrent, 1);
+      ferieCurrent = addDays(ferieCurrent, 1);
     }
   }
 
   let antalSHDage = 0;
   const shDageSet = new Set<ISODateString>();
-  const formatLocalToIso = (date: Date): ISODateString => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}` as ISODateString;
-  };
-
-  for (let year = fraDate.getFullYear(); year <= tilDate.getFullYear(); year += 1) {
+  for (let year = fraDate.getUTCFullYear(); year <= tilDate.getUTCFullYear(); year += 1) {
     const helligdage = beregnHelligdage(year);
     for (const helligdag of helligdage) {
-      const isoStr = formatLocalToIso(helligdag);
-      const dow = helligdag.getDay();
+      const isoStr = formatToISO(helligdag);
+      const dow = helligdag.getUTCDay();
       const erHverdag = dow >= 1 && dow <= 5;
       if (erHverdag && datoSet.has(isoStr)) {
         shDageSet.add(isoStr);
@@ -231,14 +208,14 @@ export const calculateTafArbejdsdageBreakdown = (
   if (remainingLoseFeriedage > 0) {
     let candidate = new Date(fraDate);
     while (candidate <= tilDate && remainingLoseFeriedage > 0) {
-      const isoStr = formatUtcToIso(candidate);
+      const isoStr = formatToISO(candidate);
       const dow = candidate.getUTCDay();
       const erHverdag = dow >= 1 && dow <= 5;
       if (erHverdag && !blockedLoseFerie.has(isoStr)) {
         placedLoseFeriedage.add(isoStr);
         remainingLoseFeriedage -= 1;
       }
-      candidate = addUtcDays(candidate, 1);
+      candidate = addDays(candidate, 1);
     }
   }
 

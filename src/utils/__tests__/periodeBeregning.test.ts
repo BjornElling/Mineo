@@ -1,10 +1,11 @@
 import type { AarsloenTableRow } from '../../types/common';
+import { createDate } from '../dateUtils';
 import { beregnDagPeriode, beregnPeriodiseringsDage, erNoejagtEtAar } from '../periodeBeregning';
 
 const formatIso = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
@@ -13,7 +14,7 @@ const buildIsoSet = (start: Date, end: Date): Set<string> => {
   const current = new Date(start.getTime());
   while (current <= end) {
     set.add(formatIso(current));
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
   return set;
 };
@@ -29,7 +30,7 @@ describe('periodeBeregning', () => {
   });
 
   it('erNoejagtEtAar accepts a full leap year in day periods', () => {
-    const datoSet = buildIsoSet(new Date(2024, 0, 1), new Date(2024, 11, 31));
+    const datoSet = buildIsoSet(createDate(2024, 0, 1), createDate(2024, 11, 31));
     expect(erNoejagtEtAar('dag', datoSet.size, datoSet)).toBe(true);
   });
 

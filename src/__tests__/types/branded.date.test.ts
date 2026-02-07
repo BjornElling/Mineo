@@ -94,7 +94,7 @@ describe('branded.ts - Dato roundtrip tests', () => {
       const date = parseISODate(dec31)!;
 
       // Manuel operation: Tilføj én dag
-      date.setDate(date.getDate() + 1);
+      date.setUTCDate(date.getUTCDate() + 1);
       const newYear = dateToISO(date);
 
       expect(newYear).toBe('2025-01-01');
@@ -104,7 +104,7 @@ describe('branded.ts - Dato roundtrip tests', () => {
       const jan31 = toISODateString('2025-01-31');
       const date = parseISODate(jan31)!;
 
-      date.setDate(date.getDate() + 1);
+      date.setUTCDate(date.getUTCDate() + 1);
       const feb1 = dateToISO(date);
 
       expect(feb1).toBe('2025-02-01');
@@ -163,7 +163,7 @@ describe('branded.ts - Dato roundtrip tests', () => {
       const date = parseISODate(beforeDst)!;
 
       // Tilføj 3 dage (går over DST-skift)
-      date.setDate(date.getDate() + 3);
+      date.setUTCDate(date.getUTCDate() + 3);
       const afterDst = dateToISO(date);
 
       expect(afterDst).toBe('2025-03-31');

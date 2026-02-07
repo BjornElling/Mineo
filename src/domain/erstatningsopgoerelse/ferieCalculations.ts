@@ -15,11 +15,11 @@ export const calculateFerieHverdageMinusSHDage = (
   let hverdage = 0;
   const currentDate = new Date(fraDate);
   while (currentDate <= tilDate) {
-    const dayOfWeek = currentDate.getDay();
+    const dayOfWeek = currentDate.getUTCDay();
     if (dayOfWeek >= 1 && dayOfWeek <= 5) {
       hverdage += 1;
     }
-    currentDate.setDate(currentDate.getDate() + 1);
+    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
   }
 
   const shDage = beregnSHDage(fraDate, tilDate);

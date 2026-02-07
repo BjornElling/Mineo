@@ -8,6 +8,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { COLORS, MARGINS, FONT_SIZES, TABLE_STYLES, SECTION_SPACER } from './pdfConfig';
 import { addTitle, addFooter, addBrevhoved, parseDanishDate, formatDanishDate, formatAmount, formatPercent, type BrevhovedData } from './pdfHelpers';
+import { createDate } from '../dateUtils';
 import { countInclusiveUtcDays } from '../utcDayMath';
 import type { RateEntry } from '../../data/interestRates';
 import { referenceRates, surchargeRates } from '../../data/interestRates';
@@ -34,7 +35,7 @@ export interface RentePdfOptions {
 /**
  * Beregner antal dage i et givet år (365 eller 366)
  */
-const getDaysInYear = (year) => {
+const getDaysInYear = (year: number) => {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 366 : 365;
 };
 
@@ -90,19 +91,19 @@ const calculatePeriodInterest = (amount, rate, startDate, endDate) => {
   let currentDate = new Date(startDate);
 
   while (currentDate <= endDate) {
-    const yearEnd = new Date(currentDate.getFullYear(), 11, 31);
+    const yearEnd = createDate(currentDate.getUTCFullYear(), 11, 31);
     const periodEnd = endDate < yearEnd ? new Date(endDate.getTime()) : new Date(yearEnd.getTime());
 
     const days = countInclusiveUtcDays(currentDate, periodEnd);
     if (days === null) {
       throw new Error('calculatePeriodInterest expected endDate >= startDate');
     }
-    const daysInYear = getDaysInYear(currentDate.getFullYear());
+    const daysInYear = getDaysInYear(currentDate.getUTCFullYear());
     const yearInterest = (amount * rate / 100 * days) / daysInYear;
 
     totalInterest += yearInterest;
 
-    currentDate = new Date(currentDate.getFullYear() + 1, 0, 1);
+    currentDate = createDate(currentDate.getUTCFullYear() + 1, 0, 1);
     if (currentDate > endDate) {
       break;
     }
@@ -136,10 +137,10 @@ const generateDetailedSpecification = (amount, interestStartDate, calculationDat
 
   while (currentDate <= endDate) {
     let periodEnd;
-    if (currentDate.getMonth() < 6) {
-      periodEnd = new Date(currentDate.getFullYear(), 5, 30);
+    if (currentDate.getUTCMonth() < 6) {
+      periodEnd = createDate(currentDate.getUTCFullYear(), 5, 30);
     } else {
-      periodEnd = new Date(currentDate.getFullYear(), 11, 31);
+      periodEnd = createDate(currentDate.getUTCFullYear(), 11, 31);
     }
 
     if (periodEnd > endDate) {
@@ -168,10 +169,10 @@ const generateDetailedSpecification = (amount, interestStartDate, calculationDat
       });
     }
 
-    if (periodEnd.getMonth() === 5) {
-      currentDate = new Date(periodEnd.getFullYear(), 6, 1);
+    if (periodEnd.getUTCMonth() === 5) {
+      currentDate = createDate(periodEnd.getUTCFullYear(), 6, 1);
     } else {
-      currentDate = new Date(periodEnd.getFullYear() + 1, 0, 1);
+      currentDate = createDate(periodEnd.getUTCFullYear() + 1, 0, 1);
     }
 
     if (currentDate > endDate) {
@@ -305,12 +306,12 @@ const findLatestReferenceRateDate = () => {
 
     // Beregn slutdato for denne halvårlige periode
     let periodEnd;
-    if (entryDate.getMonth() < 6) {
+    if (entryDate.getUTCMonth() < 6) {
       // Første halvår (Jan-Jun) - slutter 30. juni
-      periodEnd = new Date(entryDate.getFullYear(), 5, 30);
+      periodEnd = createDate(entryDate.getUTCFullYear(), 5, 30);
     } else {
       // Andet halvår (Jul-Dec) - slutter 31. december
-      periodEnd = new Date(entryDate.getFullYear(), 11, 31);
+      periodEnd = createDate(entryDate.getUTCFullYear(), 11, 31);
     }
 
     if (!latestDate || periodEnd > latestDate) {
@@ -448,7 +449,7 @@ const addCalculationPrinciples = (doc, startDate, startY) => {
   doc.setFont('helvetica', 'normal');
 
   // Bestem forfaldsdato-tekst og tillægssats
-  const surchargeChangeDate = new Date(2013, 2, 1); // 1. marts 2013
+  const surchargeChangeDate = createDate(2013, 2, 1); // 1. marts 2013
   let forfaldText, surchargeText;
 
   if (startDate < surchargeChangeDate) {

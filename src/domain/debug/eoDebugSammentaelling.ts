@@ -243,25 +243,25 @@ const allocateWeekdayDates = (args: {
   const current = new Date(start);
   while (current <= end) {
     if (remaining <= 0) break;
-    const dow = current.getDay();
+    const dow = current.getUTCDay();
     const erHverdag = dow >= 1 && dow <= 5;
     if (!erHverdag) {
-      current.setDate(current.getDate() + 1);
+      current.setUTCDate(current.getUTCDate() + 1);
       continue;
     }
     const iso = dateToISO(current);
     if (!iso) {
-      current.setDate(current.getDate() + 1);
+      current.setUTCDate(current.getUTCDate() + 1);
       continue;
     }
     if (shDays.has(iso) || reserved.has(iso)) {
-      current.setDate(current.getDate() + 1);
+      current.setUTCDate(current.getUTCDate() + 1);
       continue;
     }
     selected.add(iso);
     reserved.add(iso);
     remaining -= 1;
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
   return selected;

@@ -136,7 +136,7 @@ const iterateDatesInclusive = (start: Date, end: Date, onDate: (date: Date) => v
   const current = new Date(start.getTime());
   while (current <= end) {
     onDate(current);
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 };
 
@@ -185,16 +185,16 @@ const computeSummaryTableRange = (
 
   if (combinedMinFra) {
     const fraDate = isoDateToDate(combinedMinFra);
-    const year = fraDate.getFullYear();
-    const month = fraDate.getMonth() + 1;
+    const year = fraDate.getUTCFullYear();
+    const month = fraDate.getUTCMonth() + 1;
     tableFra = `${year}-${String(month).padStart(2, '0')}-01` as ISODateString;
   }
 
   if (combinedMaxTil) {
     const tilDate = isoDateToDate(combinedMaxTil);
-    const year = tilDate.getFullYear();
-    const month = tilDate.getMonth() + 1;
-    const lastDayOfMonth = new Date(year, month, 0).getDate();
+    const year = tilDate.getUTCFullYear();
+    const month = tilDate.getUTCMonth() + 1;
+    const lastDayOfMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
     tableTil = `${year}-${String(month).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}` as ISODateString;
   }
 
@@ -215,8 +215,8 @@ const parseAarsloenRowInterval = (row: AarsloenTableRow, loenperiode: Loenperiod
     if (month < 1 || month > 12) return null;
     if (year < 1900 || year > 2100) return null;
 
-    const start = new Date(year, month - 1, 1);
-    const end = new Date(year, month, 0);
+    const start = new Date(Date.UTC(year, month - 1, 1));
+    const end = new Date(Date.UTC(year, month, 0));
     return { start, end };
   }
 
@@ -265,13 +265,13 @@ const buildSHSet = (fra: ISODateString, til: ISODateString): ReadonlySet<ISODate
   const start = isoDateToDate(fra);
   const end = isoDateToDate(til);
   const years: number[] = [];
-  for (let y = start.getFullYear(); y <= end.getFullYear(); y += 1) years.push(y);
+  for (let y = start.getUTCFullYear(); y <= end.getUTCFullYear(); y += 1) years.push(y);
 
   const set = new Set<ISODateString>();
   for (const year of years) {
     const helligdage = beregnHelligdage(year);
     for (const helligdag of helligdage) {
-      const dow = helligdag.getDay();
+      const dow = helligdag.getUTCDay();
       const erHverdag = dow >= 1 && dow <= 5;
       if (!erHverdag) continue;
       const iso = dateToISO(helligdag);
@@ -291,7 +291,7 @@ const addWeekdayNonShDatesFromIsoRange = (
   const start = isoDateToDate(fra);
   const end = isoDateToDate(til);
   iterateDatesInclusive(start, end, (d) => {
-    const dow = d.getDay();
+    const dow = d.getUTCDay();
     const erHverdag = dow >= 1 && dow <= 5;
     if (!erHverdag) return;
     const iso = dateToISO(d);
@@ -335,7 +335,7 @@ const buildLoseFeriedageSet = (
     iterateDatesInclusive(start, end, (d) => {
       if (remaining <= 0) return;
 
-      const dow = d.getDay();
+      const dow = d.getUTCDay();
       const erHverdag = dow >= 1 && dow <= 5;
       if (!erHverdag) return;
 
@@ -371,7 +371,7 @@ const allocateWeekdayDates = (args: {
 
   iterateDatesInclusive(start, end, (d) => {
     if (remaining <= 0) return;
-    const dow = d.getDay();
+    const dow = d.getUTCDay();
     const erHverdag = dow >= 1 && dow <= 5;
     if (!erHverdag) return;
     const iso = dateToISO(d);
@@ -623,7 +623,7 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
   for (let i = 0; i < dates.length; i += 1) {
     const iso = dates[i];
     const d = isoDateToDate(iso);
-    const dow = d.getDay();
+    const dow = d.getUTCDay();
     weekdayByIndex[i] = weekdayNamesDa[dow] ?? '';
     danishDateByIndex[i] = isoToDanish(iso) ?? '';
     const weekday = dow >= 1 && dow <= 5;

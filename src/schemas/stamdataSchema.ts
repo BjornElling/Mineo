@@ -21,11 +21,12 @@ export const DanishDateSchema = z
     (dateStr) => {
       // Tjek at dato er gyldig (ikke 32-01-2025 fx)
       const [day, month, year] = dateStr.split('-').map(Number);
-      const date = new Date(year, month - 1, day);
+      const date = new Date(Date.UTC(year, month - 1, day));
+      date.setUTCFullYear(year);
       return (
-        date.getFullYear() === year &&
-        date.getMonth() === month - 1 &&
-        date.getDate() === day
+        date.getUTCFullYear() === year &&
+        date.getUTCMonth() === month - 1 &&
+        date.getUTCDate() === day
       );
     },
     { message: 'Ugyldig dato' }

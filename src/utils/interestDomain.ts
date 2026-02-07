@@ -110,19 +110,19 @@ export function calculateInterestDate(
   switch (enhed) {
     case 'dage': {
       resultDate = new Date(kravetDate);
-      resultDate.setDate(resultDate.getDate() + tillaegstid);
+      resultDate.setUTCDate(resultDate.getUTCDate() + tillaegstid);
       break;
     }
 
     case 'uger': {
       resultDate = new Date(kravetDate);
-      resultDate.setDate(resultDate.getDate() + (tillaegstid * 7));
+      resultDate.setUTCDate(resultDate.getUTCDate() + (tillaegstid * 7));
       break;
     }
 
     case 'maaneder': {
       resultDate = new Date(kravetDate);
-      resultDate.setMonth(resultDate.getMonth() + tillaegstid);
+      resultDate.setUTCMonth(resultDate.getUTCMonth() + tillaegstid);
       break;
     }
 

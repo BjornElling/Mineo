@@ -4,7 +4,8 @@
  * SH-dage er danske helligdage der falder på hverdage (mandag-fredag).
  */
 
-import { addDays, parseDanishDate, parseWeekString, formatToISO, parseISODate } from './dateUtils';
+import type { ISODateString } from '../types/branded';
+import { addDays, createDate, parseDanishDate, parseWeekString, formatToISO, parseISODate } from './dateUtils';
 
 /**
  * Beregner påskedag for et givet år
@@ -26,7 +27,7 @@ const beregnPaaskedag = (year: number): Date => {
   const month = Math.floor((h + l - 7 * m + 114) / 31);
   const day = ((h + l - 7 * m + 114) % 31) + 1;
 
-  return new Date(year, month - 1, day);
+  return createDate(year, month - 1, day);
 };
 
 /**
@@ -36,7 +37,7 @@ export const beregnHelligdage = (year: number): Date[] => {
   const paaske = beregnPaaskedag(year);
 
   const helligdage = [
-    new Date(year, 0, 1),                    // Nytårsdag
+    createDate(year, 0, 1),                  // Nytårsdag
     addDays(paaske, -3),                     // Skærtorsdag
     addDays(paaske, -2),                     // Langfredag
     paaske,                                  // Påskedag
@@ -44,8 +45,8 @@ export const beregnHelligdage = (year: number): Date[] => {
     addDays(paaske, 39),                     // Kristi himmelfartsdag
     addDays(paaske, 49),                     // Pinsedag
     addDays(paaske, 50),                     // Anden pinsedag
-    new Date(year, 11, 25),                  // Juledag
-    new Date(year, 11, 26),                  // Anden juledag
+    createDate(year, 11, 25),                // Juledag
+    createDate(year, 11, 26),                // Anden juledag
   ];
 
   // Store bededag (fjerde fredag efter påske - kun til og med 2023)
@@ -56,11 +57,43 @@ export const beregnHelligdage = (year: number): Date[] => {
   return helligdage;
 };
 
+export interface NavngivetHelligdag {
+  date: Date;
+  navn: string;
+}
+
+/**
+ * Beregner alle danske helligdage for et givet år, med deres navne.
+ * Bruges i PDF-rendereren til at vise helligdagsnavne.
+ */
+export const beregnHelligdageMedNavn = (year: number): NavngivetHelligdag[] => {
+  const paaske = beregnPaaskedag(year);
+
+  const helligdage: NavngivetHelligdag[] = [
+    { date: createDate(year, 0, 1), navn: 'Nytårsdag' },
+    { date: addDays(paaske, -3), navn: 'Skærtorsdag' },
+    { date: addDays(paaske, -2), navn: 'Langfredag' },
+    { date: paaske, navn: 'Påskedag' },
+    { date: addDays(paaske, 1), navn: 'Anden påskedag' },
+    { date: addDays(paaske, 39), navn: 'Kristi himmelfartsdag' },
+    { date: addDays(paaske, 49), navn: 'Pinsedag' },
+    { date: addDays(paaske, 50), navn: 'Anden pinsedag' },
+    { date: createDate(year, 11, 25), navn: 'Juledag' },
+    { date: createDate(year, 11, 26), navn: 'Anden juledag' },
+  ];
+
+  if (year <= 2023) {
+    helligdage.push({ date: addDays(paaske, 26), navn: 'Store bededag' });
+  }
+
+  return helligdage;
+};
+
 /**
  * Tjekker om en dato er en hverdag (mandag-fredag)
  */
 const erHverdag = (date: Date): boolean => {
-  const dayOfWeek = date.getDay();
+  const dayOfWeek = date.getUTCDay();
   return dayOfWeek >= 1 && dayOfWeek <= 5; // Mandag=1 til Fredag=5
 };
 
@@ -68,9 +101,9 @@ const erHverdag = (date: Date): boolean => {
  * Tjekker om to datoer er samme dag
  */
 const _erSammeDag = (date1: Date, date2: Date): boolean => {
-  return date1.getFullYear() === date2.getFullYear() &&
-         date1.getMonth() === date2.getMonth() &&
-         date1.getDate() === date2.getDate();
+  return date1.getUTCFullYear() === date2.getUTCFullYear() &&
+         date1.getUTCMonth() === date2.getUTCMonth() &&
+         date1.getUTCDate() === date2.getUTCDate();
 };
 
 /**
@@ -84,7 +117,7 @@ export const beregnSHDage = (fraDato: Date, tilDato: Date): number => {
 
   // Find alle år i perioden
   const aarSet = new Set<number>();
-  for (let year = fraDato.getFullYear(); year <= tilDato.getFullYear(); year++) {
+  for (let year = fraDato.getUTCFullYear(); year <= tilDato.getUTCFullYear(); year++) {
     aarSet.add(year);
   }
 
@@ -109,15 +142,15 @@ export const beregnSHDage = (fraDato: Date, tilDato: Date): number => {
  * Beregner antal SH-dage for et set af unikke datoer
  * Bruges til at undgå at tælle samme helligdag flere gange ved overlappende perioder
  */
-export const beregnSHDageForDatoSet = (datoSet: Set<string>): number => {
+export const beregnSHDageForDatoSet = (datoSet: ReadonlySet<ISODateString>): number => {
   if (!datoSet || datoSet.size === 0) {
     return 0;
   }
 
   // Konverter dato-strings til Date-objekter
-  const datoer = Array.from(datoSet as Set<string>)
-    .map((dateStr) => parseISODate(dateStr as any)) // dateStr er allerede valideret ISO string
-    .filter((d): d is Date => d !== null);
+  const datoer = Array.from(datoSet)
+    .map((dateStr) => parseISODate(dateStr))
+    .filter((d): d is Date => d !== undefined);
 
   if (datoer.length === 0) {
     return 0;
@@ -130,7 +163,7 @@ export const beregnSHDageForDatoSet = (datoSet: Set<string>): number => {
 
   // Find alle år i perioden
   const aarSet = new Set<number>();
-  for (let year = minDato.getFullYear(); year <= maxDato.getFullYear(); year++) {
+  for (let year = minDato.getUTCFullYear(); year <= maxDato.getUTCFullYear(); year++) {
     aarSet.add(year);
   }
 

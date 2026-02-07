@@ -24,7 +24,7 @@ import {
 } from '../../../schemas/formSchemas';
 import { LOENPERIODE } from '../../../types/common';
 import type { ISODateString } from '../../../types/branded';
-import { formatDanishDate, parseISODate } from '../../../utils/dateUtils';
+import { createDate, formatDanishDate, parseISODate } from '../../../utils/dateUtils';
 import { isLoenperiodeValue } from '../../../utils/zodTypeGuards';
 import { generateAnsaettelsesforholdId } from '../../../utils/eoConverters';
 import { loadReguleringPdfModule } from '../../../utils/pdf/pdfLoader';
@@ -176,7 +176,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
       if (!dateObj) return undefined;
 
       // Tjek om dato er fra 1. januar 2024 og frem
-      const cutoffDate = new Date(2024, 0, 1); // 1. januar 2024
+      const cutoffDate = createDate(2024, 0, 1); // 1. januar 2024
       const isFrom2024 = dateObj >= cutoffDate;
 
       // Bestem forventet værdi baseret på logik
@@ -1387,7 +1387,6 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 LoenindkomstTab.displayName = 'LoenindkomstTab';
 
 export default LoenindkomstTab;
-
 
 
 

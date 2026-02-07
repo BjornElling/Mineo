@@ -15,7 +15,7 @@ import StyledTextField, {
   type StyledTextFieldDraftChangeEvent,
   type StyledTextFieldValueCommitEvent,
 } from '../inputs/StyledTextField';
-import { dateToISO } from '../../types/branded';
+import { getTodayLocalISO } from '../../utils/dateUtils';
 import {
   type ContentBoxIdentity,
   openBugReportEmail,
@@ -47,7 +47,7 @@ const buildScreenshotFilename = (identity: ContentBoxIdentity): string => {
     .filter(Boolean);
 
   const base = parts.length > 0 ? parts.join('_') : 'contentbox';
-  const date = dateToISO(new Date()) ?? 'unknown-date';
+  const date = getTodayLocalISO();
   return `MINEO-skærmprint-${base}-${date}.png`;
 };
 

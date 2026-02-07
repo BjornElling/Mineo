@@ -229,7 +229,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
         return mode === 'typing' ? typingPartial() : commitInvalid('Ugyldig dato');
       }
 
-      const maxDay = new Date(yearNum, monthNum, 0).getDate();
+      const maxDay = new Date(Date.UTC(yearNum, monthNum, 0)).getUTCDate();
       if (dayNum > maxDay) {
         return mode === 'typing' ? typingPartial() : commitInvalid('Ugyldig dato');
       }

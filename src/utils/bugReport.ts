@@ -11,7 +11,7 @@
 
 import { getRecentLogEntries } from './logStorage';
 import type { LogEntry } from './logStorage';
-import { dateToISO } from '../types/branded';
+import { getTodayLocalISO } from './dateUtils';
 
 export interface BugReportContext {
   source?: string;
@@ -423,7 +423,7 @@ export const prepareBugReport = async (options?: {
 
   // Kopiér til clipboard (fallback)
   const version = await getVersion();
-  const dato = dateToISO(new Date()) ?? 'unknown-date';
+  const dato = getTodayLocalISO();
 
   return {
     report,
@@ -477,7 +477,7 @@ export const prepareContentBoxReport = async (options: {
 
   const mailto = buildMailtoPayload(report, { subjectPrefix: 'MINEO Rapport' });
 
-  const datoIso = dateToISO(new Date()) ?? 'unknown-date';
+  const datoIso = getTodayLocalISO();
   return {
     report,
     email: {
@@ -523,7 +523,7 @@ export async function downloadBugReport(
   const report = isPreparedBugReport(arg) ? arg.report : arg?.report ?? (await generateBugReport(50));
   const filename =
     (isPreparedBugReport(arg) ? arg.download.filename : arg?.filename) ??
-    `MINEO-fejlrapport-v${await getVersion()}-${dateToISO(new Date()) ?? 'unknown-date'}.txt`;
+    `MINEO-fejlrapport-v${await getVersion()}-${getTodayLocalISO()}.txt`;
 
   // Opret blob og download
   const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });

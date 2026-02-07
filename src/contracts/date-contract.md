@@ -5,6 +5,10 @@
 - Any logic that computes interest days, svie/smerte days, TAF days, or period days.
 
 ## Rules
+- All date-only `Date` instances MUST be treated as UTC calendar days.
+  - Use `getUTC*` / `setUTC*` for all date component access.
+  - Never rely on local time getters for date-only logic.
+- Minimum time unit is days; hours/minutes/seconds are out of scope.
 - All calendar day counts MUST use `src/utils/utcDayMath.ts`.
   - Inclusive counts: `countInclusiveUtcDays`
   - Exclusive counts: `countExclusiveUtcDays`

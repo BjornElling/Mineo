@@ -1,9 +1,8 @@
 import type { ISODateString } from '../../types/branded';
-import { dateToISO, isoToDanish, isISODateString, subtractOneDay } from '../../types/branded';
+import { danishToISO, dateToISO, isoToDanish, isISODateString, parseISODate, subtractOneDay } from '../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues, SvieSmertePeriodeRow, TafPeriodeRow, OevrigeKravRow } from '../../schemas/formSchemas';
 import { erstatningsopgoerelseSchema, stamdataSchema } from '../../schemas/formSchemas';
 import { svieSmerteMax, svieSmertePrDag, aarsloenMax } from '../../data/regulationRates';
-import { MONTH_NAMES_DA } from '../../utils/dateFormatting';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
 import { formatPercent, parsePercentToDecimal, roundHalfAwayFromZero } from '../../utils/formatUtils';
@@ -18,11 +17,21 @@ import { validateISODateRange } from '../../utils/dateValidation';
 import { detectOverlappingPeriods } from './periodOverlapDetection';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { isoDateToDate } from '../dates/isoDate';
+import { createDate } from '../../utils/dateUtils';
 import { isOevrigeKravRowEmpty, isSvieSmerteRowEmpty, isTafRowEmpty } from './rowEmpty';
 import { beregnHelligdage } from '../../utils/shDageBeregning';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/common';
 import { getEffektiveSatserForDato, getEffektiveSatserForPeriode, resolveOverenskomstRef } from '../../data/overenskomstRates';
 import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../data/statistiskLoenudviklingRates';
+import {
+  STORE_BEDEDAG_START,
+  STORE_BEDEDAG_PCT,
+  resolveReguleringsdato as resolveReguleringsdatoShared,
+  resolveStatistikModelId,
+  formatDateShort as formatDateShortShared,
+  formatDateLong as formatDateLongShared,
+  formatPercentFixed2 as formatPercentFixed2Shared,
+} from './sharedPdfUtils';
 
 export type MoneyOre = number;
 
@@ -175,16 +184,14 @@ const toOre = (value: MoneyKroner): MoneyOre => {
   }
   const scaled = value * 100;
   const rounded = Math.round(scaled);
-  if (Math.abs(scaled - rounded) > 1e-6) {
+  // Epsilon 1e-4 for at undgå false positives fra floating-point afrunding ved store beløb
+  if (Math.abs(scaled - rounded) > 1e-4) {
     throw new Error('Beløb har flere end 2 decimaler');
   }
   return ensureMoneyOre(rounded);
 };
 
-const formatPercentFixed2 = (value: number): string => {
-  if (!Number.isFinite(value)) return '-';
-  return `${value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
-};
+const formatPercentFixed2 = formatPercentFixed2Shared;
 
 const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 
@@ -196,22 +203,9 @@ const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculab
 
 const fromOre = (value: MoneyOre): MoneyKroner => value / 100;
 
-const formatDateShort = (isoDate: ISODateString | undefined): string => {
-  if (!isoDate) return '';
-  const danish = isoToDanish(isoDate);
-  return danish ?? '';
-};
+const formatDateShort = formatDateShortShared;
 
-const formatDateLong = (isoDate: ISODateString | undefined): string => {
-  if (!isoDate) return '';
-  const danish = isoToDanish(isoDate);
-  if (!danish) return '';
-  const [day, month, year] = danish.split('-');
-  const d = Number.parseInt(day, 10);
-  const m = Number.parseInt(month, 10) - 1;
-  if (!Number.isFinite(d) || !Number.isFinite(m) || !year) return '';
-  return `${d}. ${MONTH_NAMES_DA[m]} ${year}`;
-};
+const formatDateLong = formatDateLongShared;
 
 const isoDateToUtcDate = (isoDate: ISODateString): Date => {
   const [yearStr, monthStr, dayStr] = isoDate.split('-');
@@ -244,12 +238,7 @@ const toNonNegativeInt = (value: number): number => {
   return Math.max(0, Math.trunc(value));
 };
 
-const formatLocalToIso = (date: Date): ISODateString => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}` as ISODateString;
-};
+const formatLocalToIso = (date: Date): ISODateString => formatUtcToIso(date);
 
 const buildFerieDageSet = (
   ferieperioder: readonly { fra?: ISODateString; til?: ISODateString }[],
@@ -283,7 +272,7 @@ const buildShDageSet = (
     const helligdage = beregnHelligdage(year);
     for (const helligdag of helligdage) {
       const isoStr = formatLocalToIso(helligdag);
-      const dow = helligdag.getDay();
+      const dow = helligdag.getUTCDay();
       const erHverdag = dow >= 1 && dow <= 5;
       if (erHverdag && datoSet.has(isoStr)) {
         shDageSet.add(isoStr);
@@ -350,10 +339,10 @@ const buildTafArbejdsdageSet = (values: ErstatningsopgoerelseValues): Set<ISODat
     const fra = row.fra;
     const til = row.til;
     if (!fra || !til) {
-      throw new Error('TAF-periode mangler fra/til');
+      throw new Error('TAF-periode mangler fra/til'); // invariant: dækket af validator
     }
     if (!isISODateString(fra) || !isISODateString(til) || fra > til) {
-      throw new Error('TAF-periode er ugyldig');
+      throw new Error('TAF-periode er ugyldig'); // invariant: dækket af validator
     }
     const loseFeriedage = typeof row.loseFeriedage === 'number' ? row.loseFeriedage : 0;
     const set = collectTafArbejdsdageForRange(fra, til, ferieperioder, loseFeriedage);
@@ -380,17 +369,17 @@ const countTafArbejdsdageInRange = (arbejdsdage: ReadonlySet<ISODateString>, fra
 
 const parseForligsgrad = (values: ErstatningsopgoerelseValues): { factor: number | null; label: string | null } => {
   const procentValue = values.forligAnsvarsgradProcent;
-  if (typeof procentValue === 'number' && Number.isFinite(procentValue)) {
+  if (typeof procentValue === 'number' && Number.isFinite(procentValue) && procentValue > 0 && procentValue <= 100) {
     return { factor: procentValue / 100, label: ` (forlig på ${procentValue}%)` };
   }
 
   const broekValue = values.forligAnsvarsgradBroek;
   if (typeof broekValue === 'string' && broekValue.trim() !== '') {
-    const parts = broekValue.trim().split('/');
-    if (parts.length === 2) {
-      const taeller = Number.parseFloat(parts[0]);
-      const naevner = Number.parseFloat(parts[1]);
-      if (Number.isFinite(taeller) && Number.isFinite(naevner) && naevner !== 0) {
+    const match = broekValue.trim().match(/^(\d+)\/(\d+)$/);
+    if (match) {
+      const taeller = Number.parseInt(match[1], 10);
+      const naevner = Number.parseInt(match[2], 10);
+      if (taeller > 0 && naevner > 0 && taeller <= naevner) {
         return { factor: taeller / naevner, label: ` (forlig på ${broekValue.trim()})` };
       }
     }
@@ -444,13 +433,13 @@ const validateSvieSmertePerioder = (
     const hasTilstand = typeof periode.tilstand === 'string' && periode.tilstand.trim() !== '';
     const filledCount = [hasFra, hasTil, hasTilstand].filter(Boolean).length;
     if (filledCount !== 3) {
-      throw new Error('Svie/smerte-periode er ikke fuldt udfyldt');
+      throw new Error('Svie/smerte-periode er ikke fuldt udfyldt'); // invariant: dækket af validator
     }
 
     const fraISO = periode.fra;
     const tilISO = periode.til;
     if (!isISODateString(fraISO) || !isISODateString(tilISO)) {
-      throw new Error('Svie/smerte-periode har ugyldig dato');
+      throw new Error('Svie/smerte-periode har ugyldig dato'); // invariant: dækket af validator
     }
 
     const bounds = computeRowDateBounds({
@@ -478,7 +467,7 @@ const validateSvieSmertePerioder = (
     }
 
     if (overlapIds.has(periode.id)) {
-      throw new Error('Svie/smerte-perioder overlapper');
+      throw new Error('Svie/smerte-perioder overlapper'); // invariant: dækket af validator
     }
   }
 
@@ -518,7 +507,7 @@ const buildSvieSmerteModel = (
   const vedroererFra = values.vedroererPeriodeFra;
   const vedroererTil = values.vedroererPeriodeTil;
   if (harPerioder && (!vedroererFra || !vedroererTil)) {
-    throw new Error('Vedrører perioden mangler for svie/smerte');
+    throw new Error('Vedrører perioden mangler for svie/smerte'); // invariant: dækket af validator
   }
 
   const shouldApplyMenCutoff = values.varigeMenAfgorelse === 'Ja' && values.verserendeKlageMen !== 'Ja';
@@ -592,8 +581,8 @@ const buildSvieSmerteModel = (
     statusLinjer.push(verserendeKlageMen === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
   }
 
-  if (varigeMenAfgorelse === 'Ja' && menDato) {
-    const ophoerDato = subtractOneDay(menDato as ISODateString);
+  if (varigeMenAfgorelse === 'Ja' && menDato && isISODateString(menDato)) {
+    const ophoerDato = subtractOneDay(menDato);
     if (ophoerDato && perioderCoverDate(constrained, ophoerDato)) {
       statusLinjer.push('Afgørelsen bringer retten til svie- og smertegodtgørelse til ophør.');
     }
@@ -620,12 +609,12 @@ const buildSvieSmerteModel = (
 
   const satserAarValue = values.svieSmerteSatserAar;
   if (harPerioder && typeof satserAarValue !== 'number') {
-    throw new Error('År for svie/smerte-sats mangler');
+    throw new Error('År for svie/smerte-sats mangler'); // invariant: dækket af validator
   }
 
   const delvisFaktor: 1 | 0.5 = values.svieSmerteDelvisSygemeldingSats === 'fuld' ? 1 : 0.5;
   if (harPerioder && !values.svieSmerteDelvisSygemeldingSats) {
-    throw new Error('Sats ved delvis sygemelding mangler');
+    throw new Error('Sats ved delvis sygemelding mangler'); // invariant: dækket af validator
   }
 
   let satserPerDag: Calculable<MoneyOre> = notCalculableMoney('Satser kan ikke beregnes');
@@ -635,7 +624,7 @@ const buildSvieSmerteModel = (
     const satsPerDag = svieSmertePrDag[satserAarValue as keyof typeof svieSmertePrDag];
     const satsMax = svieSmerteMax[satserAarValue as keyof typeof svieSmerteMax];
     if (!satsPerDag || !satsMax) {
-      throw new Error(`Ingen svie/smerte satser for år ${satserAarValue}`);
+      throw new Error(`Ingen svie/smerte satser for år ${satserAarValue}`); // invariant: dækket af validator
     }
     const forlig = parseForligsgrad(values);
     forligLabel = forlig.label;
@@ -707,10 +696,10 @@ const buildTafPerioderLinjer = (values: ErstatningsopgoerelseValues): string[] =
     const fra = row.fra;
     const til = row.til;
     if (!fra || !til) {
-      throw new Error('TAF-periode mangler fra/til');
+      throw new Error('TAF-periode mangler fra/til'); // invariant: dækket af validator
     }
     if (!isISODateString(fra) || !isISODateString(til) || fra > til) {
-      throw new Error('TAF-periode er ugyldig');
+      throw new Error('TAF-periode er ugyldig'); // invariant: dækket af validator
     }
   }
 
@@ -720,7 +709,7 @@ const buildTafPerioderLinjer = (values: ErstatningsopgoerelseValues): string[] =
     const fraText = formatDateShort(range.fra);
     const tilText = formatDateShort(range.til);
     if (!fraText || !tilText) {
-      throw new Error('TAF-periode er ugyldig');
+      throw new Error('TAF-periode er ugyldig'); // invariant: dækket af validator
     }
     lines.push(`${fraText} - ${tilText}`);
   }
@@ -930,30 +919,15 @@ type KonsolideretLoenudviklingV3 =
     tafRanges: readonly IsoRange[];
   }>;
 
-const STORE_BEDEDAG_START = '2024-01-01' as ISODateString;
-const STORE_BEDEDAG_PCT = 0.45;
-
 const parseDanishToIso = (danishDate: string | undefined): ISODateString | undefined => {
   if (!danishDate || danishDate.trim() === '') return undefined;
-  const [dayStr, monthStr, yearStr] = danishDate.trim().split('-');
-  const day = Number.parseInt(dayStr, 10);
-  const month = Number.parseInt(monthStr, 10);
-  const year = Number.parseInt(yearStr, 10);
-  if (!Number.isFinite(day) || !Number.isFinite(month) || !Number.isFinite(year)) return undefined;
-  const monthPadded = String(month).padStart(2, '0');
-  const dayPadded = String(day).padStart(2, '0');
-  const isoCandidate = `${year}-${monthPadded}-${dayPadded}`;
-  return isISODateString(isoCandidate) ? isoCandidate : undefined;
+  return danishToISO(danishDate);
 };
 
 const parseManualPercentToPct = (value: string | undefined): number => parsePercentToDecimal(value) * 100;
 
-const resolveStatistikModelIdFromLabel = (label: string): StatistiskLoenudviklingId | undefined => {
-  const trimmed = label.trim();
-  if (trimmed.startsWith('ILON12')) return 'ILON12' as StatistiskLoenudviklingId;
-  if (trimmed.startsWith('SBLON2')) return 'SBLON2' as StatistiskLoenudviklingId;
-  return undefined;
-};
+const resolveStatistikModelIdFromLabel = (label: string): StatistiskLoenudviklingId | undefined =>
+  resolveStatistikModelId(label);
 
 const computePackageValue = (args: {
   grundloen: number;
@@ -992,7 +966,7 @@ const assertUniformV3 = (
   for (let i = 1; i < active.length; i += 1) {
     const current = selector(active[i]);
     if (current !== first) {
-      throw new Error(`Inkonsistente loenudviklingsindstillinger: ${fieldLabel}`);
+      throw new Error(`Inkonsistente loenudviklingsindstillinger: ${fieldLabel}`); // invariant: dækket af validator
     }
   }
 };
@@ -1214,7 +1188,7 @@ const buildLoenudviklingFromStatistikV3 = (
       if (!match) return null;
       const year = Number.parseInt(match[1], 10);
       const quarter = Number.parseInt(match[2], 10);
-      const startIso = dateToISO(new Date(year, (quarter - 1) * 3, 1));
+      const startIso = dateToISO(createDate(year, (quarter - 1) * 3, 1));
       if (!startIso) return null;
       return { startIso, indeks: entry.indeks };
     })
@@ -1662,10 +1636,10 @@ const buildOevrigeKravModel = (rows: OevrigeKravRow[]): OevrigeKravPdfModel => {
     const udgiftTil = (row.udgiftTil ?? '').trim();
     const amountValue = amountValueToNumber(row.beloeb);
     if (dateText === '' || udgiftTil === '' || amountValue === undefined) {
-      throw new Error('Øvrige krav er ikke fuldt udfyldt');
+      throw new Error('Øvrige krav er ikke fuldt udfyldt'); // invariant: dækket af validator
     }
     if (amountValue < 0) {
-      throw new Error('Øvrige krav kan ikke være negativt');
+      throw new Error('Øvrige krav kan ikke være negativt'); // invariant: dækket af validator
     }
     const amountOre = toOre(amountValue);
     entries.push({ dateText, udgiftTil, amountOre });
@@ -1697,18 +1671,12 @@ const resolveReguleringsdato = (
   eoValues: ErstatningsopgoerelseValues,
   af: ReguleringsdatoInputV3 | undefined,
   skadesdato: ISODateString | undefined
-): ISODateString | undefined => {
-  const saerligDato = isISODateString(af?.saerligFraDatoRegulering)
-    ? af?.saerligFraDatoRegulering
-    : undefined;
-  const angivetLoenDato = isISODateString(eoValues.angivetLoenOpreguleresFraDato)
-    ? eoValues.angivetLoenOpreguleresFraDato
-    : undefined;
-  if (eoValues.beregnesUdFra !== 'Beregningsperiode') {
-    return angivetLoenDato ?? skadesdato;
-  }
-  return saerligDato ?? skadesdato;
-};
+): ISODateString | undefined => resolveReguleringsdatoShared({
+  beregnesUdFra: eoValues.beregnesUdFra,
+  angivetLoenOpreguleresFraDato: eoValues.angivetLoenOpreguleresFraDato,
+  saerligFraDatoRegulering: af?.saerligFraDatoRegulering,
+  skadesdato,
+});
 
 const resolveMaanedsloenBase = (eoValues: ErstatningsopgoerelseValues): number | null => {
   if (eoValues.beregnesUdFra === 'Angivet månedsløn') {
@@ -1767,15 +1735,10 @@ const resolveDagsloenBase = (
 };
 
 const getDayAfter = (isoDate: ISODateString): ISODateString => {
-  const danish = isoToDanish(isoDate);
-  if (!danish) return isoDate;
-  const [day, month, year] = danish.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  date.setDate(date.getDate() + 1);
-  const nextYear = date.getFullYear();
-  const nextMonth = String(date.getMonth() + 1).padStart(2, '0');
-  const nextDay = String(date.getDate()).padStart(2, '0');
-  return `${nextYear}-${nextMonth}-${nextDay}` as ISODateString;
+  const date = parseISODate(isoDate);
+  if (!date) return isoDate;
+  const nextDate = addUtcDays(date, 1);
+  return formatUtcToIso(nextDate);
 };
 
 export const buildErstatningsopgoerelsePdfModel = (
@@ -1854,6 +1817,3 @@ export const buildErstatningsopgoerelsePdfModel = (
     saerligeKommentarer: (safeEo.saerligeKommentarer ?? '').trim() || null,
   };
 };
-
-
-

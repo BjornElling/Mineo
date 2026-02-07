@@ -8,6 +8,7 @@
 
 import type { DanishDateString, ISODateString } from '../types/branded';
 import { toDanishDateString, toISODateString } from '../types/branded';
+import { getTodayLocalISO } from '../utils/dateUtils';
 
 /**
  * Interface for rentesats-objekt
@@ -20,7 +21,7 @@ export interface RateEntry {
 
 // Dato-afgrænsninger for renteberegning
 export const MIN_CALCULATION_DATE: ISODateString = toISODateString('2005-01-01'); // Tidligste dato for renteberegning
-export const CURRENT_YEAR: number = new Date().getFullYear(); // Nuværende år (dynamisk)
+export const CURRENT_YEAR: number = Number(getTodayLocalISO().slice(0, 4)); // Nuværende år (dynamisk)
 export const MAX_CALCULATION_YEAR: number = CURRENT_YEAR + 5; // Maksimalt 5 år frem i tiden
 
 const referenceRatesTable: ReadonlyArray<readonly [effectiveDate: string, ratePct: number]> = [

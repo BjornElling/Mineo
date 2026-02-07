@@ -8,6 +8,7 @@ import jsPDF from 'jspdf';
 import autoTable, { type CellHookData, type RowInput } from 'jspdf-autotable';
 import { COLORS, MARGINS, TABLE_STYLES, SECTION_SPACER } from './pdfConfig';
 import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
+import { formatIsoDateLong } from '../dateFormatting';
 import type { ISODateString } from '../../types/branded';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import type { VarigeMenBeregningResult } from '../../domain/varigemen/varigeMenCalculations';
@@ -29,21 +30,7 @@ const formatDanishAmount = (amount: number, decimals: number = 0): string => {
   });
 };
 
-/**
- * Formaterer ISO-dato til læsbar dansk tekst (fx "1. januar 2025")
- */
-const formatDateReadable = (isoDate: ISODateString | undefined): string => {
-  if (!isoDate || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return '';
-
-  const [yyyy, mm, dd] = isoDate.split('-');
-  const dateObj = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
-
-  if (isNaN(dateObj.getTime())) return '';
-
-  return `${dateObj.getDate()}. ${dateObj.toLocaleString('da-DK', {
-    month: 'long',
-  })} ${dateObj.getFullYear()}`;
-};
+const formatDateReadable = (isoDate: ISODateString | undefined): string => formatIsoDateLong(isoDate);
 
 /**
  * Tilføj stamdata-tabel

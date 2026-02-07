@@ -41,12 +41,13 @@ import {
 } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../../types/branded';
-import { coerceToISODateString, dateToISO } from '../../../types/branded';
+import { coerceToISODateString } from '../../../types/branded';
 import { isoDateToDate } from '../../../domain/dates/isoDate';
 import { calculateFerieHverdageMinusSHDage } from '../../../domain/erstatningsopgoerelse/ferieCalculations';
 import { buildBeregningsperiodeTafOverlap, buildTafDerived } from '../../../domain/erstatningsopgoerelse/tafEngine';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatningsopgoerelse/eoNummerValidering';
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
+import { getTodayLocalISO } from '../../../utils/dateUtils';
 
 type JaNej = 'Ja' | 'Nej';
 
@@ -86,10 +87,10 @@ const formatLabelDayAfterIsoDate = (defaultLabel: string, tilDato: ISODateString
   const dateObj = isoDateToDate(tilDato);
 
   const nextDay = new Date(dateObj);
-  nextDay.setDate(nextDay.getDate() + 1);
+  nextDay.setUTCDate(nextDay.getUTCDate() + 1);
 
-  const monthName = MONTH_NAMES_DA[nextDay.getMonth()];
-  return `${prefix} den ${nextDay.getDate()}. ${monthName} ${nextDay.getFullYear()}:`;
+  const monthName = MONTH_NAMES_DA[nextDay.getUTCMonth()];
+  return `${prefix} den ${nextDay.getUTCDate()}. ${monthName} ${nextDay.getUTCFullYear()}:`;
 };
 
 // TODO: Implementer bilagsnummer-system og reintroducer felter til bilagsnumre de relevante steder.
@@ -403,11 +404,8 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
    * Indsæt dags dato
    */
   const handleIndsaetDagsDato = React.useCallback(() => {
-    const isoToday = dateToISO(new Date());
-    if (!isoToday) return;
-
     // Opdater committed value
-    setValues((prev) => ({ ...prev, opgørelseLavetDen: isoToday }));
+    setValues((prev) => ({ ...prev, opgørelseLavetDen: getTodayLocalISO() }));
     opgoerelseLavetDenInputRef.current?.focus();
   }, [setValues]);
 
@@ -1313,7 +1311,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 EOOplysningerTab.displayName = 'EOOplysningerTab';
 
 export default EOOplysningerTab;
-
 
 
 

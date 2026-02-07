@@ -5,6 +5,7 @@
  */
 
 import { danishToISO, isISODateString, isoToDanish } from '../types/branded';
+import { getTodayLocalISO } from './dateUtils';
 import type { ISODateString } from '../types/branded';
 
 /**
@@ -13,7 +14,7 @@ import type { ISODateString } from '../types/branded';
  * @param {number} year - Året der skal tjekkes
  * @returns {boolean} True hvis skudår
  */
-export const isLeapYear = (year) => {
+export const isLeapYear = (year: number): boolean => {
   return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
 };
 
@@ -25,7 +26,7 @@ export const isLeapYear = (year) => {
  * @param {number} year - År
  * @returns {boolean} True hvis datoen er gyldig
  */
-export const isValidDate = (day, month, year) => {
+export const isValidDate = (day: number, month: number, year: number): boolean => {
   if (day < 1 || day > 31) return false;
   if (month < 1 || month > 12) return false;
 
@@ -42,8 +43,8 @@ export const isValidDate = (day, month, year) => {
  * @param {string} yearStr - År-streng (1-4 cifre)
  * @returns {number|null} Fortolket år eller null hvis ugyldigt
  */
-export const interpretYear = (yearStr) => {
-  const currentYear = new Date().getFullYear();
+export const interpretYear = (yearStr: string): number | null => {
+  const currentYear = Number(getTodayLocalISO().slice(0, 4));
   const yearNum = parseInt(yearStr, 10);
 
   if (yearStr.length === 1) {
@@ -77,9 +78,9 @@ export const interpretYear = (yearStr) => {
  * @param {number} day - Dag
  * @returns {Date} Date-objekt
  */
-export const createDate = (year, monthIndex, day) => {
-  const date = new Date(year, monthIndex, day);
-  date.setFullYear(year); // Sikrer korrekt år også for 0-99
+export const createDate = (year: number, monthIndex: number, day: number): Date => {
+  const date = new Date(Date.UTC(year, monthIndex, day));
+  date.setUTCFullYear(year); // Sikrer korrekt år også for 0-99
   return date;
 };
 
@@ -89,10 +90,19 @@ export const createDate = (year, monthIndex, day) => {
  * @param {string} isoDate - ISO-formateret dato
  * @returns {Date|null} Date-objekt eller null hvis ugyldig
  */
-export const parseISODate = (isoDate) => {
+export const parseISODate = (isoDate: string): Date | null => {
   if (!isoDate) return null;
   const [year, month, day] = isoDate.split('-').map(Number);
-  return createDate(year, month - 1, day);
+  const date = createDate(year, month - 1, day);
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return date;
 };
 
 /**
@@ -101,7 +111,7 @@ export const parseISODate = (isoDate) => {
  * @param {string} isoDate - ISO-formateret dato (åååå-mm-dd)
  * @returns {string} Dansk formateret dato (dd-mm-åååå)
  */
-export const formatISOToDanish = (isoDate) => {
+export const formatISOToDanish = (isoDate: string): string => {
   const danish = isoToDanish(isISODateString(isoDate) ? (isoDate as ISODateString) : undefined);
   return danish ?? '';
 };
@@ -114,7 +124,7 @@ export const formatISOToDanish = (isoDate) => {
  * @param {string} year - År-streng
  * @returns {boolean} True hvis formatet er gyldigt
  */
-export const isDateFormatValid = (day, month, year) => {
+export const isDateFormatValid = (day: string, month: string, year: string): boolean => {
   const dayNum = parseInt(day, 10);
   const monthNum = parseInt(month, 10);
 
@@ -144,7 +154,7 @@ export const isDateFormatValid = (day, month, year) => {
  * @param {string} maxDate - Max-dato i ISO-format (åååå-mm-dd)
  * @returns {true|string} True hvis OK, ellers fejlbesked
  */
-export const validateDateRange = (dateStr, minDate, maxDate) => {
+export const validateDateRange = (dateStr: string, minDate: string, maxDate: string): true | string => {
   if (!dateStr || dateStr.length < 10) return true; // Tom eller ugyldig dato
 
   const isoDate = danishToISO(dateStr);
@@ -165,7 +175,7 @@ export const validateDateRange = (dateStr, minDate, maxDate) => {
  * @param {string} maxDate - Max-dato i ISO-format (åååå-mm-dd)
  * @returns {Object} { isValid: boolean, errorMessage: string }
  */
-export const validateDate = (dateStr, minDate, maxDate) => {
+export const validateDate = (dateStr: string, minDate: string, maxDate: string): { isValid: boolean; errorMessage: string } => {
   const parts = dateStr.split('-');
   const day = parts[0] || '';
   const month = parts[1] || '';
@@ -213,7 +223,11 @@ export const validateDate = (dateStr, minDate, maxDate) => {
  * @param {string|undefined} maxDate - ISO max bound
  * @returns {Object} { isValid: boolean, errorMessage: string }
  */
-export const validateISODateRange = (isoDate, minDate, maxDate) => {
+export const validateISODateRange = (
+  isoDate: string,
+  minDate: string | undefined,
+  maxDate: string | undefined
+): { isValid: boolean; errorMessage: string } => {
   if (!isISODateString(isoDate)) {
     return { isValid: false, errorMessage: 'Ugyldig dato' };
   }

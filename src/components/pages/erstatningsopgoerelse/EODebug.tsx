@@ -30,7 +30,7 @@ import { useFormFieldErrorsBySource } from '../../../hooks/useFormFieldErrors';
 import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
 import type { ISODateString } from '../../../types/branded';
 import { dateToISO, isoToDanish, isISODateString, subtractOneDay, toISODateString } from '../../../types/branded';
-import { addDays, addMonths, formatDanishDate, formatToISO, parseDanishDate, parseISODate, parseWeekString } from '../../../utils/dateUtils';
+import { addDays, addMonths, createDate, formatDanishDate, formatToISO, parseDanishDate, parseISODate, parseWeekString } from '../../../utils/dateUtils';
 import { formatCurrency, formatPercent, parseAmount } from '../../../utils/formatUtils';
 import { amountValueToDisplayString } from '../../../utils/expressionAmount';
 import { formatDecimal } from '../../../domain/debug/eoDebugFormat';
@@ -293,7 +293,7 @@ const iterateDatesInclusive = (start: Date, end: Date, onDate: (date: Date) => v
   const current = new Date(start.getTime());
   while (current <= end) {
     onDate(current);
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 };
 
@@ -311,8 +311,8 @@ const parseAarsloenRowInterval = (row: AarsloenTableRow, loenperiode: Loenperiod
     if (month < 1 || month > 12) return null;
     if (year < 1900 || year > 2100) return null;
 
-    const start = new Date(year, month - 1, 1);
-    const end = new Date(year, month, 0);
+    const start = createDate(year, month - 1, 1);
+    const end = createDate(year, month, 0);
     return { start, end };
   }
 
@@ -355,7 +355,7 @@ const addWeekdayNonShDatesFromIsoRange = (
   const start = isoDateToDate(range.fra);
   const end = isoDateToDate(range.til);
   iterateDatesInclusive(start, end, (d) => {
-    const dow = d.getDay();
+    const dow = d.getUTCDay();
     const erHverdag = dow >= 1 && dow <= 5;
     if (!erHverdag) return;
     const iso = dateToISO(d);
@@ -399,7 +399,7 @@ const buildLoseFeriedageSet = (
 
     iterateDatesInclusive(start, end, (d) => {
       if (remaining <= 0) return;
-      const dow = d.getDay();
+      const dow = d.getUTCDay();
       const erHverdag = dow >= 1 && dow <= 5;
       if (!erHverdag) return;
       const iso = dateToISO(d);
@@ -434,7 +434,7 @@ const allocateWeekdayDates = (args: {
 
   iterateDatesInclusive(start, end, (d) => {
     if (remaining <= 0) return;
-    const dow = d.getDay();
+    const dow = d.getUTCDay();
     const erHverdag = dow >= 1 && dow <= 5;
     if (!erHverdag) return;
     const iso = dateToISO(d);
@@ -461,7 +461,7 @@ const isOffentligYdelseDatoMedregnet = (
   rowTilISO: ISODateString
 ): boolean => {
   if (periodisering === 'kalenderdage') return true;
-  const dow = dateObj.getDay();
+  const dow = dateObj.getUTCDay();
   const erHverdag = dow >= 1 && dow <= 5;
   if (!erHverdag) return false;
   if (periodisering === 'hverdage') return true;
@@ -844,7 +844,7 @@ const EODebug = () => {
           if (modelLabel.trim().startsWith('ASL-')) {
             const start = parseISODate(reguleringsdato);
             if (!start) return null;
-            const value = aarsloenMax[start.getFullYear() as keyof typeof aarsloenMax];
+            const value = aarsloenMax[start.getUTCFullYear() as keyof typeof aarsloenMax];
             if (typeof value !== 'number') return null;
             return {
               components: {
@@ -870,7 +870,7 @@ const EODebug = () => {
               const quarter = Number(match[2]);
               if (!Number.isFinite(year) || !Number.isFinite(quarter)) return null;
               const month = (quarter - 1) * 3;
-              const startIso = formatToISO(new Date(year, month, 1));
+              const startIso = formatToISO(createDate(year, month, 1));
               if (!startIso) return null;
               return { startIso, indeks: value.indeks };
             })
@@ -1088,14 +1088,14 @@ const EODebug = () => {
               const start = parseISODate(tafStartIso);
               const end = parseISODate(tafEndIso);
               if (!start || !end) return [];
-              const startYear = start.getFullYear();
-              const endYear = end.getFullYear();
+              const startYear = start.getUTCFullYear();
+              const endYear = end.getUTCFullYear();
 
               const periodStarts: Array<{ startIso: ISODateString; components: FormulaComponents }> = [];
               for (let year = startYear; year <= endYear; year += 1) {
                 const value = aarsloenMax[year as keyof typeof aarsloenMax];
                 if (typeof value !== 'number') continue;
-                const startIso = formatToISO(new Date(year, 0, 1));
+                const startIso = formatToISO(createDate(year, 0, 1));
                 if (!startIso) continue;
                 periodStarts.push({
                   startIso,
@@ -1132,7 +1132,7 @@ const EODebug = () => {
                 const quarter = Number(match[2]);
                 if (!Number.isFinite(year) || !Number.isFinite(quarter)) return null;
                 const month = (quarter - 1) * 3;
-                const startIso = formatToISO(new Date(year, month, 1));
+                const startIso = formatToISO(createDate(year, month, 1));
                 if (!startIso) return null;
                 return {
                   startIso,
@@ -1434,9 +1434,9 @@ const EODebug = () => {
               const end = parseISODate(tafEndIso);
               const regDate = reguleringsdato ? parseISODate(reguleringsdato) : null;
               if (!start || !end || !regDate) return null;
-              const startYear = start.getFullYear();
-              const endYear = end.getFullYear();
-              const regYear = regDate.getFullYear();
+              const startYear = start.getUTCFullYear();
+              const endYear = end.getUTCFullYear();
+              const regYear = regDate.getUTCFullYear();
 
               const rows: StandardDisplayTableRow[] = [];
               const regValue = aarsloenMax[regYear as keyof typeof aarsloenMax];
@@ -1452,7 +1452,7 @@ const EODebug = () => {
               for (let year = startYear; year <= endYear; year += 1) {
                 const value = aarsloenMax[year as keyof typeof aarsloenMax];
                 if (typeof value !== 'number') continue;
-                const rowIso = formatToISO(new Date(year, 0, 1));
+                const rowIso = formatToISO(createDate(year, 0, 1));
                 if (!rowIso) continue;
                 if (year === regYear) continue;
                 rows.push({
@@ -1482,7 +1482,7 @@ const EODebug = () => {
                 const quarter = Number(match[2]);
                 if (!Number.isFinite(year) || !Number.isFinite(quarter)) return null;
                 const month = (quarter - 1) * 3 + 1;
-                const startIso = formatToISO(new Date(year, month - 1, 1));
+                const startIso = formatToISO(createDate(year, month - 1, 1));
                 if (!startIso) return null;
                 return { kvartal: value.kvartal, startIso, indeks: value.indeks };
               })
@@ -1710,7 +1710,7 @@ const EODebug = () => {
     });
 
     const isWorkday = (iso: ISODateString, dateObj: Date): boolean => {
-      const dow = dateObj.getDay();
+      const dow = dateObj.getUTCDay();
       const erHverdag = dow >= 1 && dow <= 5;
       if (!erHverdag) return false;
       if (beregningsenhed === TAF_BEREGNES_SOM.MAANEDER) return true;

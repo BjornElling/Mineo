@@ -5,8 +5,8 @@
  */
 export const diffUtcDays = (start: Date, end: Date): number => {
   const msPerDay = 24 * 60 * 60 * 1000;
-  const startUtc = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
-  const endUtc = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+  const startUtc = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate());
+  const endUtc = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
   return (endUtc - startUtc) / msPerDay;
 };
 

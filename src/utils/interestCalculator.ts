@@ -11,7 +11,7 @@
 import type { RateEntry } from '../data/interestRates';
 import { referenceRates, surchargeRates } from '../data/interestRates';
 import type { DanishDateString } from '../types/branded';
-import { parseDanishDate } from './dateUtils';
+import { createDate, parseDanishDate } from './dateUtils';
 import { countInclusiveUtcDays } from './utcDayMath';
 
 type DatedRate = Readonly<{ date: Date; ratePct: number }>;
@@ -85,7 +85,7 @@ const calculatePeriodInterest = (amount: number, ratePct: number, startDate: Dat
 
   while (currentDate <= endDate) {
     // Find årets slutning eller periodens slutning (hvad der kommer først)
-    const yearEnd = new Date(currentDate.getFullYear(), 11, 31);
+    const yearEnd = createDate(currentDate.getUTCFullYear(), 11, 31);
     const periodEnd = endDate < yearEnd ? new Date(endDate) : new Date(yearEnd);
 
     // Beregn dage i denne del af perioden (inklusiv slutdato)
@@ -95,13 +95,13 @@ const calculatePeriodInterest = (amount: number, ratePct: number, startDate: Dat
     }
 
     // Beregn rente for dette år
-    const daysInYear = getDaysInYear(currentDate.getFullYear());
+    const daysInYear = getDaysInYear(currentDate.getUTCFullYear());
     const yearInterest = (amount * ratePct / 100 * days) / daysInYear;
 
     totalInterest += yearInterest;
 
     // Flyt til næste år
-    currentDate = new Date(currentDate.getFullYear() + 1, 0, 1);
+    currentDate = createDate(currentDate.getUTCFullYear() + 1, 0, 1);
     if (currentDate > endDate) {
       break;
     }
@@ -158,12 +158,12 @@ export const calculateProcessInterestWithRates = (
   while (currentDate <= endDate) {
     // Find næste halvårsskift (30. juni eller 31. december)
     let periodEnd;
-    if (currentDate.getMonth() < 6) {
+    if (currentDate.getUTCMonth() < 6) {
       // Første halvår: til 30. juni
-      periodEnd = new Date(currentDate.getFullYear(), 5, 30);
+      periodEnd = createDate(currentDate.getUTCFullYear(), 5, 30);
     } else {
       // Andet halvår: til 31. december
-      periodEnd = new Date(currentDate.getFullYear(), 11, 31);
+      periodEnd = createDate(currentDate.getUTCFullYear(), 11, 31);
     }
 
     // Begræns til beregningens slutdato
@@ -182,12 +182,12 @@ export const calculateProcessInterestWithRates = (
     }
 
     // Flyt til næste halvårlige periode
-    if (periodEnd.getMonth() === 5) {
+    if (periodEnd.getUTCMonth() === 5) {
       // Efter 30. juni -> start på 1. juli
-      currentDate = new Date(periodEnd.getFullYear(), 6, 1);
+      currentDate = createDate(periodEnd.getUTCFullYear(), 6, 1);
     } else {
       // Efter 31. december -> start på 1. januar næste år
-      currentDate = new Date(periodEnd.getFullYear() + 1, 0, 1);
+      currentDate = createDate(periodEnd.getUTCFullYear() + 1, 0, 1);
     }
 
     if (currentDate > endDate) {

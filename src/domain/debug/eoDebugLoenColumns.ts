@@ -4,6 +4,7 @@ import type { ISODateString } from '../../types/branded';
 import { dateToISO, isoToDanish } from '../../types/branded';
 import { parseAmount, formatCurrency } from '../../utils/formatUtils';
 import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
+import { createDate } from '../../utils/dateUtils';
 import { parseDanishDate, parseWeekString } from '../../utils/shDageBeregning';
 import { resolveOverenskomstRef, getEffektiveSatserForPeriode } from '../../data/overenskomstRates';
 import { parseOffentligDato } from './eoDebugOffentligeYdelserColumns';
@@ -35,7 +36,7 @@ const iterateDatesInclusive = (start: Date, end: Date, onDate: (date: Date) => v
   const current = new Date(start.getTime());
   while (current <= end) {
     onDate(current);
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 };
 
@@ -70,8 +71,8 @@ const parseAarsloenRowInterval = (row: AarsloenTableRow, loenperiode: Loenperiod
     if (month < 1 || month > 12) return null;
     if (year < 1900 || year > 2100) return null;
 
-    const start = new Date(year, month - 1, 1);
-    const end = new Date(year, month, 0);
+    const start = createDate(year, month - 1, 1);
+    const end = createDate(year, month, 0);
     return { start, end };
   }
 

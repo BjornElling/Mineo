@@ -13,13 +13,15 @@ import { isoToDanish } from '../../types/branded';
 import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode, OffentligeYdelserRow, StamdataValues } from '../../schemas/formSchemas';
 import { buildErstatningsopgoerelsePdfModel, type MoneyOre, type Calculable, type LoenudviklingSegment } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { formatAsAmount, formatCurrency, formatPercent } from '../formatUtils';
+import { formatUtcDateLong } from '../dateFormatting';
+import { parseISODate } from '../dateUtils';
 import { TAF_BEREGNES_SOM } from '../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { TODAY } from '../../config/dateRanges';
 import { amountValueToDisplayString, amountValueToNumber } from '../expressionAmount';
 import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../aarsloenTableCalculations';
 import { ydelsestyper } from '../../data/ydelsestyper';
-import { beregnHelligdage } from '../shDageBeregning';
-import { diffUtcDays } from '../utcDayMath';
+import { beregnHelligdageMedNavn } from '../shDageBeregning';
+
 import { aarsloenMax } from '../../data/regulationRates';
 import {
   getEffektiveSatserForDato,
@@ -28,7 +30,18 @@ import {
   getOverenskomstMetaById,
   resolveOverenskomstRef,
 } from '../../data/overenskomstRates';
-import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../data/statistiskLoenudviklingRates';
+import { getStatistiskLoenudvikling } from '../../data/statistiskLoenudviklingRates';
+import {
+  STORE_BEDEDAG_START,
+  STORE_BEDEDAG_PCT,
+  resolveReguleringsdato as resolveReguleringsdatoShared,
+  resolveStatistikModelId,
+  parseOptionalIsoDate as parseOptionalIsoDateShared,
+  parseDanishToIso as parseDanishToIsoShared,
+  formatDateShort as formatDateShortShared,
+  formatDateLong as formatDateLongShared,
+  formatPercentFixed2 as formatPercentFixed2Shared,
+} from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
 
 const NBSP = '\u00A0';
 
@@ -170,8 +183,7 @@ type FormulaVisibility = Readonly<{
   showStoreBededag: boolean;
 }>;
 
-const STORE_BEDEDAG_START = '2024-01-01' as ISODateString;
-const STORE_BEDEDAG_PCT = 0.45;
+// STORE_BEDEDAG_START og STORE_BEDEDAG_PCT importeret fra sharedPdfUtils
 
 type PdfAutoTableDoc = jsPDF & {
   lastAutoTable?: {
@@ -222,80 +234,32 @@ const renderStandardPdfTable = (params: Readonly<{
   return ((doc as PdfAutoTableDoc).lastAutoTable?.finalY ?? startY);
 };
 
-const formatDateFromDateObjectLong = (date: Date): string => {
-  return `${date.getDate()}. ${MONTH_NAMES_DA[date.getMonth()]} ${date.getFullYear()}`;
-};
+const formatDateFromDateObjectLong = (date: Date): string => formatUtcDateLong(date);
 
-const calculatePaaskedag = (year: number): Date => {
-  const a = year % 19;
-  const b = Math.floor(year / 100);
-  const c = year % 100;
-  const d = Math.floor(b / 4);
-  const e = b % 4;
-  const f = Math.floor((b + 8) / 25);
-  const g = Math.floor((b - f + 1) / 3);
-  const h = (19 * a + b - d - g + 15) % 30;
-  const i = Math.floor(c / 4);
-  const k = c % 4;
-  const l = (32 + 2 * e + 2 * i - h - k) % 7;
-  const m = Math.floor((a + 11 * h + 22 * l) / 451);
-  const month = Math.floor((h + l - 7 * m + 114) / 31);
-  const day = ((h + l - 7 * m + 114) % 31) + 1;
-  return new Date(year, month - 1, day);
-};
-
-const identifyHelligdag = (date: Date, paaskedag: Date): string | null => {
-  const year = date.getFullYear();
-  if (date.getMonth() === 0 && date.getDate() === 1) return 'Nytårsdag';
-  if (date.getMonth() === 11 && date.getDate() === 25) return 'Juledag';
-  if (date.getMonth() === 11 && date.getDate() === 26) return 'Anden juledag';
-
-  const diffDays = diffUtcDays(date, paaskedag);
-  if (diffDays === -3) return 'Skærtorsdag';
-  if (diffDays === -2) return 'Langfredag';
-  if (diffDays === 0) return 'Påskedag';
-  if (diffDays === 1) return 'Anden påskedag';
-  if (diffDays === 26 && year <= 2023) return 'Store bededag';
-  if (diffDays === 39) return 'Kristi himmelfartsdag';
-  if (diffDays === 49) return 'Pinsedag';
-  if (diffDays === 50) return 'Anden pinsedag';
-  return null;
-};
-
-const parseIsoDateToLocalDate = (iso: ISODateString | undefined): Date | null => {
+const parseIsoDateToUtcDate = (iso: ISODateString | undefined): Date | null => {
   if (!iso) return null;
-  const [yearPart, monthPart, dayPart] = iso.split('-');
-  const year = Number.parseInt(yearPart ?? '', 10);
-  const month = Number.parseInt(monthPart ?? '', 10);
-  const day = Number.parseInt(dayPart ?? '', 10);
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
-  const date = new Date(year, month - 1, day);
-  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
-  return date;
+  return parseISODate(iso) ?? null;
 };
 
 const findHelligdageInRange = (fra: ISODateString | undefined, til: ISODateString | undefined): SHDageTableRow[] => {
-  const start = parseIsoDateToLocalDate(fra);
-  const end = parseIsoDateToLocalDate(til);
+  const start = parseIsoDateToUtcDate(fra);
+  const end = parseIsoDateToUtcDate(til);
   if (!start || !end || start > end) return [];
 
-  const startYear = start.getFullYear();
-  const endYear = end.getFullYear();
+  const startYear = start.getUTCFullYear();
+  const endYear = end.getUTCFullYear();
   const rows: Array<SHDageTableRow & { sortTs: number }> = [];
 
   for (let year = startYear; year <= endYear; year += 1) {
-    const paaskedag = calculatePaaskedag(year);
-    const helligdage = beregnHelligdage(year);
-    for (const helligdag of helligdage) {
+    const helligdage = beregnHelligdageMedNavn(year);
+    for (const { date: helligdag, navn } of helligdage) {
       if (helligdag < start || helligdag > end) continue;
-      const helligdagNavn = identifyHelligdag(helligdag, paaskedag);
-      if (!helligdagNavn) continue;
-      const dayOfWeek = helligdag.getDay();
+      const dayOfWeek = helligdag.getUTCDay();
       const erSHDag = dayOfWeek >= 1 && dayOfWeek <= 5;
       rows.push({
         ugedag: SH_DAGE_WEEKDAY_NAMES[dayOfWeek],
         datoDisplay: formatDateFromDateObjectLong(helligdag),
-        helligdagNavn,
+        helligdagNavn: navn,
         erSHDag,
         sortTs: helligdag.getTime(),
       });
@@ -306,19 +270,7 @@ const findHelligdageInRange = (fra: ISODateString | undefined, til: ISODateStrin
   return rows.map(({ sortTs: _sortTs, ...row }) => row);
 };
 
-const parseOptionalIsoDate = (value: unknown): ISODateString | undefined => {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return undefined;
-  const [yearPart, monthPart, dayPart] = trimmed.split('-');
-  const year = Number.parseInt(yearPart ?? '', 10);
-  const month = Number.parseInt(monthPart ?? '', 10);
-  const day = Number.parseInt(dayPart ?? '', 10);
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return undefined;
-  const date = new Date(year, month - 1, day);
-  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return undefined;
-  return trimmed as ISODateString;
-};
+const parseOptionalIsoDate = parseOptionalIsoDateShared;
 
 const maxIso = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
 const minIso = (a: ISODateString, b: ISODateString): ISODateString => (a < b ? a : b);
@@ -369,33 +321,16 @@ const resolveReguleringsdato = (
   stamdataValues: StamdataValues,
   eoValues: ErstatningsopgoerelseValues,
   ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]
-): ISODateString | undefined => {
-  const skadesdato = parseOptionalIsoDate(stamdataValues.skadesdato);
-  const angivetLoenDato = parseOptionalIsoDate(eoValues.angivetLoenOpreguleresFraDato);
-  const saerligDato = parseOptionalIsoDate(ansaettelsesforhold.saerligFraDatoRegulering);
-  if (eoValues.beregnesUdFra === 'Beregningsperiode') {
-    return saerligDato ?? skadesdato;
-  }
-  return angivetLoenDato ?? skadesdato;
-};
+): ISODateString | undefined => resolveReguleringsdatoShared({
+  beregnesUdFra: eoValues.beregnesUdFra,
+  angivetLoenOpreguleresFraDato: eoValues.angivetLoenOpreguleresFraDato,
+  saerligFraDatoRegulering: ansaettelsesforhold.saerligFraDatoRegulering,
+  skadesdato: stamdataValues.skadesdato,
+});
 
-const parseDanishToISO = (value: string | undefined): ISODateString | undefined => {
-  if (!value || value.trim() === '') return undefined;
-  const match = value.trim().match(/^(\d{2})-(\d{2})-(\d{4})$/);
-  if (!match) return undefined;
-  const [, dayStr, monthStr, yearStr] = match;
-  return parseOptionalIsoDate(`${yearStr}-${monthStr}-${dayStr}`);
-};
+const parseDanishToISO = parseDanishToIsoShared;
 
-const resolveStatistikModelIdFromLabel = (
-  label: string | undefined
-): StatistiskLoenudviklingId | undefined => {
-  if (!label) return undefined;
-  const trimmed = label.trim();
-  if (trimmed.startsWith('ILON12')) return 'ILON12' as StatistiskLoenudviklingId;
-  if (trimmed.startsWith('SBLON2')) return 'SBLON2' as StatistiskLoenudviklingId;
-  return undefined;
-};
+const resolveStatistikModelIdFromLabel = resolveStatistikModelId;
 
 const formatOverenskomstPercent = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return '-';
@@ -428,10 +363,7 @@ const percentFromDecimal = (value: number | null | undefined): number => {
   return Math.round(value * 10000) / 100;
 };
 
-const formatPercentFixed2 = (value: number): string => {
-  if (!Number.isFinite(value)) return '-';
-  return `${value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
-};
+const formatPercentFixed2 = formatPercentFixed2Shared;
 
 const buildFormulaText = (components: FormulaComponents, visibility: FormulaVisibility): string => {
   const baseValue = Number.isFinite(components.baseValue) ? components.baseValue : 0;
@@ -590,13 +522,13 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
     if (modelLabel === '') return null;
 
     if (modelLabel.startsWith('ASL-')) {
-      const regDate = parseIsoDateToLocalDate(reguleringsdato);
-      const tafFraDate = parseIsoDateToLocalDate(reguleringTableStartIso);
-      const tafTilDate = parseIsoDateToLocalDate(tafTil);
+      const regDate = parseIsoDateToUtcDate(reguleringsdato);
+      const tafFraDate = parseIsoDateToUtcDate(reguleringTableStartIso);
+      const tafTilDate = parseIsoDateToUtcDate(tafTil);
       if (!regDate || !tafFraDate || !tafTilDate) return null;
-      const regYear = regDate.getFullYear();
-      const startYear = tafFraDate.getFullYear();
-      const endYear = tafTilDate.getFullYear();
+      const regYear = regDate.getUTCFullYear();
+      const startYear = tafFraDate.getUTCFullYear();
+      const endYear = tafTilDate.getUTCFullYear();
       const rows: string[][] = [];
       const regValue = aarsloenMax[regYear as keyof typeof aarsloenMax];
       if (typeof regValue === 'number') rows.push([String(regYear), formatCurrency(regValue)]);
@@ -840,48 +772,9 @@ const addUdkastWatermark = (doc: jsPDF): void => {
 /**
  * Månedsnavn på dansk (med små bogstaver)
  */
-/**
- * Formaterer ISO-dato til dansk datoformat (dd-mm-yyyy)
- *
- * @param {ISODateString} isoDate - Dato i ISO-format (yyyy-mm-dd)
- * @returns {string} Formateret dato (dd-mm-yyyy)
- */
-const formatDateShort = (isoDate: ISODateString | undefined): string => {
-  if (!isoDate) return '';
+const formatDateShort = formatDateShortShared;
 
-  const danish = isoToDanish(isoDate);
-  if (!danish) return '';
-
-  // danish er allerede i dd-mm-yyyy format, så returner direkte
-  return danish;
-};
-
-const MONTH_NAMES_DA = [
-  'januar',
-  'februar',
-  'marts',
-  'april',
-  'maj',
-  'juni',
-  'juli',
-  'august',
-  'september',
-  'oktober',
-  'november',
-  'december',
-] as const;
-
-const formatDateLong = (isoDate: ISODateString | undefined): string => {
-  const short = formatDateShort(isoDate);
-  if (!short) return '';
-  const [day, month, year] = short.split('-');
-  const monthIndex = Number.parseInt(month ?? '', 10) - 1;
-  const dayNumber = Number.parseInt(day ?? '', 10);
-  if (!Number.isFinite(dayNumber) || monthIndex < 0 || monthIndex >= MONTH_NAMES_DA.length) {
-    return short;
-  }
-  return `${dayNumber}. ${MONTH_NAMES_DA[monthIndex]} ${year}`;
-};
+const formatDateLong = formatDateLongShared;
 
 const createPdfCursor = (params: Readonly<{
   lineHeight: number;

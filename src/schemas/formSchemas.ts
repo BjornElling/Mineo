@@ -51,11 +51,12 @@ const validateISODateFormat = (val: string): boolean => {
   if (day < 1 || day > 31) return false;
 
   // Opret dato og tjek gyldighed (fx 31. februar)
-  const date = new Date(year, month - 1, day);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCFullYear(year);
   return (
-    date.getFullYear() === year &&
-    date.getMonth() === month - 1 &&
-    date.getDate() === day
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
   );
 };
 

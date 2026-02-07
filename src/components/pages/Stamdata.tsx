@@ -13,6 +13,7 @@ import StyledDropdown from '../inputs/StyledDropdown';
 import StyledTextField, { type StyledTextFieldValueCommitEvent } from '../inputs/StyledTextField';
 import ContentBox from '../layout/ContentBox';
 import Test from './Test';
+import { getTodayLocalISO } from '../../utils/dateUtils';
 
 const SKADESTYPER = ['Arbejdsulykke', 'Erhvervssygdom'] as const;
 
@@ -44,11 +45,7 @@ const Stamdata = React.memo(() => {
   );
 
   const dateRange = React.useMemo(() => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const fallbackMax = `${year}-${month}-${day}`;
+    const fallbackMax = getTodayLocalISO();
 
     return {
       min: dateRanges_stamdata.skadesdato?.min ?? '2005-01-01',

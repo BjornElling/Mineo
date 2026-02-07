@@ -99,7 +99,7 @@ export function beregnVarigeMenGodtgoerelseWithRates(
   const beregningsdato = parseDanishDate(beregningsdatoDanish);
   if (!beregningsdato) return null;
 
-  const beregningsaar = beregningsdato.getFullYear();
+  const beregningsaar = beregningsdato.getUTCFullYear();
   const satsPerMengrad = getRateForYear(rates, beregningsaar);
   if (satsPerMengrad === undefined) return null;
   if (typeof satsPerMengrad !== 'number' || !Number.isFinite(satsPerMengrad) || satsPerMengrad < 0) {
@@ -116,12 +116,12 @@ export function beregnVarigeMenGodtgoerelseWithRates(
   const skadestidspunkt = parseISODate(skadestidspunktISO);
   if (!fodselsdato || !skadestidspunkt) return null;
 
-  let alderVedSkade = skadestidspunkt.getFullYear() - fodselsdato.getFullYear();
+  let alderVedSkade = skadestidspunkt.getUTCFullYear() - fodselsdato.getUTCFullYear();
 
   if (
-    skadestidspunkt.getMonth() < fodselsdato.getMonth() ||
-    (skadestidspunkt.getMonth() === fodselsdato.getMonth() &&
-      skadestidspunkt.getDate() < fodselsdato.getDate())
+    skadestidspunkt.getUTCMonth() < fodselsdato.getUTCMonth() ||
+    (skadestidspunkt.getUTCMonth() === fodselsdato.getUTCMonth() &&
+      skadestidspunkt.getUTCDate() < fodselsdato.getUTCDate())
   ) {
     alderVedSkade--;
   }

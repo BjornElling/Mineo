@@ -6,7 +6,8 @@
  */
 
 import type { ISODateString } from '../types/branded';
-import { dateToISO, toISODateString } from '../types/branded';
+import { coerceToISODateString, danishToISO, isoToDanish, toISODateString } from '../types/branded';
+import { getTodayLocalISO } from '../utils/dateUtils';
 
 // ============================================================================
 // KONSTANTER (VALIDEREDE ISO-DATOER)
@@ -97,11 +98,7 @@ export type DateRangeConfig =
   | UnconstrainedDateRange;
 
 export const TODAY: ISODateString = (() => {
-  const result = dateToISO(new Date());
-  if (!result) {
-    throw new Error('CRITICAL: Could not generate valid TODAY date');
-  }
-  return result;
+  return getTodayLocalISO();
 })();
 
 // ============================================================================
@@ -113,7 +110,7 @@ export const MIN_YEAR: number = 2005;
 
 
 // Aktuelt år (udledt af dags dato)
-export const MAX_YEAR: number = new Date().getFullYear();
+export const MAX_YEAR: number = Number(TODAY.slice(0, 4));
 
 const maxIso = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
 
@@ -125,7 +122,7 @@ const subtractYearsISO = (isoDate: ISODateString, years: number): ISODateString 
 
   const targetYear = year - years;
 
-  const maxDayInTargetMonth = new Date(targetYear, month, 0).getDate();
+  const maxDayInTargetMonth = new Date(Date.UTC(targetYear, month, 0)).getUTCDate();
   const targetDay = Math.min(day, maxDayInTargetMonth);
 
   const result = `${String(targetYear).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
@@ -180,25 +177,8 @@ export const computeSkadesdatoMinRule = (args: Readonly<{
  */
 export const formatToDanish = (isoDate: string): string => {
   if (!isoDate) return '';
-
-  // Forvent format: åååå-mm-dd
-  const match = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-
-  if (!match) return '';
-
-  const [, year, month, day] = match;
-
-  // Valider datoen ved hjælp af JavaScript Date
-  const date = new Date(Number(year), Number(month) - 1, Number(day));
-
-  const isValid =
-    date.getFullYear() === Number(year) &&
-    date.getMonth() === Number(month) - 1 &&
-    date.getDate() === Number(day);
-
-  if (!isValid) return '';
-
-  return `${day}-${month}-${year}`;
+  const iso = coerceToISODateString(isoDate);
+  return iso ? (isoToDanish(iso) ?? '') : '';
 };
 
 /**
@@ -211,25 +191,7 @@ export const formatToDanish = (isoDate: string): string => {
  */
 export const formatToISO = (danishDate: string): string => {
   if (!danishDate) return '';
-
-  // Forvent format: dd-mm-åååå
-  const match = danishDate.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-
-  if (!match) return '';
-
-  const [, day, month, year] = match;
-
-  // Valider datoen ved hjælp af JavaScript Date
-  const date = new Date(Number(year), Number(month) - 1, Number(day));
-
-  const isValid =
-    date.getFullYear() === Number(year) &&
-    date.getMonth() === Number(month) - 1 &&
-    date.getDate() === Number(day);
-
-  if (!isValid) return '';
-
-  return `${year}-${month}-${day}`;
+  return danishToISO(danishDate) ?? '';
 };
 
 // ============================================================================

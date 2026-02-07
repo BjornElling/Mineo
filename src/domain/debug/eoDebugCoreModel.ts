@@ -121,11 +121,11 @@ const buildSognehelligdageSet = (
 
     for (const helligdag of helligdage) {
       // Kun hverdage (mandag-fredag)
-      const dayOfWeek = helligdag.getDay();
+      const dayOfWeek = helligdag.getUTCDay();
       if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-        const isoStr = `${helligdag.getFullYear()}-${String(
-          helligdag.getMonth() + 1
-        ).padStart(2, '0')}-${String(helligdag.getDate()).padStart(2, '0')}`;
+        const isoStr = `${helligdag.getUTCFullYear()}-${String(
+          helligdag.getUTCMonth() + 1
+        ).padStart(2, '0')}-${String(helligdag.getUTCDate()).padStart(2, '0')}`;
 
         try {
           const iso = toISODateString(isoStr);
@@ -280,8 +280,8 @@ export function buildDebugCoreModel(input: DebugModelInput): readonly DebugDay[]
   for (const iso of isoRange) {
     // Parse til Date for weekday-beregning
     const [year, month, day] = iso.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    const weekday = date.getDay(); // 0=søndag, 1=mandag, ..., 6=lørdag
+    const date = new Date(Date.UTC(year, month - 1, day));
+    const weekday = date.getUTCDay(); // 0=søndag, 1=mandag, ..., 6=lørdag
 
     // Weekend-check
     const isWeekend = weekday === 0 || weekday === 6;

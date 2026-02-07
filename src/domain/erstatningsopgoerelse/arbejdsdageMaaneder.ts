@@ -18,7 +18,7 @@ export const beregnArbejdsdageOgMaaneder = (
   while (current <= tilDate) {
     const iso = dateToISO(current);
     if (iso) {
-      const dow = current.getDay();
+      const dow = current.getUTCDay();
       const erHverdag = dow >= 1 && dow <= 5;
       const erSH = shDage.has(iso);
       const erFerie = ferieDage.has(iso);
@@ -29,13 +29,13 @@ export const beregnArbejdsdageOgMaaneder = (
       }
 
       // Måneder: hver dag tæller som 1/dage-i-måneden
-      const year = current.getFullYear();
-      const month = current.getMonth() + 1;
-      const dageIMaaned = new Date(year, month, 0).getDate();
+      const year = current.getUTCFullYear();
+      const month = current.getUTCMonth() + 1;
+      const dageIMaaned = new Date(Date.UTC(year, month, 0)).getUTCDate();
       maaneder += 1 / dageIMaaned;
     }
 
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
   const roundedMaaneder = Math.round(maaneder * 1_000_000) / 1_000_000;

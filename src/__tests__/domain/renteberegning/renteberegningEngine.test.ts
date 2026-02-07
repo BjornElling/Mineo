@@ -21,7 +21,7 @@ const buildExpectedInterest = (amount: number, start: string, end: string, rateP
   if (days === null) {
     throw new Error('Invalid date order');
   }
-  const daysInYear = startDate.getFullYear() % 4 === 0 ? 366 : 365;
+  const daysInYear = startDate.getUTCFullYear() % 4 === 0 ? 366 : 365;
   const interest = (amount * ratePct / 100 * days) / daysInYear;
   return Math.round(interest * 100) / 100;
 };

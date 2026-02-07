@@ -36,7 +36,7 @@ const iterateDatesInclusive = (start: Date, end: Date, onDate: (date: Date) => v
   const current = new Date(start.getTime());
   while (current <= end) {
     onDate(current);
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 };
 
@@ -67,7 +67,7 @@ const isOffentligYdelseDatoMedregnet = (
   sygedagpengeShCutoff: ISODateString
 ): boolean => {
   if (periodisering === 'kalenderdage') return true;
-  const dow = dateObj.getDay();
+  const dow = dateObj.getUTCDay();
   const erHverdag = dow >= 1 && dow <= 5;
   if (!erHverdag) return false;
   if (periodisering === 'hverdage') return true;

@@ -104,7 +104,7 @@ const buildEntryForDate = (args: {
 
 const decrementDate = (iso: ISODateString): ISODateString => {
   const date = isoDateToDate(iso);
-  date.setDate(date.getDate() - 1);
+  date.setUTCDate(date.getUTCDate() - 1);
   return dateToISO(date)!;
 };
 
@@ -113,14 +113,14 @@ export const buildSHDageSet = (fra: ISODateString, til: ISODateString): Set<ISOD
   const fraDate = isoDateToDate(fra);
   const tilDate = isoDateToDate(til);
 
-  for (let year = fraDate.getFullYear(); year <= tilDate.getFullYear(); year++) {
+  for (let year = fraDate.getUTCFullYear(); year <= tilDate.getUTCFullYear(); year++) {
     const helligdage = beregnHelligdage(year);
     for (const helligdag of helligdage) {
       const iso = dateToISO(helligdag);
       if (!iso) continue;
       if (iso < fra || iso > til) continue;
 
-      const dow = helligdag.getDay();
+      const dow = helligdag.getUTCDay();
       if (dow >= 1 && dow <= 5) {
         set.add(iso);
       }
@@ -166,12 +166,12 @@ export const buildFerieDageSet = (
     while (current <= ferieTil) {
       const iso = dateToISO(current);
       if (iso && iso >= periodeFra && iso <= periodeTil) {
-        const dow = current.getDay();
+        const dow = current.getUTCDay();
         if (dow >= 1 && dow <= 5 && !shDage.has(iso)) {
           allFerie.add(iso);
         }
       }
-      current.setDate(current.getDate() + 1);
+      current.setUTCDate(current.getUTCDate() + 1);
     }
   }
 
@@ -195,13 +195,13 @@ export const buildFerieDageSet = (
     while (current <= tafTil && remaining > 0) {
       const iso = dateToISO(current);
       if (iso && iso >= periodeFra && iso <= periodeTil) {
-        const dow = current.getDay();
+        const dow = current.getUTCDay();
         if (dow >= 1 && dow <= 5 && !shDage.has(iso) && !allFerie.has(iso)) {
           allFerie.add(iso);
           remaining--;
         }
       }
-      current.setDate(current.getDate() + 1);
+      current.setUTCDate(current.getUTCDate() + 1);
     }
   }
 

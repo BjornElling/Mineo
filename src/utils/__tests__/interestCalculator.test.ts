@@ -46,7 +46,7 @@ const buildExpectedInterest = (amount: number, start: string, end: string): numb
   const referenceRate = findRatePctOnDate(referenceRates, startDate);
   const surchargeRate = findRatePctOnDate(surchargeRates, startDate);
   const totalRate = referenceRate + surchargeRate;
-  const daysInYear = startDate.getFullYear() % 4 === 0 ? 366 : 365;
+  const daysInYear = startDate.getUTCFullYear() % 4 === 0 ? 366 : 365;
   const interest = (amount * totalRate / 100 * days) / daysInYear;
   return Math.round(interest * 100) / 100;
 };

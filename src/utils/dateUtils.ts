@@ -1,7 +1,9 @@
 /**
  * Centraliserede dato-funktioner
  *
- * Alle funktioner undgår timezone-problemer ved manuel formatering.
+ * Alle funktioner arbejder med date-only som UTC-dage (ingen tid).
+ * Brug denne fil til low-level helpers og UI-nær logik; nye domæneberegninger
+ * skal primært bruge branded ISODateString og dedikerede domain-moduler.
  * VIGTIGT: Brug ALDRIG toISOString() eller new Date(isoString) direkte,
  * da disse kan forårsage timezone-shifts der ændrer datoen ±1 dag.
  */
@@ -15,8 +17,8 @@ import { toDanishDateString, toISODateString } from '../types/branded';
  * Sikrer at året er korrekt sat (vigtigt for tværårs-beregninger)
  */
 export const createDate = (year: number, monthIndex: number, day: number): Date => {
-  const date = new Date(year, monthIndex, day);
-  date.setFullYear(year);
+  const date = new Date(Date.UTC(year, monthIndex, day));
+  date.setUTCFullYear(year);
   return date;
 };
 
@@ -56,7 +58,7 @@ export const parseDanishDate = (dateStr: DanishDateString | string): Date | null
   const date = createDate(year, month - 1, day);
 
   // Valider at datoen er gyldig (fanger fx 31-02-2025)
-  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
     return null;
   }
 
@@ -67,9 +69,9 @@ export const parseDanishDate = (dateStr: DanishDateString | string): Date | null
  * Konverterer Date-objekt til dansk format (dd-mm-åååå)
  */
 export const formatDanishDate = (date: Date): DanishDateString => {
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const year = date.getUTCFullYear();
   return toDanishDateString(`${day}-${month}-${year}`);
 };
 
@@ -78,9 +80,23 @@ export const formatDanishDate = (date: Date): DanishDateString => {
  * Manuel formatering for at undgå timezone-problemer
  */
 export const formatToISO = (date: Date): ISODateString => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return toISODateString(`${year}-${month}-${day}`);
+};
+
+/**
+ * Dags dato i lokal kalender (dd-mm-åååå) som ISODateString.
+ *
+ * VIGTIGT: "I dag" skal afspejle brugerens lokale kalenderdag,
+ * ikke UTC-datoen (som kan være forskudt omkring midnat).
+ */
+export const getTodayLocalISO = (): ISODateString => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
   return toISODateString(`${year}-${month}-${day}`);
 };
 
@@ -95,7 +111,7 @@ export { parseISODate } from '../types/branded';
  */
 export const addDays = (date: Date, days: number): Date => {
   const result = new Date(date.getTime());
-  result.setDate(result.getDate() + days);
+  result.setUTCDate(result.getUTCDate() + days);
   return result;
 };
 
@@ -108,14 +124,14 @@ export const addMonths = (date: Date, months: number): Date => {
     return new Date(date.getTime());
   }
 
-  const day = date.getDate();
-  const targetMonth = date.getMonth() + months;
-  const targetYear = date.getFullYear() + Math.floor(targetMonth / 12);
+  const day = date.getUTCDate();
+  const targetMonth = date.getUTCMonth() + months;
+  const targetYear = date.getUTCFullYear() + Math.floor(targetMonth / 12);
   const normalizedMonth = ((targetMonth % 12) + 12) % 12;
 
   const result = createDate(targetYear, normalizedMonth, 1);
-  const daysInTargetMonth = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
-  result.setDate(Math.min(day, daysInTargetMonth));
+  const daysInTargetMonth = new Date(Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0)).getUTCDate();
+  result.setUTCDate(Math.min(day, daysInTargetMonth));
 
   return result;
 };
@@ -142,16 +158,16 @@ export const parseWeekString = (weekStr: string): DateInterval | null => {
   }
 
   // Brug ISO week date system - find mandag i den angivne uge
-  const jan4 = new Date(year, 0, 4);
-  const jan4Day = jan4.getDay() || 7; // Søndag = 7 i stedet for 0
+  const jan4 = createDate(year, 0, 4);
+  const jan4Day = jan4.getUTCDay() || 7; // Søndag = 7 i stedet for 0
   const weekOneMonday = new Date(jan4);
-  weekOneMonday.setDate(jan4.getDate() - jan4Day + 1);
+  weekOneMonday.setUTCDate(jan4.getUTCDate() - jan4Day + 1);
 
   const targetMonday = new Date(weekOneMonday);
-  targetMonday.setDate(weekOneMonday.getDate() + (week - 1) * 7);
+  targetMonday.setUTCDate(weekOneMonday.getUTCDate() + (week - 1) * 7);
 
   const targetSunday = new Date(targetMonday);
-  targetSunday.setDate(targetMonday.getDate() + 6);
+  targetSunday.setUTCDate(targetMonday.getUTCDate() + 6);
 
   return { start: targetMonday, end: targetSunday };
 };
@@ -201,23 +217,23 @@ export const beregnMaanederMellemDatoer = (fraDate: string, tilDate: string): nu
     return null;
   }
 
-  const fraYear = fraDato.getFullYear();
-  const fraMonth = fraDato.getMonth();
-  const fraDay = fraDato.getDate();
+  const fraYear = fraDato.getUTCFullYear();
+  const fraMonth = fraDato.getUTCMonth();
+  const fraDay = fraDato.getUTCDate();
 
-  const tilYear = tilDato.getFullYear();
-  const tilMonth = tilDato.getMonth();
-  const tilDay = tilDato.getDate();
+  const tilYear = tilDato.getUTCFullYear();
+  const tilMonth = tilDato.getUTCMonth();
+  const tilDay = tilDato.getUTCDate();
 
   // Hvis samme måned og år
   if (fraYear === tilYear && fraMonth === tilMonth) {
-    const dageIMaaned = new Date(fraYear, fraMonth + 1, 0).getDate();
+    const dageIMaaned = new Date(Date.UTC(fraYear, fraMonth + 1, 0)).getUTCDate();
     const antalDage = tilDay - fraDay + 1; // +1 fordi begge dage er inklusiv
     return antalDage / dageIMaaned;
   }
 
   // Beregn andel af startmåneden
-  const dageIStartMaaned = new Date(fraYear, fraMonth + 1, 0).getDate();
+  const dageIStartMaaned = new Date(Date.UTC(fraYear, fraMonth + 1, 0)).getUTCDate();
   const tilbageMaanedDage = dageIStartMaaned - fraDay + 1; // +1 fordi fra-dag er inklusiv
   const startMaanedAndel = tilbageMaanedDage / dageIStartMaaned;
 
@@ -236,7 +252,7 @@ export const beregnMaanederMellemDatoer = (fraDate: string, tilDate: string): nu
   }
 
   // Beregn andel af slutmåneden
-  const dageISlutMaaned = new Date(tilYear, tilMonth + 1, 0).getDate();
+  const dageISlutMaaned = new Date(Date.UTC(tilYear, tilMonth + 1, 0)).getUTCDate();
   const slutMaanedAndel = tilDay / dageISlutMaaned;
 
   // Totalsum

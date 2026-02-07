@@ -5,8 +5,10 @@
  */
 
 import type { DateInterval, AarsloenTableRow } from '../types/common';
+import type { ISODateString } from '../types/branded';
+import { toISODateString } from '../types/branded';
 import { parseDanishDate, parseWeekString } from './shDageBeregning';
-import { parseISODate } from './dateUtils';
+import { addDays, createDate, formatToISO, parseISODate } from './dateUtils';
 import { beregnSHDageForDatoSet } from './shDageBeregning';
 import type { Periodisering } from '../data/ydelsestyper';
 import { countInclusiveUtcDays, diffUtcDaysAbs } from './utcDayMath';
@@ -20,22 +22,22 @@ export interface PeriodeResult {
   totalEnheder: number;
   unikkeEnheder: number;
   enhedNavn: string;
-  datoSet: Set<string>;
+  datoSet: Set<ISODateString>;
   perioder: DateInterval[];
 }
 
 /**
  * Beregner antal hverdage (mandag-fredag) i et datoSet
  */
-export const beregnAntalHverdage = (datoSet: Set<string>): number => {
+export const beregnAntalHverdage = (datoSet: ReadonlySet<ISODateString>): number => {
   if (!datoSet || datoSet.size === 0) return 0;
 
   let antalHverdage = 0;
 
-  datoSet.forEach(dateStr => {
-    const date = parseISODate(dateStr as any); // dateStr er allerede valideret ISO string
+  datoSet.forEach((dateStr) => {
+    const date = parseISODate(dateStr);
     if (!date) return;
-    const dayOfWeek = date.getDay();
+    const dayOfWeek = date.getUTCDay();
 
     // Mandag = 1, Fredag = 5
     if (dayOfWeek >= 1 && dayOfWeek <= 5) {
@@ -61,7 +63,7 @@ export const beregnFeriedagePaaEtAar = (retTilSjetteFerieuge: boolean): number =
  * @param {Set<string>} datoSet - Set af datoer (kun for dagsløn)
  * @returns {boolean} True hvis nøjagtig 1 års data
  */
-export const erNoejagtEtAar = (loenperiode: string, unikkeEnheder: number, datoSet?: Set<string>) => {
+export const erNoejagtEtAar = (loenperiode: string, unikkeEnheder: number, datoSet?: ReadonlySet<ISODateString>) => {
   if (loenperiode === 'maaned') {
     return unikkeEnheder === 12;
   } else if (loenperiode === 'dag') {
@@ -76,8 +78,8 @@ export const erNoejagtEtAar = (loenperiode: string, unikkeEnheder: number, datoS
     }
 
     const dates = Array.from(datoSet)
-      .map((d) => parseISODate(d as any)) // dateStr er allerede valideret ISO string
-      .filter((d): d is Date => d !== null)
+      .map((d) => parseISODate(d))
+      .filter((d): d is Date => d !== undefined)
       .sort((a, b) => a.getTime() - b.getTime());
 
     if (dates.length === 0) {
@@ -107,7 +109,7 @@ export const erNoejagtEtAar = (loenperiode: string, unikkeEnheder: number, datoS
  */
 export const beregnMaanedPeriode = (tableData: AarsloenTableRow[]): PeriodeResult | null => {
   const maaneder = new Set<string>();
-  const datoSet = new Set<string>();
+  const datoSet = new Set<ISODateString>();
   const perioder: Array<{ start: Date; end: Date }> = [];
 
   tableData.forEach(row => {
@@ -122,22 +124,17 @@ export const beregnMaanedPeriode = (tableData: AarsloenTableRow[]): PeriodeResul
         maaneder.add(`${aarNum}-${String(maanedNum).padStart(2, '0')}`);
 
         // Beregn første og sidste dag i måneden
-        const foersteDag = new Date(aarNum, maanedNum - 1, 1);
-        const sidsteDag = new Date(aarNum, maanedNum, 0);
+        const foersteDag = createDate(aarNum, maanedNum - 1, 1);
+        const sidsteDag = createDate(aarNum, maanedNum, 0);
 
         // Tilføj periode
         perioder.push({ start: foersteDag, end: sidsteDag });
 
         // Tilføj alle dage i måneden til datoSet
-        const currentDate = new Date(foersteDag);
+        let currentDate = new Date(foersteDag);
         while (currentDate <= sidsteDag) {
-          // Formater dato manuelt (undgå timezone-problemer fra toISOString)
-          const year = currentDate.getFullYear();
-          const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-          const day = String(currentDate.getDate()).padStart(2, '0');
-          const dateStr = `${year}-${month}-${day}`;
-          datoSet.add(dateStr);
-          currentDate.setDate(currentDate.getDate() + 1);
+          datoSet.add(formatToISO(currentDate));
+          currentDate = addDays(currentDate, 1);
         }
       }
     }
@@ -183,7 +180,7 @@ export const beregnMaanedPeriode = (tableData: AarsloenTableRow[]): PeriodeResul
  */
 export const beregnUgePeriode = (tableData: AarsloenTableRow[]): PeriodeResult | null => {
   const uger = new Set<string>();
-  const datoSet = new Set<string>();
+  const datoSet = new Set<ISODateString>();
   const perioder: Array<{ start: Date; end: Date }> = [];
 
   tableData.forEach(row => {
@@ -228,15 +225,10 @@ export const beregnUgePeriode = (tableData: AarsloenTableRow[]): PeriodeResult |
         }
 
         // Tilføj alle dage mellem fra og til til datoSet
-        const currentDate = new Date(fraData.start);
+        let currentDate = new Date(fraData.start);
         while (currentDate <= tilData.end) {
-          // Formater dato manuelt (undgå timezone-problemer fra toISOString)
-          const year = currentDate.getFullYear();
-          const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-          const day = String(currentDate.getDate()).padStart(2, '0');
-          const dateStr = `${year}-${month}-${day}`;
-          datoSet.add(dateStr);
-          currentDate.setDate(currentDate.getDate() + 1);
+          datoSet.add(formatToISO(currentDate));
+          currentDate = addDays(currentDate, 1);
         }
       }
     }
@@ -280,9 +272,9 @@ export const beregnUgePeriode = (tableData: AarsloenTableRow[]): PeriodeResult |
  * Hjælpefunktion til at formatere dato til dansk format
  */
 const formatDanskDato = (date: Date): string => {
-  const dag = date.getDate();
-  const maaned = date.getMonth();
-  const aar = date.getFullYear();
+  const dag = date.getUTCDate();
+  const maaned = date.getUTCMonth();
+  const aar = date.getUTCFullYear();
   return `${dag}. ${MONTH_NAMES_DA_SHORT[maaned]} ${aar}`;
 };
 
@@ -294,7 +286,7 @@ const formatDanskDato = (date: Date): string => {
  * Bruger countInclusiveUtcDays for samlet antal dage.
  */
 export const beregnDagPeriode = (tableData: AarsloenTableRow[]): PeriodeResult | null => {
-  const dage = new Set<string>();
+  const dage = new Set<ISODateString>();
   const perioder: Array<{ start: Date; end: Date }> = [];
 
   tableData.forEach(row => {
@@ -310,15 +302,10 @@ export const beregnDagPeriode = (tableData: AarsloenTableRow[]): PeriodeResult |
         perioder.push({ start: fraDate, end: tilDate });
 
         // Tilføj alle dage mellem fra og til
-        const currentDate = new Date(fraDate);
+        let currentDate = new Date(fraDate);
         while (currentDate <= tilDate) {
-          // Formater dato manuelt (undgå timezone-problemer fra toISOString)
-          const year = currentDate.getFullYear();
-          const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-          const day = String(currentDate.getDate()).padStart(2, '0');
-          const dateStr = `${year}-${month}-${day}`;
-          dage.add(dateStr);
-          currentDate.setDate(currentDate.getDate() + 1);
+          dage.add(formatToISO(currentDate));
+          currentDate = addDays(currentDate, 1);
         }
       }
     }
@@ -330,11 +317,11 @@ export const beregnDagPeriode = (tableData: AarsloenTableRow[]): PeriodeResult |
 
   // Find min og max dato
   const sortedDage = Array.from(dage).sort();
-  // Parse ISO-datoer manuelt for at undgå timezone-problemer
-  const [minYear, minMonth, minDay] = sortedDage[0].split('-').map(Number);
-  const minDato = new Date(minYear, minMonth - 1, minDay);
-  const [maxYear, maxMonth, maxDay] = sortedDage[sortedDage.length - 1].split('-').map(Number);
-  const maxDato = new Date(maxYear, maxMonth - 1, maxDay);
+  const minDato = parseISODate(toISODateString(sortedDage[0])) ?? null;
+  const maxDato = parseISODate(toISODateString(sortedDage[sortedDage.length - 1])) ?? null;
+  if (!minDato || !maxDato) {
+    return null;
+  }
 
   // Beregn total antal dage i intervallet
   const totalDage = countInclusiveUtcDays(minDato, maxDato);
@@ -382,14 +369,11 @@ export const beregnPeriodiseringsDage = (
   if (!fra || !til || fra > til) return null;
 
   // Byg et Set af alle datoer i perioden (ISO-format)
-  const datoSet = new Set<string>();
-  const current = new Date(fra);
+  const datoSet = new Set<ISODateString>();
+  let current = new Date(fra);
   while (current <= til) {
-    const year = current.getFullYear();
-    const month = String(current.getMonth() + 1).padStart(2, '0');
-    const day = String(current.getDate()).padStart(2, '0');
-    datoSet.add(`${year}-${month}-${day}`);
-    current.setDate(current.getDate() + 1);
+    datoSet.add(formatToISO(current));
+    current = addDays(current, 1);
   }
 
   switch (periodisering) {
@@ -412,7 +396,7 @@ export const beregnPeriodiseringsDage = (
         const tilParsed = parseDanishDate(tilDato);
         if (tilParsed) {
           // 2. juli 2012 = 02-07-2012
-          const skaeringsdato = new Date(2012, 6, 2); // Måned er 0-indekseret
+          const skaeringsdato = createDate(2012, 6, 2); // Måned er 0-indekseret
           if (tilParsed < skaeringsdato) {
             // Før 2. juli 2012 - beregn UDEN fradrag af SH-dage
             return hverdage;
