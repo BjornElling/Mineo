@@ -20,6 +20,7 @@ import { calculateFerieHverdageMinusSHDage } from './ferieCalculations';
 import { computeTafOverlapWithBeregningsperiode } from './beregningsperiodeTafOverlap';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoDebugIndkomstModel';
 import { mergeDateRanges } from './periodMerging';
+import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from './tafPeriodConstraints';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -1303,12 +1304,18 @@ export const buildEODebugTaftRows = (
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
 
+  const tafBounds = resolveTafConstraintBounds(values);
+  const clampedTafById = new Map<string, { fra: ISODateString; til: ISODateString }>();
+
   const lastTafKravDato = (() => {
     let latest: ISODateString | undefined = undefined;
     for (const periode of values.tafPerioder ?? []) {
-      if (!isNonEmptyString(periode.fra) || !isNonEmptyString(periode.til)) continue;
-      if (periode.fra > periode.til) continue;
-      if (!latest || periode.til > latest) latest = periode.til;
+      const valid = getValidTafRange(periode);
+      if (!valid) continue;
+      const clamped = clampTafRange(valid, tafBounds);
+      if (!clamped) continue;
+      clampedTafById.set(periode.id, clamped);
+      if (!latest || clamped.til > latest) latest = clamped.til;
     }
     return latest;
   })();
@@ -1460,9 +1467,13 @@ export const buildEODebugTaftRows = (
         return;
       }
 
-      const fraDanish = isoToDanish(fraISO);
-      const tilDanish = isoToDanish(tilISO);
-      const periodeLabel = fraDanish && tilDanish ? `Periode (${fraDanish} - ${tilDanish})` : 'Periode';
+      const clamped = clampedTafById.get(periode.id);
+      const displayFra = clamped?.fra;
+      const displayTil = clamped?.til;
+      const displayFraDanish = displayFra ? isoToDanish(displayFra) : undefined;
+      const displayTilDanish = displayTil ? isoToDanish(displayTil) : undefined;
+      const periodeLabel =
+        displayFraDanish && displayTilDanish ? `Periode (${displayFraDanish} - ${displayTilDanish})` : 'Periode';
 
       const bounds = computeRowDateBounds({
         skadesdatoMinDate: skadesdatoMinRule.minDate,
@@ -1520,28 +1531,28 @@ export const buildEODebugTaftRows = (
         return;
       }
 
-      if (!fraDanish || !tilDanish) {
+      if (!displayFra || !displayTil || !displayFraDanish || !displayTilDanish) {
         rows.push({
           id: `taf.periode.${periode.id}`,
           label: 'Periode',
-          displayValue: 'Fejl (Ugyldig dato)',
-          status: 'error',
+          displayValue: '-',
+          status: 'ok',
         });
         return;
       }
 
       const loseFeriedage = typeof periode.loseFeriedage === 'number' ? periode.loseFeriedage : 0;
       const breakdown = calculateTafArbejdsdageBreakdown(
-        fraISO,
-        tilISO,
+        displayFra,
+        displayTil,
         ferieperioder,
         loseFeriedage,
         { kind: 'taf' }
       );
 
       const antalMaaneder = calculateTafAntalMaaneder(
-        fraISO,
-        tilISO,
+        displayFra,
+        displayTil,
         ferieperioder,
         loseFeriedage,
         0

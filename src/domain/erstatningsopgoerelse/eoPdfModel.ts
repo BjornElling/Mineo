@@ -24,6 +24,7 @@ import { LOEN_PAA_HELLIGDAGE } from '../../types/common';
 import { getEffektiveSatserForDato, getEffektiveSatserForPeriode, resolveOverenskomstRef } from '../../data/overenskomstRates';
 import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../data/statistiskLoenudviklingRates';
 import { getKRLSatstabel, type KRLSatstabelId } from '../../data/KRLrates';
+import { clampTafRow, resolveTafConstraintBounds } from './tafPeriodConstraints';
 import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
@@ -334,11 +335,23 @@ const buildTafArbejdsdageSet = (values: ErstatningsopgoerelseValues): Set<ISODat
   const ferieperioder = values.ferieperioder ?? [];
   const rows = values.tafPerioder ?? [];
   const arbejdsdage = new Set<ISODateString>();
+  const tafBounds = resolveTafConstraintBounds(values);
 
   for (const row of rows) {
     if (isTafRowEmpty(row)) continue;
-    const fra = row.fra;
-    const til = row.til;
+    const clamped = clampTafRow(row, tafBounds);
+    if (!clamped) {
+      const fra = row.fra;
+      const til = row.til;
+      if (!fra || !til) {
+        throw new Error('TAF-periode mangler fra/til'); // invariant: dækket af validator
+      }
+      if (!isISODateString(fra) || !isISODateString(til) || fra > til) {
+        throw new Error('TAF-periode er ugyldig'); // invariant: dækket af validator
+      }
+      continue;
+    }
+    const { fra, til } = clamped;
     if (!fra || !til) {
       throw new Error('TAF-periode mangler fra/til'); // invariant: dækket af validator
     }

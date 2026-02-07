@@ -2,6 +2,7 @@ import type { ErstatningsopgoerelseValues, FerieperiodeRow, TafPeriodeRow } from
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from './tafBeregningsenhed';
 import { calculateTafAntalArbejdsdage, calculateTafAntalMaaneder } from './tafCalculations';
 import { computeTafOverlapWithBeregningsperiode } from './beregningsperiodeTafOverlap';
+import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from './tafPeriodConstraints';
 
 export type TafDerivedResult = Readonly<{
   derivedById: Record<string, number | null>;
@@ -17,19 +18,30 @@ export const buildTafDerived = (args: {
   const beregningsenhed = computeTafBeregningsenhed(args.values);
   const visAntalMaaneder = beregningsenhed === TAF_BEREGNES_SOM.MAANEDER;
   const kolonneOverskrift = visAntalMaaneder ? 'Antal måneder' : 'Antal arbejdsdage';
+  const tafBounds = resolveTafConstraintBounds(args.values);
 
   const derivedById: Record<string, number | null> = {};
   for (const row of args.tafPerioder) {
     const loseFeriedage = typeof row.loseFeriedage === 'number' ? row.loseFeriedage : 0;
+    const validRange = getValidTafRange(row);
+    if (!validRange) {
+      derivedById[row.id] = null;
+      continue;
+    }
+    const clamped = clampTafRange(validRange, tafBounds);
+    if (!clamped) {
+      derivedById[row.id] = 0;
+      continue;
+    }
     derivedById[row.id] = visAntalMaaneder
       ? calculateTafAntalMaaneder(
-        row.fra,
-        row.til,
+        clamped.fra,
+        clamped.til,
         args.ferieperioder,
         loseFeriedage,
         0
       )
-      : calculateTafAntalArbejdsdage(row.fra, row.til, args.ferieperioder, loseFeriedage, { kind: 'taf' });
+      : calculateTafAntalArbejdsdage(clamped.fra, clamped.til, args.ferieperioder, loseFeriedage, { kind: 'taf' });
   }
 
   return { derivedById, kolonneOverskrift, beregningsenhed };

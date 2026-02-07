@@ -12,6 +12,7 @@ import { createDate, parseDanishDate, parseWeekString } from '../../utils/dateUt
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { ydelsestyper } from '../../data/ydelsestyper';
 import { mergeIsoDateRanges } from './periodMerging';
+import { buildClampedTafRanges, resolveTafConstraintBounds } from './tafPeriodConstraints';
 
 export type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
 
@@ -120,12 +121,8 @@ const parseOffentligInterval = (row: OffentligeYdelserRow): DateInterval | null 
 };
 
 export const buildTafRanges = (values: ErstatningsopgoerelseValues): IsoRange[] => {
-  const ranges = (values.tafPerioder ?? [])
-    .map((row) => {
-      if (!isISODateString(row.fra) || !isISODateString(row.til)) return undefined;
-      return getIsoRange(row.fra, row.til);
-    })
-    .filter((range): range is IsoRange => Boolean(range));
+  const bounds = resolveTafConstraintBounds(values);
+  const ranges = buildClampedTafRanges(values.tafPerioder ?? [], bounds);
   return mergeIsoDateRanges(ranges, { mergeAdjacent: true });
 };
 

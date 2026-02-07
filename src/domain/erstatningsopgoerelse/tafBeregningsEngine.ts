@@ -1,9 +1,11 @@
 import type { ErstatningsopgoerelseValues, FerieperiodeRow, TafPeriodeRow } from '../../schemas/formSchemas';
+import type { ISODateString } from '../../types/branded';
 import type { DeepReadonly } from '../../types/deepReadonly';
 import { isISODateString } from '../../types/branded';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from './tafBeregningsenhed';
 import { calculateTafAntalArbejdsdage, calculateTafAntalMaaneder } from './tafCalculations';
 import { mergeIsoDateRanges } from './periodMerging';
+import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, type TafConstraintBounds } from './tafPeriodConstraints';
 
 export type TafEngineInputSnapshot = DeepReadonly<{
   erstatningsopgoerelse: ErstatningsopgoerelseValues;
@@ -32,7 +34,10 @@ export type MergedTafGroup = Readonly<{
   loseFeriedage: number;
 }>;
 
-export const buildMergedTafGroups = (rows: ReadonlyArray<TafPeriodeRow>): ReadonlyArray<MergedTafGroup> => {
+export const buildMergedTafGroups = (
+  rows: ReadonlyArray<TafPeriodeRow>,
+  bounds?: TafConstraintBounds
+): ReadonlyArray<MergedTafGroup> => {
   const invalidRows = rows
     .filter((row) => {
       if (!row.fra || !row.til) return true;
@@ -41,19 +46,33 @@ export const buildMergedTafGroups = (rows: ReadonlyArray<TafPeriodeRow>): Readon
     })
     .map((row) => ({ id: row.id, fra: row.fra, til: row.til, loseFeriedage: 0 }));
 
-  const validRows = rows
-    .filter((row): row is TafPeriodeRow & { fra: NonNullable<TafPeriodeRow['fra']>; til: NonNullable<TafPeriodeRow['til']> } => {
-      if (!row.fra || !row.til) return false;
-      if (!isISODateString(row.fra) || !isISODateString(row.til)) return false;
-      return row.fra <= row.til;
+  let validRows = rows
+    .map((row, index) => {
+      const validRange = getValidTafRange(row);
+      if (!validRange) return null;
+      return {
+        index,
+        id: row.id,
+        fra: validRange.fra,
+        til: validRange.til,
+        loseFeriedage: typeof row.loseFeriedage === 'number' ? row.loseFeriedage : 0,
+      };
     })
-    .map((row, index) => ({
-      index,
-      id: row.id,
-      fra: row.fra,
-      til: row.til,
-      loseFeriedage: typeof row.loseFeriedage === 'number' ? row.loseFeriedage : 0,
-    }));
+    .filter(
+      (row): row is { index: number; id: string; fra: ISODateString; til: ISODateString; loseFeriedage: number } => Boolean(row)
+    );
+
+  if (bounds) {
+    validRows = validRows
+      .map((row) => {
+        const clamped = clampTafRange({ fra: row.fra, til: row.til }, bounds);
+        if (!clamped) return null;
+        return { ...row, fra: clamped.fra, til: clamped.til };
+      })
+      .filter(
+        (row): row is { index: number; id: string; fra: ISODateString; til: ISODateString; loseFeriedage: number } => Boolean(row)
+      );
+  }
 
   if (validRows.length === 0) return invalidRows;
 
@@ -77,7 +96,8 @@ export const computeTafEngine = (input: TafEngineInputSnapshot): TafEngineOutput
   const { erstatningsopgoerelse, tafPerioder, ferieperioder } = input;
   const beregningsenhed = computeTafBeregningsenhed(erstatningsopgoerelse);
   const visAntalMaaneder = beregningsenhed === TAF_BEREGNES_SOM.MAANEDER;
-  const mergedGroups = buildMergedTafGroups(tafPerioder);
+  const tafBounds = resolveTafConstraintBounds(erstatningsopgoerelse);
+  const mergedGroups = buildMergedTafGroups(tafPerioder, tafBounds);
 
   // TAF aggregation is computed on merged, canonical periods to avoid overlap double counting.
   const rows = mergedGroups.map((group) => {

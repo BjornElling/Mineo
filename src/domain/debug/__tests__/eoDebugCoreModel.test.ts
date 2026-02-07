@@ -489,7 +489,7 @@ describe('eoDebugCoreModel', () => {
       ]);
     });
 
-    it('udvider interval baseret på TAF-perioder uden for EO-periode', () => {
+    it('afgrænser TAF-perioder til erstatningsperioden', () => {
       const input: DebugModelInput = {
         stamdataValues: {
           journalnr: '',
@@ -516,10 +516,10 @@ describe('eoDebugCoreModel', () => {
 
       const result = buildDebugCoreModel(input);
 
-      // Tidslinjen skal dække 01-01 til 15-01 (baseret på TAF)
-      expect(result.length).toBe(15);
-      expect(result[0]?.iso).toBe('2024-01-01');
-      expect(result[result.length - 1]?.iso).toBe('2024-01-15');
+      // Tidslinjen skal kun dække erstatningsperioden
+      expect(result.length).toBe(6);
+      expect(result[0]?.iso).toBe('2024-01-05');
+      expect(result[result.length - 1]?.iso).toBe('2024-01-10');
     });
   });
 });

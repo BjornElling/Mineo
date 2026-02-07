@@ -10,6 +10,7 @@ import { calculateTafArbejdsdageBreakdown } from '../erstatningsopgoerelse/tafCa
 import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/beregningsperiodeTafOverlap';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../erstatningsopgoerelse/tafBeregningsenhed';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, type IsoRange } from '../erstatningsopgoerelse/indtaegtPerioder';
+import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
 import { buildFerieDageSet, buildSHDageSet } from './eoDebugRegulationCore';
 import { isoDateToDate } from '../dates/isoDate';
 
@@ -498,10 +499,14 @@ export const buildEODebugSammentaellingModel = (args: {
   const beregningsShDates = buildShDatesInRange(beregningsRange);
   const beregningsFeriedageCount = beregningsFerieDates.size + beregningsShDates.size;
 
+  const tafBounds = resolveTafConstraintBounds(values);
   const tafFerieDates = (() => {
     const collected = new Set<ISODateString>();
     for (const periode of values.tafPerioder ?? []) {
-      const range = getIsoRange(periode.fra, periode.til);
+      const validRange = getValidTafRange(periode);
+      if (!validRange) continue;
+      const range = clampTafRange(validRange, tafBounds);
+      if (!range) continue;
       const set = buildFerieDatesInRange(values, range);
       set.forEach((iso) => collected.add(iso));
     }
@@ -510,7 +515,10 @@ export const buildEODebugSammentaellingModel = (args: {
   const tafShDates = (() => {
     const collected = new Set<ISODateString>();
     for (const periode of values.tafPerioder ?? []) {
-      const range = getIsoRange(periode.fra, periode.til);
+      const validRange = getValidTafRange(periode);
+      if (!validRange) continue;
+      const range = clampTafRange(validRange, tafBounds);
+      if (!range) continue;
       const set = buildShDatesInRange(range);
       set.forEach((iso) => collected.add(iso));
     }
@@ -628,6 +636,10 @@ export const buildEODebugSammentaellingModel = (args: {
     values.oevrigtFravaerUdenLoen !== 'Ja' || typeof values.oevrigeFravaersdage === 'number';
 
   const tafLoseFeriedage = (values.tafPerioder ?? []).reduce((sum, row) => {
+    const validRange = getValidTafRange(row);
+    if (!validRange) return sum;
+    const range = clampTafRange(validRange, tafBounds);
+    if (!range) return sum;
     const next = typeof row.loseFeriedage === 'number' ? row.loseFeriedage : 0;
     return sum + next;
   }, 0);

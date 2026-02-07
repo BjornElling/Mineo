@@ -13,7 +13,8 @@ import type { ISODateString } from '../../types/branded';
 import type { DebugDay, IntegrityIssue, DateRange } from './eoDebugTypes';
 import type { DebugModelInput } from './eoDebugCoreModel';
 import { getOverlap, getIsoRange } from './eoDebugDateUtils';
-import { toISODateString } from '../../types/branded';
+import { subtractOneDay, toISODateString } from '../../types/branded';
+import { clampTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
 
 /**
  * Helper til at validere og konvertere til ISODateString
@@ -163,6 +164,7 @@ const checkTafDaysMismatch = (
 ): IntegrityIssue[] => {
   const issues: IntegrityIssue[] = [];
   const tafPerioder = input.erstatningsopgoerelseValues.tafPerioder ?? [];
+  const tafBounds = resolveTafConstraintBounds(input.erstatningsopgoerelseValues);
 
   for (const periode of tafPerioder) {
     const fra = tryParseIso(periode.fra);
@@ -171,8 +173,11 @@ const checkTafDaysMismatch = (
     if (!fra || !til) continue;
     if (fra > til) continue;
 
+    const clamped = clampTafRange({ fra, til }, tafBounds);
+    if (!clamped) continue;
+
     // Forventet antal dage (inklusiv-inklusiv)
-    const expectedRange = getIsoRange(fra, til);
+    const expectedRange = getIsoRange(clamped.fra, clamped.til);
     const expectedCount = expectedRange.length;
 
     // Faktisk antal dage markeret i debug-model
@@ -204,6 +209,17 @@ const checkSvieSmerteMismatch = (
 ): IntegrityIssue[] => {
   const issues: IntegrityIssue[] = [];
   const ssPerioder = input.erstatningsopgoerelseValues.svieSmertePerioder ?? [];
+  const erstatningsFra = tryParseIso(input.erstatningsopgoerelseValues.vedroererPeriodeFra);
+  const erstatningsTil = tryParseIso(input.erstatningsopgoerelseValues.vedroererPeriodeTil);
+  const erstatningsRange =
+    erstatningsFra && erstatningsTil && erstatningsFra <= erstatningsTil
+      ? { fra: erstatningsFra, til: erstatningsTil }
+      : undefined;
+  const menStopDato =
+    input.erstatningsopgoerelseValues.varigeMenAfgorelse === 'Ja' &&
+    input.erstatningsopgoerelseValues.verserendeKlageMen !== 'Ja'
+      ? subtractOneDay(tryParseIso(input.erstatningsopgoerelseValues.menAfgoerelseDato))
+      : undefined;
 
   for (const periode of ssPerioder) {
     const fra = tryParseIso(periode.fra);
@@ -212,8 +228,17 @@ const checkSvieSmerteMismatch = (
     if (!fra || !til) continue;
     if (fra > til) continue;
 
+    let clampedFra = fra;
+    let clampedTil = til;
+    if (erstatningsRange) {
+      if (clampedFra < erstatningsRange.fra) clampedFra = erstatningsRange.fra;
+      if (clampedTil > erstatningsRange.til) clampedTil = erstatningsRange.til;
+    }
+    if (menStopDato && clampedTil > menStopDato) clampedTil = menStopDato;
+    if (clampedFra > clampedTil) continue;
+
     // Forventet antal dage
-    const expectedRange = getIsoRange(fra, til);
+    const expectedRange = getIsoRange(clampedFra, clampedTil);
     const expectedCount = expectedRange.length;
 
     // Forventet niveau
@@ -231,7 +256,7 @@ const checkSvieSmerteMismatch = (
 
     // Faktisk antal dage med dette niveau i perioden
     const actualCount = debugDays.filter((d) => {
-      const inRange = d.iso >= fra && d.iso <= til;
+      const inRange = d.iso >= clampedFra && d.iso <= clampedTil;
       return inRange && d.svieSmerte === expectedNiveau;
     }).length;
 

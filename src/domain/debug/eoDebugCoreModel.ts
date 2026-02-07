@@ -15,7 +15,8 @@ import type {
 import type { DebugDay, SvieSmerte } from './eoDebugTypes';
 import { getIsoRange, minDate, maxDate } from './eoDebugDateUtils';
 import { beregnHelligdage } from '../../utils/shDageBeregning';
-import { toISODateString } from '../../types/branded';
+import { subtractOneDay, toISODateString } from '../../types/branded';
+import { clampTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
 
 /**
  * Input til debug core model
@@ -47,6 +48,20 @@ const _danishToIso = (danish: string): ISODateString | undefined => {
 };
 
 /**
+ * Helper til at validere og konvertere til ISODateString
+ *
+ * VIGTIGT: Data kommer allerede i ISO-format fra persistence layer
+ */
+const tryParseIso = (value: unknown): ISODateString | undefined => {
+  if (!value || typeof value !== 'string' || value.trim() === '') return undefined;
+  try {
+    return toISODateString(value);
+  } catch {
+    return undefined;
+  }
+};
+
+/**
  * Udtræk alle relevante datoer fra input
  *
  * VIGTIGT: Data kommer allerede i ISO-format fra persistence layer
@@ -55,16 +70,6 @@ const extractDateSources = (
   input: DebugModelInput
 ): { start: ISODateString; end: ISODateString } | undefined => {
   const dates: ISODateString[] = [];
-
-  // Helper til at validere og konvertere til ISODateString
-  const tryParseIso = (value: unknown): ISODateString | undefined => {
-    if (!value || typeof value !== 'string' || value.trim() === '') return undefined;
-    try {
-      return toISODateString(value);
-    } catch {
-      return undefined;
-    }
-  };
 
   // Skadesdato (allerede ISO-format)
   const skadesdato = tryParseIso(input.stamdataValues.skadesdato);
@@ -76,22 +81,42 @@ const extractDateSources = (
   if (eoFra) dates.push(eoFra);
   if (eoTil) dates.push(eoTil);
 
-  // TAF-perioder (allerede ISO-format)
+  const erstatningsRange = eoFra && eoTil && eoFra <= eoTil ? { fra: eoFra, til: eoTil } : undefined;
+
+  const menStopDato =
+    input.erstatningsopgoerelseValues.varigeMenAfgorelse === 'Ja' &&
+    input.erstatningsopgoerelseValues.verserendeKlageMen !== 'Ja'
+      ? subtractOneDay(tryParseIso(input.erstatningsopgoerelseValues.menAfgoerelseDato))
+      : undefined;
+
+  // TAF-perioder (allerede ISO-format, men afgrænses af erstatningsperioden)
   const tafPerioder = input.erstatningsopgoerelseValues.tafPerioder ?? [];
+  const tafBounds = resolveTafConstraintBounds(input.erstatningsopgoerelseValues);
   for (const periode of tafPerioder) {
     const fra = tryParseIso(periode.fra);
     const til = tryParseIso(periode.til);
-    if (fra) dates.push(fra);
-    if (til) dates.push(til);
+    if (!fra || !til || fra > til) continue;
+    const clamped = clampTafRange({ fra, til }, tafBounds) ?? { fra, til };
+    dates.push(clamped.fra);
+    dates.push(clamped.til);
   }
 
-  // Svie/smerte-perioder (allerede ISO-format)
+  // Svie/smerte-perioder (allerede ISO-format, men afgrænses af erstatningsperioden)
   const ssPerioder = input.erstatningsopgoerelseValues.svieSmertePerioder ?? [];
   for (const periode of ssPerioder) {
     const fra = tryParseIso(periode.fra);
     const til = tryParseIso(periode.til);
-    if (fra) dates.push(fra);
-    if (til) dates.push(til);
+    if (!fra || !til || fra > til) continue;
+    let clampedFra = fra;
+    let clampedTil = til;
+    if (erstatningsRange) {
+      if (clampedFra < erstatningsRange.fra) clampedFra = erstatningsRange.fra;
+      if (clampedTil > erstatningsRange.til) clampedTil = erstatningsRange.til;
+    }
+    if (menStopDato && clampedTil > menStopDato) clampedTil = menStopDato;
+    if (clampedFra > clampedTil) continue;
+    dates.push(clampedFra);
+    dates.push(clampedTil);
   }
 
   if (dates.length === 0) return undefined;
@@ -146,19 +171,10 @@ const buildSognehelligdageSet = (
  * VIGTIGT: Data kommer allerede i ISO-format fra persistence layer
  */
 const buildTafPeriodeMap = (
-  tafPerioder: readonly TafPeriodeRow[]
+  tafPerioder: readonly TafPeriodeRow[],
+  tafBounds: Readonly<{ minStart?: ISODateString; maxEnd?: ISODateString }>
 ): ReadonlyMap<ISODateString, Set<string>> => {
   const map = new Map<ISODateString, Set<string>>();
-
-  // Helper til at validere og konvertere til ISODateString
-  const tryParseIso = (value: unknown): ISODateString | undefined => {
-    if (!value || typeof value !== 'string' || value.trim() === '') return undefined;
-    try {
-      return toISODateString(value);
-    } catch {
-      return undefined;
-    }
-  };
 
   for (const periode of tafPerioder) {
     const fra = tryParseIso(periode.fra);
@@ -167,7 +183,9 @@ const buildTafPeriodeMap = (
     if (!fra || !til) continue;
     if (fra > til) continue;
 
-    const isoRange = getIsoRange(fra, til);
+    const clamped = clampTafRange({ fra, til }, tafBounds);
+    if (!clamped) continue;
+    const isoRange = getIsoRange(clamped.fra, clamped.til);
 
     for (const iso of isoRange) {
       if (!map.has(iso)) {
@@ -186,19 +204,10 @@ const buildTafPeriodeMap = (
  * VIGTIGT: Data kommer allerede i ISO-format fra persistence layer
  */
 const buildSvieSmerte = (
-  ssPerioder: readonly SvieSmertePeriodeRow[]
+  ssPerioder: readonly SvieSmertePeriodeRow[],
+  bounds: Readonly<{ erstatningsRange?: Readonly<{ fra: ISODateString; til: ISODateString }>; menStopDato?: ISODateString }>
 ): ReadonlyMap<ISODateString, SvieSmerte> => {
   const map = new Map<ISODateString, SvieSmerte>();
-
-  // Helper til at validere og konvertere til ISODateString
-  const tryParseIso = (value: unknown): ISODateString | undefined => {
-    if (!value || typeof value !== 'string' || value.trim() === '') return undefined;
-    try {
-      return toISODateString(value);
-    } catch {
-      return undefined;
-    }
-  };
 
   for (const periode of ssPerioder) {
     const fra = tryParseIso(periode.fra);
@@ -206,6 +215,15 @@ const buildSvieSmerte = (
 
     if (!fra || !til) continue;
     if (fra > til) continue;
+
+    let clampedFra = fra;
+    let clampedTil = til;
+    if (bounds.erstatningsRange) {
+      if (clampedFra < bounds.erstatningsRange.fra) clampedFra = bounds.erstatningsRange.fra;
+      if (clampedTil > bounds.erstatningsRange.til) clampedTil = bounds.erstatningsRange.til;
+    }
+    if (bounds.menStopDato && clampedTil > bounds.menStopDato) clampedTil = bounds.menStopDato;
+    if (clampedFra > clampedTil) continue;
 
     let niveau: SvieSmerte;
     switch (periode.tilstand) {
@@ -219,7 +237,7 @@ const buildSvieSmerte = (
         niveau = 'Ingen';
     }
 
-    const isoRange = getIsoRange(fra, til);
+    const isoRange = getIsoRange(clampedFra, clampedTil);
 
     for (const iso of isoRange) {
       // Højeste niveau vinder ved overlap
@@ -267,11 +285,21 @@ export function buildDebugCoreModel(input: DebugModelInput): readonly DebugDay[]
 
   // Byg TAF-periode map
   const tafPerioder = input.erstatningsopgoerelseValues.tafPerioder ?? [];
-  const tafMap = buildTafPeriodeMap(tafPerioder);
+  const tafBounds = resolveTafConstraintBounds(input.erstatningsopgoerelseValues);
+  const tafMap = buildTafPeriodeMap(tafPerioder, tafBounds);
 
   // Byg svie/smerte map
   const ssPerioder = input.erstatningsopgoerelseValues.svieSmertePerioder ?? [];
-  const ssMap = buildSvieSmerte(ssPerioder);
+  const erstatningsFra = tryParseIso(input.erstatningsopgoerelseValues.vedroererPeriodeFra);
+  const erstatningsTil = tryParseIso(input.erstatningsopgoerelseValues.vedroererPeriodeTil);
+  const erstatningsRange =
+    erstatningsFra && erstatningsTil && erstatningsFra <= erstatningsTil ? { fra: erstatningsFra, til: erstatningsTil } : undefined;
+  const menStopDato =
+    input.erstatningsopgoerelseValues.varigeMenAfgorelse === 'Ja' &&
+    input.erstatningsopgoerelseValues.verserendeKlageMen !== 'Ja'
+      ? subtractOneDay(tryParseIso(input.erstatningsopgoerelseValues.menAfgoerelseDato))
+      : undefined;
+  const ssMap = buildSvieSmerte(ssPerioder, { erstatningsRange, menStopDato });
 
   // Generer alle dage i intervallet
   const isoRange = getIsoRange(start, end);
