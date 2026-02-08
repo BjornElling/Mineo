@@ -15,9 +15,12 @@ import { TODAY } from '../../config/dateRanges';
 import {
   getEffektiveSatserForPeriode,
   getOverenskomst,
+  getOffentligOverenskomstTypeById,
   resolveOverenskomstRef,
   type OverenskomstId,
 } from '../../data/overenskomstRates';
+import { getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
+import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
 import {
   getStatistiskLoenudvikling,
   type StatistiskLoenudviklingId,
@@ -46,6 +49,9 @@ type ReguleringPdfParams = Readonly<{
   statistikModelLabel: string | undefined;
   interval: Readonly<{ fraDato: DanishDateString; tilDato: DanishDateString }>;
   applyAlmindeligLoenPaaShDageRegel: boolean;
+  offentligLoenType?: string;
+  offentligLoenTrin?: number;
+  offentligLoenGruppe?: number;
   visBrevhoved?: boolean;
   stamdata?: ReguleringStamdata | null;
 }>;
@@ -69,6 +75,26 @@ const sanitizeFilenamePart = (value: string): string => {
     .replace(/[<>:"/\\|?*]/g, '_')
     .replace(/\s+/g, ' ')
     .trim();
+};
+
+const resolveOffentligLoenInfoLine = (params: Readonly<{
+  overenskomstId: string | undefined;
+  loenTrin: number | undefined;
+  loenGruppe: number | undefined;
+}>): string | null => {
+  const { overenskomstId, loenTrin, loenGruppe } = params;
+  if (!overenskomstId) return null;
+  const offentligType = getOffentligOverenskomstTypeById(overenskomstId);
+  if (!offentligType) return null;
+  if (typeof loenTrin !== 'number' || typeof loenGruppe !== 'number') return null;
+  if (loenGruppe < 0 || loenGruppe > 4) return null;
+  try {
+    const loentrin = toLoentrin(loenTrin);
+    const loentrinDisplay = loentrin === '55+' ? loentrin : String(loentrin);
+    return `Løntrin ${loentrinDisplay}, Gruppe ${loenGruppe}`;
+  } catch {
+    return null;
+  }
 };
 
 const resolveStatistikModelIdFromLabel = (
@@ -168,8 +194,46 @@ const addReguleringTable = (
 const buildOverenskomstTable = (
   overenskomstId: string,
   interval: Readonly<{ fraDato: DanishDateString; tilDato: DanishDateString }>,
-  applyAlmindeligLoenPaaShDageRegel: boolean
+  applyAlmindeligLoenPaaShDageRegel: boolean,
+  offentlig: Readonly<{
+    loenType?: string;
+    loenTrin?: number;
+    loenGruppe?: number;
+  }>
 ): { columns: TableColumn[]; rows: string[][] } | null => {
+  const offentligType = getOffentligOverenskomstTypeById(overenskomstId);
+  if (offentligType) {
+    const loenType = resolveOffentligLoenTypeFromLabel(offentlig.loenType);
+    const trinValue = offentlig.loenTrin;
+    const gruppeValue = offentlig.loenGruppe;
+    if (!loenType || typeof trinValue !== 'number' || typeof gruppeValue !== 'number') return null;
+    if (gruppeValue < 0 || gruppeValue > 4) return null;
+    let loentrin: ReturnType<typeof toLoentrin>;
+    const loengruppe = gruppeValue as Loengruppe;
+    try {
+      loentrin = toLoentrin(trinValue);
+    } catch {
+      return null;
+    }
+
+    const satser = getOffentligLoenForPeriode(offentligType, interval.fraDato, interval.tilDato, loentrin, loengruppe)
+      .slice()
+      .reverse();
+
+    const loenLabel = loenType === 'maanedsLoen' ? 'Månedsløn' : 'Timeløn';
+    const columns: TableColumn[] = [
+      { header: 'Fra-dato' },
+      { header: loenLabel },
+    ];
+
+    const rows = satser.map((sats) => {
+      const loen = loenType === 'maanedsLoen' ? sats.maanedsLoen : sats.timeLoen;
+      return [sats.effectiveDate, formatCurrency(loen)];
+    });
+
+    return { columns, rows };
+  }
+
   const ref = resolveOverenskomstRef(overenskomstId);
   if (!ref) return null;
 
@@ -291,6 +355,9 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
     statistikModelLabel,
     interval,
     applyAlmindeligLoenPaaShDageRegel,
+    offentligLoenType,
+    offentligLoenTrin,
+    offentligLoenGruppe,
     visBrevhoved = false,
     stamdata = null,
   } = params;
@@ -331,12 +398,28 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
       ? (statistikModelLabel?.trim() || '-')
       : (overenskomstLabel.trim() || '-');
   doc.text(valgtLabel, MARGINS.left, currentY);
-  currentY += 10;
+  currentY += 6;
+
+  const offentligInfoLine = resolveOffentligLoenInfoLine({
+    overenskomstId,
+    loenTrin: offentligLoenTrin,
+    loenGruppe: offentligLoenGruppe,
+  });
+  if (offentligInfoLine) {
+    doc.text(offentligInfoLine, MARGINS.left, currentY);
+    currentY += 6;
+  }
+
+  currentY += 4;
 
   let tableData: { columns: TableColumn[]; rows: string[][] } | null = null;
 
   if (loenudviklingBasis === 'Overenskomst' && overenskomstId) {
-    tableData = buildOverenskomstTable(overenskomstId, interval, applyAlmindeligLoenPaaShDageRegel);
+    tableData = buildOverenskomstTable(overenskomstId, interval, applyAlmindeligLoenPaaShDageRegel, {
+      loenType: offentligLoenType,
+      loenTrin: offentligLoenTrin,
+      loenGruppe: offentligLoenGruppe,
+    });
   }
 
   if (loenudviklingBasis === 'Statistik' && statistikModelLabel) {

@@ -12,6 +12,8 @@
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
 import { addDays, addMonths, formatDanishDate, parseDanishDate } from '../utils/dateUtils';
+import { getReguleringsDatoIntervalForOffentligLoen } from './offentligLoenLookup';
+import type { OffentligOverenskomstType } from './offentligLoenTypes';
 
 // ===== TYPE DEFINITIONER =====
 
@@ -88,6 +90,10 @@ export interface Overenskomst {
 export type ReguleringsDatoInterval = Readonly<{
   fraDato: DanishDateString;
   tilDato: DanishDateString;
+}>;
+
+type OffentligOverenskomstMeta = OverenskomstMeta & Readonly<{
+  offentligType: OffentligOverenskomstType;
 }>;
 
 type ShDageAlmindeligLoenRegel = Readonly<{
@@ -192,6 +198,23 @@ const satserFromTable = (
 /**
  * Alle overenskomster med deres satser
  */
+const offentligeOverenskomster: ReadonlyArray<OffentligOverenskomstMeta> = [
+  {
+    offentligType: 'KL',
+    id: toOverenskomstId('kl-overenskomst'),
+    navn: 'KL-overenskomsten',
+    loenmodtagerOrg: ['Forhandlingsfællesskabet'],
+    arbejdsgiverOrg: ['KL'],
+  },
+  {
+    offentligType: 'RLTN',
+    id: toOverenskomstId('rltn-overenskomst'),
+    navn: 'RLTN-overenskomsten',
+    loenmodtagerOrg: ['Forhandlingsfællesskabet'],
+    arbejdsgiverOrg: ['RLTN'],
+  },
+];
+
 export const overenskomster: ReadonlyArray<Overenskomst> = [
   // Bygge-/anlægsoverenskomsten
   {
@@ -689,10 +712,27 @@ for (const overenskomst of overenskomster) {
   overenskomstById.set(overenskomst.meta.id, overenskomst);
 }
 
+const offentligOverenskomstTypeById = new Map<OverenskomstId, OffentligOverenskomstType>();
+for (const offentligMeta of offentligeOverenskomster) {
+  if (offentligOverenskomstTypeById.has(offentligMeta.id)) {
+    throw new Error(`Duplicate offentlig overenskomst-ID: "${offentligMeta.id}"`);
+  }
+  offentligOverenskomstTypeById.set(offentligMeta.id, offentligMeta.offentligType);
+}
+
+const overenskomstMetaById = new Map<OverenskomstId, OverenskomstMeta>();
+const registerMeta = (meta: OverenskomstMeta, source: string): void => {
+  if (overenskomstMetaById.has(meta.id)) {
+    throw new Error(`Duplicate overenskomst-meta (${source}): "${meta.id}"`);
+  }
+  overenskomstMetaById.set(meta.id, meta);
+};
+overenskomster.forEach((ok) => registerMeta(ok.meta, 'standard'));
+offentligeOverenskomster.forEach((meta) => registerMeta(meta, 'offentlig'));
+
 const overenskomstMetaSortedByNavn: ReadonlyArray<OverenskomstMeta> = (() => {
   const collator = new Intl.Collator('da-DK', { usage: 'sort', sensitivity: 'base', numeric: true });
-  return overenskomster
-    .map((ok) => ok.meta)
+  return Array.from(overenskomstMetaById.values())
     .slice()
     .sort((a, b) => {
       const byName = collator.compare(a.navn, b.navn);
@@ -728,7 +768,7 @@ export const getAlleOverenskomster = (): ReadonlyArray<OverenskomstMeta> => {
 export const getOverenskomstMetaById = (id: string): OverenskomstMeta | undefined => {
   const ref = resolveOverenskomstRefFromString(id);
   if (!ref) return undefined;
-  return overenskomstById.get(ref.baseId)?.meta;
+  return overenskomstMetaById.get(ref.baseId);
 };
 
 /**
@@ -754,8 +794,8 @@ export const getOverenskomsterByOrg = (
  */
 export const getAlleLoenmodtagerOrg = (): ReadonlyArray<string> => {
   const orgs = new Set<string>();
-  overenskomster.forEach(ok => {
-    ok.meta.loenmodtagerOrg.forEach(org => orgs.add(org));
+  overenskomstMetaSortedByNavn.forEach((meta) => {
+    meta.loenmodtagerOrg.forEach((org) => orgs.add(org));
   });
   return Array.from(orgs).sort();
 };
@@ -765,11 +805,20 @@ export const getAlleLoenmodtagerOrg = (): ReadonlyArray<string> => {
  */
 export const getAlleArbejdsgiverOrg = (): ReadonlyArray<string> => {
   const orgs = new Set<string>();
-  overenskomster.forEach(ok => {
-    ok.meta.arbejdsgiverOrg.forEach(org => orgs.add(org));
+  overenskomstMetaSortedByNavn.forEach((meta) => {
+    meta.arbejdsgiverOrg.forEach((org) => orgs.add(org));
   });
   return Array.from(orgs).sort();
 };
+
+export const getOffentligOverenskomstTypeById = (rawId: string): OffentligOverenskomstType | undefined => {
+  const ref = resolveOverenskomstRefFromString(rawId);
+  if (!ref) return undefined;
+  return offentligOverenskomstTypeById.get(ref.baseId);
+};
+
+export const isOffentligOverenskomstId = (rawId: string): boolean =>
+  Boolean(getOffentligOverenskomstTypeById(rawId));
 
 /**
  * Find gaeldende satser for en given dato
@@ -864,6 +913,9 @@ export const getSatserForDato = (
 ): OverenskomstPeriodeSats | undefined => {
   const ref = resolveOverenskomstRefFromString(overenskomstId as string);
   if (!ref) return undefined;
+  if (offentligOverenskomstTypeById.has(ref.baseId)) {
+    throw new Error('Offentlig overenskomst har ikke standard-satser. Brug offentligt lønopslag.');
+  }
 
   const overenskomst = overenskomstById.get(ref.baseId);
   if (!overenskomst) return undefined;
@@ -884,6 +936,9 @@ export const getSatserForPeriode = (
 ): ReadonlyArray<OverenskomstPeriodeSats> => {
   const ref = resolveOverenskomstRefFromString(overenskomstId as string);
   if (!ref) return [];
+  if (offentligOverenskomstTypeById.has(ref.baseId)) {
+    throw new Error('Offentlig overenskomst har ikke standard-satser. Brug offentligt lønopslag.');
+  }
 
   const overenskomst = overenskomstById.get(ref.baseId);
   if (!overenskomst) return [];
@@ -897,6 +952,11 @@ export const resolveOverenskomstRef = (rawId: string): OverenskomstRef | undefin
 export const getReguleringsDatoIntervalForOverenskomst = (rawId: string): ReguleringsDatoInterval | undefined => {
   const ref = resolveOverenskomstRefFromString(rawId);
   if (!ref) return undefined;
+
+  const offentligType = offentligOverenskomstTypeById.get(ref.baseId);
+  if (offentligType) {
+    return getReguleringsDatoIntervalForOffentligLoen(offentligType);
+  }
 
   const overenskomst = overenskomstById.get(ref.baseId);
   if (!overenskomst) return undefined;
@@ -923,6 +983,9 @@ type GetEffektiveSatserForDatoArgs = Readonly<{
 export const getEffektiveSatserForDato = (
   args: GetEffektiveSatserForDatoArgs
 ): OverenskomstPeriodeSats | undefined => {
+  if (getOffentligOverenskomstTypeById(args.overenskomstId as string)) {
+    throw new Error('Offentlig overenskomst har ikke standard-satser. Brug offentligt lønopslag.');
+  }
   const overenskomst = getOverenskomst(args.overenskomstId);
   if (!overenskomst) return undefined;
 
@@ -940,6 +1003,9 @@ type GetEffektiveSatserForPeriodeArgs = Readonly<{
 export const getEffektiveSatserForPeriode = (
   args: GetEffektiveSatserForPeriodeArgs
 ): ReadonlyArray<OverenskomstPeriodeSats> => {
+  if (getOffentligOverenskomstTypeById(args.overenskomstId as string)) {
+    throw new Error('Offentlig overenskomst har ikke standard-satser. Brug offentligt lønopslag.');
+  }
   const overenskomst = getOverenskomst(args.overenskomstId);
   if (!overenskomst) return [];
 

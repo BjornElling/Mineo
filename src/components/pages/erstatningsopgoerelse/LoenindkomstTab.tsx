@@ -9,6 +9,7 @@ import StyledDropdown, { type StyledDropdownChangeEvent } from '../../inputs/Sty
 import StyledPercentField from '../../inputs/StyledPercentField';
 import StyledRadioButton from '../../inputs/StyledRadioButton';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
+import StyledIntegerField from '../../inputs/StyledIntegerField';
 import type { CommitEvent, CommitHandler } from '../../inputs/fieldEvents';
 import AarsloenTable, { type AarsloenTableSatser } from '../../tables/AarsloenTable';
 import LoenudviklingManuelTable from '../../tables/LoenudviklingManuelTable';
@@ -21,6 +22,8 @@ import {
   loenudviklingBeregningsgrundlagEnum,
   loenudviklingStatistikModelEnum,
   krlSatstabelEnum,
+  offentligLoenTypeEnum,
+  type OffentligLoenTypeLabel,
   type ErstatningsopgoerelseValues,
 } from '../../../schemas/formSchemas';
 import { LOENPERIODE } from '../../../types/common';
@@ -37,9 +40,11 @@ import {
   getOverenskomstMetaById,
   getEffektiveSatserForDato,
   getReguleringsDatoIntervalForOverenskomst,
+  isOffentligOverenskomstId,
   resolveOverenskomstRef,
   type OverenskomstId,
 } from '../../../data/overenskomstRates';
+import { toLoentrin } from '../../../data/offentligLoenTypes';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../../data/statistiskLoenudviklingRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
 import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
@@ -127,6 +132,9 @@ const createBlankAnsaettelsesforhold = (settings: AppSettings): Ansaettelsesforh
     loenudviklingKRLSatstabel: undefined,
     loenudviklingManuelNavn: '',
     loenudviklingManuelTableData: [],
+    offentligLoenType: 'Månedsløn',
+    offentligLoenTrin: undefined,
+    offentligLoenGruppe: undefined,
     // Overenskomst-filter: initialiseres fra settings ved oprettelse (centraliseret mapping)
     overenskomstFilter: resolveDefaultOverenskomstFilter(settings),
   };
@@ -238,6 +246,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     ): string | undefined => {
       // Kun valider hvis der er valgt en overenskomst
       if (!overenskomstId) return undefined;
+      if (isOffentligOverenskomstId(overenskomstId)) return undefined;
 
       // Tjek om der er en dato at validere mod
       if (!reguleringsDato) return undefined;
@@ -393,6 +402,28 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     [stamdataValues?.skadesdato]
   );
 
+  const isOffentligLoenSelectionReady = React.useCallback((af: Ansaettelsesforhold): boolean => {
+    const overenskomstId = af.overenskomstId?.trim();
+    if (!overenskomstId || !isOffentligOverenskomstId(overenskomstId)) return true;
+
+    const loenTypeParsed = offentligLoenTypeEnum.safeParse(af.offentligLoenType ?? 'Månedsløn');
+    if (!loenTypeParsed.success) return false;
+
+    const trinValue = af.offentligLoenTrin;
+    if (typeof trinValue !== 'number') return false;
+    try {
+      toLoentrin(trinValue);
+    } catch {
+      return false;
+    }
+
+    const gruppeValue = af.offentligLoenGruppe;
+    if (typeof gruppeValue !== 'number') return false;
+    if (gruppeValue < 0 || gruppeValue > 4) return false;
+
+    return true;
+  }, []);
+
 
   // Hent alle organisationer
   const alleLoenmodtagerOrg = React.useMemo(() => getAlleLoenmodtagerOrg(), []);
@@ -458,6 +489,10 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
         updateAnsaettelsesforhold(id, (prev) => ({
           ...prev,
           overenskomstId: nextOverenskomstId,
+          offentligLoenType:
+            nextOverenskomstId && isOffentligOverenskomstId(nextOverenskomstId)
+              ? (prev.offentligLoenType ?? 'Månedsløn')
+              : prev.offentligLoenType,
         }));
 
         // Revalider alle satser når overenskomst ændres
@@ -471,6 +506,41 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
         }
       },
     [setSatsErrorsForAnsaettelsesforhold, updateAnsaettelsesforhold, values.loenindkomstAnsaettelsesforhold]
+  );
+
+  const handleOffentligLoenTypeChange = React.useCallback(
+    (id: string) =>
+      (event: StyledDropdownChangeEvent<string | undefined>) => {
+        const parsed = offentligLoenTypeEnum.safeParse(event.target.value ?? 'Månedsløn');
+        const nextValue: OffentligLoenTypeLabel = parsed.success ? parsed.data : 'Månedsløn';
+        updateAnsaettelsesforhold(id, (prev) => ({
+          ...prev,
+          offentligLoenType: nextValue,
+        }));
+      },
+    [updateAnsaettelsesforhold]
+  );
+
+  const handleOffentligLoenTrinCommit = React.useCallback(
+    (id: string) =>
+      (event: CommitEvent<number | undefined>) => {
+        updateAnsaettelsesforhold(id, (prev) => ({
+          ...prev,
+          offentligLoenTrin: event.target.value,
+        }));
+      },
+    [updateAnsaettelsesforhold]
+  );
+
+  const handleOffentligLoenGruppeCommit = React.useCallback(
+    (id: string) =>
+      (event: CommitEvent<number | undefined>) => {
+        updateAnsaettelsesforhold(id, (prev) => ({
+          ...prev,
+          offentligLoenGruppe: event.target.value,
+        }));
+      },
+    [updateAnsaettelsesforhold]
   );
 
   const handleSidsteArbejdsdagCommit = React.useCallback(
@@ -782,6 +852,9 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
       statistikModelLabel: string | undefined;
       interval: ReguleringsDatoInterval;
       applyAlmindeligLoenPaaShDageRegel: boolean;
+      offentligLoenType?: string;
+      offentligLoenTrin?: number;
+      offentligLoenGruppe?: number;
     }) => {
       try {
         // Hent stamdata
@@ -865,6 +938,9 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
             : 'Satser på skadestidspunktet'
           : 'Satser';
         const loenudviklingBasis = af.loenudviklingBeregningsgrundlag;
+        const erOffentligOverenskomst = Boolean(
+          af.overenskomstId && isOffentligOverenskomstId(af.overenskomstId)
+        );
         const loenudviklingBaseDate = getLoenudviklingBaseDate(af);
         const shouldShowReguleringsDatoInterval =
           loenudviklingBasis === 'Overenskomst' ||
@@ -1271,6 +1347,47 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
               </Box>
             ) : null}
 
+            {loenudviklingBasis === 'Overenskomst' && erOffentligOverenskomst ? (
+              <Box className="row--label-right-hover">
+                <Typography className="row--text">Lønoplysninger</Typography>
+                <Box className="row--label-right-hover__content">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                    <Typography className="row--text">Ansættelse</Typography>
+                    <StyledDropdown
+                      width={160}
+                      value={af.offentligLoenType ?? 'Månedsløn'}
+                      onChange={handleOffentligLoenTypeChange(af.id)}
+                      allowEmpty={false}
+                    >
+                      {offentligLoenTypeEnum.options.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </StyledDropdown>
+                    <Typography className="row--text">Løntrin</Typography>
+                    <StyledIntegerField
+                      value={af.offentligLoenTrin}
+                      onCommit={handleOffentligLoenTrinCommit(af.id)}
+                      minValue={1}
+                      maxValue={55}
+                      maxDigits={2}
+                      width={80}
+                    />
+                    <Typography className="row--text">Gruppe</Typography>
+                    <StyledIntegerField
+                      value={af.offentligLoenGruppe}
+                      onCommit={handleOffentligLoenGruppeCommit(af.id)}
+                      minValue={0}
+                      maxValue={4}
+                      maxDigits={1}
+                      width={70}
+                    />
+                  </Box>
+                </Box>
+              </Box>
+            ) : null}
+
             {loenudviklingBasis === 'Statistik' ? (
               <Box className="row--label-right-hover">
                 <Typography className="row--text">Statistisk beregningsmodel</Typography>
@@ -1339,61 +1456,74 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                 <Typography className="row--text">Tilgængelige reguleringssatser</Typography>
                 <Box className="row--label-right-hover__content">
                   <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'flex-end', gap: 1 }}>
-                    <Typography className="row--text" sx={{ textAlign: 'right' }}>
-                      {reguleringsDatoInterval}
-                    </Typography>
-                    <Box>
-                      <Box
-                        onClick={() => {
-                          if (!hasReguleringsDatoInterval) return;
-                          if (!reguleringsDatoIntervalData) return;
-                          if (loenudviklingBasis === 'KRL satstabel') {
-                            void handleDownloadKRLPdf();
-                            return;
-                          }
-                          if (
-                            loenudviklingBasis !== 'Overenskomst' &&
-                            loenudviklingBasis !== 'Statistik'
-                          ) {
-                            return;
-                          }
-                          void handleDownloadReguleringPdf({
-                            overenskomstLabel: resolveOverenskomstLabel(af.overenskomstId),
-                            loenudviklingBasis,
-                            overenskomstId: af.overenskomstId,
-                            statistikModelLabel: af.loenudviklingStatistikModel,
-                            interval: reguleringsDatoIntervalData,
-                            applyAlmindeligLoenPaaShDageRegel: af.loenPaaHelligdage === 'Almindelig løn',
-                          });
-                        }}
-                        tabIndex={-1}
-                        sx={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: hasReguleringsDatoInterval ? 'pointer' : 'default',
-                          transition: 'background-color 0.2s',
-                          ...(hasReguleringsDatoInterval && {
-                            '&:hover': {
-                              backgroundColor: '#e3f2fd',
-                            },
-                            '&:active': {
-                              backgroundColor: '#bbdefb',
-                            },
-                          }),
-                        }}
-                      >
-                        <Download
-                          sx={{
-                            fontSize: '24px',
-                            color: hasReguleringsDatoInterval ? 'primary.main' : 'grey.500',
-                          }}
-                        />
-                      </Box>
-                    </Box>
+                    {(() => {
+                      const offentligReady = isOffentligLoenSelectionReady(af);
+                      const canDownload =
+                        hasReguleringsDatoInterval &&
+                        (!erOffentligOverenskomst || offentligReady);
+                      return (
+                        <>
+                          <Typography className="row--text" sx={{ textAlign: 'right' }}>
+                            {reguleringsDatoInterval}
+                          </Typography>
+                          <Box>
+                            <Box
+                              onClick={() => {
+                                if (!canDownload) return;
+                                if (!reguleringsDatoIntervalData) return;
+                                if (loenudviklingBasis === 'KRL satstabel') {
+                                  void handleDownloadKRLPdf();
+                                  return;
+                                }
+                                if (
+                                  loenudviklingBasis !== 'Overenskomst' &&
+                                  loenudviklingBasis !== 'Statistik'
+                                ) {
+                                  return;
+                                }
+                                void handleDownloadReguleringPdf({
+                                  overenskomstLabel: resolveOverenskomstLabel(af.overenskomstId),
+                                  loenudviklingBasis,
+                                  overenskomstId: af.overenskomstId,
+                                  statistikModelLabel: af.loenudviklingStatistikModel,
+                                  interval: reguleringsDatoIntervalData,
+                                  applyAlmindeligLoenPaaShDageRegel: af.loenPaaHelligdage === 'Almindelig løn',
+                                  offentligLoenType: af.offentligLoenType,
+                                  offentligLoenTrin: af.offentligLoenTrin,
+                                  offentligLoenGruppe: af.offentligLoenGruppe,
+                                });
+                              }}
+                              tabIndex={-1}
+                              sx={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '6px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: canDownload ? 'pointer' : 'default',
+                                transition: 'background-color 0.2s',
+                                ...(canDownload && {
+                                  '&:hover': {
+                                    backgroundColor: '#e3f2fd',
+                                  },
+                                  '&:active': {
+                                    backgroundColor: '#bbdefb',
+                                  },
+                                }),
+                              }}
+                            >
+                              <Download
+                                sx={{
+                                  fontSize: '24px',
+                                  color: canDownload ? 'primary.main' : 'grey.500',
+                                }}
+                              />
+                            </Box>
+                          </Box>
+                        </>
+                      );
+                    })()}
                   </Box>
                 </Box>
               </Box>
@@ -1479,9 +1609,3 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 LoenindkomstTab.displayName = 'LoenindkomstTab';
 
 export default LoenindkomstTab;
-
-
-
-
-
-

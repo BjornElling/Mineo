@@ -13,10 +13,13 @@ import {
   getEffektiveSatserForPeriode,
   getOverenskomst,
   getOverenskomstMetaById,
+  getOffentligOverenskomstTypeById,
   getReguleringsDatoIntervalForOverenskomst,
   resolveOverenskomstRef,
   type OverenskomstId,
 } from '../../../data/overenskomstRates';
+import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../../data/offentligLoenLookup';
+import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../../data/offentligLoenTypes';
 import {
   getReguleringsDatoIntervalForStatistikModel,
   getStatistiskLoenudvikling,
@@ -67,6 +70,13 @@ type ReguleringsRange = Readonly<{
   max?: ISODateString;
 }>;
 
+type OffentligLoenSelection = Readonly<{
+  overenskomstType: NonNullable<ReturnType<typeof getOffentligOverenskomstTypeById>>;
+  loenType: NonNullable<ReturnType<typeof resolveOffentligLoenTypeFromLabel>>;
+  loentrin: ReturnType<typeof toLoentrin>;
+  loengruppe: Loengruppe;
+}>;
+
 const parseDanishToISO = (value: string | undefined): ISODateString | undefined => {
   if (!value || value.trim() === '') return undefined;
   const parsed = parseDanishDate(value.trim());
@@ -85,6 +95,35 @@ const resolveReguleringTableStartIso = (
 const formatIsoValue = (iso: ISODateString | undefined): string => {
   if (!iso) return '-';
   return isoToDanish(iso) ?? '-';
+};
+
+const resolveOffentligLoenSelection = (
+  ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]
+): OffentligLoenSelection | null => {
+  if (!ansaettelsesforhold.overenskomstId) return null;
+  const offentligType = getOffentligOverenskomstTypeById(ansaettelsesforhold.overenskomstId);
+  if (!offentligType) return null;
+
+  const loenType = resolveOffentligLoenTypeFromLabel(ansaettelsesforhold.offentligLoenType);
+  if (!loenType) return null;
+
+  const trinValue = ansaettelsesforhold.offentligLoenTrin;
+  const gruppeValue = ansaettelsesforhold.offentligLoenGruppe;
+  if (typeof trinValue !== 'number' || typeof gruppeValue !== 'number') return null;
+  if (gruppeValue < 0 || gruppeValue > 4) return null;
+
+  try {
+    const loentrin = toLoentrin(trinValue);
+    const loengruppe = gruppeValue as Loengruppe;
+    return {
+      overenskomstType: offentligType,
+      loenType,
+      loentrin,
+      loengruppe,
+    };
+  } catch {
+    return null;
+  }
 };
 
 const normalizeTableValue = (value: string | AmountValue | undefined): string => {
@@ -805,6 +844,36 @@ const EODebug = () => {
         if (!reguleringsdato) return null;
         if (loenudviklingBasis === 'Overenskomst') {
           if (!af.overenskomstId) return null;
+          const offentligSelection = resolveOffentligLoenSelection(af);
+          if (offentligSelection) {
+            const reguleringsdatoDanish = isoToDanish(reguleringsdato);
+            if (!reguleringsdatoDanish) return null;
+            const resultat = getOffentligLoenForDato(
+              offentligSelection.overenskomstType,
+              reguleringsdatoDanish,
+              offentligSelection.loentrin,
+              offentligSelection.loengruppe
+            );
+            if (!resultat) return null;
+            const baseValue =
+              offentligSelection.loenType === 'maanedsLoen' ? resultat.maanedsLoen : resultat.timeLoen;
+            return {
+              components: {
+                baseValue,
+                feriePct: typeof af.feriePct === 'number' ? af.feriePct : 0,
+                fritvalgPct: 0,
+                shSoPct: 0,
+                pensionPct: 0,
+                storeBededagPct: 0,
+              },
+              visibility: {
+                showFritvalg: false,
+                showShSo: false,
+                showPension: false,
+                showStoreBededag: false,
+              },
+            };
+          }
           const overenskomstRef = resolveOverenskomstRef(af.overenskomstId);
           if (!overenskomstRef) return null;
           const reguleringsdatoDanish = isoToDanish(reguleringsdato);
@@ -971,6 +1040,52 @@ const EODebug = () => {
         const periods: ReguleringsPeriode[] = (() => {
           if (loenudviklingBasis === 'Overenskomst') {
             if (!af.overenskomstId) return [];
+            const offentligSelection = resolveOffentligLoenSelection(af);
+            if (offentligSelection) {
+              const fraDato = isoToDanish(tafStartIso);
+              const tilDato = isoToDanish(tafEndIso);
+              if (!fraDato || !tilDato) return [];
+
+              const satser = getOffentligLoenForPeriode(
+                offentligSelection.overenskomstType,
+                fraDato,
+                tilDato,
+                offentligSelection.loentrin,
+                offentligSelection.loengruppe
+              );
+
+              const periodStarts = satser
+                .map((sats) => {
+                  const startIso = parseDanishToISO(sats.effectiveDate);
+                  if (!startIso) return null;
+                  const baseValue =
+                    offentligSelection.loenType === 'maanedsLoen' ? sats.maanedsLoen : sats.timeLoen;
+                  const components: FormulaComponents = {
+                    baseValue,
+                    feriePct,
+                    fritvalgPct: 0,
+                    shSoPct: 0,
+                    pensionPct: 0,
+                    storeBededagPct: 0,
+                  };
+                  return { startIso, components };
+                })
+                .filter((row): row is Readonly<{ startIso: ISODateString; components: FormulaComponents }> => Boolean(row))
+                .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+
+              const visibility: FormulaVisibility = {
+                showFritvalg: false,
+                showShSo: false,
+                showPension: false,
+                showStoreBededag: false,
+              };
+
+              return periodStarts.map((period, index) => ({
+                ...period,
+                visibility,
+                endIso: index < periodStarts.length - 1 ? subtractOneDay(periodStarts[index + 1]?.startIso) : tafEndIso,
+              }));
+            }
             const ref = resolveOverenskomstRef(af.overenskomstId);
             if (!ref) return [];
             const fraDato = isoToDanish(tafStartIso);
@@ -1374,6 +1489,69 @@ const EODebug = () => {
         const reguleringTableStartIso = resolveReguleringTableStartIso(reguleringsdato, tafStartIso);
 
         if (loenudviklingBasis === 'Overenskomst') {
+            const offentligSelection = resolveOffentligLoenSelection(af);
+            if (offentligSelection) {
+              const fraDato = isoToDanish(reguleringTableStartIso);
+              const tilDato = isoToDanish(tafEndIso);
+              if (!fraDato || !tilDato) return null;
+
+              const baseResult = getOffentligLoenForDato(
+                offentligSelection.overenskomstType,
+                fraDato,
+                offentligSelection.loentrin,
+                offentligSelection.loengruppe
+              );
+              if (!baseResult) return null;
+
+              const satser = getOffentligLoenForPeriode(
+                offentligSelection.overenskomstType,
+                fraDato,
+                tilDato,
+                offentligSelection.loentrin,
+                offentligSelection.loengruppe
+              );
+
+              const loenLabel = offentligSelection.loenType === 'maanedsLoen' ? 'Månedsløn' : 'Timeløn';
+              const feriePctDisplay = formatInputPercent(af.feriePct);
+              const columns: StandardDisplayTableColumn[] = [
+                centeredCol('Fra-dato', 120),
+                centeredCol(loenLabel, 120),
+                centeredCol('Feriegodtgørelse', 140),
+              ];
+
+              const rows: StandardDisplayTableRow[] = [];
+              const addRow = (labelIso: ISODateString, loen: number) => {
+                rows.push({
+                  key: `ok-offentlig-${af.id}-${labelIso}`,
+                  cells: [
+                    isoToDanish(labelIso) ?? labelIso,
+                    formatCurrency(loen),
+                    feriePctDisplay,
+                  ],
+                });
+              };
+
+              const baseLoen =
+                offentligSelection.loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen;
+              addRow(reguleringTableStartIso, baseLoen);
+
+              const laterSatser = satser
+                .map((entry) => {
+                  const iso = parseDanishToISO(entry.effectiveDate);
+                  if (!iso) return null;
+                  const loen = offentligSelection.loenType === 'maanedsLoen' ? entry.maanedsLoen : entry.timeLoen;
+                  return { iso, loen };
+                })
+                .filter((entry): entry is Readonly<{ iso: ISODateString; loen: number }> => Boolean(entry))
+                .filter((entry) => entry.iso > reguleringTableStartIso)
+                .sort((a, b) => (a.iso < b.iso ? -1 : 1));
+
+              for (const entry of laterSatser) {
+                addRow(entry.iso, entry.loen);
+              }
+
+              return { columns, rows };
+            }
             const isAlmindeligLoen = af.loenPaaHelligdage === loenPaaHelligdageSchema.enum['Almindelig løn'];
             const applyStoreBededagRegulering =
               isAlmindeligLoen && reguleringTableStartIso < STORE_BEDEDAG_START && tafEndIso >= STORE_BEDEDAG_START;

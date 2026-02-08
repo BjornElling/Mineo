@@ -6,7 +6,8 @@ import { parseAmount, formatCurrency } from '../../utils/formatUtils';
 import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
 import { createDate } from '../../utils/dateUtils';
 import { parseDanishDate, parseWeekString } from '../../utils/shDageBeregning';
-import { resolveOverenskomstRef, getEffektiveSatserForPeriode } from '../../data/overenskomstRates';
+import { resolveOverenskomstRef, getEffektiveSatserForPeriode, getOffentligOverenskomstTypeById } from '../../data/overenskomstRates';
+import { getReguleringsDatoer } from '../../data/offentligLoenLookup';
 import { parseOffentligDato } from './eoDebugOffentligeYdelserColumns';
 import type { DebugTabelColumnId, DebugTabelIntegrityIssue } from './eoDebugModel';
 import { debugTabelColumnId, WAGE_COLUMNS } from './eoDebugLoenTypes';
@@ -151,6 +152,20 @@ const buildOverenskomstRegulering = (
 ): Uint8Array => {
   const flags = new Uint8Array(dates.length);
   if (!overenskomstIdRaw) return flags;
+
+  const offentligType = getOffentligOverenskomstTypeById(overenskomstIdRaw);
+  if (offentligType) {
+    const reguleringsDatoer = getReguleringsDatoer(offentligType);
+    for (const dato of reguleringsDatoer) {
+      const iso = parseOffentligDato(dato);
+      if (!iso) continue;
+      if (iso < tableFra || iso > tableTil) continue;
+      const idx = isoIndex.get(iso);
+      if (idx === undefined) continue;
+      flags[idx] = 1;
+    }
+    return flags;
+  }
 
   const ref = resolveOverenskomstRef(overenskomstIdRaw);
   if (!ref) return flags;

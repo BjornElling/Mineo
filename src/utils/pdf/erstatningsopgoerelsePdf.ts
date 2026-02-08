@@ -29,8 +29,11 @@ import {
   getEffektiveSatserForPeriode,
   getOverenskomst,
   getOverenskomstMetaById,
+  getOffentligOverenskomstTypeById,
   resolveOverenskomstRef,
 } from '../../data/overenskomstRates';
+import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
+import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
 import { getStatistiskLoenudvikling } from '../../data/statistiskLoenudviklingRates';
 import { formatKRLSatstabelDisplay, getKRLSatstabel, isKRLSatstabelId, type KRLSatstabelId } from '../../data/KRLrates';
 import { clampTafRow, resolveTafConstraintBounds } from '../../domain/erstatningsopgoerelse/tafPeriodConstraints';
@@ -487,6 +490,64 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
   if (grundlag === 'Overenskomst') {
     const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
     if (!overenskomstId) return null;
+    const offentligType = getOffentligOverenskomstTypeById(overenskomstId);
+    if (offentligType) {
+      const loenType = resolveOffentligLoenTypeFromLabel(ansaettelsesforhold.offentligLoenType);
+      if (!loenType) return null;
+      const trinValue = ansaettelsesforhold.offentligLoenTrin;
+      const gruppeValue = ansaettelsesforhold.offentligLoenGruppe;
+      if (typeof trinValue !== 'number' || typeof gruppeValue !== 'number') return null;
+      if (gruppeValue < 0 || gruppeValue > 4) return null;
+      let loentrin: ReturnType<typeof toLoentrin>;
+      const loengruppe = gruppeValue as Loengruppe;
+      try {
+        loentrin = toLoentrin(trinValue);
+      } catch {
+        return null;
+      }
+
+      const fraDato = isoToDanish(reguleringTableStartIso);
+      const tilDato = isoToDanish(tafTil);
+      if (!fraDato || !tilDato) return null;
+
+      const baseResult = getOffentligLoenForDato(offentligType, fraDato, loentrin, loengruppe);
+      if (!baseResult) return null;
+
+      const satser = getOffentligLoenForPeriode(offentligType, fraDato, tilDato, loentrin, loengruppe);
+      const loenLabel = loenType === 'maanedsLoen' ? 'Månedsløn' : 'Timeløn';
+      const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
+      const columns = ['Fra-dato', loenLabel, 'Ferie\ngodtgørelse'];
+
+      const rows: string[][] = [];
+      const addRow = (labelIso: ISODateString, loen: number) => {
+        rows.push([
+          isoToDanish(labelIso) ?? labelIso,
+          formatCurrency(loen),
+          feriePctDisplay,
+        ]);
+      };
+
+      const baseLoen = loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen;
+      addRow(reguleringTableStartIso, baseLoen);
+
+      const later = satser
+        .map((entry) => {
+          const iso = parseDanishToISO(entry.effectiveDate);
+          if (!iso) return null;
+          const loen = loenType === 'maanedsLoen' ? entry.maanedsLoen : entry.timeLoen;
+          return { iso, loen };
+        })
+        .filter((entry): entry is Readonly<{ iso: ISODateString; loen: number }> => Boolean(entry))
+        .filter((entry) => entry.iso > reguleringTableStartIso)
+        .sort((a, b) => (a.iso < b.iso ? -1 : 1));
+
+      for (const entry of later) {
+        addRow(entry.iso, entry.loen);
+      }
+
+      return { columns, rows };
+    }
+
     const ref = resolveOverenskomstRef(overenskomstId);
     if (!ref) return null;
     const fraDato = isoToDanish(reguleringTableStartIso);
@@ -703,6 +764,101 @@ const buildReguleringIndexRows = (params: Readonly<{
     reguleringsdato &&
     ansaettelsesforhold.overenskomstId
   ) {
+    const fallbackRows = (segment: LoenudviklingSegment): ReguleringIndexRow => {
+      const indeksValue = 100 + segment.deltaPct;
+      const indeksDisplay = formatIndexValue(indeksValue);
+      return {
+        fraDato: formatDateShort(segment.fra),
+        tilDato: formatDateShort(segment.til),
+        indeksberegning: Math.abs(indeksValue - 100) < 0.000001 ? '100,00' : `${indeksDisplay} /\n100,00`,
+        indeks: indeksDisplay,
+        loenudvikling: formatLoenudviklingFromIndex(indeksValue),
+      };
+    };
+
+    const offentligType = getOffentligOverenskomstTypeById(ansaettelsesforhold.overenskomstId);
+    if (offentligType) {
+      const baseDato = isoToDanish(reguleringsdato);
+      const loenType = resolveOffentligLoenTypeFromLabel(ansaettelsesforhold.offentligLoenType);
+      const trinValue = ansaettelsesforhold.offentligLoenTrin;
+      const gruppeValue = ansaettelsesforhold.offentligLoenGruppe;
+      if (!baseDato || !loenType || typeof trinValue !== 'number' || typeof gruppeValue !== 'number') {
+        return segments.map(fallbackRows);
+      }
+      if (gruppeValue < 0 || gruppeValue > 4) {
+        return segments.map(fallbackRows);
+      }
+      let loentrin: ReturnType<typeof toLoentrin>;
+      const loengruppe = gruppeValue as Loengruppe;
+      try {
+        loentrin = toLoentrin(trinValue);
+      } catch {
+        return segments.map(fallbackRows);
+      }
+
+      const baseResult = getOffentligLoenForDato(offentligType, baseDato, loentrin, loengruppe);
+      if (!baseResult) return segments.map(fallbackRows);
+      const feriePct = typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0;
+      const baseValue = loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen;
+      const baseComponents: FormulaComponents = {
+        baseValue,
+        feriePct,
+        fritvalgPct: 0,
+        shSoPct: 0,
+        pensionPct: 0,
+        storeBededagPct: 0,
+      };
+      const baseVisibility: FormulaVisibility = {
+        showFritvalg: false,
+        showShSo: false,
+        showPension: false,
+        showStoreBededag: false,
+      };
+      const baseFormula = buildFormulaText(baseComponents, baseVisibility);
+      const baseValueRaw = computeFormulaValue(baseComponents);
+
+      return segments.map((segment) => {
+        const segmentDato = isoToDanish(segment.fra);
+        const segmentResult = segmentDato
+          ? getOffentligLoenForDato(offentligType, segmentDato, loentrin, loengruppe)
+          : undefined;
+        if (!segmentResult) return fallbackRows(segment);
+        const segmentBase = loenType === 'maanedsLoen' ? segmentResult.maanedsLoen : segmentResult.timeLoen;
+        const components: FormulaComponents = {
+          baseValue: segmentBase,
+          feriePct,
+          fritvalgPct: 0,
+          shSoPct: 0,
+          pensionPct: 0,
+          storeBededagPct: 0,
+        };
+        const visibility: FormulaVisibility = {
+          showFritvalg: false,
+          showShSo: false,
+          showPension: false,
+          showStoreBededag: false,
+        };
+        const formula = buildFormulaText(components, visibility);
+        const valueRaw = computeFormulaValue(components);
+        const indeksValue = baseValueRaw > 0 ? (valueRaw / baseValueRaw) * 100 : Number.NaN;
+        const indeksDisplay = Number.isFinite(indeksValue) ? formatIndexValue(indeksValue) : '-';
+        const indeksberegning = buildIndexFormulaDisplay(
+          formula,
+          baseFormula,
+          valueRaw,
+          baseValueRaw,
+          false
+        );
+        return {
+          fraDato: formatDateShort(segment.fra),
+          tilDato: formatDateShort(segment.til),
+          indeksberegning,
+          indeks: indeksDisplay,
+          loenudvikling: formatLoenudviklingFromIndex(indeksValue),
+        };
+      });
+    }
+
     const ref = resolveOverenskomstRef(ansaettelsesforhold.overenskomstId);
     const baseDato = isoToDanish(reguleringsdato);
     if (ref && baseDato) {
@@ -755,15 +911,7 @@ const buildReguleringIndexRows = (params: Readonly<{
             : undefined;
 
           if (!sats) {
-            const indeksValue = 100 + segment.deltaPct;
-            const indeksDisplay = formatIndexValue(indeksValue);
-            return {
-              fraDato: formatDateShort(segment.fra),
-              tilDato: formatDateShort(segment.til),
-              indeksberegning: Math.abs(indeksValue - 100) < 0.000001 ? '100,00' : `${indeksDisplay} /\n100,00`,
-              indeks: indeksDisplay,
-              loenudvikling: formatLoenudviklingFromIndex(indeksValue),
-            };
+            return fallbackRows(segment);
           }
 
           const storeBededagPct =

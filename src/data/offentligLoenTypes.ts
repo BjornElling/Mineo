@@ -13,6 +13,25 @@ export type OffentligOverenskomstType = 'KL' | 'RLTN';
 /** Løntype: månedsløn eller timeløn */
 export type OffentligLoenType = 'maanedsLoen' | 'timeLoen';
 
+/** UI-labels for løntype (bruges i formularer) */
+export type OffentligLoenTypeLabel = 'Månedsløn' | 'Timeløn';
+
+export const OFFENTLIG_LOEN_TYPE_LABELS = {
+  MAANED: 'Månedsløn',
+  TIME: 'Timeløn',
+} as const satisfies Record<string, OffentligLoenTypeLabel>;
+
+export const resolveOffentligLoenTypeFromLabel = (
+  value: string | undefined
+): OffentligLoenType | undefined => {
+  if (value === OFFENTLIG_LOEN_TYPE_LABELS.MAANED) return 'maanedsLoen';
+  if (value === OFFENTLIG_LOEN_TYPE_LABELS.TIME) return 'timeLoen';
+  return undefined;
+};
+
+export const resolveOffentligLoenTypeLabel = (value: OffentligLoenType): OffentligLoenTypeLabel =>
+  value === 'maanedsLoen' ? OFFENTLIG_LOEN_TYPE_LABELS.MAANED : OFFENTLIG_LOEN_TYPE_LABELS.TIME;
+
 /** Løngruppe: 0-4 (områdetillægsgruppe) */
 export type Loengruppe = 0 | 1 | 2 | 3 | 4;
 

@@ -8,7 +8,9 @@ import type { DebugDay } from './eoDebugTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues, LoenPaaHelligdage } from '../../types/common';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/common';
 import type { RegulationIndexTimeline, IndeksEntry, AnsaettelsesforholdIndeks } from './eoDebugRegulationTypes';
-import { getEffektiveSatserForDato, getEffektiveSatserForPeriode, resolveOverenskomstRef, type OverenskomstPeriodeSats } from '../../data/overenskomstRates';
+import { getEffektiveSatserForDato, getEffektiveSatserForPeriode, resolveOverenskomstRef, type OverenskomstPeriodeSats, getOffentligOverenskomstTypeById } from '../../data/overenskomstRates';
+import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
+import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
 import { parsePercentToDecimal } from '../../utils/formatUtils';
 import { beregnHelligdage } from '../../utils/shDageBeregning';
 import { isoDateToDate } from '../dates/isoDate';
@@ -34,6 +36,42 @@ const parseOptionalIso = (value: unknown): ISODateString | undefined => {
 
 const toDanishOrUndefined = (iso: ISODateString): DanishDateString | undefined => {
   return isoToDanish(iso) ?? undefined;
+};
+
+type OffentligLoenSelection = Readonly<{
+  overenskomstType: NonNullable<ReturnType<typeof getOffentligOverenskomstTypeById>>;
+  loenType: NonNullable<ReturnType<typeof resolveOffentligLoenTypeFromLabel>>;
+  loentrin: ReturnType<typeof toLoentrin>;
+  loengruppe: Loengruppe;
+}>;
+
+const resolveOffentligLoenSelection = (
+  af: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]
+): OffentligLoenSelection | null => {
+  if (!af.overenskomstId) return null;
+  const offentligType = getOffentligOverenskomstTypeById(af.overenskomstId);
+  if (!offentligType) return null;
+
+  const loenType = resolveOffentligLoenTypeFromLabel(af.offentligLoenType);
+  if (!loenType) return null;
+
+  const trinValue = af.offentligLoenTrin;
+  const gruppeValue = af.offentligLoenGruppe;
+  if (typeof trinValue !== 'number' || typeof gruppeValue !== 'number') return null;
+  if (gruppeValue < 0 || gruppeValue > 4) return null;
+
+  try {
+    const loentrin = toLoentrin(trinValue);
+    const loengruppe = gruppeValue as Loengruppe;
+    return {
+      overenskomstType: offentligType,
+      loenType,
+      loentrin,
+      loengruppe,
+    };
+  } catch {
+    return null;
+  }
 };
 
 const getEoRange = (
@@ -221,14 +259,132 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
 
   for (const af of input.eoValues.loenindkomstAnsaettelsesforhold ?? []) {
     if (!af.overenskomstId) continue;
-    const ref = resolveOverenskomstRef(af.overenskomstId);
-    if (!ref) continue;
-
     const feriePct = parsePercentToDecimal(af.feriePct);
     const loenPaaHelligdage = af.loenPaaHelligdage;
 
     const referenceDanish = toDanishOrUndefined(referenceIso);
     if (!referenceDanish) continue;
+
+    const offentligSelection = resolveOffentligLoenSelection(af);
+    if (offentligSelection) {
+      const referenceResult = getOffentligLoenForDato(
+        offentligSelection.overenskomstType,
+        referenceDanish,
+        offentligSelection.loentrin,
+        offentligSelection.loengruppe
+      );
+      if (!referenceResult) continue;
+      const referenceBase =
+        offentligSelection.loenType === 'maanedsLoen'
+          ? referenceResult.maanedsLoen
+          : referenceResult.timeLoen;
+      const referenceValue = computePackageValue({
+        grundloen: referenceBase,
+        feriePct,
+        shSoPct: 0,
+        fritvalgPct: 0,
+        storeBededagPct: 0,
+        pensionPct: 0,
+      });
+      if (!Number.isFinite(referenceValue) || referenceValue <= 0) continue;
+
+      const eoFraDanish = toDanishOrUndefined(eoRange.fra);
+      const eoTilDanish = toDanishOrUndefined(eoRange.til);
+      if (!eoFraDanish || !eoTilDanish) continue;
+
+      const satser = getOffentligLoenForPeriode(
+        offentligSelection.overenskomstType,
+        eoFraDanish,
+        eoTilDanish,
+        offentligSelection.loentrin,
+        offentligSelection.loengruppe
+      );
+
+      const dates = new Set<ISODateString>();
+      for (const sats of satser) {
+        const iso = toISODateString(sats.effectiveDate.split('-').reverse().join('-'));
+        if (iso >= eoRange.fra && iso <= eoRange.til) {
+          dates.add(iso);
+        }
+      }
+
+      const sortedDates = Array.from(dates).sort((a, b) => a.localeCompare(b));
+      const shDageSet = buildSHDageSet(eoRange.fra, eoRange.til);
+      const ferieDageSet = buildFerieDageSet(input.eoValues, shDageSet, eoRange.fra, eoRange.til);
+
+      const entries: IndeksEntry[] = [];
+      for (let i = 0; i < sortedDates.length; i++) {
+        const iso = sortedDates[i];
+        const danishDate = toDanishOrUndefined(iso);
+        if (!danishDate) continue;
+        const sats = getOffentligLoenForDato(
+          offentligSelection.overenskomstType,
+          danishDate,
+          offentligSelection.loentrin,
+          offentligSelection.loengruppe
+        );
+        if (!sats) continue;
+
+        const grundloen =
+          offentligSelection.loenType === 'maanedsLoen' ? sats.maanedsLoen : sats.timeLoen;
+        const packageValue = computePackageValue({
+          grundloen,
+          feriePct,
+          shSoPct: 0,
+          fritvalgPct: 0,
+          storeBededagPct: 0,
+          pensionPct: 0,
+        });
+        const index = referenceValue > 0 ? (packageValue / referenceValue) * 100 : 0;
+
+        let arbejdsdage: number | null = null;
+        let maaneder: number | null = null;
+        const periodeFra = iso;
+        const periodeTil = i < sortedDates.length - 1
+          ? decrementDate(sortedDates[i + 1])
+          : eoRange.til;
+
+        if (periodeTil && periodeFra <= periodeTil) {
+          const result = beregnArbejdsdageOgMaaneder(
+            periodeFra,
+            periodeTil,
+            shDageSet,
+            ferieDageSet
+          );
+          arbejdsdage = result.arbejdsdage;
+          maaneder = result.maaneder;
+        }
+
+        entries.push({
+          effectiveFrom: iso,
+          grundloen,
+          feriePct,
+          shSoPct: 0,
+          fritvalgPct: 0,
+          storeBededagPct: 0,
+          pensionPct: 0,
+          packageValue,
+          index,
+          arbejdsdage,
+          maaneder,
+        });
+      }
+
+      if (entries.length === 0) continue;
+
+      ansaettelser.push({
+        ansaettelsesforholdId: af.id,
+        navn: af.navnPaaArbejdssted,
+        overenskomstId: af.overenskomstId,
+        referenceIso,
+        referenceValue,
+        entries,
+      });
+      continue;
+    }
+
+    const ref = resolveOverenskomstRef(af.overenskomstId);
+    if (!ref) continue;
 
     const referenceSats = getEffektiveSatserForDato({
       overenskomstId: ref.baseId,

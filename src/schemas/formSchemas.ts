@@ -336,6 +336,12 @@ export const loenPaaHelligdageSchema = z.enum(['Almindelig løn', 'SH-udbetaling
 export type LoenPaaHelligdage = z.infer<typeof loenPaaHelligdageSchema>;
 
 /**
+ * Offentlig løn type (KL/RLTN)
+ */
+export const offentligLoenTypeEnum = z.enum(['Månedsløn', 'Timeløn']);
+export type OffentligLoenTypeLabel = z.infer<typeof offentligLoenTypeEnum>;
+
+/**
  * Lønudvikling beregningsgrundlag
  */
 export const loenudviklingBeregningsgrundlagEnum = z.enum(['Overenskomst', 'Statistik', 'KRL satstabel', 'Manuelt angivet', 'Ingen']);
@@ -784,6 +790,25 @@ export const loenindkomstAnsaettelsesforholdSchema = z.object({
   loenudviklingKRLSatstabel: z.preprocess(normalizeEmptyToUndefined, krlSatstabelEnum.optional()),
   loenudviklingManuelNavn: optionalString,
   loenudviklingManuelTableData: z.array(loenudviklingManuelRowSchema).default([]),
+
+  // Offentlig løn (KL/RLTN) – kun relevant ved overenskomst-beregning
+  offentligLoenType: z.preprocess(normalizeEmptyToUndefined, offentligLoenTypeEnum.optional()),
+  offentligLoenTrin: z.preprocess(
+    coerceToIntegerOrUndefined,
+    z.number()
+      .int()
+      .min(1, 'Skal være mindst 1')
+      .max(99, 'Må højst være 99')
+      .optional()
+  ),
+  offentligLoenGruppe: z.preprocess(
+    coerceToIntegerOrUndefined,
+    z.number()
+      .int()
+      .min(0, 'Skal være mindst 0')
+      .max(4, 'Må højst være 4')
+      .optional()
+  ),
 
   // Overenskomst-filter (persisteres for at bevare brugerens valg)
   // Initialiseres fra settings ved oprettelse af ansættelsesforhold, ændres ikke af efterfølgende settings-ændringer

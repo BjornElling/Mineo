@@ -21,6 +21,8 @@ import { computeTafOverlapWithBeregningsperiode } from './beregningsperiodeTafOv
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoDebugIndkomstModel';
 import { mergeDateRanges } from './periodMerging';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from './tafPeriodConstraints';
+import { isOffentligOverenskomstId } from '../../data/overenskomstRates';
+import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -2305,6 +2307,58 @@ export const buildEODebugIndkomstRows = (
     const harGyldigValgtRegulering = status === 'ok';
     if (!harGyldigValgtRegulering) {
       return;
+    }
+
+    if (
+      loenudviklingBasis === 'Overenskomst' &&
+      ansaettelsesforhold.overenskomstId &&
+      isOffentligOverenskomstId(ansaettelsesforhold.overenskomstId)
+    ) {
+      const offentligtRowId = `loenindkomst.${ansaettelsesforhold.id}.regulering.offentligLoenoplysninger`;
+      const typeLabel = ansaettelsesforhold.offentligLoenType;
+      const trinValue = ansaettelsesforhold.offentligLoenTrin;
+      const gruppeValue = ansaettelsesforhold.offentligLoenGruppe;
+
+      let offentligStatus: DebugStatus = 'ok';
+      let offentligMessage = '';
+
+      if (!typeLabel || !resolveOffentligLoenTypeFromLabel(typeLabel)) {
+        offentligStatus = 'error';
+        offentligMessage = 'Ansættelse er ikke valgt';
+      } else if (typeof trinValue !== 'number') {
+        offentligStatus = 'error';
+        offentligMessage = 'Løntrin mangler';
+      } else {
+        try {
+          toLoentrin(trinValue);
+        } catch {
+          offentligStatus = 'error';
+          offentligMessage = 'Løntrin skal være mellem 1 og 55';
+        }
+      }
+
+      if (offentligStatus === 'ok') {
+        if (typeof gruppeValue !== 'number') {
+          offentligStatus = 'error';
+          offentligMessage = 'Gruppe mangler';
+        } else if (gruppeValue < 0 || gruppeValue > 4) {
+          offentligStatus = 'error';
+          offentligMessage = 'Gruppe skal være mellem 0 og 4';
+        }
+      }
+
+      const offentligDisplayValue =
+        offentligStatus === 'ok'
+          ? `${typeLabel}, ${trinValue}, ${gruppeValue}`
+          : formatStatusMessage('error', offentligMessage);
+
+      rows.push({
+        id: offentligtRowId,
+        label: 'KL-/RLTN-oplysninger',
+        displayValue: offentligDisplayValue,
+        status: offentligStatus,
+        dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
+      });
     }
 
     const alleReguleringsvaerdierRow = (() => {

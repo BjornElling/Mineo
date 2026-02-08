@@ -132,8 +132,12 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
       indtaegtsoplysningerTableData: [],
       loenudviklingBeregningsgrundlag: undefined,
       loenudviklingStatistikModel: undefined,
+      loenudviklingKRLSatstabel: undefined,
       loenudviklingManuelNavn: '',
       loenudviklingManuelTableData: [],
+      offentligLoenType: 'Månedsløn',
+      offentligLoenTrin: undefined,
+      offentligLoenGruppe: undefined,
       // Overenskomst-filter: initialiseres fra settings ved oprettelse (centraliseret mapping)
       overenskomstFilter: resolveDefaultOverenskomstFilter(settings),
     },

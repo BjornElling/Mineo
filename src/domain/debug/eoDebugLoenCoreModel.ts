@@ -14,7 +14,9 @@ import type { ErstatningsopgoerelseValues, StamdataValues, LoenPaaHelligdage } f
 import { LOEN_PAA_HELLIGDAGE } from '../../types/common';
 import type { DebugDay } from './eoDebugTypes';
 import type { LoenTimeline, DailyLoen, LoenComponent, DailySvieSmerte } from './eoDebugLoenTypes';
-import { getEffektiveSatserForDato, resolveOverenskomstRef } from '../../data/overenskomstRates';
+import { getEffektiveSatserForDato, resolveOverenskomstRef, getOffentligOverenskomstTypeById } from '../../data/overenskomstRates';
+import { getOffentligLoenForDato } from '../../data/offentligLoenLookup';
+import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
 import { parsePercentToDecimal } from '../../utils/formatUtils';
 import { svieSmertePrDag } from '../../data/regulationRates';
 
@@ -51,6 +53,42 @@ const getEoRange = (
 
 const toDanishOrUndefined = (iso: ISODateString): DanishDateString | undefined => {
   return isoToDanish(iso) ?? undefined;
+};
+
+type OffentligLoenSelection = Readonly<{
+  overenskomstType: NonNullable<ReturnType<typeof getOffentligOverenskomstTypeById>>;
+  loenType: NonNullable<ReturnType<typeof resolveOffentligLoenTypeFromLabel>>;
+  loentrin: ReturnType<typeof toLoentrin>;
+  loengruppe: Loengruppe;
+}>;
+
+const resolveOffentligLoenSelection = (
+  ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number] | undefined
+): OffentligLoenSelection | null => {
+  if (!ansaettelsesforhold?.overenskomstId) return null;
+  const offentligType = getOffentligOverenskomstTypeById(ansaettelsesforhold.overenskomstId);
+  if (!offentligType) return null;
+
+  const loenType = resolveOffentligLoenTypeFromLabel(ansaettelsesforhold.offentligLoenType);
+  if (!loenType) return null;
+
+  const trinValue = ansaettelsesforhold.offentligLoenTrin;
+  const gruppeValue = ansaettelsesforhold.offentligLoenGruppe;
+  if (typeof trinValue !== 'number' || typeof gruppeValue !== 'number') return null;
+  if (gruppeValue < 0 || gruppeValue > 4) return null;
+
+  try {
+    const loentrin = toLoentrin(trinValue);
+    const loengruppe = gruppeValue as Loengruppe;
+    return {
+      overenskomstType: offentligType,
+      loenType,
+      loentrin,
+      loengruppe,
+    };
+  } catch {
+    return null;
+  }
 };
 
 const getPrimaryAnsaettelsesforhold = (
@@ -110,6 +148,7 @@ export function buildLoenTimeline(input: LoenCoreInput): LoenTimeline {
 
   const feriePct = parsePercentToDecimal(af?.feriePct);
   const loenPaaHelligdage = af?.loenPaaHelligdage;
+  const offentligSelection = resolveOffentligLoenSelection(af);
 
   for (const debugDay of input.debugDays) {
     // Svie/smerte: kalenderdage, separat
@@ -134,6 +173,36 @@ export function buildLoenTimeline(input: LoenCoreInput): LoenTimeline {
 
     const danishDate = toDanishOrUndefined(debugDay.iso);
     if (!danishDate) continue;
+
+    if (offentligSelection) {
+      const resultat = getOffentligLoenForDato(
+        offentligSelection.overenskomstType,
+        danishDate,
+        offentligSelection.loentrin,
+        offentligSelection.loengruppe
+      );
+      if (!resultat) continue;
+
+      const grundloen =
+        offentligSelection.loenType === 'maanedsLoen' ? resultat.maanedsLoen : resultat.timeLoen;
+
+      const { components, total } = buildLoenComponents({
+        grundloen,
+        feriePct,
+        shSoPct: 0,
+        fritvalgPct: 0,
+        storeBededagPct: 0,
+        pensionPct: 0,
+      });
+
+      if (components.length === 0) continue;
+      loenDays.push({
+        iso: debugDay.iso,
+        components,
+        dailyTotal: total,
+      });
+      continue;
+    }
 
     const ref = resolveOverenskomstRef(af.overenskomstId);
     if (!ref) continue;

@@ -7,7 +7,7 @@ import {
   getOffentligeYdelserTableValidation,
 } from '../../utils/offentligeYdelserTableValidation';
 import { ydelsestyper } from '../../data/ydelsestyper';
-import { getEffektiveSatserForDato, resolveOverenskomstRef, type OverenskomstId } from '../../data/overenskomstRates';
+import { getEffektiveSatserForDato, resolveOverenskomstRef, type OverenskomstId, isOffentligOverenskomstId } from '../../data/overenskomstRates';
 import type { DebugStatus } from '../debug/eoDebugTypes';
 import { buildAarsloenCellErrors, buildOffentligeYdelserCellErrors } from '../debug/eoDebugRowValidation';
 import { formatCurrency, parseAmount } from '../../utils/formatUtils';
@@ -78,6 +78,7 @@ const validateOverenskomstSats = (
   applyAlmindeligLoenPaaShDageRegel: boolean
 ): boolean => {
   if (!overenskomstId) return false;
+  if (isOffentligOverenskomstId(overenskomstId)) return false;
   if (!reguleringsDato) return false;
 
   const dateObj = parseISODate(reguleringsDato);

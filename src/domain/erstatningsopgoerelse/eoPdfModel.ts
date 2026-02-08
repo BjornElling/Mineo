@@ -21,7 +21,16 @@ import { createDate } from '../../utils/dateUtils';
 import { isOevrigeKravRowEmpty, isSvieSmerteRowEmpty, isTafRowEmpty } from './rowEmpty';
 import { beregnHelligdage } from '../../utils/shDageBeregning';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/common';
-import { getEffektiveSatserForDato, getEffektiveSatserForPeriode, resolveOverenskomstRef } from '../../data/overenskomstRates';
+import { getEffektiveSatserForDato, getEffektiveSatserForPeriode, resolveOverenskomstRef, getOffentligOverenskomstTypeById } from '../../data/overenskomstRates';
+import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
+import {
+  resolveOffentligLoenTypeFromLabel,
+  toLoentrin,
+  type OffentligOverenskomstType,
+  type OffentligLoenType,
+  type Loengruppe,
+  type Loentrin,
+} from '../../data/offentligLoenTypes';
 import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../data/statistiskLoenudviklingRates';
 import { getKRLSatstabel, type KRLSatstabelId } from '../../data/KRLrates';
 import { clampTafRow, resolveTafConstraintBounds } from './tafPeriodConstraints';
@@ -908,6 +917,12 @@ type LoenreguleringsSegmentV3 = Readonly<IsoRange & { deltaPct: number }>;
 type LoenudviklingRowsV3 = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'];
 type LoenudviklingAfV3 = LoenudviklingRowsV3[number];
 type LoenudviklingManualRowV3 = NonNullable<LoenudviklingAfV3['loenudviklingManuelTableData']>[number];
+type OffentligLoenSelectionV3 = Readonly<{
+  overenskomstType: OffentligOverenskomstType;
+  loenType: OffentligLoenType;
+  loentrin: Loentrin;
+  loengruppe: Loengruppe;
+}>;
 type KonsolideretLoenudviklingV3 =
   | Readonly<{
     strategi: 'statistik';
@@ -923,6 +938,7 @@ type KonsolideretLoenudviklingV3 =
     overenskomstId: string;
     loenPaaHelligdage: string;
     feriePct: number;
+    offentlig: OffentligLoenSelectionV3 | null;
     tafRanges: readonly IsoRange[];
   }>
   | Readonly<{
@@ -977,6 +993,43 @@ const normalizeManualRowsV3 = (rows: readonly LoenudviklingManualRowV3[]): strin
 
 type UniformPrimitiveV3 = string | number | boolean | null;
 type ReguleringsdatoInputV3 = Readonly<{ saerligFraDatoRegulering?: string }>;
+
+const resolveOffentligLoenSelectionV3 = (
+  af: LoenudviklingAfV3,
+  offentligType: OffentligOverenskomstType
+): OffentligLoenSelectionV3 => {
+  const loenType = resolveOffentligLoenTypeFromLabel(af.offentligLoenType);
+  if (!loenType) {
+    throw new Error('Loenudvikling kan ikke beregnes: ansættelse er ikke valgt');
+  }
+
+  const trinValue = af.offentligLoenTrin;
+  if (typeof trinValue !== 'number') {
+    throw new Error('Loenudvikling kan ikke beregnes: løntrin mangler');
+  }
+
+  let loentrin: Loentrin;
+  try {
+    loentrin = toLoentrin(trinValue);
+  } catch {
+    throw new Error('Loenudvikling kan ikke beregnes: løntrin skal være mellem 1 og 55');
+  }
+
+  const gruppeValue = af.offentligLoenGruppe;
+  if (typeof gruppeValue !== 'number') {
+    throw new Error('Loenudvikling kan ikke beregnes: gruppe mangler');
+  }
+  if (gruppeValue < 0 || gruppeValue > 4) {
+    throw new Error('Loenudvikling kan ikke beregnes: gruppe skal være mellem 0 og 4');
+  }
+
+  return {
+    overenskomstType: offentligType,
+    loenType,
+    loentrin,
+    loengruppe: gruppeValue as Loengruppe,
+  };
+};
 
 const assertUniformV3 = (
   active: readonly LoenudviklingAfV3[],
@@ -1082,6 +1135,15 @@ const resolveReguleringsStrategiV3 = (
     assertUniformV3(active, (af) => af.overenskomstId ?? '', 'overenskomst');
     assertUniformV3(active, (af) => af.loenPaaHelligdage ?? '', 'loen paa helligdage');
     assertUniformV3(active, (af) => af.feriePct ?? null, 'feriepct');
+
+    const offentligType = active[0].overenskomstId
+      ? getOffentligOverenskomstTypeById(active[0].overenskomstId)
+      : undefined;
+    if (offentligType) {
+      assertUniformV3(active, (af) => af.offentligLoenType ?? '', 'offentlig løntype');
+      assertUniformV3(active, (af) => af.offentligLoenTrin ?? null, 'offentlig løntrin');
+      assertUniformV3(active, (af) => af.offentligLoenGruppe ?? null, 'offentlig løngruppe');
+    }
   } else if (strategi === 'manual') {
     assertUniformV3(active, (af) => normalizeManualRowsV3(af.loenudviklingManuelTableData ?? []), 'manuelle reguleringsraekker');
     assertUniformV3(active, (af) => af.feriePct ?? null, 'feriepct');
@@ -1134,6 +1196,10 @@ const resolveReguleringsStrategiV3 = (
     if (!gyldigLoenPaaHelligdage) {
       throw new Error('Loenudvikling kan ikke beregnes: loen paa helligdage er ugyldig');
     }
+    const offentligType = getOffentligOverenskomstTypeById(active[0].overenskomstId);
+    const offentlig = offentligType
+      ? resolveOffentligLoenSelectionV3(active[0], offentligType)
+      : null;
     return {
       strategi,
       label,
@@ -1144,6 +1210,7 @@ const resolveReguleringsStrategiV3 = (
         overenskomstId: active[0].overenskomstId,
         loenPaaHelligdage,
         feriePct: active[0].feriePct,
+        offentlig,
         tafRanges,
       },
     };
@@ -1338,6 +1405,93 @@ const buildLoenudviklingFromOverenskomstV3 = (
   }
   if (!reguleringsdatoDa) {
     throw new Error('Loenudvikling kan ikke beregnes: ugyldig reguleringsdato');
+  }
+
+  const offentlig = konsolideret.offentlig;
+  if (offentlig) {
+    const feriePct = konsolideret.feriePct;
+    const baseResult = getOffentligLoenForDato(
+      offentlig.overenskomstType,
+      reguleringsdatoDa,
+      offentlig.loentrin,
+      offentlig.loengruppe
+    );
+    if (!baseResult) {
+      throw new Error('Loenudvikling kan ikke beregnes: basissats mangler');
+    }
+    const baseLoen = offentlig.loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen;
+    const basePackage = computePackageValue({
+      grundloen: baseLoen,
+      feriePct,
+      shSoPct: 0,
+      fritvalgPct: 0,
+      pensionPct: 0,
+      storeBededagPct: 0,
+    });
+    if (!Number.isFinite(basePackage) || basePackage <= 0) {
+      throw new Error('Loenudvikling kan ikke beregnes: basispakke er ugyldig');
+    }
+
+    const segments: LoenreguleringsSegmentV3[] = [];
+    for (const range of konsolideret.tafRanges) {
+      const fraDa = isoToDanish(range.fra);
+      const tilDa = isoToDanish(range.til);
+      if (!fraDa || !tilDa) {
+        throw new Error('Loenudvikling kan ikke beregnes: ugyldigt segmentinterval');
+      }
+
+      const satser = getOffentligLoenForPeriode(
+        offentlig.overenskomstType,
+        fraDa,
+        tilDa,
+        offentlig.loentrin,
+        offentlig.loengruppe
+      );
+
+      const starts = new Set<ISODateString>();
+      for (const sats of satser) {
+        const startIso = parseDanishToIso(sats.effectiveDate);
+        if (startIso && startIso > range.fra && startIso <= range.til) starts.add(startIso);
+      }
+
+      for (const segment of buildSegmentsFromStartDatesV3(range, starts)) {
+        const segmentDa = isoToDanish(segment.fra);
+        if (!segmentDa) {
+          throw new Error('Loenudvikling kan ikke beregnes: ugyldig segmentdato');
+        }
+        const segmentResult = getOffentligLoenForDato(
+          offentlig.overenskomstType,
+          segmentDa,
+          offentlig.loentrin,
+          offentlig.loengruppe
+        );
+        if (!segmentResult) {
+          throw new Error('Loenudvikling kan ikke beregnes: mangler sats for segment');
+        }
+        const segmentLoen = offentlig.loenType === 'maanedsLoen'
+          ? segmentResult.maanedsLoen
+          : segmentResult.timeLoen;
+        const packageValue = computePackageValue({
+          grundloen: segmentLoen,
+          feriePct,
+          shSoPct: 0,
+          fritvalgPct: 0,
+          pensionPct: 0,
+          storeBededagPct: 0,
+        });
+        if (!Number.isFinite(packageValue) || packageValue <= 0) {
+          throw new Error('Loenudvikling kan ikke beregnes: ugyldig pakkevaerdi for segment');
+        }
+        segments.push({
+          ...segment,
+          deltaPct: roundHalfAwayFromZero((packageValue / basePackage - 1) * 100, 2),
+        });
+      }
+    }
+    if (segments.length === 0) {
+      throw new Error('Loenudvikling kan ikke beregnes: ingen overenskomstsegmenter');
+    }
+    return segments;
   }
 
   const applyShRegel = konsolideret.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
