@@ -41,6 +41,7 @@ vi.mock('../../../../utils/scrollToSection', () => ({
 
 vi.mock('../../../../utils/pdf/pdfLoader', () => ({
   loadErstatningsopgoerelsePdfModule: loadErstatningsopgoerelsePdfModuleMock,
+  loadTafFordeltPaaAarPdfModule: vi.fn(async () => ({ generateTafFordeltPaaAarPdf: vi.fn() })),
 }));
 
 describe('EOberegningTab PDF-afslutning', () => {
@@ -72,7 +73,7 @@ describe('EOberegningTab PDF-afslutning', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(screen.getByTestId('DownloadIcon'));
+    fireEvent.click(screen.getAllByTestId('DownloadIcon')[0]);
 
     await waitFor(() => expect(generateErstatningsopgoerelsePdfMock).toHaveBeenCalledTimes(1));
 

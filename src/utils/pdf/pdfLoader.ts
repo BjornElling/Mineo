@@ -9,6 +9,7 @@ const moduleLoaders = {
   regulering: () => import('./reguleringPdf'),
   krl: () => import('./krlPdf'),
   erstatningsopgoerelse: () => import('./erstatningsopgoerelsePdf'),
+  tafFordeltPaaAar: () => import('./tafFordeltPaaAarPdf'),
 };
 
 const loadModule = async (key) => {
@@ -31,3 +32,4 @@ export const loadAarsloenPdfModule = () => loadModule('aarsloen');
 export const loadReguleringPdfModule = () => loadModule('regulering');
 export const loadKRLPdfModule = () => loadModule('krl');
 export const loadErstatningsopgoerelsePdfModule = () => loadModule('erstatningsopgoerelse');
+export const loadTafFordeltPaaAarPdfModule = () => loadModule('tafFordeltPaaAar');

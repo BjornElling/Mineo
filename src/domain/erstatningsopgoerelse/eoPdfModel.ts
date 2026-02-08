@@ -178,9 +178,9 @@ export const ensureMoneyOre = (value: number): MoneyOre => {
 };
 
 // Afrunding til 2 decimaler med "half away from zero" (samme regel på tværs af hele PDF-modellen)
-const roundKroner = (value: number): number => roundHalfAwayFromZero(value, 2);
+export const roundKroner = (value: number): number => roundHalfAwayFromZero(value, 2);
 
-const toOre = (value: MoneyKroner): MoneyOre => {
+export const toOre = (value: MoneyKroner): MoneyOre => {
   if (!Number.isFinite(value)) {
     throw new Error('Ugyldigt beløb: ikke et endeligt tal');
   }
@@ -331,7 +331,7 @@ const collectTafArbejdsdageForRange = (
   return arbejdsdage;
 };
 
-const buildTafArbejdsdageSet = (values: ErstatningsopgoerelseValues): Set<ISODateString> => {
+export const buildTafArbejdsdageSet = (values: ErstatningsopgoerelseValues): Set<ISODateString> => {
   const ferieperioder = values.ferieperioder ?? [];
   const rows = values.tafPerioder ?? [];
   const arbejdsdage = new Set<ISODateString>();
@@ -366,7 +366,7 @@ const buildTafArbejdsdageSet = (values: ErstatningsopgoerelseValues): Set<ISODat
   return arbejdsdage;
 };
 
-const countTafArbejdsdageInRange = (arbejdsdage: ReadonlySet<ISODateString>, fra: ISODateString, til: ISODateString): number => {
+export const countTafArbejdsdageInRange = (arbejdsdage: ReadonlySet<ISODateString>, fra: ISODateString, til: ISODateString): number => {
   const fraDate = isoDateToUtcDate(fra);
   const tilDate = isoDateToUtcDate(til);
   let count = 0;
@@ -1035,7 +1035,7 @@ const findLatestByDateInSortedListV3 = <T extends { startIso: ISODateString }>(
   return undefined;
 };
 
-const segmentAmountOreV3 = (baseLoenKronerRounded: number, quantity: number, deltaPct: number): MoneyOre => {
+export const segmentAmountOreV3 = (baseLoenKronerRounded: number, quantity: number, deltaPct: number): MoneyOre => {
   const amountKroner = baseLoenKronerRounded * quantity * (1 + deltaPct / 100);
   return toOre(roundKroner(amountKroner));
 };

@@ -11,7 +11,7 @@ import { collectAllDebugRows } from '../../../domain/erstatningsopgoerelse/eoDeb
 import type { NavigationTarget } from '../../../domain/erstatningsopgoerelse/eoDebugNavigationMap';
 import { scrollToSection } from '../../../utils/scrollToSection';
 import { scrollToDebugRow } from '../../../utils/scrollToDebugRow';
-import { loadErstatningsopgoerelsePdfModule } from '../../../utils/pdf/pdfLoader';
+import { loadErstatningsopgoerelsePdfModule, loadTafFordeltPaaAarPdfModule } from '../../../utils/pdf/pdfLoader';
 import { formatISOToDanish } from '../../../utils/dateValidation';
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
 import { useErstatningsopgoerelseAggregation } from '../../../calculation/useErstatningsopgoerelseAggregation';
@@ -385,6 +385,23 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     }
   }, [stamdataValues, eoValues, selectedElements, settings]);
 
+  const handleDownloadTafFordeltPdf = React.useCallback(async () => {
+    if (!stamdataValues || !eoValues) {
+      console.error('Manglende data for PDF-generering');
+      return;
+    }
+    const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
+    try {
+      const { generateTafFordeltPaaAarPdf } = await loadTafFordeltPaaAarPdfModule();
+      generateTafFordeltPaaAarPdf(stamdataValues, eoValues, {
+        visBrevhoved,
+        visUdkastStempel: eoValues.indsaetUdkastStempel === 'Ja',
+      });
+    } catch (error) {
+      console.error('Kunne ikke generere TAF-fordelt-på-år PDF:', error);
+    }
+  }, [stamdataValues, eoValues, settings]);
+
   // ============================================================================
   // RENDER
   // ============================================================================
@@ -751,6 +768,72 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                 )}
               />
             </Box>
+          </Box>
+        </Box>
+      </ContentBox>
+
+      <ContentBox>
+        <Typography className="section-header">Alternative beregninger</Typography>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">TAF-krav fordelt på kalenderår</Typography>
+          <Box className="row--label-right-hover__content">
+            {errors.length === 0 && (
+              <Box
+                onClick={handleDownloadTafFordeltPdf}
+                tabIndex={-1}
+                sx={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                  '&:hover': {
+                    backgroundColor: '#e3f2fd',
+                  },
+                  '&:active': {
+                    backgroundColor: '#bbdefb',
+                  },
+                }}
+              >
+                <Download
+                  sx={{
+                    fontSize: '24px',
+                    color: 'primary.main',
+                  }}
+                />
+              </Box>
+            )}
+            {errors.length > 0 && (
+              <Tooltip
+                title="Download ikke mulig, så længe der er fejl ovenfor"
+                arrow
+                placement="top"
+              >
+                <Box
+                  tabIndex={-1}
+                  sx={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'default',
+                  }}
+                >
+                  <Download
+                    sx={{
+                      fontSize: '24px',
+                      color: 'text.disabled',
+                    }}
+                  />
+                </Box>
+              </Tooltip>
+            )}
           </Box>
         </Box>
       </ContentBox>

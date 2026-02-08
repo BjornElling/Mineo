@@ -1,0 +1,497 @@
+/**
+ * PDF Writer Infrastructure
+ *
+ * Shared cursor/writer abstraction for all PDF generators.
+ * Extracted from erstatningsopgoerelsePdf.ts for reuse.
+ *
+ * Import-kæde: pdfWriter → pdfConfig + pdfHelpers (begge pure, ingen domain-logik).
+ */
+
+import jsPDF from 'jspdf';
+import { COLORS, FONT_SIZES, MARGINS } from './pdfConfig';
+import { addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
+
+const NBSP = '\u00A0';
+
+export const ensureNonBreakingKr = (value: string): string => {
+  return value.replace(/(-?\d[\d.,]*)\s+kr\./g, `$1${NBSP}kr.`);
+};
+
+export const normalizeTextForPdf = (value: string): string => {
+  return ensureNonBreakingKr(value.replace(/\r\n/g, '\n'));
+};
+
+const fitTextToWidth = (doc: jsPDF, text: string, maxWidth: number): string => {
+  if (doc.getTextWidth(text) <= maxWidth) return text;
+  const ellipsis = '…';
+  const ellipsisWidth = doc.getTextWidth(ellipsis);
+  if (ellipsisWidth >= maxWidth) return '';
+  let trimmed = text;
+  while (trimmed.length > 0 && doc.getTextWidth(trimmed) + ellipsisWidth > maxWidth) {
+    trimmed = trimmed.slice(0, -1);
+  }
+  return trimmed.length > 0 ? `${trimmed}${ellipsis}` : '';
+};
+
+// ============================================================================
+// UDKAST WATERMARK
+// ============================================================================
+
+const udkastWatermarkCache = new Map<string, string | null>();
+
+const getUdkastWatermarkPngDataUrl = (pageWidth: number, pageHeight: number): string | null => {
+  const cacheKey = `${pageWidth.toFixed(3)}x${pageHeight.toFixed(3)}`;
+  const cached = udkastWatermarkCache.get(cacheKey);
+  if (cached !== undefined) return cached;
+
+  if (typeof document === 'undefined') {
+    udkastWatermarkCache.set(cacheKey, null);
+    return null;
+  }
+
+  const canvas = document.createElement('canvas');
+  const pxScale = 8;
+  canvas.width = Math.max(900, Math.round(pageWidth * pxScale));
+  canvas.height = Math.max(1300, Math.round(pageHeight * pxScale));
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    udkastWatermarkCache.set(cacheKey, null);
+    return null;
+  }
+
+  // Transparent image with only watermark text to keep content selectable and avoid opaque overlays.
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate((-45 * Math.PI) / 180);
+  const fontSize = Math.round(Math.min(canvas.width, canvas.height) * 0.20);
+  ctx.font = `700 ${fontSize}px Arial, sans-serif`;
+  ctx.fillStyle = 'rgba(235,235,235,0.42)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('UDKAST', 0, 0);
+
+  const dataUrl = canvas.toDataURL('image/png');
+  udkastWatermarkCache.set(cacheKey, dataUrl);
+  return dataUrl;
+};
+
+const addUdkastWatermark = (doc: jsPDF): void => {
+  const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+  const watermarkDataUrl = getUdkastWatermarkPngDataUrl(pageWidth, pageHeight);
+  if (watermarkDataUrl) {
+    doc.addImage(watermarkDataUrl, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'NONE');
+    return;
+  }
+
+  // Fallback if canvas is unavailable at runtime.
+  const text = 'UDKAST';
+  const centerX = pageWidth / 2 + 18;
+  const centerY = pageHeight / 2 - 80;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(130);
+  doc.setTextColor(245);
+  doc.text(text, centerX, centerY, { align: 'center', angle: -45 });
+  doc.setTextColor(0);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(FONT_SIZES.normal);
+};
+
+// ============================================================================
+// PDF CURSOR (intern – styrer Y-position, sideskift, tekst-rendering)
+// ============================================================================
+
+const createPdfCursor = (params: Readonly<{
+  lineHeight: number;
+  visUdkastStempel: boolean;
+  onLayoutFallback: (message: string) => void;
+}>) => {
+  const { lineHeight, visUdkastStempel, onLayoutFallback } = params;
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const pageHeight = doc.internal.pageSize.height;
+  const contentBottom = pageHeight - MARGINS.bottom;
+  const fullWidth = doc.internal.pageSize.width - MARGINS.left - MARGINS.right;
+  const pageContentHeight = contentBottom - MARGINS.top;
+  let y = MARGINS.top;
+  let activeFont = { fontName: 'helvetica', fontStyle: 'normal' as string };
+
+  const addPage = () => {
+    doc.addPage();
+    y = MARGINS.top;
+    if (visUdkastStempel) {
+      addUdkastWatermark(doc);
+    }
+  };
+
+  const ensureSpace = (height: number) => {
+    if (y + height > contentBottom) {
+      addPage();
+    }
+  };
+
+  const splitWrappedLines = (text: string, maxWidth: number): string[] => {
+    return doc.splitTextToSize(normalizeTextForPdf(text), maxWidth) as string[];
+  };
+
+  const setFont = (fontName: string, fontStyle: string) => {
+    doc.setFont(fontName, fontStyle);
+    activeFont = { fontName, fontStyle };
+  };
+
+  const withFontStyle = (fontStyle: 'normal' | 'bold', fn: () => void) => {
+    const previous = activeFont;
+    setFont(previous.fontName, fontStyle);
+    try {
+      fn();
+    } finally {
+      setFont(previous.fontName, previous.fontStyle);
+    }
+  };
+
+  const measureTextWidthWithFont = (text: string, fontStyle: 'normal' | 'bold'): number => {
+    let measured = 0;
+    withFontStyle(fontStyle, () => {
+      measured = doc.getTextWidth(text);
+    });
+    return measured;
+  };
+
+  const writeWrappedText = (text: string, maxWidth = fullWidth, x = MARGINS.left) => {
+    const lines = splitWrappedLines(text, maxWidth);
+    for (const line of lines) {
+      ensureSpace(lineHeight);
+      doc.text(line, x, y);
+      y += lineHeight;
+    }
+  };
+
+  const writeLeftRightText = (
+    leftText: string,
+    rightText: string,
+    x: number,
+    rightPadding: number,
+    options?: Readonly<{
+      rightFontStyle?: 'normal' | 'bold';
+      lineAboveRightWidth?: number;
+      lineAboveRightOffset?: number;
+      leftNoWrap?: boolean;
+      minRightColumnWidth?: number;
+    }>
+  ) => {
+    const pageWidth = doc.internal.pageSize.width;
+    const rightFontStyle = options?.rightFontStyle ?? 'bold';
+    const maxRightDrawableWidth = Math.max(10, pageWidth - x - rightPadding - 5);
+    const actualRightWidth = measureTextWidthWithFont(rightText, rightFontStyle);
+    const minRightWidth = options?.minRightColumnWidth ?? 0;
+    const rightWidth = Math.max(actualRightWidth, minRightWidth);
+    const wrapPadding = doc.getTextWidth('000000');
+    const hasRightOverflow = rightWidth > maxRightDrawableWidth;
+    const leftMaxWidth = hasRightOverflow
+      ? Math.max(30, pageWidth - x - rightPadding - 5)
+      : Math.max(30, pageWidth - x - rightPadding - rightWidth - 5 - wrapPadding);
+    const leftLines = options?.leftNoWrap ? [normalizeTextForPdf(leftText)] : splitWrappedLines(leftText, leftMaxWidth);
+
+    if (hasRightOverflow) {
+      onLayoutFallback('højre kolonne er bredere end tilgængelig plads; flytter beløb til egen linje.');
+      for (const line of leftLines) {
+        ensureSpace(lineHeight);
+        doc.text(line, x, y);
+        y += lineHeight;
+      }
+
+      const rightLines = splitWrappedLines(rightText, maxRightDrawableWidth);
+      for (const line of rightLines) {
+        ensureSpace(lineHeight);
+        withFontStyle(rightFontStyle, () => {
+          doc.text(line, pageWidth - rightPadding, y, { align: 'right' });
+        });
+        y += lineHeight;
+      }
+
+      if (options?.lineAboveRightWidth) {
+        const lineWidth = options.lineAboveRightWidth;
+        const lineEnd = pageWidth - rightPadding;
+        const lineStart = lineEnd - lineWidth;
+        const offset = options.lineAboveRightOffset ?? 2;
+        doc.setLineWidth(0.2);
+        doc.line(lineStart, y - lineHeight - offset, lineEnd, y - lineHeight - offset);
+      }
+      return;
+    }
+
+    leftLines.forEach((line, index) => {
+      ensureSpace(lineHeight);
+      doc.text(line, x, y);
+      const isLastLine = index === leftLines.length - 1;
+      if (isLastLine) {
+        withFontStyle(rightFontStyle, () => {
+          doc.text(rightText, pageWidth - rightPadding, y, { align: 'right' });
+        });
+        if (options?.lineAboveRightWidth) {
+          const lineWidth = options.lineAboveRightWidth;
+          const lineEnd = pageWidth - rightPadding;
+          const lineStart = lineEnd - lineWidth;
+          const offset = options.lineAboveRightOffset ?? 2;
+          doc.setLineWidth(0.2);
+          doc.line(lineStart, y - offset, lineEnd, y - offset);
+        }
+      }
+      y += lineHeight;
+    });
+  };
+
+  const writeLeftRightTextSingleLine = (
+    leftText: string,
+    rightText: string,
+    x: number,
+    rightPadding: number,
+    options?: Readonly<{
+      rightFontStyle?: 'normal' | 'bold';
+      lineAboveRightWidth?: number;
+      lineAboveRightOffset?: number;
+    }>
+  ) => {
+    writeLeftRightText(leftText, rightText, x, rightPadding, { ...options, leftNoWrap: true });
+  };
+
+  const writeUnderlinedLabel = (text: string, x: number) => {
+    ensureSpace(lineHeight);
+    const normalized = normalizeTextForPdf(text).replace(/\n/g, ' ');
+    doc.text(normalized, x, y);
+    const labelWidth = doc.getTextWidth(normalized);
+    doc.setLineWidth(0.2);
+    doc.line(x, y + 1, x + labelWidth, y + 1);
+    y += lineHeight;
+  };
+
+  const writeSignatureBlock = (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => {
+    ensureSpace(lineHeight);
+    doc.text(dateLine, dateX, y);
+    doc.text(sigLine, sigX, y);
+    y += lineHeight;
+    ensureSpace(lineHeight);
+    const dateCenterX = dateX + doc.getTextWidth(dateLine) / 2;
+    const sigCenterX = sigX + doc.getTextWidth(sigLine) / 2;
+    doc.text('Dato', dateCenterX, y, { align: 'center' });
+    doc.text(skadelidteNavn, sigCenterX, y, { align: 'center' });
+    y += lineHeight;
+  };
+
+  const measureWrappedTextHeight = (text: string) => {
+    const lines = splitWrappedLines(text, fullWidth);
+    return lineHeight * lines.length;
+  };
+
+  return {
+    setDisplayMode: (mode: string) => doc.setDisplayMode(mode),
+    setProperties: (props: Parameters<jsPDF['setProperties']>[0]) => doc.setProperties(props),
+    setFontSize: (size: number) => doc.setFontSize(size),
+    setFont,
+    getDoc: () => doc,
+    getY: () => y,
+    setY: (nextY: number) => {
+      y = nextY;
+    },
+    ensureSpace,
+    advanceY: (delta: number) => {
+      y += delta;
+    },
+    writeWrappedText,
+    writeLeftRightText,
+    writeLeftRightTextSingleLine,
+    writeUnderlinedLabel,
+    writeSignatureBlock,
+    writeBrevhoved: (brevhovedData: BrevhovedData) => {
+      y = addBrevhoved(doc, brevhovedData);
+    },
+    addUdkastWatermark: () => {
+      if (visUdkastStempel) {
+        addUdkastWatermark(doc);
+      }
+    },
+    splitWrappedLines,
+    measureWrappedTextHeight,
+    getTextWidth: (text: string) => doc.getTextWidth(text),
+    fitTextToWidth: (text: string, maxWidth: number) => fitTextToWidth(doc, text, maxWidth),
+    getFullWidth: () => fullWidth,
+    addPage,
+    getPageContentHeight: () => pageContentHeight,
+    renderAtomicBlock: (estimatedHeight: number, render: () => void) => {
+      ensureSpace(estimatedHeight);
+      render();
+    },
+    addFooter: () => addFooter(doc),
+    save: (filename: string) => doc.save(filename),
+  };
+};
+
+// ============================================================================
+// PDF WRITER TYPE
+// ============================================================================
+
+export type PdfWriter = {
+  setDisplayMode: (mode: string) => void;
+  setProperties: (props: Parameters<jsPDF['setProperties']>[0]) => void;
+  setFontSize: (size: number) => void;
+  setFont: (fontName: string, fontStyle: string) => void;
+  getDoc: () => jsPDF;
+  getY: () => number;
+  setY: (nextY: number) => void;
+  addSpacer: (height: number) => void;
+  advanceY: (delta: number) => void;
+  writeWrappedText: (text: string) => void;
+  writeLeftRightText: (
+    leftText: string,
+    rightText: string,
+    options?: Readonly<{
+      rightFontStyle?: 'normal' | 'bold';
+      lineAboveRightWidth?: number;
+      lineAboveRightOffset?: number;
+      leftNoWrap?: boolean;
+      minRightColumnWidth?: number;
+    }>
+  ) => void;
+  writeLeftRightTextSingleLine: (
+    leftText: string,
+    rightText: string,
+    options?: Readonly<{
+      rightFontStyle?: 'normal' | 'bold';
+      lineAboveRightWidth?: number;
+      lineAboveRightOffset?: number;
+    }>
+  ) => void;
+  writeSectionHeader: (text: string, nextLineHeight: number) => void;
+  writeSubheader: (
+    text: string,
+    nextLineHeight: number,
+    options?: Readonly<{ addTopSpacing?: boolean }>
+  ) => void;
+  writeSubheaderWithWrappedText: (subheaderText: string, bodyText: string) => void;
+  writeAtomicTableChunks: <T>(params: Readonly<{
+    rows: readonly T[];
+    renderHeader: () => void;
+    renderRow: (row: T) => void;
+    estimateRowHeight: number;
+    headerHeight: number;
+  }>) => void;
+  writeUnderlinedLabel: (text: string, x: number) => void;
+  writeSignatureBlock: (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => void;
+  writeBrevhoved: (brevhovedData: BrevhovedData) => void;
+  addUdkastWatermark: () => void;
+  getTextWidth: (text: string) => number;
+  fitTextToWidth: (text: string, maxWidth: number) => string;
+  getPageWidth: () => number;
+  addPage: () => void;
+  addFooter: () => void;
+  save: (filename: string) => void;
+};
+
+// ============================================================================
+// PDF WRITER (public – wraps cursor with higher-level operations)
+// ============================================================================
+
+export const createPdfWriter = (params: Readonly<{
+  lineHeight: number;
+  doubleLineHeight: number;
+  visUdkastStempel: boolean;
+  onLayoutFallback: (message: string) => void;
+}>): PdfWriter => {
+  const { lineHeight, doubleLineHeight, visUdkastStempel, onLayoutFallback } = params;
+  const cursor = createPdfCursor({ lineHeight, visUdkastStempel, onLayoutFallback });
+
+  const writeSectionHeader = (text: string, nextLineHeight: number) => {
+    const estimatedHeaderHeight = doubleLineHeight + lineHeight;
+    cursor.ensureSpace(estimatedHeaderHeight + nextLineHeight);
+    cursor.advanceY(doubleLineHeight);
+    cursor.setFont('helvetica', 'bold');
+    cursor.setFontSize(FONT_SIZES.header);
+    cursor.writeWrappedText(text);
+    cursor.advanceY(lineHeight);
+    cursor.setFont('helvetica', 'normal');
+    cursor.setFontSize(FONT_SIZES.normal);
+  };
+
+  const writeSubheader = (
+    text: string,
+    nextLineHeight: number,
+    options?: Readonly<{ addTopSpacing?: boolean }>
+  ) => {
+    const addTopSpacing = options?.addTopSpacing ?? true;
+    const headerHeight = cursor.measureWrappedTextHeight(text) + (addTopSpacing ? lineHeight : 0);
+    cursor.ensureSpace(headerHeight + nextLineHeight);
+    if (addTopSpacing) {
+      cursor.advanceY(lineHeight);
+    }
+    cursor.setFont('helvetica', 'bold');
+    cursor.setFontSize(FONT_SIZES.normal);
+    cursor.writeWrappedText(text);
+    cursor.setFont('helvetica', 'normal');
+  };
+
+  const writeSubheaderWithWrappedText = (subheaderText: string, bodyText: string) => {
+    const bodyHeight = cursor.measureWrappedTextHeight(bodyText);
+    writeSubheader(subheaderText, bodyHeight);
+    cursor.writeWrappedText(bodyText);
+  };
+
+  const writeAtomicTableChunks = <T,>(params: Readonly<{
+    rows: readonly T[];
+    renderHeader: () => void;
+    renderRow: (row: T) => void;
+    estimateRowHeight: number;
+    headerHeight: number;
+  }>) => {
+    const { rows, renderHeader, renderRow, estimateRowHeight, headerHeight } = params;
+    const rowsPerChunk = Math.max(
+      1,
+      Math.floor((cursor.getPageContentHeight() - headerHeight) / estimateRowHeight)
+    );
+    for (let i = 0; i < rows.length; i += rowsPerChunk) {
+      const chunk = rows.slice(i, i + rowsPerChunk);
+      const estimatedChunkHeight = headerHeight + estimateRowHeight * chunk.length;
+      cursor.renderAtomicBlock(estimatedChunkHeight, () => {
+        renderHeader();
+        chunk.forEach((row) => renderRow(row));
+      });
+    }
+  };
+
+  return {
+    setDisplayMode: cursor.setDisplayMode,
+    setProperties: cursor.setProperties,
+    setFontSize: cursor.setFontSize,
+    setFont: cursor.setFont,
+    getDoc: cursor.getDoc,
+    getY: cursor.getY,
+    setY: cursor.setY,
+    addSpacer: (height: number) => {
+      cursor.ensureSpace(height);
+      cursor.advanceY(height);
+    },
+    advanceY: cursor.advanceY,
+    writeWrappedText: cursor.writeWrappedText,
+    writeLeftRightText: (leftText, rightText, options) =>
+      cursor.writeLeftRightText(leftText, rightText, MARGINS.left, MARGINS.right, options),
+    writeLeftRightTextSingleLine: (leftText, rightText, options) =>
+      cursor.writeLeftRightTextSingleLine(leftText, rightText, MARGINS.left, MARGINS.right, options),
+    writeSectionHeader,
+    writeSubheader,
+    writeSubheaderWithWrappedText,
+    writeAtomicTableChunks,
+    writeUnderlinedLabel: cursor.writeUnderlinedLabel,
+    writeSignatureBlock: cursor.writeSignatureBlock,
+    writeBrevhoved: cursor.writeBrevhoved,
+    addUdkastWatermark: cursor.addUdkastWatermark,
+    getTextWidth: cursor.getTextWidth,
+    fitTextToWidth: cursor.fitTextToWidth,
+    getPageWidth: () => MARGINS.left + cursor.getFullWidth() + MARGINS.right,
+    addPage: cursor.addPage,
+    addFooter: cursor.addFooter,
+    save: cursor.save,
+  };
+};
