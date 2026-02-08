@@ -280,7 +280,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           : referenceResult.timeLoen;
       const referenceValue = computePackageValue({
         grundloen: referenceBase,
-        feriePct,
+        feriePct: 0,
         shSoPct: 0,
         fritvalgPct: 0,
         storeBededagPct: 0,
@@ -329,7 +329,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           offentligSelection.loenType === 'maanedsLoen' ? sats.maanedsLoen : sats.timeLoen;
         const packageValue = computePackageValue({
           grundloen,
-          feriePct,
+          feriePct: 0,
           shSoPct: 0,
           fritvalgPct: 0,
           storeBededagPct: 0,
@@ -358,7 +358,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         entries.push({
           effectiveFrom: iso,
           grundloen,
-          feriePct,
+          feriePct: 0,
           shSoPct: 0,
           fritvalgPct: 0,
           storeBededagPct: 0,

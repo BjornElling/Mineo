@@ -379,13 +379,14 @@ const buildFormulaText = (components: FormulaComponents, visibility: FormulaVisi
   const storeBededagPct = Number.isFinite(components.storeBededagPct) ? components.storeBededagPct : 0;
 
   const baseStr = formatCurrency(baseValue);
-  const middleParts = [
-    formatPercent(100),
+  const extraParts = [
     ...(feriePct !== 0 ? [formatPercent(feriePct)] : []),
     ...(visibility.showFritvalg && fritvalgPct !== 0 ? [formatPercent(fritvalgPct)] : []),
     ...(visibility.showShSo && shSoPct !== 0 ? [formatPercent(shSoPct)] : []),
     ...(visibility.showStoreBededag && storeBededagPct !== 0 ? [formatPercentFixed2(storeBededagPct)] : []),
   ];
+  const hasMiddle = extraParts.length > 0;
+  const middleParts = [formatPercent(100), ...extraParts];
   const middle = middleParts.join(' + ');
   if (visibility.showPension) {
     const pensionParts = [
@@ -394,6 +395,7 @@ const buildFormulaText = (components: FormulaComponents, visibility: FormulaVisi
     ];
     return `${baseStr} x (${middle}) x (${pensionParts.join(' + ')})`;
   }
+  if (!hasMiddle) return baseStr;
   return `${baseStr} x (${middle})`;
 };
 
@@ -433,12 +435,13 @@ const buildIndexFormulaDisplay = (
   denominatorValue: number,
   isStatistik: boolean
 ): string => {
+  const isPlainValue = isStatistik || (!numeratorDisplay.includes(' x ') && !denominatorDisplay.includes(' x '));
   const isSameNumericValue = Math.abs(numeratorValue - denominatorValue) < 1e-9;
   if (isSameNumericValue) {
-    return isStatistik ? numeratorDisplay : `(${numeratorDisplay})`;
+    return isPlainValue ? numeratorDisplay : `(${numeratorDisplay})`;
   }
-  return isStatistik
-    ? `${numeratorDisplay} /\n${denominatorDisplay}`
+  return isPlainValue
+    ? `${numeratorDisplay} / ${denominatorDisplay}`
     : `(${numeratorDisplay}) /\n(${denominatorDisplay})`;
 };
 
@@ -514,35 +517,31 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
       if (!baseResult) return null;
 
       const satser = getOffentligLoenForPeriode(offentligType, fraDato, tilDato, loentrin, loengruppe);
-      const loenLabel = loenType === 'maanedsLoen' ? 'Månedsløn' : 'Timeløn';
-      const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
-      const columns = ['Fra-dato', loenLabel, 'Ferie\ngodtgørelse'];
+      const columns = ['Fra-dato', 'Månedsløn', 'Timeløn'];
 
       const rows: string[][] = [];
-      const addRow = (labelIso: ISODateString, loen: number) => {
+      const addRow = (labelIso: ISODateString, maanedsLoen: number, timeLoen: number) => {
         rows.push([
           isoToDanish(labelIso) ?? labelIso,
-          formatCurrency(loen),
-          feriePctDisplay,
+          formatCurrency(maanedsLoen),
+          formatCurrency(timeLoen),
         ]);
       };
 
-      const baseLoen = loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen;
-      addRow(reguleringTableStartIso, baseLoen);
+      addRow(reguleringTableStartIso, baseResult.maanedsLoen, baseResult.timeLoen);
 
       const later = satser
         .map((entry) => {
           const iso = parseDanishToISO(entry.effectiveDate);
           if (!iso) return null;
-          const loen = loenType === 'maanedsLoen' ? entry.maanedsLoen : entry.timeLoen;
-          return { iso, loen };
+          return { iso, maanedsLoen: entry.maanedsLoen, timeLoen: entry.timeLoen };
         })
-        .filter((entry): entry is Readonly<{ iso: ISODateString; loen: number }> => Boolean(entry))
+        .filter((entry): entry is Readonly<{ iso: ISODateString; maanedsLoen: number; timeLoen: number }> => Boolean(entry))
         .filter((entry) => entry.iso > reguleringTableStartIso)
         .sort((a, b) => (a.iso < b.iso ? -1 : 1));
 
       for (const entry of later) {
-        addRow(entry.iso, entry.loen);
+        addRow(entry.iso, entry.maanedsLoen, entry.timeLoen);
       }
 
       return { columns, rows };
@@ -798,11 +797,10 @@ const buildReguleringIndexRows = (params: Readonly<{
 
       const baseResult = getOffentligLoenForDato(offentligType, baseDato, loentrin, loengruppe);
       if (!baseResult) return segments.map(fallbackRows);
-      const feriePct = typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0;
       const baseValue = loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen;
       const baseComponents: FormulaComponents = {
         baseValue,
-        feriePct,
+        feriePct: 0,
         fritvalgPct: 0,
         shSoPct: 0,
         pensionPct: 0,
@@ -826,7 +824,7 @@ const buildReguleringIndexRows = (params: Readonly<{
         const segmentBase = loenType === 'maanedsLoen' ? segmentResult.maanedsLoen : segmentResult.timeLoen;
         const components: FormulaComponents = {
           baseValue: segmentBase,
-          feriePct,
+          feriePct: 0,
           fritvalgPct: 0,
           shSoPct: 0,
           pensionPct: 0,
@@ -2339,6 +2337,18 @@ export const generateErstatningsopgoerelsePdf = (
           saerligFraDatoRegulering: saerligFraDatoIso,
         });
         writeLabelValueLine('Regulering anvendt', valgtRegulering);
+
+        // Vis lønindplacering for offentlig overenskomst (KL/RLTN)
+        const offentligTypeForLabel = ansaettelsesforhold.overenskomstId
+          ? getOffentligOverenskomstTypeById(ansaettelsesforhold.overenskomstId)
+          : undefined;
+        if (offentligTypeForLabel && ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Overenskomst') {
+          const trin = ansaettelsesforhold.offentligLoenTrin;
+          const gruppe = ansaettelsesforhold.offentligLoenGruppe;
+          if (typeof trin === 'number' && typeof gruppe === 'number') {
+            writeLabelValueLine('Indplacering', `Løntrin ${trin}, gruppe ${gruppe}`);
+          }
+        }
 
         // Vis lønudvikling-beskrivelse i stedet for "Reguleringsdato (Skadesdato)"
         if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Ingen') {

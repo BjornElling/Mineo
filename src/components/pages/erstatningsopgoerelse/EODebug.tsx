@@ -277,13 +277,14 @@ const buildFormulaText = (components: FormulaComponents, visibility: FormulaVisi
   const storeBededagPct = Number.isFinite(components.storeBededagPct) ? components.storeBededagPct : 0;
 
   const baseStr = formatCurrency(baseValue);
-  const middleParts = [
-    formatPercent(100),
+  const extraParts = [
     ...(feriePct !== 0 ? [formatPercent(feriePct)] : []),
     ...(visibility.showFritvalg && fritvalgPct !== 0 ? [formatPercent(fritvalgPct)] : []),
     ...(visibility.showShSo && shSoPct !== 0 ? [formatPercent(shSoPct)] : []),
     ...(visibility.showStoreBededag && storeBededagPct !== 0 ? [formatPercentFixed2(storeBededagPct)] : []),
   ];
+  const hasMiddle = extraParts.length > 0;
+  const middleParts = [formatPercent(100), ...extraParts];
   const middle = middleParts.join(' + ');
   if (visibility.showPension) {
     const pensionParts = [
@@ -293,6 +294,7 @@ const buildFormulaText = (components: FormulaComponents, visibility: FormulaVisi
     const pensionStr = pensionParts.join(' + ');
     return `${baseStr} x (${middle}) x (${pensionStr})`;
   }
+  if (!hasMiddle) return baseStr;
   return `${baseStr} x (${middle})`;
 };
 
@@ -860,7 +862,7 @@ const EODebug = () => {
             return {
               components: {
                 baseValue,
-                feriePct: typeof af.feriePct === 'number' ? af.feriePct : 0,
+                feriePct: 0,
                 fritvalgPct: 0,
                 shSoPct: 0,
                 pensionPct: 0,
@@ -1062,7 +1064,7 @@ const EODebug = () => {
                     offentligSelection.loenType === 'maanedsLoen' ? sats.maanedsLoen : sats.timeLoen;
                   const components: FormulaComponents = {
                     baseValue,
-                    feriePct,
+                    feriePct: 0,
                     fritvalgPct: 0,
                     shSoPct: 0,
                     pensionPct: 0,
@@ -1405,11 +1407,12 @@ const EODebug = () => {
           numeratorValue: number,
           denominatorValue: number
         ): string => {
+          const isPlainValue = isSimpleIndex || (!numeratorDisplay.includes(' x ') && !denominatorDisplay.includes(' x '));
           if (isSameNumericValue(numeratorValue, denominatorValue)) {
-            return isSimpleIndex ? numeratorDisplay : `(${numeratorDisplay})`;
+            return isPlainValue ? numeratorDisplay : `(${numeratorDisplay})`;
           }
-          return isSimpleIndex
-            ? `${numeratorDisplay} /\n${denominatorDisplay}`
+          return isPlainValue
+            ? `${numeratorDisplay} / ${denominatorDisplay}`
             : `(${numeratorDisplay}) /\n(${denominatorDisplay})`;
         };
 
@@ -1511,43 +1514,38 @@ const EODebug = () => {
                 offentligSelection.loengruppe
               );
 
-              const loenLabel = offentligSelection.loenType === 'maanedsLoen' ? 'Månedsløn' : 'Timeløn';
-              const feriePctDisplay = formatInputPercent(af.feriePct);
               const columns: StandardDisplayTableColumn[] = [
                 centeredCol('Fra-dato', 120),
-                centeredCol(loenLabel, 120),
-                centeredCol('Feriegodtgørelse', 140),
+                centeredCol('Månedsløn', 120),
+                centeredCol('Timeløn', 120),
               ];
 
               const rows: StandardDisplayTableRow[] = [];
-              const addRow = (labelIso: ISODateString, loen: number) => {
+              const addRow = (labelIso: ISODateString, maanedsLoen: number, timeLoen: number) => {
                 rows.push({
                   key: `ok-offentlig-${af.id}-${labelIso}`,
                   cells: [
                     isoToDanish(labelIso) ?? labelIso,
-                    formatCurrency(loen),
-                    feriePctDisplay,
+                    formatCurrency(maanedsLoen),
+                    formatCurrency(timeLoen),
                   ],
                 });
               };
 
-              const baseLoen =
-                offentligSelection.loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen;
-              addRow(reguleringTableStartIso, baseLoen);
+              addRow(reguleringTableStartIso, baseResult.maanedsLoen, baseResult.timeLoen);
 
               const laterSatser = satser
                 .map((entry) => {
                   const iso = parseDanishToISO(entry.effectiveDate);
                   if (!iso) return null;
-                  const loen = offentligSelection.loenType === 'maanedsLoen' ? entry.maanedsLoen : entry.timeLoen;
-                  return { iso, loen };
+                  return { iso, maanedsLoen: entry.maanedsLoen, timeLoen: entry.timeLoen };
                 })
-                .filter((entry): entry is Readonly<{ iso: ISODateString; loen: number }> => Boolean(entry))
+                .filter((entry): entry is Readonly<{ iso: ISODateString; maanedsLoen: number; timeLoen: number }> => Boolean(entry))
                 .filter((entry) => entry.iso > reguleringTableStartIso)
                 .sort((a, b) => (a.iso < b.iso ? -1 : 1));
 
               for (const entry of laterSatser) {
-                addRow(entry.iso, entry.loen);
+                addRow(entry.iso, entry.maanedsLoen, entry.timeLoen);
               }
 
               return { columns, rows };
