@@ -15,10 +15,13 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { read as xlsxRead, utils as xlsxUtils } from 'xlsx';
 import { z } from 'zod';
 
-const PROJECT_ROOT = process.cwd();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const PROJECT_ROOT = path.resolve(__dirname, '..');
 
 // ===== FILNAVNE-MØNSTER =====
 // Navngivning er ufravigelig: KL-ÅÅÅÅ-MM-DD.xlsx/.xls og RLTN-ÅÅÅÅ-MM-DD.xlsx/.xls
@@ -26,6 +29,43 @@ const PROJECT_ROOT = process.cwd();
 
 const KL_PATTERN = /^KL-(\d{4})-(\d{2})-(\d{2})\.xlsx?$/i;
 const RLTN_PATTERN = /^RLTN-(\d{4})-(\d{2})-(\d{2})\.xlsx?$/i;
+
+const normalizeText = (value) =>
+  String(value ?? '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+
+const isValidDanishDate = (dd, mm, yyyy) => {
+  const day = Number(dd);
+  const month = Number(mm);
+  const year = Number(yyyy);
+  if (!Number.isInteger(day) || !Number.isInteger(month) || !Number.isInteger(year)) return false;
+  if (year < 1900 || year > 2100) return false;
+  if (month < 1 || month > 12) return false;
+  if (day < 1 || day > 31) return false;
+
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCFullYear(year);
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+};
+
+const danishDateToNumber = (dateStr) => {
+  const parts = String(dateStr).split('-');
+  if (parts.length !== 3) {
+    throw new Error(`Ugyldig dansk datoformat: ${dateStr}`);
+  }
+  const [dd, mm, yyyy] = parts;
+  if (!isValidDanishDate(dd, mm, yyyy)) {
+    throw new Error(`Ugyldig dansk dato: ${dateStr}`);
+  }
+  return Number(yyyy) * 10000 + Number(mm) * 100 + Number(dd);
+};
 
 /**
  * Scanner en Excel-mappe og returnerer filer der matcher det forventede mønster.
@@ -48,6 +88,12 @@ function discoverFiles(excelDir, pattern, overenskomstType) {
     if (m) {
       const [, yyyy, mm, dd] = m;
       const effectiveDate = `${dd}-${mm}-${yyyy}`; // DanishDateString: DD-MM-YYYY
+      if (!isValidDanishDate(dd, mm, yyyy)) {
+        throw new Error(
+          `Ugyldig dato i filnavn: "${file}" → ${effectiveDate}. ` +
+            `Datoen er ikke en gyldig kalenderdato.`
+        );
+      }
       matched.push({ file, effectiveDate });
     } else {
       console.warn(`  ⚠ ADVARSEL: Filen "${file}" i ${overenskomstType}/Excel/ matcher IKKE navngivningskravet (${overenskomstType}-ÅÅÅÅ-MM-DD.xlsx). Filen ignoreres.`);
@@ -80,7 +126,13 @@ const EntrySchema = z.object({
 });
 
 const ReguleringSchema = z.object({
-  effectiveDate: z.string().regex(/^\d{2}-\d{2}-\d{4}$/),
+  effectiveDate: z
+    .string()
+    .regex(/^\d{2}-\d{2}-\d{4}$/)
+    .refine((value) => {
+      const [dd, mm, yyyy] = value.split('-');
+      return isValidDanishDate(dd, mm, yyyy);
+    }, 'Ugyldig dato (kalenderdato)'),
   entries: z.array(EntrySchema).length(56),
 });
 
@@ -102,65 +154,109 @@ const ReguleringSchema = z.object({
  * Gruppekolonner (0-4) scannes eksplicit — ingen antagelse om konsekutive kolonner.
  */
 function detectColumns(sheet, filePath) {
-  const range = xlsxUtils.decode_range(sheet['!ref']);
+  const ref = sheet['!ref'];
+  if (!ref) {
+    throw new Error(`Arket mangler !ref (kan ikke læse område): ${filePath}`);
+  }
+  const range = xlsxUtils.decode_range(ref);
+  const headerMaxRow = Math.min(range.s.r + 30, range.e.r);
 
   // 1) Find sektionsoverskrifter (Årsløn, Månedsløn, Timeløn) i de første 10 rækker
   let sectionRow = -1;
   let aarsLoenCol = -1;
   let maanedCol = -1;
   let timeCol = -1;
+  const sectionCandidates = {
+    maaned: [],
+    time: [],
+    aars: [],
+  };
 
-  for (let r = range.s.r; r <= Math.min(range.s.r + 10, range.e.r); r++) {
+  for (let r = range.s.r; r <= headerMaxRow; r++) {
     for (let c = range.s.c; c <= range.e.c; c++) {
       const cell = sheet[xlsxUtils.encode_cell({ r, c })];
       if (!cell) continue;
-      const val = String(cell.v).trim();
-      if (val.startsWith('Månedsløn')) {
-        sectionRow = r;
-        maanedCol = c;
+      const val = normalizeText(cell.v);
+      if (!val) continue;
+      if (val.includes('månedsløn')) {
+        sectionCandidates.maaned.push({ r, c });
       }
-      if (val.startsWith('Timeløn')) {
-        timeCol = c;
+      if (val.includes('timeløn')) {
+        sectionCandidates.time.push({ r, c });
       }
-      if (val.startsWith('Årsløn')) {
-        aarsLoenCol = c;
+      if (val.includes('årsløn')) {
+        sectionCandidates.aars.push({ r, c });
       }
     }
   }
 
-  if (sectionRow === -1 || maanedCol === -1) {
+  const pickBestCandidate = (candidates, referenceRow) => {
+    if (candidates.length === 0) return null;
+    const aboveOrEqual = candidates.filter((c) => c.r <= referenceRow);
+    if (aboveOrEqual.length > 0) {
+      return aboveOrEqual.sort((a, b) => b.r - a.r || a.c - b.c)[0];
+    }
+    return candidates.sort((a, b) => a.r - b.r || a.c - b.c)[0];
+  };
+
+  if (sectionCandidates.maaned.length === 0) {
     throw new Error(`Kunne ikke finde sektionsoverskriften "Månedsløn" i arket (${filePath}).`);
   }
 
-  const hasTimeLoen = timeCol !== -1;
-
   // 2) Find gruppeRow: rækken der indeholder "Gruppe 0", "Gruppe 1", etc.
   let gruppeRow = -1;
-  for (let r = sectionRow; r <= Math.min(sectionRow + 5, range.e.r); r++) {
+  let bestGroupHits = 0;
+
+  const getGroupHitsForRow = (r) => {
+    const hits = [];
     for (let c = range.s.c; c <= range.e.c; c++) {
       const cell = sheet[xlsxUtils.encode_cell({ r, c })];
-      if (cell && String(cell.v).trim() === 'Gruppe 0') {
-        gruppeRow = r;
-        break;
+      if (!cell) continue;
+      const val = normalizeText(cell.v);
+      if (!val) continue;
+      const match = val.match(/^gruppe\s*(\d)\b/);
+      if (match) {
+        hits.push({ gruppe: Number(match[1]), col: c });
       }
     }
-    if (gruppeRow !== -1) break;
+    return hits;
+  };
+
+  for (let r = range.s.r; r <= headerMaxRow; r++) {
+    const hits = getGroupHitsForRow(r);
+    if (hits.length > bestGroupHits) {
+      bestGroupHits = hits.length;
+      gruppeRow = r;
+    }
   }
 
   if (gruppeRow === -1) {
     throw new Error(`Kunne ikke finde "Gruppe 0" header-rækken (${filePath}).`);
   }
 
+  const bestMaaned = pickBestCandidate(sectionCandidates.maaned, gruppeRow);
+  const bestTime = pickBestCandidate(sectionCandidates.time, gruppeRow);
+  const bestAars = pickBestCandidate(sectionCandidates.aars, gruppeRow);
+
+  if (!bestMaaned) {
+    throw new Error(`Kunne ikke finde sektionsoverskriften "Månedsløn" i arket (${filePath}).`);
+  }
+
+  sectionRow = bestMaaned.r;
+  maanedCol = bestMaaned.c;
+  timeCol = bestTime ? bestTime.c : -1;
+  aarsLoenCol = bestAars ? bestAars.c : -1;
+
+  const hasTimeLoen = timeCol !== -1;
+
   // 3) Scan hele gruppeRow og saml ALLE "Gruppe N"-celler med deres kolonne-positioner
   //    Resultat: array af { gruppe: 0-4, col: number }, sorteret per kolonne
-  const gruppeHits = [];
-  for (let c = range.s.c; c <= range.e.c; c++) {
-    const cell = sheet[xlsxUtils.encode_cell({ r: gruppeRow, c })];
-    if (!cell) continue;
-    const m = String(cell.v).trim().match(/^Gruppe (\d)$/);
-    if (m) {
-      gruppeHits.push({ gruppe: Number(m[1]), col: c });
-    }
+  const gruppeHits = getGroupHitsForRow(gruppeRow);
+  if (gruppeHits.length < 5) {
+    throw new Error(
+      `Kunne ikke finde alle "Gruppe 0-4" headers (${filePath}). ` +
+        `Fandt kun ${gruppeHits.length} gruppe-kolonner.`
+    );
   }
 
   // 4) Tildel gruppe-hits til sektioner baseret på sektionsoverskrifternes kolonne-positioner.
@@ -189,6 +285,28 @@ function detectColumns(sheet, filePath) {
       throw new Error(`Duplikeret Gruppe ${hit.gruppe} i sektion "${section}" (${filePath}).`);
     }
     sectionGrupper[section][hit.gruppe] = hit.col;
+  }
+
+  const countGroups = (sectionMap) => Object.keys(sectionMap).length;
+  const maanedCount = countGroups(sectionGrupper.maanedLoen);
+  const timeCount = countGroups(sectionGrupper.timeLoen);
+  const aarsCount = countGroups(sectionGrupper.aarsLoen);
+
+  if (maanedCount !== 5) {
+    throw new Error(`Månedsløn-sektionen skal have præcist 5 gruppekolonner (${filePath}).`);
+  }
+
+  if (hasTimeLoen) {
+    if (timeCount !== 5) {
+      throw new Error(`Timeløn-sektionen skal have præcist 5 gruppekolonner (${filePath}).`);
+    }
+    if (aarsCount !== 0 && aarsCount !== 5) {
+      throw new Error(`Årsløn-sektionen har uventet antal gruppekolonner (${filePath}).`);
+    }
+  } else {
+    if (aarsCount !== 5) {
+      throw new Error(`Årsløn-sektionen skal have præcist 5 gruppekolonner (${filePath}).`);
+    }
   }
 
   // 5) Byg kolonnearray for hver sektion og validér komplethed (Gruppe 0-4)
@@ -220,16 +338,26 @@ function detectColumns(sheet, filePath) {
   }
 
   // 6) Find løntrin-kolonnen
-  let loentrinCol = -1;
-  for (let r = sectionRow; r <= gruppeRow; r++) {
-    for (let c = range.s.c; c <= Math.min(range.s.c + 2, range.e.c); c++) {
+  const loentrinCandidates = [];
+  for (let r = range.s.r; r <= Math.min(gruppeRow, headerMaxRow); r++) {
+    for (let c = range.s.c; c <= range.e.c; c++) {
       const cell = sheet[xlsxUtils.encode_cell({ r, c })];
-      if (cell && String(cell.v).trim().toLowerCase().startsWith('løn')) {
-        loentrinCol = c;
-        break;
+      if (!cell) continue;
+      const val = normalizeText(cell.v);
+      if (val.includes('løntrin')) {
+        loentrinCandidates.push({ r, c });
       }
     }
-    if (loentrinCol !== -1) break;
+  }
+
+  let loentrinCol = -1;
+  if (loentrinCandidates.length > 0) {
+    loentrinCandidates.sort((a, b) => {
+      const aDist = a.c <= maanedCol ? maanedCol - a.c : a.c - maanedCol;
+      const bDist = b.c <= maanedCol ? maanedCol - b.c : b.c - maanedCol;
+      return aDist - bDist || a.r - b.r;
+    });
+    loentrinCol = loentrinCandidates[0].c;
   }
   if (loentrinCol === -1) {
     throw new Error(`Kunne ikke finde løntrin-kolonnen (${filePath}).`);
@@ -264,7 +392,7 @@ function detectColumns(sheet, filePath) {
  * Timelønner fra Excel har allerede 2 decimaler; afrunding er en no-op for dem.
  */
 function round2(value) {
-  return Math.round(value * 100) / 100;
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 /**
@@ -381,6 +509,16 @@ function validateEntries(entries, effectiveDate, filePath) {
 
 // ===== FILBEHANDLING =====
 
+function writeAtomic(targetPath, content) {
+  const dir = path.dirname(targetPath);
+  const base = path.basename(targetPath);
+  const tempPath = path.join(dir, `.${base}.tmp`);
+
+  fs.writeFileSync(tempPath, content, 'utf-8');
+  fs.rmSync(targetPath, { force: true });
+  fs.renameSync(tempPath, targetPath);
+}
+
 function processFiles(excelDir, pattern, overenskomstType) {
   const fileConfigs = discoverFiles(excelDir, pattern, overenskomstType);
   const reguleringer = [];
@@ -403,11 +541,7 @@ function processFiles(excelDir, pattern, overenskomstType) {
 
   // Sortér nyeste først (DanishDateString: DD-MM-YYYY → sammenlign som YYYY-MM-DD)
   reguleringer.sort((a, b) => {
-    const toSortable = (d) => {
-      const [dd, mm, yyyy] = d.split('-');
-      return `${yyyy}-${mm}-${dd}`;
-    };
-    return toSortable(b.effectiveDate).localeCompare(toSortable(a.effectiveDate));
+    return danishDateToNumber(b.effectiveDate) - danishDateToNumber(a.effectiveDate);
   });
 
   return reguleringer;
@@ -474,15 +608,10 @@ function main() {
   const rltnExcelDir = path.join(PROJECT_ROOT, 'src/data/RLTN/Excel');
   const klOutput = path.join(PROJECT_ROOT, 'src/data/KL/klLoenSatser.ts');
   const rltnOutput = path.join(PROJECT_ROOT, 'src/data/RLTN/rltnLoenSatser.ts');
-
-  // Clean slate: slet eksisterende genererede filer
-  for (const outputFile of [klOutput, rltnOutput]) {
-    if (fs.existsSync(outputFile)) {
-      fs.unlinkSync(outputFile);
-      console.log(`Slettet: ${path.relative(PROJECT_ROOT, outputFile)}`);
-    }
+  const missingDirs = [klExcelDir, rltnExcelDir].filter((dir) => !fs.existsSync(dir));
+  if (missingDirs.length > 0) {
+    throw new Error(`Excel-mapper mangler: ${missingDirs.join(', ')}`);
   }
-  console.log('');
 
   // Auto-discovery: find og parsér filer ud fra navngivningsmønster
   console.log('KL-filer:');
@@ -495,10 +624,10 @@ function main() {
   const klCode = generateTypeScript(klReguleringer, 'KL', 'src/data/KL/Excel/');
   const rltnCode = generateTypeScript(rltnReguleringer, 'RLTN', 'src/data/RLTN/Excel/');
 
-  fs.writeFileSync(klOutput, klCode, 'utf-8');
+  writeAtomic(klOutput, klCode);
   console.log(`\nSkrevet: ${path.relative(PROJECT_ROOT, klOutput)}`);
 
-  fs.writeFileSync(rltnOutput, rltnCode, 'utf-8');
+  writeAtomic(rltnOutput, rltnCode);
   console.log(`Skrevet: ${path.relative(PROJECT_ROOT, rltnOutput)}`);
 
   // Opsummering

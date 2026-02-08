@@ -21,14 +21,11 @@ import { rltnLoenSatser } from './RLTN/rltnLoenSatser';
 // ===== HELPER FUNKTIONER =====
 
 const danishDateToNumber = (dato: DanishDateString): number => {
-  const [day, month, year] = dato.split('-').map(Number);
-  if (Number.isNaN(day) || Number.isNaN(month) || Number.isNaN(year)) {
-    throw new Error(`Ugyldig dato: ${dato} — kunne ikke parse dag/måned/år.`);
+  const parsed = parseDanishDate(dato);
+  if (!parsed) {
+    throw new Error(`Ugyldig dato: ${dato} — kunne ikke parse dansk dato.`);
   }
-  if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > 2100) {
-    throw new Error(`Ugyldig dato: ${dato} — dag=${day}, måned=${month}, år=${year} er uden for rimelig range.`);
-  }
-  return year * 10000 + month * 100 + day;
+  return parsed.getUTCFullYear() * 10000 + (parsed.getUTCMonth() + 1) * 100 + parsed.getUTCDate();
 };
 
 // ===== FORHÅNDSBEREGNET LOOKUP =====
@@ -78,6 +75,10 @@ const buildReguleringLookups = (
       }
     }
 
+    if (!plus55) {
+      throw new Error(`Manglende løntrin 55+ for dato ${reg.effectiveDate}`);
+    }
+
     return {
       effectiveDate: reg.effectiveDate,
       effectiveDateNum: danishDateToNumber(reg.effectiveDate),
@@ -96,7 +97,8 @@ const buildReguleringLookups = (
     if (lookups[i].effectiveDateNum >= lookups[i - 1].effectiveDateNum) {
       throw new Error(
         `${label}: Lønsatser er ikke sorteret nyeste først. ` +
-          `${lookups[i - 1].effectiveDate} efterfølges af ${lookups[i].effectiveDate}.`
+          `${lookups[i - 1].effectiveDate} (${lookups[i - 1].effectiveDateNum}) ` +
+          `efterfølges af ${lookups[i].effectiveDate} (${lookups[i].effectiveDateNum}).`
       );
     }
   }
@@ -113,6 +115,29 @@ const getLookups = (
 ): ReadonlyArray<ReguleringMedLookup> =>
   type === 'KL' ? klLookups : rltnLookups;
 
+const findNewestReguleringOnOrBefore = (
+  lookups: ReadonlyArray<ReguleringMedLookup>,
+  targetNum: number
+): ReguleringMedLookup | undefined => {
+  // lookups er sorteret nyeste først: find første effectiveDateNum <= targetNum via binærsøgning
+  let low = 0;
+  let high = lookups.length - 1;
+  let resultIndex = -1;
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const midNum = lookups[mid].effectiveDateNum;
+    if (midNum <= targetNum) {
+      resultIndex = mid;
+      high = mid - 1;
+    } else {
+      low = mid + 1;
+    }
+  }
+
+  return resultIndex === -1 ? undefined : lookups[resultIndex];
+};
+
 // ===== EKSPORTEREDE OPSLAGS-FUNKTIONER =====
 
 /**
@@ -128,24 +153,24 @@ export const getOffentligLoenForDato = (
   const lookups = getLookups(overenskomstType);
   const targetNum = danishDateToNumber(dato);
 
-  // Satser er sorteret nyeste først — find første hvor effectiveDate <= dato
-  for (const reg of lookups) {
-    if (reg.effectiveDateNum <= targetNum) {
-      const entry = lookupEntry(reg.lookup, loentrin);
-      if (!entry) return undefined;
+  const reg = findNewestReguleringOnOrBefore(lookups, targetNum);
+  if (!reg) return undefined;
 
-      return {
-        overenskomstType,
-        effectiveDate: reg.effectiveDate,
-        loentrin,
-        loengruppe,
-        maanedsLoen: entry.maanedsLoen[loengruppe],
-        timeLoen: entry.timeLoen[loengruppe],
-      };
-    }
+  const entry = lookupEntry(reg.lookup, loentrin);
+  if (!entry) {
+    throw new Error(
+      `${overenskomstType}: Mangler løntrin ${String(loentrin)} i regulering ${reg.effectiveDate}.`
+    );
   }
 
-  return undefined;
+  return {
+    overenskomstType,
+    effectiveDate: reg.effectiveDate,
+    loentrin,
+    loengruppe,
+    maanedsLoen: entry.maanedsLoen[loengruppe],
+    timeLoen: entry.timeLoen[loengruppe],
+  };
 };
 
 /**
@@ -183,14 +208,15 @@ export const getOffentligLoenForPeriode = (
 
   // 1. Find gældende regulering ved periodens start (nyeste effectiveDate <= startNum)
   //    lookups er sorteret nyeste først, så den første match er den nyeste
-  for (const reg of lookups) {
-    if (reg.effectiveDateNum <= startNum) {
-      const entry = lookupEntry(reg.lookup, loentrin);
-      if (entry) {
-        resultater.push(buildResultat(reg, entry));
-      }
-      break;
+  const startReg = findNewestReguleringOnOrBefore(lookups, startNum);
+  if (startReg) {
+    const entry = lookupEntry(startReg.lookup, loentrin);
+    if (!entry) {
+      throw new Error(
+        `${overenskomstType}: Mangler løntrin ${String(loentrin)} i regulering ${startReg.effectiveDate}.`
+      );
     }
+    resultater.push(buildResultat(startReg, entry));
   }
 
   // 2. Saml reguleringer der træder i kraft inden for perioden (effectiveDate > startNum og <= endNum)
@@ -199,9 +225,12 @@ export const getOffentligLoenForPeriode = (
     const reg = lookups[i];
     if (reg.effectiveDateNum > startNum && reg.effectiveDateNum <= endNum) {
       const entry = lookupEntry(reg.lookup, loentrin);
-      if (entry) {
-        resultater.push(buildResultat(reg, entry));
+      if (!entry) {
+        throw new Error(
+          `${overenskomstType}: Mangler løntrin ${String(loentrin)} i regulering ${reg.effectiveDate}.`
+        );
       }
+      resultater.push(buildResultat(reg, entry));
     }
   }
 

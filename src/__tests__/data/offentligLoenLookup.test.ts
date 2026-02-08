@@ -1,4 +1,5 @@
 import { toDanishDateString } from '../../types/branded';
+import { addDays, formatDanishDate, parseDanishDate } from '../../utils/dateUtils';
 import {
   getOffentligLoenForDato,
   getOffentligLoenForPeriode,
@@ -242,6 +243,36 @@ describe('offentligLoenLookup', () => {
           toNum(resultater[i - 1].effectiveDate)
         );
       }
+    });
+
+    it('inkluderer regulering når fraDato er præcis effectiveDate', () => {
+      const datoer = getReguleringsDatoer('KL');
+      expect(datoer.length).toBeGreaterThan(1);
+      const target = datoer[1];
+      const resultater = getOffentligLoenForPeriode('KL', target, target, lt(1), 0);
+      expect(resultater.length).toBeGreaterThanOrEqual(1);
+      expect(resultater[0].effectiveDate).toBe(target);
+    });
+
+    it('inkluderer regulering når tilDato er præcis effectiveDate', () => {
+      const datoer = getReguleringsDatoer('KL');
+      expect(datoer.length).toBeGreaterThan(1);
+      const target = datoer[1];
+      const resultater = getOffentligLoenForPeriode('KL', datoer[0], target, lt(1), 0);
+      expect(resultater[resultater.length - 1].effectiveDate).toBe(target);
+    });
+
+    it('ekskluderer regulering hvis perioden slutter dagen før effectiveDate', () => {
+      const datoer = getReguleringsDatoer('KL');
+      expect(datoer.length).toBeGreaterThan(1);
+      const next = datoer[1];
+      const nextDate = parseDanishDate(next);
+      expect(nextDate).toBeDefined();
+      const dayBefore = formatDanishDate(addDays(nextDate!, -1));
+
+      const resultater = getOffentligLoenForPeriode('KL', datoer[0], dayBefore, lt(1), 0);
+      expect(resultater).toHaveLength(1);
+      expect(resultater[0].effectiveDate).toBe(datoer[0]);
     });
   });
 

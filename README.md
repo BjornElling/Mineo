@@ -57,6 +57,15 @@ npm run preview      # Preview production build
    - Åbn [src/data/interestRates.ts](src/data/interestRates.ts)
    - Tilføj sats for Nationalbankens udlånsrente
 
+**KL- og RLTN-overenskomster**
+   - Hent de seneste Excel-ark fra Forhandlingsfællesskabets hjemmeside
+   - Læg KL-filer i `src/data/KL/Excel/` og RLTN-filer i `src/data/RLTN/Excel/`
+   - Filnavne SKAL følge formatet `KL-ÅÅÅÅ-MM-DD.xlsx` og `RLTN-ÅÅÅÅ-MM-DD.xlsx` (datoen er ikrafttrædelsesdatoen)
+   - Kør import-scriptet:
+     ```bash
+     npm run import:loen
+     ```
+
 ### Årligt (1/1 + 1/5)
 
 **EAL- og ASL-satser**
@@ -93,6 +102,6 @@ MIT License - Se [LICENSE](LICENSE) filen for detaljer.
 
 ---
 
-**Version**: 2026.02.66
+**Version**: 2026.02.67
 
 **Status**: Under udvikling

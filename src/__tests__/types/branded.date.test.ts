@@ -5,6 +5,7 @@ import {
   dateToISO,
   subtractOneDay,
   toISODateString,
+  toDanishDateString,
 } from '../../types/branded';
 
 describe('branded.ts - Dato roundtrip tests', () => {
@@ -85,6 +86,20 @@ describe('branded.ts - Dato roundtrip tests', () => {
       const feb28_2025 = danishToISO('28-02-2025');
       expect(feb28_2024).toBe('2024-02-28');
       expect(feb28_2025).toBe('2025-02-28');
+    });
+  });
+
+  describe('toDanishDateString', () => {
+    it('accepterer gyldig skudårs-dato', () => {
+      expect(toDanishDateString('29-02-2024')).toBe('29-02-2024');
+    });
+
+    it('afviser ikke-eksisterende dato', () => {
+      expect(() => toDanishDateString('31-02-2024')).toThrow('Invalid Danish date string');
+    });
+
+    it('afviser dag 00', () => {
+      expect(() => toDanishDateString('00-01-2024')).toThrow('Invalid Danish date string');
     });
   });
 

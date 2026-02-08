@@ -50,7 +50,9 @@ export const parseDanishDate = (dateStr: DanishDateString | string): Date | null
     Number.isNaN(year) ||
     day < 1 ||
     month < 1 ||
-    month > 12
+    month > 12 ||
+    year < 1900 ||
+    year > 2100
   ) {
     return null;
   }
@@ -69,6 +71,9 @@ export const parseDanishDate = (dateStr: DanishDateString | string): Date | null
  * Konverterer Date-objekt til dansk format (dd-mm-åååå)
  */
 export const formatDanishDate = (date: Date): DanishDateString => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    throw new Error('Invalid Date passed to formatDanishDate.');
+  }
   const day = String(date.getUTCDate()).padStart(2, '0');
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   const year = date.getUTCFullYear();
@@ -110,6 +115,7 @@ export { parseISODate } from '../types/branded';
  * Tilføjer et antal dage til en dato
  */
 export const addDays = (date: Date, days: number): Date => {
+  // UTC-baseret date-only aritmetik (ingen lokal tidszone).
   const result = new Date(date.getTime());
   result.setUTCDate(result.getUTCDate() + days);
   return result;
@@ -117,7 +123,8 @@ export const addDays = (date: Date, days: number): Date => {
 
 /**
  * Tilføjer et antal måneder til en dato
- * Håndterer måned-overskridelse og forskellige måneders længder korrekt
+ * Håndterer måned-overskridelse og forskellige måneders længder korrekt.
+ * Semantik: Hvis dagen ikke findes i mål-måneden, clamps til sidste dag i måneden.
  */
 export const addMonths = (date: Date, months: number): Date => {
   if (!months) {
