@@ -1,9 +1,17 @@
 /**
- * TAF fordelt på kalenderår – ren præsentationsberegning
+ * TAF fordelt på kalenderår – afledt beregningslag
  *
- * Årsbeløb er præsentation – samlet TAF-krav er autoritativt.
- * Afrundingslinjen korrigerer altid differensen mellem sum(yearTafOre)
- * og det autoritative samletTafKravOre.
+ * Dette modul fordeler det autoritative samlet TAF-krav (fra EO-modellen)
+ * på kalenderår. Det er et afledt beregningslag, ikke blot præsentation:
+ * - Segmenter splittes ved kalenderårsskift → nye mængder (dage/måneder) beregnes
+ * - Fradrag prorateres per år via overlap med TAF-ranges
+ * - Sub-segmenter afrundes individuelt via segmentAmountOreV3
+ *
+ * INVARIANT (garanteret):
+ *   sum(years[].yearTafOre) + afrundingOre === samletTafKravOre
+ *
+ * samletTafKravOre beregnes ALDRIG her – det modtages fra PdfModel
+ * og bruges kun som facit for afrundingslinjen.
  */
 
 import type { ISODateString } from '../../types/branded';
@@ -19,6 +27,22 @@ import {
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { buildTafRanges, buildIncomeForRanges } from './indtaegtPerioder';
 import { TAF_BEREGNES_SOM } from './tafBeregningsenhed';
+
+/**
+ * Beregner antal måneder i et inklusivt range uden SH-/feriedagsjusteringer.
+ * Semantisk identisk med EO-modellen (beregnArbejdsdageOgMaaneder med tomme sets),
+ * men med en eksplicit navn der ejer kontrakten, så ændringer i
+ * beregnArbejdsdageOgMaaneder fanges af tests her.
+ */
+const beregnMaanederUdenFridage = (fra: ISODateString, til: ISODateString): number => {
+  const stats = beregnArbejdsdageOgMaaneder(
+    fra,
+    til,
+    new Set<ISODateString>(),
+    new Set<ISODateString>()
+  );
+  return Math.round(stats.maaneder * 10_000) / 10_000;
+};
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -46,7 +70,7 @@ export type TafYearEntry = Readonly<{
   yearTafOre: MoneyOre;
 }>;
 
-export type TafPerYearPresentation = Readonly<{
+export type TafPerYearResult = Readonly<{
   years: readonly TafYearEntry[];
   sumYearTafOre: MoneyOre;
   afrundingOre: MoneyOre;
@@ -58,11 +82,16 @@ export type TafPerYearPresentation = Readonly<{
 /**
  * Splitter en inklusiv [fra, til] range ved kalenderårsskift.
  * Begge grænser er inklusive (identisk med alle andre range-funktioner i systemet).
+ *
+ * Forudsætning: fra <= til (valideret af EO-modellen upstream).
  */
 export const splitRangeByCalendarYearsInclusive = (
   fra: ISODateString,
   til: ISODateString
 ): Array<{ fra: ISODateString; til: ISODateString; year: number }> => {
+  if (fra > til) {
+    throw new Error(`splitRangeByCalendarYearsInclusive: fra (${fra}) > til (${til})`);
+  }
   const fraYear = Number.parseInt(fra.slice(0, 4), 10);
   const tilYear = Number.parseInt(til.slice(0, 4), 10);
 
@@ -122,14 +151,7 @@ const buildSubSegment = (
     };
   }
 
-  // Måneder: identisk med EO-model (beregnArbejdsdageOgMaaneder med tomme sets, 4 decimaler)
-  const stats = beregnArbejdsdageOgMaaneder(
-    subFra,
-    subTil,
-    new Set<ISODateString>(),
-    new Set<ISODateString>()
-  );
-  const quantity = Math.round(stats.maaneder * 10_000) / 10_000;
+  const quantity = beregnMaanederUdenFridage(subFra, subTil);
   if (quantity <= 0) return null;
   const baseLoenKroner = original.maanedsloenOre / 100;
   return {
@@ -143,10 +165,10 @@ const buildSubSegment = (
   };
 };
 
-export const buildTafPerYearPresentation = (
+export const buildTafPerYearResult = (
   model: PdfModel,
   eoValues: ErstatningsopgoerelseValues
-): TafPerYearPresentation | null => {
+): TafPerYearResult | null => {
   const taf = model.tabtArbejdsfortjeneste;
   const loenudvikling = taf.loenudvikling;
   if (!loenudvikling || loenudvikling.beregnedeSegmenter.length === 0) return null;
@@ -173,18 +195,27 @@ export const buildTafPerYearPresentation = (
     }
   }
 
-  // 2. Bestem årstal sorteret numerisk
-  const sortedYears = [...yearSegmentsMap.keys()].sort((a, b) => a - b);
-  if (sortedYears.length === 0) return null;
-
-  // 3. Byg TAF-ranges for fradragsberegning
+  // 2. Byg TAF-ranges og bestem alle relevante årstal
   const tafRanges = buildTafRanges(eoValues);
 
-  // 4. Byg TafYearEntry for hvert år
+  // Samler årstal fra segmenter OG TAF-ranges (fradrag kan dække år uden segmenter)
+  const allYearsSet = new Set<number>(yearSegmentsMap.keys());
+  for (const range of tafRanges) {
+    const rangeStartYear = Number.parseInt(range.fra.slice(0, 4), 10);
+    const rangeEndYear = Number.parseInt(range.til.slice(0, 4), 10);
+    for (let y = rangeStartYear; y <= rangeEndYear; y++) {
+      allYearsSet.add(y);
+    }
+  }
+
+  const sortedYears = [...allYearsSet].sort((a, b) => a - b);
+  if (sortedYears.length === 0) return null;
+
+  // 3. Byg TafYearEntry for hvert år
   const years: TafYearEntry[] = [];
 
   for (const year of sortedYears) {
-    const segments = yearSegmentsMap.get(year)!;
+    const segments = yearSegmentsMap.get(year) ?? [];
     // Segmenter sorteret efter fra-dato
     segments.sort((a, b) => (a.fra < b.fra ? -1 : a.fra > b.fra ? 1 : 0));
 
@@ -230,10 +261,10 @@ export const buildTafPerYearPresentation = (
   const sumYearTafOre = years.reduce((sum, y) => sum + y.yearTafOre, 0) as MoneyOre;
   const afrundingOre = (samletTafKravOre - sumYearTafOre) as MoneyOre;
 
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     const check = sumYearTafOre + afrundingOre;
     if (check !== samletTafKravOre) {
-      console.error(
+      throw new Error(
         `[TAF per år] Invariant brudt: sum(yearTafOre) + afrunding (${check}) !== samletTafKravOre (${samletTafKravOre})`
       );
     }

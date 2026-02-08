@@ -9,7 +9,7 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { MoneyOre } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { buildErstatningsopgoerelsePdfModel } from '../../domain/erstatningsopgoerelse/eoPdfModel';
-import { buildTafPerYearPresentation } from '../../domain/erstatningsopgoerelse/tafPerYearPresentation';
+import { buildTafPerYearResult } from '../../domain/erstatningsopgoerelse/tafPerYearDerived';
 import { formatCurrency } from '../formatUtils';
 import { formatDateShort as formatDateShortShared } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import { createPdfWriter, ensureNonBreakingKr } from './pdfWriter';
@@ -51,13 +51,13 @@ export const generateTafFordeltPaaAarPdf = (
   const doubleLineHeight = lineHeight * 2;
 
   const model = buildErstatningsopgoerelsePdfModel(stamdataValues, eoValues, { dagsDatoISO: TODAY });
-  const presentation = buildTafPerYearPresentation(model, eoValues);
+  const presentation = buildTafPerYearResult(model, eoValues);
 
   if (!presentation) {
     throw new Error('TAF fordelt på år kan ikke beregnes for den valgte opsætning.');
   }
 
-  const titel = 'Tabt arbejdsfortjeneste fordelt på årstal';
+  const titel = 'Tabt arbejdsfortjeneste fordelt på år';
 
   const writer = createPdfWriter({
     lineHeight,
@@ -71,7 +71,7 @@ export const generateTafFordeltPaaAarPdf = (
 
   writer.setProperties({
     title: titel,
-    subject: 'Tabt arbejdsfortjeneste fordelt på årstal',
+    subject: 'Erstatningsberegning',
     author: 'MINEO',
     creator: 'MINEO',
   });
@@ -144,8 +144,6 @@ export const generateTafFordeltPaaAarPdf = (
   }
 
   // ─── TAF fordelt på kalenderår ────────────────────────────────────────
-
-  writer.writeSubheader('TAF fordelt på kalenderår', lineHeight);
 
   const rightMaxWidth = writer.getTextWidth('000.000.000,00');
 
@@ -221,5 +219,5 @@ export const generateTafFordeltPaaAarPdf = (
 
   // Footer og gem
   writer.addFooter();
-  writer.save('taf-fordelt-paa-aar.pdf');
+  writer.save('Tabt arbejdsfortjeneste fordelt på år.pdf');
 };

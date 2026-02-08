@@ -1457,7 +1457,10 @@ export const generateErstatningsopgoerelsePdf = (
   }
 
   // TAF-perioder
-  renderSubheader('Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste', lineHeight);
+  const tafPeriodeHeader = model.tabtArbejdsfortjeneste.tafPerioderLinjer.length > 1
+    ? 'Erstatningsperioder, hvor der beregnes tabt arbejdsfortjeneste'
+    : 'Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste';
+  renderSubheader(tafPeriodeHeader, lineHeight);
 
   const tafPerioderLines = model.tabtArbejdsfortjeneste.tafPerioderLinjer;
   const hasTafPerioder = model.tabtArbejdsfortjeneste.harTafPerioder;
