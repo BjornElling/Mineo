@@ -20,7 +20,7 @@ import {
   type OverenskomstId,
 } from '../../data/overenskomstRates';
 import { getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
-import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
+import { toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
 import {
   getStatistiskLoenudvikling,
   type StatistiskLoenudviklingId,
@@ -203,10 +203,9 @@ const buildOverenskomstTable = (
 ): { columns: TableColumn[]; rows: string[][] } | null => {
   const offentligType = getOffentligOverenskomstTypeById(overenskomstId);
   if (offentligType) {
-    const loenType = resolveOffentligLoenTypeFromLabel(offentlig.loenType);
     const trinValue = offentlig.loenTrin;
     const gruppeValue = offentlig.loenGruppe;
-    if (!loenType || typeof trinValue !== 'number' || typeof gruppeValue !== 'number') return null;
+    if (typeof trinValue !== 'number' || typeof gruppeValue !== 'number') return null;
     if (gruppeValue < 0 || gruppeValue > 4) return null;
     let loentrin: ReturnType<typeof toLoentrin>;
     const loengruppe = gruppeValue as Loengruppe;
@@ -220,15 +219,14 @@ const buildOverenskomstTable = (
       .slice()
       .reverse();
 
-    const loenLabel = loenType === 'maanedsLoen' ? 'Månedsløn' : 'Timeløn';
     const columns: TableColumn[] = [
       { header: 'Fra-dato' },
-      { header: loenLabel },
+      { header: 'Månedsløn' },
+      { header: 'Timeløn' },
     ];
 
     const rows = satser.map((sats) => {
-      const loen = loenType === 'maanedsLoen' ? sats.maanedsLoen : sats.timeLoen;
-      return [sats.effectiveDate, formatCurrency(loen)];
+      return [sats.effectiveDate, formatCurrency(sats.maanedsLoen), formatCurrency(sats.timeLoen)];
     });
 
     return { columns, rows };

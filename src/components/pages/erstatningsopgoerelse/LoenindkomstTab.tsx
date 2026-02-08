@@ -1460,7 +1460,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                       const offentligReady = isOffentligLoenSelectionReady(af);
                       const canDownload =
                         hasReguleringsDatoInterval &&
-                        (!erOffentligOverenskomst || offentligReady);
+                        (loenudviklingBasis !== 'Overenskomst' || !erOffentligOverenskomst || offentligReady);
                       return (
                         <>
                           <Typography className="row--text" sx={{ textAlign: 'right' }}>
