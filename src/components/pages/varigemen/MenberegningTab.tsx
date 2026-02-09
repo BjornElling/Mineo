@@ -363,10 +363,10 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
       )}
 
       {/* Aldersreduktion */}
-      {beregningsResultat && beregningsResultat.aldersreduktionPct > 0 && (
+      {beregningsResultat && (
         <Box className="row--label-right">
           <Typography className="row--text">
-            {`Aldersreduktion, ${alderVedSkade} år = -${beregningsResultat.aldersreduktionPct} %`}
+            {`Aldersreduktion, ${alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`}
           </Typography>
           <Box
             className="row--label-right-hover__content"

@@ -181,14 +181,12 @@ const addResultatTable = (
     { content: `${formatDanishAmount(beregningsResultat.grundbeloebUdenReduktion, 2)} kr.`, styles: { halign: 'right' } }
   ]);
 
-  // Aldersreduktion (kun hvis > 0)
-  if (beregningsResultat.aldersreduktionPct > 0) {
-    const reduktionsBeloeb = beregningsResultat.grundbeloebUdenReduktion * beregningsResultat.aldersreduktionPct / 100;
-    tableData.push([
-      { content: `Aldersreduktion, ${beregningsResultat.alderVedSkade} år = -${beregningsResultat.aldersreduktionPct} %`, styles: { halign: 'left' } },
-      { content: `- ${formatDanishAmount(reduktionsBeloeb, 2)} kr.`, styles: { halign: 'right' } }
-    ]);
-  }
+  // Aldersreduktion
+  const reduktionsBeloeb = beregningsResultat.grundbeloebUdenReduktion * beregningsResultat.aldersreduktionPct / 100;
+  tableData.push([
+    { content: `Aldersreduktion, ${beregningsResultat.alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`, styles: { halign: 'left' } },
+    { content: `- ${formatDanishAmount(reduktionsBeloeb, 2)} kr.`, styles: { halign: 'right' } }
+  ]);
 
   // Slutresultat (tekst normal, værdi fed)
   tableData.push([
