@@ -1641,95 +1641,111 @@ export const generateErstatningsopgoerelsePdf = (
     // Kun hvis der ER TAF-perioder, vis resten af indholdet
     renderSubheader('Indkomst på skadestidspunktet', lineHeight);
     const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
-    if (indkomst?.beregningsperiodeLabel) {
-      safeAddWrappedText(indkomst.beregningsperiodeLabel);
-      writer.advanceY(lineHeight);
-    }
 
-    if (indkomst?.beregnesUdFra === 'Beregningsperiode') {
-      for (const arbejdssted of indkomst.arbejdssteder) {
-        writer.writeUnderlinedLabel(arbejdssted.navn, MARGINS.left);
-
-        safeAddLeftRightText('Ferieberettiget indkomst i beregningsperioden', formatMoneyOreWithKr(arbejdssted.breakdown.ferieberetOre), writer.getTextWidth('000.000.000,00'),
-          { rightFontStyle: 'normal' }
-        );
-
-        safeAddLeftRightText(arbejdssted.fpLabel, formatMoneyOreWithKr(arbejdssted.breakdown.fpFvShSoOre), writer.getTextWidth('000.000.000,00'),
-          { rightFontStyle: 'normal' }
-        );
-
-        safeAddLeftRightText(arbejdssted.pensionLabel, formatMoneyOreWithKr(arbejdssted.breakdown.pensionOre), writer.getTextWidth('000.000.000,00'),
-          { rightFontStyle: 'normal' }
-        );
-
-        safeAddLeftRightText('Arbejdsgivers ATP-bidrag og anden indkomst uden tillæg', formatMoneyOreWithKr(arbejdssted.breakdown.atpOre), writer.getTextWidth('000.000.000,00'),
-          { rightFontStyle: 'normal' }
-        );
-
-        safeAddLeftRightText('I alt:', formatMoneyOreWithKr(arbejdssted.breakdown.samletOre), writer.getTextWidth('000.000.000,00'),
-          { rightFontStyle: 'normal', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
-        );
+    if (model.tabtArbejdsfortjeneste.skalKomprimereIndkomstBeregning && indkomst) {
+      // Komprimeret visning: vis kun resultat fra tidligere opgørelse
+      const erArbejdsdage = model.tabtArbejdsfortjeneste.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE;
+      const loenLabel = erArbejdsdage ? 'Løn per arbejdsdag' : 'Månedsløn';
+      const beloebDisplay = erArbejdsdage
+        ? renderMoneyWithKr(indkomst.dagsloen)
+        : renderMoneyWithKr(indkomst.maanedsloen);
+      safeAddLeftRightText(
+        `${loenLabel} er i tidligere erstatningsopgørelse beregnet til`,
+        beloebDisplay,
+        writer.getTextWidth('000.000.000,00'),
+        { rightFontStyle: 'normal' }
+      );
+    } else {
+      if (indkomst?.beregningsperiodeLabel) {
+        safeAddWrappedText(indkomst.beregningsperiodeLabel);
         writer.advanceY(lineHeight);
       }
 
-      if (indkomst.totalBreakdown) {
-        const arbejdsgiverTotals = indkomst.arbejdssteder.map((arbejdssted) =>
-          formatCurrencyFromOre(arbejdssted.breakdown.samletOre)
-        );
-        if (indkomst.beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE && indkomst.arbejdsdage) {
-          const arbejdsdageText = indkomst.arbejdsdage.toLocaleString('da-DK');
-          const basisText = arbejdsgiverTotals.length > 1
-            ? `Dagsløn: (${arbejdsgiverTotals.join(' + ')}${NBSP}kr.) / ${arbejdsdageText} arbejdsdage =`
-            : `Dagsløn: ${formatMoneyOreWithKr(indkomst.totalBreakdown.samletOre)} / ${arbejdsdageText} arbejdsdage =`;
-          safeAddLeftRightText(
-            basisText,
-            renderMoneyWithKr(indkomst.dagsloen),
-            writer.getTextWidth('000.000.000,00'),
+      if (indkomst?.beregnesUdFra === 'Beregningsperiode') {
+        for (const arbejdssted of indkomst.arbejdssteder) {
+          writer.writeUnderlinedLabel(arbejdssted.navn, MARGINS.left);
+
+          safeAddLeftRightText('Ferieberettiget indkomst i beregningsperioden', formatMoneyOreWithKr(arbejdssted.breakdown.ferieberetOre), writer.getTextWidth('000.000.000,00'),
             { rightFontStyle: 'normal' }
           );
-        } else if (indkomst.maaneder) {
-          const maanederText = formatMaanederTrimmed(indkomst.maaneder);
-          const basisText = arbejdsgiverTotals.length > 1
-            ? `Månedsløn (${arbejdsgiverTotals.join(' + ')}${NBSP}kr.) / ${maanederText} måneder =`
-            : `Månedsløn: ${formatMoneyOreWithKr(indkomst.totalBreakdown.samletOre)} / ${maanederText} måneder =`;
-          safeAddLeftRightText(
-            basisText,
-            renderMoneyWithKr(indkomst.maanedsloen),
-            writer.getTextWidth('000.000.000,00'),
+
+          safeAddLeftRightText(arbejdssted.fpLabel, formatMoneyOreWithKr(arbejdssted.breakdown.fpFvShSoOre), writer.getTextWidth('000.000.000,00'),
             { rightFontStyle: 'normal' }
           );
+
+          safeAddLeftRightText(arbejdssted.pensionLabel, formatMoneyOreWithKr(arbejdssted.breakdown.pensionOre), writer.getTextWidth('000.000.000,00'),
+            { rightFontStyle: 'normal' }
+          );
+
+          safeAddLeftRightText('Arbejdsgivers ATP-bidrag og anden indkomst uden tillæg', formatMoneyOreWithKr(arbejdssted.breakdown.atpOre), writer.getTextWidth('000.000.000,00'),
+            { rightFontStyle: 'normal' }
+          );
+
+          safeAddLeftRightText('I alt:', formatMoneyOreWithKr(arbejdssted.breakdown.samletOre), writer.getTextWidth('000.000.000,00'),
+            { rightFontStyle: 'normal', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
+          );
+          writer.advanceY(lineHeight);
         }
-      }
-    } else if (indkomst?.beregnesUdFra === 'Angivet månedsløn') {
-      if (indkomst.skadesdato) {
-        const skadesdatoFormateret = formatDateShort(indkomst.skadesdato);
-        if (skadesdatoFormateret) {
-          const beloebDisplay = renderMoneyWithKr(indkomst.maanedsloen);
 
-          let leftText = '';
-          if (indkomst.loenBaseretPaa) {
-            leftText = `Månedslønnen er på baggrund af ${indkomst.loenBaseretPaa} fastsat per ${skadesdatoFormateret} til`;
-          } else {
-            leftText = `Månedslønnen er fastsat per ${skadesdatoFormateret} til`;
+        if (indkomst.totalBreakdown) {
+          const arbejdsgiverTotals = indkomst.arbejdssteder.map((arbejdssted) =>
+            formatCurrencyFromOre(arbejdssted.breakdown.samletOre)
+          );
+          if (indkomst.beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE && indkomst.arbejdsdage) {
+            const arbejdsdageText = indkomst.arbejdsdage.toLocaleString('da-DK');
+            const basisText = arbejdsgiverTotals.length > 1
+              ? `Dagsløn: (${arbejdsgiverTotals.join(' + ')}${NBSP}kr.) / ${arbejdsdageText} arbejdsdage =`
+              : `Dagsløn: ${formatMoneyOreWithKr(indkomst.totalBreakdown.samletOre)} / ${arbejdsdageText} arbejdsdage =`;
+            safeAddLeftRightText(
+              basisText,
+              renderMoneyWithKr(indkomst.dagsloen),
+              writer.getTextWidth('000.000.000,00'),
+              { rightFontStyle: 'normal' }
+            );
+          } else if (indkomst.maaneder) {
+            const maanederText = formatMaanederTrimmed(indkomst.maaneder);
+            const basisText = arbejdsgiverTotals.length > 1
+              ? `Månedsløn (${arbejdsgiverTotals.join(' + ')}${NBSP}kr.) / ${maanederText} måneder =`
+              : `Månedsløn: ${formatMoneyOreWithKr(indkomst.totalBreakdown.samletOre)} / ${maanederText} måneder =`;
+            safeAddLeftRightText(
+              basisText,
+              renderMoneyWithKr(indkomst.maanedsloen),
+              writer.getTextWidth('000.000.000,00'),
+              { rightFontStyle: 'normal' }
+            );
           }
-
-          safeAddLeftRightText(leftText, beloebDisplay, writer.getTextWidth('000.000.000,00'), { rightFontStyle: 'normal' });
         }
-      }
-    } else if (indkomst?.beregnesUdFra === 'Angivet dagsløn') {
-      if (indkomst.skadesdato) {
-        const skadesdatoFormateret = formatDateShort(indkomst.skadesdato);
-        if (skadesdatoFormateret) {
-          const beloebDisplay = renderMoneyWithKr(indkomst.dagsloen);
+      } else if (indkomst?.beregnesUdFra === 'Angivet månedsløn') {
+        if (indkomst.skadesdato) {
+          const skadesdatoFormateret = formatDateShort(indkomst.skadesdato);
+          if (skadesdatoFormateret) {
+            const beloebDisplay = renderMoneyWithKr(indkomst.maanedsloen);
 
-          let leftText = '';
-          if (indkomst.loenBaseretPaa) {
-            leftText = `Dagslønnen er på baggrund af ${indkomst.loenBaseretPaa} fastsat per ${skadesdatoFormateret} til`;
-          } else {
-            leftText = `Dagslønnen er fastsat per ${skadesdatoFormateret} til`;
+            let leftText = '';
+            if (indkomst.loenBaseretPaa) {
+              leftText = `Månedslønnen er på baggrund af ${indkomst.loenBaseretPaa} fastsat per ${skadesdatoFormateret} til`;
+            } else {
+              leftText = `Månedslønnen er fastsat per ${skadesdatoFormateret} til`;
+            }
+
+            safeAddLeftRightText(leftText, beloebDisplay, writer.getTextWidth('000.000.000,00'), { rightFontStyle: 'normal' });
           }
+        }
+      } else if (indkomst?.beregnesUdFra === 'Angivet dagsløn') {
+        if (indkomst.skadesdato) {
+          const skadesdatoFormateret = formatDateShort(indkomst.skadesdato);
+          if (skadesdatoFormateret) {
+            const beloebDisplay = renderMoneyWithKr(indkomst.dagsloen);
 
-          safeAddLeftRightText(leftText, beloebDisplay, writer.getTextWidth('000.000.000,00'), { rightFontStyle: 'bold' });
+            let leftText = '';
+            if (indkomst.loenBaseretPaa) {
+              leftText = `Dagslønnen er på baggrund af ${indkomst.loenBaseretPaa} fastsat per ${skadesdatoFormateret} til`;
+            } else {
+              leftText = `Dagslønnen er fastsat per ${skadesdatoFormateret} til`;
+            }
+
+            safeAddLeftRightText(leftText, beloebDisplay, writer.getTextWidth('000.000.000,00'), { rightFontStyle: 'bold' });
+          }
         }
       }
     }

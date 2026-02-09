@@ -34,6 +34,7 @@ import {
 import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../data/statistiskLoenudviklingRates';
 import { getKRLSatstabel, type KRLSatstabelId } from '../../data/KRLrates';
 import { clampTafRow, resolveTafConstraintBounds } from './tafPeriodConstraints';
+import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
 import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
@@ -104,6 +105,7 @@ export type TabtArbejdsfortjenestePdfModel = Readonly<{
   tafPerioderLinjer: readonly string[];
   harTafPerioder: boolean;
   tafBeregningsenhed: TafBeregningsenhed;
+  skalKomprimereIndkomstBeregning: boolean;
   indkomstSkadestidspunkt: IndkomstSkadestidspunktPdfModel | null;
   loenudvikling: LoenudviklingPdfModel | null;
   tafIndtaegter: TafIndtaegterPdfModel | null;
@@ -1858,6 +1860,10 @@ const buildTabtArbejdsfortjenesteModel = (
     oevrigeFravaersdage: values.oevrigeFravaersdage,
   });
 
+  const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);
+  const skalKomprimereIndkomstBeregning =
+    !erFoersteOpgoerelse && values.komprimerBeregningEfterFoersteOpgoerelse === 'Ja';
+
   const indkomstSkadestidspunkt = harTafPerioder
     ? buildIndkomstSkadestidspunkt(values, stamdataValues, tafBeregningsenhed)
     : null;
@@ -1892,6 +1898,7 @@ const buildTabtArbejdsfortjenesteModel = (
     tafPerioderLinjer,
     harTafPerioder,
     tafBeregningsenhed,
+    skalKomprimereIndkomstBeregning,
     indkomstSkadestidspunkt,
     loenudvikling,
     tafIndtaegter,
