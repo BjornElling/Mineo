@@ -11,7 +11,6 @@ import type { MoneyOre } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { buildErstatningsopgoerelsePdfModel } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { buildTafPerYearResult } from '../../domain/erstatningsopgoerelse/tafPerYearDerived';
 import { formatCurrency } from '../formatUtils';
-import { formatDateShort as formatDateShortShared } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import { createPdfWriter, ensureNonBreakingKr } from './pdfWriter';
 import { FONT_SIZES } from './pdfConfig';
 import type { BrevhovedData } from './pdfHelpers';
@@ -22,8 +21,6 @@ const NBSP = '\u00A0';
 const formatCurrencyFromOre = (ore: MoneyOre): string => formatCurrency(ore / 100);
 
 const formatMoneyOreWithKr = (ore: MoneyOre): string => `${formatCurrencyFromOre(ore)}${NBSP}kr.`;
-
-const formatDateShort = formatDateShortShared;
 
 const formatMaanederTrimmed = (value: number): string => {
   const rounded = Math.round(value * 10000) / 10000;
@@ -157,18 +154,15 @@ export const generateTafFordeltPaaAarPdf = (
       const factorText = Math.abs(roundedDeltaPct) < 0.00001
         ? ''
         : ` x (100 % ${roundedDeltaPct >= 0 ? '+' : '-'} ${formatPercentDelta(roundedDeltaPct)} %)`;
-      const fraDisplay = formatDateShort(segment.fra);
-      const tilDisplay = formatDateShort(segment.til);
-
       let leftText = '';
       if (segment.kind === 'arbejdsdage') {
         const arbejdsdageText = segment.quantity.toLocaleString('da-DK');
         const dagsloenText = formatCurrencyFromOre(segment.unitAmountOre);
-        leftText = `${fraDisplay} - ${tilDisplay}: ${arbejdsdageText} arbejdsdage á ${dagsloenText}${NBSP}kr.${factorText} =`;
+        leftText = `${arbejdsdageText} arbejdsdage á ${dagsloenText}${NBSP}kr.${factorText} =`;
       } else {
         const maanederText = formatMaanederTrimmed(segment.quantity);
         const maanedsloenText = formatCurrencyFromOre(segment.unitAmountOre);
-        leftText = `${fraDisplay} - ${tilDisplay}: ${maanederText} måneder á ${maanedsloenText}${NBSP}kr.${factorText} =`;
+        leftText = `${maanederText} måneder á ${maanedsloenText}${NBSP}kr.${factorText} =`;
       }
 
       const rightText = ensureNonBreakingKr(formatMoneyOreWithKr(segment.amountOre));
