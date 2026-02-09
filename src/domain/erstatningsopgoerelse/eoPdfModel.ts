@@ -1673,7 +1673,7 @@ const buildLoenudviklingModelV3 = (
   const strategiData = resolveReguleringsStrategiV3(values, stamdataValues);
   const loenudviklingLabel = strategiData.label;
   const tafRanges = buildTafRanges(values);
-  const maanedsloenBase = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? resolveMaanedsloenBase(values) : null;
+  const maanedsloenBase = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? resolveMaanedsloenBase(values, indkomstSkadestidspunkt) : null;
   const dagsloenBase = tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
     ? resolveDagsloenBase(values, indkomstSkadestidspunkt)
     : null;
@@ -1949,46 +1949,18 @@ const resolveReguleringsdato = (
   skadesdato,
 });
 
-const resolveMaanedsloenBase = (eoValues: ErstatningsopgoerelseValues): number | null => {
+const resolveMaanedsloenBase = (
+  eoValues: ErstatningsopgoerelseValues,
+  indkomstSkadestidspunkt: IndkomstSkadestidspunktPdfModel | null
+): number | null => {
   if (eoValues.beregnesUdFra === 'Angivet månedsløn') {
     const value = amountValueToNumber(eoValues.maanedsloenenUdgoer);
     return value !== undefined ? value : null;
   }
   if (eoValues.beregnesUdFra !== 'Beregningsperiode') return null;
-
-  let total = 0;
-  for (const af of eoValues.loenindkomstAnsaettelsesforhold ?? []) {
-    const rows = af.indtaegtsoplysningerTableData ?? [];
-    const satser = {
-      feriePct: af.feriePct,
-      fritvalgPct: af.fritvalgPct,
-      shSoPct: af.shSoPct,
-      storeBededagPct: af.storeBededagPct,
-      pensionPct: af.pensionPct,
-    };
-    for (const row of rows) {
-      if (isAarsloenRowEffectivelyEmpty(row)) continue;
-      const derived = calculateAarsloenRowDerived(row, satser);
-      total += derived.samlet;
-    }
-  }
-
-  const periodeFra = eoValues.periodeTilBeregningFra;
-  const periodeTil = eoValues.periodeTilBeregningTil;
-  if (!periodeFra || !periodeTil || periodeFra > periodeTil) return null;
-  const oevrigeFravaersdageValue =
-    eoValues.oevrigtFravaerUdenLoen === 'Ja' && typeof eoValues.oevrigeFravaersdage === 'number'
-      ? eoValues.oevrigeFravaersdage
-      : 0;
-  const maaneder = calculateTafAntalMaaneder(
-    periodeFra,
-    periodeTil,
-    eoValues.fravaerPerioder ?? [],
-    typeof eoValues.uspecificeredeFerieFridage === 'number' ? eoValues.uspecificeredeFerieFridage : 0,
-    oevrigeFravaersdageValue
-  );
-  if (!maaneder || maaneder <= 0) return null;
-  return total / maaneder;
+  if (!indkomstSkadestidspunkt) return null;
+  if (indkomstSkadestidspunkt.maanedsloen.status !== 'ok') return null;
+  return fromOre(indkomstSkadestidspunkt.maanedsloen.value);
 };
 
 const resolveDagsloenBase = (
