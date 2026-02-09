@@ -50,9 +50,9 @@ const getUdkastWatermarkPngDataUrl = (pageWidth: number, pageHeight: number): st
   }
 
   const canvas = document.createElement('canvas');
-  const pxScale = 8;
-  canvas.width = Math.max(900, Math.round(pageWidth * pxScale));
-  canvas.height = Math.max(1300, Math.round(pageHeight * pxScale));
+  const pxScale = 1;
+  canvas.width = Math.max(400, Math.round(pageWidth * pxScale));
+  canvas.height = Math.max(560, Math.round(pageHeight * pxScale));
   const ctx = canvas.getContext('2d');
   if (!ctx) {
     udkastWatermarkCache.set(cacheKey, null);
@@ -80,7 +80,7 @@ const addUdkastWatermark = (doc: jsPDF): void => {
   const pageHeight = doc.internal.pageSize.height;
   const watermarkDataUrl = getUdkastWatermarkPngDataUrl(pageWidth, pageHeight);
   if (watermarkDataUrl) {
-    doc.addImage(watermarkDataUrl, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'NONE');
+    doc.addImage(watermarkDataUrl, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
     return;
   }
 
