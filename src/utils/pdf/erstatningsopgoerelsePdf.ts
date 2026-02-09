@@ -64,6 +64,19 @@ const renderMoneyWithKr = (value: Calculable<MoneyOre>): string => {
 
 const formatMoneyOreWithKr = (ore: MoneyOre): string => `${formatCurrencyFromOre(ore)}${NBSP}kr.`;
 
+/** Formaterer øre-beløb uden decimaler når de er ,00 */
+const formatCurrencyFromOreTrimmed = (ore: MoneyOre): string => {
+  const formatted = formatCurrencyFromOre(ore);
+  return formatted.endsWith(',00') ? formatted.slice(0, -3) : formatted;
+};
+
+const renderMoneyWithKrTrimmed = (value: Calculable<MoneyOre>): string => {
+  if (value.status !== 'ok') return '—';
+  return `${formatCurrencyFromOreTrimmed(value.value)}${NBSP}kr.`;
+};
+
+const formatMoneyOreWithKrTrimmed = (ore: MoneyOre): string => `${formatCurrencyFromOreTrimmed(ore)}${NBSP}kr.`;
+
 const formatMaanederTrimmed = (value: number): string => {
   const rounded = Math.round(value * 10000) / 10000;
   return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
@@ -1510,15 +1523,21 @@ export const generateErstatningsopgoerelsePdf = (
     const satserAar = model.svieSmerte.satserAar !== null ? String(model.svieSmerte.satserAar) : '-';
     safeAddWrappedText(`Beregningen af godtgørelse foretages ud fra satserne i år ${satserAar}.`);
 
-    const perDagDisplayWithKr = renderMoneyWithKr(model.svieSmerte.satserPerDag);
-    const maxDisplayWithKr = renderMoneyWithKr(model.svieSmerte.satserMax);
-    safeAddWrappedText(`Taksten udgår ${perDagDisplayWithKr} pr. sygedag, dog højst ${maxDisplayWithKr}`);
+    const perDagDisplayWithKr = renderMoneyWithKrTrimmed(model.svieSmerte.satserPerDag);
+    const maxDisplayWithKr = renderMoneyWithKrTrimmed(model.svieSmerte.satserMax);
+    if (model.svieSmerte.delvisFaktor !== 1 && model.svieSmerte.satserPerDag.status === 'ok') {
+      const delvisSatsOre = Math.round(model.svieSmerte.satserPerDag.value * model.svieSmerte.delvisFaktor);
+      const delvisSatsDisplayWithKr = formatMoneyOreWithKrTrimmed(delvisSatsOre);
+      safeAddWrappedText(`Taksten udgår ${perDagDisplayWithKr} pr. sygedag og ${delvisSatsDisplayWithKr} pr. delvise sygedag, dog højst ${maxDisplayWithKr}`);
+    } else {
+      safeAddWrappedText(`Taksten udgår ${perDagDisplayWithKr} pr. sygedag, dog højst ${maxDisplayWithKr}`);
+    }
 
     const tidligere = model.svieSmerte.tidligere;
     const aktuel = model.svieSmerte.aktuel;
     if (tidligere.status === 'ok' || aktuel.status === 'ok') {
-      const tidligereDisplay = renderMoneyWithKr(tidligere);
-      const aktuelDisplay = renderMoneyWithKr(aktuel);
+      const tidligereDisplay = renderMoneyWithKrTrimmed(tidligere);
+      const aktuelDisplay = renderMoneyWithKrTrimmed(aktuel);
       let tekst = '';
       if (tidligere.status === 'ok' && aktuel.status === 'ok') {
         tekst = `Der er opgjort svie- og smertegodtgørelse med ${tidligereDisplay} for tidligere perioder samt modtaget ${aktuelDisplay} for denne periode.`;
@@ -1538,8 +1557,8 @@ export const generateErstatningsopgoerelsePdf = (
     const delvisOre = perDagOre !== null ? Math.round(perDagOre * model.svieSmerte.delvisFaktor) : null;
 
     const formatCount = (value: number): string => value.toLocaleString('da-DK');
-    const perDagText = perDagOre !== null ? formatCurrencyFromOre(perDagOre) : '—';
-    const delvisText = delvisOre !== null ? formatCurrencyFromOre(delvisOre) : '—';
+    const perDagText = perDagOre !== null ? formatCurrencyFromOreTrimmed(perDagOre) : '—';
+    const delvisText = delvisOre !== null ? formatCurrencyFromOreTrimmed(delvisOre) : '—';
     const withKr = (value: string): string => (value === '—' ? value : `${value}${NBSP}kr.`);
     const perDagTextWithKr = withKr(perDagText);
     const delvisTextWithKr = withKr(delvisText);
@@ -1554,7 +1573,8 @@ export const generateErstatningsopgoerelsePdf = (
           sygedage > 0 ? `${formatCount(sygedage)} sygedage` : '',
           delviseSygedage > 0 ? `${formatCount(delviseSygedage)} delvise sygedage` : '',
         ].filter((part) => part !== '').join(' og ');
-        base = combined === '' ? '-' : `${combined} á ${perDagTextWithKr}`;
+        const hasBoth = sygedage > 0 && delviseSygedage > 0;
+        base = combined === '' ? '-' : `${combined}${hasBoth ? ',' : ''} ${hasBoth ? 'begge ' : ''}á ${perDagTextWithKr}`;
       } else {
         const parts: string[] = [];
         if (sygedage > 0) {
@@ -1570,7 +1590,7 @@ export const generateErstatningsopgoerelsePdf = (
 
       const deductions: string[] = [];
       if (aktuel.status === 'ok') {
-        deductions.push(`-${NBSP}${formatMoneyOreWithKr(aktuel.value)}`);
+        deductions.push(`-${NBSP}${formatMoneyOreWithKrTrimmed(aktuel.value)}`);
       }
       const maxSuffix = model.svieSmerte.maxApplied ? ' (reduceret til max)' : '';
       return `${base}${deductions.length > 0 ? ` ${deductions.join(' ')}` : ''}${maxSuffix} =`;

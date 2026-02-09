@@ -1,6 +1,8 @@
 import React from 'react';
 import { Box, MenuItem, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Download from '@mui/icons-material/Download';
 import StyledTextField from '../../inputs/StyledTextField';
@@ -844,6 +846,36 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     setDeleteTargetId(null);
   }, [deleteTargetId, setLoenindkomstManuelReguleringInputError, setValues]);
 
+  const handleMoveUp = React.useCallback((afId: string) => {
+    setValues((prev) => {
+      const items = prev.loenindkomstAnsaettelsesforhold;
+      const index = items.findIndex((af) => af.id === afId);
+      if (index <= 0) return prev;
+      const nextItems = [...items];
+      [nextItems[index - 1], nextItems[index]] = [nextItems[index], nextItems[index - 1]];
+      return { ...prev, loenindkomstAnsaettelsesforhold: nextItems };
+    });
+    setTimeout(() => {
+      const el = document.querySelector(`[data-mineo-row-id="${afId}"]`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  }, [setValues]);
+
+  const handleMoveDown = React.useCallback((afId: string) => {
+    setValues((prev) => {
+      const items = prev.loenindkomstAnsaettelsesforhold;
+      const index = items.findIndex((af) => af.id === afId);
+      if (index === -1 || index >= items.length - 1) return prev;
+      const nextItems = [...items];
+      [nextItems[index], nextItems[index + 1]] = [nextItems[index + 1], nextItems[index]];
+      return { ...prev, loenindkomstAnsaettelsesforhold: nextItems };
+    });
+    setTimeout(() => {
+      const el = document.querySelector(`[data-mineo-row-id="${afId}"]`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  }, [setValues]);
+
   const handleDownloadReguleringPdf = React.useCallback(
     async (params: {
       overenskomstLabel: string;
@@ -1529,33 +1561,54 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
               </Box>
             ) : null}
 
-            {/* Slet-knap (kun synlig hvis der er mere end ét Ansættelsesforhold) */}
-            {showDeleteButton && (
-              <FloatingActionButton
-                icon={<DeleteIcon />}
-                color="error"
-                tooltip="Slet Ansættelsesforhold"
-                onClick={() => {
-                  setDeleteTargetId(af.id);
-                  setDeleteDialogOpen(true);
-                }}
-                sx={{ position: 'absolute', bottom: -28, right: 114 }}
-              />
-            )}
+            {/* Handlingsknapper – flex-container der fylder ud fra højre */}
+            <Box sx={{ position: 'absolute', bottom: -28, right: 44, display: 'flex', gap: '14px' }}>
+              {/* Flyt op (kun synlig hvis >1 Ansættelsesforhold og ikke det første) */}
+              {totalAnsaettelsesforhold > 1 && !isFirstAnsaettelsesforhold && (
+                <FloatingActionButton
+                  icon={<ArrowUpwardIcon />}
+                  color="primary"
+                  tooltip="Flyt Ansættelsesforhold op"
+                  onClick={() => handleMoveUp(af.id)}
+                />
+              )}
 
-            {/* Tilføj-knap (vises på alle Ansættelsesforhold) */}
-            <FloatingActionButton
-              icon={<AddIcon />}
-              color="primary"
-              disabled={cannotAddMore}
-              tooltip={cannotAddMore ? 'Maksimalt 10 Ansættelsesforhold' : 'Tilføj nyt Ansættelsesforhold'}
-              shake={cannotAddMore}
-              onClick={() => {
-                setAddTargetId(af.id);
-                setAddDialogOpen(true);
-              }}
-              sx={{ position: 'absolute', bottom: -28, right: 44 }}
-            />
+              {/* Flyt ned (kun synlig hvis >1 Ansættelsesforhold og ikke det sidste) */}
+              {totalAnsaettelsesforhold > 1 && !isLastAnsaettelsesforhold && (
+                <FloatingActionButton
+                  icon={<ArrowDownwardIcon />}
+                  color="primary"
+                  tooltip="Flyt Ansættelsesforhold ned"
+                  onClick={() => handleMoveDown(af.id)}
+                />
+              )}
+
+              {/* Slet (kun synlig hvis der er mere end ét Ansættelsesforhold) */}
+              {showDeleteButton && (
+                <FloatingActionButton
+                  icon={<DeleteIcon />}
+                  color="error"
+                  tooltip="Slet Ansættelsesforhold"
+                  onClick={() => {
+                    setDeleteTargetId(af.id);
+                    setDeleteDialogOpen(true);
+                  }}
+                />
+              )}
+
+              {/* Tilføj (vises på alle Ansættelsesforhold) */}
+              <FloatingActionButton
+                icon={<AddIcon />}
+                color="primary"
+                disabled={cannotAddMore}
+                tooltip={cannotAddMore ? 'Maksimalt 10 Ansættelsesforhold' : 'Tilføj nyt Ansættelsesforhold'}
+                shake={cannotAddMore}
+                onClick={() => {
+                  setAddTargetId(af.id);
+                  setAddDialogOpen(true);
+                }}
+              />
+            </Box>
           </ContentBox>
         );
       })}
