@@ -2252,16 +2252,14 @@ export const buildEODebugIndkomstRows = (
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
 
-  const sections = buildIndkomstSectionStatuses(values.loenindkomstAnsaettelsesforhold ?? [], skadesdato);
+  const sections = buildIndkomstSectionStatuses(values.loenindkomstAnsaettelsesforhold ?? [], skadesdato, values.beregnesUdFra);
   sections.forEach((section) => {
-    if (!section.hasArbejdsstedNavn) {
-      rows.push({
-        id: `loenindkomst.${section.id}.arbejdsstedNavn`,
-        label: 'Navn på arbejdssted',
-        displayValue: '-',
-        status: 'warning',
-      });
-    }
+    rows.push({
+      id: `loenindkomst.${section.id}.arbejdsstedNavn`,
+      label: 'Navn på arbejdssted',
+      displayValue: section.arbejdsstedNavnDisplay,
+      status: section.arbejdsstedNavnStatus,
+    });
 
     rows.push({
       id: `loenindkomst.${section.id}.satserSkadestidspunkt`,

@@ -220,8 +220,8 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
    */
   const validateFeriePct = React.useCallback(
     (fuldLoenUnderFerie: Ansaettelsesforhold['fuldLoenUnderFerie'], inputValue: number | undefined): string | undefined => {
-      const actualValue = inputValue ?? 0;
-      if (actualValue >= 12) return undefined;
+      if (inputValue === undefined) return undefined;
+      if (inputValue >= 12) return undefined;
 
       if (fuldLoenUnderFerie === 'Ja') {
         return 'Løn under ferie beregnes som feriegodtgørelse (12,5 % eller 15 % ved ret til 6. ferieuge)';

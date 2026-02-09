@@ -17,7 +17,8 @@ type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelses
 export type IndkomstSectionStatus = Readonly<{
   id: string;
   headerText: string;
-  hasArbejdsstedNavn: boolean;
+  arbejdsstedNavnDisplay: string;
+  arbejdsstedNavnStatus: DebugStatus;
   satserStatus: DebugStatus;
   satserMessage: string;
   tableStatus: DebugStatus;
@@ -65,8 +66,8 @@ const validateFeriePct = (
   fuldLoenUnderFerie: Ansaettelsesforhold['fuldLoenUnderFerie'],
   inputValue: number | undefined
 ): boolean => {
-  const actualValue = inputValue ?? 0;
-  if (actualValue >= 12) return false;
+  if (inputValue === undefined) return false;
+  if (inputValue >= 12) return false;
   return true;
 };
 
@@ -137,7 +138,8 @@ const resolveSatserErrorField = (
 
 export const buildIndkomstSectionStatuses = (
   ansaettelsesforhold: ReadonlyArray<Ansaettelsesforhold>,
-  skadesdato: ISODateString | undefined
+  skadesdato: ISODateString | undefined,
+  beregnesUdFra?: string
 ): ReadonlyArray<IndkomstSectionStatus> => {
   return ansaettelsesforhold.map((af, index) => {
     const baseHeaderText = index === 0 ? 'Ansættelsesforhold' : `Ansættelsesforhold ${index + 1}`;
@@ -171,7 +173,8 @@ export const buildIndkomstSectionStatuses = (
     return {
       id: af.id,
       headerText,
-      hasArbejdsstedNavn: arbejdsstedNavn !== '',
+      arbejdsstedNavnDisplay: arbejdsstedNavn !== '' ? arbejdsstedNavn : '-',
+      arbejdsstedNavnStatus: arbejdsstedNavn !== '' ? 'ok' : (beregnesUdFra === 'Beregningsperiode' ? 'warning' : 'ok'),
       satserStatus,
       satserMessage,
       tableStatus,

@@ -1926,8 +1926,8 @@ const EODebug = () => {
   ]);
 
   const indkomstSections = React.useMemo(() => {
-    return buildIndkomstSectionStatuses(loenindkomstAnsaettelsesforhold, skadesdato);
-  }, [loenindkomstAnsaettelsesforhold, skadesdato]);
+    return buildIndkomstSectionStatuses(loenindkomstAnsaettelsesforhold, skadesdato, erstatningsopgoerelseValues.beregnesUdFra);
+  }, [loenindkomstAnsaettelsesforhold, skadesdato, erstatningsopgoerelseValues.beregnesUdFra]);
 
   const offentligeYdelserDebugRows = React.useMemo(() => {
     return buildOffentligeYdelserDebugRows(erstatningsopgoerelseValues.offentligeYdelserRows ?? []);
@@ -2602,15 +2602,13 @@ const EODebug = () => {
           <Box key={section.id} sx={{ mb: 2 }}>
             <Typography className="row--subheading">{section.headerText}</Typography>
 
-            {!section.hasArbejdsstedNavn && (
-              <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-                <Typography className="row--text">Navn på arbejdssted</Typography>
-                <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                  <Typography className="row--text">-</Typography>
-                  {getStatusIcon('warning')}
-                </Box>
+            <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+              <Typography className="row--text">Navn på arbejdssted</Typography>
+              <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                <Typography className="row--text">{section.arbejdsstedNavnDisplay}</Typography>
+                {getStatusIcon(section.arbejdsstedNavnStatus)}
               </Box>
-            )}
+            </Box>
 
             <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
               <Typography className="row--text">Satser på skadestidspunktet</Typography>

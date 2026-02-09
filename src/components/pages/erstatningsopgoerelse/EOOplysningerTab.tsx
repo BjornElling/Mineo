@@ -638,6 +638,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               <MenuItem value="Førtidspension">Førtidspension</MenuItem>
               <MenuItem value="Seniorpension">Seniorpension</MenuItem>
               <MenuItem value="Folkepension">Folkepension</MenuItem>
+              <MenuItem value="Efterløn">Efterløn</MenuItem>
             </StyledDropdown>
           </Box>
         </Box>
