@@ -2041,22 +2041,25 @@ export const generateErstatningsopgoerelsePdf = (
       for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
         const fallbackNavn = `Ansættelsesforhold ${index + 1}`;
         const arbejdsstedNavn = ansaettelsesforhold.navnPaaArbejdssted?.trim() || fallbackNavn;
+        if (index > 0) writer.addSpacer(lineHeight);
         renderSubheader(arbejdsstedNavn, lineHeight, { addTopSpacing: index > 0 });
         writer.addSpacer(lineHeight);
         writeLabelValueLine(
           'Ansat på skadestidspunktet',
           formatJaNej(ansaettelsesforhold.ansatPaaSkadestidspunktet)
         );
-        writeLabelValueLine(
-          'Opsagt fra stillingen',
-          (() => {
-            const isOpsagt = ansaettelsesforhold.ansaettelsesforholdOphoert;
-            if (!isOpsagt) return 'Nej';
-            const sidsteArbejdsdag = formatDateLong(ansaettelsesforhold.sidsteArbejdsdag);
-            if (!sidsteArbejdsdag) return 'Ja';
-            return `Ja, sidste arbejdsdag ${sidsteArbejdsdag}`;
-          })()
-        );
+        if (ansaettelsesforhold.ansatPaaSkadestidspunktet !== false) {
+          writeLabelValueLine(
+            'Opsagt fra stillingen',
+            (() => {
+              const isOpsagt = ansaettelsesforhold.ansaettelsesforholdOphoert;
+              if (!isOpsagt) return 'Nej';
+              const sidsteArbejdsdag = formatDateLong(ansaettelsesforhold.sidsteArbejdsdag);
+              if (!sidsteArbejdsdag) return 'Ja';
+              return `Ja, sidste arbejdsdag ${sidsteArbejdsdag}`;
+            })()
+          );
+        }
         writer.addSpacer(lineHeight);
         const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
         if (overenskomstId) {
@@ -2167,7 +2170,7 @@ export const generateErstatningsopgoerelsePdf = (
 
       for (const [index, label] of groupOrder.entries()) {
         if (index > 0) writer.addSpacer(lineHeight);
-        renderSubheader(label, lineHeight, { addTopSpacing: false });
+        renderSubheader(label, lineHeight, { addTopSpacing: index > 0 });
         writer.addSpacer(lineHeight);
         const tableRows = buildTableRows(grouped.get(label) ?? []);
         const finalY = renderStandardPdfTable({
@@ -2344,6 +2347,7 @@ export const generateErstatningsopgoerelsePdf = (
 
       for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
         const underoverskrift = ansaettelsesforhold.navnPaaArbejdssted?.trim() || `Ansættelsesforhold ${index + 1}`;
+        if (index > 0) writer.addSpacer(lineHeight);
         renderSubheader(underoverskrift, lineHeight, { addTopSpacing: index > 0 });
         writer.addSpacer(lineHeight);
 
