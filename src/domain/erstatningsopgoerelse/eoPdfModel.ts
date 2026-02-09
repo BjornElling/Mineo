@@ -6,7 +6,7 @@ import { svieSmerteMax, svieSmertePrDag, aarsloenMax } from '../../data/regulati
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
 import { formatPercent, parsePercentToDecimal, roundHalfAwayFromZero } from '../../utils/formatUtils';
-import { buildIncomeForRanges, buildTafRanges, type IsoRange } from './indtaegtPerioder';
+import { buildIncomeForRanges, buildTafRanges, parseAarsloenRowInterval, type IsoRange } from './indtaegtPerioder';
 import { calculateTafAntalMaaneder } from './tafCalculations';
 import { calculateTafArbejdsdageBreakdown } from './tafCalculations';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from './tafBeregningsenhed';
@@ -794,17 +794,34 @@ const buildIndkomstSkadestidspunkt = (
         if (isAarsloenRowEffectivelyEmpty(row)) continue;
         const derived = calculateAarsloenRowDerived(row, satser);
         const atp = amountValueToNumber(row.col5) ?? 0;
-        acc.ferieberet += derived.ferieberet;
-        acc.fpFvShSo += derived.fpFvShSo;
-        acc.pension += derived.pension;
-        acc.atp += atp;
-        acc.samlet += derived.samlet;
 
-        perEmployment.ferieberet += derived.ferieberet;
-        perEmployment.fpFvShSo += derived.fpFvShSo;
-        perEmployment.pension += derived.pension;
-        perEmployment.atp += atp;
-        perEmployment.samlet += derived.samlet;
+        let fraction = 1;
+        if (periodeTilBeregning) {
+          const interval = parseAarsloenRowInterval(row, af.loenperiode);
+          if (!interval) continue;
+          const totalDays = countInclusiveUtcDays(interval.start, interval.end);
+          if (!totalDays || totalDays <= 0) continue;
+          const beregStart = isoDateToDate(periodeTilBeregning.fra);
+          const beregEnd = isoDateToDate(periodeTilBeregning.til);
+          const overlapStart = interval.start > beregStart ? interval.start : beregStart;
+          const overlapEnd = interval.end < beregEnd ? interval.end : beregEnd;
+          if (overlapStart > overlapEnd) continue;
+          const overlapDays = countInclusiveUtcDays(overlapStart, overlapEnd);
+          if (!overlapDays || overlapDays <= 0) continue;
+          fraction = overlapDays / totalDays;
+        }
+
+        acc.ferieberet += derived.ferieberet * fraction;
+        acc.fpFvShSo += derived.fpFvShSo * fraction;
+        acc.pension += derived.pension * fraction;
+        acc.atp += atp * fraction;
+        acc.samlet += derived.samlet * fraction;
+
+        perEmployment.ferieberet += derived.ferieberet * fraction;
+        perEmployment.fpFvShSo += derived.fpFvShSo * fraction;
+        perEmployment.pension += derived.pension * fraction;
+        perEmployment.atp += atp * fraction;
+        perEmployment.samlet += derived.samlet * fraction;
       }
       if (perEmployment.samlet > 0) {
         const pctParts: string[] = [];

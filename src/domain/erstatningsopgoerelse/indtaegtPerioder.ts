@@ -69,7 +69,7 @@ const getOverlapDays = (interval: DateInterval, ranges: readonly IsoRange[]): nu
   return total;
 };
 
-const parseAarsloenRowInterval = (row: AarsloenTableRow, loenperiode: Loenperiode): DateInterval | null => {
+export const parseAarsloenRowInterval = (row: AarsloenTableRow, loenperiode: Loenperiode): DateInterval | null => {
   if (loenperiode === 'maaned') {
     const monthRaw = row.col0_maaned?.trim() ?? '';
     const yearRaw = row.col1_maaned?.trim() ?? '';
