@@ -1,4 +1,3 @@
-import { describe, it, expect, vi } from 'vitest';
 import { toDanishDateString } from '../../types/branded';
 import { toLoentrin } from '../../data/offentligLoenTypes';
 
@@ -15,6 +14,11 @@ describe('offentligLoenLookup - manglende løntrin', () => {
               loentrin: toLoentrin(1),
               maanedsLoen: { 0: 100, 1: 100, 2: 100, 3: 100, 4: 100 },
               timeLoen: { 0: 10, 1: 10, 2: 10, 3: 10, 4: 10 },
+            },
+            {
+              loentrin: toLoentrin('55+'),
+              maanedsLoen: { 0: 200, 1: 200, 2: 200, 3: 200, 4: 200 },
+              timeLoen: { 0: 20, 1: 20, 2: 20, 3: 20, 4: 20 },
             },
           ],
         },

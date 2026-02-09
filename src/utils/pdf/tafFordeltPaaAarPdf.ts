@@ -131,7 +131,10 @@ export const generateTafFordeltPaaAarPdf = (
   }
 
   // TAF-perioder
-  writer.writeSubheader('Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste', lineHeight);
+  const tafPeriodeHeader = model.tabtArbejdsfortjeneste.tafPerioderLinjer.length > 1
+    ? 'Erstatningsperioder, hvor der beregnes tabt arbejdsfortjeneste'
+    : 'Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste';
+  writer.writeSubheader(tafPeriodeHeader, lineHeight);
   if (!model.tabtArbejdsfortjeneste.harTafPerioder) {
     writer.writeWrappedText('Ingen');
   } else {
