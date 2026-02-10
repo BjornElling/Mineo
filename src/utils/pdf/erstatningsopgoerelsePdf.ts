@@ -300,6 +300,9 @@ export const buildBilagIndkomstYdelserRanges = (
 
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(eoValues.eoNummer);
   if (erFoersteOpgoerelse) {
+    // NOTE: Besluttet UX-semantik.
+    // Ved første erstatningsopgørelse inkluderer "Perioden" både vedrører-perioden
+    // og beregningsperioden, så bilag afspejler begge brugerrelevante perioder.
     const beregningsFra = parseOptionalIsoDate(eoValues.periodeTilBeregningFra);
     const beregningsTil = parseOptionalIsoDate(eoValues.periodeTilBeregningTil);
     if (beregningsFra && beregningsTil && beregningsFra <= beregningsTil) {
@@ -403,6 +406,8 @@ export const shouldIncludeOffentligYdelseRowInBilag = (params: Readonly<{
   // NOTE: Fail-closed by design.
   // PDF må kun vise rækker uden valideringsfejl.
   if (errorRowIds.has(row.id)) return false;
+  // NOTE: Besluttet UX-semantik.
+  // Offentlige ydelser uden beløb (men med gyldig periode/type) vises i bilaget.
   return hasOffentligYdelseRowOverlapWithRanges(row, mode, ranges);
 };
 

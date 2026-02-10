@@ -210,6 +210,28 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     ).toBe(false);
   });
 
+  it('medtager offentlig ydelse uden beløb når periode/type er gyldig (besluttet UX)', () => {
+    const ranges = [{ fra: '2022-03-18', til: '2024-01-01' }] as const;
+    const errorRowIds = new Set<string>();
+    const ydelseUdenBeloeb: OffentligeYdelserRow = {
+      id: 'oy-uden-beloeb',
+      fraDato: '15-12-2023',
+      tilDato: '15-01-2024',
+      ydelsestype: 'sygedagpenge',
+      ydelse: undefined,
+      tillaeg: undefined,
+    };
+
+    expect(
+      shouldIncludeOffentligYdelseRowInBilag({
+        row: ydelseUdenBeloeb,
+        mode: 'Perioden',
+        ranges,
+        errorRowIds,
+      })
+    ).toBe(true);
+  });
+
   it('ekskluderer lønrække helt før erstatningsperioden', () => {
     const ranges = [{ fra: '2022-03-18', til: '2024-01-01' }] as const;
     const errorRowIds = new Set<string>();
