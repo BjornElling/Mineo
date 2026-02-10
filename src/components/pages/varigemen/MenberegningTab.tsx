@@ -23,7 +23,7 @@ import { varigeMenPrGradYearBounds } from '../../../data/regulationRates';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
-import { getTodayLocalISO } from '../../../utils/dateUtils';
+import { insertTodayDate } from '../../../utils/insertTodayDate';
 
 const VARIGE_MEN_BEREGNINGSDATO_MIN = toISODateString(
   `${varigeMenPrGradYearBounds.minYear}-01-01`
@@ -205,6 +205,17 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
     return formatted || 'Mangler (angiv i Stamdata)';
   };
 
+  const handleInsertToday = React.useCallback(() => {
+    insertTodayDate({
+      onCommit: (today) => {
+        setValues((prev) => ({
+          ...prev,
+          beregningsdato: today,
+        }));
+      },
+    });
+  }, [setValues]);
+
   return (
     <ContentBox className="content-box">
       <Typography className="section-header">Méngodtgørelse</Typography>
@@ -315,12 +326,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
           />
           <Tooltip title="Indsæt dags dato" arrow>
             <Box
-              onClick={() => {
-                setValues((prev) => ({
-                  ...prev,
-                  beregningsdato: getTodayLocalISO(),
-                }));
-              }}
+              onClick={handleInsertToday}
               tabIndex={-1}
               sx={{
                 width: '32px',

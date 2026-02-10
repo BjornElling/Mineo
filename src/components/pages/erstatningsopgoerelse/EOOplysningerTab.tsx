@@ -55,7 +55,8 @@ import { EO_ANGIVET_LOEN_ID } from '../../../domain/erstatningsopgoerelse/angive
 import { buildBeregningsperiodeTafOverlap, buildTafDerived } from '../../../domain/erstatningsopgoerelse/tafEngine';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatningsopgoerelse/eoNummerValidering';
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
-import { formatDanishDate, getTodayLocalISO, parseISODate } from '../../../utils/dateUtils';
+import { formatDanishDate, parseISODate } from '../../../utils/dateUtils';
+import { insertTodayDate } from '../../../utils/insertTodayDate';
 import {
   getOverenskomstMetaById,
   getReguleringsDatoIntervalForOverenskomst,
@@ -505,9 +506,12 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
    * Indsæt dags dato
    */
   const handleIndsaetDagsDato = React.useCallback(() => {
-    // Opdater committed value
-    setValues((prev) => ({ ...prev, opgørelseLavetDen: getTodayLocalISO() }));
-    opgoerelseLavetDenInputRef.current?.focus();
+    insertTodayDate({
+      onCommit: (today) => {
+        setValues((prev) => ({ ...prev, opgørelseLavetDen: today }));
+      },
+      focusRef: opgoerelseLavetDenInputRef,
+    });
   }, [setValues]);
 
   const erFoersteOpgoerelse = React.useMemo(

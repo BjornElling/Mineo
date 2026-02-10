@@ -4,7 +4,7 @@ import { ContentPasteGo } from '@mui/icons-material';
 import { MIN_CALCULATION_DATE, MAX_CALCULATION_YEAR } from '../../../data/interestRates';
 import StyledDateField from '../../inputs/StyledDateField';
 import { toISODateString } from '../../../types/branded';
-import { getTodayLocalISO } from '../../../utils/dateUtils';
+import { insertTodayDate } from '../../../utils/insertTodayDate';
 import BeregnetRenteTable from '../../tables/BeregnetRenteTable';
 import ContentBox from '../../layout/ContentBox';
 import type { RentekravRow } from '../../../schemas/formSchemas';
@@ -53,7 +53,11 @@ const RenteberegningTab = React.memo(({
 }: RenteberegningTabProps) => {
   const [beregningsdatoHasError, setBeregningsdatoHasError] = React.useState(false);
   const handleInsertToday = React.useCallback(() => {
-    onBeregningsdatoChange({ target: { value: getTodayLocalISO() } });
+    insertTodayDate({
+      onCommit: (today) => {
+        onBeregningsdatoChange({ target: { value: today } });
+      },
+    });
   }, [onBeregningsdatoChange]);
 
   return (
