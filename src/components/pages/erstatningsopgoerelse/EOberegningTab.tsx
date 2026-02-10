@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Checkbox, FormControlLabel, Tooltip } from '@mui/material';
+import { Box, Typography, Checkbox, FormControlLabel, Tooltip, MenuItem } from '@mui/material';
 import { Download, ErrorOutline, WarningAmber } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
 import BugReportButton from '../../errors/BugReportButton';
@@ -25,6 +25,7 @@ import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import { isoToDanish } from '../../../types/branded';
+import StyledDropdown, { type StyledDropdownChangeEvent } from '../../inputs/StyledDropdown';
 
 const formatDateLongDisplay = (isoDate: string | undefined): string => {
   const danish = formatISOToDanish(isoDate ?? '');
@@ -286,6 +287,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     okSatser: true,
     sygeferiegodtgoerelse: false,
   };
+  const loenindkomstOgOffentligeYdelserIndgaar =
+    eoValues?.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
 
   const updateSelectedElement = React.useCallback(
     (
@@ -298,6 +301,18 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
           ...prev.eoBilagSelection,
           [key]: checked,
         },
+      }));
+    },
+    [setEOValues]
+  );
+
+  const updateLoenindkomstOgOffentligeYdelserIndgaar = React.useCallback(
+    (event: StyledDropdownChangeEvent<'Alle' | 'Perioden'>) => {
+      const value = event.target.value;
+      if (value !== 'Alle' && value !== 'Perioden') return;
+      setEOValues((prev) => ({
+        ...prev,
+        eoBilagLoenindkomstOgOffentligeYdelserIndgaar: value,
       }));
     },
     [setEOValues]
@@ -706,8 +721,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                 control={<Checkbox checked={selectedElements.opgoerelse} disabled />}
                 label="Opgørelse"
               />
-            </Box>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <FormControlLabel
                 control={(
                   <Checkbox
@@ -768,6 +781,21 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                 )}
               />
             </Box>
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Lønindkomst og offentlige ydelser, der indgår</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledDropdown
+              allowEmpty={false}
+              value={loenindkomstOgOffentligeYdelserIndgaar}
+              onChange={updateLoenindkomstOgOffentligeYdelserIndgaar}
+              width={150}
+            >
+              <MenuItem value="Alle">Alle</MenuItem>
+              <MenuItem value="Perioden">Perioden</MenuItem>
+            </StyledDropdown>
           </Box>
         </Box>
       </ContentBox>

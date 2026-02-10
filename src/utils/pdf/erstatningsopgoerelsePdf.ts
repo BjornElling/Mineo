@@ -37,6 +37,9 @@ import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '
 import { getStatistiskLoenudvikling } from '../../data/statistiskLoenudviklingRates';
 import { formatKRLSatstabelDisplay, getKRLSatstabel, isKRLSatstabelId, type KRLSatstabelId } from '../../data/KRLrates';
 import { clampTafRow, resolveTafConstraintBounds } from '../../domain/erstatningsopgoerelse/tafPeriodConstraints';
+import { parseAarsloenRowInterval } from '../../domain/erstatningsopgoerelse/indtaegtPerioder';
+import { erDetteFoersteErstatningsopgoerelse } from '../../domain/erstatningsopgoerelse/eoNummerValidering';
+import { getAarsloenErrorRowIdSet, getOffentligeYdelserErrorRowIdSet } from '../../domain/erstatningsopgoerelse/indkomstRowValidation';
 import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
@@ -275,6 +278,133 @@ const findHelligdageInRange = (fra: ISODateString | undefined, til: ISODateStrin
 };
 
 const parseOptionalIsoDate = parseOptionalIsoDateShared;
+
+type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
+type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
+
+// Overlap er inklusiv begge endepunkter.
+const isIsoRangeOverlap = (a: IsoRange, b: IsoRange): boolean => a.fra <= b.til && b.fra <= a.til;
+
+export const buildBilagIndkomstYdelserRanges = (
+  eoValues: ErstatningsopgoerelseValues,
+  mode: BilagLoenindkomstOgOffentligeYdelserIndgaar
+): readonly IsoRange[] => {
+  if (mode === 'Alle') return [];
+
+  const ranges: IsoRange[] = [];
+  const erstatningsFra = parseOptionalIsoDate(eoValues.vedroererPeriodeFra);
+  const erstatningsTil = parseOptionalIsoDate(eoValues.vedroererPeriodeTil);
+  if (erstatningsFra && erstatningsTil && erstatningsFra <= erstatningsTil) {
+    ranges.push({ fra: erstatningsFra, til: erstatningsTil });
+  }
+
+  const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(eoValues.eoNummer);
+  if (erFoersteOpgoerelse) {
+    const beregningsFra = parseOptionalIsoDate(eoValues.periodeTilBeregningFra);
+    const beregningsTil = parseOptionalIsoDate(eoValues.periodeTilBeregningTil);
+    if (beregningsFra && beregningsTil && beregningsFra <= beregningsTil) {
+      ranges.push({ fra: beregningsFra, til: beregningsTil });
+    }
+  }
+
+  return ranges;
+};
+
+const shouldIncludeByBilagRanges = (
+  mode: BilagLoenindkomstOgOffentligeYdelserIndgaar,
+  ranges: readonly IsoRange[],
+  rowRange: IsoRange | null
+): boolean => {
+  // NOTE: Fail-closed by design.
+  // Rækker uden gyldigt dato-interval medtages aldrig i PDF-bilag.
+  if (!rowRange) return false;
+  if (mode === 'Alle') return true;
+  // NOTE: Fail-closed by design.
+  // Når "Perioden" er valgt uden gyldige bilag-ranges, medtages ingen rækker.
+  if (ranges.length === 0) return false;
+  return ranges.some((range) => isIsoRangeOverlap(rowRange, range));
+};
+
+export const hasAarsloenRowOverlapWithRanges = (
+  row: AarsloenTableRow,
+  loenperiode: Loenperiode,
+  mode: BilagLoenindkomstOgOffentligeYdelserIndgaar,
+  ranges: readonly IsoRange[]
+): boolean => {
+  const interval = parseAarsloenRowInterval(row, loenperiode);
+  if (!interval) return shouldIncludeByBilagRanges(mode, ranges, null);
+  const fra = parseOptionalIsoDate(
+    `${interval.start.getUTCFullYear()}-${String(interval.start.getUTCMonth() + 1).padStart(2, '0')}-${String(interval.start.getUTCDate()).padStart(2, '0')}`
+  );
+  const til = parseOptionalIsoDate(
+    `${interval.end.getUTCFullYear()}-${String(interval.end.getUTCMonth() + 1).padStart(2, '0')}-${String(interval.end.getUTCDate()).padStart(2, '0')}`
+  );
+  if (!fra || !til || fra > til) return shouldIncludeByBilagRanges(mode, ranges, null);
+  const rowRange: IsoRange = { fra, til };
+  return shouldIncludeByBilagRanges(mode, ranges, rowRange);
+};
+
+export const hasOffentligYdelseRowOverlapWithRanges = (
+  row: OffentligeYdelserRow,
+  mode: BilagLoenindkomstOgOffentligeYdelserIndgaar,
+  ranges: readonly IsoRange[]
+): boolean => {
+  const fra = parseDanishToISO(row.fraDato);
+  const til = parseDanishToISO(row.tilDato);
+  if (!fra || !til || fra > til) return shouldIncludeByBilagRanges(mode, ranges, null);
+  const rowRange: IsoRange = { fra, til };
+  return shouldIncludeByBilagRanges(mode, ranges, rowRange);
+};
+
+const isOffentligeYdelserRowEmpty = (row: OffentligeYdelserRow): boolean => {
+  return (
+    (row.fraDato?.trim() ?? '') === '' &&
+    (row.tilDato?.trim() ?? '') === '' &&
+    row.ydelse === undefined &&
+    row.tillaeg === undefined &&
+    (row.ydelsestype?.trim() ?? '') === ''
+  );
+};
+
+const hasNonZeroLoenAmount = (value: AarsloenTableRow['col2']): boolean => {
+  const numeric = amountValueToNumber(value);
+  return numeric !== undefined && Math.abs(numeric) > 0.000001;
+};
+
+export const shouldIncludeLoenRowInBilag = (params: Readonly<{
+  row: AarsloenTableRow;
+  loenperiode: Loenperiode;
+  mode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
+  ranges: readonly IsoRange[];
+  errorRowIds: ReadonlySet<string>;
+}>): boolean => {
+  const { row, loenperiode, mode, ranges, errorRowIds } = params;
+  if (isAarsloenRowEffectivelyEmpty(row)) return false;
+  // NOTE: Fail-closed by design.
+  // PDF må kun vise rækker uden valideringsfejl.
+  if (errorRowIds.has(row.id)) return false;
+  const hasAnyIncomeInput =
+    hasNonZeroLoenAmount(row.col2) ||
+    hasNonZeroLoenAmount(row.col3) ||
+    hasNonZeroLoenAmount(row.col4) ||
+    hasNonZeroLoenAmount(row.col5);
+  if (!hasAnyIncomeInput) return false;
+  return hasAarsloenRowOverlapWithRanges(row, loenperiode, mode, ranges);
+};
+
+export const shouldIncludeOffentligYdelseRowInBilag = (params: Readonly<{
+  row: OffentligeYdelserRow;
+  mode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
+  ranges: readonly IsoRange[];
+  errorRowIds: ReadonlySet<string>;
+}>): boolean => {
+  const { row, mode, ranges, errorRowIds } = params;
+  if (isOffentligeYdelserRowEmpty(row)) return false;
+  // NOTE: Fail-closed by design.
+  // PDF må kun vise rækker uden valideringsfejl.
+  if (errorRowIds.has(row.id)) return false;
+  return hasOffentligYdelseRowOverlapWithRanges(row, mode, ranges);
+};
 
 const maxIso = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
 const minIso = (a: ISODateString, b: ISODateString): ISODateString => (a < b ? a : b);
@@ -1362,6 +1492,9 @@ export const generateErstatningsopgoerelsePdf = (
   const lineHeight = 5;
   const doubleLineHeight = lineHeight * 2;
   const model = buildErstatningsopgoerelsePdfModel(stamdataValues, eoValues, { dagsDatoISO: TODAY });
+  const bilagIndkomstYdelserMode: BilagLoenindkomstOgOffentligeYdelserIndgaar =
+    eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
+  const bilagIndkomstYdelserRanges = buildBilagIndkomstYdelserRanges(eoValues, bilagIndkomstYdelserMode);
   const titel = model.titel;
 
   const warnLayoutFallback = (message: string) => {
@@ -1966,28 +2099,27 @@ export const generateErstatningsopgoerelsePdf = (
 
   if (selectedElements.loenindkomst) {
     const formatAmountCell = (value: AarsloenTableRow['col2']): string => amountValueToDisplayString(value, 2);
+    const loenErrorRowIdsByEmploymentId = new Map<string, ReadonlySet<string>>(
+      (eoValues.loenindkomstAnsaettelsesforhold ?? []).map((af) => [
+        af.id,
+        getAarsloenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode),
+      ])
+    );
 
     const renderLoenindkomstTable = (
-      ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]
+      ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number],
+      errorRowIds: ReadonlySet<string>
     ) => {
-      const hasNonZeroAmount = (value: AarsloenTableRow['col2']): boolean => {
-        const numeric = amountValueToNumber(value);
-        return numeric !== undefined && Math.abs(numeric) > 0.000001;
-      };
-
       const rows = (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).filter((row) => {
-        if (isAarsloenRowEffectivelyEmpty(row)) return false;
-        const hasAnyIncomeInput =
-          hasNonZeroAmount(row.col2) ||
-          hasNonZeroAmount(row.col3) ||
-          hasNonZeroAmount(row.col4) ||
-          hasNonZeroAmount(row.col5);
-        return hasAnyIncomeInput;
+        return shouldIncludeLoenRowInBilag({
+          row,
+          loenperiode: ansaettelsesforhold.loenperiode,
+          mode: bilagIndkomstYdelserMode,
+          ranges: bilagIndkomstYdelserRanges,
+          errorRowIds,
+        });
       });
-      if (rows.length === 0) {
-        safeAddWrappedText('Ingen rækker i indtægtsoplysninger.');
-        return;
-      }
+      if (rows.length === 0) return;
 
       const allHeaders = getLoenindkomstTableHeaders(ansaettelsesforhold.loenperiode);
       const inputColumnDefs = [
@@ -1997,7 +2129,7 @@ export const generateErstatningsopgoerelsePdf = (
         { index: 5, key: 'col5' as const },
       ];
       const visibleInputColumns = inputColumnDefs.filter((column) =>
-        rows.some((row) => hasNonZeroAmount(row[column.key]))
+        rows.some((row) => hasNonZeroLoenAmount(row[column.key]))
       );
       const headers = [
         allHeaders[0],
@@ -2058,15 +2190,21 @@ export const generateErstatningsopgoerelsePdf = (
       writer.setY(finalY + lineHeight);
     };
 
-    startBilagPage('Lønindkomst');
-
-    const ansaettelser = eoValues.loenindkomstAnsaettelsesforhold ?? [];
+    const ansaettelser = (eoValues.loenindkomstAnsaettelsesforhold ?? []).filter((ansaettelsesforhold) => {
+      const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
+      return (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).some((row) => {
+        return shouldIncludeLoenRowInBilag({
+          row,
+          loenperiode: ansaettelsesforhold.loenperiode,
+          mode: bilagIndkomstYdelserMode,
+          ranges: bilagIndkomstYdelserRanges,
+          errorRowIds,
+        });
+      });
+    });
     if (ansaettelser.length > 0) {
+      startBilagPage('Lønindkomst');
       writer.addSpacer(lineHeight);
-    }
-    if (ansaettelser.length === 0) {
-      safeAddWrappedText('Ingen ansættelsesforhold.');
-    } else {
       for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
         const fallbackNavn = `Ansættelsesforhold ${index + 1}`;
         const arbejdsstedNavn = ansaettelsesforhold.navnPaaArbejdssted?.trim() || fallbackNavn;
@@ -2111,29 +2249,24 @@ export const generateErstatningsopgoerelsePdf = (
           writeLabelValueLine('Arbejdsgivers pensionsbidrag:', formatPctFromInput(ansaettelsesforhold.pensionPct));
         }
         writer.addSpacer(lineHeight);
-        renderLoenindkomstTable(ansaettelsesforhold);
+        const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
+        renderLoenindkomstTable(ansaettelsesforhold, errorRowIds);
       }
     }
   }
 
   if (selectedElements.offentligeYdelser) {
-    const isOffentligeYdelserRowEmpty = (row: OffentligeYdelserRow): boolean => {
-      return (
-        (row.fraDato?.trim() ?? '') === '' &&
-        (row.tilDato?.trim() ?? '') === '' &&
-        row.ydelse === undefined &&
-        row.tillaeg === undefined &&
-        (row.ydelsestype?.trim() ?? '') === ''
-      );
-    };
+    const offentligeErrorRowIds = getOffentligeYdelserErrorRowIdSet(eoValues.offentligeYdelserRows ?? []);
+    const rows = (eoValues.offentligeYdelserRows ?? []).filter((row) => {
+      return shouldIncludeOffentligYdelseRowInBilag({
+        row,
+        mode: bilagIndkomstYdelserMode,
+        ranges: bilagIndkomstYdelserRanges,
+        errorRowIds: offentligeErrorRowIds,
+      });
+    });
 
-    const renderOffentligeYdelserTable = () => {
-      const rows = (eoValues.offentligeYdelserRows ?? []).filter((row) => !isOffentligeYdelserRowEmpty(row));
-      if (rows.length === 0) {
-        safeAddWrappedText('Ingen rækker i offentlige ydelser.');
-        return;
-      }
-
+    const renderOffentligeYdelserTable = (rowsToRender: readonly OffentligeYdelserRow[]) => {
       const headerRow: RowInput = OFFENTLIGE_YDELSER_HEADERS.map((header) => ({
         content: header,
         styles: { fontStyle: 'bold', halign: 'center' as const },
@@ -2175,7 +2308,7 @@ export const generateErstatningsopgoerelsePdf = (
 
       const grouped = new Map<string, OffentligeYdelserRow[]>();
       const groupOrder: string[] = [];
-      for (const row of rows) {
+      for (const row of rowsToRender) {
         const ydelsestypeKey = row.ydelsestype?.trim() ?? '';
         const ydelsestypeLabel = ydelsestypeKey
           ? (ydelsestyper[ydelsestypeKey]?.label ?? ydelsestypeKey)
@@ -2212,9 +2345,11 @@ export const generateErstatningsopgoerelsePdf = (
       }
     };
 
-    startBilagPage('Offentlige ydelser');
-    writer.addSpacer(lineHeight);
-    renderOffentligeYdelserTable();
+    if (rows.length > 0) {
+      startBilagPage('Offentlige ydelser');
+      writer.addSpacer(lineHeight);
+      renderOffentligeYdelserTable(rows);
+    }
   }
 
   const renderShDageSection = () => {
@@ -2389,7 +2524,18 @@ export const generateErstatningsopgoerelsePdf = (
           skadesdato: skadesdatoIso,
           saerligFraDatoRegulering: saerligFraDatoIso,
         });
-        writeLabelValueLine('Regulering anvendt', valgtRegulering);
+        // Vis lønudvikling-beskrivelse i stedet for "Reguleringsdato (Skadesdato)"
+        if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Ingen') {
+          writeLabelValueLine('Regulering', valgtRegulering);
+          writeLabelValueLine('Opgøres på baggrund af', loenSkadesdatoText);
+          writer.addSpacer(lineHeight);
+          continue;
+        }
+        writeLabelValueLine(
+          'Beregnes som',
+          `${loenSkadesdatoText} tillagt efterfølgende lønstigninger.`
+        );
+        writeLabelValueLine('Regulering', valgtRegulering);
 
         // Vis lønindplacering for offentlig overenskomst (KL/RLTN)
         const offentligTypeForLabel = ansaettelsesforhold.overenskomstId
@@ -2402,17 +2548,6 @@ export const generateErstatningsopgoerelsePdf = (
             writeLabelValueLine('Indplacering', `Løntrin ${trin}, gruppe ${gruppe}`);
           }
         }
-
-        // Vis lønudvikling-beskrivelse i stedet for "Reguleringsdato (Skadesdato)"
-        if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Ingen') {
-          writeLabelValueLine('Opgøres på baggrund af', loenSkadesdatoText);
-          writer.addSpacer(lineHeight);
-          continue;
-        }
-        writeLabelValueLine(
-          'Beregnes som',
-          `${loenSkadesdatoText} tillagt efterfølgende lønstigninger.`
-        );
         writer.addSpacer(lineHeight);
         safeAddWrappedText('Reguleringsværdier:');
 

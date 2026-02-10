@@ -35,6 +35,7 @@ import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../.
 import { getKRLSatstabel, type KRLSatstabelId } from '../../data/KRLrates';
 import { clampTafRow, resolveTafConstraintBounds } from './tafPeriodConstraints';
 import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
+import { getAarsloenErrorRowIdSet } from './indkomstRowValidation';
 import { buildTafArbejdsstatusLinje } from './tafArbejdsstatusConfig';
 import {
   STORE_BEDEDAG_START,
@@ -761,8 +762,20 @@ const buildIndkomstSkadestidspunkt = (
       : null;
 
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
+  const loenErrorRowIdsByEmploymentId = new Map<string, ReadonlySet<string>>(
+    ansaettelser.map((af) => [af.id, getAarsloenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)])
+  );
+  const isValidLoenRowForCalculation = (
+    af: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number],
+    row: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]['indtaegtsoplysningerTableData'][number]
+  ): boolean => {
+    if (isAarsloenRowEffectivelyEmpty(row)) return false;
+    const errorRowIds = loenErrorRowIdsByEmploymentId.get(af.id) ?? new Set<string>();
+    if (errorRowIds.has(row.id)) return false;
+    return parseAarsloenRowInterval(row, af.loenperiode) !== null;
+  };
   const ansaettelserMedData = ansaettelser.filter((af) =>
-    (af.indtaegtsoplysningerTableData ?? []).some((row) => !isAarsloenRowEffectivelyEmpty(row))
+    (af.indtaegtsoplysningerTableData ?? []).some((row) => isValidLoenRowForCalculation(af, row))
   );
   const ansaettelserNavne = ansaettelserMedData
     .map((af) => (af.navnPaaArbejdssted ?? '').trim())
@@ -798,14 +811,16 @@ const buildIndkomstSkadestidspunkt = (
       };
       const perEmployment = { ferieberet: 0, fpFvShSo: 0, pension: 0, atp: 0, samlet: 0 };
       for (const row of af.indtaegtsoplysningerTableData ?? []) {
-        if (isAarsloenRowEffectivelyEmpty(row)) continue;
+        // NOTE: Fail-closed by design.
+        // Kun rækker med gyldigt dato-interval og uden valideringsfejl må indgå i beregningen.
+        if (!isValidLoenRowForCalculation(af, row)) continue;
         const derived = calculateAarsloenRowDerived(row, satser);
         const atp = amountValueToNumber(row.col5) ?? 0;
 
         let fraction = 1;
+        const interval = parseAarsloenRowInterval(row, af.loenperiode);
+        if (!interval) continue;
         if (periodeTilBeregning) {
-          const interval = parseAarsloenRowInterval(row, af.loenperiode);
-          if (!interval) continue;
           const totalDays = countInclusiveUtcDays(interval.start, interval.end);
           if (!totalDays || totalDays <= 0) continue;
           const beregStart = isoDateToDate(periodeTilBeregning.fra);
@@ -818,17 +833,35 @@ const buildIndkomstSkadestidspunkt = (
           fraction = overlapDays / totalDays;
         }
 
-        acc.ferieberet += derived.ferieberet * fraction;
-        acc.fpFvShSo += derived.fpFvShSo * fraction;
-        acc.pension += derived.pension * fraction;
-        acc.atp += atp * fraction;
-        acc.samlet += derived.samlet * fraction;
+        const ferieberetContrib = derived.ferieberet * fraction;
+        const fpFvShSoContrib = derived.fpFvShSo * fraction;
+        const pensionContrib = derived.pension * fraction;
+        const atpContrib = atp * fraction;
+        const samletContrib = derived.samlet * fraction;
+        // NOTE: Fail-closed by design.
+        // Ikke-finite delbidrag eller ikke-positive samlede bidrag må aldrig indgå tavst i summer.
+        if (
+          !Number.isFinite(ferieberetContrib) ||
+          !Number.isFinite(fpFvShSoContrib) ||
+          !Number.isFinite(pensionContrib) ||
+          !Number.isFinite(atpContrib) ||
+          !Number.isFinite(samletContrib) ||
+          samletContrib <= 0
+        ) {
+          continue;
+        }
 
-        perEmployment.ferieberet += derived.ferieberet * fraction;
-        perEmployment.fpFvShSo += derived.fpFvShSo * fraction;
-        perEmployment.pension += derived.pension * fraction;
-        perEmployment.atp += atp * fraction;
-        perEmployment.samlet += derived.samlet * fraction;
+        acc.ferieberet += ferieberetContrib;
+        acc.fpFvShSo += fpFvShSoContrib;
+        acc.pension += pensionContrib;
+        acc.atp += atpContrib;
+        acc.samlet += samletContrib;
+
+        perEmployment.ferieberet += ferieberetContrib;
+        perEmployment.fpFvShSo += fpFvShSoContrib;
+        perEmployment.pension += pensionContrib;
+        perEmployment.atp += atpContrib;
+        perEmployment.samlet += samletContrib;
       }
       if (perEmployment.samlet > 0) {
         const pctParts: string[] = [];

@@ -1,0 +1,148 @@
+import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
+
+const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
+
+describe('buildIncomeForRanges fail-closed', () => {
+  it('medregner kun løn-/ydelsesrækker med gyldig fra/til og uden fejl', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenperiode = 'dag';
+    af.indtaegtsoplysningerTableData = [
+      {
+        id: 'loen-ok',
+        col0_maaned: '',
+        col1_maaned: '',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '01-01-2024',
+        col1_dag: '31-01-2024',
+        col2: asAmount(100),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      },
+      {
+        id: 'loen-fejl-mangler-til',
+        col0_maaned: '',
+        col1_maaned: '',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '01-01-2024',
+        col1_dag: '',
+        col2: asAmount(500),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      },
+    ];
+
+    values.offentligeYdelserRows = [
+      {
+        id: 'ydelse-ok',
+        fraDato: '01-01-2024',
+        tilDato: '31-01-2024',
+        ydelse: asAmount(200),
+        tillaeg: undefined,
+        ydelsestype: 'sygedagpenge',
+      },
+      {
+        id: 'ydelse-fejl-mangler-type',
+        fraDato: '01-01-2024',
+        tilDato: '31-01-2024',
+        ydelse: asAmount(400),
+        tillaeg: undefined,
+        ydelsestype: '',
+      },
+    ];
+
+    const ranges = [{ fra: '2024-01-01', til: '2024-01-31' }] as const;
+    const income = buildIncomeForRanges(values, ranges);
+
+    expect(income.employers).toHaveLength(1);
+    expect(income.employers[0]?.amount).toBe(100);
+
+    expect(income.benefits).toHaveLength(1);
+    expect(income.benefits[0]?.amount).toBe(200);
+    expect(income.benefits[0]?.typeKey).toBe('sygedagpenge');
+  });
+
+  it('dobbelttæller ikke ved overlappende input-ranges', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenperiode = 'dag';
+    af.indtaegtsoplysningerTableData = [
+      {
+        id: 'loen-overlap',
+        col0_maaned: '',
+        col1_maaned: '',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '01-01-2024',
+        col1_dag: '31-01-2024',
+        col2: asAmount(310),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      },
+    ];
+
+    const income = buildIncomeForRanges(values, [
+      { fra: '2024-01-01', til: '2024-01-15' },
+      { fra: '2024-01-10', til: '2024-01-20' },
+    ]);
+
+    // 310 over 31 dage => 10 pr dag, samlet overlap 20 dage (1-20) => 200
+    expect(income.employers[0]?.amount).toBe(200);
+  });
+
+  it('medregner ikke ikke-finite afledte lønbeløb', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenperiode = 'dag';
+    af.indtaegtsoplysningerTableData = [
+      {
+        id: 'loen-nan',
+        col0_maaned: '',
+        col1_maaned: '',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '01-01-2024',
+        col1_dag: '31-01-2024',
+        col2: asAmount(Number.POSITIVE_INFINITY),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      },
+    ];
+
+    const income = buildIncomeForRanges(values, [{ fra: '2024-01-01', til: '2024-01-31' }]);
+    expect(income.employers).toHaveLength(0);
+  });
+
+  it('ekskluderer rækker uden ydelsestype (fail-closed)', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.offentligeYdelserRows = [
+      {
+        id: 'oy-u1',
+        fraDato: '01-01-2024',
+        tilDato: '31-01-2024',
+        ydelse: asAmount(100),
+        tillaeg: undefined,
+        ydelsestype: '',
+      },
+      {
+        id: 'oy-u2',
+        fraDato: '01-01-2024',
+        tilDato: '31-01-2024',
+        ydelse: asAmount(200),
+        tillaeg: undefined,
+        ydelsestype: '',
+      },
+    ];
+
+    const income = buildIncomeForRanges(values, [{ fra: '2024-01-01', til: '2024-01-31' }]);
+    expect(income.benefits).toHaveLength(0);
+  });
+});

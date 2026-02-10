@@ -5,6 +5,7 @@ import { ensureTafRows } from './tafTableModel';
 import { ensureFravaerRows, ensureTafFerieRows } from './ferieTableModel';
 import { ensureOevrigeKravRows } from './oevrigeKravTableModel';
 import { appSettingsSchema, DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../settings/appSettingsSchema';
+import { erstatningsopgoerelseSchema } from '../../schemas/formSchemas';
 
 /**
  * Opretter initial values for erstatningsopgørelse med settings-baserede standardværdier
@@ -29,7 +30,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   const parsed = settings ? appSettingsSchema.safeParse(settings) : { success: false as const };
   const safeSettings = parsed.success ? parsed.data : DEFAULT_APP_SETTINGS;
 
-  return {
+  return erstatningsopgoerelseSchema.parse({
   // Erstatningsopgørelse info
   eoNummer: undefined,
   eoLedsagetekst: '',
@@ -159,7 +160,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
     okSatser: true,
     sygeferiegodtgoerelse: false,
   },
-  };
+  });
 };
 
 /**

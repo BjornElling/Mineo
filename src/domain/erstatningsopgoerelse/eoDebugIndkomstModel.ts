@@ -9,7 +9,7 @@ import {
 import { ydelsestyper } from '../../data/ydelsestyper';
 import { getEffektiveSatserForDato, resolveOverenskomstRef, type OverenskomstId, isOffentligOverenskomstId } from '../../data/overenskomstRates';
 import type { DebugStatus } from '../debug/eoDebugTypes';
-import { buildAarsloenCellErrors, buildOffentligeYdelserCellErrors } from '../debug/eoDebugRowValidation';
+import { buildAarsloenCellErrors, buildOffentligeYdelserCellErrors } from './indkomstRowValidation';
 import { formatCurrency, parseAmount } from '../../utils/formatUtils';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
