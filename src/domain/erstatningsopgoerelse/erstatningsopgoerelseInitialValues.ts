@@ -20,6 +20,7 @@ const createDefaultAngivetLoenLoenudvikling = (settings: AppSettings): Persisted
   offentligLoenType: 'Månedsløn',
   offentligLoenTrin: undefined,
   offentligLoenGruppe: undefined,
+  overenskomstFilter: resolveDefaultOverenskomstFilter(settings),
 });
 
 /**

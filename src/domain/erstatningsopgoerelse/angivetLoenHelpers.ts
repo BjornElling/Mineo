@@ -61,8 +61,8 @@ export const resolveLoenudviklingKilde = (
     offentligLoenTrin: eo.offentligLoenTrin,
     offentligLoenGruppe: eo.offentligLoenGruppe,
     overenskomstFilter: {
-      loenmodtager: undefined,
-      arbejdsgiver: undefined,
+      loenmodtager: eo.overenskomstFilter?.loenmodtager,
+      arbejdsgiver: eo.overenskomstFilter?.arbejdsgiver,
     },
   }];
 };

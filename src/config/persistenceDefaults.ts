@@ -107,6 +107,21 @@ export const buildPersistenceDefaults = (settings?: AppSettings): PersistedSecti
           overenskomstFilter: resolveDefaultOverenskomstFilter(safeSettings),
         },
       ],
+      eoAngivetLoenLoenudvikling: {
+        overenskomstId: undefined,
+        feriePct: undefined,
+        loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
+        saerligFraDatoRegulering: undefined,
+        loenudviklingBeregningsgrundlag: undefined,
+        loenudviklingStatistikModel: undefined,
+        loenudviklingKRLSatstabel: undefined,
+        loenudviklingManuelNavn: '',
+        loenudviklingManuelTableData: [],
+        offentligLoenType: 'Månedsløn',
+        offentligLoenTrin: undefined,
+        offentligLoenGruppe: undefined,
+        overenskomstFilter: resolveDefaultOverenskomstFilter(safeSettings),
+      },
     },
   };
 };

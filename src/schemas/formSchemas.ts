@@ -764,6 +764,11 @@ const erstatningsopgoerelseBaseSchema = z.object({
  * - Felter må være schema-defineret og persisted (save/load coverage).
  * - Ingen derived/UI state må gemmes.
  */
+const overenskomstFilterSchema = z.object({
+  loenmodtager: optionalString,
+  arbejdsgiver: optionalString,
+});
+
 export const loenindkomstAnsaettelsesforholdSchema = z.object({
   id: z.string().min(1, 'ID må ikke være tomt'),
 
@@ -820,10 +825,7 @@ export const loenindkomstAnsaettelsesforholdSchema = z.object({
   // Overenskomst-filter (persisteres for at bevare brugerens valg)
   // Initialiseres fra settings ved oprettelse af ansættelsesforhold, ændres ikke af efterfølgende settings-ændringer
   // Ikke-optional: Alle ansættelsesforhold har altid et filter-objekt
-  overenskomstFilter: z.object({
-    loenmodtager: optionalString,
-    arbejdsgiver: optionalString,
-  }),
+  overenskomstFilter: overenskomstFilterSchema,
 }).strict();
 
 export type LoenindkomstAnsaettelsesforhold = z.infer<typeof loenindkomstAnsaettelsesforholdSchema>;
@@ -859,6 +861,7 @@ export const eoAngivetLoenLoenudviklingSchema = z.object({
       .max(4, 'Må højst være 4')
       .optional()
   ),
+  overenskomstFilter: overenskomstFilterSchema,
 }).strict();
 
 export type EOAngivetLoenLoenudvikling = z.infer<typeof eoAngivetLoenLoenudviklingSchema>;
@@ -876,6 +879,10 @@ const defaultEoAngivetLoenLoenudvikling: EOAngivetLoenLoenudvikling = {
   offentligLoenType: 'Månedsløn',
   offentligLoenTrin: undefined,
   offentligLoenGruppe: undefined,
+  overenskomstFilter: {
+    loenmodtager: undefined,
+    arbejdsgiver: undefined,
+  },
 };
 
 const eoAngivetLoenSchema = z.object({

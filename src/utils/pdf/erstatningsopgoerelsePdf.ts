@@ -308,7 +308,7 @@ export const buildBilagIndkomstYdelserRanges = (
   }
 
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(eoValues.eoNummer);
-  if (erFoersteOpgoerelse) {
+  if (erFoersteOpgoerelse && eoValues.beregnesUdFra === 'Beregningsperiode') {
     // NOTE: Besluttet UX-semantik.
     // Ved første erstatningsopgørelse inkluderer "Perioden" både vedrører-perioden
     // og beregningsperioden, så bilag afspejler begge brugerrelevante perioder.
@@ -731,10 +731,11 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
     const hasSfggUfaglKbh = allSatser.some((sats) => sats.sfggUfaglKbh !== null);
     const hasSfggUfaglProv = allSatser.some((sats) => sats.sfggUfaglProv !== null);
     const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
+    const showFeriePctColumn = !isZeroPct(ansaettelsesforhold.feriePct);
     const columns = [
       'Fra-dato',
       ...(hasGrundloen ? ['Grundløn'] : []),
-      ...(hasGrundloen ? ['Ferie\ngodtgørelse'] : []),
+      ...(hasGrundloen && showFeriePctColumn ? ['Ferie\ngodtgørelse'] : []),
       ...(hasShSo ? ['SH/SO'] : []),
       ...(hasFritvalg ? ['Fritvalg'] : []),
       ...(hasAgPension ? ['AG pension'] : []),
@@ -747,7 +748,7 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
     const rows = satser.map((sats) => {
       const row: string[] = [sats.fraDato];
       if (hasGrundloen) row.push(formatOverenskomstAmount(sats.grundloen));
-      if (hasGrundloen) row.push(feriePctDisplay);
+      if (hasGrundloen && showFeriePctColumn) row.push(feriePctDisplay);
       if (hasShSo) row.push(formatOverenskomstPercent(sats.shSoSats));
       if (hasFritvalg) row.push(formatOverenskomstPercent(sats.fritvalg));
       if (hasAgPension) row.push(formatOverenskomstPercent(sats.agPension));
@@ -763,28 +764,37 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
 
   if (grundlag === 'Manuelt angivet') {
     const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
+    const showFeriePctColumn = !isZeroPct(ansaettelsesforhold.feriePct);
     const rows = (ansaettelsesforhold.loenudviklingManuelTableData ?? [])
       .map((row, index) => {
         const iso = index === 0 ? reguleringTableStartIso : parseDanishToISO(row.dato);
         if (!iso || iso < reguleringTableStartIso || iso > tafTil) return null;
-        return {
-          iso,
-          cells: [
-            formatDateShort(iso),
-            amountValueToDisplayString(row.grundloen, 2) || '-',
-            feriePctDisplay,
-            row.feriepenge?.trim() || '-',
-            row.shSoSats?.trim() || '-',
-            row.fritvalg?.trim() || '-',
-            row.agPension?.trim() || '-',
-          ],
-        };
+        const cells: string[] = [
+          formatDateShort(iso),
+          amountValueToDisplayString(row.grundloen, 2) || '-',
+        ];
+        if (showFeriePctColumn) cells.push(feriePctDisplay);
+        cells.push(
+          row.feriepenge?.trim() || '-',
+          row.shSoSats?.trim() || '-',
+          row.fritvalg?.trim() || '-',
+          row.agPension?.trim() || '-'
+        );
+        return { iso, cells };
       })
       .filter((row): row is Readonly<{ iso: ISODateString; cells: string[] }> => Boolean(row))
       .sort((a, b) => (a.iso < b.iso ? -1 : 1))
       .map((row) => row.cells);
     return {
-      columns: ['Dato', 'Grundløn', 'Feriegodtgørelse', 'Feriepenge', 'SH/SO', 'Fritvalg', 'AG pension'],
+      columns: [
+        'Dato',
+        'Grundløn',
+        ...(showFeriePctColumn ? ['Feriegodtgørelse'] : []),
+        'Feriepenge',
+        'SH/SO',
+        'Fritvalg',
+        'AG pension',
+      ],
       rows,
     };
   }
@@ -1948,6 +1958,9 @@ export const generateErstatningsopgoerelsePdf = (
             return isKRLSatstabelId(loenudvikling.loenudviklingLabel)
               ? formatKRLSatstabelDisplay(loenudvikling.loenudviklingLabel)
               : loenudvikling.loenudviklingLabel;
+          }
+          if (eoValues.beregnesUdFra === 'Angivet månedsløn' || eoValues.beregnesUdFra === 'Angivet dagsløn') {
+            return resolveOverenskomstDisplay(eoValues.eoAngivetLoenLoenudvikling?.overenskomstId) || loenudvikling.loenudviklingLabel;
           }
           const foersteAnsaettelsesforhold = eoValues.loenindkomstAnsaettelsesforhold?.[0];
           if (!foersteAnsaettelsesforhold) return loenudvikling.loenudviklingLabel;

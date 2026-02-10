@@ -8,7 +8,7 @@ import Download from '@mui/icons-material/Download';
 import StyledTextField from '../../inputs/StyledTextField';
 import StyledDateField from '../../inputs/StyledDateField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
-import StyledDropdown from '../../inputs/StyledDropdown';
+import StyledDropdown, { type StyledDropdownChangeEvent } from '../../inputs/StyledDropdown';
 import StyledIntegerField from '../../inputs/StyledIntegerField';
 import StyledAmountField from '../../inputs/StyledAmountField';
 import StyledPercentField from '../../inputs/StyledPercentField';
@@ -56,6 +56,9 @@ import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatnings
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
 import { formatDanishDate } from '../../../utils/dateUtils';
 import {
+  getAlleArbejdsgiverOrg,
+  getAlleLoenmodtagerOrg,
+  getOverenskomsterByOrg,
   getOverenskomstMetaById,
   getReguleringsDatoIntervalForOverenskomst,
   isOffentligOverenskomstId,
@@ -83,6 +86,12 @@ type AmountLikeKeys = {
 }[keyof ErstatningsopgoerelseValues];
 
 type ReguleringsDatoInterval = Readonly<{ fraDato: string; tilDato: string }>;
+
+const normalizeOptionalFreeText = (value: string | undefined): string | undefined => {
+  const asString = typeof value === 'string' ? value : '';
+  const trimmed = asString.trim();
+  return trimmed === '' ? undefined : trimmed;
+};
 
 /**
  * Henter skadesdato fra persisted stamdata (via FormPersistenceContext).
@@ -261,6 +270,35 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     }));
   }, [updateEoLoenudvikling]);
 
+  const handleEoOverenskomstFilterChange = React.useCallback(
+    (filterType: 'loenmodtager' | 'arbejdsgiver', value: string | undefined) => {
+      updateEoLoenudvikling((prev) => ({
+        ...prev,
+        overenskomstFilter: {
+          ...prev.overenskomstFilter,
+          [filterType]: value,
+        },
+      }));
+    },
+    [updateEoLoenudvikling]
+  );
+
+  const handleEoOverenskomstChange = React.useCallback(
+    (event: StyledDropdownChangeEvent<string | undefined>) => {
+      const nextOverenskomstId = normalizeOptionalFreeText(event.target.value);
+      updateEoLoenudvikling((prev) => ({
+        ...prev,
+        overenskomstId: nextOverenskomstId,
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        offentligLoenType:
+          nextOverenskomstId && isOffentligOverenskomstId(nextOverenskomstId)
+            ? (prev.offentligLoenType ?? 'Månedsløn')
+            : prev.offentligLoenType,
+      }));
+    },
+    [updateEoLoenudvikling]
+  );
+
   const handleOffentligLoenTypeChange = React.useCallback((event: ValueChangeEvent<unknown>) => {
     const parsed = offentligLoenTypeEnum.safeParse(event.target.value);
     updateEoLoenudvikling((prev) => ({
@@ -303,6 +341,16 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   const handleLoenudviklingManuelInputErrorChange = React.useCallback((hasError: boolean) => {
     setLoenindkomstManuelReguleringInputError(EO_ANGIVET_LOEN_ID, hasError);
   }, [setLoenindkomstManuelReguleringInputError]);
+
+  const alleLoenmodtagerOrg = React.useMemo(() => getAlleLoenmodtagerOrg(), []);
+  const alleArbejdsgiverOrg = React.useMemo(() => getAlleArbejdsgiverOrg(), []);
+
+  const filteredOverenskomster = React.useMemo(() => {
+    return getOverenskomsterByOrg(
+      eoLoenudvikling.overenskomstFilter?.loenmodtager,
+      eoLoenudvikling.overenskomstFilter?.arbejdsgiver
+    );
+  }, [eoLoenudvikling.overenskomstFilter?.arbejdsgiver, eoLoenudvikling.overenskomstFilter?.loenmodtager]);
 
   type IsoDateFieldName =
     | 'vedroererPeriodeFra'
@@ -1452,15 +1500,121 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 
                 {loenudviklingBasis === 'Overenskomst' ? (
                   <Box className="row--label-right-hover">
-                    <Typography className="row--text">Overenskomst</Typography>
+                    <Typography className="row--text">Vælg overenskomst</Typography>
                     <Box className="row--label-right-hover__content">
-                      <Typography className="row--text">
-                        {(() => {
-                          const id = eoLoenudvikling.overenskomstId;
-                          if (!id) return '-';
-                          return getOverenskomstMetaById(id)?.navn ?? id;
-                        })()}
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {/* Lønmodtager filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
+                        <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>L:</Typography>
+                        <StyledDropdown
+                          value={eoLoenudvikling.overenskomstFilter?.loenmodtager ?? 'ALLE'}
+                          onChange={(e: StyledDropdownChangeEvent<string>) => {
+                            const uiValue = e.target.value;
+                            handleEoOverenskomstFilterChange('loenmodtager', uiValue === 'ALLE' ? undefined : uiValue);
+                          }}
+                          width={120}
+                          allowEmpty={false}
+                          sx={{
+                            '& .MuiInputBase-root': {
+                              height: '24px !important',
+                              minHeight: '24px !important',
+                              paddingRight: '20px !important',
+                            },
+                            '& .MuiInputBase-input': {
+                              fontSize: '11px !important',
+                              padding: '0 4px 0 8px !important',
+                              lineHeight: '24px',
+                            },
+                            '& .MuiSvgIcon-root': {
+                              fontSize: '12px !important',
+                            },
+                          }}
+                          iconSx={{
+                            fontSize: '16px',
+                            right: 2,
+                          }}
+                          optionSx={{
+                            fontSize: '11px',
+                            minHeight: '24px',
+                            padding: '3px 8px',
+                          }}
+                        >
+                          <MenuItem value="ALLE">Alle</MenuItem>
+                          {alleLoenmodtagerOrg.map((org) => (
+                            <MenuItem key={org} value={org}>
+                              {org}
+                            </MenuItem>
+                          ))}
+                        </StyledDropdown>
+
+                        {/* Arbejdsgiver filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
+                        <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>A:</Typography>
+                        <StyledDropdown
+                          value={eoLoenudvikling.overenskomstFilter?.arbejdsgiver ?? 'ALLE'}
+                          onChange={(e: StyledDropdownChangeEvent<string>) => {
+                            const uiValue = e.target.value;
+                            handleEoOverenskomstFilterChange('arbejdsgiver', uiValue === 'ALLE' ? undefined : uiValue);
+                          }}
+                          width={120}
+                          allowEmpty={false}
+                          sx={{
+                            '& .MuiInputBase-root': {
+                              height: '24px !important',
+                              minHeight: '24px !important',
+                              paddingRight: '20px !important',
+                            },
+                            '& .MuiInputBase-input': {
+                              fontSize: '11px !important',
+                              padding: '0 4px 0 8px !important',
+                              lineHeight: '24px',
+                            },
+                            '& .MuiSvgIcon-root': {
+                              fontSize: '12px !important',
+                            },
+                          }}
+                          iconSx={{
+                            fontSize: '16px',
+                            right: 2,
+                          }}
+                          optionSx={{
+                            fontSize: '11px',
+                            minHeight: '24px',
+                            padding: '3px 8px',
+                          }}
+                        >
+                          <MenuItem value="ALLE">Alle</MenuItem>
+                          {alleArbejdsgiverOrg.map((org) => (
+                            <MenuItem key={org} value={org}>
+                              {org}
+                            </MenuItem>
+                          ))}
+                        </StyledDropdown>
+
+                        <StyledDropdown
+                          value={eoLoenudvikling.overenskomstId || undefined}
+                          onChange={handleEoOverenskomstChange}
+                          width={460}
+                          placeholder="Vælg overenskomst..."
+                          allowEmpty={true}
+                          getOptionLabel={(id) => {
+                            const asString = typeof id === 'string' ? id : String(id);
+                            const meta = getOverenskomstMetaById(asString);
+                            if (!meta) return asString;
+                            const loenPart = meta.loenmodtagerOrg[0] || '';
+                            const arbPart = meta.arbejdsgiverOrg[0] || '';
+                            return `${meta.navn} (${loenPart} / ${arbPart})`;
+                          }}
+                        >
+                          {filteredOverenskomster.map((meta) => {
+                            const loenPart = meta.loenmodtagerOrg[0] || '';
+                            const arbPart = meta.arbejdsgiverOrg[0] || '';
+                            return (
+                              <MenuItem key={meta.id} value={meta.id}>
+                                {meta.navn} ({loenPart} / {arbPart})
+                              </MenuItem>
+                            );
+                          })}
+                        </StyledDropdown>
+                      </Box>
                     </Box>
                   </Box>
                 ) : null}

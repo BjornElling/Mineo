@@ -1240,6 +1240,8 @@ const resolveReguleringsStrategiV3 = (
   if (active.length === 0) {
     throw new Error('Loenudviklingsstrategi er ikke valgt');
   }
+  const angivetLoen =
+    values.beregnesUdFra === 'Angivet månedsløn' || values.beregnesUdFra === 'Angivet dagsløn';
 
   assertUniformV3(active, (af) => af.loenudviklingBeregningsgrundlag ?? '', 'beregningsgrundlag');
   assertUniformV3(
@@ -1264,7 +1266,9 @@ const resolveReguleringsStrategiV3 = (
   } else if (strategi === 'overenskomst') {
     assertUniformV3(active, (af) => af.overenskomstId ?? '', 'overenskomst');
     assertUniformV3(active, (af) => af.loenPaaHelligdage ?? '', 'loen paa helligdage');
-    assertUniformV3(active, (af) => af.feriePct ?? null, 'feriepct');
+    if (!angivetLoen) {
+      assertUniformV3(active, (af) => af.feriePct ?? null, 'feriepct');
+    }
 
     const offentligType = active[0].overenskomstId
       ? getOffentligOverenskomstTypeById(active[0].overenskomstId)
@@ -1276,7 +1280,9 @@ const resolveReguleringsStrategiV3 = (
     }
   } else if (strategi === 'manual') {
     assertUniformV3(active, (af) => normalizeManualRowsV3(af.loenudviklingManuelTableData ?? []), 'manuelle reguleringsraekker');
-    assertUniformV3(active, (af) => af.feriePct ?? null, 'feriepct');
+    if (!angivetLoen) {
+      assertUniformV3(active, (af) => af.feriePct ?? null, 'feriepct');
+    }
   } else if (strategi === 'krl') {
     assertUniformV3(active, (af) => af.loenudviklingKRLSatstabel ?? '', 'KRL satstabel');
   }
@@ -1315,7 +1321,7 @@ const resolveReguleringsStrategiV3 = (
     if (!active[0].overenskomstId) {
       throw new Error('Loenudvikling kan ikke beregnes: overenskomst mangler');
     }
-    if (typeof active[0].feriePct !== 'number') {
+    if (!angivetLoen && typeof active[0].feriePct !== 'number') {
       throw new Error('Loenudvikling kan ikke beregnes: feriepct mangler');
     }
     const loenPaaHelligdage = active[0].loenPaaHelligdage ?? '';
@@ -1330,6 +1336,7 @@ const resolveReguleringsStrategiV3 = (
     const offentlig = offentligType
       ? resolveOffentligLoenSelectionV3(active[0], offentligType)
       : null;
+    const feriePct = typeof active[0].feriePct === 'number' ? active[0].feriePct : 0;
     return {
       strategi,
       label,
@@ -1339,7 +1346,7 @@ const resolveReguleringsStrategiV3 = (
         reguleringsdato,
         overenskomstId: active[0].overenskomstId,
         loenPaaHelligdage,
-        feriePct: active[0].feriePct,
+        feriePct,
         offentlig,
         tafRanges,
       },
@@ -1347,9 +1354,10 @@ const resolveReguleringsStrategiV3 = (
   }
 
   if (strategi === 'manual') {
-    if (typeof active[0].feriePct !== 'number') {
+    if (!angivetLoen && typeof active[0].feriePct !== 'number') {
       throw new Error('Loenudvikling kan ikke beregnes: feriepct mangler');
     }
+    const feriePct = typeof active[0].feriePct === 'number' ? active[0].feriePct : 0;
     return {
       strategi,
       label,
@@ -1357,7 +1365,7 @@ const resolveReguleringsStrategiV3 = (
         strategi,
         label,
         reguleringsdato,
-        feriePct: active[0].feriePct,
+        feriePct,
         manualRows: active[0].loenudviklingManuelTableData ?? [],
         tafRanges,
       },
