@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { render, screen } from '@testing-library/react';
 import type { ErstatningsopgoerelseValues, SvieSmertePeriodeRow } from '../../../schemas/formSchemas';
 import type { SvieSmerteDraftRow } from '../../../domain/erstatningsopgoerelse/tableDraftRows';

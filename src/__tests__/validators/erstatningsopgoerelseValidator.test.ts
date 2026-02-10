@@ -1,4 +1,4 @@
-﻿import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import { toISODateString } from '../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { erstatningsopgoerelseValidator } from '../../validators/erstatningsopgoerelseValidator';

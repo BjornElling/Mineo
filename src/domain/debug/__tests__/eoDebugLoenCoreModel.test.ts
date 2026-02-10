@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Tests for Loen Core Model - Phase 5.2 (rettet)
  */
 

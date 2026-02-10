@@ -1,4 +1,4 @@
-﻿import type { PersistedSectionMap } from '../../config/persistenceRegistry';
+import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import { LOENPERIODE } from '../../types/common';
 import { ensureSvieRows } from './svieSmerteTableModel';
 import { ensureTafRows } from './tafTableModel';

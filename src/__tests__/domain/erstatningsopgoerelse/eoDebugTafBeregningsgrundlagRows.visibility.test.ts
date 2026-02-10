@@ -1,4 +1,4 @@
-﻿import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { buildEODebugTafBeregningsgrundlagRows } from '../../../domain/erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';

@@ -1,4 +1,4 @@
-﻿/// <reference types="vitest/globals" />
+/// <reference types="vitest/globals" />
 
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';

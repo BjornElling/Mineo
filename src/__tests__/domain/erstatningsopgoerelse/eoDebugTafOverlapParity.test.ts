@@ -1,4 +1,4 @@
-﻿import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { buildEODebugTaftRows } from '../../../domain/erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
 import { toISODateString } from '../../../types/branded';
 

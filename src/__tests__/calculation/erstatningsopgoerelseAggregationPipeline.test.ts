@@ -1,4 +1,4 @@
-﻿import type { RenteberegningOutput } from '../../domain/renteberegning/renteberegningEngine';
+import type { RenteberegningOutput } from '../../domain/renteberegning/renteberegningEngine';
 import type { TafEngineOutput } from '../../domain/erstatningsopgoerelse/tafBeregningsEngine';
 import type { VarigeMenEngineOutput } from '../../domain/varigemen/varigeMenEngine';
 import type { AggregatableComputed } from '../../domain/erstatningsopgoerelse/aggregationAdapters';

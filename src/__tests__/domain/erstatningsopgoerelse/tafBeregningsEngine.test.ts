@@ -1,4 +1,4 @@
-﻿import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { computeTafEngine } from '../../../domain/erstatningsopgoerelse/tafBeregningsEngine';
 import { toISODateString } from '../../../types/branded';
 import type { TafPeriodeRow } from '../../../schemas/formSchemas';

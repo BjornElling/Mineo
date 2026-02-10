@@ -1,4 +1,4 @@
-﻿import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
+import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
 import type { EODebugExecutionContext } from '../../../domain/erstatningsopgoerelse/eoDebugExecutionContext';
 import { collectAllDebugRows } from '../../../domain/erstatningsopgoerelse/eoDebugRowAggregator';
 import * as Registry from '../../../domain/erstatningsopgoerelse/eoDebugBuilderRegistry';

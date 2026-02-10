@@ -1,4 +1,4 @@
-﻿import { __createTestStore } from '../../stores/formPersistenceStore';
+import { __createTestStore } from '../../stores/formPersistenceStore';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';

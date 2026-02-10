@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Tests for Regulation Core Model (Index)
  */
 

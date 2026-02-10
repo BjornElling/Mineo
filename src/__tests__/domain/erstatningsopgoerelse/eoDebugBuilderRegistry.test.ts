@@ -1,4 +1,4 @@
-﻿import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
+import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
 import type { EODebugExecutionContext } from '../../../domain/erstatningsopgoerelse/eoDebugExecutionContext';
 import type { EODebugBuilderEntry } from '../../../domain/erstatningsopgoerelse/eoDebugBuilderRegistry';
 import { executeEODebugBuilderEntries } from '../../../domain/erstatningsopgoerelse/eoDebugBuilderRegistry';
