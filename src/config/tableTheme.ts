@@ -62,14 +62,6 @@ export const getMuiTableStyles = (useSmallFont = false) => ({
 });
 
 /**
- * MUI Table styling objekt (default)
- * Baglænskompatibilitet - brug getMuiTableStyles() i stedet
- *
- * @deprecated Brug getMuiTableStyles() i stedet
- */
-export const muiTableStyles = getMuiTableStyles();
-
-/**
  * HTML Table styling generator
  * Bruges til almindelige HTML table elementer
  *
@@ -90,14 +82,6 @@ export const getHtmlTableStyles = (useSmallFont = false): CSSProperties => ({
   fontSize: useSmallFont ? 'var(--font-size-text-table)' : 'var(--font-size-text)',
   color: 'var(--mineo-color-grid-table-text)',
 });
-
-/**
- * HTML Table styling objekt (default)
- * Baglænskompatibilitet - brug getHtmlTableStyles() i stedet
- *
- * @deprecated Brug getHtmlTableStyles() i stedet
- */
-export const htmlTableStyles = getHtmlTableStyles();
 
 /**
  * HTML Table header styling

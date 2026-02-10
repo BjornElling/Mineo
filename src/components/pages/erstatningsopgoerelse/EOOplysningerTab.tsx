@@ -47,14 +47,14 @@ import {
 } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../../types/branded';
-import { coerceToISODateString } from '../../../types/branded';
+import { coerceToISODateString, parseISODate } from '../../../types/branded';
 import { isoDateToDate } from '../../../domain/dates/isoDate';
 import { calculateFerieHverdageMinusSHDage } from '../../../domain/erstatningsopgoerelse/ferieCalculations';
 import { EO_ANGIVET_LOEN_ID } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { buildBeregningsperiodeTafOverlap, buildTafDerived } from '../../../domain/erstatningsopgoerelse/tafEngine';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatningsopgoerelse/eoNummerValidering';
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
-import { formatDanishDate, parseISODate } from '../../../utils/dateUtils';
+import { formatDanishDate } from '../../../utils/dateUtils';
 import {
   getOverenskomstMetaById,
   getReguleringsDatoIntervalForOverenskomst,

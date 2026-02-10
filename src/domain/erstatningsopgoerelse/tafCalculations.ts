@@ -1,8 +1,8 @@
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
-import type { ISODateString } from '../../types/branded';
+import { parseISODate, type ISODateString } from '../../types/branded';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { beregnHelligdage } from '../../utils/shDageBeregning';
-import { addDays, formatToISO, parseISODate } from '../../utils/dateUtils';
+import { addDays, formatToISO } from '../../utils/dateUtils';
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR } from './tafBeregningsenhed';
 
 // TODO(a): Gennemgå hele appen for brug af begreberne "arbejdsdage" vs. "hverdage" og verificér at labels/tekster matcher beregningerne ift. fradrag/ikke-fradrag af SH-dage.

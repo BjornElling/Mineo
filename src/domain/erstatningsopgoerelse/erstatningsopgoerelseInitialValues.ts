@@ -190,9 +190,3 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
 export const createErstatningsopgoerelseInitialValues = (settings?: AppSettings): PersistedSectionMap['erstatningsopgoerelse'] => {
   return createNewEOInitialValuesFromSettings(settings);
 };
-
-/**
- * @deprecated Brug createErstatningsopgoerelseInitialValues(settings) i stedet
- * Bevaret for bagudkompatibilitet med tests
- */
-export const ERSTATNINGSOPGOERELSE_INITIAL_VALUES = createErstatningsopgoerelseInitialValues();

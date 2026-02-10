@@ -30,7 +30,8 @@ import {
 } from '../../../schemas/formSchemas';
 import { LOENPERIODE } from '../../../types/common';
 import type { ISODateString } from '../../../types/branded';
-import { createDate, formatDanishDate, parseISODate } from '../../../utils/dateUtils';
+import { parseISODate } from '../../../types/branded';
+import { createDate, formatDanishDate } from '../../../utils/dateUtils';
 import { isLoenperiodeValue } from '../../../utils/zodTypeGuards';
 import { generateAnsaettelsesforholdId } from '../../../utils/eoConverters';
 import { loadReguleringPdfModule, loadKRLPdfModule } from '../../../utils/pdf/pdfLoader';

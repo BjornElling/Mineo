@@ -106,12 +106,6 @@ export const getTodayLocalISO = (): ISODateString => {
 };
 
 /**
- * @deprecated Import direkte fra '../types/branded' i stedet
- * Re-exporteret for bagudkompatibilitet
- */
-export { parseISODate } from '../types/branded';
-
-/**
  * Tilføjer et antal dage til en dato
  */
 export const addDays = (date: Date, days: number): Date => {

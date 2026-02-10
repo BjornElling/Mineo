@@ -7,9 +7,10 @@ import TableWeekInput from '../inputs/table/TableWeekInput';
 import TableDateInput from '../inputs/table/TableDateInput';
 import type { TableInputErrorInfo } from '../inputs/table/tableInputContracts';
 
-import { MAX_YEAR, MIN_YEAR, dateRanges_aarsloen, formatToISO } from '../../config/dateRanges';
+import { MAX_YEAR, MIN_YEAR, dateRanges_aarsloen } from '../../config/dateRanges';
 import type { AarsloenTableRow, Loenperiode } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
+import { danishToISO } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import type {
   AarsloenTableColumnKey,
@@ -365,7 +366,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
             const committed = resolveCommittedRow(row);
             if (loenperiode === 'maaned') return parseSortableInteger(committed.col0_maaned);
             if (loenperiode === 'uge') return parseSortableWeekKey(committed.col0_uge);
-            return formatToISO(committed.col0_dag ?? '');
+            return danishToISO(committed.col0_dag ?? '');
           };
         }
 
@@ -374,7 +375,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
             const committed = resolveCommittedRow(row);
             if (loenperiode === 'maaned') return parseSortableInteger(committed.col1_maaned);
             if (loenperiode === 'uge') return parseSortableWeekKey(committed.col1_uge);
-            return formatToISO(committed.col1_dag ?? '');
+            return danishToISO(committed.col1_dag ?? '');
           };
         }
 
@@ -639,7 +640,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       onErrorChange={(info) => handleErrorChange(row.id, 'col0_dag', info)}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'col0_dag')}
                       minDate={dateRanges_aarsloen.tabelAarsloenFra.min}
-                      maxDate={formatToISO(committedRow.col1_dag ?? '') || dateRanges_aarsloen.tabelAarsloenFra.fallbackMax}
+                      maxDate={danishToISO(committedRow.col1_dag ?? '') || dateRanges_aarsloen.tabelAarsloenFra.fallbackMax}
                       specialRangeErrors={{ fraTilRole: 'fra' }}
                       noValidRangeCause="Dato til i samme række"
                     />
@@ -687,7 +688,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       onBlur={(e) => handleFieldBlur(row.id, 'col1_dag', e.target.value)}
                       onErrorChange={(info) => handleErrorChange(row.id, 'col1_dag', info)}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'col1_dag')}
-                      minDate={formatToISO(committedRow.col0_dag ?? '') || dateRanges_aarsloen.tabelAarsloenTil.fallbackMin}
+                      minDate={danishToISO(committedRow.col0_dag ?? '') || dateRanges_aarsloen.tabelAarsloenTil.fallbackMin}
                       maxDate={dateRanges_aarsloen.tabelAarsloenTil.max}
                       specialRangeErrors={{ fraTilRole: 'til' }}
                       noValidRangeCause="Dato fra i samme række"

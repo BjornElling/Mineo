@@ -15,12 +15,12 @@ import {
   type VarigeMenValues,
 } from '../../../schemas/formSchemas';
 import { coerceToISODateString, parseISODate, toISODateString } from '../../../types/branded';
-import { beregnVarigeMenGodtgoerelse } from '../../../domain/varigemen/varigeMenCalculations';
+import { beregnVarigeMenGodtgoerelseWithRates } from '../../../domain/varigemen/varigeMenCalculations';
 import { usePersistedForm } from '../../../hooks/usePersistedForm';
 import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
 import { useNavigate } from 'react-router-dom';
 import { generateVarigeMenPdf } from '../../../utils/pdf/varigeMenPdf';
-import { varigeMenPrGradYearBounds } from '../../../data/regulationRates';
+import { varigeMenPrGrad, varigeMenPrGradYearBounds } from '../../../data/regulationRates';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
@@ -125,8 +125,8 @@ const beregningsResultat = React.useMemo(() => {
   const skadesdatoISO = coerceToISODateString(stamValues.skadesdato);
   if (!skadesdatoISO) return undefined;
 
-  const resultat = beregnVarigeMenGodtgoerelse(values, skadesdatoISO);
-  if (resultat === 'Indtastninger mangler') return undefined;
+  const resultat = beregnVarigeMenGodtgoerelseWithRates(values, skadesdatoISO, varigeMenPrGrad);
+  if (!resultat) return undefined;
 
   return resultat;
 }, [values, stamValues.skadesdato, beregningsFejl, manglendeFelter]);

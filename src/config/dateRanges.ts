@@ -6,7 +6,7 @@
  */
 
 import type { ISODateString } from '../types/branded';
-import { coerceToISODateString, danishToISO, isoToDanish, toISODateString } from '../types/branded';
+import { coerceToISODateString, toISODateString } from '../types/branded';
 import { getTodayLocalISO } from '../utils/dateUtils';
 
 // ============================================================================
@@ -166,33 +166,6 @@ export const computeSkadesdatoMinRule = (args: Readonly<{
 // ============================================================================
 // HJÆLPEFUNKTIONER
 // ============================================================================
-
-/**
- * Formaterer en ISO-dato (åååå-mm-dd) til dansk format (dd-mm-åååå)
- *
- * DEPRECATED: Brug isoToDanish fra branded.ts i stedet.
- * Denne funktion bevares kun for bagudkompatibilitet.
- *
- * @deprecated Brug isoToDanish fra '../types/branded' i stedet
- */
-export const formatToDanish = (isoDate: string): string => {
-  if (!isoDate) return '';
-  const iso = coerceToISODateString(isoDate);
-  return iso ? (isoToDanish(iso) ?? '') : '';
-};
-
-/**
- * Formaterer en dansk dato (dd-mm-åååå) til ISO-format (åååå-mm-dd)
- *
- * DEPRECATED: Brug danishToISO fra branded.ts i stedet.
- * Denne funktion bevares kun for bagudkompatibilitet.
- *
- * @deprecated Brug danishToISO fra '../types/branded' i stedet
- */
-export const formatToISO = (danishDate: string): string => {
-  if (!danishDate) return '';
-  return danishToISO(danishDate) ?? '';
-};
 
 // ============================================================================
 // STAMDATA-SIDEN

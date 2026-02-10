@@ -1,7 +1,7 @@
 import type { VarigeMenValues } from '../../schemas/formSchemas';
-import { varigeMenPrGrad, type YearlyRate } from '../../data/regulationRates';
-import { coerceToISODateString, coerceToDanishDateString } from '../../types/branded';
-import { parseISODate, parseDanishDate } from '../../utils/dateUtils';
+import type { YearlyRate } from '../../data/regulationRates';
+import { coerceToISODateString, coerceToDanishDateString, parseISODate } from '../../types/branded';
+import { parseDanishDate } from '../../utils/dateUtils';
 
 const getRateForYear = (dict: YearlyRate, year: number): number | undefined => {
   if (!Object.prototype.hasOwnProperty.call(dict, year)) return undefined;
@@ -146,16 +146,4 @@ export function beregnVarigeMenGodtgoerelseWithRates(
     grundbeloebUdenReduktion,
     alderVedSkade,
   };
-}
-
-// Legacy path - uses bundled rates and string error for historical callers.
-/**
- * @deprecated Legacy path - use beregnVarigeMenGodtgoerelseWithRates in new engines.
- */
-export function beregnVarigeMenGodtgoerelse(
-  values: VarigeMenValues,
-  skadestidspunktRaw: unknown
-): VarigeMenBeregningResult | 'Indtastninger mangler' {
-  const result = beregnVarigeMenGodtgoerelseWithRates(values, skadestidspunktRaw, varigeMenPrGrad);
-  return result ?? 'Indtastninger mangler';
 }

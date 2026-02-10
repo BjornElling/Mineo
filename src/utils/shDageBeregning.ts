@@ -4,8 +4,8 @@
  * SH-dage er danske helligdage der falder på hverdage (mandag-fredag).
  */
 
-import type { ISODateString } from '../types/branded';
-import { addDays, createDate, parseDanishDate, parseWeekString, formatToISO, parseISODate } from './dateUtils';
+import { parseISODate, type ISODateString } from '../types/branded';
+import { addDays, createDate, parseDanishDate, parseWeekString, formatToISO } from './dateUtils';
 
 /**
  * Beregner påskedag for et givet år

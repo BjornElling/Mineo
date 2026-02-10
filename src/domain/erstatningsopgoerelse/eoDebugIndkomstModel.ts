@@ -1,6 +1,7 @@
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { createDate, formatDanishDate, parseISODate } from '../../utils/dateUtils';
+import { parseISODate } from '../../types/branded';
+import { createDate, formatDanishDate } from '../../utils/dateUtils';
 import { getAarsloenTableValidation } from '../../utils/aarsloenTableValidation';
 import {
   getOffentligeYdelserRowFilledState,

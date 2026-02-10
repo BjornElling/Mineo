@@ -16,7 +16,7 @@ import { buildErstatningsopgoerelsePdfModel, type MoneyOre, type Calculable, typ
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { formatAsAmount, formatCurrency, formatPercent, parseAmount } from '../formatUtils';
 import { formatUtcDateLong } from '../dateFormatting';
-import { parseISODate } from '../dateUtils';
+import { parseISODate } from '../../types/branded';
 import { TAF_BEREGNES_SOM } from '../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { TODAY } from '../../config/dateRanges';
 import { amountValueToDisplayString, amountValueToNumber } from '../expressionAmount';

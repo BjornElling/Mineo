@@ -5,10 +5,9 @@
  */
 
 import type { DateInterval, AarsloenTableRow } from '../types/common';
-import type { ISODateString } from '../types/branded';
-import { toISODateString } from '../types/branded';
+import { parseISODate, toISODateString, type ISODateString } from '../types/branded';
 import { parseDanishDate, parseWeekString } from './shDageBeregning';
-import { addDays, createDate, formatToISO, parseISODate } from './dateUtils';
+import { addDays, createDate, formatToISO } from './dateUtils';
 import { beregnSHDageForDatoSet } from './shDageBeregning';
 import type { Periodisering } from '../data/ydelsestyper';
 import { countInclusiveUtcDays, diffUtcDaysAbs } from './utcDayMath';
