@@ -67,6 +67,12 @@ export const ydelsestyper: Record<string, YdelsestypeConfig> = {
     periodisering: 'kalenderdage',
     periodiseringLabel: 'Kalenderdage',
   },
+  uddannelseshjaelp: {
+    label: 'Uddannelseshjælp',
+    debugLabel: 'Uddannelses-\nhjælp',
+    periodisering: 'kalenderdage',
+    periodiseringLabel: 'Kalenderdage',
+  },
   andet: {
     label: 'Andet',
     periodisering: 'kalenderdage',

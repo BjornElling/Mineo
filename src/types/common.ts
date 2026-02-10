@@ -232,7 +232,7 @@ export interface ErstatningsopgoerelseValues {
 
   // Tabt arbejdsfortjeneste
   beregnesTabtArbejdsfortjeneste: 'Ja' | 'Nej';
-  tafArbejdsstatus: '' | 'Uarbejdsdygtig' | 'Delvist raskmeldt' | 'Fuldt arbejdsdygtig' | 'Fleksjob' | 'Revalidering' | 'Førtidspension' | 'Seniorpension' | 'Folkepension' | 'Efterløn';
+  tafArbejdsstatus: '' | 'Uarbejdsdygtig' | 'Delvist raskmeldt' | 'Fuldt arbejdsdygtig' | 'Fleksjob' | 'Revalidering' | 'Førtidspension' | 'Seniorpension' | 'Folkepension' | 'Efterløn' | 'Kontanthjælp';
   tafPerioder: TafPeriodeRow[];
   ferieperioder: FerieperiodeRow[];
   opsagtFraStilling: 'Ja' | 'Nej';

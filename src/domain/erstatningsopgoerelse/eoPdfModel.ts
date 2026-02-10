@@ -144,6 +144,8 @@ export type IndkomstSkadestidspunktPdfModel = Readonly<{
   maanedsloen: Calculable<MoneyOre>;
   dagsloen: Calculable<MoneyOre>;
   beregningsperiodeLabel: string | null;
+  beregningsgrundlagMellemregningLabel: string | null;
+  beregningsgrundlagMellemregningResultat: string | null;
 }>;
 
 export type LoenudviklingSegment =
@@ -773,6 +775,8 @@ const buildIndkomstSkadestidspunkt = (
   let maanedsloen: Calculable<MoneyOre> = notCalculableMoney('Ikke angivet');
   let dagsloen: Calculable<MoneyOre> = notCalculableMoney('Ikke angivet');
   let beregningsperiodeLabel: string | null = null;
+  let beregningsgrundlagMellemregningLabel: string | null = null;
+  let beregningsgrundlagMellemregningResultat: string | null = null;
 
   if (beregnesUdFra === 'Beregningsperiode') {
     if (periodeTilBeregning) {
@@ -870,6 +874,13 @@ const buildIndkomstSkadestidspunkt = (
         ? values.oevrigeFravaersdage
         : 0;
     if (periodeTilBeregning) {
+      const formatDaNumber = (value: number): string => value.toLocaleString('da-DK');
+      const formatMaaneder = (value: number): string => {
+        const rounded = Math.round(value * 100) / 100;
+        return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+      };
+      const dagOrd = (value: number, singular: string, plural: string): string => (value === 1 ? singular : plural);
+
       const maanederResult = calculateTafAntalMaaneder(
         periodeTilBeregning.fra,
         periodeTilBeregning.til,
@@ -881,6 +892,50 @@ const buildIndkomstSkadestidspunkt = (
       if (maanederResult && totalBreakdown) {
         const base = fromOre(totalBreakdown.samletOre) / maanederResult;
         maanedsloen = asCalculable(toOre(roundKroner(base)));
+      }
+
+      if (tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER && maanederResult !== null) {
+        const oevrigeFravaersdageValue = oevrigeFravaersdage;
+        const periodeDage = new Set<ISODateString>();
+        const fraDate = isoDateToDate(periodeTilBeregning.fra);
+        const tilDate = isoDateToDate(periodeTilBeregning.til);
+        const currentDate = new Date(fraDate);
+        while (currentDate <= tilDate) {
+          const iso = dateToISO(currentDate);
+          if (iso) periodeDage.add(iso);
+          currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+        }
+
+        const beregnMaanederForDage = (dage: ReadonlySet<ISODateString>): number => {
+          let total = 0;
+          for (const isoStr of dage) {
+            const year = Number.parseInt(isoStr.slice(0, 4), 10);
+            const month = Number.parseInt(isoStr.slice(5, 7), 10);
+            const dageIMaaned = new Date(Date.UTC(year, month, 0)).getUTCDate();
+            total += 1 / dageIMaaned;
+          }
+          return total;
+        };
+
+        const totalMaaneder = beregnMaanederForDage(periodeDage);
+        const fravaerMaaneder = oevrigeFravaersdageValue * 0.048;
+        const roundedTotalMaaneder = Math.round(totalMaaneder * 100) / 100;
+        const roundedFravaerMaaneder = Math.round(fravaerMaaneder * 100) / 100;
+        const maanederEfterFradrag = Math.max(0, Math.round((roundedTotalMaaneder - roundedFravaerMaaneder) * 100) / 100);
+        if (oevrigeFravaersdageValue === 0) {
+          beregningsgrundlagMellemregningLabel =
+            `I perioden var der ${formatMaaneder(totalMaaneder)} måneder (- 0 fraværsdage uden løn) =`;
+        } else {
+          const fravaerBeskrivelse = values.oevrigeFravaersdageBeskrivelse?.trim();
+          const fravaersdagOrd = dagOrd(oevrigeFravaersdageValue, 'fraværsdag', 'fraværsdage');
+          const fravaerLabelTekst = fravaerBeskrivelse && fravaerBeskrivelse !== ''
+            ? `${fravaersdagOrd} pga. ${fravaerBeskrivelse}`
+            : fravaersdagOrd;
+          const fravaerLabel = `${formatDaNumber(oevrigeFravaersdageValue)} ${fravaerLabelTekst} uden løn x 4,8 % måned`;
+          beregningsgrundlagMellemregningLabel =
+            `I perioden var der ${formatMaaneder(totalMaaneder)} - ${formatMaaneder(fravaerMaaneder)} måneder (${fravaerLabel}) =`;
+        }
+        beregningsgrundlagMellemregningResultat = `${formatMaaneder(maanederEfterFradrag)} måneder`;
       }
 
       const loseFeriedage = typeof values.uspecificeredeFerieFridage === 'number' ? values.uspecificeredeFerieFridage : 0;
@@ -896,6 +951,19 @@ const buildIndkomstSkadestidspunkt = (
         if (arbejdsdage > 0 && totalBreakdown && tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE) {
           const base = fromOre(totalBreakdown.samletOre) / arbejdsdage;
           dagsloen = asCalculable(toOre(roundKroner(base)));
+        }
+
+        if (tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE) {
+          const samletFeriedage = arbejdsdageBreakdown.feriedage + arbejdsdageBreakdown.loseFeriedage;
+          const components: Array<{ value: number; label: string }> = [
+            { value: arbejdsdageBreakdown.arbejdsdage, label: dagOrd(arbejdsdageBreakdown.arbejdsdage, 'hverdag', 'hverdage') },
+            { value: arbejdsdageBreakdown.shDage, label: dagOrd(arbejdsdageBreakdown.shDage, 'SH-dag', 'SH-dage') },
+            { value: samletFeriedage, label: dagOrd(samletFeriedage, 'feriedag', 'feriedage') },
+            { value: arbejdsdageBreakdown.oevrigeFravaersdage, label: dagOrd(arbejdsdageBreakdown.oevrigeFravaersdage, 'øvrig fraværsdag', 'øvrige fraværsdage') },
+          ];
+          const parts = components.map((component) => `${formatDaNumber(component.value)} ${component.label}`);
+          beregningsgrundlagMellemregningLabel = `I perioden var der ${parts.join(' - ')} =`;
+          beregningsgrundlagMellemregningResultat = `${formatDaNumber(arbejdsdage)} arbejdsdage`;
         }
       }
     }
@@ -929,6 +997,8 @@ const buildIndkomstSkadestidspunkt = (
     maanedsloen,
     dagsloen,
     beregningsperiodeLabel,
+    beregningsgrundlagMellemregningLabel,
+    beregningsgrundlagMellemregningResultat,
   };
 };
 

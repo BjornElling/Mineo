@@ -1,6 +1,6 @@
 import type { Arbejdsstatus } from '../../schemas/formSchemas';
 
-export type TafArbejdsstatusPrefix = 'i' | 'på' | 'under' | null;
+export type TafArbejdsstatusPrefix = 'i' | 'på' | 'under' | 'bevilget' | null;
 export type TafArbejdsstatusSuffix = 'Uarbejdsdygtig' | 'Delvist uarbejdsdygtig' | null;
 
 type TafArbejdsstatusConfig = Readonly<{
@@ -30,7 +30,7 @@ export const TAF_ARBEJDSSTATUS_CONFIG: Readonly<Record<Arbejdsstatus, TafArbejds
     fortsat: false,
   },
   Fleksjob: {
-    prefix: 'i',
+    prefix: 'bevilget',
     suffix: 'Delvist uarbejdsdygtig',
     statusTekst: 'fleksjob',
     fortsat: false,
@@ -69,6 +69,12 @@ export const TAF_ARBEJDSSTATUS_CONFIG: Readonly<Record<Arbejdsstatus, TafArbejds
     prefix: 'på',
     suffix: null,
     statusTekst: 'efterløn',
+    fortsat: false,
+  },
+  Kontanthjælp: {
+    prefix: 'på',
+    suffix: null,
+    statusTekst: 'kontanthjælp',
     fortsat: false,
   },
 } as const;

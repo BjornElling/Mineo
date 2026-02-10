@@ -50,6 +50,11 @@ import {
 } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
 
 const NBSP = '\u00A0';
+const EO_RIGHT_COLUMN_WIDTH = 33.125;
+const CSS_PIXELS_PER_INCH = 96;
+const MILLIMETERS_PER_INCH = 25.4;
+const EO_LEFT_WRAP_EXTRA_WIDTH_PX = 50;
+const EO_LEFT_WRAP_EXTRA_WIDTH_MM = (EO_LEFT_WRAP_EXTRA_WIDTH_PX * MILLIMETERS_PER_INCH) / CSS_PIXELS_PER_INCH;
 
 const formatCurrencyFromOre = (ore: MoneyOre): string => formatCurrency(ore / 100);
 
@@ -1403,13 +1408,18 @@ export const generateErstatningsopgoerelsePdf = (
       rightFontStyle?: 'normal' | 'bold';
       lineAboveRightWidth?: number;
       lineAboveRightOffset?: number;
-      leftNoWrap?: boolean;
     }>
   ) => {
     writer.writeLeftRightText(
       leftText,
       rightText,
-      { ...options, minRightColumnWidth: rightMaxWidth }
+      {
+        ...options,
+        minRightColumnWidth: Math.max(
+          rightMaxWidth,
+          Math.max(0, EO_RIGHT_COLUMN_WIDTH - EO_LEFT_WRAP_EXTRA_WIDTH_MM)
+        ),
+      }
     );
   };
 
@@ -1658,7 +1668,19 @@ export const generateErstatningsopgoerelsePdf = (
     } else {
       if (indkomst?.beregningsperiodeLabel) {
         safeAddWrappedText(indkomst.beregningsperiodeLabel);
+      }
+      if (indkomst?.beregningsgrundlagMellemregningLabel && indkomst?.beregningsgrundlagMellemregningResultat) {
+        safeAddLeftRightText(
+          indkomst.beregningsgrundlagMellemregningLabel,
+          indkomst.beregningsgrundlagMellemregningResultat,
+          writer.getTextWidth('000.000.000,00'),
+          { rightFontStyle: 'normal' }
+        );
         writer.advanceY(lineHeight);
+      } else if (indkomst?.beregningsgrundlagMellemregningLabel) {
+        safeAddWrappedText(indkomst.beregningsgrundlagMellemregningLabel);
+      } else if (indkomst?.beregningsgrundlagMellemregningResultat) {
+        safeAddWrappedText(indkomst.beregningsgrundlagMellemregningResultat);
       }
 
       if (indkomst?.beregnesUdFra === 'Beregningsperiode') {
@@ -1682,7 +1704,7 @@ export const generateErstatningsopgoerelsePdf = (
           );
 
           safeAddLeftRightText('I alt:', formatMoneyOreWithKr(arbejdssted.breakdown.samletOre), writer.getTextWidth('000.000.000,00'),
-            { rightFontStyle: 'normal', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
+            { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
           );
           writer.advanceY(lineHeight);
         }
@@ -1821,7 +1843,7 @@ export const generateErstatningsopgoerelsePdf = (
             'I alt',
             formatMoneyOreWithKr(loenudvikling.loenudviklingTotal.value),
             rightMaxWidth,
-            { rightFontStyle: 'normal', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
+            { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
           );
         }
       }
@@ -1844,10 +1866,10 @@ export const generateErstatningsopgoerelsePdf = (
       if (tafIndtaegter.entries.length === 0) {
         safeAddWrappedText('Ingen');
       } else if (tafIndtaegter.entries.length > 1 && tafIndtaegter.total.status === 'ok') {
-        safeAddLeftRightText('I alt', formatMoneyOreWithKr(tafIndtaegter.total.value), rightMaxWidth, { rightFontStyle: 'normal', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
+        safeAddLeftRightText('I alt', formatMoneyOreWithKr(tafIndtaegter.total.value), rightMaxWidth, { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
         );
       } else if (tafIndtaegter.entries.length > 1) {
-        safeAddLeftRightText('I alt', '—', rightMaxWidth, { rightFontStyle: 'normal', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
+        safeAddLeftRightText('I alt', '—', rightMaxWidth, { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
         );
       }
     }
@@ -1872,12 +1894,7 @@ export const generateErstatningsopgoerelsePdf = (
 
   // Øvrige krav (chunked atomic blocks)
   const kravEntries = model.oevrigeKrav.entries;
-  const kravIndentX = MARGINS.left;
-  const kravPageWidth = writer.getPageWidth();
-  const kravRightX = kravPageWidth - MARGINS.right;
-  const kravTotalMaxWidth = writer.getTextWidth('000.000.000,00');
-  const kravRightMaxWidth = kravTotalMaxWidth;
-  const kravLeftMaxWidth = Math.max(30, kravRightX - kravTotalMaxWidth - kravIndentX - 5);
+  const kravRightMaxWidth = writer.getTextWidth('000.000.000,00');
   const kravHeaderHeight = lineHeight * 4;
 
   if (kravEntries.length === 0) {
@@ -1886,7 +1903,7 @@ export const generateErstatningsopgoerelsePdf = (
   } else {
     renderAtomicTableChunks({
       rows: kravEntries,
-      estimateRowHeight: lineHeight,
+      estimateRowHeight: lineHeight * 2,
       headerHeight: kravHeaderHeight,
       renderHeader: () => {
         renderSectionHeader('Øvrige krav', lineHeight);
@@ -1895,18 +1912,14 @@ export const generateErstatningsopgoerelsePdf = (
         const udgiftText = entry.udgiftTil !== '' ? entry.udgiftTil : '-';
         const leftLabel = entry.dateText !== '' ? `${entry.dateText}: ${udgiftText}` : udgiftText;
         const amountText = formatMoneyOreWithKr(entry.amountOre);
-        const leftText = writer.fitTextToWidth(
-          ensureNonBreakingKr(leftLabel),
-          kravLeftMaxWidth
-        );
-        writer.writeLeftRightTextSingleLine(leftText, amountText, { rightFontStyle: kravEntries.length === 1 ? 'bold' : 'normal' }
+        safeAddLeftRightText(ensureNonBreakingKr(leftLabel), amountText, kravRightMaxWidth, { rightFontStyle: kravEntries.length === 1 ? 'bold' : 'normal' }
         );
       },
     });
 
     if (kravEntries.length > 1) {
       writer.addSpacer(lineHeight * 2);
-      safeAddLeftRightText('I alt', formatMoneyOreWithKr(model.oevrigeKrav.totalOre), kravRightMaxWidth, { rightFontStyle: 'bold', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
+      safeAddLeftRightText('I alt', formatMoneyOreWithKr(model.oevrigeKrav.totalOre), kravRightMaxWidth, { rightFontStyle: 'bold', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
       );
     }
   }
@@ -1929,7 +1942,7 @@ export const generateErstatningsopgoerelsePdf = (
   safeAddLeftRightText('Øvrige krav', formatMoneyOreWithKr(model.samlet.oevrigeKravOre), summaryRightMaxWidth, { rightFontStyle: 'normal' }
   );
   writer.setFont('helvetica', 'bold');
-  safeAddLeftRightText('Erstatningskrav i alt', formatMoneyOreWithKr(model.samlet.totalOre), summaryRightMaxWidth, { rightFontStyle: 'bold', lineAboveRightWidth: 33.125, lineAboveRightOffset: 4 }
+  safeAddLeftRightText('Erstatningskrav i alt', formatMoneyOreWithKr(model.samlet.totalOre), summaryRightMaxWidth, { rightFontStyle: 'bold', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
   );
   writer.setFont('helvetica', 'normal');
   const saerligeKommentarer = model.saerligeKommentarer;

@@ -282,7 +282,8 @@ export const arbejdsstatusEnum = z.enum([
   'Førtidspension',
   'Seniorpension',
   'Folkepension',
-  'Efterløn'
+  'Efterløn',
+  'Kontanthjælp'
 ]);
 export type Arbejdsstatus = z.infer<typeof arbejdsstatusEnum>;
 
