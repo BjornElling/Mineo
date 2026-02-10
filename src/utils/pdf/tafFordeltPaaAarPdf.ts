@@ -50,10 +50,6 @@ export const generateTafFordeltPaaAarPdf = (
   const model = buildErstatningsopgoerelsePdfModel(stamdataValues, eoValues, { dagsDatoISO: TODAY });
   const presentation = buildTafPerYearResult(model, eoValues);
 
-  if (!presentation) {
-    throw new Error('TAF fordelt på år kan ikke beregnes for den valgte opsætning.');
-  }
-
   const titel = 'Tabt arbejdsfortjeneste fordelt på år';
 
   const writer = createPdfWriter({
@@ -137,10 +133,25 @@ export const generateTafFordeltPaaAarPdf = (
   writer.writeSubheader(tafPeriodeHeader, lineHeight);
   if (!model.tabtArbejdsfortjeneste.harTafPerioder) {
     writer.writeWrappedText('Ingen');
+    writer.writeSubheader('TAF fordelt på kalenderår', lineHeight);
+    writer.setFont('helvetica', 'normal');
+    writer.writeWrappedText('Ingen');
+    writer.addFooter();
+    writer.save('Tabt arbejdsfortjeneste fordelt på år.pdf');
+    return;
   } else {
     for (const line of model.tabtArbejdsfortjeneste.tafPerioderLinjer) {
       writer.writeWrappedText(line);
     }
+  }
+
+  if (!presentation) {
+    writer.writeSubheader('TAF fordelt på kalenderår', lineHeight);
+    writer.setFont('helvetica', 'normal');
+    writer.writeWrappedText('TAF fordelt på år kan ikke beregnes for den valgte opsætning.');
+    writer.addFooter();
+    writer.save('Tabt arbejdsfortjeneste fordelt på år.pdf');
+    return;
   }
 
   // ─── TAF fordelt på kalenderår ────────────────────────────────────────

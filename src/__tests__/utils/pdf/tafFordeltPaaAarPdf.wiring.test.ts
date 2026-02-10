@@ -118,14 +118,12 @@ describe('tafFordeltPaaAarPdf wiring', () => {
     expect(buildTafPerYearResultMock).toHaveBeenCalledWith(FAKE_MODEL, eoValues);
   });
 
-  it('kaster fejl når buildTafPerYearResult returnerer null', async () => {
+  it('kaster ikke fejl når buildTafPerYearResult returnerer null', async () => {
     buildTafPerYearResultMock.mockReturnValue(null);
 
     const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
 
-    expect(() => generateTafFordeltPaaAarPdf({} as any, {} as any)).toThrow(
-      'TAF fordelt på år kan ikke beregnes'
-    );
+    expect(() => generateTafFordeltPaaAarPdf({} as any, {} as any)).not.toThrow();
   });
 
   it('gemmer PDF med korrekt filnavn', async () => {
