@@ -128,6 +128,8 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
     lastNotice,
     lastNoticeEpoch,
     hasAnyData,
+    getSectionRevision,
+    authoritativeSnapshotEpoch,
   } = useFormPersistence();
   const isPwaLoadInProgressRef = React.useRef<boolean>(false);
   const pendingPwaRequestRef = React.useRef<PwaFileOpenRequest | null>(null);
@@ -138,8 +140,39 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
   const [devtoolsNoticeVisible, setDevtoolsNoticeVisible] = React.useState(false);
   const dismissedDevtoolsIssueIdRef = React.useRef<number | null>(null);
   const suppressDevtoolsNoticeUntilRef = React.useRef<number>(0);
+  const allowExitWithoutUnsavedWarningRef = React.useRef<boolean>(false);
 
   const activePage = location.pathname.substring(1) || 'stamdata';
+  const combinedSectionRevision = React.useMemo(() => {
+    return (Object.keys(persistenceSchemas) as StorageKey[]).reduce((sum, pageKey) => {
+      return sum + getSectionRevision(pageKey);
+    }, 0);
+  }, [getSectionRevision]);
+  const combinedSectionRevisionRef = React.useRef<number>(combinedSectionRevision);
+  combinedSectionRevisionRef.current = combinedSectionRevision;
+  const [savedRevisionBaseline, setSavedRevisionBaseline] = React.useState<number>(combinedSectionRevision);
+  const hasUnsavedChanges = combinedSectionRevision > savedRevisionBaseline;
+
+  React.useEffect(() => {
+    setSavedRevisionBaseline(combinedSectionRevision);
+  }, [authoritativeSnapshotEpoch]);
+
+  React.useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (allowExitWithoutUnsavedWarningRef.current) {
+        return;
+      }
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
 
   const handlePageChange = React.useCallback((pageId: string) => {
     navigate(`/${pageId}`);
@@ -208,6 +241,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
         acc[pageKey] = value ?? undefined;
         return acc;
       }, {} as Record<StorageKey, unknown | undefined>);
+      const snapshotRevision = combinedSectionRevisionRef.current;
 
       // Sanitization (dev + upgrade-safety): remove/translate legacy table columns that can appear in session state (e.g. via HMR).
       const warnings: string[] = [];
@@ -233,6 +267,8 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
       }
 
       if (result.success) {
+        // Saved baseline tracks the exact committed snapshot used for this save operation.
+        setSavedRevisionBaseline(snapshotRevision);
         isUserFeedbackRef.current = true;
         setOverlay({
           message: warnings.length > 0 ? `Gemt\n\n${warnings.slice(0, 2).join('\n')}` : 'Gemt',
@@ -458,8 +494,10 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
         isUserFeedback: true,
       }));
 
+      allowExitWithoutUnsavedWarningRef.current = true;
       window.location.href = '/stamdata';
     } catch (error) {
+      allowExitWithoutUnsavedWarningRef.current = false;
       console.error('Slet alt fejlede:', error);
       isUserFeedbackRef.current = true;
       setOverlay({
