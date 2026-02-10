@@ -3,12 +3,11 @@ import {
   Box,
   Typography,
   MenuItem,
-  Tooltip,
 } from '@mui/material';
-import { ContentPasteGo } from '@mui/icons-material';
 import Download from '@mui/icons-material/Download';
 import StyledTextField from '../../inputs/StyledTextField';
 import StyledDateField from '../../inputs/StyledDateField';
+import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import StyledDropdown from '../../inputs/StyledDropdown';
 import StyledIntegerField from '../../inputs/StyledIntegerField';
 import StyledAmountField from '../../inputs/StyledAmountField';
@@ -56,7 +55,6 @@ import { buildBeregningsperiodeTafOverlap, buildTafDerived } from '../../../doma
 import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatningsopgoerelse/eoNummerValidering';
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
 import { formatDanishDate, parseISODate } from '../../../utils/dateUtils';
-import { insertTodayDate } from '../../../utils/insertTodayDate';
 import {
   getOverenskomstMetaById,
   getReguleringsDatoIntervalForOverenskomst,
@@ -502,18 +500,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 
   const opgoerelseLavetDenInputRef = React.useRef<HTMLInputElement>(null);
 
-  /**
-   * Indsæt dags dato
-   */
-  const handleIndsaetDagsDato = React.useCallback(() => {
-    insertTodayDate({
-      onCommit: (today) => {
-        setValues((prev) => ({ ...prev, opgørelseLavetDen: today }));
-      },
-      focusRef: opgoerelseLavetDenInputRef,
-    });
-  }, [setValues]);
-
   const erFoersteOpgoerelse = React.useMemo(
     () => erDetteFoersteErstatningsopgoerelse(values.eoNummer),
     [values.eoNummer]
@@ -745,35 +731,12 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 }}
                 noValidRangeCause={skadesdatoISO ? 'Skadesdato, dags dato' : 'dags dato'}
               />
-              <Tooltip title="Indsæt dags dato" arrow>
-                <Box
-                  onClick={handleIndsaetDagsDato}
-                  tabIndex={-1}
-                  sx={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.15s ease',
-                    '&:hover': {
-                      backgroundColor: '#e3f2fd',
-                    },
-                    '&:active': {
-                      backgroundColor: '#bbdefb',
-                    },
-                  }}
-                >
-                  <ContentPasteGo
-                    sx={{
-                      fontSize: '24px',
-                      color: 'primary.main',
-                    }}
-                  />
-                </Box>
-              </Tooltip>
+              <InsertTodayDateButton
+                onCommit={(today) => {
+                  setValues((prev) => ({ ...prev, opgørelseLavetDen: today }));
+                }}
+                focusRef={opgoerelseLavetDenInputRef}
+              />
             </Box>
           </Box>
         </Box>

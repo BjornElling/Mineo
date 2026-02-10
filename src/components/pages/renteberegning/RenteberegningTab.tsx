@@ -1,10 +1,9 @@
 import React from 'react';
-import { Box, Tooltip, Typography } from '@mui/material';
-import { ContentPasteGo } from '@mui/icons-material';
+import { Box, Typography } from '@mui/material';
 import { MIN_CALCULATION_DATE, MAX_CALCULATION_YEAR } from '../../../data/interestRates';
 import StyledDateField from '../../inputs/StyledDateField';
+import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import { toISODateString } from '../../../types/branded';
-import { insertTodayDate } from '../../../utils/insertTodayDate';
 import BeregnetRenteTable from '../../tables/BeregnetRenteTable';
 import ContentBox from '../../layout/ContentBox';
 import type { RentekravRow } from '../../../schemas/formSchemas';
@@ -52,13 +51,6 @@ const RenteberegningTab = React.memo(({
   onError,
 }: RenteberegningTabProps) => {
   const [beregningsdatoHasError, setBeregningsdatoHasError] = React.useState(false);
-  const handleInsertToday = React.useCallback(() => {
-    insertTodayDate({
-      onCommit: (today) => {
-        onBeregningsdatoChange({ target: { value: today } });
-      },
-    });
-  }, [onBeregningsdatoChange]);
 
   return (
     <Box>
@@ -75,35 +67,11 @@ const RenteberegningTab = React.memo(({
                 maxDate={toISODateString(`${MAX_CALCULATION_YEAR}-12-31`)}
                 onFieldError={(errorMsg) => setBeregningsdatoHasError(!!errorMsg)}
               />
-              <Tooltip title="Indsæt dags dato" arrow>
-                <Box
-                  onClick={handleInsertToday}
-                  tabIndex={-1}
-                  sx={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.15s ease',
-                    '&:hover': {
-                      backgroundColor: '#e3f2fd',
-                    },
-                    '&:active': {
-                      backgroundColor: '#bbdefb',
-                    },
-                  }}
-                >
-                  <ContentPasteGo
-                    sx={{
-                      fontSize: '24px',
-                      color: 'primary.main',
-                    }}
-                  />
-                </Box>
-              </Tooltip>
+              <InsertTodayDateButton
+                onCommit={(today) => {
+                  onBeregningsdatoChange({ target: { value: today } });
+                }}
+              />
             </Box>
           </Box>
         </Box>

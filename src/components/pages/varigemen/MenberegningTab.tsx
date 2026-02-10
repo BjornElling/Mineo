@@ -4,8 +4,9 @@ import {
   Typography,
   Tooltip,
 } from '@mui/material';
-import { ContentPasteGo, Download } from '@mui/icons-material';
+import { Download } from '@mui/icons-material';
 import StyledDateField from '../../inputs/StyledDateField';
+import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import StyledPercentField from '../../inputs/StyledPercentField';
 import ContentBox from '../../layout/ContentBox';
 import { dateRanges_varigemen } from '../../../config/dateRanges';
@@ -23,7 +24,6 @@ import { varigeMenPrGradYearBounds } from '../../../data/regulationRates';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
-import { insertTodayDate } from '../../../utils/insertTodayDate';
 
 const VARIGE_MEN_BEREGNINGSDATO_MIN = toISODateString(
   `${varigeMenPrGradYearBounds.minYear}-01-01`
@@ -205,17 +205,6 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
     return formatted || 'Mangler (angiv i Stamdata)';
   };
 
-  const handleInsertToday = React.useCallback(() => {
-    insertTodayDate({
-      onCommit: (today) => {
-        setValues((prev) => ({
-          ...prev,
-          beregningsdato: today,
-        }));
-      },
-    });
-  }, [setValues]);
-
   return (
     <ContentBox className="content-box">
       <Typography className="section-header">Méngodtgørelse</Typography>
@@ -324,28 +313,14 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
             noValidRangeCause="Varige mén-satser"
             onFieldError={handleBeregningsdatoError}
           />
-          <Tooltip title="Indsæt dags dato" arrow>
-            <Box
-              onClick={handleInsertToday}
-              tabIndex={-1}
-              sx={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'background-color 0.15s ease',
-                '&:hover': { backgroundColor: '#e3f2fd' },
-                '&:active': { backgroundColor: '#bbdefb' },
-              }}
-            >
-              <ContentPasteGo
-                sx={{ fontSize: '24px', color: 'primary.main' }}
-              />
-            </Box>
-          </Tooltip>
+          <InsertTodayDateButton
+            onCommit={(today) => {
+              setValues((prev) => ({
+                ...prev,
+                beregningsdato: today,
+              }));
+            }}
+          />
         </Box>
       </Box>
 
