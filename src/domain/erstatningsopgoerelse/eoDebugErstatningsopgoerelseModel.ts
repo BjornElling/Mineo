@@ -15,7 +15,7 @@ import { isoDateToDate } from '../dates/isoDate';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
-import { calculateTafArbejdsdageBreakdown, calculateTafAntalMaaneder } from './tafCalculations';
+import { calculateTafArbejdsdageBreakdown, calculateTafAntalMaaneder, calculateTafAntalMaanederPraecis } from './tafCalculations';
 import { calculateFerieHverdageMinusSHDage } from './ferieCalculations';
 import { computeTafOverlapWithBeregningsperiode } from './beregningsperiodeTafOverlap';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoDebugIndkomstModel';
@@ -1420,8 +1420,10 @@ export const buildEODebugTaftRows = (
   const ferieperioder = values.ferieperioder ?? [];
 
   const formatDaNumber = (n: number): string => n.toLocaleString('da-DK');
-  const formatDaNumberFixed2 = (n: number): string =>
-    n.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const formatMaaneder = (n: number): string => {
+    const rounded = Math.round(n * 10000) / 10000;
+    return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+  };
 
   if (!harPerioder) {
     rows.push({
@@ -1553,14 +1555,14 @@ export const buildEODebugTaftRows = (
         { kind: 'taf' }
       );
 
-      const antalMaaneder = calculateTafAntalMaaneder(
+      const antalMaaneder = calculateTafAntalMaanederPraecis(
         displayFra,
         displayTil,
         ferieperioder,
         loseFeriedage,
         0
       );
-      const maanederDisplay = antalMaaneder === null ? '-' : `${formatDaNumberFixed2(antalMaaneder)} måneder`;
+      const maanederDisplay = antalMaaneder === null ? '-' : `${formatMaaneder(antalMaaneder)} måneder`;
 
       rows.push({
         id: `taf.periode.${periode.id}`,
@@ -2115,8 +2117,8 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     const fravaerMaaneder = oevrigeFravaersdageValue * 0.048;
 
     const formatMaaneder = (value: number): string => {
-      const rounded = Math.round(value * 100) / 100;
-      return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+      const rounded = Math.round(value * 10000) / 10000;
+      return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
     };
 
     const fravaerBeskrivelse = values.oevrigeFravaersdageBeskrivelse?.trim();
@@ -2125,9 +2127,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
       : 'fraværsdage';
     const fravaerLabel = `${formatDaNumber(oevrigeFravaersdageValue)} ${fravaerLabelTekst} uden løn x 4,8 % måned`;
     const label = `${formatMaaneder(totalMaaneder)} - ${formatMaaneder(fravaerMaaneder)} måneder (${fravaerLabel}) =`;
-    const roundedTotalMaaneder = Math.round(totalMaaneder * 100) / 100;
-    const roundedFravaerMaaneder = Math.round(fravaerMaaneder * 100) / 100;
-    const maanederEfterFradrag = Math.max(0, Math.round((roundedTotalMaaneder - roundedFravaerMaaneder) * 100) / 100);
+    const maanederEfterFradrag = Math.max(0, totalMaaneder - fravaerMaaneder);
     const formatted = formatMaaneder(maanederEfterFradrag);
     const displayValue = `${formatted} måneder`;
 

@@ -50,7 +50,7 @@ import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../.
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from '../../../domain/erstatningsopgoerelse/eoDebugIndkomstModel';
 import { isoDateToDate } from '../../../domain/dates/isoDate';
 import { ydelsestyper, type Periodisering } from '../../../data/ydelsestyper';
-import { calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/tafCalculations';
+import { calculateTafAntalMaanederPraecis, calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/tafCalculations';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { computeTafOverlapWithBeregningsperiode } from '../../../domain/erstatningsopgoerelse/beregningsperiodeTafOverlap';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
@@ -2221,7 +2221,7 @@ const EODebug = () => {
         typeof erstatningsopgoerelseValues.oevrigeFravaersdage === 'number'
           ? erstatningsopgoerelseValues.oevrigeFravaersdage
           : 0;
-      return calculateTafAntalMaaneder(
+      return calculateTafAntalMaanederPraecis(
         periodeFra,
         periodeTil,
         [],
@@ -2244,7 +2244,7 @@ const EODebug = () => {
     const sum = entries.reduce((acc, value) => acc + value, 0);
     const formattedEntries = entries.map((value) => formatCurrency(value));
     const divisorDisplay = beregnesSom === TAF_BEREGNES_SOM.MAANEDER
-      ? divisor.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+      ? formatMaanederTrimmed(divisor)
       : Math.trunc(divisor).toLocaleString('da-DK');
 
     const label = formattedEntries.length === 1
@@ -2430,6 +2430,107 @@ const EODebug = () => {
         )}
       </ContentBox>
 
+      <ContentBox className="content-box">
+        <Typography className="section-header">Tabt arbejdsfortjeneste</Typography>
+
+        <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+          <Typography className="row--text">Beregnes der tabt arbejdsfortjeneste i opgørelsen</Typography>
+          <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+            {erstatningsopgoerelseValues.beregnesTabtArbejdsfortjeneste ? (
+              <>
+                <Typography className="row--text">{beregnesTabtArbejdsfortjeneste ? 'Ja' : 'Nej'}</Typography>
+                {getStatusIcon('ok')}
+              </>
+            ) : (
+              <>
+                <Typography className="row--text">-</Typography>
+                {getStatusIcon('error')}
+              </>
+            )}
+          </Box>
+        </Box>
+
+        {beregnesTabtArbejdsfortjeneste && (
+          <>
+            {rowsBySection.get('taf')?.filter((row) => (row.id as string) === 'taf.ophoerSkyldes').map((row) => {
+              return (
+                <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                  <Typography className="row--text">{row.label}</Typography>
+                  <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                    <Typography className="row--text">{row.displayValue}</Typography>
+                    {getStatusIcon(row.status)}
+                  </Box>
+                </Box>
+              );
+            })}
+
+            <Typography className="row--subheading">TAF-perioder</Typography>
+
+            {rowsBySection.get('taf')?.filter((row) => row.id.startsWith('taf.periode.')).map((row) => {
+              const labelWidth = row.id.startsWith('taf.periode.') ? '340px' : LABEL_WIDTH;
+              const hasMultipleLines = row.displayValue.includes('\n');
+              return (
+                <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': labelWidth }}>
+                  <Typography className="row--text" sx={{ minWidth: labelWidth }}>{row.label}</Typography>
+                  <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                    <Typography
+                      className="row--text"
+                      sx={{
+                        whiteSpace: hasMultipleLines ? 'pre-line' : 'normal',
+                        textAlign: hasMultipleLines ? 'right' : 'left',
+                      }}
+                    >
+                      {row.displayValue}
+                    </Typography>
+                    {getStatusIcon(row.status)}
+                  </Box>
+                </Box>
+              );
+            })}
+
+            <Typography className="row--subheading">Ferie i TAF-perioden:</Typography>
+
+            {rowsBySection.get('taf')?.filter((row) => row.id.startsWith('taf.ferie.')).map((row) => {
+              return (
+                <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                  <Typography className="row--text">{row.label}</Typography>
+                  <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                    <Typography className="row--text">{row.displayValue}</Typography>
+                    {getStatusIcon(row.status)}
+                  </Box>
+                </Box>
+              );
+            })}
+
+            <Typography className="row--subheading">Øvrige</Typography>
+
+            {differencekravDatoRow ? (
+              <Box key={differencekravDatoRow.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                <Typography className="row--text">{differencekravDatoRow.label}</Typography>
+                <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                  <Typography className="row--text">{differencekravDatoRow.displayValue}</Typography>
+                  {getStatusIcon(differencekravDatoRow.status)}
+                </Box>
+              </Box>
+            ) : null}
+
+            {rowsBySection.get('taf')?.filter((row) => (row.id as string) === 'taf.andelSfggILoenen' || (row.id as string) === 'taf.tidligereModtagetTaf').map((row) => {
+              return (
+                <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                  <Typography className="row--text">{row.label}</Typography>
+                  <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                    <Typography className="row--text">{row.displayValue}</Typography>
+                    {getStatusIcon(row.status)}
+                  </Box>
+                </Box>
+              );
+            })}
+          </>
+        )}
+      </ContentBox>
+
+      
+      
       {beregnesTabtArbejdsfortjeneste && (
         <ContentBox className="content-box">
         <Typography className="section-header">TAF beregningsgrundlag</Typography>
@@ -2592,6 +2693,7 @@ const EODebug = () => {
       </ContentBox>
       )}
 
+      
       {beregnesTabtArbejdsfortjeneste && (
         <ContentBox className="content-box">
         <Typography className="section-header">Indkomst</Typography>
@@ -2642,106 +2744,6 @@ const EODebug = () => {
       </ContentBox>
       )}
 
-      <ContentBox className="content-box">
-        <Typography className="section-header">Tabt arbejdsfortjeneste</Typography>
-
-        <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-          <Typography className="row--text">Beregnes der tabt arbejdsfortjeneste i opgørelsen</Typography>
-          <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-            {erstatningsopgoerelseValues.beregnesTabtArbejdsfortjeneste ? (
-              <>
-                <Typography className="row--text">{beregnesTabtArbejdsfortjeneste ? 'Ja' : 'Nej'}</Typography>
-                {getStatusIcon('ok')}
-              </>
-            ) : (
-              <>
-                <Typography className="row--text">-</Typography>
-                {getStatusIcon('error')}
-              </>
-            )}
-          </Box>
-        </Box>
-
-        {beregnesTabtArbejdsfortjeneste && (
-          <>
-            {rowsBySection.get('taf')?.filter((row) => (row.id as string) === 'taf.ophoerSkyldes').map((row) => {
-              return (
-                <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-                  <Typography className="row--text">{row.label}</Typography>
-                  <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                    <Typography className="row--text">{row.displayValue}</Typography>
-                    {getStatusIcon(row.status)}
-                  </Box>
-                </Box>
-              );
-            })}
-
-            <Typography className="row--subheading">TAF-perioder</Typography>
-
-            {rowsBySection.get('taf')?.filter((row) => row.id.startsWith('taf.periode.')).map((row) => {
-              const labelWidth = row.id.startsWith('taf.periode.') ? '340px' : LABEL_WIDTH;
-              const hasMultipleLines = row.displayValue.includes('\n');
-              return (
-                <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': labelWidth }}>
-                  <Typography className="row--text" sx={{ minWidth: labelWidth }}>{row.label}</Typography>
-                  <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                    <Typography
-                      className="row--text"
-                      sx={{
-                        whiteSpace: hasMultipleLines ? 'pre-line' : 'normal',
-                        textAlign: hasMultipleLines ? 'right' : 'left',
-                      }}
-                    >
-                      {row.displayValue}
-                    </Typography>
-                    {getStatusIcon(row.status)}
-                  </Box>
-                </Box>
-              );
-            })}
-
-            <Typography className="row--subheading">Ferie i TAF-perioden:</Typography>
-
-            {rowsBySection.get('taf')?.filter((row) => row.id.startsWith('taf.ferie.')).map((row) => {
-              return (
-                <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-                  <Typography className="row--text">{row.label}</Typography>
-                  <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                    <Typography className="row--text">{row.displayValue}</Typography>
-                    {getStatusIcon(row.status)}
-                  </Box>
-                </Box>
-              );
-            })}
-
-            <Typography className="row--subheading">Øvrige</Typography>
-
-            {differencekravDatoRow ? (
-              <Box key={differencekravDatoRow.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-                <Typography className="row--text">{differencekravDatoRow.label}</Typography>
-                <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                  <Typography className="row--text">{differencekravDatoRow.displayValue}</Typography>
-                  {getStatusIcon(differencekravDatoRow.status)}
-                </Box>
-              </Box>
-            ) : null}
-
-            {rowsBySection.get('taf')?.filter((row) => (row.id as string) === 'taf.andelSfggILoenen' || (row.id as string) === 'taf.tidligereModtagetTaf').map((row) => {
-              return (
-                <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-                  <Typography className="row--text">{row.label}</Typography>
-                  <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                    <Typography className="row--text">{row.displayValue}</Typography>
-                    {getStatusIcon(row.status)}
-                  </Box>
-                </Box>
-              );
-            })}
-          </>
-        )}
-      </ContentBox>
-
-      
       {beregnesTabtArbejdsfortjeneste && (
         <ContentBox className="content-box">
           <Typography className="section-header">Regulering</Typography>

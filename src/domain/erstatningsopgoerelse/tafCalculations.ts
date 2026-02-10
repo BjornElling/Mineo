@@ -38,6 +38,24 @@ export const calculateTafAntalMaaneder = (
   _loseFeriedage: number,
   oevrigeFravaersdage: number = 0
 ): number | null => {
+  const praecis = calculateTafAntalMaanederPraecis(
+    fra,
+    til,
+    _ferieperioder,
+    _loseFeriedage,
+    oevrigeFravaersdage
+  );
+  if (praecis === null) return null;
+  return Math.round(praecis * 100) / 100;
+};
+
+export const calculateTafAntalMaanederPraecis = (
+  fra: ISODateString | undefined,
+  til: ISODateString | undefined,
+  _ferieperioder: readonly FerieperiodeRow[],
+  _loseFeriedage: number,
+  oevrigeFravaersdage: number = 0
+): number | null => {
   /**
    * Inclusive day-by-day iteration is intentional:
    * - Month fractions depend on each calendar day.
@@ -92,7 +110,7 @@ export const calculateTafAntalMaaneder = (
   // Sørg for at resultatet aldrig bliver negativt
   const begrænsedResultat = Math.max(0, resultat);
 
-  return Math.round(begrænsedResultat * 100) / 100;
+  return begrænsedResultat;
 };
 
 export type ArbejdsdageBeregningskontekst =

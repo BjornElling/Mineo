@@ -1882,21 +1882,21 @@ export const generateErstatningsopgoerelsePdf = (
           }
         }
       } else if (indkomst?.beregnesUdFra === 'Angivet månedsløn') {
-        const baseretPaaPrefix = indkomst.loenBaseretPaa
-          ? `På baggrund af ${indkomst.loenBaseretPaa} `
-          : '';
+        const venstreTekst = indkomst.loenBaseretPaa
+          ? `På baggrund af ${indkomst.loenBaseretPaa} lægges en månedsløn til grund på`
+          : 'Der lægges en månedsløn til grund på';
         safeAddLeftRightText(
-          `${baseretPaaPrefix}Der lægges en månedsløn til grund på`,
+          venstreTekst,
           renderMoneyWithKrOrError(indkomst.maanedsloen),
           writer.getTextWidth('000.000.000,00'),
           { rightFontStyle: 'normal' }
         );
       } else if (indkomst?.beregnesUdFra === 'Angivet dagsløn') {
-        const baseretPaaPrefix = indkomst.loenBaseretPaa
-          ? `På baggrund af ${indkomst.loenBaseretPaa} `
-          : '';
+        const venstreTekst = indkomst.loenBaseretPaa
+          ? `På baggrund af ${indkomst.loenBaseretPaa} lægges en dagsløn til grund på`
+          : 'Der lægges en dagsløn til grund på';
         safeAddLeftRightText(
-          `${baseretPaaPrefix}Der lægges en dagsløn til grund på`,
+          venstreTekst,
           renderMoneyWithKrOrError(indkomst.dagsloen),
           writer.getTextWidth('000.000.000,00'),
           { rightFontStyle: 'normal' }
@@ -1930,7 +1930,7 @@ export const generateErstatningsopgoerelsePdf = (
       }
       const datoDisplay = formatDateLong(angivetLoenOpreguleresFraDato);
       if (!datoDisplay) return null;
-      return `lønnen opgjort den d. ${datoDisplay}`;
+      return `lønnen opgjort den ${datoDisplay}`;
     })();
     const loenReferenceBeskrivelse = angivetLoenDatoBeskrivelse ?? loenSkadesdatoText;
     const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = loenudvikling?.loenudviklingLabel === 'Ingen'
@@ -2604,6 +2604,4 @@ export const generateErstatningsopgoerelsePdf = (
   // Download PDF
   writer.save(`${titel}.pdf`);
 };
-
-
 
