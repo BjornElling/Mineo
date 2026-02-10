@@ -200,6 +200,7 @@ const TableDateInput = React.memo(
     const [touched, setTouched] = React.useState(false);
     const [hasError, setHasError] = React.useState(false);
     const [errorMessage, setErrorMessage] = React.useState('');
+    const draftRef = React.useRef<string>(draft);
 
     const originalValueOnEditStartRef = React.useRef<string>('');
     const keyInitiatedEditRef = React.useRef(false);
@@ -218,6 +219,10 @@ const TableDateInput = React.memo(
     React.useEffect(() => {
       latestCommittedValueRef.current = value ?? '';
     }, [value]);
+
+    React.useEffect(() => {
+      draftRef.current = draft;
+    }, [draft]);
 
     const boundsStatus = React.useMemo(() => {
       if (minDate !== undefined && coerceToISODateString(minDate) === undefined) {
@@ -293,7 +298,7 @@ const TableDateInput = React.memo(
     }, [onRegisterSanitize, sanitizeValue]);
 
     const commitAndEmitBlur = React.useCallback(
-      (rawDraft: string) => {
+      (rawDraft: string): boolean => {
         setTouched(true);
         const normalized = normalizeTableDraftOnCommit(rawDraft);
         const { minDate: min, maxDate: max, specialRangeErrors: special, twoDigitYearPolicy: policy } = latest.current;
@@ -302,7 +307,7 @@ const TableDateInput = React.memo(
         if (committed.kind === 'config-error') {
           latest.current.onErrorChange?.({ hasError: true, kind: 'config' });
           emitBlur(committed.committed);
-          return;
+          return false;
         }
 
         if (committed.kind === 'input-error') {
@@ -310,7 +315,7 @@ const TableDateInput = React.memo(
           setErrorMessage(committed.errorMessage);
           latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
           emitBlur(committed.committed);
-          return;
+          return false;
         }
 
         if (committed.iso) {
@@ -336,6 +341,7 @@ const TableDateInput = React.memo(
         }
 
         emitBlur(committed.committed);
+        return true;
       },
       [emitBlur, hasConfigError]
     );
@@ -383,6 +389,14 @@ const TableDateInput = React.memo(
       return {
         getElement: () => inputElRef.current,
         getIsLocked: () => latest.current.locked ?? false,
+        commitCurrent: () => {
+          if (latest.current.locked) return true;
+          const ok = commitAndEmitBlur(inputElRef.current?.value ?? draftRef.current);
+          if (!ok) return false;
+          setIsFocused(false);
+          grid.closeEditing();
+          return true;
+        },
         clearAndCommit: () => {
           if (latest.current.locked) return;
           setTouched(false);
@@ -392,7 +406,8 @@ const TableDateInput = React.memo(
           keyInitiatedEditRef.current = false;
           setDraft('');
           // Ingen emitValueChange. Commit sker via blur/commit-pipeline:
-          commitAndEmitBlur('');
+          const ok = commitAndEmitBlur('');
+          if (!ok) return;
           grid.closeEditing();
         },
         cancelEdit: () => {

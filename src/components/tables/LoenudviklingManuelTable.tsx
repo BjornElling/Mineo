@@ -95,6 +95,10 @@ const ReadOnlyDateCell = React.memo(
       return {
         getElement: () => inputElRef.current,
         getIsLocked: () => true,
+        commitCurrent: () => {
+          // Locked: no-op
+          return true;
+        },
         clearAndCommit: () => {
           // Locked: no-op
         },

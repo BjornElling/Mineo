@@ -29,9 +29,14 @@ vi.mock('../../../utils/fileHandleStorage', () => ({
   saveFileHandleToIndexedDB: vi.fn(async () => {}),
 }));
 
+vi.mock('../../../components/tables/gridCoreRegistry', () => ({
+  getGridCoreForTable: vi.fn(),
+}));
+
 import MainLayout from '../../../components/layout/MainLayout';
 import { saveToFile } from '../../../utils/fileSave';
 import { deleteFileHandleFromIndexedDB } from '../../../utils/fileHandleStorage';
+import { getGridCoreForTable } from '../../../components/tables/gridCoreRegistry';
 
 const stampStamdata = (skadelidte: string) => ({
   journalnr: '',
@@ -85,6 +90,11 @@ describe('MainLayout (unsaved beforeunload)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    document.querySelectorAll('table[data-mineo-table-navigation="true"]').forEach((el) => el.remove());
+    document.querySelectorAll('[data-mineo-test-temp="true"]').forEach((el) => el.remove());
   });
 
   it('prevents beforeunload after committed input change', async () => {
@@ -203,6 +213,80 @@ describe('MainLayout (unsaved beforeunload)', () => {
 
     addEventListenerSpy.mockRestore();
     removeEventListenerSpy.mockRestore();
+  });
+
+  it('blocks save when an open locked grid editor cannot be committed', async () => {
+    const saveToFileMock = vi.mocked(saveToFile);
+    const getGridCoreForTableMock = vi.mocked(getGridCoreForTable);
+    let ctx: ReturnType<typeof useFormPersistence> | null = null;
+
+    const failedInput = document.createElement('input');
+    failedInput.setAttribute('data-mineo-test-temp', 'true');
+    document.body.appendChild(failedInput);
+    const table = document.createElement('table');
+    table.setAttribute('data-mineo-test-temp', 'true');
+    table.setAttribute('data-mineo-table-navigation', 'true');
+    table.appendChild(document.createElement('tbody'));
+    document.body.appendChild(table);
+
+    getGridCoreForTableMock.mockImplementation((node: HTMLTableElement) => {
+      if (node !== table) return null;
+      return {
+        getEditingCell: () => ({ rowId: 'r1', colIndex: 0 }),
+        getEditor: () => ({
+          getElement: () => failedInput,
+          getIsLocked: () => true,
+          commitCurrent: () => false,
+          clearAndCommit: () => {},
+          cancelEdit: () => {},
+          prepareEditFromKey: () => false,
+          selectAll: () => {},
+        }),
+        clearFocusPlan: () => {},
+        closeEditing: () => {},
+      } as unknown as ReturnType<typeof getGridCoreForTable>;
+    });
+
+    const Probe = () => {
+      const value = useFormPersistence();
+      React.useEffect(() => {
+        ctx = value;
+      }, [value]);
+      return null;
+    };
+
+    render(
+      <AppSettingsProvider>
+        <FormPersistenceProvider>
+          <MemoryRouter initialEntries={['/stamdata']}>
+            <Probe />
+            <MainLayout>
+              <div />
+            </MainLayout>
+          </MemoryRouter>
+        </FormPersistenceProvider>
+      </AppSettingsProvider>
+    );
+
+    await waitFor(() => {
+      expect(ctx).not.toBeNull();
+    });
+
+    act(() => {
+      ctx!.persistData('stamdata', stampStamdata('GemBlokeres'));
+    });
+
+    await act(async () => {
+      screen.getByText('Gem').click();
+    });
+
+    await waitFor(() => {
+      expect(saveToFileMock).not.toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(failedInput);
+    });
   });
 
   it('keeps beforeunload active when user edits while save is in progress', async () => {

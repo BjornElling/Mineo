@@ -165,6 +165,7 @@ const TablePercentInput = React.memo(
     const [touched, setTouched] = React.useState(false);
     const [hasError, setHasError] = React.useState(false);
     const [errorMessage, setErrorMessage] = React.useState('');
+    const draftRef = React.useRef<string>(draft);
 
     const originalValueOnEditStartRef = React.useRef<string>('');
     const keyInitiatedEditRef = React.useRef(false);
@@ -203,6 +204,10 @@ const TablePercentInput = React.memo(
     }, [value]);
 
     React.useEffect(() => {
+      draftRef.current = draft;
+    }, [draft]);
+
+    React.useEffect(() => {
       if (!isEditing) {
         setDraft(toDisplayString(value));
       }
@@ -221,7 +226,7 @@ const TablePercentInput = React.memo(
     }, [isEditing, value]);
 
     const commitAndEmitBlur = React.useCallback(
-      (rawDraft: string) => {
+      (rawDraft: string): boolean => {
         if (!latest.current.hasConfigError) setTouched(true);
         const normalized = normalizeTableAmountDraftOnCommit(rawDraft);
         const committed = commitPercentDraft(normalized, {
@@ -234,7 +239,7 @@ const TablePercentInput = React.memo(
         if (committed.kind === 'config-error') {
           latest.current.onErrorChange?.({ hasError: true, kind: 'config' });
           emitBlur(committedToString(committed));
-          return;
+          return false;
         }
 
         if (committed.kind === 'input-error') {
@@ -242,13 +247,14 @@ const TablePercentInput = React.memo(
           setErrorMessage(committed.errorMessage);
           latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
           emitBlur(committedToString(committed));
-          return;
+          return false;
         }
 
         setHasError(false);
         setErrorMessage('');
         latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
         emitBlur(committedToString(committed));
+        return true;
       },
       [emitBlur]
     );
@@ -296,6 +302,14 @@ const TablePercentInput = React.memo(
       return {
         getElement: () => inputElRef.current,
         getIsLocked: () => latest.current.locked,
+        commitCurrent: () => {
+          if (latest.current.locked) return true;
+          const ok = commitAndEmitBlur(inputElRef.current?.value ?? draftRef.current);
+          if (!ok) return false;
+          setIsFocused(false);
+          grid.closeEditing();
+          return true;
+        },
         clearAndCommit: () => {
           if (latest.current.locked) return;
           setTouched(false);
@@ -304,7 +318,8 @@ const TablePercentInput = React.memo(
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
           keyInitiatedEditRef.current = false;
           setDraft('');
-          commitAndEmitBlur('');
+          const ok = commitAndEmitBlur('');
+          if (!ok) return;
           grid.closeEditing();
         },
         cancelEdit: () => {

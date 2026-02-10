@@ -193,7 +193,7 @@ const TableAmountInput = React.memo(
     }, [isEditing, value]);
 
     const commitAndEmitBlur = React.useCallback(
-      (rawDraft: string) => {
+      (rawDraft: string): boolean => {
         setTouched(true);
         const committed = commitAmountDraft(rawDraft, { canBeNegative: latest.current.canBeNegative });
 
@@ -201,7 +201,7 @@ const TableAmountInput = React.memo(
           setHasError(true);
           setErrorMessage(committed.errorMessage);
           latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
-          return;
+          return false;
         }
 
         const isNoop = areAmountValuesEqual(committed.value, latestCommittedValueRef.current);
@@ -214,13 +214,14 @@ const TableAmountInput = React.memo(
           setHasError(false);
           setErrorMessage('');
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
-          return;
+          return true;
         }
 
         setHasError(false);
         setErrorMessage('');
         latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
         emitBlur(committed.value);
+        return true;
       },
       [emitBlur]
     );
@@ -333,6 +334,14 @@ const TableAmountInput = React.memo(
       return {
         getElement: () => inputElRef.current,
         getIsLocked: () => latest.current.locked,
+        commitCurrent: () => {
+          if (latest.current.locked) return true;
+          const ok = commitAndEmitBlur(inputElRef.current?.value ?? draftRef.current);
+          if (!ok) return false;
+          setIsFocused(false);
+          grid.closeEditing();
+          return true;
+        },
         clearAndCommit: () => {
           if (latest.current.locked) return;
           setTouched(false);
@@ -342,7 +351,8 @@ const TableAmountInput = React.memo(
           keyInitiatedEditRef.current = false;
           setDraft('');
           // Ingen emitValueChange. Commit sker via blur/commit-pipeline:
-          commitAndEmitBlur('');
+          const ok = commitAndEmitBlur('');
+          if (!ok) return;
           grid.closeEditing();
         },
         cancelEdit: () => {

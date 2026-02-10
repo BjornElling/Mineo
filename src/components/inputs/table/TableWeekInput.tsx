@@ -138,6 +138,7 @@ const TableWeekInput = React.memo(
     const [touched, setTouched] = React.useState(false);
 
     const inputElRef = React.useRef<HTMLInputElement | null>(null);
+    const draftRef = React.useRef<string>(draft);
     const originalValueOnEditStartRef = React.useRef<string>('');
     const keyInitiatedEditRef = React.useRef(false);
     const latestCommittedValueRef = React.useRef<string>('');
@@ -170,6 +171,10 @@ const TableWeekInput = React.memo(
     }, [value]);
 
     React.useEffect(() => {
+      draftRef.current = draft;
+    }, [draft]);
+
+    React.useEffect(() => {
       if (!isEditing) {
         setDraft(value ?? '');
       }
@@ -189,7 +194,7 @@ const TableWeekInput = React.memo(
     }, [isEditing, value]);
 
     const commitAndEmitBlur = React.useCallback(
-      (rawDraft: string) => {
+      (rawDraft: string): boolean => {
         if (!latest.current.hasConfigError) setTouched(true);
         const committed = commitWeekDraft(normalizeTableDraftOnCommit(rawDraft), {
           hasConfigError: latest.current.hasConfigError,
@@ -201,7 +206,7 @@ const TableWeekInput = React.memo(
         if (committed.kind === 'config-error') {
           latest.current.onErrorChange?.({ hasError: true, kind: 'config' });
           emitBlur(committedToString(committed));
-          return;
+          return false;
         }
 
         if (committed.kind === 'input-error') {
@@ -209,13 +214,14 @@ const TableWeekInput = React.memo(
           setErrorMessage(committed.errorMessage);
           latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
           emitBlur(committedToString(committed));
-          return;
+          return false;
         }
 
         setHasError(false);
         setErrorMessage('');
         latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
         emitBlur(committedToString(committed));
+        return true;
       },
       [emitBlur]
     );
@@ -265,6 +271,14 @@ const TableWeekInput = React.memo(
       return {
         getElement: () => inputElRef.current,
         getIsLocked: () => latest.current.locked,
+        commitCurrent: () => {
+          if (latest.current.locked) return true;
+          const ok = commitAndEmitBlur(inputElRef.current?.value ?? draftRef.current);
+          if (!ok) return false;
+          setIsFocused(false);
+          grid.closeEditing();
+          return true;
+        },
         clearAndCommit: () => {
           if (latest.current.locked) return;
           keyInitiatedEditRef.current = false;
@@ -274,7 +288,8 @@ const TableWeekInput = React.memo(
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
           setDraft('');
           // Ingen emitValueChange. Commit sker via blur/commit-pipeline:
-          commitAndEmitBlur('');
+          const ok = commitAndEmitBlur('');
+          if (!ok) return;
           grid.closeEditing();
         },
         cancelEdit: () => {

@@ -25,6 +25,7 @@ export type FocusPlan = Readonly<{
 export type GridCellEditorHandle = Readonly<{
   getElement: () => HTMLElement | null;
   getIsLocked: () => boolean;
+  commitCurrent: () => boolean;
   clearAndCommit: () => void;
   cancelEdit: () => void;
   /**

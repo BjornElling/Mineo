@@ -14,6 +14,7 @@ import { saveFileHandleToIndexedDB } from '../../utils/fileHandleStorage';
 import { useFormPersistence } from '../../contexts/FormPersistenceContext';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { resolveDefaultDirectoryHandle } from '../../utils/fileHelpers';
+import { getGridCoreForTable } from '../tables/gridCoreRegistry';
 import type { SaveFileResult, LoadFileResult } from '../../types/fileOperations';
 import { persistenceSchemas } from '../../config/persistenceRegistry';
 import type { StorageKey } from '../../config/storageManifest';
@@ -62,6 +63,96 @@ const parseFilenameBasisFromStamdata = (stamdata: unknown): { skadelidte?: strin
   const skadestype = typeof stamdata.skadestype === 'string' ? stamdata.skadestype : undefined;
   const skadesdato = typeof stamdata.skadesdato === 'string' ? stamdata.skadesdato : undefined;
   return skadelidte || skadestype || skadesdato ? { skadelidte, skadestype, skadesdato } : null;
+};
+
+type SaveCommitFlushResult = Readonly<{
+  ok: boolean;
+  failedGridCommitCount: number;
+}>;
+
+type GridCommitAttemptResult = Readonly<{
+  failedCount: number;
+  firstFailedElement: HTMLElement | null;
+}>;
+
+const waitForAnimationFrame = (): Promise<void> =>
+  new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+
+const waitForCommitFlush = async (): Promise<void> => {
+  await Promise.resolve();
+  // Wait two frames to allow blur-driven commit state and post-render effects to settle.
+  await waitForAnimationFrame();
+  await waitForAnimationFrame();
+};
+
+const commitActiveGridEditors = (): GridCommitAttemptResult => {
+  let failedCount = 0;
+  let firstFailedElement: HTMLElement | null = null;
+  const tables = Array.from(document.querySelectorAll<HTMLTableElement>('table[data-mineo-table-navigation="true"]'));
+  for (const table of tables) {
+    const core = getGridCoreForTable(table);
+    if (!core) continue;
+
+    const editingCell = core.getEditingCell();
+    if (!editingCell) continue;
+
+    const editor = core.getEditor(editingCell);
+    if (!editor) {
+      continue;
+    }
+    if (editor.getIsLocked()) {
+      failedCount += 1;
+      if (firstFailedElement === null) {
+        firstFailedElement = editor.getElement();
+      }
+      continue;
+    }
+
+    core.clearFocusPlan();
+    const ok = editor.commitCurrent();
+    if (!ok) {
+      failedCount += 1;
+      if (firstFailedElement === null) {
+        firstFailedElement = editor.getElement();
+      }
+    }
+  }
+  return { failedCount, firstFailedElement };
+};
+
+const commitPendingInputBeforeSave = async (): Promise<SaveCommitFlushResult> => {
+  const gridCommitResult = commitActiveGridEditors();
+  const failedGridCommitCount = gridCommitResult.failedCount;
+
+  if (failedGridCommitCount > 0) {
+    const failedElement = gridCommitResult.firstFailedElement;
+    if (failedElement && failedElement.isConnected) {
+      try {
+        failedElement.focus({ preventScroll: true });
+      } catch {
+        failedElement.focus();
+      }
+    }
+    await waitForCommitFlush();
+    return {
+      ok: false,
+      failedGridCommitCount,
+    };
+  }
+
+  const active = document.activeElement;
+  if (active instanceof HTMLElement) {
+    active.blur();
+  }
+
+  await waitForCommitFlush();
+
+  return {
+    ok: failedGridCommitCount === 0,
+    failedGridCommitCount,
+  };
 };
 
 const isOverlayType = (value: unknown): value is OverlayData['type'] => {
@@ -123,6 +214,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
   const {
     getPersistedData,
     getFieldErrorsBySource,
+    getLoenindkomstManuelReguleringInputErrors,
     replaceAllPersistedData,
     clearAllData,
     lastNotice,
@@ -177,6 +269,24 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
   const handlePageChange = React.useCallback((pageId: string) => {
     navigate(`/${pageId}`);
   }, [navigate]);
+
+  const hasBlockingInputErrors = React.useCallback((): boolean => {
+    for (const pageKey of Object.keys(persistenceSchemas) as StorageKey[]) {
+      const errorsBySource = getFieldErrorsBySource(pageKey);
+      for (const fieldName of Object.keys(errorsBySource)) {
+        const fieldSources = errorsBySource[fieldName as keyof typeof errorsBySource];
+        if (!fieldSources) continue;
+        for (const sourceKey of Object.keys(fieldSources)) {
+          const entry = fieldSources[sourceKey as keyof typeof fieldSources] as unknown;
+          if (isRecord(entry) && entry.severity === 'error') {
+            return true;
+          }
+        }
+      }
+    }
+
+    return Object.keys(getLoenindkomstManuelReguleringInputErrors()).length > 0;
+  }, [getFieldErrorsBySource, getLoenindkomstManuelReguleringInputErrors]);
 
   const applyLoadedSnapshot = React.useCallback(async (result: LoadFileResult) => {
     if (!result.snapshot) {
@@ -235,6 +345,17 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
   // Gem-funktionalitet
   const handleGem = React.useCallback(async () => {
     try {
+      const commitFlush = await commitPendingInputBeforeSave();
+      const hasInputErrors = hasBlockingInputErrors();
+      if (!commitFlush.ok || hasInputErrors) {
+        isUserFeedbackRef.current = true;
+        setOverlay({
+          message: 'Kan ikke gemme: Der er ugyldige felter. Ret felter med rød markering, og prøv igen.',
+          type: 'warning',
+        });
+        return;
+      }
+
       const snapshot = Object.keys(persistenceSchemas).reduce((acc, key) => {
         const pageKey = key as StorageKey;
         const value = getPersistedData(pageKey);
@@ -283,7 +404,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
         type: 'error',
       });
     }
-  }, [getPersistedData, settings]);
+  }, [getPersistedData, hasBlockingInputErrors, settings]);
 
   // Hent-funktionalitet
   const handleHent = React.useCallback(async () => {
