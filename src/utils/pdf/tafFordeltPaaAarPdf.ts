@@ -15,22 +15,35 @@ import { createPdfWriter, ensureNonBreakingKr } from './pdfWriter';
 import { FONT_SIZES } from './pdfConfig';
 import type { BrevhovedData } from './pdfHelpers';
 import { TODAY } from '../../config/dateRanges';
+import type jsPDF from 'jspdf';
 
 const NBSP = '\u00A0';
+const FILE_NAME = 'Tabt arbejdsfortjeneste fordelt på år.pdf';
 
-const formatCurrencyFromOre = (ore: MoneyOre): string => formatCurrency(ore / 100);
+const formatCurrencyFromOre = (ore: MoneyOre): string => {
+  if (!Number.isFinite(ore)) return '-';
+  return formatCurrency(ore / 100);
+};
 
 const formatMoneyOreWithKr = (ore: MoneyOre): string => `${formatCurrencyFromOre(ore)}${NBSP}kr.`;
 
 const formatMaanederTrimmed = (value: number): string => {
+  if (!Number.isFinite(value)) return '-';
   const rounded = Math.round(value * 10000) / 10000;
   return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
 };
 
 const formatPercentDelta = (value: number): string => {
+  if (!Number.isFinite(value)) return '-';
   const abs = Math.abs(value);
   const rounded = Math.round(abs * 100) / 100;
   return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+};
+
+// Totallinjer i PDF må ikke være negative (max(0, beregnet)).
+const clampNegativeOreToZero = (ore: MoneyOre): MoneyOre => {
+  if (ore >= 0) return ore;
+  return 0 as MoneyOre;
 };
 
 interface TafFordeltPaaAarPdfOptions {
@@ -42,7 +55,7 @@ export const generateTafFordeltPaaAarPdf = (
   stamdataValues: StamdataValues,
   eoValues: ErstatningsopgoerelseValues,
   options: TafFordeltPaaAarPdfOptions = {}
-) => {
+): jsPDF => {
   const { visBrevhoved = false, visUdkastStempel = false } = options;
   const lineHeight = 5;
   const doubleLineHeight = lineHeight * 2;
@@ -61,6 +74,7 @@ export const generateTafFordeltPaaAarPdf = (
     },
   });
   writer.setDisplayMode('fullheight');
+  const doc = writer.getDoc();
 
   writer.setProperties({
     title: titel,
@@ -137,8 +151,8 @@ export const generateTafFordeltPaaAarPdf = (
     writer.setFont('helvetica', 'normal');
     writer.writeWrappedText('Ingen');
     writer.addFooter();
-    writer.save('Tabt arbejdsfortjeneste fordelt på år.pdf');
-    return;
+    writer.save(FILE_NAME);
+    return doc;
   } else {
     for (const line of model.tabtArbejdsfortjeneste.tafPerioderLinjer) {
       writer.writeWrappedText(line);
@@ -150,8 +164,8 @@ export const generateTafFordeltPaaAarPdf = (
     writer.setFont('helvetica', 'normal');
     writer.writeWrappedText('TAF fordelt på år kan ikke beregnes for den valgte opsætning.');
     writer.addFooter();
-    writer.save('Tabt arbejdsfortjeneste fordelt på år.pdf');
-    return;
+    writer.save(FILE_NAME);
+    return doc;
   }
 
   // ─── TAF fordelt på kalenderår ────────────────────────────────────────
@@ -190,7 +204,7 @@ export const generateTafFordeltPaaAarPdf = (
     }
 
     // I alt for året
-    const iAltRightText = ensureNonBreakingKr(formatMoneyOreWithKr(yearEntry.yearTafOre));
+    const iAltRightText = ensureNonBreakingKr(formatMoneyOreWithKr(clampNegativeOreToZero(yearEntry.yearTafOre)));
     writer.writeLeftRightText('I alt', iAltRightText, {
       rightFontStyle: 'normal',
       lineAboveRightWidth: 33.125,
@@ -206,18 +220,18 @@ export const generateTafFordeltPaaAarPdf = (
 
   // Per-år linjer
   for (const yearEntry of presentation.years) {
-    const rightText = ensureNonBreakingKr(formatMoneyOreWithKr(yearEntry.yearTafOre));
+    const rightText = ensureNonBreakingKr(formatMoneyOreWithKr(clampNegativeOreToZero(yearEntry.yearTafOre)));
     writer.writeLeftRightText(`${yearEntry.year}`, rightText, { rightFontStyle: 'normal', minRightColumnWidth: rightMaxWidth });
   }
 
   // Afrunding (kun vist når den ikke er 0)
   if (presentation.afrundingOre !== 0) {
-    const afrundingText = ensureNonBreakingKr(formatMoneyOreWithKr(presentation.afrundingOre));
+    const afrundingText = ensureNonBreakingKr(formatMoneyOreWithKr(clampNegativeOreToZero(presentation.afrundingOre)));
     writer.writeLeftRightText('Afrunding', afrundingText, { rightFontStyle: 'normal', minRightColumnWidth: rightMaxWidth });
   }
 
   // Samlet TAF-krav (fed, med streg)
-  const samletText = ensureNonBreakingKr(formatMoneyOreWithKr(presentation.samletTafKravOre));
+  const samletText = ensureNonBreakingKr(formatMoneyOreWithKr(clampNegativeOreToZero(presentation.samletTafKravOre)));
   writer.writeLeftRightText('Samlet TAF-krav', samletText, {
     rightFontStyle: 'bold',
     lineAboveRightWidth: 33.125,
@@ -227,5 +241,6 @@ export const generateTafFordeltPaaAarPdf = (
 
   // Footer og gem
   writer.addFooter();
-  writer.save('Tabt arbejdsfortjeneste fordelt på år.pdf');
+  writer.save(FILE_NAME);
+  return doc;
 };

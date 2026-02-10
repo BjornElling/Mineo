@@ -20,7 +20,7 @@ export const deriveOffentligeYdelserRow = (row: OffentligeYdelserRow): Offentlig
   const tilDato = row.tilDato?.trim() ? row.tilDato : undefined;
 
   const antalDage = beregnPeriodiseringsDage(fraDato, tilDato, config.periodisering, ydelsestypeKey);
-  if (!antalDage || antalDage === 0) return { periodiseringLabel, antalDage: null, ydelsePerDag: null };
+  if (!antalDage || antalDage <= 0) return { periodiseringLabel, antalDage: null, ydelsePerDag: null };
 
   const ydelseValue = amountValueToNumber(row.ydelse);
   const tillaegValue = amountValueToNumber(row.tillaeg);

@@ -14,6 +14,7 @@ import { ydelsestyper } from '../../data/ydelsestyper';
 import { mergeIsoDateRanges } from './periodMerging';
 import { buildClampedTafRanges, resolveTafConstraintBounds } from './tafPeriodConstraints';
 import { getAarsloenErrorRowIdSet } from './indkomstRowValidation';
+import { isoDateToDate } from '../dates/isoDate';
 
 export type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
 
@@ -43,14 +44,6 @@ const toUtcDay = (date: Date): Date => {
   return createDate(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
 };
 
-const isoDateToUtcDate = (isoDate: ISODateString): Date => {
-  const [yearStr, monthStr, dayStr] = isoDate.split('-');
-  const year = Number.parseInt(yearStr, 10);
-  const month = Number.parseInt(monthStr, 10);
-  const day = Number.parseInt(dayStr, 10);
-  return createDate(year, month - 1, day);
-};
-
 const getIsoRange = (fra: ISODateString | undefined, til: ISODateString | undefined): IsoRange | undefined => {
   if (!fra || !til) return undefined;
   if (fra > til) return undefined;
@@ -61,8 +54,8 @@ const getOverlapDays = (interval: DateInterval, ranges: readonly IsoRange[]): nu
   if (ranges.length === 0) return 0;
   let total = 0;
   for (const range of ranges) {
-    const rangeStart = isoDateToUtcDate(range.fra);
-    const rangeEnd = isoDateToUtcDate(range.til);
+    const rangeStart = isoDateToDate(range.fra);
+    const rangeEnd = isoDateToDate(range.til);
     const start = interval.start > rangeStart ? interval.start : rangeStart;
     const end = interval.end < rangeEnd ? interval.end : rangeEnd;
     if (start > end) continue;

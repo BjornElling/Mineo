@@ -193,6 +193,11 @@ export const ensureMoneyOre = (value: number): MoneyOre => {
   return value as MoneyOre;
 };
 
+// Totallinjer må aldrig være negative (max(0, beregnet)).
+export const clampMoneyOreToZero = (value: MoneyOre): MoneyOre => {
+  return value < 0 ? ensureMoneyOre(0) : value;
+};
+
 // Afrunding til 2 decimaler med "half away from zero" (samme regel på tværs af hele PDF-modellen)
 export const roundKroner = (value: number): number => roundHalfAwayFromZero(value, 2);
 
@@ -202,7 +207,8 @@ export const toOre = (value: MoneyKroner): MoneyOre => {
   }
   const scaled = value * 100;
   const rounded = Math.round(scaled);
-  // Epsilon 1e-4 for at undgå false positives fra floating-point afrunding ved store beløb
+  // Epsilon 1e-4 for at undgå false positives fra floating-point afrunding ved store beløb.
+  // Verificeret: toOre(999999.99) er OK, toOre(1.005) kaster (mere end 2 decimaler).
   if (Math.abs(scaled - rounded) > 1e-4) {
     throw new Error('Beløb har flere end 2 decimaler');
   }
@@ -224,14 +230,6 @@ const fromOre = (value: MoneyOre): MoneyKroner => value / 100;
 const formatDateShort = formatDateShortShared;
 
 const formatDateLong = formatDateLongShared;
-
-const isoDateToUtcDate = (isoDate: ISODateString): Date => {
-  const [yearStr, monthStr, dayStr] = isoDate.split('-');
-  const year = Number.parseInt(yearStr, 10);
-  const month = Number.parseInt(monthStr, 10);
-  const day = Number.parseInt(dayStr, 10);
-  return new Date(Date.UTC(year, month - 1, day));
-};
 
 const formatUtcToIso = (date: Date): ISODateString => {
   const year = date.getUTCFullYear();
@@ -266,8 +264,8 @@ const buildFerieDageSet = (
   for (const periode of ferieperioder) {
     if (!periode.fra || !periode.til) continue;
     if (periode.fra > periode.til) continue;
-    const ferieFra = isoDateToUtcDate(periode.fra);
-    const ferieTil = isoDateToUtcDate(periode.til);
+    const ferieFra = isoDateToDate(periode.fra);
+    const ferieTil = isoDateToDate(periode.til);
     let ferieCurrent = new Date(ferieFra);
     while (ferieCurrent <= ferieTil) {
       const isoStr = formatUtcToIso(ferieCurrent);
@@ -306,8 +304,8 @@ const collectTafArbejdsdageForRange = (
   ferieperioder: readonly { fra?: ISODateString; til?: ISODateString }[],
   loseFeriedage: number
 ): Set<ISODateString> => {
-  const fraDate = isoDateToUtcDate(fra);
-  const tilDate = isoDateToUtcDate(til);
+  const fraDate = isoDateToDate(fra);
+  const tilDate = isoDateToDate(til);
 
   const datoSet = new Set<ISODateString>();
   let currentDate = new Date(fraDate);
@@ -336,7 +334,7 @@ const collectTafArbejdsdageForRange = (
 
   const arbejdsdage = new Set<ISODateString>();
   for (const isoStr of datoSet) {
-    const date = isoDateToUtcDate(isoStr);
+    const date = isoDateToDate(isoStr);
     if (!isWeekdayUtc(date)) continue;
     if (ferieDageSet.has(isoStr)) continue;
     if (shDageSet.has(isoStr)) continue;
@@ -383,8 +381,8 @@ export const buildTafArbejdsdageSet = (values: ErstatningsopgoerelseValues): Set
 };
 
 export const countTafArbejdsdageInRange = (arbejdsdage: ReadonlySet<ISODateString>, fra: ISODateString, til: ISODateString): number => {
-  const fraDate = isoDateToUtcDate(fra);
-  const tilDate = isoDateToUtcDate(til);
+  const fraDate = isoDateToDate(fra);
+  const tilDate = isoDateToDate(til);
   let count = 0;
   let currentDate = new Date(fraDate);
   while (currentDate <= tilDate) {
@@ -686,7 +684,7 @@ const buildSvieSmerteModel = (
     const beloebFoerFradrag = Math.min(rawKroner, Math.max(0, restPlads));
     maxApplied = rawKroner > Math.max(0, restPlads);
     const beloeb = Math.max(0, beloebFoerFradrag - allerede);
-    totalOre = toOre(roundKroner(beloeb));
+    totalOre = clampMoneyOreToZero(toOre(roundKroner(beloeb)));
   }
 
   return {
@@ -706,7 +704,7 @@ const buildSvieSmerteModel = (
     delviseSygedage,
     delvisFaktor,
     maxApplied,
-    totalOre,
+    totalOre: clampMoneyOreToZero(totalOre),
   };
 };
 
@@ -886,7 +884,7 @@ const buildIndkomstSkadestidspunkt = (
             fpFvShSoOre: toOre(roundKroner(perEmployment.fpFvShSo)),
             pensionOre: toOre(roundKroner(perEmployment.pension)),
             atpOre: toOre(roundKroner(perEmployment.atp)),
-            samletOre: toOre(roundKroner(perEmployment.samlet)),
+            samletOre: clampMoneyOreToZero(toOre(roundKroner(perEmployment.samlet))),
           },
         });
       }
@@ -899,7 +897,7 @@ const buildIndkomstSkadestidspunkt = (
         fpFvShSoOre: toOre(roundKroner(sums.fpFvShSo)),
         pensionOre: toOre(roundKroner(sums.pension)),
         atpOre: toOre(roundKroner(sums.atp)),
-        samletOre: toOre(roundKroner(sums.samlet)),
+        samletOre: clampMoneyOreToZero(toOre(roundKroner(sums.samlet))),
       };
     }
 
@@ -1874,7 +1872,7 @@ const buildLoenudviklingModelV3 = (
     throw new Error('Loenudvikling kan ikke beregnes: ingen beregnede segmenter');
   }
 
-  const totalOre = ensureMoneyOre(beregnedeSegmenter.reduce((sum, segment) => sum + segment.amountOre, 0));
+  const totalOre = clampMoneyOreToZero(ensureMoneyOre(beregnedeSegmenter.reduce((sum, segment) => sum + segment.amountOre, 0)));
   return { loenudviklingLabel, loenudviklingTotal: asCalculable(totalOre), beregningsenhed: tafBeregningsenhed, beregnedeSegmenter };
 };
 
@@ -1890,7 +1888,7 @@ const buildTafIndtaegterModel = (values: ErstatningsopgoerelseValues, ranges: re
   });
 
   // Ingen indtægter i TAF-perioden er gyldigt og opgøres som 0 kr.
-  const totalOre = ensureMoneyOre(entries.reduce((acc, entry) => acc + entry.amountOre, 0));
+  const totalOre = clampMoneyOreToZero(ensureMoneyOre(entries.reduce((acc, entry) => acc + entry.amountOre, 0)));
   return {
     entries,
     total: asCalculable(totalOre),
@@ -1974,7 +1972,9 @@ const buildTabtArbejdsfortjenesteModel = (
     if (tafIndtaegter.total.status !== 'ok') {
       throw new Error('Indtaegter i TAF-perioden kan ikke beregnes');
     }
-    tabtArbejdsfortjenesteOre = ensureMoneyOre(loenudvikling.loenudviklingTotal.value - tafIndtaegter.total.value);
+    tabtArbejdsfortjenesteOre = clampMoneyOreToZero(
+      ensureMoneyOre(loenudvikling.loenudviklingTotal.value - tafIndtaegter.total.value)
+    );
   }
 
   return {
@@ -2009,7 +2009,7 @@ const buildOevrigeKravModel = (rows: OevrigeKravRow[]): OevrigeKravPdfModel => {
     entries.push({ dateText, udgiftTil, amountOre });
   }
 
-  const totalOre = ensureMoneyOre(entries.reduce((acc, entry) => acc + entry.amountOre, 0));
+  const totalOre = clampMoneyOreToZero(ensureMoneyOre(entries.reduce((acc, entry) => acc + entry.amountOre, 0)));
   return { entries, totalOre };
 };
 
@@ -2071,8 +2071,7 @@ const resolveDagsloenBase = (
 };
 
 const getDayAfter = (isoDate: ISODateString): ISODateString => {
-  const date = parseISODate(isoDate);
-  if (!date) return isoDate;
+  const date = isoDateToDate(isoDate);
   const nextDate = addUtcDays(date, 1);
   return formatUtcToIso(nextDate);
 };
@@ -2128,13 +2127,16 @@ export const buildErstatningsopgoerelsePdfModel = (
   const tabtArbejdsfortjeneste = buildTabtArbejdsfortjenesteModel(safeEo, safeStamdata);
   const oevrigeKrav = buildOevrigeKravModel(safeEo.oevrigeKravPerioder ?? []);
 
-  const totalOre = ensureMoneyOre(
-    svieSmerte.totalOre + tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre + oevrigeKrav.totalOre
+  const svieSmerteOre = clampMoneyOreToZero(svieSmerte.totalOre);
+  const tabtArbejdsfortjenesteOre = clampMoneyOreToZero(tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre);
+  const oevrigeKravOre = clampMoneyOreToZero(oevrigeKrav.totalOre);
+  const totalOre = clampMoneyOreToZero(
+    ensureMoneyOre(svieSmerteOre + tabtArbejdsfortjenesteOre + oevrigeKravOre)
   );
   const samlet = {
-    svieSmerteOre: svieSmerte.totalOre,
-    tabtArbejdsfortjenesteOre: tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre,
-    oevrigeKravOre: oevrigeKrav.totalOre,
+    svieSmerteOre,
+    tabtArbejdsfortjenesteOre,
+    oevrigeKravOre,
     totalOre,
   };
 

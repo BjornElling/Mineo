@@ -9,6 +9,7 @@ node_modules/
 # Production
 /build
 /dist
+.tmp-tsc/
 
 # Misc
 .DS_Store

@@ -163,6 +163,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [deleteTargetId, setDeleteTargetId] = React.useState<string | null>(null);
+  const [scrollTargetId, setScrollTargetId] = React.useState<string | null>(null);
 
   // State til fejlmeddelelser per Ansættelsesforhold
   const [satsErrors, setSatsErrors] = React.useState<Record<string, SatsErrorState>>({});
@@ -369,7 +370,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     [getReguleringsDatoForAnsaettelsesforhold, validateFeriePct, validateSats, validateStoreBededag]
   );
 
-  // Valider alle Ansættelsesforhold ved mount
+  // Valider alle Ansættelsesforhold ved ændringer i datagrundlaget
   React.useEffect(() => {
     const allErrors: Record<string, SatsErrorState> = {};
 
@@ -381,8 +382,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     });
 
     setSatsErrors(allErrors);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Kør kun ved mount (values er bevidst udeladt)
+  }, [values.loenindkomstAnsaettelsesforhold, validateAllSatserForAnsaettelsesforhold]);
 
   const getSaerligFraDatoReguleringLabel = React.useCallback((iso: ISODateString | undefined): string | undefined => {
     if (!iso) return undefined;
@@ -836,15 +836,18 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 
   const handleDeleteConfirm = React.useCallback(() => {
     if (!deleteTargetId) return;
-    setLoenindkomstManuelReguleringInputError(deleteTargetId, false);
-    setValues((prev) => ({
-      ...prev,
-      loenindkomstAnsaettelsesforhold: prev.loenindkomstAnsaettelsesforhold.filter(
-        (af) => af.id !== deleteTargetId
-      ),
-    }));
-    setDeleteDialogOpen(false);
-    setDeleteTargetId(null);
+    try {
+      setLoenindkomstManuelReguleringInputError(deleteTargetId, false);
+      setValues((prev) => ({
+        ...prev,
+        loenindkomstAnsaettelsesforhold: prev.loenindkomstAnsaettelsesforhold.filter(
+          (af) => af.id !== deleteTargetId
+        ),
+      }));
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeleteTargetId(null);
+    }
   }, [deleteTargetId, setLoenindkomstManuelReguleringInputError, setValues]);
 
   const handleMoveUp = React.useCallback((afId: string) => {
@@ -856,10 +859,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
       [nextItems[index - 1], nextItems[index]] = [nextItems[index], nextItems[index - 1]];
       return { ...prev, loenindkomstAnsaettelsesforhold: nextItems };
     });
-    setTimeout(() => {
-      const el = document.querySelector(`[data-mineo-row-id="${afId}"]`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 50);
+    setScrollTargetId(afId);
   }, [setValues]);
 
   const handleMoveDown = React.useCallback((afId: string) => {
@@ -871,11 +871,19 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
       [nextItems[index], nextItems[index + 1]] = [nextItems[index + 1], nextItems[index]];
       return { ...prev, loenindkomstAnsaettelsesforhold: nextItems };
     });
-    setTimeout(() => {
-      const el = document.querySelector(`[data-mineo-row-id="${afId}"]`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 50);
+    setScrollTargetId(afId);
   }, [setValues]);
+
+  React.useEffect(() => {
+    if (!scrollTargetId) return;
+    const id = scrollTargetId;
+    const handle = window.requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-mineo-row-id="${id}"]`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setScrollTargetId(null);
+    });
+    return () => window.cancelAnimationFrame(handle);
+  }, [scrollTargetId, values.loenindkomstAnsaettelsesforhold]);
 
   const handleDownloadReguleringPdf = React.useCallback(
     async (params: {

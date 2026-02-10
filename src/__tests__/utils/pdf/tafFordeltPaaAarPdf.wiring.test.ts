@@ -19,10 +19,14 @@ const {
 }));
 
 class MockJsPDF {
+  static instances: MockJsPDF[] = [];
   internal = { pageSize: { width: 210, height: 297 } };
   text = vi.fn();
   private currentFontName = 'helvetica';
   private currentFontStyle = 'normal';
+  constructor() {
+    MockJsPDF.instances.push(this);
+  }
   setFont = vi.fn((name: string, style: string) => {
     this.currentFontName = name;
     this.currentFontStyle = style;
@@ -100,6 +104,7 @@ const FAKE_RESULT: TafPerYearResult = {
 
 describe('tafFordeltPaaAarPdf wiring', () => {
   beforeEach(() => {
+    MockJsPDF.instances = [];
     buildErstatningsopgoerelsePdfModelMock.mockReturnValue(FAKE_MODEL);
     buildTafPerYearResultMock.mockReturnValue(FAKE_RESULT);
   });
@@ -129,12 +134,31 @@ describe('tafFordeltPaaAarPdf wiring', () => {
   it('gemmer PDF med korrekt filnavn', async () => {
     const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
 
-    generateTafFordeltPaaAarPdf({} as any, {} as any);
+    const doc = generateTafFordeltPaaAarPdf({} as any, {} as any);
+    const instance = MockJsPDF.instances.at(-1);
+    expect(doc).toBeInstanceOf(MockJsPDF);
+    expect(instance).toBeDefined();
+    expect(instance?.save).toHaveBeenCalledTimes(1);
+    expect(instance?.save).toHaveBeenCalledWith('Tabt arbejdsfortjeneste fordelt på år.pdf');
+  });
 
-    // jsPDF.save skal være kaldt med det rette filnavn
-    const instance = MockJsPDF.prototype;
-    // Vi kan verificere at save blev kaldt via mock - men da vi mocker jsPDF som klasse,
-    // er det nemmest at verificere at funktionen gennemføres uden fejl
-    // (null-check + throw er allerede testet ovenfor)
+  it('viser 0 kr. for negativt I alt pr. år', async () => {
+    buildTafPerYearResultMock.mockReturnValue({
+      ...FAKE_RESULT,
+      years: [
+        {
+          ...FAKE_RESULT.years[0],
+          yearTafOre: (-5000) as MoneyOre,
+        },
+      ],
+    });
+
+    const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
+
+    generateTafFordeltPaaAarPdf({} as any, {} as any);
+    const instance = MockJsPDF.instances.at(-1);
+    expect(instance).toBeDefined();
+    const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
+    expect(renderedText).toContain(`0,00\u00A0kr.`);
   });
 });

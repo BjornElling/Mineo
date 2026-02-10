@@ -4,8 +4,10 @@ import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { beregnHelligdage } from '../../utils/shDageBeregning';
 import { addDays, formatToISO } from '../../utils/dateUtils';
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR } from './tafBeregningsenhed';
+import { roundHalfAwayFromZero } from '../../utils/formatUtils';
 
-// TODO(a): Gennemgå hele appen for brug af begreberne "arbejdsdage" vs. "hverdage" og verificér at labels/tekster matcher beregningerne ift. fradrag/ikke-fradrag af SH-dage.
+// NOTE: "Arbejdsdage" i denne kontekst er hverdage minus SH-dage og feriedage,
+// mens "hverdage" er alle ugedage man-fre uden fradrag. Brug præcis terminologi i labels.
 
 export const calculateKalenderdageInclusive = (
   fra: ISODateString | undefined,
@@ -46,7 +48,7 @@ export const calculateTafAntalMaaneder = (
     oevrigeFravaersdage
   );
   if (praecis === null) return null;
-  return Math.round(praecis * 100) / 100;
+  return roundHalfAwayFromZero(praecis, 2);
 };
 
 export const calculateTafAntalMaanederPraecis = (
@@ -86,20 +88,24 @@ export const calculateTafAntalMaanederPraecis = (
   if (!fraDate || !tilDate) return null;
 
   // Opbyg set af alle dage i perioden
-  const periodeDage = new Set<ISODateString>();
+  const monthCounts = new Map<string, number>();
   let currentDate = new Date(fraDate);
   while (currentDate <= tilDate) {
-    periodeDage.add(formatToISO(currentDate));
+    const year = currentDate.getUTCFullYear();
+    const month = currentDate.getUTCMonth() + 1;
+    const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+    monthCounts.set(monthKey, (monthCounts.get(monthKey) ?? 0) + 1);
     currentDate = addDays(currentDate, 1);
   }
 
   // Beregn måned-værdier: hver dag tæller som 1/antal-dage-i-måneden
   let antalMaaneder = 0;
-  for (const isoStr of periodeDage) {
-    const year = Number.parseInt(isoStr.slice(0, 4), 10);
-    const month = Number.parseInt(isoStr.slice(5, 7), 10);
+  for (const [monthKey, count] of monthCounts) {
+    const [yearStr, monthStr] = monthKey.split('-');
+    const year = Number.parseInt(yearStr, 10);
+    const month = Number.parseInt(monthStr, 10);
     const dageIMaaned = new Date(Date.UTC(year, month, 0)).getUTCDate();
-    antalMaaneder += 1 / dageIMaaned;
+    antalMaaneder += count / dageIMaaned;
   }
 
   // Fradrag for øvrigt fravær uden løn i beregningsgrundlaget (4,8 % måned pr. dag).

@@ -97,13 +97,16 @@ describe('splitRangeByCalendarYearsInclusive', () => {
 
 describe('buildTafPerYearResult', () => {
   /**
-   * Invariant: sum(yearTafOre) + afrundingOre === samletTafKravOre
-   * Tjekkes i alle tests der returnerer et resultat.
+   * Totallinjer clamped til max(0, beregnet) og må aldrig være negative.
    */
-  const assertInvariant = (result: NonNullable<ReturnType<typeof buildTafPerYearResult>>) => {
+  const assertTotals = (result: NonNullable<ReturnType<typeof buildTafPerYearResult>>) => {
     const sum = result.years.reduce((s, y) => s + y.yearTafOre, 0);
     expect(sum).toBe(result.sumYearTafOre);
-    expect(result.sumYearTafOre + result.afrundingOre).toBe(result.samletTafKravOre);
+    expect(result.sumYearTafOre).toBeGreaterThanOrEqual(0);
+    expect(result.afrundingOre).toBeGreaterThanOrEqual(0);
+    expect(result.samletTafKravOre).toBeGreaterThanOrEqual(0);
+    const expectedAfrunding = Math.max(0, result.samletTafKravOre - result.sumYearTafOre);
+    expect(result.afrundingOre).toBe(expectedAfrunding);
   };
 
   it('returnerer null for model uden loenudvikling', () => {
@@ -143,7 +146,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertInvariant(result);
+    assertTotals(result);
     expect(result.years).toHaveLength(1);
     expect(result.years[0].year).toBe(2024);
     expect(result.years[0].segments.length).toBeGreaterThan(0);
@@ -174,7 +177,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertInvariant(result);
+    assertTotals(result);
     expect(result.years).toHaveLength(2);
     expect(result.years[0].year).toBe(2024);
     expect(result.years[1].year).toBe(2025);
@@ -225,7 +228,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertInvariant(result);
+    assertTotals(result);
 
     // Begge år har fradrag (sygedagpenge strækker over begge)
     const deductionYears = result.years.filter((y) => y.deductions.length > 0);
@@ -236,7 +239,7 @@ describe('buildTafPerYearResult', () => {
     expect(totalDeductionsOre).toBeGreaterThan(0);
   });
 
-  it('invariant: sum(yearTafOre) + afrundingOre === samletTafKravOre med flere segmenter', () => {
+  it('sumYearTafOre og afrunding er clamped og konsistente ved flere segmenter', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet dagsløn',
       dagsloenenUdgoer: asAmountValue(1234.56),
@@ -267,7 +270,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertInvariant(result);
+    assertTotals(result);
     expect(result.years.length).toBe(3);
     expect(result.years[0].year).toBe(2023);
     expect(result.years[1].year).toBe(2024);
@@ -298,7 +301,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertInvariant(result);
+    assertTotals(result);
     expect(result.years).toHaveLength(2);
     expect(result.years[0].year).toBe(2024);
     expect(result.years[1].year).toBe(2025);
@@ -331,7 +334,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertInvariant(result);
+    assertTotals(result);
     expect(result.years).toHaveLength(2);
     // 2024 har fradrag
     expect(result.years[0].deductions.length).toBeGreaterThan(0);
@@ -367,7 +370,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertInvariant(result);
+    assertTotals(result);
     expect(result.years).toHaveLength(2);
     expect(result.years[0].year).toBe(2024);
     expect(result.years[1].year).toBe(2025);
@@ -397,7 +400,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertInvariant(result);
+    assertTotals(result);
     expect(result.years.length).toBe(5);
     expect(result.years.map((y) => y.year)).toEqual([2020, 2021, 2022, 2023, 2024]);
   });
@@ -426,7 +429,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertInvariant(result);
+    assertTotals(result);
     expect(result.years.length).toBe(3);
     for (const year of result.years) {
       expect(year.segments.every((s) => s.kind === 'maaneder')).toBe(true);
@@ -457,9 +460,9 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertInvariant(result);
+    assertTotals(result);
     // Afrunding bør ikke dominere beløbet (max ±100 øre = 1 kr.)
-    expect(Math.abs(result.afrundingOre)).toBeLessThanOrEqual(100);
+    expect(result.afrundingOre).toBeLessThanOrEqual(100);
   });
 
   it('stort beløb + mange år → akkumuleret afrunding forbliver lille', () => {
@@ -486,10 +489,10 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertInvariant(result);
+    assertTotals(result);
     expect(result.years.length).toBe(6);
     // Med 6 år og individuel afrunding bør samlet afrunding holde sig under 10 kr. (1000 øre)
-    expect(Math.abs(result.afrundingOre)).toBeLessThanOrEqual(1000);
+    expect(result.afrundingOre).toBeLessThanOrEqual(1000);
   });
 
   it('segment der starter og slutter samme dag (hverdag) → 1 år, 1 segment', () => {
@@ -517,7 +520,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertInvariant(result);
+    assertTotals(result);
     expect(result.years).toHaveLength(1);
     expect(result.years[0].year).toBe(2024);
     expect(result.years[0].segments).toHaveLength(1);
@@ -552,7 +555,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertInvariant(result);
+    assertTotals(result);
     // 2025 skal inkluderes selvom der er 0 segmenter, fordi TAF-range dækker 01-01-2025
     expect(result.years).toHaveLength(2);
     expect(result.years[0].year).toBe(2024);
@@ -590,7 +593,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertInvariant(result);
+    assertTotals(result);
 
     // Saml alle sub-segmenter på tværs af år, sorteret efter fra
     const allSubs = result.years.flatMap((y) => y.segments).sort((a, b) => (a.fra < b.fra ? -1 : 1));

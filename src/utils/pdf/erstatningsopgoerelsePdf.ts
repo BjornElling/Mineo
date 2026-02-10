@@ -60,7 +60,10 @@ const MILLIMETERS_PER_INCH = 25.4;
 const EO_LEFT_WRAP_EXTRA_WIDTH_PX = 50;
 const EO_LEFT_WRAP_EXTRA_WIDTH_MM = (EO_LEFT_WRAP_EXTRA_WIDTH_PX * MILLIMETERS_PER_INCH) / CSS_PIXELS_PER_INCH;
 
-const formatCurrencyFromOre = (ore: MoneyOre): string => formatCurrency(ore / 100);
+const formatCurrencyFromOre = (ore: MoneyOre): string => {
+  if (!Number.isFinite(ore)) return '-';
+  return formatCurrency(ore / 100);
+};
 
 const renderMoney = (value: Calculable<MoneyOre>): string => {
   return value.status === 'ok' ? formatCurrencyFromOre(value.value) : '—';
@@ -92,11 +95,13 @@ const renderMoneyWithKrTrimmed = (value: Calculable<MoneyOre>): string => {
 const formatMoneyOreWithKrTrimmed = (ore: MoneyOre): string => `${formatCurrencyFromOreTrimmed(ore)}${NBSP}kr.`;
 
 const formatMaanederTrimmed = (value: number): string => {
+  if (!Number.isFinite(value)) return '-';
   const rounded = Math.round(value * 10000) / 10000;
   return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
 };
 
 const formatPercentDelta = (value: number): string => {
+  if (!Number.isFinite(value)) return '-';
   const abs = Math.abs(value);
   const rounded = Math.round(abs * 100) / 100;
   return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });

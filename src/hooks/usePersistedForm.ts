@@ -60,15 +60,26 @@ export const usePersistedForm = <K extends StorageKey>(
 ): UsePersistedFormReturn<PersistedSectionMap[K]> => {
   const { getPersistedData, persistData, clearPageData, clearFieldErrors, authoritativeSnapshotEpoch } = useFormPersistence();
 
+  const parsePersisted = React.useCallback((persisted: unknown): PersistedSectionMap[K] | null => {
+    const parsed = _schema.safeParse(persisted);
+    if (!parsed.success) {
+      console.warn(`[usePersistedForm] Ugyldig persisted data for '${pageKey}', bruger initialValues.`, parsed.error);
+      return null;
+    }
+    return parsed.data;
+  }, [_schema, pageKey]);
+
   // Defensiv merge med Zod validation
   const [values, setValuesState] = React.useState<PersistedSectionMap[K]>(() => {
-    const persisted = getPersistedData(pageKey);
+    const persistedRaw = getPersistedData(pageKey);
 
-    if (!persisted) {
+    if (!persistedRaw) {
       return initialValues;
     }
 
-    // Persistence-laget validerer; merge kun defaults ind.
+    const persisted = parsePersisted(persistedRaw);
+    if (!persisted) return initialValues;
+
     return { ...initialValues, ...persisted };
   });
 
@@ -76,15 +87,16 @@ export const usePersistedForm = <K extends StorageKey>(
 
   // Re-hydrate when an authoritative snapshot has been applied (e.g. file load).
   React.useEffect(() => {
-    const persisted = getPersistedData(pageKey);
+    const persistedRaw = getPersistedData(pageKey);
 
     try {
       bumpFormVersion();
       clearFieldErrors(pageKey);
-      if (!persisted) {
+      if (!persistedRaw) {
         setValuesState(initialValues);
       } else {
-        setValuesState({ ...initialValues, ...persisted });
+        const persisted = parsePersisted(persistedRaw);
+        setValuesState(persisted ? { ...initialValues, ...persisted } : initialValues);
       }
     } catch (error) {
       console.warn(`[usePersistedForm] Re-hydration fejl for '${pageKey}':`, error);
@@ -92,8 +104,7 @@ export const usePersistedForm = <K extends StorageKey>(
       clearFieldErrors(pageKey);
       setValuesState(initialValues);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authoritativeSnapshotEpoch]);
+  }, [authoritativeSnapshotEpoch, clearFieldErrors, getPersistedData, initialValues, pageKey, parsePersisted]);
 
   const setValues: React.Dispatch<React.SetStateAction<PersistedSectionMap[K]>> = React.useCallback(
     (updater) => {

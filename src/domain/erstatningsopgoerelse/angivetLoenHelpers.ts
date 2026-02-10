@@ -1,6 +1,6 @@
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { LOENPERIODE } from '../../types/common';
+import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/common';
 
 export const EO_ANGIVET_LOEN_ID = 'eo-angivet-loen';
 
@@ -25,13 +25,31 @@ export const getAngivetLoenOpreguleresFraDato = (
 export const resolveLoenudviklingKilde = (
   values: ErstatningsopgoerelseValues
 ): readonly LoenudviklingSource[] => {
-  if (values.beregnesUdFra === 'Beregningsperiode') {
-    return values.loenindkomstAnsaettelsesforhold ?? [];
+  const assertNever = (value: never): never => {
+    throw new Error(`Ukendt beregnesUdFra-værdi: ${String(value)}`);
+  };
+
+  switch (values.beregnesUdFra) {
+    case 'Beregningsperiode':
+      return values.loenindkomstAnsaettelsesforhold ?? [];
+    case 'Angivet månedsløn':
+    case 'Angivet dagsløn':
+      break;
+    default:
+      return assertNever(values.beregnesUdFra);
   }
 
   const eo = values.eoAngivetLoenLoenudvikling;
   // Lønudviklingsmotoren arbejder på månedlig regulering; angivet dagsløn er kun input-reference.
   const loenudviklingErOverenskomst = eo.loenudviklingBeregningsgrundlag === 'Overenskomst';
+  const loenPaaHelligdage = eo.loenPaaHelligdage;
+  if (
+    loenPaaHelligdage !== LOEN_PAA_HELLIGDAGE.ALMINDELIG &&
+    loenPaaHelligdage !== LOEN_PAA_HELLIGDAGE.SH_UDBETALING &&
+    loenPaaHelligdage !== LOEN_PAA_HELLIGDAGE.INGEN
+  ) {
+    throw new Error('Løn på helligdage mangler eller er ugyldig for angivet løn.');
+  }
 
   return [{
     id: EO_ANGIVET_LOEN_ID,
@@ -48,8 +66,8 @@ export const resolveLoenudviklingKilde = (
     pensionPct: undefined,
     loenperiode: LOENPERIODE.MAANED,
     fuldLoenUnderFerie: 'Ja',
-    // Deliberately no fallback; validator must catch missing selection for Overenskomst.
-    loenPaaHelligdage: eo.loenPaaHelligdage as LoenudviklingSource['loenPaaHelligdage'],
+    // Deliberately no fallback; invalid values must throw to avoid silent propagation.
+    loenPaaHelligdage,
     saerligFraDatoRegulering: eo.saerligFraDatoRegulering,
     indtaegtsoplysningerTableData: [],
     loenudviklingBeregningsgrundlag: eo.loenudviklingBeregningsgrundlag,
