@@ -675,8 +675,10 @@ const indtaegtFoerSkadenSchema = z.object({
   oevrigeFravaersdageBeskrivelse: optionalString,
   maanedsloenenUdgoer: nonNegativeAmountValue,
   dagsloenenUdgoer: nonNegativeAmountValue,
-  loenBaseretPaa: optionalString,
-  angivetLoenOpreguleresFraDato: optionalIsoDateString,
+  angivetMaanedsloenBaseretPaa: optionalString,
+  angivetMaanedsloenOpreguleresFraDato: optionalIsoDateString,
+  angivetDagsloenBaseretPaa: optionalString,
+  angivetDagsloenOpreguleresFraDato: optionalIsoDateString,
 }).strict();
 
 /**
@@ -830,6 +832,56 @@ const loenindkomstSchema = z.object({
   loenindkomstAnsaettelsesforhold: z.array(loenindkomstAnsaettelsesforholdSchema),
 }).strict();
 
+export const eoAngivetLoenLoenudviklingSchema = z.object({
+  overenskomstId: optionalString,
+  feriePct: percentageDecimal,
+  loenPaaHelligdage: z.preprocess(normalizeEmptyToUndefined, loenPaaHelligdageSchema.optional()),
+  saerligFraDatoRegulering: optionalIsoDateString,
+  loenudviklingBeregningsgrundlag: z.preprocess(normalizeEmptyToUndefined, loenudviklingBeregningsgrundlagEnum.optional()),
+  loenudviklingStatistikModel: z.preprocess(normalizeEmptyToUndefined, loenudviklingStatistikModelEnum.optional()),
+  loenudviklingKRLSatstabel: z.preprocess(normalizeEmptyToUndefined, krlSatstabelEnum.optional()),
+  loenudviklingManuelNavn: optionalString,
+  loenudviklingManuelTableData: z.array(loenudviklingManuelRowSchema).default([]),
+  offentligLoenType: z.preprocess(normalizeEmptyToUndefined, offentligLoenTypeEnum.optional()),
+  offentligLoenTrin: z.preprocess(
+    coerceToIntegerOrUndefined,
+    z.number()
+      .int()
+      .min(1, 'Skal være mindst 1')
+      .max(99, 'Må højst være 99')
+      .optional()
+  ),
+  offentligLoenGruppe: z.preprocess(
+    coerceToIntegerOrUndefined,
+    z.number()
+      .int()
+      .min(0, 'Skal være mindst 0')
+      .max(4, 'Må højst være 4')
+      .optional()
+  ),
+}).strict();
+
+export type EOAngivetLoenLoenudvikling = z.infer<typeof eoAngivetLoenLoenudviklingSchema>;
+
+const defaultEoAngivetLoenLoenudvikling: EOAngivetLoenLoenudvikling = {
+  overenskomstId: undefined,
+  feriePct: undefined,
+  loenPaaHelligdage: 'Almindelig løn',
+  saerligFraDatoRegulering: undefined,
+  loenudviklingBeregningsgrundlag: undefined,
+  loenudviklingStatistikModel: undefined,
+  loenudviklingKRLSatstabel: undefined,
+  loenudviklingManuelNavn: undefined,
+  loenudviklingManuelTableData: [],
+  offentligLoenType: 'Månedsløn',
+  offentligLoenTrin: undefined,
+  offentligLoenGruppe: undefined,
+};
+
+const eoAngivetLoenSchema = z.object({
+  eoAngivetLoenLoenudvikling: eoAngivetLoenLoenudviklingSchema.default(defaultEoAngivetLoenLoenudvikling),
+}).strict();
+
 export const erstatningsopgoerelseSchema = erstatningsopgoerelseBaseSchema
   .merge(aesAfgoerelserSchema)
   .merge(svieSmerteSchema)
@@ -837,6 +889,7 @@ export const erstatningsopgoerelseSchema = erstatningsopgoerelseBaseSchema
   .merge(indtaegtFoerSkadenSchema)
   .merge(sygeferiegodtgoerelseSchema)
   .merge(loenindkomstSchema)
+  .merge(eoAngivetLoenSchema)
   .strict();
 
 export type ErstatningsopgoerelseValues = z.infer<typeof erstatningsopgoerelseSchema>;

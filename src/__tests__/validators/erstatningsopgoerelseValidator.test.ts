@@ -209,6 +209,39 @@ describe('øvrige krav validering', () => {
 });
 
 // =============================================================================
+// TAF LØNUDVIKLINGSKRAV
+// =============================================================================
+
+describe('TAF lønudviklingskrav for aktiv kilde', () => {
+  it('fanger manglende overenskomst ved angivet løn med overenskomstregulering', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmount(1000),
+      eoAngivetLoenLoenudvikling: {
+        ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        overenskomstId: undefined,
+      },
+    });
+    expect(hasError(values, 'Overenskomst skal vælges')).toBe(true);
+  });
+
+  it('fanger manglende loenPaaHelligdage ved angivet loen med overenskomstregulering', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmount(1000),
+      eoAngivetLoenLoenudvikling: {
+        ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        overenskomstId: 'some-overenskomst-id',
+        loenPaaHelligdage: undefined,
+      },
+    });
+    expect(hasError(values, 'helligdage')).toBe(true);
+  });
+});
+
+// =============================================================================
 // SAMLET
 // =============================================================================
 
@@ -237,3 +270,5 @@ describe('samlet validering', () => {
     expect(isValid(values)).toBe(true);
   });
 });
+
+

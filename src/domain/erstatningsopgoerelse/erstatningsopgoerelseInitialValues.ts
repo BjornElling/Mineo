@@ -7,6 +7,21 @@ import { ensureOevrigeKravRows } from './oevrigeKravTableModel';
 import { appSettingsSchema, DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../settings/appSettingsSchema';
 import { erstatningsopgoerelseSchema } from '../../schemas/formSchemas';
 
+const createDefaultAngivetLoenLoenudvikling = (settings: AppSettings): PersistedSectionMap['erstatningsopgoerelse']['eoAngivetLoenLoenudvikling'] => ({
+  overenskomstId: undefined,
+  feriePct: undefined,
+  loenPaaHelligdage: settings.defaultLoenPaaHelligdage,
+  saerligFraDatoRegulering: undefined,
+  loenudviklingBeregningsgrundlag: undefined,
+  loenudviklingStatistikModel: undefined,
+  loenudviklingKRLSatstabel: undefined,
+  loenudviklingManuelNavn: '',
+  loenudviklingManuelTableData: [],
+  offentligLoenType: 'Månedsløn',
+  offentligLoenTrin: undefined,
+  offentligLoenGruppe: undefined,
+});
+
 /**
  * Opretter initial values for erstatningsopgørelse med settings-baserede standardværdier
  *
@@ -102,8 +117,10 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   oevrigeFravaersdageBeskrivelse: '',
   maanedsloenenUdgoer: undefined,
   dagsloenenUdgoer: undefined,
-  loenBaseretPaa: '',
-  angivetLoenOpreguleresFraDato: undefined,
+  angivetMaanedsloenBaseretPaa: '',
+  angivetMaanedsloenOpreguleresFraDato: undefined,
+  angivetDagsloenBaseretPaa: '',
+  angivetDagsloenOpreguleresFraDato: undefined,
 
   // Sygeferiegodtgørelse
   ferieMedLon: 'Nej',
@@ -143,6 +160,8 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
       overenskomstFilter: resolveDefaultOverenskomstFilter(settings),
     },
   ],
+
+  eoAngivetLoenLoenudvikling: createDefaultAngivetLoenLoenudvikling(safeSettings),
 
   // Løn-udvikling
   loenudviklingPaaGrundlagAf: '',

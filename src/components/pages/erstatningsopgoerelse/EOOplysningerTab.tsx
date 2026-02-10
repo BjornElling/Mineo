@@ -6,6 +6,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import { ContentPasteGo } from '@mui/icons-material';
+import Download from '@mui/icons-material/Download';
 import StyledTextField from '../../inputs/StyledTextField';
 import StyledDateField from '../../inputs/StyledDateField';
 import StyledDropdown from '../../inputs/StyledDropdown';
@@ -22,6 +23,7 @@ import TAFPeriodeTable from '../../tables/TAFPeriodeTable';
 import FerieperiodeTable from '../../tables/FerieperiodeTable';
 import BeregningsperiodeFerieTable from '../../tables/BeregningsperiodeFerieTable';
 import OevrigeKravTable from '../../tables/OevrigeKravTable';
+import LoenudviklingManuelTable from '../../tables/LoenudviklingManuelTable';
 import useSvieSmerteRows from '../../tables/useSvieSmerteRows';
 import useTafRows from '../../tables/useTafRows';
 import useFerieRows from '../../tables/useFerieRows';
@@ -34,20 +36,36 @@ import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
 import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
 import {
   type ErstatningsopgoerelseValues,
+  type EOAngivetLoenLoenudvikling,
   arbejdsstatusEnum,
   afsluttesMedEnum,
   beregningsmetodeEnum,
   helbredsstatusEnum,
+  krlSatstabelEnum,
+  loenudviklingBeregningsgrundlagEnum,
+  loenudviklingStatistikModelEnum,
+  offentligLoenTypeEnum,
 } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../../types/branded';
 import { coerceToISODateString } from '../../../types/branded';
 import { isoDateToDate } from '../../../domain/dates/isoDate';
 import { calculateFerieHverdageMinusSHDage } from '../../../domain/erstatningsopgoerelse/ferieCalculations';
+import { EO_ANGIVET_LOEN_ID } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { buildBeregningsperiodeTafOverlap, buildTafDerived } from '../../../domain/erstatningsopgoerelse/tafEngine';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatningsopgoerelse/eoNummerValidering';
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
-import { getTodayLocalISO } from '../../../utils/dateUtils';
+import { formatDanishDate, getTodayLocalISO, parseISODate } from '../../../utils/dateUtils';
+import {
+  getOverenskomstMetaById,
+  getReguleringsDatoIntervalForOverenskomst,
+  isOffentligOverenskomstId,
+} from '../../../data/overenskomstRates';
+import { getReguleringsDatoIntervalForStatistikModel } from '../../../data/statistiskLoenudviklingRates';
+import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
+import { loadKRLPdfModule, loadReguleringPdfModule } from '../../../utils/pdf/pdfLoader';
+import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
+import { useAppSettings } from '../../../contexts/AppSettingsContext';
 
 type JaNej = 'Ja' | 'Nej';
 
@@ -64,6 +82,8 @@ type NumberLikeKeys = {
 type AmountLikeKeys = {
   [K in keyof ErstatningsopgoerelseValues]-?: ErstatningsopgoerelseValues[K] extends AmountValue | undefined ? K : never;
 }[keyof ErstatningsopgoerelseValues];
+
+type ReguleringsDatoInterval = Readonly<{ fraDato: string; tilDato: string }>;
 
 /**
  * Henter skadesdato fra persisted stamdata (via FormPersistenceContext).
@@ -108,6 +128,8 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 
   const skadesdatoISO = useSkadesdatoFromStamdata();
   const skadestypeFromStamdata = useSkadestypeFromStamdata();
+  const { settings } = useAppSettings();
+  const { getPersistedData, setLoenindkomstManuelReguleringInputError } = useFormPersistence();
 
   // Beregn minDate for øvrige krav-tabel
   const oevrigeKravMinDate = React.useMemo(() => {
@@ -205,6 +227,84 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     setValues((prev) => ({ ...prev, erstatningsopgoerelseAfsluttesMed: parsed.data }));
   }, [setValues]);
 
+  const visLoenudviklingFraEO =
+    values.beregnesUdFra === 'Angivet månedsløn' || values.beregnesUdFra === 'Angivet dagsløn';
+  const eoLoenudvikling = values.eoAngivetLoenLoenudvikling;
+
+  const updateEoLoenudvikling = React.useCallback(
+    (updater: (prev: EOAngivetLoenLoenudvikling) => EOAngivetLoenLoenudvikling) => {
+      setValues((prev) => ({ ...prev, eoAngivetLoenLoenudvikling: updater(prev.eoAngivetLoenLoenudvikling) }));
+    },
+    [setValues]
+  );
+
+  const handleLoenudviklingBeregningsgrundlagChange = React.useCallback((event: ValueChangeEvent<unknown>) => {
+    const parsed = loenudviklingBeregningsgrundlagEnum.safeParse(event.target.value);
+    updateEoLoenudvikling((prev) => ({
+      ...prev,
+      loenudviklingBeregningsgrundlag: parsed.success ? parsed.data : undefined,
+    }));
+  }, [updateEoLoenudvikling]);
+
+  const handleLoenudviklingStatistikModelChange = React.useCallback((event: ValueChangeEvent<unknown>) => {
+    const parsed = loenudviklingStatistikModelEnum.safeParse(event.target.value);
+    updateEoLoenudvikling((prev) => ({
+      ...prev,
+      loenudviklingStatistikModel: parsed.success ? parsed.data : undefined,
+    }));
+  }, [updateEoLoenudvikling]);
+
+  const handleLoenudviklingKRLSatstabelChange = React.useCallback((event: ValueChangeEvent<unknown>) => {
+    const parsed = krlSatstabelEnum.safeParse(event.target.value);
+    updateEoLoenudvikling((prev) => ({
+      ...prev,
+      loenudviklingKRLSatstabel: parsed.success ? parsed.data : undefined,
+    }));
+  }, [updateEoLoenudvikling]);
+
+  const handleOffentligLoenTypeChange = React.useCallback((event: ValueChangeEvent<unknown>) => {
+    const parsed = offentligLoenTypeEnum.safeParse(event.target.value);
+    updateEoLoenudvikling((prev) => ({
+      ...prev,
+      offentligLoenType: parsed.success ? parsed.data : prev.offentligLoenType,
+    }));
+  }, [updateEoLoenudvikling]);
+
+  const handleOffentligLoenTrinCommit = React.useCallback((event: { target: { value: number | undefined } }) => {
+    updateEoLoenudvikling((prev) => ({
+      ...prev,
+      offentligLoenTrin: event.target.value,
+    }));
+  }, [updateEoLoenudvikling]);
+
+  const handleOffentligLoenGruppeCommit = React.useCallback((event: { target: { value: number | undefined } }) => {
+    updateEoLoenudvikling((prev) => ({
+      ...prev,
+      offentligLoenGruppe: event.target.value,
+    }));
+  }, [updateEoLoenudvikling]);
+
+  const handleLoenudviklingManuelNavnCommit = React.useCallback((event: CommitEvent<string | undefined>) => {
+    const trimmed = (event.target.value ?? '').trim();
+    updateEoLoenudvikling((prev) => ({
+      ...prev,
+      loenudviklingManuelNavn: trimmed,
+    }));
+  }, [updateEoLoenudvikling]);
+
+  const handleLoenudviklingManuelTableChange = React.useCallback((
+    tableData: EOAngivetLoenLoenudvikling['loenudviklingManuelTableData']
+  ) => {
+    updateEoLoenudvikling((prev) => ({
+      ...prev,
+      loenudviklingManuelTableData: tableData,
+    }));
+  }, [updateEoLoenudvikling]);
+
+  const handleLoenudviklingManuelInputErrorChange = React.useCallback((hasError: boolean) => {
+    setLoenindkomstManuelReguleringInputError(EO_ANGIVET_LOEN_ID, hasError);
+  }, [setLoenindkomstManuelReguleringInputError]);
+
   type IsoDateFieldName =
     | 'vedroererPeriodeFra'
     | 'vedroererPeriodeTil'
@@ -219,7 +319,8 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     | 'sidsteDagAnsaettelsesforhold'
     | 'periodeTilBeregningFra'
     | 'periodeTilBeregningTil'
-    | 'angivetLoenOpreguleresFraDato';
+    | 'angivetMaanedsloenOpreguleresFraDato'
+    | 'angivetDagsloenOpreguleresFraDato';
 
   const handleIsoDateBlur = React.useCallback(
     (fieldName: IsoDateFieldName) =>
@@ -422,6 +523,88 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     return `Det angivne beløb afspejler ${loenLabel}en per dato (hvis forskellige fra skadesdato)`;
   }, [values.beregnesUdFra]);
 
+  const loenudviklingBasis = eoLoenudvikling.loenudviklingBeregningsgrundlag;
+  const erOffentligOverenskomst = Boolean(
+    eoLoenudvikling.overenskomstId &&
+    isOffentligOverenskomstId(eoLoenudvikling.overenskomstId)
+  );
+
+  const aktivAngivetLoenOpreguleresFraDato =
+    values.beregnesUdFra === 'Angivet månedsløn'
+      ? values.angivetMaanedsloenOpreguleresFraDato
+      : values.beregnesUdFra === 'Angivet dagsløn'
+        ? values.angivetDagsloenOpreguleresFraDato
+        : undefined;
+
+  const loenudviklingBaseDateDisplay = React.useMemo(() => {
+    const baseIso = aktivAngivetLoenOpreguleresFraDato || skadesdatoISO;
+    const parsed = baseIso ? parseISODate(baseIso) : null;
+    if (!parsed) return '';
+    return formatDanishDate(parsed);
+  }, [aktivAngivetLoenOpreguleresFraDato, skadesdatoISO]);
+
+  const shouldShowReguleringsDatoInterval = React.useMemo(() => {
+    return loenudviklingBasis === 'Overenskomst'
+      || (loenudviklingBasis === 'Statistik' && Boolean(eoLoenudvikling.loenudviklingStatistikModel))
+      || (loenudviklingBasis === 'KRL satstabel' && Boolean(eoLoenudvikling.loenudviklingKRLSatstabel));
+  }, [eoLoenudvikling.loenudviklingKRLSatstabel, eoLoenudvikling.loenudviklingStatistikModel, loenudviklingBasis]);
+
+  const reguleringsDatoIntervalData: ReguleringsDatoInterval | undefined = React.useMemo(() => {
+    if (!shouldShowReguleringsDatoInterval) return undefined;
+    if (loenudviklingBasis === 'Overenskomst') {
+      return getReguleringsDatoIntervalForOverenskomst(eoLoenudvikling.overenskomstId ?? '');
+    }
+    if (loenudviklingBasis === 'Statistik') {
+      return getReguleringsDatoIntervalForStatistikModel(eoLoenudvikling.loenudviklingStatistikModel ?? '');
+    }
+    if (loenudviklingBasis === 'KRL satstabel' && eoLoenudvikling.loenudviklingKRLSatstabel) {
+      return getReguleringsDatoIntervalForKRL(eoLoenudvikling.loenudviklingKRLSatstabel as KRLSatstabelId);
+    }
+    return undefined;
+  }, [eoLoenudvikling.loenudviklingKRLSatstabel, eoLoenudvikling.loenudviklingStatistikModel, eoLoenudvikling.overenskomstId, loenudviklingBasis, shouldShowReguleringsDatoInterval]);
+
+  const reguleringsDatoIntervalDisplay =
+    reguleringsDatoIntervalData ? `${reguleringsDatoIntervalData.fraDato} - ${reguleringsDatoIntervalData.tilDato}` : '';
+
+  const handleDownloadReguleringPdf = React.useCallback(
+    async (params: {
+      overenskomstLabel: string;
+      loenudviklingBasis: 'Overenskomst' | 'Statistik';
+      overenskomstId: string | undefined;
+      statistikModelLabel: string | undefined;
+      interval: ReguleringsDatoInterval;
+      applyAlmindeligLoenPaaShDageRegel: boolean;
+      offentligLoenType?: string;
+      offentligLoenTrin?: number;
+      offentligLoenGruppe?: number;
+    }) => {
+      try {
+        const stamdata = getPersistedData('stamdata');
+        const visBrevhoved = getVisBrevhoved(settings, 'regulering');
+        const { generateReguleringPdf } = await loadReguleringPdfModule();
+        generateReguleringPdf({
+          ...params,
+          visBrevhoved,
+          stamdata,
+        });
+      } catch (error) {
+        console.error('Kunne ikke indlæse PDF-modulet for regulering:', error);
+      }
+    },
+    [getPersistedData, settings]
+  );
+
+  const handleDownloadKRLPdf = React.useCallback(async () => {
+    try {
+      const stamdata = getPersistedData('stamdata');
+      const visBrevhoved = getVisBrevhoved(settings, 'regulering');
+      const { generateKRLPdf } = await loadKRLPdfModule();
+      generateKRLPdf({ visBrevhoved, stamdata });
+    } catch (error) {
+      console.error('Kunne ikke indlæse PDF-modulet for KRL satstabel:', error);
+    }
+  }, [getPersistedData, settings]);
+
   const statusSubheaderLabel = React.useMemo(() => {
     const label = formatLabelDayAfterIsoDate(
       'Status ved erstatningsperiodens udløb',
@@ -447,10 +630,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     return values.endeligEETVirkningsdato || values.endeligEETAfgoerelseDato;
   }, [values.endeligtEetAfgorelse, values.endeligEETVirkningsdato, values.endeligEETAfgoerelseDato]);
 
-  // Hent stamdata og tjek om skadestype er erhvervssygdom
-  const { getPersistedData: getStamdata } = useFormPersistence();
-  const stamdata = getStamdata('stamdata');
-  const erErhvervssygdom = stamdata?.skadestype === 'Erhvervssygdom';
+  const erErhvervssygdom = skadestypeFromStamdata === 'Erhvervssygdom';
 
   const skadesdatoMinRule = React.useMemo(
     () =>
@@ -1249,8 +1429,16 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 <Box className="row--label-right-hover__content">
                   <StyledTextField
                     width={300}
-                    value={values.loenBaseretPaa || ''}
-                    onCommit={handleChange('loenBaseretPaa')}
+                    value={
+                      values.beregnesUdFra === 'Angivet månedsløn'
+                        ? (values.angivetMaanedsloenBaseretPaa || '')
+                        : (values.angivetDagsloenBaseretPaa || '')
+                    }
+                    onCommit={
+                      values.beregnesUdFra === 'Angivet månedsløn'
+                        ? handleChange('angivetMaanedsloenBaseretPaa')
+                        : handleChange('angivetDagsloenBaseretPaa')
+                    }
                   />
                 </Box>
               </Box>
@@ -1261,11 +1449,245 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 <Typography className="row--text">{angivetLoenOpreguleringLabel}</Typography>
                 <Box className="row--label-right-hover__content">
                   <StyledDateField
-                    value={values.angivetLoenOpreguleresFraDato}
-                    onCommit={handleIsoDateBlur('angivetLoenOpreguleresFraDato')}
+                    value={aktivAngivetLoenOpreguleresFraDato}
+                    onCommit={
+                      values.beregnesUdFra === 'Angivet månedsløn'
+                        ? handleIsoDateBlur('angivetMaanedsloenOpreguleresFraDato')
+                        : handleIsoDateBlur('angivetDagsloenOpreguleresFraDato')
+                    }
                   />
                 </Box>
               </Box>
+            )}
+
+            {visLoenudviklingFraEO && (
+              <>
+                <Typography className="row--subheading">Lønudvikling</Typography>
+
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">Lønudvikling beregnes ud fra</Typography>
+                  <Box className="row--label-right-hover__content">
+                    <StyledDropdown
+                      width={220}
+                      value={loenudviklingBasis}
+                      onChange={handleLoenudviklingBeregningsgrundlagChange}
+                      allowEmpty={true}
+                      placeholder="Vælg..."
+                    >
+                      <MenuItem value="Overenskomst">Overenskomst</MenuItem>
+                      <MenuItem value="Statistik">Statistik</MenuItem>
+                      <MenuItem value="KRL satstabel">KRL satstabel</MenuItem>
+                      <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
+                      <MenuItem value="Ingen">Ingen</MenuItem>
+                    </StyledDropdown>
+                  </Box>
+                </Box>
+
+                {loenudviklingBasis === 'Overenskomst' ? (
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">Overenskomst</Typography>
+                    <Box className="row--label-right-hover__content">
+                      <Typography className="row--text">
+                        {(() => {
+                          const id = eoLoenudvikling.overenskomstId;
+                          if (!id) return '-';
+                          return getOverenskomstMetaById(id)?.navn ?? id;
+                        })()}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ) : null}
+
+                {loenudviklingBasis === 'Overenskomst' && erOffentligOverenskomst ? (
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">Lønoplysninger</Typography>
+                    <Box className="row--label-right-hover__content">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                        <Typography className="row--text">Ansættelse</Typography>
+                        <StyledDropdown
+                          width={160}
+                          value={eoLoenudvikling.offentligLoenType ?? 'Månedsløn'}
+                          onChange={handleOffentligLoenTypeChange}
+                          allowEmpty={false}
+                        >
+                          {offentligLoenTypeEnum.options.map((option) => (
+                            <MenuItem key={option} value={option}>
+                              {option}
+                            </MenuItem>
+                          ))}
+                        </StyledDropdown>
+                        <Typography className="row--text">Løntrin</Typography>
+                        <StyledIntegerField
+                          value={eoLoenudvikling.offentligLoenTrin}
+                          onCommit={handleOffentligLoenTrinCommit}
+                          minValue={1}
+                          maxValue={55}
+                          maxDigits={2}
+                          width={80}
+                        />
+                        <Typography className="row--text">Gruppe</Typography>
+                        <StyledIntegerField
+                          value={eoLoenudvikling.offentligLoenGruppe}
+                          onCommit={handleOffentligLoenGruppeCommit}
+                          minValue={0}
+                          maxValue={4}
+                          maxDigits={1}
+                          width={70}
+                        />
+                      </Box>
+                    </Box>
+                  </Box>
+                ) : null}
+
+                {loenudviklingBasis === 'Statistik' ? (
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">Statistisk beregningsmodel</Typography>
+                    <Box className="row--label-right-hover__content">
+                      <StyledDropdown
+                        width={270}
+                        value={eoLoenudvikling.loenudviklingStatistikModel}
+                        onChange={handleLoenudviklingStatistikModelChange}
+                        allowEmpty={true}
+                        placeholder="Vælg..."
+                      >
+                        <MenuItem value="ASL-årslønsmaksimum">ASL-årslønsmaksimum</MenuItem>
+                        <MenuItem value="ILON12 (Danmarks Statistik)">ILON12 (Danmarks Statistik)</MenuItem>
+                        <MenuItem value="SBLON2 (Danmarks Statistik)">SBLON2 (Danmarks Statistik)</MenuItem>
+                      </StyledDropdown>
+                    </Box>
+                  </Box>
+                ) : null}
+
+                {loenudviklingBasis === 'KRL satstabel' ? (
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">Satstabel</Typography>
+                    <Box className="row--label-right-hover__content">
+                      <StyledDropdown
+                        width={270}
+                        value={eoLoenudvikling.loenudviklingKRLSatstabel}
+                        onChange={handleLoenudviklingKRLSatstabelChange}
+                        allowEmpty={true}
+                        placeholder="Vælg..."
+                      >
+                        {krlSatstabelEnum.options.map((satstabel) => (
+                          <MenuItem key={satstabel} value={satstabel}>
+                            {satstabel}
+                          </MenuItem>
+                        ))}
+                      </StyledDropdown>
+                    </Box>
+                  </Box>
+                ) : null}
+
+                {loenudviklingBasis === 'Manuelt angivet' ? (
+                  <Box sx={{ mt: 1 }}>
+                    <Box className="row--label-right-hover">
+                      <Typography className="row--text">Navn på reguleringsform</Typography>
+                      <Box className="row--label-right-hover__content">
+                        <StyledTextField
+                          width={300}
+                          value={eoLoenudvikling.loenudviklingManuelNavn || ''}
+                          onCommit={handleLoenudviklingManuelNavnCommit}
+                        />
+                      </Box>
+                    </Box>
+                    <LoenudviklingManuelTable
+                      tableData={eoLoenudvikling.loenudviklingManuelTableData}
+                      onTableDataChange={handleLoenudviklingManuelTableChange}
+                      onInputErrorChange={handleLoenudviklingManuelInputErrorChange}
+                      baseDateDisplay={loenudviklingBaseDateDisplay}
+                      baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? 'Skadesdato er ikke udfyldt' : undefined}
+                      useSmallFont={true}
+                    />
+                  </Box>
+                ) : null}
+
+                {shouldShowReguleringsDatoInterval ? (
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">Tilgængelige reguleringssatser</Typography>
+                    <Box className="row--label-right-hover__content">
+                      <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'flex-end', gap: 1 }}>
+                        {(() => {
+                          const hasReguleringsDatoInterval =
+                            Boolean(reguleringsDatoIntervalData?.fraDato) && Boolean(reguleringsDatoIntervalData?.tilDato);
+                          const offentligReady =
+                            !erOffentligOverenskomst
+                            || (
+                              typeof eoLoenudvikling.offentligLoenTrin === 'number'
+                              && typeof eoLoenudvikling.offentligLoenGruppe === 'number'
+                            );
+                          const canDownload =
+                            hasReguleringsDatoInterval &&
+                            (loenudviklingBasis !== 'Overenskomst' || offentligReady);
+                          return (
+                            <>
+                              <Typography className="row--text" sx={{ textAlign: 'right' }}>
+                                {reguleringsDatoIntervalDisplay || '-'}
+                              </Typography>
+                              <Box>
+                                <Box
+                                  onClick={() => {
+                                    if (!canDownload) return;
+                                    if (!reguleringsDatoIntervalData) return;
+                                    if (loenudviklingBasis === 'KRL satstabel') {
+                                      void handleDownloadKRLPdf();
+                                      return;
+                                    }
+                                    if (loenudviklingBasis !== 'Overenskomst' && loenudviklingBasis !== 'Statistik') {
+                                      return;
+                                    }
+                                    void handleDownloadReguleringPdf({
+                                      overenskomstLabel: (() => {
+                                        const id = eoLoenudvikling.overenskomstId;
+                                        if (!id) return '-';
+                                        return getOverenskomstMetaById(id)?.navn ?? id;
+                                      })(),
+                                      loenudviklingBasis,
+                                      overenskomstId: eoLoenudvikling.overenskomstId,
+                                      statistikModelLabel: eoLoenudvikling.loenudviklingStatistikModel,
+                                      interval: reguleringsDatoIntervalData,
+                                      applyAlmindeligLoenPaaShDageRegel: eoLoenudvikling.loenPaaHelligdage === 'Almindelig løn',
+                                      offentligLoenType: eoLoenudvikling.offentligLoenType,
+                                      offentligLoenTrin: eoLoenudvikling.offentligLoenTrin,
+                                      offentligLoenGruppe: eoLoenudvikling.offentligLoenGruppe,
+                                    });
+                                  }}
+                                  tabIndex={-1}
+                                  sx={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '6px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: canDownload ? 'pointer' : 'default',
+                                    transition: 'background-color 0.2s',
+                                    ...(canDownload && {
+                                      '&:hover': {
+                                        backgroundColor: '#e3f2fd',
+                                      },
+                                      '&:active': {
+                                        backgroundColor: '#bbdefb',
+                                      },
+                                    }),
+                                  }}
+                                >
+                                  <Download
+                                    sx={{
+                                      fontSize: '24px',
+                                      color: canDownload ? 'primary.main' : 'grey.500',
+                                    }}
+                                  />
+                                </Box>
+                              </Box>
+                            </>
+                          );
+                        })()}
+                      </Box>
+                    </Box>
+                  </Box>
+                ) : null}
+              </>
             )}
           </>
         )}
@@ -1313,13 +1735,3 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 EOOplysningerTab.displayName = 'EOOplysningerTab';
 
 export default EOOplysningerTab;
-
-
-
-
-
-
-
-
-
-

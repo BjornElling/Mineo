@@ -23,6 +23,7 @@ import { mergeDateRanges } from './periodMerging';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from './tafPeriodConstraints';
 import { isOffentligOverenskomstId } from '../../data/overenskomstRates';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
+import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from './angivetLoenHelpers';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -1739,17 +1740,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
   const rows: DebugRowModel[] = [];
 
   const formatDaNumber = (n: number): string => n.toLocaleString('da-DK');
-  const tafBeregnesSom = (() => {
-    switch (values.beregnesUdFra) {
-      case 'Angivet månedsløn':
-        return TAF_BEREGNES_SOM.MAANEDER;
-      case 'Angivet dagsløn':
-        return TAF_BEREGNES_SOM.ARBEJDSDAGE;
-      case 'Beregningsperiode':
-      default:
-        return computeTafBeregningsenhed(values);
-    }
-  })();
+  const tafBeregnesSom = computeTafBeregningsenhed(values);
 
   rows.push({
     id: 'taf.beregningsgrundlag.beregnesUdFra',
@@ -2197,8 +2188,11 @@ export const buildEODebugTafBeregningsgrundlagRows = (
 
   if (beregnesUdFra === 'Angivet månedsløn' || beregnesUdFra === 'Angivet dagsløn') {
     const loenBaseretPaaDisplay = resolveDebugDisplay({
-      value: values.loenBaseretPaa,
-      errors: errors.loenBaseretPaa,
+      value: getAngivetLoenBaseretPaa(values),
+      errors:
+        beregnesUdFra === 'Angivet månedsløn'
+          ? errors.angivetMaanedsloenBaseretPaa
+          : errors.angivetDagsloenBaseretPaa,
       emptyState: 'warning',
     });
 
@@ -2217,10 +2211,10 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     const loenLabel = beregnesUdFra === 'Angivet månedsløn' ? 'månedsløn' : 'dagsløn';
     const opreguleresLabel = `Det angivne beløb afspejler ${loenLabel}en den`;
 
-    const opreguleresFraISO = values.angivetLoenOpreguleresFraDato || stamdataValues.skadesdato;
+    const opreguleresFraISO = getAngivetLoenOpreguleresFraDato(values) || stamdataValues.skadesdato;
     const opreguleresFraDisplay = opreguleresFraISO ? isoToDanish(opreguleresFraISO) : undefined;
 
-    const hasMissingRequired = !values.angivetLoenOpreguleresFraDato && !stamdataValues.skadesdato;
+    const hasMissingRequired = !getAngivetLoenOpreguleresFraDato(values) && !stamdataValues.skadesdato;
 
     rows.push({
       id: 'taf.beregningsgrundlag.angivetLoenOpreguleresFraDato',
@@ -2276,7 +2270,13 @@ export const buildEODebugIndkomstRows = (
     });
   });
 
-  (values.loenindkomstAnsaettelsesforhold ?? []).forEach((ansaettelsesforhold) => {
+  const loenudviklingsKilde = resolveLoenudviklingKilde(values);
+
+  loenudviklingsKilde.forEach((ansaettelsesforhold) => {
+    const loenudviklingRowPrefix =
+      values.beregnesUdFra === 'Beregningsperiode'
+        ? `loenindkomst.${ansaettelsesforhold.id}.regulering`
+        : `taf.beregningsgrundlag.loenudvikling.${ansaettelsesforhold.id}`;
     const loenudviklingBasis = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
     let status: DebugStatus = 'ok';
     let message = '-';
@@ -2295,7 +2295,7 @@ export const buildEODebugIndkomstRows = (
       message = 'KRL satstabel er ikke valgt';
     }
 
-    const valgtReguleringRowId = `loenindkomst.${ansaettelsesforhold.id}.regulering.valgt` as const;
+    const valgtReguleringRowId = `${loenudviklingRowPrefix}.valgt`;
     rows.push({
       id: valgtReguleringRowId,
       label: 'Valgt regulering',
@@ -2312,7 +2312,7 @@ export const buildEODebugIndkomstRows = (
       ansaettelsesforhold.overenskomstId &&
       isOffentligOverenskomstId(ansaettelsesforhold.overenskomstId)
     ) {
-      const offentligtRowId = `loenindkomst.${ansaettelsesforhold.id}.regulering.offentligLoenoplysninger`;
+      const offentligtRowId = `${loenudviklingRowPrefix}.offentligLoenoplysninger`;
       const typeLabel = ansaettelsesforhold.offentligLoenType;
       const trinValue = ansaettelsesforhold.offentligLoenTrin;
       const gruppeValue = ansaettelsesforhold.offentligLoenGruppe;
@@ -2422,7 +2422,7 @@ export const buildEODebugIndkomstRows = (
       const manuelNavn = (ansaettelsesforhold.loenudviklingManuelNavn ?? '').trim();
       const harManuelNavn = manuelNavn !== '';
       rows.push({
-        id: `loenindkomst.${ansaettelsesforhold.id}.regulering.navn`,
+        id: `${loenudviklingRowPrefix}.navn`,
         label: 'Navn på reguleringsform',
         displayValue: formatStatusMessage(
           harManuelNavn ? 'ok' : 'warning',
@@ -2435,7 +2435,7 @@ export const buildEODebugIndkomstRows = (
 
     if (loenudviklingBasis !== 'Ingen') {
       rows.push({
-        id: `loenindkomst.${ansaettelsesforhold.id}.regulering.alleVaerdier`,
+        id: `${loenudviklingRowPrefix}.alleVaerdier`,
         label: 'Alle reguleringsværdier udfyldt',
         displayValue: alleReguleringsvaerdierRow.displayValue,
         status: alleReguleringsvaerdierRow.status,

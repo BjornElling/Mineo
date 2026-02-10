@@ -9,6 +9,9 @@ import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
 } from '../../../domain/erstatningsopgoerelse/sharedPdfUtils';
+import type { ISODateString } from '../../../types/branded';
+
+const iso = (value: string): ISODateString => value as ISODateString;
 
 // =============================================================================
 // parseOptionalIsoDate
@@ -74,9 +77,9 @@ describe('resolveReguleringsdato', () => {
   it('returnerer saerligFraDatoRegulering ved Beregningsperiode', () => {
     const result = resolveReguleringsdato({
       beregnesUdFra: 'Beregningsperiode',
-      angivetLoenOpreguleresFraDato: '2024-06-01',
-      saerligFraDatoRegulering: '2024-03-01',
-      skadesdato: '2024-01-01',
+      angivetLoenMetodeOpreguleresFraDato: iso('2024-06-01'),
+      saerligFraDatoRegulering: iso('2024-03-01'),
+      skadesdato: iso('2024-01-01'),
     });
     expect(result).toBe('2024-03-01');
   });
@@ -84,19 +87,19 @@ describe('resolveReguleringsdato', () => {
   it('falder tilbage til skadesdato ved Beregningsperiode uden saerligFraDato', () => {
     const result = resolveReguleringsdato({
       beregnesUdFra: 'Beregningsperiode',
-      angivetLoenOpreguleresFraDato: '2024-06-01',
+      angivetLoenMetodeOpreguleresFraDato: iso('2024-06-01'),
       saerligFraDatoRegulering: undefined,
-      skadesdato: '2024-01-01',
+      skadesdato: iso('2024-01-01'),
     });
     expect(result).toBe('2024-01-01');
   });
 
-  it('returnerer angivetLoenOpreguleresFraDato ved andre metoder', () => {
+  it('returnerer angivetLoenMetodeOpreguleresFraDato ved andre metoder', () => {
     const result = resolveReguleringsdato({
       beregnesUdFra: 'Angivet månedsløn',
-      angivetLoenOpreguleresFraDato: '2024-06-01',
-      saerligFraDatoRegulering: '2024-03-01',
-      skadesdato: '2024-01-01',
+      angivetLoenMetodeOpreguleresFraDato: iso('2024-06-01'),
+      saerligFraDatoRegulering: iso('2024-03-01'),
+      skadesdato: iso('2024-01-01'),
     });
     expect(result).toBe('2024-06-01');
   });
@@ -104,9 +107,9 @@ describe('resolveReguleringsdato', () => {
   it('falder tilbage til skadesdato ved andre metoder uden angivetLoenDato', () => {
     const result = resolveReguleringsdato({
       beregnesUdFra: 'Angivet månedsløn',
-      angivetLoenOpreguleresFraDato: undefined,
-      saerligFraDatoRegulering: '2024-03-01',
-      skadesdato: '2024-01-01',
+      angivetLoenMetodeOpreguleresFraDato: undefined,
+      saerligFraDatoRegulering: iso('2024-03-01'),
+      skadesdato: iso('2024-01-01'),
     });
     expect(result).toBe('2024-01-01');
   });
@@ -114,7 +117,7 @@ describe('resolveReguleringsdato', () => {
   it('returnerer undefined når intet er givet', () => {
     const result = resolveReguleringsdato({
       beregnesUdFra: undefined,
-      angivetLoenOpreguleresFraDato: undefined,
+      angivetLoenMetodeOpreguleresFraDato: undefined,
       saerligFraDatoRegulering: undefined,
       skadesdato: undefined,
     });
@@ -124,9 +127,9 @@ describe('resolveReguleringsdato', () => {
   it('ignorerer ugyldige datoer', () => {
     const result = resolveReguleringsdato({
       beregnesUdFra: 'Angivet månedsløn',
-      angivetLoenOpreguleresFraDato: 'not-a-date',
+      angivetLoenMetodeOpreguleresFraDato: undefined,
       saerligFraDatoRegulering: undefined,
-      skadesdato: '2024-01-01',
+      skadesdato: iso('2024-01-01'),
     });
     expect(result).toBe('2024-01-01');
   });
@@ -209,3 +212,5 @@ describe('konstanter', () => {
     expect(STORE_BEDEDAG_PCT).toBe(0.45);
   });
 });
+
+

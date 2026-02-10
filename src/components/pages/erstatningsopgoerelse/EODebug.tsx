@@ -53,6 +53,7 @@ import { ydelsestyper, type Periodisering } from '../../../data/ydelsestyper';
 import { calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/tafCalculations';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { computeTafOverlapWithBeregningsperiode } from '../../../domain/erstatningsopgoerelse/beregningsperiodeTafOverlap';
+import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 
 // Debug strategy:
 // - We intentionally read errors by source (input/schema/rule) to expose diagnostics.
@@ -611,7 +612,9 @@ const EODebug = () => {
   const { skadesdato, skadestype } = stamdataValues;
 
   const reguleringSections = React.useMemo(() => {
-    return loenindkomstAnsaettelsesforhold.map((af, index) => {
+    const loenudviklingsKilde = resolveLoenudviklingKilde(erstatningsopgoerelseValues);
+
+    return loenudviklingsKilde.map((af, index) => {
       const baseHeaderText = index === 0 ? 'Ansættelsesforhold' : `Ansættelsesforhold ${index + 1}`;
       const headerText = af.navnPaaArbejdssted ? `${baseHeaderText} (${af.navnPaaArbejdssted})` : baseHeaderText;
 
@@ -711,9 +714,7 @@ const EODebug = () => {
 
       const skadesdatoIso = isISODateString(skadesdato) ? skadesdato : undefined;
       const saerligDato = isISODateString(af.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined;
-      const angivetLoenDato = isISODateString(erstatningsopgoerelseValues.angivetLoenOpreguleresFraDato)
-        ? erstatningsopgoerelseValues.angivetLoenOpreguleresFraDato
-        : undefined;
+      const angivetLoenDato = getAngivetLoenOpreguleresFraDato(erstatningsopgoerelseValues);
       const reguleringsdato = erstatningsopgoerelseValues.beregnesUdFra !== 'Beregningsperiode'
         ? (angivetLoenDato ?? skadesdatoIso)
         : (saerligDato ?? skadesdatoIso);
@@ -1921,8 +1922,9 @@ const EODebug = () => {
     vedroererPeriodeTil,
     ferieperioder,
     skadesdato,
-    erstatningsopgoerelseValues.angivetLoenOpreguleresFraDato,
     erstatningsopgoerelseValues.beregnesUdFra,
+    erstatningsopgoerelseValues.angivetMaanedsloenOpreguleresFraDato,
+    erstatningsopgoerelseValues.angivetDagsloenOpreguleresFraDato,
   ]);
 
   const indkomstSections = React.useMemo(() => {
@@ -2010,8 +2012,6 @@ const EODebug = () => {
     const beregningsenhed = computeTafBeregningsenhed({
       beregnesUdFra: erstatningsopgoerelseValues.beregnesUdFra,
       loenindkomstAnsaettelsesforhold: erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? [],
-      oevrigtFravaerUdenLoen: erstatningsopgoerelseValues.oevrigtFravaerUdenLoen,
-      oevrigeFravaersdage: erstatningsopgoerelseValues.oevrigeFravaersdage,
     });
 
     const isWorkday = (iso: ISODateString, dateObj: Date): boolean => {
@@ -2233,8 +2233,6 @@ const EODebug = () => {
     const beregnesSom = computeTafBeregningsenhed({
       beregnesUdFra: erstatningsopgoerelseValues.beregnesUdFra,
       loenindkomstAnsaettelsesforhold: erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? [],
-      oevrigtFravaerUdenLoen: erstatningsopgoerelseValues.oevrigtFravaerUdenLoen,
-      oevrigeFravaersdage: erstatningsopgoerelseValues.oevrigeFravaersdage,
     });
 
     const divisor = beregnesSom === TAF_BEREGNES_SOM.MAANEDER ? maaneder : arbejdsdage;

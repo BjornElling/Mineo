@@ -8,6 +8,7 @@
 
 import type { ISODateString } from '../../types/branded';
 import { danishToISO, isISODateString } from '../../types/branded';
+import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import { formatIsoDateLong, formatIsoDateShort } from '../../utils/dateFormatting';
 import type { StatistiskLoenudviklingId } from '../../data/statistiskLoenudviklingRates';
 
@@ -78,26 +79,18 @@ export const formatPercentFixed2 = (value: number): string => {
  * Bestemmer reguleringsdato baseret på beregningsmetode.
  *
  * - Ved 'Beregningsperiode': saerligFraDatoRegulering (fra ansættelsesforholdet) ?? skadesdato
- * - Ved andre metoder: angivetLoenOpreguleresFraDato ?? skadesdato
+ * - Ved andre metoder: opreguleringsdato for den valgte angivet-løn-metode ?? skadesdato
  */
 export const resolveReguleringsdato = (params: {
-  beregnesUdFra: string | undefined;
-  angivetLoenOpreguleresFraDato: string | undefined;
-  saerligFraDatoRegulering: string | undefined;
-  skadesdato: string | undefined;
+  beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'] | undefined;
+  angivetLoenMetodeOpreguleresFraDato: ISODateString | undefined;
+  saerligFraDatoRegulering: ISODateString | undefined;
+  skadesdato: ISODateString | undefined;
 }): ISODateString | undefined => {
-  const skadesdato = isISODateString(params.skadesdato) ? params.skadesdato : undefined;
-  const angivetLoenDato = isISODateString(params.angivetLoenOpreguleresFraDato)
-    ? params.angivetLoenOpreguleresFraDato
-    : undefined;
-  const saerligDato = isISODateString(params.saerligFraDatoRegulering)
-    ? params.saerligFraDatoRegulering
-    : undefined;
-
   if (params.beregnesUdFra === 'Beregningsperiode') {
-    return saerligDato ?? skadesdato;
+    return params.saerligFraDatoRegulering ?? params.skadesdato;
   }
-  return angivetLoenDato ?? skadesdato;
+  return params.angivetLoenMetodeOpreguleresFraDato ?? params.skadesdato;
 };
 
 // =============================================================================

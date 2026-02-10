@@ -4,7 +4,7 @@ import { toISODateString } from '../../../types/branded';
 import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { LoenudviklingPdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
-import { buildErstatningsopgoerelsePdfModel, ensureMoneyOre } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
+import { buildErstatningsopgoerelsePdfModel, ensureMoneyOre, resolveLoenudviklingRowsV3 } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/tafCalculations';
 import { beregningsmetodeEnum, loenPaaHelligdageSchema, loenudviklingStatistikModelEnum } from '../../../schemas/formSchemas';
@@ -15,7 +15,29 @@ const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value }
 
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
   const base = structuredClone(ERSTATNINGSOPGOERELSE_INITIAL_VALUES);
-  return { ...base, ...patch };
+  const merged = { ...base, ...patch };
+  const isAngivet = merged.beregnesUdFra === 'Angivet månedsløn' || merged.beregnesUdFra === 'Angivet dagsløn';
+  if (isAngivet && patch.eoAngivetLoenLoenudvikling === undefined) {
+    const first = (patch.loenindkomstAnsaettelsesforhold ?? merged.loenindkomstAnsaettelsesforhold)?.[0];
+    if (first) {
+      merged.eoAngivetLoenLoenudvikling = {
+        ...merged.eoAngivetLoenLoenudvikling,
+        overenskomstId: first.overenskomstId,
+        feriePct: first.feriePct,
+        loenPaaHelligdage: first.loenPaaHelligdage,
+        saerligFraDatoRegulering: first.saerligFraDatoRegulering,
+        loenudviklingBeregningsgrundlag: first.loenudviklingBeregningsgrundlag,
+        loenudviklingStatistikModel: first.loenudviklingStatistikModel,
+        loenudviklingKRLSatstabel: first.loenudviklingKRLSatstabel,
+        loenudviklingManuelNavn: first.loenudviklingManuelNavn,
+        loenudviklingManuelTableData: first.loenudviklingManuelTableData,
+        offentligLoenType: first.offentligLoenType,
+        offentligLoenTrin: first.offentligLoenTrin,
+        offentligLoenGruppe: first.offentligLoenGruppe,
+      };
+    }
+  }
+  return merged;
 };
 
 const makeStamdata = (patch: Partial<StamdataValues>): StamdataValues => {
@@ -61,6 +83,39 @@ const assertTotalMatchesSegmentSum = (loenudvikling: LoenudviklingPdfModel | nul
 };
 
 describe('buildErstatningsopgoerelsePdfModel', () => {
+  it('uses all employments for lønudvikling in Beregningsperiode', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      loenindkomstAnsaettelsesforhold: [
+        { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0], id: 'a1' },
+        { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0], id: 'a2' },
+      ],
+    });
+    const rows = resolveLoenudviklingRowsV3(values);
+    expect(rows.map((r) => r.id)).toEqual(['a1', 'a2']);
+  });
+
+  it('uses only primary employment for lønudvikling in Angivet månedsløn', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      loenindkomstAnsaettelsesforhold: [
+        { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0], id: 'a1' },
+        { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0], id: 'a2' },
+      ],
+    });
+    const rows = resolveLoenudviklingRowsV3(values);
+    expect(rows.map((r) => r.id)).toEqual(['eo-angivet-loen']);
+  });
+
+  it('returns empty lønudvikling source when no employments exist', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Angivet dagsløn',
+      loenindkomstAnsaettelsesforhold: [],
+    });
+    const rows = resolveLoenudviklingRowsV3(values);
+    expect(rows.map((r) => r.id)).toEqual(['eo-angivet-loen']);
+  });
+
   it('enforcer MoneyOre invariants', () => {
     expect(ensureMoneyOre(0)).toBe(0);
     expect(() => ensureMoneyOre(Number.NaN)).toThrow('MoneyOre skal være et heltal');
@@ -79,6 +134,31 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     expect(model.samlet.totalOre).toBe(0);
     expect(model.oevrigeKrav.entries.length).toBe(0);
     expect(model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre).toBe(0);
+  });
+
+  it('treats missing TAF-period income as 0 kr. for angivet månedsløn', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(48705.13),
+      beregnesTabtArbejdsfortjeneste: 'Ja',
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2021-06-01'), til: iso('2021-08-15'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2021-06-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-10') });
+    expect(model.tabtArbejdsfortjeneste.tafIndtaegter?.total.status).toBe('ok');
+    if (model.tabtArbejdsfortjeneste.tafIndtaegter?.total.status === 'ok') {
+      expect(model.tabtArbejdsfortjeneste.tafIndtaegter.total.value).toBe(0);
+    }
   });
 
   it('beregner svie/smerte total i øre', () => {
@@ -668,10 +748,11 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     expect(segments[0].til).toBe('2024-01-31');
   });
 
-  it('fejler hurtigt ved inkonsistente ansaettelser i loenudvikling', () => {
+  it('fejler hurtigt ved inkonsistente ansaettelser i loenudvikling for beregningsperiode', () => {
     const eoValues = makeValues({
-      beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
-      maanedsloenenUdgoer: asAmountValue(25000),
+      beregnesUdFra: beregningsmetodeEnum.enum.Beregningsperiode,
+      periodeTilBeregningFra: iso('2023-01-01'),
+      periodeTilBeregningTil: iso('2023-12-31'),
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
       ],

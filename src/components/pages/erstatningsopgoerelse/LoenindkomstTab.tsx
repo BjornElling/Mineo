@@ -1349,6 +1349,8 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
               useSmallFont={true}
             />
 
+            {values.beregnesUdFra === 'Beregningsperiode' ? (
+              <>
             <Typography className="row--subheading">Lønudvikling</Typography>
 
             <Box className="row--label-right-hover">
@@ -1559,6 +1561,8 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                   </Box>
                 </Box>
               </Box>
+            ) : null}
+              </>
             ) : null}
 
             {/* Handlingsknapper – flex-container der fylder ud fra højre */}

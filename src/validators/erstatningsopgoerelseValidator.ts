@@ -23,6 +23,8 @@ import { svieSmertePrDag, svieSmerteMax } from '../data/regulationRates';
 import { amountValueToNumber } from '../utils/expressionAmount';
 import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/rowEmpty';
 import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/periodOverlapDetection';
+import { resolveLoenudviklingKilde } from '../domain/erstatningsopgoerelse/angivetLoenHelpers';
+import { resolveStatistikModelId } from '../domain/erstatningsopgoerelse/sharedPdfUtils';
 
 // =============================================================================
 // LAG 1: SCHEMA-VALIDERING
@@ -290,6 +292,7 @@ function validateTAF(values: ErstatningsopgoerelseValues): ValidationError[] {
 
   // Validér lønudvikling konsistens
   errors.push(...validateLoenudviklingKonsistens(values));
+  errors.push(...validateLoenudviklingsKravForAktivKilde(values));
 
   return errors;
 }
@@ -396,9 +399,9 @@ function validateBeregnesUdFra(values: ErstatningsopgoerelseValues): ValidationE
  */
 function validateLoenudviklingKonsistens(values: ErstatningsopgoerelseValues): ValidationError[] {
   const errors: ValidationError[] = [];
-  const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
+  const loenudviklingsKilde = resolveLoenudviklingKilde(values);
 
-  const active = ansaettelser.filter(
+  const active = loenudviklingsKilde.filter(
     (af) => af.loenudviklingBeregningsgrundlag && af.loenudviklingBeregningsgrundlag !== 'Ingen'
   );
   if (active.length <= 1) return errors;
@@ -483,6 +486,89 @@ function validateLoenudviklingKonsistens(values: ErstatningsopgoerelseValues): V
  * - Ikke-tomme rækker skal have dato, udgiftTil og beløb udfyldt
  * - Beløb kan ikke være negativt
  */
+function validateLoenudviklingsKravForAktivKilde(values: ErstatningsopgoerelseValues): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const loenudviklingsKilde = resolveLoenudviklingKilde(values);
+
+  loenudviklingsKilde.forEach((af, index) => {
+    const path = (field: string): string =>
+      values.beregnesUdFra === 'Beregningsperiode'
+        ? `loenindkomstAnsaettelsesforhold[${index}].${field}`
+        : `eoAngivetLoenLoenudvikling.${field}`;
+
+    const grundlag = af.loenudviklingBeregningsgrundlag;
+    if (!grundlag || grundlag === 'Ingen') return;
+
+    if (grundlag === 'Overenskomst') {
+      if (!af.overenskomstId) {
+        errors.push({ path: path('overenskomstId'), message: 'Overenskomst skal vælges', severity: 'error' });
+      }
+      if (!Number.isFinite(af.feriePct)) {
+        errors.push({ path: path('feriePct'), message: 'Feriegodtgørelse/-tillæg skal udfyldes', severity: 'error' });
+      }
+      if (!af.loenPaaHelligdage) {
+        errors.push({ path: path('loenPaaHelligdage'), message: 'Løn på helligdage skal vælges', severity: 'error' });
+      }
+    }
+
+    if (grundlag === 'Statistik') {
+      const modelLabel = (af.loenudviklingStatistikModel ?? '').trim();
+      const erAsl = modelLabel.startsWith('ASL-');
+      const mappedModel = resolveStatistikModelId(modelLabel);
+      if (modelLabel === '' || (!erAsl && !mappedModel)) {
+        errors.push({
+          path: path('loenudviklingStatistikModel'),
+          message: 'Statistisk beregningsmodel skal vælges',
+          severity: 'error',
+        });
+      }
+    }
+
+    if (grundlag === 'KRL satstabel' && !af.loenudviklingKRLSatstabel) {
+      errors.push({ path: path('loenudviklingKRLSatstabel'), message: 'KRL satstabel skal vælges', severity: 'error' });
+    }
+
+    if (grundlag === 'Manuelt angivet') {
+      if (!Number.isFinite(af.feriePct)) {
+        errors.push({ path: path('feriePct'), message: 'Feriegodtgørelse/-tillæg skal udfyldes', severity: 'error' });
+      }
+
+      const rows = af.loenudviklingManuelTableData ?? [];
+      const aktiveRows = rows.filter((row) => {
+        const dato = (row.dato ?? '').trim();
+        const feriepenge = (row.feriepenge ?? '').trim();
+        const shSoSats = (row.shSoSats ?? '').trim();
+        const fritvalg = (row.fritvalg ?? '').trim();
+        const agPension = (row.agPension ?? '').trim();
+        return (
+          dato !== '' ||
+          feriepenge !== '' ||
+          shSoSats !== '' ||
+          fritvalg !== '' ||
+          agPension !== '' ||
+          row.grundloen !== undefined
+        );
+      });
+
+      if (aktiveRows.length === 0) {
+        errors.push({
+          path: path('loenudviklingManuelTableData'),
+          message: 'Mindst én manuel reguleringsrække skal udfyldes',
+          severity: 'error',
+        });
+      } else if (aktiveRows.some((row) => row.grundloen === undefined)) {
+        errors.push({
+          path: path('loenudviklingManuelTableData'),
+          message: 'Grundløn skal udfyldes på alle manuelle reguleringsrækker',
+          severity: 'error',
+        });
+      }
+    }
+  });
+
+  return errors;
+}
+
 function validateOevrigeKrav(values: ErstatningsopgoerelseValues): ValidationError[] {
   const errors: ValidationError[] = [];
   const rows = values.oevrigeKravPerioder ?? [];
@@ -552,3 +638,6 @@ export const erstatningsopgoerelseValidator: FormValidator<Erstatningsopgoerelse
 };
 
 export default erstatningsopgoerelseValidator;
+
+
+

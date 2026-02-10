@@ -37,6 +37,7 @@ import { clampTafRow, resolveTafConstraintBounds } from './tafPeriodConstraints'
 import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
 import { getAarsloenErrorRowIdSet } from './indkomstRowValidation';
 import { buildTafArbejdsstatusLinje } from './tafArbejdsstatusConfig';
+import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, type LoenudviklingSource } from './angivetLoenHelpers';
 import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
@@ -751,7 +752,7 @@ const buildIndkomstSkadestidspunkt = (
   tafBeregningsenhed: TafBeregningsenhed
 ): IndkomstSkadestidspunktPdfModel | null => {
   const beregnesUdFra = values.beregnesUdFra;
-  const loenBaseretPaa = values.loenBaseretPaa?.trim() ?? '';
+  const loenBaseretPaa = getAngivetLoenBaseretPaa(values)?.trim() ?? '';
   const skadesdato = isISODateString(stamdataValues.skadesdato) ? stamdataValues.skadesdato : null;
 
   const periodeTilBeregningFra = values.periodeTilBeregningFra;
@@ -1037,8 +1038,8 @@ const buildIndkomstSkadestidspunkt = (
 
 type LoenudviklingStrategiV3 = 'ingen' | 'statistik' | 'overenskomst' | 'manual' | 'krl';
 type LoenreguleringsSegmentV3 = Readonly<IsoRange & { deltaPct: number }>;
-type LoenudviklingRowsV3 = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'];
-type LoenudviklingAfV3 = LoenudviklingRowsV3[number];
+type LoenudviklingRowsV3 = readonly LoenudviklingSource[];
+type LoenudviklingAfV3 = LoenudviklingSource;
 type LoenudviklingManualRowV3 = NonNullable<LoenudviklingAfV3['loenudviklingManuelTableData']>[number];
 type OffentligLoenSelectionV3 = Readonly<{
   overenskomstType: OffentligOverenskomstType;
@@ -1116,6 +1117,12 @@ const normalizeManualRowsV3 = (rows: readonly LoenudviklingManualRowV3[]): strin
 
 type UniformPrimitiveV3 = string | number | boolean | null;
 type ReguleringsdatoInputV3 = Readonly<{ saerligFraDatoRegulering?: string }>;
+
+export const resolveLoenudviklingRowsV3 = (
+  values: ErstatningsopgoerelseValues
+): ReadonlyArray<LoenudviklingAfV3> => {
+  return resolveLoenudviklingKilde(values);
+};
 
 const resolveOffentligLoenSelectionV3 = (
   af: LoenudviklingAfV3,
@@ -1225,7 +1232,7 @@ const resolveReguleringsStrategiV3 = (
   // - statistik: statistikmodel
   // - manual: feriepct + manuelle reguleringsraekker
   // - overenskomst: feriepct + overenskomstId + loen paa helligdage
-  const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
+  const ansaettelser = resolveLoenudviklingRowsV3(values);
   const alleIngen = ansaettelser.length > 0 && ansaettelser.every((af) => af.loenudviklingBeregningsgrundlag === 'Ingen');
   if (alleIngen) return { strategi: 'ingen', label: 'Ingen', konsolideret: null };
 
@@ -1874,12 +1881,11 @@ const buildTafIndtaegterModel = (values: ErstatningsopgoerelseValues, ranges: re
     entries.push({ label: entry.label, amountOre: toOre(roundKroner(entry.amount)) });
   });
 
-  const totalOre = entries.length > 0
-    ? ensureMoneyOre(entries.reduce((acc, entry) => acc + entry.amountOre, 0))
-    : null;
+  // Ingen indtægter i TAF-perioden er gyldigt og opgøres som 0 kr.
+  const totalOre = ensureMoneyOre(entries.reduce((acc, entry) => acc + entry.amountOre, 0));
   return {
     entries,
-    total: totalOre !== null ? asCalculable(totalOre) : notCalculableMoney('Ingen indtægter'),
+    total: asCalculable(totalOre),
   };
 };
 const buildTabtArbejdsfortjenesteModel = (
@@ -1930,8 +1936,6 @@ const buildTabtArbejdsfortjenesteModel = (
   const tafBeregningsenhed = computeTafBeregningsenhed({
     beregnesUdFra: values.beregnesUdFra,
     loenindkomstAnsaettelsesforhold: values.loenindkomstAnsaettelsesforhold ?? [],
-    oevrigtFravaerUdenLoen: values.oevrigtFravaerUdenLoen,
-    oevrigeFravaersdage: values.oevrigeFravaersdage,
   });
 
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);
@@ -2025,8 +2029,8 @@ const resolveReguleringsdato = (
   skadesdato: ISODateString | undefined
 ): ISODateString | undefined => resolveReguleringsdatoShared({
   beregnesUdFra: eoValues.beregnesUdFra,
-  angivetLoenOpreguleresFraDato: eoValues.angivetLoenOpreguleresFraDato,
-  saerligFraDatoRegulering: af?.saerligFraDatoRegulering,
+  angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(eoValues),
+  saerligFraDatoRegulering: isISODateString(af?.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined,
   skadesdato,
 });
 

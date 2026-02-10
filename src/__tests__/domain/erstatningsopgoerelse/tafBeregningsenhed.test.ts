@@ -41,9 +41,36 @@ describe('computeTafBeregningsenhed', () => {
     expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
   });
 
-  it('is forced to workdays when any employment has non-standard holiday pay', () => {
+  it('stays months for "Angivet månedsløn" even with non-standard holiday pay on employment', () => {
     const values = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          loenPaaHelligdage: 'SH-udbetaling',
+        },
+      ],
+    });
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
+  });
+
+  it('stays workdays for "Angivet dagsløn" even with full-pay vacation settings', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Angivet dagsløn',
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          fuldLoenUnderFerie: 'Ja',
+          loenPaaHelligdage: 'Almindelig løn',
+        },
+      ],
+    });
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.ARBEJDSDAGE);
+  });
+
+  it('is forced to workdays in "Beregningsperiode" when holiday pay deviates', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
       loenindkomstAnsaettelsesforhold: [
         {
           ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
@@ -54,17 +81,18 @@ describe('computeTafBeregningsenhed', () => {
     expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.ARBEJDSDAGE);
   });
 
-  it('is forced to workdays when any employment does not have full pay during vacation', () => {
+  it('stays months in "Beregningsperiode" with standard holiday/vacation settings', () => {
     const values = makeValues({
-      beregnesUdFra: 'Angivet månedsløn',
+      beregnesUdFra: 'Beregningsperiode',
       loenindkomstAnsaettelsesforhold: [
         {
           ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
-          fuldLoenUnderFerie: 'Nej',
+          loenPaaHelligdage: 'Almindelig løn',
+          fuldLoenUnderFerie: 'Ja',
         },
       ],
     });
-    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.ARBEJDSDAGE);
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
   });
 });
 

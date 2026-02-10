@@ -13,6 +13,7 @@ import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
 import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode, OffentligeYdelserRow, StamdataValues } from '../../schemas/formSchemas';
 import { buildErstatningsopgoerelsePdfModel, type MoneyOre, type Calculable, type LoenudviklingSegment } from '../../domain/erstatningsopgoerelse/eoPdfModel';
+import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { formatAsAmount, formatCurrency, formatPercent, parseAmount } from '../formatUtils';
 import { formatUtcDateLong } from '../dateFormatting';
 import { parseISODate } from '../dateUtils';
@@ -68,6 +69,11 @@ const renderMoney = (value: Calculable<MoneyOre>): string => {
 const renderMoneyWithKr = (value: Calculable<MoneyOre>): string => {
   const rendered = renderMoney(value);
   return rendered === '—' ? '—' : `${rendered}${NBSP}kr.`;
+};
+
+const renderMoneyWithKrOrError = (value: Calculable<MoneyOre>): string => {
+  if (value.status === 'ok') return `${formatCurrencyFromOre(value.value)}${NBSP}kr.`;
+  return `Fejl (${value.reason})`;
 };
 
 const formatMoneyOreWithKr = (ore: MoneyOre): string => `${formatCurrencyFromOre(ore)}${NBSP}kr.`;
@@ -446,13 +452,13 @@ const resolveReguleringsdato = (
   ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]
 ): ISODateString | undefined => resolveReguleringsdatoShared({
   beregnesUdFra: eoValues.beregnesUdFra,
-  angivetLoenOpreguleresFraDato: eoValues.angivetLoenOpreguleresFraDato,
+  angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(eoValues),
   saerligFraDatoRegulering: ansaettelsesforhold.saerligFraDatoRegulering,
   skadesdato: stamdataValues.skadesdato,
 });
 
 const resolveLoenSkadesdatoText = (params: {
-  subject: 'Lønnen' | 'lønnen';
+  subject: 'lønnen' | 'lønnen';
   skadesdato: ISODateString | undefined;
   saerligFraDatoRegulering: ISODateString | undefined;
 }): string => {
@@ -1876,44 +1882,32 @@ export const generateErstatningsopgoerelsePdf = (
           }
         }
       } else if (indkomst?.beregnesUdFra === 'Angivet månedsløn') {
-        if (indkomst.skadesdato) {
-          const skadesdatoFormateret = formatDateShort(indkomst.skadesdato);
-          if (skadesdatoFormateret) {
-            const beloebDisplay = renderMoneyWithKr(indkomst.maanedsloen);
-
-            let leftText = '';
-            if (indkomst.loenBaseretPaa) {
-              leftText = `Månedslønnen er på baggrund af ${indkomst.loenBaseretPaa} fastsat per ${skadesdatoFormateret} til`;
-            } else {
-              leftText = `Månedslønnen er fastsat per ${skadesdatoFormateret} til`;
-            }
-
-            safeAddLeftRightText(leftText, beloebDisplay, writer.getTextWidth('000.000.000,00'), { rightFontStyle: 'normal' });
-          }
-        }
+        const baseretPaaPrefix = indkomst.loenBaseretPaa
+          ? `På baggrund af ${indkomst.loenBaseretPaa} `
+          : '';
+        safeAddLeftRightText(
+          `${baseretPaaPrefix}Der lægges en månedsløn til grund på`,
+          renderMoneyWithKrOrError(indkomst.maanedsloen),
+          writer.getTextWidth('000.000.000,00'),
+          { rightFontStyle: 'normal' }
+        );
       } else if (indkomst?.beregnesUdFra === 'Angivet dagsløn') {
-        if (indkomst.skadesdato) {
-          const skadesdatoFormateret = formatDateShort(indkomst.skadesdato);
-          if (skadesdatoFormateret) {
-            const beloebDisplay = renderMoneyWithKr(indkomst.dagsloen);
-
-            let leftText = '';
-            if (indkomst.loenBaseretPaa) {
-              leftText = `Dagslønnen er på baggrund af ${indkomst.loenBaseretPaa} fastsat per ${skadesdatoFormateret} til`;
-            } else {
-              leftText = `Dagslønnen er fastsat per ${skadesdatoFormateret} til`;
-            }
-
-            safeAddLeftRightText(leftText, beloebDisplay, writer.getTextWidth('000.000.000,00'), { rightFontStyle: 'bold' });
-          }
-        }
+        const baseretPaaPrefix = indkomst.loenBaseretPaa
+          ? `På baggrund af ${indkomst.loenBaseretPaa} `
+          : '';
+        safeAddLeftRightText(
+          `${baseretPaaPrefix}Der lægges en dagsløn til grund på`,
+          renderMoneyWithKrOrError(indkomst.dagsloen),
+          writer.getTextWidth('000.000.000,00'),
+          { rightFontStyle: 'normal' }
+        );
       }
     }
 
     // Indkomst, hvis skaden ikke var indtrådt
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
     const saerligFraDatoLoenudvikling = (() => {
-      const ansaettelser = eoValues.loenindkomstAnsaettelsesforhold ?? [];
+      const ansaettelser = resolveLoenudviklingKilde(eoValues);
       const active = ansaettelser.filter(
         (af) => af.loenudviklingBeregningsgrundlag && af.loenudviklingBeregningsgrundlag !== 'Ingen'
       );
@@ -1926,9 +1920,22 @@ export const generateErstatningsopgoerelsePdf = (
       skadesdato: skadesdatoIso,
       saerligFraDatoRegulering: saerligFraDatoLoenudvikling,
     });
+    const angivetLoenOpreguleresFraDato = getAngivetLoenOpreguleresFraDato(eoValues);
+    const angivetLoenDatoBeskrivelse = (() => {
+      if (
+        (eoValues.beregnesUdFra !== 'Angivet månedsløn' && eoValues.beregnesUdFra !== 'Angivet dagsløn') ||
+        !angivetLoenOpreguleresFraDato
+      ) {
+        return null;
+      }
+      const datoDisplay = formatDateLong(angivetLoenOpreguleresFraDato);
+      if (!datoDisplay) return null;
+      return `lønnen opgjort den d. ${datoDisplay}`;
+    })();
+    const loenReferenceBeskrivelse = angivetLoenDatoBeskrivelse ?? loenSkadesdatoText;
     const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = loenudvikling?.loenudviklingLabel === 'Ingen'
-      ? `Opgøres på baggrund af ${loenSkadesdatoText}.`
-      : `Beregnes som ${loenSkadesdatoText} tillagt efterfølgende lønstigninger.`;
+      ? `Opgøres på baggrund af ${loenReferenceBeskrivelse}.`
+      : `Beregnes som ${loenReferenceBeskrivelse} tillagt efterfølgende lønstigninger.`;
     renderSubheaderWithWrappedText(
       'Indkomst, hvis skaden ikke var indtrådt',
       indkomstHvisSkadeIkkeIndtraadtBeskrivelse
@@ -2505,7 +2512,7 @@ export const generateErstatningsopgoerelsePdf = (
       writer.setY(finalY + lineHeight);
     };
 
-    const ansaettelser = eoValues.loenindkomstAnsaettelsesforhold ?? [];
+    const ansaettelser = resolveLoenudviklingKilde(eoValues);
     startBilagPage('Regulering');
 
     if (ansaettelser.length === 0) {
@@ -2525,7 +2532,7 @@ export const generateErstatningsopgoerelsePdf = (
         const skadesdatoIso = parseOptionalIsoDate(stamdataValues.skadesdato);
         const saerligFraDatoIso = parseOptionalIsoDate(ansaettelsesforhold.saerligFraDatoRegulering);
         const loenSkadesdatoText = resolveLoenSkadesdatoText({
-          subject: 'Lønnen',
+          subject: 'lønnen',
           skadesdato: skadesdatoIso,
           saerligFraDatoRegulering: saerligFraDatoIso,
         });
@@ -2597,3 +2604,6 @@ export const generateErstatningsopgoerelsePdf = (
   // Download PDF
   writer.save(`${titel}.pdf`);
 };
+
+
+

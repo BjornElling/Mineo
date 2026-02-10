@@ -1,4 +1,4 @@
-import type { Beregningsmetode, ErstatningsopgoerelseValues, JaNej, LoenPaaHelligdage } from '../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, JaNej, LoenPaaHelligdage } from '../../schemas/formSchemas';
 import type { DeepReadonly } from '../../types/deepReadonly';
 
 export const TAF_BEREGNES_SOM = {
@@ -39,7 +39,6 @@ export type TafBeregningsenhed = (typeof TAF_BEREGNES_SOM)[keyof typeof TAF_BERE
  */
 export const TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR = 0.048;
 
-const BEREGNES_UD_FRA_DAGSLOEN: Beregningsmetode = 'Angivet dagsløn';
 const ALMINDELIG_LOEN_PAA_HELLIGDAGE: LoenPaaHelligdage = 'Almindelig løn';
 const JA: JaNej = 'Ja';
 
@@ -53,10 +52,10 @@ const JA: JaNej = 'Ja';
  * Regler (normative, implementeres præcist som angivet)
  *
  * 1) Standard: TAF beregnes i måneder.
- * 2) EOOplysninger → "Beregnes ud fra":
+ * 2) EOOplysninger → "Beregnes ud fra" (har forrang):
+ *    - "Angivet månedsløn" ⇒ `Måneder`
  *    - "Angivet dagsløn" ⇒ `Arbejdsdage`
- *    - Ellers ⇒ `Måneder` (inkl. "Beregningsperiode" og "Angivet månedsløn")
- * 3) Overstyring fra lønindkomst (har forrang uanset punkt 2):
+ * 3) Overstyring fra lønindkomst (gælder kun når punkt 2 ikke er angivet løn):
  *    Hvis der findes blot ét ansættelsesforhold under Lønindkomst hvor
  *    - "Løn på helligdage" ≠ "Almindelig løn", eller
  *    - "Fuld løn under ferie" ≠ "Ja"
@@ -76,18 +75,18 @@ export type TafBeregningsenhedInput = Readonly<{
   // Input is designed for engine usage and may be DeepReadonly.
   beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'];
   loenindkomstAnsaettelsesforhold: ReadonlyArray<DeepReadonly<ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]>>;
-  oevrigtFravaerUdenLoen: ErstatningsopgoerelseValues['oevrigtFravaerUdenLoen'];
-  oevrigeFravaersdage?: ErstatningsopgoerelseValues['oevrigeFravaersdage'];
 }>;
 
 export const computeTafBeregningsenhed = (values: TafBeregningsenhedInput): TafBeregningsenhed => {
+  // Angivet løn i EO-oplysninger har forrang over alle afledte lønindkomst-regler.
+  if (values.beregnesUdFra === 'Angivet månedsløn') return TAF_BEREGNES_SOM.MAANEDER;
+  if (values.beregnesUdFra === 'Angivet dagsløn') return TAF_BEREGNES_SOM.ARBEJDSDAGE;
+
   const loenindkomstOverstyrerTilArbejdsdage = (values.loenindkomstAnsaettelsesforhold ?? []).some(
     (af) => af.loenPaaHelligdage !== ALMINDELIG_LOEN_PAA_HELLIGDAGE || af.fuldLoenUnderFerie !== JA
   );
 
   if (loenindkomstOverstyrerTilArbejdsdage) return TAF_BEREGNES_SOM.ARBEJDSDAGE;
-
-  if (values.beregnesUdFra === BEREGNES_UD_FRA_DAGSLOEN) return TAF_BEREGNES_SOM.ARBEJDSDAGE;
 
   return TAF_BEREGNES_SOM.MAANEDER;
 };
