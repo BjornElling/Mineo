@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Box, Tabs, Tab, Typography } from '@mui/material';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
@@ -13,7 +13,6 @@ import EOberegningTab from './erstatningsopgoerelse/EOberegningTab';
 import EODebug from './erstatningsopgoerelse/EODebug';
 import EODebugTabel from './erstatningsopgoerelse/EODebugTabel';
 import { buildEODebugSnapshot, type EODebugSnapshot } from '../../domain/debug/eoDebugSnapshot';
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 
@@ -100,7 +99,7 @@ const Erstatningsopgoerelse = React.memo(() => {
     const persistedEO = persistenceRefs.current.getPersistedData('erstatningsopgoerelse');
 
     const resolvedStamdata: StamdataValues = { ...STAMDATA_INITIAL_VALUES, ...(persistedStamdata ?? {}) };
-    const resolvedEO: ErstatningsopgoerelseValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, ...(persistedEO ?? {}) };
+    const resolvedEO: ErstatningsopgoerelseValues = { ...createErstatningsopgoerelseInitialValues(), ...(persistedEO ?? {}) };
 
     const stamdataErrors = persistenceRefs.current.getFieldErrorsBySource('stamdata');
     const eoErrors = persistenceRefs.current.getFieldErrorsBySource('erstatningsopgoerelse');

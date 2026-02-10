@@ -1,4 +1,5 @@
 import type { AarsloenTableRow, OffentligeYdelserRow } from '../../../schemas/formSchemas';
+import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import {
   buildBilagIndkomstYdelserRanges,
@@ -7,6 +8,8 @@ import {
   shouldIncludeLoenRowInBilag,
   shouldIncludeOffentligYdelseRowInBilag,
 } from '../../../utils/pdf/erstatningsopgoerelsePdf';
+
+const iso = (value: string) => toISODateString(value);
 
 const makeLoenRow = (overrides: Partial<AarsloenTableRow>): AarsloenTableRow => ({
   id: 'row1',
@@ -29,7 +32,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
       col0_dag: '01-01-2024',
       col1_dag: '31-01-2024',
     });
-    const arbitraryRanges = [{ fra: '2025-01-01', til: '2025-12-31' }] as const;
+    const arbitraryRanges = [{ fra: iso('2025-01-01'), til: iso('2025-12-31') }] as const;
 
     expect(hasAarsloenRowOverlapWithRanges(loenRow, 'dag', 'Alle', arbitraryRanges)).toBe(true);
 
@@ -43,7 +46,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
   });
 
   it('ekskluderer række i Alle-mode når rækkens dato ikke kan parses (fail-closed)', () => {
-    const arbitraryRanges = [{ fra: '2025-01-01', til: '2025-12-31' }] as const;
+    const arbitraryRanges = [{ fra: iso('2025-01-01'), til: iso('2025-12-31') }] as const;
 
     const offentligUgyldig: OffentligeYdelserRow = {
       id: 'oy-alle-invalid',
@@ -89,10 +92,10 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
   it('medtager via beregningsperiode ved første erstatningsopgørelse', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.eoNummer = '1';
-    eoValues.vedroererPeriodeFra = '2024-02-01';
-    eoValues.vedroererPeriodeTil = '2024-02-29';
-    eoValues.periodeTilBeregningFra = '2024-01-01';
-    eoValues.periodeTilBeregningTil = '2024-01-31';
+    eoValues.vedroererPeriodeFra = iso('2024-02-01');
+    eoValues.vedroererPeriodeTil = iso('2024-02-29');
+    eoValues.periodeTilBeregningFra = iso('2024-01-01');
+    eoValues.periodeTilBeregningTil = iso('2024-01-31');
 
     const ranges = buildBilagIndkomstYdelserRanges(eoValues, 'Perioden');
     expect(ranges).toHaveLength(2);
@@ -117,8 +120,8 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
   it('ekskluderer række i Perioden-mode når rækkens dato ikke kan parses (fail-closed)', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.eoNummer = '2';
-    eoValues.vedroererPeriodeFra = '2024-02-01';
-    eoValues.vedroererPeriodeTil = '2024-02-29';
+    eoValues.vedroererPeriodeFra = iso('2024-02-01');
+    eoValues.vedroererPeriodeTil = iso('2024-02-29');
 
     const ranges = buildBilagIndkomstYdelserRanges(eoValues, 'Perioden');
     expect(ranges.length).toBeGreaterThan(0);
@@ -139,20 +142,20 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
   });
 
   it('filtrerer lønrækker i Perioden-mode selv når ansættelsesforholdet har andre overlap', () => {
-    const ranges = [{ fra: '2022-03-18', til: '2024-01-01' }] as const;
+    const ranges = [{ fra: iso('2022-03-18'), til: iso('2024-01-01') }] as const;
     const errorRowIds = new Set<string>();
 
     const rowIOverlap = makeLoenRow({
       id: 'loen-overlap',
       col0_dag: '01-01-2024',
       col1_dag: '31-01-2024',
-      col2: { kind: 'fixed', value: 1000 },
+      col2: { kind: 'number', value: 1000 },
     });
     const rowUdenforPeriode = makeLoenRow({
       id: 'loen-udenfor',
       col0_dag: '01-02-2024',
       col1_dag: '29-02-2024',
-      col2: { kind: 'fixed', value: 1000 },
+      col2: { kind: 'number', value: 1000 },
     });
 
     expect(
@@ -176,7 +179,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
   });
 
   it('filtrerer offentlige ydelser i Perioden-mode med samme overlapregel', () => {
-    const ranges = [{ fra: '2022-03-18', til: '2024-01-01' }] as const;
+    const ranges = [{ fra: iso('2022-03-18'), til: iso('2024-01-01') }] as const;
     const errorRowIds = new Set<string>();
 
     const ydelseIOverlap: OffentligeYdelserRow = {
@@ -211,7 +214,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
   });
 
   it('medtager offentlig ydelse uden beløb når periode/type er gyldig (besluttet UX)', () => {
-    const ranges = [{ fra: '2022-03-18', til: '2024-01-01' }] as const;
+    const ranges = [{ fra: iso('2022-03-18'), til: iso('2024-01-01') }] as const;
     const errorRowIds = new Set<string>();
     const ydelseUdenBeloeb: OffentligeYdelserRow = {
       id: 'oy-uden-beloeb',
@@ -233,14 +236,14 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
   });
 
   it('ekskluderer lønrække helt før erstatningsperioden', () => {
-    const ranges = [{ fra: '2022-03-18', til: '2024-01-01' }] as const;
+    const ranges = [{ fra: iso('2022-03-18'), til: iso('2024-01-01') }] as const;
     const errorRowIds = new Set<string>();
 
     const rowFoerPeriode = makeLoenRow({
       id: 'loen-foer',
       col0_dag: '01-02-2022',
       col1_dag: '28-02-2022',
-      col2: { kind: 'fixed', value: 1000 },
+      col2: { kind: 'number', value: 1000 },
     });
 
     expect(
@@ -255,7 +258,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
   });
 
   it('ekskluderer offentlig ydelse helt før erstatningsperioden', () => {
-    const ranges = [{ fra: '2022-03-18', til: '2024-01-01' }] as const;
+    const ranges = [{ fra: iso('2022-03-18'), til: iso('2024-01-01') }] as const;
     const errorRowIds = new Set<string>();
 
     const ydelseFoerPeriode: OffentligeYdelserRow = {

@@ -1,6 +1,6 @@
-import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
+﻿import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import { toISODateString } from '../../types/branded';
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { erstatningsopgoerelseValidator } from '../../validators/erstatningsopgoerelseValidator';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 
@@ -8,7 +8,7 @@ const iso = (value: string) => toISODateString(value);
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
-  const base = structuredClone(ERSTATNINGSOPGOERELSE_INITIAL_VALUES);
+  const base = structuredClone(createErstatningsopgoerelseInitialValues());
   return { ...base, ...patch };
 };
 
@@ -218,7 +218,7 @@ describe('TAF lønudviklingskrav for aktiv kilde', () => {
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmount(1000),
       eoAngivetLoenLoenudvikling: {
-        ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.eoAngivetLoenLoenudvikling,
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
         loenudviklingBeregningsgrundlag: 'Overenskomst',
         overenskomstId: undefined,
       },
@@ -231,7 +231,7 @@ describe('TAF lønudviklingskrav for aktiv kilde', () => {
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmount(1000),
       eoAngivetLoenLoenudvikling: {
-        ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.eoAngivetLoenLoenudvikling,
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
         loenudviklingBeregningsgrundlag: 'Overenskomst',
         overenskomstId: 'some-overenskomst-id',
         loenPaaHelligdage: undefined,

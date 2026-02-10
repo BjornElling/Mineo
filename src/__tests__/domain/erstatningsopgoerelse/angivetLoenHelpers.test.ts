@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { toISODateString } from '../../../types/branded';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import {
   EO_ANGIVET_LOEN_ID,
   getAngivetLoenBaseretPaa,
@@ -8,8 +9,10 @@ import {
   resolveLoenudviklingKilde,
 } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 
+const iso = (value: string) => toISODateString(value);
+
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => ({
-  ...structuredClone(ERSTATNINGSOPGOERELSE_INITIAL_VALUES),
+  ...structuredClone(createErstatningsopgoerelseInitialValues()),
   ...patch,
 });
 
@@ -18,9 +21,9 @@ describe('angivetLoenHelpers', () => {
     const values = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       angivetMaanedsloenBaseretPaa: 'Månedskilde',
-      angivetMaanedsloenOpreguleresFraDato: '2025-01-01',
+      angivetMaanedsloenOpreguleresFraDato: iso('2025-01-01'),
       angivetDagsloenBaseretPaa: 'Dagskilde',
-      angivetDagsloenOpreguleresFraDato: '2024-01-01',
+      angivetDagsloenOpreguleresFraDato: iso('2024-01-01'),
     });
 
     expect(getAngivetLoenBaseretPaa(values)).toBe('Månedskilde');
@@ -31,9 +34,9 @@ describe('angivetLoenHelpers', () => {
     const values = makeValues({
       beregnesUdFra: 'Angivet dagsløn',
       angivetMaanedsloenBaseretPaa: 'Månedskilde',
-      angivetMaanedsloenOpreguleresFraDato: '2025-01-01',
+      angivetMaanedsloenOpreguleresFraDato: iso('2025-01-01'),
       angivetDagsloenBaseretPaa: 'Dagskilde',
-      angivetDagsloenOpreguleresFraDato: '2024-01-01',
+      angivetDagsloenOpreguleresFraDato: iso('2024-01-01'),
     });
 
     expect(getAngivetLoenBaseretPaa(values)).toBe('Dagskilde');
@@ -45,7 +48,7 @@ describe('angivetLoenHelpers', () => {
       beregnesUdFra: 'Angivet månedsløn',
       loenindkomstAnsaettelsesforhold: [],
       eoAngivetLoenLoenudvikling: {
-        ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.eoAngivetLoenLoenudvikling,
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
         loenudviklingBeregningsgrundlag: 'Ingen',
       },
     });
@@ -60,8 +63,8 @@ describe('angivetLoenHelpers', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
       loenindkomstAnsaettelsesforhold: [
-        { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0], id: 'a1' },
-        { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0], id: 'a2' },
+        { ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0], id: 'a1' },
+        { ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0], id: 'a2' },
       ],
     });
 

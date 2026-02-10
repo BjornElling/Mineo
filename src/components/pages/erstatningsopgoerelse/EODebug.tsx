@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { Check, ErrorOutline, WarningAmber } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
@@ -28,7 +28,7 @@ import {
 } from '../../../data/statistiskLoenudviklingRates';
 import { formatKRLSatstabelDisplay, getKRLSatstabel, getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
 import { loenPaaHelligdageSchema } from '../../../schemas/formSchemas';
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { useFormFieldErrorsBySource } from '../../../hooks/useFormFieldErrors';
 import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
@@ -562,7 +562,7 @@ const EODebug = () => {
     return { ...STAMDATA_INITIAL_VALUES, ...(getPersistedData('stamdata') ?? {}) };
   }, [getPersistedData]);
   const erstatningsopgoerelseValues = React.useMemo(() => {
-    return { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, ...(getPersistedData('erstatningsopgoerelse') ?? {}) };
+    return { ...createErstatningsopgoerelseInitialValues(), ...(getPersistedData('erstatningsopgoerelse') ?? {}) };
   }, [getPersistedData]);
   const manuelReguleringInputErrors = getLoenindkomstManuelReguleringInputErrors();
 

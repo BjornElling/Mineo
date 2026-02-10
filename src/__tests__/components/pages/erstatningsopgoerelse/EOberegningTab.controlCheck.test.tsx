@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
@@ -10,7 +10,7 @@ import type { EODebugSnapshot } from '../../../../domain/debug/eoDebugSnapshot';
 import type { SammentaellingControl, SammentaellingDisplayRow, SammentaellingModel } from '../../../../domain/debug/eoDebugSammentaelling';
 import { getSammentaellingControlStatus } from '../../../../domain/debug/eoDebugSammentaelling';
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 import type { EODebugModel } from '../../../../domain/debug/eoDebugModel';
 import { buildControlMismatchReport } from '../../../../domain/debug/eoDebugMismatchReport';
@@ -107,7 +107,7 @@ const makeSnapshot = (rows: SammentaellingDisplayRow[], revision = 'rev-1'): EOD
     sammentaellingRows: rows,
     hasControlErrors,
     stamdataValues: STAMDATA_INITIAL_VALUES,
-    eoValues: ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+    eoValues: createErstatningsopgoerelseInitialValues(),
     fieldErrors: {
       stamdata: {},
       erstatningsopgoerelse: {},

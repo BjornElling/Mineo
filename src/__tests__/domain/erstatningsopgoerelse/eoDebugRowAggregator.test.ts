@@ -1,11 +1,11 @@
-import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
+﻿import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
 import type { EODebugExecutionContext } from '../../../domain/erstatningsopgoerelse/eoDebugExecutionContext';
 import { collectAllDebugRows } from '../../../domain/erstatningsopgoerelse/eoDebugRowAggregator';
 import * as Registry from '../../../domain/erstatningsopgoerelse/eoDebugBuilderRegistry';
 import type { FieldErrorBySource } from '../../../types/fieldErrors';
 import type { PersistedSectionMap } from '../../../config/persistenceRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 type Builder = {
   name: string;
@@ -86,7 +86,7 @@ describe('collectAllDebugRows', () => {
     collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
-      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      createErstatningsopgoerelseInitialValues(),
       eoErrors
     );
 
@@ -115,7 +115,7 @@ describe('collectAllDebugRows', () => {
     const { errors, warnings, relevantRows } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
-      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      createErstatningsopgoerelseInitialValues(),
       eoErrors
     );
 
@@ -141,7 +141,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const eoValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, beregnesSvieSmerteGodtgoerelse: 'Nej' as const };
+    const eoValues = { ...createErstatningsopgoerelseInitialValues(), beregnesSvieSmerteGodtgoerelse: 'Nej' as const };
     const { errors, warnings, allRows, relevantRows } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
@@ -167,7 +167,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const eoValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, beregnesTabtArbejdsfortjeneste: 'Nej' as const };
+    const eoValues = { ...createErstatningsopgoerelseInitialValues(), beregnesTabtArbejdsfortjeneste: 'Nej' as const };
     const { errors, warnings, allRows, relevantRows } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
@@ -198,7 +198,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const eoValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, midlertidigtEetAfgorelse: 'Nej' as const };
+    const eoValues = { ...createErstatningsopgoerelseInitialValues(), midlertidigtEetAfgorelse: 'Nej' as const };
     const { errors, warnings, allRows, relevantRows } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
@@ -230,7 +230,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const eoValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, endeligtEetAfgorelse: 'Nej' as const };
+    const eoValues = { ...createErstatningsopgoerelseInitialValues(), endeligtEetAfgorelse: 'Nej' as const };
     const { errors, warnings, allRows, relevantRows } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
@@ -267,13 +267,13 @@ describe('collectAllDebugRows', () => {
     const first = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
-      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      createErstatningsopgoerelseInitialValues(),
       eoErrors
     );
     const second = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
-      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      createErstatningsopgoerelseInitialValues(),
       eoErrors
     );
 
@@ -297,7 +297,7 @@ describe('collectAllDebugRows', () => {
     const { allRows, relevantRows } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
-      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      createErstatningsopgoerelseInitialValues(),
       eoErrors
     );
 
@@ -322,7 +322,7 @@ describe('collectAllDebugRows', () => {
       collectAllDebugRows(
         STAMDATA_INITIAL_VALUES,
         stamdataErrors,
-        ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+        createErstatningsopgoerelseInitialValues(),
         eoErrors
       )
     ).toThrow('Duplikat-id fundet i debug-rows');
@@ -342,7 +342,7 @@ describe('collectAllDebugRows', () => {
     const { errors, warnings } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
-      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      createErstatningsopgoerelseInitialValues(),
       eoErrors
     );
 
@@ -364,7 +364,7 @@ describe('collectAllDebugRows', () => {
     const { errors, warnings } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
-      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      createErstatningsopgoerelseInitialValues(),
       eoErrors
     );
 
@@ -386,7 +386,7 @@ describe('collectAllDebugRows', () => {
     const { errors, warnings } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
-      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      createErstatningsopgoerelseInitialValues(),
       eoErrors
     );
 
@@ -409,7 +409,7 @@ describe('collectAllDebugRows', () => {
     const { errors, warnings } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
-      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      createErstatningsopgoerelseInitialValues(),
       eoErrors
     );
 
@@ -430,7 +430,7 @@ describe('collectAllDebugRows', () => {
     const { errors, warnings } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
-      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      createErstatningsopgoerelseInitialValues(),
       eoErrors
     );
 
@@ -454,7 +454,7 @@ describe('collectAllDebugRows', () => {
     const { errors, warnings } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
-      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      createErstatningsopgoerelseInitialValues(),
       eoErrors
     );
 
@@ -477,7 +477,7 @@ describe('collectAllDebugRows', () => {
       collectAllDebugRows(
         STAMDATA_INITIAL_VALUES,
         stamdataErrors,
-        ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+        createErstatningsopgoerelseInitialValues(),
         eoErrors
       )
     ).toThrow('Debug dependency cycle detected');
@@ -495,7 +495,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const eoValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, beregnesTabtArbejdsfortjeneste: 'Nej' as const };
+    const eoValues = { ...createErstatningsopgoerelseInitialValues(), beregnesTabtArbejdsfortjeneste: 'Nej' as const };
 
     expect(() =>
       collectAllDebugRows(
@@ -520,7 +520,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const eoValues = { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, beregnesTabtArbejdsfortjeneste: 'Nej' as const };
+    const eoValues = { ...createErstatningsopgoerelseInitialValues(), beregnesTabtArbejdsfortjeneste: 'Nej' as const };
 
     expect(() =>
       collectAllDebugRows(
@@ -549,7 +549,7 @@ describe('collectAllDebugRows', () => {
     const { errors, warnings } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
-      ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      createErstatningsopgoerelseInitialValues(),
       eoErrors
     );
 

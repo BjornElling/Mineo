@@ -1,4 +1,4 @@
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+﻿import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { buildEODebugTaftRows } from '../../../domain/erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
 import { toISODateString } from '../../../types/branded';
 
@@ -7,7 +7,7 @@ const iso = (value: string) => toISODateString(value);
 describe('buildEODebugTaftRows overlap parity', () => {
   it('marks overlapping TAF periods as error rows', () => {
     const values = {
-      ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      ...createErstatningsopgoerelseInitialValues(),
       tafPerioder: [
         { id: 'a', fra: iso('2023-10-09'), til: iso('2023-12-31'), loseFeriedage: undefined },
         { id: 'b', fra: iso('2025-01-01'), til: iso('2025-01-10'), loseFeriedage: undefined },

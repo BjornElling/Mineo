@@ -1,9 +1,9 @@
-import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
+﻿import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
 import type { EODebugExecutionContext } from '../../../domain/erstatningsopgoerelse/eoDebugExecutionContext';
 import type { EODebugBuilderEntry } from '../../../domain/erstatningsopgoerelse/eoDebugBuilderRegistry';
 import { executeEODebugBuilderEntries } from '../../../domain/erstatningsopgoerelse/eoDebugBuilderRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 const makeRow = (id: string, status: DebugRowModel['status']): DebugRowModel => ({
   id,
@@ -15,7 +15,7 @@ const makeRow = (id: string, status: DebugRowModel['status']): DebugRowModel => 
 const ctx: EODebugExecutionContext = {
   stamdataValues: STAMDATA_INITIAL_VALUES,
   stamdataErrors: {},
-  eoValues: ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+  eoValues: createErstatningsopgoerelseInitialValues(),
   eoErrors: {},
   loenindkomstManuelReguleringInputErrors: {},
 };

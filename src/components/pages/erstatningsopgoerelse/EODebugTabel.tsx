@@ -1,10 +1,10 @@
-import * as React from 'react';
+﻿import * as React from 'react';
 import { Alert, AlertTitle, Box, Tooltip, Typography } from '@mui/material';
 import { Check, Download, ErrorOutline, WarningAmber } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import ContentBox from '../../layout/ContentBox';
 
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { buildEODebugModel } from '../../../domain/debug/eoDebugModel';
 import {
   buildEODebugSammentaellingModel,
@@ -53,7 +53,7 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
   }, [getPersistedData]);
 
   const erstatningsopgoerelseValues = React.useMemo<ErstatningsopgoerelseValues>(() => {
-    return { ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES, ...(getPersistedData('erstatningsopgoerelse') ?? {}) };
+    return { ...createErstatningsopgoerelseInitialValues(), ...(getPersistedData('erstatningsopgoerelse') ?? {}) };
   }, [getPersistedData]);
 
   const erstatningsopgoerelseFieldErrors = useFormFieldErrorsBySource('erstatningsopgoerelse');

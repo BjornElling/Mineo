@@ -1,8 +1,8 @@
-import { __createTestStore } from '../../stores/formPersistenceStore';
+﻿import { __createTestStore } from '../../stores/formPersistenceStore';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/common';
 
 const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
@@ -33,7 +33,7 @@ const createValidSections = (): PersistedSectionMap => ({
     mengrad: undefined,
     beregningsdato: undefined,
   },
-  erstatningsopgoerelse: ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+  erstatningsopgoerelse: createErstatningsopgoerelseInitialValues(),
 });
 
 describe('formPersistenceStore public API', () => {

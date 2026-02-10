@@ -1,7 +1,7 @@
 // vite.config.ts
 // Standard Vite-konfiguration for React med SWC (hurtig kompilering)
 
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import path from 'node:path';
 import react from '@vitejs/plugin-react-swc';
 

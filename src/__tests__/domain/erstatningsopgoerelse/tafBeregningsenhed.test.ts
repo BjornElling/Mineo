@@ -1,9 +1,11 @@
-import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+﻿import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { computeTafBeregningsenhed, TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR, TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 
+const initialEoValues = createErstatningsopgoerelseInitialValues();
+
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
-  const base = structuredClone(ERSTATNINGSOPGOERELSE_INITIAL_VALUES);
+  const base = structuredClone(initialEoValues);
   return { ...base, ...patch };
 };
 
@@ -46,7 +48,7 @@ describe('computeTafBeregningsenhed', () => {
       beregnesUdFra: 'Angivet månedsløn',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenPaaHelligdage: 'SH-udbetaling',
         },
       ],
@@ -59,7 +61,7 @@ describe('computeTafBeregningsenhed', () => {
       beregnesUdFra: 'Angivet dagsløn',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           fuldLoenUnderFerie: 'Ja',
           loenPaaHelligdage: 'Almindelig løn',
         },
@@ -73,7 +75,7 @@ describe('computeTafBeregningsenhed', () => {
       beregnesUdFra: 'Beregningsperiode',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenPaaHelligdage: 'SH-udbetaling',
         },
       ],
@@ -86,7 +88,7 @@ describe('computeTafBeregningsenhed', () => {
       beregnesUdFra: 'Beregningsperiode',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenPaaHelligdage: 'Almindelig løn',
           fuldLoenUnderFerie: 'Ja',
         },

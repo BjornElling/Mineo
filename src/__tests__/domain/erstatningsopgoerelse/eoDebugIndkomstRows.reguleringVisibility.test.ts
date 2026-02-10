@@ -1,10 +1,10 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import { buildEODebugIndkomstRows } from '../../../domain/erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 const cloneInitialValues = () => ({
-  ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
-  loenindkomstAnsaettelsesforhold: ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold.map((af) => ({
+  ...createErstatningsopgoerelseInitialValues(),
+  loenindkomstAnsaettelsesforhold: createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold.map((af) => ({
     ...af,
     indtaegtsoplysningerTableData: [...af.indtaegtsoplysningerTableData],
     loenudviklingManuelTableData: [...af.loenudviklingManuelTableData],

@@ -1,4 +1,4 @@
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+﻿import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { computeTafEngine } from '../../../domain/erstatningsopgoerelse/tafBeregningsEngine';
 import { toISODateString } from '../../../types/branded';
 import type { TafPeriodeRow } from '../../../schemas/formSchemas';
@@ -7,8 +7,10 @@ const normalizeOutput = (rows: ReadonlyArray<{ id: string; value: number | null 
   return [...rows].sort((a, b) => a.id.localeCompare(b.id));
 };
 
+const initialEoValues = createErstatningsopgoerelseInitialValues();
+
 const baseValues = () => ({
-  ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+  ...initialEoValues,
 });
 
 describe('tafBeregningsEngine', () => {

@@ -1,8 +1,10 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
+const iso = (value: string) => toISODateString(value);
 
 describe('buildIncomeForRanges fail-closed', () => {
   it('medregner kun løn-/ydelsesrækker med gyldig fra/til og uden fejl', () => {
@@ -57,7 +59,7 @@ describe('buildIncomeForRanges fail-closed', () => {
       },
     ];
 
-    const ranges = [{ fra: '2024-01-01', til: '2024-01-31' }] as const;
+    const ranges = [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }] as const;
     const income = buildIncomeForRanges(values, ranges);
 
     expect(income.employers).toHaveLength(1);
@@ -89,8 +91,8 @@ describe('buildIncomeForRanges fail-closed', () => {
     ];
 
     const income = buildIncomeForRanges(values, [
-      { fra: '2024-01-01', til: '2024-01-15' },
-      { fra: '2024-01-10', til: '2024-01-20' },
+      { fra: iso('2024-01-01'), til: iso('2024-01-15') },
+      { fra: iso('2024-01-10'), til: iso('2024-01-20') },
     ]);
 
     // 310 over 31 dage => 10 pr dag, samlet overlap 20 dage (1-20) => 200
@@ -117,7 +119,7 @@ describe('buildIncomeForRanges fail-closed', () => {
       },
     ];
 
-    const income = buildIncomeForRanges(values, [{ fra: '2024-01-01', til: '2024-01-31' }]);
+    const income = buildIncomeForRanges(values, [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }]);
     expect(income.employers).toHaveLength(0);
   });
 
@@ -142,7 +144,7 @@ describe('buildIncomeForRanges fail-closed', () => {
       },
     ];
 
-    const income = buildIncomeForRanges(values, [{ fra: '2024-01-01', til: '2024-01-31' }]);
+    const income = buildIncomeForRanges(values, [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }]);
     expect(income.benefits).toHaveLength(0);
   });
 });

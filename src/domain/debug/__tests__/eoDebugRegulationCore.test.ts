@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tests for Regulation Core Model (Index)
  */
 
@@ -6,7 +6,7 @@ import { buildRegulationTimeline } from '../eoDebugRegulationCore';
 import type { DebugDay } from '../eoDebugTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../types/common';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/common';
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import type { ISODateString } from '../../../types/branded';
 
 // Test helper: Cast string literal til ISODateString (kun til tests)
@@ -29,7 +29,7 @@ const makeInput = (): {
 } => ({
   debugDays: [makeDebugDay('2024-01-01')],
   eoValues: ({
-    ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+    ...createErstatningsopgoerelseInitialValues(),
     vedroererPeriodeFra: '2024-01-01',
     vedroererPeriodeTil: '2024-12-31',
     svieSmerteSatserAar: 2024,

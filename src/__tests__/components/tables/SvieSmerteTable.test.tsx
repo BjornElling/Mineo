@@ -1,8 +1,8 @@
-import React from 'react';
+﻿import React from 'react';
 import { render, screen } from '@testing-library/react';
 import type { ErstatningsopgoerelseValues, SvieSmertePeriodeRow } from '../../../schemas/formSchemas';
 import type { SvieSmerteDraftRow } from '../../../domain/erstatningsopgoerelse/tableDraftRows';
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import useSvieSmerteRows from '../../../components/tables/useSvieSmerteRows';
 import { toISODateString } from '../../../types/branded';
 import SvieSmerteTable from '../../../components/tables/SvieSmerteTable';
@@ -52,7 +52,7 @@ describe('SvieSmerteTable', () => {
 
   it('shows inclusive day count for a DST-spanning svie/smerte period', () => {
     const values: ErstatningsopgoerelseValues = {
-      ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      ...createErstatningsopgoerelseInitialValues(),
       svieSmertePerioder: [
         {
           id: 'row-1',
@@ -89,7 +89,7 @@ describe('SvieSmerteTable', () => {
 
   it('marks overlapping rows when svie/smerte periods overlap with different tilstand', () => {
     const values: ErstatningsopgoerelseValues = {
-      ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      ...createErstatningsopgoerelseInitialValues(),
       svieSmertePerioder: [
         {
           id: 'row-1',

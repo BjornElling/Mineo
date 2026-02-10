@@ -102,6 +102,9 @@ const formatPercentDelta = (value: number): string => {
   return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 };
 
+const isLoengruppe = (value: number): value is Loengruppe =>
+  Number.isInteger(value) && value >= 0 && value <= 4;
+
 const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
 
 const formatPctFromInput = (value: number | undefined): string => {
@@ -458,7 +461,7 @@ const resolveReguleringsdato = (
 });
 
 const resolveLoenSkadesdatoText = (params: {
-  subject: 'lønnen' | 'lønnen';
+  subject: 'lønnen';
   skadesdato: ISODateString | undefined;
   saerligFraDatoRegulering: ISODateString | undefined;
 }): string => {
@@ -517,7 +520,7 @@ const formatLoenudviklingFromIndex = (indexValue: number): string => {
   const delta = Math.round((indexValue - 100) * 100) / 100;
   if (Math.abs(delta) < 0.000001) return '';
   const absDisplay = Math.abs(delta).toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return delta > 0 ? `+ ${absDisplay} %` : `-${absDisplay} %`;
+  return delta > 0 ? `+ ${absDisplay} %` : `- ${absDisplay} %`;
 };
 
 const parsePercentInput = (raw: string | undefined): number => {
@@ -659,9 +662,8 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
       const trinValue = ansaettelsesforhold.offentligLoenTrin;
       const gruppeValue = ansaettelsesforhold.offentligLoenGruppe;
       if (typeof trinValue !== 'number' || typeof gruppeValue !== 'number') return null;
-      if (gruppeValue < 0 || gruppeValue > 4) return null;
+      if (!isLoengruppe(gruppeValue)) return null;
       let loentrin: ReturnType<typeof toLoentrin>;
-      const loengruppe = gruppeValue as Loengruppe;
       try {
         loentrin = toLoentrin(trinValue);
       } catch {
@@ -672,10 +674,10 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
       const tilDato = isoToDanish(tafTil);
       if (!fraDato || !tilDato) return null;
 
-      const baseResult = getOffentligLoenForDato(offentligType, fraDato, loentrin, loengruppe);
+      const baseResult = getOffentligLoenForDato(offentligType, fraDato, loentrin, gruppeValue);
       if (!baseResult) return null;
 
-      const satser = getOffentligLoenForPeriode(offentligType, fraDato, tilDato, loentrin, loengruppe);
+      const satser = getOffentligLoenForPeriode(offentligType, fraDato, tilDato, loentrin, gruppeValue);
       const columns = ['Fra-dato', 'Månedsløn', 'Timeløn'];
 
       const rows: string[][] = [];
@@ -851,8 +853,8 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
   }
 
   if (grundlag === 'KRL satstabel') {
-    const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel as KRLSatstabelId | undefined;
-    if (!krlId) return null;
+    const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel;
+    if (!krlId || !isKRLSatstabelId(krlId)) return null;
     const tabel = getKRLSatstabel(krlId);
     if (!tabel || tabel.vaerdier.length === 0) return null;
 
@@ -943,18 +945,17 @@ const buildReguleringIndexRows = (params: Readonly<{
       if (!baseDato || !loenType || typeof trinValue !== 'number' || typeof gruppeValue !== 'number') {
         return segments.map(fallbackRows);
       }
-      if (gruppeValue < 0 || gruppeValue > 4) {
+      if (!isLoengruppe(gruppeValue)) {
         return segments.map(fallbackRows);
       }
       let loentrin: ReturnType<typeof toLoentrin>;
-      const loengruppe = gruppeValue as Loengruppe;
       try {
         loentrin = toLoentrin(trinValue);
       } catch {
         return segments.map(fallbackRows);
       }
 
-      const baseResult = getOffentligLoenForDato(offentligType, baseDato, loentrin, loengruppe);
+      const baseResult = getOffentligLoenForDato(offentligType, baseDato, loentrin, gruppeValue);
       if (!baseResult) return segments.map(fallbackRows);
       const baseValue = loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen;
       const baseComponents: FormulaComponents = {
@@ -977,7 +978,7 @@ const buildReguleringIndexRows = (params: Readonly<{
       return segments.map((segment) => {
         const segmentDato = isoToDanish(segment.fra);
         const segmentResult = segmentDato
-          ? getOffentligLoenForDato(offentligType, segmentDato, loentrin, loengruppe)
+          ? getOffentligLoenForDato(offentligType, segmentDato, loentrin, gruppeValue)
           : undefined;
         if (!segmentResult) return fallbackRows(segment);
         const segmentBase = loenType === 'maanedsLoen' ? segmentResult.maanedsLoen : segmentResult.timeLoen;
@@ -1019,7 +1020,6 @@ const buildReguleringIndexRows = (params: Readonly<{
     const ref = resolveOverenskomstRef(ansaettelsesforhold.overenskomstId);
     const baseDato = isoToDanish(reguleringsdato);
     if (ref && baseDato) {
-      const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
       const baseSats = getEffektiveSatserForDato({
         overenskomstId: ref.baseId,
         dato: baseDato,
@@ -1030,14 +1030,14 @@ const buildReguleringIndexRows = (params: Readonly<{
         const hasShSo = allSatser.some((sats) => sats.shSoSats !== null);
         const hasFritvalg = allSatser.some((sats) => sats.fritvalg !== null);
         const hasAgPension = allSatser.some((sats) => sats.agPension !== null);
-        const tafStartIso = segments[0]?.fra;
-        const tafEndIso = segments[segments.length - 1]?.til;
+        const firstSegmentStartIso = segments[0]?.fra;
+        const lastSegmentEndIso = segments[segments.length - 1]?.til;
         const applyStoreBededagRegulering = Boolean(
-          tafStartIso &&
-          tafEndIso &&
+          firstSegmentStartIso &&
+          lastSegmentEndIso &&
           applyAlmindeligLoenPaaShDageRegel &&
-          tafStartIso < STORE_BEDEDAG_START &&
-          tafEndIso >= STORE_BEDEDAG_START
+          firstSegmentStartIso < STORE_BEDEDAG_START &&
+          lastSegmentEndIso >= STORE_BEDEDAG_START
         );
         const feriePct = typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0;
         const baseComponents: FormulaComponents = {
@@ -1181,8 +1181,8 @@ const buildReguleringIndexRows = (params: Readonly<{
       };
     }
     if (isKRL) {
-      const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel as KRLSatstabelId | undefined;
-      if (!krlId) return null;
+      const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel;
+      if (!krlId || !isKRLSatstabelId(krlId)) return null;
       const tabel = getKRLSatstabel(krlId);
       if (!tabel || tabel.vaerdier.length === 0) return null;
       const periodStarts = tabel.vaerdier
@@ -1368,8 +1368,8 @@ const buildReguleringIndexRows = (params: Readonly<{
       }));
     }
     if (isKRL) {
-      const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel as KRLSatstabelId | undefined;
-      if (!krlId) return [];
+      const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel;
+      if (!krlId || !isKRLSatstabelId(krlId)) return [];
       const tabel = getKRLSatstabel(krlId);
       if (!tabel || tabel.vaerdier.length === 0) return [];
       const periodStarts = tabel.vaerdier
@@ -1682,9 +1682,9 @@ export const generateErstatningsopgoerelsePdf = (
     if (model.svieSmerte.delvisFaktor !== 1 && model.svieSmerte.satserPerDag.status === 'ok') {
       const delvisSatsOre = Math.round(model.svieSmerte.satserPerDag.value * model.svieSmerte.delvisFaktor);
       const delvisSatsDisplayWithKr = formatMoneyOreWithKrTrimmed(delvisSatsOre);
-      safeAddWrappedText(`Taksten udgår ${perDagDisplayWithKr} pr. sygedag og ${delvisSatsDisplayWithKr} pr. delvise sygedag, dog højst ${maxDisplayWithKr}`);
+      safeAddWrappedText(`Taksten udgør ${perDagDisplayWithKr} pr. sygedag og ${delvisSatsDisplayWithKr} pr. delvise sygedag, dog højst ${maxDisplayWithKr}`);
     } else {
-      safeAddWrappedText(`Taksten udgår ${perDagDisplayWithKr} pr. sygedag, dog højst ${maxDisplayWithKr}`);
+      safeAddWrappedText(`Taksten udgør ${perDagDisplayWithKr} pr. sygedag, dog højst ${maxDisplayWithKr}`);
     }
 
     const tidligere = model.svieSmerte.tidligere;
@@ -2245,20 +2245,22 @@ export const generateErstatningsopgoerelsePdf = (
           writeLabelValueLine('Overenskomst', resolveOverenskomstDisplay(overenskomstId));
           writer.addSpacer(lineHeight);
         }
-        if (!isZeroPct(ansaettelsesforhold.feriePct)) {
-          writeLabelValueLine('Feriegodtgørelse/-tillæg:', formatPctFromInput(ansaettelsesforhold.feriePct));
-        }
-        if (!isZeroPct(ansaettelsesforhold.fritvalgPct)) {
-          writeLabelValueLine('Fritvalg:', formatPctFromInput(ansaettelsesforhold.fritvalgPct));
-        }
-        if (!isZeroPct(ansaettelsesforhold.shSoPct)) {
-          writeLabelValueLine('SH/SO-sats:', formatPctFromInput(ansaettelsesforhold.shSoPct));
-        }
-        if (!isZeroPct(ansaettelsesforhold.storeBededagPct)) {
-          writeLabelValueLine('Store Bededagstillæg:', formatPctFromInput(ansaettelsesforhold.storeBededagPct));
-        }
-        if (!isZeroPct(ansaettelsesforhold.pensionPct)) {
-          writeLabelValueLine('Arbejdsgivers pensionsbidrag:', formatPctFromInput(ansaettelsesforhold.pensionPct));
+        if (selectedElements.okSatser) {
+          if (!isZeroPct(ansaettelsesforhold.feriePct)) {
+            writeLabelValueLine('Feriegodtgørelse/-tillæg:', formatPctFromInput(ansaettelsesforhold.feriePct));
+          }
+          if (!isZeroPct(ansaettelsesforhold.fritvalgPct)) {
+            writeLabelValueLine('Fritvalg:', formatPctFromInput(ansaettelsesforhold.fritvalgPct));
+          }
+          if (!isZeroPct(ansaettelsesforhold.shSoPct)) {
+            writeLabelValueLine('SH/SO-sats:', formatPctFromInput(ansaettelsesforhold.shSoPct));
+          }
+          if (!isZeroPct(ansaettelsesforhold.storeBededagPct)) {
+            writeLabelValueLine('Store Bededagstillæg:', formatPctFromInput(ansaettelsesforhold.storeBededagPct));
+          }
+          if (!isZeroPct(ansaettelsesforhold.pensionPct)) {
+            writeLabelValueLine('Arbejdsgivers pensionsbidrag:', formatPctFromInput(ansaettelsesforhold.pensionPct));
+          }
         }
         writer.addSpacer(lineHeight);
         const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
@@ -2604,4 +2606,3 @@ export const generateErstatningsopgoerelsePdf = (
   // Download PDF
   writer.save(`${titel}.pdf`);
 };
-

@@ -1,10 +1,10 @@
-import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+﻿import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { buildEODebugTafBeregningsgrundlagRows } from '../../../domain/erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
-  const base = structuredClone(ERSTATNINGSOPGOERELSE_INITIAL_VALUES);
+  const base = structuredClone(createErstatningsopgoerelseInitialValues());
   return { ...base, ...patch };
 };
 
@@ -26,7 +26,7 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
       beregnesUdFra: 'Beregningsperiode',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
           fuldLoenUnderFerie: 'Nej',
         },
       ],

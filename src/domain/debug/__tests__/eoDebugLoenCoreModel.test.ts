@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tests for Loen Core Model - Phase 5.2 (rettet)
  */
 
@@ -6,7 +6,7 @@ import { buildLoenTimeline } from '../eoDebugLoenCoreModel';
 import type { DebugDay } from '../eoDebugTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../types/common';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/common';
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { svieSmertePrDag } from '../../../data/regulationRates';
 
 const makeDebugDay = (
@@ -26,7 +26,7 @@ const makeDebugDay = (
 const makeEOValues = (
   overrides: Partial<ErstatningsopgoerelseValues> = {}
 ): ErstatningsopgoerelseValues => ({
-  ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+  ...createErstatningsopgoerelseInitialValues(),
   vedroererPeriodeFra: '2024-01-01',
   vedroererPeriodeTil: '2024-12-31',
   svieSmerteSatserAar: 2024,
@@ -124,7 +124,7 @@ describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
       makeInput(debugDays, {
         loenindkomstAnsaettelsesforhold: [
           {
-            ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
             id: 'af-1',
             harOverenskomst: true,
             overenskomstId: 'bygge-anlaeg',

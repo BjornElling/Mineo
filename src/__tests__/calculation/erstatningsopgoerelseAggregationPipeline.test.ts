@@ -1,9 +1,9 @@
-import type { RenteberegningOutput } from '../../domain/renteberegning/renteberegningEngine';
+﻿import type { RenteberegningOutput } from '../../domain/renteberegning/renteberegningEngine';
 import type { TafEngineOutput } from '../../domain/erstatningsopgoerelse/tafBeregningsEngine';
 import type { VarigeMenEngineOutput } from '../../domain/varigemen/varigeMenEngine';
 import type { AggregatableComputed } from '../../domain/erstatningsopgoerelse/aggregationAdapters';
 import { computeErstatningsopgoerelseAggregation } from '../../calculation/pipeline/erstatningsopgoerelseAggregationPipeline';
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 const buildRenteOutput = (): RenteberegningOutput => ({
   rows: [{ id: 'r1', actualInterestDate: null, calculatedInterest: 100 }],
@@ -30,7 +30,7 @@ const buildComputedAmount = (amount: number): AggregatableComputed => ({ amount 
 describe('erstatningsopgoerelseAggregationPipeline', () => {
   it('fails closed when EET adapter output is missing', () => {
     const manualValues = {
-      ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES,
+      ...createErstatningsopgoerelseInitialValues(),
     };
 
     const result = computeErstatningsopgoerelseAggregation({

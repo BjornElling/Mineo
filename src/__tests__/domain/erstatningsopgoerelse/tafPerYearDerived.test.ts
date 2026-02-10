@@ -1,7 +1,7 @@
-import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
+﻿import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
-import { ERSTATNINGSOPGOERELSE_INITIAL_VALUES } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { buildErstatningsopgoerelsePdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
 import {
@@ -11,10 +11,12 @@ import {
 
 const iso = (value: string) => toISODateString(value);
 
+const initialEoValues = createErstatningsopgoerelseInitialValues();
+
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
-  const base = structuredClone(ERSTATNINGSOPGOERELSE_INITIAL_VALUES);
+  const base = structuredClone(initialEoValues);
   return {
     ...base,
     ...patch,
@@ -129,7 +131,7 @@ describe('buildTafPerYearResult', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -160,7 +162,7 @@ describe('buildTafPerYearResult', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -211,7 +213,7 @@ describe('buildTafPerYearResult', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -253,7 +255,7 @@ describe('buildTafPerYearResult', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -284,7 +286,7 @@ describe('buildTafPerYearResult', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -317,7 +319,7 @@ describe('buildTafPerYearResult', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -353,7 +355,7 @@ describe('buildTafPerYearResult', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -383,7 +385,7 @@ describe('buildTafPerYearResult', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -412,7 +414,7 @@ describe('buildTafPerYearResult', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -443,7 +445,7 @@ describe('buildTafPerYearResult', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -472,7 +474,7 @@ describe('buildTafPerYearResult', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -503,7 +505,7 @@ describe('buildTafPerYearResult', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -538,7 +540,7 @@ describe('buildTafPerYearResult', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -576,7 +578,7 @@ describe('buildTafPerYearResult', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -629,7 +631,7 @@ describe('buildTafPerYearResult', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...ERSTATNINGSOPGOERELSE_INITIAL_VALUES.loenindkomstAnsaettelsesforhold[0],
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],

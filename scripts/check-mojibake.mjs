@@ -37,9 +37,22 @@ const toMojibake = (text, passes) => {
 const DANISH_BASE = ['æ', 'ø', 'å', 'Æ', 'Ø', 'Å'];
 const PUNCTUATION_BASE = ['—', '–', '…', '“', '”', '’', '•'];
 
+// CP437/OEM-encoding mojibake patterns (rare but found in wild)
+// Using Unicode escapes to avoid triggering self-check
+const CP437_MOJIBAKE = [
+  '\u251C\u00A9', // ø misencoded as box-drawing + copyright
+  '\u251C\u00D1', // å misencoded as box-drawing + Ñ
+  '\u251C\u00AA', // æ misencoded as box-drawing + feminine ordinal
+  '\u251C\u00F9', // × misencoded as box-drawing + ù
+  '\u00D4\u00E5\u00C6', // → misencoded as Ô + å + Æ
+];
+
 const FORBIDDEN_TOKENS = new Set(
   [...DANISH_BASE, ...PUNCTUATION_BASE].flatMap((token) => [toMojibake(token, 1), toMojibake(token, 2)]),
 );
+
+// Add CP437 mojibake patterns to forbidden tokens
+CP437_MOJIBAKE.forEach(token => FORBIDDEN_TOKENS.add(token));
 
 const FORBIDDEN_PATTERNS = [
   {
