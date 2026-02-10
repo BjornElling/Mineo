@@ -35,6 +35,7 @@ import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../.
 import { getKRLSatstabel, type KRLSatstabelId } from '../../data/KRLrates';
 import { clampTafRow, resolveTafConstraintBounds } from './tafPeriodConstraints';
 import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
+import { buildTafArbejdsstatusLinje } from './tafArbejdsstatusConfig';
 import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
@@ -1786,37 +1787,7 @@ const buildTabtArbejdsfortjenesteModel = (
   const periodeTilISO = values.vedroererPeriodeTil;
   if (values.tafArbejdsstatus && periodeTilISO) {
     const dagenEfter = formatDateLong(getDayAfter(periodeTilISO));
-    switch (values.tafArbejdsstatus) {
-      case 'Uarbejdsdygtig':
-        statusLinjer.push(`Den ${dagenEfter} var skadelidte fortsat uarbejdsdygtig.`);
-        break;
-      case 'Delvist raskmeldt':
-        statusLinjer.push(`Den ${dagenEfter} var skadelidte fortsat delvist uarbejdsdygtig.`);
-        break;
-      case 'Fuldt arbejdsdygtig':
-        statusLinjer.push(`Den ${dagenEfter} var skadelidte fuldt arbejdsdygtig.`);
-        break;
-      case 'Fleksjob':
-        statusLinjer.push(`Den ${dagenEfter} var skadelidte i fleksjob.`);
-        break;
-      case 'Revalidering':
-        statusLinjer.push(`Den ${dagenEfter} var skadelidte i revalidering.`);
-        break;
-      case 'Uddannelse':
-        statusLinjer.push(`Den ${dagenEfter} var skadelidte i uddannelse.`);
-        break;
-      case 'Førtidspension':
-        statusLinjer.push(`Den ${dagenEfter} var skadelidte på førtidspension.`);
-        break;
-      case 'Seniorpension':
-        statusLinjer.push(`Den ${dagenEfter} var skadelidte på seniorpension.`);
-        break;
-      case 'Folkepension':
-        statusLinjer.push(`Den ${dagenEfter} var skadelidte på folkepension.`);
-        break;
-      default:
-        break;
-    }
+    statusLinjer.push(buildTafArbejdsstatusLinje(dagenEfter, values.tafArbejdsstatus));
   }
 
   const eetLinjer: string[] = [];

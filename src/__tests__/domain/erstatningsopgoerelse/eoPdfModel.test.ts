@@ -704,6 +704,46 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     expect(() => buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
       .toThrow('Inkonsistente loenudviklingsindstillinger');
   });
+
+  it('viser statuslinje for Efterløn', () => {
+    const eoValues = makeValues({
+      vedroererPeriodeTil: iso('2024-01-31'),
+      tafArbejdsstatus: 'Efterløn',
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.tabtArbejdsfortjeneste.statusLinjer).toContain('Den 1. februar 2024 var skadelidte på efterløn.');
+  });
+
+  it('tilføjer delvist-uarbejdsdygtig suffix for fleksjob', () => {
+    const eoValues = makeValues({
+      vedroererPeriodeTil: iso('2024-01-31'),
+      tafArbejdsstatus: 'Fleksjob',
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.tabtArbejdsfortjeneste.statusLinjer).toContain(
+      'Den 1. februar 2024 var skadelidte i fleksjob og således fortsat delvist uarbejdsdygtig.'
+    );
+  });
+
+  it('tilføjer uarbejdsdygtig suffix for førtidspension', () => {
+    const eoValues = makeValues({
+      vedroererPeriodeTil: iso('2024-01-31'),
+      tafArbejdsstatus: 'Førtidspension',
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.tabtArbejdsfortjeneste.statusLinjer).toContain(
+      'Den 1. februar 2024 var skadelidte på førtidspension og således fortsat uarbejdsdygtig.'
+    );
+  });
 });
 
 

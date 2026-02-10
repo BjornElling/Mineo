@@ -232,7 +232,7 @@ export interface ErstatningsopgoerelseValues {
 
   // Tabt arbejdsfortjeneste
   beregnesTabtArbejdsfortjeneste: 'Ja' | 'Nej';
-  tafArbejdsstatus: '' | 'Uarbejdsdygtig' | 'Delvist raskmeldt' | 'Fuldt arbejdsdygtig' | 'Fleksjob' | 'Revalidering' | 'Førtidspension' | 'Seniorpension';
+  tafArbejdsstatus: '' | 'Uarbejdsdygtig' | 'Delvist raskmeldt' | 'Fuldt arbejdsdygtig' | 'Fleksjob' | 'Revalidering' | 'Førtidspension' | 'Seniorpension' | 'Folkepension' | 'Efterløn';
   tafPerioder: TafPeriodeRow[];
   ferieperioder: FerieperiodeRow[];
   opsagtFraStilling: 'Ja' | 'Nej';
@@ -487,5 +487,4 @@ export interface FileHandleWithMetadata {
   name: string;
   lastModified: number;
 }
-
 
