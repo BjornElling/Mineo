@@ -15,7 +15,15 @@ const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value }
 
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
   const base = structuredClone(ERSTATNINGSOPGOERELSE_INITIAL_VALUES);
-  return { ...base, ...patch };
+  return {
+    ...base,
+    ...patch,
+    eoAngivetLoenLoenudvikling: {
+      ...base.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Ingen',
+      ...patch.eoAngivetLoenLoenudvikling,
+    },
+  };
 };
 
 const makeStamdata = (patch: Partial<StamdataValues>): StamdataValues => {

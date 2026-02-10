@@ -602,6 +602,9 @@ const EODebug = () => {
 
     return map;
   }, [ctx]);
+  const svieSmerteRows = rowsBySection.get('sviesmerte') ?? [];
+  const svieSmerteOphoerRow = svieSmerteRows.find((row) => (row.id as string) === 'sviesmerte.ophoerSkyldes');
+  const svieSmerteMainRows = svieSmerteRows.filter((row) => (row.id as string) !== 'sviesmerte.ophoerSkyldes');
 
   const {
     loenindkomstAnsaettelsesforhold,
@@ -2399,9 +2402,19 @@ const EODebug = () => {
           </Box>
         </Box>
 
+        {svieSmerteOphoerRow && (
+          <Box key={svieSmerteOphoerRow.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+            <Typography className="row--text">{svieSmerteOphoerRow.label}</Typography>
+            <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+              <Typography className="row--text">{svieSmerteOphoerRow.displayValue}</Typography>
+              {getStatusIcon(svieSmerteOphoerRow.status)}
+            </Box>
+          </Box>
+        )}
+
         {beregnesSvieSmerte && (
           <>
-            {rowsBySection.get('sviesmerte')?.map((row) => {
+            {svieSmerteMainRows.map((row) => {
               // Periode-rækker får en bredere label-width for at forhindre tekst-komprimering
               const labelWidth = row.id.startsWith('sviesmerte.periode.') ? '300px' : LABEL_WIDTH;
               // Multi-line displayValue kræver whiteSpace: 'pre-line' for at vise linjeskift

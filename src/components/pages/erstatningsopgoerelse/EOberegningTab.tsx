@@ -501,10 +501,13 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
           <Typography className="section-header">Advarsler</Typography>
           {warnings.map((row) => {
             const warningMessage = extractErrorMessage(row.displayValue);
+            const warningText = row.id === 'taf.ophoerSkyldes'
+              ? warningMessage
+              : `${row.label}${warningMessage ? ` ${warningMessage}` : ''}`;
             return (
               <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': '400px' }}>
                 <Typography className="row--text">
-                  {row.label}{warningMessage ? ` ${warningMessage}` : ''}
+                  {warningText}
                 </Typography>
                 <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
                   {row.navigation.kind === 'erstatningsopgoerelse-tab' && (

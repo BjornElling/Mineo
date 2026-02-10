@@ -1,3 +1,5 @@
+/// <reference types="vitest/globals" />
+
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
@@ -67,7 +69,137 @@ const getAntalDage = (values: ErstatningsopgoerelseValues): string => {
   return antalDageRow?.displayValue ?? '-';
 };
 
+const getSvieSmerteOphoerRow = (values: ErstatningsopgoerelseValues) => {
+  const context = {
+    skadesdatoISO: iso('2023-01-01'),
+    erErhvervssygdom: false,
+    menAfgoerelseDatoForTabel: values.varigeMenAfgorelse === 'Ja' ? values.menAfgoerelseDato : undefined,
+    verserendeKlageMen: values.verserendeKlageMen === 'Ja',
+  };
+  const rows = buildEODebugSvieSmerteRows(values, {}, context);
+  return rows.find((row) => row.id === 'sviesmerte.ophoerSkyldes');
+};
+
 describe('Svie/smerte beregning', () => {
+  describe('Svie/smerte ophør skyldes', () => {
+    it('viser "Ingen krav i perioden" med ok når beregning er Nej', () => {
+      const row = getSvieSmerteOphoerRow(
+        makeValues({
+          beregnesSvieSmerteGodtgoerelse: 'Nej',
+          tidligereSsMax: 'Ja',
+        })
+      );
+      expect(row?.displayValue).toBe('Ingen krav i perioden');
+      expect(row?.status).toBe('ok');
+    });
+
+    it('viser "Tidligere beregnet til max" når tidligereSsMax er Ja', () => {
+      const row = getSvieSmerteOphoerRow(
+        makeValues({
+          beregnesSvieSmerteGodtgoerelse: 'Ja',
+          tidligereSsMax: 'Ja',
+        })
+      );
+      expect(row?.displayValue).toBe('Tidligere beregnet til max');
+      expect(row?.status).toBe('ok');
+    });
+
+    it('viser "-" når sidste svie/smerte-dato er lig vedrørerPeriodeTil', () => {
+      const row = getSvieSmerteOphoerRow(
+        makeValues({
+          beregnesSvieSmerteGodtgoerelse: 'Ja',
+          tidligereSsMax: 'Nej',
+          vedroererPeriodeTil: iso('2024-03-31'),
+          svieSmertePerioder: [{ id: '1', fra: iso('2024-03-01'), til: iso('2024-03-31'), tilstand: 'sygemeldt' }],
+        })
+      );
+      expect(row?.displayValue).toBe('-');
+      expect(row?.status).toBe('ok');
+    });
+
+    it('viser "Ménafgørelse" når mén-dato er dagen efter sidste svie/smerte-dato', () => {
+      const row = getSvieSmerteOphoerRow(
+        makeValues({
+          beregnesSvieSmerteGodtgoerelse: 'Ja',
+          tidligereSsMax: 'Nej',
+          varigeMenAfgorelse: 'Ja',
+          verserendeKlageMen: 'Nej',
+          menAfgoerelseDato: iso('2024-04-01'),
+          svieSmertePerioder: [{ id: '1', fra: iso('2024-03-01'), til: iso('2024-03-31'), tilstand: 'sygemeldt' }],
+          vedroererPeriodeTil: iso('2024-12-31'),
+        })
+      );
+      expect(row?.displayValue).toBe('Ménafgørelse');
+      expect(row?.status).toBe('ok');
+    });
+
+    it('viser "Raskmeldt" når helbredsforhold er Raskmeldt', () => {
+      const row = getSvieSmerteOphoerRow(
+        makeValues({
+          beregnesSvieSmerteGodtgoerelse: 'Ja',
+          tidligereSsMax: 'Nej',
+          svieSmerteHelbredsstatus: 'Raskmeldt',
+          vedroererPeriodeTil: iso('2024-12-31'),
+          svieSmertePerioder: [{ id: '1', fra: iso('2024-03-01'), til: iso('2024-03-15'), tilstand: 'sygemeldt' }],
+        })
+      );
+      expect(row?.displayValue).toBe('Raskmeldt');
+      expect(row?.status).toBe('ok');
+    });
+
+    it('viser "Nået max i denne periode" når beregnet svie/smerte er begrænset af max', () => {
+      const row = getSvieSmerteOphoerRow(
+        makeValues({
+          beregnesSvieSmerteGodtgoerelse: 'Ja',
+          tidligereSsMax: 'Nej',
+          svieSmerteHelbredsstatus: 'Sygemeldt',
+          svieSmerteSatserAar: 2026,
+          svieSmerteDelvisSygemeldingSats: 'fuld',
+          svieSmerteTidligereTotal: asAmountValue(0),
+          svieSmerteAktuelPeriode: asAmountValue(0),
+          vedroererPeriodeFra: iso('2024-01-01'),
+          vedroererPeriodeTil: iso('2025-12-31'),
+          svieSmertePerioder: [{ id: '1', fra: iso('2024-01-01'), til: iso('2025-02-04'), tilstand: 'sygemeldt' }],
+        })
+      );
+      expect(row?.displayValue).toBe('Nået max i denne periode');
+      expect(row?.status).toBe('ok');
+    });
+
+    it('prioriterer "Nået max i denne periode" før "Raskmeldt"', () => {
+      const row = getSvieSmerteOphoerRow(
+        makeValues({
+          beregnesSvieSmerteGodtgoerelse: 'Ja',
+          tidligereSsMax: 'Nej',
+          svieSmerteHelbredsstatus: 'Raskmeldt',
+          svieSmerteSatserAar: 2026,
+          svieSmerteDelvisSygemeldingSats: 'fuld',
+          svieSmerteTidligereTotal: asAmountValue(0),
+          svieSmerteAktuelPeriode: asAmountValue(0),
+          vedroererPeriodeFra: iso('2024-01-01'),
+          vedroererPeriodeTil: iso('2025-12-31'),
+          svieSmertePerioder: [{ id: '1', fra: iso('2024-01-01'), til: iso('2025-02-04'), tilstand: 'sygemeldt' }],
+        })
+      );
+      expect(row?.displayValue).toBe('Nået max i denne periode');
+      expect(row?.status).toBe('ok');
+    });
+
+    it('viser warning med "Ikke rejst svie/smerte-krav for hele perioden" i fallback', () => {
+      const row = getSvieSmerteOphoerRow(
+        makeValues({
+          beregnesSvieSmerteGodtgoerelse: 'Ja',
+          tidligereSsMax: 'Nej',
+          svieSmerteHelbredsstatus: 'Sygemeldt',
+          vedroererPeriodeTil: iso('2024-12-31'),
+          svieSmertePerioder: [{ id: '1', fra: iso('2024-03-01'), til: iso('2024-03-15'), tilstand: 'sygemeldt' }],
+        })
+      );
+      expect(row?.displayValue).toBe('Ikke rejst svie/smerte-krav for hele perioden');
+      expect(row?.status).toBe('warning');
+    });
+  });
+
   describe('Basis beregning uden forlig', () => {
     it('beregner korrekt uden tidligere krav eller betalinger', () => {
       // Max: 96.000 kr., sats per dag: 250 kr. (├Ñr 2024)

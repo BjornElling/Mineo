@@ -65,6 +65,7 @@ export type DebugRowId =
   | 'sviesmerte.beregnetPeriode'
   | 'sviesmerte.antalDage'
   | 'sviesmerte.beregnetBeloeb'
+  | 'sviesmerte.ophoerSkyldes'
   | 'taf.beregningsgrundlag.beregnesUdFra'
   | 'taf.beregningsgrundlag.beregningsperiode'
   | `taf.beregningsgrundlag.ferie.${string}`
@@ -537,6 +538,7 @@ export const buildEODebugSvieSmerteRows = (
   }>
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
+  const svieSmerteIkkeRejstLabel = 'Ikke rejst svie/smerte-krav for hele perioden';
 
   // Tjek om periode-tabellen er synlig (kun synlig hvis tidligereSsMax er 'Nej')
   const periodeErSynlig = values.tidligereSsMax === 'Nej';
@@ -1172,27 +1174,27 @@ export const buildEODebugSvieSmerteRows = (
   const beregnetBeloebResult = (() => {
     // Hvis ingen perioder, returner tom
     if (!harPerioder) {
-      return { displayValue: '-', status: 'ok' as DebugStatus };
+      return { displayValue: '-', status: 'ok' as DebugStatus, naetMaxIPerioden: false };
     }
 
     // Hvis satser år mangler, returner fejl
     if (satserAarMangler) {
-      return { displayValue: 'Fejl (År for sats mangler)', status: 'error' as DebugStatus };
+      return { displayValue: 'Fejl (År for sats mangler)', status: 'error' as DebugStatus, naetMaxIPerioden: false };
     }
 
     // Hvis delvis sygemeldings-sats mangler, returner fejl
     if (delvisSygemeldingSatsMangler) {
-      return { displayValue: 'Fejl (Sats ved delvis sygemelding mangler)', status: 'error' as DebugStatus };
+      return { displayValue: 'Fejl (Sats ved delvis sygemelding mangler)', status: 'error' as DebugStatus, naetMaxIPerioden: false };
     }
 
     // Hvis der er fejl i antal dage, returner fejl
     if (antalDageResult.status === 'error') {
-      return { displayValue: 'Fejl (Kan ikke beregne dage)', status: 'error' as DebugStatus };
+      return { displayValue: 'Fejl (Kan ikke beregne dage)', status: 'error' as DebugStatus, naetMaxIPerioden: false };
     }
 
     // Hvis ingen dage, returner tom
     if (antalDageResult.displayValue === '-') {
-      return { displayValue: '-', status: 'ok' as DebugStatus };
+      return { displayValue: '-', status: 'ok' as DebugStatus, naetMaxIPerioden: false };
     }
 
     // Parse antal dage fra den nye format
@@ -1209,7 +1211,7 @@ export const buildEODebugSvieSmerteRows = (
       : values.svieSmerteSatserAar;
     const aar = parseInt(aarString?.trim() ?? '', 10);
     if (isNaN(aar)) {
-      return { displayValue: 'Fejl (Ugyldigt år)', status: 'error' as DebugStatus };
+      return { displayValue: 'Fejl (Ugyldigt år)', status: 'error' as DebugStatus, naetMaxIPerioden: false };
     }
 
     // Slå sats op
@@ -1217,7 +1219,7 @@ export const buildEODebugSvieSmerteRows = (
     const satsMax = svieSmerteMax[aar as keyof typeof svieSmerteMax];
 
     if (!satsPerDag || !satsMax) {
-      return { displayValue: `Fejl (Ingen sats for år ${aar})`, status: 'error' as DebugStatus };
+      return { displayValue: `Fejl (Ingen sats for år ${aar})`, status: 'error' as DebugStatus, naetMaxIPerioden: false };
     }
 
     // Beregn forligsgrad hvis den er udfyldt
@@ -1258,6 +1260,7 @@ export const buildEODebugSvieSmerteRows = (
 
     // Beregn resterende plads til max (kun tidligere opgjort tæller her)
     const restPlads = actualSatsMax - tidligereOpgjort;
+    const cappedAfMax = raabeloeb > Math.max(0, restPlads);
 
     // Begræns råbeløb til resterende plads
     const beloebFoerFradrag = Math.min(raabeloeb, Math.max(0, restPlads));
@@ -1276,7 +1279,7 @@ export const buildEODebugSvieSmerteRows = (
       maximumFractionDigits: 2,
     });
 
-    return { displayValue: `${formatted} kr.`, status: 'ok' as DebugStatus };
+    return { displayValue: `${formatted} kr.`, status: 'ok' as DebugStatus, naetMaxIPerioden: cappedAfMax };
   })();
 
   rows.push({
@@ -1289,6 +1292,61 @@ export const buildEODebugSvieSmerteRows = (
       { kind: 'id', id: 'sviesmerte.satserAar' },
       { kind: 'id', id: 'sviesmerte.delvisSygemeldingSats' },
     ],
+  });
+
+  const lastSvieSmerteKravDato = (() => {
+    let latest: ISODateString | undefined = undefined;
+    for (const periode of values.svieSmertePerioder ?? []) {
+      const hasFra = isNonEmptyString(periode.fra);
+      const hasTil = isNonEmptyString(periode.til);
+      const hasTilstand = isNonEmptyString(periode.tilstand);
+      if (!hasFra || !hasTil || !hasTilstand) continue;
+      if (periode.fra && periode.til && periode.fra <= periode.til) {
+        if (!latest || periode.til > latest) latest = periode.til;
+      }
+    }
+    return latest;
+  })();
+
+  const svieSmerteOphoerSkyldes = (() => {
+    if (values.beregnesSvieSmerteGodtgoerelse === 'Nej') {
+      return { displayValue: 'Ingen krav i perioden', status: 'ok' as DebugStatus };
+    }
+
+    if (values.tidligereSsMax === 'Ja') {
+      return { displayValue: 'Tidligere beregnet til max', status: 'ok' as DebugStatus };
+    }
+
+    if (lastSvieSmerteKravDato && values.vedroererPeriodeTil && lastSvieSmerteKravDato === values.vedroererPeriodeTil) {
+      return { displayValue: '-', status: 'ok' as DebugStatus };
+    }
+
+    if (
+      lastSvieSmerteKravDato &&
+      values.varigeMenAfgorelse === 'Ja' &&
+      values.verserendeKlageMen === 'Nej' &&
+      values.menAfgoerelseDato &&
+      subtractOneDay(values.menAfgoerelseDato) === lastSvieSmerteKravDato
+    ) {
+      return { displayValue: 'Ménafgørelse', status: 'ok' as DebugStatus };
+    }
+
+    if (beregnetBeloebResult.naetMaxIPerioden) {
+      return { displayValue: 'Nået max i denne periode', status: 'ok' as DebugStatus };
+    }
+
+    if (values.svieSmerteHelbredsstatus === 'Raskmeldt') {
+      return { displayValue: 'Raskmeldt', status: 'ok' as DebugStatus };
+    }
+
+    return { displayValue: svieSmerteIkkeRejstLabel, status: 'warning' as DebugStatus };
+  })();
+
+  rows.push({
+    id: 'sviesmerte.ophoerSkyldes',
+    label: 'Svie/smerte ophør skyldes',
+    displayValue: svieSmerteOphoerSkyldes.displayValue,
+    status: svieSmerteOphoerSkyldes.status,
   });
 
   return rows;
@@ -1309,6 +1367,7 @@ export const buildEODebugTaftRows = (
 
   const tafBounds = resolveTafConstraintBounds(values);
   const clampedTafById = new Map<string, { fra: ISODateString; til: ISODateString }>();
+  const tafIkkeRejstLabel = 'Ikke rejst TAF-krav for hele perioden';
 
   const lastTafKravDato = (() => {
     let latest: ISODateString | undefined = undefined;
@@ -1324,7 +1383,7 @@ export const buildEODebugTaftRows = (
   })();
 
   const tafOphoerSkyldes = (() => {
-    if (!lastTafKravDato) return 'Krav ikke rejst';
+    if (!lastTafKravDato) return tafIkkeRejstLabel;
 
     const endeligEetMinus1 = subtractOneDay(context.endeligEETBeregnetDato);
     if (!context.verserendeKlageEet && endeligEetMinus1 && endeligEetMinus1 === lastTafKravDato) {
@@ -1340,7 +1399,7 @@ export const buildEODebugTaftRows = (
       return 'Erstatningsperiodens ophør';
     }
 
-    return 'Krav ikke rejst';
+    return tafIkkeRejstLabel;
   })();
 
   const tafOphoerSkyldesDatoISO = (() => {
@@ -1372,7 +1431,7 @@ export const buildEODebugTaftRows = (
     id: 'taf.ophoerSkyldes',
     label: 'TAF-ophør skyldes',
     displayValue: tafOphoerSkyldesDisplayValue,
-    status: 'ok',
+    status: tafOphoerSkyldes === tafIkkeRejstLabel ? 'warning' : 'ok',
   });
 
   const endeligEETMinus1 = subtractOneDay(context.endeligEETBeregnetDato);
