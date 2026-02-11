@@ -48,4 +48,29 @@ describe('erstatningsopgoerelseAggregationPipeline', () => {
     if (result.kind !== 'error') return;
     expect(result.errors.some((error) => error.lineId === 'eet' && error.code === 'missing_computed')).toBe(true);
   });
+
+  it('aggregates all sources and applies policy sign and total rounding', () => {
+    const manualValues = {
+      ...createErstatningsopgoerelseInitialValues(),
+      oevrigeKravPerioder: [
+        { id: 'k1', dato: '2024-01-01', udgiftTil: 'Test', beloeb: { kind: 'number', value: 15 } },
+      ],
+    };
+
+    const result = computeErstatningsopgoerelseAggregation({
+      erstatningsopgoerelse: manualValues,
+      renteOutput: buildRenteOutput(),
+      tafOutput: buildTafOutput(),
+      varigtMenOutput: buildVarigtMenOutput(),
+      eetOutput: buildComputedAmount(10),
+      svieSmerteOutput: buildComputedAmount(5),
+      loenindkomstOutput: buildComputedAmount(20),
+      offentligeYdelserOutput: buildComputedAmount(7),
+    });
+
+    expect(result.kind).toBe('ok');
+    if (result.kind !== 'ok') return;
+    // 100 + 200 + 300 + 10 + 5 + 20 - 7 + 15 = 643
+    expect(result.total).toBe(643);
+  });
 });

@@ -1,10 +1,10 @@
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import { parseISODate, type ISODateString } from '../../types/branded';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
-import { beregnHelligdage } from '../../utils/shDageBeregning';
 import { addDays, formatToISO } from '../../utils/dateUtils';
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR } from './tafBeregningsenhed';
 import { roundHalfAwayFromZero } from '../../utils/formatUtils';
+import { buildDatoSetInclusiveFromDates, buildFerieDageSet, buildShDageSet, isWeekdayUtc } from './tafDaySets';
 
 // NOTE: "Arbejdsdage" i denne kontekst er hverdage minus SH-dage og feriedage,
 // mens "hverdage" er alle ugedage man-fre uden fradrag. Brug præcis terminologi i labels.
@@ -171,58 +171,20 @@ export const calculateTafArbejdsdageBreakdown = (
   const tilDate = parseISODate(til);
   if (!fraDate || !tilDate) return null;
 
-  const datoSet = new Set<ISODateString>();
+  const datoSet = buildDatoSetInclusiveFromDates(fraDate, tilDate);
   let antalHverdage = 0;
-
-  let currentDate = new Date(fraDate);
-  while (currentDate <= tilDate) {
-    const isoStr = formatToISO(currentDate);
-    datoSet.add(isoStr);
-
-    const dayOfWeek = currentDate.getUTCDay();
-    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-      antalHverdage += 1;
-    }
-
-    currentDate = addDays(currentDate, 1);
+  for (const isoStr of datoSet) {
+    const date = parseISODate(isoStr);
+    if (!date) continue;
+    if (isWeekdayUtc(date)) antalHverdage += 1;
   }
 
-  const ferieDageSet = new Set<ISODateString>();
-  for (const feriePeriode of ferieperioder) {
-    if (!feriePeriode.fra || !feriePeriode.til) continue;
-    if (feriePeriode.fra > feriePeriode.til) continue;
-
-    const ferieFra = parseISODate(feriePeriode.fra);
-    const ferieTil = parseISODate(feriePeriode.til);
-    if (!ferieFra || !ferieTil) continue;
-
-    let ferieCurrent = new Date(ferieFra);
-    while (ferieCurrent <= ferieTil) {
-      const isoStr = formatToISO(ferieCurrent);
-      if (datoSet.has(isoStr)) {
-        const dow = ferieCurrent.getUTCDay();
-        if (dow >= 1 && dow <= 5) {
-          ferieDageSet.add(isoStr);
-        }
-      }
-      ferieCurrent = addDays(ferieCurrent, 1);
-    }
-  }
-
+  const ferieDageSet = buildFerieDageSet(ferieperioder, datoSet);
+  const shDageSet = buildShDageSet(fraDate, tilDate, datoSet);
   let antalSHDage = 0;
-  const shDageSet = new Set<ISODateString>();
-  for (let year = fraDate.getUTCFullYear(); year <= tilDate.getUTCFullYear(); year += 1) {
-    const helligdage = beregnHelligdage(year);
-    for (const helligdag of helligdage) {
-      const isoStr = formatToISO(helligdag);
-      const dow = helligdag.getUTCDay();
-      const erHverdag = dow >= 1 && dow <= 5;
-      if (erHverdag && datoSet.has(isoStr)) {
-        shDageSet.add(isoStr);
-      }
-      if (erHverdag && datoSet.has(isoStr) && !ferieDageSet.has(isoStr)) {
-        antalSHDage += 1;
-      }
+  for (const isoStr of shDageSet) {
+    if (!ferieDageSet.has(isoStr)) {
+      antalSHDage += 1;
     }
   }
 
@@ -233,8 +195,7 @@ export const calculateTafArbejdsdageBreakdown = (
     let candidate = new Date(fraDate);
     while (candidate <= tilDate && remainingLoseFeriedage > 0) {
       const isoStr = formatToISO(candidate);
-      const dow = candidate.getUTCDay();
-      const erHverdag = dow >= 1 && dow <= 5;
+      const erHverdag = isWeekdayUtc(candidate);
       if (erHverdag && !blockedLoseFerie.has(isoStr)) {
         placedLoseFeriedage.add(isoStr);
         remainingLoseFeriedage -= 1;

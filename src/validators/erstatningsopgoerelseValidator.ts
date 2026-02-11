@@ -25,6 +25,7 @@ import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../d
 import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/periodOverlapDetection';
 import { resolveLoenudviklingKilde } from '../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { resolveStatistikModelId } from '../domain/erstatningsopgoerelse/sharedPdfUtils';
+import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/loenoplysningerInput';
 
 // =============================================================================
 // LAG 1: SCHEMA-VALIDERING
@@ -399,12 +400,26 @@ function validateBeregnesUdFra(values: ErstatningsopgoerelseValues): ValidationE
  */
 function validateLoenudviklingKonsistens(values: ErstatningsopgoerelseValues): ValidationError[] {
   const errors: ValidationError[] = [];
-  const loenudviklingsKilde = resolveLoenudviklingKilde(values);
+  let loenudviklingsKilde: ReturnType<typeof resolveLoenudviklingKilde>;
+  try {
+    loenudviklingsKilde = resolveLoenudviklingKilde(values);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Ugyldig lønudviklingskilde';
+    errors.push({
+      path: 'eoAngivetLoenLoenudvikling.loenPaaHelligdage',
+      message,
+      severity: 'error',
+    });
+    return errors;
+  }
 
   const active = loenudviklingsKilde.filter(
     (af) => af.loenudviklingBeregningsgrundlag && af.loenudviklingBeregningsgrundlag !== 'Ingen'
   );
   if (active.length <= 1) return errors;
+  const activeMedLoenoplysninger = values.beregnesUdFra === 'Beregningsperiode'
+    ? active.filter((af) => hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []))
+    : active;
 
   // Alle aktive skal have samme beregningsgrundlag
   const firstGrundlag = active[0].loenudviklingBeregningsgrundlag;
@@ -422,7 +437,7 @@ function validateLoenudviklingKonsistens(values: ErstatningsopgoerelseValues): V
   if (firstGrundlag === 'Overenskomst') {
     const firstOverenskomst = active[0].overenskomstId ?? '';
     const firstLoenPaaHelligdage = active[0].loenPaaHelligdage ?? '';
-    const firstFeriePct = active[0].feriePct;
+    const firstFeriePct = activeMedLoenoplysninger[0]?.feriePct;
     for (let i = 1; i < active.length; i += 1) {
       if ((active[i].overenskomstId ?? '') !== firstOverenskomst) {
         errors.push({
@@ -438,7 +453,9 @@ function validateLoenudviklingKonsistens(values: ErstatningsopgoerelseValues): V
           severity: 'error',
         });
       }
-      if (active[i].feriePct !== firstFeriePct) {
+      const shouldCompareFeriePct = values.beregnesUdFra !== 'Beregningsperiode'
+        || hasIndtastetLoenoplysninger(active[i].indtaegtsoplysningerTableData ?? []);
+      if (firstFeriePct !== undefined && shouldCompareFeriePct && active[i].feriePct !== firstFeriePct) {
         errors.push({
           path: `loenindkomstAnsaettelsesforhold[${i}].feriePct`,
           message: 'Ferieprocent skal være ens på tværs af ansættelsesforhold',
@@ -488,7 +505,18 @@ function validateLoenudviklingKonsistens(values: ErstatningsopgoerelseValues): V
  */
 function validateLoenudviklingsKravForAktivKilde(values: ErstatningsopgoerelseValues): ValidationError[] {
   const errors: ValidationError[] = [];
-  const loenudviklingsKilde = resolveLoenudviklingKilde(values);
+  let loenudviklingsKilde: ReturnType<typeof resolveLoenudviklingKilde>;
+  try {
+    loenudviklingsKilde = resolveLoenudviklingKilde(values);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Ugyldig lønudviklingskilde';
+    errors.push({
+      path: 'eoAngivetLoenLoenudvikling.loenPaaHelligdage',
+      message,
+      severity: 'error',
+    });
+    return errors;
+  }
 
   loenudviklingsKilde.forEach((af, index) => {
     const path = (field: string): string =>
@@ -499,11 +527,14 @@ function validateLoenudviklingsKravForAktivKilde(values: ErstatningsopgoerelseVa
     const grundlag = af.loenudviklingBeregningsgrundlag;
     if (!grundlag || grundlag === 'Ingen') return;
 
+    const kræverFeriePct = values.beregnesUdFra === 'Beregningsperiode'
+      && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []);
+
     if (grundlag === 'Overenskomst') {
       if (!af.overenskomstId) {
         errors.push({ path: path('overenskomstId'), message: 'Overenskomst skal vælges', severity: 'error' });
       }
-      if (!Number.isFinite(af.feriePct)) {
+      if (kræverFeriePct && !Number.isFinite(af.feriePct)) {
         errors.push({ path: path('feriePct'), message: 'Feriegodtgørelse/-tillæg skal udfyldes', severity: 'error' });
       }
       if (!af.loenPaaHelligdage) {
@@ -529,7 +560,7 @@ function validateLoenudviklingsKravForAktivKilde(values: ErstatningsopgoerelseVa
     }
 
     if (grundlag === 'Manuelt angivet') {
-      if (!Number.isFinite(af.feriePct)) {
+      if (kræverFeriePct && !Number.isFinite(af.feriePct)) {
         errors.push({ path: path('feriePct'), message: 'Feriegodtgørelse/-tillæg skal udfyldes', severity: 'error' });
       }
 
@@ -638,6 +669,5 @@ export const erstatningsopgoerelseValidator: FormValidator<Erstatningsopgoerelse
 };
 
 export default erstatningsopgoerelseValidator;
-
 
 

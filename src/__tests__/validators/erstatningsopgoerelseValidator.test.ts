@@ -239,6 +239,60 @@ describe('TAF lønudviklingskrav for aktiv kilde', () => {
     });
     expect(hasError(values, 'helligdage')).toBe(true);
   });
+
+  it('kræver feriegodtgørelse ved beregningsperiode når der er indtastede lønoplysninger', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: iso('2024-01-01'),
+      periodeTilBeregningTil: iso('2024-12-31'),
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
+          overenskomstId: 'bygge-anlaeg',
+          loenPaaHelligdage: 'Almindelig løn',
+          feriePct: undefined,
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'row-1',
+              col0_maaned: '',
+              col1_maaned: '',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: asAmount(1000),
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(hasError(values, 'Feriegodtgørelse/-tillæg skal udfyldes')).toBe(true);
+  });
+
+  it('kræver ikke feriegodtgørelse ved beregningsperiode uden indtastede lønoplysninger', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: iso('2024-01-01'),
+      periodeTilBeregningTil: iso('2024-12-31'),
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
+          overenskomstId: 'bygge-anlaeg',
+          loenPaaHelligdage: 'Almindelig løn',
+          feriePct: undefined,
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
+    });
+
+    expect(hasError(values, 'Feriegodtgørelse/-tillæg skal udfyldes')).toBe(false);
+  });
 });
 
 // =============================================================================
@@ -270,5 +324,6 @@ describe('samlet validering', () => {
     expect(isValid(values)).toBe(true);
   });
 });
+
 
 

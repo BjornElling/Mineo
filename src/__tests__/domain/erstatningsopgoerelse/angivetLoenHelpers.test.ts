@@ -1,74 +1,39 @@
-import { describe, expect, it } from 'vitest';
-import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import {
-  EO_ANGIVET_LOEN_ID,
-  getAngivetLoenBaseretPaa,
-  getAngivetLoenOpreguleresFraDato,
-  resolveLoenudviklingKilde,
-} from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
+import { EO_ANGIVET_LOEN_ID, resolveLoenudviklingKilde } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
+import { LOEN_PAA_HELLIGDAGE } from '../../../types/common';
 
-const iso = (value: string) => toISODateString(value);
+describe('resolveLoenudviklingKilde', () => {
+  it('returnerer ansættelsesforhold for Beregningsperiode', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
 
-const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => ({
-  ...structuredClone(createErstatningsopgoerelseInitialValues()),
-  ...patch,
-});
-
-describe('angivetLoenHelpers', () => {
-  it('uses month-specific basedOn/date for Angivet månedsløn', () => {
-    const values = makeValues({
-      beregnesUdFra: 'Angivet månedsløn',
-      angivetMaanedsloenBaseretPaa: 'Månedskilde',
-      angivetMaanedsloenOpreguleresFraDato: iso('2025-01-01'),
-      angivetDagsloenBaseretPaa: 'Dagskilde',
-      angivetDagsloenOpreguleresFraDato: iso('2024-01-01'),
-    });
-
-    expect(getAngivetLoenBaseretPaa(values)).toBe('Månedskilde');
-    expect(getAngivetLoenOpreguleresFraDato(values)).toBe('2025-01-01');
+    const result = resolveLoenudviklingKilde(values);
+    expect(result).toEqual(values.loenindkomstAnsaettelsesforhold ?? []);
   });
 
-  it('uses day-specific basedOn/date for Angivet dagsløn', () => {
-    const values = makeValues({
-      beregnesUdFra: 'Angivet dagsløn',
-      angivetMaanedsloenBaseretPaa: 'Månedskilde',
-      angivetMaanedsloenOpreguleresFraDato: iso('2025-01-01'),
-      angivetDagsloenBaseretPaa: 'Dagskilde',
-      angivetDagsloenOpreguleresFraDato: iso('2024-01-01'),
-    });
+  it('returnerer EO-kilde for angivet månedsløn', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.eoAngivetLoenLoenudvikling.loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.ALMINDELIG;
 
-    expect(getAngivetLoenBaseretPaa(values)).toBe('Dagskilde');
-    expect(getAngivetLoenOpreguleresFraDato(values)).toBe('2024-01-01');
+    const result = resolveLoenudviklingKilde(values);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(EO_ANGIVET_LOEN_ID);
+    expect(result[0].loenPaaHelligdage).toBe(LOEN_PAA_HELLIGDAGE.ALMINDELIG);
   });
 
-  it('uses EO lønudvikling source for Angivet* and does not depend on employments', () => {
-    const values = makeValues({
-      beregnesUdFra: 'Angivet månedsløn',
-      loenindkomstAnsaettelsesforhold: [],
-      eoAngivetLoenLoenudvikling: {
-        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
-        loenudviklingBeregningsgrundlag: 'Ingen',
-      },
-    });
+  it('kaster fejl ved ugyldig loenPaaHelligdage', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet dagsløn';
+    (values.eoAngivetLoenLoenudvikling as any).loenPaaHelligdage = undefined;
 
-    const rows = resolveLoenudviklingKilde(values);
-    expect(rows.length).toBe(1);
-    expect(rows[0].id).toBe(EO_ANGIVET_LOEN_ID);
-    expect(rows[0].loenudviklingBeregningsgrundlag).toBe('Ingen');
+    expect(() => resolveLoenudviklingKilde(values)).toThrow();
   });
 
-  it('uses actual employments for Beregningsperiode', () => {
-    const values = makeValues({
-      beregnesUdFra: 'Beregningsperiode',
-      loenindkomstAnsaettelsesforhold: [
-        { ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0], id: 'a1' },
-        { ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0], id: 'a2' },
-      ],
-    });
+  it('kaster fejl ved ukendt beregnesUdFra', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    (values as any).beregnesUdFra = 'Ukendt';
 
-    const rows = resolveLoenudviklingKilde(values);
-    expect(rows.map((r) => r.id)).toEqual(['a1', 'a2']);
+    expect(() => resolveLoenudviklingKilde(values)).toThrow();
   });
 });

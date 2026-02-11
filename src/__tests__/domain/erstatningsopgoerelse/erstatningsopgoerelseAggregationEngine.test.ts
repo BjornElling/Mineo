@@ -83,4 +83,43 @@ describe('erstatningsopgoerelseAggregationEngine', () => {
 
     expect(first).toEqual(second);
   });
+
+  it('fails closed on invalid computed values', () => {
+    const computedOutputs = {
+      rente: { amount: 'invalid' },
+      taf: { amount: 10 },
+      offset: { amount: 5 },
+    } as unknown as Record<string, { amount: unknown }>;
+
+    const result = aggregateErstatningsopgoerelse({
+      policy: basePolicy,
+      computedOutputs,
+    });
+
+    expect(result.kind).toBe('error');
+    if (result.kind !== 'error') return;
+    expect(result.errors.some((err) => err.lineId === 'rente' && err.code === 'invalid_computed')).toBe(true);
+  });
+
+  it('applies total rounding when configured without per-line rounding', () => {
+    const policy = aggregationPolicySchema.parse({
+      outputMode: 'lineItems',
+      lineRounding: { method: 'none', precision: 0 },
+      totalRounding: { when: 'onlyTotal', method: 'halfAwayFromZero', precision: 0 },
+      lines: [
+        { id: 'rente', computedSourceId: 'rente', computedValuePath: 'amount', strategy: 'computedOnly', sign: 'positive' },
+        { id: 'offset', computedSourceId: 'offset', computedValuePath: 'amount', strategy: 'computedOnly', sign: 'negative' },
+      ],
+    });
+
+    const result = aggregateErstatningsopgoerelse({
+      policy,
+      computedOutputs: { rente: { amount: 10.4 }, offset: { amount: 0.6 } },
+    });
+
+    expect(result.kind).toBe('ok');
+    if (result.kind !== 'ok') return;
+    expect(result.total).toBe(10);
+    expect(result.totalRoundingApplied).toBe(true);
+  });
 });

@@ -59,52 +59,66 @@ export const usePersistedForm = <K extends StorageKey>(
   initialValues: PersistedSectionMap[K]
 ): UsePersistedFormReturn<PersistedSectionMap[K]> => {
   const { getPersistedData, persistData, clearPageData, clearFieldErrors, authoritativeSnapshotEpoch } = useFormPersistence();
+  const initialValuesRef = React.useRef(initialValues);
+  const schemaRef = React.useRef(_schema);
+  const getPersistedDataRef = React.useRef(getPersistedData);
+  const clearFieldErrorsRef = React.useRef(clearFieldErrors);
+  React.useEffect(() => {
+    initialValuesRef.current = initialValues;
+  }, [initialValues]);
+  React.useEffect(() => {
+    schemaRef.current = _schema;
+  }, [_schema]);
+  React.useEffect(() => {
+    getPersistedDataRef.current = getPersistedData;
+    clearFieldErrorsRef.current = clearFieldErrors;
+  }, [getPersistedData, clearFieldErrors]);
 
   const parsePersisted = React.useCallback((persisted: unknown): PersistedSectionMap[K] | null => {
-    const parsed = _schema.safeParse(persisted);
+    const parsed = schemaRef.current.safeParse(persisted);
     if (!parsed.success) {
       console.warn(`[usePersistedForm] Ugyldig persisted data for '${pageKey}', bruger initialValues.`, parsed.error);
       return null;
     }
     return parsed.data;
-  }, [_schema, pageKey]);
+  }, [pageKey]);
 
   // Defensiv merge med Zod validation
   const [values, setValuesState] = React.useState<PersistedSectionMap[K]>(() => {
-    const persistedRaw = getPersistedData(pageKey);
+    const persistedRaw = getPersistedDataRef.current(pageKey);
 
     if (!persistedRaw) {
-      return initialValues;
+      return initialValuesRef.current;
     }
 
     const persisted = parsePersisted(persistedRaw);
-    if (!persisted) return initialValues;
+    if (!persisted) return initialValuesRef.current;
 
-    return { ...initialValues, ...persisted };
+    return { ...initialValuesRef.current, ...persisted };
   });
 
   const [formVersion, bumpFormVersion] = React.useReducer((v: number) => v + 1, 0);
 
   // Re-hydrate when an authoritative snapshot has been applied (e.g. file load).
   React.useEffect(() => {
-    const persistedRaw = getPersistedData(pageKey);
+    const persistedRaw = getPersistedDataRef.current(pageKey);
 
     try {
       bumpFormVersion();
-      clearFieldErrors(pageKey);
+      clearFieldErrorsRef.current(pageKey);
       if (!persistedRaw) {
-        setValuesState(initialValues);
+        setValuesState(initialValuesRef.current);
       } else {
         const persisted = parsePersisted(persistedRaw);
-        setValuesState(persisted ? { ...initialValues, ...persisted } : initialValues);
+        setValuesState(persisted ? { ...initialValuesRef.current, ...persisted } : initialValuesRef.current);
       }
     } catch (error) {
       console.warn(`[usePersistedForm] Re-hydration fejl for '${pageKey}':`, error);
       bumpFormVersion();
-      clearFieldErrors(pageKey);
-      setValuesState(initialValues);
+      clearFieldErrorsRef.current(pageKey);
+      setValuesState(initialValuesRef.current);
     }
-  }, [authoritativeSnapshotEpoch, clearFieldErrors, getPersistedData, initialValues, pageKey, parsePersisted]);
+  }, [authoritativeSnapshotEpoch, pageKey, parsePersisted]);
 
   const setValues: React.Dispatch<React.SetStateAction<PersistedSectionMap[K]>> = React.useCallback(
     (updater) => {
@@ -145,10 +159,10 @@ export const usePersistedForm = <K extends StorageKey>(
    * Dette er en destruktiv operation - data kan ikke gendannes.
    */
   const resetForm = React.useCallback(() => {
-    setValues(initialValues);
+    setValues(initialValuesRef.current);
     clearPageData(pageKey);
     clearFieldErrors(pageKey);
-  }, [clearPageData, clearFieldErrors, initialValues, pageKey, setValues]);
+  }, [clearPageData, clearFieldErrors, pageKey, setValues]);
 
   return {
     values,

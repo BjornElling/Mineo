@@ -17,9 +17,8 @@ import { validateISODateRange } from '../../utils/dateValidation';
 import { detectOverlappingPeriods } from './periodOverlapDetection';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { isoDateToDate } from '../dates/isoDate';
-import { createDate } from '../../utils/dateUtils';
+import { addDays, createDate } from '../../utils/dateUtils';
 import { isOevrigeKravRowEmpty, isSvieSmerteRowEmpty, isTafRowEmpty } from './rowEmpty';
-import { beregnHelligdage } from '../../utils/shDageBeregning';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/common';
 import { getEffektiveSatserForDato, getEffektiveSatserForPeriode, resolveOverenskomstRef, getOffentligOverenskomstTypeById } from '../../data/overenskomstRates';
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
@@ -38,6 +37,8 @@ import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
 import { getAarsloenErrorRowIdSet } from './indkomstRowValidation';
 import { buildTafArbejdsstatusLinje } from './tafArbejdsstatusConfig';
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, type LoenudviklingSource } from './angivetLoenHelpers';
+import { buildDatoSetInclusive, buildFerieDageSet, buildShDageSet, isWeekdayUtc } from './tafDaySets';
+import { hasIndtastetLoenoplysninger } from './loenoplysningerInput';
 import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
@@ -231,71 +232,9 @@ const formatDateShort = formatDateShortShared;
 
 const formatDateLong = formatDateLongShared;
 
-const formatUtcToIso = (date: Date): ISODateString => {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  return `${year}-${month}-${day}` as ISODateString;
-};
-
-const addUtcDays = (date: Date, days: number): Date => {
-  const next = new Date(date.getTime());
-  next.setUTCDate(next.getUTCDate() + days);
-  return next;
-};
-
-const isWeekdayUtc = (date: Date): boolean => {
-  const dayOfWeek = date.getUTCDay();
-  return dayOfWeek >= 1 && dayOfWeek <= 5;
-};
-
 const toNonNegativeInt = (value: number): number => {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.trunc(value));
-};
-
-const formatLocalToIso = (date: Date): ISODateString => formatUtcToIso(date);
-
-const buildFerieDageSet = (
-  ferieperioder: readonly { fra?: ISODateString; til?: ISODateString }[],
-  datoSet: ReadonlySet<ISODateString>
-): Set<ISODateString> => {
-  const ferieDageSet = new Set<ISODateString>();
-  for (const periode of ferieperioder) {
-    if (!periode.fra || !periode.til) continue;
-    if (periode.fra > periode.til) continue;
-    const ferieFra = isoDateToDate(periode.fra);
-    const ferieTil = isoDateToDate(periode.til);
-    let ferieCurrent = new Date(ferieFra);
-    while (ferieCurrent <= ferieTil) {
-      const isoStr = formatUtcToIso(ferieCurrent);
-      if (datoSet.has(isoStr) && isWeekdayUtc(ferieCurrent)) {
-        ferieDageSet.add(isoStr);
-      }
-      ferieCurrent = addUtcDays(ferieCurrent, 1);
-    }
-  }
-  return ferieDageSet;
-};
-
-const buildShDageSet = (
-  fraDate: Date,
-  tilDate: Date,
-  datoSet: ReadonlySet<ISODateString>
-): Set<ISODateString> => {
-  const shDageSet = new Set<ISODateString>();
-  for (let year = fraDate.getUTCFullYear(); year <= tilDate.getUTCFullYear(); year += 1) {
-    const helligdage = beregnHelligdage(year);
-    for (const helligdag of helligdage) {
-      const isoStr = formatLocalToIso(helligdag);
-      const dow = helligdag.getUTCDay();
-      const erHverdag = dow >= 1 && dow <= 5;
-      if (erHverdag && datoSet.has(isoStr)) {
-        shDageSet.add(isoStr);
-      }
-    }
-  }
-  return shDageSet;
 };
 
 const collectTafArbejdsdageForRange = (
@@ -307,12 +246,7 @@ const collectTafArbejdsdageForRange = (
   const fraDate = isoDateToDate(fra);
   const tilDate = isoDateToDate(til);
 
-  const datoSet = new Set<ISODateString>();
-  let currentDate = new Date(fraDate);
-  while (currentDate <= tilDate) {
-    datoSet.add(formatUtcToIso(currentDate));
-    currentDate = addUtcDays(currentDate, 1);
-  }
+  const datoSet = buildDatoSetInclusive(fra, til);
 
   const ferieDageSet = buildFerieDageSet(ferieperioder, datoSet);
   const shDageSet = buildShDageSet(fraDate, tilDate, datoSet);
@@ -323,12 +257,15 @@ const collectTafArbejdsdageForRange = (
   if (remainingLoseFeriedage > 0) {
     let candidate = new Date(fraDate);
     while (candidate <= tilDate && remainingLoseFeriedage > 0) {
-      const isoStr = formatUtcToIso(candidate);
+      const isoStr = dateToISO(candidate);
+      if (!isoStr) {
+        throw new Error('Kunne ikke formatere ISO-dato for løse feriedage.');
+      }
       if (isWeekdayUtc(candidate) && !blockedLoseFerie.has(isoStr)) {
         placedLoseFeriedage.add(isoStr);
         remainingLoseFeriedage -= 1;
       }
-      candidate = addUtcDays(candidate, 1);
+      candidate = addDays(candidate, 1);
     }
   }
 
@@ -386,11 +323,14 @@ export const countTafArbejdsdageInRange = (arbejdsdage: ReadonlySet<ISODateStrin
   let count = 0;
   let currentDate = new Date(fraDate);
   while (currentDate <= tilDate) {
-    const iso = formatUtcToIso(currentDate);
+    const iso = dateToISO(currentDate);
+    if (!iso) {
+      throw new Error('Kunne ikke formatere ISO-dato i countTafArbejdsdageInRange.');
+    }
     if (arbejdsdage.has(iso)) {
       count += 1;
     }
-    currentDate = addUtcDays(currentDate, 1);
+    currentDate = addDays(currentDate, 1);
   }
   return count;
 };
@@ -1228,8 +1168,8 @@ const resolveReguleringsStrategiV3 = (
   // Strategikontrakt:
   // - ingen: ingen ekstra krav
   // - statistik: statistikmodel
-  // - manual: feriepct + manuelle reguleringsraekker
-  // - overenskomst: feriepct + overenskomstId + loen paa helligdage
+  // - manual: manuelle reguleringsraekker
+  // - overenskomst: overenskomstId + loen paa helligdage
   const ansaettelser = resolveLoenudviklingRowsV3(values);
   const alleIngen = ansaettelser.length > 0 && ansaettelser.every((af) => af.loenudviklingBeregningsgrundlag === 'Ingen');
   if (alleIngen) return { strategi: 'ingen', label: 'Ingen', konsolideret: null };
@@ -1259,13 +1199,24 @@ const resolveReguleringsStrategiV3 = (
           : basis === 'KRL satstabel' ? 'krl'
             : 'ingen';
 
+  const kræverFeriePctVedBeregningsperiode =
+    values.beregnesUdFra === 'Beregningsperiode' && active.some((af) => hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []));
+
+  const activeMedLoenoplysninger = active.filter((af) => hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []));
+
   if (strategi === 'statistik') {
     assertUniformV3(active, (af) => (af.loenudviklingStatistikModel ?? '').trim(), 'statistikmodel');
   } else if (strategi === 'overenskomst') {
     assertUniformV3(active, (af) => af.overenskomstId ?? '', 'overenskomst');
     assertUniformV3(active, (af) => af.loenPaaHelligdage ?? '', 'loen paa helligdage');
     if (!angivetLoen) {
-      assertUniformV3(active, (af) => af.feriePct ?? null, 'feriepct');
+      if (activeMedLoenoplysninger.length > 1) {
+        assertUniformV3(
+          activeMedLoenoplysninger,
+          (af) => (typeof af.feriePct === 'number' ? af.feriePct : null),
+          'feriepct'
+        );
+      }
     }
 
     const offentligType = active[0].overenskomstId
@@ -1279,7 +1230,13 @@ const resolveReguleringsStrategiV3 = (
   } else if (strategi === 'manual') {
     assertUniformV3(active, (af) => normalizeManualRowsV3(af.loenudviklingManuelTableData ?? []), 'manuelle reguleringsraekker');
     if (!angivetLoen) {
-      assertUniformV3(active, (af) => af.feriePct ?? null, 'feriepct');
+      if (activeMedLoenoplysninger.length > 1) {
+        assertUniformV3(
+          activeMedLoenoplysninger,
+          (af) => (typeof af.feriePct === 'number' ? af.feriePct : null),
+          'feriepct'
+        );
+      }
     }
   } else if (strategi === 'krl') {
     assertUniformV3(active, (af) => af.loenudviklingKRLSatstabel ?? '', 'KRL satstabel');
@@ -1319,7 +1276,9 @@ const resolveReguleringsStrategiV3 = (
     if (!active[0].overenskomstId) {
       throw new Error('Loenudvikling kan ikke beregnes: overenskomst mangler');
     }
-    if (!angivetLoen && typeof active[0].feriePct !== 'number') {
+    if (kræverFeriePctVedBeregningsperiode && active.some((af) =>
+      hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []) && typeof af.feriePct !== 'number'
+    )) {
       throw new Error('Loenudvikling kan ikke beregnes: feriepct mangler');
     }
     const loenPaaHelligdage = active[0].loenPaaHelligdage ?? '';
@@ -1352,7 +1311,9 @@ const resolveReguleringsStrategiV3 = (
   }
 
   if (strategi === 'manual') {
-    if (!angivetLoen && typeof active[0].feriePct !== 'number') {
+    if (kræverFeriePctVedBeregningsperiode && active.some((af) =>
+      hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []) && typeof af.feriePct !== 'number'
+    )) {
       throw new Error('Loenudvikling kan ikke beregnes: feriepct mangler');
     }
     const feriePct = typeof active[0].feriePct === 'number' ? active[0].feriePct : 0;
@@ -2072,8 +2033,12 @@ const resolveDagsloenBase = (
 
 const getDayAfter = (isoDate: ISODateString): ISODateString => {
   const date = isoDateToDate(isoDate);
-  const nextDate = addUtcDays(date, 1);
-  return formatUtcToIso(nextDate);
+  const nextDate = addDays(date, 1);
+  const iso = dateToISO(nextDate);
+  if (!iso) {
+    throw new Error('Kunne ikke formatere ISO-dato i getDayAfter.');
+  }
+  return iso;
 };
 
 export const buildErstatningsopgoerelsePdfModel = (
@@ -2155,3 +2120,4 @@ export const buildErstatningsopgoerelsePdfModel = (
     saerligeKommentarer: (safeEo.saerligeKommentarer ?? '').trim() || null,
   };
 };
+

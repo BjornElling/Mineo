@@ -439,7 +439,7 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
       .toThrow('Loenudvikling kan ikke beregnes: manuelle reguleringsraekker mangler');
   });
 
-  it('afviser manuel strategi med manglende feriepct', () => {
+  it('tillader manuel strategi med manglende feriepct (default 0)', () => {
     const eoValues = makeValues({
       beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
       maanedsloenenUdgoer: asAmountValue(25000),
@@ -470,11 +470,12 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
 
-    expect(() => buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
-      .toThrow('Loenudvikling kan ikke beregnes: feriepct mangler');
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
+    expect(loenudvikling?.loenudviklingTotal.status).toBe('ok');
   });
 
-  it('afviser overenskomststrategi med manglende feriepct', () => {
+  it('tillader overenskomststrategi med manglende feriepct (default 0)', () => {
     const eoValues = makeValues({
       beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
       maanedsloenenUdgoer: asAmountValue(25000),
@@ -498,6 +499,57 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
           overenskomstId: 'bygge-anlaeg',
           feriePct: undefined,
           loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
+    expect(loenudvikling?.loenudviklingTotal.status).toBe('ok');
+  });
+
+  it('afviser feriepct ved beregningsperiode når der er indtastede lønoplysninger', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum.Beregningsperiode,
+      periodeTilBeregningFra: iso('2023-01-01'),
+      periodeTilBeregningTil: iso('2023-12-31'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2024',
+          tilDato: '01-01-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          id: 'a1',
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
+          overenskomstId: 'bygge-anlaeg',
+          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          feriePct: undefined,
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'row-1',
+              col0_maaned: '',
+              col1_maaned: '',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: asAmountValue(1000),
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
         },
       ],
     });

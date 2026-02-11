@@ -53,6 +53,7 @@ import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../
 import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { appSettingsSchema, DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../../settings/appSettingsSchema';
+import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerelse/loenoplysningerInput';
 
 type ErstatningsopgoerelseFormApi = Pick<
   UsePersistedFormReturn<ErstatningsopgoerelseValues>,
@@ -221,8 +222,14 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
    * Valider Feriegodtgørelse/-tillæg (min. 12 %)
    */
   const validateFeriePct = React.useCallback(
-    (fuldLoenUnderFerie: Ansaettelsesforhold['fuldLoenUnderFerie'], inputValue: number | undefined): string | undefined => {
-      if (inputValue === undefined) return undefined;
+    (
+      fuldLoenUnderFerie: Ansaettelsesforhold['fuldLoenUnderFerie'],
+      inputValue: number | undefined,
+      kræverFeriePct: boolean
+    ): string | undefined => {
+      if (inputValue === undefined) {
+        return kræverFeriePct ? 'Feriegodtgørelse/-tillæg skal udfyldes' : undefined;
+      }
       if (inputValue >= 12) return undefined;
 
       if (fuldLoenUnderFerie === 'Ja') {
@@ -324,9 +331,11 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     (af: Ansaettelsesforhold) => {
       const errors: SatsErrorState = {};
       const reguleringsDato = getReguleringsDatoForAnsaettelsesforhold(af);
+      const kræverFeriePct = values.beregnesUdFra === 'Beregningsperiode'
+        && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []);
 
       // Valider Feriegodtgørelse/-tillæg
-      const ferieError = validateFeriePct(af.fuldLoenUnderFerie, af.feriePct);
+      const ferieError = validateFeriePct(af.fuldLoenUnderFerie, af.feriePct, kræverFeriePct);
       if (ferieError) errors.feriePct = ferieError;
 
       // Valider Fritvalg
@@ -367,7 +376,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 
       return errors;
     },
-    [getReguleringsDatoForAnsaettelsesforhold, validateFeriePct, validateSats, validateStoreBededag]
+    [getReguleringsDatoForAnsaettelsesforhold, validateFeriePct, validateSats, validateStoreBededag, values.beregnesUdFra]
   );
 
   // Valider alle Ansættelsesforhold ved ændringer i datagrundlaget
@@ -577,7 +586,9 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
         const ansaettelsesforhold = values.loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
         if (!ansaettelsesforhold) return;
 
-        const errorMsg = validateFeriePct(ansaettelsesforhold.fuldLoenUnderFerie, event.target.value);
+        const kræverFeriePct = values.beregnesUdFra === 'Beregningsperiode'
+          && hasIndtastetLoenoplysninger(ansaettelsesforhold.indtaegtsoplysningerTableData ?? []);
+        const errorMsg = validateFeriePct(ansaettelsesforhold.fuldLoenUnderFerie, event.target.value, kræverFeriePct);
         setSatsErrors((prev) => {
           const afErrors = prev[id] || {};
           if (errorMsg) {
@@ -591,7 +602,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
           return { ...prev, [id]: rest };
         });
       },
-    [updateAnsaettelsesforhold, validateFeriePct, values.loenindkomstAnsaettelsesforhold]
+    [updateAnsaettelsesforhold, validateFeriePct, values.beregnesUdFra, values.loenindkomstAnsaettelsesforhold]
   );
 
   /**
@@ -663,7 +674,9 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
         const ansaettelsesforhold = values.loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
         if (!ansaettelsesforhold) return;
 
-        const errorMsg = validateFeriePct(nextValue, ansaettelsesforhold.feriePct);
+        const kræverFeriePct = values.beregnesUdFra === 'Beregningsperiode'
+          && hasIndtastetLoenoplysninger(ansaettelsesforhold.indtaegtsoplysningerTableData ?? []);
+        const errorMsg = validateFeriePct(nextValue, ansaettelsesforhold.feriePct, kræverFeriePct);
         setSatsErrors((prev) => {
           const afErrors = prev[id] || {};
           if (errorMsg) {
@@ -677,7 +690,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
           return { ...prev, [id]: rest };
         });
       },
-    [updateAnsaettelsesforhold, validateFeriePct, values.loenindkomstAnsaettelsesforhold]
+    [updateAnsaettelsesforhold, validateFeriePct, values.beregnesUdFra, values.loenindkomstAnsaettelsesforhold]
   );
 
   const handleLoenPaaHelligdageChange = React.useCallback(
@@ -1675,3 +1688,4 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 LoenindkomstTab.displayName = 'LoenindkomstTab';
 
 export default LoenindkomstTab;
+
