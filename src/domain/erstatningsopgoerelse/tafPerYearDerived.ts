@@ -8,8 +8,8 @@
  * - Sub-segmenter afrundes individuelt via segmentAmountOreV3
  *
  * PRINCIP:
- *   Alle totallinjer clamped til max(0, beregnet) – både for beregninger og visning.
- *   Derfor er alle total-felter her ikke-negative.
+ *   Årsværdier må gerne være negative; summering og afrunding skal stadig være konsistente
+ *   med det autoritative samlede TAF-krav.
  *
  * samletTafKravOre beregnes ALDRIG her – det modtages fra PdfModel
  * og bruges kun som facit for afrundingslinjen.
@@ -248,7 +248,7 @@ export const buildTafPerYearResult = (
 
     const yearIncomeOre = segments.reduce((sum, s) => sum + s.amountOre, 0) as MoneyOre;
     const yearDeductionsOre = deductions.reduce((sum, d) => sum + d.amountOre, 0) as MoneyOre;
-    const yearTafOre = clampMoneyOreToZero((yearIncomeOre - yearDeductionsOre) as MoneyOre);
+    const yearTafOre = (yearIncomeOre - yearDeductionsOre) as MoneyOre;
 
     years.push({
       year,
@@ -261,11 +261,14 @@ export const buildTafPerYearResult = (
   }
 
   const sumYearTafOre = years.reduce((sum, y) => sum + y.yearTafOre, 0) as MoneyOre;
-  const afrundingOre = clampMoneyOreToZero((samletTafKravOre - sumYearTafOre) as MoneyOre);
+  const afrundingOre = (samletTafKravOre - sumYearTafOre) as MoneyOre;
 
   if (import.meta.env.DEV) {
-    if (sumYearTafOre < 0 || afrundingOre < 0 || samletTafKravOre < 0) {
-      throw new Error('[TAF per år] Totaler må ikke være negative.');
+    const check = (sumYearTafOre + afrundingOre) as MoneyOre;
+    if (check !== samletTafKravOre) {
+      throw new Error(
+        `[TAF per år] Invariant brudt: sum(yearTafOre) + afrunding (${check}) !== samletTafKravOre (${samletTafKravOre})`
+      );
     }
   }
 

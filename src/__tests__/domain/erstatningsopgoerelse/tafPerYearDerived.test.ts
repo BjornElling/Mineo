@@ -97,15 +97,12 @@ describe('splitRangeByCalendarYearsInclusive', () => {
 
 describe('buildTafPerYearResult', () => {
   /**
-   * Totallinjer clamped til max(0, beregnet) og må aldrig være negative.
+   * Årsbeløb må være negative, men sum + afrunding skal altid ramme samlet TAF-krav.
    */
   const assertTotals = (result: NonNullable<ReturnType<typeof buildTafPerYearResult>>) => {
     const sum = result.years.reduce((s, y) => s + y.yearTafOre, 0);
     expect(sum).toBe(result.sumYearTafOre);
-    expect(result.sumYearTafOre).toBeGreaterThanOrEqual(0);
-    expect(result.afrundingOre).toBeGreaterThanOrEqual(0);
-    expect(result.samletTafKravOre).toBeGreaterThanOrEqual(0);
-    const expectedAfrunding = Math.max(0, result.samletTafKravOre - result.sumYearTafOre);
+    const expectedAfrunding = result.samletTafKravOre - result.sumYearTafOre;
     expect(result.afrundingOre).toBe(expectedAfrunding);
   };
 
@@ -239,7 +236,7 @@ describe('buildTafPerYearResult', () => {
     expect(totalDeductionsOre).toBeGreaterThan(0);
   });
 
-  it('sumYearTafOre og afrunding er clamped og konsistente ved flere segmenter', () => {
+  it('sumYearTafOre og afrunding er konsistente ved flere segmenter', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet dagsløn',
       dagsloenenUdgoer: asAmountValue(1234.56),

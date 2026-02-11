@@ -4,6 +4,18 @@ import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/common';
 
 export const EO_ANGIVET_LOEN_ID = 'eo-angivet-loen';
 
+export type LoenudviklingKildeErrorCode = 'invalid_beregnes_udfra' | 'invalid_loen_paa_helligdage';
+
+export class LoenudviklingKildeError extends Error {
+  public readonly code: LoenudviklingKildeErrorCode;
+
+  public constructor(code: LoenudviklingKildeErrorCode, message: string) {
+    super(message);
+    this.name = 'LoenudviklingKildeError';
+    this.code = code;
+  }
+}
+
 export type LoenudviklingSource = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
 export const getAngivetLoenBaseretPaa = (
@@ -26,7 +38,10 @@ export const resolveLoenudviklingKilde = (
   values: ErstatningsopgoerelseValues
 ): readonly LoenudviklingSource[] => {
   const assertNever = (value: never): never => {
-    throw new Error(`Ukendt beregnesUdFra-værdi: ${String(value)}`);
+    throw new LoenudviklingKildeError(
+      'invalid_beregnes_udfra',
+      `Ukendt beregnesUdFra-værdi: ${String(value)}`
+    );
   };
 
   switch (values.beregnesUdFra) {
@@ -48,7 +63,10 @@ export const resolveLoenudviklingKilde = (
     loenPaaHelligdage !== LOEN_PAA_HELLIGDAGE.SH_UDBETALING &&
     loenPaaHelligdage !== LOEN_PAA_HELLIGDAGE.INGEN
   ) {
-    throw new Error('Løn på helligdage mangler eller er ugyldig for angivet løn.');
+    throw new LoenudviklingKildeError(
+      'invalid_loen_paa_helligdage',
+      'Løn på helligdage mangler eller er ugyldig for angivet løn.'
+    );
   }
 
   return [{

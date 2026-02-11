@@ -40,11 +40,7 @@ const formatPercentDelta = (value: number): string => {
   return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 };
 
-// Totallinjer i PDF må ikke være negative (max(0, beregnet)).
-const clampNegativeOreToZero = (ore: MoneyOre): MoneyOre => {
-  if (ore >= 0) return ore;
-  return 0 as MoneyOre;
-};
+// NOTE: Årsbeløb må være negative; PDF viser de beregnede værdier direkte.
 
 interface TafFordeltPaaAarPdfOptions {
   visBrevhoved?: boolean;
@@ -204,7 +200,7 @@ export const generateTafFordeltPaaAarPdf = (
     }
 
     // I alt for året
-    const iAltRightText = ensureNonBreakingKr(formatMoneyOreWithKr(clampNegativeOreToZero(yearEntry.yearTafOre)));
+    const iAltRightText = ensureNonBreakingKr(formatMoneyOreWithKr(yearEntry.yearTafOre));
     writer.writeLeftRightText('I alt', iAltRightText, {
       rightFontStyle: 'normal',
       lineAboveRightWidth: 33.125,
@@ -220,18 +216,18 @@ export const generateTafFordeltPaaAarPdf = (
 
   // Per-år linjer
   for (const yearEntry of presentation.years) {
-    const rightText = ensureNonBreakingKr(formatMoneyOreWithKr(clampNegativeOreToZero(yearEntry.yearTafOre)));
+    const rightText = ensureNonBreakingKr(formatMoneyOreWithKr(yearEntry.yearTafOre));
     writer.writeLeftRightText(`${yearEntry.year}`, rightText, { rightFontStyle: 'normal', minRightColumnWidth: rightMaxWidth });
   }
 
   // Afrunding (kun vist når den ikke er 0)
   if (presentation.afrundingOre !== 0) {
-    const afrundingText = ensureNonBreakingKr(formatMoneyOreWithKr(clampNegativeOreToZero(presentation.afrundingOre)));
+    const afrundingText = ensureNonBreakingKr(formatMoneyOreWithKr(presentation.afrundingOre));
     writer.writeLeftRightText('Afrunding', afrundingText, { rightFontStyle: 'normal', minRightColumnWidth: rightMaxWidth });
   }
 
   // Samlet TAF-krav (fed, med streg)
-  const samletText = ensureNonBreakingKr(formatMoneyOreWithKr(clampNegativeOreToZero(presentation.samletTafKravOre)));
+  const samletText = ensureNonBreakingKr(formatMoneyOreWithKr(presentation.samletTafKravOre));
   writer.writeLeftRightText('Samlet TAF-krav', samletText, {
     rightFontStyle: 'bold',
     lineAboveRightWidth: 33.125,

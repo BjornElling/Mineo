@@ -314,9 +314,11 @@ export const buildBilagIndkomstYdelserRanges = (
 
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(eoValues.eoNummer);
   if (erFoersteOpgoerelse && eoValues.beregnesUdFra === 'Beregningsperiode') {
-    // NOTE: Besluttet UX-semantik.
+    // NOTE: Besluttet UX-semantik (dokumenteret).
     // Ved første erstatningsopgørelse inkluderer "Perioden" både vedrører-perioden
-    // og beregningsperioden, så bilag afspejler begge brugerrelevante perioder.
+    // og beregningsperioden, men KUN når beregnesUdFra = 'Beregningsperiode'.
+    // Dette er den ønskede adfærd og må ikke udvides til andre beregningsgrundlag.
+    // Ved senere erstatningsopgørelser inkluderer "Perioden" kun vedrører-perioden.
     const beregningsFra = parseOptionalIsoDate(eoValues.periodeTilBeregningFra);
     const beregningsTil = parseOptionalIsoDate(eoValues.periodeTilBeregningTil);
     if (beregningsFra && beregningsTil && beregningsFra <= beregningsTil) {
