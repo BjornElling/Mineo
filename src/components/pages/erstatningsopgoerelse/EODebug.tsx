@@ -1804,6 +1804,7 @@ const EODebug = () => {
             })
             .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
             .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+          if (periodStarts.length === 0) return null;
 
           let basePeriod = periodStarts[0];
           for (const period of periodStarts) {

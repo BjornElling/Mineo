@@ -42,9 +42,15 @@ export const beregnArbejdsdageOgMaaneder = (
   let maaneder = 0;
   for (const [monthKey, count] of monthCounts) {
     const [yearStr, monthStr] = monthKey.split('-');
-    const year = Number.parseInt(yearStr, 10);
-    const month = Number.parseInt(monthStr, 10);
+    const year = Number.parseInt(yearStr ?? '', 10);
+    const month = Number.parseInt(monthStr ?? '', 10);
+    if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+      continue;
+    }
     const dageIMaaned = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    if (!Number.isFinite(dageIMaaned) || dageIMaaned <= 0) {
+      continue;
+    }
     maaneder += count / dageIMaaned;
   }
 

@@ -886,6 +886,7 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
       })
       .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
       .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+    if (periodStarts.length === 0) return null;
 
     // Find basisperiode
     let basePeriod = periodStarts[0];

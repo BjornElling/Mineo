@@ -142,7 +142,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
     expect(instance?.save).toHaveBeenCalledWith('Tabt arbejdsfortjeneste fordelt på år.pdf');
   });
 
-  it('viser 0 kr. for negativt I alt pr. år', async () => {
+  it('viser negativt beløb for negativt I alt pr. år', async () => {
     buildTafPerYearResultMock.mockReturnValue({
       ...FAKE_RESULT,
       years: [
@@ -159,6 +159,6 @@ describe('tafFordeltPaaAarPdf wiring', () => {
     const instance = MockJsPDF.instances.at(-1);
     expect(instance).toBeDefined();
     const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
-    expect(renderedText).toContain(`0,00\u00A0kr.`);
+    expect(renderedText).toContain(`-50,00\u00A0kr.`);
   });
 });

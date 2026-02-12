@@ -18,38 +18,56 @@ export const useErstatningsopgoerelseAggregation = (isActive: boolean): Aggregat
     if (!isActive || !eoValues) return null;
 
     const { referenceRates, surchargeRates } = getInterestRates();
+    const tryCompute = <T>(context: string, compute: () => T): T | null => {
+      try {
+        return compute();
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.warn(`Beregning afbrudt (${context}):`, error);
+        }
+        return null;
+      }
+    };
 
     const renteOutput =
       renteberegningValues && stamdataValues
-        ? computeRenteberegning({
+        ? tryCompute('renteberegning', () =>
+          computeRenteberegning({
             renteberegning: renteberegningValues,
             referenceRates,
             surchargeRates,
           })
+        )
         : null;
 
     const tafOutput =
       eoValues.tafPerioder && eoValues.ferieperioder
-        ? computeTafEngine({
+        ? tryCompute('taf', () =>
+          computeTafEngine({
             erstatningsopgoerelse: eoValues,
             tafPerioder: eoValues.tafPerioder,
             ferieperioder: eoValues.ferieperioder,
           })
+        )
         : null;
 
     const varigtMenOutput = varigeMenValues
-      ? computeVarigeMenEngine({
+      ? tryCompute('varigt-men', () =>
+        computeVarigeMenEngine({
           varigemen: varigeMenValues,
           skadestidspunkt: stamdataValues?.skadesdato,
           rates: varigeMenPrGrad,
         })
+      )
       : null;
 
-    return computeErstatningsopgoerelseAggregation({
-      erstatningsopgoerelse: eoValues,
-      renteOutput,
-      tafOutput,
-      varigtMenOutput,
-    });
+    return tryCompute('erstatningsopgoerelse-aggregation', () =>
+      computeErstatningsopgoerelseAggregation({
+        erstatningsopgoerelse: eoValues,
+        renteOutput,
+        tafOutput,
+        varigtMenOutput,
+      })
+    );
   }, [isActive, eoValues, renteberegningValues, stamdataValues, varigeMenValues]);
 };

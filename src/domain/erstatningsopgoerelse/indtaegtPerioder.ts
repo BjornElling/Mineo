@@ -139,7 +139,8 @@ export const buildIncomeForRanges = (
   if (ranges.length === 0) return { employers: [], benefits: [] };
   const areRangesDisjoint = ranges.every((range, index) => {
     if (index === 0) return true;
-    return ranges[index - 1]!.til < range.fra;
+    const previousRange = ranges[index - 1];
+    return previousRange ? previousRange.til < range.fra : true;
   });
   if (!areRangesDisjoint) {
     // NOTE: Fail-closed by design.

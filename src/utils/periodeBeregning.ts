@@ -25,6 +25,34 @@ export interface PeriodeResult {
   perioder: DateInterval[];
 }
 
+const firstAndLast = <T>(values: readonly T[]): { first: T; last: T } | null => {
+  if (values.length === 0) return null;
+  const first = values[0];
+  const last = values[values.length - 1];
+  if (first === undefined || last === undefined) return null;
+  return { first, last };
+};
+
+const parseMonthKey = (monthKey: string): { year: number; month: number } | null => {
+  const [yearRaw, monthRaw] = monthKey.split('-');
+  const year = Number.parseInt(yearRaw ?? '', 10);
+  const month = Number.parseInt(monthRaw ?? '', 10);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+    return null;
+  }
+  return { year, month };
+};
+
+const parseWeekKey = (weekKey: string): { year: number; week: number } | null => {
+  const [yearRaw, weekRaw] = weekKey.split('-W');
+  const year = Number.parseInt(yearRaw ?? '', 10);
+  const week = Number.parseInt(weekRaw ?? '', 10);
+  if (!Number.isFinite(year) || !Number.isFinite(week) || week < 1 || week > 53) {
+    return null;
+  }
+  return { year, week };
+};
+
 /**
  * Beregner antal hverdage (mandag-fredag) i et datoSet
  */
@@ -145,14 +173,21 @@ export const beregnMaanedPeriode = (tableData: AarsloenTableRow[]): PeriodeResul
 
   // Find min og max måned
   const sortedMaaneder = Array.from(maaneder).sort();
-  const minMaaned = sortedMaaneder[0];
-  const maxMaaned = sortedMaaneder[sortedMaaneder.length - 1];
+  const monthRange = firstAndLast(sortedMaaneder);
+  if (!monthRange) {
+    return null;
+  }
 
   // Parse min måned
-  const [minAar, minMnd] = minMaaned.split('-').map(Number);
-
-  // Parse max måned
-  const [maxAar, maxMnd] = maxMaaned.split('-').map(Number);
+  const minParsed = parseMonthKey(monthRange.first);
+  const maxParsed = parseMonthKey(monthRange.last);
+  if (!minParsed || !maxParsed) {
+    return null;
+  }
+  const minAar = minParsed.year;
+  const minMnd = minParsed.month;
+  const maxAar = maxParsed.year;
+  const maxMnd = maxParsed.month;
 
   // Beregn total antal måneder i intervallet
   const totalMaaneder = (maxAar - minAar) * 12 + (maxMnd - minMnd) + 1;
@@ -239,20 +274,25 @@ export const beregnUgePeriode = (tableData: AarsloenTableRow[]): PeriodeResult |
 
   // Find min og max uge
   const sortedUger = Array.from(uger).sort();
-  const minUge = sortedUger[0];
-  const maxUge = sortedUger[sortedUger.length - 1];
+  const weekRange = firstAndLast(sortedUger);
+  if (!weekRange) {
+    return null;
+  }
 
   // Parse min uge
-  const [minAar, minUgeStr] = minUge.split('-W');
-  const minUgeNum = parseInt(minUgeStr, 10);
-
-  // Parse max uge
-  const [maxAar, maxUgeStr] = maxUge.split('-W');
-  const maxUgeNum = parseInt(maxUgeStr, 10);
+  const minParsed = parseWeekKey(weekRange.first);
+  const maxParsed = parseWeekKey(weekRange.last);
+  if (!minParsed || !maxParsed) {
+    return null;
+  }
+  const minAar = minParsed.year;
+  const minUgeNum = minParsed.week;
+  const maxAar = maxParsed.year;
+  const maxUgeNum = maxParsed.week;
 
   // Beregn total antal uger
-  const minAarNum = parseInt(minAar, 10);
-  const maxAarNum = parseInt(maxAar, 10);
+  const minAarNum = minAar;
+  const maxAarNum = maxAar;
   const totalUger = (maxAarNum - minAarNum) * 52 + (maxUgeNum - minUgeNum) + 1;
 
   const periodeTekst = `uge ${minUgeNum}/${minAar} - uge ${maxUgeNum}/${maxAar}`;
@@ -316,8 +356,12 @@ export const beregnDagPeriode = (tableData: AarsloenTableRow[]): PeriodeResult |
 
   // Find min og max dato
   const sortedDage = Array.from(dage).sort();
-  const minDato = parseISODate(toISODateString(sortedDage[0])) ?? null;
-  const maxDato = parseISODate(toISODateString(sortedDage[sortedDage.length - 1])) ?? null;
+  const dayRange = firstAndLast(sortedDage);
+  if (!dayRange) {
+    return null;
+  }
+  const minDato = parseISODate(toISODateString(dayRange.first)) ?? null;
+  const maxDato = parseISODate(toISODateString(dayRange.last)) ?? null;
   if (!minDato || !maxDato) {
     return null;
   }

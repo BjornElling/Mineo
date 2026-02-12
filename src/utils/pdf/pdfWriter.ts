@@ -65,7 +65,7 @@ const getUdkastWatermarkPngDataUrl = (pageWidth: number, pageHeight: number): st
   ctx.rotate((-45 * Math.PI) / 180);
   const fontSize = Math.round(Math.min(canvas.width, canvas.height) * 0.20);
   ctx.font = `700 ${fontSize}px Arial, sans-serif`;
-  ctx.fillStyle = 'rgba(235,235,235,0.42)';
+  ctx.fillStyle = 'rgba(225,225,225,0.42)';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('UDKAST', 0, 0);
@@ -90,7 +90,7 @@ const addUdkastWatermark = (doc: jsPDF): void => {
   const centerY = pageHeight / 2 - 80;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(130);
-  doc.setTextColor(245);
+  doc.setTextColor(235);
   doc.text(text, centerX, centerY, { align: 'center', angle: -45 });
   doc.setTextColor(0);
   doc.setFont('helvetica', 'normal');
