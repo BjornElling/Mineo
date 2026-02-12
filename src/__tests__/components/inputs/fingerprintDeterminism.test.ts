@@ -42,6 +42,16 @@ describe('fingerprint determinisme', () => {
 
     const expression = expectOkAndIdempotent(spec, '(1+2)');
     expect(expression.fingerprint).toContain('e:');
+    const expressionVariant = expectOkAndIdempotent(spec, '(2+1)');
+    expect(expressionVariant.fingerprint).not.toBe(expression.fingerprint);
+
+    const one = spec.parse('1,00');
+    const two = spec.parse('2,00');
+    expect(one.kind).toBe('ok');
+    expect(two.kind).toBe('ok');
+    if (one.kind === 'ok' && two.kind === 'ok') {
+      expect(one.fingerprint).not.toBe(two.fingerprint);
+    }
   });
 
   it('integer-parser giver stabile fingerprints og canonical roundtrip for ok-cases', () => {
@@ -57,6 +67,14 @@ describe('fingerprint determinisme', () => {
       expect(canonicalRoundtrip.kind).toBe('ok');
       if (canonicalRoundtrip.kind !== 'ok') continue;
       expect(canonicalRoundtrip.fingerprint).toBe(parsed.fingerprint);
+    }
+
+    const one = spec.parse('1');
+    const two = spec.parse('2');
+    expect(one.kind).toBe('ok');
+    expect(two.kind).toBe('ok');
+    if (one.kind === 'ok' && two.kind === 'ok') {
+      expect(one.fingerprint).not.toBe(two.fingerprint);
     }
   });
 
@@ -75,6 +93,14 @@ describe('fingerprint determinisme', () => {
 
     const negative = expectOkAndIdempotent(spec, '-1,25');
     expect(negative.fingerprint).toContain('p:');
+
+    const one = spec.parse('1,00');
+    const two = spec.parse('2,00');
+    expect(one.kind).toBe('ok');
+    expect(two.kind).toBe('ok');
+    if (one.kind === 'ok' && two.kind === 'ok') {
+      expect(one.fingerprint).not.toBe(two.fingerprint);
+    }
   });
 
   it('date-parser giver stabile fingerprints og canonical roundtrip for ok-cases', () => {
@@ -90,6 +116,14 @@ describe('fingerprint determinisme', () => {
       expect(canonicalRoundtrip.kind).toBe('ok');
       if (canonicalRoundtrip.kind !== 'ok') continue;
       expect(canonicalRoundtrip.fingerprint).toBe(parsed.fingerprint);
+    }
+
+    const first = spec.parse('01-01-2024');
+    const second = spec.parse('02-01-2024');
+    expect(first.kind).toBe('ok');
+    expect(second.kind).toBe('ok');
+    if (first.kind === 'ok' && second.kind === 'ok') {
+      expect(first.fingerprint).not.toBe(second.fingerprint);
     }
   });
 });

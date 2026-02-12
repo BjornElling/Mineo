@@ -52,6 +52,7 @@ import {
   formatDateLong as formatDateLongShared,
   formatPercentFixed2 as formatPercentFixed2Shared,
 } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
+import { formatCountWithUnit, formatMaanederTrimmed, isSingularCount, resolvePdfFileName } from './sharedPdfUtils';
 
 const NBSP = '\u00A0';
 const EO_RIGHT_COLUMN_WIDTH = 33.125;
@@ -94,17 +95,6 @@ const renderMoneyWithKrTrimmed = (value: Calculable<MoneyOre>): string => {
 
 const formatMoneyOreWithKrTrimmed = (ore: MoneyOre): string => `${formatCurrencyFromOreTrimmed(ore)}${NBSP}kr.`;
 
-const formatMaanederTrimmed = (value: number): string => {
-  if (!Number.isFinite(value)) return '-';
-  const rounded = Math.round(value * 10000) / 10000;
-  return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
-};
-
-const isSingularCount = (value: number): boolean => Math.abs(value - 1) < 0.0000001;
-
-const formatCountWithUnit = (count: number, singular: string, plural: string): string =>
-  `${count.toLocaleString('da-DK')} ${isSingularCount(count) ? singular : plural}`;
-
 const formatPercentDelta = (value: number): string => {
   if (!Number.isFinite(value)) return '-';
   const abs = Math.abs(value);
@@ -119,11 +109,6 @@ const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
 
 const formatPctFromInput = (value: number | undefined): string => {
   return `${(value ?? 0).toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} %`;
-};
-
-const resolvePdfFileName = (baseTitle: string, isDraft: boolean, journalnr?: string): string => {
-  const prefix = journalnr && journalnr.trim() !== '' ? `${journalnr.trim()} - ` : '';
-  return `${prefix}${baseTitle}${isDraft ? ' (udkast)' : ''}.pdf`;
 };
 
 const isZeroPct = (value: number | undefined): boolean => Math.abs(value ?? 0) < 0.000001;
@@ -448,6 +433,7 @@ export const shouldIncludeReguleringBilag = (
     const employerIdsWithIncome = new Set(income.employers.map((entry) => entry.id));
     const reguleringskilder = resolveLoenudviklingKilde(eoValues);
     const kilderMedIndkomst = reguleringskilder.filter((kilde) => employerIdsWithIncome.has(kilde.id));
+    if (kilderMedIndkomst.length === 0) return true;
     const alleIngen = kilderMedIndkomst.every((kilde) => kilde.loenudviklingBeregningsgrundlag === 'Ingen');
     return !alleIngen;
   }

@@ -150,20 +150,16 @@ const getRangeErrorMessage = (
 
 type DateCommitResult =
   | { kind: 'ok'; committed: ReturnType<typeof asTableCommittedString>; iso?: ISODateString }
-  | { kind: 'input-error'; committed: string; errorMessage: string }
-  | { kind: 'config-error'; committed: string };
+  | { kind: 'input-error'; committed: string; errorMessage: string };
 
 const commitDateDraft = (
   draft: string,
   {
-    hasConfigError,
     twoDigitYearPolicy,
   }: {
-    hasConfigError: boolean;
     twoDigitYearPolicy: 'reject' | 'infer' | 'assume20xx';
   }
 ): DateCommitResult => {
-  if (hasConfigError) return { kind: 'config-error', committed: draft };
   const result = parseDanishDateOnCommit(draft, { twoDigitYearPolicy });
   if (!result.ok) {
     return { kind: 'input-error', committed: draft, errorMessage: result.error };
@@ -224,6 +220,7 @@ const TableDateInput = React.memo(
     const [errorMessage, setErrorMessage] = React.useState('');
     const [preserveInvalidDraft, setPreserveInvalidDraft] = React.useState(false);
     const draftRef = React.useRef<string>(draft);
+    const previousCommittedValueRef = React.useRef<string>(value ?? '');
 
     const originalValueOnEditStartRef = React.useRef<string>('');
     const keyInitiatedEditRef = React.useRef(false);
@@ -277,13 +274,22 @@ const TableDateInput = React.memo(
       throw new Error(boundsStatus.message);
     }
 
-    const hasConfigError = boundsStatus.kind !== 'ok';
-
     React.useEffect(() => {
       if (!latest.current.onErrorChange) return;
-      const kind: TableInputErrorInfo['kind'] = hasConfigError ? 'config' : hasError ? 'input' : 'none';
+      const kind: TableInputErrorInfo['kind'] = hasError ? 'input' : 'none';
       latest.current.onErrorChange({ hasError: kind !== 'none', kind });
-    }, [hasConfigError, hasError]);
+    }, [hasError]);
+
+    React.useEffect(() => {
+      const nextCommitted = value ?? '';
+      const didParentValueChange = previousCommittedValueRef.current !== nextCommitted;
+      previousCommittedValueRef.current = nextCommitted;
+      if (!didParentValueChange || isEditing || !preserveInvalidDraft) return;
+      setPreserveInvalidDraft(false);
+      setHasError(false);
+      setErrorMessage('');
+      setTouched(false);
+    }, [isEditing, preserveInvalidDraft, value]);
 
     React.useEffect(() => {
       if (!isEditing) {
@@ -320,12 +326,11 @@ const TableDateInput = React.memo(
     const sanitizeValue: TableDateSanitizeCallback = React.useCallback(
       (rawValue) => {
         const raw = normalizeTableDraftOnCommit(String(rawValue ?? ''));
-        if (hasConfigError) return raw;
         const { twoDigitYearPolicy: policy } = latest.current;
-        const committed = commitDateDraft(raw, { hasConfigError, twoDigitYearPolicy: policy });
+        const committed = commitDateDraft(raw, { twoDigitYearPolicy: policy });
         return committed.committed;
       },
-      [hasConfigError]
+      []
     );
 
     React.useEffect(() => {
@@ -337,13 +342,7 @@ const TableDateInput = React.memo(
         setTouched(true);
         const normalized = normalizeTableDraftOnCommit(rawDraft);
         const { minDate: min, maxDate: max, specialRangeErrors: special, twoDigitYearPolicy: policy } = latest.current;
-        const committed = commitDateDraft(normalized, { hasConfigError, twoDigitYearPolicy: policy });
-
-        if (committed.kind === 'config-error') {
-          setPreserveInvalidDraft(true);
-          latest.current.onErrorChange?.({ hasError: true, kind: 'config' });
-          return false;
-        }
+        const committed = commitDateDraft(normalized, { twoDigitYearPolicy: policy });
 
         if (committed.kind === 'input-error') {
           setPreserveInvalidDraft(true);
@@ -392,7 +391,7 @@ const TableDateInput = React.memo(
         }
         return true;
       },
-      [emitBlur, hasConfigError]
+      [emitBlur]
     );
 
     const handleChange = React.useCallback(
@@ -415,6 +414,8 @@ const TableDateInput = React.memo(
     const handleBlur = React.useCallback(
       (e: React.FocusEvent<HTMLInputElement>) => {
         setIsFocused(false);
+        // Vigtigt: grid kan lukke editor-state før input-blur ved klik udenfor.
+        // I den situation skal vi stadig committe draften fra ref, hvis den afviger fra committed.
         const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
         const committedValue = latestCommittedPayloadRef.current.canonical;
         if (!isEditing && rawValue === committedValue) return;

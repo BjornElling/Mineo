@@ -5,6 +5,11 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import { GridCoreProvider } from '../../../components/tables/gridCoreContext';
 import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCoreTypes';
 import TableAmountInput from '../../../components/inputs/table/TableAmountInput';
+import TableDateInput from '../../../components/inputs/table/TableDateInput';
+import TableIntegerInput from '../../../components/inputs/table/TableIntegerInput';
+import TablePercentInput from '../../../components/inputs/table/TablePercentInput';
+import TableWeekInput from '../../../components/inputs/table/TableWeekInput';
+import TableYearInput from '../../../components/inputs/table/TableYearInput';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import * as expressionAmountModule from '../../../utils/expressionAmount';
 
@@ -67,6 +72,76 @@ const setup = (initialValue: AmountValue | undefined) => {
   return { input, onBlur, setEditingCell };
 };
 
+type StringNoopCase = Readonly<{
+  label: string;
+  value: string;
+  renderInput: (value: string, onBlur: (value: string) => void) => React.JSX.Element;
+}>;
+
+const STRING_NOOP_CASES: readonly StringNoopCase[] = [
+  {
+    label: 'integer',
+    value: '42',
+    renderInput: (value, onBlur) => <TableIntegerInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+  },
+  {
+    label: 'percent',
+    value: '12,50',
+    renderInput: (value, onBlur) => <TablePercentInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+  },
+  {
+    label: 'week',
+    value: '1/2025',
+    renderInput: (value, onBlur) => <TableWeekInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+  },
+  {
+    label: 'year',
+    value: '2025',
+    renderInput: (value, onBlur) => <TableYearInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+  },
+  {
+    label: 'date',
+    value: '01-01-2025',
+    renderInput: (value, onBlur) => <TableDateInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+  },
+];
+
+const setupStringNoop = (testCase: StringNoopCase) => {
+  const onBlur = vi.fn<(value: string) => void>();
+
+  const Wrapper = () => {
+    const [value, setValue] = React.useState(testCase.value);
+    const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
+
+    const gridValue = React.useMemo(
+      () => ({
+        focusedCell: gridCell,
+        editingCell,
+        openEditing: vi.fn(),
+        closeEditing: () => setEditingCell(null),
+        registerEditor: vi.fn(),
+        unregisterEditor: vi.fn(),
+        getEditor: () => null,
+        requestFocusPlan: vi.fn(),
+      }),
+      [editingCell]
+    );
+
+    return (
+      <GridCoreProvider value={gridValue}>
+        {testCase.renderInput(value, (next) => {
+          onBlur(next);
+          setValue(next);
+          setEditingCell(null);
+        })}
+      </GridCoreProvider>
+    );
+  };
+
+  render(<Wrapper />);
+  return { onBlur, input: screen.getByRole('textbox') };
+};
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -92,5 +167,15 @@ describe('no-op bruger committed fingerprint', () => {
     );
 
     setEditingCell(null);
+  });
+
+  it.each(STRING_NOOP_CASES)('emitter ikke commit på no-op for $label', async (testCase) => {
+    const user = userEvent.setup();
+    const { input, onBlur } = setupStringNoop(testCase);
+
+    await user.click(input);
+    await user.tab();
+
+    expect(onBlur).not.toHaveBeenCalled();
   });
 });

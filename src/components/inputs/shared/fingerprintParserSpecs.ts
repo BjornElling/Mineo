@@ -20,7 +20,7 @@ import {
 
 const amountCanonicalFromModel = (value: AmountValue | undefined, precision: number): string => {
   if (!value) return '';
-  if (value.kind === 'expression') return `e:${value.expression}|${value.value.toFixed(precision)}`;
+  if (value.kind === 'expression') return `e:${value.expression.length}:${value.expression}|${value.value.toFixed(precision)}`;
   return `n:${value.value.toFixed(precision)}`;
 };
 

@@ -52,6 +52,7 @@ import {
 export type MoneyOre = number;
 
 type MoneyKroner = number;
+const isSingularCount = (value: number): boolean => Math.abs(value - 1) < 0.0000001;
 
 export type Calculable<T> =
   | Readonly<{ status: 'ok'; value: T }>
@@ -851,7 +852,7 @@ const buildIndkomstSkadestidspunkt = (
         const rounded = Math.round(value * 100) / 100;
         return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
       };
-      const dagOrd = (value: number, singular: string, plural: string): string => (value === 1 ? singular : plural);
+      const dagOrd = (value: number, singular: string, plural: string): string => (isSingularCount(value) ? singular : plural);
 
       const maanederResult = calculateTafAntalMaaneder(
         periodeTilBeregning.fra,

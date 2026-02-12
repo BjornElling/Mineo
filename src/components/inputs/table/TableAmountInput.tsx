@@ -86,7 +86,7 @@ const toDisplayString = (value: TableAmountInputValue): string => {
 const amountCanonicalFromModel = (value: TableAmountInputValue): string => {
   if (!value) return '';
   if (value.kind === 'expression') {
-    return `e:${value.expression}|${value.value.toFixed(TABLE_AMOUNT_PRECISION)}`;
+    return `e:${value.expression.length}:${value.expression}|${value.value.toFixed(TABLE_AMOUNT_PRECISION)}`;
   }
   return `n:${value.value.toFixed(TABLE_AMOUNT_PRECISION)}`;
 };
@@ -287,6 +287,8 @@ const TableAmountInput = React.memo(
     const handleBlur = React.useCallback(
       (e: React.FocusEvent<HTMLInputElement>) => {
         setIsFocused(false);
+        // Vigtigt: grid kan lukke editor-state før input-blur ved klik udenfor.
+        // I den situation skal vi stadig committe draften fra ref, hvis den afviger fra committed.
         const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
         const committedValue = toDisplayString(latestCommittedPayloadRef.current.model);
         if (!isEditing && rawValue === committedValue) return;

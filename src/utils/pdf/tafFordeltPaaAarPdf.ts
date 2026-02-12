@@ -16,14 +16,10 @@ import { FONT_SIZES } from './pdfConfig';
 import type { BrevhovedData } from './pdfHelpers';
 import { TODAY } from '../../config/dateRanges';
 import type jsPDF from 'jspdf';
+import { formatCountWithUnit, formatMaanederTrimmed, isSingularCount, resolvePdfFileName } from './sharedPdfUtils';
 
 const NBSP = '\u00A0';
 const FILE_BASE_NAME = 'Tabt arbejdsfortjeneste fordelt på år';
-
-const resolvePdfFileName = (baseTitle: string, isDraft: boolean, journalnr?: string): string => {
-  const prefix = journalnr && journalnr.trim() !== '' ? `${journalnr.trim()} - ` : '';
-  return `${prefix}${baseTitle}${isDraft ? ' (udkast)' : ''}.pdf`;
-};
 
 const formatCurrencyFromOre = (ore: MoneyOre): string => {
   if (!Number.isFinite(ore)) return '-';
@@ -31,17 +27,6 @@ const formatCurrencyFromOre = (ore: MoneyOre): string => {
 };
 
 const formatMoneyOreWithKr = (ore: MoneyOre): string => `${formatCurrencyFromOre(ore)}${NBSP}kr.`;
-
-const formatMaanederTrimmed = (value: number): string => {
-  if (!Number.isFinite(value)) return '-';
-  const rounded = Math.round(value * 10000) / 10000;
-  return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
-};
-
-const isSingularCount = (value: number): boolean => Math.abs(value - 1) < 0.0000001;
-
-const formatCountWithUnit = (count: number, singular: string, plural: string): string =>
-  `${count.toLocaleString('da-DK')} ${isSingularCount(count) ? singular : plural}`;
 
 const formatPercentDelta = (value: number): string => {
   if (!Number.isFinite(value)) return '-';

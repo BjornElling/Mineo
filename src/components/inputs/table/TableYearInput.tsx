@@ -141,6 +141,7 @@ const TableYearInput = React.memo(
 
     const inputElRef = React.useRef<HTMLInputElement | null>(null);
     const draftRef = React.useRef<string>(draft);
+    const previousCommittedValueRef = React.useRef<string>(value ?? '');
     const originalValueOnEditStartRef = React.useRef<string>('');
     const keyInitiatedEditRef = React.useRef(false);
     const latestCommittedPayloadRef = React.useRef<CommittedPayload<string, string, YearFingerprint>>(toCommittedYearPayload(value));
@@ -173,6 +174,17 @@ const TableYearInput = React.memo(
     React.useEffect(() => {
       draftRef.current = draft;
     }, [draft]);
+
+    React.useEffect(() => {
+      const nextCommitted = value ?? '';
+      const didParentValueChange = previousCommittedValueRef.current !== nextCommitted;
+      previousCommittedValueRef.current = nextCommitted;
+      if (!didParentValueChange || isEditing || !preserveInvalidDraft) return;
+      setPreserveInvalidDraft(false);
+      setHasError(false);
+      setErrorMessage('');
+      setTouched(false);
+    }, [isEditing, preserveInvalidDraft, value]);
 
     React.useEffect(() => {
       if (!isEditing) {
@@ -264,6 +276,8 @@ const TableYearInput = React.memo(
     const handleBlur = React.useCallback(
       (e: React.FocusEvent<HTMLInputElement>) => {
         setIsFocused(false);
+        // Vigtigt: grid kan lukke editor-state før input-blur ved klik udenfor.
+        // I den situation skal vi stadig committe draften fra ref, hvis den afviger fra committed.
         const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
         const committedValue = latestCommittedPayloadRef.current.canonical;
         if (!isEditing && rawValue === committedValue) return;

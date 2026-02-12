@@ -334,6 +334,33 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
   });
 
+  it('medtager regulering-bilag ved Beregningsperiode når ingen kilder har indkomst i perioden', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.periodeTilBeregningFra = iso('2025-01-01');
+    eoValues.periodeTilBeregningTil = iso('2025-01-31');
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+        id: 'af-1',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        indtaegtsoplysningerTableData: [],
+      },
+    ];
+
+    expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
+  });
+
+  it('medtager regulering-bilag ved Beregningsperiode når der ikke er ansættelsesforhold', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.periodeTilBeregningFra = iso('2025-01-01');
+    eoValues.periodeTilBeregningTil = iso('2025-01-31');
+    eoValues.loenindkomstAnsaettelsesforhold = [];
+
+    expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
+  });
+
   it('skjuler regulering-bilag ved angivet løn når EO-oplysninger har lønudvikling = Ingen', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Angivet månedsløn';
