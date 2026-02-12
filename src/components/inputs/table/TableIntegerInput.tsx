@@ -221,8 +221,10 @@ const TableIntegerInput = React.memo(
     const handleBlur = React.useCallback(
       (e: React.FocusEvent<HTMLInputElement>) => {
         setIsFocused(false);
-        if (!isEditing) return;
-        commitAndEmitBlur(e.currentTarget.value ?? '');
+        const rawValue = e.currentTarget.value ?? '';
+        const committedValue = latestCommittedValueRef.current;
+        if (!isEditing && rawValue === committedValue) return;
+        commitAndEmitBlur(rawValue);
       },
       [commitAndEmitBlur, isEditing]
     );

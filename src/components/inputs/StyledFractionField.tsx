@@ -283,15 +283,13 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
         onFocus={handleFocus}
         onBlur={(e) => {
           onBlurBase(e);
-          if (activation.isEditorOpen || pendingCommitOnBlurRef.current) {
-            const unchanged = draft === formatFraction(value);
-            if (!skipNextBlurCommitRef.current && !unchanged) {
-              commit();
-            }
-            if (activation.isEditorOpen) activation.closeEditor();
-            skipNextBlurCommitRef.current = false;
-            pendingCommitOnBlurRef.current = false;
+          const unchanged = draft === formatFraction(value);
+          if (!skipNextBlurCommitRef.current && !unchanged) {
+            commit();
           }
+          if (activation.isEditorOpen) activation.closeEditor();
+          skipNextBlurCommitRef.current = false;
+          pendingCommitOnBlurRef.current = false;
           onBlur?.(e);
         }}
         onKeyDown={handleKeyDown}

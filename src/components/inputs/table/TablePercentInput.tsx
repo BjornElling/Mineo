@@ -279,8 +279,11 @@ const TablePercentInput = React.memo(
     const handleBlur = React.useCallback(
       (e: React.FocusEvent<HTMLInputElement>) => {
         setIsFocused(false);
-        if (!isEditing) return;
-        commitAndEmitBlur(e.currentTarget.value ?? '');
+        const rawValue = e.currentTarget.value ?? '';
+        const committedPlain = toDisplayString(latestCommittedValueRef.current);
+        const committedDisplay = committedPlain === '' ? '' : `${committedPlain} %`;
+        if (!isEditing && (rawValue === committedPlain || rawValue === committedDisplay)) return;
+        commitAndEmitBlur(rawValue);
       },
       [commitAndEmitBlur, isEditing]
     );

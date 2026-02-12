@@ -289,15 +289,13 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
           onFocus={handleFocus as (e: React.FocusEvent<HTMLTextAreaElement>) => void}
           onBlur={(e) => {
             onBlurBase(e);
-            if (textAreaActivation.isEditorOpen || pendingCommitOnBlurRef.current) {
-              const unchanged = draft === value;
-              if (!skipNextBlurCommitRef.current && !unchanged) {
-                commit();
-              }
-              if (textAreaActivation.isEditorOpen) textAreaActivation.closeEditor();
-              skipNextBlurCommitRef.current = false;
-              pendingCommitOnBlurRef.current = false;
+            const unchanged = draft === value;
+            if (!skipNextBlurCommitRef.current && !unchanged) {
+              commit();
             }
+            if (textAreaActivation.isEditorOpen) textAreaActivation.closeEditor();
+            skipNextBlurCommitRef.current = false;
+            pendingCommitOnBlurRef.current = false;
             onBlur?.(e);
           }}
           onKeyDown={handleKeyDown as (e: React.KeyboardEvent<HTMLTextAreaElement>) => void}
@@ -337,15 +335,13 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
         onFocus={handleFocus as (e: React.FocusEvent<HTMLInputElement>) => void}
         onBlur={(e) => {
           onBlurBase(e);
-          if (inputActivation.isEditorOpen || pendingCommitOnBlurRef.current) {
-            const unchanged = draft === value;
-            if (!skipNextBlurCommitRef.current && !unchanged) {
-              commit();
-            }
-            if (inputActivation.isEditorOpen) inputActivation.closeEditor();
-            skipNextBlurCommitRef.current = false;
-            pendingCommitOnBlurRef.current = false;
+          const unchanged = draft === value;
+          if (!skipNextBlurCommitRef.current && !unchanged) {
+            commit();
           }
+          if (inputActivation.isEditorOpen) inputActivation.closeEditor();
+          skipNextBlurCommitRef.current = false;
+          pendingCommitOnBlurRef.current = false;
           onBlur?.(e);
         }}
         onKeyDown={handleKeyDown as (e: React.KeyboardEvent<HTMLInputElement>) => void}

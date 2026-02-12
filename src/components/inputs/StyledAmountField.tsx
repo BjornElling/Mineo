@@ -336,16 +336,14 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
         onFocus={handleFocus}
         onBlur={(e) => {
           onBlurBase(e);
-          if (activation.isEditorOpen) {
-            const unchanged = value?.kind === 'expression' ? draft === amountValueToDraftString(value, resolvedPrecision) : draft === formatAmount(value);
-            const shouldForceCommit = draft === '' && value === undefined && hadErrorOnEditStartRef.current;
-            if (!skipNextBlurCommitRef.current && (!unchanged || shouldForceCommit)) {
-              commit();
-            }
-            if (activation.isEditorOpen) activation.closeEditor();
-            skipNextBlurCommitRef.current = false;
-            hadErrorOnEditStartRef.current = false;
+          const unchanged = value?.kind === 'expression' ? draft === amountValueToDraftString(value, resolvedPrecision) : draft === formatAmount(value);
+          const shouldForceCommit = draft === '' && value === undefined && hadErrorOnEditStartRef.current;
+          if (!skipNextBlurCommitRef.current && (!unchanged || shouldForceCommit)) {
+            commit();
           }
+          if (activation.isEditorOpen) activation.closeEditor();
+          skipNextBlurCommitRef.current = false;
+          hadErrorOnEditStartRef.current = false;
           onBlur?.(e);
         }}
         onKeyDown={handleKeyDown}
