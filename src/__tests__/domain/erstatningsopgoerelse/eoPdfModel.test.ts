@@ -1052,6 +1052,45 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     expect(indkomst?.beregningsgrundlagMellemregningLabel).toContain(` - ${samledeFeriedage.toLocaleString('da-DK')} feriedage - `);
     expect(indkomst?.beregningsgrundlagMellemregningLabel).not.toContain('løse feriedage');
   });
+
+  it('medregner offentlige ydelser i beregningsgrundlaget for beregningsperiode', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: iso('2024-01-01'),
+      periodeTilBeregningTil: iso('2024-01-31'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-02-01'), til: iso('2024-02-28'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2024',
+          tilDato: '31-01-2024',
+          ydelse: asAmountValue(1000),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
+
+    expect(indkomst?.offentligeYdelserTotalOre).toBe(100000);
+    expect(indkomst?.samletBeregningsgrundlagOre).toBe(100000);
+    expect(indkomst?.maanedsloen.status).toBe('ok');
+    if (indkomst?.maanedsloen.status === 'ok') {
+      expect(indkomst.maanedsloen.value).toBe(100000);
+    }
+  });
 });
 
 

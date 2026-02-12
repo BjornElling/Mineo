@@ -136,6 +136,12 @@ export type IndkomstSkadestidspunktPdfModel = Readonly<{
       samletOre: MoneyOre;
     }>;
   }[];
+  offentligeYdelser: readonly {
+    label: string;
+    amountOre: MoneyOre;
+  }[];
+  offentligeYdelserTotalOre: MoneyOre;
+  samletBeregningsgrundlagOre: MoneyOre | null;
   totalBreakdown: Readonly<{
     ferieberetOre: MoneyOre;
     fpFvShSoOre: MoneyOre;
@@ -722,6 +728,9 @@ const buildIndkomstSkadestidspunkt = (
     .filter((value, index, arr) => value !== '' && arr.indexOf(value) === index);
 
   const arbejdssteder: Array<IndkomstSkadestidspunktPdfModel['arbejdssteder'][number]> = [];
+  let offentligeYdelser: Array<IndkomstSkadestidspunktPdfModel['offentligeYdelser'][number]> = [];
+  let offentligeYdelserTotalOre: MoneyOre = ensureMoneyOre(0);
+  let samletBeregningsgrundlagOre: MoneyOre | null = null;
   let totalBreakdown: IndkomstSkadestidspunktPdfModel['totalBreakdown'] = null;
   let arbejdsdage: number | null = null;
   let maaneder: number | null = null;
@@ -841,6 +850,21 @@ const buildIndkomstSkadestidspunkt = (
         samletOre: clampMoneyOreToZero(toOre(roundKroner(sums.samlet))),
       };
     }
+    if (periodeTilBeregning) {
+      const incomeForBeregningsperiode = buildIncomeForRanges(values, [periodeTilBeregning]);
+      offentligeYdelser = incomeForBeregningsperiode.benefits
+        .map((benefit) => ({
+          label: benefit.label,
+          amountOre: clampMoneyOreToZero(toOre(roundKroner(benefit.amount))),
+        }))
+        .filter((benefit) => benefit.amountOre > 0);
+      offentligeYdelserTotalOre = offentligeYdelser.reduce<MoneyOre>(
+        (sum, benefit) => ensureMoneyOre(sum + benefit.amountOre),
+        ensureMoneyOre(0)
+      );
+    }
+    const samletLoenOre = totalBreakdown?.samletOre ?? ensureMoneyOre(0);
+    samletBeregningsgrundlagOre = clampMoneyOreToZero(ensureMoneyOre(samletLoenOre + offentligeYdelserTotalOre));
 
     const oevrigeFravaersdage =
       values.oevrigtFravaerUdenLoen === 'Ja' && typeof values.oevrigeFravaersdage === 'number'
@@ -862,8 +886,8 @@ const buildIndkomstSkadestidspunkt = (
         oevrigeFravaersdage
       );
       maaneder = maanederResult;
-      if (maanederResult && totalBreakdown) {
-        const base = fromOre(totalBreakdown.samletOre) / maanederResult;
+      if (maanederResult && samletBeregningsgrundlagOre && samletBeregningsgrundlagOre > 0) {
+        const base = fromOre(samletBeregningsgrundlagOre) / maanederResult;
         maanedsloen = asCalculable(toOre(roundKroner(base)));
       }
 
@@ -922,8 +946,13 @@ const buildIndkomstSkadestidspunkt = (
       );
       if (arbejdsdageBreakdown) {
         arbejdsdage = Math.max(0, arbejdsdageBreakdown.tafDage);
-        if (arbejdsdage > 0 && totalBreakdown && tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE) {
-          const base = fromOre(totalBreakdown.samletOre) / arbejdsdage;
+        if (
+          arbejdsdage > 0 &&
+          samletBeregningsgrundlagOre &&
+          samletBeregningsgrundlagOre > 0 &&
+          tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
+        ) {
+          const base = fromOre(samletBeregningsgrundlagOre) / arbejdsdage;
           dagsloen = asCalculable(toOre(roundKroner(base)));
         }
 
@@ -965,6 +994,9 @@ const buildIndkomstSkadestidspunkt = (
     periodeTilBeregning,
     ansaettelserNavne,
     arbejdssteder,
+    offentligeYdelser,
+    offentligeYdelserTotalOre,
+    samletBeregningsgrundlagOre,
     totalBreakdown,
     arbejdsdage,
     maaneder,

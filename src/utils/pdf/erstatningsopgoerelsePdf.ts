@@ -1891,16 +1891,39 @@ export const generateErstatningsopgoerelsePdf = (
           );
           writer.advanceY(lineHeight);
         }
+        if (indkomst.offentligeYdelser.length > 0) {
+          writer.writeUnderlinedLabel('Offentlige ydelser', MARGINS.left);
+          for (const ydelse of indkomst.offentligeYdelser) {
+            safeAddLeftRightText(
+              ydelse.label,
+              formatMoneyOreWithKr(ydelse.amountOre),
+              writer.getTextWidth('000.000.000,00'),
+              { rightFontStyle: 'normal' }
+            );
+          }
+          if (indkomst.offentligeYdelser.length > 1) {
+            safeAddLeftRightText(
+              'I alt:',
+              formatMoneyOreWithKr(indkomst.offentligeYdelserTotalOre),
+              writer.getTextWidth('000.000.000,00'),
+              { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
+            );
+          }
+          writer.advanceY(lineHeight);
+        }
 
-        if (indkomst.totalBreakdown) {
-          const arbejdsgiverTotals = indkomst.arbejdssteder.map((arbejdssted) =>
+        if (indkomst.samletBeregningsgrundlagOre !== null) {
+          const addends = indkomst.arbejdssteder.map((arbejdssted) =>
             formatCurrencyFromOre(arbejdssted.breakdown.samletOre)
           );
+          if (indkomst.offentligeYdelserTotalOre > 0) {
+            addends.push(formatCurrencyFromOre(indkomst.offentligeYdelserTotalOre));
+          }
           if (indkomst.beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE && indkomst.arbejdsdage) {
             const arbejdsdageText = formatCountWithUnit(indkomst.arbejdsdage, 'arbejdsdag', 'arbejdsdage');
-            const basisText = arbejdsgiverTotals.length > 1
-              ? `Dagsløn: (${arbejdsgiverTotals.join(' + ')}${NBSP}kr.) / ${arbejdsdageText} =`
-              : `Dagsløn: ${formatMoneyOreWithKr(indkomst.totalBreakdown.samletOre)} / ${arbejdsdageText} =`;
+            const basisText = addends.length > 1
+              ? `Dagsløn: (${addends.join(' + ')}${NBSP}kr.) / ${arbejdsdageText} =`
+              : `Dagsløn: ${formatMoneyOreWithKr(indkomst.samletBeregningsgrundlagOre)} / ${arbejdsdageText} =`;
             safeAddLeftRightText(
               basisText,
               renderMoneyWithKr(indkomst.dagsloen),
@@ -1910,9 +1933,9 @@ export const generateErstatningsopgoerelsePdf = (
           } else if (indkomst.maaneder) {
             const maanederText = formatMaanederTrimmed(indkomst.maaneder);
             const maanederMedEnhed = `${maanederText} ${isSingularCount(indkomst.maaneder) ? 'måned' : 'måneder'}`;
-            const basisText = arbejdsgiverTotals.length > 1
-              ? `Månedsløn (${arbejdsgiverTotals.join(' + ')}${NBSP}kr.) / ${maanederMedEnhed} =`
-              : `Månedsløn: ${formatMoneyOreWithKr(indkomst.totalBreakdown.samletOre)} / ${maanederMedEnhed} =`;
+            const basisText = addends.length > 1
+              ? `Månedsløn: (${addends.join(' + ')}${NBSP}kr.) / ${maanederMedEnhed} =`
+              : `Månedsløn: ${formatMoneyOreWithKr(indkomst.samletBeregningsgrundlagOre)} / ${maanederMedEnhed} =`;
             safeAddLeftRightText(
               basisText,
               renderMoneyWithKr(indkomst.maanedsloen),
