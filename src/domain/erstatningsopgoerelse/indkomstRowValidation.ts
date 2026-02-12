@@ -41,6 +41,24 @@ const isValidDateValue = (value: string | undefined): boolean => {
   return parseDanishDate((value ?? '').trim()) !== null;
 };
 
+const hasPeriodOrderError = (row: AarsloenTableRow, loenperiode: Loenperiode): boolean => {
+  if (loenperiode === 'uge') {
+    const fra = parseWeekString((row.col0_uge ?? '').trim());
+    const til = parseWeekString((row.col1_uge ?? '').trim());
+    if (!fra || !til) return false;
+    return fra.start > til.end;
+  }
+
+  if (loenperiode === 'dag') {
+    const fra = parseDanishDate((row.col0_dag ?? '').trim());
+    const til = parseDanishDate((row.col1_dag ?? '').trim());
+    if (!fra || !til) return false;
+    return fra > til;
+  }
+
+  return false;
+};
+
 export const buildAarsloenCellErrors = (rows: readonly AarsloenTableRow[], loenperiode: Loenperiode): Record<string, true> => {
   const errors: Record<string, true> = {};
   for (const row of rows) {
@@ -50,9 +68,17 @@ export const buildAarsloenCellErrors = (rows: readonly AarsloenTableRow[], loenp
     } else if (loenperiode === 'uge') {
       if (!isValidWeekValue(row.col0_uge)) errors[`${row.id}:col0_uge`] = true;
       if (!isValidWeekValue(row.col1_uge)) errors[`${row.id}:col1_uge`] = true;
+      if (hasPeriodOrderError(row, loenperiode)) {
+        errors[`${row.id}:col0_uge`] = true;
+        errors[`${row.id}:col1_uge`] = true;
+      }
     } else {
       if (!isValidDateValue(row.col0_dag)) errors[`${row.id}:col0_dag`] = true;
       if (!isValidDateValue(row.col1_dag)) errors[`${row.id}:col1_dag`] = true;
+      if (hasPeriodOrderError(row, loenperiode)) {
+        errors[`${row.id}:col0_dag`] = true;
+        errors[`${row.id}:col1_dag`] = true;
+      }
     }
   }
   return errors;

@@ -7,6 +7,58 @@ const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);
 
 describe('buildIncomeForRanges fail-closed', () => {
+  it('kaster ikke fejl for rækker med data i inaktiv lønperiodekolonne', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenperiode = 'uge';
+    af.indtaegtsoplysningerTableData = [
+      {
+        id: 'loen-inaktiv-periode-data',
+        col0_maaned: '',
+        col1_maaned: '',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '01-01-2024',
+        col1_dag: '31-01-2024',
+        col2: undefined,
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      },
+    ];
+
+    const ranges = [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }] as const;
+    expect(() => buildIncomeForRanges(values, ranges)).not.toThrow();
+    const income = buildIncomeForRanges(values, ranges);
+    expect(income.employers).toHaveLength(0);
+  });
+
+  it('medregner ikke dag-rækker med fra-dato efter til-dato', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenperiode = 'dag';
+    af.indtaegtsoplysningerTableData = [
+      {
+        id: 'loen-fejl-omvendt-dato',
+        col0_maaned: '',
+        col1_maaned: '',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '31-01-2024',
+        col1_dag: '01-01-2024',
+        col2: asAmount(1000),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      },
+    ];
+
+    const ranges = [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }] as const;
+    expect(() => buildIncomeForRanges(values, ranges)).not.toThrow();
+    const income = buildIncomeForRanges(values, ranges);
+    expect(income.employers).toHaveLength(0);
+  });
+
   it('medregner kun løn-/ydelsesrækker med gyldig fra/til og uden fejl', () => {
     const values = createErstatningsopgoerelseInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];

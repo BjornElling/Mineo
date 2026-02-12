@@ -6,7 +6,7 @@ import type {
 } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { isISODateString } from '../../types/branded';
-import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
+import { calculateAarsloenRowDerived } from '../../utils/aarsloenTableCalculations';
 import { parseAmount } from '../../utils/formatUtils';
 import { createDate, parseDanishDate, parseWeekString } from '../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
@@ -15,6 +15,7 @@ import { mergeIsoDateRanges } from './periodMerging';
 import { buildClampedTafRanges, resolveTafConstraintBounds } from './tafPeriodConstraints';
 import { getAarsloenErrorRowIdSet } from './indkomstRowValidation';
 import { isoDateToDate } from '../dates/isoDate';
+import { isAarsloenTableValueEffectivelyEmptyForValidation } from '../../utils/aarsloenTableValidation';
 
 export type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
 
@@ -105,6 +106,17 @@ export const parseAarsloenRowInterval = (row: AarsloenTableRow, loenperiode: Loe
   return { start: toUtcDay(fra), end: toUtcDay(til) };
 };
 
+const isLoenRowEffectivelyEmptyForLoenperiode = (row: AarsloenTableRow, loenperiode: Loenperiode): boolean => {
+  const periodKeys: ReadonlyArray<keyof AarsloenTableRow> = loenperiode === 'maaned'
+    ? ['col0_maaned', 'col1_maaned']
+    : loenperiode === 'uge'
+      ? ['col0_uge', 'col1_uge']
+      : ['col0_dag', 'col1_dag'];
+
+  const keys: ReadonlyArray<keyof AarsloenTableRow> = [...periodKeys, 'col2', 'col3', 'col4', 'col5'];
+  return keys.every((key) => isAarsloenTableValueEffectivelyEmptyForValidation(row[key]));
+};
+
 const parseOffentligInterval = (row: OffentligeYdelserRow): DateInterval | null => {
   const fraStr = row.fraDato?.trim() ?? '';
   const tilStr = row.tilDato?.trim() ?? '';
@@ -161,7 +173,7 @@ export const buildIncomeForRanges = (
     const af = ansaettelser[index];
     const errorRowIds = loenErrorRowIdsByEmploymentId.get(af.id) ?? new Set<string>();
     const classifyLoenRow = (row: AarsloenTableRow): RowEligibility => {
-      if (isAarsloenRowEffectivelyEmpty(row)) return 'empty';
+      if (isLoenRowEffectivelyEmptyForLoenperiode(row, af.loenperiode)) return 'empty';
       if (errorRowIds.has(row.id)) return 'invalid';
       const interval = parseAarsloenRowInterval(row, af.loenperiode);
       if (!interval && import.meta.env.DEV) {
