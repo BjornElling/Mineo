@@ -9,6 +9,7 @@ import { shouldClearField } from '../../../utils/inputValidation';
 import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit, type TableCommitResult, type TableInputErrorInfo } from './tableInputContracts';
 import { assignRef } from './assignRef';
 import { filterIntegerKeyDown } from '../inputKeyFilters';
+import { makeIntegerFingerprintFromCanonical, type CommittedPayload, type IntegerFingerprint } from '../shared/parserSpec';
 
 export type TableIntegerInputChangeEvent = { target: { value: string } };
 
@@ -67,16 +68,27 @@ const parseIntegerOnCommit = (
 const commitIntegerDraft = (
   draft: string,
   {
-    hasConfigError,
     minValue,
     maxValue,
     maxDigits,
-  }: { hasConfigError: boolean; minValue: number | undefined; maxValue: number | undefined; maxDigits: number | undefined }
+  }: { minValue: number | undefined; maxValue: number | undefined; maxDigits: number | undefined }
 ): TableCommitResult => {
-  if (hasConfigError) return { kind: 'config-error', committed: draft };
   const result = parseIntegerOnCommit(draft, { minValue, maxValue, maxDigits });
   if (!result.ok) return { kind: 'input-error', committed: draft, errorMessage: result.error };
   return { kind: 'ok', committed: asTableCommittedString(result.value) };
+};
+
+const integerFingerprintFromCanonical = (canonical: string): IntegerFingerprint => {
+  return makeIntegerFingerprintFromCanonical(canonical);
+};
+
+const toCommittedIntegerPayload = (value: string | undefined): CommittedPayload<string, string, IntegerFingerprint> => {
+  const canonical = value ?? '';
+  return {
+    model: canonical,
+    canonical,
+    fingerprint: integerFingerprintFromCanonical(canonical),
+  };
 };
 
 const TableIntegerInput = React.memo(
@@ -104,12 +116,13 @@ const TableIntegerInput = React.memo(
     const [errorMessage, setErrorMessage] = React.useState('');
     const [isFocused, setIsFocused] = React.useState(false);
     const [touched, setTouched] = React.useState(false);
+    const [preserveInvalidDraft, setPreserveInvalidDraft] = React.useState(false);
 
     const inputElRef = React.useRef<HTMLInputElement | null>(null);
     const draftRef = React.useRef<string>(draft);
     const originalValueOnEditStartRef = React.useRef<string>('');
     const keyInitiatedEditRef = React.useRef(false);
-    const latestCommittedValueRef = React.useRef<string>('');
+    const latestCommittedPayloadRef = React.useRef<CommittedPayload<string, string, IntegerFingerprint>>(toCommittedIntegerPayload(value));
 
     const configErrorMessage = React.useMemo(() => {
       if (minValue !== undefined && !Number.isFinite(minValue)) return 'Ugyldig konfiguration: minValue skal være et tal';
@@ -120,29 +133,28 @@ const TableIntegerInput = React.memo(
       return '';
     }, [maxValue, minValue]);
 
-    if (import.meta.env.DEV && configErrorMessage.trim() !== '') {
+    if (configErrorMessage.trim() !== '') {
       throw new Error(configErrorMessage);
     }
 
-    const hasConfigError = configErrorMessage.trim() !== '';
     const maxDigits = React.useMemo(() => {
       if (typeof maxValue === 'number') return requiredDigits(maxValue);
       if (typeof minValue === 'number') return requiredDigits(minValue);
       return undefined;
     }, [maxValue, minValue]);
 
-    const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, minValue, maxValue, maxDigits, hasConfigError });
+    const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, minValue, maxValue, maxDigits });
 
     const emitBlur = React.useCallback((nextValue: string) => {
       latest.current.onBlur?.({ target: { value: nextValue } });
     }, []);
 
     React.useEffect(() => {
-      latest.current = { onChange, onBlur, onErrorChange, locked, minValue, maxValue, maxDigits, hasConfigError };
-    }, [hasConfigError, locked, maxDigits, maxValue, minValue, onBlur, onChange, onErrorChange]);
+      latest.current = { onChange, onBlur, onErrorChange, locked, minValue, maxValue, maxDigits };
+    }, [locked, maxDigits, maxValue, minValue, onBlur, onChange, onErrorChange]);
 
     React.useEffect(() => {
-      latestCommittedValueRef.current = value ?? '';
+      latestCommittedPayloadRef.current = toCommittedIntegerPayload(value);
     }, [value]);
 
     React.useEffect(() => {
@@ -151,9 +163,17 @@ const TableIntegerInput = React.memo(
 
     React.useEffect(() => {
       if (!isEditing) {
+        const inputEl = inputElRef.current;
+        const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
+        const hasPhysicalFocus =
+          inputEl !== null &&
+          activeEl !== null &&
+          (activeEl === inputEl || (activeEl instanceof Node && inputEl.contains(activeEl)));
+        if (hasPhysicalFocus) return;
+        if (hasError || preserveInvalidDraft) return;
         setDraft(value ?? '');
       }
-    }, [isEditing, value]);
+    }, [hasError, isEditing, preserveInvalidDraft, value]);
 
     React.useEffect(() => {
       if (!isEditing) {
@@ -161,41 +181,49 @@ const TableIntegerInput = React.memo(
         return;
       }
       if (!keyInitiatedEditRef.current) {
+        if (hasError || preserveInvalidDraft) {
+          originalValueOnEditStartRef.current = draftRef.current;
+          return;
+        }
         const committedValue = value ?? '';
         originalValueOnEditStartRef.current = committedValue;
         setDraft(committedValue);
         // Ingen emitValueChange her – vi må ikke opdatere parent under edit.
       }
-    }, [isEditing, value]);
+    }, [hasError, isEditing, preserveInvalidDraft, value]);
 
     const commitAndEmitBlur = React.useCallback(
       (rawDraft: string): boolean => {
-        if (!latest.current.hasConfigError) setTouched(true);
+        setTouched(true);
         const committed = commitIntegerDraft(normalizeTableDraftOnCommit(rawDraft), {
-          hasConfigError: latest.current.hasConfigError,
           minValue: latest.current.minValue,
           maxValue: latest.current.maxValue,
           maxDigits: latest.current.maxDigits,
         });
 
-        if (committed.kind === 'config-error') {
-          latest.current.onErrorChange?.({ hasError: true, kind: 'config' });
-          emitBlur(committedToString(committed));
-          return false;
-        }
-
         if (committed.kind === 'input-error') {
+          setPreserveInvalidDraft(true);
           setHasError(true);
           setErrorMessage(committed.errorMessage);
           latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
-          emitBlur(committedToString(committed));
           return false;
         }
 
+        setPreserveInvalidDraft(false);
         setHasError(false);
         setErrorMessage('');
         latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
-        emitBlur(committedToString(committed));
+        const canonical = committedToString(committed);
+        const nextPayload: CommittedPayload<string, string, IntegerFingerprint> = {
+          model: canonical,
+          canonical,
+          fingerprint: integerFingerprintFromCanonical(canonical),
+        };
+
+        const isNoop = nextPayload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
+        if (isNoop) return true;
+
+        emitBlur(nextPayload.model);
         return true;
       },
       [emitBlur]
@@ -207,6 +235,7 @@ const TableIntegerInput = React.memo(
         const nextDraft = e.target.value ?? '';
         setHasError(false);
         setErrorMessage('');
+        draftRef.current = nextDraft;
         setDraft(nextDraft);
         // Ingen emitValueChange under edit.
       },
@@ -221,8 +250,8 @@ const TableIntegerInput = React.memo(
     const handleBlur = React.useCallback(
       (e: React.FocusEvent<HTMLInputElement>) => {
         setIsFocused(false);
-        const rawValue = e.currentTarget.value ?? '';
-        const committedValue = latestCommittedValueRef.current;
+        const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
+        const committedValue = latestCommittedPayloadRef.current.canonical;
         if (!isEditing && rawValue === committedValue) return;
         commitAndEmitBlur(rawValue);
       },
@@ -241,8 +270,9 @@ const TableIntegerInput = React.memo(
     const a11yErrorId = React.useId();
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
-    const showError = (hasExternalError || hasConfigError || (touched && hasError)) && !isFocused;
-    const tooltipText = hasExternalError ? externalErrorText : hasConfigError ? configErrorMessage : errorMessage;
+    const showError = (hasExternalError || (touched && hasError)) && !isFocused;
+    const tooltipText = hasExternalError ? externalErrorText : errorMessage;
+    const showDraftWhenError = !isEditing && (preserveInvalidDraft || (touched && hasError));
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
@@ -261,6 +291,7 @@ const TableIntegerInput = React.memo(
           keyInitiatedEditRef.current = false;
           setHasError(false);
           setErrorMessage('');
+          setPreserveInvalidDraft(false);
           setTouched(false);
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
           setDraft('');
@@ -274,6 +305,7 @@ const TableIntegerInput = React.memo(
           keyInitiatedEditRef.current = false;
           setHasError(false);
           setErrorMessage('');
+          setPreserveInvalidDraft(false);
           setTouched(false);
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
           const original = originalValueOnEditStartRef.current;
@@ -285,11 +317,12 @@ const TableIntegerInput = React.memo(
         prepareEditFromKey: (key: string) => {
           if (latest.current.locked) return false;
           if (!/^[0-9]$/.test(key)) return false;
-          const committedValue = latestCommittedValueRef.current;
+          const committedValue = latestCommittedPayloadRef.current.canonical;
           originalValueOnEditStartRef.current = committedValue;
           keyInitiatedEditRef.current = true;
           setHasError(false);
           setErrorMessage('');
+          setPreserveInvalidDraft(false);
           setTouched(false);
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
           setDraft(key);
@@ -336,7 +369,7 @@ const TableIntegerInput = React.memo(
               inputElRef.current = el;
               assignRef(inputRef, el);
             }}
-            value={isEditing ? draft : value ?? ''}
+            value={isEditing ? draft : showDraftWhenError ? draft : (value ?? '')}
             readOnly={isReadOnly}
             disabled={locked}
             onChange={handleChange}

@@ -11,6 +11,7 @@ import { useGridCore } from '../../tables/gridCoreContext';
 import { areSameGridCell } from '../../tables/gridCoreUtils';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
 import { filterDateLikeKeyDown } from '../inputKeyFilters';
+import { makeDateFingerprintFromCanonical, type CommittedPayload, type DateFingerprint } from '../shared/parserSpec';
 
 export type TableDateInputChangeEvent = { target: { value: string } };
 export type TableDateSanitizeCallback = (value: string) => string;
@@ -44,7 +45,8 @@ export type TableDateInputProps = Readonly<{
 
   /**
    * Commit attempt (blur only).
-   * Emits the committed value when the date format is valid; otherwise re-emits the current draft unchanged and sets a local error.
+   * Emits the committed value only when commit succeeds.
+   * Invalid input or config errors stay local (error state) and do not update parent value.
    * Range violations never block commit (they only show a validation error).
    */
   onBlur?: (e: TableDateInputChangeEvent) => void;
@@ -169,6 +171,26 @@ const commitDateDraft = (
   return { kind: 'ok', committed: asTableCommittedString(result.value), iso: result.iso };
 };
 
+const dateFingerprintFromCommittedValue = (committedValue: string | undefined): DateFingerprint => {
+  const trimmed = (committedValue ?? '').trim();
+  if (trimmed === '') return makeDateFingerprintFromCanonical('');
+  const iso = coerceToISODateString(trimmed);
+  if (!iso) {
+    // Fail-closed fallback: preserve deterministic fingerprint even if value is unexpectedly non-date.
+    return makeDateFingerprintFromCanonical(trimmed);
+  }
+  return makeDateFingerprintFromCanonical(iso);
+};
+
+const toCommittedDatePayload = (value: string | undefined): CommittedPayload<string, string, DateFingerprint> => {
+  const canonical = value ?? '';
+  return {
+    model: canonical,
+    canonical,
+    fingerprint: dateFingerprintFromCommittedValue(canonical),
+  };
+};
+
 const TableDateInput = React.memo(
   ({
     gridCell,
@@ -200,11 +222,12 @@ const TableDateInput = React.memo(
     const [touched, setTouched] = React.useState(false);
     const [hasError, setHasError] = React.useState(false);
     const [errorMessage, setErrorMessage] = React.useState('');
+    const [preserveInvalidDraft, setPreserveInvalidDraft] = React.useState(false);
     const draftRef = React.useRef<string>(draft);
 
     const originalValueOnEditStartRef = React.useRef<string>('');
     const keyInitiatedEditRef = React.useRef(false);
-    const latestCommittedValueRef = React.useRef<string>('');
+    const latestCommittedPayloadRef = React.useRef<CommittedPayload<string, string, DateFingerprint>>(toCommittedDatePayload(value));
 
     const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, minDate, maxDate, specialRangeErrors, twoDigitYearPolicy });
 
@@ -217,7 +240,7 @@ const TableDateInput = React.memo(
     }, [locked, maxDate, minDate, onBlur, onChange, onErrorChange, specialRangeErrors, twoDigitYearPolicy]);
 
     React.useEffect(() => {
-      latestCommittedValueRef.current = value ?? '';
+      latestCommittedPayloadRef.current = toCommittedDatePayload(value);
     }, [value]);
 
     React.useEffect(() => {
@@ -250,7 +273,7 @@ const TableDateInput = React.memo(
       return { kind: 'ok' as const };
     }, [maxDate, minDate, noValidRangeCause]);
 
-    if (import.meta.env.DEV && boundsStatus.kind === 'hard-config') {
+    if (boundsStatus.kind !== 'ok') {
       throw new Error(boundsStatus.message);
     }
 
@@ -264,9 +287,17 @@ const TableDateInput = React.memo(
 
     React.useEffect(() => {
       if (!isEditing) {
+        const inputEl = inputElRef.current;
+        const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
+        const hasPhysicalFocus =
+          inputEl !== null &&
+          activeEl !== null &&
+          (activeEl === inputEl || (activeEl instanceof Node && inputEl.contains(activeEl)));
+        if (hasPhysicalFocus) return;
+        if (preserveInvalidDraft) return;
         setDraft(value ?? '');
       }
-    }, [isEditing, value]);
+    }, [isEditing, preserveInvalidDraft, value]);
 
     React.useEffect(() => {
       if (!isEditing) {
@@ -275,12 +306,16 @@ const TableDateInput = React.memo(
       }
       // Click-initiated edit: initialize the draft from the current committed value.
       if (!keyInitiatedEditRef.current) {
+        if (preserveInvalidDraft) {
+          originalValueOnEditStartRef.current = draftRef.current;
+          return;
+        }
         const committedValue = value ?? '';
         originalValueOnEditStartRef.current = committedValue;
         setDraft(committedValue);
         // Ingen emitValueChange her – vi må ikke opdatere parent under edit.
       }
-    }, [isEditing, value]);
+    }, [isEditing, preserveInvalidDraft, value]);
 
     const sanitizeValue: TableDateSanitizeCallback = React.useCallback(
       (rawValue) => {
@@ -305,19 +340,20 @@ const TableDateInput = React.memo(
         const committed = commitDateDraft(normalized, { hasConfigError, twoDigitYearPolicy: policy });
 
         if (committed.kind === 'config-error') {
+          setPreserveInvalidDraft(true);
           latest.current.onErrorChange?.({ hasError: true, kind: 'config' });
-          emitBlur(committed.committed);
           return false;
         }
 
         if (committed.kind === 'input-error') {
+          setPreserveInvalidDraft(true);
           setHasError(true);
           setErrorMessage(committed.errorMessage);
           latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
-          emitBlur(committed.committed);
           return false;
         }
 
+        setPreserveInvalidDraft(false);
         if (committed.iso) {
           const rangeErrorMessage = getRangeErrorMessage(committed.iso, {
             minDate: min,
@@ -340,7 +376,20 @@ const TableDateInput = React.memo(
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
         }
 
-        emitBlur(committed.committed);
+        const canonical = committed.committed;
+        const nextFingerprint = committed.iso
+          ? makeDateFingerprintFromCanonical(committed.iso)
+          : makeDateFingerprintFromCanonical('');
+        const nextPayload: CommittedPayload<string, string, DateFingerprint> = {
+          model: canonical,
+          canonical,
+          fingerprint: nextFingerprint,
+        };
+
+        const isNoop = nextPayload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
+        if (!isNoop) {
+          emitBlur(nextPayload.model);
+        }
         return true;
       },
       [emitBlur, hasConfigError]
@@ -352,6 +401,7 @@ const TableDateInput = React.memo(
         const nextDraft = e.target.value ?? '';
         setHasError(false);
         setErrorMessage('');
+        draftRef.current = nextDraft;
         setDraft(nextDraft);
         // Ingen emitValueChange under edit.
       },
@@ -365,8 +415,8 @@ const TableDateInput = React.memo(
     const handleBlur = React.useCallback(
       (e: React.FocusEvent<HTMLInputElement>) => {
         setIsFocused(false);
-        const rawValue = e.currentTarget.value ?? '';
-        const committedValue = latestCommittedValueRef.current;
+        const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
+        const committedValue = latestCommittedPayloadRef.current.canonical;
         if (!isEditing && rawValue === committedValue) return;
         commitAndEmitBlur(rawValue);
       },
@@ -377,15 +427,17 @@ const TableDateInput = React.memo(
       (e: React.KeyboardEvent<HTMLInputElement>) => {
         // Filtrér kun under edit-mode (arvet fra StyledDateField)
         if (!isEditing) return;
+        if (preserveInvalidDraft && hasError) return;
         filterDateLikeKeyDown(e);
       },
-      [isEditing]
+      [hasError, isEditing, preserveInvalidDraft]
     );
 
     const a11yErrorId = React.useId();
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
     const showError = (hasExternalError || (touched && hasError)) && !isFocused;
+    const showDraftWhenError = !isEditing && touched && hasError && preserveInvalidDraft;
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
@@ -403,6 +455,7 @@ const TableDateInput = React.memo(
           if (latest.current.locked) return;
           setTouched(false);
           setHasError(false);
+          setPreserveInvalidDraft(false);
           setErrorMessage('');
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
           keyInitiatedEditRef.current = false;
@@ -416,6 +469,7 @@ const TableDateInput = React.memo(
           if (latest.current.locked) return;
           setTouched(false);
           setHasError(false);
+          setPreserveInvalidDraft(false);
           setErrorMessage('');
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
           keyInitiatedEditRef.current = false;
@@ -428,7 +482,7 @@ const TableDateInput = React.memo(
         prepareEditFromKey: (key: string) => {
           if (latest.current.locked) return false;
           if (!/^[0-9]$/.test(key)) return false;
-          const committedValue = latestCommittedValueRef.current;
+          const committedValue = latestCommittedPayloadRef.current.canonical;
           originalValueOnEditStartRef.current = committedValue;
           keyInitiatedEditRef.current = true;
           setTouched(false);
@@ -461,7 +515,7 @@ const TableDateInput = React.memo(
       };
     }, [editorHandle, grid, gridCell]);
 
-    const tooltipText = hasExternalError ? externalErrorText : boundsStatus.kind !== 'ok' ? boundsStatus.message : errorMessage;
+    const tooltipText = hasExternalError ? externalErrorText : errorMessage;
 
     const visuallyHiddenStyle: React.CSSProperties = {
       position: 'absolute',
@@ -483,7 +537,7 @@ const TableDateInput = React.memo(
               inputElRef.current = el;
               assignRef(inputRef, el);
             }}
-            value={isEditing ? draft : (value ?? '')}
+            value={isEditing ? draft : showDraftWhenError ? draft : (value ?? '')}
             readOnly={isReadOnly}
             disabled={locked}
             onChange={handleChange}

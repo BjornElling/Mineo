@@ -10,6 +10,7 @@ import { interpretYear } from '../../../utils/dateValidation';
 import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit, type TableCommitResult, type TableInputErrorInfo } from './tableInputContracts';
 import { assignRef } from './assignRef';
 import { filterYearKeyDown } from '../inputKeyFilters';
+import { makeYearFingerprintFromCanonical, type CommittedPayload, type YearFingerprint } from '../shared/parserSpec';
 
 const MAX_YEAR_DRAFT_LENGTH = 6;
 
@@ -87,16 +88,27 @@ const parseYearOnCommit = (
 const commitYearDraft = (
   draft: string,
   {
-    hasConfigError,
     minYear,
     maxYear,
     twoDigitYearPolicy,
-  }: { hasConfigError: boolean; minYear: number | undefined; maxYear: number | undefined; twoDigitYearPolicy: 'reject' | 'infer' | 'assume20xx' }
+  }: { minYear: number | undefined; maxYear: number | undefined; twoDigitYearPolicy: 'reject' | 'infer' | 'assume20xx' }
 ): TableCommitResult => {
-  if (hasConfigError) return { kind: 'config-error', committed: draft };
   const result = parseYearOnCommit(draft, { minYear, maxYear, twoDigitYearPolicy });
   if (!result.ok) return { kind: 'input-error', committed: draft, errorMessage: result.error };
   return { kind: 'ok', committed: asTableCommittedString(result.value) };
+};
+
+const yearFingerprintFromCanonical = (canonical: string): YearFingerprint => {
+  return makeYearFingerprintFromCanonical(canonical);
+};
+
+const toCommittedYearPayload = (value: string | undefined): CommittedPayload<string, string, YearFingerprint> => {
+  const canonical = value ?? '';
+  return {
+    model: canonical,
+    canonical,
+    fingerprint: yearFingerprintFromCanonical(canonical),
+  };
 };
 
 const TableYearInput = React.memo(
@@ -125,12 +137,13 @@ const TableYearInput = React.memo(
     const [errorMessage, setErrorMessage] = React.useState('');
     const [isFocused, setIsFocused] = React.useState(false);
     const [touched, setTouched] = React.useState(false);
+    const [preserveInvalidDraft, setPreserveInvalidDraft] = React.useState(false);
 
     const inputElRef = React.useRef<HTMLInputElement | null>(null);
     const draftRef = React.useRef<string>(draft);
     const originalValueOnEditStartRef = React.useRef<string>('');
     const keyInitiatedEditRef = React.useRef(false);
-    const latestCommittedValueRef = React.useRef<string>('');
+    const latestCommittedPayloadRef = React.useRef<CommittedPayload<string, string, YearFingerprint>>(toCommittedYearPayload(value));
 
     const configErrorMessage = React.useMemo(() => {
       if (minYear !== undefined && !Number.isFinite(minYear)) return 'Ugyldig konfiguration: minYear skal være et tal';
@@ -139,24 +152,22 @@ const TableYearInput = React.memo(
       return '';
     }, [maxYear, minYear]);
 
-    if (import.meta.env.DEV && configErrorMessage.trim() !== '') {
+    if (configErrorMessage.trim() !== '') {
       throw new Error(configErrorMessage);
     }
 
-    const hasConfigError = configErrorMessage.trim() !== '';
-
-    const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, minYear, maxYear, twoDigitYearPolicy, hasConfigError });
+    const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, minYear, maxYear, twoDigitYearPolicy });
 
     const emitBlur = React.useCallback((nextValue: string) => {
       latest.current.onBlur?.({ target: { value: nextValue } });
     }, []);
 
     React.useEffect(() => {
-      latest.current = { onChange, onBlur, onErrorChange, locked, minYear, maxYear, twoDigitYearPolicy, hasConfigError };
-    }, [hasConfigError, locked, maxYear, minYear, onBlur, onChange, onErrorChange, twoDigitYearPolicy]);
+      latest.current = { onChange, onBlur, onErrorChange, locked, minYear, maxYear, twoDigitYearPolicy };
+    }, [locked, maxYear, minYear, onBlur, onChange, onErrorChange, twoDigitYearPolicy]);
 
     React.useEffect(() => {
-      latestCommittedValueRef.current = value ?? '';
+      latestCommittedPayloadRef.current = toCommittedYearPayload(value);
     }, [value]);
 
     React.useEffect(() => {
@@ -165,9 +176,17 @@ const TableYearInput = React.memo(
 
     React.useEffect(() => {
       if (!isEditing) {
+        const inputEl = inputElRef.current;
+        const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
+        const hasPhysicalFocus =
+          inputEl !== null &&
+          activeEl !== null &&
+          (activeEl === inputEl || (activeEl instanceof Node && inputEl.contains(activeEl)));
+        if (hasPhysicalFocus) return;
+        if (hasError || preserveInvalidDraft) return;
         setDraft(value ?? '');
       }
-    }, [isEditing, value]);
+    }, [hasError, isEditing, preserveInvalidDraft, value]);
 
     React.useEffect(() => {
       if (!isEditing) {
@@ -175,42 +194,50 @@ const TableYearInput = React.memo(
         return;
       }
       if (!keyInitiatedEditRef.current) {
+        if (hasError || preserveInvalidDraft) {
+          originalValueOnEditStartRef.current = draftRef.current;
+          return;
+        }
         const committedValue = value ?? '';
         originalValueOnEditStartRef.current = committedValue;
         setDraft(committedValue);
         // Ingen emitValueChange her – vi må ikke opdatere parent under edit.
       }
-    }, [isEditing, value]);
+    }, [hasError, isEditing, preserveInvalidDraft, value]);
 
     const commitAndEmitBlur = React.useCallback(
       (rawDraft: string): boolean => {
-        if (!latest.current.hasConfigError) setTouched(true);
+        setTouched(true);
         const normalized = normalizeTableDraftOnCommit(rawDraft);
         const committed = commitYearDraft(normalized, {
-          hasConfigError: latest.current.hasConfigError,
           minYear: latest.current.minYear,
           maxYear: latest.current.maxYear,
           twoDigitYearPolicy: latest.current.twoDigitYearPolicy,
         });
 
-        if (committed.kind === 'config-error') {
-          latest.current.onErrorChange?.({ hasError: true, kind: 'config' });
-          emitBlur(committedToString(committed));
-          return false;
-        }
-
         if (committed.kind === 'input-error') {
+          setPreserveInvalidDraft(true);
           setHasError(true);
           setErrorMessage(committed.errorMessage);
           latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
-          emitBlur(committedToString(committed));
           return false;
         }
 
+        setPreserveInvalidDraft(false);
         setHasError(false);
         setErrorMessage('');
         latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
-        emitBlur(committedToString(committed));
+        const canonical = committedToString(committed);
+        const nextPayload: CommittedPayload<string, string, YearFingerprint> = {
+          model: canonical,
+          canonical,
+          fingerprint: yearFingerprintFromCanonical(canonical),
+        };
+
+        const isNoop = nextPayload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
+        if (isNoop) return true;
+
+        emitBlur(nextPayload.model);
         return true;
       },
       [emitBlur]
@@ -222,6 +249,7 @@ const TableYearInput = React.memo(
         const nextDraft = String(e.target.value ?? '').slice(0, MAX_YEAR_DRAFT_LENGTH);
         setHasError(false);
         setErrorMessage('');
+        draftRef.current = nextDraft;
         setDraft(nextDraft);
         // Ingen emitValueChange under edit.
       },
@@ -236,8 +264,8 @@ const TableYearInput = React.memo(
     const handleBlur = React.useCallback(
       (e: React.FocusEvent<HTMLInputElement>) => {
         setIsFocused(false);
-        const rawValue = e.currentTarget.value ?? '';
-        const committedValue = latestCommittedValueRef.current;
+        const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
+        const committedValue = latestCommittedPayloadRef.current.canonical;
         if (!isEditing && rawValue === committedValue) return;
         commitAndEmitBlur(rawValue);
       },
@@ -256,8 +284,9 @@ const TableYearInput = React.memo(
     const a11yErrorId = React.useId();
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
-    const showError = (hasExternalError || hasConfigError || (touched && hasError)) && !isFocused;
-    const tooltipText = hasExternalError ? externalErrorText : hasConfigError ? configErrorMessage : errorMessage;
+    const showError = (hasExternalError || (touched && hasError)) && !isFocused;
+    const tooltipText = hasExternalError ? externalErrorText : errorMessage;
+    const showDraftWhenError = !isEditing && (preserveInvalidDraft || (touched && hasError));
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
@@ -276,6 +305,7 @@ const TableYearInput = React.memo(
           keyInitiatedEditRef.current = false;
           setHasError(false);
           setErrorMessage('');
+          setPreserveInvalidDraft(false);
           setTouched(false);
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
           setDraft('');
@@ -289,6 +319,7 @@ const TableYearInput = React.memo(
           keyInitiatedEditRef.current = false;
           setHasError(false);
           setErrorMessage('');
+          setPreserveInvalidDraft(false);
           setTouched(false);
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
           const original = originalValueOnEditStartRef.current;
@@ -300,11 +331,12 @@ const TableYearInput = React.memo(
         prepareEditFromKey: (key: string) => {
           if (latest.current.locked) return false;
           if (!/^[0-9]$/.test(key)) return false;
-          const committedValue = latestCommittedValueRef.current;
+          const committedValue = latestCommittedPayloadRef.current.canonical;
           originalValueOnEditStartRef.current = committedValue;
           keyInitiatedEditRef.current = true;
           setHasError(false);
           setErrorMessage('');
+          setPreserveInvalidDraft(false);
           setTouched(false);
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
           setDraft(key);
@@ -349,7 +381,7 @@ const TableYearInput = React.memo(
               inputElRef.current = el;
               assignRef(inputRef, el);
             }}
-            value={isEditing ? draft : value ?? ''}
+            value={isEditing ? draft : showDraftWhenError ? draft : (value ?? '')}
             readOnly={isReadOnly}
             disabled={locked}
             onChange={handleChange}

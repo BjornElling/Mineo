@@ -179,13 +179,8 @@ describe('TableAmountInput expression behavior', () => {
     await user.clear(input);
     await user.tab();
 
-    expect(onBlur).toHaveBeenCalledWith(
-      expect.objectContaining({
-        target: {
-          value: undefined,
-        },
-      })
-    );
+    // Kontrakt 1A: no-op må ikke emitte commit til parent.
+    expect(onBlur).not.toHaveBeenCalled();
     expect(input).toHaveValue('');
   });
 

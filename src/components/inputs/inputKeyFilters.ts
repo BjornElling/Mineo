@@ -55,16 +55,14 @@ export const filterIntegerKeyDown = (e: KeyDownEvent): void => {
 };
 
 /**
- * Year: either a plain year (up to 4 digits) OR a date-like pattern with hyphens,
- * constrained as `DD-MM-YYYY` by segment length (2-2-4).
+ * Year: digits only, up to 4 digits (`YYYY`).
  *
  * This is a typing-time guard only; paste can still bypass.
  */
 export const filterYearKeyDown = (e: KeyDownEvent): void => {
   if (!shouldValidateCharInsertion(e)) return;
   const next = getNextValueFromKey(e.currentTarget, e.key);
-  const pattern = /^(?:\d{0,4}|\d{0,2}(?:-\d{0,2}(?:-\d{0,4})?)?)$/;
-  if (!pattern.test(next)) block(e);
+  if (!/^\d{0,4}$/.test(next)) block(e);
 };
 
 /**
@@ -145,5 +143,24 @@ export const filterDateLikeKeyDown = (e: KeyDownEvent): void => {
 
   // Segment-length guard: 0–2 digits, sep, 0–2 digits, optional sep, 0–4 digits.
   const segmentGuard = /^\d{0,2}(?:[.,/\\\- ]\d{0,2}(?:[.,/\\\- ]\d{0,4})?)?$/;
+  if (!segmentGuard.test(next)) block(e);
+};
+
+/**
+ * Week input: digits + one separator, constrained as `WW-YYYY` by segment length (2-4).
+ *
+ * Allowed separators: `. , / \\ - space`
+ * Segment rules: `WW`-`YYYY`, partial input allowed.
+ */
+export const filterWeekKeyDown = (e: KeyDownEvent): void => {
+  if (!shouldValidateCharInsertion(e)) return;
+  const next = getNextValueFromKey(e.currentTarget, e.key);
+  const allowedChars = /^[0-9.,/\\\- ]*$/;
+  if (!allowedChars.test(next)) {
+    block(e);
+    return;
+  }
+
+  const segmentGuard = /^\d{0,2}(?:[.,/\\\- ]\d{0,4})?$/;
   if (!segmentGuard.test(next)) block(e);
 };

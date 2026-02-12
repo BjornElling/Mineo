@@ -499,15 +499,20 @@ export const handleTableBlurCapture = (e: React.FocusEvent<HTMLTableElement>) =>
     if (target && table.contains(target)) {
       const grid = buildGrid(table);
       const locator = getActiveLocator(table, target, grid);
-      if (locator) {
-        const cell = toCellCoord(locator);
-        if (cell && isSameCell(core.getEditingCell(), cell)) {
-          // Close the editor state for the blurred cell. Commit happens in the input's onBlur handler.
-          core.setEditingCell(null);
+        if (locator) {
+          const cell = toCellCoord(locator);
+          if (cell && isSameCell(core.getEditingCell(), cell)) {
+            // Close editor state *after* input onBlur has had a chance to commit.
+            // Sync close in capture-phase can overwrite the live draft before commit on click-outside.
+            queueMicrotask(() => {
+              if (isSameCell(core.getEditingCell(), cell)) {
+                core.setEditingCell(null);
+              }
+            });
+          }
         }
       }
     }
-  }
 
   const related = e.relatedTarget;
   if (related instanceof Node && table.contains(related)) return;

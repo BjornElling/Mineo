@@ -15,6 +15,7 @@ import {
   type TableInputErrorInfo,
 } from './tableInputContracts';
 import { filterPercentKeyDown } from '../inputKeyFilters';
+import { makePercentFingerprintFromCanonical, type CommittedPayload, type PercentFingerprint } from '../shared/parserSpec';
 
 export type TablePercentInputValue = string | number | undefined;
 
@@ -121,10 +122,8 @@ const commitPercentDraft = (
     allowNegative,
     minValue,
     maxValue,
-    hasConfigError,
-  }: { allowNegative: boolean; minValue: number | undefined; maxValue: number | undefined; hasConfigError: boolean }
+  }: { allowNegative: boolean; minValue: number | undefined; maxValue: number | undefined }
 ): TableCommitResult => {
-  if (hasConfigError) return { kind: 'config-error', committed: draft };
   const parsed = parsePercentOnCommit(draft, { allowNegative, minValue, maxValue });
   if (!parsed.ok) return { kind: 'input-error', committed: draft, errorMessage: parsed.error };
   if ('empty' in parsed) return { kind: 'ok', committed: asTableCommittedString('') };
@@ -135,6 +134,38 @@ const toDisplayString = (value: TablePercentInputValue): string => {
   if (value === undefined) return '';
   if (typeof value === 'number') return Number.isFinite(value) ? formatAsAmount(value, TABLE_PERCENT_PRECISION) : '';
   return value;
+};
+
+const percentNumericCanonicalFromDisplay = (display: string): string => {
+  const trimmed = display.trim();
+  const withoutPercentSuffix = trimmed.endsWith('%') ? trimmed.slice(0, -1).trim() : trimmed;
+  const parsed = parsePercentOnCommit(withoutPercentSuffix, {
+    allowNegative: true,
+    minValue: undefined,
+    maxValue: undefined,
+  });
+  if (!parsed.ok) {
+    if (import.meta.env.DEV && withoutPercentSuffix !== '') {
+      throw new Error(`Invariant brudt: committed procentværdi kan ikke parses (${display})`);
+    }
+    return '';
+  }
+  if ('empty' in parsed) return '';
+  return parsed.numeric.toFixed(TABLE_PERCENT_PRECISION);
+};
+
+const percentFingerprintFromCommittedDisplay = (display: string): PercentFingerprint => {
+  const numericCanonical = percentNumericCanonicalFromDisplay(display);
+  return makePercentFingerprintFromCanonical(numericCanonical);
+};
+
+const toCommittedPercentPayload = (value: TablePercentInputValue): CommittedPayload<string, string, PercentFingerprint> => {
+  const canonical = toDisplayString(value);
+  return {
+    model: canonical,
+    canonical,
+    fingerprint: percentFingerprintFromCommittedDisplay(canonical),
+  };
 };
 
 const TablePercentInput = React.memo(
@@ -165,11 +196,12 @@ const TablePercentInput = React.memo(
     const [touched, setTouched] = React.useState(false);
     const [hasError, setHasError] = React.useState(false);
     const [errorMessage, setErrorMessage] = React.useState('');
+    const [preserveInvalidDraft, setPreserveInvalidDraft] = React.useState(false);
     const draftRef = React.useRef<string>(draft);
 
     const originalValueOnEditStartRef = React.useRef<string>('');
     const keyInitiatedEditRef = React.useRef(false);
-    const latestCommittedValueRef = React.useRef<TablePercentInputValue>(undefined);
+    const latestCommittedPayloadRef = React.useRef<CommittedPayload<string, string, PercentFingerprint>>(toCommittedPercentPayload(value));
 
     const effectiveMin = minValue ?? (useDefaultPercentRange ? 0 : undefined);
     const effectiveMax = maxValue ?? (useDefaultPercentRange ? 100 : undefined);
@@ -183,24 +215,22 @@ const TablePercentInput = React.memo(
       return '';
     }, [effectiveMax, effectiveMin, maxValue, minValue]);
 
-    if (import.meta.env.DEV && configErrorMessage.trim() !== '') {
+    if (configErrorMessage.trim() !== '') {
       throw new Error(configErrorMessage);
     }
 
-    const hasConfigError = configErrorMessage.trim() !== '';
-
-    const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, allowNegative, minValue: effectiveMin, maxValue: effectiveMax, hasConfigError });
+    const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, allowNegative, minValue: effectiveMin, maxValue: effectiveMax });
 
     const emitBlur = React.useCallback((nextValue: string) => {
       latest.current.onBlur?.({ target: { value: nextValue } });
     }, []);
 
     React.useEffect(() => {
-      latest.current = { onChange, onBlur, onErrorChange, locked, allowNegative, minValue: effectiveMin, maxValue: effectiveMax, hasConfigError };
-    }, [allowNegative, effectiveMax, effectiveMin, hasConfigError, locked, onBlur, onChange, onErrorChange]);
+      latest.current = { onChange, onBlur, onErrorChange, locked, allowNegative, minValue: effectiveMin, maxValue: effectiveMax };
+    }, [allowNegative, effectiveMax, effectiveMin, locked, onBlur, onChange, onErrorChange]);
 
     React.useEffect(() => {
-      latestCommittedValueRef.current = value;
+      latestCommittedPayloadRef.current = toCommittedPercentPayload(value);
     }, [value]);
 
     React.useEffect(() => {
@@ -209,9 +239,17 @@ const TablePercentInput = React.memo(
 
     React.useEffect(() => {
       if (!isEditing) {
+        const inputEl = inputElRef.current;
+        const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
+        const hasPhysicalFocus =
+          inputEl !== null &&
+          activeEl !== null &&
+          (activeEl === inputEl || (activeEl instanceof Node && inputEl.contains(activeEl)));
+        if (hasPhysicalFocus) return;
+        if (hasError || preserveInvalidDraft) return;
         setDraft(toDisplayString(value));
       }
-    }, [isEditing, value]);
+    }, [hasError, isEditing, preserveInvalidDraft, value]);
 
     React.useEffect(() => {
       if (!isEditing) {
@@ -219,41 +257,49 @@ const TablePercentInput = React.memo(
         return;
       }
       if (!keyInitiatedEditRef.current) {
+        if (hasError || preserveInvalidDraft) {
+          originalValueOnEditStartRef.current = draftRef.current;
+          return;
+        }
         const committedValue = toDisplayString(value);
         originalValueOnEditStartRef.current = committedValue;
         setDraft(committedValue);
       }
-    }, [isEditing, value]);
+    }, [hasError, isEditing, preserveInvalidDraft, value]);
 
     const commitAndEmitBlur = React.useCallback(
       (rawDraft: string): boolean => {
-        if (!latest.current.hasConfigError) setTouched(true);
+        setTouched(true);
         const normalized = normalizeTableAmountDraftOnCommit(rawDraft);
         const committed = commitPercentDraft(normalized, {
           allowNegative: latest.current.allowNegative,
           minValue: latest.current.minValue,
           maxValue: latest.current.maxValue,
-          hasConfigError: latest.current.hasConfigError,
         });
 
-        if (committed.kind === 'config-error') {
-          latest.current.onErrorChange?.({ hasError: true, kind: 'config' });
-          emitBlur(committedToString(committed));
-          return false;
-        }
-
         if (committed.kind === 'input-error') {
+          setPreserveInvalidDraft(true);
           setHasError(true);
           setErrorMessage(committed.errorMessage);
           latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
-          emitBlur(committedToString(committed));
           return false;
         }
 
+        setPreserveInvalidDraft(false);
         setHasError(false);
         setErrorMessage('');
         latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
-        emitBlur(committedToString(committed));
+        const canonical = committedToString(committed);
+        const nextPayload: CommittedPayload<string, string, PercentFingerprint> = {
+          model: canonical,
+          canonical,
+          fingerprint: percentFingerprintFromCommittedDisplay(canonical),
+        };
+
+        const isNoop = nextPayload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
+        if (isNoop) return true;
+
+        emitBlur(nextPayload.model);
         return true;
       },
       [emitBlur]
@@ -265,6 +311,7 @@ const TablePercentInput = React.memo(
         const nextDraft = e.target.value ?? '';
         setHasError(false);
         setErrorMessage('');
+        draftRef.current = nextDraft;
         setDraft(nextDraft);
         // Ingen emitValueChange under edit.
       },
@@ -279,8 +326,8 @@ const TablePercentInput = React.memo(
     const handleBlur = React.useCallback(
       (e: React.FocusEvent<HTMLInputElement>) => {
         setIsFocused(false);
-        const rawValue = e.currentTarget.value ?? '';
-        const committedPlain = toDisplayString(latestCommittedValueRef.current);
+        const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
+        const committedPlain = latestCommittedPayloadRef.current.canonical;
         const committedDisplay = committedPlain === '' ? '' : `${committedPlain} %`;
         if (!isEditing && (rawValue === committedPlain || rawValue === committedDisplay)) return;
         commitAndEmitBlur(rawValue);
@@ -298,8 +345,9 @@ const TablePercentInput = React.memo(
     );
 
     const a11yErrorId = React.useId();
-    const showError = (hasConfigError || (touched && hasError)) && !isFocused;
-    const tooltipText = hasConfigError ? configErrorMessage : errorMessage;
+    const showError = touched && hasError && !isFocused;
+    const tooltipText = errorMessage;
+    const showDraftWhenError = !isEditing && (preserveInvalidDraft || (touched && hasError));
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
@@ -318,6 +366,7 @@ const TablePercentInput = React.memo(
           setTouched(false);
           setHasError(false);
           setErrorMessage('');
+          setPreserveInvalidDraft(false);
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
           keyInitiatedEditRef.current = false;
           setDraft('');
@@ -330,6 +379,7 @@ const TablePercentInput = React.memo(
           setTouched(false);
           setHasError(false);
           setErrorMessage('');
+          setPreserveInvalidDraft(false);
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
           keyInitiatedEditRef.current = false;
           const original = originalValueOnEditStartRef.current;
@@ -340,12 +390,13 @@ const TablePercentInput = React.memo(
           if (latest.current.locked) return false;
           if (!/^[0-9,-]$/.test(key)) return false;
           if (key === '-' && !latest.current.allowNegative) return false;
-          const committedValue = toDisplayString(latestCommittedValueRef.current);
+          const committedValue = latestCommittedPayloadRef.current.canonical;
           originalValueOnEditStartRef.current = committedValue;
           keyInitiatedEditRef.current = true;
           setTouched(false);
           setHasError(false);
           setErrorMessage('');
+          setPreserveInvalidDraft(false);
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
           setDraft(key);
           requestAnimationFrame(() => {
@@ -395,7 +446,7 @@ const TablePercentInput = React.memo(
                 inputElRef.current = el;
                 assignRef(inputRef, el);
               }}
-              value={isEditing ? draft : (displayValue === '' ? '' : `${displayValue} %`)}
+              value={isEditing ? draft : showDraftWhenError ? draft : (displayValue === '' ? '' : `${displayValue} %`)}
               readOnly={isReadOnly}
               disabled={locked}
               onChange={handleChange}

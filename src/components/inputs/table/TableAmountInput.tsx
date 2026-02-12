@@ -18,6 +18,7 @@ import {
   parseAmountInput,
 } from '../../../utils/expressionAmount';
 import { stripAmountGroupingSeparators } from '../../../utils/draftNormalization';
+import { makeAmountFingerprintFromCanonical, type AmountFingerprint, type CommittedPayload } from '../shared/parserSpec';
 
 export type TableAmountInputValue = AmountValue | undefined;
 
@@ -82,15 +83,27 @@ const toDisplayString = (value: TableAmountInputValue): string => {
   return amountValueToDisplayString(value, TABLE_AMOUNT_PRECISION);
 };
 
-const areAmountValuesEqual = (left: TableAmountInputValue, right: TableAmountInputValue): boolean => {
-  if (left === undefined && right === undefined) return true;
-  if (!left || !right) return false;
-  if (left.kind !== right.kind) return false;
-  if (left.kind === 'expression' && right.kind === 'expression') {
-    return left.value === right.value && left.expression === right.expression;
+const amountCanonicalFromModel = (value: TableAmountInputValue): string => {
+  if (!value) return '';
+  if (value.kind === 'expression') {
+    return `e:${value.expression}|${value.value.toFixed(TABLE_AMOUNT_PRECISION)}`;
   }
-  return left.value === right.value;
+  return `n:${value.value.toFixed(TABLE_AMOUNT_PRECISION)}`;
 };
+
+const amountFingerprintFromCanonical = (canonical: string): AmountFingerprint => {
+  return makeAmountFingerprintFromCanonical(canonical);
+};
+
+const toCommittedAmountPayload = (value: TableAmountInputValue): CommittedPayload<AmountValue | undefined, string, AmountFingerprint> => {
+  const canonical = amountCanonicalFromModel(value);
+  return {
+    model: value,
+    canonical,
+    fingerprint: amountFingerprintFromCanonical(canonical),
+  };
+};
+
 const TableAmountInput = React.memo(
   ({
     gridCell,
@@ -124,14 +137,13 @@ const TableAmountInput = React.memo(
     const keyInitiatedEditRef = React.useRef(false);
     const pendingClickCaretRef = React.useRef<number | null>(null);
     const skipCaretRestoreRef = React.useRef(false);
-    const latestCommittedValueRef = React.useRef<TableAmountInputValue>(value);
-    const hadErrorOnEditStartRef = React.useRef(false);
+    const latestCommittedPayloadRef = React.useRef<CommittedPayload<AmountValue | undefined, string, AmountFingerprint>>(toCommittedAmountPayload(value));
 
     const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, canBeNegative });
 
     React.useEffect(() => {
       if (!isEditing) {
-        latestCommittedValueRef.current = value;
+        latestCommittedPayloadRef.current = toCommittedAmountPayload(value);
       }
     }, [isEditing, value]);
 
@@ -153,6 +165,13 @@ const TableAmountInput = React.memo(
 
     React.useEffect(() => {
       if (!isEditing) {
+        const inputEl = inputElRef.current;
+        const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
+        const hasPhysicalFocus =
+          inputEl !== null &&
+          activeEl !== null &&
+          (activeEl === inputEl || (activeEl instanceof Node && inputEl.contains(activeEl)));
+        if (hasPhysicalFocus) return;
         if (hasError) return;
         setDraft(toDisplayString(value));
       }
@@ -162,12 +181,10 @@ const TableAmountInput = React.memo(
       if (!isEditing) {
         keyInitiatedEditRef.current = false;
         pendingClickCaretRef.current = null;
-        hadErrorOnEditStartRef.current = false;
         return;
       }
       // Click-initiated edit: initialize the draft from the current committed value.
       if (!keyInitiatedEditRef.current) {
-        hadErrorOnEditStartRef.current = hasErrorRef.current;
         if (hasErrorRef.current) {
           originalValueOnEditStartRef.current = draftRef.current;
           pendingClickCaretRef.current = null;
@@ -204,13 +221,10 @@ const TableAmountInput = React.memo(
           return false;
         }
 
-        const isNoop = areAmountValuesEqual(committed.value, latestCommittedValueRef.current);
-        const shouldEmitNoop =
-          isNoop &&
-          hadErrorOnEditStartRef.current &&
-          rawDraft.trim() === '';
-        // Invariant: no-op commits must not emit blur (except to clear prior error state).
-        if (isNoop && !shouldEmitNoop) {
+        const nextPayload = toCommittedAmountPayload(committed.value);
+        const isNoop = nextPayload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
+        // Kontrakt 1A: no-op må aldrig emitte commit til parent.
+        if (isNoop) {
           setHasError(false);
           setErrorMessage('');
           latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
@@ -220,7 +234,7 @@ const TableAmountInput = React.memo(
         setHasError(false);
         setErrorMessage('');
         latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
-        emitBlur(committed.value);
+        emitBlur(nextPayload.model);
         return true;
       },
       [emitBlur]
@@ -230,12 +244,12 @@ const TableAmountInput = React.memo(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         if (isReadOnly) return;
         const nextDraft = sanitizePastedAmount(e.target.value ?? '');
-        hadErrorOnEditStartRef.current = hadErrorOnEditStartRef.current || hasErrorRef.current;
         setHasError(false);
         setErrorMessage('');
         if (nextDraft === '') {
           setTouched(false);
         }
+        draftRef.current = nextDraft;
         setDraft(nextDraft);
         // VIGTIGT: Ingen live preview + Escape kr‘ver at vi IKKE l‘kker draft til parent under edit.
         // Parent opdateres kun ved commit (onBlur/commitAndEmitBlur).
@@ -273,8 +287,8 @@ const TableAmountInput = React.memo(
     const handleBlur = React.useCallback(
       (e: React.FocusEvent<HTMLInputElement>) => {
         setIsFocused(false);
-        const rawValue = e.currentTarget.value ?? '';
-        const committedValue = toDisplayString(latestCommittedValueRef.current);
+        const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
+        const committedValue = toDisplayString(latestCommittedPayloadRef.current.model);
         if (!isEditing && rawValue === committedValue) return;
         commitAndEmitBlur(rawValue);
       },
@@ -304,12 +318,12 @@ const TableAmountInput = React.memo(
         const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
         const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
         const nextDraft = draft.slice(0, start) + sanitized + draft.slice(end);
-        hadErrorOnEditStartRef.current = hadErrorOnEditStartRef.current || hasErrorRef.current;
         setHasError(false);
         setErrorMessage('');
         if (nextDraft === '') {
           setTouched(false);
         }
+        draftRef.current = nextDraft;
         setDraft(nextDraft);
 
         const nextCaret = start + sanitized.length;
@@ -373,7 +387,7 @@ const TableAmountInput = React.memo(
           if (latest.current.locked) return false;
           // Accepter kun plausible start-tegn for beløb/udtryk
           if (!/^[0-9,()-]$/.test(key)) return false;
-          const committedValue = amountValueToDraftString(latestCommittedValueRef.current, TABLE_AMOUNT_PRECISION);
+          const committedValue = amountValueToDraftString(latestCommittedPayloadRef.current.model, TABLE_AMOUNT_PRECISION);
           originalValueOnEditStartRef.current = committedValue;
           keyInitiatedEditRef.current = true;
           setTouched(false);

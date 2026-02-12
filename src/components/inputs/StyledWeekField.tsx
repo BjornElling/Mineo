@@ -4,7 +4,7 @@ import StyledTextFieldBase from './StyledTextFieldBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { interpretYear } from '../../utils/dateValidation';
-import { filterDateLikeKeyDown } from './inputKeyFilters';
+import { filterWeekKeyDown } from './inputKeyFilters';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from './fieldEvents';
 
@@ -253,12 +253,12 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
           activation.closeEditor();
           return;
         }
-        if (!e.defaultPrevented) {
-          filterDateLikeKeyDown(e);
+        if (!e.defaultPrevented && !(touched && error?.kind === 'invalid')) {
+          filterWeekKeyDown(e);
         }
         onKeyDown?.(e);
       },
-      [activation, onCommit, onKeyDown, onKeyDownBase, parseWeek, setDraft]
+      [activation, error?.kind, onCommit, onKeyDown, onKeyDownBase, parseWeek, setDraft, touched]
     );
 
     return (

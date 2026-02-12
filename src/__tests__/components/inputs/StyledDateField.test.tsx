@@ -92,4 +92,39 @@ describe('StyledDateField', () => {
     expect(input).toHaveValue('1-1');
     expect(screen.getByText('Ugyldig dato')).toBeInTheDocument();
   });
+
+  it('tillader redigering foran ugyldig -2022 uden at tastetryk blokeres', async () => {
+    const user = userEvent.setup();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<ISODateString | undefined>(toISODateString('2022-01-01'));
+      return (
+        <StyledDateField
+          value={value}
+          onCommit={(e) => setValue(e.target.value)}
+        />
+      );
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.click(input);
+    input.setSelectionRange(0, 5);
+    await user.keyboard('{Delete}');
+    await user.tab();
+
+    expect(input).toHaveValue('-2022');
+    expect(screen.getByText('Ugyldig dato')).toBeInTheDocument();
+
+    await user.click(input);
+    await user.click(input);
+    input.setSelectionRange(0, 0);
+    await user.type(input, '1');
+
+    expect(input).not.toHaveValue('-2022');
+    expect(String((input as HTMLInputElement).value)).toContain('1');
+  });
+
 });

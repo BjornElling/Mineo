@@ -388,12 +388,12 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
           return;
         }
 
-        if (!e.defaultPrevented) {
+        if (!e.defaultPrevented && !(touched && error?.kind === 'invalid')) {
           filterDateLikeKeyDown(e);
         }
         onKeyDown?.(e);
       },
-      [activation, onCommit, onKeyDown, onKeyDownBase, parseDate, setDraft]
+      [activation, error?.kind, onCommit, onKeyDown, onKeyDownBase, parseDate, setDraft, touched]
     );
 
     return (
