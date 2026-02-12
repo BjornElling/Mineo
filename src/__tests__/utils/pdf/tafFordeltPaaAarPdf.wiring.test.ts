@@ -142,6 +142,28 @@ describe('tafFordeltPaaAarPdf wiring', () => {
     expect(instance?.save).toHaveBeenCalledWith('Tabt arbejdsfortjeneste fordelt på år.pdf');
   });
 
+  it('gemmer PDF med udkast-suffix når visUdkastStempel=true', async () => {
+    const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
+
+    generateTafFordeltPaaAarPdf({} as any, {} as any, { visUdkastStempel: true });
+    const instance = MockJsPDF.instances.at(-1);
+    expect(instance).toBeDefined();
+    expect(instance?.save).toHaveBeenCalledWith('Tabt arbejdsfortjeneste fordelt på år (udkast).pdf');
+  });
+
+  it('prepender journalnr i filnavn når journalnr er udfyldt', async () => {
+    buildErstatningsopgoerelsePdfModelMock.mockReturnValue({
+      ...FAKE_MODEL,
+      brevhoved: { journalnr: '1234' },
+    });
+    const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
+
+    generateTafFordeltPaaAarPdf({} as any, {} as any, { visUdkastStempel: true });
+    const instance = MockJsPDF.instances.at(-1);
+    expect(instance).toBeDefined();
+    expect(instance?.save).toHaveBeenCalledWith('1234 - Tabt arbejdsfortjeneste fordelt på år (udkast).pdf');
+  });
+
   it('viser negativt beløb for negativt I alt pr. år', async () => {
     buildTafPerYearResultMock.mockReturnValue({
       ...FAKE_RESULT,

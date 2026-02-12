@@ -19,6 +19,8 @@ import type {
 } from './eoDebugExecutionContext';
 import { getNavigationTargetFromRowId } from './eoDebugNavigationMap';
 import { executeAllEODebugBuilders } from './eoDebugBuilderRegistry';
+import { resolveDebugRowPresentation } from './eoDebugRowPresentation';
+import { toDebugStatusRank } from '../debug/eoDebugSeverity';
 
 /**
  * DebugRowModel udvidet med navigation-metadata
@@ -40,17 +42,6 @@ export type BeregningErrorSummary = {
 };
 
 type DebugStatus = DebugRowModel['status'];
-
-const severityRank: Readonly<Record<DebugStatus, number>> = {
-  ok: 0,
-  warning: 1,
-  error: 2,
-};
-
-const toSeverityRank = (status: DebugStatus | undefined): number => {
-  if (!status) return 0;
-  return severityRank[status] ?? 0;
-};
 
 const resolveDependencyIds = (
   row: DebugRowWithNavigation,
@@ -142,7 +133,7 @@ const buildMaxAncestorSeverityMap = (
     const parents = depsById.get(id) ?? [];
     for (const parentId of parents) {
       if (inCycle.has(parentId)) continue;
-      const parentSeverity = toSeverityRank(statusById.get(parentId));
+      const parentSeverity = toDebugStatusRank(statusById.get(parentId));
       const ancestorSeverity = compute(parentId);
       if (parentSeverity > maxSeverity) maxSeverity = parentSeverity;
       if (ancestorSeverity > maxSeverity) maxSeverity = ancestorSeverity;
@@ -165,7 +156,7 @@ const shouldSuppressRow = (
 ): boolean => {
   // Policy (explicit): suppress child rows when an ancestor has equal or higher severity.
   // This keeps Beregning-fanen focused on root-cause rows and avoids duplicate fault reporting.
-  const rowSeverity = toSeverityRank(row.status);
+  const rowSeverity = toDebugStatusRank(row.status);
   if (rowSeverity === 0) return false;
   const maxAncestorSeverity = maxAncestorSeverityById.get(row.id) ?? 0;
   return maxAncestorSeverity >= rowSeverity;
@@ -188,6 +179,7 @@ const findDuplicateIds = (rows: ReadonlyArray<DebugRowWithNavigation>): Readonly
  */
 const addNavigationMetadata = (row: DebugRowModel): DebugRowWithNavigation => ({
   ...row,
+  ...resolveDebugRowPresentation(row),
   navigation: getNavigationTargetFromRowId(row.id),
 });
 

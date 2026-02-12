@@ -2,11 +2,14 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { buildEODebugTafBeregningsgrundlagRows } from '../../../domain/erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
+import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
   const base = structuredClone(createErstatningsopgoerelseInitialValues());
   return { ...base, ...patch };
 };
+
+const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 
 describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
   it('hides Arbejdsdage when TAF beregnes som is Måneder', () => {
@@ -37,5 +40,62 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
 
     expect(ids.has('taf.beregningsgrundlag.maaneder')).toBe(false);
     expect(ids.has('taf.beregningsgrundlag.arbejdsdage')).toBe(true);
+  });
+
+  it('adds error row for missing indkomst i beregningsperioden with period in message', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: '2025-01-01',
+      periodeTilBeregningTil: '2025-01-31',
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
+      offentligeYdelserRows: [],
+    });
+
+    const rows = buildEODebugTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
+    const indkomstRow = rows.find((row) => row.id === 'taf.beregningsgrundlag.indkomst');
+
+    expect(indkomstRow).toBeDefined();
+    expect(indkomstRow?.label).toBe('Indkomst');
+    expect(indkomstRow?.status).toBe('error');
+    expect(indkomstRow?.displayValue).toBe('-');
+    expect(indkomstRow?.message).toBe('Ingen indkomst i beregningsperioden (01-01-2025 - 31-01-2025)');
+  });
+
+  it('does not add missing-indkomst row when indkomst exists in beregningsperioden', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: '2025-01-01',
+      periodeTilBeregningTil: '2025-01-31',
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'row-1',
+              col0_maaned: '1',
+              col1_maaned: '2025',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: asAmountValue(10000),
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+      ],
+      offentligeYdelserRows: [],
+    });
+
+    const rows = buildEODebugTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
+    const indkomstRow = rows.find((row) => row.id === 'taf.beregningsgrundlag.indkomst');
+    expect(indkomstRow).toBeUndefined();
   });
 });

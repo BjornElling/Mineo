@@ -2259,6 +2259,12 @@ const EODebug = () => {
     return { label, displayValue, status: 'ok' as DebugStatus };
   }, [erstatningsopgoerelseValues, indkomstIBeregningsperioden]);
 
+  const indkomstManglerIBeregningsperiodenRow = React.useMemo(() => {
+    return rowsBySection
+      .get('taf-beregningsgrundlag')
+      ?.find((row) => (row.id as string) === 'taf.beregningsgrundlag.indkomst');
+  }, [rowsBySection]);
+
   return (
     <Box>
       <ContentBox className="content-box">
@@ -2662,6 +2668,16 @@ const EODebug = () => {
                 </Box>
               );
             })}
+
+            {indkomstManglerIBeregningsperiodenRow && (
+              <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                <Typography className="row--text">{indkomstManglerIBeregningsperiodenRow.label}</Typography>
+                <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                  <Typography className="row--text">-</Typography>
+                  {getStatusIcon(indkomstManglerIBeregningsperiodenRow.status)}
+                </Box>
+              </Box>
+            )}
 
             <Typography className="row--subheading">Referenceløn</Typography>
 

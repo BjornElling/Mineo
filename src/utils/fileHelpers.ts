@@ -6,6 +6,7 @@ import type { AppSettings } from '../settings/appSettingsSchema';
 // Konstanter for filhåndtering
 const MAX_FILENAME_LENGTH = 150;
 const FALLBACK_FILENAME = 'Erstatningsopgørelse';
+const EO_FILENAME_PREFIX = 'MINEO';
 
 // Windows-reserverede filnavne
 const RESERVED_NAMES = new Set([
@@ -58,8 +59,8 @@ export const sanitizeFilename = (name, fallback = FALLBACK_FILENAME) => {
 
 /**
  * Genererer beskrivende filnavn baseret på stamdata.
- * Format: [Skadelidte] - [Skadestype] - [Dato]
- * Fallback: [Journalnr] - "Erstatningsopgørelse"
+ * Format: MINEO - [Skadelidte] - [Skadestype] - [Dato]
+ * Fallback: MINEO - [Journalnr] - "Erstatningsopgørelse"
  *
  * @param {Object} data - Sagsdata med stamdata
  * @returns {string} Genereret filnavn (uden extension)
@@ -79,7 +80,7 @@ export const generateFilename = (data) => {
       : '';
 
     // Byg filnavn fra tilgængelige komponenter
-    const parts: string[] = [];
+    const parts: string[] = [EO_FILENAME_PREFIX];
     if (skadelidte) parts.push(sanitizeFilename(skadelidte));
     if (validSkadestype) parts.push(sanitizeFilename(validSkadestype));
     if (skadesdato) {
@@ -90,9 +91,9 @@ export const generateFilename = (data) => {
     if (parts.length === 0) {
       // Hvis ingen primære felter er udfyldt, brug journalnr hvis tilgængeligt
       if (journalnr) {
-        return `${sanitizeFilename(journalnr)} - ${FALLBACK_FILENAME}`;
+        return `${EO_FILENAME_PREFIX} - ${sanitizeFilename(journalnr)} - ${FALLBACK_FILENAME}`;
       }
-      return FALLBACK_FILENAME;
+      return `${EO_FILENAME_PREFIX} - ${FALLBACK_FILENAME}`;
     }
 
     const filename = parts.join(' - ');

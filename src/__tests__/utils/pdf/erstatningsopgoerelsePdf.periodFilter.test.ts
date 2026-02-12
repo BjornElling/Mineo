@@ -5,6 +5,8 @@ import {
   buildBilagIndkomstYdelserRanges,
   hasAarsloenRowOverlapWithRanges,
   hasOffentligYdelseRowOverlapWithRanges,
+  shouldIncludeReguleringBilag,
+  resolveValgtReguleringDisplay,
   shouldIncludeLoenRowInBilag,
   shouldIncludeOffentligYdelseRowInBilag,
 } from '../../../utils/pdf/erstatningsopgoerelsePdf';
@@ -276,5 +278,142 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
         errorRowIds,
       })
     ).toBe(false);
+  });
+
+  it('skjuler regulering-bilag ved Beregningsperiode når alle arbejdsgivere med indkomst er sat til Ingen', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.periodeTilBeregningFra = iso('2025-01-01');
+    eoValues.periodeTilBeregningTil = iso('2025-01-31');
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+        id: 'af-1',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        indtaegtsoplysningerTableData: [
+          makeLoenRow({
+            id: 'af-1-row-1',
+            col0_maaned: '1',
+            col1_maaned: '2025',
+            col2: { kind: 'number', value: 10000 },
+          }),
+        ],
+      },
+      {
+        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+        id: 'af-2',
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        indtaegtsoplysningerTableData: [],
+      },
+    ];
+
+    expect(shouldIncludeReguleringBilag(eoValues)).toBe(false);
+  });
+
+  it('medtager regulering-bilag ved Beregningsperiode når en arbejdsgiver med indkomst ikke er Ingen', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.periodeTilBeregningFra = iso('2025-01-01');
+    eoValues.periodeTilBeregningTil = iso('2025-01-31');
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+        id: 'af-1',
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        indtaegtsoplysningerTableData: [
+          makeLoenRow({
+            id: 'af-1-row-1',
+            col0_maaned: '1',
+            col1_maaned: '2025',
+            col2: { kind: 'number', value: 10000 },
+          }),
+        ],
+      },
+    ];
+
+    expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
+  });
+
+  it('skjuler regulering-bilag ved angivet løn når EO-oplysninger har lønudvikling = Ingen', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Angivet månedsløn';
+    eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Ingen';
+
+    expect(shouldIncludeReguleringBilag(eoValues)).toBe(false);
+  });
+
+  it('medtager regulering-bilag ved angivet løn når EO-oplysninger har lønudvikling forskellig fra Ingen', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Angivet dagsløn';
+    eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+
+    expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
+  });
+
+  it('ignorerer ansættelsesforholdenes lønudvikling når beregningsgrundlag ikke er Beregningsperiode', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Angivet månedsløn';
+    eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    eoValues.loenindkomstAnsaettelsesforhold = eoValues.loenindkomstAnsaettelsesforhold.map((af) => ({
+      ...af,
+      loenudviklingBeregningsgrundlag: 'Ingen',
+      indtaegtsoplysningerTableData: [
+        makeLoenRow({
+          id: `${af.id}-row`,
+          col0_maaned: '1',
+          col1_maaned: '2025',
+          col2: { kind: 'number', value: 10000 },
+        }),
+      ],
+    }));
+
+    expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
+  });
+
+  it('ignorerer EO-oplysninger lønudvikling når beregningsgrundlag er Beregningsperiode', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.periodeTilBeregningFra = iso('2025-01-01');
+    eoValues.periodeTilBeregningTil = iso('2025-01-31');
+    eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Ingen';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+        id: 'af-1',
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        indtaegtsoplysningerTableData: [
+          makeLoenRow({
+            id: 'af-1-row-1',
+            col0_maaned: '1',
+            col1_maaned: '2025',
+            col2: { kind: 'number', value: 10000 },
+          }),
+        ],
+      },
+    ];
+
+    expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
+  });
+
+  it('viser navn på reguleringsform ved manuelt angivet regulering i stedet for generisk label', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    const af = {
+      ...eoValues.loenindkomstAnsaettelsesforhold[0],
+      loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
+      loenudviklingManuelNavn: 'DA-tillægstrin',
+    };
+
+    expect(resolveValgtReguleringDisplay(af)).toBe('DA-tillægstrin');
+  });
+
+  it('falder tilbage til Manuelt angivet når navn på reguleringsform mangler', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    const af = {
+      ...eoValues.loenindkomstAnsaettelsesforhold[0],
+      loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
+      loenudviklingManuelNavn: '   ',
+    };
+
+    expect(resolveValgtReguleringDisplay(af)).toBe('Manuelt angivet');
   });
 });

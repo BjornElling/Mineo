@@ -54,6 +54,10 @@ import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { appSettingsSchema, DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../../settings/appSettingsSchema';
 import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerelse/loenoplysningerInput';
+import {
+  validateLoenudviklingManualBaseRowSatser,
+  type ManualBaseRowCellErrors,
+} from '../../../domain/erstatningsopgoerelse/loenudviklingManuelBaseRowValidation';
 
 type ErstatningsopgoerelseFormApi = Pick<
   UsePersistedFormReturn<ErstatningsopgoerelseValues>,
@@ -168,6 +172,22 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 
   // State til fejlmeddelelser per Ansættelsesforhold
   const [satsErrors, setSatsErrors] = React.useState<Record<string, SatsErrorState>>({});
+  const manualBaseRowErrorsByAfId = React.useMemo<Record<string, ManualBaseRowCellErrors>>(() => {
+    const result: Record<string, ManualBaseRowCellErrors> = {};
+    for (const af of values.loenindkomstAnsaettelsesforhold) {
+      if (af.loenudviklingBeregningsgrundlag !== 'Manuelt angivet') continue;
+      result[af.id] = validateLoenudviklingManualBaseRowSatser(
+        af.loenudviklingManuelTableData?.[0],
+        {
+          feriePct: af.feriePct,
+          fritvalgPct: af.fritvalgPct,
+          shSoPct: af.shSoPct,
+          pensionPct: af.pensionPct,
+        }
+      );
+    }
+    return result;
+  }, [values.loenindkomstAnsaettelsesforhold]);
 
   // Hent stamdata for skadesdato
   const stamdataValues = getPersistedData('stamdata');
@@ -1502,6 +1522,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                   onInputErrorChange={handleManuelReguleringInputErrorChange(af.id)}
                   baseDateDisplay={loenudviklingBaseDate.display}
                   baseDateErrorMessage={loenudviklingBaseDate.display === '' ? loenudviklingBaseDate.errorMessage : undefined}
+                  baseRowPercentErrors={manualBaseRowErrorsByAfId[af.id]}
                   useSmallFont={true}
                 />
               </Box>

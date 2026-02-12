@@ -181,31 +181,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     debugRowId: string;
   } | null>(null);
 
-  /**
-   * Ekstraher fejlmeddelelse fra displayValue
-   *
-   * Format: "Fejl (meddelelse)" eller "Advarsel (meddelelse)" eller bare værdi
-   * Returner: meddelelsen UDEN "Fejl:" prefix, eller tom streng hvis ukendt format
-   */
-  const extractErrorMessage = React.useCallback((displayValue: string): string => {
-    const trimmed = displayValue.trim();
-    if (trimmed === '' || trimmed === '-') return '';
-
-    // Tjek om displayValue indeholder "Fejl (" eller "Advarsel ("
-    const fejlMatch = displayValue.match(/^Fejl \((.+)\)$/);
-    if (fejlMatch) {
-      return `(${fejlMatch[1]})`;
-    }
-
-    const advarselMatch = displayValue.match(/^Advarsel \((.+)\)$/);
-    if (advarselMatch) {
-      return `(${advarselMatch[1]})`;
-    }
-
-    // Ukendt format - returner displayValue uændret for at undgå falsk semantik
-    return displayValue;
-  }, []);
-
   const handleNavigate = React.useCallback(
     (target: NavigationTarget, debugRowId: string) => {
       switch (target.kind) {
@@ -417,6 +392,82 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     }
   }, [stamdataValues, eoValues, settings]);
 
+  const formatSummaryText = React.useCallback((row: (typeof errors)[number]): string => {
+    const message = row.message?.trim() ?? '';
+    if (row.summaryDisplay === 'messageOnly') {
+      if (message !== '') return message;
+      return row.label;
+    }
+    return message !== '' ? `${row.label} (${message})` : row.label;
+  }, []);
+
+  const renderDebugRows = React.useCallback((
+    rows: ReadonlyArray<(typeof errors)[number]>,
+    severity: 'error' | 'warning'
+  ) => {
+    const icon = severity === 'error'
+      ? <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
+      : <WarningAmber sx={{ color: 'orange', fontSize: 20 }} />;
+
+    return rows.map((row) => (
+      <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': '400px' }}>
+        <Typography className="row--text">{formatSummaryText(row)}</Typography>
+        <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
+          {row.navigation.kind === 'erstatningsopgoerelse-tab' && (
+            <>
+              <Typography className="row--text">
+                {row.navigation.tabName} {'->'}{' '}
+              </Typography>
+              <Typography
+                className="row--text icon-text-link"
+                component="button"
+                type="button"
+                onClick={() => handleNavigate(row.navigation, row.id)}
+                sx={{
+                  cursor: 'pointer',
+                  border: 0,
+                  background: 'transparent',
+                  p: 0,
+                  m: 0,
+                  font: 'inherit',
+                }}
+              >
+                {row.navigation.sectionTitle}
+              </Typography>
+            </>
+          )}
+          {row.navigation.kind === 'stamdata-page' && (
+            <>
+              <Typography className="row--text">
+                {row.navigation.pageName} {'->'}{' '}
+              </Typography>
+              <Typography
+                className="row--text icon-text-link"
+                component="button"
+                type="button"
+                onClick={() => handleNavigate(row.navigation, row.id)}
+                sx={{
+                  cursor: 'pointer',
+                  border: 0,
+                  background: 'transparent',
+                  p: 0,
+                  m: 0,
+                  font: 'inherit',
+                }}
+              >
+                {row.navigation.sectionTitle}
+              </Typography>
+            </>
+          )}
+          {row.navigation.kind === 'unsupported' && (
+            <Typography className="row--text">{row.navigation.displayPath}</Typography>
+          )}
+          {icon}
+        </Box>
+      </Box>
+    ));
+  }, [formatSummaryText, handleNavigate]);
+
   // ============================================================================
   // RENDER
   // ============================================================================
@@ -429,68 +480,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       {errors.length > 0 && (
         <ContentBox>
           <Typography className="section-header">Fejl</Typography>
-          {errors.map((row) => {
-            const errorMessage = extractErrorMessage(row.displayValue);
-            return (
-              <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': '400px' }}>
-                <Typography className="row--text">
-                  {row.label}{errorMessage ? ` ${errorMessage}` : ''}
-                </Typography>
-                <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-                  {row.navigation.kind === 'erstatningsopgoerelse-tab' && (
-                    <>
-                      <Typography className="row--text">
-                        {row.navigation.tabName} {'->'}{' '}
-                      </Typography>
-                      <Typography
-                        className="row--text icon-text-link"
-                        component="button"
-                        type="button"
-                        onClick={() => handleNavigate(row.navigation, row.id)}
-                        sx={{
-                          cursor: 'pointer',
-                          border: 0,
-                          background: 'transparent',
-                          p: 0,
-                          m: 0,
-                          font: 'inherit',
-                        }}
-                      >
-                        {row.navigation.sectionTitle}
-                      </Typography>
-                    </>
-                  )}
-                  {row.navigation.kind === 'stamdata-page' && (
-                    <>
-                      <Typography className="row--text">
-                        {row.navigation.pageName} {'->'}{' '}
-                      </Typography>
-                      <Typography
-                        className="row--text icon-text-link"
-                        component="button"
-                        type="button"
-                        onClick={() => handleNavigate(row.navigation, row.id)}
-                        sx={{
-                          cursor: 'pointer',
-                          border: 0,
-                          background: 'transparent',
-                          p: 0,
-                          m: 0,
-                          font: 'inherit',
-                        }}
-                      >
-                        {row.navigation.sectionTitle}
-                      </Typography>
-                    </>
-                  )}
-                  {row.navigation.kind === 'unsupported' && (
-                    <Typography className="row--text">{row.navigation.displayPath}</Typography>
-                  )}
-                  <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
-                </Box>
-              </Box>
-            );
-          })}
+          {renderDebugRows(errors, 'error')}
         </ContentBox>
       )}
       {/* ========================================================================
@@ -499,75 +489,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       {warnings.length > 0 && (
         <ContentBox>
           <Typography className="section-header">Advarsler</Typography>
-          {warnings.map((row) => {
-            const warningMessage = extractErrorMessage(row.displayValue);
-            const showWarningMessageWithoutLabel =
-              row.id === 'taf.ophoerSkyldes' ||
-              row.id === 'sviesmerte.ophoerSkyldes' ||
-              row.label === 'Svie/smerte ophør skyldes';
-            const warningText = showWarningMessageWithoutLabel
-              ? warningMessage
-              : `${row.label}${warningMessage ? ` ${warningMessage}` : ''}`;
-            return (
-              <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': '400px' }}>
-                <Typography className="row--text">
-                  {warningText}
-                </Typography>
-                <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-                  {row.navigation.kind === 'erstatningsopgoerelse-tab' && (
-                    <>
-                      <Typography className="row--text">
-                        {row.navigation.tabName} {'->'}{' '}
-                      </Typography>
-                      <Typography
-                        className="row--text icon-text-link"
-                        component="button"
-                        type="button"
-                        onClick={() => handleNavigate(row.navigation, row.id)}
-                        sx={{
-                          cursor: 'pointer',
-                          border: 0,
-                          background: 'transparent',
-                          p: 0,
-                          m: 0,
-                          font: 'inherit',
-                        }}
-                      >
-                        {row.navigation.sectionTitle}
-                      </Typography>
-                    </>
-                  )}
-                  {row.navigation.kind === 'stamdata-page' && (
-                    <>
-                      <Typography className="row--text">
-                        {row.navigation.pageName} {'->'}{' '}
-                      </Typography>
-                      <Typography
-                        className="row--text icon-text-link"
-                        component="button"
-                        type="button"
-                        onClick={() => handleNavigate(row.navigation, row.id)}
-                        sx={{
-                          cursor: 'pointer',
-                          border: 0,
-                          background: 'transparent',
-                          p: 0,
-                          m: 0,
-                          font: 'inherit',
-                        }}
-                      >
-                        {row.navigation.sectionTitle}
-                      </Typography>
-                    </>
-                  )}
-                  {row.navigation.kind === 'unsupported' && (
-                    <Typography className="row--text">{row.navigation.displayPath}</Typography>
-                  )}
-                  <WarningAmber sx={{ color: 'orange', fontSize: 20 }} />
-                </Box>
-              </Box>
-            );
-          })}
+          {renderDebugRows(warnings, 'warning')}
         </ContentBox>
       )}
       {/* ========================================================================

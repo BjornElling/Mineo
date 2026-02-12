@@ -18,7 +18,12 @@ import { TODAY } from '../../config/dateRanges';
 import type jsPDF from 'jspdf';
 
 const NBSP = '\u00A0';
-const FILE_NAME = 'Tabt arbejdsfortjeneste fordelt på år.pdf';
+const FILE_BASE_NAME = 'Tabt arbejdsfortjeneste fordelt på år';
+
+const resolvePdfFileName = (baseTitle: string, isDraft: boolean, journalnr?: string): string => {
+  const prefix = journalnr && journalnr.trim() !== '' ? `${journalnr.trim()} - ` : '';
+  return `${prefix}${baseTitle}${isDraft ? ' (udkast)' : ''}.pdf`;
+};
 
 const formatCurrencyFromOre = (ore: MoneyOre): string => {
   if (!Number.isFinite(ore)) return '-';
@@ -32,6 +37,11 @@ const formatMaanederTrimmed = (value: number): string => {
   const rounded = Math.round(value * 10000) / 10000;
   return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
 };
+
+const isSingularCount = (value: number): boolean => Math.abs(value - 1) < 0.0000001;
+
+const formatCountWithUnit = (count: number, singular: string, plural: string): string =>
+  `${count.toLocaleString('da-DK')} ${isSingularCount(count) ? singular : plural}`;
 
 const formatPercentDelta = (value: number): string => {
   if (!Number.isFinite(value)) return '-';
@@ -147,7 +157,7 @@ export const generateTafFordeltPaaAarPdf = (
     writer.setFont('helvetica', 'normal');
     writer.writeWrappedText('Ingen');
     writer.addFooter();
-    writer.save(FILE_NAME);
+    writer.save(resolvePdfFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
     return doc;
   } else {
     for (const line of model.tabtArbejdsfortjeneste.tafPerioderLinjer) {
@@ -160,7 +170,7 @@ export const generateTafFordeltPaaAarPdf = (
     writer.setFont('helvetica', 'normal');
     writer.writeWrappedText('TAF fordelt på år kan ikke beregnes for den valgte opsætning.');
     writer.addFooter();
-    writer.save(FILE_NAME);
+    writer.save(resolvePdfFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
     return doc;
   }
 
@@ -180,13 +190,13 @@ export const generateTafFordeltPaaAarPdf = (
         : ` x (100 % ${roundedDeltaPct >= 0 ? '+' : '-'} ${formatPercentDelta(roundedDeltaPct)} %)`;
       let leftText = '';
       if (segment.kind === 'arbejdsdage') {
-        const arbejdsdageText = segment.quantity.toLocaleString('da-DK');
+        const arbejdsdageText = formatCountWithUnit(segment.quantity, 'arbejdsdag', 'arbejdsdage');
         const dagsloenText = formatCurrencyFromOre(segment.unitAmountOre);
-        leftText = `${arbejdsdageText} arbejdsdage á ${dagsloenText}${NBSP}kr.${factorText} =`;
+        leftText = `${arbejdsdageText} á ${dagsloenText}${NBSP}kr.${factorText} =`;
       } else {
-        const maanederText = formatMaanederTrimmed(segment.quantity);
+        const maanederText = `${formatMaanederTrimmed(segment.quantity)} ${isSingularCount(segment.quantity) ? 'måned' : 'måneder'}`;
         const maanedsloenText = formatCurrencyFromOre(segment.unitAmountOre);
-        leftText = `${maanederText} måneder á ${maanedsloenText}${NBSP}kr.${factorText} =`;
+        leftText = `${maanederText} á ${maanedsloenText}${NBSP}kr.${factorText} =`;
       }
 
       const rightText = ensureNonBreakingKr(formatMoneyOreWithKr(segment.amountOre));
@@ -237,6 +247,6 @@ export const generateTafFordeltPaaAarPdf = (
 
   // Footer og gem
   writer.addFooter();
-  writer.save(FILE_NAME);
+  writer.save(resolvePdfFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
   return doc;
 };

@@ -80,6 +80,17 @@ const getSvieSmerteOphoerRow = (values: ErstatningsopgoerelseValues) => {
   return rows.find((row) => row.id === 'sviesmerte.ophoerSkyldes');
 };
 
+const getSvieSmerteSatserAarRow = (values: ErstatningsopgoerelseValues) => {
+  const context = {
+    skadesdatoISO: iso('2023-01-01'),
+    erErhvervssygdom: false,
+    menAfgoerelseDatoForTabel: undefined,
+    verserendeKlageMen: false,
+  };
+  const rows = buildEODebugSvieSmerteRows(values, {}, context);
+  return rows.find((row) => row.id === 'sviesmerte.satserAar');
+};
+
 describe('Svie/smerte beregning', () => {
   describe('Svie/smerte ophør skyldes', () => {
     it('viser "Ingen krav i perioden" med ok når beregning er Nej', () => {
@@ -197,6 +208,50 @@ describe('Svie/smerte beregning', () => {
       );
       expect(row?.displayValue).toBe('Ikke rejst svie/smerte-krav for hele perioden');
       expect(row?.status).toBe('warning');
+    });
+  });
+
+  describe('Svie/smerte sats-år warning', () => {
+    it('viser warning når opgørelsesdato + 1 måned peger på senere år med komplette satser og opgørelsen ikke er revideret', () => {
+      const row = getSvieSmerteSatserAarRow(
+        makeValues({
+          opgørelseLavetDen: iso('2025-12-15'),
+          svieSmerteSatserAar: 2025,
+          revideretOpgoerelse: 'Nej',
+          tidligereSsMax: 'Nej',
+        })
+      );
+
+      expect(row?.status).toBe('warning');
+      expect(row?.displayValue).toBe('Svie/smerte satsen for 2026 kan anvendes.');
+    });
+
+    it('viser ikke warning når der er tale om revideret opgørelse', () => {
+      const row = getSvieSmerteSatserAarRow(
+        makeValues({
+          opgørelseLavetDen: iso('2025-12-15'),
+          svieSmerteSatserAar: 2025,
+          revideretOpgoerelse: 'Ja',
+          tidligereSsMax: 'Nej',
+        })
+      );
+
+      expect(row?.status).toBe('ok');
+      expect(row?.displayValue).toBe('2025');
+    });
+
+    it('viser ikke warning når næste år ikke har komplette svie/smerte-satser', () => {
+      const row = getSvieSmerteSatserAarRow(
+        makeValues({
+          opgørelseLavetDen: iso('2100-12-15'),
+          svieSmerteSatserAar: 2100,
+          revideretOpgoerelse: 'Nej',
+          tidligereSsMax: 'Nej',
+        })
+      );
+
+      expect(row?.status).toBe('ok');
+      expect(row?.displayValue).toBe('2100');
     });
   });
 

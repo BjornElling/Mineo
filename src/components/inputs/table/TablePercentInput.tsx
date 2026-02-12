@@ -43,6 +43,7 @@ export type TablePercentInputProps = Readonly<{
   onChange?: (e: TablePercentInputChangeEvent) => void;
   onBlur?: (e: TablePercentInputChangeEvent) => void;
   onErrorChange?: (info: TableInputErrorInfo) => void;
+  externalErrorMessage?: string;
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
 }>;
@@ -181,6 +182,7 @@ const TablePercentInput = React.memo(
     onChange,
     onBlur,
     onErrorChange,
+    externalErrorMessage,
     inputRef,
     sx,
   }: TablePercentInputProps) => {
@@ -345,8 +347,10 @@ const TablePercentInput = React.memo(
     );
 
     const a11yErrorId = React.useId();
-    const showError = touched && hasError && !isFocused;
-    const tooltipText = errorMessage;
+    const externalErrorText = (externalErrorMessage ?? '').trim();
+    const hasExternalError = externalErrorText !== '';
+    const showError = (hasExternalError || (touched && hasError)) && !isFocused;
+    const tooltipText = hasExternalError ? externalErrorText : errorMessage;
     const showDraftWhenError = !isEditing && (preserveInvalidDraft || (touched && hasError));
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {

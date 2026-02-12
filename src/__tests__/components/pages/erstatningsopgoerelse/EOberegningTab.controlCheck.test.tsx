@@ -359,4 +359,5 @@ describe('EOberegningTab kontroltjek', () => {
     expect(screen.getByText('Ansættelsesforhold: Beregnet 100,00 · Tabel 90,00')).toBeInTheDocument();
     expect(screen.getByText('Flextilskud: Beregnet 500,00 · Tabel 0,00')).toBeInTheDocument();
   });
+
 });

@@ -879,7 +879,7 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     );
   });
 
-  it('viser måneder-mellemregning med 0 fraværsdage i nyt format', () => {
+  it('viser måneder-mellemregning uden fraværsled ved 0 øvrige fraværsdage', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Beregningsperiode',
       periodeTilBeregningFra: iso('2021-03-01'),
@@ -926,8 +926,8 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
 
-    expect(indkomst?.beregningsgrundlagMellemregningLabel).toBe('I perioden var der 12 måneder (- 0 fraværsdage uden løn) =');
-    expect(indkomst?.beregningsgrundlagMellemregningResultat).toBe('12 måneder');
+    expect(indkomst?.beregningsgrundlagMellemregningLabel).toBe('I perioden var der 12 måneder');
+    expect(indkomst?.beregningsgrundlagMellemregningResultat).toBeNull();
   });
 
   it('bruger ental i måneder-mellemregning ved 1 fraværsdag', () => {

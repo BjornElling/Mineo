@@ -25,6 +25,7 @@ export type LoenudviklingManuelTableProps = Readonly<{
   onInputErrorChange?: (hasError: boolean) => void;
   baseDateDisplay: string;
   baseDateErrorMessage?: string;
+  baseRowPercentErrors?: Partial<Record<'feriepenge' | 'shSoSats' | 'fritvalg' | 'agPension', string>>;
   useSmallFont?: boolean;
 }>;
 
@@ -199,6 +200,7 @@ const LoenudviklingManuelTable = React.memo(
     onInputErrorChange,
     baseDateDisplay,
     baseDateErrorMessage,
+    baseRowPercentErrors,
     useSmallFont = false,
   }: LoenudviklingManuelTableProps) => {
     const defaultTableData = React.useMemo<LoenudviklingManuelRow[]>(
@@ -270,13 +272,17 @@ const LoenudviklingManuelTable = React.memo(
     const cellErrorsByCellKeyRef = React.useRef<Record<string, true>>({});
     const lastInputErrorStateRef = React.useRef<boolean | null>(null);
 
+    const hasExternalBaseRowErrors = React.useMemo(() => {
+      return Object.values(baseRowPercentErrors ?? {}).some((errorText) => (errorText ?? '').trim() !== '');
+    }, [baseRowPercentErrors]);
+
     const notifyInputErrorChange = React.useCallback(() => {
       if (!onInputErrorChange) return;
-      const hasError = Object.keys(cellErrorsByCellKeyRef.current).length > 0;
+      const hasError = Object.keys(cellErrorsByCellKeyRef.current).length > 0 || hasExternalBaseRowErrors;
       if (lastInputErrorStateRef.current === hasError) return;
       lastInputErrorStateRef.current = hasError;
       onInputErrorChange(hasError);
-    }, [onInputErrorChange]);
+    }, [hasExternalBaseRowErrors, onInputErrorChange]);
 
     React.useEffect(() => {
       const validRowIds = new Set(internalTableData.map((row) => row.id));
@@ -505,6 +511,7 @@ const LoenudviklingManuelTable = React.memo(
                     onChange={(e) => setRow(row.id, { feriepenge: e.target.value })}
                     onBlur={(e) => commitRowUpdate(row.id, { feriepenge: e.target.value })}
                     onErrorChange={handleErrorChange(row.id, 'feriepenge')}
+                    externalErrorMessage={isBaseRow ? baseRowPercentErrors?.feriepenge : undefined}
                     placeholder=""
                   />
                 </td>
@@ -516,6 +523,7 @@ const LoenudviklingManuelTable = React.memo(
                     onChange={(e) => setRow(row.id, { shSoSats: e.target.value })}
                     onBlur={(e) => commitRowUpdate(row.id, { shSoSats: e.target.value })}
                     onErrorChange={handleErrorChange(row.id, 'shSoSats')}
+                    externalErrorMessage={isBaseRow ? baseRowPercentErrors?.shSoSats : undefined}
                     placeholder=""
                   />
                 </td>
@@ -527,6 +535,7 @@ const LoenudviklingManuelTable = React.memo(
                     onChange={(e) => setRow(row.id, { fritvalg: e.target.value })}
                     onBlur={(e) => commitRowUpdate(row.id, { fritvalg: e.target.value })}
                     onErrorChange={handleErrorChange(row.id, 'fritvalg')}
+                    externalErrorMessage={isBaseRow ? baseRowPercentErrors?.fritvalg : undefined}
                     placeholder=""
                   />
                 </td>
@@ -538,6 +547,7 @@ const LoenudviklingManuelTable = React.memo(
                     onChange={(e) => setRow(row.id, { agPension: e.target.value })}
                     onBlur={(e) => commitRowUpdate(row.id, { agPension: e.target.value })}
                     onErrorChange={handleErrorChange(row.id, 'agPension')}
+                    externalErrorMessage={isBaseRow ? baseRowPercentErrors?.agPension : undefined}
                     placeholder=""
                   />
                 </td>

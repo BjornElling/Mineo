@@ -895,8 +895,9 @@ const buildIndkomstSkadestidspunkt = (
         const roundedFravaerMaaneder = Math.round(fravaerMaaneder * 100) / 100;
         const maanederEfterFradrag = Math.max(0, Math.round((roundedTotalMaaneder - roundedFravaerMaaneder) * 100) / 100);
         if (oevrigeFravaersdageValue === 0) {
-          beregningsgrundlagMellemregningLabel =
-            `I perioden var der ${formatMaaneder(totalMaaneder)} måneder (- 0 fraværsdage uden løn) =`;
+          const maanedsOrd = dagOrd(roundedTotalMaaneder, 'måned', 'måneder');
+          beregningsgrundlagMellemregningLabel = `I perioden var der ${formatMaaneder(totalMaaneder)} ${maanedsOrd}`;
+          beregningsgrundlagMellemregningResultat = null;
         } else {
           const fravaerBeskrivelse = values.oevrigeFravaersdageBeskrivelse?.trim();
           const fravaersdagOrd = dagOrd(oevrigeFravaersdageValue, 'fraværsdag', 'fraværsdage');
@@ -906,8 +907,8 @@ const buildIndkomstSkadestidspunkt = (
           const fravaerLabel = `${formatDaNumber(oevrigeFravaersdageValue)} ${fravaerLabelTekst} uden løn x 4,8 % måned`;
           beregningsgrundlagMellemregningLabel =
             `I perioden var der ${formatMaaneder(totalMaaneder)} - ${formatMaaneder(fravaerMaaneder)} måneder (${fravaerLabel}) =`;
+          beregningsgrundlagMellemregningResultat = `${formatMaaneder(maanederEfterFradrag)} måneder`;
         }
-        beregningsgrundlagMellemregningResultat = `${formatMaaneder(maanederEfterFradrag)} måneder`;
       }
 
       const loseFeriedage = typeof values.uspecificeredeFerieFridage === 'number' ? values.uspecificeredeFerieFridage : 0;

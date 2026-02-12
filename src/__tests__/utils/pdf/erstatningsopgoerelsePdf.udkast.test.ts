@@ -91,11 +91,27 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   it('adds draft watermark when visUdkastStempel=true', () => {
     generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, { visUdkastStempel: true });
     expect(hasUdkastCall(MockJsPDF.lastInstance)).toBe(true);
+    const lastSaveCall = MockJsPDF.lastInstance?.save.mock.calls.at(-1);
+    expect(lastSaveCall?.[0]).toMatch(/ \(udkast\)\.pdf$/);
+  });
+
+  it('prepender journalnr i filnavn når journalnr er udfyldt', () => {
+    const stamdataWithJournal = {
+      ...baseStamdata,
+      journalnr: '1234',
+    };
+    generateErstatningsopgoerelsePdf(stamdataWithJournal, baseEo, selected, { visUdkastStempel: true });
+    const lastSaveCall = MockJsPDF.lastInstance?.save.mock.calls.at(-1);
+    expect(lastSaveCall?.[0]).toMatch(/^1234 - .* \(udkast\)\.pdf$/);
   });
 
   it('does not add draft watermark when visUdkastStempel=false', () => {
     generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, { visUdkastStempel: false });
     expect(hasUdkastCall(MockJsPDF.lastInstance)).toBe(false);
+    const lastSaveCall = MockJsPDF.lastInstance?.save.mock.calls.at(-1);
+    const fileName = String(lastSaveCall?.[0] ?? '');
+    expect(fileName.endsWith('.pdf')).toBe(true);
+    expect(fileName.includes(' (udkast).pdf')).toBe(false);
   });
 
   it('resolverer manglende indsaetUdkastStempel som false', () => {
@@ -224,5 +240,3 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
     );
   });
 });
-
-

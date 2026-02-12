@@ -38,7 +38,7 @@ import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '
 import { getStatistiskLoenudvikling } from '../../data/statistiskLoenudviklingRates';
 import { formatKRLSatstabelDisplay, getKRLSatstabel, isKRLSatstabelId, type KRLSatstabelId } from '../../data/KRLrates';
 import { clampTafRow, resolveTafConstraintBounds } from '../../domain/erstatningsopgoerelse/tafPeriodConstraints';
-import { parseAarsloenRowInterval } from '../../domain/erstatningsopgoerelse/indtaegtPerioder';
+import { buildBeregningsperiodeRange, buildIncomeForRanges, parseAarsloenRowInterval } from '../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import { erDetteFoersteErstatningsopgoerelse } from '../../domain/erstatningsopgoerelse/eoNummerValidering';
 import { getAarsloenErrorRowIdSet, getOffentligeYdelserErrorRowIdSet } from '../../domain/erstatningsopgoerelse/indkomstRowValidation';
 import {
@@ -100,6 +100,11 @@ const formatMaanederTrimmed = (value: number): string => {
   return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
 };
 
+const isSingularCount = (value: number): boolean => Math.abs(value - 1) < 0.0000001;
+
+const formatCountWithUnit = (count: number, singular: string, plural: string): string =>
+  `${count.toLocaleString('da-DK')} ${isSingularCount(count) ? singular : plural}`;
+
 const formatPercentDelta = (value: number): string => {
   if (!Number.isFinite(value)) return '-';
   const abs = Math.abs(value);
@@ -114,6 +119,11 @@ const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
 
 const formatPctFromInput = (value: number | undefined): string => {
   return `${(value ?? 0).toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} %`;
+};
+
+const resolvePdfFileName = (baseTitle: string, isDraft: boolean, journalnr?: string): string => {
+  const prefix = journalnr && journalnr.trim() !== '' ? `${journalnr.trim()} - ` : '';
+  return `${prefix}${baseTitle}${isDraft ? ' (udkast)' : ''}.pdf`;
 };
 
 const isZeroPct = (value: number | undefined): boolean => Math.abs(value ?? 0) < 0.000001;
@@ -427,6 +437,28 @@ export const shouldIncludeOffentligYdelseRowInBilag = (params: Readonly<{
   return hasOffentligYdelseRowOverlapWithRanges(row, mode, ranges);
 };
 
+export const shouldIncludeReguleringBilag = (
+  eoValues: ErstatningsopgoerelseValues
+): boolean => {
+  if (eoValues.beregnesUdFra === 'Beregningsperiode') {
+    const beregningsperiodeRange = buildBeregningsperiodeRange(eoValues);
+    if (!beregningsperiodeRange) return true;
+
+    const income = buildIncomeForRanges(eoValues, [beregningsperiodeRange]);
+    const employerIdsWithIncome = new Set(income.employers.map((entry) => entry.id));
+    const reguleringskilder = resolveLoenudviklingKilde(eoValues);
+    const kilderMedIndkomst = reguleringskilder.filter((kilde) => employerIdsWithIncome.has(kilde.id));
+    const alleIngen = kilderMedIndkomst.every((kilde) => kilde.loenudviklingBeregningsgrundlag === 'Ingen');
+    return !alleIngen;
+  }
+
+  if (eoValues.beregnesUdFra === 'Angivet månedsløn' || eoValues.beregnesUdFra === 'Angivet dagsløn') {
+    return eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag !== 'Ingen';
+  }
+
+  return true;
+};
+
 const maxIso = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
 const minIso = (a: ISODateString, b: ISODateString): ISODateString => (a < b ? a : b);
 const resolveReguleringTableStartIso = (
@@ -614,7 +646,7 @@ const buildIndexFormulaDisplay = (
     : `(${numeratorDisplay}) /\n(${denominatorDisplay})`;
 };
 
-const resolveValgtReguleringDisplay = (
+export const resolveValgtReguleringDisplay = (
   ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]
 ): string => {
   const grundlag = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
@@ -629,7 +661,10 @@ const resolveValgtReguleringDisplay = (
     const arbPart = meta.arbejdsgiverOrg[0] || '';
     return `${meta.navn} (${loenPart} / ${arbPart})`;
   }
-  if (grundlag === 'Manuelt angivet') return 'Manuelt angivet';
+  if (grundlag === 'Manuelt angivet') {
+    const manuelNavn = ansaettelsesforhold.loenudviklingManuelNavn?.trim() ?? '';
+    return manuelNavn !== '' ? manuelNavn : 'Manuelt angivet';
+  }
   if (grundlag === 'KRL satstabel') {
     const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel;
     if (!krlId) return '-';
@@ -1728,7 +1763,6 @@ export const generateErstatningsopgoerelsePdf = (
     const perDagOre = model.svieSmerte.satserPerDag.status === 'ok' ? model.svieSmerte.satserPerDag.value : null;
     const delvisOre = perDagOre !== null ? Math.round(perDagOre * model.svieSmerte.delvisFaktor) : null;
 
-    const formatCount = (value: number): string => value.toLocaleString('da-DK');
     const perDagText = perDagOre !== null ? formatCurrencyFromOreTrimmed(perDagOre) : '—';
     const delvisText = delvisOre !== null ? formatCurrencyFromOreTrimmed(delvisOre) : '—';
     const withKr = (value: string): string => (value === '—' ? value : `${value}${NBSP}kr.`);
@@ -1742,18 +1776,18 @@ export const generateErstatningsopgoerelsePdf = (
       let base = '';
       if (model.svieSmerte.delvisFaktor === 1) {
         const combined = [
-          sygedage > 0 ? `${formatCount(sygedage)} sygedage` : '',
-          delviseSygedage > 0 ? `${formatCount(delviseSygedage)} delvise sygedage` : '',
+          sygedage > 0 ? formatCountWithUnit(sygedage, 'sygedag', 'sygedage') : '',
+          delviseSygedage > 0 ? formatCountWithUnit(delviseSygedage, 'delvis sygedag', 'delvise sygedage') : '',
         ].filter((part) => part !== '').join(' og ');
         const hasBoth = sygedage > 0 && delviseSygedage > 0;
         base = combined === '' ? '-' : `${combined}${hasBoth ? ',' : ''} ${hasBoth ? 'begge ' : ''}á ${perDagTextWithKr}`;
       } else {
         const parts: string[] = [];
         if (sygedage > 0) {
-          parts.push(`${formatCount(sygedage)} sygedage á ${perDagTextWithKr}`);
+          parts.push(`${formatCountWithUnit(sygedage, 'sygedag', 'sygedage')} á ${perDagTextWithKr}`);
         }
         if (delviseSygedage > 0) {
-          parts.push(`${formatCount(delviseSygedage)} delvise sygedage á ${delvisTextWithKr}`);
+          parts.push(`${formatCountWithUnit(delviseSygedage, 'delvis sygedag', 'delvise sygedage')} á ${delvisTextWithKr}`);
         }
         base = parts.join(' og ');
       }
@@ -1841,6 +1875,7 @@ export const generateErstatningsopgoerelsePdf = (
         writer.advanceY(lineHeight);
       } else if (indkomst?.beregningsgrundlagMellemregningLabel) {
         safeAddWrappedText(indkomst.beregningsgrundlagMellemregningLabel);
+        writer.advanceY(lineHeight);
       } else if (indkomst?.beregningsgrundlagMellemregningResultat) {
         safeAddWrappedText(indkomst.beregningsgrundlagMellemregningResultat);
       }
@@ -1876,10 +1911,10 @@ export const generateErstatningsopgoerelsePdf = (
             formatCurrencyFromOre(arbejdssted.breakdown.samletOre)
           );
           if (indkomst.beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE && indkomst.arbejdsdage) {
-            const arbejdsdageText = indkomst.arbejdsdage.toLocaleString('da-DK');
+            const arbejdsdageText = formatCountWithUnit(indkomst.arbejdsdage, 'arbejdsdag', 'arbejdsdage');
             const basisText = arbejdsgiverTotals.length > 1
-              ? `Dagsløn: (${arbejdsgiverTotals.join(' + ')}${NBSP}kr.) / ${arbejdsdageText} arbejdsdage =`
-              : `Dagsløn: ${formatMoneyOreWithKr(indkomst.totalBreakdown.samletOre)} / ${arbejdsdageText} arbejdsdage =`;
+              ? `Dagsløn: (${arbejdsgiverTotals.join(' + ')}${NBSP}kr.) / ${arbejdsdageText} =`
+              : `Dagsløn: ${formatMoneyOreWithKr(indkomst.totalBreakdown.samletOre)} / ${arbejdsdageText} =`;
             safeAddLeftRightText(
               basisText,
               renderMoneyWithKr(indkomst.dagsloen),
@@ -1888,9 +1923,10 @@ export const generateErstatningsopgoerelsePdf = (
             );
           } else if (indkomst.maaneder) {
             const maanederText = formatMaanederTrimmed(indkomst.maaneder);
+            const maanederMedEnhed = `${maanederText} ${isSingularCount(indkomst.maaneder) ? 'måned' : 'måneder'}`;
             const basisText = arbejdsgiverTotals.length > 1
-              ? `Månedsløn (${arbejdsgiverTotals.join(' + ')}${NBSP}kr.) / ${maanederText} måneder =`
-              : `Månedsløn: ${formatMoneyOreWithKr(indkomst.totalBreakdown.samletOre)} / ${maanederText} måneder =`;
+              ? `Månedsløn (${arbejdsgiverTotals.join(' + ')}${NBSP}kr.) / ${maanederMedEnhed} =`
+              : `Månedsløn: ${formatMoneyOreWithKr(indkomst.totalBreakdown.samletOre)} / ${maanederMedEnhed} =`;
             safeAddLeftRightText(
               basisText,
               renderMoneyWithKr(indkomst.maanedsloen),
@@ -1991,14 +2027,14 @@ export const generateErstatningsopgoerelsePdf = (
           const tilDisplay = formatDateShort(segment.til);
           let leftText = '';
           if (segment.kind === 'arbejdsdage') {
-            const arbejdsdageText = segment.arbejdsdage.toLocaleString('da-DK');
+            const arbejdsdageText = formatCountWithUnit(segment.arbejdsdage, 'arbejdsdag', 'arbejdsdage');
             const dagsloenText = formatCurrencyFromOre(segment.dagsloenOre);
-            leftText = `${fraDisplay} - ${tilDisplay}: ${arbejdsdageText} arbejdsdage á ${dagsloenText}${NBSP}kr.${factorText} =`;
+            leftText = `${fraDisplay} - ${tilDisplay}: ${arbejdsdageText} á ${dagsloenText}${NBSP}kr.${factorText} =`;
           } else {
             const roundedMaaneder = Math.round(segment.maaneder * 10000) / 10000;
             const maanederText = formatMaanederTrimmed(roundedMaaneder);
             const maanedsloenText = formatCurrencyFromOre(segment.maanedsloenOre);
-            leftText = `${fraDisplay} - ${tilDisplay}: ${maanederText} måneder á ${maanedsloenText}${NBSP}kr.${factorText} =`;
+            leftText = `${fraDisplay} - ${tilDisplay}: ${maanederText} ${isSingularCount(roundedMaaneder) ? 'måned' : 'måneder'} á ${maanedsloenText}${NBSP}kr.${factorText} =`;
           }
           const rightText = formatMoneyOreWithKr(segment.amountOre);
           safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'normal' });
@@ -2470,7 +2506,7 @@ export const generateErstatningsopgoerelsePdf = (
   };
 
   // Tilføj footer med versionsnummer
-  if (selectedElements.regulering) {
+  if (selectedElements.regulering && shouldIncludeReguleringBilag(eoValues)) {
 
     const renderReguleringIndeksTable = (rows: readonly ReguleringIndexRow[]) => {
       if (rows.length === 0) {
@@ -2625,5 +2661,5 @@ export const generateErstatningsopgoerelsePdf = (
   writer.addFooter();
 
   // Download PDF
-  writer.save(`${titel}.pdf`);
+  writer.save(resolvePdfFileName(titel, visUdkastStempel, model.brevhoved?.journalnr));
 };

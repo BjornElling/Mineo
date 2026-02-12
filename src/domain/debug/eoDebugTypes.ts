@@ -22,22 +22,29 @@ export type DebugStatus = 'ok' | 'warning' | 'error';
 /**
  * Severity for integrity-fejl
  */
-export type IntegritySeverity = 'error' | 'warning';
+export type IntegritySeverity = Exclude<DebugStatus, 'ok'>;
 
 /**
  * Invariant-typer for integrity checks
  */
+export const IntegrityInvariant = {
+  PERIOD_OVERLAP: 'PERIOD_OVERLAP',
+  DATE_HOLES: 'DATE_HOLES',
+  BASE_DATE_INCONSISTENT: 'BASE_DATE_INCONSISTENT',
+  TAF_DAYS_MISMATCH: 'TAF_DAYS_MISMATCH',
+  SVIE_SMERTE_MISMATCH: 'SVIE_SMERTE_MISMATCH',
+} as const;
+
 export type IntegrityInvariant =
-  | 'PERIOD_OVERLAP'
-  | 'DATE_HOLES'
-  | 'BASE_DATE_INCONSISTENT'
-  | 'TAF_DAYS_MISMATCH'
-  | 'SVIE_SMERTE_MISMATCH';
+  typeof IntegrityInvariant[keyof typeof IntegrityInvariant];
+
+export type PrimitiveCell =
+  number | ISODateString | string | boolean | null;
 
 /**
  * Celle-værdi med både rå og formateret værdi
  */
-export type CellValue<T> = {
+export type CellValue<T extends PrimitiveCell> = {
   readonly rawValue: T;
   readonly displayValue: string;
 };
@@ -46,7 +53,7 @@ export type CellValue<T> = {
  * Debug-celle kan være enten structured (med raw+display) eller ren tekst
  */
 export type DebugCellValue =
-  | CellValue<number | ISODateString | string | boolean | null>
+  | CellValue<PrimitiveCell>
   | string;
 
 /**
@@ -107,6 +114,10 @@ export type DebugRowModel = {
   displayValue: string;
   // Status er rækkens max-severity for UI (ikke issue-niveau).
   status: DebugStatus;
+  // Optional domænemeddelelse (uden "Fejl (...)" / "Advarsel (...)").
+  message?: string;
+  // Optional præsentationshint til Beregning-fanen.
+  summaryDisplay?: 'default' | 'messageOnly';
   group?: DebugRowGroup;
   dependsOn?: ReadonlyArray<DependencySpec>;
 };

@@ -24,6 +24,7 @@ import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from './t
 import { isOffentligOverenskomstId } from '../../data/overenskomstRates';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from './angivetLoenHelpers';
+import { buildBeregningsperiodeRange, buildIncomeForRanges } from './indtaegtPerioder';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -76,6 +77,7 @@ export type DebugRowId =
   | 'taf.beregningsgrundlag.maanedsloen'
   | 'taf.beregningsgrundlag.dagsloen'
   | 'taf.beregningsgrundlag.loenBaseretPaa'
+  | 'taf.beregningsgrundlag.indkomst'
   | 'taf.beregningsgrundlag.angivetLoenOpreguleresFraDato'
   | 'taf.beregningsgrundlag.arbejdsdage'
   | 'taf.beregningsgrundlag.maaneder'
@@ -117,6 +119,14 @@ const broekTilProcent = (broek: string | undefined): number | undefined => {
   if (isNaN(taeller) || isNaN(naevner) || naevner === 0) return undefined;
 
   return Math.round((taeller / naevner) * 100);
+};
+
+const getYearAfterAddingOneMonth = (isoDate: ISODateString | undefined): number | undefined => {
+  if (!isoDate) return undefined;
+  const date = isoDateToDate(isoDate);
+  const shifted = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  shifted.setUTCMonth(shifted.getUTCMonth() + 1);
+  return shifted.getUTCFullYear();
 };
 
 export const buildEODebugErstatningsopgoerelseRows = (
@@ -763,8 +773,34 @@ export const buildEODebugSvieSmerteRows = (
     emptyState: 'ok',
   });
   const satserAarMangler = harPerioder && !isNonEmptyString(satserAarValue);
-  const satserAarDisplay = satserAarMangler ? 'Fejl (Indtastet sygeperiode men ikke år for sats)' : satserAarResolved.displayValue;
-  const satserAarStatus: DebugStatus = satserAarMangler ? 'error' : satserAarResolved.status;
+  const satserAarParsed = Number.parseInt(satserAarValue?.trim() ?? '', 10);
+  const hasValidSatserAar = Number.isInteger(satserAarParsed);
+  const opgoerelsePlusOneMonthYear = getYearAfterAddingOneMonth(values.opgørelseLavetDen);
+  const hasSatserForOpgoerelsePlusOneMonthYear =
+    typeof opgoerelsePlusOneMonthYear === 'number' &&
+    typeof svieSmertePrDag[opgoerelsePlusOneMonthYear] === 'number' &&
+    typeof svieSmerteMax[opgoerelsePlusOneMonthYear] === 'number';
+  const shouldShowSatsYearSuggestionWarning =
+    satserAarResolved.status !== 'error' &&
+    !satserAarMangler &&
+    values.revideretOpgoerelse !== 'Ja' &&
+    hasValidSatserAar &&
+    typeof opgoerelsePlusOneMonthYear === 'number' &&
+    opgoerelsePlusOneMonthYear > satserAarParsed &&
+    hasSatserForOpgoerelsePlusOneMonthYear;
+
+  const satserAarDisplay = (() => {
+    if (satserAarMangler) return 'Fejl (Indtastet sygeperiode men ikke år for sats)';
+    if (shouldShowSatsYearSuggestionWarning && opgoerelsePlusOneMonthYear !== undefined) {
+      return `Svie/smerte satsen for ${opgoerelsePlusOneMonthYear} kan anvendes.`;
+    }
+    return satserAarResolved.displayValue;
+  })();
+  const satserAarStatus: DebugStatus = satserAarMangler
+    ? 'error'
+    : shouldShowSatsYearSuggestionWarning
+      ? 'warning'
+      : satserAarResolved.status;
 
   rows.push({
     id: 'sviesmerte.satserAar',
@@ -1912,6 +1948,45 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     status: beregningsperiodeDisplay.status,
   });
 
+  const indkomstIBeregningsperiodenDisplay = (() => {
+    if (!isBeregningsperiode) return null;
+    const beregningsperiodeRange = buildBeregningsperiodeRange(values);
+    if (!beregningsperiodeRange) return null;
+    const income = buildIncomeForRanges(values, [beregningsperiodeRange]);
+    const hasIncome = income.employers.length > 0 || income.benefits.length > 0;
+    if (hasIncome) return null;
+
+    const fraDanish = isoToDanish(beregningsperiodeRange.fra);
+    const tilDanish = isoToDanish(beregningsperiodeRange.til);
+    if (!fraDanish || !tilDanish) {
+      return {
+        label: 'Indkomst',
+        displayValue: '-',
+        message: 'Ingen indkomst i beregningsperioden',
+        status: 'error' as DebugStatus,
+      };
+    }
+    return {
+      label: 'Indkomst',
+      displayValue: '-',
+      message: `Ingen indkomst i beregningsperioden (${fraDanish} - ${tilDanish})`,
+      status: 'error' as DebugStatus,
+    };
+  })();
+
+  if (indkomstIBeregningsperiodenDisplay) {
+    rows.push({
+      id: 'taf.beregningsgrundlag.indkomst',
+      label: indkomstIBeregningsperiodenDisplay.label,
+      displayValue: indkomstIBeregningsperiodenDisplay.displayValue,
+      message: indkomstIBeregningsperiodenDisplay.message,
+      status: indkomstIBeregningsperiodenDisplay.status,
+      dependsOn: [
+        { kind: 'id', id: 'taf.beregningsgrundlag.beregningsperiode' },
+      ],
+    });
+  }
+
   const fravaerPerioder = values.fravaerPerioder ?? [];
   const shouldIncludeFravaer = isBeregningsperiode;
   const harFravaer =
@@ -2432,6 +2507,7 @@ export const buildEODebugIndkomstRows = (
       if (manualReguleringInputErrors[ansaettelsesforhold.id]) {
         return {
           displayValue: formatStatusMessage('error', 'Ugyldig indtastning'),
+          message: 'Mangler udfyldelse af værdier for Manuel Regulering',
           status: 'error' as DebugStatus,
         };
       }
@@ -2454,7 +2530,11 @@ export const buildEODebugIndkomstRows = (
       });
 
       if (aktiveRows.length === 0) {
-        return { displayValue: 'Nej', status: 'error' as DebugStatus };
+        return {
+          displayValue: 'Nej',
+          message: 'Mangler udfyldelse af værdier for Manuel Regulering',
+          status: 'error' as DebugStatus,
+        };
       }
 
       const grundloenOk = aktiveRows.every((row) => row.grundloen !== undefined);
@@ -2474,7 +2554,11 @@ export const buildEODebugIndkomstRows = (
       );
 
       const ok = grundloenOk && supplementsOk;
-      return { displayValue: ok ? 'Ja' : 'Nej', status: ok ? 'ok' : 'error' as DebugStatus };
+      return {
+        displayValue: ok ? 'Ja' : 'Nej',
+        message: ok ? undefined : 'Mangler udfyldelse af værdier for Manuel Regulering',
+        status: ok ? 'ok' : 'error' as DebugStatus,
+      };
     })();
 
     if (loenudviklingBasis === 'Manuelt angivet') {
@@ -2497,6 +2581,10 @@ export const buildEODebugIndkomstRows = (
         id: `${loenudviklingRowPrefix}.alleVaerdier`,
         label: 'Alle reguleringsværdier udfyldt',
         displayValue: alleReguleringsvaerdierRow.displayValue,
+        message: alleReguleringsvaerdierRow.message,
+        summaryDisplay: alleReguleringsvaerdierRow.status === 'error' && !!alleReguleringsvaerdierRow.message
+          ? 'messageOnly'
+          : undefined,
         status: alleReguleringsvaerdierRow.status,
         dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
       });

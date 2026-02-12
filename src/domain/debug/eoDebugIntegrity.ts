@@ -10,7 +10,7 @@
  */
 
 import type { ISODateString } from '../../types/branded';
-import type { DebugDay, IntegrityIssue, DateRange } from './eoDebugTypes';
+import { IntegrityInvariant, type DebugDay, type IntegrityIssue, type DateRange } from './eoDebugTypes';
 import type { DebugModelInput } from './eoDebugCoreModel';
 import { getOverlap, getIsoRange } from './eoDebugDateUtils';
 import { subtractOneDay, toISODateString } from '../../types/branded';
@@ -65,7 +65,7 @@ const checkPeriodOverlap = (input: DebugModelInput): IntegrityIssue[] => {
       if (overlap.overlaps) {
         issues.push({
           severity: 'error',
-          invariant: 'PERIOD_OVERLAP',
+          invariant: IntegrityInvariant.PERIOD_OVERLAP,
           message: `TAF-periode ${a.id} og ${b.id} overlapper (${overlap.start} til ${overlap.end})`,
         });
       }
@@ -102,7 +102,7 @@ const checkDateHoles = (debugDays: readonly DebugDay[]): IntegrityIssue[] => {
   if (missing.length > 0) {
     issues.push({
       severity: 'error',
-      invariant: 'DATE_HOLES',
+      invariant: IntegrityInvariant.DATE_HOLES,
       message: `Debug-tabel mangler ${missing.length} dag(e): ${missing
         .slice(0, 5)
         .join(', ')}${missing.length > 5 ? ' ...' : ''}`,
@@ -133,7 +133,7 @@ const checkBaseDateConsistency = (
   if (menAfgoerelseDato && periodeTil && menAfgoerelseDato > periodeTil) {
     issues.push({
       severity: 'warning',
-      invariant: 'BASE_DATE_INCONSISTENT',
+      invariant: IntegrityInvariant.BASE_DATE_INCONSISTENT,
       message: `Mén-afgørelsesdato (${menAfgoerelseDato}) er efter beregningsperiode-slut (${periodeTil})`,
     });
   }
@@ -145,7 +145,7 @@ const checkBaseDateConsistency = (
   if (forligDato && periodeTil && forligDato > periodeTil) {
     issues.push({
       severity: 'warning',
-      invariant: 'BASE_DATE_INCONSISTENT',
+      invariant: IntegrityInvariant.BASE_DATE_INCONSISTENT,
       message: `Forligsdato (${forligDato}) er efter beregningsperiode-slut (${periodeTil})`,
     });
   }
@@ -187,7 +187,7 @@ const checkTafDaysMismatch = (
     if (actualCount !== expectedCount) {
       issues.push({
         severity: 'error',
-        invariant: 'TAF_DAYS_MISMATCH',
+        invariant: IntegrityInvariant.TAF_DAYS_MISMATCH,
         message: `TAF-periode ${periode.id}: Forventet ${expectedCount} dage, fandt ${actualCount} i debug-tabel`,
         expected: expectedCount,
         actual: actualCount,
@@ -266,7 +266,7 @@ const checkSvieSmerteMismatch = (
     if (actualCount !== expectedCount) {
       issues.push({
         severity: 'error',
-        invariant: 'SVIE_SMERTE_MISMATCH',
+        invariant: IntegrityInvariant.SVIE_SMERTE_MISMATCH,
         message: `Svie/smerte-periode ${periode.id} (${expectedNiveau}): Forventet ${expectedCount} dage, fandt ${actualCount} i debug-tabel`,
         expected: expectedCount,
         actual: actualCount,
