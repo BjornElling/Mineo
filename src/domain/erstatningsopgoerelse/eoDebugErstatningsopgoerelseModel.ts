@@ -1353,7 +1353,7 @@ export const buildEODebugSvieSmerteRows = (
       return { displayValue: 'Tidligere beregnet til max', status: 'ok' as DebugStatus };
     }
 
-    if (lastSvieSmerteKravDato && values.vedroererPeriodeTil && lastSvieSmerteKravDato === values.vedroererPeriodeTil) {
+    if (lastSvieSmerteKravDato && values.vedroererPeriodeTil && lastSvieSmerteKravDato >= values.vedroererPeriodeTil) {
       return { displayValue: '-', status: 'ok' as DebugStatus };
     }
 
@@ -1431,7 +1431,7 @@ export const buildEODebugTaftRows = (
       return 'Differencekrav opgjort';
     }
 
-    if (values.vedroererPeriodeTil && values.vedroererPeriodeTil === lastTafKravDato) {
+    if (values.vedroererPeriodeTil && values.vedroererPeriodeTil <= lastTafKravDato) {
       return 'Erstatningsperiodens ophør';
     }
 
@@ -1451,7 +1451,7 @@ export const buildEODebugTaftRows = (
       return context.differencekravDato;
     }
 
-    if (values.vedroererPeriodeTil && values.vedroererPeriodeTil === lastTafKravDato) {
+    if (values.vedroererPeriodeTil && values.vedroererPeriodeTil <= lastTafKravDato) {
       return values.vedroererPeriodeTil;
     }
 

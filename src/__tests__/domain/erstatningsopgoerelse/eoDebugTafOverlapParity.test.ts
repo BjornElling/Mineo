@@ -36,5 +36,31 @@ describe('buildEODebugTaftRows overlap parity', () => {
     expect(rowB?.displayValue).toContain('Der er overlappende perioder');
     expect(rowC?.displayValue).toContain('Der er overlappende perioder');
   });
-});
 
+  it('does not warn when TAF period extends beyond vedrører-periodens til-dato', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      vedroererPeriodeFra: iso('2024-06-01'),
+      vedroererPeriodeTil: iso('2024-06-15'),
+      tafPerioder: [
+        { id: 'a', fra: iso('2024-06-01'), til: iso('2024-08-31'), loseFeriedage: undefined },
+      ],
+      ferieperioder: [],
+    };
+
+    const context = {
+      skadesdatoISO: iso('2023-01-01'),
+      erErhvervssygdom: false,
+      endeligEETBeregnetDato: undefined,
+      differencekravDato: undefined,
+      verserendeKlageEet: false,
+    };
+
+    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
+    const rows = buildEODebugTaftRows(values, errors, context);
+    const ophoerRow = rows.find((row) => row.id === 'taf.ophoerSkyldes');
+
+    expect(ophoerRow?.status).toBe('ok');
+    expect(ophoerRow?.displayValue).toContain('Erstatningsperiodens ophør');
+  });
+});

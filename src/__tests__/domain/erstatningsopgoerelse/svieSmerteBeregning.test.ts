@@ -128,6 +128,19 @@ describe('Svie/smerte beregning', () => {
       expect(row?.status).toBe('ok');
     });
 
+    it('viser "-" når sidste svie/smerte-dato er efter vedrørerPeriodeTil', () => {
+      const row = getSvieSmerteOphoerRow(
+        makeValues({
+          beregnesSvieSmerteGodtgoerelse: 'Ja',
+          tidligereSsMax: 'Nej',
+          vedroererPeriodeTil: iso('2024-06-15'),
+          svieSmertePerioder: [{ id: '1', fra: iso('2024-06-01'), til: iso('2024-08-31'), tilstand: 'sygemeldt' }],
+        })
+      );
+      expect(row?.displayValue).toBe('-');
+      expect(row?.status).toBe('ok');
+    });
+
     it('viser "Ménafgørelse" når mén-dato er dagen efter sidste svie/smerte-dato', () => {
       const row = getSvieSmerteOphoerRow(
         makeValues({
