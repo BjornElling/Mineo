@@ -926,7 +926,7 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
 
-    expect(indkomst?.beregningsgrundlagMellemregningLabel).toBe('I perioden var der 12 måneder');
+    expect(indkomst?.beregningsgrundlagMellemregningLabel).toBe('I perioden var der 12 måneder.');
     expect(indkomst?.beregningsgrundlagMellemregningResultat).toBeNull();
   });
 
@@ -1092,7 +1092,6 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     }
   });
 });
-
 
 
 

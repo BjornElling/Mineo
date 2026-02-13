@@ -921,7 +921,7 @@ const buildIndkomstSkadestidspunkt = (
         const maanederEfterFradrag = Math.max(0, Math.round((roundedTotalMaaneder - roundedFravaerMaaneder) * 100) / 100);
         if (oevrigeFravaersdageValue === 0) {
           const maanedsOrd = dagOrd(roundedTotalMaaneder, 'måned', 'måneder');
-          beregningsgrundlagMellemregningLabel = `I perioden var der ${formatMaaneder(totalMaaneder)} ${maanedsOrd}`;
+          beregningsgrundlagMellemregningLabel = `I perioden var der ${formatMaaneder(totalMaaneder)} ${maanedsOrd}.`;
           beregningsgrundlagMellemregningResultat = null;
         } else {
           const fravaerBeskrivelse = values.oevrigeFravaersdageBeskrivelse?.trim();
@@ -2154,4 +2154,3 @@ export const buildErstatningsopgoerelsePdfModel = (
     saerligeKommentarer: (safeEo.saerligeKommentarer ?? '').trim() || null,
   };
 };
-

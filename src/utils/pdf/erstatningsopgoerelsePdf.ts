@@ -1868,27 +1868,42 @@ export const generateErstatningsopgoerelsePdf = (
 
       if (indkomst?.beregnesUdFra === 'Beregningsperiode') {
         for (const arbejdssted of indkomst.arbejdssteder) {
+          const componentRows: ReadonlyArray<Readonly<{ label: string; amountOre: number }>> = [
+            {
+              label: 'Ferieberettiget indkomst i beregningsperioden',
+              amountOre: arbejdssted.breakdown.ferieberetOre,
+            },
+            {
+              label: arbejdssted.fpLabel,
+              amountOre: arbejdssted.breakdown.fpFvShSoOre,
+            },
+            {
+              label: arbejdssted.pensionLabel,
+              amountOre: arbejdssted.breakdown.pensionOre,
+            },
+            {
+              label: 'Arbejdsgivers ATP-bidrag og anden indkomst uden tillæg',
+              amountOre: arbejdssted.breakdown.atpOre,
+            },
+          ];
+          const visibleComponentRows = componentRows.filter((row) => row.amountOre !== 0);
+
           writer.writeUnderlinedLabel(arbejdssted.navn, MARGINS.left);
 
-          safeAddLeftRightText('Ferieberettiget indkomst i beregningsperioden', formatMoneyOreWithKr(arbejdssted.breakdown.ferieberetOre), writer.getTextWidth('000.000.000,00'),
-            { rightFontStyle: 'normal' }
-          );
+          for (const row of visibleComponentRows) {
+            safeAddLeftRightText(
+              row.label,
+              formatMoneyOreWithKr(row.amountOre),
+              writer.getTextWidth('000.000.000,00'),
+              { rightFontStyle: 'normal' }
+            );
+          }
 
-          safeAddLeftRightText(arbejdssted.fpLabel, formatMoneyOreWithKr(arbejdssted.breakdown.fpFvShSoOre), writer.getTextWidth('000.000.000,00'),
-            { rightFontStyle: 'normal' }
-          );
-
-          safeAddLeftRightText(arbejdssted.pensionLabel, formatMoneyOreWithKr(arbejdssted.breakdown.pensionOre), writer.getTextWidth('000.000.000,00'),
-            { rightFontStyle: 'normal' }
-          );
-
-          safeAddLeftRightText('Arbejdsgivers ATP-bidrag og anden indkomst uden tillæg', formatMoneyOreWithKr(arbejdssted.breakdown.atpOre), writer.getTextWidth('000.000.000,00'),
-            { rightFontStyle: 'normal' }
-          );
-
-          safeAddLeftRightText('I alt:', formatMoneyOreWithKr(arbejdssted.breakdown.samletOre), writer.getTextWidth('000.000.000,00'),
-            { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
-          );
+          if (visibleComponentRows.length > 1) {
+            safeAddLeftRightText('I alt:', formatMoneyOreWithKr(arbejdssted.breakdown.samletOre), writer.getTextWidth('000.000.000,00'),
+              { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
+            );
+          }
           writer.advanceY(lineHeight);
         }
         if (indkomst.offentligeYdelser.length > 0) {

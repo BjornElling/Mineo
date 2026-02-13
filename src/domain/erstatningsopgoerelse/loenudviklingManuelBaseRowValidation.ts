@@ -5,10 +5,10 @@ export type ManualBaseRowPercentField = 'feriepenge' | 'fritvalg' | 'shSoSats' |
 export type ManualBaseRowCellErrors = Partial<Record<ManualBaseRowPercentField, string>>;
 
 type ExpectedSatser = Readonly<{
-  feriePct: number | undefined;
-  fritvalgPct: number | undefined;
-  shSoPct: number | undefined;
-  pensionPct: number | undefined;
+  feriePct: number | null | undefined;
+  fritvalgPct: number | null | undefined;
+  shSoPct: number | null | undefined;
+  pensionPct: number | null | undefined;
 }>;
 
 const formatPercentDa = (value: number): string => {
@@ -26,9 +26,14 @@ const parseCommittedPercent = (value: string | undefined): number | undefined =>
   return parsed;
 };
 
-const hasMismatch = (actual: number | undefined, expected: number): boolean => {
-  if (actual === undefined) return true;
-  return Math.abs(actual - expected) > 0.01;
+const normalizeComparablePercent = (value: number | null | undefined): number => {
+  return typeof value === 'number' ? value : 0;
+};
+
+const hasMismatch = (actual: number | undefined, expected: number | null | undefined): boolean => {
+  const normalizedActual = normalizeComparablePercent(actual);
+  const normalizedExpected = normalizeComparablePercent(expected);
+  return Math.abs(normalizedActual - normalizedExpected) > 0.01;
 };
 
 export const validateLoenudviklingManualBaseRowSatser = (
@@ -39,7 +44,7 @@ export const validateLoenudviklingManualBaseRowSatser = (
 
   const checks: ReadonlyArray<{
     field: ManualBaseRowPercentField;
-    expected: number | undefined;
+    expected: number | null | undefined;
     actual: number | undefined;
   }> = [
     {
@@ -65,12 +70,10 @@ export const validateLoenudviklingManualBaseRowSatser = (
   ];
 
   for (const check of checks) {
-    if (typeof check.expected !== 'number') continue;
     if (hasMismatch(check.actual, check.expected)) {
-      errors[check.field] = `Værdien er ovenfor angivet til ${formatPercentDa(check.expected)} %`;
+      errors[check.field] = `Værdien er ovenfor angivet til ${formatPercentDa(normalizeComparablePercent(check.expected))} %`;
     }
   }
 
   return errors;
 };
-

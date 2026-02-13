@@ -55,6 +55,25 @@ describe('validateLoenudviklingManualBaseRowSatser', () => {
     expect(errors.shSoSats).toBeUndefined();
   });
 
+  it('giver fejl når sats på skadestidspunktet er udfyldt men tabelværdi mangler', () => {
+    const errors = validateLoenudviklingManualBaseRowSatser(
+      makeBaseRow({
+        feriepenge: '12,5',
+        fritvalg: '',
+        shSoSats: '1,75',
+        agPension: '10',
+      }),
+      {
+        feriePct: 12.5,
+        fritvalgPct: 2,
+        shSoPct: 1.75,
+        pensionPct: 10,
+      }
+    );
+
+    expect(errors.fritvalg).toBe('Værdien er ovenfor angivet til 2 %');
+  });
+
   it('springer felter over hvor sats på skadestidspunktet ikke er angivet', () => {
     const errors = validateLoenudviklingManualBaseRowSatser(
       makeBaseRow({
@@ -73,5 +92,23 @@ describe('validateLoenudviklingManualBaseRowSatser', () => {
 
     expect(errors).toEqual({});
   });
-});
 
+  it('behandler null som 0 i sats-sammenligning', () => {
+    const errors = validateLoenudviklingManualBaseRowSatser(
+      makeBaseRow({
+        feriepenge: '',
+        fritvalg: '',
+        shSoSats: '',
+        agPension: '',
+      }),
+      {
+        feriePct: null,
+        fritvalgPct: null,
+        shSoPct: null,
+        pensionPct: null,
+      }
+    );
+
+    expect(errors).toEqual({});
+  });
+});
