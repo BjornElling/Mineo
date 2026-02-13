@@ -391,7 +391,7 @@ export const beregnDagPeriode = (tableData: AarsloenTableRow[]): PeriodeResult |
  *
  * @param fraDato - Startdato (dansk format dd-mm-åååå)
  * @param tilDato - Slutdato (dansk format dd-mm-åååå)
- * @param periodisering - 'kalenderdage' | 'hverdage' | 'arbejdsdage'
+ * @param periodisering - 'kalenderdage' | 'arbejdsdage'
  * @param ydelsestype - Ydelsestype (bruges til speciel regel for Sygedagpenge)
  * @returns Antal dage, eller null hvis datoer er ugyldige
  */
@@ -423,10 +423,6 @@ export const beregnPeriodiseringsDage = (
     case 'kalenderdage': {
       // Alle dage fra-til inklusiv
       return datoSet.size;
-    }
-    case 'hverdage': {
-      // Mandag-fredag
-      return beregnAntalHverdage(datoSet);
     }
     case 'arbejdsdage': {
       // Hverdage minus SH-dage

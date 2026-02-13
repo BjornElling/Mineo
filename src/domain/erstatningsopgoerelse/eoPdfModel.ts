@@ -1875,10 +1875,7 @@ const buildTabtArbejdsfortjenesteModel = (
   const tafPerioderLinjer = buildTafPerioderLinjer(values);
   const harTafPerioder = tafPerioderLinjer.length > 0;
 
-  const tafBeregningsenhed = computeTafBeregningsenhed({
-    beregnesUdFra: values.beregnesUdFra,
-    loenindkomstAnsaettelsesforhold: values.loenindkomstAnsaettelsesforhold ?? [],
-  });
+  const tafBeregningsenhed = computeTafBeregningsenhed(values);
 
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);
   const skalKomprimereIndkomstBeregning =

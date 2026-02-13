@@ -73,10 +73,27 @@ describe('computeTafBeregningsenhed', () => {
   it('is forced to workdays in "Beregningsperiode" when holiday pay deviates', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: '2024-01-01',
+      periodeTilBeregningTil: '2024-12-31',
       loenindkomstAnsaettelsesforhold: [
         {
           ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenPaaHelligdage: 'SH-udbetaling',
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'row-1',
+              col0_maaned: '1',
+              col1_maaned: '2024',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: { kind: 'number', value: 1000 },
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
         },
       ],
     });
@@ -91,6 +108,66 @@ describe('computeTafBeregningsenhed', () => {
           ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
           loenPaaHelligdage: 'Almindelig løn',
           fuldLoenUnderFerie: 'Ja',
+        },
+      ],
+    });
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
+  });
+
+  it('stays months when non-standard settings exist but no overlapping income row in beregningsperiode', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: '2024-01-01',
+      periodeTilBeregningTil: '2024-12-31',
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          loenPaaHelligdage: 'SH-udbetaling',
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'row-1',
+              col0_maaned: '1',
+              col1_maaned: '2023',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: { kind: 'number', value: 1000 },
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+      ],
+    });
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
+  });
+
+  it('stays months when overlap exists but no indtastet løn in overlap row', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: '2024-01-01',
+      periodeTilBeregningTil: '2024-12-31',
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          loenPaaHelligdage: 'SH-udbetaling',
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'row-1',
+              col0_maaned: '1',
+              col1_maaned: '2024',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: undefined,
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
         },
       ],
     });

@@ -6,7 +6,7 @@ describe('ydelsestyper registry', () => {
     for (const key of ydelsestypeKeys) {
       const config = ydelsestyper[key];
       expect(config).toBeDefined();
-      expect(config.periodisering === 'kalenderdage' || config.periodisering === 'hverdage' || config.periodisering === 'arbejdsdage').toBe(true);
+      expect(config.periodisering === 'kalenderdage' || config.periodisering === 'arbejdsdage').toBe(true);
       expect(config.periodiseringLabel.trim().length).toBeGreaterThan(0);
     }
   });
@@ -23,4 +23,3 @@ describe('ydelsestyper registry', () => {
     expect(andetIndex).toBe(uddannelseshjaelpIndex + 1);
   });
 });
-

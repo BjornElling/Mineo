@@ -199,4 +199,23 @@ describe('buildIncomeForRanges fail-closed', () => {
     const income = buildIncomeForRanges(values, [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }]);
     expect(income.benefits).toHaveLength(0);
   });
+
+  it('resolver ydelsestype case-insensitivt ud fra label', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.offentligeYdelserRows = [
+      {
+        id: 'oy-label',
+        fraDato: '01-01-2024',
+        tilDato: '31-01-2024',
+        ydelse: asAmount(100),
+        tillaeg: undefined,
+        ydelsestype: 'sYgEdAgPeNgE',
+      },
+    ];
+
+    const income = buildIncomeForRanges(values, [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }]);
+    expect(income.benefits).toHaveLength(1);
+    expect(income.benefits[0]?.typeKey).toBe('sygedagpenge');
+    expect(income.benefits[0]?.label).toBe('Sygedagpenge');
+  });
 });

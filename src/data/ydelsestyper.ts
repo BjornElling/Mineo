@@ -5,7 +5,7 @@
  * samt deres periodiseringsregler for beregning af ydelse pr. dag.
  */
 
-export type Periodisering = 'kalenderdage' | 'hverdage' | 'arbejdsdage';
+export type Periodisering = 'kalenderdage' | 'arbejdsdage';
 
 export interface YdelsestypeConfig {
   label: string;

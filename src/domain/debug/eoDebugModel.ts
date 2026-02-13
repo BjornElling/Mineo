@@ -744,7 +744,6 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
     shDays,
     isWorkdayByIndex,
     isWithinBeregningsByIndex,
-    oevrigtFravaerDates,
     tableFra,
     tableTil,
     columnWidthPx: DEFAULT_COLUMN_WIDTH_PX,

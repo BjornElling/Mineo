@@ -155,7 +155,6 @@ export const isOffentligYdelseDatoMedregnet = (args: {
   const dow = dateObj.getUTCDay();
   const erHverdag = dow >= 1 && dow <= 5;
   if (!erHverdag) return false;
-  if (periodisering === 'hverdage') return true;
 
   if (ydelsestypeKey === 'sygedagpenge' && rowTilISO < sygedagpengeShCutoff) {
     return true;
@@ -183,6 +182,8 @@ export const periodiserBeloebForOffentligYdelse = (args: {
   } = args;
   const totalDays = countInclusiveUtcDays(interval.start, interval.end);
   if (!totalDays || totalDays <= 0) return 0;
+  const rowTilISO = dateToISO(interval.end);
+  if (!rowTilISO) return 0;
 
   let periodiseringsDage = 0;
   for (let i = 0; i < totalDays; i += 1) {
@@ -196,7 +197,7 @@ export const periodiserBeloebForOffentligYdelse = (args: {
       shDays,
       periodisering,
       ydelsestypeKey,
-      rowTilISO: range.til,
+      rowTilISO,
       sygedagpengeShCutoff,
     })) {
       continue;
@@ -206,8 +207,11 @@ export const periodiserBeloebForOffentligYdelse = (args: {
   if (periodiseringsDage <= 0) return 0;
 
   let overlapDage = 0;
-  const overlapStart = interval.start > parseISODate(range.fra)! ? interval.start : parseISODate(range.fra)!;
-  const overlapEnd = interval.end < parseISODate(range.til)! ? interval.end : parseISODate(range.til)!;
+  const rangeFraDate = parseISODate(range.fra);
+  const rangeTilDate = parseISODate(range.til);
+  if (!rangeFraDate || !rangeTilDate) return 0;
+  const overlapStart = interval.start > rangeFraDate ? interval.start : rangeFraDate;
+  const overlapEnd = interval.end < rangeTilDate ? interval.end : rangeTilDate;
   if (overlapStart > overlapEnd) return 0;
   const overlapDaysInclusive = countInclusiveUtcDays(overlapStart, overlapEnd);
   if (!overlapDaysInclusive || overlapDaysInclusive <= 0) return 0;
@@ -222,7 +226,7 @@ export const periodiserBeloebForOffentligYdelse = (args: {
       shDays,
       periodisering,
       ydelsestypeKey,
-      rowTilISO: range.til,
+      rowTilISO,
       sygedagpengeShCutoff,
     })) {
       continue;

@@ -11,10 +11,7 @@ import { getReguleringsDatoer } from '../../data/offentligLoenLookup';
 import { parseOffentligDato } from './eoDebugOffentligeYdelserColumns';
 import type { DebugTabelColumnId, DebugTabelIntegrityIssue } from './eoDebugModel';
 import { debugTabelColumnId, WAGE_COLUMNS } from './eoDebugLoenTypes';
-import {
-  LOEN_PERIODISERING,
-  resolveLoenPeriodiseringForAnsaettelsesforhold,
-} from '../erstatningsopgoerelse/loenPeriodisering';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
 
 // LOCKED: Løn/TAF debug-clusteret er færdig‑porteret.
 // Ændr kun ved parity‑brud og dokumentér årsag.
@@ -206,7 +203,6 @@ export const buildLoenindkomstColumns = (args: {
   shDays: ReadonlySet<ISODateString>;
   isWorkdayByIndex: readonly boolean[];
   isWithinBeregningsByIndex: readonly boolean[];
-  oevrigtFravaerDates: ReadonlySet<ISODateString>;
   tableFra: ISODateString;
   tableTil: ISODateString;
   columnWidthPx: number;
@@ -223,7 +219,6 @@ export const buildLoenindkomstColumns = (args: {
     shDays: _shDays,
     isWorkdayByIndex,
     isWithinBeregningsByIndex,
-    oevrigtFravaerDates,
     tableFra,
     tableTil,
     columnWidthPx,
@@ -234,6 +229,7 @@ export const buildLoenindkomstColumns = (args: {
   const columns: DebugTabelColumnData[] = [];
   const issues: DebugTabelIntegrityIssue[] = [];
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
+  const globalPeriodiseringErKalenderdage = computeTafBeregningsenhed(values) === TAF_BEREGNES_SOM.MAANEDER;
 
   const endeligEetDato =
     values.endeligtEetAfgorelse === 'Ja' && values.verserendeKlageEet === 'Nej'
@@ -332,9 +328,8 @@ export const buildLoenindkomstColumns = (args: {
       storeBededagPct: af.storeBededagPct,
       pensionPct: af.pensionPct,
     } as const;
-    const periodisering = resolveLoenPeriodiseringForAnsaettelsesforhold(af);
     const isPeriodiseringsdag = (index: number): boolean => {
-      if (periodisering === LOEN_PERIODISERING.KALENDERDAGE) return true;
+      if (globalPeriodiseringErKalenderdage) return true;
       return isWorkdayByIndex[index] === true;
     };
 
