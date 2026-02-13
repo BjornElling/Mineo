@@ -11,6 +11,10 @@ import { getReguleringsDatoer } from '../../data/offentligLoenLookup';
 import { parseOffentligDato } from './eoDebugOffentligeYdelserColumns';
 import type { DebugTabelColumnId, DebugTabelIntegrityIssue } from './eoDebugModel';
 import { debugTabelColumnId, WAGE_COLUMNS } from './eoDebugLoenTypes';
+import {
+  LOEN_PERIODISERING,
+  resolveLoenPeriodiseringForAnsaettelsesforhold,
+} from '../erstatningsopgoerelse/loenPeriodisering';
 
 // LOCKED: Løn/TAF debug-clusteret er færdig‑porteret.
 // Ændr kun ved parity‑brud og dokumentér årsag.
@@ -332,6 +336,11 @@ export const buildLoenindkomstColumns = (args: {
       storeBededagPct: af.storeBededagPct,
       pensionPct: af.pensionPct,
     } as const;
+    const periodisering = resolveLoenPeriodiseringForAnsaettelsesforhold(af);
+    const isPeriodiseringsdag = (index: number): boolean => {
+      if (periodisering === LOEN_PERIODISERING.KALENDERDAGE) return true;
+      return isWorkdayByIndex[index] === true;
+    };
 
     const includeKeys = WAGE_COLUMNS.filter((col) =>
       shouldIncludeWageColumn(af.indtaegtsoplysningerTableData ?? [], af.loenperiode, satser, col.key, errorRowIds)
@@ -346,7 +355,13 @@ export const buildLoenindkomstColumns = (args: {
     const expectedTotalsByKey = new Map<(typeof WAGE_COLUMNS)[number]['key'], number>();
     for (const col of includeKeys) expectedTotalsByKey.set(col.key, 0);
 
-    const parsedRows: Array<Readonly<{ interval: ParsedInterval; amounts: Readonly<Record<(typeof WAGE_COLUMNS)[number]['key'], number>> }>> = [];
+    const parsedRows: Array<
+      Readonly<{
+        interval: ParsedInterval;
+        amounts: Readonly<Record<(typeof WAGE_COLUMNS)[number]['key'], number>>;
+        periodiseringsdage: number;
+      }>
+    > = [];
 
     const rows = af.indtaegtsoplysningerTableData ?? [];
     for (const row of rows) {
@@ -374,19 +389,19 @@ export const buildLoenindkomstColumns = (args: {
       const hasAny = includeKeys.some((k) => amounts[k.key] !== 0);
       if (!hasAny) continue;
 
-      let arbejdsdage = 0;
+      let periodiseringsdage = 0;
       iterateDatesInclusive(interval.start, interval.end, (d) => {
         const iso = dateToISO(d);
         if (!iso) return;
         const idx = isoIndex.get(iso);
         if (idx === undefined) return;
-        if (isWorkdayByIndex[idx]) arbejdsdage += 1;
+        if (isPeriodiseringsdag(idx)) periodiseringsdage += 1;
       });
-      if (arbejdsdage <= 0) {
+      if (periodiseringsdage <= 0) {
         issues.push({
           severity: 'warning',
           area: 'lønindkomst',
-          message: `Lønindkomst${suffix}: Ingen arbejdsdage i en lønperiode (hverdage uden S/H og feriedage) – beløb kan ikke fordeles og vil mangle i debug tabellen.`,
+          message: `Lønindkomst${suffix}: Ingen periodiseringsdage i en lønperiode – beløb kan ikke fordeles og vil mangle i debug tabellen.`,
         });
         continue;
       }
@@ -394,19 +409,19 @@ export const buildLoenindkomstColumns = (args: {
       for (const col of includeKeys) {
         expectedTotalsByKey.set(col.key, (expectedTotalsByKey.get(col.key) ?? 0) + amounts[col.key]);
       }
-      parsedRows.push({ interval, amounts });
+      parsedRows.push({ interval, amounts, periodiseringsdage });
 
       iterateDatesInclusive(interval.start, interval.end, (d) => {
         const iso = dateToISO(d);
         if (!iso) return;
         const idx = isoIndex.get(iso);
         if (idx === undefined) return;
-        if (!isWorkdayByIndex[idx]) return;
+        if (!isPeriodiseringsdag(idx)) return;
 
         for (const col of includeKeys) {
           const array = arraysByKey.get(col.key);
           if (!array) continue;
-          array[idx] += amounts[col.key] / arbejdsdage;
+          array[idx] += amounts[col.key] / periodiseringsdage;
         }
       });
     }
@@ -441,7 +456,7 @@ export const buildLoenindkomstColumns = (args: {
         for (let idx = 0; idx < dates.length; idx += 1) {
           const isoDate = dates[idx];
           if (isoDate < aStartISO || isoDate > aEndISO) continue;
-          if (!isWorkdayByIndex[idx]) continue;
+          if (!isPeriodiseringsdag(idx)) continue;
           actual += arr[idx] ?? 0;
         }
 
