@@ -6,6 +6,7 @@ import { parseDanishDate } from '../../utils/shDageBeregning';
 import { ydelsestyper, type Periodisering } from '../../data/ydelsestyper';
 import { isoDateToDate } from '../dates/isoDate';
 import type { DebugTabelIntegrityIssue } from './eoDebugModel';
+import { isOffentligYdelseDatoMedregnet as isOffentligYdelseDatoMedregnetCentral } from '../erstatningsopgoerelse/periodiseringsMotor';
 
 export type OffentligYdelseCoreColumn = Readonly<{
   typeKey: string;
@@ -66,17 +67,15 @@ const isOffentligYdelseDatoMedregnet = (
   rowTilISO: ISODateString,
   sygedagpengeShCutoff: ISODateString
 ): boolean => {
-  if (periodisering === 'kalenderdage') return true;
-  const dow = dateObj.getUTCDay();
-  const erHverdag = dow >= 1 && dow <= 5;
-  if (!erHverdag) return false;
-  if (periodisering === 'hverdage') return true;
-
-  // arbejdsdage = hverdage minus SH (med specialregel for sygedagpenge før 2. juli 2012)
-  if (ydelsestypeKey === 'sygedagpenge') {
-    if (rowTilISO < sygedagpengeShCutoff) return true;
-  }
-  return !shDays.has(iso);
+  return isOffentligYdelseDatoMedregnetCentral({
+    iso,
+    dateObj,
+    shDays,
+    periodisering,
+    ydelsestypeKey,
+    rowTilISO,
+    sygedagpengeShCutoff,
+  });
 };
 
 export const buildOffentligeYdelserColumns = (args: {

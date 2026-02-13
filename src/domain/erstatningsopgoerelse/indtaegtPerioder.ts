@@ -9,7 +9,6 @@ import { dateToISO, isISODateString } from '../../types/branded';
 import { calculateAarsloenRowDerived } from '../../utils/aarsloenTableCalculations';
 import { parseAmount } from '../../utils/formatUtils';
 import { createDate, parseDanishDate, parseWeekString } from '../../utils/dateUtils';
-import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { ydelsestyper } from '../../data/ydelsestyper';
 import { beregnHelligdage } from '../../utils/shDageBeregning';
 import { mergeIsoDateRanges } from './periodMerging';
@@ -17,11 +16,14 @@ import { buildClampedTafRanges, resolveTafConstraintBounds } from './tafPeriodCo
 import { getAarsloenErrorRowIdSet } from './indkomstRowValidation';
 import { isoDateToDate } from '../dates/isoDate';
 import { isAarsloenTableValueEffectivelyEmptyForValidation } from '../../utils/aarsloenTableValidation';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
 import {
-  LOEN_PERIODISERING,
-  type LoenPeriodisering,
-  resolveLoenPeriodiseringForAnsaettelsesforhold,
-} from './loenPeriodisering';
+  buildLoenArbejdsdageSet,
+  periodiserBeloebForArbejdsdage,
+  periodiserBeloebForMaaneder,
+  periodiserBeloebForOffentligYdelse,
+  SYGEDAGPENGE_SH_CUTOFF,
+} from './periodiseringsMotor';
 
 export type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
 
@@ -64,46 +66,6 @@ const getIsoRange = (fra: ISODateString | undefined, til: ISODateString | undefi
   return { fra, til };
 };
 
-const getOverlapDays = (interval: DateInterval, ranges: readonly IsoRange[]): number => {
-  if (ranges.length === 0) return 0;
-  let total = 0;
-  for (const range of ranges) {
-    const rangeStart = isoDateToDate(range.fra);
-    const rangeEnd = isoDateToDate(range.til);
-    const start = interval.start > rangeStart ? interval.start : rangeStart;
-    const end = interval.end < rangeEnd ? interval.end : rangeEnd;
-    if (start > end) continue;
-    const days = countInclusiveUtcDays(start, end);
-    if (days) total += days;
-  }
-  return total;
-};
-
-const getOverlappingIsoRange = (
-  a: IsoRange | undefined,
-  b: IsoRange | undefined
-): IsoRange | undefined => {
-  if (!a || !b) return undefined;
-  const fra = a.fra > b.fra ? a.fra : b.fra;
-  const til = a.til < b.til ? a.til : b.til;
-  if (fra > til) return undefined;
-  return { fra, til };
-};
-
-const iterateIsoDatesInclusive = (
-  fra: ISODateString,
-  til: ISODateString,
-  onDate: (iso: ISODateString, date: Date) => void
-): void => {
-  const current = isoDateToDate(fra);
-  const end = isoDateToDate(til);
-  while (current <= end) {
-    const iso = dateToISO(current);
-    if (iso) onDate(iso, current);
-    current.setUTCDate(current.getUTCDate() + 1);
-  }
-};
-
 const buildShDageSet = (fra: ISODateString, til: ISODateString): ReadonlySet<ISODateString> => {
   const start = isoDateToDate(fra);
   const end = isoDateToDate(til);
@@ -118,135 +80,6 @@ const buildShDageSet = (fra: ISODateString, til: ISODateString): ReadonlySet<ISO
     }
   }
   return set;
-};
-
-const addWeekdayNonShDatesFromRange = (
-  set: Set<ISODateString>,
-  range: IsoRange,
-  shDage: ReadonlySet<ISODateString>
-): void => {
-  iterateIsoDatesInclusive(range.fra, range.til, (iso, d) => {
-    const dow = d.getUTCDay();
-    if (dow < 1 || dow > 5) return;
-    if (shDage.has(iso)) return;
-    set.add(iso);
-  });
-};
-
-const allocateWeekdayDates = (args: {
-  range: IsoRange | undefined;
-  count: number;
-  shDage: ReadonlySet<ISODateString>;
-  reserved: Set<ISODateString>;
-}): ReadonlySet<ISODateString> => {
-  const { range, count, shDage, reserved } = args;
-  if (!range || count <= 0) return new Set<ISODateString>();
-
-  const selected = new Set<ISODateString>();
-  let remaining = Math.max(0, Math.trunc(count));
-  if (remaining === 0) return selected;
-
-  iterateIsoDatesInclusive(range.fra, range.til, (iso, d) => {
-    if (remaining <= 0) return;
-    const dow = d.getUTCDay();
-    if (dow < 1 || dow > 5) return;
-    if (shDage.has(iso) || reserved.has(iso)) return;
-    selected.add(iso);
-    reserved.add(iso);
-    remaining -= 1;
-  });
-
-  return selected;
-};
-
-const buildArbejdsdageSet = (
-  values: ErstatningsopgoerelseValues,
-  bounds: IsoRange
-): ReadonlySet<ISODateString> => {
-  const shDage = buildShDageSet(bounds.fra, bounds.til);
-
-  const explicitFerie = new Set<ISODateString>();
-  for (const row of [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])]) {
-    const rowRange = getIsoRange(row.fra, row.til);
-    const overlap = getOverlappingIsoRange(rowRange, bounds);
-    if (!overlap) continue;
-    addWeekdayNonShDatesFromRange(explicitFerie, overlap, shDage);
-  }
-
-  const loseFerie = new Set<ISODateString>();
-  for (const row of values.tafPerioder ?? []) {
-    const rowRange = getIsoRange(row.fra, row.til);
-    const overlap = getOverlappingIsoRange(rowRange, bounds);
-    if (!overlap) continue;
-    const loseCount = typeof row.loseFeriedage === 'number' ? Math.max(0, Math.trunc(row.loseFeriedage)) : 0;
-    if (loseCount <= 0) continue;
-    let remaining = loseCount;
-    iterateIsoDatesInclusive(overlap.fra, overlap.til, (iso, d) => {
-      if (remaining <= 0) return;
-      const dow = d.getUTCDay();
-      if (dow < 1 || dow > 5) return;
-      if (shDage.has(iso) || explicitFerie.has(iso) || loseFerie.has(iso)) return;
-      loseFerie.add(iso);
-      remaining -= 1;
-    });
-  }
-
-  const reserved = new Set<ISODateString>([...explicitFerie, ...loseFerie]);
-  const oevrigeFravaersdageCount =
-    values.oevrigtFravaerUdenLoen === 'Ja' && typeof values.oevrigeFravaersdage === 'number'
-      ? values.oevrigeFravaersdage
-      : 0;
-  const beregningsRange = getIsoRange(values.periodeTilBeregningFra, values.periodeTilBeregningTil);
-  const relevantBeregningsRange = getOverlappingIsoRange(beregningsRange, bounds);
-  const oevrigtFravaer = allocateWeekdayDates({
-    range: relevantBeregningsRange,
-    count: oevrigeFravaersdageCount,
-    shDage,
-    reserved,
-  });
-
-  const allFerie = new Set<ISODateString>([...explicitFerie, ...loseFerie, ...oevrigtFravaer]);
-  const arbejdsdage = new Set<ISODateString>();
-  iterateIsoDatesInclusive(bounds.fra, bounds.til, (iso, d) => {
-    const dow = d.getUTCDay();
-    if (dow < 1 || dow > 5) return;
-    if (shDage.has(iso)) return;
-    if (allFerie.has(iso)) return;
-    arbejdsdage.add(iso);
-  });
-
-  return arbejdsdage;
-};
-
-const getPeriodiseringsdage = (args: {
-  interval: DateInterval;
-  ranges: readonly IsoRange[];
-  periodisering: LoenPeriodisering;
-  arbejdsdageSet: ReadonlySet<ISODateString>;
-}): Readonly<{ total: number; overlap: number }> => {
-  const { interval, ranges, periodisering, arbejdsdageSet } = args;
-  const totalDays = countInclusiveUtcDays(interval.start, interval.end);
-  if (!totalDays || totalDays <= 0) return { total: 0, overlap: 0 };
-
-  if (periodisering === LOEN_PERIODISERING.KALENDERDAGE) {
-    return { total: totalDays, overlap: getOverlapDays(interval, ranges) };
-  }
-
-  let total = 0;
-  let overlap = 0;
-  for (let i = 0; i < totalDays; i += 1) {
-    const date = new Date(interval.start.getTime());
-    date.setUTCDate(interval.start.getUTCDate() + i);
-    const iso = dateToISO(date);
-    if (!iso) continue;
-    if (!arbejdsdageSet.has(iso)) continue;
-    total += 1;
-    if (ranges.some((range) => iso >= range.fra && iso <= range.til)) {
-      overlap += 1;
-    }
-  }
-
-  return { total, overlap };
 };
 
 export const parseAarsloenRowInterval = (row: AarsloenTableRow, loenperiode: Loenperiode): DateInterval | null => {
@@ -309,6 +142,20 @@ const parseOffentligInterval = (row: OffentligeYdelserRow): DateInterval | null 
   if (!fra || !til) return null;
   if (fra > til) return null;
   return { start: toUtcDay(fra), end: toUtcDay(til) };
+};
+
+const resolveYdelsestype = (raw: string): Readonly<{ key: string; label: string; periodisering: (typeof ydelsestyper)[string]['periodisering'] }> | null => {
+  const direct = ydelsestyper[raw];
+  if (direct) {
+    return { key: raw, label: direct.label, periodisering: direct.periodisering };
+  }
+  const normalizedRaw = raw.trim().toLowerCase();
+  for (const [key, config] of Object.entries(ydelsestyper)) {
+    if (config.label.trim().toLowerCase() === normalizedRaw) {
+      return { key, label: config.label, periodisering: config.periodisering };
+    }
+  }
+  return null;
 };
 
 export const buildTafRanges = (values: ErstatningsopgoerelseValues): IsoRange[] => {
@@ -376,9 +223,17 @@ export const buildIncomeForRanges = (
   );
   const boundsFra = boundsFraCandidates.reduce<ISODateString | undefined>((acc, iso) => (acc ? (acc < iso ? acc : iso) : iso), undefined);
   const boundsTil = boundsTilCandidates.reduce<ISODateString | undefined>((acc, iso) => (acc ? (acc > iso ? acc : iso) : iso), undefined);
+  const beregningsenhed = computeTafBeregningsenhed(values);
   const arbejdsdageSet =
     boundsFra && boundsTil && boundsFra <= boundsTil
-      ? buildArbejdsdageSet(values, { fra: boundsFra, til: boundsTil })
+      ? buildLoenArbejdsdageSet(
+        { fra: boundsFra, til: boundsTil },
+        [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])]
+      )
+      : new Set<ISODateString>();
+  const shDaysForYdelser =
+    boundsFra && boundsTil && boundsFra <= boundsTil
+      ? buildShDageSet(boundsFra, boundsTil)
       : new Set<ISODateString>();
   const loenErrorRowIdsByEmploymentId = new Map<string, ReadonlySet<string>>(
     ansaettelser.map((af) => [af.id, getAarsloenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)])
@@ -386,7 +241,6 @@ export const buildIncomeForRanges = (
 
   for (let index = 0; index < ansaettelser.length; index += 1) {
     const af = ansaettelser[index];
-    const periodisering = resolveLoenPeriodiseringForAnsaettelsesforhold(af);
     const errorRowIds = loenErrorRowIdsByEmploymentId.get(af.id) ?? new Set<string>();
     const classifyLoenRow = (row: AarsloenTableRow): RowEligibility => {
       if (isLoenRowEffectivelyEmptyForLoenperiode(row, af.loenperiode)) return 'empty';
@@ -413,24 +267,33 @@ export const buildIncomeForRanges = (
       if (eligibility !== 'valid') continue;
       const interval = parseAarsloenRowInterval(row, af.loenperiode);
       if (!interval) continue; // defensiv: eligibility 'valid' kræver interval
-      const periodiseringsdage = getPeriodiseringsdage({
-        interval,
-        ranges,
-        periodisering,
-        arbejdsdageSet,
-      });
-      if (periodiseringsdage.total <= 0 || periodiseringsdage.overlap <= 0) continue;
       const derived = calculateAarsloenRowDerived(row, satser);
       const atp = parseAmount(row.col5);
       // NOTE: Fail-closed by design.
       // Ikke-finite afledte beløb må aldrig indgå tavst i summer.
       if (!Number.isFinite(derived.samlet) || derived.samlet <= 0) continue;
-      const fraction = periodiseringsdage.overlap / periodiseringsdage.total;
-      const ferieberetContrib = derived.ferieberet * fraction;
-      const fpFvShSoStbContrib = derived.fpFvShSo * fraction;
-      const pensionContrib = derived.pension * fraction;
-      const atpContrib = atp * fraction;
-      const samletContrib = derived.samlet * fraction;
+
+      const periodiser = (amount: number): number => {
+        if (beregningsenhed === TAF_BEREGNES_SOM.MAANEDER) {
+          return periodiserBeloebForMaaneder({
+            totalBeloeb: amount,
+            interval,
+            ranges,
+          });
+        }
+        return periodiserBeloebForArbejdsdage({
+          totalBeloeb: amount,
+          interval,
+          ranges,
+          arbejdsdageSet,
+        });
+      };
+
+      const ferieberetContrib = periodiser(derived.ferieberet);
+      const fpFvShSoStbContrib = periodiser(derived.fpFvShSo);
+      const pensionContrib = periodiser(derived.pension);
+      const atpContrib = periodiser(atp);
+      const samletContrib = periodiser(derived.samlet);
       if (
         !Number.isFinite(ferieberetContrib) ||
         !Number.isFinite(fpFvShSoStbContrib) ||
@@ -482,10 +345,6 @@ export const buildIncomeForRanges = (
     if (classifyOffentligRow(row) !== 'valid') continue;
     const interval = parseOffentligInterval(row);
     if (!interval) continue;
-    const totalDays = countInclusiveUtcDays(interval.start, interval.end);
-    if (!totalDays || totalDays <= 0) continue;
-    const overlapDays = getOverlapDays(interval, ranges);
-    if (overlapDays <= 0) continue;
     const amount = parseAmount(row.ydelse) + parseAmount(row.tillaeg);
     if (import.meta.env.DEV) {
       const hasAmountInput = row.ydelse !== undefined || row.tillaeg !== undefined;
@@ -494,17 +353,31 @@ export const buildIncomeForRanges = (
       }
     }
     if (!Number.isFinite(amount) || amount <= 0) continue;
-    const fraction = overlapDays / totalDays;
-    const typeKey = row.ydelsestype?.trim() ?? '';
-    const label = typeKey !== '' ? (ydelsestyper[typeKey]?.label ?? typeKey) : 'Offentlig ydelse';
+    const rawType = row.ydelsestype?.trim() ?? '';
+    const resolvedType = resolveYdelsestype(rawType);
+    if (!resolvedType) continue;
+    const typeKey = resolvedType.key;
+    const label = resolvedType.label;
+    const periodiseretAmount = ranges.reduce((sum, range) => {
+      return sum + periodiserBeloebForOffentligYdelse({
+        totalBeloeb: amount,
+        interval,
+        range,
+        periodisering: resolvedType.periodisering,
+        ydelsestypeKey: typeKey,
+        shDays: shDaysForYdelser,
+        sygedagpengeShCutoff: SYGEDAGPENGE_SH_CUTOFF,
+      });
+    }, 0);
+    if (!Number.isFinite(periodiseretAmount) || periodiseretAmount <= 0) continue;
     // NOTE: Fail-closed semantics kræver sporbar aggregation.
     // Rækker uden type må ikke sammenklappes via label.
     const key = typeKey !== '' ? `type:${typeKey}` : `row:${row.id}`;
     const existing = benefitsMap.get(key);
     if (existing) {
-      existing.amount += amount * fraction;
+      existing.amount += periodiseretAmount;
     } else {
-      benefitsMap.set(key, { label, typeKey, amount: amount * fraction });
+      benefitsMap.set(key, { label, typeKey, amount: periodiseretAmount });
     }
   }
 

@@ -310,13 +310,13 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(1000),
       tafPerioder: [
-        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-01'), loseFeriedage: undefined },
+        { id: 'taf-1', fra: iso('2024-01-02'), til: iso('2024-01-02'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '03-01-2024',
+          fraDato: '02-01-2024',
+          tilDato: '04-01-2024',
           ydelse: asAmountValue(100),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1092,6 +1092,5 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     }
   });
 });
-
 
 

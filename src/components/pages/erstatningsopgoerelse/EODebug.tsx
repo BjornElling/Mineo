@@ -55,6 +55,7 @@ import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../../../domain/ers
 import { computeTafOverlapWithBeregningsperiode } from '../../../domain/erstatningsopgoerelse/beregningsperiodeTafOverlap';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
+import { isOffentligYdelseDatoMedregnet as isOffentligYdelseDatoMedregnetCentral } from '../../../domain/erstatningsopgoerelse/periodiseringsMotor';
 
 // Debug strategy:
 // - We intentionally read errors by source (input/schema/rule) to expose diagnostics.
@@ -504,16 +505,15 @@ const isOffentligYdelseDatoMedregnet = (
   ydelsestypeKey: string,
   rowTilISO: ISODateString
 ): boolean => {
-  if (periodisering === 'kalenderdage') return true;
-  const dow = dateObj.getUTCDay();
-  const erHverdag = dow >= 1 && dow <= 5;
-  if (!erHverdag) return false;
-  if (periodisering === 'hverdage') return true;
-
-  if (ydelsestypeKey === 'sygedagpenge') {
-    if (rowTilISO < SYGEDAGPENGE_SH_CUTOFF) return true;
-  }
-  return !shDays.has(iso);
+  return isOffentligYdelseDatoMedregnetCentral({
+    iso,
+    dateObj,
+    shDays,
+    periodisering,
+    ydelsestypeKey,
+    rowTilISO,
+    sygedagpengeShCutoff: SYGEDAGPENGE_SH_CUTOFF,
+  });
 };
 
 const rangesOverlap = (
