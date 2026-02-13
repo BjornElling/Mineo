@@ -2068,10 +2068,7 @@ const EODebug = () => {
       );
     })();
 
-    const beregnesSom = computeTafBeregningsenhed({
-      beregnesUdFra: erstatningsopgoerelseValues.beregnesUdFra,
-      loenindkomstAnsaettelsesforhold: erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? [],
-    });
+    const beregnesSom = computeTafBeregningsenhed(erstatningsopgoerelseValues);
 
     const divisor = beregnesSom === TAF_BEREGNES_SOM.MAANEDER ? maaneder : arbejdsdage;
     const divisorLabel = beregnesSom === TAF_BEREGNES_SOM.MAANEDER ? 'måneder' : 'arbejdsdage';

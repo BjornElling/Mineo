@@ -27,10 +27,27 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
   it('hides Måneder when TAF beregnes som is Arbejdsdage', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: '2024-01-01',
+      periodeTilBeregningTil: '2024-12-31',
       loenindkomstAnsaettelsesforhold: [
         {
           ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
           fuldLoenUnderFerie: 'Nej',
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'row-workdays',
+              col0_maaned: '1',
+              col1_maaned: '2024',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: asAmountValue(10000),
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
         },
       ],
     });
