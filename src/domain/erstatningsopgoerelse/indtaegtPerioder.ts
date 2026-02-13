@@ -32,6 +32,13 @@ export type IncomeEmployerAmount = Readonly<{
   index: number;
   name: string;
   amount: number;
+  breakdown: Readonly<{
+    ferieberet: number;
+    fpFvShSo: number;
+    pension: number;
+    atp: number;
+    samlet: number;
+  }>;
 }>;
 
 export type IncomeBenefitAmount = Readonly<{
@@ -400,7 +407,7 @@ export const buildIncomeForRanges = (
       storeBededagPct: af.storeBededagPct,
       pensionPct: af.pensionPct,
     };
-    let sum = 0;
+    const breakdown = { ferieberet: 0, fpFvShSo: 0, pension: 0, atp: 0, samlet: 0 };
     for (const row of af.indtaegtsoplysningerTableData ?? []) {
       const eligibility = classifyLoenRow(row);
       if (eligibility !== 'valid') continue;
@@ -414,18 +421,39 @@ export const buildIncomeForRanges = (
       });
       if (periodiseringsdage.total <= 0 || periodiseringsdage.overlap <= 0) continue;
       const derived = calculateAarsloenRowDerived(row, satser);
+      const atp = parseAmount(row.col5);
       // NOTE: Fail-closed by design.
       // Ikke-finite afledte beløb må aldrig indgå tavst i summer.
       if (!Number.isFinite(derived.samlet) || derived.samlet <= 0) continue;
       const fraction = periodiseringsdage.overlap / periodiseringsdage.total;
-      sum += derived.samlet * fraction;
+      const ferieberetContrib = derived.ferieberet * fraction;
+      const fpFvShSoStbContrib = derived.fpFvShSo * fraction;
+      const pensionContrib = derived.pension * fraction;
+      const atpContrib = atp * fraction;
+      const samletContrib = derived.samlet * fraction;
+      if (
+        !Number.isFinite(ferieberetContrib) ||
+        !Number.isFinite(fpFvShSoStbContrib) ||
+        !Number.isFinite(pensionContrib) ||
+        !Number.isFinite(atpContrib) ||
+        !Number.isFinite(samletContrib) ||
+        samletContrib <= 0
+      ) {
+        continue;
+      }
+      breakdown.ferieberet += ferieberetContrib;
+      breakdown.fpFvShSo += fpFvShSoStbContrib;
+      breakdown.pension += pensionContrib;
+      breakdown.atp += atpContrib;
+      breakdown.samlet += samletContrib;
     }
-    if (Number.isFinite(sum) && sum > 0) {
+    if (Number.isFinite(breakdown.samlet) && breakdown.samlet > 0) {
       employers.push({
         id: af.id,
         index,
         name: (af.navnPaaArbejdssted ?? '').trim(),
-        amount: sum,
+        amount: breakdown.samlet,
+        breakdown,
       });
     }
   }
