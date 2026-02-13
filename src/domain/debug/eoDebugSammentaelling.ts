@@ -1,7 +1,7 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { FieldErrorsForSection } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
-import { dateToISO, subtractOneDay } from '../../types/branded';
+import { subtractOneDay } from '../../types/branded';
 import { formatCurrency, parseAmount } from '../../utils/formatUtils';
 import { debugTabelColumnId } from './eoDebugLoenTypes';
 import type { EODebugModel } from './eoDebugModel';
@@ -12,7 +12,6 @@ import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } 
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, type IsoRange } from '../erstatningsopgoerelse/indtaegtPerioder';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
 import { buildFerieDageSet, buildSHDageSet } from './eoDebugRegulationCore';
-import { isoDateToDate } from '../dates/isoDate';
 
 export type SvieSmerteContext = Readonly<{
   skadesdatoISO: ISODateString | undefined;
@@ -38,6 +37,10 @@ export type SammentaellingControl = Readonly<{
   oevrigeFravaersdage: number;
   warningEligible: boolean;
   feriedageCount?: number | null;
+  ferieDageCount?: number | null;
+  dateredeFerieDageCount?: number | null;
+  loseFerieDageCount?: number | null;
+  shDageCount?: number | null;
 }>;
 
 export type SammentaellingControlStatus = 'ok' | 'warning' | 'error';
@@ -156,18 +159,39 @@ export type SammentaellingDisplayTables = Readonly<{
 }>;
 
 export const buildSammentaellingDisplayTables = (model: SammentaellingModel): SammentaellingDisplayTables => {
-  const formatFeriedage = (value: number | null | undefined): string => {
+  const formatCount = (value: number | null | undefined): string => {
     const resolved = typeof value === 'number' && Number.isFinite(value) ? value : 0;
     return resolved.toLocaleString('da-DK');
   };
+  const ferieShPrefix = model.beregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'inkl.' : '-';
+  const beregningsFerieDageTilLabel =
+    model.beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
+      ? (model.beregningsperiode.dateredeFerieDageCount ?? model.beregningsperiode.ferieDageCount)
+      : model.beregningsperiode.ferieDageCount;
+  const tafFerieDageTilLabel =
+    model.beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
+      ? (model.taf.dateredeFerieDageCount ?? model.taf.ferieDageCount)
+      : model.taf.ferieDageCount;
+  const beregningsLoseFerieTilLabel = typeof model.beregningsperiode.loseFerieDageCount === 'number'
+    ? Math.max(0, model.beregningsperiode.loseFerieDageCount)
+    : 0;
+  const tafLoseFerieTilLabel = typeof model.taf.loseFerieDageCount === 'number'
+    ? Math.max(0, model.taf.loseFerieDageCount)
+    : 0;
+  const beregningsOevrigtTilLabel = Math.max(0, model.beregningsperiode.oevrigeFravaersdage);
+  const beregningsEkstraSuffix = (() => {
+    const samletLoseOgFravaer = beregningsLoseFerieTilLabel + beregningsOevrigtTilLabel;
+    return samletLoseOgFravaer > 0 ? ` (- ${formatCount(samletLoseOgFravaer)} løse ferie- og fraværsdage)` : '';
+  })();
+  const tafEkstraSuffix = tafLoseFerieTilLabel > 0
+    ? ` (- ${formatCount(tafLoseFerieTilLabel)} løse feriedage)`
+    : '';
 
-  const beregningsperiodeLabel = model.beregningsenhed === TAF_BEREGNES_SOM.MAANEDER
-    ? `Arbejdsdage i beregningsperiode (+ ${formatFeriedage(model.beregningsperiode.feriedageCount)} ferie- og SH-dage)`
-    : 'Arbejdsdage i beregningsperiode';
+  const beregningsperiodeLabel =
+    `Arbejdsdage i beregningsperiode (${ferieShPrefix} ${formatCount(beregningsFerieDageTilLabel)} feriedage og ${formatCount(model.beregningsperiode.shDageCount)} SH-dage)${beregningsEkstraSuffix}`;
 
-  const tafLabel = model.beregningsenhed === TAF_BEREGNES_SOM.MAANEDER
-    ? `Arbejdsdage i TAF-periode (+ ${formatFeriedage(model.taf.feriedageCount)} ferie- og SH-dage)`
-    : 'Arbejdsdage i TAF-periode';
+  const tafLabel =
+    `Arbejdsdage i TAF-periode (${ferieShPrefix} ${formatCount(tafFerieDageTilLabel)} feriedage og ${formatCount(model.taf.shDageCount)} SH-dage)${tafEkstraSuffix}`;
 
   const basisRows: SammentaellingDisplayRow[] = [
     {
@@ -225,49 +249,6 @@ const getIsoRange = (
   return { fra, til };
 };
 
-const allocateWeekdayDates = (args: {
-  range: Readonly<{ fra: ISODateString; til: ISODateString }> | null;
-  count: number;
-  shDays: ReadonlySet<ISODateString>;
-  reserved: Set<ISODateString>;
-}): ReadonlySet<ISODateString> => {
-  const { range, count, shDays, reserved } = args;
-  if (!range || count <= 0) return new Set<ISODateString>();
-
-  const selected = new Set<ISODateString>();
-  let remaining = Math.max(0, Math.trunc(count));
-  if (remaining === 0) return selected;
-
-  const start = isoDateToDate(range.fra);
-  const end = isoDateToDate(range.til);
-
-  const current = new Date(start);
-  while (current <= end) {
-    if (remaining <= 0) break;
-    const dow = current.getUTCDay();
-    const erHverdag = dow >= 1 && dow <= 5;
-    if (!erHverdag) {
-      current.setUTCDate(current.getUTCDate() + 1);
-      continue;
-    }
-    const iso = dateToISO(current);
-    if (!iso) {
-      current.setUTCDate(current.getUTCDate() + 1);
-      continue;
-    }
-    if (shDays.has(iso) || reserved.has(iso)) {
-      current.setUTCDate(current.getUTCDate() + 1);
-      continue;
-    }
-    selected.add(iso);
-    reserved.add(iso);
-    remaining -= 1;
-    current.setUTCDate(current.getUTCDate() + 1);
-  }
-
-  return selected;
-};
-
 const buildShDatesInRange = (
   range: Readonly<{ fra: ISODateString; til: ISODateString }> | null
 ): ReadonlySet<ISODateString> => {
@@ -277,33 +258,38 @@ const buildShDatesInRange = (
 
 const buildFerieDatesInRange = (
   values: ErstatningsopgoerelseValues,
-  range: Readonly<{ fra: ISODateString; til: ISODateString }> | null
+  range: Readonly<{ fra: ISODateString; til: ISODateString }> | null,
+  options?: Readonly<{ includeTafLoseFeriedage?: boolean; includeBeregningsperiodeLoseFeriedage?: boolean }>
 ): ReadonlySet<ISODateString> => {
   if (!range) return new Set<ISODateString>();
 
   const shDays = buildSHDageSet(range.fra, range.til);
   const ferieperioder = [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])];
-  const ferieDates = buildFerieDageSet(
-    { ferieperioder, tafPerioder: values.tafPerioder ?? [] },
+  const includeTafLoseFeriedage = options?.includeTafLoseFeriedage === true;
+  const includeBeregningsperiodeLoseFeriedage = options?.includeBeregningsperiodeLoseFeriedage === true;
+  const beregningsperiodeLoseFeriedage =
+    includeBeregningsperiodeLoseFeriedage && typeof values.uspecificeredeFerieFridage === 'number'
+      ? Math.max(0, Math.trunc(values.uspecificeredeFerieFridage))
+      : 0;
+
+  const loseFerieSources: Array<{ fra?: ISODateString; til?: ISODateString; loseFeriedage?: number }> = [];
+  if (includeTafLoseFeriedage) {
+    loseFerieSources.push(...(values.tafPerioder ?? []));
+  }
+  if (includeBeregningsperiodeLoseFeriedage && beregningsperiodeLoseFeriedage > 0) {
+    loseFerieSources.push({
+      fra: range.fra,
+      til: range.til,
+      loseFeriedage: beregningsperiodeLoseFeriedage,
+    });
+  }
+
+  return buildFerieDageSet(
+    { ferieperioder, tafPerioder: loseFerieSources },
     shDays,
     range.fra,
     range.til
   );
-
-  const reserved = new Set<ISODateString>(ferieDates);
-  const oevrigeFravaersdageCount =
-    values.oevrigtFravaerUdenLoen === 'Ja' && typeof values.oevrigeFravaersdage === 'number'
-      ? values.oevrigeFravaersdage
-      : 0;
-
-  const oevrigtFravaerDates = allocateWeekdayDates({
-    range,
-    count: oevrigeFravaersdageCount,
-    shDays,
-    reserved,
-  });
-
-  return new Set<ISODateString>([...ferieDates, ...oevrigtFravaerDates]);
 };
 
 const formatDaInt = (value: number): string => value.toLocaleString('da-DK');
@@ -456,7 +442,7 @@ const countTafDaysFromTable = (model: EODebugModel): number | null => {
   for (let rowIndex = 0; rowIndex < model.rowCount; rowIndex += 1) {
     const row = model.rows[rowIndex];
     if (!row) continue;
-    const hasTaf = model.tableData.tafColumnIds.some((colId) => row.cells[colId] === 'Ja');
+    const hasTaf = model.tableData.tafColumnIds.some((colId) => (row.cells[colId] ?? '').trim() === 'Ja');
     if (hasTaf) count += 1;
   }
   return count;
@@ -495,8 +481,19 @@ export const buildEODebugSammentaellingModel = (args: {
   const beregningsRange = getIsoRange(values.periodeTilBeregningFra, values.periodeTilBeregningTil);
   const erstatningsRange = getIsoRange(values.vedroererPeriodeFra, values.vedroererPeriodeTil);
 
-  const beregningsFerieDates = buildFerieDatesInRange(values, beregningsRange);
+  const beregningsFerieDates = buildFerieDatesInRange(values, beregningsRange, {
+    includeBeregningsperiodeLoseFeriedage: true,
+    includeTafLoseFeriedage: false,
+  });
+  const beregningsDateredeFerieDates = buildFerieDatesInRange(values, beregningsRange, {
+    includeBeregningsperiodeLoseFeriedage: false,
+    includeTafLoseFeriedage: false,
+  });
   const beregningsShDates = buildShDatesInRange(beregningsRange);
+  const beregningsDateredeFerieDageCount = beregningsDateredeFerieDates.size;
+  const beregningsFerieDageCount = beregningsFerieDates.size;
+  const beregningsLoseFerieDageCount = Math.max(0, beregningsFerieDageCount - beregningsDateredeFerieDageCount);
+  const beregningsShDageCount = beregningsShDates.size;
   const beregningsFeriedageCount = beregningsFerieDates.size + beregningsShDates.size;
 
   const tafBounds = resolveTafConstraintBounds(values);
@@ -507,7 +504,25 @@ export const buildEODebugSammentaellingModel = (args: {
       if (!validRange) continue;
       const range = clampTafRange(validRange, tafBounds);
       if (!range) continue;
-      const set = buildFerieDatesInRange(values, range);
+      const set = buildFerieDatesInRange(values, range, {
+        includeTafLoseFeriedage: true,
+        includeBeregningsperiodeLoseFeriedage: false,
+      });
+      set.forEach((iso) => collected.add(iso));
+    }
+    return collected;
+  })();
+  const tafDateredeFerieDates = (() => {
+    const collected = new Set<ISODateString>();
+    for (const periode of values.tafPerioder ?? []) {
+      const validRange = getValidTafRange(periode);
+      if (!validRange) continue;
+      const range = clampTafRange(validRange, tafBounds);
+      if (!range) continue;
+      const set = buildFerieDatesInRange(values, range, {
+        includeTafLoseFeriedage: false,
+        includeBeregningsperiodeLoseFeriedage: false,
+      });
       set.forEach((iso) => collected.add(iso));
     }
     return collected;
@@ -524,6 +539,10 @@ export const buildEODebugSammentaellingModel = (args: {
     }
     return collected;
   })();
+  const tafDateredeFerieDageCount = tafDateredeFerieDates.size;
+  const tafFerieDageCount = tafFerieDates.size;
+  const tafLoseFerieDageCount = Math.max(0, tafFerieDageCount - tafDateredeFerieDageCount);
+  const tafShDageCount = tafShDates.size;
   const tafFeriedageCount = tafFerieDates.size + tafShDates.size;
 
   const beregningsArbejdsdage = countArbejdsdageInRange(model, beregningsRange);
@@ -612,28 +631,33 @@ export const buildEODebugSammentaellingModel = (args: {
       periodeFra,
       periodeTil,
       beregningsFerieperioder,
-      0,
+      typeof values.uspecificeredeFerieFridage === 'number' ? values.uspecificeredeFerieFridage : 0,
       { kind: 'beregningsgrundlag', oevrigeFravaersdage: oevrigeFravaersdageValue }
     );
     if (!breakdown) return null;
 
-    const base = Math.max(0, breakdown.tafDage);
-    if (beregningsenhed !== TAF_BEREGNES_SOM.MAANEDER) return base;
-    return base + beregningsFeriedageCount;
+    // Systematik:
+    // - Måneder: beregnet værdi i sammentælling er rene hverdage (ingen fradrag).
+    // - Arbejdsdage: beregnet værdi er hverdage minus SH/ferie/løse ferie/øvrigt fravær.
+    if (beregningsenhed === TAF_BEREGNES_SOM.MAANEDER) {
+      return Math.max(0, breakdown.arbejdsdage);
+    }
+    return Math.max(0, breakdown.tafDage);
   })();
 
   const beregningsBeregnetDisplay = formatOptionalInt(beregningsperiodeArbejdsdage);
-  const beregningsTabelDisplay = formatOptionalInt(beregningsArbejdsdage);
   const tafBeregnetDisplay = formatOptionalInt(tafBeregnetDays);
-  const tafTabelDisplay = formatOptionalInt(tafArbejdsdageFromTable);
 
-  const beregningsLoseFeriedage = 0;
+  const beregningsLoseFeriedage = beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
+    ? beregningsLoseFerieDageCount
+    : 0;
   const beregningsOevrigeFravaersdage =
-    values.oevrigtFravaerUdenLoen === 'Ja' && typeof values.oevrigeFravaersdage === 'number'
+    beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
+      && values.oevrigtFravaerUdenLoen === 'Ja'
+      && typeof values.oevrigeFravaersdage === 'number'
       ? values.oevrigeFravaersdage
       : 0;
-  const beregningsWarningEligible =
-    values.oevrigtFravaerUdenLoen !== 'Ja' || typeof values.oevrigeFravaersdage === 'number';
+  const beregningsTabelFradrag = beregningsLoseFeriedage + beregningsOevrigeFravaersdage;
 
   const tafLoseFeriedage = (values.tafPerioder ?? []).reduce((sum, row) => {
     const validRange = getValidTafRange(row);
@@ -643,6 +667,24 @@ export const buildEODebugSammentaellingModel = (args: {
     const next = typeof row.loseFeriedage === 'number' ? row.loseFeriedage : 0;
     return sum + next;
   }, 0);
+  const tafLoseFeriedageForControl = beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE ? tafLoseFeriedage : 0;
+  const tafTabelFradrag = tafLoseFeriedageForControl;
+
+  const withTabelFradragDisplay = (tableValue: number | null, fradrag: number): string => {
+    const base = formatOptionalInt(tableValue);
+    if (tableValue === null || fradrag <= 0) return base;
+    return `${base} (- ${formatDaInt(fradrag)})`;
+  };
+
+  const applyTabelFradrag = (tableValue: number | null, fradrag: number): number | null => {
+    if (tableValue === null) return null;
+    return Math.max(0, tableValue - fradrag);
+  };
+
+  const beregningsTabelDisplay = withTabelFradragDisplay(beregningsArbejdsdage, beregningsTabelFradrag);
+  const tafTabelDisplay = withTabelFradragDisplay(tafArbejdsdageFromTable, tafTabelFradrag);
+  const beregningsTabelValueForControl = applyTabelFradrag(beregningsArbejdsdage, beregningsTabelFradrag);
+  const tafTabelValueForControl = applyTabelFradrag(tafArbejdsdageFromTable, tafTabelFradrag);
 
   const beregningsperiodeRange = buildBeregningsperiodeRange(values);
   const beregningsperiodeRanges = beregningsperiodeRange ? [beregningsperiodeRange] : [];
@@ -700,21 +742,29 @@ export const buildEODebugSammentaellingModel = (args: {
       beregnetDisplay: beregningsBeregnetDisplay,
       tabelDisplay: beregningsTabelDisplay,
       beregnetValue: beregningsperiodeArbejdsdage,
-      tabelValue: beregningsArbejdsdage,
+      tabelValue: beregningsTabelValueForControl,
       loseFeriedage: beregningsLoseFeriedage,
       oevrigeFravaersdage: beregningsOevrigeFravaersdage,
-      warningEligible: beregningsWarningEligible,
+      warningEligible: false,
       feriedageCount: beregningsFeriedageCount,
+      ferieDageCount: beregningsFerieDageCount,
+      dateredeFerieDageCount: beregningsDateredeFerieDageCount,
+      loseFerieDageCount: beregningsLoseFerieDageCount,
+      shDageCount: beregningsShDageCount,
     },
     taf: {
       beregnetDisplay: tafBeregnetDisplay,
       tabelDisplay: tafTabelDisplay,
       beregnetValue: tafBeregnetDays,
-      tabelValue: tafArbejdsdageFromTable,
-      loseFeriedage: tafLoseFeriedage,
+      tabelValue: tafTabelValueForControl,
+      loseFeriedage: tafLoseFeriedageForControl,
       oevrigeFravaersdage: 0,
-      warningEligible: true,
+      warningEligible: false,
       feriedageCount: tafFeriedageCount,
+      ferieDageCount: tafFerieDageCount,
+      dateredeFerieDageCount: tafDateredeFerieDageCount,
+      loseFerieDageCount: tafLoseFerieDageCount,
+      shDageCount: tafShDageCount,
     },
     svieSmerteSygedage: {
       beregnetDisplay: svieSmerteSygedageDisplays.beregnet,

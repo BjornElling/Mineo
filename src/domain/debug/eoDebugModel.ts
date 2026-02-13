@@ -350,6 +350,35 @@ const buildLoseFeriedageSet = (
     });
   }
 
+  // Uspecificerede ferie-/feriefridage i beregningsperioden:
+  // behandles som løse feriedage med samme placeringsregler
+  // (kan ikke ligge på SH eller eksisterende feriedage).
+  const beregningsRange = getIsoRange(values.periodeTilBeregningFra, values.periodeTilBeregningTil);
+  const beregningsLoseCount =
+    typeof values.uspecificeredeFerieFridage === 'number' ? Math.max(0, Math.trunc(values.uspecificeredeFerieFridage)) : 0;
+  if (beregningsRange && beregningsLoseCount > 0) {
+    let remaining = beregningsLoseCount;
+    const start = isoDateToDate(beregningsRange.fra);
+    const end = isoDateToDate(beregningsRange.til);
+
+    iterateDatesInclusive(start, end, (d) => {
+      if (remaining <= 0) return;
+
+      const dow = d.getUTCDay();
+      const erHverdag = dow >= 1 && dow <= 5;
+      if (!erHverdag) return;
+
+      const iso = dateToISO(d);
+      if (!iso) return;
+      if (explicitFerie.has(iso)) return;
+      if (shDays.has(iso)) return;
+      if (set.has(iso)) return;
+
+      set.add(iso);
+      remaining -= 1;
+    });
+  }
+
   return set;
 };
 
@@ -630,9 +659,12 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
     isWeekdayByIndex[i] = weekday;
     const sh = shDays.has(iso);
     isShByIndex[i] = sh;
-    const ferie = allFerieDates.has(iso);
+    // "Feriedag" i debug-tabellen er kun daterede ferieperioder.
+    // Arbejdsdag skal derfor være en ren konstatering:
+    // hverdag && !SH && !Feriedag.
+    const ferie = explicitFerie.has(iso);
     isFerieByIndex[i] = ferie;
-    isWorkdayByIndex[i] = beregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? weekday : (weekday && !sh && !ferie);
+    isWorkdayByIndex[i] = weekday && !sh && !ferie;
     const withinBeregnings = beregningsRange ? iso >= beregningsRange.fra && iso <= beregningsRange.til : false;
     isWithinBeregningsByIndex[i] = withinBeregnings;
   }
@@ -683,7 +715,7 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
       header: 'Feriedag',
       align: 'center',
       width: DEFAULT_COLUMN_WIDTH_PX,
-      values: isFerieByIndex.map((value) => (value ? 'x' : '')),
+      values: dates.map((iso) => (explicitFerie.has(iso) ? 'x' : '')),
     },
     {
       id: DEBUG_TABEL_COLUMN_IDS.arbejdsdag,
@@ -712,7 +744,6 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
     shDays,
     isWorkdayByIndex,
     isWithinBeregningsByIndex,
-    loseFerieDates: loseFerie,
     oevrigtFravaerDates,
     tableFra,
     tableTil,

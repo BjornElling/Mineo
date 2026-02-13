@@ -206,7 +206,6 @@ export const buildLoenindkomstColumns = (args: {
   shDays: ReadonlySet<ISODateString>;
   isWorkdayByIndex: readonly boolean[];
   isWithinBeregningsByIndex: readonly boolean[];
-  loseFerieDates: ReadonlySet<ISODateString>;
   oevrigtFravaerDates: ReadonlySet<ISODateString>;
   tableFra: ISODateString;
   tableTil: ISODateString;
@@ -224,7 +223,6 @@ export const buildLoenindkomstColumns = (args: {
     shDays: _shDays,
     isWorkdayByIndex,
     isWithinBeregningsByIndex,
-    loseFerieDates,
     oevrigtFravaerDates,
     tableFra,
     tableTil,
@@ -295,8 +293,6 @@ export const buildLoenindkomstColumns = (args: {
       if (!isWithinErstatningsByIndex[rowIndex] && !isWithinBeregningsByIndex[rowIndex]) return '';
       const code = tafStatusByEmployment[afIndex][rowIndex];
       if (code === 2) return 'Endeligt EET';
-      if (loseFerieDates.has(iso)) return 'Løs feriedag';
-      if (oevrigtFravaerDates.has(iso)) return 'Øvrigt fravær';
       if (code === 1) return 'Ja';
       return isWithinErstatningsByIndex[rowIndex] ? '-' : '';
     });

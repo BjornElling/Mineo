@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { getSammentaellingControlStatus, type SammentaellingControl } from '../../../domain/debug/eoDebugSammentaelling';
+import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
+import {
+  buildSammentaellingDisplayTables,
+  getSammentaellingControlStatus,
+  type SammentaellingControl,
+  type SammentaellingModel,
+} from '../../../domain/debug/eoDebugSammentaelling';
 
 const baseControl: SammentaellingControl = {
   beregnetDisplay: '-',
@@ -81,5 +87,70 @@ describe('getSammentaellingControlStatus', () => {
       warningEligible: false,
     };
     expect(getSammentaellingControlStatus(control)).toBe('error');
+  });
+});
+
+describe('buildSammentaellingDisplayTables', () => {
+  const makeModel = (overrides: Partial<SammentaellingModel> = {}): SammentaellingModel => ({
+    beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+    beregningsperiode: {
+      ...baseControl,
+      ferieDageCount: 5,
+      shDageCount: 3,
+    },
+    taf: {
+      ...baseControl,
+      ferieDageCount: 2,
+      shDageCount: 1,
+    },
+    svieSmerteSygedage: baseControl,
+    svieSmerteDelvise: baseControl,
+    beregningsperiodeIndtaegter: [],
+    tafIndtaegter: [],
+    ...overrides,
+  });
+
+  it('viser udspecificeret feriedage og SH-dage for beregningsperiode', () => {
+    const tables = buildSammentaellingDisplayTables(makeModel());
+    expect(tables.basis[0]?.label).toBe('Arbejdsdage i beregningsperiode (inkl. 5 feriedage og 3 SH-dage)');
+  });
+
+  it('viser udspecificeret feriedage og SH-dage for TAF-periode', () => {
+    const tables = buildSammentaellingDisplayTables(makeModel());
+    expect(tables.basis[1]?.label).toBe('Arbejdsdage i TAF-periode (inkl. 2 feriedage og 1 SH-dage)');
+  });
+
+  it('viser minus-prefix når TAF beregnes som arbejdsdage', () => {
+    const tables = buildSammentaellingDisplayTables(makeModel({ beregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE }));
+    expect(tables.basis[0]?.label).toBe('Arbejdsdage i beregningsperiode (- 5 feriedage og 3 SH-dage)');
+    expect(tables.basis[1]?.label).toBe('Arbejdsdage i TAF-periode (- 2 feriedage og 1 SH-dage)');
+  });
+
+  it('viser ekstra parentes med løse feriedage/øvrigt fravær når de findes', () => {
+    const tables = buildSammentaellingDisplayTables(makeModel({
+      beregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
+      beregningsperiode: {
+        ...baseControl,
+        ferieDageCount: 8,
+        dateredeFerieDageCount: 8,
+        loseFerieDageCount: 30,
+        shDageCount: 8,
+        oevrigeFravaersdage: 11,
+      },
+      taf: {
+        ...baseControl,
+        ferieDageCount: 22,
+        dateredeFerieDageCount: 22,
+        loseFerieDageCount: 5,
+        shDageCount: 3,
+      },
+    }));
+
+    expect(tables.basis[0]?.label).toBe(
+      'Arbejdsdage i beregningsperiode (- 8 feriedage og 8 SH-dage) (- 41 løse ferie- og fraværsdage)'
+    );
+    expect(tables.basis[1]?.label).toBe(
+      'Arbejdsdage i TAF-periode (- 22 feriedage og 3 SH-dage) (- 5 løse feriedage)'
+    );
   });
 });

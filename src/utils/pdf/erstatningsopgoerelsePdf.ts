@@ -1887,6 +1887,17 @@ export const generateErstatningsopgoerelsePdf = (
             },
           ];
           const visibleComponentRows = componentRows.filter((row) => row.amountOre !== 0);
+          // Keep-together: ansættelsesforhold-navn må ikke stå alene nederst på siden.
+          // Hvis der er en efterfølgende linje, kræves plads til både navn + første linje før vi skriver navnet.
+          if (visibleComponentRows.length > 0) {
+            const pageHeight = writer.getDoc().internal.pageSize.height;
+            const contentBottom = pageHeight - MARGINS.bottom;
+            const remainingHeight = contentBottom - writer.getY();
+            const requiredHeight = lineHeight * 2;
+            if (remainingHeight < requiredHeight) {
+              writer.addPage();
+            }
+          }
 
           writer.writeUnderlinedLabel(arbejdssted.navn, MARGINS.left);
 
