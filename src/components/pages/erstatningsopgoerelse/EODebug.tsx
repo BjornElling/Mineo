@@ -32,6 +32,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { useFormFieldErrorsBySource } from '../../../hooks/useFormFieldErrors';
 import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
+import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import type { ISODateString } from '../../../types/branded';
 import { dateToISO, isoToDanish, isISODateString, parseISODate, subtractOneDay, toISODateString } from '../../../types/branded';
 import { addDays, addMonths, createDate, formatDanishDate, formatToISO, parseDanishDate, parseWeekString } from '../../../utils/dateUtils';
@@ -538,6 +539,22 @@ const findPeriodForDate = (periods: readonly ReguleringsPeriode[], iso: ISODateS
   return candidate ?? periods[0];
 };
 
+const calculateElapsedWholeMonths = (fromIso: ISODateString, toIso: ISODateString): number => {
+  if (toIso <= fromIso) return 0;
+  const fromDate = parseISODate(fromIso);
+  const toDate = parseISODate(toIso);
+  if (!fromDate || !toDate) return 0;
+
+  let months =
+    (toDate.getUTCFullYear() - fromDate.getUTCFullYear()) * 12 +
+    (toDate.getUTCMonth() - fromDate.getUTCMonth());
+  if (toDate.getUTCDate() < fromDate.getUTCDate()) {
+    months -= 1;
+  }
+
+  return Math.max(0, months);
+};
+
 const getStatusIcon = (status: DebugStatus): React.ReactElement => {
   switch (status) {
     case 'error':
@@ -559,6 +576,7 @@ type IndkomstRow = Readonly<{
 
 const EODebug = () => {
   const { getPersistedData, getLoenindkomstManuelReguleringInputErrors } = useFormPersistence();
+  const { settings } = useAppSettings();
   const stamdataValues = React.useMemo(() => {
     return { ...STAMDATA_INITIAL_VALUES, ...(getPersistedData('stamdata') ?? {}) };
   }, [getPersistedData]);
@@ -616,6 +634,9 @@ const EODebug = () => {
   const { skadesdato, skadestype } = stamdataValues;
 
   const reguleringSections = React.useMemo(() => {
+    const allowIncompleteOverenskomst = settings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
+    const overenskomstUdloebMaanederGraense = settings.allowReguleringMedUdloebMedMaaneder;
+
     const loenudviklingsKilde = resolveLoenudviklingKilde(erstatningsopgoerelseValues);
 
     return loenudviklingsKilde.map((af, index) => {
@@ -834,16 +855,32 @@ const EODebug = () => {
         }
         return reguleringsRange.min <= foersteTafDatoISkadetPeriode
           ? { display: 'Ja', status: 'ok' as DebugStatus }
-          : { display: 'Nej', status: 'error' as DebugStatus };
+          : {
+              display: `Nej (først fra ${formatIsoValue(reguleringsRange.min)})`,
+              status: allowIncompleteOverenskomst ? 'warning' as DebugStatus : 'error' as DebugStatus,
+            };
       })();
 
       const endDateRow = (() => {
         if (!sidsteTafDatoISkadetPeriode || !reguleringsRange.max) {
           return { display: '-', status: 'error' as DebugStatus };
         }
-        return reguleringsRange.max >= sidsteTafDatoISkadetPeriode
-          ? { display: 'Ja', status: 'ok' as DebugStatus }
-          : { display: 'Nej', status: 'warning' as DebugStatus };
+        if (reguleringsRange.max >= sidsteTafDatoISkadetPeriode) {
+          return { display: 'Ja', status: 'ok' as DebugStatus };
+        }
+
+        const maanederSidenUdloeb = calculateElapsedWholeMonths(reguleringsRange.max, sidsteTafDatoISkadetPeriode);
+        if (maanederSidenUdloeb < overenskomstUdloebMaanederGraense) {
+          return {
+            display: `(< ${overenskomstUdloebMaanederGraense} måneder)`,
+            status: 'ok' as DebugStatus,
+          };
+        }
+
+        return {
+          display: `Nej (kun indtil ${formatIsoValue(reguleringsRange.max)})`,
+          status: allowIncompleteOverenskomst ? 'warning' as DebugStatus : 'error' as DebugStatus,
+        };
       })();
 
 
@@ -1024,7 +1061,12 @@ const EODebug = () => {
           return { display: '-', status: 'error' as DebugStatus };
         }
         if (!baseIndex) {
-          return { display: 'Nej', status: 'error' as DebugStatus };
+          return {
+            display: reguleringsRange.min
+              ? `Nej (først fra ${formatIsoValue(reguleringsRange.min)})`
+              : 'Nej',
+            status: allowIncompleteOverenskomst ? 'warning' as DebugStatus : 'error' as DebugStatus,
+          };
         }
         return { display: 'Ja', status: 'ok' as DebugStatus };
       })();
@@ -1927,6 +1969,8 @@ const EODebug = () => {
     vedroererPeriodeTil,
     ferieperioder,
     skadesdato,
+    settings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden,
+    settings.allowReguleringMedUdloebMedMaaneder,
     erstatningsopgoerelseValues.beregnesUdFra,
     erstatningsopgoerelseValues.angivetMaanedsloenOpreguleresFraDato,
     erstatningsopgoerelseValues.angivetDagsloenOpreguleresFraDato,

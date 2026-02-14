@@ -138,6 +138,10 @@ const Indstillinger = React.memo(() => {
     () => ['Bekræftet godkendt', 'Underskrift-linje'] as const,
     []
   );
+  const udloebMaanederOptions = React.useMemo(
+    () => Array.from({ length: 13 }, (_, index) => index),
+    []
+  );
   type AfsluttesMedOption = (typeof afsluttesMedOptions)[number];
   const isAfsluttesMedOption = (value: string): value is AfsluttesMedOption => {
     return (afsluttesMedOptions as readonly string[]).includes(value);
@@ -396,16 +400,44 @@ const Indstillinger = React.memo(() => {
         <Typography className="section-header">Beregningsteknisk</Typography>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Endelig EET-afgørelse kan gøre tidligere udbetalt midl. EET til endeligt med tilbagevirkende kraft</Typography>
+          <Typography className="row--text">
+            Tillad regulering med overenskomst, der ikke dækker hele perioden
+          </Typography>
           <Box className="row--label-right-hover__content">
-            <StyledToggleSwitch checked disabled onCommit={() => {}} />
+            <StyledToggleSwitch
+              checked={settings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden}
+              onCommit={(e: CommitEvent<boolean>) =>
+                updateSettings({ allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: e.target.value })
+              }
+            />
           </Box>
         </Box>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">
-            Tillad regulering med overenskomst, der ikke dækker hele perioden
-          </Typography>
+          <Typography className="row--text">Tillad regulering med overenskomst, der er udløbet med</Typography>
+          <Box className="row--label-right-hover__content">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <StyledDropdown
+                allowEmpty={false}
+                value={settings.allowReguleringMedUdloebMedMaaneder}
+                onChange={(e: StyledDropdownChangeEvent<number>) => {
+                  updateSettings({ allowReguleringMedUdloebMedMaaneder: e.target.value });
+                }}
+                width={80}
+              >
+                {udloebMaanederOptions.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
+              </StyledDropdown>
+              <Typography className="row--text">måneder</Typography>
+            </Box>
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Endelig EET-afgørelse kan gøre tidligere udbetalt midl. EET til endeligt med tilbagevirkende kraft</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch checked disabled onCommit={() => {}} />
           </Box>

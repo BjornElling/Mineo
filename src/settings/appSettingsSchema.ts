@@ -55,6 +55,8 @@ export const appSettingsSchema = z
     defaultOverenskomstLoenmodtager: z.string(),
     defaultOverenskomstArbejdsgiver: z.string(),
     defaultIndsaetUdkastStempel: z.boolean(),
+    allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: z.boolean(),
+    allowReguleringMedUdloebMedMaaneder: z.number().int().min(0).max(12),
     // Fil-placering (IndexedDB handle ID - validering sker runtime, ikke i schema)
     defaultDirectoryHandleId: z.string().optional(),
     // Brevhoved-indstillinger for PDF-dokumenter
@@ -76,6 +78,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   defaultOverenskomstLoenmodtager: 'ALLE',
   defaultOverenskomstArbejdsgiver: 'ALLE',
   defaultIndsaetUdkastStempel: true,
+  allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
+  allowReguleringMedUdloebMedMaaneder: 6,
   // Fil-placering (undefined = brug desktop som fallback)
   defaultDirectoryHandleId: undefined,
   // Brevhoved-indstillinger
