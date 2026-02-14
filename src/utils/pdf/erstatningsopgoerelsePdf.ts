@@ -659,6 +659,28 @@ export const resolveValgtReguleringDisplay = (
   return 'Ingen';
 };
 
+export const resolveLoenudviklingLabelDisplay = (params: Readonly<{
+  label: string;
+  eoValues: ErstatningsopgoerelseValues;
+  ansaettelsesforholdId?: string;
+}>): string => {
+  const { label, eoValues, ansaettelsesforholdId } = params;
+  if (label !== 'Overenskomst') {
+    return isKRLSatstabelId(label)
+      ? formatKRLSatstabelDisplay(label)
+      : label;
+  }
+  if (eoValues.beregnesUdFra === 'Angivet månedsløn' || eoValues.beregnesUdFra === 'Angivet dagsløn') {
+    return resolveOverenskomstDisplay(eoValues.eoAngivetLoenLoenudvikling?.overenskomstId) || label;
+  }
+
+  const ansaettelsesforhold = ansaettelsesforholdId
+    ? eoValues.loenindkomstAnsaettelsesforhold?.find((row) => row.id === ansaettelsesforholdId)
+    : eoValues.loenindkomstAnsaettelsesforhold?.[0];
+  if (!ansaettelsesforhold) return label;
+  return resolveValgtReguleringDisplay(ansaettelsesforhold);
+};
+
 const resolveOverenskomstDisplay = (overenskomstId: string | undefined): string => {
   const trimmed = overenskomstId?.trim();
   if (!trimmed) return '-';
@@ -2031,19 +2053,6 @@ export const generateErstatningsopgoerelsePdf = (
     );
 
     if (loenudvikling) {
-      const renderLoenudviklingLabelDisplay = (label: string): string => {
-        if (label !== 'Overenskomst') {
-          return isKRLSatstabelId(label)
-            ? formatKRLSatstabelDisplay(label)
-            : label;
-        }
-        if (eoValues.beregnesUdFra === 'Angivet månedsløn' || eoValues.beregnesUdFra === 'Angivet dagsløn') {
-          return resolveOverenskomstDisplay(eoValues.eoAngivetLoenLoenudvikling?.overenskomstId) || label;
-        }
-        const foersteAnsaettelsesforhold = eoValues.loenindkomstAnsaettelsesforhold?.[0];
-        if (!foersteAnsaettelsesforhold) return label;
-        return resolveValgtReguleringDisplay(foersteAnsaettelsesforhold);
-      };
       const renderLoenudviklingSegments = (
         segments: readonly LoenudviklingSegment[],
         total: Calculable<MoneyOre>,
@@ -2092,7 +2101,11 @@ export const generateErstatningsopgoerelsePdf = (
           writer.setFont('helvetica', 'normal');
           writer.writeUnderlinedLabel(entry.ansaettelsesforholdNavn, MARGINS.left);
           if (entry.loenudviklingLabel !== 'Ingen') {
-            safeAddWrappedText(`Lønudvikling beregnes ud fra ${renderLoenudviklingLabelDisplay(entry.loenudviklingLabel)}.`);
+            safeAddWrappedText(`Lønudvikling beregnes ud fra ${resolveLoenudviklingLabelDisplay({
+              label: entry.loenudviklingLabel,
+              eoValues,
+              ansaettelsesforholdId: entry.ansaettelsesforholdId,
+            })}.`);
             writer.advanceY(lineHeight);
           }
           renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, true);
@@ -2109,7 +2122,10 @@ export const generateErstatningsopgoerelsePdf = (
         }
       } else {
         if (loenudvikling.loenudviklingLabel !== 'Ingen') {
-          safeAddWrappedText(`Lønudvikling beregnes ud fra ${renderLoenudviklingLabelDisplay(loenudvikling.loenudviklingLabel)}.`);
+          safeAddWrappedText(`Lønudvikling beregnes ud fra ${resolveLoenudviklingLabelDisplay({
+            label: loenudvikling.loenudviklingLabel,
+            eoValues,
+          })}.`);
           writer.advanceY(lineHeight);
         }
         renderLoenudviklingSegments(loenudvikling.beregnedeSegmenter, loenudvikling.loenudviklingTotal, false);

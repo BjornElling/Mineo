@@ -59,7 +59,7 @@ describe('manual regulering message', () => {
 
     expect(row).toBeDefined();
     expect(row?.status).toBe('error');
-    expect(row?.message).toBe('Mangler udfyldelse af værdier for Manuel Regulering');
+    expect(row?.message).toBe('Værdier mangler at blive udfyldt for manuel regulering');
     expect(row?.summaryDisplay).toBe('messageOnly');
   });
 });

@@ -870,7 +870,9 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
 
     expect(loenudvikling).not.toBeNull();
     expect(loenudvikling?.perAnsaettelse).toHaveLength(2);
+    expect(loenudvikling?.loenudviklingLabel).toBe('Flere reguleringstyper');
     expect(loenudvikling?.loenudviklingTotal.status).toBe('ok');
+    expect(loenudvikling?.perAnsaettelse.every((entry) => entry.loenudviklingTotal.status === 'ok')).toBe(true);
     assertTotalMatchesSegmentSum(loenudvikling);
   });
 
