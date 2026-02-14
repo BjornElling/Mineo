@@ -259,6 +259,8 @@ export const buildEODebugForligRows = (
 
   // Konverter forligDato til dansk format
   const danishForligDato = isoToDanish(values.forligDato);
+  const hasForligDato = isNonEmptyString(danishForligDato);
+  const forligDatoErrors = hasForligDato ? errors.forligDato : undefined;
 
   // Konverter procent til string for display
   const procentDisplay = typeof procentValue === 'number' ? `${procentValue}%` : undefined;
@@ -287,7 +289,7 @@ export const buildEODebugForligRows = (
     {
       id: 'forlig.dato',
       label: 'Evt. dato for forlig',
-      ...resolveDebugDisplay({ value: danishForligDato, errors: errors.forligDato, emptyState: 'ok' }),
+      ...resolveDebugDisplay({ value: danishForligDato, errors: forligDatoErrors, emptyState: 'ok' }),
     },
   ];
 };
@@ -2613,7 +2615,7 @@ export const buildEODebugIndkomstRows = (
       if (manualReguleringInputErrors[ansaettelsesforhold.id]) {
         return {
           displayValue: formatStatusMessage('error', 'Ugyldig indtastning'),
-          message: 'Mangler udfyldelse af værdier for Manuel Regulering',
+          message: 'Værdier mangler at blive udfyldt for manuel regulering',
           status: 'error' as DebugStatus,
         };
       }
@@ -2638,7 +2640,7 @@ export const buildEODebugIndkomstRows = (
       if (aktiveRows.length === 0) {
         return {
           displayValue: 'Nej',
-          message: 'Mangler udfyldelse af værdier for Manuel Regulering',
+          message: 'Værdier mangler at blive udfyldt for manuel regulering',
           status: 'error' as DebugStatus,
         };
       }
@@ -2662,7 +2664,7 @@ export const buildEODebugIndkomstRows = (
       const ok = grundloenOk && supplementsOk;
       return {
         displayValue: ok ? 'Ja' : 'Nej',
-        message: ok ? undefined : 'Mangler udfyldelse af værdier for Manuel Regulering',
+        message: ok ? undefined : 'Værdier mangler at blive udfyldt for manuel regulering',
         status: ok ? 'ok' : 'error' as DebugStatus,
       };
     })();

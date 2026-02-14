@@ -44,6 +44,42 @@ const formatDateLongDisplay = (isoDate: string | undefined): string => {
   return `${dayNumber}. ${MONTH_NAMES_DA[monthIndex]} ${year}`;
 };
 
+const toReadableSummaryMessage = (message: string): string => {
+  const trimmed = message.trim();
+  if (trimmed === '') return '';
+
+  // Normaliser strukturerede "Fejl (...)" / "Advarsel (...)" hvis de forekommer.
+  const wrappedPrefixMatch = trimmed.match(/^(Fejl|Advarsel)\s*\((.*)\)$/s);
+  const core = wrappedPrefixMatch?.[2]?.trim() ?? trimmed;
+
+  if (core === 'Indtastning mangler') return 'mangler';
+  if (core === 'Alle lønoplysninger indtastet korrekt mangler') return 'Lønoplysninger mangler';
+  if (core === 'Ugyldig indtastning') return 'indeholder ugyldig indtastning';
+  if (core === 'indeholder ugyldig indtastning') return 'Ugyldig indtastning for reguleringsværdier';
+  if (core === 'Mangler udfyldelse af værdier for Manuel Regulering') return 'mangler udfyldte værdier for manuel regulering';
+
+  // "X er ikke valgt" -> "x mangler"
+  const notSelectedMatch = core.match(/^(.*)\ser ikke valgt$/);
+  if (notSelectedMatch?.[1]) {
+    const field = notSelectedMatch[1].trim();
+    if (field.length > 0) {
+      const lowerField = `${field.charAt(0).toLowerCase()}${field.slice(1)}`;
+      return `"${lowerField}" mangler`;
+    }
+  }
+
+  const missingFieldMatch = core.match(/^(.*)\smangler$/);
+  if (missingFieldMatch?.[1]) {
+    const field = missingFieldMatch[1].trim();
+    if (field.length > 0 && field.toLowerCase() !== 'indtastning') {
+      const lowerField = `${field.charAt(0).toLowerCase()}${field.slice(1)}`;
+      return `"${lowerField}" mangler`;
+    }
+  }
+
+  return core;
+};
+
 type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
 
 interface EOberegningTabProps {
@@ -410,14 +446,14 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   }, [errors.length, stamdataValues, eoValues, settings]);
 
   const formatSummaryText = React.useCallback((row: (typeof errors)[number]): string => {
-    const message = row.message?.trim() ?? '';
+    const message = toReadableSummaryMessage(row.message ?? '');
     if (row.summaryDisplay === 'messageOnly') {
       if (message !== '') return message;
       return row.label;
     }
     if (message === '') return row.label;
     if (message.startsWith('mangler')) return `${row.label} ${message}`;
-    return `${row.label} (${message})`;
+    return `${row.label}: ${message}`;
   }, []);
 
   const renderDebugRows = React.useCallback((

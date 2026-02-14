@@ -93,6 +93,11 @@ const normalizeOptionalFreeText = (value: string | undefined): string | undefine
   return trimmed === '' ? undefined : trimmed;
 };
 
+const hasNonEmptyDateValue = (value: ISODateString | string | undefined | null): boolean => {
+  if (value === undefined || value === null) return false;
+  return String(value).trim() !== '';
+};
+
 /**
  * Henter skadesdato fra persisted stamdata (via FormPersistenceContext).
  * Ingen direkte sessionStorage-læsning i UI-laget.
@@ -402,7 +407,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 
   // Cross-field validering: Forlig dato kræver ansvarsgrad
   const forligDatoFejl = React.useMemo(() => {
-    const harForligDato = values.forligDato !== undefined && values.forligDato !== null;
+    const harForligDato = hasNonEmptyDateValue(values.forligDato);
     const harProcent = values.forligAnsvarsgradProcent !== undefined && values.forligAnsvarsgradProcent !== null;
     const harBroek = values.forligAnsvarsgradBroek !== undefined && values.forligAnsvarsgradBroek !== null && values.forligAnsvarsgradBroek.trim() !== '';
     const harAnsvarsgrad = harProcent || harBroek;
@@ -496,6 +501,13 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     source: 'rule',
   });
   const reportForligDatoRuleError = useFormFieldErrorReporter('erstatningsopgoerelse', 'forligDato', { severity: 'error', source: 'rule' });
+  const reportForligDatoInputErrorSafe = React.useCallback((errorMsg: string | undefined) => {
+    if (!hasNonEmptyDateValue(values.forligDato)) {
+      reportForligDatoInputError(undefined);
+      return;
+    }
+    reportForligDatoInputError(errorMsg);
+  }, [reportForligDatoInputError, values.forligDato]);
   React.useEffect(() => {
     const msg = forligFejl.harFejl ? forligFejl.fejlbesked : undefined;
     reportForligAnsvarsgradProcentRuleError(msg);
@@ -897,7 +909,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
             <StyledDateField
               value={values.forligDato}
               onCommit={handleIsoDateBlur('forligDato')}
-              onFieldError={reportForligDatoInputError}
+              onFieldError={reportForligDatoInputErrorSafe}
               minDate={skadesdatoMinRule.minDate}
               maxDate={dateRanges_erstatningsopgoerelse.forligDato.max}
               specialRangeErrors={{
