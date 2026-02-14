@@ -87,6 +87,10 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     renderStandardPdfTable,
     writer,
   } = ctx;
+  const toSentenceCase = (value: string): string => {
+    if (value.length === 0) return value;
+    return `${value.charAt(0).toLocaleUpperCase('da-DK')}${value.slice(1)}`;
+  };
 
   const renderReguleringIndeksTable = (rows: readonly ReguleringIndexRow[]) => {
     if (rows.length === 0) {
@@ -180,7 +184,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
 
     if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Ingen') {
       writeLabelValueLine('Regulering', valgtRegulering);
-      writeLabelValueLine('Opgøres på baggrund af', loenSkadesdatoText);
+      writeLabelValueLine('Opgøres på baggrund af', toSentenceCase(loenSkadesdatoText));
       writer.addSpacer(lineHeight);
       continue;
     }

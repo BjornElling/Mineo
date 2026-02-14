@@ -328,6 +328,13 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           writer.advanceY(lineHeight);
         }
         if (indkomst.offentligeYdelser.length > 0) {
+          const pageHeight = writer.getDoc().internal.pageSize.height;
+          const contentBottom = pageHeight - MARGINS.bottom;
+          const remainingHeight = contentBottom - writer.getY();
+          const requiredHeight = lineHeight * 2;
+          if (remainingHeight < requiredHeight) {
+            writer.addPage();
+          }
           writer.writeUnderlinedLabel('Offentlige ydelser', MARGINS.left);
           for (const ydelse of indkomst.offentligeYdelser) {
             safeAddLeftRightText(
