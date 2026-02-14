@@ -1091,10 +1091,20 @@ const assertUniformV3 = (
   for (let i = 1; i < active.length; i += 1) {
     const current = selector(active[i]);
     if (current !== first) {
-      throw new Error(`Inkonsistente loenudviklingsindstillinger: ${fieldLabel}`); // invariant: dækket af validator
+      throw new InkonsistenteLoenudviklingsindstillingerError(fieldLabel); // invariant: dækket af validator
     }
   }
 };
+
+class InkonsistenteLoenudviklingsindstillingerError extends Error {
+  readonly fieldLabel: string;
+
+  constructor(fieldLabel: string) {
+    super(`Inkonsistente loenudviklingsindstillinger: ${fieldLabel}`);
+    this.name = 'InkonsistenteLoenudviklingsindstillingerError';
+    this.fieldLabel = fieldLabel;
+  }
+}
 
 const buildSegmentsFromStartDatesV3 = (
   range: IsoRange,
@@ -1381,13 +1391,13 @@ const buildLoenudviklingFromStatistikV3 = (
       const quarter = Number.parseInt(match[2], 10);
       const startIso = dateToISO(createDate(year, (quarter - 1) * 3, 1));
       if (!startIso) return null;
-      return { startIso, indeks: entry.indeksvaerdi };
+      return { startIso, indeksvaerdi: entry.indeksvaerdi };
     })
-    .filter((entry): entry is Readonly<{ startIso: ISODateString; indeks: number }> => Boolean(entry))
+    .filter((entry): entry is Readonly<{ startIso: ISODateString; indeksvaerdi: number }> => Boolean(entry))
     .sort((a, b) => a.startIso.localeCompare(b.startIso));
 
   const baseEntry = findLatestByDateInSortedListV3(periodStarts, konsolideret.reguleringsdato, 'statistik:base');
-  if (!baseEntry || baseEntry.indeks <= 0) {
+  if (!baseEntry || baseEntry.indeksvaerdi <= 0) {
     throw new Error('Loenudvikling kan ikke beregnes: mangler basisindeks');
   }
 
@@ -1399,12 +1409,12 @@ const buildLoenudviklingFromStatistikV3 = (
     }
     for (const segment of buildSegmentsFromStartDatesV3(range, starts)) {
       const idxEntry = findLatestByDateInSortedListV3(periodStarts, segment.fra, 'statistik:segment');
-      if (!idxEntry || idxEntry.indeks <= 0) {
+      if (!idxEntry || idxEntry.indeksvaerdi <= 0) {
         throw new Error('Loenudvikling kan ikke beregnes: mangler indeks for segment');
       }
       segments.push({
         ...segment,
-        deltaPct: roundHalfAwayFromZero((idxEntry.indeks / baseEntry.indeks - 1) * 100, 2),
+        deltaPct: roundHalfAwayFromZero((idxEntry.indeksvaerdi / baseEntry.indeksvaerdi - 1) * 100, 2),
       });
     }
   }
@@ -1732,6 +1742,7 @@ const buildLoenudviklingModelV3 = (
   tafBeregningsenhed: TafBeregningsenhed,
   indkomstSkadestidspunkt: IndkomstSkadestidspunktPdfModel | null
 ): LoenudviklingPdfModel => {
+  const tafRanges = buildTafRanges(values);
   const buildFromStrategiAndBase = (
     strategiData: Readonly<{ strategi: LoenudviklingStrategiV3; label: string; konsolideret: KonsolideretLoenudviklingV3 | null }>,
     baseLoen: number
@@ -1740,7 +1751,6 @@ const buildLoenudviklingModelV3 = (
     beregnedeSegmenter: readonly LoenudviklingSegment[];
     loenudviklingTotal: Calculable<MoneyOre>;
   }> => {
-    const tafRanges = buildTafRanges(values);
     if (!Number.isFinite(baseLoen) || baseLoen <= 0 || tafRanges.length === 0) {
       throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
     }
@@ -1823,10 +1833,6 @@ const buildLoenudviklingModelV3 = (
     return { loenudviklingLabel, loenudviklingTotal: asCalculable(totalOre), beregnedeSegmenter };
   };
 
-  const isInkonsistentReguleringError = (error: unknown): boolean => {
-    return error instanceof Error && error.message.startsWith('Inkonsistente loenudviklingsindstillinger:');
-  };
-
   try {
     const strategiData = resolveReguleringsStrategiV3(values, stamdataValues);
     const maanedsloenBase = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
@@ -1848,7 +1854,7 @@ const buildLoenudviklingModelV3 = (
       perAnsaettelse: [],
     };
   } catch (error) {
-    if (values.beregnesUdFra !== 'Beregningsperiode' || !isInkonsistentReguleringError(error)) {
+    if (values.beregnesUdFra !== 'Beregningsperiode' || !(error instanceof InkonsistenteLoenudviklingsindstillingerError)) {
       throw error;
     }
   }

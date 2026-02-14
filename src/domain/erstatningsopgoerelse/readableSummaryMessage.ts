@@ -8,7 +8,6 @@ export const toReadableSummaryMessage = (message: string): string => {
   if (core === 'Indtastning mangler') return 'mangler';
   if (core === 'Alle lønoplysninger indtastet korrekt mangler') return 'Lønoplysninger mangler';
   if (core === 'Ugyldig indtastning') return 'indeholder ugyldig indtastning';
-  if (core === 'indeholder ugyldig indtastning') return 'indeholder ugyldig indtastning';
   if (
     core === 'Værdier mangler at blive udfyldt for manuel regulering'
     || core === 'Mangler udfyldelse af værdier for Manuel Regulering'

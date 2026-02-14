@@ -876,6 +876,157 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     assertTotalMatchesSegmentSum(loenudvikling);
   });
 
+  it('beregner loenudvikling pr. ansaettelsesforhold ved blandede strategier (overenskomst + statistik)', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum.Beregningsperiode,
+      periodeTilBeregningFra: iso('2023-01-01'),
+      periodeTilBeregningTil: iso('2023-12-31'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2024',
+          tilDato: '01-01-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          id: 'a1',
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
+          overenskomstId: 'bygge-anlaeg',
+          loenPaaHelligdage: 'Almindelig løn',
+          feriePct: 12.5,
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'a1-r1',
+              col0_maaned: '6',
+              col1_maaned: '2023',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: asAmountValue(10000),
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          id: 'a2',
+          loenudviklingBeregningsgrundlag: 'Statistik',
+          loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'a2-r1',
+              col0_maaned: '6',
+              col1_maaned: '2023',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: asAmountValue(8000),
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
+
+    expect(loenudvikling).not.toBeNull();
+    expect(loenudvikling?.perAnsaettelse).toHaveLength(2);
+    expect(loenudvikling?.loenudviklingLabel).toBe('Flere reguleringstyper');
+    expect(loenudvikling?.perAnsaettelse.map((entry) => entry.loenudviklingLabel).sort()).toEqual(['ILON12 (Danmarks Statistik)', 'Overenskomst']);
+    assertTotalMatchesSegmentSum(loenudvikling);
+  });
+
+  it('forbliver i konsolideret path når alle ansaettelser bruger samme strategi', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum.Beregningsperiode,
+      periodeTilBeregningFra: iso('2023-01-01'),
+      periodeTilBeregningTil: iso('2023-12-31'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2024',
+          tilDato: '01-01-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          id: 'a1',
+          loenudviklingBeregningsgrundlag: 'Statistik',
+          loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'a1-r1',
+              col0_maaned: '6',
+              col1_maaned: '2023',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: asAmountValue(10000),
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          id: 'a2',
+          loenudviklingBeregningsgrundlag: 'Statistik',
+          loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'a2-r1',
+              col0_maaned: '6',
+              col1_maaned: '2023',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: asAmountValue(8000),
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
+
+    expect(loenudvikling).not.toBeNull();
+    expect(loenudvikling?.perAnsaettelse).toHaveLength(0);
+    expect(loenudvikling?.loenudviklingLabel).toBe('ILON12 (Danmarks Statistik)');
+    assertTotalMatchesSegmentSum(loenudvikling);
+  });
+
   it('viser statuslinje for Efterløn', () => {
     const eoValues = makeValues({
       vedroererPeriodeTil: iso('2024-01-31'),

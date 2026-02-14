@@ -15,14 +15,12 @@ import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode, Offent
 import { buildErstatningsopgoerelsePdfModel, type MoneyOre, type Calculable, type LoenudviklingSegment } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { formatAsAmount, formatCurrency, formatPercent, parseAmount } from '../formatUtils';
-import { formatUtcDateLong } from '../dateFormatting';
 import { parseISODate } from '../../types/branded';
 import { TAF_BEREGNES_SOM } from '../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { TODAY } from '../../config/dateRanges';
 import { amountValueToDisplayString, amountValueToNumber } from '../expressionAmount';
-import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../aarsloenTableCalculations';
+import { isAarsloenRowEffectivelyEmpty } from '../aarsloenTableCalculations';
 import { ydelsestyper } from '../../data/ydelsestyper';
-import { beregnHelligdageMedNavn } from '../shDageBeregning';
 
 import { aarsloenMax } from '../../data/regulationRates';
 import {
@@ -40,7 +38,6 @@ import { formatKRLSatstabelDisplay, getKRLSatstabel, isKRLSatstabelId, type KRLS
 import { clampTafRow, resolveTafConstraintBounds } from '../../domain/erstatningsopgoerelse/tafPeriodConstraints';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, parseAarsloenRowInterval } from '../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import { erDetteFoersteErstatningsopgoerelse } from '../../domain/erstatningsopgoerelse/eoNummerValidering';
-import { getAarsloenErrorRowIdSet, getOffentligeYdelserErrorRowIdSet } from '../../domain/erstatningsopgoerelse/indkomstRowValidation';
 import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
@@ -53,6 +50,13 @@ import {
   formatPercentFixed2 as formatPercentFixed2Shared,
 } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import { formatCountWithUnit, formatMaanederTrimmed, isSingularCount, resolvePdfFileName } from './sharedPdfUtils';
+import type { SelectedElements } from './erstatningsopgoerelse/types';
+import { assertNoUnsupportedSygeferiegodtgoerelseSelection } from './erstatningsopgoerelse/sections/sygeferiegodtgoerelseSection';
+import { renderLoenindkomstSection } from './erstatningsopgoerelse/sections/loenindkomstSection';
+import { renderOffentligeYdelserSection } from './erstatningsopgoerelse/sections/offentligeYdelserSection';
+import { renderShDageSection } from './erstatningsopgoerelse/sections/shDageSection';
+import { renderReguleringSection } from './erstatningsopgoerelse/sections/reguleringSection';
+import { renderOpgorelseSection } from './erstatningsopgoerelse/sections/opgoerelseSection';
 
 const NBSP = '\u00A0';
 const EO_RIGHT_COLUMN_WIDTH = 33.125;
@@ -144,32 +148,6 @@ const resolvePeriodColumns = (row: AarsloenTableRow, loenperiode: Loenperiode): 
   return [row.col0_dag?.trim() ?? '', row.col1_dag?.trim() ?? ''];
 };
 
-const OFFENTLIGE_YDELSER_HEADERS = [
-  'Fra-dato',
-  'Til-dato',
-  'Ydelse',
-  'Evt. tillæg',
-  'I alt',
-  'Ydelsestype',
-] as const;
-
-const SH_DAGE_WEEKDAY_NAMES = [
-  'Søndag',
-  'Mandag',
-  'Tirsdag',
-  'Onsdag',
-  'Torsdag',
-  'Fredag',
-  'Lørdag',
-] as const;
-
-type SHDageTableRow = Readonly<{
-  ugedag: string;
-  datoDisplay: string;
-  helligdagNavn: string;
-  erSHDag: boolean;
-}>;
-
 type ReguleringIndexRow = Readonly<{
   fraDato: string;
   tilDato: string;
@@ -250,40 +228,9 @@ const renderStandardPdfTable = (params: Readonly<{
   return ((doc as PdfAutoTableDoc).lastAutoTable?.finalY ?? startY);
 };
 
-const formatDateFromDateObjectLong = (date: Date): string => formatUtcDateLong(date);
-
 const parseIsoDateToUtcDate = (iso: ISODateString | undefined): Date | null => {
   if (!iso) return null;
   return parseISODate(iso) ?? null;
-};
-
-const findHelligdageInRange = (fra: ISODateString | undefined, til: ISODateString | undefined): SHDageTableRow[] => {
-  const start = parseIsoDateToUtcDate(fra);
-  const end = parseIsoDateToUtcDate(til);
-  if (!start || !end || start > end) return [];
-
-  const startYear = start.getUTCFullYear();
-  const endYear = end.getUTCFullYear();
-  const rows: Array<SHDageTableRow & { sortTs: number }> = [];
-
-  for (let year = startYear; year <= endYear; year += 1) {
-    const helligdage = beregnHelligdageMedNavn(year);
-    for (const { date: helligdag, navn } of helligdage) {
-      if (helligdag < start || helligdag > end) continue;
-      const dayOfWeek = helligdag.getUTCDay();
-      const erSHDag = dayOfWeek >= 1 && dayOfWeek <= 5;
-      rows.push({
-        ugedag: SH_DAGE_WEEKDAY_NAMES[dayOfWeek],
-        datoDisplay: formatDateFromDateObjectLong(helligdag),
-        helligdagNavn: navn,
-        erSHDag,
-        sortTs: helligdag.getTime(),
-      });
-    }
-  }
-
-  rows.sort((a, b) => a.sortTs - b.sortTs);
-  return rows.map(({ sortTs: _sortTs, ...row }) => row);
 };
 
 const parseOptionalIsoDate = parseOptionalIsoDateShared;
@@ -888,7 +835,7 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
         const month = (quarter - 1) * 3 + 1;
         const startIso = parseOptionalIsoDate(`${year}-${String(month).padStart(2, '0')}-01`);
         if (!startIso) return [];
-        return [{ kvartal: value.kvartal, startIso, indeks: value.indeksvaerdi }];
+        return [{ kvartal: value.kvartal, startIso, indeksvaerdi: value.indeksvaerdi }];
       })
       .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
     if (periodStarts.length === 0) return null;
@@ -903,11 +850,11 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
       basePeriod = period;
     }
 
-    const rows: string[][] = [[basePeriod.kvartal, formatDateShort(reguleringTableStartIso), formatIndex(basePeriod.indeks)]];
+    const rows: string[][] = [[basePeriod.kvartal, formatDateShort(reguleringTableStartIso), formatIndex(basePeriod.indeksvaerdi)]];
     for (const period of periodStarts) {
       if (period.startIso <= reguleringTableStartIso) continue;
       if (period.startIso > tafTil) continue;
-      rows.push([period.kvartal, formatDateShort(period.startIso), formatIndex(period.indeks)]);
+      rows.push([period.kvartal, formatDateShort(period.startIso), formatIndex(period.indeksvaerdi)]);
     }
     return { columns: ['Kvartal', 'Startdato', 'Indeksværdi'], rows };
   }
@@ -1220,7 +1167,7 @@ const buildReguleringIndexRows = (params: Readonly<{
           const month = (quarter - 1) * 3 + 1;
           const startIso = parseOptionalIsoDate(`${year}-${String(month).padStart(2, '0')}-01`);
           if (!startIso) return [];
-          return [{ startIso, indeks: value.indeksvaerdi }];
+          return [{ startIso, indeksvaerdi: value.indeksvaerdi }];
         })
         .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
       if (periodStarts.length === 0) return null;
@@ -1231,7 +1178,7 @@ const buildReguleringIndexRows = (params: Readonly<{
       }
       return {
         components: {
-          baseValue: candidate.indeks,
+          baseValue: candidate.indeksvaerdi,
           feriePct: typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0,
           fritvalgPct: typeof ansaettelsesforhold.fritvalgPct === 'number' ? ansaettelsesforhold.fritvalgPct : 0,
           shSoPct: typeof ansaettelsesforhold.shSoPct === 'number' ? ansaettelsesforhold.shSoPct : 0,
@@ -1509,19 +1456,6 @@ const formatDateLong = formatDateLongShared;
 
 
 /**
- * Interface for valgte elementer
- */
-interface SelectedElements {
-  opgoerelse: boolean;
-  loenindkomst: boolean;
-  offentligeYdelser: boolean;
-  shDage: boolean;
-  regulering: boolean;
-  okSatser: boolean;
-  sygeferiegodtgoerelse: boolean;
-}
-
-/**
  * Options for erstatningsopgørelse PDF
  */
 interface ErstatningsopgoerelsePdfOptions {
@@ -1548,15 +1482,7 @@ export const generateErstatningsopgoerelsePdf = (
     throw new Error('PDF-generering kræver, at elementet "Opgørelse" er valgt.');
   }
 
-  const unsupportedSelections = [
-    ['Sygeferiegodtgørelse', selectedElements.sygeferiegodtgoerelse],
-  ].filter(([, isSelected]) => isSelected).map(([label]) => label);
-
-  if (unsupportedSelections.length > 0) {
-    throw new Error(
-      `Valgte PDF-elementer er ikke understøttet endnu: ${unsupportedSelections.join(', ')}.`
-    );
-  }
+  assertNoUnsupportedSygeferiegodtgoerelseSelection(selectedElements);
 
   const { visBrevhoved = false } = options;
   const visUdkastStempel = options.visUdkastStempel ?? resolveUdkastStempelValue(eoValues.indsaetUdkastStempel);
@@ -1705,1051 +1631,137 @@ export const generateErstatningsopgoerelsePdf = (
     writer.advanceY(lineHeight);
   }
 
-  // ============================================================================
-  // SVIE- OG SMERTEGODTGØRELSE SEKTION
-  // ============================================================================
-
-  renderSectionHeader('Svie- og smertegodtgørelse', lineHeight);
-
-  renderSubheader('Status', lineHeight, { addTopSpacing: false });
-
-  // Normal skrift for resten
-  writer.setFont('helvetica', 'normal');
-
-    for (const line of model.svieSmerte.statusLinjer) {
-      safeAddWrappedText(line);
-    }
-
-  renderSubheader(model.svieSmerte.periodeHeading, lineHeight);
-  assertModelInvariant(
-    model.svieSmerte.harPerioder === (model.svieSmerte.periodeLinjer.length > 0),
-    'svieSmerte.harPerioder matcher ikke svieSmerte.periodeLinjer.'
-  );
-  if (!model.svieSmerte.harPerioder) {
-    safeAddWrappedText('Ingen');
-  } else if (!model.svieSmerte.beregnes) {
-    safeAddWrappedText('Ingen');
-  } else {
-    for (const line of model.svieSmerte.periodeLinjer) {
-      safeAddWrappedText(line);
-    }
-
-    renderSubheader('Beregningsgrundlag', lineHeight);
-    const satserAar = model.svieSmerte.satserAar !== null ? String(model.svieSmerte.satserAar) : '-';
-    safeAddWrappedText(`Beregningen af godtgørelse foretages ud fra satserne i år ${satserAar}.`);
-
-    const perDagDisplayWithKr = renderMoneyWithKrTrimmed(model.svieSmerte.satserPerDag);
-    const maxDisplayWithKr = renderMoneyWithKrTrimmed(model.svieSmerte.satserMax);
-    if (model.svieSmerte.delvisFaktor !== 1 && model.svieSmerte.satserPerDag.status === 'ok') {
-      const delvisSatsOre = Math.round(model.svieSmerte.satserPerDag.value * model.svieSmerte.delvisFaktor);
-      const delvisSatsDisplayWithKr = formatMoneyOreWithKrTrimmed(delvisSatsOre);
-      safeAddWrappedText(`Taksten udgør ${perDagDisplayWithKr} pr. sygedag og ${delvisSatsDisplayWithKr} pr. delvise sygedag, dog højst ${maxDisplayWithKr}`);
-    } else {
-      safeAddWrappedText(`Taksten udgør ${perDagDisplayWithKr} pr. sygedag, dog højst ${maxDisplayWithKr}`);
-    }
-
-    const tidligere = model.svieSmerte.tidligere;
-    const aktuel = model.svieSmerte.aktuel;
-    if (tidligere.status === 'ok' || aktuel.status === 'ok') {
-      const tidligereDisplay = renderMoneyWithKrTrimmed(tidligere);
-      const aktuelDisplay = renderMoneyWithKrTrimmed(aktuel);
-      let tekst = '';
-      if (tidligere.status === 'ok' && aktuel.status === 'ok') {
-        tekst = `Der er opgjort svie- og smertegodtgørelse med ${tidligereDisplay} for tidligere perioder samt modtaget ${aktuelDisplay} for denne periode.`;
-      } else if (tidligere.status === 'ok') {
-        tekst = `Der er opgjort svie- og smertegodtgørelse med ${tidligereDisplay} for tidligere perioder.`;
-      } else if (aktuel.status === 'ok') {
-        tekst = `Der er tidligere modtaget ${aktuelDisplay} for denne periode.`;
-      }
-      if (tekst) {
-        safeAddWrappedText(tekst);
-      }
-    }
-    renderSubheader('Beregnet krav på svie- og smertegodtgørelse', lineHeight);
-    const sygedage = model.svieSmerte.sygedage;
-    const delviseSygedage = model.svieSmerte.delviseSygedage;
-    const perDagOre = model.svieSmerte.satserPerDag.status === 'ok' ? model.svieSmerte.satserPerDag.value : null;
-    const delvisOre = perDagOre !== null ? Math.round(perDagOre * model.svieSmerte.delvisFaktor) : null;
-
-    const perDagText = perDagOre !== null ? formatCurrencyFromOreTrimmed(perDagOre) : '—';
-    const delvisText = delvisOre !== null ? formatCurrencyFromOreTrimmed(delvisOre) : '—';
-    const withKr = (value: string): string => (value === '—' ? value : `${value}${NBSP}kr.`);
-    const perDagTextWithKr = withKr(perDagText);
-    const delvisTextWithKr = withKr(delvisText);
-
-    const lineLeft = (() => {
-      if (sygedage === 0 && delviseSygedage === 0) return '—';
-      if (perDagOre === null) return '—';
-
-      let base = '';
-      if (model.svieSmerte.delvisFaktor === 1) {
-        const combined = [
-          sygedage > 0 ? formatCountWithUnit(sygedage, 'sygedag', 'sygedage') : '',
-          delviseSygedage > 0 ? formatCountWithUnit(delviseSygedage, 'delvis sygedag', 'delvise sygedage') : '',
-        ].filter((part) => part !== '').join(' og ');
-        const hasBoth = sygedage > 0 && delviseSygedage > 0;
-        base = combined === '' ? '-' : `${combined}${hasBoth ? ',' : ''} ${hasBoth ? 'begge ' : ''}á ${perDagTextWithKr}`;
-      } else {
-        const parts: string[] = [];
-        if (sygedage > 0) {
-          parts.push(`${formatCountWithUnit(sygedage, 'sygedag', 'sygedage')} á ${perDagTextWithKr}`);
-        }
-        if (delviseSygedage > 0) {
-          parts.push(`${formatCountWithUnit(delviseSygedage, 'delvis sygedag', 'delvise sygedage')} á ${delvisTextWithKr}`);
-        }
-        base = parts.join(' og ');
-      }
-
-      if (base === '' || base === '-') return '-';
-
-      const deductions: string[] = [];
-      if (aktuel.status === 'ok') {
-        deductions.push(`-${NBSP}${formatMoneyOreWithKrTrimmed(aktuel.value)}`);
-      }
-      const maxSuffix = model.svieSmerte.maxApplied ? ' (reduceret til max)' : '';
-      return `${base}${deductions.length > 0 ? ` ${deductions.join(' ')}` : ''}${maxSuffix} =`;
-    })();
-
-    const beloebDisplay = formatMoneyOreWithKr(model.svieSmerte.totalOre);
-    safeAddLeftRightText(lineLeft, beloebDisplay, writer.getTextWidth('000.000.000,00'), { rightFontStyle: 'bold' });
-  }
-  // ============================================================================
-  // TABT ARBEJDSFORTJENESTE SEKTION
-  // ============================================================================
-
-  renderSectionHeader('Tabt arbejdsfortjeneste', lineHeight);
-
-  renderSubheader('Status', lineHeight, { addTopSpacing: false });
-
-  // Normal skrift for resten
-  writer.setFont('helvetica', 'normal');
-
-    for (const line of model.tabtArbejdsfortjeneste.statusLinjer) {
-      safeAddWrappedText(line);
-    }
-
-    for (const line of model.tabtArbejdsfortjeneste.eetLinjer) {
-      safeAddWrappedText(line);
-    }
-
-  if (model.tabtArbejdsfortjeneste.differencekravLinje) {
-    safeAddWrappedText(model.tabtArbejdsfortjeneste.differencekravLinje);
-  }
-
-  // TAF-perioder
-  const tafPeriodeHeader = model.tabtArbejdsfortjeneste.tafPerioderLinjer.length > 1
-    ? 'Erstatningsperioder, hvor der beregnes tabt arbejdsfortjeneste'
-    : 'Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste';
-  renderSubheader(tafPeriodeHeader, lineHeight);
-
-  const tafPerioderLines = model.tabtArbejdsfortjeneste.tafPerioderLinjer;
-  const hasTafPerioder = model.tabtArbejdsfortjeneste.harTafPerioder;
-  assertModelInvariant(hasTafPerioder === (tafPerioderLines.length > 0), 'harTafPerioder matcher ikke tafPerioderLinjer.');
-
-  if (!hasTafPerioder) {
-    safeAddWrappedText('Ingen');
-  } else {
-    for (const line of tafPerioderLines) {
-      safeAddWrappedText(line);
-    }
-    // Kun hvis der ER TAF-perioder, vis resten af indholdet
-    renderSubheader('Indkomst på skadestidspunktet', lineHeight);
-    const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
-
-    if (model.tabtArbejdsfortjeneste.skalKomprimereIndkomstBeregning && indkomst) {
-      // Komprimeret visning: vis kun resultat fra tidligere opgørelse
-      const erArbejdsdage = model.tabtArbejdsfortjeneste.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE;
-      const loenLabel = erArbejdsdage ? 'Løn per arbejdsdag' : 'Månedsløn';
-      const beloebDisplay = erArbejdsdage
-        ? renderMoneyWithKr(indkomst.dagsloen)
-        : renderMoneyWithKr(indkomst.maanedsloen);
-      safeAddLeftRightText(
-        `${loenLabel} er i tidligere erstatningsopgørelse beregnet til`,
-        beloebDisplay,
-        writer.getTextWidth('000.000.000,00'),
-        { rightFontStyle: 'normal' }
-      );
-    } else {
-      if (indkomst?.beregningsperiodeLabel) {
-        safeAddWrappedText(indkomst.beregningsperiodeLabel);
-      }
-      if (indkomst?.beregningsgrundlagMellemregningLabel && indkomst?.beregningsgrundlagMellemregningResultat) {
-        safeAddLeftRightText(
-          indkomst.beregningsgrundlagMellemregningLabel,
-          indkomst.beregningsgrundlagMellemregningResultat,
-          writer.getTextWidth('000.000.000,00'),
-          { rightFontStyle: 'normal' }
-        );
-        writer.advanceY(lineHeight);
-      } else if (indkomst?.beregningsgrundlagMellemregningLabel) {
-        safeAddWrappedText(indkomst.beregningsgrundlagMellemregningLabel);
-        writer.advanceY(lineHeight);
-      } else if (indkomst?.beregningsgrundlagMellemregningResultat) {
-        safeAddWrappedText(indkomst.beregningsgrundlagMellemregningResultat);
-      }
-
-      if (indkomst?.beregnesUdFra === 'Beregningsperiode') {
-        for (const arbejdssted of indkomst.arbejdssteder) {
-          const componentRows: ReadonlyArray<Readonly<{ label: string; amountOre: number }>> = [
-            {
-              label: 'Ferieberettiget indkomst i beregningsperioden',
-              amountOre: arbejdssted.breakdown.ferieberetOre,
-            },
-            {
-              label: arbejdssted.fpLabel,
-              amountOre: arbejdssted.breakdown.fpFvShSoOre,
-            },
-            {
-              label: arbejdssted.pensionLabel,
-              amountOre: arbejdssted.breakdown.pensionOre,
-            },
-            {
-              label: 'Arbejdsgivers ATP-bidrag og anden indkomst uden tillæg',
-              amountOre: arbejdssted.breakdown.atpOre,
-            },
-          ];
-          const visibleComponentRows = componentRows.filter((row) => row.amountOre !== 0);
-          // Keep-together: ansættelsesforhold-navn må ikke stå alene nederst på siden.
-          // Hvis der er en efterfølgende linje, kræves plads til både navn + første linje før vi skriver navnet.
-          if (visibleComponentRows.length > 0) {
-            const pageHeight = writer.getDoc().internal.pageSize.height;
-            const contentBottom = pageHeight - MARGINS.bottom;
-            const remainingHeight = contentBottom - writer.getY();
-            const requiredHeight = lineHeight * 2;
-            if (remainingHeight < requiredHeight) {
-              writer.addPage();
-            }
-          }
-
-          writer.writeUnderlinedLabel(arbejdssted.navn, MARGINS.left);
-
-          for (const row of visibleComponentRows) {
-            safeAddLeftRightText(
-              row.label,
-              formatMoneyOreWithKr(row.amountOre),
-              writer.getTextWidth('000.000.000,00'),
-              { rightFontStyle: 'normal' }
-            );
-          }
-
-          if (visibleComponentRows.length > 1) {
-            safeAddLeftRightText('I alt:', formatMoneyOreWithKr(arbejdssted.breakdown.samletOre), writer.getTextWidth('000.000.000,00'),
-              { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
-            );
-          }
-          writer.advanceY(lineHeight);
-        }
-        if (indkomst.offentligeYdelser.length > 0) {
-          writer.writeUnderlinedLabel('Offentlige ydelser', MARGINS.left);
-          for (const ydelse of indkomst.offentligeYdelser) {
-            safeAddLeftRightText(
-              ydelse.label,
-              formatMoneyOreWithKr(ydelse.amountOre),
-              writer.getTextWidth('000.000.000,00'),
-              { rightFontStyle: 'normal' }
-            );
-          }
-          if (indkomst.offentligeYdelser.length > 1) {
-            safeAddLeftRightText(
-              'I alt:',
-              formatMoneyOreWithKr(indkomst.offentligeYdelserTotalOre),
-              writer.getTextWidth('000.000.000,00'),
-              { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
-            );
-          }
-          writer.advanceY(lineHeight);
-        }
-
-        if (indkomst.samletBeregningsgrundlagOre !== null) {
-          const addends = indkomst.arbejdssteder.map((arbejdssted) =>
-            formatCurrencyFromOre(arbejdssted.breakdown.samletOre)
-          );
-          if (indkomst.offentligeYdelserTotalOre > 0) {
-            addends.push(formatCurrencyFromOre(indkomst.offentligeYdelserTotalOre));
-          }
-          if (indkomst.beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE && indkomst.arbejdsdage) {
-            const arbejdsdageText = formatCountWithUnit(indkomst.arbejdsdage, 'arbejdsdag', 'arbejdsdage');
-            const basisText = addends.length > 1
-              ? `Dagsløn: (${addends.join(' + ')}${NBSP}kr.) / ${arbejdsdageText} =`
-              : `Dagsløn: ${formatMoneyOreWithKr(indkomst.samletBeregningsgrundlagOre)} / ${arbejdsdageText} =`;
-            safeAddLeftRightText(
-              basisText,
-              renderMoneyWithKr(indkomst.dagsloen),
-              writer.getTextWidth('000.000.000,00'),
-              { rightFontStyle: 'normal' }
-            );
-          } else if (indkomst.maaneder) {
-            const maanederText = formatMaanederTrimmed(indkomst.maaneder);
-            const maanederMedEnhed = `${maanederText} ${isSingularCount(indkomst.maaneder) ? 'måned' : 'måneder'}`;
-            const basisText = addends.length > 1
-              ? `Månedsløn: (${addends.join(' + ')}${NBSP}kr.) / ${maanederMedEnhed} =`
-              : `Månedsløn: ${formatMoneyOreWithKr(indkomst.samletBeregningsgrundlagOre)} / ${maanederMedEnhed} =`;
-            safeAddLeftRightText(
-              basisText,
-              renderMoneyWithKr(indkomst.maanedsloen),
-              writer.getTextWidth('000.000.000,00'),
-              { rightFontStyle: 'normal' }
-            );
-          }
-        }
-      } else if (indkomst?.beregnesUdFra === 'Angivet månedsløn') {
-        const venstreTekst = indkomst.loenBaseretPaa
-          ? `På baggrund af ${indkomst.loenBaseretPaa} lægges en månedsløn til grund på`
-          : 'Der lægges en månedsløn til grund på';
-        safeAddLeftRightText(
-          venstreTekst,
-          renderMoneyWithKrOrError(indkomst.maanedsloen),
-          writer.getTextWidth('000.000.000,00'),
-          { rightFontStyle: 'normal' }
-        );
-      } else if (indkomst?.beregnesUdFra === 'Angivet dagsløn') {
-        const venstreTekst = indkomst.loenBaseretPaa
-          ? `På baggrund af ${indkomst.loenBaseretPaa} lægges en dagsløn til grund på`
-          : 'Der lægges en dagsløn til grund på';
-        safeAddLeftRightText(
-          venstreTekst,
-          renderMoneyWithKrOrError(indkomst.dagsloen),
-          writer.getTextWidth('000.000.000,00'),
-          { rightFontStyle: 'normal' }
-        );
-      }
-    }
-
-    // Indkomst, hvis skaden ikke var indtrådt
-    const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
-    const saerligFraDatoLoenudvikling = (() => {
-      const ansaettelser = resolveLoenudviklingKilde(eoValues);
-      const active = ansaettelser.filter(
-        (af) => af.loenudviklingBeregningsgrundlag && af.loenudviklingBeregningsgrundlag !== 'Ingen'
-      );
-      if (active.length === 0) return undefined;
-      return parseOptionalIsoDate(active[0].saerligFraDatoRegulering);
-    })();
-    const skadesdatoIso = parseOptionalIsoDate(stamdataValues.skadesdato);
-    const loenSkadesdatoText = resolveLoenSkadesdatoText({
-      subject: 'lønnen',
-      skadesdato: skadesdatoIso,
-      saerligFraDatoRegulering: saerligFraDatoLoenudvikling,
-    });
-    const angivetLoenOpreguleresFraDato = getAngivetLoenOpreguleresFraDato(eoValues);
-    const angivetLoenDatoBeskrivelse = (() => {
-      if (
-        (eoValues.beregnesUdFra !== 'Angivet månedsløn' && eoValues.beregnesUdFra !== 'Angivet dagsløn') ||
-        !angivetLoenOpreguleresFraDato
-      ) {
-        return null;
-      }
-      const datoDisplay = formatDateLong(angivetLoenOpreguleresFraDato);
-      if (!datoDisplay) return null;
-      return `lønnen opgjort den ${datoDisplay}`;
-    })();
-    const loenReferenceBeskrivelse = angivetLoenDatoBeskrivelse ?? loenSkadesdatoText;
-    const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = loenudvikling?.loenudviklingLabel === 'Ingen'
-      ? `Opgøres på baggrund af ${loenReferenceBeskrivelse}.`
-      : `Beregnes som ${loenReferenceBeskrivelse} tillagt efterfølgende lønstigninger`;
-    renderSubheaderWithWrappedText(
-      'Indkomst, hvis skaden ikke var indtrådt',
-      indkomstHvisSkadeIkkeIndtraadtBeskrivelse
-    );
-
-    if (loenudvikling) {
-      const renderLoenudviklingSegments = (
-        segments: readonly LoenudviklingSegment[],
-        total: Calculable<MoneyOre>,
-        forceTotalLine: boolean
-      ) => {
-        if (total.status !== 'ok') {
-          safeAddWrappedText('Lønudvikling kan ikke beregnes for den valgte opsætning.');
-          return;
-        }
-        const rightMaxWidth = writer.getTextWidth('000.000.000,00');
-        for (const segment of segments) {
-          const roundedDeltaPct = Math.round(segment.deltaPct * 100) / 100;
-          const factorText = Math.abs(roundedDeltaPct) < 0.00001
-            ? ''
-            : ` x (100 % ${roundedDeltaPct >= 0 ? '+' : '-'} ${formatPercentDelta(roundedDeltaPct)} %)`;
-          const fraDisplay = formatDateShort(segment.fra);
-          const tilDisplay = formatDateShort(segment.til);
-          let leftText = '';
-          if (segment.kind === 'arbejdsdage') {
-            const arbejdsdageText = formatCountWithUnit(segment.arbejdsdage, 'arbejdsdag', 'arbejdsdage');
-            const dagsloenText = formatCurrencyFromOre(segment.dagsloenOre);
-            leftText = `${fraDisplay} - ${tilDisplay}: ${arbejdsdageText} á ${dagsloenText}${NBSP}kr.${factorText} =`;
-          } else {
-            const roundedMaaneder = Math.round(segment.maaneder * 10000) / 10000;
-            const maanederText = formatMaanederTrimmed(roundedMaaneder);
-            const maanedsloenText = formatCurrencyFromOre(segment.maanedsloenOre);
-            leftText = `${fraDisplay} - ${tilDisplay}: ${maanederText} ${isSingularCount(roundedMaaneder) ? 'måned' : 'måneder'} á ${maanedsloenText}${NBSP}kr.${factorText} =`;
-          }
-          const rightText = formatMoneyOreWithKr(segment.amountOre);
-          safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'normal' });
-        }
-        if ((segments.length > 1 || forceTotalLine) && total.status === 'ok') {
-          safeAddLeftRightText(
-            'I alt',
-            formatMoneyOreWithKr(total.value),
-            rightMaxWidth,
-            { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
-          );
-        }
-      };
-
-      const harPerAnsaettelse = loenudvikling.perAnsaettelse.length > 1;
-      if (harPerAnsaettelse) {
-        for (const entry of loenudvikling.perAnsaettelse) {
-          writer.addSpacer(lineHeight);
-          writer.setFont('helvetica', 'normal');
-          writer.writeUnderlinedLabel(entry.ansaettelsesforholdNavn, MARGINS.left);
-          if (entry.loenudviklingLabel !== 'Ingen') {
-            safeAddWrappedText(`Lønudvikling beregnes ud fra ${resolveLoenudviklingLabelDisplay({
-              label: entry.loenudviklingLabel,
-              eoValues,
-              ansaettelsesforholdId: entry.ansaettelsesforholdId,
-            })}.`);
-            writer.advanceY(lineHeight);
-          }
-          renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, true);
-        }
-        if (loenudvikling.loenudviklingTotal.status === 'ok') {
-          writer.addSpacer(lineHeight);
-          const rightMaxWidth = writer.getTextWidth('000.000.000,00');
-          safeAddLeftRightText(
-            'I alt',
-            formatMoneyOreWithKr(loenudvikling.loenudviklingTotal.value),
-            rightMaxWidth,
-            { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
-          );
-        }
-      } else {
-        if (loenudvikling.loenudviklingLabel !== 'Ingen') {
-          safeAddWrappedText(`Lønudvikling beregnes ud fra ${resolveLoenudviklingLabelDisplay({
-            label: loenudvikling.loenudviklingLabel,
-            eoValues,
-          })}.`);
-          writer.advanceY(lineHeight);
-        }
-        renderLoenudviklingSegments(loenudvikling.beregnedeSegmenter, loenudvikling.loenudviklingTotal, false);
-      }
-    }
-
-    // Indtægter i erstatningsperioden (TAF-perioden)
-    const tafIndtaegter = model.tabtArbejdsfortjeneste.tafIndtaegter;
-    if (tafIndtaegter) {
-      assertModelInvariant(
-        tafIndtaegter.total.status === 'ok' || tafIndtaegter.total.status === 'not_calculable',
-        'tafIndtaegter.total har en uventet status.'
-      );
-      renderSubheader('Indtægter i erstatningsperioden', lineHeight);
-      const rightMaxWidth = writer.getTextWidth('000.000.000,00');
-      for (const entry of tafIndtaegter.entries) {
-        safeAddLeftRightText(entry.label, formatMoneyOreWithKr(entry.amountOre), rightMaxWidth, { rightFontStyle: 'normal' }
-        );
-      }
-
-      if (tafIndtaegter.entries.length === 0) {
-        safeAddWrappedText('Ingen');
-      } else if (tafIndtaegter.entries.length > 1 && tafIndtaegter.total.status === 'ok') {
-        safeAddLeftRightText('I alt', formatMoneyOreWithKr(tafIndtaegter.total.value), rightMaxWidth, { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
-        );
-      } else if (tafIndtaegter.entries.length > 1) {
-        safeAddLeftRightText('I alt', '—', rightMaxWidth, { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
-        );
-      }
-    }
-
-    const loenudviklingTotal = model.tabtArbejdsfortjeneste.loenudvikling?.loenudviklingTotal ?? null;
-    const tafTotal = model.tabtArbejdsfortjeneste.tafIndtaegter?.total ?? null;
-    if (loenudviklingTotal && tafTotal && loenudviklingTotal.status === 'ok' && tafTotal.status === 'ok') {
-      renderSubheader('Beregnet krav på tabt arbejdsfortjeneste', lineHeight);
-
-      const rightMaxWidth = writer.getTextWidth('000.000.000,00');
-      const leftText = `${formatMoneyOreWithKr(loenudviklingTotal.value)} - ${formatMoneyOreWithKr(tafTotal.value)} =`;
-      const rightText = formatMoneyOreWithKr(model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre);
-      safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'bold' }
-      );
-    } else if (model.tabtArbejdsfortjeneste.harTafPerioder) {
-      renderSubheader('Beregnet krav på tabt arbejdsfortjeneste', lineHeight);
-      const rightMaxWidth = writer.getTextWidth('000.000.000,00');
-      safeAddLeftRightText('Beregnet krav på tabt arbejdsfortjeneste', '—', rightMaxWidth, { rightFontStyle: 'bold' }
-      );
-    }
-  }
-
-  // Øvrige krav (chunked atomic blocks)
-  const kravEntries = model.oevrigeKrav.entries;
-  const kravRightMaxWidth = writer.getTextWidth('000.000.000,00');
-  const kravHeaderHeight = lineHeight * 4;
-
-  if (kravEntries.length === 0) {
-    renderSectionHeader('Øvrige krav', lineHeight);
-    safeAddWrappedText('Ingen');
-  } else {
-    renderAtomicTableChunks({
-      rows: kravEntries,
-      estimateRowHeight: lineHeight * 2,
-      headerHeight: kravHeaderHeight,
-      renderHeader: () => {
-        renderSectionHeader('Øvrige krav', lineHeight);
-      },
-      renderRow: (entry) => {
-        const udgiftText = entry.udgiftTil !== '' ? entry.udgiftTil : '-';
-        const leftLabel = entry.dateText !== '' ? `${entry.dateText}: ${udgiftText}` : udgiftText;
-        const amountText = formatMoneyOreWithKr(entry.amountOre);
-        safeAddLeftRightText(ensureNonBreakingKr(leftLabel), amountText, kravRightMaxWidth, { rightFontStyle: kravEntries.length === 1 ? 'bold' : 'normal' }
-        );
-      },
-    });
-
-    if (kravEntries.length > 1) {
-      writer.addSpacer(lineHeight * 2);
-      safeAddLeftRightText('I alt', formatMoneyOreWithKr(model.oevrigeKrav.totalOre), kravRightMaxWidth, { rightFontStyle: 'bold', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
-      );
-    }
-  }
-  renderSectionHeader('Samlet erstatningskrav', lineHeight);
-
-  const periodeFraKort = model.periode?.fra ? formatDateShort(model.periode.fra) : '';
-  const periodeTilKort = model.periode?.til ? formatDateShort(model.periode.til) : '';
-  const periodeText =
-    periodeFraKort && periodeTilKort
-      ? `Det samlede krav for perioden ${periodeFraKort} - ${periodeTilKort} udgør:`
-      : 'Det samlede krav udgør:';
-  safeAddWrappedText(periodeText);
-  writer.advanceY(lineHeight);
-
-  const summaryRightMaxWidth = writer.getTextWidth('000.000.000,00');
-  safeAddLeftRightText('Svie- og smertegodtgørelse', formatMoneyOreWithKr(model.samlet.svieSmerteOre), summaryRightMaxWidth, { rightFontStyle: 'normal' }
-  );
-  safeAddLeftRightText('Tabt arbejdsfortjeneste', formatMoneyOreWithKr(model.samlet.tabtArbejdsfortjenesteOre), summaryRightMaxWidth, { rightFontStyle: 'normal' }
-  );
-  safeAddLeftRightText('Øvrige krav', formatMoneyOreWithKr(model.samlet.oevrigeKravOre), summaryRightMaxWidth, { rightFontStyle: 'normal' }
-  );
-  writer.setFont('helvetica', 'bold');
-  safeAddLeftRightText('Erstatningskrav i alt', formatMoneyOreWithKr(model.samlet.totalOre), summaryRightMaxWidth, { rightFontStyle: 'bold', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
-  );
-  writer.setFont('helvetica', 'normal');
-  const saerligeKommentarer = model.saerligeKommentarer;
-  if (saerligeKommentarer) {
-    renderSectionHeader('Særlige bemærkninger', lineHeight);
-    safeAddWrappedText(saerligeKommentarer);
-  }
-  writer.advanceY(doubleLineHeight);
-  if (afsluttesMed === 'Bekræftet godkendt') {
-    safeAddWrappedText('Opgørelsen er gennemgået af skadelidte, som har bekræftet, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevante oplysninger, som skadelidte er bekendt med.');
-  } else {
-    safeAddWrappedText('Opgørelsen er gennemgået af skadelidte, som ved sin underskrift nedenfor bekræfter, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevante oplysninger, som skadelidte er bekendt med.');
-    writer.advanceY(lineHeight * 2);
-    const skadelidteNavn = (stamdataValues.skadelidte ?? '').trim() || '*skadelidtes navn*';
-    const dateX = MARGINS.left;
-    const dateLine = '____ / ____ - ____________';
-    const sigX = MARGINS.left + 90;
-    const sigLine = '________________________________________';
-    writer.writeSignatureBlock(dateLine, sigLine, dateX, sigX, skadelidteNavn);
-  }
+  renderOpgorelseSection({
+    model,
+    eoValues,
+    stamdataValues,
+    lineHeight,
+    doubleLineHeight,
+    afsluttesMed,
+    NBSP,
+    rightColumnWidth: EO_RIGHT_COLUMN_WIDTH,
+    renderSectionHeader,
+    renderSubheader,
+    renderSubheaderWithWrappedText,
+    safeAddWrappedText,
+    safeAddLeftRightText,
+    renderAtomicTableChunks,
+    assertModelInvariant,
+    renderMoneyWithKr,
+    renderMoneyWithKrTrimmed,
+    renderMoneyWithKrOrError,
+    formatMoneyOreWithKr,
+    formatMoneyOreWithKrTrimmed,
+    formatCurrencyFromOre,
+    formatCurrencyFromOreTrimmed,
+    formatCountWithUnit,
+    formatMaanederTrimmed,
+    isSingularCount,
+    parseOptionalIsoDate,
+    resolveLoenSkadesdatoText,
+    resolveLoenudviklingLabelDisplay,
+    formatDateShort,
+    formatDateLong,
+    formatPercentDelta,
+    writer,
+  });
 
   if (selectedElements.loenindkomst) {
-    const formatAmountCell = (value: AarsloenTableRow['col2']): string => amountValueToDisplayString(value, 2);
-    const loenErrorRowIdsByEmploymentId = new Map<string, ReadonlySet<string>>(
-      (eoValues.loenindkomstAnsaettelsesforhold ?? []).map((af) => [
-        af.id,
-        getAarsloenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode),
-      ])
-    );
-
-    const renderLoenindkomstTable = (
-      ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number],
-      errorRowIds: ReadonlySet<string>
-    ) => {
-      const rows = (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).filter((row) => {
-        return shouldIncludeLoenRowInBilag({
-          row,
-          loenperiode: ansaettelsesforhold.loenperiode,
-          mode: bilagIndkomstYdelserMode,
-          ranges: bilagIndkomstYdelserRanges,
-          errorRowIds,
-        });
-      });
-      if (rows.length === 0) return;
-
-      const allHeaders = getLoenindkomstTableHeaders(ansaettelsesforhold.loenperiode);
-      const inputColumnDefs = [
-        { index: 2, key: 'col2' as const },
-        { index: 3, key: 'col3' as const },
-        { index: 4, key: 'col4' as const },
-        { index: 5, key: 'col5' as const },
-      ];
-      const visibleInputColumns = inputColumnDefs.filter((column) =>
-        rows.some((row) => hasNonZeroLoenAmount(row[column.key]))
-      );
-      const headers = [
-        allHeaders[0],
-        allHeaders[1],
-        ...visibleInputColumns.map((column) => allHeaders[column.index]),
-        allHeaders[6],
-        allHeaders[7],
-        allHeaders[8],
-        allHeaders[9],
-      ];
-      const satser = {
-        feriePct: ansaettelsesforhold.feriePct,
-        fritvalgPct: ansaettelsesforhold.fritvalgPct,
-        shSoPct: ansaettelsesforhold.shSoPct,
-        storeBededagPct: ansaettelsesforhold.storeBededagPct,
-        pensionPct: ansaettelsesforhold.pensionPct,
-      };
-
-      const tableRows: RowInput[] = [
-        headers.map((header) => ({
-          content: header,
-          styles: { fontStyle: 'bold', halign: 'center' as const },
-        })),
-      ];
-
-      for (const row of rows) {
-        const [col0, col1] = resolvePeriodColumns(row, ansaettelsesforhold.loenperiode);
-        const derived = calculateAarsloenRowDerived(row, satser);
-        const rowValues = [
-          col0,
-          col1,
-          ...visibleInputColumns.map((column) => formatAmountCell(row[column.key])),
-          formatAsAmount(derived.ferieberet, 2),
-          formatAsAmount(derived.fpFvShSo, 2),
-          formatAsAmount(derived.pension, 2),
-          formatAsAmount(derived.samlet, 2),
-        ];
-        tableRows.push(
-          rowValues.map((value, index) => ({
-            content: value,
-            styles: { halign: index < 2 ? 'center' : 'right' as const },
-          }))
-        );
-      }
-
-      const doc = writer.getDoc();
-      const columnCount = headers.length;
-      const defaultCellWidth = Math.min(22, Math.max(13, 170 / columnCount));
-      const columnStyles = Object.fromEntries(
-        Array.from({ length: columnCount }, (_, index) => [index, { cellWidth: defaultCellWidth }])
-      );
-      const finalY = renderStandardPdfTable({
-        doc,
-        startY: writer.getY(),
-        body: tableRows,
-        columnStyles,
-      });
-      writer.setY(finalY + lineHeight);
-    };
-
-    const ansaettelser = (eoValues.loenindkomstAnsaettelsesforhold ?? []).filter((ansaettelsesforhold) => {
-      const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
-      return (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).some((row) => {
-        return shouldIncludeLoenRowInBilag({
-          row,
-          loenperiode: ansaettelsesforhold.loenperiode,
-          mode: bilagIndkomstYdelserMode,
-          ranges: bilagIndkomstYdelserRanges,
-          errorRowIds,
-        });
-      });
+    renderLoenindkomstSection({
+      selectedElements,
+      eoValues,
+      lineHeight,
+      startBilagPage,
+      renderSubheader,
+      writeLabelValueLine,
+      formatJaNej,
+      formatDateLong,
+      resolveOverenskomstDisplay,
+      formatPctFromInput,
+      isZeroPct,
+      getLoenindkomstTableHeaders,
+      resolvePeriodColumns,
+      hasNonZeroLoenAmount,
+      shouldIncludeLoenRowInBilag,
+      bilagIndkomstYdelserMode,
+      bilagIndkomstYdelserRanges,
+      renderStandardPdfTable: ({ doc, startY, body, columnStyles }) =>
+        renderStandardPdfTable({
+          doc: doc as jsPDF,
+          startY,
+          body,
+          columnStyles: columnStyles as NonNullable<Parameters<typeof autoTable>[1]>['columnStyles'],
+        }),
+      writer,
     });
-    if (ansaettelser.length > 0) {
-      startBilagPage('Lønindkomst');
-      writer.addSpacer(lineHeight);
-      for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
-        const fallbackNavn = `Ansættelsesforhold ${index + 1}`;
-        const arbejdsstedNavn = ansaettelsesforhold.navnPaaArbejdssted?.trim() || fallbackNavn;
-        if (index > 0) writer.addSpacer(lineHeight);
-        renderSubheader(arbejdsstedNavn, lineHeight, { addTopSpacing: index > 0 });
-        writer.addSpacer(lineHeight);
-        writeLabelValueLine(
-          'Ansat på skadestidspunktet',
-          formatJaNej(ansaettelsesforhold.ansatPaaSkadestidspunktet)
-        );
-        if (ansaettelsesforhold.ansatPaaSkadestidspunktet !== false) {
-          writeLabelValueLine(
-            'Opsagt fra stillingen',
-            (() => {
-              const isOpsagt = ansaettelsesforhold.ansaettelsesforholdOphoert;
-              if (!isOpsagt) return 'Nej';
-              const sidsteArbejdsdag = formatDateLong(ansaettelsesforhold.sidsteArbejdsdag);
-              if (!sidsteArbejdsdag) return 'Ja';
-              return `Ja, sidste arbejdsdag ${sidsteArbejdsdag}`;
-            })()
-          );
-        }
-        writer.addSpacer(lineHeight);
-        const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
-        if (overenskomstId) {
-          writeLabelValueLine('Overenskomst', resolveOverenskomstDisplay(overenskomstId));
-          writer.addSpacer(lineHeight);
-        }
-        if (selectedElements.okSatser) {
-          if (!isZeroPct(ansaettelsesforhold.feriePct)) {
-            writeLabelValueLine('Feriegodtgørelse/-tillæg:', formatPctFromInput(ansaettelsesforhold.feriePct));
-          }
-          if (!isZeroPct(ansaettelsesforhold.fritvalgPct)) {
-            writeLabelValueLine('Fritvalg:', formatPctFromInput(ansaettelsesforhold.fritvalgPct));
-          }
-          if (!isZeroPct(ansaettelsesforhold.shSoPct)) {
-            writeLabelValueLine('SH/SO-sats:', formatPctFromInput(ansaettelsesforhold.shSoPct));
-          }
-          if (!isZeroPct(ansaettelsesforhold.storeBededagPct)) {
-            writeLabelValueLine('Store Bededagstillæg:', formatPctFromInput(ansaettelsesforhold.storeBededagPct));
-          }
-          if (!isZeroPct(ansaettelsesforhold.pensionPct)) {
-            writeLabelValueLine('Arbejdsgivers pensionsbidrag:', formatPctFromInput(ansaettelsesforhold.pensionPct));
-          }
-        }
-        writer.addSpacer(lineHeight);
-        const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
-        renderLoenindkomstTable(ansaettelsesforhold, errorRowIds);
-      }
-    }
   }
 
   if (selectedElements.offentligeYdelser) {
-    const offentligeErrorRowIds = getOffentligeYdelserErrorRowIdSet(eoValues.offentligeYdelserRows ?? []);
-    const rows = (eoValues.offentligeYdelserRows ?? []).filter((row) => {
-      return shouldIncludeOffentligYdelseRowInBilag({
-        row,
-        mode: bilagIndkomstYdelserMode,
-        ranges: bilagIndkomstYdelserRanges,
-        errorRowIds: offentligeErrorRowIds,
-      });
+    renderOffentligeYdelserSection({
+      eoValues,
+      lineHeight,
+      startBilagPage,
+      renderSubheader,
+      shouldIncludeOffentligYdelseRowInBilag,
+      bilagIndkomstYdelserMode,
+      bilagIndkomstYdelserRanges,
+      renderStandardPdfTable: ({ doc, startY, body, columnStyles }) =>
+        renderStandardPdfTable({
+          doc: doc as jsPDF,
+          startY,
+          body,
+          columnStyles: columnStyles as NonNullable<Parameters<typeof autoTable>[1]>['columnStyles'],
+        }),
+      writer,
     });
-
-    const renderOffentligeYdelserTable = (rowsToRender: readonly OffentligeYdelserRow[]) => {
-      const headerRow: RowInput = OFFENTLIGE_YDELSER_HEADERS.map((header) => ({
-        content: header,
-        styles: { fontStyle: 'bold', halign: 'center' as const },
-      }));
-
-      const buildTableRows = (groupRows: OffentligeYdelserRow[]): RowInput[] => {
-        const tableRows: RowInput[] = [headerRow];
-        for (const row of groupRows) {
-          const ydelsestypeKey = row.ydelsestype?.trim() ?? '';
-          const ydelsestypeLabel = ydelsestypeKey ? (ydelsestyper[ydelsestypeKey]?.label ?? ydelsestypeKey) : '';
-          const ydelseValue = amountValueToNumber(row.ydelse) ?? 0;
-          const tillaegValue = amountValueToNumber(row.tillaeg) ?? 0;
-          const samletValue = ydelseValue + tillaegValue;
-          const samletDisplay =
-            row.ydelse !== undefined || row.tillaeg !== undefined
-              ? formatAsAmount(samletValue, 2)
-              : '';
-          const rowValues = [
-            row.fraDato?.trim() ?? '',
-            row.tilDato?.trim() ?? '',
-            amountValueToDisplayString(row.ydelse, 2),
-            amountValueToDisplayString(row.tillaeg, 2),
-            samletDisplay,
-            ydelsestypeLabel,
-          ];
-          tableRows.push(
-            rowValues.map((value, index) => {
-              const halign: 'center' | 'left' | 'right' =
-                index <= 1 ? 'center' : 'right';
-              return {
-                content: value,
-                styles: { halign },
-              };
-            })
-          );
-        }
-        return tableRows;
-      };
-
-      const grouped = new Map<string, OffentligeYdelserRow[]>();
-      const groupOrder: string[] = [];
-      for (const row of rowsToRender) {
-        const ydelsestypeKey = row.ydelsestype?.trim() ?? '';
-        const ydelsestypeLabel = ydelsestypeKey
-          ? (ydelsestyper[ydelsestypeKey]?.label ?? ydelsestypeKey)
-          : 'Ikke angivet';
-        if (!grouped.has(ydelsestypeLabel)) {
-          grouped.set(ydelsestypeLabel, []);
-          groupOrder.push(ydelsestypeLabel);
-        }
-        grouped.get(ydelsestypeLabel)?.push(row);
-      }
-
-      const doc = writer.getDoc();
-      const columnStyles = {
-        0: { cellWidth: 29 },
-        1: { cellWidth: 29 },
-        2: { cellWidth: 29 },
-        3: { cellWidth: 29 },
-        4: { cellWidth: 29 },
-        5: { cellWidth: 29 },
-      };
-
-      for (const [index, label] of groupOrder.entries()) {
-        if (index > 0) writer.addSpacer(lineHeight);
-        renderSubheader(label, lineHeight, { addTopSpacing: index > 0 });
-        writer.addSpacer(lineHeight);
-        const tableRows = buildTableRows(grouped.get(label) ?? []);
-        const finalY = renderStandardPdfTable({
-          doc,
-          startY: writer.getY(),
-          body: tableRows,
-          columnStyles,
-        });
-        writer.setY(finalY + lineHeight);
-      }
-    };
-
-    if (rows.length > 0) {
-      startBilagPage('Offentlige ydelser');
-      writer.addSpacer(lineHeight);
-      renderOffentligeYdelserTable(rows);
-    }
   }
 
-  const renderShDageSection = () => {
-    const formatRangeLong = (fra: ISODateString | undefined, til: ISODateString | undefined): string => {
-      const fraDisplay = formatDateLong(fra);
-      const tilDisplay = formatDateLong(til);
-      return `${fraDisplay || '-'} - ${tilDisplay || '-'}`;
-    };
-
-    const renderShDageTable = (rows: readonly SHDageTableRow[]) => {
-      const antalShDage = rows.filter((row) => row.erSHDag).length;
-      const tableRows: RowInput[] = [
-        [
-          { content: 'Ugedag', styles: { fontStyle: 'bold', halign: 'left' } },
-          { content: 'Dato', styles: { fontStyle: 'bold', halign: 'left' } },
-          { content: 'Helligdag', styles: { fontStyle: 'bold', halign: 'left' } },
-          { content: 'SH-dag', styles: { fontStyle: 'bold', halign: 'center' } },
-        ],
-      ];
-
-      for (const row of rows) {
-        tableRows.push([
-          { content: row.ugedag, styles: { halign: 'left' } },
-          { content: row.datoDisplay, styles: { halign: 'left' } },
-          { content: row.helligdagNavn, styles: { halign: 'left' } },
-          { content: row.erSHDag ? 'x' : '', styles: { halign: 'center' } },
-        ]);
-      }
-
-      tableRows.push([
-        { content: 'SH-dage i alt', styles: { fontStyle: 'bold', halign: 'left', fillColor: false } },
-        { content: '', styles: { fontStyle: 'bold', fillColor: false } },
-        { content: '', styles: { fontStyle: 'bold', fillColor: false } },
-        { content: String(antalShDage), styles: { fontStyle: 'bold', halign: 'center', fillColor: false } },
-      ]);
-
-      const doc = writer.getDoc();
-      const finalY = renderStandardPdfTable({
-        doc,
-        startY: writer.getY(),
-        body: tableRows,
-        columnStyles: {
-          0: { cellWidth: 'auto' },
-          1: { cellWidth: 'auto' },
-          2: { cellWidth: 'auto' },
-          3: { cellWidth: 25 },
-        },
-        transparentRowIndices: [tableRows.length - 1],
-      });
-      writer.setY(finalY + lineHeight);
-    };
-
-    startBilagPage('SH-dage');
-
-    writer.addSpacer(lineHeight);
-    safeAddWrappedText('Helligdage, der falder på hverdage (mandag-fredag).');
-    writer.addSpacer(lineHeight);
-
-    if (eoValues.beregnesUdFra === 'Beregningsperiode') {
-      writer.addSpacer(lineHeight);
-      renderSubheader('Beregningsperiode', lineHeight, { addTopSpacing: false });
-      safeAddWrappedText(formatRangeLong(eoValues.periodeTilBeregningFra, eoValues.periodeTilBeregningTil));
-      writer.addSpacer(lineHeight);
-      const beregningsperiodeHelligdage = findHelligdageInRange(eoValues.periodeTilBeregningFra, eoValues.periodeTilBeregningTil);
-      if (beregningsperiodeHelligdage.length === 0) {
-        safeAddWrappedText('Ingen helligdage');
-        writer.addSpacer(lineHeight * 2);
-      } else {
-        renderShDageTable(beregningsperiodeHelligdage);
-        writer.addSpacer(lineHeight);
-      }
-    }
-
-    renderSubheader('Erstatningsperiode', lineHeight, { addTopSpacing: false });
-    safeAddWrappedText(formatRangeLong(eoValues.vedroererPeriodeFra, eoValues.vedroererPeriodeTil));
-    writer.addSpacer(lineHeight);
-    const erstatningsperiodeHelligdage = findHelligdageInRange(eoValues.vedroererPeriodeFra, eoValues.vedroererPeriodeTil);
-    if (erstatningsperiodeHelligdage.length === 0) {
-      safeAddWrappedText('Ingen helligdage');
-    } else {
-      renderShDageTable(erstatningsperiodeHelligdage);
-    }
-  };
-
-  // Tilføj footer med versionsnummer
   if (selectedElements.regulering && shouldIncludeReguleringBilag(eoValues)) {
-
-    const renderReguleringIndeksTable = (rows: readonly ReguleringIndexRow[]) => {
-      if (rows.length === 0) {
-        safeAddWrappedText('Ingen reguleringsrækker i perioden.');
-        return;
-      }
-
-      const tableRows: RowInput[] = [
-        [
-          { content: 'Fra-dato', styles: { fontStyle: 'bold', halign: 'center' } },
-          { content: 'Til-dato', styles: { fontStyle: 'bold', halign: 'center' } },
-          { content: 'Indeksberegning', styles: { fontStyle: 'bold', halign: 'center' } },
-          { content: 'Indeks', styles: { fontStyle: 'bold', halign: 'center' } },
-          { content: 'Lønudvikling', styles: { fontStyle: 'bold', halign: 'center' } },
-        ],
-      ];
-
-      for (const row of rows) {
-        tableRows.push([
-          { content: row.fraDato, styles: { halign: 'center' } },
-          { content: row.tilDato, styles: { halign: 'center' } },
-          { content: row.indeksberegning, styles: { halign: 'center' } },
-          { content: row.indeks, styles: { halign: 'right' } },
-          { content: row.loenudvikling, styles: { halign: 'right' } },
-        ]);
-      }
-
-      const doc = writer.getDoc();
-      const finalY = renderStandardPdfTable({
-        doc,
-        startY: writer.getY(),
-        body: tableRows,
-      });
-      writer.setY(finalY + lineHeight);
-    };
-
-    const renderReguleringsvaerdierTable = (tableData: ReguleringValuesTableData | null) => {
-      if (!tableData || tableData.rows.length === 0) {
-        safeAddWrappedText('Ingen reguleringsværdier.');
-        return;
-      }
-
-      const tableRows: RowInput[] = [
-        tableData.columns.map((column) => ({
-          content: column,
-          styles: { fontStyle: 'bold', halign: 'center' as const },
-        })),
-        ...tableData.rows.map((row) =>
-          row.map((value) => ({
-            content: value,
-            styles: { halign: 'center' as const },
-          }))
-        ),
-      ];
-
-      const doc = writer.getDoc();
-      const finalY = renderStandardPdfTable({
-        doc,
-        startY: writer.getY(),
-        body: tableRows,
-      });
-      writer.setY(finalY + lineHeight);
-    };
-
-    const ansaettelser = resolveLoenudviklingKilde(eoValues);
-    startBilagPage('Regulering');
-
-    if (ansaettelser.length === 0) {
-      safeAddWrappedText('Ingen ansættelsesforhold.');
-    } else {
-      const tafBounds = resolveTafDateBounds(eoValues);
-      writer.addSpacer(lineHeight);
-
-      for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
-        const underoverskrift = ansaettelsesforhold.navnPaaArbejdssted?.trim() || `Ansættelsesforhold ${index + 1}`;
-        if (index > 0) writer.addSpacer(lineHeight);
-        renderSubheader(underoverskrift, lineHeight, { addTopSpacing: index > 0 });
-        writer.addSpacer(lineHeight);
-
-        const valgtRegulering = resolveValgtReguleringDisplay(ansaettelsesforhold);
-        const reguleringsdato = resolveReguleringsdato(stamdataValues, eoValues, ansaettelsesforhold);
-        const skadesdatoIso = parseOptionalIsoDate(stamdataValues.skadesdato);
-        const saerligFraDatoIso = parseOptionalIsoDate(ansaettelsesforhold.saerligFraDatoRegulering);
-        const loenSkadesdatoText = resolveLoenSkadesdatoText({
-          subject: 'lønnen',
-          skadesdato: skadesdatoIso,
-          saerligFraDatoRegulering: saerligFraDatoIso,
-        });
-        // Vis lønudvikling-beskrivelse i stedet for "Reguleringsdato (Skadesdato)"
-        if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Ingen') {
-          writeLabelValueLine('Regulering', valgtRegulering);
-          writeLabelValueLine('Opgøres på baggrund af', loenSkadesdatoText);
-          writer.addSpacer(lineHeight);
-          continue;
-        }
-        writeLabelValueLine(
-          'Beregnes som',
-          `${loenSkadesdatoText.charAt(0).toUpperCase()}${loenSkadesdatoText.slice(1)} tillagt efterfølgende lønstigninger`
-        );
-        writeLabelValueLine('Regulering', valgtRegulering);
-
-        // Vis lønindplacering for offentlig overenskomst (KL/RLTN)
-        const offentligTypeForLabel = ansaettelsesforhold.overenskomstId
-          ? getOffentligOverenskomstTypeById(ansaettelsesforhold.overenskomstId)
-          : undefined;
-        if (offentligTypeForLabel && ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Overenskomst') {
-          const trin = ansaettelsesforhold.offentligLoenTrin;
-          const gruppe = ansaettelsesforhold.offentligLoenGruppe;
-          if (typeof trin === 'number' && typeof gruppe === 'number') {
-            writeLabelValueLine('Indplacering', `Løntrin ${trin}, gruppe ${gruppe}`);
-          }
-        }
-        writer.addSpacer(lineHeight);
-        safeAddWrappedText('Reguleringsværdier:');
-
-        const reguleringsvaerdierTableData =
-          tafBounds
-            ? buildReguleringsvaerdierTableData({
-                ansaettelsesforhold,
-                reguleringsdato,
-                tafFra: tafBounds.foerste,
-                tafTil: tafBounds.sidste,
-              })
-            : null;
-        renderReguleringsvaerdierTable(reguleringsvaerdierTableData);
-
-        writer.addSpacer(lineHeight);
-        // Indeksberegning gengiver mellemregningen fra EODebug-tabellen; arbejdsdage og måneder er bevidst udeladt.
-        safeAddWrappedText('Beregnet regulering');
-
-        // Bevidst forskel: Indeks-tabellen følger de beregnede TAF-segmenter og dermed TAF-start.
-        const reguleringTableRows = buildReguleringIndexRows({
-          segments: model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [],
-          ansaettelsesforhold,
-          reguleringsdato,
-        });
-        renderReguleringIndeksTable(reguleringTableRows);
-
-        // Vis kildehenvisning efter reguleringstabel
-        if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'KRL satstabel') {
-          writer.addSpacer(lineHeight);
-          safeAddWrappedText("KRL's sats-tabeller kan genfindes på https://www.krl.dk/#/sats");
-        } else if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Statistik') {
-          const statistikLabel = (ansaettelsesforhold.loenudviklingStatistikModel ?? '').trim();
-          const statistikModelId = resolveStatistikModelIdFromLabel(statistikLabel);
-          if (statistikModelId === 'ILON12') {
-            writer.addSpacer(lineHeight);
-            safeAddWrappedText('Det Implicitte Lønindeks fra Danmarks Statistik (ILON12) anvendes som et retvisende reguleringsgrundlag for lønudvikling i samfundet. Regulering foretages med afsæt i værdierne for K1 (1. kvartal 2005 = indeksværdi 100), uden sæsonkorrektion.');
-          } else if (statistikModelId === 'SBLON2') {
-            writer.addSpacer(lineHeight);
-            safeAddWrappedText('Det Standardberegnede Lønindeks fra Danmarks Statistik (SBLON2) anvendes som et retvisende reguleringsgrundlag for lønudvikling i samfundet. Regulering foretages med afsæt i værdierne for K1 (1. kvartal 2016 = indeksværdi 100).');
-          } else if (statistikLabel.startsWith('ASL-')) {
-            writer.addSpacer(lineHeight);
-            safeAddWrappedText('ASL-årslønsmaksimum fremgår ikke eksplicit som reguleringsgrundlag i EAL § 15, men anvendes til fremskrivning på erstatnings- og arbejdsskadeområdet, og beror på den statslige tilpasningsprocent, der i almindelighed anvendes til fremskrivning af ydelser i samfundet.');
-          }
-        }
-      }
-    }
+    renderReguleringSection({
+      eoValues,
+      stamdataValues,
+      lineHeight,
+      modelLoenudviklingSegmenter: model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [],
+      startBilagPage,
+      renderSubheader,
+      safeAddWrappedText,
+      writeLabelValueLine,
+      resolveValgtReguleringDisplay,
+      resolveReguleringsdato,
+      parseOptionalIsoDate,
+      resolveLoenSkadesdatoText,
+      resolveTafDateBounds,
+      buildReguleringsvaerdierTableData,
+      buildReguleringIndexRows,
+      resolveStatistikModelIdFromLabel,
+      renderStandardPdfTable: ({ doc, startY, body, columnStyles }) =>
+        renderStandardPdfTable({
+          doc: doc as jsPDF,
+          startY,
+          body,
+          columnStyles: columnStyles as NonNullable<Parameters<typeof autoTable>[1]>['columnStyles'],
+        }),
+      writer,
+    });
   }
 
   if (selectedElements.shDage) {
-    renderShDageSection();
+    renderShDageSection({
+      eoValues,
+      lineHeight,
+      startBilagPage,
+      renderSubheader,
+      safeAddWrappedText,
+      renderStandardPdfTable: ({ doc, startY, body, columnStyles, transparentRowIndices }) =>
+        renderStandardPdfTable({
+          doc: doc as jsPDF,
+          startY,
+          body,
+          columnStyles: columnStyles as NonNullable<Parameters<typeof autoTable>[1]>['columnStyles'],
+          transparentRowIndices,
+        }),
+      writer,
+    });
   }
 
   writer.addFooter();
@@ -2757,3 +1769,4 @@ export const generateErstatningsopgoerelsePdf = (
   // Download PDF
   writer.save(resolvePdfFileName(titel, visUdkastStempel, model.brevhoved?.journalnr));
 };
+

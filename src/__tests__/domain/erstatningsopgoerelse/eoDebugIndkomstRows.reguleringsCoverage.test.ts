@@ -60,7 +60,7 @@ describe('buildEODebugIndkomstRows regulering details', () => {
       },
     ];
 
-    const rows = buildEODebugIndkomstRows(values, iso('2024-01-01'));
+    const rows = buildEODebugIndkomstRows(values, iso('2023-01-01'));
     const prefix = `loenindkomst.${af.id}.regulering`;
     const slutRow = rows.find((row) => row.id === `${prefix}.slutvaerdi`);
 
@@ -68,5 +68,36 @@ describe('buildEODebugIndkomstRows regulering details', () => {
     expect(slutRow?.status).toBe('error');
     expect(slutRow?.displayValue).toMatch(/^Nej \(kun indtil /);
     expect(slutRow?.message).toMatch(/^mangler \(kun indtil /);
+  });
+
+  it('behandler præcis udløbsgrænse som ikke-ok (< grænse er tilladt, = grænse er ikke)', () => {
+    const values = cloneInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.vedroererPeriodeFra = iso('2024-01-01');
+    values.vedroererPeriodeTil = iso('2025-07-01');
+    values.tafPerioder = [{ id: 'taf-1', fra: iso('2024-01-01'), til: iso('2025-07-01'), loseFeriedage: undefined }];
+
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    af.loenudviklingManuelTableData = [
+      {
+        ...af.loenudviklingManuelTableData[0],
+        dato: '02-01-2024',
+        grundloen: 100,
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+    ];
+
+    const rows = buildEODebugIndkomstRows(values, iso('2024-01-01'));
+    const prefix = `loenindkomst.${af.id}.regulering`;
+    const slutRow = rows.find((row) => row.id === `${prefix}.slutvaerdi`);
+
+    expect(slutRow).toBeDefined();
+    expect(slutRow?.status).toBe('error');
+    expect(slutRow?.displayValue).toMatch(/^Nej \(kun indtil /);
+    expect(slutRow?.displayValue).not.toBe('(< 6 måneder)');
   });
 });
