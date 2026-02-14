@@ -1,13 +1,14 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { FieldErrorBySource } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
-import { dateToISO, isoToDanish, subtractOneDay } from '../../types/branded';
+import { dateToISO, isISODateString, isoToDanish, parseISODate, subtractOneDay } from '../../types/branded';
 import { svieSmertePrDag, svieSmerteMax } from '../../data/regulationRates';
 import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import { computeRowDateBounds } from './rowDateBounds';
 import { validateISODateRange } from '../../utils/dateValidation';
 import { detectConflictingSvieSmerteOverlaps, detectOverlappingPeriods } from './periodOverlapDetection';
 import { formatCurrency } from '../../utils/formatUtils';
+import { addDays, addMonths, parseDanishDate } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { buildNoValidDateRangeMessage, collectPresentFieldErrors, isNonEmptyString, resolveDebugDisplay } from './eoDebugCommon';
 import type { DebugRowGroup, DebugRowModel, DebugStatus } from '../debug/eoDebugTypes';
@@ -21,10 +22,13 @@ import { computeTafOverlapWithBeregningsperiode } from './beregningsperiodeTafOv
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoDebugIndkomstModel';
 import { mergeDateRanges } from './periodMerging';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from './tafPeriodConstraints';
-import { isOffentligOverenskomstId } from '../../data/overenskomstRates';
+import { getReguleringsDatoIntervalForOverenskomst, isOffentligOverenskomstId } from '../../data/overenskomstRates';
+import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskLoenudviklingRates';
+import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/KRLrates';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from './angivetLoenHelpers';
 import { buildBeregningsperiodeRange, buildIncomeForRanges } from './indtaegtPerioder';
+import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -2373,12 +2377,114 @@ const formatStatusMessage = (status: DebugStatus, message: string): string => {
   return `${status === 'error' ? 'Fejl' : 'Advarsel'} (${trimmed})`;
 };
 
+type ReguleringsRange = Readonly<{
+  min?: ISODateString;
+  max?: ISODateString;
+}>;
+
+const parseDanishToIsoDebug = (value: string | undefined): ISODateString | undefined => {
+  if (!value || value.trim() === '') return undefined;
+  const parsed = parseDanishDate(value.trim());
+  if (!parsed) return undefined;
+  return dateToISO(parsed);
+};
+
+const getRangeForManualReguleringDebug = (
+  baseIso: ISODateString | undefined,
+  rows: ReadonlyArray<{ dato?: string | undefined }>
+): ReguleringsRange => {
+  const dates: ISODateString[] = [];
+  if (baseIso) dates.push(baseIso);
+
+  rows.forEach((row) => {
+    const iso = parseDanishToIsoDebug(row.dato);
+    if (iso) dates.push(iso);
+  });
+
+  if (dates.length === 0) return {};
+
+  let min = dates[0];
+  let max = dates[0];
+  for (const iso of dates) {
+    if (iso < min) min = iso;
+    if (iso > max) max = iso;
+  }
+
+  const maxDate = parseISODate(max);
+  if (!maxDate) return { min };
+
+  const adjustedMax = dateToISO(addDays(addMonths(maxDate, 12), -1));
+  return { min, max: adjustedMax };
+};
+
+const calculateElapsedWholeMonthsDebug = (fromIso: ISODateString, toIso: ISODateString): number => {
+  if (toIso <= fromIso) return 0;
+  const fromDate = parseISODate(fromIso);
+  const toDate = parseISODate(toIso);
+  if (!fromDate || !toDate) return 0;
+
+  let months =
+    (toDate.getUTCFullYear() - fromDate.getUTCFullYear()) * 12 +
+    (toDate.getUTCMonth() - fromDate.getUTCMonth());
+  if (toDate.getUTCDate() < fromDate.getUTCDate()) {
+    months -= 1;
+  }
+
+  return Math.max(0, months);
+};
+
+const buildReguleringsMangelMessage = (
+  status: DebugStatus,
+  displayValue: string
+): string | undefined => {
+  if (status === 'ok') return undefined;
+  const trimmed = displayValue.trim();
+  if (trimmed === '' || trimmed === '-' || trimmed === 'Nej') return 'mangler';
+  if (trimmed.startsWith('Nej')) return `mangler${trimmed.slice(3)}`;
+  return trimmed;
+};
+
+const resolveTafBoundaryDatesInSkadetPeriode = (
+  values: ErstatningsopgoerelseValues
+): Readonly<{ first?: ISODateString; last?: ISODateString }> => {
+  const periodeTil = isISODateString(values.vedroererPeriodeTil) ? values.vedroererPeriodeTil : undefined;
+  if (!periodeTil) return {};
+  const periodeFra = isISODateString(values.vedroererPeriodeFra) ? values.vedroererPeriodeFra : undefined;
+  const periodRange = periodeFra && periodeFra <= periodeTil ? { fra: periodeFra, til: periodeTil } : null;
+
+  let first: ISODateString | undefined;
+  let last: ISODateString | undefined;
+
+  for (const row of values.tafPerioder ?? []) {
+    if (!isISODateString(row.fra) || !isISODateString(row.til)) continue;
+    if (row.fra > row.til) continue;
+
+    if (periodRange) {
+      if (row.til < periodRange.fra || row.fra > periodRange.til) continue;
+      const firstCandidate = row.fra < periodRange.fra ? periodRange.fra : row.fra;
+      const lastCandidate = row.til > periodRange.til ? periodRange.til : row.til;
+      if (!first || firstCandidate < first) first = firstCandidate;
+      if (!last || lastCandidate > last) last = lastCandidate;
+      continue;
+    }
+
+    if (!first || row.fra < first) first = row.fra;
+    if (!last || row.til > last) last = row.til;
+  }
+
+  return { first, last };
+};
+
 export const buildEODebugIndkomstRows = (
   values: ErstatningsopgoerelseValues,
   skadesdato: ISODateString | undefined,
-  manualReguleringInputErrors: Readonly<Record<string, true>> = {}
+  manualReguleringInputErrors: Readonly<Record<string, true>> = {},
+  appSettings: AppSettings = DEFAULT_APP_SETTINGS
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
+  const allowIncompleteOverenskomst = appSettings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
+  const overenskomstUdloebMaanederGraense = appSettings.allowReguleringMedUdloebMedMaaneder;
+  const tafBoundaryDates = resolveTafBoundaryDatesInSkadetPeriode(values);
 
   const sections = buildIndkomstSectionStatuses(values.loenindkomstAnsaettelsesforhold ?? [], skadesdato, values.beregnesUdFra);
   sections.forEach((section) => {
@@ -2589,6 +2695,134 @@ export const buildEODebugIndkomstRows = (
         dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
       });
     }
+
+    const showReguleringDetails =
+      harGyldigValgtRegulering &&
+      alleReguleringsvaerdierRow.status === 'ok' &&
+      alleReguleringsvaerdierRow.displayValue === 'Ja';
+
+    if (!showReguleringDetails || !loenudviklingBasis || loenudviklingBasis === 'Ingen') {
+      return;
+    }
+
+    const reguleringsdato = values.beregnesUdFra !== 'Beregningsperiode'
+      ? (getAngivetLoenOpreguleresFraDato(values) ?? skadesdato)
+      : (isISODateString(ansaettelsesforhold.saerligFraDatoRegulering) ? ansaettelsesforhold.saerligFraDatoRegulering : skadesdato);
+
+    const reguleringsRange = (() => {
+      if (loenudviklingBasis === 'Overenskomst') {
+        const interval = getReguleringsDatoIntervalForOverenskomst(ansaettelsesforhold.overenskomstId ?? '');
+        if (!interval) return {} as ReguleringsRange;
+        return {
+          min: parseDanishToIsoDebug(interval.fraDato),
+          max: parseDanishToIsoDebug(interval.tilDato),
+        };
+      }
+      if (loenudviklingBasis === 'Statistik') {
+        const interval = getReguleringsDatoIntervalForStatistikModel(ansaettelsesforhold.loenudviklingStatistikModel ?? '');
+        if (!interval) return {} as ReguleringsRange;
+        return {
+          min: parseDanishToIsoDebug(interval.fraDato),
+          max: parseDanishToIsoDebug(interval.tilDato),
+        };
+      }
+      if (loenudviklingBasis === 'KRL satstabel') {
+        const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel as KRLSatstabelId | undefined;
+        if (!krlId) return {} as ReguleringsRange;
+        const interval = getReguleringsDatoIntervalForKRL(krlId);
+        if (!interval) return {} as ReguleringsRange;
+        return {
+          min: parseDanishToIsoDebug(interval.fraDato),
+          max: parseDanishToIsoDebug(interval.tilDato),
+        };
+      }
+      if (loenudviklingBasis === 'Manuelt angivet') {
+        return getRangeForManualReguleringDebug(reguleringsdato, ansaettelsesforhold.loenudviklingManuelTableData ?? []);
+      }
+      return {} as ReguleringsRange;
+    })();
+
+    const reguleringsvaerdiRowStatus = (() => {
+      if (!reguleringsdato) return { displayValue: '-', status: 'error' as DebugStatus };
+      if (!reguleringsRange.min) {
+        return {
+          displayValue: 'Nej',
+          status: allowIncompleteOverenskomst ? 'warning' as DebugStatus : 'error' as DebugStatus,
+        };
+      }
+      if (reguleringsdato < reguleringsRange.min) {
+        return {
+          displayValue: `Nej (først fra ${isoToDanish(reguleringsRange.min) ?? reguleringsRange.min})`,
+          status: allowIncompleteOverenskomst ? 'warning' as DebugStatus : 'error' as DebugStatus,
+        };
+      }
+      return { displayValue: 'Ja', status: 'ok' as DebugStatus };
+    })();
+
+    const startDateRowStatus = (() => {
+      const tafStartIso = tafBoundaryDates.first;
+      if (!tafStartIso || !reguleringsRange.min) return { displayValue: '-', status: 'error' as DebugStatus };
+      if (reguleringsRange.min <= tafStartIso) return { displayValue: 'Ja', status: 'ok' as DebugStatus };
+      return {
+        displayValue: `Nej (først fra ${isoToDanish(reguleringsRange.min) ?? reguleringsRange.min})`,
+        status: allowIncompleteOverenskomst ? 'warning' as DebugStatus : 'error' as DebugStatus,
+      };
+    })();
+
+    const endDateRowStatus = (() => {
+      const tafEndIso = tafBoundaryDates.last;
+      if (!tafEndIso || !reguleringsRange.max) return { displayValue: '-', status: 'error' as DebugStatus };
+      if (reguleringsRange.max >= tafEndIso) return { displayValue: 'Ja', status: 'ok' as DebugStatus };
+
+      const maanederSidenUdloeb = calculateElapsedWholeMonthsDebug(reguleringsRange.max, tafEndIso);
+      if (maanederSidenUdloeb < overenskomstUdloebMaanederGraense) {
+        return {
+          displayValue: `(< ${overenskomstUdloebMaanederGraense} måneder)`,
+          status: 'ok' as DebugStatus,
+        };
+      }
+
+      return {
+        displayValue: `Nej (kun indtil ${isoToDanish(reguleringsRange.max) ?? reguleringsRange.max})`,
+        status: allowIncompleteOverenskomst ? 'warning' as DebugStatus : 'error' as DebugStatus,
+      };
+    })();
+
+    rows.push({
+      id: `${loenudviklingRowPrefix}.reguleringsvaerdi`,
+      label: 'Reguleringsværdi på reguleringsdato',
+      displayValue: reguleringsvaerdiRowStatus.displayValue,
+      status: reguleringsvaerdiRowStatus.status,
+      message: buildReguleringsMangelMessage(
+        reguleringsvaerdiRowStatus.status,
+        reguleringsvaerdiRowStatus.displayValue
+      ),
+      dependsOn: [{ kind: 'id', id: `${loenudviklingRowPrefix}.alleVaerdier` }],
+    });
+
+    rows.push({
+      id: `${loenudviklingRowPrefix}.startvaerdi`,
+      label: 'Reguleringsværdi på start-dato',
+      displayValue: startDateRowStatus.displayValue,
+      status: startDateRowStatus.status,
+      message: buildReguleringsMangelMessage(
+        startDateRowStatus.status,
+        startDateRowStatus.displayValue
+      ),
+      dependsOn: [{ kind: 'id', id: `${loenudviklingRowPrefix}.alleVaerdier` }],
+    });
+
+    rows.push({
+      id: `${loenudviklingRowPrefix}.slutvaerdi`,
+      label: 'Reguleringsværdi på slut-dato',
+      displayValue: endDateRowStatus.displayValue,
+      status: endDateRowStatus.status,
+      message: buildReguleringsMangelMessage(
+        endDateRowStatus.status,
+        endDateRowStatus.displayValue
+      ),
+      dependsOn: [{ kind: 'id', id: `${loenudviklingRowPrefix}.alleVaerdier` }],
+    });
   });
 
   return rows;

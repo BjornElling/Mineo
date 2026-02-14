@@ -102,6 +102,6 @@ MIT License - Se [LICENSE](LICENSE) filen for detaljer.
 
 ---
 
-**Version**: 2026.02.116
+**Version**: 2026.02.117
 
 **Status**: Under udvikling

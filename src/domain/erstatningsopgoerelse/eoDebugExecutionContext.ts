@@ -1,5 +1,6 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { FieldErrorBySource } from '../../types/fieldErrors';
+import type { AppSettings } from '../../settings/appSettingsSchema';
 
 /**
  * Type aliases for læsbarhed
@@ -25,4 +26,5 @@ export type EODebugExecutionContext = {
   eoValues: ErstatningsopgoerelseValues;
   eoErrors: ErstatningsopgoerelseFieldErrorsBySource;
   loenindkomstManuelReguleringInputErrors: LoenindkomstManuelReguleringInputErrors;
+  appSettings: AppSettings;
 };

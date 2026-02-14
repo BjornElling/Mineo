@@ -10,6 +10,7 @@
 
 import type { DebugRowModel } from '../debug/eoDebugTypes';
 import type { NavigationTarget } from './eoDebugNavigationMap';
+import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 import type {
   EODebugExecutionContext,
   StamdataValues,
@@ -247,7 +248,8 @@ export const collectAllDebugRows = (
   stamdataErrors: StamdataFieldErrorsBySource,
   erstatningsopgoerelseValues: ErstatningsopgoerelseValues,
   erstatningsopgoerelseErrors: ErstatningsopgoerelseFieldErrorsBySource,
-  loenindkomstManuelReguleringInputErrors: Readonly<Record<string, true>> = {}
+  loenindkomstManuelReguleringInputErrors: Readonly<Record<string, true>> = {},
+  appSettings: AppSettings = DEFAULT_APP_SETTINGS
 ): BeregningErrorSummary => {
   // Opret execution context
   const ctx: EODebugExecutionContext = {
@@ -256,6 +258,7 @@ export const collectAllDebugRows = (
     eoValues: erstatningsopgoerelseValues,
     eoErrors: erstatningsopgoerelseErrors,
     loenindkomstManuelReguleringInputErrors,
+    appSettings,
   };
 
   // Udfør alle builders fra registry

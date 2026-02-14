@@ -150,6 +150,9 @@ const Indstillinger = React.memo(() => {
   const resolvedAfsluttesMed = isAfsluttesMedOption(settings.erstatningsopgoerelseAfsluttesMed)
     ? settings.erstatningsopgoerelseAfsluttesMed
     : 'Bekræftet godkendt';
+  const resolvedUdloebMaaneder = udloebMaanederOptions.includes(settings.allowReguleringMedUdloebMedMaaneder)
+    ? settings.allowReguleringMedUdloebMedMaaneder
+    : 6;
 
   React.useEffect(() => {
     if (settings.erstatningsopgoerelseAfsluttesMed !== resolvedAfsluttesMed) {
@@ -414,12 +417,12 @@ const Indstillinger = React.memo(() => {
         </Box>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Tillad regulering med overenskomst, der er udløbet med</Typography>
+          <Typography className="row--text">Accepter overenskomst, der er udløbet med</Typography>
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <StyledDropdown
                 allowEmpty={false}
-                value={settings.allowReguleringMedUdloebMedMaaneder}
+                value={resolvedUdloebMaaneder}
                 onChange={(e: StyledDropdownChangeEvent<number>) => {
                   updateSettings({ allowReguleringMedUdloebMedMaaneder: e.target.value });
                 }}

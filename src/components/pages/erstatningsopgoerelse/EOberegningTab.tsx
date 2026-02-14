@@ -163,8 +163,15 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       return { errors: [], warnings: [], allRows: [], relevantRows: [] };
     }
 
-    return collectAllDebugRows(stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors);
-  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors]);
+    return collectAllDebugRows(
+      stamdataValues,
+      stamdataErrors,
+      eoValues,
+      eoErrors,
+      manuelReguleringInputErrors,
+      settings
+    );
+  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, settings]);
 
   // ============================================================================
   // SAMLET ERSTATNINGSOPGØRELSE (AGGREGATION)
@@ -355,6 +362,11 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   // ============================================================================
 
   const handleDownloadPdf = React.useCallback(async () => {
+    if (errors.length > 0) {
+      console.warn('PDF-download blokeret: der er fejl i EODebug/Beregning.');
+      return;
+    }
+
     if (!stamdataValues || !eoValues) {
       console.error('Manglende data for PDF-generering');
       return;
@@ -373,9 +385,14 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     } catch (error) {
       console.error('Kunne ikke generere PDF for erstatningsopgørelse:', error);
     }
-  }, [stamdataValues, eoValues, selectedElements, settings]);
+  }, [errors.length, stamdataValues, eoValues, selectedElements, settings]);
 
   const handleDownloadTafFordeltPdf = React.useCallback(async () => {
+    if (errors.length > 0) {
+      console.warn('TAF-PDF-download blokeret: der er fejl i EODebug/Beregning.');
+      return;
+    }
+
     if (!stamdataValues || !eoValues) {
       console.error('Manglende data for PDF-generering');
       return;
@@ -390,7 +407,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     } catch (error) {
       console.error('Kunne ikke generere TAF-fordelt-på-år PDF:', error);
     }
-  }, [stamdataValues, eoValues, settings]);
+  }, [errors.length, stamdataValues, eoValues, settings]);
 
   const formatSummaryText = React.useCallback((row: (typeof errors)[number]): string => {
     const message = row.message?.trim() ?? '';
@@ -398,7 +415,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       if (message !== '') return message;
       return row.label;
     }
-    return message !== '' ? `${row.label} (${message})` : row.label;
+    if (message === '') return row.label;
+    if (message.startsWith('mangler')) return `${row.label} ${message}`;
+    return `${row.label} (${message})`;
   }, []);
 
   const renderDebugRows = React.useCallback((

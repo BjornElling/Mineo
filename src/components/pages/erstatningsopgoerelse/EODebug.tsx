@@ -604,8 +604,9 @@ const EODebug = () => {
       eoValues: erstatningsopgoerelseValues,
       eoErrors: erstatningsopgoerelseFieldErrors,
       loenindkomstManuelReguleringInputErrors: manuelReguleringInputErrors,
+      appSettings: settings,
     }),
-    [stamdataValues, stamdataFieldErrors, erstatningsopgoerelseValues, erstatningsopgoerelseFieldErrors, manuelReguleringInputErrors]
+    [stamdataValues, stamdataFieldErrors, erstatningsopgoerelseValues, erstatningsopgoerelseFieldErrors, manuelReguleringInputErrors, settings]
   );
 
   // ============================================================================

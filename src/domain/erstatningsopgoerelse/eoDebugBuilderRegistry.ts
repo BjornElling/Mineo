@@ -79,7 +79,8 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
       buildEODebugIndkomstRows(
         ctx.eoValues,
         ctx.stamdataValues.skadesdato,
-        ctx.loenindkomstManuelReguleringInputErrors
+        ctx.loenindkomstManuelReguleringInputErrors,
+        ctx.appSettings
       ),
   },
 
