@@ -800,7 +800,7 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     expect(segments[0].til).toBe('2024-01-31');
   });
 
-  it('fejler hurtigt ved inkonsistente ansaettelser i loenudvikling for beregningsperiode', () => {
+  it('beregner loenudvikling pr. ansaettelsesforhold ved inkonsistente reguleringer i beregningsperiode', () => {
     const eoValues = makeValues({
       beregnesUdFra: beregningsmetodeEnum.enum.Beregningsperiode,
       periodeTilBeregningFra: iso('2023-01-01'),
@@ -824,19 +824,54 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
           id: 'a1',
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: loenudviklingStatistikModelEnum.enum['ASL-årslønsmaksimum'],
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'a1-r1',
+              col0_maaned: '6',
+              col1_maaned: '2023',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: asAmountValue(10000),
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
         },
         {
           ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
           id: 'a2',
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'a2-r1',
+              col0_maaned: '6',
+              col1_maaned: '2023',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: asAmountValue(8000),
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
         },
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
 
-    expect(() => buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
-      .toThrow('Inkonsistente loenudviklingsindstillinger');
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
+
+    expect(loenudvikling).not.toBeNull();
+    expect(loenudvikling?.perAnsaettelse).toHaveLength(2);
+    expect(loenudvikling?.loenudviklingTotal.status).toBe('ok');
+    assertTotalMatchesSegmentSum(loenudvikling);
   });
 
   it('viser statuslinje for Efterløn', () => {
@@ -1092,5 +1127,3 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     }
   });
 });
-
-

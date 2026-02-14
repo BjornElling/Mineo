@@ -866,12 +866,12 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
         const month = (quarter - 1) * 3 + 1;
         const startIso = parseOptionalIsoDate(`${year}-${String(month).padStart(2, '0')}-01`);
         if (!startIso) return [];
-        return [{ kvartal: value.kvartal, startIso, indeks: value.indeks }];
+        return [{ kvartal: value.kvartal, startIso, indeks: value.indeksvaerdi }];
       })
       .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
     if (periodStarts.length === 0) return null;
 
-    const decimals = detectDecimalPlaces(model.indeksvaerdier.map((value) => value.indeks));
+    const decimals = detectDecimalPlaces(model.indeksvaerdier.map((value) => value.indeksvaerdi));
     const formatIndex = (value: number) =>
       value.toLocaleString('da-DK', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
@@ -887,7 +887,7 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
       if (period.startIso > tafTil) continue;
       rows.push([period.kvartal, formatDateShort(period.startIso), formatIndex(period.indeks)]);
     }
-    return { columns: ['Kvartal', 'Startdato', 'Indeks'], rows };
+    return { columns: ['Kvartal', 'Startdato', 'Indeksværdi'], rows };
   }
 
   if (grundlag === 'KRL satstabel') {
@@ -951,7 +951,7 @@ const buildReguleringIndexRows = (params: Readonly<{
     if (!modelId) return 2;
     const model = getStatistiskLoenudvikling(modelId);
     if (!model) return 2;
-    return detectDecimalPlaces(model.indeksvaerdier.map((value) => value.indeks));
+    return detectDecimalPlaces(model.indeksvaerdier.map((value) => value.indeksvaerdi));
   })();
   const formatStatValue = isAslModel
     ? formatCurrency
@@ -1198,7 +1198,7 @@ const buildReguleringIndexRows = (params: Readonly<{
           const month = (quarter - 1) * 3 + 1;
           const startIso = parseOptionalIsoDate(`${year}-${String(month).padStart(2, '0')}-01`);
           if (!startIso) return [];
-          return [{ startIso, indeks: value.indeks }];
+          return [{ startIso, indeks: value.indeksvaerdi }];
         })
         .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
       if (periodStarts.length === 0) return null;
@@ -1391,7 +1391,7 @@ const buildReguleringIndexRows = (params: Readonly<{
           return [{
             startIso,
             components: {
-              baseValue: value.indeks,
+              baseValue: value.indeksvaerdi,
               feriePct,
               fritvalgPct,
               shSoPct,
@@ -2024,36 +2024,37 @@ export const generateErstatningsopgoerelsePdf = (
     const loenReferenceBeskrivelse = angivetLoenDatoBeskrivelse ?? loenSkadesdatoText;
     const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = loenudvikling?.loenudviklingLabel === 'Ingen'
       ? `Opgøres på baggrund af ${loenReferenceBeskrivelse}.`
-      : `Beregnes som ${loenReferenceBeskrivelse} tillagt efterfølgende lønstigninger.`;
+      : `Beregnes som ${loenReferenceBeskrivelse} tillagt efterfølgende lønstigninger`;
     renderSubheaderWithWrappedText(
       'Indkomst, hvis skaden ikke var indtrådt',
       indkomstHvisSkadeIkkeIndtraadtBeskrivelse
     );
 
     if (loenudvikling) {
-      if (loenudvikling.loenudviklingLabel !== 'Ingen') {
-        const loenudviklingLabelDisplay = (() => {
-          if (loenudvikling.loenudviklingLabel !== 'Overenskomst') {
-            return isKRLSatstabelId(loenudvikling.loenudviklingLabel)
-              ? formatKRLSatstabelDisplay(loenudvikling.loenudviklingLabel)
-              : loenudvikling.loenudviklingLabel;
-          }
-          if (eoValues.beregnesUdFra === 'Angivet månedsløn' || eoValues.beregnesUdFra === 'Angivet dagsløn') {
-            return resolveOverenskomstDisplay(eoValues.eoAngivetLoenLoenudvikling?.overenskomstId) || loenudvikling.loenudviklingLabel;
-          }
-          const foersteAnsaettelsesforhold = eoValues.loenindkomstAnsaettelsesforhold?.[0];
-          if (!foersteAnsaettelsesforhold) return loenudvikling.loenudviklingLabel;
-          return resolveValgtReguleringDisplay(foersteAnsaettelsesforhold);
-        })();
-        safeAddWrappedText(`Lønudvikling beregnes ud fra ${loenudviklingLabelDisplay}.`);
-        writer.advanceY(lineHeight);
-      }
-
-      if (loenudvikling.loenudviklingTotal.status !== 'ok') {
-        safeAddWrappedText('Lønudvikling kan ikke beregnes for den valgte opsætning.');
-      } else {
+      const renderLoenudviklingLabelDisplay = (label: string): string => {
+        if (label !== 'Overenskomst') {
+          return isKRLSatstabelId(label)
+            ? formatKRLSatstabelDisplay(label)
+            : label;
+        }
+        if (eoValues.beregnesUdFra === 'Angivet månedsløn' || eoValues.beregnesUdFra === 'Angivet dagsløn') {
+          return resolveOverenskomstDisplay(eoValues.eoAngivetLoenLoenudvikling?.overenskomstId) || label;
+        }
+        const foersteAnsaettelsesforhold = eoValues.loenindkomstAnsaettelsesforhold?.[0];
+        if (!foersteAnsaettelsesforhold) return label;
+        return resolveValgtReguleringDisplay(foersteAnsaettelsesforhold);
+      };
+      const renderLoenudviklingSegments = (
+        segments: readonly LoenudviklingSegment[],
+        total: Calculable<MoneyOre>,
+        forceTotalLine: boolean
+      ) => {
+        if (total.status !== 'ok') {
+          safeAddWrappedText('Lønudvikling kan ikke beregnes for den valgte opsætning.');
+          return;
+        }
         const rightMaxWidth = writer.getTextWidth('000.000.000,00');
-        for (const segment of loenudvikling.beregnedeSegmenter) {
+        for (const segment of segments) {
           const roundedDeltaPct = Math.round(segment.deltaPct * 100) / 100;
           const factorText = Math.abs(roundedDeltaPct) < 0.00001
             ? ''
@@ -2074,8 +2075,31 @@ export const generateErstatningsopgoerelsePdf = (
           const rightText = formatMoneyOreWithKr(segment.amountOre);
           safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'normal' });
         }
+        if ((segments.length > 1 || forceTotalLine) && total.status === 'ok') {
+          safeAddLeftRightText(
+            'I alt',
+            formatMoneyOreWithKr(total.value),
+            rightMaxWidth,
+            { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
+          );
+        }
+      };
 
-        if (loenudvikling.beregnedeSegmenter.length > 1) {
+      const harPerAnsaettelse = loenudvikling.perAnsaettelse.length > 1;
+      if (harPerAnsaettelse) {
+        for (const entry of loenudvikling.perAnsaettelse) {
+          writer.addSpacer(lineHeight);
+          writer.setFont('helvetica', 'normal');
+          writer.writeUnderlinedLabel(entry.ansaettelsesforholdNavn, MARGINS.left);
+          if (entry.loenudviklingLabel !== 'Ingen') {
+            safeAddWrappedText(`Lønudvikling beregnes ud fra ${renderLoenudviklingLabelDisplay(entry.loenudviklingLabel)}.`);
+            writer.advanceY(lineHeight);
+          }
+          renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, true);
+        }
+        if (loenudvikling.loenudviklingTotal.status === 'ok') {
+          writer.addSpacer(lineHeight);
+          const rightMaxWidth = writer.getTextWidth('000.000.000,00');
           safeAddLeftRightText(
             'I alt',
             formatMoneyOreWithKr(loenudvikling.loenudviklingTotal.value),
@@ -2083,6 +2107,12 @@ export const generateErstatningsopgoerelsePdf = (
             { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
           );
         }
+      } else {
+        if (loenudvikling.loenudviklingLabel !== 'Ingen') {
+          safeAddWrappedText(`Lønudvikling beregnes ud fra ${renderLoenudviklingLabelDisplay(loenudvikling.loenudviklingLabel)}.`);
+          writer.advanceY(lineHeight);
+        }
+        renderLoenudviklingSegments(loenudvikling.beregnedeSegmenter, loenudvikling.loenudviklingTotal, false);
       }
     }
 
@@ -2639,7 +2669,7 @@ export const generateErstatningsopgoerelsePdf = (
         }
         writeLabelValueLine(
           'Beregnes som',
-          `${loenSkadesdatoText} tillagt efterfølgende lønstigninger.`
+          `${loenSkadesdatoText.charAt(0).toUpperCase()}${loenSkadesdatoText.slice(1)} tillagt efterfølgende lønstigninger`
         );
         writeLabelValueLine('Regulering', valgtRegulering);
 
@@ -2680,10 +2710,23 @@ export const generateErstatningsopgoerelsePdf = (
         });
         renderReguleringIndeksTable(reguleringTableRows);
 
-        // Vis KRL-reference når KRL er valgt
+        // Vis kildehenvisning efter reguleringstabel
         if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'KRL satstabel') {
           writer.addSpacer(lineHeight);
           safeAddWrappedText("KRL's sats-tabeller kan genfindes på https://www.krl.dk/#/sats");
+        } else if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Statistik') {
+          const statistikLabel = (ansaettelsesforhold.loenudviklingStatistikModel ?? '').trim();
+          const statistikModelId = resolveStatistikModelIdFromLabel(statistikLabel);
+          if (statistikModelId === 'ILON12') {
+            writer.addSpacer(lineHeight);
+            safeAddWrappedText('Det Implicitte Lønindeks fra Danmarks Statistik (ILON12) anvendes som et retvisende reguleringsgrundlag for lønudvikling i samfundet. Regulering foretages med afsæt i værdierne for K1 (1. kvartal 2005 = indeksværdi 100), uden sæsonkorrektion.');
+          } else if (statistikModelId === 'SBLON2') {
+            writer.addSpacer(lineHeight);
+            safeAddWrappedText('Det Standardberegnede Lønindeks fra Danmarks Statistik (SBLON2) anvendes som et retvisende reguleringsgrundlag for lønudvikling i samfundet. Regulering foretages med afsæt i værdierne for K1 (1. kvartal 2016 = indeksværdi 100).');
+          } else if (statistikLabel.startsWith('ASL-')) {
+            writer.addSpacer(lineHeight);
+            safeAddWrappedText('ASL-årslønsmaksimum fremgår ikke eksplicit som reguleringsgrundlag i EAL § 15, men anvendes til fremskrivning på erstatnings- og arbejdsskadeområdet, og beror på den statslige tilpasningsprocent, der i almindelighed anvendes til fremskrivning af ydelser i samfundet.');
+          }
         }
       }
     }

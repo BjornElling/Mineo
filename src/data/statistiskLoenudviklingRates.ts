@@ -53,7 +53,7 @@ const toKvartal = (kvartal: string): Kvartal => {
  */
 export interface StatistiskIndeksVaerdi {
   readonly kvartal: Kvartal;
-  readonly indeks: number;
+  readonly indeksvaerdi: number;
 }
 
 /**
@@ -108,7 +108,7 @@ const kvartalToStartDato = (kvartal: Kvartal): DanishDateString => {
 /**
  * Type for table rows i indeksFromTable
  */
-type IndeksTableRow = readonly [kvartal: string, indeks: number];
+type IndeksTableRow = readonly [kvartal: string, indeksvaerdi: number];
 
 /**
  * Helper-funktion til at konvertere tabel-format til fulde indeks-objekter
@@ -116,9 +116,9 @@ type IndeksTableRow = readonly [kvartal: string, indeks: number];
 const indeksFromTable = (
   rows: ReadonlyArray<IndeksTableRow>
 ): ReadonlyArray<StatistiskIndeksVaerdi> =>
-  rows.map(([kvartalStr, indeks]) => ({
+  rows.map(([kvartalStr, indeksvaerdi]) => ({
     kvartal: k(kvartalStr),
-    indeks,
+    indeksvaerdi,
   }));
 
 // ===== STATISTISK LØNUDVIKLING DATA =====
@@ -132,10 +132,10 @@ export const statistiskLoenudvikling: ReadonlyArray<StatistiskLoenudvikling> = [
     meta: {
       id:           toStatistiskLoenudviklingId('ILON12'),
       navn:         'ILON12',
-      hjaelpetekst: 'Danmarks Statistik, Implicit lønindeks K1 (1.kvartal 2005 =100), ikke-sæsonkorrigering',
+      hjaelpetekst: 'Danmarks Statistik, Implicit lønindeks K1 (1. kvartal 2005 = 100), ikke-sæsonkorrigering',
     },
     indeksvaerdier: indeksFromTable([
-      // kvartal    │ indeks
+      // kvartal    │ indeksværdi
       ['2025K3',        164.7 ],
       ['2025K1',        161.5 ],
       ['2024K1',        156.1 ],
@@ -166,10 +166,10 @@ export const statistiskLoenudvikling: ReadonlyArray<StatistiskLoenudvikling> = [
     meta: {
       id:           toStatistiskLoenudviklingId('SBLON2'),
       navn:         'SBLON2',
-      hjaelpetekst: 'Danmarks Statistik, Standardberegnet lønindeks K1 (2016=100)',
+      hjaelpetekst: 'Danmarks Statistik, Standardberegnet lønindeks K1 (1. kvartal 2016 = 100)',
     },
     indeksvaerdier: indeksFromTable([
-      // kvartal    │ indeks
+      // kvartal    │ indeksværdi
       ['2025K3',        127.9 ],
       ['2025K1',        125.4 ],
       ['2024K1',        119.6 ],
@@ -290,7 +290,7 @@ export const getIndeksForKvartal = (
   if (!model) return undefined;
 
   const vaerdi = model.indeksvaerdier.find(v => v.kvartal === kvartal);
-  return vaerdi?.indeks;
+  return vaerdi?.indeksvaerdi;
 };
 
 /**

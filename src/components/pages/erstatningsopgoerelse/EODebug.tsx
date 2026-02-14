@@ -1001,7 +1001,7 @@ const EODebug = () => {
               const month = (quarter - 1) * 3;
               const startIso = formatToISO(createDate(year, month, 1));
               if (!startIso) return null;
-              return { startIso, indeks: value.indeks };
+              return { startIso, indeks: value.indeksvaerdi };
             })
             .filter((row): row is Readonly<{ startIso: ISODateString; indeks: number }> => Boolean(row))
             .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
@@ -1348,7 +1348,7 @@ const EODebug = () => {
                 return {
                   startIso,
                   components: {
-                    baseValue: value.indeks,
+                    baseValue: value.indeksvaerdi,
                     feriePct,
                     fritvalgPct,
                     shSoPct,
@@ -1414,7 +1414,7 @@ const EODebug = () => {
           if (!modelId) return 2;
           const model = getStatistiskLoenudvikling(modelId);
           if (!model) return 2;
-          return detectDecimalPlaces(model.indeksvaerdier.map((value) => value.indeks));
+          return detectDecimalPlaces(model.indeksvaerdier.map((value) => value.indeksvaerdi));
         })();
         const formatStatValue = isAslModel
           ? formatCurrency
@@ -1787,7 +1787,7 @@ const EODebug = () => {
                 const month = (quarter - 1) * 3 + 1;
                 const startIso = formatToISO(createDate(year, month - 1, 1));
                 if (!startIso) return null;
-                return { kvartal: value.kvartal, startIso, indeks: value.indeks };
+                return { kvartal: value.kvartal, startIso, indeks: value.indeksvaerdi };
               })
               .filter((row): row is Readonly<{ kvartal: Kvartal; startIso: ISODateString; indeks: number }> => Boolean(row))
               .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
@@ -1825,7 +1825,7 @@ const EODebug = () => {
             const columns: StandardDisplayTableColumn[] = [
               centeredCol('Kvartal', 120),
               centeredCol('Startdato', 120),
-              centeredCol('Indeks', 100),
+              centeredCol('Indeksværdi', 100),
             ];
 
               return { columns, rows };

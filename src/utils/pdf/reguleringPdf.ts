@@ -332,7 +332,7 @@ const buildStatistikTable = (
       return [
         value.kvartal,
         startDate,
-        value.indeks.toLocaleString('da-DK', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+        value.indeksvaerdi.toLocaleString('da-DK', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
       ];
     });
 
