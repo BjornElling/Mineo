@@ -192,7 +192,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     const inputPer = ansaettelsesforhold.anciennitetstillaegSatsAngivesPer;
     const dateText = formatDateShort(dato);
     const conversion = formatAnciennitetConversion(satsValue, inputPer, grundloenAngivetPer, formatAmount2);
-    return `Fra ${dateText} optjenes anciennitetstillæg på ${conversion.displayText}`;
+    return `Fra ${dateText} optjenes anciennitetstillæg på ${conversion.displayText}.`;
   };
 
   renderSectionHeader('Svie- og smertegodtgørelse', lineHeight);
@@ -525,7 +525,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     const loenReferenceBeskrivelse = angivetLoenDatoBeskrivelse ?? loenSkadesdatoText;
     const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = loenudvikling?.loenudviklingLabel === 'Ingen'
       ? `Opgøres på baggrund af ${loenReferenceBeskrivelse}.`
-      : `Beregnes som ${loenReferenceBeskrivelse} tillagt efterfølgende lønstigninger`;
+      : `Beregnes som ${loenReferenceBeskrivelse} tillagt efterfølgende lønstigninger.`;
     renderSubheaderWithWrappedText(
       'Indkomst, hvis skaden ikke var indtrådt',
       indkomstHvisSkadeIkkeIndtraadtBeskrivelse

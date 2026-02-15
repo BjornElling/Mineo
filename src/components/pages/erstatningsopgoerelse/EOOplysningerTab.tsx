@@ -839,14 +839,15 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               <MenuItem value="Uarbejdsdygtig">Uarbejdsdygtig</MenuItem>
               <MenuItem value="Delvist raskmeldt">Delvist raskmeldt</MenuItem>
               <MenuItem value="Fuldt arbejdsdygtig">Fuldt arbejdsdygtig</MenuItem>
-              <MenuItem value="Fleksjob">Fleksjob</MenuItem>
-              <MenuItem value="Revalidering">Revalidering</MenuItem>
-              <MenuItem value="Uddannelse">Uddannelse</MenuItem>
-              <MenuItem value="Førtidspension">Førtidspension</MenuItem>
-              <MenuItem value="Seniorpension">Seniorpension</MenuItem>
-              <MenuItem value="Folkepension">Folkepension</MenuItem>
+              <StyledDropdown.Divider />
               <MenuItem value="Efterløn">Efterløn</MenuItem>
+              <MenuItem value="Fleksjob">Fleksjob</MenuItem>
+              <MenuItem value="Folkepension">Folkepension</MenuItem>
+              <MenuItem value="Førtidspension">Førtidspension</MenuItem>
               <MenuItem value="Kontanthjælp">Kontanthjælp</MenuItem>
+              <MenuItem value="Revalidering">Revalidering</MenuItem>
+              <MenuItem value="Seniorpension">Seniorpension</MenuItem>
+              <MenuItem value="Uddannelse">Uddannelse</MenuItem>
             </StyledDropdown>
           </Box>
         </Box>
@@ -1613,17 +1614,15 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                             if (!meta) return asString;
                             const loenPart = meta.loenmodtagerOrg[0] || '';
                             const arbPart = meta.arbejdsgiverOrg[0] || '';
-                            const sporLabel = isOffentligOverenskomstId(asString) ? 'Offentlig' : 'Privat';
-                            return `${meta.navn} (${loenPart} / ${arbPart}) - ${sporLabel}`;
+                            return `${meta.navn} (${loenPart} / ${arbPart})`;
                           }}
                         >
                           {filteredOverenskomster.map((meta) => {
                             const loenPart = meta.loenmodtagerOrg[0] || '';
                             const arbPart = meta.arbejdsgiverOrg[0] || '';
-                            const sporLabel = isOffentligOverenskomstId(meta.id) ? 'Offentlig' : 'Privat';
                             return (
                               <MenuItem key={meta.id} value={meta.id}>
-                                {meta.navn} ({loenPart} / {arbPart}) - {sporLabel}
+                                {meta.navn} ({loenPart} / {arbPart})
                               </MenuItem>
                             );
                           })}
@@ -1776,8 +1775,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                                         const id = eoLoenudvikling.overenskomstId;
                                         if (!id) return '-';
                                         const meta = getOverenskomstMetaById(id);
-                                        const sporLabel = isOffentligOverenskomstId(id) ? 'Offentlig' : 'Privat';
-                                        return `${meta?.navn ?? id} - ${sporLabel}`;
+                                        return meta?.navn ?? id;
                                       })(),
                                       loenudviklingBasis,
                                       overenskomstId: eoLoenudvikling.overenskomstId,

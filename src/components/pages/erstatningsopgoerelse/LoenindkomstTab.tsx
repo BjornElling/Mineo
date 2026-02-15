@@ -873,8 +873,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     if (!meta) return overenskomstId;
     const loenPart = meta.loenmodtagerOrg[0] || '';
     const arbPart = meta.arbejdsgiverOrg[0] || '';
-    const sporLabel = isOffentligOverenskomstId(overenskomstId) ? 'Offentlig' : 'Privat';
-    return `${meta.navn} (${loenPart} / ${arbPart}) - ${sporLabel}`;
+    return `${meta.navn} (${loenPart} / ${arbPart})`;
   }, []);
 
   const [addTargetId, setAddTargetId] = React.useState<string | null>(null);

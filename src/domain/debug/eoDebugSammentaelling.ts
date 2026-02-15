@@ -391,7 +391,7 @@ const sumDebugTableColumnInRanges = (
 };
 
 const parseTafDaysFromDisplay = (value: string): number | null => {
-  const match = value.match(/=\s*([0-9.,]+)\s*TAF-dage/i);
+  const match = value.match(/=\s*([0-9.,]+)\s*(?:TAF-dage|arbejdsdage)/i);
   if (!match) return null;
   const parsed = parseAmount(match[1]);
   return Number.isFinite(parsed) ? parsed : null;

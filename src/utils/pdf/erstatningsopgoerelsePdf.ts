@@ -592,8 +592,7 @@ export const resolveValgtReguleringDisplay = (
     if (!meta) return overenskomstId;
     const loenPart = meta.loenmodtagerOrg[0] || '';
     const arbPart = meta.arbejdsgiverOrg[0] || '';
-    const sporLabel = getOffentligOverenskomstTypeById(overenskomstId) ? 'Offentlig' : 'Privat';
-    return `${meta.navn} (${loenPart} / ${arbPart}) - ${sporLabel}`;
+    return `${meta.navn} (${loenPart} / ${arbPart})`;
   }
   if (grundlag === 'Manuelt angivet') {
     const manuelNavn = ansaettelsesforhold.loenudviklingManuelNavn?.trim() ?? '';
@@ -636,8 +635,7 @@ const resolveOverenskomstDisplay = (overenskomstId: string | undefined): string 
   if (!meta) return trimmed;
   const loenPart = meta.loenmodtagerOrg[0] || '';
   const arbPart = meta.arbejdsgiverOrg[0] || '';
-  const sporLabel = getOffentligOverenskomstTypeById(trimmed) ? 'Offentlig' : 'Privat';
-  return `${meta.navn} (${loenPart} / ${arbPart}) - ${sporLabel}`;
+  return `${meta.navn} (${loenPart} / ${arbPart})`;
 };
 
 const buildReguleringsvaerdierTableData = (params: Readonly<{

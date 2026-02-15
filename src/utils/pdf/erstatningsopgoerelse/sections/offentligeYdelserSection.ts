@@ -15,7 +15,6 @@ const OFFENTLIGE_YDELSER_HEADERS = [
   'Ydelse',
   'Evt. tillæg',
   'I alt',
-  'Ydelsestype',
 ] as const;
 
 type OffentligeYdelserSectionContext = Readonly<{
@@ -77,8 +76,6 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
     const buildTableRows = (groupRows: OffentligeYdelserRow[]): RowInput[] => {
       const tableRows: RowInput[] = [headerRow];
       for (const row of groupRows) {
-        const ydelsestypeKey = row.ydelsestype?.trim() ?? '';
-        const ydelsestypeLabel = ydelsestypeKey ? (ydelsestyper[ydelsestypeKey]?.label ?? ydelsestypeKey) : '';
         const ydelseValue = amountValueToNumber(row.ydelse) ?? 0;
         const tillaegValue = amountValueToNumber(row.tillaeg) ?? 0;
         const samletValue = ydelseValue + tillaegValue;
@@ -89,7 +86,6 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
           amountValueToDisplayString(row.ydelse, 2),
           amountValueToDisplayString(row.tillaeg, 2),
           samletDisplay,
-          ydelsestypeLabel,
         ];
         tableRows.push(
           rowValues.map((value, index) => {
@@ -118,12 +114,11 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
 
     const doc = writer.getDoc();
     const columnStyles = {
-      0: { cellWidth: 29 },
-      1: { cellWidth: 29 },
-      2: { cellWidth: 29 },
-      3: { cellWidth: 29 },
-      4: { cellWidth: 29 },
-      5: { cellWidth: 29 },
+      0: { cellWidth: 35 },
+      1: { cellWidth: 35 },
+      2: { cellWidth: 35 },
+      3: { cellWidth: 35 },
+      4: { cellWidth: 35 },
     };
 
     for (const [index, label] of groupOrder.entries()) {

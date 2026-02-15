@@ -26,7 +26,7 @@ export type StyledDropdownChangeEvent<TValue extends StyledDropdownValue | undef
 
 type StyledDropdownCommonProps<TValue extends StyledDropdownValue> = Omit<
   React.ComponentProps<typeof OutlinedInput>,
-  'value' | 'onChange' | 'onBlur' | 'placeholder' | 'sx' | 'error' | 'name' | 'id'
+  'value' | 'onChange' | 'onBlur' | 'placeholder' | 'sx' | 'error' | 'name' | 'id' | 'onClick' | 'onKeyDown' | 'disabled' | 'inputRef'
 > & {
   placeholder?: string;
   width?: number | string;
@@ -53,7 +53,15 @@ type StyledDropdownCommonProps<TValue extends StyledDropdownValue> = Omit<
    * This is intentionally separate from `onBlur`, which is a physical blur.
    */
   onClose?: () => void;
+  /**
+   * Styling for wrapper container (`Box`) around the input.
+   */
+  containerSx?: SxProps<Theme>;
+  /**
+   * Styling for the `OutlinedInput` only.
+   */
   sx?: SxProps<Theme>;
+  disabled?: boolean;
   id?: string;
 };
 
@@ -86,7 +94,26 @@ type StyledDropdownPropsNoEmpty<TValue extends StyledDropdownValue> = {
 export type StyledDropdownProps<TValue extends StyledDropdownValue> = StyledDropdownCommonProps<TValue> &
   (StyledDropdownPropsAllowEmpty<TValue> | StyledDropdownPropsNoEmpty<TValue>);
 
-type DropdownChild<TValue extends StyledDropdownValue> = React.ReactElement<{ value: TValue; children?: React.ReactNode }>;
+type DropdownOptionChild<TValue extends StyledDropdownValue> = React.ReactElement<{
+  value: TValue;
+  children?: React.ReactNode;
+}>;
+
+const StyledDropdownDivider = () => null;
+StyledDropdownDivider.displayName = 'StyledDropdownDivider';
+
+const isDividerNode = (child: React.ReactElement): boolean => {
+  if (child.type === StyledDropdownDivider) return true;
+  const childType = child.type as { displayName?: string };
+  return childType.displayName === StyledDropdownDivider.displayName;
+};
+
+type DropdownVisualOption<TValue extends StyledDropdownValue> =
+  | { kind: 'empty' }
+  | { kind: 'divider'; key: React.Key }
+  | { kind: 'value'; value: TValue; key: React.Key; children: React.ReactNode };
+
+type CloseReason = 'select' | 'escapeKeyDown' | 'backdropClick' | 'tab' | 'blur';
 
 const StyledDropdownInner = <TValue extends StyledDropdownValue>(
   {
@@ -102,6 +129,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     getOptionLabel,
     allowEmpty = true,
     returnFocusOnClose = true,
+    containerSx,
     sx,
     listboxSx,
     optionSx,
@@ -124,9 +152,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
   const resolvedId = id ?? autoId;
   const listboxId = `${resolvedId}-listbox`;
 
-  const childrenArray = React.useMemo(() => {
-    return React.Children.toArray(children) as DropdownChild<TValue>[];
-  }, [children]);
+  const childNodes = React.useMemo(() => React.Children.toArray(children), [children]);
 
   const resolvedValue = value as TValue | undefined;
 
@@ -135,26 +161,51 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
   const configErrorMessage = React.useMemo(() => {
     const counts = new Map<TValue, number>();
     const duplicates: TValue[] = [];
-    for (const child of childrenArray) {
-      const v = child.props.value;
+    const availableValues: TValue[] = [];
+    const invalidChildIndices: number[] = [];
+
+    childNodes.forEach((child, index) => {
+      if (!React.isValidElement(child)) return;
+      if (isDividerNode(child)) return;
+
+      const candidate = child as DropdownOptionChild<TValue>;
+      if (!('value' in candidate.props)) {
+        invalidChildIndices.push(index);
+        return;
+      }
+
+      const v = candidate.props.value;
+      availableValues.push(v);
       const next = (counts.get(v) ?? 0) + 1;
       counts.set(v, next);
       if (next === 2) duplicates.push(v);
+    });
+
+    if (invalidChildIndices.length > 0) {
+      return `Ugyldig konfiguration: option uden value i children (${invalidChildIndices.join(', ')})`;
     }
 
     if (duplicates.length > 0) {
       return `Ugyldig konfiguration: duplicate option values (${duplicates.join(', ')})`;
     }
 
+    if (availableValues.length === 0 && !hasEmptyOption) {
+      return 'Ugyldig konfiguration: ingen valgbare options';
+    }
+
+    if (!allowEmpty && resolvedValue === undefined) {
+      return 'Ugyldig konfiguration: value mangler (allowEmpty=false)';
+    }
+
     if (!allowEmpty && resolvedValue !== undefined) {
-      const exists = childrenArray.some((child) => child.props.value === resolvedValue);
+      const exists = availableValues.some((candidateValue) => candidateValue === resolvedValue);
       if (!exists) {
         return 'Ugyldig konfiguration: value findes ikke blandt options (allowEmpty=false)';
       }
     }
 
     return '';
-  }, [allowEmpty, childrenArray, resolvedValue]);
+  }, [allowEmpty, childNodes, hasEmptyOption, resolvedValue]);
 
   const hasConfigError = configErrorMessage.trim() !== '';
 
@@ -164,34 +215,73 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
 
   const { inputProps: userInputProps, ...outlinedInputProps } = otherProps;
 
-  type VisualOption =
-    | { kind: 'empty' }
-    | { kind: 'value'; value: TValue; key: React.Key; children: React.ReactNode };
+  const visualOptions = React.useMemo<DropdownVisualOption<TValue>[]>(() => {
+    if (hasConfigError) {
+      return hasEmptyOption ? [{ kind: 'empty' }] : [];
+    }
 
-  const visualOptions = React.useMemo<VisualOption[]>(() => {
-    const mapped: VisualOption[] = childrenArray.map((child, index) => ({
-      kind: 'value',
-      value: child.props.value,
-      key: child.key ?? index,
-      children: child.props.children,
-    }));
+    const mapped: DropdownVisualOption<TValue>[] = [];
+
+    childNodes.forEach((child, index) => {
+      if (!React.isValidElement(child)) return;
+
+      if (isDividerNode(child)) {
+        mapped.push({ kind: 'divider', key: child.key ?? `${resolvedId}__divider__${index}` });
+        return;
+      }
+
+      const optionChild = child as DropdownOptionChild<TValue>;
+      if (!('value' in optionChild.props)) {
+        return;
+      }
+      mapped.push({
+        kind: 'value',
+        value: optionChild.props.value,
+        key: optionChild.key ?? index,
+        children: optionChild.props.children,
+      });
+    });
 
     return hasEmptyOption ? [{ kind: 'empty' }, ...mapped] : mapped;
-  }, [childrenArray, hasEmptyOption]);
+  }, [childNodes, hasConfigError, hasEmptyOption, resolvedId]);
+
+  const isSelectableVisualIndex = React.useCallback(
+    (index: number) => {
+      const opt = visualOptions[index];
+      if (!opt) return false;
+      return opt.kind !== 'divider';
+    },
+    [visualOptions]
+  );
 
   const getValueAtVisualIndex = React.useCallback(
     (visualIndex: number): TValue | undefined => {
       const opt = visualOptions[visualIndex];
       if (!opt) return undefined;
       if (opt.kind === 'empty') return undefined;
+      if (opt.kind === 'divider') return undefined;
       return opt.value;
     },
     [visualOptions]
   );
 
+  const findSelectableIndex = React.useCallback(
+    (fromIndex: number, direction: 1 | -1): number => {
+      if (visualOptions.length === 0) return -1;
+
+      const start = fromIndex < 0 ? (direction === 1 ? 0 : visualOptions.length - 1) : fromIndex + direction;
+      for (let index = start; index >= 0 && index < visualOptions.length; index += direction) {
+        if (isSelectableVisualIndex(index)) return index;
+      }
+      return -1;
+    },
+    [isSelectableVisualIndex, visualOptions.length]
+  );
+
   const visualOptionLabels = React.useMemo(() => {
     return visualOptions.map((opt) => {
       if (opt.kind === 'empty') return '';
+      if (opt.kind === 'divider') return '';
       if (getOptionLabel) return getOptionLabel(opt.value);
       const label = opt.children;
       if (typeof label === 'string' || typeof label === 'number') return String(label);
@@ -230,25 +320,28 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     if (index >= 0) return index;
     // Runtime fallback (PROD): if allowEmpty=false and a value is missing among options,
     // keep keyboard/navigation deterministic by highlighting the first option.
-    return hasEmptyOption ? 0 : visualOptions.length > 0 ? 0 : -1;
+    if (hasEmptyOption) return 0;
+    return visualOptions.findIndex((opt) => opt.kind === 'value');
   }, [hasEmptyOption, resolvedValue, visualOptions]);
 
-  const selectedChild = React.useMemo(() => {
-    return childrenArray.find((child) => child.props.value === resolvedValue);
-  }, [childrenArray, resolvedValue]);
+  const selectedVisualOption = React.useMemo(() => {
+    if (resolvedValue === undefined) return null;
+    const found = visualOptions.find((opt) => opt.kind === 'value' && opt.value === resolvedValue);
+    return found?.kind === 'value' ? found : null;
+  }, [resolvedValue, visualOptions]);
 
   const selectedLabel = React.useMemo((): string => {
     if (resolvedValue === undefined) return '';
     if (getOptionLabel) return getOptionLabel(resolvedValue);
 
-    const label = selectedChild?.props.children;
+    const label = selectedVisualOption?.children;
     if (typeof label === 'string' || typeof label === 'number') return String(label);
 
     if (import.meta.env.DEV) {
       throw new Error('StyledDropdown: option label must be a string/number or provide getOptionLabel(value)');
     }
     return '';
-  }, [getOptionLabel, resolvedValue, selectedChild]);
+  }, [getOptionLabel, resolvedValue, selectedVisualOption]);
 
   const handleOpen = React.useCallback(() => {
     if (disabled || hasConfigError) return;
@@ -256,23 +349,24 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     inputElementRef.current?.focus();
     setAnchorEl(anchorRef.current);
     setOpen(true);
-    const initialHighlight = selectedIndex >= 0 ? selectedIndex : visualOptions.length > 0 ? 0 : -1;
+    const initialHighlight = selectedIndex >= 0 ? selectedIndex : findSelectableIndex(-1, 1);
     setHighlightedIndex(initialHighlight);
-  }, [disabled, hasConfigError, selectedIndex, visualOptions.length]);
+  }, [disabled, findSelectableIndex, hasConfigError, selectedIndex]);
 
   const handleClose = React.useCallback(
-    (reason: 'select' | 'escapeKeyDown' | 'backdropClick' | 'tab') => {
+    (reason: CloseReason) => {
+      if (!open) return;
       setOpen(false);
       setAnchorEl(null);
       setHighlightedIndex(-1);
       onClose?.();
-      // IMPORTANT: on `tab`, we intentionally do NOT restore focus here.
-      // The browser (or table/container navigation) must be allowed to move focus to the next control.
-      if (returnFocusOnClose && reason !== 'tab') {
+      // IMPORTANT: only restore focus for keyboard-close reasons where focus should remain on control.
+      // For pointer/blur/tab closure, let normal browser focus semantics proceed.
+      if (returnFocusOnClose && (reason === 'escapeKeyDown' || reason === 'select')) {
         inputElementRef.current?.focus();
       }
     },
-    [onClose, returnFocusOnClose]
+    [onClose, open, returnFocusOnClose]
   );
 
   React.useEffect(() => {
@@ -284,10 +378,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       const inAnchor = anchorRef.current?.contains(target) ?? false;
       const inListbox = listboxRef.current?.contains(target) ?? false;
       if (inAnchor || inListbox) return;
-      event.preventDefault();
-      event.stopPropagation();
       handleClose('backdropClick');
-      inputElementRef.current?.focus();
     };
 
     document.addEventListener('mousedown', handleMouseDown, true);
@@ -311,6 +402,26 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     [allowEmpty, handleClose, name, onChange]
   );
 
+  const handleInputBlur = React.useCallback(
+    (e: React.FocusEvent<HTMLElement>) => {
+      onBlur?.(e);
+      if (!open) return;
+
+      const next = e.relatedTarget;
+      if (!(next instanceof Node)) {
+        handleClose('blur');
+        return;
+      }
+
+      const inAnchor = anchorRef.current?.contains(next) ?? false;
+      const inListbox = listboxRef.current?.contains(next) ?? false;
+      if (!inAnchor && !inListbox) {
+        handleClose('blur');
+      }
+    },
+    [handleClose, onBlur, open]
+  );
+
   const handleTypeahead = React.useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
       if (event.altKey || event.ctrlKey || event.metaKey) return false;
@@ -327,15 +438,32 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       event.stopPropagation();
 
       if (open) {
-        setHighlightedIndex(nextIndex);
-        return true;
+        if (isSelectableVisualIndex(nextIndex)) {
+          setHighlightedIndex(nextIndex);
+          return true;
+        }
+        const fallbackNext = findSelectableIndex(nextIndex - 1, 1);
+        if (fallbackNext >= 0) {
+          setHighlightedIndex(fallbackNext);
+          return true;
+        }
+        return false;
       }
 
       const nextValue = getValueAtVisualIndex(nextIndex);
       handleSelect(nextValue);
       return true;
     },
-    [findNextMatchIndex, getValueAtVisualIndex, handleSelect, highlightedIndex, open, selectedIndex]
+    [
+      findNextMatchIndex,
+      findSelectableIndex,
+      getValueAtVisualIndex,
+      handleSelect,
+      highlightedIndex,
+      isSelectableVisualIndex,
+      open,
+      selectedIndex,
+    ]
   );
 
   const containerSxBase: SxProps<Theme> = {
@@ -386,10 +514,10 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     },
   };
 
-  const containerSx: SxProps<Theme> = sx
-    ? Array.isArray(sx)
-      ? [containerSxBase, ...sx]
-      : [containerSxBase, sx]
+  const containerSxMerged: SxProps<Theme> = containerSx
+    ? Array.isArray(containerSx)
+      ? [containerSxBase, ...containerSx]
+      : [containerSxBase, containerSx]
     : containerSxBase;
 
   const inputSx: SxProps<Theme> = sx
@@ -453,8 +581,9 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       };
 
   return (
-    <Box sx={containerSx}>
+    <Box sx={containerSxMerged}>
       <OutlinedInput
+        {...outlinedInputProps}
         ref={(node: HTMLDivElement | null) => {
           anchorRef.current = node;
           if (typeof ref === 'function') {
@@ -474,7 +603,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         name={name}
         error={error || hasConfigError}
         disabled={disabled || hasConfigError}
-        onBlur={onBlur}
+        onBlur={handleInputBlur}
         onClick={handleOpen}
         placeholder={placeholder}
         inputProps={{
@@ -484,7 +613,9 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
           'aria-expanded': open,
           'aria-controls': open ? listboxId : undefined,
           'aria-activedescendant':
-            open && highlightedIndex >= 0 ? `${listboxId}-option-${highlightedIndex}` : undefined,
+            open && highlightedIndex >= 0 && isSelectableVisualIndex(highlightedIndex)
+              ? `${listboxId}-option-${highlightedIndex}`
+              : undefined,
           tabIndex: disabled || hasConfigError ? -1 : (userInputProps?.tabIndex ?? 0),
         }}
         onKeyDown={(e) => {
@@ -497,16 +628,24 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
             }
             if (e.key === 'ArrowDown') {
               e.preventDefault();
-              const maxIndex = visualOptions.length - 1;
               setHighlightedIndex((prev) => {
-                const next = prev < 0 ? (maxIndex >= 0 ? 0 : -1) : Math.min(prev + 1, maxIndex);
-                return next;
+                if (prev < 0) {
+                  return findSelectableIndex(-1, 1);
+                }
+                const next = findSelectableIndex(prev, 1);
+                return next >= 0 ? next : prev;
               });
               return;
             }
             if (e.key === 'ArrowUp') {
               e.preventDefault();
-              setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : prev));
+              setHighlightedIndex((prev) => {
+                if (prev < 0) {
+                  return findSelectableIndex(visualOptions.length, -1);
+                }
+                const next = findSelectableIndex(prev, -1);
+                return next >= 0 ? next : prev;
+              });
               return;
             }
             if (e.key === 'Enter') {
@@ -556,7 +695,6 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
           }
         }}
         sx={inputSx}
-        {...outlinedInputProps}
       />
 
       <ArrowDropDownIcon sx={iconSxMerged} />
@@ -575,20 +713,30 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         hideBackdrop
         // Slå modal scroll lock fra - vi bruger ikke backdrop, så scroll lock er unødvendigt.
         // Dette forhindrer aria-hidden manipulation på root-elementet.
-        slotProps={{
-          root: {
-            // Disable MUI Modal's default scroll lock and aria-hidden behavior.
-            // The dropdown does not need modal semantics (no backdrop, no trap).
-            disableScrollLock: true,
-          },
-        }}
+        disableScrollLock
         onClose={(_, reason) => {
-          handleClose(reason);
+          handleClose(reason === 'escapeKeyDown' ? 'escapeKeyDown' : 'backdropClick');
         }}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
       >
-        <Box id={listboxId} role="listbox" sx={listboxSxMerged} ref={listboxRef}>
+        <Box component="div" id={listboxId} role="listbox" sx={listboxSxMerged} ref={listboxRef}>
           {visualOptions.map((opt, index) => {
+            if (opt.kind === 'divider') {
+              return (
+                <Box
+                  key={opt.key}
+                  role="presentation"
+                  aria-hidden="true"
+                  sx={{
+                    mx: 2,
+                    my: 0.5,
+                    borderTop: '1px solid rgba(0,0,0,0.14)',
+                    pointerEvents: 'none',
+                  }}
+                />
+              );
+            }
+
             const v = getValueAtVisualIndex(index);
             const isSelected = v === resolvedValue;
             const optionSxMerged: SxProps<Theme> = optionSx
@@ -658,11 +806,14 @@ type StyledDropdownComponent = {
   <TValue extends StyledDropdownValue>(
     props: StyledDropdownProps<TValue> & React.RefAttributes<HTMLDivElement>
   ): React.ReactElement;
+  Divider: typeof StyledDropdownDivider;
   displayName?: string;
 };
 
 const StyledDropdown = React.forwardRef(StyledDropdownInner) as unknown as StyledDropdownComponent;
 
+StyledDropdown.Divider = StyledDropdownDivider;
 StyledDropdown.displayName = 'StyledDropdown';
 
+export { StyledDropdownDivider };
 export default StyledDropdown;

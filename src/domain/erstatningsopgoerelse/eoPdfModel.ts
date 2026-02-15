@@ -1,6 +1,6 @@
 import type { ISODateString } from '../../types/branded';
-import { danishToISO, dateToISO, isoToDanish, isISODateString, parseISODate, subtractOneDay } from '../../types/branded';
-import type { ErstatningsopgoerelseValues, StamdataValues, SvieSmertePeriodeRow, TafPeriodeRow, OevrigeKravRow } from '../../schemas/formSchemas';
+import { danishToISO, dateToISO, isoToDanish, isISODateString, subtractOneDay } from '../../types/branded';
+import type { ErstatningsopgoerelseValues, StamdataValues, SvieSmertePeriodeRow, OevrigeKravRow } from '../../schemas/formSchemas';
 import { erstatningsopgoerelseSchema, stamdataSchema } from '../../schemas/formSchemas';
 import { svieSmerteMax, svieSmertePrDag, aarsloenMax } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
@@ -948,7 +948,6 @@ const buildIndkomstSkadestidspunkt = (
 
 type LoenudviklingStrategiV3 = 'ingen' | 'statistik' | 'overenskomst' | 'manual' | 'krl';
 type LoenreguleringsSegmentV3 = Readonly<IsoRange & { deltaPct: number }>;
-type LoenudviklingRowsV3 = readonly LoenudviklingSource[];
 type LoenudviklingAfV3 = LoenudviklingSource;
 type LoenudviklingManualRowV3 = NonNullable<LoenudviklingAfV3['loenudviklingManuelTableData']>[number];
 type OffentligLoenSelectionV3 = Readonly<{

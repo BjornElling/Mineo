@@ -28,6 +28,7 @@ import {
   type StatistiskLoenudviklingId,
 } from '../../../data/statistiskLoenudviklingRates';
 import { formatKRLSatstabelDisplay, getKRLSatstabel, getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
+import { TODAY } from '../../../config/dateRanges';
 import { loenPaaHelligdageSchema } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
@@ -50,17 +51,11 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../../utils/aarsloenTableCalculations';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from '../../../domain/erstatningsopgoerelse/eoDebugIndkomstModel';
-import { isoDateToDate } from '../../../domain/dates/isoDate';
-import { ydelsestyper, type Periodisering } from '../../../data/ydelsestyper';
 import { calculateTafAntalMaanederPraecis, calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/tafCalculations';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { computeTafOverlapWithBeregningsperiode } from '../../../domain/erstatningsopgoerelse/beregningsperiodeTafOverlap';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { buildIncomeForRanges, parseAarsloenRowInterval } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
-import {
-  isOffentligYdelseDatoMedregnet as isOffentligYdelseDatoMedregnetCentral,
-  SYGEDAGPENGE_SH_CUTOFF,
-} from '../../../domain/erstatningsopgoerelse/periodiseringsMotor';
 import { iterateDatesInclusive, maxISO, minISO, type DateInterval, validateIsoRange } from '../../../utils/isoDateHelpers';
 import {
   TIMER_TIL_MAANED_FAKTOR,
@@ -68,6 +63,7 @@ import {
   formatAmount2,
   roundToTwoDecimals,
 } from '../../../domain/erstatningsopgoerelse/sharedPdfUtils';
+import { buildErstatningsopgoerelsePdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
 
 // Debug strategy:
 // - We intentionally read errors by source (input/schema/rule) to expose diagnostics.
@@ -327,136 +323,6 @@ const computeFormulaValue = (components: FormulaComponents): number => {
   return baseValue * factor;
 };
 
-const parseOffentligDato = (value: string | undefined): ISODateString | undefined => {
-  const trimmed = (value ?? '').trim();
-  if (trimmed === '') return undefined;
-  const parsed = parseDanishDate(trimmed);
-  if (!parsed) return undefined;
-  return dateToISO(parsed);
-};
-
-const addWeekdayNonShDatesFromIsoRange = (
-  set: Set<ISODateString>,
-  range: Readonly<{ fra: ISODateString; til: ISODateString }>,
-  shDays: ReadonlySet<ISODateString>
-): void => {
-  const start = isoDateToDate(range.fra);
-  const end = isoDateToDate(range.til);
-  iterateDatesInclusive(start, end, (d) => {
-    const dow = d.getUTCDay();
-    const erHverdag = dow >= 1 && dow <= 5;
-    if (!erHverdag) return;
-    const iso = dateToISO(d);
-    if (!iso) return;
-    if (shDays.has(iso)) return;
-    set.add(iso);
-  });
-};
-
-const buildExplicitFerieSet = (
-  values: ErstatningsopgoerelseValues,
-  shDays: ReadonlySet<ISODateString>
-): ReadonlySet<ISODateString> => {
-  const set = new Set<ISODateString>();
-  const ferieRows = [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])];
-  for (const row of ferieRows) {
-    const range = validateIsoRange(row.fra, row.til);
-    if (!range) continue;
-    addWeekdayNonShDatesFromIsoRange(set, range, shDays);
-  }
-  return set;
-};
-
-const buildLoseFeriedageSet = (
-  values: ErstatningsopgoerelseValues,
-  shDays: ReadonlySet<ISODateString>,
-  explicitFerie: ReadonlySet<ISODateString>
-): ReadonlySet<ISODateString> => {
-  const set = new Set<ISODateString>();
-  const tafRows = values.tafPerioder ?? [];
-
-  for (const row of tafRows) {
-    const range = validateIsoRange(row.fra, row.til);
-    if (!range) continue;
-    const loseCount = typeof row.loseFeriedage === 'number' ? Math.max(0, Math.trunc(row.loseFeriedage)) : 0;
-    if (loseCount <= 0) continue;
-
-    let remaining = loseCount;
-    const start = isoDateToDate(range.fra);
-    const end = isoDateToDate(range.til);
-
-    iterateDatesInclusive(start, end, (d) => {
-      if (remaining <= 0) return;
-      const dow = d.getUTCDay();
-      const erHverdag = dow >= 1 && dow <= 5;
-      if (!erHverdag) return;
-      const iso = dateToISO(d);
-      if (!iso) return;
-      if (explicitFerie.has(iso)) return;
-      if (shDays.has(iso)) return;
-      if (set.has(iso)) return;
-
-      set.add(iso);
-      remaining -= 1;
-    });
-  }
-
-  return set;
-};
-
-const allocateWeekdayDates = (args: {
-  range: Readonly<{ fra: ISODateString; til: ISODateString }> | undefined;
-  count: number;
-  shDays: ReadonlySet<ISODateString>;
-  reserved: Set<ISODateString>;
-}): ReadonlySet<ISODateString> => {
-  const { range, count, shDays, reserved } = args;
-  if (!range || count <= 0) return new Set<ISODateString>();
-
-  const selected = new Set<ISODateString>();
-  let remaining = Math.max(0, Math.trunc(count));
-  if (remaining === 0) return selected;
-
-  const start = isoDateToDate(range.fra);
-  const end = isoDateToDate(range.til);
-
-  iterateDatesInclusive(start, end, (d) => {
-    if (remaining <= 0) return;
-    const dow = d.getUTCDay();
-    const erHverdag = dow >= 1 && dow <= 5;
-    if (!erHverdag) return;
-    const iso = dateToISO(d);
-    if (!iso) return;
-    if (shDays.has(iso)) return;
-    if (reserved.has(iso)) return;
-
-    selected.add(iso);
-    reserved.add(iso);
-    remaining -= 1;
-  });
-
-  return selected;
-};
-
-const isOffentligYdelseDatoMedregnet = (
-  iso: ISODateString,
-  dateObj: Date,
-  shDays: ReadonlySet<ISODateString>,
-  periodisering: Periodisering,
-  ydelsestypeKey: string,
-  rowTilISO: ISODateString
-): boolean => {
-  return isOffentligYdelseDatoMedregnetCentral({
-    iso,
-    dateObj,
-    shDays,
-    periodisering,
-    ydelsestypeKey,
-    rowTilISO,
-    sygedagpengeShCutoff: SYGEDAGPENGE_SH_CUTOFF,
-  });
-};
-
 const rangesOverlap = (
   aStart: ISODateString,
   aEnd: ISODateString | undefined,
@@ -597,8 +463,7 @@ const EODebug = () => {
           if (!meta) return { display: af.overenskomstId, ok: true };
           const loenPart = meta.loenmodtagerOrg[0] || '';
           const arbPart = meta.arbejdsgiverOrg[0] || '';
-          const sporLabel = getOffentligOverenskomstTypeById(af.overenskomstId) ? 'Offentlig' : 'Privat';
-          return { display: `${meta.navn} (${loenPart} / ${arbPart}) - ${sporLabel}`, ok: true };
+          return { display: `${meta.navn} (${loenPart} / ${arbPart})`, ok: true };
         }
         if (loenudviklingBasis === 'Statistik') {
           if (!af.loenudviklingStatistikModel) return { display: 'Nej', ok: false };
@@ -2143,134 +2008,73 @@ const EODebug = () => {
   const aesEndeligtRows = aesRows.filter((row) => row.group === 'aes.endeligtEet');
   const aesOevrigtRows = aesRows.filter((row) => row.group === 'aes.oevrigt');
 
+  const pdfModelForDebug = React.useMemo(() => {
+    try {
+      return buildErstatningsopgoerelsePdfModel(stamdataValues, erstatningsopgoerelseValues, { dagsDatoISO: TODAY });
+    } catch {
+      return null;
+    }
+  }, [erstatningsopgoerelseValues, stamdataValues]);
+
   const indkomstIBeregningsperioden = React.useMemo((): Readonly<{
     loenRows: ReadonlyArray<IndkomstRow>;
     ydelseRows: ReadonlyArray<IndkomstRow>;
   }> => {
-    const beregningsRange = validateIsoRange(
-      erstatningsopgoerelseValues.periodeTilBeregningFra,
-      erstatningsopgoerelseValues.periodeTilBeregningTil
-    );
-    if (!beregningsRange) return { loenRows: [], ydelseRows: [] };
-    const income = buildIncomeForRanges(erstatningsopgoerelseValues, [beregningsRange]);
-    const loenRows: IndkomstRow[] = income.employers
-      .filter((entry) => entry.amount > 0)
-      .map((entry) => {
-        const baseLabel = entry.index === 0 ? 'Ansættelsesforhold' : `Ansættelsesforhold ${entry.index + 1}`;
-        const label = entry.name !== '' ? `${baseLabel} (${entry.name})` : baseLabel;
+    if (erstatningsopgoerelseValues.beregnesUdFra !== 'Beregningsperiode') return { loenRows: [], ydelseRows: [] };
+    const indkomst = pdfModelForDebug?.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
+    if (!indkomst) return { loenRows: [], ydelseRows: [] };
+
+    const loenRows: IndkomstRow[] = indkomst.arbejdssteder
+      .filter((entry) => entry.breakdown.samletOre > 0)
+      .map((entry, index) => {
+        const baseLabel = index === 0 ? 'Ansættelsesforhold' : `Ansættelsesforhold ${index + 1}`;
+        const label = entry.navn !== '' ? `${baseLabel} (${entry.navn})` : baseLabel;
         return {
-          id: `taf.beregningsgrundlag.indkomst.loen.${entry.id}`,
+          id: `taf.beregningsgrundlag.indkomst.loen.${index}`,
           label,
-          displayValue: formatCurrency(entry.amount),
+          displayValue: formatCurrency(entry.breakdown.samletOre / 100),
           status: 'ok',
-          value: entry.amount,
+          value: entry.breakdown.samletOre / 100,
         };
       });
 
-    const ydelseRows: IndkomstRow[] = income.benefits
-      .filter((entry) => entry.amount > 0)
+    const ydelseRows: IndkomstRow[] = indkomst.offentligeYdelser
+      .filter((entry) => entry.amountOre > 0)
       .map((entry) => ({
-        id: `taf.beregningsgrundlag.indkomst.ydelse.${entry.typeKey || entry.label}`,
+        id: `taf.beregningsgrundlag.indkomst.ydelse.${entry.label}`,
         label: entry.label,
-        displayValue: formatCurrency(entry.amount),
+        displayValue: formatCurrency(entry.amountOre / 100),
         status: 'ok',
-        value: entry.amount,
+        value: entry.amountOre / 100,
       }));
 
     return { loenRows, ydelseRows };
-  }, [erstatningsopgoerelseValues]);
+  }, [erstatningsopgoerelseValues.beregnesUdFra, pdfModelForDebug]);
 
   const referenceloenRow = React.useMemo(() => {
     if (erstatningsopgoerelseValues.beregnesUdFra !== 'Beregningsperiode') return null;
+    const indkomst = pdfModelForDebug?.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
+    if (!indkomst) return { label: '-', displayValue: '-', status: 'error' as DebugStatus };
 
-    const entries = [
-      ...indkomstIBeregningsperioden.loenRows,
-      ...indkomstIBeregningsperioden.ydelseRows,
-    ]
-      .map((row) => row.value)
-      .filter((value) => Number.isFinite(value) && value > 0);
-
-    if (entries.length === 0) {
+    const loenAddends = indkomst.arbejdssteder
+      .map((entry) => entry.breakdown.samletOre)
+      .filter((value) => value > 0);
+    const addendsOre = [
+      ...loenAddends,
+      ...(indkomst.offentligeYdelserTotalOre > 0 ? [indkomst.offentligeYdelserTotalOre] : []),
+    ];
+    if (addendsOre.length === 0) {
       return { label: '-', displayValue: '-', status: 'ok' as DebugStatus };
     }
 
-    const periodeFra = erstatningsopgoerelseValues.periodeTilBeregningFra;
-    const periodeTil = erstatningsopgoerelseValues.periodeTilBeregningTil;
-    if (!periodeFra || !periodeTil || periodeFra > periodeTil) {
-      return { label: '-', displayValue: '-', status: 'error' as DebugStatus };
-    }
-
-    const overlap = computeTafOverlapWithBeregningsperiode({
-      beregningsperiode: { fra: periodeFra, til: periodeTil },
-      tafPerioder: (erstatningsopgoerelseValues.tafPerioder ?? []).map((periode) => ({
-        id: periode.id,
-        fra: periode.fra,
-        til: periode.til,
-      })),
-    });
-    if (overlap.firstOverlapMessage) {
-      return { label: '-', displayValue: '-', status: 'error' as DebugStatus };
-    }
-
-    const arbejdsdage = (() => {
-      if (
-        erstatningsopgoerelseValues.oevrigtFravaerUdenLoen === 'Ja' &&
-        erstatningsopgoerelseValues.oevrigeFravaersdage === undefined
-      ) {
-        return null;
-      }
-      const beregningsFerieperioder = erstatningsopgoerelseValues.fravaerPerioder ?? [];
-      const loseFeriedage = typeof erstatningsopgoerelseValues.uspecificeredeFerieFridage === 'number'
-        ? erstatningsopgoerelseValues.uspecificeredeFerieFridage
-        : 0;
-      const oevrigeFravaersdageValue =
-        erstatningsopgoerelseValues.oevrigtFravaerUdenLoen === 'Ja' &&
-        typeof erstatningsopgoerelseValues.oevrigeFravaersdage === 'number'
-          ? erstatningsopgoerelseValues.oevrigeFravaersdage
-          : 0;
-      const breakdown = calculateTafArbejdsdageBreakdown(
-        periodeFra,
-        periodeTil,
-        beregningsFerieperioder,
-        loseFeriedage,
-        { kind: 'beregningsgrundlag', oevrigeFravaersdage: oevrigeFravaersdageValue }
-      );
-      if (!breakdown) return null;
-      return Math.max(0, breakdown.tafDage);
-    })();
-
-    const maaneder = (() => {
-      if (
-        erstatningsopgoerelseValues.oevrigtFravaerUdenLoen === 'Ja' &&
-        erstatningsopgoerelseValues.oevrigeFravaersdage === undefined
-      ) {
-        return null;
-      }
-
-      const oevrigeFravaersdageValue =
-        erstatningsopgoerelseValues.oevrigtFravaerUdenLoen === 'Ja' &&
-        typeof erstatningsopgoerelseValues.oevrigeFravaersdage === 'number'
-          ? erstatningsopgoerelseValues.oevrigeFravaersdage
-          : 0;
-      return calculateTafAntalMaanederPraecis(
-        periodeFra,
-        periodeTil,
-        [],
-        0,
-        oevrigeFravaersdageValue
-      );
-    })();
-
-    const beregnesSom = computeTafBeregningsenhed(erstatningsopgoerelseValues);
-
-    const divisor = beregnesSom === TAF_BEREGNES_SOM.MAANEDER ? maaneder : arbejdsdage;
+    const beregnesSom = indkomst.beregningsenhed;
+    const divisor = beregnesSom === TAF_BEREGNES_SOM.MAANEDER ? indkomst.maaneder : indkomst.arbejdsdage;
     const divisorLabel = beregnesSom === TAF_BEREGNES_SOM.MAANEDER ? 'måneder' : 'arbejdsdage';
     if (!divisor || !Number.isFinite(divisor) || divisor <= 0) {
       return { label: '-', displayValue: '-', status: 'error' as DebugStatus };
     }
 
-    const sum = entries.reduce((acc, value) => acc + value, 0);
-    const formattedEntries = entries.map((value) => formatCurrency(value));
+    const formattedEntries = addendsOre.map((value) => formatCurrency(value / 100));
     const divisorDisplay = beregnesSom === TAF_BEREGNES_SOM.MAANEDER
       ? formatMaanederTrimmed(divisor)
       : Math.trunc(divisor).toLocaleString('da-DK');
@@ -2279,9 +2083,14 @@ const EODebug = () => {
       ? `${formattedEntries[0]} kr. / ${divisorDisplay} ${divisorLabel} =`
       : `(${formattedEntries.join(' + ')} kr.) / ${divisorDisplay} ${divisorLabel} =`;
 
-    const displayValue = formatCurrency(sum / divisor);
+    const loenCalculable = beregnesSom === TAF_BEREGNES_SOM.MAANEDER ? indkomst.maanedsloen : indkomst.dagsloen;
+    if (loenCalculable.status !== 'ok') {
+      return { label, displayValue: '-', status: 'error' as DebugStatus };
+    }
+
+    const displayValue = formatCurrency(loenCalculable.value / 100);
     return { label, displayValue, status: 'ok' as DebugStatus };
-  }, [erstatningsopgoerelseValues, indkomstIBeregningsperioden]);
+  }, [erstatningsopgoerelseValues.beregnesUdFra, pdfModelForDebug]);
 
   const indkomstManglerIBeregningsperiodenRow = React.useMemo(() => {
     return rowsBySection
@@ -2623,11 +2432,18 @@ const EODebug = () => {
 
             {rowsBySection.get('taf-beregningsgrundlag')
               ?.filter(
-                (row) =>
-                  (row.id as string) === 'taf.beregningsgrundlag.uspecificeredeFerieFridage' ||
-                  (row.id as string) === 'taf.beregningsgrundlag.oevrigtFravaerUdenLoen' ||
-                  (row.id as string) === 'taf.beregningsgrundlag.oevrigeFravaersdage' ||
-                  (row.id as string) === 'taf.beregningsgrundlag.oevrigeFravaersdageBeskrivelse'
+                (row) => {
+                  const rowId = row.id as string;
+                  if (rowId === 'taf.beregningsgrundlag.uspecificeredeFerieFridage') return true;
+                  if (rowId === 'taf.beregningsgrundlag.oevrigtFravaerUdenLoen') return true;
+                  if (
+                    rowId === 'taf.beregningsgrundlag.oevrigeFravaersdage' ||
+                    rowId === 'taf.beregningsgrundlag.oevrigeFravaersdageBeskrivelse'
+                  ) {
+                    return erstatningsopgoerelseValues.oevrigtFravaerUdenLoen === 'Ja';
+                  }
+                  return false;
+                }
               )
               .map((row) => {
                 return (

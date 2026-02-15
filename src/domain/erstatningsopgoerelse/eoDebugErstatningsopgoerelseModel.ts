@@ -1406,6 +1406,7 @@ export const buildEODebugTaftRows = (
   }>
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
+  const tafBeregnesSom = computeTafBeregningsenhed(values);
 
   const tafBounds = resolveTafConstraintBounds(values);
   const clampedTafById = new Map<string, { fra: ISODateString; til: ISODateString }>();
@@ -1664,15 +1665,21 @@ export const buildEODebugTaftRows = (
         0
       );
       const maanederDisplay = antalMaaneder === null ? '-' : `${formatMaaneder(antalMaaneder)} måneder`;
+      const arbejdsdageDisplay = breakdown
+        ? `${formatDaNumber(breakdown.arbejdsdage)} hverdage - ${formatDaNumber(breakdown.shDage)} SH-dage - ${formatDaNumber(breakdown.feriedage)} feriedage - ${formatDaNumber(breakdown.loseFeriedage)} løse feriedage = ${formatDaNumber(breakdown.tafDage)} arbejdsdage`
+        : '-';
+
+      const visMaaneder = tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER;
+      const displayValue = visMaaneder ? maanederDisplay : arbejdsdageDisplay;
+      const status: DebugStatus = visMaaneder
+        ? (antalMaaneder === null ? 'error' : 'ok')
+        : (breakdown ? 'ok' : 'error');
 
       rows.push({
         id: `taf.periode.${periode.id}`,
         label: periodeLabel,
-        displayValue:
-          breakdown
-            ? `${formatDaNumber(breakdown.arbejdsdage)} hverdage - ${formatDaNumber(breakdown.shDage)} SH-dage - ${formatDaNumber(breakdown.feriedage)} feriedage - ${formatDaNumber(breakdown.loseFeriedage)} løse feriedage = ${formatDaNumber(breakdown.tafDage)} TAF-dage\n${maanederDisplay}`
-            : '-',
-        status: breakdown ? 'ok' : 'error',
+        displayValue,
+        status,
       });
 
       // TODO(b): Tilføj en ekstra debug-linje pr. periode med den tilsvarende månedsberegning (samme princip som EO-oplysninger, men eksplicit i debug-output).
