@@ -365,6 +365,9 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       if (returnFocusOnClose && (reason === 'escapeKeyDown' || reason === 'select')) {
         inputElementRef.current?.focus();
       }
+      if (reason === 'backdropClick') {
+        inputElementRef.current?.focus();
+      }
     },
     [onClose, open, returnFocusOnClose]
   );
@@ -378,6 +381,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       const inAnchor = anchorRef.current?.contains(target) ?? false;
       const inListbox = listboxRef.current?.contains(target) ?? false;
       if (inAnchor || inListbox) return;
+      event.preventDefault();
       handleClose('backdropClick');
     };
 

@@ -78,6 +78,7 @@ describe('StyledDropdown', () => {
 
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     expect(onClose).toHaveBeenCalledTimes(1);
+    expect(input).toHaveFocus();
   });
 
   it('Tab når open lukker popover og flytter fokus videre', async () => {
