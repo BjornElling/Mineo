@@ -331,6 +331,9 @@ export type SatserValues = z.infer<typeof satserSchema>;
 export const loenperiodeSchema = z.enum(['maaned', 'uge', 'dag']);
 export type Loenperiode = z.infer<typeof loenperiodeSchema>;
 
+export const anciennitetSatsPerEnum = z.enum(['Time', 'Måned']);
+export type AnciennitetSatsPer = z.infer<typeof anciennitetSatsPerEnum>;
+
 /**
  * Løn på helligdage
  */
@@ -781,6 +784,10 @@ export const loenindkomstAnsaettelsesforholdSchema = z.object({
   ansatPaaSkadestidspunktet: z.boolean(),
   ansaettelsesforholdOphoert: z.boolean(),
   sidsteArbejdsdag: optionalIsoDateString,
+  harAnciennitetstillaegEfterSkadesdatoen: z.boolean(),
+  anciennitetstillaegDato: optionalIsoDateString,
+  anciennitetstillaegSatsAngivesPer: anciennitetSatsPerEnum,
+  anciennitetstillaegSats: nonNegativeAmountValue,
 
   // Satser
   feriePct: percentageDecimal,

@@ -35,6 +35,8 @@ describe('bugReport', () => {
     const { generateBugReport } = await import('../../utils/bugReport');
     const report = await generateBugReport(1);
 
+    expect(report).toContain('Commit/hash:');
+    expect(report).toContain('Aktive test-injektioner/feature flags:');
     expect(report).toContain('[Circular]');
     expect(report).toContain('1');
   });

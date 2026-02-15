@@ -76,6 +76,51 @@ const getVersion = async (): Promise<string> => {
   }
 };
 
+const getCommitHash = (): string => {
+  const candidates = [
+    import.meta.env.VITE_APP_COMMIT_HASH,
+    import.meta.env.VITE_GIT_COMMIT,
+    import.meta.env.VITE_COMMIT_HASH,
+    import.meta.env.VITE_BUILD_HASH,
+  ];
+  const resolved = candidates.find((value) => typeof value === 'string' && value.trim() !== '');
+  return resolved?.trim() ?? 'ukendt';
+};
+
+const parseBooleanFlag = (value: unknown): boolean => {
+  if (typeof value !== 'string') return false;
+  const normalized = value.trim().toLowerCase();
+  return normalized === '1' || normalized === 'true' || normalized === 'ja' || normalized === 'yes' || normalized === 'on';
+};
+
+const getActiveTestInjectionsAndFeatureFlags = (): readonly string[] => {
+  const flags: string[] = [];
+
+  if (parseBooleanFlag(import.meta.env.VITE_FORCE_SAMMENTAELLING_MISMATCH)) {
+    flags.push('VITE_FORCE_SAMMENTAELLING_MISMATCH');
+  }
+
+  if (parseBooleanFlag(import.meta.env.VITE_ENABLE_TEST_INJECTIONS)) {
+    flags.push('VITE_ENABLE_TEST_INJECTIONS');
+  }
+
+  if (parseBooleanFlag(import.meta.env.VITE_ENABLE_DEBUG_TEST_FLAGS)) {
+    flags.push('VITE_ENABLE_DEBUG_TEST_FLAGS');
+  }
+
+  if (typeof import.meta.env.VITE_ACTIVE_TEST_FLAGS === 'string') {
+    const parsed = import.meta.env.VITE_ACTIVE_TEST_FLAGS
+      .split(',')
+      .map((value) => value.trim())
+      .filter((value) => value !== '');
+    for (const value of parsed) {
+      if (!flags.includes(value)) flags.push(value);
+    }
+  }
+
+  return flags;
+};
+
 /**
  * Hent browser info
  *
@@ -180,6 +225,8 @@ export const generateBugReport = async (
   extraSections?: BugReportExtraSection[]
 ): Promise<string> => {
   const version = await getVersion();
+  const commitHash = getCommitHash();
+  const activeTestFlags = getActiveTestInjectionsAndFeatureFlags();
   const browserInfo = getBrowserInfo();
   const dato = new Date().toLocaleString('da-DK');
 
@@ -189,8 +236,10 @@ export const generateBugReport = async (
   // Byg rapport
   let report = '=== MINEO Fejlrapport ===\n';
   report += `Version: ${version}\n`;
+  report += `Commit/hash: ${commitHash}\n`;
   report += `Dato: ${dato}\n`;
   report += `Browser: ${browserInfo}\n`;
+  report += `Aktive test-injektioner/feature flags: ${activeTestFlags.length > 0 ? activeTestFlags.join(', ') : 'Ingen'}\n`;
   report += '\n';
 
   if (context) {
@@ -448,14 +497,18 @@ export const prepareContentBoxReport = async (options: {
   message?: string;
 }): Promise<PreparedBugReport> => {
   const version = await getVersion();
+  const commitHash = getCommitHash();
+  const activeTestFlags = getActiveTestInjectionsAndFeatureFlags();
   const browserInfo = getBrowserInfo();
   const dato = new Date().toLocaleString('da-DK');
   const message = (options.message ?? '').trim();
 
   let report = '=== MINEO Rapport ===\n';
   report += `Version: ${version}\n`;
+  report += `Commit/hash: ${commitHash}\n`;
   report += `Dato: ${dato}\n`;
   report += `Browser: ${browserInfo}\n`;
+  report += `Aktive test-injektioner/feature flags: ${activeTestFlags.length > 0 ? activeTestFlags.join(', ') : 'Ingen'}\n`;
   report += '\n';
 
   report += '=== Identifikation ===\n';

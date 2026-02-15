@@ -52,6 +52,7 @@ type PendingOverwriteApply = {
 const UI_LAST_SAVED_FILENAME_KEY = 'mineo_ui_lastSavedFilename';
 const UI_LAST_SAVED_FILENAME_BASIS_KEY = 'mineo_ui_lastSavedFilenameBasis';
 const DEBUG_LAST_LOAD_INFO_KEY = 'mineo_debug_lastLoadInfo';
+const UI_DEVTOOLS_LAST_SEEN_ISSUE_ID_KEY = 'mineo_ui_devtools_lastSeenIssueId';
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -166,6 +167,13 @@ const parseSessionJson = (value: string | null): unknown => {
   } catch {
     return value;
   }
+};
+
+const parseNonNegativeInteger = (value: string | null): number | null => {
+  if (!value) return null;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return parsed;
 };
 
 const resolveLoadError = (error: unknown): { message: string; expected: boolean } => {
@@ -677,6 +685,10 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
   }, [handleGem]);
 
   React.useEffect(() => {
+    dismissedDevtoolsIssueIdRef.current = parseNonNegativeInteger(
+      sessionStorage.getItem(UI_DEVTOOLS_LAST_SEEN_ISSUE_ID_KEY),
+    );
+
     const stop = startDevtoolsMonitor();
     const unsubscribe = subscribeDevtoolsIssues((snapshot, issue) => {
       const now = Date.now();
@@ -692,7 +704,9 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
     });
 
     const initial = getDevtoolsIssueSnapshot();
-    if (initial.issues.length > 0) {
+    const dismissedId = dismissedDevtoolsIssueIdRef.current;
+    const hasNewIssues = initial.issues.some((issue) => dismissedId === null || issue.id > dismissedId);
+    if (hasNewIssues) {
       setDevtoolsSnapshot(initial);
       setDevtoolsNoticeVisible(true);
     }
@@ -834,7 +848,11 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
         <DevtoolsIssueNotice
           snapshot={devtoolsSnapshot}
           onDismiss={() => {
-            dismissedDevtoolsIssueIdRef.current = devtoolsSnapshot.lastIssue?.id ?? null;
+            const lastIssueId = devtoolsSnapshot.lastIssue?.id ?? null;
+            dismissedDevtoolsIssueIdRef.current = lastIssueId;
+            if (lastIssueId !== null) {
+              sessionStorage.setItem(UI_DEVTOOLS_LAST_SEEN_ISSUE_ID_KEY, String(lastIssueId));
+            }
             suppressDevtoolsNoticeUntilRef.current = Date.now() + 1000;
             setDevtoolsNoticeVisible(false);
           }}

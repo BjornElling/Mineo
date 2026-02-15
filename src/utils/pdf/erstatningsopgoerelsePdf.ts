@@ -116,6 +116,10 @@ const formatPctFromInput = (value: number | undefined): string => {
 };
 
 const isZeroPct = (value: number | undefined): boolean => Math.abs(value ?? 0) < 0.000001;
+const capitalizeFirstChar = (value: string): string => {
+  if (value.length === 0) return value;
+  return `${value.charAt(0).toLocaleUpperCase('da-DK')}${value.slice(1)}`;
+};
 
 const getLoenindkomstTableHeaders = (loenperiode: Loenperiode): readonly string[] => {
   const periodColumns =
@@ -1561,7 +1565,7 @@ export const generateErstatningsopgoerelsePdf = (
   };
 
   const writeLabelValueLine = (label: string, value: string) => {
-    safeAddLeftRightText(label, value, standardRightMaxWidth, { rightFontStyle: 'normal' });
+    safeAddLeftRightText(label, capitalizeFirstChar(value), standardRightMaxWidth, { rightFontStyle: 'normal' });
   };
 
   const startBilagPage = (titleText: string) => {

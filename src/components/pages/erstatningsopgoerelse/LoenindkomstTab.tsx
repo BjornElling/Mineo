@@ -8,6 +8,7 @@ import Download from '@mui/icons-material/Download';
 import StyledTextField from '../../inputs/StyledTextField';
 import StyledDateField from '../../inputs/StyledDateField';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../../inputs/StyledDropdown';
+import StyledAmountField from '../../inputs/StyledAmountField';
 import StyledPercentField from '../../inputs/StyledPercentField';
 import StyledRadioButton from '../../inputs/StyledRadioButton';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
@@ -24,6 +25,7 @@ import {
   loenudviklingBeregningsgrundlagEnum,
   loenudviklingStatistikModelEnum,
   krlSatstabelEnum,
+  anciennitetSatsPerEnum,
   offentligLoenTypeEnum,
   type OffentligLoenTypeLabel,
   type ErstatningsopgoerelseValues,
@@ -124,6 +126,10 @@ const createBlankAnsaettelsesforhold = (settings: AppSettings): Ansaettelsesforh
     ansatPaaSkadestidspunktet: true,
     ansaettelsesforholdOphoert: false,
     sidsteArbejdsdag: undefined,
+    harAnciennitetstillaegEfterSkadesdatoen: false,
+    anciennitetstillaegDato: undefined,
+    anciennitetstillaegSatsAngivesPer: 'Måned',
+    anciennitetstillaegSats: undefined,
     feriePct: undefined,
     fritvalgPct: undefined,
     shSoPct: undefined,
@@ -169,6 +175,11 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [deleteTargetId, setDeleteTargetId] = React.useState<string | null>(null);
   const [scrollTargetId, setScrollTargetId] = React.useState<string | null>(null);
+  const deleteTargetName = React.useMemo(() => {
+    if (!deleteTargetId) return '';
+    const target = values.loenindkomstAnsaettelsesforhold.find((af) => af.id === deleteTargetId);
+    return target?.navnPaaArbejdssted?.trim() ?? '';
+  }, [deleteTargetId, values.loenindkomstAnsaettelsesforhold]);
 
   // State til fejlmeddelelser per Ansættelsesforhold
   const [satsErrors, setSatsErrors] = React.useState<Record<string, SatsErrorState>>({});
@@ -505,7 +516,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
       id: string,
       field: keyof Pick<
         Ansaettelsesforhold,
-        'harOverenskomst' | 'ansatPaaSkadestidspunktet' | 'ansaettelsesforholdOphoert'
+        'harOverenskomst' | 'ansatPaaSkadestidspunktet' | 'ansaettelsesforholdOphoert' | 'harAnciennitetstillaegEfterSkadesdatoen'
       >
     ): CommitHandler<boolean> =>
       (event: CommitEvent<boolean>) => {
@@ -596,6 +607,32 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
         setSatsErrorsForAnsaettelsesforhold(id, updatedAf);
       },
     [setSatsErrorsForAnsaettelsesforhold, updateAnsaettelsesforhold, values.loenindkomstAnsaettelsesforhold]
+  );
+
+  const handleAnciennitetstillaegDatoCommit = React.useCallback(
+    (id: string) =>
+      (event: CommitEvent<Ansaettelsesforhold['anciennitetstillaegDato']>) => {
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, anciennitetstillaegDato: event.target.value }));
+      },
+    [updateAnsaettelsesforhold]
+  );
+
+  const handleAnciennitetstillaegSatsAngivesPerChange = React.useCallback(
+    (id: string) =>
+      (event: StyledDropdownChangeEvent<string>) => {
+        const parsed = anciennitetSatsPerEnum.safeParse(event.target.value);
+        if (!parsed.success) return;
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, anciennitetstillaegSatsAngivesPer: parsed.data }));
+      },
+    [updateAnsaettelsesforhold]
+  );
+
+  const handleAnciennitetstillaegSatsCommit = React.useCallback(
+    (id: string) =>
+      (event: CommitEvent<Ansaettelsesforhold['anciennitetstillaegSats']>) => {
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, anciennitetstillaegSats: event.target.value }));
+      },
+    [updateAnsaettelsesforhold]
   );
 
   const handleFeriePctCommit = React.useCallback(
@@ -842,6 +879,11 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
   }, []);
 
   const [addTargetId, setAddTargetId] = React.useState<string | null>(null);
+  const addTargetName = React.useMemo(() => {
+    if (!addTargetId) return '';
+    const target = values.loenindkomstAnsaettelsesforhold.find((af) => af.id === addTargetId);
+    return target?.navnPaaArbejdssted?.trim() ?? '';
+  }, [addTargetId, values.loenindkomstAnsaettelsesforhold]);
 
   const handleAddConfirm = React.useCallback(() => {
     if (!addTargetId) return;
@@ -1016,6 +1058,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
           af.overenskomstId && isOffentligOverenskomstId(af.overenskomstId)
         );
         const loenudviklingBaseDate = getLoenudviklingBaseDate(af);
+        const anciennitetSatsPerTekst = af.anciennitetstillaegSatsAngivesPer === 'Time' ? 'time' : 'måned';
         const shouldShowReguleringsDatoInterval =
           loenudviklingBasis === 'Overenskomst' ||
           (loenudviklingBasis === 'Statistik' && Boolean(af.loenudviklingStatistikModel)) ||
@@ -1608,6 +1651,60 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
               </>
             ) : null}
 
+            <Typography className="row--subheading">Anciennitetstillæg</Typography>
+
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">Ville skadelidte have opnået anciennitetstillæg efter skadesdatoen</Typography>
+              <Box className="row--label-right-hover__content">
+                <StyledToggleSwitch
+                  checked={af.harAnciennitetstillaegEfterSkadesdatoen}
+                  onCommit={handleToggleChange(af.id, 'harAnciennitetstillaegEfterSkadesdatoen')}
+                />
+              </Box>
+            </Box>
+
+            {af.harAnciennitetstillaegEfterSkadesdatoen ? (
+              <>
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">Dato for opnået anciennitetstillæg</Typography>
+                  <Box className="row--label-right-hover__content">
+                    <StyledDateField
+                      value={af.anciennitetstillaegDato}
+                      minDate={stamdataValues?.skadesdato}
+                      onCommit={handleAnciennitetstillaegDatoCommit(af.id)}
+                    />
+                  </Box>
+                </Box>
+
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">Satsen angives per</Typography>
+                  <Box className="row--label-right-hover__content">
+                    <StyledDropdown
+                      width={160}
+                      value={af.anciennitetstillaegSatsAngivesPer}
+                      onChange={handleAnciennitetstillaegSatsAngivesPerChange(af.id)}
+                      allowEmpty={false}
+                    >
+                      <MenuItem value="Time">Time</MenuItem>
+                      <MenuItem value="Måned">Måned</MenuItem>
+                    </StyledDropdown>
+                  </Box>
+                </Box>
+
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">{`Sats per ${anciennitetSatsPerTekst}`}</Typography>
+                  <Box className="row--label-right-hover__content">
+                    <StyledAmountField
+                      width={160}
+                      value={af.anciennitetstillaegSats}
+                      allowNegative={false}
+                      onCommit={handleAnciennitetstillaegSatsCommit(af.id)}
+                    />
+                  </Box>
+                </Box>
+              </>
+            ) : null}
+
             {/* Handlingsknapper – flex-container der fylder ud fra højre */}
             <Box sx={{ position: 'absolute', bottom: -28, right: 44, display: 'flex', gap: '14px' }}>
               {/* Flyt op (kun synlig hvis >1 Ansættelsesforhold og ikke det første) */}
@@ -1615,7 +1712,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                 <FloatingActionButton
                   icon={<ArrowUpwardIcon />}
                   color="primary"
-                  tooltip="Flyt Ansættelsesforhold op"
+                  tooltip="Flyt ansættelsesforhold op"
                   onClick={() => handleMoveUp(af.id)}
                 />
               )}
@@ -1625,7 +1722,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                 <FloatingActionButton
                   icon={<ArrowDownwardIcon />}
                   color="primary"
-                  tooltip="Flyt Ansættelsesforhold ned"
+                  tooltip="Flyt ansættelsesforhold ned"
                   onClick={() => handleMoveDown(af.id)}
                 />
               )}
@@ -1635,7 +1732,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                 <FloatingActionButton
                   icon={<DeleteIcon />}
                   color="error"
-                  tooltip="Slet Ansættelsesforhold"
+                  tooltip="Slet ansættelsesforhold"
                   onClick={() => {
                     setDeleteTargetId(af.id);
                     setDeleteDialogOpen(true);
@@ -1648,7 +1745,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                 icon={<AddIcon />}
                 color="primary"
                 disabled={cannotAddMore}
-                tooltip={cannotAddMore ? 'Maksimalt 10 Ansættelsesforhold' : 'Tilføj nyt Ansættelsesforhold'}
+                tooltip={cannotAddMore ? 'Maksimalt 10 ansættelsesforhold' : 'Tilføj nyt ansættelsesforhold'}
                 shake={cannotAddMore}
                 onClick={() => {
                   setAddTargetId(af.id);
@@ -1663,10 +1760,12 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
       {/* Tilføj-dialog */}
       <ConfirmationDialog
         open={addDialogOpen}
-        title="Tilføj Ansættelsesforhold"
+        title="Tilføj ansættelsesforhold"
         message={
           <>
-            Dette vil indsætte et nyt Ansættelsesforhold lige efter det nuværende.
+            {addTargetName !== ''
+              ? `Dette vil indsætte et nyt ansættelsesforhold lige efter det nuværende (${addTargetName}).`
+              : 'Dette vil indsætte et nyt ansættelsesforhold lige efter det nuværende.'}
             <br />
             <br />
             Bekræft venligst.
@@ -1684,10 +1783,12 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
       {/* Slet-dialog */}
       <ConfirmationDialog
         open={deleteDialogOpen}
-        title="Slet Ansættelsesforhold"
+        title="Slet ansættelsesforhold"
         message={
           <>
-            Dette vil slette alle oplysninger i dette Ansættelsesforhold.
+            {deleteTargetName !== ''
+              ? `Dette vil slette alle oplysninger i ansættelsesforholdet (${deleteTargetName}). Handlingen kan ikke fortrydes.`
+              : 'Dette vil slette alle oplysninger i dette ansættelsesforhold. Handlingen kan ikke fortrydes.'}
             <br />
             <br />
             Bekræft venligst.
