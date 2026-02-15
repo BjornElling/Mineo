@@ -3,6 +3,12 @@ import { ensureNonBreakingKr } from '../../pdfWriter';
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { getGrundloenAngivetPerForOverenskomst } from '../../../../data/overenskomstRates';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
+import {
+  addOneDayIso,
+  formatAmount2,
+  formatAnciennitetConversion,
+  roundToFourDecimals,
+} from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import type { Calculable, LoenudviklingSegment, MoneyOre, PdfModel } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
@@ -111,20 +117,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     writer,
   } = ctx;
 
-  const formatAmount2 = (value: number): string =>
-    value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  const roundToTwoDecimals = (value: number): number => Math.round(value * 100) / 100;
-  const roundToFourDecimals = (value: number): number => Math.round(value * 10000) / 10000;
-
-  const addOneDayIso = (iso: ISODateString): ISODateString | null => {
-    const date = new Date(`${iso}T00:00:00Z`);
-    if (!Number.isFinite(date.getTime())) return null;
-    date.setUTCDate(date.getUTCDate() + 1);
-    const nextIso = date.toISOString().slice(0, 10);
-    return parseOptionalIsoDate(nextIso) ?? null;
-  };
-
   const mergeLoenudviklingSegments = (segments: readonly LoenudviklingSegment[]): readonly LoenudviklingSegment[] => {
     if (segments.length <= 1) return segments;
     const merged: LoenudviklingSegment[] = [];
@@ -199,22 +191,8 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
     const inputPer = ansaettelsesforhold.anciennitetstillaegSatsAngivesPer;
     const dateText = formatDateShort(dato);
-    const inputAmount = roundToTwoDecimals(satsValue);
-    const inputAmountText = formatAmount2(inputAmount);
-
-    if (grundloenAngivetPer === 'Måned' && inputPer === 'Måned') {
-      return `Fra ${dateText} optjenes anciennitetstillæg på ${inputAmountText} kr./måned`;
-    }
-    if (grundloenAngivetPer === 'Måned' && inputPer === 'Time') {
-      const converted = roundToTwoDecimals(inputAmount * 160.33);
-      return `Fra ${dateText} optjenes anciennitetstillæg på ${inputAmountText} kr./time x 160,33 = ${formatAmount2(converted)} kr./måned`;
-    }
-    if (grundloenAngivetPer === 'Time' && inputPer === 'Måned') {
-      const converted = roundToTwoDecimals(inputAmount / 160.33);
-      return `Fra ${dateText} optjenes anciennitetstillæg på ${inputAmountText} kr./måned / 160,33 = ${formatAmount2(converted)} kr./time`;
-    }
-
-    return `Fra ${dateText} optjenes anciennitetstillæg på ${inputAmountText} kr./time`;
+    const conversion = formatAnciennitetConversion(satsValue, inputPer, grundloenAngivetPer, formatAmount2);
+    return `Fra ${dateText} optjenes anciennitetstillæg på ${conversion.displayText}`;
   };
 
   renderSectionHeader('Svie- og smertegodtgørelse', lineHeight);

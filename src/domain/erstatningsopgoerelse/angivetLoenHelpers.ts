@@ -1,6 +1,7 @@
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/common';
+import { DEFAULT_ANCIENNITET_FIELDS } from './erstatningsopgoerelseInitialValues';
 
 export const EO_ANGIVET_LOEN_ID = 'eo-angivet-loen';
 
@@ -77,10 +78,7 @@ export const resolveLoenudviklingKilde = (
     ansatPaaSkadestidspunktet: true,
     ansaettelsesforholdOphoert: false,
     sidsteArbejdsdag: undefined,
-    harAnciennitetstillaegEfterSkadesdatoen: false,
-    anciennitetstillaegDato: undefined,
-    anciennitetstillaegSatsAngivesPer: 'Måned',
-    anciennitetstillaegSats: undefined,
+    ...DEFAULT_ANCIENNITET_FIELDS,
     feriePct: eo.feriePct,
     fritvalgPct: undefined,
     shSoPct: undefined,

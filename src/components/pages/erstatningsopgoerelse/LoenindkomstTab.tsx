@@ -56,6 +56,7 @@ import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { appSettingsSchema, DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../../settings/appSettingsSchema';
 import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerelse/loenoplysningerInput';
+import { DEFAULT_ANCIENNITET_FIELDS } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import {
   validateLoenudviklingManualBaseRowSatser,
   type ManualBaseRowCellErrors,
@@ -126,10 +127,7 @@ const createBlankAnsaettelsesforhold = (settings: AppSettings): Ansaettelsesforh
     ansatPaaSkadestidspunktet: true,
     ansaettelsesforholdOphoert: false,
     sidsteArbejdsdag: undefined,
-    harAnciennitetstillaegEfterSkadesdatoen: false,
-    anciennitetstillaegDato: undefined,
-    anciennitetstillaegSatsAngivesPer: 'Måned',
-    anciennitetstillaegSats: undefined,
+    ...DEFAULT_ANCIENNITET_FIELDS,
     feriePct: undefined,
     fritvalgPct: undefined,
     shSoPct: undefined,

@@ -46,6 +46,8 @@ import { hasIndtastetLoenoplysninger } from './loenoplysningerInput';
 import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
+  convertAnciennitetSats,
+  roundToTwoDecimals,
   resolveReguleringsdato as resolveReguleringsdatoShared,
   resolveStatistikModelId,
   formatDateShort as formatDateShortShared,
@@ -1529,7 +1531,6 @@ const buildLoenudviklingFromOverenskomstV3 = (
     throw new Error('Loenudvikling kan ikke beregnes: ugyldig reguleringsdato');
   }
 
-  const roundToTwoDecimals = (value: number): number => Math.round(value * 100) / 100;
   const tafStartIso = konsolideret.tafRanges.reduce<ISODateString | undefined>(
     (min, range) => (!min || range.fra < min ? range.fra : min),
     undefined
@@ -1553,12 +1554,11 @@ const buildLoenudviklingFromOverenskomstV3 = (
     const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(konsolideret.overenskomstId, tafBeregnesSom);
     if (!grundloenAngivetPer) return null;
 
-    const supplementValue = (() => {
-      if (grundloenAngivetPer === 'Måned') {
-        return konsolideret.anciennitetstillaegSatsAngivesPer === 'Måned' ? satsValue : satsValue * 160.33;
-      }
-      return konsolideret.anciennitetstillaegSatsAngivesPer === 'Måned' ? satsValue / 160.33 : satsValue;
-    })();
+    const supplementValue = convertAnciennitetSats(
+      satsValue,
+      konsolideret.anciennitetstillaegSatsAngivesPer,
+      grundloenAngivetPer
+    );
 
     const roundedSupplement = roundToTwoDecimals(supplementValue);
     if (!Number.isFinite(roundedSupplement) || roundedSupplement <= 0) return null;

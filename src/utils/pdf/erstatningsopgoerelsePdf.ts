@@ -16,7 +16,7 @@ import { buildErstatningsopgoerelsePdfModel, type MoneyOre, type Calculable, typ
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { formatAsAmount, formatCurrency, formatPercent, parseAmount } from '../formatUtils';
 import { parseISODate } from '../../types/branded';
-import { TAF_BEREGNES_SOM } from '../../domain/erstatningsopgoerelse/tafBeregningsenhed';
+import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { TODAY } from '../../config/dateRanges';
 import { amountValueToDisplayString, amountValueToNumber } from '../expressionAmount';
 import { isAarsloenRowEffectivelyEmpty } from '../aarsloenTableCalculations';
@@ -42,6 +42,7 @@ import { erDetteFoersteErstatningsopgoerelse } from '../../domain/erstatningsopg
 import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
+  convertAnciennitetSats,
   resolveReguleringsdato as resolveReguleringsdatoShared,
   resolveStatistikModelId,
   parseOptionalIsoDate as parseOptionalIsoDateShared,
@@ -49,6 +50,7 @@ import {
   formatDateShort as formatDateShortShared,
   formatDateLong as formatDateLongShared,
   formatPercentFixed2 as formatPercentFixed2Shared,
+  roundToTwoDecimals,
 } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import { formatCountWithUnit, formatMaanederTrimmed, isSingularCount, resolvePdfFileName } from './sharedPdfUtils';
 import type { SelectedElements } from './erstatningsopgoerelse/types';
@@ -908,8 +910,9 @@ const buildReguleringIndexRows = (params: Readonly<{
   segments: readonly LoenudviklingSegment[];
   ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
   reguleringsdato: ISODateString | undefined;
+  tafBeregningsenhed: TafBeregningsenhed;
 }>): readonly ReguleringIndexRow[] => {
-  const { segments, ansaettelsesforhold, reguleringsdato } = params;
+  const { segments, ansaettelsesforhold, reguleringsdato, tafBeregningsenhed } = params;
   if (segments.length === 0) return [];
   const tafStartIso = segments[0].fra;
   const tafEndIso = segments[segments.length - 1].til;
@@ -933,8 +936,6 @@ const buildReguleringIndexRows = (params: Readonly<{
     ? formatCurrency
     : (value: number) =>
       value.toLocaleString('da-DK', { minimumFractionDigits: statDecimalPlaces, maximumFractionDigits: statDecimalPlaces });
-
-  const roundToTwoDecimals = (value: number): number => Math.round(value * 100) / 100;
 
   const splitSegmentsAtBoundary = (
     inputSegments: readonly LoenudviklingSegment[],
@@ -992,19 +993,14 @@ const buildReguleringIndexRows = (params: Readonly<{
     if (!anciennitetDato || typeof satsValue !== 'number' || !Number.isFinite(satsValue) || satsValue <= 0) {
       return null;
     }
-    const tafBeregnesSom = segments[0]?.kind === 'maaneder' ? 'Måneder' : 'Arbejdsdage';
+    const tafBeregnesSom = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måneder' : 'Arbejdsdage';
     const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(ansaettelsesforhold.overenskomstId, tafBeregnesSom);
     if (!grundloenAngivetPer) return null;
-    const inputPer = ansaettelsesforhold.anciennitetstillaegSatsAngivesPer;
-    const supplementValue = (() => {
-      if (grundloenAngivetPer === 'Måned') {
-        return inputPer === 'Måned' ? satsValue : satsValue * 160.33;
-      }
-      return inputPer === 'Måned' ? satsValue / 160.33 : satsValue;
-    })();
-    const roundedSupplement = roundToTwoDecimals(supplementValue);
-    if (roundedSupplement <= 0) return null;
     if (anciennitetDato > tafEndIso) return null;
+    const inputPer = ansaettelsesforhold.anciennitetstillaegSatsAngivesPer;
+    const supplementValue = convertAnciennitetSats(satsValue, inputPer, grundloenAngivetPer);
+    const roundedSupplement = roundToTwoDecimals(supplementValue);
+    if (!Number.isFinite(roundedSupplement) || roundedSupplement <= 0) return null;
     return {
       activeFromIso: anciennitetDato < tafStartIso ? tafStartIso : anciennitetDato,
       supplementValue: roundedSupplement,
@@ -1861,7 +1857,10 @@ export const generateErstatningsopgoerelsePdf = (
       resolveLoenSkadesdatoText,
       resolveTafDateBounds,
       buildReguleringsvaerdierTableData,
-      buildReguleringIndexRows,
+      buildReguleringIndexRows: (params) => buildReguleringIndexRows({
+        ...params,
+        tafBeregningsenhed: model.tabtArbejdsfortjeneste.tafBeregningsenhed,
+      }),
       resolveStatistikModelIdFromLabel,
       renderStandardPdfTable: ({ doc, startY, body, columnStyles }) =>
         renderStandardPdfTable({

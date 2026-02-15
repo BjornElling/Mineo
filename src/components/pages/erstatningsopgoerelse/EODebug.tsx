@@ -58,6 +58,12 @@ import { computeTafOverlapWithBeregningsperiode } from '../../../domain/erstatni
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import { isOffentligYdelseDatoMedregnet as isOffentligYdelseDatoMedregnetCentral } from '../../../domain/erstatningsopgoerelse/periodiseringsMotor';
+import {
+  TIMER_TIL_MAANED_FAKTOR,
+  convertAnciennitetSats,
+  formatAmount2,
+  roundToTwoDecimals,
+} from '../../../domain/erstatningsopgoerelse/sharedPdfUtils';
 
 // Debug strategy:
 // - We intentionally read errors by source (input/schema/rule) to expose diagnostics.
@@ -206,13 +212,7 @@ const formatIndexValue = (value: number): string => {
   return value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-const roundToTwoDecimals = (value: number): number => {
-  return Math.round(value * 100) / 100;
-};
-
-const formatAmountTwoDecimals = (value: number): string => {
-  return value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
+const formatAmountTwoDecimals = formatAmount2;
 
 const formatMaanederTrimmed = (value: number): string => {
   const rounded = Math.round(value * 10000) / 10000;
@@ -950,20 +950,20 @@ const EODebug = () => {
         }
 
         if (grundloenAngivetPer === 'Måned' && satsPer === 'Time') {
-          const converted = roundToTwoDecimals(inputAmount * 160.33);
+          const converted = roundToTwoDecimals(inputAmount * TIMER_TIL_MAANED_FAKTOR);
           return {
             id: 'regulering.anciennitet.beregning',
-            label: `Beregnet anciennitetstillæg (${inputAmountDisplay} kr./time x 160,33)`,
+            label: `Beregnet anciennitetstillæg (${inputAmountDisplay} kr./time x ${formatAmount2(TIMER_TIL_MAANED_FAKTOR)})`,
             displayValue: `${formatAmountTwoDecimals(converted)} kr./måned fra ${datoDisplay}`,
             status: 'ok' as DebugStatus,
           };
         }
 
         if (grundloenAngivetPer === 'Time' && satsPer === 'Måned') {
-          const converted = roundToTwoDecimals(inputAmount / 160.33);
+          const converted = roundToTwoDecimals(inputAmount / TIMER_TIL_MAANED_FAKTOR);
           return {
             id: 'regulering.anciennitet.beregning',
-            label: `Beregnet anciennitetstillæg (${inputAmountDisplay} kr./måned / 160,33)`,
+            label: `Beregnet anciennitetstillæg (${inputAmountDisplay} kr./måned / ${formatAmount2(TIMER_TIL_MAANED_FAKTOR)})`,
             displayValue: `${formatAmountTwoDecimals(converted)} kr./time fra ${datoDisplay}`,
             status: 'ok' as DebugStatus,
           };
@@ -1190,18 +1190,13 @@ const EODebug = () => {
           }
           const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(af.overenskomstId, tafBeregnesSom);
           if (!grundloenAngivetPer) return null;
+          if (anciennitetDato > tafEndIso) return null;
 
           const satsPer = af.anciennitetstillaegSatsAngivesPer;
-          const supplementValue = (() => {
-            if (grundloenAngivetPer === 'Måned') {
-              return satsPer === 'Måned' ? satsValue : satsValue * 160.33;
-            }
-            return satsPer === 'Måned' ? satsValue / 160.33 : satsValue;
-          })();
+          const supplementValue = convertAnciennitetSats(satsValue, satsPer, grundloenAngivetPer);
 
           const roundedSupplementValue = roundToTwoDecimals(supplementValue);
-          if (roundedSupplementValue <= 0) return null;
-          if (anciennitetDato > tafEndIso) return null;
+          if (!Number.isFinite(roundedSupplementValue) || roundedSupplementValue <= 0) return null;
           const activeFromIso = anciennitetDato < tafStartIso ? tafStartIso : anciennitetDato;
           return {
             activeFromIso,

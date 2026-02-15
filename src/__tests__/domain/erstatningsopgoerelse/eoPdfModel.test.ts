@@ -1237,7 +1237,7 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     );
     const samledeFeriedage = (breakdown?.feriedage ?? 0) + (breakdown?.loseFeriedage ?? 0);
 
-    expect(indkomst?.beregningsgrundlagMellemregningLabel).toContain(` - ${samledeFeriedage.toLocaleString('da-DK')} feriedage - `);
+    expect(indkomst?.beregningsgrundlagMellemregningLabel).toContain(` - ${samledeFeriedage.toLocaleString('da-DK')} feriedage`);
     expect(indkomst?.beregningsgrundlagMellemregningLabel).not.toContain('løse feriedage');
   });
 

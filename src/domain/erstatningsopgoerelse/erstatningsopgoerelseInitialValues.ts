@@ -23,6 +23,13 @@ const createDefaultAngivetLoenLoenudvikling = (settings: AppSettings): Persisted
   overenskomstFilter: resolveDefaultOverenskomstFilter(settings),
 });
 
+export const DEFAULT_ANCIENNITET_FIELDS = {
+  harAnciennitetstillaegEfterSkadesdatoen: false as const,
+  anciennitetstillaegDato: undefined,
+  anciennitetstillaegSatsAngivesPer: 'Måned' as const,
+  anciennitetstillaegSats: undefined,
+};
+
 /**
  * Opretter initial values for erstatningsopgørelse med settings-baserede standardværdier
  *
@@ -139,10 +146,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
       ansatPaaSkadestidspunktet: true,
       ansaettelsesforholdOphoert: false,
       sidsteArbejdsdag: undefined,
-      harAnciennitetstillaegEfterSkadesdatoen: false,
-      anciennitetstillaegDato: undefined,
-      anciennitetstillaegSatsAngivesPer: 'Måned',
-      anciennitetstillaegSats: undefined,
+      ...DEFAULT_ANCIENNITET_FIELDS,
       feriePct: undefined,
       fritvalgPct: undefined,
       shSoPct: undefined,

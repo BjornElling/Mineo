@@ -2,6 +2,7 @@ import type { RowInput } from 'jspdf-autotable';
 import { getGrundloenAngivetPerForOverenskomst, getOffentligOverenskomstTypeById } from '../../../../data/overenskomstRates';
 import { resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
+import { formatAmount2, formatAnciennitetConversion } from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import type { ISODateString } from '../../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
@@ -93,11 +94,6 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     return `${value.charAt(0).toLocaleUpperCase('da-DK')}${value.slice(1)}`;
   };
 
-  const formatAmount2 = (value: number): string =>
-    value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  const roundToTwoDecimals = (value: number): number => Math.round(value * 100) / 100;
-
   const tafBeregnesSom = computeTafBeregningsenhed(eoValues);
 
   const resolveAnciennitetValueDisplay = (
@@ -122,21 +118,8 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     if (!grundloenAngivetPer) return 'Indtastning mangler';
 
     const inputPer = ansaettelsesforhold.anciennitetstillaegSatsAngivesPer;
-    const inputAmount = roundToTwoDecimals(satsValue);
-    const inputAmountText = formatAmount2(inputAmount);
-
-    if (grundloenAngivetPer === 'Måned' && inputPer === 'Måned') {
-      return `${inputAmountText} kr./måned fra ${datoDisplay}`;
-    }
-    if (grundloenAngivetPer === 'Måned' && inputPer === 'Time') {
-      const converted = roundToTwoDecimals(inputAmount * 160.33);
-      return `${inputAmountText} kr./time x 160,33 = ${formatAmount2(converted)} kr./måned fra ${datoDisplay}`;
-    }
-    if (grundloenAngivetPer === 'Time' && inputPer === 'Måned') {
-      const converted = roundToTwoDecimals(inputAmount / 160.33);
-      return `${inputAmountText} kr./måned / 160,33 = ${formatAmount2(converted)} kr./time fra ${datoDisplay}`;
-    }
-    return `${inputAmountText} kr./time fra ${datoDisplay}`;
+    const conversion = formatAnciennitetConversion(satsValue, inputPer, grundloenAngivetPer, formatAmount2);
+    return `${conversion.displayText} fra ${datoDisplay}`;
   };
 
   const renderReguleringIndeksTable = (rows: readonly ReguleringIndexRow[]) => {

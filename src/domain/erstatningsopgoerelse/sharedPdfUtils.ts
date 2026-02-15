@@ -21,6 +21,7 @@ import type { StatistiskLoenudviklingId } from '../../data/statistiskLoenudvikli
  */
 export const STORE_BEDEDAG_START = '2024-01-01' as ISODateString;
 export const STORE_BEDEDAG_PCT = 0.45;
+export const TIMER_TIL_MAANED_FAKTOR = 160.33;
 
 // =============================================================================
 // DATO-FUNKTIONER
@@ -69,6 +70,68 @@ export const formatDateLong = (isoDate: ISODateString | undefined): string => {
 export const formatPercentFixed2 = (value: number): string => {
   if (!Number.isFinite(value)) return '-';
   return `${value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+};
+
+export const roundToTwoDecimals = (value: number): number => Math.round(value * 100) / 100;
+
+export const roundToFourDecimals = (value: number): number => Math.round(value * 10000) / 10000;
+
+export const formatAmount2 = (value: number): string =>
+  value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+export const addOneDayIso = (iso: ISODateString): ISODateString | null => {
+  const date = new Date(`${iso}T00:00:00Z`);
+  if (!Number.isFinite(date.getTime())) return null;
+  date.setUTCDate(date.getUTCDate() + 1);
+  const nextIso = date.toISOString().slice(0, 10);
+  return isISODateString(nextIso) ? nextIso : null;
+};
+
+export const convertAnciennitetSats = (
+  satsValue: number,
+  inputPer: 'Time' | 'Måned',
+  grundloenAngivetPer: 'Time' | 'Måned'
+): number => {
+  if (grundloenAngivetPer === 'Måned') {
+    return inputPer === 'Måned' ? satsValue : satsValue * TIMER_TIL_MAANED_FAKTOR;
+  }
+  return inputPer === 'Måned' ? satsValue / TIMER_TIL_MAANED_FAKTOR : satsValue;
+};
+
+export const formatAnciennitetConversion = (
+  inputAmount: number,
+  inputPer: 'Time' | 'Måned',
+  grundloenAngivetPer: 'Time' | 'Måned',
+  formatAmount: (value: number) => string
+): Readonly<{ displayText: string; convertedValue: number }> => {
+  const roundedInput = roundToTwoDecimals(inputAmount);
+  const convertedValue = roundToTwoDecimals(convertAnciennitetSats(roundedInput, inputPer, grundloenAngivetPer));
+  const inputText = formatAmount(roundedInput);
+  const convertedText = formatAmount(convertedValue);
+  const factorText = formatAmount(TIMER_TIL_MAANED_FAKTOR);
+
+  if (grundloenAngivetPer === 'Måned' && inputPer === 'Måned') {
+    return {
+      displayText: `${inputText} kr./måned`,
+      convertedValue,
+    };
+  }
+  if (grundloenAngivetPer === 'Måned' && inputPer === 'Time') {
+    return {
+      displayText: `${inputText} kr./time x ${factorText} = ${convertedText} kr./måned`,
+      convertedValue,
+    };
+  }
+  if (grundloenAngivetPer === 'Time' && inputPer === 'Måned') {
+    return {
+      displayText: `${inputText} kr./måned / ${factorText} = ${convertedText} kr./time`,
+      convertedValue,
+    };
+  }
+  return {
+    displayText: `${inputText} kr./time`,
+    convertedValue,
+  };
 };
 
 // =============================================================================

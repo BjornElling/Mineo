@@ -2,6 +2,7 @@ import type { PersistedSectionMap } from './persistenceRegistry';
 import type { StorageKey } from './storageManifest';
 import { DEFAULT_APP_SETTINGS, appSettingsSchema, resolveDefaultOverenskomstFilter, type AppSettings } from '../settings/appSettingsSchema';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../types/common';
+import { DEFAULT_ANCIENNITET_FIELDS } from '../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 export type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends Array<infer U>
@@ -98,10 +99,7 @@ export const buildPersistenceDefaults = (settings?: AppSettings): PersistedSecti
           harOverenskomst: true,
           ansatPaaSkadestidspunktet: true,
           ansaettelsesforholdOphoert: false,
-          harAnciennitetstillaegEfterSkadesdatoen: false,
-          anciennitetstillaegDato: undefined,
-          anciennitetstillaegSatsAngivesPer: 'Måned',
-          anciennitetstillaegSats: undefined,
+          ...DEFAULT_ANCIENNITET_FIELDS,
           loenperiode: LOENPERIODE.MAANED,
           fuldLoenUnderFerie: safeSettings.defaultFuldLoenUnderFerie ? 'Ja' : 'Nej',
           loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
