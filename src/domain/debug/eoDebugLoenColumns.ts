@@ -4,14 +4,14 @@ import type { ISODateString } from '../../types/branded';
 import { dateToISO, isoToDanish } from '../../types/branded';
 import { parseAmount, formatCurrency } from '../../utils/formatUtils';
 import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
-import { createDate } from '../../utils/dateUtils';
-import { parseDanishDate, parseWeekString } from '../../utils/shDageBeregning';
 import { resolveOverenskomstRef, getEffektiveSatserForPeriode, getOffentligOverenskomstTypeById } from '../../data/overenskomstRates';
 import { getReguleringsDatoer } from '../../data/offentligLoenLookup';
 import { parseOffentligDato } from './eoDebugOffentligeYdelserColumns';
 import type { DebugTabelColumnId, DebugTabelIntegrityIssue } from './eoDebugModel';
 import { debugTabelColumnId, WAGE_COLUMNS } from './eoDebugLoenTypes';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
+import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/indtaegtPerioder';
+import { type DateInterval, iterateDatesInclusive, validateIsoRange } from '../../utils/isoDateHelpers';
 
 // LOCKED: Løn/TAF debug-clusteret er færdig‑porteret.
 // Ændr kun ved parity‑brud og dokumentér årsag.
@@ -24,23 +24,6 @@ export type DebugTabelColumnData = Readonly<{
   values: readonly string[];
   rawValues?: readonly number[];
 }>;
-
-const getIsoRange = (
-  fra: ISODateString | undefined,
-  til: ISODateString | undefined
-): Readonly<{ fra: ISODateString; til: ISODateString }> | undefined => {
-  if (!fra || !til) return undefined;
-  if (fra > til) return undefined;
-  return { fra, til };
-};
-
-const iterateDatesInclusive = (start: Date, end: Date, onDate: (date: Date) => void): void => {
-  const current = new Date(start.getTime());
-  while (current <= end) {
-    onDate(current);
-    current.setUTCDate(current.getUTCDate() + 1);
-  }
-};
 
 const sumFloat64Array = (arr: Float64Array): number => {
   let sum = 0;
@@ -57,48 +40,6 @@ const sumFloat64Array = (arr: Float64Array): number => {
 
 const isWithinIntegrityTolerance = (actual: number, expected: number, tolerance: number): boolean => {
   return Math.abs(actual - expected) <= tolerance + Number.EPSILON;
-};
-
-type ParsedInterval = Readonly<{ start: Date; end: Date }>;
-
-const parseAarsloenRowInterval = (row: AarsloenTableRow, loenperiode: Loenperiode): ParsedInterval | null => {
-  if (loenperiode === 'maaned') {
-    const monthRaw = row.col0_maaned?.trim() ?? '';
-    const yearRaw = row.col1_maaned?.trim() ?? '';
-    if (monthRaw === '' || yearRaw === '') return null;
-
-    const month = Number.parseInt(monthRaw, 10);
-    const year = Number.parseInt(yearRaw, 10);
-    if (!Number.isFinite(month) || !Number.isFinite(year)) return null;
-    if (month < 1 || month > 12) return null;
-    if (year < 1900 || year > 2100) return null;
-
-    const start = createDate(year, month - 1, 1);
-    const end = createDate(year, month, 0);
-    return { start, end };
-  }
-
-  if (loenperiode === 'uge') {
-    const fraUge = row.col0_uge?.trim() ?? '';
-    const tilUge = row.col1_uge?.trim() ?? '';
-    if (fraUge === '' || tilUge === '') return null;
-
-    const fra = parseWeekString(fraUge);
-    const til = parseWeekString(tilUge);
-    if (!fra || !til) return null;
-    if (fra.start > til.end) return null;
-    return { start: fra.start, end: til.end };
-  }
-
-  const fraDato = row.col0_dag?.trim() ?? '';
-  const tilDato = row.col1_dag?.trim() ?? '';
-  if (fraDato === '' || tilDato === '') return null;
-
-  const fra = parseDanishDate(fraDato);
-  const til = parseDanishDate(tilDato);
-  if (!fra || !til) return null;
-  if (fra > til) return null;
-  return { start: fra, end: til };
 };
 
 const getWageAmountsForRow = (
@@ -238,7 +179,7 @@ export const buildLoenindkomstColumns = (args: {
   const differencekravDato = values.differencekravDato;
 
   const hasMultiple = ansaettelser.length > 1;
-  const erstatningsRange = getIsoRange(erstatningsFra, erstatningsTil);
+  const erstatningsRange = validateIsoRange(erstatningsFra, erstatningsTil);
   const isWithinErstatningsByIndex: ReadonlyArray<boolean> = dates.map((iso) =>
     erstatningsRange ? iso >= erstatningsRange.fra && iso <= erstatningsRange.til : false
   );
@@ -348,7 +289,7 @@ export const buildLoenindkomstColumns = (args: {
 
     const parsedRows: Array<
       Readonly<{
-        interval: ParsedInterval;
+        interval: DateInterval;
         amounts: Readonly<Record<(typeof WAGE_COLUMNS)[number]['key'], number>>;
         periodiseringsdage: number;
       }>

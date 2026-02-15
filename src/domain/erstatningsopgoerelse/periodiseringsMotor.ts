@@ -4,9 +4,10 @@ import { dateToISO, parseISODate, toISODateString } from '../../types/branded';
 import { addDays, formatToISO } from '../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import type { Periodisering } from '../../data/ydelsestyper';
-import { buildDatoSetInclusiveFromDates, buildFerieDageSet, buildShDageSet, isWeekdayUtc } from './tafDaySets';
+import { buildDatoSetInclusiveFromDates, buildFerieDageSet, buildShDageSet, isWeekdayUtc, placeLoseFeriedage } from './tafDaySets';
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR } from './tafBeregningsenhed';
 import { roundHalfAwayFromZero } from '../../utils/formatUtils';
+import { type DateInterval, type IsoRange, toNonNegativeInt } from '../../utils/isoDateHelpers';
 
 /**
  * CENTRAL PERIODISERINGSMOTOR (normativ)
@@ -37,15 +38,9 @@ import { roundHalfAwayFromZero } from '../../utils/formatUtils';
  *   så teksten altid 1:1 afspejler den implementerede beregningslogik.
  */
 
-export type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
-export type DateInterval = Readonly<{ start: Date; end: Date }>;
+export type { IsoRange, DateInterval } from '../../utils/isoDateHelpers';
 
 export const SYGEDAGPENGE_SH_CUTOFF = toISODateString('2012-07-02');
-
-const toNonNegativeInt = (value: number): number => {
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, Math.trunc(value));
-};
 
 const assertNever = (value: never): never => {
   throw new Error(`Unhandled context kind: ${String(value)}`);
@@ -329,19 +324,7 @@ export const optaelArbejdsdageBreakdown = (args: {
   }
 
   const blockedLoseFerie = new Set<ISODateString>([...ferieDageSet, ...shDageSet]);
-  const placedLoseFeriedage = new Set<ISODateString>();
-  let remainingLoseFeriedage = toNonNegativeInt(loseFeriedage);
-  if (remainingLoseFeriedage > 0) {
-    let candidate = new Date(fraDate);
-    while (candidate <= tilDate && remainingLoseFeriedage > 0) {
-      const isoStr = formatToISO(candidate);
-      if (isWeekdayUtc(candidate) && !blockedLoseFerie.has(isoStr)) {
-        placedLoseFeriedage.add(isoStr);
-        remainingLoseFeriedage -= 1;
-      }
-      candidate = addDays(candidate, 1);
-    }
-  }
+  const placedLoseFeriedage = placeLoseFeriedage(fra, til, loseFeriedage, blockedLoseFerie);
 
   const arbejdsdageMinusSH = antalHverdage - antalSHDage;
   let fravaersdage = 0;

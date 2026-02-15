@@ -3,6 +3,7 @@ import { dateToISO } from '../../types/branded';
 import { isoDateToDate } from '../dates/isoDate';
 import { addDays } from '../../utils/dateUtils';
 import { beregnHelligdage } from '../../utils/shDageBeregning';
+import { toNonNegativeInt } from '../../utils/isoDateHelpers';
 
 export const isWeekdayUtc = (date: Date): boolean => {
   const dayOfWeek = date.getUTCDay();
@@ -74,4 +75,39 @@ export const buildShDageSet = (
     }
   }
   return shDageSet;
+};
+
+export const buildShDageSetFromIsoRange = (fra: ISODateString, til: ISODateString): Set<ISODateString> => {
+  const fraDate = isoDateToDate(fra);
+  const tilDate = isoDateToDate(til);
+  if (fraDate > tilDate) return new Set<ISODateString>();
+  const datoSet = buildDatoSetInclusiveFromDates(fraDate, tilDate);
+  return buildShDageSet(fraDate, tilDate, datoSet);
+};
+
+export const placeLoseFeriedage = (
+  fra: ISODateString,
+  til: ISODateString,
+  count: number,
+  blocked: ReadonlySet<ISODateString>
+): Set<ISODateString> => {
+  const fraDate = isoDateToDate(fra);
+  const tilDate = isoDateToDate(til);
+  if (fraDate > tilDate) return new Set<ISODateString>();
+
+  const selected = new Set<ISODateString>();
+  let remaining = toNonNegativeInt(count);
+  if (remaining === 0) return selected;
+
+  let candidate = new Date(fraDate);
+  while (candidate <= tilDate && remaining > 0) {
+    const iso = toIsoOrThrow(candidate, 'lose feriedage');
+    if (isWeekdayUtc(candidate) && !blocked.has(iso)) {
+      selected.add(iso);
+      remaining -= 1;
+    }
+    candidate = addDays(candidate, 1);
+  }
+
+  return selected;
 };

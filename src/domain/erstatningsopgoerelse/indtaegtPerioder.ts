@@ -8,15 +8,16 @@ import type { ISODateString } from '../../types/branded';
 import { dateToISO, isISODateString } from '../../types/branded';
 import { calculateAarsloenRowDerived } from '../../utils/aarsloenTableCalculations';
 import { parseAmount } from '../../utils/formatUtils';
-import { createDate, parseDanishDate, parseWeekString } from '../../utils/dateUtils';
+import { parseDanishDate } from '../../utils/dateUtils';
 import { ydelsestyper } from '../../data/ydelsestyper';
-import { beregnHelligdage } from '../../utils/shDageBeregning';
+import { type DateInterval, type IsoRange, validateIsoRange } from '../../utils/isoDateHelpers';
 import { mergeIsoDateRanges } from './periodMerging';
 import { buildClampedTafRanges, resolveTafConstraintBounds } from './tafPeriodConstraints';
 import { getAarsloenErrorRowIdSet } from './indkomstRowValidation';
-import { isoDateToDate } from '../dates/isoDate';
 import { isAarsloenTableValueEffectivelyEmptyForValidation } from '../../utils/aarsloenTableValidation';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
+import { parseAarsloenRowInterval } from './aarsloenRowInterval';
+import { buildShDageSetFromIsoRange } from './tafDaySets';
 import {
   buildLoenArbejdsdageSet,
   periodiserBeloebForArbejdsdage,
@@ -25,9 +26,12 @@ import {
   SYGEDAGPENGE_SH_CUTOFF,
 } from './periodiseringsMotor';
 
-export type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
+export type { IsoRange } from '../../utils/isoDateHelpers';
+export { parseAarsloenRowInterval } from './aarsloenRowInterval';
 
-type DateInterval = Readonly<{ start: Date; end: Date }>;
+const toUtcDay = (date: Date): Date => {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+};
 
 export type IncomeEmployerAmount = Readonly<{
   id: string;
@@ -63,72 +67,6 @@ export type IncomeCalculationContext = Readonly<{
 }>;
 
 type RowEligibility = 'empty' | 'invalid' | 'valid';
-
-const toUtcDay = (date: Date): Date => {
-  return createDate(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-};
-
-const getIsoRange = (fra: ISODateString | undefined, til: ISODateString | undefined): IsoRange | undefined => {
-  if (!fra || !til) return undefined;
-  if (fra > til) return undefined;
-  return { fra, til };
-};
-
-const buildShDageSet = (fra: ISODateString, til: ISODateString): ReadonlySet<ISODateString> => {
-  const start = isoDateToDate(fra);
-  const end = isoDateToDate(til);
-  const set = new Set<ISODateString>();
-  for (let year = start.getUTCFullYear(); year <= end.getUTCFullYear(); year += 1) {
-    const helligdage = beregnHelligdage(year);
-    for (const helligdag of helligdage) {
-      const iso = dateToISO(helligdag);
-      if (!iso || iso < fra || iso > til) continue;
-      const dow = helligdag.getUTCDay();
-      if (dow >= 1 && dow <= 5) set.add(iso);
-    }
-  }
-  return set;
-};
-
-export const parseAarsloenRowInterval = (row: AarsloenTableRow, loenperiode: Loenperiode): DateInterval | null => {
-  if (loenperiode === 'maaned') {
-    const monthRaw = row.col0_maaned?.trim() ?? '';
-    const yearRaw = row.col1_maaned?.trim() ?? '';
-    if (monthRaw === '' || yearRaw === '') return null;
-
-    const month = Number.parseInt(monthRaw, 10);
-    const year = Number.parseInt(yearRaw, 10);
-    if (!Number.isFinite(month) || !Number.isFinite(year)) return null;
-    if (month < 1 || month > 12) return null;
-    if (year < 1900 || year > 2100) return null;
-
-    const start = createDate(year, month - 1, 1);
-    const end = createDate(year, month, 0);
-    return { start, end };
-  }
-
-  if (loenperiode === 'uge') {
-    const fraUge = row.col0_uge?.trim() ?? '';
-    const tilUge = row.col1_uge?.trim() ?? '';
-    if (fraUge === '' || tilUge === '') return null;
-
-    const fra = parseWeekString(fraUge);
-    const til = parseWeekString(tilUge);
-    if (!fra || !til) return null;
-    if (fra.start > til.end) return null;
-    return { start: toUtcDay(fra.start), end: toUtcDay(til.end) };
-  }
-
-  const fraDato = row.col0_dag?.trim() ?? '';
-  const tilDato = row.col1_dag?.trim() ?? '';
-  if (fraDato === '' || tilDato === '') return null;
-
-  const fra = parseDanishDate(fraDato);
-  const til = parseDanishDate(tilDato);
-  if (!fra || !til) return null;
-  if (fra > til) return null;
-  return { start: toUtcDay(fra), end: toUtcDay(til) };
-};
 
 const isLoenRowEffectivelyEmptyForLoenperiode = (row: AarsloenTableRow, loenperiode: Loenperiode): boolean => {
   const periodKeys: ReadonlyArray<keyof AarsloenTableRow> = loenperiode === 'maaned'
@@ -178,7 +116,7 @@ export const buildBeregningsperiodeRange = (
   if (!isISODateString(values.periodeTilBeregningFra) || !isISODateString(values.periodeTilBeregningTil)) {
     return undefined;
   }
-  return getIsoRange(values.periodeTilBeregningFra, values.periodeTilBeregningTil);
+  return validateIsoRange(values.periodeTilBeregningFra, values.periodeTilBeregningTil);
 };
 
 const resolveIncomeBounds = (
@@ -259,7 +197,7 @@ export const buildIncomeCalculationContext = (
         [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])]
       )
       : new Set<ISODateString>();
-  const shDaysForYdelser = buildShDageSet(bounds.boundsFra, bounds.boundsTil);
+  const shDaysForYdelser = buildShDageSetFromIsoRange(bounds.boundsFra, bounds.boundsTil);
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
   const loenErrorRowIdsByEmploymentId = new Map<string, ReadonlySet<string>>(
     ansaettelser.map((af) => [af.id, getAarsloenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)])

@@ -56,8 +56,12 @@ import { calculateTafAntalMaanederPraecis, calculateTafArbejdsdageBreakdown } fr
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { computeTafOverlapWithBeregningsperiode } from '../../../domain/erstatningsopgoerelse/beregningsperiodeTafOverlap';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
-import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
-import { isOffentligYdelseDatoMedregnet as isOffentligYdelseDatoMedregnetCentral } from '../../../domain/erstatningsopgoerelse/periodiseringsMotor';
+import { buildIncomeForRanges, parseAarsloenRowInterval } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
+import {
+  isOffentligYdelseDatoMedregnet as isOffentligYdelseDatoMedregnetCentral,
+  SYGEDAGPENGE_SH_CUTOFF,
+} from '../../../domain/erstatningsopgoerelse/periodiseringsMotor';
+import { iterateDatesInclusive, maxISO, minISO, type DateInterval, validateIsoRange } from '../../../utils/isoDateHelpers';
 import {
   TIMER_TIL_MAANED_FAKTOR,
   convertAnciennitetSats,
@@ -323,77 +327,6 @@ const computeFormulaValue = (components: FormulaComponents): number => {
   return baseValue * factor;
 };
 
-const getIsoRange = (
-  fra: ISODateString | undefined,
-  til: ISODateString | undefined
-): Readonly<{ fra: ISODateString; til: ISODateString }> | undefined => {
-  if (!fra || !til) return undefined;
-  if (fra > til) return undefined;
-  return { fra, til };
-};
-
-const minISO = (a: ISODateString | undefined, b: ISODateString | undefined): ISODateString | undefined => {
-  if (!a) return b;
-  if (!b) return a;
-  return a < b ? a : b;
-};
-
-const maxISO = (a: ISODateString | undefined, b: ISODateString | undefined): ISODateString | undefined => {
-  if (!a) return b;
-  if (!b) return a;
-  return a > b ? a : b;
-};
-
-const iterateDatesInclusive = (start: Date, end: Date, onDate: (date: Date) => void): void => {
-  const current = new Date(start.getTime());
-  while (current <= end) {
-    onDate(current);
-    current.setUTCDate(current.getUTCDate() + 1);
-  }
-};
-
-type ParsedInterval = Readonly<{ start: Date; end: Date }>;
-
-const parseAarsloenRowInterval = (row: AarsloenTableRow, loenperiode: Loenperiode): ParsedInterval | null => {
-  if (loenperiode === 'maaned') {
-    const monthRaw = row.col0_maaned?.trim() ?? '';
-    const yearRaw = row.col1_maaned?.trim() ?? '';
-    if (monthRaw === '' || yearRaw === '') return null;
-
-    const month = Number.parseInt(monthRaw, 10);
-    const year = Number.parseInt(yearRaw, 10);
-    if (!Number.isFinite(month) || !Number.isFinite(year)) return null;
-    if (month < 1 || month > 12) return null;
-    if (year < 1900 || year > 2100) return null;
-
-    const start = createDate(year, month - 1, 1);
-    const end = createDate(year, month, 0);
-    return { start, end };
-  }
-
-  if (loenperiode === 'uge') {
-    const fraUge = row.col0_uge?.trim() ?? '';
-    const tilUge = row.col1_uge?.trim() ?? '';
-    if (fraUge === '' || tilUge === '') return null;
-
-    const fra = parseWeekString(fraUge);
-    const til = parseWeekString(tilUge);
-    if (!fra || !til) return null;
-    if (fra.start > til.end) return null;
-    return { start: fra.start, end: til.end };
-  }
-
-  const fraDato = row.col0_dag?.trim() ?? '';
-  const tilDato = row.col1_dag?.trim() ?? '';
-  if (fraDato === '' || tilDato === '') return null;
-
-  const fra = parseDanishDate(fraDato);
-  const til = parseDanishDate(tilDato);
-  if (!fra || !til) return null;
-  if (fra > til) return null;
-  return { start: fra, end: til };
-};
-
 const parseOffentligDato = (value: string | undefined): ISODateString | undefined => {
   const trimmed = (value ?? '').trim();
   if (trimmed === '') return undefined;
@@ -427,7 +360,7 @@ const buildExplicitFerieSet = (
   const set = new Set<ISODateString>();
   const ferieRows = [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])];
   for (const row of ferieRows) {
-    const range = getIsoRange(row.fra, row.til);
+    const range = validateIsoRange(row.fra, row.til);
     if (!range) continue;
     addWeekdayNonShDatesFromIsoRange(set, range, shDays);
   }
@@ -443,7 +376,7 @@ const buildLoseFeriedageSet = (
   const tafRows = values.tafPerioder ?? [];
 
   for (const row of tafRows) {
-    const range = getIsoRange(row.fra, row.til);
+    const range = validateIsoRange(row.fra, row.til);
     if (!range) continue;
     const loseCount = typeof row.loseFeriedage === 'number' ? Math.max(0, Math.trunc(row.loseFeriedage)) : 0;
     if (loseCount <= 0) continue;
@@ -504,8 +437,6 @@ const allocateWeekdayDates = (args: {
 
   return selected;
 };
-
-const SYGEDAGPENGE_SH_CUTOFF = toISODateString('2012-07-02');
 
 const isOffentligYdelseDatoMedregnet = (
   iso: ISODateString,
@@ -1175,7 +1106,7 @@ const EODebug = () => {
 
         const feriePct = typeof af.feriePct === 'number' ? af.feriePct : 0;
         const tafRanges = (tafPerioder ?? [])
-          .map((row) => getIsoRange(row.fra, row.til))
+          .map((row) => validateIsoRange(row.fra, row.til))
           .filter((range): range is Readonly<{ fra: ISODateString; til: ISODateString }> => Boolean(range));
 
         const applyAlmindeligLoenPaaShDageRegel = af.loenPaaHelligdage === loenPaaHelligdageSchema.enum['Almindelig løn']
@@ -2216,7 +2147,7 @@ const EODebug = () => {
     loenRows: ReadonlyArray<IndkomstRow>;
     ydelseRows: ReadonlyArray<IndkomstRow>;
   }> => {
-    const beregningsRange = getIsoRange(
+    const beregningsRange = validateIsoRange(
       erstatningsopgoerelseValues.periodeTilBeregningFra,
       erstatningsopgoerelseValues.periodeTilBeregningTil
     );

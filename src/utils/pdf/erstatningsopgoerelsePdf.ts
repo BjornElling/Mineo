@@ -52,7 +52,16 @@ import {
   formatPercentFixed2 as formatPercentFixed2Shared,
   roundToTwoDecimals,
 } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
-import { formatCountWithUnit, formatMaanederTrimmed, isSingularCount, resolvePdfFileName } from './sharedPdfUtils';
+import {
+  formatCountWithUnit,
+  formatCurrencyFromOre,
+  formatMaanederTrimmed,
+  formatMoneyOreWithKr,
+  formatPercentDelta,
+  isSingularCount,
+  resolvePdfFileName,
+} from './sharedPdfUtils';
+import { maxISO, minISO } from '../isoDateHelpers';
 import type { SelectedElements } from './erstatningsopgoerelse/types';
 import { assertNoUnsupportedSygeferiegodtgoerelseSelection } from './erstatningsopgoerelse/sections/sygeferiegodtgoerelseSection';
 import { renderLoenindkomstSection } from './erstatningsopgoerelse/sections/loenindkomstSection';
@@ -68,11 +77,6 @@ const MILLIMETERS_PER_INCH = 25.4;
 const EO_LEFT_WRAP_EXTRA_WIDTH_PX = 50;
 const EO_LEFT_WRAP_EXTRA_WIDTH_MM = (EO_LEFT_WRAP_EXTRA_WIDTH_PX * MILLIMETERS_PER_INCH) / CSS_PIXELS_PER_INCH;
 
-const formatCurrencyFromOre = (ore: MoneyOre): string => {
-  if (!Number.isFinite(ore)) return '-';
-  return formatCurrency(ore / 100);
-};
-
 const renderMoney = (value: Calculable<MoneyOre>): string => {
   return value.status === 'ok' ? formatCurrencyFromOre(value.value) : '—';
 };
@@ -87,8 +91,6 @@ const renderMoneyWithKrOrError = (value: Calculable<MoneyOre>): string => {
   return `Fejl (${value.reason})`;
 };
 
-const formatMoneyOreWithKr = (ore: MoneyOre): string => `${formatCurrencyFromOre(ore)}${NBSP}kr.`;
-
 /** Formaterer øre-beløb uden decimaler når de er ,00 */
 const formatCurrencyFromOreTrimmed = (ore: MoneyOre): string => {
   const formatted = formatCurrencyFromOre(ore);
@@ -101,13 +103,6 @@ const renderMoneyWithKrTrimmed = (value: Calculable<MoneyOre>): string => {
 };
 
 const formatMoneyOreWithKrTrimmed = (ore: MoneyOre): string => `${formatCurrencyFromOreTrimmed(ore)}${NBSP}kr.`;
-
-const formatPercentDelta = (value: number): string => {
-  if (!Number.isFinite(value)) return '-';
-  const abs = Math.abs(value);
-  const rounded = Math.round(abs * 100) / 100;
-  return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-};
 
 const isLoengruppe = (value: number): value is Loengruppe =>
   Number.isInteger(value) && value >= 0 && value <= 4;
@@ -399,8 +394,6 @@ export const shouldIncludeReguleringBilag = (
   return true;
 };
 
-const maxIso = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
-const minIso = (a: ISODateString, b: ISODateString): ISODateString => (a < b ? a : b);
 const resolveReguleringTableStartIso = (
   reguleringsdato: ISODateString | undefined,
   tafFra: ISODateString
@@ -420,8 +413,8 @@ const resolveTafDateBounds = (
   for (const row of eoValues.tafPerioder ?? []) {
     const clamped = clampTafRow(row, tafBounds);
     if (!clamped) continue;
-    foerste = foerste ? minIso(foerste, clamped.fra) : clamped.fra;
-    sidste = sidste ? maxIso(sidste, clamped.til) : clamped.til;
+    foerste = foerste ? minISO(foerste, clamped.fra) : clamped.fra;
+    sidste = sidste ? maxISO(sidste, clamped.til) : clamped.til;
   }
 
   if (!foerste || !sidste) return null;

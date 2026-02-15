@@ -1,16 +1,18 @@
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow, SvieSmertePeriodeRow, TafPeriodeRow } from '../../schemas/formSchemas';
-import type { AarsloenTableRow, Loenperiode } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { dateToISO, isoToDanish, subtractOneDay, toISODateString } from '../../types/branded';
+import { dateToISO, isoToDanish, subtractOneDay } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
-import { parseDanishDate, parseWeekString, beregnHelligdage } from '../../utils/shDageBeregning';
 import { buildOffentligeYdelserColumns, parseOffentligDato } from './eoDebugOffentligeYdelserColumns';
 import { buildLoenindkomstColumns } from './eoDebugLoenColumns';
 import { debugTabelColumnId, type DebugTabelWageColumnKey } from './eoDebugLoenTypes';
 import { isoDateToDate } from '../dates/isoDate';
 import { getAarsloenErrorRowIdSet, getOffentligeYdelserErrorRowIdSet } from './eoDebugRowValidation';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
+import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/indtaegtPerioder';
+import { SYGEDAGPENGE_SH_CUTOFF } from '../erstatningsopgoerelse/periodiseringsMotor';
+import { buildShDageSetFromIsoRange, placeLoseFeriedage } from '../erstatningsopgoerelse/tafDaySets';
+import { type DateInterval, iterateDatesInclusive, maxISO, minISO, validateIsoRange } from '../../utils/isoDateHelpers';
 
 export type DebugTabelDateSource = Readonly<{
   label: string;
@@ -97,8 +99,6 @@ export type EODebugModel = Readonly<{
 const DEFAULT_TABLE_WIDTH_PX = 1200;
 const DEFAULT_COLUMN_WIDTH_PX = 120;
 
-const SYGEDAGPENGE_SH_CUTOFF = toISODateString('2012-07-02');
-
 const INTEGRITY_TOLERANCE_KR = 0.05;
 
 const weekdayNamesDa: ReadonlyArray<string> = [
@@ -110,35 +110,6 @@ const weekdayNamesDa: ReadonlyArray<string> = [
   'Fredag',
   'Lørdag',
 ];
-
-const getIsoRange = (
-  fra: ISODateString | undefined,
-  til: ISODateString | undefined
-): Readonly<{ fra: ISODateString; til: ISODateString }> | undefined => {
-  if (!fra || !til) return undefined;
-  if (fra > til) return undefined;
-  return { fra, til };
-};
-
-const minISO = (a: ISODateString | undefined, b: ISODateString | undefined): ISODateString | undefined => {
-  if (!a) return b;
-  if (!b) return a;
-  return a < b ? a : b;
-};
-
-const maxISO = (a: ISODateString | undefined, b: ISODateString | undefined): ISODateString | undefined => {
-  if (!a) return b;
-  if (!b) return a;
-  return a > b ? a : b;
-};
-
-const iterateDatesInclusive = (start: Date, end: Date, onDate: (date: Date) => void): void => {
-  const current = new Date(start.getTime());
-  while (current <= end) {
-    onDate(current);
-    current.setUTCDate(current.getUTCDate() + 1);
-  }
-};
 
 const _isWithinIntegrityTolerance = (actual: number, expected: number): boolean => {
   return Math.abs(actual - expected) <= INTEGRITY_TOLERANCE_KR + Number.EPSILON;
@@ -201,48 +172,6 @@ const computeSummaryTableRange = (
   return { fra: tableFra, til: tableTil };
 };
 
-type ParsedInterval = Readonly<{ start: Date; end: Date }>;
-
-const parseAarsloenRowInterval = (row: AarsloenTableRow, loenperiode: Loenperiode): ParsedInterval | null => {
-  if (loenperiode === 'maaned') {
-    const monthRaw = row.col0_maaned?.trim() ?? '';
-    const yearRaw = row.col1_maaned?.trim() ?? '';
-    if (monthRaw === '' || yearRaw === '') return null;
-
-    const month = Number.parseInt(monthRaw, 10);
-    const year = Number.parseInt(yearRaw, 10);
-    if (!Number.isFinite(month) || !Number.isFinite(year)) return null;
-    if (month < 1 || month > 12) return null;
-    if (year < 1900 || year > 2100) return null;
-
-    const start = new Date(Date.UTC(year, month - 1, 1));
-    const end = new Date(Date.UTC(year, month, 0));
-    return { start, end };
-  }
-
-  if (loenperiode === 'uge') {
-    const fraUge = row.col0_uge?.trim() ?? '';
-    const tilUge = row.col1_uge?.trim() ?? '';
-    if (fraUge === '' || tilUge === '') return null;
-
-    const fra = parseWeekString(fraUge);
-    const til = parseWeekString(tilUge);
-    if (!fra || !til) return null;
-    if (fra.start > til.end) return null;
-    return { start: fra.start, end: til.end };
-  }
-
-  const fraDato = row.col0_dag?.trim() ?? '';
-  const tilDato = row.col1_dag?.trim() ?? '';
-  if (fraDato === '' || tilDato === '') return null;
-
-  const fra = parseDanishDate(fraDato);
-  const til = parseDanishDate(tilDato);
-  if (!fra || !til) return null;
-  if (fra > til) return null;
-  return { start: fra, end: til };
-};
-
 
 const buildIsoIndex = (dates: readonly ISODateString[]): ReadonlyMap<ISODateString, number> => {
   const map = new Map<ISODateString, number>();
@@ -259,27 +188,6 @@ const buildDateList = (fra: ISODateString, til: ISODateString): readonly ISODate
     if (iso) out.push(iso);
   });
   return out;
-};
-
-const buildSHSet = (fra: ISODateString, til: ISODateString): ReadonlySet<ISODateString> => {
-  const start = isoDateToDate(fra);
-  const end = isoDateToDate(til);
-  const years: number[] = [];
-  for (let y = start.getUTCFullYear(); y <= end.getUTCFullYear(); y += 1) years.push(y);
-
-  const set = new Set<ISODateString>();
-  for (const year of years) {
-    const helligdage = beregnHelligdage(year);
-    for (const helligdag of helligdage) {
-      const dow = helligdag.getUTCDay();
-      const erHverdag = dow >= 1 && dow <= 5;
-      if (!erHverdag) continue;
-      const iso = dateToISO(helligdag);
-      if (!iso) continue;
-      if (iso >= fra && iso <= til) set.add(iso);
-    }
-  }
-  return set;
 };
 
 const addWeekdayNonShDatesFromIsoRange = (
@@ -306,7 +214,7 @@ const buildExplicitFerieSet = (values: ErstatningsopgoerelseValues, shDays: Read
 
   const ferieRows = [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])];
   for (const row of ferieRows) {
-    const range = getIsoRange(row.fra, row.til);
+    const range = validateIsoRange(row.fra, row.til);
     if (!range) continue;
     addWeekdayNonShDatesFromIsoRange(set, range.fra, range.til, shDays);
   }
@@ -323,60 +231,25 @@ const buildLoseFeriedageSet = (
   const tafRows: readonly TafPeriodeRow[] = values.tafPerioder ?? [];
 
   for (const row of tafRows) {
-    const range = getIsoRange(row.fra, row.til);
+    const range = validateIsoRange(row.fra, row.til);
     if (!range) continue;
     const loseCount = typeof row.loseFeriedage === 'number' ? Math.max(0, Math.trunc(row.loseFeriedage)) : 0;
     if (loseCount <= 0) continue;
-
-    let remaining = loseCount;
-    const start = isoDateToDate(range.fra);
-    const end = isoDateToDate(range.til);
-
-    iterateDatesInclusive(start, end, (d) => {
-      if (remaining <= 0) return;
-
-      const dow = d.getUTCDay();
-      const erHverdag = dow >= 1 && dow <= 5;
-      if (!erHverdag) return;
-
-      const iso = dateToISO(d);
-      if (!iso) return;
-      if (explicitFerie.has(iso)) return;
-      if (shDays.has(iso)) return;
-      if (set.has(iso)) return;
-
-      set.add(iso);
-      remaining -= 1;
-    });
+    const blocked = new Set<ISODateString>([...explicitFerie, ...shDays, ...set]);
+    const placed = placeLoseFeriedage(range.fra, range.til, loseCount, blocked);
+    placed.forEach((iso) => set.add(iso));
   }
 
   // Uspecificerede ferie-/feriefridage i beregningsperioden:
   // behandles som løse feriedage med samme placeringsregler
   // (kan ikke ligge på SH eller eksisterende feriedage).
-  const beregningsRange = getIsoRange(values.periodeTilBeregningFra, values.periodeTilBeregningTil);
+  const beregningsRange = validateIsoRange(values.periodeTilBeregningFra, values.periodeTilBeregningTil);
   const beregningsLoseCount =
     typeof values.uspecificeredeFerieFridage === 'number' ? Math.max(0, Math.trunc(values.uspecificeredeFerieFridage)) : 0;
   if (beregningsRange && beregningsLoseCount > 0) {
-    let remaining = beregningsLoseCount;
-    const start = isoDateToDate(beregningsRange.fra);
-    const end = isoDateToDate(beregningsRange.til);
-
-    iterateDatesInclusive(start, end, (d) => {
-      if (remaining <= 0) return;
-
-      const dow = d.getUTCDay();
-      const erHverdag = dow >= 1 && dow <= 5;
-      if (!erHverdag) return;
-
-      const iso = dateToISO(d);
-      if (!iso) return;
-      if (explicitFerie.has(iso)) return;
-      if (shDays.has(iso)) return;
-      if (set.has(iso)) return;
-
-      set.add(iso);
-      remaining -= 1;
-    });
+    const blocked = new Set<ISODateString>([...explicitFerie, ...shDays, ...set]);
+    const placed = placeLoseFeriedage(beregningsRange.fra, beregningsRange.til, beregningsLoseCount, blocked);
+    placed.forEach((iso) => set.add(iso));
   }
 
   return set;
@@ -421,7 +294,7 @@ const buildTafRangeSet = (values: ErstatningsopgoerelseValues): ReadonlySet<ISOD
   const tafRows: readonly TafPeriodeRow[] = values.tafPerioder ?? [];
 
   for (const row of tafRows) {
-    const range = getIsoRange(row.fra, row.til);
+    const range = validateIsoRange(row.fra, row.til);
     if (!range) continue;
     const start = isoDateToDate(range.fra);
     const end = isoDateToDate(range.til);
@@ -448,7 +321,7 @@ const collectMinMaxOffentligeYdelser = (
 
     const fraISO = parseOffentligDato(row.fraDato);
     const tilISO = parseOffentligDato(row.tilDato);
-    const range = getIsoRange(fraISO, tilISO);
+    const range = validateIsoRange(fraISO, tilISO);
     if (!range) continue;
     min = minISO(min, range.fra);
     max = maxISO(max, range.til);
@@ -499,7 +372,7 @@ const buildSsCoverage = (
   const statusByIndex: string[] = Array.from({ length: dayCount }, () => '-');
   const stopAfterMenByIndex: boolean[] = Array.from({ length: dayCount }, () => false);
 
-  const erstatningsRange = getIsoRange(erstatningsFra, erstatningsTil);
+  const erstatningsRange = validateIsoRange(erstatningsFra, erstatningsTil);
   if (!erstatningsRange) {
     return { statusByIndex, stopAfterMenByIndex };
   }
@@ -514,12 +387,12 @@ const buildSsCoverage = (
   for (const periode of perioder) {
     const tilstand = periode.tilstand;
     if (tilstand !== 'sygemeldt' && tilstand !== 'delvist-sygemeldt') continue;
-    const periodeRange = getIsoRange(periode.fra, periode.til);
+    const periodeRange = validateIsoRange(periode.fra, periode.til);
     if (!periodeRange) continue;
 
     const clampedFra = maxISO(periodeRange.fra, erstatningsRange.fra);
     const clampedTil = hasSsMax ? minISO(periodeRange.til, maxSsDato) : periodeRange.til;
-    const clampedRange = getIsoRange(clampedFra, clampedTil);
+    const clampedRange = validateIsoRange(clampedFra, clampedTil);
     if (!clampedRange) continue;
 
     const start = isoDateToDate(clampedRange.fra);
@@ -623,12 +496,12 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
   const isoIndex = buildIsoIndex(dates);
   const beregningsenhed = computeTafBeregningsenhed(values);
   const erMaaneder = beregningsenhed === TAF_BEREGNES_SOM.MAANEDER;
-  const shDays = buildSHSet(tableFra, tableTil);
+  const shDays = buildShDageSetFromIsoRange(tableFra, tableTil);
   const explicitFerie = buildExplicitFerieSet(values, shDays);
   const loseFerie = buildLoseFeriedageSet(values, shDays, explicitFerie);
   const tafDates = buildTafRangeSet(values);
 
-  const beregningsRange = getIsoRange(beregningsFra, beregningsTil);
+  const beregningsRange = validateIsoRange(beregningsFra, beregningsTil);
   const reservedBeregningsperiodeDates = new Set<ISODateString>([...explicitFerie, ...loseFerie]);
   const oevrigeFravaersdageCount =
     values.oevrigtFravaerUdenLoen === 'Ja' && typeof values.oevrigeFravaersdage === 'number'

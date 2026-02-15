@@ -20,7 +20,11 @@ import type {
   TableError,
 } from '../../types/common';
 import { initialRow, generateRowId } from '../../utils/eoConverters';
-import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
+import {
+  calculateAarsloenRowDerived,
+  isAarsloenRowEffectivelyEmpty,
+  roundAarsloenAmountToTwoDecimals,
+} from '../../utils/aarsloenTableCalculations';
 import { getAarsloenTableValidation, isAarsloenTableValueEffectivelyEmptyForValidation } from '../../utils/aarsloenTableValidation';
 
 import { StandardGridHeaderCell, StandardGridTable, getStandardGridBodyRowStyle, getStandardGridCellStyle } from './StandardGridTable';
@@ -295,7 +299,12 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
     const calculateRow = React.useCallback(
       (row: AarsloenTableRow): { col6: number; col7: number; col8: number; col9: number } => {
         const derived = calculateAarsloenRowDerived(row, getSatserInput());
-        return { col6: derived.ferieberet, col7: derived.fpFvShSo, col8: derived.pension, col9: derived.samlet };
+        return {
+          col6: derived.ferieberet,
+          col7: derived.fpFvShSo,
+          col8: derived.pension,
+          col9: roundAarsloenAmountToTwoDecimals(derived.samlet),
+        };
       },
       [getSatserInput]
     );

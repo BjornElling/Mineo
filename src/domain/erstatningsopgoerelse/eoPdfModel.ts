@@ -4,7 +4,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues, SvieSmertePeriodeRow,
 import { erstatningsopgoerelseSchema, stamdataSchema } from '../../schemas/formSchemas';
 import { svieSmerteMax, svieSmertePrDag, aarsloenMax } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { formatPercent, parsePercentToDecimal, roundHalfAwayFromZero } from '../../utils/formatUtils';
+import { formatPercent, isSingularCount, parsePercentToDecimal, roundHalfAwayFromZero } from '../../utils/formatUtils';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, type IsoRange } from './indtaegtPerioder';
 import { calculateTafAntalMaaneder } from './tafCalculations';
 import { calculateTafArbejdsdageBreakdown } from './tafCalculations';
@@ -41,7 +41,7 @@ import { clampTafRow, resolveTafConstraintBounds } from './tafPeriodConstraints'
 import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
 import { buildTafArbejdsstatusLinje } from './tafArbejdsstatusConfig';
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, type LoenudviklingSource } from './angivetLoenHelpers';
-import { buildDatoSetInclusive, buildFerieDageSet, buildShDageSet, isWeekdayUtc } from './tafDaySets';
+import { buildDatoSetInclusive, buildFerieDageSet, buildShDageSet, isWeekdayUtc, placeLoseFeriedage } from './tafDaySets';
 import { hasIndtastetLoenoplysninger } from './loenoplysningerInput';
 import {
   STORE_BEDEDAG_START,
@@ -58,7 +58,6 @@ import {
 export type MoneyOre = number;
 
 type MoneyKroner = number;
-const isSingularCount = (value: number): boolean => Math.abs(value - 1) < 0.0000001;
 
 export type Calculable<T> =
   | Readonly<{ status: 'ok'; value: T }>
@@ -252,11 +251,6 @@ const formatDateShort = formatDateShortShared;
 
 const formatDateLong = formatDateLongShared;
 
-const toNonNegativeInt = (value: number): number => {
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, Math.trunc(value));
-};
-
 const collectTafArbejdsdageForRange = (
   fra: ISODateString,
   til: ISODateString,
@@ -271,23 +265,7 @@ const collectTafArbejdsdageForRange = (
   const ferieDageSet = buildFerieDageSet(ferieperioder, datoSet);
   const shDageSet = buildShDageSet(fraDate, tilDate, datoSet);
   const blockedLoseFerie = new Set<ISODateString>([...ferieDageSet, ...shDageSet]);
-
-  const placedLoseFeriedage = new Set<ISODateString>();
-  let remainingLoseFeriedage = toNonNegativeInt(loseFeriedage);
-  if (remainingLoseFeriedage > 0) {
-    let candidate = new Date(fraDate);
-    while (candidate <= tilDate && remainingLoseFeriedage > 0) {
-      const isoStr = dateToISO(candidate);
-      if (!isoStr) {
-        throw new Error('Kunne ikke formatere ISO-dato for løse feriedage.');
-      }
-      if (isWeekdayUtc(candidate) && !blockedLoseFerie.has(isoStr)) {
-        placedLoseFeriedage.add(isoStr);
-        remainingLoseFeriedage -= 1;
-      }
-      candidate = addDays(candidate, 1);
-    }
-  }
+  const placedLoseFeriedage = placeLoseFeriedage(fra, til, loseFeriedage, blockedLoseFerie);
 
   const arbejdsdage = new Set<ISODateString>();
   for (const isoStr of datoSet) {

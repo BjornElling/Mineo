@@ -21,6 +21,7 @@ type PdfDoc = jsPDF & {
     finalY?: number;
   };
 };
+const NBSP = '\u00A0';
 
 /**
  * Formaterer beløb til dansk format med tusindtalsseparator
@@ -313,8 +314,11 @@ const addIndtaegtsoplysningerTable = (
     { content: '', styles: { halign: 'right' } },
     { content: '', styles: { halign: 'right' } },
     { content: '', styles: { halign: 'right' } },
-    { content: '', styles: { halign: 'right' } },
-    { content: `${formatDanishAmount(beregnetAarsloen)} kr.`, styles: { halign: 'right', fontStyle: 'bold' } }
+    {
+      content: `${formatDanishAmount(beregnetAarsloen)}${NBSP}kr.`,
+      colSpan: 2,
+      styles: { halign: 'right', fontStyle: 'bold' },
+    },
   ]);
 
   autoTable(doc, {
@@ -364,13 +368,12 @@ const addIndtaegtsoplysningerTable = (
     didDrawCell: (data: CellHookData) => {
       const lastRowIndex = tableRows.length - 1;
 
-      // Tegn tynd streg over beløbet i "I alt"-rækken
-      // Beløbet spænder over kolonne 10-11 (colSpan: 2)
-      if (data.row.index === lastRowIndex && data.column.index === 10) {
+      // Tegn tynd streg over beløbet i "I alt"-rækken.
+      // Beløbet står i sidste celle, som spænder over de to sidste kolonner.
+      if (data.row.index === lastRowIndex && data.column.index === 8) {
         const cell = data.cell;
         doc.setLineWidth(0.15);
         doc.setDrawColor(0, 0, 0);
-        // Tegn streg over cellen (som spænder over 2 kolonner pga. colSpan)
         doc.line(cell.x, cell.y, cell.x + cell.width, cell.y);
       }
     },

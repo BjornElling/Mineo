@@ -7,6 +7,7 @@ import { ydelsestyper, type Periodisering } from '../../data/ydelsestyper';
 import { isoDateToDate } from '../dates/isoDate';
 import type { DebugTabelIntegrityIssue } from './eoDebugModel';
 import { isOffentligYdelseDatoMedregnet as isOffentligYdelseDatoMedregnetCentral } from '../erstatningsopgoerelse/periodiseringsMotor';
+import { iterateDatesInclusive, validateIsoRange } from '../../utils/isoDateHelpers';
 
 export type OffentligYdelseCoreColumn = Readonly<{
   typeKey: string;
@@ -22,23 +23,6 @@ export const parseOffentligDato = (value: string | undefined): ISODateString | u
   const parsed = parseDanishDate(trimmed);
   if (!parsed) return undefined;
   return dateToISO(parsed);
-};
-
-const getIsoRange = (
-  fra: ISODateString | undefined,
-  til: ISODateString | undefined
-): Readonly<{ fra: ISODateString; til: ISODateString }> | undefined => {
-  if (!fra || !til) return undefined;
-  if (fra > til) return undefined;
-  return { fra, til };
-};
-
-const iterateDatesInclusive = (start: Date, end: Date, onDate: (date: Date) => void): void => {
-  const current = new Date(start.getTime());
-  while (current <= end) {
-    onDate(current);
-    current.setUTCDate(current.getUTCDate() + 1);
-  }
 };
 
 const isWithinIntegrityTolerance = (actual: number, expected: number, tolerance: number): boolean => {
@@ -131,7 +115,7 @@ export const buildOffentligeYdelserColumns = (args: {
 
     const fraISO = parseOffentligDato(row.fraDato);
     const tilISO = parseOffentligDato(row.tilDato);
-    const range = getIsoRange(fraISO, tilISO);
+    const range = validateIsoRange(fraISO, tilISO);
     if (!range) {
       const hasAnyValue = parseAmount(row.ydelse) + parseAmount(row.tillaeg) !== 0;
       if (hasAnyValue) {

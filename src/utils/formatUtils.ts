@@ -5,6 +5,7 @@
  */
 
 import type { AmountValue } from '../schemas/amountExpressionSchema';
+const SINGULAR_EPSILON = 0.0000001;
 
 /**
  * Parser procent-streng til decimal
@@ -41,6 +42,8 @@ export const roundHalfAwayFromZero = (value: number, precision: number): number 
   const factor = 10 ** precision;
   return Math.sign(value) * Math.round(Math.abs(value) * factor) / factor;
 };
+
+export const isSingularCount = (value: number): boolean => Math.abs(value - 1) < SINGULAR_EPSILON;
 
 /**
  * Formaterer tal til dansk valuta-format

@@ -16,6 +16,11 @@ export type AarsloenRowDerived = {
   samlet: number;
 };
 
+export const roundAarsloenAmountToTwoDecimals = (value: number): number => {
+  if (!Number.isFinite(value)) return 0;
+  return Math.round(value * 100) / 100;
+};
+
 export const isAarsloenTableCellEffectivelyEmpty = (value: unknown): boolean => {
   if (value === undefined || value === null) return true;
   if (typeof value !== 'string') return false;

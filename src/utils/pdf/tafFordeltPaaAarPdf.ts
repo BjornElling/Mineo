@@ -7,33 +7,25 @@
  */
 
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
-import type { MoneyOre } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { buildErstatningsopgoerelsePdfModel } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { buildTafPerYearResult } from '../../domain/erstatningsopgoerelse/tafPerYearDerived';
-import { formatCurrency } from '../formatUtils';
 import { createPdfWriter, ensureNonBreakingKr } from './pdfWriter';
 import { FONT_SIZES } from './pdfConfig';
 import type { BrevhovedData } from './pdfHelpers';
 import { TODAY } from '../../config/dateRanges';
 import type jsPDF from 'jspdf';
-import { formatCountWithUnit, formatMaanederTrimmed, isSingularCount, resolvePdfFileName } from './sharedPdfUtils';
+import {
+  formatCountWithUnit,
+  formatCurrencyFromOre,
+  formatMaanederTrimmed,
+  formatMoneyOreWithKr,
+  formatPercentDelta,
+  isSingularCount,
+  resolvePdfFileName,
+} from './sharedPdfUtils';
 
 const NBSP = '\u00A0';
 const FILE_BASE_NAME = 'Tabt arbejdsfortjeneste fordelt på år';
-
-const formatCurrencyFromOre = (ore: MoneyOre): string => {
-  if (!Number.isFinite(ore)) return '-';
-  return formatCurrency(ore / 100);
-};
-
-const formatMoneyOreWithKr = (ore: MoneyOre): string => `${formatCurrencyFromOre(ore)}${NBSP}kr.`;
-
-const formatPercentDelta = (value: number): string => {
-  if (!Number.isFinite(value)) return '-';
-  const abs = Math.abs(value);
-  const rounded = Math.round(abs * 100) / 100;
-  return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-};
 
 // NOTE: Årsbeløb må være negative; PDF viser de beregnede værdier direkte.
 

@@ -14,9 +14,9 @@ import type {
 } from '../../types/common';
 import type { DebugDay, SvieSmerte } from './eoDebugTypes';
 import { getIsoRange, minDate, maxDate } from './eoDebugDateUtils';
-import { beregnHelligdage } from '../../utils/shDageBeregning';
 import { subtractOneDay, toISODateString } from '../../types/branded';
 import { clampTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
+import { buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/tafDaySets';
 
 /**
  * Input til debug core model
@@ -127,42 +127,6 @@ const extractDateSources = (
   if (!start || !end) return undefined;
 
   return { start, end };
-};
-
-/**
- * Byg Set af søgnehelligdage (ISO format) for relevante år
- */
-const buildSognehelligdageSet = (
-  startIso: ISODateString,
-  endIso: ISODateString
-): ReadonlySet<ISODateString> => {
-  const [startYear] = startIso.split('-').map(Number);
-  const [endYear] = endIso.split('-').map(Number);
-
-  const shSet = new Set<ISODateString>();
-
-  for (let year = startYear; year <= endYear; year++) {
-    const helligdage = beregnHelligdage(year);
-
-    for (const helligdag of helligdage) {
-      // Kun hverdage (mandag-fredag)
-      const dayOfWeek = helligdag.getUTCDay();
-      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-        const isoStr = `${helligdag.getUTCFullYear()}-${String(
-          helligdag.getUTCMonth() + 1
-        ).padStart(2, '0')}-${String(helligdag.getUTCDate()).padStart(2, '0')}`;
-
-        try {
-          const iso = toISODateString(isoStr);
-          shSet.add(iso);
-        } catch {
-          // Ignorer ugyldige datoer
-        }
-      }
-    }
-  }
-
-  return shSet;
 };
 
 /**
@@ -281,7 +245,7 @@ export function buildDebugCoreModel(input: DebugModelInput): readonly DebugDay[]
   const { start, end } = dateRange;
 
   // Byg søgnehelligdage-set
-  const sognehelligdageSet = buildSognehelligdageSet(start, end);
+  const sognehelligdageSet = buildShDageSetFromIsoRange(start, end);
 
   // Byg TAF-periode map
   const tafPerioder = input.erstatningsopgoerelseValues.tafPerioder ?? [];
