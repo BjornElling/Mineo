@@ -1059,6 +1059,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
         );
         const loenudviklingBaseDate = getLoenudviklingBaseDate(af);
         const anciennitetSatsPerTekst = af.anciennitetstillaegSatsAngivesPer === 'Time' ? 'time' : 'måned';
+        const showAnciennitetstillaegSection = loenudviklingBasis === 'Overenskomst' && Boolean(af.overenskomstId?.trim());
         const shouldShowReguleringsDatoInterval =
           loenudviklingBasis === 'Overenskomst' ||
           (loenudviklingBasis === 'Statistik' && Boolean(af.loenudviklingStatistikModel)) ||
@@ -1651,57 +1652,61 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
               </>
             ) : null}
 
-            <Typography className="row--subheading">Anciennitetstillæg</Typography>
-
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Ville skadelidte have opnået anciennitetstillæg efter skadesdatoen</Typography>
-              <Box className="row--label-right-hover__content">
-                <StyledToggleSwitch
-                  checked={af.harAnciennitetstillaegEfterSkadesdatoen}
-                  onCommit={handleToggleChange(af.id, 'harAnciennitetstillaegEfterSkadesdatoen')}
-                />
-              </Box>
-            </Box>
-
-            {af.harAnciennitetstillaegEfterSkadesdatoen ? (
+            {showAnciennitetstillaegSection ? (
               <>
+                <Typography className="row--subheading">Anciennitetstillæg</Typography>
+
                 <Box className="row--label-right-hover">
-                  <Typography className="row--text">Dato for opnået anciennitetstillæg</Typography>
+                  <Typography className="row--text">Ville skadelidte have opnået anciennitetstillæg efter skadesdatoen</Typography>
                   <Box className="row--label-right-hover__content">
-                    <StyledDateField
-                      value={af.anciennitetstillaegDato}
-                      minDate={stamdataValues?.skadesdato}
-                      onCommit={handleAnciennitetstillaegDatoCommit(af.id)}
+                    <StyledToggleSwitch
+                      checked={af.harAnciennitetstillaegEfterSkadesdatoen}
+                      onCommit={handleToggleChange(af.id, 'harAnciennitetstillaegEfterSkadesdatoen')}
                     />
                   </Box>
                 </Box>
 
-                <Box className="row--label-right-hover">
-                  <Typography className="row--text">Satsen angives per</Typography>
-                  <Box className="row--label-right-hover__content">
-                    <StyledDropdown
-                      width={160}
-                      value={af.anciennitetstillaegSatsAngivesPer}
-                      onChange={handleAnciennitetstillaegSatsAngivesPerChange(af.id)}
-                      allowEmpty={false}
-                    >
-                      <MenuItem value="Time">Time</MenuItem>
-                      <MenuItem value="Måned">Måned</MenuItem>
-                    </StyledDropdown>
-                  </Box>
-                </Box>
+                {af.harAnciennitetstillaegEfterSkadesdatoen ? (
+                  <>
+                    <Box className="row--label-right-hover">
+                      <Typography className="row--text">Dato for opnået anciennitetstillæg</Typography>
+                      <Box className="row--label-right-hover__content">
+                        <StyledDateField
+                          value={af.anciennitetstillaegDato}
+                          minDate={stamdataValues?.skadesdato}
+                          onCommit={handleAnciennitetstillaegDatoCommit(af.id)}
+                        />
+                      </Box>
+                    </Box>
 
-                <Box className="row--label-right-hover">
-                  <Typography className="row--text">{`Sats per ${anciennitetSatsPerTekst}`}</Typography>
-                  <Box className="row--label-right-hover__content">
-                    <StyledAmountField
-                      width={160}
-                      value={af.anciennitetstillaegSats}
-                      allowNegative={false}
-                      onCommit={handleAnciennitetstillaegSatsCommit(af.id)}
-                    />
-                  </Box>
-                </Box>
+                    <Box className="row--label-right-hover">
+                      <Typography className="row--text">Satsen angives per</Typography>
+                      <Box className="row--label-right-hover__content">
+                        <StyledDropdown
+                          width={160}
+                          value={af.anciennitetstillaegSatsAngivesPer}
+                          onChange={handleAnciennitetstillaegSatsAngivesPerChange(af.id)}
+                          allowEmpty={false}
+                        >
+                          <MenuItem value="Time">Time</MenuItem>
+                          <MenuItem value="Måned">Måned</MenuItem>
+                        </StyledDropdown>
+                      </Box>
+                    </Box>
+
+                    <Box className="row--label-right-hover">
+                      <Typography className="row--text">{`Sats per ${anciennitetSatsPerTekst}`}</Typography>
+                      <Box className="row--label-right-hover__content">
+                        <StyledAmountField
+                          width={160}
+                          value={af.anciennitetstillaegSats}
+                          allowNegative={false}
+                          onCommit={handleAnciennitetstillaegSatsCommit(af.id)}
+                        />
+                      </Box>
+                    </Box>
+                  </>
+                ) : null}
               </>
             ) : null}
 

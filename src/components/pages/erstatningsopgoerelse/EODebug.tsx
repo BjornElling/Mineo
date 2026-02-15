@@ -11,6 +11,7 @@ import { aarsloenMax } from '../../../data/regulationRates';
 import {
   getEffektiveSatserForDato,
   getEffektiveSatserForPeriode,
+  getGrundloenAngivetPerForOverenskomst,
   getOverenskomst,
   getOverenskomstMetaById,
   getOffentligOverenskomstTypeById,
@@ -202,6 +203,14 @@ const formatPercentFixed2 = (value: number): string => {
 };
 
 const formatIndexValue = (value: number): string => {
+  return value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+const roundToTwoDecimals = (value: number): number => {
+  return Math.round(value * 100) / 100;
+};
+
+const formatAmountTwoDecimals = (value: number): string => {
   return value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
@@ -638,6 +647,7 @@ const EODebug = () => {
     const allowIncompleteOverenskomst = settings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
     const overenskomstUdloebMaanederGraense = settings.allowReguleringMedUdloebMedMaaneder;
 
+    const tafBeregnesSom = computeTafBeregningsenhed(erstatningsopgoerelseValues);
     const loenudviklingsKilde = resolveLoenudviklingKilde(erstatningsopgoerelseValues);
 
     return loenudviklingsKilde.map((af, index) => {
@@ -881,6 +891,88 @@ const EODebug = () => {
         return {
           display: `Nej (kun indtil ${formatIsoValue(reguleringsRange.max)})`,
           status: allowIncompleteOverenskomst ? 'warning' as DebugStatus : 'error' as DebugStatus,
+        };
+      })();
+
+      const showAnciennitetRows = loenudviklingBasis === 'Overenskomst' && Boolean(af.overenskomstId?.trim());
+
+      const anciennitetToggleRow = showAnciennitetRows
+        ? {
+            id: 'regulering.anciennitet.optjent',
+            label: 'Ville have optjent anciennitetstillæg efter skadesdato',
+            displayValue: af.harAnciennitetstillaegEfterSkadesdatoen ? 'Ja' : 'Nej',
+            status: 'ok' as DebugStatus,
+          }
+        : null;
+
+      const anciennitetBeregningRow = (() => {
+        if (!showAnciennitetRows) return null;
+        if (!af.harAnciennitetstillaegEfterSkadesdatoen) {
+          return {
+            id: 'regulering.anciennitet.beregning',
+            label: 'Beregnet anciennitetstillæg',
+            displayValue: '-',
+            status: 'ok' as DebugStatus,
+          };
+        }
+
+        const grundloenAngivetPer = af.overenskomstId
+          ? getGrundloenAngivetPerForOverenskomst(af.overenskomstId, tafBeregnesSom)
+          : undefined;
+        const satsPer = af.anciennitetstillaegSatsAngivesPer;
+        const dato = af.anciennitetstillaegDato;
+        const satsValue = af.anciennitetstillaegSats?.value;
+        const hasValidSatsValue = typeof satsValue === 'number' && Number.isFinite(satsValue) && satsValue > 0;
+        const hasValidSatsPer = satsPer === 'Måned' || satsPer === 'Time';
+        const hasValidDato = Boolean(dato);
+
+        if (!grundloenAngivetPer || !hasValidSatsPer || !hasValidDato || !hasValidSatsValue) {
+          return {
+            id: 'regulering.anciennitet.beregning',
+            label: 'Beregnet anciennitetstillæg',
+            displayValue: 'Indtastning mangler',
+            status: 'error' as DebugStatus,
+          };
+        }
+
+        const inputAmount = roundToTwoDecimals(satsValue);
+        const inputAmountDisplay = formatAmountTwoDecimals(inputAmount);
+        const datoDisplay = formatIsoValue(dato);
+
+        if (grundloenAngivetPer === 'Måned' && satsPer === 'Måned') {
+          return {
+            id: 'regulering.anciennitet.beregning',
+            label: 'Angivet anciennitetstillæg',
+            displayValue: `${inputAmountDisplay} kr./måned fra ${datoDisplay}`,
+            status: 'ok' as DebugStatus,
+          };
+        }
+
+        if (grundloenAngivetPer === 'Måned' && satsPer === 'Time') {
+          const converted = roundToTwoDecimals(inputAmount * 160.33);
+          return {
+            id: 'regulering.anciennitet.beregning',
+            label: `Beregnet anciennitetstillæg (${inputAmountDisplay} kr./time x 160,33)`,
+            displayValue: `${formatAmountTwoDecimals(converted)} kr./måned fra ${datoDisplay}`,
+            status: 'ok' as DebugStatus,
+          };
+        }
+
+        if (grundloenAngivetPer === 'Time' && satsPer === 'Måned') {
+          const converted = roundToTwoDecimals(inputAmount / 160.33);
+          return {
+            id: 'regulering.anciennitet.beregning',
+            label: `Beregnet anciennitetstillæg (${inputAmountDisplay} kr./måned / 160,33)`,
+            displayValue: `${formatAmountTwoDecimals(converted)} kr./time fra ${datoDisplay}`,
+            status: 'ok' as DebugStatus,
+          };
+        }
+
+        return {
+          id: 'regulering.anciennitet.beregning',
+          label: 'Angivet anciennitetstillæg',
+          displayValue: `${inputAmountDisplay} kr./time fra ${datoDisplay}`,
+          status: 'ok' as DebugStatus,
         };
       })();
 
@@ -1949,7 +2041,9 @@ const EODebug = () => {
               label: 'Reguleringsværdi på slut-dato',
               displayValue: endDateRow.display,
               status: endDateRow.status,
-            }
+            },
+            ...(anciennitetToggleRow ? [anciennitetToggleRow] : []),
+            ...(anciennitetBeregningRow ? [anciennitetBeregningRow] : [])
           );
         }
       }
@@ -1973,6 +2067,8 @@ const EODebug = () => {
     settings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden,
     settings.allowReguleringMedUdloebMedMaaneder,
     erstatningsopgoerelseValues.beregnesUdFra,
+    erstatningsopgoerelseValues.periodeTilBeregningFra,
+    erstatningsopgoerelseValues.periodeTilBeregningTil,
     erstatningsopgoerelseValues.angivetMaanedsloenOpreguleresFraDato,
     erstatningsopgoerelseValues.angivetDagsloenOpreguleresFraDato,
   ]);

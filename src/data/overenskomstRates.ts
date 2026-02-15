@@ -76,6 +76,7 @@ export interface OverenskomstMeta {
   readonly navn: string;
   readonly loenmodtagerOrg: ReadonlyArray<string>;  // Kan have flere parter
   readonly arbejdsgiverOrg: ReadonlyArray<string>;  // Kan have flere parter
+  readonly grundloenAngivetPer: GrundloenAngivetPer;
 }
 
 /**
@@ -91,6 +92,8 @@ export type ReguleringsDatoInterval = Readonly<{
   fraDato: DanishDateString;
   tilDato: DanishDateString;
 }>;
+
+export type GrundloenAngivetPer = 'Time' | 'Måned';
 
 type OffentligOverenskomstMeta = OverenskomstMeta & Readonly<{
   offentligType: OffentligOverenskomstType;
@@ -205,14 +208,16 @@ const offentligeOverenskomster: ReadonlyArray<OffentligOverenskomstMeta> = [
     navn: 'KL-overenskomsten',
     loenmodtagerOrg: ['Forhandlingsfællesskabet'],
     arbejdsgiverOrg: ['KL'],
-  },
+    grundloenAngivetPer: 'Time',
+    },
   {
     offentligType: 'RLTN',
     id: toOverenskomstId('rltn-overenskomst'),
     navn: 'RLTN-overenskomsten',
     loenmodtagerOrg: ['Forhandlingsfællesskabet'],
     arbejdsgiverOrg: ['RLTN'],
-  },
+    grundloenAngivetPer: 'Time',
+    },
 ];
 
 export const overenskomster: ReadonlyArray<Overenskomst> = [
@@ -223,6 +228,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       navn:             'Bygge-/anlægsoverenskomsten',
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri', 'Dansk Byggeri'],
+      grundloenAngivetPer: 'Time',
     },
     shDageAlmindeligLoenRegel: { shSoDelta: -0.059 },
     satser: satserFromTable(
@@ -259,6 +265,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       navn:             'Bygningsoverenskomsten',
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri', 'Dansk Byggeri'],
+      grundloenAngivetPer: 'Time',
     },
     shDageAlmindeligLoenRegel: { shSoDelta: -0.059 },
     satser: satserFromTable(
@@ -295,6 +302,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       navn:             'Mureroverenskomsten',
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri', 'Dansk Byggeri'],
+      grundloenAngivetPer: 'Time',
     },
     shDageAlmindeligLoenRegel: { shSoDelta: -0.059 },
     satser: satserFromTable(
@@ -331,6 +339,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       navn:             'Transportoverenskomsten (ATL)',
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri'],
+      grundloenAngivetPer: 'Time',
     },
     satser: satserFromTable(
       { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
@@ -366,6 +375,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       navn:             'Landsoverenskomsten (AKT)',
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri'],
+      grundloenAngivetPer: 'Time',
     },
     satser: satserFromTable(
       { fritvalg: null, sfgg: null, shSoSats: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
@@ -400,6 +410,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       navn:             'Transportoverenskomsten (DTL)',
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['DTL-A'],
+      grundloenAngivetPer: 'Time',
     },
     satser: satserFromTable(
       { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
@@ -435,6 +446,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       navn:             'Fællesoverenskomsten (DIO II)',
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri'],
+      grundloenAngivetPer: 'Time',
     },
     satser: satserFromTable(
       { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
@@ -470,6 +482,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       navn:             'Industriens overenskomst',
       loenmodtagerOrg:  ['CO-Industri'],
       arbejdsgiverOrg:  ['Dansk Industri'],
+      grundloenAngivetPer: 'Time',
     },
     shDageAlmindeligLoenRegel: { fritvalgDelta: -0.04 },
     satser: satserFromTable(
@@ -505,6 +518,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       navn:             'Postoverenskomsten',
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Postnord'],
+      grundloenAngivetPer: 'Time',
     },
     shDageAlmindeligLoenRegel: { shSoOverride: 0 },
     satser: satserFromTable(
@@ -536,6 +550,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       navn:             'Glasoverenskomsten',
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Glarmesterlauget' ],
+      grundloenAngivetPer: 'Time',
     },
     satser: satserFromTable(
       { fritvalg: null, sfgg: null },
@@ -571,6 +586,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       navn:             'Industri-, træ- og møbeloverenskomsten',
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri'],
+      grundloenAngivetPer: 'Time',
     },
     shDageAlmindeligLoenRegel: { shSoDelta: -0.049 },
     satser: satserFromTable(
@@ -606,6 +622,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       navn:             'HORESTA-overenskomsten',
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Horesta'],
+      grundloenAngivetPer: 'Time',
     },
     satser: satserFromTable(
       { fritvalg: null, shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
@@ -640,6 +657,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       navn:             'Serviceoverenskomsten (SBA)',
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri'],
+      grundloenAngivetPer: 'Time',
     },
     satser: satserFromTable(
       { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
@@ -674,6 +692,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       navn:             'Mejeribranchens Fællesoverenskomst',
       loenmodtagerOrg:  ['NNF', '3F'],
       arbejdsgiverOrg:  ['Dansk Industri'],
+      grundloenAngivetPer: 'Time',
     },
     satser: satserFromTable(
       { fritvalg: null, sfgg: null, shSoSats: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
@@ -769,6 +788,21 @@ export const getOverenskomstMetaById = (id: string): OverenskomstMeta | undefine
   const ref = resolveOverenskomstRefFromString(id);
   if (!ref) return undefined;
   return overenskomstMetaById.get(ref.baseId);
+};
+
+export const getGrundloenAngivetPerForOverenskomst = (
+  rawId: string,
+  tafBeregnesSom?: 'Måneder' | 'Arbejdsdage'
+): GrundloenAngivetPer | undefined => {
+  const meta = getOverenskomstMetaById(rawId);
+  if (!meta) return undefined;
+
+  const offentligType = getOffentligOverenskomstTypeById(rawId);
+  if ((offentligType === 'KL' || offentligType === 'RLTN') && tafBeregnesSom) {
+    return tafBeregnesSom === 'Måneder' ? 'Måned' : 'Time';
+  }
+
+  return meta.grundloenAngivetPer;
 };
 
 /**
