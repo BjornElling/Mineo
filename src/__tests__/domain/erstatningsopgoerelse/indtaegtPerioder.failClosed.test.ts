@@ -1,7 +1,7 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
+import { buildIncomeCalculationContext, buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);
@@ -233,9 +233,11 @@ describe('buildIncomeForRanges fail-closed', () => {
       },
     ];
 
-    const fullRangeIncome = buildIncomeForRanges(values, [{ fra: iso('2024-12-23'), til: iso('2025-01-10') }]);
-    const year2024Income = buildIncomeForRanges(values, [{ fra: iso('2024-12-23'), til: iso('2024-12-31') }]);
-    const year2025Income = buildIncomeForRanges(values, [{ fra: iso('2025-01-01'), til: iso('2025-01-10') }]);
+    const fullRange = [{ fra: iso('2024-12-23'), til: iso('2025-01-10') }] as const;
+    const context = buildIncomeCalculationContext(values, fullRange);
+    const fullRangeIncome = buildIncomeForRanges(values, fullRange, context);
+    const year2024Income = buildIncomeForRanges(values, [{ fra: iso('2024-12-23'), til: iso('2024-12-31') }], context);
+    const year2025Income = buildIncomeForRanges(values, [{ fra: iso('2025-01-01'), til: iso('2025-01-10') }], context);
 
     const fullAmount = fullRangeIncome.benefits[0]?.amount ?? 0;
     const splitAmount = (year2024Income.benefits[0]?.amount ?? 0) + (year2025Income.benefits[0]?.amount ?? 0);

@@ -54,6 +54,14 @@ export type IncomePeriodResult = Readonly<{
   benefits: readonly IncomeBenefitAmount[];
 }>;
 
+export type IncomeCalculationContext = Readonly<{
+  boundsFra: ISODateString;
+  boundsTil: ISODateString;
+  arbejdsdageSet: ReadonlySet<ISODateString>;
+  shDaysForYdelser: ReadonlySet<ISODateString>;
+  loenErrorRowIdsByEmploymentId: ReadonlyMap<string, ReadonlySet<string>>;
+}>;
+
 type RowEligibility = 'empty' | 'invalid' | 'valid';
 
 const toUtcDay = (date: Date): Date => {
@@ -173,27 +181,10 @@ export const buildBeregningsperiodeRange = (
   return getIsoRange(values.periodeTilBeregningFra, values.periodeTilBeregningTil);
 };
 
-export const buildIncomeForRanges = (
+const resolveIncomeBounds = (
   values: ErstatningsopgoerelseValues,
-  rawRanges: readonly IsoRange[]
-): IncomePeriodResult => {
-  const ranges = mergeIsoDateRanges(rawRanges, { mergeAdjacent: true });
-  if (ranges.length === 0) return { employers: [], benefits: [] };
-  const areRangesDisjoint = ranges.every((range, index) => {
-    if (index === 0) return true;
-    const previousRange = ranges[index - 1];
-    return previousRange ? previousRange.til < range.fra : true;
-  });
-  if (!areRangesDisjoint) {
-    // NOTE: Fail-closed by design.
-    // Uventede overlappende ranges må ikke kunne give dobbelttælling.
-    if (import.meta.env.DEV) {
-      console.warn('Indkomstberegning: overlap i beregnings-ranges; beregning afbrydes fail-closed.');
-    }
-    return { employers: [], benefits: [] };
-  }
-
-  const employers: IncomeEmployerAmount[] = [];
+  ranges: readonly IsoRange[]
+): Readonly<{ boundsFra: ISODateString; boundsTil: ISODateString } | null> => {
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
   const allLoenIntervals: DateInterval[] = [];
   ansaettelser.forEach((af) => {
@@ -209,6 +200,7 @@ export const buildIncomeForRanges = (
     if (!interval) return;
     allOffentligIntervals.push(interval);
   });
+
   const rangeBoundFra = ranges.reduce<ISODateString | undefined>((acc, range) => (acc ? (acc < range.fra ? acc : range.fra) : range.fra), undefined);
   const rangeBoundTil = ranges.reduce<ISODateString | undefined>((acc, range) => (acc ? (acc > range.til ? acc : range.til) : range.til), undefined);
   const intervalBoundFra = allLoenIntervals.reduce<ISODateString | undefined>((acc, interval) => {
@@ -231,32 +223,92 @@ export const buildIncomeForRanges = (
     if (!iso) return acc;
     return acc ? (acc > iso ? acc : iso) : iso;
   }, undefined);
-  const boundsFraCandidates = [rangeBoundFra, intervalBoundFra, values.periodeTilBeregningFra].filter(
+
+  const boundsFraCandidates = [rangeBoundFra, intervalBoundFra, offentligIntervalBoundFra, values.periodeTilBeregningFra].filter(
     (value): value is ISODateString => isISODateString(value)
   );
   const boundsTilCandidates = [rangeBoundTil, intervalBoundTil, offentligIntervalBoundTil, values.periodeTilBeregningTil].filter(
     (value): value is ISODateString => isISODateString(value)
   );
-  if (offentligIntervalBoundFra) {
-    boundsFraCandidates.push(offentligIntervalBoundFra);
-  }
   const boundsFra = boundsFraCandidates.reduce<ISODateString | undefined>((acc, iso) => (acc ? (acc < iso ? acc : iso) : iso), undefined);
   const boundsTil = boundsTilCandidates.reduce<ISODateString | undefined>((acc, iso) => (acc ? (acc > iso ? acc : iso) : iso), undefined);
+  if (!boundsFra || !boundsTil || boundsFra > boundsTil) return null;
+  return { boundsFra, boundsTil };
+};
+
+const areRangesWithinBounds = (
+  ranges: readonly IsoRange[],
+  boundsFra: ISODateString,
+  boundsTil: ISODateString
+): boolean => ranges.every((range) => range.fra >= boundsFra && range.til <= boundsTil);
+
+export const buildIncomeCalculationContext = (
+  values: ErstatningsopgoerelseValues,
+  rawRanges: readonly IsoRange[]
+): IncomeCalculationContext | null => {
+  const ranges = mergeIsoDateRanges(rawRanges, { mergeAdjacent: true });
+  if (ranges.length === 0) return null;
+  const bounds = resolveIncomeBounds(values, ranges);
+  if (!bounds) return null;
+
   const beregningsenhed = computeTafBeregningsenhed(values);
   const arbejdsdageSet =
-    boundsFra && boundsTil && boundsFra <= boundsTil
+    beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
       ? buildLoenArbejdsdageSet(
-        { fra: boundsFra, til: boundsTil },
+        { fra: bounds.boundsFra, til: bounds.boundsTil },
         [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])]
       )
       : new Set<ISODateString>();
-  const shDaysForYdelser =
-    boundsFra && boundsTil && boundsFra <= boundsTil
-      ? buildShDageSet(boundsFra, boundsTil)
-      : new Set<ISODateString>();
+  const shDaysForYdelser = buildShDageSet(bounds.boundsFra, bounds.boundsTil);
+  const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
   const loenErrorRowIdsByEmploymentId = new Map<string, ReadonlySet<string>>(
     ansaettelser.map((af) => [af.id, getAarsloenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)])
   );
+
+  return {
+    boundsFra: bounds.boundsFra,
+    boundsTil: bounds.boundsTil,
+    arbejdsdageSet,
+    shDaysForYdelser,
+    loenErrorRowIdsByEmploymentId,
+  };
+};
+
+export const buildIncomeForRanges = (
+  values: ErstatningsopgoerelseValues,
+  rawRanges: readonly IsoRange[],
+  context?: IncomeCalculationContext | null
+): IncomePeriodResult => {
+  const ranges = mergeIsoDateRanges(rawRanges, { mergeAdjacent: true });
+  if (ranges.length === 0) return { employers: [], benefits: [] };
+  const areRangesDisjoint = ranges.every((range, index) => {
+    if (index === 0) return true;
+    const previousRange = ranges[index - 1];
+    return previousRange ? previousRange.til < range.fra : true;
+  });
+  if (!areRangesDisjoint) {
+    // NOTE: Fail-closed by design.
+    // Uventede overlappende ranges må ikke kunne give dobbelttælling.
+    if (import.meta.env.DEV) {
+      console.warn('Indkomstberegning: overlap i beregnings-ranges; beregning afbrydes fail-closed.');
+    }
+    return { employers: [], benefits: [] };
+  }
+  const beregningsenhed = computeTafBeregningsenhed(values);
+  const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
+  const resolvedContext = (
+    context
+      && areRangesWithinBounds(ranges, context.boundsFra, context.boundsTil)
+      ? context
+      : buildIncomeCalculationContext(values, ranges)
+  );
+  const arbejdsdageSet = resolvedContext?.arbejdsdageSet ?? new Set<ISODateString>();
+  const shDaysForYdelser = resolvedContext?.shDaysForYdelser ?? new Set<ISODateString>();
+  const loenErrorRowIdsByEmploymentId = resolvedContext?.loenErrorRowIdsByEmploymentId
+    ?? new Map<string, ReadonlySet<string>>(
+      ansaettelser.map((af) => [af.id, getAarsloenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)])
+    );
+  const employers: IncomeEmployerAmount[] = [];
 
   for (let index = 0; index < ansaettelser.length; index += 1) {
     const af = ansaettelser[index];

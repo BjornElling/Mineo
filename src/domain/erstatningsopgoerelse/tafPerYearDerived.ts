@@ -27,7 +27,7 @@ import {
   toOre,
 } from './eoPdfModel';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
-import { buildTafRanges, buildIncomeForRanges } from './indtaegtPerioder';
+import { buildTafRanges, buildIncomeCalculationContext, buildIncomeForRanges } from './indtaegtPerioder';
 import { TAF_BEREGNES_SOM } from './tafBeregningsenhed';
 
 /**
@@ -199,6 +199,7 @@ export const buildTafPerYearResult = (
 
   // 2. Byg TAF-ranges og bestem alle relevante årstal
   const tafRanges = buildTafRanges(eoValues);
+  const incomeContext = buildIncomeCalculationContext(eoValues, tafRanges);
 
   // Samler årstal fra segmenter OG TAF-ranges (fradrag kan dække år uden segmenter)
   const allYearsSet = new Set<number>(yearSegmentsMap.keys());
@@ -231,7 +232,7 @@ export const buildTafPerYearResult = (
       return [{ fra: clippedFra, til: clippedTil }];
     });
 
-    const income = buildIncomeForRanges(eoValues, yearClippedRanges);
+    const income = buildIncomeForRanges(eoValues, yearClippedRanges, incomeContext);
 
     // Konvertér fradrag til øre – stabil rækkefølge (employers først, derefter benefits)
     const deductions: TafYearDeduction[] = [];
