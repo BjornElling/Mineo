@@ -1099,7 +1099,7 @@ const buildReguleringIndexRows = (params: Readonly<{
           const original = buildFormulaText(components, visibility);
           const suffixIndex = original.indexOf(' x ');
           const suffix = suffixIndex >= 0 ? original.slice(suffixIndex) : '';
-          return `(${formatCurrency(components.baseValue)}+${anciennitetForIndex.supplementValue.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})${suffix}`;
+          return `(${formatCurrency(components.baseValue)}+${formatCurrency(anciennitetForIndex.supplementValue)})${suffix}`;
         })();
         const valueRaw = (() => {
           if (!anciennitetAktiv || !anciennitetForIndex) return computeFormulaValue(components);
@@ -1208,7 +1208,7 @@ const buildReguleringIndexRows = (params: Readonly<{
             const original = buildFormulaText(components, visibility);
             const suffixIndex = original.indexOf(' x ');
             const suffix = suffixIndex >= 0 ? original.slice(suffixIndex) : '';
-            return `(${formatCurrency(components.baseValue)}+${anciennitetForIndex.supplementValue.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})${suffix}`;
+            return `(${formatCurrency(components.baseValue)}+${formatCurrency(anciennitetForIndex.supplementValue)})${suffix}`;
           })();
           const valueRaw = (() => {
             if (!anciennitetAktiv || !anciennitetForIndex) return computeFormulaValue(components);
