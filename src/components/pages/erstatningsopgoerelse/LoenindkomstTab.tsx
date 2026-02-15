@@ -875,7 +875,8 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     if (!meta) return overenskomstId;
     const loenPart = meta.loenmodtagerOrg[0] || '';
     const arbPart = meta.arbejdsgiverOrg[0] || '';
-    return `${meta.navn} (${loenPart} / ${arbPart})`;
+    const sporLabel = isOffentligOverenskomstId(overenskomstId) ? 'Offentlig' : 'Privat';
+    return `${meta.navn} (${loenPart} / ${arbPart}) - ${sporLabel}`;
   }, []);
 
   const [addTargetId, setAddTargetId] = React.useState<string | null>(null);
@@ -1674,6 +1675,10 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                         <StyledDateField
                           value={af.anciennitetstillaegDato}
                           minDate={stamdataValues?.skadesdato}
+                          specialRangeErrors={{
+                            minBoundKind: stamdataValues?.skadesdato ? 'skadesdato' : undefined,
+                            minBoundReferenceISO: stamdataValues?.skadesdato,
+                          }}
                           onCommit={handleAnciennitetstillaegDatoCommit(af.id)}
                         />
                       </Box>

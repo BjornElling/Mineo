@@ -666,7 +666,8 @@ const EODebug = () => {
           if (!meta) return { display: af.overenskomstId, ok: true };
           const loenPart = meta.loenmodtagerOrg[0] || '';
           const arbPart = meta.arbejdsgiverOrg[0] || '';
-          return { display: `${meta.navn} (${loenPart} / ${arbPart})`, ok: true };
+          const sporLabel = getOffentligOverenskomstTypeById(af.overenskomstId) ? 'Offentlig' : 'Privat';
+          return { display: `${meta.navn} (${loenPart} / ${arbPart}) - ${sporLabel}`, ok: true };
         }
         if (loenudviklingBasis === 'Statistik') {
           if (!af.loenudviklingStatistikModel) return { display: 'Nej', ok: false };
@@ -1179,6 +1180,52 @@ const EODebug = () => {
 
         const applyAlmindeligLoenPaaShDageRegel = af.loenPaaHelligdage === loenPaaHelligdageSchema.enum['Almindelig løn']
 
+        const anciennitetForIndex = (() => {
+          if (loenudviklingBasis !== 'Overenskomst') return null;
+          if (!af.overenskomstId || !af.harAnciennitetstillaegEfterSkadesdatoen) return null;
+          const anciennitetDato = af.anciennitetstillaegDato;
+          const satsValue = af.anciennitetstillaegSats?.value;
+          if (!anciennitetDato || typeof satsValue !== 'number' || !Number.isFinite(satsValue) || satsValue <= 0) {
+            return null;
+          }
+          const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(af.overenskomstId, tafBeregnesSom);
+          if (!grundloenAngivetPer) return null;
+
+          const satsPer = af.anciennitetstillaegSatsAngivesPer;
+          const supplementValue = (() => {
+            if (grundloenAngivetPer === 'Måned') {
+              return satsPer === 'Måned' ? satsValue : satsValue * 160.33;
+            }
+            return satsPer === 'Måned' ? satsValue / 160.33 : satsValue;
+          })();
+
+          const roundedSupplementValue = roundToTwoDecimals(supplementValue);
+          if (roundedSupplementValue <= 0) return null;
+          if (anciennitetDato > tafEndIso) return null;
+          const activeFromIso = anciennitetDato < tafStartIso ? tafStartIso : anciennitetDato;
+          return {
+            activeFromIso,
+            supplementValue: roundedSupplementValue,
+          };
+        })();
+
+        const insertBoundaryStart = (
+          periodStarts: Array<{ startIso: ISODateString; components: FormulaComponents }>,
+          boundaryIso: ISODateString
+        ): void => {
+          if (boundaryIso <= tafStartIso || boundaryIso > tafEndIso) return;
+          if (periodStarts.some((period) => period.startIso === boundaryIso)) return;
+          const basePeriod = [...periodStarts]
+            .filter((period) => period.startIso <= boundaryIso)
+            .sort((a, b) => (a.startIso < b.startIso ? 1 : -1))[0];
+          if (!basePeriod) return;
+          periodStarts.push({
+            startIso: boundaryIso,
+            components: { ...basePeriod.components },
+          });
+          periodStarts.sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+        };
+
         const periods: ReguleringsPeriode[] = (() => {
           if (loenudviklingBasis === 'Overenskomst') {
             if (!af.overenskomstId) return [];
@@ -1221,6 +1268,10 @@ const EODebug = () => {
                 showPension: false,
                 showStoreBededag: false,
               };
+
+              if (anciennitetForIndex) {
+                insertBoundaryStart(periodStarts, anciennitetForIndex.activeFromIso);
+              }
 
               return periodStarts.map((period, index) => ({
                 ...period,
@@ -1292,6 +1343,10 @@ const EODebug = () => {
               periodStarts.length = 0;
               periodStarts.push(...updated);
               periodStarts.sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+            }
+
+            if (anciennitetForIndex) {
+              insertBoundaryStart(periodStarts, anciennitetForIndex.activeFromIso);
             }
 
               const visibility: FormulaVisibility = {
@@ -1517,10 +1572,27 @@ const EODebug = () => {
         const basePeriod = findPeriodForDate(periods, tafStartIso);
         const basePeriodComponents = basePeriod?.components ?? baseComponents;
         const basePeriodVisibility = basePeriod?.visibility ?? baseVisibility;
-        const basePeriodValueRaw = isSimpleIndex ? basePeriodComponents.baseValue : computeFormulaValue(basePeriodComponents);
-        const basePeriodFormula = isSimpleIndex
-          ? formatStatValue(basePeriodValueRaw)
-          : buildFormulaText(basePeriodComponents, basePeriodVisibility);
+        const baseAnciennitetAktiv = Boolean(anciennitetForIndex && tafStartIso >= anciennitetForIndex.activeFromIso);
+        const basePeriodValueRaw = (() => {
+          if (isSimpleIndex || !baseAnciennitetAktiv || !anciennitetForIndex) {
+            return isSimpleIndex ? basePeriodComponents.baseValue : computeFormulaValue(basePeriodComponents);
+          }
+          const withAnciennitet: FormulaComponents = {
+            ...basePeriodComponents,
+            baseValue: basePeriodComponents.baseValue + anciennitetForIndex.supplementValue,
+          };
+          return computeFormulaValue(withAnciennitet);
+        })();
+        const basePeriodFormula = (() => {
+          if (isSimpleIndex) return formatStatValue(basePeriodValueRaw);
+          if (!baseAnciennitetAktiv || !anciennitetForIndex) {
+            return buildFormulaText(basePeriodComponents, basePeriodVisibility);
+          }
+          const original = buildFormulaText(basePeriodComponents, basePeriodVisibility);
+          const suffixIndex = original.indexOf(' x ');
+          const suffix = suffixIndex >= 0 ? original.slice(suffixIndex) : '';
+          return `(${formatCurrency(basePeriodComponents.baseValue)}+${formatAmountTwoDecimals(anciennitetForIndex.supplementValue)})${suffix}`;
+        })();
 
         // Byg SH-dage og feriedage set for beregning af arbejdsdage
         const eoRange = tafEndIso ? { fra: tafStartIso, til: tafEndIso } : null;
@@ -1576,8 +1648,26 @@ const EODebug = () => {
           if (!hasTafOverlap) continue;
 
           const periodVisibility = period.visibility ?? { showFritvalg: true, showShSo: true, showPension: true, showStoreBededag: false };
-          const valueRaw = isSimpleIndex ? period.components.baseValue : computeFormulaValue(period.components);
-          const formula = buildFormulaText(period.components, periodVisibility);
+          const anciennitetAktiv = Boolean(anciennitetForIndex && period.startIso >= anciennitetForIndex.activeFromIso);
+          const formula = (() => {
+            if (isSimpleIndex || !anciennitetAktiv || !anciennitetForIndex) {
+              return buildFormulaText(period.components, periodVisibility);
+            }
+            const baseFormula = buildFormulaText(period.components, periodVisibility);
+            const suffixIndex = baseFormula.indexOf(' x ');
+            const suffix = suffixIndex >= 0 ? baseFormula.slice(suffixIndex) : '';
+            return `(${formatCurrency(period.components.baseValue)}+${formatAmountTwoDecimals(anciennitetForIndex.supplementValue)})${suffix}`;
+          })();
+          const valueRaw = (() => {
+            if (isSimpleIndex || !anciennitetAktiv || !anciennitetForIndex) {
+              return isSimpleIndex ? period.components.baseValue : computeFormulaValue(period.components);
+            }
+            const withAnciennitet: FormulaComponents = {
+              ...period.components,
+              baseValue: period.components.baseValue + anciennitetForIndex.supplementValue,
+            };
+            return computeFormulaValue(withAnciennitet);
+          })();
           const displayFormula = buildIndexFormulaDisplay(
             isSimpleIndex ? formatStatValue(valueRaw) : formula,
             baseFormula,
@@ -2764,6 +2854,9 @@ const EODebug = () => {
                       <Box sx={{ height: '1px', backgroundColor: 'grey.300', my: 0, mx: '12px' }} />
                     ) : null}
                     {row.id === 'regulering.slutdato' ? (
+                      <Box sx={{ height: '1px', backgroundColor: 'grey.300', my: 0, mx: '12px' }} />
+                    ) : null}
+                    {row.id === 'regulering.anciennitet.optjent' ? (
                       <Box sx={{ height: '1px', backgroundColor: 'grey.300', my: 0, mx: '12px' }} />
                     ) : null}
                     <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>

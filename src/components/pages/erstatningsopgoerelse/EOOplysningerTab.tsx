@@ -1613,15 +1613,17 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                             if (!meta) return asString;
                             const loenPart = meta.loenmodtagerOrg[0] || '';
                             const arbPart = meta.arbejdsgiverOrg[0] || '';
-                            return `${meta.navn} (${loenPart} / ${arbPart})`;
+                            const sporLabel = isOffentligOverenskomstId(asString) ? 'Offentlig' : 'Privat';
+                            return `${meta.navn} (${loenPart} / ${arbPart}) - ${sporLabel}`;
                           }}
                         >
                           {filteredOverenskomster.map((meta) => {
                             const loenPart = meta.loenmodtagerOrg[0] || '';
                             const arbPart = meta.arbejdsgiverOrg[0] || '';
+                            const sporLabel = isOffentligOverenskomstId(meta.id) ? 'Offentlig' : 'Privat';
                             return (
                               <MenuItem key={meta.id} value={meta.id}>
-                                {meta.navn} ({loenPart} / {arbPart})
+                                {meta.navn} ({loenPart} / {arbPart}) - {sporLabel}
                               </MenuItem>
                             );
                           })}
@@ -1773,7 +1775,9 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                                       overenskomstLabel: (() => {
                                         const id = eoLoenudvikling.overenskomstId;
                                         if (!id) return '-';
-                                        return getOverenskomstMetaById(id)?.navn ?? id;
+                                        const meta = getOverenskomstMetaById(id);
+                                        const sporLabel = isOffentligOverenskomstId(id) ? 'Offentlig' : 'Privat';
+                                        return `${meta?.navn ?? id} - ${sporLabel}`;
                                       })(),
                                       loenudviklingBasis,
                                       overenskomstId: eoLoenudvikling.overenskomstId,

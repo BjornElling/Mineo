@@ -1,6 +1,7 @@
 import type { RowInput } from 'jspdf-autotable';
-import { getOffentligOverenskomstTypeById } from '../../../../data/overenskomstRates';
+import { getGrundloenAngivetPerForOverenskomst, getOffentligOverenskomstTypeById } from '../../../../data/overenskomstRates';
 import { resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
+import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import type { ISODateString } from '../../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
@@ -90,6 +91,52 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
   const toSentenceCase = (value: string): string => {
     if (value.length === 0) return value;
     return `${value.charAt(0).toLocaleUpperCase('da-DK')}${value.slice(1)}`;
+  };
+
+  const formatAmount2 = (value: number): string =>
+    value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const roundToTwoDecimals = (value: number): number => Math.round(value * 100) / 100;
+
+  const tafBeregnesSom = computeTafBeregningsenhed(eoValues);
+
+  const resolveAnciennitetValueDisplay = (
+    ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]
+  ): string | null => {
+    if (ansaettelsesforhold.loenudviklingBeregningsgrundlag !== 'Overenskomst') return null;
+    if (!ansaettelsesforhold.harAnciennitetstillaegEfterSkadesdatoen) return null;
+    if (!ansaettelsesforhold.overenskomstId) return null;
+
+    const satsValue = ansaettelsesforhold.anciennitetstillaegSats?.value;
+    if (typeof satsValue !== 'number' || !Number.isFinite(satsValue) || satsValue <= 0) {
+      return 'Indtastning mangler';
+    }
+    const dato = parseOptionalIsoDate(ansaettelsesforhold.anciennitetstillaegDato);
+    if (!dato) return 'Indtastning mangler';
+    const datoDisplay = dato.split('-').reverse().join('-');
+
+    const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(
+      ansaettelsesforhold.overenskomstId,
+      tafBeregnesSom
+    );
+    if (!grundloenAngivetPer) return 'Indtastning mangler';
+
+    const inputPer = ansaettelsesforhold.anciennitetstillaegSatsAngivesPer;
+    const inputAmount = roundToTwoDecimals(satsValue);
+    const inputAmountText = formatAmount2(inputAmount);
+
+    if (grundloenAngivetPer === 'Måned' && inputPer === 'Måned') {
+      return `${inputAmountText} kr./måned fra ${datoDisplay}`;
+    }
+    if (grundloenAngivetPer === 'Måned' && inputPer === 'Time') {
+      const converted = roundToTwoDecimals(inputAmount * 160.33);
+      return `${inputAmountText} kr./time x 160,33 = ${formatAmount2(converted)} kr./måned fra ${datoDisplay}`;
+    }
+    if (grundloenAngivetPer === 'Time' && inputPer === 'Måned') {
+      const converted = roundToTwoDecimals(inputAmount / 160.33);
+      return `${inputAmountText} kr./måned / 160,33 = ${formatAmount2(converted)} kr./time fra ${datoDisplay}`;
+    }
+    return `${inputAmountText} kr./time fra ${datoDisplay}`;
   };
 
   const renderReguleringIndeksTable = (rows: readonly ReguleringIndexRow[]) => {
@@ -194,6 +241,10 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       `${loenSkadesdatoText.charAt(0).toUpperCase()}${loenSkadesdatoText.slice(1)} tillagt efterfølgende lønstigninger`
     );
     writeLabelValueLine('Regulering', valgtRegulering);
+    const anciennitetValueDisplay = resolveAnciennitetValueDisplay(ansaettelsesforhold);
+    if (anciennitetValueDisplay) {
+      writeLabelValueLine('Anciennitetstillæg', anciennitetValueDisplay);
+    }
 
     const offentligTypeForLabel = ansaettelsesforhold.overenskomstId
       ? getOffentligOverenskomstTypeById(ansaettelsesforhold.overenskomstId)

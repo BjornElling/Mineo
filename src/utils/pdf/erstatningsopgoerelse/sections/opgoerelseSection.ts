@@ -1,6 +1,7 @@
 import { MARGINS } from '../../pdfConfig';
 import { ensureNonBreakingKr } from '../../pdfWriter';
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
+import { getGrundloenAngivetPerForOverenskomst } from '../../../../data/overenskomstRates';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import type { Calculable, LoenudviklingSegment, MoneyOre, PdfModel } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
@@ -109,6 +110,53 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     formatPercentDelta,
     writer,
   } = ctx;
+
+  const formatAmount2 = (value: number): string =>
+    value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const roundToTwoDecimals = (value: number): number => Math.round(value * 100) / 100;
+
+  const resolveAnciennitetLine = (
+    ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number] | undefined
+  ): string | null => {
+    if (!ansaettelsesforhold) return null;
+    if (ansaettelsesforhold.loenudviklingBeregningsgrundlag !== 'Overenskomst') return null;
+    if (!ansaettelsesforhold.harAnciennitetstillaegEfterSkadesdatoen) return null;
+    if (!ansaettelsesforhold.overenskomstId) return null;
+
+    const dato = parseOptionalIsoDate(ansaettelsesforhold.anciennitetstillaegDato);
+    const satsValue = ansaettelsesforhold.anciennitetstillaegSats?.value;
+    if (!dato || typeof satsValue !== 'number' || !Number.isFinite(satsValue) || satsValue <= 0) {
+      return 'Der optjenes anciennitetstillæg, men indtastning mangler.';
+    }
+
+    const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(
+      ansaettelsesforhold.overenskomstId,
+      model.tabtArbejdsfortjeneste.tafBeregningsenhed
+    );
+    if (!grundloenAngivetPer) {
+      return 'Der optjenes anciennitetstillæg, men overenskomstgrundlaget kan ikke fastlægges.';
+    }
+
+    const inputPer = ansaettelsesforhold.anciennitetstillaegSatsAngivesPer;
+    const dateText = formatDateShort(dato);
+    const inputAmount = roundToTwoDecimals(satsValue);
+    const inputAmountText = formatAmount2(inputAmount);
+
+    if (grundloenAngivetPer === 'Måned' && inputPer === 'Måned') {
+      return `Fra ${dateText} optjenes anciennitetstillæg på ${inputAmountText} kr./måned`;
+    }
+    if (grundloenAngivetPer === 'Måned' && inputPer === 'Time') {
+      const converted = roundToTwoDecimals(inputAmount * 160.33);
+      return `Fra ${dateText} optjenes anciennitetstillæg på ${inputAmountText} kr./time x 160,33 = ${formatAmount2(converted)} kr./måned`;
+    }
+    if (grundloenAngivetPer === 'Time' && inputPer === 'Måned') {
+      const converted = roundToTwoDecimals(inputAmount / 160.33);
+      return `Fra ${dateText} optjenes anciennitetstillæg på ${inputAmountText} kr./måned / 160,33 = ${formatAmount2(converted)} kr./time`;
+    }
+
+    return `Fra ${dateText} optjenes anciennitetstillæg på ${inputAmountText} kr./time`;
+  };
 
   renderSectionHeader('Svie- og smertegodtgørelse', lineHeight);
   renderSubheader('Status', lineHeight, { addTopSpacing: false });
@@ -490,6 +538,9 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
       const harPerAnsaettelse = loenudvikling.perAnsaettelse.length > 1;
       if (harPerAnsaettelse) {
+        const ansaettelserById = new Map(
+          resolveLoenudviklingKilde(eoValues).map((af) => [af.id, af] as const)
+        );
         for (const entry of loenudvikling.perAnsaettelse) {
           writer.addSpacer(lineHeight);
           writer.setFont('helvetica', 'normal');
@@ -500,6 +551,10 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
               eoValues,
               ansaettelsesforholdId: entry.ansaettelsesforholdId,
             })}.`);
+            const anciennitetLine = resolveAnciennitetLine(ansaettelserById.get(entry.ansaettelsesforholdId));
+            if (anciennitetLine) {
+              safeAddWrappedText(anciennitetLine);
+            }
             writer.advanceY(lineHeight);
           }
           renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, true);
@@ -520,6 +575,10 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
             label: loenudvikling.loenudviklingLabel,
             eoValues,
           })}.`);
+          const anciennitetLine = resolveAnciennitetLine(resolveLoenudviklingKilde(eoValues)[0]);
+          if (anciennitetLine) {
+            safeAddWrappedText(anciennitetLine);
+          }
           writer.advanceY(lineHeight);
         }
         renderLoenudviklingSegments(loenudvikling.beregnedeSegmenter, loenudvikling.loenudviklingTotal, false);

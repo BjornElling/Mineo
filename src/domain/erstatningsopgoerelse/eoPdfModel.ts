@@ -19,7 +19,13 @@ import { isoDateToDate } from '../dates/isoDate';
 import { addDays, createDate } from '../../utils/dateUtils';
 import { isOevrigeKravRowEmpty, isSvieSmerteRowEmpty, isTafRowEmpty } from './rowEmpty';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/common';
-import { getEffektiveSatserForDato, getEffektiveSatserForPeriode, resolveOverenskomstRef, getOffentligOverenskomstTypeById } from '../../data/overenskomstRates';
+import {
+  getEffektiveSatserForDato,
+  getEffektiveSatserForPeriode,
+  getGrundloenAngivetPerForOverenskomst,
+  resolveOverenskomstRef,
+  getOffentligOverenskomstTypeById,
+} from '../../data/overenskomstRates';
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
 import {
   resolveOffentligLoenTypeFromLabel,
@@ -982,6 +988,11 @@ type KonsolideretLoenudviklingV3 =
     overenskomstId: string;
     loenPaaHelligdage: string;
     feriePct: number;
+    tafBeregningsenhed: TafBeregningsenhed;
+    harAnciennitetstillaegEfterSkadesdatoen: boolean;
+    anciennitetstillaegDato: ISODateString | undefined;
+    anciennitetstillaegSatsAngivesPer: 'Time' | 'Måned';
+    anciennitetstillaegSatsValue: number | undefined;
     offentlig: OffentligLoenSelectionV3 | null;
     tafRanges: readonly IsoRange[];
   }>
@@ -1155,7 +1166,8 @@ export const segmentAmountOreV3 = (baseLoenKronerRounded: number, quantity: numb
 
 const resolveReguleringsStrategiV3 = (
   values: ErstatningsopgoerelseValues,
-  stamdataValues: StamdataValues
+  stamdataValues: StamdataValues,
+  tafBeregningsenhed: TafBeregningsenhed
 ): Readonly<{ strategi: LoenudviklingStrategiV3; label: string; konsolideret: KonsolideretLoenudviklingV3 | null }> => {
   // Strategikontrakt:
   // - ingen: ingen ekstra krav
@@ -1201,6 +1213,18 @@ const resolveReguleringsStrategiV3 = (
   } else if (strategi === 'overenskomst') {
     assertUniformV3(active, (af) => af.overenskomstId ?? '', 'overenskomst');
     assertUniformV3(active, (af) => af.loenPaaHelligdage ?? '', 'loen paa helligdage');
+    assertUniformV3(active, (af) => af.harAnciennitetstillaegEfterSkadesdatoen ?? false, 'anciennitetstillæg');
+    assertUniformV3(
+      active,
+      (af) => (isISODateString(af.anciennitetstillaegDato) ? af.anciennitetstillaegDato : ''),
+      'dato for anciennitetstillæg'
+    );
+    assertUniformV3(active, (af) => af.anciennitetstillaegSatsAngivesPer ?? 'Måned', 'satsen angives per');
+    assertUniformV3(
+      active,
+      (af) => (typeof af.anciennitetstillaegSats?.value === 'number' ? af.anciennitetstillaegSats.value : null),
+      'sats for anciennitetstillæg'
+    );
     if (!angivetLoen) {
       if (activeMedLoenoplysninger.length > 1) {
         assertUniformV3(
@@ -1296,6 +1320,11 @@ const resolveReguleringsStrategiV3 = (
         overenskomstId: active[0].overenskomstId,
         loenPaaHelligdage,
         feriePct,
+        tafBeregningsenhed,
+        harAnciennitetstillaegEfterSkadesdatoen: active[0].harAnciennitetstillaegEfterSkadesdatoen,
+        anciennitetstillaegDato: isISODateString(active[0].anciennitetstillaegDato) ? active[0].anciennitetstillaegDato : undefined,
+        anciennitetstillaegSatsAngivesPer: active[0].anciennitetstillaegSatsAngivesPer ?? 'Måned',
+        anciennitetstillaegSatsValue: active[0].anciennitetstillaegSats?.value,
         offentlig,
         tafRanges,
       },
@@ -1496,6 +1525,45 @@ const buildLoenudviklingFromOverenskomstV3 = (
     throw new Error('Loenudvikling kan ikke beregnes: ugyldig reguleringsdato');
   }
 
+  const roundToTwoDecimals = (value: number): number => Math.round(value * 100) / 100;
+  const tafStartIso = konsolideret.tafRanges.reduce<ISODateString | undefined>(
+    (min, range) => (!min || range.fra < min ? range.fra : min),
+    undefined
+  );
+  const tafEndIso = konsolideret.tafRanges.reduce<ISODateString | undefined>(
+    (max, range) => (!max || range.til > max ? range.til : max),
+    undefined
+  );
+
+  const anciennitetForIndex = (() => {
+    if (!konsolideret.harAnciennitetstillaegEfterSkadesdatoen) return null;
+    const anciennitetDato = konsolideret.anciennitetstillaegDato;
+    const satsValue = konsolideret.anciennitetstillaegSatsValue;
+    if (!anciennitetDato || typeof satsValue !== 'number' || !Number.isFinite(satsValue) || satsValue <= 0) {
+      return null;
+    }
+    if (!tafStartIso || !tafEndIso) return null;
+    if (anciennitetDato > tafEndIso) return null;
+
+    const tafBeregnesSom = konsolideret.tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måneder' : 'Arbejdsdage';
+    const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(konsolideret.overenskomstId, tafBeregnesSom);
+    if (!grundloenAngivetPer) return null;
+
+    const supplementValue = (() => {
+      if (grundloenAngivetPer === 'Måned') {
+        return konsolideret.anciennitetstillaegSatsAngivesPer === 'Måned' ? satsValue : satsValue * 160.33;
+      }
+      return konsolideret.anciennitetstillaegSatsAngivesPer === 'Måned' ? satsValue / 160.33 : satsValue;
+    })();
+
+    const roundedSupplement = roundToTwoDecimals(supplementValue);
+    if (!Number.isFinite(roundedSupplement) || roundedSupplement <= 0) return null;
+    return {
+      activeFromIso: anciennitetDato < tafStartIso ? tafStartIso : anciennitetDato,
+      supplementValue: roundedSupplement,
+    };
+  })();
+
   const offentlig = konsolideret.offentlig;
   if (offentlig) {
     const feriePct = konsolideret.feriePct;
@@ -1542,6 +1610,9 @@ const buildLoenudviklingFromOverenskomstV3 = (
         const startIso = parseDanishToIso(sats.effectiveDate);
         if (startIso && startIso > range.fra && startIso <= range.til) starts.add(startIso);
       }
+      if (anciennitetForIndex && anciennitetForIndex.activeFromIso > range.fra && anciennitetForIndex.activeFromIso <= range.til) {
+        starts.add(anciennitetForIndex.activeFromIso);
+      }
 
       for (const segment of buildSegmentsFromStartDatesV3(range, starts)) {
         const segmentDa = isoToDanish(segment.fra);
@@ -1560,8 +1631,12 @@ const buildLoenudviklingFromOverenskomstV3 = (
         const segmentLoen = offentlig.loenType === 'maanedsLoen'
           ? segmentResult.maanedsLoen
           : segmentResult.timeLoen;
+        const anciennitetAktiv = Boolean(anciennitetForIndex && segment.fra >= anciennitetForIndex.activeFromIso);
+        const grundloenForSegment = anciennitetAktiv && anciennitetForIndex
+          ? segmentLoen + anciennitetForIndex.supplementValue
+          : segmentLoen;
         const packageValue = computePackageValue({
-          grundloen: segmentLoen,
+          grundloen: grundloenForSegment,
           feriePct,
           shSoPct: 0,
           fritvalgPct: 0,
@@ -1629,6 +1704,9 @@ const buildLoenudviklingFromOverenskomstV3 = (
     if (applyShRegel && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
       starts.add(STORE_BEDEDAG_START);
     }
+    if (anciennitetForIndex && anciennitetForIndex.activeFromIso > range.fra && anciennitetForIndex.activeFromIso <= range.til) {
+      starts.add(anciennitetForIndex.activeFromIso);
+    }
 
     for (const segment of buildSegmentsFromStartDatesV3(range, starts)) {
       const segmentDa = isoToDanish(segment.fra);
@@ -1644,7 +1722,12 @@ const buildLoenudviklingFromOverenskomstV3 = (
         throw new Error('Loenudvikling kan ikke beregnes: mangler sats for segment');
       }
       const packageValue = computePackageValue({
-        grundloen: sats.grundloen,
+        grundloen: (() => {
+          const anciennitetAktiv = Boolean(anciennitetForIndex && segment.fra >= anciennitetForIndex.activeFromIso);
+          return anciennitetAktiv && anciennitetForIndex
+            ? sats.grundloen + anciennitetForIndex.supplementValue
+            : sats.grundloen;
+        })(),
         feriePct,
         shSoPct: typeof sats.shSoSats === 'number' ? sats.shSoSats * 100 : 0,
         fritvalgPct: typeof sats.fritvalg === 'number' ? sats.fritvalg * 100 : 0,
@@ -1834,7 +1917,7 @@ const buildLoenudviklingModelV3 = (
   };
 
   try {
-    const strategiData = resolveReguleringsStrategiV3(values, stamdataValues);
+    const strategiData = resolveReguleringsStrategiV3(values, stamdataValues, tafBeregningsenhed);
     const maanedsloenBase = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
       ? resolveMaanedsloenBase(values, indkomstSkadestidspunkt)
       : null;
@@ -1886,7 +1969,7 @@ const buildLoenudviklingModelV3 = (
       ...values,
       loenindkomstAnsaettelsesforhold: [ansaettelsesforhold],
     };
-    const strategiData = resolveReguleringsStrategiV3(valuesForAf, stamdataValues);
+    const strategiData = resolveReguleringsStrategiV3(valuesForAf, stamdataValues, tafBeregningsenhed);
     const modelForAf = buildFromStrategiAndBase(strategiData, baseLoen);
     const ansaettelsesforholdNavn = employer.name !== ''
       ? employer.name
