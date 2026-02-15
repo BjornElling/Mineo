@@ -159,6 +159,11 @@ const main = () => {
 
   for (const relativePath of files) {
     const absolutePath = path.resolve(PROJECT_ROOT, relativePath);
+    if (!fs.existsSync(absolutePath)) {
+      // Filen kan være slettet i working tree men stadig tracked i git index.
+      // I den situation skal checket ignorere filen.
+      continue;
+    }
     const buffer = fs.readFileSync(absolutePath);
 
     if (containsUtf8Bom(buffer)) {

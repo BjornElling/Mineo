@@ -8,7 +8,7 @@ import type { ISODateString } from '../../types/branded';
 import { dateToISO, isISODateString } from '../../types/branded';
 import { calculateAarsloenRowDerived } from '../../utils/aarsloenTableCalculations';
 import { parseAmount } from '../../utils/formatUtils';
-import { parseDanishDate } from '../../utils/dateUtils';
+import { createDate, parseDanishDate } from '../../utils/dateUtils';
 import { ydelsestyper } from '../../data/ydelsestyper';
 import { type DateInterval, type IsoRange, validateIsoRange } from '../../utils/isoDateHelpers';
 import { mergeIsoDateRanges } from './periodMerging';
@@ -28,10 +28,6 @@ import {
 
 export type { IsoRange } from '../../utils/isoDateHelpers';
 export { parseAarsloenRowInterval } from './aarsloenRowInterval';
-
-const toUtcDay = (date: Date): Date => {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-};
 
 export type IncomeEmployerAmount = Readonly<{
   id: string;
@@ -87,7 +83,10 @@ const parseOffentligInterval = (row: OffentligeYdelserRow): DateInterval | null 
   const til = parseDanishDate(tilStr);
   if (!fra || !til) return null;
   if (fra > til) return null;
-  return { start: toUtcDay(fra), end: toUtcDay(til) };
+  return {
+    start: createDate(fra.getUTCFullYear(), fra.getUTCMonth(), fra.getUTCDate()),
+    end: createDate(til.getUTCFullYear(), til.getUTCMonth(), til.getUTCDate()),
+  };
 };
 
 const resolveYdelsestype = (raw: string): Readonly<{ key: string; label: string; periodisering: (typeof ydelsestyper)[string]['periodisering'] }> | null => {

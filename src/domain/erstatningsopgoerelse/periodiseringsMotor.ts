@@ -1,7 +1,7 @@
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, parseISODate, toISODateString } from '../../types/branded';
-import { addDays, formatToISO } from '../../utils/dateUtils';
+import { addDays } from '../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import type { Periodisering } from '../../data/ydelsestyper';
 import { buildDatoSetInclusiveFromDates, buildFerieDageSet, buildShDageSet, isWeekdayUtc, placeLoseFeriedage } from './tafDaySets';

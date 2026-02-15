@@ -12,7 +12,8 @@
 import React from 'react';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../types/common';
 import type { AarsloenValues } from '../schemas/formSchemas';
-import { safeCompute, isErr, type Result } from '../utils/safeComputations';
+import { safeCompute } from '../utils/safeComputation';
+import { isErr, type Result } from '../types/result';
 import { calculateAarsloenRowDerived, roundAarsloenAmountToTwoDecimals } from '../utils/aarsloenTableCalculations';
 import {
   beregnMaanedPeriode,

@@ -5,7 +5,7 @@
  */
 
 import { danishToISO, isISODateString, isoToDanish } from '../types/branded';
-import { getTodayLocalISO } from './dateUtils';
+import { createDate, getTodayLocalISO } from './dateUtils';
 import type { ISODateString } from '../types/branded';
 
 /**
@@ -68,20 +68,6 @@ export const interpretYear = (yearStr: string): number | null => {
   }
 
   return null;
-};
-
-/**
- * Opretter Date-objekt med korrekt år (også for 0-99)
- *
- * @param {number} year - År
- * @param {number} monthIndex - Måned-index (0-11)
- * @param {number} day - Dag
- * @returns {Date} Date-objekt
- */
-export const createDate = (year: number, monthIndex: number, day: number): Date => {
-  const date = new Date(Date.UTC(year, monthIndex, day));
-  date.setUTCFullYear(year); // Sikrer korrekt år også for 0-99
-  return date;
 };
 
 /**
