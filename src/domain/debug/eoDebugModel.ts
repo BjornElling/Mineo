@@ -622,6 +622,7 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
   const dates = buildDateList(tableFra, tableTil);
   const isoIndex = buildIsoIndex(dates);
   const beregningsenhed = computeTafBeregningsenhed(values);
+  const erMaaneder = beregningsenhed === TAF_BEREGNES_SOM.MAANEDER;
   const shDays = buildSHSet(tableFra, tableTil);
   const explicitFerie = buildExplicitFerieSet(values, shDays);
   const loseFerie = buildLoseFeriedageSet(values, shDays, explicitFerie);
@@ -660,11 +661,12 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
     const sh = shDays.has(iso);
     isShByIndex[i] = sh;
     // "Feriedag" i debug-tabellen er kun daterede ferieperioder.
-    // Arbejdsdag skal derfor være en ren konstatering:
-    // hverdag && !SH && !Feriedag.
+    // Arbejdsdag i tabellen følger beregningsenheden:
+    // - Måneder: alle hverdage markeres også som arbejdsdag (inkl. SH/ferie).
+    // - Arbejdsdage: hverdage ekskl. SH/feriedage markeres som arbejdsdag.
     const ferie = explicitFerie.has(iso);
     isFerieByIndex[i] = ferie;
-    isWorkdayByIndex[i] = weekday && !sh && !ferie;
+    isWorkdayByIndex[i] = erMaaneder ? weekday : weekday && !sh && !ferie;
     const withinBeregnings = beregningsRange ? iso >= beregningsRange.fra && iso <= beregningsRange.til : false;
     isWithinBeregningsByIndex[i] = withinBeregnings;
   }

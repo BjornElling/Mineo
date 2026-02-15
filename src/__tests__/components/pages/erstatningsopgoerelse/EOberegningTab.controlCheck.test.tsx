@@ -208,6 +208,66 @@ describe('EOberegningTab kontroltjek', () => {
     expect(mockBuildControlMismatchReport).toHaveBeenCalledTimes(1);
   });
 
+  it('kører kontroltjek når snapshot bliver tilgængeligt efter tab-entry', () => {
+    const mismatchRow: SammentaellingDisplayRow = {
+      key: 'row-delayed',
+      label: 'Arbejdsdage i TAF-periode',
+      control: makeControl({
+        beregnetDisplay: '430',
+        tabelDisplay: '415',
+        beregnetValue: 430,
+        tabelValue: 415,
+      }),
+    };
+    const snapshot = makeSnapshot([mismatchRow], 'rev-delayed');
+    mockBuildControlMismatchReport.mockReturnValue({
+      version: 'v1',
+      createdAt: snapshot.createdAt,
+      mismatches: [
+        { key: mismatchRow.key, label: mismatchRow.label, beregnet: '430', tabel: '415' },
+      ],
+      sammentaelling: snapshot.sammentaelling,
+      context: {
+        skadesdato: snapshot.stamdataValues.skadesdato,
+        skadestype: snapshot.stamdataValues.skadestype,
+        beregningsperiodeFra: snapshot.eoValues.periodeTilBeregningFra,
+        beregningsperiodeTil: snapshot.eoValues.periodeTilBeregningTil,
+        vedroererPeriodeFra: snapshot.eoValues.vedroererPeriodeFra,
+        vedroererPeriodeTil: snapshot.eoValues.vedroererPeriodeTil,
+      },
+      fieldErrors: snapshot.fieldErrors,
+    });
+
+    const { rerender } = renderTab({
+      activeTab: 'beregning',
+      setActiveTab: vi.fn(),
+      isActive: true,
+      debugSnapshot: null,
+      currentDebugRevision: snapshot.revision,
+    });
+
+    expect(screen.queryByText('Uoverensstemmelse i kontrolberegning')).not.toBeInTheDocument();
+
+    rerender(
+      <MemoryRouter>
+        <AppSettingsProvider>
+          <FormPersistenceProvider>
+            <EOberegningTab
+              activeTab="beregning"
+              setActiveTab={vi.fn()}
+              isActive={true}
+              debugSnapshot={snapshot}
+              currentDebugRevision={snapshot.revision}
+            />
+          </FormPersistenceProvider>
+        </AppSettingsProvider>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Uoverensstemmelse i kontrolberegning')).toBeInTheDocument();
+    expect(mockBuildControlMismatchReport).toHaveBeenCalledTimes(1);
+  });
+
   it('åbner ikke popup ved kun advarsel', () => {
     const warningRow: SammentaellingDisplayRow = {
       key: 'row-1',

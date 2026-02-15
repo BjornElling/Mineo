@@ -147,9 +147,12 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       return;
     }
     if (hasRunControlCheckRef.current) return;
-    hasRunControlCheckRef.current = true;
+    const snapshot = debugSnapshotRef.current;
+    if (!snapshot) return;
+    if (snapshot.revision !== currentDebugRevision) return;
     runControlCheckOnceOnTabEntryRef.current();
-  }, [isActive]);
+    hasRunControlCheckRef.current = true;
+  }, [isActive, currentDebugRevision, debugSnapshot]);
 
   // ============================================================================
   // SAMLE ALLE DEBUG-ROWS MED NAVIGATION

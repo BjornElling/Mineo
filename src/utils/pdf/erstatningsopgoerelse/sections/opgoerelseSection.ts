@@ -625,6 +625,11 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     const dateLine = '____ / ____ - ____________';
     const sigX = MARGINS.left + 90;
     const sigLine = '________________________________________';
+    const contentBottom = writer.getDoc().internal.pageSize.height - MARGINS.bottom;
+    const signatureBlockHeight = lineHeight * 2;
+    if (writer.getY() + signatureBlockHeight > contentBottom) {
+      writer.addPage();
+    }
     writer.writeSignatureBlock(dateLine, sigLine, dateX, sigX, skadelidteNavn);
   }
 };
