@@ -203,6 +203,12 @@ export const buildIncomeForRanges = (
       allLoenIntervals.push(interval);
     });
   });
+  const allOffentligIntervals: DateInterval[] = [];
+  (values.offentligeYdelserRows ?? []).forEach((row) => {
+    const interval = parseOffentligInterval(row);
+    if (!interval) return;
+    allOffentligIntervals.push(interval);
+  });
   const rangeBoundFra = ranges.reduce<ISODateString | undefined>((acc, range) => (acc ? (acc < range.fra ? acc : range.fra) : range.fra), undefined);
   const rangeBoundTil = ranges.reduce<ISODateString | undefined>((acc, range) => (acc ? (acc > range.til ? acc : range.til) : range.til), undefined);
   const intervalBoundFra = allLoenIntervals.reduce<ISODateString | undefined>((acc, interval) => {
@@ -215,12 +221,25 @@ export const buildIncomeForRanges = (
     if (!iso) return acc;
     return acc ? (acc > iso ? acc : iso) : iso;
   }, undefined);
+  const offentligIntervalBoundFra = allOffentligIntervals.reduce<ISODateString | undefined>((acc, interval) => {
+    const iso = dateToISO(interval.start);
+    if (!iso) return acc;
+    return acc ? (acc < iso ? acc : iso) : iso;
+  }, undefined);
+  const offentligIntervalBoundTil = allOffentligIntervals.reduce<ISODateString | undefined>((acc, interval) => {
+    const iso = dateToISO(interval.end);
+    if (!iso) return acc;
+    return acc ? (acc > iso ? acc : iso) : iso;
+  }, undefined);
   const boundsFraCandidates = [rangeBoundFra, intervalBoundFra, values.periodeTilBeregningFra].filter(
     (value): value is ISODateString => isISODateString(value)
   );
-  const boundsTilCandidates = [rangeBoundTil, intervalBoundTil, values.periodeTilBeregningTil].filter(
+  const boundsTilCandidates = [rangeBoundTil, intervalBoundTil, offentligIntervalBoundTil, values.periodeTilBeregningTil].filter(
     (value): value is ISODateString => isISODateString(value)
   );
+  if (offentligIntervalBoundFra) {
+    boundsFraCandidates.push(offentligIntervalBoundFra);
+  }
   const boundsFra = boundsFraCandidates.reduce<ISODateString | undefined>((acc, iso) => (acc ? (acc < iso ? acc : iso) : iso), undefined);
   const boundsTil = boundsTilCandidates.reduce<ISODateString | undefined>((acc, iso) => (acc ? (acc > iso ? acc : iso) : iso), undefined);
   const beregningsenhed = computeTafBeregningsenhed(values);

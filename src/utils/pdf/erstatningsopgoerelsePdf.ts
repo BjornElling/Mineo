@@ -957,6 +957,33 @@ const buildReguleringIndexRows = (params: Readonly<{
     return result;
   };
 
+  type IndexRowWithIso = ReguleringIndexRow & Readonly<{
+    fraIso: ISODateString;
+    tilIso: ISODateString;
+    signature: string;
+  }>;
+
+  const mergeConsecutiveRowsWithSameCalculation = (rows: readonly IndexRowWithIso[]): readonly ReguleringIndexRow[] => {
+    if (rows.length <= 1) return rows;
+    const merged: IndexRowWithIso[] = [];
+    for (const row of rows) {
+      const last = merged[merged.length - 1];
+      const isAdjacent = Boolean(last && subtractOneDay(row.fraIso) === last.tilIso);
+      const hasSameCalculation = Boolean(last && last.signature === row.signature);
+      if (last && isAdjacent && hasSameCalculation) {
+        const updated: IndexRowWithIso = {
+          ...last,
+          tilIso: row.tilIso,
+          tilDato: formatDateShort(row.tilIso),
+        };
+        merged[merged.length - 1] = updated;
+      } else {
+        merged.push(row);
+      }
+    }
+    return merged;
+  };
+
   const anciennitetForIndex = (() => {
     if (loenudviklingBasis !== 'Overenskomst') return null;
     if (!ansaettelsesforhold.overenskomstId || !ansaettelsesforhold.harAnciennitetstillaegEfterSkadesdatoen) return null;
@@ -993,15 +1020,20 @@ const buildReguleringIndexRows = (params: Readonly<{
     reguleringsdato &&
     ansaettelsesforhold.overenskomstId
   ) {
-    const fallbackRows = (segment: LoenudviklingSegment): ReguleringIndexRow => {
+    const fallbackRowWithIso = (segment: LoenudviklingSegment): IndexRowWithIso => {
       const indeksValue = 100 + segment.deltaPct;
       const indeksDisplay = formatIndexValue(indeksValue);
+      const indeksberegning = Math.abs(indeksValue - 100) < 0.000001 ? '100,00' : `${indeksDisplay} /\n100,00`;
+      const loenudvikling = formatLoenudviklingFromIndex(indeksValue);
       return {
+        fraIso: segment.fra,
+        tilIso: segment.til,
         fraDato: formatDateShort(segment.fra),
         tilDato: formatDateShort(segment.til),
-        indeksberegning: Math.abs(indeksValue - 100) < 0.000001 ? '100,00' : `${indeksDisplay} /\n100,00`,
+        indeksberegning,
         indeks: indeksDisplay,
-        loenudvikling: formatLoenudviklingFromIndex(indeksValue),
+        loenudvikling,
+        signature: `${indeksberegning}|${indeksDisplay}|${loenudvikling}`,
       };
     };
 
@@ -1012,20 +1044,20 @@ const buildReguleringIndexRows = (params: Readonly<{
       const trinValue = ansaettelsesforhold.offentligLoenTrin;
       const gruppeValue = ansaettelsesforhold.offentligLoenGruppe;
       if (!baseDato || !loenType || typeof trinValue !== 'number' || typeof gruppeValue !== 'number') {
-        return segments.map(fallbackRows);
+        return mergeConsecutiveRowsWithSameCalculation(segments.map(fallbackRowWithIso));
       }
       if (!isLoengruppe(gruppeValue)) {
-        return segments.map(fallbackRows);
+        return mergeConsecutiveRowsWithSameCalculation(segments.map(fallbackRowWithIso));
       }
       let loentrin: ReturnType<typeof toLoentrin>;
       try {
         loentrin = toLoentrin(trinValue);
       } catch {
-        return segments.map(fallbackRows);
+        return mergeConsecutiveRowsWithSameCalculation(segments.map(fallbackRowWithIso));
       }
 
       const baseResult = getOffentligLoenForDato(offentligType, baseDato, loentrin, gruppeValue);
-      if (!baseResult) return segments.map(fallbackRows);
+      if (!baseResult) return mergeConsecutiveRowsWithSameCalculation(segments.map(fallbackRowWithIso));
       const baseValue = loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen;
       const baseComponents: FormulaComponents = {
         baseValue,
@@ -1044,12 +1076,12 @@ const buildReguleringIndexRows = (params: Readonly<{
       const baseFormula = buildFormulaText(baseComponents, baseVisibility);
       const baseValueRaw = computeFormulaValue(baseComponents);
 
-      return segmentsForCalc.map((segment) => {
+      const rows = segmentsForCalc.map((segment) => {
         const segmentDato = isoToDanish(segment.fra);
         const segmentResult = segmentDato
           ? getOffentligLoenForDato(offentligType, segmentDato, loentrin, gruppeValue)
           : undefined;
-        if (!segmentResult) return fallbackRows(segment);
+        if (!segmentResult) return fallbackRowWithIso(segment);
         const segmentBase = loenType === 'maanedsLoen' ? segmentResult.maanedsLoen : segmentResult.timeLoen;
         const components: FormulaComponents = {
           baseValue: segmentBase,
@@ -1089,14 +1121,19 @@ const buildReguleringIndexRows = (params: Readonly<{
           baseValueRaw,
           false
         );
+        const loenudvikling = formatLoenudviklingFromIndex(indeksValue);
         return {
+          fraIso: segment.fra,
+          tilIso: segment.til,
           fraDato: formatDateShort(segment.fra),
           tilDato: formatDateShort(segment.til),
           indeksberegning,
           indeks: indeksDisplay,
-          loenudvikling: formatLoenudviklingFromIndex(indeksValue),
+          loenudvikling,
+          signature: `${indeksberegning}|${indeksDisplay}|${loenudvikling}`,
         };
       });
+      return mergeConsecutiveRowsWithSameCalculation(rows);
     }
 
     const ref = resolveOverenskomstRef(ansaettelsesforhold.overenskomstId);
@@ -1139,7 +1176,7 @@ const buildReguleringIndexRows = (params: Readonly<{
         const baseFormula = buildFormulaText(baseComponents, baseVisibility);
         const baseValueRaw = computeFormulaValue(baseComponents);
 
-        return segmentsForCalc.map((segment) => {
+        const rows = segmentsForCalc.map((segment) => {
           const segmentDato = isoToDanish(segment.fra);
           const sats = segmentDato
             ? getEffektiveSatserForDato({
@@ -1150,7 +1187,7 @@ const buildReguleringIndexRows = (params: Readonly<{
             : undefined;
 
           if (!sats) {
-            return fallbackRows(segment);
+            return fallbackRowWithIso(segment);
           }
 
           const storeBededagPct =
@@ -1193,14 +1230,19 @@ const buildReguleringIndexRows = (params: Readonly<{
             baseValueRaw,
             false
           );
+          const loenudvikling = formatLoenudviklingFromIndex(indeksValue);
           return {
+            fraIso: segment.fra,
+            tilIso: segment.til,
             fraDato: formatDateShort(segment.fra),
             tilDato: formatDateShort(segment.til),
             indeksberegning,
             indeks: indeksDisplay,
-            loenudvikling: formatLoenudviklingFromIndex(indeksValue),
+            loenudvikling,
+            signature: `${indeksberegning}|${indeksDisplay}|${loenudvikling}`,
           };
         });
+        return mergeConsecutiveRowsWithSameCalculation(rows);
       }
     }
   }

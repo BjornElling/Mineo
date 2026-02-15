@@ -115,6 +115,65 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const roundToTwoDecimals = (value: number): number => Math.round(value * 100) / 100;
+  const roundToFourDecimals = (value: number): number => Math.round(value * 10000) / 10000;
+
+  const addOneDayIso = (iso: ISODateString): ISODateString | null => {
+    const date = new Date(`${iso}T00:00:00Z`);
+    if (!Number.isFinite(date.getTime())) return null;
+    date.setUTCDate(date.getUTCDate() + 1);
+    const nextIso = date.toISOString().slice(0, 10);
+    return parseOptionalIsoDate(nextIso) ?? null;
+  };
+
+  const mergeLoenudviklingSegments = (segments: readonly LoenudviklingSegment[]): readonly LoenudviklingSegment[] => {
+    if (segments.length <= 1) return segments;
+    const merged: LoenudviklingSegment[] = [];
+    for (const segment of segments) {
+      const last = merged[merged.length - 1];
+      if (!last) {
+        merged.push(segment);
+        continue;
+      }
+
+      const isAdjacent = addOneDayIso(last.til) === segment.fra;
+      const isSameKind = last.kind === segment.kind;
+      const isSameDelta = Math.abs(last.deltaPct - segment.deltaPct) < 0.00001;
+
+      if (!isAdjacent || !isSameKind || !isSameDelta) {
+        merged.push(segment);
+        continue;
+      }
+
+      if (last.kind === 'arbejdsdage' && segment.kind === 'arbejdsdage' && last.dagsloenOre === segment.dagsloenOre) {
+        merged[merged.length - 1] = {
+          kind: 'arbejdsdage',
+          fra: last.fra,
+          til: segment.til,
+          arbejdsdage: last.arbejdsdage + segment.arbejdsdage,
+          dagsloenOre: last.dagsloenOre,
+          deltaPct: last.deltaPct,
+          amountOre: (last.amountOre + segment.amountOre) as MoneyOre,
+        };
+        continue;
+      }
+
+      if (last.kind === 'maaneder' && segment.kind === 'maaneder' && last.maanedsloenOre === segment.maanedsloenOre) {
+        merged[merged.length - 1] = {
+          kind: 'maaneder',
+          fra: last.fra,
+          til: segment.til,
+          maaneder: roundToFourDecimals(last.maaneder + segment.maaneder),
+          maanedsloenOre: last.maanedsloenOre,
+          deltaPct: last.deltaPct,
+          amountOre: (last.amountOre + segment.amountOre) as MoneyOre,
+        };
+        continue;
+      }
+
+      merged.push(segment);
+    }
+    return merged;
+  };
 
   const resolveAnciennitetLine = (
     ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number] | undefined
@@ -505,7 +564,8 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           return;
         }
         const rightMaxWidth = writer.getTextWidth('000.000.000,00');
-        for (const segment of segments) {
+        const segmentsForDisplay = mergeLoenudviklingSegments(segments);
+        for (const segment of segmentsForDisplay) {
           const roundedDeltaPct = Math.round(segment.deltaPct * 100) / 100;
           const factorText = Math.abs(roundedDeltaPct) < 0.00001
             ? ''
@@ -526,7 +586,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           const rightText = formatMoneyOreWithKr(segment.amountOre);
           safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'normal' });
         }
-        if ((segments.length > 1 || forceTotalLine) && total.status === 'ok') {
+        if ((segmentsForDisplay.length > 1 || forceTotalLine) && total.status === 'ok') {
           safeAddLeftRightText(
             'I alt',
             formatMoneyOreWithKr(total.value),

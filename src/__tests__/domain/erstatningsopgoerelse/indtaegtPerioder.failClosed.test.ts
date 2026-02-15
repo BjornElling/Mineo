@@ -218,4 +218,29 @@ describe('buildIncomeForRanges fail-closed', () => {
     expect(income.benefits[0]?.typeKey).toBe('sygedagpenge');
     expect(income.benefits[0]?.label).toBe('Sygedagpenge');
   });
+
+  it('bevarer sygedagpenge-total ved årssplit uden lønintervaller', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.loenindkomstAnsaettelsesforhold = [];
+    values.offentligeYdelserRows = [
+      {
+        id: 'oy-cross-year',
+        fraDato: '23-12-2024',
+        tilDato: '10-01-2025',
+        ydelse: asAmount(11210),
+        tillaeg: asAmount(248),
+        ydelsestype: 'Sygedagpenge',
+      },
+    ];
+
+    const fullRangeIncome = buildIncomeForRanges(values, [{ fra: iso('2024-12-23'), til: iso('2025-01-10') }]);
+    const year2024Income = buildIncomeForRanges(values, [{ fra: iso('2024-12-23'), til: iso('2024-12-31') }]);
+    const year2025Income = buildIncomeForRanges(values, [{ fra: iso('2025-01-01'), til: iso('2025-01-10') }]);
+
+    const fullAmount = fullRangeIncome.benefits[0]?.amount ?? 0;
+    const splitAmount = (year2024Income.benefits[0]?.amount ?? 0) + (year2025Income.benefits[0]?.amount ?? 0);
+
+    expect(fullAmount).toBeGreaterThan(0);
+    expect(Math.abs(splitAmount - fullAmount)).toBeLessThan(1e-9);
+  });
 });

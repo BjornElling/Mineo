@@ -912,14 +912,18 @@ const buildIndkomstSkadestidspunkt = (
 
         if (tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE) {
           const samletFeriedage = arbejdsdageBreakdown.feriedage + arbejdsdageBreakdown.loseFeriedage;
-          const components: Array<{ value: number; label: string }> = [
-            { value: arbejdsdageBreakdown.arbejdsdage, label: dagOrd(arbejdsdageBreakdown.arbejdsdage, 'hverdag', 'hverdage') },
+          const basePart = `${formatDaNumber(arbejdsdageBreakdown.arbejdsdage)} ${dagOrd(arbejdsdageBreakdown.arbejdsdage, 'hverdag', 'hverdage')}`;
+          const fradragComponents: Array<{ value: number; label: string }> = [
             { value: arbejdsdageBreakdown.shDage, label: dagOrd(arbejdsdageBreakdown.shDage, 'SH-dag', 'SH-dage') },
             { value: samletFeriedage, label: dagOrd(samletFeriedage, 'feriedag', 'feriedage') },
             { value: arbejdsdageBreakdown.oevrigeFravaersdage, label: dagOrd(arbejdsdageBreakdown.oevrigeFravaersdage, 'øvrig fraværsdag', 'øvrige fraværsdage') },
           ];
-          const parts = components.map((component) => `${formatDaNumber(component.value)} ${component.label}`);
-          beregningsgrundlagMellemregningLabel = `I perioden var der ${parts.join(' - ')} =`;
+          const fradragParts = fradragComponents
+            .filter((component) => component.value > 0)
+            .map((component) => `${formatDaNumber(component.value)} ${component.label}`);
+          beregningsgrundlagMellemregningLabel = fradragParts.length > 0
+            ? `I perioden var der ${basePart} - ${fradragParts.join(' - ')} =`
+            : 'I perioden var der';
           beregningsgrundlagMellemregningResultat = `${formatDaNumber(arbejdsdage)} arbejdsdage`;
         }
       }

@@ -1605,12 +1605,6 @@ const EODebug = () => {
           .filter((period) => period.startIso > tafStartIso)
           .filter((period) => !tafEndIso || period.startIso <= tafEndIso);
 
-        // Beregn arbejdsdage og måneder for base-periode
-        const baseEndIso = sortedPeriods.length > 0 ? subtractOneDay(sortedPeriods[0].startIso) : tafEndIso;
-        const baseStats = baseEndIso && tafEndIso
-          ? beregnArbejdsdageOgMaaneder(tafStartIso, baseEndIso, shDageSet, ferieDageSet)
-          : { arbejdsdage: 0, maaneder: 0 };
-
         const isSameNumericValue = (left: number, right: number): boolean =>
           Math.abs(left - right) < 1e-9;
         const buildIndexFormulaDisplay = (
@@ -1628,19 +1622,24 @@ const EODebug = () => {
             : `(${numeratorDisplay}) /\n(${denominatorDisplay})`;
         };
 
-        const rows: StandardDisplayTableRow[] = [
-          {
-            key: `regulering-indeks-${af.id}-base`,
-            cells: [
-              formatIsoValue(tafStartIso),
-              baseEndIso ? formatIsoValue(baseEndIso) : '-',
-              baseStats.arbejdsdage.toString(),
-              formatMaanederTrimmed(baseStats.maaneder),
-              buildIndexFormulaDisplay(basePeriodFormula, baseFormula, basePeriodValueRaw, baseValueRaw),
-              baseValueRaw > 0 ? formatIndexValue((basePeriodValueRaw / baseValueRaw) * 100) : '-'
-            ],
-          },
-        ];
+        type IndexCandidate = Readonly<{
+          startIso: ISODateString;
+          endIso: ISODateString;
+          formula: string;
+          indexValue: string;
+        }>;
+
+        const candidates: IndexCandidate[] = [];
+
+        const initialBaseEndIso = sortedPeriods.length > 0 ? subtractOneDay(sortedPeriods[0].startIso) : tafEndIso;
+        if (initialBaseEndIso) {
+          candidates.push({
+            startIso: tafStartIso,
+            endIso: initialBaseEndIso,
+            formula: buildIndexFormulaDisplay(basePeriodFormula, baseFormula, basePeriodValueRaw, baseValueRaw),
+            indexValue: baseValueRaw > 0 ? formatIndexValue((basePeriodValueRaw / baseValueRaw) * 100) : '-',
+          });
+        }
 
         for (let i = 0; i < sortedPeriods.length; i++) {
           const period = sortedPeriods[i];
@@ -1682,18 +1681,55 @@ const EODebug = () => {
               ? beregnArbejdsdageOgMaaneder(period.startIso, periodEndIso, shDageSet, ferieDageSet)
               : { arbejdsdage: 0, maaneder: 0 };
 
-          rows.push({
-            key: `regulering-indeks-${af.id}-${period.startIso}`,
-            cells: [
-              formatIsoValue(period.startIso),
-              periodEndIso ? formatIsoValue(periodEndIso) : '-',
-              periodStats.arbejdsdage.toString(),
-              formatMaanederTrimmed(periodStats.maaneder),
-              displayFormula,
-              indexValue
-            ],
+          if (!periodEndIso) continue;
+          candidates.push({
+            startIso: period.startIso,
+            endIso: periodEndIso,
+            formula: displayFormula,
+            indexValue,
           });
         }
+
+        const mergedCandidates: Array<{
+          startIso: ISODateString;
+          endIso: ISODateString;
+          formula: string;
+          indexValue: string;
+        }> = [];
+        for (const candidate of candidates) {
+          const last = mergedCandidates[mergedCandidates.length - 1];
+          const isAdjacent = Boolean(last && subtractOneDay(candidate.startIso) === last.endIso);
+          const isSameCalculation =
+            Boolean(last)
+            && last.formula === candidate.formula
+            && last.indexValue === candidate.indexValue;
+          if (last && isAdjacent && isSameCalculation) {
+            last.endIso = candidate.endIso;
+          } else {
+            mergedCandidates.push({
+              startIso: candidate.startIso,
+              endIso: candidate.endIso,
+              formula: candidate.formula,
+              indexValue: candidate.indexValue,
+            });
+          }
+        }
+
+        const rows: StandardDisplayTableRow[] = mergedCandidates.map((candidate, index) => {
+          const stats = beregnArbejdsdageOgMaaneder(candidate.startIso, candidate.endIso, shDageSet, ferieDageSet);
+          const rowKey = index === 0 ? `regulering-indeks-${af.id}-base` : `regulering-indeks-${af.id}-${candidate.startIso}`;
+          return {
+            key: rowKey,
+            cells: [
+              formatIsoValue(candidate.startIso),
+              formatIsoValue(candidate.endIso),
+              stats.arbejdsdage.toString(),
+              formatMaanederTrimmed(stats.maaneder),
+              candidate.formula,
+              candidate.indexValue,
+            ],
+          };
+        });
 
         const columns: StandardDisplayTableColumn[] = [
           centeredCol('Fra-dato', 120),
