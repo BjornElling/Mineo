@@ -18,3 +18,9 @@ self.addEventListener('activate', (event) => {
   // Claim clients so the SW is "active" for installability, but do not cache anything.
   event.waitUntil(self.clients.claim());
 });
+
+self.addEventListener('message', (event) => {
+  if (event?.data?.type === 'SKIP_WAITING') {
+    event.waitUntil(self.skipWaiting());
+  }
+});

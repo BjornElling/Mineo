@@ -5,6 +5,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import { setupPwaLaunchQueueConsumer } from './utils/pwaLaunchQueue';
 import { setupPwaInstallPromptCapture } from './utils/pwaInstallPrompt';
+import { VERSION } from './config/version';
 import App from './App';
 import LoginPage from './components/pages/LoginPage';
 import { isAuthenticated } from './auth/auth';
@@ -64,8 +65,42 @@ const registerServiceWorker = async (): Promise<void> => {
   if (typeof navigator === 'undefined') return;
   if (!('serviceWorker' in navigator)) return;
 
+  const serviceWorkerUrl = `/sw.js?v=${encodeURIComponent(VERSION)}`;
+  let hasTriggeredReload = false;
+  const reloadOnce = (): void => {
+    if (hasTriggeredReload) return;
+    hasTriggeredReload = true;
+    window.location.reload();
+  };
+
   try {
-    await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    navigator.serviceWorker.addEventListener('controllerchange', reloadOnce, { once: true });
+
+    const registration = await navigator.serviceWorker.register(serviceWorkerUrl, {
+      scope: '/',
+      updateViaCache: 'none',
+    });
+
+    await registration.update();
+
+    const activateWaitingWorker = (): void => {
+      const waiting = registration.waiting;
+      if (!waiting) return;
+      waiting.postMessage({ type: 'SKIP_WAITING' });
+      reloadOnce();
+    };
+
+    activateWaitingWorker();
+
+    registration.addEventListener('updatefound', () => {
+      const installing = registration.installing;
+      if (!installing) return;
+      installing.addEventListener('statechange', () => {
+        if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+          activateWaitingWorker();
+        }
+      });
+    });
   } catch {
     // Silent by design: SW is only used for installability; failures must not break the app.
   }
