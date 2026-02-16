@@ -229,7 +229,7 @@ const TAFPeriodeTable = React.memo(
                 <TableCell>
                   <Typography variant="body1">
                     {beregnetVaerdi !== null
-                      ? derivedColumnHeader === 'Antal måneder'
+                      ? derivedColumnHeader === 'TAF-måneder'
                         ? String(beregnetVaerdi).replace('.', ',')
                         : String(beregnetVaerdi)
                       : ''}

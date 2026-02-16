@@ -313,11 +313,14 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     .map((value) => value.trim())
     .filter((value) => value !== '' && value !== '-');
   const svieSmerteLines = svieSmerteDisplayParts;
-  const svieSmerteLabel = svieSmerteLines.length > 1 ? 'Svie/smerteperioder' : 'Svie/smerteperiode';
   const harSvieSmertePerioder =
     beregnesSvieSmerte &&
     (eoValues?.svieSmertePerioder ?? []).some((row) => row.fra || row.til || row.tilstand) &&
     svieSmerteLines.length > 0;
+  const svieSmerteSummaryLines = harSvieSmertePerioder ? svieSmerteLines : ['Nej'];
+  const svieSmerteSummaryLabel = harSvieSmertePerioder && svieSmerteLines.length > 1
+    ? 'Svie/smerte-perioder'
+    : 'Svie/smerte-periode';
 
   const tafPerioderLabels = React.useMemo(() => {
     if (!beregnesTabtArbejdsfortjeneste || !eoValues) return [];
@@ -346,7 +349,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     (eoValues?.tafPerioder ?? []).some((row) => row.fra || row.til || typeof row.loseFeriedage === 'number') &&
     tafPerioderLabels.length > 0;
   const tafPerioderLines = tafPerioderLabels;
-  const tafPerioderLabel = tafPerioderLines.length > 1 ? 'TAF-perioder' : 'TAF-periode';
+  const tafSummaryLines = harTafPerioder ? tafPerioderLines : ['Nej'];
+  const tafSummaryLabel = harTafPerioder && tafPerioderLines.length > 1 ? 'TAF-perioder' : 'TAF-periode';
 
   const erErhvervssygdom = stamdataValues?.skadestype === 'Erhvervssygdom';
   const skadesdatoLabel = erErhvervssygdom ? 'Anmeldelsesdato' : 'Skadesdato';
@@ -544,45 +548,41 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
           </Box>
         )}
 
-        {harSvieSmertePerioder && (
-          <Box className="row--label-right-hover">
-            <Typography className="row--text">{svieSmerteLabel}</Typography>
-            <Box
-              className="row--label-right-hover__content"
-              sx={{
-                flexDirection: 'column',
-                alignItems: 'flex-end',
-                gap: 0,
-              }}
-            >
-              {svieSmerteLines.map((line, index) => (
-                <Typography key={`${line}-${index}`} className="row--text" sx={{ minHeight: 'unset', lineHeight: 1.2 }}>
-                  {line}
-                </Typography>
-              ))}
-            </Box>
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">{svieSmerteSummaryLabel}</Typography>
+          <Box
+            className="row--label-right-hover__content"
+            sx={{
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              gap: 0,
+            }}
+          >
+            {svieSmerteSummaryLines.map((line, index) => (
+              <Typography key={`${line}-${index}`} className="row--text" sx={{ minHeight: 'unset', lineHeight: 1.2 }}>
+                {line}
+              </Typography>
+            ))}
           </Box>
-        )}
+        </Box>
 
-        {harTafPerioder && (
-          <Box className="row--label-right-hover">
-            <Typography className="row--text">{tafPerioderLabel}</Typography>
-            <Box
-              className="row--label-right-hover__content"
-              sx={{
-                flexDirection: 'column',
-                alignItems: 'flex-end',
-                gap: 0,
-              }}
-            >
-              {tafPerioderLines.map((line, index) => (
-                <Typography key={`${line}-${index}`} className="row--text" sx={{ minHeight: 'unset', lineHeight: 1.2 }}>
-                  {line}
-                </Typography>
-              ))}
-            </Box>
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">{tafSummaryLabel}</Typography>
+          <Box
+            className="row--label-right-hover__content"
+            sx={{
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              gap: 0,
+            }}
+          >
+            {tafSummaryLines.map((line, index) => (
+              <Typography key={`${line}-${index}`} className="row--text" sx={{ minHeight: 'unset', lineHeight: 1.2 }}>
+                {line}
+              </Typography>
+            ))}
           </Box>
-        )}
+        </Box>
 
         {/* Download-knap */}
         <Box className="row--label-right-hover">

@@ -149,7 +149,7 @@ export const buildIndkomstSectionStatuses = (
 
     const satserErrorField = resolveSatserErrorField(af, skadesdato);
     const satserStatus: DebugStatus = satserErrorField ? 'error' : 'ok';
-    const satserMessage = satserErrorField ? `Forkert værdi indtastet i ${satserErrorField}` : '-';
+    const satserMessage = satserErrorField ? `Forkert værdi indtastet i ${satserErrorField}` : 'Ja';
 
     const tableRows = af.indtaegtsoplysningerTableData ?? [];
     const cellErrors = buildAarsloenCellErrors(tableRows, af.loenperiode);
@@ -160,7 +160,7 @@ export const buildIndkomstSectionStatuses = (
     });
 
     let tableStatus: DebugStatus = 'ok';
-    let tableMessage = '-';
+    let tableMessage = 'Ja';
     if (tableValidation.summary.hasErrors) {
       tableStatus = 'error';
       tableMessage = tableValidation.summary.firstErrorCell?.reason === 'input'

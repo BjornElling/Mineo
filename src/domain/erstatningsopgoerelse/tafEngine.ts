@@ -17,7 +17,7 @@ export const buildTafDerived = (args: {
 }): TafDerivedResult => {
   const beregningsenhed = computeTafBeregningsenhed(args.values);
   const visAntalMaaneder = beregningsenhed === TAF_BEREGNES_SOM.MAANEDER;
-  const kolonneOverskrift = visAntalMaaneder ? 'Antal måneder' : 'Antal arbejdsdage';
+  const kolonneOverskrift = visAntalMaaneder ? 'TAF-måneder' : 'TAF-arbejdsdage';
   const tafBounds = resolveTafConstraintBounds(args.values);
 
   const derivedById: Record<string, number | null> = {};

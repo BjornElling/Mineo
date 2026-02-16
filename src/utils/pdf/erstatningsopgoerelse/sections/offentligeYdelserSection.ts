@@ -3,12 +3,10 @@ import { amountValueToDisplayString, amountValueToNumber } from '../../../expres
 import { formatAsAmount } from '../../../formatUtils';
 import { ydelsestyper } from '../../../../data/ydelsestyper';
 import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/indkomstRowValidation';
-import type { ISODateString } from '../../../../types/branded';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
+import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/periodRangeGroups';
 
 type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
-type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
-
 const OFFENTLIGE_YDELSER_HEADERS = [
   'Fra-dato',
   'Til-dato',
@@ -56,16 +54,9 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
     renderStandardPdfTable,
     writer,
   } = ctx;
+  const normalizedBilagMode = normalizeBilagIndkomstYdelserMode(bilagIndkomstYdelserMode);
 
   const offentligeErrorRowIds = getOffentligeYdelserErrorRowIdSet(eoValues.offentligeYdelserRows ?? []);
-  const rows = (eoValues.offentligeYdelserRows ?? []).filter((row) => {
-    return shouldIncludeOffentligYdelseRowInBilag({
-      row,
-      mode: bilagIndkomstYdelserMode,
-      ranges: bilagIndkomstYdelserRanges,
-      errorRowIds: offentligeErrorRowIds,
-    });
-  });
 
   const renderOffentligeYdelserTable = (rowsToRender: readonly OffentligeYdelserRow[]) => {
     const headerRow: RowInput = OFFENTLIGE_YDELSER_HEADERS.map((header) => ({
@@ -136,9 +127,30 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
     }
   };
 
-  if (rows.length === 0) return;
+  const rangeGroups = buildPeriodRangeGroups(eoValues, bilagIndkomstYdelserMode, bilagIndkomstYdelserRanges);
+  const groupedRows = rangeGroups.map((group) => ({
+    group,
+    rows: (eoValues.offentligeYdelserRows ?? []).filter((row) => {
+      return shouldIncludeOffentligYdelseRowInBilag({
+        row,
+        mode: normalizedBilagMode,
+        ranges: group.ranges,
+        errorRowIds: offentligeErrorRowIds,
+      });
+    }),
+  })).filter((entry) => entry.rows.length > 0);
+  const skalVisePeriodeSubheadings = groupedRows.length > 1;
+
+  if (groupedRows.length === 0) return;
 
   startBilagPage('Offentlige ydelser');
   writer.addSpacer(lineHeight);
-  renderOffentligeYdelserTable(rows);
+  for (const [index, entry] of groupedRows.entries()) {
+    if (skalVisePeriodeSubheadings && entry.group.label) {
+      if (index > 0) writer.addSpacer(lineHeight);
+      renderSubheader(entry.group.label, lineHeight, { addTopSpacing: index > 0 });
+      writer.addSpacer(lineHeight);
+    }
+    renderOffentligeYdelserTable(entry.rows);
+  }
 };

@@ -1071,8 +1071,8 @@ export const buildEODebugSvieSmerteRows = (
 
   rows.push({
     id: 'sviesmerte.beregnetPeriode',
-    label: 'Svie/smerteperioder i erstatningsperioden',
-    displayValue: beregnetPeriodeResult.displayValue,
+    label: 'Svie/smerte-perioder i erstatningsperioden',
+    displayValue: beregnetPeriodeResult.displayValue === '-' ? 'Nej' : beregnetPeriodeResult.displayValue,
     status: beregnetPeriodeResult.status,
     dependsOn: [
       { kind: 'id', id: 'erstatningsopgoerelse.vedroererPeriode' },
@@ -2796,6 +2796,7 @@ export const buildEODebugIndkomstRows = (
         status: allowIncompleteOverenskomst ? 'warning' as DebugStatus : 'error' as DebugStatus,
       };
     })();
+    const harTafDatointerval = Boolean(tafBoundaryDates.first && tafBoundaryDates.last);
 
     rows.push({
       id: `${loenudviklingRowPrefix}.reguleringsvaerdi`,
@@ -2809,29 +2810,31 @@ export const buildEODebugIndkomstRows = (
       dependsOn: [{ kind: 'id', id: `${loenudviklingRowPrefix}.alleVaerdier` }],
     });
 
-    rows.push({
-      id: `${loenudviklingRowPrefix}.startvaerdi`,
-      label: 'Reguleringsværdi på start-dato',
-      displayValue: startDateRowStatus.displayValue,
-      status: startDateRowStatus.status,
-      message: buildReguleringsMangelMessage(
-        startDateRowStatus.status,
-        startDateRowStatus.displayValue
-      ),
-      dependsOn: [{ kind: 'id', id: `${loenudviklingRowPrefix}.alleVaerdier` }],
-    });
+    if (harTafDatointerval) {
+      rows.push({
+        id: `${loenudviklingRowPrefix}.startvaerdi`,
+        label: 'Reguleringsværdi på start-dato',
+        displayValue: startDateRowStatus.displayValue,
+        status: startDateRowStatus.status,
+        message: buildReguleringsMangelMessage(
+          startDateRowStatus.status,
+          startDateRowStatus.displayValue
+        ),
+        dependsOn: [{ kind: 'id', id: `${loenudviklingRowPrefix}.alleVaerdier` }],
+      });
 
-    rows.push({
-      id: `${loenudviklingRowPrefix}.slutvaerdi`,
-      label: 'Reguleringsværdi på slut-dato',
-      displayValue: endDateRowStatus.displayValue,
-      status: endDateRowStatus.status,
-      message: buildReguleringsMangelMessage(
-        endDateRowStatus.status,
-        endDateRowStatus.displayValue
-      ),
-      dependsOn: [{ kind: 'id', id: `${loenudviklingRowPrefix}.alleVaerdier` }],
-    });
+      rows.push({
+        id: `${loenudviklingRowPrefix}.slutvaerdi`,
+        label: 'Reguleringsværdi på slut-dato',
+        displayValue: endDateRowStatus.displayValue,
+        status: endDateRowStatus.status,
+        message: buildReguleringsMangelMessage(
+          endDateRowStatus.status,
+          endDateRowStatus.displayValue
+        ),
+        dependsOn: [{ kind: 'id', id: `${loenudviklingRowPrefix}.alleVaerdier` }],
+      });
+    }
   });
 
   return rows;

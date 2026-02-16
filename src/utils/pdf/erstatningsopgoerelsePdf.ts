@@ -37,7 +37,7 @@ import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '
 import { getStatistiskLoenudvikling } from '../../data/statistiskLoenudviklingRates';
 import { formatKRLSatstabelDisplay, getKRLSatstabel, isKRLSatstabelId, type KRLSatstabelId } from '../../data/KRLrates';
 import { clampTafRow, resolveTafConstraintBounds } from '../../domain/erstatningsopgoerelse/tafPeriodConstraints';
-import { buildBeregningsperiodeRange, buildIncomeForRanges, parseAarsloenRowInterval } from '../../domain/erstatningsopgoerelse/indtaegtPerioder';
+import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, parseAarsloenRowInterval } from '../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import { erDetteFoersteErstatningsopgoerelse } from '../../domain/erstatningsopgoerelse/eoNummerValidering';
 import {
   STORE_BEDEDAG_START,
@@ -248,29 +248,9 @@ export const buildBilagIndkomstYdelserRanges = (
   mode: BilagLoenindkomstOgOffentligeYdelserIndgaar
 ): readonly IsoRange[] => {
   if (mode === 'Alle') return [];
-
-  const ranges: IsoRange[] = [];
-  const erstatningsFra = parseOptionalIsoDate(eoValues.vedroererPeriodeFra);
-  const erstatningsTil = parseOptionalIsoDate(eoValues.vedroererPeriodeTil);
-  if (erstatningsFra && erstatningsTil && erstatningsFra <= erstatningsTil) {
-    ranges.push({ fra: erstatningsFra, til: erstatningsTil });
-  }
-
-  const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(eoValues.eoNummer);
-  if (erFoersteOpgoerelse && eoValues.beregnesUdFra === 'Beregningsperiode') {
-    // NOTE: Besluttet UX-semantik (dokumenteret).
-    // Ved første erstatningsopgørelse inkluderer "Perioden" både vedrører-perioden
-    // og beregningsperioden, men KUN når beregnesUdFra = 'Beregningsperiode'.
-    // Dette er den ønskede adfærd og må ikke udvides til andre beregningsgrundlag.
-    // Ved senere erstatningsopgørelser inkluderer "Perioden" kun vedrører-perioden.
-    const beregningsFra = parseOptionalIsoDate(eoValues.periodeTilBeregningFra);
-    const beregningsTil = parseOptionalIsoDate(eoValues.periodeTilBeregningTil);
-    if (beregningsFra && beregningsTil && beregningsFra <= beregningsTil) {
-      ranges.push({ fra: beregningsFra, til: beregningsTil });
-    }
-  }
-
-  return ranges;
+  // "Perioden" skal følge de aktuelle TAF-perioder (clampet til gældende bounds).
+  // Hvis der ingen TAF-perioder er, returneres tom liste.
+  return buildTafRanges(eoValues);
 };
 
 const shouldIncludeByBilagRanges = (
@@ -1782,7 +1762,12 @@ export const generateErstatningsopgoerelsePdf = (
     writer,
   });
 
-  if (selectedElements.loenindkomst) {
+  const skalFiltrereBilagTilKunPerioden =
+    eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar === 'Perioden';
+  const skalViseIndkomstOgYdelserBilag =
+    !skalFiltrereBilagTilKunPerioden || model.tabtArbejdsfortjeneste.harTafPerioder;
+
+  if (selectedElements.loenindkomst && skalViseIndkomstOgYdelserBilag) {
     renderLoenindkomstSection({
       selectedElements,
       eoValues,
@@ -1812,7 +1797,7 @@ export const generateErstatningsopgoerelsePdf = (
     });
   }
 
-  if (selectedElements.offentligeYdelser) {
+  if (selectedElements.offentligeYdelser && skalViseIndkomstOgYdelserBilag) {
     renderOffentligeYdelserSection({
       eoValues,
       lineHeight,
@@ -1832,7 +1817,7 @@ export const generateErstatningsopgoerelsePdf = (
     });
   }
 
-  if (selectedElements.regulering && shouldIncludeReguleringBilag(eoValues)) {
+  if (selectedElements.regulering && skalViseIndkomstOgYdelserBilag && shouldIncludeReguleringBilag(eoValues)) {
     renderReguleringSection({
       eoValues,
       stamdataValues,
@@ -1888,4 +1873,3 @@ export const generateErstatningsopgoerelsePdf = (
   // Download PDF
   writer.save(resolvePdfFileName(titel, visUdkastStempel, model.brevhoved?.journalnr));
 };
-

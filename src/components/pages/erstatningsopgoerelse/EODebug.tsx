@@ -51,11 +51,11 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../../utils/aarsloenTableCalculations';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from '../../../domain/erstatningsopgoerelse/eoDebugIndkomstModel';
-import { calculateTafAntalMaanederPraecis, calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/tafCalculations';
+import { calculateTafAntalMaaneder, calculateTafAntalMaanederPraecis, calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/tafCalculations';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { computeTafOverlapWithBeregningsperiode } from '../../../domain/erstatningsopgoerelse/beregningsperiodeTafOverlap';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
-import { buildIncomeForRanges, parseAarsloenRowInterval } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
+import { buildBeregningsperiodeRange, buildIncomeForRanges, parseAarsloenRowInterval } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import { iterateDatesInclusive, maxISO, minISO, type DateInterval, validateIsoRange } from '../../../utils/isoDateHelpers';
 import {
   TIMER_TIL_MAANED_FAKTOR,
@@ -393,6 +393,7 @@ const EODebug = () => {
 
   const beregnesSvieSmerte = erstatningsopgoerelseValues.beregnesSvieSmerteGodtgoerelse === 'Ja';
   const beregnesTabtArbejdsfortjeneste = erstatningsopgoerelseValues.beregnesTabtArbejdsfortjeneste === 'Ja';
+  const varigeMenErSynlig = erstatningsopgoerelseValues.varigeMenAfgorelse === 'Ja';
   const midlertidigtEetErSynlig = erstatningsopgoerelseValues.midlertidigtEetAfgorelse === 'Ja';
   const endeligtEetErSynlig = erstatningsopgoerelseValues.endeligtEetAfgorelse === 'Ja';
 
@@ -431,6 +432,22 @@ const EODebug = () => {
   const svieSmerteRows = rowsBySection.get('sviesmerte') ?? [];
   const svieSmerteOphoerRow = svieSmerteRows.find((row) => (row.id as string) === 'sviesmerte.ophoerSkyldes');
   const svieSmerteMainRows = svieSmerteRows.filter((row) => (row.id as string) !== 'sviesmerte.ophoerSkyldes');
+  const harSvieSmertePerioderIErstatningsperioden = svieSmerteRows.some((row) => (
+    (row.id as string) === 'sviesmerte.beregnetPeriode' && row.displayValue !== 'Nej'
+  ));
+  const synligeSvieSmerteMainRows = svieSmerteMainRows.filter((row) => {
+    if (harSvieSmertePerioderIErstatningsperioden) return true;
+    return row.id !== 'sviesmerte.antalDage' && row.id !== 'sviesmerte.beregnetBeloeb';
+  });
+  const svieSmertePeriodeRows = synligeSvieSmerteMainRows.filter((row) => row.id.startsWith('sviesmerte.periode.'));
+  const skalSamleSvieSmertePeriodeRows = svieSmertePeriodeRows.length > 1;
+  const samletSvieSmertePerioderDisplay = svieSmertePeriodeRows.map((row) => row.displayValue).join('\n');
+  const samletSvieSmertePerioderStatus: DebugStatus =
+    svieSmertePeriodeRows.some((row) => row.status === 'error')
+      ? 'error'
+      : svieSmertePeriodeRows.some((row) => row.status === 'warning')
+        ? 'warning'
+        : 'ok';
 
   const {
     loenindkomstAnsaettelsesforhold,
@@ -623,6 +640,7 @@ const EODebug = () => {
       const foersteTafDatoStatus: DebugStatus = foersteTafDatoDisplay === '-' ? 'error' : 'ok';
       const tafStartIso = foersteTafDatoISkadetPeriode;
       const tafEndIso = sidsteTafDatoISkadetPeriode;
+      const harTafDatointerval = Boolean(tafStartIso && tafEndIso);
 
       const reguleringsRange = (() => {
         if (loenudviklingBasis === 'Overenskomst') {
@@ -1922,43 +1940,47 @@ const EODebug = () => {
         }
 
         if (showReguleringDetails) {
+          rows.push({
+            id: 'regulering.reguleringsdato',
+            label: reguleringsdatoLabel,
+            displayValue: reguleringsdatoDisplay,
+            status: reguleringsdatoStatus,
+          });
+          rows.push({
+            id: 'regulering.reguleringsvaerdi',
+            label: 'Reguleringsværdi på reguleringsdato',
+            displayValue: reguleringsvaerdiRow.display,
+            status: reguleringsvaerdiRow.status,
+          });
+          if (harTafDatointerval) {
+            rows.push(
+              {
+                id: 'regulering.foersteTafDato',
+                label: 'Første dato i TAF-periode',
+                displayValue: foersteTafDatoDisplay,
+                status: foersteTafDatoStatus,
+              },
+              {
+                id: 'regulering.startvaerdi',
+                label: 'Reguleringsværdi på start-dato',
+                displayValue: startDateRow.display,
+                status: startDateRow.status,
+              },
+              {
+                id: 'regulering.slutdato',
+                label: 'Sidste dato i TAF-periode',
+                displayValue: sidsteTafDatoDisplay,
+                status: sidsteTafDatoStatus,
+              },
+              {
+                id: 'regulering.slutvaerdi',
+                label: 'Reguleringsværdi på slut-dato',
+                displayValue: endDateRow.display,
+                status: endDateRow.status,
+              }
+            );
+          }
           rows.push(
-            {
-              id: 'regulering.reguleringsdato',
-              label: reguleringsdatoLabel,
-              displayValue: reguleringsdatoDisplay,
-              status: reguleringsdatoStatus,
-            },
-            {
-              id: 'regulering.reguleringsvaerdi',
-              label: 'Reguleringsværdi på reguleringsdato',
-              displayValue: reguleringsvaerdiRow.display,
-              status: reguleringsvaerdiRow.status,
-            },
-            {
-              id: 'regulering.foersteTafDato',
-              label: 'Første dato i TAF-periode',
-              displayValue: foersteTafDatoDisplay,
-              status: foersteTafDatoStatus,
-            },
-            {
-              id: 'regulering.startvaerdi',
-              label: 'Reguleringsværdi på start-dato',
-              displayValue: startDateRow.display,
-              status: startDateRow.status,
-            },
-            {
-              id: 'regulering.slutdato',
-              label: 'Sidste dato i TAF-periode',
-              displayValue: sidsteTafDatoDisplay,
-              status: sidsteTafDatoStatus,
-            },
-            {
-              id: 'regulering.slutvaerdi',
-              label: 'Reguleringsværdi på slut-dato',
-              displayValue: endDateRow.display,
-              status: endDateRow.status,
-            },
             ...(anciennitetToggleRow ? [anciennitetToggleRow] : []),
             ...(anciennitetBeregningRow ? [anciennitetBeregningRow] : [])
           );
@@ -2001,6 +2023,10 @@ const EODebug = () => {
   const differencekravDatoRow = React.useMemo(() => {
     return rowsBySection.get('aes')?.find((row) => (row.id as string) === 'aes.differencekravDato');
   }, [rowsBySection]);
+  const tafRows = rowsBySection.get('taf') ?? [];
+  const tafPeriodeRowsTilVisning = tafRows.filter(
+    (row) => row.id.startsWith('taf.periode.') && row.displayValue !== '-'
+  );
 
   const aesRows = rowsBySection.get('aes') ?? [];
   const aesVarigeMenRows = aesRows.filter((row) => row.group === 'aes.varigeMen');
@@ -2011,7 +2037,10 @@ const EODebug = () => {
   const pdfModelForDebug = React.useMemo(() => {
     try {
       return buildErstatningsopgoerelsePdfModel(stamdataValues, erstatningsopgoerelseValues, { dagsDatoISO: TODAY });
-    } catch {
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Kunne ikke bygge PDF-model til EODebug', error);
+      }
       return null;
     }
   }, [erstatningsopgoerelseValues, stamdataValues]);
@@ -2021,60 +2050,90 @@ const EODebug = () => {
     ydelseRows: ReadonlyArray<IndkomstRow>;
   }> => {
     if (erstatningsopgoerelseValues.beregnesUdFra !== 'Beregningsperiode') return { loenRows: [], ydelseRows: [] };
-    const indkomst = pdfModelForDebug?.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
-    if (!indkomst) return { loenRows: [], ydelseRows: [] };
+    const beregningsperiodeRange = buildBeregningsperiodeRange(erstatningsopgoerelseValues);
+    if (!beregningsperiodeRange) return { loenRows: [], ydelseRows: [] };
 
-    const loenRows: IndkomstRow[] = indkomst.arbejdssteder
-      .filter((entry) => entry.breakdown.samletOre > 0)
+    const indkomst = buildIncomeForRanges(erstatningsopgoerelseValues, [beregningsperiodeRange]);
+
+    const loenRows: IndkomstRow[] = indkomst.employers
+      .filter((entry) => entry.amount > 0)
       .map((entry, index) => {
         const baseLabel = index === 0 ? 'Ansættelsesforhold' : `Ansættelsesforhold ${index + 1}`;
-        const label = entry.navn !== '' ? `${baseLabel} (${entry.navn})` : baseLabel;
+        const label = entry.name !== '' ? `${baseLabel} (${entry.name})` : baseLabel;
         return {
           id: `taf.beregningsgrundlag.indkomst.loen.${index}`,
           label,
-          displayValue: formatCurrency(entry.breakdown.samletOre / 100),
+          displayValue: formatCurrency(entry.amount),
           status: 'ok',
-          value: entry.breakdown.samletOre / 100,
+          value: entry.amount,
         };
       });
 
-    const ydelseRows: IndkomstRow[] = indkomst.offentligeYdelser
-      .filter((entry) => entry.amountOre > 0)
+    const ydelseRows: IndkomstRow[] = indkomst.benefits
+      .filter((entry) => entry.amount > 0)
       .map((entry) => ({
         id: `taf.beregningsgrundlag.indkomst.ydelse.${entry.label}`,
         label: entry.label,
-        displayValue: formatCurrency(entry.amountOre / 100),
+        displayValue: formatCurrency(entry.amount),
         status: 'ok',
-        value: entry.amountOre / 100,
+        value: entry.amount,
       }));
 
     return { loenRows, ydelseRows };
-  }, [erstatningsopgoerelseValues.beregnesUdFra, pdfModelForDebug]);
+  }, [erstatningsopgoerelseValues]);
 
   const referenceloenRow = React.useMemo(() => {
     if (erstatningsopgoerelseValues.beregnesUdFra !== 'Beregningsperiode') return null;
-    const indkomst = pdfModelForDebug?.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
-    if (!indkomst) return { label: '-', displayValue: '-', status: 'error' as DebugStatus };
+    const beregningsperiodeRange = buildBeregningsperiodeRange(erstatningsopgoerelseValues);
+    if (!beregningsperiodeRange) return { label: '-', displayValue: '-', status: 'error' as DebugStatus };
 
-    const loenAddends = indkomst.arbejdssteder
-      .map((entry) => entry.breakdown.samletOre)
+    const indkomst = buildIncomeForRanges(erstatningsopgoerelseValues, [beregningsperiodeRange]);
+
+    const loenAddends = indkomst.employers
+      .map((entry) => entry.amount)
       .filter((value) => value > 0);
     const addendsOre = [
       ...loenAddends,
-      ...(indkomst.offentligeYdelserTotalOre > 0 ? [indkomst.offentligeYdelserTotalOre] : []),
+      ...indkomst.benefits.map((entry) => entry.amount).filter((value) => value > 0),
     ];
     if (addendsOre.length === 0) {
       return { label: '-', displayValue: '-', status: 'ok' as DebugStatus };
     }
 
-    const beregnesSom = indkomst.beregningsenhed;
-    const divisor = beregnesSom === TAF_BEREGNES_SOM.MAANEDER ? indkomst.maaneder : indkomst.arbejdsdage;
+    const beregnesSom = computeTafBeregningsenhed(erstatningsopgoerelseValues);
+    const periodeFra = beregningsperiodeRange.fra;
+    const periodeTil = beregningsperiodeRange.til;
+    const loseFeriedage =
+      typeof erstatningsopgoerelseValues.uspecificeredeFerieFridage === 'number'
+        ? erstatningsopgoerelseValues.uspecificeredeFerieFridage
+        : 0;
+    const oevrigeFravaersdageValue =
+      erstatningsopgoerelseValues.oevrigtFravaerUdenLoen === 'Ja' &&
+      typeof erstatningsopgoerelseValues.oevrigeFravaersdage === 'number'
+        ? erstatningsopgoerelseValues.oevrigeFravaersdage
+        : 0;
+
+    const divisor = beregnesSom === TAF_BEREGNES_SOM.MAANEDER
+      ? calculateTafAntalMaaneder(
+        periodeFra,
+        periodeTil,
+        ferieperioder ?? [],
+        loseFeriedage,
+        oevrigeFravaersdageValue
+      )
+      : calculateTafArbejdsdageBreakdown(
+        periodeFra,
+        periodeTil,
+        ferieperioder ?? [],
+        loseFeriedage,
+        { kind: 'beregningsgrundlag', oevrigeFravaersdage: oevrigeFravaersdageValue }
+      )?.tafDage ?? null;
     const divisorLabel = beregnesSom === TAF_BEREGNES_SOM.MAANEDER ? 'måneder' : 'arbejdsdage';
-    if (!divisor || !Number.isFinite(divisor) || divisor <= 0) {
+    if (typeof divisor !== 'number' || !Number.isFinite(divisor) || divisor <= 0) {
       return { label: '-', displayValue: '-', status: 'error' as DebugStatus };
     }
 
-    const formattedEntries = addendsOre.map((value) => formatCurrency(value / 100));
+    const formattedEntries = addendsOre.map((value) => formatCurrency(value));
     const divisorDisplay = beregnesSom === TAF_BEREGNES_SOM.MAANEDER
       ? formatMaanederTrimmed(divisor)
       : Math.trunc(divisor).toLocaleString('da-DK');
@@ -2083,14 +2142,10 @@ const EODebug = () => {
       ? `${formattedEntries[0]} kr. / ${divisorDisplay} ${divisorLabel} =`
       : `(${formattedEntries.join(' + ')} kr.) / ${divisorDisplay} ${divisorLabel} =`;
 
-    const loenCalculable = beregnesSom === TAF_BEREGNES_SOM.MAANEDER ? indkomst.maanedsloen : indkomst.dagsloen;
-    if (loenCalculable.status !== 'ok') {
-      return { label, displayValue: '-', status: 'error' as DebugStatus };
-    }
-
-    const displayValue = formatCurrency(loenCalculable.value / 100);
+    const totalAddends = addendsOre.reduce((sum, value) => sum + value, 0);
+    const displayValue = formatCurrency(totalAddends / divisor);
     return { label, displayValue, status: 'ok' as DebugStatus };
-  }, [erstatningsopgoerelseValues.beregnesUdFra, pdfModelForDebug]);
+  }, [erstatningsopgoerelseValues, ferieperioder]);
 
   const indkomstManglerIBeregningsperiodenRow = React.useMemo(() => {
     return rowsBySection
@@ -2153,7 +2208,10 @@ const EODebug = () => {
 
         <Typography className="row--subheading">Varige mén</Typography>
 
-        {aesVarigeMenRows.map((row) => {
+        {aesVarigeMenRows.filter((row) => {
+          if (varigeMenErSynlig) return true;
+          return row.id !== 'aes.menAfgoerelseDato';
+        }).map((row) => {
           return (
             <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
               <Typography className="row--text">{row.label}</Typography>
@@ -2254,31 +2312,63 @@ const EODebug = () => {
 
         {beregnesSvieSmerte && (
           <>
-            {svieSmerteMainRows.map((row) => {
+            {(() => {
+              let harRenderetSamletPeriode = false;
+              return synligeSvieSmerteMainRows.map((row) => {
+                const erPeriodeRow = row.id.startsWith('sviesmerte.periode.');
+                if (skalSamleSvieSmertePeriodeRows && erPeriodeRow) {
+                  if (harRenderetSamletPeriode) return null;
+                  harRenderetSamletPeriode = true;
+                  return (
+                    <Box
+                      key="sviesmerte.periode.samlet"
+                      className="row--label-right-hover"
+                      sx={{ '--label-width': '300px', alignItems: 'flex-start' }}
+                    >
+                      <Typography className="row--text" sx={{ minWidth: '300px' }}>Periode</Typography>
+                      <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                        <Typography
+                          className="row--text"
+                          sx={{
+                            maxWidth: '600px',
+                            wordBreak: 'break-word',
+                            whiteSpace: 'pre-line',
+                            textAlign: 'right',
+                          }}
+                        >
+                          {samletSvieSmertePerioderDisplay}
+                        </Typography>
+                        {getStatusIcon(samletSvieSmertePerioderStatus)}
+                      </Box>
+                    </Box>
+                  );
+                }
+
               // Periode-rækker får en bredere label-width for at forhindre tekst-komprimering
               const labelWidth = row.id.startsWith('sviesmerte.periode.') ? '300px' : LABEL_WIDTH;
               // Multi-line displayValue kræver whiteSpace: 'pre-line' for at vise linjeskift
               const hasMultipleLines = row.displayValue.includes('\n');
-              return (
-                <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': labelWidth }}>
-                  <Typography className="row--text" sx={{ minWidth: labelWidth }}>{row.label}</Typography>
-                  <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                    <Typography
-                      className="row--text"
-                      sx={{
-                        maxWidth: '600px',
-                        wordBreak: 'break-word',
-                        whiteSpace: hasMultipleLines ? 'pre-line' : 'normal',
-                        textAlign: hasMultipleLines ? 'right' : 'left'
-                      }}
-                    >
-                      {row.displayValue}
-                    </Typography>
-                    {getStatusIcon(row.status)}
+                return (
+                  <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': labelWidth }}>
+                    <Typography className="row--text" sx={{ minWidth: labelWidth }}>{row.label}</Typography>
+                    <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                      <Typography
+                        className="row--text"
+                        sx={{
+                          maxWidth: '600px',
+                          wordBreak: 'break-word',
+                          whiteSpace: hasMultipleLines ? 'pre-line' : 'normal',
+                          textAlign: hasMultipleLines ? 'right' : 'left'
+                        }}
+                      >
+                        {row.displayValue}
+                      </Typography>
+                      {getStatusIcon(row.status)}
+                    </Box>
                   </Box>
-                </Box>
-              );
-            })}
+                );
+              });
+            })()}
           </>
         )}
       </ContentBox>
@@ -2319,7 +2409,7 @@ const EODebug = () => {
 
             <Typography className="row--subheading">TAF-perioder</Typography>
 
-            {rowsBySection.get('taf')?.filter((row) => row.id.startsWith('taf.periode.')).map((row) => {
+            {tafPeriodeRowsTilVisning.map((row) => {
               const labelWidth = row.id.startsWith('taf.periode.') ? '340px' : LABEL_WIDTH;
               const hasMultipleLines = row.displayValue.includes('\n');
               return (
@@ -2341,14 +2431,27 @@ const EODebug = () => {
               );
             })}
 
+            {tafPeriodeRowsTilVisning.length === 0 && (
+              <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                <Typography className="row--text">Perioder</Typography>
+                <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                  <Typography className="row--text">Ingen</Typography>
+                  {getStatusIcon('ok')}
+                </Box>
+              </Box>
+            )}
+
             <Typography className="row--subheading">Ferie i TAF-perioden:</Typography>
 
             {rowsBySection.get('taf')?.filter((row) => row.id.startsWith('taf.ferie.')).map((row) => {
+              const isTomFerieRow = (row.id as string) === 'taf.ferie.empty';
+              const label = isTomFerieRow ? 'Ferieperioder' : row.label;
+              const displayValue = isTomFerieRow && row.displayValue === '-' ? 'Ingen' : row.displayValue;
               return (
                 <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-                  <Typography className="row--text">{row.label}</Typography>
+                  <Typography className="row--text">{label}</Typography>
                   <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                    <Typography className="row--text">{row.displayValue}</Typography>
+                    <Typography className="row--text">{displayValue}</Typography>
                     {getStatusIcon(row.status)}
                   </Box>
                 </Box>
@@ -2581,7 +2684,7 @@ const EODebug = () => {
             </Box>
 
             <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-              <Typography className="row--text">Satser på skadestidspunktet</Typography>
+              <Typography className="row--text">Satser på skadestidspunktet indtastet</Typography>
               <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
                 <Typography className="row--text">{section.satserMessage}</Typography>
                 {getStatusIcon(section.satserStatus)}

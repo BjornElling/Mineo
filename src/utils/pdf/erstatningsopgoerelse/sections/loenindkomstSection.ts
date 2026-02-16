@@ -3,13 +3,12 @@ import { formatAsAmount } from '../../../formatUtils';
 import { amountValueToDisplayString } from '../../../expressionAmount';
 import { calculateAarsloenRowDerived } from '../../../aarsloenTableCalculations';
 import { getAarsloenErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/indkomstRowValidation';
-import type { ISODateString } from '../../../../types/branded';
 import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../../../schemas/formSchemas';
+import type { ISODateString } from '../../../../types/branded';
 import type { SelectedElements } from '../types';
+import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/periodRangeGroups';
 
 type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
-type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
-
 type LoenSectionContext = Readonly<{
   selectedElements: SelectedElements;
   eoValues: ErstatningsopgoerelseValues;
@@ -72,6 +71,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
   } = ctx;
 
   if (!selectedElements.loenindkomst) return;
+  const normalizedBilagMode = normalizeBilagIndkomstYdelserMode(bilagIndkomstYdelserMode);
 
   const formatAmountCell = (value: AarsloenTableRow['col2']): string => amountValueToDisplayString(value, 2);
   const loenErrorRowIdsByEmploymentId = new Map<string, ReadonlySet<string>>(
@@ -83,14 +83,15 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
 
   const renderLoenindkomstTable = (
     ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number],
-    errorRowIds: ReadonlySet<string>
+    errorRowIds: ReadonlySet<string>,
+    ranges: readonly IsoRange[]
   ) => {
     const rows = (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).filter((row) => {
       return shouldIncludeLoenRowInBilag({
         row,
         loenperiode: ansaettelsesforhold.loenperiode,
-        mode: bilagIndkomstYdelserMode,
-        ranges: bilagIndkomstYdelserRanges,
+        mode: normalizedBilagMode,
+        ranges,
         errorRowIds,
       });
     });
@@ -165,69 +166,94 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
     writer.setY(finalY + lineHeight);
   };
 
-  const ansaettelser = (eoValues.loenindkomstAnsaettelsesforhold ?? []).filter((ansaettelsesforhold) => {
-    const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
-    return (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).some((row) => {
-      return shouldIncludeLoenRowInBilag({
-        row,
-        loenperiode: ansaettelsesforhold.loenperiode,
-        mode: bilagIndkomstYdelserMode,
-        ranges: bilagIndkomstYdelserRanges,
-        errorRowIds,
-      });
-    });
-  });
-  if (ansaettelser.length === 0) return;
+  const rangeGroups = buildPeriodRangeGroups(eoValues, bilagIndkomstYdelserMode, bilagIndkomstYdelserRanges);
+  const hasRowsInAnyGroup = rangeGroups.some((group) =>
+    (eoValues.loenindkomstAnsaettelsesforhold ?? []).some((ansaettelsesforhold) => {
+      const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
+      return (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).some((row) =>
+        shouldIncludeLoenRowInBilag({
+          row,
+          loenperiode: ansaettelsesforhold.loenperiode,
+          mode: normalizedBilagMode,
+          ranges: group.ranges,
+          errorRowIds,
+        })
+      );
+    })
+  );
+  if (!hasRowsInAnyGroup) return;
 
   startBilagPage('Lønindkomst');
   writer.addSpacer(lineHeight);
-  for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
-    const fallbackNavn = `Ansættelsesforhold ${index + 1}`;
-    const arbejdsstedNavn = ansaettelsesforhold.navnPaaArbejdssted?.trim() || fallbackNavn;
-    if (index > 0) writer.addSpacer(lineHeight);
-    renderSubheader(arbejdsstedNavn, lineHeight, { addTopSpacing: index > 0 });
-    writer.addSpacer(lineHeight);
-    writeLabelValueLine(
-      'Ansat på skadestidspunktet',
-      formatJaNej(ansaettelsesforhold.ansatPaaSkadestidspunktet)
-    );
-    if (ansaettelsesforhold.ansatPaaSkadestidspunktet !== false) {
-      writeLabelValueLine(
-        'Opsagt fra stillingen',
-        (() => {
-          const isOpsagt = ansaettelsesforhold.ansaettelsesforholdOphoert;
-          if (!isOpsagt) return 'Nej';
-          const sidsteArbejdsdag = formatDateLong(ansaettelsesforhold.sidsteArbejdsdag);
-          if (!sidsteArbejdsdag) return 'Ja';
-          return `Ja, sidste arbejdsdag ${sidsteArbejdsdag}`;
-        })()
-      );
-    }
-    writer.addSpacer(lineHeight);
-    const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
-    if (overenskomstId) {
-      writeLabelValueLine('Overenskomst', resolveOverenskomstDisplay(overenskomstId));
+  for (const [groupIndex, group] of rangeGroups.entries()) {
+    const ansaettelser = (eoValues.loenindkomstAnsaettelsesforhold ?? []).filter((ansaettelsesforhold) => {
+      const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
+      return (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).some((row) => {
+        return shouldIncludeLoenRowInBilag({
+          row,
+          loenperiode: ansaettelsesforhold.loenperiode,
+          mode: normalizedBilagMode,
+          ranges: group.ranges,
+          errorRowIds,
+        });
+      });
+    });
+    if (ansaettelser.length === 0) continue;
+
+    if (group.label) {
+      if (groupIndex > 0) writer.addSpacer(lineHeight);
+      renderSubheader(group.label, lineHeight, { addTopSpacing: groupIndex > 0 });
       writer.addSpacer(lineHeight);
     }
-    if (selectedElements.okSatser) {
-      if (!isZeroPct(ansaettelsesforhold.feriePct)) {
-        writeLabelValueLine('Feriegodtgørelse/-tillæg:', formatPctFromInput(ansaettelsesforhold.feriePct));
+
+    for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
+      const fallbackNavn = `Ansættelsesforhold ${index + 1}`;
+      const arbejdsstedNavn = ansaettelsesforhold.navnPaaArbejdssted?.trim() || fallbackNavn;
+      if (index > 0) writer.addSpacer(lineHeight);
+      renderSubheader(arbejdsstedNavn, lineHeight, { addTopSpacing: index > 0 });
+      writer.addSpacer(lineHeight);
+      writeLabelValueLine(
+        'Ansat på skadestidspunktet',
+        formatJaNej(ansaettelsesforhold.ansatPaaSkadestidspunktet)
+      );
+      if (ansaettelsesforhold.ansatPaaSkadestidspunktet !== false) {
+        writeLabelValueLine(
+          'Opsagt fra stillingen',
+          (() => {
+            const isOpsagt = ansaettelsesforhold.ansaettelsesforholdOphoert;
+            if (!isOpsagt) return 'Nej';
+            const sidsteArbejdsdag = formatDateLong(ansaettelsesforhold.sidsteArbejdsdag);
+            if (!sidsteArbejdsdag) return 'Ja';
+            return `Ja, sidste arbejdsdag ${sidsteArbejdsdag}`;
+          })()
+        );
       }
-      if (!isZeroPct(ansaettelsesforhold.fritvalgPct)) {
-        writeLabelValueLine('Fritvalg:', formatPctFromInput(ansaettelsesforhold.fritvalgPct));
+      writer.addSpacer(lineHeight);
+      const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
+      if (overenskomstId) {
+        writeLabelValueLine('Overenskomst', resolveOverenskomstDisplay(overenskomstId));
+        writer.addSpacer(lineHeight);
       }
-      if (!isZeroPct(ansaettelsesforhold.shSoPct)) {
-        writeLabelValueLine('SH/SO-sats:', formatPctFromInput(ansaettelsesforhold.shSoPct));
+      if (selectedElements.okSatser) {
+        if (!isZeroPct(ansaettelsesforhold.feriePct)) {
+          writeLabelValueLine('Feriegodtgørelse/-tillæg:', formatPctFromInput(ansaettelsesforhold.feriePct));
+        }
+        if (!isZeroPct(ansaettelsesforhold.fritvalgPct)) {
+          writeLabelValueLine('Fritvalg:', formatPctFromInput(ansaettelsesforhold.fritvalgPct));
+        }
+        if (!isZeroPct(ansaettelsesforhold.shSoPct)) {
+          writeLabelValueLine('SH/SO-sats:', formatPctFromInput(ansaettelsesforhold.shSoPct));
+        }
+        if (!isZeroPct(ansaettelsesforhold.storeBededagPct)) {
+          writeLabelValueLine('Store Bededagstillæg:', formatPctFromInput(ansaettelsesforhold.storeBededagPct));
+        }
+        if (!isZeroPct(ansaettelsesforhold.pensionPct)) {
+          writeLabelValueLine('Arbejdsgivers pensionsbidrag:', formatPctFromInput(ansaettelsesforhold.pensionPct));
+        }
       }
-      if (!isZeroPct(ansaettelsesforhold.storeBededagPct)) {
-        writeLabelValueLine('Store Bededagstillæg:', formatPctFromInput(ansaettelsesforhold.storeBededagPct));
-      }
-      if (!isZeroPct(ansaettelsesforhold.pensionPct)) {
-        writeLabelValueLine('Arbejdsgivers pensionsbidrag:', formatPctFromInput(ansaettelsesforhold.pensionPct));
-      }
+      writer.addSpacer(lineHeight);
+      const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
+      renderLoenindkomstTable(ansaettelsesforhold, errorRowIds, group.ranges);
     }
-    writer.addSpacer(lineHeight);
-    const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
-    renderLoenindkomstTable(ansaettelsesforhold, errorRowIds);
   }
 };

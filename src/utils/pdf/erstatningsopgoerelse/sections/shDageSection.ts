@@ -4,6 +4,9 @@ import { parseISODate, type ISODateString } from '../../../../types/branded';
 import { beregnHelligdageMedNavn } from '../../../shDageBeregning';
 import { formatDateLong } from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
+import { buildTafRanges } from '../../../../domain/erstatningsopgoerelse/indtaegtPerioder';
+import { buildBeregningsperiodeRange } from '../../../../domain/erstatningsopgoerelse/indtaegtPerioder';
+import { erDetteFoersteErstatningsopgoerelse } from '../../../../domain/erstatningsopgoerelse/eoNummerValidering';
 
 type SHDageTableRow = Readonly<{
   ugedag: string;
@@ -145,28 +148,37 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
   safeAddWrappedText('Helligdage, der falder på hverdage (mandag-fredag).');
   writer.addSpacer(lineHeight);
 
-  if (eoValues.beregnesUdFra === 'Beregningsperiode') {
-    writer.addSpacer(lineHeight);
-    renderSubheader('Beregningsperiode', lineHeight, { addTopSpacing: false });
-    safeAddWrappedText(formatRangeLong(eoValues.periodeTilBeregningFra, eoValues.periodeTilBeregningTil));
-    writer.addSpacer(lineHeight);
-    const beregningsperiodeHelligdage = findHelligdageInRange(eoValues.periodeTilBeregningFra, eoValues.periodeTilBeregningTil);
-    if (beregningsperiodeHelligdage.length === 0) {
-      safeAddWrappedText('Ingen helligdage');
-      writer.addSpacer(lineHeight * 2);
-    } else {
-      renderShDageTable(beregningsperiodeHelligdage);
+  const renderPeriodeSection = (label: string, fra: ISODateString | undefined, til: ISODateString | undefined) => {
+    renderSubheader(label, lineHeight, { addTopSpacing: false });
+    if (!fra || !til || fra > til) {
+      safeAddWrappedText('Ingen periode');
       writer.addSpacer(lineHeight);
+      return;
     }
+    safeAddWrappedText(formatRangeLong(fra, til));
+    writer.addSpacer(lineHeight);
+    const helligdage = findHelligdageInRange(fra, til);
+    if (helligdage.length === 0) {
+      safeAddWrappedText('Ingen helligdage');
+      writer.addSpacer(lineHeight);
+      return;
+    }
+    renderShDageTable(helligdage);
+    writer.addSpacer(lineHeight);
+  };
+
+  const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(eoValues.eoNummer);
+  const beregningsperiodeRange =
+    eoValues.beregnesUdFra === 'Beregningsperiode' ? buildBeregningsperiodeRange(eoValues) : undefined;
+  const tafRanges = buildTafRanges(eoValues);
+  const tafFra = tafRanges.length > 0 ? tafRanges[0].fra : undefined;
+  const tafTil = tafRanges.length > 0 ? tafRanges[tafRanges.length - 1].til : undefined;
+
+  if (erFoersteOpgoerelse && beregningsperiodeRange) {
+    writer.addSpacer(lineHeight);
+    renderPeriodeSection('Beregningsperiode', beregningsperiodeRange.fra, beregningsperiodeRange.til);
+    writer.addSpacer(lineHeight);
   }
 
-  renderSubheader('Erstatningsperiode', lineHeight, { addTopSpacing: false });
-  safeAddWrappedText(formatRangeLong(eoValues.vedroererPeriodeFra, eoValues.vedroererPeriodeTil));
-  writer.addSpacer(lineHeight);
-  const erstatningsperiodeHelligdage = findHelligdageInRange(eoValues.vedroererPeriodeFra, eoValues.vedroererPeriodeTil);
-  if (erstatningsperiodeHelligdage.length === 0) {
-    safeAddWrappedText('Ingen helligdage');
-  } else {
-    renderShDageTable(erstatningsperiodeHelligdage);
-  }
+  renderPeriodeSection('TAF-periode', tafFra, tafTil);
 };
