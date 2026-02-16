@@ -1,5 +1,6 @@
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { computeTafEngine } from '../../../domain/erstatningsopgoerelse/tafBeregningsEngine';
+import { computeTafArbejdsdageAggregation, computeTafEngine } from '../../../domain/erstatningsopgoerelse/tafBeregningsEngine';
+import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { toISODateString } from '../../../types/branded';
 import type { TafPeriodeRow } from '../../../schemas/formSchemas';
 
@@ -222,5 +223,50 @@ describe('tafBeregningsEngine', () => {
 
     expect(output.rows).toHaveLength(1);
     expect(output.rows[0]?.value).toBe(8);
+  });
+
+  it('aggregates TAF hverdage when beregningsenhed is måneder', () => {
+    const values = baseValues();
+    const tafPerioder: TafPeriodeRow[] = [
+      {
+        id: 'row-1',
+        fra: toISODateString('2025-08-01'),
+        til: toISODateString('2026-01-31'),
+        loseFeriedage: 0,
+      },
+    ];
+
+    const aggregated = computeTafArbejdsdageAggregation({
+      erstatningsopgoerelse: values,
+      tafPerioder,
+      ferieperioder: [],
+      beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+    });
+
+    expect(aggregated).toBe(131);
+  });
+
+  it('aggregates TAF-dage when beregningsenhed is arbejdsdage', () => {
+    const values = {
+      ...baseValues(),
+      beregnesUdFra: 'Angivet dagsløn' as const,
+    };
+    const tafPerioder: TafPeriodeRow[] = [
+      {
+        id: 'row-1',
+        fra: toISODateString('2024-02-05'),
+        til: toISODateString('2024-02-09'),
+        loseFeriedage: 1,
+      },
+    ];
+
+    const aggregated = computeTafArbejdsdageAggregation({
+      erstatningsopgoerelse: values,
+      tafPerioder,
+      ferieperioder: [],
+      beregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
+    });
+
+    expect(aggregated).toBe(4);
   });
 });

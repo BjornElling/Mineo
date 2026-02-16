@@ -3,7 +3,7 @@ import type { ISODateString } from '../../types/branded';
 import type { DeepReadonly } from '../../types/deepReadonly';
 import { isISODateString } from '../../types/branded';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from './tafBeregningsenhed';
-import { calculateTafAntalArbejdsdage, calculateTafAntalMaaneder } from './tafCalculations';
+import { calculateTafAntalArbejdsdage, calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from './tafCalculations';
 import { mergeIsoDateRanges } from './periodMerging';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, type TafConstraintBounds } from './tafPeriodConstraints';
 
@@ -21,6 +21,13 @@ export type TafEngineRowResult = Readonly<{
 export type TafEngineOutput = Readonly<{
   beregningsenhed: TafBeregningsenhed;
   rows: ReadonlyArray<TafEngineRowResult>;
+}>;
+
+export type TafArbejdsdageAggregationInput = DeepReadonly<{
+  erstatningsopgoerelse: ErstatningsopgoerelseValues;
+  tafPerioder: ReadonlyArray<TafPeriodeRow>;
+  ferieperioder: ReadonlyArray<FerieperiodeRow>;
+  beregningsenhed: TafBeregningsenhed;
 }>;
 
 const roundTafValue = (value: number): number => {
@@ -118,4 +125,42 @@ export const computeTafEngine = (input: TafEngineInputSnapshot): TafEngineOutput
   });
 
   return { beregningsenhed, rows };
+};
+
+/**
+ * Beregner aggregerede TAF-arbejdsdage til kontrol/sammentælling.
+ *
+ * Vigtigt:
+ * - `Måneder`: returnerer antal hverdage (ingen fradrag for SH/ferie/løse dage).
+ * - `Arbejdsdage`: returnerer TAF-dage (med fradrag for SH/ferie/løse dage).
+ * - Returnerer `null`, når der ikke findes mindst én gyldig, clampet TAF-periode.
+ */
+export const computeTafArbejdsdageAggregation = (input: TafArbejdsdageAggregationInput): number | null => {
+  const { erstatningsopgoerelse, tafPerioder, ferieperioder, beregningsenhed } = input;
+  const tafBounds = resolveTafConstraintBounds(erstatningsopgoerelse);
+  const mergedGroups = buildMergedTafGroups(tafPerioder, tafBounds);
+
+  let sum = 0;
+  let countedGroups = 0;
+
+  for (const group of mergedGroups) {
+    if (!group.fra || !group.til) continue;
+    if (!isISODateString(group.fra) || !isISODateString(group.til)) continue;
+    if (group.fra > group.til) continue;
+
+    const breakdown = calculateTafArbejdsdageBreakdown(
+      group.fra,
+      group.til,
+      ferieperioder,
+      group.loseFeriedage,
+      { kind: 'taf' }
+    );
+    if (!breakdown) continue;
+
+    sum += beregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? breakdown.arbejdsdage : breakdown.tafDage;
+    countedGroups += 1;
+  }
+
+  if (countedGroups === 0) return null;
+  return Math.max(0, Math.trunc(sum));
 };

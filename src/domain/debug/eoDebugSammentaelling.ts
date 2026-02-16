@@ -5,13 +5,14 @@ import { subtractOneDay } from '../../types/branded';
 import { formatCurrency, parseAmount } from '../../utils/formatUtils';
 import { debugTabelColumnId } from './eoDebugLoenTypes';
 import type { EODebugModel } from './eoDebugModel';
-import { buildEODebugSvieSmerteRows, buildEODebugTaftRows } from '../erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
+import { buildEODebugSvieSmerteRows } from '../erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
 import { calculateTafArbejdsdageBreakdown } from '../erstatningsopgoerelse/tafCalculations';
 import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/beregningsperiodeTafOverlap';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../erstatningsopgoerelse/tafBeregningsenhed';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, type IsoRange } from '../erstatningsopgoerelse/indtaegtPerioder';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
 import { buildFerieDageSet, buildSHDageSet } from './eoDebugRegulationCore';
+import { computeTafArbejdsdageAggregation } from '../erstatningsopgoerelse/tafBeregningsEngine';
 
 export type SvieSmerteContext = Readonly<{
   skadesdatoISO: ISODateString | undefined;
@@ -390,13 +391,6 @@ const sumDebugTableColumnInRanges = (
   return { sum: hasValue ? sum : null, hasColumn: true };
 };
 
-const parseTafDaysFromDisplay = (value: string): number | null => {
-  const match = value.match(/=\s*([0-9.,]+)\s*(?:TAF-dage|arbejdsdage)/i);
-  if (!match) return null;
-  const parsed = parseAmount(match[1]);
-  return Number.isFinite(parsed) ? parsed : null;
-};
-
 const parseSvieSmerteCounts = (value: string): SvieSmerteCounts | null => {
   const trimmed = value.trim();
   if (trimmed === '' || trimmed === '-') {
@@ -472,10 +466,9 @@ export const buildEODebugSammentaellingModel = (args: {
   svieSmerteContext: SvieSmerteContext;
   taftContext: TaftContext;
 }): SammentaellingModel => {
-  const { values, errors, model, svieSmerteContext, taftContext } = args;
+  const { values, errors, model, svieSmerteContext } = args;
 
   const svieSmerteRows = buildEODebugSvieSmerteRows(values, errors, svieSmerteContext);
-  const taftRows = buildEODebugTaftRows(values, errors, taftContext);
   const beregningsenhed = computeTafBeregningsenhed(values);
 
   const beregningsRange = getIsoRange(values.periodeTilBeregningFra, values.periodeTilBeregningTil);
@@ -584,21 +577,12 @@ export const buildEODebugSammentaellingModel = (args: {
     return { beregnet, tabel };
   })();
 
-  const tafBeregnetDays = (() => {
-    let sum = 0;
-    let parsedCount = 0;
-    for (const row of taftRows) {
-      if (!row.id.startsWith('taf.periode.')) continue;
-      const parsed = parseTafDaysFromDisplay(row.displayValue);
-      if (parsed === null) continue;
-      sum += parsed;
-      parsedCount += 1;
-    }
-    const base = parsedCount > 0 ? Math.trunc(sum) : null;
-    if (base === null) return null;
-    if (beregningsenhed !== TAF_BEREGNES_SOM.MAANEDER) return base;
-    return base + tafFeriedageCount;
-  })();
+  const tafBeregnetDays = computeTafArbejdsdageAggregation({
+    erstatningsopgoerelse: values,
+    tafPerioder: values.tafPerioder ?? [],
+    ferieperioder: values.ferieperioder ?? [],
+    beregningsenhed,
+  });
 
   const beregningsperiodeArbejdsdage = (() => {
     if (values.beregnesUdFra !== 'Beregningsperiode') return null;
