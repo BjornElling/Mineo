@@ -6,9 +6,7 @@ import './index.css';
 import { setupPwaLaunchQueueConsumer } from './utils/pwaLaunchQueue';
 import { setupPwaInstallPromptCapture } from './utils/pwaInstallPrompt';
 import { VERSION } from './config/version';
-import App from './App';
-import LoginPage from './components/pages/LoginPage';
-import { isAuthenticated } from './auth/auth';
+import AuthGate from './components/AuthGate';
 
 const UNSUPPORTED_MAX_WIDTH_PX = 1024;
 const SW_UPDATE_CHECK_TIMEOUT_MS = 5000;
@@ -41,27 +39,6 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
-
-const AuthGate = (): React.JSX.Element => {
-  const [authenticated, setAuthenticated] = React.useState<boolean>(() => isAuthenticated());
-
-  React.useEffect(() => {
-    const handleStorage = (): void => {
-      setAuthenticated(isAuthenticated());
-    };
-
-    window.addEventListener('storage', handleStorage);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-    };
-  }, []);
-
-  if (authenticated) {
-    return <App />;
-  }
-
-  return <LoginPage onAuthenticated={() => setAuthenticated(true)} />;
-};
 
 const registerServiceWorker = async (): Promise<void> => {
   if (!import.meta.env.PROD) return;
