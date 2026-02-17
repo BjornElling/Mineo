@@ -337,8 +337,9 @@ const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
     }
 
     // Tab navigation - ALTID prevent default for at forhindre at forlade containeren
-    // If the active control looks like a popup-capable widget, do not interfere with its internal Tab semantics.
-    if (activeWidgetHasPopup || activeWidgetIsExpanded) {
+    // unless widget popup is currently expanded (open).
+    // Closed combobox/select controls must still participate in circular container Tab-order.
+    if (activeWidgetIsExpanded) {
       // KRITISK FIX: Selvom vi ikke intercepter Tab for popup-widgets,
       // skal vi stadig neutralisere selection på næste felt efter browser's default Tab.
       // Vi venter til næste frame (efter browser har flyttet fokus).

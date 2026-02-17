@@ -228,6 +228,35 @@ describe('Container keyboard navigation', () => {
     expect(document.activeElement).toBe(combobox);
   });
 
+  it('Tab fra sidste lukkede combobox går til første felt (cirkulær navigation)', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <input data-testid="field1" type="text" style={{ position: 'fixed' }} />
+        <input
+          style={{ position: 'fixed' }}
+          data-testid="combobox-last"
+          type="text"
+          role="combobox"
+          aria-haspopup="listbox"
+          aria-expanded="false"
+        />
+      </Container>
+    );
+
+    const field1 = screen.getByTestId('field1') as HTMLInputElement;
+    const comboboxLast = screen.getByTestId('combobox-last');
+
+    comboboxLast.focus();
+    expect(document.activeElement).toBe(comboboxLast);
+
+    await user.keyboard('{Tab}');
+    await waitForSelectionClear();
+
+    expect(document.activeElement).toBe(field1);
+  });
+
   it('Enter i textarea giver newline (ikke fokus-flytning)', async () => {
     const user = userEvent.setup();
 
