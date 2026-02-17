@@ -2,7 +2,15 @@ import * as React from 'react';
 import { Table, type TableProps } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { getMuiTableStyles, tableColors } from '../../config/tableTheme';
-import { handleTableBlurCapture, handleTableKeyDownCapture, handleTablePointerDownCapture } from './tableKeyboardNavigation';
+import { GridCoreProvider } from './gridCoreContext';
+import {
+  handleTableBlurCapture,
+  handleTableDoubleClickCapture,
+  handleTableFocusCapture,
+  handleTableKeyDownCapture,
+  handleTablePointerDownCapture,
+} from './tableKeyboardNavigation';
+import { useGridCoreController } from './useGridCoreController';
 
 export type StandardLooseTableProps = Omit<TableProps, 'sx'> & Readonly<{
   /**
@@ -15,7 +23,18 @@ export type StandardLooseTableProps = Omit<TableProps, 'sx'> & Readonly<{
   sx?: SxProps<Theme>;
 }>;
 
-const StandardLooseTable = React.memo(({ useSmallFont = false, sx, onKeyDownCapture, onBlurCapture, onPointerDownCapture, ...props }: StandardLooseTableProps) => {
+const StandardLooseTable = React.memo(({
+  useSmallFont = false,
+  sx,
+  onKeyDownCapture,
+  onBlurCapture,
+  onPointerDownCapture,
+  onFocusCapture,
+  onDoubleClickCapture,
+  ...props
+}: StandardLooseTableProps) => {
+  const { internalTableRef, contextValue } = useGridCoreController();
+
   const tableStyles = getMuiTableStyles(useSmallFont);
   const mergedSx: SxProps<Theme> = [
     tableStyles,
@@ -35,24 +54,35 @@ const StandardLooseTable = React.memo(({ useSmallFont = false, sx, onKeyDownCapt
     },
   ];
   return (
-    <Table
-      size="small"
-      data-mineo-table-navigation="true"
-      onKeyDownCapture={(e) => {
-        handleTableKeyDownCapture(e);
-        onKeyDownCapture?.(e);
-      }}
-      onBlurCapture={(e) => {
-        handleTableBlurCapture(e);
-        onBlurCapture?.(e);
-      }}
-      onPointerDownCapture={(e) => {
-        handleTablePointerDownCapture(e);
-        onPointerDownCapture?.(e);
-      }}
-      sx={mergedSx}
-      {...props}
-    />
+    <GridCoreProvider value={contextValue}>
+      <Table
+        ref={internalTableRef}
+        size="small"
+        data-mineo-table-navigation="true"
+        onKeyDownCapture={(e) => {
+          handleTableKeyDownCapture(e);
+          onKeyDownCapture?.(e);
+        }}
+        onBlurCapture={(e) => {
+          handleTableBlurCapture(e);
+          onBlurCapture?.(e);
+        }}
+        onPointerDownCapture={(e) => {
+          handleTablePointerDownCapture(e);
+          onPointerDownCapture?.(e);
+        }}
+        onFocusCapture={(e) => {
+          handleTableFocusCapture(e);
+          onFocusCapture?.(e);
+        }}
+        onDoubleClickCapture={(e) => {
+          handleTableDoubleClickCapture(e);
+          onDoubleClickCapture?.(e);
+        }}
+        sx={mergedSx}
+        {...props}
+      />
+    </GridCoreProvider>
   );
 });
 

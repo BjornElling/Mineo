@@ -27,7 +27,8 @@ import {
 } from '../../utils/aarsloenTableCalculations';
 import { getAarsloenTableValidation, isAarsloenTableValueEffectivelyEmptyForValidation } from '../../utils/aarsloenTableValidation';
 
-import { StandardGridHeaderCell, StandardGridTable, getStandardGridBodyRowStyle, getStandardGridCellStyle } from './StandardGridTable';
+import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
+import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './standardGridStyles';
 import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridModel';
 import { applyRowRemovalFocusPlan, buildRowRemovalFocusPlan, type RowRemovalFocusPlan } from './tableRowFocus';
 
@@ -618,7 +619,6 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       gridCell={{ rowId: row.id, colIndex: 0 }}
                       inputRef={registerCellRef(row.id, 0)}
                       value={row.col0_maaned}
-                      onChange={(e) => handleInputChange(row.id, 'col0_maaned', e.target.value)}
                       onBlur={(e) => handleFieldBlur(row.id, 'col0_maaned', e.target.value)}
                       onErrorChange={(info) => handleErrorChange(row.id, 'col0_maaned', info)}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'col0_maaned')}
@@ -631,7 +631,6 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       gridCell={{ rowId: row.id, colIndex: 0 }}
                       inputRef={registerCellRef(row.id, 0)}
                       value={row.col0_uge}
-                      onChange={(e) => handleInputChange(row.id, 'col0_uge', e.target.value)}
                       onBlur={(e) => handleFieldBlur(row.id, 'col0_uge', e.target.value)}
                       onErrorChange={(info) => handleErrorChange(row.id, 'col0_uge', info)}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'col0_uge')}
@@ -644,7 +643,6 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       gridCell={{ rowId: row.id, colIndex: 0 }}
                       inputRef={registerCellRef(row.id, 0)}
                       value={row.col0_dag}
-                      onChange={(e) => handleInputChange(row.id, 'col0_dag', e.target.value)}
                       onBlur={(e) => handleFieldBlur(row.id, 'col0_dag', e.target.value)}
                       onErrorChange={(info) => handleErrorChange(row.id, 'col0_dag', info)}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'col0_dag')}
@@ -667,7 +665,6 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       gridCell={{ rowId: row.id, colIndex: 1 }}
                       inputRef={registerCellRef(row.id, 1)}
                       value={row.col1_maaned}
-                      onChange={(e) => handleInputChange(row.id, 'col1_maaned', e.target.value)}
                       onBlur={(e) => handleFieldBlur(row.id, 'col1_maaned', e.target.value)}
                       onErrorChange={(info) => handleErrorChange(row.id, 'col1_maaned', info)}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'col1_maaned')}
@@ -680,7 +677,6 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       gridCell={{ rowId: row.id, colIndex: 1 }}
                       inputRef={registerCellRef(row.id, 1)}
                       value={row.col1_uge}
-                      onChange={(e) => handleInputChange(row.id, 'col1_uge', e.target.value)}
                       onBlur={(e) => handleFieldBlur(row.id, 'col1_uge', e.target.value)}
                       onErrorChange={(info) => handleErrorChange(row.id, 'col1_uge', info)}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'col1_uge')}
@@ -693,7 +689,6 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       gridCell={{ rowId: row.id, colIndex: 1 }}
                       inputRef={registerCellRef(row.id, 1)}
                       value={row.col1_dag}
-                      onChange={(e) => handleInputChange(row.id, 'col1_dag', e.target.value)}
                       onBlur={(e) => handleFieldBlur(row.id, 'col1_dag', e.target.value)}
                       onErrorChange={(info) => handleErrorChange(row.id, 'col1_dag', info)}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'col1_dag')}

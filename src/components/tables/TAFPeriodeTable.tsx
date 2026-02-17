@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
-import StyledDateField from '../inputs/StyledDateField';
-import StyledIntegerField from '../inputs/StyledIntegerField';
+import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
+import TableIntegerInput from '../inputs/table/TableIntegerInput';
 import StandardLooseTable from './StandardLooseTable';
 import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import type { TafPeriodeRow } from '../../schemas/formSchemas';
@@ -171,10 +171,10 @@ const TAFPeriodeTable = React.memo(
             return (
               <TableRow key={row.id} data-mineo-row-id={row.id}>
                 <TableCell>
-                  <StyledDateField
+                  <TableDateIsoInput
+                    gridCell={{ rowId: row.id, colIndex: 0 }}
                     value={fraISO}
-                    onDraftChange={(e) => onFieldChange(row.id, 'fra')(e.target.value ?? '')}
-                    onCommit={(e) => {
+                    onBlur={(e) => {
                       onFieldChange(row.id, 'fra')(e.target.value ?? '');
                       onRowBlur(row.id);
                     }}
@@ -186,15 +186,14 @@ const TAFPeriodeTable = React.memo(
                       minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
                     }}
                     noValidRangeCause={fraNoValidRangeCause}
-                    error={fraErrorMessage !== undefined}
-                    helperText={fraErrorMessage ?? ''}
+                    externalErrorMessage={fraErrorMessage}
                   />
                 </TableCell>
                 <TableCell>
-                  <StyledDateField
+                  <TableDateIsoInput
+                    gridCell={{ rowId: row.id, colIndex: 1 }}
                     value={tilISO}
-                    onDraftChange={(e) => onFieldChange(row.id, 'til')(e.target.value ?? '')}
-                    onCommit={(e) => {
+                    onBlur={(e) => {
                       onFieldChange(row.id, 'til')(e.target.value ?? '');
                       onRowBlur(row.id);
                     }}
@@ -207,18 +206,17 @@ const TAFPeriodeTable = React.memo(
                       minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
                     }}
                     noValidRangeCause={tilNoValidRangeCause}
-                    error={tilErrorMessage !== undefined}
-                    helperText={tilErrorMessage ?? ''}
+                    externalErrorMessage={tilErrorMessage}
                   />
                 </TableCell>
                 <TableCell>
-                  <StyledIntegerField
-                    width={80}
+                  <TableIntegerInput
+                    gridCell={{ rowId: row.id, colIndex: 2 }}
+                    sx={{ width: 80 }}
                     maxDigits={maxDigitsForLoseFeriedage}
-                    value={committed?.loseFeriedage}
-                    onDraftChange={(e) => onFieldChange(row.id, 'loseFeriedage')(e.target.value)}
-                    onCommit={(e) => {
-                      onFieldChange(row.id, 'loseFeriedage')(e.target.value === undefined ? '' : String(e.target.value));
+                    value={committed?.loseFeriedage === undefined ? '' : String(committed.loseFeriedage)}
+                    onBlur={(e) => {
+                      onFieldChange(row.id, 'loseFeriedage')(e.target.value);
                       onRowBlur(row.id);
                     }}
                     minValue={0}

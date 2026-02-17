@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Box, IconButton, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import { Download } from '@mui/icons-material';
-import StyledAmountField from '../inputs/StyledAmountField';
-import StyledDateField from '../inputs/StyledDateField';
-import StyledIntegerField from '../inputs/StyledIntegerField';
+import TableAmountInput from '../inputs/table/TableAmountInput';
+import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
+import TableIntegerInput from '../inputs/table/TableIntegerInput';
 import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
 import StandardLooseTable from './StandardLooseTable';
 import { MIN_CALCULATION_DATE, MAX_CALCULATION_YEAR } from '../../data/interestRates';
@@ -84,32 +84,32 @@ const BeregnetRenteRow = React.memo(
     const showDownloadButton = calculatedInterest !== null && !renterFraHasError && !beregningsdatoHasError;
 
     return (
-      <TableRow>
+      <TableRow data-mineo-row-id={row.id}>
         <TableCell>
-          <StyledAmountField
+          <TableAmountInput
+            gridCell={{ rowId: row.id, colIndex: 0 }}
             value={committedRow.belob}
-            onDraftChange={(e) => onFieldChange(row.id, 'belob')(e.target.value)}
-            onCommit={(e) => {
+            onBlur={(e) => {
               onFieldChange(row.id, 'belob')(amountValueToDraftString(e.target.value, 2));
               onRowBlur(row.id);
             }}
-            width={156}
             placeholder="0,00 kr."
-            allowNegative={false}
+            canBeNegative={false}
+            sx={{ width: 156 }}
           />
         </TableCell>
 
         <TableCell>
-          <StyledDateField
+          <TableDateIsoInput
+            gridCell={{ rowId: row.id, colIndex: 1 }}
             value={committedRow.renterFra}
-            onDraftChange={(e) => onFieldChange(row.id, 'renterFra')(e.target.value ?? '')}
-            onCommit={(e) => {
+            onBlur={(e) => {
               onFieldChange(row.id, 'renterFra')(e.target.value ?? '');
               onRowBlur(row.id);
             }}
             minDate={MIN_CALCULATION_DATE}
             maxDate={dynamicMaxDate}
-            onFieldError={(errorMsg) => setRenterFraHasError(!!errorMsg)}
+            onErrorChange={(info) => setRenterFraHasError(info.hasError)}
           />
         </TableCell>
 
@@ -117,21 +117,21 @@ const BeregnetRenteRow = React.memo(
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1.5 }}>
             <Typography className="row--text">+</Typography>
 
-            <StyledIntegerField
-              value={committedRow.tillaegstid}
-              onDraftChange={(e) => onFieldChange(row.id, 'tillaegstid')(e.target.value)}
-              onCommit={(e) => {
-                onFieldChange(row.id, 'tillaegstid')(e.target.value === undefined ? '' : String(e.target.value));
+            <TableIntegerInput
+              gridCell={{ rowId: row.id, colIndex: 2 }}
+              value={committedRow.tillaegstid === undefined ? '' : String(committedRow.tillaegstid)}
+              onBlur={(e) => {
+                onFieldChange(row.id, 'tillaegstid')(e.target.value);
                 onRowBlur(row.id);
               }}
-              width={50}
               placeholder="0"
               minValue={0}
               maxValue={99}
-              maxDigits={2}
+              sx={{ width: 50 }}
             />
 
-             <TableDropdown
+            <TableDropdown
+              gridCell={{ rowId: row.id, colIndex: 3 }}
               value={committedRow.enhed}
               allowEmpty={false}
               appearance="loose"

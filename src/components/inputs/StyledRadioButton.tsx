@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Radio, FormControlLabel, RadioGroup, FormLabel, FormControl, Tooltip, Typography } from '@mui/material';
 import { createCommitEvent, type CommitHandler } from './fieldEvents';
+import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 
 /**
  * StyledRadioButton - Moderne radio button med blå farve
@@ -43,18 +44,6 @@ interface StyledRadioButtonProps {
   error?: boolean;
   helperText?: string;
 }
-
-const visuallyHiddenStyle: React.CSSProperties = {
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  padding: 0,
-  margin: -1,
-  overflow: 'hidden',
-  clip: 'rect(0, 0, 0, 0)',
-  whiteSpace: 'nowrap',
-  border: 0,
-};
 
 const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProps>(({
   label,

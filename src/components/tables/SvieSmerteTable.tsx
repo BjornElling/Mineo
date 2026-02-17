@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
-import StyledDateField from '../inputs/StyledDateField';
+import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
 import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
 import StandardLooseTable from './StandardLooseTable';
 import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../config/dateRanges';
@@ -147,10 +147,10 @@ const SvieSmerteTable = React.memo(
             return (
               <TableRow key={row.id} data-mineo-row-id={row.id}>
                 <TableCell>
-                  <StyledDateField
+                  <TableDateIsoInput
+                    gridCell={{ rowId: row.id, colIndex: 0 }}
                     value={fraISO}
-                    onDraftChange={(e) => onFieldChange(row.id, 'fra')(e.target.value ?? '')}
-                    onCommit={(e) => {
+                    onBlur={(e) => {
                       onFieldChange(row.id, 'fra')(e.target.value ?? '');
                       onRowBlur(row.id);
                     }}
@@ -162,15 +162,14 @@ const SvieSmerteTable = React.memo(
                       minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
                     }}
                     noValidRangeCause={fraNoValidRangeCause}
-                    error={fraErrorMessage !== undefined}
-                    helperText={fraErrorMessage ?? ''}
+                    externalErrorMessage={fraErrorMessage}
                   />
                 </TableCell>
                 <TableCell>
-                  <StyledDateField
+                  <TableDateIsoInput
+                    gridCell={{ rowId: row.id, colIndex: 1 }}
                     value={tilISO}
-                    onDraftChange={(e) => onFieldChange(row.id, 'til')(e.target.value ?? '')}
-                    onCommit={(e) => {
+                    onBlur={(e) => {
                       onFieldChange(row.id, 'til')(e.target.value ?? '');
                       onRowBlur(row.id);
                     }}
@@ -183,8 +182,7 @@ const SvieSmerteTable = React.memo(
                       minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
                     }}
                     noValidRangeCause={tilNoValidRangeCause}
-                    error={tilErrorMessage !== undefined}
-                    helperText={tilErrorMessage ?? ''}
+                    externalErrorMessage={tilErrorMessage}
                   />
                 </TableCell>
                 <TableCell>
@@ -192,6 +190,7 @@ const SvieSmerteTable = React.memo(
                 </TableCell>
                 <TableCell>
                   <TableDropdown
+                    gridCell={{ rowId: row.id, colIndex: 3 }}
                     value={tilstandValue}
                     options={SVIE_TILSTAND_OPTIONS}
                     appearance="loose"

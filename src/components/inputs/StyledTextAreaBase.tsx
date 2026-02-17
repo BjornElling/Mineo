@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { TextField, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 
 type AllowedInputAttributes = Pick<
   React.TextareaHTMLAttributes<HTMLTextAreaElement>,
@@ -50,18 +51,6 @@ export type StyledTextAreaBaseProps = {
 
   htmlTextAreaAttributes?: AllowedInputAttributes;
   sx?: SxProps<Theme>;
-};
-
-const visuallyHiddenStyle: React.CSSProperties = {
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  padding: 0,
-  margin: -1,
-  overflow: 'hidden',
-  clip: 'rect(0, 0, 0, 0)',
-  whiteSpace: 'nowrap',
-  border: 0,
 };
 
 const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBaseProps>(

@@ -10,6 +10,7 @@ import { assignRef } from './assignRef';
 import { useGridCore } from '../../tables/gridCoreContext';
 import { areSameGridCell } from '../../tables/gridCoreUtils';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
+import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { filterDateLikeKeyDown } from '../inputKeyFilters';
 import { makeDateFingerprintFromCanonical, type CommittedPayload, type DateFingerprint } from '../shared/parserSpec';
 
@@ -434,7 +435,8 @@ const TableDateInput = React.memo(
       [hasError, isEditing, preserveInvalidDraft]
     );
 
-    const a11yErrorId = React.useId();
+    const a11yInputId = React.useId();
+    const a11yErrorId = `${a11yInputId}-error`;
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
     const showError = (hasExternalError || (touched && hasError)) && !isFocused;
@@ -518,18 +520,6 @@ const TableDateInput = React.memo(
 
     const tooltipText = hasExternalError ? externalErrorText : errorMessage;
 
-    const visuallyHiddenStyle: React.CSSProperties = {
-      position: 'absolute',
-      width: 1,
-      height: 1,
-      padding: 0,
-      margin: -1,
-      overflow: 'hidden',
-      clip: 'rect(0, 0, 0, 0)',
-      whiteSpace: 'nowrap',
-      border: 0,
-    };
-
     return (
       <Tooltip title={showError ? tooltipText : ''} arrow placement="top">
         <span style={{ display: 'block', width: '100%', height: '100%' }}>
@@ -547,6 +537,7 @@ const TableDateInput = React.memo(
             onKeyDown={handleKeyDown}
             placeholder={cellFocused && !isReadOnly ? '' : placeholder}
             inputProps={{
+              id: a11yInputId,
               readOnly: isReadOnly,
               inputMode: 'text',
               'data-mineo-grid-locked': locked ? 'true' : undefined,

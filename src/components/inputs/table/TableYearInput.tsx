@@ -11,6 +11,7 @@ import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit,
 import { assignRef } from './assignRef';
 import { filterYearKeyDown } from '../inputKeyFilters';
 import { makeYearFingerprintFromCanonical, type CommittedPayload, type YearFingerprint } from '../shared/parserSpec';
+import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
 const MAX_YEAR_DRAFT_LENGTH = 6;
 
@@ -374,18 +375,6 @@ const TableYearInput = React.memo(
       grid.registerEditor(gridCell, editorHandle);
       return () => grid.unregisterEditor(gridCell);
     }, [editorHandle, grid, gridCell]);
-
-    const visuallyHiddenStyle: React.CSSProperties = {
-      position: 'absolute',
-      width: 1,
-      height: 1,
-      padding: 0,
-      margin: -1,
-      overflow: 'hidden',
-      clip: 'rect(0, 0, 0, 0)',
-      whiteSpace: 'nowrap',
-      border: 0,
-    };
 
     return (
       <Tooltip title={showError ? tooltipText : ''} arrow placement="top">

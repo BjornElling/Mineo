@@ -10,6 +10,8 @@ import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit,
 import { assignRef } from './assignRef';
 import { filterIntegerKeyDown } from '../inputKeyFilters';
 import { makeIntegerFingerprintFromCanonical, type CommittedPayload, type IntegerFingerprint } from '../shared/parserSpec';
+import { getIntegerRangeErrorMessage } from '../shared/integerRange';
+import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
 export type TableIntegerInputChangeEvent = { target: { value: string } };
 
@@ -24,6 +26,16 @@ export type TableIntegerInputProps = Readonly<{
    */
   minValue?: number;
   maxValue?: number;
+  /**
+   * If true, out-of-range values are blocked on commit.
+   * If false, out-of-range values commit but are shown as validation errors.
+   */
+  enforceRange?: boolean;
+  /**
+   * Optional hard cap for committed digit count (excluding sign).
+   * If omitted, derives from bounds.
+   */
+  maxDigits?: number;
   placeholder?: string;
   onChange?: (e: TableIntegerInputChangeEvent) => void;
   onBlur?: (e: TableIntegerInputChangeEvent) => void;
@@ -43,7 +55,8 @@ const parseIntegerOnCommit = (
     minValue,
     maxValue,
     maxDigits,
-  }: { minValue: number | undefined; maxValue: number | undefined; maxDigits: number | undefined }
+    enforceRange,
+  }: { minValue: number | undefined; maxValue: number | undefined; maxDigits: number | undefined; enforceRange: boolean }
 ): ParsedInteger => {
   const trimmed = draft.trim();
   if (trimmed === '' || shouldClearField(trimmed)) return { ok: true, value: '' };
@@ -53,13 +66,13 @@ const parseIntegerOnCommit = (
   const numValue = Number.parseInt(trimmed, 10);
   if (!Number.isFinite(numValue)) return { ok: false, error: 'Ugyldigt format' };
 
-  if (typeof minValue === 'number' && numValue < minValue) {
-    if (typeof maxValue === 'number') return { ok: false, error: `Værdi skal være mellem ${minValue} og ${maxValue}` };
-    return { ok: false, error: `Værdi skal være ${minValue} eller højere` };
+  if (!enforceRange) {
+    return { ok: true, value: String(numValue) };
   }
-  if (typeof maxValue === 'number' && numValue > maxValue) {
-    if (typeof minValue === 'number') return { ok: false, error: `Værdi skal være mellem ${minValue} og ${maxValue}` };
-    return { ok: false, error: `Værdi skal være ${maxValue} eller lavere` };
+
+  const rangeError = getIntegerRangeErrorMessage(numValue, minValue, maxValue, { preferExactForEqualBounds: false });
+  if (rangeError !== '') {
+    return { ok: false, error: rangeError };
   }
 
   return { ok: true, value: String(numValue) };
@@ -71,15 +84,12 @@ const commitIntegerDraft = (
     minValue,
     maxValue,
     maxDigits,
-  }: { minValue: number | undefined; maxValue: number | undefined; maxDigits: number | undefined }
+    enforceRange,
+  }: { minValue: number | undefined; maxValue: number | undefined; maxDigits: number | undefined; enforceRange: boolean }
 ): TableCommitResult => {
-  const result = parseIntegerOnCommit(draft, { minValue, maxValue, maxDigits });
+  const result = parseIntegerOnCommit(draft, { minValue, maxValue, maxDigits, enforceRange });
   if (!result.ok) return { kind: 'input-error', committed: draft, errorMessage: result.error };
   return { kind: 'ok', committed: asTableCommittedString(result.value) };
-};
-
-const integerFingerprintFromCanonical = (canonical: string): IntegerFingerprint => {
-  return makeIntegerFingerprintFromCanonical(canonical);
 };
 
 const toCommittedIntegerPayload = (value: string | undefined): CommittedPayload<string, string, IntegerFingerprint> => {
@@ -87,8 +97,15 @@ const toCommittedIntegerPayload = (value: string | undefined): CommittedPayload<
   return {
     model: canonical,
     canonical,
-    fingerprint: integerFingerprintFromCanonical(canonical),
+    fingerprint: makeIntegerFingerprintFromCanonical(canonical),
   };
+};
+
+const getRangeErrorMessage = (value: string, minValue: number | undefined, maxValue: number | undefined): string => {
+  if (value.trim() === '') return '';
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return '';
+  return getIntegerRangeErrorMessage(parsed, minValue, maxValue, { preferExactForEqualBounds: false });
 };
 
 const TableIntegerInput = React.memo(
@@ -98,6 +115,8 @@ const TableIntegerInput = React.memo(
     value,
     minValue,
     maxValue,
+    enforceRange = true,
+    maxDigits: maxDigitsProp,
     placeholder = '',
     onChange,
     onBlur,
@@ -131,28 +150,34 @@ const TableIntegerInput = React.memo(
       if (typeof minValue === 'number' && typeof maxValue === 'number' && minValue > maxValue) return 'Ugyldig konfiguration: minValue er større end maxValue';
       if (typeof minValue === 'number' && minValue < 0) return 'Ugyldig konfiguration: minValue kan ikke være negativ (TableIntegerInput)';
       if (typeof maxValue === 'number' && maxValue < 0) return 'Ugyldig konfiguration: maxValue kan ikke være negativ (TableIntegerInput)';
+      if (maxDigitsProp !== undefined) {
+        if (!Number.isFinite(maxDigitsProp) || !Number.isInteger(maxDigitsProp)) return 'Ugyldig konfiguration: maxDigits skal være et heltal';
+        if (maxDigitsProp < 1 || maxDigitsProp > 18) return 'Ugyldig konfiguration: maxDigits skal være mellem 1 og 18';
+        if (typeof minValue === 'number' && requiredDigits(minValue) > maxDigitsProp) return 'Ugyldig konfiguration: maxDigits er mindre end cifre(|minValue|)';
+        if (typeof maxValue === 'number' && requiredDigits(maxValue) > maxDigitsProp) return 'Ugyldig konfiguration: maxDigits er mindre end cifre(|maxValue|)';
+      }
       return '';
-    }, [maxValue, minValue]);
+    }, [maxDigitsProp, maxValue, minValue]);
 
     if (configErrorMessage.trim() !== '') {
       throw new Error(configErrorMessage);
     }
 
     const maxDigits = React.useMemo(() => {
+      if (typeof maxDigitsProp === 'number') return maxDigitsProp;
       if (typeof maxValue === 'number') return requiredDigits(maxValue);
-      if (typeof minValue === 'number') return requiredDigits(minValue);
       return undefined;
-    }, [maxValue, minValue]);
+    }, [maxDigitsProp, maxValue]);
 
-    const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, minValue, maxValue, maxDigits });
+    const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, minValue, maxValue, maxDigits, enforceRange });
 
     const emitBlur = React.useCallback((nextValue: string) => {
       latest.current.onBlur?.({ target: { value: nextValue } });
     }, []);
 
     React.useEffect(() => {
-      latest.current = { onChange, onBlur, onErrorChange, locked, minValue, maxValue, maxDigits };
-    }, [locked, maxDigits, maxValue, minValue, onBlur, onChange, onErrorChange]);
+      latest.current = { onChange, onBlur, onErrorChange, locked, minValue, maxValue, maxDigits, enforceRange };
+    }, [enforceRange, locked, maxDigits, maxValue, minValue, onBlur, onChange, onErrorChange]);
 
     React.useEffect(() => {
       latestCommittedPayloadRef.current = toCommittedIntegerPayload(value);
@@ -211,6 +236,7 @@ const TableIntegerInput = React.memo(
           minValue: latest.current.minValue,
           maxValue: latest.current.maxValue,
           maxDigits: latest.current.maxDigits,
+          enforceRange: latest.current.enforceRange,
         });
 
         if (committed.kind === 'input-error') {
@@ -222,14 +248,21 @@ const TableIntegerInput = React.memo(
         }
 
         setPreserveInvalidDraft(false);
-        setHasError(false);
-        setErrorMessage('');
-        latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
         const canonical = committedToString(committed);
+        const rangeError = latest.current.enforceRange ? '' : getRangeErrorMessage(canonical, latest.current.minValue, latest.current.maxValue);
+        if (rangeError !== '') {
+          setHasError(true);
+          setErrorMessage(rangeError);
+          latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
+        } else {
+          setHasError(false);
+          setErrorMessage('');
+          latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
+        }
         const nextPayload: CommittedPayload<string, string, IntegerFingerprint> = {
           model: canonical,
           canonical,
-          fingerprint: integerFingerprintFromCanonical(canonical),
+          fingerprint: makeIntegerFingerprintFromCanonical(canonical),
         };
 
         const isNoop = nextPayload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
@@ -362,18 +395,6 @@ const TableIntegerInput = React.memo(
       grid.registerEditor(gridCell, editorHandle);
       return () => grid.unregisterEditor(gridCell);
     }, [editorHandle, grid, gridCell]);
-
-    const visuallyHiddenStyle: React.CSSProperties = {
-      position: 'absolute',
-      width: 1,
-      height: 1,
-      padding: 0,
-      margin: -1,
-      overflow: 'hidden',
-      clip: 'rect(0, 0, 0, 0)',
-      whiteSpace: 'nowrap',
-      border: 0,
-    };
 
     return (
       <Tooltip title={showError ? tooltipText : ''} arrow placement="top">

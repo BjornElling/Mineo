@@ -1,14 +1,15 @@
 import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow } from '@mui/material';
-import StyledAmountField from '../inputs/StyledAmountField';
-import StyledDateField from '../inputs/StyledDateField';
-import StyledTextField from '../inputs/StyledTextField';
+import TableAmountInput from '../inputs/table/TableAmountInput';
+import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
+import TableTextInput from '../inputs/table/TableTextInput';
 import StandardLooseTable from './StandardLooseTable';
 import type { OevrigeKravRow } from '../../schemas/formSchemas';
 import type { OevrigeKravDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
 import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
+import { amountValueToDraftString } from '../../utils/expressionAmount';
 
 export type OevrigeKravTableProps = Readonly<{
   rows: OevrigeKravDraftRow[];
@@ -56,10 +57,10 @@ const OevrigeKravTable = React.memo(
           return (
             <TableRow key={row.id} data-mineo-row-id={row.id}>
               <TableCell>
-                <StyledDateField
+                <TableDateIsoInput
+                  gridCell={{ rowId: row.id, colIndex: 0 }}
                   value={committedDatoIso}
-                  onDraftChange={(e) => onFieldChange(row.id, 'dato')(e.target.value ?? '')}
-                  onCommit={(e) => {
+                  onBlur={(e) => {
                     onFieldChange(row.id, 'dato')(e.target.value ?? '');
                     onRowBlur(row.id);
                   }}
@@ -70,28 +71,26 @@ const OevrigeKravTable = React.memo(
                 />
               </TableCell>
               <TableCell>
-                <StyledTextField
-                  width={400}
+                <TableTextInput
+                  gridCell={{ rowId: row.id, colIndex: 1 }}
+                  sx={{ width: 400 }}
                   value={committed?.udgiftTil ?? ''}
-                  onDraftChange={(e) => onFieldChange(row.id, 'udgiftTil')(e.target.value)}
-                  onCommit={(e) => {
+                  onBlur={(e) => {
                     onFieldChange(row.id, 'udgiftTil')(e.target.value);
                     onRowBlur(row.id);
                   }}
                 />
               </TableCell>
               <TableCell>
-                <StyledAmountField
-                  width={130}
+                <TableAmountInput
+                  gridCell={{ rowId: row.id, colIndex: 2 }}
+                  sx={{ width: 130 }}
                   value={committed?.beloeb}
-                  onDraftChange={(e) => onFieldChange(row.id, 'beloeb')(e.target.value)}
-                  onCommit={(e) => {
-                    if (e.target.value === undefined) {
-                      onFieldChange(row.id, 'beloeb')('');
-                    }
+                  onBlur={(e) => {
+                    onFieldChange(row.id, 'beloeb')(amountValueToDraftString(e.target.value, 2));
                     onRowBlur(row.id);
                   }}
-                  allowNegative={false}
+                  canBeNegative={false}
                 />
               </TableCell>
             </TableRow>

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
-import StyledDateField from '../inputs/StyledDateField';
+import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
 import StandardLooseTable from './StandardLooseTable';
 import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
@@ -117,10 +117,10 @@ const FerieperiodeTable = React.memo(
             return (
               <TableRow key={row.id} data-mineo-row-id={row.id}>
                 <TableCell>
-                  <StyledDateField
+                  <TableDateIsoInput
+                    gridCell={{ rowId: row.id, colIndex: 0 }}
                     value={fraISO}
-                    onDraftChange={(e) => onFieldChange(row.id, 'fra')(e.target.value ?? '')}
-                    onCommit={(e) => {
+                    onBlur={(e) => {
                       onFieldChange(row.id, 'fra')(e.target.value ?? '');
                       onRowBlur(row.id);
                     }}
@@ -135,10 +135,10 @@ const FerieperiodeTable = React.memo(
                   />
                 </TableCell>
                 <TableCell>
-                  <StyledDateField
+                  <TableDateIsoInput
+                    gridCell={{ rowId: row.id, colIndex: 1 }}
                     value={tilISO}
-                    onDraftChange={(e) => onFieldChange(row.id, 'til')(e.target.value ?? '')}
-                    onCommit={(e) => {
+                    onBlur={(e) => {
                       onFieldChange(row.id, 'til')(e.target.value ?? '');
                       onRowBlur(row.id);
                     }}

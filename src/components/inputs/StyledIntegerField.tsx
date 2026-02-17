@@ -6,6 +6,7 @@ import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivati
 import { filterIntegerKeyDown } from './inputKeyFilters';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from './fieldEvents';
+import { getIntegerRangeErrorMessage } from './shared/integerRange';
 
 export type StyledIntegerFieldValueChangeEvent = CommitEvent<number | undefined>;
 export type StyledIntegerFieldDraftChangeEvent = DraftChangeEvent;
@@ -169,27 +170,7 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
 
     const getRangeErrorMessage = React.useCallback(
       (parsed: number): string => {
-          if (typeof minValue === 'number' && parsed < minValue) {
-          if (typeof maxValue === 'number') {
-            if (minValue === maxValue) {
-              return `Værdi skal være ${minValue}`;
-            }
-            return `Værdi skal være mellem ${minValue} og ${maxValue}`;
-          }
-          return `Værdi skal være ${minValue} eller højere`;
-        }
-
-        if (typeof maxValue === 'number' && parsed > maxValue) {
-          if (typeof minValue === 'number') {
-            if (minValue === maxValue) {
-              return `Værdi skal være ${maxValue}`;
-            }
-            return `Værdi skal være mellem ${minValue} og ${maxValue}`;
-          }
-          return `Værdi skal være ${maxValue} eller lavere`;
-        }
-
-        return '';
+        return getIntegerRangeErrorMessage(parsed, minValue, maxValue, { preferExactForEqualBounds: true });
       },
       [maxValue, minValue]
     );
@@ -222,26 +203,10 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
         }
 
         if (enforceRange) {
-          if (typeof minValue === 'number' && parsed < minValue) {
-          if (typeof maxValue === 'number') {
-            if (minValue === maxValue) {
-              return { ok: false, kind: 'invalid', message: `Værdi skal være ${minValue}` };
-            }
-            return { ok: false, kind: 'invalid', message: `Værdi skal være mellem ${minValue} og ${maxValue}` };
+          const rangeError = getIntegerRangeErrorMessage(parsed, minValue, maxValue, { preferExactForEqualBounds: true });
+          if (rangeError !== '') {
+            return { ok: false, kind: 'invalid', message: rangeError };
           }
-          return { ok: false, kind: 'invalid', message: `Værdi skal være ${minValue} eller højere` };
-        }
-
-          if (typeof maxValue === 'number' && parsed > maxValue) {
-          if (typeof minValue === 'number') {
-            if (minValue === maxValue) {
-              return { ok: false, kind: 'invalid', message: `Værdi skal være ${maxValue}` };
-            }
-            return { ok: false, kind: 'invalid', message: `Værdi skal være mellem ${minValue} og ${maxValue}` };
-          }
-          return { ok: false, kind: 'invalid', message: `Værdi skal være ${maxValue} eller lavere` };
-        }
-
         }
 
         return { ok: true, value: parsed };
@@ -421,4 +386,3 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
 StyledIntegerField.displayName = 'StyledIntegerField';
 
 export default StyledIntegerField;
-

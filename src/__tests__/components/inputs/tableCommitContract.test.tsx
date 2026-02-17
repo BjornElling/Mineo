@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { act } from '@testing-library/react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import StandardLooseTable from '../../../components/tables/StandardLooseTable';
@@ -9,6 +9,7 @@ import type { GridCellCoord } from '../../../components/tables/gridCoreTypes';
 import TableDateInput from '../../../components/inputs/table/TableDateInput';
 import TableIntegerInput from '../../../components/inputs/table/TableIntegerInput';
 import TablePercentInput from '../../../components/inputs/table/TablePercentInput';
+import TableTextInput from '../../../components/inputs/table/TableTextInput';
 import TableWeekInput from '../../../components/inputs/table/TableWeekInput';
 import TableYearInput from '../../../components/inputs/table/TableYearInput';
 
@@ -48,6 +49,21 @@ type ClickOutsideCommitCase = Readonly<{
   label: string;
   initialValue: string;
   typedDraft: string;
+  expectedCommitted: string;
+  renderManagedInput: (props: Readonly<{ value: string; onBlur: (value: string) => void }>) => React.JSX.Element;
+}>;
+
+type EscapeCancelCase = Readonly<{
+  label: string;
+  initialValue: string;
+  typedDraft: string;
+  expectedDisplayAfterCancel?: string;
+  renderManagedInput: (props: Readonly<{ value: string; onBlur: (value: string) => void }>) => React.JSX.Element;
+}>;
+
+type DeleteClearCase = Readonly<{
+  label: string;
+  initialValue: string;
   expectedCommitted: string;
   renderManagedInput: (props: Readonly<{ value: string; onBlur: (value: string) => void }>) => React.JSX.Element;
 }>;
@@ -99,6 +115,16 @@ const NOOP_CASES: readonly NoopCase[] = [
       <TableDateInput
         gridCell={gridCell}
         value="01-01-2025"
+        onBlur={(e) => onBlur(e.target.value)}
+      />
+    ),
+  },
+  {
+    label: 'text',
+    renderInput: (onBlur) => (
+      <TableTextInput
+        gridCell={gridCell}
+        value="abc"
         onBlur={(e) => onBlur(e.target.value)}
       />
     ),
@@ -295,6 +321,86 @@ const CLICK_OUTSIDE_COMMIT_CASES: readonly ClickOutsideCommitCase[] = [
       />
     ),
   },
+  {
+    label: 'text',
+    initialValue: 'foo',
+    typedDraft: 'bar',
+    expectedCommitted: 'bar',
+    renderManagedInput: ({ value, onBlur }) => (
+      <TableTextInput
+        gridCell={gridCell}
+        value={value}
+        onBlur={(e) => onBlur(e.target.value)}
+      />
+    ),
+  },
+];
+
+const ESCAPE_CANCEL_CASES: readonly EscapeCancelCase[] = [
+  {
+    label: 'integer',
+    initialValue: '42',
+    typedDraft: '99',
+    renderManagedInput: ({ value, onBlur }) => <TableIntegerInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+  },
+  {
+    label: 'percent',
+    initialValue: '12,50',
+    typedDraft: '33',
+    expectedDisplayAfterCancel: '12,50 %',
+    renderManagedInput: ({ value, onBlur }) => <TablePercentInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+  },
+  {
+    label: 'week',
+    initialValue: '1/2025',
+    typedDraft: '2/2025',
+    renderManagedInput: ({ value, onBlur }) => <TableWeekInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+  },
+  {
+    label: 'year',
+    initialValue: '2025',
+    typedDraft: '2026',
+    renderManagedInput: ({ value, onBlur }) => <TableYearInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+  },
+  {
+    label: 'date',
+    initialValue: '01-01-2025',
+    typedDraft: '15-06-2025',
+    renderManagedInput: ({ value, onBlur }) => <TableDateInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+  },
+];
+
+const DELETE_CLEAR_CASES: readonly DeleteClearCase[] = [
+  {
+    label: 'integer',
+    initialValue: '42',
+    expectedCommitted: '',
+    renderManagedInput: ({ value, onBlur }) => <TableIntegerInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+  },
+  {
+    label: 'percent',
+    initialValue: '12,50',
+    expectedCommitted: '',
+    renderManagedInput: ({ value, onBlur }) => <TablePercentInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+  },
+  {
+    label: 'week',
+    initialValue: '1/2025',
+    expectedCommitted: '',
+    renderManagedInput: ({ value, onBlur }) => <TableWeekInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+  },
+  {
+    label: 'year',
+    initialValue: '2025',
+    expectedCommitted: '',
+    renderManagedInput: ({ value, onBlur }) => <TableYearInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+  },
+  {
+    label: 'date',
+    initialValue: '01-01-2025',
+    expectedCommitted: '',
+    renderManagedInput: ({ value, onBlur }) => <TableDateInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+  },
 ];
 
 const setupManaged = (input: InvalidPreserveCase) => {
@@ -472,7 +578,7 @@ describe('table commit-kontrakt', () => {
         >
           <StandardLooseTable>
             <tbody>
-              <tr>
+              <tr data-mineo-row-id="row-1">
                 <td>
                   <TableIntegerInput
                     gridCell={row1Cell}
@@ -485,7 +591,7 @@ describe('table commit-kontrakt', () => {
                   />
                 </td>
               </tr>
-              <tr>
+              <tr data-mineo-row-id="row-2">
                 <td>
                   <TableIntegerInput
                     gridCell={row2Cell}
@@ -503,6 +609,10 @@ describe('table commit-kontrakt', () => {
     const [input1, input2] = screen.getAllByRole('textbox');
 
     await user.click(input1);
+    await user.click(input1);
+    await waitFor(() => {
+      expect(input1).not.toHaveAttribute('readonly');
+    });
     await user.clear(input1);
     await user.type(input1, '42');
     await user.keyboard('{ArrowDown}');
@@ -561,6 +671,240 @@ describe('table commit-kontrakt', () => {
 
     expect(input).not.toHaveValue('/2022');
     expect(String((input as HTMLInputElement).value)).toContain('1');
+  });
+
+  it('integer med enforceRange=false committer out-of-range værdi men markerer fejl', async () => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn<(value: string) => void>();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState('4');
+      const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
+
+      return (
+        <GridCoreProvider value={createGridValue(editingCell)}>
+          <TableIntegerInput
+            gridCell={gridCell}
+            value={value}
+            minValue={0}
+            maxValue={5}
+            enforceRange={false}
+            onBlur={(e) => {
+              onBlur(e.target.value);
+              setValue(e.target.value);
+              setEditingCell(null);
+            }}
+          />
+        </GridCoreProvider>
+      );
+    };
+
+    render(<Wrapper />);
+    const input = screen.getByRole('textbox');
+
+    await user.click(input);
+    await user.clear(input);
+    await user.type(input, '9');
+    await user.tab();
+
+    expect(onBlur).toHaveBeenCalledTimes(1);
+    expect(onBlur).toHaveBeenCalledWith('9');
+    expect(input).toHaveValue('9');
+    const describedBy = input.getAttribute('aria-describedby');
+    expect(describedBy).toBeTruthy();
+  });
+
+  it('integer uden maxValue afleder ikke maxDigits fra minValue', async () => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn<(value: string) => void>();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState('100');
+      const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
+
+      return (
+        <GridCoreProvider value={createGridValue(editingCell)}>
+          <TableIntegerInput
+            gridCell={gridCell}
+            value={value}
+            minValue={100}
+            onBlur={(e) => {
+              onBlur(e.target.value);
+              setValue(e.target.value);
+              setEditingCell(null);
+            }}
+          />
+        </GridCoreProvider>
+      );
+    };
+
+    render(<Wrapper />);
+    const input = screen.getByRole('textbox');
+
+    await user.click(input);
+    await user.clear(input);
+    await user.type(input, '1000');
+    await user.tab();
+
+    expect(onBlur).toHaveBeenCalledWith('1000');
+    expect(input).toHaveValue('1000');
+  });
+
+  it('Escape annullerer text-edit uden commit', async () => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn<(value: string) => void>();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState('foo');
+      return (
+        <StandardLooseTable>
+          <tbody>
+            <tr data-mineo-row-id="row-1">
+              <td>
+                <TableTextInput
+                  gridCell={gridCell}
+                  value={value}
+                  onBlur={(e) => {
+                    onBlur(e.target.value);
+                    setValue(e.target.value);
+                  }}
+                />
+              </td>
+            </tr>
+          </tbody>
+        </StandardLooseTable>
+      );
+    };
+
+    render(<Wrapper />);
+    const input = screen.getByRole('textbox');
+
+    await user.click(input);
+    await user.click(input);
+    await waitFor(() => {
+      expect(input).not.toHaveAttribute('readonly');
+    });
+
+    await user.clear(input);
+    await user.type(input, 'bar');
+    await user.keyboard('{Escape}');
+
+    expect(onBlur).not.toHaveBeenCalled();
+    expect(input).toHaveValue('foo');
+  });
+
+  it('Delete på fokuseret text-celle uden edit rydder og committer straks', async () => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn<(value: string) => void>();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState('foo');
+      return (
+        <StandardLooseTable>
+          <tbody>
+            <tr data-mineo-row-id="row-1">
+              <td>
+                <TableTextInput
+                  gridCell={gridCell}
+                  value={value}
+                  onBlur={(e) => {
+                    onBlur(e.target.value);
+                    setValue(e.target.value);
+                  }}
+                />
+              </td>
+            </tr>
+          </tbody>
+        </StandardLooseTable>
+      );
+    };
+
+    render(<Wrapper />);
+    const input = screen.getByRole('textbox');
+
+    await user.click(input);
+    await user.keyboard('{Delete}');
+
+    expect(onBlur).toHaveBeenCalledTimes(1);
+    expect(onBlur).toHaveBeenCalledWith('');
+    expect(input).toHaveValue('');
+  });
+
+  it.each(ESCAPE_CANCEL_CASES)('Escape annullerer $label-edit uden commit', async (inputCase) => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn<(value: string) => void>();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState(inputCase.initialValue);
+      return (
+        <StandardLooseTable>
+          <tbody>
+            <tr data-mineo-row-id="row-1">
+              <td>
+                {inputCase.renderManagedInput({
+                  value,
+                  onBlur: (nextValue) => {
+                    onBlur(nextValue);
+                    setValue(nextValue);
+                  },
+                })}
+              </td>
+            </tr>
+          </tbody>
+        </StandardLooseTable>
+      );
+    };
+
+    render(<Wrapper />);
+    const input = screen.getByRole('textbox');
+
+    await user.click(input);
+    await user.click(input);
+    await waitFor(() => {
+      expect(input).not.toHaveAttribute('readonly');
+    });
+    await user.clear(input);
+    await user.type(input, inputCase.typedDraft);
+    await user.keyboard('{Escape}');
+
+    expect(onBlur).not.toHaveBeenCalled();
+    expect(input).toHaveValue(inputCase.expectedDisplayAfterCancel ?? inputCase.initialValue);
+  });
+
+  it.each(DELETE_CLEAR_CASES)('Delete på fokuseret $label-celle uden edit rydder og committer straks', async (inputCase) => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn<(value: string) => void>();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState(inputCase.initialValue);
+      return (
+        <StandardLooseTable>
+          <tbody>
+            <tr data-mineo-row-id="row-1">
+              <td>
+                {inputCase.renderManagedInput({
+                  value,
+                  onBlur: (nextValue) => {
+                    onBlur(nextValue);
+                    setValue(nextValue);
+                  },
+                })}
+              </td>
+            </tr>
+          </tbody>
+        </StandardLooseTable>
+      );
+    };
+
+    render(<Wrapper />);
+    const input = screen.getByRole('textbox');
+
+    await user.click(input);
+    await user.keyboard('{Delete}');
+
+    expect(onBlur).toHaveBeenCalledTimes(1);
+    expect(onBlur).toHaveBeenCalledWith(inputCase.expectedCommitted);
+    expect(input).toHaveValue('');
   });
 
 });

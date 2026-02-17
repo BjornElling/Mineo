@@ -11,6 +11,7 @@ import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit,
 import { assignRef } from './assignRef';
 import { filterWeekKeyDown } from '../inputKeyFilters';
 import { makeWeekFingerprintFromCanonical, type CommittedPayload, type WeekFingerprint } from '../shared/parserSpec';
+import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
 const MAX_WEEK_DRAFT_LENGTH = 8;
 
@@ -385,18 +386,6 @@ const TableWeekInput = React.memo(
       grid.registerEditor(gridCell, editorHandle);
       return () => grid.unregisterEditor(gridCell);
     }, [editorHandle, grid, gridCell]);
-
-    const visuallyHiddenStyle: React.CSSProperties = {
-      position: 'absolute',
-      width: 1,
-      height: 1,
-      padding: 0,
-      margin: -1,
-      overflow: 'hidden',
-      clip: 'rect(0, 0, 0, 0)',
-      whiteSpace: 'nowrap',
-      border: 0,
-    };
 
     return (
       <Tooltip title={showError ? tooltipText : ''} arrow placement="top">

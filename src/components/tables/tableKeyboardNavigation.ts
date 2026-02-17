@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import { getGridCoreForTable } from './gridCoreRegistry';
+import { getWrappedNextColumn } from './tableNavigationCommon';
 
 type CellLocator = Readonly<{ rowIndex: number; colIndex: number; subIndex: number; rowId?: string }>;
 
@@ -223,17 +224,6 @@ const findInRow = (gridRow: ReadonlyArray<ReadonlyArray<HTMLElement>>, preferred
   return null;
 };
 
-const _moveRowMajor = (grid: TableGrid, activeEl: HTMLElement, delta: number) => {
-  const { order } = grid;
-  if (order.length === 0) return;
-
-  const currentIndex = order.indexOf(activeEl);
-  if (currentIndex < 0) return;
-
-  const nextIndex = (currentIndex + delta + order.length) % order.length;
-  focusElement(order[nextIndex]);
-};
-
 const moveVertical = (grid: TableGrid, base: CellLocator, deltaRows: number) => {
   const rowCount = grid.cellFocusables.length;
   if (rowCount === 0) return;
@@ -272,35 +262,32 @@ const pickHorizontalTarget = (
 
   if (selectableCols.length <= 1) return null;
 
-  const currentPos = Math.max(0, selectableCols.indexOf(base.colIndex));
-  for (let step = 1; step <= selectableCols.length; step += 1) {
-    const nextPos = (currentPos + (direction * step) + selectableCols.length) % selectableCols.length;
-    const nextCol = selectableCols[nextPos];
-    const cell = row[nextCol] ?? [];
-    if (cell.length === 0) continue;
-
-    const subIndex = Math.min(Math.max(0, base.subIndex), cell.length - 1);
+  const nextCol = getWrappedNextColumn(selectableCols, base.colIndex, direction, (candidateCol) => {
     const locator: CellLocator = {
       rowIndex: base.rowIndex,
-      colIndex: nextCol,
-      subIndex,
+      colIndex: candidateCol,
+      subIndex: base.subIndex,
       ...(grid.rowIds[base.rowIndex] ? { rowId: grid.rowIds[base.rowIndex] ?? undefined } : {}),
     };
-
     const nextCell = toCellCoord(locator);
-    if (nextCell) {
-      const nextHandle = core?.getEditor(nextCell);
-      if (nextHandle?.getIsLocked()) continue;
-    }
+    if (!nextCell) return false;
+    const nextHandle = core?.getEditor(nextCell);
+    return nextHandle?.getIsLocked() !== true;
+  });
+  if (nextCol === null) return null;
 
-    return { locator, target: cell[subIndex] ?? null };
-  }
+  const cell = row[nextCol] ?? [];
+  if (cell.length === 0) return null;
 
-  return null;
-};
+  const subIndex = Math.min(Math.max(0, base.subIndex), cell.length - 1);
+  const locator: CellLocator = {
+    rowIndex: base.rowIndex,
+    colIndex: nextCol,
+    subIndex,
+    ...(grid.rowIds[base.rowIndex] ? { rowId: grid.rowIds[base.rowIndex] ?? undefined } : {}),
+  };
 
-export const clearTableTabAnchor = (table: HTMLTableElement) => {
-  tabAnchorByTable.delete(table);
+  return { locator, target: cell[subIndex] ?? null };
 };
 
 const isPrintableCharacterKey = (e: React.KeyboardEvent): boolean => {
@@ -514,20 +501,20 @@ export const handleTableBlurCapture = (e: React.FocusEvent<HTMLTableElement>) =>
     if (target && table.contains(target)) {
       const grid = buildGrid(table);
       const locator = getActiveLocator(table, target, grid);
-        if (locator) {
-          const cell = toCellCoord(locator);
-          if (cell && isSameCell(core.getEditingCell(), cell)) {
-            // Close editor state *after* input onBlur has had a chance to commit.
-            // Sync close in capture-phase can overwrite the live draft before commit on click-outside.
-            queueMicrotask(() => {
-              if (isSameCell(core.getEditingCell(), cell)) {
-                core.setEditingCell(null);
-              }
-            });
-          }
+      if (locator) {
+        const cell = toCellCoord(locator);
+        if (cell && isSameCell(core.getEditingCell(), cell)) {
+          // Invariant: queueMicrotask ensures input onBlur runs first (while isEditing is still true).
+          // Do NOT make this synchronous/flushSync; it would break commit-on-blur and can overwrite drafts.
+          queueMicrotask(() => {
+            if (isSameCell(core.getEditingCell(), cell)) {
+              core.setEditingCell(null);
+            }
+          });
         }
       }
     }
+  }
 
   const related = e.relatedTarget;
   if (related instanceof Node && table.contains(related)) return;

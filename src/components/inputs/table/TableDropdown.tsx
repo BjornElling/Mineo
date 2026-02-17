@@ -2,6 +2,9 @@ import * as React from 'react';
 import { MenuItem, Select, Tooltip, type SelectChangeEvent } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { assignRef } from './assignRef';
+import { useGridCore } from '../../tables/gridCoreContext';
+import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
+import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
 /**
  * TableDropdown (table-cell select)
@@ -33,6 +36,7 @@ type TableDropdownPropsNoEmpty = Readonly<{
 
 export type TableDropdownProps = (TableDropdownPropsAllowEmpty | TableDropdownPropsNoEmpty) &
   Readonly<{
+    gridCell?: GridCellCoord;
     readOnly?: boolean;
     /**
      * Visual style variant.
@@ -51,6 +55,7 @@ export type TableDropdownProps = (TableDropdownPropsAllowEmpty | TableDropdownPr
 
 const TableDropdown = React.memo(
   ({
+    gridCell,
     value,
     readOnly = false,
     appearance = 'grid',
@@ -63,6 +68,8 @@ const TableDropdown = React.memo(
     sx,
     ...rest
   }: TableDropdownProps) => {
+    const grid = useGridCore();
+    const wrapperRef = React.useRef<HTMLSpanElement | null>(null);
     const allowEmpty: boolean = (rest as Readonly<{ allowEmpty?: boolean }>).allowEmpty ?? true;
 
     if (import.meta.env.DEV && allowEmpty === false && (value === undefined || value.trim() === '')) {
@@ -129,17 +136,37 @@ const TableDropdown = React.memo(
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const showError = externalErrorText !== '';
 
-    const visuallyHiddenStyle: React.CSSProperties = {
-      position: 'absolute',
-      width: 1,
-      height: 1,
-      padding: 0,
-      margin: -1,
-      overflow: 'hidden',
-      clip: 'rect(0, 0, 0, 0)',
-      whiteSpace: 'nowrap',
-      border: 0,
-    };
+    const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
+      return {
+        getElement: () => {
+          const host = wrapperRef.current;
+          if (!host) return null;
+          const trigger = host.querySelector('[role="combobox"]');
+          return trigger instanceof HTMLElement ? trigger : host;
+        },
+        getIsLocked: () => readOnly,
+        commitCurrent: () => true,
+        clearAndCommit: () => {
+          if (readOnly || !allowEmpty) return;
+          onChange?.({ target: { value: '' } });
+        },
+        cancelEdit: () => {
+          grid.closeEditing();
+        },
+        prepareEditFromKey: () => false,
+        selectAll: () => {
+          // no-op for dropdown
+        },
+      };
+    }, [allowEmpty, grid, onChange, readOnly]);
+
+    React.useEffect(() => {
+      if (!gridCell) return;
+      grid.registerEditor(gridCell, editorHandle);
+      return () => {
+        grid.unregisterEditor(gridCell);
+      };
+    }, [editorHandle, grid, gridCell]);
 
     return (
       <Tooltip title={showError ? externalErrorText : ''} arrow placement="top">
@@ -147,7 +174,10 @@ const TableDropdown = React.memo(
           data-mineo-table-dropdown="true"
           style={{ display: 'block' }}
           onKeyDownCapture={handleKeyDown}
-          ref={(el) => assignRef(inputRef, el)}
+          ref={(el) => {
+            wrapperRef.current = el;
+            assignRef(inputRef, el);
+          }}
         >
           <Select
             value={value ?? ''}

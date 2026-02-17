@@ -6,6 +6,7 @@ export type PercentFingerprint = FingerprintBrand<'PercentFingerprint'>;
 export type IntegerFingerprint = FingerprintBrand<'IntegerFingerprint'>;
 export type WeekFingerprint = FingerprintBrand<'WeekFingerprint'>;
 export type YearFingerprint = FingerprintBrand<'YearFingerprint'>;
+export type StringFingerprint = FingerprintBrand<'StringFingerprint'>;
 
 export const EMPTY_FINGERPRINT = '__EMPTY__';
 
@@ -15,6 +16,7 @@ const asPercentFingerprint = (value: string): PercentFingerprint => value as Per
 const asIntegerFingerprint = (value: string): IntegerFingerprint => value as IntegerFingerprint;
 const asWeekFingerprint = (value: string): WeekFingerprint => value as WeekFingerprint;
 const asYearFingerprint = (value: string): YearFingerprint => value as YearFingerprint;
+const asStringFingerprint = (value: string): StringFingerprint => value as StringFingerprint;
 
 export const EMPTY_AMOUNT_FINGERPRINT = asAmountFingerprint(EMPTY_FINGERPRINT);
 export const EMPTY_DATE_FINGERPRINT = asDateFingerprint(EMPTY_FINGERPRINT);
@@ -22,6 +24,7 @@ export const EMPTY_PERCENT_FINGERPRINT = asPercentFingerprint(EMPTY_FINGERPRINT)
 export const EMPTY_INTEGER_FINGERPRINT = asIntegerFingerprint(EMPTY_FINGERPRINT);
 export const EMPTY_WEEK_FINGERPRINT = asWeekFingerprint(EMPTY_FINGERPRINT);
 export const EMPTY_YEAR_FINGERPRINT = asYearFingerprint(EMPTY_FINGERPRINT);
+export const EMPTY_STRING_FINGERPRINT = asStringFingerprint(EMPTY_FINGERPRINT);
 
 export const makeAmountFingerprintFromCanonical = (canonical: string): AmountFingerprint => {
   return canonical === '' ? EMPTY_AMOUNT_FINGERPRINT : asAmountFingerprint(canonical);
@@ -45,6 +48,10 @@ export const makeWeekFingerprintFromCanonical = (canonical: string): WeekFingerp
 
 export const makeYearFingerprintFromCanonical = (canonical: string): YearFingerprint => {
   return canonical === '' ? EMPTY_YEAR_FINGERPRINT : asYearFingerprint(`y:${canonical}`);
+};
+
+export const makeStringFingerprintFromCanonical = (canonical: string): StringFingerprint => {
+  return canonical === '' ? EMPTY_STRING_FINGERPRINT : asStringFingerprint(`s:${canonical}`);
 };
 
 export type CommitParseResult<TModel, TCanonical, TFingerprint> =

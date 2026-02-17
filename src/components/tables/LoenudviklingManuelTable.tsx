@@ -9,7 +9,8 @@ import type { TableInputErrorInfo } from '../inputs/table/tableInputContracts';
 import { assignRef } from '../inputs/table/assignRef';
 import { useGridCore } from './gridCoreContext';
 import type { GridCellCoord, GridCellEditorHandle } from './gridCoreTypes';
-import { StandardGridHeaderCell, StandardGridTable, getStandardGridBodyRowStyle, getStandardGridCellStyle } from './StandardGridTable';
+import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
+import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './standardGridStyles';
 import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridModel';
 import { applyRowRemovalFocusPlan, buildRowRemovalFocusPlan, type RowRemovalFocusPlan } from './tableRowFocus';
 import { coerceToISODateString } from '../../types/branded';
@@ -18,6 +19,7 @@ import type { LoenudviklingManuelRow } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/formatUtils';
+import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 
 export type LoenudviklingManuelTableProps = Readonly<{
   tableData: LoenudviklingManuelRow[];
@@ -119,18 +121,6 @@ const ReadOnlyDateCell = React.memo(
         grid.unregisterEditor(gridCell);
       };
     }, [editorHandle, grid, gridCell]);
-
-    const visuallyHiddenStyle: React.CSSProperties = {
-      position: 'absolute',
-      width: 1,
-      height: 1,
-      padding: 0,
-      margin: -1,
-      overflow: 'hidden',
-      clip: 'rect(0, 0, 0, 0)',
-      whiteSpace: 'nowrap',
-      border: 0,
-    };
 
     const a11yErrorId = React.useId();
 
@@ -487,7 +477,6 @@ const LoenudviklingManuelTable = React.memo(
                     <TableDateInput
                       gridCell={{ rowId: row.id, colIndex: 0 }}
                       value={row.dato}
-                      onChange={(e) => setRow(row.id, { dato: e.target.value })}
                       onBlur={(e) => commitRowUpdate(row.id, { dato: e.target.value })}
                       onErrorChange={handleErrorChange(row.id, 'dato')}
                     />
@@ -508,7 +497,6 @@ const LoenudviklingManuelTable = React.memo(
                   <TablePercentInput
                     gridCell={{ rowId: row.id, colIndex: 2 }}
                     value={row.feriepenge}
-                    onChange={(e) => setRow(row.id, { feriepenge: e.target.value })}
                     onBlur={(e) => commitRowUpdate(row.id, { feriepenge: e.target.value })}
                     onErrorChange={handleErrorChange(row.id, 'feriepenge')}
                     externalErrorMessage={isBaseRow ? baseRowPercentErrors?.feriepenge : undefined}
@@ -520,7 +508,6 @@ const LoenudviklingManuelTable = React.memo(
                   <TablePercentInput
                     gridCell={{ rowId: row.id, colIndex: 3 }}
                     value={row.shSoSats}
-                    onChange={(e) => setRow(row.id, { shSoSats: e.target.value })}
                     onBlur={(e) => commitRowUpdate(row.id, { shSoSats: e.target.value })}
                     onErrorChange={handleErrorChange(row.id, 'shSoSats')}
                     externalErrorMessage={isBaseRow ? baseRowPercentErrors?.shSoSats : undefined}
@@ -532,7 +519,6 @@ const LoenudviklingManuelTable = React.memo(
                   <TablePercentInput
                     gridCell={{ rowId: row.id, colIndex: 4 }}
                     value={row.fritvalg}
-                    onChange={(e) => setRow(row.id, { fritvalg: e.target.value })}
                     onBlur={(e) => commitRowUpdate(row.id, { fritvalg: e.target.value })}
                     onErrorChange={handleErrorChange(row.id, 'fritvalg')}
                     externalErrorMessage={isBaseRow ? baseRowPercentErrors?.fritvalg : undefined}
@@ -544,7 +530,6 @@ const LoenudviklingManuelTable = React.memo(
                   <TablePercentInput
                     gridCell={{ rowId: row.id, colIndex: 5 }}
                     value={row.agPension}
-                    onChange={(e) => setRow(row.id, { agPension: e.target.value })}
                     onBlur={(e) => commitRowUpdate(row.id, { agPension: e.target.value })}
                     onErrorChange={handleErrorChange(row.id, 'agPension')}
                     externalErrorMessage={isBaseRow ? baseRowPercentErrors?.agPension : undefined}

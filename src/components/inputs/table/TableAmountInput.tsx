@@ -19,6 +19,7 @@ import {
 } from '../../../utils/expressionAmount';
 import { stripAmountGroupingSeparators } from '../../../utils/draftNormalization';
 import { makeAmountFingerprintFromCanonical, type AmountFingerprint, type CommittedPayload } from '../shared/parserSpec';
+import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
 export type TableAmountInputValue = AmountValue | undefined;
 
@@ -423,18 +424,6 @@ const TableAmountInput = React.memo(
         grid.unregisterEditor(gridCell);
       };
     }, [editorHandle, grid, gridCell]);
-
-    const visuallyHiddenStyle: React.CSSProperties = {
-      position: 'absolute',
-      width: 1,
-      height: 1,
-      padding: 0,
-      margin: -1,
-      overflow: 'hidden',
-      clip: 'rect(0, 0, 0, 0)',
-      whiteSpace: 'nowrap',
-      border: 0,
-    };
 
     return (
       <Box sx={{ position: 'relative', width: '100%', height: '100%', ...sx }}>

@@ -4,7 +4,7 @@ import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/mate
 import type { ISODateString } from '../../types/branded';
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
-import StyledDateField from '../inputs/StyledDateField';
+import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
 import StandardLooseTable from './StandardLooseTable';
 
 export type BeregningsperiodeFerieTableProps = Readonly<{
@@ -111,10 +111,10 @@ const BeregningsperiodeFerieTable = React.memo(
             return (
               <TableRow key={row.id} data-mineo-row-id={row.id}>
                 <TableCell>
-                  <StyledDateField
+                  <TableDateIsoInput
+                    gridCell={{ rowId: row.id, colIndex: 0 }}
                     value={fraISO}
-                    onDraftChange={(e) => onFieldChange(row.id, 'fra')(e.target.value ?? '')}
-                    onCommit={(e) => {
+                    onBlur={(e) => {
                       onFieldChange(row.id, 'fra')(e.target.value ?? '');
                       onRowBlur(row.id);
                     }}
@@ -122,15 +122,14 @@ const BeregningsperiodeFerieTable = React.memo(
                     maxDate={fraMaxDate}
                     specialRangeErrors={{ fraTilRole: 'fra' }}
                     noValidRangeCause={fraNoValidRangeCause}
-                    error={fraOutsideBeregningsperiode}
-                    helperText={fraOutsideBeregningsperiode ? OUTSIDE_BEREGNINGSPERIODE_ERROR_MESSAGE : ''}
+                    externalErrorMessage={fraOutsideBeregningsperiode ? OUTSIDE_BEREGNINGSPERIODE_ERROR_MESSAGE : undefined}
                   />
                 </TableCell>
                 <TableCell>
-                  <StyledDateField
+                  <TableDateIsoInput
+                    gridCell={{ rowId: row.id, colIndex: 1 }}
                     value={tilISO}
-                    onDraftChange={(e) => onFieldChange(row.id, 'til')(e.target.value ?? '')}
-                    onCommit={(e) => {
+                    onBlur={(e) => {
                       onFieldChange(row.id, 'til')(e.target.value ?? '');
                       onRowBlur(row.id);
                     }}
@@ -138,8 +137,7 @@ const BeregningsperiodeFerieTable = React.memo(
                     maxDate={tilMaxDate}
                     specialRangeErrors={{ fraTilRole: 'til' }}
                     noValidRangeCause={tilNoValidRangeCause}
-                    error={tilOutsideBeregningsperiode}
-                    helperText={tilOutsideBeregningsperiode ? OUTSIDE_BEREGNINGSPERIODE_ERROR_MESSAGE : ''}
+                    externalErrorMessage={tilOutsideBeregningsperiode ? OUTSIDE_BEREGNINGSPERIODE_ERROR_MESSAGE : undefined}
                   />
                 </TableCell>
                 <TableCell>

@@ -92,16 +92,26 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     expect(hasAarsloenRowOverlapWithRanges(loenRow, 'dag', 'Perioden', ranges)).toBe(false);
   });
 
-  it('medtager via beregningsperiode ved første erstatningsopgørelse', () => {
+  it('medtager via TAF-perioder når Perioden-mode er valgt', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.eoNummer = '1';
-    eoValues.vedroererPeriodeFra = iso('2024-02-01');
-    eoValues.vedroererPeriodeTil = iso('2024-02-29');
-    eoValues.periodeTilBeregningFra = iso('2024-01-01');
-    eoValues.periodeTilBeregningTil = iso('2024-01-31');
+    eoValues.tafPerioder = [
+      {
+        ...eoValues.tafPerioder[0],
+        id: 'taf-1',
+        fra: iso('2024-01-01'),
+        til: iso('2024-01-31'),
+      },
+      {
+        ...eoValues.tafPerioder[0],
+        id: 'taf-2',
+        fra: iso('2024-02-01'),
+        til: iso('2024-02-29'),
+      },
+    ];
 
     const ranges = buildBilagIndkomstYdelserRanges(eoValues, 'Perioden');
-    expect(ranges).toHaveLength(2);
+    expect(ranges).toHaveLength(1);
+    expect(ranges[0]).toEqual({ fra: iso('2024-01-01'), til: iso('2024-02-29') });
 
     const offentligKunBeregningsperiode: OffentligeYdelserRow = {
       id: 'oy-2',
@@ -122,9 +132,14 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
 
   it('ekskluderer række i Perioden-mode når rækkens dato ikke kan parses (fail-closed)', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.eoNummer = '2';
-    eoValues.vedroererPeriodeFra = iso('2024-02-01');
-    eoValues.vedroererPeriodeTil = iso('2024-02-29');
+    eoValues.tafPerioder = [
+      {
+        ...eoValues.tafPerioder[0],
+        id: 'taf-1',
+        fra: iso('2024-02-01'),
+        til: iso('2024-02-29'),
+      },
+    ];
 
     const ranges = buildBilagIndkomstYdelserRanges(eoValues, 'Perioden');
     expect(ranges.length).toBeGreaterThan(0);

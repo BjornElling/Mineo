@@ -22,7 +22,8 @@ import {
   isOffentligeYdelserTableValueEffectivelyEmptyForValidation,
   parseOffentligeYdelserCellKey,
 } from '../../utils/offentligeYdelserTableValidation';
-import { StandardGridHeaderCell, StandardGridTable, getStandardGridBodyRowStyle, getStandardGridCellStyle } from './StandardGridTable';
+import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
+import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './standardGridStyles';
 import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridModel';
 import { applyRowRemovalFocusPlan, buildRowRemovalFocusPlan, type RowRemovalFocusPlan } from './tableRowFocus';
 
@@ -467,7 +468,6 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
                     <TableDateInput
                       gridCell={{ rowId: row.id, colIndex: 0 }}
                       value={row.fraDato}
-                      onChange={(e) => setRow(row.id, { fraDato: e.target.value })}
                       onBlur={(e) => commitRowUpdate(row.id, { fraDato: e.target.value })}
                       onErrorChange={handleErrorChange(row.id, 'fraDato')}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'fraDato')}
@@ -483,7 +483,6 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
                     <TableDateInput
                       gridCell={{ rowId: row.id, colIndex: 1 }}
                       value={row.tilDato}
-                      onChange={(e) => setRow(row.id, { tilDato: e.target.value })}
                       onBlur={(e) => commitRowUpdate(row.id, { tilDato: e.target.value })}
                       onErrorChange={handleErrorChange(row.id, 'tilDato')}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'tilDato')}
@@ -521,6 +520,7 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
 
                   <td style={getStandardGridCellStyle({ align: 'center' })}>
                     <TableDropdown
+                      gridCell={{ rowId: row.id, colIndex: 4 }}
                       value={row.ydelsestype}
                       allowEmpty={true}
                       onChange={(e) => commitRowUpdate(row.id, { ydelsestype: e.target.value || '' })}
