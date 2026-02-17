@@ -89,15 +89,16 @@ const FAKE_RESULT: TafPerYearResult = {
       ],
       deductions: [
         { label: 'Sygedagpenge', amountOre: 10000000 as MoneyOre },
+        { label: 'Allerede betalt TAF', amountOre: 2500000 as MoneyOre },
       ],
       yearIncomeOre: 50000000 as MoneyOre,
-      yearDeductionsOre: 10000000 as MoneyOre,
-      yearTafOre: 40000000 as MoneyOre,
+      yearDeductionsOre: 12500000 as MoneyOre,
+      yearTafOre: 37500000 as MoneyOre,
     },
   ],
-  sumYearTafOre: 40000000 as MoneyOre,
+  sumYearTafOre: 37500000 as MoneyOre,
   afrundingOre: 0 as MoneyOre,
-  samletTafKravOre: 40000000 as MoneyOre,
+  samletTafKravOre: 37500000 as MoneyOre,
 };
 
 // ─── Tests ──────────────────────────────────────────────────────────────
@@ -182,5 +183,17 @@ describe('tafFordeltPaaAarPdf wiring', () => {
     expect(instance).toBeDefined();
     const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
     expect(renderedText).toContain(`-50,00\u00A0kr.`);
+  });
+
+  it('renderer "Allerede betalt TAF" som fradragslinje', async () => {
+    const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
+
+    generateTafFordeltPaaAarPdf({} as any, {} as any);
+    const instance = MockJsPDF.instances.at(-1);
+    expect(instance).toBeDefined();
+
+    const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
+    expect(renderedText).toContain('Allerede betalt TAF');
+    expect(renderedText).toContain(`- 25.000,00\u00A0kr.`);
   });
 });

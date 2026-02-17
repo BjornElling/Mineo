@@ -167,6 +167,75 @@ const buildSubSegment = (
   };
 };
 
+const buildYearClippedRanges = (
+  year: number,
+  tafRanges: readonly { fra: ISODateString; til: ISODateString }[]
+): readonly { fra: ISODateString; til: ISODateString }[] => {
+  const yearStart = `${year}-01-01` as ISODateString;
+  const yearEnd = `${year}-12-31` as ISODateString;
+  return tafRanges.flatMap((range) => {
+    const clippedFra = range.fra > yearStart ? range.fra : yearStart;
+    const clippedTil = range.til < yearEnd ? range.til : yearEnd;
+    if (clippedFra > clippedTil) return [];
+    return [{ fra: clippedFra, til: clippedTil }];
+  });
+};
+
+const allocateOreByWeight = (
+  totalOre: MoneyOre,
+  sortedYears: readonly number[],
+  weightByYear: ReadonlyMap<number, number>
+): ReadonlyMap<number, MoneyOre> => {
+  const result = new Map<number, MoneyOre>();
+  if (totalOre <= 0 || sortedYears.length === 0) return result;
+
+  const positiveWeights = sortedYears
+    .map((year) => ({ year, weight: Math.max(0, weightByYear.get(year) ?? 0) }))
+    .filter((entry) => entry.weight > 0);
+
+  if (positiveWeights.length === 0) {
+    result.set(sortedYears[0], totalOre);
+    return result;
+  }
+
+  const totalWeight = positiveWeights.reduce((sum, entry) => sum + entry.weight, 0);
+  if (totalWeight <= 0) {
+    result.set(sortedYears[0], totalOre);
+    return result;
+  }
+
+  const baseByYear = new Map<number, number>();
+  const remainders: Array<{ year: number; remainder: number }> = [];
+  let sumBase = 0;
+
+  for (const entry of positiveWeights) {
+    const raw = (totalOre * entry.weight) / totalWeight;
+    const base = Math.floor(raw);
+    sumBase += base;
+    baseByYear.set(entry.year, base);
+    remainders.push({ year: entry.year, remainder: raw - base });
+  }
+
+  let remainingOre = totalOre - sumBase;
+  remainders.sort((a, b) => {
+    if (b.remainder !== a.remainder) return b.remainder - a.remainder;
+    return a.year - b.year;
+  });
+
+  for (let i = 0; i < remainingOre; i += 1) {
+    const idx = i % remainders.length;
+    const year = remainders[idx].year;
+    baseByYear.set(year, (baseByYear.get(year) ?? 0) + 1);
+  }
+
+  for (const [year, ore] of baseByYear) {
+    if (ore > 0) {
+      result.set(year, ore as MoneyOre);
+    }
+  }
+  return result;
+};
+
 export const buildTafPerYearResult = (
   model: PdfModel,
   eoValues: ErstatningsopgoerelseValues
@@ -214,6 +283,24 @@ export const buildTafPerYearResult = (
   const sortedYears = [...allYearsSet].sort((a, b) => a - b);
   if (sortedYears.length === 0) return null;
 
+  const yearClippedRangesByYear = new Map<number, readonly { fra: ISODateString; til: ISODateString }[]>();
+  for (const year of sortedYears) {
+    yearClippedRangesByYear.set(year, buildYearClippedRanges(year, tafRanges));
+  }
+
+  const tidligereModtagetTafOre = taf.tidligereModtagetTaf.status === 'ok'
+    ? taf.tidligereModtagetTaf.value
+    : (0 as MoneyOre);
+  const weightByYear = new Map<number, number>();
+  for (const year of sortedYears) {
+    const yearRanges = yearClippedRangesByYear.get(year) ?? [];
+    const weight = isArbejdsdage
+      ? yearRanges.reduce((sum, range) => sum + countTafArbejdsdageInRange(tafArbejdsdageSet ?? new Set<ISODateString>(), range.fra, range.til), 0)
+      : yearRanges.reduce((sum, range) => sum + beregnMaanederUdenFridage(range.fra, range.til), 0);
+    weightByYear.set(year, Math.max(0, weight));
+  }
+  const tidligereModtagetTafByYear = allocateOreByWeight(tidligereModtagetTafOre, sortedYears, weightByYear);
+
   // 3. Byg TafYearEntry for hvert år
   const years: TafYearEntry[] = [];
 
@@ -223,14 +310,7 @@ export const buildTafPerYearResult = (
     segments.sort((a, b) => (a.fra < b.fra ? -1 : a.fra > b.fra ? 1 : 0));
 
     // Klip TAF-ranges til det pågældende kalenderår for fradragsberegning
-    const yearStart = `${year}-01-01` as ISODateString;
-    const yearEnd = `${year}-12-31` as ISODateString;
-    const yearClippedRanges = tafRanges.flatMap((range) => {
-      const clippedFra = range.fra > yearStart ? range.fra : yearStart;
-      const clippedTil = range.til < yearEnd ? range.til : yearEnd;
-      if (clippedFra > clippedTil) return [];
-      return [{ fra: clippedFra, til: clippedTil }];
-    });
+    const yearClippedRanges = yearClippedRangesByYear.get(year) ?? [];
 
     const income = buildIncomeForRanges(eoValues, yearClippedRanges, incomeContext);
 
@@ -245,6 +325,10 @@ export const buildTafPerYearResult = (
       if (ben.amount <= 0) continue;
       const amountOre = toOre(roundKroner(ben.amount));
       deductions.push({ label: ben.label, amountOre });
+    }
+    const yearTidligereModtagetTafOre = tidligereModtagetTafByYear.get(year) ?? (0 as MoneyOre);
+    if (yearTidligereModtagetTafOre > 0) {
+      deductions.push({ label: 'Allerede betalt TAF', amountOre: yearTidligereModtagetTafOre });
     }
 
     const yearIncomeOre = segments.reduce((sum, s) => sum + s.amountOre, 0) as MoneyOre;

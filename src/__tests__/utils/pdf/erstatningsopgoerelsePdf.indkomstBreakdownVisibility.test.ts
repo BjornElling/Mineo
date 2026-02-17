@@ -145,4 +145,26 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     expect(texts.filter((text) => text === 'I alt:')).toHaveLength(0);
   });
+
+  it('viser sektionen "Tidligere betalt erstatning" når tidligere modtaget TAF er indtastet', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.tidligereModtagetTaf = asAmountValue(5000);
+
+    generateErstatningsopgoerelsePdf(stamdata, eo, selected, { visUdkastStempel: false });
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+
+    expect(texts).toContain('Tidligere betalt erstatning');
+    expect(texts).toContain('Der er allerede betalt tabt arbejdsfortjeneste for perioden med');
+  });
+
+  it('skjuler sektionen "Tidligere betalt erstatning" når tidligere modtaget TAF ikke er indtastet', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.tidligereModtagetTaf = undefined;
+
+    generateErstatningsopgoerelsePdf(stamdata, eo, selected, { visUdkastStempel: false });
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+
+    expect(texts).not.toContain('Tidligere betalt erstatning');
+    expect(texts).not.toContain('Der er allerede betalt tabt arbejdsfortjeneste for perioden med');
+  });
 });

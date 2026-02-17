@@ -646,4 +646,78 @@ describe('buildTafPerYearResult', () => {
 
     expect(result1).toEqual(result2);
   });
+
+  it('fordeler "Allerede betalt TAF" pr. år efter arbejdsdage', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmountValue(2000),
+      tidligereModtagetTaf: asAmountValue(100),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-12-30'), til: iso('2025-01-03'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const result = buildTafPerYearResult(model, eoValues);
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+    assertTotals(result);
+    expect(result.years).toHaveLength(2);
+
+    const firstYearPaid = result.years[0].deductions.find((d) => d.label === 'Allerede betalt TAF');
+    const secondYearPaid = result.years[1].deductions.find((d) => d.label === 'Allerede betalt TAF');
+
+    expect(firstYearPaid?.amountOre).toBe(5000);
+    expect(secondYearPaid?.amountOre).toBe(5000);
+    const totalPaidOre = result.years
+      .flatMap((year) => year.deductions)
+      .filter((d) => d.label === 'Allerede betalt TAF')
+      .reduce((sum, d) => sum + d.amountOre, 0);
+    expect(totalPaidOre).toBe(10000);
+  });
+
+  it('fordeler "Allerede betalt TAF" pr. år efter måneder', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(30000),
+      tidligereModtagetTaf: asAmountValue(300),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-12-01'), til: iso('2025-01-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const result = buildTafPerYearResult(model, eoValues);
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+    assertTotals(result);
+    expect(result.years).toHaveLength(2);
+
+    const firstYearPaid = result.years[0].deductions.find((d) => d.label === 'Allerede betalt TAF');
+    const secondYearPaid = result.years[1].deductions.find((d) => d.label === 'Allerede betalt TAF');
+
+    expect(firstYearPaid?.amountOre).toBe(15000);
+    expect(secondYearPaid?.amountOre).toBe(15000);
+    const totalPaidOre = result.years
+      .flatMap((year) => year.deductions)
+      .filter((d) => d.label === 'Allerede betalt TAF')
+      .reduce((sum, d) => sum + d.amountOre, 0);
+    expect(totalPaidOre).toBe(30000);
+  });
 });

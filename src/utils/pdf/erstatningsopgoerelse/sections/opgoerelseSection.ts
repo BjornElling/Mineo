@@ -646,11 +646,25 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
     const loenudviklingTotal = model.tabtArbejdsfortjeneste.loenudvikling?.loenudviklingTotal ?? null;
     const tafTotal = model.tabtArbejdsfortjeneste.tafIndtaegter?.total ?? null;
+    const tidligereModtagetTaf = model.tabtArbejdsfortjeneste.tidligereModtagetTaf;
+    if (tidligereModtagetTaf.status === 'ok') {
+      renderSubheader('Tidligere betalt erstatning', lineHeight);
+      const rightMaxWidth = writer.getTextWidth('000.000.000,00');
+      safeAddLeftRightText(
+        'Der er allerede betalt tabt arbejdsfortjeneste for perioden med',
+        formatMoneyOreWithKr(tidligereModtagetTaf.value),
+        rightMaxWidth,
+        { rightFontStyle: 'normal' }
+      );
+    }
+
     if (loenudviklingTotal && tafTotal && loenudviklingTotal.status === 'ok' && tafTotal.status === 'ok') {
       renderSubheader('Beregnet krav på tabt arbejdsfortjeneste', lineHeight);
 
       const rightMaxWidth = writer.getTextWidth('000.000.000,00');
-      const leftText = `${formatMoneyOreWithKr(loenudviklingTotal.value)} - ${formatMoneyOreWithKr(tafTotal.value)} =`;
+      const leftText = tidligereModtagetTaf.status === 'ok'
+        ? `${formatMoneyOreWithKr(loenudviklingTotal.value)} - ${formatMoneyOreWithKr(tafTotal.value)} - ${formatMoneyOreWithKr(tidligereModtagetTaf.value)} =`
+        : `${formatMoneyOreWithKr(loenudviklingTotal.value)} - ${formatMoneyOreWithKr(tafTotal.value)} =`;
       const rightText = formatMoneyOreWithKr(model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre);
       safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'bold' });
     } else if (model.tabtArbejdsfortjeneste.harTafPerioder) {

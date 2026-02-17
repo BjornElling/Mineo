@@ -161,6 +161,63 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     }
   });
 
+  it('fratrækker tidligere modtaget tabt arbejdsfortjeneste fra beregnet krav', () => {
+    const baseValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(48705.13),
+      beregnesTabtArbejdsfortjeneste: 'Ja',
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2021-06-01'), til: iso('2021-08-15'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2021-06-01') });
+    const withoutPaidModel = buildErstatningsopgoerelsePdfModel(stamdata, baseValues, { dagsDatoISO: iso('2026-02-10') });
+
+    const paidValues = makeValues({
+      ...baseValues,
+      tidligereModtagetTaf: asAmountValue(1234.56),
+    });
+    const withPaidModel = buildErstatningsopgoerelsePdfModel(stamdata, paidValues, { dagsDatoISO: iso('2026-02-10') });
+
+    expect(withPaidModel.tabtArbejdsfortjeneste.tidligereModtagetTaf.status).toBe('ok');
+    if (withPaidModel.tabtArbejdsfortjeneste.tidligereModtagetTaf.status === 'ok') {
+      expect(withPaidModel.tabtArbejdsfortjeneste.tidligereModtagetTaf.value).toBe(123456);
+    }
+    expect(withPaidModel.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre).toBe(
+      Math.max(0, withoutPaidModel.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre - 123456)
+    );
+  });
+
+  it('lader ikke tabt arbejdsfortjeneste blive negativ efter fradrag for tidligere modtaget beløb', () => {
+    const baseValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(48705.13),
+      beregnesTabtArbejdsfortjeneste: 'Ja',
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2021-06-01'), til: iso('2021-08-15'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
+      tidligereModtagetTaf: asAmountValue(999999999),
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2021-06-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, baseValues, { dagsDatoISO: iso('2026-02-10') });
+    expect(model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre).toBe(0);
+  });
+
   it('beregner svie/smerte total i øre', () => {
     const eoValues = makeValues({
       vedroererPeriodeFra: iso('2024-01-01'),

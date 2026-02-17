@@ -119,6 +119,7 @@ export type TabtArbejdsfortjenestePdfModel = Readonly<{
   indkomstSkadestidspunkt: IndkomstSkadestidspunktPdfModel | null;
   loenudvikling: LoenudviklingPdfModel | null;
   tafIndtaegter: TafIndtaegterPdfModel | null;
+  tidligereModtagetTaf: Calculable<MoneyOre>;
   tabtArbejdsfortjenesteOre: MoneyOre;
 }>;
 
@@ -2073,6 +2074,11 @@ const buildTabtArbejdsfortjenesteModel = (
 
   const tafRanges = buildTafRanges(values);
   const tafIndtaegter = harTafPerioder ? buildTafIndtaegterModel(values, tafRanges) : null;
+  const tidligereModtagetTafKroner = amountValueToNumber(values.tidligereModtagetTaf);
+  const tidligereModtagetTaf =
+    tidligereModtagetTafKroner !== undefined
+      ? asCalculable(toOre(tidligereModtagetTafKroner))
+      : notCalculableMoney('Ikke angivet');
 
   let tabtArbejdsfortjenesteOre = ensureMoneyOre(0);
   if (harTafPerioder) {
@@ -2088,8 +2094,9 @@ const buildTabtArbejdsfortjenesteModel = (
     if (tafIndtaegter.total.status !== 'ok') {
       throw new Error('Indtaegter i TAF-perioden kan ikke beregnes');
     }
+    const tidligereModtagetTafOre = tidligereModtagetTaf.status === 'ok' ? tidligereModtagetTaf.value : ensureMoneyOre(0);
     tabtArbejdsfortjenesteOre = clampMoneyOreToZero(
-      ensureMoneyOre(loenudvikling.loenudviklingTotal.value - tafIndtaegter.total.value)
+      ensureMoneyOre(loenudvikling.loenudviklingTotal.value - tafIndtaegter.total.value - tidligereModtagetTafOre)
     );
   }
 
@@ -2104,6 +2111,7 @@ const buildTabtArbejdsfortjenesteModel = (
     indkomstSkadestidspunkt,
     loenudvikling,
     tafIndtaegter,
+    tidligereModtagetTaf,
     tabtArbejdsfortjenesteOre,
   };
 };
