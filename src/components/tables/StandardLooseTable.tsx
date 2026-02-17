@@ -33,7 +33,7 @@ const StandardLooseTable = React.memo(({
   onDoubleClickCapture,
   ...props
 }: StandardLooseTableProps) => {
-  const { internalTableRef, contextValue } = useGridCoreController();
+  const { internalTableRef, contextValue } = useGridCoreController({ tableKind: 'loose' });
 
   const tableStyles = getMuiTableStyles(useSmallFont);
   const mergedSx: SxProps<Theme> = [

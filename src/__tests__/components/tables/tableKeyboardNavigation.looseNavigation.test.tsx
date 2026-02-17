@@ -127,4 +127,37 @@ describe('tableKeyboardNavigation loose table', () => {
     expect(onBottomBlur).toHaveBeenCalledWith('77');
     expect(document.activeElement).toBe(topInput);
   });
+
+  it('single click åbner ikke editor, når cellen kun er husket men ikke fysisk fokuseret', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <div>
+        <StandardLooseTable>
+          <tbody>
+            <tr data-mineo-row-id="r1">
+              <td>
+                <TableIntegerInput gridCell={{ rowId: 'r1', colIndex: 0 }} value="1" />
+              </td>
+            </tr>
+          </tbody>
+        </StandardLooseTable>
+        <button type="button">outside</button>
+      </div>
+    );
+
+    const input = screen.getByRole('textbox');
+    const outside = screen.getByRole('button', { name: 'outside' });
+
+    await user.click(input);
+    expect(input).toHaveAttribute('readonly');
+
+    await user.click(outside);
+
+    await user.click(input);
+    expect(input).toHaveAttribute('readonly');
+
+    await user.click(input);
+    expect(input).not.toHaveAttribute('readonly');
+  });
 });

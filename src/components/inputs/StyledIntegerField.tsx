@@ -3,10 +3,11 @@ import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from './StyledTextFieldBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
-import { filterIntegerKeyDown } from './inputKeyFilters';
+import { filterIntegerKeyDown, filterIntegerPaste, isIntegerDraftAllowed } from './inputKeyFilters';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from './fieldEvents';
 import { getIntegerRangeErrorMessage } from './shared/integerRange';
+import { readClipboardText } from '../../utils/clipboardUtils';
 
 export type StyledIntegerFieldValueChangeEvent = CommitEvent<number | undefined>;
 export type StyledIntegerFieldDraftChangeEvent = DraftChangeEvent;
@@ -331,11 +332,39 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
         }
 
         if (!e.defaultPrevented) {
-          filterIntegerKeyDown(e);
+          filterIntegerKeyDown(e, {
+            maxDigits: effectiveMaxDigits,
+            maxValue,
+            allowNegative,
+          });
         }
         onKeyDown?.(e);
       },
-      [activation, onCommit, onKeyDown, onKeyDownBase, parseInteger, setDraft]
+      [activation, allowNegative, effectiveMaxDigits, maxValue, onCommit, onKeyDown, onKeyDownBase, parseInteger, setDraft]
+    );
+
+    const handlePaste = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        const constraints = {
+          maxDigits: effectiveMaxDigits,
+          maxValue,
+          allowNegative,
+        };
+
+        if (!activation.isEditorOpen) {
+          const pastedText = readClipboardText(e);
+          if (pastedText !== '' && !isIntegerDraftAllowed(pastedText, constraints)) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+          activation.handlePaste(e);
+          return;
+        }
+
+        filterIntegerPaste(e, constraints);
+      },
+      [activation, allowNegative, effectiveMaxDigits, maxValue]
     );
 
     return (
@@ -369,7 +398,7 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
         }}
         onMouseDown={activation.handleMouseDown}
         onClick={activation.handleClick}
-        onPaste={activation.handlePaste}
+        onPaste={handlePaste}
         sx={{
           '& .MuiInputBase-input': {
             textAlign: 'center',

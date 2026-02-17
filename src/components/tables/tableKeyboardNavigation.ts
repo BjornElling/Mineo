@@ -485,9 +485,11 @@ export const handleTablePointerDownCapture = (e: React.PointerEvent<HTMLTableEle
   const cell = toCellCoord(locator);
   if (!cell) return;
 
-  const focused = core.getFocusedCell();
+  const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const activeLocator = activeElement && table.contains(activeElement) ? getActiveLocator(table, activeElement, grid) : null;
+  const activeCell = activeLocator ? toCellCoord(activeLocator) : null;
   const editing = core.getEditingCell();
-  if (isSameCell(focused, cell) && !isSameCell(editing, cell)) {
+  if (isSameCell(activeCell, cell) && !isSameCell(editing, cell)) {
     core.openEditing(cell, 'pointer');
   }
 };

@@ -20,6 +20,11 @@ export const ydelsestyper: Record<string, YdelsestypeConfig> = {
     periodisering: 'kalenderdage',
     periodiseringLabel: 'Kalenderdage',
   },
+  efterloen: {
+    label: 'Efterløn',
+    periodisering: 'kalenderdage',
+    periodiseringLabel: 'Kalenderdage',
+  },
   flextilskud: {
     label: 'Flextilskud',
     periodisering: 'kalenderdage',

@@ -28,7 +28,6 @@ import {
   type StatistiskLoenudviklingId,
 } from '../../../data/statistiskLoenudviklingRates';
 import { formatKRLSatstabelDisplay, getKRLSatstabel, getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
-import { TODAY } from '../../../config/dateRanges';
 import { loenPaaHelligdageSchema } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
@@ -63,7 +62,6 @@ import {
   formatAmount2,
   roundToTwoDecimals,
 } from '../../../domain/erstatningsopgoerelse/sharedPdfUtils';
-import { buildErstatningsopgoerelsePdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
 
 // Debug strategy:
 // - We intentionally read errors by source (input/schema/rule) to expose diagnostics.
@@ -2037,17 +2035,6 @@ const EODebug = () => {
     if (midlertidigtEetErSynlig || endeligtEetErSynlig) return true;
     return row.id !== 'aes.verserendeKlageEet';
   });
-
-  const pdfModelForDebug = React.useMemo(() => {
-    try {
-      return buildErstatningsopgoerelsePdfModel(stamdataValues, erstatningsopgoerelseValues, { dagsDatoISO: TODAY });
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Kunne ikke bygge PDF-model til EODebug', error);
-      }
-      return null;
-    }
-  }, [erstatningsopgoerelseValues, stamdataValues]);
 
   const indkomstIBeregningsperioden = React.useMemo((): Readonly<{
     loenRows: ReadonlyArray<IndkomstRow>;

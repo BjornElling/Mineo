@@ -211,6 +211,9 @@ const TableDateInput = React.memo(
     const cellFocused = areSameGridCell(grid.focusedCell, gridCell);
     const isEditing = areSameGridCell(grid.editingCell, gridCell);
     const isReadOnly = locked || !isEditing;
+    const isLooseTable = grid.tableKind === 'loose';
+    const inputBorderRadius = isLooseTable ? '10px' : '0px';
+    const inputBorderColor = isLooseTable ? 'rgba(0, 0, 0, 0.12)' : 'transparent';
 
     const inputElRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -554,8 +557,8 @@ const TableDateInput = React.memo(
               color: 'inherit',
               padding: '4px 8px',
               border: '1px solid',
-              borderColor: showError ? '#d32f2f' : 'transparent',
-              borderRadius: '4px',
+              borderColor: showError ? '#d32f2f' : inputBorderColor,
+              borderRadius: inputBorderRadius,
               backgroundColor: 'transparent',
               ...(cellFocused ? { outline: 'none' } : {}),
               '&:focus-within': {
@@ -590,3 +593,4 @@ const TableDateInput = React.memo(
 TableDateInput.displayName = 'TableDateInput';
 
 export default TableDateInput;
+

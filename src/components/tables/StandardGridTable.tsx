@@ -42,7 +42,7 @@ export const StandardGridTable = React.memo(
     containerSx,
     tableRef,
   }: StandardGridTableProps) => {
-    const { internalTableRef, contextValue } = useGridCoreController();
+    const { internalTableRef, contextValue } = useGridCoreController({ tableKind: 'grid' });
 
     return (
       <Box sx={{ width: '100%', overflowX: 'auto', ...(containerSx ?? {}) }}>

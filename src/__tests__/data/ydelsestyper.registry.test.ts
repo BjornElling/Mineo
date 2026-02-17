@@ -11,6 +11,14 @@ describe('ydelsestyper registry', () => {
     }
   });
 
+  it('har Efterløn med kalenderdage-periodisering', () => {
+    const config = ydelsestyper.efterloen;
+    expect(config).toBeDefined();
+    expect(config.label).toBe('Efterløn');
+    expect(config.periodisering).toBe('kalenderdage');
+    expect(config.periodiseringLabel).toBe('Kalenderdage');
+  });
+
   it('placerer Uddannelseshjælp efter SU og før Andet', () => {
     const suIndex = ydelsestypeKeys.indexOf('su');
     const uddannelseshjaelpIndex = ydelsestypeKeys.indexOf('uddannelseshjaelp');

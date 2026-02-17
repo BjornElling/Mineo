@@ -69,6 +69,9 @@ const TableDropdown = React.memo(
     ...rest
   }: TableDropdownProps) => {
     const grid = useGridCore();
+    const isLooseTable = grid.tableKind === 'loose';
+    const inputBorderRadius = isLooseTable ? '10px' : '0px';
+    const inputBorderColor = isLooseTable ? 'rgba(0, 0, 0, 0.12)' : 'transparent';
     const wrapperRef = React.useRef<HTMLSpanElement | null>(null);
     const allowEmpty: boolean = (rest as Readonly<{ allowEmpty?: boolean }>).allowEmpty ?? true;
 
@@ -201,9 +204,9 @@ const TableDropdown = React.memo(
               ...(appearance === 'loose'
                 ? {
                     backgroundColor: '#ffffff',
-                    borderRadius: '10px',
+                    borderRadius: inputBorderRadius,
                     '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: showError ? '#d32f2f' : 'rgba(0, 0, 0, 0.12)',
+                      borderColor: showError ? '#d32f2f' : inputBorderColor,
                       borderWidth: '1px',
                     },
                     '&:hover .MuiOutlinedInput-notchedOutline': {
@@ -220,8 +223,8 @@ const TableDropdown = React.memo(
                 : {
                     height: '100%',
                     border: '1px solid',
-                    borderColor: showError ? '#d32f2f' : 'transparent',
-                    borderRadius: '4px',
+                    borderColor: showError ? '#d32f2f' : inputBorderColor,
+                    borderRadius: inputBorderRadius,
                     '&:focus-within': {
                       borderColor: '#1976d2',
                     },
@@ -272,3 +275,4 @@ const TableDropdown = React.memo(
 TableDropdown.displayName = 'TableDropdown';
 
 export default TableDropdown;
+

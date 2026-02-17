@@ -1,6 +1,8 @@
 import * as React from 'react';
 import type { GridCellCoord, GridCorePublicAPI } from './gridCoreTypes';
 
+export type GridCoreTableKind = 'grid' | 'loose';
+
 /**
  * React Context value type for GridCore
  *
@@ -17,6 +19,7 @@ export type GridCoreContextValue = Readonly<
   GridCorePublicAPI & {
     focusedCell: GridCellCoord | null;
     editingCell: GridCellCoord | null;
+    tableKind?: GridCoreTableKind;
   }
 >;
 

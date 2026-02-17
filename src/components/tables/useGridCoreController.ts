@@ -4,6 +4,7 @@ import { areSameGridCellOrBothNull, gridCellKey } from './gridCoreUtils';
 import type { FocusPlan, GridCellCoord, GridCellEditorHandle, GridCoreController, GridOpenEditSource } from './gridCoreTypes';
 import { attachGridCoreToTable, detachGridCoreFromTable } from './gridCoreRegistry';
 import type { GridCoreContextValue } from './gridCoreContext';
+import type { GridCoreTableKind } from './gridCoreContext';
 
 type UseGridCoreControllerResult = Readonly<{
   internalTableRef: React.MutableRefObject<HTMLTableElement | null>;
@@ -11,7 +12,12 @@ type UseGridCoreControllerResult = Readonly<{
   contextValue: GridCoreContextValue;
 }>;
 
-export const useGridCoreController = (): UseGridCoreControllerResult => {
+type UseGridCoreControllerOptions = Readonly<{
+  tableKind?: GridCoreTableKind;
+}>;
+
+export const useGridCoreController = (options: UseGridCoreControllerOptions = {}): UseGridCoreControllerResult => {
+  const tableKind = options.tableKind ?? 'grid';
   const internalTableRef = React.useRef<HTMLTableElement | null>(null);
   const editorRegistryRef = React.useRef<Map<string, GridCellEditorHandle>>(new Map());
 
@@ -130,6 +136,7 @@ export const useGridCoreController = (): UseGridCoreControllerResult => {
     return {
       focusedCell,
       editingCell,
+      tableKind,
       openEditing: controller.openEditing,
       closeEditing: controller.closeEditing,
       registerEditor: controller.registerEditor,
@@ -137,7 +144,7 @@ export const useGridCoreController = (): UseGridCoreControllerResult => {
       getEditor: controller.getEditor,
       requestFocusPlan: controller.requestFocusPlan,
     };
-  }, [controller, editingCell, focusedCell]);
+  }, [controller, editingCell, focusedCell, tableKind]);
 
   React.useEffect(() => {
     const table = internalTableRef.current;

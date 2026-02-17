@@ -1,6 +1,14 @@
 import type * as React from 'react';
+import { readClipboardText } from '../../utils/clipboardUtils';
 
 type KeyDownEvent = React.KeyboardEvent<HTMLInputElement>;
+type PasteEvent = React.ClipboardEvent<HTMLInputElement>;
+type BlockableEvent = Pick<React.SyntheticEvent<HTMLInputElement>, 'preventDefault' | 'stopPropagation'>;
+type IntegerInputConstraints = Readonly<{
+  maxDigits?: number;
+  maxValue?: number;
+  allowNegative?: boolean;
+}>;
 
 const isBypassKeyEvent = (e: KeyDownEvent): boolean => {
   // IME/composition and OS/browser-level commands should not be interfered with.
@@ -26,14 +34,14 @@ const isNonCharacterKey = (e: KeyDownEvent): boolean => {
   return nonCharKeys.has(e.key);
 };
 
-const getNextValueFromKey = (input: HTMLInputElement, key: string): string => {
+const getNextValueFromInsertion = (input: HTMLInputElement, insertion: string): string => {
   const current = input.value ?? '';
   const start = typeof input.selectionStart === 'number' ? input.selectionStart : current.length;
   const end = typeof input.selectionEnd === 'number' ? input.selectionEnd : start;
-  return current.slice(0, start) + key + current.slice(end);
+  return current.slice(0, start) + insertion + current.slice(end);
 };
 
-const block = (e: KeyDownEvent): void => {
+const block = (e: BlockableEvent): void => {
   e.preventDefault();
   e.stopPropagation();
 };
@@ -50,13 +58,41 @@ export const containsUnaryMinusToken = (input: string): boolean => {
   return /(^|[+\-*/x(])-/.test(compact);
 };
 
+export const isIntegerDraftAllowed = (input: string, options?: IntegerInputConstraints): boolean => {
+  const allowNegative = options?.allowNegative === true;
+  const pattern = allowNegative ? /^-?\d*$/ : /^\d*$/;
+  if (!pattern.test(input)) return false;
+
+  if (typeof options?.maxDigits === 'number') {
+    const withoutSign = input.startsWith('-') ? input.slice(1) : input;
+    if (withoutSign.length > options.maxDigits) return false;
+  }
+
+  if (typeof options?.maxValue === 'number' && /^-?\d+$/.test(input)) {
+    const numeric = Number.parseInt(input, 10);
+    if (Number.isFinite(numeric) && numeric > options.maxValue) return false;
+  }
+
+  return true;
+};
+
 /**
  * Integer: digits only.
  */
-export const filterIntegerKeyDown = (e: KeyDownEvent): void => {
+export const filterIntegerKeyDown = (e: KeyDownEvent, options?: IntegerInputConstraints): void => {
   if (!shouldValidateCharInsertion(e)) return;
-  const next = getNextValueFromKey(e.currentTarget, e.key);
-  if (!/^\d*$/.test(next)) block(e);
+  const next = getNextValueFromInsertion(e.currentTarget, e.key);
+  if (!isIntegerDraftAllowed(next, options)) block(e);
+};
+
+/**
+ * Integer paste guard that enforces the same constraints as keydown filtering.
+ */
+export const filterIntegerPaste = (e: PasteEvent, options?: IntegerInputConstraints): void => {
+  const text = readClipboardText(e);
+  if (text === '') return;
+  const next = getNextValueFromInsertion(e.currentTarget, text);
+  if (!isIntegerDraftAllowed(next, options)) block(e);
 };
 
 /**
@@ -66,7 +102,7 @@ export const filterIntegerKeyDown = (e: KeyDownEvent): void => {
  */
 export const filterYearKeyDown = (e: KeyDownEvent): void => {
   if (!shouldValidateCharInsertion(e)) return;
-  const next = getNextValueFromKey(e.currentTarget, e.key);
+  const next = getNextValueFromInsertion(e.currentTarget, e.key);
   if (!/^\d{0,4}$/.test(next)) block(e);
 };
 
@@ -75,7 +111,7 @@ export const filterYearKeyDown = (e: KeyDownEvent): void => {
  */
 export const filterFractionKeyDown = (e: KeyDownEvent): void => {
   if (!shouldValidateCharInsertion(e)) return;
-  const next = getNextValueFromKey(e.currentTarget, e.key);
+  const next = getNextValueFromInsertion(e.currentTarget, e.key);
   if (!/^\d{0,2}(\/\d{0,2})?$/.test(next)) block(e);
 };
 
@@ -84,7 +120,7 @@ export const filterFractionKeyDown = (e: KeyDownEvent): void => {
  */
 export const filterCommaDecimal2KeyDown = (e: KeyDownEvent, options?: { allowNegative?: boolean }): void => {
   if (!shouldValidateCharInsertion(e)) return;
-  const next = getNextValueFromKey(e.currentTarget, e.key);
+  const next = getNextValueFromInsertion(e.currentTarget, e.key);
   const allowNegative = options?.allowNegative === true;
   const pattern = allowNegative ? /^-?\d*(,\d{0,2})?$/ : /^\d*(,\d{0,2})?$/;
   if (!pattern.test(next)) block(e);
@@ -95,7 +131,7 @@ export const filterCommaDecimal2KeyDown = (e: KeyDownEvent, options?: { allowNeg
  */
 export const filterAmountExpressionKeyDown = (e: KeyDownEvent, options?: { allowNegative?: boolean }): void => {
   if (!shouldValidateCharInsertion(e)) return;
-  const next = getNextValueFromKey(e.currentTarget, e.key);
+  const next = getNextValueFromInsertion(e.currentTarget, e.key);
   const allowNegative = options?.allowNegative === true;
   if (!allowNegative && containsUnaryMinusToken(next)) {
     block(e);
@@ -113,7 +149,7 @@ export const filterPercentKeyDown = (e: KeyDownEvent, options?: { allowNegative?
   if (!shouldValidateCharInsertion(e)) return;
 
   const allowNegative = options?.allowNegative === true;
-  const next = getNextValueFromKey(e.currentTarget, e.key);
+  const next = getNextValueFromInsertion(e.currentTarget, e.key);
 
   const pattern = allowNegative ? /^-?\d*(,\d{0,2})?$/ : /^\d*(,\d{0,2})?$/;
   if (!pattern.test(next)) {
@@ -145,7 +181,7 @@ export const filterPercentKeyDown = (e: KeyDownEvent, options?: { allowNegative?
  */
 export const filterDateLikeKeyDown = (e: KeyDownEvent): void => {
   if (!shouldValidateCharInsertion(e)) return;
-  const next = getNextValueFromKey(e.currentTarget, e.key);
+  const next = getNextValueFromInsertion(e.currentTarget, e.key);
   const allowedChars = /^[0-9.,/\\\- ]*$/;
   if (!allowedChars.test(next)) {
     block(e);
@@ -165,7 +201,7 @@ export const filterDateLikeKeyDown = (e: KeyDownEvent): void => {
  */
 export const filterWeekKeyDown = (e: KeyDownEvent): void => {
   if (!shouldValidateCharInsertion(e)) return;
-  const next = getNextValueFromKey(e.currentTarget, e.key);
+  const next = getNextValueFromInsertion(e.currentTarget, e.key);
   const allowedChars = /^[0-9.,/\\\- ]*$/;
   if (!allowedChars.test(next)) {
     block(e);

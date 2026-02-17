@@ -123,6 +123,9 @@ const TableAmountInput = React.memo(
     const cellFocused = areSameGridCell(grid.focusedCell, gridCell);
     const isEditing = areSameGridCell(grid.editingCell, gridCell);
     const isReadOnly = locked || !isEditing;
+    const isLooseTable = grid.tableKind === 'loose';
+    const inputBorderRadius = isLooseTable ? '10px' : '0px';
+    const inputBorderColor = isLooseTable ? 'rgba(0, 0, 0, 0.12)' : 'transparent';
 
     const inputElRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -462,9 +465,9 @@ const TableAmountInput = React.memo(
                 fontFeatureSettings: '"tnum"',
                 paddingLeft: '8px',
                 paddingRight: '8px',
-                borderRadius: '4px',
+                borderRadius: inputBorderRadius,
                 border: '1px solid',
-                borderColor: showError ? '#d32f2f' : 'transparent',
+                borderColor: showError ? '#d32f2f' : inputBorderColor,
                 ...(cellFocused ? { outline: 'none' } : {}),
                 '&:focus-within': {
                   borderColor: '#1976d2',
@@ -513,3 +516,4 @@ const TableAmountInput = React.memo(
 TableAmountInput.displayName = 'TableAmountInput';
 
 export default TableAmountInput;
+

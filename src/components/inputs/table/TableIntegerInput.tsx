@@ -8,7 +8,7 @@ import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreT
 import { shouldClearField } from '../../../utils/inputValidation';
 import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit, type TableCommitResult, type TableInputErrorInfo } from './tableInputContracts';
 import { assignRef } from './assignRef';
-import { filterIntegerKeyDown } from '../inputKeyFilters';
+import { filterIntegerKeyDown, filterIntegerPaste } from '../inputKeyFilters';
 import { makeIntegerFingerprintFromCanonical, type CommittedPayload, type IntegerFingerprint } from '../shared/parserSpec';
 import { getIntegerRangeErrorMessage } from '../shared/integerRange';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
@@ -129,6 +129,9 @@ const TableIntegerInput = React.memo(
     const cellFocused = areSameGridCell(grid.focusedCell, gridCell);
     const isEditing = areSameGridCell(grid.editingCell, gridCell);
     const isReadOnly = locked || !isEditing;
+    const isLooseTable = grid.tableKind === 'loose';
+    const inputBorderRadius = isLooseTable ? '10px' : '0px';
+    const inputBorderColor = isLooseTable ? 'rgba(0, 0, 0, 0.12)' : 'transparent';
 
     const [draft, setDraft] = React.useState<string>(() => value ?? '');
     const [hasError, setHasError] = React.useState(false);
@@ -309,9 +312,17 @@ const TableIntegerInput = React.memo(
       (e: React.KeyboardEvent<HTMLInputElement>) => {
         // Filtrér kun under edit-mode (arvet fra StyledIntegerField)
         if (!isEditing) return;
-        filterIntegerKeyDown(e);
+        filterIntegerKeyDown(e, { maxDigits, maxValue });
       },
-      [isEditing]
+      [isEditing, maxDigits, maxValue]
+    );
+
+    const handlePaste = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        if (!isEditing) return;
+        filterIntegerPaste(e, { maxDigits, maxValue });
+      },
+      [isEditing, maxDigits, maxValue]
     );
 
     const a11yErrorId = React.useId();
@@ -411,6 +422,7 @@ const TableIntegerInput = React.memo(
             onFocus={handleFocus}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             placeholder={cellFocused && !isReadOnly ? '' : placeholder}
             inputProps={{
               readOnly: isReadOnly,
@@ -430,9 +442,9 @@ const TableIntegerInput = React.memo(
               fontFeatureSettings: '"tnum"',
               paddingLeft: '8px',
               paddingRight: '8px',
-              borderRadius: '4px',
+              borderRadius: inputBorderRadius,
               border: '1px solid',
-              borderColor: showError ? '#d32f2f' : 'transparent',
+              borderColor: showError ? '#d32f2f' : inputBorderColor,
               '&:focus-within': {
                 borderColor: '#1976d2',
               },
@@ -464,3 +476,4 @@ const TableIntegerInput = React.memo(
 TableIntegerInput.displayName = 'TableIntegerInput';
 
 export default TableIntegerInput;
+
