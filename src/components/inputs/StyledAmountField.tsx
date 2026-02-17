@@ -3,7 +3,7 @@ import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from './StyledTextFieldBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
-import { filterAmountExpressionKeyDown } from './inputKeyFilters';
+import { containsUnaryMinusToken, filterAmountExpressionKeyDown } from './inputKeyFilters';
 import { stripAmountGroupingSeparators } from '../../utils/draftNormalization';
 import { sanitizePastedAmount } from '../../utils/amountInputUtils';
 import { readClipboardText } from '../../utils/clipboardUtils';
@@ -197,15 +197,19 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
     const getDraftForKey = React.useCallback((key: string): string | null => {
       const mapped = key === '.' ? '.' : key;
       if (/^[0-9,]$/.test(mapped)) return mapped;
+      if (mapped === '-' && !allowNegative) return null;
       if (mapped === '-' || mapped === '(' || mapped === ')') return mapped;
       return null;
-    }, []);
+    }, [allowNegative]);
 
     const activation = useTwoStageInputActivation<HTMLInputElement>({
       disabled: Boolean(disabled),
       getDraftForKey,
       normalizePasteText: sanitizePastedAmount,
-      onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
+      onReplaceDraft: (nextDraft) => {
+        if (!allowNegative && containsUnaryMinusToken(nextDraft)) return;
+        handleDraftChange(nextDraft);
+      },
       onStartEditing: (source) => {
         hadErrorOnEditStartRef.current = Boolean(visibleLocalError?.message);
         if (source !== 'click') return;
@@ -284,11 +288,11 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
         }
 
         if (!e.defaultPrevented) {
-          filterAmountExpressionKeyDown(e);
+          filterAmountExpressionKeyDown(e, { allowNegative });
         }
         onKeyDown?.(e);
       },
-      [activation, onCommit, onKeyDown, onKeyDownBase, setDraft]
+      [activation, allowNegative, onCommit, onKeyDown, onKeyDownBase, setDraft]
     );
 
     const displayDraft = activation.isEditorOpen ? draft : localHasError ? draft : formatAmount(value);
@@ -311,6 +315,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
         const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
         const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
         const nextDraft = draft.slice(0, start) + sanitized + draft.slice(end);
+        if (!allowNegative && containsUnaryMinusToken(nextDraft)) return;
         handleDraftChange(nextDraft);
 
         const nextCaret = start + sanitized.length;
@@ -324,7 +329,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
           }
         });
       },
-      [activation, draft, handleDraftChange]
+      [activation, allowNegative, draft, handleDraftChange]
     );
 
     return (

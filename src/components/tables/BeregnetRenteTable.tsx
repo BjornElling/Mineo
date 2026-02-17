@@ -15,6 +15,7 @@ import { minIsoDate } from '../../utils/dateUtils';
 import type { RentekravRow } from '../../schemas/formSchemas';
 import type { RentekravDraftRow } from '../../domain/renteberegning/tableDraftRows';
 import { computeRentekravCalculation, type RentekravCalculationResult } from '../../domain/renteberegning/renteEngine';
+import { amountValueToDraftString } from '../../utils/expressionAmount';
 import { useFormPersistence } from '../../contexts/FormPersistenceContext';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { getVisBrevhoved } from '../../utils/pdf/pdfBrevhoved';
@@ -88,7 +89,8 @@ const BeregnetRenteRow = React.memo(
           <StyledAmountField
             value={committedRow.belob}
             onDraftChange={(e) => onFieldChange(row.id, 'belob')(e.target.value)}
-            onCommit={() => {
+            onCommit={(e) => {
+              onFieldChange(row.id, 'belob')(amountValueToDraftString(e.target.value, 2));
               onRowBlur(row.id);
             }}
             width={156}

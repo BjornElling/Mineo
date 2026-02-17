@@ -413,22 +413,14 @@ const useTableNavigation = ({
    * @param direction - Retning: -1 for venstre, 1 for højre
    */
   const navigateHorizontal = React.useCallback((currentRow: number, currentCol: number, direction: number): void => {
+    if (editableColumns.length === 0) return;
     const currentIdx = editableColumns.indexOf(currentCol);
-    const newIdx = currentIdx + direction;
-
-    if (newIdx >= 0 && newIdx < editableColumns.length) {
-      // Samme række
-      focusCell(currentRow, editableColumns[newIdx]);
-    } else if (direction > 0) {
-      // Wrap til næste række, første kolonne
-      const newRow = (currentRow + 1) % tableData.length;
-      focusCell(newRow, editableColumns[0]);
-    } else {
-      // Wrap til forrige række, sidste kolonne
-      const newRow = (currentRow - 1 + tableData.length) % tableData.length;
-      focusCell(newRow, editableColumns[editableColumns.length - 1]);
-    }
-  }, [editableColumns, tableData, focusCell]);
+    const safeCurrentIdx = currentIdx >= 0 ? currentIdx : 0;
+    const columnCount = editableColumns.length;
+    const wrappedIdx = (safeCurrentIdx + direction + columnCount) % columnCount;
+    // Wrap sker inden for samme række (venstre fra første -> sidste, højre fra sidste -> første)
+    focusCell(currentRow, editableColumns[wrappedIdx]);
+  }, [editableColumns, focusCell]);
 
   /**
    * Navigation med piletaster (kaldes fra celle-fokus mode)

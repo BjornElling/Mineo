@@ -8,7 +8,10 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 
 const gridCell: GridCellCoord = { rowId: 'row-1', colIndex: 0 };
 
-const setup = (initialValue: AmountValue | undefined) => {
+const setup = (
+  initialValue: AmountValue | undefined,
+  options?: Readonly<{ canBeNegative?: boolean }>
+) => {
   const onBlur = vi.fn();
   let editorHandle: GridCellEditorHandle | null = null;
   const setEditingCellRef = { current: null as React.Dispatch<React.SetStateAction<GridCellCoord | null>> | null };
@@ -42,6 +45,7 @@ const setup = (initialValue: AmountValue | undefined) => {
         <TableAmountInput
           gridCell={gridCell}
           value={value}
+          canBeNegative={options?.canBeNegative}
           onBlur={(e) => {
             onBlur(e);
             setValue(e.target.value);
@@ -218,5 +222,48 @@ describe('TableAmountInput expression behavior', () => {
       })
     );
     expect(input).toHaveValue('12,30');
+  });
+
+  it('rejects leading minus in prepareEditFromKey when canBeNegative=false', async () => {
+    const { getEditor } = setup(undefined, { canBeNegative: false });
+    const editor = getEditor();
+    expect(editor).not.toBeNull();
+
+    let accepted: boolean | undefined;
+    act(() => {
+      accepted = editor?.prepareEditFromKey('-');
+    });
+
+    expect(accepted).toBe(false);
+  });
+
+  it('blocks unary minus typing when canBeNegative=false', async () => {
+    const user = userEvent.setup();
+    const { input, onBlur } = setup(undefined, { canBeNegative: false });
+
+    await user.click(input);
+    await user.type(input, '-1');
+    await user.tab();
+
+    expect(onBlur).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          value: { kind: 'number', value: 1 },
+        },
+      })
+    );
+    expect(input).toHaveValue('1,00');
+  });
+
+  it('blocks unary minus paste when canBeNegative=false', async () => {
+    const user = userEvent.setup();
+    const { input, onBlur } = setup(undefined, { canBeNegative: false });
+
+    await user.click(input);
+    await user.paste(input, '-123');
+    await user.tab();
+
+    expect(onBlur).not.toHaveBeenCalled();
+    expect(input).toHaveValue('');
   });
 });

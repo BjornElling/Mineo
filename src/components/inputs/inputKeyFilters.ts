@@ -45,6 +45,11 @@ const shouldValidateCharInsertion = (e: KeyDownEvent): e is KeyDownEvent & { key
   return true;
 };
 
+export const containsUnaryMinusToken = (input: string): boolean => {
+  const compact = input.replace(/\s+/g, '');
+  return /(^|[+\-*/x(])-/.test(compact);
+};
+
 /**
  * Integer: digits only.
  */
@@ -88,8 +93,14 @@ export const filterCommaDecimal2KeyDown = (e: KeyDownEvent, options?: { allowNeg
 /**
  * Amount expressions: allow digits, comma/dot, operators, parentheses, and spaces.
  */
-export const filterAmountExpressionKeyDown = (e: KeyDownEvent): void => {
+export const filterAmountExpressionKeyDown = (e: KeyDownEvent, options?: { allowNegative?: boolean }): void => {
   if (!shouldValidateCharInsertion(e)) return;
+  const next = getNextValueFromKey(e.currentTarget, e.key);
+  const allowNegative = options?.allowNegative === true;
+  if (!allowNegative && containsUnaryMinusToken(next)) {
+    block(e);
+    return;
+  }
   const allowed = /^[0-9+\-*/x()., ]$/;
   if (!allowed.test(e.key)) block(e);
 };

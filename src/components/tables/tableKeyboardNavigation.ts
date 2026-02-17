@@ -11,6 +11,7 @@ const pendingRecoveryByTable = new WeakMap<HTMLTableElement, Readonly<{ desired:
 // Navigation semantics (owned by this module):
 // - Enter / Shift+Enter: move vertically while keeping the "anchor column" if one exists; otherwise use current column.
 // - ArrowUp/ArrowDown: move vertically from the current cell (clears the anchor).
+// - ArrowLeft/ArrowRight: move horizontally within the current row and wrap at row edges.
 // Note: We `stopPropagation()` for owned keys so the Container-level Tab trap does not also run.
 // Tab is NOT owned here; it is handled by Container-level navigation for natural flow across tables.
 
@@ -257,6 +258,47 @@ const pickVerticalTarget = (
   return { nextRowIndex, nextRowId: grid.rowIds[nextRowIndex] ?? null, target };
 };
 
+const pickHorizontalTarget = (
+  grid: TableGrid,
+  base: CellLocator,
+  direction: -1 | 1,
+  core: ReturnType<typeof getGridCoreForTable>
+): Readonly<{ locator: CellLocator; target: HTMLElement | null }> | null => {
+  const row = grid.cellFocusables[base.rowIndex] ?? [];
+  const selectableCols = row
+    .map((cell, colIndex) => ({ cell, colIndex }))
+    .filter((entry) => entry.cell.length > 0)
+    .map((entry) => entry.colIndex);
+
+  if (selectableCols.length <= 1) return null;
+
+  const currentPos = Math.max(0, selectableCols.indexOf(base.colIndex));
+  for (let step = 1; step <= selectableCols.length; step += 1) {
+    const nextPos = (currentPos + (direction * step) + selectableCols.length) % selectableCols.length;
+    const nextCol = selectableCols[nextPos];
+    const cell = row[nextCol] ?? [];
+    if (cell.length === 0) continue;
+
+    const subIndex = Math.min(Math.max(0, base.subIndex), cell.length - 1);
+    const locator: CellLocator = {
+      rowIndex: base.rowIndex,
+      colIndex: nextCol,
+      subIndex,
+      ...(grid.rowIds[base.rowIndex] ? { rowId: grid.rowIds[base.rowIndex] ?? undefined } : {}),
+    };
+
+    const nextCell = toCellCoord(locator);
+    if (nextCell) {
+      const nextHandle = core?.getEditor(nextCell);
+      if (nextHandle?.getIsLocked()) continue;
+    }
+
+    return { locator, target: cell[subIndex] ?? null };
+  }
+
+  return null;
+};
+
 export const clearTableTabAnchor = (table: HTMLTableElement) => {
   tabAnchorByTable.delete(table);
 };
@@ -416,49 +458,22 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
   }
 
   // ArrowLeft/ArrowRight navigation (kun når !isEditing)
-  // STOP-adfærd: Stopper ved rækkegrænser og låste celler (Excel-stil)
+  // Wrap-adfærd: Når kanten nås, hop til modsatte ende i samme række.
   if ((key === 'ArrowLeft' || key === 'ArrowRight') && !isEditing) {
     e.preventDefault();
     e.stopPropagation();
 
-    const delta = key === 'ArrowRight' ? 1 : -1;
+    if (!activeFocusable) return;
+    const direction: -1 | 1 = key === 'ArrowRight' ? 1 : -1;
+    const next = pickHorizontalTarget(grid, activePos, direction, core);
+    if (!next?.target) return;
 
-    if (activeFocusable) {
-      const currentIndex = grid.order.indexOf(activeFocusable);
-      if (currentIndex < 0) return;
-
-      // KRITISK: Find næste celle i SAMME RÆKKE (ikke wrap til næste række)
-      const currentRow = activePos.rowIndex;
-      const nextIndex = currentIndex + delta;
-
-      // STOP ved grid-kant (Excel-adfærd)
-      if (nextIndex < 0 || nextIndex >= grid.order.length) {
-        return; // Ingen navigation hvis vi er ved kanten
-      }
-
-      const nextEl = grid.order[nextIndex];
-      const nextLocator = getActiveLocator(table, nextEl, grid);
-
-      // Verificer at vi stadig er i samme række
-      if (!nextLocator || nextLocator.rowIndex !== currentRow) {
-        return; // Stop hvis vi ville skifte række
-      }
-
-      // STOP ved låste celler (forudsigeligt i tillidskritisk værktøj)
-      const nextCell = toCellCoord(nextLocator);
-      if (!nextCell) return;
-      const nextHandle = core?.getEditor(nextCell);
-      if (nextHandle?.getIsLocked()) {
-        return; // Stop ved låste celler
-      }
-
-      // Udfør navigation
-      if (core && activeCell && nextCell) {
-        core.requestFocusPlan({ from: activeCell, to: nextCell, reason: 'arrow' });
-      }
-      nextEl.focus();
-      scheduleFocusRecovery(table, nextLocator, nextEl);
+    const nextCell = toCellCoord(next.locator);
+    if (core && activeCell && nextCell) {
+      core.requestFocusPlan({ from: activeCell, to: nextCell, reason: 'arrow' });
     }
+    next.target.focus();
+    scheduleFocusRecovery(table, next.locator, next.target);
     return;
   }
 };
@@ -536,4 +551,3 @@ export const handleTableDoubleClickCapture = (e: React.MouseEvent<HTMLTableEleme
   if (!cell) return;
   core.openEditing(cell, 'doubleClick');
 };
-

@@ -35,11 +35,11 @@ export const GRID_UX_SPEC = {
     /**
      * Arrow keys:
      * - ArrowUp/ArrowDown participate in vertical traversal and clear the Tab-anchor.
-     * - ArrowLeft/ArrowRight are caret movement only (inputs must not convert them into navigation).
+     * - ArrowLeft/ArrowRight navigate horisontalt i samme række med wrap ved rækkekanter.
      */
     arrowKeySemantics: {
       upDown: 'vertical-navigation' as const,
-      leftRight: 'caret-only' as const,
+      leftRight: 'horizontal-navigation-wrap-row' as const,
     },
 
     /**
@@ -139,4 +139,3 @@ export const GRID_UX_SPEC = {
     stableWithSecondaryMemory: true,
   },
 } as const;
-

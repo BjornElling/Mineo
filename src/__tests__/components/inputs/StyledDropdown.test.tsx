@@ -111,6 +111,18 @@ describe('StyledDropdown', () => {
     expect(activeDescendant).toMatch(/-option-2$/);
   });
 
+  it('ArrowDown åbner ikke dropdown når den er lukket', async () => {
+    const user = userEvent.setup();
+    render(<ControlledDropdown />);
+
+    const input = screen.getByRole('combobox');
+    fireEvent.focus(input);
+
+    await user.keyboard('{ArrowDown}');
+
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
   it('typeahead hopper over divider og vælger option efter Enter', async () => {
     const user = userEvent.setup();
     render(<ControlledDropdown />);

@@ -7,7 +7,7 @@ import { areSameGridCell } from '../../tables/gridCoreUtils';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
 import { assignRef } from './assignRef';
 import { type TableInputErrorInfo } from './tableInputContracts';
-import { filterAmountExpressionKeyDown } from '../inputKeyFilters';
+import { containsUnaryMinusToken, filterAmountExpressionKeyDown } from '../inputKeyFilters';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { sanitizePastedAmount } from '../../../utils/amountInputUtils';
 import { readClipboardText } from '../../../utils/clipboardUtils';
@@ -301,9 +301,9 @@ const TableAmountInput = React.memo(
       (e: React.KeyboardEvent<HTMLInputElement>) => {
         // Filtrér kun under edit-mode (arvet fra StyledAmountField)
         if (!isEditing) return;
-        filterAmountExpressionKeyDown(e);
+        filterAmountExpressionKeyDown(e, { allowNegative: canBeNegative });
       },
-      [isEditing]
+      [canBeNegative, isEditing]
     );
 
     const handlePaste = React.useCallback(
@@ -320,6 +320,7 @@ const TableAmountInput = React.memo(
         const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
         const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
         const nextDraft = draft.slice(0, start) + sanitized + draft.slice(end);
+        if (!canBeNegative && containsUnaryMinusToken(nextDraft)) return;
         setHasError(false);
         setErrorMessage('');
         if (nextDraft === '') {
@@ -339,7 +340,7 @@ const TableAmountInput = React.memo(
           }
         });
       },
-      [draft, isEditing]
+      [canBeNegative, draft, isEditing]
     );
 
     const a11yErrorId = React.useId();
@@ -389,6 +390,7 @@ const TableAmountInput = React.memo(
           if (latest.current.locked) return false;
           // Accepter kun plausible start-tegn for beløb/udtryk
           if (!/^[0-9,()-]$/.test(key)) return false;
+          if (key === '-' && !latest.current.canBeNegative) return false;
           const committedValue = amountValueToDraftString(latestCommittedPayloadRef.current.model, TABLE_AMOUNT_PRECISION);
           originalValueOnEditStartRef.current = committedValue;
           keyInitiatedEditRef.current = true;

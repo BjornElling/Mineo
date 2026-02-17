@@ -7,7 +7,11 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 type CommitEvent = { target: { value: AmountValue | undefined } };
 type OnCommit = (event: CommitEvent) => void;
 
-const renderField = (initialValue: AmountValue | undefined, onCommit: OnCommit) => {
+const renderField = (
+  initialValue: AmountValue | undefined,
+  onCommit: OnCommit,
+  props?: Partial<React.ComponentProps<typeof StyledAmountField>>
+) => {
   const Wrapper = () => {
     const [value, setValue] = React.useState<AmountValue | undefined>(initialValue);
     return (
@@ -17,6 +21,7 @@ const renderField = (initialValue: AmountValue | undefined, onCommit: OnCommit) 
           onCommit(e);
           setValue(e.target.value);
         }}
+        {...props}
       />
     );
   };
@@ -140,5 +145,57 @@ describe('StyledAmountField expression behavior', () => {
       })
     );
     expect(input).toHaveValue('12,30');
+  });
+
+  it('blocks unary minus typing when allowNegative=false', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn<OnCommit>();
+    const input = renderField(undefined, onCommit, { allowNegative: false });
+
+    await openEditor(user, input);
+    await user.type(input, '-100');
+    await user.tab();
+
+    expect(onCommit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          value: { kind: 'number', value: 100 },
+        },
+      })
+    );
+    expect(input).toHaveValue('100,00');
+  });
+
+  it('ignores leading minus in first key activation when allowNegative=false', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn<OnCommit>();
+    const input = renderField(undefined, onCommit, { allowNegative: false });
+
+    await user.click(input);
+    await user.keyboard('-');
+    await user.keyboard('1');
+    await user.tab();
+
+    expect(onCommit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          value: { kind: 'number', value: 1 },
+        },
+      })
+    );
+    expect(input).toHaveValue('1,00');
+  });
+
+  it('blocks unary minus paste when allowNegative=false', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn<OnCommit>();
+    const input = renderField(undefined, onCommit, { allowNegative: false });
+
+    await openEditor(user, input);
+    await user.paste(input, '-123');
+    await user.tab();
+
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(input).toHaveValue('');
   });
 });

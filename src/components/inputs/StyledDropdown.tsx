@@ -685,7 +685,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
             return;
           }
 
-          if (e.key === 'Enter' || e.key === 'ArrowDown') {
+          if (e.key === 'Enter') {
             e.preventDefault();
             e.stopPropagation();
             handleOpen();
