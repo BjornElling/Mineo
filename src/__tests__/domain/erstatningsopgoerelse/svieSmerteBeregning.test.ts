@@ -115,7 +115,7 @@ describe('Svie/smerte beregning', () => {
       expect(row?.status).toBe('ok');
     });
 
-    it('viser "-" når sidste svie/smerte-dato er lig vedrørerPeriodeTil', () => {
+    it('viser "Erstatningsperiodens ophør (dato)" når sidste svie/smerte-dato er lig vedrørerPeriodeTil', () => {
       const row = getSvieSmerteOphoerRow(
         makeValues({
           beregnesSvieSmerteGodtgoerelse: 'Ja',
@@ -124,11 +124,11 @@ describe('Svie/smerte beregning', () => {
           svieSmertePerioder: [{ id: '1', fra: iso('2024-03-01'), til: iso('2024-03-31'), tilstand: 'sygemeldt' }],
         })
       );
-      expect(row?.displayValue).toBe('-');
+      expect(row?.displayValue).toBe('Erstatningsperiodens ophør (31-03-2024)');
       expect(row?.status).toBe('ok');
     });
 
-    it('viser "-" når sidste svie/smerte-dato er efter vedrørerPeriodeTil', () => {
+    it('viser "Erstatningsperiodens ophør (dato)" når sidste svie/smerte-dato er efter vedrørerPeriodeTil', () => {
       const row = getSvieSmerteOphoerRow(
         makeValues({
           beregnesSvieSmerteGodtgoerelse: 'Ja',
@@ -137,7 +137,7 @@ describe('Svie/smerte beregning', () => {
           svieSmertePerioder: [{ id: '1', fra: iso('2024-06-01'), til: iso('2024-08-31'), tilstand: 'sygemeldt' }],
         })
       );
-      expect(row?.displayValue).toBe('-');
+      expect(row?.displayValue).toBe('Erstatningsperiodens ophør (15-06-2024)');
       expect(row?.status).toBe('ok');
     });
 

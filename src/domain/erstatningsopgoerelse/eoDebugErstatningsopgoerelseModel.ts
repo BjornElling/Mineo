@@ -1360,7 +1360,13 @@ export const buildEODebugSvieSmerteRows = (
     }
 
     if (lastSvieSmerteKravDato && values.vedroererPeriodeTil && lastSvieSmerteKravDato >= values.vedroererPeriodeTil) {
-      return { displayValue: '-', status: 'ok' as DebugStatus };
+      const vedroererPeriodeTilDanish = isoToDanish(values.vedroererPeriodeTil);
+      return {
+        displayValue: vedroererPeriodeTilDanish
+          ? `Erstatningsperiodens ophør (${vedroererPeriodeTilDanish})`
+          : 'Erstatningsperiodens ophør',
+        status: 'ok' as DebugStatus,
+      };
     }
 
     if (

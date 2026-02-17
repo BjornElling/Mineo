@@ -2033,6 +2033,10 @@ const EODebug = () => {
   const aesMidlertidigtRows = aesRows.filter((row) => row.group === 'aes.midlertidigtEet');
   const aesEndeligtRows = aesRows.filter((row) => row.group === 'aes.endeligtEet');
   const aesOevrigtRows = aesRows.filter((row) => row.group === 'aes.oevrigt');
+  const aesSynligeOevrigtRows = aesOevrigtRows.filter((row) => {
+    if (midlertidigtEetErSynlig || endeligtEetErSynlig) return true;
+    return row.id !== 'aes.verserendeKlageEet';
+  });
 
   const pdfModelForDebug = React.useMemo(() => {
     try {
@@ -2265,19 +2269,23 @@ const EODebug = () => {
           );
         })}
 
-        <Typography className="row--subheading">Øvrigt</Typography>
+        {aesSynligeOevrigtRows.length > 0 && (
+          <>
+            <Typography className="row--subheading">Øvrigt</Typography>
 
-        {aesOevrigtRows.map((row) => {
-          return (
-            <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-              <Typography className="row--text">{row.label}</Typography>
-              <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                <Typography className="row--text">{row.displayValue}</Typography>
-                {getStatusIcon(row.status)}
-              </Box>
-            </Box>
-          );
-        })}
+            {aesSynligeOevrigtRows.map((row) => {
+              return (
+                <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                  <Typography className="row--text">{row.label}</Typography>
+                  <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                    <Typography className="row--text">{row.displayValue}</Typography>
+                    {getStatusIcon(row.status)}
+                  </Box>
+                </Box>
+              );
+            })}
+          </>
+        )}
       </ContentBox>
 
       <ContentBox className="content-box">
@@ -2671,49 +2679,72 @@ const EODebug = () => {
         <ContentBox className="content-box">
         <Typography className="section-header">Indkomst</Typography>
 
-        {indkomstSections.map((section) => (
-          <Box key={section.id} sx={{ mb: 2 }}>
-            <Typography className="row--subheading">{section.headerText}</Typography>
+        {indkomstSections.length > 0 ? (
+          indkomstSections.map((section) => (
+            <Box key={section.id} sx={{ mb: 2 }}>
+              <Typography className="row--subheading">{section.headerText}</Typography>
 
-            <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-              <Typography className="row--text">Navn på arbejdssted</Typography>
-              <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                <Typography className="row--text">{section.arbejdsstedNavnDisplay}</Typography>
-                {getStatusIcon(section.arbejdsstedNavnStatus)}
+              <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                <Typography className="row--text">Navn på arbejdssted</Typography>
+                <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                  <Typography className="row--text">{section.arbejdsstedNavnDisplay}</Typography>
+                  {getStatusIcon(section.arbejdsstedNavnStatus)}
+                </Box>
+              </Box>
+
+              <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                <Typography className="row--text">Satser på skadestidspunktet indtastet</Typography>
+                <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                  <Typography className="row--text">{section.satserMessage}</Typography>
+                  {getStatusIcon(section.satserStatus)}
+                </Box>
+              </Box>
+
+              <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                <Typography className="row--text">Alle lønoplysninger indtastet korrekt</Typography>
+                <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                  <Typography className="row--text">{section.tableMessage}</Typography>
+                  {getStatusIcon(section.tableStatus)}
+                </Box>
               </Box>
             </Box>
-
+          ))
+        ) : (
+          <Box sx={{ mb: 2 }}>
+            <Typography className="row--subheading">Ansættelsesforhold</Typography>
             <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-              <Typography className="row--text">Satser på skadestidspunktet indtastet</Typography>
+              <Typography className="row--text">Ingen</Typography>
               <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                <Typography className="row--text">{section.satserMessage}</Typography>
-                {getStatusIcon(section.satserStatus)}
-              </Box>
-            </Box>
-
-            <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-              <Typography className="row--text">Alle lønoplysninger indtastet korrekt</Typography>
-              <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                <Typography className="row--text">{section.tableMessage}</Typography>
-                {getStatusIcon(section.tableStatus)}
+                <Typography className="row--text">-</Typography>
+                {getStatusIcon('ok')}
               </Box>
             </Box>
           </Box>
-        ))}
+        )}
 
         <Typography className="row--subheading">Offentlige ydelser</Typography>
 
-        {offentligeYdelserDebugRows.map((row) => {
-          return (
-            <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-              <Typography className="row--text">{row.label}</Typography>
-              <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                <Typography className="row--text">{row.message}</Typography>
-                {getStatusIcon(row.status)}
+        {offentligeYdelserDebugRows.length > 0 ? (
+          offentligeYdelserDebugRows.map((row) => {
+            return (
+              <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                <Typography className="row--text">{row.label}</Typography>
+                <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                  <Typography className="row--text">{row.message}</Typography>
+                  {getStatusIcon(row.status)}
+                </Box>
               </Box>
+            );
+          })
+        ) : (
+          <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+            <Typography className="row--text">Ingen</Typography>
+            <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+              <Typography className="row--text">-</Typography>
+              {getStatusIcon('ok')}
             </Box>
-          );
-        })}
+          </Box>
+        )}
       </ContentBox>
       )}
 
