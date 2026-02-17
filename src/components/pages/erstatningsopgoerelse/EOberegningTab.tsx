@@ -737,7 +737,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         </Box>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Lønindkomst og offentlige ydelser, der indgår</Typography>
+          <Typography className="row--text">Lønindkomst og offentlige ydelser, der indsættes som bilag</Typography>
           <Box className="row--label-right-hover__content">
             <StyledDropdown
               allowEmpty={false}

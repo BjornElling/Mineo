@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { MenuItem, Select, Tooltip, type SelectChangeEvent } from '@mui/material';
+import { Divider, MenuItem, Select, Tooltip, type SelectChangeEvent } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { assignRef } from './assignRef';
 import { useGridCore } from '../../tables/gridCoreContext';
@@ -18,7 +18,9 @@ import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
  *
  * If you change the wrapper attribute or key handling, review `tableKeyboardNavigation.ts` as well.
  */
-export type TableDropdownOption = Readonly<{ value: string; label: string }>;
+export type TableDropdownValueOption = Readonly<{ value: string; label: string }>;
+export type TableDropdownDividerOption = Readonly<{ kind: 'divider'; id: string }>;
+export type TableDropdownOption = TableDropdownValueOption | TableDropdownDividerOption;
 
 export type TableDropdownChangeEvent = Readonly<{ target: { value: string } }>;
 
@@ -79,6 +81,10 @@ const TableDropdown = React.memo(
       throw new Error('TableDropdown: value is required when allowEmpty=false');
     }
 
+    const isDividerOption = React.useCallback((option: TableDropdownOption): option is TableDropdownDividerOption => {
+      return 'kind' in option && option.kind === 'divider';
+    }, []);
+
     const handleChange = React.useCallback(
       (event: SelectChangeEvent<string>) => {
         if (readOnly) return;
@@ -112,6 +118,7 @@ const TableDropdown = React.memo(
         const normalizedKey = trimmedKey.toLocaleLowerCase('da-DK');
         const matchingIndices: number[] = [];
         options.forEach((opt, index) => {
+          if (isDividerOption(opt)) return;
           const label = opt.label.trim();
           if (label.length === 0) return;
           const firstChar = label.charAt(0).toLocaleLowerCase('da-DK');
@@ -122,17 +129,21 @@ const TableDropdown = React.memo(
 
         if (matchingIndices.length === 0) return;
 
-        const currentIndex = typeof value === 'string' ? options.findIndex((opt) => opt.value === value) : -1;
+        const currentIndex = typeof value === 'string'
+          ? options.findIndex((opt) => !isDividerOption(opt) && opt.value === value)
+          : -1;
         const currentPos = matchingIndices.indexOf(currentIndex);
         const nextPos = currentPos === -1 ? 0 : (currentPos + 1) % matchingIndices.length;
-        const nextValue = options[matchingIndices[nextPos]]?.value;
+        const nextOption = options[matchingIndices[nextPos]];
+        if (!nextOption || isDividerOption(nextOption)) return;
+        const nextValue = nextOption.value;
         if (typeof nextValue !== 'string') return;
 
         e.preventDefault();
         e.stopPropagation();
         onChange?.({ target: { value: nextValue } });
       },
-      [allowEmpty, onChange, options, readOnly, value]
+      [allowEmpty, isDividerOption, onChange, options, readOnly, value]
     );
 
     const a11yErrorId = React.useId();
@@ -255,11 +266,16 @@ const TableDropdown = React.memo(
                 <em style={{ color: 'rgba(0,0,0,0.4)' }}>{placeholder}</em>
               </MenuItem>
             ) : null}
-            {options.map((opt) => (
-              <MenuItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </MenuItem>
-            ))}
+            {options.map((opt) => {
+              if (isDividerOption(opt)) {
+                return <Divider key={opt.id} component="li" role="separator" />;
+              }
+              return (
+                <MenuItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </MenuItem>
+              );
+            })}
           </Select>
           {showError ? (
             <span id={a11yErrorId} style={visuallyHiddenStyle}>

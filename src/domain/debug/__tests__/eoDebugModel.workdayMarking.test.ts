@@ -12,6 +12,21 @@ const createBaseValues = () => ({
 });
 
 describe('eoDebugModel arbejdsdag-markering', () => {
+  it('viser Beregningsperiode-kilden med tomme bounds når beregningsgrundlag ikke er Beregningsperiode', () => {
+    const values = {
+      ...createBaseValues(),
+      beregnesUdFra: 'Angivet månedsløn' as const,
+      periodeTilBeregningFra: '2021-05-01',
+      periodeTilBeregningTil: '2022-02-28',
+    };
+
+    const model = buildEODebugModel(values);
+    const beregningsperiodeSource = model.sources.find((source) => source.label === 'Beregningsperiode');
+    expect(beregningsperiodeSource).toBeDefined();
+    expect(beregningsperiodeSource?.fra).toBeUndefined();
+    expect(beregningsperiodeSource?.til).toBeUndefined();
+  });
+
   it('markerer hverdage som arbejdsdag ved Måneder, også når de er SH- eller feriedage', () => {
     const values = {
       ...createBaseValues(),

@@ -215,10 +215,15 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
       []
     );
 
-    const ydelsestypeOptions = React.useMemo<readonly TableDropdownOption[]>(
-      () => ydelsestypeKeys.map((key) => ({ value: key, label: ydelsestyper[key].label })),
-      []
-    );
+    const ydelsestypeOptions = React.useMemo<readonly TableDropdownOption[]>(() => {
+      const keysBeforeTail = ydelsestypeKeys.filter((key) => key !== 'midlertidigt_eet' && key !== 'andet');
+      return [
+        ...keysBeforeTail.map((key) => ({ value: key, label: ydelsestyper[key].label })),
+        { kind: 'divider', id: 'ydelsestype-divider-foer-midlertidigt-eet' },
+        { value: 'midlertidigt_eet', label: ydelsestyper.midlertidigt_eet.label },
+        { value: 'andet', label: ydelsestyper.andet.label },
+      ];
+    }, []);
 
     type YdelsestypeKey = (typeof ydelsestypeKeys)[number];
 

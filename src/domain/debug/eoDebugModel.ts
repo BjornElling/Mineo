@@ -443,6 +443,7 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
   const erstatningsTil = values.vedroererPeriodeTil;
   const beregningsFra = values.periodeTilBeregningFra;
   const beregningsTil = values.periodeTilBeregningTil;
+  const isBeregningsperiode = values.beregnesUdFra === 'Beregningsperiode';
 
   const loenErrorRowIdsByIndex = (values.loenindkomstAnsaettelsesforhold ?? []).map((af) =>
     getAarsloenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)
@@ -454,7 +455,11 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
 
   const sources: DebugTabelDateSource[] = [
     { label: 'Erstatningsperiode', fra: erstatningsFra, til: erstatningsTil },
-    { label: 'Beregningsperiode', fra: beregningsFra, til: beregningsTil },
+    {
+      label: 'Beregningsperiode',
+      fra: isBeregningsperiode ? beregningsFra : undefined,
+      til: isBeregningsperiode ? beregningsTil : undefined,
+    },
     { label: 'Lønindkomst', fra: loenBounds.min, til: loenBounds.max },
     { label: 'Offentlige ydelser', fra: ydelserBounds.min, til: ydelserBounds.max },
   ];
