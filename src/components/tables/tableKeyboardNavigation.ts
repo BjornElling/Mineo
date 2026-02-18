@@ -77,6 +77,26 @@ const getNearestExpanded = (el: HTMLElement | null): boolean => {
   return true;
 };
 
+const isTableDropdownExpanded = (target: HTMLElement | null): boolean => {
+  if (!target) return false;
+  const dropdownHost = target.closest('[data-mineo-table-dropdown="true"]') as HTMLElement | null;
+  if (!dropdownHost) return false;
+
+  const trigger = dropdownHost.querySelector('[role="combobox"],[aria-haspopup],[aria-controls]') as HTMLElement | null;
+  if (!trigger) return false;
+  if (trigger.getAttribute('aria-expanded') === 'true') return true;
+
+  const controlsId = trigger.getAttribute('aria-controls');
+  if (!controlsId) return false;
+  const controlled = document.getElementById(controlsId);
+  if (!(controlled instanceof HTMLElement)) return false;
+  if (controlled.hasAttribute('hidden')) return false;
+  if (controlled.getAttribute('aria-hidden') === 'true') return false;
+  const style = window.getComputedStyle(controlled);
+  if (style.display === 'none' || style.visibility === 'hidden') return false;
+  return true;
+};
+
 const shouldIgnoreKey = (e: React.KeyboardEvent): boolean => {
   if (e.ctrlKey || e.metaKey || e.altKey) return true;
   if (isComposing(e)) return true;
@@ -367,7 +387,7 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
   const activePos = getActiveLocator(table, target, grid);
   if (!activePos) return;
 
-  const widgetIsExpanded = getNearestExpanded(target);
+  const widgetIsExpanded = getNearestExpanded(target) || isTableDropdownExpanded(target);
   // When a popup widget is expanded/open, do not interfere with its internal keyboard handling.
   if (widgetIsExpanded) return;
 
@@ -376,6 +396,9 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
   const activeEditableCell = core && activeCell ? core.getEditor(activeCell) : null;
   const isLocked = activeEditableCell?.getIsLocked() === true;
   const isEditing = core && activeCell ? isSameCell(core.getEditingCell(), activeCell) : false;
+
+  const isTableDropdownTarget = target.closest('[data-mineo-table-dropdown="true"]') !== null;
+  if (isTableDropdownTarget && (key === 'Enter' || key === 'Escape' || key === 'ArrowUp' || key === 'ArrowDown')) return;
 
   if (isEscapeKey && isEditing && activeEditableCell) {
     e.preventDefault();
@@ -389,7 +412,7 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
   }
 
   // TableDropdown: keep its existing keyboard contract (Enter opens, Delete clears when allowed).
-  if (target.closest('[data-mineo-table-dropdown="true"]')) {
+  if (isTableDropdownTarget) {
     if (!isNavigationKey) return;
   }
 

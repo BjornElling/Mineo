@@ -144,7 +144,7 @@ const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
 
     focusableCacheRef.current = Array.from(
       containerRef.current.querySelectorAll(
-        "input:not([disabled]):not([tabindex='-1']):not([type=\"hidden\"]):not([type=\"button\"]), input[role=\"combobox\"]:not([disabled]):not([tabindex='-1']):not([type=\"hidden\"]):not([type=\"button\"]), select:not([disabled]):not([tabindex='-1']), textarea:not([disabled]):not([tabindex='-1']), [role=\"combobox\"][tabindex]:not([tabindex='-1']):not([aria-disabled='true'])"
+        "input:not([disabled]):not([tabindex='-1']):not([type=\"hidden\"]):not([type=\"button\"]), input[role=\"combobox\"]:not([disabled]):not([tabindex='-1']):not([type=\"hidden\"]):not([type=\"button\"]), select:not([disabled]):not([tabindex='-1']), textarea:not([disabled]):not([tabindex='-1']), [role=\"combobox\"][tabindex]:not([tabindex='-1']):not([aria-disabled='true']), [aria-haspopup][tabindex]:not([tabindex='-1']):not([aria-disabled='true']), [aria-controls][tabindex]:not([tabindex='-1']):not([aria-disabled='true'])"
       )
     ).filter((el): el is FocusableElement => {
       if (!(el instanceof HTMLElement)) return false;
@@ -228,7 +228,7 @@ const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
     const activeElement = document.activeElement;
     const activeFocusable: FocusableElement | null = (() => {
       if (!(activeElement instanceof HTMLElement)) return null;
-      const closest = activeElement.closest('input,select,textarea,[role="combobox"]');
+      const closest = activeElement.closest('input,select,textarea,[role="combobox"],[aria-haspopup],[aria-controls]');
       if (!closest) return null;
       if (closest instanceof HTMLInputElement) return closest;
       if (closest instanceof HTMLSelectElement) return closest;

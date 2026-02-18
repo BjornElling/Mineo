@@ -70,7 +70,37 @@ const TableDropdown = React.memo(
     sx,
     ...rest
   }: TableDropdownProps) => {
+    const getTriggerAndListbox = React.useCallback((): { trigger: HTMLElement | null; listbox: HTMLElement | null; controlsId: string | null } => {
+      const host = wrapperRef.current;
+      const trigger = host?.querySelector('[role="combobox"]') as HTMLElement | null;
+      const controlsId = trigger?.getAttribute('aria-controls') ?? null;
+      const listbox = controlsId ? document.getElementById(controlsId) : null;
+      return { trigger, listbox: listbox instanceof HTMLElement ? listbox : null, controlsId };
+    }, []);
+
+    const ensureMenuKeyboardFocus = React.useCallback((_source: string, fromNode?: Element | null) => {
+      const fromNodeListbox = fromNode instanceof Element
+        ? (fromNode.querySelector('[role="listbox"]') as HTMLElement | null)
+        : null;
+      const { listbox: triggerListbox } = getTriggerAndListbox();
+      const fallbackListbox = document.querySelector('[role="listbox"]') as HTMLElement | null;
+      const listbox = fromNodeListbox ?? triggerListbox ?? fallbackListbox;
+      if (!listbox) return;
+
+      const selectedOption = listbox.querySelector<HTMLElement>('[role="option"][aria-selected="true"]');
+      const tabbableOption = listbox.querySelector<HTMLElement>('[role="option"][tabindex="0"]');
+      const firstOption = listbox.querySelector<HTMLElement>('[role="option"]');
+      const target = tabbableOption ?? selectedOption ?? firstOption ?? listbox;
+
+      try {
+        target.focus({ preventScroll: true });
+      } catch {
+        target.focus();
+      }
+    }, [getTriggerAndListbox]);
+
     const grid = useGridCore();
+    const menuHighlightColor = 'rgba(25, 118, 210, 0.08)';
     const isLooseTable = grid.tableKind === 'loose';
     const inputBorderRadius = isLooseTable ? '10px' : '0px';
     const inputBorderColor = isLooseTable ? 'rgba(0, 0, 0, 0.12)' : 'transparent';
@@ -197,6 +227,39 @@ const TableDropdown = React.memo(
             value={value ?? ''}
             onChange={handleChange}
             onBlur={onBlur}
+            MenuProps={{
+              variant: 'selectedMenu',
+              autoFocus: false,
+              disableAutoFocusItem: false,
+              slotProps: {
+                transition: {
+                  onEntered: (enteredNode: unknown) => {
+                    const nodeElement = enteredNode instanceof Element ? enteredNode : null;
+                    ensureMenuKeyboardFocus('onEntered', nodeElement);
+                    requestAnimationFrame(() => ensureMenuKeyboardFocus('onEntered-raf', nodeElement));
+                  },
+                },
+                paper: {
+                  sx: {
+                    '& .MuiMenuItem-root.Mui-focusVisible': {
+                      backgroundColor: menuHighlightColor,
+                    },
+                    '& .MuiMenuItem-root.Mui-selected': {
+                      backgroundColor: menuHighlightColor,
+                    },
+                    '& .MuiMenuItem-root.Mui-selected:hover': {
+                      backgroundColor: menuHighlightColor,
+                    },
+                    '& .MuiMenuItem-root:hover': {
+                      backgroundColor: menuHighlightColor,
+                    },
+                  },
+                },
+                list: {
+                  autoFocusItem: true,
+                },
+              },
+            }}
             // Note: MUI Select key handling differs by variant/implementation.
             // Capture handler on the wrapper is the single source of truth for clear-on-Delete.
             displayEmpty={allowEmpty}

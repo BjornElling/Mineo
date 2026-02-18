@@ -86,17 +86,19 @@ const BeregnetRenteRow = React.memo(
     return (
       <TableRow data-mineo-row-id={row.id}>
         <TableCell>
-          <TableAmountInput
-            gridCell={{ rowId: row.id, colIndex: 0 }}
-            value={committedRow.belob}
-            onBlur={(e) => {
-              onFieldChange(row.id, 'belob')(amountValueToDraftString(e.target.value, 2));
-              onRowBlur(row.id);
-            }}
-            placeholder="0,00 kr."
-            canBeNegative={false}
-            sx={{ width: 156 }}
-          />
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <TableAmountInput
+              gridCell={{ rowId: row.id, colIndex: 0 }}
+              value={committedRow.belob}
+              onBlur={(e) => {
+                onFieldChange(row.id, 'belob')(amountValueToDraftString(e.target.value, 2));
+                onRowBlur(row.id);
+              }}
+              placeholder="0,00 kr."
+              canBeNegative={false}
+              sx={{ width: 156 }}
+            />
+          </Box>
         </TableCell>
 
         <TableCell>
@@ -116,7 +118,6 @@ const BeregnetRenteRow = React.memo(
         <TableCell>
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1.5 }}>
             <Typography className="row--text">+</Typography>
-
             <TableIntegerInput
               gridCell={{ rowId: row.id, colIndex: 2 }}
               value={committedRow.tillaegstid === undefined ? '' : String(committedRow.tillaegstid)}
@@ -129,20 +130,22 @@ const BeregnetRenteRow = React.memo(
               maxValue={99}
               sx={{ width: 50 }}
             />
-
-            <TableDropdown
-              gridCell={{ rowId: row.id, colIndex: 3 }}
-              value={committedRow.enhed}
-              allowEmpty={false}
-              appearance="loose"
-              options={ENHED_OPTIONS}
-              sx={{ width: 180, '& .MuiSelect-select': { textAlign: 'left' } }}
-              onChange={(e) => {
-                onFieldChange(row.id, 'enhed')(e.target.value);
-                onRowBlur(row.id);
-              }}
-            />
           </Box>
+        </TableCell>
+
+        <TableCell>
+          <TableDropdown
+            gridCell={{ rowId: row.id, colIndex: 3 }}
+            value={committedRow.enhed}
+            allowEmpty={false}
+            appearance="loose"
+            options={ENHED_OPTIONS}
+            sx={{ width: '100%', '& .MuiSelect-select': { textAlign: 'left' } }}
+            onChange={(e) => {
+              onFieldChange(row.id, 'enhed')(e.target.value);
+              onRowBlur(row.id);
+            }}
+          />
         </TableCell>
 
         <TableCell align="center" sx={{ paddingTop: 0, paddingBottom: 0 }}>
@@ -235,11 +238,20 @@ const BeregnetRenteTable = React.memo(
           },
         }}
       >
+        <colgroup>
+          <col style={{ width: '176px' }} />
+          <col style={{ width: '163px' }} />
+          <col style={{ width: '90px' }} />
+          <col style={{ width: '224px' }} />
+          <col style={{ width: '163px' }} />
+          <col style={{ width: '151px' }} />
+          <col style={{ width: '163px' }} />
+        </colgroup>
         <TableHead>
           <TableRow>
             <TableCell sx={{ width: '176px' }}>Beløb</TableCell>
             <TableCell sx={{ width: '163px' }}>Renter fra</TableCell>
-            <TableCell sx={{ width: '314px' }}>Evt. tillægstid</TableCell>
+            <TableCell colSpan={2} sx={{ width: '314px' }}>Evt. tillægstid</TableCell>
             <TableCell align="center" sx={{ width: '163px' }}>Rentedato</TableCell>
             <TableCell align="center" sx={{ width: '151px' }}>Beregnet rente</TableCell>
             <TableCell sx={{ width: '163px' }}>Specifikation</TableCell>

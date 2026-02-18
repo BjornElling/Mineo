@@ -287,6 +287,36 @@ describe('Container keyboard navigation', () => {
     expect(document.activeElement).toBe(field1);
   });
 
+  it('Tab kan fokusere popup-trigger med aria-haspopup (MUI Select-semantik)', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <input data-testid="field1" type="text" style={{ position: 'fixed' }} />
+        <div
+          data-testid="popup-trigger"
+          role="button"
+          tabIndex={0}
+          aria-haspopup="listbox"
+          aria-expanded="false"
+          style={{ position: 'fixed' }}
+        />
+        <input data-testid="field3" type="text" style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const field1 = screen.getByTestId('field1');
+    const popupTrigger = screen.getByTestId('popup-trigger');
+
+    (field1 as HTMLInputElement).focus();
+    expect(document.activeElement).toBe(field1);
+
+    await user.keyboard('{Tab}');
+    await waitForSelectionClear();
+
+    expect(document.activeElement).toBe(popupTrigger);
+  });
+
   it('Enter i textarea giver newline (ikke fokus-flytning)', async () => {
     const user = userEvent.setup();
 
