@@ -398,7 +398,7 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
   const isEditing = core && activeCell ? isSameCell(core.getEditingCell(), activeCell) : false;
 
   const isTableDropdownTarget = target.closest('[data-mineo-table-dropdown="true"]') !== null;
-  if (isTableDropdownTarget && (key === 'Enter' || key === 'Escape' || key === 'ArrowUp' || key === 'ArrowDown')) return;
+  if (isTableDropdownTarget && key === 'Enter') return;
 
   if (isEscapeKey && isEditing && activeEditableCell) {
     e.preventDefault();
@@ -439,13 +439,6 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
 
   if (!isNavigationKey) return;
   if (shouldIgnoreKey(e)) return;
-
-  // TableDropdown: Enter should always open the dropdown menu (never trigger table-level Enter navigation).
-  // Contract: `TableDropdown` marks its wrapper with `data-mineo-table-dropdown="true"`.
-  // See `src/components/inputs/table/TableDropdown.tsx`.
-  if (key === 'Enter' && target.closest('[data-mineo-table-dropdown="true"]')) {
-    return;
-  }
 
   const activeFocusable =
     (target.closest(focusableSelector) as HTMLElement | null) ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);

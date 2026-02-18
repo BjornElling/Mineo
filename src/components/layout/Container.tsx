@@ -234,6 +234,7 @@ const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
       if (closest instanceof HTMLSelectElement) return closest;
       if (closest instanceof HTMLTextAreaElement) return closest;
       if (closest instanceof HTMLElement && closest.getAttribute('role') === 'combobox') return closest;
+      if (closest instanceof HTMLElement && (closest.hasAttribute('aria-haspopup') || closest.hasAttribute('aria-controls'))) return closest;
       return null;
     })();
 

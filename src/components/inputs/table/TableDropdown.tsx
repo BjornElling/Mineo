@@ -70,21 +70,22 @@ const TableDropdown = React.memo(
     sx,
     ...rest
   }: TableDropdownProps) => {
-    const getTriggerAndListbox = React.useCallback((): { trigger: HTMLElement | null; listbox: HTMLElement | null; controlsId: string | null } => {
+    const wrapperRef = React.useRef<HTMLSpanElement | null>(null);
+
+    const getTriggerAndListbox = React.useCallback((): { trigger: HTMLElement | null; listbox: HTMLElement | null } => {
       const host = wrapperRef.current;
       const trigger = host?.querySelector('[role="combobox"]') as HTMLElement | null;
       const controlsId = trigger?.getAttribute('aria-controls') ?? null;
       const listbox = controlsId ? document.getElementById(controlsId) : null;
-      return { trigger, listbox: listbox instanceof HTMLElement ? listbox : null, controlsId };
+      return { trigger, listbox: listbox instanceof HTMLElement ? listbox : null };
     }, []);
 
-    const ensureMenuKeyboardFocus = React.useCallback((_source: string, fromNode?: Element | null) => {
+    const ensureMenuKeyboardFocus = React.useCallback((fromNode?: Element | null) => {
       const fromNodeListbox = fromNode instanceof Element
         ? (fromNode.querySelector('[role="listbox"]') as HTMLElement | null)
         : null;
       const { listbox: triggerListbox } = getTriggerAndListbox();
-      const fallbackListbox = document.querySelector('[role="listbox"]') as HTMLElement | null;
-      const listbox = fromNodeListbox ?? triggerListbox ?? fallbackListbox;
+      const listbox = fromNodeListbox ?? triggerListbox;
       if (!listbox) return;
 
       const selectedOption = listbox.querySelector<HTMLElement>('[role="option"][aria-selected="true"]');
@@ -104,7 +105,6 @@ const TableDropdown = React.memo(
     const isLooseTable = grid.tableKind === 'loose';
     const inputBorderRadius = isLooseTable ? '10px' : '0px';
     const inputBorderColor = isLooseTable ? 'rgba(0, 0, 0, 0.12)' : 'transparent';
-    const wrapperRef = React.useRef<HTMLSpanElement | null>(null);
     const allowEmpty: boolean = (rest as Readonly<{ allowEmpty?: boolean }>).allowEmpty ?? true;
 
     if (import.meta.env.DEV && allowEmpty === false && (value === undefined || value.trim() === '')) {
@@ -229,14 +229,15 @@ const TableDropdown = React.memo(
             onBlur={onBlur}
             MenuProps={{
               variant: 'selectedMenu',
+              // Keep focus off Menu paper/root; focus is set explicitly in `onEntered`.
               autoFocus: false,
               disableAutoFocusItem: false,
               slotProps: {
                 transition: {
                   onEntered: (enteredNode: unknown) => {
                     const nodeElement = enteredNode instanceof Element ? enteredNode : null;
-                    ensureMenuKeyboardFocus('onEntered', nodeElement);
-                    requestAnimationFrame(() => ensureMenuKeyboardFocus('onEntered-raf', nodeElement));
+                    ensureMenuKeyboardFocus(nodeElement);
+                    requestAnimationFrame(() => ensureMenuKeyboardFocus(nodeElement));
                   },
                 },
                 paper: {
