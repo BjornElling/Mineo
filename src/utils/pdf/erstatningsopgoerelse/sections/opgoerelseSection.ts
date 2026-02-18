@@ -190,7 +190,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     }
 
     const inputPer = ansaettelsesforhold.anciennitetstillaegSatsAngivesPer;
-    const dateText = formatDateShort(dato);
+    const dateText = formatDateLong(dato);
     const conversion = formatAnciennitetConversion(satsValue, inputPer, grundloenAngivetPer, formatAmount2);
     return `Fra ${dateText} optjenes anciennitetstillæg på ${conversion.displayText}.`;
   };

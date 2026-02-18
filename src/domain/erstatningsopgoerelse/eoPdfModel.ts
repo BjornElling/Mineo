@@ -23,6 +23,8 @@ import {
   getEffektiveSatserForDato,
   getEffektiveSatserForPeriode,
   getGrundloenAngivetPerForOverenskomst,
+  getOffentligTillaegsSatserForDato,
+  getOffentligTillaegsSatserForPeriode,
   resolveOverenskomstRef,
   getOffentligOverenskomstTypeById,
 } from '../../data/overenskomstRates';
@@ -977,6 +979,7 @@ type KonsolideretLoenudviklingV3 =
     anciennitetstillaegDato: ISODateString | undefined;
     anciennitetstillaegSatsAngivesPer: 'Time' | 'Måned';
     anciennitetstillaegSatsValue: number | undefined;
+    offentligLoenEkstraGrundloen: number;
     offentlig: OffentligLoenSelectionV3 | null;
     tafRanges: readonly IsoRange[];
   }>
@@ -1294,6 +1297,7 @@ const resolveReguleringsStrategiV3 = (
       ? resolveOffentligLoenSelectionV3(active[0], offentligType)
       : null;
     const feriePct = typeof active[0].feriePct === 'number' ? active[0].feriePct : 0;
+    const offentligLoenEkstraGrundloenRaw = amountValueToNumber(active[0].offentligLoenEkstraGrundloen);
     return {
       strategi,
       label,
@@ -1309,6 +1313,10 @@ const resolveReguleringsStrategiV3 = (
         anciennitetstillaegDato: isISODateString(active[0].anciennitetstillaegDato) ? active[0].anciennitetstillaegDato : undefined,
         anciennitetstillaegSatsAngivesPer: active[0].anciennitetstillaegSatsAngivesPer ?? 'Måned',
         anciennitetstillaegSatsValue: active[0].anciennitetstillaegSats?.value,
+        offentligLoenEkstraGrundloen:
+          typeof offentligLoenEkstraGrundloenRaw === 'number' && Number.isFinite(offentligLoenEkstraGrundloenRaw)
+            ? Math.max(0, offentligLoenEkstraGrundloenRaw)
+            : 0,
         offentlig,
         tafRanges,
       },
@@ -1548,7 +1556,18 @@ const buildLoenudviklingFromOverenskomstV3 = (
 
   const offentlig = konsolideret.offentlig;
   if (offentlig) {
+    const offentligLoenEkstraGrundloen = (() => {
+      const raw = konsolideret.offentligLoenEkstraGrundloen;
+      if (!Number.isFinite(raw) || raw <= 0) return 0;
+      const inputPer = konsolideret.tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måned' : 'Time';
+      const grundloenPer = offentlig.loenType === 'maanedsLoen' ? 'Måned' : 'Time';
+      return roundToTwoDecimals(convertAnciennitetSats(raw, inputPer, grundloenPer));
+    })();
     const feriePct = konsolideret.feriePct;
+    const baseTillaegsSatser = getOffentligTillaegsSatserForDato(
+      konsolideret.overenskomstId,
+      reguleringsdatoDa
+    );
     const baseResult = getOffentligLoenForDato(
       offentlig.overenskomstType,
       reguleringsdatoDa,
@@ -1558,13 +1577,13 @@ const buildLoenudviklingFromOverenskomstV3 = (
     if (!baseResult) {
       throw new Error('Loenudvikling kan ikke beregnes: basissats mangler');
     }
-    const baseLoen = offentlig.loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen;
+    const baseLoen = (offentlig.loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen) + offentligLoenEkstraGrundloen;
     const basePackage = computePackageValue({
       grundloen: baseLoen,
       feriePct,
-      shSoPct: 0,
-      fritvalgPct: 0,
-      pensionPct: 0,
+      shSoPct: typeof baseTillaegsSatser?.shSoSats === 'number' ? baseTillaegsSatser.shSoSats * 100 : 0,
+      fritvalgPct: typeof baseTillaegsSatser?.fritvalg === 'number' ? baseTillaegsSatser.fritvalg * 100 : 0,
+      pensionPct: typeof baseTillaegsSatser?.agPension === 'number' ? baseTillaegsSatser.agPension * 100 : 0,
       storeBededagPct: 0,
     });
     if (!Number.isFinite(basePackage) || basePackage <= 0) {
@@ -1586,10 +1605,15 @@ const buildLoenudviklingFromOverenskomstV3 = (
         offentlig.loentrin,
         offentlig.loengruppe
       );
+      const tillaegsSatser = getOffentligTillaegsSatserForPeriode(konsolideret.overenskomstId, fraDa, tilDa);
 
       const starts = new Set<ISODateString>();
       for (const sats of satser) {
         const startIso = parseDanishToIso(sats.effectiveDate);
+        if (startIso && startIso > range.fra && startIso <= range.til) starts.add(startIso);
+      }
+      for (const sats of tillaegsSatser) {
+        const startIso = parseDanishToIso(sats.fraDato);
         if (startIso && startIso > range.fra && startIso <= range.til) starts.add(startIso);
       }
       if (anciennitetForIndex && anciennitetForIndex.activeFromIso > range.fra && anciennitetForIndex.activeFromIso <= range.til) {
@@ -1610,19 +1634,21 @@ const buildLoenudviklingFromOverenskomstV3 = (
         if (!segmentResult) {
           throw new Error('Loenudvikling kan ikke beregnes: mangler sats for segment');
         }
+        const segmentTillaegsSatser = getOffentligTillaegsSatserForDato(konsolideret.overenskomstId, segmentDa);
         const segmentLoen = offentlig.loenType === 'maanedsLoen'
           ? segmentResult.maanedsLoen
           : segmentResult.timeLoen;
         const anciennitetAktiv = Boolean(anciennitetForIndex && segment.fra >= anciennitetForIndex.activeFromIso);
+        const grundloenForSegmentBase = segmentLoen + offentligLoenEkstraGrundloen;
         const grundloenForSegment = anciennitetAktiv && anciennitetForIndex
-          ? segmentLoen + anciennitetForIndex.supplementValue
-          : segmentLoen;
+          ? grundloenForSegmentBase + anciennitetForIndex.supplementValue
+          : grundloenForSegmentBase;
         const packageValue = computePackageValue({
           grundloen: grundloenForSegment,
           feriePct,
-          shSoPct: 0,
-          fritvalgPct: 0,
-          pensionPct: 0,
+          shSoPct: typeof segmentTillaegsSatser?.shSoSats === 'number' ? segmentTillaegsSatser.shSoSats * 100 : 0,
+          fritvalgPct: typeof segmentTillaegsSatser?.fritvalg === 'number' ? segmentTillaegsSatser.fritvalg * 100 : 0,
+          pensionPct: typeof segmentTillaegsSatser?.agPension === 'number' ? segmentTillaegsSatser.agPension * 100 : 0,
           storeBededagPct: 0,
         });
         if (!Number.isFinite(packageValue) || packageValue <= 0) {

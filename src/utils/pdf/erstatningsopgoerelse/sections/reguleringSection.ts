@@ -6,6 +6,7 @@ import { formatAmount2, formatAnciennitetConversion } from '../../../../domain/e
 import type { ISODateString } from '../../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
+import { amountValueToNumber } from '../../../../utils/expressionAmount';
 
 type ReguleringValuesTableData = Readonly<{
   columns: readonly string[];
@@ -92,6 +93,10 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
   const toSentenceCase = (value: string): string => {
     if (value.length === 0) return value;
     return `${value.charAt(0).toLocaleUpperCase('da-DK')}${value.slice(1)}`;
+  };
+  const formatAmountWithoutTrailingDecimals = (value: number): string => {
+    const formatted = value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return formatted.endsWith(',00') ? formatted.slice(0, -3) : formatted;
   };
 
   const tafBeregnesSom = computeTafBeregningsenhed(eoValues);
@@ -237,6 +242,14 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       const gruppe = ansaettelsesforhold.offentligLoenGruppe;
       if (typeof trin === 'number' && typeof gruppe === 'number') {
         writeLabelValueLine('Indplacering', `Løntrin ${trin}, gruppe ${gruppe}`);
+        const ekstraGrundloen = amountValueToNumber(ansaettelsesforhold.offentligLoenEkstraGrundloen);
+        if (typeof ekstraGrundloen === 'number' && Number.isFinite(ekstraGrundloen) && ekstraGrundloen > 0) {
+          const enhed = ansaettelsesforhold.offentligLoenType === 'Timeløn' ? 'time' : 'måned';
+          writeLabelValueLine(
+            'Forhøjet grundløn',
+            `${formatAmountWithoutTrailingDecimals(ekstraGrundloen)} kr. / ${enhed}`
+          );
+        }
       }
     }
     writer.addSpacer(lineHeight);

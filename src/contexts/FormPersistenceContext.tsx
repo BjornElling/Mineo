@@ -861,5 +861,3 @@ export const useFormPersistence = (): FormPersistenceContextValue => {
   }
   return context;
 };
-
-export default FormPersistenceContext;

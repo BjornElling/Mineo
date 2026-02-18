@@ -55,6 +55,7 @@ import { buildBeregningsperiodeTafOverlap, buildTafDerived } from '../../../doma
 import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatningsopgoerelse/eoNummerValidering';
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
 import { formatDanishDate } from '../../../utils/dateUtils';
+import { amountValueToNumber } from '../../../utils/expressionAmount';
 import {
   getAlleArbejdsgiverOrg,
   getAlleLoenmodtagerOrg,
@@ -323,6 +324,13 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     updateEoLoenudvikling((prev) => ({
       ...prev,
       offentligLoenGruppe: event.target.value,
+    }));
+  }, [updateEoLoenudvikling]);
+
+  const handleOffentligLoenEkstraGrundloenCommit = React.useCallback((event: CommitEvent<EOAngivetLoenLoenudvikling['offentligLoenEkstraGrundloen']>) => {
+    updateEoLoenudvikling((prev) => ({
+      ...prev,
+      offentligLoenEkstraGrundloen: event.target.value,
     }));
   }, [updateEoLoenudvikling]);
 
@@ -598,6 +606,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       || (loenudviklingBasis === 'Statistik' && Boolean(eoLoenudvikling.loenudviklingStatistikModel))
       || (loenudviklingBasis === 'KRL satstabel' && Boolean(eoLoenudvikling.loenudviklingKRLSatstabel));
   }, [eoLoenudvikling.loenudviklingKRLSatstabel, eoLoenudvikling.loenudviklingStatistikModel, loenudviklingBasis]);
+  const offentligLoenEkstraGrundloenSuffix = eoLoenudvikling.offentligLoenType === 'Timeløn' ? '/ time' : '/ måned';
 
   const reguleringsDatoIntervalData: ReguleringsDatoInterval | undefined = React.useMemo(() => {
     if (!shouldShowReguleringsDatoInterval) return undefined;
@@ -627,6 +636,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       offentligLoenType?: string;
       offentligLoenTrin?: number;
       offentligLoenGruppe?: number;
+      offentligLoenEkstraGrundloen?: number;
     }) => {
       try {
         const stamdata = getPersistedData('stamdata');
@@ -1633,44 +1643,60 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 ) : null}
 
                 {loenudviklingBasis === 'Overenskomst' && erOffentligOverenskomst ? (
-                  <Box className="row--label-right-hover">
-                    <Typography className="row--text">Lønoplysninger</Typography>
-                    <Box className="row--label-right-hover__content">
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                        <Typography className="row--text">Ansættelse</Typography>
-                        <StyledDropdown
-                          width={160}
-                          value={eoLoenudvikling.offentligLoenType ?? 'Månedsløn'}
-                          onChange={handleOffentligLoenTypeChange}
-                          allowEmpty={false}
-                        >
-                          {offentligLoenTypeEnum.options.map((option) => (
-                            <MenuItem key={option} value={option}>
-                              {option}
-                            </MenuItem>
-                          ))}
-                        </StyledDropdown>
-                        <Typography className="row--text">Løntrin</Typography>
-                        <StyledIntegerField
-                          value={eoLoenudvikling.offentligLoenTrin}
-                          onCommit={handleOffentligLoenTrinCommit}
-                          minValue={1}
-                          maxValue={55}
-                          maxDigits={2}
-                          width={80}
-                        />
-                        <Typography className="row--text">Gruppe</Typography>
-                        <StyledIntegerField
-                          value={eoLoenudvikling.offentligLoenGruppe}
-                          onCommit={handleOffentligLoenGruppeCommit}
-                          minValue={0}
-                          maxValue={4}
-                          maxDigits={1}
-                          width={70}
-                        />
+                  <>
+                    <Box className="row--label-right-hover">
+                      <Typography className="row--text">Lønoplysninger</Typography>
+                      <Box className="row--label-right-hover__content">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                          <Typography className="row--text">Ansættelse</Typography>
+                          <StyledDropdown
+                            width={160}
+                            value={eoLoenudvikling.offentligLoenType ?? 'Månedsløn'}
+                            onChange={handleOffentligLoenTypeChange}
+                            allowEmpty={false}
+                          >
+                            {offentligLoenTypeEnum.options.map((option) => (
+                              <MenuItem key={option} value={option}>
+                                {option}
+                              </MenuItem>
+                            ))}
+                          </StyledDropdown>
+                          <Typography className="row--text">Løntrin</Typography>
+                          <StyledIntegerField
+                            value={eoLoenudvikling.offentligLoenTrin}
+                            onCommit={handleOffentligLoenTrinCommit}
+                            minValue={1}
+                            maxValue={55}
+                            maxDigits={2}
+                            width={80}
+                          />
+                          <Typography className="row--text">Gruppe</Typography>
+                          <StyledIntegerField
+                            value={eoLoenudvikling.offentligLoenGruppe}
+                            onCommit={handleOffentligLoenGruppeCommit}
+                            minValue={0}
+                            maxValue={4}
+                            maxDigits={1}
+                            width={70}
+                          />
+                        </Box>
                       </Box>
                     </Box>
-                  </Box>
+                    <Box className="row--label-right-hover">
+                      <Typography className="row--text">Evt. øget grundløn udover løntrin</Typography>
+                      <Box className="row--label-right-hover__content">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <StyledAmountField
+                            width={160}
+                            value={eoLoenudvikling.offentligLoenEkstraGrundloen}
+                            allowNegative={false}
+                            onCommit={handleOffentligLoenEkstraGrundloenCommit}
+                          />
+                          <Typography className="row--text">{offentligLoenEkstraGrundloenSuffix}</Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </>
                 ) : null}
 
                 {loenudviklingBasis === 'Statistik' ? (
@@ -1785,6 +1811,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                                       offentligLoenType: eoLoenudvikling.offentligLoenType,
                                       offentligLoenTrin: eoLoenudvikling.offentligLoenTrin,
                                       offentligLoenGruppe: eoLoenudvikling.offentligLoenGruppe,
+                                      offentligLoenEkstraGrundloen: amountValueToNumber(eoLoenudvikling.offentligLoenEkstraGrundloen),
                                     });
                                   }}
                                   tabIndex={-1}

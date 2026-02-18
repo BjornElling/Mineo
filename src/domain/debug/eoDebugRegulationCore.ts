@@ -8,13 +8,24 @@ import type { DebugDay } from './eoDebugTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues, LoenPaaHelligdage } from '../../types/common';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/common';
 import type { RegulationIndexTimeline, IndeksEntry, AnsaettelsesforholdIndeks } from './eoDebugRegulationTypes';
-import { getEffektiveSatserForDato, getEffektiveSatserForPeriode, resolveOverenskomstRef, type OverenskomstPeriodeSats, getOffentligOverenskomstTypeById } from '../../data/overenskomstRates';
+import {
+  getEffektiveSatserForDato,
+  getEffektiveSatserForPeriode,
+  resolveOverenskomstRef,
+  type OverenskomstPeriodeSats,
+  getOffentligOverenskomstTypeById,
+  getOffentligTillaegsSatserForDato,
+  getOffentligTillaegsSatserForPeriode,
+} from '../../data/overenskomstRates';
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
+import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/formatUtils';
 import { beregnHelligdage } from '../../utils/shDageBeregning';
 import { isoDateToDate } from '../dates/isoDate';
 import { beregnArbejdsdageOgMaaneder } from '../erstatningsopgoerelse/arbejdsdageMaaneder';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
+import { convertAnciennitetSats, roundToTwoDecimals } from '../erstatningsopgoerelse/sharedPdfUtils';
 
 const STORE_BEDEDAG_PCT = 0.0045;
 const STORE_BEDEDAG_START = '2024-01-01';
@@ -256,6 +267,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
   if (!referenceIso) return { ansaettelser: [] };
 
   const ansaettelser: AnsaettelsesforholdIndeks[] = [];
+  const tafBeregningsenhed = computeTafBeregningsenhed(input.eoValues);
 
   for (const af of input.eoValues.loenindkomstAnsaettelsesforhold ?? []) {
     if (!af.overenskomstId) continue;
@@ -267,6 +279,14 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
 
     const offentligSelection = resolveOffentligLoenSelection(af);
     if (offentligSelection) {
+      const offentligLoenEkstraGrundloen = (() => {
+        const raw = amountValueToNumber(af.offentligLoenEkstraGrundloen);
+        if (typeof raw !== 'number' || !Number.isFinite(raw) || raw <= 0) return 0;
+        const inputPer = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måned' : 'Time';
+        const grundloenPer = offentligSelection.loenType === 'maanedsLoen' ? 'Måned' : 'Time';
+        return roundToTwoDecimals(convertAnciennitetSats(raw, inputPer, grundloenPer));
+      })();
+      const referenceTillaegsSatser = getOffentligTillaegsSatserForDato(af.overenskomstId, referenceDanish);
       const referenceResult = getOffentligLoenForDato(
         offentligSelection.overenskomstType,
         referenceDanish,
@@ -279,12 +299,12 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           ? referenceResult.maanedsLoen
           : referenceResult.timeLoen;
       const referenceValue = computePackageValue({
-        grundloen: referenceBase,
+        grundloen: referenceBase + offentligLoenEkstraGrundloen,
         feriePct: 0,
-        shSoPct: 0,
-        fritvalgPct: 0,
+        shSoPct: typeof referenceTillaegsSatser?.shSoSats === 'number' ? referenceTillaegsSatser.shSoSats : 0,
+        fritvalgPct: typeof referenceTillaegsSatser?.fritvalg === 'number' ? referenceTillaegsSatser.fritvalg : 0,
         storeBededagPct: 0,
-        pensionPct: 0,
+        pensionPct: typeof referenceTillaegsSatser?.agPension === 'number' ? referenceTillaegsSatser.agPension : 0,
       });
       if (!Number.isFinite(referenceValue) || referenceValue <= 0) continue;
 
@@ -299,10 +319,17 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         offentligSelection.loentrin,
         offentligSelection.loengruppe
       );
+      const tillaegsSatser = getOffentligTillaegsSatserForPeriode(af.overenskomstId, eoFraDanish, eoTilDanish);
 
       const dates = new Set<ISODateString>();
       for (const sats of satser) {
         const iso = toISODateString(sats.effectiveDate.split('-').reverse().join('-'));
+        if (iso >= eoRange.fra && iso <= eoRange.til) {
+          dates.add(iso);
+        }
+      }
+      for (const sats of tillaegsSatser) {
+        const iso = toISODateString(sats.fraDato.split('-').reverse().join('-'));
         if (iso >= eoRange.fra && iso <= eoRange.til) {
           dates.add(iso);
         }
@@ -324,16 +351,17 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           offentligSelection.loengruppe
         );
         if (!sats) continue;
+        const tillaegSats = getOffentligTillaegsSatserForDato(af.overenskomstId, danishDate);
 
         const grundloen =
-          offentligSelection.loenType === 'maanedsLoen' ? sats.maanedsLoen : sats.timeLoen;
+          (offentligSelection.loenType === 'maanedsLoen' ? sats.maanedsLoen : sats.timeLoen) + offentligLoenEkstraGrundloen;
         const packageValue = computePackageValue({
           grundloen,
           feriePct: 0,
-          shSoPct: 0,
-          fritvalgPct: 0,
+          shSoPct: typeof tillaegSats?.shSoSats === 'number' ? tillaegSats.shSoSats : 0,
+          fritvalgPct: typeof tillaegSats?.fritvalg === 'number' ? tillaegSats.fritvalg : 0,
           storeBededagPct: 0,
-          pensionPct: 0,
+          pensionPct: typeof tillaegSats?.agPension === 'number' ? tillaegSats.agPension : 0,
         });
         const index = referenceValue > 0 ? (packageValue / referenceValue) * 100 : 0;
 
@@ -359,10 +387,10 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           effectiveFrom: iso,
           grundloen,
           feriePct: 0,
-          shSoPct: 0,
-          fritvalgPct: 0,
+          shSoPct: typeof tillaegSats?.shSoSats === 'number' ? tillaegSats.shSoSats : 0,
+          fritvalgPct: typeof tillaegSats?.fritvalg === 'number' ? tillaegSats.fritvalg : 0,
           storeBededagPct: 0,
-          pensionPct: 0,
+          pensionPct: typeof tillaegSats?.agPension === 'number' ? tillaegSats.agPension : 0,
           packageValue,
           index,
           arbejdsdage,

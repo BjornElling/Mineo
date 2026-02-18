@@ -14,6 +14,8 @@ import { aarsloenMax } from '../../data/regulationRates';
 import { TODAY } from '../../config/dateRanges';
 import {
   getEffektiveSatserForPeriode,
+  getOffentligTillaegsSatserForDato,
+  getOffentligTillaegsSatserForPeriode,
   getOverenskomst,
   getOffentligOverenskomstTypeById,
   resolveOverenskomstRef,
@@ -52,6 +54,7 @@ type ReguleringPdfParams = Readonly<{
   offentligLoenType?: string;
   offentligLoenTrin?: number;
   offentligLoenGruppe?: number;
+  offentligLoenEkstraGrundloen?: number;
   visBrevhoved?: boolean;
   stamdata?: ReguleringStamdata | null;
 }>;
@@ -95,6 +98,23 @@ const resolveOffentligLoenInfoLine = (params: Readonly<{
   } catch {
     return null;
   }
+};
+
+const resolveOffentligLoenEkstraGrundloenTekst = (params: Readonly<{
+  overenskomstId: string | undefined;
+  offentligLoenType: string | undefined;
+  offentligLoenEkstraGrundloen: number | undefined;
+}>): string | null => {
+  const { overenskomstId, offentligLoenType, offentligLoenEkstraGrundloen } = params;
+  if (!overenskomstId) return null;
+  if (!getOffentligOverenskomstTypeById(overenskomstId)) return null;
+  if (typeof offentligLoenEkstraGrundloen !== 'number' || !Number.isFinite(offentligLoenEkstraGrundloen)) return null;
+  if (offentligLoenEkstraGrundloen <= 0) return null;
+
+  const enhed = offentligLoenType === 'Timeløn' ? 'time' : 'måned';
+  const formatted = formatCurrency(offentligLoenEkstraGrundloen);
+  const udenDecimaler = formatted.endsWith(',00') ? formatted.slice(0, -3) : formatted;
+  return `${udenDecimaler} kr./${enhed}`;
 };
 
 const resolveStatistikModelIdFromLabel = (
@@ -218,15 +238,39 @@ const buildOverenskomstTable = (
     const satser = getOffentligLoenForPeriode(offentligType, interval.fraDato, interval.tilDato, loentrin, loengruppe)
       .slice()
       .reverse();
+    const tillaegsSatser = getOffentligTillaegsSatserForPeriode(
+      overenskomstId,
+      interval.fraDato,
+      interval.tilDato,
+      applyAlmindeligLoenPaaShDageRegel
+    );
+    const hasShSo = tillaegsSatser.some((sats) => sats.shSoSats !== null);
+    const hasFritvalg = tillaegsSatser.some((sats) => sats.fritvalg !== null);
+    const hasAgPension = tillaegsSatser.some((sats) => sats.agPension !== null);
 
     const columns: TableColumn[] = [
       { header: 'Fra-dato' },
       { header: 'Månedsløn' },
       { header: 'Timeløn' },
+      ...(hasShSo ? [{ header: 'SH/SO' }] : []),
+      ...(hasFritvalg ? [{ header: 'Fritvalg' }] : []),
+      ...(hasAgPension ? [{ header: 'AG pension' }] : []),
     ];
 
     const rows = satser.map((sats) => {
-      return [sats.effectiveDate, formatCurrency(sats.maanedsLoen), formatCurrency(sats.timeLoen)];
+      const tillaegSats = getOffentligTillaegsSatserForDato(
+        overenskomstId,
+        sats.effectiveDate,
+        applyAlmindeligLoenPaaShDageRegel
+      );
+      return [
+        sats.effectiveDate,
+        formatCurrency(sats.maanedsLoen),
+        formatCurrency(sats.timeLoen),
+        ...(hasShSo ? [formatOverenskomstPercent(tillaegSats?.shSoSats)] : []),
+        ...(hasFritvalg ? [formatOverenskomstPercent(tillaegSats?.fritvalg)] : []),
+        ...(hasAgPension ? [formatOverenskomstPercent(tillaegSats?.agPension)] : []),
+      ];
     });
 
     return { columns, rows };
@@ -356,6 +400,7 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
     offentligLoenType,
     offentligLoenTrin,
     offentligLoenGruppe,
+    offentligLoenEkstraGrundloen,
     visBrevhoved = false,
     stamdata = null,
   } = params;
@@ -405,6 +450,26 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
   });
   if (offentligInfoLine) {
     doc.text(offentligInfoLine, MARGINS.left, currentY);
+    currentY += 6;
+  }
+  const offentligLoenEkstraGrundloenTekst = resolveOffentligLoenEkstraGrundloenTekst({
+    overenskomstId,
+    offentligLoenType,
+    offentligLoenEkstraGrundloen,
+  });
+
+  if (offentligLoenEkstraGrundloenTekst) {
+    // Linjeafstand før afsnittet om øget grundløn.
+    currentY += 6;
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Forhøjet grundløn', MARGINS.left, currentY);
+    currentY += 6;
+
+    doc.setFont('helvetica', 'normal');
+    doc.text('Skadelidtes grundløn er forhøjet sammenholdt med nedenstående løntrin.', MARGINS.left, currentY);
+    currentY += 6;
+    doc.text(`Forhøjelsen udgør ${offentligLoenEkstraGrundloenTekst}.`, MARGINS.left, currentY);
     currentY += 6;
   }
 

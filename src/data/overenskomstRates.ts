@@ -99,6 +99,12 @@ type OffentligOverenskomstMeta = OverenskomstMeta & Readonly<{
   offentligType: OffentligOverenskomstType;
 }>;
 
+type OffentligOverenskomstSatser = Readonly<{
+  id: OverenskomstId;
+  satser: ReadonlyArray<OverenskomstPeriodeSats>; // Nyeste foerst
+  shDageAlmindeligLoenRegel?: ShDageAlmindeligLoenRegel;
+}>;
+
 type ShDageAlmindeligLoenRegel = Readonly<{
   readonly fritvalgDelta?: number;
   readonly shSoDelta?: number;
@@ -218,6 +224,38 @@ const offentligeOverenskomster: ReadonlyArray<OffentligOverenskomstMeta> = [
     arbejdsgiverOrg: ['RLTN'],
     grundloenAngivetPer: 'Time',
     },
+  {
+    offentligType: 'KL',
+    id: toOverenskomstId('laerer-overenskomsten'),
+    navn: 'Lærer-overenskomsten',
+    loenmodtagerOrg: ['Lærernes Centralorganisation'],
+    arbejdsgiverOrg: ['KL'],
+    grundloenAngivetPer: 'Time',
+  },
+];
+
+const offentligeOverenskomstSatser: ReadonlyArray<OffentligOverenskomstSatser> = [
+  {
+    id: toOverenskomstId('laerer-overenskomsten'),
+    satser: satserFromTable(
+      {
+        shSoSats: null,
+        sfgg: null,
+        sfggFaglKbh: null,
+        sfggFaglProv: null,
+        sfggUfaglKbh: null,
+        sfggUfaglProv: null,
+      },
+      [
+        // fraDato          │ Grundløn   │ Fritvalg │ AG-pens.
+        ['01-04-2025',       null,         0.0146,    0.1730 ],
+        ['01-04-2022',       null,         0.0138,    0.1730 ],
+        ['01-04-2019',       null,         0.0083,    0.1730 ],
+        ['01-01-2012',       null,         0.0064,    0.1730 ],
+        ['01-01-1900',       null,         0.0000,    0.1730 ],
+      ]
+    ),
+  },
 ];
 
 export const overenskomster: ReadonlyArray<Overenskomst> = [
@@ -739,6 +777,18 @@ for (const offentligMeta of offentligeOverenskomster) {
   offentligOverenskomstTypeById.set(offentligMeta.id, offentligMeta.offentligType);
 }
 
+const offentligOverenskomstSatserById = new Map<OverenskomstId, OffentligOverenskomstSatser>();
+const offentligOverenskomstIds = new Set(offentligeOverenskomster.map((meta) => meta.id));
+for (const entry of offentligeOverenskomstSatser) {
+  if (!offentligOverenskomstIds.has(entry.id)) {
+    throw new Error(`Offentlig overenskomst-satser refererer ukendt ID: "${entry.id}"`);
+  }
+  if (offentligOverenskomstSatserById.has(entry.id)) {
+    throw new Error(`Duplicate offentlig overenskomst-satser-ID: "${entry.id}"`);
+  }
+  offentligOverenskomstSatserById.set(entry.id, entry);
+}
+
 const overenskomstMetaById = new Map<OverenskomstId, OverenskomstMeta>();
 const registerMeta = (meta: OverenskomstMeta, source: string): void => {
   if (overenskomstMetaById.has(meta.id)) {
@@ -853,6 +903,47 @@ export const getOffentligOverenskomstTypeById = (rawId: string): OffentligOveren
 
 export const isOffentligOverenskomstId = (rawId: string): boolean =>
   Boolean(getOffentligOverenskomstTypeById(rawId));
+
+const getOffentligTillaegsSatserForAlmindeligLoenPaaShDage = (
+  entry: OffentligOverenskomstSatser,
+  applyRule: boolean
+): ReadonlyArray<OverenskomstPeriodeSats> => {
+  if (!applyRule) return entry.satser;
+  const regel = entry.shDageAlmindeligLoenRegel;
+  if (!regel) return entry.satser;
+  return entry.satser.map((sats) => applyShDageAlmindeligLoenRegel(sats, regel));
+};
+
+export const getOffentligTillaegsSatserForDato = (
+  rawId: string,
+  dato: DanishDateString,
+  applyAlmindeligLoenPaaShDageRegel = false
+): OverenskomstPeriodeSats | undefined => {
+  const ref = resolveOverenskomstRefFromString(rawId);
+  if (!ref) return undefined;
+
+  const entry = offentligOverenskomstSatserById.get(ref.baseId);
+  if (!entry) return undefined;
+
+  const satser = getOffentligTillaegsSatserForAlmindeligLoenPaaShDage(entry, applyAlmindeligLoenPaaShDageRegel);
+  return getSatserForDatoFromList(satser, dato);
+};
+
+export const getOffentligTillaegsSatserForPeriode = (
+  rawId: string,
+  fraDato: DanishDateString,
+  tilDato: DanishDateString,
+  applyAlmindeligLoenPaaShDageRegel = false
+): ReadonlyArray<OverenskomstPeriodeSats> => {
+  const ref = resolveOverenskomstRefFromString(rawId);
+  if (!ref) return [];
+
+  const entry = offentligOverenskomstSatserById.get(ref.baseId);
+  if (!entry) return [];
+
+  const satser = getOffentligTillaegsSatserForAlmindeligLoenPaaShDage(entry, applyAlmindeligLoenPaaShDageRegel);
+  return getSatserForPeriodeFromList(satser, fraDato, tilDato);
+};
 
 /**
  * Find gaeldende satser for en given dato

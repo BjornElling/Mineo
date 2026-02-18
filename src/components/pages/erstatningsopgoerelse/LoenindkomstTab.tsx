@@ -36,6 +36,7 @@ import { parseISODate } from '../../../types/branded';
 import { createDate, formatDanishDate } from '../../../utils/dateUtils';
 import { isLoenperiodeValue } from '../../../utils/zodTypeGuards';
 import { generateAnsaettelsesforholdId } from '../../../utils/eoConverters';
+import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { loadReguleringPdfModule, loadKRLPdfModule } from '../../../utils/pdf/pdfLoader';
 import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
 import {
@@ -44,6 +45,7 @@ import {
   getOverenskomsterByOrg,
   getOverenskomstMetaById,
   getEffektiveSatserForDato,
+  getOffentligTillaegsSatserForDato,
   getReguleringsDatoIntervalForOverenskomst,
   isOffentligOverenskomstId,
   resolveOverenskomstRef,
@@ -147,6 +149,7 @@ const createBlankAnsaettelsesforhold = (settings: AppSettings): Ansaettelsesforh
     offentligLoenType: 'Månedsløn',
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
+    offentligLoenEkstraGrundloen: undefined,
     // Overenskomst-filter: initialiseres fra settings ved oprettelse (centraliseret mapping)
     overenskomstFilter: resolveDefaultOverenskomstFilter(settings),
   };
@@ -286,7 +289,6 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     ): string | undefined => {
       // Kun valider hvis der er valgt en overenskomst
       if (!overenskomstId) return undefined;
-      if (isOffentligOverenskomstId(overenskomstId)) return undefined;
 
       // Tjek om der er en dato at validere mod
       if (!reguleringsDato) return undefined;
@@ -297,34 +299,50 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 
       const danishDate = formatDanishDate(dateObj);
 
-      const ref = resolveOverenskomstRef(overenskomstId);
-      if (!ref) return undefined;
-      // Hent satser for dato
-      const satser = getEffektiveSatserForDato({
-        overenskomstId: ref.baseId as OverenskomstId,
-        dato: danishDate,
-        applyAlmindeligLoenPaaShDageRegel,
-      });
-      if (!satser) return undefined;
-
       // Map felt til overenskomst-felt og sammenlign
       // null i overenskomst behandles som 0
       let expectedValue: number;
+      if (isOffentligOverenskomstId(overenskomstId)) {
+        const tillaegSatser = getOffentligTillaegsSatserForDato(overenskomstId, danishDate);
+        if (!tillaegSatser) return undefined;
+        switch (fieldName) {
+          case 'fritvalgPct':
+            expectedValue = tillaegSatser.fritvalg ?? 0;
+            break;
+          case 'shSoPct':
+            expectedValue = tillaegSatser.shSoSats ?? 0;
+            break;
+          case 'storeBededagPct':
+            return undefined;
+          case 'pensionPct':
+            expectedValue = tillaegSatser.agPension ?? 0;
+            break;
+        }
+      } else {
+        const ref = resolveOverenskomstRef(overenskomstId);
+        if (!ref) return undefined;
+        const satser = getEffektiveSatserForDato({
+          overenskomstId: ref.baseId as OverenskomstId,
+          dato: danishDate,
+          applyAlmindeligLoenPaaShDageRegel,
+        });
+        if (!satser) return undefined;
 
-      switch (fieldName) {
-        case 'fritvalgPct':
-          expectedValue = satser.fritvalg ?? 0;
-          break;
-        case 'shSoPct':
-          // SH/SO-sats
-          expectedValue = satser.shSoSats ?? 0;
-          break;
-        case 'storeBededagPct':
-          // Store Bededag valideres separat - returnér her hvis logikken ikke matcher
-          return undefined;
-        case 'pensionPct':
-          expectedValue = satser.agPension ?? 0;
-          break;
+        switch (fieldName) {
+          case 'fritvalgPct':
+            expectedValue = satser.fritvalg ?? 0;
+            break;
+          case 'shSoPct':
+            // SH/SO-sats
+            expectedValue = satser.shSoSats ?? 0;
+            break;
+          case 'storeBededagPct':
+            // Store Bededag valideres separat - returnér her hvis logikken ikke matcher
+            return undefined;
+          case 'pensionPct':
+            expectedValue = satser.agPension ?? 0;
+            break;
+        }
       }
 
       // Hent overenskomst navn til fejlmeddelelse
@@ -469,6 +487,11 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
   // Hent alle organisationer
   const alleLoenmodtagerOrg = React.useMemo(() => getAlleLoenmodtagerOrg(), []);
   const alleArbejdsgiverOrg = React.useMemo(() => getAlleArbejdsgiverOrg(), []);
+  const getOffentligLoenEkstraGrundloenSuffix = React.useCallback(
+    (offentligLoenType: Ansaettelsesforhold['offentligLoenType']) =>
+      offentligLoenType === 'Timeløn' ? '/ time' : '/ måned',
+    []
+  );
 
   const updateAnsaettelsesforhold = React.useCallback(
     (id: string, updater: (prev: Ansaettelsesforhold) => Ansaettelsesforhold) => {
@@ -579,6 +602,17 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
         updateAnsaettelsesforhold(id, (prev) => ({
           ...prev,
           offentligLoenGruppe: event.target.value,
+        }));
+      },
+    [updateAnsaettelsesforhold]
+  );
+
+  const handleOffentligLoenEkstraGrundloenCommit = React.useCallback(
+    (id: string) =>
+      (event: CommitEvent<Ansaettelsesforhold['offentligLoenEkstraGrundloen']>) => {
+        updateAnsaettelsesforhold(id, (prev) => ({
+          ...prev,
+          offentligLoenEkstraGrundloen: event.target.value,
         }));
       },
     [updateAnsaettelsesforhold]
@@ -969,6 +1003,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
       offentligLoenType?: string;
       offentligLoenTrin?: number;
       offentligLoenGruppe?: number;
+      offentligLoenEkstraGrundloen?: number;
     }) => {
       try {
         // Hent stamdata
@@ -1466,44 +1501,60 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
             ) : null}
 
             {loenudviklingBasis === 'Overenskomst' && erOffentligOverenskomst ? (
-              <Box className="row--label-right-hover">
-                <Typography className="row--text">Lønoplysninger</Typography>
-                <Box className="row--label-right-hover__content">
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                    <Typography className="row--text">Ansættelse</Typography>
-                    <StyledDropdown
-                      width={160}
-                      value={af.offentligLoenType ?? 'Månedsløn'}
-                      onChange={handleOffentligLoenTypeChange(af.id)}
-                      allowEmpty={false}
-                    >
-                      {offentligLoenTypeEnum.options.map((option) => (
-                        <MenuItem key={option} value={option}>
-                          {option}
-                        </MenuItem>
-                      ))}
-                    </StyledDropdown>
-                    <Typography className="row--text">Løntrin</Typography>
-                    <StyledIntegerField
-                      value={af.offentligLoenTrin}
-                      onCommit={handleOffentligLoenTrinCommit(af.id)}
-                      minValue={1}
-                      maxValue={55}
-                      maxDigits={2}
-                      width={80}
-                    />
-                    <Typography className="row--text">Gruppe</Typography>
-                    <StyledIntegerField
-                      value={af.offentligLoenGruppe}
-                      onCommit={handleOffentligLoenGruppeCommit(af.id)}
-                      minValue={0}
-                      maxValue={4}
-                      maxDigits={1}
-                      width={70}
-                    />
+              <>
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">Lønoplysninger</Typography>
+                  <Box className="row--label-right-hover__content">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                      <Typography className="row--text">Ansættelse</Typography>
+                      <StyledDropdown
+                        width={160}
+                        value={af.offentligLoenType ?? 'Månedsløn'}
+                        onChange={handleOffentligLoenTypeChange(af.id)}
+                        allowEmpty={false}
+                      >
+                        {offentligLoenTypeEnum.options.map((option) => (
+                          <MenuItem key={option} value={option}>
+                            {option}
+                          </MenuItem>
+                        ))}
+                      </StyledDropdown>
+                      <Typography className="row--text">Løntrin</Typography>
+                      <StyledIntegerField
+                        value={af.offentligLoenTrin}
+                        onCommit={handleOffentligLoenTrinCommit(af.id)}
+                        minValue={1}
+                        maxValue={55}
+                        maxDigits={2}
+                        width={80}
+                      />
+                      <Typography className="row--text">Gruppe</Typography>
+                      <StyledIntegerField
+                        value={af.offentligLoenGruppe}
+                        onCommit={handleOffentligLoenGruppeCommit(af.id)}
+                        minValue={0}
+                        maxValue={4}
+                        maxDigits={1}
+                        width={70}
+                      />
+                    </Box>
                   </Box>
                 </Box>
-              </Box>
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">Evt. øget grundløn udover løntrin</Typography>
+                  <Box className="row--label-right-hover__content">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <StyledAmountField
+                        width={160}
+                        value={af.offentligLoenEkstraGrundloen}
+                        allowNegative={false}
+                        onCommit={handleOffentligLoenEkstraGrundloenCommit(af.id)}
+                      />
+                      <Typography className="row--text">{getOffentligLoenEkstraGrundloenSuffix(af.offentligLoenType)}</Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              </>
             ) : null}
 
             {loenudviklingBasis === 'Statistik' ? (
@@ -1610,6 +1661,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                                   offentligLoenType: af.offentligLoenType,
                                   offentligLoenTrin: af.offentligLoenTrin,
                                   offentligLoenGruppe: af.offentligLoenGruppe,
+                                  offentligLoenEkstraGrundloen: amountValueToNumber(af.offentligLoenEkstraGrundloen),
                                 });
                               }}
                               tabIndex={-1}

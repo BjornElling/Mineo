@@ -8,7 +8,13 @@ import {
   getOffentligeYdelserTableValidation,
 } from '../../utils/offentligeYdelserTableValidation';
 import { ydelsestyper } from '../../data/ydelsestyper';
-import { getEffektiveSatserForDato, resolveOverenskomstRef, type OverenskomstId, isOffentligOverenskomstId } from '../../data/overenskomstRates';
+import {
+  getEffektiveSatserForDato,
+  resolveOverenskomstRef,
+  type OverenskomstId,
+  isOffentligOverenskomstId,
+  getOffentligTillaegsSatserForDato,
+} from '../../data/overenskomstRates';
 import type { DebugStatus } from '../debug/eoDebugTypes';
 import { buildAarsloenCellErrors, buildOffentligeYdelserCellErrors } from './indkomstRowValidation';
 import { formatCurrency, parseAmount } from '../../utils/formatUtils';
@@ -80,34 +86,45 @@ const validateOverenskomstSats = (
   applyAlmindeligLoenPaaShDageRegel: boolean
 ): boolean => {
   if (!overenskomstId) return false;
-  if (isOffentligOverenskomstId(overenskomstId)) return false;
   if (!reguleringsDato) return false;
 
   const dateObj = parseISODate(reguleringsDato);
   if (!dateObj) return false;
 
   const danishDate = formatDanishDate(dateObj);
+  let expectedValue: number | undefined;
 
-  const ref = resolveOverenskomstRef(overenskomstId);
-  if (!ref) return false;
-
-  const satser = getEffektiveSatserForDato({
-    overenskomstId: ref.baseId as OverenskomstId,
-    dato: danishDate,
-    applyAlmindeligLoenPaaShDageRegel,
-  });
-  if (!satser) return false;
-
-  let expectedValue: number;
-  if (fieldName === 'fritvalgPct') {
-    expectedValue = satser.fritvalg ?? 0;
-  } else if (fieldName === 'shSoPct') {
-    expectedValue = satser.shSoSats ?? 0;
+  if (isOffentligOverenskomstId(overenskomstId)) {
+    const tillaegSatser = getOffentligTillaegsSatserForDato(overenskomstId, danishDate);
+    if (!tillaegSatser) return false;
+    if (fieldName === 'fritvalgPct') {
+      expectedValue = tillaegSatser.fritvalg ?? 0;
+    } else if (fieldName === 'shSoPct') {
+      expectedValue = tillaegSatser.shSoSats ?? 0;
+    } else {
+      expectedValue = tillaegSatser.agPension ?? 0;
+    }
   } else {
-    expectedValue = satser.agPension ?? 0;
+    const ref = resolveOverenskomstRef(overenskomstId);
+    if (!ref) return false;
+
+    const satser = getEffektiveSatserForDato({
+      overenskomstId: ref.baseId as OverenskomstId,
+      dato: danishDate,
+      applyAlmindeligLoenPaaShDageRegel,
+    });
+    if (!satser) return false;
+
+    if (fieldName === 'fritvalgPct') {
+      expectedValue = satser.fritvalg ?? 0;
+    } else if (fieldName === 'shSoPct') {
+      expectedValue = satser.shSoSats ?? 0;
+    } else {
+      expectedValue = satser.agPension ?? 0;
+    }
   }
 
-  const expectedPct = expectedValue * 100;
+  const expectedPct = (expectedValue ?? 0) * 100;
   const actualValue = inputValue ?? 0;
   return Math.abs(actualValue - expectedPct) > 0.01;
 };

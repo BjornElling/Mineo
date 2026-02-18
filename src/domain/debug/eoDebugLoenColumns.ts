@@ -4,7 +4,12 @@ import type { ISODateString } from '../../types/branded';
 import { dateToISO, isoToDanish } from '../../types/branded';
 import { parseAmount, formatCurrency } from '../../utils/formatUtils';
 import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
-import { resolveOverenskomstRef, getEffektiveSatserForPeriode, getOffentligOverenskomstTypeById } from '../../data/overenskomstRates';
+import {
+  resolveOverenskomstRef,
+  getEffektiveSatserForPeriode,
+  getOffentligOverenskomstTypeById,
+  getOffentligTillaegsSatserForPeriode,
+} from '../../data/overenskomstRates';
 import { getReguleringsDatoer } from '../../data/offentligLoenLookup';
 import { parseOffentligDato } from './eoDebugOffentligeYdelserColumns';
 import type { DebugTabelColumnId, DebugTabelIntegrityIssue } from './eoDebugModel';
@@ -105,6 +110,20 @@ const buildOverenskomstRegulering = (
       const idx = isoIndex.get(iso);
       if (idx === undefined) continue;
       flags[idx] = 1;
+    }
+
+    const fraDanish = isoToDanish(tableFra);
+    const tilDanish = isoToDanish(tableTil);
+    if (fraDanish && tilDanish) {
+      const tillaegsSatser = getOffentligTillaegsSatserForPeriode(overenskomstIdRaw, fraDanish, tilDanish, false);
+      for (const sats of tillaegsSatser) {
+        const iso = parseOffentligDato(sats.fraDato);
+        if (!iso) continue;
+        if (iso < tableFra || iso > tableTil) continue;
+        const idx = isoIndex.get(iso);
+        if (idx === undefined) continue;
+        flags[idx] = 1;
+      }
     }
     return flags;
   }

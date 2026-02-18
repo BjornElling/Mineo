@@ -828,6 +828,7 @@ export const loenindkomstAnsaettelsesforholdSchema = z.object({
       .max(4, 'Må højst være 4')
       .optional()
   ),
+  offentligLoenEkstraGrundloen: nonNegativeAmountValue,
 
   // Overenskomst-filter (persisteres for at bevare brugerens valg)
   // Initialiseres fra settings ved oprettelse af ansættelsesforhold, ændres ikke af efterfølgende settings-ændringer
@@ -868,6 +869,7 @@ export const eoAngivetLoenLoenudviklingSchema = z.object({
       .max(4, 'Må højst være 4')
       .optional()
   ),
+  offentligLoenEkstraGrundloen: nonNegativeAmountValue,
   overenskomstFilter: overenskomstFilterSchema,
 }).strict();
 
@@ -886,6 +888,7 @@ const defaultEoAngivetLoenLoenudvikling: EOAngivetLoenLoenudvikling = {
   offentligLoenType: 'Månedsløn',
   offentligLoenTrin: undefined,
   offentligLoenGruppe: undefined,
+  offentligLoenEkstraGrundloen: undefined,
   overenskomstFilter: {
     loenmodtager: undefined,
     arbejdsgiver: undefined,

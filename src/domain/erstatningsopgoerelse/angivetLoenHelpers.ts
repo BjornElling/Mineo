@@ -98,6 +98,7 @@ export const resolveLoenudviklingKilde = (
     offentligLoenType: eo.offentligLoenType,
     offentligLoenTrin: eo.offentligLoenTrin,
     offentligLoenGruppe: eo.offentligLoenGruppe,
+    offentligLoenEkstraGrundloen: eo.offentligLoenEkstraGrundloen,
     overenskomstFilter: {
       loenmodtager: eo.overenskomstFilter?.loenmodtager,
       arbejdsgiver: eo.overenskomstFilter?.arbejdsgiver,

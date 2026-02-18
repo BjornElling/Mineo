@@ -14,11 +14,19 @@ import type { ErstatningsopgoerelseValues, StamdataValues, LoenPaaHelligdage } f
 import { LOEN_PAA_HELLIGDAGE } from '../../types/common';
 import type { DebugDay } from './eoDebugTypes';
 import type { LoenTimeline, DailyLoen, LoenComponent, DailySvieSmerte } from './eoDebugLoenTypes';
-import { getEffektiveSatserForDato, resolveOverenskomstRef, getOffentligOverenskomstTypeById } from '../../data/overenskomstRates';
+import {
+  getEffektiveSatserForDato,
+  resolveOverenskomstRef,
+  getOffentligOverenskomstTypeById,
+  getOffentligTillaegsSatserForDato,
+} from '../../data/overenskomstRates';
 import { getOffentligLoenForDato } from '../../data/offentligLoenLookup';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
+import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/formatUtils';
 import { svieSmertePrDag } from '../../data/regulationRates';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
+import { convertAnciennitetSats, roundToTwoDecimals } from '../erstatningsopgoerelse/sharedPdfUtils';
 
 const STORE_BEDEDAG_PCT = 0.0045;
 const STORE_BEDEDAG_START = '2024-01-01';
@@ -149,6 +157,15 @@ export function buildLoenTimeline(input: LoenCoreInput): LoenTimeline {
   const feriePct = parsePercentToDecimal(af?.feriePct);
   const loenPaaHelligdage = af?.loenPaaHelligdage;
   const offentligSelection = resolveOffentligLoenSelection(af);
+  const tafBeregningsenhed = computeTafBeregningsenhed(input.eoValues);
+  const offentligLoenEkstraGrundloen = (() => {
+    if (!af || !offentligSelection) return 0;
+    const raw = amountValueToNumber(af.offentligLoenEkstraGrundloen);
+    if (typeof raw !== 'number' || !Number.isFinite(raw) || raw <= 0) return 0;
+    const inputPer = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måned' : 'Time';
+    const grundloenPer = offentligSelection.loenType === 'maanedsLoen' ? 'Måned' : 'Time';
+    return roundToTwoDecimals(convertAnciennitetSats(raw, inputPer, grundloenPer));
+  })();
 
   for (const debugDay of input.debugDays) {
     // Svie/smerte: kalenderdage, separat
@@ -175,6 +192,7 @@ export function buildLoenTimeline(input: LoenCoreInput): LoenTimeline {
     if (!danishDate) continue;
 
     if (offentligSelection) {
+      if (!af?.overenskomstId) continue;
       const resultat = getOffentligLoenForDato(
         offentligSelection.overenskomstType,
         danishDate,
@@ -182,17 +200,18 @@ export function buildLoenTimeline(input: LoenCoreInput): LoenTimeline {
         offentligSelection.loengruppe
       );
       if (!resultat) continue;
+      const tillaegsSatser = getOffentligTillaegsSatserForDato(af.overenskomstId, danishDate);
 
       const grundloen =
-        offentligSelection.loenType === 'maanedsLoen' ? resultat.maanedsLoen : resultat.timeLoen;
+        (offentligSelection.loenType === 'maanedsLoen' ? resultat.maanedsLoen : resultat.timeLoen) + offentligLoenEkstraGrundloen;
 
       const { components, total } = buildLoenComponents({
         grundloen,
         feriePct,
-        shSoPct: 0,
-        fritvalgPct: 0,
+        shSoPct: typeof tillaegsSatser?.shSoSats === 'number' ? tillaegsSatser.shSoSats : 0,
+        fritvalgPct: typeof tillaegsSatser?.fritvalg === 'number' ? tillaegsSatser.fritvalg : 0,
         storeBededagPct: 0,
-        pensionPct: 0,
+        pensionPct: typeof tillaegsSatser?.agPension === 'number' ? tillaegsSatser.agPension : 0,
       });
 
       if (components.length === 0) continue;

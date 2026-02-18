@@ -20,6 +20,7 @@ const createDefaultAngivetLoenLoenudvikling = (settings: AppSettings): Persisted
   offentligLoenType: 'Månedsløn',
   offentligLoenTrin: undefined,
   offentligLoenGruppe: undefined,
+  offentligLoenEkstraGrundloen: undefined,
   overenskomstFilter: resolveDefaultOverenskomstFilter(settings),
 });
 
@@ -165,6 +166,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
       offentligLoenType: 'Månedsløn',
       offentligLoenTrin: undefined,
       offentligLoenGruppe: undefined,
+      offentligLoenEkstraGrundloen: undefined,
       // Overenskomst-filter: initialiseres fra settings ved oprettelse (centraliseret mapping)
       overenskomstFilter: resolveDefaultOverenskomstFilter(settings),
     },
