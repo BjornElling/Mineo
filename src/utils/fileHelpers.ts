@@ -263,7 +263,8 @@ export const resolveDefaultDirectoryHandle = async (
 
     if (!handle) {
       // Handle ikke fundet i IndexedDB (muligvis slettet)
-      logWarning('Directory handle ikke fundet i IndexedDB - falder tilbage til skrivebord');
+      // Forventelig fallback-situation: logges som info (ikke warning).
+      logInfo('Directory handle ikke fundet i IndexedDB - falder tilbage til skrivebord');
       return desktopFallback;
     }
 
@@ -272,7 +273,8 @@ export const resolveDefaultDirectoryHandle = async (
 
     if (!isValid) {
       // Handle er ugyldigt (mappe slettet, permission nægtet, etc.)
-      logWarning('Directory handle er ikke længere gyldigt - falder tilbage til skrivebord');
+      // Forventelig fallback-situation: logges som info (ikke warning).
+      logInfo('Directory handle er ikke længere gyldigt - falder tilbage til skrivebord');
       return desktopFallback;
     }
 

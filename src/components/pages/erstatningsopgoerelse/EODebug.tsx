@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Tooltip, Typography } from '@mui/material';
 import { Check, ErrorOutline, WarningAmber } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
 
@@ -2468,7 +2468,15 @@ const EODebug = () => {
                     </Typography>
                     <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
                       <Typography className="row--text">{row.displayValue}</Typography>
-                      {getStatusIcon(row.status)}
+                      {(row.id as string) === 'taf.beregningsgrundlag.ferie.empty' && row.status === 'warning' && row.message ? (
+                        <Tooltip title={row.message} arrow placement="top">
+                          <Box component="span" sx={{ display: 'inline-flex' }}>
+                            {getStatusIcon(row.status)}
+                          </Box>
+                        </Tooltip>
+                      ) : (
+                        getStatusIcon(row.status)
+                      )}
                     </Box>
                   </Box>
                 );

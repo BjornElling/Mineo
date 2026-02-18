@@ -1993,6 +1993,28 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     };
   })();
 
+  const beregningsperiodeRangeForIncomeWarning = isBeregningsperiode
+    ? buildBeregningsperiodeRange(values)
+    : undefined;
+  const beregningsperiodeIncomeForWarning = beregningsperiodeRangeForIncomeWarning
+    ? buildIncomeForRanges(values, [beregningsperiodeRangeForIncomeWarning])
+    : null;
+  const employersWithIncomeInBeregningsperiode = beregningsperiodeIncomeForWarning?.employers ?? [];
+  const hasEmployerIncomeWithoutFuldLoenUnderFerie = employersWithIncomeInBeregningsperiode.some((employer) => {
+    const ansaettelsesforhold = (values.loenindkomstAnsaettelsesforhold ?? []).find((af) => af.id === employer.id);
+    return ansaettelsesforhold?.fuldLoenUnderFerie === 'Nej';
+  });
+  const hasSixPlusMaanederBeregningsperiode = (() => {
+    if (!isBeregningsperiode) return false;
+    if (!isISODateString(periodeFra) || !isISODateString(periodeTil) || periodeFra > periodeTil) return false;
+    const periodeTilDate = parseISODate(periodeTil);
+    if (!periodeTilDate) return false;
+    const inclusivePeriodeEnd = dateToISO(addDays(periodeTilDate, 1));
+    if (!inclusivePeriodeEnd) return false;
+    return calculateElapsedWholeMonthsDebug(periodeFra, inclusivePeriodeEnd) >= 6;
+  })();
+  const hasNoUspecificeredeFerieFridageValue = values.uspecificeredeFerieFridage === undefined;
+
   if (indkomstIBeregningsperiodenDisplay) {
     rows.push({
       id: 'taf.beregningsgrundlag.indkomst',
@@ -2013,13 +2035,23 @@ export const buildEODebugTafBeregningsgrundlagRows = (
   const fravaerOverlappingIds = detectOverlappingPeriods(fravaerPerioder);
   const hasValidBeregningsperiodeBounds =
     isBeregningsperiode && periodeFra !== undefined && periodeTil !== undefined && periodeFra <= periodeTil;
+  const shouldShowLongBeregningsperiodeNoFerieWarning =
+    shouldIncludeFravaer &&
+    !harFravaer &&
+    hasNoUspecificeredeFerieFridageValue &&
+    hasEmployerIncomeWithoutFuldLoenUnderFerie &&
+    hasSixPlusMaanederBeregningsperiode;
 
   if (!shouldIncludeFravaer || !harFravaer) {
     rows.push({
       id: 'taf.beregningsgrundlag.ferie.empty',
       label: 'Ferieperiode',
-      displayValue: '-',
-      status: 'ok',
+      displayValue: shouldShowLongBeregningsperiodeNoFerieWarning ? '> 6 måneders beregningsperiode uden ferie' : '-',
+      status: shouldShowLongBeregningsperiodeNoFerieWarning ? 'warning' : 'ok',
+      message: shouldShowLongBeregningsperiodeNoFerieWarning
+        ? 'Ingen ferie i beregningsperiode på > 6 måneder forekommer tvivlsomt'
+        : undefined,
+      summaryDisplay: shouldShowLongBeregningsperiodeNoFerieWarning ? 'messageOnly' : undefined,
     });
   } else {
     fravaerPerioder.forEach((periode) => {
