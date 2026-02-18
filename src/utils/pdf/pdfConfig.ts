@@ -22,6 +22,9 @@ export const MARGINS = {
   bottom: 20,
 };
 
+export const A4_PAGE_WIDTH_MM = 210;
+export const PDF_CONTENT_WIDTH_MM = A4_PAGE_WIDTH_MM - MARGINS.left - MARGINS.right;
+
 // Fonte (PDF'er bruger Helvetica som er standard i jsPDF)
 export const FONTS = {
   regular: 'helvetica',

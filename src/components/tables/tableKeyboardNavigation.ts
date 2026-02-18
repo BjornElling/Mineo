@@ -4,13 +4,17 @@ import { getWrappedNextColumn } from './tableNavigationCommon';
 
 type CellLocator = Readonly<{ rowIndex: number; colIndex: number; subIndex: number; rowId?: string }>;
 
-type TabAnchor = Readonly<{ colIndex: number; subIndex: number }>;
+// Normativ UX-regel:
+// Tab-sekvensen har et "startcelle-anker".
+// Enter/Shift+Enter skal navigere vertikalt ud fra denne startcelle,
+// ikke fra den celle der aktuelt har fokus ved Enter-tryk.
+type TabAnchor = CellLocator;
 
 const tabAnchorByTable = new WeakMap<HTMLTableElement, TabAnchor>();
 const pendingRecoveryByTable = new WeakMap<HTMLTableElement, Readonly<{ desired: CellLocator; intendedTarget: HTMLElement | null }>>();
 
 // Navigation semantics (owned by this module):
-// - Enter / Shift+Enter: move vertically while keeping the "anchor column" if one exists; otherwise use current column.
+// - Enter / Shift+Enter: move vertically while keeping the "anchor cell" if one exists; otherwise use current cell.
 // - ArrowUp/ArrowDown: move vertically from the current cell (clears the anchor).
 // - ArrowLeft/ArrowRight: move horizontally within the current row and wrap at row edges.
 // Note: We `stopPropagation()` for owned keys so the Container-level Tab trap does not also run.
@@ -235,6 +239,23 @@ const moveVertical = (grid: TableGrid, base: CellLocator, deltaRows: number) => 
   focusElement(target);
 };
 
+const resolveAnchorLocator = (grid: TableGrid, anchor: TabAnchor, fallback: CellLocator): CellLocator => {
+  const rowCount = grid.cellFocusables.length;
+  if (rowCount === 0) return fallback;
+
+  // Row-id prioriteres, så ankeret bevares stabilt selv ved rækkeflyt/normalisering.
+  if (anchor.rowId) {
+    const rowIndex = grid.rowIds.indexOf(anchor.rowId);
+    if (rowIndex >= 0) {
+      return { ...anchor, rowIndex };
+    }
+  }
+
+  const clampedRowIndex = Math.min(Math.max(0, anchor.rowIndex), rowCount - 1);
+  const rowId = grid.rowIds[clampedRowIndex] ?? undefined;
+  return { ...anchor, rowIndex: clampedRowIndex, ...(rowId ? { rowId } : {}) };
+};
+
 const pickVerticalTarget = (
   grid: TableGrid,
   base: CellLocator,
@@ -407,13 +428,17 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     (target.closest(focusableSelector) as HTMLElement | null) ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
 
   if (key === 'Tab') {
-    tabAnchorByTable.delete(table);
+    // Bevar første celle i en sammenhængende Tab-sekvens som anker ("first Tab wins").
+    // Vi opdaterer ikke ankeret på efterfølgende Tab-tryk i samme sekvens.
+    if (!tabAnchorByTable.has(table)) {
+      tabAnchorByTable.set(table, activePos);
+    }
     return;
   }
 
   if (key === 'Enter') {
     const anchor = tabAnchorByTable.get(table);
-    const base: CellLocator = anchor ? { ...activePos, colIndex: anchor.colIndex, subIndex: anchor.subIndex } : activePos;
+    const base: CellLocator = anchor ? resolveAnchorLocator(grid, anchor, activePos) : activePos;
     e.preventDefault();
     e.stopPropagation();
     const deltaRows = e.shiftKey ? -1 : 1;
@@ -442,6 +467,12 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     }
     moveVertical(grid, activePos, deltaRows);
     scheduleFocusRecovery(table, targetLocator, target);
+    return;
+  }
+
+  // ArrowLeft/ArrowRight in editor mode belongs to caret movement and must not clear the Tab-anchor.
+  if (key === 'ArrowLeft' || key === 'ArrowRight') {
+    if (isEditing) return;
   }
 
   // ArrowLeft/ArrowRight navigation (kun når !isEditing)
@@ -449,6 +480,7 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
   if ((key === 'ArrowLeft' || key === 'ArrowRight') && !isEditing) {
     e.preventDefault();
     e.stopPropagation();
+    tabAnchorByTable.delete(table);
 
     if (!activeFocusable) return;
     const direction: -1 | 1 = key === 'ArrowRight' ? 1 : -1;
@@ -463,6 +495,8 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     scheduleFocusRecovery(table, next.locator, next.target);
     return;
   }
+
+  tabAnchorByTable.delete(table);
 };
 
 export const handleTablePointerDownCapture = (e: React.PointerEvent<HTMLTableElement>) => {

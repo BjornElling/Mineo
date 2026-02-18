@@ -2,22 +2,24 @@
 
 **MINEO** er en browserbaseret erstatningsberegner, der er udviklet til at hjælpe advokater og sagsbehandlere med at lave beregninger og opgørelser i arbejdsskadesager.
 
-Programmet er gratis og kan frit benyttes i kommercielle sammenhænge. Alle beregninger sker client-side, dvs. på brugerens egen computer, og der udveksles ingen data med serveren. Indtastede oplysninger kan gemmes lokalt i krypterede .eo filer.
+Programmet er gratis og kan frit benyttes i kommercielle sammenhænge. Alle beregninger sker client-side, dvs. på brugerens egen computer, og der sendes ikke sagsdata til en backend. Indtastede oplysninger kan gemmes lokalt i krypterede .eo filer.
 
 ## 🚀 Teknologier
 
-- **React 18** - Moderne UI framework
-- **TypeScript 5.7** - Type-safe development
-- **Material-UI v7** - Professionelt design system
-- **React Router v7** - Client-side routing
-- **jsPDF** - Client-side PDF generering med autotable plugin
-- **Vite 7.2.2** - Lynhurtig build tool med SWC compiler
-- **Montserrat font** - Google Fonts integration
+- **React 19.2.4**
+- **TypeScript 5.9.3**
+- **Material UI 7.3.7**
+- **React Router DOM 7.13.0**
+- **Vite 7.3.1**
+- **Zod 4.3.6**
+- **Zustand 5.0.10**
+- **jsPDF 4.1.0**
+- **Montserrat font**
 
 ## 📦 Installation
 
 ### Forudsætninger
-- Node.js 18+ (med npm)
+- Node.js - Minimum: 20.19+ eller 22.12+
 - Git
 
 ### Kom i gang
@@ -46,12 +48,14 @@ Programmet er gratis og kan frit benyttes i kommercielle sammenhænge. Alle bere
 npm run dev          # Start development server (Vite)
 npm run build        # Build til production
 npm run preview      # Preview production build
+npm run typecheck    # TypeScript typecheck
+npm run test         # Kør tests (Vitest)
 ```
 
 
 ## 📝 Løbende opdatering
 
-### Halvårligt (1/1 + 1/7)
+### Halvårligt
 
 **Rentesatser**
    - Åbn [src/data/interestRates.ts](src/data/interestRates.ts)
@@ -66,7 +70,7 @@ npm run preview      # Preview production build
      npm run import:loen
      ```
 
-### Årligt (1/1 + 1/5)
+### Årligt
 
 **EAL- og ASL-satser**
    - Åbn [src/data/regulationRates.ts](src/data/regulationRates.ts)
@@ -102,6 +106,6 @@ MIT License - Se [LICENSE](LICENSE) filen for detaljer.
 
 ---
 
-**Version**: 2026.02.146
+**Version**: 2026.02.147
 
 **Status**: Under udvikling

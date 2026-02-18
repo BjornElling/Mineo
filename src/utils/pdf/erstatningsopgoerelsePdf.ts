@@ -6,7 +6,7 @@
 
 import jsPDF from 'jspdf';
 import autoTable, { type CellHookData, type RowInput } from 'jspdf-autotable';
-import { COLORS, FONT_SIZES, MARGINS, TABLE_STYLES } from './pdfConfig';
+import { COLORS, FONT_SIZES, MARGINS, PDF_CONTENT_WIDTH_MM, TABLE_STYLES } from './pdfConfig';
 import { type BrevhovedData } from './pdfHelpers';
 import { createPdfWriter, type PdfWriter, ensureNonBreakingKr } from './pdfWriter';
 import type { ISODateString } from '../../types/branded';
@@ -14,7 +14,7 @@ import { isoToDanish, subtractOneDay } from '../../types/branded';
 import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode, OffentligeYdelserRow, StamdataValues } from '../../schemas/formSchemas';
 import { buildErstatningsopgoerelsePdfModel, type MoneyOre, type Calculable, type LoenudviklingSegment } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../domain/erstatningsopgoerelse/angivetLoenHelpers';
-import { formatAsAmount, formatCurrency, formatPercent, parseAmount } from '../formatUtils';
+import { formatAsAmount, formatCurrency, parseAmount } from '../formatUtils';
 import { parseISODate } from '../../types/branded';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { TODAY } from '../../config/dateRanges';
@@ -49,9 +49,20 @@ import {
   parseDanishToIso as parseDanishToIsoShared,
   formatDateShort as formatDateShortShared,
   formatDateLong as formatDateLongShared,
-  formatPercentFixed2 as formatPercentFixed2Shared,
   roundToTwoDecimals,
 } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
+import {
+  buildFormulaText,
+  formatOverenskomstAmount,
+  formatOverenskomstPercent,
+  formatPercentCellFromRaw,
+  mergeFeriepengeDisplay,
+  parsePercentInput,
+  resolveFeriePctForFormula,
+  wrapIndexFormulaAfterSlashWhenLong,
+  type FormulaComponents,
+  type FormulaVisibility,
+} from '../../domain/erstatningsopgoerelse/reguleringFormulaUtils';
 import {
   formatCountWithUnit,
   formatCurrencyFromOre,
@@ -110,7 +121,7 @@ const isLoengruppe = (value: number): value is Loengruppe =>
 const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
 
 const formatPctFromInput = (value: number | undefined): string => {
-  return `${(value ?? 0).toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} %`;
+  return `${(value ?? 0).toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
 };
 
 const isZeroPct = (value: number | undefined): boolean => Math.abs(value ?? 0) < 0.000001;
@@ -163,22 +174,6 @@ type ReguleringValuesTableData = Readonly<{
   rows: ReadonlyArray<ReadonlyArray<string>>;
 }>;
 
-type FormulaComponents = Readonly<{
-  baseValue: number;
-  feriePct: number;
-  fritvalgPct: number;
-  shSoPct: number;
-  pensionPct: number;
-  storeBededagPct: number;
-}>;
-
-type FormulaVisibility = Readonly<{
-  showFritvalg: boolean;
-  showShSo: boolean;
-  showPension: boolean;
-  showStoreBededag: boolean;
-}>;
-
 // STORE_BEDEDAG_START og STORE_BEDEDAG_PCT importeret fra sharedPdfUtils
 
 type PdfAutoTableDoc = jsPDF & {
@@ -189,6 +184,7 @@ type PdfAutoTableDoc = jsPDF & {
 
 const STANDARD_PDF_TABLE_FONT_SIZE = 8;
 const STANDARD_PDF_TABLE_CELL_PADDING = 1.5;
+const EO_PDF_TABLE_WIDTH_MM = PDF_CONTENT_WIDTH_MM;
 
 const renderStandardPdfTable = (params: Readonly<{
   doc: jsPDF;
@@ -205,6 +201,7 @@ const renderStandardPdfTable = (params: Readonly<{
     head: [],
     body,
     margin: { left: MARGINS.left, right: MARGINS.right },
+    tableWidth: EO_PDF_TABLE_WIDTH_MM,
     styles: {
       font: 'helvetica',
       fontSize: STANDARD_PDF_TABLE_FONT_SIZE,
@@ -431,17 +428,6 @@ const parseDanishToISO = parseDanishToIsoShared;
 
 const resolveStatistikModelIdFromLabel = resolveStatistikModelId;
 
-const formatOverenskomstPercent = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return '-';
-  const pct = Math.round(value * 10000) / 100;
-  return formatPercent(pct);
-};
-
-const formatOverenskomstAmount = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return '-';
-  return formatCurrency(value);
-};
-
 const detectDecimalPlaces = (values: readonly number[], maxPlaces = 4): number => {
   let max = 0;
   for (const value of values) {
@@ -462,8 +448,6 @@ const percentFromDecimal = (value: number | null | undefined): number => {
   return Math.round(value * 10000) / 100;
 };
 
-const formatPercentFixed2 = formatPercentFixed2Shared;
-
 const formatIndexValue = (value: number): string =>
   value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -473,44 +457,6 @@ const formatLoenudviklingFromIndex = (indexValue: number): string => {
   if (Math.abs(delta) < 0.000001) return '';
   const absDisplay = Math.abs(delta).toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return delta > 0 ? `+ ${absDisplay} %` : `- ${absDisplay} %`;
-};
-
-const parsePercentInput = (raw: string | undefined): number => {
-  if (typeof raw !== 'string') return 0;
-  const trimmed = raw.replace('%', '').trim();
-  if (trimmed === '') return 0;
-  const cleaned = trimmed.replace(/\./g, '').replace(',', '.');
-  const num = Number.parseFloat(cleaned);
-  return Number.isFinite(num) ? num : 0;
-};
-
-const buildFormulaText = (components: FormulaComponents, visibility: FormulaVisibility): string => {
-  const baseValue = Number.isFinite(components.baseValue) ? components.baseValue : 0;
-  const feriePct = Number.isFinite(components.feriePct) ? components.feriePct : 0;
-  const fritvalgPct = Number.isFinite(components.fritvalgPct) ? components.fritvalgPct : 0;
-  const shSoPct = Number.isFinite(components.shSoPct) ? components.shSoPct : 0;
-  const pensionPct = Number.isFinite(components.pensionPct) ? components.pensionPct : 0;
-  const storeBededagPct = Number.isFinite(components.storeBededagPct) ? components.storeBededagPct : 0;
-
-  const baseStr = formatCurrency(baseValue);
-  const extraParts = [
-    ...(feriePct !== 0 ? [formatPercent(feriePct)] : []),
-    ...(visibility.showFritvalg && fritvalgPct !== 0 ? [formatPercent(fritvalgPct)] : []),
-    ...(visibility.showShSo && shSoPct !== 0 ? [formatPercent(shSoPct)] : []),
-    ...(visibility.showStoreBededag && storeBededagPct !== 0 ? [formatPercentFixed2(storeBededagPct)] : []),
-  ];
-  const hasMiddle = extraParts.length > 0;
-  const middleParts = [formatPercent(100), ...extraParts];
-  const middle = middleParts.join(' + ');
-  if (visibility.showPension) {
-    const pensionParts = [
-      formatPercent(100),
-      ...(pensionPct !== 0 ? [formatPercent(pensionPct)] : []),
-    ];
-    return `${baseStr} x (${middle}) x (${pensionParts.join(' + ')})`;
-  }
-  if (!hasMiddle) return baseStr;
-  return `${baseStr} x (${middle})`;
 };
 
 const computeFormulaValue = (components: FormulaComponents): number => {
@@ -554,9 +500,12 @@ const buildIndexFormulaDisplay = (
   if (isSameNumericValue) {
     return isPlainValue ? numeratorDisplay : `(${numeratorDisplay})`;
   }
-  return isPlainValue
-    ? `${numeratorDisplay} / ${denominatorDisplay}`
+  const formula = isPlainValue
+    ? (isStatistik
+      ? `${numeratorDisplay} / ${denominatorDisplay}`
+      : `(${numeratorDisplay} / ${denominatorDisplay})`)
     : `(${numeratorDisplay}) /\n(${denominatorDisplay})`;
+  return wrapIndexFormulaAfterSlashWhenLong(formula);
 };
 
 export const resolveValgtReguleringDisplay = (
@@ -712,7 +661,7 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
     const columns = [
       'Fra-dato',
       ...(hasGrundloen ? ['Grundløn'] : []),
-      ...(hasGrundloen && showFeriePctColumn ? ['Ferie\ngodtgørelse'] : []),
+      ...(hasGrundloen && showFeriePctColumn ? ['Feriepenge'] : []),
       ...(hasShSo ? ['SH/SO'] : []),
       ...(hasFritvalg ? ['Fritvalg'] : []),
       ...(hasAgPension ? ['AG pension'] : []),
@@ -725,7 +674,7 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
     const rows = satser.map((sats) => {
       const row: string[] = [sats.fraDato];
       if (hasGrundloen) row.push(formatOverenskomstAmount(sats.grundloen));
-      if (hasGrundloen && showFeriePctColumn) row.push(feriePctDisplay);
+      if (hasGrundloen && showFeriePctColumn) row.push(mergeFeriepengeDisplay(feriePctDisplay, undefined));
       if (hasShSo) row.push(formatOverenskomstPercent(sats.shSoSats));
       if (hasFritvalg) row.push(formatOverenskomstPercent(sats.fritvalg));
       if (hasAgPension) row.push(formatOverenskomstPercent(sats.agPension));
@@ -750,12 +699,11 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
           formatDateShort(iso),
           amountValueToDisplayString(row.grundloen, 2) || '-',
         ];
-        if (showFeriePctColumn) cells.push(feriePctDisplay);
         cells.push(
-          row.feriepenge?.trim() || '-',
-          row.shSoSats?.trim() || '-',
-          row.fritvalg?.trim() || '-',
-          row.agPension?.trim() || '-'
+          mergeFeriepengeDisplay(showFeriePctColumn ? feriePctDisplay : undefined, formatPercentCellFromRaw(row.feriepenge)),
+          formatPercentCellFromRaw(row.shSoSats),
+          formatPercentCellFromRaw(row.fritvalg),
+          formatPercentCellFromRaw(row.agPension)
         );
         return { iso, cells };
       })
@@ -766,7 +714,6 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
       columns: [
         'Dato',
         'Grundløn',
-        ...(showFeriePctColumn ? ['Feriegodtgørelse'] : []),
         'Feriepenge',
         'SH/SO',
         'Fritvalg',
@@ -1221,7 +1168,7 @@ const buildReguleringIndexRows = (params: Readonly<{
       return {
         components: {
           baseValue: parseAmount(baseRow?.grundloen),
-          feriePct: typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0,
+          feriePct: resolveFeriePctForFormula(baseRow?.feriepenge, ansaettelsesforhold.feriePct),
           fritvalgPct: parsePercentInput(baseRow?.fritvalg),
           shSoPct: parsePercentInput(baseRow?.shSoSats),
           pensionPct: parsePercentInput(baseRow?.agPension),
@@ -1335,7 +1282,7 @@ const buildReguleringIndexRows = (params: Readonly<{
       const baseRow = rows[0];
       const baseComponents: FormulaComponents = {
         baseValue: parseAmount(baseRow?.grundloen),
-        feriePct,
+        feriePct: resolveFeriePctForFormula(baseRow?.feriepenge, feriePct),
         fritvalgPct: parsePercentInput(baseRow?.fritvalg),
         shSoPct: parsePercentInput(baseRow?.shSoSats),
         pensionPct: parsePercentInput(baseRow?.agPension),
@@ -1350,7 +1297,7 @@ const buildReguleringIndexRows = (params: Readonly<{
           if (tafEndIso && startIso > tafEndIso) return null;
           const components: FormulaComponents = {
             baseValue: parseAmount(row.grundloen),
-            feriePct,
+            feriePct: resolveFeriePctForFormula(row.feriepenge, feriePct),
             fritvalgPct: parsePercentInput(row.fritvalg),
             shSoPct: parsePercentInput(row.shSoSats),
             pensionPct: parsePercentInput(row.agPension),

@@ -114,7 +114,7 @@ eller library-opgraderinger må ikke bryde disse semantikker.
   - `Backspace`/`Delete` må rydde feltets indhold, men må **ikke** åbne editor.
 - `Enter` må **aldrig** åbne editor i fokus-men-ikke-redigær:
   - På sider opfører `Enter` sig som navigations-tast (som hidtil via `Container`).
-  - I tabeller opfører `Enter` sig som vertikal navigation i henhold til tabel-navigationens kontrakt (anchor-kolonne i Tab-sekvens).
+  - I tabeller opfører `Enter` sig som vertikal navigation i henhold til tabel-navigationens kontrakt (anchor-celle fra Tab-sekvensens start).
 - Funktionstaster (fx `F2`) må ikke indføres som alternativ editor-åbning.
 - Kun semantisk “plausible” første-tegn må kunne starte redigering (fx taltegn i numeriske inputs). Ikke-plausible tegn må ignoreres i fokus-men-ikke-redigær.
 
@@ -310,4 +310,3 @@ over:
 - versionsstyrede
 
 **Kode må aldrig stiltiende afvige fra kontrakten.**
-

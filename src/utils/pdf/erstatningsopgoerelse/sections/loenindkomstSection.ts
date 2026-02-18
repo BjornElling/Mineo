@@ -3,6 +3,7 @@ import { formatAsAmount } from '../../../formatUtils';
 import { amountValueToDisplayString } from '../../../expressionAmount';
 import { calculateAarsloenRowDerived } from '../../../aarsloenTableCalculations';
 import { getAarsloenErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/indkomstRowValidation';
+import { PDF_CONTENT_WIDTH_MM } from '../../pdfConfig';
 import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import type { SelectedElements } from '../types';
@@ -153,7 +154,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
 
     const doc = writer.getDoc();
     const columnCount = headers.length;
-    const defaultCellWidth = Math.min(22, Math.max(13, 170 / columnCount));
+    const defaultCellWidth = PDF_CONTENT_WIDTH_MM / columnCount;
     const columnStyles = Object.fromEntries(
       Array.from({ length: columnCount }, (_, index) => [index, { cellWidth: defaultCellWidth }])
     );
@@ -185,7 +186,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
 
   startBilagPage('Lønindkomst');
   writer.addSpacer(lineHeight);
-  for (const [groupIndex, group] of rangeGroups.entries()) {
+  const groupsWithRows = rangeGroups.flatMap((group) => {
     const ansaettelser = (eoValues.loenindkomstAnsaettelsesforhold ?? []).filter((ansaettelsesforhold) => {
       const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
       return (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).some((row) => {
@@ -198,15 +199,20 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
         });
       });
     });
-    if (ansaettelser.length === 0) continue;
+    return ansaettelser.length > 0 ? [{ group, ansaettelser }] : [];
+  });
 
-    if (group.label) {
+  const shouldRenderPeriodSubheaders =
+    groupsWithRows.length > 1 && groupsWithRows.every(({ group }) => group.label !== null);
+
+  for (const [groupIndex, groupWithRows] of groupsWithRows.entries()) {
+    if (shouldRenderPeriodSubheaders && groupWithRows.group.label) {
       if (groupIndex > 0) writer.addSpacer(lineHeight);
-      renderSubheader(group.label, lineHeight, { addTopSpacing: groupIndex > 0 });
+      renderSubheader(groupWithRows.group.label, lineHeight, { addTopSpacing: groupIndex > 0 });
       writer.addSpacer(lineHeight);
     }
 
-    for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
+    for (const [index, ansaettelsesforhold] of groupWithRows.ansaettelser.entries()) {
       const fallbackNavn = `Ansættelsesforhold ${index + 1}`;
       const arbejdsstedNavn = ansaettelsesforhold.navnPaaArbejdssted?.trim() || fallbackNavn;
       if (index > 0) writer.addSpacer(lineHeight);
@@ -253,7 +259,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       }
       writer.addSpacer(lineHeight);
       const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
-      renderLoenindkomstTable(ansaettelsesforhold, errorRowIds, group.ranges);
+      renderLoenindkomstTable(ansaettelsesforhold, errorRowIds, groupWithRows.group.ranges);
     }
   }
 };

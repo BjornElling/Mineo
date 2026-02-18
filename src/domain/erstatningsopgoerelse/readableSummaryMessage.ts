@@ -12,7 +12,7 @@ export const toReadableSummaryMessage = (message: string): string => {
     core === 'Værdier mangler at blive udfyldt for manuel regulering'
     || core === 'Mangler udfyldelse af værdier for Manuel Regulering'
   ) {
-    return 'mangler udfyldte værdier for manuel regulering';
+    return 'Mangler udfyldte værdier for manuel regulering';
   }
 
   const notSelectedMatch = core.match(/^(.*)\ser ikke valgt$/);

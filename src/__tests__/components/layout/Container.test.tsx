@@ -1,6 +1,8 @@
+import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Container from '../../../components/layout/Container';
+import StyledIntegerField from '../../../components/inputs/StyledIntegerField';
 
 /**
  * Container keyboard navigation tests
@@ -12,6 +14,10 @@ import Container from '../../../components/layout/Container';
  * - Cirkulær navigation fungerer korrekt
  *
  * Se src/contracts/keyboard-navigation.md for fuld kontrakt.
+ *
+ * Note om test-styling:
+ * `position: fixed` bruges i flere tests som JSDOM-workaround, så inputs får layout-boxe
+ * og dermed indgår stabilt i synligheds-/fokus-selektorerne.
  */
 
 describe('Container keyboard navigation', () => {
@@ -135,6 +141,30 @@ describe('Container keyboard navigation', () => {
 
     // Indhold må IKKE være selekteret
     expect(field2.selectionStart).toBe(field2.selectionEnd);
+  });
+
+  it('Shift+Enter flytter fokus baglæns uden at selektere indhold', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <input data-testid="field1" type="text" defaultValue="Værdi 1"  style={{ position: 'fixed' }} />
+        <input data-testid="field2" type="text" defaultValue="Værdi 2"  style={{ position: 'fixed' }} />
+        <input data-testid="field3" type="text" defaultValue="Værdi 3"  style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const field1 = screen.getByTestId('field1') as HTMLInputElement;
+    const field2 = screen.getByTestId('field2') as HTMLInputElement;
+
+    field2.focus();
+    expect(document.activeElement).toBe(field2);
+
+    await user.keyboard('{Shift>}{Enter}{/Shift}');
+    await waitForSelectionClear();
+
+    expect(document.activeElement).toBe(field1);
+    expect(field1.selectionStart).toBe(field1.selectionEnd);
   });
 
   it('Tab fra sidste felt går til første felt (cirkulær navigation)', async () => {
@@ -304,5 +334,81 @@ describe('Container keyboard navigation', () => {
 
     // Tomt felt skal også kun få fokus (ingen selection)
     expect(field2.selectionStart).toBe(field2.selectionEnd);
+  });
+
+  it('Enter i open StyledIntegerField committer og flytter fokus som Tab', async () => {
+    const user = userEvent.setup();
+
+    const Harness = () => {
+      const [value1, setValue1] = React.useState<number | undefined>(1);
+      const [value2, setValue2] = React.useState<number | undefined>(5);
+      return (
+        <Container>
+          <StyledIntegerField
+            value={value1}
+            onCommit={(e) => setValue1(e.target.value)}
+            sx={{ '& .MuiInputBase-input': { position: 'fixed' } }}
+          />
+          <StyledIntegerField
+            value={value2}
+            onCommit={(e) => setValue2(e.target.value)}
+            sx={{ '& .MuiInputBase-input': { position: 'fixed' } }}
+          />
+        </Container>
+      );
+    };
+
+    render(<Harness />);
+
+    const first = screen.getByDisplayValue('1') as HTMLInputElement;
+    const second = screen.getByDisplayValue('5') as HTMLInputElement;
+
+    await user.click(first);
+    await user.click(first);
+    await user.clear(first);
+    await user.type(first, '2');
+    await user.keyboard('{Enter}');
+    await waitForSelectionClear();
+
+    expect(first).toHaveValue('2');
+    expect(document.activeElement).toBe(second);
+  });
+
+  it('Shift+Enter i open StyledIntegerField committer og flytter fokus som Shift+Tab', async () => {
+    const user = userEvent.setup();
+
+    const Harness = () => {
+      const [value1, setValue1] = React.useState<number | undefined>(1);
+      const [value2, setValue2] = React.useState<number | undefined>(5);
+      return (
+        <Container>
+          <StyledIntegerField
+            value={value1}
+            onCommit={(e) => setValue1(e.target.value)}
+            sx={{ '& .MuiInputBase-input': { position: 'fixed' } }}
+          />
+          <StyledIntegerField
+            value={value2}
+            onCommit={(e) => setValue2(e.target.value)}
+            sx={{ '& .MuiInputBase-input': { position: 'fixed' } }}
+          />
+        </Container>
+      );
+    };
+
+    render(<Harness />);
+
+    const first = screen.getByDisplayValue('1') as HTMLInputElement;
+    const second = screen.getByDisplayValue('5') as HTMLInputElement;
+
+    await user.click(second);
+    await user.click(second);
+    await user.clear(second);
+    await user.type(second, '7');
+    await user.keyboard('{Shift>}{Enter}{/Shift}');
+    await waitForSelectionClear();
+
+    expect(second).toHaveValue('7');
+    expect(document.activeElement).toBe(first);
   });
 });

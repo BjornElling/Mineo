@@ -312,17 +312,17 @@ const TableIntegerInput = React.memo(
       (e: React.KeyboardEvent<HTMLInputElement>) => {
         // Filtrér kun under edit-mode (arvet fra StyledIntegerField)
         if (!isEditing) return;
-        filterIntegerKeyDown(e, { maxDigits, maxValue });
+        filterIntegerKeyDown(e, { maxDigits });
       },
-      [isEditing, maxDigits, maxValue]
+      [isEditing, maxDigits]
     );
 
     const handlePaste = React.useCallback(
       (e: React.ClipboardEvent<HTMLInputElement>) => {
         if (!isEditing) return;
-        filterIntegerPaste(e, { maxDigits, maxValue });
+        filterIntegerPaste(e, { maxDigits });
       },
-      [isEditing, maxDigits, maxValue]
+      [isEditing, maxDigits]
     );
 
     const a11yErrorId = React.useId();

@@ -25,12 +25,12 @@ export const GRID_UX_SPEC = {
 
     /**
      * Tab-anchor rule (universal):
-     * After a Tab-sequence, Enter uses the column where the sequence started (anchor column),
-     * not the column where focus currently is.
+     * After a Tab-sequence, Enter/Shift+Enter uses the cell where the sequence started (anchor cell),
+     * not the cell where focus currently is.
      *
-     * NOTE: The anchor concerns the column (and possible sub-control index), not the row.
+     * NOTE: The anchor concerns both row and column (and possible sub-control index).
      */
-    tabAnchor: 'column-only' as const,
+    tabAnchor: 'cell' as const,
 
     /**
      * Arrow keys:

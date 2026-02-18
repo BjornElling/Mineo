@@ -1,6 +1,7 @@
 import type { RowInput } from 'jspdf-autotable';
 import { amountValueToDisplayString, amountValueToNumber } from '../../../expressionAmount';
 import { formatAsAmount } from '../../../formatUtils';
+import { PDF_CONTENT_WIDTH_MM } from '../../pdfConfig';
 import { ydelsestyper } from '../../../../data/ydelsestyper';
 import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/indkomstRowValidation';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
@@ -104,13 +105,10 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
     }
 
     const doc = writer.getDoc();
-    const columnStyles = {
-      0: { cellWidth: 35 },
-      1: { cellWidth: 35 },
-      2: { cellWidth: 35 },
-      3: { cellWidth: 35 },
-      4: { cellWidth: 35 },
-    };
+    const equalColumnWidth = PDF_CONTENT_WIDTH_MM / OFFENTLIGE_YDELSER_HEADERS.length;
+    const columnStyles = Object.fromEntries(
+      Array.from({ length: OFFENTLIGE_YDELSER_HEADERS.length }, (_, index) => [index, { cellWidth: equalColumnWidth }])
+    );
 
     for (const [index, label] of groupOrder.entries()) {
       if (index > 0) writer.addSpacer(lineHeight);

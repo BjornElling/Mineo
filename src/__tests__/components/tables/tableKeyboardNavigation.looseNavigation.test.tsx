@@ -1,9 +1,21 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import StandardLooseTable from '../../../components/tables/StandardLooseTable';
 import TableIntegerInput from '../../../components/inputs/table/TableIntegerInput';
+
+const keyDownInAct = async (element: HTMLElement, key: string, options?: Readonly<{ shiftKey?: boolean }>) => {
+  await act(async () => {
+    fireEvent.keyDown(element, { key, ...options });
+  });
+};
+
+const focusInAct = async (element: HTMLElement) => {
+  await act(async () => {
+    element.focus();
+  });
+};
 
 describe('tableKeyboardNavigation loose table', () => {
   it('wraps ArrowLeft/ArrowRight within the same row in loose table', async () => {
@@ -126,6 +138,97 @@ describe('tableKeyboardNavigation loose table', () => {
 
     expect(onBottomBlur).toHaveBeenCalledWith('77');
     expect(document.activeElement).toBe(topInput);
+  });
+
+  it('Tab-sekvens forankrer startcelle for Enter/Shift+Enter (også på tværs af rækker)', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <StandardLooseTable>
+        <tbody>
+          <tr data-mineo-row-id="r1">
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r1', colIndex: 0 }} value="1" />
+            </td>
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r1', colIndex: 1 }} value="2" />
+            </td>
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r1', colIndex: 2 }} value="3" />
+            </td>
+          </tr>
+          <tr data-mineo-row-id="r2">
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r2', colIndex: 0 }} value="4" />
+            </td>
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r2', colIndex: 1 }} value="5" />
+            </td>
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r2', colIndex: 2 }} value="6" />
+            </td>
+          </tr>
+        </tbody>
+      </StandardLooseTable>
+    );
+
+    const [a1, b1, c1, a2, , c2] = screen.getAllByRole('textbox');
+
+    await user.click(a1);
+    await user.keyboard('{Tab}');
+    await focusInAct(b1);
+    await user.keyboard('{Tab}');
+    await focusInAct(c1);
+    expect(document.activeElement).toBe(c1);
+    await user.keyboard('{Enter}');
+    expect(document.activeElement).toBe(a2);
+
+    await user.click(c2);
+    // Intentional: use keydown-only Tab to set table anchor without relying on JSDOM focus traversal.
+    await keyDownInAct(c2, 'Tab');
+    await focusInAct(a1);
+    await user.keyboard('{Shift>}{Enter}{/Shift}');
+    expect(document.activeElement).toBe(c1);
+  });
+
+  it('bevarer Tab-anker ved ArrowLeft/ArrowRight i edit mode', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <StandardLooseTable>
+        <tbody>
+          <tr data-mineo-row-id="r1">
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r1', colIndex: 0 }} value="1" />
+            </td>
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r1', colIndex: 1 }} value="2" />
+            </td>
+          </tr>
+          <tr data-mineo-row-id="r2">
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r2', colIndex: 0 }} value="3" />
+            </td>
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r2', colIndex: 1 }} value="4" />
+            </td>
+          </tr>
+        </tbody>
+      </StandardLooseTable>
+    );
+
+    const [a1, b1, a2] = screen.getAllByRole('textbox');
+
+    await user.click(a1);
+    await keyDownInAct(a1, 'Tab');
+    await focusInAct(b1);
+
+    // Open editor via keyboard to avoid pointer-down, which intentionally clears the Tab-anchor.
+    await keyDownInAct(b1, '5');
+    await user.keyboard('{ArrowRight}');
+    await user.keyboard('{Enter}');
+
+    expect(document.activeElement).toBe(a2);
   });
 
   it('single click åbner ikke editor, når cellen kun er husket men ikke fysisk fokuseret', async () => {

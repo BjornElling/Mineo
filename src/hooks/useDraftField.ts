@@ -271,6 +271,11 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
     commitFrom('imperative');
   }, [commitFrom]);
 
+  const shouldBubbleEnterForNavigation = React.useCallback((target: EventTarget | null): boolean => {
+    if (!(target instanceof HTMLElement)) return false;
+    return target.closest('[data-mineo-scroll-container="true"], table') !== null;
+  }, []);
+
   const onFocus = React.useCallback(() => {
     setIsFocused(true);
     focusSnapshotRef.current = { draft, touched, error };
@@ -300,11 +305,16 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
 
     if (e.key === 'Enter' && commitOnEnter) {
       e.preventDefault();
-      e.stopPropagation();
+      // IMPORTANT:
+      // Enter must bubble for Container/table-owned traversal.
+      // Outside those contexts (e.g. dialogs/overlays), keep legacy local handling.
+      if (!shouldBubbleEnterForNavigation(e.target)) {
+        e.stopPropagation();
+      }
       suppressNextBlurCommitRef.current = true;
       commitFrom('enter');
     }
-  }, [cancel, commitFrom, commitOnEnter]);
+  }, [cancel, commitFrom, commitOnEnter, shouldBubbleEnterForNavigation]);
 
   return {
     draft,

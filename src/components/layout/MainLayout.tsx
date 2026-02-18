@@ -81,6 +81,20 @@ const waitForAnimationFrame = (): Promise<void> =>
     requestAnimationFrame(() => resolve());
   });
 
+const focusElementWithoutScroll = (element: HTMLElement): void => {
+  try {
+    element.focus({ preventScroll: true });
+  } catch {
+    element.focus();
+  }
+};
+
+const restoreFocusIfPossible = (element: HTMLElement | null): void => {
+  if (!element || !element.isConnected) return;
+  if (element.matches(':disabled')) return;
+  focusElementWithoutScroll(element);
+};
+
 const waitForCommitFlush = async (): Promise<void> => {
   await Promise.resolve();
   // Wait two frames to allow blur-driven commit state and post-render effects to settle.
@@ -130,11 +144,7 @@ const commitPendingInputBeforeSave = async (): Promise<SaveCommitFlushResult> =>
   if (failedGridCommitCount > 0) {
     const failedElement = gridCommitResult.firstFailedElement;
     if (failedElement && failedElement.isConnected) {
-      try {
-        failedElement.focus({ preventScroll: true });
-      } catch {
-        failedElement.focus();
-      }
+      focusElementWithoutScroll(failedElement);
     }
     await waitForCommitFlush();
     return {
@@ -352,10 +362,15 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
 
   // Gem-funktionalitet
   const handleGem = React.useCallback(async () => {
+    const focusTargetBeforeSave = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
     try {
       const commitFlush = await commitPendingInputBeforeSave();
       const hasInputErrors = hasBlockingInputErrors();
       if (!commitFlush.ok || hasInputErrors) {
+        if (commitFlush.ok) {
+          restoreFocusIfPossible(focusTargetBeforeSave);
+        }
         isUserFeedbackRef.current = true;
         setOverlay({
           message: 'Kan ikke gemme: Der er ugyldige felter. Ret felter med rød markering, og prøv igen.',
@@ -392,10 +407,12 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
       const result: SaveFileResult = await saveToFile(sanitizedSnapshot, resolvedDirectory);
 
       if (result.cancelled) {
+        restoreFocusIfPossible(focusTargetBeforeSave);
         return;
       }
 
       if (result.success) {
+        restoreFocusIfPossible(focusTargetBeforeSave);
         // Saved baseline tracks the exact committed snapshot used for this save operation.
         setSavedRevisionBaseline(snapshotRevision);
         isUserFeedbackRef.current = true;
@@ -405,6 +422,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
         });
       }
     } catch (error) {
+      restoreFocusIfPossible(focusTargetBeforeSave);
       console.error('Gem fejlede:', error);
       isUserFeedbackRef.current = true;
       setOverlay({
@@ -416,6 +434,8 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
 
   // Hent-funktionalitet
   const handleHent = React.useCallback(async () => {
+    const focusTargetBeforeLoad = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
     try {
       setPendingLoadResult(null);
       setPendingOverwriteApply(null);
@@ -426,6 +446,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
       const result: LoadFileResult = await loadFromFile(resolvedDirectory, { settings });
 
       if (result.cancelled) {
+        restoreFocusIfPossible(focusTargetBeforeLoad);
         return;
       }
 
@@ -438,6 +459,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
         await requestApplyLoadedSnapshot(result, { message: 'Hentet', type: 'success' }, false);
       }
     } catch (error) {
+      restoreFocusIfPossible(focusTargetBeforeLoad);
       const resolved = resolveLoadError(error);
       if (!resolved.expected) {
         console.error('Hent fejlede:', error);
@@ -601,11 +623,13 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
 
   // Slet alt-funktionalitet
   const handleSletAlt = React.useCallback(async () => {
+    const focusTargetBeforeDeleteAll = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const confirmed = window.confirm(
       'ADVARSEL: Dette vil slette alle indtastede oplysninger!\n\nEr du sikker på at du vil fortsætte?'
     );
 
     if (!confirmed) {
+      restoreFocusIfPossible(focusTargetBeforeDeleteAll);
       return;
     }
 
@@ -626,6 +650,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
       allowExitWithoutUnsavedWarningRef.current = true;
       window.location.href = '/stamdata';
     } catch (error) {
+      restoreFocusIfPossible(focusTargetBeforeDeleteAll);
       allowExitWithoutUnsavedWarningRef.current = false;
       console.error('Slet alt fejlede:', error);
       isUserFeedbackRef.current = true;

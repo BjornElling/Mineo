@@ -123,6 +123,11 @@ const SideMenu: React.FC<SideMenuProps> = React.memo(({ activePage, onPageChange
     operation.action();
   }, []);
 
+  const handleSaveMouseDown = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    // Keep current field/cell focus when file operations are triggered by pointer click.
+    event.preventDefault();
+  }, []);
+
   return (
     <Box
       sx={{
@@ -230,6 +235,7 @@ const SideMenu: React.FC<SideMenuProps> = React.memo(({ activePage, onPageChange
             <Button
               fullWidth
               onClick={() => handleFileOperation(item)}
+              onMouseDown={handleSaveMouseDown}
               startIcon={item.icon}
               tabIndex={-1}
               className="menu-item"

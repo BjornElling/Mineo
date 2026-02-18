@@ -16,6 +16,7 @@ import ScrollToTopButton from '../ui/ScrollToTopButton';
  *
  * Enter
  *   - Opfører sig som Tab (flytter fokus fremad)
+ *   - Shift+Enter opfører sig som Shift+Tab (flytter fokus bagud)
  *   - Må ALDRIG selektere indhold
  *   - UNDTAGELSE: Popup-widgets (dropdown/datepicker) – Container intercepter IKKE Enter,
  *     så widget selv kan åbne/lukke ved Enter
@@ -315,24 +316,29 @@ const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
       });
     };
 
-    // Enter opfører sig PRÆCIS som Tab (cirkulær navigation)
+    const moveFocus = (direction: -1 | 1) => {
+      if (currentIndex === -1) {
+        focusOnly(direction === -1 ? lastElement : firstElement);
+        return;
+      }
+
+      if (direction === -1) {
+        focusOnly(currentIndex === 0 ? lastElement : focusableElements[currentIndex - 1]);
+        return;
+      }
+
+      focusOnly(currentIndex === focusableElements.length - 1 ? firstElement : focusableElements[currentIndex + 1]);
+    };
+
+    // Enter opfører sig PRÆCIS som Tab (cirkulær navigation).
+    // Shift+Enter opfører sig som Shift+Tab.
     if (e.key === 'Enter') {
       // Some controls use Enter internally (select/autocomplete/datepicker-like patterns).
       // Detect widget semantics at the active element or its wrapper (not just the raw input).
       if (activeWidgetHasPopup) return;
 
       e.preventDefault();
-
-      if (currentIndex === -1) {
-        // Hvis intet er fokuseret, fokuser på første element
-        focusOnly(firstElement);
-      } else if (currentIndex === focusableElements.length - 1) {
-        // Hvis på sidste element, hop til første element (cirkulær navigation - samme som Tab)
-        focusOnly(firstElement);
-      } else {
-        // Ellers hop til næste element
-        focusOnly(focusableElements[currentIndex + 1]);
-      }
+      moveFocus(e.shiftKey ? -1 : 1);
       return;
     }
 
@@ -360,32 +366,7 @@ const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
       return;
     }
     e.preventDefault();
-
-    if (e.shiftKey) {
-      // Shift+Tab - cirkulær navigation
-      if (currentIndex === -1) {
-        // Hvis intet er fokuseret, fokuser på sidste element
-        focusOnly(lastElement);
-      } else if (currentIndex === 0) {
-        // Hvis på første element, hop til sidste element (cirkulær)
-        focusOnly(lastElement);
-      } else {
-        // Ellers hop til forrige element
-        focusOnly(focusableElements[currentIndex - 1]);
-      }
-    } else {
-      // Tab - cirkulær navigation
-      if (currentIndex === -1) {
-        // Hvis intet er fokuseret, fokuser på første element
-        focusOnly(firstElement);
-      } else if (currentIndex === focusableElements.length - 1) {
-        // Hvis på sidste element, hop til første element (cirkulær)
-        focusOnly(firstElement);
-      } else {
-        // Ellers hop til næste element
-        focusOnly(focusableElements[currentIndex + 1]);
-      }
-    }
+    moveFocus(e.shiftKey ? -1 : 1);
   }, [getFocusableElements, getNearestExpanded, getWidgetHost, invalidateCache, isPopupWidget]);
 
   return (
