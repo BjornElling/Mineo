@@ -1,327 +1,190 @@
 # AGENTS.md — Mineo (Agentic Development)
 
 ## Role
-You are the sole implementing senior engineer for Mineo — a professional compensation calculation tool used by lawyers and case workers to compute very large amounts.
+You are the sole implementing senior engineer for Mineo, a trust-critical compensation calculation tool.
 
-This is a trust-critical system. Incorrect calculations, data loss, or unpredictable behavior are unacceptable.
+Incorrect calculations, data loss, or unpredictable behavior are unacceptable.
 
-You are responsible for designing, implementing, and modifying the codebase end-to-end.
+Priority order:
+1. correctness
+2. robustness
+3. clear and consistent architecture
+4. explicit edge-case handling
+5. long-term maintainability and auditability
 
-Your priorities, in order:
-- correctness
-- robustness
-- clear and consistent architecture
-- explicit edge-case handling
-- long-term maintainability and auditability
-
-## Scope of responsibility
+## Scope
 - I provide requirements, intent, and domain rules.
-- You MUST NOT judge whether legal, economic, or factual calculation principles are correct.
-- You MUST implement the provided rules exactly as specified, without bugs, unintended side effects, or missing edge cases.
-- If requirements contain ambiguity, inconsistency, or internal tension, you MUST stop and surface this explicitly before making any code changes.
+- Do not judge legal/economic/factual domain assumptions; implement them exactly as specified.
+- If requirements are ambiguous, inconsistent, or incomplete, stop and surface it before coding.
 
-## Project constraints
-- Tech stack: TypeScript (strict), React, Vite, developed in VS Code.
-- The application MUST run 100% client-side. This is absolute.
-- You MUST NOT suggest or implement anything involving:
-  - server communication
-  - network or API calls (including "optional", "future", or "just analytics")
-  - telemetry
-  - logging to external services
-  - any data transfer outside the browser
-- Any dependency, code path, or architectural decision that could cause user data to leave the browser MUST be treated as a severe GDPR risk and MUST be explicitly called out.
+## Collaboration and decision boundary
+- You have full autonomy over code-level implementation decisions (architecture details, naming, structure, refactoring strategy, and technical tradeoffs).
+- The user must not be involved in code-specific decisions unless they explicitly ask to be.
+- Before any change that alters user-visible UI or user-observable behavior, you must ask for approval if that change was not explicitly requested.
+- Bug fixes that restore intended, documented behavior do not count as UX/behavior changes requiring approval.
+- When asking for a choice, always describe options by user experience outcomes, not internal implementation details.
+- Every question must explain practical UX differences (e.g., what the user can do, what key actions do, what changes on screen, and when feedback appears) so the decision can be made from real usage impact.
 
-## User-facing language (normative)
-- All text presented to the user MUST be Danish. No exceptions.
-- This document is written in English, but any quoted UI labels, button text, tooltips, or error messages MUST be in Danish and match the exact UI copy.
+## Non-negotiable constraints
+- Stack: TypeScript (strict), React, Vite.
+- App is 100% client-side.
+- Never introduce server communication, external APIs, telemetry, or external logging.
+- Any path that can move user data outside the browser is a severe GDPR risk and must be called out.
+
+## Pre-change discipline (mandatory)
+Before editing:
+- Inspect nearby modules and follow existing patterns (naming, structure, validation, state flow, error handling).
+- Explicitly identify the existing pattern you are aligning with before implementing changes (internal reasoning only; do not add new docs/comments unless needed).
+- Reuse existing helpers before creating new ones (especially parsing, dates, formatting, rounding, validation).
+- Keep change surface minimal; avoid opportunistic refactors.
+- Refactor only when it materially improves correctness, safety, or architectural consistency.
+- Do not introduce new abstractions, generic frameworks, or architectural layers unless explicitly required by the task.
+
+## Helper discovery and consolidation
+Before creating any new helper/utility, you must actively search relevant shared locations first:
+- `src/utils/*`
+- `src/validators/*`
+- `src/schemas/*`
+- `src/domain/*`
+- `src/calculation/*`
+- `src/settings/*` (schema/config-nære hjælpefunktioner)
+- `src/types/*` (fælles validerings-/kontrakt-typer)
+- `src/components/tables/*` (table UI-core utils)
+- nearby feature-local modules for the same concern
+- Also use repo-wide search by keywords/function names before creating new helpers.
+
+Rules:
+- Reuse or minimally extend existing helpers when possible; do not create parallel implementations.
+- If a helper partially overlaps an existing one, extend the canonical helper instead of adding a narrower variant.
+- Always evaluate whether overlapping helpers should be consolidated into one canonical implementation.
+- Place new helpers in the established canonical location for that concern, not in ad hoc local files.
+- Do not introduce feature-local inline helpers for cross-cutting concerns (dates, formatting, rounding, parsing, validation); place them in canonical shared locations.
+- If intentional divergence is required, document why consolidation is unsafe or disproportionate.
+
+## User-facing language
+- All user-facing text must be Danish.
+- Any quoted UI copy in code/comments/docs must match actual Danish UI wording.
 
 ## Console policy
-Mineo uses a strict console policy to avoid user-facing noise:
-- `console.error`: real faults only (data loss, invariants broken). May trigger user warnings.
+- `console.error`: real faults only (data loss, broken invariants).
 - `console.warn`: exceptional but non-fatal conditions.
-- `console.debug`: normal operational signals (persistence, internal flow) - DEV only.
-- `console.log`: generally avoided.
+- `console.debug`: normal operational signals, DEV only.
+- `console.log`: generally avoid.
+- Normal operation must be console-silent.
 
-Normal operation MUST be silent in the console.
-
-## CRITICAL RULE: No Live Preview (normative)
-
+## Core form rule: No Live Preview
 Definitions:
-- **Draft state**: in-progress user input while typing/editing.
-- **Committed state**: schema-validated canonical values used for calculations and save/load.
+- Draft state: in-progress input while typing/editing.
+- Committed state: schema-validated canonical input used for calculations and save/load.
 
-Commit events:
-- Form fields: commit on `onBlur` (or explicit commit action).
-- Tables: commit on `onPersist` (or equivalent explicit commit hook).
+Rules:
+- Commit happens on `onBlur` (forms) and `onPersist` (table boundary commit).
+- Never calculate, validate, or show derived feedback from `onChange` draft state.
+- Calculations must use committed state only.
+- "Has changed" baselines must use committed state.
 
-**NEVER implement live preview in MINEO:**
-- ❌ Calculated/derived values MUST update ONLY on blur/commit, NEVER during typing (onChange)
-- ❌ Validation feedback MUST appear ONLY on blur/commit
-- ❌ All user feedback MUST occur ONLY on blur/commit
-- ❌ NEVER update calculations, validations, or displays based on onChange events
+Only 3 immediate-commit exceptions:
+1. Delete/Backspace on focused non-editing cell clears and commits immediately.
+2. Dropdown menu item selection commits immediately (not search/filter typing).
+3. Toggle/radio activation commits immediately.
 
-**This is a fundamental design principle in MINEO as a trust-critical tool.**
-- ✅ Users must have full control and can cancel input with Escape
-- ✅ All changes must be explicit (blur/commit), never implicit (onChange)
-- ✅ Calculations MUST be based on committed state, NEVER on draft state
+## Normative architecture contracts
+Follow these documents as binding contracts:
+- `src/contracts/form-contract.md`
+- `src/contracts/keyboard-navigation.md`
+- `src/contracts/keyboard-navigation-test-checklist.md`
 
-**Example - CORRECT:**
-```typescript
-// Calculation based on committed state
-const calculated = calculateRow(committedRow);
-```
+Contracts must be reviewed before implementing any feature within their scope.
+If code and contract diverge, treat it as an architectural error and resolve explicitly.
+Contracts override informal existing implementations when they conflict.
 
-**Example - WRONG:**
-```typescript
-// ❌ NEVER do this - live preview based on draft state
-const calculated = calculateRow(draftRow);
-```
+## Desktop-only gate + styling exception
+- App must be blocked on mobile/tablet.
+- Top-level capability gate must be in `src/main.tsx`.
+- Unsupported devices must render `src/components/pages/UnsupportedDevicePage.tsx` as hard stop.
+- `UnsupportedDevicePage.tsx` must stay isolated from app business logic/state/persistence.
+- Mobile/tablet-specific styling may exist only in `UnsupportedDevicePage.tsx`.
+- Do not add global responsive behavior (`@media`) in shared/global styles.
 
-**Architecture enforcement:**
-- In page forms: calculations use schema-validated committed values
-- In grid tables: `cellRenderer` receives committed row, NOT draft row
-- In loose tables: calculations triggered only on `onPersist`, NOT on `onChange`
-- Baseline for "has anything changed" checks MUST be `prev.committed`, NEVER `prev.draft`
+## Validation and error UI
+- Invalid inputs: red border + tooltip on hover.
+- No inline validation text under fields.
+- Range/date tooltips must include concrete bounds.
+- If no valid dates exist (min > max), tooltip must explain this, show both bounds, and name the user-facing inputs producing them.
+- Number formatting in UI/tooltips must follow Danish conventions.
 
-**EXCEPTIONS to the "No Live Preview" rule:**
+## Type system and schema authority
+- Strict TypeScript only.
+- Zod schemas are the single source of truth for runtime validation and inferred types.
+- No `any`.
+- Type assertions only when provably safe.
+- Persisted user input must be fully covered by Zod schemas and impossible to exist outside schema coverage.
 
-There are exactly THREE situations where changes MUST be committed IMMEDIATELY (not on blur):
+## Commit vs persist terminology
+- Commit: draft -> validated committed user input used for calculations.
+- Persist: durable storage (`sessionStorage`, `.eo`).
+- Table `onPersist` names refer to commit semantics at table boundary.
 
-1. **DELETE/Backspace on focused cell (not in edit mode)**
-   - When a cell has focus BUT is NOT in edit mode, and the user presses Delete or Backspace
-   - The cell MUST be cleared and committed immediately
-   - All derived calculations MUST update immediately
-   - This applies to BOTH table cells and styled fields
+## Runtime data integrity
+During active session, committed user input must not disappear/reset/mutate implicitly due to navigation, rerenders, tab switches, or internal sync.
+State synchronization must never overwrite committed user input with derived/default values without explicit user action.
+Effects that synchronize props to state must never overwrite already committed user input.
 
-2. **Dropdown menu selection**
-   - When the user selects a menu item in a dropdown (both StyledDropdown and table dropdown)
-   - The selection MUST be committed immediately when the menu item is clicked
-   - All derived calculations MUST update immediately
-   - This does NOT apply to onChange during typing/searching, only to menu selection
-
-3. **Immediate-commit discrete controls**
-   - Toggle switches and radio groups MUST commit immediately on activation (click, Enter, or Space)
-   - There is no draft typing state for these controls
-   - All derived calculations MUST update immediately
-
-**Example - DELETE/Backspace:**
-```typescript
-// CORRECT - Clear and commit immediately on Delete/Backspace
-const handleKeyDown = (e: React.KeyboardEvent) => {
-  if (!isEditing && (e.key === 'Delete' || e.key === 'Backspace')) {
-    clearAndCommit();  // Immediate commit
-    e.preventDefault();
-  }
-};
-```
-
-**Example - Dropdown selection:**
-```typescript
-// CORRECT - Commit immediately on menu item selection
-const handleMenuItemClick = (value: string) => {
-  onChange({ target: { value } });  // Immediate commit
-  closeMenu();
-};
-
-// WRONG - onChange during typing
-const handleInputChange = (e: React.ChangeEvent) => {
-  // ❌ Do NOT commit during typing/filtering
-  setFilterText(e.target.value);
-};
-```
-
-## Desktop-only gate + styling exception (normative)
-- Mineo is desktop-only and MUST NOT be usable on mobile/tablet.
-- Capability gating MUST be enforced as a top-level execution gate in `src/main.tsx` (not in router/pages/CSS).
-- Mobile/tablet MUST show a hard-stop page: `src/components/pages/UnsupportedDevicePage.tsx`.
-- `src/components/pages/UnsupportedDevicePage.tsx` MUST NOT import or use app-internal hooks, state, persistence, or business logic (it must be static and isolated).
-- Responsive styling MUST NOT be global (no `@media` rules in `src/styles/*` or other global styles).
-- Any mobile/tablet-specific styling is an explicit exception and MAY exist only inside `src/components/pages/UnsupportedDevicePage.tsx` (e.g., inline styles) and MUST NOT be copied elsewhere.
-
-## Form architecture and state management
-- All form-related code MUST adhere to the **Form Contract** defined in `src/contracts/form-contract.md`.
-- The Form Contract is **normative** — any code that deviates from it is considered an architectural error.
-- Key principles from the Form Contract:
-  - Draft state ≠ committed state
-  - Parsing and validation occur ONLY in `onBlur` handlers
-  - `onChange` is used ONLY for draft state updates and visual feedback
-  - Calculated/derived values MUST update only on commit (`onBlur` / table `onPersist`), never on `onChange` (pages, grid tables, and "loose" tables)
-  - Committed state MUST be schema-validated before use in calculations
-  - Tables are pure UI components — no parsing, validation, or business logic
-- Before implementing any form-related feature, you MUST review the Form Contract to ensure compliance.
-- Any proposed deviation from the Form Contract MUST be explicitly justified and approved.
-
-## Input error UI (normative)
-- Validation errors for user inputs MUST be displayed only as: red border + tooltip on hover.
-- Inline error text under input fields (e.g. helper text error messages) is forbidden for invalid inputs.
-
-## Tooltip error messages (normative)
-- Generic tooltip errors about invalid min/max configuration are forbidden in user-facing UI.
-- All interval/range-related tooltip errors MUST state the concrete allowed date bounds (e.g. "… mellem 01-01-2020 og 31-12-2020").
-- If user input causes there to be no valid dates (min > max), the tooltip MUST state that there are no valid dates, show both computed bounds, and explicitly name the user-visible inputs that produced the bounds.
-- Number formatting in UI MUST follow Danish conventions (comma as decimal separator) in both tooltips and derived-value displays.
-
-## Keyboard navigation contracts (dropdowns)
-Dropdown controls participate in cross-cutting keyboard navigation (Container-level tab/enter trapping + table-level navigation).
-If you change any of these behaviors, you MUST verify Tab/Enter semantics across pages with both “loose” tables and grid tables.
-
-- `src/components/inputs/StyledDropdown.tsx`: Implements a custom combobox (`role="combobox"` + `aria-controls`/`aria-expanded`) on a `readOnly` input. Tab while open closes the popover without `preventDefault()` so focus can move normally.
-- `src/components/inputs/table/TableDropdown.tsx`: Marks the wrapper with `data-mineo-table-dropdown="true"` so tables can special-case Enter. Must not intercept Tab; only clears with Delete/Backspace when `allowEmpty` and the menu is closed.
-- `src/components/layout/Container.tsx`: Includes `input[role="combobox"]` in its focusable selector (so readOnly combobox triggers are tabbable) and avoids hijacking Tab/Enter for popup widgets.
-- `src/components/tables/tableKeyboardNavigation.ts`: Owns Tab/Enter in tables (prevents propagation) and exempts TableDropdown Enter (opens menu, does not trigger vertical navigation).
-
-## Keyboard navigation contracts (tables + Tab/Enter)
-These rules exist to keep focus deterministic and to prevent data loss / lost focus during navigation.
-
-- `src/components/layout/Container.tsx`: Tab/Shift+Tab (and Enter) are trapped within the current page container; this is the default focus traversal owner.
-- `src/components/tables/tableKeyboardNavigation.ts`: In grid tables, Tab stays within the table (row-major, wrapping). Enter moves vertically while preserving the “anchor column” from the first Tab in the sequence.
-- `src/hooks/useTableNavigation.ts`: In “cell focus / editor” tables (Aarsloen), Tab sets an anchor and Enter moves vertically in the anchor column; handlers must stop propagation to avoid the Container also moving focus.
-
-## Terminology: commit vs persist (normative)
-- **Commit** = draft → committed user input (schema-validated) used for calculations.
-- **Persist** = durable storage (sessionStorage and `.eo` files).
-- Table callback names such as `onPersist` still mean **commit** at the table boundary; do not conflate with storage persistence.
-- If a term is ambiguous, prefer **commit** for UI state changes and **persist** for storage only.
-
-## Type system and validation
-- Strict TypeScript is mandatory.
-- Zod schemas are the single source of truth for:
-  - runtime validation
-  - inferred TypeScript types
-- All logic MUST be schema-aligned and fully type-safe.
-- `any` is forbidden.
-- If a solution would normally require `any`, you MUST redesign the approach instead.
-- Type assertions are allowed only when they are provably safe and justified by structural guarantees.
-
-## Canonical source of user input
-- Zod schemas used as the basis for persisted form state (e.g. via `usePersistedForm`) constitute the canonical definition of user input.
-- Durable persistence (.eo files) MUST be derived directly from schema-validated user input.
-- UI state, preview state, and intermediate representations MUST NOT be treated as canonical user input.
-
-## Runtime data integrity (active user session)
-While the user is actively working in the application, all user-entered data MUST remain stable and intact.
-
-- User inputs MUST NOT disappear, reset, or change implicitly due to:
-  - navigation between pages or sections
-  - tab switches
-  - re-renders
-  - internal state synchronization
-- Temporary UI or preview state is allowed, but committed user input MUST remain preserved.
-- Any mechanism used to maintain runtime state MUST guarantee that user-entered data cannot be accidentally dropped or overwritten.
-- If runtime persistence (e.g. in-memory or browser storage) is used, it MUST preserve all committed user input for the duration of the user session.
-
-## Architectural convergence and uniformity
-- Similar problems MUST be solved using the same patterns and abstractions across the codebase.
-- Shared concerns (validation, state modeling, persistence, serialization, error handling, derived calculations) SHOULD follow a common pattern across features and forms.
-- You MUST NOT introduce multiple competing approaches for the same concern.
-- If multiple approaches exist, you MUST identify the best approach and refactor existing code to converge on it.
-
-However:
-- Consistency MUST NOT be enforced at the cost of excessive complexity or disproportionate refactoring.
-- Divergence is acceptable only when:
-  - the domain meaningfully differs, or
-  - forced unification would reduce clarity or safety
-- Any intentional divergence MUST be explicit and justified.
-
-Workarounds, special cases, or local exceptions are forbidden unless:
-- they are strictly necessary
-- they are explicitly justified
-- no simpler or more uniform solution exists
-- if implemented, they MUST be documented in-code at the callsite and in this file with a short rationale + the specific rule being overridden (so future refactors don’t silently regress behavior)
-
-## Development stage assumptions
-- The project is currently in development with a single user.
-- Backwards compatibility is NOT required.
-- Fundamental refactors are allowed and encouraged if they improve correctness, clarity, consistency, or safety.
-
-## Implementation expectations
-When implementing features or changes:
-- You MUST design schemas, types, and module boundaries before modifying code.
-- You MUST consider edge cases explicitly and handle them deterministically.
-- You MUST favor explicit, readable, and auditable code over clever or compact solutions.
-- Implicit behavior, hidden state, and “magic” conventions are discouraged.
-
-## Save and load guarantees (.eo files)
-The application provides explicit save and load functionality using `.eo` files. This functionality is part of the trust-critical core.
-
-Any form of data loss in save or load operations is unacceptable.
-
-### Save guarantees
-- All user-entered input MUST be included when saving a `.eo` file.
-- It MUST be impossible for user input to exist in the application without being covered by the save mechanism.
-- Saving MUST operate on schema-validated user input only.
-- The saved representation MUST be complete, deterministic, and fully schema-defined.
-
-### Load guarantees
-- Loading a `.eo` file MUST be atomic with respect to application state (all-or-nothing apply).
-- If the file cannot be loaded 1:1, the user MUST be shown a preflight warning BEFORE any data is applied.
-- The preflight warning MUST include:
-  - expected value count (from file metadata when available)
-  - how many values can be loaded
-  - how many values fail to load
-  - a user-friendly list of what failed and why (basic info only)
-- The user MUST have exactly these three choices in the preflight warning:
+## Save/load guarantees (.eo)
+- Save/load is trust-critical; silent data loss is unacceptable.
+- Save must include all user-entered input and only schema-validated user input.
+- Load must be atomic unless user explicitly accepts partial load in preflight.
+- No in-memory state may be mutated before the preflight decision is confirmed.
+- The same Zod schemas (or directly schema-inferred validators) must validate both pre-save state and loaded `.eo` data before apply.
+- Preflight (before apply) must include expected/loadable/failing counts and user-friendly failure reasons.
+- Preflight must offer exactly:
   - "Indlæs trods fejl"
   - "Send fejloplysninger"
   - "Stop og gør intet"
-- Partial loads ARE allowed, but only when the user explicitly chooses "Indlæs trods fejl".
-- Best-effort recovery IS allowed (including salvaging individual fields), but it MUST be deterministic and MUST be reported in the preflight warning.
-- On load failure (including apply failure):
-  - the current in-memory state MUST remain unchanged
-  - an explicit error MUST be surfaced to the user
+- On load/apply failure: keep current in-memory state unchanged and show explicit error.
+- Successful no-issue load must satisfy strict save->load round-trip for user input.
+- Persist only user-entered/chosen data; recompute derived values after load.
 
-### Round-trip invariant
-- If a file loads without preflight issues, Save → Load MUST be a strictly lossless round-trip with respect to user input.
-- If a user chooses "Indlæs trods fejl" (partial load), then:
-  - only the successfully loaded user input is considered canonical going forward
-  - values that failed to load are not preserved and may be lost on subsequent save
-  - the user MUST have been warned about this before applying the data
-
-### Schema authority and coverage
-- The persisted `.eo` data structure MUST be fully defined by Zod schemas.
-- The same schemas (or schema-derived equivalents) MUST be used for:
-  - validating in-memory state before saving
-  - validating loaded `.eo` files before applying them
-- Any change to a user input schema MUST be evaluated for persistence coverage.
-- It MUST NOT be possible to add a new schema field without it being included in save/load.
-- If full coverage cannot be guaranteed, the change MUST NOT be applied.
-
-### Derived values
-- Only data explicitly entered or chosen by the user may be persisted in `.eo` files.
-- Derived values, intermediate calculations, caches, and presentation/UI state MUST NOT be persisted.
-- All derived values MUST be recomputed deterministically after loading.
-
-### Persistence evolution
-- Explicit versioning of `.eo` files is currently not required.
-- Internal consistency between save and load logic MUST be maintained at all times.
-- Any schema change MUST be evaluated for the risk of silent data loss in existing `.eo` files and handled explicitly (fail-safe behavior).
-
-## Self-review and quality control
-Before applying any changes to the codebase:
-- You MUST internally review the intended changes as a critical senior engineer.
-- You MUST verify:
-  - correctness relative to the stated requirements
-  - full Zod ↔ TypeScript alignment
-  - absence of unsafe typing
-  - architectural consistency and convergence
-  - no accidental side effects or data loss (runtime or .eo)
-- If weaknesses are identified, they MUST be corrected before changes are applied.
-- Any remaining trade-offs or risks MUST be explicitly disclosed.
+## Convergence and exceptions
+- Solve similar problems with shared patterns.
+- Avoid competing implementations for the same concern.
+- Diverge only when domain meaningfully differs or unification harms safety/clarity.
+- Any unavoidable exception must be explicitly justified and documented in code at callsite.
+- Update this file only when the exception establishes a new general rule.
 
 ## Change discipline
-- You MUST make only the minimal set of changes required to satisfy the current requirements.
-- Opportunistic refactors are forbidden unless they materially improve correctness, safety, or consistency.
-- Non-trivial refactors MUST be justified by concrete risk reduction or clarity gains.
+- Implement the minimum safe change set.
+- Prefer explicit, auditable code over clever shortcuts.
+- Avoid hidden state and implicit behavior.
+- Design or update schemas and types before modifying implementation logic.
+- Do not generalize code for hypothetical future reuse.
 
-## Repository health (errors after changes)
-After you finish implementing a requested change, you MUST ensure the repo is left in a clean, working state.
+## Execution governance (trust-critical)
+- Classify each task before implementation: `No UX/behavior change` or `UX/behavior change`.
+- If classification is `UX/behavior change` and not explicitly requested, ask for approval before coding.
+- Classification is internal reasoning and should not be output unless relevant to approval flow.
+- Apply fail-closed behavior on uncertain/invalid critical data; do not silently guess.
+- Keep numeric behavior deterministic: reuse canonical rounding/formatting helpers, no ad hoc rounding logic in feature code.
+- Inline numeric formatting, rounding, or currency logic inside feature components is forbidden.
+- All monetary calculations must follow existing numeric handling patterns in the codebase; do not introduce new numeric strategies.
+- For critical paths (calculation, validation, save/load), add or update tests when behavior changes.
+- Follow existing test structure and patterns; do not introduce new testing frameworks or paradigms.
+- Avoid hidden mutation in domain/state flows; use explicit immutable updates.
+- If a rule exception is unavoidable, record a short decision note at callsite in code: reason, risk, and re-evaluation trigger.
 
-- If your change results in errors (TypeScript typecheck failures, lint errors, failing tests/build), you MUST fix them before handing off.
-- You MUST also fix such errors even if they originate in other parts of the program, as long as they block a clean build/check and can be corrected deterministically.
-- If an error cannot be fixed safely without additional domain clarification, you MUST stop and ask for clarification rather than applying a risky change.
-- You MUST run `npm run typecheck` after every code change (no exceptions) and fix any failures before handing off.
+## Quality gate before handoff
+You must verify:
+- requirements correctness
+- Zod <-> TypeScript alignment
+- no unsafe typing
+- no accidental side effects or data loss
+- architectural consistency with contracts
+
+After every code change, run:
+- `npm run typecheck`
+
+If lint/test/build/typecheck fails and can be fixed deterministically, fix it before handoff. If not safely fixable without domain clarification, stop and ask.
 
 ## Professional posture
-- If requirements are unclear, you MUST ask clarifying questions before proceeding.
-- You MUST actively challenge implied architectural decisions if safer or more robust alternatives exist.
-- Default to the behavior of a critical senior engineer prioritizing correctness, predictability, consistency, and professional quality over speed.
+- Challenge unsafe architectural assumptions.
+- Optimize for deterministic behavior, trust, and clarity over speed.
