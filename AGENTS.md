@@ -50,7 +50,7 @@ Before creating any new helper/utility, you must actively search relevant shared
 - `src/settings/*` (schema/config-nære hjælpefunktioner)
 - `src/types/*` (fælles validerings-/kontrakt-typer)
 - `src/components/tables/*` (table UI-core utils)
-- nearby feature-local modules for the same concern
+- Inspect nearby feature-local modules for the same concern
 - Also use repo-wide search by keywords/function names before creating new helpers.
 
 Rules:

@@ -224,4 +224,4 @@ Hvis der i fremtiden opstår behov for selection-on-focus:
 - `src/components/layout/Container.tsx` – Implementation
 - `src/__tests__/components/layout/Container.test.tsx` – Automatiske tests
 - `src/contracts/keyboard-navigation-test-checklist.md` – Manuel test-guide
-- `CLAUDE.md` – Generelle designprincipper
+- `AGENTS.md` – Overordnede udviklingsprincipper

@@ -39,7 +39,6 @@ pnpm-debug.log*
 Thumbs.db
 
 # Claude Code lokale filer
-claude.md
 .claude/
 
 # Kontinuerligt fejloprettet nul-fil

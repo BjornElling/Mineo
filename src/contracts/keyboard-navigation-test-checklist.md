@@ -187,7 +187,7 @@ Visuelt gennemgå alle felt-typer:
 
 ### Efter hver større ændring:
 
-- [ ] Kør automatiske tests: `npm test Container.test.tsx`
+- [ ] Kør automatiske tests: `npm run test -- src/__tests__/components/layout/Container.test.tsx`
 - [ ] **Verificer:** Alle tests består
 - [ ] Gennemgå denne tjekliste manuelt
 - [ ] Test på mindst to forskellige sider (Stamdata + Erstatningsopgørelse)

@@ -1,111 +1,89 @@
 # MINEO Erstatningsberegner
 
-**MINEO** er en browserbaseret erstatningsberegner, der er udviklet til at hjælpe advokater og sagsbehandlere med at lave beregninger og opgørelser i arbejdsskadesager.
+MINEO er en browserbaseret, trust-kritisk erstatningsberegner til arbejdsskadesager.
 
-Programmet er gratis og kan frit benyttes i kommercielle sammenhænge. Alle beregninger sker client-side, dvs. på brugerens egen computer, og der sendes ikke sagsdata til en backend. Indtastede oplysninger kan gemmes lokalt i krypterede .eo filer.
+Appen er 100 % client-side:
+- Ingen backend-kald for sagsdata
+- Ingen telemetri
+- Sagsdata gemmes lokalt i browseren og kan eksporteres/importeres som `.eo`
 
-## 🚀 Teknologier
+## Teknologi
 
-- **React 19.2.4**
-- **TypeScript 5.9.3**
-- **Material UI 7.3.7**
-- **React Router DOM 7.13.0**
-- **Vite 7.3.1**
-- **Zod 4.3.6**
-- **Zustand 5.0.10**
-- **jsPDF 4.1.0**
-- **Montserrat font**
+Kerne-stack:
+- React
+- TypeScript (strict)
+- Vite
+- Material UI
+- React Router
+- Zod
+- Zustand
+- jsPDF
 
-## 📦 Installation
+Se eksakte versionsnumre i `package.json`.
 
-### Forudsætninger
-- Node.js - Minimum: 20.19+ eller 22.12+
+## Kom i gang
+
+Forudsætninger:
+- Node.js 20.19+ eller 22.12+
 - Git
 
-### Kom i gang
-
-1. **Klon repository**
-   ```bash
-   git clone https://github.com/BjornElling/mineo.git
-   cd mineo
-   ```
-
-2. **Installer dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Start development server**
-   ```bash
-   npm run dev
-   ```
-
-4. **Åbn i browser**
-   - Gå til `http://localhost:3000`
-
-### NPM scripts
+Installation:
 ```bash
-npm run dev          # Start development server (Vite)
-npm run build        # Build til production
-npm run preview      # Preview production build
-npm run typecheck    # TypeScript typecheck
-npm run test         # Kør tests (Vitest)
+git clone https://github.com/BjornElling/mineo.git
+cd mineo
+npm install
 ```
 
+Start udviklingsserver:
+```bash
+npm run dev
+```
 
-## 📝 Løbende opdatering
+Åbn: `http://localhost:3000`
 
-### Halvårligt
+## Scripts
 
-**Rentesatser**
-   - Åbn [src/data/interestRates.ts](src/data/interestRates.ts)
-   - Tilføj sats for Nationalbankens udlånsrente
+```bash
+npm run dev
+npm run build
+npm run preview
+npm run typecheck
+npm run test
+npm run import:loen
+```
 
-**KL- og RLTN-overenskomster**
-   - Hent de seneste Excel-ark fra Forhandlingsfællesskabets hjemmeside
-   - Læg KL-filer i `src/data/KL/Excel/` og RLTN-filer i `src/data/RLTN/Excel/`
-   - Filnavne SKAL følge formatet `KL-ÅÅÅÅ-MM-DD.xlsx` og `RLTN-ÅÅÅÅ-MM-DD.xlsx` (datoen er ikrafttrædelsesdatoen)
-   - Kør import-scriptet:
-     ```bash
-     npm run import:loen
-     ```
+## Dokumentation
 
-### Årligt
+- `AGENTS.md`
+  - Overordnede udviklingsregler og trust-kritiske constraints for agentisk udvikling.
+- `src/contracts/`
+  - Normative kontrakter for formularer, keyboard-navigation, dato-håndtering, app settings og fejl/debug.
+- `docs/architecture/calculation-architecture.md`
+  - Normativ beregningsarkitektur (boundary, pipeline, engine-regler, testkrav).
 
-**EAL- og ASL-satser**
-   - Åbn [src/data/regulationRates.ts](src/data/regulationRates.ts)
-   - Tilføj lovbestemte satser for det nye år
+## Domænedata der opdateres løbende
 
-**Statistiske satser**
-   - Åbn [src/data/statistiskLoenudviklingRates.ts](src/data/statistiskLoenudviklingRates.ts)
-   - Tilføj statistiske satser for det nye år
+Halvårligt:
+- Rentesatser i `src/data/interestRates.ts`
+- Offentlige løndata (KL/RLTN) via `npm run import:loen`
 
-**Dato-intervaler**
-   - Åbn [src/config/dateRanges.ts](src/config/dateRanges.ts)
-   - Opdater tilladte intervaller og `MAX_YEAR` til det nye år
-   - OBS: Vil gradvist blive udfaset og erstattet af dynamiske værdier
+Årligt:
+- EAL/ASL-satser i `src/data/regulationRates.ts`
+- Statistiske satser i `src/data/statistiskLoenudviklingRates.ts`
+- Dato-intervaller i `src/config/dateRanges.ts`
 
-### Versionering
-[src/config/version.ts](src/config/version.ts):
-- Vises i formatet åååå.mm.#commit
-- Auto-genereres ved hver commit via git hooks
-- Baseret på antal commits i repository
-- Bruges til at vise versionsnummer i applikationen
+## Licens
 
+MIT License, se `LICENSE`.
 
-## 📄 Licens
+## Kontakt
 
-MIT License - Se [LICENSE](LICENSE) filen for detaljer.
-
-
-## 📧 Kontakt
-
-**Bjørn Elling**
+Bjørn Elling
 - GitHub: [@BjornElling](https://github.com/BjornElling)
 - Mail: bj.elling@gmail.com
 
 ---
 
-**Version**: 2026.02.154
+**Version**: 2026.02.155
 
 **Status**: Under udvikling
