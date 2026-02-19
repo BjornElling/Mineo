@@ -1,13 +1,23 @@
 import type { RowInput } from 'jspdf-autotable';
-import { getGrundloenAngivetPerForOverenskomst, getOffentligOverenskomstTypeById } from '../../../../data/overenskomstRates';
+import { MARGINS } from '../../pdfConfig';
+import {
+  getEffektiveSatserForDato,
+  getGrundloenAngivetPerForOverenskomst,
+  getOffentligOverenskomstTypeById,
+  getOffentligTillaegsSatserForDato,
+  resolveOverenskomstRef,
+} from '../../../../data/overenskomstRates';
+import type { PdfWriter } from '../../pdfWriter';
 import { resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import {
+  STORE_BEDEDAG_PCT,
+  STORE_BEDEDAG_START,
   formatAmount2,
   formatAmountWithoutTrailingDecimals,
   formatAnciennitetConversion,
 } from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
-import type { ISODateString } from '../../../../types/branded';
+import { isoToDanish, type ISODateString } from '../../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
@@ -52,6 +62,7 @@ type ReguleringSectionContext = Readonly<{
     reguleringsdato: ISODateString | undefined;
     tafFra: ISODateString;
     tafTil: ISODateString;
+    tafBeregningsenhed: ReturnType<typeof computeTafBeregningsenhed>;
   }>) => ReguleringValuesTableData | null;
   buildReguleringIndexRows: (params: Readonly<{
     segments: readonly LoenudviklingSegment[];
@@ -65,13 +76,76 @@ type ReguleringSectionContext = Readonly<{
     body: RowInput[];
     columnStyles?: unknown;
   }>) => number;
-  writer: Readonly<{
-    addSpacer: (height: number) => void;
-    setY: (y: number) => void;
-    getY: () => number;
-    getDoc: () => unknown;
-  }>;
+  writer: PdfWriter;
 }>;
+
+const percentDeltaIsIncrease = (from: number | null | undefined, to: number | null | undefined): boolean => {
+  const a = typeof from === 'number' && Number.isFinite(from) ? from : 0;
+  const b = typeof to === 'number' && Number.isFinite(to) ? to : 0;
+  return b > a + 1e-9;
+};
+
+const joinWithCommaAndOg = (parts: readonly string[]): string => {
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0]!;
+  if (parts.length === 2) return `${parts[0]} og ${parts[1]}`;
+  return `${parts.slice(0, -1).join(', ')} og ${parts[parts.length - 1]}`;
+};
+
+const resolveOverenskomstTillægsStigninger = (params: Readonly<{
+  ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
+  reguleringTableStartIso: ISODateString;
+  tafTilIso: ISODateString;
+}>): readonly string[] => {
+  const { ansaettelsesforhold, reguleringTableStartIso, tafTilIso } = params;
+  const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
+  if (!overenskomstId) return [];
+
+  const startDato = isoToDanish(reguleringTableStartIso);
+  const slutDato = isoToDanish(tafTilIso);
+  if (!startDato || !slutDato) return [];
+
+  const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
+  const offentligType = getOffentligOverenskomstTypeById(overenskomstId);
+  let fritvalgStiger = false;
+  let shSoStiger = false;
+  let pensionStiger = false;
+
+  if (offentligType) {
+    const start = getOffentligTillaegsSatserForDato(overenskomstId, startDato, applyAlmindeligLoenPaaShDageRegel);
+    const slut = getOffentligTillaegsSatserForDato(overenskomstId, slutDato, applyAlmindeligLoenPaaShDageRegel);
+    fritvalgStiger = percentDeltaIsIncrease(start?.fritvalg, slut?.fritvalg);
+    shSoStiger = percentDeltaIsIncrease(start?.shSoSats, slut?.shSoSats);
+    pensionStiger = percentDeltaIsIncrease(start?.agPension, slut?.agPension);
+  } else {
+    const ref = resolveOverenskomstRef(overenskomstId);
+    if (!ref) return [];
+    const start = getEffektiveSatserForDato({
+      overenskomstId: ref.baseId,
+      dato: startDato,
+      applyAlmindeligLoenPaaShDageRegel,
+    });
+    const slut = getEffektiveSatserForDato({
+      overenskomstId: ref.baseId,
+      dato: slutDato,
+      applyAlmindeligLoenPaaShDageRegel,
+    });
+    fritvalgStiger = percentDeltaIsIncrease(start?.fritvalg, slut?.fritvalg);
+    shSoStiger = percentDeltaIsIncrease(start?.shSoSats, slut?.shSoSats);
+    pensionStiger = percentDeltaIsIncrease(start?.agPension, slut?.agPension);
+  }
+
+  const startBededag = applyAlmindeligLoenPaaShDageRegel && reguleringTableStartIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
+  const slutBededag = applyAlmindeligLoenPaaShDageRegel && tafTilIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
+  const bededagStiger = slutBededag > startBededag + 1e-9;
+
+  const labels: string[] = [];
+  if (fritvalgStiger) labels.push('fritvalg');
+  if (shSoStiger) labels.push('SH/SO');
+  if (bededagStiger) labels.push('st. bededagstillæg');
+  if (pensionStiger) labels.push('pension');
+  return labels;
+};
 
 export const renderReguleringSection = (ctx: ReguleringSectionContext): void => {
   const {
@@ -230,9 +304,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     );
     writeLabelValueLine('Regulering', valgtRegulering);
     const anciennitetValueDisplay = resolveAnciennitetValueDisplay(ansaettelsesforhold);
-    if (anciennitetValueDisplay) {
-      writeLabelValueLine('Anciennitetstillæg', anciennitetValueDisplay);
-    }
+    let ekstraGrundloenDisplay: string | null = null;
 
     const offentligTypeForLabel = ansaettelsesforhold.overenskomstId
       ? getOffentligOverenskomstTypeById(ansaettelsesforhold.overenskomstId)
@@ -242,14 +314,26 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       const gruppe = ansaettelsesforhold.offentligLoenGruppe;
       if (typeof trin === 'number' && typeof gruppe === 'number') {
         writeLabelValueLine('Indplacering', `Løntrin ${trin}, gruppe ${gruppe}`);
+
         const ekstraGrundloen = amountValueToNumber(ansaettelsesforhold.offentligLoenEkstraGrundloen);
-        if (typeof ekstraGrundloen === 'number' && Number.isFinite(ekstraGrundloen) && ekstraGrundloen > 0) {
-          const enhed = ansaettelsesforhold.offentligLoenType === 'Timeløn' ? 'time' : 'måned';
-          writeLabelValueLine(
-            'Forhøjet grundløn',
-            `${formatAmountWithoutTrailingDecimals(ekstraGrundloen)} kr./${enhed}`
-          );
-        }
+        ekstraGrundloenDisplay =
+          typeof ekstraGrundloen === 'number' && Number.isFinite(ekstraGrundloen) && ekstraGrundloen > 0
+            ? `+ ${formatAmountWithoutTrailingDecimals(ekstraGrundloen)} kr./${
+                ansaettelsesforhold.offentligLoenType === 'Timeløn' ? 'time' : 'måned'
+              }`
+            : null;
+      }
+    }
+
+    const harSaerligeLoenforhold = Boolean(anciennitetValueDisplay || ekstraGrundloenDisplay);
+    if (harSaerligeLoenforhold) {
+      writer.addSpacer(lineHeight);
+      writer.writeUnderlinedLabel('Særlige lønforhold', MARGINS.left);
+      if (ekstraGrundloenDisplay) {
+        writeLabelValueLine('Forhøjet grundløn', ekstraGrundloenDisplay);
+      }
+      if (anciennitetValueDisplay) {
+        writeLabelValueLine('Anciennitetstillæg', anciennitetValueDisplay);
       }
     }
     writer.addSpacer(lineHeight);
@@ -262,6 +346,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
             reguleringsdato,
             tafFra: tafBounds.foerste,
             tafTil: tafBounds.sidste,
+            tafBeregningsenhed: tafBeregnesSom,
           })
         : null;
     renderReguleringsvaerdierTable(reguleringsvaerdierTableData);
@@ -275,6 +360,22 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       reguleringsdato,
     });
     renderReguleringIndeksTable(reguleringTableRows);
+
+    if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Overenskomst' && tafBounds) {
+      const reguleringTableStartIso = reguleringsdato && reguleringsdato < tafBounds.foerste
+        ? reguleringsdato
+        : tafBounds.foerste;
+      const tillægsStigninger = resolveOverenskomstTillægsStigninger({
+        ansaettelsesforhold,
+        reguleringTableStartIso,
+        tafTilIso: tafBounds.sidste,
+      });
+      const text = tillægsStigninger.length > 0
+        ? `Regulering foretages på baggrund af den procentuelle udvikling i grundløn. Hertil kommer stigninger i ${joinWithCommaAndOg(tillægsStigninger)}.`
+        : 'Regulering foretages på baggrund af den procentuelle udvikling i grundløn.';
+      writer.addSpacer(lineHeight);
+      safeAddWrappedText(text);
+    }
 
     if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'KRL satstabel') {
       writer.addSpacer(lineHeight);

@@ -1683,7 +1683,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       </Box>
                     </Box>
                     <Box className="row--label-right-hover">
-                      <Typography className="row--text">Evt. øget grundløn udover løntrin</Typography>
+                      <Typography className="row--text">Evt. forhøjet grundløn udover løntrin</Typography>
                       <Box className="row--label-right-hover__content">
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <StyledAmountField

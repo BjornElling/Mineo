@@ -979,9 +979,9 @@ const EODebug = () => {
 
           const roundedSupplementValue = roundToTwoDecimals(supplementValue);
           if (!Number.isFinite(roundedSupplementValue) || roundedSupplementValue <= 0) return null;
-          const activeFromIso = anciennitetDato < tafStartIso ? tafStartIso : anciennitetDato;
           return {
-            activeFromIso,
+            activeFromIso: anciennitetDato,
+            segmentBoundaryIso: anciennitetDato < tafStartIso ? tafStartIso : anciennitetDato,
             supplementValue: roundedSupplementValue,
           };
         })();
@@ -1069,13 +1069,28 @@ const EODebug = () => {
               };
 
               if (anciennitetForIndex) {
-                insertBoundaryStart(periodStarts, anciennitetForIndex.activeFromIso);
+                insertBoundaryStart(periodStarts, anciennitetForIndex.segmentBoundaryIso);
               }
 
-              return periodStarts.map((period, index) => ({
+              const periodStartsWithAnciennitet = periodStarts.map((period) => ({
+                ...period,
+                components: {
+                  ...period.components,
+                  baseValue:
+                    period.components.baseValue +
+                    (anciennitetForIndex && period.startIso >= anciennitetForIndex.activeFromIso
+                      ? anciennitetForIndex.supplementValue
+                      : 0),
+                },
+              }));
+
+              return periodStartsWithAnciennitet.map((period, index) => ({
                 ...period,
                 visibility,
-                endIso: index < periodStarts.length - 1 ? subtractOneDay(periodStarts[index + 1]?.startIso) : tafEndIso,
+                endIso:
+                  index < periodStartsWithAnciennitet.length - 1
+                    ? subtractOneDay(periodStartsWithAnciennitet[index + 1]?.startIso)
+                    : tafEndIso,
               }));
             }
             const ref = resolveOverenskomstRef(af.overenskomstId);
@@ -1145,7 +1160,7 @@ const EODebug = () => {
             }
 
             if (anciennitetForIndex) {
-              insertBoundaryStart(periodStarts, anciennitetForIndex.activeFromIso);
+              insertBoundaryStart(periodStarts, anciennitetForIndex.segmentBoundaryIso);
             }
 
               const visibility: FormulaVisibility = {
@@ -1155,10 +1170,25 @@ const EODebug = () => {
                 showStoreBededag: applyStoreBededagRegulering,
               };
 
-            return periodStarts.map((period, index) => ({
+            const periodStartsWithAnciennitet = periodStarts.map((period) => ({
+              ...period,
+              components: {
+                ...period.components,
+                baseValue:
+                  period.components.baseValue +
+                  (anciennitetForIndex && period.startIso >= anciennitetForIndex.activeFromIso
+                    ? anciennitetForIndex.supplementValue
+                    : 0),
+              },
+            }));
+
+            return periodStartsWithAnciennitet.map((period, index) => ({
               ...period,
               visibility,
-              endIso: index < periodStarts.length - 1 ? subtractOneDay(periodStarts[index + 1]?.startIso) : tafEndIso,
+              endIso:
+                index < periodStartsWithAnciennitet.length - 1
+                  ? subtractOneDay(periodStartsWithAnciennitet[index + 1]?.startIso)
+                  : tafEndIso,
             }));
           }
 
@@ -1371,27 +1401,10 @@ const EODebug = () => {
         const basePeriod = findPeriodForDate(periods, tafStartIso);
         const basePeriodComponents = basePeriod?.components ?? baseComponents;
         const basePeriodVisibility = basePeriod?.visibility ?? baseVisibility;
-        const baseAnciennitetAktiv = Boolean(anciennitetForIndex && tafStartIso >= anciennitetForIndex.activeFromIso);
-        const basePeriodValueRaw = (() => {
-          if (isSimpleIndex || !baseAnciennitetAktiv || !anciennitetForIndex) {
-            return isSimpleIndex ? basePeriodComponents.baseValue : computeFormulaValue(basePeriodComponents);
-          }
-          const withAnciennitet: FormulaComponents = {
-            ...basePeriodComponents,
-            baseValue: basePeriodComponents.baseValue + anciennitetForIndex.supplementValue,
-          };
-          return computeFormulaValue(withAnciennitet);
-        })();
-        const basePeriodFormula = (() => {
-          if (isSimpleIndex) return formatStatValue(basePeriodValueRaw);
-          if (!baseAnciennitetAktiv || !anciennitetForIndex) {
-            return buildFormulaText(basePeriodComponents, basePeriodVisibility);
-          }
-          const original = buildFormulaText(basePeriodComponents, basePeriodVisibility);
-          const suffixIndex = original.indexOf(' x ');
-          const suffix = suffixIndex >= 0 ? original.slice(suffixIndex) : '';
-          return `(${formatCurrency(basePeriodComponents.baseValue)}+${formatAmountTwoDecimals(anciennitetForIndex.supplementValue)})${suffix}`;
-        })();
+        const basePeriodValueRaw = isSimpleIndex ? basePeriodComponents.baseValue : computeFormulaValue(basePeriodComponents);
+        const basePeriodFormula = isSimpleIndex
+          ? formatStatValue(basePeriodValueRaw)
+          : buildFormulaText(basePeriodComponents, basePeriodVisibility);
 
         // Byg SH-dage og feriedage set for beregning af arbejdsdage
         const eoRange = tafEndIso ? { fra: tafStartIso, til: tafEndIso } : null;
@@ -1449,26 +1462,8 @@ const EODebug = () => {
           if (!hasTafOverlap) continue;
 
           const periodVisibility = period.visibility ?? { showFritvalg: true, showShSo: true, showPension: true, showStoreBededag: false };
-          const anciennitetAktiv = Boolean(anciennitetForIndex && period.startIso >= anciennitetForIndex.activeFromIso);
-          const formula = (() => {
-            if (isSimpleIndex || !anciennitetAktiv || !anciennitetForIndex) {
-              return buildFormulaText(period.components, periodVisibility);
-            }
-            const baseFormula = buildFormulaText(period.components, periodVisibility);
-            const suffixIndex = baseFormula.indexOf(' x ');
-            const suffix = suffixIndex >= 0 ? baseFormula.slice(suffixIndex) : '';
-            return `(${formatCurrency(period.components.baseValue)}+${formatAmountTwoDecimals(anciennitetForIndex.supplementValue)})${suffix}`;
-          })();
-          const valueRaw = (() => {
-            if (isSimpleIndex || !anciennitetAktiv || !anciennitetForIndex) {
-              return isSimpleIndex ? period.components.baseValue : computeFormulaValue(period.components);
-            }
-            const withAnciennitet: FormulaComponents = {
-              ...period.components,
-              baseValue: period.components.baseValue + anciennitetForIndex.supplementValue,
-            };
-            return computeFormulaValue(withAnciennitet);
-          })();
+          const formula = buildFormulaText(period.components, periodVisibility);
+          const valueRaw = isSimpleIndex ? period.components.baseValue : computeFormulaValue(period.components);
           const displayFormula = buildIndexFormulaDisplay(
             isSimpleIndex ? formatStatValue(valueRaw) : formula,
             baseFormula,
@@ -1608,16 +1603,36 @@ const EODebug = () => {
                     ? ekstraGrundloenInput
                     : roundToTwoDecimals(ekstraGrundloenInput / TIMER_TIL_MAANED_FAKTOR))
                   : 0;
+              const anciennitetDatoIso = af.anciennitetstillaegDato;
+              const anciennitetSatsValue = af.anciennitetstillaegSats?.value;
+              const anciennitetInputPer = af.anciennitetstillaegSatsAngivesPer;
+              const harAnciennitetstillaeg = Boolean(
+                af.harAnciennitetstillaegEfterSkadesdatoen &&
+                anciennitetDatoIso &&
+                anciennitetInputPer &&
+                typeof anciennitetSatsValue === 'number' &&
+                Number.isFinite(anciennitetSatsValue) &&
+                anciennitetSatsValue > 0
+              );
+              const anciennitetMaanedsLoen = harAnciennitetstillaeg
+                ? roundToTwoDecimals(convertAnciennitetSats(anciennitetSatsValue!, anciennitetInputPer!, 'Måned'))
+                : 0;
+              const anciennitetTimeLoen = harAnciennitetstillaeg
+                ? roundToTwoDecimals(convertAnciennitetSats(anciennitetSatsValue!, anciennitetInputPer!, 'Time'))
+                : 0;
 
               const rows: StandardDisplayTableRow[] = [];
               const addRow = (labelIso: ISODateString, maanedsLoen: number, timeLoen: number) => {
+                const anciennitetAktiv = Boolean(harAnciennitetstillaeg && anciennitetDatoIso && labelIso >= anciennitetDatoIso);
+                const samletMaanedsTillaeg = ekstraMaanedsLoen + (anciennitetAktiv ? anciennitetMaanedsLoen : 0);
+                const samletTimeTillaeg = ekstraTimeLoen + (anciennitetAktiv ? anciennitetTimeLoen : 0);
                 const maanedsLoenDisplay =
-                  ekstraMaanedsLoen > 0
-                    ? `${formatCurrency(maanedsLoen)} (+${formatAmountWithoutTrailingDecimals(ekstraMaanedsLoen)} kr.)`
+                  samletMaanedsTillaeg > 0
+                    ? `${formatCurrency(maanedsLoen)} (+ ${formatAmountWithoutTrailingDecimals(samletMaanedsTillaeg)} kr.)`
                     : formatCurrency(maanedsLoen);
                 const timeLoenDisplay =
-                  ekstraTimeLoen > 0
-                    ? `${formatCurrency(timeLoen)} (+${formatAmountWithoutTrailingDecimals(ekstraTimeLoen)} kr.)`
+                  samletTimeTillaeg > 0
+                    ? `${formatCurrency(timeLoen)} (+ ${formatAmountWithoutTrailingDecimals(samletTimeTillaeg)} kr.)`
                     : formatCurrency(timeLoen);
                 rows.push({
                   key: `ok-offentlig-${af.id}-${labelIso}`,
@@ -1640,6 +1655,32 @@ const EODebug = () => {
                 .filter((entry): entry is Readonly<{ iso: ISODateString; maanedsLoen: number; timeLoen: number }> => Boolean(entry))
                 .filter((entry) => entry.iso > reguleringTableStartIso)
                 .sort((a, b) => (a.iso < b.iso ? -1 : 1));
+
+              if (
+                harAnciennitetstillaeg &&
+                anciennitetDatoIso &&
+                anciennitetDatoIso > reguleringTableStartIso &&
+                anciennitetDatoIso <= tafEndIso &&
+                !laterSatser.some((entry) => entry.iso === anciennitetDatoIso)
+              ) {
+                const danish = isoToDanish(anciennitetDatoIso);
+                if (danish) {
+                  const anciennitetLoen = getOffentligLoenForDato(
+                    offentligSelection.overenskomstType,
+                    danish,
+                    offentligSelection.loentrin,
+                    offentligSelection.loengruppe
+                  );
+                  if (anciennitetLoen) {
+                    laterSatser.push({
+                      iso: anciennitetDatoIso,
+                      maanedsLoen: anciennitetLoen.maanedsLoen,
+                      timeLoen: anciennitetLoen.timeLoen,
+                    });
+                    laterSatser.sort((a, b) => (a.iso < b.iso ? -1 : 1));
+                  }
+                }
+              }
 
               for (const entry of laterSatser) {
                 addRow(entry.iso, entry.maanedsLoen, entry.timeLoen);
@@ -1941,6 +1982,20 @@ const EODebug = () => {
       ];
 
       if (selectedValue.ok) {
+        const forhoejetGrundloenInput = amountValueToNumber(af.offentligLoenEkstraGrundloen);
+        if (
+          typeof forhoejetGrundloenInput === 'number' &&
+          Number.isFinite(forhoejetGrundloenInput) &&
+          forhoejetGrundloenInput > 0
+        ) {
+          rows.push({
+            id: 'regulering.forhoejetGrundloen',
+            label: 'Forhøjet grundløn',
+            displayValue: `+ ${formatCurrency(forhoejetGrundloenInput)} kr.`,
+            status: 'ok',
+          });
+        }
+
         if (loenudviklingBasis === 'Manuelt angivet') {
           rows.push({
             id: 'regulering.navn',

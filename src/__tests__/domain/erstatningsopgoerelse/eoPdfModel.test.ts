@@ -691,6 +691,49 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     assertTotalMatchesSegmentSum(loenudvikling);
   });
 
+  it('håndterer anciennitetstillæg før TAF-start uden segmentfejl i overenskomst-regulering', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
+      maanedsloenenUdgoer: asAmountValue(32000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-05-01'), til: iso('2024-06-30'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-05-2024',
+          tilDato: '01-05-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
+          overenskomstId: 'laerer-overenskomsten',
+          offentligLoenType: 'Månedsløn',
+          offentligLoenTrin: 31,
+          offentligLoenGruppe: 2,
+          feriePct: 17.68,
+          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          harAnciennitetstillaegEfterSkadesdatoen: true,
+          anciennitetstillaegDato: iso('2024-01-15'),
+          anciennitetstillaegSatsAngivesPer: 'Måned',
+          anciennitetstillaegSats: asAmountValue(1000),
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-19') });
+    const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
+
+    expect(loenudvikling?.loenudviklingTotal.status).toBe('ok');
+    assertCoveragePerRange(loenudvikling?.beregnedeSegmenter ?? [], [{ fra: '2024-05-01', til: '2024-06-30' }]);
+    expect((loenudvikling?.beregnedeSegmenter ?? [])[0]?.fra).toBe('2024-05-01');
+  });
+
   it('beregner manuel regulering med flere TAF-perioder', () => {
     const eoValues = makeValues({
       beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],

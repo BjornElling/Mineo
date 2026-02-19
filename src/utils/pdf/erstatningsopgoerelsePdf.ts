@@ -148,8 +148,8 @@ const getLoenindkomstTableHeaders = (loenperiode: Loenperiode): readonly string[
     'Grundløn',
     'Tillæg',
     'Ikke-pens. giv. løn',
-    'ATP og \nikke-FB løn',
-    'Ferieberet. \nløn',
+    'ATP mv.\nu. FP',
+    'Ferieber.\nløn',
     'FP/FV/SH/\nSO/St.B.',
     'Arb.g. Pension',
     'Samlet løn',
@@ -577,8 +577,9 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
   reguleringsdato: ISODateString | undefined;
   tafFra: ISODateString;
   tafTil: ISODateString;
+  tafBeregningsenhed: TafBeregningsenhed;
 }>): ReguleringValuesTableData | null => {
-  const { ansaettelsesforhold, reguleringsdato, tafFra, tafTil } = params;
+  const { ansaettelsesforhold, reguleringsdato, tafFra, tafTil, tafBeregningsenhed } = params;
   // Bevidst forskel: Reguleringsværdier-tabellen må starte tidligere end TAF ved tidlig reguleringsdato.
   const reguleringTableStartIso = resolveReguleringTableStartIso(reguleringsdato, tafFra);
   const grundlag = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
@@ -619,10 +620,10 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
       const hasShSo = tillaegsSatser.some((sats) => sats.shSoSats !== null);
       const hasFritvalg = tillaegsSatser.some((sats) => sats.fritvalg !== null);
       const hasAgPension = tillaegsSatser.some((sats) => sats.agPension !== null);
+      const visMaanedsloen = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER;
       const columns = [
         'Fra-dato',
-        'Månedsløn',
-        'Timeløn',
+        ...(visMaanedsloen ? ['Månedsløn'] : ['Timeløn']),
         ...(hasShSo ? ['SH/SO'] : []),
         ...(hasFritvalg ? ['Fritvalg'] : []),
         ...(hasAgPension ? ['AG pension'] : []),
@@ -642,6 +643,23 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
             ? ekstraGrundloenInput
             : resolveOffentligLoenEkstraGrundloen(ekstraGrundloenInput, 'Måned', 'Time'))
           : 0;
+      const anciennitetDatoIso = parseOptionalIsoDate(ansaettelsesforhold.anciennitetstillaegDato);
+      const anciennitetSatsValue = ansaettelsesforhold.anciennitetstillaegSats?.value;
+      const anciennitetInputPer = ansaettelsesforhold.anciennitetstillaegSatsAngivesPer;
+      const harAnciennitetstillaeg = Boolean(
+        ansaettelsesforhold.harAnciennitetstillaegEfterSkadesdatoen &&
+        anciennitetDatoIso &&
+        anciennitetInputPer &&
+        typeof anciennitetSatsValue === 'number' &&
+        Number.isFinite(anciennitetSatsValue) &&
+        anciennitetSatsValue > 0
+      );
+      const anciennitetMaanedsLoen = harAnciennitetstillaeg
+        ? roundToTwoDecimals(convertAnciennitetSats(anciennitetSatsValue!, anciennitetInputPer!, 'Måned'))
+        : 0;
+      const anciennitetTimeLoen = harAnciennitetstillaeg
+        ? roundToTwoDecimals(convertAnciennitetSats(anciennitetSatsValue!, anciennitetInputPer!, 'Time'))
+        : 0;
       const addRow = (
         labelIso: ISODateString,
         maanedsLoen: number,
@@ -655,18 +673,20 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
               applyAlmindeligLoenPaaShDageRegel
             )
           : undefined;
+        const anciennitetAktiv = Boolean(harAnciennitetstillaeg && anciennitetDatoIso && labelIso >= anciennitetDatoIso);
+        const samletMaanedsTillaeg = ekstraMaanedsLoen + (anciennitetAktiv ? anciennitetMaanedsLoen : 0);
+        const samletTimeTillaeg = ekstraTimeLoen + (anciennitetAktiv ? anciennitetTimeLoen : 0);
         const maanedsLoenDisplay =
-          ekstraMaanedsLoen > 0
-            ? `${formatCurrency(maanedsLoen)} (+${formatAmountWithoutTrailingDecimals(ekstraMaanedsLoen)} kr.)`
+          samletMaanedsTillaeg > 0
+            ? `${formatCurrency(maanedsLoen)} (+ ${formatAmountWithoutTrailingDecimals(samletMaanedsTillaeg)} kr.)`
             : formatCurrency(maanedsLoen);
         const timeLoenDisplay =
-          ekstraTimeLoen > 0
-            ? `${formatCurrency(timeLoen)} (+${formatAmountWithoutTrailingDecimals(ekstraTimeLoen)} kr.)`
+          samletTimeTillaeg > 0
+            ? `${formatCurrency(timeLoen)} (+ ${formatAmountWithoutTrailingDecimals(samletTimeTillaeg)} kr.)`
             : formatCurrency(timeLoen);
         rows.push([
           labelDato ?? labelIso,
-          maanedsLoenDisplay,
-          timeLoenDisplay,
+          visMaanedsloen ? maanedsLoenDisplay : timeLoenDisplay,
           ...(hasShSo ? [formatOverenskomstPercent(tillaegSats?.shSoSats)] : []),
           ...(hasFritvalg ? [formatOverenskomstPercent(tillaegSats?.fritvalg)] : []),
           ...(hasAgPension ? [formatOverenskomstPercent(tillaegSats?.agPension)] : []),
@@ -685,6 +705,9 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
         const iso = parseDanishToISO(entry.fraDato);
         if (!iso) continue;
         if (iso > reguleringTableStartIso && iso <= tafTil) rowDates.add(iso);
+      }
+      if (harAnciennitetstillaeg && anciennitetDatoIso && anciennitetDatoIso > reguleringTableStartIso && anciennitetDatoIso <= tafTil) {
+        rowDates.add(anciennitetDatoIso);
       }
 
       const sortedDates = Array.from(rowDates).sort((a, b) => (a < b ? -1 : 1));
@@ -987,13 +1010,14 @@ const buildReguleringIndexRows = (params: Readonly<{
     const roundedSupplement = roundToTwoDecimals(supplementValue);
     if (!Number.isFinite(roundedSupplement) || roundedSupplement <= 0) return null;
     return {
-      activeFromIso: anciennitetDato < tafStartIso ? tafStartIso : anciennitetDato,
+      activeFromIso: anciennitetDato,
+      segmentBoundaryIso: anciennitetDato < tafStartIso ? tafStartIso : anciennitetDato,
       supplementValue: roundedSupplement,
     };
   })();
 
-  const segmentsForCalc = anciennitetForIndex
-    ? splitSegmentsAtBoundary(segments, anciennitetForIndex.activeFromIso)
+  const segmentsForCalc = anciennitetForIndex && anciennitetForIndex.segmentBoundaryIso > tafStartIso
+    ? splitSegmentsAtBoundary(segments, anciennitetForIndex.segmentBoundaryIso)
     : segments;
 
   if (
@@ -1073,7 +1097,10 @@ const buildReguleringIndexRows = (params: Readonly<{
       const hasStoreBededag =
         applyAlmindeligLoenPaaShDageRegel &&
         (reguleringsdato >= STORE_BEDEDAG_START || segmentsForCalc.some((segment) => segment.til >= STORE_BEDEDAG_START));
-      const baseValue = (loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen) + offentligLoenEkstraGrundloen;
+      const baseAnciennitet = anciennitetForIndex && reguleringsdato >= anciennitetForIndex.activeFromIso
+        ? anciennitetForIndex.supplementValue
+        : 0;
+      const baseValue = (loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen) + offentligLoenEkstraGrundloen + baseAnciennitet;
       const baseComponents: FormulaComponents = {
         baseValue,
         feriePct: typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0,
@@ -1104,8 +1131,11 @@ const buildReguleringIndexRows = (params: Readonly<{
               applyAlmindeligLoenPaaShDageRegel
             )
           : undefined;
+        const segmentAnciennitet = anciennitetForIndex && segment.fra >= anciennitetForIndex.activeFromIso
+          ? anciennitetForIndex.supplementValue
+          : 0;
         const segmentBase =
-          (loenType === 'maanedsLoen' ? segmentResult.maanedsLoen : segmentResult.timeLoen) + offentligLoenEkstraGrundloen;
+          (loenType === 'maanedsLoen' ? segmentResult.maanedsLoen : segmentResult.timeLoen) + offentligLoenEkstraGrundloen + segmentAnciennitet;
         const components: FormulaComponents = {
           baseValue: segmentBase,
           feriePct: typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0,
@@ -1120,21 +1150,8 @@ const buildReguleringIndexRows = (params: Readonly<{
           showPension: hasAgPension,
           showStoreBededag: hasStoreBededag,
         };
-        const anciennitetAktiv = Boolean(anciennitetForIndex && segment.fra >= anciennitetForIndex.activeFromIso);
-        const formula = (() => {
-          if (!anciennitetAktiv || !anciennitetForIndex) return buildFormulaText(components, visibility);
-          const original = buildFormulaText(components, visibility);
-          const suffixIndex = original.indexOf(' x ');
-          const suffix = suffixIndex >= 0 ? original.slice(suffixIndex) : '';
-          return `(${formatCurrency(components.baseValue)}+${formatCurrency(anciennitetForIndex.supplementValue)})${suffix}`;
-        })();
-        const valueRaw = (() => {
-          if (!anciennitetAktiv || !anciennitetForIndex) return computeFormulaValue(components);
-          return computeFormulaValue({
-            ...components,
-            baseValue: components.baseValue + anciennitetForIndex.supplementValue,
-          });
-        })();
+        const formula = buildFormulaText(components, visibility);
+        const valueRaw = computeFormulaValue(components);
         const indeksValue = baseValueRaw > 0 ? (valueRaw / baseValueRaw) * 100 : Number.NaN;
         const indeksDisplay = Number.isFinite(indeksValue) ? formatIndexValue(indeksValue) : '-';
         const indeksberegning = buildIndexFormulaDisplay(
@@ -1182,8 +1199,11 @@ const buildReguleringIndexRows = (params: Readonly<{
           lastSegmentEndIso >= STORE_BEDEDAG_START
         );
         const feriePct = typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0;
+        const baseAnciennitet = anciennitetForIndex && reguleringsdato >= anciennitetForIndex.activeFromIso
+          ? anciennitetForIndex.supplementValue
+          : 0;
         const baseComponents: FormulaComponents = {
-          baseValue: baseSats.grundloen ?? 0,
+          baseValue: (baseSats.grundloen ?? 0) + baseAnciennitet,
           feriePct,
           fritvalgPct: percentFromDecimal(baseSats.fritvalg),
           shSoPct: percentFromDecimal(baseSats.shSoSats),
@@ -1215,8 +1235,11 @@ const buildReguleringIndexRows = (params: Readonly<{
 
           const storeBededagPct =
             applyStoreBededagRegulering && segment.fra >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
+          const segmentAnciennitet = anciennitetForIndex && segment.fra >= anciennitetForIndex.activeFromIso
+            ? anciennitetForIndex.supplementValue
+            : 0;
           const components: FormulaComponents = {
-            baseValue: sats.grundloen ?? 0,
+            baseValue: (sats.grundloen ?? 0) + segmentAnciennitet,
             feriePct,
             fritvalgPct: percentFromDecimal(sats.fritvalg),
             shSoPct: percentFromDecimal(sats.shSoSats),
@@ -1229,21 +1252,8 @@ const buildReguleringIndexRows = (params: Readonly<{
             showPension: hasAgPension,
             showStoreBededag: applyStoreBededagRegulering,
           };
-          const anciennitetAktiv = Boolean(anciennitetForIndex && segment.fra >= anciennitetForIndex.activeFromIso);
-          const formula = (() => {
-            if (!anciennitetAktiv || !anciennitetForIndex) return buildFormulaText(components, visibility);
-            const original = buildFormulaText(components, visibility);
-            const suffixIndex = original.indexOf(' x ');
-            const suffix = suffixIndex >= 0 ? original.slice(suffixIndex) : '';
-            return `(${formatCurrency(components.baseValue)}+${formatCurrency(anciennitetForIndex.supplementValue)})${suffix}`;
-          })();
-          const valueRaw = (() => {
-            if (!anciennitetAktiv || !anciennitetForIndex) return computeFormulaValue(components);
-            return computeFormulaValue({
-              ...components,
-              baseValue: components.baseValue + anciennitetForIndex.supplementValue,
-            });
-          })();
+          const formula = buildFormulaText(components, visibility);
+          const valueRaw = computeFormulaValue(components);
           const indeksValue = baseValueRaw > 0 ? (valueRaw / baseValueRaw) * 100 : Number.NaN;
           const indeksDisplay = Number.isFinite(indeksValue) ? formatIndexValue(indeksValue) : '-';
           const indeksberegning = buildIndexFormulaDisplay(

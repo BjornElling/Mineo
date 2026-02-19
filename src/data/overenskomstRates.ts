@@ -227,7 +227,7 @@ const offentligeOverenskomster: ReadonlyArray<OffentligOverenskomstMeta> = [
   {
     offentligType: 'KL',
     id: toOverenskomstId('laerer-overenskomsten'),
-    navn: 'Lærer-overenskomsten',
+    navn: 'Læreroverenskomsten',
     loenmodtagerOrg: ['Lærernes Centralorganisation'],
     arbejdsgiverOrg: ['KL'],
     grundloenAngivetPer: 'Måned',
