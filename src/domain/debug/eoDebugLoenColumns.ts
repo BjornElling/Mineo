@@ -115,7 +115,12 @@ const buildOverenskomstRegulering = (
     const fraDanish = isoToDanish(tableFra);
     const tilDanish = isoToDanish(tableTil);
     if (fraDanish && tilDanish) {
-      const tillaegsSatser = getOffentligTillaegsSatserForPeriode(overenskomstIdRaw, fraDanish, tilDanish, false);
+      const tillaegsSatser = getOffentligTillaegsSatserForPeriode(
+        overenskomstIdRaw,
+        fraDanish,
+        tilDanish,
+        applyAlmindeligLoenPaaShDageRegel
+      );
       for (const sats of tillaegsSatser) {
         const iso = parseOffentligDato(sats.fraDato);
         if (!iso) continue;

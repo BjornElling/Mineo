@@ -49,6 +49,8 @@ import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
   convertAnciennitetSats,
+  numOrZero,
+  resolveOffentligLoenEkstraGrundloen,
   roundToTwoDecimals,
   resolveReguleringsdato as resolveReguleringsdatoShared,
   resolveStatistikModelId,
@@ -1009,6 +1011,13 @@ const parseManualPercentToPct = (value: string | undefined): number => parsePerc
 const resolveStatistikModelIdFromLabel = (label: string): StatistiskLoenudviklingId | undefined =>
   resolveStatistikModelId(label);
 
+/**
+ * Beregner samlet lønpakkeværdi for reguleringsindeks i PDF-modellen.
+ *
+ * Procent-konvention i denne funktion:
+ * - Alle procentsatser angives som hele pct-tal (fx `17.3` for 17,3 %).
+ * - Funktionen dividerer derfor procentsatser med 100 internt.
+ */
 const computePackageValue = (args: {
   grundloen: number;
   feriePct: number;
@@ -1229,6 +1238,14 @@ const resolveReguleringsStrategiV3 = (
       assertUniformV3(active, (af) => af.offentligLoenType ?? '', 'offentlig løntype');
       assertUniformV3(active, (af) => af.offentligLoenTrin ?? null, 'offentlig løntrin');
       assertUniformV3(active, (af) => af.offentligLoenGruppe ?? null, 'offentlig løngruppe');
+      assertUniformV3(
+        active,
+        (af) => {
+          const value = amountValueToNumber(af.offentligLoenEkstraGrundloen);
+          return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0;
+        },
+        'offentlig løn ekstra grundløn'
+      );
     }
   } else if (strategi === 'manual') {
     assertUniformV3(active, (af) => normalizeManualRowsV3(af.loenudviklingManuelTableData ?? []), 'manuelle reguleringsraekker');
@@ -1556,17 +1573,17 @@ const buildLoenudviklingFromOverenskomstV3 = (
 
   const offentlig = konsolideret.offentlig;
   if (offentlig) {
-    const offentligLoenEkstraGrundloen = (() => {
-      const raw = konsolideret.offentligLoenEkstraGrundloen;
-      if (!Number.isFinite(raw) || raw <= 0) return 0;
-      const inputPer = konsolideret.tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måned' : 'Time';
-      const grundloenPer = offentlig.loenType === 'maanedsLoen' ? 'Måned' : 'Time';
-      return roundToTwoDecimals(convertAnciennitetSats(raw, inputPer, grundloenPer));
-    })();
+    const applyShRegel = konsolideret.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
+    const offentligLoenEkstraGrundloen = resolveOffentligLoenEkstraGrundloen(
+      konsolideret.offentligLoenEkstraGrundloen,
+      konsolideret.tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måned' : 'Time',
+      offentlig.loenType === 'maanedsLoen' ? 'Måned' : 'Time'
+    );
     const feriePct = konsolideret.feriePct;
     const baseTillaegsSatser = getOffentligTillaegsSatserForDato(
       konsolideret.overenskomstId,
-      reguleringsdatoDa
+      reguleringsdatoDa,
+      applyShRegel
     );
     const baseResult = getOffentligLoenForDato(
       offentlig.overenskomstType,
@@ -1581,10 +1598,10 @@ const buildLoenudviklingFromOverenskomstV3 = (
     const basePackage = computePackageValue({
       grundloen: baseLoen,
       feriePct,
-      shSoPct: typeof baseTillaegsSatser?.shSoSats === 'number' ? baseTillaegsSatser.shSoSats * 100 : 0,
-      fritvalgPct: typeof baseTillaegsSatser?.fritvalg === 'number' ? baseTillaegsSatser.fritvalg * 100 : 0,
-      pensionPct: typeof baseTillaegsSatser?.agPension === 'number' ? baseTillaegsSatser.agPension * 100 : 0,
-      storeBededagPct: 0,
+      shSoPct: numOrZero(baseTillaegsSatser?.shSoSats) * 100,
+      fritvalgPct: numOrZero(baseTillaegsSatser?.fritvalg) * 100,
+      pensionPct: numOrZero(baseTillaegsSatser?.agPension) * 100,
+      storeBededagPct: applyShRegel && konsolideret.reguleringsdato >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0,
     });
     if (!Number.isFinite(basePackage) || basePackage <= 0) {
       throw new Error('Loenudvikling kan ikke beregnes: basispakke er ugyldig');
@@ -1605,7 +1622,12 @@ const buildLoenudviklingFromOverenskomstV3 = (
         offentlig.loentrin,
         offentlig.loengruppe
       );
-      const tillaegsSatser = getOffentligTillaegsSatserForPeriode(konsolideret.overenskomstId, fraDa, tilDa);
+      const tillaegsSatser = getOffentligTillaegsSatserForPeriode(
+        konsolideret.overenskomstId,
+        fraDa,
+        tilDa,
+        applyShRegel
+      );
 
       const starts = new Set<ISODateString>();
       for (const sats of satser) {
@@ -1634,7 +1656,11 @@ const buildLoenudviklingFromOverenskomstV3 = (
         if (!segmentResult) {
           throw new Error('Loenudvikling kan ikke beregnes: mangler sats for segment');
         }
-        const segmentTillaegsSatser = getOffentligTillaegsSatserForDato(konsolideret.overenskomstId, segmentDa);
+        const segmentTillaegsSatser = getOffentligTillaegsSatserForDato(
+          konsolideret.overenskomstId,
+          segmentDa,
+          applyShRegel
+        );
         const segmentLoen = offentlig.loenType === 'maanedsLoen'
           ? segmentResult.maanedsLoen
           : segmentResult.timeLoen;
@@ -1646,10 +1672,10 @@ const buildLoenudviklingFromOverenskomstV3 = (
         const packageValue = computePackageValue({
           grundloen: grundloenForSegment,
           feriePct,
-          shSoPct: typeof segmentTillaegsSatser?.shSoSats === 'number' ? segmentTillaegsSatser.shSoSats * 100 : 0,
-          fritvalgPct: typeof segmentTillaegsSatser?.fritvalg === 'number' ? segmentTillaegsSatser.fritvalg * 100 : 0,
-          pensionPct: typeof segmentTillaegsSatser?.agPension === 'number' ? segmentTillaegsSatser.agPension * 100 : 0,
-          storeBededagPct: 0,
+          shSoPct: numOrZero(segmentTillaegsSatser?.shSoSats) * 100,
+          fritvalgPct: numOrZero(segmentTillaegsSatser?.fritvalg) * 100,
+          pensionPct: numOrZero(segmentTillaegsSatser?.agPension) * 100,
+          storeBededagPct: applyShRegel && segment.fra >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0,
         });
         if (!Number.isFinite(packageValue) || packageValue <= 0) {
           throw new Error('Loenudvikling kan ikke beregnes: ugyldig pakkevaerdi for segment');

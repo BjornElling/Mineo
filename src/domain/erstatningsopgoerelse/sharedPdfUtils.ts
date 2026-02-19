@@ -79,6 +79,23 @@ export const roundToFourDecimals = (value: number): number => Math.round(value *
 export const formatAmount2 = (value: number): string =>
   value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+export const formatAmountWithoutTrailingDecimals = (value: number): string => {
+  const formatted = formatAmount2(value);
+  return formatted.endsWith(',00') ? formatted.slice(0, -3) : formatted;
+};
+
+export const numOrZero = (value: number | null | undefined): number =>
+  typeof value === 'number' && Number.isFinite(value) ? value : 0;
+
+export const resolveOffentligLoenEkstraGrundloen = (
+  rawAmount: number | undefined,
+  inputPer: 'Måned' | 'Time',
+  grundloenPer: 'Måned' | 'Time'
+): number => {
+  if (typeof rawAmount !== 'number' || !Number.isFinite(rawAmount) || rawAmount <= 0) return 0;
+  return roundToTwoDecimals(convertAnciennitetSats(rawAmount, inputPer, grundloenPer));
+};
+
 export const addOneDayIso = (iso: ISODateString): ISODateString | null => {
   const date = new Date(`${iso}T00:00:00Z`);
   if (!Number.isFinite(date.getTime())) return null;

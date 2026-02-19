@@ -105,6 +105,10 @@ const formatReguleringsDatoInterval = (interval?: { fraDato: string; tilDato: st
   return `${interval.fraDato} - ${interval.tilDato}`;
 };
 
+const getOffentligLoenEkstraGrundloenSuffix = (
+  offentligLoenType: Ansaettelsesforhold['offentligLoenType']
+): string => (offentligLoenType === 'Timeløn' ? '/ time' : '/ måned');
+
 /**
  * Opretter et nyt tomt Ansættelsesforhold med standardværdier fra settings
  *
@@ -303,7 +307,11 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
       // null i overenskomst behandles som 0
       let expectedValue: number;
       if (isOffentligOverenskomstId(overenskomstId)) {
-        const tillaegSatser = getOffentligTillaegsSatserForDato(overenskomstId, danishDate);
+        const tillaegSatser = getOffentligTillaegsSatserForDato(
+          overenskomstId,
+          danishDate,
+          applyAlmindeligLoenPaaShDageRegel
+        );
         if (!tillaegSatser) return undefined;
         switch (fieldName) {
           case 'fritvalgPct':
@@ -487,12 +495,6 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
   // Hent alle organisationer
   const alleLoenmodtagerOrg = React.useMemo(() => getAlleLoenmodtagerOrg(), []);
   const alleArbejdsgiverOrg = React.useMemo(() => getAlleArbejdsgiverOrg(), []);
-  const getOffentligLoenEkstraGrundloenSuffix = React.useCallback(
-    (offentligLoenType: Ansaettelsesforhold['offentligLoenType']) =>
-      offentligLoenType === 'Timeløn' ? '/ time' : '/ måned',
-    []
-  );
-
   const updateAnsaettelsesforhold = React.useCallback(
     (id: string, updater: (prev: Ansaettelsesforhold) => Ansaettelsesforhold) => {
       setValues((prev) => {

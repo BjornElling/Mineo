@@ -230,7 +230,7 @@ const offentligeOverenskomster: ReadonlyArray<OffentligOverenskomstMeta> = [
     navn: 'Lærer-overenskomsten',
     loenmodtagerOrg: ['Lærernes Centralorganisation'],
     arbejdsgiverOrg: ['KL'],
-    grundloenAngivetPer: 'Time',
+    grundloenAngivetPer: 'Måned',
   },
 ];
 

@@ -12,6 +12,7 @@ import { formatCurrency, formatPercent } from '../formatUtils';
 import { parseDanishDate, formatDanishDate, createDate } from '../dateUtils';
 import { aarsloenMax } from '../../data/regulationRates';
 import { TODAY } from '../../config/dateRanges';
+import { formatAmountWithoutTrailingDecimals } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import {
   getEffektiveSatserForPeriode,
   getOffentligTillaegsSatserForDato,
@@ -112,8 +113,7 @@ const resolveOffentligLoenEkstraGrundloenTekst = (params: Readonly<{
   if (offentligLoenEkstraGrundloen <= 0) return null;
 
   const enhed = offentligLoenType === 'Timeløn' ? 'time' : 'måned';
-  const formatted = formatCurrency(offentligLoenEkstraGrundloen);
-  const udenDecimaler = formatted.endsWith(',00') ? formatted.slice(0, -3) : formatted;
+  const udenDecimaler = formatAmountWithoutTrailingDecimals(offentligLoenEkstraGrundloen);
   return `${udenDecimaler} kr./${enhed}`;
 };
 

@@ -2,7 +2,11 @@ import type { RowInput } from 'jspdf-autotable';
 import { getGrundloenAngivetPerForOverenskomst, getOffentligOverenskomstTypeById } from '../../../../data/overenskomstRates';
 import { resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
-import { formatAmount2, formatAnciennitetConversion } from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
+import {
+  formatAmount2,
+  formatAmountWithoutTrailingDecimals,
+  formatAnciennitetConversion,
+} from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import type { ISODateString } from '../../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
@@ -93,10 +97,6 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
   const toSentenceCase = (value: string): string => {
     if (value.length === 0) return value;
     return `${value.charAt(0).toLocaleUpperCase('da-DK')}${value.slice(1)}`;
-  };
-  const formatAmountWithoutTrailingDecimals = (value: number): string => {
-    const formatted = value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return formatted.endsWith(',00') ? formatted.slice(0, -3) : formatted;
   };
 
   const tafBeregnesSom = computeTafBeregningsenhed(eoValues);
@@ -247,7 +247,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
           const enhed = ansaettelsesforhold.offentligLoenType === 'Timeløn' ? 'time' : 'måned';
           writeLabelValueLine(
             'Forhøjet grundløn',
-            `${formatAmountWithoutTrailingDecimals(ekstraGrundloen)} kr. / ${enhed}`
+            `${formatAmountWithoutTrailingDecimals(ekstraGrundloen)} kr./${enhed}`
           );
         }
       }

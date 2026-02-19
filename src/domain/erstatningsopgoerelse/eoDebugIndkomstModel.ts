@@ -95,7 +95,11 @@ const validateOverenskomstSats = (
   let expectedValue: number | undefined;
 
   if (isOffentligOverenskomstId(overenskomstId)) {
-    const tillaegSatser = getOffentligTillaegsSatserForDato(overenskomstId, danishDate);
+    const tillaegSatser = getOffentligTillaegsSatserForDato(
+      overenskomstId,
+      danishDate,
+      applyAlmindeligLoenPaaShDageRegel
+    );
     if (!tillaegSatser) return false;
     if (fieldName === 'fritvalgPct') {
       expectedValue = tillaegSatser.fritvalg ?? 0;

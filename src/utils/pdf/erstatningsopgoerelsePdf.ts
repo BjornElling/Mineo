@@ -45,6 +45,9 @@ import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
   convertAnciennitetSats,
+  formatAmountWithoutTrailingDecimals,
+  numOrZero,
+  resolveOffentligLoenEkstraGrundloen,
   resolveReguleringsdato as resolveReguleringsdatoShared,
   resolveStatistikModelId,
   parseOptionalIsoDate as parseOptionalIsoDateShared,
@@ -119,11 +122,6 @@ const formatMoneyOreWithKrTrimmed = (ore: MoneyOre): string => `${formatCurrency
 
 const isLoengruppe = (value: number): value is Loengruppe =>
   Number.isInteger(value) && value >= 0 && value <= 4;
-
-const formatCurrencyWithoutTrailingDecimals = (value: number): string => {
-  const formatted = formatCurrency(value);
-  return formatted.endsWith(',00') ? formatted.slice(0, -3) : formatted;
-};
 
 const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
 
@@ -606,6 +604,7 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
       const fraDato = isoToDanish(reguleringTableStartIso);
       const tilDato = isoToDanish(tafTil);
       if (!fraDato || !tilDato) return null;
+      const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
 
       const baseResult = getOffentligLoenForDato(offentligType, fraDato, loentrin, gruppeValue);
       if (!baseResult) return null;
@@ -615,7 +614,7 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
         overenskomstId,
         fraDato,
         tilDato,
-        ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn'
+        applyAlmindeligLoenPaaShDageRegel
       );
       const hasShSo = tillaegsSatser.some((sats) => sats.shSoSats !== null);
       const hasFritvalg = tillaegsSatser.some((sats) => sats.fritvalg !== null);
@@ -630,22 +629,18 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
       ];
 
       const rows: string[][] = [];
-      const ekstraGrundloenRaw = amountValueToNumber(ansaettelsesforhold.offentligLoenEkstraGrundloen);
-      const ekstraGrundloenInput =
-        typeof ekstraGrundloenRaw === 'number' && Number.isFinite(ekstraGrundloenRaw) && ekstraGrundloenRaw > 0
-          ? roundToTwoDecimals(ekstraGrundloenRaw)
-          : 0;
+      const ekstraGrundloenInput = numOrZero(amountValueToNumber(ansaettelsesforhold.offentligLoenEkstraGrundloen));
       const ekstraMaanedsLoen =
         ekstraGrundloenInput > 0
-          ? (loenType === 'maanedsLoen'
+            ? (loenType === 'maanedsLoen'
             ? ekstraGrundloenInput
-            : roundToTwoDecimals(convertAnciennitetSats(ekstraGrundloenInput, 'Time', 'Måned')))
+            : resolveOffentligLoenEkstraGrundloen(ekstraGrundloenInput, 'Time', 'Måned'))
           : 0;
       const ekstraTimeLoen =
         ekstraGrundloenInput > 0
           ? (loenType === 'timeLoen'
             ? ekstraGrundloenInput
-            : roundToTwoDecimals(convertAnciennitetSats(ekstraGrundloenInput, 'Måned', 'Time')))
+            : resolveOffentligLoenEkstraGrundloen(ekstraGrundloenInput, 'Måned', 'Time'))
           : 0;
       const addRow = (
         labelIso: ISODateString,
@@ -657,16 +652,16 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
           ? getOffentligTillaegsSatserForDato(
               overenskomstId,
               labelDato,
-              ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn'
+              applyAlmindeligLoenPaaShDageRegel
             )
           : undefined;
         const maanedsLoenDisplay =
           ekstraMaanedsLoen > 0
-            ? `${formatCurrency(maanedsLoen)} (+${formatCurrencyWithoutTrailingDecimals(ekstraMaanedsLoen)} kr.)`
+            ? `${formatCurrency(maanedsLoen)} (+${formatAmountWithoutTrailingDecimals(ekstraMaanedsLoen)} kr.)`
             : formatCurrency(maanedsLoen);
         const timeLoenDisplay =
           ekstraTimeLoen > 0
-            ? `${formatCurrency(timeLoen)} (+${formatCurrencyWithoutTrailingDecimals(ekstraTimeLoen)} kr.)`
+            ? `${formatCurrency(timeLoen)} (+${formatAmountWithoutTrailingDecimals(ekstraTimeLoen)} kr.)`
             : formatCurrency(timeLoen);
         rows.push([
           labelDato ?? labelIso,
@@ -680,18 +675,25 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
 
       addRow(reguleringTableStartIso, baseResult.maanedsLoen, baseResult.timeLoen);
 
-      const later = satser
-        .map((entry) => {
-          const iso = parseDanishToISO(entry.effectiveDate);
-          if (!iso) return null;
-          return { iso, maanedsLoen: entry.maanedsLoen, timeLoen: entry.timeLoen };
-        })
-        .filter((entry): entry is Readonly<{ iso: ISODateString; maanedsLoen: number; timeLoen: number }> => Boolean(entry))
-        .filter((entry) => entry.iso > reguleringTableStartIso)
-        .sort((a, b) => (a.iso < b.iso ? -1 : 1));
+      const rowDates = new Set<ISODateString>();
+      for (const entry of satser) {
+        const iso = parseDanishToISO(entry.effectiveDate);
+        if (!iso) continue;
+        if (iso > reguleringTableStartIso && iso <= tafTil) rowDates.add(iso);
+      }
+      for (const entry of tillaegsSatser) {
+        const iso = parseDanishToISO(entry.fraDato);
+        if (!iso) continue;
+        if (iso > reguleringTableStartIso && iso <= tafTil) rowDates.add(iso);
+      }
 
-      for (const entry of later) {
-        addRow(entry.iso, entry.maanedsLoen, entry.timeLoen);
+      const sortedDates = Array.from(rowDates).sort((a, b) => (a < b ? -1 : 1));
+      for (const iso of sortedDates) {
+        const danish = isoToDanish(iso);
+        if (!danish) continue;
+        const loen = getOffentligLoenForDato(offentligType, danish, loentrin, gruppeValue);
+        if (!loen) continue;
+        addRow(iso, loen.maanedsLoen, loen.timeLoen);
       }
 
       return { columns, rows };
@@ -899,6 +901,8 @@ const buildReguleringIndexRows = (params: Readonly<{
   const tafEndIso = segments[segments.length - 1].til;
   const loenudviklingBasis = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
   const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
+  const getStoreBededagPct = (iso: ISODateString): number =>
+    applyAlmindeligLoenPaaShDageRegel && iso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
   const statistikModelLabel = (ansaettelsesforhold.loenudviklingStatistikModel ?? '').trim();
   const isStatistik = loenudviklingBasis === 'Statistik';
   const isKRL = loenudviklingBasis === 'KRL satstabel';
@@ -1017,9 +1021,6 @@ const buildReguleringIndexRows = (params: Readonly<{
     const offentligType = getOffentligOverenskomstTypeById(ansaettelsesforhold.overenskomstId);
     if (offentligType) {
       const offentligOverenskomstId = ansaettelsesforhold.overenskomstId;
-      if (!offentligOverenskomstId) {
-        return mergeConsecutiveRowsWithSameCalculation(segments.map(fallbackRowWithIso));
-      }
       const baseDato = isoToDanish(reguleringsdato);
       const loenType = resolveOffentligLoenTypeFromLabel(ansaettelsesforhold.offentligLoenType);
       const trinValue = ansaettelsesforhold.offentligLoenTrin;
@@ -1039,13 +1040,11 @@ const buildReguleringIndexRows = (params: Readonly<{
 
       const baseResult = getOffentligLoenForDato(offentligType, baseDato, loentrin, gruppeValue);
       if (!baseResult) return mergeConsecutiveRowsWithSameCalculation(segments.map(fallbackRowWithIso));
-      const inputPer = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måned' : 'Time';
-      const grundloenPer = loenType === 'maanedsLoen' ? 'Måned' : 'Time';
-      const offentligLoenEkstraGrundloen = (() => {
-        const raw = amountValueToNumber(ansaettelsesforhold.offentligLoenEkstraGrundloen);
-        if (typeof raw !== 'number' || !Number.isFinite(raw) || raw <= 0) return 0;
-        return roundToTwoDecimals(convertAnciennitetSats(raw, inputPer, grundloenPer));
-      })();
+      const offentligLoenEkstraGrundloen = resolveOffentligLoenEkstraGrundloen(
+        amountValueToNumber(ansaettelsesforhold.offentligLoenEkstraGrundloen),
+        tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måned' : 'Time',
+        loenType === 'maanedsLoen' ? 'Måned' : 'Time'
+      );
       const baseTillaegsSatser = getOffentligTillaegsSatserForDato(
         offentligOverenskomstId,
         baseDato,
@@ -1071,20 +1070,23 @@ const buildReguleringIndexRows = (params: Readonly<{
       const hasAgPension =
         (baseTillaegsSatser?.agPension ?? null) !== null ||
         periodeTillaegsSatser.some((sats) => sats.agPension !== null);
+      const hasStoreBededag =
+        applyAlmindeligLoenPaaShDageRegel &&
+        (reguleringsdato >= STORE_BEDEDAG_START || segmentsForCalc.some((segment) => segment.til >= STORE_BEDEDAG_START));
       const baseValue = (loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen) + offentligLoenEkstraGrundloen;
       const baseComponents: FormulaComponents = {
         baseValue,
-        feriePct: 0,
-        fritvalgPct: percentFromDecimal(baseTillaegsSatser?.fritvalg),
-        shSoPct: percentFromDecimal(baseTillaegsSatser?.shSoSats),
-        pensionPct: percentFromDecimal(baseTillaegsSatser?.agPension),
-        storeBededagPct: 0,
+        feriePct: typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0,
+        fritvalgPct: percentFromDecimal(numOrZero(baseTillaegsSatser?.fritvalg)),
+        shSoPct: percentFromDecimal(numOrZero(baseTillaegsSatser?.shSoSats)),
+        pensionPct: percentFromDecimal(numOrZero(baseTillaegsSatser?.agPension)),
+        storeBededagPct: getStoreBededagPct(reguleringsdato),
       };
       const baseVisibility: FormulaVisibility = {
         showFritvalg: hasFritvalg,
         showShSo: hasShSo,
         showPension: hasAgPension,
-        showStoreBededag: false,
+        showStoreBededag: hasStoreBededag,
       };
       const baseFormula = buildFormulaText(baseComponents, baseVisibility);
       const baseValueRaw = computeFormulaValue(baseComponents);
@@ -1106,17 +1108,17 @@ const buildReguleringIndexRows = (params: Readonly<{
           (loenType === 'maanedsLoen' ? segmentResult.maanedsLoen : segmentResult.timeLoen) + offentligLoenEkstraGrundloen;
         const components: FormulaComponents = {
           baseValue: segmentBase,
-          feriePct: 0,
-          fritvalgPct: percentFromDecimal(segmentTillaegsSatser?.fritvalg),
-          shSoPct: percentFromDecimal(segmentTillaegsSatser?.shSoSats),
-          pensionPct: percentFromDecimal(segmentTillaegsSatser?.agPension),
-          storeBededagPct: 0,
+          feriePct: typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0,
+          fritvalgPct: percentFromDecimal(numOrZero(segmentTillaegsSatser?.fritvalg)),
+          shSoPct: percentFromDecimal(numOrZero(segmentTillaegsSatser?.shSoSats)),
+          pensionPct: percentFromDecimal(numOrZero(segmentTillaegsSatser?.agPension)),
+          storeBededagPct: getStoreBededagPct(segment.fra),
         };
         const visibility: FormulaVisibility = {
           showFritvalg: hasFritvalg,
           showShSo: hasShSo,
           showPension: hasAgPension,
-          showStoreBededag: false,
+          showStoreBededag: hasStoreBededag,
         };
         const anciennitetAktiv = Boolean(anciennitetForIndex && segment.fra >= anciennitetForIndex.activeFromIso);
         const formula = (() => {

@@ -26,7 +26,7 @@ import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/formatUtils';
 import { svieSmertePrDag } from '../../data/regulationRates';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
-import { convertAnciennitetSats, roundToTwoDecimals } from '../erstatningsopgoerelse/sharedPdfUtils';
+import { numOrZero, resolveOffentligLoenEkstraGrundloen } from '../erstatningsopgoerelse/sharedPdfUtils';
 
 const STORE_BEDEDAG_PCT = 0.0045;
 const STORE_BEDEDAG_START = '2024-01-01';
@@ -158,14 +158,13 @@ export function buildLoenTimeline(input: LoenCoreInput): LoenTimeline {
   const loenPaaHelligdage = af?.loenPaaHelligdage;
   const offentligSelection = resolveOffentligLoenSelection(af);
   const tafBeregningsenhed = computeTafBeregningsenhed(input.eoValues);
-  const offentligLoenEkstraGrundloen = (() => {
-    if (!af || !offentligSelection) return 0;
-    const raw = amountValueToNumber(af.offentligLoenEkstraGrundloen);
-    if (typeof raw !== 'number' || !Number.isFinite(raw) || raw <= 0) return 0;
-    const inputPer = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måned' : 'Time';
-    const grundloenPer = offentligSelection.loenType === 'maanedsLoen' ? 'Måned' : 'Time';
-    return roundToTwoDecimals(convertAnciennitetSats(raw, inputPer, grundloenPer));
-  })();
+  const offentligLoenEkstraGrundloen = af && offentligSelection
+    ? resolveOffentligLoenEkstraGrundloen(
+        amountValueToNumber(af.offentligLoenEkstraGrundloen),
+        tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måned' : 'Time',
+        offentligSelection.loenType === 'maanedsLoen' ? 'Måned' : 'Time'
+      )
+    : 0;
 
   for (const debugDay of input.debugDays) {
     // Svie/smerte: kalenderdage, separat
@@ -193,6 +192,7 @@ export function buildLoenTimeline(input: LoenCoreInput): LoenTimeline {
 
     if (offentligSelection) {
       if (!af?.overenskomstId) continue;
+      const applyAlmindeligLoenPaaShDageRegel = loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
       const resultat = getOffentligLoenForDato(
         offentligSelection.overenskomstType,
         danishDate,
@@ -200,7 +200,11 @@ export function buildLoenTimeline(input: LoenCoreInput): LoenTimeline {
         offentligSelection.loengruppe
       );
       if (!resultat) continue;
-      const tillaegsSatser = getOffentligTillaegsSatserForDato(af.overenskomstId, danishDate);
+      const tillaegsSatser = getOffentligTillaegsSatserForDato(
+        af.overenskomstId,
+        danishDate,
+        applyAlmindeligLoenPaaShDageRegel
+      );
 
       const grundloen =
         (offentligSelection.loenType === 'maanedsLoen' ? resultat.maanedsLoen : resultat.timeLoen) + offentligLoenEkstraGrundloen;
@@ -208,10 +212,10 @@ export function buildLoenTimeline(input: LoenCoreInput): LoenTimeline {
       const { components, total } = buildLoenComponents({
         grundloen,
         feriePct,
-        shSoPct: typeof tillaegsSatser?.shSoSats === 'number' ? tillaegsSatser.shSoSats : 0,
-        fritvalgPct: typeof tillaegsSatser?.fritvalg === 'number' ? tillaegsSatser.fritvalg : 0,
-        storeBededagPct: 0,
-        pensionPct: typeof tillaegsSatser?.agPension === 'number' ? tillaegsSatser.agPension : 0,
+        shSoPct: numOrZero(tillaegsSatser?.shSoSats),
+        fritvalgPct: numOrZero(tillaegsSatser?.fritvalg),
+        storeBededagPct: getStoreBededagPct(debugDay.iso, loenPaaHelligdage),
+        pensionPct: numOrZero(tillaegsSatser?.agPension),
       });
 
       if (components.length === 0) continue;
