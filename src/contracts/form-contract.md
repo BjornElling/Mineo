@@ -4,6 +4,8 @@
 **Status:** Gældende arkitektur
 **Formål:** At fastlægge ufravigelige regler for form-arkitektur, state-håndtering og validering i Mineo.
 
+---
+
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
 
@@ -288,7 +290,7 @@ Hvis kode:
 - kræver forklaring for at give mening
 - bryder ovenstående regler
 
-👉 **så er den forkert, også selvom den "virker".**
+**så er den forkert, også selvom den "virker".**
 
 Denne kontrakt prioriterer:
 - korrekthed

@@ -5,7 +5,7 @@ This document defines the **required internal pattern** for Mineo’s custom for
 It is a supplement to the normative Form Contract:
 - `src/contracts/form-contract.md`
 
-Mineo is trust‑critical. Any ambiguity in field semantics (draft vs commit vs blur) is treated as a correctness risk.
+Mineo is trust-critical. Any ambiguity in field semantics (draft vs commit vs blur) is treated as a correctness risk.
 
 ## Terms
 

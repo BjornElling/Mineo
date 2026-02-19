@@ -203,7 +203,7 @@ Hvis noget fejler, dokumentér:
 3. **Gentagelig:** (kan fejlen reproduceres konsekvent?)
 4. **Console errors:** (se browser DevTools)
 
-Rapportér til Bjørn med præcis beskrivelse.
+Rapportér via projektets aftalte fejlkanal med præcis beskrivelse.
 
 ---
 

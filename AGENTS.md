@@ -47,8 +47,8 @@ Before creating any new helper/utility, you must actively search relevant shared
 - `src/schemas/*`
 - `src/domain/*`
 - `src/calculation/*`
-- `src/settings/*` (schema/config-nære hjælpefunktioner)
-- `src/types/*` (fælles validerings-/kontrakt-typer)
+- `src/settings/*` (schema/config-adjacent helper functions)
+- `src/types/*` (shared validation/contract types)
 - `src/components/tables/*` (table UI-core utils)
 - Inspect nearby feature-local modules for the same concern
 - Also use repo-wide search by keywords/function names before creating new helpers.

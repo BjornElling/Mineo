@@ -52,7 +52,7 @@ Hvor `FormFieldError` mindst indeholder:
 - `source: 'input' | 'schema' | 'rule'`
 
 **Invariants (normative):**
-- Errors er **runtime-only** og må aldrig persistérs.
+- Errors er **runtime-only** og må aldrig persisteres.
 - En `message` må aldrig være tom/whitespace efter normalisering.
 - Debug må aldrig “gætte” fejl – den må kun læse modellen.
 - UI må aldrig være timing-afhængig: “hvad vises” skal komme fra en deterministisk resolver.
@@ -128,5 +128,4 @@ Der findes to gyldige strategier for debug-visninger:
 - Brug by-source view: `useFormFieldErrorsBySource(pageKey)`
 - Viser input/schema/rule samtidig og gør prioritet synlig
 
-Mineo’s `EODebug` er pt. designet til strategi **B**.
-
+Mineo’s `EODebug` er på nuværende tidspunkt designet til strategi **B**.

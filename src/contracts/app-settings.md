@@ -1,7 +1,7 @@
 # Programindstillinger (App Settings) — Mineo
 
 ## Formål
-Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser) og **ikke** er en del af sagen.
+Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser), og som **ikke** er en del af sagen.
 
 Disse indstillinger er typisk:
 - UI/debug-visning

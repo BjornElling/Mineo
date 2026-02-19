@@ -54,7 +54,7 @@ Alle tastatur-navigation skal:
    - Container intercepter IKKE Enter i textareas
 
 **Teknisk:**
-- Same implementation som Tab (bruger `focusOnly()`)
+- Samme implementering som Tab (bruger `focusOnly()`)
 - Tjekker `activeWidgetHasPopup` før intercept
 
 ---
@@ -78,7 +78,7 @@ Alle tastatur-navigation skal:
 
 ## Popup-widget detection
 
-Container detekterer popup-capable widgets via ARIA semantik:
+Container detekterer popup-widgets via ARIA semantik:
 
 ```typescript
 role="combobox"           // Dropdown-trigger
