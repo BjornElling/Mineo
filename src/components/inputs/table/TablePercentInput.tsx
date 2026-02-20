@@ -456,6 +456,7 @@ const TablePercentInput = React.memo(
                 inputElRef.current = el;
                 assignRef(inputRef, el);
               }}
+              autoComplete="off"
               value={isEditing ? draft : showDraftWhenError ? draft : (displayValue === '' ? '' : `${displayValue} %`)}
               readOnly={isReadOnly}
               disabled={locked}

@@ -437,6 +437,7 @@ const TableAmountInput = React.memo(
                 inputElRef.current = el;
                 assignRef(inputRef, el);
               }}
+              autoComplete="off"
               value={isEditing ? draft : displayValue}
               readOnly={isReadOnly}
               disabled={locked}

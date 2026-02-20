@@ -6,12 +6,14 @@ import { describe, expect, it, vi } from 'vitest';
 import StandardLooseTable from '../../../components/tables/StandardLooseTable';
 import { GridCoreProvider } from '../../../components/tables/gridCoreContext';
 import type { GridCellCoord } from '../../../components/tables/gridCoreTypes';
+import TableAmountInput from '../../../components/inputs/table/TableAmountInput';
 import TableDateInput from '../../../components/inputs/table/TableDateInput';
 import TableIntegerInput from '../../../components/inputs/table/TableIntegerInput';
 import TablePercentInput from '../../../components/inputs/table/TablePercentInput';
 import TableTextInput from '../../../components/inputs/table/TableTextInput';
 import TableWeekInput from '../../../components/inputs/table/TableWeekInput';
 import TableYearInput from '../../../components/inputs/table/TableYearInput';
+import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 
 const gridCell: GridCellCoord = { rowId: 'row-1', colIndex: 0 };
 
@@ -31,6 +33,11 @@ const createGridValue = (editingCell: GridCellCoord | null) => {
 type NoopCase = Readonly<{
   label: string;
   renderInput: (onBlur: (value: string) => void) => React.JSX.Element;
+}>;
+
+type AutoCompleteCase = Readonly<{
+  label: string;
+  renderInput: () => React.JSX.Element;
 }>;
 
 type InvalidPreserveCase = Readonly<{
@@ -126,6 +133,72 @@ const NOOP_CASES: readonly NoopCase[] = [
         gridCell={gridCell}
         value="abc"
         onBlur={(e) => onBlur(e.target.value)}
+      />
+    ),
+  },
+];
+
+const AUTOCOMPLETE_OFF_CASES: readonly AutoCompleteCase[] = [
+  {
+    label: 'amount',
+    renderInput: () => (
+      <TableAmountInput
+        gridCell={gridCell}
+        value={{ kind: 'number', value: 12.34 }}
+      />
+    ),
+  },
+  {
+    label: 'date',
+    renderInput: () => (
+      <TableDateInput
+        gridCell={gridCell}
+        value="01-01-2025"
+      />
+    ),
+  },
+  {
+    label: 'integer',
+    renderInput: () => (
+      <TableIntegerInput
+        gridCell={gridCell}
+        value="42"
+      />
+    ),
+  },
+  {
+    label: 'percent',
+    renderInput: () => (
+      <TablePercentInput
+        gridCell={gridCell}
+        value="12,50"
+      />
+    ),
+  },
+  {
+    label: 'text',
+    renderInput: () => (
+      <TableTextInput
+        gridCell={gridCell}
+        value="abc"
+      />
+    ),
+  },
+  {
+    label: 'week',
+    renderInput: () => (
+      <TableWeekInput
+        gridCell={gridCell}
+        value="1/2025"
+      />
+    ),
+  },
+  {
+    label: 'year',
+    renderInput: () => (
+      <TableYearInput
+        gridCell={gridCell}
+        value="2025"
       />
     ),
   },
@@ -484,6 +557,16 @@ const setupManagedWithOutside = (input: ClickOutsideCommitCase) => {
 describe('table commit-kontrakt', () => {
   const TEST_TIMEOUT_MS = 20000;
 
+  it.each(AUTOCOMPLETE_OFF_CASES)('deaktiverer browser-autocomplete i $label', ({ renderInput }) => {
+    render(
+      <GridCoreProvider value={createGridValue(gridCell)}>
+        {renderInput()}
+      </GridCoreProvider>
+    );
+
+    expect(screen.getByRole('textbox')).toHaveAttribute('autocomplete', 'off');
+  });
+
   it.each(NOOP_CASES)('no-op i $label emitter ikke onBlur-commit', async ({ renderInput }) => {
     const user = userEvent.setup();
     const onBlur = vi.fn<(value: string) => void>();
@@ -491,6 +574,27 @@ describe('table commit-kontrakt', () => {
     render(
       <GridCoreProvider value={createGridValue(gridCell)}>
         {renderInput((value) => onBlur(value))}
+      </GridCoreProvider>
+    );
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.tab();
+
+    expect(onBlur).not.toHaveBeenCalled();
+  });
+
+  it('no-op i amount emitter ikke onBlur-commit', async () => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn<(value: AmountValue | undefined) => void>();
+
+    render(
+      <GridCoreProvider value={createGridValue(gridCell)}>
+        <TableAmountInput
+          gridCell={gridCell}
+          value={{ kind: 'number', value: 12.5 }}
+          onBlur={(e) => onBlur(e.target.value)}
+        />
       </GridCoreProvider>
     );
 
@@ -523,6 +627,56 @@ describe('table commit-kontrakt', () => {
     }
   );
 
+  it('input-error i amount emitter ikke commit og draft bevares over edit-close', async () => {
+    const user = userEvent.setup();
+    const setEditingCellRef = { current: null as React.Dispatch<React.SetStateAction<GridCellCoord | null>> | null };
+    const onBlur = vi.fn<(value: AmountValue | undefined) => void>();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<AmountValue | undefined>({ kind: 'number', value: 5 });
+      const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
+
+      React.useEffect(() => {
+        setEditingCellRef.current = setEditingCell;
+      }, []);
+
+      return (
+        <GridCoreProvider value={createGridValue(editingCell)}>
+          <TableAmountInput
+            gridCell={gridCell}
+            value={value}
+            onBlur={(e) => {
+              onBlur(e.target.value);
+              setValue(e.target.value);
+              setEditingCell(null);
+            }}
+          />
+        </GridCoreProvider>
+      );
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.clear(input);
+    await user.type(input, '3+');
+    await user.tab();
+
+    expect(onBlur).not.toHaveBeenCalled();
+    expect(input).toHaveValue('3+');
+
+    act(() => {
+      setEditingCellRef.current?.(null);
+    });
+    expect(input).toHaveValue('3+');
+
+    act(() => {
+      setEditingCellRef.current?.(gridCell);
+    });
+    expect(input).toHaveValue('3+');
+  });
+
   it.each(CONFIG_PRESERVE_CASES)('config-fejl i $label fejler hurtigt ved render', ({ renderInput }) => {
     expect(() => {
       render(
@@ -549,6 +703,51 @@ describe('table commit-kontrakt', () => {
       expect(onBlur).toHaveBeenCalledWith(inputCase.expectedCommitted);
     }
   );
+
+  it('klik udenfor committer korrekt i amount', async () => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn<(value: AmountValue | undefined) => void>();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<AmountValue | undefined>({ kind: 'number', value: 1 });
+      const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
+
+      return (
+        <>
+          <GridCoreProvider value={createGridValue(editingCell)}>
+            <TableAmountInput
+              gridCell={gridCell}
+              value={value}
+              onBlur={(e) => {
+                onBlur(e.target.value);
+                setValue(e.target.value);
+                setEditingCell(null);
+              }}
+            />
+          </GridCoreProvider>
+          <button
+            type="button"
+            onMouseDown={() => {
+              setEditingCell(null);
+            }}
+          >
+            Udenfor
+          </button>
+        </>
+      );
+    };
+
+    render(<Wrapper />);
+    const input = screen.getByRole('textbox');
+    const outside = screen.getByRole('button', { name: 'Udenfor' });
+
+    await user.click(input);
+    await user.clear(input);
+    await user.type(input, '42');
+    await user.click(outside);
+
+    expect(onBlur).toHaveBeenCalledWith({ kind: 'number', value: 42 });
+  });
 
   it('ArrowDown under edit committer præcis én gang før fokus flyttes', async () => {
     const user = userEvent.setup();
@@ -795,6 +994,49 @@ describe('table commit-kontrakt', () => {
     expect(input).toHaveValue('foo');
   });
 
+  it('Escape annullerer amount-edit uden commit', async () => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn<(value: AmountValue | undefined) => void>();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<AmountValue | undefined>({ kind: 'number', value: 12.5 });
+      return (
+        <StandardLooseTable>
+          <tbody>
+            <tr data-mineo-row-id="row-1">
+              <td>
+                <TableAmountInput
+                  gridCell={gridCell}
+                  value={value}
+                  onBlur={(e) => {
+                    onBlur(e.target.value);
+                    setValue(e.target.value);
+                  }}
+                />
+              </td>
+            </tr>
+          </tbody>
+        </StandardLooseTable>
+      );
+    };
+
+    render(<Wrapper />);
+    const input = screen.getByRole('textbox');
+
+    await user.click(input);
+    await user.click(input);
+    await waitFor(() => {
+      expect(input).not.toHaveAttribute('readonly');
+    });
+
+    await user.clear(input);
+    await user.type(input, '33');
+    await user.keyboard('{Escape}');
+
+    expect(onBlur).not.toHaveBeenCalled();
+    expect(input).toHaveValue('12,50');
+  });
+
   it('Delete på fokuseret text-celle uden edit rydder og committer straks', async () => {
     const user = userEvent.setup();
     const onBlur = vi.fn<(value: string) => void>();
@@ -830,6 +1072,45 @@ describe('table commit-kontrakt', () => {
     expect(onBlur).toHaveBeenCalledTimes(1);
     expect(onBlur).toHaveBeenCalledWith('');
     expect(input).toHaveValue('');
+  });
+
+  it('Delete på fokuseret amount-celle uden edit rydder og committer straks', async () => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn<(value: AmountValue | undefined) => void>();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<AmountValue | undefined>({ kind: 'number', value: 5 });
+      return (
+        <StandardLooseTable>
+          <tbody>
+            <tr data-mineo-row-id="row-1">
+              <td>
+                <TableAmountInput
+                  gridCell={gridCell}
+                  value={value}
+                  onBlur={(e) => {
+                    onBlur(e.target.value);
+                    setValue(e.target.value);
+                  }}
+                />
+              </td>
+            </tr>
+          </tbody>
+        </StandardLooseTable>
+      );
+    };
+
+    render(<Wrapper />);
+    const input = screen.getByRole('textbox');
+
+    await user.click(input);
+    await user.keyboard('{Delete}');
+
+    await waitFor(() => {
+      expect(onBlur).toHaveBeenCalledTimes(1);
+      expect(onBlur).toHaveBeenCalledWith(undefined);
+      expect(input).toHaveValue('');
+    });
   });
 
   it.each(ESCAPE_CANCEL_CASES)('Escape annullerer $label-edit uden commit', async (inputCase) => {

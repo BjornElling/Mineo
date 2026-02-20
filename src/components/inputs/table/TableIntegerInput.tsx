@@ -415,6 +415,7 @@ const TableIntegerInput = React.memo(
               inputElRef.current = el;
               assignRef(inputRef, el);
             }}
+            autoComplete="off"
             value={isEditing ? draft : showDraftWhenError ? draft : (value ?? '')}
             readOnly={isReadOnly}
             disabled={locked}
