@@ -4,7 +4,7 @@
 
 import { buildLoenTimeline } from '../eoDebugLoenCoreModel';
 import type { DebugDay } from '../eoDebugTypes';
-import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../types/common';
+import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/common';
 import { createErstatningsopgoerelseInitialValues } from '../../erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { svieSmertePrDag } from '../../../data/regulationRates';
@@ -148,6 +148,5 @@ describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
     expect(result.svieSmerteDays[0]?.amount).toBe(svieSmertePrDag[2024]);
   });
 });
-
 
 

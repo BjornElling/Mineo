@@ -8,7 +8,7 @@
  */
 
 import { z } from 'zod';
-import type { ISODateString } from '../types/branded';
+import { isISODateString, type ISODateString } from '../types/branded';
 import { optionalAmountValueSchema } from './amountExpressionSchema';
 
 // =============================================================================
@@ -34,31 +34,7 @@ const normalizeEmptyToUndefined = (value: unknown): unknown => {
  *
  * Ekstraeret som separat funktion for at dokumentere og genbruge logik.
  */
-const validateISODateFormat = (val: string): boolean => {
-  // Parse manuelt uden timezone-konvertering
-  const parts = val.split('-');
-  if (parts.length !== 3) return false;
-
-  const year = parseInt(parts[0], 10);
-  const month = parseInt(parts[1], 10);
-  const day = parseInt(parts[2], 10);
-
-  // Valider år-range
-  if (year < DATE_MIN_YEAR || year > DATE_MAX_YEAR) return false;
-
-  // Valider måned/dag ranges
-  if (month < 1 || month > 12) return false;
-  if (day < 1 || day > 31) return false;
-
-  // Opret dato og tjek gyldighed (fx 31. februar)
-  const date = new Date(Date.UTC(year, month - 1, day));
-  date.setUTCFullYear(year);
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
-  );
-};
+const validateISODateFormat = (val: string): boolean => isISODateString(val);
 
 /**
  * ISO-formateret dato string (åååå-mm-dd) med branded type
@@ -80,7 +56,7 @@ const coerceToNumberOrUndefined = (value: unknown): unknown => {
     const trimmed = value.trim();
     if (trimmed === '') return undefined;
 
-    const cleaned = trimmed.replace(/\\./g, '').replace(',', '.');
+    const cleaned = trimmed.replace(/\./g, '').replace(',', '.');
     const num = Number.parseFloat(cleaned);
     return Number.isFinite(num) ? num : value;
   }
@@ -97,34 +73,11 @@ const coerceToIntegerOrUndefined = (value: unknown): unknown => {
 };
 
 /**
- * Non-negative decimal number (0 eller større)
- *
- * Bruges til beløb, procenter, osv. hvor 0 er tilladt.
- * Afviser -0 for at undgå edge cases.
- */
-const _nonNegativeNumber = z.preprocess(coerceToNumberOrUndefined, z.number()
-  .min(0, 'Kan ikke være negativ')
-  .refine(Number.isFinite, 'Skal være et endeligt tal')
-  .refine((v) => !Object.is(v, -0), 'Kan ikke være -0')
-  .optional());
-
-/**
  * Non-negative amount (expression-aware)
  */
 const nonNegativeAmountValue = optionalAmountValueSchema
   .refine((v) => v === undefined || v.value >= 0, 'Kan ikke være negativ')
   .refine((v) => v === undefined || !Object.is(v.value, -0), 'Kan ikke være -0');
-
-/**
- * Positive decimal number (større end 0)
- *
- * Bruges hvor 0 IKKE er tilladt (fx divisorer, multiplikatorer).
- */
-const _positiveNumber = z.preprocess(coerceToNumberOrUndefined, z.number()
-  .gt(0, 'Skal være større end 0')
-  .refine(Number.isFinite, 'Skal være et endeligt tal')
-  .refine((v) => !Object.is(v, -0), 'Kan ikke være -0')
-  .optional());
 
 /**
  * Positive amount (expression-aware)
@@ -166,15 +119,6 @@ const loseFeriedageCount = z.preprocess(coerceToIntegerOrUndefined, z.number()
   .int()
   .min(0, 'Kan ikke være negativ')
   .max(999, 'Må højst være 999 dage')
-  .optional());
-
-/**
- * Procent som heltal (0-100)
- */
-const _percentageInteger = z.preprocess(coerceToIntegerOrUndefined, z.number()
-  .int()
-  .min(0, 'Kan ikke være negativ')
-  .max(100, 'Må højst være 100%')
   .optional());
 
 /**
@@ -605,35 +549,7 @@ const aesAfgoerelserSchema = z.object({
 
   // Øvrigt
   differencekravDato: optionalIsoDateString,
-}).strict()
-  .refine((data) => {
-    // Cross-field validering: Hvis afgørelse = 'Ja', skal der være en dato
-    if (data.varigeMenAfgorelse === 'Ja' && !data.menAfgoerelseDato) {
-      return false;
-    }
-    return true;
-  }, {
-    message: 'Afgørelsesdato skal udfyldes når afgørelse er "Ja"',
-    path: ['menAfgoerelseDato'],
-  })
-  .refine((data) => {
-    if (data.midlertidigtEetAfgorelse === 'Ja' && !data.midlertidigEETAfgoerelseDato && !data.midlertidigEETVirkningsdato) {
-      return false;
-    }
-    return true;
-  }, {
-    message: 'Afgørelsesdato eller virkningsdato skal udfyldes når afgørelse er "Ja"',
-    path: ['midlertidigEETAfgoerelseDato'],
-  })
-  .refine((data) => {
-    if (data.endeligtEetAfgorelse === 'Ja' && !data.endeligEETAfgoerelseDato && !data.endeligEETVirkningsdato) {
-      return false;
-    }
-    return true;
-  }, {
-    message: 'Afgørelsesdato eller virkningsdato skal udfyldes når afgørelse er "Ja"',
-    path: ['endeligEETAfgoerelseDato'],
-  });
+}).strict();
 
 /**
  * Svie/smerte godtgørelse sub-schema
@@ -770,7 +686,46 @@ const erstatningsopgoerelseBaseSchema = z.object({
 const overenskomstFilterSchema = z.object({
   loenmodtager: optionalString,
   arbejdsgiver: optionalString,
-});
+}).strict();
+
+const offentligLoenTrinSchema = z.preprocess(
+  coerceToIntegerOrUndefined,
+  z.number()
+    .int()
+    .min(1, 'Skal være mindst 1')
+    .max(99, 'Må højst være 99')
+    .optional()
+);
+
+const offentligLoenGruppeSchema = z.preprocess(
+  coerceToIntegerOrUndefined,
+  z.number()
+    .int()
+    .min(0, 'Skal være mindst 0')
+    .max(4, 'Må højst være 4')
+    .optional()
+);
+
+const createLoenudviklingOgSatserSchema = <TLoenPaaHelligdage extends z.ZodTypeAny>(loenPaaHelligdage: TLoenPaaHelligdage) => z.object({
+  feriePct: percentageDecimal,
+  loenPaaHelligdage,
+  saerligFraDatoRegulering: optionalIsoDateString,
+  loenudviklingBeregningsgrundlag: z.preprocess(normalizeEmptyToUndefined, loenudviklingBeregningsgrundlagEnum.optional()),
+  loenudviklingStatistikModel: z.preprocess(normalizeEmptyToUndefined, loenudviklingStatistikModelEnum.optional()),
+  loenudviklingKRLSatstabel: z.preprocess(normalizeEmptyToUndefined, krlSatstabelEnum.optional()),
+  loenudviklingManuelNavn: optionalString,
+  loenudviklingManuelTableData: z.array(loenudviklingManuelRowSchema).default([]),
+  offentligLoenType: z.preprocess(normalizeEmptyToUndefined, offentligLoenTypeEnum.optional()),
+  offentligLoenTrin: offentligLoenTrinSchema,
+  offentligLoenGruppe: offentligLoenGruppeSchema,
+  offentligLoenEkstraGrundloen: nonNegativeAmountValue,
+  overenskomstFilter: overenskomstFilterSchema,
+}).strict();
+
+const loenudviklingOgSatserSchema = createLoenudviklingOgSatserSchema(loenPaaHelligdageSchema);
+const eoLoenudviklingOgSatserSchema = createLoenudviklingOgSatserSchema(
+  z.preprocess(normalizeEmptyToUndefined, loenPaaHelligdageSchema.optional())
+);
 
 export const loenindkomstAnsaettelsesforholdSchema = z.object({
   id: z.string().min(1, 'ID må ikke være tomt'),
@@ -790,7 +745,6 @@ export const loenindkomstAnsaettelsesforholdSchema = z.object({
   anciennitetstillaegSats: nonNegativeAmountValue,
 
   // Satser
-  feriePct: percentageDecimal,
   fritvalgPct: percentageDecimal,
   shSoPct: percentageDecimal,
   storeBededagPct: percentageDecimal,
@@ -800,41 +754,7 @@ export const loenindkomstAnsaettelsesforholdSchema = z.object({
   // Indtægtsoplysninger (samme tabel-format som i Årsløn)
   indtaegtsoplysningerTableData: z.array(aarsloenTableRowSchema),
   fuldLoenUnderFerie: jaNejEnum,
-  loenPaaHelligdage: loenPaaHelligdageSchema,
-  saerligFraDatoRegulering: optionalIsoDateString,
-
-  // Lønudvikling
-  loenudviklingBeregningsgrundlag: z.preprocess(normalizeEmptyToUndefined, loenudviklingBeregningsgrundlagEnum.optional()),
-  loenudviklingStatistikModel: z.preprocess(normalizeEmptyToUndefined, loenudviklingStatistikModelEnum.optional()),
-  loenudviklingKRLSatstabel: z.preprocess(normalizeEmptyToUndefined, krlSatstabelEnum.optional()),
-  loenudviklingManuelNavn: optionalString,
-  loenudviklingManuelTableData: z.array(loenudviklingManuelRowSchema).default([]),
-
-  // Offentlig løn (KL/RLTN) – kun relevant ved overenskomst-beregning
-  offentligLoenType: z.preprocess(normalizeEmptyToUndefined, offentligLoenTypeEnum.optional()),
-  offentligLoenTrin: z.preprocess(
-    coerceToIntegerOrUndefined,
-    z.number()
-      .int()
-      .min(1, 'Skal være mindst 1')
-      .max(99, 'Må højst være 99')
-      .optional()
-  ),
-  offentligLoenGruppe: z.preprocess(
-    coerceToIntegerOrUndefined,
-    z.number()
-      .int()
-      .min(0, 'Skal være mindst 0')
-      .max(4, 'Må højst være 4')
-      .optional()
-  ),
-  offentligLoenEkstraGrundloen: nonNegativeAmountValue,
-
-  // Overenskomst-filter (persisteres for at bevare brugerens valg)
-  // Initialiseres fra settings ved oprettelse af ansættelsesforhold, ændres ikke af efterfølgende settings-ændringer
-  // Ikke-optional: Alle ansættelsesforhold har altid et filter-objekt
-  overenskomstFilter: overenskomstFilterSchema,
-}).strict();
+}).merge(loenudviklingOgSatserSchema).strict();
 
 export type LoenindkomstAnsaettelsesforhold = z.infer<typeof loenindkomstAnsaettelsesforholdSchema>;
 
@@ -844,34 +764,7 @@ const loenindkomstSchema = z.object({
 
 export const eoAngivetLoenLoenudviklingSchema = z.object({
   overenskomstId: optionalString,
-  feriePct: percentageDecimal,
-  loenPaaHelligdage: z.preprocess(normalizeEmptyToUndefined, loenPaaHelligdageSchema.optional()),
-  saerligFraDatoRegulering: optionalIsoDateString,
-  loenudviklingBeregningsgrundlag: z.preprocess(normalizeEmptyToUndefined, loenudviklingBeregningsgrundlagEnum.optional()),
-  loenudviklingStatistikModel: z.preprocess(normalizeEmptyToUndefined, loenudviklingStatistikModelEnum.optional()),
-  loenudviklingKRLSatstabel: z.preprocess(normalizeEmptyToUndefined, krlSatstabelEnum.optional()),
-  loenudviklingManuelNavn: optionalString,
-  loenudviklingManuelTableData: z.array(loenudviklingManuelRowSchema).default([]),
-  offentligLoenType: z.preprocess(normalizeEmptyToUndefined, offentligLoenTypeEnum.optional()),
-  offentligLoenTrin: z.preprocess(
-    coerceToIntegerOrUndefined,
-    z.number()
-      .int()
-      .min(1, 'Skal være mindst 1')
-      .max(99, 'Må højst være 99')
-      .optional()
-  ),
-  offentligLoenGruppe: z.preprocess(
-    coerceToIntegerOrUndefined,
-    z.number()
-      .int()
-      .min(0, 'Skal være mindst 0')
-      .max(4, 'Må højst være 4')
-      .optional()
-  ),
-  offentligLoenEkstraGrundloen: nonNegativeAmountValue,
-  overenskomstFilter: overenskomstFilterSchema,
-}).strict();
+}).merge(eoLoenudviklingOgSatserSchema).strict();
 
 export type EOAngivetLoenLoenudvikling = z.infer<typeof eoAngivetLoenLoenudviklingSchema>;
 
@@ -937,20 +830,4 @@ export interface AarsloenBeregningResult {
 export interface DateInterval {
   start: Date;
   end: Date;
-}
-
-// =============================================================================
-// VALIDATION RESULT
-// =============================================================================
-
-export interface ValidationResult {
-  valid: boolean;
-  errors: string[];
-  warnings?: string[];
-}
-
-export interface FormulaEvaluationResult {
-  success: boolean;
-  result: number | null;
-  error: string | null;
 }

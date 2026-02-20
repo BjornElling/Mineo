@@ -21,7 +21,7 @@ const normalizeAmountToTwoDecimals = (value: number): number => {
     precision: AMOUNT_SCHEMA_PRECISION,
     allowNegative: true,
   });
-  if (!parsed.ok || !parsed.value) return value;
+  if (!parsed.ok || !parsed.value) return roundByMethod(value, AMOUNT_SCHEMA_PRECISION, 'halfAwayFromZero');
   return parsed.value.value;
 };
 

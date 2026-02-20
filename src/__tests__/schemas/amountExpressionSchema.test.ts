@@ -3,6 +3,7 @@ import {
   amountNumberSchema,
   amountValueSchema,
 } from '../../schemas/amountExpressionSchema';
+import * as expressionAmountModule from '../../utils/expressionAmount';
 
 describe('amountExpressionSchema', () => {
   it('bevarer AmountValue round-trip ved save/load for expression', () => {
@@ -46,5 +47,20 @@ describe('amountExpressionSchema', () => {
 
     expect(parsed.value).toBe(0);
     expect(Object.is(parsed.value, -0)).toBe(false);
+  });
+
+  it('normaliserer stadig til 2 decimaler når parseAmountInput fejler internt', () => {
+    const parseSpy = vi.spyOn(expressionAmountModule, 'parseAmountInput').mockReturnValue({
+      ok: false,
+      error: 'forced test failure',
+    });
+
+    const parsed = amountNumberSchema.parse({
+      kind: 'number',
+      value: 1.239,
+    });
+
+    expect(parsed.value).toBe(1.24);
+    parseSpy.mockRestore();
   });
 });

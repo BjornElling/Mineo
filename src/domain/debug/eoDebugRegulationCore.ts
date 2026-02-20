@@ -5,7 +5,7 @@
 import type { ISODateString, DanishDateString } from '../../types/branded';
 import { isoToDanish, toISODateString, dateToISO, isISODateString } from '../../types/branded';
 import type { DebugDay } from './eoDebugTypes';
-import type { ErstatningsopgoerelseValues, StamdataValues, LoenPaaHelligdage } from '../../types/common';
+import type { ErstatningsopgoerelseValues, StamdataValues, LoenPaaHelligdage } from '../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/common';
 import type { RegulationIndexTimeline, IndeksEntry, AnsaettelsesforholdIndeks } from './eoDebugRegulationTypes';
 import {
