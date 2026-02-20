@@ -12,7 +12,13 @@ import type { GridCellCoord, GridCellEditorHandle } from './gridCoreTypes';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './standardGridStyles';
 import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridModel';
-import { applyRowRemovalFocusPlan, buildRowRemovalFocusPlan, type RowRemovalFocusPlan } from './tableRowFocus';
+import {
+  applyRowRemovalFocusPlan,
+  buildRemovedRowFallbackFocusPlan,
+  buildRetainedEmptyRowFocusPlan,
+  buildRowRemovalFocusPlan,
+  type RowRemovalFocusPlan,
+} from './tableRowFocus';
 import { coerceToISODateString } from '../../types/branded';
 import { initialLoenudviklingManuelRow, generateLoenudviklingRowId } from '../../utils/eoConverters';
 import type { LoenudviklingManuelRow } from '../../schemas/formSchemas';
@@ -294,17 +300,39 @@ const LoenudviklingManuelTable = React.memo(
     }, []);
 
     const commitRowUpdate = React.useCallback(
-      (rowId: string, updates: Partial<LoenudviklingManuelRow>) => {
+      (rowId: string, updates: Partial<LoenudviklingManuelRow>, colIndex: number) => {
         setInternalTableData((prev) => {
           const updated = prev.map((row) => (row.id === rowId ? { ...row, ...updates } : row));
           const normalized = normalizeRows(updated);
-          const focusPlan = buildRowRemovalFocusPlan({
+          let focusPlan = buildRowRemovalFocusPlan({
             table: tableRef.current,
             prevRows: prev,
             nextRows: normalized,
             visibleRowIds: visibleRowIdsRef.current,
             getRowId: (row) => row.id,
           });
+          if (!focusPlan) {
+            focusPlan = buildRemovedRowFallbackFocusPlan({
+              prevRows: prev,
+              nextRows: normalized,
+              rowId,
+              colIndex,
+              visibleRowIds: visibleRowIdsRef.current,
+              getRowId: (row) => row.id,
+            });
+          }
+          if (!focusPlan) {
+            focusPlan = buildRetainedEmptyRowFocusPlan({
+              table: tableRef.current,
+              prevRows: prev,
+              nextRows: normalized,
+              rowId,
+              colIndex,
+              visibleRowIds: visibleRowIdsRef.current,
+              isRowEmpty,
+              getRowId: (row) => row.id,
+            });
+          }
           if (focusPlan) {
             // Last-plan-wins by design: only the final commit in a render cycle should decide focus restoration.
             pendingRowFocusPlanRef.current = focusPlan;
@@ -477,7 +505,7 @@ const LoenudviklingManuelTable = React.memo(
                     <TableDateInput
                       gridCell={{ rowId: row.id, colIndex: 0 }}
                       value={row.dato}
-                      onBlur={(e) => commitRowUpdate(row.id, { dato: e.target.value })}
+                      onBlur={(e) => commitRowUpdate(row.id, { dato: e.target.value }, 0)}
                       onErrorChange={handleErrorChange(row.id, 'dato')}
                     />
                   )}
@@ -487,7 +515,7 @@ const LoenudviklingManuelTable = React.memo(
                   <TableAmountInput
                     gridCell={{ rowId: row.id, colIndex: 1 }}
                     value={row.grundloen}
-                    onBlur={(e) => commitRowUpdate(row.id, { grundloen: e.target.value })}
+                    onBlur={(e) => commitRowUpdate(row.id, { grundloen: e.target.value }, 1)}
                     onErrorChange={handleErrorChange(row.id, 'grundloen')}
                     placeholder=""
                   />
@@ -497,7 +525,7 @@ const LoenudviklingManuelTable = React.memo(
                   <TablePercentInput
                     gridCell={{ rowId: row.id, colIndex: 2 }}
                     value={row.feriepenge}
-                    onBlur={(e) => commitRowUpdate(row.id, { feriepenge: e.target.value })}
+                    onBlur={(e) => commitRowUpdate(row.id, { feriepenge: e.target.value }, 2)}
                     onErrorChange={handleErrorChange(row.id, 'feriepenge')}
                     externalErrorMessage={isBaseRow ? baseRowPercentErrors?.feriepenge : undefined}
                     placeholder=""
@@ -508,7 +536,7 @@ const LoenudviklingManuelTable = React.memo(
                   <TablePercentInput
                     gridCell={{ rowId: row.id, colIndex: 3 }}
                     value={row.shSoSats}
-                    onBlur={(e) => commitRowUpdate(row.id, { shSoSats: e.target.value })}
+                    onBlur={(e) => commitRowUpdate(row.id, { shSoSats: e.target.value }, 3)}
                     onErrorChange={handleErrorChange(row.id, 'shSoSats')}
                     externalErrorMessage={isBaseRow ? baseRowPercentErrors?.shSoSats : undefined}
                     placeholder=""
@@ -519,7 +547,7 @@ const LoenudviklingManuelTable = React.memo(
                   <TablePercentInput
                     gridCell={{ rowId: row.id, colIndex: 4 }}
                     value={row.fritvalg}
-                    onBlur={(e) => commitRowUpdate(row.id, { fritvalg: e.target.value })}
+                    onBlur={(e) => commitRowUpdate(row.id, { fritvalg: e.target.value }, 4)}
                     onErrorChange={handleErrorChange(row.id, 'fritvalg')}
                     externalErrorMessage={isBaseRow ? baseRowPercentErrors?.fritvalg : undefined}
                     placeholder=""
@@ -530,7 +558,7 @@ const LoenudviklingManuelTable = React.memo(
                   <TablePercentInput
                     gridCell={{ rowId: row.id, colIndex: 5 }}
                     value={row.agPension}
-                    onBlur={(e) => commitRowUpdate(row.id, { agPension: e.target.value })}
+                    onBlur={(e) => commitRowUpdate(row.id, { agPension: e.target.value }, 5)}
                     onErrorChange={handleErrorChange(row.id, 'agPension')}
                     externalErrorMessage={isBaseRow ? baseRowPercentErrors?.agPension : undefined}
                     placeholder=""

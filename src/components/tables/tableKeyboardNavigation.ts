@@ -1,6 +1,7 @@
 import type * as React from 'react';
 import { getGridCoreForTable } from './gridCoreRegistry';
 import { getWrappedNextColumn } from './tableNavigationCommon';
+import { focusTableElement, isTableElementVisible, TABLE_FOCUSABLE_SELECTOR } from './tableFocusHelpers';
 
 type CellLocator = Readonly<{ rowIndex: number; colIndex: number; subIndex: number; rowId?: string }>;
 
@@ -11,7 +12,7 @@ type CellLocator = Readonly<{ rowIndex: number; colIndex: number; subIndex: numb
 type TabAnchor = CellLocator;
 
 const tabAnchorByTable = new WeakMap<HTMLTableElement, TabAnchor>();
-const pendingRecoveryByTable = new WeakMap<HTMLTableElement, Readonly<{ desired: CellLocator; intendedTarget: HTMLElement | null }>>();
+const pendingRecoveryByTable = new WeakMap<HTMLTableElement, Readonly<{ desired: CellLocator }>>();
 
 // Navigation semantics (owned by this module):
 // - Enter / Shift+Enter: move vertically while keeping the "anchor cell" if one exists; otherwise use current cell.
@@ -21,34 +22,9 @@ const pendingRecoveryByTable = new WeakMap<HTMLTableElement, Readonly<{ desired:
 // Note: We `stopPropagation()` for owned keys so the Container-level Tab trap does not also run.
 // Tab is NOT owned here; it is handled by Container-level navigation for natural flow across tables.
 
-// IMPORTANT: this selector is shared by keyboard navigation and must be robust across
-// different input strategies (e.g. "cell focus" where inputs may be `readOnly`).
-// If you change it, verify tabbing in both:
-// - HTML-grid tables using Table*Input components
-// - MUI tables with "cell focus"/editor patterns (e.g. Årsløn)
-const focusableSelector =
-  'input[role="combobox"]:not([disabled]):not([tabindex="-1"]):not([type="hidden"]),' +
-  'input:not([disabled]):not([tabindex="-1"]):not([type="hidden"]),' +
-  'select:not([disabled]):not([tabindex="-1"]),' +
-  'textarea:not([disabled]):not([tabindex="-1"]),' +
-  'button:not([disabled]):not([tabindex="-1"]),' +
-  '[role="combobox"][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"]),' +
-  '[aria-haspopup][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"]),' +
-  '[aria-controls][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"])';
-
 const isComposing = (e: React.KeyboardEvent): boolean => {
   const native = e.nativeEvent as unknown as { isComposing?: boolean };
   return native.isComposing === true;
-};
-
-const isElementVisible = (el: HTMLElement): boolean => {
-  const rects = el.getClientRects();
-  const style = window.getComputedStyle(el);
-  if (style.display === 'none') return false;
-  if (style.visibility === 'hidden') return false;
-  // JSDOM does not implement layout and returns empty rects; treat as visible unless explicitly hidden.
-  if (rects.length === 0) return true;
-  return true;
 };
 
 const getWidgetHost = (el: HTMLElement | null): HTMLElement | null => {
@@ -104,16 +80,8 @@ const shouldIgnoreKey = (e: React.KeyboardEvent): boolean => {
   return false;
 };
 
-const focusElement = (el: HTMLElement) => {
-  try {
-    el.focus({ preventScroll: true });
-  } catch {
-    el.focus();
-  }
-};
-
-const scheduleFocusRecovery = (table: HTMLTableElement, desired: CellLocator, intendedTarget: HTMLElement | null) => {
-  pendingRecoveryByTable.set(table, { desired, intendedTarget });
+const scheduleFocusRecovery = (table: HTMLTableElement, desired: CellLocator) => {
+  pendingRecoveryByTable.set(table, { desired });
   requestAnimationFrame(() => {
     const pending = pendingRecoveryByTable.get(table);
     if (!pending) return;
@@ -121,10 +89,6 @@ const scheduleFocusRecovery = (table: HTMLTableElement, desired: CellLocator, in
 
     const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (active && table.contains(active)) return;
-
-    // Only recover focus when the element we *intended* to focus is gone (unmounted).
-    // This avoids interfering with normal blur/commit flows in loose tables where values are committed on blur.
-    if (pending.intendedTarget && pending.intendedTarget.isConnected && table.contains(pending.intendedTarget)) return;
 
     if (typeof pending.desired.rowId === 'string' && pending.desired.rowId.trim() !== '') {
       const rowId = pending.desired.rowId;
@@ -136,11 +100,11 @@ const scheduleFocusRecovery = (table: HTMLTableElement, desired: CellLocator, in
         );
         const cell = cells[pending.desired.colIndex] ?? null;
         if (cell) {
-          const focusables = Array.from(cell.querySelectorAll<HTMLElement>(focusableSelector)).filter((el) => isElementVisible(el));
+          const focusables = Array.from(cell.querySelectorAll<HTMLElement>(TABLE_FOCUSABLE_SELECTOR)).filter((el) => isTableElementVisible(el));
           const idx = Math.min(Math.max(0, pending.desired.subIndex), Math.max(0, focusables.length - 1));
           const target = focusables[idx] ?? null;
           if (target) {
-            focusElement(target);
+            focusTableElement(target);
             return;
           }
         }
@@ -154,7 +118,7 @@ const scheduleFocusRecovery = (table: HTMLTableElement, desired: CellLocator, in
     const row = grid.cellFocusables[rowIdx] ?? [];
     const target = findInRow(row, pending.desired.colIndex, pending.desired.subIndex);
     if (!target) return;
-    focusElement(target);
+    focusTableElement(target);
   });
 };
 
@@ -191,7 +155,7 @@ const buildGrid = (table: HTMLTableElement): TableGrid => {
     );
 
     for (const cell of rowCells) {
-      const focusables = Array.from(cell.querySelectorAll<HTMLElement>(focusableSelector)).filter((el) => isElementVisible(el));
+      const focusables = Array.from(cell.querySelectorAll<HTMLElement>(TABLE_FOCUSABLE_SELECTOR)).filter((el) => isTableElementVisible(el));
       if (focusables.length === 0) continue;
       cellFocusables[rowIndex][cell.cellIndex] = focusables;
       order.push(...focusables);
@@ -203,7 +167,7 @@ const buildGrid = (table: HTMLTableElement): TableGrid => {
 
 const getActiveLocator = (table: HTMLTableElement, target: HTMLElement, grid: TableGrid): CellLocator | null => {
   const focusableTarget =
-    (target.closest(focusableSelector) as HTMLElement | null) ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+    (target.closest(TABLE_FOCUSABLE_SELECTOR) as HTMLElement | null) ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
 
   const cell = (focusableTarget ?? target).closest('td,th') as HTMLTableCellElement | null;
   if (!cell) return null;
@@ -257,7 +221,7 @@ const moveVertical = (grid: TableGrid, base: CellLocator, deltaRows: number) => 
   const nextRow = grid.cellFocusables[nextRowIndex] ?? [];
   const target = findInRow(nextRow, base.colIndex, base.subIndex);
   if (!target) return;
-  focusElement(target);
+  focusTableElement(target);
 };
 
 const resolveAnchorLocator = (grid: TableGrid, anchor: TabAnchor, fallback: CellLocator): CellLocator => {
@@ -415,18 +379,19 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
 
   // TableDropdown: keep its existing keyboard contract (Enter opens, Delete clears when allowed).
   if (isTableDropdownTarget) {
-    if (!isNavigationKey) return;
+    if (!isNavigationKey && !isDeleteKey) return;
   }
 
   if (isDeleteKey && !isEditing && activeEditableCell && !isLocked) {
     e.preventDefault();
     e.stopPropagation();
-    // Fokus-plan: Behold fokus p† samme celle efter Delete
+    // Fokus-plan: Behold fokus på samme celle efter Delete
     if (core && activeCell) {
       core.requestFocusPlan({ from: activeCell, to: activeCell, reason: 'commit' });
     }
     activeEditableCell.clearAndCommit();
     core?.executeFocusPlan();
+    scheduleFocusRecovery(table, activePos);
     return;
   }
 
@@ -443,7 +408,7 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
   if (shouldIgnoreKey(e)) return;
 
   const activeFocusable =
-    (target.closest(focusableSelector) as HTMLElement | null) ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+    (target.closest(TABLE_FOCUSABLE_SELECTOR) as HTMLElement | null) ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
 
   if (key === 'Tab') {
     // Bevar første celle i en sammenhængende Tab-sekvens som anker ("first Tab wins").
@@ -460,14 +425,14 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     e.preventDefault();
     e.stopPropagation();
     const deltaRows = e.shiftKey ? -1 : 1;
-    const { nextRowIndex, nextRowId, target } = pickVerticalTarget(grid, base, deltaRows);
+    const { nextRowIndex, nextRowId } = pickVerticalTarget(grid, base, deltaRows);
     const targetLocator = { rowIndex: nextRowIndex, colIndex: base.colIndex, subIndex: base.subIndex, ...(nextRowId ? { rowId: nextRowId } : {}) };
     const targetCell = toCellCoord(targetLocator);
     if (core && activeCell && targetCell) {
       core.requestFocusPlan({ from: activeCell, to: targetCell, reason: 'enter' });
     }
     moveVertical(grid, base, deltaRows);
-    scheduleFocusRecovery(table, targetLocator, target);
+    scheduleFocusRecovery(table, targetLocator);
     // Enter fuldfører tab-anker-navigation og skal altid nulstille ankeret.
     tabAnchorByTable.delete(table);
     return;
@@ -490,14 +455,14 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     e.preventDefault();
     e.stopPropagation();
     const deltaRows = key === 'ArrowUp' ? -1 : 1;
-    const { nextRowIndex, nextRowId, target } = pickVerticalTarget(grid, activePos, deltaRows);
+    const { nextRowIndex, nextRowId } = pickVerticalTarget(grid, activePos, deltaRows);
     const targetLocator = { rowIndex: nextRowIndex, colIndex: activePos.colIndex, subIndex: activePos.subIndex, ...(nextRowId ? { rowId: nextRowId } : {}) };
     const targetCell = toCellCoord(targetLocator);
     if (core && activeCell && targetCell) {
       core.requestFocusPlan({ from: activeCell, to: targetCell, reason: 'arrow' });
     }
     moveVertical(grid, activePos, deltaRows);
-    scheduleFocusRecovery(table, targetLocator, target);
+    scheduleFocusRecovery(table, targetLocator);
     return;
   }
 
@@ -523,7 +488,7 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
       core.requestFocusPlan({ from: activeCell, to: nextCell, reason: 'arrow' });
     }
     next.target.focus();
-    scheduleFocusRecovery(table, next.locator, next.target);
+    scheduleFocusRecovery(table, next.locator);
     return;
   }
 

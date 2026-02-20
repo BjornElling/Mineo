@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
@@ -137,5 +137,58 @@ describe('buildEODebugSammentaellingModel regression', () => {
     expect(sammentaelling.taf.beregnetDisplay).toBe('-');
     expect(sammentaelling.taf.tabelDisplay).toBe('-');
     expect(sammentaelling.tafIndtaegter).toHaveLength(0);
+  });
+
+  it('logger ikke parseAmount string-advarsel ved svie/smerte-optælling', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      vedroererPeriodeFra: '2024-01-26',
+      vedroererPeriodeTil: '2025-11-02',
+      beregnesSvieSmerteGodtgoerelse: 'Ja' as const,
+      svieSmerteHelbredsstatus: 'Raskmeldt' as const,
+      svieSmertePerioder: [
+        {
+          id: 'svie-1',
+          fra: '2024-01-26',
+          til: '2024-10-20',
+          tilstand: 'sygemeldt' as const,
+        },
+        {
+          id: 'svie-2',
+          fra: '2025-08-12',
+          til: '2025-09-22',
+          tilstand: 'sygemeldt' as const,
+        },
+        {
+          id: 'svie-3',
+          fra: '2025-09-23',
+          til: '2025-11-02',
+          tilstand: 'delvist-sygemeldt' as const,
+        },
+      ],
+    };
+
+    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const model = buildEODebugModel(values);
+    const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
+    const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      buildEODebugSammentaellingModel({
+        values,
+        errors,
+        model,
+        svieSmerteContext,
+        taftContext,
+      });
+    } finally {
+      warnSpy.mockRestore();
+    }
+
+    const hasParseAmountStringWarn = warnSpy.mock.calls.some(
+      (call) => typeof call[0] === 'string' && call[0].includes('parseAmount modtog string-input')
+    );
+    expect(hasParseAmountStringWarn).toBe(false);
   });
 });

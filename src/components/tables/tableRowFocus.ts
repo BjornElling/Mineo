@@ -1,3 +1,5 @@
+import { focusTableElement, isTableElementVisible, TABLE_FOCUSABLE_SELECTOR } from './tableFocusHelpers';
+
 export type RowRemovalFocusPlan = Readonly<{
   // Column mapping is DOM-index based and assumes no colSpan divergence between rows.
   targetIndex: number;
@@ -23,34 +25,25 @@ type ApplyPlanParams = Readonly<{
   visibleRowIds: readonly string[];
 }>;
 
-const tableFocusableSelector =
-  'input[role="combobox"]:not([disabled]):not([tabindex="-1"]):not([type="hidden"]),' +
-  'input:not([disabled]):not([tabindex="-1"]):not([type="hidden"]),' +
-  'select:not([disabled]):not([tabindex="-1"]),' +
-  'textarea:not([disabled]):not([tabindex="-1"]),' +
-  'button:not([disabled]):not([tabindex="-1"]),' +
-  '[role="combobox"][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"]),' +
-  '[aria-haspopup][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"]),' +
-  '[aria-controls][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"])';
+type BuildRetainedEmptyRowPlanParams<TRow> = Readonly<{
+  table: HTMLTableElement | null;
+  prevRows: readonly TRow[];
+  nextRows: readonly TRow[];
+  rowId: string;
+  colIndex: number;
+  visibleRowIds: readonly string[];
+  isRowEmpty: (row: TRow) => boolean;
+  getRowId: (row: TRow) => string;
+}>;
 
-const isElementVisible = (el: HTMLElement): boolean => {
-  if (!el.isConnected) return false;
-  const style = window.getComputedStyle(el);
-  if (style.display === 'none') return false;
-  if (style.visibility === 'hidden') return false;
-  // JSDOM has no layout and often returns empty rects for visible elements.
-  // Treat rect-less elements as visible unless explicitly hidden.
-  if (el.getClientRects().length === 0) return true;
-  return true;
-};
-
-const focusElement = (el: HTMLElement) => {
-  try {
-    el.focus({ preventScroll: true });
-  } catch {
-    el.focus();
-  }
-};
+type BuildRemovedRowFallbackFocusPlanParams<TRow> = Readonly<{
+  prevRows: readonly TRow[];
+  nextRows: readonly TRow[];
+  rowId: string;
+  colIndex: number;
+  visibleRowIds: readonly string[];
+  getRowId: (row: TRow) => string;
+}>;
 
 const getActiveCellInfo = (table: HTMLTableElement): ActiveCellInfo | null => {
   const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -82,7 +75,9 @@ const getRowById = (table: HTMLTableElement, rowId: string): HTMLTableRowElement
 };
 
 const getFirstFocusableInCell = (cell: HTMLTableCellElement): HTMLElement | null => {
-  const focusables = Array.from(cell.querySelectorAll<HTMLElement>(tableFocusableSelector)).filter((el) => isElementVisible(el));
+  const focusables = Array.from(cell.querySelectorAll<HTMLElement>(TABLE_FOCUSABLE_SELECTOR)).filter((el) =>
+    isTableElementVisible(el, { requireConnected: true })
+  );
   return focusables[0] ?? null;
 };
 
@@ -119,6 +114,47 @@ export const buildRowRemovalFocusPlan = <TRow>(params: BuildPlanParams<TRow>): R
 };
 
 /**
+ * Build a focus plan when a row becomes empty but is retained by table normalization
+ * (e.g. min-row policy keeps 2 rows visible).
+ */
+export const buildRetainedEmptyRowFocusPlan = <TRow>(params: BuildRetainedEmptyRowPlanParams<TRow>): RowRemovalFocusPlan | null => {
+  const { table, prevRows, nextRows, rowId, colIndex, visibleRowIds, isRowEmpty, getRowId } = params;
+  if (!table) return null;
+
+  const active = getActiveCellInfo(table);
+  if (!active) return null;
+  if (active.rowId !== rowId) return null;
+
+  const prevRow = prevRows.find((row) => getRowId(row) === rowId);
+  const nextRow = nextRows.find((row) => getRowId(row) === rowId);
+  if (!prevRow || !nextRow) return null;
+  if (isRowEmpty(prevRow) || !isRowEmpty(nextRow)) return null;
+
+  const targetIndex = visibleRowIds.indexOf(rowId);
+  if (targetIndex < 0) return null;
+
+  return { targetIndex, colIndex };
+};
+
+/**
+ * Build fallback focus plan for blur-commit scenarios where `activeElement` may
+ * already be outside table while the committed row is still removed.
+ */
+export const buildRemovedRowFallbackFocusPlan = <TRow>(params: BuildRemovedRowFallbackFocusPlanParams<TRow>): RowRemovalFocusPlan | null => {
+  const { prevRows, nextRows, rowId, colIndex, visibleRowIds, getRowId } = params;
+  const prevHasRow = prevRows.some((row) => getRowId(row) === rowId);
+  if (!prevHasRow) return null;
+
+  const rowWasRemoved = !nextRows.some((row) => getRowId(row) === rowId);
+  if (!rowWasRemoved) return null;
+
+  const targetIndex = visibleRowIds.indexOf(rowId);
+  if (targetIndex < 0) return null;
+
+  return { targetIndex, colIndex };
+};
+
+/**
  * Apply a previously computed focus plan.
  *
  * Preconditions:
@@ -150,5 +186,5 @@ export const applyRowRemovalFocusPlan = (params: ApplyPlanParams): void => {
   const target = getFirstFocusableInCell(cell);
   if (!target) return;
 
-  focusElement(target);
+  focusTableElement(target);
 };

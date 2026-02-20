@@ -30,7 +30,13 @@ import { getAarsloenTableValidation, isAarsloenTableValueEffectivelyEmptyForVali
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './standardGridStyles';
 import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridModel';
-import { applyRowRemovalFocusPlan, buildRowRemovalFocusPlan, type RowRemovalFocusPlan } from './tableRowFocus';
+import {
+  applyRowRemovalFocusPlan,
+  buildRemovedRowFallbackFocusPlan,
+  buildRetainedEmptyRowFocusPlan,
+  buildRowRemovalFocusPlan,
+  type RowRemovalFocusPlan,
+} from './tableRowFocus';
 
 export type AarsloenTableSatser = {
   ferie?: number;
@@ -73,17 +79,6 @@ const isRowEmpty = (row: AarsloenTableRow): boolean => isAarsloenRowEffectivelyE
 
 const resolveColIdxFromKey = (colKey: AarsloenTableColumnKey): number => {
   return colKey.startsWith('col0_') ? 0 : colKey.startsWith('col1_') ? 1 : Number.parseInt(colKey.slice(3), 10);
-};
-
-const didRowBecomeEmptyButRetained = (
-  prevRows: readonly AarsloenTableRow[],
-  nextRows: readonly AarsloenTableRow[],
-  rowId: string
-): boolean => {
-  const prevRow = prevRows.find((row) => row.id === rowId);
-  const nextRow = nextRows.find((row) => row.id === rowId);
-  if (!prevRow || !nextRow) return false;
-  return !isRowEmpty(prevRow) && isRowEmpty(nextRow);
 };
 
 type TableRowsState = {
@@ -268,23 +263,28 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
           // Fallback for blur-commits: activeElement kan allerede være uden for tabellen,
           // så row-removal-plan kan være null selvom rækken faktisk forsvinder/re-oprettes.
           if (!focusPlan) {
-            const rowWasRemoved = !managed.some((row) => row.id === rowId);
-            if (rowWasRemoved) {
-              const targetIndex = visibleRowIdsRef.current.indexOf(rowId);
-              const colIndex = resolveColIdxFromKey(colKey);
-              if (targetIndex >= 0 && Number.isFinite(colIndex)) {
-                focusPlan = { targetIndex, colIndex };
-              }
-            }
+            focusPlan = buildRemovedRowFallbackFocusPlan({
+              prevRows: prev.draft,
+              nextRows: managed,
+              rowId,
+              colIndex: resolveColIdxFromKey(colKey),
+              visibleRowIds: visibleRowIdsRef.current,
+              getRowId: (row) => row.id,
+            });
           }
 
           // Når rækken bliver tom, men bevares (fx pga. min-rows), skal fokus stadig blive i samme celle-position.
-          if (!focusPlan && didRowBecomeEmptyButRetained(prev.draft, managed, rowId)) {
-            const targetIndex = visibleRowIdsRef.current.indexOf(rowId);
-            const colIndex = resolveColIdxFromKey(colKey);
-            if (targetIndex >= 0 && Number.isFinite(colIndex)) {
-              focusPlan = { targetIndex, colIndex };
-            }
+          if (!focusPlan) {
+            focusPlan = buildRetainedEmptyRowFocusPlan({
+              table: tableRef.current,
+              prevRows: prev.draft,
+              nextRows: managed,
+              rowId,
+              colIndex: resolveColIdxFromKey(colKey),
+              visibleRowIds: visibleRowIdsRef.current,
+              isRowEmpty,
+              getRowId: (row) => row.id,
+            });
           }
 
           if (focusPlan) {

@@ -25,7 +25,13 @@ import {
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './standardGridStyles';
 import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridModel';
-import { applyRowRemovalFocusPlan, buildRowRemovalFocusPlan, type RowRemovalFocusPlan } from './tableRowFocus';
+import {
+  applyRowRemovalFocusPlan,
+  buildRemovedRowFallbackFocusPlan,
+  buildRetainedEmptyRowFocusPlan,
+  buildRowRemovalFocusPlan,
+  type RowRemovalFocusPlan,
+} from './tableRowFocus';
 
 export type OffentligeYdelserDerivedCellValues = Readonly<{
   periodiseringLabel: string;
@@ -168,17 +174,39 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
     }, []);
 
     const commitRowUpdate = React.useCallback(
-      (rowId: string, updates: Partial<OffentligeYdelserRow>) => {
+      (rowId: string, updates: Partial<OffentligeYdelserRow>, colIndex: number) => {
         setInternalTableData((prev) => {
           const updated = prev.map((row) => (row.id === rowId ? { ...row, ...updates } : row));
           const normalized = normalizeRows(updated);
-          const focusPlan = buildRowRemovalFocusPlan({
+          let focusPlan = buildRowRemovalFocusPlan({
             table: tableRef.current,
             prevRows: prev,
             nextRows: normalized,
             visibleRowIds: visibleRowIdsRef.current,
             getRowId: (row) => row.id,
           });
+          if (!focusPlan) {
+            focusPlan = buildRemovedRowFallbackFocusPlan({
+              prevRows: prev,
+              nextRows: normalized,
+              rowId,
+              colIndex,
+              visibleRowIds: visibleRowIdsRef.current,
+              getRowId: (row) => row.id,
+            });
+          }
+          if (!focusPlan) {
+            focusPlan = buildRetainedEmptyRowFocusPlan({
+              table: tableRef.current,
+              prevRows: prev,
+              nextRows: normalized,
+              rowId,
+              colIndex,
+              visibleRowIds: visibleRowIdsRef.current,
+              isRowEmpty,
+              getRowId: (row) => row.id,
+            });
+          }
           if (focusPlan) {
             // Last-plan-wins by design: only the final commit in a render cycle should decide focus restoration.
             pendingRowFocusPlanRef.current = focusPlan;
@@ -473,7 +501,7 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
                     <TableDateInput
                       gridCell={{ rowId: row.id, colIndex: 0 }}
                       value={row.fraDato}
-                      onBlur={(e) => commitRowUpdate(row.id, { fraDato: e.target.value })}
+                      onBlur={(e) => commitRowUpdate(row.id, { fraDato: e.target.value }, 0)}
                       onErrorChange={handleErrorChange(row.id, 'fraDato')}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'fraDato')}
                       inputRef={registerCellRef(row.id, 0)}
@@ -488,7 +516,7 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
                     <TableDateInput
                       gridCell={{ rowId: row.id, colIndex: 1 }}
                       value={row.tilDato}
-                      onBlur={(e) => commitRowUpdate(row.id, { tilDato: e.target.value })}
+                      onBlur={(e) => commitRowUpdate(row.id, { tilDato: e.target.value }, 1)}
                       onErrorChange={handleErrorChange(row.id, 'tilDato')}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'tilDato')}
                       inputRef={registerCellRef(row.id, 1)}
@@ -503,7 +531,7 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
                     <TableAmountInput
                       gridCell={{ rowId: row.id, colIndex: 2 }}
                       value={row.ydelse}
-                      onBlur={(e) => commitRowUpdate(row.id, { ydelse: e.target.value })}
+                      onBlur={(e) => commitRowUpdate(row.id, { ydelse: e.target.value }, 2)}
                       onErrorChange={handleErrorChange(row.id, 'ydelse')}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'ydelse')}
                       inputRef={registerCellRef(row.id, 2)}
@@ -515,7 +543,7 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
                     <TableAmountInput
                       gridCell={{ rowId: row.id, colIndex: 3 }}
                       value={row.tillaeg}
-                      onBlur={(e) => commitRowUpdate(row.id, { tillaeg: e.target.value })}
+                      onBlur={(e) => commitRowUpdate(row.id, { tillaeg: e.target.value }, 3)}
                       onErrorChange={handleErrorChange(row.id, 'tillaeg')}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'tillaeg')}
                       inputRef={registerCellRef(row.id, 3)}
@@ -528,7 +556,7 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
                       gridCell={{ rowId: row.id, colIndex: 4 }}
                       value={row.ydelsestype}
                       allowEmpty={true}
-                      onChange={(e) => commitRowUpdate(row.id, { ydelsestype: e.target.value || '' })}
+                      onChange={(e) => commitRowUpdate(row.id, { ydelsestype: e.target.value || '' }, 4)}
                       placeholder="Vælg..."
                       options={ydelsestypeOptions}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'ydelsestype')}

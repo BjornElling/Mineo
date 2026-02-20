@@ -133,6 +133,8 @@ const TableDropdown = React.memo(
         if (expanded) return;
 
         if (e.key === 'Backspace' || e.key === 'Delete') {
+          // In table context, Delete is normally handled at table-capture level first.
+          // Keep this as a defensive fallback for isolated/non-table usage.
           if (!allowEmpty) return;
           e.preventDefault();
           e.stopPropagation();

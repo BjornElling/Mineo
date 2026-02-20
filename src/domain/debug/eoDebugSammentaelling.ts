@@ -2,7 +2,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/
 import type { FieldErrorsForSection } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
 import { subtractOneDay } from '../../types/branded';
-import { formatCurrency, parseAmount } from '../../utils/formatUtils';
+import { formatCurrency } from '../../utils/formatUtils';
 import { debugTabelColumnId } from './eoDebugLoenTypes';
 import type { EODebugModel } from './eoDebugModel';
 import { buildEODebugSvieSmerteRows } from '../erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
@@ -305,6 +305,14 @@ const isDanishNumberString = (value: string): boolean => {
   return /^-?\d{1,3}(\.\d{3})*(,\d+)?$/.test(value) || /^-?\d+(,\d+)?$/.test(value);
 };
 
+const parseDanishNumberString = (value: string): number | null => {
+  const trimmed = value.trim();
+  if (!isDanishNumberString(trimmed)) return null;
+  const clean = trimmed.replace(/\./g, '').replace(',', '.');
+  const parsed = Number.parseFloat(clean);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const sumDebugTableColumn = (
   model: EODebugModel,
   columnId: string
@@ -332,9 +340,8 @@ const sumDebugTableColumn = (
     const cell = model.getCell(rowIndex, columnId as never);
     const trimmed = String(cell ?? '').trim();
     if (trimmed === '' || trimmed === '-') continue;
-    if (!isDanishNumberString(trimmed)) continue;
-    const parsed = parseAmount(trimmed);
-    if (!Number.isFinite(parsed)) continue;
+    const parsed = parseDanishNumberString(trimmed);
+    if (parsed === null) continue;
     sum += parsed;
     hasValue = true;
   }
@@ -381,9 +388,8 @@ const sumDebugTableColumnInRanges = (
     const cell = model.getCell(rowIndex, columnId as never);
     const trimmed = String(cell ?? '').trim();
     if (trimmed === '' || trimmed === '-') continue;
-    if (!isDanishNumberString(trimmed)) continue;
-    const parsed = parseAmount(trimmed);
-    if (!Number.isFinite(parsed)) continue;
+    const parsed = parseDanishNumberString(trimmed);
+    if (parsed === null) continue;
     sum += parsed;
     hasValue = true;
   }
@@ -403,10 +409,9 @@ const parseSvieSmerteCounts = (value: string): SvieSmerteCounts | null => {
 
   if (!sygedageMatch && !delviseMatch) return null;
 
-  const sygedage = sygedageMatch ? parseAmount(sygedageMatch[1]) : 0;
-  const delviseSygedage = delviseMatch ? parseAmount(delviseMatch[1]) : 0;
-
-  if (!Number.isFinite(sygedage) || !Number.isFinite(delviseSygedage)) return null;
+  const sygedage = sygedageMatch ? parseDanishNumberString(sygedageMatch[1]) : 0;
+  const delviseSygedage = delviseMatch ? parseDanishNumberString(delviseMatch[1]) : 0;
+  if (sygedage === null || delviseSygedage === null) return null;
 
   return {
     sygedage: Math.trunc(sygedage),

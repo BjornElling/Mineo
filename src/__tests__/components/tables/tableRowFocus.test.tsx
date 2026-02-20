@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { applyRowRemovalFocusPlan, buildRowRemovalFocusPlan, type RowRemovalFocusPlan } from '../../../components/tables/tableRowFocus';
+import {
+  applyRowRemovalFocusPlan,
+  buildRemovedRowFallbackFocusPlan,
+  buildRetainedEmptyRowFocusPlan,
+  buildRowRemovalFocusPlan,
+  type RowRemovalFocusPlan,
+} from '../../../components/tables/tableRowFocus';
 
 type Row = { id: string };
 
@@ -264,5 +270,100 @@ describe('tableRowFocus', () => {
 
     applyRowRemovalFocusPlan({ table, plan: plan!, visibleRowIds: ['r1', 'r3'] });
     expect(document.activeElement).toBe(expectedTarget);
+  });
+
+  it('buildRemovedRowFallbackFocusPlan resolves target index without active cell in table', () => {
+    const plan = buildRemovedRowFallbackFocusPlan({
+      prevRows: [{ id: 'r1' }, { id: 'r2' }, { id: 'r3' }],
+      nextRows: [{ id: 'r1' }, { id: 'r3' }],
+      rowId: 'r2',
+      colIndex: 1,
+      visibleRowIds: ['r1', 'r2', 'r3'],
+      getRowId: (row) => row.id,
+    });
+
+    expect(plan).toEqual({ targetIndex: 1, colIndex: 1 });
+  });
+
+  it('buildRemovedRowFallbackFocusPlan returns null when row is not removed', () => {
+    const plan = buildRemovedRowFallbackFocusPlan({
+      prevRows: [{ id: 'r1' }, { id: 'r2' }],
+      nextRows: [{ id: 'r1' }, { id: 'r2' }],
+      rowId: 'r2',
+      colIndex: 0,
+      visibleRowIds: ['r1', 'r2'],
+      getRowId: (row) => row.id,
+    });
+
+    expect(plan).toBeNull();
+  });
+
+  it('buildRemovedRowFallbackFocusPlan returns null when row id is not in visible row ids', () => {
+    const plan = buildRemovedRowFallbackFocusPlan({
+      prevRows: [{ id: 'r1' }, { id: 'r2' }],
+      nextRows: [{ id: 'r1' }],
+      rowId: 'r2',
+      colIndex: 0,
+      visibleRowIds: ['r1'],
+      getRowId: (row) => row.id,
+    });
+
+    expect(plan).toBeNull();
+  });
+
+  it('buildRetainedEmptyRowFocusPlan returns plan when active row becomes empty and is retained', () => {
+    const { table, getInput } = buildTable({ rowIds: ['r1', 'r2'], colCount: 1 });
+    getInput('r1', 0)!.focus();
+
+    const plan = buildRetainedEmptyRowFocusPlan({
+      table,
+      prevRows: [{ id: 'r1', value: '100' }],
+      nextRows: [{ id: 'r1', value: '' }],
+      rowId: 'r1',
+      colIndex: 0,
+      visibleRowIds: ['r1', 'r2'],
+      isRowEmpty: (row) => row.value === '',
+      getRowId: (row) => row.id,
+    });
+
+    expect(plan).toEqual({ targetIndex: 0, colIndex: 0 });
+  });
+
+  it('buildRetainedEmptyRowFocusPlan returns null when focus is outside table', () => {
+    const { table } = buildTable({ rowIds: ['r1', 'r2'], colCount: 1 });
+    const outside = document.createElement('input');
+    document.body.appendChild(outside);
+    outside.focus();
+
+    const plan = buildRetainedEmptyRowFocusPlan({
+      table,
+      prevRows: [{ id: 'r1', value: '100' }],
+      nextRows: [{ id: 'r1', value: '' }],
+      rowId: 'r1',
+      colIndex: 0,
+      visibleRowIds: ['r1', 'r2'],
+      isRowEmpty: (row) => row.value === '',
+      getRowId: (row) => row.id,
+    });
+
+    expect(plan).toBeNull();
+  });
+
+  it('buildRetainedEmptyRowFocusPlan returns null when row was already empty before commit', () => {
+    const { table, getInput } = buildTable({ rowIds: ['r1', 'r2'], colCount: 1 });
+    getInput('r1', 0)!.focus();
+
+    const plan = buildRetainedEmptyRowFocusPlan({
+      table,
+      prevRows: [{ id: 'r1', value: '' }],
+      nextRows: [{ id: 'r1', value: '' }],
+      rowId: 'r1',
+      colIndex: 0,
+      visibleRowIds: ['r1', 'r2'],
+      isRowEmpty: (row) => row.value === '',
+      getRowId: (row) => row.id,
+    });
+
+    expect(plan).toBeNull();
   });
 });

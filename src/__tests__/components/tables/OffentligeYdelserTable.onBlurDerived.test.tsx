@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
@@ -57,6 +57,11 @@ const getFraDatoInput = (): HTMLInputElement => {
 const getTilDatoInput = (): HTMLInputElement => {
   const cells = getFirstDataRowCells();
   return within(cells[1]!).getByRole('textbox') as HTMLInputElement;
+};
+
+const getYdelsestypeCombobox = (): HTMLElement => {
+  const cells = getFirstDataRowCells();
+  return within(cells[4]!).getByRole('combobox');
 };
 
 const DerivedHarness = ({ initial, onPersist }: { initial: OffentligeYdelserRow[]; onPersist: (next: OffentligeYdelserRow[]) => void }) => {
@@ -123,6 +128,98 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
       expect(onPersist).toHaveBeenCalledTimes(1);
     });
   }, TEST_TIMEOUT_MS);
+
+  it('bevarer fokus i samme celleposition når sidste værdi slettes i række med min. 2 rækker', async () => {
+    const user = userEvent.setup();
+    const onPersist = vi.fn();
+
+    render(
+      <DerivedHarness
+        onPersist={onPersist}
+        initial={[
+          makeRow({
+            id: 'row-a',
+            fraDato: '01-01-2024',
+            tilDato: '10-01-2024',
+            ydelsestype: 'flextilskud',
+            ydelse: asAmount(100),
+          }),
+          makeRow({
+            id: 'row-b',
+          }),
+        ]}
+      />
+    );
+
+    const input = getYdelseInput();
+    await user.click(input);
+    await user.keyboard('{Delete}');
+
+    await waitFor(() => {
+      const cellsNow = getFirstDataRowCells();
+      const focusedInput = within(cellsNow[2]!).getByRole('textbox');
+      expect(document.activeElement).toBe(focusedInput);
+      expect(onPersist).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('bevarer fokus når værdi oprettes og efterfølgende slettes i ellers tom tabel', async () => {
+    const user = userEvent.setup();
+    const onPersist = vi.fn();
+
+    render(<DerivedHarness onPersist={onPersist} initial={[makeRow({})]} />);
+
+    const input = getYdelseInput();
+
+    await user.dblClick(input);
+    await user.type(input, '100');
+    fireEvent.blur(input);
+
+    await waitFor(() => {
+      expect(onPersist).toHaveBeenCalledTimes(1);
+    });
+
+    await user.click(getYdelseInput());
+    await user.keyboard('{Delete}');
+
+    await waitFor(() => {
+      const cellsNow = getFirstDataRowCells();
+      const focusedInput = within(cellsNow[2]!).getByRole('textbox');
+      expect(document.activeElement).toBe(focusedInput);
+    });
+  });
+
+  it('bevarer fokus i dropdown-felt når valgt ydelsestype ryddes med Delete', async () => {
+    const user = userEvent.setup();
+    const onPersist = vi.fn();
+
+    render(
+      <DerivedHarness
+        onPersist={onPersist}
+        initial={[
+          makeRow({
+            id: 'row-a',
+            ydelsestype: 'flextilskud',
+          }),
+          makeRow({
+            id: 'row-b',
+          }),
+        ]}
+      />
+    );
+
+    const combobox = getYdelsestypeCombobox();
+    act(() => {
+      combobox.focus();
+    });
+    expect(document.activeElement).toBe(combobox);
+    await user.keyboard('{Delete}');
+
+    await waitFor(() => {
+      const focusedCombobox = getYdelsestypeCombobox();
+      expect(document.activeElement).toBe(focusedCombobox);
+    });
+  });
 
   it('updates derived cells only on blur when entering an already-canonical amount (no normalization delta)', async () => {
     const user = userEvent.setup();
