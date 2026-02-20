@@ -16,6 +16,7 @@ const pendingRecoveryByTable = new WeakMap<HTMLTableElement, Readonly<{ desired:
 // Navigation semantics (owned by this module):
 // - Enter / Shift+Enter: move vertically while keeping the "anchor cell" if one exists; otherwise use current cell.
 // - ArrowUp/ArrowDown: move vertically from the current cell (clears the anchor).
+//   - At table top/bottom edge, event is intentionally released so Container can continue navigation outside the table.
 // - ArrowLeft/ArrowRight: move horizontally within the current row and wrap at row edges.
 // Note: We `stopPropagation()` for owned keys so the Container-level Tab trap does not also run.
 // Tab is NOT owned here; it is handled by Container-level navigation for natural flow across tables.
@@ -403,11 +404,12 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
   if (isEscapeKey && isEditing && activeEditableCell) {
     e.preventDefault();
     e.stopPropagation();
-    activeEditableCell.cancelEdit();
-    // Fokus-plan: Behold fokus på samme celle efter Escape
+    tabAnchorByTable.delete(table);
+    core?.clearFocusPlan();
     if (core && activeCell) {
-      core.requestFocusPlan({ from: activeCell, to: activeCell, reason: 'commit' });
+      core.setFocusedCell(activeCell);
     }
+    activeEditableCell.cancelEdit();
     return;
   }
 
@@ -466,14 +468,27 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     }
     moveVertical(grid, base, deltaRows);
     scheduleFocusRecovery(table, targetLocator, target);
+    // Enter fuldfører tab-anker-navigation og skal altid nulstille ankeret.
     tabAnchorByTable.delete(table);
     return;
   }
 
   if (key === 'ArrowUp' || key === 'ArrowDown') {
+    const rowCount = grid.cellFocusables.length;
+    const atTopEdge = key === 'ArrowUp' && activePos.rowIndex === 0;
+    const atBottomEdge = key === 'ArrowDown' && activePos.rowIndex === Math.max(0, rowCount - 1);
+
+    // Release edge arrows so Container can continue navigation outside the table.
+    if (atTopEdge || atBottomEdge) {
+      const native = e.nativeEvent as KeyboardEvent & { mineoTableBoundaryExit?: boolean };
+      native.mineoTableBoundaryExit = true;
+      tabAnchorByTable.delete(table);
+      return;
+    }
+
+    tabAnchorByTable.delete(table);
     e.preventDefault();
     e.stopPropagation();
-    tabAnchorByTable.delete(table);
     const deltaRows = key === 'ArrowUp' ? -1 : 1;
     const { nextRowIndex, nextRowId, target } = pickVerticalTarget(grid, activePos, deltaRows);
     const targetLocator = { rowIndex: nextRowIndex, colIndex: activePos.colIndex, subIndex: activePos.subIndex, ...(nextRowId ? { rowId: nextRowId } : {}) };

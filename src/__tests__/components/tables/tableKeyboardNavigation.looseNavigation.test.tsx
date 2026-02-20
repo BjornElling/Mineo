@@ -231,6 +231,91 @@ describe('tableKeyboardNavigation loose table', () => {
     expect(document.activeElement).toBe(a2);
   });
 
+  it('Escape i edit mode bevarer fokus i aktiv celle og nulstiller Tab-anker', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <StandardLooseTable>
+        <tbody>
+          <tr data-mineo-row-id="r1">
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r1', colIndex: 0 }} value="1" />
+            </td>
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r1', colIndex: 1 }} value="2" />
+            </td>
+          </tr>
+          <tr data-mineo-row-id="r2">
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r2', colIndex: 0 }} value="3" />
+            </td>
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r2', colIndex: 1 }} value="4" />
+            </td>
+          </tr>
+        </tbody>
+      </StandardLooseTable>
+    );
+
+    const [a1, b1, a2, b2] = screen.getAllByRole('textbox');
+
+    await user.click(a1);
+    await keyDownInAct(a1, 'Tab');
+    await focusInAct(b1);
+
+    // Open editor from keyboard without pointer-down (which would clear anchor).
+    await keyDownInAct(b1, '9');
+    await user.keyboard('{Escape}');
+    expect(document.activeElement).toBe(b1);
+
+    // Anchor must be cleared by Escape; Enter now navigates from current cell (b1 -> b2),
+    // not from original tab-anchor (a1 -> a2).
+    await user.keyboard('{Enter}');
+    expect(document.activeElement).toBe(b2);
+    expect(document.activeElement).not.toBe(a2);
+  });
+
+  it('Enter-navigation nulstiller Tab-anker efter første hop', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <StandardLooseTable>
+        <tbody>
+          <tr data-mineo-row-id="r1">
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r1', colIndex: 0 }} value="1" />
+            </td>
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r1', colIndex: 1 }} value="2" />
+            </td>
+          </tr>
+          <tr data-mineo-row-id="r2">
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r2', colIndex: 0 }} value="3" />
+            </td>
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r2', colIndex: 1 }} value="4" />
+            </td>
+          </tr>
+        </tbody>
+      </StandardLooseTable>
+    );
+
+    const [a1, b1, a2] = screen.getAllByRole('textbox');
+
+    await user.click(a1);
+    await keyDownInAct(a1, 'Tab');
+    await focusInAct(b1);
+
+    // First Enter uses tab-anchor (a1 -> a2).
+    await user.keyboard('{Enter}');
+    expect(document.activeElement).toBe(a2);
+
+    // Second Enter must navigate from current cell if anchor was reset (a2 -> a1 via wrap).
+    await user.keyboard('{Enter}');
+    expect(document.activeElement).toBe(a1);
+  });
+
   it('single click åbner ikke editor, når cellen kun er husket men ikke fysisk fokuseret', async () => {
     const user = userEvent.setup();
 

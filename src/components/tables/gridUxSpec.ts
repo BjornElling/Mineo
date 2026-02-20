@@ -28,6 +28,10 @@ export const GRID_UX_SPEC = {
      * After a Tab-sequence, Enter/Shift+Enter uses the cell where the sequence started (anchor cell),
      * not the cell where focus currently is.
      *
+     * Reset:
+     * - Anchor clears after Enter/Shift+Enter navigation is executed.
+     * - Anchor clears on Escape-cancel.
+     *
      * NOTE: The anchor concerns both row and column (and possible sub-control index).
      */
     tabAnchor: 'cell' as const,
@@ -35,6 +39,7 @@ export const GRID_UX_SPEC = {
     /**
      * Arrow keys:
      * - ArrowUp/ArrowDown participate in vertical traversal and clear the Tab-anchor.
+     *   At top/bottom edge, event is released so container-level navigation can continue outside the table.
      * - ArrowLeft/ArrowRight navigate horisontalt i samme række med wrap ved rækkekanter.
      */
     arrowKeySemantics: {

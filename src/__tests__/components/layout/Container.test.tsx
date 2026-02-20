@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Container from '../../../components/layout/Container';
 import StyledIntegerField from '../../../components/inputs/StyledIntegerField';
+import { StandardGridTable } from '../../../components/tables/StandardGridTable';
 
 /**
  * Container keyboard navigation tests
@@ -440,5 +441,479 @@ describe('Container keyboard navigation', () => {
 
     expect(second).toHaveValue('7');
     expect(document.activeElement).toBe(first);
+  });
+
+  it('ArrowRight/ArrowLeft navigerer i samme række med wrap når editor er lukket', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <div className="row--label-right-hover" style={{ position: 'fixed' }}>
+          <input data-testid="r1c1" type="text" readOnly defaultValue="A" style={{ position: 'fixed' }} />
+          <input data-testid="r1c2" type="text" readOnly defaultValue="B" style={{ position: 'fixed' }} />
+          <input data-testid="r1c3" type="text" readOnly defaultValue="C" style={{ position: 'fixed' }} />
+        </div>
+      </Container>
+    );
+
+    const r1c1 = screen.getByTestId('r1c1') as HTMLInputElement;
+    const r1c2 = screen.getByTestId('r1c2') as HTMLInputElement;
+    const r1c3 = screen.getByTestId('r1c3') as HTMLInputElement;
+    expect(r1c1.readOnly).toBe(true);
+
+    r1c1.focus();
+    expect(document.activeElement).toBe(r1c1);
+
+    await user.keyboard('{ArrowRight}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(r1c2);
+
+    await user.keyboard('{ArrowRight}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(r1c3);
+
+    await user.keyboard('{ArrowRight}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(r1c1);
+
+    await user.keyboard('{ArrowLeft}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(r1c3);
+  });
+
+  it('ArrowUp/ArrowDown går til første felt i række over/under med wrap', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <div className="row--label-right-hover" style={{ position: 'fixed' }}>
+          <input data-testid="r1c1" type="text" readOnly defaultValue="A" style={{ position: 'fixed' }} />
+          <input data-testid="r1c2" type="text" readOnly defaultValue="B" style={{ position: 'fixed' }} />
+        </div>
+        <div className="row--label-right-hover" style={{ position: 'fixed', marginTop: 30 }}>
+          <input data-testid="r2c1" type="text" readOnly defaultValue="C" style={{ position: 'fixed' }} />
+          <input data-testid="r2c2" type="text" readOnly defaultValue="D" style={{ position: 'fixed' }} />
+        </div>
+      </Container>
+    );
+
+    const r1c1 = screen.getByTestId('r1c1') as HTMLInputElement;
+    const r1c2 = screen.getByTestId('r1c2') as HTMLInputElement;
+    const r2c1 = screen.getByTestId('r2c1') as HTMLInputElement;
+    const r2c2 = screen.getByTestId('r2c2') as HTMLInputElement;
+    expect(r1c2.readOnly).toBe(true);
+
+    r1c2.focus();
+    expect(document.activeElement).toBe(r1c2);
+
+    await user.keyboard('{ArrowDown}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(r2c1);
+
+    await user.keyboard('{ArrowDown}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(r1c1);
+
+    await user.keyboard('{ArrowUp}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(r2c2);
+  });
+
+  it('Pil-navigation intercepteres ikke når editor er åben (readOnly=false)', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <input data-testid="editable" type="text" defaultValue="A" style={{ position: 'fixed' }} />
+        <input data-testid="next" type="text" readOnly defaultValue="B" style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const editable = screen.getByTestId('editable') as HTMLInputElement;
+    const next = screen.getByTestId('next') as HTMLInputElement;
+
+    editable.focus();
+    expect(document.activeElement).toBe(editable);
+
+    await user.keyboard('{ArrowRight}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(editable);
+
+    await user.keyboard('{ArrowDown}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(editable);
+    expect(document.activeElement).not.toBe(next);
+  });
+
+  it('Pil-navigation intercepteres ikke i table-subtree', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <div data-mineo-table-navigation="true" style={{ position: 'fixed' }}>
+          <input data-testid="table-cell" type="text" readOnly defaultValue="celle" style={{ position: 'fixed' }} />
+        </div>
+        <input data-testid="outside" type="text" readOnly defaultValue="udenfor" style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const tableCell = screen.getByTestId('table-cell') as HTMLInputElement;
+    const outside = screen.getByTestId('outside') as HTMLInputElement;
+
+    tableCell.focus();
+    expect(document.activeElement).toBe(tableCell);
+
+    await user.keyboard('{ArrowRight}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(tableCell);
+    expect(document.activeElement).not.toBe(outside);
+  });
+
+  it('Pil-navigation intercepteres ikke når combobox-popup er åben', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <input
+          data-testid="combobox-open"
+          type="text"
+          role="combobox"
+          aria-haspopup="listbox"
+          aria-expanded="true"
+          readOnly
+          defaultValue="A"
+          style={{ position: 'fixed' }}
+        />
+        <input data-testid="next" type="text" readOnly defaultValue="B" style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const openCombobox = screen.getByTestId('combobox-open') as HTMLInputElement;
+    const next = screen.getByTestId('next') as HTMLInputElement;
+
+    openCombobox.focus();
+    expect(document.activeElement).toBe(openCombobox);
+
+    await user.keyboard('{ArrowDown}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(openCombobox);
+    expect(document.activeElement).not.toBe(next);
+  });
+
+  it('Pil-navigation virker fra toggle/switch-fokus (checkbox)', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <div className="row--label-right-hover" style={{ position: 'fixed' }}>
+          <input data-testid="toggle" type="checkbox" style={{ position: 'fixed' }} />
+          <input data-testid="next" type="text" readOnly defaultValue="B" style={{ position: 'fixed' }} />
+        </div>
+      </Container>
+    );
+
+    const toggle = screen.getByTestId('toggle') as HTMLInputElement;
+    const next = screen.getByTestId('next') as HTMLInputElement;
+
+    toggle.focus();
+    expect(document.activeElement).toBe(toggle);
+
+    await user.keyboard('{ArrowRight}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(next);
+
+    await user.keyboard('{ArrowLeft}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(toggle);
+  });
+
+  it('Tab til felt udenfor viewport scroller mod vertikal center', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <input data-testid="field1" type="text" style={{ position: 'fixed' }} />
+        <input data-testid="field2" type="text" style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const container = document.querySelector('[data-mineo-scroll-container="true"]') as HTMLDivElement;
+    const field1 = screen.getByTestId('field1') as HTMLInputElement;
+    const field2 = screen.getByTestId('field2') as HTMLInputElement;
+
+    Object.defineProperty(container, 'clientHeight', { configurable: true, value: 400 });
+    Object.defineProperty(container, 'scrollHeight', { configurable: true, value: 3000 });
+    Object.defineProperty(container, 'clientWidth', { configurable: true, value: 1000 });
+    Object.defineProperty(container, 'scrollWidth', { configurable: true, value: 1000 });
+    container.scrollTop = 0;
+    container.scrollLeft = 0;
+
+    const scrollToSpy = vi.spyOn(container, 'scrollTo');
+
+    Object.defineProperty(container, 'getBoundingClientRect', {
+      configurable: true,
+      value: () =>
+        ({
+          x: 0,
+          y: 0,
+          width: 1000,
+          height: 400,
+          top: 0,
+          left: 0,
+          right: 1000,
+          bottom: 400,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    });
+
+    Object.defineProperty(field1, 'getBoundingClientRect', {
+      configurable: true,
+      value: () =>
+        ({
+          x: 10,
+          y: 20,
+          width: 100,
+          height: 20,
+          top: 20,
+          left: 10,
+          right: 110,
+          bottom: 40,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    });
+
+    Object.defineProperty(field2, 'getBoundingClientRect', {
+      configurable: true,
+      value: () =>
+        ({
+          x: 10,
+          y: 900,
+          width: 100,
+          height: 20,
+          top: 900,
+          left: 10,
+          right: 110,
+          bottom: 920,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    });
+
+    field1.focus();
+    await user.keyboard('{Tab}');
+    await waitForSelectionClear();
+
+    expect(document.activeElement).toBe(field2);
+    expect(scrollToSpy).toHaveBeenCalled();
+    const lastCall = scrollToSpy.mock.calls[scrollToSpy.mock.calls.length - 1]?.[0] as ScrollToOptions;
+    expect(lastCall.top).toBe(710);
+  });
+
+  it('ArrowDown/ArrowUp fra sidefelter kan gå ind i tabel over/under', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <input data-testid="above" type="text" readOnly style={{ position: 'fixed' }} />
+        <table data-mineo-table-navigation="true">
+          <tbody>
+            <tr>
+              <td>
+                <input data-testid="table-cell" type="text" readOnly style={{ position: 'fixed' }} />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <input data-testid="below" type="text" readOnly style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const above = screen.getByTestId('above') as HTMLInputElement;
+    const tableCell = screen.getByTestId('table-cell') as HTMLInputElement;
+    const below = screen.getByTestId('below') as HTMLInputElement;
+
+    Object.defineProperty(above, 'getBoundingClientRect', {
+      configurable: true,
+      value: () =>
+        ({
+          x: 10,
+          y: 40,
+          width: 100,
+          height: 20,
+          top: 40,
+          left: 10,
+          right: 110,
+          bottom: 60,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    });
+    Object.defineProperty(tableCell, 'getBoundingClientRect', {
+      configurable: true,
+      value: () =>
+        ({
+          x: 10,
+          y: 140,
+          width: 100,
+          height: 20,
+          top: 140,
+          left: 10,
+          right: 110,
+          bottom: 160,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    });
+    Object.defineProperty(below, 'getBoundingClientRect', {
+      configurable: true,
+      value: () =>
+        ({
+          x: 10,
+          y: 260,
+          width: 100,
+          height: 20,
+          top: 260,
+          left: 10,
+          right: 110,
+          bottom: 280,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    });
+
+    above.focus();
+    await user.keyboard('{ArrowDown}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(tableCell);
+
+    below.focus();
+    await user.keyboard('{ArrowUp}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(tableCell);
+  });
+
+  it('ArrowUp/ArrowDown kan forlade tabel ved kant og følge side-regel (up->sidste, down->første)', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <div className="row--label-right-hover">
+          <input data-testid="above-first" type="text" readOnly style={{ position: 'fixed' }} />
+          <input data-testid="above-last" type="text" readOnly style={{ position: 'fixed' }} />
+        </div>
+        <StandardGridTable tableWidth="400px">
+          <tbody>
+            <tr data-mineo-row-id="r1">
+              <td>
+                <input data-testid="table-top" type="text" readOnly style={{ position: 'fixed' }} />
+              </td>
+            </tr>
+            <tr data-mineo-row-id="r2">
+              <td>
+                <input data-testid="table-bottom" type="text" readOnly style={{ position: 'fixed' }} />
+              </td>
+            </tr>
+          </tbody>
+        </StandardGridTable>
+        <div className="row--label-right-hover">
+          <input data-testid="below-first" type="text" readOnly style={{ position: 'fixed' }} />
+          <input data-testid="below-last" type="text" readOnly style={{ position: 'fixed' }} />
+        </div>
+      </Container>
+    );
+
+    const aboveFirst = screen.getByTestId('above-first') as HTMLInputElement;
+    const aboveLast = screen.getByTestId('above-last') as HTMLInputElement;
+    const tableTop = screen.getByTestId('table-top') as HTMLInputElement;
+    const tableBottom = screen.getByTestId('table-bottom') as HTMLInputElement;
+    const belowFirst = screen.getByTestId('below-first') as HTMLInputElement;
+    const belowLast = screen.getByTestId('below-last') as HTMLInputElement;
+    const aboveRow = aboveFirst.closest('.row--label-right-hover') as HTMLDivElement;
+    const belowRow = belowFirst.closest('.row--label-right-hover') as HTMLDivElement;
+
+    Object.defineProperty(aboveFirst, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({ x: 10, y: 40, width: 100, height: 20, top: 40, left: 10, right: 110, bottom: 60, toJSON: () => ({}) }) as DOMRect,
+    });
+    Object.defineProperty(aboveLast, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({ x: 220, y: 40, width: 100, height: 20, top: 40, left: 220, right: 320, bottom: 60, toJSON: () => ({}) }) as DOMRect,
+    });
+    Object.defineProperty(aboveRow, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({ x: 0, y: 40, width: 600, height: 40, top: 40, left: 0, right: 600, bottom: 80, toJSON: () => ({}) }) as DOMRect,
+    });
+    Object.defineProperty(tableTop, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({ x: 10, y: 140, width: 100, height: 20, top: 140, left: 10, right: 110, bottom: 160, toJSON: () => ({}) }) as DOMRect,
+    });
+    Object.defineProperty(tableBottom, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({ x: 10, y: 240, width: 100, height: 20, top: 240, left: 10, right: 110, bottom: 260, toJSON: () => ({}) }) as DOMRect,
+    });
+    Object.defineProperty(belowFirst, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({ x: 10, y: 340, width: 100, height: 20, top: 340, left: 10, right: 110, bottom: 360, toJSON: () => ({}) }) as DOMRect,
+    });
+    Object.defineProperty(belowLast, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({ x: 220, y: 340, width: 100, height: 20, top: 340, left: 220, right: 320, bottom: 360, toJSON: () => ({}) }) as DOMRect,
+    });
+    Object.defineProperty(belowRow, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({ x: 0, y: 340, width: 600, height: 40, top: 340, left: 0, right: 600, bottom: 380, toJSON: () => ({}) }) as DOMRect,
+    });
+
+    await act(async () => {
+      tableTop.focus();
+    });
+    await user.keyboard('{ArrowUp}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(aboveLast);
+
+    await act(async () => {
+      tableBottom.focus();
+    });
+    await user.keyboard('{ArrowDown}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(belowFirst);
+  });
+
+  it('ArrowLeft/ArrowRight slipper ikke ud af tabel ved rækkekant', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <StandardGridTable tableWidth="400px">
+          <tbody>
+            <tr data-mineo-row-id="r1">
+              <td>
+                <input data-testid="table-left" type="text" readOnly style={{ position: 'fixed' }} />
+              </td>
+              <td>
+                <input data-testid="table-right" type="text" readOnly style={{ position: 'fixed' }} />
+              </td>
+            </tr>
+          </tbody>
+        </StandardGridTable>
+        <input data-testid="outside" type="text" readOnly style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const tableLeft = screen.getByTestId('table-left') as HTMLInputElement;
+    const tableRight = screen.getByTestId('table-right') as HTMLInputElement;
+    const outside = screen.getByTestId('outside') as HTMLInputElement;
+
+    await act(async () => {
+      tableRight.focus();
+    });
+    await user.keyboard('{ArrowRight}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(tableLeft);
+    expect(document.activeElement).not.toBe(outside);
+
+    await act(async () => {
+      tableLeft.focus();
+    });
+    await user.keyboard('{ArrowLeft}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(tableRight);
+    expect(document.activeElement).not.toBe(outside);
   });
 });

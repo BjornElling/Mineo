@@ -59,6 +59,33 @@ Alle tastatur-navigation skal:
 
 ---
 
+### Piletaster (uden for tabeller)
+
+**Adfærd når felt har fokus og editor er lukket:**
+- `ArrowRight` / `ArrowLeft`: flytter fokus til næste/forrige fokusbare felt i samme række
+- Wrap i række: fra sidste → første, fra første → sidste
+- `ArrowDown`: flytter fokus til første fokusbare felt i række under
+- `ArrowUp`: flytter fokus til sidste fokusbare felt i række over
+- Vertikal wrap: fra nederste række → øverste række, fra øverste række → nederste række
+
+**Række-definition:**
+- Primært via eksisterende række-containere (`row--*` / hover-row mønstre)
+- Fallback: visuel række via elementernes Y-position
+
+**Undtagelser:**
+1. **Tabeller** (`data-mineo-table-navigation="true"`)
+   - Container intercepter IKKE piletaster i table-subtrees
+   - Grid/loose table beholder egen pil-navigation som hidtil
+   - Fra felter uden for tabel kan vertikal navigation (`ArrowUp`/`ArrowDown`) fokusere første/last relevante tabelcelle over/under
+2. **Åbne popup-widgets** (`aria-expanded="true"`)
+   - Container intercepter IKKE piletaster
+   - Widget/menu ejer intern navigation
+3. **Editor åben** (fx input med `readOnly=false`)
+   - Container intercepter IKKE piletaster
+   - Eksisterende caret/editor-adfærd bevares
+
+---
+
 ### Museklik
 
 **Adfærd:**
@@ -135,6 +162,7 @@ const focusOnly = (element: FocusableElement) => {
 **Garantier:**
 - Kun fokus, **ingen selection**
 - Undgår scroll-hop når muligt
+- Når målfelt er uden for viewport, scrolles containeren så feltet søges centreret vertikalt
 - Ingen deferred logik (requestAnimationFrame, setTimeout)
 - Ingen event listeners
 - Ingen session tracking

@@ -119,6 +119,32 @@ Hvis siden har en textarea:
 
 ---
 
+## 4b. Piletast-navigation (uden for tabeller)
+
+- [ ] Fokusér et felt i en række med flere felter (editor lukket/readOnly-tilstand)
+- [ ] Tryk `ArrowRight`
+- [ ] **Verificer:** Fokus går til næste felt i samme række
+- [ ] Tryk `ArrowLeft`
+- [ ] **Verificer:** Fokus går til forrige felt i samme række
+- [ ] Stå på sidste felt i rækken og tryk `ArrowRight`
+- [ ] **Verificer:** Wrap til første felt i samme række
+- [ ] Stå på første felt i rækken og tryk `ArrowLeft`
+- [ ] **Verificer:** Wrap til sidste felt i samme række
+
+- [ ] Fokusér et felt i en midter-række og tryk `ArrowDown`
+- [ ] **Verificer:** Fokus går til første felt i rækken under
+- [ ] Fokusér et felt i nederste række og tryk `ArrowDown`
+- [ ] **Verificer:** Wrap til første felt i øverste række
+- [ ] Fokusér et felt i øverste række og tryk `ArrowUp`
+- [ ] **Verificer:** Wrap til sidste felt i nederste række
+
+- [ ] Fokusér åbent dropdown (menu vist) og brug piletaster
+- [ ] **Verificer:** Menu-navigation håndteres af dropdown (Container intercepter ikke)
+- [ ] Fokusér input med åben editor (caret synlig) og brug piletaster
+- [ ] **Verificer:** Container intercepter ikke (eksisterende editor/caret-adfærd bevares)
+
+---
+
 ## 5. Edge cases
 
 ### Tomme felter

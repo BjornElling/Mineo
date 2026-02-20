@@ -8,7 +8,7 @@ Du har to opgaver:
 1. **Målrettet review** af de filer/features du bliver bedt om at kigge på.
 2. **Tilfældighedsfund** — alt du støder på undervejs, som ikke er i orden (se [Tilfældighedsfund](#tilfældighedsfund)).
 
-Du implementerer **ikke** ændringer. Du producerer review-tekst med konkrete, handlingsrettede fund. Giv ikke fulde fil-udkast eller copy/paste-klar erstatningskode; brug kun korte snippets når det er nødvendigt for at forklare en rettelse.
+Du implementerer **ikke** ændringer. Du producerer review-tekst med konkrete, handlingsrettede fund. Giv ikke fulde fil-udkast eller copy/paste-klar erstatningskode; brug kun korte snippets, når det er nødvendigt for at forklare en rettelse.
 
 ---
 

@@ -38,10 +38,22 @@ import ScrollToTopButton from '../ui/ScrollToTopButton';
  * Se src/contracts/keyboard-navigation.md for fuld dokumentation.
  */
 type FocusableElement = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLElement;
+type ArrowDirection = 'left' | 'right' | 'up' | 'down';
+
+type FocusRow = {
+  key: string;
+  top: number;
+  elements: FocusableElement[];
+};
 
 interface ContainerProps {
   children?: React.ReactNode;
 }
+
+const ROW_CONTAINER_SELECTOR =
+  '.row--label-right-hover,.row--label-right,.row--label-offset,.row,[class*="row--label-right"],[class*="row--label-offset"],[class*="hover-row"]';
+const NON_TEXT_EDITING_INPUT_TYPES = new Set(['checkbox', 'radio', 'range', 'button', 'submit', 'reset', 'file', 'color']);
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
 const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
@@ -51,6 +63,13 @@ const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
   const getWidgetHost = React.useCallback((el: HTMLElement | null): HTMLElement | null => {
     if (!el) return null;
     return el.closest('[role="combobox"],[aria-haspopup],[aria-controls]') as HTMLElement | null;
+  }, []);
+
+  const getRowContainer = React.useCallback((el: HTMLElement): HTMLElement | null => {
+    const container = el.closest(ROW_CONTAINER_SELECTOR);
+    if (!(container instanceof HTMLElement)) return null;
+    if (!containerRef.current?.contains(container)) return null;
+    return container;
   }, []);
 
   const getNearestExpanded = React.useCallback((el: HTMLElement | null): boolean => {
@@ -175,6 +194,11 @@ const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
     cacheValidRef.current = false;
   }, []);
 
+  const isInTableNavigation = React.useCallback((el: HTMLElement | null): boolean => {
+    if (!el) return false;
+    return el.closest('[data-mineo-table-navigation="true"]') !== null;
+  }, []);
+
   // Observer DOM-ændringer for at invalidere cache
   React.useEffect(() => {
     if (!containerRef.current) return;
@@ -198,8 +222,9 @@ const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
 
   // Håndter tab-navigation og enter-navigation for at holde fokus inden for containeren
   const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    // Håndter både Tab og Enter
-    if (e.key !== 'Tab' && e.key !== 'Enter') return;
+    const isArrowKey = e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown';
+    // Håndter Tab/Enter + pilnavigation (kun når editor/menu er lukket)
+    if (e.key !== 'Tab' && e.key !== 'Enter' && !isArrowKey) return;
     if (!containerRef.current) return;
 
     // Do not intercept keys originating outside the container DOM subtree.
@@ -209,7 +234,7 @@ const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
     if (targetNode && !containerRef.current.contains(targetNode)) return;
 
     // IME/composition and OS/browser-level commands should not be interfered with.
-    const native = e.nativeEvent as unknown as { isComposing?: boolean };
+    const native = e.nativeEvent as unknown as { isComposing?: boolean; mineoTableBoundaryExit?: boolean };
     if (native.isComposing === true) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
 
@@ -277,21 +302,26 @@ const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
         const viewportPadding = 24;
         let nextScrollTop = container.scrollTop;
         let nextScrollLeft = container.scrollLeft;
+        const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+        const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
 
-        if (elementRect.top < containerRect.top + viewportPadding) {
-          nextScrollTop += elementRect.top - (containerRect.top + viewportPadding);
-        } else if (elementRect.bottom > containerRect.bottom - viewportPadding) {
-          nextScrollTop += elementRect.bottom - (containerRect.bottom - viewportPadding);
+        const elementIsOutsideVerticalViewport = elementRect.top < containerRect.top || elementRect.bottom > containerRect.bottom;
+        if (elementIsOutsideVerticalViewport) {
+          const elementCenterY = elementRect.top - containerRect.top + elementRect.height / 2;
+          const desiredScrollTop = container.scrollTop + elementCenterY - container.clientHeight / 2;
+          nextScrollTop = clamp(desiredScrollTop, 0, maxScrollTop);
         }
 
+        // Horizontal behavior remains edge-based; only vertical behavior is centered.
         if (elementRect.left < containerRect.left + viewportPadding) {
           nextScrollLeft += elementRect.left - (containerRect.left + viewportPadding);
         } else if (elementRect.right > containerRect.right - viewportPadding) {
           nextScrollLeft += elementRect.right - (containerRect.right - viewportPadding);
         }
+        nextScrollLeft = clamp(nextScrollLeft, 0, maxScrollLeft);
 
         if (nextScrollTop !== container.scrollTop || nextScrollLeft !== container.scrollLeft) {
-          container.scrollTo({ top: nextScrollTop, left: nextScrollLeft });
+          container.scrollTo({ top: nextScrollTop, left: nextScrollLeft, behavior: 'smooth' });
         }
       }
 
@@ -331,6 +361,140 @@ const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
       focusOnly(currentIndex === focusableElements.length - 1 ? firstElement : focusableElements[currentIndex + 1]);
     };
 
+    const moveByArrow = (direction: ArrowDirection) => {
+      if (!activeFocusable) return;
+      const allowTableBoundaryExit = native.mineoTableBoundaryExit === true;
+      if (isInTableNavigation(activeFocusable) && !allowTableBoundaryExit) return;
+
+      // Bevar eksisterende praksis i åbne widgets (dropdown/menu/date osv.)
+      if (activeWidgetIsExpanded) return;
+
+      // Pilnavigation gælder kun i fokus-men-ikke-redigér mode.
+      // ReadOnly=false betyder typisk åben editor i Mineos 2-trins inputs.
+      const isTextEditingInput = (element: FocusableElement): element is HTMLInputElement | HTMLTextAreaElement => {
+        if (element instanceof HTMLTextAreaElement) return true;
+        if (!(element instanceof HTMLInputElement)) return false;
+        return !NON_TEXT_EDITING_INPUT_TYPES.has(element.type);
+      };
+      if (isTextEditingInput(activeFocusable) && !activeFocusable.readOnly) {
+        return;
+      }
+
+      const nonTableFocusables = focusableElements.filter((el) => !isInTableNavigation(el));
+      if (!focusableElements.includes(activeFocusable)) return;
+
+      const visualRowTolerancePx = 8;
+      const rectByElement = new Map<FocusableElement, DOMRect>();
+      const getRect = (element: FocusableElement): DOMRect => {
+        const cached = rectByElement.get(element);
+        if (cached) return cached;
+        const rect = (element as HTMLElement).getBoundingClientRect();
+        rectByElement.set(element, rect);
+        return rect;
+      };
+      const sortByHorizontalPosition = (items: FocusableElement[]) => {
+        return items
+          .slice()
+          .sort((a, b) => {
+            const aRect = getRect(a);
+            const bRect = getRect(b);
+            if (aRect.left !== bRect.left) return aRect.left - bRect.left;
+            return aRect.top - bRect.top;
+          });
+      };
+
+      const activeRect = getRect(activeFocusable);
+      const activeRowContainer = getRowContainer(activeFocusable as HTMLElement);
+
+      if (direction === 'left' || direction === 'right') {
+        if (nonTableFocusables.length === 0) return;
+        if (!nonTableFocusables.includes(activeFocusable)) return;
+
+        const currentRowElements = sortByHorizontalPosition(
+          nonTableFocusables.filter((candidate) => {
+            const candidateContainer = getRowContainer(candidate as HTMLElement);
+            if (activeRowContainer && candidateContainer) return candidateContainer === activeRowContainer;
+            if (activeRowContainer && !candidateContainer) {
+              const candidateTop = getRect(candidate).top;
+              return Math.abs(candidateTop - activeRect.top) <= visualRowTolerancePx;
+            }
+            if (!activeRowContainer && candidateContainer) return false;
+            const candidateTop = getRect(candidate).top;
+            return Math.abs(candidateTop - activeRect.top) <= visualRowTolerancePx;
+          })
+        );
+        if (currentRowElements.length === 0) return;
+
+        const currentElementIndex = currentRowElements.indexOf(activeFocusable);
+        if (currentElementIndex < 0) return;
+
+        const nextIndex =
+          direction === 'right'
+            ? (currentElementIndex + 1) % currentRowElements.length
+            : (currentElementIndex - 1 + currentRowElements.length) % currentRowElements.length;
+        const target = currentRowElements[nextIndex];
+        if (!target) return;
+        e.preventDefault();
+        focusOnly(target);
+        return;
+      }
+
+      const rowsByContainer = new Map<HTMLElement, FocusableElement[]>();
+      const rowsWithoutContainer: FocusRow[] = [];
+      for (const element of focusableElements) {
+        const rowContainer = getRowContainer(element as HTMLElement);
+        if (rowContainer) {
+          if (!rowsByContainer.has(rowContainer)) {
+            rowsByContainer.set(rowContainer, []);
+          }
+          rowsByContainer.get(rowContainer)?.push(element);
+          continue;
+        }
+        const top = getRect(element).top;
+        const existing = rowsWithoutContainer.find((row) => Math.abs(row.top - top) <= visualRowTolerancePx);
+        if (existing) {
+          existing.elements.push(element);
+        } else {
+          rowsWithoutContainer.push({ key: `visual:${rowsWithoutContainer.length}`, top, elements: [element] });
+        }
+      }
+
+      const rowsFromContainer: FocusRow[] = Array.from(rowsByContainer.entries()).map(([container, elements], index) => ({
+        key: `dom:${index}`,
+        top: container.getBoundingClientRect().top,
+        elements: sortByHorizontalPosition(elements),
+      }));
+      const rows = [...rowsFromContainer, ...rowsWithoutContainer.map((row) => ({ ...row, elements: sortByHorizontalPosition(row.elements) }))]
+        .filter((row) => row.elements.length > 0)
+        .sort((a, b) => a.top - b.top);
+      if (rows.length === 0) return;
+
+      const currentRowIndex = rows.findIndex((row) => row.elements.includes(activeFocusable));
+      if (currentRowIndex < 0) return;
+
+      const nextRowIndex =
+        direction === 'down'
+          ? (currentRowIndex + 1) % rows.length
+          : (currentRowIndex - 1 + rows.length) % rows.length;
+      const targetRow = rows[nextRowIndex];
+      // Boundary-exit fra tabel (markeret af tableKeyboardNavigation) lander her.
+      // Fordi rows er bygget fra hele focusable-listen (inkl. tabel), finder vi fortsat
+      // den naborekke der ligger over/under i den samlede side-navigation.
+      const target = direction === 'down'
+        ? targetRow.elements[0]
+        : targetRow.elements[targetRow.elements.length - 1];
+      if (!target) return;
+      e.preventDefault();
+      focusOnly(target);
+    };
+
+    if (isArrowKey) {
+      const arrowDirection: ArrowDirection =
+        e.key === 'ArrowLeft' ? 'left' : e.key === 'ArrowRight' ? 'right' : e.key === 'ArrowUp' ? 'up' : 'down';
+      moveByArrow(arrowDirection);
+      return;
+    }
+
     // Enter opfører sig PRÆCIS som Tab (cirkulær navigation).
     // Shift+Enter opfører sig som Shift+Tab.
     if (e.key === 'Enter') {
@@ -368,7 +532,7 @@ const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
     }
     e.preventDefault();
     moveFocus(e.shiftKey ? -1 : 1);
-  }, [getFocusableElements, getNearestExpanded, getWidgetHost, invalidateCache, isPopupWidget]);
+  }, [getFocusableElements, getNearestExpanded, getRowContainer, getWidgetHost, invalidateCache, isInTableNavigation, isPopupWidget]);
 
   return (
     <ScrollContainerProvider containerRef={containerRef}>
