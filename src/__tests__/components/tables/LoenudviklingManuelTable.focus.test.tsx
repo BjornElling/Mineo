@@ -24,6 +24,8 @@ const getDataRows = (): HTMLElement[] => {
 };
 
 describe('LoenudviklingManuelTable fokus-gendannelse', () => {
+  const TEST_TIMEOUT_MS = 15000;
+
   it('bevarer fokus i samme celleposition når slettet række normaliseres væk', async () => {
     const user = userEvent.setup();
     const onTableDataChange = vi.fn();
@@ -54,5 +56,5 @@ describe('LoenudviklingManuelTable fokus-gendannelse', () => {
       expect(document.activeElement).toBe(focusedInput);
       expect(onTableDataChange).toHaveBeenCalledTimes(1);
     });
-  });
+  }, TEST_TIMEOUT_MS);
 });

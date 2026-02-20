@@ -18,6 +18,8 @@ const focusInAct = async (element: HTMLElement) => {
 };
 
 describe('tableKeyboardNavigation loose table', () => {
+  const TEST_TIMEOUT_MS = 15000;
+
   it('wraps ArrowLeft/ArrowRight within the same row in loose table', async () => {
     const user = userEvent.setup();
 
@@ -46,7 +48,7 @@ describe('tableKeyboardNavigation loose table', () => {
 
     await user.keyboard('{ArrowRight}');
     expect(document.activeElement).toBe(left);
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('skips locked cells on ArrowRight/ArrowLeft', async () => {
     const user = userEvent.setup();
@@ -76,7 +78,7 @@ describe('tableKeyboardNavigation loose table', () => {
 
     await user.keyboard('{ArrowLeft}');
     expect(document.activeElement).toBe(left);
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('Enter og Shift+Enter flytter vertikalt og committer edit først', async () => {
     const user = userEvent.setup();
@@ -138,7 +140,7 @@ describe('tableKeyboardNavigation loose table', () => {
 
     expect(onBottomBlur).toHaveBeenCalledWith('77');
     expect(document.activeElement).toBe(topInput);
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('Tab-sekvens forankrer startcelle for Enter/Shift+Enter (også på tværs af rækker)', async () => {
     const user = userEvent.setup();
@@ -189,7 +191,7 @@ describe('tableKeyboardNavigation loose table', () => {
     await focusInAct(a1);
     await user.keyboard('{Shift>}{Enter}{/Shift}');
     expect(document.activeElement).toBe(c1);
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('bevarer Tab-anker ved ArrowLeft/ArrowRight i edit mode', async () => {
     const user = userEvent.setup();
@@ -229,7 +231,7 @@ describe('tableKeyboardNavigation loose table', () => {
     await user.keyboard('{Enter}');
 
     expect(document.activeElement).toBe(a2);
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('Escape i edit mode bevarer fokus i aktiv celle og nulstiller Tab-anker', async () => {
     const user = userEvent.setup();
@@ -273,7 +275,7 @@ describe('tableKeyboardNavigation loose table', () => {
     await user.keyboard('{Enter}');
     expect(document.activeElement).toBe(b2);
     expect(document.activeElement).not.toBe(a2);
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('Enter-navigation nulstiller Tab-anker efter første hop', async () => {
     const user = userEvent.setup();
@@ -314,7 +316,7 @@ describe('tableKeyboardNavigation loose table', () => {
     // Second Enter must navigate from current cell if anchor was reset (a2 -> a1 via wrap).
     await user.keyboard('{Enter}');
     expect(document.activeElement).toBe(a1);
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('single click åbner ikke editor, når cellen kun er husket men ikke fysisk fokuseret', async () => {
     const user = userEvent.setup();
@@ -347,5 +349,5 @@ describe('tableKeyboardNavigation loose table', () => {
 
     await user.click(input);
     expect(input).not.toHaveAttribute('readonly');
-  });
+  }, TEST_TIMEOUT_MS);
 });

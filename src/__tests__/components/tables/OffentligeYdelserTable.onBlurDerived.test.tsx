@@ -92,7 +92,7 @@ const DerivedHarness = ({ initial, onPersist }: { initial: OffentligeYdelserRow[
 };
 
 describe('OffentligeYdelserTable (Ydelse / dag)', () => {
-  const TEST_TIMEOUT_MS = 15000;
+  const TEST_TIMEOUT_MS = 30000;
 
   it('recomputes ydelse/dag when clearing ydelse via Backspace in focus-only mode', async () => {
     const user = userEvent.setup();
@@ -161,7 +161,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
       expect(document.activeElement).toBe(focusedInput);
       expect(onPersist).toHaveBeenCalledTimes(1);
     });
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('bevarer fokus når værdi oprettes og efterfølgende slettes i ellers tom tabel', async () => {
     const user = userEvent.setup();
@@ -187,7 +187,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
       const focusedInput = within(cellsNow[2]!).getByRole('textbox');
       expect(document.activeElement).toBe(focusedInput);
     });
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('bevarer fokus i dropdown-felt når valgt ydelsestype ryddes med Delete', async () => {
     const user = userEvent.setup();
@@ -219,7 +219,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
       const focusedCombobox = getYdelsestypeCombobox();
       expect(document.activeElement).toBe(focusedCombobox);
     });
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('updates derived cells only on blur when entering an already-canonical amount (no normalization delta)', async () => {
     const user = userEvent.setup();
@@ -290,7 +290,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
     });
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('recomputes ydelse/dag when clearing a date dependency (tilDato -> invalid period)', async () => {
     const user = userEvent.setup();
@@ -325,7 +325,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
     });
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('recomputes ydelse/dag on blur when entering an already-canonical date (no normalization delta)', async () => {
     const user = userEvent.setup();

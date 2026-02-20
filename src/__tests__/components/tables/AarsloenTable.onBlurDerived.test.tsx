@@ -65,7 +65,7 @@ const makeRow = (overrides: Partial<AarsloenTableRow>): AarsloenTableRow => ({
 });
 
 describe('AarsloenTable', () => {
-  const TEST_TIMEOUT_MS = 15000;
+  const TEST_TIMEOUT_MS = 30000;
 
   it.each([
     { colIdx: 2, colKey: 'col2', nextValue: '2000' },

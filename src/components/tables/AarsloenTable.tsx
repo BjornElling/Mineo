@@ -32,9 +32,7 @@ import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './standar
 import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridModel';
 import {
   applyRowRemovalFocusPlan,
-  buildRemovedRowFallbackFocusPlan,
-  buildRetainedEmptyRowFocusPlan,
-  buildRowRemovalFocusPlan,
+  evaluateRowCommit,
   type RowRemovalFocusPlan,
 } from './tableRowFocus';
 
@@ -95,7 +93,6 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
       ];
     }, []);
 
-    const lastPersistedDataRef = React.useRef<AarsloenTableRow[] | null>(null);
     const lastPersistedFingerprintRef = React.useRef<string | null>(null);
     const pendingPersistRef = React.useRef<AarsloenTableRow[] | null>(null);
     const tableRef = React.useRef<HTMLTableElement | null>(null);
@@ -105,7 +102,6 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
     const persistTableData = React.useCallback(
       (internalData: AarsloenTableRow[]) => {
         if (!onTableDataChange) return;
-        lastPersistedDataRef.current = internalData;
         lastPersistedFingerprintRef.current = fingerprintTableData(internalData);
         onTableDataChange(internalData);
       },
@@ -139,7 +135,6 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
         if (lastPersistedFingerprintRef.current === managedFingerprint) return;
         // Opdater ref når vi synkroniserer fra prop (fx sessionStorage load)
         lastPersistedFingerprintRef.current = managedFingerprint;
-        lastPersistedDataRef.current = managedData;
         setRowsState({ draft: managedData, committed: managedData });
         return;
       }
@@ -170,18 +165,8 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
 
       if (pendingFingerprint !== draftFingerprint) return;
 
-      const previousData = lastPersistedDataRef.current;
-      const onlyAddedEmptyRow =
-        previousData &&
-        rowsState.draft.length === previousData.length + 1 &&
-        fingerprintTableData(rowsState.draft.slice(0, -1)) === fingerprintTableData(previousData) &&
-        isRowEmpty(rowsState.draft[rowsState.draft.length - 1]);
-
-      if (onlyAddedEmptyRow) {
-        pendingPersistRef.current = null;
-        return;
-      }
-
+      // Intentional convergence: trailing empty rows produced by table normalization
+      // are persisted the same way as in other dynamic tables.
       persistTableData(rowsState.draft);
       pendingPersistRef.current = null;
     }, [rowsState.draft, persistTableData]);
@@ -252,47 +237,27 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
           const committedFingerprint = fingerprintTableData(prev.committed);
           if (managedFingerprint === committedFingerprint) return prev;
 
-          let focusPlan = buildRowRemovalFocusPlan({
+          const commitEval = evaluateRowCommit({
             table: tableRef.current,
             prevRows: prev.draft,
             nextRows: managed,
+            rowId,
+            colIndex: resolveColIdxFromKey(colKey),
             visibleRowIds: visibleRowIdsRef.current,
+            isRowEmpty,
             getRowId: (row) => row.id,
+            getFingerprint: fingerprintTableData,
+            lastPersistedFingerprint: lastPersistedFingerprintRef.current,
           });
 
-          // Fallback for blur-commits: activeElement kan allerede være uden for tabellen,
-          // så row-removal-plan kan være null selvom rækken faktisk forsvinder/re-oprettes.
-          if (!focusPlan) {
-            focusPlan = buildRemovedRowFallbackFocusPlan({
-              prevRows: prev.draft,
-              nextRows: managed,
-              rowId,
-              colIndex: resolveColIdxFromKey(colKey),
-              visibleRowIds: visibleRowIdsRef.current,
-              getRowId: (row) => row.id,
-            });
-          }
-
-          // Når rækken bliver tom, men bevares (fx pga. min-rows), skal fokus stadig blive i samme celle-position.
-          if (!focusPlan) {
-            focusPlan = buildRetainedEmptyRowFocusPlan({
-              table: tableRef.current,
-              prevRows: prev.draft,
-              nextRows: managed,
-              rowId,
-              colIndex: resolveColIdxFromKey(colKey),
-              visibleRowIds: visibleRowIdsRef.current,
-              isRowEmpty,
-              getRowId: (row) => row.id,
-            });
-          }
-
-          if (focusPlan) {
+          if (commitEval.focusPlan) {
             // Last-plan-wins by design: only the final commit in a render cycle should decide focus restoration.
-            pendingRowFocusPlanRef.current = focusPlan;
+            pendingRowFocusPlanRef.current = commitEval.focusPlan;
           }
 
-          queuePersist(managed);
+          if (commitEval.shouldPersist) {
+            queuePersist(managed);
+          }
           return { draft: managed, committed: managed };
         });
       },

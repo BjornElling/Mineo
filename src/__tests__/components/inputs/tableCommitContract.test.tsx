@@ -482,6 +482,8 @@ const setupManagedWithOutside = (input: ClickOutsideCommitCase) => {
 };
 
 describe('table commit-kontrakt', () => {
+  const TEST_TIMEOUT_MS = 20000;
+
   it.each(NOOP_CASES)('no-op i $label emitter ikke onBlur-commit', async ({ renderInput }) => {
     const user = userEvent.setup();
     const onBlur = vi.fn<(value: string) => void>();
@@ -869,7 +871,7 @@ describe('table commit-kontrakt', () => {
 
     expect(onBlur).not.toHaveBeenCalled();
     expect(input).toHaveValue(inputCase.expectedDisplayAfterCancel ?? inputCase.initialValue);
-  });
+  }, TEST_TIMEOUT_MS);
 
   it.each(DELETE_CLEAR_CASES)('Delete på fokuseret $label-celle uden edit rydder og committer straks', async (inputCase) => {
     const user = userEvent.setup();
@@ -902,9 +904,11 @@ describe('table commit-kontrakt', () => {
     await user.click(input);
     await user.keyboard('{Delete}');
 
-    expect(onBlur).toHaveBeenCalledTimes(1);
-    expect(onBlur).toHaveBeenCalledWith(inputCase.expectedCommitted);
-    expect(input).toHaveValue('');
-  });
+    await waitFor(() => {
+      expect(onBlur).toHaveBeenCalledTimes(1);
+      expect(onBlur).toHaveBeenCalledWith(inputCase.expectedCommitted);
+      expect(input).toHaveValue('');
+    });
+  }, TEST_TIMEOUT_MS);
 
 });

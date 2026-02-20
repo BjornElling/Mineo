@@ -27,9 +27,7 @@ import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './standar
 import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridModel';
 import {
   applyRowRemovalFocusPlan,
-  buildRemovedRowFallbackFocusPlan,
-  buildRetainedEmptyRowFocusPlan,
-  buildRowRemovalFocusPlan,
+  evaluateRowCommit,
   type RowRemovalFocusPlan,
 } from './tableRowFocus';
 
@@ -178,42 +176,25 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
         setInternalTableData((prev) => {
           const updated = prev.map((row) => (row.id === rowId ? { ...row, ...updates } : row));
           const normalized = normalizeRows(updated);
-          let focusPlan = buildRowRemovalFocusPlan({
+          const commitEval = evaluateRowCommit({
             table: tableRef.current,
             prevRows: prev,
             nextRows: normalized,
+            rowId,
+            colIndex,
             visibleRowIds: visibleRowIdsRef.current,
+            isRowEmpty,
             getRowId: (row) => row.id,
+            getFingerprint: fingerprintTableData,
+            lastPersistedFingerprint: lastPersistedFingerprintRef.current,
           });
-          if (!focusPlan) {
-            focusPlan = buildRemovedRowFallbackFocusPlan({
-              prevRows: prev,
-              nextRows: normalized,
-              rowId,
-              colIndex,
-              visibleRowIds: visibleRowIdsRef.current,
-              getRowId: (row) => row.id,
-            });
-          }
-          if (!focusPlan) {
-            focusPlan = buildRetainedEmptyRowFocusPlan({
-              table: tableRef.current,
-              prevRows: prev,
-              nextRows: normalized,
-              rowId,
-              colIndex,
-              visibleRowIds: visibleRowIdsRef.current,
-              isRowEmpty,
-              getRowId: (row) => row.id,
-            });
-          }
-          if (focusPlan) {
+          if (commitEval.focusPlan) {
             // Last-plan-wins by design: only the final commit in a render cycle should decide focus restoration.
-            pendingRowFocusPlanRef.current = focusPlan;
+            pendingRowFocusPlanRef.current = commitEval.focusPlan;
           }
 
           // Only persist when the normalized result differs from what we've last told the parent.
-          if (lastPersistedFingerprintRef.current !== fingerprintTableData(normalized)) {
+          if (commitEval.shouldPersist) {
             pendingPersistRef.current = normalized;
           }
           return normalized;

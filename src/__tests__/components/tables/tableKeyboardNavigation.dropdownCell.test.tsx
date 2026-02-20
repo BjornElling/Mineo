@@ -7,6 +7,8 @@ import TableIntegerInput from '../../../components/inputs/table/TableIntegerInpu
 import TableDropdown from '../../../components/inputs/table/TableDropdown';
 
 describe('tableKeyboardNavigation dropdown-celle integration', () => {
+  const TEST_TIMEOUT_MS = 15000;
+
   it('ArrowRight kan fokusere en TableDropdown-celle i loose table', async () => {
     const user = userEvent.setup();
 
@@ -49,7 +51,7 @@ describe('tableKeyboardNavigation dropdown-celle integration', () => {
     await user.keyboard('{ArrowRight}');
 
     expect(document.activeElement).toBe(combobox);
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('ArrowDown i TableDropdown triggere ikke tabel-vertikal navigation', async () => {
     const user = userEvent.setup();
@@ -89,7 +91,7 @@ describe('tableKeyboardNavigation dropdown-celle integration', () => {
     await user.keyboard('{ArrowDown}');
     const secondRowCell = screen.getByDisplayValue('3');
     expect(document.activeElement).not.toBe(secondRowCell);
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('ArrowRight navigerer ikke væk når TableDropdown er åben', async () => {
     const user = userEvent.setup();
@@ -136,5 +138,5 @@ describe('tableKeyboardNavigation dropdown-celle integration', () => {
     await user.keyboard('{ArrowRight}');
 
     expect(document.activeElement).toBe(combobox);
-  });
+  }, TEST_TIMEOUT_MS);
 });

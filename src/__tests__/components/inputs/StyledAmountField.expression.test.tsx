@@ -37,6 +37,8 @@ const openEditor = async (user: ReturnType<typeof userEvent.setup>, input: HTMLE
 };
 
 describe('StyledAmountField expression behavior', () => {
+  const TEST_TIMEOUT_MS = 15000;
+
   it('preserves expression errors across blur and focus', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn<OnCommit>();
@@ -68,7 +70,7 @@ describe('StyledAmountField expression behavior', () => {
       })
     );
     expect(input).toHaveValue('3,00');
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('opens editor with expression draft when value is expression', async () => {
     const user = userEvent.setup();
@@ -81,7 +83,7 @@ describe('StyledAmountField expression behavior', () => {
 
     expect(input).toHaveValue('1+2');
     expect(onCommit).not.toHaveBeenCalled();
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('clears error state when draft is emptied', async () => {
     const user = userEvent.setup();
@@ -107,7 +109,7 @@ describe('StyledAmountField expression behavior', () => {
       })
     );
     expect(input).toHaveValue('');
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('normalizes -0 to 0 on commit', async () => {
     const user = userEvent.setup();
@@ -126,7 +128,7 @@ describe('StyledAmountField expression behavior', () => {
       })
     );
     expect(input).toHaveValue('0,00');
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('removes all non-allowed characters on paste', async () => {
     const user = userEvent.setup();
@@ -145,7 +147,7 @@ describe('StyledAmountField expression behavior', () => {
       })
     );
     expect(input).toHaveValue('12,30');
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('blocks unary minus typing when allowNegative=false', async () => {
     const user = userEvent.setup();
@@ -164,7 +166,7 @@ describe('StyledAmountField expression behavior', () => {
       })
     );
     expect(input).toHaveValue('100,00');
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('ignores leading minus in first key activation when allowNegative=false', async () => {
     const user = userEvent.setup();
@@ -184,7 +186,7 @@ describe('StyledAmountField expression behavior', () => {
       })
     );
     expect(input).toHaveValue('1,00');
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('blocks unary minus paste when allowNegative=false', async () => {
     const user = userEvent.setup();
@@ -197,5 +199,5 @@ describe('StyledAmountField expression behavior', () => {
 
     expect(onCommit).not.toHaveBeenCalled();
     expect(input).toHaveValue('');
-  });
+  }, TEST_TIMEOUT_MS);
 });

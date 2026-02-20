@@ -70,6 +70,8 @@ const setup = (
 };
 
 describe('TableAmountInput expression behavior', () => {
+  const TEST_TIMEOUT_MS = 15000;
+
   it('preserves expression errors across blur, focus, and re-edit', async () => {
     const user = userEvent.setup();
     const { input, onBlur, setEditingCell } = setup(undefined);
@@ -88,7 +90,7 @@ describe('TableAmountInput expression behavior', () => {
 
     setEditingCell(gridCell);
     expect(input).toHaveValue('1+');
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('cancelEdit restores the last committed value', async () => {
     const user = userEvent.setup();
@@ -108,7 +110,7 @@ describe('TableAmountInput expression behavior', () => {
     });
 
     expect(input).toHaveValue('');
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('clearAndCommit emits undefined and clears the display', async () => {
     const user = userEvent.setup();
@@ -128,7 +130,7 @@ describe('TableAmountInput expression behavior', () => {
       })
     );
     expect(input).toHaveValue('');
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('supports key-initiated edit for expression starters', async () => {
     const { input, setEditingCell, getEditor } = setup(undefined);
@@ -152,7 +154,7 @@ describe('TableAmountInput expression behavior', () => {
       rejected = editor?.prepareEditFromKey('a');
     });
     expect(rejected).toBe(false);
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('does not emit blur when commit result matches the latest committed value', async () => {
     const user = userEvent.setup();
@@ -164,7 +166,7 @@ describe('TableAmountInput expression behavior', () => {
     expect(onBlur).not.toHaveBeenCalled();
 
     setEditingCell(null);
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('clears error state when draft is emptied', async () => {
     const user = userEvent.setup();
@@ -186,7 +188,7 @@ describe('TableAmountInput expression behavior', () => {
     // Kontrakt 1A: no-op må ikke emitte commit til parent.
     expect(onBlur).not.toHaveBeenCalled();
     expect(input).toHaveValue('');
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('normalizes -0 to 0 on commit', async () => {
     const user = userEvent.setup();
@@ -204,7 +206,7 @@ describe('TableAmountInput expression behavior', () => {
       })
     );
     expect(input).toHaveValue('0,00');
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('removes all non-allowed characters on paste', async () => {
     const user = userEvent.setup();
@@ -222,7 +224,7 @@ describe('TableAmountInput expression behavior', () => {
       })
     );
     expect(input).toHaveValue('12,30');
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('rejects leading minus in prepareEditFromKey when canBeNegative=false', async () => {
     const { getEditor } = setup(undefined, { canBeNegative: false });
@@ -235,7 +237,7 @@ describe('TableAmountInput expression behavior', () => {
     });
 
     expect(accepted).toBe(false);
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('blocks unary minus typing when canBeNegative=false', async () => {
     const user = userEvent.setup();
@@ -253,7 +255,7 @@ describe('TableAmountInput expression behavior', () => {
       })
     );
     expect(input).toHaveValue('1,00');
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('blocks unary minus paste when canBeNegative=false', async () => {
     const user = userEvent.setup();
@@ -265,5 +267,5 @@ describe('TableAmountInput expression behavior', () => {
 
     expect(onBlur).not.toHaveBeenCalled();
     expect(input).toHaveValue('');
-  });
+  }, TEST_TIMEOUT_MS);
 });

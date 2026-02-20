@@ -45,6 +45,28 @@ type BuildRemovedRowFallbackFocusPlanParams<TRow> = Readonly<{
   getRowId: (row: TRow) => string;
 }>;
 
+type BuildCommitFocusPlanParams<TRow> = Readonly<{
+  table: HTMLTableElement | null;
+  prevRows: readonly TRow[];
+  nextRows: readonly TRow[];
+  rowId: string;
+  colIndex: number;
+  visibleRowIds: readonly string[];
+  isRowEmpty: (row: TRow) => boolean;
+  getRowId: (row: TRow) => string;
+}>;
+
+type EvaluateRowCommitParams<TRow> = BuildCommitFocusPlanParams<TRow> &
+  Readonly<{
+    getFingerprint: (rows: readonly TRow[]) => string;
+    lastPersistedFingerprint: string | null;
+  }>;
+
+type EvaluateRowCommitResult = Readonly<{
+  focusPlan: RowRemovalFocusPlan | null;
+  shouldPersist: boolean;
+}>;
+
 const getActiveCellInfo = (table: HTMLTableElement): ActiveCellInfo | null => {
   const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   if (!active || !table.contains(active)) return null;
@@ -152,6 +174,80 @@ export const buildRemovedRowFallbackFocusPlan = <TRow>(params: BuildRemovedRowFa
   if (targetIndex < 0) return null;
 
   return { targetIndex, colIndex };
+};
+
+/**
+ * Canonical three-step focus-plan chain for row commits:
+ * 1) active-row removal, 2) blur-safe removed-row fallback, 3) retained-empty row.
+ */
+export const buildCommitFocusPlan = <TRow>(params: BuildCommitFocusPlanParams<TRow>): RowRemovalFocusPlan | null => {
+  const { table, prevRows, nextRows, rowId, colIndex, visibleRowIds, isRowEmpty, getRowId } = params;
+
+  let plan = buildRowRemovalFocusPlan({
+    table,
+    prevRows,
+    nextRows,
+    visibleRowIds,
+    getRowId,
+  });
+  if (plan) return plan;
+
+  plan = buildRemovedRowFallbackFocusPlan({
+    prevRows,
+    nextRows,
+    rowId,
+    colIndex,
+    visibleRowIds,
+    getRowId,
+  });
+  if (plan) return plan;
+
+  return buildRetainedEmptyRowFocusPlan({
+    table,
+    prevRows,
+    nextRows,
+    rowId,
+    colIndex,
+    visibleRowIds,
+    isRowEmpty,
+    getRowId,
+  });
+};
+
+/**
+ * Shared evaluation for row-commit outcome used by multiple tables:
+ * - computes canonical focus plan
+ * - reports if persistence should run (fingerprint delta vs last persisted)
+ */
+export const evaluateRowCommit = <TRow>(params: EvaluateRowCommitParams<TRow>): EvaluateRowCommitResult => {
+  const {
+    table,
+    prevRows,
+    nextRows,
+    rowId,
+    colIndex,
+    visibleRowIds,
+    isRowEmpty,
+    getRowId,
+    getFingerprint,
+    lastPersistedFingerprint,
+  } = params;
+
+  const focusPlan = buildCommitFocusPlan({
+    table,
+    prevRows,
+    nextRows,
+    rowId,
+    colIndex,
+    visibleRowIds,
+    isRowEmpty,
+    getRowId,
+  });
+  const nextFingerprint = getFingerprint(nextRows);
+  return {
+    focusPlan,
+    shouldPersist: lastPersistedFingerprint !== nextFingerprint,
+  };
 };
 
 /**

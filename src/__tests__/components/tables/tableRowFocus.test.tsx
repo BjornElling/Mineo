@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   applyRowRemovalFocusPlan,
+  buildCommitFocusPlan,
   buildRemovedRowFallbackFocusPlan,
   buildRetainedEmptyRowFocusPlan,
   buildRowRemovalFocusPlan,
+  evaluateRowCommit,
   type RowRemovalFocusPlan,
 } from '../../../components/tables/tableRowFocus';
 
@@ -365,5 +367,159 @@ describe('tableRowFocus', () => {
     });
 
     expect(plan).toBeNull();
+  });
+
+  it('buildCommitFocusPlan prefers row-removal plan when active removed row is focused', () => {
+    const { table, getInput } = buildTable({ rowIds: ['r1', 'r2', 'r3'], colCount: 2 });
+    getInput('r2', 1)!.focus();
+
+    const plan = buildCommitFocusPlan({
+      table,
+      prevRows: [{ id: 'r1' }, { id: 'r2' }, { id: 'r3' }],
+      nextRows: [{ id: 'r1' }, { id: 'r3' }],
+      rowId: 'r2',
+      colIndex: 1,
+      visibleRowIds: ['r1', 'r2', 'r3'],
+      isRowEmpty: () => false,
+      getRowId: (row) => row.id,
+    });
+
+    expect(plan).toEqual({ targetIndex: 1, colIndex: 1 });
+  });
+
+  it('buildCommitFocusPlan falls back to removed-row fallback when focus is outside table', () => {
+    const { table } = buildTable({ rowIds: ['r1', 'r2'], colCount: 1 });
+    const outside = document.createElement('input');
+    document.body.appendChild(outside);
+    outside.focus();
+
+    const plan = buildCommitFocusPlan({
+      table,
+      prevRows: [{ id: 'r1' }, { id: 'r2' }],
+      nextRows: [{ id: 'r1' }],
+      rowId: 'r2',
+      colIndex: 0,
+      visibleRowIds: ['r1', 'r2'],
+      isRowEmpty: () => false,
+      getRowId: (row) => row.id,
+    });
+
+    expect(plan).toEqual({ targetIndex: 1, colIndex: 0 });
+  });
+
+  it('buildCommitFocusPlan uses retained-empty plan when row stays but becomes empty', () => {
+    const { table, getInput } = buildTable({ rowIds: ['r1', 'r2'], colCount: 1 });
+    getInput('r1', 0)!.focus();
+
+    const plan = buildCommitFocusPlan({
+      table,
+      prevRows: [{ id: 'r1', value: '100' }, { id: 'r2', value: '' }],
+      nextRows: [{ id: 'r1', value: '' }, { id: 'r2', value: '' }],
+      rowId: 'r1',
+      colIndex: 0,
+      visibleRowIds: ['r1', 'r2'],
+      isRowEmpty: (row) => row.value === '',
+      getRowId: (row) => row.id,
+    });
+
+    expect(plan).toEqual({ targetIndex: 0, colIndex: 0 });
+  });
+
+  it('evaluateRowCommit sets shouldPersist=false when fingerprint is unchanged', () => {
+    const { table, getInput } = buildTable({ rowIds: ['r1', 'r2'], colCount: 1 });
+    getInput('r1', 0)!.focus();
+
+    const result = evaluateRowCommit({
+      table,
+      prevRows: [{ id: 'r1', value: '100' }],
+      nextRows: [{ id: 'r1', value: '100' }],
+      rowId: 'r1',
+      colIndex: 0,
+      visibleRowIds: ['r1', 'r2'],
+      isRowEmpty: (row) => row.value === '',
+      getRowId: (row) => row.id,
+      getFingerprint: (rows) => JSON.stringify(rows),
+      lastPersistedFingerprint: JSON.stringify([{ id: 'r1', value: '100' }]),
+    });
+
+    expect(result.shouldPersist).toBe(false);
+  });
+
+  it('evaluateRowCommit sets shouldPersist=true and returns focus plan on delta', () => {
+    const { table } = buildTable({ rowIds: ['r1', 'r2'], colCount: 1 });
+    const outside = document.createElement('input');
+    document.body.appendChild(outside);
+    outside.focus();
+
+    const result = evaluateRowCommit({
+      table,
+      prevRows: [{ id: 'r1' }, { id: 'r2' }],
+      nextRows: [{ id: 'r1' }],
+      rowId: 'r2',
+      colIndex: 0,
+      visibleRowIds: ['r1', 'r2'],
+      isRowEmpty: () => false,
+      getRowId: (row) => row.id,
+      getFingerprint: (rows) => JSON.stringify(rows),
+      lastPersistedFingerprint: JSON.stringify([{ id: 'r1' }, { id: 'r2' }]),
+    });
+
+    expect(result.shouldPersist).toBe(true);
+    expect(result.focusPlan).toEqual({ targetIndex: 1, colIndex: 0 });
+  });
+
+  it('buildCommitFocusPlan still allows removed-row fallback when table is null', () => {
+    const plan = buildCommitFocusPlan({
+      table: null,
+      prevRows: [{ id: 'r1' }, { id: 'r2' }],
+      nextRows: [{ id: 'r1' }],
+      rowId: 'r2',
+      colIndex: 0,
+      visibleRowIds: ['r1', 'r2'],
+      isRowEmpty: () => false,
+      getRowId: (row) => row.id,
+    });
+
+    expect(plan).toEqual({ targetIndex: 1, colIndex: 0 });
+  });
+
+  it('buildCommitFocusPlan returns null when no strategy matches', () => {
+    const { table, getInput } = buildTable({ rowIds: ['r1', 'r2'], colCount: 1 });
+    getInput('r1', 0)!.focus();
+
+    const plan = buildCommitFocusPlan({
+      table,
+      prevRows: [{ id: 'r1', value: '100' }],
+      nextRows: [{ id: 'r1', value: '100' }],
+      rowId: 'r1',
+      colIndex: 0,
+      visibleRowIds: ['r1', 'r2'],
+      isRowEmpty: (row) => row.value === '',
+      getRowId: (row) => row.id,
+    });
+
+    expect(plan).toBeNull();
+  });
+
+  it('evaluateRowCommit sets shouldPersist=true when last persisted fingerprint is null', () => {
+    const { table } = buildTable({ rowIds: ['r1', 'r2'], colCount: 1 });
+    const outside = document.createElement('input');
+    document.body.appendChild(outside);
+    outside.focus();
+
+    const result = evaluateRowCommit({
+      table,
+      prevRows: [{ id: 'r1' }, { id: 'r2' }],
+      nextRows: [{ id: 'r1' }],
+      rowId: 'r2',
+      colIndex: 0,
+      visibleRowIds: ['r1', 'r2'],
+      isRowEmpty: () => false,
+      getRowId: (row) => row.id,
+      getFingerprint: (rows) => JSON.stringify(rows),
+      lastPersistedFingerprint: null,
+    });
+
+    expect(result.shouldPersist).toBe(true);
   });
 });

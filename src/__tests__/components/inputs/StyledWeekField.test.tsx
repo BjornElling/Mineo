@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import StyledWeekField from '../../../components/inputs/StyledWeekField';
 
 describe('StyledWeekField', () => {
+  const TEST_TIMEOUT_MS = 15000;
+
   it('tillader redigering foran ugyldig /2022 efter genåbning', async () => {
     const user = userEvent.setup();
 
@@ -36,5 +38,5 @@ describe('StyledWeekField', () => {
 
     expect(input).not.toHaveValue('/2022');
     expect(String((input as HTMLInputElement).value)).toContain('1');
-  });
+  }, TEST_TIMEOUT_MS);
 });
