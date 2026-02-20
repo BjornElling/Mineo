@@ -21,8 +21,10 @@ import {
 } from '../../data/overenskomstRates';
 import type { DebugStatus } from '../debug/eoDebugTypes';
 import { buildAarsloenCellErrors, buildOffentligeYdelserCellErrors } from './indkomstRowValidation';
-import { formatCurrency, parseAmount } from '../../utils/formatUtils';
-import type { AarsloenTableColumnKey, Loenperiode, OffentligeYdelserTableColumnKey } from '../../types/common';
+import { formatCurrency } from '../../utils/formatUtils';
+import { parseAmount } from '../../utils/numberParsing';
+import type { AarsloenTableColumnKey, OffentligeYdelserTableColumnKey } from '../../types/table';
+import type { Loenperiode } from '../../types/loen';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 

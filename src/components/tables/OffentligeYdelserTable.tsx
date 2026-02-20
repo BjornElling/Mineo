@@ -13,9 +13,9 @@ import { ydelsestyper, ydelsestypeKeys } from '../../data/ydelsestyper';
 import type {
   OffentligeYdelserTableColumnKey,
   OffentligeYdelserTableFirstErrorCell,
-  OffentligeYdelserTableHandle,
   OffentligeYdelserTableValidationSummary,
-} from '../../types/common';
+} from '../../types/table';
+import type { OffentligeYdelserTableHandle } from '../../types/handles';
 import {
   buildOffentligeYdelserCellKey,
   getOffentligeYdelserTableValidation,

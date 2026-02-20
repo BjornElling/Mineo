@@ -1,7 +1,7 @@
 import { createStore } from 'zustand/vanilla';
 import { persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
-import type { Loenperiode } from '../types/common';
+import type { Loenperiode } from '../types/loen';
 import {
   hasAarsloenEffectiveRows,
   hasSatserAny,

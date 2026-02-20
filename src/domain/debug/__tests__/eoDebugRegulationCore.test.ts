@@ -5,7 +5,7 @@
 import { buildRegulationTimeline } from '../eoDebugRegulationCore';
 import type { DebugDay } from '../eoDebugTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
-import { LOEN_PAA_HELLIGDAGE } from '../../../types/common';
+import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import { createErstatningsopgoerelseInitialValues } from '../../erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import type { ISODateString } from '../../../types/branded';
 

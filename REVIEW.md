@@ -1,7 +1,7 @@
 # Mineo — Kode-review tracking
 
 **Oprettet:** 2026-02-20
-**Senest opdateret:** 2026-02-20 (Fase 2 afsluttet)
+**Senest opdateret:** 2026-02-21 (Fase 3 afsluttet — alle fund godkendt)
 **Reviewer:** Claude (senior code reviewer)
 **Scope:** Komplet gennemgang af hele kodebasen
 
@@ -15,6 +15,8 @@
 4. Næste fase påbegyndes.
 
 Reviewer opdaterer denne fil ved start og afslutning af hver fase.
+
+**Komprimering af afsluttede faser:** Når alle fund i en fase er godkendt, komprimeres fasen: hvert fund reduceres til én linje (`**FXxx** · Severity · Lokation — Rettelse`). Godkendte tilfældighedsfund slettes helt. Åbne tilfældighedsfund beholdes indtil behandlet.
 
 ---
 
@@ -50,7 +52,7 @@ Reviewer opdaterer denne fil ved start og afslutning af hver fase.
 |------|--------|--------|------------|
 | 1 | Schema Foundation | ✅ | 0 ÅBNE / 10 G |
 | 2 | Numeriske primitiver | ✅ | 0 ÅBNE / 5 G |
-| 3 | Dato-primitiver | ⏳ | — |
+| 3 | Dato-primitiver | ✅ | 0 ÅBNE / 8 G |
 | 4 | State & Persistence Core | ⏳ | — |
 | 5 | Save/Load Pipeline | ⏳ | — |
 | 6 | Beregningsengines — Erstatningsopgørelse | ⏳ | — |
@@ -91,342 +93,75 @@ Faserne er sorteret efter korrekthedsrisiko og afhængighedsorden:
 
 ## Fase 1: Schema Foundation ✅
 
-**Rationale:** Zod-schemas er den normative sandhedskilde for typer og runtime-validering (AGENTS.md). Fejl her er type-løgne der propagerer til alle downstream-komponenter.
+**F101** · Kritisk · `schemas/aarsloenSchema.ts` + `stamdataSchema.ts` + `index.ts` — `aarsloenSchema.ts` og `stamdataSchema.ts` er slettet. `schemas/index.ts` re-eksporterer nu udelukkende fra `formSchemas.ts`.
 
-**Scope:**
-- `src/schemas/aarsloenSchema.ts`
-- `src/schemas/amountExpressionSchema.ts`
-- `src/schemas/eoFileSchema.ts`
-- `src/schemas/formSchemas.ts`
-- `src/schemas/stamdataSchema.ts`
-- `src/schemas/index.ts`
-- `src/types/branded.ts`
-- `src/types/common.ts`
-- `src/types/validation.ts`
-- `src/types/persistenceInvariants.ts`
-- `src/types/result.ts`
-- `src/types/fieldErrors.ts`
-- `src/types/deepReadonly.ts`
-- `src/types/fileOperations.ts`
+**F102** · Kritisk · `formSchemas.ts` (`aesAfgoerelserSchema`) — `.refine()`-kald fjernet fra schema. Cross-field validering er korrekt placeret udenfor schema.
 
----
+**F103** · Kritisk · `types/common.ts` — Slettet fuldstændigt. `ValidationResult` og `FormulaEvaluationResult` fjernet fra `formSchemas.ts`; alle forbrugere importerer fra `types/validation.ts`.
 
-### Sammenfatning
+**F104** · Høj · `formSchemas.ts` (`coerceToNumberOrUndefined`) — Regex rettet fra `/\\./g` til `/\./g`.
 
-- Den kanoniske schema-kilde (`formSchemas.ts`) er velfunderet og velforberedt med `.strict()`, branded types og expression-aware beløb. Det er tydeligt at arkitekturen er gennemtænkt.
-- Der eksisterer imidlertid to parallelle, forældede type-systemer (`aarsloenSchema.ts`, `stamdataSchema.ts`, `types/common.ts`) der modsiger den kanoniske kilde og introducerer type-løgne.
-- `aesAfgoerelserSchema` har cross-field refinements der kan blokere deserialisering — direkte strid med den eksplicitte politik i `formSchemas.ts:760`.
-- En regex-bug i `coerceToNumberOrUndefined` medfører at dansk-formaterede tusindtalstal ikke parses korrekt ved legacy-migration.
-- To domæne-filer importerer aktivt fra den forældede `types/common.ts` med inkompatible typer.
+**F105** · Høj · `amountExpressionSchema.ts` (`normalizeAmountToTwoDecimals`) — Fallback returnerer nu `roundByMethod(value, AMOUNT_SCHEMA_PRECISION, 'halfAwayFromZero')` ved parse-fejl.
 
----
+**F106** · Høj · `formSchemas.ts` (`overenskomstFilterSchema`) — `.strict()` tilføjet.
 
-### Fund
+**F107** · Medium · `branded.ts` + `formSchemas.ts` (duplikeret ISO-dato-validering) — `validateISODateFormat` er nu en simpel wrapper: `(val) => isISODateString(val)`.
 
-**F101** · **Kritisk** · `src/schemas/aarsloenSchema.ts` + `src/schemas/stamdataSchema.ts` + `src/schemas/index.ts`
+**F108** · Medium · `formSchemas.ts` (dead code) — `_nonNegativeNumber`, `_positiveNumber` og `_percentageInteger` er slettet.
 
-*Problem:* Begge filer er markeret `@deprecated` men er stadig aktivt re-eksporteret via `schemas/index.ts`. De definerer `AarsloenValues` og `StamdataValues` med fundamentalt anden struktur end de kanoniske definitioner i `formSchemas.ts`:
-- `aarsloenSchema.ts`: `feriePct: z.string()`, kolonnebeløb som `z.union([z.string(), z.number()])` — kanon: `percentageDecimal` (number), `tableAmountCellValue` (AmountValue)
-- `stamdataSchema.ts`: `skadesdato` i dansk format (dd-mm-åååå), felter som `cprNummer`, `navn`, `adresse` — eksisterer slet ikke i den kanoniske schema
+**F109** · Medium · `formSchemas.ts` (duplikerede schema-felter) — Delt logik udtrukket til `createLoenudviklingOgSatserSchema` factory-funktion.
 
-`schemas/index.ts` eksporterer KUN disse deprecated schemas, ikke `formSchemas.ts`. Enhver fremtidig kode der importerer via `schemas/index` eller `@/schemas` vil stiltiende få de forkerte typer.
+**F110** · Lav · `schemas/index.ts` — Løst som del af F101. Re-eksporterer nu `export * from './formSchemas'`.
 
-*Risiko:* Type-løgne ved import fra `schemas/index`. Potentiale for regression hvis legacy-kode genaktiveres.
+### Åbne tilfældighedsfund (Fase 1)
 
-*Anbefaling:* Slet `aarsloenSchema.ts` og `stamdataSchema.ts` (tjek at ingen produktionskode importerer dem). Opdater `schemas/index.ts` til udelukkende at re-eksportere fra `formSchemas.ts`.
-
-Status: `GODKENDT` — `aarsloenSchema.ts` og `stamdataSchema.ts` er slettet. `schemas/index.ts` re-eksporterer nu udelukkende fra `formSchemas.ts`.
-
----
-
-**F102** · **Kritisk** · `src/schemas/formSchemas.ts:609–636` (`aesAfgoerelserSchema`)
-
-*Problem:* `aesAfgoerelserSchema` indeholder tre `.refine()`-validatorer der blokerer parsing når:
-- `varigeMenAfgorelse === 'Ja'` men `menAfgoerelseDato` er `undefined`
-- `midlertidigtEetAfgorelse === 'Ja'` men begge dato-felter mangler
-- `endeligtEetAfgorelse === 'Ja'` men begge dato-felter mangler
-
-Dette schema merges ind i `erstatningsopgoerelseSchema` via `.merge()`. I Zod v4 bevares refinements ved merge. `formSchemas.ts:760–761` siger eksplicit: "`.refine()` validering må ALDRIG blokere deserialisering – alt gemt data skal kunne indlæses."
-
-Scenariet er realistisk: en bruger sætter afgørelse til 'Ja', glemmer datoen, gemmer filen, og kan derefter ikke genindlæse den hvis `erstatningsopgoerelseSchema` anvendes ved load-validering.
-
-*Risiko:* Potentielt datatab — brugere kan ikke genindlæse korrekt gemte filer. Direkte brud på AGENTS.md save/load-garanti og den eksplicitte kommentar i kodebasen selv.
-
-*Anbefaling:* Flyt cross-field validation ud af schema og ind i UI-valideringslaget (jf. den eksisterende kommentar ved linje 760). `erstatningsopgoerelseSchema` må ikke have `.refine()` der kan fejle på lovlig persisted data.
-
-Status: `GODKENDT` — `aesAfgoerelserSchema` indeholder ingen `.refine()`-kald. Cross-field validering er korrekt placeret udenfor schema.
-
----
-
-**F103** · **Kritisk** · `src/types/common.ts`
-
-*Problem:* Filen definerer 5+ typer der er strukturelt inkompatible med de kanoniske Zod-inferred typer fra `formSchemas.ts`:
-
-| Type | `types/common.ts` | `formSchemas.ts` |
-|------|-------------------|------------------|
-| `StamdataValues` | `journalnr: string` (non-optional), har `cprNummer`, `navn`, `adresse` | `journalnr: string \| undefined`, ingen CPR/navn/adresse |
-| `TafPeriodeRow` | `loseFeriedage: string` | `loseFeriedage: number \| undefined` |
-| `FerieperiodeRow` | har `feriedage: string` | feltet eksisterer ikke i schema |
-| `SvieSmertePeriodeRow` | `fra/til: string` (non-optional) | `fra/til: ISODateString \| undefined` |
-| `ErstatningsopgoerelseValues` | mange ISO-dato-felter som `string` | `ISODateString \| undefined` |
-| `VarigeMenValues` | `Record<string, never>` (tom) | har reelle felter (fødselsdato, mengrad, beregningsdato) |
-
-To domæne-filer importerer aktivt de forkerte typer:
-- `src/domain/debug/eoDebugRegulationCore.ts:8` — importerer `ErstatningsopgoerelseValues, StamdataValues, LoenPaaHelligdage` fra `types/common`
-- `src/domain/debug/eoDebugLoenCoreModel.ts:13` — samme
-- Deres tests importerer også fra `types/common`
-
-*Risiko:* TypeScript-compileren tillader usikre adgange baseret på forkerte type-antagelser (f.eks. `journalnr` antaget ikke-null). Beregnede debug-modeller kan producere forkerte TypeScript-narrowings.
-
-*Anbefaling:* Migrer `eoDebugRegulationCore.ts` og `eoDebugLoenCoreModel.ts` til at importere fra `formSchemas.ts`. Fjern de konflikterende type-definitioner fra `types/common.ts` (behold utility-types som `AarsloenTableColumnKey`, `TableError`, etc.). Erstat `EoFileData`-interface med type afledt fra `eoFileSchema.ts`.
-
-Status: `GODKENDT` — `types/common.ts` re-eksporterer nu alle form-typer fra `formSchemas.ts` med korrekte strukturer. Ingen inkompatible definitioner tilbageværende. `ValidationResult` og `FormulaEvaluationResult` er fjernet fra både `types/common.ts` og `formSchemas.ts`; alle forbrugere importerer fra den kanoniske `types/validation.ts`.
-
----
-
-**F104** · **Høj** · `src/schemas/formSchemas.ts:83`
-
-*Problem:* `coerceToNumberOrUndefined` indeholder:
-```ts
-const cleaned = trimmed.replace(/\\./g, '').replace(',', '.');
-```
-Regex `/\\./g` matcher en literal backslash efterfulgt af et vilkårligt tegn — IKKE et literal punktum. Hensigten er at fjerne danske tusindtals-separatorer (`.` i `"1.234,56"`). Den korrekte regex er `/\./g`.
-
-Konsekvens for `"1.234,56"`: `.replace(/\\./g, '')` gør ingenting → `.replace(',', '.')` giver `"1.234.56"` → `Number.parseFloat("1.234.56")` giver `1.234` (ikke `1234.56`).
-
-Funktionen bruges som `z.preprocess` i `percentageDecimal`, `nonNegativeInteger`, `dayCount`, `yearInteger`, `loseFeriedageCount`. Fejlen rammer ved legacy-migration af dansk-formaterede string-tal i .eo-filer.
-
-*Risiko:* Stille forkert parsing af dansk-formaterede tal ved filindlæsning. Beregnede beregninger baseret på migrerede procent-værdier kan være faktor 1000 forkert.
-
-*Anbefaling:* Erstat `/\\./g` med `/\./g`. Tilføj en unit-test der verificerer at `"1.234,56"` → `1234.56`.
-
-Status: `GODKENDT` — `formSchemas.ts:59` bruger nu korrekt `/\./g`.
-
----
-
-**F105** · **Høj** · `src/schemas/amountExpressionSchema.ts:24`
-
-*Problem:* I `normalizeAmountToTwoDecimals`:
-```ts
-if (!parsed.ok || !parsed.value) return value;
-return parsed.value.value;
-```
-Hvis `parseAmountInput` fejler (returnerer `!parsed.ok`) eller resulterer i `null`, returneres den originale `value` — et potentielt uafrundet tal. Dette bypass-er den 2-decimal normalisering der er normativt krævet (calculation-architecture.md §9).
-
-Eksempel: `value = 1.23456789`. Hvis parseAmountInput fejler internt, returneres `1.23456789` (ikke `1.23`). Downstream beregninger forventer `AmountValue.value` er afrundet til 2 decimaler.
-
-*Risiko:* Beregningsfejl ved kant-cases i beløbsparsing. Brud på arkitekturkontrakten om at `AmountValue.value` altid er 2-decimal normaliseret.
-
-*Anbefaling:* Fallback ved parse-fejl skal være `roundByMethod(value, 2, 'halfAwayFromZero')` — ikke det originale tal. Tilføj test der verificerer at normaliseringen gennemtvinges selv ved parse-fejl.
-
-Status: `GODKENDT` — `amountExpressionSchema.ts:24` returnerer nu `roundByMethod(value, AMOUNT_SCHEMA_PRECISION, 'halfAwayFromZero')` ved parse-fejl.
-
----
-
-**F106** · **Høj** · `src/schemas/formSchemas.ts:770–773`
-
-*Problem:* `overenskomstFilterSchema` mangler `.strict()`:
-```ts
-const overenskomstFilterSchema = z.object({
-  loenmodtager: optionalString,
-  arbejdsgiver: optionalString,
-});  // ← mangler .strict()
-```
-Alle øvrige schemas i filen (og i projektet generelt) bruger `.strict()`. Ukendte felter i dette sub-schema passerer stiltiende igennem ved deserialisering.
-
-*Risiko:* Ukendte felter gemmes og genindlæses uden fejl. Svær at opdage data-drift.
-
-*Anbefaling:* Tilføj `.strict()`.
-
-Status: `GODKENDT` — `overenskomstFilterSchema` har nu `.strict()`.
-
----
-
-**F107** · **Medium** · `src/types/branded.ts:50–77` + `src/schemas/formSchemas.ts:37–61`
-
-*Problem:* ISO-dato-validering er implementeret to gange med næsten identisk logik:
-- `isISODateString()` i `branded.ts` (linje 50–77)
-- `validateISODateFormat()` i `formSchemas.ts` (linje 37–61)
-
-Begge parser ISO-strengen manuelt, konstruerer UTC-dato og verificerer round-trip. Eneste forskel: `branded.ts` verificerer `year < 1900 || > 2100`, `formSchemas.ts` gør det samme via `DATE_MIN_YEAR` konstanter.
-
-*Risiko:* Fremtidig divergens hvis én ændres (fx bugfix) men ikke den anden. Er allerede sket: `formSchemas.ts` mangler at tjekke at `parts.length !== 3` (det gør `branded.ts`, men ikke eksplicit — `formSchemas.ts` bruger regex-pre-check i stedet).
-
-*Anbefaling:* `formSchemas.ts`'s `validateISODateFormat` bør delegere til `isISODateString` fra `branded.ts`, eller den kanoniske funktion eksporteres fra `branded.ts` og genbruges i schema-definitionen.
-
-Status: `GODKENDT` — `validateISODateFormat` er nu en simpel wrapper: `(val) => isISODateString(val)`. Duplikeringen er elimineret.
-
----
-
-**F108** · **Medium** · `src/schemas/formSchemas.ts:105, 123, 174`
-
-*Problem:* Tre schemas er defineret men aldrig brugt:
-```ts
-const _nonNegativeNumber = ...  // linje 105
-const _positiveNumber = ...      // linje 123
-const _percentageInteger = ...   // linje 174
-```
-Prefix `_` indikerer bevidst ubrugt, men de er dead code der fylder i filen.
-
-*Anbefaling:* Slet dem. Hvis de er tiltænkt fremtidig brug, er det en violation af AGENTS.md ("Do not generalize code for hypothetical future reuse").
-
-Status: `GODKENDT` — `_nonNegativeNumber`, `_positiveNumber` og `_percentageInteger` er slettet.
-
----
-
-**F109** · **Medium** · `src/schemas/formSchemas.ts:770–874` (`loenindkomstAnsaettelsesforholdSchema` + `eoAngivetLoenLoenudviklingSchema`)
-
-*Problem:* Mindst 12 felter er identisk defineret i begge schemas:
-`feriePct`, `loenPaaHelligdage`, `saerligFraDatoRegulering`, `loenudviklingBeregningsgrundlag`, `loenudviklingStatistikModel`, `loenudviklingKRLSatstabel`, `loenudviklingManuelNavn`, `loenudviklingManuelTableData`, `offentligLoenType`, `offentligLoenTrin`, `offentligLoenGruppe`, `offentligLoenEkstraGrundloen`, `overenskomstFilter`.
-
-Feltdefinitionerne er duplikeret ord for ord inkl. `z.preprocess(coerceToIntegerOrUndefined, ...)` blokke.
-
-*Risiko:* En ændring (fx. range-justering for `offentligLoenTrin`) skal manuelt synkroniseres i begge schemas. Høj risiko for divergens over tid.
-
-*Anbefaling:* Ekstraher de delte felter til et fælles sub-schema (`loenudviklingOgSatserSchema` eller lignende) og brug `.merge()` i begge.
-
-Status: `GODKENDT` — Delt logik er udtrukket til `createLoenudviklingOgSatserSchema` factory-funktion. Begge schemas bruger den; duplikeringen er elimineret.
-
----
-
-**F110** · **Lav** · `src/schemas/index.ts`
-
-*Problem:* Filen eksporterer udelukkende de deprecated schemas. Den kanoniske `formSchemas.ts` er ikke med. Filen fungerer som en falsk convenience-indgang.
-
-*Anbefaling:* Opdater `schemas/index.ts` til at re-eksportere det relevante offentlige API fra `formSchemas.ts`. Eller fjern den hvis den ikke bruges som indgangspoint.
-
-Status: `GODKENDT` — Løst som del af F101. `schemas/index.ts` re-eksporterer nu `export * from './formSchemas'`.
-
----
-
-### Tilfældighedsfund (Fase 1)
-
-**FT-1A** · `types/common.ts` bærer to ansvarsområder: (1) legacy type-definitioner der burde fjernes/konsolideres, (2) utility-types og table-specifikke types der faktisk er nyttige. Filen bør opdeles eller renses — men dette hænger tæt sammen med F103.
-
-**FT-1B** · `types/validation.ts` definerer `ValidationResult` (med `errors: ValidationError[]`). Det samme interface er defineret i `formSchemas.ts:946`. De er strukturelt ens men bruges via separate imports. Konsolidér til én.
-
-**FT-1C** · `result.ts`'s `Result<T, E>` type er veldesignet og bruges i `amountExpressionSchema` (via `parsed.ok`). Ingen fund.
-
-**FT-1D** · `fieldErrors.ts` og `validation.ts` løser overlappende problemer (begge handler om felt-fejl). `fieldErrors.ts` er nyere og mere præcis (source-tracking). `validation.ts`'s `ValidationErrorMap` og `normalizeErrors` bør undersøges for overlap i fase 10.
+**FT-1D** · `fieldErrors.ts` og `validation.ts` løser overlappende problemer. `validation.ts`'s `ValidationErrorMap` og `normalizeErrors` bør undersøges for overlap i fase 10.
 
 ---
 
 ## Fase 2: Numeriske primitiver ✅
 
-**Rationale:** Beløbshåndtering og afrunding er normativt specificeret i `calculation-architecture.md` §9. Afvigelser herfra invaliderer alle beregningsresultater. Skal gennemgås før engines.
+**F201** · Høj · `formatUtils.ts` (`roundHalfAwayFromZero`) — Slettet fra `formatUtils.ts`.
 
-**Scope:**
-- `src/utils/rounding.ts`
-- `src/utils/amountInputUtils.ts`
-- `src/utils/expressionAmount.ts`
-- `src/utils/formatUtils.ts`
-- `src/utils/inputValidation.ts`
-- `src/utils/safeComputation.ts`
+**F202** · Høj · `formatUtils.ts` (`parseAmount`) — Typesignatur er nu `number | AmountValue | undefined`. String-grenen og `console.warn` er slettet.
 
----
+**F203** · Medium · `formatUtils.ts` (`formatPercent`) — Bruger nu `roundByMethod(num, 2, 'halfAwayFromZero')` og `toFixed(2)` med trailing-zero-stripping.
 
-### Sammenfatning
+**F204** · Medium · `safeComputation.ts` (`safeComputeMultiple`) — `ACCEPTERET`. Fejlagtigt fund: `Result<T>` bruger `success` som discriminant. Implementeringen er korrekt.
 
-- `rounding.ts` er veldesignet og overholder kontrakten fuldt ud.
-- `expressionAmount.ts` bruger BigInt-rationel aritmetik korrekt i overensstemmelse med calculation-architecture.md §9.1.
-- `formatUtils.ts` indeholder en duplikeret afrundingsfunktion og accepterer strings som beløbsinput trods eksplicit advarsel — typesignaturen lyver.
-- `safeComputation.ts` har et muligt discriminant-mismatch i `safeComputeMultiple` (`success` vs. `ok`).
-- `inputValidation.ts`'s `shouldClearField` behandler numerisk `0` inkonsistent.
+**F205** · Lav · `inputValidation.ts` (`shouldClearField`) — Redundant `trimmed === ''`-check er fjernet.
 
 ---
 
-### Fund
+## Fase 3: Dato-primitiver ✅
 
-**F201** · **Høj** · `src/utils/formatUtils.ts` (`roundHalfAwayFromZero`)
+**F301** · Høj · `dateValidation.ts` vs. `branded.ts` — `dateValidation.ts` slettet. Kanonisk `parseISODate` i `branded.ts` er eneste implementation.
 
-*Problem:* `roundHalfAwayFromZero` er eksporteret fra `formatUtils.ts` men er en ren wrapper rundt om `roundByMethod(value, precision, 'halfAwayFromZero')` — identisk med direkte kald. Duplikeringen skaber en sekundær indgang til afrunding der omgår den kanoniske `rounding.ts`.
+**F302** · Høj · `dateValidation.ts` (ansvarsopdeling + lagkrænkelse) — Fil slettet og splittet: `formatISOToDanish` → `dateFormatting.ts`, `validateISODateRange` → `isoDateHelpers.ts`, UI-validering → `dateInputValidation.ts`.
 
-*Risiko:* Fremtidig divergens; forvirring om hvilken funktion der er kanonisk.
+**F303** · Medium · `dateUtils.ts` (`beregnMaanederMellemDatoer`) — Død kode slettet.
 
-*Anbefaling:* Slet `roundHalfAwayFromZero` fra `formatUtils.ts`. Forbrugere importerer direkte `roundByMethod` fra `rounding.ts`.
+**F304** · Medium · `isoDateHelpers.ts` (ansvar og duplikering) — `toNonNegativeInt` → `numberUtils.ts`. `iterateDatesInclusive` har fået kontraktkrævet JSDoc. `DateInterval` samlet i `formSchemas.ts` via `types/calculation.ts`.
 
-Status: `GODKENDT` — Funktionen er slettet fra `formatUtils.ts`.
+**F305** · Medium · `dateUtils.ts` (`minIsoDate`) — Slettet. `BeregnetRenteTable.tsx` bruger nu `minISO` fra `isoDateHelpers.ts`.
 
----
+**F306** · Medium · `periodeBeregning.ts` (`beregnUgePeriode`) — `isoWeeksInYear(year)` helper indført. Ugegenerering og totaltælling er nu år-aware.
 
-**F202** · **Høj** · `src/utils/formatUtils.ts` (`parseAmount`)
+**F307** · Lav · `dateUtils.ts` + `isoDate.ts` + `branded.ts` (`createDate`) — Mønstret udtrukket til `datePrimitives.ts`. Alle tre importerer fra `datePrimitives.ts`.
 
-*Problem:* `parseAmount` accepterer `string | number | AmountValue | undefined`. Typesignaturen legitimerer string-input, men kommentaren i koden siger eksplicit at strings ikke burde forekomme i beregningskontekst — en type-løgn. Strings rammer en `console.warn`-sti i DEV der ikke fanges i produktion. Edge-cases som `String(val)` på ikke-string-typer kan give `"[object Object]"` → `NaN` → `0` uden fejl.
+**F308** · Lav · `dateInputValidation.ts` (`validateDate`) — Død kode slettet.
 
-*Risiko:* Stille forkert parsing i produktion. Typesignaturen dækker over en designfejl.
+**R01** · Lav · `numberParsing.ts` (`parsePercentToDecimal`) — Dansk tusindtalsseparator håndteres korrekt via `lastIndexOf`. Tests tilføjet.
 
-*Anbefaling:* Fjern `string` fra input-typen. Slet string-parsing-grenen. Migrer eventuelle forbrugere til `AmountValue`.
+**R02** · Lav · `types/table.ts` — `TableRowIssueReason` indført og genbrugt i alle tre reason-aliaser.
 
-Status: `GODKENDT` — Typesignatur er `number | AmountValue | undefined`. String-grenen og `console.warn` er slettet.
+### Åbne tilfældighedsfund (Fase 3)
 
----
+**FT-3B** · `isoDateHelpers.ts` er placeret i `src/utils/` men opererer på `ISODateString` branded types og range-logik tæt på `src/types/branded.ts`. Overvej konsolidering i `src/domain/dates/` (hvor `isoDate.ts` og `dateCommit.ts` allerede bor).
 
-**F203** · **Medium** · `src/utils/formatUtils.ts` (`formatPercent`)
+**FT-3D** · `src/domain/dates/dateCommit.ts` er 14 linjer med én funktion. Korrekt og velplaceret, men kan integreres i `isoDate.ts` uden tab af klarhed.
 
-*Problem:* Bruger `num.toString().replace('.', ',')` uden forudgående afrunding. `toString()` kan producere videnskabelig notation eller mange decimaler ved float-edge-cases. Resultatet afrundes ikke.
-
-*Risiko:* Visuelt forkert output (fx `"33,333333 %"`, `"1,5e-7 %"`). Inkonsistent med systemets øvrige afrundingskonvention.
-
-*Anbefaling:* Afrund til relevant precision via `roundByMethod` inden formatering. Brug `toFixed(n).replace('.', ',')`.
-
-Status: `GODKENDT` — Bruger nu `roundByMethod(num, 2, 'halfAwayFromZero')` og `toFixed(2)` med trailing-zero-stripping.
-
----
-
-**F204** · **Medium** · `src/utils/safeComputation.ts` (`safeComputeMultiple`)
-
-*Problem:* `safeComputeMultiple` tjekker `result.success` for early-exit. `Result<T>`-typen i `types/result.ts` bruger `ok` som discriminant (bekræftet via brug i `amountExpressionSchema.ts`). Hvis discriminanten er `ok` og ikke `success`, er tidlig-exit-logikken defekt — fejlede beregninger pusher `undefined` til `results`-arrayet i stedet for at returnere tidligt.
-
-*Risiko:* Stille fejl: fejlede delberegninger samles i stedet for at stoppes. Downstream kan modtage ufuldstændige resultater uden fejlindikation.
-
-*Anbefaling:* Verificer `Result`-typen og ret discriminant-tjekket til `result.ok`. Tilføj test der verificerer early-exit ved fejl.
-
-Status: `ACCEPTERET` — Fejlagtigt fund. `Result<T>` bruger `success` som discriminant (ikke `ok`). `safeComputeMultiple` er korrekt implementeret. `ok`-forvirringen opstod fordi `AmountParseResult` bruger `ok` som separat discriminant i en anden type.
-
----
-
-**F205** · **Lav** · `src/utils/inputValidation.ts` (`shouldClearField`)
-
-*Problem:* `0` (number) ryddes konsekvent fordi `String(0) = "0"` ikke matcher `/[A-Za-zÆØÅæøå1-9]/`. Designet er dokumenteret (kun 1-9 er gyldige cifre), men gør funktionen uegnet til felter hvor 0 er en lovlig inputværdi. Derudover er `!trimmed || trimmed === ''` redundant.
-
-*Risiko:* Lav — men kan overraske ved brug i numeriske felter med 0-værdier.
-
-*Anbefaling:* Dokumentér eksplicit at funktionen ikke er egnet til numeriske felter med 0-defaultværdi. Fjern den redundante check.
-
-Status: `GODKENDT` — Redundant `trimmed === ''`-check er fjernet.
-
----
-
-### Tilfældighedsfund (Fase 2)
-
-**FT-2A** · `expressionAmount.ts` mangler en eksplicit kontrakt-kommentar der binder BigInt-implementeringen til calculation-architecture.md §9. Fremtidige udviklere kan fejlagtigt forenkle til float-aritmetik uden at forstå konsekvensen.
-
-**FT-2B** · `safeComputeAsync` og `safeComputeMultiple` i `safeComputation.ts` — det er uklart om disse faktisk bruges i kodebasen. Undersøges i Fase 19.
-
-**FT-2C** · `formatUtils.ts` blander formatering (til UI) og parsing (fra UI). Parsings-funktionerne hører arkitekturelt tættere på schema-laget eller input-komponenterne. Ikke akut, men bør overvejes.
-
----
-
-## Fase 3: Dato-primitiver ⏳
-
-**Rationale:** Dato-håndtering er kompleks og fejlbehæftet (locale, tidszoner, UTC vs. lokal). Dato-helpers bruges overalt i periodeberegninger. `date-contract.md` er normativ.
-
-**Scope:**
-- `src/contracts/date-contract.md` (referencekontrakt)
-- `src/utils/dateUtils.ts`
-- `src/utils/dateFormatting.ts`
-- `src/utils/dateValidation.ts`
-- `src/utils/isoDateHelpers.ts`
-- `src/utils/utcDayMath.ts`
-- `src/utils/periodeBeregning.ts`
-- `src/utils/dateRangeErrorMessages.ts`
-- `src/domain/dates/dateCommit.ts`
-- `src/domain/dates/isoDate.ts`
-- `src/utils/insertTodayDate.ts`
-
-**Fund:**
-
-_Ingen fund endnu — fase afventer start._
+**RT-C** (udskudt) · `src/types/formEvents.ts` + `usePersistedForm.ts` — migrering fra `FormFieldChangeEvent` til `fieldEvents`-kontrakt. Behandles som selvstændigt refactor-step.
 
 ---
 

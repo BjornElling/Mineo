@@ -4,7 +4,7 @@ import type {
   OffentligeYdelserTableColumnKey,
   OffentligeYdelserTableFirstErrorCell,
   OffentligeYdelserTableValidationSummary,
-} from '../types/common';
+} from '../types/table';
 import { isAmountValueStrict, isEffectivelyEmptyNumber, isZeroOnlyString } from './tableValidationCommon';
 
 export type OffentligeYdelserTableValidationResult = Readonly<{

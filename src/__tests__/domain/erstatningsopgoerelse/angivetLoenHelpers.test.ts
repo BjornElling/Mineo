@@ -1,6 +1,6 @@
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { EO_ANGIVET_LOEN_ID, resolveLoenudviklingKilde } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
-import { LOEN_PAA_HELLIGDAGE } from '../../../types/common';
+import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 
 describe('resolveLoenudviklingKilde', () => {
   it('returnerer ansættelsesforhold for Beregningsperiode', () => {

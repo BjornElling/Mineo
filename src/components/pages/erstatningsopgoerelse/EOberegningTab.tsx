@@ -12,7 +12,7 @@ import type { NavigationTarget } from '../../../domain/erstatningsopgoerelse/eoD
 import { scrollToSection } from '../../../utils/scrollToSection';
 import { scrollToDebugRow } from '../../../utils/scrollToDebugRow';
 import { loadErstatningsopgoerelsePdfModule, loadTafFordeltPaaAarPdfModule } from '../../../utils/pdf/pdfLoader';
-import { formatISOToDanish } from '../../../utils/dateValidation';
+import { formatISOToDanish } from '../../../utils/dateFormatting';
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
 import { useErstatningsopgoerelseAggregation } from '../../../calculation/useErstatningsopgoerelseAggregation';
 import AggregationResultView from './components/AggregationResultView';

@@ -1,37 +1,11 @@
 /**
- * Formatting og parsing utilities
+ * Formatting utilities
  *
- * Centraliserede funktioner til formatering og parsing af tal, beløb og procenter.
+ * Centraliserede funktioner til formatering af tal, beløb og procenter.
  */
 
-import type { AmountValue } from '../schemas/amountExpressionSchema';
 import { roundByMethod } from './rounding';
 const SINGULAR_EPSILON = 0.0000001;
-
-/**
- * Parser procent-streng til decimal
- */
-export const parsePercentToDecimal = (pct: string | number | undefined): number => {
-  if (pct === undefined) return 0;
-  if (typeof pct === 'number') return Number.isFinite(pct) ? pct / 100 : 0;
-  if (!pct) return 0;
-  const clean = pct.replace('%', '').replace(',', '.').trim();
-  const num = parseFloat(clean);
-  return isNaN(num) ? 0 : num / 100;
-};
-
-/**
- * Parser numerisk beløbsværdi til tal
- */
-export const parseAmount = (val: number | AmountValue | undefined): number => {
-  if (val === undefined) return 0;
-  if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
-  if (typeof val === 'object' && val !== null && 'kind' in val) {
-    const value = val.value;
-    return Number.isFinite(value) ? value : 0;
-  }
-  return 0;
-};
 
 export const isSingularCount = (value: number): boolean => Math.abs(value - 1) < SINGULAR_EPSILON;
 

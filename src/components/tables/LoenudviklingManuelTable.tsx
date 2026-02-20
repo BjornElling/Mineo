@@ -22,7 +22,7 @@ import { initialLoenudviklingManuelRow, generateLoenudviklingRowId } from '../..
 import type { LoenudviklingManuelRow } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { parsePercentToDecimal } from '../../utils/formatUtils';
+import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 
 export type LoenudviklingManuelTableProps = Readonly<{

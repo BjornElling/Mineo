@@ -1,5 +1,5 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
-import { LOENPERIODE } from '../../types/common';
+import { LOENPERIODE } from '../../types/loen';
 import { ensureSvieRows } from './svieSmerteTableModel';
 import { ensureTafRows } from './tafTableModel';
 import { ensureFravaerRows, ensureTafFerieRows } from './ferieTableModel';

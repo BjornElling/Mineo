@@ -5,7 +5,7 @@ import { dateToISO, isISODateString, isoToDanish, parseISODate, subtractOneDay }
 import { svieSmertePrDag, svieSmerteMax } from '../../data/regulationRates';
 import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import { computeRowDateBounds } from './rowDateBounds';
-import { validateISODateRange } from '../../utils/dateValidation';
+import { validateISODateRange } from '../../utils/isoDateHelpers';
 import { detectConflictingSvieSmerteOverlaps, detectOverlappingPeriods } from './periodOverlapDetection';
 import { formatCurrency } from '../../utils/formatUtils';
 import { addDays, addMonths, parseDanishDate } from '../../utils/dateUtils';

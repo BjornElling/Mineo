@@ -11,7 +11,7 @@ import { formatAmount } from '../../utils/interestCalculator';
 import { loadRentePdfModule } from '../../utils/pdf/pdfLoader';
 import type { ISODateString, DanishDateString } from '../../types/branded';
 import { toISODateString } from '../../types/branded';
-import { minIsoDate } from '../../utils/dateUtils';
+import { minISO } from '../../utils/isoDateHelpers';
 import type { RentekravRow } from '../../schemas/formSchemas';
 import type { RentekravDraftRow } from '../../domain/renteberegning/tableDraftRows';
 import { computeRentekravCalculation, type RentekravCalculationResult } from '../../domain/renteberegning/renteEngine';
@@ -66,7 +66,7 @@ const BeregnetRenteRow = React.memo(
       }
 
       const standardMaxDate = toISODateString(`${MAX_CALCULATION_YEAR}-12-31`);
-      return minIsoDate(beregningsdato, standardMaxDate);
+      return minISO(beregningsdato, standardMaxDate);
     }, [beregningsdato]);
 
     const { context: validatedCalculation, issue: calculationIssue, actualInterestDate } = useRentekravCalculation(committedRow, beregningsdato);

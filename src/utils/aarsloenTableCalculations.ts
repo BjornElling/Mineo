@@ -1,5 +1,5 @@
 import type { AarsloenTableRow, Loenperiode } from '../schemas/formSchemas';
-import { parseAmount, parsePercentToDecimal } from './formatUtils';
+import { parseAmount, parsePercentToDecimal } from './numberParsing';
 import { roundByMethod } from './rounding';
 
 export type AarsloenSatserInput = {

@@ -2,7 +2,8 @@ import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import type { AarsloenTableRow, Loenperiode } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, isoToDanish } from '../../types/branded';
-import { parseAmount, formatCurrency } from '../../utils/formatUtils';
+import { formatCurrency } from '../../utils/formatUtils';
+import { parseAmount } from '../../utils/numberParsing';
 import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
 import {
   resolveOverenskomstRef,

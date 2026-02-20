@@ -1,7 +1,7 @@
 import { isoToDanish } from '../types/branded';
 import type { ISODateString } from '../types/branded';
 import { TODAY } from '../config/dateRanges';
-import { validateISODateRange } from './dateValidation';
+import { validateISODateRange } from './isoDateHelpers';
 
 export type DateRangeSpecialErrors = {
   /**

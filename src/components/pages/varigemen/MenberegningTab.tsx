@@ -24,6 +24,7 @@ import { varigeMenPrGrad, varigeMenPrGradYearBounds } from '../../../data/regula
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
+import { createCommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
 
 const VARIGE_MEN_BEREGNINGSDATO_MIN = toISODateString(
   `${varigeMenPrGradYearBounds.minYear}-01-01`
@@ -38,7 +39,7 @@ const MenberegningTab: React.FC<{
   setValues: React.Dispatch<React.SetStateAction<VarigeMenValues>>;
   handleChange: <K extends keyof VarigeMenValues>(
     key: K
-  ) => (event: { target: { value: VarigeMenValues[K] } }) => void;
+  ) => CommitHandler<VarigeMenValues[K]>;
 }> = ({ values, setValues, handleChange }) => {
   const { values: stamValues } = usePersistedForm(stamdataSchema, 'stamdata', {
     journalnr: '',
@@ -288,9 +289,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
                 typeof raw === 'number' && Number.isFinite(raw)
                   ? Math.trunc(raw)
                   : undefined;
-              handleChange('mengrad')({
-                target: { value: intValue },
-              });
+              handleChange('mengrad')(createCommitEvent(intValue));
             }}
             minValue={0}
             maxValue={100}

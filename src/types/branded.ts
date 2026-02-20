@@ -1,3 +1,5 @@
+import { createDate } from '../utils/datePrimitives';
+
 /**
  * Branded types til runtime-validerede værdier
  *
@@ -67,8 +69,7 @@ export function isISODateString(value: unknown): value is ISODateString {
   if (day < 1 || day > 31) return false;
 
   // Valider at datoen er gyldig (fx 31. februar)
-  const date = new Date(Date.UTC(year, month - 1, day));
-  date.setUTCFullYear(year);
+  const date = createDate(year, month - 1, day);
   return (
     date.getUTCFullYear() === year &&
     date.getUTCMonth() === month - 1 &&
@@ -126,8 +127,7 @@ export function isDanishDateString(value: unknown): value is DanishDateString {
   if (day < 1 || day > 31) return false;
 
   // Valider at datoen er gyldig (fx 31. februar)
-  const date = new Date(Date.UTC(year, month - 1, day));
-  date.setUTCFullYear(year);
+  const date = createDate(year, month - 1, day);
   return (
     date.getUTCFullYear() === year &&
     date.getUTCMonth() === month - 1 &&
@@ -221,9 +221,7 @@ export function parseISODate(isoDate: ISODateString | undefined): Date | undefin
   if (!isISODateString(isoDate)) return undefined;
 
   const [year, month, day] = isoDate.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  // Defensive: ensure year stays correct across edge cases.
-  date.setUTCFullYear(year);
+  const date = createDate(year, month - 1, day);
 
   if (
     Number.isNaN(date.getTime()) ||

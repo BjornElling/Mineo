@@ -6,7 +6,7 @@ import { useGridCore } from '../../tables/gridCoreContext';
 import { areSameGridCell } from '../../tables/gridCoreUtils';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
 import { shouldClearField } from '../../../utils/inputValidation';
-import { interpretYear } from '../../../utils/dateValidation';
+import { interpretYear } from '../../../utils/dateInputValidation';
 import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit, type TableCommitResult, type TableInputErrorInfo } from './tableInputContracts';
 import { assignRef } from './assignRef';
 import { filterWeekKeyDown } from '../inputKeyFilters';
@@ -459,4 +459,3 @@ const TableWeekInput = React.memo(
 TableWeekInput.displayName = 'TableWeekInput';
 
 export default TableWeekInput;
-

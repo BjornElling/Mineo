@@ -1,7 +1,7 @@
 import type { PersistedSectionMap } from './persistenceRegistry';
 import type { StorageKey } from './storageManifest';
 import { DEFAULT_APP_SETTINGS, appSettingsSchema, resolveDefaultOverenskomstFilter, type AppSettings } from '../settings/appSettingsSchema';
-import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../types/common';
+import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../types/loen';
 import { DEFAULT_ANCIENNITET_FIELDS } from '../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 export type DeepPartial<T> = {

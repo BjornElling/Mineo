@@ -15,10 +15,10 @@ import { amountValueToNumber } from '../../utils/expressionAmount';
 import type {
   AarsloenTableColumnKey,
   AarsloenTableFirstErrorCell,
-  AarsloenTableHandle,
   AarsloenTableValidationSummary,
   TableError,
-} from '../../types/common';
+} from '../../types/table';
+import type { AarsloenTableHandle } from '../../types/handles';
 import { initialRow, generateRowId } from '../../utils/eoConverters';
 import {
   calculateAarsloenRowDerived,

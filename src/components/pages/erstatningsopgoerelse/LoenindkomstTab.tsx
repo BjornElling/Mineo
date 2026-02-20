@@ -30,7 +30,7 @@ import {
   type OffentligLoenTypeLabel,
   type ErstatningsopgoerelseValues,
 } from '../../../schemas/formSchemas';
-import { LOENPERIODE } from '../../../types/common';
+import { LOENPERIODE } from '../../../types/loen';
 import type { ISODateString } from '../../../types/branded';
 import { parseISODate } from '../../../types/branded';
 import { createDate, formatDanishDate } from '../../../utils/dateUtils';

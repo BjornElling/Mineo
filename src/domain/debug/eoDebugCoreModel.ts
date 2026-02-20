@@ -7,11 +7,11 @@
 
 import type { ISODateString } from '../../types/branded';
 import type {
-  StamdataValues,
   ErstatningsopgoerelseValues,
+  StamdataValues,
   TafPeriodeRow,
   SvieSmertePeriodeRow,
-} from '../../types/common';
+} from '../../schemas/formSchemas';
 import type { DebugDay, SvieSmerte } from './eoDebugTypes';
 import { getIsoRange, minDate, maxDate } from './eoDebugDateUtils';
 import { subtractOneDay, toISODateString } from '../../types/branded';

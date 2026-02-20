@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { safeCompute, safeComputeMultiple } from '../safeComputation';
+import { safeCompute } from '../safeComputation';
 
 vi.mock('../logger', () => ({
   logError: vi.fn(),
@@ -14,20 +14,13 @@ describe('safeComputation', () => {
     }
   });
 
-  it('safeComputeMultiple stopper ved første fejl', () => {
-    const second = vi.fn(() => {
+  it('safeCompute returnerer failure-result ved fejl', () => {
+    const result = safeCompute(() => {
       throw new Error('boom');
-    });
-    const third = vi.fn(() => 3);
-
-    const result = safeComputeMultiple<number>([
-      () => 1,
-      second,
-      third,
-    ], 'test.multiple');
-
+    }, 'test.context.error');
     expect(result.success).toBe(false);
-    expect(second).toHaveBeenCalledTimes(1);
-    expect(third).not.toHaveBeenCalled();
+    if (!result.success) {
+      expect(result.error.message).toBe('boom');
+    }
   });
 });

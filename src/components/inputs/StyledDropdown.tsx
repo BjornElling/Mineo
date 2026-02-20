@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Box, MenuItem, OutlinedInput, Popover } from '@mui/material';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { createCommitEvent, type CommitEvent } from './fieldEvents';
 
 /**
  * StyledDropdown (combobox trigger + popover listbox)
@@ -20,7 +21,7 @@ import type { SxProps, Theme } from '@mui/material/styles';
  */
 export type StyledDropdownValue = string | number;
 
-export type StyledDropdownChangeEvent<TValue extends StyledDropdownValue | undefined = string> = {
+export type StyledDropdownChangeEvent<TValue extends StyledDropdownValue | undefined = string> = CommitEvent<TValue> & {
   target: { name?: string; value: TValue };
 };
 
@@ -398,8 +399,10 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       // Safe due to the `allowEmpty` runtime guard:
       // - if `allowEmpty === false`, `val` cannot be `undefined` here
       // - if `allowEmpty === true`, `onChange` expects `TValue | undefined`
+      const commitEvent = createCommitEvent<TValue | undefined>(val);
       (onChange as ((e: StyledDropdownChangeEvent<TValue | undefined>) => void) | undefined)?.({
-        target: { name, value: val },
+        ...commitEvent,
+        target: { ...commitEvent.target, name },
       });
       handleClose('select');
     },

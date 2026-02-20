@@ -2,7 +2,7 @@ import React from 'react';
 import type { ZodIssue } from 'zod';
 import { type StorageKey, getStorageKey, getAllMineoKeys } from '../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
-import type { PersistedData } from '../types/common';
+import type { PersistedData } from '../types/persistence';
 import {
   type FieldErrorBySource,
   type FieldErrorsForSection,

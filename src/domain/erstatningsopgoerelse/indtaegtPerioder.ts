@@ -7,7 +7,7 @@ import type {
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, isISODateString } from '../../types/branded';
 import { calculateAarsloenRowDerived } from '../../utils/aarsloenTableCalculations';
-import { parseAmount } from '../../utils/formatUtils';
+import { parseAmount } from '../../utils/numberParsing';
 import { createDate, parseDanishDate } from '../../utils/dateUtils';
 import { ydelsestyper } from '../../data/ydelsestyper';
 import { type DateInterval, type IsoRange, validateIsoRange } from '../../utils/isoDateHelpers';

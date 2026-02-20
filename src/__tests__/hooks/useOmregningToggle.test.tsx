@@ -4,10 +4,9 @@ import { act, render } from '@testing-library/react';
 import { useOmregningToggle } from '../../hooks/useOmregningToggle';
 import type { CommitEvent } from '../../components/inputs/fieldEvents';
 import type {
-  AarsloenTableHandle,
   AarsloenTableValidationSummary,
-  StyledToggleSwitchHandle,
-} from '../../types/common';
+} from '../../types/table';
+import type { AarsloenTableHandle, StyledToggleSwitchHandle } from '../../types/handles';
 
 let lastHandleToggle: ((e: CommitEvent<boolean>) => void) | null = null;
 

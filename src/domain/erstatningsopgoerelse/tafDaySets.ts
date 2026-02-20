@@ -3,7 +3,7 @@ import { dateToISO } from '../../types/branded';
 import { isoDateToDate } from '../dates/isoDate';
 import { addDays } from '../../utils/dateUtils';
 import { beregnHelligdage } from '../../utils/shDageBeregning';
-import { toNonNegativeInt } from '../../utils/isoDateHelpers';
+import { toNonNegativeInt } from '../../utils/numberUtils';
 
 export const isWeekdayUtc = (date: Date): boolean => {
   const dayOfWeek = date.getUTCDay();

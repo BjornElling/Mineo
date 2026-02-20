@@ -1,6 +1,6 @@
-import type { AarsloenTableRow } from '../../types/common';
+import type { AarsloenTableRow } from '../../schemas/formSchemas';
 import { createDate } from '../dateUtils';
-import { beregnDagPeriode, beregnPeriodiseringsDage, erNoejagtEtAar } from '../periodeBeregning';
+import { beregnDagPeriode, beregnPeriodiseringsDage, beregnUgePeriode, erNoejagtEtAar } from '../periodeBeregning';
 
 const formatIso = (date: Date): string => {
   const year = date.getUTCFullYear();
@@ -37,5 +37,19 @@ describe('periodeBeregning', () => {
   it('beregnPeriodiseringsDage counts kalenderdage inclusively across DST', () => {
     const days = beregnPeriodiseringsDage('30-03-2024', '02-04-2024', 'kalenderdage');
     expect(days).toBe(4);
+  });
+
+  it('beregnUgePeriode counts week 53 when crossing year boundary', () => {
+    const rows: AarsloenTableRow[] = [{ id: 'row-1', col0_uge: '52/2020', col1_uge: '01/2021' }];
+    const result = beregnUgePeriode(rows);
+    expect(result?.totalEnheder).toBe(3);
+    expect(result?.unikkeEnheder).toBe(3);
+  });
+
+  it('beregnUgePeriode handles start week 53 at year boundary', () => {
+    const rows: AarsloenTableRow[] = [{ id: 'row-1', col0_uge: '53/2020', col1_uge: '01/2021' }];
+    const result = beregnUgePeriode(rows);
+    expect(result?.totalEnheder).toBe(2);
+    expect(result?.unikkeEnheder).toBe(2);
   });
 });

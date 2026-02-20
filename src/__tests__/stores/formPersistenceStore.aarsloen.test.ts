@@ -6,7 +6,7 @@ import {
   selectAarsloenShowShDageFields,
   selectAarsloenShouldWarnFeriePct,
 } from '../../stores/formPersistenceStore';
-import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/common';
+import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import type { AarsloenTableRow } from '../../schemas/formSchemas';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 

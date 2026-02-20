@@ -2,7 +2,8 @@ import * as React from 'react';
 import { InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { shouldClearField } from '../../../utils/inputValidation';
-import { interpretYear, validateISODateRange } from '../../../utils/dateValidation';
+import { interpretYear } from '../../../utils/dateInputValidation';
+import { validateISODateRange } from '../../../utils/isoDateHelpers';
 import { resolveDateRangeErrorMessage, type DateRangeSpecialErrors } from '../../../utils/dateRangeErrorMessages';
 import { coerceToDanishDateString, coerceToISODateString, type ISODateString } from '../../../types/branded';
 import { asTableCommittedString, normalizeTableDraftOnCommit, type TableInputErrorInfo } from './tableInputContracts';
@@ -594,4 +595,3 @@ const TableDateInput = React.memo(
 TableDateInput.displayName = 'TableDateInput';
 
 export default TableDateInput;
-

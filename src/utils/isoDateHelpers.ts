@@ -1,7 +1,10 @@
+import type { DateInterval } from '../types/calculation';
 import type { ISODateString } from '../types/branded';
+import { isISODateString } from '../types/branded';
+import { formatISOToDanish } from './dateFormatting';
 
 export type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
-export type DateInterval = Readonly<{ start: Date; end: Date }>;
+export type { DateInterval };
 
 export const validateIsoRange = (
   fra: ISODateString | undefined,
@@ -40,6 +43,10 @@ export function maxISO(
   return a > b ? a : b;
 }
 
+/**
+ * Itererer alle UTC-dage i intervallet [start, end] inklusivt.
+ * Kontrakt: `start` og `end` er date-only UTC-dage, og `start <= end`.
+ */
 export const iterateDatesInclusive = (start: Date, end: Date, onDate: (date: Date) => void): void => {
   const current = new Date(start.getTime());
   while (current <= end) {
@@ -48,7 +55,32 @@ export const iterateDatesInclusive = (start: Date, end: Date, onDate: (date: Dat
   }
 };
 
-export const toNonNegativeInt = (value: number): number => {
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, Math.trunc(value));
+export const validateISODateRange = (
+  isoDate: string,
+  minDate: string | undefined,
+  maxDate: string | undefined
+): { isValid: boolean; errorMessage: string } => {
+  if (!isISODateString(isoDate)) {
+    return { isValid: false, errorMessage: 'Ugyldig dato' };
+  }
+
+  const normalizedMin = isISODateString(minDate) ? minDate : undefined;
+  const normalizedMax = isISODateString(maxDate) ? maxDate : undefined;
+
+  if (normalizedMin && normalizedMax && (isoDate < normalizedMin || isoDate > normalizedMax)) {
+    return {
+      isValid: false,
+      errorMessage: `Dato skal være mellem ${formatISOToDanish(normalizedMin)} og ${formatISOToDanish(normalizedMax)}`,
+    };
+  }
+
+  if (normalizedMin && isoDate < normalizedMin) {
+    return { isValid: false, errorMessage: `Dato skal være efter ${formatISOToDanish(normalizedMin)}` };
+  }
+
+  if (normalizedMax && isoDate > normalizedMax) {
+    return { isValid: false, errorMessage: `Dato skal være før ${formatISOToDanish(normalizedMax)}` };
+  }
+
+  return { isValid: true, errorMessage: '' };
 };

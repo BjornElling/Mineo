@@ -11,7 +11,7 @@
 import type { ISODateString, DanishDateString } from '../../types/branded';
 import { isoToDanish, toISODateString } from '../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues, LoenPaaHelligdage } from '../../schemas/formSchemas';
-import { LOEN_PAA_HELLIGDAGE } from '../../types/common';
+import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import type { DebugDay } from './eoDebugTypes';
 import type { LoenTimeline, DailyLoen, LoenComponent, DailySvieSmerte } from './eoDebugLoenTypes';
 import {
@@ -23,7 +23,7 @@ import {
 import { getOffentligLoenForDato } from '../../data/offentligLoenLookup';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { parsePercentToDecimal } from '../../utils/formatUtils';
+import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { svieSmertePrDag } from '../../data/regulationRates';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
 import { numOrZero, resolveOffentligLoenEkstraGrundloen } from '../erstatningsopgoerelse/sharedPdfUtils';

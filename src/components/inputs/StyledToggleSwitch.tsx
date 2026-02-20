@@ -1,6 +1,7 @@
 import React from 'react';
 import { Switch, FormControlLabel } from '@mui/material';
 import { createCommitEvent, type CommitHandler } from './fieldEvents';
+import type { StyledToggleSwitchHandle } from '../../types/handles';
 
 /**
  * StyledToggleSwitch - Moderne toggle switch med blå farve
@@ -45,16 +46,6 @@ interface StyledToggleSwitchProps {
   labelPlacement?: 'start' | 'end' | 'top' | 'bottom';
   name?: string;
   value?: string;
-}
-
-interface StyledToggleSwitchHandle {
-  /**
-   * UI-only attention signal (does not mutate committed form state).
-   *
-   * Intended usage: indicate that a related validation error exists elsewhere in the UI.
-   * Must not be used to enforce state or trigger side effects beyond the shake animation.
-   */
-  shake: () => void;
 }
 
 const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledToggleSwitchProps>(({

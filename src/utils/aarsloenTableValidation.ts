@@ -4,7 +4,7 @@ import type {
   AarsloenTableFirstErrorCell,
   AarsloenTableValidationSummary,
   TableError,
-} from '../types/common';
+} from '../types/table';
 import { isAmountValueStrict } from './tableValidationCommon';
 
 export type AarsloenTableCellErrorMap = Readonly<Record<string, true>>;

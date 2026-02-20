@@ -7,7 +7,8 @@ import type { Periodisering } from '../../data/ydelsestyper';
 import { buildDatoSetInclusiveFromDates, buildFerieDageSet, buildShDageSet, isWeekdayUtc, placeLoseFeriedage } from './tafDaySets';
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR } from './tafBeregningsenhed';
 import { roundByMethod } from '../../utils/rounding';
-import { type DateInterval, type IsoRange, toNonNegativeInt } from '../../utils/isoDateHelpers';
+import { type DateInterval, type IsoRange } from '../../utils/isoDateHelpers';
+import { toNonNegativeInt } from '../../utils/numberUtils';
 
 /**
  * CENTRAL PERIODISERINGSMOTOR (normativ)

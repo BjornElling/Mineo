@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
-import { interpretYear } from '../../utils/dateValidation';
+import { interpretYear } from '../../utils/dateInputValidation';
 import StyledTextFieldBase from './StyledTextFieldBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';

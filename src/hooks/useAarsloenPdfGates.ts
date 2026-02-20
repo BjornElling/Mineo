@@ -10,13 +10,11 @@
  */
 
 import React from 'react';
-import type {
-  AarsloenTableHandle,
-  StamdataValues
-} from '../types/common';
+import type { AarsloenTableHandle } from '../types/handles';
 import type { AarsloenValues } from '../schemas/formSchemas';
+import type { StamdataValues } from '../schemas/formSchemas';
 import type { PeriodeResult } from '../utils/periodeBeregning';
-import type { AarsloenBeregningResult } from '../types/common';
+import type { AarsloenBeregningResult } from '../types/calculation';
 import { loadSHDagePdfModule, loadAarsloenPdfModule } from '../utils/pdf/pdfLoader';
 import { logError } from '../utils/logger';
 import { harTabelValideringsFejl } from '../utils/aarsloenValidation';

@@ -1,6 +1,6 @@
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/common';
+import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import { DEFAULT_ANCIENNITET_FIELDS } from './erstatningsopgoerelseInitialValues';
 
 export const EO_ANGIVET_LOEN_ID = 'eo-angivet-loen';

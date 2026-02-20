@@ -10,7 +10,7 @@
  */
 
 import React from 'react';
-import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../types/common';
+import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../types/loen';
 import type { AarsloenValues } from '../schemas/formSchemas';
 import { safeCompute } from '../utils/safeComputation';
 import { isErr, type Result } from '../types/result';
@@ -23,7 +23,7 @@ import {
 } from '../utils/periodeBeregning';
 import { beregnSHDageForDatoSet } from '../utils/shDageBeregning';
 import { beregnOmregnetAarsloen } from '../domain/aarsloen/aarsloenCalculations';
-import type { AarsloenBeregningResult } from '../types/common';
+import type { AarsloenBeregningResult } from '../types/calculation';
 import { beregnFejlmeddelelser, harTabelData } from '../utils/aarsloenValidation';
 
 export interface AarsloenBeregningState {

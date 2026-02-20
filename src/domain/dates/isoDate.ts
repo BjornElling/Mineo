@@ -1,5 +1,6 @@
 import type { ISODateString } from '../../types/branded';
 import { isISODateString } from '../../types/branded';
+import { createDate } from '../../utils/datePrimitives';
 
 export const parseIsoDateOrUndefined = (value: string | undefined): ISODateString | undefined => {
   if (typeof value !== 'string') return undefined;
@@ -24,9 +25,7 @@ export const isoDateToDate = (isoDate: ISODateString): Date => {
   const month = Number.parseInt(monthStr, 10);
   const day = Number.parseInt(dayStr, 10);
 
-  const date = new Date(Date.UTC(year, month - 1, day));
-  // Defensive: ensure year stays correct across edge cases.
-  date.setUTCFullYear(year);
+  const date = createDate(year, month - 1, day);
 
   if (
     Number.isNaN(date.getTime()) ||

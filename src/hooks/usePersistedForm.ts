@@ -1,9 +1,9 @@
 import React from 'react';
 import { type z } from 'zod';
 import { useFormPersistence } from '../contexts/FormPersistenceContext';
-import type { FormFieldChangeEvent } from '../types/common';
 import type { StorageKey } from '../config/storageManifest';
 import type { PersistedSectionMap } from '../config/persistenceRegistry';
+import type { CommitHandler } from '../components/inputs/fieldEvents';
 
 /**
  * Return type for usePersistedForm hook
@@ -11,7 +11,7 @@ import type { PersistedSectionMap } from '../config/persistenceRegistry';
 export interface UsePersistedFormReturn<T> {
   values: T;
   setValues: React.Dispatch<React.SetStateAction<T>>;
-  handleChange: (fieldName: keyof T) => (event: FormFieldChangeEvent) => void;
+  handleChange: <K extends keyof T>(fieldName: K) => CommitHandler<T[K]>;
   resetForm: () => void;
   /**
    * Ændres kun ved "authoritative" value-replace events (fx reset/load/migration),
@@ -145,14 +145,18 @@ export const usePersistedForm = <K extends StorageKey>(
   /**
    * Håndterer feltændringer med type-aware konvertering
    *
-   * Input-komponenter emitter typed values via event.target.value.
+   * Input-komponenter emitter Mineo commit-events via event.target.value.
    * Denne handler accepterer det og lader komponenterne selv håndtere
    * konvertering til korrekt type (number, boolean, ISO-date).
    */
-  const handleChange = React.useCallback((fieldName: keyof PersistedSectionMap[K]) => (event: FormFieldChangeEvent) => {
-    const value = event?.target?.value;
-    setValues(prev => ({ ...prev, [fieldName]: value }));
-  }, [setValues]);
+  const handleChange = React.useCallback(
+    <FieldKey extends keyof PersistedSectionMap[K]>(fieldName: FieldKey): CommitHandler<PersistedSectionMap[K][FieldKey]> =>
+      (event) => {
+        const value = event.target.value;
+        setValues(prev => ({ ...prev, [fieldName]: value }));
+      },
+    [setValues]
+  );
 
   /**
    * Nulstiller formular til initialValues OG sletter gemt data fra storage.

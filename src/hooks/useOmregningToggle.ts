@@ -1,5 +1,5 @@
 import React from 'react';
-import type { AarsloenTableHandle, StyledToggleSwitchHandle } from '../types/common';
+import type { AarsloenTableHandle, StyledToggleSwitchHandle } from '../types/handles';
 import type { CommitEvent, CommitHandler } from '../components/inputs/fieldEvents';
 
 // ============================================================================

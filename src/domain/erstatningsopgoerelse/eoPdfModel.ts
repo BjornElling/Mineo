@@ -4,7 +4,8 @@ import type { ErstatningsopgoerelseValues, StamdataValues, SvieSmertePeriodeRow,
 import { erstatningsopgoerelseSchema, stamdataSchema } from '../../schemas/formSchemas';
 import { svieSmerteMax, svieSmertePrDag, aarsloenMax } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { formatPercent, isSingularCount, parsePercentToDecimal } from '../../utils/formatUtils';
+import { formatPercent, isSingularCount } from '../../utils/formatUtils';
+import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { roundByMethod } from '../../utils/rounding';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, type IsoRange } from './indtaegtPerioder';
 import { calculateTafAntalMaaneder } from './tafCalculations';
@@ -13,13 +14,13 @@ import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } 
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../config/dateRanges';
 import { computeRowDateBounds } from './rowDateBounds';
-import { validateISODateRange } from '../../utils/dateValidation';
+import { validateISODateRange } from '../../utils/isoDateHelpers';
 import { detectOverlappingPeriods } from './periodOverlapDetection';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { isoDateToDate } from '../dates/isoDate';
 import { addDays, createDate } from '../../utils/dateUtils';
 import { isOevrigeKravRowEmpty, isSvieSmerteRowEmpty, isTafRowEmpty } from './rowEmpty';
-import { LOEN_PAA_HELLIGDAGE } from '../../types/common';
+import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import {
   getEffektiveSatserForDato,
   getEffektiveSatserForPeriode,

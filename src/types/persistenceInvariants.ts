@@ -1,4 +1,4 @@
-import type { EoFileData } from './common';
+import type { EoFileData } from '../schemas/eoFileSchema';
 import { STORAGE_KEYS } from '../config/storageManifest';
 
 type Equal<A, B> =

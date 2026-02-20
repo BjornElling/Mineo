@@ -8,7 +8,7 @@
  */
 
 import { loenperiodeSchema, loenPaaHelligdageSchema } from '../schemas/formSchemas';
-import type { Loenperiode, LoenPaaHelligdage } from '../types/common';
+import type { Loenperiode, LoenPaaHelligdage } from '../types/loen';
 
 /**
  * Type guard for Loenperiode (valideret via Zod schema)

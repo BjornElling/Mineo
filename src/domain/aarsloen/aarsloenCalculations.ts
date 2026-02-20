@@ -5,12 +5,8 @@
  */
 
 import { beregnAntalHverdage, beregnFeriedagePaaEtAar, erNoejagtEtAar, type PeriodeResult } from '../../utils/periodeBeregning';
-import type {
-  AarsloenMetode,
-  AarsloenBeregningResult,
-  LoenPaaHelligdage,
-  Loenperiode
-} from '../../types/common';
+import type { AarsloenMetode, AarsloenBeregningResult } from '../../types/calculation';
+import type { LoenPaaHelligdage, Loenperiode } from '../../types/loen';
 
 /**
  * Parametre til årsløn-beregning

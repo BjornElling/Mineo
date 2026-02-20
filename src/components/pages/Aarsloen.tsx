@@ -25,11 +25,10 @@ import {
 } from '../../stores/formPersistenceStore';
 import type { z } from 'zod';
 import type {
-  AarsloenTableHandle,
   AarsloenTableValidationSummary,
-  StyledToggleSwitchHandle,
-} from '../../types/common';
-import { LOEN_PAA_HELLIGDAGE, LOENPERIODE } from '../../types/common';
+} from '../../types/table';
+import type { AarsloenTableHandle, StyledToggleSwitchHandle } from '../../types/handles';
+import { LOEN_PAA_HELLIGDAGE, LOENPERIODE } from '../../types/loen';
 import type { StyledPercentFieldValueChangeEvent } from '../inputs/StyledPercentField';
 import type { StyledIntegerFieldValueChangeEvent } from '../inputs/StyledIntegerField';
 import type { StyledDropdownChangeEvent } from '../inputs/StyledDropdown';
@@ -713,4 +712,3 @@ const Aarsloen = React.memo(() => {
 Aarsloen.displayName = 'Aarsloen';
 
 export default Aarsloen;
-

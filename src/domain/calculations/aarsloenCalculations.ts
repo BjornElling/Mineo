@@ -1,5 +1,5 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
-import { LOEN_PAA_HELLIGDAGE, LOENPERIODE, type Loenperiode } from '../../types/common';
+import { LOEN_PAA_HELLIGDAGE, LOENPERIODE, type Loenperiode } from '../../types/loen';
 import { isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
 
 export type AarsloenValues = PersistedSectionMap['aarsloen'];

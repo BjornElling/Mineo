@@ -28,7 +28,7 @@ import useTafRows from '../../tables/useTafRows';
 import useFerieRows from '../../tables/useFerieRows';
 import useFravaerRows from '../../tables/useFravaerRows';
 import useOevrigeKravRows from '../../tables/useOevrigeKravRows';
-import type { CommitEvent, CommitHandler } from '../../inputs/fieldEvents';
+import { createCommitEvent, type CommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
 import type { UsePersistedFormReturn } from '../../../hooks/usePersistedForm';
 import { MAX_YEAR, MIN_YEAR, computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../../config/dateRanges';
 import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
@@ -71,8 +71,6 @@ import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 
 type JaNej = 'Ja' | 'Nej';
-
-type ValueChangeEvent<T> = { target: { value: T } };
 
 type StringLikeKeys = {
   [K in keyof ErstatningsopgoerelseValues]-?: ErstatningsopgoerelseValues[K] extends string | undefined ? K : never;
@@ -190,7 +188,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
    */
   const handleIntegerBlur = React.useCallback(
     <K extends NumberLikeKeys>(fieldName: K) =>
-      (event: { target: { value: number | undefined } }) => {
+      (event: CommitEvent<number | undefined>) => {
         setValues((prev) => ({ ...prev, [fieldName]: event.target.value }));
       },
     [setValues]
@@ -202,7 +200,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
    */
   const handleNumberBlur = React.useCallback(
     <K extends NumberLikeKeys>(fieldName: K) =>
-      (event: { target: { value: number | undefined } }) => {
+      (event: CommitEvent<number | undefined>) => {
         setValues((prev) => ({ ...prev, [fieldName]: event.target.value }));
       },
     [setValues]
@@ -213,29 +211,29 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
    */
   const handleAmountBlur = React.useCallback(
     <K extends AmountLikeKeys>(fieldName: K) =>
-      (event: { target: { value: AmountValue | undefined } }) => {
+      (event: CommitEvent<AmountValue | undefined>) => {
         setValues((prev) => ({ ...prev, [fieldName]: event.target.value }));
       },
     [setValues]
   );
 
-  const handleHelbredsfoholdChange = React.useCallback((event: ValueChangeEvent<unknown>) => {
+  const handleHelbredsfoholdChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = helbredsstatusEnum.safeParse(event.target.value);
     setValues((prev) => ({ ...prev, svieSmerteHelbredsstatus: parsed.success ? parsed.data : undefined }));
   }, [setValues]);
 
-  const handleArbejdssituationChange = React.useCallback((event: ValueChangeEvent<unknown>) => {
+  const handleArbejdssituationChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = arbejdsstatusEnum.safeParse(event.target.value);
     setValues((prev) => ({ ...prev, tafArbejdsstatus: parsed.success ? parsed.data : undefined }));
   }, [setValues]);
 
-  const handleBeregnesUdFraChange = React.useCallback((event: ValueChangeEvent<unknown>) => {
+  const handleBeregnesUdFraChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = beregningsmetodeEnum.safeParse(event.target.value);
     if (!parsed.success) return;
     setValues((prev) => ({ ...prev, beregnesUdFra: parsed.data }));
   }, [setValues]);
 
-  const handleAfsluttesMedChange = React.useCallback((event: ValueChangeEvent<unknown>) => {
+  const handleAfsluttesMedChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = afsluttesMedEnum.safeParse(event.target.value);
     if (!parsed.success) return;
     setValues((prev) => ({ ...prev, erstatningsopgoerelseAfsluttesMed: parsed.data }));
@@ -252,7 +250,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     [setValues]
   );
 
-  const handleLoenudviklingBeregningsgrundlagChange = React.useCallback((event: ValueChangeEvent<unknown>) => {
+  const handleLoenudviklingBeregningsgrundlagChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = loenudviklingBeregningsgrundlagEnum.safeParse(event.target.value);
     updateEoLoenudvikling((prev) => ({
       ...prev,
@@ -260,7 +258,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     }));
   }, [updateEoLoenudvikling]);
 
-  const handleLoenudviklingStatistikModelChange = React.useCallback((event: ValueChangeEvent<unknown>) => {
+  const handleLoenudviklingStatistikModelChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = loenudviklingStatistikModelEnum.safeParse(event.target.value);
     updateEoLoenudvikling((prev) => ({
       ...prev,
@@ -268,7 +266,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     }));
   }, [updateEoLoenudvikling]);
 
-  const handleLoenudviklingKRLSatstabelChange = React.useCallback((event: ValueChangeEvent<unknown>) => {
+  const handleLoenudviklingKRLSatstabelChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = krlSatstabelEnum.safeParse(event.target.value);
     updateEoLoenudvikling((prev) => ({
       ...prev,
@@ -305,7 +303,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     [updateEoLoenudvikling]
   );
 
-  const handleOffentligLoenTypeChange = React.useCallback((event: ValueChangeEvent<unknown>) => {
+  const handleOffentligLoenTypeChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = offentligLoenTypeEnum.safeParse(event.target.value);
     updateEoLoenudvikling((prev) => ({
       ...prev,
@@ -313,14 +311,14 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     }));
   }, [updateEoLoenudvikling]);
 
-  const handleOffentligLoenTrinCommit = React.useCallback((event: { target: { value: number | undefined } }) => {
+  const handleOffentligLoenTrinCommit = React.useCallback((event: CommitEvent<number | undefined>) => {
     updateEoLoenudvikling((prev) => ({
       ...prev,
       offentligLoenTrin: event.target.value,
     }));
   }, [updateEoLoenudvikling]);
 
-  const handleOffentligLoenGruppeCommit = React.useCallback((event: { target: { value: number | undefined } }) => {
+  const handleOffentligLoenGruppeCommit = React.useCallback((event: CommitEvent<number | undefined>) => {
     updateEoLoenudvikling((prev) => ({
       ...prev,
       offentligLoenGruppe: event.target.value,
@@ -384,7 +382,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 
   const handleIsoDateBlur = React.useCallback(
     (fieldName: IsoDateFieldName) =>
-      (event: { target: { value: ISODateString | string | undefined | null } }) => {
+      (event: CommitEvent<ISODateString | undefined>) => {
         const nextValue = coerceToISODateString(event.target.value ?? undefined);
         setValues((prev) => {
           const next: ErstatningsopgoerelseValues = { ...prev };
@@ -1191,7 +1189,12 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   <Box className="row--label-right-hover__content">
                     <StyledRadioButton
                       value={values.svieSmerteDelvisSygemeldingSats}
-                      onChange={handleChange('svieSmerteDelvisSygemeldingSats')}
+                      onCommit={(event) => {
+                        const next = event.target.value;
+                        if (next === 'fuld' || next === 'halv') {
+                          handleChange('svieSmerteDelvisSygemeldingSats')(createCommitEvent(next));
+                        }
+                      }}
                       row={true}
                       options={[
                         { value: 'fuld', label: 'Fuld sats' },

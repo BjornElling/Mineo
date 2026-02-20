@@ -4,7 +4,8 @@
  * Funktioner til at beregne perioder, hverdage, feriedage osv.
  */
 
-import type { DateInterval, AarsloenTableRow } from '../types/common';
+import type { DateInterval } from '../types/calculation';
+import type { AarsloenTableRow } from '../schemas/formSchemas';
 import { parseISODate, toISODateString, type ISODateString } from '../types/branded';
 import { parseDanishDate, parseWeekString } from './shDageBeregning';
 import { addDays, createDate, formatToISO } from './dateUtils';
@@ -51,6 +52,13 @@ const parseWeekKey = (weekKey: string): { year: number; week: number } | null =>
     return null;
   }
   return { year, week };
+};
+
+const isoWeeksInYear = (year: number): number => {
+  const dec31 = createDate(year, 11, 31);
+  const dayOfWeek = dec31.getUTCDay();
+  const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  return dayOfWeek === 4 || (isLeapYear && dayOfWeek === 5) ? 53 : 52;
 };
 
 /**
@@ -241,8 +249,8 @@ export const beregnUgePeriode = (tableData: AarsloenTableRow[]): PeriodeResult |
           }
         } else {
           // Forskellige år - håndter år-overgang
-          // Tilføj uger fra ugeFra til uge 52/53 i aarFra
-          const maxUgeFra = ugeFraNum <= 52 ? 52 : 53;
+          // Tilføj uger fra ugeFra til sidste ISO-uge i aarFra
+          const maxUgeFra = isoWeeksInYear(aarFra);
           for (let uge = ugeFraNum; uge <= maxUgeFra; uge++) {
             uger.add(`${aarFra}-W${String(uge).padStart(2, '0')}`);
           }
@@ -252,7 +260,7 @@ export const beregnUgePeriode = (tableData: AarsloenTableRow[]): PeriodeResult |
           }
           // Tilføj eventuelle mellemliggende år (hvis aarTil - aarFra > 1)
           for (let aar = aarFra + 1; aar < aarTil; aar++) {
-            for (let uge = 1; uge <= 52; uge++) {
+            for (let uge = 1; uge <= isoWeeksInYear(aar); uge++) {
               uger.add(`${aar}-W${String(uge).padStart(2, '0')}`);
             }
           }
@@ -291,9 +299,16 @@ export const beregnUgePeriode = (tableData: AarsloenTableRow[]): PeriodeResult |
   const maxUgeNum = maxParsed.week;
 
   // Beregn total antal uger
-  const minAarNum = minAar;
-  const maxAarNum = maxAar;
-  const totalUger = (maxAarNum - minAarNum) * 52 + (maxUgeNum - minUgeNum) + 1;
+  let totalUger = 0;
+  if (minAar === maxAar) {
+    totalUger = maxUgeNum - minUgeNum + 1;
+  } else {
+    totalUger += isoWeeksInYear(minAar) - minUgeNum + 1;
+    for (let year = minAar + 1; year < maxAar; year++) {
+      totalUger += isoWeeksInYear(year);
+    }
+    totalUger += maxUgeNum;
+  }
 
   const periodeTekst = `uge ${minUgeNum}/${minAar} - uge ${maxUgeNum}/${maxAar}`;
 

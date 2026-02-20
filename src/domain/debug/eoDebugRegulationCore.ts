@@ -6,7 +6,7 @@ import type { ISODateString, DanishDateString } from '../../types/branded';
 import { isoToDanish, toISODateString, dateToISO, isISODateString } from '../../types/branded';
 import type { DebugDay } from './eoDebugTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues, LoenPaaHelligdage } from '../../schemas/formSchemas';
-import { LOEN_PAA_HELLIGDAGE } from '../../types/common';
+import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import type { RegulationIndexTimeline, IndeksEntry, AnsaettelsesforholdIndeks } from './eoDebugRegulationTypes';
 import {
   getEffektiveSatserForDato,
@@ -20,7 +20,7 @@ import {
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { parsePercentToDecimal } from '../../utils/formatUtils';
+import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { beregnHelligdage } from '../../utils/shDageBeregning';
 import { isoDateToDate } from '../dates/isoDate';
 import { beregnArbejdsdageOgMaaneder } from '../erstatningsopgoerelse/arbejdsdageMaaneder';

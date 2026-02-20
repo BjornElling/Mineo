@@ -5,7 +5,7 @@
  */
 
 import type { AarsloenTableRow, LoenPaaHelligdage, Loenperiode } from '../schemas/formSchemas';
-import { LOEN_PAA_HELLIGDAGE } from '../types/common';
+import { LOEN_PAA_HELLIGDAGE } from '../types/loen';
 import { formatPercent } from './formatUtils';
 import { hasCompletePeriodForLoenperiode } from './aarsloenTableCalculations';
 import { getAarsloenTableValidation } from './aarsloenTableValidation';

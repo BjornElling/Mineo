@@ -1,5 +1,5 @@
 import type { ISODateString } from '../types/branded';
-import { dateToISO, isISODateString } from '../types/branded';
+import { dateToISO, isISODateString, isoToDanish } from '../types/branded';
 
 export const MONTH_NAMES_DA = [
   'januar',
@@ -55,4 +55,9 @@ export const formatUtcDateShort = (date: Date | undefined): string => {
 export const formatUtcDateLong = (date: Date | undefined): string => {
   const iso = dateToISO(date);
   return iso ? formatIsoDateLong(iso) : '';
+};
+
+export const formatISOToDanish = (isoDate: string): string => {
+  const danish = isoToDanish(isISODateString(isoDate) ? isoDate : undefined);
+  return danish ?? '';
 };

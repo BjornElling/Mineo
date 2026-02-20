@@ -12,7 +12,7 @@ import { calculateAarsloenRowDerived, type AarsloenSatserInput } from '../aarslo
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { AarsloenTableRow, LoenPaaHelligdage, Loenperiode, StamdataValues } from '../../schemas/formSchemas';
 import type { PeriodeResult } from '../periodeBeregning';
-import type { AarsloenBeregningResult } from '../../types/common';
+import type { AarsloenBeregningResult } from '../../types/calculation';
 import { amountValueToDisplayString, amountValueToNumber } from '../expressionAmount';
 import { TODAY } from '../../config/dateRanges';
 
