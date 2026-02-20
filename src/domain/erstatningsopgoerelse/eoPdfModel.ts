@@ -5,6 +5,7 @@ import { erstatningsopgoerelseSchema, stamdataSchema } from '../../schemas/formS
 import { svieSmerteMax, svieSmertePrDag, aarsloenMax } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatPercent, isSingularCount, parsePercentToDecimal, roundHalfAwayFromZero } from '../../utils/formatUtils';
+import { roundByMethod } from '../../utils/rounding';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, type IsoRange } from './indtaegtPerioder';
 import { calculateTafAntalMaaneder } from './tafCalculations';
 import { calculateTafArbejdsdageBreakdown } from './tafCalculations';
@@ -812,7 +813,7 @@ const buildIndkomstSkadestidspunkt = (
     if (periodeTilBeregning) {
       const formatDaNumber = (value: number): string => value.toLocaleString('da-DK');
       const formatMaaneder = (value: number): string => {
-        const rounded = Math.round(value * 100) / 100;
+        const rounded = roundByMethod(value, 2, 'halfAwayFromZero');
         return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
       };
       const dagOrd = (value: number, singular: string, plural: string): string => (isSingularCount(value) ? singular : plural);
@@ -855,9 +856,12 @@ const buildIndkomstSkadestidspunkt = (
 
         const totalMaaneder = beregnMaanederForDage(periodeDage);
         const fravaerMaaneder = oevrigeFravaersdageValue * 0.048;
-        const roundedTotalMaaneder = Math.round(totalMaaneder * 100) / 100;
-        const roundedFravaerMaaneder = Math.round(fravaerMaaneder * 100) / 100;
-        const maanederEfterFradrag = Math.max(0, Math.round((roundedTotalMaaneder - roundedFravaerMaaneder) * 100) / 100);
+        const roundedTotalMaaneder = roundByMethod(totalMaaneder, 2, 'halfAwayFromZero');
+        const roundedFravaerMaaneder = roundByMethod(fravaerMaaneder, 2, 'halfAwayFromZero');
+        const maanederEfterFradrag = Math.max(
+          0,
+          roundByMethod(roundedTotalMaaneder - roundedFravaerMaaneder, 2, 'halfAwayFromZero')
+        );
         if (oevrigeFravaersdageValue === 0) {
           const maanedsOrd = dagOrd(roundedTotalMaaneder, 'måned', 'måneder');
           beregningsgrundlagMellemregningLabel = `I perioden var der ${formatMaaneder(totalMaaneder)} ${maanedsOrd}.`;
@@ -1910,7 +1914,7 @@ const buildLoenudviklingModelV3 = (
         if (!Number.isFinite(maanederRaw) || maanederRaw <= 0) {
           throw new Error('Loenudvikling kan ikke beregnes: ugyldigt maanedssegment');
         }
-        const maaneder = Math.round(maanederRaw * 10_000) / 10_000;
+        const maaneder = roundByMethod(maanederRaw, 4, 'halfAwayFromZero');
         beregnedeSegmenter.push({
           kind: 'maaneder',
           fra: segment.fra,

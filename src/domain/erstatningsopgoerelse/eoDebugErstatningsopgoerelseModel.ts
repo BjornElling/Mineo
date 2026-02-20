@@ -2554,6 +2554,7 @@ export const buildEODebugIndkomstRows = (
       label: 'Alle lønoplysninger indtastet korrekt',
       displayValue: formatStatusMessage(section.tableStatus, section.tableMessage),
       status: section.tableStatus,
+      summaryDisplay: 'messageOnly',
     });
   });
 
@@ -2890,6 +2891,7 @@ export const buildEODebugOffentligeYdelserRows = (
       label: row.label,
       displayValue: formatStatusMessage(row.status, row.message),
       status: row.status,
+      summaryDisplay: row.summaryDisplay ?? 'default',
     });
   });
 

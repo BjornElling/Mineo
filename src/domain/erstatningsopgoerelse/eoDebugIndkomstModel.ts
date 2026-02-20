@@ -2,10 +2,14 @@ import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../sc
 import type { ISODateString } from '../../types/branded';
 import { parseISODate } from '../../types/branded';
 import { createDate, formatDanishDate } from '../../utils/dateUtils';
-import { getAarsloenTableValidation } from '../../utils/aarsloenTableValidation';
+import {
+  getAarsloenTableValidation,
+  isAarsloenTableValueEffectivelyEmptyForValidation,
+} from '../../utils/aarsloenTableValidation';
 import {
   getOffentligeYdelserRowFilledState,
   getOffentligeYdelserTableValidation,
+  parseOffentligeYdelserCellKey,
 } from '../../utils/offentligeYdelserTableValidation';
 import { ydelsestyper } from '../../data/ydelsestyper';
 import {
@@ -18,6 +22,7 @@ import {
 import type { DebugStatus } from '../debug/eoDebugTypes';
 import { buildAarsloenCellErrors, buildOffentligeYdelserCellErrors } from './indkomstRowValidation';
 import { formatCurrency, parseAmount } from '../../utils/formatUtils';
+import type { AarsloenTableColumnKey, Loenperiode, OffentligeYdelserTableColumnKey } from '../../types/common';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -37,6 +42,7 @@ export type OffentligeYdelserDebugRow = Readonly<{
   label: string;
   status: DebugStatus;
   message: string;
+  summaryDisplay?: 'messageOnly';
 }>;
 
 const getReguleringsDatoForAnsaettelsesforhold = (
@@ -158,6 +164,102 @@ const resolveSatserErrorField = (
   return null;
 };
 
+const PERIOD_COLUMN_KEYS: Record<Loenperiode, readonly [AarsloenTableColumnKey, AarsloenTableColumnKey]> = {
+  maaned: ['col0_maaned', 'col1_maaned'],
+  uge: ['col0_uge', 'col1_uge'],
+  dag: ['col0_dag', 'col1_dag'],
+};
+
+const resolveAarsloenColumnLabel = (colKey: AarsloenTableColumnKey): string => {
+  switch (colKey) {
+    case 'col0_maaned':
+      return 'Måned';
+    case 'col1_maaned':
+      return 'År';
+    case 'col0_uge':
+      return 'Uge fra';
+    case 'col1_uge':
+      return 'Uge til';
+    case 'col0_dag':
+      return 'Dato fra';
+    case 'col1_dag':
+      return 'Dato til';
+    case 'col2':
+      return 'Grundløn';
+    case 'col3':
+      return 'Tillæg';
+    case 'col4':
+      return 'Ikke-pensionsgivende løn';
+    case 'col5':
+      return 'ATP og anden ikke FB-løn';
+    default:
+      return 'felt';
+  }
+};
+
+const countRowsWithPeriodOnly = (
+  rows: ReadonlyArray<Ansaettelsesforhold['indtaegtsoplysningerTableData'][number]>,
+  loenperiode: Loenperiode
+): number => {
+  const [startKey, endKey] = PERIOD_COLUMN_KEYS[loenperiode];
+  return rows.reduce((count, row) => {
+    const startFilled = !isAarsloenTableValueEffectivelyEmptyForValidation(row[startKey]);
+    const endFilled = !isAarsloenTableValueEffectivelyEmptyForValidation(row[endKey]);
+    const periodComplete = startFilled && endFilled;
+    if (!periodComplete) return count;
+
+    const hasAmounts =
+      row.col2 !== undefined && row.col2 !== null ||
+      row.col3 !== undefined && row.col3 !== null ||
+      row.col4 !== undefined && row.col4 !== null ||
+      row.col5 !== undefined && row.col5 !== null;
+
+    return hasAmounts ? count : count + 1;
+  }, 0);
+};
+
+const OFFENTLIGE_YDELSER_COLUMN_ORDER: readonly OffentligeYdelserTableColumnKey[] = [
+  'fraDato',
+  'tilDato',
+  'ydelse',
+  'tillaeg',
+  'ydelsestype',
+];
+
+const resolveOffentligeYdelserColumnLabel = (colKey: OffentligeYdelserTableColumnKey): string => {
+  switch (colKey) {
+    case 'fraDato':
+      return 'Fra dato';
+    case 'tilDato':
+      return 'Til dato';
+    case 'ydelse':
+      return 'Ydelse';
+    case 'tillaeg':
+      return 'Tillæg';
+    case 'ydelsestype':
+      return 'Ydelsestype';
+    default:
+      return 'felt';
+  }
+};
+
+const collectOffentligeYdelserCellErrorsByRow = (
+  cellErrorsByCellKey: Readonly<Record<string, true>>
+): ReadonlyMap<string, ReadonlySet<OffentligeYdelserTableColumnKey>> => {
+  const result = new Map<string, Set<OffentligeYdelserTableColumnKey>>();
+  for (const cellKey of Object.keys(cellErrorsByCellKey)) {
+    const parsed = parseOffentligeYdelserCellKey(cellKey);
+    if (!parsed) continue;
+    const set = result.get(parsed.rowId);
+    if (set) {
+      set.add(parsed.colKey);
+    } else {
+      result.set(parsed.rowId, new Set<OffentligeYdelserTableColumnKey>([parsed.colKey]));
+    }
+  }
+  return result;
+};
+
 export const buildIndkomstSectionStatuses = (
   ansaettelsesforhold: ReadonlyArray<Ansaettelsesforhold>,
   skadesdato: ISODateString | undefined,
@@ -184,12 +286,22 @@ export const buildIndkomstSectionStatuses = (
     let tableMessage = 'Ja';
     if (tableValidation.summary.hasErrors) {
       tableStatus = 'error';
-      tableMessage = tableValidation.summary.firstErrorCell?.reason === 'input'
-        ? 'Fejl i indtastning'
-        : 'Manglende indtastning';
+      const firstErrorCell = tableValidation.summary.firstErrorCell;
+      if (!firstErrorCell) {
+        tableMessage = 'Fejl i indtastning';
+      } else if (firstErrorCell.reason === 'input') {
+        tableMessage = `Ugyldig værdi i ${resolveAarsloenColumnLabel(firstErrorCell.colKey)}`;
+      } else {
+        tableMessage = `${resolveAarsloenColumnLabel(firstErrorCell.colKey)} mangler`;
+      }
     } else if (tableValidation.summary.hasWarnings) {
       tableStatus = 'warning';
-      tableMessage = 'Manglende indtastning';
+      const periodOnlyCount = countRowsWithPeriodOnly(tableRows, af.loenperiode);
+      if (periodOnlyCount <= 1) {
+        tableMessage = 'Lønperiode er udfyldt uden beløb i lønfelterne';
+      } else {
+        tableMessage = `${periodOnlyCount} lønperioder er udfyldt uden beløb i lønfelterne`;
+      }
     }
 
     return {
@@ -211,6 +323,7 @@ export const buildOffentligeYdelserDebugRows = (
   if (rows.length === 0) return [];
 
   const cellErrors = buildOffentligeYdelserCellErrors(rows);
+  const cellErrorsByRowId = collectOffentligeYdelserCellErrorsByRow(cellErrors);
   const validation = getOffentligeYdelserTableValidation({
     rows,
     cellErrorsByCellKey: cellErrors,
@@ -221,7 +334,7 @@ export const buildOffentligeYdelserDebugRows = (
     id: string;
     label: string;
     firstErrorMessage?: string;
-    firstWarningMessage?: string;
+    warningCount: number;
     sum: number;
   };
 
@@ -241,6 +354,7 @@ export const buildOffentligeYdelserDebugRows = (
       group = {
         id: groupKey,
         label,
+        warningCount: 0,
         sum: 0,
       };
       grouped.set(groupKey, group);
@@ -254,13 +368,30 @@ export const buildOffentligeYdelserDebugRows = (
 
     if (issue?.level === 'error') {
       if (!group.firstErrorMessage) {
-        group.firstErrorMessage = issue.reason === 'input' ? 'Fejl i indtastning' : 'Manglende indtastning';
+        if (issue.reason === 'input') {
+          const rowErrorKeys = cellErrorsByRowId.get(row.id) ?? new Set<OffentligeYdelserTableColumnKey>();
+          const firstInvalidColumn = OFFENTLIGE_YDELSER_COLUMN_ORDER.find((colKey) => rowErrorKeys.has(colKey));
+          group.firstErrorMessage = firstInvalidColumn
+            ? `Ugyldig værdi i ${resolveOffentligeYdelserColumnLabel(firstInvalidColumn)}`
+            : 'Fejl i indtastning';
+        } else {
+          const state = getOffentligeYdelserRowFilledState(row);
+          if (!state.fraDatoFilled) {
+            group.firstErrorMessage = 'Fra dato mangler';
+          } else if (!state.tilDatoFilled) {
+            group.firstErrorMessage = 'Til dato mangler';
+          } else if (!state.ydelsestypeSelected) {
+            group.firstErrorMessage = 'Ydelsestype mangler';
+          } else {
+            group.firstErrorMessage = 'Manglende indtastning';
+          }
+        }
       }
       continue;
     }
 
-    if (issue?.level === 'warning' && !group.firstWarningMessage) {
-      group.firstWarningMessage = 'Manglende indtastning';
+    if (issue?.level === 'warning') {
+      group.warningCount += 1;
     }
   }
 
@@ -271,14 +402,19 @@ export const buildOffentligeYdelserDebugRows = (
         label: row.label,
         status: 'error' as DebugStatus,
         message: row.firstErrorMessage,
+        summaryDisplay: 'messageOnly',
       };
     }
-    if (row.firstWarningMessage) {
+    if (row.warningCount > 0) {
+      const warningMessage = row.warningCount === 1
+        ? 'Periode og ydelsestype er udfyldt uden ydelse eller tillæg'
+        : `${row.warningCount} perioder med ydelsestype er udfyldt uden ydelse eller tillæg`;
       return {
         id: row.id,
         label: row.label,
         status: 'warning' as DebugStatus,
-        message: row.firstWarningMessage,
+        message: warningMessage,
+        summaryDisplay: 'messageOnly',
       };
     }
     return {

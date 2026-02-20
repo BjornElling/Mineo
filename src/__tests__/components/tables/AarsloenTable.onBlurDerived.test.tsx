@@ -120,4 +120,40 @@ describe('AarsloenTable', () => {
       expect(onTableDataChange).toHaveBeenCalledTimes(1);
     });
   }, TEST_TIMEOUT_MS);
+
+  it('restores focus to same cell position when last value is cleared in a retained row (min 2 rows)', async () => {
+    const user = userEvent.setup();
+    const onTableDataChange = vi.fn();
+
+    render(
+      <AarsloenTable
+        loenperiode="maaned"
+        satser={{ ferie: 12.5, fritvalg: 1, shSo: 2, bededag: 0, pension: 10 }}
+        tableData={[
+          makeRow({
+            id: 'row-a',
+            col2: asAmount(1000),
+          }),
+          makeRow({
+            id: 'row-b',
+          }),
+        ]}
+        onTableDataChange={onTableDataChange}
+      />
+    );
+
+    const firstRowCells = getFirstDataRowCells();
+    const input = within(firstRowCells[2]).getByRole('textbox');
+
+    await user.dblClick(input);
+    await user.clear(input);
+    fireEvent.blur(input);
+
+    await waitFor(() => {
+      const cellsNow = getFirstDataRowCells();
+      const focusedInput = within(cellsNow[2]).getByRole('textbox');
+      expect(document.activeElement).toBe(focusedInput);
+      expect(onTableDataChange).toHaveBeenCalledTimes(1);
+    });
+  }, TEST_TIMEOUT_MS);
 });

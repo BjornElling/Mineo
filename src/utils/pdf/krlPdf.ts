@@ -142,12 +142,26 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
   const pageWidth = doc.internal.pageSize.width;
   const tableWidth = pageWidth - MARGINS.left - MARGINS.right;
   const colWidth = tableWidth / 5;
+  const tableRows: RowInput[] = [headerRow, ...bodyRows];
+  const contentBottom = doc.internal.pageSize.getHeight() - MARGINS.bottom;
+  const remainingHeight = contentBottom - currentY;
+  const estimatedRowHeight = TABLE_STYLES.fontSize / 2.8 + TABLE_STYLES.cellPadding * 2;
+  const minimumRows = Math.min(tableRows.length, 2);
+  const minimumRequiredHeight = estimatedRowHeight * minimumRows;
+  const shouldStartOnNewPage = remainingHeight < minimumRequiredHeight;
+  const resolvedStartY = shouldStartOnNewPage ? MARGINS.top : currentY;
+
+  if (shouldStartOnNewPage) {
+    doc.addPage();
+  }
 
   autoTable(doc, {
-    startY: currentY,
+    startY: resolvedStartY,
     head: [],
-    body: [headerRow, ...bodyRows],
+    body: tableRows,
     margin: { left: MARGINS.left, right: MARGINS.right },
+    pageBreak: 'auto',
+    rowPageBreak: 'auto',
     styles: {
       font: 'helvetica',
       fontSize: TABLE_STYLES.fontSize,
@@ -165,6 +179,7 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
     didParseCell: (data: CellHookData) => {
       if (data.row.index === 0) {
         data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+        data.cell.styles.overflow = 'ellipsize';
       } else if (data.row.index % 2 === 0) {
         data.cell.styles.fillColor = TABLE_STYLES.alternateRowBackgroundColor;
       } else {

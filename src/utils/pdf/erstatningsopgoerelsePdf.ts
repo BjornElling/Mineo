@@ -15,6 +15,7 @@ import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode, Offent
 import { buildErstatningsopgoerelsePdfModel, type MoneyOre, type Calculable, type LoenudviklingSegment } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { formatAsAmount, formatCurrency, parseAmount } from '../formatUtils';
+import { roundByMethod } from '../rounding';
 import { parseISODate } from '../../types/branded';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { TODAY } from '../../config/dateRanges';
@@ -200,12 +201,25 @@ const renderStandardPdfTable = (params: Readonly<{
 }>): number => {
   const { doc, startY, body, columnStyles, transparentRowIndices = [] } = params;
   const transparentSet = new Set(transparentRowIndices);
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const contentBottom = pageHeight - MARGINS.bottom;
+  const remainingHeight = contentBottom - startY;
+  const estimatedRowHeight = 8;
+  const rowsToKeepTogether = Math.min(body.length, 2);
+  const requiredHeight = estimatedRowHeight * rowsToKeepTogether;
+  const resolvedStartY = remainingHeight < requiredHeight ? MARGINS.top : startY;
+
+  if (resolvedStartY === MARGINS.top && remainingHeight < requiredHeight) {
+    doc.addPage();
+  }
 
   autoTable(doc, {
-    startY,
+    startY: resolvedStartY,
     head: [],
     body,
     margin: { left: MARGINS.left, right: MARGINS.right },
+    pageBreak: 'auto',
+    rowPageBreak: 'auto',
     tableWidth: EO_PDF_TABLE_WIDTH_MM,
     styles: {
       font: 'helvetica',
@@ -218,6 +232,7 @@ const renderStandardPdfTable = (params: Readonly<{
       if (data.row.index === 0) {
         data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
         data.cell.styles.valign = 'bottom';
+        data.cell.styles.overflow = 'ellipsize';
         return;
       }
       if (transparentSet.has(data.row.index)) {
@@ -313,7 +328,7 @@ const isOffentligeYdelserRowEmpty = (row: OffentligeYdelserRow): boolean => {
 
 const hasNonZeroLoenAmount = (value: AarsloenTableRow['col2']): boolean => {
   const numeric = amountValueToNumber(value);
-  return numeric !== undefined && Math.abs(numeric) > 0.000001;
+  return numeric !== undefined;
 };
 
 export const shouldIncludeLoenRowInBilag = (params: Readonly<{
@@ -348,8 +363,10 @@ export const shouldIncludeOffentligYdelseRowInBilag = (params: Readonly<{
   // NOTE: Fail-closed by design.
   // PDF må kun vise rækker uden valideringsfejl.
   if (errorRowIds.has(row.id)) return false;
-  // NOTE: Besluttet UX-semantik.
-  // Offentlige ydelser uden beløb (men med gyldig periode/type) vises i bilaget.
+  const hasAnyAmountInput =
+    amountValueToNumber(row.ydelse) !== undefined ||
+    amountValueToNumber(row.tillaeg) !== undefined;
+  if (!hasAnyAmountInput) return false;
   return hasOffentligYdelseRowOverlapWithRanges(row, mode, ranges);
 };
 
@@ -450,7 +467,7 @@ const detectDecimalPlaces = (values: readonly number[], maxPlaces = 4): number =
 const percentFromDecimal = (value: number | null | undefined): number => {
   if (value === null || value === undefined) return 0;
   if (!Number.isFinite(value)) return 0;
-  return Math.round(value * 10000) / 100;
+  return roundByMethod(value * 100, 2, 'halfAwayFromZero');
 };
 
 const formatIndexValue = (value: number): string =>
@@ -458,7 +475,7 @@ const formatIndexValue = (value: number): string =>
 
 const formatLoenudviklingFromIndex = (indexValue: number): string => {
   if (!Number.isFinite(indexValue)) return '';
-  const delta = Math.round((indexValue - 100) * 100) / 100;
+  const delta = roundByMethod(indexValue - 100, 2, 'halfAwayFromZero');
   if (Math.abs(delta) < 0.000001) return '';
   const absDisplay = Math.abs(delta).toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return delta > 0 ? `+ ${absDisplay} %` : `- ${absDisplay} %`;

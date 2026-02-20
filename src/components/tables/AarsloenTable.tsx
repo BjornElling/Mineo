@@ -71,6 +71,21 @@ const fingerprintTableData = (rows: readonly AarsloenTableRow[]): string => {
 
 const isRowEmpty = (row: AarsloenTableRow): boolean => isAarsloenRowEffectivelyEmpty(row);
 
+const resolveColIdxFromKey = (colKey: AarsloenTableColumnKey): number => {
+  return colKey.startsWith('col0_') ? 0 : colKey.startsWith('col1_') ? 1 : Number.parseInt(colKey.slice(3), 10);
+};
+
+const didRowBecomeEmptyButRetained = (
+  prevRows: readonly AarsloenTableRow[],
+  nextRows: readonly AarsloenTableRow[],
+  rowId: string
+): boolean => {
+  const prevRow = prevRows.find((row) => row.id === rowId);
+  const nextRow = nextRows.find((row) => row.id === rowId);
+  if (!prevRow || !nextRow) return false;
+  return !isRowEmpty(prevRow) && isRowEmpty(nextRow);
+};
+
 type TableRowsState = {
   draft: AarsloenTableRow[];
   committed: AarsloenTableRow[];
@@ -235,23 +250,48 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
         setRowsState((prev) => {
           const updated = updateCellValueInTable(prev.draft, rowId, colKey, value);
           const managed = manageRows(updated);
-          const focusPlan = buildRowRemovalFocusPlan({
-            table: tableRef.current,
-            prevRows: prev.draft,
-            nextRows: managed,
-            visibleRowIds: visibleRowIdsRef.current,
-            getRowId: (row) => row.id,
-          });
-          if (focusPlan) {
-            // Last-plan-wins by design: only the final commit in a render cycle should decide focus restoration.
-            pendingRowFocusPlanRef.current = focusPlan;
-          }
 
           // KRITISK: Sammenlign mod prev.committed (ikke prev.draft)
           // handleFieldBlur er en commit-handler - baseline skal ALTID være committed
           const managedFingerprint = fingerprintTableData(managed);
           const committedFingerprint = fingerprintTableData(prev.committed);
           if (managedFingerprint === committedFingerprint) return prev;
+
+          let focusPlan = buildRowRemovalFocusPlan({
+            table: tableRef.current,
+            prevRows: prev.draft,
+            nextRows: managed,
+            visibleRowIds: visibleRowIdsRef.current,
+            getRowId: (row) => row.id,
+          });
+
+          // Fallback for blur-commits: activeElement kan allerede være uden for tabellen,
+          // så row-removal-plan kan være null selvom rækken faktisk forsvinder/re-oprettes.
+          if (!focusPlan) {
+            const rowWasRemoved = !managed.some((row) => row.id === rowId);
+            if (rowWasRemoved) {
+              const targetIndex = visibleRowIdsRef.current.indexOf(rowId);
+              const colIndex = resolveColIdxFromKey(colKey);
+              if (targetIndex >= 0 && Number.isFinite(colIndex)) {
+                focusPlan = { targetIndex, colIndex };
+              }
+            }
+          }
+
+          // Når rækken bliver tom, men bevares (fx pga. min-rows), skal fokus stadig blive i samme celle-position.
+          if (!focusPlan && didRowBecomeEmptyButRetained(prev.draft, managed, rowId)) {
+            const targetIndex = visibleRowIdsRef.current.indexOf(rowId);
+            const colIndex = resolveColIdxFromKey(colKey);
+            if (targetIndex >= 0 && Number.isFinite(colIndex)) {
+              focusPlan = { targetIndex, colIndex };
+            }
+          }
+
+          if (focusPlan) {
+            // Last-plan-wins by design: only the final commit in a render cycle should decide focus restoration.
+            pendingRowFocusPlanRef.current = focusPlan;
+          }
+
           queuePersist(managed);
           return { draft: managed, committed: managed };
         });
@@ -441,8 +481,8 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
       []
     );
 
-    const resolveColIdxFromKey = React.useCallback((colKey: AarsloenTableColumnKey): number => {
-      return colKey.startsWith('col0_') ? 0 : colKey.startsWith('col1_') ? 1 : Number.parseInt(colKey.slice(3), 10);
+    const resolveColIdxFromKeyMemoized = React.useCallback((colKey: AarsloenTableColumnKey): number => {
+      return resolveColIdxFromKey(colKey);
     }, []);
 
     const isVisibleColKey = React.useCallback(
@@ -506,7 +546,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
             colKey: cell.colKey,
             message: 'Indtastning mangler',
           });
-          const colIdx = resolveColIdxFromKey(cell.colKey);
+          const colIdx = resolveColIdxFromKeyMemoized(cell.colKey);
           if (!Number.isFinite(colIdx)) return;
           const el = cellRefsByCellKeyRef.current[`${cell.rowId}:${colIdx}`];
           if (!el) return;
@@ -514,7 +554,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
         },
         flashError: (error) => {
           const colKey = error.colKey;
-          const colIdx = resolveColIdxFromKey(colKey);
+          const colIdx = resolveColIdxFromKeyMemoized(colKey);
           if (!Number.isFinite(colIdx)) return;
           const el = cellRefsByCellKeyRef.current[`${error.rowId}:${colIdx}`];
           if (!el) return;
@@ -523,7 +563,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
           window.setTimeout(() => setErrorCell(null), 2000);
         },
       }),
-      [getValidationResult, isVisibleColKey, resolveColIdxFromKey]
+      [getValidationResult, isVisibleColKey, resolveColIdxFromKeyMemoized]
     );
 
     const formatNumber = React.useCallback((num: number | null | undefined): string => {

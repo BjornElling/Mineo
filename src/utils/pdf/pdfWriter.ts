@@ -447,17 +447,21 @@ export const createPdfWriter = (params: Readonly<{
     headerHeight: number;
   }>) => {
     const { rows, renderHeader, renderRow, estimateRowHeight, headerHeight } = params;
-    const rowsPerChunk = Math.max(
-      1,
-      Math.floor((cursor.getPageContentHeight() - headerHeight) / estimateRowHeight)
-    );
-    for (let i = 0; i < rows.length; i += rowsPerChunk) {
-      const chunk = rows.slice(i, i + rowsPerChunk);
-      const estimatedChunkHeight = headerHeight + estimateRowHeight * chunk.length;
-      cursor.renderAtomicBlock(estimatedChunkHeight, () => {
+    if (rows.length === 0) {
+      cursor.renderAtomicBlock(headerHeight, () => {
         renderHeader();
-        chunk.forEach((row) => renderRow(row));
       });
+      return;
+    }
+
+    // Keep only the heading and the first row together.
+    cursor.renderAtomicBlock(headerHeight + estimateRowHeight, () => {
+      renderHeader();
+      renderRow(rows[0]);
+    });
+
+    for (let i = 1; i < rows.length; i += 1) {
+      renderRow(rows[i]);
     }
   };
 

@@ -36,7 +36,7 @@ export type StyledAmountFieldProps = {
   placeholder?: string;
   allowNegative?: boolean;
   /**
-   * Precision applied to all commits (afskæring, ikke afrunding).
+   * Precision applied to all commits (afrunding af slutresultat).
    *
    * Default: `precision=2`.
    */

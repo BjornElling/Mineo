@@ -1,5 +1,6 @@
 import type { AarsloenTableRow, Loenperiode } from '../schemas/formSchemas';
 import { parseAmount, parsePercentToDecimal } from './formatUtils';
+import { roundByMethod } from './rounding';
 
 export type AarsloenSatserInput = {
   feriePct?: string | number;
@@ -18,7 +19,7 @@ export type AarsloenRowDerived = {
 
 export const roundAarsloenAmountToTwoDecimals = (value: number): number => {
   if (!Number.isFinite(value)) return 0;
-  return Math.round(value * 100) / 100;
+  return roundByMethod(value, 2, 'halfAwayFromZero');
 };
 
 export const isAarsloenTableCellEffectivelyEmpty = (value: unknown): boolean => {
@@ -88,4 +89,3 @@ export const hasAtLeastOneValidRow = (rows: readonly AarsloenTableRow[], loenper
     return calculateAarsloenRowDerived(row, satser).samlet !== 0;
   });
 };
-

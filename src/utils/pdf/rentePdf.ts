@@ -389,6 +389,8 @@ const addSpecificationTable = (doc, periods, endDate, startY) => {
     head: [],
     body: tableData,
     margin: { left: MARGINS.left, right: MARGINS.right },
+    pageBreak: 'auto',
+    rowPageBreak: 'auto',
     styles: {
       font: 'helvetica',
       fontSize: TABLE_STYLES.fontSize,
@@ -405,6 +407,7 @@ const addSpecificationTable = (doc, periods, endDate, startY) => {
       // Header-række får lysegrå baggrund
       if (data.row.index === 0) {
         data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+        data.cell.styles.overflow = 'ellipsize';
       }
       // Alternerende rækker (ekskl. header, tom række og total)
       else if (data.row.index > 0 && data.row.index < tableData.length - 2) {

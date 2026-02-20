@@ -6,6 +6,7 @@ import { danishToISO, isoToDanish } from '../../types/branded';
 import { calculateProcessInterestWithRates } from '../../utils/interestCalculator';
 import { calculateInterestDate, validateInterestCalculation, type InterestDateInput } from '../../utils/interestDomain';
 import { amountValueToNumber } from '../../utils/expressionAmount';
+import { roundByMethod } from '../../utils/rounding';
 
 export type RenteberegningInputSnapshot = DeepReadonly<{
   renteberegning: RenteberegningValues;
@@ -24,7 +25,7 @@ export type RenteberegningOutput = Readonly<{
 }>;
 
 const roundInterest = (value: number): number => {
-  return Math.round(value * 100) / 100;
+  return roundByMethod(value, 2, 'halfAwayFromZero');
 };
 
 const resolveActualInterestDateIso = (rowValues: RentekravRow): ISODateString | null => {

@@ -6,6 +6,7 @@
  */
 
 import { assertNever } from './assertNever';
+import { normalizeZero } from './amountInputUtils';
 
 /**
  * Rounding-metoder understøttet af systemet.
@@ -16,13 +17,6 @@ import { assertNever } from './assertNever';
  * - 'none': Ingen runding (men normaliserer stadig -0)
  */
 export type RoundingMethod = 'halfAwayFromZero' | 'floor' | 'ceil' | 'none';
-
-/**
- * Normaliserer et tal for at eliminere -0.
- */
-const normalizeZero = (value: number): number => {
-  return Object.is(value, -0) ? 0 : value;
-};
 
 /**
  * Runder et tal til et antal decimaler med "half away from zero" semantik.

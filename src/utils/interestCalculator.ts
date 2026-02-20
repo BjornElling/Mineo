@@ -13,6 +13,7 @@ import { referenceRates, surchargeRates } from '../data/interestRates';
 import type { DanishDateString } from '../types/branded';
 import { createDate, parseDanishDate } from './dateUtils';
 import { countInclusiveUtcDays } from './utcDayMath';
+import { roundByMethod } from './rounding';
 
 type DatedRate = Readonly<{ date: Date; ratePct: number }>;
 
@@ -206,7 +207,7 @@ export const calculateProcessInterest = (
 ): number | null => {
   const raw = calculateProcessInterestWithRates(amount, interestStartDate, calculationDate, referenceRates, surchargeRates);
   if (raw === null) return null;
-  return Math.round(raw * 100) / 100;
+  return roundByMethod(raw, 2, 'halfAwayFromZero');
 };
 
 /**

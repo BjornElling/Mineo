@@ -5,6 +5,7 @@
  */
 
 import type { AmountValue } from '../schemas/amountExpressionSchema';
+import { roundByMethod } from './rounding';
 const SINGULAR_EPSILON = 0.0000001;
 
 /**
@@ -30,6 +31,9 @@ export const parseAmount = (val: string | number | AmountValue | undefined): num
     return Number.isFinite(value) ? value : 0;
   }
   if (!val) return 0;
+  if (import.meta.env.DEV) {
+    console.warn('parseAmount modtog string-input; forventet AmountValue i beregningskontekst.', { value: val });
+  }
   const clean = String(val).replace(/\./g, '').replace(',', '.');
   const num = parseFloat(clean);
   return isNaN(num) ? 0 : num;
@@ -39,8 +43,7 @@ export const parseAmount = (val: string | number | AmountValue | undefined): num
  * Runder væk fra nul med angivet precision.
  */
 export const roundHalfAwayFromZero = (value: number, precision: number): number => {
-  const factor = 10 ** precision;
-  return Math.sign(value) * Math.round(Math.abs(value) * factor) / factor;
+  return roundByMethod(value, precision, 'halfAwayFromZero');
 };
 
 export const isSingularCount = (value: number): boolean => Math.abs(value - 1) < SINGULAR_EPSILON;
@@ -50,7 +53,7 @@ export const isSingularCount = (value: number): boolean => Math.abs(value - 1) <
  */
 export const formatCurrency = (num: number | undefined | null): string => {
   if (num === null || num === undefined) return '';
-  const rounded = Math.round(num * 100) / 100;
+  const rounded = roundByMethod(num, 2, 'halfAwayFromZero');
   const [intPart, decPart] = rounded.toFixed(2).split('.');
   const intWithSeparators = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   return `${intWithSeparators},${decPart}`;
@@ -65,8 +68,7 @@ export const formatAsAmount = (value: number | null | undefined, precision: numb
   }
 
   const resolvedPrecision = Number.isFinite(precision) ? Math.max(0, Math.min(6, Math.trunc(precision))) : 2;
-  const factor = 10 ** resolvedPrecision;
-  const rounded = Math.round(value * factor) / factor;
+  const rounded = roundByMethod(value, resolvedPrecision, 'halfAwayFromZero');
   const isNegative = rounded < 0;
   const absoluteValue = Math.abs(rounded);
 

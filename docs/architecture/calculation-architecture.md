@@ -92,3 +92,23 @@ Forbud i engine-tests:
 ## 8. Stop-regel
 
 Kode, der blander beregning med UI/store/persistence, er arkitekturbrud og må ikke merges, også hvis funktionaliteten ser korrekt ud.
+
+## 9. Beløbsberegning og afrunding (normativ)
+
+For felter baseret på `AmountValue` (inkl. udtryk) gælder:
+
+1. Operander bevares uændret under evaluering:
+- Indtastede deltal i et udtryk må ikke pre-afrundes eller pre-afskæres.
+- Udtryk evalueres deterministisk uden floating-point øretab.
+
+2. Afrunding sker kun på slutresultatet ved commit:
+- Feltets committed numeriske værdi afrundes til feltets precision (standard: 2 decimaler).
+- Afrundingsmetode er `half away from zero` for beløb.
+
+3. Nedstrøms beregninger må kun bruge committed værdi:
+- Engines/aggregation må ikke genberegne fra draft/udtrykstekst.
+- Beregninger skal læse `AmountValue.value` (ikke `AmountValue.expression`).
+
+4. Load/import skal konvergere til samme committed semantik:
+- Indlæste/legacy beløb normaliseres til samme precision og afrundingsmetode som commit.
+- Beregningslaget må derfor ikke modtage uafrundede `AmountValue.value` fra persistence.

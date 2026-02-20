@@ -12,6 +12,7 @@ import {
 import type { Calculable, LoenudviklingSegment, MoneyOre, PdfModel } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
+import { roundByMethod } from '../../../../utils/rounding';
 
 type OpgorelseSectionContext = Readonly<{
   model: PdfModel;
@@ -348,22 +349,30 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       if (indkomst?.beregningsperiodeLabel) {
         safeAddWrappedText(indkomst.beregningsperiodeLabel);
       }
-      if (indkomst?.beregningsgrundlagMellemregningLabel && indkomst?.beregningsgrundlagMellemregningResultat) {
-        safeAddLeftRightText(
-          indkomst.beregningsgrundlagMellemregningLabel,
-          indkomst.beregningsgrundlagMellemregningResultat,
-          writer.getTextWidth('000.000.000,00'),
-          { rightFontStyle: 'normal' }
-        );
-        writer.advanceY(lineHeight);
-      } else if (indkomst?.beregningsgrundlagMellemregningLabel) {
-        safeAddWrappedText(indkomst.beregningsgrundlagMellemregningLabel);
-        writer.advanceY(lineHeight);
-      } else if (indkomst?.beregningsgrundlagMellemregningResultat) {
-        safeAddWrappedText(indkomst.beregningsgrundlagMellemregningResultat);
+      const udskydMellemregningVedDagsloen =
+        indkomst?.beregnesUdFra === 'Beregningsperiode' &&
+        indkomst?.beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE;
+      if (!udskydMellemregningVedDagsloen) {
+        if (indkomst?.beregningsgrundlagMellemregningLabel && indkomst?.beregningsgrundlagMellemregningResultat) {
+          safeAddLeftRightText(
+            indkomst.beregningsgrundlagMellemregningLabel,
+            indkomst.beregningsgrundlagMellemregningResultat,
+            writer.getTextWidth('000.000.000,00'),
+            { rightFontStyle: 'normal' }
+          );
+          writer.advanceY(lineHeight);
+        } else if (indkomst?.beregningsgrundlagMellemregningLabel) {
+          safeAddWrappedText(indkomst.beregningsgrundlagMellemregningLabel);
+          writer.advanceY(lineHeight);
+        } else if (indkomst?.beregningsgrundlagMellemregningResultat) {
+          safeAddWrappedText(indkomst.beregningsgrundlagMellemregningResultat);
+        }
       }
 
       if (indkomst?.beregnesUdFra === 'Beregningsperiode') {
+        if (indkomst.arbejdssteder.length > 0) {
+          writer.advanceY(lineHeight);
+        }
         for (const arbejdssted of indkomst.arbejdssteder) {
           const componentRows: ReadonlyArray<Readonly<{ label: string; amountOre: number }>> = [
             {
@@ -413,6 +422,9 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           writer.advanceY(lineHeight);
         }
         if (indkomst.offentligeYdelser.length > 0) {
+          if (indkomst.arbejdssteder.length === 0) {
+            writer.advanceY(lineHeight);
+          }
           const pageHeight = writer.getDoc().internal.pageSize.height;
           const contentBottom = pageHeight - MARGINS.bottom;
           const remainingHeight = contentBottom - writer.getY();
@@ -449,6 +461,20 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           }
           if (indkomst.beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE && indkomst.arbejdsdage) {
             const arbejdsdageText = formatCountWithUnit(indkomst.arbejdsdage, 'arbejdsdag', 'arbejdsdage');
+            if (udskydMellemregningVedDagsloen) {
+              if (indkomst.beregningsgrundlagMellemregningLabel && indkomst.beregningsgrundlagMellemregningResultat) {
+                safeAddLeftRightText(
+                  indkomst.beregningsgrundlagMellemregningLabel,
+                  indkomst.beregningsgrundlagMellemregningResultat,
+                  writer.getTextWidth('000.000.000,00'),
+                  { rightFontStyle: 'normal' }
+                );
+              } else if (indkomst.beregningsgrundlagMellemregningLabel) {
+                safeAddWrappedText(indkomst.beregningsgrundlagMellemregningLabel);
+              } else if (indkomst.beregningsgrundlagMellemregningResultat) {
+                safeAddWrappedText(indkomst.beregningsgrundlagMellemregningResultat);
+              }
+            }
             const basisText = addends.length > 1
               ? `Dagsløn: (${addends.join(' + ')}${NBSP}kr.) / ${arbejdsdageText} =`
               : `Dagsløn: ${formatMoneyOreWithKr(indkomst.samletBeregningsgrundlagOre)} / ${arbejdsdageText} =`;
@@ -544,7 +570,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         const rightMaxWidth = writer.getTextWidth('000.000.000,00');
         const segmentsForDisplay = mergeLoenudviklingSegments(segments);
         for (const segment of segmentsForDisplay) {
-          const roundedDeltaPct = Math.round(segment.deltaPct * 100) / 100;
+          const roundedDeltaPct = roundByMethod(segment.deltaPct, 2, 'halfAwayFromZero');
           const factorText = Math.abs(roundedDeltaPct) < 0.00001
             ? ''
             : ` x (100 % ${roundedDeltaPct >= 0 ? '+' : '-'} ${formatPercentDelta(roundedDeltaPct)} %)`;
@@ -556,7 +582,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
             const dagsloenText = formatCurrencyFromOre(segment.dagsloenOre);
             leftText = `${fraDisplay} - ${tilDisplay}: ${arbejdsdageText} á ${dagsloenText}${NBSP}kr.${factorText} =`;
           } else {
-            const roundedMaaneder = Math.round(segment.maaneder * 10000) / 10000;
+            const roundedMaaneder = roundByMethod(segment.maaneder, 4, 'halfAwayFromZero');
             const maanederText = formatMaanederTrimmed(roundedMaaneder);
             const maanedsloenText = formatCurrencyFromOre(segment.maanedsloenOre);
             leftText = `${fraDisplay} - ${tilDisplay}: ${maanederText} ${isSingularCount(roundedMaaneder) ? 'måned' : 'måneder'} á ${maanedsloenText}${NBSP}kr.${factorText} =`;

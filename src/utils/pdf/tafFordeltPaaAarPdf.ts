@@ -14,6 +14,7 @@ import { FONT_SIZES } from './pdfConfig';
 import type { BrevhovedData } from './pdfHelpers';
 import { TODAY } from '../../config/dateRanges';
 import type jsPDF from 'jspdf';
+import { roundByMethod } from '../rounding';
 import {
   formatCountWithUnit,
   formatCurrencyFromOre,
@@ -161,7 +162,7 @@ export const generateTafFordeltPaaAarPdf = (
 
     // Segmenter (identisk format med EO-pdf)
     for (const segment of yearEntry.segments) {
-      const roundedDeltaPct = Math.round(segment.deltaPct * 100) / 100;
+      const roundedDeltaPct = roundByMethod(segment.deltaPct, 2, 'halfAwayFromZero');
       const factorText = Math.abs(roundedDeltaPct) < 0.00001
         ? ''
         : ` x (100 % ${roundedDeltaPct >= 0 ? '+' : '-'} ${formatPercentDelta(roundedDeltaPct)} %)`;

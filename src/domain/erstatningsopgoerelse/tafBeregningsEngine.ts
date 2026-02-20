@@ -6,6 +6,7 @@ import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } 
 import { calculateTafAntalArbejdsdage, calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from './tafCalculations';
 import { mergeIsoDateRanges } from './periodMerging';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, type TafConstraintBounds } from './tafPeriodConstraints';
+import { roundByMethod } from '../../utils/rounding';
 
 export type TafEngineInputSnapshot = DeepReadonly<{
   erstatningsopgoerelse: ErstatningsopgoerelseValues;
@@ -31,7 +32,7 @@ export type TafArbejdsdageAggregationInput = DeepReadonly<{
 }>;
 
 const roundTafValue = (value: number): number => {
-  return Math.round(value * 100) / 100;
+  return roundByMethod(value, 2, 'halfAwayFromZero');
 };
 
 export type MergedTafGroup = Readonly<{

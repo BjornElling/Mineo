@@ -1,4 +1,5 @@
 import { formatCurrency, isSingularCount } from '../formatUtils';
+import { roundByMethod } from '../rounding';
 
 const NBSP = '\u00A0';
 
@@ -9,7 +10,7 @@ export const resolvePdfFileName = (baseTitle: string, isDraft: boolean, journaln
 
 export const formatMaanederTrimmed = (value: number): string => {
   if (!Number.isFinite(value)) return '-';
-  const rounded = Math.round(value * 10000) / 10000;
+  const rounded = roundByMethod(value, 4, 'halfAwayFromZero');
   return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
 };
 
@@ -23,7 +24,7 @@ export const formatMoneyOreWithKr = (ore: number): string => `${formatCurrencyFr
 export const formatPercentDelta = (value: number): string => {
   if (!Number.isFinite(value)) return '-';
   const abs = Math.abs(value);
-  const rounded = Math.round(abs * 100) / 100;
+  const rounded = roundByMethod(abs, 2, 'halfAwayFromZero');
   return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 };
 

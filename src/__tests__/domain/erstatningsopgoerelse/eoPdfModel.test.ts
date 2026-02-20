@@ -305,7 +305,7 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
       .toThrow('Ugyldigt input til PDF: Skal være større end 0');
   });
 
-  it('afviser beløb med flere end 2 decimaler', () => {
+  it('normaliserer beløb med flere end 2 decimaler via schema før øre-konvertering', () => {
     const eoValues = makeValues({
       oevrigeKravPerioder: [
         { id: '1', dato: iso('2024-02-01'), udgiftTil: 'Test', beloeb: asAmountValue(1.005) },
@@ -313,8 +313,8 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
 
-    expect(() => buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
-      .toThrow('Beløb har flere end 2 decimaler');
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    expect(model.oevrigeKrav.totalOre).toBe(101);
   });
 
   it('afviser delvist udfyldt svie/smerte-periode', () => {

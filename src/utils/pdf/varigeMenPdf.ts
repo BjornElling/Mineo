@@ -70,6 +70,8 @@ const addStamdataTable = (
     head: [],
     body: tableData,
     margin: { left: MARGINS.left, right: MARGINS.right },
+    pageBreak: 'auto',
+    rowPageBreak: 'auto',
     styles: {
       font: 'helvetica',
       fontSize: TABLE_STYLES.fontSize,
@@ -84,6 +86,7 @@ const addStamdataTable = (
       // Header-række (index 0) får lysegrå baggrund
       if (data.row.index === 0) {
         data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+        data.cell.styles.overflow = 'ellipsize';
       }
       // Alternerende rækker: lige rækker (2, 4, 6...) får lysegrå, ulige rækker (1, 3, 5...) får hvid
       else if (data.row.index % 2 === 0) {
@@ -131,6 +134,8 @@ const addBeregningsgrundlagTable = (
     head: [],
     body: tableData,
     margin: { left: MARGINS.left, right: MARGINS.right },
+    pageBreak: 'auto',
+    rowPageBreak: 'auto',
     styles: {
       font: 'helvetica',
       fontSize: TABLE_STYLES.fontSize,
@@ -145,6 +150,7 @@ const addBeregningsgrundlagTable = (
       // Header-række (index 0) får lysegrå baggrund
       if (data.row.index === 0) {
         data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+        data.cell.styles.overflow = 'ellipsize';
       }
       // Alternerende rækker: lige rækker (2, 4, 6...) får lysegrå, ulige rækker (1, 3, 5...) får hvid
       else if (data.row.index % 2 === 0) {
@@ -199,6 +205,8 @@ const addResultatTable = (
     head: [],
     body: tableData,
     margin: { left: MARGINS.left, right: MARGINS.right },
+    pageBreak: 'auto',
+    rowPageBreak: 'auto',
     styles: {
       font: 'helvetica',
       fontSize: TABLE_STYLES.fontSize,
@@ -213,6 +221,7 @@ const addResultatTable = (
       // Header-række (index 0) får lysegrå baggrund
       if (data.row.index === 0) {
         data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+        data.cell.styles.overflow = 'ellipsize';
       }
       // Alternerende rækker: lige rækker (2, 4, 6...) får lysegrå, ulige rækker (1, 3, 5...) får hvid
       else if (data.row.index % 2 === 0) {

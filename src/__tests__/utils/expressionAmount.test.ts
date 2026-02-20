@@ -17,6 +17,15 @@ describe('parseAmountInput', () => {
     expect(result.value?.value).toBe(1000.5);
   });
 
+  it('parses decimal input without losing ore due to floating representation', () => {
+    const result = parse('2130,72');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.isExpression).toBe(false);
+    expect(result.value?.kind).toBe('number');
+    expect(result.value?.value).toBe(2130.72);
+  });
+
   it('parses expressions and normalizes grouping separators', () => {
     const result = parse('1.000 + 2,5');
     expect(result.ok).toBe(true);
@@ -24,6 +33,24 @@ describe('parseAmountInput', () => {
     expect(result.value?.kind).toBe('expression');
     expect(result.value?.value).toBe(1002.5);
     expect(result.normalizedExpression).toBe('1000 + 2,5');
+  });
+
+  it('evaluates decimal expressions deterministically without floating ore-loss', () => {
+    const result = parse('2130,72+535,56');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value?.kind).toBe('expression');
+    expect(result.value?.value).toBe(2666.28);
+    expect(result.normalizedExpression).toBe('2130,72+535,56');
+  });
+
+  it('does not truncate expression operands before evaluation', () => {
+    const result = parse('1,239+0,009');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value?.kind).toBe('expression');
+    expect(result.value?.value).toBe(1.25);
+    expect(result.normalizedExpression).toBe('1,239+0,009');
   });
 
   it('supports unary minus in expressions', () => {
@@ -50,6 +77,30 @@ describe('parseAmountInput', () => {
     expect(result.value?.value).toBe(5);
   });
 
+  it('respects operator precedence (2+3*4 = 14)', () => {
+    const result = parse('2+3*4');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value?.kind).toBe('expression');
+    expect(result.value?.value).toBe(14);
+  });
+
+  it('respects operator precedence in mixed chain (10-2*3+4/2 = 6)', () => {
+    const result = parse('10-2*3+4/2');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value?.kind).toBe('expression');
+    expect(result.value?.value).toBe(6);
+  });
+
+  it('respects operator precedence across multiple products (2*3+4*5 = 26)', () => {
+    const result = parse('2*3+4*5');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value?.kind).toBe('expression');
+    expect(result.value?.value).toBe(26);
+  });
+
   it('accepts leading zeros in numbers', () => {
     const result = parse('007');
     expect(result.ok).toBe(true);
@@ -58,20 +109,28 @@ describe('parseAmountInput', () => {
     expect(result.value?.value).toBe(7);
   });
 
-  it('truncates decimals beyond precision', () => {
-    const result = parse('1,2345');
+  it('rounds decimals beyond precision for plain numbers', () => {
+    const result = parse('1,235');
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value?.kind).toBe('number');
-    expect(result.value?.value).toBe(1.23);
+    expect(result.value?.value).toBe(1.24);
   });
 
-  it('truncates expression results beyond precision', () => {
-    const result = parse('10/3');
+  it('rounds expression results beyond precision', () => {
+    const result = parse('1/8');
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value?.kind).toBe('expression');
-    expect(result.value?.value).toBe(3.33);
+    expect(result.value?.value).toBe(0.13);
+  });
+
+  it('rounds half values away from zero for negative results', () => {
+    const result = parse('-1/8');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value?.kind).toBe('expression');
+    expect(result.value?.value).toBe(-0.13);
   });
 
   it('accepts trailing decimal separator in plain numbers', () => {
@@ -113,29 +172,6 @@ describe('parseAmountInput', () => {
     expect(result.value?.kind).toBe('number');
     expect(result.value?.value).toBe(0);
     expect(Object.is(result.value?.value, -0)).toBe(false);
-  });
-
-  it('returns undefined for plus-only input', () => {
-    const result = parse('+');
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value).toBeUndefined();
-  });
-
-  it('returns undefined for empty whitespace', () => {
-    const result = parse('   ');
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value).toBeUndefined();
-  });
-
-  it('normalizes -0 to 0', () => {
-    const result = parse('-0');
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value?.kind).toBe('number');
-    expect(Object.is(result.value?.value, -0)).toBe(false);
-    expect(result.value?.value).toBe(0);
   });
 
   it('reports invalid characters in expressions', () => {
@@ -184,13 +220,5 @@ describe('parseAmountInput', () => {
     if (result.ok) return;
     expect(result.error.kind).toBe('number');
     expect(result.error.message).toBe('Beløb kan ikke være negativt');
-  });
-
-  it('returns undefined for empty input', () => {
-    const result = parse('   ');
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value).toBeUndefined();
-    expect(result.isExpression).toBe(false);
   });
 });

@@ -62,4 +62,23 @@ describe('manual regulering message', () => {
     expect(row?.message).toBe('Værdier mangler at blive udfyldt for manuel regulering');
     expect(row?.summaryDisplay).toBe('messageOnly');
   });
+
+  it('bruger messageOnly for lønoplysninger-række i beregningens summary', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.indtaegtsoplysningerTableData = [
+      {
+        id: 'row-1',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+      },
+    ];
+
+    const rows = buildEODebugIndkomstRows(values, undefined, {});
+    const row = rows.find((r) => r.id === `loenindkomst.${af.id}.loenoplysninger`);
+
+    expect(row).toBeDefined();
+    expect(row?.status).toBe('warning');
+    expect(row?.summaryDisplay).toBe('messageOnly');
+  });
 });

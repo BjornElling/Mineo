@@ -312,3 +312,29 @@ over:
 - versionsstyrede
 
 **Kode må aldrig stiltiende afvige fra kontrakten.**
+
+---
+
+## 11. Beløbsfelter (AmountValue) – commit- og beregningsregler
+
+Dette afsnit er normativt for alle beløbsfelter, der kan indeholde tal eller udtryk.
+
+1. Evaluering af udtryk:
+- Indtastede operandværdier må ikke ændres før evaluering.
+- Ingen pre-afrunding eller pre-afskæring af deltal i udtryk.
+
+2. Commit-semantik:
+- Kun slutresultatet af et beløb/udtryk må afrundes.
+- Standard for beløbsfelter er 2 decimaler med `half away from zero`.
+
+3. Datamodel og videre beregning:
+- `AmountValue.expression` er audit/UI-repræsentation.
+- `AmountValue.value` er den autoritative committed beregningsværdi.
+- Al videre domæneberegning skal bruge `AmountValue.value`.
+
+4. Persist/load:
+- Indlæste `AmountValue` skal normaliseres til samme afrundede committed semantik som ved almindelig commit.
+
+5. Precision-binding (nuværende model):
+- `AmountValue` schema-normalisering er aktuelt bundet til precision 2.
+- Felter med anden precision må derfor ikke persisteres som `AmountValue` uden eksplicit arkitekturændring.

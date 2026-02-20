@@ -62,6 +62,14 @@ describe('getAarsloenTableValidation', () => {
     expect(result.summary.firstErrorCell).toBeUndefined();
   });
 
+  it('does not set warning when amount column is explicitly set to 0', () => {
+    const rows = [row('r1', { col0_maaned: '1', col1_maaned: '2024', col2: amount(0) })];
+    const result = getAarsloenTableValidation({ rows, loenperiode: 'maaned' });
+
+    expect(result.summary.hasErrors).toBe(false);
+    expect(result.summary.hasWarnings).toBe(false);
+  });
+
   it('skips warnings and reports first error in later rows', () => {
     const rows = [
       row('r1', { col0_maaned: '1', col1_maaned: '2024' }),
@@ -109,5 +117,13 @@ describe('getAarsloenTableValidation', () => {
   it('treats non-finite numbers as empty', () => {
     expect(isAarsloenTableValueEffectivelyEmptyForValidation(Number.NaN)).toBe(true);
     expect(isAarsloenTableValueEffectivelyEmptyForValidation(Number.POSITIVE_INFINITY)).toBe(true);
+  });
+
+  it('treats zero values as filled input', () => {
+    expect(isAarsloenTableValueEffectivelyEmptyForValidation('0')).toBe(false);
+    expect(isAarsloenTableValueEffectivelyEmptyForValidation('0,00')).toBe(false);
+    expect(isAarsloenTableValueEffectivelyEmptyForValidation(0)).toBe(false);
+    expect(isAarsloenTableValueEffectivelyEmptyForValidation({ kind: 'number', value: 0 })).toBe(false);
+    expect(isAarsloenTableValueEffectivelyEmptyForValidation({ kind: 'expression', expression: '0', value: 0 })).toBe(false);
   });
 });

@@ -4,6 +4,7 @@ import { parseDanishDate } from '../dateUtils';
 import { countInclusiveUtcDays } from '../utcDayMath';
 import { toDanishDateString } from '../../types/branded';
 import { calculateProcessInterest } from '../interestCalculator';
+import { roundByMethod } from '../rounding';
 
 const sortRates = (rates: ReadonlyArray<RateEntry>): RateEntry[] => {
   return [...rates].sort((a, b) => {
@@ -48,7 +49,7 @@ const buildExpectedInterest = (amount: number, start: string, end: string): numb
   const totalRate = referenceRate + surchargeRate;
   const daysInYear = startDate.getUTCFullYear() % 4 === 0 ? 366 : 365;
   const interest = (amount * totalRate / 100 * days) / daysInYear;
-  return Math.round(interest * 100) / 100;
+  return roundByMethod(interest, 2, 'halfAwayFromZero');
 };
 
 describe('calculateProcessInterest', () => {

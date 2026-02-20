@@ -196,6 +196,27 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     ).toBe(false);
   });
 
+  it('medtager lønrække med 0-beløb når dato-overlap er gyldigt', () => {
+    const ranges = [{ fra: iso('2022-03-18'), til: iso('2024-01-01') }] as const;
+    const errorRowIds = new Set<string>();
+    const rowMedNulBeloeb = makeLoenRow({
+      id: 'loen-nul',
+      col0_dag: '15-12-2023',
+      col1_dag: '15-01-2024',
+      col2: { kind: 'number', value: 0 },
+    });
+
+    expect(
+      shouldIncludeLoenRowInBilag({
+        row: rowMedNulBeloeb,
+        loenperiode: 'dag',
+        mode: 'Perioden',
+        ranges,
+        errorRowIds,
+      })
+    ).toBe(true);
+  });
+
   it('filtrerer offentlige ydelser i Perioden-mode med samme overlapregel', () => {
     const ranges = [{ fra: iso('2022-03-18'), til: iso('2024-01-01') }] as const;
     const errorRowIds = new Set<string>();
@@ -205,12 +226,14 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
       fraDato: '15-12-2023',
       tilDato: '15-01-2024',
       ydelsestype: 'sygedagpenge',
+      ydelse: { kind: 'number', value: 100 },
     };
     const ydelseUdenforPeriode: OffentligeYdelserRow = {
       id: 'oy-udenfor',
       fraDato: '01-02-2024',
       tilDato: '29-02-2024',
       ydelsestype: 'sygedagpenge',
+      ydelse: { kind: 'number', value: 100 },
     };
 
     expect(
@@ -231,7 +254,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     ).toBe(false);
   });
 
-  it('medtager offentlig ydelse uden beløb når periode/type er gyldig (besluttet UX)', () => {
+  it('ekskluderer offentlig ydelse uden beløb selv når periode/type er gyldig', () => {
     const ranges = [{ fra: iso('2022-03-18'), til: iso('2024-01-01') }] as const;
     const errorRowIds = new Set<string>();
     const ydelseUdenBeloeb: OffentligeYdelserRow = {
@@ -246,6 +269,28 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     expect(
       shouldIncludeOffentligYdelseRowInBilag({
         row: ydelseUdenBeloeb,
+        mode: 'Perioden',
+        ranges,
+        errorRowIds,
+      })
+    ).toBe(false);
+  });
+
+  it('medtager offentlig ydelse med 0-beløb når dato-overlap er gyldigt', () => {
+    const ranges = [{ fra: iso('2022-03-18'), til: iso('2024-01-01') }] as const;
+    const errorRowIds = new Set<string>();
+    const ydelseMedNulBeloeb: OffentligeYdelserRow = {
+      id: 'oy-nul-beloeb',
+      fraDato: '15-12-2023',
+      tilDato: '15-01-2024',
+      ydelsestype: 'sygedagpenge',
+      ydelse: { kind: 'number', value: 0 },
+      tillaeg: undefined,
+    };
+
+    expect(
+      shouldIncludeOffentligYdelseRowInBilag({
+        row: ydelseMedNulBeloeb,
         mode: 'Perioden',
         ranges,
         errorRowIds,

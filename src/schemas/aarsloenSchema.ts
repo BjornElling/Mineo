@@ -3,6 +3,8 @@
  *
  * Validerer input til beregninger før de køres.
  * Giver specifikke fejlbeskeder hvis data er ugyldig.
+ *
+ * @deprecated Brug schemas i `src/schemas/formSchemas.ts` som autoritativ kilde.
  */
 
 import { z } from 'zod';

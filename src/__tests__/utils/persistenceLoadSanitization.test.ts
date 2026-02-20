@@ -98,4 +98,25 @@ describe('persistence load sanitization', () => {
     if (!parsed.success) return;
     expect(parsed.data.indsaetUdkastStempel).toBe('Ja');
   });
+
+  it('normalizes loaded AmountValue values to 2 decimals before calculations consume them', () => {
+    const defaults = buildPersistenceDefaults(DEFAULT_APP_SETTINGS);
+    const loaded = structuredClone(defaults.erstatningsopgoerelse) as Record<string, unknown>;
+
+    loaded.tidligereModtagetTaf = { kind: 'number', value: 1.005 };
+    loaded.oevrigeKravPerioder = [
+      {
+        id: 'k1',
+        dato: '2024-01-01',
+        udgiftTil: 'Test',
+        beloeb: { kind: 'expression', expression: '1,005', value: 1.005 },
+      },
+    ];
+
+    const parsed = erstatningsopgoerelseSchema.safeParse(loaded);
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.tidligereModtagetTaf?.value).toBe(1.01);
+    expect(parsed.data.oevrigeKravPerioder[0]?.beloeb?.value).toBe(1.01);
+  });
 });

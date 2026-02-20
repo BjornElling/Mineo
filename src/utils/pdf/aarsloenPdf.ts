@@ -152,6 +152,8 @@ const addSatserTable = (doc: PdfDoc, satser: AarsloenSatserInput, currentY: numb
     head: [],
     body: tableData,
     margin: { left: MARGINS.left, right: MARGINS.right },
+    pageBreak: 'auto',
+    rowPageBreak: 'auto',
     styles: {
       font: 'helvetica',
       fontSize: TABLE_STYLES.fontSize,
@@ -166,6 +168,7 @@ const addSatserTable = (doc: PdfDoc, satser: AarsloenSatserInput, currentY: numb
       // Header-række får lysegrå baggrund
       if (data.row.index === 0) {
         data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+        data.cell.styles.overflow = 'ellipsize';
       }
       // Alternerende rækker (ekskl. header)
       else if (data.row.index > 0) {
@@ -326,6 +329,8 @@ const addIndtaegtsoplysningerTable = (
     head: [],
     body: tableRows,
     margin: { left: MARGINS.left, right: MARGINS.right },
+    pageBreak: 'auto',
+    rowPageBreak: 'auto',
     styles: {
       font: 'helvetica',
       fontSize: 7, // Mindre skriftstørrelse for data
@@ -350,6 +355,7 @@ const addIndtaegtsoplysningerTable = (
       // Header-række får lysegrå baggrund (font forbliver 8pt)
       if (data.row.index === 0) {
         data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+        data.cell.styles.overflow = 'ellipsize';
       }
       // "I alt"-række (sidste række) - fjern borders
       else if (data.row.index === lastRowIndex) {
@@ -464,6 +470,8 @@ const addBeregningsprinciperTable = (doc: PdfDoc, params: BeregningsprincipperPa
     head: [],
     body: tableData,
     margin: { left: MARGINS.left, right: MARGINS.right },
+    pageBreak: 'auto',
+    rowPageBreak: 'auto',
     styles: {
       font: 'helvetica',
       fontSize: TABLE_STYLES.fontSize,
@@ -478,6 +486,7 @@ const addBeregningsprinciperTable = (doc: PdfDoc, params: BeregningsprincipperPa
       // Header-række får lysegrå baggrund
       if (data.row.index === 0) {
         data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+        data.cell.styles.overflow = 'ellipsize';
       }
       // Alternerende rækker (ekskl. header)
       else if (data.row.index > 0) {
@@ -656,6 +665,8 @@ const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, curren
     head: [],
     body: tableData,
     margin: { left: MARGINS.left, right: MARGINS.right },
+    pageBreak: 'auto',
+    rowPageBreak: 'auto',
     styles: {
       font: 'helvetica',
       fontSize: TABLE_STYLES.fontSize,
@@ -670,6 +681,7 @@ const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, curren
       // Header-række får lysegrå baggrund
       if (data.row.index === 0) {
         data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+        data.cell.styles.overflow = 'ellipsize';
       }
       // Alternerende rækker (ekskl. header)
       else if (data.row.index > 0) {

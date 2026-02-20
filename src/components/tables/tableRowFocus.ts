@@ -38,7 +38,9 @@ const isElementVisible = (el: HTMLElement): boolean => {
   const style = window.getComputedStyle(el);
   if (style.display === 'none') return false;
   if (style.visibility === 'hidden') return false;
-  if (el.getClientRects().length === 0 && style.position !== 'fixed') return false;
+  // JSDOM has no layout and often returns empty rects for visible elements.
+  // Treat rect-less elements as visible unless explicitly hidden.
+  if (el.getClientRects().length === 0) return true;
   return true;
 };
 

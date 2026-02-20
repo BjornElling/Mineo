@@ -3,6 +3,7 @@ import { toDanishDateString, toISODateString } from '../../../types/branded';
 import { parseDanishDate } from '../../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
 import { computeRenteberegning } from '../../../domain/renteberegning/renteberegningEngine';
+import { roundByMethod } from '../../../utils/rounding';
 
 const buildRates = (referenceRatePct = 1, surchargeRatePct = 2): { referenceRates: RateEntry[]; surchargeRates: RateEntry[] } => ({
   referenceRates: [{ effectiveDate: toDanishDateString('01-01-2020'), ratePct: referenceRatePct }],
@@ -23,7 +24,7 @@ const buildExpectedInterest = (amount: number, start: string, end: string, rateP
   }
   const daysInYear = startDate.getUTCFullYear() % 4 === 0 ? 366 : 365;
   const interest = (amount * ratePct / 100 * days) / daysInYear;
-  return Math.round(interest * 100) / 100;
+  return roundByMethod(interest, 2, 'halfAwayFromZero');
 };
 
 const normalizeOutput = (rows: ReadonlyArray<{ id: string; actualInterestDate: string | null; calculatedInterest: number | null }>) => {

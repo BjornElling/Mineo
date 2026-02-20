@@ -1,5 +1,6 @@
 import { formatCurrency, formatPercent } from '../../utils/formatUtils';
 import { formatPercentFixed2 as formatPercentFixed2Shared } from './sharedPdfUtils';
+import { roundByMethod } from '../../utils/rounding';
 
 export type FormulaComponents = Readonly<{
   baseValue: number;
@@ -71,7 +72,7 @@ export const wrapIndexFormulaAfterSlashWhenLong = (value: string, maxInlineLengt
 
 export const formatOverenskomstPercent = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return '-';
-  const pct = Math.round(value * 10000) / 100;
+  const pct = roundByMethod(value * 100, 2, 'halfAwayFromZero');
   return formatPercentFixed2(pct);
 };
 

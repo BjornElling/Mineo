@@ -1,5 +1,5 @@
 import { formatAsAmount } from './formatUtils';
-import { containsAnyDigit, normalizeTrailingSeparator, normalizeZero, truncateToScale } from './amountInputUtils';
+import { containsAnyDigit, normalizeTrailingSeparator, normalizeZero } from './amountInputUtils';
 import type { AmountValue } from '../schemas/amountExpressionSchema';
 
 export type ExpressionErrorCode =
@@ -38,9 +38,14 @@ export type AmountParseOptions = Readonly<{
 const EXPRESSION_ERROR_PREFIX = 'Fejl i funktion:';
 
 type Token =
-  | { type: 'number'; value: number; normalized: string }
+  | { type: 'number'; value: Rational; normalized: string }
   | { type: 'op'; op: '+' | '-' | '*' | '/' }
   | { type: 'paren'; value: '(' | ')' };
+
+type Rational = Readonly<{
+  numerator: bigint;
+  denominator: bigint;
+}>;
 
 const isWhitespace = (ch: string): boolean => /\s/.test(ch);
 
@@ -57,11 +62,62 @@ const hasExpressionOperators = (input: string): boolean => {
   return false;
 };
 
+const absBigInt = (value: bigint): bigint => (value < 0n ? -value : value);
+
+const gcdBigInt = (a: bigint, b: bigint): bigint => {
+  let x = absBigInt(a);
+  let y = absBigInt(b);
+  while (y !== 0n) {
+    const t = x % y;
+    x = y;
+    y = t;
+  }
+  return x === 0n ? 1n : x;
+};
+
+const normalizeRational = (numerator: bigint, denominator: bigint): Rational => {
+  if (denominator < 0n) {
+    return normalizeRational(-numerator, -denominator);
+  }
+  const divisor = gcdBigInt(numerator, denominator);
+  return {
+    numerator: numerator / divisor,
+    denominator: denominator / divisor,
+  };
+};
+
+const toScaleFactor = (precision: number): bigint => {
+  const safePrecision = Math.max(0, Math.trunc(precision));
+  return 10n ** BigInt(safePrecision);
+};
+
+const scaledToNumber = (scaledValue: bigint, precision: number): number => {
+  const safePrecision = Math.max(0, Math.trunc(precision));
+  const factor = 10 ** safePrecision;
+  return Number(scaledValue) / factor;
+};
+
+const roundRationalToScale = (value: Rational, precision: number): bigint => {
+  const scaleFactor = toScaleFactor(precision);
+  const scaledNumerator = value.numerator * scaleFactor;
+  const quotient = scaledNumerator / value.denominator;
+  const remainder = absBigInt(scaledNumerator % value.denominator);
+  const denominatorAbs = absBigInt(value.denominator);
+
+  if (remainder * 2n < denominatorAbs) {
+    return quotient;
+  }
+  if (quotient >= 0n) {
+    return quotient + 1n;
+  }
+  return quotient - 1n;
+};
+
 const parseNumberToken = (
   raw: string,
   precision: number,
   maxIntegerDigits?: number
-): { ok: true; value: number; normalized: string } | { ok: false; error: ExpressionError } => {
+): { ok: true; value: number; exact: Rational; normalized: string } | { ok: false; error: ExpressionError } => {
   if (raw === '' || raw === ',' || raw === '.') {
     return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' } };
   }
@@ -96,19 +152,25 @@ const parseNumberToken = (
   }
 
   const normalizedIntegerDigits = integerDigits.replace(/^0+(?=\d)/, '');
-  const truncatedDecimal =
-    decimalRaw !== undefined && precision >= 0 ? decimalRaw.slice(0, precision) : decimalRaw;
+  const safePrecision = Math.max(0, Math.trunc(precision));
+  const normalizedDecimal = decimalRaw;
 
   const normalized =
-    truncatedDecimal !== undefined && truncatedDecimal !== ''
-      ? `${normalizedIntegerDigits},${truncatedDecimal}`
+    normalizedDecimal !== undefined && normalizedDecimal !== ''
+      ? `${normalizedIntegerDigits},${normalizedDecimal}`
       : normalizedIntegerDigits;
-  const numericValue = Number.parseFloat(normalized.replace(',', '.'));
+  const decimalDigits = normalizedDecimal ?? '';
+  const exactScaleFactor = 10n ** BigInt(decimalDigits.length);
+  const exactScaledLiteral = `${normalizedIntegerDigits}${decimalDigits}`;
+  const exactScaledValue = BigInt(exactScaledLiteral === '' ? '0' : exactScaledLiteral);
+  const exact = normalizeRational(exactScaledValue, exactScaleFactor);
+  const roundedScaled = roundRationalToScale(exact, safePrecision);
+  const numericValue = scaledToNumber(roundedScaled, safePrecision);
   if (!Number.isFinite(numericValue)) {
     return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' } };
   }
 
-  return { ok: true, value: truncateToScale(numericValue, precision), normalized };
+  return { ok: true, value: numericValue, exact, normalized };
 };
 
 const tokenizeExpression = (
@@ -157,7 +219,7 @@ const tokenizeExpression = (
       const rawNumber = trimmed.slice(start, index);
       const parsed = parseNumberToken(rawNumber, precision, maxIntegerDigits);
       if (!parsed.ok) return parsed;
-      tokens.push({ type: 'number', value: parsed.value, normalized: parsed.normalized });
+      tokens.push({ type: 'number', value: parsed.exact, normalized: parsed.normalized });
       normalizedExpression += parsed.normalized;
       continue;
     }
@@ -168,7 +230,10 @@ const tokenizeExpression = (
   return { ok: true, tokens, normalizedExpression };
 };
 
-const evaluateExpressionTokens = (tokens: Token[]): { ok: true; value: number } | { ok: false; error: ExpressionError } => {
+const evaluateExpressionTokens = (
+  tokens: Token[],
+  precision: number
+): { ok: true; value: number } | { ok: false; error: ExpressionError } => {
   let index = 0;
 
   const peek = (): Token | undefined => tokens[index];
@@ -180,7 +245,7 @@ const evaluateExpressionTokens = (tokens: Token[]): { ok: true; value: number } 
 
   const fail = (error: ExpressionError): { ok: false; error: ExpressionError } => ({ ok: false, error });
 
-  const parseFactor = (): { ok: true; value: number } | { ok: false; error: ExpressionError } => {
+  const parseFactor = (): { ok: true; value: Rational } | { ok: false; error: ExpressionError } => {
     const token = peek();
     if (!token) {
       return fail({ code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' });
@@ -191,7 +256,7 @@ const evaluateExpressionTokens = (tokens: Token[]): { ok: true; value: number } 
         consume();
         const next = parseFactor();
         if (!next.ok) return next;
-        return { ok: true, value: -next.value };
+        return { ok: true, value: normalizeRational(-next.value.numerator, next.value.denominator) };
       }
       return fail({ code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' });
     }
@@ -218,7 +283,7 @@ const evaluateExpressionTokens = (tokens: Token[]): { ok: true; value: number } 
     return fail({ code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' });
   };
 
-  const parseTerm = (): { ok: true; value: number } | { ok: false; error: ExpressionError } => {
+  const parseTerm = (): { ok: true; value: Rational } | { ok: false; error: ExpressionError } => {
     let left = parseFactor();
     if (!left.ok) return left;
 
@@ -230,23 +295,31 @@ const evaluateExpressionTokens = (tokens: Token[]): { ok: true; value: number } 
       if (!right.ok) return right;
 
       if (token.op === '/') {
-        if (right.value === 0) {
+        if (right.value.numerator === 0n) {
           return fail({ code: 'DIVISION_BY_ZERO', message: 'Division med 0' });
         }
-        left = { ok: true, value: left.value / right.value };
+        left = {
+          ok: true,
+          value: normalizeRational(
+            left.value.numerator * right.value.denominator,
+            left.value.denominator * right.value.numerator
+          ),
+        };
       } else {
-        left = { ok: true, value: left.value * right.value };
-      }
-
-      if (!Number.isFinite(left.value)) {
-        return fail({ code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' });
+        left = {
+          ok: true,
+          value: normalizeRational(
+            left.value.numerator * right.value.numerator,
+            left.value.denominator * right.value.denominator
+          ),
+        };
       }
     }
 
     return left;
   };
 
-  const parseExpression = (): { ok: true; value: number } | { ok: false; error: ExpressionError } => {
+  const parseExpression = (): { ok: true; value: Rational } | { ok: false; error: ExpressionError } => {
     let left = parseTerm();
     if (!left.ok) return left;
 
@@ -256,10 +329,22 @@ const evaluateExpressionTokens = (tokens: Token[]): { ok: true; value: number } 
       consume();
       const right = parseTerm();
       if (!right.ok) return right;
-      left = { ok: true, value: token.op === '+' ? left.value + right.value : left.value - right.value };
-      if (!Number.isFinite(left.value)) {
-        return fail({ code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' });
-      }
+      left =
+        token.op === '+'
+          ? {
+              ok: true,
+              value: normalizeRational(
+                left.value.numerator * right.value.denominator + right.value.numerator * left.value.denominator,
+                left.value.denominator * right.value.denominator
+              ),
+            }
+          : {
+              ok: true,
+              value: normalizeRational(
+                left.value.numerator * right.value.denominator - right.value.numerator * left.value.denominator,
+                left.value.denominator * right.value.denominator
+              ),
+            };
     }
 
     return left;
@@ -276,25 +361,21 @@ const evaluateExpressionTokens = (tokens: Token[]): { ok: true; value: number } 
     return fail({ code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' });
   }
 
-  return parsed;
+  const scaledRounded = roundRationalToScale(parsed.value, precision);
+  const numericValue = scaledToNumber(scaledRounded, precision);
+  if (!Number.isFinite(numericValue)) {
+    return fail({ code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' });
+  }
+
+  return { ok: true, value: numericValue };
 };
 
-/**
- * Parse amount input deterministically.
- *
- * Invariants:
- * - Trims surrounding whitespace.
- * - Removes trailing decimal separator (e.g. "18," -> "18").
- * - Truncates all decimals beyond `precision` (no rounding).
- * - Normalizes -0 to 0.
- * - Returns undefined when input contains no digits.
- */
 /**
  * Parser for beløb/udtryk.
  *
  * Invariants:
  * - Normalisering (trailing separator, tomme/ikke-ciffer input) sker her.
- * - Alle numeriske resultater afskæres til `precision` (ingen afrunding),
+ * - Alle numeriske slutresultater afrundes til `precision`,
  *   både for rene tal og udtryksresultater.
  */
 export const parseAmountInput = (draft: string, options: AmountParseOptions): AmountParseResult => {
@@ -334,7 +415,7 @@ export const parseAmountInput = (draft: string, options: AmountParseOptions): Am
 
     return {
       ok: true,
-      value: { kind: 'number', value: normalizeZero(truncateToScale(signed, options.precision)) },
+      value: { kind: 'number', value: normalizeZero(signed) },
       isExpression: false,
     };
   }
@@ -344,13 +425,12 @@ export const parseAmountInput = (draft: string, options: AmountParseOptions): Am
     return { ok: false, error: { kind: 'expression', message: tokenized.error.message } };
   }
 
-  const evaluated = evaluateExpressionTokens(tokenized.tokens);
+  const evaluated = evaluateExpressionTokens(tokenized.tokens, options.precision);
   if (!evaluated.ok) {
     return { ok: false, error: { kind: 'expression', message: evaluated.error.message } };
   }
 
-  const truncated = truncateToScale(evaluated.value, options.precision);
-  const normalizedValue = normalizeZero(truncated);
+  const normalizedValue = normalizeZero(evaluated.value);
   if (!options.allowNegative && normalizedValue < 0) {
     return { ok: false, error: { kind: 'expression', message: 'Beløb kan ikke være negativt' } };
   }

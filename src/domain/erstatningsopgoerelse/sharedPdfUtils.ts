@@ -11,6 +11,7 @@ import { danishToISO, isISODateString } from '../../types/branded';
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import { formatIsoDateLong, formatIsoDateShort } from '../../utils/dateFormatting';
 import type { StatistiskLoenudviklingId } from '../../data/statistiskLoenudviklingRates';
+import { roundByMethod } from '../../utils/rounding';
 
 // =============================================================================
 // KONSTANTER
@@ -72,9 +73,9 @@ export const formatPercentFixed2 = (value: number): string => {
   return `${value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
 };
 
-export const roundToTwoDecimals = (value: number): number => Math.round(value * 100) / 100;
+export const roundToTwoDecimals = (value: number): number => roundByMethod(value, 2, 'halfAwayFromZero');
 
-export const roundToFourDecimals = (value: number): number => Math.round(value * 10000) / 10000;
+export const roundToFourDecimals = (value: number): number => roundByMethod(value, 4, 'halfAwayFromZero');
 
 export const formatAmount2 = (value: number): string =>
   value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

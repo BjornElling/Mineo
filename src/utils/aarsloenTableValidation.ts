@@ -5,7 +5,7 @@ import type {
   AarsloenTableValidationSummary,
   TableError,
 } from '../types/common';
-import { isAmountValueStrict, isEffectivelyEmptyNumber, isZeroOnlyString } from './tableValidationCommon';
+import { isAmountValueStrict } from './tableValidationCommon';
 
 export type AarsloenTableCellErrorMap = Readonly<Record<string, true>>;
 
@@ -17,16 +17,14 @@ export type AarsloenTableValidationResult = Readonly<{
 export const isAarsloenTableValueEffectivelyEmptyForValidation = (value: unknown): boolean => {
   if (value === undefined || value === null) return true;
   if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (trimmed === '') return true;
-    return isZeroOnlyString(trimmed);
+    return value.trim() === '';
   }
-  if (typeof value === 'number') return isEffectivelyEmptyNumber(value);
+  if (typeof value === 'number') return !Number.isFinite(value);
   if (isAmountValueStrict(value)) {
-    if (value.kind === 'number') return isEffectivelyEmptyNumber(value.value);
-    if (isEffectivelyEmptyNumber(value.value)) return true;
+    if (!Number.isFinite(value.value)) return true;
+    if (value.kind === 'number') return false;
     if (value.expression.trim() === '') return true;
-    return isZeroOnlyString(value.expression);
+    return false;
   }
   return false;
 };
@@ -38,6 +36,10 @@ const PERIOD_KEYS: Record<Loenperiode, readonly [AarsloenTableColumnKey, Aarsloe
 };
 
 const OTHER_KEYS: readonly AarsloenTableColumnKey[] = ['col2', 'col3', 'col4', 'col5'];
+
+const hasAnyAmountInput = (row: AarsloenTableRow): boolean => {
+  return OTHER_KEYS.some((key) => row[key] !== undefined && row[key] !== null);
+};
 
 const getColumnOrder = (loenperiode: Loenperiode): readonly AarsloenTableColumnKey[] => {
   const [startKey, endKey] = PERIOD_KEYS[loenperiode];
@@ -105,7 +107,7 @@ export const getAarsloenTableValidation = ({
     const endFilled = !isAarsloenTableValueEffectivelyEmptyForValidation(row[periodEndKey]);
     const periodComplete = startFilled && endFilled;
 
-    const otherFilled = OTHER_KEYS.some((key) => !isAarsloenTableValueEffectivelyEmptyForValidation(row[key]));
+    const otherFilled = hasAnyAmountInput(row);
     const hasAnyFilled = startFilled || endFilled || otherFilled;
 
     const rowErrorKeys = cellErrorsByRow.get(row.id) ?? new Set<AarsloenTableColumnKey>();

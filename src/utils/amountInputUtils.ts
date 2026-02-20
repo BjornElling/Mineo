@@ -11,18 +11,9 @@ export const normalizeTrailingSeparator = (input: string): string => {
 };
 
 export const sanitizePastedAmount = (text: string): string => {
-  const allowed = text.match(/[0-9+\-*/x()., ]/g) ?? [];
+  const normalizedMinus = text.replace(/\u2212/g, '-');
+  const allowed = normalizedMinus.match(/[0-9+\-*/x()., ]/g) ?? [];
   return allowed.join('');
-};
-
-/**
- * Truncate to a fixed scale without rounding.
- */
-export const truncateToScale = (value: number, precision: number): number => {
-  if (!Number.isFinite(value)) return value;
-  if (precision <= 0) return Math.trunc(value);
-  const factor = 10 ** precision;
-  return Math.trunc(value * factor) / factor;
 };
 
 export const normalizeZero = (value: number): number => {

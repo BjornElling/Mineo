@@ -10,6 +10,7 @@ import { COLORS, MARGINS, FONT_SIZES, TABLE_STYLES, SECTION_SPACER } from './pdf
 import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
 import { formatCurrency, formatPercent } from '../formatUtils';
 import { parseDanishDate, formatDanishDate, createDate } from '../dateUtils';
+import { roundByMethod } from '../rounding';
 import { aarsloenMax } from '../../data/regulationRates';
 import { TODAY } from '../../config/dateRanges';
 import { formatAmountWithoutTrailingDecimals } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
@@ -129,7 +130,7 @@ const resolveStatistikModelIdFromLabel = (
 
 const formatOverenskomstPercent = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return '-';
-  const pct = Math.round(value * 10000) / 100;
+  const pct = roundByMethod(value * 100, 2, 'halfAwayFromZero');
   return formatPercent(pct);
 };
 
@@ -183,11 +184,26 @@ const addReguleringTable = (
     ])
   );
 
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const contentBottom = pageHeight - MARGINS.bottom;
+  const remainingHeight = contentBottom - startY;
+  const estimatedRowHeight = TABLE_STYLES.fontSize / 2.8 + TABLE_STYLES.cellPadding * 2;
+  const minimumRows = Math.min(tableRows.length, 2);
+  const minimumRequiredHeight = estimatedRowHeight * minimumRows;
+  const shouldStartOnNewPage = remainingHeight < minimumRequiredHeight;
+  const resolvedStartY = shouldStartOnNewPage ? MARGINS.top : startY;
+
+  if (shouldStartOnNewPage) {
+    doc.addPage();
+  }
+
   autoTable(doc, {
-    startY,
+    startY: resolvedStartY,
     head: [],
     body: tableRows,
     margin: { left: MARGINS.left, right: MARGINS.right },
+    pageBreak: 'auto',
+    rowPageBreak: 'auto',
     styles: {
       font: 'helvetica',
       fontSize: TABLE_STYLES.fontSize,
@@ -199,6 +215,7 @@ const addReguleringTable = (
     didParseCell: (data: CellHookData) => {
       if (data.row.index === 0) {
         data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
+        data.cell.styles.overflow = 'ellipsize';
       } else if (data.row.index % 2 === 0) {
         data.cell.styles.fillColor = TABLE_STYLES.alternateRowBackgroundColor;
       } else {
