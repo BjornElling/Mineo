@@ -6,7 +6,7 @@ import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import type { Periodisering } from '../../data/ydelsestyper';
 import { buildDatoSetInclusiveFromDates, buildFerieDageSet, buildShDageSet, isWeekdayUtc, placeLoseFeriedage } from './tafDaySets';
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR } from './tafBeregningsenhed';
-import { roundHalfAwayFromZero } from '../../utils/formatUtils';
+import { roundByMethod } from '../../utils/rounding';
 import { type DateInterval, type IsoRange, toNonNegativeInt } from '../../utils/isoDateHelpers';
 
 /**
@@ -275,7 +275,7 @@ export const optaelMaanederAfrundet = (args: {
 }): number | null => {
   const praecis = optaelMaanederPraecis(args);
   if (praecis === null) return null;
-  return roundHalfAwayFromZero(praecis, 2);
+  return roundByMethod(praecis, 2, 'halfAwayFromZero');
 };
 
 export type ArbejdsdageBeregningskontekst =

@@ -28,7 +28,7 @@ export const shouldClearField = (value: string | number): boolean => {
   const trimmed = strValue.trim();
 
   // Tøm hvis tomt efter trim
-  if (!trimmed || trimmed === '') {
+  if (!trimmed) {
     return true;
   }
 

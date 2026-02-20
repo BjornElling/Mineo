@@ -4,7 +4,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues, SvieSmertePeriodeRow,
 import { erstatningsopgoerelseSchema, stamdataSchema } from '../../schemas/formSchemas';
 import { svieSmerteMax, svieSmertePrDag, aarsloenMax } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { formatPercent, isSingularCount, parsePercentToDecimal, roundHalfAwayFromZero } from '../../utils/formatUtils';
+import { formatPercent, isSingularCount, parsePercentToDecimal } from '../../utils/formatUtils';
 import { roundByMethod } from '../../utils/rounding';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, type IsoRange } from './indtaegtPerioder';
 import { calculateTafAntalMaaneder } from './tafCalculations';
@@ -225,7 +225,7 @@ export const clampMoneyOreToZero = (value: MoneyOre): MoneyOre => {
 };
 
 // Afrunding til 2 decimaler med "half away from zero" (samme regel på tværs af hele PDF-modellen)
-export const roundKroner = (value: number): number => roundHalfAwayFromZero(value, 2);
+export const roundKroner = (value: number): number => roundByMethod(value, 2, 'halfAwayFromZero');
 
 export const toOre = (value: MoneyKroner): MoneyOre => {
   if (!Number.isFinite(value)) {
@@ -1410,7 +1410,7 @@ const buildLoenudviklingFromStatistikV3 = (
       .map((segment) => {
         const idx = aarsloenMax[segment.year as keyof typeof aarsloenMax];
         if (typeof idx !== 'number' || idx <= 0) return null;
-        return { fra: segment.fra, til: segment.til, deltaPct: roundHalfAwayFromZero((idx / baseIndex - 1) * 100, 2) };
+        return { fra: segment.fra, til: segment.til, deltaPct: roundByMethod((idx / baseIndex - 1) * 100, 2, 'halfAwayFromZero') };
       })
       .filter((segment): segment is LoenreguleringsSegmentV3 => Boolean(segment));
     if (aslSegments.length === 0) {
@@ -1456,7 +1456,7 @@ const buildLoenudviklingFromStatistikV3 = (
       }
       segments.push({
         ...segment,
-        deltaPct: roundHalfAwayFromZero((idxEntry.indeksvaerdi / baseEntry.indeksvaerdi - 1) * 100, 2),
+        deltaPct: roundByMethod((idxEntry.indeksvaerdi / baseEntry.indeksvaerdi - 1) * 100, 2, 'halfAwayFromZero'),
       });
     }
   }
@@ -1510,7 +1510,7 @@ const buildLoenudviklingFromKRLV3 = (
         throw new Error('Loenudvikling kan ikke beregnes: mangler KRL indeks for segment');
       }
       // Indeksforhold: deltaPct = ((100 + periodePct) / (100 + basePct) - 1) * 100
-      const deltaPct = roundHalfAwayFromZero(((100 + idxEntry.reguleringsPct) / (100 + basePct) - 1) * 100, 2);
+      const deltaPct = roundByMethod(((100 + idxEntry.reguleringsPct) / (100 + basePct) - 1) * 100, 2, 'halfAwayFromZero');
       segments.push({ ...segment, deltaPct });
     }
   }
@@ -1686,7 +1686,7 @@ const buildLoenudviklingFromOverenskomstV3 = (
         }
         segments.push({
           ...segment,
-          deltaPct: roundHalfAwayFromZero((packageValue / basePackage - 1) * 100, 2),
+          deltaPct: roundByMethod((packageValue / basePackage - 1) * 100, 2, 'halfAwayFromZero'),
         });
       }
     }
@@ -1777,7 +1777,7 @@ const buildLoenudviklingFromOverenskomstV3 = (
       }
       segments.push({
         ...segment,
-        deltaPct: roundHalfAwayFromZero((packageValue / basePackage - 1) * 100, 2),
+        deltaPct: roundByMethod((packageValue / basePackage - 1) * 100, 2, 'halfAwayFromZero'),
       });
     }
   }
@@ -1847,7 +1847,7 @@ const buildLoenudviklingFromManualV3 = (
       }
       segments.push({
         ...segment,
-        deltaPct: roundHalfAwayFromZero((packageValue / basePackage - 1) * 100, 2),
+        deltaPct: roundByMethod((packageValue / basePackage - 1) * 100, 2, 'halfAwayFromZero'),
       });
     }
   }
@@ -1902,7 +1902,7 @@ const buildLoenudviklingModelV3 = (
 
     const beregnedeSegmenter: Array<LoenudviklingPdfModel['beregnedeSegmenter'][number]> = [];
     for (const segment of loenreguleringssegmenter) {
-      const roundedDeltaPct = roundHalfAwayFromZero(segment.deltaPct, 2);
+      const roundedDeltaPct = roundByMethod(segment.deltaPct, 2, 'halfAwayFromZero');
       if (tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER) {
         const maanederStats = beregnArbejdsdageOgMaaneder(
           segment.fra,

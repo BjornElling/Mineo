@@ -17,7 +17,7 @@ import {
   type SammentaellingDisplayRow,
 } from '../../../domain/debug/eoDebugSammentaelling';
 import { CSV_DELIMITER, escapeCsvCell, normalizeCsvHeader, toCsvScalar } from '../../../domain/debug/eoDebugCsv';
-import { formatCurrency, parseAmount } from '../../../utils/formatUtils';
+import { formatCurrency } from '../../../utils/formatUtils';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { ISODateString } from '../../../types/branded';
 import { isoToDanish } from '../../../types/branded';
@@ -37,6 +37,12 @@ const isAmountColumnId = (id: string): boolean => id.startsWith('offentlig:') ||
 const isDanishNumberString = (value: string): boolean => {
   if (value.trim() === '') return false;
   return /^-?\d{1,3}(\.\d{3})*(,\d+)?$/.test(value) || /^-?\d+(,\d+)?$/.test(value);
+};
+
+const parseDanishNumberString = (value: string): number => {
+  const clean = value.replace(/\./g, '').replace(',', '.');
+  const parsed = Number.parseFloat(clean);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
 };
 
 type EODebugTabelProps = {
@@ -219,7 +225,7 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
     const trimmed = scalar.trim();
     if (trimmed === '') return '';
     if (!isDanishNumberString(trimmed)) return scalar;
-    const parsed = parseAmount(trimmed);
+    const parsed = parseDanishNumberString(trimmed);
     if (!Number.isFinite(parsed)) return scalar;
     return formatCurrency(parsed);
   }, []);

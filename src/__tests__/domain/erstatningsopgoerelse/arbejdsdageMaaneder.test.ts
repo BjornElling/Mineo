@@ -1,6 +1,6 @@
 import { toISODateString } from '../../../types/branded';
 import { beregnArbejdsdageOgMaaneder } from '../../../domain/erstatningsopgoerelse/arbejdsdageMaaneder';
-import { roundHalfAwayFromZero } from '../../../utils/formatUtils';
+import { roundByMethod } from '../../../utils/rounding';
 
 const iso = (value: string) => toISODateString(value);
 
@@ -14,7 +14,7 @@ describe('beregnArbejdsdageOgMaaneder', () => {
     );
 
     expect(result.arbejdsdage).toBe(1);
-    expect(result.maaneder).toBeCloseTo(roundHalfAwayFromZero(1 / 31, 6), 6);
+    expect(result.maaneder).toBeCloseTo(roundByMethod(1 / 31, 6, 'halfAwayFromZero'), 6);
   });
 
   it('giver 1,00 måned for hele januar 2024', () => {

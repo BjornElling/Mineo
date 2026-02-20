@@ -373,6 +373,9 @@ const evaluateExpressionTokens = (
 /**
  * Parser for beløb/udtryk.
  *
+ * Normativ reference:
+ * - calculation-architecture.md §9.1 (BigInt/rationel evaluering for deterministisk numerik)
+ *
  * Invariants:
  * - Normalisering (trailing separator, tomme/ikke-ciffer input) sker her.
  * - Alle numeriske slutresultater afrundes til `precision`,

@@ -21,29 +21,16 @@ export const parsePercentToDecimal = (pct: string | number | undefined): number 
 };
 
 /**
- * Parser beløb-streng til tal
+ * Parser numerisk beløbsværdi til tal
  */
-export const parseAmount = (val: string | number | AmountValue | undefined): number => {
+export const parseAmount = (val: number | AmountValue | undefined): number => {
   if (val === undefined) return 0;
   if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
   if (typeof val === 'object' && val !== null && 'kind' in val) {
-    const value = (val as AmountValue).value;
+    const value = val.value;
     return Number.isFinite(value) ? value : 0;
   }
-  if (!val) return 0;
-  if (import.meta.env.DEV) {
-    console.warn('parseAmount modtog string-input; forventet AmountValue i beregningskontekst.', { value: val });
-  }
-  const clean = String(val).replace(/\./g, '').replace(',', '.');
-  const num = parseFloat(clean);
-  return isNaN(num) ? 0 : num;
-};
-
-/**
- * Runder væk fra nul med angivet precision.
- */
-export const roundHalfAwayFromZero = (value: number, precision: number): number => {
-  return roundByMethod(value, precision, 'halfAwayFromZero');
+  return 0;
 };
 
 export const isSingularCount = (value: number): boolean => Math.abs(value - 1) < SINGULAR_EPSILON;
@@ -87,15 +74,13 @@ export const formatAsAmount = (value: number | null | undefined, precision: numb
  */
 export const formatPercent = (num: number): string => {
   if (num === null || num === undefined) return '';
+  if (!Number.isFinite(num)) return '';
 
-  // Tjek om tallet har decimal-del (ikke kun .0)
-  const hasDecimal = num % 1 !== 0;
-
-  if (hasDecimal) {
-    // Brug dansk komma-separator for decimal
-    return `${num.toString().replace('.', ',')} %`;
-  } else {
-    // Vis kun heltal uden decimal
-    return `${Math.floor(num)} %`;
-  }
+  const rounded = roundByMethod(num, 2, 'halfAwayFromZero');
+  const formatted = rounded
+    .toFixed(2)
+    .replace(/\.00$/, '')
+    .replace(/(\.\d)0$/, '$1')
+    .replace('.', ',');
+  return `${formatted} %`;
 };

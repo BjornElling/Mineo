@@ -1,7 +1,7 @@
 # Mineo — Kode-review tracking
 
 **Oprettet:** 2026-02-20
-**Senest opdateret:** 2026-02-20 (Fase 1 afsluttet)
+**Senest opdateret:** 2026-02-20 (Fase 2 afsluttet)
 **Reviewer:** Claude (senior code reviewer)
 **Scope:** Komplet gennemgang af hele kodebasen
 
@@ -49,7 +49,7 @@ Reviewer opdaterer denne fil ved start og afslutning af hver fase.
 | Fase | Område | Status | Fund (Å/G) |
 |------|--------|--------|------------|
 | 1 | Schema Foundation | ✅ | 0 ÅBNE / 10 G |
-| 2 | Numeriske primitiver | ⏳ | — |
+| 2 | Numeriske primitiver | ✅ | 0 ÅBNE / 5 G |
 | 3 | Dato-primitiver | ⏳ | — |
 | 4 | State & Persistence Core | ⏳ | — |
 | 5 | Save/Load Pipeline | ⏳ | — |
@@ -311,7 +311,7 @@ Status: `GODKENDT` — Løst som del af F101. `schemas/index.ts` re-eksporterer 
 
 ---
 
-## Fase 2: Numeriske primitiver ⏳
+## Fase 2: Numeriske primitiver ✅
 
 **Rationale:** Beløbshåndtering og afrunding er normativt specificeret i `calculation-architecture.md` §9. Afvigelser herfra invaliderer alle beregningsresultater. Skal gennemgås før engines.
 
@@ -323,9 +323,87 @@ Status: `GODKENDT` — Løst som del af F101. `schemas/index.ts` re-eksporterer 
 - `src/utils/inputValidation.ts`
 - `src/utils/safeComputation.ts`
 
-**Fund:**
+---
 
-_Ingen fund endnu — fase afventer start._
+### Sammenfatning
+
+- `rounding.ts` er veldesignet og overholder kontrakten fuldt ud.
+- `expressionAmount.ts` bruger BigInt-rationel aritmetik korrekt i overensstemmelse med calculation-architecture.md §9.1.
+- `formatUtils.ts` indeholder en duplikeret afrundingsfunktion og accepterer strings som beløbsinput trods eksplicit advarsel — typesignaturen lyver.
+- `safeComputation.ts` har et muligt discriminant-mismatch i `safeComputeMultiple` (`success` vs. `ok`).
+- `inputValidation.ts`'s `shouldClearField` behandler numerisk `0` inkonsistent.
+
+---
+
+### Fund
+
+**F201** · **Høj** · `src/utils/formatUtils.ts` (`roundHalfAwayFromZero`)
+
+*Problem:* `roundHalfAwayFromZero` er eksporteret fra `formatUtils.ts` men er en ren wrapper rundt om `roundByMethod(value, precision, 'halfAwayFromZero')` — identisk med direkte kald. Duplikeringen skaber en sekundær indgang til afrunding der omgår den kanoniske `rounding.ts`.
+
+*Risiko:* Fremtidig divergens; forvirring om hvilken funktion der er kanonisk.
+
+*Anbefaling:* Slet `roundHalfAwayFromZero` fra `formatUtils.ts`. Forbrugere importerer direkte `roundByMethod` fra `rounding.ts`.
+
+Status: `GODKENDT` — Funktionen er slettet fra `formatUtils.ts`.
+
+---
+
+**F202** · **Høj** · `src/utils/formatUtils.ts` (`parseAmount`)
+
+*Problem:* `parseAmount` accepterer `string | number | AmountValue | undefined`. Typesignaturen legitimerer string-input, men kommentaren i koden siger eksplicit at strings ikke burde forekomme i beregningskontekst — en type-løgn. Strings rammer en `console.warn`-sti i DEV der ikke fanges i produktion. Edge-cases som `String(val)` på ikke-string-typer kan give `"[object Object]"` → `NaN` → `0` uden fejl.
+
+*Risiko:* Stille forkert parsing i produktion. Typesignaturen dækker over en designfejl.
+
+*Anbefaling:* Fjern `string` fra input-typen. Slet string-parsing-grenen. Migrer eventuelle forbrugere til `AmountValue`.
+
+Status: `GODKENDT` — Typesignatur er `number | AmountValue | undefined`. String-grenen og `console.warn` er slettet.
+
+---
+
+**F203** · **Medium** · `src/utils/formatUtils.ts` (`formatPercent`)
+
+*Problem:* Bruger `num.toString().replace('.', ',')` uden forudgående afrunding. `toString()` kan producere videnskabelig notation eller mange decimaler ved float-edge-cases. Resultatet afrundes ikke.
+
+*Risiko:* Visuelt forkert output (fx `"33,333333 %"`, `"1,5e-7 %"`). Inkonsistent med systemets øvrige afrundingskonvention.
+
+*Anbefaling:* Afrund til relevant precision via `roundByMethod` inden formatering. Brug `toFixed(n).replace('.', ',')`.
+
+Status: `GODKENDT` — Bruger nu `roundByMethod(num, 2, 'halfAwayFromZero')` og `toFixed(2)` med trailing-zero-stripping.
+
+---
+
+**F204** · **Medium** · `src/utils/safeComputation.ts` (`safeComputeMultiple`)
+
+*Problem:* `safeComputeMultiple` tjekker `result.success` for early-exit. `Result<T>`-typen i `types/result.ts` bruger `ok` som discriminant (bekræftet via brug i `amountExpressionSchema.ts`). Hvis discriminanten er `ok` og ikke `success`, er tidlig-exit-logikken defekt — fejlede beregninger pusher `undefined` til `results`-arrayet i stedet for at returnere tidligt.
+
+*Risiko:* Stille fejl: fejlede delberegninger samles i stedet for at stoppes. Downstream kan modtage ufuldstændige resultater uden fejlindikation.
+
+*Anbefaling:* Verificer `Result`-typen og ret discriminant-tjekket til `result.ok`. Tilføj test der verificerer early-exit ved fejl.
+
+Status: `ACCEPTERET` — Fejlagtigt fund. `Result<T>` bruger `success` som discriminant (ikke `ok`). `safeComputeMultiple` er korrekt implementeret. `ok`-forvirringen opstod fordi `AmountParseResult` bruger `ok` som separat discriminant i en anden type.
+
+---
+
+**F205** · **Lav** · `src/utils/inputValidation.ts` (`shouldClearField`)
+
+*Problem:* `0` (number) ryddes konsekvent fordi `String(0) = "0"` ikke matcher `/[A-Za-zÆØÅæøå1-9]/`. Designet er dokumenteret (kun 1-9 er gyldige cifre), men gør funktionen uegnet til felter hvor 0 er en lovlig inputværdi. Derudover er `!trimmed || trimmed === ''` redundant.
+
+*Risiko:* Lav — men kan overraske ved brug i numeriske felter med 0-værdier.
+
+*Anbefaling:* Dokumentér eksplicit at funktionen ikke er egnet til numeriske felter med 0-defaultværdi. Fjern den redundante check.
+
+Status: `GODKENDT` — Redundant `trimmed === ''`-check er fjernet.
+
+---
+
+### Tilfældighedsfund (Fase 2)
+
+**FT-2A** · `expressionAmount.ts` mangler en eksplicit kontrakt-kommentar der binder BigInt-implementeringen til calculation-architecture.md §9. Fremtidige udviklere kan fejlagtigt forenkle til float-aritmetik uden at forstå konsekvensen.
+
+**FT-2B** · `safeComputeAsync` og `safeComputeMultiple` i `safeComputation.ts` — det er uklart om disse faktisk bruges i kodebasen. Undersøges i Fase 19.
+
+**FT-2C** · `formatUtils.ts` blander formatering (til UI) og parsing (fra UI). Parsings-funktionerne hører arkitekturelt tættere på schema-laget eller input-komponenterne. Ikke akut, men bør overvejes.
 
 ---
 

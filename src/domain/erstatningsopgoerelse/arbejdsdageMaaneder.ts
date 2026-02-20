@@ -1,7 +1,7 @@
 import type { ISODateString } from '../../types/branded';
 import { dateToISO } from '../../types/branded';
 import { isoDateToDate } from '../dates/isoDate';
-import { roundHalfAwayFromZero } from '../../utils/formatUtils';
+import { roundByMethod } from '../../utils/rounding';
 
 export const beregnArbejdsdageOgMaaneder = (
   fra: ISODateString,
@@ -54,6 +54,6 @@ export const beregnArbejdsdageOgMaaneder = (
     maaneder += count / dageIMaaned;
   }
 
-  const roundedMaaneder = roundHalfAwayFromZero(maaneder, 6);
+  const roundedMaaneder = roundByMethod(maaneder, 6, 'halfAwayFromZero');
   return { arbejdsdage, maaneder: roundedMaaneder };
 };
