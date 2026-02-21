@@ -12,7 +12,7 @@ import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
 const mockBuildEODebugModel = vi.mocked(buildEODebugModel);
 const mockBuildEODebugSammentaellingModel = vi.mocked(buildEODebugSammentaellingModel);
 
-vi.mock('../../../../contexts/FormPersistenceContext', () => {
+vi.mock('../../../../contexts/useFormPersistence', () => {
   return {
     useFormPersistence: () => ({
       getPersistedData: () => null,

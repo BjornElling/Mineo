@@ -1,7 +1,7 @@
 import React from 'react';
 import type { StorageKey } from '../config/storageManifest';
 import type { PersistedSectionMap } from '../config/persistenceRegistry';
-import { useFormPersistence } from '../contexts/FormPersistenceContext';
+import { useFormPersistence } from '../contexts/useFormPersistence';
 
 /**
  * Selector-style hook for a single persisted section.
@@ -14,3 +14,5 @@ export const usePersistedSection = <K extends StorageKey>(pageKey: K): Persisted
   const value = getPersistedData(pageKey);
   return React.useMemo(() => value, [value]);
 };
+
+

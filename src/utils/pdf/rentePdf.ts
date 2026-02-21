@@ -5,28 +5,19 @@
  */
 
 import {
-  MARGINS,
-  FONT_SIZES,
-  PDF_FONT_FAMILY,
-  PDF_FONT_STYLES,
   PDF_SECTION_HEADING_GAP,
   PDF_TABLE_NARROW_COLUMN_WIDTH,
   SECTION_SPACER,
 } from './pdfConfig';
 import {
-  addSectionHeading,
-  addTitle,
-  applyNormalTextStyle,
-  ensurePdfPageSpace,
   PDF_BASE_LINE_HEIGHT_MM,
   resolvePdfSectionEndY,
   formatAmount,
   formatPercent,
   type BrevhovedData
 } from './pdfHelpers';
-import { createStandardPdfWriter } from './pdfWriter';
+import { createStandardPdfWriter, type PdfWriter } from './pdfWriter';
 import type { RowInput } from 'jspdf-autotable';
-import type jsPDF from 'jspdf';
 import {
   createPdfTableCell,
   createPdfTableHeaderCell,
@@ -240,7 +231,6 @@ export const generateRentePdf = (
 
   const writer = createStandardPdfWriter();
   writer.setDisplayMode('fullheight');
-  const doc = writer.getDoc();
 
   // Dokumentets metadata
   const startDate = parseDanishDate(interestStartDate);
@@ -261,8 +251,6 @@ export const generateRentePdf = (
     creator: 'MINEO',
   });
 
-  let currentY = MARGINS.top;
-
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved) {
     const brevhovedData: BrevhovedData = {
@@ -272,20 +260,19 @@ export const generateRentePdf = (
       dagsDatoISO: TODAY,
     };
     writer.writeBrevhoved(brevhovedData);
-    currentY = writer.getY();
   }
 
   // Tilføj titel
-  currentY = addTitle(doc, 'Procesrente', currentY);
+  writer.writeTitle('Procesrente');
 
   // Tilføj beregningsbeskrivelse
-  currentY = addDescription(doc, amount, startDate, endDate, currentY);
+  addDescription(writer, amount, startDate, endDate);
 
   // Tilføj specifikationstabel
-  currentY = addSpecificationTable(doc, periods, endDate, currentY);
+  addSpecificationTable(writer, periods, endDate);
 
   // Tilføj beregningsprincipper
-  addCalculationPrinciples(doc, startDate, currentY);
+  addCalculationPrinciples(writer, startDate);
 
   // Tilføj footer med versionsnummer
   writer.addFooter();
@@ -303,28 +290,22 @@ export const generateRentePdf = (
  * Tilføj beregningsbeskrivelse
  */
 const addDescription = (
-  doc: jsPDF,
+  writer: PdfWriter,
   amount: string | number,
   startDate: Date,
-  endDate: Date,
-  startY: number
-): number => {
+  endDate: Date
+): void => {
   const amountNum = parseAmountInput(amount);
-
-  applyNormalTextStyle(doc);
 
   const lines = [
     `Hovedstol: ${formatAmount(amountNum)} kr.`,
     `Periode: ${formatDanishDate(startDate)} - ${formatDanishDate(endDate)} (begge dage inkl.)`,
   ];
 
-  let y = startY;
   for (const line of lines) {
-    doc.text(line, MARGINS.left, y);
-    y += PDF_BASE_LINE_HEIGHT_MM;
+    writer.writeWrappedText(line);
   }
-
-  return y + PDF_BASE_LINE_HEIGHT_MM;
+  writer.addSpacer(PDF_BASE_LINE_HEIGHT_MM);
 };
 
 /**
@@ -359,11 +340,12 @@ const findLatestReferenceRateDate = (): Date | null => {
  * Tilføj specifikationstabel
  */
 const addSpecificationTable = (
-  doc: jsPDF,
+  writer: PdfWriter,
   periods: ReadonlyArray<RentePeriod>,
-  endDate: Date,
-  startY: number
-): number => {
+  endDate: Date
+): void => {
+  const doc = writer.getDoc();
+  const startY = writer.getY();
   // Beregn total rente
   const totalInterest = periods.reduce((sum, p) => sum + p.interest, 0);
 
@@ -407,14 +389,14 @@ const addSpecificationTable = (
 
   // Advarsel om hypotetisk beregning (hvis relevant)
   if (isHypothetical) {
-    doc.setFontSize(FONT_SIZES.normal);
-    doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
-    doc.text(
-      `Der er kun fastsat procesrente frem til ${formatDanishDate(latestRateDate)}. Beregning derefter er hypotetisk!`,
-      MARGINS.left,
-      tableStartY,
+    writer.setFontSize(10);
+    writer.setFont('helvetica', 'bold');
+    writer.writeWrappedText(
+      `Der er kun fastsat procesrente frem til ${formatDanishDate(latestRateDate)}. Beregning derefter er hypotetisk!`
     );
-    tableStartY += PDF_BASE_LINE_HEIGHT_MM + PDF_SECTION_HEADING_GAP;
+    writer.setNormalTextStyle();
+    writer.addSpacer(PDF_SECTION_HEADING_GAP);
+    tableStartY = writer.getY();
   }
 
   const finalY = renderEoStylePdfTable({
@@ -430,25 +412,17 @@ const addSpecificationTable = (
     transparentRowIndices: [tableData.length - 2, tableData.length - 1],
   });
 
-  return resolvePdfSectionEndY(finalY, startY);
+  writer.setY(resolvePdfSectionEndY(finalY, startY));
 };
 
 /**
  * Tilføj beregningsprincipper
  */
 const addCalculationPrinciples = (
-  doc: jsPDF,
-  startDate: Date,
-  startY: number
-): number => {
-  // Beregn hvor meget plads beregningsprincipper kræver
-  const requiredSpace = (PDF_BASE_LINE_HEIGHT_MM + PDF_SECTION_HEADING_GAP) + (3 * PDF_BASE_LINE_HEIGHT_MM) + SECTION_SPACER;
-
-  // Tjek om der er nok plads på nuværende side
-  let y = ensurePdfPageSpace(doc, startY, requiredSpace);
-
-  y = addSectionHeading(doc, 'Beregningsprincipper', y);
-
+  writer: PdfWriter,
+  startDate: Date
+): void => {
+  writer.writeSubheader('Beregningsprincipper', (3 * PDF_BASE_LINE_HEIGHT_MM) + SECTION_SPACER);
   // Bestem forfaldsdato-tekst og tillægssats
   const surchargeChangeDate = createDate(2013, 2, 1); // 1. marts 2013
   let forfaldText: string;
@@ -469,9 +443,7 @@ const addCalculationPrinciples = (
   ];
 
   for (const principle of principles) {
-    doc.text(principle, MARGINS.left, y);
-    y += PDF_BASE_LINE_HEIGHT_MM;
+    writer.writeWrappedText(principle);
   }
-
-  return y + SECTION_SPACER;
+  writer.addSpacer(SECTION_SPACER);
 };

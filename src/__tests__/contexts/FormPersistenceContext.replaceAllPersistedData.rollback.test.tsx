@@ -1,7 +1,8 @@
 import React from 'react';
 import { act, render, waitFor } from '@testing-library/react';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
-import { FormPersistenceProvider, useFormPersistence } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { useFormPersistence } from '../../contexts/useFormPersistence';
 import type { StorageKey } from '../../config/storageManifest';
 
 const stampStamdata = (skadelidte: string) => ({

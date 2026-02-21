@@ -16,7 +16,7 @@ import type { RentekravRow } from '../../schemas/formSchemas';
 import type { RentekravDraftRow } from '../../domain/renteberegning/tableDraftRows';
 import { computeRentekravCalculation, type RentekravCalculationResult } from '../../domain/renteberegning/renteEngine';
 import { amountValueToDraftString } from '../../utils/expressionAmount';
-import { useFormPersistence } from '../../contexts/FormPersistenceContext';
+import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
 
 const ENHED_OPTIONS = [
@@ -278,3 +278,5 @@ const BeregnetRenteTable = React.memo(
 BeregnetRenteTable.displayName = 'BeregnetRenteTable';
 
 export default BeregnetRenteTable;
+
+

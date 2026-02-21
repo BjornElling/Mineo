@@ -9,6 +9,7 @@ import {
   getGrundloenAngivetPerForOverenskomst,
   getOffentligOverenskomstTypeById,
   getOffentligTillaegsSatserForDato,
+  resolveOverenskomstNameOnlyDisplay,
   resolveOverenskomstRef,
 } from '../../../../data/overenskomstRates';
 import type { PdfWriter } from '../../pdfWriter';
@@ -280,6 +281,10 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     writer.addSpacer(lineHeight);
 
     const valgtRegulering = resolveValgtReguleringDisplay(ansaettelsesforhold);
+    const valgtReguleringForSection =
+      ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Overenskomst'
+        ? resolveOverenskomstNameOnlyDisplay(ansaettelsesforhold.overenskomstId)
+        : valgtRegulering;
     const reguleringsdato = resolveReguleringsdato(stamdataValues, eoValues, ansaettelsesforhold);
     const skadesdatoIso = parseOptionalIsoDate(stamdataValues.skadesdato);
     const saerligFraDatoIso = parseOptionalIsoDate(ansaettelsesforhold.saerligFraDatoRegulering);
@@ -290,7 +295,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     });
 
     if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Ingen') {
-      writeLabelValueLine('Regulering', valgtRegulering);
+      writeLabelValueLine('Regulering', valgtReguleringForSection);
       writeLabelValueLine('Opgøres på baggrund af', toSentenceCase(loenSkadesdatoText));
       writer.addSpacer(lineHeight);
       continue;
@@ -300,7 +305,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       'Beregnes som',
       `${loenSkadesdatoText.charAt(0).toUpperCase()}${loenSkadesdatoText.slice(1)} tillagt efterfølgende lønstigninger`
     );
-    writeLabelValueLine('Regulering', valgtRegulering);
+    writeLabelValueLine('Regulering', valgtReguleringForSection);
     const anciennitetValueDisplay = resolveAnciennitetValueDisplay(ansaettelsesforhold);
     let ekstraGrundloenDisplay: string | null = null;
 
@@ -325,7 +330,6 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
 
     const harSaerligeLoenforhold = Boolean(anciennitetValueDisplay || ekstraGrundloenDisplay);
     if (harSaerligeLoenforhold) {
-      writer.addSpacer(lineHeight);
       writer.writeUnderlinedLabel('Særlige lønforhold', MARGINS.left);
       if (ekstraGrundloenDisplay) {
         writeLabelValueLine('Forhøjet grundløn', ekstraGrundloenDisplay);

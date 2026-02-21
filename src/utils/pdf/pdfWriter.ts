@@ -9,7 +9,13 @@
 
 import jsPDF from 'jspdf';
 import { COLORS, FONT_SIZES, MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
-import { addFooter, addBrevhoved, applyNormalTextStyle, type BrevhovedData } from './pdfHelpers';
+import {
+  addFooter,
+  addBrevhoved,
+  applyNormalTextStyle,
+  PDF_TITLE_BOTTOM_SPACING_MM,
+  type BrevhovedData,
+} from './pdfHelpers';
 
 const NBSP = '\u00A0';
 
@@ -261,7 +267,8 @@ const createPdfCursor = (params: Readonly<{
   };
 
   const writeUnderlinedLabel = (text: string, x: number) => {
-    ensureSpace(lineHeight);
+    ensureSpace(lineHeight * 2);
+    y += lineHeight;
     const normalized = normalizeTextForPdf(text).replace(/\n/g, ' ');
     doc.text(normalized, x, y);
     const labelWidth = doc.getTextWidth(normalized);
@@ -322,6 +329,7 @@ const createPdfCursor = (params: Readonly<{
     getFullWidth: () => fullWidth,
     addPage,
     getPageContentHeight: () => pageContentHeight,
+    getRemainingSpace: () => Math.max(0, contentBottom - y),
     renderAtomicBlock: (estimatedHeight: number, render: () => void) => {
       ensureSpace(estimatedHeight);
       render();
@@ -369,6 +377,7 @@ export type PdfWriter = {
     }>
   ) => void;
   writeSectionHeader: (text: string, nextLineHeight: number) => void;
+  writeTitle: (text: string) => void;
   writeSubheader: (
     text: string,
     nextLineHeight: number,
@@ -406,17 +415,32 @@ export const createPdfWriter = (params: Readonly<{
 }>): PdfWriter => {
   const { lineHeight, doubleLineHeight, visUdkastStempel, onLayoutFallback } = params;
   const cursor = createPdfCursor({ lineHeight, visUdkastStempel, onLayoutFallback });
+  let previousBlockWasSectionHeader = false;
 
   const writeSectionHeader = (text: string, nextLineHeight: number) => {
-    const estimatedHeaderHeight = doubleLineHeight + lineHeight;
-    cursor.ensureSpace(estimatedHeaderHeight + nextLineHeight);
-    cursor.advanceY(doubleLineHeight);
+    const topSpacing = lineHeight * 2;
+    const bottomSpacing = lineHeight;
+    const headerTextHeight = cursor.measureWrappedTextHeight(text);
+    cursor.ensureSpace(topSpacing + headerTextHeight + bottomSpacing + nextLineHeight);
+    cursor.advanceY(topSpacing);
     cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
     cursor.setFontSize(FONT_SIZES.header);
     cursor.writeWrappedText(text);
-    cursor.advanceY(lineHeight);
     cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
     cursor.setFontSize(FONT_SIZES.normal);
+    cursor.advanceY(bottomSpacing);
+    previousBlockWasSectionHeader = true;
+  };
+
+  const writeTitle = (text: string) => {
+    cursor.ensureSpace(PDF_TITLE_BOTTOM_SPACING_MM);
+    cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
+    cursor.setFontSize(FONT_SIZES.title);
+    cursor.writeWrappedText(text);
+    cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+    cursor.setFontSize(FONT_SIZES.normal);
+    cursor.advanceY(PDF_TITLE_BOTTOM_SPACING_MM - lineHeight);
+    previousBlockWasSectionHeader = true;
   };
 
   const writeSubheader = (
@@ -424,16 +448,17 @@ export const createPdfWriter = (params: Readonly<{
     nextLineHeight: number,
     options?: Readonly<{ addTopSpacing?: boolean }>
   ) => {
-    const addTopSpacing = options?.addTopSpacing ?? true;
-    const headerHeight = cursor.measureWrappedTextHeight(text) + (addTopSpacing ? lineHeight : 0);
+    const topSpacing = options?.addTopSpacing === undefined
+      ? (previousBlockWasSectionHeader ? 0 : lineHeight)
+      : (options.addTopSpacing ? lineHeight : 0);
+    const headerHeight = cursor.measureWrappedTextHeight(text) + topSpacing;
     cursor.ensureSpace(headerHeight + nextLineHeight);
-    if (addTopSpacing) {
-      cursor.advanceY(lineHeight);
-    }
+    cursor.advanceY(topSpacing);
     cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
     cursor.setFontSize(FONT_SIZES.normal);
     cursor.writeWrappedText(text);
     cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+    previousBlockWasSectionHeader = false;
   };
 
   const writeSubheaderWithWrappedText = (subheaderText: string, bodyText: string) => {
@@ -477,18 +502,39 @@ export const createPdfWriter = (params: Readonly<{
     getDoc: cursor.getDoc,
     ensureSpace: cursor.ensureSpace,
     getY: cursor.getY,
-    setY: cursor.setY,
-    addSpacer: (height: number) => {
-      cursor.ensureSpace(height);
-      cursor.advanceY(height);
+    setY: (nextY) => {
+      cursor.setY(nextY);
+      previousBlockWasSectionHeader = false;
     },
-    advanceY: cursor.advanceY,
-    writeWrappedText: cursor.writeWrappedText,
-    writeLeftRightText: (leftText, rightText, options) =>
-      cursor.writeLeftRightText(leftText, rightText, MARGINS.left, MARGINS.right, options),
-    writeLeftRightTextSingleLine: (leftText, rightText, options) =>
-      cursor.writeLeftRightTextSingleLine(leftText, rightText, MARGINS.left, MARGINS.right, options),
+    addSpacer: (height: number) => {
+      if (height <= 0) {
+        previousBlockWasSectionHeader = false;
+        return;
+      }
+      const remaining = cursor.getRemainingSpace();
+      // Spacer afkortes ved sidens kant; sideskift håndteres af efterfølgende indhold.
+      const advance = Math.min(height, remaining);
+      cursor.advanceY(advance);
+      previousBlockWasSectionHeader = false;
+    },
+    advanceY: (delta) => {
+      cursor.advanceY(delta);
+      previousBlockWasSectionHeader = false;
+    },
+    writeWrappedText: (text) => {
+      cursor.writeWrappedText(text);
+      previousBlockWasSectionHeader = false;
+    },
+    writeLeftRightText: (leftText, rightText, options) => {
+      cursor.writeLeftRightText(leftText, rightText, MARGINS.left, MARGINS.right, options);
+      previousBlockWasSectionHeader = false;
+    },
+    writeLeftRightTextSingleLine: (leftText, rightText, options) => {
+      cursor.writeLeftRightTextSingleLine(leftText, rightText, MARGINS.left, MARGINS.right, options);
+      previousBlockWasSectionHeader = false;
+    },
     writeSectionHeader,
+    writeTitle,
     writeSubheader,
     writeSubheaderWithWrappedText,
     writeAtomicTableChunks,
@@ -499,7 +545,10 @@ export const createPdfWriter = (params: Readonly<{
     getTextWidth: cursor.getTextWidth,
     fitTextToWidth: cursor.fitTextToWidth,
     getPageWidth: () => MARGINS.left + cursor.getFullWidth() + MARGINS.right,
-    addPage: cursor.addPage,
+    addPage: () => {
+      cursor.addPage();
+      previousBlockWasSectionHeader = false;
+    },
     addFooter: cursor.addFooter,
     save: cursor.save,
   };

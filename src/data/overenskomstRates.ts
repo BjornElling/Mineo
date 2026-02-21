@@ -840,6 +840,13 @@ export const getOverenskomstMetaById = (id: string): OverenskomstMeta | undefine
   return overenskomstMetaById.get(ref.baseId);
 };
 
+export const resolveOverenskomstNameOnlyDisplay = (id: string | undefined): string => {
+  const trimmed = id?.trim();
+  if (!trimmed) return '-';
+  const meta = getOverenskomstMetaById(trimmed);
+  return meta?.navn ?? trimmed;
+};
+
 export const getGrundloenAngivetPerForOverenskomst = (
   rawId: string,
   tafBeregnesSom?: 'Måneder' | 'Arbejdsdage'

@@ -5,24 +5,18 @@
  */
 
 import {
-  MARGINS,
   PDF_MUTED_TEXT_COLOR,
-  PDF_SECTION_HEADING_GAP,
   PDF_TABLE_NARROW_COLUMN_WIDTH,
   TABLE_STYLES,
   SECTION_SPACER,
 } from './pdfConfig';
 import { beregnHelligdageMedNavn } from '../shDageBeregning';
 import {
-  addSectionHeading,
-  addTitle,
-  applyNormalTextStyle,
-  ensurePdfPageSpace,
   PDF_BASE_LINE_HEIGHT_MM,
   resolvePdfSectionEndY,
   type BrevhovedData,
 } from './pdfHelpers';
-import { createStandardPdfWriter } from './pdfWriter';
+import { createStandardPdfWriter, type PdfWriter } from './pdfWriter';
 import {
   createPdfTableCell,
   createPdfTableHeaderCell,
@@ -35,7 +29,6 @@ import { formatUtcDateLong, WEEKDAY_NAMES_DA } from '../dateFormatting';
 import { TODAY } from '../../config/dateRanges';
 import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
 import type { CellHookData, RowInput } from 'jspdf-autotable';
-import type jsPDF from 'jspdf';
 
 /**
  * Stamdata til SH-dage PDF
@@ -49,8 +42,6 @@ type SHDagEntry = Readonly<{
   helligdagNavn: string;
   erHverdag: boolean;
 }>;
-type PdfDoc = jsPDF;
-
 /**
  * Formater dato til dansk format (d. måned åååå)
  *
@@ -190,7 +181,6 @@ export const generateSHDagePdf = (
   const { visBrevhoved = false } = options;
   const writer = createStandardPdfWriter();
   writer.setDisplayMode('fullheight');
-  const doc = writer.getDoc();
 
   // Dokumentets metadata
   writer.setProperties({
@@ -199,8 +189,6 @@ export const generateSHDagePdf = (
     author: 'MINEO',
     creator: 'MINEO',
   });
-
-  let currentY = MARGINS.top;
 
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved) {
@@ -211,27 +199,25 @@ export const generateSHDagePdf = (
       dagsDatoISO: TODAY,
     };
     writer.writeBrevhoved(brevhovedData);
-    currentY = writer.getY();
   }
 
   // Tilføj titel
-  currentY = addTitle(doc, 'SH-dage', currentY);
+  writer.writeTitle('SH-dage');
 
   // Tilføj periode-beskrivelse
-  currentY = addDescription(doc, perioder, currentY);
+  addDescription(writer, perioder);
 
   // Find alle helligdage
   const helligdage = findSHDageIPerioder(perioder);
 
   if (helligdage.length === 0) {
-    applyNormalTextStyle(doc);
-    doc.text('Ingen helligdage fundet i de angivne perioder.', MARGINS.left, currentY);
+    writer.writeWrappedText('Ingen helligdage fundet i de angivne perioder.');
   } else {
     // Tilføj helligdagstabel
-    currentY = addSHDageTable(doc, helligdage, currentY);
+    addSHDageTable(writer, helligdage);
 
     // Tilføj forklaringstekst
-    currentY = addExplanationText(doc, currentY);
+    addExplanationText(writer);
   }
 
   // Tilføj footer med versionsnummer
@@ -245,27 +231,18 @@ export const generateSHDagePdf = (
 /**
  * Tilføj periode-beskrivelse
  */
-const addDescription = (doc: PdfDoc, perioder: ReadonlyArray<SHDagePeriod>, startY: number): number => {
-  applyNormalTextStyle(doc);
-
+const addDescription = (writer: PdfWriter, perioder: ReadonlyArray<SHDagePeriod>): void => {
   const periodeTekst = formaterPeriodeOversigt(perioder);
-  const lines = [
-    `Periode: ${periodeTekst}`,
-  ];
-
-  let y = startY;
-  for (const line of lines) {
-    doc.text(line, MARGINS.left, y);
-    y += PDF_BASE_LINE_HEIGHT_MM;
-  }
-
-  return y + PDF_BASE_LINE_HEIGHT_MM;
+  writer.writeWrappedText(`Periode: ${periodeTekst}`);
+  writer.addSpacer(PDF_BASE_LINE_HEIGHT_MM);
 };
 
 /**
  * Tilføj SH-dage tabel
  */
-const addSHDageTable = (doc: PdfDoc, helligdage: ReadonlyArray<SHDagEntry>, startY: number): number => {
+const addSHDageTable = (writer: PdfWriter, helligdage: ReadonlyArray<SHDagEntry>): void => {
+  const doc = writer.getDoc();
+  const startY = writer.getY();
   // Beregn total antal SH-dage
   const antalSHDage = helligdage.filter(h => h.erHverdag).length;
 
@@ -323,20 +300,14 @@ const addSHDageTable = (doc: PdfDoc, helligdage: ReadonlyArray<SHDagEntry>, star
     },
   });
 
-  return resolvePdfSectionEndY(finalY, startY);
+  writer.setY(resolvePdfSectionEndY(finalY, startY));
 };
 
 /**
  * Tilføj forklaringstekst
  */
-const addExplanationText = (doc: PdfDoc, startY: number): number => {
-  // Beregn hvor meget plads forklaringstekst kræver
-  const requiredSpace = (PDF_BASE_LINE_HEIGHT_MM + PDF_SECTION_HEADING_GAP) + (2 * PDF_BASE_LINE_HEIGHT_MM) + SECTION_SPACER;
-
-  // Tjek om der er nok plads på nuværende side
-  let y = ensurePdfPageSpace(doc, startY, requiredSpace);
-
-  y = addSectionHeading(doc, 'Forklaring', y);
+const addExplanationText = (writer: PdfWriter): void => {
+  writer.writeSubheader('Forklaring', (2 * PDF_BASE_LINE_HEIGHT_MM) + SECTION_SPACER);
 
   const explanations = [
     '• Søgnehelligdage er helligdage, der falder på hverdage (mandag-fredag).',
@@ -344,9 +315,7 @@ const addExplanationText = (doc: PdfDoc, startY: number): number => {
   ];
 
   for (const explanation of explanations) {
-    doc.text(explanation, MARGINS.left, y);
-    y += PDF_BASE_LINE_HEIGHT_MM;
+    writer.writeWrappedText(explanation);
   }
-
-  return y + SECTION_SPACER;
+  writer.addSpacer(SECTION_SPACER);
 };

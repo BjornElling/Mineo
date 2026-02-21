@@ -5,11 +5,10 @@
  */
 
 import {
-  MARGINS,
-  SECTION_SPACER,
+  PDF_SECTION_HEADING_GAP,
 } from './pdfConfig';
 import { formatCurrency, formatPercent } from '../formatUtils';
-import { addSectionHeading, addTitle, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
+import { addSectionHeading, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
 import { createStandardPdfWriter } from './pdfWriter';
 import { renderEoStylePdfTable } from './pdfTableRenderer';
 import { TODAY } from '../../config/dateRanges';
@@ -20,7 +19,6 @@ import type jsPDF from 'jspdf';
 
 type SatserData = ReturnType<typeof getSatserForYear>;
 type SatserPdfOptions = PdfCommonOptions & Readonly<{ stamdata?: PdfStamdata | null }>;
-type SatserDoc = jsPDF;
 
 const isPositiveFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value > 0;
@@ -59,8 +57,6 @@ export const generateSatserPdf = (
     creator: 'MINEO',
   });
 
-  let currentY = MARGINS.top;
-
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved) {
     const brevhovedData: BrevhovedData = {
@@ -70,30 +66,29 @@ export const generateSatserPdf = (
       dagsDatoISO: TODAY,
     };
     writer.writeBrevhoved(brevhovedData);
-    currentY = writer.getY();
   }
 
   // Tilføj titel
-  currentY = addTitle(doc, `Arbejdsskadesatser ${year}`, currentY);
+  writer.writeTitle(`Arbejdsskadesatser ${year}`);
 
   // Tilføj Erstatningsansvarsloven sektion
   if (satser && satser.eal) {
-    currentY = addEalSection(doc, satser.eal, currentY);
+    writer.setY(addEalSection(doc, satser.eal, writer.getY()));
   }
 
   // Tilføj Arbejdsskadesikringsloven sektion
   if (satser && satser.asl) {
-    currentY = addAslSection(doc, satser.asl, currentY);
+    writer.setY(addAslSection(doc, satser.asl, writer.getY()));
   }
 
   // Tilføj Diverse sektion
   if (satser && satser.diverse) {
-    currentY = addDiverseSection(doc, satser.diverse, currentY);
+    writer.setY(addDiverseSection(doc, satser.diverse, writer.getY()));
   }
 
   // Tilføj Referencer sektion
   if (satser && satser.referencer) {
-    addReferenserSection(doc, satser.referencer, currentY);
+    writer.setY(addReferenserSection(doc, satser.referencer, writer.getY()));
   }
 
   // Tilføj footer med versionsnummer
@@ -108,7 +103,7 @@ export const generateSatserPdf = (
  * Tilføj Erstatningsansvarsloven sektion
  */
 const addEalSection = (
-  doc: SatserDoc,
+  doc: jsPDF,
   eal: SatserData['eal'],
   startY: number
 ): number => {
@@ -154,7 +149,7 @@ const addEalSection = (
  * Tilføj Arbejdsskadesikringsloven sektion
  */
 const addAslSection = (
-  doc: SatserDoc,
+  doc: jsPDF,
   asl: SatserData['asl'],
   startY: number
 ): number => {
@@ -234,7 +229,7 @@ const addAslSection = (
  * Tilføj Diverse sektion
  */
 const addDiverseSection = (
-  doc: SatserDoc,
+  doc: jsPDF,
   diverse: SatserData['diverse'],
   startY: number
 ): number => {
@@ -272,7 +267,7 @@ const addDiverseSection = (
  * Tilføj Referencer sektion
  */
 const addReferenserSection = (
-  doc: SatserDoc,
+  doc: jsPDF,
   referencer: SatserData['referencer'],
   startY: number
 ): number => {
@@ -320,16 +315,17 @@ const addReferenserSection = (
  * Tilføj tabel med header og data
  */
 const addTable = (
-  doc: SatserDoc,
+  doc: jsPDF,
   rows: string[][],
   header: string,
   startY: number
 ): number => {
   const headingY = addSectionHeading(doc, header, startY);
+  const tableStartY = headingY - PDF_SECTION_HEADING_GAP;
 
   const finalY = renderEoStylePdfTable({
     doc,
-    startY: headingY,
+    startY: tableStartY,
     body: rows,
     hasHeaderRow: false,
     columnStyles: {

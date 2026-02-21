@@ -6,7 +6,7 @@ import { getSatserForYear, satserAngivAarYearBounds } from '../../data/regulatio
 import { downloadSatserPdf } from '../../utils/pdf/pdfService';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { satserSchema } from '../../schemas/formSchemas';
-import { useFormPersistence } from '../../contexts/FormPersistenceContext';
+import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
 import {
   selectSatserAargangErrorMessage,
@@ -322,3 +322,5 @@ const Satser = React.memo(() => {
 Satser.displayName = 'Satser';
 
 export default Satser;
+
+

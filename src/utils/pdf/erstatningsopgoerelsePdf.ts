@@ -6,8 +6,8 @@
 
 import jsPDF from 'jspdf';
 import { type RowInput } from 'jspdf-autotable';
-import { FONT_SIZES, MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
-import { type BrevhovedData } from './pdfHelpers';
+import { MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
+import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from './pdfHelpers';
 import { createPdfWriter, type PdfWriter, ensureNonBreakingKr } from './pdfWriter';
 import { renderEoStylePdfTable } from './pdfTableRenderer';
 import type { ISODateString } from '../../types/branded';
@@ -35,6 +35,7 @@ import {
   getOverenskomst,
   getOverenskomstMetaById,
   getOffentligOverenskomstTypeById,
+  resolveOverenskomstNameOnlyDisplay,
   resolveOverenskomstRef,
 } from '../../data/overenskomstRates';
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
@@ -510,28 +511,6 @@ export const resolveValgtReguleringDisplay = (
     return formatKRLSatstabelDisplay(krlId);
   }
   return 'Ingen';
-};
-
-export const resolveLoenudviklingLabelDisplay = (params: Readonly<{
-  label: string;
-  eoValues: ErstatningsopgoerelseValues;
-  ansaettelsesforholdId?: string;
-}>): string => {
-  const { label, eoValues, ansaettelsesforholdId } = params;
-  if (label !== 'Overenskomst') {
-    return isKRLSatstabelId(label)
-      ? formatKRLSatstabelDisplay(label)
-      : label;
-  }
-  if (eoValues.beregnesUdFra === 'Angivet månedsløn' || eoValues.beregnesUdFra === 'Angivet dagsløn') {
-    return resolveOverenskomstDisplay(eoValues.eoAngivetLoenLoenudvikling?.overenskomstId) || label;
-  }
-
-  const ansaettelsesforhold = ansaettelsesforholdId
-    ? eoValues.loenindkomstAnsaettelsesforhold?.find((row) => row.id === ansaettelsesforholdId)
-    : eoValues.loenindkomstAnsaettelsesforhold?.[0];
-  if (!ansaettelsesforhold) return label;
-  return resolveValgtReguleringDisplay(ansaettelsesforhold);
 };
 
 const resolveOverenskomstDisplay = (overenskomstId: string | undefined): string => {
@@ -1703,11 +1682,7 @@ export const generateErstatningsopgoerelsePdf = (
 
   const startBilagPage = (titleText: string) => {
     writer.addPage();
-    writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
-    writer.setFontSize(FONT_SIZES.title);
-    writeBodyText(titleText);
-    writer.setNormalTextStyle();
-    writer.addSpacer(lineHeight);
+    writer.writeTitle(titleText);
   };
 
   const renderAtomicTableChunks = <T,>(params: Readonly<{
@@ -1741,10 +1716,9 @@ export const generateErstatningsopgoerelsePdf = (
     writer.writeBrevhoved(brevhovedData);
   }
 
-  // Tilføj titel (fed skrift)
-  writer.setFontSize(FONT_SIZES.title);
-  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
-  safeAddWrappedText(titel);
+  // Tilføj titel
+  writer.writeTitle(titel);
+  writer.advanceY(-(PDF_TITLE_BOTTOM_SPACING_MM - lineHeight));
 
   // Tilføj erstatningsperiode-datoer direkte under titel
   writer.setNormalTextStyle();
@@ -1794,7 +1768,6 @@ export const generateErstatningsopgoerelsePdf = (
     isSingularCount,
     parseOptionalIsoDate,
     resolveLoenSkadesdatoText,
-    resolveLoenudviklingLabelDisplay,
     formatDateShort,
     formatDateLong,
     formatPercentDelta,
@@ -1816,7 +1789,7 @@ export const generateErstatningsopgoerelsePdf = (
       writeLabelValueLine,
       formatJaNej,
       formatDateLong,
-      resolveOverenskomstDisplay,
+      resolveOverenskomstDisplay: resolveOverenskomstNameOnlyDisplay,
       formatPctFromInput,
       isZeroPct,
       getLoenindkomstTableHeaders,

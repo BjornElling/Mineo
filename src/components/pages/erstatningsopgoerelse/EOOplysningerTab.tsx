@@ -32,7 +32,7 @@ import { createCommitEvent, type CommitEvent, type CommitHandler } from '../../i
 import type { UsePersistedFormReturn } from '../../../hooks/usePersistedForm';
 import { MAX_YEAR, MIN_YEAR, computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../../config/dateRanges';
 import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
-import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
+import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import {
   type ErstatningsopgoerelseValues,
   type EOAngivetLoenLoenudvikling,
@@ -1877,3 +1877,5 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 EOOplysningerTab.displayName = 'EOOplysningerTab';
 
 export default EOOplysningerTab;
+
+

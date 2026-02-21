@@ -3,7 +3,8 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
-import { FormPersistenceProvider, useFormPersistence } from '../../../contexts/FormPersistenceContext';
+import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
+import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import type { SaveFileResult } from '../../../types/fileOperations';
 import type { StorageKey } from '../../../config/storageManifest';
 

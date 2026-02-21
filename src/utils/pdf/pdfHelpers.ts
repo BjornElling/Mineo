@@ -22,6 +22,7 @@ import { formatIsoDateLong } from '../dateFormatting';
 import { formatAsAmount, formatPercent as formatPercentUtil } from '../formatUtils';
 
 export const PDF_BASE_LINE_HEIGHT_MM = 5;
+export const PDF_TITLE_BOTTOM_SPACING_MM = 15;
 
 export const applyNormalTextStyle = (doc: jsPDF): void => {
   doc.setFontSize(FONT_SIZES.normal);
@@ -43,23 +44,8 @@ export type BrevhovedData = Readonly<{
   sagsbehandler?: string;
 }>;
 
-/**
- * Tilføj titel til dokumentet
- *
- * @param {jsPDF} doc - PDF-dokumentet
- * @param {string} title - Titel-tekst
- * @param {number} startY - Start Y-position
- * @returns {number} Ny Y-position efter titel
- */
-export const addTitle = (doc: jsPDF, title: string, startY: number): number => {
-  applyBoldTextStyle(doc, FONT_SIZES.title);
-  doc.text(title, MARGINS.left, startY);
-
-  return startY + 15;
-};
-
 export const addSectionHeading = (doc: jsPDF, title: string, startY: number): number => {
-  applyBoldTextStyle(doc, FONT_SIZES.header);
+  applyBoldTextStyle(doc, FONT_SIZES.normal);
   doc.text(title, MARGINS.left, startY);
   applyNormalTextStyle(doc);
   return startY + PDF_BASE_LINE_HEIGHT_MM + PDF_SECTION_HEADING_GAP;

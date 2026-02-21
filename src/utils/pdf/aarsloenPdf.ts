@@ -6,8 +6,8 @@
 
 import jsPDF from 'jspdf';
 import type { CellDef, RowInput } from 'jspdf-autotable';
-import { COLORS, MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES, PDF_MUTED_TEXT_COLOR, SECTION_SPACER } from './pdfConfig';
-import { addSectionHeading, addTitle, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
+import { MARGINS, SECTION_SPACER } from './pdfConfig';
+import { addSectionHeading, PDF_BASE_LINE_HEIGHT_MM, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
 import { createStandardPdfWriter } from './pdfWriter';
 import {
   cellCenter,
@@ -17,8 +17,6 @@ import {
   createPdfTableCell,
   createPdfFixedColumnStyles,
   createPdfTableHeaderCell,
-  EO_TABLE_CELL_PADDING,
-  EO_TABLE_FONT_SIZE,
   renderEoStylePdfTable,
 } from './pdfTableRenderer';
 import { calculateAarsloenRowDerived, type AarsloenSatserInput } from '../aarsloenTableCalculations';
@@ -28,7 +26,7 @@ import type { PeriodeResult } from '../periodeBeregning';
 import type { AarsloenBeregningResult } from '../../types/calculation';
 import { amountValueToDisplayString, amountValueToNumber } from '../expressionAmount';
 import { TODAY } from '../../config/dateRanges';
-import { formatAsAmount, formatPercent } from '../formatUtils';
+import { formatAsAmount, formatCountWithUnit, formatPercent } from '../formatUtils';
 
 type PdfDoc = jsPDF & {
   lastAutoTable?: {
@@ -36,6 +34,10 @@ type PdfDoc = jsPDF & {
   };
 };
 const NBSP = '\u00A0';
+const SECTION_HEADING_TO_TABLE_ADJUSTMENT_MM = PDF_BASE_LINE_HEIGHT_MM;
+
+const resolveTableStartYAfterSectionHeading = (headingY: number): number =>
+  headingY - SECTION_HEADING_TO_TABLE_ADJUSTMENT_MM;
 
 /**
  * Formaterer beløb til dansk format med tusindtalsseparator
@@ -140,7 +142,7 @@ const addSatserTable = (doc: PdfDoc, satser: AarsloenSatserInput, currentY: numb
 
   const finalY = renderEoStylePdfTable({
     doc,
-    startY: headingY,
+    startY: resolveTableStartYAfterSectionHeading(headingY),
     body: tableData,
     hasHeaderRow: false,
     columnStyles: {
@@ -206,9 +208,9 @@ const addIndtaegtsoplysningerTable = (
   headers.push(
     createPdfTableHeaderCell('Grundløn', 'center'),
     createPdfTableHeaderCell('Tillæg', 'center'),
-    createPdfTableHeaderCell('Ikke-pens.-\ngivende løn', 'center'),
-    createPdfTableHeaderCell('ATP og\nikke-FB løn', 'center'),
-    createPdfTableHeaderCell('Ferieberet.\nløn', 'center'),
+    createPdfTableHeaderCell('Ikke-pens. giv. løn', 'center'),
+    createPdfTableHeaderCell('ATP mv.\nu. FP', 'center'),
+    createPdfTableHeaderCell('Ferieber.\nløn', 'center'),
     createPdfTableHeaderCell('FP/FV/SH/\nSO/St.B.', 'center'),
     createPdfTableHeaderCell('Arb.g.\nPension', 'center'),
     createPdfTableHeaderCell('Samlet løn', 'center'),
@@ -255,22 +257,25 @@ const addIndtaegtsoplysningerTable = (
     ]);
   }
 
-  // Tilføj "I alt"-række
-  tableRows.push([
-    createPdfTableCell('I alt', { halign: 'center', bold: true }),
-    cellCenter(''),
-    cellRight(''),
-    cellRight(''),
-    cellRight(''),
-    cellRight(''),
-    cellRight(''),
-    cellRight(''),
-    {
-      content: `${formatDanishAmount(beregnetAarsloen)}${NBSP}kr.`,
-      colSpan: 2,
-      styles: { halign: 'right', fontStyle: 'bold' },
-    },
-  ]);
+  const hasTotalRow = filteredData.length > 1;
+
+  if (hasTotalRow) {
+    tableRows.push([
+      createPdfTableCell('I alt', { halign: 'center', bold: true }),
+      cellCenter(''),
+      cellRight(''),
+      cellRight(''),
+      cellRight(''),
+      cellRight(''),
+      cellRight(''),
+      cellRight(''),
+      {
+        content: `${formatDanishAmount(beregnetAarsloen)}${NBSP}kr.`,
+        colSpan: 2,
+        styles: { halign: 'right', fontStyle: 'bold' },
+      },
+    ]);
+  }
 
   const finalY = renderEoStylePdfTable({
     doc,
@@ -278,6 +283,7 @@ const addIndtaegtsoplysningerTable = (
     body: tableRows,
     columnStyles: createPdfFixedColumnStyles(10, 17),
     didParseCell: (data) => {
+      if (!hasTotalRow) return;
       const lastRowIndex = tableRows.length - 1;
       if (data.row.index === lastRowIndex) {
         data.cell.styles.fillColor = false;
@@ -285,6 +291,7 @@ const addIndtaegtsoplysningerTable = (
       }
     },
     didDrawCell: (data) => {
+      if (!hasTotalRow) return;
       const lastRowIndex = tableRows.length - 1;
       if (data.row.index === lastRowIndex && data.column.index === 8) {
         const cell = data.cell;
@@ -371,7 +378,7 @@ const addBeregningsprinciperTable = (doc: PdfDoc, params: BeregningsprincipperPa
 
   const finalY = renderEoStylePdfTable({
     doc,
-    startY: headingY,
+    startY: resolveTableStartYAfterSectionHeading(headingY),
     body: tableData,
     hasHeaderRow: false,
     columnStyles: {
@@ -389,7 +396,6 @@ const addBeregningsprinciperTable = (doc: PdfDoc, params: BeregningsprincipperPa
 type BeregningSectionParams = Readonly<{
   beregningsData: AarsloenBeregningResult;
   beregnetAarsloen: number;
-  fejlmeddelelser: readonly string[];
   fuldLoenUnderFerie: boolean;
   shDageAntal: number | null;
   loenperiode: Loenperiode;
@@ -397,10 +403,9 @@ type BeregningSectionParams = Readonly<{
 }>;
 
 const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, currentY: number): number => {
-  const { beregningsData, beregnetAarsloen, fejlmeddelelser, fuldLoenUnderFerie, shDageAntal, loenperiode, retTilSjetteFerieuge } = params;
+  const { beregningsData, beregnetAarsloen, fuldLoenUnderFerie, shDageAntal, loenperiode, retTilSjetteFerieuge } = params;
 
   const tableData: RowInput[] = [];
-  const harFejl = fejlmeddelelser.length > 0;
   const headingY = addSectionHeading(doc, 'Beregning', currentY);
 
   // Første data-række: Sammentælling af løn fra tabellen
@@ -477,12 +482,15 @@ const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, curren
   } else if (beregningsData.metode === 'C') {
     // METODE C: Måneder/Uger/Dage
     if (loenperiode === 'maaned') {
+      const antalMaaneder = beregningsData.antalMaaneder ?? 0;
       tableData.push([
         cellLeft('Antal måneder i indtastede perioder'),
-        cellRight(`${beregningsData.antalMaaneder} måneder`),
+        cellRight(formatCountWithUnit(antalMaaneder, 'måned', 'måneder')),
       ]);
 
-      const linje2Label = `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.antalMaaneder} × 12)`;
+      const linje2Label = antalMaaneder === 1
+        ? `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} × 12)`
+        : `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.antalMaaneder} × 12)`;
 
       tableData.push([
         cellLeft(linje2Label),
@@ -492,7 +500,7 @@ const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, curren
     } else if (loenperiode === 'uge') {
       tableData.push([
         cellLeft('Antal uger i indtastede perioder'),
-        cellRight(`${beregningsData.antalMaaneder} uger`),
+        cellRight(formatCountWithUnit(beregningsData.antalMaaneder ?? 0, 'uge', 'uger')),
       ]);
 
       const linje2Label = `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.antalMaaneder} × 52,14)`;
@@ -536,7 +544,7 @@ const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, curren
 
   const finalY = renderEoStylePdfTable({
     doc,
-    startY: headingY,
+    startY: resolveTableStartYAfterSectionHeading(headingY),
     body: tableData,
     hasHeaderRow: false,
     columnStyles: {
@@ -544,22 +552,6 @@ const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, curren
       1: { cellWidth: 45 },
     },
   });
-
-  // Tilføj stjerne manuelt hvis der er fejl
-  if (harFejl) {
-    const tableStartY = headingY + EO_TABLE_CELL_PADDING;
-    const headerTextY = tableStartY + EO_TABLE_FONT_SIZE / 2 + 1;
-
-    doc.setFontSize(EO_TABLE_FONT_SIZE);
-    doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
-    const textWidth = doc.getTextWidth('Sammentælling af løn fra tabellen');
-
-    doc.setTextColor(PDF_MUTED_TEXT_COLOR[0], PDF_MUTED_TEXT_COLOR[1], PDF_MUTED_TEXT_COLOR[2]);
-    doc.text('*', MARGINS.left + textWidth + 1, headerTextY - 1);
-
-    // Reset farve
-    doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
-  }
 
   return resolvePdfSectionEndY(finalY, currentY);
 };
@@ -583,7 +575,6 @@ type GenerateAarsloenPdfParams = Readonly<{
   loenPaaHelligdage: LoenPaaHelligdage;
   shDageAntal: number | null;
   beregningsData: AarsloenBeregningResult;
-  fejlmeddelelser: readonly string[];
   stamdata: StamdataValues | null;
   visBrevhoved?: boolean;
 }>;
@@ -602,7 +593,6 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
     loenPaaHelligdage,
     shDageAntal,
     beregningsData,
-    fejlmeddelelser,
     stamdata,
     visBrevhoved = false,
   } = params;
@@ -634,7 +624,9 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
   }
 
   // Tilføj titel
-  currentY = addTitle(doc, 'Årslønsberegning', currentY);
+  writer.setY(currentY);
+  writer.writeTitle('Årslønsberegning');
+  currentY = writer.getY();
 
   // Tilføj satser-tabel (kun hvis der er udfyldte satser)
   const satserY = addSatserTable(doc, satser, currentY);
@@ -645,7 +637,14 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
   currentY = addSectionHeading(doc, 'Indtægtsoplysninger', currentY);
 
   // Tilføj indtægtsoplysninger-tabel (inkl. "I alt"-linje)
-  currentY = addIndtaegtsoplysningerTable(doc, tableData, loenperiode, satser, beregnetAarsloen, currentY);
+  currentY = addIndtaegtsoplysningerTable(
+    doc,
+    tableData,
+    loenperiode,
+    satser,
+    beregnetAarsloen,
+    resolveTableStartYAfterSectionHeading(currentY)
+  );
 
   // Betinget: Beregningsprincipper og beregning (kun hvis omregning er aktiveret)
   if (omregningTilFuldtAar && periodeData) {
@@ -664,7 +663,6 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
       currentY = addBeregningSection(doc, {
         beregningsData,
         beregnetAarsloen,
-        fejlmeddelelser,
         fuldLoenUnderFerie,
         shDageAntal,
         loenperiode,

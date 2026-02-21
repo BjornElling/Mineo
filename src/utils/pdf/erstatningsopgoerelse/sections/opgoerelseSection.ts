@@ -1,12 +1,9 @@
 import { MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES } from '../../pdfConfig';
 import { ensureNonBreakingKr } from '../../pdfWriter';
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
-import { getGrundloenAngivetPerForOverenskomst } from '../../../../data/overenskomstRates';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import {
   addOneDayIso,
-  formatAmount2,
-  formatAnciennitetConversion,
   roundToFourDecimals,
 } from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import type { Calculable, LoenudviklingSegment, MoneyOre, PdfModel } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
@@ -61,11 +58,6 @@ type OpgorelseSectionContext = Readonly<{
     skadesdato: ISODateString | undefined;
     saerligFraDatoRegulering: ISODateString | undefined;
   }) => string;
-  resolveLoenudviklingLabelDisplay: (params: Readonly<{
-    label: string;
-    eoValues: ErstatningsopgoerelseValues;
-    ansaettelsesforholdId?: string;
-  }>) => string;
   formatDateShort: (dateIso: ISODateString | undefined) => string;
   formatDateLong: (isoDate: ISODateString | undefined) => string;
   formatPercentDelta: (value: number) => string;
@@ -111,7 +103,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     isSingularCount,
     parseOptionalIsoDate,
     resolveLoenSkadesdatoText,
-    resolveLoenudviklingLabelDisplay,
     formatDateShort,
     formatDateLong,
     formatPercentDelta,
@@ -166,34 +157,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       merged.push(segment);
     }
     return merged;
-  };
-
-  const resolveAnciennitetLine = (
-    ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number] | undefined
-  ): string | null => {
-    if (!ansaettelsesforhold) return null;
-    if (ansaettelsesforhold.loenudviklingBeregningsgrundlag !== 'Overenskomst') return null;
-    if (!ansaettelsesforhold.harAnciennitetstillaegEfterSkadesdatoen) return null;
-    if (!ansaettelsesforhold.overenskomstId) return null;
-
-    const dato = parseOptionalIsoDate(ansaettelsesforhold.anciennitetstillaegDato);
-    const satsValue = ansaettelsesforhold.anciennitetstillaegSats?.value;
-    if (!dato || typeof satsValue !== 'number' || !Number.isFinite(satsValue) || satsValue <= 0) {
-      return 'Der optjenes anciennitetstillæg, men indtastning mangler.';
-    }
-
-    const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(
-      ansaettelsesforhold.overenskomstId,
-      model.tabtArbejdsfortjeneste.tafBeregningsenhed
-    );
-    if (!grundloenAngivetPer) {
-      return 'Der optjenes anciennitetstillæg, men overenskomstgrundlaget kan ikke fastlægges.';
-    }
-
-    const inputPer = ansaettelsesforhold.anciennitetstillaegSatsAngivesPer;
-    const dateText = formatDateLong(dato);
-    const conversion = formatAnciennitetConversion(satsValue, inputPer, grundloenAngivetPer, formatAmount2);
-    return `Fra ${dateText} optjenes anciennitetstillæg på ${conversion.displayText}.`;
   };
 
   renderSectionHeader('Svie- og smertegodtgørelse', lineHeight);
@@ -349,10 +312,9 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       if (indkomst?.beregningsperiodeLabel) {
         safeAddWrappedText(indkomst.beregningsperiodeLabel);
       }
-      const udskydMellemregningVedDagsloen =
-        indkomst?.beregnesUdFra === 'Beregningsperiode' &&
-        indkomst?.beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE;
-      if (!udskydMellemregningVedDagsloen) {
+      const udskydMellemregningVedBeregningsperiode =
+        indkomst?.beregnesUdFra === 'Beregningsperiode';
+      if (!udskydMellemregningVedBeregningsperiode) {
         if (indkomst?.beregningsgrundlagMellemregningLabel && indkomst?.beregningsgrundlagMellemregningResultat) {
           safeAddLeftRightText(
             indkomst.beregningsgrundlagMellemregningLabel,
@@ -370,9 +332,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       }
 
       if (indkomst?.beregnesUdFra === 'Beregningsperiode') {
-        if (indkomst.arbejdssteder.length > 0) {
-          writer.advanceY(lineHeight);
-        }
         for (const arbejdssted of indkomst.arbejdssteder) {
           const componentRows: ReadonlyArray<Readonly<{ label: string; amountOre: number }>> = [
             {
@@ -447,22 +406,22 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           if (indkomst.offentligeYdelserTotalOre > 0) {
             addends.push(formatCurrencyFromOre(indkomst.offentligeYdelserTotalOre));
           }
+          if (udskydMellemregningVedBeregningsperiode) {
+            if (indkomst.beregningsgrundlagMellemregningLabel && indkomst.beregningsgrundlagMellemregningResultat) {
+              safeAddLeftRightText(
+                indkomst.beregningsgrundlagMellemregningLabel,
+                indkomst.beregningsgrundlagMellemregningResultat,
+                writer.getTextWidth('000.000.000,00'),
+                { rightFontStyle: 'normal' }
+              );
+            } else if (indkomst.beregningsgrundlagMellemregningLabel) {
+              safeAddWrappedText(indkomst.beregningsgrundlagMellemregningLabel);
+            } else if (indkomst.beregningsgrundlagMellemregningResultat) {
+              safeAddWrappedText(indkomst.beregningsgrundlagMellemregningResultat);
+            }
+          }
           if (indkomst.beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE && indkomst.arbejdsdage) {
             const arbejdsdageText = formatCountWithUnit(indkomst.arbejdsdage, 'arbejdsdag', 'arbejdsdage');
-            if (udskydMellemregningVedDagsloen) {
-              if (indkomst.beregningsgrundlagMellemregningLabel && indkomst.beregningsgrundlagMellemregningResultat) {
-                safeAddLeftRightText(
-                  indkomst.beregningsgrundlagMellemregningLabel,
-                  indkomst.beregningsgrundlagMellemregningResultat,
-                  writer.getTextWidth('000.000.000,00'),
-                  { rightFontStyle: 'normal' }
-                );
-              } else if (indkomst.beregningsgrundlagMellemregningLabel) {
-                safeAddWrappedText(indkomst.beregningsgrundlagMellemregningLabel);
-              } else if (indkomst.beregningsgrundlagMellemregningResultat) {
-                safeAddWrappedText(indkomst.beregningsgrundlagMellemregningResultat);
-              }
-            }
             const basisText = addends.length > 1
               ? `Dagsløn: (${addends.join(' + ')}${NBSP}kr.) / ${arbejdsdageText} =`
               : `Dagsløn: ${formatMoneyOreWithKr(indkomst.samletBeregningsgrundlagOre)} / ${arbejdsdageText} =`;
@@ -546,6 +505,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     );
 
     if (loenudvikling) {
+      writer.addSpacer(lineHeight);
       const renderLoenudviklingSegments = (
         segments: readonly LoenudviklingSegment[],
         total: Calculable<MoneyOre>,
@@ -590,25 +550,10 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
       const harPerAnsaettelse = loenudvikling.perAnsaettelse.length > 1;
       if (harPerAnsaettelse) {
-        const ansaettelserById = new Map(
-          resolveLoenudviklingKilde(eoValues).map((af) => [af.id, af] as const)
-        );
         for (const entry of loenudvikling.perAnsaettelse) {
           writer.addSpacer(lineHeight);
           writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
           writer.writeUnderlinedLabel(entry.ansaettelsesforholdNavn, MARGINS.left);
-          if (entry.loenudviklingLabel !== 'Ingen') {
-            safeAddWrappedText(`Lønudvikling beregnes ud fra ${resolveLoenudviklingLabelDisplay({
-              label: entry.loenudviklingLabel,
-              eoValues,
-              ansaettelsesforholdId: entry.ansaettelsesforholdId,
-            })}.`);
-            const anciennitetLine = resolveAnciennitetLine(ansaettelserById.get(entry.ansaettelsesforholdId));
-            if (anciennitetLine) {
-              safeAddWrappedText(anciennitetLine);
-            }
-            writer.advanceY(lineHeight);
-          }
           renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, true);
         }
         if (loenudvikling.loenudviklingTotal.status === 'ok') {
@@ -622,17 +567,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           );
         }
       } else {
-        if (loenudvikling.loenudviklingLabel !== 'Ingen') {
-          safeAddWrappedText(`Lønudvikling beregnes ud fra ${resolveLoenudviklingLabelDisplay({
-            label: loenudvikling.loenudviklingLabel,
-            eoValues,
-          })}.`);
-          const anciennitetLine = resolveAnciennitetLine(resolveLoenudviklingKilde(eoValues)[0]);
-          if (anciennitetLine) {
-            safeAddWrappedText(anciennitetLine);
-          }
-          writer.advanceY(lineHeight);
-        }
         renderLoenudviklingSegments(loenudvikling.beregnedeSegmenter, loenudvikling.loenudviklingTotal, false);
       }
     }

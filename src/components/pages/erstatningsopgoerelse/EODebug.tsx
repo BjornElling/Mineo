@@ -34,7 +34,7 @@ import { loenPaaHelligdageSchema } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { useFormFieldErrorsBySource } from '../../../hooks/useFormFieldErrors';
-import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
+import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import type { ISODateString } from '../../../types/branded';
 import { dateToISO, isoToDanish, isISODateString, parseISODate, subtractOneDay, toISODateString } from '../../../types/branded';
@@ -2941,3 +2941,5 @@ const EODebug = () => {
 };
 
 export default EODebug;
+
+

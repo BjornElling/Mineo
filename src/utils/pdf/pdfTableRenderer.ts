@@ -119,7 +119,7 @@ export const renderEoStylePdfTable = (params: Readonly<{
       if (hasHeaderRow && data.row.index === 0) {
         data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
         data.cell.styles.valign = 'bottom';
-        data.cell.styles.overflow = 'ellipsize';
+        data.cell.styles.overflow = 'linebreak';
       } else if (transparentSet.has(data.row.index)) {
         data.cell.styles.fillColor = false;
       } else {

@@ -4,11 +4,12 @@
  * Genererer PDF-dokumentation af ménberegning med fødselsdato, skadesdato, méngrad og resultat
  */
 
-import jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
-import { MARGINS, SECTION_SPACER } from './pdfConfig';
-import { addSectionHeading, addTitle, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
-import { createStandardPdfWriter } from './pdfWriter';
+import {
+  PDF_BASE_LINE_HEIGHT_MM,
+  type BrevhovedData,
+} from './pdfHelpers';
+import { createStandardPdfWriter, type PdfWriter } from './pdfWriter';
 import { cellLeft, cellRight, createPdfTableCell, renderEoStylePdfTable } from './pdfTableRenderer';
 import { formatIsoDateLong } from '../dateFormatting';
 import type { ISODateString } from '../../types/branded';
@@ -17,47 +18,28 @@ import type { VarigeMenBeregningResult } from '../../domain/varigemen/varigeMenC
 import { TODAY } from '../../config/dateRanges';
 import { formatAsAmount } from '../formatUtils';
 
-type PdfDoc = jsPDF & {
-  lastAutoTable?: {
-    finalY?: number;
-  };
-};
-
 const formatDateReadable = (isoDate: ISODateString | undefined): string => formatIsoDateLong(isoDate);
 
 /**
- * Tilføj stamdata-tabel
+ * Tilføj stamdata-sektion
  */
-const addStamdataTable = (
-  doc: PdfDoc,
+const addStamdataSection = (
+  writer: PdfWriter,
   fodselsdato: ISODateString | undefined,
   skadesdato: ISODateString | undefined,
-  alderVedSkade: number,
-  currentY: number
-): number => {
-  const tableData: RowInput[] = [];
-
-  const headingY = addSectionHeading(doc, 'Stamdata', currentY);
-
-  // Data-rækker
-  tableData.push([
-    cellLeft('Fødselsdato'),
-    cellRight(formatDateReadable(fodselsdato)),
-  ]);
-
-  tableData.push([
-    cellLeft('Skadesdato'),
-    cellRight(formatDateReadable(skadesdato)),
-  ]);
-
-  tableData.push([
-    cellLeft('Alder på skadestidspunkt'),
-    cellRight(`${alderVedSkade} år`),
-  ]);
-
+  alderVedSkade: number
+): void => {
+  writer.writeSubheader('Stamdata', PDF_BASE_LINE_HEIGHT_MM);
+  const tableData: RowInput[] = [
+    [cellLeft('Fødselsdato'), cellRight(formatDateReadable(fodselsdato))],
+    [cellLeft('Skadesdato'), cellRight(formatDateReadable(skadesdato))],
+    [cellLeft('Alder på skadestidspunkt'), cellRight(`${alderVedSkade} år`)],
+  ];
+  const doc = writer.getDoc();
+  const startY = writer.getY();
   const finalY = renderEoStylePdfTable({
     doc,
-    startY: headingY,
+    startY,
     body: tableData,
     hasHeaderRow: false,
     columnStyles: {
@@ -65,38 +47,27 @@ const addStamdataTable = (
       1: { cellWidth: 60 },
     },
   });
-
-  return resolvePdfSectionEndY(finalY, currentY);
+  writer.setY(finalY + PDF_BASE_LINE_HEIGHT_MM);
 };
 
 /**
- * Tilføj beregningsgrundlag-tabel
+ * Tilføj beregningsgrundlag-sektion
  */
-const addBeregningsgrundlagTable = (
-  doc: PdfDoc,
+const addBeregningsgrundlagSection = (
+  writer: PdfWriter,
   mengrad: number | undefined,
-  beregningsdato: ISODateString | undefined,
-  currentY: number
-): number => {
-  const tableData: RowInput[] = [];
-
-  const headingY = addSectionHeading(doc, 'Beregningsgrundlag', currentY);
-
-  // Méngrad
-  tableData.push([
-    cellLeft('Méngrad'),
-    cellRight(mengrad !== undefined ? `${mengrad} %` : ''),
-  ]);
-
-  // Beregningsdato
-  tableData.push([
-    cellLeft('Beregningsdato'),
-    cellRight(formatDateReadable(beregningsdato)),
-  ]);
-
+  beregningsdato: ISODateString | undefined
+): void => {
+  writer.writeSubheader('Beregningsgrundlag', PDF_BASE_LINE_HEIGHT_MM);
+  const tableData: RowInput[] = [
+    [cellLeft('Méngrad'), cellRight(mengrad !== undefined ? `${mengrad} %` : '')],
+    [cellLeft('Beregningsdato'), cellRight(formatDateReadable(beregningsdato))],
+  ];
+  const doc = writer.getDoc();
+  const startY = writer.getY();
   const finalY = renderEoStylePdfTable({
     doc,
-    startY: headingY,
+    startY,
     body: tableData,
     hasHeaderRow: false,
     columnStyles: {
@@ -104,45 +75,37 @@ const addBeregningsgrundlagTable = (
       1: { cellWidth: 60 },
     },
   });
-
-  return resolvePdfSectionEndY(finalY, currentY);
+  writer.setY(finalY + PDF_BASE_LINE_HEIGHT_MM);
 };
 
 /**
- * Tilføj beregnet méngodtgørelse-tabel
+ * Tilføj beregnet méngodtgørelse-sektion
  */
-const addResultatTable = (
-  doc: PdfDoc,
+const addResultatSection = (
+  writer: PdfWriter,
   mengrad: number | undefined,
-  beregningsResultat: VarigeMenBeregningResult,
-  currentY: number
-): number => {
+  beregningsResultat: VarigeMenBeregningResult
+): void => {
+  writer.writeSubheader('Beregnet méngodtgørelse', PDF_BASE_LINE_HEIGHT_MM);
   const tableData: RowInput[] = [];
-
-  const headingY = addSectionHeading(doc, 'Beregnet méngodtgørelse', currentY);
-
-  // Grundbeløb
   tableData.push([
     cellLeft(`Grundbeløb: ${mengrad} % mén á ${formatAsAmount(beregningsResultat.satsPerMengrad, 2)} kr.`),
     cellRight(`${formatAsAmount(beregningsResultat.grundbeloebUdenReduktion, 2)} kr.`),
   ]);
-
-  // Aldersreduktion
   const reduktionsBeloeb = beregningsResultat.grundbeloebUdenReduktion * beregningsResultat.aldersreduktionPct / 100;
   tableData.push([
     cellLeft(`Aldersreduktion, ${beregningsResultat.alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`),
     cellRight(`- ${formatAsAmount(reduktionsBeloeb, 2)} kr.`),
   ]);
-
-  // Slutresultat (tekst normal, værdi fed)
   tableData.push([
     cellLeft('Beregnet méngodtgørelse'),
     createPdfTableCell(`${formatAsAmount(beregningsResultat.beregnetGodtgoerelse)} kr.`, { halign: 'right', bold: true }),
   ]);
-
+  const doc = writer.getDoc();
+  const startY = writer.getY();
   const finalY = renderEoStylePdfTable({
     doc,
-    startY: headingY,
+    startY,
     body: tableData,
     hasHeaderRow: false,
     columnStyles: {
@@ -150,8 +113,7 @@ const addResultatTable = (
       1: { cellWidth: 60 },
     },
   });
-
-  return resolvePdfSectionEndY(finalY, currentY);
+  writer.setY(finalY + PDF_BASE_LINE_HEIGHT_MM);
 };
 
 /**
@@ -180,7 +142,6 @@ export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void =
 
   const writer = createStandardPdfWriter();
   writer.setDisplayMode('fullheight');
-  const doc = writer.getDoc() as PdfDoc;
 
   // Dokumentets metadata
   writer.setProperties({
@@ -189,8 +150,6 @@ export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void =
     author: 'MINEO',
     creator: 'MINEO',
   });
-
-  let currentY = MARGINS.top;
 
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved) {
@@ -201,20 +160,19 @@ export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void =
       dagsDatoISO: TODAY,
     };
     writer.writeBrevhoved(brevhovedData);
-    currentY = writer.getY();
   }
 
   // Tilføj titel
-  currentY = addTitle(doc, 'Ménberegning', currentY);
+  writer.writeTitle('Ménberegning');
 
-  // Tilføj stamdata-tabel
-  currentY = addStamdataTable(doc, fodselsdato, skadesdato, beregningsResultat.alderVedSkade, currentY);
+  // Tilføj stamdata-sektion
+  addStamdataSection(writer, fodselsdato, skadesdato, beregningsResultat.alderVedSkade);
 
-  // Tilføj beregningsgrundlag-tabel
-  currentY = addBeregningsgrundlagTable(doc, mengrad, beregningsdato, currentY);
+  // Tilføj beregningsgrundlag-sektion
+  addBeregningsgrundlagSection(writer, mengrad, beregningsdato);
 
-  // Tilføj resultat-tabel
-  addResultatTable(doc, mengrad, beregningsResultat, currentY);
+  // Tilføj resultat-sektion
+  addResultatSection(writer, mengrad, beregningsResultat);
 
   // Tilføj footer med versionsnummer
   writer.addFooter();

@@ -6,11 +6,8 @@
 
 import jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
-import { COLORS, MARGINS, SECTION_SPACER } from './pdfConfig';
+import { COLORS } from './pdfConfig';
 import {
-  addSectionHeading,
-  addTitle,
-  applyNormalTextStyle,
   resolvePdfSectionEndY,
   PDF_BASE_LINE_HEIGHT_MM,
   type BrevhovedData,
@@ -40,12 +37,6 @@ import {
 } from '../../data/statistiskLoenudviklingRates';
 import type { DanishDateString } from '../../types/branded';
 import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
-
-type PdfDoc = jsPDF & {
-  lastAutoTable?: {
-    finalY?: number;
-  };
-};
 
 type ReguleringPdfParams = Readonly<{
   overenskomstLabel: string;
@@ -173,7 +164,7 @@ const buildTableRows = (
 };
 
 const addReguleringTable = (
-  doc: PdfDoc,
+  doc: jsPDF,
   columns: ReadonlyArray<TableColumn>,
   rows: ReadonlyArray<ReadonlyArray<string>>,
   startY: number
@@ -398,7 +389,7 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
 
   const writer = createStandardPdfWriter();
   writer.setDisplayMode('fullheight');
-  const doc = writer.getDoc() as PdfDoc;
+  const doc = writer.getDoc();
 
   writer.setProperties({
     title: 'Regulering',
@@ -406,8 +397,6 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
     author: 'MINEO',
     creator: 'MINEO',
   });
-
-  let currentY = MARGINS.top;
 
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved) {
@@ -418,18 +407,15 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
       dagsDatoISO: TODAY,
     };
     writer.writeBrevhoved(brevhovedData);
-    currentY = writer.getY();
   }
 
-  currentY = addTitle(doc, 'Regulering', currentY);
+  writer.writeTitle('Regulering');
 
-  applyNormalTextStyle(doc);
   const valgtLabel =
     loenudviklingBasis === 'Statistik'
       ? (statistikModelLabel?.trim() || '-')
       : (overenskomstLabel.trim() || '-');
-  doc.text(valgtLabel, MARGINS.left, currentY);
-  currentY += PDF_BASE_LINE_HEIGHT_MM;
+  writer.writeWrappedText(valgtLabel);
 
   const offentligInfoLine = resolveOffentligLoenInfoLine({
     overenskomstId,
@@ -437,8 +423,7 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
     loenGruppe: offentligLoenGruppe,
   });
   if (offentligInfoLine) {
-    doc.text(offentligInfoLine, MARGINS.left, currentY);
-    currentY += PDF_BASE_LINE_HEIGHT_MM;
+    writer.writeWrappedText(offentligInfoLine);
   }
   const offentligLoenEkstraGrundloenTekst = resolveOffentligLoenEkstraGrundloenTekst({
     overenskomstId,
@@ -447,17 +432,12 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
   });
 
   if (offentligLoenEkstraGrundloenTekst) {
-    currentY += PDF_BASE_LINE_HEIGHT_MM;
-    currentY = addSectionHeading(doc, 'Forhøjet grundløn', currentY);
-
-    applyNormalTextStyle(doc);
-    doc.text('Skadelidtes grundløn er forhøjet sammenholdt med nedenstående løntrin.', MARGINS.left, currentY);
-    currentY += PDF_BASE_LINE_HEIGHT_MM;
-    doc.text(`Forhøjelsen udgør ${offentligLoenEkstraGrundloenTekst}.`, MARGINS.left, currentY);
-    currentY += PDF_BASE_LINE_HEIGHT_MM;
+    writer.writeSubheader('Forhøjet grundløn', 2 * PDF_BASE_LINE_HEIGHT_MM);
+    writer.writeWrappedText('Skadelidtes grundløn er forhøjet sammenholdt med nedenstående løntrin.');
+    writer.writeWrappedText(`Forhøjelsen udgør ${offentligLoenEkstraGrundloenTekst}.`);
   }
 
-  currentY += PDF_BASE_LINE_HEIGHT_MM - 1;
+  writer.addSpacer(PDF_BASE_LINE_HEIGHT_MM - 1);
 
   let tableData: { columns: TableColumn[]; rows: string[][] } | null = null;
 
@@ -474,7 +454,9 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
   }
 
   if (tableData) {
-    currentY = addReguleringTable(doc, tableData.columns, tableData.rows, currentY);
+    const startY = writer.getY();
+    const nextY = addReguleringTable(doc, tableData.columns, tableData.rows, startY);
+    writer.setY(nextY);
   }
 
   writer.addFooter();

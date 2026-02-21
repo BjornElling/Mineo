@@ -19,7 +19,7 @@ import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { getSammentaellingControlStatus, type SammentaellingDisplayRow } from '../../../domain/debug/eoDebugSammentaelling';
 import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
 import { buildControlMismatchReport, type ControlMismatchReport } from '../../../domain/debug/eoDebugMismatchReport';
-import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
+import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import { isoToDanish } from '../../../types/branded';
@@ -850,3 +850,5 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 EOberegningTab.displayName = 'EOberegningTab';
 
 export default EOberegningTab;
+
+

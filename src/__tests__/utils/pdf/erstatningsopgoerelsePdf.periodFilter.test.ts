@@ -7,7 +7,6 @@ import {
   hasOffentligYdelseRowOverlapWithRanges,
   shouldIncludeReguleringBilag,
   resolveValgtReguleringDisplay,
-  resolveLoenudviklingLabelDisplay,
   shouldIncludeLoenRowInBilag,
   shouldIncludeOffentligYdelseRowInBilag,
 } from '../../../utils/pdf/erstatningsopgoerelsePdf';
@@ -505,31 +504,4 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     expect(resolveValgtReguleringDisplay(af)).toBe('Manuelt angivet');
   });
 
-  it('resolver korrekt overenskomst-label for specifikt ansættelsesforhold i per-ansættelse-kontekst', () => {
-    const eoValues = createErstatningsopgoerelseInitialValues();
-    const [first, second] = eoValues.loenindkomstAnsaettelsesforhold;
-    const firstWithStatistik = {
-      ...first,
-      id: 'af-1',
-      loenudviklingBeregningsgrundlag: 'Statistik' as const,
-      loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
-    };
-    const secondWithOverenskomst = {
-      ...second,
-      id: 'af-2',
-      loenudviklingBeregningsgrundlag: 'Overenskomst' as const,
-      overenskomstId: 'bygge-anlaeg',
-    };
-    eoValues.loenindkomstAnsaettelsesforhold = [firstWithStatistik, secondWithOverenskomst];
-    eoValues.beregnesUdFra = 'Beregningsperiode';
-
-    const resolved = resolveLoenudviklingLabelDisplay({
-      label: 'Overenskomst',
-      eoValues,
-      ansaettelsesforholdId: secondWithOverenskomst.id,
-    });
-
-    expect(resolved).toBe(resolveValgtReguleringDisplay(secondWithOverenskomst));
-    expect(resolved).not.toBe(resolveValgtReguleringDisplay(firstWithStatistik));
-  });
 });

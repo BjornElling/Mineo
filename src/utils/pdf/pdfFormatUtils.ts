@@ -1,4 +1,4 @@
-import { formatCurrency, isSingularCount } from '../formatUtils';
+import { formatCurrency } from '../formatUtils';
 import { roundByMethod } from '../rounding';
 
 const NBSP = '\u00A0';
@@ -34,6 +34,4 @@ export const formatPercentDelta = (value: number): string => {
 };
 
 export { isSingularCount } from '../formatUtils';
-
-export const formatCountWithUnit = (count: number, singular: string, plural: string): string =>
-  `${count.toLocaleString('da-DK')} ${isSingularCount(count) ? singular : plural}`;
+export { formatCountWithUnit } from '../formatUtils';

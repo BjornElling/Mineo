@@ -12,12 +12,14 @@ import {
   normalizeFieldError,
   resolveActiveFieldError,
 } from '../types/fieldErrors';
+import type { FormPersistenceContextValue } from './FormPersistenceContext.types';
 import { serializeFormValues } from '../utils/serialization';
 import { nullToUndefinedDeep, persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
 import { sanitizeLegacyPersistedSectionForAarsloenTables } from '../utils/aarsloenTableLegacySanitization';
 import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
+import { FormPersistenceContext } from './FormPersistenceContext.shared';
  
 
 // Persisted sections are handled via an internal Zustand store; FormPersistenceContext is a facade and not the SoT for committed inputs.
@@ -102,98 +104,7 @@ const applyFieldErrorUpdate = (
   return { kind: 'updateField', nextForField: { ...prevForField, [source]: next } };
 };
 
-type FormPersistenceContextValue = {
-  getPersistedData: <K extends StorageKey>(pageKey: K) => PersistedSectionMap[K] | null;
-  persistData: <K extends StorageKey>(pageKey: K, data: PersistedSectionMap[K]) => void;
-  clearPageData: (pageKey: StorageKey) => void;
-  clearAllData: () => void;
-  hasAnyData: () => boolean;
-  /**
-   * Returns the resolved "active" error per field (1 error max per field).
-   *
-   * Semantics:
-   * - Multiple sources may exist in the underlying store, but this view is flattened via `resolveActiveFieldError`.
-   * - Intended for "what is wrong right now?" (UI-parity) and simple diagnostics.
-   */
-  getFieldErrors: <K extends StorageKey>(
-    pageKey: K
-  ) => Partial<Record<Extract<keyof PersistedSectionMap[K], string>, FormFieldError>>;
-  /**
-   * Returns all errors per field, separated by `source`.
-   *
-   * Intended for debug/diagnostics when you need to know *where* an error came from.
-   */
-  getFieldErrorsBySource: <K extends StorageKey>(pageKey: K) => FieldErrorsForSection<K>;
-  /**
-   * Returns the resolved "active" error for a single field.
-   */
-  getFieldError: <K extends StorageKey>(
-    pageKey: K,
-    fieldName: Extract<keyof PersistedSectionMap[K], string>
-  ) => FormFieldError | undefined;
-  /**
-   * Sets or clears a field error for one specific `(pageKey, fieldName, source)` tuple.
-   *
-   * Invariants:
-   * - Errors are runtime-only and never persisted.
-   * - Producers own their source and must only clear their own source (never other sources).
-   * - Empty/whitespace messages are treated as "no error" and will clear the source.
-   */
-  setFieldError: <K extends StorageKey>(
-    pageKey: K,
-    fieldName: Extract<keyof PersistedSectionMap[K], string>,
-    source: FieldErrorSource,
-    error: { message: string; severity: FieldErrorSeverity } | null
-  ) => void;
-  clearFieldErrors: (pageKey: StorageKey) => void;
-  clearAllFieldErrors: () => void;
-  /**
-   * Runtime-only input error flags for manuel regulering (per ansættelsesforhold).
-   *
-   * NOTE: These are NOT persisted and must be cleared on authoritative state replacement.
-   */
-  getLoenindkomstManuelReguleringInputErrors: () => Readonly<Record<string, true>>;
-  setLoenindkomstManuelReguleringInputError: (ansaettelsesforholdId: string, hasError: boolean) => void;
-  clearLoenindkomstManuelReguleringInputErrors: () => void;
-  /**
-   * Runtime-only field errors.
-   *
-   * Architectural invariants:
-   * - Errors are NOT persisted to `.eo` files or sessionStorage.
-   * - Errors are owned by their producer (input/schema/rule) and must be cleared explicitly by that producer.
-   * - Multiple errors can exist for the same field (separated by `source`); UI uses a deterministic resolver.
-   * - All errors are cleared on authoritative state replacement (reset/load/migration) to prevent stale debug output.
-   */
-  /**
-   * Bumpes når sessionStorage er blevet erstattet autoritativt (fx file-load).
-   * Bruges til at få `usePersistedForm` hooks til at re-hydrate uden `window.location.reload()`.
-   */
-  authoritativeSnapshotEpoch: number;
-  /**
-   * Monotone revision counters for committed input mutations.
-   *
-   * INVARIANT: Any mutation of EO input MUST bump debugRevision.
-   */
-  getSectionRevision: (pageKey: StorageKey) => number;
-  /**
-   * Monotone revision counters for field error mutations.
-   *
-   * INVARIANT: Any mutation of EO input-related errors MUST bump debugRevision.
-   */
-  getFieldErrorRevision: (pageKey: StorageKey) => number;
-  /**
-   * Erstatter ALLE persisterede Mineo-sektioner atomisk.
-   * Semantik: keys der ikke er med i snapshot slettes.
-   */
-  replaceAllPersistedData: (snapshot: Record<StorageKey, unknown | undefined>) => void;
-  /**
-   * Seneste brugerrettede persistence-besked (fx versionsmismatch/korruption).
-   */
-  lastNotice: { message: string; type: 'warning' | 'error' } | null;
-  lastNoticeEpoch: number;
-};
-
-const FormPersistenceContext = React.createContext<FormPersistenceContextValue | null>(null);
+export type { FormPersistenceContextValue } from './FormPersistenceContext.types';
 
 type PersistedCache = { [K in StorageKey]: PersistedSectionMap[K] | null };
 type FieldErrorCache = { [K in StorageKey]: FieldErrorsForSection<K> };
@@ -845,19 +756,4 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       {children}
     </FormPersistenceContext.Provider>
   );
-};
-
-/**
- * Custom hook til at bruge FormPersistenceContext
- *
- * @throws {Error} Hvis context ikke er tilgængelig (komponenten skal wrappes i FormPersistenceProvider)
- */
-export const useFormPersistence = (): FormPersistenceContextValue => {
-  const context = React.useContext(FormPersistenceContext);
-  if (!context) {
-    const errorMessage = 'FormPersistenceContext ikke tilgængelig. Sørg for at komponenten er wrapped i FormPersistenceProvider.';
-    console.error(errorMessage);
-    throw new Error(errorMessage);
-  }
-  return context;
 };

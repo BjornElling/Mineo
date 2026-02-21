@@ -5,7 +5,7 @@ import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { erstatningsopgoerelseSchema } from '../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
-import { useFormPersistence } from '../../contexts/FormPersistenceContext';
+import { useFormPersistence } from '../../contexts/useFormPersistence';
 import EOOplysningerTab from './erstatningsopgoerelse/EOOplysningerTab';
 import LoenindkomstTab from './erstatningsopgoerelse/LoenindkomstTab';
 import OffentligeYdelserTab from './erstatningsopgoerelse/OffentligeYdelserTab';
@@ -364,3 +364,5 @@ const Erstatningsopgoerelse = React.memo(() => {
 Erstatningsopgoerelse.displayName = 'Erstatningsopgoerelse';
 
 export default Erstatningsopgoerelse;
+
+

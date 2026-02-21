@@ -555,7 +555,7 @@ const buildSvieSmerteModel = (
     statusLinjer.push(verserendeKlageMen === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
   }
 
-  if (varigeMenAfgorelse === 'Ja' && menDato && isISODateString(menDato)) {
+  if (varigeMenAfgorelse === 'Ja' && verserendeKlageMen !== 'Ja' && menDato && isISODateString(menDato)) {
     const ophoerDato = subtractOneDay(menDato);
     if (ophoerDato && perioderCoverDate(constrained, ophoerDato)) {
       statusLinjer.push('Afgørelsen bringer retten til svie- og smertegodtgørelse til ophør.');
@@ -2115,6 +2115,23 @@ const buildTabtArbejdsfortjenesteModel = (
 
   const tafPerioderLinjer = buildTafPerioderLinjer(values);
   const harTafPerioder = tafPerioderLinjer.length > 0;
+  const tafRanges = buildTafRanges(values);
+
+  if (
+    values.endeligtEetAfgorelse === 'Ja' &&
+    values.verserendeKlageEet !== 'Ja' &&
+    values.endeligEETVirkningsdato &&
+    isISODateString(values.endeligEETVirkningsdato)
+  ) {
+    const ophoerDato = subtractOneDay(values.endeligEETVirkningsdato);
+    const tafRangesAsDates = tafRanges.map((range) => ({
+      fra: isoDateToDate(range.fra),
+      til: isoDateToDate(range.til),
+    }));
+    if (ophoerDato && perioderCoverDate(tafRangesAsDates, ophoerDato)) {
+      eetLinjer.push('Afgørelsen bringer retten til tabt arbejdsfortjeneste til ophør.');
+    }
+  }
 
   const tafBeregningsenhed = computeTafBeregningsenhed(values);
 
@@ -2129,7 +2146,6 @@ const buildTabtArbejdsfortjenesteModel = (
     ? buildLoenudviklingModelV3(values, stamdataValues, tafBeregningsenhed, indkomstSkadestidspunkt)
     : null;
 
-  const tafRanges = buildTafRanges(values);
   const tafIndtaegter = harTafPerioder ? buildTafIndtaegterModel(values, tafRanges) : null;
   const tidligereModtagetTafKroner = amountValueToNumber(values.tidligereModtagetTaf);
   const tidligereModtagetTaf =

@@ -5,13 +5,9 @@
  * (KTO kommuner, SHK kommuner, KTO regioner, SHK regioner)
  */
 
-import jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
 import { MARGINS } from './pdfConfig';
 import {
-  addSectionHeading,
-  addTitle,
-  applyNormalTextStyle,
   PDF_BASE_LINE_HEIGHT_MM,
   resolvePdfSectionEndY,
   type BrevhovedData,
@@ -32,12 +28,6 @@ export interface KRLStamdata {
   advokat?: string;
   sagsbehandler?: string;
 }
-
-type PdfDoc = jsPDF & {
-  lastAutoTable?: {
-    finalY?: number;
-  };
-};
 
 type KRLPdfParams = Readonly<{
   visBrevhoved?: boolean;
@@ -98,7 +88,7 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
 
   const writer = createStandardPdfWriter();
   writer.setDisplayMode('fullheight');
-  const doc = writer.getDoc() as PdfDoc;
+  const doc = writer.getDoc();
 
   writer.setProperties({
     title: 'KRL Satstabeller',
@@ -106,8 +96,6 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
     author: 'MINEO',
     creator: 'MINEO',
   });
-
-  let currentY = MARGINS.top;
 
   if (visBrevhoved) {
     const brevhovedData: BrevhovedData = {
@@ -117,10 +105,9 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
       dagsDatoISO: TODAY,
     };
     writer.writeBrevhoved(brevhovedData);
-    currentY = writer.getY();
   }
 
-  currentY = addTitle(doc, 'KRL Satstabeller', currentY);
+  writer.writeTitle('KRL Satstabeller');
 
   // Byg samlet tabel
   const { rows } = buildCombinedRows();
@@ -155,7 +142,7 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
 
   const finalY = renderEoStylePdfTable({
     doc,
-    startY: currentY,
+    startY: writer.getY(),
     body: tableRows,
     tableWidth,
     columnStyles: createPdfFixedColumnStyles(5, colWidth, 'center'),
@@ -164,17 +151,12 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
     },
   });
 
-  const resolvedFinalY = resolvePdfSectionEndY(finalY, currentY, { spacer: 0 });
+  const resolvedFinalY = resolvePdfSectionEndY(finalY, writer.getY(), { spacer: 0 });
+  writer.setY(resolvedFinalY + PDF_BASE_LINE_HEIGHT_MM);
 
   // Kildetekst under tabellen
-  const sourceY = addSectionHeading(doc, 'Kilde', resolvedFinalY + PDF_BASE_LINE_HEIGHT_MM);
-  applyNormalTextStyle(doc);
-  doc.text(
-    'KRL\'s sats-tabeller kan genfindes på https://www.krl.dk/#/sats',
-    MARGINS.left,
-    sourceY,
-    { maxWidth: pageWidth - MARGINS.left - MARGINS.right },
-  );
+  writer.writeSubheader('Kilde', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeWrappedText('KRL\'s sats-tabeller kan genfindes på https://www.krl.dk/#/sats');
 
   writer.addFooter();
   writer.save('KRL Satstabeller.pdf');

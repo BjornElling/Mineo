@@ -113,7 +113,6 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
     for (const [index, label] of groupOrder.entries()) {
       if (index > 0) writer.addSpacer(lineHeight);
       renderSubheader(label, lineHeight, { addTopSpacing: index > 0 });
-      writer.addSpacer(lineHeight);
       const tableRows = buildTableRows(grouped.get(label) ?? []);
       const finalY = renderStandardPdfTable({
         doc,

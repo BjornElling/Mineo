@@ -10,8 +10,8 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/
 import { buildErstatningsopgoerelsePdfModel } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { buildTafPerYearResult } from '../../domain/erstatningsopgoerelse/tafPerYearDerived';
 import { createPdfWriter, ensureNonBreakingKr } from './pdfWriter';
-import { FONT_SIZES, PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
-import type { BrevhovedData } from './pdfHelpers';
+import { PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
+import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from './pdfHelpers';
 import { TODAY } from '../../config/dateRanges';
 import type jsPDF from 'jspdf';
 import { roundByMethod } from '../rounding';
@@ -85,10 +85,9 @@ export const generateTafFordeltPaaAarPdf = (
     writer.writeBrevhoved(brevhovedData);
   }
 
-  // Titel (fed skrift)
-  writer.setFontSize(FONT_SIZES.title);
-  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
-  writer.writeWrappedText(titel);
+  // Titel
+  writer.writeTitle(titel);
+  writer.advanceY(-(PDF_TITLE_BOTTOM_SPACING_MM - lineHeight));
 
   // Erstatningsperiode
   writer.setNormalTextStyle();
@@ -115,7 +114,7 @@ export const generateTafFordeltPaaAarPdf = (
   writer.writeSectionHeader('Tabt arbejdsfortjeneste', lineHeight);
 
   // Status
-  writer.writeSubheader('Status', lineHeight, { addTopSpacing: false });
+  writer.writeSubheader('Status', lineHeight);
   writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
   for (const line of model.tabtArbejdsfortjeneste.statusLinjer) {
     writer.writeWrappedText(line);

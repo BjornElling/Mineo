@@ -4,7 +4,7 @@ import BeregnetRenteTable from '../../../components/tables/BeregnetRenteTable';
 import type { RentekravDraftRow } from '../../../domain/renteberegning/tableDraftRows';
 import type { RentekravRow } from '../../../schemas/formSchemas';
 
-vi.mock('../../../contexts/FormPersistenceContext', () => ({
+vi.mock('../../../contexts/useFormPersistence', () => ({
   useFormPersistence: () => ({
     getPersistedData: () => undefined,
   }),
@@ -60,4 +60,3 @@ describe('BeregnetRenteTable amount commit wiring', () => {
     expect(onRowBlur).toHaveBeenCalledWith('r1');
   });
 });
-

@@ -151,7 +151,6 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
       return;
     }
     safeAddWrappedText(formatRangeLong(fra, til));
-    writer.addSpacer(lineHeight);
     const helligdage = findHelligdageInRange(fra, til);
     if (helligdage.length === 0) {
       safeAddWrappedText('Ingen helligdage');
