@@ -15,11 +15,12 @@ Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
 
 1. Applikationen kører **100 % client-side**.
 2. Ingen brugerdata må forlade browseren.
-3. Al state-håndtering skal være:
+3. Domænegrænser mellem sider er bindende og styres af `src/contracts/domain-boundary-contract.md`.
+4. Al state-håndtering skal være:
    - deterministisk
    - forudsigelig
    - fri for skjulte side-effects
-4. Korrekthed prioriteres altid over:
+5. Korrekthed prioriteres altid over:
    - kort kode
    - "nemme løsninger"
    - midlertidige hacks

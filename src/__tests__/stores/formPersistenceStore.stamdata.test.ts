@@ -1,8 +1,7 @@
 import {
   __createTestStore,
-  selectStamdataDefaultDatoLabel,
-  selectStamdataHasAnyInput,
 } from '../../stores/formPersistenceStore';
+import { hasStamdataAny, resolveStamdataDatoLabel } from '../../domain/calculations';
 import { toISODateString } from '../../types/branded';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 
@@ -31,8 +30,8 @@ describe('formPersistenceStore (stamdata selectors)', () => {
     const state = store.getState();
 
     // assert
-    expect(selectStamdataDefaultDatoLabel(state.sections.stamdata)).toBe('Anmeldelsesdato');
-    expect(selectStamdataHasAnyInput(state.sections.stamdata)).toBe(true);
+    expect(resolveStamdataDatoLabel(state.sections.stamdata)).toBe('Anmeldelsesdato');
+    expect(hasStamdataAny(state.sections.stamdata)).toBe(true);
   });
 
   it('defaults to Skadesdato when skadestype is unset', () => {
@@ -45,7 +44,7 @@ describe('formPersistenceStore (stamdata selectors)', () => {
     const state = store.getState();
 
     // assert
-    expect(selectStamdataDefaultDatoLabel(state.sections.stamdata)).toBe('Skadesdato');
+    expect(resolveStamdataDatoLabel(state.sections.stamdata)).toBe('Skadesdato');
   });
 
   it('treats empty stamdata as no data', () => {
@@ -56,7 +55,7 @@ describe('formPersistenceStore (stamdata selectors)', () => {
     const state = store.getState();
 
     // assert
-    expect(selectStamdataHasAnyInput(state.sections.stamdata)).toBe(false);
-    expect(selectStamdataDefaultDatoLabel(state.sections.stamdata)).toBe('Skadesdato');
+    expect(hasStamdataAny(state.sections.stamdata)).toBe(false);
+    expect(resolveStamdataDatoLabel(state.sections.stamdata)).toBe('Skadesdato');
   });
 });

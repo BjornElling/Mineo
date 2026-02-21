@@ -9,10 +9,10 @@ import { satserSchema } from '../../schemas/formSchemas';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
 import {
-  selectSatserAargangErrorMessage,
-  selectSatserCanDownload,
-  selectSatserEffectiveAargang,
-} from '../../stores/formPersistenceStore';
+  canDownloadSatser,
+  resolveSatserAargangErrorMessage,
+  resolveSatserEffectiveAargang,
+} from '../../domain/calculations';
 import ContentBox from '../layout/ContentBox';
 import { formatAsAmount, formatPercent } from '../../utils/formatUtils';
 
@@ -102,16 +102,16 @@ const Satser = React.memo(() => {
 
   // Opdater satser når årstal ændres og er gyldigt
   const effectiveYear = React.useMemo(
-    () => selectSatserEffectiveAargang(values, MIN_SATSER_YEAR, MAX_SATSER_YEAR),
+    () => resolveSatserEffectiveAargang(values, MIN_SATSER_YEAR, MAX_SATSER_YEAR),
     [MAX_SATSER_YEAR, MIN_SATSER_YEAR, values]
   );
   const yearErrorMessage = React.useMemo(
-    () => selectSatserAargangErrorMessage(values, MIN_SATSER_YEAR, MAX_SATSER_YEAR),
+    () => resolveSatserAargangErrorMessage(values, MIN_SATSER_YEAR, MAX_SATSER_YEAR),
     [MAX_SATSER_YEAR, MIN_SATSER_YEAR, values]
   );
   const yearError = yearErrorMessage ? { message: yearErrorMessage } : undefined;
   const canDownload = React.useMemo(
-    () => selectSatserCanDownload(values, MIN_SATSER_YEAR, MAX_SATSER_YEAR),
+    () => canDownloadSatser(values, MIN_SATSER_YEAR, MAX_SATSER_YEAR),
     [MAX_SATSER_YEAR, MIN_SATSER_YEAR, values]
   );
 

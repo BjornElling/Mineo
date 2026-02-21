@@ -1,50 +1,54 @@
 import type { DeepReadonly } from '../../types/deepReadonly';
-import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
-import type { RenteberegningOutput } from '../../domain/renteberegning/renteberegningEngine';
+import type {
+  ErstatningsopgoerelseValues,
+} from '../../schemas/formSchemas';
 import type { TafEngineOutput } from '../../domain/erstatningsopgoerelse/tafBeregningsEngine';
-import type { VarigeMenEngineOutput } from '../../domain/varigemen/varigeMenEngine';
 import type { AggregatableComputed } from '../../domain/erstatningsopgoerelse/aggregationAdapters';
-import { adaptRenteForAggregation, adaptTafForAggregation, adaptVarigtMenForAggregation } from '../../domain/erstatningsopgoerelse/aggregationAdapters';
+import {
+  adaptOevrigeKravForAggregation,
+  adaptTafForAggregation,
+} from '../../domain/erstatningsopgoerelse/aggregationAdapters';
 import { ERSTATNINGSOPGOERELSE_AGGREGATION_POLICY } from '../policy/erstatningsopgoerelse.policy';
 import { aggregateErstatningsopgoerelse, type AggregationResult } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseAggregationEngine';
-import { amountValueToNumber } from '../../utils/expressionAmount';
+import { computeTafEngine } from '../../domain/erstatningsopgoerelse/tafBeregningsEngine';
+import { isTafRowEmpty } from '../../domain/erstatningsopgoerelse/rowEmpty';
+import { logError } from '../../utils/logger';
 
 export type ErstatningsopgoerelseAggregationInputs = DeepReadonly<{
   erstatningsopgoerelse: ErstatningsopgoerelseValues;
-  renteOutput?: RenteberegningOutput | null;
   tafOutput?: TafEngineOutput | null;
-  varigtMenOutput?: VarigeMenEngineOutput | null;
-  eetOutput?: AggregatableComputed | null;
   svieSmerteOutput?: AggregatableComputed | null;
   loenindkomstOutput?: AggregatableComputed | null;
   offentligeYdelserOutput?: AggregatableComputed | null;
 }>;
 
+export type ErstatningsopgoerelseAggregationSnapshot = DeepReadonly<{
+  erstatningsopgoerelse: ErstatningsopgoerelseValues;
+  svieSmerteOutput?: AggregatableComputed | null;
+  loenindkomstOutput?: AggregatableComputed | null;
+  offentligeYdelserOutput?: AggregatableComputed | null;
+}>;
+
+const tryCompute = <T>(compute: () => T): T | null => {
+  try {
+    return compute();
+  } catch (error) {
+    logError('Beregning fejlede i aggregation pipeline', {
+      context: 'calculation.erstatningsopgoerelseAggregationPipeline',
+      error: error instanceof Error ? error : undefined,
+    });
+    return null;
+  }
+};
+
 export const computeErstatningsopgoerelseAggregation = (
   input: ErstatningsopgoerelseAggregationInputs
 ): AggregationResult => {
   const computedOutputs: Record<string, AggregatableComputed> = {};
-  const oevrigeKravRows = input.erstatningsopgoerelse.oevrigeKravPerioder ?? [];
-  const oevrigeKravAmount = oevrigeKravRows.reduce((sum, row) => {
-    const amount = amountValueToNumber(row.beloeb);
-    return amount === undefined ? sum : sum + amount;
-  }, 0);
 
-  // NOTE: Aggregation is fail-closed; EET adapter/engine is a gating dependency.
-  if (input.renteOutput) {
-    const adapted = adaptRenteForAggregation(input.renteOutput);
-    if (adapted) computedOutputs.rente = adapted;
-  }
   if (input.tafOutput) {
     const adapted = adaptTafForAggregation(input.tafOutput);
     if (adapted) computedOutputs.taf = adapted;
-  }
-  if (input.varigtMenOutput) {
-    const adapted = adaptVarigtMenForAggregation(input.varigtMenOutput);
-    if (adapted) computedOutputs.varigtMen = adapted;
-  }
-  if (input.eetOutput) {
-    computedOutputs.eet = input.eetOutput;
   }
   if (input.svieSmerteOutput) {
     computedOutputs.svieSmerte = input.svieSmerteOutput;
@@ -55,10 +59,42 @@ export const computeErstatningsopgoerelseAggregation = (
   if (input.offentligeYdelserOutput) {
     computedOutputs.offentligeYdelser = input.offentligeYdelserOutput;
   }
-  computedOutputs.oevrigeKrav = { amount: oevrigeKravAmount };
+  const oevrigeKrav = adaptOevrigeKravForAggregation(input.erstatningsopgoerelse);
+  if (oevrigeKrav) {
+    computedOutputs.oevrigeKrav = oevrigeKrav;
+  }
 
   return aggregateErstatningsopgoerelse({
     policy: ERSTATNINGSOPGOERELSE_AGGREGATION_POLICY,
     computedOutputs,
   });
+};
+
+export const computeErstatningsopgoerelseAggregationFromSnapshot = (
+  snapshot: ErstatningsopgoerelseAggregationSnapshot
+): AggregationResult | null => {
+  const shouldComputeTaf =
+    snapshot.erstatningsopgoerelse.beregnesTabtArbejdsfortjeneste === 'Ja' &&
+    snapshot.erstatningsopgoerelse.tafPerioder.some((row) => !isTafRowEmpty(row));
+
+  const tafOutput =
+    shouldComputeTaf
+      ? tryCompute(() =>
+        computeTafEngine({
+          erstatningsopgoerelse: snapshot.erstatningsopgoerelse,
+          tafPerioder: snapshot.erstatningsopgoerelse.tafPerioder,
+          ferieperioder: snapshot.erstatningsopgoerelse.ferieperioder,
+        })
+      )
+      : null;
+
+  return tryCompute(() =>
+    computeErstatningsopgoerelseAggregation({
+      erstatningsopgoerelse: snapshot.erstatningsopgoerelse,
+      tafOutput,
+      svieSmerteOutput: snapshot.svieSmerteOutput,
+      loenindkomstOutput: snapshot.loenindkomstOutput,
+      offentligeYdelserOutput: snapshot.offentligeYdelserOutput,
+    })
+  );
 };

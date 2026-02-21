@@ -21,8 +21,8 @@ import {
   loadSHDagePdfModule,
   loadSatserPdfModule,
   loadTafFordeltPaaAarPdfModule,
+  loadVarigeMenPdfModule,
 } from './pdfLoader';
-import { generateVarigeMenPdf } from './varigeMenPdf';
 import { coerceToDanishDateString, type ISODateString } from '../../types/branded';
 import type { VarigeMenBeregningResult } from '../../domain/varigemen/varigeMenCalculations';
 import { logError, logWarning } from '../logger';
@@ -242,6 +242,7 @@ export const downloadKrlPdf = async (params: Readonly<{
   persistedStamdata: unknown;
 }>): Promise<PdfDownloadResult> => {
   const { settings, persistedStamdata } = params;
+  // Intentional UX: KRL shares the same letterhead setting as regulering (no separate KRL toggle).
   const common = buildCommonPdfContext(settings, 'regulering', persistedStamdata);
 
   try {
@@ -334,6 +335,7 @@ export const downloadVarigeMenPdf = async (params: Readonly<{
   const common = buildCommonPdfContext(settings, 'varigeMen', persistedStamdata);
 
   try {
+    const { generateVarigeMenPdf } = await loadVarigeMenPdfModule();
     generateVarigeMenPdf({
       fodselsdato,
       skadesdato,

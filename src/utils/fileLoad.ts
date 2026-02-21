@@ -12,7 +12,8 @@ import {
 } from './logger';
 import { FILE_FORMAT_VERSION, MAX_FILE_SIZE } from '../config/version';
 import { STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
-import { nullToUndefinedDeep, persistenceSchemaFingerprint, persistenceSchemas } from '../config/persistenceRegistry';
+import { persistenceSchemaFingerprint, persistenceSchemas } from '../config/persistenceRegistry';
+import { nullToUndefinedDeep } from './nullToUndefinedDeep';
 import { buildPersistenceDefaults, type PersistedSectionDefaults } from '../config/persistenceDefaults';
 import {
   isFileSystemAccessSupported,
@@ -70,7 +71,7 @@ const normalizeDecryptedContainer = (decrypted: unknown): EoFileContainerLoad =>
  * @param resolvedDirectory - Optional resolved directory fra resolveDefaultDirectoryHandle
  */
 type LoadIssue = { path: string; reason: string };
-type ZodIssueLike = { path: Array<string | number | symbol> };
+type ZodIssueLike = { path: Array<string | number | symbol>; message?: string };
 
 const formatPathSegments = (segments: Array<string | number>): string => {
   let out = '';
@@ -165,7 +166,7 @@ const processDecryptedContainer = (args: {
       : [];
     const detailPath = normalizedPath.length > 0 ? formatPathSegments(normalizedPath) : '(root)';
     const issuePath = detailPath === '(root)' ? sectionKey : `${sectionKey}.${detailPath}`;
-    const reasonDetail = 'Forkert format';
+    const reasonDetail = primaryIssue?.message ?? 'Forkert format';
     loadIssues.push({
       path: issuePath,
       reason: `Sektionen kunne ikke indlæses (${reasonDetail}) og blev ikke indlæst`,

@@ -269,7 +269,7 @@ const Om = React.memo(() => {
             Mulighed for automatisk beregning af sociale ydelser
           </Box>
           <Box component="li" sx={{ marginBottom: '8px' }}>
-            Simpel adgang til at overføre beregnede ydelser fra EET-beregneren til TAF-beregneren
+            Udvidede hjælpefunktioner til opgørelse af offentlige ydelser
           </Box>
           <Box component="li" sx={{ marginBottom: '8px' }}>
             Opgørelse af forsørgertabserstatning

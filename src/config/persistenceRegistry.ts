@@ -26,16 +26,3 @@ export type PersistedSectionMap = {
 };
 
 export type PersistedSection<K extends StorageKey> = PersistedSectionMap[K];
-
-export const nullToUndefinedDeep = (value: unknown): unknown => {
-  if (value === null) return undefined;
-  if (Array.isArray(value)) return value.map(nullToUndefinedDeep);
-  if (typeof value === 'object' && value !== null) {
-    const result: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) {
-      result[k] = nullToUndefinedDeep(v);
-    }
-    return result;
-  }
-  return value;
-};

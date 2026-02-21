@@ -1,11 +1,13 @@
 import {
   __createTestStore,
-  selectAarsloenHasEffectiveRows,
-  selectAarsloenDefaultLoenperiode,
-  selectAarsloenShowFerieFields,
-  selectAarsloenShowShDageFields,
-  selectAarsloenShouldWarnFeriePct,
 } from '../../stores/formPersistenceStore';
+import {
+  hasAarsloenEffectiveRows,
+  resolveAarsloenDefaultLoenperiode,
+  shouldShowAarsloenFerieFields,
+  shouldShowAarsloenShDageFields,
+  shouldWarnAarsloenFeriePct,
+} from '../../domain/calculations';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import type { AarsloenTableRow } from '../../schemas/formSchemas';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
@@ -28,7 +30,7 @@ describe('formPersistenceStore (aarsloen selectors)', () => {
     const state = store.getState();
 
     // assert
-    expect(selectAarsloenDefaultLoenperiode(state.sections.aarsloen)).toBe(LOENPERIODE.MAANED);
+    expect(resolveAarsloenDefaultLoenperiode(state.sections.aarsloen)).toBe(LOENPERIODE.MAANED);
   });
 
   it('returns loenperiode from state when present', () => {
@@ -52,7 +54,7 @@ describe('formPersistenceStore (aarsloen selectors)', () => {
     const state = store.getState();
 
     // assert
-    expect(selectAarsloenDefaultLoenperiode(state.sections.aarsloen)).toBe(LOENPERIODE.UGE);
+    expect(resolveAarsloenDefaultLoenperiode(state.sections.aarsloen)).toBe(LOENPERIODE.UGE);
   });
 
   it('detects non-empty rows', () => {
@@ -96,7 +98,7 @@ describe('formPersistenceStore (aarsloen selectors)', () => {
     const state = store.getState();
 
     // assert
-    expect(selectAarsloenHasEffectiveRows(state.sections.aarsloen)).toBe(true);
+    expect(hasAarsloenEffectiveRows(state.sections.aarsloen)).toBe(true);
   });
 
   it('exposes derived UI flags from aarsloen state', () => {
@@ -120,8 +122,8 @@ describe('formPersistenceStore (aarsloen selectors)', () => {
     const state = store.getState();
 
     // assert
-    expect(selectAarsloenShowFerieFields(state.sections.aarsloen)).toBe(true);
-    expect(selectAarsloenShowShDageFields(state.sections.aarsloen)).toBe(true);
-    expect(selectAarsloenShouldWarnFeriePct(state.sections.aarsloen)).toBe(true);
+    expect(shouldShowAarsloenFerieFields(state.sections.aarsloen)).toBe(true);
+    expect(shouldShowAarsloenShDageFields(state.sections.aarsloen)).toBe(true);
+    expect(shouldWarnAarsloenFeriePct(state.sections.aarsloen)).toBe(true);
   });
 });

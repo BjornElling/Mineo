@@ -7,7 +7,7 @@ import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { stamdataSchema } from '../../schemas/formSchemas';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
-import { selectStamdataDefaultDatoLabel } from '../../stores/formPersistenceStore';
+import { resolveStamdataDatoLabel } from '../../domain/calculations';
 import StyledDateField from '../inputs/StyledDateField';
 import StyledDropdown from '../inputs/StyledDropdown';
 import StyledTextField, { type StyledTextFieldValueCommitEvent } from '../inputs/StyledTextField';
@@ -40,7 +40,7 @@ const Stamdata = React.memo(() => {
   };
 
   const datoLabel = React.useMemo(
-    () => selectStamdataDefaultDatoLabel(values),
+    () => resolveStamdataDatoLabel(values),
     [values]
   );
 

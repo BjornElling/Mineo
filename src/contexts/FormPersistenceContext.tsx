@@ -14,7 +14,8 @@ import {
 } from '../types/fieldErrors';
 import type { FormPersistenceContextValue } from './FormPersistenceContext.types';
 import { serializeFormValues } from '../utils/serialization';
-import { nullToUndefinedDeep, persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
+import { persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
+import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
 import { sanitizeLegacyPersistedSectionForAarsloenTables } from '../utils/aarsloenTableLegacySanitization';
 import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
@@ -325,8 +326,8 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     });
   }, []);
 
-  const syncSection = React.useCallback((pageKey: StorageKey, next: PersistedSectionMap[StorageKey] | null) => {
-    formPersistenceStore.getState().commitSection(pageKey, next as PersistedSectionMap[StorageKey] | null, {
+  const syncSection = React.useCallback(<K extends StorageKey>(pageKey: K, next: PersistedSectionMap[K] | null) => {
+    formPersistenceStore.getState().commitSection(pageKey, next, {
       schemaFingerprint: CURRENT_VERSION,
     });
     setCacheForKey(pageKey, next);
@@ -394,8 +395,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       };
 
       sessionStorage.setItem(storageKey, JSON.stringify(persistedData));
-      // Safe: pageKey determines schema/data shape.
-      syncSection(pageKey, postSerializeValidated.data as PersistedSectionMap[StorageKey]);
+      syncSection(pageKey, postSerializeValidated.data as PersistedSectionMap[K]);
       setSectionRevisions((prev) => {
         const next = { ...prev };
         next[pageKey] = (prev[pageKey] ?? 0) + 1;

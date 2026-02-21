@@ -19,10 +19,10 @@ import { aarsloenSchema } from '../../schemas/formSchemas';
 import { isLoenperiodeValue, isLoenPaaHelligdageValue } from '../../utils/zodTypeGuards';
 import { harTabelData } from '../../utils/aarsloenValidation';
 import {
-  selectAarsloenShowFerieFields,
-  selectAarsloenShowShDageFields,
-  selectAarsloenShouldWarnFeriePct,
-} from '../../stores/formPersistenceStore';
+  shouldShowAarsloenFerieFields,
+  shouldShowAarsloenShDageFields,
+  shouldWarnAarsloenFeriePct,
+} from '../../domain/calculations';
 import type { z } from 'zod';
 import type {
   AarsloenTableValidationSummary,
@@ -213,15 +213,15 @@ const Aarsloen = React.memo(() => {
   // Derived boolean for conditional rendering
   const canShowOmregning = omregningAktiveret && !!periodeData;
   const shouldShowFerieFields = React.useMemo(
-    () => selectAarsloenShowFerieFields(values),
-    [values.fuldLoenUnderFerie]
+    () => shouldShowAarsloenFerieFields(values),
+    [values]
   );
   const shouldShowShDageFields = React.useMemo(
-    () => selectAarsloenShowShDageFields(values),
-    [values.loenPaaHelligdage]
+    () => shouldShowAarsloenShDageFields(values),
+    [values]
   );
   const shouldWarnFeriePct = React.useMemo(
-    () => selectAarsloenShouldWarnFeriePct(values),
+    () => shouldWarnAarsloenFeriePct(values),
     [values.feriePct, values.fuldLoenUnderFerie, values.retTilSjetteFerieuge]
   );
 

@@ -1,20 +1,6 @@
 import { createStore } from 'zustand/vanilla';
 import { persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
-import type { Loenperiode } from '../types/loen';
-import {
-  hasAarsloenEffectiveRows,
-  hasSatserAny,
-  hasStamdataAny,
-  resolveAarsloenDefaultLoenperiode,
-  resolveSatserAargangErrorMessage,
-  canDownloadSatser,
-  resolveSatserEffectiveAargang,
-  resolveStamdataDatoLabel,
-  shouldShowAarsloenFerieFields,
-  shouldShowAarsloenShDageFields,
-  shouldWarnAarsloenFeriePct,
-} from '../domain/calculations';
 
 export type FormPersistenceSections = {
   stamdata: PersistedSectionMap['stamdata'] | null;
@@ -148,65 +134,3 @@ const createFormPersistenceStore = () =>
 
 export const formPersistenceStore = createFormPersistenceStore();
 export const __createTestStore = createFormPersistenceStore;
-
-export const selectStamdataDefaultDatoLabel = (
-  stamdata: FormPersistenceSections['stamdata']
-): 'Anmeldelsesdato' | 'Skadesdato' => {
-  return resolveStamdataDatoLabel(stamdata);
-};
-
-// hasAnyInput: true when the user has provided any meaningful input, regardless of calculation impact.
-export const selectStamdataHasAnyInput = (stamdata: FormPersistenceSections['stamdata']): boolean => {
-  return hasStamdataAny(stamdata);
-};
-
-export const selectAarsloenDefaultLoenperiode = (
-  aarsloen: FormPersistenceSections['aarsloen']
-): Loenperiode => {
-  return resolveAarsloenDefaultLoenperiode(aarsloen);
-};
-
-// hasEffectiveRows: true only when rows have calculation impact.
-export const selectAarsloenHasEffectiveRows = (aarsloen: FormPersistenceSections['aarsloen']): boolean => {
-  return hasAarsloenEffectiveRows(aarsloen);
-};
-
-export const selectAarsloenShowFerieFields = (aarsloen: FormPersistenceSections['aarsloen']): boolean => {
-  return shouldShowAarsloenFerieFields(aarsloen);
-};
-
-export const selectAarsloenShowShDageFields = (aarsloen: FormPersistenceSections['aarsloen']): boolean => {
-  return shouldShowAarsloenShDageFields(aarsloen);
-};
-
-export const selectAarsloenShouldWarnFeriePct = (aarsloen: FormPersistenceSections['aarsloen']): boolean => {
-  return shouldWarnAarsloenFeriePct(aarsloen);
-};
-
-export const selectSatserHasAnyInput = (satser: FormPersistenceSections['satser']): boolean => {
-  return hasSatserAny(satser);
-};
-
-export const selectSatserAargangErrorMessage = (
-  satser: FormPersistenceSections['satser'],
-  minYear: number,
-  maxYear: number
-): string | undefined => {
-  return resolveSatserAargangErrorMessage(satser, minYear, maxYear);
-};
-
-export const selectSatserCanDownload = (
-  satser: FormPersistenceSections['satser'],
-  minYear: number,
-  maxYear: number
-): boolean => {
-  return canDownloadSatser(satser, minYear, maxYear);
-};
-
-export const selectSatserEffectiveAargang = (
-  satser: FormPersistenceSections['satser'],
-  minYear: number,
-  maxYear: number
-): number | undefined => {
-  return resolveSatserEffectiveAargang(satser, minYear, maxYear);
-};

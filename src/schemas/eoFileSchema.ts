@@ -15,7 +15,7 @@ import {
   stamdataSchema,
   varigeMenSchema,
 } from './formSchemas';
-import { nullToUndefinedDeep } from '../config/persistenceRegistry';
+import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
 
 /**
  * Root data structure inside decrypted `.eo` file.

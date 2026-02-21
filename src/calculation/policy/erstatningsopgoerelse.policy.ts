@@ -6,33 +6,11 @@ export const ERSTATNINGSOPGOERELSE_AGGREGATION_POLICY_RAW = {
   totalRounding: { when: 'onlyTotal', method: 'halfAwayFromZero', precision: 0 },
   lines: [
     {
-      id: 'rente',
-      computedSourceId: 'rente',
-      computedValuePath: 'amount',
-      strategy: 'computedOnly',
-      sign: 'positive',
-    },
-    {
       id: 'taf',
       computedSourceId: 'taf',
       computedValuePath: 'amount',
       strategy: 'computedOnly',
       sign: 'positive',
-    },
-    {
-      id: 'varigtMen',
-      computedSourceId: 'varigtMen',
-      computedValuePath: 'amount',
-      strategy: 'computedOnly',
-      sign: 'positive',
-    },
-    {
-      id: 'eet',
-      computedSourceId: 'eet',
-      computedValuePath: 'amount',
-      strategy: 'computedOnly',
-      sign: 'positive',
-      // Gating dependency: requires EET adapter/engine.
     },
     {
       id: 'svieSmerte',

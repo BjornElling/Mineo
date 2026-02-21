@@ -1,7 +1,10 @@
 import type { DeepReadonly } from '../../types/deepReadonly';
+import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import type { RenteberegningOutput } from '../renteberegning/renteberegningEngine';
 import type { TafEngineOutput } from './tafBeregningsEngine';
 import type { VarigeMenEngineOutput } from '../varigemen/varigeMenEngine';
+import { amountValueToNumber } from '../../utils/expressionAmount';
+import { isOevrigeKravRowEmpty } from './rowEmpty';
 
 export type AggregatableComputed = Readonly<{
   amount: number;
@@ -38,4 +41,16 @@ export const adaptVarigtMenForAggregation = (
   const amount = output.result.beregnetGodtgoerelse;
   if (typeof amount !== 'number' || !Number.isFinite(amount)) return null;
   return { amount };
+};
+
+export const adaptOevrigeKravForAggregation = (
+  erstatningsopgoerelse: DeepReadonly<ErstatningsopgoerelseValues>
+): AggregatableComputed | null => {
+  const rows = (erstatningsopgoerelse.oevrigeKravPerioder ?? []).filter((row) => !isOevrigeKravRowEmpty(row));
+  const amounts = rows.map((row) => {
+    const value = amountValueToNumber(row.beloeb);
+    return value === undefined ? null : value;
+  });
+  const amount = sumFinite(amounts);
+  return amount === null ? null : { amount };
 };
