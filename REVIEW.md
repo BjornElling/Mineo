@@ -1,0 +1,122 @@
+# Arkitektonisk review — Mineo (endelig tilstand)
+
+**Dato:** 2026-02-21  
+**Formål:** Opdateret slutstatus efter gennemførte rettelser, med fokus på kun reelle udeståender.
+
+---
+
+## Produktregel (afklaret)
+
+1. `EOberegningTab` skal ikke være kilden til den endelige samlede erstatning.
+2. Brugeren skal kende den samlede erstatning via PDF-download-flowet.
+3. Review-fund vurderes derfor ud fra korrekthed/arkitektur i beregnings- og PDF-flow, ikke ud fra forventning om synlig total i tab-UI.
+
+---
+
+## Konklusion (kort)
+
+De fleste tidligere lav-/medium-fund er nu løst. Den resterende væsentlige arkitekturrisiko er fortsat dobbelte beregningsspor mellem EO-aggregation og EO-PDF-model samt stor kompleksitet i `eoPdfModel.ts`.
+
+## Princip-efterlevelse: EET + tværside-data (afklaring)
+
+Denne kontrol er lavet mod følgende principper:
+
+1. Erhvervsevnetab-siden er ikke udviklet som beregningsdomæne endnu, men må gerne være synlig/klikbar som placeholder.
+2. Der skal ikke laves aktiv EET-beregningsintegration på nuværende tidspunkt.
+3. `midlertidigt_eet` som offentlig ydelse er en særskilt ydelsestype og ikke en integration til Erhvervsevnetab-siden.
+4. Der må ikke gengives data på tværs af siderne `Erstatningsopgørelse`, `Erhvervsevnetab`, `Varige mén`, `Årslønsberegning`, `Renteberegning`, `Satser`.
+5. `Stamdata` må gerne læses på tværs.
+
+Status pr. kodegennemgang:
+
+1. **Afklaret og opfyldt:** Erhvervsevnetab-siden må være synlig/klikbar som placeholder.
+   1. Route er aktiv i `src/App.tsx` (`/erhvervsevnetab`).
+   2. Siden er synlig i menuen i `src/components/layout/SideMenu.tsx`.
+   3. Siden fungerer som placeholder i `src/components/pages/Erhvervsevnetab.tsx`.
+   4. Kravet er, at siden ikke fungerer som aktivt beregningsdomæne endnu.
+2. **Ikke opfyldt:** EET-relateret kode er fortsat omfattende i EO-domænet.
+   1. EET er fjernet fra aggregation-policy/pipeline (`src/calculation/policy/erstatningsopgoerelse.policy.ts`, `src/calculation/pipeline/erstatningsopgoerelseAggregationPipeline.ts`).
+   2. EO-formschema og EO-UI indeholder fortsat aktive EET-felter/datoer (korrekt ift. EO-domænet): `src/schemas/formSchemas.ts`, `src/components/pages/erstatningsopgoerelse/EOOplysningerTab.tsx`.
+   3. EO-debug og EO-PDF-model bruger fortsat disse EO-felter (korrekt adfærd): `src/domain/erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel.ts`, `src/domain/erstatningsopgoerelse/eoPdfModel.ts`.
+   4. `midlertidigt_eet` i offentlige ydelser er en særskilt ydelsestype og behandles som legitim undtagelse (ikke side-integration).
+3. **Opfyldt:** EO-aggregation er afkoblet fra andre fagsider end EO + stamdata.
+   1. `useErstatningsopgoerelseAggregation` læser ikke længere `renteberegning`/`varigemen`.
+   2. Snapshot-orchestrering i pipeline bruger ikke tværside persisted inputs.
+5. **Opfyldt:** Ingen fund af persisted opslag mod `erhvervsevnetab` i EO-flow (`getPersistedData/usePersistedSection`).
+4. **Opfyldt:** Udbredt og legitim tværlæsning af `stamdata` findes på flere sider (som forventet).
+
+---
+
+## Status på tidligere fund
+
+## Lukket (implementeret/løst)
+
+1. Hook-orchestrering: `useErstatningsopgoerelseAggregation` kalder ikke længere engines direkte.
+2. Aggregation-fejl logges nu via `logError` i pipeline (`tryCompute`).
+3. TAF-gating er semantisk strammet (`beregnesTabtArbejdsfortjeneste === 'Ja'` + `.length > 0`).
+4. Rente-gating er rettet, så den ikke afhænger af stamdata.
+5. `nullToUndefinedDeep` er flyttet til shared util (`src/utils/nullToUndefinedDeep.ts`) og dokumenteret med eksplicit kontrakt.
+6. `varigeMen`-PDF er lazy-loadet via `pdfLoader`.
+7. `useMemo`-import i `useErstatningsopgoerelseAggregation` er harmoniseret (`import { useMemo } from 'react'`).
+8. Happy-path orchestration-test for `fromSnapshot` med komplette computed outputs er tilføjet.
+
+## Ikke længere relevante / omklassificeret
+
+1. “UI bør vise status for manglende samlet total i `EOberegningTab`” udgår som generelt fund pga. afklaret produktregel.
+2. “OutputSchema som ekstra lag” er fortsat ikke en målrettet forbedring i sig selv.
+
+---
+
+## Åbne fund (prioriteret)
+
+## Høj prioritet
+
+1. **Principbrud: EET er ikke holdt ude af nuværende EO-kodebase**
+   1. EET er fjernet fra policy/pipeline, men findes fortsat i schema/EO-UI/debug/PDF-model.
+   2. Anbefaling: tag en eksplicit beslutning om scope:
+      1. enten accepter EET som EO-delmængde nu og dokumentér det som officiel undtagelse,
+      2. eller fjern/deaktiver EET-relaterede elementer konsekvent, indtil dedikeret Erhvervsevnetab-implementering påbegyndes.
+   3. Uanset scope-beslutning: data fra `Erhvervsevnetab`-siden må ikke kobles ind i disse EO-felter.
+
+2. **Parallelle beregningssandheder mellem EO-aggregation og EO-PDF**
+   1. EO-aggregation beregnes i `src/calculation/pipeline/erstatningsopgoerelseAggregationPipeline.ts`.
+   2. PDF-beregningen drives af separat model i `src/domain/erstatningsopgoerelse/eoPdfModel.ts` via `src/utils/pdf/erstatningsopgoerelsePdf.ts`.
+   3. Risiko: drift mellem interne beregningsresultater og det PDF’en ender med at vise.
+   4. Anbefaling: definér én kanonisk beregningskerne pr. EO-delområde og lad både aggregation og PDF bruge samme outputs.
+
+3. **`eoPdfModel.ts` er et arkitektonisk hotspot**
+   1. Filen er meget stor og blander flere domæner/ansvar.
+   2. Risiko: høj regressionsfare ved ændringer, svag auditérbarhed, vanskeligt ejerskab.
+   3. Anbefaling: opdel i domænemoduler (svie/smerte, TAF, lønudvikling, øvrige krav, sammentælling) med tydelige input/output-kontrakter.
+
+## Medium prioritet
+
+1. **Snapshot-kontrakt vs. faktisk orchestration er ikke fuldt tilkoblet**
+   1. `ErstatningsopgoerelseAggregationSnapshot` understøtter `svieSmerteOutput`, `loenindkomstOutput`, `offentligeYdelserOutput`.
+   2. `useErstatningsopgoerelseAggregation` sender i praksis kun `erstatningsopgoerelse` + `stamdata`.
+   3. Konsekvens: aggregatoren er korrekt fail-closed uden fuld tilkobling, men kontrakt og driftsspor kan forveksles af næste implementor.
+   4. Anbefaling: beslut eksplicit roadmap:
+      1. enten tilkobl manglende engines/adapters til snapshot-orchestrering,
+      2. eller nedton snapshot-kontrakten, så den matcher faktisk runtime-flow.
+
+2. **Produktregel og kode er ikke helt synkroniseret i `EOberegningTab`**
+   1. Der findes stadig en UI-branch for visning af “Samlet erstatningsopgørelse” ved `aggregationResult?.kind === 'ok'` i `src/components/pages/erstatningsopgoerelse/EOberegningTab.tsx`.
+   2. Selv om den typisk ikke aktiveres i nuværende flow, modarbejder den den afklarede produktregel.
+   3. Anbefaling: fjern eller feature-gate den branch, så adfærden ikke kan drive tilbage ved fremtidige orchestration-ændringer.
+
+## Lav prioritet
+
+1. **Store test-escape-hatches bør revurderes**
+   1. `__setSectionUnsafe` og `__setMetaUnsafe` findes fortsat i `src/stores/formPersistenceStore.ts`.
+   2. De kan være legitime i test, men bør holdes stramt dokumenteret for at undgå utilsigtet runtime-brug.
+
+---
+
+## Opdateret prioriteret handlingsliste
+
+1. **Høj:** Beslut og håndhæv EET-scope i EO-domænet (officiel undtagelse eller konsekvent deaktivering/fjernelse).
+2. **Høj:** Konsolider EO-beregningssandhed mellem pipeline og PDF-model.
+3. **Høj:** Opdel `src/domain/erstatningsopgoerelse/eoPdfModel.ts` i mindre domænemoduler.
+4. **Medium:** Afklar og implementér entydig strategi for manglende snapshot-computed outputs.
+5. **Medium:** Synkronisér `EOberegningTab` med produktreglen (ingen samlet total i tab-UI).
+6. **Lav:** Beslut og dokumentér langsigtet rolle for `__setSectionUnsafe`/`__setMetaUnsafe`.
