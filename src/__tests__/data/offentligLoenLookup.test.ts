@@ -2,6 +2,7 @@ import { toDanishDateString } from '../../types/branded';
 import { addDays, formatDanishDate, parseDanishDate } from '../../utils/dateUtils';
 import {
   getOffentligLoenForDato,
+  getOffentligLoenTabelForDato,
   getOffentligLoenForPeriode,
   getReguleringsDatoer,
   getReguleringsDatoIntervalForOffentligLoen,
@@ -187,6 +188,22 @@ describe('offentligLoenLookup', () => {
       expect(gr4).toBeDefined();
       expect(gr0!.maanedsLoen).not.toBe(gr4!.maanedsLoen);
       expect(gr4!.maanedsLoen).toBeGreaterThan(gr0!.maanedsLoen);
+    });
+  });
+
+  describe('getOffentligLoenTabelForDato', () => {
+    it('returnerer gældende tabel med 56 løntrin og korrekt effekt-dato', () => {
+      const tabel = getOffentligLoenTabelForDato('KL', d('15-06-2024'));
+      expect(tabel).toBeDefined();
+      expect(tabel!.effectiveDate).toBe(d('01-04-2024'));
+      expect(tabel!.entries).toHaveLength(56);
+      expect(tabel!.entries[0].loentrin).toBe(1);
+      expect(tabel!.entries[tabel!.entries.length - 1].loentrin).toBe('55+');
+    });
+
+    it('returnerer undefined for dato før første regulering', () => {
+      const tabel = getOffentligLoenTabelForDato('KL', d('01-06-2011'));
+      expect(tabel).toBeUndefined();
     });
   });
 

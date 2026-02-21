@@ -36,7 +36,7 @@ const danishDateToNumber = (dato: DanishDateString): number => {
  */
 interface EntryLookup {
   readonly byTrin: ReadonlyMap<number, OffentligLoenEntry>;
-  readonly plus55: OffentligLoenEntry | undefined;
+  readonly plus55: OffentligLoenEntry;
 }
 
 interface ReguleringMedLookup {
@@ -170,6 +170,36 @@ export const getOffentligLoenForDato = (
     loengruppe,
     maanedsLoen: entry.maanedsLoen[loengruppe],
     timeLoen: entry.timeLoen[loengruppe],
+  };
+};
+
+/**
+ * Finder den gældende offentlige løntabel for en specifik dato.
+ * Returnerer den nyeste regulering hvor effectiveDate <= dato.
+ */
+export const getOffentligLoenTabelForDato = (
+  overenskomstType: OffentligOverenskomstType,
+  dato: DanishDateString
+): Readonly<{
+  overenskomstType: OffentligOverenskomstType;
+  effectiveDate: DanishDateString;
+  entries: ReadonlyArray<OffentligLoenEntry>;
+}> | undefined => {
+  const lookups = getLookups(overenskomstType);
+  const targetNum = danishDateToNumber(dato);
+  const reg = findNewestReguleringOnOrBefore(lookups, targetNum);
+  if (!reg) return undefined;
+
+  const sortedNumericTrin = Array.from(reg.lookup.byTrin.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([, entry]) => entry);
+
+  const entries = [...sortedNumericTrin, reg.lookup.plus55];
+
+  return {
+    overenskomstType,
+    effectiveDate: reg.effectiveDate,
+    entries,
   };
 };
 
