@@ -9,13 +9,19 @@ let isInitialized = false;
 let isInstalled = false;
 let deferredPrompt: BeforeInstallPromptEvent | null = null;
 
+const shouldSuppressAutomaticInstallBanner = (): boolean => {
+  return import.meta.env.DEV;
+};
+
 export const setupPwaInstallPromptCapture = (): void => {
   if (typeof window === 'undefined') return;
   if (isInitialized) return;
   isInitialized = true;
 
   window.addEventListener('beforeinstallprompt', (event: Event) => {
-    event.preventDefault();
+    if (shouldSuppressAutomaticInstallBanner()) {
+      event.preventDefault();
+    }
     deferredPrompt = event as BeforeInstallPromptEvent;
   });
 
