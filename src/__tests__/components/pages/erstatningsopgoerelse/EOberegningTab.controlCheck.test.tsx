@@ -29,10 +29,6 @@ vi.mock('../../../../domain/debug/eoDebugRowAggregator', () => ({
   collectAllDebugRows: () => ({ errors: [], warnings: [], allRows: [], relevantRows: [] }),
 }));
 
-vi.mock('../../../../calculation/useErstatningsopgoerelseAggregation', () => ({
-  useErstatningsopgoerelseAggregation: () => null,
-}));
-
 vi.mock('../../../../utils/scrollToSection', () => ({
   scrollToSection: vi.fn(),
 }));

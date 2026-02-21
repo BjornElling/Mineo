@@ -25,7 +25,9 @@ export type FormPersistenceStoreState = {
   clearSection: <K extends keyof FormPersistenceSections>(key: K, metaPatch?: Partial<FormPersistenceMeta>) => void;
   replaceSections: (next: FormPersistenceSections, meta: FormPersistenceMeta) => void;
   clearAll: (meta: FormPersistenceMeta) => void;
+  /** Test-only escape hatch. Runtime brug udenfor test skal fejle lukket. */
   __setSectionUnsafe: <K extends keyof FormPersistenceSections>(key: K, next: FormPersistenceSections[K] | null) => void;
+  /** Test-only escape hatch. Runtime brug udenfor test skal fejle lukket. */
   __setMetaUnsafe: (next: Partial<FormPersistenceMeta>) => void;
 };
 
@@ -93,6 +95,11 @@ const resolveMeta = (prev: FormPersistenceMeta, metaPatch?: Partial<FormPersiste
   return next;
 };
 
+const assertTestOnlyUnsafeMutation = (): void => {
+  if (process.env.NODE_ENV === 'test') return;
+  throw new Error('formPersistenceStore: unsafe test mutation is only allowed in test environment');
+};
+
 const createFormPersistenceStore = () =>
   createStore<FormPersistenceStoreState>((set, get) => ({
     sections: { ...EMPTY_SECTIONS },
@@ -128,8 +135,14 @@ const createFormPersistenceStore = () =>
       assertMetaFingerprintMatch(meta);
       set({ sections: { ...EMPTY_SECTIONS }, meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION } });
     },
-    __setSectionUnsafe: (key, next) => set((state) => ({ sections: { ...state.sections, [key]: next } })),
-    __setMetaUnsafe: (next) => set((state) => ({ meta: { ...state.meta, ...next } })),
+    __setSectionUnsafe: (key, next) => {
+      assertTestOnlyUnsafeMutation();
+      set((state) => ({ sections: { ...state.sections, [key]: next } }));
+    },
+    __setMetaUnsafe: (next) => {
+      assertTestOnlyUnsafeMutation();
+      set((state) => ({ meta: { ...state.meta, ...next } }));
+    },
   }));
 
 export const formPersistenceStore = createFormPersistenceStore();

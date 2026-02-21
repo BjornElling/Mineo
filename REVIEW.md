@@ -59,6 +59,12 @@ Status pr. kodegennemgang:
 6. `varigeMen`-PDF er lazy-loadet via `pdfLoader`.
 7. `useMemo`-import i `useErstatningsopgoerelseAggregation` er harmoniseret (`import { useMemo } from 'react'`).
 8. Happy-path orchestration-test for `fromSnapshot` med komplette computed outputs er tilføjet.
+9. `EOberegningTab` er synkroniseret med produktreglen: UI-branch for “Samlet erstatningsopgørelse” er fjernet.
+10. `__setSectionUnsafe` og `__setMetaUnsafe` i `formPersistenceStore` er strammet som test-only escape hatches med fail-closed runtime-guard uden for testmiljø.
+
+## Verificeret / afklaret
+
+1. EET-princippet er verificeret som opfyldt: ingen sammenblanding mellem `Erhvervsevnetab`-siden og EO-dataflow. EET-oplysninger i EO (inkl. `midlertidigt_eet` og EO-EET-felter) er fortsat isoleret til EO-domænet.
 
 ## Ikke længere relevante / omklassificeret
 
@@ -71,20 +77,13 @@ Status pr. kodegennemgang:
 
 ## Høj prioritet
 
-1. **Principbrud: EET er ikke holdt ude af nuværende EO-kodebase**
-   1. EET er fjernet fra policy/pipeline, men findes fortsat i schema/EO-UI/debug/PDF-model.
-   2. Anbefaling: tag en eksplicit beslutning om scope:
-      1. enten accepter EET som EO-delmængde nu og dokumentér det som officiel undtagelse,
-      2. eller fjern/deaktiver EET-relaterede elementer konsekvent, indtil dedikeret Erhvervsevnetab-implementering påbegyndes.
-   3. Uanset scope-beslutning: data fra `Erhvervsevnetab`-siden må ikke kobles ind i disse EO-felter.
-
-2. **Parallelle beregningssandheder mellem EO-aggregation og EO-PDF**
+1. **Parallelle beregningssandheder mellem EO-aggregation og EO-PDF**
    1. EO-aggregation beregnes i `src/calculation/pipeline/erstatningsopgoerelseAggregationPipeline.ts`.
    2. PDF-beregningen drives af separat model i `src/domain/erstatningsopgoerelse/eoPdfModel.ts` via `src/utils/pdf/erstatningsopgoerelsePdf.ts`.
    3. Risiko: drift mellem interne beregningsresultater og det PDF’en ender med at vise.
    4. Anbefaling: definér én kanonisk beregningskerne pr. EO-delområde og lad både aggregation og PDF bruge samme outputs.
 
-3. **`eoPdfModel.ts` er et arkitektonisk hotspot**
+2. **`eoPdfModel.ts` er et arkitektonisk hotspot**
    1. Filen er meget stor og blander flere domæner/ansvar.
    2. Risiko: høj regressionsfare ved ændringer, svag auditérbarhed, vanskeligt ejerskab.
    3. Anbefaling: opdel i domænemoduler (svie/smerte, TAF, lønudvikling, øvrige krav, sammentælling) med tydelige input/output-kontrakter.
@@ -95,28 +94,17 @@ Status pr. kodegennemgang:
    1. `ErstatningsopgoerelseAggregationSnapshot` understøtter `svieSmerteOutput`, `loenindkomstOutput`, `offentligeYdelserOutput`.
    2. `useErstatningsopgoerelseAggregation` sender i praksis kun `erstatningsopgoerelse` + `stamdata`.
    3. Konsekvens: aggregatoren er korrekt fail-closed uden fuld tilkobling, men kontrakt og driftsspor kan forveksles af næste implementor.
-   4. Anbefaling: beslut eksplicit roadmap:
-      1. enten tilkobl manglende engines/adapters til snapshot-orchestrering,
-      2. eller nedton snapshot-kontrakten, så den matcher faktisk runtime-flow.
-
-2. **Produktregel og kode er ikke helt synkroniseret i `EOberegningTab`**
-   1. Der findes stadig en UI-branch for visning af “Samlet erstatningsopgørelse” ved `aggregationResult?.kind === 'ok'` i `src/components/pages/erstatningsopgoerelse/EOberegningTab.tsx`.
-   2. Selv om den typisk ikke aktiveres i nuværende flow, modarbejder den den afklarede produktregel.
-   3. Anbefaling: fjern eller feature-gate den branch, så adfærden ikke kan drive tilbage ved fremtidige orchestration-ændringer.
+   4. **Valgt retning:** tilkobl manglende engines/adapters til snapshot-orchestrering.
+   5. Implementationsnote: udfør tilkoblingen i små, testdækkede deltrin for at minimere regressionsrisiko i trust-kritisk flow.
 
 ## Lav prioritet
 
-1. **Store test-escape-hatches bør revurderes**
-   1. `__setSectionUnsafe` og `__setMetaUnsafe` findes fortsat i `src/stores/formPersistenceStore.ts`.
-   2. De kan være legitime i test, men bør holdes stramt dokumenteret for at undgå utilsigtet runtime-brug.
+Ingen aktive lav-prioritetsfund.
 
 ---
 
 ## Opdateret prioriteret handlingsliste
 
-1. **Høj:** Beslut og håndhæv EET-scope i EO-domænet (officiel undtagelse eller konsekvent deaktivering/fjernelse).
-2. **Høj:** Konsolider EO-beregningssandhed mellem pipeline og PDF-model.
-3. **Høj:** Opdel `src/domain/erstatningsopgoerelse/eoPdfModel.ts` i mindre domænemoduler.
-4. **Medium:** Afklar og implementér entydig strategi for manglende snapshot-computed outputs.
-5. **Medium:** Synkronisér `EOberegningTab` med produktreglen (ingen samlet total i tab-UI).
-6. **Lav:** Beslut og dokumentér langsigtet rolle for `__setSectionUnsafe`/`__setMetaUnsafe`.
+1. **Høj:** Konsolider EO-beregningssandhed mellem pipeline og PDF-model.
+2. **Høj:** Opdel `src/domain/erstatningsopgoerelse/eoPdfModel.ts` i mindre domænemoduler.
+3. **Medium:** Tilkobl manglende engines/adapters til snapshot-orchestrering (valgt retning), med del-leverancer og regressionstests.

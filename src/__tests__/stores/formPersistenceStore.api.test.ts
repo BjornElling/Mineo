@@ -7,6 +7,16 @@ import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 
 const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
 
+const withNodeEnv = (nodeEnv: string, run: () => void): void => {
+  const originalNodeEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = nodeEnv;
+  try {
+    run();
+  } finally {
+    process.env.NODE_ENV = originalNodeEnv;
+  }
+};
+
 const createValidSections = (): PersistedSectionMap => ({
   stamdata: STAMDATA_INITIAL_VALUES,
   satser: { aargang: 2025 },
@@ -81,5 +91,32 @@ describe('formPersistenceStore public API', () => {
     store.getState().hydrate(sections, { hydrated: false, schemaFingerprint: PERSISTED_DATA_VERSION });
     expect(store.getState().meta.hydrated).toBe(true);
     expect(store.getState().meta.schemaFingerprint).toBe(PERSISTED_DATA_VERSION);
+  });
+
+  it('__setSectionUnsafe allows mutation in test environment', () => {
+    const store = __createTestStore();
+    const satser = { aargang: 2025 };
+
+    store.getState().__setSectionUnsafe('satser', satser);
+
+    expect(store.getState().sections.satser).toEqual(satser);
+  });
+
+  it('__setMetaUnsafe fails closed outside test environment', () => {
+    const store = __createTestStore();
+    withNodeEnv('production', () => {
+      expect(() => store.getState().__setMetaUnsafe({ hydrated: true })).toThrow(
+        'formPersistenceStore: unsafe test mutation is only allowed in test environment'
+      );
+    });
+  });
+
+  it('__setSectionUnsafe fails closed outside test environment', () => {
+    const store = __createTestStore();
+    withNodeEnv('production', () => {
+      expect(() => store.getState().__setSectionUnsafe('satser', { aargang: 2025 })).toThrow(
+        'formPersistenceStore: unsafe test mutation is only allowed in test environment'
+      );
+    });
   });
 });

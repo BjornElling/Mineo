@@ -12,8 +12,6 @@ import type { NavigationTarget } from '../../../domain/debug/eoDebugNavigationMa
 import { scrollToSection } from '../../../utils/scrollToSection';
 import { scrollToDebugRow } from '../../../utils/scrollToDebugRow';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
-import { useErstatningsopgoerelseAggregation } from '../../../calculation/useErstatningsopgoerelseAggregation';
-import AggregationResultView from './components/AggregationResultView';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { getSammentaellingControlStatus, type SammentaellingDisplayRow } from '../../../domain/debug/eoDebugSammentaelling';
 import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
@@ -174,12 +172,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       settings
     );
   }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, settings]);
-
-  // ============================================================================
-  // SAMLET ERSTATNINGSOPGØRELSE (AGGREGATION)
-  // ============================================================================
-
-  const aggregationResult = useErstatningsopgoerelseAggregation(isActive);
 
   // ============================================================================
   // NAVIGATION-HÅNDTERING
@@ -515,15 +507,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
             <Typography className="row--text">{skadesdatoDisplay}</Typography>
           </Box>
         </Box>
-
-        {aggregationResult?.kind === 'ok' && (
-          <Box className="row--label-right-hover">
-            <Typography className="row--text">Samlet erstatningsopgørelse</Typography>
-            <Box className="row--label-right-hover__content" sx={{ flexDirection: 'column', alignItems: 'flex-end' }}>
-              <AggregationResultView total={aggregationResult.total} />
-            </Box>
-          </Box>
-        )}
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">{svieSmerteSummaryLabel}</Typography>
