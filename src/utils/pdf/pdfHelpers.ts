@@ -6,12 +6,32 @@
  */
 
 import jsPDF from 'jspdf';
-import { FONT_SIZES, MARGINS } from './pdfConfig';
+import {
+  FONT_SIZES,
+  MARGINS,
+  PDF_FINAL_Y_FALLBACK_HEIGHT,
+  PDF_FONT_FAMILY,
+  PDF_FONT_STYLES,
+  PDF_SECTION_HEADING_GAP,
+  SECTION_SPACER,
+} from './pdfConfig';
 import { VERSION } from '../../config/version';
-import type { DanishDateString, ISODateString } from '../../types/branded';
+import type { ISODateString } from '../../types/branded';
  
-import { formatDanishDate as formatDanishDateStrict, parseDanishDate as parseDanishDateStrict } from '../dateUtils';
 import { formatIsoDateLong } from '../dateFormatting';
+import { formatAsAmount, formatPercent as formatPercentUtil } from '../formatUtils';
+
+export const PDF_BASE_LINE_HEIGHT_MM = 5;
+
+export const applyNormalTextStyle = (doc: jsPDF): void => {
+  doc.setFontSize(FONT_SIZES.normal);
+  doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+};
+
+export const applyBoldTextStyle = (doc: jsPDF, fontSize: number): void => {
+  doc.setFontSize(fontSize);
+  doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
+};
 
 /**
  * Brevhoved-data til PDF-dokumenter
@@ -32,11 +52,40 @@ export type BrevhovedData = Readonly<{
  * @returns {number} Ny Y-position efter titel
  */
 export const addTitle = (doc: jsPDF, title: string, startY: number): number => {
-  doc.setFontSize(FONT_SIZES.title);
-  doc.setFont('helvetica', 'bold');
+  applyBoldTextStyle(doc, FONT_SIZES.title);
   doc.text(title, MARGINS.left, startY);
 
   return startY + 15;
+};
+
+export const addSectionHeading = (doc: jsPDF, title: string, startY: number): number => {
+  applyBoldTextStyle(doc, FONT_SIZES.header);
+  doc.text(title, MARGINS.left, startY);
+  applyNormalTextStyle(doc);
+  return startY + PDF_BASE_LINE_HEIGHT_MM + PDF_SECTION_HEADING_GAP;
+};
+
+export const ensurePdfPageSpace = (
+  doc: jsPDF,
+  startY: number,
+  requiredSpace: number
+): number => {
+  const pageHeight = doc.internal.pageSize.height;
+  const contentBottom = pageHeight - MARGINS.bottom;
+  if (startY + requiredSpace <= contentBottom) return startY;
+  doc.addPage();
+  return MARGINS.top;
+};
+
+export const resolvePdfSectionEndY = (
+  finalY: number,
+  startY: number,
+  options?: Readonly<{ fallbackHeight?: number; spacer?: number }>
+): number => {
+  const fallbackHeight = options?.fallbackHeight ?? PDF_FINAL_Y_FALLBACK_HEIGHT;
+  const spacer = options?.spacer ?? SECTION_SPACER;
+  const resolvedY = Number.isFinite(finalY) ? finalY : startY + fallbackHeight;
+  return resolvedY + spacer;
 };
 
 /**
@@ -54,7 +103,7 @@ export const addFooter = (doc: jsPDF): void => {
     doc.setPage(i);
 
     doc.setFontSize(6);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
     doc.setTextColor(200, 200, 200);
 
     const footerText = `Mineo.dk // ${VERSION}`;
@@ -63,27 +112,6 @@ export const addFooter = (doc: jsPDF): void => {
 
     doc.text(footerText, x, y, { angle: 90 });
   }
-};
-
-/**
- * Parser dansk datoformat (dd-mm-åååå) til Date-objekt
- *
- * @param {string} dateStr - Dato i dansk format (dd-mm-åååå)
- * @returns {Date|null} Date-objekt eller null hvis ugyldig
- */
-export const parseDanishDate = (dateStr: DanishDateString | string): Date | null => {
-  return parseDanishDateStrict(dateStr);
-};
-
-/**
- * Formaterer Date-objekt til dansk format (dd-mm-åååå)
- *
- * @param {Date} date - Date-objekt
- * @returns {string} Formateret dato (dd-mm-åååå)
- */
-export const formatDanishDate = (date: Date): string => {
-  if (!date) return '';
-  return formatDanishDateStrict(date);
 };
 
 /**
@@ -96,11 +124,7 @@ export const formatAmount = (amount: number | null | undefined): string => {
   if (amount === null || amount === undefined || !Number.isFinite(amount)) {
     return '0,00';
   }
-
-  return amount.toLocaleString('da-DK', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  return formatAsAmount(amount, 2);
 };
 
 /**
@@ -113,7 +137,7 @@ export const formatPercent = (percent: number | null | undefined): string => {
   if (percent === null || percent === undefined || !Number.isFinite(percent)) {
     return '0,00 %';
   }
-  return `${percent.toFixed(2).replace('.', ',')} %`;
+  return formatPercentUtil(percent);
 };
 
 const formatISODateReadable = (isoDate: ISODateString | undefined): string => formatIsoDateLong(isoDate);
@@ -162,17 +186,17 @@ export const addBrevhoved = (doc: jsPDF, data: BrevhovedData): number => {
         : hasSagsbehandler
           ? ` ${trimmedSagsbehandler}`
           : '';
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
     doc.text(`J.nr. ${trimmedJournalnr}${roleSuffix}`, rightX, currentY, { align: 'right' });
     currentY += lineHeight;
   }
 
   // Dato (normal, højre-aligneret)
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
   doc.text(resolvedDatoText, rightX, currentY, { align: 'right' });
 
-  // Reset font-size til normal for at undgå lækage
-  doc.setFontSize(FONT_SIZES.normal);
+  // Reset font-stil til normal for at undgå lækage
+  applyNormalTextStyle(doc);
 
   // Returner ALTID MARGINS.top - brevhoved er overlay og påvirker ikke hovedindholdet
   return MARGINS.top;

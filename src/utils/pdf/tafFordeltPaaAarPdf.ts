@@ -10,11 +10,12 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/
 import { buildErstatningsopgoerelsePdfModel } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { buildTafPerYearResult } from '../../domain/erstatningsopgoerelse/tafPerYearDerived';
 import { createPdfWriter, ensureNonBreakingKr } from './pdfWriter';
-import { FONT_SIZES } from './pdfConfig';
+import { FONT_SIZES, PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
 import type { BrevhovedData } from './pdfHelpers';
 import { TODAY } from '../../config/dateRanges';
 import type jsPDF from 'jspdf';
 import { roundByMethod } from '../rounding';
+import { logWarning } from '../logger';
 import {
   formatCountWithUnit,
   formatCurrencyFromOre,
@@ -23,7 +24,7 @@ import {
   formatPercentDelta,
   isSingularCount,
   resolvePdfFileName,
-} from './sharedPdfUtils';
+} from './pdfFormatUtils';
 
 const NBSP = '\u00A0';
 const FILE_BASE_NAME = 'Tabt arbejdsfortjeneste fordelt på år';
@@ -54,7 +55,10 @@ export const generateTafFordeltPaaAarPdf = (
     doubleLineHeight,
     visUdkastStempel,
     onLayoutFallback: (message: string) => {
-      console.warn(`PDF-layout: ${message}`);
+      logWarning('PDF-layout fallback aktiveret', {
+        context: 'pdf.tafFordeltPaaAar.layout',
+        data: { message },
+      });
     },
   });
   writer.setDisplayMode('fullheight');
@@ -83,25 +87,24 @@ export const generateTafFordeltPaaAarPdf = (
 
   // Titel (fed skrift)
   writer.setFontSize(FONT_SIZES.title);
-  writer.setFont('helvetica', 'bold');
+  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
   writer.writeWrappedText(titel);
 
   // Erstatningsperiode
-  writer.setFontSize(FONT_SIZES.normal);
-  writer.setFont('helvetica', 'normal');
+  writer.setNormalTextStyle();
   if (model.periodeDisplay) {
     writer.writeWrappedText(model.periodeDisplay);
     writer.advanceY(lineHeight);
   }
 
   // Skadelidtes navn (fed)
-  writer.setFont('helvetica', 'bold');
+  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
   if (model.skadelidteNavn) {
     writer.writeWrappedText(model.skadelidteNavn);
   }
 
   // Skadestype (normal)
-  writer.setFont('helvetica', 'normal');
+  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
   if (model.skadestypeLinje) {
     writer.writeWrappedText(model.skadestypeLinje);
     writer.advanceY(lineHeight);
@@ -113,7 +116,7 @@ export const generateTafFordeltPaaAarPdf = (
 
   // Status
   writer.writeSubheader('Status', lineHeight, { addTopSpacing: false });
-  writer.setFont('helvetica', 'normal');
+  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
   for (const line of model.tabtArbejdsfortjeneste.statusLinjer) {
     writer.writeWrappedText(line);
   }
@@ -132,7 +135,7 @@ export const generateTafFordeltPaaAarPdf = (
   if (!model.tabtArbejdsfortjeneste.harTafPerioder) {
     writer.writeWrappedText('Ingen');
     writer.writeSubheader('TAF fordelt på kalenderår', lineHeight);
-    writer.setFont('helvetica', 'normal');
+    writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
     writer.writeWrappedText('Ingen');
     writer.addFooter();
     writer.save(resolvePdfFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
@@ -145,7 +148,7 @@ export const generateTafFordeltPaaAarPdf = (
 
   if (!presentation) {
     writer.writeSubheader('TAF fordelt på kalenderår', lineHeight);
-    writer.setFont('helvetica', 'normal');
+    writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
     writer.writeWrappedText('TAF fordelt på år kan ikke beregnes for den valgte opsætning.');
     writer.addFooter();
     writer.save(resolvePdfFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
@@ -158,7 +161,7 @@ export const generateTafFordeltPaaAarPdf = (
 
   for (const yearEntry of presentation.years) {
     writer.writeSubheader(`${yearEntry.year}`, lineHeight);
-    writer.setFont('helvetica', 'normal');
+    writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
 
     // Segmenter (identisk format med EO-pdf)
     for (const segment of yearEntry.segments) {
@@ -200,7 +203,7 @@ export const generateTafFordeltPaaAarPdf = (
   // ─── Samlet ──────────────────────────────────────────────────────────
 
   writer.writeSubheader('Samlet', lineHeight);
-  writer.setFont('helvetica', 'normal');
+  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
 
   // Per-år linjer
   for (const yearEntry of presentation.years) {

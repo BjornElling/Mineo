@@ -25,11 +25,12 @@ export const MARGINS = {
 export const A4_PAGE_WIDTH_MM = 210;
 export const PDF_CONTENT_WIDTH_MM = A4_PAGE_WIDTH_MM - MARGINS.left - MARGINS.right;
 
-// Fonte (PDF'er bruger Helvetica som er standard i jsPDF)
-export const FONTS = {
-  regular: 'helvetica',
-  bold: 'helvetica',
-};
+// Fælles fontvalg for alle PDF'er
+export const PDF_FONT_FAMILY = 'helvetica' as const;
+export const PDF_FONT_STYLES = {
+  normal: 'normal',
+  bold: 'bold',
+} as const;
 
 // Font-størrelser
 export const FONT_SIZES = {
@@ -45,6 +46,12 @@ export const TABLE_STYLES = {
   headerBackgroundColor: COLORS.lightBackground,
   alternateRowBackgroundColor: COLORS.lightBackground,
 };
+
+// Fælles detail-konstanter for ensartet PDF-udtryk
+export const PDF_MUTED_TEXT_COLOR: PdfColor = [150, 150, 150];
+export const PDF_TABLE_NARROW_COLUMN_WIDTH = 25;
+export const PDF_FINAL_Y_FALLBACK_HEIGHT = 50;
+export const PDF_SECTION_HEADING_GAP = 3;
 
 // Mellemrum mellem sektioner
 export const SECTION_SPACER = 10; // mm

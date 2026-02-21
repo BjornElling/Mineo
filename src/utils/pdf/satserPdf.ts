@@ -4,40 +4,34 @@
  * Genererer PDF-dokument med årlige satser for arbejdsskadeområdet
  */
 
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import {
-  COLORS,
   MARGINS,
-  TABLE_STYLES,
   SECTION_SPACER,
 } from './pdfConfig';
-import {
-  formatCurrency,
-  formatCurrencyPerUnit,
-  formatPercentage,
-  isGreaterThanZero,
-  isNonEmptyString,
-} from './pdfFormatters';
-import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
+import { formatCurrency, formatPercent } from '../formatUtils';
+import { addSectionHeading, addTitle, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
+import { createStandardPdfWriter } from './pdfWriter';
+import { renderEoStylePdfTable } from './pdfTableRenderer';
 import { TODAY } from '../../config/dateRanges';
+import { formatCurrencyPerUnit } from './pdfFormatUtils';
+import { getSatserForYear } from '../../data/regulationRates';
+import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
+import type jsPDF from 'jspdf';
 
-/**
- * Stamdata til Satser PDF
- */
-export interface SatserStamdata {
-  journalnr?: string;
-  advokat?: string;
-  sagsbehandler?: string;
-}
+type SatserData = ReturnType<typeof getSatserForYear>;
+type SatserPdfOptions = PdfCommonOptions & Readonly<{ stamdata?: PdfStamdata | null }>;
+type SatserDoc = jsPDF;
 
-/**
- * Options for Satser PDF
- */
-export interface SatserPdfOptions {
-  visBrevhoved?: boolean;
-  stamdata?: SatserStamdata | null;
-}
+const isPositiveFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0;
+
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim() !== '';
+
+const formatPercentage = (value: number | null | undefined): string => {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '';
+  return formatPercent(value);
+};
 
 /**
  * Generer og download PDF for arbejdsskadesatser
@@ -46,19 +40,19 @@ export interface SatserPdfOptions {
  * @param {Object} satser - Satser data fra getSatserForYear()
  * @param {SatserPdfOptions} options - Valgfrie indstillinger
  */
-export const generateSatserPdf = (year, satser, options: SatserPdfOptions = {}) => {
+export const generateSatserPdf = (
+  year: number,
+  satser: SatserData,
+  options: SatserPdfOptions = {}
+): void => {
   const { visBrevhoved = false, stamdata = null } = options;
 
-  // Opret nyt PDF-dokument (A4, portrait)
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  });
-  doc.setDisplayMode('100%');
+  const writer = createStandardPdfWriter();
+  writer.setDisplayMode('fullheight');
+  const doc = writer.getDoc();
 
   // Dokumentets metadata
-  doc.setProperties({
+  writer.setProperties({
     title: `Arbejdsskadesatser ${year}`,
     subject: 'Erstatningsberegning',
     author: 'MINEO',
@@ -75,7 +69,8 @@ export const generateSatserPdf = (year, satser, options: SatserPdfOptions = {}) 
       sagsbehandler: stamdata?.sagsbehandler,
       dagsDatoISO: TODAY,
     };
-    currentY = addBrevhoved(doc, brevhovedData);
+    writer.writeBrevhoved(brevhovedData);
+    currentY = writer.getY();
   }
 
   // Tilføj titel
@@ -102,21 +97,25 @@ export const generateSatserPdf = (year, satser, options: SatserPdfOptions = {}) 
   }
 
   // Tilføj footer med versionsnummer
-  addFooter(doc);
+  writer.addFooter();
 
   // Download PDF
-  doc.save(`Arbejdsskadesatser ${year}.pdf`);
+  writer.save(`Arbejdsskadesatser ${year}.pdf`);
 };
 
 
 /**
  * Tilføj Erstatningsansvarsloven sektion
  */
-const addEalSection = (doc, eal, startY) => {
-  const rows: any[] = [];
+const addEalSection = (
+  doc: SatserDoc,
+  eal: SatserData['eal'],
+  startY: number
+): number => {
+  const rows: string[][] = [];
 
   // Godtgørelse for svie og smerte
-  if (isGreaterThanZero(eal.svieSmertePrDag)) {
+  if (isPositiveFiniteNumber(eal.svieSmertePrDag)) {
     rows.push([
       'Godtgørelse for svie og smerte',
       formatCurrencyPerUnit(eal.svieSmertePrDag, 'sygedag'),
@@ -124,12 +123,12 @@ const addEalSection = (doc, eal, startY) => {
   }
 
   // Maksimum for svie og smerte
-  if (isGreaterThanZero(eal.svieSmerteMax)) {
+  if (isPositiveFiniteNumber(eal.svieSmerteMax)) {
     rows.push(['Maksimum for svie og smerte', formatCurrency(eal.svieSmerteMax)]);
   }
 
   // Maksimum for erhvervsevnetabserstatning
-  if (isGreaterThanZero(eal.erhvervsevnetabMax)) {
+  if (isPositiveFiniteNumber(eal.erhvervsevnetabMax)) {
     rows.push([
       'Maksimum for erhvervsevnetabserstatning',
       formatCurrency(eal.erhvervsevnetabMax),
@@ -137,7 +136,7 @@ const addEalSection = (doc, eal, startY) => {
   }
 
   // Vejledende udtalelse
-  if (isGreaterThanZero(eal.vejledendeUdtalelse)) {
+  if (isPositiveFiniteNumber(eal.vejledendeUdtalelse)) {
     rows.push([
       'Vejledende udtalelse om erhvervsevnetab',
       formatCurrency(eal.vejledendeUdtalelse),
@@ -154,11 +153,15 @@ const addEalSection = (doc, eal, startY) => {
 /**
  * Tilføj Arbejdsskadesikringsloven sektion
  */
-const addAslSection = (doc, asl, startY) => {
-  const rows: any[] = [];
+const addAslSection = (
+  doc: SatserDoc,
+  asl: SatserData['asl'],
+  startY: number
+): number => {
+  const rows: string[][] = [];
 
   // Godtgørelse for varige mén
-  if (isGreaterThanZero(asl.varigeMenPrGrad)) {
+  if (isPositiveFiniteNumber(asl.varigeMenPrGrad)) {
     rows.push([
       'Godtgørelse for varige mén',
       formatCurrencyPerUnit(asl.varigeMenPrGrad, 'méngrad'),
@@ -166,17 +169,17 @@ const addAslSection = (doc, asl, startY) => {
   }
 
   // Maksimum årsløn
-  if (isGreaterThanZero(asl.aarsloenMax)) {
+  if (isPositiveFiniteNumber(asl.aarsloenMax)) {
     rows.push(['Maksimum årsløn', formatCurrency(asl.aarsloenMax)]);
   }
 
   // Minimum årsløn
-  if (isGreaterThanZero(asl.aarsloenMin)) {
+  if (isPositiveFiniteNumber(asl.aarsloenMin)) {
     rows.push(['Minimum årsløn', formatCurrency(asl.aarsloenMin)]);
   }
 
   // Minimum årsløn (skader før 1.7.2024)
-  if (isGreaterThanZero(asl.aarsloenMinFoer2024)) {
+  if (isPositiveFiniteNumber(asl.aarsloenMinFoer2024)) {
     rows.push([
       'Minimum årsløn (skader før 1.7.2024)',
       formatCurrency(asl.aarsloenMinFoer2024),
@@ -184,7 +187,7 @@ const addAslSection = (doc, asl, startY) => {
   }
 
   // Minimum årsløn (skader fra 1.7.2024)
-  if (isGreaterThanZero(asl.aarsloenMinFra2024)) {
+  if (isPositiveFiniteNumber(asl.aarsloenMinFra2024)) {
     rows.push([
       'Minimum årsløn (skader fra 1.7.2024)',
       formatCurrency(asl.aarsloenMinFra2024),
@@ -192,12 +195,12 @@ const addAslSection = (doc, asl, startY) => {
   }
 
   // Overgangsbeløb
-  if (isGreaterThanZero(asl.overgangsbelob)) {
+  if (isPositiveFiniteNumber(asl.overgangsbelob)) {
     rows.push(['Overgangsbeløb', formatCurrency(asl.overgangsbelob)]);
   }
 
   // Reguleringsprocent for erhvervsevnetab
-  if (isGreaterThanZero(asl.reguleringProcentErhvervsevnetab)) {
+  if (isPositiveFiniteNumber(asl.reguleringProcentErhvervsevnetab)) {
     rows.push([
       'Reguleringsprocent for erhvervsevnetab',
       formatPercentage(asl.reguleringProcentErhvervsevnetab),
@@ -205,7 +208,7 @@ const addAslSection = (doc, asl, startY) => {
   }
 
   // Reguleringsprocent for erhvervsevnetab (før 2024)
-  if (isGreaterThanZero(asl.reguleringProcentErhvervsevnetabFoer2024)) {
+  if (isPositiveFiniteNumber(asl.reguleringProcentErhvervsevnetabFoer2024)) {
     rows.push([
       'Reguleringsprocent for erhvervsevnetab (før 2024)',
       formatPercentage(asl.reguleringProcentErhvervsevnetabFoer2024),
@@ -213,7 +216,7 @@ const addAslSection = (doc, asl, startY) => {
   }
 
   // Reguleringsprocent for erhvervsevnetab (fra 2024)
-  if (isGreaterThanZero(asl.reguleringProcentErhvervsevnetabFra2024)) {
+  if (isPositiveFiniteNumber(asl.reguleringProcentErhvervsevnetabFra2024)) {
     rows.push([
       'Reguleringsprocent for erhvervsevnetab (fra 2024)',
       formatPercentage(asl.reguleringProcentErhvervsevnetabFra2024),
@@ -230,8 +233,12 @@ const addAslSection = (doc, asl, startY) => {
 /**
  * Tilføj Diverse sektion
  */
-const addDiverseSection = (doc, diverse, startY) => {
-  const rows: any[] = [];
+const addDiverseSection = (
+  doc: SatserDoc,
+  diverse: SatserData['diverse'],
+  startY: number
+): number => {
+  const rows: string[][] = [];
 
   // Beløbsgrænse for fri proces
   const enlig = diverse.friProcesEnlig;
@@ -239,9 +246,9 @@ const addDiverseSection = (doc, diverse, startY) => {
   const barn = diverse.friProcesBarn;
 
   if (
-    isGreaterThanZero(enlig) &&
-    isGreaterThanZero(samlevende) &&
-    isGreaterThanZero(barn)
+    isPositiveFiniteNumber(enlig) &&
+    isPositiveFiniteNumber(samlevende) &&
+    isPositiveFiniteNumber(barn)
   ) {
     const text =
       `${formatCurrency(enlig)} (enlig) / ${formatCurrency(samlevende)} (samlevende)\n` +
@@ -250,7 +257,7 @@ const addDiverseSection = (doc, diverse, startY) => {
   }
 
   // Reguleringssats
-  if (isGreaterThanZero(diverse.reguleringssats)) {
+  if (isPositiveFiniteNumber(diverse.reguleringssats)) {
     rows.push(['Reguleringssats', formatPercentage(diverse.reguleringssats)]);
   }
 
@@ -264,8 +271,12 @@ const addDiverseSection = (doc, diverse, startY) => {
 /**
  * Tilføj Referencer sektion
  */
-const addReferenserSection = (doc, referencer, startY) => {
-  const rows: any[] = [];
+const addReferenserSection = (
+  doc: SatserDoc,
+  referencer: SatserData['referencer'],
+  startY: number
+): number => {
+  const rows: string[][] = [];
 
   const mapping = [
     { key: 'ealReference', label: 'Erstatningsansvarsloven' },
@@ -292,7 +303,7 @@ const addReferenserSection = (doc, referencer, startY) => {
   ];
 
   for (const m of mapping) {
-    const value = referencer[m.key];
+    const value = referencer[m.key as keyof SatserData['referencer']];
     if (isNonEmptyString(value)) {
       rows.push([m.label, value.trim()]);
     }
@@ -308,44 +319,25 @@ const addReferenserSection = (doc, referencer, startY) => {
 /**
  * Tilføj tabel med header og data
  */
-const addTable = (doc, rows, header, startY) => {
-  // Tilføj header-række
-  const tableData = [[{ content: header, colSpan: 2, styles: { fontStyle: 'bold' } }], ...rows];
+const addTable = (
+  doc: SatserDoc,
+  rows: string[][],
+  header: string,
+  startY: number
+): number => {
+  const headingY = addSectionHeading(doc, header, startY);
 
-  autoTable(doc, {
-    startY: startY,
-    head: [],
-    body: tableData,
-    margin: { left: MARGINS.left, right: MARGINS.right },
-    pageBreak: 'auto',
-    rowPageBreak: 'auto',
-    styles: {
-      font: 'helvetica',
-      fontSize: TABLE_STYLES.fontSize,
-      cellPadding: TABLE_STYLES.cellPadding,
-      textColor: COLORS.text,
-    },
+  const finalY = renderEoStylePdfTable({
+    doc,
+    startY: headingY,
+    body: rows,
+    hasHeaderRow: false,
     columnStyles: {
       0: { cellWidth: 'auto', halign: 'left' },
       1: { cellWidth: 80, halign: 'right' },
     },
-    didParseCell: function (data) {
-      // Header-række (index 0) får lysegrå baggrund
-      if (data.row.index === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-        data.cell.styles.overflow = 'ellipsize';
-      }
-      // Alternerende rækker: lige rækker (2, 4, 6...) får lysegrå, ulige rækker (1, 3, 5...) får hvid
-      else if (data.row.index % 2 === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.alternateRowBackgroundColor;
-      } else {
-        data.cell.styles.fillColor = COLORS.white;
-      }
-    },
   });
 
   // Returner ny Y-position efter tabel + spacing
-  // autoTable gemmer finalY på doc objektet
-  const finalY = doc.lastAutoTable?.finalY || startY + 50;
-  return finalY + SECTION_SPACER;
+  return resolvePdfSectionEndY(finalY, startY);
 };

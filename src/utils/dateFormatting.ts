@@ -31,6 +31,16 @@ export const MONTH_NAMES_DA_SHORT = [
   'dec.',
 ] as const;
 
+export const WEEKDAY_NAMES_DA = [
+  'Søndag',
+  'Mandag',
+  'Tirsdag',
+  'Onsdag',
+  'Torsdag',
+  'Fredag',
+  'Lørdag',
+] as const;
+
 export const formatIsoDateShort = (isoDate: ISODateString | undefined): string => {
   if (!isoDate || !isISODateString(isoDate)) return '';
   const [year, month, day] = isoDate.split('-');

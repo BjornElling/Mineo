@@ -37,8 +37,6 @@ import { createDate, formatDanishDate } from '../../../utils/dateUtils';
 import { isLoenperiodeValue } from '../../../utils/zodTypeGuards';
 import { generateAnsaettelsesforholdId } from '../../../utils/eoConverters';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
-import { loadReguleringPdfModule, loadKRLPdfModule } from '../../../utils/pdf/pdfLoader';
-import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
 import {
   getAlleLoenmodtagerOrg,
   getAlleArbejdsgiverOrg,
@@ -57,6 +55,7 @@ import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../
 import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { appSettingsSchema, DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../../settings/appSettingsSchema';
+import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '../../../utils/pdf/pdfService';
 import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerelse/loenoplysningerInput';
 import { DEFAULT_ANCIENNITET_FIELDS } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import {
@@ -995,48 +994,22 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
   }, [scrollTargetId, values.loenindkomstAnsaettelsesforhold]);
 
   const handleDownloadReguleringPdf = React.useCallback(
-    async (params: {
-      overenskomstLabel: string;
-      loenudviklingBasis: 'Overenskomst' | 'Statistik';
-      overenskomstId: string | undefined;
-      statistikModelLabel: string | undefined;
-      interval: ReguleringsDatoInterval;
-      applyAlmindeligLoenPaaShDageRegel: boolean;
-      offentligLoenType?: string;
-      offentligLoenTrin?: number;
-      offentligLoenGruppe?: number;
-      offentligLoenEkstraGrundloen?: number;
-    }) => {
-      try {
-        // Hent stamdata
-        const stamdata = getPersistedData('stamdata');
-
-        // Udled visBrevhoved fra settings
-        const visBrevhoved = getVisBrevhoved(settings, 'regulering');
-
-        const { generateReguleringPdf } = await loadReguleringPdfModule();
-        generateReguleringPdf({
-          ...params,
-          visBrevhoved,
-          stamdata,
-        });
-      } catch (error) {
-        console.error('Kunne ikke indlæse PDF-modulet for regulering:', error);
-      }
+    async (input: ReguleringPdfInput) => {
+      await downloadReguleringPdf({
+        input,
+        settings,
+        persistedStamdata: getPersistedData('stamdata'),
+      });
     },
     [getPersistedData, settings]
   );
 
   const handleDownloadKRLPdf = React.useCallback(
     async () => {
-      try {
-        const stamdata = getPersistedData('stamdata');
-        const visBrevhoved = getVisBrevhoved(settings, 'regulering');
-        const { generateKRLPdf } = await loadKRLPdfModule();
-        generateKRLPdf({ visBrevhoved, stamdata });
-      } catch (error) {
-        console.error('Kunne ikke indlæse PDF-modulet for KRL satstabel:', error);
-      }
+      await downloadKrlPdf({
+        settings,
+        persistedStamdata: getPersistedData('stamdata'),
+      });
     },
     [getPersistedData, settings]
   );

@@ -11,13 +11,11 @@ import { collectAllDebugRows } from '../../../domain/erstatningsopgoerelse/eoDeb
 import type { NavigationTarget } from '../../../domain/erstatningsopgoerelse/eoDebugNavigationMap';
 import { scrollToSection } from '../../../utils/scrollToSection';
 import { scrollToDebugRow } from '../../../utils/scrollToDebugRow';
-import { loadErstatningsopgoerelsePdfModule, loadTafFordeltPaaAarPdfModule } from '../../../utils/pdf/pdfLoader';
 import { formatISOToDanish } from '../../../utils/dateFormatting';
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
 import { useErstatningsopgoerelseAggregation } from '../../../calculation/useErstatningsopgoerelseAggregation';
 import AggregationResultView from './components/AggregationResultView';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
-import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
 import { getSammentaellingControlStatus, type SammentaellingDisplayRow } from '../../../domain/debug/eoDebugSammentaelling';
 import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
 import { buildControlMismatchReport, type ControlMismatchReport } from '../../../domain/debug/eoDebugMismatchReport';
@@ -27,6 +25,11 @@ import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPe
 import { isoToDanish } from '../../../types/branded';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../../inputs/StyledDropdown';
 import { toReadableSummaryMessage } from '../../../domain/erstatningsopgoerelse/readableSummaryMessage';
+import {
+  canDownloadEoPdf,
+  downloadErstatningsopgoerelsePdf,
+  downloadTafFordeltPaaAarPdf,
+} from '../../../utils/pdf/pdfService';
 
 const formatDateLongDisplay = (isoDate: string | undefined): string => {
   const danish = formatISOToDanish(isoDate ?? '');
@@ -370,51 +373,30 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   // ============================================================================
 
   const handleDownloadPdf = React.useCallback(async () => {
-    if (errors.length > 0) {
-      console.warn('PDF-download blokeret: der er fejl i EODebug/Beregning.');
+    if (!canDownloadEoPdf({ hasBlockingErrors: errors.length > 0, stamdataValues, eoValues })) {
       return;
     }
+    if (!stamdataValues || !eoValues) return;
 
-    if (!stamdataValues || !eoValues) {
-      console.error('Manglende data for PDF-generering');
-      return;
-    }
-
-    // Udled visBrevhoved fra settings
-    const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
-
-    try {
-      const { generateErstatningsopgoerelsePdf } = await loadErstatningsopgoerelsePdfModule();
-      generateErstatningsopgoerelsePdf(stamdataValues, eoValues, selectedElements, {
-        visBrevhoved,
-        erstatningsopgoerelseAfsluttesMed: eoValues.erstatningsopgoerelseAfsluttesMed,
-        visUdkastStempel: eoValues.indsaetUdkastStempel === 'Ja',
-      });
-    } catch (error) {
-      console.error('Kunne ikke generere PDF for erstatningsopgørelse:', error);
-    }
+    await downloadErstatningsopgoerelsePdf({
+      stamdataValues,
+      eoValues,
+      selectedElements,
+      settings,
+    });
   }, [errors.length, stamdataValues, eoValues, selectedElements, settings]);
 
   const handleDownloadTafFordeltPdf = React.useCallback(async () => {
-    if (errors.length > 0) {
-      console.warn('TAF-PDF-download blokeret: der er fejl i EODebug/Beregning.');
+    if (!canDownloadEoPdf({ hasBlockingErrors: errors.length > 0, stamdataValues, eoValues })) {
       return;
     }
+    if (!stamdataValues || !eoValues) return;
 
-    if (!stamdataValues || !eoValues) {
-      console.error('Manglende data for PDF-generering');
-      return;
-    }
-    const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
-    try {
-      const { generateTafFordeltPaaAarPdf } = await loadTafFordeltPaaAarPdfModule();
-      generateTafFordeltPaaAarPdf(stamdataValues, eoValues, {
-        visBrevhoved,
-        visUdkastStempel: eoValues.indsaetUdkastStempel === 'Ja',
-      });
-    } catch (error) {
-      console.error('Kunne ikke generere TAF-fordelt-på-år PDF:', error);
-    }
+    await downloadTafFordeltPaaAarPdf({
+      stamdataValues,
+      eoValues,
+      settings,
+    });
   }, [errors.length, stamdataValues, eoValues, settings]);
 
   const formatSummaryText = React.useCallback((row: (typeof errors)[number]): string => {

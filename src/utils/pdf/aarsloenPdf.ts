@@ -5,9 +5,22 @@
  */
 
 import jsPDF from 'jspdf';
-import autoTable, { type CellDef, type CellHookData, type RowInput } from 'jspdf-autotable';
-import { COLORS, MARGINS, FONT_SIZES, TABLE_STYLES, SECTION_SPACER } from './pdfConfig';
-import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
+import type { CellDef, RowInput } from 'jspdf-autotable';
+import { COLORS, MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES, PDF_MUTED_TEXT_COLOR, SECTION_SPACER } from './pdfConfig';
+import { addSectionHeading, addTitle, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
+import { createStandardPdfWriter } from './pdfWriter';
+import {
+  cellCenter,
+  cellLeft,
+  cellRight,
+  cellRightBold,
+  createPdfTableCell,
+  createPdfFixedColumnStyles,
+  createPdfTableHeaderCell,
+  EO_TABLE_CELL_PADDING,
+  EO_TABLE_FONT_SIZE,
+  renderEoStylePdfTable,
+} from './pdfTableRenderer';
 import { calculateAarsloenRowDerived, type AarsloenSatserInput } from '../aarsloenTableCalculations';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { AarsloenTableRow, LoenPaaHelligdage, Loenperiode, StamdataValues } from '../../schemas/formSchemas';
@@ -15,6 +28,7 @@ import type { PeriodeResult } from '../periodeBeregning';
 import type { AarsloenBeregningResult } from '../../types/calculation';
 import { amountValueToDisplayString, amountValueToNumber } from '../expressionAmount';
 import { TODAY } from '../../config/dateRanges';
+import { formatAsAmount, formatPercent } from '../formatUtils';
 
 type PdfDoc = jsPDF & {
   lastAutoTable?: {
@@ -40,26 +54,10 @@ const formatDanishAmount = (amount: unknown): string => {
   }
 
   if (typeof amount === 'number') {
-    // Hvis amount er et tal, formater med dansk locale
-    return amount.toLocaleString('da-DK', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+    return formatAsAmount(amount, 2);
   }
 
   return '';
-};
-
-/**
- * Mapper lønperiode-key til visningsnavn
- */
-const mapLoenperiodeTekst = (loenperiode: Loenperiode): string => {
-  const mapping: Record<Loenperiode, string> = {
-    maaned: 'Månedsløn',
-    uge: 'Ugeløn',
-    dag: 'Dagsløn',
-  };
-  return mapping[loenperiode];
 };
 
 /**
@@ -83,23 +81,20 @@ const isEmptyOrZero = (value: unknown): boolean => {
 /**
  * Formaterer procent-værdi til visning i PDF (med komma og procenttegn)
  */
-const formatPercent = (pct: unknown): string => {
+const formatPdfPercent = (pct: unknown): string => {
   if (pct === null || pct === undefined || pct === '') return '';
 
-  // Hvis det er et tal (fx 12.5), formater med komma og %
   if (typeof pct === 'number') {
-    return `${pct.toString().replace('.', ',')} %`;
+    return formatPercent(pct);
   }
 
-  // Hvis det er en streng, tjek om den allerede har %
   if (typeof pct === 'string') {
     const trimmed = pct.trim();
-    // Hvis den allerede har %, sørg for komma-separator
-    if (trimmed.includes('%')) {
-      return trimmed.replace('.', ',');
-    }
-    // Ellers tilføj %
-    return `${trimmed.replace('.', ',')} %`;
+    if (trimmed === '') return '';
+    const normalized = trimmed.endsWith('%') ? trimmed.slice(0, -1).trim() : trimmed;
+    const parsed = Number.parseFloat(normalized.replace(/\./g, '').replace(',', '.'));
+    if (Number.isFinite(parsed)) return formatPercent(parsed);
+    return trimmed.includes('%') ? trimmed : `${trimmed} %`;
   }
 
   return '';
@@ -133,75 +128,28 @@ const addSatserTable = (doc: PdfDoc, satser: AarsloenSatserInput, currentY: numb
 
   const tableData: RowInput[] = [];
 
-  // Header-række
-  tableData.push([
-    { content: 'Satser', styles: { fontStyle: 'bold', halign: 'left' } },
-    { content: '', styles: { fontStyle: 'bold', halign: 'right' } }
-  ]);
+  const headingY = addSectionHeading(doc, 'Satser', currentY);
 
   // Data-rækker (kun udfyldte satser)
   for (const sats of udfyldteSatser) {
     tableData.push([
-      { content: sats.label, styles: { halign: 'left' } },
-      { content: formatPercent(satser[sats.key]), styles: { halign: 'right' } }
+      cellLeft(sats.label),
+      cellRight(formatPdfPercent(satser[sats.key])),
     ]);
   }
 
-  autoTable(doc, {
-    startY: currentY,
-    head: [],
+  const finalY = renderEoStylePdfTable({
+    doc,
+    startY: headingY,
     body: tableData,
-    margin: { left: MARGINS.left, right: MARGINS.right },
-    pageBreak: 'auto',
-    rowPageBreak: 'auto',
-    styles: {
-      font: 'helvetica',
-      fontSize: TABLE_STYLES.fontSize,
-      cellPadding: 1.5,
-      textColor: COLORS.text,
-    },
+    hasHeaderRow: false,
     columnStyles: {
       0: { cellWidth: 'auto' },
       1: { cellWidth: 60 },
     },
-    didParseCell: (data: CellHookData) => {
-      // Header-række får lysegrå baggrund
-      if (data.row.index === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-        data.cell.styles.overflow = 'ellipsize';
-      }
-      // Alternerende rækker (ekskl. header)
-      else if (data.row.index > 0) {
-        if (data.row.index % 2 === 0) {
-          data.cell.styles.fillColor = TABLE_STYLES.alternateRowBackgroundColor;
-        } else {
-          data.cell.styles.fillColor = COLORS.white;
-        }
-      }
-    },
   });
 
-  const finalY = doc.lastAutoTable?.finalY || currentY + 50;
-  return finalY + SECTION_SPACER;
-};
-
-/**
- * Tilføj lønperiode-linje
- */
-const _addLoenperiodeLine = (doc: PdfDoc, loenperiode: Loenperiode, currentY: number): number => {
-  doc.setFontSize(FONT_SIZES.normal);
-
-  // Venstrestillet fed tekst
-  doc.setFont('helvetica', 'bold');
-  doc.text('Lønperiode:', MARGINS.left, currentY);
-
-  // Højrestillet normal tekst
-  doc.setFont('helvetica', 'normal');
-  const pageWidth = doc.internal.pageSize.width;
-  const rightX = pageWidth - MARGINS.right;
-  doc.text(mapLoenperiodeTekst(loenperiode), rightX, currentY, { align: 'right' });
-
-  return currentY + 12;
+  return resolvePdfSectionEndY(finalY, currentY);
 };
 
 /**
@@ -239,31 +187,31 @@ const addIndtaegtsoplysningerTable = (
   const headers: CellDef[] = [];
   if (loenperiode === 'maaned') {
     headers.push(
-      { content: 'Måned', styles: { fontStyle: 'bold', halign: 'center' } },
-      { content: 'År', styles: { fontStyle: 'bold', halign: 'center' } }
+      createPdfTableHeaderCell('Måned', 'center'),
+      createPdfTableHeaderCell('År', 'center'),
     );
   } else if (loenperiode === 'uge') {
     headers.push(
-      { content: 'Uge fra', styles: { fontStyle: 'bold', halign: 'center' } },
-      { content: 'Uge til', styles: { fontStyle: 'bold', halign: 'center' } }
+      createPdfTableHeaderCell('Uge fra', 'center'),
+      createPdfTableHeaderCell('Uge til', 'center'),
     );
   } else if (loenperiode === 'dag') {
     headers.push(
-      { content: 'Dato fra', styles: { fontStyle: 'bold', halign: 'center' } },
-      { content: 'Dato til', styles: { fontStyle: 'bold', halign: 'center' } }
+      createPdfTableHeaderCell('Dato fra', 'center'),
+      createPdfTableHeaderCell('Dato til', 'center'),
     );
   }
 
   // Tilføj resten af headers
   headers.push(
-    { content: 'Grundløn', styles: { fontStyle: 'bold', halign: 'center' } },
-    { content: 'Tillæg', styles: { fontStyle: 'bold', halign: 'center' } },
-    { content: 'Ikke-pens.-\ngivende løn', styles: { fontStyle: 'bold', halign: 'center' } },
-    { content: 'ATP og\nikke-FB løn', styles: { fontStyle: 'bold', halign: 'center' } },
-    { content: 'Ferieberet.\nløn', styles: { fontStyle: 'bold', halign: 'center' } },
-    { content: 'FP/FV/SH/\nSO/St.B.', styles: { fontStyle: 'bold', halign: 'center' } },
-    { content: 'Arb.g.\nPension', styles: { fontStyle: 'bold', halign: 'center' } },
-    { content: 'Samlet løn', styles: { fontStyle: 'bold', halign: 'center' } }
+    createPdfTableHeaderCell('Grundløn', 'center'),
+    createPdfTableHeaderCell('Tillæg', 'center'),
+    createPdfTableHeaderCell('Ikke-pens.-\ngivende løn', 'center'),
+    createPdfTableHeaderCell('ATP og\nikke-FB løn', 'center'),
+    createPdfTableHeaderCell('Ferieberet.\nløn', 'center'),
+    createPdfTableHeaderCell('FP/FV/SH/\nSO/St.B.', 'center'),
+    createPdfTableHeaderCell('Arb.g.\nPension', 'center'),
+    createPdfTableHeaderCell('Samlet løn', 'center'),
   );
 
   const tableRows: RowInput[] = [headers];
@@ -294,29 +242,29 @@ const addIndtaegtsoplysningerTable = (
     });
 
     tableRows.push([
-      { content: col0Val, styles: { halign: 'center' } },
-      { content: col1Val, styles: { halign: 'center' } },
-      { content: formatDanishAmount(row.col2), styles: { halign: 'right' } },
-      { content: formatDanishAmount(row.col3), styles: { halign: 'right' } },
-      { content: formatDanishAmount(row.col4), styles: { halign: 'right' } },
-      { content: formatDanishAmount(row.col5), styles: { halign: 'right' } },
-      { content: formatDanishAmount(derived.ferieberet), styles: { halign: 'right' } },
-      { content: formatDanishAmount(derived.fpFvShSo), styles: { halign: 'right' } },
-      { content: formatDanishAmount(derived.pension), styles: { halign: 'right' } },
-      { content: formatDanishAmount(derived.samlet), styles: { halign: 'right' } }
+      cellCenter(col0Val),
+      cellCenter(col1Val),
+      cellRight(formatDanishAmount(row.col2)),
+      cellRight(formatDanishAmount(row.col3)),
+      cellRight(formatDanishAmount(row.col4)),
+      cellRight(formatDanishAmount(row.col5)),
+      cellRight(formatDanishAmount(derived.ferieberet)),
+      cellRight(formatDanishAmount(derived.fpFvShSo)),
+      cellRight(formatDanishAmount(derived.pension)),
+      cellRight(formatDanishAmount(derived.samlet)),
     ]);
   }
 
   // Tilføj "I alt"-række
   tableRows.push([
-    { content: 'I alt', styles: { halign: 'center', fontStyle: 'bold' } },
-    { content: '', styles: { halign: 'center' } },
-    { content: '', styles: { halign: 'right' } },
-    { content: '', styles: { halign: 'right' } },
-    { content: '', styles: { halign: 'right' } },
-    { content: '', styles: { halign: 'right' } },
-    { content: '', styles: { halign: 'right' } },
-    { content: '', styles: { halign: 'right' } },
+    createPdfTableCell('I alt', { halign: 'center', bold: true }),
+    cellCenter(''),
+    cellRight(''),
+    cellRight(''),
+    cellRight(''),
+    cellRight(''),
+    cellRight(''),
+    cellRight(''),
     {
       content: `${formatDanishAmount(beregnetAarsloen)}${NBSP}kr.`,
       colSpan: 2,
@@ -324,58 +272,20 @@ const addIndtaegtsoplysningerTable = (
     },
   ]);
 
-  autoTable(doc, {
+  const finalY = renderEoStylePdfTable({
+    doc,
     startY: currentY,
-    head: [],
     body: tableRows,
-    margin: { left: MARGINS.left, right: MARGINS.right },
-    pageBreak: 'auto',
-    rowPageBreak: 'auto',
-    styles: {
-      font: 'helvetica',
-      fontSize: 7, // Mindre skriftstørrelse for data
-      cellPadding: 1.5,
-      textColor: COLORS.text,
-    },
-    columnStyles: {
-      0: { cellWidth: 17 },
-      1: { cellWidth: 17 },
-      2: { cellWidth: 17 },
-      3: { cellWidth: 17 },
-      4: { cellWidth: 17 },
-      5: { cellWidth: 17 },
-      6: { cellWidth: 17 },
-      7: { cellWidth: 17 },
-      8: { cellWidth: 17 },
-      9: { cellWidth: 17 }
-    },
-    didParseCell: (data: CellHookData) => {
+    columnStyles: createPdfFixedColumnStyles(10, 17),
+    didParseCell: (data) => {
       const lastRowIndex = tableRows.length - 1;
-
-      // Header-række får lysegrå baggrund (font forbliver 8pt)
-      if (data.row.index === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-        data.cell.styles.overflow = 'ellipsize';
-      }
-      // "I alt"-række (sidste række) - fjern borders
-      else if (data.row.index === lastRowIndex) {
-        data.cell.styles.fillColor = COLORS.white;
+      if (data.row.index === lastRowIndex) {
+        data.cell.styles.fillColor = false;
         data.cell.styles.lineWidth = 0;
       }
-      // Alternerende rækker (ekskl. header og "I alt")
-      else if (data.row.index > 0) {
-        if (data.row.index % 2 === 0) {
-          data.cell.styles.fillColor = TABLE_STYLES.alternateRowBackgroundColor;
-        } else {
-          data.cell.styles.fillColor = COLORS.white;
-        }
-      }
     },
-    didDrawCell: (data: CellHookData) => {
+    didDrawCell: (data) => {
       const lastRowIndex = tableRows.length - 1;
-
-      // Tegn tynd streg over beløbet i "I alt"-rækken.
-      // Beløbet står i sidste celle, som spænder over de to sidste kolonner.
       if (data.row.index === lastRowIndex && data.column.index === 8) {
         const cell = data.cell;
         doc.setLineWidth(0.15);
@@ -385,8 +295,7 @@ const addIndtaegtsoplysningerTable = (
     },
   });
 
-  const finalY = doc.lastAutoTable?.finalY || currentY + 50;
-  return finalY + SECTION_SPACER;
+  return resolvePdfSectionEndY(finalY, currentY);
 };
 
 /**
@@ -405,17 +314,12 @@ const addBeregningsprinciperTable = (doc: PdfDoc, params: BeregningsprincipperPa
   const { periodeData, fuldLoenUnderFerie, retTilSjetteFerieuge, antalFeriedage, loenPaaHelligdage, shDageAntal } = params;
 
   const tableData: RowInput[] = [];
-
-  // Header-række
-  tableData.push([
-    { content: 'Beregningsprincipper', styles: { fontStyle: 'bold', halign: 'left' } },
-    { content: '', styles: { fontStyle: 'bold', halign: 'right' } }
-  ]);
+  const headingY = addSectionHeading(doc, 'Beregningsprincipper', currentY);
 
   // Samlet periode
   tableData.push([
-    { content: 'Samlet periode', styles: { halign: 'left' } },
-    { content: periodeData?.periodeTekst || '', styles: { halign: 'right' } }
+    cellLeft('Samlet periode'),
+    cellRight(periodeData?.periodeTekst || ''),
   ]);
 
   // Andel af samlet periode
@@ -423,22 +327,22 @@ const addBeregningsprinciperTable = (doc: PdfDoc, params: BeregningsprincipperPa
     ? `${periodeData.unikkeEnheder} / ${periodeData.totalEnheder} ${periodeData.enhedNavn}`
     : '';
   tableData.push([
-    { content: 'Andel af samlet periode', styles: { halign: 'left' } },
-    { content: andelTekst, styles: { halign: 'right' } }
+    cellLeft('Andel af samlet periode'),
+    cellRight(andelTekst),
   ]);
 
   // Fuld løn under ferie
   tableData.push([
-    { content: 'Fuld løn under ferie', styles: { halign: 'left' } },
-    { content: fuldLoenUnderFerie ? 'Ja' : 'Nej', styles: { halign: 'right' } }
+    cellLeft('Fuld løn under ferie'),
+    cellRight(fuldLoenUnderFerie ? 'Ja' : 'Nej'),
   ]);
 
   // Ret til 6. ferieuge og Antal feriedage (kun hvis ikke fuld løn under ferie)
   if (!fuldLoenUnderFerie) {
     // Ret til 6. ferieuge
     tableData.push([
-      { content: 'Ret til 6. ferieuge', styles: { halign: 'left' } },
-      { content: retTilSjetteFerieuge ? 'Ja' : 'Nej', styles: { halign: 'right' } }
+      cellLeft('Ret til 6. ferieuge'),
+      cellRight(retTilSjetteFerieuge ? 'Ja' : 'Nej'),
     ]);
 
     // Antal feriedage
@@ -446,61 +350,37 @@ const addBeregningsprinciperTable = (doc: PdfDoc, params: BeregningsprincipperPa
       ? '0'
       : String(antalFeriedage);
     tableData.push([
-      { content: 'Antal feriedage (mandag-fredag) i de indtastede perioder', styles: { halign: 'left' } },
-      { content: feriedageVal, styles: { halign: 'right' } }
+      cellLeft('Antal feriedage (mandag-fredag) i de indtastede perioder'),
+      cellRight(feriedageVal),
     ]);
   }
 
   // Løn på helligdage
   tableData.push([
-    { content: 'Løn på helligdage', styles: { halign: 'left' } },
-    { content: loenPaaHelligdage || '', styles: { halign: 'right' } }
+    cellLeft('Løn på helligdage'),
+    cellRight(loenPaaHelligdage || ''),
   ]);
 
   // Antal SH-dage (kun hvis loenPaaHelligdage === 'SH-udbetaling' eller 'Ingen')
   if (loenPaaHelligdage === 'SH-udbetaling' || loenPaaHelligdage === 'Ingen') {
     tableData.push([
-      { content: 'Antal SH-dage i de indtastede perioder', styles: { halign: 'left' } },
-      { content: String(shDageAntal || 0), styles: { halign: 'right' } }
+      cellLeft('Antal SH-dage i de indtastede perioder'),
+      cellRight(String(shDageAntal || 0)),
     ]);
   }
 
-  autoTable(doc, {
-    startY: currentY,
-    head: [],
+  const finalY = renderEoStylePdfTable({
+    doc,
+    startY: headingY,
     body: tableData,
-    margin: { left: MARGINS.left, right: MARGINS.right },
-    pageBreak: 'auto',
-    rowPageBreak: 'auto',
-    styles: {
-      font: 'helvetica',
-      fontSize: TABLE_STYLES.fontSize,
-      cellPadding: 1.5,
-      textColor: COLORS.text,
-    },
+    hasHeaderRow: false,
     columnStyles: {
       0: { cellWidth: 'auto' },
       1: { cellWidth: 60 },
     },
-    didParseCell: (data: CellHookData) => {
-      // Header-række får lysegrå baggrund
-      if (data.row.index === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-        data.cell.styles.overflow = 'ellipsize';
-      }
-      // Alternerende rækker (ekskl. header)
-      else if (data.row.index > 0) {
-        if (data.row.index % 2 === 0) {
-          data.cell.styles.fillColor = TABLE_STYLES.alternateRowBackgroundColor;
-        } else {
-          data.cell.styles.fillColor = COLORS.white;
-        }
-      }
-    },
   });
 
-  const finalY = doc.lastAutoTable?.finalY || currentY + 50;
-  return finalY + SECTION_SPACER;
+  return resolvePdfSectionEndY(finalY, currentY);
 };
 
 /**
@@ -521,17 +401,12 @@ const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, curren
 
   const tableData: RowInput[] = [];
   const harFejl = fejlmeddelelser.length > 0;
-
-  // Header-række med "Beregning" (uden stjerne - den tilføjes manuelt bagefter)
-  tableData.push([
-    { content: 'Beregning', styles: { fontStyle: 'bold', halign: 'left' } },
-    { content: '', styles: { fontStyle: 'bold', halign: 'right' } }
-  ]);
+  const headingY = addSectionHeading(doc, 'Beregning', currentY);
 
   // Første data-række: Sammentælling af løn fra tabellen
   tableData.push([
-    { content: 'Sammentælling af løn fra tabellen', styles: { halign: 'left' } },
-    { content: `${formatDanishAmount(beregnetAarsloen)} kr.`, styles: { halign: 'right' } }
+    cellLeft('Sammentælling af løn fra tabellen'),
+    cellRight(`${formatDanishAmount(beregnetAarsloen)} kr.`),
   ]);
 
   // Tilføj rækker baseret på beregningsmetode
@@ -549,8 +424,8 @@ const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, curren
     linje1Label += `)`;
 
     tableData.push([
-      { content: linje1Label, styles: { halign: 'left' } },
-      { content: `${beregningsData.arbejdsdageIPeriode} arbejdsdage`, styles: { halign: 'right' } }
+      cellLeft(linje1Label),
+      cellRight(`${beregningsData.arbejdsdageIPeriode} arbejdsdage`),
     ]);
 
     const linje2Label = fuldLoenUnderFerie
@@ -558,15 +433,15 @@ const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, curren
       : `Arbejdsdage på et år (261 hverdage - ${beregningsData.feriedagePaaAar} ${retTilSjetteFerieuge ? 'ferie- og feriefridage' : 'feriedage'} - 8 SH-dage)`;
 
     tableData.push([
-      { content: linje2Label, styles: { halign: 'left' } },
-      { content: `${beregningsData.arbejdsdagePaaAar} arbejdsdage`, styles: { halign: 'right' } }
+      cellLeft(linje2Label),
+      cellRight(`${beregningsData.arbejdsdagePaaAar} arbejdsdage`),
     ]);
 
     const linje3Label = `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.arbejdsdagePaaAar})`;
 
     tableData.push([
-      { content: linje3Label, styles: { halign: 'left' } },
-      { content: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`, styles: { halign: 'right', fontStyle: 'bold' } }
+      cellLeft(linje3Label),
+      cellRightBold(`${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`),
     ]);
 
   } else if (beregningsData.metode === 'B') {
@@ -579,8 +454,8 @@ const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, curren
     linje1Label += `)`;
 
     tableData.push([
-      { content: linje1Label, styles: { halign: 'left' } },
-      { content: `${beregningsData.arbejdsdageIPeriode} hverdage`, styles: { halign: 'right' } }
+      cellLeft(linje1Label),
+      cellRight(`${beregningsData.arbejdsdageIPeriode} hverdage`),
     ]);
 
     const linje2Label = fuldLoenUnderFerie
@@ -588,43 +463,43 @@ const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, curren
       : `Hverdage på et år (261 hverdage - ${beregningsData.feriedagePaaAar} ${retTilSjetteFerieuge ? 'ferie- og feriefridage' : 'feriedage'})`;
 
     tableData.push([
-      { content: linje2Label, styles: { halign: 'left' } },
-      { content: `${beregningsData.hverdagePaaAar} hverdage`, styles: { halign: 'right' } }
+      cellLeft(linje2Label),
+      cellRight(`${beregningsData.hverdagePaaAar} hverdage`),
     ]);
 
     const linje3Label = `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar})`;
 
     tableData.push([
-      { content: linje3Label, styles: { halign: 'left' } },
-      { content: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`, styles: { halign: 'right', fontStyle: 'bold' } }
+      cellLeft(linje3Label),
+      cellRightBold(`${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`),
     ]);
 
   } else if (beregningsData.metode === 'C') {
     // METODE C: Måneder/Uger/Dage
     if (loenperiode === 'maaned') {
       tableData.push([
-        { content: 'Antal måneder i indtastede perioder', styles: { halign: 'left' } },
-        { content: `${beregningsData.antalMaaneder} måneder`, styles: { halign: 'right' } }
+        cellLeft('Antal måneder i indtastede perioder'),
+        cellRight(`${beregningsData.antalMaaneder} måneder`),
       ]);
 
       const linje2Label = `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.antalMaaneder} × 12)`;
 
       tableData.push([
-        { content: linje2Label, styles: { halign: 'left' } },
-        { content: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`, styles: { halign: 'right', fontStyle: 'bold' } }
+        cellLeft(linje2Label),
+        cellRightBold(`${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`),
       ]);
 
     } else if (loenperiode === 'uge') {
       tableData.push([
-        { content: 'Antal uger i indtastede perioder', styles: { halign: 'left' } },
-        { content: `${beregningsData.antalMaaneder} uger`, styles: { halign: 'right' } }
+        cellLeft('Antal uger i indtastede perioder'),
+        cellRight(`${beregningsData.antalMaaneder} uger`),
       ]);
 
       const linje2Label = `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.antalMaaneder} × 52,14)`;
 
       tableData.push([
-        { content: linje2Label, styles: { halign: 'left' } },
-        { content: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`, styles: { halign: 'right', fontStyle: 'bold' } }
+        cellLeft(linje2Label),
+        cellRightBold(`${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`),
       ]);
 
     } else if (loenperiode === 'dag') {
@@ -637,8 +512,8 @@ const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, curren
       linje1Label += `)`;
 
       tableData.push([
-        { content: linje1Label, styles: { halign: 'left' } },
-        { content: `${beregningsData.arbejdsdageIPeriode} hverdage`, styles: { halign: 'right' } }
+        cellLeft(linje1Label),
+        cellRight(`${beregningsData.arbejdsdageIPeriode} hverdage`),
       ]);
 
       const linje2Label = fuldLoenUnderFerie
@@ -646,72 +521,47 @@ const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, curren
         : `Hverdage på et år (261 hverdage - ${beregningsData.feriedagePaaAar} ${retTilSjetteFerieuge ? 'ferie- og feriefridage' : 'feriedage'})`;
 
       tableData.push([
-        { content: linje2Label, styles: { halign: 'left' } },
-        { content: `${beregningsData.hverdagePaaAar} hverdage`, styles: { halign: 'right' } }
+        cellLeft(linje2Label),
+        cellRight(`${beregningsData.hverdagePaaAar} hverdage`),
       ]);
 
       const linje3Label = `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar})`;
 
       tableData.push([
-        { content: linje3Label, styles: { halign: 'left' } },
-        { content: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`, styles: { halign: 'right', fontStyle: 'bold' } }
+        cellLeft(linje3Label),
+        cellRightBold(`${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`),
       ]);
     }
   }
 
-  // Generer tabel
-  autoTable(doc, {
-    startY: currentY,
-    head: [],
+  const finalY = renderEoStylePdfTable({
+    doc,
+    startY: headingY,
     body: tableData,
-    margin: { left: MARGINS.left, right: MARGINS.right },
-    pageBreak: 'auto',
-    rowPageBreak: 'auto',
-    styles: {
-      font: 'helvetica',
-      fontSize: TABLE_STYLES.fontSize,
-      cellPadding: 1.5,
-      textColor: COLORS.text,
-    },
+    hasHeaderRow: false,
     columnStyles: {
-      0: { cellWidth: 'auto' }, // Tekstkolonne - elastisk, får resten af pladsen
-      1: { cellWidth: 45 },      // Talkolonne - kompakt, så teksten får mere plads
-    },
-    didParseCell: (data: CellHookData) => {
-      // Header-række får lysegrå baggrund
-      if (data.row.index === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-        data.cell.styles.overflow = 'ellipsize';
-      }
-      // Alternerende rækker (ekskl. header)
-      else if (data.row.index > 0) {
-        if (data.row.index % 2 === 0) {
-          data.cell.styles.fillColor = TABLE_STYLES.alternateRowBackgroundColor;
-        } else {
-          data.cell.styles.fillColor = COLORS.white;
-        }
-      }
+      0: { cellWidth: 'auto' },
+      1: { cellWidth: 45 },
     },
   });
 
   // Tilføj stjerne manuelt hvis der er fejl
   if (harFejl) {
-    const tableStartY = currentY + 1.5; // cellPadding
-    const headerTextY = tableStartY + TABLE_STYLES.fontSize / 2 + 1; // Cirka vertikal center af header
+    const tableStartY = headingY + EO_TABLE_CELL_PADDING;
+    const headerTextY = tableStartY + EO_TABLE_FONT_SIZE / 2 + 1;
 
-    doc.setFontSize(TABLE_STYLES.fontSize);
-    doc.setFont('helvetica', 'bold');
-    const textWidth = doc.getTextWidth('Beregning');
+    doc.setFontSize(EO_TABLE_FONT_SIZE);
+    doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
+    const textWidth = doc.getTextWidth('Sammentælling af løn fra tabellen');
 
-    doc.setTextColor(150, 150, 150);
-    doc.text('*', MARGINS.left + textWidth, headerTextY - 1);
+    doc.setTextColor(PDF_MUTED_TEXT_COLOR[0], PDF_MUTED_TEXT_COLOR[1], PDF_MUTED_TEXT_COLOR[2]);
+    doc.text('*', MARGINS.left + textWidth + 1, headerTextY - 1);
 
     // Reset farve
     doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
   }
 
-  const finalY = doc.lastAutoTable?.finalY || currentY + 50;
-  return finalY + SECTION_SPACER;
+  return resolvePdfSectionEndY(finalY, currentY);
 };
 
 
@@ -757,16 +607,12 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
     visBrevhoved = false,
   } = params;
 
-  // Opret nyt PDF-dokument (A4, portrait)
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  }) as PdfDoc;
-  doc.setDisplayMode('100%');
+  const writer = createStandardPdfWriter();
+  writer.setDisplayMode('fullheight');
+  const doc = writer.getDoc() as PdfDoc;
 
   // Dokumentets metadata
-  doc.setProperties({
+  writer.setProperties({
     title: 'Årslønsberegning',
     subject: 'Årslønsberegning',
     author: 'MINEO',
@@ -783,7 +629,8 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
       sagsbehandler: stamdata?.sagsbehandler,
       dagsDatoISO: TODAY,
     };
-    currentY = addBrevhoved(doc, brevhovedData);
+    writer.writeBrevhoved(brevhovedData);
+    currentY = writer.getY();
   }
 
   // Tilføj titel
@@ -795,11 +642,7 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
     currentY = satserY;
   }
 
-  // Tilføj overskrift "Indtægtsoplysninger"
-  doc.setFontSize(FONT_SIZES.normal);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Indtægtsoplysninger', MARGINS.left, currentY);
-  currentY += 8;
+  currentY = addSectionHeading(doc, 'Indtægtsoplysninger', currentY);
 
   // Tilføj indtægtsoplysninger-tabel (inkl. "I alt"-linje)
   currentY = addIndtaegtsoplysningerTable(doc, tableData, loenperiode, satser, beregnetAarsloen, currentY);
@@ -831,7 +674,7 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
   }
 
   // Tilføj footer med versionsnummer
-  addFooter(doc);
+  writer.addFooter();
 
   // Generer filnavn
   let filename = 'Årslønsberegning.pdf';
@@ -848,5 +691,5 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
   }
 
   // Download PDF
-  doc.save(filename);
+  writer.save(filename);
 };

@@ -66,9 +66,8 @@ import {
 } from '../../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../../data/statistiskLoenudviklingRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
-import { loadKRLPdfModule, loadReguleringPdfModule } from '../../../utils/pdf/pdfLoader';
-import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
+import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '../../../utils/pdf/pdfService';
 
 type JaNej = 'Ja' | 'Nej';
 
@@ -624,43 +623,21 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     reguleringsDatoIntervalData ? `${reguleringsDatoIntervalData.fraDato} - ${reguleringsDatoIntervalData.tilDato}` : '';
 
   const handleDownloadReguleringPdf = React.useCallback(
-    async (params: {
-      overenskomstLabel: string;
-      loenudviklingBasis: 'Overenskomst' | 'Statistik';
-      overenskomstId: string | undefined;
-      statistikModelLabel: string | undefined;
-      interval: ReguleringsDatoInterval;
-      applyAlmindeligLoenPaaShDageRegel: boolean;
-      offentligLoenType?: string;
-      offentligLoenTrin?: number;
-      offentligLoenGruppe?: number;
-      offentligLoenEkstraGrundloen?: number;
-    }) => {
-      try {
-        const stamdata = getPersistedData('stamdata');
-        const visBrevhoved = getVisBrevhoved(settings, 'regulering');
-        const { generateReguleringPdf } = await loadReguleringPdfModule();
-        generateReguleringPdf({
-          ...params,
-          visBrevhoved,
-          stamdata,
-        });
-      } catch (error) {
-        console.error('Kunne ikke indlæse PDF-modulet for regulering:', error);
-      }
+    async (input: ReguleringPdfInput) => {
+      await downloadReguleringPdf({
+        input,
+        settings,
+        persistedStamdata: getPersistedData('stamdata'),
+      });
     },
     [getPersistedData, settings]
   );
 
   const handleDownloadKRLPdf = React.useCallback(async () => {
-    try {
-      const stamdata = getPersistedData('stamdata');
-      const visBrevhoved = getVisBrevhoved(settings, 'regulering');
-      const { generateKRLPdf } = await loadKRLPdfModule();
-      generateKRLPdf({ visBrevhoved, stamdata });
-    } catch (error) {
-      console.error('Kunne ikke indlæse PDF-modulet for KRL satstabel:', error);
-    }
+    await downloadKrlPdf({
+      settings,
+      persistedStamdata: getPersistedData('stamdata'),
+    });
   }, [getPersistedData, settings]);
 
   const statusSubheaderLabel = React.useMemo(() => {

@@ -21,6 +21,11 @@ export const formatCurrencyFromOre = (ore: number): string => {
 
 export const formatMoneyOreWithKr = (ore: number): string => `${formatCurrencyFromOre(ore)}${NBSP}kr.`;
 
+export const formatCurrencyPerUnit = (amount: number | null | undefined, unit: string): string => {
+  if (amount === null || amount === undefined || !Number.isFinite(amount)) return '';
+  return `${formatCurrency(amount)}${NBSP}kr./${unit}`;
+};
+
 export const formatPercentDelta = (value: number): string => {
   if (!Number.isFinite(value)) return '-';
   const abs = Math.abs(value);

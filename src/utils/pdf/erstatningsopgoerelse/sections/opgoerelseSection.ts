@@ -1,4 +1,4 @@
-import { MARGINS } from '../../pdfConfig';
+import { MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES } from '../../pdfConfig';
 import { ensureNonBreakingKr } from '../../pdfWriter';
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { getGrundloenAngivetPerForOverenskomst } from '../../../../data/overenskomstRates';
@@ -73,9 +73,9 @@ type OpgorelseSectionContext = Readonly<{
     addPage: () => void;
     addSpacer: (height: number) => void;
     advanceY: (height: number) => void;
+    ensureSpace: (height: number) => void;
     getY: () => number;
     getTextWidth: (text: string) => number;
-    getDoc: () => { internal: { pageSize: { height: number } } };
     setFont: (fontName: string, fontStyle: 'normal' | 'bold') => void;
     writeUnderlinedLabel: (text: string, x: number) => void;
     writeSignatureBlock: (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => void;
@@ -198,7 +198,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
   renderSectionHeader('Svie- og smertegodtgørelse', lineHeight);
   renderSubheader('Status', lineHeight, { addTopSpacing: false });
-  writer.setFont('helvetica', 'normal');
+  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
 
   for (const line of model.svieSmerte.statusLinjer) {
     safeAddWrappedText(line);
@@ -300,7 +300,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
   renderSectionHeader('Tabt arbejdsfortjeneste', lineHeight);
   renderSubheader('Status', lineHeight, { addTopSpacing: false });
-  writer.setFont('helvetica', 'normal');
+  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
 
   for (const line of model.tabtArbejdsfortjeneste.statusLinjer) {
     safeAddWrappedText(line);
@@ -394,13 +394,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           ];
           const visibleComponentRows = componentRows.filter((row) => row.amountOre !== 0);
           if (visibleComponentRows.length > 0) {
-            const pageHeight = writer.getDoc().internal.pageSize.height;
-            const contentBottom = pageHeight - MARGINS.bottom;
-            const remainingHeight = contentBottom - writer.getY();
-            const requiredHeight = lineHeight * 2;
-            if (remainingHeight < requiredHeight) {
-              writer.addPage();
-            }
+            writer.ensureSpace(lineHeight * 2);
           }
 
           writer.writeUnderlinedLabel(arbejdssted.navn, MARGINS.left);
@@ -425,13 +419,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           if (indkomst.arbejdssteder.length === 0) {
             writer.advanceY(lineHeight);
           }
-          const pageHeight = writer.getDoc().internal.pageSize.height;
-          const contentBottom = pageHeight - MARGINS.bottom;
-          const remainingHeight = contentBottom - writer.getY();
-          const requiredHeight = lineHeight * 2;
-          if (remainingHeight < requiredHeight) {
-            writer.addPage();
-          }
+          writer.ensureSpace(lineHeight * 2);
           writer.writeUnderlinedLabel('Offentlige ydelser', MARGINS.left);
           for (const ydelse of indkomst.offentligeYdelser) {
             safeAddLeftRightText(
@@ -607,7 +595,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         );
         for (const entry of loenudvikling.perAnsaettelse) {
           writer.addSpacer(lineHeight);
-          writer.setFont('helvetica', 'normal');
+          writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
           writer.writeUnderlinedLabel(entry.ansaettelsesforholdNavn, MARGINS.left);
           if (entry.loenudviklingLabel !== 'Ingen') {
             safeAddWrappedText(`Lønudvikling beregnes ud fra ${resolveLoenudviklingLabelDisplay({
@@ -743,9 +731,9 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   safeAddLeftRightText('Svie- og smertegodtgørelse', formatMoneyOreWithKr(model.samlet.svieSmerteOre), summaryRightMaxWidth, { rightFontStyle: 'normal' });
   safeAddLeftRightText('Tabt arbejdsfortjeneste', formatMoneyOreWithKr(model.samlet.tabtArbejdsfortjenesteOre), summaryRightMaxWidth, { rightFontStyle: 'normal' });
   safeAddLeftRightText('Øvrige krav', formatMoneyOreWithKr(model.samlet.oevrigeKravOre), summaryRightMaxWidth, { rightFontStyle: 'normal' });
-  writer.setFont('helvetica', 'bold');
+  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
   safeAddLeftRightText('Erstatningskrav i alt', formatMoneyOreWithKr(model.samlet.totalOre), summaryRightMaxWidth, { rightFontStyle: 'bold', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 });
-  writer.setFont('helvetica', 'normal');
+  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
   const saerligeKommentarer = model.saerligeKommentarer;
   if (saerligeKommentarer) {
     renderSectionHeader('Særlige bemærkninger', lineHeight);
@@ -762,11 +750,8 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     const dateLine = '____ / ____ - ____________';
     const sigX = MARGINS.left + 90;
     const sigLine = '________________________________________';
-    const contentBottom = writer.getDoc().internal.pageSize.height - MARGINS.bottom;
     const signatureBlockHeight = lineHeight * 2;
-    if (writer.getY() + signatureBlockHeight > contentBottom) {
-      writer.addPage();
-    }
+    writer.ensureSpace(signatureBlockHeight);
     writer.writeSignatureBlock(dateLine, sigLine, dateX, sigX, skadelidteNavn);
   }
 };

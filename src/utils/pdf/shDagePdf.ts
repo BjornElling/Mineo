@@ -4,79 +4,52 @@
  * Genererer PDF-dokument med oversigt over danske helligdage der falder på hverdage
  */
 
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { COLORS, MARGINS, FONT_SIZES, TABLE_STYLES, SECTION_SPACER } from './pdfConfig';
-import { beregnHelligdage } from '../shDageBeregning';
-import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
+import {
+  MARGINS,
+  PDF_MUTED_TEXT_COLOR,
+  PDF_SECTION_HEADING_GAP,
+  PDF_TABLE_NARROW_COLUMN_WIDTH,
+  TABLE_STYLES,
+  SECTION_SPACER,
+} from './pdfConfig';
+import { beregnHelligdageMedNavn } from '../shDageBeregning';
+import {
+  addSectionHeading,
+  addTitle,
+  applyNormalTextStyle,
+  ensurePdfPageSpace,
+  PDF_BASE_LINE_HEIGHT_MM,
+  resolvePdfSectionEndY,
+  type BrevhovedData,
+} from './pdfHelpers';
+import { createStandardPdfWriter } from './pdfWriter';
+import {
+  createPdfTableCell,
+  createPdfTableHeaderCell,
+  createPdfTableTransparentRow,
+  renderEoStylePdfTable,
+} from './pdfTableRenderer';
 import { parseISODate, type ISODateString } from '../../types/branded';
-import { formatToISO, addDays, createDate } from '../dateUtils';
-import { diffUtcDays } from '../utcDayMath';
-import { formatUtcDateLong } from '../dateFormatting';
+import { formatToISO, addDays } from '../dateUtils';
+import { formatUtcDateLong, WEEKDAY_NAMES_DA } from '../dateFormatting';
 import { TODAY } from '../../config/dateRanges';
+import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
+import type { CellHookData, RowInput } from 'jspdf-autotable';
+import type jsPDF from 'jspdf';
 
 /**
  * Stamdata til SH-dage PDF
  */
-export interface SHDageStamdata {
-  journalnr?: string;
-  advokat?: string;
-  sagsbehandler?: string;
-}
-
-/**
- * Options for SH-dage PDF
- */
-export interface SHDagePdfOptions {
-  visBrevhoved?: boolean;
-}
-
-/**
- * Danske ugedagsnavne
- */
-const UGEDAGE = [
-  'Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'
-];
-
-/**
- * Identificer hvilken helligdag en dato er
- *
- * @param {Date} dato - Datoen at identificere
- * @param {Date} paaske - Påskedag for året
- * @returns {string|null} Helligdagsnavn eller null
- */
-const identificerHelligdag = (dato, paaske) => {
-  const aar = dato.getUTCFullYear();
-
-  // Nytårsdag
-  if (dato.getUTCMonth() === 0 && dato.getUTCDate() === 1) {
-    return 'Nytårsdag';
-  }
-
-  // Juledag
-  if (dato.getUTCMonth() === 11 && dato.getUTCDate() === 25) {
-    return 'Juledag';
-  }
-
-  // Anden juledag
-  if (dato.getUTCMonth() === 11 && dato.getUTCDate() === 26) {
-    return 'Anden juledag';
-  }
-
-  // Påskerelaterede helligdage
-  const diffDays = diffUtcDays(dato, paaske);
-
-  if (diffDays === -3) return 'Skærtorsdag';
-  if (diffDays === -2) return 'Langfredag';
-  if (diffDays === 0) return 'Påskedag';
-  if (diffDays === 1) return 'Anden påskedag';
-  if (diffDays === 26 && aar <= 2023) return 'Store bededag';
-  if (diffDays === 39) return 'Kristi himmelfartsdag';
-  if (diffDays === 49) return 'Pinsedag';
-  if (diffDays === 50) return 'Anden pinsedag';
-
-  return null;
-};
+type SHDagePdfOptions = PdfCommonOptions;
+type SHDageStamdata = PdfStamdata;
+type SHDagePeriod = { start: Date; end: Date };
+type SHDagEntry = Readonly<{
+  dato: Date;
+  ugedag: (typeof WEEKDAY_NAMES_DA)[number];
+  helligdagNavn: string;
+  erHverdag: boolean;
+}>;
+type PdfDoc = jsPDF;
 
 /**
  * Formater dato til dansk format (d. måned åååå)
@@ -84,45 +57,7 @@ const identificerHelligdag = (dato, paaske) => {
  * @param {Date} date - Datoen at formatere
  * @returns {string} Formateret dato
  */
-const formatDanskDato = (date) => formatUtcDateLong(date);
-
-/**
- * Tjek om to datoer er samme dag
- *
- * @param {Date} date1 - Første dato
- * @param {Date} date2 - Anden dato
- * @returns {boolean} True hvis samme dag
- */
-const _erSammeDag = (date1, date2) => {
-  return date1.getUTCFullYear() === date2.getUTCFullYear() &&
-         date1.getUTCMonth() === date2.getUTCMonth() &&
-         date1.getUTCDate() === date2.getUTCDate();
-};
-
-/**
- * Beregner påskedag for et givet år
- *
- * @param {number} year - Året
- * @returns {Date} Påskedag
- */
-const beregnPaaskedag = (year) => {
-  const a = year % 19;
-  const b = Math.floor(year / 100);
-  const c = year % 100;
-  const d = Math.floor(b / 4);
-  const e = b % 4;
-  const f = Math.floor((b + 8) / 25);
-  const g = Math.floor((b - f + 1) / 3);
-  const h = (19 * a + b - d - g + 15) % 30;
-  const i = Math.floor(c / 4);
-  const k = c % 4;
-  const l = (32 + 2 * e + 2 * i - h - k) % 7;
-  const m = Math.floor((a + 11 * h + 22 * l) / 451);
-  const month = Math.floor((h + l - 7 * m + 114) / 31);
-  const day = ((h + l - 7 * m + 114) % 31) + 1;
-
-  return createDate(year, month - 1, day);
-};
+const formatDanskDato = (date: Date): string => formatUtcDateLong(date);
 
 /**
  * Find alle helligdage i de angivne perioder
@@ -130,8 +65,8 @@ const beregnPaaskedag = (year) => {
  * @param {Array} perioder - Array af {start: Date, end: Date}
  * @returns {Array} Array af helligdags-objekter
  */
-const findSHDageIPerioder = (perioder) => {
-  const helligdageIPeriode: any[] = [];
+const findSHDageIPerioder = (perioder: ReadonlyArray<SHDagePeriod>): SHDagEntry[] => {
+  const helligdageIPeriode: SHDagEntry[] = [];
 
   // Saml alle datoer fra alle perioder
   const alleDatoer = new Set<ISODateString>();
@@ -154,27 +89,23 @@ const findSHDageIPerioder = (perioder) => {
   });
 
   // Find helligdage for alle relevante år
-  aarSet.forEach(aar => {
-    const helligdage = beregnHelligdage(aar);
-    const paaske = beregnPaaskedag(aar);
+  aarSet.forEach((aar) => {
+    const helligdage = beregnHelligdageMedNavn(aar);
 
-    helligdage.forEach(helligdag => {
+    helligdage.forEach(({ date: helligdag, navn }) => {
       const helligdagStr = formatToISO(helligdag);
 
       // Tjek om helligdagen er i vores datoer
       if (helligdagStr && alleDatoer.has(helligdagStr)) {
-        const ugedag = UGEDAGE[helligdag.getUTCDay()];
-        const helligdagNavn = identificerHelligdag(helligdag, paaske);
+        const ugedag = WEEKDAY_NAMES_DA[helligdag.getUTCDay()];
         const erHverdag = helligdag.getUTCDay() >= 1 && helligdag.getUTCDay() <= 5;
 
-        if (helligdagNavn) {
-          helligdageIPeriode.push({
-            dato: helligdag,
-            ugedag,
-            helligdagNavn,
-            erHverdag
-          });
-        }
+        helligdageIPeriode.push({
+          dato: helligdag,
+          ugedag,
+          helligdagNavn: navn,
+          erHverdag,
+        });
       }
     });
   });
@@ -191,15 +122,15 @@ const findSHDageIPerioder = (perioder) => {
  * @param {Array} perioder - Array af {start: Date, end: Date}
  * @returns {Array} Sammensatte perioder
  */
-const sammenlaegPerioder = (perioder) => {
+const sammenlaegPerioder = (perioder: ReadonlyArray<SHDagePeriod>): SHDagePeriod[] => {
   if (!perioder || perioder.length === 0) {
     return [];
   }
 
   // Sorter perioder
-  const sorterede = [...perioder].sort((a, b) => a.start - b.start);
+  const sorterede = [...perioder].sort((a, b) => a.start.getTime() - b.start.getTime());
 
-  const sammensatte = [sorterede[0]];
+  const sammensatte: SHDagePeriod[] = [{ start: sorterede[0].start, end: sorterede[0].end }];
 
   for (let i = 1; i < sorterede.length; i++) {
     const { start: fra, end: til } = sorterede[i];
@@ -226,7 +157,7 @@ const sammenlaegPerioder = (perioder) => {
  * @param {Array} perioder - Array af {start: Date, end: Date}
  * @returns {string} Formateret periode-tekst
  */
-const formaterPeriodeOversigt = (perioder) => {
+const formaterPeriodeOversigt = (perioder: ReadonlyArray<SHDagePeriod>): string => {
   if (!perioder || perioder.length === 0) {
     return '';
   }
@@ -252,21 +183,17 @@ const formaterPeriodeOversigt = (perioder) => {
  * @param {SHDagePdfOptions} options - Valgfrie indstillinger
  */
 export const generateSHDagePdf = (
-  perioder,
+  perioder: ReadonlyArray<SHDagePeriod>,
   stamdata: SHDageStamdata | null = null,
   options: SHDagePdfOptions = {}
-) => {
+): void => {
   const { visBrevhoved = false } = options;
-  // Opret nyt PDF-dokument (A4, portrait)
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  });
-  doc.setDisplayMode('100%');
+  const writer = createStandardPdfWriter();
+  writer.setDisplayMode('fullheight');
+  const doc = writer.getDoc();
 
   // Dokumentets metadata
-  doc.setProperties({
+  writer.setProperties({
     title: 'SH-dage',
     subject: 'Erstatningsberegning',
     author: 'MINEO',
@@ -283,7 +210,8 @@ export const generateSHDagePdf = (
       sagsbehandler: stamdata?.sagsbehandler,
       dagsDatoISO: TODAY,
     };
-    currentY = addBrevhoved(doc, brevhovedData);
+    writer.writeBrevhoved(brevhovedData);
+    currentY = writer.getY();
   }
 
   // Tilføj titel
@@ -296,8 +224,7 @@ export const generateSHDagePdf = (
   const helligdage = findSHDageIPerioder(perioder);
 
   if (helligdage.length === 0) {
-    doc.setFontSize(FONT_SIZES.normal);
-    doc.setFont('helvetica', 'normal');
+    applyNormalTextStyle(doc);
     doc.text('Ingen helligdage fundet i de angivne perioder.', MARGINS.left, currentY);
   } else {
     // Tilføj helligdagstabel
@@ -308,19 +235,18 @@ export const generateSHDagePdf = (
   }
 
   // Tilføj footer med versionsnummer
-  addFooter(doc);
+  writer.addFooter();
 
   // Download PDF
-  doc.save('SH-dage.pdf');
+  writer.save('SH-dage.pdf');
 };
 
 
 /**
  * Tilføj periode-beskrivelse
  */
-const addDescription = (doc, perioder, startY) => {
-  doc.setFontSize(FONT_SIZES.normal);
-  doc.setFont('helvetica', 'normal');
+const addDescription = (doc: PdfDoc, perioder: ReadonlyArray<SHDagePeriod>, startY: number): number => {
+  applyNormalTextStyle(doc);
 
   const periodeTekst = formaterPeriodeOversigt(perioder);
   const lines = [
@@ -330,131 +256,87 @@ const addDescription = (doc, perioder, startY) => {
   let y = startY;
   for (const line of lines) {
     doc.text(line, MARGINS.left, y);
-    y += 6;
+    y += PDF_BASE_LINE_HEIGHT_MM;
   }
 
-  return y + 6; // Ekstra mellemrum før tabel
+  return y + PDF_BASE_LINE_HEIGHT_MM;
 };
 
 /**
  * Tilføj SH-dage tabel
  */
-const addSHDageTable = (doc, helligdage, startY) => {
+const addSHDageTable = (doc: PdfDoc, helligdage: ReadonlyArray<SHDagEntry>, startY: number): number => {
   // Beregn total antal SH-dage
   const antalSHDage = helligdage.filter(h => h.erHverdag).length;
 
   // Forbered tabeldata
-  const tableData: any[] = [];
+  const tableData: RowInput[] = [];
 
   // Header-række
   tableData.push([
-    { content: 'Ugedag', styles: { fontStyle: 'bold', halign: 'left' } },
-    { content: 'Dato', styles: { fontStyle: 'bold', halign: 'left' } },
-    { content: 'Helligdag', styles: { fontStyle: 'bold', halign: 'left' } },
-    { content: 'SH-dag', styles: { fontStyle: 'bold', halign: 'center' } },
+    createPdfTableHeaderCell('Ugedag', 'left'),
+    createPdfTableHeaderCell('Dato', 'left'),
+    createPdfTableHeaderCell('Helligdag', 'left'),
+    createPdfTableHeaderCell('SH-dag', 'center'),
   ]);
 
   // Data-rækker
   for (const { dato, ugedag, helligdagNavn, erHverdag } of helligdage) {
     tableData.push([
-      { content: ugedag, styles: { halign: 'left' } },
-      { content: formatDanskDato(dato), styles: { halign: 'left' } },
-      { content: helligdagNavn, styles: { halign: 'left' } },
-      { content: erHverdag ? 'x' : '', styles: { halign: 'center', valign: 'middle', fontSize: TABLE_STYLES.fontSize - 2 } },
+      createPdfTableCell(ugedag, { halign: 'left' }),
+      createPdfTableCell(formatDanskDato(dato), { halign: 'left' }),
+      createPdfTableCell(helligdagNavn, { halign: 'left' }),
+      createPdfTableCell(erHverdag ? 'x' : '', { halign: 'center', valign: 'middle', fontSize: TABLE_STYLES.fontSize - 2 }),
     ]);
   }
 
   // Tom række
-  tableData.push([
-    { content: '', styles: { fillColor: COLORS.white } },
-    { content: '', styles: { fillColor: COLORS.white } },
-    { content: '', styles: { fillColor: COLORS.white } },
-    { content: '', styles: { fillColor: COLORS.white } },
-  ]);
+  tableData.push(createPdfTableTransparentRow(4));
 
   // Total-række
   tableData.push([
-    { content: 'SH-dage i alt', styles: { fontStyle: 'bold', halign: 'left', fillColor: COLORS.white } },
-    { content: '', styles: { fontStyle: 'bold', fillColor: COLORS.white } },
-    { content: '', styles: { fontStyle: 'bold', fillColor: COLORS.white } },
-    { content: `${antalSHDage}`, styles: { fontStyle: 'bold', halign: 'center', fillColor: COLORS.white } },
+    createPdfTableCell('SH-dage i alt', { halign: 'left', bold: true, transparent: true }),
+    createPdfTableCell('', { bold: true, transparent: true }),
+    createPdfTableCell('', { bold: true, transparent: true }),
+    createPdfTableCell(`${antalSHDage}`, { halign: 'center', bold: true, transparent: true }),
   ]);
 
-  autoTable(doc, {
-    startY: startY,
-    head: [],
+  const finalY = renderEoStylePdfTable({
+    doc,
+    startY,
     body: tableData,
-    margin: { left: MARGINS.left, right: MARGINS.right },
-    pageBreak: 'auto',
-    rowPageBreak: 'auto',
-    styles: {
-      font: 'helvetica',
-      fontSize: TABLE_STYLES.fontSize,
-      cellPadding: 1.5,
-      textColor: COLORS.text,
-    },
     columnStyles: {
-      0: { cellWidth: 'auto', font: 'helvetica' },
-      1: { cellWidth: 'auto', font: 'helvetica' },
-      2: { cellWidth: 'auto', font: 'helvetica' },
-      3: { cellWidth: 25, font: 'helvetica' },
+      0: { cellWidth: 'auto' },
+      1: { cellWidth: 'auto' },
+      2: { cellWidth: 'auto' },
+      3: { cellWidth: PDF_TABLE_NARROW_COLUMN_WIDTH },
     },
-    didParseCell: function (data) {
-      // Header-række får lysegrå baggrund
-      if (data.row.index === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-        data.cell.styles.overflow = 'ellipsize';
-      }
-      // Alternerende rækker (ekskl. header, tom række og total)
-      else if (data.row.index > 0 && data.row.index < tableData.length - 2) {
-        // Alternerende baggrund for data-rækker
-        if (data.row.index % 2 === 0) {
-          data.cell.styles.fillColor = TABLE_STYLES.alternateRowBackgroundColor;
-        } else {
-          data.cell.styles.fillColor = COLORS.white;
-        }
-
-        // Gør weekend-rækker gråe
-        const helligdagIndex = data.row.index - 1; // -1 fordi header er række 0
-        if (helligdagIndex >= 0 && helligdagIndex < helligdage.length) {
-          const helligdag = helligdage[helligdagIndex];
-          if (!helligdag.erHverdag) {
-            data.cell.styles.textColor = [150, 150, 150] as [number, number, number];
-          }
+    transparentRowIndices: [tableData.length - 2, tableData.length - 1],
+    didParseCell: (data: CellHookData) => {
+      const helligdagIndex = data.row.index - 1;
+      if (helligdagIndex >= 0 && helligdagIndex < helligdage.length) {
+        const helligdag = helligdage[helligdagIndex];
+        if (!helligdag.erHverdag) {
+          data.cell.styles.textColor = PDF_MUTED_TEXT_COLOR;
         }
       }
     },
   });
 
-  const finalY = doc.lastAutoTable?.finalY || startY + 50;
-  return finalY + SECTION_SPACER;
+  return resolvePdfSectionEndY(finalY, startY);
 };
 
 /**
  * Tilføj forklaringstekst
  */
-const addExplanationText = (doc, startY) => {
-  const pageHeight = doc.internal.pageSize.height;
-  const bottomMargin = 20; // Bundmargen til footer
-
+const addExplanationText = (doc: PdfDoc, startY: number): number => {
   // Beregn hvor meget plads forklaringstekst kræver
-  const requiredSpace = 6 + (2 * 6) + 6; // Titel + 2 linjer + spacer = ca. 24mm
+  const requiredSpace = (PDF_BASE_LINE_HEIGHT_MM + PDF_SECTION_HEADING_GAP) + (2 * PDF_BASE_LINE_HEIGHT_MM) + SECTION_SPACER;
 
   // Tjek om der er nok plads på nuværende side
-  let y = startY;
-  if (y + requiredSpace > pageHeight - bottomMargin) {
-    // Ikke nok plads - tilføj ny side
-    doc.addPage();
-    y = MARGINS.top;
-  }
+  let y = ensurePdfPageSpace(doc, startY, requiredSpace);
 
-  doc.setFontSize(FONT_SIZES.normal);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Forklaring:', MARGINS.left, y);
-
-  y += 6;
-
-  doc.setFont('helvetica', 'normal');
+  y = addSectionHeading(doc, 'Forklaring', y);
 
   const explanations = [
     '• Søgnehelligdage er helligdage, der falder på hverdage (mandag-fredag).',
@@ -463,7 +345,7 @@ const addExplanationText = (doc, startY) => {
 
   for (const explanation of explanations) {
     doc.text(explanation, MARGINS.left, y);
-    y += 6;
+    y += PDF_BASE_LINE_HEIGHT_MM;
   }
 
   return y + SECTION_SPACER;

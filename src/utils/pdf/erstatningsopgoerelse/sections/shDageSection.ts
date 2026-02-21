@@ -1,5 +1,10 @@
 import type { RowInput } from 'jspdf-autotable';
-import { formatUtcDateLong } from '../../../dateFormatting';
+import { formatUtcDateLong, WEEKDAY_NAMES_DA } from '../../../dateFormatting';
+import {
+  createPdfTableCell,
+  createPdfTableHeaderCell,
+} from '../../pdfTableRenderer';
+import { PDF_TABLE_NARROW_COLUMN_WIDTH } from '../../pdfConfig';
 import { parseISODate, type ISODateString } from '../../../../types/branded';
 import { beregnHelligdageMedNavn } from '../../../shDageBeregning';
 import { formatDateLong } from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
@@ -14,16 +19,6 @@ type SHDageTableRow = Readonly<{
   helligdagNavn: string;
   erSHDag: boolean;
 }>;
-
-const SH_DAGE_WEEKDAY_NAMES = [
-  'Søndag',
-  'Mandag',
-  'Tirsdag',
-  'Onsdag',
-  'Torsdag',
-  'Fredag',
-  'Lørdag',
-] as const;
 
 type SHDageSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
@@ -69,7 +64,7 @@ const findHelligdageInRange = (fra: ISODateString | undefined, til: ISODateStrin
       const dayOfWeek = helligdag.getUTCDay();
       const erSHDag = dayOfWeek >= 1 && dayOfWeek <= 5;
       rows.push({
-        ugedag: SH_DAGE_WEEKDAY_NAMES[dayOfWeek],
+        ugedag: WEEKDAY_NAMES_DA[dayOfWeek],
         datoDisplay: formatDateFromDateObjectLong(helligdag),
         helligdagNavn: navn,
         erSHDag,
@@ -103,27 +98,27 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
     const antalShDage = rows.filter((row) => row.erSHDag).length;
     const tableRows: RowInput[] = [
       [
-        { content: 'Ugedag', styles: { fontStyle: 'bold', halign: 'left' } },
-        { content: 'Dato', styles: { fontStyle: 'bold', halign: 'left' } },
-        { content: 'Helligdag', styles: { fontStyle: 'bold', halign: 'left' } },
-        { content: 'SH-dag', styles: { fontStyle: 'bold', halign: 'center' } },
+        createPdfTableHeaderCell('Ugedag', 'left'),
+        createPdfTableHeaderCell('Dato', 'left'),
+        createPdfTableHeaderCell('Helligdag', 'left'),
+        createPdfTableHeaderCell('SH-dag', 'center'),
       ],
     ];
 
     for (const row of rows) {
       tableRows.push([
-        { content: row.ugedag, styles: { halign: 'left' } },
-        { content: row.datoDisplay, styles: { halign: 'left' } },
-        { content: row.helligdagNavn, styles: { halign: 'left' } },
-        { content: row.erSHDag ? 'x' : '', styles: { halign: 'center' } },
+        createPdfTableCell(row.ugedag, { halign: 'left' }),
+        createPdfTableCell(row.datoDisplay, { halign: 'left' }),
+        createPdfTableCell(row.helligdagNavn, { halign: 'left' }),
+        createPdfTableCell(row.erSHDag ? 'x' : '', { halign: 'center' }),
       ]);
     }
 
     tableRows.push([
-      { content: 'SH-dage i alt', styles: { fontStyle: 'bold', halign: 'left', fillColor: false } },
-      { content: '', styles: { fontStyle: 'bold', fillColor: false } },
-      { content: '', styles: { fontStyle: 'bold', fillColor: false } },
-      { content: String(antalShDage), styles: { fontStyle: 'bold', halign: 'center', fillColor: false } },
+      createPdfTableCell('SH-dage i alt', { halign: 'left', bold: true, transparent: true }),
+      createPdfTableCell('', { bold: true, transparent: true }),
+      createPdfTableCell('', { bold: true, transparent: true }),
+      createPdfTableCell(String(antalShDage), { halign: 'center', bold: true, transparent: true }),
     ]);
 
     const doc = writer.getDoc();
@@ -135,7 +130,7 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
         0: { cellWidth: 'auto' },
         1: { cellWidth: 'auto' },
         2: { cellWidth: 'auto' },
-        3: { cellWidth: 25 },
+        3: { cellWidth: PDF_TABLE_NARROW_COLUMN_WIDTH },
       },
       transparentRowIndices: [tableRows.length - 1],
     });

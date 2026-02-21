@@ -8,8 +8,8 @@
  */
 
 import jsPDF from 'jspdf';
-import { COLORS, FONT_SIZES, MARGINS } from './pdfConfig';
-import { addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
+import { COLORS, FONT_SIZES, MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
+import { addFooter, addBrevhoved, applyNormalTextStyle, type BrevhovedData } from './pdfHelpers';
 
 const NBSP = '\u00A0';
 
@@ -88,12 +88,12 @@ const addUdkastWatermark = (doc: jsPDF): void => {
   const text = 'UDKAST';
   const centerX = pageWidth / 2 + 18;
   const centerY = pageHeight / 2 - 80;
-  doc.setFont('helvetica', 'bold');
+  doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
   doc.setFontSize(130);
   doc.setTextColor(235);
   doc.text(text, centerX, centerY, { align: 'center', angle: -45 });
   doc.setTextColor(0);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
   doc.setFontSize(FONT_SIZES.normal);
 };
 
@@ -112,13 +112,14 @@ const createPdfCursor = (params: Readonly<{
     unit: 'mm',
     format: 'a4',
   });
+  applyNormalTextStyle(doc);
 
   const pageHeight = doc.internal.pageSize.height;
   const contentBottom = pageHeight - MARGINS.bottom;
   const fullWidth = doc.internal.pageSize.width - MARGINS.left - MARGINS.right;
   const pageContentHeight = contentBottom - MARGINS.top;
   let y = MARGINS.top;
-  let activeFont = { fontName: 'helvetica', fontStyle: 'normal' as string };
+  let activeFont = { fontName: PDF_FONT_FAMILY as string, fontStyle: PDF_FONT_STYLES.normal as string };
 
   const addPage = () => {
     doc.addPage();
@@ -339,7 +340,9 @@ export type PdfWriter = {
   setProperties: (props: Parameters<jsPDF['setProperties']>[0]) => void;
   setFontSize: (size: number) => void;
   setFont: (fontName: string, fontStyle: string) => void;
+  setNormalTextStyle: () => void;
   getDoc: () => jsPDF;
+  ensureSpace: (height: number) => void;
   getY: () => number;
   setY: (nextY: number) => void;
   addSpacer: (height: number) => void;
@@ -408,11 +411,11 @@ export const createPdfWriter = (params: Readonly<{
     const estimatedHeaderHeight = doubleLineHeight + lineHeight;
     cursor.ensureSpace(estimatedHeaderHeight + nextLineHeight);
     cursor.advanceY(doubleLineHeight);
-    cursor.setFont('helvetica', 'bold');
+    cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
     cursor.setFontSize(FONT_SIZES.header);
     cursor.writeWrappedText(text);
     cursor.advanceY(lineHeight);
-    cursor.setFont('helvetica', 'normal');
+    cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
     cursor.setFontSize(FONT_SIZES.normal);
   };
 
@@ -427,10 +430,10 @@ export const createPdfWriter = (params: Readonly<{
     if (addTopSpacing) {
       cursor.advanceY(lineHeight);
     }
-    cursor.setFont('helvetica', 'bold');
+    cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
     cursor.setFontSize(FONT_SIZES.normal);
     cursor.writeWrappedText(text);
-    cursor.setFont('helvetica', 'normal');
+    cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
   };
 
   const writeSubheaderWithWrappedText = (subheaderText: string, bodyText: string) => {
@@ -470,7 +473,9 @@ export const createPdfWriter = (params: Readonly<{
     setProperties: cursor.setProperties,
     setFontSize: cursor.setFontSize,
     setFont: cursor.setFont,
+    setNormalTextStyle: () => applyNormalTextStyle(cursor.getDoc()),
     getDoc: cursor.getDoc,
+    ensureSpace: cursor.ensureSpace,
     getY: cursor.getY,
     setY: cursor.setY,
     addSpacer: (height: number) => {
@@ -498,4 +503,18 @@ export const createPdfWriter = (params: Readonly<{
     addFooter: cursor.addFooter,
     save: cursor.save,
   };
+};
+
+export const createStandardPdfWriter = (params?: Readonly<{
+  visUdkastStempel?: boolean;
+  onLayoutFallback?: (message: string) => void;
+}>): PdfWriter => {
+  const visUdkastStempel = params?.visUdkastStempel ?? false;
+  const onLayoutFallback = params?.onLayoutFallback ?? (() => {});
+  return createPdfWriter({
+    lineHeight: 5,
+    doubleLineHeight: 10,
+    visUdkastStempel,
+    onLayoutFallback,
+  });
 };

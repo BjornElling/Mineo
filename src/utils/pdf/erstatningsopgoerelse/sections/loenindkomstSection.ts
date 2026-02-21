@@ -217,7 +217,6 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       const arbejdsstedNavn = ansaettelsesforhold.navnPaaArbejdssted?.trim() || fallbackNavn;
       if (index > 0) writer.addSpacer(lineHeight);
       renderSubheader(arbejdsstedNavn, lineHeight, { addTopSpacing: index > 0 });
-      writer.addSpacer(lineHeight);
       writeLabelValueLine(
         'Ansat på skadestidspunktet',
         formatJaNej(ansaettelsesforhold.ansatPaaSkadestidspunktet)

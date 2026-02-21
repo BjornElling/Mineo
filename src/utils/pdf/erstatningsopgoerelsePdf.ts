@@ -5,16 +5,17 @@
  */
 
 import jsPDF from 'jspdf';
-import autoTable, { type CellHookData, type RowInput } from 'jspdf-autotable';
-import { COLORS, FONT_SIZES, MARGINS, PDF_CONTENT_WIDTH_MM, TABLE_STYLES } from './pdfConfig';
+import { type RowInput } from 'jspdf-autotable';
+import { FONT_SIZES, MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
 import { type BrevhovedData } from './pdfHelpers';
 import { createPdfWriter, type PdfWriter, ensureNonBreakingKr } from './pdfWriter';
+import { renderEoStylePdfTable } from './pdfTableRenderer';
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish, subtractOneDay } from '../../types/branded';
 import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode, OffentligeYdelserRow, StamdataValues } from '../../schemas/formSchemas';
 import { buildErstatningsopgoerelsePdfModel, type MoneyOre, type Calculable, type LoenudviklingSegment } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../domain/erstatningsopgoerelse/angivetLoenHelpers';
-import { formatAsAmount, formatCurrency } from '../formatUtils';
+import { formatAsAmount, formatCurrency, formatPercent as formatPercentUtil } from '../formatUtils';
 import { parseAmount } from '../numberParsing';
 import { roundByMethod } from '../rounding';
 import { parseISODate } from '../../types/branded';
@@ -43,6 +44,7 @@ import { formatKRLSatstabelDisplay, getKRLSatstabel, isKRLSatstabelId, type KRLS
 import { clampTafRow, resolveTafConstraintBounds } from '../../domain/erstatningsopgoerelse/tafPeriodConstraints';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, parseAarsloenRowInterval } from '../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import { erDetteFoersteErstatningsopgoerelse } from '../../domain/erstatningsopgoerelse/eoNummerValidering';
+import { logWarning } from '../logger';
 import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
@@ -78,7 +80,7 @@ import {
   formatPercentDelta,
   isSingularCount,
   resolvePdfFileName,
-} from './sharedPdfUtils';
+} from './pdfFormatUtils';
 import { maxISO, minISO } from '../isoDateHelpers';
 import type { SelectedElements } from './erstatningsopgoerelse/types';
 import { assertNoUnsupportedSygeferiegodtgoerelseSelection } from './erstatningsopgoerelse/sections/sygeferiegodtgoerelseSection';
@@ -128,7 +130,7 @@ const isLoengruppe = (value: number): value is Loengruppe =>
 const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
 
 const formatPctFromInput = (value: number | undefined): string => {
-  return `${(value ?? 0).toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+  return formatPercentUtil(value ?? 0);
 };
 
 const isZeroPct = (value: number | undefined): boolean => Math.abs(value ?? 0) < 0.000001;
@@ -183,69 +185,21 @@ type ReguleringValuesTableData = Readonly<{
 
 // STORE_BEDEDAG_START og STORE_BEDEDAG_PCT importeret fra sharedPdfUtils
 
-type PdfAutoTableDoc = jsPDF & {
-  lastAutoTable?: {
-    finalY?: number;
-  };
-};
-
-const STANDARD_PDF_TABLE_FONT_SIZE = 8;
-const STANDARD_PDF_TABLE_CELL_PADDING = 1.5;
-const EO_PDF_TABLE_WIDTH_MM = PDF_CONTENT_WIDTH_MM;
-
 const renderStandardPdfTable = (params: Readonly<{
   doc: jsPDF;
   startY: number;
   body: RowInput[];
-  columnStyles?: NonNullable<Parameters<typeof autoTable>[1]>['columnStyles'];
+  columnStyles?: NonNullable<Parameters<typeof renderEoStylePdfTable>[0]>['columnStyles'];
   transparentRowIndices?: readonly number[];
 }>): number => {
-  const { doc, startY, body, columnStyles, transparentRowIndices = [] } = params;
-  const transparentSet = new Set(transparentRowIndices);
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const contentBottom = pageHeight - MARGINS.bottom;
-  const remainingHeight = contentBottom - startY;
-  const estimatedRowHeight = 8;
-  const rowsToKeepTogether = Math.min(body.length, 2);
-  const requiredHeight = estimatedRowHeight * rowsToKeepTogether;
-  const resolvedStartY = remainingHeight < requiredHeight ? MARGINS.top : startY;
-
-  if (resolvedStartY === MARGINS.top && remainingHeight < requiredHeight) {
-    doc.addPage();
-  }
-
-  autoTable(doc, {
-    startY: resolvedStartY,
-    head: [],
+  const { doc, startY, body, columnStyles, transparentRowIndices } = params;
+  return renderEoStylePdfTable({
+    doc,
+    startY,
     body,
-    margin: { left: MARGINS.left, right: MARGINS.right },
-    pageBreak: 'auto',
-    rowPageBreak: 'auto',
-    tableWidth: EO_PDF_TABLE_WIDTH_MM,
-    styles: {
-      font: 'helvetica',
-      fontSize: STANDARD_PDF_TABLE_FONT_SIZE,
-      cellPadding: STANDARD_PDF_TABLE_CELL_PADDING,
-      textColor: COLORS.text,
-    },
     columnStyles,
-    didParseCell: (data: CellHookData) => {
-      if (data.row.index === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-        data.cell.styles.valign = 'bottom';
-        data.cell.styles.overflow = 'ellipsize';
-        return;
-      }
-      if (transparentSet.has(data.row.index)) {
-        data.cell.styles.fillColor = false;
-        return;
-      }
-      data.cell.styles.fillColor =
-        data.row.index % 2 === 0 ? TABLE_STYLES.alternateRowBackgroundColor : false;
-    },
+    transparentRowIndices,
   });
-
-  return ((doc as PdfAutoTableDoc).lastAutoTable?.finalY ?? startY);
 };
 
 const parseIsoDateToUtcDate = (iso: ISODateString | undefined): Date | null => {
@@ -1676,7 +1630,10 @@ export const generateErstatningsopgoerelsePdf = (
   const titel = model.titel;
 
   const warnLayoutFallback = (message: string) => {
-    console.warn(`PDF-layout: ${message}`);
+    logWarning('PDF-layout fallback aktiveret', {
+      context: 'pdf.erstatningsopgoerelse.layout',
+      data: { message },
+    });
   };
 
   const writer = createPdfWriter({
@@ -1746,11 +1703,10 @@ export const generateErstatningsopgoerelsePdf = (
 
   const startBilagPage = (titleText: string) => {
     writer.addPage();
-    writer.setFont('helvetica', 'bold');
+    writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
     writer.setFontSize(FONT_SIZES.title);
     writeBodyText(titleText);
-    writer.setFont('helvetica', 'normal');
-    writer.setFontSize(FONT_SIZES.normal);
+    writer.setNormalTextStyle();
     writer.addSpacer(lineHeight);
   };
 
@@ -1787,25 +1743,24 @@ export const generateErstatningsopgoerelsePdf = (
 
   // Tilføj titel (fed skrift)
   writer.setFontSize(FONT_SIZES.title);
-  writer.setFont('helvetica', 'bold');
+  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
   safeAddWrappedText(titel);
 
   // Tilføj erstatningsperiode-datoer direkte under titel
-  writer.setFontSize(FONT_SIZES.normal);
-  writer.setFont('helvetica', 'normal');
+  writer.setNormalTextStyle();
   if (model.periodeDisplay) {
     safeAddWrappedText(model.periodeDisplay);
     writer.advanceY(lineHeight);
   }
 
   // Tilføj skadelidtes navn (fed skrift)
-  writer.setFont('helvetica', 'bold');
+  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
   if (model.skadelidteNavn) {
     safeAddWrappedText(model.skadelidteNavn);
   }
 
   // Tilføj skadestype og skadesdato (normal skrift)
-  writer.setFont('helvetica', 'normal');
+  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
   if (model.skadestypeLinje) {
     safeAddWrappedText(model.skadestypeLinje);
     writer.advanceY(lineHeight);
@@ -1875,7 +1830,7 @@ export const generateErstatningsopgoerelsePdf = (
           doc: doc as jsPDF,
           startY,
           body,
-          columnStyles: columnStyles as NonNullable<Parameters<typeof autoTable>[1]>['columnStyles'],
+          columnStyles: columnStyles as NonNullable<Parameters<typeof renderEoStylePdfTable>[0]>['columnStyles'],
         }),
       writer,
     });
@@ -1895,7 +1850,7 @@ export const generateErstatningsopgoerelsePdf = (
           doc: doc as jsPDF,
           startY,
           body,
-          columnStyles: columnStyles as NonNullable<Parameters<typeof autoTable>[1]>['columnStyles'],
+          columnStyles: columnStyles as NonNullable<Parameters<typeof renderEoStylePdfTable>[0]>['columnStyles'],
         }),
       writer,
     });
@@ -1927,7 +1882,7 @@ export const generateErstatningsopgoerelsePdf = (
           doc: doc as jsPDF,
           startY,
           body,
-          columnStyles: columnStyles as NonNullable<Parameters<typeof autoTable>[1]>['columnStyles'],
+          columnStyles: columnStyles as NonNullable<Parameters<typeof renderEoStylePdfTable>[0]>['columnStyles'],
         }),
       writer,
     });
@@ -1945,7 +1900,7 @@ export const generateErstatningsopgoerelsePdf = (
           doc: doc as jsPDF,
           startY,
           body,
-          columnStyles: columnStyles as NonNullable<Parameters<typeof autoTable>[1]>['columnStyles'],
+          columnStyles: columnStyles as NonNullable<Parameters<typeof renderEoStylePdfTable>[0]>['columnStyles'],
           transparentRowIndices,
         }),
       writer,

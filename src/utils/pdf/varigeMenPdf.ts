@@ -5,29 +5,22 @@
  */
 
 import jsPDF from 'jspdf';
-import autoTable, { type CellHookData, type RowInput } from 'jspdf-autotable';
-import { COLORS, MARGINS, TABLE_STYLES, SECTION_SPACER } from './pdfConfig';
-import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
+import type { RowInput } from 'jspdf-autotable';
+import { MARGINS, SECTION_SPACER } from './pdfConfig';
+import { addSectionHeading, addTitle, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
+import { createStandardPdfWriter } from './pdfWriter';
+import { cellLeft, cellRight, createPdfTableCell, renderEoStylePdfTable } from './pdfTableRenderer';
 import { formatIsoDateLong } from '../dateFormatting';
 import type { ISODateString } from '../../types/branded';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import type { VarigeMenBeregningResult } from '../../domain/varigemen/varigeMenCalculations';
 import { TODAY } from '../../config/dateRanges';
+import { formatAsAmount } from '../formatUtils';
 
 type PdfDoc = jsPDF & {
   lastAutoTable?: {
     finalY?: number;
   };
-};
-
-/**
- * Formaterer beløb til dansk format med tusindtalsseparator
- */
-const formatDanishAmount = (amount: number, decimals: number = 0): string => {
-  return amount.toLocaleString('da-DK', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
 };
 
 const formatDateReadable = (isoDate: ISODateString | undefined): string => formatIsoDateLong(isoDate);
@@ -44,61 +37,36 @@ const addStamdataTable = (
 ): number => {
   const tableData: RowInput[] = [];
 
-  // Header-række med underoverskrift
-  tableData.push([
-    { content: 'Stamdata', colSpan: 2, styles: { fontStyle: 'bold', halign: 'left' } }
-  ]);
+  const headingY = addSectionHeading(doc, 'Stamdata', currentY);
 
   // Data-rækker
   tableData.push([
-    { content: 'Fødselsdato', styles: { halign: 'left' } },
-    { content: formatDateReadable(fodselsdato), styles: { halign: 'right' } }
+    cellLeft('Fødselsdato'),
+    cellRight(formatDateReadable(fodselsdato)),
   ]);
 
   tableData.push([
-    { content: 'Skadesdato', styles: { halign: 'left' } },
-    { content: formatDateReadable(skadesdato), styles: { halign: 'right' } }
+    cellLeft('Skadesdato'),
+    cellRight(formatDateReadable(skadesdato)),
   ]);
 
   tableData.push([
-    { content: 'Alder på skadestidspunkt', styles: { halign: 'left' } },
-    { content: `${alderVedSkade} år`, styles: { halign: 'right' } }
+    cellLeft('Alder på skadestidspunkt'),
+    cellRight(`${alderVedSkade} år`),
   ]);
 
-  autoTable(doc, {
-    startY: currentY,
-    head: [],
+  const finalY = renderEoStylePdfTable({
+    doc,
+    startY: headingY,
     body: tableData,
-    margin: { left: MARGINS.left, right: MARGINS.right },
-    pageBreak: 'auto',
-    rowPageBreak: 'auto',
-    styles: {
-      font: 'helvetica',
-      fontSize: TABLE_STYLES.fontSize,
-      cellPadding: 1.5,
-      textColor: COLORS.text,
-    },
+    hasHeaderRow: false,
     columnStyles: {
       0: { cellWidth: 'auto' },
       1: { cellWidth: 60 },
     },
-    didParseCell: (data: CellHookData) => {
-      // Header-række (index 0) får lysegrå baggrund
-      if (data.row.index === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-        data.cell.styles.overflow = 'ellipsize';
-      }
-      // Alternerende rækker: lige rækker (2, 4, 6...) får lysegrå, ulige rækker (1, 3, 5...) får hvid
-      else if (data.row.index % 2 === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.alternateRowBackgroundColor;
-      } else {
-        data.cell.styles.fillColor = COLORS.white;
-      }
-    },
   });
 
-  const finalY = doc.lastAutoTable?.finalY || currentY + 50;
-  return finalY + SECTION_SPACER;
+  return resolvePdfSectionEndY(finalY, currentY);
 };
 
 /**
@@ -112,57 +80,32 @@ const addBeregningsgrundlagTable = (
 ): number => {
   const tableData: RowInput[] = [];
 
-  // Header-række med underoverskrift
-  tableData.push([
-    { content: 'Beregningsgrundlag', colSpan: 2, styles: { fontStyle: 'bold', halign: 'left' } }
-  ]);
+  const headingY = addSectionHeading(doc, 'Beregningsgrundlag', currentY);
 
   // Méngrad
   tableData.push([
-    { content: 'Méngrad', styles: { halign: 'left' } },
-    { content: mengrad !== undefined ? `${mengrad} %` : '', styles: { halign: 'right' } }
+    cellLeft('Méngrad'),
+    cellRight(mengrad !== undefined ? `${mengrad} %` : ''),
   ]);
 
   // Beregningsdato
   tableData.push([
-    { content: 'Beregningsdato', styles: { halign: 'left' } },
-    { content: formatDateReadable(beregningsdato), styles: { halign: 'right' } }
+    cellLeft('Beregningsdato'),
+    cellRight(formatDateReadable(beregningsdato)),
   ]);
 
-  autoTable(doc, {
-    startY: currentY,
-    head: [],
+  const finalY = renderEoStylePdfTable({
+    doc,
+    startY: headingY,
     body: tableData,
-    margin: { left: MARGINS.left, right: MARGINS.right },
-    pageBreak: 'auto',
-    rowPageBreak: 'auto',
-    styles: {
-      font: 'helvetica',
-      fontSize: TABLE_STYLES.fontSize,
-      cellPadding: 1.5,
-      textColor: COLORS.text,
-    },
+    hasHeaderRow: false,
     columnStyles: {
       0: { cellWidth: 'auto' },
       1: { cellWidth: 60 },
     },
-    didParseCell: (data: CellHookData) => {
-      // Header-række (index 0) får lysegrå baggrund
-      if (data.row.index === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-        data.cell.styles.overflow = 'ellipsize';
-      }
-      // Alternerende rækker: lige rækker (2, 4, 6...) får lysegrå, ulige rækker (1, 3, 5...) får hvid
-      else if (data.row.index % 2 === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.alternateRowBackgroundColor;
-      } else {
-        data.cell.styles.fillColor = COLORS.white;
-      }
-    },
   });
 
-  const finalY = doc.lastAutoTable?.finalY || currentY + 50;
-  return finalY + SECTION_SPACER;
+  return resolvePdfSectionEndY(finalY, currentY);
 };
 
 /**
@@ -176,64 +119,39 @@ const addResultatTable = (
 ): number => {
   const tableData: RowInput[] = [];
 
-  // Header-række med underoverskrift
-  tableData.push([
-    { content: 'Beregnet méngodtgørelse', colSpan: 2, styles: { fontStyle: 'bold', halign: 'left' } }
-  ]);
+  const headingY = addSectionHeading(doc, 'Beregnet méngodtgørelse', currentY);
 
   // Grundbeløb
   tableData.push([
-    { content: `Grundbeløb: ${mengrad} % mén á ${formatDanishAmount(beregningsResultat.satsPerMengrad, 2)} kr.`, styles: { halign: 'left' } },
-    { content: `${formatDanishAmount(beregningsResultat.grundbeloebUdenReduktion, 2)} kr.`, styles: { halign: 'right' } }
+    cellLeft(`Grundbeløb: ${mengrad} % mén á ${formatAsAmount(beregningsResultat.satsPerMengrad, 2)} kr.`),
+    cellRight(`${formatAsAmount(beregningsResultat.grundbeloebUdenReduktion, 2)} kr.`),
   ]);
 
   // Aldersreduktion
   const reduktionsBeloeb = beregningsResultat.grundbeloebUdenReduktion * beregningsResultat.aldersreduktionPct / 100;
   tableData.push([
-    { content: `Aldersreduktion, ${beregningsResultat.alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`, styles: { halign: 'left' } },
-    { content: `- ${formatDanishAmount(reduktionsBeloeb, 2)} kr.`, styles: { halign: 'right' } }
+    cellLeft(`Aldersreduktion, ${beregningsResultat.alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`),
+    cellRight(`- ${formatAsAmount(reduktionsBeloeb, 2)} kr.`),
   ]);
 
   // Slutresultat (tekst normal, værdi fed)
   tableData.push([
-    { content: 'Beregnet méngodtgørelse', styles: { halign: 'left' } },
-    { content: `${formatDanishAmount(beregningsResultat.beregnetGodtgoerelse)} kr.`, styles: { halign: 'right', fontStyle: 'bold' } }
+    cellLeft('Beregnet méngodtgørelse'),
+    createPdfTableCell(`${formatAsAmount(beregningsResultat.beregnetGodtgoerelse)} kr.`, { halign: 'right', bold: true }),
   ]);
 
-  autoTable(doc, {
-    startY: currentY,
-    head: [],
+  const finalY = renderEoStylePdfTable({
+    doc,
+    startY: headingY,
     body: tableData,
-    margin: { left: MARGINS.left, right: MARGINS.right },
-    pageBreak: 'auto',
-    rowPageBreak: 'auto',
-    styles: {
-      font: 'helvetica',
-      fontSize: TABLE_STYLES.fontSize,
-      cellPadding: 1.5,
-      textColor: COLORS.text,
-    },
+    hasHeaderRow: false,
     columnStyles: {
       0: { cellWidth: 'auto' },
       1: { cellWidth: 60 },
     },
-    didParseCell: (data: CellHookData) => {
-      // Header-række (index 0) får lysegrå baggrund
-      if (data.row.index === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-        data.cell.styles.overflow = 'ellipsize';
-      }
-      // Alternerende rækker: lige rækker (2, 4, 6...) får lysegrå, ulige rækker (1, 3, 5...) får hvid
-      else if (data.row.index % 2 === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.alternateRowBackgroundColor;
-      } else {
-        data.cell.styles.fillColor = COLORS.white;
-      }
-    },
   });
 
-  const finalY = doc.lastAutoTable?.finalY || currentY + 50;
-  return finalY + SECTION_SPACER;
+  return resolvePdfSectionEndY(finalY, currentY);
 };
 
 /**
@@ -260,16 +178,12 @@ export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void =
     visBrevhoved = false,
   } = params;
 
-  // Opret nyt PDF-dokument (A4, portrait)
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  }) as PdfDoc;
-  doc.setDisplayMode('100%');
+  const writer = createStandardPdfWriter();
+  writer.setDisplayMode('fullheight');
+  const doc = writer.getDoc() as PdfDoc;
 
   // Dokumentets metadata
-  doc.setProperties({
+  writer.setProperties({
     title: 'Ménberegning',
     subject: 'Ménberegning',
     author: 'MINEO',
@@ -286,7 +200,8 @@ export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void =
       sagsbehandler: stamdata?.sagsbehandler,
       dagsDatoISO: TODAY,
     };
-    currentY = addBrevhoved(doc, brevhovedData);
+    writer.writeBrevhoved(brevhovedData);
+    currentY = writer.getY();
   }
 
   // Tilføj titel
@@ -302,7 +217,7 @@ export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void =
   addResultatTable(doc, mengrad, beregningsResultat, currentY);
 
   // Tilføj footer med versionsnummer
-  addFooter(doc);
+  writer.addFooter();
 
   // Generer filnavn
   let filename = 'Ménberegning.pdf';
@@ -319,5 +234,5 @@ export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void =
   }
 
   // Download PDF
-  doc.save(filename);
+  writer.save(filename);
 };

@@ -1,7 +1,18 @@
-// Lazy loader for the heavy PDF generators so jspdf only loads on demand
-const moduleCache = {};
+// Lazy loader for heavy PDF generators so jspdf only loads on demand.
+type PdfModuleMap = {
+  satser: typeof import('./satserPdf');
+  rente: typeof import('./rentePdf');
+  shDage: typeof import('./shDagePdf');
+  aarsloen: typeof import('./aarsloenPdf');
+  regulering: typeof import('./reguleringPdf');
+  krl: typeof import('./krlPdf');
+  erstatningsopgoerelse: typeof import('./erstatningsopgoerelsePdf');
+  tafFordeltPaaAar: typeof import('./tafFordeltPaaAarPdf');
+};
 
-const moduleLoaders = {
+const moduleCache = new Map<keyof PdfModuleMap, Promise<PdfModuleMap[keyof PdfModuleMap]>>();
+
+const moduleLoaders: { [K in keyof PdfModuleMap]: () => Promise<PdfModuleMap[K]> } = {
   satser: () => import('./satserPdf'),
   rente: () => import('./rentePdf'),
   shDage: () => import('./shDagePdf'),
@@ -12,17 +23,18 @@ const moduleLoaders = {
   tafFordeltPaaAar: () => import('./tafFordeltPaaAarPdf'),
 };
 
-const loadModule = async (key) => {
-  const loader = moduleLoaders[key];
-  if (!loader) {
-    throw new Error(`Ukendt PDF modul: ${key}`);
+const loadModule = async <TKey extends keyof PdfModuleMap>(key: TKey): Promise<PdfModuleMap[TKey]> => {
+  const cached = moduleCache.get(key) as Promise<PdfModuleMap[TKey]> | undefined;
+  if (cached) {
+    return cached;
   }
 
-  if (!moduleCache[key]) {
-    moduleCache[key] = loader();
-  }
-
-  return moduleCache[key];
+  const loadingPromise = moduleLoaders[key]().catch((error) => {
+    moduleCache.delete(key);
+    throw error;
+  });
+  moduleCache.set(key, loadingPromise);
+  return loadingPromise;
 };
 
 export const loadSatserPdfModule = () => loadModule('satser');

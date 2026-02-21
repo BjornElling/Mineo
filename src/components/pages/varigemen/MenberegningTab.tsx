@@ -19,12 +19,11 @@ import { beregnVarigeMenGodtgoerelseWithRates } from '../../../domain/varigemen/
 import { usePersistedForm } from '../../../hooks/usePersistedForm';
 import { useFormPersistence } from '../../../contexts/FormPersistenceContext';
 import { useNavigate } from 'react-router-dom';
-import { generateVarigeMenPdf } from '../../../utils/pdf/varigeMenPdf';
 import { varigeMenPrGrad, varigeMenPrGradYearBounds } from '../../../data/regulationRates';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
-import { getVisBrevhoved } from '../../../utils/pdf/pdfBrevhoved';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { createCommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
+import { downloadVarigeMenPdf } from '../../../utils/pdf/pdfService';
 
 const VARIGE_MEN_BEREGNINGSDATO_MIN = toISODateString(
   `${varigeMenPrGradYearBounds.minYear}-01-01`
@@ -139,7 +138,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
 }, [beregningsResultat]);
 
   // PDF download handler
-  const handlePdfDownload = React.useCallback(() => {
+  const handlePdfDownload = React.useCallback(async () => {
     // Tjek om der er fejl eller manglende felter
     if (beregningsFejl || manglendeFelter || !beregningsResultat) {
       // Trigger rystebevægelse
@@ -176,22 +175,19 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
       return;
     }
 
-    // Hent stamdata
-    const stamdata = getPersistedData('stamdata');
-
-    // Udled visBrevhoved fra settings
-    const visBrevhoved = getVisBrevhoved(settings, 'varigeMen');
-
-    // Generer PDF
-    generateVarigeMenPdf({
+    const result = await downloadVarigeMenPdf({
       fodselsdato: coerceToISODateString(values.fodselsdato),
       skadesdato: coerceToISODateString(stamValues.skadesdato),
       mengrad: values.mengrad,
       beregningsdato: coerceToISODateString(values.beregningsdato),
       beregningsResultat: beregningsResultat,
-      stamdata,
-      visBrevhoved,
+      settings,
+      persistedStamdata: getPersistedData('stamdata'),
     });
+    if (!result.success) {
+      setDownloadShake(true);
+      setTimeout(() => setDownloadShake(false), 500);
+    }
   }, [beregningsFejl, manglendeFelter, beregningsResultat, values, stamValues.skadesdato, fodselsdatoError, mengradError, beregningsdatoError, getPersistedData, settings]);
 
   const skadesdatoLabel = React.useMemo(() => {

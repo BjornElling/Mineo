@@ -12,17 +12,13 @@
 import React from 'react';
 import type { AarsloenTableHandle } from '../types/handles';
 import type { AarsloenValues } from '../schemas/formSchemas';
-import type { StamdataValues } from '../schemas/formSchemas';
 import type { PeriodeResult } from '../utils/periodeBeregning';
 import type { AarsloenBeregningResult } from '../types/calculation';
-import { loadSHDagePdfModule, loadAarsloenPdfModule } from '../utils/pdf/pdfLoader';
-import { logError } from '../utils/logger';
 import { harTabelValideringsFejl } from '../utils/aarsloenValidation';
 import { hasAtLeastOneValidRow } from '../utils/aarsloenTableCalculations';
-import { stamdataSchema } from '../schemas/formSchemas';
 import type { StorageKey } from '../config/storageManifest';
 import type { AppSettings } from '../settings/appSettingsSchema';
-import { getVisBrevhoved } from '../utils/pdf/pdfBrevhoved';
+import { downloadAarsloenPdf, downloadSHDagePdf } from '../utils/pdf/pdfService';
 
 // ============================================================================
 // TYPES
@@ -173,28 +169,6 @@ export const useAarsloenPdfGates = ({
     return true;
   }, [periodeData, shDageAntal]);
 
-  // ============================================================================
-  // STAMDATA VALIDERING (genbrugelig)
-  // ============================================================================
-
-  const getValidatedStamdata = React.useCallback((): StamdataValues | null => {
-    const persisted = getPersistedData('stamdata');
-    const result = stamdataSchema.safeParse(persisted);
-    if (result.success) {
-      return result.data as StamdataValues;
-    }
-    logError('Stamdata validering fejlede', {
-      context: 'useAarsloenPdfGates.getValidatedStamdata',
-      error: new Error('Invalid stamdata structure'),
-      data: { issues: result.error.issues },
-    });
-    return null;
-  }, [getPersistedData]);
-
-  // ============================================================================
-  // PDF DOWNLOAD HANDLERS
-  // ============================================================================
-
   /**
    * Håndter PDF download for årslønsberegning
    *
@@ -221,17 +195,8 @@ export const useAarsloenPdfGates = ({
       return;
     }
 
-    // Hent valideret stamdata
-    const stamdata = getValidatedStamdata();
-
-    // Udled visBrevhoved fra settings
-    const visBrevhoved = getVisBrevhoved(settings, 'aarsloensberegning');
-
-    // Ingen fejl - generer PDF
-    try {
-      const { generateAarsloenPdf } = await loadAarsloenPdfModule();
-
-      generateAarsloenPdf({
+    const result = await downloadAarsloenPdf({
+      input: {
         satser: {
           feriePct,
           fritvalgPct,
@@ -251,14 +216,12 @@ export const useAarsloenPdfGates = ({
         shDageAntal,
         beregningsData,
         fejlmeddelelser,
-        stamdata,
-        visBrevhoved,
-      });
-    } catch (error) {
-      logError('Kunne ikke generere årsløn PDF', {
-        context: 'useAarsloenPdfGates.handleAarsloenPdfDownload',
-        error: error instanceof Error ? error : new Error(String(error)),
-      });
+      },
+      settings,
+      persistedStamdata: getPersistedData('stamdata'),
+    });
+    if (!result.success) {
+      triggerDownloadShake();
     }
   }, [
     feriePct,
@@ -280,8 +243,9 @@ export const useAarsloenPdfGates = ({
     fejlmeddelelser,
     triggerDownloadShake,
     harFatalBeregningsFejl,
-    getValidatedStamdata,
+    getPersistedData,
     tabelRef,
+    settings,
   ]);
 
   /**
@@ -293,25 +257,18 @@ export const useAarsloenPdfGates = ({
     if (shDageAntal == null) return;
     if (shDageAntal === 0) return;
 
-    // Hent valideret stamdata
-    const stamdata = getValidatedStamdata();
-
-    // Udled visBrevhoved fra settings
-    const visBrevhoved = getVisBrevhoved(settings, 'shDage');
-
     // Konverter perioder til format som PDF-generatoren forventer
     const perioder = periodeData.perioder || [];
 
-    try {
-      const { generateSHDagePdf } = await loadSHDagePdfModule();
-      generateSHDagePdf(perioder, stamdata, { visBrevhoved });
-    } catch (error) {
-      logError('Kunne ikke generere SH-dage PDF', {
-        context: 'useAarsloenPdfGates.handleSHDagePdfDownload',
-        error: error instanceof Error ? error : new Error(String(error)),
-      });
+    const result = await downloadSHDagePdf({
+      perioder,
+      settings,
+      persistedStamdata: getPersistedData('stamdata'),
+    });
+    if (!result.success) {
+      triggerDownloadShake();
     }
-  }, [periodeData, shDageAntal, getValidatedStamdata]);
+  }, [periodeData, shDageAntal, settings, getPersistedData, triggerDownloadShake]);
 
   return {
     canDownloadPdf,

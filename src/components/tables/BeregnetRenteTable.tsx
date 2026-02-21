@@ -8,7 +8,7 @@ import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDr
 import StandardLooseTable from './StandardLooseTable';
 import { MIN_CALCULATION_DATE, MAX_CALCULATION_YEAR } from '../../data/interestRates';
 import { formatAmount } from '../../utils/interestCalculator';
-import { loadRentePdfModule } from '../../utils/pdf/pdfLoader';
+import { downloadRentePdf } from '../../utils/pdf/pdfService';
 import type { ISODateString, DanishDateString } from '../../types/branded';
 import { toISODateString } from '../../types/branded';
 import { minISO } from '../../utils/isoDateHelpers';
@@ -18,7 +18,6 @@ import { computeRentekravCalculation, type RentekravCalculationResult } from '..
 import { amountValueToDraftString } from '../../utils/expressionAmount';
 import { useFormPersistence } from '../../contexts/FormPersistenceContext';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
-import { getVisBrevhoved } from '../../utils/pdf/pdfBrevhoved';
 
 const ENHED_OPTIONS = [
   { value: 'dage', label: 'Dage' },
@@ -174,25 +173,15 @@ const BeregnetRenteRow = React.memo(
                     return;
                   }
 
-                  try {
-                    // Hent stamdata
-                    const stamdata = getPersistedData('stamdata');
-
-                    // Udled visBrevhoved fra settings
-                    const visBrevhoved = getVisBrevhoved(settings, 'renteberegning');
-
-                    const { generateRentePdf } = await loadRentePdfModule();
-                    generateRentePdf(
-                      validatedCalculation.beloeb,
-                      validatedCalculation.actualInterestDate,
-                      validatedCalculation.beregningsdato,
-                      {
-                        visBrevhoved,
-                        stamdata,
-                      }
-                    );
-                  } catch (error) {
-                    onError('Kunne ikke indlæse PDF-modulet for rente', 'BeregnetRenteRow.PDFGeneration', error);
+                  const result = await downloadRentePdf({
+                    beloeb: validatedCalculation.beloeb,
+                    actualInterestDate: validatedCalculation.actualInterestDate,
+                    beregningsdato: validatedCalculation.beregningsdato,
+                    settings,
+                    persistedStamdata: getPersistedData('stamdata'),
+                  });
+                  if (!result.success) {
+                    onError(result.error, 'BeregnetRenteRow.PDFGeneration');
                   }
                 }}
                 aria-label={`Download PDF-specifikation for række ${rowIndex + 1}`}

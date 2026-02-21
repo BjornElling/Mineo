@@ -47,6 +47,11 @@ class MockJsPDF {
 }
 
 vi.mock('jspdf', () => ({ default: MockJsPDF }));
+const logWarningMock = vi.fn();
+vi.mock('../../../utils/logger', () => ({
+  logWarning: logWarningMock,
+  logError: vi.fn(),
+}));
 
 describe('erstatningsopgoerelsePdf udkaststempel', () => {
   let baseStamdata: typeof STAMDATA_INITIAL_VALUES;
@@ -162,7 +167,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   });
 
   it('moves right column to separate line when width overflows', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    logWarningMock.mockClear();
     MockJsPDF.splitTextToSizeImpl = (text) => {
       if (text.includes('kr.')) {
         return ['kr-linje-1', 'kr-linje-2'];
@@ -176,8 +181,9 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
 
     generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, { visUdkastStempel: false });
 
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringMatching(/^PDF-layout:/)
+    expect(logWarningMock).toHaveBeenCalledWith(
+      'PDF-layout fallback aktiveret',
+      expect.objectContaining({ context: 'pdf.erstatningsopgoerelse.layout' })
     );
 
     const instance = MockJsPDF.lastInstance;
@@ -214,7 +220,6 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       return typeof text === 'string' && text.includes('kr.');
     });
     expect(hasRightTextSplit).toBe(true);
-    warnSpy.mockRestore();
   });
 
   it('adds page before signature block when needed', () => {

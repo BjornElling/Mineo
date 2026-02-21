@@ -3,12 +3,11 @@ import { Box, Typography } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import StyledYearFieldNext from '../inputs/StyledYearFieldNext';
 import { getSatserForYear, satserAngivAarYearBounds } from '../../data/regulationRates';
-import { loadSatserPdfModule } from '../../utils/pdf/pdfLoader';
+import { downloadSatserPdf } from '../../utils/pdf/pdfService';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { satserSchema } from '../../schemas/formSchemas';
 import { useFormPersistence } from '../../contexts/FormPersistenceContext';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
-import { getVisBrevhoved } from '../../utils/pdf/pdfBrevhoved';
 import {
   selectSatserAargangErrorMessage,
   selectSatserCanDownload,
@@ -129,18 +128,12 @@ const Satser = React.memo(() => {
   // Håndter download af PDF
   const handleDownloadPdf = React.useCallback(async () => {
     if (satser && gyldigtAar) {
-      try {
-        // Hent stamdata
-        const stamdata = getPersistedData('stamdata');
-
-        // Udled visBrevhoved fra settings
-        const visBrevhoved = getVisBrevhoved(settings, 'satser');
-
-        const { generateSatserPdf } = await loadSatserPdfModule();
-        generateSatserPdf(gyldigtAar, satser, { visBrevhoved, stamdata });
-      } catch (error) {
-        console.error('Kunne ikke indlæse PDF-modulet for satser:', error);
-      }
+      await downloadSatserPdf({
+        year: gyldigtAar,
+        satser,
+        settings,
+        persistedStamdata: getPersistedData('stamdata'),
+      });
     }
   }, [satser, gyldigtAar, getPersistedData, settings]);
 

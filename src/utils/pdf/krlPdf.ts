@@ -6,9 +6,23 @@
  */
 
 import jsPDF from 'jspdf';
-import autoTable, { type CellHookData, type RowInput } from 'jspdf-autotable';
-import { COLORS, MARGINS, FONT_SIZES, TABLE_STYLES } from './pdfConfig';
-import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
+import type { RowInput } from 'jspdf-autotable';
+import { MARGINS } from './pdfConfig';
+import {
+  addSectionHeading,
+  addTitle,
+  applyNormalTextStyle,
+  PDF_BASE_LINE_HEIGHT_MM,
+  resolvePdfSectionEndY,
+  type BrevhovedData,
+} from './pdfHelpers';
+import { createStandardPdfWriter } from './pdfWriter';
+import {
+  createPdfFixedColumnStyles,
+  createPdfTableCell,
+  createPdfTableHeaderCell,
+  renderEoStylePdfTable,
+} from './pdfTableRenderer';
 import { TODAY } from '../../config/dateRanges';
 import { krlSatstabeller } from '../../data/KRLrates';
 import type { DanishDateString } from '../../types/branded';
@@ -82,14 +96,11 @@ const buildCombinedRows = (): { dates: DanishDateString[]; rows: string[][] } =>
 export const generateKRLPdf = (params: KRLPdfParams): void => {
   const { visBrevhoved = false, stamdata = null } = params;
 
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  }) as PdfDoc;
-  doc.setDisplayMode('100%');
+  const writer = createStandardPdfWriter();
+  writer.setDisplayMode('fullheight');
+  const doc = writer.getDoc() as PdfDoc;
 
-  doc.setProperties({
+  writer.setProperties({
     title: 'KRL Satstabeller',
     subject: 'Erstatningsberegning',
     author: 'MINEO',
@@ -105,7 +116,8 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
       sagsbehandler: stamdata?.sagsbehandler,
       dagsDatoISO: TODAY,
     };
-    currentY = addBrevhoved(doc, brevhovedData);
+    writer.writeBrevhoved(brevhovedData);
+    currentY = writer.getY();
   }
 
   currentY = addTitle(doc, 'KRL Satstabeller', currentY);
@@ -114,11 +126,8 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
   const { rows } = buildCombinedRows();
 
   const headerRow: RowInput = [
-    { content: 'Fra-dato', styles: { fontStyle: 'bold', halign: 'center' } },
-    ...krlSatstabeller.map((t) => ({
-      content: t.navn,
-      styles: { fontStyle: 'bold' as const, halign: 'center' as const },
-    })),
+    createPdfTableHeaderCell('Fra-dato', 'center'),
+    ...krlSatstabeller.map((t) => createPdfTableHeaderCell(t.navn, 'center')),
   ];
 
   const bodyRows: RowInput[] = rows.map((row) =>
@@ -130,11 +139,11 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
 
   if (bodyRows.length === 0) {
     bodyRows.push([
-      { content: 'Ingen satser tilgængelige.', styles: { halign: 'center' } },
-      { content: '', styles: { halign: 'center' } },
-      { content: '', styles: { halign: 'center' } },
-      { content: '', styles: { halign: 'center' } },
-      { content: '', styles: { halign: 'center' } },
+      createPdfTableCell('Ingen satser tilgængelige.', { halign: 'center' }),
+      createPdfTableCell('', { halign: 'center' }),
+      createPdfTableCell('', { halign: 'center' }),
+      createPdfTableCell('', { halign: 'center' }),
+      createPdfTableCell('', { halign: 'center' }),
     ]);
   }
 
@@ -143,63 +152,30 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
   const tableWidth = pageWidth - MARGINS.left - MARGINS.right;
   const colWidth = tableWidth / 5;
   const tableRows: RowInput[] = [headerRow, ...bodyRows];
-  const contentBottom = doc.internal.pageSize.getHeight() - MARGINS.bottom;
-  const remainingHeight = contentBottom - currentY;
-  const estimatedRowHeight = TABLE_STYLES.fontSize / 2.8 + TABLE_STYLES.cellPadding * 2;
-  const minimumRows = Math.min(tableRows.length, 2);
-  const minimumRequiredHeight = estimatedRowHeight * minimumRows;
-  const shouldStartOnNewPage = remainingHeight < minimumRequiredHeight;
-  const resolvedStartY = shouldStartOnNewPage ? MARGINS.top : currentY;
 
-  if (shouldStartOnNewPage) {
-    doc.addPage();
-  }
-
-  autoTable(doc, {
-    startY: resolvedStartY,
-    head: [],
+  const finalY = renderEoStylePdfTable({
+    doc,
+    startY: currentY,
     body: tableRows,
-    margin: { left: MARGINS.left, right: MARGINS.right },
-    pageBreak: 'auto',
-    rowPageBreak: 'auto',
-    styles: {
-      font: 'helvetica',
-      fontSize: TABLE_STYLES.fontSize,
-      cellPadding: TABLE_STYLES.cellPadding,
-      textColor: COLORS.text,
-      halign: 'center',
-    },
-    columnStyles: {
-      0: { cellWidth: colWidth, halign: 'center' },
-      1: { cellWidth: colWidth, halign: 'center' },
-      2: { cellWidth: colWidth, halign: 'center' },
-      3: { cellWidth: colWidth, halign: 'center' },
-      4: { cellWidth: colWidth, halign: 'center' },
-    },
-    didParseCell: (data: CellHookData) => {
-      if (data.row.index === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-        data.cell.styles.overflow = 'ellipsize';
-      } else if (data.row.index % 2 === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.alternateRowBackgroundColor;
-      } else {
-        data.cell.styles.fillColor = COLORS.white;
-      }
+    tableWidth,
+    columnStyles: createPdfFixedColumnStyles(5, colWidth, 'center'),
+    didParseCell: (data) => {
+      data.cell.styles.halign = 'center';
     },
   });
 
-  const finalY = doc.lastAutoTable?.finalY || currentY + 50;
+  const resolvedFinalY = resolvePdfSectionEndY(finalY, currentY, { spacer: 0 });
 
   // Kildetekst under tabellen
-  doc.setFontSize(FONT_SIZES.normal);
-  doc.setFont('helvetica', 'normal');
+  const sourceY = addSectionHeading(doc, 'Kilde', resolvedFinalY + PDF_BASE_LINE_HEIGHT_MM);
+  applyNormalTextStyle(doc);
   doc.text(
     'KRL\'s sats-tabeller kan genfindes på https://www.krl.dk/#/sats',
     MARGINS.left,
-    finalY + 8,
+    sourceY,
     { maxWidth: pageWidth - MARGINS.left - MARGINS.right },
   );
 
-  addFooter(doc);
-  doc.save('KRL Satstabeller.pdf');
+  writer.addFooter();
+  writer.save('KRL Satstabeller.pdf');
 };

@@ -4,49 +4,76 @@
  * Genererer detaljeret specifikation af renteberegning med halvårlige perioder
  */
 
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { COLORS, MARGINS, FONT_SIZES, TABLE_STYLES, SECTION_SPACER } from './pdfConfig';
-import { addTitle, addFooter, addBrevhoved, parseDanishDate, formatDanishDate, formatAmount, formatPercent, type BrevhovedData } from './pdfHelpers';
+import {
+  MARGINS,
+  FONT_SIZES,
+  PDF_FONT_FAMILY,
+  PDF_FONT_STYLES,
+  PDF_SECTION_HEADING_GAP,
+  PDF_TABLE_NARROW_COLUMN_WIDTH,
+  SECTION_SPACER,
+} from './pdfConfig';
+import {
+  addSectionHeading,
+  addTitle,
+  applyNormalTextStyle,
+  ensurePdfPageSpace,
+  PDF_BASE_LINE_HEIGHT_MM,
+  resolvePdfSectionEndY,
+  formatAmount,
+  formatPercent,
+  type BrevhovedData
+} from './pdfHelpers';
+import { createStandardPdfWriter } from './pdfWriter';
+import type { RowInput } from 'jspdf-autotable';
+import type jsPDF from 'jspdf';
+import {
+  createPdfTableCell,
+  createPdfTableHeaderCell,
+  createPdfTableTransparentRow,
+  renderEoStylePdfTable,
+} from './pdfTableRenderer';
 import { createDate } from '../dateUtils';
+import { formatDanishDate, parseDanishDate } from '../dateUtils';
 import { countInclusiveUtcDays } from '../utcDayMath';
+import { logError } from '../logger';
 import type { RateEntry } from '../../data/interestRates';
 import { referenceRates, surchargeRates } from '../../data/interestRates';
-import type { ISODateString } from '../../types/branded';
 import { TODAY } from '../../config/dateRanges';
+import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
 
 /**
  * Stamdata til Rente PDF
  */
-export interface RenteStamdata {
-  journalnr?: string;
-  advokat?: string;
-  sagsbehandler?: string;
-}
+type RentePdfOptions = PdfCommonOptions & Readonly<{ stamdata?: PdfStamdata | null }>;
 
-/**
- * Options for Rente PDF
- */
-export interface RentePdfOptions {
-  visBrevhoved?: boolean;
-  stamdata?: RenteStamdata | null;
-}
+type RentePeriod = Readonly<{
+  startDate: Date;
+  endDate: Date;
+  amount: number;
+  referenceRate: number;
+  surchargeRate: number;
+  totalRate: number;
+  days: number;
+  interest: number;
+}>;
+
+const parseAmountInput = (value: string | number): number => {
+  if (typeof value === 'number') return value;
+  return Number.parseFloat(value.replace(/\./g, '').replace(',', '.'));
+};
 
 /**
  * Beregner antal dage i et givet år (365 eller 366)
  */
-const getDaysInYear = (year: number) => {
+const getDaysInYear = (year: number): number => {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 366 : 365;
 };
 
 /**
- * Beregner antal dage mellem to datoer (inklusiv begge dage)
- * Bruger UTC for at undgå timezone-problemer
- */
-/**
  * Finder den gældende sats (procentpoint) på en specifik dato
  */
-const findRatePctOnDate = (rates: ReadonlyArray<RateEntry>, targetDate) => {
+const findRatePctOnDate = (rates: ReadonlyArray<RateEntry>, targetDate: Date): number => {
   const ratesWithDates = rates
     .map((entry) => ({
       date: parseDanishDate(entry.effectiveDate),
@@ -75,14 +102,14 @@ const findRatePctOnDate = (rates: ReadonlyArray<RateEntry>, targetDate) => {
 /**
  * Beregner tillægssats baseret på faktisk rentedato
  */
-const calculateSurchargeRate = (interestStartDate) => {
+const calculateSurchargeRate = (interestStartDate: Date): number => {
   return findRatePctOnDate(surchargeRates, interestStartDate);
 };
 
 /**
  * Beregner rente for en periode med fast rentesats
  */
-const calculatePeriodInterest = (amount, rate, startDate, endDate) => {
+const calculatePeriodInterest = (amount: number, rate: number, startDate: Date, endDate: Date): number => {
   if (startDate > endDate) {
     return 0.0;
   }
@@ -115,7 +142,11 @@ const calculatePeriodInterest = (amount, rate, startDate, endDate) => {
 /**
  * Genererer detaljeret specifikation med halvårlige perioder
  */
-const generateDetailedSpecification = (amount, interestStartDate, calculationDate) => {
+const generateDetailedSpecification = (
+  amount: string | number,
+  interestStartDate: string,
+  calculationDate: string
+): RentePeriod[] => {
   const startDate = parseDanishDate(interestStartDate);
   const endDate = parseDanishDate(calculationDate);
 
@@ -123,16 +154,14 @@ const generateDetailedSpecification = (amount, interestStartDate, calculationDat
     return [];
   }
 
-  const amountNum = typeof amount === 'string'
-    ? parseFloat(amount.replace(/\./g, '').replace(',', '.'))
-    : Number(amount);
+  const amountNum = parseAmountInput(amount);
 
   if (isNaN(amountNum)) {
     return [];
   }
 
   const surchargeRate = calculateSurchargeRate(startDate);
-  const periods: any[] = [];
+  const periods: RentePeriod[] = [];
   let currentDate = new Date(startDate);
 
   while (currentDate <= endDate) {
@@ -192,38 +221,40 @@ const generateDetailedSpecification = (amount, interestStartDate, calculationDat
  * @param {RentePdfOptions} options - Valgfrie indstillinger
  */
 export const generateRentePdf = (
-  amount,
-  interestStartDate,
-  calculationDate,
+  amount: string | number,
+  interestStartDate: string,
+  calculationDate: string,
   options: RentePdfOptions = {}
-) => {
+): void => {
   const { visBrevhoved = false, stamdata = null } = options;
   // Generer detaljeret specifikation
   const periods = generateDetailedSpecification(amount, interestStartDate, calculationDate);
 
   if (!periods || periods.length === 0) {
-    console.error('Ingen perioder fundet for renteberegning');
+    logError('Ingen perioder fundet for renteberegning', {
+      context: 'rentePdf.generateRentePdf',
+      error: new Error('No periods generated'),
+    });
     return;
   }
 
-  // Opret nyt PDF-dokument (A4, portrait)
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  });
-  doc.setDisplayMode('100%');
+  const writer = createStandardPdfWriter();
+  writer.setDisplayMode('fullheight');
+  const doc = writer.getDoc();
 
   // Dokumentets metadata
   const startDate = parseDanishDate(interestStartDate);
   const endDate = parseDanishDate(calculationDate);
 
   if (!startDate || !endDate) {
-    console.error('Ugyldige datoer for renteberegning');
+    logError('Ugyldige datoer for renteberegning', {
+      context: 'rentePdf.generateRentePdf',
+      error: new Error('Invalid interest date range'),
+    });
     return;
   }
 
-  doc.setProperties({
+  writer.setProperties({
     title: 'Procesrente',
     subject: 'Renteberegning',
     author: 'MINEO',
@@ -240,7 +271,8 @@ export const generateRentePdf = (
       sagsbehandler: stamdata?.sagsbehandler,
       dagsDatoISO: TODAY,
     };
-    currentY = addBrevhoved(doc, brevhovedData);
+    writer.writeBrevhoved(brevhovedData);
+    currentY = writer.getY();
   }
 
   // Tilføj titel
@@ -256,29 +288,30 @@ export const generateRentePdf = (
   addCalculationPrinciples(doc, startDate, currentY);
 
   // Tilføj footer med versionsnummer
-  addFooter(doc);
+  writer.addFooter();
 
   // Generer filnavn
-  const amountNum = typeof amount === 'string'
-    ? parseFloat(amount.replace(/\./g, '').replace(',', '.'))
-    : Number(amount);
+  const amountNum = parseAmountInput(amount);
   const filename = `Procesrente af ${formatAmount(amountNum)} kr. - ${formatDanishDate(startDate)} til ${formatDanishDate(endDate)}.pdf`;
 
   // Download PDF
-  doc.save(filename);
+  writer.save(filename);
 };
 
 
 /**
  * Tilføj beregningsbeskrivelse
  */
-const addDescription = (doc, amount, startDate, endDate, startY) => {
-  const amountNum = typeof amount === 'string'
-    ? parseFloat(amount.replace(/\./g, '').replace(',', '.'))
-    : Number(amount);
+const addDescription = (
+  doc: jsPDF,
+  amount: string | number,
+  startDate: Date,
+  endDate: Date,
+  startY: number
+): number => {
+  const amountNum = parseAmountInput(amount);
 
-  doc.setFontSize(FONT_SIZES.normal);
-  doc.setFont('helvetica', 'normal');
+  applyNormalTextStyle(doc);
 
   const lines = [
     `Hovedstol: ${formatAmount(amountNum)} kr.`,
@@ -288,24 +321,24 @@ const addDescription = (doc, amount, startDate, endDate, startY) => {
   let y = startY;
   for (const line of lines) {
     doc.text(line, MARGINS.left, y);
-    y += 6;
+    y += PDF_BASE_LINE_HEIGHT_MM;
   }
 
-  return y + 6; // Ekstra mellemrum før tabel
+  return y + PDF_BASE_LINE_HEIGHT_MM;
 };
 
 /**
  * Finder seneste dato i referenceRates
  */
-const findLatestReferenceRateDate = () => {
-  let latestDate = null;
+const findLatestReferenceRateDate = (): Date | null => {
+  let latestDate: Date | null = null;
 
   for (const entry of referenceRates) {
     const entryDate = parseDanishDate(entry.effectiveDate);
     if (!entryDate) continue;
 
     // Beregn slutdato for denne halvårlige periode
-    let periodEnd;
+    let periodEnd: Date;
     if (entryDate.getUTCMonth() < 6) {
       // Første halvår (Jan-Jun) - slutter 30. juni
       periodEnd = createDate(entryDate.getUTCFullYear(), 5, 30);
@@ -325,28 +358,33 @@ const findLatestReferenceRateDate = () => {
 /**
  * Tilføj specifikationstabel
  */
-const addSpecificationTable = (doc, periods, endDate, startY) => {
+const addSpecificationTable = (
+  doc: jsPDF,
+  periods: ReadonlyArray<RentePeriod>,
+  endDate: Date,
+  startY: number
+): number => {
   // Beregn total rente
   const totalInterest = periods.reduce((sum, p) => sum + p.interest, 0);
 
   // Forbered tabeldata
-  const tableData: any[] = [];
+  const tableData: RowInput[] = [];
 
   // Header-række
   tableData.push([
-    { content: 'Periode', styles: { fontStyle: 'bold', halign: 'left' } },
-    { content: 'Rentedage', styles: { fontStyle: 'bold', halign: 'center' } },
-    { content: 'Rentesats', styles: { fontStyle: 'bold', halign: 'center' } },
-    { content: 'Beregnet rente', styles: { fontStyle: 'bold', halign: 'right' } },
+    createPdfTableHeaderCell('Periode', 'left'),
+    createPdfTableHeaderCell('Rentedage', 'center'),
+    createPdfTableHeaderCell('Rentesats', 'center'),
+    createPdfTableHeaderCell('Beregnet rente', 'right'),
   ]);
 
   // Data-rækker
   for (const period of periods) {
     tableData.push([
-      { content: `${formatDanishDate(period.startDate)} - ${formatDanishDate(period.endDate)}`, styles: { halign: 'left' } },
-      { content: `${period.days}`, styles: { halign: 'center' } },
-      { content: formatPercent(period.totalRate), styles: { halign: 'center' } },
-      { content: `${formatAmount(period.interest)} kr.`, styles: { halign: 'right' } },
+      createPdfTableCell(`${formatDanishDate(period.startDate)} - ${formatDanishDate(period.endDate)}`, { halign: 'left' }),
+      createPdfTableCell(`${period.days}`, { halign: 'center' }),
+      createPdfTableCell(formatPercent(period.totalRate), { halign: 'center' }),
+      createPdfTableCell(`${formatAmount(period.interest)} kr.`, { halign: 'right' }),
     ]);
   }
 
@@ -355,19 +393,14 @@ const addSpecificationTable = (doc, periods, endDate, startY) => {
   const isHypothetical = latestRateDate && endDate > latestRateDate;
 
   // Tom række
-  tableData.push([
-    { content: '', styles: { fillColor: COLORS.white } },
-    { content: '', styles: { fillColor: COLORS.white } },
-    { content: '', styles: { fillColor: COLORS.white } },
-    { content: '', styles: { fillColor: COLORS.white } },
-  ]);
+  tableData.push(createPdfTableTransparentRow(4));
 
   // Total-række
   tableData.push([
-    { content: 'Samlet rentebeløb', styles: { fontStyle: 'bold', halign: 'left', fillColor: COLORS.white } },
-    { content: '', styles: { fontStyle: 'bold', fillColor: COLORS.white } },
-    { content: '', styles: { fontStyle: 'bold', fillColor: COLORS.white } },
-    { content: formatAmount(totalInterest) + ' kr.', styles: { fontStyle: 'bold', halign: 'right', fillColor: COLORS.white } },
+    createPdfTableCell('Samlet rentebeløb', { halign: 'left', bold: true, transparent: true }),
+    createPdfTableCell('', { bold: true, transparent: true }),
+    createPdfTableCell('', { bold: true, transparent: true }),
+    createPdfTableCell(formatAmount(totalInterest) + ' kr.', { halign: 'right', bold: true, transparent: true }),
   ]);
 
   let tableStartY = startY;
@@ -375,85 +408,51 @@ const addSpecificationTable = (doc, periods, endDate, startY) => {
   // Advarsel om hypotetisk beregning (hvis relevant)
   if (isHypothetical) {
     doc.setFontSize(FONT_SIZES.normal);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
     doc.text(
       `Der er kun fastsat procesrente frem til ${formatDanishDate(latestRateDate)}. Beregning derefter er hypotetisk!`,
       MARGINS.left,
       tableStartY,
     );
-    tableStartY += 8; // Skab luft mellem advarsel og tabel
+    tableStartY += PDF_BASE_LINE_HEIGHT_MM + PDF_SECTION_HEADING_GAP;
   }
 
-  autoTable(doc, {
+  const finalY = renderEoStylePdfTable({
+    doc,
     startY: tableStartY,
-    head: [],
     body: tableData,
-    margin: { left: MARGINS.left, right: MARGINS.right },
-    pageBreak: 'auto',
-    rowPageBreak: 'auto',
-    styles: {
-      font: 'helvetica',
-      fontSize: TABLE_STYLES.fontSize,
-      cellPadding: 1.5, // Reduceret fra 2 til 1.5 for at spare plads
-      textColor: COLORS.text,
-    },
     columnStyles: {
       0: { cellWidth: 'auto' },
-      1: { cellWidth: 25 },
-      2: { cellWidth: 25 },
+      1: { cellWidth: PDF_TABLE_NARROW_COLUMN_WIDTH },
+      2: { cellWidth: PDF_TABLE_NARROW_COLUMN_WIDTH },
       3: { cellWidth: 35 },
     },
-    didParseCell: function (data) {
-      // Header-række får lysegrå baggrund
-      if (data.row.index === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-        data.cell.styles.overflow = 'ellipsize';
-      }
-      // Alternerende rækker (ekskl. header, tom række og total)
-      else if (data.row.index > 0 && data.row.index < tableData.length - 2) {
-        // Alternerende baggrund for data-rækker
-        if (data.row.index % 2 === 0) {
-          data.cell.styles.fillColor = TABLE_STYLES.alternateRowBackgroundColor;
-        } else {
-          data.cell.styles.fillColor = COLORS.white;
-        }
-      }
-    },
+    transparentRowIndices: [tableData.length - 2, tableData.length - 1],
   });
 
-  const finalY = doc.lastAutoTable?.finalY || startY + 50;
-  return finalY + SECTION_SPACER;
+  return resolvePdfSectionEndY(finalY, startY);
 };
 
 /**
  * Tilføj beregningsprincipper
  */
-const addCalculationPrinciples = (doc, startDate, startY) => {
-  const pageHeight = doc.internal.pageSize.height;
-  const bottomMargin = 20; // Bundmargen til footer
-
+const addCalculationPrinciples = (
+  doc: jsPDF,
+  startDate: Date,
+  startY: number
+): number => {
   // Beregn hvor meget plads beregningsprincipper kræver
-  const requiredSpace = 6 + (3 * 6) + 6; // Titel + 3 linjer + spacer = ca. 30mm
+  const requiredSpace = (PDF_BASE_LINE_HEIGHT_MM + PDF_SECTION_HEADING_GAP) + (3 * PDF_BASE_LINE_HEIGHT_MM) + SECTION_SPACER;
 
   // Tjek om der er nok plads på nuværende side
-  let y = startY;
-  if (y + requiredSpace > pageHeight - bottomMargin) {
-    // Ikke nok plads - tilføj ny side
-    doc.addPage();
-    y = MARGINS.top;
-  }
+  let y = ensurePdfPageSpace(doc, startY, requiredSpace);
 
-  doc.setFontSize(FONT_SIZES.normal);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Beregningsprincipper:', MARGINS.left, y);
-
-  y += 6;
-
-  doc.setFont('helvetica', 'normal');
+  y = addSectionHeading(doc, 'Beregningsprincipper', y);
 
   // Bestem forfaldsdato-tekst og tillægssats
   const surchargeChangeDate = createDate(2013, 2, 1); // 1. marts 2013
-  let forfaldText, surchargeText;
+  let forfaldText: string;
+  let surchargeText: string;
 
   if (startDate < surchargeChangeDate) {
     forfaldText = 'før 1. marts 2013';
@@ -471,7 +470,7 @@ const addCalculationPrinciples = (doc, startDate, startY) => {
 
   for (const principle of principles) {
     doc.text(principle, MARGINS.left, y);
-    y += 6;
+    y += PDF_BASE_LINE_HEIGHT_MM;
   }
 
   return y + SECTION_SPACER;

@@ -5,10 +5,19 @@
  */
 
 import jsPDF from 'jspdf';
-import autoTable, { type CellHookData, type RowInput } from 'jspdf-autotable';
-import { COLORS, MARGINS, FONT_SIZES, TABLE_STYLES, SECTION_SPACER } from './pdfConfig';
-import { addTitle, addFooter, addBrevhoved, type BrevhovedData } from './pdfHelpers';
-import { formatCurrency, formatPercent } from '../formatUtils';
+import type { RowInput } from 'jspdf-autotable';
+import { COLORS, MARGINS, SECTION_SPACER } from './pdfConfig';
+import {
+  addSectionHeading,
+  addTitle,
+  applyNormalTextStyle,
+  resolvePdfSectionEndY,
+  PDF_BASE_LINE_HEIGHT_MM,
+  type BrevhovedData,
+} from './pdfHelpers';
+import { createStandardPdfWriter } from './pdfWriter';
+import { renderEoStylePdfTable } from './pdfTableRenderer';
+import { formatAsAmount, formatCurrency, formatPercent } from '../formatUtils';
 import { parseDanishDate, formatDanishDate, createDate } from '../dateUtils';
 import { roundByMethod } from '../rounding';
 import { aarsloenMax } from '../../data/regulationRates';
@@ -30,15 +39,7 @@ import {
   type StatistiskLoenudviklingId,
 } from '../../data/statistiskLoenudviklingRates';
 import type { DanishDateString } from '../../types/branded';
-
-/**
- * Stamdata til Regulering PDF
- */
-export interface ReguleringStamdata {
-  journalnr?: string;
-  advokat?: string;
-  sagsbehandler?: string;
-}
+import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
 
 type PdfDoc = jsPDF & {
   lastAutoTable?: {
@@ -57,9 +58,9 @@ type ReguleringPdfParams = Readonly<{
   offentligLoenTrin?: number;
   offentligLoenGruppe?: number;
   offentligLoenEkstraGrundloen?: number;
-  visBrevhoved?: boolean;
-  stamdata?: ReguleringStamdata | null;
-}>;
+}> &
+  PdfCommonOptions &
+  Readonly<{ stamdata?: PdfStamdata | null }>;
 
 type TableColumn = Readonly<{
   header: string;
@@ -139,6 +140,10 @@ const formatOverenskomstAmount = (value: number | null | undefined): string => {
   return formatCurrency(value);
 };
 
+const formatIndexValue = (value: number): string => {
+  return formatAsAmount(roundByMethod(value, 1, 'halfAwayFromZero'), 1);
+};
+
 const buildTableRows = (
   columns: ReadonlyArray<TableColumn>,
   rows: ReadonlyArray<ReadonlyArray<string>>
@@ -184,48 +189,17 @@ const addReguleringTable = (
     ])
   );
 
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const contentBottom = pageHeight - MARGINS.bottom;
-  const remainingHeight = contentBottom - startY;
-  const estimatedRowHeight = TABLE_STYLES.fontSize / 2.8 + TABLE_STYLES.cellPadding * 2;
-  const minimumRows = Math.min(tableRows.length, 2);
-  const minimumRequiredHeight = estimatedRowHeight * minimumRows;
-  const shouldStartOnNewPage = remainingHeight < minimumRequiredHeight;
-  const resolvedStartY = shouldStartOnNewPage ? MARGINS.top : startY;
-
-  if (shouldStartOnNewPage) {
-    doc.addPage();
-  }
-
-  autoTable(doc, {
-    startY: resolvedStartY,
-    head: [],
+  const finalY = renderEoStylePdfTable({
+    doc,
+    startY,
     body: tableRows,
-    margin: { left: MARGINS.left, right: MARGINS.right },
-    pageBreak: 'auto',
-    rowPageBreak: 'auto',
-    styles: {
-      font: 'helvetica',
-      fontSize: TABLE_STYLES.fontSize,
-      cellPadding: TABLE_STYLES.cellPadding,
-      textColor: COLORS.text,
-      halign: 'center',
-    },
     columnStyles,
-    didParseCell: (data: CellHookData) => {
-      if (data.row.index === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.headerBackgroundColor;
-        data.cell.styles.overflow = 'ellipsize';
-      } else if (data.row.index % 2 === 0) {
-        data.cell.styles.fillColor = TABLE_STYLES.alternateRowBackgroundColor;
-      } else {
-        data.cell.styles.fillColor = COLORS.white;
-      }
+    didParseCell: (data) => {
+      data.cell.styles.halign = 'center';
     },
   });
 
-  const finalY = doc.lastAutoTable?.finalY || startY + 50;
-  return finalY + SECTION_SPACER;
+  return resolvePdfSectionEndY(finalY, startY);
 };
 
 const buildOverenskomstTable = (
@@ -393,7 +367,7 @@ const buildStatistikTable = (
       return [
         value.kvartal,
         startDate,
-        value.indeksvaerdi.toLocaleString('da-DK', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+        formatIndexValue(value.indeksvaerdi),
       ];
     });
 
@@ -422,14 +396,11 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
     stamdata = null,
   } = params;
 
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  }) as PdfDoc;
-  doc.setDisplayMode('100%');
+  const writer = createStandardPdfWriter();
+  writer.setDisplayMode('fullheight');
+  const doc = writer.getDoc() as PdfDoc;
 
-  doc.setProperties({
+  writer.setProperties({
     title: 'Regulering',
     subject: 'Erstatningsberegning',
     author: 'MINEO',
@@ -446,19 +417,19 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
       sagsbehandler: stamdata?.sagsbehandler,
       dagsDatoISO: TODAY,
     };
-    currentY = addBrevhoved(doc, brevhovedData);
+    writer.writeBrevhoved(brevhovedData);
+    currentY = writer.getY();
   }
 
   currentY = addTitle(doc, 'Regulering', currentY);
 
-  doc.setFontSize(FONT_SIZES.normal);
-  doc.setFont('helvetica', 'normal');
+  applyNormalTextStyle(doc);
   const valgtLabel =
     loenudviklingBasis === 'Statistik'
       ? (statistikModelLabel?.trim() || '-')
       : (overenskomstLabel.trim() || '-');
   doc.text(valgtLabel, MARGINS.left, currentY);
-  currentY += 6;
+  currentY += PDF_BASE_LINE_HEIGHT_MM;
 
   const offentligInfoLine = resolveOffentligLoenInfoLine({
     overenskomstId,
@@ -467,7 +438,7 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
   });
   if (offentligInfoLine) {
     doc.text(offentligInfoLine, MARGINS.left, currentY);
-    currentY += 6;
+    currentY += PDF_BASE_LINE_HEIGHT_MM;
   }
   const offentligLoenEkstraGrundloenTekst = resolveOffentligLoenEkstraGrundloenTekst({
     overenskomstId,
@@ -476,21 +447,17 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
   });
 
   if (offentligLoenEkstraGrundloenTekst) {
-    // Linjeafstand før afsnittet om øget grundløn.
-    currentY += 6;
+    currentY += PDF_BASE_LINE_HEIGHT_MM;
+    currentY = addSectionHeading(doc, 'Forhøjet grundløn', currentY);
 
-    doc.setFont('helvetica', 'bold');
-    doc.text('Forhøjet grundløn', MARGINS.left, currentY);
-    currentY += 6;
-
-    doc.setFont('helvetica', 'normal');
+    applyNormalTextStyle(doc);
     doc.text('Skadelidtes grundløn er forhøjet sammenholdt med nedenstående løntrin.', MARGINS.left, currentY);
-    currentY += 6;
+    currentY += PDF_BASE_LINE_HEIGHT_MM;
     doc.text(`Forhøjelsen udgør ${offentligLoenEkstraGrundloenTekst}.`, MARGINS.left, currentY);
-    currentY += 6;
+    currentY += PDF_BASE_LINE_HEIGHT_MM;
   }
 
-  currentY += 4;
+  currentY += PDF_BASE_LINE_HEIGHT_MM - 1;
 
   let tableData: { columns: TableColumn[]; rows: string[][] } | null = null;
 
@@ -510,9 +477,9 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
     currentY = addReguleringTable(doc, tableData.columns, tableData.rows, currentY);
   }
 
-  addFooter(doc);
+  writer.addFooter();
   const basisTekst = loenudviklingBasis === 'Statistik' ? 'Statistik' : 'Overenskomst';
   const labelPart = sanitizeFilenamePart(valgtLabel);
   const intervalPart = sanitizeFilenamePart(`${interval.fraDato} til ${interval.tilDato}`);
-  doc.save(`Regulering - ${basisTekst} - ${labelPart} (${intervalPart}).pdf`);
+  writer.save(`Regulering - ${basisTekst} - ${labelPart} (${intervalPart}).pdf`);
 };

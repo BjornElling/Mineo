@@ -1,6 +1,10 @@
 import type { RowInput } from 'jspdf-autotable';
 import { MARGINS } from '../../pdfConfig';
 import {
+  createPdfTableCell,
+  createPdfTableHeaderCell,
+} from '../../pdfTableRenderer';
+import {
   getEffektiveSatserForDato,
   getGrundloenAngivetPerForOverenskomst,
   getOffentligOverenskomstTypeById,
@@ -209,21 +213,21 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
 
     const tableRows: RowInput[] = [
       [
-        { content: 'Fra-dato', styles: { fontStyle: 'bold', halign: 'center' } },
-        { content: 'Til-dato', styles: { fontStyle: 'bold', halign: 'center' } },
-        { content: 'Indeksberegning', styles: { fontStyle: 'bold', halign: 'center' } },
-        { content: 'Indeks', styles: { fontStyle: 'bold', halign: 'center' } },
-        { content: 'Lønudvikling', styles: { fontStyle: 'bold', halign: 'center' } },
+        createPdfTableHeaderCell('Fra-dato', 'center'),
+        createPdfTableHeaderCell('Til-dato', 'center'),
+        createPdfTableHeaderCell('Indeksberegning', 'center'),
+        createPdfTableHeaderCell('Indeks', 'center'),
+        createPdfTableHeaderCell('Lønudvikling', 'center'),
       ],
     ];
 
     for (const row of rows) {
       tableRows.push([
-        { content: row.fraDato, styles: { halign: 'center' } },
-        { content: row.tilDato, styles: { halign: 'center' } },
-        { content: row.indeksberegning, styles: { halign: 'center' } },
-        { content: row.indeks, styles: { halign: 'right' } },
-        { content: row.loenudvikling, styles: { halign: 'right' } },
+        createPdfTableCell(row.fraDato, { halign: 'center' }),
+        createPdfTableCell(row.tilDato, { halign: 'center' }),
+        createPdfTableCell(row.indeksberegning, { halign: 'center' }),
+        createPdfTableCell(row.indeks, { halign: 'right' }),
+        createPdfTableCell(row.loenudvikling, { halign: 'right' }),
       ]);
     }
 
@@ -243,15 +247,9 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     }
 
     const tableRows: RowInput[] = [
-      tableData.columns.map((column) => ({
-        content: column,
-        styles: { fontStyle: 'bold', halign: 'center' as const },
-      })),
+      tableData.columns.map((column) => createPdfTableHeaderCell(column, 'center')),
       ...tableData.rows.map((row) =>
-        row.map((value) => ({
-          content: value,
-          styles: { halign: 'center' as const },
-        }))
+        row.map((value) => createPdfTableCell(value, { halign: 'center' }))
       ),
     ];
 
