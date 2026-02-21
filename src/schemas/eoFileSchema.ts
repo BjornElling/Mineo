@@ -15,30 +15,7 @@ import {
   stamdataSchema,
   varigeMenSchema,
 } from './formSchemas';
-
-/**
- * Deep-converts `null` -> `undefined` recursively.
- *
- * Rationale:
- * - sessionStorage persistence uses JSON, where `undefined` becomes `null`
- * - our Zod schemas model optional fields as `undefined` (not `null`)
- * - `.eo` files are saved from the sessionStorage representation
- *
- * This preprocessing keeps save/load strict and fail-fast, while accepting the
- * JSON-null representation of optional fields.
- */
-const nullToUndefinedDeep = (value: unknown): unknown => {
-  if (value === null) return undefined;
-  if (Array.isArray(value)) return value.map(nullToUndefinedDeep);
-  if (typeof value === 'object' && value !== null) {
-    const result: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) {
-      result[k] = nullToUndefinedDeep(v);
-    }
-    return result;
-  }
-  return value;
-};
+import { nullToUndefinedDeep } from '../config/persistenceRegistry';
 
 /**
  * Root data structure inside decrypted `.eo` file.

@@ -8,6 +8,9 @@ import { beregnAntalHverdage, beregnFeriedagePaaEtAar, erNoejagtEtAar, type Peri
 import type { AarsloenMetode, AarsloenBeregningResult } from '../../types/calculation';
 import type { LoenPaaHelligdage, Loenperiode } from '../../types/loen';
 
+const STANDARD_HVERDAGE_PAA_AAR = Math.round((365 / 7) * 5); // 261
+const STANDARD_UGER_PAA_AAR = 52.14;
+
 /**
  * Parametre til årsløn-beregning
  */
@@ -43,6 +46,24 @@ export const beregnMetode = (
   }
 
   return 'C'; // Default
+};
+
+const beregnHverdagsOmregning = (params: {
+  hverdageIPeriode: number;
+  feriedageFraInput: number;
+  feriedagePaaAar: number;
+  fuldLoenUnderFerie: boolean;
+  beregnetAarsloen: number;
+}): { hverdageIPeriodeResultat: number; hverdagePaaAar: number; omregnetAarsloen: number } => {
+  const { hverdageIPeriode, feriedageFraInput, feriedagePaaAar, fuldLoenUnderFerie, beregnetAarsloen } = params;
+  const hverdageIPeriodeResultat = fuldLoenUnderFerie ? hverdageIPeriode : hverdageIPeriode - feriedageFraInput;
+  const hverdagePaaAar = fuldLoenUnderFerie
+    ? STANDARD_HVERDAGE_PAA_AAR
+    : STANDARD_HVERDAGE_PAA_AAR - feriedagePaaAar;
+  const omregnetAarsloen = hverdageIPeriodeResultat > 0
+    ? (beregnetAarsloen / hverdageIPeriodeResultat) * hverdagePaaAar
+    : 0;
+  return { hverdageIPeriodeResultat, hverdagePaaAar, omregnetAarsloen };
 };
 
 /**
@@ -106,7 +127,7 @@ export const beregnOmregnetAarsloen = ({
 
     // Linje 3: 365/7×5 - feriedagePaaAar - 8 SH-dage = arbejdsdage
     // Hvis fuld løn under ferie, træk IKKE feriedage fra
-    const hverdagePaaAarBase = Math.round(365 / 7 * 5); // 261 dage
+    const hverdagePaaAarBase = STANDARD_HVERDAGE_PAA_AAR;
     if (fuldLoenUnderFerie) {
       arbejdsdagePaaAar = hverdagePaaAarBase - 8;
     } else {
@@ -120,30 +141,18 @@ export const beregnOmregnetAarsloen = ({
   } else if (metode === 'B') {
     // METODE B: Hverdage
     // Linje 2: hverdage - feriedage = hverdage
-    // Hvis fuld løn under ferie, træk IKKE feriedage fra
-    let hverdageIPeriodeResultat;
-    if (fuldLoenUnderFerie) {
-      hverdageIPeriodeResultat = hverdageIPeriode;
-    } else {
-      hverdageIPeriodeResultat = hverdageIPeriode - feriedageFraInput;
-    }
-
-    // Linje 3: 365/7×5 - feriedagePaaAar = hverdage
-    // Hvis fuld løn under ferie, træk IKKE feriedage fra
-    const hverdagePaaAarBase = Math.round(365 / 7 * 5); // 261 dage
-    if (fuldLoenUnderFerie) {
-      hverdagePaaAar = hverdagePaaAarBase;
-    } else {
-      hverdagePaaAar = hverdagePaaAarBase - feriedagePaaAar;
-    }
-
-    // Linje 4: Omregnet årsløn
-    if (hverdageIPeriodeResultat > 0) {
-      omregnetAarsloen = (beregnetAarsloen / hverdageIPeriodeResultat) * hverdagePaaAar;
-    }
+    const hverdagsOmregning = beregnHverdagsOmregning({
+      hverdageIPeriode,
+      feriedageFraInput,
+      feriedagePaaAar,
+      fuldLoenUnderFerie,
+      beregnetAarsloen,
+    });
+    hverdagePaaAar = hverdagsOmregning.hverdagePaaAar;
+    omregnetAarsloen = hverdagsOmregning.omregnetAarsloen;
 
     // Gem hverdageIPeriodeResultat til visning
-    arbejdsdageIPeriode = hverdageIPeriodeResultat; // Genbruger variabel
+    arbejdsdageIPeriode = hverdagsOmregning.hverdageIPeriodeResultat; // Genbruger variabel
   } else if (metode === 'C') {
     // METODE C: Måneder/Uger/Dage
     if (loenperiode === 'maaned') {
@@ -160,31 +169,22 @@ export const beregnOmregnetAarsloen = ({
 
       // Linje 3: Omregnet årsløn (52,14 uger per år)
       if (antalUger > 0) {
-        omregnetAarsloen = (beregnetAarsloen / antalUger) * 52.14;
+        omregnetAarsloen = (beregnetAarsloen / antalUger) * STANDARD_UGER_PAA_AAR;
       }
     } else if (loenperiode === 'dag') {
-      // Metode C for dagsløn: Brug dage (samme som metode B, men kaldet C)
-      // Dette er faktisk metode B logik, men for dagsløn
-      let hverdageIPeriodeResultat;
-      if (fuldLoenUnderFerie) {
-        hverdageIPeriodeResultat = hverdageIPeriode;
-      } else {
-        hverdageIPeriodeResultat = hverdageIPeriode - feriedageFraInput;
-      }
-
-      const hverdagePaaAarBase = Math.round(365 / 7 * 5); // 261 dage
-      if (fuldLoenUnderFerie) {
-        hverdagePaaAar = hverdagePaaAarBase;
-      } else {
-        hverdagePaaAar = hverdagePaaAarBase - feriedagePaaAar;
-      }
-
-      if (hverdageIPeriodeResultat > 0) {
-        omregnetAarsloen = (beregnetAarsloen / hverdageIPeriodeResultat) * hverdagePaaAar;
-      }
+      // Metode C for dagsløn genbruger bevidst samme hverdagsomregning som metode B.
+      const hverdagsOmregning = beregnHverdagsOmregning({
+        hverdageIPeriode,
+        feriedageFraInput,
+        feriedagePaaAar,
+        fuldLoenUnderFerie,
+        beregnetAarsloen,
+      });
+      hverdagePaaAar = hverdagsOmregning.hverdagePaaAar;
+      omregnetAarsloen = hverdagsOmregning.omregnetAarsloen;
 
       // Gem til visning
-      arbejdsdageIPeriode = hverdageIPeriodeResultat;
+      arbejdsdageIPeriode = hverdagsOmregning.hverdageIPeriodeResultat;
     }
   }
 

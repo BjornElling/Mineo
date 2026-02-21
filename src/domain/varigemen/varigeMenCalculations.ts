@@ -1,6 +1,6 @@
 import type { VarigeMenValues } from '../../schemas/formSchemas';
 import type { YearlyRate } from '../../data/regulationRates';
-import { coerceToISODateString, coerceToDanishDateString, parseISODate } from '../../types/branded';
+import { coerceToDanishDateString, coerceToISODateString, parseISODate, type ISODateString } from '../../types/branded';
 import { parseDanishDate } from '../../utils/dateUtils';
 
 const getRateForYear = (dict: YearlyRate, year: number): number | undefined => {
@@ -70,7 +70,7 @@ const roundMenAmount = (value: number): number => {
 
 export function beregnVarigeMenGodtgoerelseWithRates(
   values: VarigeMenValues,
-  skadestidspunktRaw: unknown,
+  skadestidspunktRaw: ISODateString | undefined,
   rates: YearlyRate
 ): VarigeMenBeregningResult | null {
   // --- Input check ---
@@ -89,7 +89,7 @@ export function beregnVarigeMenGodtgoerelseWithRates(
     return null;
   }
 
-  const skadestidspunktISO = coerceToISODateString(skadestidspunktRaw);
+  const skadestidspunktISO = skadestidspunktRaw;
   if (!skadestidspunktISO) return null;
 
   // --- Rate lookup (beregningsdato) ---
@@ -106,6 +106,7 @@ export function beregnVarigeMenGodtgoerelseWithRates(
     return null;
   }
 
+  // `satsPerMengrad` er lovsats pr. méntrin; grundbeløbet ved 100% méngrad er derfor sats * 100.
   const grundbeloeb = satsPerMengrad * 100;
 
   // --- Alder ved skadestidspunkt ---

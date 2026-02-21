@@ -17,7 +17,7 @@ import { resolveDefaultDirectoryHandle } from '../../utils/fileHelpers';
 import { getGridCoreForTable } from '../tables/gridCoreRegistry';
 import type { SaveFileResult, LoadFileResult } from '../../types/fileOperations';
 import { persistenceSchemas } from '../../config/persistenceRegistry';
-import type { StorageKey } from '../../config/storageManifest';
+import { UI_STORAGE_KEYS, type StorageKey } from '../../config/storageManifest';
 import { sanitizeLegacyPersistedSectionForAarsloenTables } from '../../utils/aarsloenTableLegacySanitization';
 import { MINEO_PWA_FILE_OPEN_EVENT, takeNextPwaFileOpenRequest, type PwaFileOpenRequest } from '../../utils/pwaLaunchQueue';
 import {
@@ -48,11 +48,6 @@ type PendingOverwriteApply = {
   overlay: OverlayData;
   navigateToStamdataAfterApply: boolean;
 };
-
-const UI_LAST_SAVED_FILENAME_KEY = 'mineo_ui_lastSavedFilename';
-const UI_LAST_SAVED_FILENAME_BASIS_KEY = 'mineo_ui_lastSavedFilenameBasis';
-const DEBUG_LAST_LOAD_INFO_KEY = 'mineo_debug_lastLoadInfo';
-const UI_DEVTOOLS_LAST_SEEN_ISSUE_ID_KEY = 'mineo_ui_devtools_lastSeenIssueId';
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -325,16 +320,16 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
 
     // UI/diagnostik-metadata (ikke autoritativt input; må ikke bruges som datakilde)
     if (result.filename) {
-      sessionStorage.setItem(UI_LAST_SAVED_FILENAME_KEY, result.filename);
+      sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilename, result.filename);
     }
     const basis = parseFilenameBasisFromStamdata(result.snapshot.stamdata);
     if (basis) {
-      sessionStorage.setItem(UI_LAST_SAVED_FILENAME_BASIS_KEY, JSON.stringify(basis));
+      sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, JSON.stringify(basis));
     } else {
-      sessionStorage.removeItem(UI_LAST_SAVED_FILENAME_BASIS_KEY);
+      sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
     }
     if (import.meta.env.DEV && result.debugInfo) {
-      sessionStorage.setItem(DEBUG_LAST_LOAD_INFO_KEY, JSON.stringify(result.debugInfo, null, 2));
+      sessionStorage.setItem(UI_STORAGE_KEYS.debugLastLoadInfo, JSON.stringify(result.debugInfo, null, 2));
     }
     if (result.fileHandle) {
       await saveFileHandleToIndexedDB(result.fileHandle);
@@ -636,12 +631,12 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
     try {
       clearAllData();
 
-      sessionStorage.removeItem(UI_LAST_SAVED_FILENAME_KEY);
-      sessionStorage.removeItem(UI_LAST_SAVED_FILENAME_BASIS_KEY);
+      sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilename);
+      sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
 
       await deleteFileHandleFromIndexedDB();
 
-      sessionStorage.setItem('mineo_pendingOverlay', JSON.stringify({
+      sessionStorage.setItem(UI_STORAGE_KEYS.pendingOverlay, JSON.stringify({
         message: 'Alt data slettet',
         type: 'info',
         isUserFeedback: true,
@@ -663,7 +658,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
 
   // Tjek for pending overlay efter reload
   React.useEffect(() => {
-    const pendingOverlay = sessionStorage.getItem('mineo_pendingOverlay');
+    const pendingOverlay = sessionStorage.getItem(UI_STORAGE_KEYS.pendingOverlay);
     if (pendingOverlay) {
       try {
         const overlayData = JSON.parse(pendingOverlay);
@@ -686,10 +681,10 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
           console.error('Ugyldig pending overlay struktur:', overlayData);
         }
 
-        sessionStorage.removeItem('mineo_pendingOverlay');
+        sessionStorage.removeItem(UI_STORAGE_KEYS.pendingOverlay);
       } catch (error) {
         console.error('Kunne ikke parse pending overlay:', error);
-        sessionStorage.removeItem('mineo_pendingOverlay');
+        sessionStorage.removeItem(UI_STORAGE_KEYS.pendingOverlay);
       }
     }
   }, []);
@@ -711,7 +706,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
 
   React.useEffect(() => {
     dismissedDevtoolsIssueIdRef.current = parseNonNegativeInteger(
-      sessionStorage.getItem(UI_DEVTOOLS_LAST_SEEN_ISSUE_ID_KEY),
+      sessionStorage.getItem(UI_STORAGE_KEYS.devtoolsLastSeenIssueId),
     );
 
     const stop = startDevtoolsMonitor();
@@ -761,9 +756,9 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
     }, {} as Record<StorageKey, unknown>);
 
     const uiMeta = {
-      lastSavedFilename: sessionStorage.getItem(UI_LAST_SAVED_FILENAME_KEY),
-      lastSavedFilenameBasis: parseSessionJson(sessionStorage.getItem(UI_LAST_SAVED_FILENAME_BASIS_KEY)),
-      lastLoadDebugInfo: parseSessionJson(sessionStorage.getItem(DEBUG_LAST_LOAD_INFO_KEY)),
+      lastSavedFilename: sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilename),
+      lastSavedFilenameBasis: parseSessionJson(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)),
+      lastLoadDebugInfo: parseSessionJson(sessionStorage.getItem(UI_STORAGE_KEYS.debugLastLoadInfo)),
       route: {
         pathname: location.pathname,
         search: location.search,
@@ -876,7 +871,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
             const lastIssueId = devtoolsSnapshot.lastIssue?.id ?? null;
             dismissedDevtoolsIssueIdRef.current = lastIssueId;
             if (lastIssueId !== null) {
-              sessionStorage.setItem(UI_DEVTOOLS_LAST_SEEN_ISSUE_ID_KEY, String(lastIssueId));
+              sessionStorage.setItem(UI_STORAGE_KEYS.devtoolsLastSeenIssueId, String(lastIssueId));
             }
             suppressDevtoolsNoticeUntilRef.current = Date.now() + 1000;
             setDevtoolsNoticeVisible(false);

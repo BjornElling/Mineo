@@ -7,8 +7,7 @@
 import type { DateInterval } from '../types/calculation';
 import type { AarsloenTableRow } from '../schemas/formSchemas';
 import { parseISODate, toISODateString, type ISODateString } from '../types/branded';
-import { parseDanishDate, parseWeekString } from './shDageBeregning';
-import { addDays, createDate, formatToISO } from './dateUtils';
+import { addDays, createDate, formatToISO, isLeapYear, parseDanishDate, parseWeekString } from './dateUtils';
 import { beregnSHDageForDatoSet } from './shDageBeregning';
 import type { Periodisering } from '../data/ydelsestyper';
 import { countInclusiveUtcDays, diffUtcDaysAbs } from './utcDayMath';
@@ -57,8 +56,7 @@ const parseWeekKey = (weekKey: string): { year: number; week: number } | null =>
 const isoWeeksInYear = (year: number): number => {
   const dec31 = createDate(year, 11, 31);
   const dayOfWeek = dec31.getUTCDay();
-  const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
-  return dayOfWeek === 4 || (isLeapYear && dayOfWeek === 5) ? 53 : 52;
+  return dayOfWeek === 4 || (isLeapYear(year) && dayOfWeek === 5) ? 53 : 52;
 };
 
 /**

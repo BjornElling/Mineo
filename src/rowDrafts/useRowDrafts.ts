@@ -106,12 +106,14 @@ export const useRowDrafts = <
     resetDraftFromCommitted();
   }, [resetDraftFromCommitted, config.resyncToken]);
 
-  const rowErrors: RowErrors<RowId, TField> = {};
-  if (config.validateDraftRow) {
+  const rowErrors = React.useMemo<RowErrors<RowId, TField>>(() => {
+    const next: RowErrors<RowId, TField> = {};
+    if (!config.validateDraftRow) return next;
     for (const row of draftRows) {
-      rowErrors[row.id] = config.validateDraftRow(row);
+      next[row.id] = config.validateDraftRow(row);
     }
-  }
+    return next;
+  }, [draftRows, config.validateDraftRow]);
 
   const onFieldChange = React.useCallback(
     (rowId: RowId, field: TField) => (value: string) => {

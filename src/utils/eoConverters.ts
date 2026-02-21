@@ -19,11 +19,16 @@ export const initialRow: Omit<AarsloenTableRow, 'id'> & { id: string } = {
   col5: undefined,
 };
 
-let rowIdCounter = 0;
-export const generateRowId = (): string => {
-  rowIdCounter += 1;
-  return `row_${Date.now()}_${rowIdCounter}`;
+const randomId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 };
+
+const createPrefixedId = (prefix: string): string => `${prefix}_${randomId()}`;
+
+export const generateRowId = (): string => createPrefixedId('row');
 
 /**
  * Genererer unikt ID til ansættelsesforhold baseret på timestamp
@@ -31,7 +36,7 @@ export const generateRowId = (): string => {
  * @returns Unikt ansættelsesforhold ID
  */
 export const generateAnsaettelsesforholdId = (): string => {
-  return `ansaettelsesforhold_${Date.now()}`;
+  return createPrefixedId('ansaettelsesforhold');
 };
 
 /**
@@ -40,8 +45,7 @@ export const generateAnsaettelsesforholdId = (): string => {
  * @returns Unikt offentlig ydelse ID
  */
 export const generateOffentligYdelseRowId = (): string => {
-  rowIdCounter += 1;
-  return `offentlig_ydelse_${Date.now()}_${rowIdCounter}`;
+  return createPrefixedId('offentlig_ydelse');
 };
 
 /**
@@ -50,8 +54,7 @@ export const generateOffentligYdelseRowId = (): string => {
  * @returns Unikt lønudvikling række-ID
  */
 export const generateLoenudviklingRowId = (): string => {
-  rowIdCounter += 1;
-  return `loenudvikling_${Date.now()}_${rowIdCounter}`;
+  return createPrefixedId('loenudvikling');
 };
 
 /**

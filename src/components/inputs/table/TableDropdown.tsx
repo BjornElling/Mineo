@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Divider, MenuItem, Select, Tooltip, type SelectChangeEvent } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { assignRef } from './assignRef';
-import { useGridCore } from '../../tables/gridCoreContext';
+import { useGridCoreApi } from '../../tables/gridCoreContext';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
@@ -100,7 +100,7 @@ const TableDropdown = React.memo(
       }
     }, [getTriggerAndListbox]);
 
-    const grid = useGridCore();
+    const grid = useGridCoreApi();
     const menuHighlightColor = 'rgba(25, 118, 210, 0.08)';
     const isLooseTable = grid.tableKind === 'loose';
     const inputBorderRadius = isLooseTable ? '10px' : '0px';
@@ -357,4 +357,3 @@ const TableDropdown = React.memo(
 TableDropdown.displayName = 'TableDropdown';
 
 export default TableDropdown;
-

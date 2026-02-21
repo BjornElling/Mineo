@@ -5,6 +5,10 @@ import { calculateProcessInterest } from '../../utils/interestCalculator';
 import { calculateInterestDate, validateInterestCalculation, type InterestDateInput } from '../../utils/interestDomain';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 
+// Legacy per-row engine til tabelkontekst.
+// Bruger `calculateProcessInterest` (globale satser + intern afrunding) for bagudkompatibel adfærd.
+// Den aggregerede, rates-injicerede engine findes i `renteberegningEngine.ts`.
+
 export type InterestCalculationIssue = Readonly<{
   message: string;
   context: string;

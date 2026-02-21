@@ -8,6 +8,7 @@ import { isRentekravRowEmpty } from './rowEmpty';
 import type { RentekravDraftRow } from './tableDraftRows';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToDraftString, parseAmountInput } from '../../utils/expressionAmount';
+import { parseOptionalIntegerFromString } from '../tableModelUtils';
 
 export const createRentekravRowId = (): RowId => createRowId('rentekrav_row');
 
@@ -51,13 +52,6 @@ const parseOptionalAmountFromString = (value: string, prev?: AmountValue): Amoun
   });
   if (!parsed.ok) return prev;
   return parsed.value;
-};
-
-export const parseOptionalIntegerFromString = (value: string): number | undefined => {
-  const trimmed = value.trim();
-  if (trimmed === '') return undefined;
-  const parsed = Number.parseInt(trimmed, 10);
-  return Number.isFinite(parsed) ? parsed : undefined;
 };
 
 export const rentekravDraftToCommittedRow = (draft: RentekravDraftRow, prev?: RentekravRow): RentekravRow => {

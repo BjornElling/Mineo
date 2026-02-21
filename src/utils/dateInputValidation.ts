@@ -5,19 +5,9 @@
  */
 
 import { danishToISO, isISODateString } from '../types/branded';
-import { getTodayLocalISO } from './dateUtils';
+import { getTodayLocalISO, isLeapYear } from './dateUtils';
 import type { ISODateString } from '../types/branded';
 import { validateISODateRange } from './isoDateHelpers';
-
-/**
- * Tjekker om et år er skudår
- *
- * @param {number} year - Året der skal tjekkes
- * @returns {boolean} True hvis skudår
- */
-export const isLeapYear = (year: number): boolean => {
-  return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
-};
 
 /**
  * Validerer om en dato er gyldig (eksisterer i kalenderen)

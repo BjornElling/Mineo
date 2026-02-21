@@ -2,6 +2,7 @@
  * Formel-værdi struktur
  */
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
+import { UI_STORAGE_KEYS } from '../config/storageManifest';
 
 interface FormulaValue {
   formula: string;
@@ -201,14 +202,14 @@ export const collectAllData = (): Record<string, unknown> => {
 
   // Liste over metadata-keys der skal ignoreres
   const metadataKeys = [
-    'mineo_pendingOverlay',
-    'mineo_ui_lastSavedFilename',
-    'mineo_ui_lastSavedFilenameBasis',
+    UI_STORAGE_KEYS.pendingOverlay,
+    UI_STORAGE_KEYS.lastSavedFilename,
+    UI_STORAGE_KEYS.lastSavedFilenameBasis,
     'mineo_lastSavedFilePath',
     'mineo_lastSavedStamdata',
     'mineo_debug_lastLoad',
-    'mineo_debug_lastLoadInfo',
-    'mineo_sideMenuExpanded',
+    UI_STORAGE_KEYS.debugLastLoadInfo,
+    UI_STORAGE_KEYS.sideMenuExpanded,
   ];
 
   console.group('[collectAllData] Scanning sessionStorage');
@@ -272,9 +273,10 @@ export const hasRealData = (data: unknown): boolean => {
   if (!data || typeof data !== 'object') {
     return false;
   }
+  const dataRecord = data as Record<string, unknown>;
 
   // Filtrer metadata-nøgler fra
-  const contentKeys = Object.keys(data).filter(k => !k.startsWith('_'));
+  const contentKeys = Object.keys(dataRecord).filter(k => !k.startsWith('_'));
 
   if (contentKeys.length === 0) {
     return false;
@@ -282,7 +284,7 @@ export const hasRealData = (data: unknown): boolean => {
 
   // Tjek om mindst én sektion har meningsfuldt indhold
   for (const key of contentKeys) {
-    const section = data[key];
+    const section = dataRecord[key];
 
     if (typeof section === 'object' && section !== null) {
       for (const value of Object.values(section as Record<string, unknown>)) {
@@ -302,8 +304,8 @@ export const hasRealData = (data: unknown): boolean => {
  */
 export const clearAllData = (): void => {
   const keysToRemove: string[] = [];
-  const keysToPreserve = new Set([
-    'mineo_sideMenuExpanded', // Behold brugerens menu-tilstand ved hent/slet
+  const keysToPreserve: ReadonlySet<string> = new Set([
+    UI_STORAGE_KEYS.sideMenuExpanded, // Behold brugerens menu-tilstand ved hent/slet
   ]);
 
   // Samle alle mineo_* keys

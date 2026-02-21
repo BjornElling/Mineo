@@ -417,7 +417,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       [onFocus, onFocusBase]
     );
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
         if (!activation.isEditorOpen) {
           if (e.key === 'Backspace' || e.key === 'Delete') {
             e.preventDefault();
@@ -454,7 +454,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
           filterPercentKeyDown(e, { allowNegative });
         }
         onKeyDown?.(e);
-    };
+    }, [activation, allowNegative, handleDraftChange, onCommit, onKeyDown, onKeyDownBase, setDraft, value]);
 
     const showPercentAdornment = true;
     const percentAdornmentColor = draft.trim() === '' ? 'rgba(0, 0, 0, 0.4)' : 'inherit';

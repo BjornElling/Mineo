@@ -32,11 +32,26 @@ const FloatingActionButton = React.memo(({
   sx,
 }: FloatingActionButtonProps) => {
   const [isShaking, setIsShaking] = React.useState(false);
+  const shakeTimeoutRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (shakeTimeoutRef.current !== null) {
+        window.clearTimeout(shakeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleClick = React.useCallback(() => {
     if (disabled && shake) {
       setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 500);
+      if (shakeTimeoutRef.current !== null) {
+        window.clearTimeout(shakeTimeoutRef.current);
+      }
+      shakeTimeoutRef.current = window.setTimeout(() => {
+        setIsShaking(false);
+        shakeTimeoutRef.current = null;
+      }, 500);
     } else if (!disabled) {
       onClick();
     }

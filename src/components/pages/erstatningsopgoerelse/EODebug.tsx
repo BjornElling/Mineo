@@ -4,8 +4,8 @@ import { Check, ErrorOutline, WarningAmber } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
 
 import type { DebugRowModel, DebugStatus } from '../../../domain/debug/eoDebugTypes';
-import type { SectionId } from '../../../domain/erstatningsopgoerelse/eoDebugNavigationMap';
-import type { EODebugExecutionContext } from '../../../domain/erstatningsopgoerelse/eoDebugExecutionContext';
+import type { SectionId } from '../../../domain/debug/eoDebugNavigationMap';
+import type { EODebugExecutionContext } from '../../../domain/debug/eoDebugExecutionContext';
 import { EO_DEBUG_BUILDERS } from '../../../domain/erstatningsopgoerelse/eoDebugBuilderRegistry';
 import { aarsloenMax } from '../../../data/regulationRates';
 import {
@@ -71,6 +71,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import {
   buildFormulaText,
+  computeFormulaValue,
   formatOverenskomstAmount,
   formatOverenskomstPercent,
   formatPercentCellFromRaw,
@@ -263,18 +264,6 @@ const percentFromDecimal = (value: number | null | undefined): number => {
 };
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
-
-const computeFormulaValue = (components: FormulaComponents): number => {
-  const baseValue = Number.isFinite(components.baseValue) ? components.baseValue : 0;
-  const feriePct = Number.isFinite(components.feriePct) ? components.feriePct : 0;
-  const fritvalgPct = Number.isFinite(components.fritvalgPct) ? components.fritvalgPct : 0;
-  const shSoPct = Number.isFinite(components.shSoPct) ? components.shSoPct : 0;
-  const pensionPct = Number.isFinite(components.pensionPct) ? components.pensionPct : 0;
-  const storeBededagPct = Number.isFinite(components.storeBededagPct) ? components.storeBededagPct : 0;
-  const tillæg = feriePct + fritvalgPct + shSoPct + storeBededagPct;
-  const factor = (1 + tillæg / 100) * (1 + pensionPct / 100);
-  return baseValue * factor;
-};
 
 const rangesOverlap = (
   aStart: ISODateString,
@@ -2186,8 +2175,6 @@ const EODebug = () => {
       ? calculateTafAntalMaaneder(
         periodeFra,
         periodeTil,
-        ferieperioder ?? [],
-        loseFeriedage,
         oevrigeFravaersdageValue
       )
       : calculateTafArbejdsdageBreakdown(

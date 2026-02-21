@@ -4,6 +4,7 @@ import StyledTextFieldBase from './StyledTextFieldBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { interpretYear } from '../../utils/dateInputValidation';
+import { isLeapYear } from '../../utils/dateUtils';
 import { filterWeekKeyDown } from './inputKeyFilters';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from './fieldEvents';
@@ -50,8 +51,7 @@ const MAX_WEEK_DRAFT_LENGTH = MAX_CANONICAL_WEEK_LENGTH + 2;
 const yearHas53Weeks = (year: number): boolean => {
   const dec31 = new Date(Date.UTC(year, 11, 31));
   const dayOfWeek = dec31.getUTCDay();
-  const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
-  return dayOfWeek === 4 || (isLeapYear && dayOfWeek === 5);
+  return dayOfWeek === 4 || (isLeapYear(year) && dayOfWeek === 5);
 };
 
 /**

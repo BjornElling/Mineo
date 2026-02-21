@@ -55,8 +55,6 @@ export const calculateAarsloenRowDerived = (row: AarsloenTableRow, satser: Aarsl
   return { ferieberet, fpFvShSo, pension, samlet };
 };
 
-export const isEffectivelyEmptyCell = isAarsloenTableCellEffectivelyEmpty;
-
 const EDITABLE_KEYS: Array<keyof AarsloenTableRow> = [
   'col0_maaned',
   'col1_maaned',

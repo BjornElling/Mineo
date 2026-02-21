@@ -29,6 +29,7 @@ import {
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { buildTafRanges, buildIncomeCalculationContext, buildIncomeForRanges } from './indtaegtPerioder';
 import { TAF_BEREGNES_SOM } from './tafBeregningsenhed';
+import { roundByMethod } from '../../utils/rounding';
 
 /**
  * Beregner antal måneder i et inklusivt range uden SH-/feriedagsjusteringer.
@@ -43,7 +44,7 @@ const beregnMaanederUdenFridage = (fra: ISODateString, til: ISODateString): numb
     new Set<ISODateString>(),
     new Set<ISODateString>()
   );
-  return Math.round(stats.maaneder * 10_000) / 10_000;
+  return roundByMethod(stats.maaneder, 4, 'halfAwayFromZero');
 };
 
 // ─── Types ──────────────────────────────────────────────────────────────

@@ -11,7 +11,7 @@
 import type { RateEntry } from '../data/interestRates';
 import { referenceRates, surchargeRates } from '../data/interestRates';
 import type { DanishDateString } from '../types/branded';
-import { createDate, parseDanishDate } from './dateUtils';
+import { createDate, getDaysInYear, parseDanishDate } from './dateUtils';
 import { countInclusiveUtcDays } from './utcDayMath';
 import { roundByMethod } from './rounding';
 
@@ -25,16 +25,6 @@ const normalizeRates = (rates: ReadonlyArray<RateEntry>): DatedRate[] => {
     }))
     .filter((entry): entry is DatedRate => entry.date !== null && Number.isFinite(entry.ratePct))
     .sort((a, b) => a.date.getTime() - b.date.getTime());
-};
-
-/**
- * Beregner antal dage i et givet år (365 eller 366).
- *
- * @param {number} year - r at kontrollere
- * @returns {number} 366 for skudår, 365 for normale år
- */
-const getDaysInYear = (year: number): number => {
-  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 366 : 365;
 };
 
 /**
@@ -208,21 +198,4 @@ export const calculateProcessInterest = (
   const raw = calculateProcessInterestWithRates(amount, interestStartDate, calculationDate, referenceRates, surchargeRates);
   if (raw === null) return null;
   return roundByMethod(raw, 2, 'halfAwayFromZero');
-};
-
-/**
- * Formaterer beløb til dansk format med tusindtalsseparator.
- *
- * @param {number} amount - Beløb at formatere
- * @returns {string} Formateret beløb, fx "1.234,56"
- */
-export const formatAmount = (amount: number | null | undefined): string => {
-  if (amount === null || amount === undefined || Number.isNaN(amount)) {
-    return '0,00';
-  }
-
-  return amount.toLocaleString('da-DK', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 };

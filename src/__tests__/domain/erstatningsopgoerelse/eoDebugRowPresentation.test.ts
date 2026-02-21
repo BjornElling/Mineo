@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveDebugRowPresentation } from '../../../domain/erstatningsopgoerelse/eoDebugRowPresentation';
+import { resolveDebugRowPresentation } from '../../../domain/debug/eoDebugRowPresentation';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { buildEODebugIndkomstRows } from '../../../domain/erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
 

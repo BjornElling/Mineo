@@ -119,21 +119,13 @@ export const useOmregningToggle = ({
     ]
   );
 
-  // Automatisk deaktivering hvis tabel-fejl opstår mens toggle er tændt
+  // Automatisk deaktivering hvis tabellen har fejl ELLER perioden er ugyldig.
   React.useEffect(() => {
-    if (tabelHarFejl && state.enabled) {
+    if (state.enabled && (tabelHarFejl || !hasValidPeriod)) {
       dispatch({ type: 'DISABLE' });
       onEnabledChange(false);
     }
-  }, [tabelHarFejl, state.enabled, onEnabledChange]);
-
-  // Automatisk deaktivering hvis perioden bliver ugyldig
-  React.useEffect(() => {
-    if (!hasValidPeriod && state.enabled) {
-      dispatch({ type: 'DISABLE' });
-      onEnabledChange(false);
-    }
-  }, [hasValidPeriod, state.enabled, onEnabledChange]);
+  }, [hasValidPeriod, onEnabledChange, state.enabled, tabelHarFejl]);
 
   return {
     enabled: state.enabled,

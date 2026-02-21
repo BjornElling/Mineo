@@ -29,6 +29,7 @@ export type DateCalculationError =
  */
 export type ValidationError =
   | 'MISSING_KRAVET_DATO'    // Manglende kravet-dato
+  | 'MISSING_RENTEDATO'      // Manglende rentedato
   | 'MISSING_BEREGNING_DATO' // Manglende beregningsdato
   | 'INVALID_AMOUNT'         // Ugyldigt beløb (≤ 0 eller ikke-finit)
   | 'INVALID_DATE_ORDER';    // Kravet-dato efter beregningsdato
@@ -48,21 +49,21 @@ export type TimeUnit = 'dage' | 'uger' | 'maaneder';
  * VIGTIGT: enhed kan være null hvis tillægstid er irrelevant (≤0)
  * Domain-laget håndterer denne regel - UI skal sende rå data
  */
-export interface InterestDateInput {
+export type InterestDateInput = {
   readonly kravetDato: DanishDateString;
   readonly tillaegstid: number;
   readonly enhed: TimeUnit;
-}
+};
 
 /**
  * Valideret input til renteberegning
  */
-export interface ValidatedInterestInput {
+export type ValidatedInterestInput = {
   readonly kravetDato: DanishDateString;
   readonly beloeb: number;
   readonly rentedato: DanishDateString;
   readonly beregningsdato: DanishDateString;
-}
+};
 
 // ============================================================================
 // DATO-BEREGNING
@@ -176,7 +177,7 @@ export function validateInterestCalculation(
 
   // Validér rentedato
   if (!rentedato || !rentedato.trim()) {
-    return { success: false, error: 'MISSING_KRAVET_DATO' }; // Rentedato er afledt af kravet-dato
+    return { success: false, error: 'MISSING_RENTEDATO' };
   }
 
   // Validér beregningsdato
@@ -208,32 +209,3 @@ export function validateInterestCalculation(
   };
 }
 
-// ============================================================================
-// FEATURE DETECTION
-// ============================================================================
-
-/**
- * Tjekker om crypto.randomUUID er tilgængelig
- *
- * @throws Error hvis crypto.randomUUID ikke er supporteret
- */
-export function ensureCryptoUUID(): void {
-  if (typeof crypto === 'undefined' || typeof crypto.randomUUID !== 'function') {
-    throw new Error(
-      'CRITICAL: crypto.randomUUID er ikke tilgængelig. ' +
-      'Dette kræver moderne browser (Chrome 92+, Firefox 95+, Safari 15.4+) ' +
-      'eller en polyfill.'
-    );
-  }
-}
-
-/**
- * Genererer UUID med feature-detection
- *
- * @returns UUID string
- * @throws Error hvis crypto.randomUUID ikke er supporteret
- */
-export function generateUUID(): string {
-  ensureCryptoUUID();
-  return crypto.randomUUID();
-}

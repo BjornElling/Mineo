@@ -2,13 +2,17 @@
 // Standard entrypunkt for Vite + React
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import '@fontsource/montserrat/400.css';
+import '@fontsource/montserrat/500.css';
+import '@fontsource/montserrat/600.css';
+import '@fontsource/montserrat/700.css';
 import './index.css';
 import { setupPwaLaunchQueueConsumer } from './utils/pwaLaunchQueue';
 import { setupPwaInstallPromptCapture } from './utils/pwaInstallPrompt';
 import { VERSION } from './config/version';
 import AuthGate from './components/AuthGate';
 
-const UNSUPPORTED_MAX_WIDTH_PX = 1024;
+const UNSUPPORTED_MAX_SCREEN_WIDTH_PX = 1366;
 const SW_UPDATE_CHECK_TIMEOUT_MS = 5000;
 const SW_PERIODIC_UPDATE_CHECK_MS = 60 * 60 * 1000;
 const swUpdateLifecycleWired = new WeakSet<ServiceWorkerRegistration>();
@@ -24,13 +28,21 @@ const isTouchLikeDevice = (): boolean => {
   return touchPoints > 0 && (coarsePointer || noHover);
 };
 
+const getPhysicalScreenWidth = (): number | null => {
+  if (typeof window === 'undefined') return null;
+  const screenWidth = window.screen?.width;
+  if (typeof screenWidth === 'number' && Number.isFinite(screenWidth) && screenWidth > 0) {
+    return screenWidth;
+  }
+  return null;
+};
+
 const isUnsupportedDevice = (): boolean => {
   if (typeof window === 'undefined') return false;
-  if (isTouchLikeDevice()) return true;
-  if (typeof window.matchMedia !== 'function') {
-    return window.innerWidth <= UNSUPPORTED_MAX_WIDTH_PX;
-  }
-  return false;
+  if (!isTouchLikeDevice()) return false;
+  const physicalScreenWidth = getPhysicalScreenWidth();
+  if (physicalScreenWidth === null) return true;
+  return physicalScreenWidth <= UNSUPPORTED_MAX_SCREEN_WIDTH_PX;
 };
 
 const rootElement = document.getElementById('root');

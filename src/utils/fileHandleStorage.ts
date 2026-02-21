@@ -74,7 +74,7 @@ export const requestPersistentStorage = async () => {
  * @param {FileSystemFileHandle} fileHandle - File handle der skal gemmes
  * @returns {Promise<boolean>} True hvis gemt succesfuldt
  */
-export const saveFileHandleToIndexedDB = async (fileHandle) => {
+export const saveFileHandleToIndexedDB = async (fileHandle: FileSystemFileHandle): Promise<boolean> => {
   try {
     logInfo('Gemmer file handle til IndexedDB...');
 
@@ -203,9 +203,17 @@ export const deleteFileHandleFromIndexedDB = async () => {
  * @param {FileSystemFileHandle} handle - File handle der skal valideres
  * @returns {Promise<boolean>} True hvis handle er gyldigt og filen eksisterer
  */
-export const verifyFileHandle = async (handle) => {
+export const verifyFileHandle = async (handle: FileSystemFileHandle | null | undefined): Promise<boolean> => {
   try {
-    if (!handle || !handle.queryPermission) {
+    if (!handle) {
+      return false;
+    }
+    type PermissionCapableHandle = FileSystemFileHandle & {
+      queryPermission: (descriptor?: { mode?: 'read' | 'readwrite' }) => Promise<PermissionState>;
+      requestPermission: (descriptor?: { mode?: 'read' | 'readwrite' }) => Promise<PermissionState>;
+    };
+    const permissionHandle = handle as Partial<PermissionCapableHandle>;
+    if (typeof permissionHandle.queryPermission !== 'function' || typeof permissionHandle.requestPermission !== 'function') {
       return false;
     }
 
@@ -234,7 +242,7 @@ export const verifyFileHandle = async (handle) => {
 
     // Tjek om vi stadig har read/write permission
     try {
-      const permission = await handle.queryPermission({ mode: 'readwrite' });
+      const permission = await permissionHandle.queryPermission({ mode: 'readwrite' });
 
       if (permission === 'granted') {
         logInfo('✓ File handle har readwrite permission');
@@ -243,7 +251,7 @@ export const verifyFileHandle = async (handle) => {
 
       // Forsøg at anmode om permission
       logInfo('File handle mangler readwrite permission - anmoder om adgang...');
-      const newPermission = await handle.requestPermission({ mode: 'readwrite' });
+      const newPermission = await permissionHandle.requestPermission({ mode: 'readwrite' });
 
       if (newPermission === 'granted') {
         logInfo('✓ File handle readwrite permission granted');

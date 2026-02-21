@@ -41,7 +41,7 @@ const Stamdata = React.memo(() => {
 
   const datoLabel = React.useMemo(
     () => selectStamdataDefaultDatoLabel(values),
-    [values.skadestype]
+    [values]
   );
 
   const dateRange = React.useMemo(() => {

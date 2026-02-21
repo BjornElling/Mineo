@@ -27,7 +27,7 @@ import {
 import type { SaveFileResult } from '../types/fileOperations';
 import { eoFileDataSchema, type EoFileContainer, type EoFileData } from '../schemas/eoFileSchema';
 import { persistenceSchemaFingerprint, persistenceSchemas } from '../config/persistenceRegistry';
-import type { StorageKey } from '../config/storageManifest';
+import { UI_STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
 
 /**
  * Indsamler data direkte fra sessionStorage og simulerer gem-transformationer.
@@ -108,6 +108,23 @@ const buildAllDataRawFromSnapshot = (snapshot: SaveSnapshot): Record<string, unk
  */
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return !!value && typeof value === 'object' && !Array.isArray(value);
+};
+
+const buildFilenameBasis = (stamdata: unknown): { skadelidte?: string; skadestype?: string; skadesdato?: string } => {
+  const stamdataRecord: Record<string, unknown> =
+    isRecord(stamdata)
+      ? stamdata
+      : {};
+  return {
+    skadelidte: typeof stamdataRecord.skadelidte === 'string' ? stamdataRecord.skadelidte : undefined,
+    skadestype: typeof stamdataRecord.skadestype === 'string' ? stamdataRecord.skadestype : undefined,
+    skadesdato: typeof stamdataRecord.skadesdato === 'string' ? stamdataRecord.skadesdato : undefined,
+  };
+};
+
+const saveFilenameMetadata = (filename: string, stamdata: unknown): void => {
+  sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilename, filename);
+  sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, JSON.stringify(buildFilenameBasis(stamdata)));
 };
 
 const stripUndefinedDeep = (value: unknown): unknown => {
@@ -203,7 +220,7 @@ const compareData = (expected: unknown, actual: unknown, path = 'root', depth = 
 
   // Primitive værdier
   if (expected !== actual) {
-    differences.push(`${path}: Værdi afviger (forventet: "${expected}", faktisk: "${actual}")`);
+    differences.push(`${path}: Værdi afviger`);
   }
 
   return differences;
@@ -501,7 +518,7 @@ export const saveToFile = async (
       // Forsøg at hente tidligere gemt file handle fra IndexedDB
       const loadedHandle: unknown = await loadFileHandleFromIndexedDB();
       let fileHandle: FileSystemFileHandle | null = isFileSystemFileHandle(loadedHandle) ? loadedHandle : null;
-      const savedFilePath = sessionStorage.getItem('mineo_ui_lastSavedFilename');
+      const savedFilePath = sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilename);
       let shouldUseExistingHandle = false;
 
       if (fileHandle && savedFilePath) {
@@ -509,7 +526,7 @@ export const saveToFile = async (
         logInfo('Fundet gemt file handle - validerer...');
 
         // Hent gemte stamdata-værdier fra sidste gem
-        const savedStamdataJson = sessionStorage.getItem('mineo_ui_lastSavedFilenameBasis');
+        const savedStamdataJson = sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
         const savedStamdata = savedStamdataJson ? JSON.parse(savedStamdataJson) : null;
         const currentStamdata = fileData.data.stamdata || {};
 
@@ -623,29 +640,27 @@ export const saveToFile = async (
       }
 
       // Gem filnavn og stamdata til sessionStorage (til validering ved næste gem)
-      sessionStorage.setItem('mineo_ui_lastSavedFilename', filename);
-      const currentStamdata = fileData.data.stamdata;
-      const stamdataRecord: Record<string, unknown> =
-        currentStamdata && typeof currentStamdata === 'object' && !Array.isArray(currentStamdata)
-          ? (currentStamdata as Record<string, unknown>)
-          : {};
-      const filenameBasis = {
-        skadelidte: typeof stamdataRecord.skadelidte === 'string' ? stamdataRecord.skadelidte : undefined,
-        skadestype: typeof stamdataRecord.skadestype === 'string' ? stamdataRecord.skadestype : undefined,
-        skadesdato: typeof stamdataRecord.skadesdato === 'string' ? stamdataRecord.skadesdato : undefined,
-      };
-      sessionStorage.setItem('mineo_ui_lastSavedFilenameBasis', JSON.stringify(filenameBasis));
+      saveFilenameMetadata(filename, fileData.data.stamdata);
 
     } else {
       // Fallback til klassisk download (Firefox, osv.)
       logWarning('File System Access API ikke tilgængelig - bruger fallback download');
 
       // Generer filnavn baseret på stamdata eller brug gemt navn
-      const lastSavedPath = sessionStorage.getItem('mineo_ui_lastSavedFilename');
+      const lastSavedPath = sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilename);
       const currentFilename = generateFilename(fileData.data);
+      const savedStamdataJson = sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
+      const savedStamdata = savedStamdataJson ? JSON.parse(savedStamdataJson) : null;
+      const currentStamdata = fileData.data.stamdata || {};
+      const currentBasis = buildFilenameBasis(currentStamdata);
+      const stamdataChanged = savedStamdata && (
+        savedStamdata.skadelidte !== currentBasis.skadelidte ||
+        savedStamdata.skadestype !== currentBasis.skadestype ||
+        savedStamdata.skadesdato !== currentBasis.skadesdato
+      );
 
       // Brug sidste gemte filnavn hvis stamdata er uændret, ellers brug nyt baseret på stamdata
-      if (lastSavedPath && lastSavedPath.startsWith(currentFilename.split('_')[0])) {
+      if (lastSavedPath && !stamdataChanged) {
         filename = lastSavedPath;
         logInfo(`Genbruger filnavn: ${sanitizeFilenameForLog(filename)}`);
       } else {
@@ -700,18 +715,7 @@ export const saveToFile = async (
         // Vi fortsætter - filen er teknisk OK, bare med advarsler
       }
 
-      sessionStorage.setItem('mineo_ui_lastSavedFilename', filename);
-      const currentStamdata2 = fileData.data.stamdata;
-      const stamdataRecord2: Record<string, unknown> =
-        currentStamdata2 && typeof currentStamdata2 === 'object' && !Array.isArray(currentStamdata2)
-          ? (currentStamdata2 as Record<string, unknown>)
-          : {};
-      const filenameBasis2 = {
-        skadelidte: typeof stamdataRecord2.skadelidte === 'string' ? stamdataRecord2.skadelidte : undefined,
-        skadestype: typeof stamdataRecord2.skadestype === 'string' ? stamdataRecord2.skadestype : undefined,
-        skadesdato: typeof stamdataRecord2.skadesdato === 'string' ? stamdataRecord2.skadesdato : undefined,
-      };
-      sessionStorage.setItem('mineo_ui_lastSavedFilenameBasis', JSON.stringify(filenameBasis2));
+      saveFilenameMetadata(filename, fileData.data.stamdata);
     }
 
     logInfo('✓ Filsti og stamdata gemt til sessionStorage');
@@ -774,8 +778,8 @@ export const saveToFile = async (
  * Nulstiller gemt filsti (bruges hvis bruger vil gemme som ny fil).
  */
 export const resetSavedFilePath = () => {
-  sessionStorage.removeItem('mineo_ui_lastSavedFilename');
-  sessionStorage.removeItem('mineo_ui_lastSavedFilenameBasis');
+  sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilename);
+  sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
   // Backward cleanup (ældre keys)
   sessionStorage.removeItem('mineo_lastSavedFilePath');
   sessionStorage.removeItem('mineo_lastSavedStamdata');

@@ -1,6 +1,6 @@
 import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
-import type { EODebugExecutionContext } from '../../../domain/erstatningsopgoerelse/eoDebugExecutionContext';
-import { collectAllDebugRows } from '../../../domain/erstatningsopgoerelse/eoDebugRowAggregator';
+import type { EODebugExecutionContext } from '../../../domain/debug/eoDebugExecutionContext';
+import { collectAllDebugRows } from '../../../domain/debug/eoDebugRowAggregator';
 import * as Registry from '../../../domain/erstatningsopgoerelse/eoDebugBuilderRegistry';
 import type { FieldErrorBySource } from '../../../types/fieldErrors';
 import type { PersistedSectionMap } from '../../../config/persistenceRegistry';

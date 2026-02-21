@@ -14,13 +14,14 @@ import {
   selectSatserEffectiveAargang,
 } from '../../stores/formPersistenceStore';
 import ContentBox from '../layout/ContentBox';
+import { formatAsAmount, formatPercent } from '../../utils/formatUtils';
 
 /**
  * Formaterer beløb til dansk format
  */
 const formatKroner = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return '';
-  return `${value.toLocaleString('da-DK')} kr.`;
+  return `${formatAsAmount(value, 0)} kr.`;
 };
 
 /**
@@ -28,7 +29,7 @@ const formatKroner = (value: number | null | undefined): string => {
  */
 const formatKronerPerEnhed = (value: number | null | undefined, enhed: string): string => {
   if (value === null || value === undefined) return '';
-  return `${value.toLocaleString('da-DK')} kr./${enhed}`;
+  return `${formatAsAmount(value, 0)} kr./${enhed}`;
 };
 
 /**
@@ -36,7 +37,7 @@ const formatKronerPerEnhed = (value: number | null | undefined, enhed: string): 
  */
 const formatProcent = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return '';
-  return `${value.toString().replace('.', ',')} %`;
+  return formatPercent(value);
 };
 
 /**
@@ -89,9 +90,6 @@ const Satser = React.memo(() => {
   const { getPersistedData } = useFormPersistence();
   const { settings } = useAppSettings();
 
-  const [satser, setSatser] = React.useState(() => getSatserForYear(MAX_SATSER_YEAR));
-  const [gyldigtAar, setGyldigtAar] = React.useState(MAX_SATSER_YEAR);
-
   /**
    * Håndterer commit af årgangs-feltet (committed model value)
    */
@@ -117,13 +115,8 @@ const Satser = React.memo(() => {
     [MAX_SATSER_YEAR, MIN_SATSER_YEAR, values]
   );
 
-  React.useEffect(() => {
-    if (effectiveYear !== undefined) {
-      const data = getSatserForYear(effectiveYear);
-      setSatser(data);
-      setGyldigtAar(effectiveYear);
-    }
-  }, [effectiveYear]);
+  const gyldigtAar = effectiveYear ?? MAX_SATSER_YEAR;
+  const satser = React.useMemo(() => getSatserForYear(gyldigtAar), [gyldigtAar]);
 
   // Håndter download af PDF
   const handleDownloadPdf = React.useCallback(async () => {

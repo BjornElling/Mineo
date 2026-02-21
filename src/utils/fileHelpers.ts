@@ -23,7 +23,7 @@ const RESERVED_NAMES = new Set([
  * @param {string} fallback - Fallback-navn hvis input er ugyldigt
  * @returns {string} Renset filnavn
  */
-export const sanitizeFilename = (name, fallback = FALLBACK_FILENAME) => {
+export const sanitizeFilename = (name: string | null | undefined, fallback = FALLBACK_FILENAME): string => {
   if (!name || typeof name !== 'string') {
     return fallback;
   }
@@ -65,7 +65,16 @@ export const sanitizeFilename = (name, fallback = FALLBACK_FILENAME) => {
  * @param {Object} data - Sagsdata med stamdata
  * @returns {string} Genereret filnavn (uden extension)
  */
-export const generateFilename = (data) => {
+type FilenameSource = Readonly<{
+  stamdata?: Readonly<{
+    skadelidte?: string;
+    skadestype?: string;
+    skadesdato?: string;
+    journalnr?: string;
+  }>;
+}>;
+
+export const generateFilename = (data: FilenameSource | null | undefined): string => {
   try {
     const stamdata = data?.stamdata || {};
 
@@ -112,7 +121,7 @@ export const generateFilename = (data) => {
  * @param {string} filename - Filnavn (inkl. extension)
  * @param {string} mimeType - MIME type for filen
  */
-export const downloadFile = (content, filename, mimeType = 'application/octet-stream') => {
+export const downloadFile = (content: string, filename: string, mimeType = 'application/octet-stream'): void => {
   try {
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
@@ -143,7 +152,7 @@ export const downloadFile = (content, filename, mimeType = 'application/octet-st
  * @param {File} file - Fil-objekt fra input
  * @returns {Promise<string>} Fil-indhold som tekst
  */
-export const readFile = (file) => {
+export const readFile = (file: File | null | undefined): Promise<string> => {
   return new Promise<string>((resolve, reject) => {
     if (!file) {
       reject(new Error('Ingen fil valgt'));
@@ -175,7 +184,7 @@ export const readFile = (file) => {
  * @param {string} accept - Accept-attribut (fx ".eo")
  * @returns {Promise<File>} Valgt fil eller null hvis annulleret
  */
-export const selectFile = (accept = '.eo') => {
+export const selectFile = (accept = '.eo'): Promise<File | null> => {
   return new Promise<File | null>((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';

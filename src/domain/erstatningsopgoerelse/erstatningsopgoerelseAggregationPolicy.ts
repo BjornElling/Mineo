@@ -3,7 +3,7 @@ import { z } from 'zod';
 const roundingMethodSchema = z.enum(['halfAwayFromZero', 'ceil', 'floor', 'none']);
 const roundingWhenSchema = z.enum(['perLine', 'onlyTotal', 'perLineThenTotal', 'none']);
 const valueSourceStrategySchema = z.enum(['computedOnly']);
-const signSchema = z.enum(['positive', 'negative', 'fromSource']);
+const signSchema = z.enum(['positive', 'negative']);
 
 const lineRoundingSchema = z.object({
   method: roundingMethodSchema,

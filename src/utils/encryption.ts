@@ -28,6 +28,10 @@ export type EncryptedFileStructure = z.infer<typeof encryptedFileSchema>;
 
 let cachedKey: CryptoKey | null = null;
 
+export const resetKeyCache = (): void => {
+  cachedKey = null;
+};
+
 const getSubtle = (): SubtleCrypto => {
   const cryptoObj = globalThis.crypto;
   if (!cryptoObj || !cryptoObj.subtle) {

@@ -11,6 +11,44 @@ import { saveDefaultDirectoryHandle, deleteDefaultDirectoryHandle, getDirectoryD
 import { logInfo, logWarning } from '../../utils/logger';
 import type { BrevhovedIndstillinger } from '../../settings/appSettingsSchema';
 
+type BrevhovedOption = Readonly<{
+  key: keyof BrevhovedIndstillinger;
+  label: string;
+}>;
+
+const BrevhovedCheckboxRow = React.memo((props: {
+  items: readonly BrevhovedOption[];
+  checked: BrevhovedIndstillinger;
+  onToggle: (key: keyof BrevhovedIndstillinger, checked: boolean) => void;
+}) => {
+  const { items, checked, onToggle } = props;
+  return (
+    <Box sx={{ display: 'flex', gap: 0.5 }}>
+      {items.map(({ key, label }) => (
+        <FormControlLabel
+          key={key}
+          control={(
+            <Checkbox
+              checked={checked[key]}
+              onChange={(e) => onToggle(key, e.target.checked)}
+              size="small"
+            />
+          )}
+          label={label}
+          sx={{
+            marginRight: 1,
+            '& .MuiFormControlLabel-label': {
+              fontSize: '0.875rem',
+            },
+          }}
+        />
+      ))}
+    </Box>
+  );
+});
+
+BrevhovedCheckboxRow.displayName = 'BrevhovedCheckboxRow';
+
 /**
  * Indstillinger-side
  *
@@ -29,6 +67,24 @@ const Indstillinger = React.memo(() => {
   // State for default directory display name
   const [directoryDisplayName, setDirectoryDisplayName] = React.useState<string>('Skrivebord (standard)');
   const [isLoadingDirectory, setIsLoadingDirectory] = React.useState(true);
+  const brevhovedOptionsRow1: readonly BrevhovedOption[] = React.useMemo(() => ([
+    { key: 'erstatningsopgoerelse', label: 'Erstatningsopgørelse' },
+    { key: 'shDage', label: 'SH-dage' },
+    { key: 'renteberegning', label: 'Renteberegning' },
+  ]), []);
+  const brevhovedOptionsRow2: readonly BrevhovedOption[] = React.useMemo(() => ([
+    { key: 'regulering', label: 'Regulering' },
+    { key: 'varigeMen', label: 'Varige mén' },
+    { key: 'satser', label: 'Satser' },
+    { key: 'aarsloensberegning', label: 'Årslønsberegning' },
+  ]), []);
+  const handleBrevhovedToggle = React.useCallback((key: keyof BrevhovedIndstillinger, checked: boolean) => {
+    const newBrevhovedIndstillinger: BrevhovedIndstillinger = {
+      ...settings.brevhovedIndstillinger,
+      [key]: checked,
+    };
+    updateSettings({ brevhovedIndstillinger: newBrevhovedIndstillinger });
+  }, [settings.brevhovedIndstillinger, updateSettings]);
 
   // Hent og vis nuværende standardplacering ved mount og når settings ændres
   // VIGTIGT: Bruger getDirectoryDisplayInfo (non-invasive) - IKKE resolveDefaultDirectoryHandle
@@ -330,70 +386,17 @@ const Indstillinger = React.memo(() => {
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0 }}>
               {/* Første række: Erstatningsopgørelse, SH-dage, Renteberegning */}
-              <Box sx={{ display: 'flex', gap: 0.5 }}>
-                {([
-                  { key: 'erstatningsopgoerelse', label: 'Erstatningsopgørelse' },
-                  { key: 'shDage', label: 'SH-dage' },
-                  { key: 'renteberegning', label: 'Renteberegning' },
-                ] as const).map(({ key, label }) => (
-                  <FormControlLabel
-                    key={key}
-                    control={
-                      <Checkbox
-                        checked={settings.brevhovedIndstillinger[key]}
-                        onChange={(e) => {
-                          const newBrevhovedIndstillinger: BrevhovedIndstillinger = {
-                            ...settings.brevhovedIndstillinger,
-                            [key]: e.target.checked,
-                          };
-                          updateSettings({ brevhovedIndstillinger: newBrevhovedIndstillinger });
-                        }}
-                        size="small"
-                      />
-                    }
-                    label={label}
-                    sx={{
-                      marginRight: 1,
-                      '& .MuiFormControlLabel-label': {
-                        fontSize: '0.875rem',
-                      },
-                    }}
-                  />
-                ))}
-              </Box>
+              <BrevhovedCheckboxRow
+                items={brevhovedOptionsRow1}
+                checked={settings.brevhovedIndstillinger}
+                onToggle={handleBrevhovedToggle}
+              />
               {/* Anden række: Regulering, Varige mén, Satser, Årslønsberegning */}
-              <Box sx={{ display: 'flex', gap: 0.5 }}>
-                {([
-                  { key: 'regulering', label: 'Regulering' },
-                  { key: 'varigeMen', label: 'Varige mén' },
-                  { key: 'satser', label: 'Satser' },
-                  { key: 'aarsloensberegning', label: 'Årslønsberegning' },
-                ] as const).map(({ key, label }) => (
-                  <FormControlLabel
-                    key={key}
-                    control={
-                      <Checkbox
-                        checked={settings.brevhovedIndstillinger[key]}
-                        onChange={(e) => {
-                          const newBrevhovedIndstillinger: BrevhovedIndstillinger = {
-                            ...settings.brevhovedIndstillinger,
-                            [key]: e.target.checked,
-                          };
-                          updateSettings({ brevhovedIndstillinger: newBrevhovedIndstillinger });
-                        }}
-                        size="small"
-                      />
-                    }
-                    label={label}
-                    sx={{
-                      marginRight: 1,
-                      '& .MuiFormControlLabel-label': {
-                        fontSize: '0.875rem',
-                      },
-                    }}
-                  />
-                ))}
-              </Box>
+              <BrevhovedCheckboxRow
+                items={brevhovedOptionsRow2}
+                checked={settings.brevhovedIndstillinger}
+                onToggle={handleBrevhovedToggle}
+              />
             </Box>
           </Box>
         </Box>

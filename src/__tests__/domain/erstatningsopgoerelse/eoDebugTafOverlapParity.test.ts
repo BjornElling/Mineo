@@ -5,6 +5,8 @@ import { toISODateString } from '../../../types/branded';
 const iso = (value: string) => toISODateString(value);
 
 describe('buildEODebugTaftRows overlap parity', () => {
+  // Regression note:
+  // Denne suite dækker tidligere kendt overlap-regression og skal forblive grøn (ingen skip).
   it('marks overlapping TAF periods as error rows', () => {
     const values = {
       ...createErstatningsopgoerelseInitialValues(),

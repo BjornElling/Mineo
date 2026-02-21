@@ -50,12 +50,20 @@ export const useFieldBehavior = (
     originalValueRef.current = value;
   }, [value]);
 
+  const resetCaretColor = useCallback(() => {
+    const maybeInput = inputRef.current?.querySelector?.('input') || inputRef.current;
+    if (maybeInput && 'style' in maybeInput) {
+      (maybeInput as HTMLInputElement).style.caretColor = '';
+    }
+  }, []);
+
   /**
    * Håndter blur - opdater focus state
    */
   const handleBlur = useCallback(() => {
+    resetCaretColor();
     setIsFocused(false);
-  }, []);
+  }, [resetCaretColor]);
 
   /**
    * Håndter Escape-tast - gendan oprindelig værdi

@@ -24,12 +24,12 @@ import { downloadAarsloenPdf, downloadSHDagePdf } from '../utils/pdf/pdfService'
 // TYPES
 // ============================================================================
 
-interface PdfEligibility {
+type PdfEligibility = {
   canDownload: boolean;
   reason?: string;
-}
+};
 
-interface UseAarsloenPdfGatesProps {
+type UseAarsloenPdfGatesProps = {
   values: AarsloenValues;
   omregningAktiveret: boolean;
   periodeData: PeriodeResult | null;
@@ -41,15 +41,15 @@ interface UseAarsloenPdfGatesProps {
   tabelRef: React.RefObject<AarsloenTableHandle | null>;
   getPersistedData: <K extends StorageKey>(formName: K) => unknown;
   settings: AppSettings;
-}
+};
 
-interface UseAarsloenPdfGatesReturn {
+type UseAarsloenPdfGatesReturn = {
   canDownloadPdf: boolean;
   canDownloadSHDagePdf: boolean;
   handleAarsloenPdfDownload: () => Promise<void>;
   handleSHDagePdfDownload: () => Promise<void>;
   downloadShake: boolean;
-}
+};
 
 // ============================================================================
 // HOOK
@@ -90,11 +90,26 @@ export const useAarsloenPdfGates = ({
 
   // State til download-knap shake-animation
   const [downloadShake, setDownloadShake] = React.useState(false);
+  const downloadShakeTimeoutRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (downloadShakeTimeoutRef.current !== null) {
+        window.clearTimeout(downloadShakeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Trigger shake animation
   const triggerDownloadShake = React.useCallback(() => {
     setDownloadShake(true);
-    setTimeout(() => setDownloadShake(false), 500);
+    if (downloadShakeTimeoutRef.current !== null) {
+      window.clearTimeout(downloadShakeTimeoutRef.current);
+    }
+    downloadShakeTimeoutRef.current = window.setTimeout(() => {
+      setDownloadShake(false);
+      downloadShakeTimeoutRef.current = null;
+    }, 500);
   }, []);
 
   // ============================================================================

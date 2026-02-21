@@ -10,6 +10,9 @@ export type TafDerivedResult = Readonly<{
   beregningsenhed: TafBeregningsenhed;
 }>;
 
+// UI/debug per-row afledninger:
+// Bevarer én værdi per indtastet række og merger IKKE overlappende perioder.
+// Samlede/aggregerede TAF-beregninger håndteres i `tafBeregningsEngine.ts`.
 export const buildTafDerived = (args: {
   values: ErstatningsopgoerelseValues;
   tafPerioder: readonly TafPeriodeRow[];
@@ -37,8 +40,6 @@ export const buildTafDerived = (args: {
       ? calculateTafAntalMaaneder(
         clamped.fra,
         clamped.til,
-        args.ferieperioder,
-        loseFeriedage,
         0
       )
       : calculateTafAntalArbejdsdage(clamped.fra, clamped.til, args.ferieperioder, loseFeriedage, { kind: 'taf' });

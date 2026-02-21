@@ -20,7 +20,30 @@ export const STORAGE_KEYS = {
   erstatningsopgoerelse: 'mineo_erstatningsopgoerelse',
 } as const;
 
-const STORAGE_KEY_SET: ReadonlySet<string> = new Set(Object.values(STORAGE_KEYS));
+export const UI_STORAGE_KEYS = {
+  lastSavedFilename: 'mineo_ui_lastSavedFilename',
+  lastSavedFilenameBasis: 'mineo_ui_lastSavedFilenameBasis',
+  loentrinFinderOverlay: 'mineo_ui_loentrinFinderOverlay_v1',
+  devtoolsLastSeenIssueId: 'mineo_ui_devtools_lastSeenIssueId',
+  pendingOverlay: 'mineo_pendingOverlay',
+  sideMenuExpanded: 'mineo_sideMenuExpanded',
+  debugLastLoadInfo: 'mineo_debug_lastLoadInfo',
+} as const;
+
+const UI_STORAGE_PREFIXES = {
+  activeTab: 'mineo_ui_activeTab_',
+} as const;
+
+export const createActiveTabStorageKey = (pageId: string): string => `${UI_STORAGE_PREFIXES.activeTab}${pageId}`;
+
+const isDynamicUiStorageKey = (key: string): boolean => {
+  return key.startsWith(UI_STORAGE_PREFIXES.activeTab);
+};
+
+const STORAGE_KEY_SET: ReadonlySet<string> = new Set([
+  ...Object.values(STORAGE_KEYS),
+  ...Object.values(UI_STORAGE_KEYS),
+]);
 
 /**
  * Type-safe storage key type
@@ -47,7 +70,7 @@ export const getStorageKey = (pageKey: StorageKey): string => {
  * @returns true hvis key er en kendt MINEO key
  */
 export const isValidStorageKey = (key: string): boolean => {
-  return STORAGE_KEY_SET.has(key);
+  return STORAGE_KEY_SET.has(key) || isDynamicUiStorageKey(key);
 };
 
 /**

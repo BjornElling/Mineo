@@ -395,8 +395,13 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
         }
 
         if (colIdx >= 2 && colIdx <= 5) {
-          const colKey = `col${colIdx}` as const;
-          return (row: AarsloenTableRow) => parseSortableAmount(resolveCommittedRow(row)[colKey]);
+          return (row: AarsloenTableRow) => {
+            const committed = resolveCommittedRow(row);
+            if (colIdx === 2) return parseSortableAmount(committed.col2);
+            if (colIdx === 3) return parseSortableAmount(committed.col3);
+            if (colIdx === 4) return parseSortableAmount(committed.col4);
+            return parseSortableAmount(committed.col5);
+          };
         }
 
         if (colIdx >= 6 && colIdx <= 9) {

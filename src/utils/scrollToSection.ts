@@ -5,7 +5,8 @@
  * Dette undgår setTimeout-baserede gæt der kan fejle sporadisk pga. React rendering timing.
  */
 
-import type { SectionId } from '../domain/erstatningsopgoerelse/eoDebugNavigationMap';
+import type { SectionId } from '../domain/debug/eoDebugNavigationMap';
+import { scrollWithRetry } from './scrollWithRetry';
 
 /**
  * Scroller til en sektion identificeret ved data-section-id attribute
@@ -33,36 +34,19 @@ export const scrollToSection = (
   } = {}
 ): void => {
   const { maxRetries = 50, onSuccess, onFailure } = options;
+  const failureMessage = `scrollToSection fejlede efter ${maxRetries} forsøg for section="${sectionId}"`;
 
-  let attempts = 0;
-
-  const tryScroll = () => {
-    attempts += 1;
-
-    // Find element med data-section-id attribute
-    const element = document.querySelector<HTMLElement>(`[data-section-id="${sectionId}"]`);
-
-    if (element) {
-      // Element fundet - scroll til det
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      onSuccess?.();
-      return;
-    }
-
-    if (attempts >= maxRetries) {
-      // Max retries nået - log fejl i dev mode
-      const msg = `scrollToSection fejlede efter ${maxRetries} forsøg for section="${sectionId}"`;
+  scrollWithRetry({
+    maxRetries,
+    findTarget: () => document.querySelector<HTMLElement>(`[data-section-id="${sectionId}"]`),
+    behavior: 'smooth',
+    onSuccess,
+    onFailure: (reason) => {
       if (process.env.NODE_ENV === 'development') {
-        console.warn(msg);
+        console.warn(reason);
       }
-      onFailure?.(msg);
-      return;
-    }
-
-    // Retry ved næste frame
-    requestAnimationFrame(tryScroll);
-  };
-
-  // Start retry-loop
-  requestAnimationFrame(tryScroll);
+      onFailure?.(reason);
+    },
+    failureMessage,
+  });
 };

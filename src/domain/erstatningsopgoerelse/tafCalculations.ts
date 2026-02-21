@@ -31,8 +31,6 @@ export const calculateKalenderdageInclusive = (
 export const calculateTafAntalMaaneder = (
   fra: ISODateString | undefined,
   til: ISODateString | undefined,
-  _ferieperioder: readonly FerieperiodeRow[],
-  _loseFeriedage: number,
   oevrigeFravaersdage: number = 0
 ): number | null => {
   return motorOptaelMaanederAfrundet({
@@ -45,8 +43,6 @@ export const calculateTafAntalMaaneder = (
 export const calculateTafAntalMaanederPraecis = (
   fra: ISODateString | undefined,
   til: ISODateString | undefined,
-  _ferieperioder: readonly FerieperiodeRow[],
-  _loseFeriedage: number,
   oevrigeFravaersdage: number = 0
 ): number | null => {
   return motorOptaelMaanederPraecis({

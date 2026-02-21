@@ -46,6 +46,7 @@ export const buildMergedTafGroups = (
   rows: ReadonlyArray<TafPeriodeRow>,
   bounds?: TafConstraintBounds
 ): ReadonlyArray<MergedTafGroup> => {
+  // Invalide rækker kan ikke påvirke TAF-dage; vi nulstiller derfor loseFeriedage eksplicit.
   const invalidRows = rows
     .filter((row) => {
       if (!row.fra || !row.til) return true;
@@ -90,6 +91,7 @@ export const buildMergedTafGroups = (
     const firstSource = sourceRows[0];
     const loseFeriedage = sourceRows.reduce((sum, row) => sum + row.loseFeriedage, 0);
     return {
+      // Merged grupper er aggregerede perioder; vi bærer ét stabilt repræsentativt ID videre.
       id: firstSource?.id ?? `${range.fra}-${range.til}`,
       fra: range.fra,
       til: range.til,
@@ -107,14 +109,13 @@ export const computeTafEngine = (input: TafEngineInputSnapshot): TafEngineOutput
   const tafBounds = resolveTafConstraintBounds(erstatningsopgoerelse);
   const mergedGroups = buildMergedTafGroups(tafPerioder, tafBounds);
 
-  // TAF aggregation is computed on merged, canonical periods to avoid overlap double counting.
+  // Aggregation beregnes på merged, kanoniske perioder for at undgå dobbeltoptælling ved overlap.
+  // Dette er den autoritative aggregerede model (i modsætning til per-row visning i `tafRowDerived.ts`).
   const rows = mergedGroups.map((group) => {
     const value = visAntalMaaneder
       ? calculateTafAntalMaaneder(
         group.fra,
         group.til,
-        ferieperioder,
-        group.loseFeriedage,
         0
       )
       : calculateTafAntalArbejdsdage(group.fra, group.til, ferieperioder, group.loseFeriedage, { kind: 'taf' });

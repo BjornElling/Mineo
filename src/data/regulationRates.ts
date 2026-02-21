@@ -692,9 +692,9 @@ export const satserAngivAarYearBounds: YearBounds = (() => {
  * @param {number} year - Årstal at hente satser for
  * @returns {Object} Dictionary med alle satser struktureret efter kategori
  */
-export const getSatserForYear = (year) => {
-  const num = (dict) => (dict[year] !== undefined ? dict[year] : null);
-  const txt = (dict) => dict[year] || '';
+export const getSatserForYear = (year: number) => {
+  const num = (dict: Record<number, number>): number | null => (dict[year] !== undefined ? dict[year] : null);
+  const txt = (dict: Record<number, string>): string => dict[year] || '';
 
   return {
     eal: {

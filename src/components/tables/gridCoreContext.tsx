@@ -15,15 +15,21 @@ export type GridCoreTableKind = 'grid' | 'loose';
  * Dette betyder at enhver ændring i focus/editing trigger rerender af alle consumers.
  * På sigt bør state og API måske splittes i to separate contexts for bedre performance.
  */
-export type GridCoreContextValue = Readonly<
+export type GridCoreStateContextValue = Readonly<{
+  focusedCell: GridCellCoord | null;
+  editingCell: GridCellCoord | null;
+}>;
+
+export type GridCoreApiContextValue = Readonly<
   GridCorePublicAPI & {
-    focusedCell: GridCellCoord | null;
-    editingCell: GridCellCoord | null;
     tableKind?: GridCoreTableKind;
   }
 >;
 
-const GridCoreReactContext = React.createContext<GridCoreContextValue | null>(null);
+export type GridCoreContextValue = Readonly<GridCoreStateContextValue & GridCoreApiContextValue>;
+
+const GridCoreStateReactContext = React.createContext<GridCoreStateContextValue | null>(null);
+const GridCoreApiReactContext = React.createContext<GridCoreApiContextValue | null>(null);
 
 /**
  * Hook til at få adgang til GridCore context
@@ -34,10 +40,20 @@ const GridCoreReactContext = React.createContext<GridCoreContextValue | null>(nu
  * @returns {GridCoreContextValue} GridCore context value
  */
 export const useGridCore = (): GridCoreContextValue => {
-  const ctx = React.useContext(GridCoreReactContext);
-  if (!ctx) {
-    throw new Error('useGridCore: missing GridCoreProvider in component tree');
-  }
+  const state = useGridCoreState();
+  const api = useGridCoreApi();
+  return { ...state, ...api };
+};
+
+export const useGridCoreState = (): GridCoreStateContextValue => {
+  const ctx = React.useContext(GridCoreStateReactContext);
+  if (!ctx) throw new Error('useGridCoreState: missing GridCoreProvider in component tree');
+  return ctx;
+};
+
+export const useGridCoreApi = (): GridCoreApiContextValue => {
+  const ctx = React.useContext(GridCoreApiReactContext);
+  if (!ctx) throw new Error('useGridCoreApi: missing GridCoreProvider in component tree');
   return ctx;
 };
 
@@ -47,5 +63,25 @@ export const useGridCore = (): GridCoreContextValue => {
  * Wrapper der leverer GridCore context til child-komponenter.
  */
 export const GridCoreProvider = ({ value, children }: { value: GridCoreContextValue; children: React.ReactNode }) => {
-  return <GridCoreReactContext.Provider value={value}>{children}</GridCoreReactContext.Provider>;
+  const stateValue = React.useMemo<GridCoreStateContextValue>(
+    () => ({ focusedCell: value.focusedCell, editingCell: value.editingCell }),
+    [value.editingCell, value.focusedCell]
+  );
+  const apiValue = React.useMemo<GridCoreApiContextValue>(
+    () => ({
+      tableKind: value.tableKind,
+      openEditing: value.openEditing,
+      closeEditing: value.closeEditing,
+      registerEditor: value.registerEditor,
+      unregisterEditor: value.unregisterEditor,
+      getEditor: value.getEditor,
+      requestFocusPlan: value.requestFocusPlan,
+    }),
+    [value.closeEditing, value.getEditor, value.openEditing, value.registerEditor, value.requestFocusPlan, value.tableKind, value.unregisterEditor]
+  );
+  return (
+    <GridCoreApiReactContext.Provider value={apiValue}>
+      <GridCoreStateReactContext.Provider value={stateValue}>{children}</GridCoreStateReactContext.Provider>
+    </GridCoreApiReactContext.Provider>
+  );
 };

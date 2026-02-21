@@ -15,6 +15,7 @@ import {
   Settings,
   Info
 } from '@mui/icons-material';
+import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 
 // Type definitions
 type NavigationItem = {
@@ -33,7 +34,7 @@ type FileOperationItem = {
 // Menu-dimensioner
 const EXPANDED_WIDTH = 250;
 const COLLAPSED_WIDTH = 70;
-const MENU_STATE_STORAGE_KEY = 'mineo_sideMenuExpanded';
+const MENU_STATE_STORAGE_KEY = UI_STORAGE_KEYS.sideMenuExpanded;
 
 const readStoredMenuState = (): string | null => {
   if (typeof window === 'undefined') {

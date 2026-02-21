@@ -38,9 +38,11 @@ import { LOENPERIODE } from '../../../types/loen';
 import type { ISODateString } from '../../../types/branded';
 import { isISODateString, parseISODate } from '../../../types/branded';
 import { createDate, formatDanishDate } from '../../../utils/dateUtils';
+import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { isLoenperiodeValue } from '../../../utils/zodTypeGuards';
 import { generateAnsaettelsesforholdId } from '../../../utils/eoConverters';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
+import { UI_STORAGE_KEYS } from '../../../config/storageManifest';
 import {
   getAlleLoenmodtagerOrg,
   getAlleArbejdsgiverOrg,
@@ -85,20 +87,6 @@ type Ansaettelsesforhold =
 const MAX_ANSAETTELSESFORHOLD = 10;
 
 const getCheckedJaNej = (value: 'Ja' | 'Nej'): boolean => value === 'Ja';
-
-const formatIsoDateAsLongDanish = (iso: ISODateString): string => {
-  const date = parseISODate(iso);
-  if (!date) return '';
-
-  const formatted = new Intl.DateTimeFormat('da-DK', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(date);
-
-  // da-DK uses "1. januar 2024". Requirement: "1 januar 2024" (d mmmm åååå).
-  return formatted.replace(/^(\d+)\.\s/, '$1 ');
-};
 
 const normalizeOptionalFreeText = (value: string | undefined): string | undefined => {
   const asString = typeof value === 'string' ? value : '';
@@ -190,7 +178,6 @@ type LoentrinFinderResult = Readonly<{
 }>;
 
 const LOENGRUPPER = [0, 1, 2, 3, 4] as const;
-const LOENTRIN_FINDER_SESSION_STORAGE_KEY = 'mineo_ui_loentrinFinderOverlay_v1';
 
 const loentrinFinderSessionEntrySchema = z.object({
   ansaettelse: offentligLoenTypeEnum,
@@ -511,7 +498,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 
   const getSaerligFraDatoReguleringLabel = React.useCallback((iso: ISODateString | undefined): string | undefined => {
     if (!iso) return undefined;
-    const formatted = formatIsoDateAsLongDanish(iso);
+    const formatted = formatIsoDateLong(iso);
     return formatted === '' ? undefined : formatted;
   }, []);
 
@@ -564,7 +551,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 
   const readLoentrinFinderSessionState = React.useCallback((): LoentrinFinderSessionState => {
     try {
-      const raw = sessionStorage.getItem(LOENTRIN_FINDER_SESSION_STORAGE_KEY);
+      const raw = sessionStorage.getItem(UI_STORAGE_KEYS.loentrinFinderOverlay);
       if (!raw) return {};
       const parsedJson: unknown = JSON.parse(raw);
       const parsed = loentrinFinderSessionStateSchema.safeParse(parsedJson);
@@ -576,7 +563,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 
   const writeLoentrinFinderSessionState = React.useCallback((nextState: LoentrinFinderSessionState): void => {
     try {
-      sessionStorage.setItem(LOENTRIN_FINDER_SESSION_STORAGE_KEY, JSON.stringify(nextState));
+      sessionStorage.setItem(UI_STORAGE_KEYS.loentrinFinderOverlay, JSON.stringify(nextState));
     } catch {
       // Fail-safe: hvis sessionStorage ikke er tilgængelig, behold kun in-memory state.
     }

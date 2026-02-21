@@ -1,5 +1,5 @@
 import React from 'react';
-import { type StorageKey, getStorageKey } from '../config/storageManifest';
+import { type StorageKey, createActiveTabStorageKey, getStorageKey } from '../config/storageManifest';
 
 type LegacyPersistedActiveTabSource = {
   /**
@@ -77,7 +77,7 @@ export const usePersistedActiveTab = <T extends string>(
 ): UsePersistedActiveTabReturn<T> => {
   const { pageId, allowedTabs, defaultTab, legacySource } = options;
   const allowedSet = React.useMemo(() => new Set<T>(allowedTabs), [allowedTabs]);
-  const uiKey = React.useMemo(() => `mineo_ui_activeTab_${pageId}`, [pageId]);
+  const uiKey = React.useMemo(() => createActiveTabStorageKey(pageId), [pageId]);
 
   const isAllowedTab = React.useCallback(
     (value: unknown): value is T => typeof value === 'string' && allowedSet.has(value as T),

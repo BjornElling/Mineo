@@ -21,16 +21,7 @@ const ScrollContainerContext = React.createContext<ScrollContainerContextValue>(
 });
 
 export const useScrollContainer = (): ScrollContainerContextValue => {
-  const context = React.useContext(ScrollContainerContext);
-
-  if (import.meta.env.DEV && !context) {
-    console.error(
-      'useScrollContainer() kaldt uden for ScrollContainerProvider. ' +
-      'Komponenten vil ikke kunne scrolle korrekt.'
-    );
-  }
-
-  return context;
+  return React.useContext(ScrollContainerContext);
 };
 
 export const ScrollContainerProvider: React.FC<{

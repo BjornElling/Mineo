@@ -33,7 +33,7 @@ export type RoundingMethod = 'halfAwayFromZero' | 'floor' | 'ceil' | 'none';
 const roundHalfAwayFromZero = (value: number, decimals: number): number => {
   const factor = 10 ** decimals;
   const abs = Math.abs(value);
-  const roundedAbs = Math.round(abs * factor) / factor;
+  const roundedAbs = Math.round((abs * factor) + Number.EPSILON) / factor;
   const signed = Math.sign(value) * roundedAbs;
   return normalizeZero(signed);
 };

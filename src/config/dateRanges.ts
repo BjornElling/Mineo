@@ -20,8 +20,9 @@ const iso = (date: string): ISODateString => toISODateString(date);
 const DATE_1900_01_01 = iso('1900-01-01');
 const DATE_2005_01_01 = iso('2005-01-01');
 const DATE_2025_01_01 = iso('2025-01-01');
+// PLANLAGT REVISION: Vurderes årligt sammen med sats-opdatering (senest 31-12 hvert år).
 const DATE_2025_12_31 = iso('2025-12-31');
-const DATE_2026_12_31 = iso('2026-12-31');
+// PLANLAGT REVISION: Vurderes årligt sammen med sats-opdatering (senest 31-12 hvert år).
 const DATE_2030_12_31 = iso('2030-12-31');
 
 // ============================================================================
@@ -443,7 +444,7 @@ export const dateRanges_varigemen: DateRanges_VarigeMen = {
     type: 'dynamic-min',
     min: 'DYNAMIC', // Højeste af: skadesdato fra Stamdata eller fallbackMin
     fallbackMin: DATE_2005_01_01,
-    max: DATE_2026_12_31,
+    max: DATE_2025_12_31,
     placeholder: 'dd-mm-åååå',
     notes: 'Valideres mod dynamisk min-værdi (skadesdato) og fast max-værdi (31-12-2025)',
   },

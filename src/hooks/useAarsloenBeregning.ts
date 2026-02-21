@@ -26,7 +26,7 @@ import { beregnOmregnetAarsloen } from '../domain/aarsloen/aarsloenCalculations'
 import type { AarsloenBeregningResult } from '../types/calculation';
 import { beregnFejlmeddelelser, harTabelData } from '../utils/aarsloenValidation';
 
-export interface AarsloenBeregningState {
+export type AarsloenBeregningState = {
   // Beregnings-resultater
   periodeData: PeriodeResult | null;
   shDageAntal: number | null;
@@ -37,12 +37,12 @@ export interface AarsloenBeregningState {
   fejlmeddelelser: string[];
   beregningsFejl: string | null;
   harFatalBeregningsFejl: boolean;
-}
+};
 
-interface UseAarsloenBeregningProps {
+type UseAarsloenBeregningProps = {
   values: AarsloenValues;
   omregningAktiveret: boolean;
-}
+};
 
 /**
  * Hook der håndterer alle årslønsberegninger

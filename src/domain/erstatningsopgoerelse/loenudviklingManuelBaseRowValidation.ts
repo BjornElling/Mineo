@@ -1,4 +1,5 @@
 import type { LoenudviklingManuelRow } from '../../schemas/formSchemas';
+import { formatPercentFixed2 } from './sharedPdfUtils';
 
 export type ManualBaseRowPercentField = 'feriepenge' | 'fritvalg' | 'shSoSats' | 'agPension';
 
@@ -10,10 +11,6 @@ type ExpectedSatser = Readonly<{
   shSoPct: number | null | undefined;
   pensionPct: number | null | undefined;
 }>;
-
-const formatPercentDa = (value: number): string => {
-  return value.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-};
 
 const parseCommittedPercent = (value: string | undefined): number | undefined => {
   if (typeof value !== 'string') return undefined;
@@ -71,7 +68,7 @@ export const validateLoenudviklingManualBaseRowSatser = (
 
   for (const check of checks) {
     if (hasMismatch(check.actual, check.expected)) {
-      errors[check.field] = `Værdien er ovenfor angivet til ${formatPercentDa(normalizeComparablePercent(check.expected))} %`;
+      errors[check.field] = `Værdien er ovenfor angivet til ${formatPercentFixed2(normalizeComparablePercent(check.expected))}`;
     }
   }
 

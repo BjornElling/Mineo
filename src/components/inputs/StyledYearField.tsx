@@ -14,6 +14,7 @@ export type StyledYearFieldProps = Omit<React.ComponentProps<typeof StyledYearFi
  *
  * This component must remain a pure pass-through to avoid API drift.
  * Do not extend this wrapper; extend `StyledYearFieldNext` instead.
+ * @deprecated Brug `StyledYearFieldNext` direkte.
  */
 const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
   ({ error = false, helperText = '', ...rest }, ref) => {

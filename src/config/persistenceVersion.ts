@@ -1,3 +1,5 @@
+import { persistenceSchemaFingerprint } from './persistenceRegistry';
+
 /**
  * Version for PersistedData wrapper stored in `sessionStorage`.
  *
@@ -5,5 +7,6 @@
  * - Skal holdes i sync på tværs af FormPersistenceContext, file save/load og dataCollection.
  */
 
-export const PERSISTED_DATA_VERSION = '1.0.0';
+const PERSISTENCE_BASE_VERSION = '1.0.0';
+export const PERSISTED_DATA_VERSION = `${PERSISTENCE_BASE_VERSION}-${persistenceSchemaFingerprint}`;
 

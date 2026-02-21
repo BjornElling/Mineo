@@ -8,8 +8,7 @@ import { formatPercent, isSingularCount } from '../../utils/formatUtils';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { roundByMethod } from '../../utils/rounding';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, type IsoRange } from './indtaegtPerioder';
-import { calculateTafAntalMaaneder } from './tafCalculations';
-import { calculateTafArbejdsdageBreakdown } from './tafCalculations';
+import { calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from './tafCalculations';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from './tafBeregningsenhed';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../config/dateRanges';
@@ -822,8 +821,6 @@ const buildIndkomstSkadestidspunkt = (
       const maanederResult = calculateTafAntalMaaneder(
         periodeTilBeregning.fra,
         periodeTilBeregning.til,
-        values.fravaerPerioder ?? [],
-        typeof values.uspecificeredeFerieFridage === 'number' ? values.uspecificeredeFerieFridage : 0,
         oevrigeFravaersdage
       );
       maaneder = maanederResult;

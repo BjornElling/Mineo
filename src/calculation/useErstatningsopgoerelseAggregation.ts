@@ -22,6 +22,8 @@ export const useErstatningsopgoerelseAggregation = (isActive: boolean): Aggregat
       try {
         return compute();
       } catch (error) {
+        // Bevidst fail-closed i produktion: vi returnerer null-delresultat frem for at kaste i render-fasen.
+        // Fejlen logges kun i DEV for at undgå produktionsstøj med potentielt følsomme data.
         if (import.meta.env.DEV) {
           console.warn(`Beregning afbrudt (${context}):`, error);
         }

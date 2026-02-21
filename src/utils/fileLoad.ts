@@ -98,6 +98,145 @@ const applyDefaultsForSection = (
   return sectionDefaults ? applyDefaultsDeep(value, sectionDefaults) : value;
 };
 
+const processDecryptedContainer = (args: {
+  fileContainer: EoFileContainerLoad;
+  filename: string;
+  source: 'manual' | 'pwa';
+  fileHandle?: FileSystemFileHandle;
+  requestId?: string;
+  settings?: AppSettings;
+}): LoadFileResult => {
+  const { fileContainer, filename, source, fileHandle, requestId } = args;
+  const fileData = fileContainer.data;
+  const loadIssues: LoadIssue[] = [];
+  const defaults = buildPersistenceDefaults(args.settings);
+
+  const fileVersion = fileContainer.version || 'ukendt';
+  logDebug(`Fil version: ${fileVersion}`);
+  if (fileVersion !== FILE_FORMAT_VERSION) {
+    loadIssues.push({
+      path: 'version',
+      reason: `Filen er gemt i en anden version (${fileVersion}) og kan mangle felter i denne version`,
+    });
+  }
+
+  const expectedFieldCount = fileContainer._metadata?.fieldCount;
+  const fileSchemaHash = fileContainer._metadata?.schemaHash;
+  logDebug(`Forventet antal felter: ${expectedFieldCount ?? 'ikke angivet'}`);
+
+  logDataStats(fileData as unknown as Record<string, unknown>, 'Dekrypteret data');
+
+  const fileFieldCount = countFilledFields(fileData as unknown as Record<string, unknown>);
+  if (fileFieldCount === 0) {
+    throw new Error('Filen indeholder ingen udfyldte felter');
+  }
+
+  const sectionsPresent = (Object.keys(STORAGE_KEYS) as StorageKey[]).filter(
+    (k) => Object.prototype.hasOwnProperty.call(fileData, k) && (fileData as Record<string, unknown>)[k] !== undefined
+  );
+
+  const snapshot: Partial<Record<StorageKey, unknown>> = {};
+  for (const sectionKey of Object.keys(persistenceSchemas) as StorageKey[]) {
+    const raw = (fileData as Record<string, unknown>)[sectionKey];
+    if (raw === undefined) continue;
+
+    const schema = persistenceSchemas[sectionKey];
+    const normalized = nullToUndefinedDeep(raw);
+    const stripped = stripUnknownFieldsBySchema(schema, normalized);
+    if (stripped.unknownPaths.length > 0) {
+      stripped.unknownPaths.forEach((path) => {
+        loadIssues.push({
+          path: toLoadIssuePath(sectionKey, path),
+          reason: 'Feltet findes ikke i denne version og blev ikke indlæst',
+        });
+      });
+    }
+
+    const withDefaults = applyDefaultsForSection(sectionKey, stripped.sanitized, defaults);
+    const direct = schema.safeParse(withDefaults);
+    if (direct.success) {
+      snapshot[sectionKey] = direct.data;
+      continue;
+    }
+
+    const primaryIssue = direct.error.issues[0] as unknown as ZodIssueLike | undefined;
+    const normalizedPath = primaryIssue
+      ? primaryIssue.path.filter((seg): seg is string | number => typeof seg === 'string' || typeof seg === 'number')
+      : [];
+    const detailPath = normalizedPath.length > 0 ? formatPathSegments(normalizedPath) : '(root)';
+    const issuePath = detailPath === '(root)' ? sectionKey : `${sectionKey}.${detailPath}`;
+    const reasonDetail = 'Forkert format';
+    loadIssues.push({
+      path: issuePath,
+      reason: `Sektionen kunne ikke indlæses (${reasonDetail}) og blev ikke indlæst`,
+    });
+  }
+
+  // Ukendte sektioner i filen (fra andre versioner) kan ikke indlæses.
+  for (const key of Object.keys(fileData as Record<string, unknown>)) {
+    if (key.startsWith('_')) continue;
+    const isKnown = Object.prototype.hasOwnProperty.call(persistenceSchemas, key);
+    if (!isKnown) {
+      loadIssues.push({
+        path: key,
+        reason: 'Sektionen findes ikke i denne version og blev ikke indlæst',
+      });
+    }
+  }
+
+  const loadedFieldCount = countFilledFields(snapshot as unknown as Record<string, unknown>);
+  if (loadedFieldCount === 0) {
+    throw new Error('Filen indeholder ingen data der kan indlæses i denne version');
+  }
+
+  const expectedCountForUser = expectedFieldCount ?? fileFieldCount;
+  const failedCountForUser = expectedCountForUser >= loadedFieldCount
+    ? expectedCountForUser - loadedFieldCount
+    : 0;
+
+  const fieldCountWarning = expectedFieldCount !== undefined && expectedFieldCount !== loadedFieldCount
+    ? {
+      message: `Forventet ${expectedFieldCount} felter, fandt ${loadedFieldCount} (diff: ${loadedFieldCount - expectedFieldCount})`,
+      expected: expectedFieldCount,
+      actual: loadedFieldCount,
+      difference: loadedFieldCount - expectedFieldCount,
+    }
+    : undefined;
+
+  const debugInfo = {
+    expectedFieldCount,
+    actualFieldCount: loadedFieldCount,
+    sectionsInFile: sectionsPresent,
+    schemaHashInFile: fileSchemaHash ?? null,
+    schemaHashCurrent: persistenceSchemaFingerprint,
+    timestamp: new Date().toISOString(),
+  };
+
+  const shouldPreflightWarn = loadIssues.length > 0;
+  return {
+    success: true,
+    source,
+    requestId,
+    filename,
+    fileHandle,
+    fieldCount: loadedFieldCount,
+    expectedFieldCount,
+    sections: sectionsPresent.length,
+    version: fileVersion,
+    snapshot,
+    debugInfo,
+    fieldCountWarning,
+    preflightWarning: shouldPreflightWarn
+      ? {
+        expectedCount: expectedFieldCount ?? fileFieldCount,
+        loadedCount: loadedFieldCount,
+        failedCount: failedCountForUser,
+        issues: loadIssues,
+      }
+      : undefined,
+  };
+};
+
 export const loadFromFile = async (
   resolvedDirectory?: ResolvedDirectory,
   options?: { settings?: AppSettings }
@@ -184,160 +323,16 @@ export const loadFromFile = async (
     logDebug('✓ Data dekrypteret (integritet OK)');
 
     const fileContainer = normalizeDecryptedContainer(decrypted);
-    const fileData = fileContainer.data;
-    const loadIssues: LoadIssue[] = [];
-    const defaults = buildPersistenceDefaults(options?.settings);
-
-    const fileVersion = fileContainer.version || 'ukendt';
-    logDebug(`Fil version: ${fileVersion}`);
-    if (fileVersion !== FILE_FORMAT_VERSION) {
-      loadIssues.push({
-        path: 'version',
-        reason: `Filen er gemt i en anden version (${fileVersion}) og kan mangle felter i denne version`,
-      });
-    }
-
-    const expectedFieldCount = fileContainer._metadata?.fieldCount;
-    const fileSchemaHash = fileContainer._metadata?.schemaHash;
-    logDebug(`Forventet antal felter: ${expectedFieldCount ?? 'ikke angivet'}`);
-
-    logDataStats(fileData as unknown as Record<string, unknown>, 'Dekrypteret data');
-
-    const fileFieldCount = countFilledFields(fileData as unknown as Record<string, unknown>);
-    if (fileFieldCount === 0) {
-      throw new Error('Filen indeholder ingen udfyldte felter');
-    }
-
-    const sectionsPresent = (Object.keys(STORAGE_KEYS) as StorageKey[]).filter(
-      (k) => Object.prototype.hasOwnProperty.call(fileData, k) && (fileData as Record<string, unknown>)[k] !== undefined
-    );
-
-    const snapshot: Partial<Record<StorageKey, unknown>> = {};
-    for (const sectionKey of Object.keys(persistenceSchemas) as StorageKey[]) {
-      const raw = (fileData as Record<string, unknown>)[sectionKey];
-      if (raw === undefined) continue;
-
-      const schema = persistenceSchemas[sectionKey];
-      const normalized = nullToUndefinedDeep(raw);
-      const stripped = stripUnknownFieldsBySchema(schema, normalized);
-      if (stripped.unknownPaths.length > 0) {
-        stripped.unknownPaths.forEach((path) => {
-          loadIssues.push({
-            path: toLoadIssuePath(sectionKey, path),
-            reason: 'Feltet findes ikke i denne version og blev ikke indlæst',
-          });
-        });
-      }
-
-      const withDefaults = applyDefaultsForSection(sectionKey, stripped.sanitized, defaults);
-      const direct = schema.safeParse(withDefaults);
-      if (direct.success) {
-        snapshot[sectionKey] = direct.data;
-        continue;
-      }
-
-      // DEBUG: Log Zod-fejl for at identificere hvad der fejler i prod
-      logDebug(`[FILELOAD DEBUG loadFromFile] Section: ${sectionKey}`);
-      logDebug(`[FILELOAD DEBUG] Zod issues (${direct.error.issues.length} total):`);
-      direct.error.issues.slice(0, 5).forEach((issue, idx) => {
-        logDebug(`[FILELOAD DEBUG] Issue ${idx + 1}:`, { issue });
-      });
-      if (direct.error.issues.length > 5) {
-        logDebug(`[FILELOAD DEBUG] ... og ${direct.error.issues.length - 5} flere issues`);
-      }
-      if (sectionKey === 'erstatningsopgoerelse' && typeof normalized === 'object' && normalized !== null) {
-        const norm = normalized as Record<string, unknown>;
-        if (Array.isArray(norm['loenindkomstAnsaettelsesforhold'])) {
-          const arr = norm['loenindkomstAnsaettelsesforhold'] as unknown[];
-          arr.forEach((item, i) => {
-            if (typeof item === 'object' && item !== null) {
-              logDebug(`[FILELOAD DEBUG] loenindkomstAnsaettelsesforhold[${i}] keys:`, {
-                keys: Object.keys(item),
-              });
-            }
-          });
-        }
-      }
-
-      const primaryIssue = direct.error.issues[0] as unknown as ZodIssueLike | undefined;
-      const normalizedPath = primaryIssue
-        ? primaryIssue.path.filter((seg): seg is string | number => typeof seg === 'string' || typeof seg === 'number')
-        : [];
-      const detailPath = normalizedPath.length > 0 ? formatPathSegments(normalizedPath) : '(root)';
-      const issuePath = detailPath === '(root)' ? sectionKey : `${sectionKey}.${detailPath}`;
-      const reasonDetail = 'Forkert format';
-      loadIssues.push({
-        path: issuePath,
-        reason: `Sektionen kunne ikke indlæses (${reasonDetail}) og blev ikke indlæst`,
-      });
-    }
-
-    // Ukendte sektioner i filen (fra andre versioner) kan ikke indlæses.
-    for (const key of Object.keys(fileData as Record<string, unknown>)) {
-      if (key.startsWith('_')) continue;
-      const isKnown = Object.prototype.hasOwnProperty.call(persistenceSchemas, key);
-      if (!isKnown) {
-        loadIssues.push({
-          path: key,
-          reason: 'Sektionen findes ikke i denne version og blev ikke indlæst',
-        });
-      }
-    }
-
-    const loadedFieldCount = countFilledFields(snapshot as unknown as Record<string, unknown>);
-    if (loadedFieldCount === 0) {
-      throw new Error('Filen indeholder ingen data der kan indlæses i denne version');
-    }
-
-    const expectedCountForUser = expectedFieldCount ?? fileFieldCount;
-    const failedCountForUser = expectedCountForUser >= loadedFieldCount
-      ? expectedCountForUser - loadedFieldCount
-      : 0;
-
-    const fieldCountWarning = expectedFieldCount !== undefined && expectedFieldCount !== loadedFieldCount
-      ? {
-        message: `Forventet ${expectedFieldCount} felter, fandt ${loadedFieldCount} (diff: ${loadedFieldCount - expectedFieldCount})`,
-        expected: expectedFieldCount,
-        actual: loadedFieldCount,
-        difference: loadedFieldCount - expectedFieldCount,
-      }
-      : undefined;
-
-    // Debug-info (kan inspiceres efter successful apply)
-    const debugInfo = {
-      expectedFieldCount,
-      actualFieldCount: loadedFieldCount,
-      sectionsInFile: sectionsPresent,
-      schemaHashInFile: fileSchemaHash ?? null,
-      schemaHashCurrent: persistenceSchemaFingerprint,
-      timestamp: new Date().toISOString(),
-    };
+    const result = processDecryptedContainer({
+      fileContainer,
+      filename: file.name,
+      source: 'manual',
+      fileHandle: fileHandle ?? undefined,
+      settings: options?.settings,
+    });
 
     logOperationEnd('Hent fil', true);
-
-    const shouldPreflightWarn = loadIssues.length > 0;
-
-    return {
-      success: true,
-      source: 'manual',
-      filename: file.name,
-      fileHandle: fileHandle ?? undefined,
-      fieldCount: loadedFieldCount,
-      expectedFieldCount,
-      sections: sectionsPresent.length,
-      version: fileVersion,
-      snapshot,
-      debugInfo,
-      fieldCountWarning,
-      preflightWarning: shouldPreflightWarn
-        ? {
-          expectedCount: expectedFieldCount ?? fileFieldCount,
-          loadedCount: loadedFieldCount,
-          failedCount: failedCountForUser,
-          issues: loadIssues,
-        }
-        : undefined,
-    };
+    return result;
   } catch (error) {
     if (error instanceof CalculationError && error.code === 'FILE_LOAD_FAILED') {
       logOperationEnd('Hent fil', true);
@@ -394,161 +389,17 @@ export const loadFromFileHandle = async (
     logDebug('✓ Data dekrypteret (integritet OK)');
 
     const fileContainer = normalizeDecryptedContainer(decrypted);
-    const fileData = fileContainer.data;
-    const loadIssues: LoadIssue[] = [];
-    const defaults = buildPersistenceDefaults(options?.settings);
-
-    const fileVersion = fileContainer.version || 'ukendt';
-    logDebug(`Fil version: ${fileVersion}`);
-    if (fileVersion !== FILE_FORMAT_VERSION) {
-      loadIssues.push({
-        path: 'version',
-        reason: `Filen er gemt i en anden version (${fileVersion}) og kan mangle felter i denne version`,
-      });
-    }
-
-    const expectedFieldCount = fileContainer._metadata?.fieldCount;
-    const fileSchemaHash = fileContainer._metadata?.schemaHash;
-    logDebug(`Forventet antal felter: ${expectedFieldCount ?? 'ikke angivet'}`);
-
-    logDataStats(fileData as unknown as Record<string, unknown>, 'Dekrypteret data');
-
-    const fileFieldCount = countFilledFields(fileData as unknown as Record<string, unknown>);
-    if (fileFieldCount === 0) {
-      throw new Error('Filen indeholder ingen udfyldte felter');
-    }
-
-    const sectionsPresent = (Object.keys(STORAGE_KEYS) as StorageKey[]).filter(
-      (k) => Object.prototype.hasOwnProperty.call(fileData, k) && (fileData as Record<string, unknown>)[k] !== undefined
-    );
-
-    const snapshot: Partial<Record<StorageKey, unknown>> = {};
-    for (const sectionKey of Object.keys(persistenceSchemas) as StorageKey[]) {
-      const raw = (fileData as Record<string, unknown>)[sectionKey];
-      if (raw === undefined) continue;
-
-      const schema = persistenceSchemas[sectionKey];
-      const normalized = nullToUndefinedDeep(raw);
-      const stripped = stripUnknownFieldsBySchema(schema, normalized);
-      if (stripped.unknownPaths.length > 0) {
-        stripped.unknownPaths.forEach((path) => {
-          loadIssues.push({
-            path: toLoadIssuePath(sectionKey, path),
-            reason: 'Feltet findes ikke i denne version og blev ikke indlæst',
-          });
-        });
-      }
-
-      const withDefaults = applyDefaultsForSection(sectionKey, stripped.sanitized, defaults);
-      const direct = schema.safeParse(withDefaults);
-      if (direct.success) {
-        snapshot[sectionKey] = direct.data;
-        continue;
-      }
-
-      // DEBUG: Log Zod-fejl for at identificere hvad der fejler i prod
-      logDebug(`[FILELOAD DEBUG loadFromFileHandle] Section: ${sectionKey}`);
-      logDebug(`[FILELOAD DEBUG] Zod issues (${direct.error.issues.length} total):`);
-      direct.error.issues.slice(0, 5).forEach((issue, idx) => {
-        logDebug(`[FILELOAD DEBUG] Issue ${idx + 1}:`, { issue });
-      });
-      if (direct.error.issues.length > 5) {
-        logDebug(`[FILELOAD DEBUG] ... og ${direct.error.issues.length - 5} flere issues`);
-      }
-      if (sectionKey === 'erstatningsopgoerelse' && typeof normalized === 'object' && normalized !== null) {
-        const norm = normalized as Record<string, unknown>;
-        if (Array.isArray(norm['loenindkomstAnsaettelsesforhold'])) {
-          const arr = norm['loenindkomstAnsaettelsesforhold'] as unknown[];
-          arr.forEach((item, i) => {
-            if (typeof item === 'object' && item !== null) {
-              logDebug(`[FILELOAD DEBUG] loenindkomstAnsaettelsesforhold[${i}] keys:`, {
-                keys: Object.keys(item),
-              });
-            }
-          });
-        }
-      }
-
-      const primaryIssue = direct.error.issues[0] as unknown as ZodIssueLike | undefined;
-      const normalizedPath = primaryIssue
-        ? primaryIssue.path.filter((seg): seg is string | number => typeof seg === 'string' || typeof seg === 'number')
-        : [];
-      const detailPath = normalizedPath.length > 0 ? formatPathSegments(normalizedPath) : '(root)';
-      const issuePath = detailPath === '(root)' ? sectionKey : `${sectionKey}.${detailPath}`;
-      const reasonDetail = 'Forkert format';
-      loadIssues.push({
-        path: issuePath,
-        reason: `Sektionen kunne ikke indlæses (${reasonDetail}) og blev ikke indlæst`,
-      });
-    }
-
-    // Ukendte sektioner i filen (fra andre versioner) kan ikke indlæses.
-    for (const key of Object.keys(fileData as Record<string, unknown>)) {
-      if (key.startsWith('_')) continue;
-      const isKnown = Object.prototype.hasOwnProperty.call(persistenceSchemas, key);
-      if (!isKnown) {
-        loadIssues.push({
-          path: key,
-          reason: 'Sektionen findes ikke i denne version og blev ikke indlæst',
-        });
-      }
-    }
-
-    const loadedFieldCount = countFilledFields(snapshot as unknown as Record<string, unknown>);
-    if (loadedFieldCount === 0) {
-      throw new Error('Filen indeholder ingen data der kan indlæses i denne version');
-    }
-
-    const expectedCountForUser = expectedFieldCount ?? fileFieldCount;
-    const failedCountForUser = expectedCountForUser >= loadedFieldCount
-      ? expectedCountForUser - loadedFieldCount
-      : 0;
-
-    const fieldCountWarning = expectedFieldCount !== undefined && expectedFieldCount !== loadedFieldCount
-      ? {
-        message: `Forventet ${expectedFieldCount} felter, fandt ${loadedFieldCount} (diff: ${loadedFieldCount - expectedFieldCount})`,
-        expected: expectedFieldCount,
-        actual: loadedFieldCount,
-        difference: loadedFieldCount - expectedFieldCount,
-      }
-      : undefined;
-
-    // Debug-info (kan inspiceres efter successful apply)
-    const debugInfo = {
-      expectedFieldCount,
-      actualFieldCount: loadedFieldCount,
-      sectionsInFile: sectionsPresent,
-      schemaHashInFile: fileSchemaHash ?? null,
-      schemaHashCurrent: persistenceSchemaFingerprint,
-      timestamp: new Date().toISOString(),
-    };
-
-    logOperationEnd('Hent fil', true);
-
-    const shouldPreflightWarn = loadIssues.length > 0;
-
-    return {
-      success: true,
+    const result = processDecryptedContainer({
+      fileContainer,
+      filename: file.name,
       source: 'pwa',
       requestId: options?.requestId,
-      filename: file.name,
       fileHandle,
-      fieldCount: loadedFieldCount,
-      expectedFieldCount,
-      sections: sectionsPresent.length,
-      version: fileVersion,
-      snapshot,
-      debugInfo,
-      fieldCountWarning,
-      preflightWarning: shouldPreflightWarn
-        ? {
-          expectedCount: expectedFieldCount ?? fileFieldCount,
-          loadedCount: loadedFieldCount,
-          failedCount: failedCountForUser,
-          issues: loadIssues,
-        }
-        : undefined,
-    };
+      settings: options?.settings,
+    });
+
+    logOperationEnd('Hent fil', true);
+    return result;
   } catch (error) {
     if (error instanceof CalculationError && error.code === 'FILE_LOAD_FAILED') {
       logOperationEnd('Hent fil', true);

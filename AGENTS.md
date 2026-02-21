@@ -169,6 +169,7 @@ Effects that synchronize props to state must never overwrite already committed u
 - All monetary calculations must follow existing numeric handling patterns in the codebase; do not introduce new numeric strategies.
 - For critical paths (calculation, validation, save/load), add or update tests when behavior changes.
 - Follow existing test structure and patterns; do not introduce new testing frameworks or paradigms.
+- Test naming convention: use at least one top-level `describe('<module-or-function>')` per test file; avoid flat top-level `it(...)` only files.
 - Avoid hidden mutation in domain/state flows; use explicit immutable updates.
 - If a rule exception is unavoidable, record a short decision note at callsite in code: reason, risk, and re-evaluation trigger.
 

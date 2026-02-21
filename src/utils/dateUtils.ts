@@ -102,6 +102,14 @@ export const getTodayLocalISO = (): ISODateString => {
   return toISODateString(`${year}-${month}-${day}`);
 };
 
+export const isLeapYear = (year: number): boolean => {
+  return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+};
+
+export const getDaysInYear = (year: number): number => {
+  return isLeapYear(year) ? 366 : 365;
+};
+
 /**
  * Tilføjer et antal dage til en dato
  */

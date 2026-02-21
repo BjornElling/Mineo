@@ -12,6 +12,7 @@ import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import { formatIsoDateLong, formatIsoDateShort } from '../../utils/dateFormatting';
 import type { StatistiskLoenudviklingId } from '../../data/statistiskLoenudviklingRates';
 import { roundByMethod } from '../../utils/rounding';
+import { formatAsAmount } from '../../utils/formatUtils';
 
 // =============================================================================
 // KONSTANTER
@@ -70,7 +71,7 @@ export const formatDateLong = (isoDate: ISODateString | undefined): string => {
  */
 export const formatPercentFixed2 = (value: number): string => {
   if (!Number.isFinite(value)) return '-';
-  return `${value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+  return `${formatAsAmount(value, 2)} %`;
 };
 
 export const roundToTwoDecimals = (value: number): number => roundByMethod(value, 2, 'halfAwayFromZero');
@@ -78,7 +79,7 @@ export const roundToTwoDecimals = (value: number): number => roundByMethod(value
 export const roundToFourDecimals = (value: number): number => roundByMethod(value, 4, 'halfAwayFromZero');
 
 export const formatAmount2 = (value: number): string =>
-  value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  formatAsAmount(value, 2);
 
 export const formatAmountWithoutTrailingDecimals = (value: number): string => {
   const formatted = formatAmount2(value);

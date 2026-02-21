@@ -7,12 +7,11 @@ import BugReportButton from '../../errors/BugReportButton';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import { useFieldErrorsBySourceForSection } from '../../../hooks/useFormFieldErrors';
 import { usePersistedSection } from '../../../hooks/usePersistedSection';
-import { collectAllDebugRows } from '../../../domain/erstatningsopgoerelse/eoDebugRowAggregator';
-import type { NavigationTarget } from '../../../domain/erstatningsopgoerelse/eoDebugNavigationMap';
+import { collectAllDebugRows } from '../../../domain/debug/eoDebugRowAggregator';
+import type { NavigationTarget } from '../../../domain/debug/eoDebugNavigationMap';
 import { scrollToSection } from '../../../utils/scrollToSection';
 import { scrollToDebugRow } from '../../../utils/scrollToDebugRow';
-import { formatISOToDanish } from '../../../utils/dateFormatting';
-import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
+import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { useErstatningsopgoerelseAggregation } from '../../../calculation/useErstatningsopgoerelseAggregation';
 import AggregationResultView from './components/AggregationResultView';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
@@ -30,23 +29,6 @@ import {
   downloadErstatningsopgoerelsePdf,
   downloadTafFordeltPaaAarPdf,
 } from '../../../utils/pdf/pdfService';
-
-const formatDateLongDisplay = (isoDate: string | undefined): string => {
-  const danish = formatISOToDanish(isoDate ?? '');
-  if (!danish) return '-';
-  const [day, month, year] = danish.split('-');
-  const dayNumber = parseInt(day, 10);
-  const monthIndex = parseInt(month, 10) - 1;
-  if (
-    !Number.isFinite(dayNumber) ||
-    !Number.isFinite(monthIndex) ||
-    monthIndex < 0 ||
-    monthIndex >= MONTH_NAMES_DA.length
-  ) {
-    return '-';
-  }
-  return `${dayNumber}. ${MONTH_NAMES_DA[monthIndex]} ${year}`;
-};
 
 type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
 
@@ -88,10 +70,17 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   const eoErrors = useFieldErrorsBySourceForSection('erstatningsopgoerelse');
   const manuelReguleringInputErrors = getLoenindkomstManuelReguleringInputErrors();
 
-  const [controlMismatchDialogOpen, setControlMismatchDialogOpen] = React.useState(false);
-  const [controlMismatchRows, setControlMismatchRows] = React.useState<SammentaellingDisplayRow[]>([]);
-  const [controlMismatchReport, setControlMismatchReport] = React.useState<ControlMismatchReport | null>(null);
-  const [controlMismatchReportError, setControlMismatchReportError] = React.useState<Error | null>(null);
+  const [controlMismatchState, setControlMismatchState] = React.useState<{
+    open: boolean;
+    rows: SammentaellingDisplayRow[];
+    report: ControlMismatchReport | null;
+    reportError: Error | null;
+  }>({
+    open: false,
+    rows: [],
+    report: null,
+    reportError: null,
+  });
   const hasRunControlCheckRef = React.useRef(false);
   const debugSnapshotRef = React.useRef<EODebugSnapshot | null>(null);
   debugSnapshotRef.current = debugSnapshot;
@@ -104,11 +93,11 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   }, []);
 
   const controlMismatchReportExtras = React.useCallback(() => {
-    if (!controlMismatchReport) return [];
+    if (!controlMismatchState.report) return [];
     return [
-      { title: 'Kontroluoverensstemmelse (snapshot)', data: controlMismatchReport },
+      { title: 'Kontroluoverensstemmelse (snapshot)', data: controlMismatchState.report },
     ];
-  }, [controlMismatchReport]);
+  }, [controlMismatchState.report]);
 
   const runControlCheckOnceOnTabEntryRef = React.useRef<() => void>(() => {});
   runControlCheckOnceOnTabEntryRef.current = () => {
@@ -116,10 +105,12 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     if (!snapshot) return;
     if (snapshot.revision !== currentDebugRevision) return;
     if (!snapshot.hasControlErrors) {
-      setControlMismatchRows([]);
-      setControlMismatchReport(null);
-      setControlMismatchReportError(null);
-      setControlMismatchDialogOpen(false);
+      setControlMismatchState({
+        open: false,
+        rows: [],
+        report: null,
+        reportError: null,
+      });
       return;
     }
 
@@ -128,25 +119,29 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     );
 
     if (mismatches.length === 0) {
-      setControlMismatchRows([]);
-      setControlMismatchReport(null);
-      setControlMismatchReportError(null);
-      setControlMismatchDialogOpen(false);
+      setControlMismatchState({
+        open: false,
+        rows: [],
+        report: null,
+        reportError: null,
+      });
       return;
     }
 
     const report = buildControlMismatchReport(snapshot, mismatches);
-    setControlMismatchRows(mismatches);
-    setControlMismatchReport(report);
-    setControlMismatchReportError(buildControlMismatchError(report));
-    setControlMismatchDialogOpen(true);
+    setControlMismatchState({
+      open: true,
+      rows: mismatches,
+      report,
+      reportError: buildControlMismatchError(report),
+    });
   };
 
   React.useEffect(() => {
     if (!isActive) {
       // Navigation-guard: reset when leaving tab so entry is explicit.
       hasRunControlCheckRef.current = false;
-      setControlMismatchDialogOpen(false);
+      setControlMismatchState((prev) => ({ ...prev, open: false }));
       return;
     }
     if (hasRunControlCheckRef.current) return;
@@ -357,7 +352,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 
   const erErhvervssygdom = stamdataValues?.skadestype === 'Erhvervssygdom';
   const skadesdatoLabel = erErhvervssygdom ? 'Anmeldelsesdato' : 'Skadesdato';
-  const skadesdatoDisplay = formatDateLongDisplay(stamdataValues?.skadesdato);
+  const skadesdatoDisplay = formatIsoDateLong(stamdataValues?.skadesdato) || '-';
 
   const erRevideret = eoValues?.revideretOpgoerelse === 'Ja';
   const revideretPrefix = erRevideret ? 'Revideret ' : '';
@@ -801,7 +796,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       </ContentBox>
 
       <ConfirmationDialog
-        open={controlMismatchDialogOpen}
+        open={controlMismatchState.open}
         title="Uoverensstemmelse i kontrolberegning"
         message={
           <Box>
@@ -814,7 +809,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
               Uoverensstemmelser:
             </Typography>
             <Box component="ul" sx={{ margin: 0, paddingLeft: 2 }}>
-              {controlMismatchRows.map((row) => (
+              {controlMismatchState.rows.map((row) => (
                 <li key={row.key}>
                   <Typography variant="body2">
                     {row.label}: Beregnet {row.control.beregnetDisplay} · Tabel {row.control.tabelDisplay}
@@ -827,16 +822,16 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         cancelText="Luk"
         confirmText="OK"
         confirmColor="primary"
-        onCancel={() => setControlMismatchDialogOpen(false)}
-        onConfirm={() => setControlMismatchDialogOpen(false)}
+        onCancel={() => setControlMismatchState((prev) => ({ ...prev, open: false }))}
+        onConfirm={() => setControlMismatchState((prev) => ({ ...prev, open: false }))}
         extraActions={
-          controlMismatchReportError ? (
+          controlMismatchState.reportError ? (
             <BugReportButton
               variant="outlined"
               label="Send fejloplysninger"
               context={{
                 source: 'Beregning-fane: Kontroluoverensstemmelse i sammentælling',
-                error: controlMismatchReportError,
+                error: controlMismatchState.reportError,
               }}
               getExtraSections={controlMismatchReportExtras}
             />

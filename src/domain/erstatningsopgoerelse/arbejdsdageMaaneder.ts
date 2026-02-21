@@ -1,7 +1,7 @@
 import type { ISODateString } from '../../types/branded';
 import { dateToISO } from '../../types/branded';
 import { isoDateToDate } from '../dates/isoDate';
-import { roundByMethod } from '../../utils/rounding';
+import { optaelMaanederPraecis } from './periodiseringsMotor';
 
 export const beregnArbejdsdageOgMaaneder = (
   fra: ISODateString,
@@ -13,7 +13,6 @@ export const beregnArbejdsdageOgMaaneder = (
   const tilDate = isoDateToDate(til);
 
   let arbejdsdage = 0;
-  const monthCounts = new Map<string, number>();
 
   const current = new Date(fraDate);
   while (current <= tilDate) {
@@ -28,32 +27,11 @@ export const beregnArbejdsdageOgMaaneder = (
       if (erHverdag && !erSH && !erFerie) {
         arbejdsdage++;
       }
-
-      // Måneder: hver dag tæller som 1/dage-i-måneden
-      const year = current.getUTCFullYear();
-      const month = current.getUTCMonth() + 1;
-      const monthKey = `${year}-${String(month).padStart(2, '0')}`;
-      monthCounts.set(monthKey, (monthCounts.get(monthKey) ?? 0) + 1);
     }
 
     current.setUTCDate(current.getUTCDate() + 1);
   }
 
-  let maaneder = 0;
-  for (const [monthKey, count] of monthCounts) {
-    const [yearStr, monthStr] = monthKey.split('-');
-    const year = Number.parseInt(yearStr ?? '', 10);
-    const month = Number.parseInt(monthStr ?? '', 10);
-    if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
-      continue;
-    }
-    const dageIMaaned = new Date(Date.UTC(year, month, 0)).getUTCDate();
-    if (!Number.isFinite(dageIMaaned) || dageIMaaned <= 0) {
-      continue;
-    }
-    maaneder += count / dageIMaaned;
-  }
-
-  const roundedMaaneder = roundByMethod(maaneder, 6, 'halfAwayFromZero');
-  return { arbejdsdage, maaneder: roundedMaaneder };
+  const maaneder = optaelMaanederPraecis({ fra, til, oevrigeFravaersdage: 0 }) ?? 0;
+  return { arbejdsdage, maaneder };
 };

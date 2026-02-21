@@ -3,6 +3,9 @@ import { formatPercentFixed2 as formatPercentFixed2Shared } from './sharedPdfUti
 import { roundByMethod } from '../../utils/rounding';
 
 export type FormulaComponents = Readonly<{
+  /**
+   * Procentfelter angives som procentpoint, fx `12` for 12 % (ikke decimal 0,12).
+   */
   baseValue: number;
   feriePct: number;
   fritvalgPct: number;
@@ -17,8 +20,6 @@ export type FormulaVisibility = Readonly<{
   showPension: boolean;
   showStoreBededag: boolean;
 }>;
-
-const formatPercentFixed2 = formatPercentFixed2Shared;
 
 export const parsePercentInput = (raw: string | undefined): number => {
   if (typeof raw !== 'string') return 0;
@@ -42,7 +43,7 @@ export const formatPercentCellFromRaw = (raw: string | undefined): string => {
   const cleaned = normalized.replace(/\./g, '').replace(',', '.');
   const num = Number.parseFloat(cleaned);
   if (!Number.isFinite(num)) return trimmed.includes('%') ? trimmed : `${trimmed} %`;
-  return formatPercentFixed2(num);
+  return formatPercentFixed2Shared(num);
 };
 
 export const mergeFeriepengeDisplay = (fromFeriePct: string | undefined, fromFeriepenge: string | undefined): string => {
@@ -73,7 +74,18 @@ export const wrapIndexFormulaAfterSlashWhenLong = (value: string, maxInlineLengt
 export const formatOverenskomstPercent = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return '-';
   const pct = roundByMethod(value * 100, 2, 'halfAwayFromZero');
-  return formatPercentFixed2(pct);
+  return formatPercentFixed2Shared(pct);
+};
+
+export const computeFormulaValue = (components: FormulaComponents): number => {
+  const baseValue = Number.isFinite(components.baseValue) ? components.baseValue : 0;
+  const feriePct = Number.isFinite(components.feriePct) ? components.feriePct : 0;
+  const fritvalgPct = Number.isFinite(components.fritvalgPct) ? components.fritvalgPct : 0;
+  const shSoPct = Number.isFinite(components.shSoPct) ? components.shSoPct : 0;
+  const pensionPct = Number.isFinite(components.pensionPct) ? components.pensionPct : 0;
+  const storeBededagPct = Number.isFinite(components.storeBededagPct) ? components.storeBededagPct : 0;
+  const tillaegPct = feriePct + fritvalgPct + shSoPct + storeBededagPct;
+  return baseValue * (1 + tillaegPct / 100) * (1 + pensionPct / 100);
 };
 
 export const formatOverenskomstAmount = (value: number | null | undefined): string => {
@@ -94,7 +106,7 @@ export const buildFormulaText = (components: FormulaComponents, visibility: Form
     ...(feriePct !== 0 ? [formatPercent(feriePct)] : []),
     ...(visibility.showFritvalg && fritvalgPct !== 0 ? [formatPercent(fritvalgPct)] : []),
     ...(visibility.showShSo && shSoPct !== 0 ? [formatPercent(shSoPct)] : []),
-    ...(visibility.showStoreBededag && storeBededagPct !== 0 ? [formatPercentFixed2(storeBededagPct)] : []),
+    ...(visibility.showStoreBededag && storeBededagPct !== 0 ? [formatPercentFixed2Shared(storeBededagPct)] : []),
   ];
   const factors: string[] = [];
   if (extraParts.length > 0) {

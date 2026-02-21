@@ -16,6 +16,10 @@ export type StyledFractionFieldProps = {
   width?: number | string;
   placeholder?: string;
   disabled?: boolean;
+  /**
+   * Legacy konfigurationsprop.
+   * Kun værdien `2` er understøttet for at bevare eksisterende inputkontrakt.
+   */
   maxDigits?: number;
   allowNegative?: boolean;
   /**

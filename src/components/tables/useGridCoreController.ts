@@ -27,14 +27,6 @@ export const useGridCoreController = (options: UseGridCoreControllerOptions = {}
   const editingCellRef = React.useRef<GridCellCoord | null>(editingCell);
   const pendingFocusPlanRef = React.useRef<FocusPlan | null>(null);
 
-  React.useEffect(() => {
-    focusedCellRef.current = focusedCell;
-  }, [focusedCell]);
-
-  React.useEffect(() => {
-    editingCellRef.current = editingCell;
-  }, [editingCell]);
-
   const controller = React.useMemo<GridCoreController>(() => {
     const getFocusedCell = () => focusedCellRef.current;
     const getEditingCell = () => editingCellRef.current;
@@ -75,6 +67,7 @@ export const useGridCoreController = (options: UseGridCoreControllerOptions = {}
         pendingFocusPlanRef.current = null;
       }
 
+      editingCellRef.current = cell;
       flushSync(() => setEditingCellState(cell));
       if (source === 'doubleClick') {
         handle?.selectAll();

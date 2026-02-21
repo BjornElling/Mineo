@@ -49,8 +49,8 @@ describe('validateLoenudviklingManualBaseRowSatser', () => {
       }
     );
 
-    expect(errors.fritvalg).toBe('Værdien er ovenfor angivet til 2 %');
-    expect(errors.agPension).toBe('Værdien er ovenfor angivet til 10 %');
+    expect(errors.fritvalg).toBe('Værdien er ovenfor angivet til 2,00 %');
+    expect(errors.agPension).toBe('Værdien er ovenfor angivet til 10,00 %');
     expect(errors.feriepenge).toBeUndefined();
     expect(errors.shSoSats).toBeUndefined();
   });
@@ -71,7 +71,7 @@ describe('validateLoenudviklingManualBaseRowSatser', () => {
       }
     );
 
-    expect(errors.fritvalg).toBe('Værdien er ovenfor angivet til 2 %');
+    expect(errors.fritvalg).toBe('Værdien er ovenfor angivet til 2,00 %');
   });
 
   it('springer felter over hvor sats på skadestidspunktet ikke er angivet', () => {

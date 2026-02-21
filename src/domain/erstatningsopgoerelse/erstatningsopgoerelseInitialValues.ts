@@ -32,17 +32,6 @@ export const DEFAULT_ANCIENNITET_FIELDS = {
 };
 
 /**
- * Opretter initial values for erstatningsopgørelse med settings-baserede standardværdier
- *
- * Validering:
- * - AppSettings valideres via safeParse ved grænsefladen til sagsdata
- * - Ved invalid settings bruges DEFAULT_APP_SETTINGS som fallback
- * - Dette sikrer at ugyldige device-lokale settings aldrig påvirker sagsdata
- *
- * @param settings AppSettings med standardværdier (optional for bagudkompatibilitet)
- * @returns ErstatningsopgoerelseValues med korrekte defaults
- */
-/**
  * Opretter initiale EO-værdier ud fra AppSettings.
  *
  * KRITISK KONTRAKT:

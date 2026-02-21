@@ -24,8 +24,7 @@ import {
   createPdfTableTransparentRow,
   renderEoStylePdfTable,
 } from './pdfTableRenderer';
-import { createDate } from '../dateUtils';
-import { formatDanishDate, parseDanishDate } from '../dateUtils';
+import { createDate, formatDanishDate, getDaysInYear, parseDanishDate } from '../dateUtils';
 import { countInclusiveUtcDays } from '../utcDayMath';
 import { logError } from '../logger';
 import type { RateEntry } from '../../data/interestRates';
@@ -52,13 +51,6 @@ type RentePeriod = Readonly<{
 const parseAmountInput = (value: string | number): number => {
   if (typeof value === 'number') return value;
   return Number.parseFloat(value.replace(/\./g, '').replace(',', '.'));
-};
-
-/**
- * Beregner antal dage i et givet år (365 eller 366)
- */
-const getDaysInYear = (year: number): number => {
-  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 366 : 365;
 };
 
 /**

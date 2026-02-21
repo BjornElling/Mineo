@@ -31,8 +31,7 @@ export const useFormFieldErrorsBySource = <K extends StorageKey>(pageKey: K): Fi
  */
 export const useFieldErrorsBySourceForSection = <K extends StorageKey>(pageKey: K): FieldErrorsForSection<K> => {
   const { getFieldErrorsBySource } = useFormPersistence();
-  const value = getFieldErrorsBySource(pageKey);
-  return React.useMemo(() => value, [value]);
+  return getFieldErrorsBySource(pageKey);
 };
 
 type ReporterOptions = {

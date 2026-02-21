@@ -63,6 +63,7 @@ import {
 } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import {
   buildFormulaText,
+  computeFormulaValue,
   formatOverenskomstAmount,
   formatOverenskomstPercent,
   formatPercentCellFromRaw,
@@ -427,25 +428,14 @@ const percentFromDecimal = (value: number | null | undefined): number => {
 };
 
 const formatIndexValue = (value: number): string =>
-  value.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  formatAsAmount(value, 2);
 
 const formatLoenudviklingFromIndex = (indexValue: number): string => {
   if (!Number.isFinite(indexValue)) return '';
   const delta = roundByMethod(indexValue - 100, 2, 'halfAwayFromZero');
   if (Math.abs(delta) < 0.000001) return '';
-  const absDisplay = Math.abs(delta).toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const absDisplay = formatAsAmount(Math.abs(delta), 2);
   return delta > 0 ? `+ ${absDisplay} %` : `- ${absDisplay} %`;
-};
-
-const computeFormulaValue = (components: FormulaComponents): number => {
-  const baseValue = Number.isFinite(components.baseValue) ? components.baseValue : 0;
-  const feriePct = Number.isFinite(components.feriePct) ? components.feriePct : 0;
-  const fritvalgPct = Number.isFinite(components.fritvalgPct) ? components.fritvalgPct : 0;
-  const shSoPct = Number.isFinite(components.shSoPct) ? components.shSoPct : 0;
-  const pensionPct = Number.isFinite(components.pensionPct) ? components.pensionPct : 0;
-  const storeBededagPct = Number.isFinite(components.storeBededagPct) ? components.storeBededagPct : 0;
-  const tillaeg = feriePct + fritvalgPct + shSoPct + storeBededagPct;
-  return baseValue * (1 + tillaeg / 100) * (1 + pensionPct / 100);
 };
 
 type ReguleringsPeriode = Readonly<{
@@ -808,7 +798,7 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
 
     const decimals = detectDecimalPlaces(model.indeksvaerdier.map((value) => value.indeksvaerdi));
     const formatIndex = (value: number) =>
-      value.toLocaleString('da-DK', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+      formatAsAmount(value, decimals);
 
     let basePeriod = periodStarts[0];
     for (const period of periodStarts) {
@@ -832,7 +822,7 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
     if (!tabel || tabel.vaerdier.length === 0) return null;
 
     const formatKrlPct = (value: number): string =>
-      value.toLocaleString('da-DK', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' %';
+      formatAsAmount(value, 4) + ' %';
 
     const periodStarts = tabel.vaerdier
       .map((v) => {
@@ -894,7 +884,7 @@ const buildReguleringIndexRows = (params: Readonly<{
   const formatStatValue = isAslModel
     ? formatCurrency
     : (value: number) =>
-      value.toLocaleString('da-DK', { minimumFractionDigits: statDecimalPlaces, maximumFractionDigits: statDecimalPlaces });
+      formatAsAmount(value, statDecimalPlaces);
 
   const splitSegmentsAtBoundary = (
     inputSegments: readonly LoenudviklingSegment[],

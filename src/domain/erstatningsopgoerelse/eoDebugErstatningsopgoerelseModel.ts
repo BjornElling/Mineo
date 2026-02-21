@@ -1666,8 +1666,6 @@ export const buildEODebugTaftRows = (
       const antalMaaneder = calculateTafAntalMaanederPraecis(
         displayFra,
         displayTil,
-        ferieperioder,
-        loseFeriedage,
         0
       );
       const maanederDisplay = antalMaaneder === null ? '-' : `${formatMaaneder(antalMaaneder)} måneder`;
@@ -2265,8 +2263,6 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     const maaneder = calculateTafAntalMaaneder(
       periodeFra,
       periodeTil,
-      values.fravaerPerioder ?? [],
-      typeof values.uspecificeredeFerieFridage === 'number' ? values.uspecificeredeFerieFridage : 0,
       oevrigeFravaersdageValue
     );
     if (maaneder === null) {

@@ -8,6 +8,9 @@ import { calculateInterestDate, validateInterestCalculation, type InterestDateIn
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { roundByMethod } from '../../utils/rounding';
 
+// Autoritativ aggregation engine:
+// satser injiceres eksplicit som input-snapshot, og afrunding sker centralt her.
+
 export type RenteberegningInputSnapshot = DeepReadonly<{
   renteberegning: RenteberegningValues;
   referenceRates: ReadonlyArray<RateEntry>;

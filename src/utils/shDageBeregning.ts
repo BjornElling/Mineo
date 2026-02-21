@@ -98,15 +98,6 @@ const erHverdag = (date: Date): boolean => {
 };
 
 /**
- * Tjekker om to datoer er samme dag
- */
-const _erSammeDag = (date1: Date, date2: Date): boolean => {
-  return date1.getUTCFullYear() === date2.getUTCFullYear() &&
-         date1.getUTCMonth() === date2.getUTCMonth() &&
-         date1.getUTCDate() === date2.getUTCDate();
-};
-
-/**
  * Beregner antal SH-dage mellem to datoer
  * SH-dage er helligdage der falder på hverdage (mandag-fredag)
  */
@@ -186,6 +177,3 @@ export const beregnSHDageForDatoSet = (datoSet: ReadonlySet<ISODateString>): num
 
   return antalSH;
 };
-
-// Re-export for bagudkompatibilitet
-export { parseDanishDate, parseWeekString };

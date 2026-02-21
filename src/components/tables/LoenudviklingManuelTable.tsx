@@ -7,7 +7,7 @@ import TableDateInput from '../inputs/table/TableDateInput';
 import TablePercentInput from '../inputs/table/TablePercentInput';
 import type { TableInputErrorInfo } from '../inputs/table/tableInputContracts';
 import { assignRef } from '../inputs/table/assignRef';
-import { useGridCore } from './gridCoreContext';
+import { useGridCoreApi } from './gridCoreContext';
 import type { GridCellCoord, GridCellEditorHandle } from './gridCoreTypes';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './standardGridStyles';
@@ -93,7 +93,7 @@ const ReadOnlyDateCell = React.memo(
     inputRef?: React.Ref<HTMLInputElement>;
     sx?: SxProps<Theme>;
   }) => {
-    const grid = useGridCore();
+    const grid = useGridCoreApi();
     const inputElRef = React.useRef<HTMLInputElement | null>(null);
 
     const showError = Boolean(errorMessage && errorMessage.trim() !== '');

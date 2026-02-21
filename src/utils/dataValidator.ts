@@ -120,11 +120,12 @@ const validateDepth = (obj: unknown, currentDepth: number = 0): boolean => {
   }
 
   // Objekt
-  const keys = Object.keys(obj);
+  const objRecord = obj as Record<string, unknown>;
+  const keys = Object.keys(objRecord);
   if (keys.length > MAX_ARRAY_LENGTH) return false;
 
   for (const key of keys) {
-    if (!validateDepth(obj[key], currentDepth + 1)) {
+    if (!validateDepth(objRecord[key], currentDepth + 1)) {
       return false;
     }
   }
@@ -311,6 +312,7 @@ export const validateFileData = (data: unknown): FileValidationResult => {
     errors.push({ path: '(root)', message: 'Data må ikke være et array' });
     return { isValid: false, errors, warnings };
   }
+  const dataRecord = data as Record<string, unknown>;
 
   // 3. Tjek global dybde
   if (!validateDepth(data)) {
@@ -319,7 +321,7 @@ export const validateFileData = (data: unknown): FileValidationResult => {
   }
 
   // 4. Valider at data kun indeholder tilladte sektioner
-  const dataSections = Object.keys(data);
+  const dataSections = Object.keys(dataRecord);
   for (const section of dataSections) {
     if (!ALLOWED_SECTIONS.includes(section)) {
       warnings.push({
@@ -332,16 +334,16 @@ export const validateFileData = (data: unknown): FileValidationResult => {
 
   // 5. Valider hver sektion individuelt
   for (const section of ALLOWED_SECTIONS) {
-    if (data[section] === undefined || data[section] === null) {
+    if (dataRecord[section] === undefined || dataRecord[section] === null) {
       continue; // Sektion ikke til stede - det er OK
     }
 
     // Specialhåndtering af årsløn
     if (section === 'aarsloen') {
-      const result = validateAarsloen(data[section]);
+      const result = validateAarsloen(dataRecord[section]);
       errors.push(...result.errors);
     } else {
-      const result = validateSection(data[section], section);
+      const result = validateSection(dataRecord[section], section);
       errors.push(...result.errors);
     }
   }

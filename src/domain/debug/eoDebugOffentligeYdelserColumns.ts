@@ -1,9 +1,9 @@
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO } from '../../types/branded';
+import { parseDanishDate } from '../../utils/dateUtils';
 import { formatCurrency } from '../../utils/formatUtils';
 import { parseAmount } from '../../utils/numberParsing';
-import { parseDanishDate } from '../../utils/shDageBeregning';
 import { ydelsestyper, type Periodisering } from '../../data/ydelsestyper';
 import { isoDateToDate } from '../dates/isoDate';
 import type { DebugTabelIntegrityIssue } from './eoDebugModel';

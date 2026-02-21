@@ -544,7 +544,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     } catch (error) {
       console.error(`[Persistence] Fejl ved sletning af data for '${pageKey}':`, error);
     }
-  }, [setCacheForKey, syncSection]);
+  }, [syncSection]);
 
   /**
    * Slet alle gemte MINEO data

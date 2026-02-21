@@ -7,7 +7,7 @@ import TableIntegerInput from '../inputs/table/TableIntegerInput';
 import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
 import StandardLooseTable from './StandardLooseTable';
 import { MIN_CALCULATION_DATE, MAX_CALCULATION_YEAR } from '../../data/interestRates';
-import { formatAmount } from '../../utils/interestCalculator';
+import { formatAsAmount } from '../../utils/formatUtils';
 import { downloadRentePdf } from '../../utils/pdf/pdfService';
 import type { ISODateString, DanishDateString } from '../../types/branded';
 import { toISODateString } from '../../types/branded';
@@ -158,7 +158,7 @@ const BeregnetRenteRow = React.memo(
         <TableCell align="right" sx={{ paddingTop: 0, paddingBottom: 0 }}>
           <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
             <Typography className="row--text" sx={{ color: 'var(--color-text-secondary)', textAlign: 'right' }}>
-              {calculatedInterest !== null ? `${formatAmount(calculatedInterest)} kr.` : '-'}
+              {calculatedInterest !== null ? `${formatAsAmount(calculatedInterest, 2)} kr.` : '-'}
             </Typography>
           </Box>
         </TableCell>

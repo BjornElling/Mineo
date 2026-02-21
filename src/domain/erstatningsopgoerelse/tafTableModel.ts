@@ -5,6 +5,7 @@ import { commitIsoDateFromDraftString } from '../dates/dateCommit';
 import { ensureRowsWithTrailingEmpty } from '../tableRowManagement';
 import { isTafRowEmpty } from './rowEmpty';
 import type { TafDraftRow } from './tableDraftRows';
+import { parseOptionalIntegerFromString } from '../tableModelUtils';
 
 export const createTafRowId = (): RowId => createRowId('taf_row');
 
@@ -36,13 +37,6 @@ export const committedToTafDraftRows = (rows: TafPeriodeRow[]): TafDraftRow[] =>
     til: row.til ?? '',
     loseFeriedage: typeof row.loseFeriedage === 'number' ? String(row.loseFeriedage) : '',
   }));
-};
-
-export const parseOptionalIntegerFromString = (value: string): number | undefined => {
-  const trimmed = value.trim();
-  if (trimmed === '') return undefined;
-  const parsed = Number.parseInt(trimmed, 10);
-  return Number.isFinite(parsed) ? parsed : undefined;
 };
 
 export const tafDraftToCommittedRow = (draft: TafDraftRow): TafPeriodeRow => {

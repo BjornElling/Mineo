@@ -4,6 +4,7 @@
  * DebugRowId patterns with row-id are supported directly, and new rows in the
  * same patterns work without extra configuration.
  */
+import { scrollWithRetry } from './scrollWithRetry';
 
 const resolveAnchorIdFromDebugRowId = (debugRowId: string): string | null => {
   const loenindkomstMatch = debugRowId.match(/^loenindkomst\.([^.]+)(?:\.|$)/);
@@ -47,11 +48,6 @@ export const scrollToDebugRow = (
     onFailure?: (reason: string) => void;
   } = {}
 ): void => {
-  if (typeof document === 'undefined') {
-    options.onFailure?.('No DOM environment available for scroll');
-    return;
-  }
-
   const anchorId = resolveAnchorIdFromDebugRowId(debugRowId);
   if (!anchorId) {
     options.onFailure?.(`No row anchor could be resolved from debugRowId="${debugRowId}"`);
@@ -59,30 +55,18 @@ export const scrollToDebugRow = (
   }
 
   const { maxRetries = 150, onSuccess, onFailure } = options;
-  let attempts = 0;
   const prefersReducedMotion =
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const behavior: ScrollBehavior = prefersReducedMotion ? 'auto' : 'smooth';
 
-  const tryScroll = () => {
-    attempts += 1;
-    const target = findElementByMineoRowId(anchorId);
-
-    if (target) {
-      target.scrollIntoView({ behavior, block: 'start' });
-      onSuccess?.();
-      return;
-    }
-
-    if (attempts >= maxRetries) {
-      onFailure?.(`Could not find data-mineo-row-id="${anchorId}" for debugRowId="${debugRowId}"`);
-      return;
-    }
-
-    requestAnimationFrame(tryScroll);
-  };
-
-  requestAnimationFrame(tryScroll);
+  scrollWithRetry({
+    maxRetries,
+    findTarget: () => findElementByMineoRowId(anchorId),
+    behavior,
+    onSuccess,
+    onFailure,
+    failureMessage: `Could not find data-mineo-row-id="${anchorId}" for debugRowId="${debugRowId}"`,
+  });
 };

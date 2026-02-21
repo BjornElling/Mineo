@@ -59,7 +59,7 @@ const BugReportButton: React.FC<BugReportButtonProps> = ({
   const [prepared, setPrepared] = React.useState<PreparedBugReport | null>(null);
   const actionTakenRef = React.useRef(false);
 
-  const handleBugReport = async () => {
+  const handleBugReport = React.useCallback(async () => {
     setDialogOpen(true);
     setIsPreparing(true);
     setPrepared(null);
@@ -88,9 +88,9 @@ const BugReportButton: React.FC<BugReportButtonProps> = ({
     } finally {
       setIsPreparing(false);
     }
-  };
+  }, [context?.error?.message, context?.error?.name, context?.error?.stack, context?.errorInfo?.componentStack, context?.source, getExtraSections]);
 
-  const handleCopyToClipboard = async () => {
+  const handleCopyToClipboard = React.useCallback(async () => {
     if (!prepared) return;
     try {
       await copyBugReport(prepared);
@@ -108,9 +108,9 @@ const BugReportButton: React.FC<BugReportButtonProps> = ({
         severity: 'error',
       });
     }
-  };
+  }, [prepared]);
 
-  const handleOpenEmail = () => {
+  const handleOpenEmail = React.useCallback(() => {
     if (!prepared) return;
     actionTakenRef.current = true;
     openBugReportEmail(prepared);
@@ -119,9 +119,9 @@ const BugReportButton: React.FC<BugReportButtonProps> = ({
       message: 'Email-klient åbnet.',
       severity: 'success',
     });
-  };
+  }, [prepared]);
 
-  const handleDownload = async () => {
+  const handleDownload = React.useCallback(async () => {
     if (!prepared) return;
     try {
       await downloadBugReport(prepared);
@@ -139,13 +139,13 @@ const BugReportButton: React.FC<BugReportButtonProps> = ({
         severity: 'error',
       });
     }
-  };
+  }, [prepared]);
 
-  const handleSnackbarClose = () => {
+  const handleSnackbarClose = React.useCallback(() => {
     setSnackbar((prev) => ({ ...prev, open: false }));
-  };
+  }, []);
 
-  const handleDialogClose = () => {
+  const handleDialogClose = React.useCallback(() => {
     if (isPreparing) return;
     if (prepared && !actionTakenRef.current && import.meta.env.DEV) {
       console.info('Bug report preview aborted', {
@@ -153,7 +153,7 @@ const BugReportButton: React.FC<BugReportButtonProps> = ({
       });
     }
     setDialogOpen(false);
-  };
+  }, [context?.source, isPreparing, prepared]);
 
   return (
     <>
