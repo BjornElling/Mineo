@@ -24,12 +24,14 @@ import { formatAsAmount, formatPercent as formatPercentUtil } from '../formatUti
 export const PDF_BASE_LINE_HEIGHT_MM = 5;
 export const PDF_TITLE_BOTTOM_SPACING_MM = 15;
 
-export const applyNormalTextStyle = (doc: jsPDF): void => {
+type PdfTextStyleAdapter = Pick<jsPDF, 'setFont' | 'setFontSize'>;
+
+export const applyNormalTextStyle = (doc: PdfTextStyleAdapter): void => {
   doc.setFontSize(FONT_SIZES.normal);
   doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
 };
 
-export const applyBoldTextStyle = (doc: jsPDF, fontSize: number): void => {
+export const applyBoldTextStyle = (doc: PdfTextStyleAdapter, fontSize: number): void => {
   doc.setFontSize(fontSize);
   doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
 };
@@ -42,6 +44,18 @@ export type BrevhovedData = Readonly<{
   dagsDatoISO: ISODateString;
   advokat?: string;
   sagsbehandler?: string;
+}>;
+
+type BrevhovedPdfAdapter = Pick<
+  jsPDF,
+  'text' | 'setFont' | 'setFontSize'
+> & Readonly<{
+  internal: Readonly<{
+    pageSize: Readonly<{
+      width: number;
+      height: number;
+    }>;
+  }>;
 }>;
 
 export const addSectionHeading = (doc: jsPDF, title: string, startY: number): number => {
@@ -142,7 +156,7 @@ const formatISODateReadable = (isoDate: ISODateString | undefined): string => fo
  * @param {BrevhovedData} data - Brevhoved-data
  * @returns {number} Altid MARGINS.top (brevhoved er overlay)
  */
-export const addBrevhoved = (doc: jsPDF, data: BrevhovedData): number => {
+export const addBrevhoved = (doc: BrevhovedPdfAdapter, data: BrevhovedData): number => {
   const { journalnr, dagsDatoISO, advokat, sagsbehandler } = data;
   const trimmedJournalnr = typeof journalnr === 'string' ? journalnr.trim() : '';
   const resolvedDatoText = formatISODateReadable(dagsDatoISO);

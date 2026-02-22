@@ -3,6 +3,7 @@ import {
   parseDanishToIso,
   resolveReguleringsdato,
   resolveStatistikModelId,
+  detectDecimalPlaces,
   formatDateShort,
   formatDateLong,
   formatPercentFixed2,
@@ -199,6 +200,12 @@ describe('formatPercentFixed2', () => {
   });
 });
 
+describe('detectDecimalPlaces', () => {
+  it('finder decimaler op til maxPlaces', () => {
+    expect(detectDecimalPlaces([1, 1.2, 1.23, 1.2345], 4)).toBe(4);
+  });
+});
+
 // =============================================================================
 // KONSTANTER
 // =============================================================================
@@ -212,5 +219,3 @@ describe('konstanter', () => {
     expect(STORE_BEDEDAG_PCT).toBe(0.45);
   });
 });
-
-

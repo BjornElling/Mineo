@@ -64,6 +64,7 @@ import {
   formatPercentFixed2 as formatPercentFixed2Shared,
   resolveOffentligLoenEkstraGrundloen,
   roundToTwoDecimals,
+  detectDecimalPlaces,
 } from '../../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import {
   buildFormulaText,
@@ -224,19 +225,6 @@ const formatMaanederTrimmed = (value: number): string => {
   return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
 };
 
-const detectDecimalPlaces = (values: readonly number[], maxPlaces = 4): number => {
-  let max = 0;
-  for (const value of values) {
-    if (!Number.isFinite(value)) continue;
-    let places = 0;
-    for (; places < maxPlaces; places += 1) {
-      const scaled = value * 10 ** places;
-      if (Math.abs(scaled - Math.round(scaled)) < 1e-9) break;
-    }
-    if (places > max) max = places;
-  }
-  return max;
-};
 
 const col = (header: string, align: 'left' | 'right' | 'center', width: number): StandardDisplayTableColumn => ({
   header,

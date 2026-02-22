@@ -58,6 +58,7 @@ import {
   formatDateShort as formatDateShortShared,
   formatDateLong as formatDateLongShared,
   roundToTwoDecimals,
+  detectDecimalPlaces,
 } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import {
   buildFormulaText,
@@ -405,19 +406,6 @@ const parseDanishToISO = parseDanishToIsoShared;
 
 const resolveStatistikModelIdFromLabel = resolveStatistikModelId;
 
-const detectDecimalPlaces = (values: readonly number[], maxPlaces = 4): number => {
-  let max = 0;
-  for (const value of values) {
-    if (!Number.isFinite(value)) continue;
-    let places = 0;
-    for (; places < maxPlaces; places += 1) {
-      const scaled = value * 10 ** places;
-      if (Math.abs(scaled - Math.round(scaled)) < 1e-9) break;
-    }
-    if (places > max) max = places;
-  }
-  return max;
-};
 
 const percentFromDecimal = (value: number | null | undefined): number => {
   if (value === null || value === undefined) return 0;

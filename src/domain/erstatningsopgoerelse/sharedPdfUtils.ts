@@ -189,3 +189,32 @@ export const resolveStatistikModelId = (label: string | undefined): StatistiskLo
   if (trimmed.startsWith('SBLON2')) return 'SBLON2' as StatistiskLoenudviklingId;
   return undefined;
 };
+
+// =============================================================================
+// DECIMALDETEKTERING
+// =============================================================================
+
+/**
+ * Finder det nødvendige antal decimalpladser for at vise `values` præcist,
+ * op til `maxPlaces` (default 4).
+ *
+ * Antager normal størrelsesorden (fx løn-/procentdata). Hvis en skalering
+ * bliver uendelig/ikke-endelig, fail-closed vi til `maxPlaces`.
+ */
+export const detectDecimalPlaces = (values: readonly number[], maxPlaces = 4): number => {
+  let max = 0;
+  for (const value of values) {
+    if (!Number.isFinite(value)) continue;
+    let places = 0;
+    for (; places < maxPlaces; places += 1) {
+      const scaled = value * 10 ** places;
+      if (!Number.isFinite(scaled)) {
+        places = maxPlaces;
+        break;
+      }
+      if (Math.abs(scaled - Math.round(scaled)) < 1e-9) break;
+    }
+    if (places > max) max = places;
+  }
+  return max;
+};

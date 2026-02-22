@@ -41,5 +41,9 @@ Thumbs.db
 # Claude Code lokale filer
 .claude/
 
+# Desloppify
+.desloppify/
+scorecard.png
+
 # Kontinuerligt fejloprettet nul-fil
 nul

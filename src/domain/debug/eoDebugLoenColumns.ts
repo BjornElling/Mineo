@@ -18,6 +18,7 @@ import { debugTabelColumnId, WAGE_COLUMNS } from './eoDebugLoenTypes';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
 import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/indtaegtPerioder';
 import { type DateInterval, iterateDatesInclusive, validateIsoRange } from '../../utils/isoDateHelpers';
+import { sumFloat64Array, isWithinIntegrityTolerance } from './eoDebugMathUtils';
 
 // LOCKED: Løn/TAF debug-clusteret er færdig‑porteret.
 // Ændr kun ved parity‑brud og dokumentér årsag.
@@ -30,23 +31,6 @@ export type DebugTabelColumnData = Readonly<{
   values: readonly string[];
   rawValues?: readonly number[];
 }>;
-
-const sumFloat64Array = (arr: Float64Array): number => {
-  let sum = 0;
-  let compensation = 0;
-  for (let i = 0; i < arr.length; i += 1) {
-    const value = arr[i] ?? 0;
-    const y = value - compensation;
-    const t = sum + y;
-    compensation = (t - sum) - y;
-    sum = t;
-  }
-  return sum;
-};
-
-const isWithinIntegrityTolerance = (actual: number, expected: number, tolerance: number): boolean => {
-  return Math.abs(actual - expected) <= tolerance + Number.EPSILON;
-};
 
 const getWageAmountsForRow = (
   row: AarsloenTableRow,

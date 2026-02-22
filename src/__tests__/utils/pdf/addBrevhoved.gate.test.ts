@@ -211,7 +211,6 @@ describe('addBrevhoved rendering', () => {
     it('simulerer korrekt gate-logik: visBrevhoved=true + null stamdata → kald', () => {
       const mockDoc = createMockDoc();
       const visBrevhoved = true;
-      const stamdata = null;
 
       // Simuler PDF-generator gate
       let currentY = 40; // MARGINS.top

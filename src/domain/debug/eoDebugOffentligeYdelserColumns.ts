@@ -9,6 +9,7 @@ import { isoDateToDate } from '../dates/isoDate';
 import type { DebugTabelIntegrityIssue } from './eoDebugModel';
 import { isOffentligYdelseDatoMedregnet as isOffentligYdelseDatoMedregnetCentral } from '../erstatningsopgoerelse/periodiseringsMotor';
 import { iterateDatesInclusive, validateIsoRange } from '../../utils/isoDateHelpers';
+import { sumFloat64Array, isWithinIntegrityTolerance } from './eoDebugMathUtils';
 
 export type OffentligYdelseCoreColumn = Readonly<{
   typeKey: string;
@@ -24,23 +25,6 @@ export const parseOffentligDato = (value: string | undefined): ISODateString | u
   const parsed = parseDanishDate(trimmed);
   if (!parsed) return undefined;
   return dateToISO(parsed);
-};
-
-const isWithinIntegrityTolerance = (actual: number, expected: number, tolerance: number): boolean => {
-  return Math.abs(actual - expected) <= tolerance + Number.EPSILON;
-};
-
-const sumFloat64Array = (arr: Float64Array): number => {
-  let sum = 0;
-  let compensation = 0;
-  for (let i = 0; i < arr.length; i += 1) {
-    const value = arr[i] ?? 0;
-    const y = value - compensation;
-    const t = sum + y;
-    compensation = (t - sum) - y;
-    sum = t;
-  }
-  return sum;
 };
 
 const isOffentligYdelseDatoMedregnet = (
