@@ -8,7 +8,7 @@
  */
 
 import jsPDF from 'jspdf';
-import { COLORS, FONT_SIZES, MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
+import { FONT_SIZES, MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
 import {
   addFooter,
   addBrevhoved,
@@ -413,7 +413,7 @@ export const createPdfWriter = (params: Readonly<{
   visUdkastStempel: boolean;
   onLayoutFallback: (message: string) => void;
 }>): PdfWriter => {
-  const { lineHeight, doubleLineHeight, visUdkastStempel, onLayoutFallback } = params;
+  const { lineHeight, visUdkastStempel, onLayoutFallback } = params;
   const cursor = createPdfCursor({ lineHeight, visUdkastStempel, onLayoutFallback });
   let previousBlockWasSectionHeader = false;
 

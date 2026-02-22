@@ -287,42 +287,6 @@ export const generateBugReport = async (
   return report;
 };
 
-/**
- * Trim rapport til max length (hvis mailto: limit overskrides)
- *
- * @param {string} report - Fuld rapport
- * @param {number} maxLength - Max længde i chars
- * @returns {string} Trimmet rapport
- */
-const _trimReport = (report: string, maxLength: number): string => {
-  if (report.length <= maxLength) {
-    return report;
-  }
-
-  const footer = '\n\n[Rapport trimmet - kun seneste fejl inkluderet]';
-
-  // Find header (alt før "=== Seneste fejl")
-  const headerEnd = report.indexOf('=== Seneste fejl');
-  if (headerEnd === -1) {
-    // Ingen fejl sektion - bare trim
-    return report.substring(0, maxLength) + '\n\n[Rapport trimmet]';
-  }
-
-  const header = report.substring(0, headerEnd);
-  if (header.length >= maxLength) {
-    const maxHeaderLength = Math.max(0, maxLength - footer.length);
-    return header.slice(0, maxHeaderLength) + footer;
-  }
-
-  const availableSpace = maxLength - header.length - footer.length;
-
-  // Tag så mange fejl som muligt
-  const logSection = report.substring(headerEnd);
-  const trimmedLogs = logSection.substring(0, Math.max(0, availableSpace));
-
-  return header + trimmedLogs + footer;
-};
-
 const encodedLength = (value: string): number => {
   return encodeURIComponent(value).length;
 };

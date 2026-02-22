@@ -215,16 +215,6 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
       [setCellValue]
     );
 
-    const handleInputChange = React.useCallback(
-      (rowId: string, colKey: AarsloenTableColumnKey, value: AarsloenTableRow[AarsloenTableColumnKey]) => {
-        setRowsState((prev) => ({
-          ...prev,
-          draft: updateCellValueInTable(prev.draft, rowId, colKey, value),
-        }));
-      },
-      [updateCellValueInTable]
-    );
-
     const handleFieldBlur = React.useCallback(
       (rowId: string, colKey: AarsloenTableColumnKey, value: AarsloenTableRow[AarsloenTableColumnKey]) => {
         setRowsState((prev) => {

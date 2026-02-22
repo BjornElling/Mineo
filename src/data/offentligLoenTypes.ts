@@ -29,9 +29,6 @@ export const resolveOffentligLoenTypeFromLabel = (
   return undefined;
 };
 
-export const resolveOffentligLoenTypeLabel = (value: OffentligLoenType): OffentligLoenTypeLabel =>
-  value === 'maanedsLoen' ? OFFENTLIG_LOEN_TYPE_LABELS.MAANED : OFFENTLIG_LOEN_TYPE_LABELS.TIME;
-
 /** Løngruppe: 0-4 (områdetillægsgruppe) */
 export type Loengruppe = 0 | 1 | 2 | 3 | 4;
 
@@ -57,13 +54,6 @@ export const toLoentrin = (value: number | string): Loentrin => {
     }
   }
   throw new Error(`Ugyldigt løntrin: ${JSON.stringify(value)}. Skal være heltal 1-55 eller '55+'.`);
-};
-
-/** Type guard: tjekker om en værdi er et gyldigt Loentrin */
-export const isValidLoentrin = (value: unknown): value is Loentrin => {
-  if (value === '55+') return true;
-  if (typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 55) return true;
-  return false;
 };
 
 /** Én række i løntabellen — nøglebaseret, ikke positionsbaseret */

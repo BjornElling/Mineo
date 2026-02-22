@@ -6,7 +6,7 @@
  */
 
 import type { ISODateString } from '../types/branded';
-import { coerceToISODateString, toISODateString } from '../types/branded';
+import { toISODateString } from '../types/branded';
 import { getTodayLocalISO } from '../utils/dateUtils';
 
 // ============================================================================

@@ -11,7 +11,7 @@ import { formatCurrency } from '../../utils/formatUtils';
 import { addDays, addMonths, parseDanishDate } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { buildNoValidDateRangeMessage, collectPresentFieldErrors, isNonEmptyString, resolveDebugDisplay } from './eoDebugCommon';
-import type { DebugRowGroup, DebugRowModel, DebugStatus } from '../debug/eoDebugTypes';
+import type { DebugRowModel, DebugStatus } from '../debug/eoDebugTypes';
 import { isoDateToDate } from '../dates/isoDate';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
@@ -1878,8 +1878,6 @@ export const buildEODebugTafBeregningsgrundlagRows = (
 
   const beregnesUdFra = values.beregnesUdFra;
   const isBeregningsperiode = beregnesUdFra === 'Beregningsperiode';
-  const isAngivetMaanedsloen = beregnesUdFra === 'Angivet månedsløn';
-  const isAngivetDagsloen = beregnesUdFra === 'Angivet dagsløn';
   const periodeFra = values.periodeTilBeregningFra;
   const periodeTil = values.periodeTilBeregningTil;
 

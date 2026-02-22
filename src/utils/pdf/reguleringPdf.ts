@@ -6,7 +6,6 @@
 
 import jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
-import { COLORS } from './pdfConfig';
 import {
   resolvePdfSectionEndY,
   PDF_BASE_LINE_HEIGHT_MM,

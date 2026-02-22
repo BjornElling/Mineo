@@ -550,12 +550,6 @@ export const getDevtoolsIssueSnapshot = (): DevtoolsIssueSnapshot => {
   return buildSnapshot();
 };
 
-export const recordDevtoolsBreadcrumb = (
-  payload: Omit<DevtoolsTimelineEvent, 'id' | 'timestamp' | 'relativeMs' | 'correlationId'>
-): void => {
-  recordTimelineEvent(payload);
-};
-
 export const setDevtoolsRoute = (route: string): void => {
   if (route === currentRoute) return;
   const previous = currentRoute;

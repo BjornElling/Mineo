@@ -12,7 +12,6 @@ import {
   normalizeFieldError,
   resolveActiveFieldError,
 } from '../types/fieldErrors';
-import type { FormPersistenceContextValue } from './FormPersistenceContext.types';
 import { serializeFormValues } from '../utils/serialization';
 import { persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
 import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';

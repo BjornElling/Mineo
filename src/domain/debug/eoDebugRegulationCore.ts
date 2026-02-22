@@ -29,7 +29,6 @@ import {
   numOrZero,
   parseDanishToIso,
   resolveOffentligLoenEkstraGrundloen,
-  roundToTwoDecimals,
 } from '../erstatningsopgoerelse/sharedPdfUtils';
 
 const STORE_BEDEDAG_PCT = 0.0045;

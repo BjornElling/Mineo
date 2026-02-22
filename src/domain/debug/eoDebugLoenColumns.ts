@@ -251,7 +251,7 @@ export const buildLoenindkomstColumns = (args: {
     const suffix = hasMultiple ? ` (${afIndex + 1})` : '';
     const errorRowIds = errorRowIdsByIndex[afIndex] ?? new Set<string>();
 
-    const tafValues: string[] = dates.map((iso, rowIndex) => {
+    const tafValues: string[] = dates.map((_iso, rowIndex) => {
       if (!isWithinErstatningsByIndex[rowIndex] && !isWithinBeregningsByIndex[rowIndex]) return '';
       const code = tafStatusByEmployment[afIndex][rowIndex];
       if (code === 2) return 'Endeligt EET';

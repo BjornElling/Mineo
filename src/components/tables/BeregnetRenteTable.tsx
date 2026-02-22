@@ -9,7 +9,7 @@ import StandardLooseTable from './StandardLooseTable';
 import { MIN_CALCULATION_DATE, MAX_CALCULATION_YEAR } from '../../data/interestRates';
 import { formatAsAmount } from '../../utils/formatUtils';
 import { downloadRentePdf } from '../../utils/pdf/pdfService';
-import type { ISODateString, DanishDateString } from '../../types/branded';
+import type { ISODateString } from '../../types/branded';
 import { toISODateString } from '../../types/branded';
 import { minISO } from '../../utils/isoDateHelpers';
 import type { RentekravRow } from '../../schemas/formSchemas';

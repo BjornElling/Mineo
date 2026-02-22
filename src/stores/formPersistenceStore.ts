@@ -101,7 +101,7 @@ const assertTestOnlyUnsafeMutation = (): void => {
 };
 
 const createFormPersistenceStore = () =>
-  createStore<FormPersistenceStoreState>((set, get) => ({
+  createStore<FormPersistenceStoreState>((set) => ({
     sections: { ...EMPTY_SECTIONS },
     meta: { hydrated: false, schemaFingerprint: PERSISTED_DATA_VERSION },
     hydrate: (next, meta) => {

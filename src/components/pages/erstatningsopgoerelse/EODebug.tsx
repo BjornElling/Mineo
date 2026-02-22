@@ -19,7 +19,6 @@ import {
   getOffentligOverenskomstTypeById,
   getReguleringsDatoIntervalForOverenskomst,
   resolveOverenskomstRef,
-  type OverenskomstId,
 } from '../../../data/overenskomstRates';
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../../data/offentligLoenLookup';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../../data/offentligLoenTypes';
@@ -37,12 +36,11 @@ import { useFormFieldErrorsBySource } from '../../../hooks/useFormFieldErrors';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import type { ISODateString } from '../../../types/branded';
-import { dateToISO, isoToDanish, isISODateString, parseISODate, subtractOneDay, toISODateString } from '../../../types/branded';
-import { addDays, addMonths, createDate, formatDanishDate, formatToISO, parseDanishDate, parseWeekString } from '../../../utils/dateUtils';
+import { isoToDanish, isISODateString, parseISODate, subtractOneDay, toISODateString } from '../../../types/branded';
+import { addDays, addMonths, createDate, formatToISO, parseDanishDate } from '../../../utils/dateUtils';
 import { formatCurrency } from '../../../utils/formatUtils';
 import { parseAmount } from '../../../utils/numberParsing';
 import { amountValueToDisplayString, amountValueToNumber } from '../../../utils/expressionAmount';
-import { formatDecimal } from '../../../domain/debug/eoDebugFormat';
 import { buildSHDageSet, buildFerieDageSet } from '../../../domain/debug/eoDebugRegulationCore';
 import { beregnArbejdsdageOgMaaneder } from '../../../domain/erstatningsopgoerelse/arbejdsdageMaaneder';
 import StandardDisplayTable, {
@@ -50,15 +48,13 @@ import StandardDisplayTable, {
   type StandardDisplayTableRow,
 } from '../../tables/StandardDisplayTable';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode, OffentligeYdelserRow } from '../../../schemas/formSchemas';
-import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../../utils/aarsloenTableCalculations';
+import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from '../../../domain/erstatningsopgoerelse/eoDebugIndkomstModel';
-import { calculateTafAntalMaaneder, calculateTafAntalMaanederPraecis, calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/tafCalculations';
+import { calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/tafCalculations';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
-import { computeTafOverlapWithBeregningsperiode } from '../../../domain/erstatningsopgoerelse/beregningsperiodeTafOverlap';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
-import { buildBeregningsperiodeRange, buildIncomeForRanges, parseAarsloenRowInterval } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
-import { iterateDatesInclusive, maxISO, minISO, type DateInterval, validateIsoRange } from '../../../utils/isoDateHelpers';
+import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
+import { validateIsoRange } from '../../../utils/isoDateHelpers';
 import {
   TIMER_TIL_MAANED_FAKTOR,
   convertAnciennitetSats,
@@ -263,7 +259,6 @@ const percentFromDecimal = (value: number | null | undefined): number => {
   return Math.round(value * 10000) / 100;
 };
 
-type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
 const rangesOverlap = (
   aStart: ISODateString,
@@ -397,7 +392,7 @@ const EODebug = () => {
     vedroererPeriodeTil,
     ferieperioder,
   } = erstatningsopgoerelseValues;
-  const { skadesdato, skadestype } = stamdataValues;
+  const { skadesdato } = stamdataValues;
 
   const reguleringSections = React.useMemo(() => {
     const allowIncompleteOverenskomst = settings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
@@ -529,9 +524,6 @@ const EODebug = () => {
       const periodeFra = isISODateString(erstatningsopgoerelseValues.vedroererPeriodeFra)
         ? erstatningsopgoerelseValues.vedroererPeriodeFra
         : undefined;
-      const periodeTilDisplay = formatIsoValue(periodeTil);
-      const periodeTilStatus: DebugStatus = periodeTilDisplay === '-' ? 'error' : 'ok';
-
       const sidsteTafDatoISkadetPeriode = (() => {
         if (!periodeTil) return undefined;
         const periodRange = periodeFra && periodeFra <= periodeTil ? { fra: periodeFra, til: periodeTil } : null;
@@ -1462,11 +1454,7 @@ const EODebug = () => {
           );
           const indexValue = baseValueRaw > 0 ? formatIndexValue((valueRaw / baseValueRaw) * 100) : '-';
 
-          // Beregn arbejdsdage og måneder for denne periode
-            const periodEndIso = i < sortedPeriods.length - 1 ? subtractOneDay(sortedPeriods[i + 1].startIso) : tafEndIso;
-            const periodStats = periodEndIso && tafEndIso
-              ? beregnArbejdsdageOgMaaneder(period.startIso, periodEndIso, shDageSet, ferieDageSet)
-              : { arbejdsdage: 0, maaneder: 0 };
+          const periodEndIso = i < sortedPeriods.length - 1 ? subtractOneDay(sortedPeriods[i + 1].startIso) : tafEndIso;
 
           if (!periodEndIso) continue;
           candidates.push({

@@ -6,7 +6,7 @@
 
 import jsPDF from 'jspdf';
 import type { CellDef, RowInput } from 'jspdf-autotable';
-import { MARGINS, SECTION_SPACER } from './pdfConfig';
+import { MARGINS } from './pdfConfig';
 import { addSectionHeading, PDF_BASE_LINE_HEIGHT_MM, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
 import { createStandardPdfWriter } from './pdfWriter';
 import {

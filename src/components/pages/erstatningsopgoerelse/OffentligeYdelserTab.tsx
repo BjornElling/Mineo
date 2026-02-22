@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 import OffentligeYdelserTable from '../../tables/OffentligeYdelserTable';
 import ContentBox from '../../layout/ContentBox';
 import type { UsePersistedFormReturn } from '../../../hooks/usePersistedForm';

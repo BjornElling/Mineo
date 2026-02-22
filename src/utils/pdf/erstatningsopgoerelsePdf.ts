@@ -6,9 +6,9 @@
 
 import jsPDF from 'jspdf';
 import { type RowInput } from 'jspdf-autotable';
-import { MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
+import { PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
 import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from './pdfHelpers';
-import { createPdfWriter, type PdfWriter, ensureNonBreakingKr } from './pdfWriter';
+import { createPdfWriter } from './pdfWriter';
 import { renderEoStylePdfTable } from './pdfTableRenderer';
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish, subtractOneDay } from '../../types/branded';
@@ -23,7 +23,6 @@ import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../../domain/erstatni
 import { TODAY } from '../../config/dateRanges';
 import { amountValueToDisplayString, amountValueToNumber } from '../expressionAmount';
 import { isAarsloenRowEffectivelyEmpty } from '../aarsloenTableCalculations';
-import { ydelsestyper } from '../../data/ydelsestyper';
 
 import { aarsloenMax } from '../../data/regulationRates';
 import {
@@ -41,10 +40,9 @@ import {
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
 import { getStatistiskLoenudvikling } from '../../data/statistiskLoenudviklingRates';
-import { formatKRLSatstabelDisplay, getKRLSatstabel, isKRLSatstabelId, type KRLSatstabelId } from '../../data/KRLrates';
+import { formatKRLSatstabelDisplay, getKRLSatstabel, isKRLSatstabelId } from '../../data/KRLrates';
 import { clampTafRow, resolveTafConstraintBounds } from '../../domain/erstatningsopgoerelse/tafPeriodConstraints';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, parseAarsloenRowInterval } from '../../domain/erstatningsopgoerelse/indtaegtPerioder';
-import { erDetteFoersteErstatningsopgoerelse } from '../../domain/erstatningsopgoerelse/eoNummerValidering';
 import { logWarning } from '../logger';
 import {
   STORE_BEDEDAG_START,
@@ -501,16 +499,6 @@ export const resolveValgtReguleringDisplay = (
     return formatKRLSatstabelDisplay(krlId);
   }
   return 'Ingen';
-};
-
-const resolveOverenskomstDisplay = (overenskomstId: string | undefined): string => {
-  const trimmed = overenskomstId?.trim();
-  if (!trimmed) return '-';
-  const meta = getOverenskomstMetaById(trimmed);
-  if (!meta) return trimmed;
-  const loenPart = meta.loenmodtagerOrg[0] || '';
-  const arbPart = meta.arbejdsgiverOrg[0] || '';
-  return `${meta.navn} (${loenPart} / ${arbPart})`;
 };
 
 const buildReguleringsvaerdierTableData = (params: Readonly<{
@@ -1661,10 +1649,6 @@ export const generateErstatningsopgoerelsePdf = (
   };
 
   const standardRightMaxWidth = writer.getTextWidth('000.000.000,00');
-
-  const writeBodyText = (text: string) => {
-    safeAddWrappedText(text);
-  };
 
   const writeLabelValueLine = (label: string, value: string) => {
     safeAddLeftRightText(label, capitalizeFirstChar(value), standardRightMaxWidth, { rightFontStyle: 'normal' });

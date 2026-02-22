@@ -13,5 +13,5 @@ type StorageSections = keyof typeof STORAGE_KEYS;
 type FileSections = keyof EoFileData;
 
 // Compile-time invariant: alle persisterede sider (manifestet) skal være dækket af .eo fil-strukturen og omvendt.
-type _AssertStorageAndFileSectionsMatch = Assert<Equal<StorageSections, FileSections>>;
+export type _AssertStorageAndFileSectionsMatch = Assert<Equal<StorageSections, FileSections>>;
 

@@ -86,8 +86,3 @@ export const surchargeRates: RateEntry[] = surchargeRatesTable.map(([effectiveDa
   effectiveDate: toDanishDateString(effectiveDate),
   ratePct,
 }));
-
-export default {
-  referenceRates,
-  surchargeRates,
-};

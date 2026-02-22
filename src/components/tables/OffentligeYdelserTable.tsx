@@ -167,10 +167,6 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
       }
     }, [internalTableData]);
 
-    const setRow = React.useCallback((rowId: string, updates: Partial<OffentligeYdelserRow>) => {
-      setInternalTableData((prev) => prev.map((row) => (row.id === rowId ? { ...row, ...updates } : row)));
-    }, []);
-
     const commitRowUpdate = React.useCallback(
       (rowId: string, updates: Partial<OffentligeYdelserRow>, colIndex: number) => {
         setInternalTableData((prev) => {

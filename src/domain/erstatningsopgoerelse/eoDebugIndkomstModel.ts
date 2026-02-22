@@ -78,7 +78,7 @@ const validateStoreBededagSatser = (
 };
 
 const validateFeriePct = (
-  fuldLoenUnderFerie: Ansaettelsesforhold['fuldLoenUnderFerie'],
+  _fuldLoenUnderFerie: Ansaettelsesforhold['fuldLoenUnderFerie'],
   inputValue: number | undefined
 ): boolean => {
   if (inputValue === undefined) return false;

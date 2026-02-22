@@ -1,4 +1,4 @@
-import type { AarsloenTableRow, ErstatningsopgoerelseValues, JaNej, LoenPaaHelligdage, Loenperiode } from '../../schemas/formSchemas';
+import type { AarsloenTableRow, ErstatningsopgoerelseValues, JaNej, LoenPaaHelligdage } from '../../schemas/formSchemas';
 import type { DeepReadonly } from '../../types/deepReadonly';
 import { parseISODate } from '../../types/branded';
 import { isAarsloenTableValueEffectivelyEmptyForValidation } from '../../utils/aarsloenTableValidation';

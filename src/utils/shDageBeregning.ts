@@ -5,7 +5,7 @@
  */
 
 import { parseISODate, type ISODateString } from '../types/branded';
-import { addDays, createDate, parseDanishDate, parseWeekString, formatToISO } from './dateUtils';
+import { addDays, createDate, formatToISO } from './dateUtils';
 
 /**
  * Beregner påskedag for et givet år

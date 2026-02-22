@@ -27,27 +27,6 @@ export type DebugModelInput = {
 };
 
 /**
- * Konverterer dansk dato (dd-mm-åååå) til ISO (åååå-mm-dd)
- */
-const _danishToIso = (danish: string): ISODateString | undefined => {
-  if (!danish || typeof danish !== 'string') return undefined;
-  const parts = danish.split('-');
-  if (parts.length !== 3) return undefined;
-
-  const day = parts[0]?.padStart(2, '0');
-  const month = parts[1]?.padStart(2, '0');
-  const year = parts[2];
-
-  if (!day || !month || !year) return undefined;
-
-  try {
-    return toISODateString(`${year}-${month}-${day}`);
-  } catch {
-    return undefined;
-  }
-};
-
-/**
  * Helper til at validere og konvertere til ISODateString
  *
  * VIGTIGT: Data kommer allerede i ISO-format fra persistence layer

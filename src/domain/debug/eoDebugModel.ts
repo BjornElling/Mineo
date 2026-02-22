@@ -11,8 +11,8 @@ import { getAarsloenErrorRowIdSet, getOffentligeYdelserErrorRowIdSet } from './e
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
 import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/indtaegtPerioder';
 import { SYGEDAGPENGE_SH_CUTOFF } from '../erstatningsopgoerelse/periodiseringsMotor';
-import { buildShDageSetFromIsoRange, placeLoseFeriedage } from '../erstatningsopgoerelse/tafDaySets';
-import { type DateInterval, iterateDatesInclusive, maxISO, minISO, validateIsoRange } from '../../utils/isoDateHelpers';
+import { buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/tafDaySets';
+import { iterateDatesInclusive, maxISO, minISO, validateIsoRange } from '../../utils/isoDateHelpers';
 
 export type DebugTabelDateSource = Readonly<{
   label: string;
@@ -110,10 +110,6 @@ const weekdayNamesDa: ReadonlyArray<string> = [
   'Fredag',
   'Lørdag',
 ];
-
-const _isWithinIntegrityTolerance = (actual: number, expected: number): boolean => {
-  return Math.abs(actual - expected) <= INTEGRITY_TOLERANCE_KR + Number.EPSILON;
-};
 
 const validateColumnIds = (columns: readonly DebugTabelColumnData[]): ReadonlyArray<DebugTabelIntegrityIssue> => {
   const emptyIds: string[] = [];
@@ -220,73 +216,6 @@ const buildExplicitFerieSet = (values: ErstatningsopgoerelseValues, shDays: Read
   }
 
   return set;
-};
-
-const buildLoseFeriedageSet = (
-  values: ErstatningsopgoerelseValues,
-  shDays: ReadonlySet<ISODateString>,
-  explicitFerie: ReadonlySet<ISODateString>
-): ReadonlySet<ISODateString> => {
-  const set = new Set<ISODateString>();
-  const tafRows: readonly TafPeriodeRow[] = values.tafPerioder ?? [];
-
-  for (const row of tafRows) {
-    const range = validateIsoRange(row.fra, row.til);
-    if (!range) continue;
-    const loseCount = typeof row.loseFeriedage === 'number' ? Math.max(0, Math.trunc(row.loseFeriedage)) : 0;
-    if (loseCount <= 0) continue;
-    const blocked = new Set<ISODateString>([...explicitFerie, ...shDays, ...set]);
-    const placed = placeLoseFeriedage(range.fra, range.til, loseCount, blocked);
-    placed.forEach((iso) => set.add(iso));
-  }
-
-  // Uspecificerede ferie-/feriefridage i beregningsperioden:
-  // behandles som løse feriedage med samme placeringsregler
-  // (kan ikke ligge på SH eller eksisterende feriedage).
-  const beregningsRange = validateIsoRange(values.periodeTilBeregningFra, values.periodeTilBeregningTil);
-  const beregningsLoseCount =
-    typeof values.uspecificeredeFerieFridage === 'number' ? Math.max(0, Math.trunc(values.uspecificeredeFerieFridage)) : 0;
-  if (beregningsRange && beregningsLoseCount > 0) {
-    const blocked = new Set<ISODateString>([...explicitFerie, ...shDays, ...set]);
-    const placed = placeLoseFeriedage(beregningsRange.fra, beregningsRange.til, beregningsLoseCount, blocked);
-    placed.forEach((iso) => set.add(iso));
-  }
-
-  return set;
-};
-
-const allocateWeekdayDates = (args: {
-  range: Readonly<{ fra: ISODateString; til: ISODateString }> | undefined;
-  count: number;
-  shDays: ReadonlySet<ISODateString>;
-  reserved: Set<ISODateString>;
-}): ReadonlySet<ISODateString> => {
-  const { range, count, shDays, reserved } = args;
-  if (!range || count <= 0) return new Set<ISODateString>();
-
-  const selected = new Set<ISODateString>();
-  let remaining = Math.max(0, Math.trunc(count));
-  if (remaining === 0) return selected;
-
-  const start = isoDateToDate(range.fra);
-  const end = isoDateToDate(range.til);
-
-  iterateDatesInclusive(start, end, (d) => {
-    if (remaining <= 0) return;
-    const dow = d.getUTCDay();
-    const erHverdag = dow >= 1 && dow <= 5;
-    if (!erHverdag) return;
-    const iso = dateToISO(d);
-    if (!iso) return;
-    if (shDays.has(iso)) return;
-    if (reserved.has(iso)) return;
-
-    selected.add(iso);
-    reserved.add(iso);
-    remaining -= 1;
-  });
-
-  return selected;
 };
 
 const buildTafRangeSet = (values: ErstatningsopgoerelseValues): ReadonlySet<ISODateString> => {
@@ -503,23 +432,9 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
   const erMaaneder = beregningsenhed === TAF_BEREGNES_SOM.MAANEDER;
   const shDays = buildShDageSetFromIsoRange(tableFra, tableTil);
   const explicitFerie = buildExplicitFerieSet(values, shDays);
-  const loseFerie = buildLoseFeriedageSet(values, shDays, explicitFerie);
   const tafDates = buildTafRangeSet(values);
 
   const beregningsRange = validateIsoRange(beregningsFra, beregningsTil);
-  const reservedBeregningsperiodeDates = new Set<ISODateString>([...explicitFerie, ...loseFerie]);
-  const oevrigeFravaersdageCount =
-    values.oevrigtFravaerUdenLoen === 'Ja' && typeof values.oevrigeFravaersdage === 'number'
-      ? values.oevrigeFravaersdage
-      : 0;
-  const oevrigtFravaerDates = allocateWeekdayDates({
-    range: beregningsRange,
-    count: oevrigeFravaersdageCount,
-    shDays,
-    reserved: reservedBeregningsperiodeDates,
-  });
-  const allFerieDates = new Set<ISODateString>([...explicitFerie, ...loseFerie, ...oevrigtFravaerDates]);
-
   const weekdayByIndex: string[] = new Array(dates.length);
   const danishDateByIndex: string[] = new Array(dates.length);
   const isWeekdayByIndex: boolean[] = new Array(dates.length);

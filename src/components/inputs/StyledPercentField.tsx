@@ -79,31 +79,6 @@ export type StyledPercentFieldProps = {
   sx?: SxProps<Theme>;
 };
 
-const clampInt = (value: number, min: number, max: number): number => {
-  return Math.max(min, Math.min(max, value));
-};
-
-type PercentSyntaxConfig = {
-  allowNegative: boolean;
-  precision: number;
-  maxIntegerDigits: number;
-};
-
-// NOTE: This is intentionally centralized so parser + UI constraints stay in lockstep.
-// If the percent grammar changes, update the parser and this helper together.
-const _getPercentMaxLength = ({ allowNegative, precision, maxIntegerDigits }: PercentSyntaxConfig): number => {
-  // Explicit syntax:
-  // - optional leading '-'
-  // - integer digits, optionally grouped with '.' thousands separators (e.g. 1.234.567)
-  // - optional comma + decimals (`,` + precision digits)
-  // - optional trailing '%'
-  const thousandsSeparators = Math.floor((maxIntegerDigits - 1) / 3);
-  const commaPart = precision > 0 ? 1 + precision : 0;
-  const signPart = allowNegative ? 1 : 0;
-  const percentPart = 1; // optional trailing '%'
-  return signPart + maxIntegerDigits + thousandsSeparators + commaPart + percentPart;
-};
-
 const formatPercentMinimal = (value: number | undefined): string => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return '';
   // Do not auto-fill decimals; show up to 2 decimals without unnecessary trailing zeros.
@@ -192,26 +167,11 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       return '';
     }, [allowNegative, maxIntegerDigitsProp, maxValue, minValue, precision, useDefaultPercentRange]);
 
-    const _resolvedPrecision = 2;
-
     const resolvedRange = React.useMemo(() => {
       const effectiveMin = typeof minValue === 'number' ? minValue : useDefaultPercentRange ? 0 : undefined;
       const effectiveMax = typeof maxValue === 'number' ? maxValue : useDefaultPercentRange ? 100 : undefined;
       return { effectiveMin, effectiveMax };
     }, [maxValue, minValue, useDefaultPercentRange]);
-
-    const _resolvedMaxIntegerDigits = React.useMemo(() => {
-      const maxAbs = Math.max(
-        Math.abs(resolvedRange.effectiveMin ?? 0),
-        Math.abs(resolvedRange.effectiveMax ?? 0)
-      );
-      const derived = Number.isFinite(maxAbs) ? Math.max(1, Math.floor(maxAbs).toString().length) : 6;
-
-      if (typeof maxIntegerDigitsProp === 'number' && Number.isFinite(maxIntegerDigitsProp) && Number.isInteger(maxIntegerDigitsProp)) {
-        return clampInt(maxIntegerDigitsProp, 1, 18);
-      }
-      return clampInt(derived, 1, 18);
-    }, [maxIntegerDigitsProp, resolvedRange.effectiveMax, resolvedRange.effectiveMin]);
 
     const maxIntegerDigitsRangeErrorMessage = React.useMemo(() => {
       const maxAbs = Math.max(

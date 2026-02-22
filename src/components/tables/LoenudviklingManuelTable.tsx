@@ -293,10 +293,6 @@ const LoenudviklingManuelTable = React.memo(
       notifyInputErrorChange();
     }, [internalTableData, notifyInputErrorChange]);
 
-    const setRow = React.useCallback((rowId: string, updates: Partial<LoenudviklingManuelRow>) => {
-      setInternalTableData((prev) => prev.map((row) => (row.id === rowId ? { ...row, ...updates } : row)));
-    }, []);
-
     const commitRowUpdate = React.useCallback(
       (rowId: string, updates: Partial<LoenudviklingManuelRow>, colIndex: number) => {
         setInternalTableData((prev) => {

@@ -313,41 +313,6 @@ const parseDanishNumberString = (value: string): number | null => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-const sumDebugTableColumn = (
-  model: EODebugModel,
-  columnId: string
-): { sum: number | null; hasColumn: boolean } => {
-  if (model.rowCount === 0) return { sum: null, hasColumn: false };
-  const hasColumn = model.columns.some((col) => col.id === columnId);
-  if (!hasColumn) return { sum: null, hasColumn: false };
-
-  const raw = model.columnRawValues.get(columnId as never);
-  if (raw) {
-    let sum = 0;
-    let hasValue = false;
-    for (let i = 0; i < raw.length; i += 1) {
-      const value = raw[i] ?? 0;
-      if (value === 0) continue;
-      sum += value;
-      hasValue = true;
-    }
-    return { sum: hasValue ? sum : null, hasColumn: true };
-  }
-
-  let sum = 0;
-  let hasValue = false;
-  for (let rowIndex = 0; rowIndex < model.rowCount; rowIndex += 1) {
-    const cell = model.getCell(rowIndex, columnId as never);
-    const trimmed = String(cell ?? '').trim();
-    if (trimmed === '' || trimmed === '-') continue;
-    const parsed = parseDanishNumberString(trimmed);
-    if (parsed === null) continue;
-    sum += parsed;
-    hasValue = true;
-  }
-
-  return { sum: hasValue ? sum : null, hasColumn: true };
-};
 
 const buildRangeMask = (dates: readonly ISODateString[], ranges: readonly IsoRange[]): readonly boolean[] => {
   if (ranges.length === 0) return [];

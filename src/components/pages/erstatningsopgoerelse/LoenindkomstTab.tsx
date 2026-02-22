@@ -191,8 +191,6 @@ const loentrinFinderSessionEntrySchema = z.object({
   ),
 }).strict();
 
-type LoentrinFinderSessionEntry = z.infer<typeof loentrinFinderSessionEntrySchema>;
-
 const loentrinFinderSessionStateSchema = z.record(z.string(), loentrinFinderSessionEntrySchema);
 type LoentrinFinderSessionState = z.infer<typeof loentrinFinderSessionStateSchema>;
 
