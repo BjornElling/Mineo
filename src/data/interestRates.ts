@@ -87,11 +87,6 @@ export const surchargeRates: RateEntry[] = surchargeRatesTable.map(([effectiveDa
   ratePct,
 }));
 
-export const getInterestRates = (): { referenceRates: RateEntry[]; surchargeRates: RateEntry[] } => ({
-  referenceRates,
-  surchargeRates,
-});
-
 export default {
   referenceRates,
   surchargeRates,

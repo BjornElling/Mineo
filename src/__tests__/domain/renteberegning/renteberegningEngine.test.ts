@@ -7,7 +7,7 @@ import { calculateProcessInterestWithRates } from '../../../utils/interestCalcul
 import { roundByMethod } from '../../../utils/rounding';
 import { isoToDanish } from '../../../types/branded';
 import { computeRentekravCalculation } from '../../../domain/renteberegning/renteEngine';
-import { getInterestRates } from '../../../data/interestRates';
+import { referenceRates, surchargeRates } from '../../../data/interestRates';
 
 const buildRates = (referenceRatePct = 1, surchargeRatePct = 2): { referenceRates: RateEntry[]; surchargeRates: RateEntry[] } => ({
   referenceRates: [{ effectiveDate: toDanishDateString('01-01-2020'), ratePct: referenceRatePct }],
@@ -225,7 +225,7 @@ describe('renteberegningEngine', () => {
   });
 
   it('keeps parity between legacy row-engine and injected-rates engine for same rates', () => {
-    const { referenceRates, surchargeRates } = getInterestRates();
+    // referenceRates and surchargeRates imported directly above
     const row = {
       id: 'row-parity',
       belob: amountNumber(87500),

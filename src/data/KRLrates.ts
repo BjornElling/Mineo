@@ -186,10 +186,6 @@ export const getKRLSatstabel = (id: KRLSatstabelId): KRLSatstabel | undefined =>
   return krlSatstabelById.get(id);
 };
 
-export const getAlleKRLSatstabelIds = (): ReadonlyArray<KRLSatstabelId> => {
-  return krlSatstabeller.map((t) => t.id);
-};
-
 /**
  * Returnerer dato-intervallet for en given KRL satstabel.
  *

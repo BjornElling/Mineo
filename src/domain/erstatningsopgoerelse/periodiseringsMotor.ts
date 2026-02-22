@@ -9,6 +9,7 @@ import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR } from './tafBeregningsenhed';
 import { roundByMethod } from '../../utils/rounding';
 import { type DateInterval, type IsoRange } from '../../utils/isoDateHelpers';
 import { toNonNegativeInt } from '../../utils/numberUtils';
+import { assertNever } from '../../utils/assertNever';
 
 /**
  * CENTRAL PERIODISERINGSMOTOR (normativ)
@@ -42,10 +43,6 @@ import { toNonNegativeInt } from '../../utils/numberUtils';
 export type { IsoRange, DateInterval } from '../../utils/isoDateHelpers';
 
 export const SYGEDAGPENGE_SH_CUTOFF = toISODateString('2012-07-02');
-
-const assertNever = (value: never): never => {
-  throw new Error(`Unhandled context kind: ${String(value)}`);
-};
 
 const countOverlapCalendarDays = (interval: DateInterval, ranges: readonly IsoRange[]): number => {
   if (ranges.length === 0) return 0;

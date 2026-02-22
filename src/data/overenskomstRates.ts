@@ -822,13 +822,6 @@ export const getOverenskomst = (id: OverenskomstId): Overenskomst | undefined =>
 };
 
 /**
- * Find alle overenskomster (til dropdown)
- */
-export const getAlleOverenskomster = (): ReadonlyArray<OverenskomstMeta> => {
-  return overenskomstMetaSortedByNavn;
-};
-
-/**
  * Find overenskomst-metadata ud fra et (evt. uvalideret) ID.
  *
  * Bruges typisk til UI label-opslag, hvor ID'et kommer fra persisted state
@@ -1033,51 +1026,6 @@ const getSatserForAlmindeligLoenPaaShDage = (
   return overenskomst.satser.map((sats) => applyShDageAlmindeligLoenRegel(sats, regel));
 };
 
-/**
- * Find gaeldende satser for en given dato
- *
- * Returnerer den nyeste satsperiode der er gaeldende på den givne dato
- */
-export const getSatserForDato = (
-  overenskomstId: OverenskomstId,
-  dato: DanishDateString,
-  applyAlmindeligLoenPaaShDageRegel = false
-): OverenskomstPeriodeSats | undefined => {
-  const ref = resolveOverenskomstRefFromString(overenskomstId as string);
-  if (!ref) return undefined;
-  if (offentligOverenskomstTypeById.has(ref.baseId)) {
-    throw new Error('Offentlig overenskomst har ikke standard-satser. Brug offentligt lønopslag.');
-  }
-
-  const overenskomst = overenskomstById.get(ref.baseId);
-  if (!overenskomst) return undefined;
-
-  const satser = getSatserForAlmindeligLoenPaaShDage(overenskomst, applyAlmindeligLoenPaaShDageRegel);
-  return getSatserForDatoFromList(satser, dato);
-};
-/**
- * Find alle satsperioder for en given periode
- *
- * Returnerer alle satsaendringer der sker inden for den givne periode
- */
-export const getSatserForPeriode = (
-  overenskomstId: OverenskomstId,
-  fraDato: DanishDateString,
-  tilDato: DanishDateString,
-  applyAlmindeligLoenPaaShDageRegel = false
-): ReadonlyArray<OverenskomstPeriodeSats> => {
-  const ref = resolveOverenskomstRefFromString(overenskomstId as string);
-  if (!ref) return [];
-  if (offentligOverenskomstTypeById.has(ref.baseId)) {
-    throw new Error('Offentlig overenskomst har ikke standard-satser. Brug offentligt lønopslag.');
-  }
-
-  const overenskomst = overenskomstById.get(ref.baseId);
-  if (!overenskomst) return [];
-
-  const satser = getSatserForAlmindeligLoenPaaShDage(overenskomst, applyAlmindeligLoenPaaShDageRegel);
-  return getSatserForPeriodeFromList(satser, fraDato, tilDato);
-};
 export const resolveOverenskomstRef = (rawId: string): OverenskomstRef | undefined =>
   resolveOverenskomstRefFromString(rawId);
 
