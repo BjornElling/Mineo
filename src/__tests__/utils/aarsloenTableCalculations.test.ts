@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateAarsloenRowDerived, type AarsloenSatserInput } from '../aarsloenTableCalculations';
+import { calculateAarsloenRowDerived, type AarsloenSatserInput } from '../../utils/aarsloenTableCalculations';
 import type { AarsloenTableRow } from '../../schemas/formSchemas';
 
 const createRow = (overrides: Partial<AarsloenTableRow> = {}): AarsloenTableRow => ({

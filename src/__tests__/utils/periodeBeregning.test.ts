@@ -1,6 +1,6 @@
 import type { AarsloenTableRow } from '../../schemas/formSchemas';
-import { createDate } from '../dateUtils';
-import { beregnDagPeriode, beregnPeriodiseringsDage, beregnUgePeriode, erNoejagtEtAar } from '../periodeBeregning';
+import { createDate } from '../../utils/dateUtils';
+import { beregnDagPeriode, beregnPeriodiseringsDage, beregnUgePeriode, erNoejagtEtAar } from '../../utils/periodeBeregning';
 
 const formatIso = (date: Date): string => {
   const year = date.getUTCFullYear();

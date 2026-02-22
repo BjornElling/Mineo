@@ -1,5 +1,5 @@
-import { createDate } from '../dateUtils';
-import { countExclusiveUtcDays, countInclusiveUtcDays, diffUtcDays } from '../utcDayMath';
+import { createDate } from '../../utils/dateUtils';
+import { countExclusiveUtcDays, countInclusiveUtcDays, diffUtcDays } from '../../utils/utcDayMath';
 
 describe('utcDayMath', () => {
   it('counts inclusive days across DST start', () => {

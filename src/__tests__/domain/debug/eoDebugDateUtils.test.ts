@@ -3,7 +3,7 @@
  */
 
 import type { ISODateString } from '../../../types/branded';
-import type { DateRange } from '../eoDebugTypes';
+import type { DateRange } from '../../../domain/debug/eoDebugTypes';
 import {
   compareIso,
   rangesOverlap,
@@ -12,7 +12,7 @@ import {
   isDateInRange,
   minDate,
   maxDate,
-} from '../eoDebugDateUtils';
+} from '../../../domain/debug/eoDebugDateUtils';
 
 describe('eoDebugDateUtils', () => {
   describe('compareIso', () => {

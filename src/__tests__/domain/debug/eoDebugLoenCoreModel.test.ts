@@ -2,11 +2,11 @@
  * Tests for Loen Core Model - Phase 5.2 (rettet)
  */
 
-import { buildLoenTimeline } from '../eoDebugLoenCoreModel';
-import type { DebugDay } from '../eoDebugTypes';
+import { buildLoenTimeline } from '../../../domain/debug/eoDebugLoenCoreModel';
+import type { DebugDay } from '../../../domain/debug/eoDebugTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
-import { createErstatningsopgoerelseInitialValues } from '../../erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { svieSmertePrDag } from '../../../data/regulationRates';
 
 const makeDebugDay = (
@@ -148,4 +148,3 @@ describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
     expect(result.svieSmerteDays[0]?.amount).toBe(svieSmertePrDag[2024]);
   });
 });
-

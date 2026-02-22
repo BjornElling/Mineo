@@ -9,7 +9,7 @@ import type {
   DailyLoen,
   DailySvieSmerte,
   LoenTimeline,
-} from '../eoDebugLoenTypes';
+} from '../../../domain/debug/eoDebugLoenTypes';
 
 describe('eoDebugLoenTypes - Phase 5.1 (Type Definitions)', () => {
   describe('LoenComponentType', () => {

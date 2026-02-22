@@ -2,9 +2,9 @@
  * Tests for eoDebugIntegrity
  */
 
-import type { DebugModelInput } from '../eoDebugCoreModel';
-import { buildDebugCoreModel } from '../eoDebugCoreModel';
-import { validateDebugModel } from '../eoDebugIntegrity';
+import type { DebugModelInput } from '../../../domain/debug/eoDebugCoreModel';
+import { buildDebugCoreModel } from '../../../domain/debug/eoDebugCoreModel';
+import { validateDebugModel } from '../../../domain/debug/eoDebugIntegrity';
 import type { ISODateString } from '../../../types/branded';
 
 // Test helper: Cast string literal til ISODateString (kun til tests)
@@ -279,8 +279,6 @@ describe('eoDebugIntegrity', () => {
 
   describe('TAF_DAYS_MISMATCH', () => {
     it('detecterer mismatch mellem TAF-periode og debug-tabel', () => {
-      // Dette er en kunstig test - i praksis skal core-model altid være korrekt
-      // Men vi tester at integrity-laget kan fange inkonsistens
       const input: DebugModelInput = {
         stamdataValues: {
           journalnr: '',

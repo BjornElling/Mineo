@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { roundByMethod } from '../rounding';
+import { roundByMethod } from '../../utils/rounding';
 
 describe('roundByMethod', () => {
   it('rounder halfAwayFromZero symmetrisk for positive og negative halvdele', () => {
@@ -27,4 +27,3 @@ describe('roundByMethod', () => {
     expect(roundByMethod(-123456789.555, 2, 'halfAwayFromZero')).toBe(-123456789.56);
   });
 });
-

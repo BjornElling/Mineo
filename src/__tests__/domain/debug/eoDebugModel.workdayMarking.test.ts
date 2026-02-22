@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildEODebugModel } from '../eoDebugModel';
-import { createErstatningsopgoerelseInitialValues } from '../../erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { buildEODebugModel } from '../../../domain/debug/eoDebugModel';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 const createBaseValues = () => ({
   ...createErstatningsopgoerelseInitialValues(),

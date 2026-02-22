@@ -1,4 +1,4 @@
-import { parsePercentToDecimal } from '../numberParsing';
+import { parsePercentToDecimal } from '../../utils/numberParsing';
 
 describe('parsePercentToDecimal', () => {
   it('parses Danish-formatted percent with thousand separators', () => {

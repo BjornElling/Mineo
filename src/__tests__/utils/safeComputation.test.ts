@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { safeCompute } from '../safeComputation';
+import { safeCompute } from '../../utils/safeComputation';
 
-vi.mock('../logger', () => ({
+vi.mock('../../utils/logger', () => ({
   logError: vi.fn(),
 }));
 

@@ -2,8 +2,8 @@
  * Tests for Regulation View Model (Index)
  */
 
-import { buildRegulationDebugSections } from '../eoDebugRegulationViewModel';
-import type { RegulationIndexTimeline } from '../eoDebugRegulationTypes';
+import { buildRegulationDebugSections } from '../../../domain/debug/eoDebugRegulationViewModel';
+import type { RegulationIndexTimeline } from '../../../domain/debug/eoDebugRegulationTypes';
 
 describe('buildRegulationDebugSections - Index model', () => {
   it('returnerer tomt array naar ingen ansaettelser', () => {

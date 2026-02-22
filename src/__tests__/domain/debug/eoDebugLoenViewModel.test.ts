@@ -2,8 +2,8 @@
  * Tests for Loen View Model - Phase 5.3 (rettet)
  */
 
-import { buildLoenDebugSections } from '../eoDebugLoenViewModel';
-import type { LoenTimeline } from '../eoDebugLoenTypes';
+import { buildLoenDebugSections } from '../../../domain/debug/eoDebugLoenViewModel';
+import type { LoenTimeline } from '../../../domain/debug/eoDebugLoenTypes';
 
 describe('eoDebugLoenViewModel - Phase 5.3', () => {
   it('returnerer tomt array ved tom timeline', () => {

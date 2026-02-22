@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { IntegrityInvariant, type IntegrityIssue } from '../eoDebugTypes';
-import { maxDebugStatusFromIntegrityIssues, toDebugStatusRank } from '../eoDebugSeverity';
+import { IntegrityInvariant, type IntegrityIssue } from '../../../domain/debug/eoDebugTypes';
+import { maxDebugStatusFromIntegrityIssues, toDebugStatusRank } from '../../../domain/debug/eoDebugSeverity';
 
 describe('eoDebugSeverity', () => {
   it('returns rank in expected order', () => {
@@ -38,4 +38,3 @@ describe('eoDebugSeverity', () => {
     expect(IntegrityInvariant.SVIE_SMERTE_MISMATCH).toBe('SVIE_SMERTE_MISMATCH');
   });
 });
-

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { formatPercent } from '../formatUtils';
-import { parseAmount } from '../numberParsing';
+import { formatPercent } from '../../utils/formatUtils';
+import { parseAmount } from '../../utils/numberParsing';
 
 describe('formatUtils', () => {
   it('formatPercent afrunder deterministisk og bruger dansk komma', () => {

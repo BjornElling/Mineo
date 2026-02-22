@@ -2,11 +2,11 @@
  * Tests for Regulation Core Model (Index)
  */
 
-import { buildRegulationTimeline } from '../eoDebugRegulationCore';
-import type { DebugDay } from '../eoDebugTypes';
+import { buildRegulationTimeline } from '../../../domain/debug/eoDebugRegulationCore';
+import type { DebugDay } from '../../../domain/debug/eoDebugTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
-import { createErstatningsopgoerelseInitialValues } from '../../erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import type { ISODateString } from '../../../types/branded';
 
 // Test helper: Cast string literal til ISODateString (kun til tests)

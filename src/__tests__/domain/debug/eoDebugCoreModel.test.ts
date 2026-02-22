@@ -2,8 +2,8 @@
  * Tests for eoDebugCoreModel
  */
 
-import type { DebugModelInput } from '../eoDebugCoreModel';
-import { buildDebugCoreModel } from '../eoDebugCoreModel';
+import type { DebugModelInput } from '../../../domain/debug/eoDebugCoreModel';
+import { buildDebugCoreModel } from '../../../domain/debug/eoDebugCoreModel';
 import type { ISODateString } from '../../../types/branded';
 
 // Test helper: Cast string literal til ISODateString (kun til tests)

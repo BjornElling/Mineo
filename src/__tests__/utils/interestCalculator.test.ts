@@ -1,10 +1,10 @@
 import type { RateEntry } from '../../data/interestRates';
 import { referenceRates, surchargeRates } from '../../data/interestRates';
-import { parseDanishDate } from '../dateUtils';
-import { countInclusiveUtcDays } from '../utcDayMath';
+import { parseDanishDate } from '../../utils/dateUtils';
+import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { toDanishDateString } from '../../types/branded';
-import { calculateProcessInterest } from '../interestCalculator';
-import { roundByMethod } from '../rounding';
+import { calculateProcessInterest } from '../../utils/interestCalculator';
+import { roundByMethod } from '../../utils/rounding';
 
 const sortRates = (rates: ReadonlyArray<RateEntry>): RateEntry[] => {
   return [...rates].sort((a, b) => {

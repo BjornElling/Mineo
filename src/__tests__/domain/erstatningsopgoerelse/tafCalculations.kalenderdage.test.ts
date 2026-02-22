@@ -1,5 +1,5 @@
 import type { ISODateString } from '../../../types/branded';
-import { calculateKalenderdageInclusive, calculateTafAntalMaaneder } from '../tafCalculations';
+import { calculateKalenderdageInclusive, calculateTafAntalMaaneder } from '../../../domain/erstatningsopgoerelse/tafCalculations';
 
 const iso = (value: string): ISODateString => value as ISODateString;
 
