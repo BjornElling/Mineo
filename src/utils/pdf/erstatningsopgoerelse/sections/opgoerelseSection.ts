@@ -1,5 +1,5 @@
-import { MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES } from '../../pdfConfig';
-import { ensureNonBreakingKr } from '../../pdfWriter';
+import { MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES, type PdfFontFamily, type PdfFontStyle } from '../../pdfConfig';
+import { ensureNonBreakingKr } from '../../pdfTextUtils';
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import {
@@ -68,7 +68,7 @@ type OpgorelseSectionContext = Readonly<{
     ensureSpace: (height: number) => void;
     getY: () => number;
     getTextWidth: (text: string) => number;
-    setFont: (fontName: string, fontStyle: 'normal' | 'bold') => void;
+    setFont: (fontName: PdfFontFamily, fontStyle: PdfFontStyle) => void;
     writeUnderlinedLabel: (text: string, x: number) => void;
     writeSignatureBlock: (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => void;
   }>;

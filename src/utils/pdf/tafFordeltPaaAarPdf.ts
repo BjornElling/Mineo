@@ -9,7 +9,8 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import { buildErstatningsopgoerelsePdfModel } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { buildTafPerYearResult } from '../../domain/erstatningsopgoerelse/tafPerYearDerived';
-import { createPdfWriter, ensureNonBreakingKr } from './pdfWriter';
+import { createPdfWriter } from './pdfWriter';
+import { ensureNonBreakingKr } from './pdfTextUtils';
 import { PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
 import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from './pdfHelpers';
 import { TODAY } from '../../config/dateRanges';

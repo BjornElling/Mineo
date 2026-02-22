@@ -2,6 +2,7 @@
 
 import { addBrevhoved, type BrevhovedData } from '../../../utils/pdf/pdfHelpers';
 import { toISODateString } from '../../../types/branded';
+import { createMockPdfDocumentAdapter } from './mockPdfDocumentAdapter';
 
 /**
  * Test af brevhoved-rendering
@@ -13,24 +14,9 @@ import { toISODateString } from '../../../types/branded';
  */
 
 describe('addBrevhoved rendering', () => {
-  // Helper: Opret mock PDF-dokument
-  const createMockDoc = () => {
-    const mockDoc = {
-      text: vi.fn(),
-      setFont: vi.fn(),
-      setFontSize: vi.fn(),
-      internal: {
-        pageSize: {
-          height: 297,
-          width: 210,
-        },
-      },
-    };
-    return mockDoc;
-  };
 
   it('render dato-linjen altid', () => {
-    const mockDoc = createMockDoc();
+    const mockDoc = createMockPdfDocumentAdapter();
     const data: BrevhovedData = {
       dagsDatoISO: toISODateString('2026-02-02'),
     };
@@ -43,13 +29,14 @@ describe('addBrevhoved rendering', () => {
     // Dato-linjen skal altid skrives
     expect(mockDoc.text).toHaveBeenCalledTimes(1);
     expect(mockDoc.setFont).toHaveBeenCalledWith('helvetica', 'normal');
-    const [text] = mockDoc.text.mock.calls[0];
+    const firstCall = mockDoc.text.mock.calls[0] as [string, ...unknown[]];
+    const [text] = firstCall;
     expect(typeof text).toBe('string');
     expect(text.trim()).not.toBe('');
   });
 
   it('kalder doc.text når brevhoved-data findes', () => {
-    const mockDoc = createMockDoc();
+    const mockDoc = createMockPdfDocumentAdapter();
     const data: BrevhovedData = {
       journalnr: 'SAG-123',
       dagsDatoISO: toISODateString('2026-02-02'),
@@ -77,7 +64,7 @@ describe('addBrevhoved rendering', () => {
   });
 
   it('respekterer partial brevhoved-data', () => {
-    const mockDoc = createMockDoc();
+    const mockDoc = createMockPdfDocumentAdapter();
     const data: BrevhovedData = {
       journalnr: 'SAG-456',
       dagsDatoISO: toISODateString('2026-02-02'),
@@ -93,7 +80,7 @@ describe('addBrevhoved rendering', () => {
   });
 
   it('tilføjer advokat/sagsbehandler suffix når journalnr findes', () => {
-    const mockDoc = createMockDoc();
+    const mockDoc = createMockPdfDocumentAdapter();
     const data: BrevhovedData = {
       journalnr: 'SAG-789',
       advokat: 'AB',
@@ -112,7 +99,7 @@ describe('addBrevhoved rendering', () => {
   });
 
   it('tilføjer kun advokat eller sagsbehandler suffix når kun én er angivet', () => {
-    const mockDoc = createMockDoc();
+    const mockDoc = createMockPdfDocumentAdapter();
     const advokatData: BrevhovedData = {
       journalnr: 'SAG-321',
       advokat: 'AB',
@@ -126,7 +113,7 @@ describe('addBrevhoved rendering', () => {
       expect.objectContaining({ align: 'right' })
     );
 
-    const mockDoc2 = createMockDoc();
+    const mockDoc2 = createMockPdfDocumentAdapter();
     const sagsbehandlerData: BrevhovedData = {
       journalnr: 'SAG-654',
       sagsbehandler: 'CD',
@@ -142,7 +129,7 @@ describe('addBrevhoved rendering', () => {
   });
 
   it('viser dato-linjen selv når journalnr er tom streng', () => {
-    const mockDoc = createMockDoc();
+    const mockDoc = createMockPdfDocumentAdapter();
     const data: BrevhovedData = {
       journalnr: '',
       dagsDatoISO: toISODateString('2026-02-02'),
@@ -156,7 +143,7 @@ describe('addBrevhoved rendering', () => {
   });
 
   it('bruger den dato der leveres fra kaldestedet', () => {
-    const mockDoc = createMockDoc();
+    const mockDoc = createMockPdfDocumentAdapter();
     const data: BrevhovedData = {
       journalnr: 'SAG-777',
       dagsDatoISO: toISODateString('2026-01-15'),
@@ -164,13 +151,57 @@ describe('addBrevhoved rendering', () => {
 
     addBrevhoved(mockDoc, data);
 
-    const calls = mockDoc.text.mock.calls.map((call) => call[0]);
-    expect(calls.some((text) => String(text).includes('15. januar 2026'))).toBe(true);
+    const calls = mockDoc.text.mock.calls as [string, ...unknown[]][];
+    expect(calls.some(([text]) => String(text).includes('15. januar 2026'))).toBe(true);
+  });
+
+  it('kaster ved ugyldig dagsDatoISO', () => {
+    const mockDoc = createMockPdfDocumentAdapter();
+    const data = {
+      dagsDatoISO: '' as ReturnType<typeof toISODateString>,
+    };
+
+    expect(() => addBrevhoved(mockDoc, data)).toThrow('CRITICAL');
+  });
+
+  it('behandler journalnr med kun mellemrum som tom (ingen J.nr.-linje)', () => {
+    const mockDoc = createMockPdfDocumentAdapter();
+    const data: BrevhovedData = {
+      journalnr: '   ',
+      dagsDatoISO: toISODateString('2026-02-02'),
+    };
+
+    addBrevhoved(mockDoc, data);
+
+    // Kun dato-linjen — ingen J.nr.-linje
+    expect(mockDoc.text).toHaveBeenCalledTimes(1);
+    const [[firstText]] = mockDoc.text.mock.calls as [string, ...unknown[]][];
+    expect(String(firstText)).not.toContain('J.nr.');
+  });
+
+  it('ignorerer advokat og sagsbehandler med kun mellemrum', () => {
+    const mockDoc = createMockPdfDocumentAdapter();
+    const data: BrevhovedData = {
+      journalnr: 'SAG-999',
+      advokat: '  ',
+      sagsbehandler: '  ',
+      dagsDatoISO: toISODateString('2026-02-02'),
+    };
+
+    addBrevhoved(mockDoc, data);
+
+    // Ingen suffix — kun journalnr
+    expect(mockDoc.text).toHaveBeenCalledWith(
+      'J.nr. SAG-999',
+      expect.any(Number),
+      expect.any(Number),
+      expect.objectContaining({ align: 'right' })
+    );
   });
 
   describe('PDF generator gate pattern (integration)', () => {
     it('simulerer korrekt gate-logik: visBrevhoved=false → ingen kald', () => {
-      const mockDoc = createMockDoc();
+      const mockDoc = createMockPdfDocumentAdapter();
       const visBrevhoved = false;
       const stamdata: BrevhovedData = {
         journalnr: 'SAG-123',
@@ -189,7 +220,7 @@ describe('addBrevhoved rendering', () => {
     });
 
     it('simulerer korrekt gate-logik: visBrevhoved=true + stamdata → kald', () => {
-      const mockDoc = createMockDoc();
+      const mockDoc = createMockPdfDocumentAdapter();
       const visBrevhoved = true;
       const stamdata: BrevhovedData = {
         journalnr: 'SAG-123',
@@ -209,7 +240,7 @@ describe('addBrevhoved rendering', () => {
     });
 
     it('simulerer korrekt gate-logik: visBrevhoved=true + null stamdata → kald', () => {
-      const mockDoc = createMockDoc();
+      const mockDoc = createMockPdfDocumentAdapter();
       const visBrevhoved = true;
 
       // Simuler PDF-generator gate

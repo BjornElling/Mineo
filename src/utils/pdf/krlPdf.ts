@@ -135,8 +135,7 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
   }
 
   // Beregn lige kolonnebredder
-  const pageWidth = doc.internal.pageSize.width;
-  const tableWidth = pageWidth - MARGINS.left - MARGINS.right;
+  const tableWidth = writer.getPageWidth() - MARGINS.left - MARGINS.right;
   const colWidth = tableWidth / 5;
   const tableRows: RowInput[] = [headerRow, ...bodyRows];
 

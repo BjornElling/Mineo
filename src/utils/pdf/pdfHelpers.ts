@@ -5,35 +5,39 @@
  * Eliminerer code duplication mellem PDF-filer
  */
 
-import jsPDF from 'jspdf';
 import {
   FONT_SIZES,
   MARGINS,
+  PDF_BREVHOVED_FONT_SIZE,
+  PDF_BREVHOVED_LINE_HEIGHT,
+  PDF_BREVHOVED_START_Y,
   PDF_FINAL_Y_FALLBACK_HEIGHT,
   PDF_FONT_FAMILY,
   PDF_FONT_STYLES,
+  PDF_FOOTER_FONT_SIZE,
+  PDF_FOOTER_MARGIN_MM,
+  PDF_FOOTER_TEXT_COLOR,
   PDF_SECTION_HEADING_GAP,
   SECTION_SPACER,
 } from './pdfConfig';
+import type { PdfDocumentAdapter } from './pdfDocumentAdapter';
 import { VERSION } from '../../config/version';
 import type { ISODateString } from '../../types/branded';
- 
+
 import { formatIsoDateLong } from '../dateFormatting';
 import { formatAsAmount, formatPercent as formatPercentUtil } from '../formatUtils';
 
 export const PDF_BASE_LINE_HEIGHT_MM = 5;
 export const PDF_TITLE_BOTTOM_SPACING_MM = 15;
 
-type PdfTextStyleAdapter = Pick<jsPDF, 'setFont' | 'setFontSize'>;
-
-export const applyNormalTextStyle = (doc: PdfTextStyleAdapter): void => {
-  doc.setFontSize(FONT_SIZES.normal);
+export const applyNormalTextStyle = (doc: PdfDocumentAdapter): void => {
   doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+  doc.setFontSize(FONT_SIZES.normal);
 };
 
-export const applyBoldTextStyle = (doc: PdfTextStyleAdapter, fontSize: number): void => {
-  doc.setFontSize(fontSize);
+export const applyBoldTextStyle = (doc: PdfDocumentAdapter, fontSize: number): void => {
   doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
+  doc.setFontSize(fontSize);
 };
 
 /**
@@ -46,19 +50,7 @@ export type BrevhovedData = Readonly<{
   sagsbehandler?: string;
 }>;
 
-type BrevhovedPdfAdapter = Pick<
-  jsPDF,
-  'text' | 'setFont' | 'setFontSize'
-> & Readonly<{
-  internal: Readonly<{
-    pageSize: Readonly<{
-      width: number;
-      height: number;
-    }>;
-  }>;
-}>;
-
-export const addSectionHeading = (doc: jsPDF, title: string, startY: number): number => {
+export const addSectionHeading = (doc: PdfDocumentAdapter, title: string, startY: number): number => {
   applyBoldTextStyle(doc, FONT_SIZES.normal);
   doc.text(title, MARGINS.left, startY);
   applyNormalTextStyle(doc);
@@ -66,12 +58,11 @@ export const addSectionHeading = (doc: jsPDF, title: string, startY: number): nu
 };
 
 export const ensurePdfPageSpace = (
-  doc: jsPDF,
+  doc: PdfDocumentAdapter,
   startY: number,
   requiredSpace: number
 ): number => {
-  const pageHeight = doc.internal.pageSize.height;
-  const contentBottom = pageHeight - MARGINS.bottom;
+  const contentBottom = doc.getPageHeight() - MARGINS.bottom;
   if (startY + requiredSpace <= contentBottom) return startY;
   doc.addPage();
   return MARGINS.top;
@@ -90,35 +81,25 @@ export const resolvePdfSectionEndY = (
 
 /**
  * Tilføj footer med versionsnummer på alle sider
- *
- * @param {jsPDF} doc - PDF-dokumentet
  */
-export const addFooter = (doc: jsPDF): void => {
-  const pageHeight = doc.internal.pageSize.height;
-  const pageWidth = doc.internal.pageSize.width;
-  const totalPages = typeof doc.getNumberOfPages === 'function' ? doc.getNumberOfPages() : 1;
+export const addFooter = (doc: PdfDocumentAdapter): void => {
+  const pageHeight = doc.getPageHeight();
+  const pageWidth = doc.getPageWidth();
+  const totalPages = doc.getNumberOfPages();
 
-  // Gennemgå alle sider og tilføj footer
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-
-    doc.setFontSize(6);
     doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
-    doc.setTextColor(200, 200, 200);
+    doc.setFontSize(PDF_FOOTER_FONT_SIZE);
+    doc.setTextColor(...PDF_FOOTER_TEXT_COLOR);
 
     const footerText = `Mineo.dk // ${VERSION}`;
-    const x = pageWidth - 5;
-    const y = pageHeight - 5;
-
-    doc.text(footerText, x, y, { angle: 90 });
+    doc.text(footerText, pageWidth - PDF_FOOTER_MARGIN_MM, pageHeight - PDF_FOOTER_MARGIN_MM, { angle: 90 });
   }
 };
 
 /**
  * Formaterer beløb til dansk format med tusindtalsseparator
- *
- * @param {number} amount - Beløb at formatere
- * @returns {string} Formateret beløb (fx "1.234,56")
  */
 export const formatAmount = (amount: number | null | undefined): string => {
   if (amount === null || amount === undefined || !Number.isFinite(amount)) {
@@ -129,9 +110,6 @@ export const formatAmount = (amount: number | null | undefined): string => {
 
 /**
  * Formaterer procent til dansk format
- *
- * @param {number} percent - Procentværdi
- * @returns {string} Formateret procent (fx "12,50 %")
  */
 export const formatPercent = (percent: number | null | undefined): string => {
   if (percent === null || percent === undefined || !Number.isFinite(percent)) {
@@ -151,12 +129,8 @@ const formatISODateReadable = (isoDate: ISODateString | undefined): string => fo
  *
  * VIGTIGT: Brevhovedet er et overlay - det påvirker IKKE placeringen af hovedindholdet.
  * Funktionen returnerer altid MARGINS.top uanset om brevhoved indsættes eller ej.
- *
- * @param {jsPDF} doc - PDF-dokumentet
- * @param {BrevhovedData} data - Brevhoved-data
- * @returns {number} Altid MARGINS.top (brevhoved er overlay)
  */
-export const addBrevhoved = (doc: BrevhovedPdfAdapter, data: BrevhovedData): number => {
+export const addBrevhoved = (doc: PdfDocumentAdapter, data: BrevhovedData): number => {
   const { journalnr, dagsDatoISO, advokat, sagsbehandler } = data;
   const trimmedJournalnr = typeof journalnr === 'string' ? journalnr.trim() : '';
   const resolvedDatoText = formatISODateReadable(dagsDatoISO);
@@ -169,15 +143,9 @@ export const addBrevhoved = (doc: BrevhovedPdfAdapter, data: BrevhovedData): num
   const hasAdvokat = trimmedAdvokat !== '';
   const hasSagsbehandler = trimmedSagsbehandler !== '';
 
-  // Brevhoved-overlay setup
-  const pageWidth = doc.internal.pageSize.width;
-  const rightX = pageWidth - MARGINS.right;
-  const lineHeight = 5;
-  let currentY = 15; // Start højere oppe end normal margin
+  const rightX = doc.getPageWidth() - MARGINS.right;
+  let currentY = PDF_BREVHOVED_START_Y;
 
-  doc.setFontSize(FONT_SIZES.normal - 1); // 1px mindre end normal (9 i stedet for 10)
-
-  // Sagsnummer (normal, højre-aligneret)
   if (hasJournalnr) {
     const roleSuffix = hasAdvokat && hasSagsbehandler
       ? ` ${trimmedAdvokat}/${trimmedSagsbehandler}`
@@ -187,17 +155,18 @@ export const addBrevhoved = (doc: BrevhovedPdfAdapter, data: BrevhovedData): num
           ? ` ${trimmedSagsbehandler}`
           : '';
     doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+    doc.setFontSize(PDF_BREVHOVED_FONT_SIZE);
     doc.text(`J.nr. ${trimmedJournalnr}${roleSuffix}`, rightX, currentY, { align: 'right' });
-    currentY += lineHeight;
+    currentY += PDF_BREVHOVED_LINE_HEIGHT;
   }
 
-  // Dato (normal, højre-aligneret)
   doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+  doc.setFontSize(PDF_BREVHOVED_FONT_SIZE);
   doc.text(resolvedDatoText, rightX, currentY, { align: 'right' });
 
-  // Reset font-stil til normal for at undgå lækage
-  applyNormalTextStyle(doc);
+  // Eksplicit font reset — undgå implicit afhængighed af applyNormalTextStyle
+  doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+  doc.setFontSize(FONT_SIZES.normal);
 
-  // Returner ALTID MARGINS.top - brevhoved er overlay og påvirker ikke hovedindholdet
   return MARGINS.top;
 };

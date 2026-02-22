@@ -32,6 +32,9 @@ export const PDF_FONT_STYLES = {
   bold: 'bold',
 } as const;
 
+export type PdfFontFamily = typeof PDF_FONT_FAMILY;
+export type PdfFontStyle = (typeof PDF_FONT_STYLES)[keyof typeof PDF_FONT_STYLES];
+
 // Font-størrelser
 export const FONT_SIZES = {
   title: 16,
@@ -55,3 +58,13 @@ export const PDF_SECTION_HEADING_GAP = 3;
 
 // Mellemrum mellem sektioner
 export const SECTION_SPACER = 10; // mm
+
+// Brevhoved layout-konstanter
+export const PDF_BREVHOVED_START_Y = 15; // mm fra øverste kant
+export const PDF_BREVHOVED_LINE_HEIGHT = 5; // mm pr. linje
+export const PDF_BREVHOVED_FONT_SIZE = FONT_SIZES.normal - 1; // 9pt
+
+// Footer-konstanter
+export const PDF_FOOTER_FONT_SIZE = 6; // pt
+export const PDF_FOOTER_TEXT_COLOR: PdfColor = [200, 200, 200];
+export const PDF_FOOTER_MARGIN_MM = 5; // mm fra sidens kant

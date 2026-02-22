@@ -10,6 +10,7 @@ import {
 import { formatCurrency, formatPercent } from '../formatUtils';
 import { addSectionHeading, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
 import { createStandardPdfWriter } from './pdfWriter';
+import { createJsPdfAdapter } from './jsPdfAdapter';
 import { renderEoStylePdfTable } from './pdfTableRenderer';
 import { TODAY } from '../../config/dateRanges';
 import { formatCurrencyPerUnit } from './pdfFormatUtils';
@@ -320,7 +321,7 @@ const addTable = (
   header: string,
   startY: number
 ): number => {
-  const headingY = addSectionHeading(doc, header, startY);
+  const headingY = addSectionHeading(createJsPdfAdapter(doc), header, startY);
   const tableStartY = headingY - PDF_SECTION_HEADING_GAP;
 
   const finalY = renderEoStylePdfTable({

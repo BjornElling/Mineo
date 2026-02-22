@@ -9,6 +9,7 @@ import type { CellDef, RowInput } from 'jspdf-autotable';
 import { MARGINS } from './pdfConfig';
 import { addSectionHeading, PDF_BASE_LINE_HEIGHT_MM, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
 import { createStandardPdfWriter } from './pdfWriter';
+import { createJsPdfAdapter } from './jsPdfAdapter';
 import {
   cellCenter,
   cellLeft,
@@ -130,7 +131,7 @@ const addSatserTable = (doc: PdfDoc, satser: AarsloenSatserInput, currentY: numb
 
   const tableData: RowInput[] = [];
 
-  const headingY = addSectionHeading(doc, 'Satser', currentY);
+  const headingY = addSectionHeading(createJsPdfAdapter(doc), 'Satser', currentY);
 
   // Data-rækker (kun udfyldte satser)
   for (const sats of udfyldteSatser) {
@@ -321,7 +322,7 @@ const addBeregningsprinciperTable = (doc: PdfDoc, params: BeregningsprincipperPa
   const { periodeData, fuldLoenUnderFerie, retTilSjetteFerieuge, antalFeriedage, loenPaaHelligdage, shDageAntal } = params;
 
   const tableData: RowInput[] = [];
-  const headingY = addSectionHeading(doc, 'Beregningsprincipper', currentY);
+  const headingY = addSectionHeading(createJsPdfAdapter(doc), 'Beregningsprincipper', currentY);
 
   // Samlet periode
   tableData.push([
@@ -406,7 +407,7 @@ const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, curren
   const { beregningsData, beregnetAarsloen, fuldLoenUnderFerie, shDageAntal, loenperiode, retTilSjetteFerieuge } = params;
 
   const tableData: RowInput[] = [];
-  const headingY = addSectionHeading(doc, 'Beregning', currentY);
+  const headingY = addSectionHeading(createJsPdfAdapter(doc), 'Beregning', currentY);
 
   // Første data-række: Sammentælling af løn fra tabellen
   tableData.push([
@@ -634,7 +635,7 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
     currentY = satserY;
   }
 
-  currentY = addSectionHeading(doc, 'Indtægtsoplysninger', currentY);
+  currentY = addSectionHeading(createJsPdfAdapter(doc), 'Indtægtsoplysninger', currentY);
 
   // Tilføj indtægtsoplysninger-tabel (inkl. "I alt"-linje)
   currentY = addIndtaegtsoplysningerTable(

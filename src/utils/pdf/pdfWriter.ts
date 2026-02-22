@@ -8,7 +8,7 @@
  */
 
 import jsPDF from 'jspdf';
-import { FONT_SIZES, MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
+import { FONT_SIZES, MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES, type PdfFontFamily, type PdfFontStyle } from './pdfConfig';
 import {
   addFooter,
   addBrevhoved,
@@ -16,16 +16,8 @@ import {
   PDF_TITLE_BOTTOM_SPACING_MM,
   type BrevhovedData,
 } from './pdfHelpers';
-
-const NBSP = '\u00A0';
-
-export const ensureNonBreakingKr = (value: string): string => {
-  return value.replace(/(-?\d[\d.,]*)\s+kr\./g, `$1${NBSP}kr.`);
-};
-
-export const normalizeTextForPdf = (value: string): string => {
-  return ensureNonBreakingKr(value.replace(/\r\n/g, '\n'));
-};
+import { createJsPdfAdapter } from './jsPdfAdapter';
+import { normalizeTextForPdf } from './pdfTextUtils';
 
 const fitTextToWidth = (doc: jsPDF, text: string, maxWidth: number): string => {
   if (doc.getTextWidth(text) <= maxWidth) return text;
@@ -118,14 +110,15 @@ const createPdfCursor = (params: Readonly<{
     unit: 'mm',
     format: 'a4',
   });
-  applyNormalTextStyle(doc);
+  const adapter = createJsPdfAdapter(doc);
+  applyNormalTextStyle(adapter);
 
-  const pageHeight = doc.internal.pageSize.height;
+  const pageHeight = adapter.getPageHeight();
   const contentBottom = pageHeight - MARGINS.bottom;
-  const fullWidth = doc.internal.pageSize.width - MARGINS.left - MARGINS.right;
+  const fullWidth = adapter.getPageWidth() - MARGINS.left - MARGINS.right;
   const pageContentHeight = contentBottom - MARGINS.top;
   let y = MARGINS.top;
-  let activeFont = { fontName: PDF_FONT_FAMILY as string, fontStyle: PDF_FONT_STYLES.normal as string };
+  let activeFont: { fontName: string; fontStyle: string } = { fontName: PDF_FONT_FAMILY, fontStyle: PDF_FONT_STYLES.normal };
 
   const addPage = () => {
     doc.addPage();
@@ -190,7 +183,7 @@ const createPdfCursor = (params: Readonly<{
       minRightColumnWidth?: number;
     }>
   ) => {
-    const pageWidth = doc.internal.pageSize.width;
+    const pageWidth = adapter.getPageWidth();
     const rightFontStyle = options?.rightFontStyle ?? 'bold';
     const maxRightDrawableWidth = Math.max(10, pageWidth - x - rightPadding - 5);
     const actualRightWidth = measureTextWidthWithFont(rightText, rightFontStyle);
@@ -300,6 +293,7 @@ const createPdfCursor = (params: Readonly<{
     setProperties: (props: Parameters<jsPDF['setProperties']>[0]) => doc.setProperties(props),
     setFontSize: (size: number) => doc.setFontSize(size),
     setFont,
+    applyNormalStyle: () => applyNormalTextStyle(adapter),
     getDoc: () => doc,
     getY: () => y,
     setY: (nextY: number) => {
@@ -315,7 +309,7 @@ const createPdfCursor = (params: Readonly<{
     writeUnderlinedLabel,
     writeSignatureBlock,
     writeBrevhoved: (brevhovedData: BrevhovedData) => {
-      y = addBrevhoved(doc, brevhovedData);
+      y = addBrevhoved(adapter, brevhovedData);
     },
     addUdkastWatermark: () => {
       if (visUdkastStempel) {
@@ -334,7 +328,7 @@ const createPdfCursor = (params: Readonly<{
       ensureSpace(estimatedHeight);
       render();
     },
-    addFooter: () => addFooter(doc),
+    addFooter: () => addFooter(adapter),
     save: (filename: string) => doc.save(filename),
   };
 };
@@ -347,7 +341,7 @@ export type PdfWriter = {
   setDisplayMode: (mode: string) => void;
   setProperties: (props: Parameters<jsPDF['setProperties']>[0]) => void;
   setFontSize: (size: number) => void;
-  setFont: (fontName: string, fontStyle: string) => void;
+  setFont: (fontName: PdfFontFamily, fontStyle: PdfFontStyle) => void;
   setNormalTextStyle: () => void;
   getDoc: () => jsPDF;
   ensureSpace: (height: number) => void;
@@ -498,7 +492,7 @@ export const createPdfWriter = (params: Readonly<{
     setProperties: cursor.setProperties,
     setFontSize: cursor.setFontSize,
     setFont: cursor.setFont,
-    setNormalTextStyle: () => applyNormalTextStyle(cursor.getDoc()),
+    setNormalTextStyle: () => cursor.applyNormalStyle(),
     getDoc: cursor.getDoc,
     ensureSpace: cursor.ensureSpace,
     getY: cursor.getY,
