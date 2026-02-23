@@ -126,6 +126,147 @@ describe('useOmregningToggle', () => {
     expect(onEnabledChange).not.toHaveBeenCalled();
   });
 
+  it('enables when tabelHarFejl=false og hasValidPeriod=true', async () => {
+    const onEnabledChange = vi.fn();
+
+    render(
+      <Harness
+        initialEnabled={false}
+        tabelHarFejl={false}
+        hasValidPeriod={true}
+        onEnabledChange={onEnabledChange}
+        tableRefMock={{
+          getErrors: vi.fn(),
+          getValidationSummary: vi.fn(() => null),
+          showMissingEntryError: vi.fn(),
+          flashError: vi.fn(),
+        }}
+        toggleRefMock={{ shake: vi.fn() }}
+      />
+    );
+
+    await act(async () => {
+      lastHandleToggle?.({ target: { value: true } } as CommitEvent<boolean>);
+    });
+
+    expect(onEnabledChange).toHaveBeenCalledWith(true);
+  });
+
+  it('kalder ikke shake/showMissingEntryError/flashError ved gyldig enable', async () => {
+    const shake = vi.fn();
+    const showMissingEntryError = vi.fn();
+    const flashError = vi.fn();
+    const onEnabledChange = vi.fn();
+
+    render(
+      <Harness
+        tabelHarFejl={false}
+        hasValidPeriod={true}
+        onEnabledChange={onEnabledChange}
+        tableRefMock={{
+          getErrors: vi.fn(),
+          getValidationSummary: vi.fn(() => null),
+          showMissingEntryError,
+          flashError,
+        }}
+        toggleRefMock={{ shake }}
+      />
+    );
+
+    await act(async () => {
+      lastHandleToggle?.({ target: { value: true } } as CommitEvent<boolean>);
+    });
+
+    expect(shake).not.toHaveBeenCalled();
+    expect(showMissingEntryError).not.toHaveBeenCalled();
+    expect(flashError).not.toHaveBeenCalled();
+  });
+
+  it('blokerer enable og ryster når hasValidPeriod=false (ingen tabel-fejl)', async () => {
+    const shake = vi.fn();
+    const onEnabledChange = vi.fn();
+
+    render(
+      <Harness
+        tabelHarFejl={false}
+        hasValidPeriod={false}
+        onEnabledChange={onEnabledChange}
+        tableRefMock={{
+          getErrors: vi.fn(),
+          getValidationSummary: vi.fn(() => null),
+          showMissingEntryError: vi.fn(),
+          flashError: vi.fn(),
+        }}
+        toggleRefMock={{ shake }}
+      />
+    );
+
+    await act(async () => {
+      lastHandleToggle?.({ target: { value: true } } as CommitEvent<boolean>);
+    });
+
+    expect(shake).toHaveBeenCalled();
+    expect(onEnabledChange).not.toHaveBeenCalled();
+  });
+
+  it('blokerer enable når getValidationSummary returnerer null (ingen firstErrorCell)', async () => {
+    const shake = vi.fn();
+    const showMissingEntryError = vi.fn();
+    const flashError = vi.fn();
+    const onEnabledChange = vi.fn();
+
+    render(
+      <Harness
+        tabelHarFejl={true}
+        hasValidPeriod={true}
+        onEnabledChange={onEnabledChange}
+        tableRefMock={{
+          getErrors: vi.fn(),
+          getValidationSummary: vi.fn(() => null),
+          showMissingEntryError,
+          flashError,
+        }}
+        toggleRefMock={{ shake }}
+      />
+    );
+
+    await act(async () => {
+      lastHandleToggle?.({ target: { value: true } } as CommitEvent<boolean>);
+    });
+
+    // Ryster men kalder hverken showMissingEntryError eller flashError
+    expect(shake).toHaveBeenCalled();
+    expect(showMissingEntryError).not.toHaveBeenCalled();
+    expect(flashError).not.toHaveBeenCalled();
+    expect(onEnabledChange).not.toHaveBeenCalled();
+  });
+
+  it('disable-toggle kalder onEnabledChange(false)', async () => {
+    const onEnabledChange = vi.fn();
+
+    render(
+      <Harness
+        initialEnabled={true}
+        tabelHarFejl={false}
+        hasValidPeriod={true}
+        onEnabledChange={onEnabledChange}
+        tableRefMock={{
+          getErrors: vi.fn(),
+          getValidationSummary: vi.fn(() => null),
+          showMissingEntryError: vi.fn(),
+          flashError: vi.fn(),
+        }}
+        toggleRefMock={{ shake: vi.fn() }}
+      />
+    );
+
+    await act(async () => {
+      lastHandleToggle?.({ target: { value: false } } as CommitEvent<boolean>);
+    });
+
+    expect(onEnabledChange).toHaveBeenCalledWith(false);
+  });
+
   it('auto-disables when period becomes invalid', async () => {
     const onEnabledChange = vi.fn();
 

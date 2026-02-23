@@ -1,0 +1,214 @@
+/// <reference types="vitest/globals" />
+
+// ─── MockJsPDF ────────────────────────────────────────────────────────────────
+
+class MockJsPDF {
+  internal = { pageSize: { width: 210, height: 297 } };
+  setFont = vi.fn();
+  setFontSize = vi.fn();
+  setTextColor = vi.fn();
+  addImage = vi.fn();
+  addPage = vi.fn();
+  line = vi.fn();
+  setLineWidth = vi.fn();
+  text = vi.fn();
+  setDisplayMode = vi.fn();
+  setProperties = vi.fn();
+  getNumberOfPages = vi.fn(() => 1);
+  setPage = vi.fn();
+  splitTextToSize = vi.fn((text: string) => [text]);
+  getTextWidth = vi.fn((text: string) => text.length * 2); // 2mm per tegn
+  save = vi.fn();
+}
+
+vi.mock('jspdf', () => ({ default: MockJsPDF }));
+
+// ─── Layout-fallback (eksisterende) ──────────────────────────────────────────
+
+describe('pdfWriter layout fallback', () => {
+  it('kalder onLayoutFallback når højre kolonne ikke kan være på linjen', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const onLayoutFallback = vi.fn();
+    const writer = createStandardPdfWriter({ onLayoutFallback });
+
+    writer.writeLeftRightText('Venstre', 'X'.repeat(1000));
+
+    expect(onLayoutFallback).toHaveBeenCalledTimes(1);
+    expect(onLayoutFallback).toHaveBeenCalledWith(
+      expect.stringContaining('højre kolonne er bredere end tilgængelig plads')
+    );
+  });
+
+  it('kalder ikke onLayoutFallback når højre kolonne kan være på linjen', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const onLayoutFallback = vi.fn();
+    const writer = createStandardPdfWriter({ onLayoutFallback });
+
+    writer.writeLeftRightText('Venstre', '123,45 kr.');
+
+    expect(onLayoutFallback).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Cursor / Y-position ─────────────────────────────────────────────────────
+
+describe('pdfWriter cursor', () => {
+  it('getY returnerer en positiv startværdi (MARGINS.top)', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    expect(writer.getY()).toBeGreaterThan(0);
+  });
+
+  it('setY opdaterer Y-positionen', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    writer.setY(100);
+    expect(writer.getY()).toBe(100);
+  });
+
+  it('advanceY øger Y-positionen med delta', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const before = writer.getY();
+    writer.advanceY(10);
+    expect(writer.getY()).toBe(before + 10);
+  });
+
+  it('addSpacer øger Y-positionen', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const before = writer.getY();
+    writer.addSpacer(5);
+    expect(writer.getY()).toBeGreaterThan(before);
+  });
+
+  it('addSpacer med height=0 ændrer ikke Y-positionen', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const before = writer.getY();
+    writer.addSpacer(0);
+    expect(writer.getY()).toBe(before);
+  });
+});
+
+// ─── writeWrappedText ─────────────────────────────────────────────────────────
+
+describe('pdfWriter writeWrappedText', () => {
+  it('øger Y-positionen efter at have skrevet tekst', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const before = writer.getY();
+    writer.writeWrappedText('Hej verden');
+    expect(writer.getY()).toBeGreaterThan(before);
+  });
+});
+
+// ─── ensureSpace / addPage ────────────────────────────────────────────────────
+
+describe('pdfWriter ensureSpace', () => {
+  it('tilføjer ny side når der ikke er nok plads', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    // Flyt Y tæt på bunden (297mm - margin ~20mm = ~277mm)
+    writer.setY(270);
+    // Kræv mere plads end hvad der er tilbage
+    writer.ensureSpace(50);
+    // Efter ensureSpace er Y reset til MARGINS.top på ny side
+    expect(writer.getY()).toBeLessThan(50);
+  });
+
+  it('tilføjer ikke ny side når der er tilstrækkelig plads', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const startY = writer.getY(); // MARGINS.top (~10mm)
+    writer.ensureSpace(5);
+    expect(writer.getY()).toBe(startY); // Y uændret
+  });
+});
+
+// ─── addPage ─────────────────────────────────────────────────────────────────
+
+describe('pdfWriter addPage', () => {
+  it('nulstiller Y til MARGINS.top efter addPage', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    writer.setY(200);
+    writer.addPage();
+    expect(writer.getY()).toBeLessThan(50);
+  });
+});
+
+// ─── getPageWidth ─────────────────────────────────────────────────────────────
+
+describe('pdfWriter getPageWidth', () => {
+  it('returnerer en positiv bredde for A4', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    expect(writer.getPageWidth()).toBeGreaterThan(0);
+  });
+});
+
+// ─── writeTitle / writeSectionHeader / writeSubheader ─────────────────────────
+
+describe('pdfWriter headers', () => {
+  it('writeTitle øger Y-positionen', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const before = writer.getY();
+    writer.writeTitle('Min titel');
+    expect(writer.getY()).toBeGreaterThan(before);
+  });
+
+  it('writeSectionHeader øger Y-positionen', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const before = writer.getY();
+    writer.writeSectionHeader('Sektion', 5);
+    expect(writer.getY()).toBeGreaterThan(before);
+  });
+
+  it('writeSubheader øger Y-positionen', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const before = writer.getY();
+    writer.writeSubheader('Underoverskrift', 5);
+    expect(writer.getY()).toBeGreaterThan(before);
+  });
+});
+
+// ─── writeUnderlinedLabel ────────────────────────────────────────────────────
+
+describe('pdfWriter writeUnderlinedLabel', () => {
+  it('øger Y-positionen og kalder doc.line', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const before = writer.getY();
+    writer.writeUnderlinedLabel('Dato', 10);
+    expect(writer.getY()).toBeGreaterThan(before);
+    // Dokumenterer at underline-linjen tegnes (intern mock registrerer line-kald)
+    expect(writer.getDoc().line).toHaveBeenCalled();
+  });
+});
+
+// ─── fitTextToWidth ───────────────────────────────────────────────────────────
+
+describe('pdfWriter fitTextToWidth', () => {
+  it('returnerer tekst uændret hvis den passer indenfor maxWidth', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    // MockJsPDF: getTextWidth = text.length * 2; "abc" = 6mm, maxWidth=100
+    const result = writer.fitTextToWidth('abc', 100);
+    expect(result).toBe('abc');
+  });
+});
+
+// ─── visUdkastStempel ────────────────────────────────────────────────────────
+
+describe('pdfWriter visUdkastStempel', () => {
+  it('createStandardPdfWriter med visUdkastStempel=false laver ikke watermark på opstart', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter({ visUdkastStempel: false });
+    // addImage bruges til watermark - hvis false: ingen kald
+    expect(writer.getDoc().addImage).not.toHaveBeenCalled();
+  });
+});
