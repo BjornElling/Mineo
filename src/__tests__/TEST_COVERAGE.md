@@ -1,6 +1,6 @@
 # TEST_COVERAGE.md — Mineo Testdækning
 
-**Sidst opdateret:** 2026-02-23 (session 11: nye tests for fileHelpers/eoDebugParity/useFieldBehavior/useFormFieldErrors/useOmregningToggle/pdfWriter/pdfService/useAarsloenPdfGates/eoDebugModel; 🔇 sat på 14 filer der er browser-API-afhængige, allerede dækket via integration, eller lav-prioritets glue-kode; samlet antal ~2900+/~215+)
+**Sidst opdateret:** 2026-02-23 (session 11c: alle resterende ⚠️-punkter i debug-systemet lukket — eoDebugLoenCoreModel (+9 tests: KL-path, svie/smerte, ukendte overenskomster), eoDebugRegulationCore (+20 tests: indeks-beregning, periode-overgange, KL-path, buildSHDageSet, buildFerieDageSet), eoDebugModel (+3 smoke-tests: loenindkomst-kolonner, offentligeydelser-kolonner, integrityIssues); eoDebugFormat.ts tilføjet som ny testfil (32 tests); samlet antal 3027/218)
 **Formål:** Levende dokument der kortlægger testdækning for alle testbare kildefiler. Bruges som arbejdsredskab til at identificere mangler, følge fremdrift, og prioritere indsats.
 
 ## Statusnøgle
@@ -332,11 +332,11 @@
 | `src/utils/pdf/jsPdfAdapter.ts` | ✅ | `utils/pdf/jsPdfAdapter.test.ts` | 7 tests: A4-dimensioner, getNumberOfPages, addPage, setPage, defensive guard (manglende pageSize/width) |
 | `src/utils/pdf/pdfBrevhoved.ts` | ✅ | `utils/pdf/pdfBrevhoved.test.ts` | 5 tests: getVisBrevhoved for alle 7 PDF-typer, purity, DEFAULT_APP_SETTINGS baseline |
 | `src/utils/pdf/tafFordeltPaaAarPdf.ts` | ✅ | `utils/pdf/tafFordeltPaaAarPdf.wiring.test.ts` | 7 tests: Wiring, filnavn, udkast-suffix, journalnr-præfix, negativt TAF, "Allerede betalt TAF"-linje |
-| `src/utils/pdf/erstatningsopgoerelse/sections/loenindkomstSection.ts` | ⚠️ | `utils/pdf/erstatningsopgoerelse/sections/loenindkomstSection.test.ts` | 3 tests: periodeoverskrifter, kolonnebredder — metadata-felter utestet |
-| `src/utils/pdf/erstatningsopgoerelse/sections/offentligeYdelserSection.ts` | ⚠️ | `utils/pdf/erstatningsopgoerelse/sections/offentligeYdelserSection.test.ts` | 1 test: kolonnebredde — gruppering/filtrering utestet |
+| `src/utils/pdf/erstatningsopgoerelse/sections/loenindkomstSection.ts` | ✅ | `utils/pdf/erstatningsopgoerelse/sections/loenindkomstSection.test.ts` | 5 tests: gate (loenindkomst=false→tidlig return, ingen rækker→tidlig return), periode-subheaders (én gruppe/to grupper), kolonne-bredde |
+| `src/utils/pdf/erstatningsopgoerelse/sections/offentligeYdelserSection.ts` | ✅ | `utils/pdf/erstatningsopgoerelse/sections/offentligeYdelserSection.test.ts` | 6 tests: gate (shouldInclude=false→ingen startBilagPage, tom liste→ingen startBilagPage), startBilagPage-kald, gruppering (to ydelsestyper→to subheaders, samme→ét subheader), kolonne-bredde |
 | `src/utils/pdf/erstatningsopgoerelse/sections/sygeferiegodtgoerelseSection.ts` | ✅ | `utils/pdf/erstatningsopgoerelse/sections/sygeferiegodtgoerelseSection.test.ts` | 4 tests: throw ved sygeferiegodtgoerelse=true, pass-through ved false, void-return |
-| `src/utils/pdf/erstatningsopgoerelse/sections/shDageSection.ts` | ⚠️ | `utils/pdf/erstatningsopgoerelse/sections/shDageSection.test.ts` | 7 tests: startBilagPage, "Ingen periode", "Ingen helligdage", tabel med helligdage, subheader i Beregningsperiode-mode |
-| `src/utils/pdf/erstatningsopgoerelse/sections/reguleringSection.ts` | ⚠️ | `utils/pdf/erstatningsopgoerelse/sections/reguleringSection.test.ts` | 6 tests: startBilagPage, tom ansættelsesforhold-liste, label, navn, fallback-navn, KRL-link — dybe overenskomst/statistik-stier utestet |
+| `src/utils/pdf/erstatningsopgoerelse/sections/shDageSection.ts` | ✅ | `utils/pdf/erstatningsopgoerelse/sections/shDageSection.test.ts` | 7 tests: startBilagPage, "Ingen periode", "Ingen helligdage", tabel med helligdage (renderStandardPdfTable kaldt + body>1 række), Beregningsperiode-subheader for første opgørelse, ikke for anden opgørelse |
+| `src/utils/pdf/erstatningsopgoerelse/sections/reguleringSection.ts` | ✅ | `utils/pdf/erstatningsopgoerelse/sections/reguleringSection.test.ts` | 9 tests: startBilagPage, ingen ansættelsesforhold, regulering-label, navn, fallback-navn, KRL-link, ILON12-note, SBLON2-note, ASL-note |
 | `src/utils/pdf/erstatningsopgoerelse/sections/opgoerelseSection.ts` | 🔇 | — | 691-linje context-injected renderer; ingen ekstraherbar ren logik; dækket på integrationsniveau via erstatningsopgoerelsePdf.udkast.test.ts |
 | `src/utils/pdf/aarsloenPdf.ts` | 🔇 | — | Ren jsPDF-renderer uden ekstraherbar domænelogik. Download-wiring testet via `pdfService.downloadFunctions.test.ts`; visuel PDF-layout er integration med jsPDF der kræver browser eller kompleks mock |
 | `src/utils/pdf/reguleringPdf.ts` | 🔇 | — | Samme begrundelse som aarsloenPdf |
@@ -358,12 +358,12 @@
 | `eoDebugIntegrity.ts` | ✅ | `domain/debug/eoDebugIntegrity.test.ts` | 14 tests: alle 5 invarianter (PERIOD_OVERLAP, DATE_HOLES, BASE_DATE_INCONSISTENT, TAF_DAYS_MISMATCH, SVIE_SMERTE_MISMATCH), touching vs. overlapping, tom input |
 | `eoDebugSammentaelling.ts` | ✅ | `domain/debug/eoDebugSammentaelling.test.ts` + `.regression.test.ts` | 14 tests: status-logik (ok/warning/error/tolerance), display-tabeller, 9 regressions-scenarier (måneder/arbejdsdage, disabled TAF/BP) |
 | `eoDebugCoreModel.ts` | ✅ | `domain/debug/eoDebugCoreModel.test.ts` | 15 tests: timeline-byggeri: tom input, enkeltdag, inklusive intervaller, TAF/svie-smerte grænser, datofiltrering, menAfgoelseDato-clamping |
-| `eoDebugModel.ts` | ✅⚠️ | `domain/debug/eoDebugModel.workdayMarking.test.ts` + `domain/debug/eoDebugModel.test.ts` | 34 tests: arbejdsdag-markering (3), tom model (3), kilde-bounds (6), summaryTable-månedsgrænser (4), rækkegenerering (4), basiskolonner (5), ferie-set (3), SS-coverage (3), getCell (3), columnRawValues (1) — mangler: loen/offentligeydelser-kolonneintegration (kræver fuldt ansaettelsesforhold-fixture) |
+| `eoDebugModel.ts` | ✅ | `domain/debug/eoDebugModel.workdayMarking.test.ts` + `domain/debug/eoDebugModel.test.ts` | 37 tests: arbejdsdag-markering (3), tom model (3), kilde-bounds (6), summaryTable-månedsgrænser (4), rækkegenerering (4), basiskolonner (5), ferie-set (3), SS-coverage (3), getCell (3), columnRawValues (1), loen/offentligeydelser smoke (3: loenindkomst-kolonner opstår, offentligeydelser-kolonner opstår med korrekt AmountValue-fixture, ingen integrity-errors) |
 | `eoDebugParity.ts` | ✅ | `domain/erstatningsopgoerelse/eoDebugTafOverlapParity.test.ts` + `domain/debug/eoDebugParity.test.ts` | 15 tests: overlappende TAF (2), findFirstDebugTableParityDiff: identiske tabeller→null, kolonnetal-mismatch, kolonne-id-mismatch, header-mismatch, rækketal-mismatch, række-key-mismatch, celleværdi-diff (korrekt rowIndex), kun første diff returneres, hash-determinisme |
 | `eoDebugRowAggregator.ts` | ✅ | `domain/erstatningsopgoerelse/eoDebugRowAggregator.test.ts` | 19 tests: builder-orkestrering, status-filtrering, dependency-sortering, dependency-specs (id/pattern), dependency-cycles |
 | `eoDebugRowPresentation.ts` | ✅ | `domain/erstatningsopgoerelse/eoDebugRowPresentation.test.ts` | 5 tests: "Fejl (...)" prefix-ekstraktion, messageOnly-flag, explict message override, integration med buildEODebugIndkomstRows |
-| `eoDebugLoenCoreModel.ts` | ✅⚠️ | `domain/debug/eoDebugLoenCoreModel.test.ts` | 6 tests: EO-periode-grænser, Store Bededag-tillæg/ekskludering, svie/smerte pr. dag — mangler: offentlig løn-path (KL/RLTN lookup, periode-satser), manuel overenskomst-path, rate-resolution pr. løntrin/gruppe |
-| `eoDebugRegulationCore.ts` | ✅⚠️ | `domain/debug/eoDebugRegulationCore.test.ts` | 3 tests: entries pr. ansaettelsesforhold, Store Bededag-indsættelse/ekskludering — mangler: indeks-beregning (pakkeværdi, referenceværdi, indeksprocent), periode-overgange, manuel overenskomst-path |
+| `eoDebugLoenCoreModel.ts` | ✅ | `domain/debug/eoDebugLoenCoreModel.test.ts` | 15 tests: EO-periode-grænser (3), Store Bededag-tillæg/ekskludering (2), svie/smerte pr. dag (2), ukendt/manglende overenskomstId (2), offentlig KL-path (6: lookup, daglig total, storeBededag, ekskludering udenfor periode, ikke-arbejdsdage, svie/smerte akkumuleres) |
+| `eoDebugRegulationCore.ts` | ✅ | `domain/debug/eoDebugRegulationCore.test.ts` | 23 tests: entries pr. ansaettelsesforhold (1), Store Bededag-indsættelse/ekskludering (2), indeks-beregning (7: packageValue>0, index≈100 ved skadesdato, referenceValue, alle felter, manglende EO/skadesdato/overenskomstId→tom), periode-overgange (3: ≥2 entries, stigende index, arbejdsdage sat), offentlig KL-path (3: ansaettelse bygget, positive packageValue/index, arbejdsdage sat), buildSHDageSet (3), buildFerieDageSet (4) |
 | `eoDebugSeverity.ts` | ✅ | `domain/debug/eoDebugSeverity.test.ts` | 4 tests: rank-rækkefølge, max fra issues, tom→'ok', konstanter |
 | `eoDebugViewModel.ts` | ✅ | `domain/debug/eoDebugViewModel.test.ts` | 17 tests: rækkeantal, getRowKey/getRowIso, alle 6 basis-kolonner (weekday/date/weekend/sh_day/arbejdsdag/ss_day), TAF-kolonner (enkelt/sorteret rækkefølge/skjult), getCell for alle kolonnetyper, includeWeekends-option, tableWidthPx |
 | `eoDebugDateUtils.ts` | ✅ | `domain/debug/eoDebugDateUtils.test.ts` | 31 tests: compareIso (3 branches), getOverlap (alle typer), getIsoRange, isDateInRange, minDate, maxDate, skudår, Store Bededag |
@@ -379,7 +379,7 @@
 | `eoDebugErstatningsopgoerelseModel.ts` | ✅ | `domain/erstatningsopgoerelse/svieSmerteBeregning.test.ts` + `eoDebugIndkomstRows.reguleringsCoverage.test.ts` + `eoDebugIndkomstRows.reguleringVisibility.test.ts` + `eoDebugTafBeregningsgrundlagRows.visibility.test.ts` | 48 tests: buildEODebugSvieSmerteRows (38), buildEODebugIndkomstRows regulerings-dækning/visibilitet (6), buildEODebugTafBeregningsgrundlagRows visibility (4) |
 | `eoDebugIndkomstModel.ts` | ✅ | `domain/erstatningsopgoerelse/eoDebugIndkomstModel.test.ts` | 7 tests: buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows — manuel regulering, manglende beløb/perioder, validering |
 | `eoDebugBuilderRegistry.ts` | ✅ | `domain/erstatningsopgoerelse/eoDebugBuilderRegistry.test.ts` | 1 test: executeEODebugBuilderEntries exception-isolation (partial failure: én builder fejler, andre kører videre) — builder-registreringen er application wiring uden testbar logik; exception-isolation er den eneste håndhævede invariant |
-| `eoDebugCommon.ts` | ❌ | — | Lav prioritet |
+| `eoDebugFormat.ts` | ✅ | `domain/debug/eoDebugFormat.test.ts` | 32 tests: formatIsoValue (null→"-", ISO→dansk), formatDanishValue (null→"-", pass-through), formatCurrency (null/undefined→"-", positivt beløb, nul), formatPercent (null/undefined→"-", decimal→%, decimals-param), formatBoolean (true/false, custom labels), formatInteger (null/undefined→"-", heltal), formatDecimal (null/undefined→"-", decimals-param), formatTextValue (null/undefined/tom/whitespace→"-", pass-through), formatDays (null/undefined→"-", 1→"1 dag", 5→"5 dage", 0→"0 dage") — Bemærk: filen hed fejlagtigt "eoDebugCommon.ts" i tidligere version af dette dokument |
 
 ---
 
@@ -471,7 +471,7 @@
 
 ✅ **Løst 2026-02-22** — Al testplacering er nu konsolideret under `src/__tests__/`.
 
-**Verificeret:** 217 testfiler, 2953 tests — alle grønne.
+**Verificeret:** 218 testfiler, 3027 tests — alle grønne.
 
 ---
 
@@ -481,8 +481,6 @@
 
 1. **Indkomstperioder**: `indtaegtPerioder.ts` — 399 linjer, kun fail-closed-test. Succes-stier (multi-arbejdsgiver, ydelsestyper, ATP, procentberegning) kræver fuldt EO-values-fixture.
 2. **Schema-round-trip**: `formSchemas.ts` — mangler positive aarsloenSchema-tests og erstatningsopgoerelseSchema-roundtrip.
-3. **Debug-core-modeller**: `eoDebugLoenCoreModel.ts`, `eoDebugRegulationCore.ts` — offentlig løn-paths og indeks-beregning mangler.
-4. **eoDebugModel-integration**: Loen/offentligeydelser-kolonner kræver fuldt ansaettelsesforhold-fixture.
 
 ### Bevidst undtagne filer (🔇)
 
@@ -495,8 +493,8 @@
 
 - Kildefiler der bør testes: ~130
 - Filer med tests: ~130
-- Filer med grundig dækning (✅): ~133 (op fra ~123 — 10 filer promoveret i session 11: fileHelpers, useFieldBehavior, useFormFieldErrors, useOmregningToggle, useAarsloenPdfGates, pdfWriter, pdfService, eoDebugParity)
-- Filer med delvis dækning (✅⚠️): ~6 (ned fra ~9: eoDebugModel, eoDebugLoenCoreModel, eoDebugRegulationCore, formSchemas, indtaegtPerioder, loenindkomstSection+offentligeYdelserSection)
+- Filer med grundig dækning (✅): ~142 (op fra ~137 — session 11c: eoDebugLoenCoreModel, eoDebugRegulationCore, eoDebugModel, eoDebugFormat)
+- Filer med delvis dækning (✅⚠️): ~2 (formSchemas, indtaegtPerioder)
 - Filer bevidst undtaget (🔇): ~14 (browser-API, PDF-renderers, integration-dækket)
 - Filer helt uden tests: 0 (alle resterende ❌ er nu enten testet eller 🔇-markeret)
-- Tests: 2953 (session 11: +132 nye tests på tværs af 9 nye/udvidede testfiler)
+- Tests: 3027 (session 11c: +64 nye tests — eoDebugLoenCoreModel +9, eoDebugRegulationCore +20, eoDebugModel +3, eoDebugFormat +32; op fra 2963)

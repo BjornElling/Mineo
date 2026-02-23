@@ -8,6 +8,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schem
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { svieSmertePrDag } from '../../../data/regulationRates';
+import { toDanishDateString } from '../../../types/branded';
 
 const makeDebugDay = (
   iso: string,
@@ -146,5 +147,143 @@ describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
       makeInput(debugDays, { svieSmerteSatserAar: 2024 })
     );
     expect(result.svieSmerteDays[0]?.amount).toBe(svieSmertePrDag[2024]);
+  });
+
+  it('returnerer tom timeline ved ukendt overenskomstId', () => {
+    const debugDays = [makeDebugDay('2024-03-04', true)];
+    const result = buildLoenTimeline(
+      makeInput(debugDays, {
+        loenindkomstAnsaettelsesforhold: [
+          {
+            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            id: 'af-1',
+            harOverenskomst: true,
+            overenskomstId: 'ukendt-overenskomst-der-ikke-eksisterer',
+            feriePct: 12.5,
+            loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
+          },
+        ],
+      })
+    );
+    expect(result.loenDays).toHaveLength(0);
+  });
+
+  it('returnerer tom timeline når overenskomstId mangler', () => {
+    const debugDays = [makeDebugDay('2024-03-04', true)];
+    const result = buildLoenTimeline(
+      makeInput(debugDays, {
+        loenindkomstAnsaettelsesforhold: [
+          {
+            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            id: 'af-1',
+            harOverenskomst: false,
+            overenskomstId: undefined,
+            feriePct: 12.5,
+            loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
+          },
+        ],
+      })
+    );
+    expect(result.loenDays).toHaveLength(0);
+  });
+});
+
+// ─── Offentlig løn-path (KL-overenskomst) ────────────────────────────────────
+
+describe('buildLoenTimeline — offentlig løn-path (KL)', () => {
+  const makeKLInput = (
+    debugDays: DebugDay[],
+    overrides: Partial<ErstatningsopgoerelseValues> = {}
+  ) => ({
+    debugDays,
+    eoValues: {
+      ...createErstatningsopgoerelseInitialValues(),
+      vedroererPeriodeFra: '2024-01-01',
+      vedroererPeriodeTil: '2024-12-31',
+      svieSmerteSatserAar: 2024,
+      svieSmerteDelvisSygemeldingSats: 'halv',
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          id: 'af-kl',
+          harOverenskomst: true,
+          overenskomstId: 'kl-overenskomst',
+          feriePct: 12.5,
+          loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
+          offentligLoenType: 'Timeløn',
+          offentligLoenTrin: 20,
+          offentligLoenGruppe: 0,
+        },
+      ],
+      ...overrides,
+    } as ErstatningsopgoerelseValues,
+    stamdataValues: {} as StamdataValues,
+  });
+
+  it('bygger loendag via offentlig løn-opslag (KL, løntrin 20, gruppe 0)', () => {
+    // 2024-03-04 er mandag — en normal arbejdsdag
+    const debugDays = [makeDebugDay('2024-03-04', true)];
+    const result = buildLoenTimeline(makeKLInput(debugDays));
+    expect(result.loenDays).toHaveLength(1);
+    expect(result.loenDays[0]?.iso).toBe('2024-03-04');
+    const types = result.loenDays[0]?.components.map((c) => c.type) ?? [];
+    expect(types).toContain('grundloen');
+  });
+
+  it('daglig total er et positivt beløb ved KL-opslag', () => {
+    const debugDays = [makeDebugDay('2024-03-04', true)];
+    const result = buildLoenTimeline(makeKLInput(debugDays));
+    expect(result.loenDays[0]?.dailyTotal).toBeGreaterThan(0);
+  });
+
+  it('inkluderer store bededag-komponent for KL-dag efter 2024-01-01', () => {
+    const debugDays = [makeDebugDay('2024-03-04', true)];
+    const result = buildLoenTimeline(makeKLInput(debugDays));
+    const types = result.loenDays[0]?.components.map((c) => c.type) ?? [];
+    expect(types).toContain('storeBededag');
+  });
+
+  it('ekskluderer KL-dag udenfor EO-perioden', () => {
+    const debugDays = [makeDebugDay('2023-06-01', true)]; // udenfor 2024-perioden
+    const result = buildLoenTimeline(makeKLInput(debugDays));
+    expect(result.loenDays).toHaveLength(0);
+  });
+
+  it('ignorerer ikke-arbejdsdage i KL-path', () => {
+    const debugDays = [makeDebugDay('2024-03-02', false)]; // lørdag
+    const result = buildLoenTimeline(makeKLInput(debugDays));
+    expect(result.loenDays).toHaveLength(0);
+  });
+
+  it('svie/smerte akkumuleres uanset offentlig løn-path', () => {
+    // Kalenderdag uden for EO-periode med svie/smerte → svieSmerteDays udfyldes
+    const debugDays = [makeDebugDay('2024-03-04', false, 'Fuld')];
+    const result = buildLoenTimeline(makeKLInput(debugDays));
+    expect(result.svieSmerteDays).toHaveLength(1);
+    expect(result.svieSmerteDays[0]?.niveau).toBe('Fuld');
+  });
+
+  it('KL månedsløntype: grundloen-komponent eksisterer', () => {
+    const debugDays = [makeDebugDay('2024-03-04', true)];
+    const result = buildLoenTimeline(
+      makeKLInput(debugDays, {
+        loenindkomstAnsaettelsesforhold: [
+          {
+            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            id: 'af-kl',
+            harOverenskomst: true,
+            overenskomstId: 'laerer-overenskomsten',
+            feriePct: 12.5,
+            loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
+            offentligLoenType: 'Månedsløn',
+            offentligLoenTrin: 20,
+            offentligLoenGruppe: 0,
+          },
+        ],
+      })
+    );
+    expect(result.loenDays).toHaveLength(1);
+    const types = result.loenDays[0]?.components.map((c) => c.type) ?? [];
+    expect(types).toContain('grundloen');
   });
 });

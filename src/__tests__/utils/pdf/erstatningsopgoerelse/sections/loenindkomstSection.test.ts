@@ -96,6 +96,30 @@ const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
   };
 };
 
+// ─── Gate: selectedElements.loenindkomst = false ──────────────────────────────
+
+describe('renderLoenindkomstSection – gate', () => {
+  it('returnerer tidligt uden at kalde startBilagPage når loenindkomst=false', () => {
+    const { ctx, startBilagPage } = makeContext(new Set(['2022-10-01']));
+    ctx.selectedElements = { ...selectedElements, loenindkomst: false };
+
+    renderLoenindkomstSection(ctx);
+
+    expect(startBilagPage).not.toHaveBeenCalled();
+  });
+
+  it('returnerer tidligt uden at kalde startBilagPage når ingen rækker opfylder filteret', () => {
+    // shouldIncludeLoenRowInBilag returnerer altid false (tom includeSet)
+    const { ctx, startBilagPage } = makeContext(new Set());
+
+    renderLoenindkomstSection(ctx);
+
+    expect(startBilagPage).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Periode-underoverskrifter ─────────────────────────────────────────────────
+
 describe('renderLoenindkomstSection periode-underoverskrifter', () => {
   it('viser ikke TAF-/Beregningsperiode-underoverskrift når kun én periodegruppe har rækker', () => {
     const { ctx, renderSubheader } = makeContext(new Set(['2022-10-01']));

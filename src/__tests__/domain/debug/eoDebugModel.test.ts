@@ -372,3 +372,108 @@ describe('buildEODebugModel — columnRawValues', () => {
     expect(model.columnRawValues).toBeInstanceOf(Map);
   });
 });
+
+// ─── Loen/offentligeydelser kolonner (smoke-tests) ────────────────────────────
+
+describe('buildEODebugModel — loenindkomst og offentligeydelser kolonner (smoke)', () => {
+  it('model med lønindkomst-rækker indeholder kolonner udover basiskolonnerne', () => {
+    // Tabellen skal have loen-kolonner når der er ansaettelsesforhold med data
+    const model = buildEODebugModel({
+      ...base(),
+      vedroererPeriodeFra: '2024-01-01' as never,
+      vedroererPeriodeTil: '2024-01-31' as never,
+      loenindkomstAnsaettelsesforhold: [
+        {
+          id: 'af-1',
+          navnPaaArbejdssted: 'Test',
+          harOverenskomst: true,
+          overenskomstId: 'bygge-anlaeg',
+          ansatPaaSkadestidspunktet: true,
+          ansaettelsesforholdOphoert: false,
+          sidsteArbejdsdag: undefined,
+          feriePct: 12.5,
+          fritvalgPct: undefined,
+          shSoPct: undefined,
+          storeBededagPct: undefined,
+          pensionPct: undefined,
+          loenperiode: 'maaned',
+          fuldLoenUnderFerie: 'Nej',
+          loenPaaHelligdage: 'Almindelig',
+          saerligFraDatoRegulering: undefined,
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          loenudviklingStatistikModel: undefined,
+          loenudviklingManuelTableData: [],
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'row-1',
+              fra: '2024-01-01',
+              til: '2024-01-31',
+              loen: '30000',
+              loenperiode: 'maaned',
+            },
+          ],
+        },
+      ] as never,
+    });
+    const columnIds = model.columns.map((c) => c.id);
+    const hasLoenKolonne = columnIds.some((id) => id.startsWith('loen:'));
+    expect(hasLoenKolonne).toBe(true);
+  });
+
+  it('model med offentligeYdelserRows indeholder offentlig-kolonner', () => {
+    // fraDato/tilDato er i dansk format (dd-mm-åååå) — bruges af parseOffentligDato i column-builder
+    // ydelsestype er registry-nøglen (lowercase), ydelse er AmountValue-objekt { kind: 'number', value }
+    const model = buildEODebugModel({
+      ...base(),
+      vedroererPeriodeFra: '2024-01-01' as never,
+      vedroererPeriodeTil: '2024-01-31' as never,
+      offentligeYdelserRows: [
+        {
+          id: 'oy-1',
+          ydelsestype: 'sygedagpenge',
+          fraDato: '08-01-2024',
+          tilDato: '12-01-2024',
+          ydelse: { kind: 'number', value: 1000 },
+          tillaeg: undefined,
+        },
+      ] as never,
+    });
+    const columnIds = model.columns.map((c) => c.id);
+    const hasOffentligKolonne = columnIds.some((id) => id.startsWith('offentlig:'));
+    expect(hasOffentligKolonne).toBe(true);
+  });
+
+  it('integrityIssues er tom ved gyldig model med lønindkomst', () => {
+    const model = buildEODebugModel({
+      ...base(),
+      vedroererPeriodeFra: '2024-01-01' as never,
+      vedroererPeriodeTil: '2024-01-31' as never,
+      loenindkomstAnsaettelsesforhold: [
+        {
+          id: 'af-1',
+          navnPaaArbejdssted: 'Test',
+          harOverenskomst: true,
+          overenskomstId: 'bygge-anlaeg',
+          ansatPaaSkadestidspunktet: true,
+          ansaettelsesforholdOphoert: false,
+          sidsteArbejdsdag: undefined,
+          feriePct: 12.5,
+          fritvalgPct: undefined,
+          shSoPct: undefined,
+          storeBededagPct: undefined,
+          pensionPct: undefined,
+          loenperiode: 'maaned',
+          fuldLoenUnderFerie: 'Nej',
+          loenPaaHelligdage: 'Almindelig',
+          saerligFraDatoRegulering: undefined,
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          loenudviklingStatistikModel: undefined,
+          loenudviklingManuelTableData: [],
+          indtaegtsoplysningerTableData: [],
+        },
+      ] as never,
+    });
+    const errors = model.integrityIssues.filter((i) => i.severity === 'error');
+    expect(errors).toHaveLength(0);
+  });
+});
