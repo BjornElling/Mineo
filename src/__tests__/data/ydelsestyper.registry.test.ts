@@ -30,4 +30,39 @@ describe('ydelsestyper registry', () => {
     expect(uddannelseshjaelpIndex).toBe(suIndex + 1);
     expect(andetIndex).toBe(uddannelseshjaelpIndex + 1);
   });
+
+  it('alle 13 forventede ydelsestyper er registreret', () => {
+    const expected = [
+      'dagpenge', 'efterloen', 'flextilskud', 'kontanthjaelp', 'ledighedsydelse',
+      'midlertidigt_eet', 'pension', 'ressourceforloebsydelse', 'revalideringsydelse',
+      'sygedagpenge', 'su', 'uddannelseshjaelp', 'andet',
+    ];
+    expect(ydelsestypeKeys).toHaveLength(expected.length);
+    for (const key of expected) {
+      expect(ydelsestypeKeys).toContain(key);
+    }
+  });
+
+  it('alle labels er unikke', () => {
+    const labels = ydelsestypeKeys.map((k) => ydelsestyper[k].label);
+    const uniqueLabels = new Set(labels);
+    expect(uniqueLabels.size).toBe(labels.length);
+  });
+
+  it('kun sygedagpenge bruger arbejdsdage-periodisering', () => {
+    const arbejdsdageKeys = ydelsestypeKeys.filter(
+      (k) => ydelsestyper[k].periodisering === 'arbejdsdage'
+    );
+    expect(arbejdsdageKeys).toEqual(['sygedagpenge']);
+  });
+
+  it('debugLabel er kun sat for ydelsestyper med lange labels (ledighedsydelse, revalideringsydelse, uddannelseshjaelp)', () => {
+    expect(ydelsestyper.ledighedsydelse.debugLabel).toBeDefined();
+    expect(ydelsestyper.revalideringsydelse.debugLabel).toBeDefined();
+    expect(ydelsestyper.uddannelseshjaelp.debugLabel).toBeDefined();
+    // Andre har ingen debugLabel
+    expect(ydelsestyper.dagpenge.debugLabel).toBeUndefined();
+    expect(ydelsestyper.efterloen.debugLabel).toBeUndefined();
+    expect(ydelsestyper.sygedagpenge.debugLabel).toBeUndefined();
+  });
 });

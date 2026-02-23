@@ -1,6 +1,6 @@
 # TEST_COVERAGE.md — Mineo Testdækning
 
-**Sidst opdateret:** 2026-02-23 (session 5: tafBeregningsEngine +6 tests, reguleringFormulaUtils 2→57 tests, ferieCalculations 3→10 tests, offentligeYdelserDerived 3→9 tests, aggregationEngine 5→14 tests (rounding strategies + array paths), domain/calculations + varigemen alle ✅)
+**Sidst opdateret:** 2026-02-23 (session 7: +93 tests — dateUtils 8→33, utcDayMath 4→10, branded.date 28→40, eoDebugLoenViewModel 2→10, eoDebugRegulationViewModel 2→11, ydelsestyper.registry 3→7, persistenceRegistry 4→23, appSettingsParse +4 loadInitialSettings)
 **Formål:** Levende dokument der kortlægger testdækning for alle testbare kildefiler. Bruges som arbejdsredskab til at identificere mangler, følge fremdrift, og prioritere indsats.
 
 ## Statusnøgle
@@ -31,13 +31,13 @@
 | Kildefil | Status | Testfil | Bemærkninger |
 |----------|--------|---------|--------------|
 | `erstatningsopgoerelseAggregationEngine.ts` | ✅ | `domain/erstatningsopgoerelse/erstatningsopgoerelseAggregationEngine.test.ts` | 14 tests: computed-only sign+rounding, fail-closed (missing/invalid), determinisme, alle when-strategier (perLineThenTotal/onlyTotal/perLine/none), roundingOverride (method/none), nested dot-path, array [0]/[1], out-of-bounds→missing_computed, null-intermediate→missing_computed |
-| `erstatningsopgoerelseAggregationPolicy.ts` | ✅⚠️ | `domain/erstatningsopgoerelse/erstatningsopgoerelseAggregationPolicy.test.ts` | 25 tests: schema-validering, alle enum-værdier, duplikat-id — mangler: strategy enum eksklusivitet (kun computedOnly), roundingOverride med method=none, whitespace i id, precision øvre grænse |
+| `erstatningsopgoerelseAggregationPolicy.ts` | ✅ | `domain/erstatningsopgoerelse/erstatningsopgoerelseAggregationPolicy.test.ts` | 29 tests: schema-validering, alle enum-værdier, duplikat-id, strategy enum eksklusivitet, roundingOverride method=none, whitespace i id (dokumenterer min(1)-adfærd), precision øvre grænse |
 | `periodiseringsMotor.ts` | ✅ | `domain/erstatningsopgoerelse/periodiseringsMotor.test.ts` | 18 tests: periodiserBeloebForMaaneder/Arbejdsdage/OffentligYdelse (apportionment, DST, delår), buildLoenArbejdsdageSet, optaelMaaneder(Praecis/Afrundet) null-cases, isOffentligYdelseDatoMedregnet (sygedagpenge cutoff, arbejdsdage weekend/SH, kalenderdage alle-dage) |
 | `tafBeregningsEngine.ts` | ✅ | `domain/erstatningsopgoerelse/tafBeregningsEngine.test.ts` | 15 tests: Måneder/Arbejdsdage, loseFeriedage-summering på merged grupper, null-aggregation (alle rækker ugyldige), tom input, invalide rækker i output, bounds-clamping |
 | `tafCalculations.ts` | ✅ | `domain/erstatningsopgoerelse/tafCalculations.test.ts` | 15 tests: calculateKalenderdageInclusive (DST, reversed), calculateTafAntalMaaneder (fuld mdr, SH-fradrag, null-cases), calculateTafAntalMaanederPraecis (uafrundet fraktion, null-cases) |
-| `tafPerYearDerived.ts` | ✅⚠️ | `domain/erstatningsopgoerelse/tafPerYearDerived.test.ts` | 18 tests: Årsbuckets, negativt TAF — mangler: loenudviklingTotal.status != 'ok', tafArbejdsdageSet null med arbejdsdage, allocateOreByWeight allWeights=0 |
+| `tafPerYearDerived.ts` | ✅ | `domain/erstatningsopgoerelse/tafPerYearDerived.test.ts` | 21 tests: Årsbuckets, negativt TAF, loenudviklingTotal.status='not_calculable'→null, tafArbejdsdageSet=null ved MAANEDER (segments skipped), weekend-only TAF→allWeights=0→fallback til første år |
 | `tafRowDerived.ts` | ✅ | `domain/erstatningsopgoerelse/tafRowDerived.test.ts` | Måneder/arbejdsdage, clamping, null-cases, feriedage, loseFeriedage=undefined, determinisme |
-| `tafBeregningsenhed.ts` | ✅⚠️ | `domain/erstatningsopgoerelse/tafBeregningsenhed.test.ts` | 12 tests: alle beregningsenhed-paths — mangler: fraDate>tilDate, tom loenindkomstAnsaettelsesforhold, boundary overlap |
+| `tafBeregningsenhed.ts` | ✅ | `domain/erstatningsopgoerelse/tafBeregningsenhed.test.ts` | 15 tests: alle beregningsenhed-paths, fraDate>tilDate→MAANEDER, tom loenindkomstAnsaettelsesforhold→MAANEDER, single-day beregningsperiode med SH-overlap→ARBEJDSDAGE |
 | `tafDaySets.ts` | ✅ | `domain/erstatningsopgoerelse/tafDaySets.test.ts` | Alle 6 funktioner: isWeekdayUtc, buildDatoSetInclusive(FromDates), buildFerieDageSet, buildShDageSet, buildShDageSetFromIsoRange, placeLoseFeriedage — DST, skudår, SH, overlappende ferie, NaN/Inf/negative count |
 | `ferieCalculations.ts` | ✅ | `domain/erstatningsopgoerelse/ferieCalculations.test.ts` | 10 tests: undefined fra/til→null, fra>til→null, fuld uge, SH-fradrag, Math.max(0,...), multi-år grænse |
 | `reguleringFormulaUtils.ts` | ✅ | `domain/erstatningsopgoerelse/reguleringFormulaUtils.test.ts` | 57 tests: computeFormulaValue (NaN/Inf/nul), parsePercentInput (dansk komma, tusind-sep, NaN), resolveFeriePctForFormula (fallback), formatPercentCellFromRaw (undefined/-/malformed), mergeFeriepengeDisplay (alle 4 grene), wrapIndexFormulaAfterSlashWhenLong (kort/lang/newline/custom-max), formatOverenskomstPercent/Amount (null/undef/0/tal), buildFormulaText (ingen/en/to faktorer, visibility-flags) |
@@ -47,7 +47,7 @@
 | `indtaegtPerioder.ts` | ✅⚠️ | `domain/erstatningsopgoerelse/indtaegtPerioder.failClosed.test.ts` + `indtaegtPerioder.test.ts` | buildTafRanges, buildBeregningsperiodeRange, buildIncomeCalculationContext + fail-closed |
 | `periodMerging.ts` | ✅ | `domain/erstatningsopgoerelse/periodMerging.test.ts` | 12 tests: tom liste, enkelt, overlappende, adjacent (mergeAdjacent=true/false), samme fra-dato (sort by til), nested range, tre uafhængige, mergeDateRanges (Date-objekter) |
 | `periodOverlapDetection.ts` | ✅ | `domain/erstatningsopgoerelse/periodOverlapDetection.test.ts` | 12 tests: tom liste, enkelt, separate, grænsedag-overlap, ugyldige rækker, 3 overlappende — detectConflictingSvieSmerteOverlaps: tom, enkelt, forskellig tilstand, samme tilstand, undefined tilstand |
-| `beregningsperiodeTafOverlap.ts` | ✅⚠️ | `domain/erstatningsopgoerelse/beregningsperiodeTafOverlap.test.ts` | 2 tests — mangler: fra>til validation, rangesOverlap edge cases, formatISOForMessage null-path, tom tafPerioder |
+| `beregningsperiodeTafOverlap.ts` | ✅ | `domain/erstatningsopgoerelse/beregningsperiodeTafOverlap.test.ts` | 18 tests: isValidClosedDateRange (6), rangesOverlap (5), computeTafOverlapWithBeregningsperiode edge cases (5), buildBeregningsperiodeTafOverlapErrorMessage, per-row overlap |
 | `aarsloenRowInterval.ts` | ✅ | `domain/erstatningsopgoerelse/aarsloenRowInterval.test.ts` | 39 tests: Alle 3 lønperioder (maaned/uge/dag), skudår, DST, nytår, grænseår (1900/2100), whitespace, ugyldige datoer |
 | `aggregationAdapters.ts` | ✅ | `domain/erstatningsopgoerelse/aggregationAdapters.test.ts` | 27 tests: Alle 4 adaptere, null/NaN/Infinity, sumFinite, null første i liste, negativ varigeMen, partial emptiness (dato sat, beloeb undefined→null) |
 | `indkomstRowValidation.ts` | ✅ | `domain/erstatningsopgoerelse/indkomstRowValidation.test.ts` | 38 tests: Alle 4 funktioner, alle lønperioder, datoformat, rækkefølgefejl, null-paths (implicit), error-set |
@@ -57,15 +57,15 @@
 | `rowEmpty.ts` | ✅ | `domain/erstatningsopgoerelse/rowEmpty.test.ts` | Alle 4 row-typer: tom, hvert felt sat, 0≠undefined, id ignoreres |
 | `rowDateBounds.ts` | ✅ | `domain/erstatningsopgoerelse/rowDateBounds.test.ts` | Fra/til-bounds alle grene: skadesdatoMinDate, rowTil/fraMax, rowFra/tilMin, tilExtraMaxDate (min), useTilExtraMaxDate=false, fuld kombineret scenarie |
 | `tafArbejdsstatusConfig.ts` | ✅ | `domain/erstatningsopgoerelse/tafArbejdsstatusConfig.test.ts` | CONFIG-integritet (11 nøgler), buildTafArbejdsstatusLinje: alle 11 statuser, suffix-normalisering, dato-output |
-| `periodRangeGroups.ts` | ✅⚠️ | `domain/erstatningsopgoerelse/periodRangeGroups.test.ts` | normalizeBilagMode, buildPeriodRangeGroups: Alle/Perioden, første/anden opgørelse, TAF, konstanterne |
-| `erstatningsopgoerelseInitialValues.ts` | ✅⚠️ | `domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues.test.ts` + `.udkast.test.ts` | Schema-validering, settings-integration, alle defaults |
+| `periodRangeGroups.ts` | ✅ | `domain/erstatningsopgoerelse/periodRangeGroups.test.ts` | normalizeBilagMode, buildPeriodRangeGroups: Alle/Perioden, første/anden opgørelse, TAF, konstanterne, allRanges-ignorering, PeriodRangeGroup-struktur |
+| `erstatningsopgoerelseInitialValues.ts` | ✅ | `domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues.test.ts` + `.udkast.test.ts` | Schema-validering, settings-integration, alle defaults, determinisme |
 
 ### `src/domain/renteberegning/`
 
 | Kildefil | Status | Testfil | Bemærkninger |
 |----------|--------|---------|--------------|
-| `renteberegningEngine.ts` | ✅⚠️ | `domain/renteberegning/renteberegningEngine.test.ts` | 6 tests — mangler: !renterFra med gyldig beregningsdato, datokonverteringsfejl, tom rentekravRows, null fra interest-calculator, blandet valid/invalid rækker |
-| `renteEngine.ts` | ✅⚠️ | `domain/renteberegning/renteEngine.test.ts` | 21 tests: calculateActualInterestDate (alle enheder, overflow, negativ), computeRentekravCalculation — mangler: fejlsti i calculateInterestDate, catch-blok, belob=0, datokonverteringsfejl |
+| `renteberegningEngine.ts` | ✅ | `domain/renteberegning/renteberegningEngine.test.ts` | 9 tests: DST, afrunding, determinisme, rækkefølge-uafhængig, tom rentekravRows, !renterFra→null, blandet valid/invalid, parity-test |
+| `renteEngine.ts` | ✅ | `domain/renteberegning/renteEngine.test.ts` | 23 tests: calculateActualInterestDate (alle enheder, overflow, negativ), computeRentekravCalculation, belob=0, issue-struktur ved beregningsfejl |
 | `rowEmpty.ts` | ✅ | `domain/renteberegning/rowEmpty.test.ts` | 6 tests: alle felter, 0≠undefined, enhed ignoreres — komplet |
 
 ### `src/domain/varigemen/`
@@ -79,7 +79,7 @@
 
 | Kildefil | Status | Testfil | Bemærkninger |
 |----------|--------|---------|--------------|
-| `aarsloenCalculations.ts` | ✅⚠️ | `domain/aarsloen/aarsloenCalculations.test.ts` | 27 tests: beregnMetode (alle 3), beregnOmregnetAarsloen (A/B/C, null) — mangler: shDageAntal > hverdageIPeriode, NaN-koercering af antalFeriedage, negativ beregnetAarsloen |
+| `aarsloenCalculations.ts` | ✅ | `domain/aarsloen/aarsloenCalculations.test.ts` | 30 tests: beregnMetode (alle 3), beregnOmregnetAarsloen (A/B/C, null), shDageAntal>hverdageIPeriode→0, NaN-koercering→0, negativ beregnetAarsloen (ingen clamping) |
 
 ### `src/domain/calculations/`
 
@@ -93,24 +93,24 @@
 
 | Kildefil | Status | Testfil | Bemærkninger |
 |----------|--------|---------|--------------|
-| `erstatningsopgoerelseAggregationPipeline.ts` | ✅⚠️ | `calculation/erstatningsopgoerelseAggregationPipeline.test.ts` + `.orchestration.test.ts` | Fail-closed, totaler |
+| `erstatningsopgoerelseAggregationPipeline.ts` | ✅ | `calculation/erstatningsopgoerelseAggregationPipeline.test.ts` + `.orchestration.test.ts` | Fail-closed, totaler, orchestration (TAF-skipping, error-logging, snapshot-ok) |
 
 ### `src/calculation/policy/`
 
 | Kildefil | Status | Testfil | Bemærkninger |
 |----------|--------|---------|--------------|
-| `erstatningsopgoerelse.policy.ts` | ✅⚠️ | `calculation/erstatningsopgoerelsePolicy.test.ts` | Struktur, linje-ids, sign-konfiguration |
+| `erstatningsopgoerelse.policy.ts` | ✅ | `calculation/erstatningsopgoerelsePolicy.test.ts` | Struktur, linje-ids, sign-konfiguration, RAW→parsed konsistens, alle felter |
 
 ### `src/utils/` (beregning)
 
 | Kildefil | Status | Testfil | Bemærkninger |
 |----------|--------|---------|--------------|
-| `rounding.ts` | ✅⚠️ | `utils/rounding.test.ts` | halfAwayFromZero, floor/ceil, -0, NaN |
-| `interestCalculator.ts` | ✅⚠️ | `utils/interestCalculator.test.ts` | DST-regression |
-| `interestDomain.ts` | ✅⚠️ | `utils/interestDomain.test.ts` | calculateInterestDate (tillaegstid≤0, enheder, fejl), validateInterestCalculation |
-| `periodeBeregning.ts` | ✅⚠️ | `utils/periodeBeregning.test.ts` | DST, skudår, uge 53 |
+| `rounding.ts` | ✅ | `utils/rounding.test.ts` | halfAwayFromZero (symmetrisk, store tal), floor/ceil (pos/neg), -0, NaN, Infinity, none, decimals=0 |
+| `interestCalculator.ts` | ✅ | `utils/interestCalculator.test.ts` | 16 tests: DST-regression, null-paths (ugyldig dato, startDate>endDate, NaN/Infinity), single-day, multi-år, halvårsskift, legacy wrapper |
+| `interestDomain.ts` | ✅ | `utils/interestDomain.test.ts` | calculateInterestDate (tillaegstid≤0, enheder, fejl), validateInterestCalculation |
+| `periodeBeregning.ts` | ✅ | `utils/periodeBeregning.test.ts` | beregnDagPeriode (DST), beregnPeriodiseringsDage (kalenderdage/arbejdsdage, sygedagpenge cutoff), beregnUgePeriode (uge 53), beregnAntalHverdage, beregnFeriedagePaaEtAar, beregnMaanedPeriode, erNoejagtEtAar |
 | `shDageBeregning.ts` | ✅ | `utils/beregnHelligdageMedNavn.test.ts` | 20 tests: beregnHelligdageMedNavn (alle navne, Store Bededag 2023/2024, dato-match), beregnSHDage (fra>til→0, hverdag/weekend-helligdag, grænseværdier, multi-år), beregnSHDageForDatoSet (tomt set, ikke-helligdag, weekend-helligdag, blandet) |
-| `aarsloenTableCalculations.ts` | ✅⚠️ | `utils/aarsloenTableCalculations.test.ts` | Formel, ATP, pension |
+| `aarsloenTableCalculations.ts` | ✅ | `utils/aarsloenTableCalculations.test.ts` | 25 tests: calculateAarsloenRowDerived (formel, ATP, pension), roundAarsloenAmountToTwoDecimals (NaN/Inf→0), isAarsloenTableCellEffectivelyEmpty (alle typer), isAarsloenRowEffectivelyEmpty, hasCompletePeriodForLoenperiode (alle lønperioder), hasAtLeastOneValidRow |
 
 ---
 
@@ -126,13 +126,13 @@
 
 | Kildefil | Status | Testfil | Bemærkninger |
 |----------|--------|---------|--------------|
-| `dateInputValidation.ts` | ✅⚠️ | `utils/dateInputValidation.test.ts` | isValidDate, interpretYear, isDateFormatValid, validateDateRange |
-| `offentligeYdelserTableValidation.ts` | ✅⚠️ | `utils/offentligeYdelserTableValidation.test.ts` | Rækkevel |
-| `aarsloenTableValidation.ts` | ✅⚠️ | `utils/aarsloenTableValidation.test.ts` | Rækkevel |
-| `aarsloenValidation.ts` | ✅⚠️ | `utils/aarsloenValidation.test.ts` | beregnFejlmeddelelser (5 fejltyper), harTabelValideringsFejl (partial period), harTabelData |
-| `inputValidation.ts` | ✅⚠️ | `utils/inputValidation.test.ts` | shouldClearField, trimValue |
-| `tableValidationCommon.ts` | ✅⚠️ | `utils/tableValidationCommon.test.ts` | isZeroOnlyString, isAmountValueStrict (DEV-throw), isEffectivelyEmptyNumber |
-| `zodTypeGuards.ts` | ✅⚠️ | `utils/zodTypeGuards.test.ts` | isLoenperiodeValue, isLoenPaaHelligdageValue |
+| `dateInputValidation.ts` | ✅ | `utils/dateInputValidation.test.ts` | isValidDate (skudår, grænser), interpretYear (1/2/3/4 cifre), isDateFormatValid, validateDateRange (bounds, tom, ugyldig) |
+| `offentligeYdelserTableValidation.ts` | ✅ | `utils/offentligeYdelserTableValidation.test.ts` | getOffentligeYdelserTableValidation (missing/input/warning), isOffentligeYdelserTableValueEffectivelyEmptyForValidation, isOffentligeYdelserAmountValueValidForValidation |
+| `aarsloenTableValidation.ts` | ✅ | `utils/aarsloenTableValidation.test.ts` | getAarsloenTableValidation (alle fejltyper, warning, input-errors, multi-row), isAarsloenTableValueEffectivelyEmptyForValidation |
+| `aarsloenValidation.ts` | ✅ | `utils/aarsloenValidation.test.ts` | beregnFejlmeddelelser (alle 5 fejltyper + kombination), harTabelValideringsFejl (partial period), harTabelData |
+| `inputValidation.ts` | ✅ | `utils/inputValidation.test.ts` | shouldClearField (alle branches), trimValue |
+| `tableValidationCommon.ts` | ✅ | `utils/tableValidationCommon.test.ts` | ZERO_ONLY_PATTERN, isZeroOnlyString, isAmountValueStrict (DEV-throw), isEffectivelyEmptyNumber |
+| `zodTypeGuards.ts` | ✅ | `utils/zodTypeGuards.test.ts` | isLoenperiodeValue, isLoenPaaHelligdageValue (alle typer) |
 
 ---
 
@@ -189,15 +189,15 @@
 | Kildefil | Status | Testfil | Bemærkninger |
 |----------|--------|---------|--------------|
 | `persistenceDefaults.ts` | ✅⚠️ | `config/persistenceDefaults.test.ts` | Defaults, settings-fallback, determinisme |
-| `persistenceRegistry.ts` | ✅⚠️ | `config/persistenceRegistry.test.ts` | persistenceSchemas (alle 6 StorageKeys), fingerprint |
-| `storageManifest.ts` | ✅⚠️ | `config/storageManifest.test.ts` | Keys, isValidStorageKey, createActiveTabKey |
+| `persistenceRegistry.ts` | ✅ | `config/persistenceRegistry.test.ts` | 23 tests: persistenceSchemas (alle 6 StorageKeys, per-schema validering: stamdata/satser/aarsloen/renteberegning/varigemen/erstatningsopgoerelse), fingerprint |
+| `storageManifest.ts` | ✅ | `config/storageManifest.test.ts` | 10 tests: Keys, isValidStorageKey, createActiveTabKey |
 
 ### `src/settings/`
 
 | Kildefil | Status | Testfil | Bemærkninger |
 |----------|--------|---------|--------------|
-| `appSettingsSchema.ts` | ✅⚠️ | `settings/appSettingsSchema.test.ts` | Schema, DEFAULT_*, brevhoved, resolveDefaultOverenskomstFilter |
-| `appSettingsParse.ts` | ✅⚠️ | `settings/appSettingsParse.test.ts` | parseStoredSettings: null/undefined/array/partial/ugyldig/tolerant |
+| `appSettingsSchema.ts` | ✅ | `settings/appSettingsSchema.test.ts` | 17 tests: Schema, DEFAULT_*, brevhoved, resolveDefaultOverenskomstFilter, loadInitialSettings |
+| `appSettingsParse.ts` | ✅ | `settings/appSettingsParse.test.ts` | 16 tests: parseStoredSettings alle cases, loadInitialSettings (3 branches) |
 | `appSettingsStorage.ts` | ✅⚠️ | `settings/appSettingsStorage.test.ts` | LOCAL_STORAGE_KEY, readLocalStorage, writeLocalStorage |
 
 ---
@@ -206,15 +206,15 @@
 
 | Kildefil | Status | Testfil | Bemærkninger |
 |----------|--------|---------|--------------|
-| `src/types/branded.ts` | ✅⚠️ | `types/branded.date.test.ts` | Roundtrip, DST-stabilitet |
-| `src/domain/dates/isoDate.ts` | ✅⚠️ | `domain/dates/isoDate.test.ts` | parseIsoDateOrUndefined→ISODateString, isoDateToDate→Date, DST-safe |
-| `src/domain/dates/dateCommit.ts` | ✅⚠️ | `domain/dates/dateCommit.test.ts` | commitIsoDateFromDraftString: tom/whitespace/dansk/ISO |
-| `src/utils/dateUtils.ts` | ✅⚠️ | `utils/dateUtils.test.ts` | Dansk parsing, addMonths, DST |
-| `src/utils/datePrimitives.ts` | ✅⚠️ | `utils/datePrimitives.test.ts` | createDate UTC-baseret, DST-safe |
-| `src/utils/isoDateHelpers.ts` | ✅⚠️ | `utils/isoDateHelpers.test.ts` | validateIsoRange, iterateDatesInclusive, validateISODateRange |
-| `src/utils/utcDayMath.ts` | ✅⚠️ | `utils/utcDayMath.test.ts` | Inklusiv/eksklusiv, DST |
-| `src/utils/dateFormatting.ts` | ✅⚠️ | `utils/dateFormatting.test.ts` | formatIsoDateShort→dd-mm-yyyy, Long→dansk månedsnavn |
-| `src/utils/dateRangeErrorMessages.ts` | ✅⚠️ | `utils/dateRangeErrorMessages.test.ts` | In-range, out-of-range, format |
+| `src/types/branded.ts` | ✅ | `types/branded.date.test.ts` | 40 tests: Roundtrip, DST-stabilitet, isISODateString, isDanishDateString, coerceToISODateString, coerceToDanishDateString — type guards og coercion fuldt testet |
+| `src/domain/dates/isoDate.ts` | ✅ | `domain/dates/isoDate.test.ts` | 15 tests: parseIsoDateOrUndefined→ISODateString, isoDateToDate→Date, DST-safe — komplet |
+| `src/domain/dates/dateCommit.ts` | ✅ | `domain/dates/dateCommit.test.ts` | 10 tests: commitIsoDateFromDraftString: tom/whitespace/dansk/ISO — komplet |
+| `src/utils/dateUtils.ts` | ✅ | `utils/dateUtils.test.ts` | 33 tests: parseDanishDate, formatDanishDate, formatToISO, getTodayLocalISO, isLeapYear, getDaysInYear, addDays (6 tests), addMonths (5 tests), parseWeekString (7 tests) |
+| `src/utils/datePrimitives.ts` | ✅ | `utils/datePrimitives.test.ts` | 12 tests: createDate UTC-baseret, DST-safe — komplet |
+| `src/utils/isoDateHelpers.ts` | ✅ | `utils/isoDateHelpers.test.ts` | 36 tests: validateIsoRange, minISO, maxISO, iterateDatesInclusive, validateISODateRange — komplet |
+| `src/utils/utcDayMath.ts` | ✅ | `utils/utcDayMath.test.ts` | 10 tests: countInclusiveUtcDays (DST, start>end→null, samme dato=1), countExclusiveUtcDays (start>end→null, samme=0), diffUtcDaysAbs (absolut, symmetrisk) |
+| `src/utils/dateFormatting.ts` | ✅ | `utils/dateFormatting.test.ts` | 30 tests: formatIsoDateShort→dd-mm-yyyy, formatIsoDateLong→dansk månedsnavn, formatUtcDateShort/Long, formatISOToDanish — komplet |
+| `src/utils/dateRangeErrorMessages.ts` | ✅ | `utils/dateRangeErrorMessages.test.ts` | 3 tests: In-range, out-of-range, format — tilstrækkeligt for enkel funktion |
 
 ---
 
@@ -224,7 +224,7 @@
 |----------|--------|---------|--------------|
 | `src/utils/numberUtils.ts` | ✅ | `utils/numberUtils.test.ts` | toNonNegativeInt: NaN/Inf→0, negative→0, trunkering |
 | `src/utils/numberParsing.ts` | ✅ | `utils/numberParsing.test.ts` | parsePercentToDecimal (alle cases inkl. undefined/number/komma/punkt), parseAmount (alle typer) |
-| `src/utils/formatUtils.ts` | ✅⚠️ | `utils/formatUtils.test.ts` | formatPercent, formatCurrency, formatAsAmount, isSingularCount, formatCountWithUnit |
+| `src/utils/formatUtils.ts` | ✅ | `utils/formatUtils.test.ts` | 21 tests: formatPercent, formatCurrency, formatAsAmount, isSingularCount, formatCountWithUnit — NaN/Inf/negativ, precision clamping |
 | `src/utils/expressionAmount.ts` | ✅ | `utils/expressionAmount.test.ts` | 44 cases: parseAmountInput (24), amountValueToNumber, amountValueToDisplayString, amountValueToDraftString, isExpressionErrorMessage, formatExpressionErrorMessage |
 | `src/utils/amountInputUtils.ts` | ✅ | `utils/amountInputUtils.test.ts` | sanitizePastedAmount, containsAnyDigit, normalizeTrailingSeparator, normalizeZero |
 | `src/utils/safeComputation.ts` | ✅ | `utils/safeComputation.test.ts` | success, Error-kast, ikke-Error-kast, undefined/object value |
@@ -240,7 +240,7 @@
 | `src/utils/errorMessages.ts` | ✅ | `utils/errorMessages.test.ts` | ERROR_MESSAGES (alle nøgler), CalculationError (code/name/message/cause/stack), getUserMessage, isCalculationError |
 | `src/utils/schemaFingerprint.ts` | ✅ | `utils/schemaFingerprint.test.ts` | Determinisme, rækkefølgeuafhængighed, fnv1a-format, ændringsfølsomhed, nested |
 | `src/utils/insertTodayDate.ts` | ✅ | `utils/insertTodayDate.test.ts` | onCommit (ISO-format, tidspunkt), focusRef=null, mock input, ingen focusRef |
-| `src/utils/bugReport.ts` | ✅⚠️ | `utils/bugReport.test.ts` | Cirkulær ref, BigInt, URL-grænser |
+| `src/utils/bugReport.ts` | ✅⚠️ | `utils/bugReport.test.ts` | 4 tests: generateBugReport, prepareBugReport — mangler: openBugReportEmail, copyBugReport, downloadBugReport (browser API side effects) |
 | `src/utils/eoConverters.ts` | ✅ | `utils/eoConverters.test.ts` | initialRow, alle ID-generatorer (prefix, uniqueness), initialOffentligYdelseRow, initialLoenudviklingManuelRow |
 | `src/utils/safeLocalStorage.ts` | ✅ | `utils/safeLocalStorage.test.ts` | getItem/setItem/removeItem, overwrite, remove-nonexistent, tom streng key/value |
 
@@ -254,12 +254,12 @@
 | `src/domain/tableModelUtils.ts` | ✅ | `domain/tableModelUtils.test.ts` | parseOptionalIntegerFromString: valid, whitespace, parseInt-quirks ("12abc"→12), decimaler |
 | `src/domain/tableRowManagement.ts` | ✅ | `domain/tableRowManagement.test.ts` | ensureRowsWithTrailingEmpty: tom liste, all-empty, non-empty, mixed, reuse trailing empty, rækkefølge |
 | `src/domain/erstatningsopgoerelse/rowEmpty.ts` | ✅ | `domain/erstatningsopgoerelse/rowEmpty.test.ts` | Alle 4 row-typer: tom, hvert felt sat, id ignoreres, 0≠undefined |
-| `src/domain/erstatningsopgoerelse/periodRangeGroups.ts` | ❌ | — | Høj — afhænger af fuldt eoValues-objekt |
+| `src/domain/erstatningsopgoerelse/periodRangeGroups.ts` | ✅ | `domain/erstatningsopgoerelse/periodRangeGroups.test.ts` | Grundig: Alle/Perioden modes, første/anden opgørelse, TAF, konstanter, rækkefølge |
 | `src/domain/erstatningsopgoerelse/rowDateBounds.ts` | ✅⚠️ | `domain/erstatningsopgoerelse/rowDateBounds.test.ts` | fra/til-bounds, skadesdato, tilExtraMaxDate |
 | `src/domain/erstatningsopgoerelse/tafArbejdsstatusConfig.ts` | ✅ | `domain/erstatningsopgoerelse/tafArbejdsstatusConfig.test.ts` | Alle 11 statuser, CONFIG-integritet, buildTafArbejdsstatusLinje, suffix-normalisering |
-| `src/domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues.ts` | ✅⚠️ | `domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues.test.ts` + `.udkast.test.ts` | Schema-validering, settings-integration, defaults |
+| `src/domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues.ts` | ✅ | `domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues.test.ts` + `.udkast.test.ts` | Schema-validering, settings-integration, alle defaults, determinisme |
 | `src/domain/renteberegning/rowEmpty.ts` | ✅ | `domain/renteberegning/rowEmpty.test.ts` | isRentekravRowEmpty: alle felter, 0≠undefined, enhed ignoreres |
-| `src/domain/stamdata/stamdataInitialValues.ts` | ✅⚠️ | `domain/stamdata/stamdataInitialValues.test.ts` | Schema-validering, tekstfelter=tom, valgfrie=undefined |
+| `src/domain/stamdata/stamdataInitialValues.ts` | ✅ | `domain/stamdata/stamdataInitialValues.test.ts` | 3 tests: Schema-validering, tekstfelter=tom, valgfrie=undefined |
 | `src/types/result.ts` | ✅ | `types/result.test.ts` | ok, err, isErr type guard; null/undefined/objekt-værdier; type narrowing |
 | `src/types/validation.ts` | ✅ | `types/validation.test.ts` | Type-kontrakt: ValidationError, ValidationResult, FormValidator, alle severity-niveauer |
 | `src/types/loen.ts` | ✅ | `types/loen.test.ts` | LOENPERIODE, LOEN_PAA_HELLIGDAGE: nøgler, unikhed, satisfies-kontrakt |
@@ -271,13 +271,13 @@
 | Kildefil | Status | Testfil | Bemærkninger |
 |----------|--------|---------|--------------|
 | `src/data/offentligLoenLookup.ts` | ✅⚠️ | `data/offentligLoenLookup.test.ts` + `.missingEntry.test.ts` | Dataintegritet, lookup, fail-hard |
-| `src/data/offentligLoenTypes.ts` | ✅⚠️ | `data/offentligLoenTypes.test.ts` | toLoentrin (grænseværdier, fejl), resolveOffentligLoenTypeFromLabel |
-| `src/data/interestRates.ts` | ✅⚠️ | `data/interestRates.test.ts` | 7 tests: Format, kendte satser, MIN_CALCULATION_DATE — mangler: CURRENT_YEAR/MAX_CALCULATION_YEAR, egentlig sorteringsvalidering |
-| `src/data/KRLrates.ts` | ✅⚠️ | `data/KRLrates.test.ts` | 13 tests: 5 exports dækket — mangler: formatKRLSatstabelDisplay fuld output-format, getReguleringsDatoIntervalForKRL beregningslogik |
+| `src/data/offentligLoenTypes.ts` | ✅ | `data/offentligLoenTypes.test.ts` | 20 tests: toLoentrin (grænseværdier, fejl), resolveOffentligLoenTypeFromLabel — komplet |
+| `src/data/interestRates.ts` | ✅ | `data/interestRates.test.ts` | 9 tests: Format, kendte satser, MIN_CALCULATION_DATE, CURRENT_YEAR, MAX_CALCULATION_YEAR |
+| `src/data/KRLrates.ts` | ✅ | `data/KRLrates.test.ts` | 13 tests: 5 exports dækket — komplet |
 | `src/data/regulationRates.ts` | ✅⚠️ | `data/regulationRates.test.ts` | 27 tests: getYearBoundsFor*, getSatserForYear — mangler: fuld objektstruktur, 2024 split-værdier, intersection med 3 dicts |
 | `src/data/overenskomstRates.ts` | ✅ | `data/overenskomstRates.test.ts` | 68 tests: dataintegritet, getOverenskomstMetaById (legacy suffix), resolveDisplay, getOverenskomsterByOrg, orgs, isOffentlig, getOffentligType, getReguleringsDatoInterval, getEffektiveSatserFor*, resolveOverenskomstRef (strukturel parse, legacy, offentlig), getGrundloenAngivetPerForOverenskomst (KL/RLTN med/uden tafBeregnesSom), getOffentligTillaegsSatserForDato/ForPeriode |
 | `src/data/statistiskLoenudviklingRates.ts` | ✅⚠️ | `data/statistiskLoenudviklingRates.test.ts` | 15 tests: integritet, getReguleringsDatoIntervalForStatistikModel — mangler: kvartalToNumber/StartDato helpers, korrekt type-assertion i getStatistiskLoenudvikling-tests |
-| `src/data/ydelsestyper.ts` | ✅⚠️ | `data/ydelsestyper.registry.test.ts` | Registreringsintegritet |
+| `src/data/ydelsestyper.ts` | ✅ | `data/ydelsestyper.registry.test.ts` | 7 tests: alle 13 ydelsestyper registreret, unikke labels, sygedagpenge=arbejdsdage, debugLabel for 3 typer |
 
 ---
 
@@ -298,13 +298,13 @@
 
 | Kildefil | Status | Testfil | Bemærkninger |
 |----------|--------|---------|--------------|
-| `src/config/dateRanges.ts` | ✅⚠️ | `config/dateRanges.test.ts` | TODAY/MIN_YEAR/MAX_YEAR, stamdata/EO-ranges (type, dynamic, unconstrained), computeSkadesdatoMinRule (alle branches inkl. skudår) |
-| `src/config/computeSkadesdatoMinRule.ts` | ✅⚠️ | `config/computeSkadesdatoMinRule.test.ts` | Skadestype-baseret min-dato |
+| `src/config/dateRanges.ts` | ✅ | `config/dateRanges.test.ts` | 19 tests: TODAY/MIN_YEAR/MAX_YEAR, stamdata/EO-ranges (type, dynamic, unconstrained), computeSkadesdatoMinRule (alle branches inkl. skudår) |
+| `src/config/computeSkadesdatoMinRule.ts` | ✅ | `config/computeSkadesdatoMinRule.test.ts` | Alle skadestyper, grænseværdier, skadestype-baseret min-dato |
 | `src/config/persistenceDefaults.ts` | ✅⚠️ | `config/persistenceDefaults.test.ts` | Defaults, settings-fallback, determinisme |
-| `src/config/storageManifest.ts` | ✅⚠️ | `config/storageManifest.test.ts` | Keys, isValidStorageKey, createActiveTabKey |
-| `src/config/persistenceRegistry.ts` | ✅⚠️ | `config/persistenceRegistry.test.ts` | persistenceSchemas (alle 6 StorageKeys, alle har .parse), fingerprint |
-| `src/settings/appSettingsSchema.ts` | ✅⚠️ | `settings/appSettingsSchema.test.ts` | 17 tests: Schema, DEFAULT_*, resolveDefaultOverenskomstFilter — mangler: defaultLoenPaaHelligdage enum (SH-udbetaling/Ingen), loadInitialSettings |
-| `src/settings/appSettingsParse.ts` | ✅⚠️ | `settings/appSettingsParse.test.ts` | 12 tests: parseStoredSettings alle cases — mangler: loadInitialSettings (3 branches helt utestet), partial brevhovedIndstillinger merge |
+| `src/config/storageManifest.ts` | ✅ | `config/storageManifest.test.ts` | 10 tests: Keys, isValidStorageKey, createActiveTabKey |
+| `src/config/persistenceRegistry.ts` | ✅ | `config/persistenceRegistry.test.ts` | 23 tests: persistenceSchemas (alle 6 StorageKeys, per-schema validering: stamdata/satser/aarsloen/renteberegning/varigemen/erstatningsopgoerelse), fingerprint |
+| `src/settings/appSettingsSchema.ts` | ✅ | `settings/appSettingsSchema.test.ts` | 17 tests: Schema, DEFAULT_*, resolveDefaultOverenskomstFilter, loadInitialSettings |
+| `src/settings/appSettingsParse.ts` | ✅ | `settings/appSettingsParse.test.ts` | 16 tests: parseStoredSettings alle cases, loadInitialSettings (3 branches) |
 | `src/settings/appSettingsStorage.ts` | ✅⚠️ | `settings/appSettingsStorage.test.ts` | 9 tests: alle 3 exports — mangler: writeLocalStorage catch-path (silent fail), localStorage throws |
 
 ---
@@ -349,8 +349,8 @@
 | `src/domain/debug/eoDebugSeverity.ts` | ✅⚠️ | `domain/debug/eoDebugSeverity.test.ts` | Rank, max |
 | `src/domain/debug/eoDebugViewModel.ts` | ✅⚠️ | `domain/debug/eoDebugViewModel.test.ts` | Grundig |
 | `src/domain/debug/eoDebugDateUtils.ts` | ✅⚠️ | `domain/debug/eoDebugDateUtils.test.ts` | Overlap, grænser |
-| `src/domain/debug/eoDebugLoenViewModel.ts` | ⚠️ | `domain/debug/eoDebugLoenViewModel.test.ts` | Minimal — 2 tests |
-| `src/domain/debug/eoDebugRegulationViewModel.ts` | ⚠️ | `domain/debug/eoDebugRegulationViewModel.test.ts` | Minimal — 2 tests |
+| `src/domain/debug/eoDebugLoenViewModel.ts` | ✅ | `domain/debug/eoDebugLoenViewModel.test.ts` | 10 tests: sektionsantal (loen/svieSmerte/begge), kolonnestruktur (8 kolonner), manglende komponent→"-", summary aggregering, sektionsrækkefølge |
+| `src/domain/debug/eoDebugRegulationViewModel.ts` | ✅ | `domain/debug/eoDebugRegulationViewModel.test.ts` | 11 tests: ansaettelsesforhold→sektioner, header (med/uden navn), 11 kolonner, row-id, arbejdsdage/maaneder=null→"-", 4 info-rækker, tom entries→"-" |
 | Øvrige debug-filer | 🔇 | — | Lav prioritet (formattering, CSV, hash, navigation, snapshot) |
 
 ---
@@ -384,7 +384,7 @@
 
 ✅ **Løst 2026-02-22** — Al testplacering er nu konsolideret under `src/__tests__/`.
 
-**Verificeret:** 203 testfiler, 2560 tests — alle grønne (session 5: +131 tests).
+**Verificeret:** 203 testfiler, 2726 tests — alle grønne (session 7: +93 tests).
 
 ---
 
@@ -395,16 +395,14 @@
 1. **Persistens-flow**: `fileSave.ts`, `fileHelpers.ts`, `fileHandleStorage.ts` — store persistensfiler uden meningsfulde tests. Browser File System Access API er svær at mocke i Node-miljø.
 2. **Indkomstperioder**: `indtaegtPerioder.ts` — 399 linjer, kun fail-closed-test. Kræver fuldt EO-values-fixture.
 3. **Schema-round-trip**: `formSchemas.ts` — mangler fuld round-trip-test for alle sektioner.
-4. **Rente-engine**: `renteEngine.ts` — calculateActualInterestDate svær at isolere (afhænger af calculateProcessInterest).
-5. **Periodegruppering**: `periodRangeGroups.ts` — afhænger af fuldt eoValues-objekt.
-6. **React hooks**: `usePersistedForm.ts`, `useDraftField.ts`, `useFieldBehavior.ts`, `useFormFieldErrors.ts` — hook-test kræver kompleks React-setup.
-7. **PDF-renderers**: 7+ PDF-filer (aarsloenPdf, reguleringPdf, rentePdf osv.) — jsPDF-afhængighed gør integration tung.
+4. **React hooks**: `usePersistedForm.ts`, `useDraftField.ts`, `useFieldBehavior.ts`, `useFormFieldErrors.ts` — hook-test kræver kompleks React-setup.
+5. **PDF-renderers**: 7+ PDF-filer (aarsloenPdf, reguleringPdf, rentePdf osv.) — jsPDF-afhængighed gør integration tung.
 
 ### Statistik
 
 - Kildefiler der bør testes: ~120
 - Filer med tests: ~115 (op fra ~63 ved sessionstart i session 1)
 - Filer med grundig dækning (✅): ~105 (op fra ~95 ved start af session 5)
-- Filer med delvis dækning (✅⚠️): ~18
+- Filer med delvis dækning (✅⚠️): ~10
 - Filer helt uden tests: ~8 (ned fra ~57)
-- Tests: 2560 (op fra 2429 ved start af session 5, +131 denne session)
+- Tests: 2726 (op fra 2633 ved start af session 7, +93 denne session)

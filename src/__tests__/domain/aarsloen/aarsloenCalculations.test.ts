@@ -473,6 +473,70 @@ describe('beregnOmregnetAarsloen — Metode C (dag)', () => {
   });
 });
 
+// ─── Edge cases ───────────────────────────────────────────────────────────
+
+describe('beregnOmregnetAarsloen — edge cases', () => {
+  const weekdays = build10WeekdayDates(); // 50 hverdage
+
+  it('shDageAntal > hverdageIPeriode → arbejdsdageIPeriode negativ → omregnetAarsloen = 0', () => {
+    // 50 hverdage i datoSet, men shDageAntal = 60 → arbejdsdageIPeriode = 50 - 60 = -10
+    // Guard: "if (arbejdsdageIPeriode > 0)" → omregnetAarsloen = 0
+    const periodeData = buildPeriodeResult('dag', 50, weekdays);
+    const result = beregnOmregnetAarsloen({
+      periodeData,
+      loenperiode: 'dag',
+      retTilSjetteFerieuge: false,
+      antalFeriedage: 0,
+      shDageAntal: 60, // > hverdageIPeriode (50)
+      fuldLoenUnderFerie: true,
+      loenPaaHelligdage: 'Ingen',
+      beregnetAarsloen: 100000,
+    });
+    expect(result.omregnetAarsloen).toBe(0);
+    expect(result.metode).toBe('A');
+  });
+
+  it('NaN-koercering af antalFeriedage: parseInt(String(NaN)) = NaN → fejlsikker (0 fra guard)', () => {
+    // antalFeriedage: NaN passerer parseInt → feriedageFraInput = NaN
+    // I Metode A: arbejdsdageIPeriode = hverdage - NaN - shDage = NaN → NaN > 0 er false → omregnetAarsloen = 0
+    const periodeData = buildPeriodeResult('dag', 50, weekdays);
+    const result = beregnOmregnetAarsloen({
+      periodeData,
+      loenperiode: 'dag',
+      retTilSjetteFerieuge: false,
+      antalFeriedage: NaN,
+      shDageAntal: 0,
+      fuldLoenUnderFerie: false,
+      loenPaaHelligdage: 'Ingen',
+      beregnetAarsloen: 100000,
+    });
+    // Resultatet er enten 0 (guard) eller NaN — begge er dokumenteret adfærd
+    expect(result.metode).toBe('A');
+    expect(result.feriedageFraInput).toBeNaN(); // parseInt('NaN') = NaN
+    // omregnetAarsloen er 0 (fordi NaN > 0 === false)
+    expect(result.omregnetAarsloen).toBe(0);
+  });
+
+  it('negativ beregnetAarsloen → omregnetAarsloen er negativ (ingen clamping i denne funktion)', () => {
+    // beregnetAarsloen = -50000 → proportional negativ årsløn
+    const periodeData = buildPeriodeResult('maaned', 6);
+    const result = beregnOmregnetAarsloen({
+      periodeData,
+      loenperiode: 'maaned',
+      retTilSjetteFerieuge: false,
+      antalFeriedage: undefined,
+      shDageAntal: null,
+      fuldLoenUnderFerie: true,
+      loenPaaHelligdage: 'Almindelig løn',
+      beregnetAarsloen: -50000,
+    });
+    expect(result.metode).toBe('C');
+    // Ingen clamping: omregnetAarsloen = (-50000 / 6) * 12 = -100000
+    expect(result.omregnetAarsloen).toBeLessThan(0);
+    expect(result.omregnetAarsloen).toBeCloseTo(-100000, 2);
+  });
+});
+
 // ─── Determinisme ─────────────────────────────────────────────────────────
 
 describe('beregnOmregnetAarsloen — determinisme', () => {

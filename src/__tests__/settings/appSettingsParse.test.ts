@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { parseStoredSettings } from '../../settings/appSettingsParse';
+import { parseStoredSettings, loadInitialSettings } from '../../settings/appSettingsParse';
 import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
+import { writeLocalStorage, LOCAL_STORAGE_KEY } from '../../settings/appSettingsStorage';
 
 // ─── parseStoredSettings ──────────────────────────────────────────────────────
 
@@ -77,5 +78,38 @@ describe('parseStoredSettings', () => {
     const r1 = parseStoredSettings(input);
     const r2 = parseStoredSettings(input);
     expect(r1).toEqual(r2);
+  });
+});
+
+// ─── loadInitialSettings ─────────────────────────────────────────────────────
+
+describe('loadInitialSettings', () => {
+  it('gyldigt JSON i localStorage → returnerer parsede settings', () => {
+    // Skriv gyldige settings til localStorage (in-memory i testmiljø)
+    writeLocalStorage(LOCAL_STORAGE_KEY, JSON.stringify(DEFAULT_APP_SETTINGS));
+    const result = loadInitialSettings();
+    expect(result).toEqual(DEFAULT_APP_SETTINGS);
+  });
+
+  it('ugyldigt JSON i localStorage → returnerer defaults', () => {
+    // Skriv ugyldig JSON til localStorage
+    writeLocalStorage(LOCAL_STORAGE_KEY, 'dette-er-ikke-json{{{[');
+    const result = loadInitialSettings();
+    expect(result).toEqual(DEFAULT_APP_SETTINGS);
+  });
+
+  it('JSON-objekt med ugyldig felttype → schema-validering fejler → defaults', () => {
+    // Gyldigt JSON men ugyldig settings (erstatningsopgoerelseAfsluttesMed som tal er ugyldig type)
+    writeLocalStorage(LOCAL_STORAGE_KEY, JSON.stringify({ ...DEFAULT_APP_SETTINGS, erstatningsopgoerelseAfsluttesMed: 999 }));
+    const result = loadInitialSettings();
+    expect(result).toEqual(DEFAULT_APP_SETTINGS);
+  });
+
+  it('returnerer AppSettings-objekt med de forventede nøgler', () => {
+    writeLocalStorage(LOCAL_STORAGE_KEY, JSON.stringify(DEFAULT_APP_SETTINGS));
+    const result = loadInitialSettings();
+    expect(typeof result).toBe('object');
+    expect(result).toHaveProperty('defaultFuldLoenUnderFerie');
+    expect(result).toHaveProperty('showContentBoxReportButton');
   });
 });

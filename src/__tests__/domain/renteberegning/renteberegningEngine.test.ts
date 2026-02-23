@@ -224,6 +224,92 @@ describe('renteberegningEngine', () => {
     expect(actualCalculatedInterest).toBe(roundByMethod(expectedRaw ?? 0, 2, 'halfAwayFromZero'));
   });
 
+  it('returnerer tom rows-array for tom rentekravRows-liste', () => {
+    const { referenceRates, surchargeRates } = buildRates();
+    const output = computeRenteberegning({
+      renteberegning: {
+        beregningsdato: toISODateString('2024-12-31'),
+        rentekravRows: [],
+      },
+      referenceRates,
+      surchargeRates,
+    });
+    expect(output.rows).toHaveLength(0);
+    expect(output.rows).toEqual([]);
+  });
+
+  it('!renterFra med gyldig beregningsdato → actualInterestDate=null, calculatedInterest=null', () => {
+    const { referenceRates, surchargeRates } = buildRates();
+    const output = computeRenteberegning({
+      renteberegning: {
+        beregningsdato: toISODateString('2024-12-31'),
+        rentekravRows: [
+          {
+            id: 'row-missing-fra',
+            belob: amountNumber(1000),
+            renterFra: undefined,
+            tillaegstid: 0,
+            enhed: 'dage',
+          },
+        ],
+      },
+      referenceRates,
+      surchargeRates,
+    });
+    expect(output.rows).toHaveLength(1);
+    expect(output.rows[0]).toEqual({
+      id: 'row-missing-fra',
+      actualInterestDate: null,
+      calculatedInterest: null,
+    });
+  });
+
+  it('blandet valid/invalid rækker → mixed output (null og beregnet rente)', () => {
+    const { referenceRates, surchargeRates } = buildRates();
+    const output = computeRenteberegning({
+      renteberegning: {
+        beregningsdato: toISODateString('2024-12-31'),
+        rentekravRows: [
+          {
+            id: 'valid',
+            belob: amountNumber(10000),
+            renterFra: toISODateString('2024-01-01'),
+            tillaegstid: 0,
+            enhed: 'dage',
+          },
+          {
+            id: 'missing-fra',
+            belob: amountNumber(5000),
+            renterFra: undefined,
+            tillaegstid: 0,
+            enhed: 'dage',
+          },
+          {
+            id: 'future-fra',
+            belob: amountNumber(2000),
+            renterFra: toISODateString('2025-06-01'),
+            tillaegstid: 0,
+            enhed: 'dage',
+          },
+        ],
+      },
+      referenceRates,
+      surchargeRates,
+    });
+    expect(output.rows).toHaveLength(3);
+    // Gyldig række har beregnet rente
+    const validRow = output.rows.find((r) => r.id === 'valid');
+    expect(validRow?.calculatedInterest).not.toBeNull();
+    expect(validRow?.actualInterestDate).not.toBeNull();
+    // Manglende renterFra → null
+    const missingFraRow = output.rows.find((r) => r.id === 'missing-fra');
+    expect(missingFraRow?.actualInterestDate).toBeNull();
+    expect(missingFraRow?.calculatedInterest).toBeNull();
+    // Fremtidig renterFra (efter beregningsdato) → calculatedInterest=null (validering fejler)
+    const futureRow = output.rows.find((r) => r.id === 'future-fra');
+    expect(futureRow?.calculatedInterest).toBeNull();
+  });
+
   it('keeps parity between legacy row-engine and injected-rates engine for same rates', () => {
     // referenceRates and surchargeRates imported directly above
     const row = {

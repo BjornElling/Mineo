@@ -1,11 +1,15 @@
 import {
+  coerceToDanishDateString,
+  coerceToISODateString,
   danishToISO,
+  dateToISO,
+  isDanishDateString,
+  isISODateString,
   isoToDanish,
   parseISODate,
-  dateToISO,
   subtractOneDay,
-  toISODateString,
   toDanishDateString,
+  toISODateString,
 } from '../../types/branded';
 
 describe('branded.ts - Dato roundtrip tests', () => {
@@ -213,6 +217,98 @@ describe('branded.ts - Dato roundtrip tests', () => {
     it('afviser måned 0', () => {
       const iso = danishToISO('15-00-2025');
       expect(iso).toBeUndefined();
+    });
+  });
+});
+
+describe('branded.ts — type guards', () => {
+  describe('isISODateString', () => {
+    it('accepterer gyldigt ISO-format', () => {
+      expect(isISODateString('2024-06-15')).toBe(true);
+    });
+
+    it('accepterer grænseår 1900', () => {
+      expect(isISODateString('1900-01-01')).toBe(true);
+    });
+
+    it('accepterer grænseår 2100', () => {
+      expect(isISODateString('2100-12-31')).toBe(true);
+    });
+
+    it('afviser år udenfor 1900–2100', () => {
+      expect(isISODateString('1899-12-31')).toBe(false);
+      expect(isISODateString('2101-01-01')).toBe(false);
+    });
+
+    it('afviser ugyldig dato (31-02)', () => {
+      expect(isISODateString('2024-02-31')).toBe(false);
+    });
+
+    it('afviser dansk format', () => {
+      expect(isISODateString('15-06-2024')).toBe(false);
+    });
+
+    it('afviser ikke-streng', () => {
+      expect(isISODateString(20240615)).toBe(false);
+      expect(isISODateString(null)).toBe(false);
+      expect(isISODateString(undefined)).toBe(false);
+    });
+  });
+
+  describe('isDanishDateString', () => {
+    it('accepterer gyldigt dansk format', () => {
+      expect(isDanishDateString('15-06-2024')).toBe(true);
+    });
+
+    it('afviser ISO-format', () => {
+      expect(isDanishDateString('2024-06-15')).toBe(false);
+    });
+
+    it('afviser ugyldig dato (31-04)', () => {
+      expect(isDanishDateString('31-04-2024')).toBe(false);
+    });
+
+    it('afviser ikke-streng', () => {
+      expect(isDanishDateString(42)).toBe(false);
+      expect(isDanishDateString(null)).toBe(false);
+    });
+  });
+
+  describe('coerceToISODateString', () => {
+    it('ISO-input returneres direkte', () => {
+      expect(coerceToISODateString('2024-06-15')).toBe('2024-06-15');
+    });
+
+    it('dansk input konverteres til ISO', () => {
+      expect(coerceToISODateString('15-06-2024')).toBe('2024-06-15');
+    });
+
+    it('ugyldig streng → undefined', () => {
+      expect(coerceToISODateString('ingenformat')).toBeUndefined();
+    });
+
+    it('ikke-streng → undefined', () => {
+      expect(coerceToISODateString(null)).toBeUndefined();
+      expect(coerceToISODateString(42)).toBeUndefined();
+    });
+  });
+
+  describe('coerceToDanishDateString', () => {
+    it('dansk input returneres direkte', () => {
+      expect(coerceToDanishDateString('15-06-2024')).toBe('15-06-2024');
+    });
+
+    it('ISO input konverteres til dansk', () => {
+      expect(coerceToDanishDateString('2024-06-15')).toBe('15-06-2024');
+    });
+
+    it('ugyldig streng → undefined', () => {
+      expect(coerceToDanishDateString('ingenformat')).toBeUndefined();
+    });
+
+    it('ikke-streng → undefined', () => {
+      expect(coerceToDanishDateString(null)).toBeUndefined();
+      expect(coerceToDanishDateString(undefined)).toBeUndefined();
     });
   });
 });

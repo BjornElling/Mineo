@@ -173,6 +173,80 @@ describe('computeTafBeregningsenhed', () => {
     });
     expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
   });
+
+  it('fraDate > tilDate → beregningsperiode ignoreres → MAANEDER', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      // periodeTilBeregningFra er EFTER periodeTilBeregningTil
+      periodeTilBeregningFra: '2024-12-31',
+      periodeTilBeregningTil: '2024-01-01',
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          loenPaaHelligdage: 'SH-udbetaling',
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'row-1',
+              col0_maaned: '6',
+              col1_maaned: '2024',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: { kind: 'number', value: 1000 },
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+      ],
+    });
+    // fraDate > tilDate → betingelsen (fraDate <= tilDate) er falsk → MAANEDER
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
+  });
+
+  it('tom loenindkomstAnsaettelsesforhold → MAANEDER (ingen ansættelsesforhold at oversty re fra)', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: '2024-01-01',
+      periodeTilBeregningTil: '2024-12-31',
+      loenindkomstAnsaettelsesforhold: [],
+    });
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
+  });
+
+  it('beregningsperiode på én dag (fra === til) med afvigende helligdage og overlap → ARBEJDSDAGE', () => {
+    // Grænsetilfælde: enkeltdags-beregningsperiode
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: '2024-06-17',
+      periodeTilBeregningTil: '2024-06-17',
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          loenPaaHelligdage: 'SH-udbetaling',
+          // Lønindkomst-rækken overlapper præcis enkeltdags-perioden (juni 2024)
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'row-1',
+              col0_maaned: '6',
+              col1_maaned: '2024',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: { kind: 'number', value: 2000 },
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+      ],
+    });
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.ARBEJDSDAGE);
+  });
 });
 
 describe('TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR', () => {

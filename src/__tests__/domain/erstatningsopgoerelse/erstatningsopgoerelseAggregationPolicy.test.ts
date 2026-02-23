@@ -303,6 +303,65 @@ describe('aggregationPolicySchema', () => {
     });
   });
 
+  describe('whitespace i id', () => {
+    it('whitespace-only id (" ") passerer schema (min(1) checker kun længde, ikke indhold)', () => {
+      const policy = {
+        ...validPolicy(),
+        lines: [
+          {
+            id: ' ',
+            computedSourceId: 'taf',
+            strategy: 'computedOnly' as const,
+            sign: 'positive' as const,
+          },
+        ],
+      };
+      // z.string().min(1) accepterer " " (1 tegn) — adfærd dokumenteret som test
+      expect(aggregationPolicySchema.safeParse(policy).success).toBe(true);
+    });
+
+    it('duplikerede whitespace-ids fanges af superRefine', () => {
+      const policy = {
+        ...validPolicy(),
+        lines: [
+          { id: ' ', computedSourceId: 'a', strategy: 'computedOnly' as const, sign: 'positive' as const },
+          { id: ' ', computedSourceId: 'b', strategy: 'computedOnly' as const, sign: 'positive' as const },
+        ],
+      };
+      const result = aggregationPolicySchema.safeParse(policy);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some((i) => i.message.includes('Duplicate line id:'))).toBe(true);
+      }
+    });
+  });
+
+  describe('precision øvre grænse', () => {
+    it('meget høj precision (100) accepteres — ingen øvre grænse i schema', () => {
+      const policy = {
+        ...validPolicy(),
+        lineRounding: { method: 'halfAwayFromZero' as const, precision: 100 },
+      };
+      expect(aggregationPolicySchema.safeParse(policy).success).toBe(true);
+    });
+
+    it('precision 10 accepteres på roundingOverride', () => {
+      const policy = {
+        ...validPolicy(),
+        lines: [
+          {
+            id: 'taf',
+            computedSourceId: 'taf',
+            strategy: 'computedOnly' as const,
+            sign: 'positive' as const,
+            roundingOverride: { method: 'halfAwayFromZero' as const, precision: 10 },
+          },
+        ],
+      };
+      expect(aggregationPolicySchema.safeParse(policy).success).toBe(true);
+    });
+  });
+
   describe('parsing muterer ikke input', () => {
     it('safeParse muterer ikke originalt objekt', () => {
       const input = validPolicy();

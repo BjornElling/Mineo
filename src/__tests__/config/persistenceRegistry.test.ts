@@ -36,6 +36,105 @@ describe('persistenceSchemas', () => {
     const result = schema.safeParse({ rentekravRows: [] });
     expect(result.success).toBe(true);
   });
+
+  // ── Per-schema validering ──────────────────────────────────────────────────
+
+  describe('stamdata', () => {
+    it('accepterer tomt objekt (alle felter er optional)', () => {
+      expect(persistenceSchemas.stamdata.safeParse({}).success).toBe(true);
+    });
+
+    it('afviser ukendte nøgler (strict)', () => {
+      const result = persistenceSchemas.stamdata.safeParse({ ukendt: 'x' });
+      expect(result.success).toBe(false);
+    });
+
+    it('accepterer gyldig skadestype (Arbejdsulykke)', () => {
+      const result = persistenceSchemas.stamdata.safeParse({ skadestype: 'Arbejdsulykke' });
+      expect(result.success).toBe(true);
+    });
+
+    it('afviser ugyldig skadestype', () => {
+      const result = persistenceSchemas.stamdata.safeParse({ skadestype: 'UgyldigType' });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('satser', () => {
+    it('accepterer gyldigt aargang (2024)', () => {
+      expect(persistenceSchemas.satser.safeParse({ aargang: 2024 }).success).toBe(true);
+    });
+
+    it('afviser ukendte nøgler (strict)', () => {
+      expect(persistenceSchemas.satser.safeParse({ aargang: 2024, extra: true }).success).toBe(false);
+    });
+  });
+
+  describe('aarsloen', () => {
+    const validAarsloen = {
+      feriePct: undefined,
+      fritvalgPct: undefined,
+      shSoPct: undefined,
+      storeBededagPct: undefined,
+      pensionPct: undefined,
+      loenperiode: 'maaned',
+      tableData: [],
+      omregningTilFuldtAar: false,
+      fuldLoenUnderFerie: false,
+      retTilSjetteFerieuge: false,
+      antalFeriedage: undefined,
+      loenPaaHelligdage: 'Almindelig løn',
+    };
+
+    it('accepterer minimalt gyldigt aarsloen-objekt', () => {
+      expect(persistenceSchemas.aarsloen.safeParse(validAarsloen).success).toBe(true);
+    });
+
+    it('afviser ugyldig loenperiode-enum', () => {
+      const result = persistenceSchemas.aarsloen.safeParse({ ...validAarsloen, loenperiode: 'kvartal' });
+      expect(result.success).toBe(false);
+    });
+
+    it('afviser ugyldig loenPaaHelligdage-enum', () => {
+      const result = persistenceSchemas.aarsloen.safeParse({ ...validAarsloen, loenPaaHelligdage: 'Halv løn' });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('renteberegning', () => {
+    it('stripper activeTab fra input', () => {
+      const result = persistenceSchemas.renteberegning.safeParse({ rentekravRows: [], activeTab: 'anything' });
+      expect(result.success).toBe(true);
+    });
+
+    it('beregningsdato er optional', () => {
+      const result = persistenceSchemas.renteberegning.safeParse({ rentekravRows: [] });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('varigemen', () => {
+    it('accepterer tomt objekt (alle felter optional)', () => {
+      expect(persistenceSchemas.varigemen.safeParse({}).success).toBe(true);
+    });
+
+    it('stripper activeTab fra input', () => {
+      const result = persistenceSchemas.varigemen.safeParse({ activeTab: 'rm' });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('erstatningsopgoerelse', () => {
+    it('afviser null', () => {
+      const result = persistenceSchemas.erstatningsopgoerelse.safeParse(null);
+      expect(result.success).toBe(false);
+    });
+
+    it('afviser ikke-objekt (streng)', () => {
+      const result = persistenceSchemas.erstatningsopgoerelse.safeParse('ugyldig');
+      expect(result.success).toBe(false);
+    });
+  });
 });
 
 describe('persistenceSchemaFingerprint', () => {

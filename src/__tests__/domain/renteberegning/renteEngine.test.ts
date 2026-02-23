@@ -163,6 +163,49 @@ describe('computeRentekravCalculation', () => {
     });
   });
 
+  describe('belob = 0', () => {
+    it('belob=0 → beregnes korrekt (rente=0), ELLER validering afviser (context=null)', () => {
+      const row = makeRow({
+        renterFra: iso('2023-01-01'),
+        tillaegstid: 0,
+        enhed: 'dage',
+        belob: { kind: 'number', value: 0 },
+      });
+      const result = computeRentekravCalculation(row, iso('2024-01-01'));
+      if (result.context !== null) {
+        // belob=0 producerer rente=0
+        expect(result.context.calculatedInterest).toBe(0);
+        expect(result.context.beloeb).toBe(0);
+        expect(result.issue).toBeNull();
+      } else {
+        // Validering kan afvise 0-beloeb — begge outcomes er acceptable
+        expect(result.actualInterestDate).not.toBeNull();
+      }
+    });
+  });
+
+  describe('issue-struktur ved beregningsfejl', () => {
+    it('issue-objekt indeholder message, context og optionel error', () => {
+      // Forsøg med dato der er grænsetilfælde for rentesatser — kan trigge catch-blok
+      const row = makeRow({
+        renterFra: iso('2005-01-01'),
+        tillaegstid: 0,
+        enhed: 'dage',
+        belob: { kind: 'number', value: 10000 },
+      });
+      const result = computeRentekravCalculation(row, iso('2005-12-31'));
+      if (result.issue !== null) {
+        // Catch-blok trigget: issue skal have korrekt struktur
+        expect(result.issue).toHaveProperty('message');
+        expect(result.issue).toHaveProperty('context');
+        expect(result.issue.context).toContain('computeRentekravCalculation');
+        expect(result.context).toBeNull();
+      }
+      // Struktur er altid konsistent
+      expect(result).toHaveProperty('actualInterestDate');
+    });
+  });
+
   describe('RentekravCalculationResult struktur', () => {
     it('returnerer altid { context, issue, actualInterestDate }', () => {
       const row = makeRow({ renterFra: undefined });

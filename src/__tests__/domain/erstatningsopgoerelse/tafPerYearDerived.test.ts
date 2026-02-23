@@ -3,11 +3,12 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { buildErstatningsopgoerelsePdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
+import { buildErstatningsopgoerelsePdfModel, type PdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
 import {
   splitRangeByCalendarYearsInclusive,
   buildTafPerYearResult,
 } from '../../../domain/erstatningsopgoerelse/tafPerYearDerived';
+import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 
 const iso = (value: string) => toISODateString(value);
 
@@ -612,6 +613,101 @@ describe('buildTafPerYearResult', () => {
     }
   });
 
+  it('returnerer null når loenudviklingTotal.status !== "ok"', () => {
+    // Konstruér et minimalt PdfModel-mock der trigger linje 247 i tafPerYearDerived.ts
+    const mockModel = {
+      tabtArbejdsfortjeneste: {
+        loenudvikling: {
+          loenudviklingTotal: { status: 'not_calculable', reason: 'test-fejl' },
+          beregnedeSegmenter: [
+            {
+              kind: 'maaneder',
+              fra: toISODateString('2024-01-01'),
+              til: toISODateString('2024-12-31'),
+              maaneder: 12,
+              maanedsloenOre: 300000,
+              deltaPct: 1,
+              amountOre: 3600000,
+            },
+          ],
+          beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+          loenudviklingLabel: '',
+          perAnsaettelse: [],
+        },
+        tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+        tabtArbejdsfortjenesteOre: 0,
+        tidligereModtagetTaf: { status: 'not_calculable', reason: 'test' },
+        statusLinjer: [],
+        eetLinjer: [],
+        differencekravLinje: null,
+        tafPerioderLinjer: [],
+        harTafPerioder: false,
+        skalKomprimereIndkomstBeregning: false,
+        indkomstSkadestidspunkt: null,
+        tafIndtaegter: null,
+      },
+    } as unknown as PdfModel;
+    const eoValues = makeValues({
+      tafPerioder: [
+        { id: 'taf-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-12-31'), loseFeriedage: undefined },
+      ],
+    });
+    expect(buildTafPerYearResult(mockModel, eoValues)).toBeNull();
+  });
+
+  it('segmenter med kind="arbejdsdage" springes over når tafBeregningsenhed=Måneder (tafArbejdsdageSet er null)', () => {
+    // Inkonsistent tilstand: beregningsenhed=MAANEDER men segmenter har kind='arbejdsdage'
+    // Forventer at buildSubSegment returnerer null → segment springes over
+    const mockModel = {
+      tabtArbejdsfortjeneste: {
+        loenudvikling: {
+          loenudviklingTotal: { status: 'ok', value: 200000 },
+          beregnedeSegmenter: [
+            {
+              kind: 'arbejdsdage',
+              fra: toISODateString('2024-01-02'),
+              til: toISODateString('2024-01-05'),
+              arbejdsdage: 4,
+              dagsloenOre: 50000,
+              deltaPct: 1,
+              amountOre: 200000,
+            },
+          ],
+          beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+          loenudviklingLabel: '',
+          perAnsaettelse: [],
+        },
+        tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+        tabtArbejdsfortjenesteOre: 200000,
+        tidligereModtagetTaf: { status: 'not_calculable', reason: 'test' },
+        statusLinjer: [],
+        eetLinjer: [],
+        differencekravLinje: null,
+        tafPerioderLinjer: [],
+        harTafPerioder: true,
+        skalKomprimereIndkomstBeregning: false,
+        indkomstSkadestidspunkt: null,
+        tafIndtaegter: null,
+      },
+    } as unknown as PdfModel;
+    const eoValues = makeValues({
+      tafPerioder: [
+        { id: 'taf-1', fra: toISODateString('2024-01-02'), til: toISODateString('2024-01-05'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        { ...initialEoValues.loenindkomstAnsaettelsesforhold[0], loenudviklingBeregningsgrundlag: 'Ingen' },
+      ],
+    });
+    // Alle segmenter springes over (tafArbejdsdageSet er null) → alle år har 0 segmenter
+    const result = buildTafPerYearResult(mockModel, eoValues);
+    expect(result).not.toBeNull();
+    if (!result) return;
+    // Alle segmenter er sprunget over
+    expect(result.years.every((y) => y.segments.length === 0)).toBe(true);
+    // Invariant: sumYearTafOre + afrundingOre === samletTafKravOre
+    expect(result.sumYearTafOre + result.afrundingOre).toBe(result.samletTafKravOre);
+  });
+
   it('stabilitet: samme input → samme output', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet dagsløn',
@@ -645,6 +741,63 @@ describe('buildTafPerYearResult', () => {
     const result2 = buildTafPerYearResult(model2, eoValues);
 
     expect(result1).toEqual(result2);
+  });
+
+  it('allocateOreByWeight fallback: allWeights=0 → hele beløbet tildeles første år', () => {
+    // Brug mock-model med tafBeregningsenhed=ARBEJDSDAGE og maaneder-segmenter.
+    // TAF-perioden dækker kun weekend (lørdag-søndag) → tafArbejdsdageSet bliver tom
+    // → alle årsvægte = 0 → allocateOreByWeight tildeler hele tidligereModtagetTaf til første år.
+    const mockModel = {
+      tabtArbejdsfortjeneste: {
+        loenudvikling: {
+          loenudviklingTotal: { status: 'ok', value: 6000 },
+          beregnedeSegmenter: [
+            {
+              kind: 'maaneder',
+              fra: toISODateString('2024-01-06'),
+              til: toISODateString('2024-01-07'),
+              maaneder: 0.0645,
+              maanedsloenOre: 300000,
+              deltaPct: 1,
+              amountOre: 6000,
+            },
+          ],
+          beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+          loenudviklingLabel: '',
+          perAnsaettelse: [],
+        },
+        tafBeregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
+        tabtArbejdsfortjenesteOre: 0,
+        tidligereModtagetTaf: { status: 'ok', value: 10000 },
+        statusLinjer: [],
+        eetLinjer: [],
+        differencekravLinje: null,
+        tafPerioderLinjer: [],
+        harTafPerioder: true,
+        skalKomprimereIndkomstBeregning: false,
+        indkomstSkadestidspunkt: null,
+        tafIndtaegter: null,
+      },
+    } as unknown as PdfModel;
+    // TAF-periode: kun lørdag-søndag 6-7 januar 2024 → buildTafArbejdsdageSet returnerer tom mængde
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet dagsløn',
+      tafPerioder: [
+        { id: 'taf-1', fra: toISODateString('2024-01-06'), til: toISODateString('2024-01-07'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        { ...initialEoValues.loenindkomstAnsaettelsesforhold[0], loenudviklingBeregningsgrundlag: 'Ingen' },
+      ],
+    });
+    const result = buildTafPerYearResult(mockModel, eoValues);
+    expect(result).not.toBeNull();
+    if (!result) return;
+    // Hele beløbet tildeles det første år (allWeights=0 fallback)
+    const allPaid = result.years.flatMap((y) => y.deductions).filter((d) => d.label === 'Allerede betalt TAF');
+    const totalPaidOre = allPaid.reduce((s, d) => s + d.amountOre, 0);
+    expect(totalPaidOre).toBe(10000);
+    // Invariant stadig gyldig
+    expect(result.sumYearTafOre + result.afrundingOre).toBe(result.samletTafKravOre);
   });
 
   it('fordeler "Allerede betalt TAF" pr. år efter arbejdsdage', () => {
