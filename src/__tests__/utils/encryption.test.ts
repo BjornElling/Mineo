@@ -68,4 +68,25 @@ describe('encryption (AES-GCM)', () => {
     const bad = JSON.stringify({ version: 1, alg: 'A256GCM', ivB64: 'AAA=', ctB64: 'BBB=' });
     await expect(decryptFromString(bad)).rejects.toBeInstanceOf(EncryptionError);
   });
+
+  it('rejects version !== 1', async () => {
+    // Valid schema-shape but wrong version
+    const encrypted = await encryptToString({ ok: true });
+    const parsed = JSON.parse(encrypted) as { version: number };
+    parsed.version = 2;
+    await expect(decryptFromString(JSON.stringify(parsed))).rejects.toBeInstanceOf(EncryptionError);
+  });
+
+  it('rejects non-JSON string', async () => {
+    await expect(decryptFromString('ikke json {')).rejects.toBeInstanceOf(EncryptionError);
+  });
+
+  it('roundtrips via resetKeyCache (nulstiller nøgle-cache uden fejl)', async () => {
+    const { resetKeyCache } = await import('../../utils/encryption');
+    const payload = { x: 42 };
+    const encrypted = await encryptToString(payload);
+    resetKeyCache();
+    const decrypted = await decryptFromString(encrypted);
+    expect(decrypted).toEqual(payload);
+  });
 });

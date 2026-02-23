@@ -1,6 +1,8 @@
 import {
   aarsloenSchema,
   erstatningsopgoerelseSchema,
+  renteberegningSchema,
+  varigeMenSchema,
   stamdataSchema,
   satserSchema,
   rentekravRowSchema,
@@ -11,6 +13,7 @@ import {
   offentligeYdelserRowSchema,
 } from '../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { buildPersistenceDefaults } from '../../config/persistenceDefaults';
 
 // ─── aarsloenSchema ────────────────────────────────────────────────────────────
 
@@ -304,6 +307,101 @@ describe('offentligeYdelserRowSchema', () => {
       ydelse: { kind: 'number', value: 5000 },
       tillaeg: undefined,
       ydelsestype: 'sygedagpenge',
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+// ─── renteberegningSchema round-trip ─────────────────────────────────────────
+
+describe('renteberegningSchema', () => {
+  it('persistenceDefaults er gyldige mod renteberegningSchema', () => {
+    const defaults = buildPersistenceDefaults().renteberegning;
+    const result = renteberegningSchema.safeParse(defaults);
+    expect(result.success).toBe(true);
+  });
+
+  it('tom rentekravRows er gyldigt', () => {
+    const result = renteberegningSchema.safeParse({ rentekravRows: [] });
+    expect(result.success).toBe(true);
+  });
+
+  it('stripTopLevelKey: activeTab strippes fra input', () => {
+    const result = renteberegningSchema.safeParse({
+      activeTab: 'some-tab',
+      rentekravRows: [],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('ukendt felt afvises (strict)', () => {
+    const result = renteberegningSchema.safeParse({
+      rentekravRows: [],
+      ukendt: 'felt',
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ─── varigeMenSchema round-trip ───────────────────────────────────────────────
+
+describe('varigeMenSchema', () => {
+  it('accepterer tomme felter (alle optional)', () => {
+    const result = varigeMenSchema.safeParse({
+      fodselsdato: undefined,
+      mengrad: undefined,
+      beregningsdato: undefined,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepterer gyldige værdier', () => {
+    const result = varigeMenSchema.safeParse({
+      fodselsdato: '1980-06-15',
+      mengrad: 0.25,
+      beregningsdato: '2023-01-01',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('stripTopLevelKey: activeTab strippes fra input', () => {
+    const result = varigeMenSchema.safeParse({
+      activeTab: 'some-tab',
+      fodselsdato: undefined,
+      mengrad: undefined,
+      beregningsdato: undefined,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('ukendt felt afvises (strict)', () => {
+    const result = varigeMenSchema.safeParse({
+      fodselsdato: undefined,
+      mengrad: undefined,
+      beregningsdato: undefined,
+      ukendt: 'felt',
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ─── aarsloenSchema round-trip ────────────────────────────────────────────────
+
+describe('aarsloenSchema (round-trip)', () => {
+  it('persistenceDefaults er gyldige mod aarsloenSchema', () => {
+    const defaults = buildPersistenceDefaults().aarsloen;
+    const result = aarsloenSchema.safeParse(defaults);
+    expect(result.success).toBe(true);
+  });
+
+  it('accepterer minimalt gyldigt objekt', () => {
+    const result = aarsloenSchema.safeParse({
+      loenperiode: 'maaned',
+      tableData: [],
+      omregningTilFuldtAar: false,
+      fuldLoenUnderFerie: true,
+      retTilSjetteFerieuge: false,
+      loenPaaHelligdage: 'Almindelig løn',
     });
     expect(result.success).toBe(true);
   });

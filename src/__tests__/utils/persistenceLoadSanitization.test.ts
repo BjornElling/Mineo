@@ -99,6 +99,24 @@ describe('persistence load sanitization', () => {
     expect(parsed.data.indsaetUdkastStempel).toBe('Ja');
   });
 
+  it('stripUnknownFieldsBySchema returnerer uændret ikke-objekt for ZodObject-schema', () => {
+    // En primitiv (streng/tal) mod et objekt-schema → returneres urørt
+    const result = stripUnknownFieldsBySchema(erstatningsopgoerelseSchema, 'ikke et objekt');
+    expect(result.sanitized).toBe('ikke et objekt');
+    expect(result.unknownPaths).toHaveLength(0);
+  });
+
+  it('applyDefaultsDeep med array-defaults >1 element kaster fejl', () => {
+    // Array-defaults med 2 elementer er en konfigurationsfejl
+    expect(() => applyDefaultsDeep(['a', 'b'], ['x', 'y'])).toThrow('Ugyldig default-konfiguration');
+  });
+
+  it('applyDefaultsDeep med tom array-default returnerer value urørt', () => {
+    const arr = ['a', 'b'];
+    const result = applyDefaultsDeep(arr, []);
+    expect(result).toBe(arr);
+  });
+
   it('normalizes loaded AmountValue values to 2 decimals before calculations consume them', () => {
     const defaults = buildPersistenceDefaults(DEFAULT_APP_SETTINGS);
     const loaded = structuredClone(defaults.erstatningsopgoerelse) as Record<string, unknown>;

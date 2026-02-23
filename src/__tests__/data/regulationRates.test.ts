@@ -10,6 +10,10 @@ import {
   satserAngivAarYearBounds,
   varigeMenPrGradYearBounds,
   aarsloenMin,
+  aarsloenMinFoer20240701,
+  aarsloenMinFra20240701,
+  reguleringsprocentErhvervsevnetabFoer2024,
+  reguleringsprocentErhvervsevnetabFra2024,
 } from '../../data/regulationRates';
 import type { YearlyRate } from '../../data/regulationRates';
 
@@ -257,5 +261,58 @@ describe('aarsloenMin invariant', () => {
 
   it('aarsloenMin indeholder gyldige satser for 2023', () => {
     expect(aarsloenMin[2023]).toBeGreaterThan(0);
+  });
+});
+
+// ─── 2024 split-værdier ───────────────────────────────────────────────────────
+
+describe('aarsloenMinFoer20240701', () => {
+  it('[2024] = 227000', () => {
+    expect(aarsloenMinFoer20240701[2024]).toBe(227000);
+  });
+
+  it('indeholder positive satser', () => {
+    for (const [, sats] of Object.entries(aarsloenMinFoer20240701)) {
+      expect(sats).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('aarsloenMinFra20240701', () => {
+  it('[2024] = 257000', () => {
+    expect(aarsloenMinFra20240701[2024]).toBe(257000);
+  });
+
+  it('fra20240701 er større end foer20240701 for 2024', () => {
+    expect(aarsloenMinFra20240701[2024]).toBeGreaterThan(aarsloenMinFoer20240701[2024]!);
+  });
+});
+
+describe('reguleringsprocentErhvervsevnetabFoer2024', () => {
+  it('[2024] = 65.7', () => {
+    expect(reguleringsprocentErhvervsevnetabFoer2024[2024]).toBe(65.7);
+  });
+});
+
+describe('reguleringsprocentErhvervsevnetabFra2024', () => {
+  it('[2024] er et finite number', () => {
+    expect(Number.isFinite(reguleringsprocentErhvervsevnetabFra2024[2024])).toBe(true);
+  });
+});
+
+describe('getSatserForYear – 2024 split-felter i asl', () => {
+  it('asl.aarsloenMinFoer2024 = 227000', () => {
+    const satser = getSatserForYear(2024);
+    expect(satser.asl.aarsloenMinFoer2024).toBe(227000);
+  });
+
+  it('asl.aarsloenMinFra2024 = 257000', () => {
+    const satser = getSatserForYear(2024);
+    expect(satser.asl.aarsloenMinFra2024).toBe(257000);
+  });
+
+  it('asl.aarsloenMinFra2024 > asl.aarsloenMinFoer2024', () => {
+    const satser = getSatserForYear(2024);
+    expect(satser.asl.aarsloenMinFra2024!).toBeGreaterThan(satser.asl.aarsloenMinFoer2024!);
   });
 });
