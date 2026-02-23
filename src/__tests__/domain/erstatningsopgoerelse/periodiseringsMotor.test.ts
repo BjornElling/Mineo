@@ -134,4 +134,91 @@ describe('periodiseringsMotor', () => {
     });
     expect(included).toBe(true);
   });
+
+  it('isOffentligYdelseDatoMedregnet: kalenderdage-periodisering inkluderer alle dage (inkl. SH og weekend)', () => {
+    // Nytårsdag 2024 (mandag, SH-dag)
+    const shDays = new Set<ISODateString>([iso('2024-01-01')]);
+    const result = isOffentligYdelseDatoMedregnet({
+      iso: iso('2024-01-01'),
+      dateObj: d('2024-01-01'),
+      shDays,
+      periodisering: 'kalenderdage',
+      ydelsestypeKey: 'sygedagpenge',
+      rowTilISO: iso('2024-12-31'),
+    });
+    // Kalenderdage: SH-dage tæller MED
+    expect(result).toBe(true);
+  });
+
+  it('isOffentligYdelseDatoMedregnet: arbejdsdage-periodisering ekskluderer weekend', () => {
+    // Lørdag 6. januar 2024
+    const emptyShDays = new Set<ISODateString>();
+    const result = isOffentligYdelseDatoMedregnet({
+      iso: iso('2024-01-06'),
+      dateObj: d('2024-01-06'),
+      shDays: emptyShDays,
+      periodisering: 'arbejdsdage',
+      ydelsestypeKey: 'dagpenge',
+      rowTilISO: iso('2024-12-31'),
+    });
+    expect(result).toBe(false);
+  });
+
+  it('isOffentligYdelseDatoMedregnet: arbejdsdage-periodisering ekskluderer SH-dag (ikke-sygedagpenge)', () => {
+    // Nytårsdag 2024 (mandag) — SH-dag
+    const shDays = new Set<ISODateString>([iso('2024-01-01')]);
+    const result = isOffentligYdelseDatoMedregnet({
+      iso: iso('2024-01-01'),
+      dateObj: d('2024-01-01'),
+      shDays,
+      periodisering: 'arbejdsdage',
+      ydelsestypeKey: 'dagpenge',
+      rowTilISO: iso('2024-12-31'),
+    });
+    expect(result).toBe(false);
+  });
+
+  it('isOffentligYdelseDatoMedregnet: sygedagpenge SH-dag EFTER cutoff ekskluderes', () => {
+    // Cutoff er typisk 2012-01-01. En SH-dag i 2024 med sygedagpenge og rowTil > cutoff ekskluderes.
+    const shDays = new Set<ISODateString>([iso('2024-01-01')]);
+    const result = isOffentligYdelseDatoMedregnet({
+      iso: iso('2024-01-01'),
+      dateObj: d('2024-01-01'),
+      shDays,
+      periodisering: 'arbejdsdage',
+      ydelsestypeKey: 'sygedagpenge',
+      rowTilISO: iso('2024-12-31'), // rowTil er efter cutoff → særregel gælder IKKE
+    });
+    expect(result).toBe(false);
+  });
+
+  it('periodiserBeloebForOffentligYdelse med kalenderdage-periodisering tæller alle dage', () => {
+    // 5 kalenderdage inkl. SH-dag. Alle 5 tæller ved kalenderdage.
+    const shDays = new Set<ISODateString>([iso('2024-01-01')]);
+    const result = periodiserBeloebForOffentligYdelse({
+      totalBeloeb: 500,
+      interval: { start: d('2024-01-01'), end: d('2024-01-05') },
+      range: { fra: iso('2024-01-01'), til: iso('2024-12-31') },
+      periodisering: 'kalenderdage',
+      ydelsestypeKey: 'sygedagpenge',
+      shDays,
+    });
+    // Alle 5 dage tæller → 500 * 5/5 = 500
+    expect(result).toBe(500);
+  });
+
+  it('optaelMaanederPraecis returnerer null ved undefined fra', () => {
+    const value = optaelMaanederPraecis({ fra: undefined, til: iso('2024-01-31'), oevrigeFravaersdage: 0 });
+    expect(value).toBeNull();
+  });
+
+  it('optaelMaanederPraecis returnerer null ved undefined til', () => {
+    const value = optaelMaanederPraecis({ fra: iso('2024-01-01'), til: undefined, oevrigeFravaersdage: 0 });
+    expect(value).toBeNull();
+  });
+
+  it('optaelMaanederAfrundet returnerer null ved undefined fra', () => {
+    const value = optaelMaanederAfrundet({ fra: undefined, til: iso('2024-01-31') });
+    expect(value).toBeNull();
+  });
 });

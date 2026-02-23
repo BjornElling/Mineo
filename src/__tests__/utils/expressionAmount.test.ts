@@ -1,4 +1,12 @@
-import { parseAmountInput } from '../../utils/expressionAmount';
+import {
+  parseAmountInput,
+  amountValueToNumber,
+  amountValueToDisplayString,
+  amountValueToDraftString,
+  isExpressionErrorMessage,
+  formatExpressionErrorMessage,
+} from '../../utils/expressionAmount';
+import type { AmountValue } from '../../schemas/amountExpressionSchema';
 
 const parse = (input: string, overrides?: Partial<Parameters<typeof parseAmountInput>[1]>) =>
   parseAmountInput(input, {
@@ -220,5 +228,111 @@ describe('parseAmountInput', () => {
     if (result.ok) return;
     expect(result.error.kind).toBe('number');
     expect(result.error.message).toBe('Beløb kan ikke være negativt');
+  });
+});
+
+// ─── amountValueToNumber ──────────────────────────────────────────────────────
+
+describe('amountValueToNumber', () => {
+  it('undefined → undefined', () => {
+    expect(amountValueToNumber(undefined)).toBeUndefined();
+  });
+
+  it('number AmountValue → numerisk value', () => {
+    const av: AmountValue = { kind: 'number', value: 42 };
+    expect(amountValueToNumber(av)).toBe(42);
+  });
+
+  it('expression AmountValue → numerisk value', () => {
+    const av: AmountValue = { kind: 'expression', expression: '40+2', value: 42 };
+    expect(amountValueToNumber(av)).toBe(42);
+  });
+
+  it('ikke-finit value → undefined', () => {
+    const av: AmountValue = { kind: 'number', value: NaN };
+    expect(amountValueToNumber(av)).toBeUndefined();
+  });
+});
+
+// ─── amountValueToDisplayString ───────────────────────────────────────────────
+
+describe('amountValueToDisplayString', () => {
+  it('undefined → tom streng', () => {
+    expect(amountValueToDisplayString(undefined, 2)).toBe('');
+  });
+
+  it('number AmountValue → dansk format med præcision 2', () => {
+    const av: AmountValue = { kind: 'number', value: 1234.5 };
+    expect(amountValueToDisplayString(av, 2)).toBe('1.234,50');
+  });
+
+  it('expression AmountValue → formateret value (ikke expression-streng)', () => {
+    const av: AmountValue = { kind: 'expression', expression: '1000+234,5', value: 1234.5 };
+    expect(amountValueToDisplayString(av, 2)).toBe('1.234,50');
+  });
+
+  it('præcision 0 → ingen decimaler', () => {
+    const av: AmountValue = { kind: 'number', value: 1234 };
+    expect(amountValueToDisplayString(av, 0)).toBe('1.234');
+  });
+});
+
+// ─── amountValueToDraftString ─────────────────────────────────────────────────
+
+describe('amountValueToDraftString', () => {
+  it('undefined → tom streng', () => {
+    expect(amountValueToDraftString(undefined, 2)).toBe('');
+  });
+
+  it('number AmountValue → formateret value', () => {
+    const av: AmountValue = { kind: 'number', value: 1000.5 };
+    expect(amountValueToDraftString(av, 2)).toBe('1.000,50');
+  });
+
+  it('expression AmountValue → returnerer expression-strengen (ikke formateret value)', () => {
+    const av: AmountValue = { kind: 'expression', expression: '1000+0,5', value: 1000.5 };
+    expect(amountValueToDraftString(av, 2)).toBe('1000+0,5');
+  });
+});
+
+// ─── isExpressionErrorMessage ─────────────────────────────────────────────────
+
+describe('isExpressionErrorMessage', () => {
+  it('undefined → false', () => {
+    expect(isExpressionErrorMessage(undefined)).toBe(false);
+  });
+
+  it('tom streng → false', () => {
+    expect(isExpressionErrorMessage('')).toBe(false);
+  });
+
+  it('streng der starter med "Fejl i funktion:" → true', () => {
+    expect(isExpressionErrorMessage('Fejl i funktion: Division med 0')).toBe(true);
+  });
+
+  it('alm. fejlbesked → false', () => {
+    expect(isExpressionErrorMessage('Ugyldigt beløb')).toBe(false);
+  });
+
+  it('delvis match → false', () => {
+    expect(isExpressionErrorMessage('Ikke Fejl i funktion:')).toBe(false);
+  });
+});
+
+// ─── formatExpressionErrorMessage ────────────────────────────────────────────
+
+describe('formatExpressionErrorMessage', () => {
+  it('tilføjer "Fejl i funktion:"-præfix', () => {
+    expect(formatExpressionErrorMessage('Division med 0')).toBe('Fejl i funktion: Division med 0');
+  });
+
+  it('præfix efterfølges af mellemrum', () => {
+    const result = formatExpressionErrorMessage('test');
+    expect(result.startsWith('Fejl i funktion: ')).toBe(true);
+  });
+
+  it('isExpressionErrorMessage genkender formatExpressionErrorMessage-output (round-trip)', () => {
+    const formatted = formatExpressionErrorMessage('Ugyldigt tegn');
+    expect(isExpressionErrorMessage(formatted)).toBe(true);
   });
 });

@@ -41,4 +41,54 @@ describe('beregnArbejdsdageOgMaaneder', () => {
 
     expect(result.arbejdsdage).toBe(0);
   });
+
+  it('lørdag og søndag tæller ikke som arbejdsdage', () => {
+    // 2024-01-06 = lørdag, 2024-01-07 = søndag
+    const result = beregnArbejdsdageOgMaaneder(
+      iso('2024-01-06'),
+      iso('2024-01-07'),
+      new Set(),
+      new Set()
+    );
+    expect(result.arbejdsdage).toBe(0);
+  });
+
+  it('dag der er både SH og ferie ekskluderes kun én gang (ikke negativ)', () => {
+    // 2024-01-01 = nytårsdag (SH) og feriedag
+    const sh = new Set([iso('2024-01-01')]);
+    const ferie = new Set([iso('2024-01-01')]);
+    const result = beregnArbejdsdageOgMaaneder(
+      iso('2024-01-01'),
+      iso('2024-01-01'),
+      sh,
+      ferie
+    );
+    expect(result.arbejdsdage).toBe(0);
+  });
+
+  it('periode der krydser nytår tæller arbejdsdage korrekt', () => {
+    // 2024-12-30 (man), 2024-12-31 (tirs), 2025-01-01 (ons, SH nytår), 2025-01-02 (tor)
+    const sh = new Set([iso('2025-01-01')]);
+    const result = beregnArbejdsdageOgMaaneder(
+      iso('2024-12-30'),
+      iso('2025-01-02'),
+      sh,
+      new Set()
+    );
+    // 4 hverdage - 1 SH = 3
+    expect(result.arbejdsdage).toBe(3);
+    // Måneder > 0
+    expect(result.maaneder).toBeGreaterThan(0);
+  });
+
+  it('tom SH og ferie-set → kun ugedage tæller', () => {
+    // 2024-01-08 (man) til 2024-01-12 (fre) = 5 hverdage
+    const result = beregnArbejdsdageOgMaaneder(
+      iso('2024-01-08'),
+      iso('2024-01-12'),
+      new Set(),
+      new Set()
+    );
+    expect(result.arbejdsdage).toBe(5);
+  });
 });

@@ -111,4 +111,58 @@ describe('validateLoenudviklingManualBaseRowSatser', () => {
 
     expect(errors).toEqual({});
   });
+
+  it('baseRow undefined + alle satser 0 → ingen fejl (actual=0, expected=0)', () => {
+    const errors = validateLoenudviklingManualBaseRowSatser(undefined, {
+      feriePct: 0,
+      fritvalgPct: 0,
+      shSoPct: 0,
+      pensionPct: 0,
+    });
+    expect(errors).toEqual({});
+  });
+
+  it('baseRow undefined + sats ≠ 0 → fejl for alle felter', () => {
+    const errors = validateLoenudviklingManualBaseRowSatser(undefined, {
+      feriePct: 12.5,
+      fritvalgPct: 2,
+      shSoPct: 1.75,
+      pensionPct: 10,
+    });
+    // actual=undefined → 0, expected=12.5 → delta > 0.01 → fejl
+    expect(errors.feriepenge).toBeDefined();
+    expect(errors.fritvalg).toBeDefined();
+    expect(errors.shSoSats).toBeDefined();
+    expect(errors.agPension).toBeDefined();
+  });
+
+  it('ugyldig streng → parseCommittedPercent returnerer undefined → normaliseres til 0', () => {
+    const errors = validateLoenudviklingManualBaseRowSatser(
+      makeBaseRow({ feriepenge: 'abc', fritvalg: 'NaN', shSoSats: 'Infinity', agPension: 'ugyldig' }),
+      { feriePct: 0, fritvalgPct: 0, shSoPct: 0, pensionPct: 0 }
+    );
+    // 'abc' → not finite → undefined → 0 vs 0 = ingen fejl
+    expect(errors.feriepenge).toBeUndefined();
+    expect(errors.fritvalg).toBeUndefined();
+    expect(errors.shSoSats).toBeUndefined();
+    expect(errors.agPension).toBeUndefined();
+  });
+
+  it('tolerance 0.01: delta ≤ 0.01 → ingen fejl', () => {
+    // |12.505 - 12.5| = 0.005 ≤ 0.01
+    const errors = validateLoenudviklingManualBaseRowSatser(
+      makeBaseRow({ feriepenge: '12,505' }),
+      { feriePct: 12.5, fritvalgPct: undefined, shSoPct: undefined, pensionPct: undefined }
+    );
+    expect(errors.feriepenge).toBeUndefined();
+  });
+
+  it('tolerance 0.01: delta > 0.01 → fejl', () => {
+    // |12.52 - 12.5| = 0.02 > 0.01
+    const errors = validateLoenudviklingManualBaseRowSatser(
+      makeBaseRow({ feriepenge: '12,52' }),
+      { feriePct: 12.5, fritvalgPct: undefined, shSoPct: undefined, pensionPct: undefined }
+    );
+    expect(errors.feriepenge).toBeDefined();
+  });
 });

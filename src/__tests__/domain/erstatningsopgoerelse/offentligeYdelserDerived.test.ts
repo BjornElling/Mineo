@@ -47,4 +47,78 @@ describe('deriveOffentligeYdelserRow', () => {
     expect(result.antalDage).toBeNull();
     expect(result.ydelsePerDag).toBeNull();
   });
+
+  it('returnerer periodiseringLabel fra ydelsestype-config', () => {
+    const row: OffentligeYdelserRow = {
+      ...baseRow,
+      fraDato: '01-01-2024',
+      tilDato: '10-01-2024',
+      ydelsestype: 'dagpenge',
+      ydelse: asAmountValue(1000),
+    };
+    const result = deriveOffentligeYdelserRow(row);
+    expect(result.periodiseringLabel).toBe('Kalenderdage');
+  });
+
+  it('returnerer tom periodiseringLabel for ukendt ydelsestype', () => {
+    const result = deriveOffentligeYdelserRow({ ...baseRow, ydelsestype: 'ukendt-type' });
+    expect(result.periodiseringLabel).toBe('');
+    expect(result.antalDage).toBeNull();
+  });
+
+  it('antalDage sat men ydelsePerDag null når ydelse og tillaeg begge mangler', () => {
+    const row: OffentligeYdelserRow = {
+      ...baseRow,
+      fraDato: '01-01-2024',
+      tilDato: '10-01-2024',
+      ydelsestype: 'dagpenge',
+      ydelse: undefined,
+      tillaeg: undefined,
+    };
+    const result = deriveOffentligeYdelserRow(row);
+    expect(result.antalDage).toBe(10);
+    expect(result.ydelsePerDag).toBeNull();
+  });
+
+  it('summerer ydelse + tillaeg korrekt', () => {
+    const row: OffentligeYdelserRow = {
+      ...baseRow,
+      fraDato: '01-01-2024',
+      tilDato: '10-01-2024',
+      ydelsestype: 'dagpenge',
+      ydelse: asAmountValue(800),
+      tillaeg: asAmountValue(200),
+    };
+    const result = deriveOffentligeYdelserRow(row);
+    expect(result.ydelsePerDag).toBe(100);
+  });
+
+  it('sygedagpenge bruger arbejdsdage-periodisering (periodiseringLabel = Arbejdsdage)', () => {
+    const row: OffentligeYdelserRow = {
+      ...baseRow,
+      fraDato: '08-01-2024',
+      tilDato: '12-01-2024',
+      ydelsestype: 'sygedagpenge',
+      ydelse: asAmountValue(2500),
+      tillaeg: asAmountValue(0),
+    };
+    const result = deriveOffentligeYdelserRow(row);
+    expect(result.periodiseringLabel).toBe('Arbejdsdage');
+    expect(result.antalDage).toBeGreaterThan(0);
+    expect(result.ydelsePerDag).toBeGreaterThan(0);
+  });
+
+  it('kun tillaeg (ydelse undefined) → ydelsePerDag beregnes fra tillaeg alene', () => {
+    const row: OffentligeYdelserRow = {
+      ...baseRow,
+      fraDato: '01-01-2024',
+      tilDato: '10-01-2024',
+      ydelsestype: 'dagpenge',
+      ydelse: undefined,
+      tillaeg: asAmountValue(500),
+    };
+    const result = deriveOffentligeYdelserRow(row);
+    // (0 + 500) / 10 dage = 50
+    expect(result.ydelsePerDag).toBe(50);
+  });
 });

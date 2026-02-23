@@ -296,6 +296,323 @@ describe('TAF lønudviklingskrav for aktiv kilde', () => {
 });
 
 // =============================================================================
+// STANDALONE REGLER
+// =============================================================================
+
+describe('standalone regler (vedroererPeriode)', () => {
+  it('fanger vedroererPeriodeFra > vedroererPeriodeTil', () => {
+    const values = makeValues({
+      vedroererPeriodeFra: iso('2024-02-01'),
+      vedroererPeriodeTil: iso('2024-01-01'),
+    });
+    expect(hasError(values, 'Fra-dato må ikke være efter til-dato')).toBe(true);
+  });
+
+  it('ingen fejl når fra == til', () => {
+    const values = makeValues({
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-01-01'),
+    });
+    const result = erstatningsopgoerelseValidator.validate(values);
+    const hasFraTilError = result.errors.some(
+      (e) => e.path === 'vedroererPeriodeFra' && e.message.includes('Fra-dato må ikke være efter til-dato'),
+    );
+    expect(hasFraTilError).toBe(false);
+  });
+});
+
+// =============================================================================
+// SVIE/SMERTE EKSTRA CASES
+// =============================================================================
+
+describe('svie/smerte — ekstra valideringscases', () => {
+  it('springer validering over når beregnesSvieSmerteGodtgoerelse = Nej', () => {
+    const values = makeValues({
+      beregnesSvieSmerteGodtgoerelse: 'Nej',
+      svieSmertePerioder: [
+        { id: '1', fra: iso('2024-01-10'), til: iso('2024-01-01'), tilstand: 'sygemeldt' },
+      ],
+    });
+    // Fra > til i perioden burde give fejl — men kun hvis beregning er aktiv
+    expect(hasError(values, 'Fra-dato må ikke være efter til-dato')).toBe(false);
+  });
+
+  it('springer validering over når tidligereSsMax = Ja', () => {
+    const values = makeValues({
+      beregnesSvieSmerteGodtgoerelse: 'Ja',
+      tidligereSsMax: 'Ja',
+      svieSmertePerioder: [
+        { id: '1', fra: undefined as unknown as string, til: undefined as unknown as string, tilstand: undefined as unknown as string },
+      ],
+    });
+    // Perioden er ufuldstændig — men validering springes over ved tidligereSsMax=Ja
+    expect(hasError(values, 'Fra-dato mangler')).toBe(false);
+  });
+
+  it('fanger manglende fra-dato i svie/smerte-række', () => {
+    const values = makeValues({
+      svieSmertePerioder: [
+        { id: '1', fra: undefined as unknown as string, til: iso('2024-01-10'), tilstand: 'sygemeldt' },
+      ],
+    });
+    expect(hasError(values, 'Fra-dato mangler')).toBe(true);
+  });
+
+  it('fanger manglende tilstand i svie/smerte-række', () => {
+    const values = makeValues({
+      svieSmertePerioder: [
+        { id: '1', fra: iso('2024-01-01'), til: iso('2024-01-10'), tilstand: undefined as unknown as string },
+      ],
+    });
+    expect(hasError(values, 'Tilstand mangler')).toBe(true);
+  });
+
+  it('fanger fra > til i svie/smerte-række', () => {
+    const values = makeValues({
+      svieSmertePerioder: [
+        { id: '1', fra: iso('2024-01-10'), til: iso('2024-01-01'), tilstand: 'sygemeldt' },
+      ],
+    });
+    expect(hasError(values, 'Fra-dato må ikke være efter til-dato')).toBe(true);
+  });
+});
+
+// =============================================================================
+// TAF — EKSTRA CASES
+// =============================================================================
+
+describe('TAF — fanger manglende fra-dato alene', () => {
+  it('fanger manglende fra-dato med til-dato til stede', () => {
+    const values = makeValues({
+      tafPerioder: [
+        { id: '1', fra: undefined as unknown as string, til: iso('2024-01-31') },
+      ],
+    });
+    expect(hasError(values, 'Fra-dato mangler')).toBe(true);
+  });
+});
+
+// =============================================================================
+// BEREGNES UD FRA
+// =============================================================================
+
+describe('validateBeregnesUdFra', () => {
+  it('fanger manglende dagsløn ved "Angivet dagsløn"', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: undefined,
+    });
+    expect(hasError(values, 'Dagsløn skal udfyldes')).toBe(true);
+  });
+
+  it('ingen fejl ved udfyldt dagsløn (TAF slået fra)', () => {
+    const values = makeValues({
+      beregnesTabtArbejdsfortjeneste: 'Nej',
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmount(500),
+    });
+    expect(hasError(values, 'Dagsløn skal udfyldes')).toBe(false);
+  });
+
+  it('fanger manglende til-dato i beregningsperiode', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: iso('2024-01-01'),
+      periodeTilBeregningTil: undefined,
+    });
+    expect(hasError(values, 'Beregningsperiode til-dato mangler')).toBe(true);
+  });
+
+  it('fanger beregningsperiode fra > til', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: iso('2024-06-01'),
+      periodeTilBeregningTil: iso('2024-01-01'),
+    });
+    expect(hasError(values, 'Beregningsperiode fra-dato må ikke være efter til-dato')).toBe(true);
+  });
+
+  it('ingen fejl ved beregningsperiode fra == til', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: iso('2024-01-01'),
+      periodeTilBeregningTil: iso('2024-01-01'),
+    });
+    expect(hasError(values, 'Beregningsperiode fra-dato må ikke være efter til-dato')).toBe(false);
+  });
+});
+
+// =============================================================================
+// LØNUDVIKLING KONSISTENS (validateLoenudviklingKonsistens)
+// =============================================================================
+
+describe('validateLoenudviklingKonsistens', () => {
+  const makeAF = (overrides: Record<string, unknown> = {}) => ({
+    ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+    ...overrides,
+  });
+
+  it('ingen fejl med ét ansættelsesforhold (enkelt-AF kræver ingen konsistens)', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: iso('2024-01-01'),
+      periodeTilBeregningTil: iso('2024-12-31'),
+      loenindkomstAnsaettelsesforhold: [
+        makeAF({ loenudviklingBeregningsgrundlag: 'Overenskomst', overenskomstId: 'bygge-anlaeg', loenPaaHelligdage: 'Almindelig løn' }),
+      ],
+    });
+    expect(hasError(values, 'ens på tværs af ansættelsesforhold')).toBe(false);
+  });
+
+  it('fanger uens beregningsgrundlag på tværs af AF (Overenskomst vs Statistik)', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: iso('2024-01-01'),
+      periodeTilBeregningTil: iso('2024-12-31'),
+      loenindkomstAnsaettelsesforhold: [
+        makeAF({ loenudviklingBeregningsgrundlag: 'Overenskomst', overenskomstId: 'bygge-anlaeg', loenPaaHelligdage: 'Almindelig løn' }),
+        makeAF({ loenudviklingBeregningsgrundlag: 'Statistik', loenudviklingStatistikModel: 'DA/LO', loenPaaHelligdage: 'Almindelig løn' }),
+      ],
+    });
+    expect(hasError(values, 'Lønudviklingsgrundlag skal være ens')).toBe(true);
+  });
+
+  it('fanger uens overenskomst på tværs af AF', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: iso('2024-01-01'),
+      periodeTilBeregningTil: iso('2024-12-31'),
+      loenindkomstAnsaettelsesforhold: [
+        makeAF({ loenudviklingBeregningsgrundlag: 'Overenskomst', overenskomstId: 'bygge-anlaeg', loenPaaHelligdage: 'Almindelig løn' }),
+        makeAF({ loenudviklingBeregningsgrundlag: 'Overenskomst', overenskomstId: 'handel', loenPaaHelligdage: 'Almindelig løn' }),
+      ],
+    });
+    expect(hasError(values, 'Overenskomst skal være ens')).toBe(true);
+  });
+
+  it('fanger uens statistikmodel på tværs af AF', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: iso('2024-01-01'),
+      periodeTilBeregningTil: iso('2024-12-31'),
+      loenindkomstAnsaettelsesforhold: [
+        makeAF({ loenudviklingBeregningsgrundlag: 'Statistik', loenudviklingStatistikModel: 'DA/LO' }),
+        makeAF({ loenudviklingBeregningsgrundlag: 'Statistik', loenudviklingStatistikModel: 'KL-gruppen' }),
+      ],
+    });
+    expect(hasError(values, 'Statistikmodel skal være ens')).toBe(true);
+  });
+
+  it('ingen fejl når alle AF har samme beregningsgrundlag og overenskomst', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: iso('2024-01-01'),
+      periodeTilBeregningTil: iso('2024-12-31'),
+      loenindkomstAnsaettelsesforhold: [
+        makeAF({ loenudviklingBeregningsgrundlag: 'Overenskomst', overenskomstId: 'bygge-anlaeg', loenPaaHelligdage: 'Almindelig løn' }),
+        makeAF({ loenudviklingBeregningsgrundlag: 'Overenskomst', overenskomstId: 'bygge-anlaeg', loenPaaHelligdage: 'Almindelig løn' }),
+      ],
+    });
+    expect(hasError(values, 'ens på tværs af ansættelsesforhold')).toBe(false);
+  });
+});
+
+// =============================================================================
+// LØNUDVIKLING KRAV FOR AKTIV KILDE (validateLoenudviklingsKravForAktivKilde)
+// =============================================================================
+
+describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
+  it('fanger manglende statistikmodel ved grundlag=Statistik', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmount(30000),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Statistik',
+        loenudviklingStatistikModel: '',
+      },
+    });
+    expect(hasError(values, 'Statistisk beregningsmodel skal vælges')).toBe(true);
+  });
+
+  it('fanger manglende KRL satstabel ved grundlag=KRL satstabel', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmount(30000),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'KRL satstabel',
+        loenudviklingKRLSatstabel: undefined,
+      },
+    });
+    expect(hasError(values, 'KRL satstabel skal vælges')).toBe(true);
+  });
+
+  it('fanger manglende manuel reguleringsrække ved grundlag=Manuelt angivet', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmount(30000),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+        loenudviklingManuelTableData: [],
+      },
+    });
+    expect(hasError(values, 'Mindst én manuel reguleringsrække')).toBe(true);
+  });
+
+  it('fanger manglende grundløn på manuel reguleringsrække', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmount(30000),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+        loenudviklingManuelTableData: [
+          { id: 'row-1', dato: '2024-01-01', grundloen: undefined, feriepenge: '', shSoSats: '', fritvalg: '', agPension: '' },
+        ],
+      },
+    });
+    expect(hasError(values, 'Grundløn skal udfyldes')).toBe(true);
+  });
+
+  it('ingen fejl ved grundlag=Ingen (springes over)', () => {
+    const values = makeValues({
+      beregnesTabtArbejdsfortjeneste: 'Nej',
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Ingen',
+      },
+    });
+    expect(hasError(values, 'skal vælges')).toBe(false);
+  });
+});
+
+// =============================================================================
+// ØVRIGE KRAV — EKSTRA CASES
+// =============================================================================
+
+describe('øvrige krav — ekstra valideringscases', () => {
+  it('fanger manglende dato med udgiftTil og beloeb til stede', () => {
+    const values = makeValues({
+      oevrigeKravPerioder: [
+        { id: '1', dato: undefined, udgiftTil: 'Transport', beloeb: asAmount(500) },
+      ],
+    });
+    expect(hasError(values, 'Dato mangler')).toBe(true);
+  });
+
+  it('fanger manglende beloeb med dato og udgiftTil til stede', () => {
+    const values = makeValues({
+      oevrigeKravPerioder: [
+        { id: '1', dato: iso('2024-01-01'), udgiftTil: 'Transport', beloeb: undefined },
+      ],
+    });
+    expect(hasError(values, 'Beløb mangler')).toBe(true);
+  });
+});
+
+// =============================================================================
 // SAMLET
 // =============================================================================
 
