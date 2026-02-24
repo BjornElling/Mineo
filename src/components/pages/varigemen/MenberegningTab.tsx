@@ -62,6 +62,7 @@ const MenberegningTab: React.FC<{
 const [mengradError, setMengradError] = React.useState<string | undefined>(undefined);
 const [fodselsdatoError, setFodselsdatoError] = React.useState<string | undefined>(undefined);
 const [beregningsdatoError, setBeregningsdatoError] = React.useState<string | undefined>(undefined);
+const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
 
 const handleMengradError = React.useCallback((errorMsg: string | undefined) => {
   setMengradError(errorMsg);
@@ -307,6 +308,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
             maxDate={VARIGE_MEN_BEREGNINGSDATO_MAX}
             noValidRangeCause="Varige mén-satser"
             onFieldError={handleBeregningsdatoError}
+            inputRef={beregningsdatoInputRef}
           />
           <InsertTodayDateButton
             onCommit={(today) => {
@@ -315,6 +317,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
                 beregningsdato: today,
               }));
             }}
+            focusRef={beregningsdatoInputRef}
           />
         </Box>
       </Box>

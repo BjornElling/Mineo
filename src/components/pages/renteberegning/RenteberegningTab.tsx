@@ -56,6 +56,7 @@ const RenteberegningTab = React.memo(({
   onError,
 }: RenteberegningTabProps) => {
   const [beregningsdatoHasError, setBeregningsdatoHasError] = React.useState(false);
+  const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
 
   return (
     <Box>
@@ -71,11 +72,13 @@ const RenteberegningTab = React.memo(({
                 minDate={toISODateString(MIN_CALCULATION_DATE)}
                 maxDate={toISODateString(`${MAX_CALCULATION_YEAR}-12-31`)}
                 onFieldError={(errorMsg) => setBeregningsdatoHasError(!!errorMsg)}
+                inputRef={beregningsdatoInputRef}
               />
               <InsertTodayDateButton
                 onCommit={(today) => {
                   onBeregningsdatoChange({ target: { value: today } });
                 }}
+                focusRef={beregningsdatoInputRef}
               />
             </Box>
           </Box>
