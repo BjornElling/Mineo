@@ -396,6 +396,67 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     expect(entries[0].amountOre).toBe(3333);
   });
 
+  it('sorterer offentlige ydelser alfabetisk efter ansættelsesforhold i TAF-indtægter', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(30000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-10'), til: iso('2024-01-10'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          navnPaaArbejdssted: 'Ansættelse A',
+          loenperiode: 'dag',
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'r1',
+              col0_maaned: '',
+              col1_maaned: '',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '10-01-2024',
+              col1_dag: '10-01-2024',
+              col2: asAmountValue(1000),
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '10-01-2024',
+          tilDato: '10-01-2024',
+          ydelse: asAmountValue(10),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+        {
+          id: 'ydelse-2',
+          fraDato: '10-01-2024',
+          tilDato: '10-01-2024',
+          ydelse: asAmountValue(20),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Midlertidigt EET',
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    const entries = model.tabtArbejdsfortjeneste.tafIndtaegter?.entries ?? [];
+
+    expect(entries).toEqual([
+      { label: 'Ansættelse A', amountOre: 100000 },
+      { label: 'Midlertidigt EET', amountOre: 2000 },
+      { label: 'Sygedagpenge', amountOre: 1000 },
+    ]);
+  });
+
   it('beregner loenudvikling uden regulering, naar alle ansaettelsesforhold er sat til Ingen', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet dagsløn',

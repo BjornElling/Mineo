@@ -11,7 +11,7 @@
  */
 
 import jsPDF from 'jspdf';
-import type { PdfDocumentAdapter, PdfTextOptions } from './pdfDocumentAdapter';
+import type { PdfDocumentAdapter, PdfImageCompression, PdfImageFormat, PdfTextOptions } from './pdfDocumentAdapter';
 import type { PdfFontFamily, PdfFontStyle } from './pdfConfig';
 
 const getPageSize = (doc: jsPDF): { width: number; height: number } => {
@@ -31,6 +31,16 @@ export const createJsPdfAdapter = (doc: jsPDF): PdfDocumentAdapter => {
   return {
     text: (text: string, x: number, y: number, options?: PdfTextOptions) =>
       doc.text(text, x, y, options),
+    addImage: (
+      imageDataUrl: string,
+      format: PdfImageFormat,
+      x: number,
+      y: number,
+      width: number,
+      height: number,
+      alias?: string,
+      compression?: PdfImageCompression
+    ) => doc.addImage(imageDataUrl, format, x, y, width, height, alias, compression),
     setFont: (family: PdfFontFamily, style: PdfFontStyle) => doc.setFont(family, style),
     setFontSize: (size: number) => doc.setFontSize(size),
     setTextColor: (r: number, g: number, b: number) => doc.setTextColor(r, g, b),

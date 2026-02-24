@@ -94,6 +94,13 @@ Hvis siden har en textarea:
 - [ ] **Verificer:** Newline indsættes (ikke fokus-flytning)
 - [ ] **Verificer:** Fokus forbliver i textarea
 
+### Radiobutton (selection undtagelse)
+
+- [ ] Fokusér en ikke-valgt radiobutton i en gruppe
+- [ ] Tryk Enter
+- [ ] **Verificer:** Den fokuserede radiobutton bliver valgt
+- [ ] **Verificer:** Fokus forbliver på radiobutton (ingen fokus-flytning)
+
 ---
 
 ## 4. Museklik (Container må IKKE interceptere)
@@ -237,9 +244,10 @@ Rapportér via projektets aftalte fejlkanal med præcis beskrivelse.
 
 ✅ Tab flytter fokus uden markering (alle felt-typer)
 ✅ Shift+Tab flytter fokus baglæns uden markering
-✅ Enter flytter fokus som Tab (uden markering)
+✅ Enter flytter fokus som Tab (uden markering), undtagen radiofelter
 ✅ Enter på dropdown åbner menu (ikke fokus-flytning)
 ✅ Enter i textarea giver newline (ikke fokus-flytning)
+✅ Enter på radiobutton vælger fokuseret option
 ✅ Museklik giver fokus (Container intercepter IKKE)
 ✅ Cirkulær navigation fungerer (første ↔ sidste)
 ✅ Ingen console errors

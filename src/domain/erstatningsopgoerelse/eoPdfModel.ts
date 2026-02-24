@@ -2052,14 +2052,16 @@ const buildLoenudviklingModelV3 = (
 
 const buildTafIndtaegterModel = (values: ErstatningsopgoerelseValues, ranges: readonly IsoRange[]): TafIndtaegterPdfModel => {
   const indtaegter = buildIncomeForRanges(values, ranges);
-  const entries: Array<{ label: string; amountOre: MoneyOre }> = [];
+  const employerEntries: Array<{ label: string; amountOre: MoneyOre }> = [];
   indtaegter.employers.forEach((entry) => {
     const label = entry.name !== '' ? entry.name : 'Arbejdssted';
-    entries.push({ label, amountOre: toOre(roundKroner(entry.amount)) });
+    employerEntries.push({ label, amountOre: toOre(roundKroner(entry.amount)) });
   });
-  indtaegter.benefits.forEach((entry) => {
-    entries.push({ label: entry.label, amountOre: toOre(roundKroner(entry.amount)) });
-  });
+  const benefitEntries = indtaegter.benefits
+    .map((entry) => ({ label: entry.label, amountOre: toOre(roundKroner(entry.amount)) }))
+    // Stabil, brugervendt rækkefølge i PDF-output uafhængigt af input-rækkefølge.
+    .sort((a, b) => a.label.localeCompare(b.label, 'da-DK', { sensitivity: 'base' }));
+  const entries = [...employerEntries, ...benefitEntries];
 
   // Ingen indtægter i TAF-perioden er gyldigt og opgøres som 0 kr.
   const totalOre = clampMoneyOreToZero(ensureMoneyOre(entries.reduce((acc, entry) => acc + entry.amountOre, 0)));

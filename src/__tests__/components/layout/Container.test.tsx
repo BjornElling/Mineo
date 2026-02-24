@@ -10,8 +10,9 @@ import { StandardGridTable } from '../../../components/tables/StandardGridTable'
  *
  * Disse tests verificerer den normative keyboard-kontrakt:
  * - Tab/Shift+Tab flytter fokus uden at selektere indhold
- * - Enter flytter fokus som Tab (uden selection)
+ * - Enter flytter fokus som Tab (uden selection), undtagen på særlige widgets
  * - Enter på popup-widgets intercepteres IKKE
+ * - Enter på radiobutton vælger den fokuserede radiobutton
  * - Cirkulær navigation fungerer korrekt
  *
  * Se src/contracts/keyboard-navigation.md for fuld kontrakt.
@@ -257,6 +258,40 @@ describe('Container keyboard navigation', () => {
 
     // Fokus skal IKKE flytte til næste felt
     expect(document.activeElement).toBe(combobox);
+  });
+
+  it('Enter på radiobutton vælger fokuseret option og flytter ikke fokus', async () => {
+    const user = userEvent.setup();
+    const onChangeA = vi.fn();
+    const onChangeB = vi.fn();
+
+    render(
+      <Container>
+        <input data-testid="before" type="text" style={{ position: 'fixed' }} />
+        <input data-testid="radio-a" type="radio" name="valg" value="a" style={{ position: 'fixed' }} onChange={onChangeA} />
+        <input data-testid="radio-b" type="radio" name="valg" value="b" style={{ position: 'fixed' }} onChange={onChangeB} />
+        <input data-testid="after" type="text" style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const radioA = screen.getByTestId('radio-a') as HTMLInputElement;
+    const radioB = screen.getByTestId('radio-b') as HTMLInputElement;
+    const after = screen.getByTestId('after') as HTMLInputElement;
+
+    radioB.focus();
+    expect(document.activeElement).toBe(radioB);
+    expect(radioA.checked).toBe(false);
+    expect(radioB.checked).toBe(false);
+
+    await user.keyboard('{Enter}');
+    await waitForSelectionClear();
+
+    expect(radioB.checked).toBe(true);
+    expect(radioA.checked).toBe(false);
+    expect(onChangeB).toHaveBeenCalledTimes(1);
+    expect(onChangeA).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(radioB);
+    expect(document.activeElement).not.toBe(after);
   });
 
   it('Tab fra sidste lukkede combobox går til første felt (cirkulær navigation)', async () => {

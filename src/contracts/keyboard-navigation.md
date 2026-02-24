@@ -53,6 +53,10 @@ Alle tastatur-navigation skal:
    - Enter giver newline som normalt
    - Container intercepter IKKE Enter i textareas
 
+3. **Radiobuttons**
+   - Enter vælger den radiobutton der aktuelt har fokus
+   - Container intercepter Enter-navigation for radiofelter, så fokus ikke flyttes videre
+
 **Teknisk:**
 - Samme implementering som Tab (bruger `focusOnly()`)
 - Tjekker `activeWidgetHasPopup` før intercept
@@ -213,8 +217,9 @@ Container keyboard-navigation testes på to niveauer:
 **Dækker:**
 - Tab flytter fokus fremad (ingen selection)
 - Shift+Tab flytter fokus baglæns (ingen selection)
-- Enter flytter fokus fremad (ingen selection)
+- Enter flytter fokus fremad (ingen selection), undtagen på radiofelter
 - Enter på dropdown intercepteres IKKE
+- Enter på radiobutton vælger fokuseret option
 - Cirkulær navigation fungerer
 
 **Assert:**

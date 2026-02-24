@@ -22,8 +22,21 @@ export type PdfTextOptions = Readonly<{
   angle?: number;
 }>;
 
+export type PdfImageCompression = 'NONE' | 'FAST' | 'MEDIUM' | 'SLOW';
+export type PdfImageFormat = 'PNG' | 'JPEG';
+
 export interface PdfDocumentAdapter {
   text(text: string, x: number, y: number, options?: PdfTextOptions): void;
+  addImage(
+    imageDataUrl: string,
+    format: PdfImageFormat,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    alias?: string,
+    compression?: PdfImageCompression
+  ): void;
 
   setFont(family: PdfFontFamily, style: PdfFontStyle): void;
   setFontSize(size: number): void;

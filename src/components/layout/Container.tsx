@@ -21,6 +21,7 @@ import ScrollToTopButton from '../ui/ScrollToTopButton';
  *   - UNDTAGELSE: Popup-widgets (dropdown/datepicker) – Container intercepter IKKE Enter,
  *     så widget selv kan åbne/lukke ved Enter
  *   - UNDTAGELSE: Textareas – Enter giver newline som normalt
+ *   - UNDTAGELSE: Radiobuttons – Enter vælger den fokuserede radiobutton
  *
  * Museklik
  *   - Container håndterer IKKE museklik
@@ -501,6 +502,14 @@ const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
       // Some controls use Enter internally (select/autocomplete/datepicker-like patterns).
       // Detect widget semantics at the active element or its wrapper (not just the raw input).
       if (activeWidgetHasPopup) return;
+
+      if (activeFocusable instanceof HTMLInputElement && activeFocusable.type === 'radio') {
+        e.preventDefault();
+        // Bevar native aktiveringssemantik: Enter på fokuseret radio svarer til brugeraktiveret click,
+        // hvilket også driver evt. controlled onChange-flow i React.
+        activeFocusable.click();
+        return;
+      }
 
       e.preventDefault();
       moveFocus(e.shiftKey ? -1 : 1);

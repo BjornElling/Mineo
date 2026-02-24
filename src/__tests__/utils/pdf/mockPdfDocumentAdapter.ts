@@ -14,6 +14,7 @@ import type { PdfDocumentAdapter } from '../../../utils/pdf/pdfDocumentAdapter';
  */
 export const createMockPdfDocumentAdapter = (): Mocked<PdfDocumentAdapter> => ({
   text: vi.fn<PdfDocumentAdapter['text']>(),
+  addImage: vi.fn<PdfDocumentAdapter['addImage']>(),
   setFont: vi.fn<PdfDocumentAdapter['setFont']>(),
   setFontSize: vi.fn<PdfDocumentAdapter['setFontSize']>(),
   setTextColor: vi.fn<PdfDocumentAdapter['setTextColor']>(),
