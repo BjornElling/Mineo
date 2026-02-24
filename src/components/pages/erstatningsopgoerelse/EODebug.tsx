@@ -1954,10 +1954,16 @@ const EODebug = () => {
           Number.isFinite(forhoejetGrundloenInput) &&
           forhoejetGrundloenInput > 0
         ) {
+          const loenType = resolveOffentligLoenTypeFromLabel(af.offentligLoenType);
+          const loenEnhed = loenType === 'timeLoen'
+            ? ' / time'
+            : loenType === 'maanedsLoen'
+              ? ' / måned'
+              : '';
           rows.push({
             id: 'regulering.forhoejetGrundloen',
             label: 'Forhøjet grundløn',
-            displayValue: `+ ${formatCurrency(forhoejetGrundloenInput)} kr.`,
+            displayValue: `+ ${formatCurrency(forhoejetGrundloenInput)} kr.${loenEnhed}`,
             status: 'ok',
           });
         }

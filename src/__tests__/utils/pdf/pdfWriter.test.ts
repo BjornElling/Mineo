@@ -188,6 +188,31 @@ describe('pdfWriter writeUnderlinedLabel', () => {
     // Dokumenterer at underline-linjen tegnes (intern mock registrerer line-kald)
     expect(writer.getDoc().line).toHaveBeenCalled();
   });
+
+  it('kollapser eksisterende manuel linjeafstand så der samlet kun er én linje over label', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    writer.setY(100);
+
+    writer.addSpacer(5);
+    writer.writeUnderlinedLabel('Offentlige ydelser', 10);
+
+    // 100 -> +5 spacer +5 label-linje (ingen ekstra top-spacing i label)
+    expect(writer.getY()).toBe(110);
+  });
+
+  it('holder underlinjet label sammen med næste linje ved sideskift', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+
+    // Tæt på bunden så label + næste linje ikke kan være på siden.
+    const nearBottomY = 266;
+    writer.setY(nearBottomY);
+    writer.writeUnderlinedLabel('Offentlige ydelser', 10);
+
+    // Skal være flyttet til ny side i stedet for at splitte.
+    expect(writer.getY()).toBeLessThan(nearBottomY);
+  });
 });
 
 // ─── fitTextToWidth ───────────────────────────────────────────────────────────
