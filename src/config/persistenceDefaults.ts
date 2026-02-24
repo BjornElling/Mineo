@@ -48,7 +48,6 @@ export const buildPersistenceDefaults = (settings?: AppSettings): PersistedSecti
       loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
     },
     renteberegning: {
-      kommentarer: '',
       rentekravRows: [],
     },
     erstatningsopgoerelse: {

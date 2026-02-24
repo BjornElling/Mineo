@@ -46,9 +46,9 @@ describe('buildPersistenceDefaults', () => {
       expect(defaults.renteberegning?.rentekravRows).toEqual([]);
     });
 
-    it('kommentarer = tom streng', () => {
+    it('inkluderer ikke kommentarer-feltet i defaults-output', () => {
       const defaults = buildPersistenceDefaults();
-      expect(defaults.renteberegning?.kommentarer).toBe('');
+      expect(defaults.renteberegning).not.toHaveProperty('kommentarer');
     });
   });
 

@@ -31,6 +31,7 @@ import type { RateEntry } from '../../data/interestRates';
 import { referenceRates, surchargeRates } from '../../data/interestRates';
 import { TODAY } from '../../config/dateRanges';
 import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
+import { RENTE_CALCULATION_PRINCIPLES } from '../../domain/renteberegning/renteCalculationPrinciples';
 
 /**
  * Stamdata til Rente PDF
@@ -53,6 +54,8 @@ type RentePeriod = Readonly<{
 
 const RIGHT_ALIGNED_INSET_RENTEDAGE_MM = 10;
 const RIGHT_ALIGNED_INSET_RENTESATS_MM = 8;
+const COLUMN_INDEX_RENTEDAGE = 1;
+const COLUMN_INDEX_RENTESATS = 2;
 
 const parseAmountInput = (value: string | number): number => {
   if (typeof value === 'number') return value;
@@ -411,10 +414,10 @@ const addSpecificationTable = (
     didParseCell: (data) => {
       const isDataRow = data.row.index >= 1 && data.row.index <= periods.length;
       if (!isDataRow) return;
-      if (data.column.index !== 1 && data.column.index !== 2) return;
+      if (data.column.index !== COLUMN_INDEX_RENTEDAGE && data.column.index !== COLUMN_INDEX_RENTESATS) return;
 
       data.cell.styles.halign = 'right';
-      const rightInset = data.column.index === 1
+      const rightInset = data.column.index === COLUMN_INDEX_RENTEDAGE
         ? RIGHT_ALIGNED_INSET_RENTEDAGE_MM
         : RIGHT_ALIGNED_INSET_RENTESATS_MM;
 
@@ -442,20 +445,16 @@ const addCalculationPrinciples = (
   kommentarer: string | undefined
 ): void => {
   const normalizedKommentarer = typeof kommentarer === 'string' ? kommentarer.trim() : '';
-  const hasKommentarer = normalizedKommentarer !== '';
 
-  if (hasKommentarer) {
+  if (normalizedKommentarer !== '') {
     writer.writeSubheader('Kommentarer', (3 * PDF_BASE_LINE_HEIGHT_MM) + SECTION_SPACER);
     writer.writeWrappedText(normalizedKommentarer);
   }
 
   writer.writeSubheader('Beregningsprincipper', (3 * PDF_BASE_LINE_HEIGHT_MM) + SECTION_SPACER);
-  const principles = [
-    'Rente beregnes i henhold til renteloven.',
-    'Som beregningsprincip anvendes 365 årlige rentedage (366 i skudår).',
-    'Beregningsdatoen indgår i renteberegningen.',
-    'Der beregnes ikke renters rente.',
-  ];
+  // Domænebeslutning: PDF viser de overordnede beregningsprincipper.
+  // Periode- og satsdetaljer dokumenteres i specifikationstabellen.
+  const principles = RENTE_CALCULATION_PRINCIPLES;
 
   for (const principle of principles) {
     writer.writeWrappedText(principle);

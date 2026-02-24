@@ -8,16 +8,13 @@ import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDr
 import StandardLooseTable from './StandardLooseTable';
 import { MIN_CALCULATION_DATE, MAX_CALCULATION_YEAR } from '../../data/interestRates';
 import { formatAsAmount } from '../../utils/formatUtils';
-import { downloadRentePdf } from '../../utils/pdf/pdfService';
 import type { ISODateString } from '../../types/branded';
 import { toISODateString } from '../../types/branded';
 import { minISO } from '../../utils/isoDateHelpers';
 import type { RentekravRow } from '../../schemas/formSchemas';
 import type { RentekravDraftRow } from '../../domain/renteberegning/tableDraftRows';
-import { computeRentekravCalculation, type RentekravCalculationResult } from '../../domain/renteberegning/renteEngine';
+import { computeRentekravCalculation, type RentekravCalculationResult, type ValidatedRentekravContext } from '../../domain/renteberegning/renteEngine';
 import { amountValueToDraftString } from '../../utils/expressionAmount';
-import { useFormPersistence } from '../../contexts/useFormPersistence';
-import { useAppSettings } from '../../contexts/AppSettingsContext';
 
 const ENHED_OPTIONS = [
   { value: 'dage', label: 'Dage' },
@@ -38,7 +35,7 @@ export type BeregnetRenteTableProps = Readonly<{
   onFieldChange: (rowId: string, fieldId: 'belob' | 'renterFra' | 'tillaegstid' | 'enhed') => (value: string) => void;
   onRowBlur: (rowId: string) => void;
   beregningsdato: ISODateString | undefined;
-  kommentarer: string;
+  onDownloadSpecifikation: (validatedCalculation: ValidatedRentekravContext) => Promise<void>;
   onError: (message: string, context: string, error?: unknown) => void;
   beregningsdatoHasError: boolean;
 }>;
@@ -50,15 +47,13 @@ type BeregnetRenteRowProps = Readonly<{
   onFieldChange: (rowId: string, fieldId: 'belob' | 'renterFra' | 'tillaegstid' | 'enhed') => (value: string) => void;
   onRowBlur: (rowId: string) => void;
   beregningsdato: ISODateString | undefined;
-  kommentarer: string;
+  onDownloadSpecifikation: (validatedCalculation: ValidatedRentekravContext) => Promise<void>;
   onError: (message: string, context: string, error?: unknown) => void;
   beregningsdatoHasError: boolean;
 }>;
 
 const BeregnetRenteRow = React.memo(
-  ({ row, committedRow, rowIndex, onFieldChange, onRowBlur, beregningsdato, kommentarer, onError, beregningsdatoHasError }: BeregnetRenteRowProps) => {
-    const { getPersistedData } = useFormPersistence();
-    const { settings } = useAppSettings();
+  ({ row, committedRow, rowIndex, onFieldChange, onRowBlur, beregningsdato, onDownloadSpecifikation, onError, beregningsdatoHasError }: BeregnetRenteRowProps) => {
     const [renterFraHasError, setRenterFraHasError] = React.useState(false);
 
     const dynamicMaxDate = React.useMemo((): ISODateString => {
@@ -175,17 +170,7 @@ const BeregnetRenteRow = React.memo(
                     return;
                   }
 
-                  const result = await downloadRentePdf({
-                    beloeb: validatedCalculation.beloeb,
-                    actualInterestDate: validatedCalculation.actualInterestDate,
-                    beregningsdato: validatedCalculation.beregningsdato,
-                    kommentarer,
-                    settings,
-                    persistedStamdata: getPersistedData('stamdata'),
-                  });
-                  if (!result.success) {
-                    onError(result.error, 'BeregnetRenteRow.PDFGeneration');
-                  }
+                  await onDownloadSpecifikation(validatedCalculation);
                 }}
                 aria-label={`Download PDF-specifikation for række ${rowIndex + 1}`}
                 size="small"
@@ -215,7 +200,7 @@ const BeregnetRenteRow = React.memo(
 BeregnetRenteRow.displayName = 'BeregnetRenteRow';
 
 const BeregnetRenteTable = React.memo(
-  ({ rows, onFieldChange, onRowBlur, beregningsdato, kommentarer, committedById, onError, beregningsdatoHasError }: BeregnetRenteTableProps) => {
+  ({ rows, onFieldChange, onRowBlur, beregningsdato, onDownloadSpecifikation, committedById, onError, beregningsdatoHasError }: BeregnetRenteTableProps) => {
     return (
       <StandardLooseTable
         sx={{
@@ -267,7 +252,7 @@ const BeregnetRenteTable = React.memo(
                 onFieldChange={onFieldChange}
                 onRowBlur={onRowBlur}
                 beregningsdato={beregningsdato}
-                kommentarer={kommentarer}
+                onDownloadSpecifikation={onDownloadSpecifikation}
                 onError={onError}
                 beregningsdatoHasError={beregningsdatoHasError}
               />
@@ -282,4 +267,3 @@ const BeregnetRenteTable = React.memo(
 BeregnetRenteTable.displayName = 'BeregnetRenteTable';
 
 export default BeregnetRenteTable;
-

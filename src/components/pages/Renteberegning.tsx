@@ -6,6 +6,11 @@ import { renteberegningSchema } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import useRentekravRows from '../tables/useRentekravRows';
 import { createEmptyRentekravCommittedRow, createRentekravRowId } from '../../domain/renteberegning/rentekravTableModel';
+import type { ValidatedRentekravContext } from '../../domain/renteberegning/renteEngine';
+import { useFormPersistence } from '../../contexts/useFormPersistence';
+import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { downloadRentePdf } from '../../utils/pdf/pdfService';
+import type { CommitHandler } from '../inputs/fieldEvents';
 import RenteberegningTab from './renteberegning/RenteberegningTab';
 import RentesatserTab from './renteberegning/RentesatserTab';
 
@@ -20,6 +25,8 @@ const TAB_KEYS = {
 } as const;
 
 const Renteberegning = React.memo(() => {
+  const { getPersistedData } = useFormPersistence();
+  const { settings } = useAppSettings();
   const { activeTab, setActiveTab, isAllowedTab } = usePersistedActiveTab<TabKey>({
     pageId: 'renteberegning',
     allowedTabs: [TAB_KEYS.RATES, TAB_KEYS.CALCULATION],
@@ -32,7 +39,7 @@ const Renteberegning = React.memo(() => {
     'renteberegning',
     {
       beregningsdato: undefined,
-      kommentarer: '',
+      kommentarer: undefined,
       rentekravRows: [createEmptyRentekravCommittedRow(createRentekravRowId())],
     }
   );
@@ -45,10 +52,9 @@ const Renteberegning = React.memo(() => {
 
   const rentekrav = useRentekravRows({ values, setValues, resyncToken: formVersion });
 
-  const handleBeregningsdatoChange = React.useCallback(
-    (event: { target: { value: unknown } }) => {
-      const value = event?.target?.value as ISODateString | undefined;
-      setValues((prev) => ({ ...prev, beregningsdato: value }));
+  const handleBeregningsdatoCommit = React.useCallback<CommitHandler<ISODateString | undefined>>(
+    (event) => {
+      setValues((prev) => ({ ...prev, beregningsdato: event.target.value }));
     },
     [setValues]
   );
@@ -61,12 +67,29 @@ const Renteberegning = React.memo(() => {
     [isAllowedTab, setActiveTab]
   );
 
-  const handleKommentarerChange = React.useCallback(
-    (event: { target: { value: unknown } }) => {
-      const value = typeof event?.target?.value === 'string' ? event.target.value : '';
-      setValues((prev) => ({ ...prev, kommentarer: value }));
+  const handleKommentarerChange = React.useCallback<CommitHandler<string>>(
+    (event) => {
+      const normalized = event.target.value.trim();
+      setValues((prev) => ({ ...prev, kommentarer: normalized === '' ? undefined : normalized }));
     },
     [setValues]
+  );
+
+  const handleDownloadRentePdf = React.useCallback(
+    async (validatedCalculation: ValidatedRentekravContext) => {
+      const result = await downloadRentePdf({
+        beloeb: validatedCalculation.beloeb,
+        actualInterestDate: validatedCalculation.actualInterestDate,
+        beregningsdato: validatedCalculation.beregningsdato,
+        kommentarer: values.kommentarer,
+        settings,
+        persistedStamdata: getPersistedData('stamdata'),
+      });
+      if (!result.success) {
+        handleError(result.error, 'Renteberegning.PDFGeneration');
+      }
+    },
+    [getPersistedData, handleError, settings, values.kommentarer]
   );
 
   return (
@@ -127,12 +150,13 @@ const Renteberegning = React.memo(() => {
       ) : (
         <RenteberegningTab
           beregningsdato={values.beregningsdato}
-          kommentarer={values.kommentarer ?? ''}
+          kommentarer={values.kommentarer}
           onKommentarerCommit={handleKommentarerChange}
-          onBeregningsdatoChange={handleBeregningsdatoChange}
+          onBeregningsdatoCommit={handleBeregningsdatoCommit}
           rentekravRows={rentekrav.draftRows}
           onRentekravChange={rentekrav.onFieldChange}
           onRentekravBlur={rentekrav.onFieldBlur}
+          onDownloadSpecifikation={handleDownloadRentePdf}
           committedRentekravById={rentekrav.committedById}
           onError={handleError}
         />

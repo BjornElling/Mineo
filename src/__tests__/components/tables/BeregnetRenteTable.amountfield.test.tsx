@@ -46,6 +46,7 @@ describe('BeregnetRenteTable amount commit wiring', () => {
         onFieldChange={onFieldChange}
         onRowBlur={onRowBlur}
         beregningsdato={undefined}
+        onDownloadSpecifikation={vi.fn(async () => undefined)}
         onError={() => undefined}
         beregningsdatoHasError={false}
       />

@@ -10,16 +10,12 @@ import ContentBox from '../../layout/ContentBox';
 import type { RentekravRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import type { RentekravDraftRow } from '../../../domain/renteberegning/tableDraftRows';
-
-const technicalAssumptions = [
-  'Rente beregnes i henhold til renteloven.',
-  'Som beregningsprincip anvendes 365 årlige rentedage (366 i skudår).',
-  'Beregningsdatoen indgår i renteberegningen.',
-  'Der beregnes ikke renters rente.',
-];
+import type { ValidatedRentekravContext } from '../../../domain/renteberegning/renteEngine';
+import { createCommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
+import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
 
 interface TechnicalAssumptionsListProps {
-  items: string[];
+  items: readonly string[];
 }
 
 const TechnicalAssumptionsList = ({ items }: TechnicalAssumptionsListProps) => (
@@ -34,12 +30,13 @@ const TechnicalAssumptionsList = ({ items }: TechnicalAssumptionsListProps) => (
 
 export interface RenteberegningTabProps {
   beregningsdato: ISODateString | undefined;
-  kommentarer: string;
-  onBeregningsdatoChange: (event: { target: { value: unknown } }) => void;
-  onKommentarerCommit: (event: { target: { value: unknown } }) => void;
+  kommentarer: string | undefined;
+  onBeregningsdatoCommit: CommitHandler<ISODateString | undefined>;
+  onKommentarerCommit: CommitHandler<string>;
   rentekravRows: RentekravDraftRow[];
   onRentekravChange: (rowId: string, fieldId: 'belob' | 'renterFra' | 'tillaegstid' | 'enhed') => (value: string) => void;
   onRentekravBlur: (rowId: string) => void;
+  onDownloadSpecifikation: (validatedCalculation: ValidatedRentekravContext) => Promise<void>;
   committedRentekravById: ReadonlyMap<string, RentekravRow>;
   onError: (message: string, context: string, error?: unknown) => void;
 }
@@ -47,11 +44,12 @@ export interface RenteberegningTabProps {
 const RenteberegningTab = React.memo(({
   beregningsdato,
   kommentarer,
-  onBeregningsdatoChange,
+  onBeregningsdatoCommit,
   onKommentarerCommit,
   rentekravRows,
   onRentekravChange,
   onRentekravBlur,
+  onDownloadSpecifikation,
   committedRentekravById,
   onError,
 }: RenteberegningTabProps) => {
@@ -68,7 +66,7 @@ const RenteberegningTab = React.memo(({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <StyledDateField
                 value={beregningsdato}
-                onCommit={onBeregningsdatoChange}
+                onCommit={onBeregningsdatoCommit}
                 minDate={toISODateString(MIN_CALCULATION_DATE)}
                 maxDate={toISODateString(`${MAX_CALCULATION_YEAR}-12-31`)}
                 onFieldError={(errorMsg) => setBeregningsdatoHasError(!!errorMsg)}
@@ -76,7 +74,7 @@ const RenteberegningTab = React.memo(({
               />
               <InsertTodayDateButton
                 onCommit={(today) => {
-                  onBeregningsdatoChange({ target: { value: today } });
+                  onBeregningsdatoCommit(createCommitEvent(today));
                 }}
                 focusRef={beregningsdatoInputRef}
               />
@@ -92,7 +90,7 @@ const RenteberegningTab = React.memo(({
           onFieldChange={onRentekravChange}
           onRowBlur={onRentekravBlur}
           beregningsdato={beregningsdato}
-          kommentarer={kommentarer}
+          onDownloadSpecifikation={onDownloadSpecifikation}
           committedById={committedRentekravById}
           onError={onError}
           beregningsdatoHasError={beregningsdatoHasError}
@@ -103,7 +101,7 @@ const RenteberegningTab = React.memo(({
         <Typography className="section-header">Kommentarer</Typography>
         <StyledTextField
           width={800}
-          value={kommentarer}
+          value={kommentarer ?? ''}
           onCommit={onKommentarerCommit}
           multiline
           rows={4}
@@ -113,7 +111,7 @@ const RenteberegningTab = React.memo(({
 
       <ContentBox className="content-box">
         <Typography className="section-header">Beregningstekniske forudsætninger</Typography>
-        <TechnicalAssumptionsList items={technicalAssumptions} />
+        <TechnicalAssumptionsList items={RENTE_CALCULATION_PRINCIPLES} />
       </ContentBox>
     </Box>
   );
