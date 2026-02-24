@@ -164,3 +164,54 @@ describe('renderReguleringSection – KRL satstabel-note', () => {
     );
   });
 });
+
+describe('renderReguleringSection – statistik-noter', () => {
+  const makeAnsaettelsesforhold = (grundlag: string) => ({
+    ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+    id: 'af-stat',
+    navnPaaArbejdssted: 'Statistik-sted',
+    loenudviklingBeregningsgrundlag: grundlag as never,
+    loenudviklingStatistikModel: grundlag === 'Statistik' ? 'ILON12-label' : undefined,
+  });
+
+  it('viser ILON12-note når resolveStatistikModelIdFromLabel returnerer "ILON12"', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [makeAnsaettelsesforhold('Statistik')];
+    const { safeAddWrappedText, ctx } = makeContext(eoValues);
+    ctx.resolveStatistikModelIdFromLabel = vi.fn(() => 'ILON12');
+
+    renderReguleringSection(ctx);
+
+    expect(safeAddWrappedText).toHaveBeenCalledWith(expect.stringContaining('ILON12'));
+  });
+
+  it('viser SBLON2-note når resolveStatistikModelIdFromLabel returnerer "SBLON2"', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [makeAnsaettelsesforhold('Statistik')];
+    const { safeAddWrappedText, ctx } = makeContext(eoValues);
+    ctx.resolveStatistikModelIdFromLabel = vi.fn(() => 'SBLON2');
+
+    renderReguleringSection(ctx);
+
+    expect(safeAddWrappedText).toHaveBeenCalledWith(expect.stringContaining('SBLON2'));
+  });
+
+  it('viser ASL-note når statistikLabel starter med "ASL-"', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    const af = makeAnsaettelsesforhold('Statistik');
+    af.loenudviklingStatistikModel = 'ASL-2024';
+    eoValues.loenindkomstAnsaettelsesforhold = [af];
+    const { safeAddWrappedText, ctx } = makeContext(eoValues);
+    // resolveStatistikModelIdFromLabel returnerer undefined → kode tjekker label.startsWith('ASL-')
+    ctx.resolveStatistikModelIdFromLabel = vi.fn(() => undefined);
+
+    renderReguleringSection(ctx);
+
+    expect(safeAddWrappedText).toHaveBeenCalledWith(
+      expect.stringContaining('ASL-årslønsmaksimum')
+    );
+  });
+});
