@@ -38,6 +38,7 @@ export type BeregnetRenteTableProps = Readonly<{
   onFieldChange: (rowId: string, fieldId: 'belob' | 'renterFra' | 'tillaegstid' | 'enhed') => (value: string) => void;
   onRowBlur: (rowId: string) => void;
   beregningsdato: ISODateString | undefined;
+  kommentarer: string;
   onError: (message: string, context: string, error?: unknown) => void;
   beregningsdatoHasError: boolean;
 }>;
@@ -49,12 +50,13 @@ type BeregnetRenteRowProps = Readonly<{
   onFieldChange: (rowId: string, fieldId: 'belob' | 'renterFra' | 'tillaegstid' | 'enhed') => (value: string) => void;
   onRowBlur: (rowId: string) => void;
   beregningsdato: ISODateString | undefined;
+  kommentarer: string;
   onError: (message: string, context: string, error?: unknown) => void;
   beregningsdatoHasError: boolean;
 }>;
 
 const BeregnetRenteRow = React.memo(
-  ({ row, committedRow, rowIndex, onFieldChange, onRowBlur, beregningsdato, onError, beregningsdatoHasError }: BeregnetRenteRowProps) => {
+  ({ row, committedRow, rowIndex, onFieldChange, onRowBlur, beregningsdato, kommentarer, onError, beregningsdatoHasError }: BeregnetRenteRowProps) => {
     const { getPersistedData } = useFormPersistence();
     const { settings } = useAppSettings();
     const [renterFraHasError, setRenterFraHasError] = React.useState(false);
@@ -177,6 +179,7 @@ const BeregnetRenteRow = React.memo(
                     beloeb: validatedCalculation.beloeb,
                     actualInterestDate: validatedCalculation.actualInterestDate,
                     beregningsdato: validatedCalculation.beregningsdato,
+                    kommentarer,
                     settings,
                     persistedStamdata: getPersistedData('stamdata'),
                   });
@@ -212,7 +215,7 @@ const BeregnetRenteRow = React.memo(
 BeregnetRenteRow.displayName = 'BeregnetRenteRow';
 
 const BeregnetRenteTable = React.memo(
-  ({ rows, onFieldChange, onRowBlur, beregningsdato, committedById, onError, beregningsdatoHasError }: BeregnetRenteTableProps) => {
+  ({ rows, onFieldChange, onRowBlur, beregningsdato, kommentarer, committedById, onError, beregningsdatoHasError }: BeregnetRenteTableProps) => {
     return (
       <StandardLooseTable
         sx={{
@@ -264,6 +267,7 @@ const BeregnetRenteTable = React.memo(
                 onFieldChange={onFieldChange}
                 onRowBlur={onRowBlur}
                 beregningsdato={beregningsdato}
+                kommentarer={kommentarer}
                 onError={onError}
                 beregningsdatoHasError={beregningsdatoHasError}
               />
@@ -278,5 +282,4 @@ const BeregnetRenteTable = React.memo(
 BeregnetRenteTable.displayName = 'BeregnetRenteTable';
 
 export default BeregnetRenteTable;
-
 

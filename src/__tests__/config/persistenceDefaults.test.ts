@@ -45,6 +45,11 @@ describe('buildPersistenceDefaults', () => {
       const defaults = buildPersistenceDefaults();
       expect(defaults.renteberegning?.rentekravRows).toEqual([]);
     });
+
+    it('kommentarer = tom streng', () => {
+      const defaults = buildPersistenceDefaults();
+      expect(defaults.renteberegning?.kommentarer).toBe('');
+    });
   });
 
   describe('erstatningsopgoerelse defaults', () => {

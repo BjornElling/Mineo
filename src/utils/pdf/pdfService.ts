@@ -201,15 +201,16 @@ export const downloadRentePdf = async (params: Readonly<{
   beloeb: number;
   actualInterestDate: string;
   beregningsdato: string;
+  kommentarer?: string;
   settings: AppSettings;
   persistedStamdata: unknown;
 }>): Promise<PdfDownloadResult> => {
-  const { beloeb, actualInterestDate, beregningsdato, settings, persistedStamdata } = params;
+  const { beloeb, actualInterestDate, beregningsdato, kommentarer, settings, persistedStamdata } = params;
   const common = buildCommonPdfContext(settings, 'renteberegning', persistedStamdata);
 
   try {
     const { generateRentePdf } = await loadRentePdfModule();
-    generateRentePdf(beloeb, actualInterestDate, beregningsdato, common);
+    generateRentePdf(beloeb, actualInterestDate, beregningsdato, { ...common, kommentarer });
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
     return createPdfDownloadFailure('Kunne ikke generere rente-PDF', 'pdfService.downloadRentePdf', error);

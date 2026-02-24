@@ -421,6 +421,7 @@ const stripTopLevelKey = (value: unknown, keyToStrip: string): unknown => {
 
 const renteberegningInnerSchema = z.object({
   beregningsdato: optionalIsoDateString,
+  kommentarer: optionalString,
   rentekravRows: z.array(rentekravRowSchema),
 }).strict();
 

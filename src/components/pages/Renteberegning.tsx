@@ -32,6 +32,7 @@ const Renteberegning = React.memo(() => {
     'renteberegning',
     {
       beregningsdato: undefined,
+      kommentarer: '',
       rentekravRows: [createEmptyRentekravCommittedRow(createRentekravRowId())],
     }
   );
@@ -58,6 +59,14 @@ const Renteberegning = React.memo(() => {
       setActiveTab(value);
     },
     [isAllowedTab, setActiveTab]
+  );
+
+  const handleKommentarerChange = React.useCallback(
+    (event: { target: { value: unknown } }) => {
+      const value = typeof event?.target?.value === 'string' ? event.target.value : '';
+      setValues((prev) => ({ ...prev, kommentarer: value }));
+    },
+    [setValues]
   );
 
   return (
@@ -118,6 +127,8 @@ const Renteberegning = React.memo(() => {
       ) : (
         <RenteberegningTab
           beregningsdato={values.beregningsdato}
+          kommentarer={values.kommentarer ?? ''}
+          onKommentarerCommit={handleKommentarerChange}
           onBeregningsdatoChange={handleBeregningsdatoChange}
           rentekravRows={rentekrav.draftRows}
           onRentekravChange={rentekrav.onFieldChange}

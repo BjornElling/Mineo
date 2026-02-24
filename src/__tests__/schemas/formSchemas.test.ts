@@ -326,6 +326,14 @@ describe('renteberegningSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('kommentarer normaliserer tom streng til undefined', () => {
+    const result = renteberegningSchema.safeParse({ rentekravRows: [], kommentarer: '   ' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.kommentarer).toBeUndefined();
+    }
+  });
+
   it('stripTopLevelKey: activeTab strippes fra input', () => {
     const result = renteberegningSchema.safeParse({
       activeTab: 'some-tab',

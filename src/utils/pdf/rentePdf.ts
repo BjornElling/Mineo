@@ -35,7 +35,10 @@ import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
 /**
  * Stamdata til Rente PDF
  */
-type RentePdfOptions = PdfCommonOptions & Readonly<{ stamdata?: PdfStamdata | null }>;
+type RentePdfOptions = PdfCommonOptions & Readonly<{
+  stamdata?: PdfStamdata | null;
+  kommentarer?: string;
+}>;
 
 type RentePeriod = Readonly<{
   startDate: Date;
@@ -47,6 +50,9 @@ type RentePeriod = Readonly<{
   days: number;
   interest: number;
 }>;
+
+const RIGHT_ALIGNED_INSET_RENTEDAGE_MM = 10;
+const RIGHT_ALIGNED_INSET_RENTESATS_MM = 8;
 
 const parseAmountInput = (value: string | number): number => {
   if (typeof value === 'number') return value;
@@ -209,7 +215,7 @@ export const generateRentePdf = (
   calculationDate: string,
   options: RentePdfOptions = {}
 ): void => {
-  const { visBrevhoved = false, stamdata = null } = options;
+  const { visBrevhoved = false, stamdata = null, kommentarer } = options;
   // Generer detaljeret specifikation
   const periods = generateDetailedSpecification(amount, interestStartDate, calculationDate);
 
@@ -264,7 +270,7 @@ export const generateRentePdf = (
   addSpecificationTable(writer, periods, endDate);
 
   // Tilføj beregningsprincipper
-  addCalculationPrinciples(writer, startDate);
+  addCalculationPrinciples(writer, kommentarer);
 
   // Tilføj footer med versionsnummer
   writer.addFooter();
@@ -402,9 +408,30 @@ const addSpecificationTable = (
       3: { cellWidth: 35 },
     },
     transparentRowIndices: [tableData.length - 2, tableData.length - 1],
+    didParseCell: (data) => {
+      const isDataRow = data.row.index >= 1 && data.row.index <= periods.length;
+      if (!isDataRow) return;
+      if (data.column.index !== 1 && data.column.index !== 2) return;
+
+      data.cell.styles.halign = 'right';
+      const rightInset = data.column.index === 1
+        ? RIGHT_ALIGNED_INSET_RENTEDAGE_MM
+        : RIGHT_ALIGNED_INSET_RENTESATS_MM;
+
+      data.cell.styles.cellPadding = {
+        top: 1.5,
+        bottom: 1.5,
+        left: 1.5,
+        right: rightInset,
+      };
+    },
   });
 
-  writer.setY(resolvePdfSectionEndY(finalY, startY));
+  writer.setY(
+    resolvePdfSectionEndY(finalY, startY, {
+      spacer: SECTION_SPACER - PDF_BASE_LINE_HEIGHT_MM,
+    })
+  );
 };
 
 /**
@@ -412,26 +439,22 @@ const addSpecificationTable = (
  */
 const addCalculationPrinciples = (
   writer: PdfWriter,
-  startDate: Date
+  kommentarer: string | undefined
 ): void => {
-  writer.writeSubheader('Beregningsprincipper', (3 * PDF_BASE_LINE_HEIGHT_MM) + SECTION_SPACER);
-  // Bestem forfaldsdato-tekst og tillægssats
-  const surchargeChangeDate = createDate(2013, 2, 1); // 1. marts 2013
-  let forfaldText: string;
-  let surchargeText: string;
+  const normalizedKommentarer = typeof kommentarer === 'string' ? kommentarer.trim() : '';
+  const hasKommentarer = normalizedKommentarer !== '';
 
-  if (startDate < surchargeChangeDate) {
-    forfaldText = 'før 1. marts 2013';
-    surchargeText = '7 %';
-  } else {
-    forfaldText = 'fra 1. marts 2013';
-    surchargeText = '8 %';
+  if (hasKommentarer) {
+    writer.writeSubheader('Kommentarer', (3 * PDF_BASE_LINE_HEIGHT_MM) + SECTION_SPACER);
+    writer.writeWrappedText(normalizedKommentarer);
   }
 
+  writer.writeSubheader('Beregningsprincipper', (3 * PDF_BASE_LINE_HEIGHT_MM) + SECTION_SPACER);
   const principles = [
-    '• Beregning sker på baggrund af 365 årlige rentedage (366 i skudår).',
-    '• Forfaldsdato er ' + forfaldText + '. Rentesats udgør derfor nationalbankens udlånsrente tillagt ' + surchargeText + '.',
-    '• Der beregnes ikke renters rente.',
+    'Rente beregnes i henhold til renteloven.',
+    'Som beregningsprincip anvendes 365 årlige rentedage (366 i skudår).',
+    'Beregningsdatoen indgår i renteberegningen.',
+    'Der beregnes ikke renters rente.',
   ];
 
   for (const principle of principles) {

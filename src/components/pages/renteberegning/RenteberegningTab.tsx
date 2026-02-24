@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { MIN_CALCULATION_DATE, MAX_CALCULATION_YEAR } from '../../../data/interestRates';
 import StyledDateField from '../../inputs/StyledDateField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
+import StyledTextField from '../../inputs/StyledTextField';
 import { toISODateString } from '../../../types/branded';
 import BeregnetRenteTable from '../../tables/BeregnetRenteTable';
 import ContentBox from '../../layout/ContentBox';
@@ -11,10 +12,10 @@ import type { ISODateString } from '../../../types/branded';
 import type { RentekravDraftRow } from '../../../domain/renteberegning/tableDraftRows';
 
 const technicalAssumptions = [
-  'Rente beregnes i henhold til rentelovens § 5',
-  'Som beregningsprincip anvendes 365 årlige rentedage (366 i skudår)',
-  'Beregningsdatoen indgår i renteberegningen',
-  'Der beregnes ikke renters rente',
+  'Rente beregnes i henhold til renteloven.',
+  'Som beregningsprincip anvendes 365 årlige rentedage (366 i skudår).',
+  'Beregningsdatoen indgår i renteberegningen.',
+  'Der beregnes ikke renters rente.',
 ];
 
 interface TechnicalAssumptionsListProps {
@@ -33,7 +34,9 @@ const TechnicalAssumptionsList = ({ items }: TechnicalAssumptionsListProps) => (
 
 export interface RenteberegningTabProps {
   beregningsdato: ISODateString | undefined;
+  kommentarer: string;
   onBeregningsdatoChange: (event: { target: { value: unknown } }) => void;
+  onKommentarerCommit: (event: { target: { value: unknown } }) => void;
   rentekravRows: RentekravDraftRow[];
   onRentekravChange: (rowId: string, fieldId: 'belob' | 'renterFra' | 'tillaegstid' | 'enhed') => (value: string) => void;
   onRentekravBlur: (rowId: string) => void;
@@ -43,7 +46,9 @@ export interface RenteberegningTabProps {
 
 const RenteberegningTab = React.memo(({
   beregningsdato,
+  kommentarer,
   onBeregningsdatoChange,
+  onKommentarerCommit,
   rentekravRows,
   onRentekravChange,
   onRentekravBlur,
@@ -84,9 +89,22 @@ const RenteberegningTab = React.memo(({
           onFieldChange={onRentekravChange}
           onRowBlur={onRentekravBlur}
           beregningsdato={beregningsdato}
+          kommentarer={kommentarer}
           committedById={committedRentekravById}
           onError={onError}
           beregningsdatoHasError={beregningsdatoHasError}
+        />
+      </ContentBox>
+
+      <ContentBox className="content-box">
+        <Typography className="section-header">Kommentarer</Typography>
+        <StyledTextField
+          width={800}
+          value={kommentarer}
+          onCommit={onKommentarerCommit}
+          multiline
+          rows={4}
+          placeholder="Indtast eventuelle kommentarer her..."
         />
       </ContentBox>
 
