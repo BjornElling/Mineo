@@ -718,6 +718,7 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
           offentligLoenGruppe: 2,
           feriePct: 17.68,
           loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          fuldLoenUnderFerie: 'Ja',
           harAnciennitetstillaegEfterSkadesdatoen: true,
           anciennitetstillaegDato: iso('2024-01-15'),
           anciennitetstillaegSatsAngivesPer: 'Måned',
@@ -732,6 +733,74 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     expect(loenudvikling?.loenudviklingTotal.status).toBe('ok');
     assertCoveragePerRange(loenudvikling?.beregnedeSegmenter ?? [], [{ fra: '2024-05-01', til: '2024-06-30' }]);
     expect((loenudvikling?.beregnedeSegmenter ?? [])[0]?.fra).toBe('2024-05-01');
+  });
+
+  it('bruger samme lønudviklingsresultat for angivet månedsløn uanset persisted anciennitet sats-per (resolver-immunitet)', () => {
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const baseEoLoenudvikling = {
+      ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Overenskomst' as const,
+      overenskomstId: 'laerer-overenskomsten',
+      offentligLoenType: 'Månedsløn' as const,
+      offentligLoenTrin: 31,
+      offentligLoenGruppe: 2,
+      feriePct: 17.68,
+      loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+      harAnciennitetstillaegEfterSkadesdatoen: true,
+      anciennitetstillaegDato: iso('2024-03-01'),
+      anciennitetstillaegSats: asAmountValue(1200),
+    };
+    const basePatch: Partial<ErstatningsopgoerelseValues> = {
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(32000),
+      tafPerioder: [{ id: 'taf-1', fra: iso('2024-05-01'), til: iso('2024-12-31'), loseFeriedage: undefined }],
+    };
+
+    const withMonthPer = makeValues({
+      ...basePatch,
+      eoAngivetLoenLoenudvikling: {
+        ...baseEoLoenudvikling,
+        anciennitetstillaegSatsAngivesPer: 'Måned',
+      },
+    });
+    const withTimePer = makeValues({
+      ...basePatch,
+      eoAngivetLoenLoenudvikling: {
+        ...baseEoLoenudvikling,
+        anciennitetstillaegSatsAngivesPer: 'Time',
+      },
+    });
+
+    const monthPerModel = buildErstatningsopgoerelsePdfModel(stamdata, withMonthPer, { dagsDatoISO: iso('2026-02-19') });
+    const timePerModel = buildErstatningsopgoerelsePdfModel(stamdata, withTimePer, { dagsDatoISO: iso('2026-02-19') });
+    const monthPerLoenudvikling = monthPerModel.tabtArbejdsfortjeneste.loenudvikling;
+    const timePerLoenudvikling = timePerModel.tabtArbejdsfortjeneste.loenudvikling;
+
+    if (!monthPerLoenudvikling || monthPerLoenudvikling.loenudviklingTotal.status !== 'ok') {
+      throw new Error('Forventet ok lønudvikling for måned-varianten');
+    }
+    if (!timePerLoenudvikling || timePerLoenudvikling.loenudviklingTotal.status !== 'ok') {
+      throw new Error('Forventet ok lønudvikling for time-varianten');
+    }
+
+    expect(timePerLoenudvikling.loenudviklingTotal.value).toBe(monthPerLoenudvikling.loenudviklingTotal.value);
+    expect(
+      timePerLoenudvikling.beregnedeSegmenter.map((segment) => ({
+        kind: segment.kind,
+        fra: segment.fra,
+        til: segment.til,
+        deltaPct: segment.deltaPct,
+        amountOre: segment.amountOre,
+      }))
+    ).toEqual(
+      monthPerLoenudvikling.beregnedeSegmenter.map((segment) => ({
+        kind: segment.kind,
+        fra: segment.fra,
+        til: segment.til,
+        deltaPct: segment.deltaPct,
+        amountOre: segment.amountOre,
+      }))
+    );
   });
 
   it('beregner manuel regulering med flere TAF-perioder', () => {

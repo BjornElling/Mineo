@@ -1,10 +1,15 @@
 import React from 'react';
 import {
   Box,
+  Button,
+  IconButton,
+  Tooltip,
   Typography,
   MenuItem,
 } from '@mui/material';
 import Download from '@mui/icons-material/Download';
+import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
 import StyledTextField from '../../inputs/StyledTextField';
 import StyledDateField from '../../inputs/StyledDateField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
@@ -59,15 +64,18 @@ import { amountValueToNumber } from '../../../utils/expressionAmount';
 import {
   getAlleArbejdsgiverOrg,
   getAlleLoenmodtagerOrg,
+  getOffentligOverenskomstTypeById,
   getOverenskomsterByOrg,
   getOverenskomstMetaById,
   getReguleringsDatoIntervalForOverenskomst,
   isOffentligOverenskomstId,
 } from '../../../data/overenskomstRates';
+import { getOffentligLoenTabelForDato } from '../../../data/offentligLoenLookup';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../../data/statistiskLoenudviklingRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '../../../utils/pdf/pdfService';
+import { formatCurrency } from '../../../utils/formatUtils';
 
 type JaNej = 'Ja' | 'Nej';
 
@@ -84,6 +92,19 @@ type AmountLikeKeys = {
 }[keyof ErstatningsopgoerelseValues];
 
 type ReguleringsDatoInterval = Readonly<{ fraDato: string; tilDato: string }>;
+type LoentrinFinderErrors = Readonly<{ beloeb?: string; dato?: string }>;
+type LoentrinFinderResult = Readonly<{
+  loentrin: number | '55+';
+  gruppe: 0 | 1 | 2 | 3 | 4;
+  beloeb: number;
+  diff: number;
+}>;
+const LOENGRUPPER = [0, 1, 2, 3, 4] as const;
+
+const parseLoentrinSortValue = (loentrin: number | '55+'): number => (loentrin === '55+' ? 56 : loentrin);
+const hasExactDisplayedAmountMatch = (inputAmount: number, resultAmount: number): boolean => {
+  return formatCurrency(inputAmount) === formatCurrency(resultAmount);
+};
 
 const normalizeOptionalFreeText = (value: string | undefined): string | undefined => {
   const asString = typeof value === 'string' ? value : '';
@@ -229,7 +250,17 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   const handleBeregnesUdFraChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = beregningsmetodeEnum.safeParse(event.target.value);
     if (!parsed.success) return;
-    setValues((prev) => ({ ...prev, beregnesUdFra: parsed.data }));
+    setValues((prev) => ({
+      ...prev,
+      beregnesUdFra: parsed.data,
+      eoAngivetLoenLoenudvikling: {
+        ...prev.eoAngivetLoenLoenudvikling,
+        anciennitetstillaegSatsAngivesPer:
+          parsed.data === 'Angivet dagsløn'
+            ? 'Time'
+            : 'Måned',
+      },
+    }));
   }, [setValues]);
 
   const handleAfsluttesMedChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
@@ -241,6 +272,21 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   const visLoenudviklingFraEO =
     values.beregnesUdFra === 'Angivet månedsløn' || values.beregnesUdFra === 'Angivet dagsløn';
   const eoLoenudvikling = values.eoAngivetLoenLoenudvikling;
+  const [loentrinFinderOpen, setLoentrinFinderOpen] = React.useState(false);
+  const [loentrinFinderAnsaettelse, setLoentrinFinderAnsaettelse] = React.useState<'Månedsløn' | 'Timeløn'>('Månedsløn');
+  const [loentrinFinderBeloeb, setLoentrinFinderBeloeb] = React.useState<EOAngivetLoenLoenudvikling['offentligLoenEkstraGrundloen']>(undefined);
+  const [loentrinFinderDato, setLoentrinFinderDato] = React.useState<ISODateString | undefined>(undefined);
+  const [loentrinFinderErrors, setLoentrinFinderErrors] = React.useState<LoentrinFinderErrors>({});
+  const [loentrinFinderAmountFieldError, setLoentrinFinderAmountFieldError] = React.useState<string | undefined>(undefined);
+  const [loentrinFinderDateFieldError, setLoentrinFinderDateFieldError] = React.useState<string | undefined>(undefined);
+  const [loentrinFinderResults, setLoentrinFinderResults] = React.useState<ReadonlyArray<LoentrinFinderResult>>([]);
+  const [loentrinFinderButtonShake, setLoentrinFinderButtonShake] = React.useState(false);
+  const loentrinFinderDialogRef = React.useRef<HTMLDivElement>(null);
+  const loentrinFinderAnsaettelseRef = React.useRef<HTMLDivElement>(null);
+  const loentrinFinderBeloebRef = React.useRef<HTMLDivElement>(null);
+  const loentrinFinderDatoRef = React.useRef<HTMLDivElement>(null);
+  const loentrinFinderBeregnRef = React.useRef<HTMLButtonElement>(null);
+  const loentrinFinderHeadingId = React.useId();
 
   const updateEoLoenudvikling = React.useCallback(
     (updater: (prev: EOAngivetLoenLoenudvikling) => EOAngivetLoenLoenudvikling) => {
@@ -248,6 +294,283 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     },
     [setValues]
   );
+
+  const resetLoentrinFinderState = React.useCallback(() => {
+    setLoentrinFinderBeloeb(undefined);
+    setLoentrinFinderDato(undefined);
+    setLoentrinFinderErrors({});
+    setLoentrinFinderAmountFieldError(undefined);
+    setLoentrinFinderDateFieldError(undefined);
+    setLoentrinFinderResults([]);
+    setLoentrinFinderButtonShake(false);
+  }, []);
+
+  const openLoentrinFinder = React.useCallback(() => {
+    resetLoentrinFinderState();
+    setLoentrinFinderAnsaettelse(eoLoenudvikling.offentligLoenType ?? 'Månedsløn');
+    setLoentrinFinderOpen(true);
+  }, [eoLoenudvikling.offentligLoenType, resetLoentrinFinderState]);
+
+  const closeLoentrinFinder = React.useCallback(() => {
+    setLoentrinFinderOpen(false);
+    resetLoentrinFinderState();
+  }, [resetLoentrinFinderState]);
+
+  const triggerLoentrinFinderButtonError = React.useCallback(() => {
+    setLoentrinFinderButtonShake(true);
+    setTimeout(() => setLoentrinFinderButtonShake(false), 500);
+  }, []);
+
+  const validateLoentrinFinderInput = React.useCallback((): {
+    errors: LoentrinFinderErrors;
+    beloebNumber: number | undefined;
+  } => {
+    const errors: { beloeb?: string; dato?: string } = {};
+    const beloebNumber = amountValueToNumber(loentrinFinderBeloeb);
+
+    if (loentrinFinderAmountFieldError) {
+      errors.beloeb = loentrinFinderAmountFieldError;
+    } else if (beloebNumber === undefined) {
+      errors.beloeb = 'Beløb skal udfyldes';
+    } else if (beloebNumber <= 0) {
+      errors.beloeb = 'Beløb skal være større end 0';
+    }
+
+    if (loentrinFinderDateFieldError) {
+      errors.dato = loentrinFinderDateFieldError;
+    } else if (!loentrinFinderDato) {
+      errors.dato = 'Dato skal udfyldes';
+    }
+
+    return { errors, beloebNumber };
+  }, [
+    loentrinFinderAmountFieldError,
+    loentrinFinderBeloeb,
+    loentrinFinderDateFieldError,
+    loentrinFinderDato,
+  ]);
+
+  const handleLoentrinFinderCalculate = React.useCallback(() => {
+    const overenskomstId = eoLoenudvikling.overenskomstId ?? '';
+    const offentligOverenskomstType = getOffentligOverenskomstTypeById(overenskomstId);
+    const overenskomstLabel = getOverenskomstMetaById(overenskomstId)?.navn ?? overenskomstId;
+
+    if (!offentligOverenskomstType) {
+      setLoentrinFinderErrors({ dato: 'Offentlig overenskomst er ikke valgt' });
+      setLoentrinFinderResults([]);
+      triggerLoentrinFinderButtonError();
+      return;
+    }
+
+    const validation = validateLoentrinFinderInput();
+    const hasInputErrors = Boolean(validation.errors.beloeb) || Boolean(validation.errors.dato);
+    if (hasInputErrors || validation.beloebNumber === undefined || !loentrinFinderDato) {
+      setLoentrinFinderErrors(validation.errors);
+      setLoentrinFinderResults([]);
+      triggerLoentrinFinderButtonError();
+      return;
+    }
+
+    const parsedDate = parseISODate(loentrinFinderDato);
+    if (!parsedDate) {
+      setLoentrinFinderErrors((prev) => ({ ...prev, dato: 'Dato skal udfyldes' }));
+      setLoentrinFinderResults([]);
+      triggerLoentrinFinderButtonError();
+      return;
+    }
+
+    const danishDate = formatDanishDate(parsedDate);
+    const loenTabel = getOffentligLoenTabelForDato(offentligOverenskomstType, danishDate);
+    if (!loenTabel) {
+      setLoentrinFinderErrors((prev) => ({
+        ...prev,
+        dato: `Der findes ingen satser for ${overenskomstLabel} på den valgte dato`,
+      }));
+      setLoentrinFinderResults([]);
+      triggerLoentrinFinderButtonError();
+      return;
+    }
+
+    const results: LoentrinFinderResult[] = [];
+    for (const entry of loenTabel.entries) {
+      for (const gruppe of LOENGRUPPER) {
+        const beloeb =
+          loentrinFinderAnsaettelse === 'Timeløn'
+            ? entry.timeLoen[gruppe]
+            : entry.maanedsLoen[gruppe];
+        results.push({
+          loentrin: entry.loentrin,
+          gruppe,
+          beloeb,
+          diff: Math.abs(beloeb - validation.beloebNumber),
+        });
+      }
+    }
+
+    results.sort((a, b) => {
+      if (a.diff !== b.diff) return a.diff - b.diff;
+      const trinDiff = parseLoentrinSortValue(a.loentrin) - parseLoentrinSortValue(b.loentrin);
+      if (trinDiff !== 0) return trinDiff;
+      return a.gruppe - b.gruppe;
+    });
+
+    setLoentrinFinderErrors({});
+    setLoentrinFinderResults(results.slice(0, 5));
+  }, [
+    eoLoenudvikling.overenskomstId,
+    loentrinFinderAnsaettelse,
+    loentrinFinderDato,
+    triggerLoentrinFinderButtonError,
+    validateLoentrinFinderInput,
+  ]);
+
+  const loentrinFinderInputAmountNumber = React.useMemo(
+    () => amountValueToNumber(loentrinFinderBeloeb),
+    [loentrinFinderBeloeb]
+  );
+
+  React.useEffect(() => {
+    if (!loentrinFinderOpen) return;
+    const input = loentrinFinderAnsaettelseRef.current?.querySelector<HTMLInputElement>('input');
+    input?.focus();
+  }, [loentrinFinderOpen]);
+
+  const getLoentrinFinderTabOrder = React.useCallback((): HTMLElement[] => {
+    const ansaettelseInput = loentrinFinderAnsaettelseRef.current?.querySelector<HTMLInputElement>('input') ?? null;
+    const beloebInput = loentrinFinderBeloebRef.current?.querySelector<HTMLInputElement>('input') ?? null;
+    const datoInput = loentrinFinderDatoRef.current?.querySelector<HTMLInputElement>('input') ?? null;
+    const beregnButton = loentrinFinderBeregnRef.current;
+    const orderedElements: Array<HTMLElement | null> = [ansaettelseInput, beloebInput, datoInput, beregnButton];
+    return orderedElements.filter((item): item is HTMLElement => item !== null);
+  }, []);
+
+  React.useEffect(() => {
+    if (!loentrinFinderOpen) return;
+
+    const handleDocumentKeyDown = (event: KeyboardEvent) => {
+      const dialog = loentrinFinderDialogRef.current;
+      const activeElement = document.activeElement as HTMLElement | null;
+      const isInsideOverlay = Boolean(dialog && activeElement && dialog.contains(activeElement));
+
+      if (!isInsideOverlay) return;
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeLoentrinFinder();
+        return;
+      }
+
+      if (event.key === 'Enter') {
+        const isDropdownCombobox = activeElement?.getAttribute('role') === 'combobox';
+        if (isDropdownCombobox) {
+          // StyledDropdown håndterer Enter selv (åbn/vælg). Undlad at overskrive den adfærd.
+          return;
+        }
+
+        const isOpenTextEditor =
+          activeElement instanceof HTMLInputElement &&
+          !activeElement.readOnly;
+        if (isOpenTextEditor) {
+          // Overlay-regel: Enter i åben editor skal afslutte redigering (commit/close via blur),
+          // men fokus skal blive i samme felt.
+          const input = activeElement;
+          event.preventDefault();
+          event.stopPropagation();
+          input.blur();
+          requestAnimationFrame(() => {
+            if (!loentrinFinderOpen) return;
+            input.focus();
+          });
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (activeElement === loentrinFinderBeregnRef.current) {
+          handleLoentrinFinderCalculate();
+        }
+        return;
+      }
+
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        const tabOrder = getLoentrinFinderTabOrder();
+        if (tabOrder.length === 0) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+
+        const isDropdownCombobox = activeElement?.getAttribute('role') === 'combobox';
+        const isDropdownExpanded = activeElement?.getAttribute('aria-expanded') === 'true';
+        if (isDropdownCombobox && isDropdownExpanded) {
+          // Når dropdown-menuen er åben, skal pil-op/pil-ned navigere i menuen.
+          return;
+        }
+
+        if (activeElement instanceof HTMLInputElement && !activeElement.readOnly) {
+          // Når editor er åben, skal piletaster ikke kapres af overlay-navigationen.
+          return;
+        }
+
+        const activeIndex = tabOrder.findIndex((element) => element === activeElement);
+        event.preventDefault();
+        event.stopPropagation();
+
+        const step = event.key === 'ArrowDown' ? 1 : -1;
+        if (activeIndex === -1) {
+          tabOrder[0].focus();
+          return;
+        }
+
+        const nextIndex = (activeIndex + step + tabOrder.length) % tabOrder.length;
+        tabOrder[nextIndex].focus();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      const tabOrder = getLoentrinFinderTabOrder();
+      if (tabOrder.length === 0) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
+      const first = tabOrder[0];
+      const last = tabOrder[tabOrder.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      const activeIndex = tabOrder.findIndex((element) => element === active);
+
+      // Intentionally hardcoded tab sequence:
+      // Ansættelse -> Beløb -> Dato -> Beregn.
+      // We force this order because generic focus-trap behavior proved unstable with StyledDropdown popover focus,
+      // causing focus leaks to the underlying page. This explicit sequence is deliberate and audited UX behavior.
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (event.shiftKey) {
+        if (activeIndex === -1 || active === first) {
+          last.focus();
+          return;
+        }
+        tabOrder[activeIndex - 1].focus();
+        return;
+      }
+
+      if (activeIndex === -1 || active === last) {
+        first.focus();
+        return;
+      }
+      tabOrder[activeIndex + 1].focus();
+    };
+
+    document.addEventListener('keydown', handleDocumentKeyDown, true);
+    return () => {
+      document.removeEventListener('keydown', handleDocumentKeyDown, true);
+    };
+  }, [closeLoentrinFinder, getLoentrinFinderTabOrder, handleLoentrinFinderCalculate, loentrinFinderOpen]);
 
   const handleLoenudviklingBeregningsgrundlagChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = loenudviklingBeregningsgrundlagEnum.safeParse(event.target.value);
@@ -331,6 +654,27 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     }));
   }, [updateEoLoenudvikling]);
 
+  const handleEoAnciennitetstillaegToggleCommit = React.useCallback((event: CommitEvent<boolean>) => {
+    updateEoLoenudvikling((prev) => ({
+      ...prev,
+      harAnciennitetstillaegEfterSkadesdatoen: event.target.value,
+    }));
+  }, [updateEoLoenudvikling]);
+
+  const handleEoAnciennitetstillaegDatoCommit = React.useCallback((event: CommitEvent<EOAngivetLoenLoenudvikling['anciennitetstillaegDato']>) => {
+    updateEoLoenudvikling((prev) => ({
+      ...prev,
+      anciennitetstillaegDato: event.target.value,
+    }));
+  }, [updateEoLoenudvikling]);
+
+  const handleEoAnciennitetstillaegSatsCommit = React.useCallback((event: CommitEvent<EOAngivetLoenLoenudvikling['anciennitetstillaegSats']>) => {
+    updateEoLoenudvikling((prev) => ({
+      ...prev,
+      anciennitetstillaegSats: event.target.value,
+    }));
+  }, [updateEoLoenudvikling]);
+
   const handleLoenudviklingManuelNavnCommit = React.useCallback((event: CommitEvent<string | undefined>) => {
     const trimmed = (event.target.value ?? '').trim();
     updateEoLoenudvikling((prev) => ({
@@ -361,6 +705,12 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       eoLoenudvikling.overenskomstFilter?.arbejdsgiver
     );
   }, [eoLoenudvikling.overenskomstFilter?.arbejdsgiver, eoLoenudvikling.overenskomstFilter?.loenmodtager]);
+  const loentrinFinderOverenskomstLabel = React.useMemo(() => {
+    const id = eoLoenudvikling.overenskomstId?.trim();
+    if (!id) return 'Ingen overenskomst valgt';
+    const meta = getOverenskomstMetaById(id);
+    return meta?.navn ?? id;
+  }, [eoLoenudvikling.overenskomstId]);
 
   type IsoDateFieldName =
     | 'vedroererPeriodeFra'
@@ -583,6 +933,12 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     eoLoenudvikling.overenskomstId &&
     isOffentligOverenskomstId(eoLoenudvikling.overenskomstId)
   );
+  // I EO (angivet løn) er "Satsen angives per" bevidst implicit:
+  // dagsløn => time, månedsløn => måned.
+  const eoAnciennitetSatsPerTekst = values.beregnesUdFra === 'Angivet dagsløn' ? 'time' : 'måned';
+  const showEoAnciennitetstillaegSection = visLoenudviklingFraEO
+    && loenudviklingBasis === 'Overenskomst'
+    && Boolean(eoLoenudvikling.overenskomstId?.trim());
 
   const aktivAngivetLoenOpreguleresFraDato =
     values.beregnesUdFra === 'Angivet månedsløn'
@@ -1659,6 +2015,32 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                             maxDigits={1}
                             width={70}
                           />
+                          <Tooltip title="Find løntrin" arrow>
+                            <IconButton
+                              onClick={openLoentrinFinder}
+                              tabIndex={-1}
+                              aria-label="Find løntrin"
+                              sx={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '6px',
+                                transition: 'background-color 0.2s',
+                                '&:hover': {
+                                  backgroundColor: '#e3f2fd',
+                                },
+                                '&:active': {
+                                  backgroundColor: '#bbdefb',
+                                },
+                              }}
+                            >
+                              <SearchIcon
+                                sx={{
+                                  fontSize: '24px',
+                                  color: 'primary.main',
+                                }}
+                              />
+                            </IconButton>
+                          </Tooltip>
                         </Box>
                       </Box>
                     </Box>
@@ -1831,10 +2213,246 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 ) : null}
               </>
             )}
+
+            {showEoAnciennitetstillaegSection ? (
+              <>
+                <Typography className="row--subheading">Anciennitetstillæg</Typography>
+
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">Ville skadelidte have opnået anciennitetstillæg efter skadesdatoen</Typography>
+                  <Box className="row--label-right-hover__content">
+                    <StyledToggleSwitch
+                      checked={eoLoenudvikling.harAnciennitetstillaegEfterSkadesdatoen}
+                      onCommit={handleEoAnciennitetstillaegToggleCommit}
+                    />
+                  </Box>
+                </Box>
+
+                {eoLoenudvikling.harAnciennitetstillaegEfterSkadesdatoen ? (
+                  <>
+                    <Box className="row--label-right-hover">
+                      <Typography className="row--text">Dato for opnået anciennitetstillæg</Typography>
+                      <Box className="row--label-right-hover__content">
+                        <StyledDateField
+                          value={eoLoenudvikling.anciennitetstillaegDato}
+                          minDate={skadesdatoISO}
+                          specialRangeErrors={{
+                            minBoundKind: skadesdatoISO ? 'skadesdato' : undefined,
+                            minBoundReferenceISO: skadesdatoISO,
+                          }}
+                          onCommit={handleEoAnciennitetstillaegDatoCommit}
+                        />
+                      </Box>
+                    </Box>
+
+                    <Box className="row--label-right-hover">
+                      <Typography className="row--text">{`Sats per ${eoAnciennitetSatsPerTekst}`}</Typography>
+                      <Box className="row--label-right-hover__content">
+                        <StyledAmountField
+                          width={160}
+                          value={eoLoenudvikling.anciennitetstillaegSats}
+                          allowNegative={false}
+                          onCommit={handleEoAnciennitetstillaegSatsCommit}
+                        />
+                      </Box>
+                    </Box>
+                  </>
+                ) : null}
+              </>
+            ) : null}
           </>
         )}
       </ContentBox>
       )}
+
+      {loentrinFinderOpen ? (
+        <>
+          <Box
+            onClick={closeLoentrinFinder}
+            sx={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              zIndex: (theme) => theme.zIndex.modal - 1,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          />
+          <Box
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={loentrinFinderHeadingId}
+            ref={loentrinFinderDialogRef}
+            sx={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '90%',
+              maxWidth: '700px',
+              maxHeight: '85vh',
+              backgroundColor: 'white',
+              borderRadius: '20px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+              zIndex: (theme) => theme.zIndex.modal,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '24px 32px',
+                borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
+              }}
+            >
+              <Typography id={loentrinFinderHeadingId} variant="h5" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                Find løntrin
+              </Typography>
+              <IconButton
+                onClick={closeLoentrinFinder}
+                aria-label="Luk"
+                tabIndex={-1}
+                sx={{
+                  color: 'text.secondary',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  },
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Box>
+
+            <Box sx={{ flex: 1, overflow: 'auto', padding: '24px 32px' }}>
+              <Box className="row--label-right-hover">
+                <Typography className="row--text">Overenskomst</Typography>
+                <Box className="row--label-right-hover__content">
+                  <Typography className="row--text">{loentrinFinderOverenskomstLabel}</Typography>
+                </Box>
+              </Box>
+
+              <Box className="row--label-right-hover">
+                <Typography className="row--text">Ansættelse</Typography>
+                <Box className="row--label-right-hover__content">
+                  <StyledDropdown
+                    ref={loentrinFinderAnsaettelseRef}
+                    width={180}
+                    value={loentrinFinderAnsaettelse}
+                    allowEmpty={false}
+                    onChange={(event: StyledDropdownChangeEvent<string>) => {
+                      const parsed = offentligLoenTypeEnum.safeParse(event.target.value ?? 'Månedsløn');
+                      const nextValue: 'Månedsløn' | 'Timeløn' = parsed.success ? parsed.data : 'Månedsløn';
+                      setLoentrinFinderAnsaettelse(nextValue);
+                    }}
+                  >
+                    <MenuItem value="Månedsløn">Månedsløn</MenuItem>
+                    <MenuItem value="Timeløn">Timeløn</MenuItem>
+                  </StyledDropdown>
+                </Box>
+              </Box>
+
+              <Box className="row--label-right-hover">
+                <Typography className="row--text">{loentrinFinderAnsaettelse}</Typography>
+                <Box className="row--label-right-hover__content">
+                  <StyledAmountField
+                    ref={loentrinFinderBeloebRef}
+                    width={180}
+                    value={loentrinFinderBeloeb}
+                    allowNegative={false}
+                    onCommit={(event) => {
+                      setLoentrinFinderBeloeb(event.target.value);
+                      setLoentrinFinderErrors((prev) => ({ ...prev, beloeb: undefined }));
+                    }}
+                    onFieldError={(errorMsg) => setLoentrinFinderAmountFieldError(errorMsg)}
+                    error={Boolean(loentrinFinderErrors.beloeb)}
+                    helperText={loentrinFinderErrors.beloeb ?? ''}
+                  />
+                </Box>
+              </Box>
+
+              <Box className="row--label-right-hover">
+                <Typography className="row--text">Dato</Typography>
+                <Box className="row--label-right-hover__content">
+                  <StyledDateField
+                    ref={loentrinFinderDatoRef}
+                    value={loentrinFinderDato}
+                    onCommit={(event) => {
+                      setLoentrinFinderDato(event.target.value);
+                      setLoentrinFinderErrors((prev) => ({ ...prev, dato: undefined }));
+                    }}
+                    onFieldError={(errorMsg) => setLoentrinFinderDateFieldError(errorMsg)}
+                    error={Boolean(loentrinFinderErrors.dato)}
+                    helperText={loentrinFinderErrors.dato ?? ''}
+                  />
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 1 }}>
+                <Button
+                  ref={loentrinFinderBeregnRef}
+                  variant="contained"
+                  onClick={handleLoentrinFinderCalculate}
+                  sx={{
+                    borderRadius: '10px',
+                    px: 3,
+                    py: 1,
+                    animation: loentrinFinderButtonShake ? 'shake 0.5s ease' : 'none',
+                    '@keyframes shake': {
+                      '0%, 100%': { transform: 'translateX(0)' },
+                      '25%': { transform: 'translateX(-4px)' },
+                      '75%': { transform: 'translateX(4px)' },
+                    },
+                  }}
+                >
+                  Beregn
+                </Button>
+              </Box>
+
+              {loentrinFinderResults.length > 0 ? (
+                <Box sx={{ mt: 2 }}>
+                  <Typography className="row--text" sx={{ mb: 1 }}>
+                    Nærmeste lønsatser
+                  </Typography>
+                  {loentrinFinderResults.map((result) => {
+                    const isExactMatch = loentrinFinderInputAmountNumber === undefined
+                      ? false
+                      : hasExactDisplayedAmountMatch(loentrinFinderInputAmountNumber, result.beloeb);
+                    return (
+                      <Box
+                        key={`${String(result.loentrin)}-${result.gruppe}`}
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          backgroundColor: 'rgba(25, 118, 210, 0.04)',
+                          mb: 0.75,
+                        }}
+                      >
+                        <Typography className={`row--text${isExactMatch ? ' text-bold' : ''}`}>
+                          {`Løntrin ${String(result.loentrin)}, gruppe ${result.gruppe}`}
+                        </Typography>
+                        <Typography className={`row--text${isExactMatch ? ' text-bold' : ''}`}>
+                          {`${formatCurrency(result.beloeb)} kr.`}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              ) : null}
+            </Box>
+          </Box>
+        </>
+      ) : null}
 
       {/* Sektion 7: Øvrige erstatningskrav */}
       <ContentBox className="content-box" data-section-id="oevrige-krav">

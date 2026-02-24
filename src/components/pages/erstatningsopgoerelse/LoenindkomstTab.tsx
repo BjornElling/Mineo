@@ -1449,7 +1449,9 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
         );
         const loenudviklingBaseDate = getLoenudviklingBaseDate(af);
         const anciennitetSatsPerTekst = af.anciennitetstillaegSatsAngivesPer === 'Time' ? 'time' : 'måned';
-        const showAnciennitetstillaegSection = loenudviklingBasis === 'Overenskomst' && Boolean(af.overenskomstId?.trim());
+        const showAnciennitetstillaegSection = values.beregnesUdFra === 'Beregningsperiode'
+          && loenudviklingBasis === 'Overenskomst'
+          && Boolean(af.overenskomstId?.trim());
         const shouldShowReguleringsDatoInterval =
           loenudviklingBasis === 'Overenskomst' ||
           (loenudviklingBasis === 'Statistik' && Boolean(af.loenudviklingStatistikModel)) ||
@@ -2441,6 +2443,5 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 LoenindkomstTab.displayName = 'LoenindkomstTab';
 
 export default LoenindkomstTab;
-
 
 

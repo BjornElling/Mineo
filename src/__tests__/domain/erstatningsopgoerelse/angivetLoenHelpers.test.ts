@@ -22,22 +22,29 @@ describe('resolveLoenudviklingKilde', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';
     values.eoAngivetLoenLoenudvikling.loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.ALMINDELIG;
+    values.eoAngivetLoenLoenudvikling.harAnciennitetstillaegEfterSkadesdatoen = true;
+    values.eoAngivetLoenLoenudvikling.anciennitetstillaegDato = toISODateString('2024-01-15');
 
     const result = resolveLoenudviklingKilde(values);
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe(EO_ANGIVET_LOEN_ID);
     expect(result[0].loenPaaHelligdage).toBe(LOEN_PAA_HELLIGDAGE.ALMINDELIG);
+    expect(result[0].harAnciennitetstillaegEfterSkadesdatoen).toBe(true);
+    expect(result[0].anciennitetstillaegDato).toBe(toISODateString('2024-01-15'));
+    expect(result[0].anciennitetstillaegSatsAngivesPer).toBe('Måned');
   });
 
   it('returnerer EO-kilde for angivet dagsløn med gyldig loenPaaHelligdage', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet dagsløn';
     values.eoAngivetLoenLoenudvikling.loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.SH_UDBETALING;
+    values.eoAngivetLoenLoenudvikling.anciennitetstillaegSatsAngivesPer = 'Måned';
 
     const result = resolveLoenudviklingKilde(values);
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe(EO_ANGIVET_LOEN_ID);
     expect(result[0].loenPaaHelligdage).toBe(LOEN_PAA_HELLIGDAGE.SH_UDBETALING);
+    expect(result[0].anciennitetstillaegSatsAngivesPer).toBe('Time');
   });
 
   it('EO-kilde har navnPaaArbejdssted = "EO-oplysninger" og loenperiode = maaned', () => {
@@ -76,6 +83,34 @@ describe('resolveLoenudviklingKilde', () => {
     } catch (err) {
       expect((err as LoenudviklingKildeError).code).toBe('invalid_beregnes_udfra');
     }
+  });
+
+  it('bevarer anciennitet-felter konsistent mellem Beregningsperiode-kilde og EO-kilde (angivet månedsløn)', () => {
+    const anciennitetDato = toISODateString('2024-04-01');
+    const anciennitetSats = { kind: 'number', value: 750 } as const;
+
+    const beregningsperiodeValues = createErstatningsopgoerelseInitialValues();
+    beregningsperiodeValues.beregnesUdFra = 'Beregningsperiode';
+    beregningsperiodeValues.loenindkomstAnsaettelsesforhold[0].harAnciennitetstillaegEfterSkadesdatoen = true;
+    beregningsperiodeValues.loenindkomstAnsaettelsesforhold[0].anciennitetstillaegDato = anciennitetDato;
+    beregningsperiodeValues.loenindkomstAnsaettelsesforhold[0].anciennitetstillaegSatsAngivesPer = 'Måned';
+    beregningsperiodeValues.loenindkomstAnsaettelsesforhold[0].anciennitetstillaegSats = anciennitetSats;
+
+    const angivetValues = createErstatningsopgoerelseInitialValues();
+    angivetValues.beregnesUdFra = 'Angivet månedsløn';
+    angivetValues.eoAngivetLoenLoenudvikling.loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.ALMINDELIG;
+    angivetValues.eoAngivetLoenLoenudvikling.harAnciennitetstillaegEfterSkadesdatoen = true;
+    angivetValues.eoAngivetLoenLoenudvikling.anciennitetstillaegDato = anciennitetDato;
+    angivetValues.eoAngivetLoenLoenudvikling.anciennitetstillaegSats = anciennitetSats;
+
+    const beregningsperiodeSource = resolveLoenudviklingKilde(beregningsperiodeValues)[0];
+    const angivetSource = resolveLoenudviklingKilde(angivetValues)[0];
+
+    expect(angivetSource.harAnciennitetstillaegEfterSkadesdatoen)
+      .toBe(beregningsperiodeSource.harAnciennitetstillaegEfterSkadesdatoen);
+    expect(angivetSource.anciennitetstillaegDato).toBe(beregningsperiodeSource.anciennitetstillaegDato);
+    expect(angivetSource.anciennitetstillaegSats).toEqual(beregningsperiodeSource.anciennitetstillaegSats);
+    expect(angivetSource.anciennitetstillaegSatsAngivesPer).toBe('Måned');
   });
 });
 

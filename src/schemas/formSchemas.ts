@@ -740,10 +740,6 @@ export const loenindkomstAnsaettelsesforholdSchema = z.object({
   ansatPaaSkadestidspunktet: z.boolean(),
   ansaettelsesforholdOphoert: z.boolean(),
   sidsteArbejdsdag: optionalIsoDateString,
-  harAnciennitetstillaegEfterSkadesdatoen: z.boolean(),
-  anciennitetstillaegDato: optionalIsoDateString,
-  anciennitetstillaegSatsAngivesPer: anciennitetSatsPerEnum,
-  anciennitetstillaegSats: nonNegativeAmountValue,
 
   // Satser
   fritvalgPct: percentageDecimal,
@@ -755,7 +751,12 @@ export const loenindkomstAnsaettelsesforholdSchema = z.object({
   // Indtægtsoplysninger (samme tabel-format som i Årsløn)
   indtaegtsoplysningerTableData: z.array(aarsloenTableRowSchema),
   fuldLoenUnderFerie: jaNejEnum,
-}).merge(loenudviklingOgSatserSchema).strict();
+}).merge(z.object({
+  harAnciennitetstillaegEfterSkadesdatoen: z.boolean(),
+  anciennitetstillaegDato: optionalIsoDateString,
+  anciennitetstillaegSatsAngivesPer: anciennitetSatsPerEnum,
+  anciennitetstillaegSats: nonNegativeAmountValue,
+}).strict()).merge(loenudviklingOgSatserSchema).strict();
 
 export type LoenindkomstAnsaettelsesforhold = z.infer<typeof loenindkomstAnsaettelsesforholdSchema>;
 
@@ -765,12 +766,21 @@ const loenindkomstSchema = z.object({
 
 export const eoAngivetLoenLoenudviklingSchema = z.object({
   overenskomstId: optionalString,
-}).merge(eoLoenudviklingOgSatserSchema).strict();
+}).merge(z.object({
+  harAnciennitetstillaegEfterSkadesdatoen: z.boolean().default(false),
+  anciennitetstillaegDato: optionalIsoDateString,
+  anciennitetstillaegSatsAngivesPer: anciennitetSatsPerEnum.default('Måned'),
+  anciennitetstillaegSats: nonNegativeAmountValue,
+}).strict()).merge(eoLoenudviklingOgSatserSchema).strict();
 
 export type EOAngivetLoenLoenudvikling = z.infer<typeof eoAngivetLoenLoenudviklingSchema>;
 
 const defaultEoAngivetLoenLoenudvikling: EOAngivetLoenLoenudvikling = {
   overenskomstId: undefined,
+  harAnciennitetstillaegEfterSkadesdatoen: false,
+  anciennitetstillaegDato: undefined,
+  anciennitetstillaegSatsAngivesPer: 'Måned',
+  anciennitetstillaegSats: undefined,
   feriePct: undefined,
   loenPaaHelligdage: 'Almindelig løn',
   saerligFraDatoRegulering: undefined,

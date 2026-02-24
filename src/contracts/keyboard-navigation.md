@@ -143,6 +143,22 @@ const handleKeyDown = (e: React.KeyboardEvent) => {
 
 ---
 
+## Overlay note: Løntrin-finder
+
+Løntrin-finder popup (anvendt i både `Lønindkomst` og `EO-oplysninger`) bruger en eksplicit, hardcoded tab-sekvens:
+
+`Ansættelse -> Beløb -> Dato -> Beregn`
+
+Dette er bevidst og normativt for den popup, fordi generisk focus-trap tidligere gav ustabil adfærd med dropdown-popover og fokuslæk til siden bagved.
+
+Krav:
+- `Tab`/`Shift+Tab` skal altid cirkulere inden for popup-sekvensen.
+- `Escape` lukker popup.
+- `Enter` på åbne dropdowns håndteres af dropdown selv.
+- `ArrowUp`/`ArrowDown` må kun overtage intern popup-navigation, når dropdown-menu ikke er åben og editor ikke er åben.
+
+---
+
 ## Implementation detaljer (Container.tsx)
 
 ### focusOnly()

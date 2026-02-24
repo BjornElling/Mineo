@@ -9,6 +9,7 @@ import { erstatningsopgoerelseSchema } from '../../schemas/formSchemas';
 
 const createDefaultAngivetLoenLoenudvikling = (settings: AppSettings): PersistedSectionMap['erstatningsopgoerelse']['eoAngivetLoenLoenudvikling'] => ({
   overenskomstId: undefined,
+  ...DEFAULT_ANCIENNITET_FIELDS,
   feriePct: undefined,
   loenPaaHelligdage: settings.defaultLoenPaaHelligdage,
   saerligFraDatoRegulering: undefined,

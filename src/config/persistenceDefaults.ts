@@ -112,6 +112,7 @@ export const buildPersistenceDefaults = (settings?: AppSettings): PersistedSecti
       ],
       eoAngivetLoenLoenudvikling: {
         overenskomstId: undefined,
+        ...DEFAULT_ANCIENNITET_FIELDS,
         feriePct: undefined,
         loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
         saerligFraDatoRegulering: undefined,

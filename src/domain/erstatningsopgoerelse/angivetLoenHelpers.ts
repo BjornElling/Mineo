@@ -1,7 +1,6 @@
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
-import { DEFAULT_ANCIENNITET_FIELDS } from './erstatningsopgoerelseInitialValues';
 
 export const EO_ANGIVET_LOEN_ID = 'eo-angivet-loen';
 
@@ -56,6 +55,7 @@ export const resolveLoenudviklingKilde = (
   }
 
   const eo = values.eoAngivetLoenLoenudvikling;
+  const anciennitetSatsAngivesPer = values.beregnesUdFra === 'Angivet dagsløn' ? 'Time' : 'Måned';
   // Lønudviklingsmotoren arbejder på månedlig regulering; angivet dagsløn er kun input-reference.
   const loenudviklingErOverenskomst = eo.loenudviklingBeregningsgrundlag === 'Overenskomst';
   const loenPaaHelligdage = eo.loenPaaHelligdage;
@@ -78,7 +78,10 @@ export const resolveLoenudviklingKilde = (
     ansatPaaSkadestidspunktet: true,
     ansaettelsesforholdOphoert: false,
     sidsteArbejdsdag: undefined,
-    ...DEFAULT_ANCIENNITET_FIELDS,
+    harAnciennitetstillaegEfterSkadesdatoen: eo.harAnciennitetstillaegEfterSkadesdatoen,
+    anciennitetstillaegDato: eo.anciennitetstillaegDato,
+    anciennitetstillaegSatsAngivesPer: anciennitetSatsAngivesPer,
+    anciennitetstillaegSats: eo.anciennitetstillaegSats,
     feriePct: eo.feriePct,
     fritvalgPct: undefined,
     shSoPct: undefined,
