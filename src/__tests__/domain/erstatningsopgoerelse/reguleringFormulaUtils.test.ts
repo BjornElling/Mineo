@@ -194,6 +194,10 @@ describe('mergeFeriepengeDisplay', () => {
     expect(mergeFeriepengeDisplay('12,00 %', '12,00 %')).toBe('12,00 %');
   });
 
+  it('samme procentværdi med forskellig formattering → returnerer én gang', () => {
+    expect(mergeFeriepengeDisplay('15 %', '15,00 %')).toBe('15,00 %');
+  });
+
   it('begge sat og forskellige → "venstre / højre"', () => {
     expect(mergeFeriepengeDisplay('12,00 %', '100 kr')).toBe('12,00 % / 100 kr');
   });

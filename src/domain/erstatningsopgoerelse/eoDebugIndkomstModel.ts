@@ -7,6 +7,7 @@ import {
   isAarsloenTableValueEffectivelyEmptyForValidation,
 } from '../../utils/aarsloenTableValidation';
 import {
+  OFFENTLIGE_YDELSER_COLUMN_ORDER,
   getOffentligeYdelserRowFilledState,
   getOffentligeYdelserTableValidation,
   parseOffentligeYdelserCellKey,
@@ -21,10 +22,9 @@ import {
 } from '../../data/overenskomstRates';
 import type { DebugStatus } from '../debug/eoDebugTypes';
 import { buildAarsloenCellErrors, buildOffentligeYdelserCellErrors } from './indkomstRowValidation';
-import { formatCurrency } from '../../utils/formatUtils';
-import { parseAmount } from '../../utils/numberParsing';
 import type { AarsloenTableColumnKey, OffentligeYdelserTableColumnKey } from '../../types/table';
 import type { Loenperiode } from '../../types/loen';
+import { amountValueToNumber } from '../../utils/expressionAmount';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -54,7 +54,7 @@ const getReguleringsDatoForAnsaettelsesforhold = (
   return af.saerligFraDatoRegulering || skadesdato;
 };
 
-const validateStoreBededagSatser = (
+const hasStoreBededagSatserAfvigelse = (
   loenPaaHelligdage: string,
   inputValue: number | undefined,
   reguleringsDato: ISODateString | undefined
@@ -77,7 +77,7 @@ const validateStoreBededagSatser = (
   return Math.abs(actualValue - expectedPct) > 0.01;
 };
 
-const validateFeriePct = (
+const hasFeriePctAfvigelse = (
   _fuldLoenUnderFerie: Ansaettelsesforhold['fuldLoenUnderFerie'],
   inputValue: number | undefined
 ): boolean => {
@@ -86,7 +86,7 @@ const validateFeriePct = (
   return true;
 };
 
-const validateOverenskomstSats = (
+const hasOverenskomstSatsAfvigelse = (
   overenskomstId: string | undefined,
   fieldName: 'fritvalgPct' | 'shSoPct' | 'pensionPct',
   inputValue: number | undefined,
@@ -148,19 +148,19 @@ const resolveSatserErrorField = (
   const reguleringsDato = getReguleringsDatoForAnsaettelsesforhold(af, skadesdato);
   const applyAlmindeligLoenPaaShDageRegel = af.loenPaaHelligdage === 'Almindelig løn';
 
-  if (validateFeriePct(af.fuldLoenUnderFerie, af.feriePct)) {
+  if (hasFeriePctAfvigelse(af.fuldLoenUnderFerie, af.feriePct)) {
     return 'Feriegodtgørelse/-tillæg';
   }
-  if (validateOverenskomstSats(af.overenskomstId, 'fritvalgPct', af.fritvalgPct, reguleringsDato, applyAlmindeligLoenPaaShDageRegel)) {
+  if (hasOverenskomstSatsAfvigelse(af.overenskomstId, 'fritvalgPct', af.fritvalgPct, reguleringsDato, applyAlmindeligLoenPaaShDageRegel)) {
     return 'Fritvalg';
   }
-  if (validateOverenskomstSats(af.overenskomstId, 'shSoPct', af.shSoPct, reguleringsDato, applyAlmindeligLoenPaaShDageRegel)) {
+  if (hasOverenskomstSatsAfvigelse(af.overenskomstId, 'shSoPct', af.shSoPct, reguleringsDato, applyAlmindeligLoenPaaShDageRegel)) {
     return 'SH/SO-sats';
   }
-  if (validateStoreBededagSatser(af.loenPaaHelligdage, af.storeBededagPct, reguleringsDato)) {
+  if (hasStoreBededagSatserAfvigelse(af.loenPaaHelligdage, af.storeBededagPct, reguleringsDato)) {
     return 'Store Bededagstillæg';
   }
-  if (validateOverenskomstSats(af.overenskomstId, 'pensionPct', af.pensionPct, reguleringsDato, applyAlmindeligLoenPaaShDageRegel)) {
+  if (hasOverenskomstSatsAfvigelse(af.overenskomstId, 'pensionPct', af.pensionPct, reguleringsDato, applyAlmindeligLoenPaaShDageRegel)) {
     return 'Arbejdsgivers pensionsbidrag';
   }
   return null;
@@ -211,22 +211,14 @@ const countRowsWithPeriodOnly = (
     if (!periodComplete) return count;
 
     const hasAmounts =
-      row.col2 !== undefined && row.col2 !== null ||
-      row.col3 !== undefined && row.col3 !== null ||
-      row.col4 !== undefined && row.col4 !== null ||
-      row.col5 !== undefined && row.col5 !== null;
+      amountValueToNumber(row.col2) !== undefined ||
+      amountValueToNumber(row.col3) !== undefined ||
+      amountValueToNumber(row.col4) !== undefined ||
+      amountValueToNumber(row.col5) !== undefined;
 
     return hasAmounts ? count : count + 1;
   }, 0);
 };
-
-const OFFENTLIGE_YDELSER_COLUMN_ORDER: readonly OffentligeYdelserTableColumnKey[] = [
-  'fraDato',
-  'tilDato',
-  'ydelse',
-  'tillaeg',
-  'ydelsestype',
-];
 
 const resolveOffentligeYdelserColumnLabel = (colKey: OffentligeYdelserTableColumnKey): string => {
   switch (colKey) {
@@ -274,7 +266,7 @@ export const buildIndkomstSectionStatuses = (
 
     const satserErrorField = resolveSatserErrorField(af, skadesdato);
     const satserStatus: DebugStatus = satserErrorField ? 'error' : 'ok';
-    const satserMessage = satserErrorField ? `Forkert værdi indtastet i ${satserErrorField}` : 'Ja';
+    const satserMessage = satserErrorField ? `Forkert værdi indtastet i ${satserErrorField}` : 'Ok';
 
     const tableRows = af.indtaegtsoplysningerTableData ?? [];
     const cellErrors = buildAarsloenCellErrors(tableRows, af.loenperiode);
@@ -285,7 +277,7 @@ export const buildIndkomstSectionStatuses = (
     });
 
     let tableStatus: DebugStatus = 'ok';
-    let tableMessage = 'Ja';
+    let tableMessage = 'Ok';
     if (tableValidation.summary.hasErrors) {
       tableStatus = 'error';
       const firstErrorCell = tableValidation.summary.firstErrorCell;
@@ -337,7 +329,6 @@ export const buildOffentligeYdelserDebugRows = (
     label: string;
     firstErrorMessage?: string;
     warningCount: number;
-    sum: number;
   };
 
   const result: OffentligeYdelserDebugRowDraft[] = [];
@@ -349,7 +340,7 @@ export const buildOffentligeYdelserDebugRows = (
 
     const typeKey = row.ydelsestype?.trim() ?? '';
     const groupKey = typeKey === '' ? 'mangler-ydelsestype' : `ydelsestype-${typeKey}`;
-    const label = typeKey === '' ? 'Ydelsestype ikke valgt' : (ydelsestyper[typeKey]?.label ?? typeKey);
+    const label = typeKey === '' ? 'Uspecificeret' : (ydelsestyper[typeKey]?.label ?? typeKey);
 
     let group = grouped.get(groupKey);
     if (!group) {
@@ -357,17 +348,12 @@ export const buildOffentligeYdelserDebugRows = (
         id: groupKey,
         label,
         warningCount: 0,
-        sum: 0,
       };
       grouped.set(groupKey, group);
       result.push(group);
     }
 
     const issue = issuesByRowId.get(row.id);
-    if (!issue || issue.level !== 'error') {
-      group.sum += parseAmount(row.ydelse) + parseAmount(row.tillaeg);
-    }
-
     if (issue?.level === 'error') {
       if (!group.firstErrorMessage) {
         if (issue.reason === 'input') {
@@ -378,10 +364,8 @@ export const buildOffentligeYdelserDebugRows = (
             : 'Fejl i indtastning';
         } else {
           const state = getOffentligeYdelserRowFilledState(row);
-          if (!state.fraDatoFilled) {
-            group.firstErrorMessage = 'Fra dato mangler';
-          } else if (!state.tilDatoFilled) {
-            group.firstErrorMessage = 'Til dato mangler';
+          if (!state.periodComplete) {
+            group.firstErrorMessage = 'Dato mangler';
           } else if (!state.ydelsestypeSelected) {
             group.firstErrorMessage = 'Ydelsestype mangler';
           } else {
@@ -409,8 +393,8 @@ export const buildOffentligeYdelserDebugRows = (
     }
     if (row.warningCount > 0) {
       const warningMessage = row.warningCount === 1
-        ? 'Periode og ydelsestype er udfyldt uden ydelse eller tillæg'
-        : `${row.warningCount} perioder med ydelsestype er udfyldt uden ydelse eller tillæg`;
+        ? 'Beløb mangler'
+        : `Beløb mangler (${row.warningCount} perioder)`;
       return {
         id: row.id,
         label: row.label,
@@ -423,7 +407,7 @@ export const buildOffentligeYdelserDebugRows = (
       id: row.id,
       label: row.label,
       status: 'ok' as DebugStatus,
-      message: formatCurrency(row.sum),
+      message: 'Ok',
     };
   });
 };

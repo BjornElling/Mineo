@@ -83,13 +83,14 @@ import {
   resolvePdfFileName,
 } from './pdfFormatUtils';
 import { maxISO, minISO } from '../isoDateHelpers';
-import type { SelectedElements } from './erstatningsopgoerelse/types';
+import type { ReguleringIndexRow, ReguleringValuesTableData, SelectedElements } from './erstatningsopgoerelse/types';
 import { assertNoUnsupportedSygeferiegodtgoerelseSelection } from './erstatningsopgoerelse/sections/sygeferiegodtgoerelseSection';
 import { renderLoenindkomstSection } from './erstatningsopgoerelse/sections/loenindkomstSection';
 import { renderOffentligeYdelserSection } from './erstatningsopgoerelse/sections/offentligeYdelserSection';
 import { renderShDageSection } from './erstatningsopgoerelse/sections/shDageSection';
 import { renderReguleringSection } from './erstatningsopgoerelse/sections/reguleringSection';
 import { renderOpgorelseSection } from './erstatningsopgoerelse/sections/opgoerelseSection';
+import { getOffentligeYdelserRowFilledState } from '../offentligeYdelserTableValidation';
 
 const NBSP = '\u00A0';
 const EO_RIGHT_COLUMN_WIDTH = 33.125;
@@ -170,19 +171,6 @@ const resolvePeriodColumns = (row: AarsloenTableRow, loenperiode: Loenperiode): 
   }
   return [row.col0_dag?.trim() ?? '', row.col1_dag?.trim() ?? ''];
 };
-
-type ReguleringIndexRow = Readonly<{
-  fraDato: string;
-  tilDato: string;
-  indeksberegning: string;
-  indeks: string;
-  loenudvikling: string;
-}>;
-
-type ReguleringValuesTableData = Readonly<{
-  columns: readonly string[];
-  rows: ReadonlyArray<ReadonlyArray<string>>;
-}>;
 
 // STORE_BEDEDAG_START og STORE_BEDEDAG_PCT importeret fra sharedPdfUtils
 
@@ -273,13 +261,7 @@ export const hasOffentligYdelseRowOverlapWithRanges = (
 };
 
 const isOffentligeYdelserRowEmpty = (row: OffentligeYdelserRow): boolean => {
-  return (
-    (row.fraDato?.trim() ?? '') === '' &&
-    (row.tilDato?.trim() ?? '') === '' &&
-    row.ydelse === undefined &&
-    row.tillaeg === undefined &&
-    (row.ydelsestype?.trim() ?? '') === ''
-  );
+  return !getOffentligeYdelserRowFilledState(row).hasAnyFilled;
 };
 
 const hasNonZeroLoenAmount = (value: AarsloenTableRow['col2']): boolean => {
@@ -452,12 +434,10 @@ const buildIndexFormulaDisplay = (
   const isPlainValue = isStatistik || (!numeratorDisplay.includes(' x ') && !denominatorDisplay.includes(' x '));
   const isSameNumericValue = Math.abs(numeratorValue - denominatorValue) < 1e-9;
   if (isSameNumericValue) {
-    return isPlainValue ? numeratorDisplay : `(${numeratorDisplay})`;
+    return numeratorDisplay;
   }
   const formula = isPlainValue
-    ? (isStatistik
-      ? `${numeratorDisplay} / ${denominatorDisplay}`
-      : `(${numeratorDisplay} / ${denominatorDisplay})`)
+    ? `(${numeratorDisplay} / ${denominatorDisplay})`
     : `(${numeratorDisplay}) /\n(${denominatorDisplay})`;
   return wrapIndexFormulaAfterSlashWhenLong(formula);
 };

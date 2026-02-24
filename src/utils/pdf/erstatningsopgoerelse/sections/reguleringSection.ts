@@ -26,19 +26,7 @@ import { isoToDanish, type ISODateString } from '../../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
-
-type ReguleringValuesTableData = Readonly<{
-  columns: readonly string[];
-  rows: ReadonlyArray<ReadonlyArray<string>>;
-}>;
-
-type ReguleringIndexRow = Readonly<{
-  fraDato: string;
-  tilDato: string;
-  indeksberegning: string;
-  indeks: string;
-  loenudvikling: string;
-}>;
+import type { ReguleringIndexRow, ReguleringValuesTableData } from '../types';
 
 type ReguleringSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
@@ -101,43 +89,79 @@ const resolveOverenskomstTillægsStigninger = (params: Readonly<{
   ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
   reguleringTableStartIso: ISODateString;
   tafTilIso: ISODateString;
+  reguleringsvaerdierTableData: ReguleringValuesTableData | null;
 }>): readonly string[] => {
-  const { ansaettelsesforhold, reguleringTableStartIso, tafTilIso } = params;
-  const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
-  if (!overenskomstId) return [];
+  const { ansaettelsesforhold, reguleringTableStartIso, tafTilIso, reguleringsvaerdierTableData } = params;
 
   const startDato = isoToDanish(reguleringTableStartIso);
   const slutDato = isoToDanish(tafTilIso);
   if (!startDato || !slutDato) return [];
 
   const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
-  const offentligType = getOffentligOverenskomstTypeById(overenskomstId);
   let fritvalgStiger = false;
   let shSoStiger = false;
   let pensionStiger = false;
 
-  if (offentligType) {
-    const start = getOffentligTillaegsSatserForDato(overenskomstId, startDato, applyAlmindeligLoenPaaShDageRegel);
-    const slut = getOffentligTillaegsSatserForDato(overenskomstId, slutDato, applyAlmindeligLoenPaaShDageRegel);
-    fritvalgStiger = percentDeltaIsIncrease(start?.fritvalg, slut?.fritvalg);
-    shSoStiger = percentDeltaIsIncrease(start?.shSoSats, slut?.shSoSats);
-    pensionStiger = percentDeltaIsIncrease(start?.agPension, slut?.agPension);
-  } else {
-    const ref = resolveOverenskomstRef(overenskomstId);
-    if (!ref) return [];
-    const start = getEffektiveSatserForDato({
-      overenskomstId: ref.baseId,
-      dato: startDato,
-      applyAlmindeligLoenPaaShDageRegel,
-    });
-    const slut = getEffektiveSatserForDato({
-      overenskomstId: ref.baseId,
-      dato: slutDato,
-      applyAlmindeligLoenPaaShDageRegel,
-    });
-    fritvalgStiger = percentDeltaIsIncrease(start?.fritvalg, slut?.fritvalg);
-    shSoStiger = percentDeltaIsIncrease(start?.shSoSats, slut?.shSoSats);
-    pensionStiger = percentDeltaIsIncrease(start?.agPension, slut?.agPension);
+  const normalizeColumn = (value: string): string => value.toLocaleLowerCase('da-DK').replace(/\s+/g, ' ').trim();
+  const parseCellPercent = (raw: string | undefined): number | null => {
+    if (typeof raw !== 'string') return null;
+    const trimmed = raw.trim();
+    if (trimmed === '' || trimmed === '-') return null;
+    const cleaned = trimmed.includes('/')
+      ? (() => {
+          const parts = trimmed.split('/');
+          return parts[parts.length - 1]?.trim() ?? trimmed;
+        })()
+      : trimmed;
+    const normalized = cleaned.replace('%', '').trim().replace(/\./g, '').replace(',', '.');
+    const parsed = Number.parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+  const resolveIncreaseFromTable = (columnNames: readonly string[]): boolean => {
+    if (!reguleringsvaerdierTableData || reguleringsvaerdierTableData.rows.length < 2) return false;
+    const normalizedColumns = reguleringsvaerdierTableData.columns.map(normalizeColumn);
+    const columnIndex = normalizedColumns.findIndex((column) => columnNames.includes(column));
+    if (columnIndex < 0) return false;
+    const firstRow = reguleringsvaerdierTableData.rows[0];
+    const lastRow = reguleringsvaerdierTableData.rows[reguleringsvaerdierTableData.rows.length - 1];
+    const firstValue = parseCellPercent(firstRow?.[columnIndex]);
+    const lastValue = parseCellPercent(lastRow?.[columnIndex]);
+    return percentDeltaIsIncrease(firstValue, lastValue);
+  };
+
+  fritvalgStiger = resolveIncreaseFromTable(['fritvalg']);
+  shSoStiger = resolveIncreaseFromTable(['sh/so', 'shso']);
+  pensionStiger = resolveIncreaseFromTable(['ag pension', 'pension']);
+
+  if (!fritvalgStiger && !shSoStiger && !pensionStiger) {
+    const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
+    if (overenskomstId) {
+      const offentligType = getOffentligOverenskomstTypeById(overenskomstId);
+      if (offentligType) {
+        const start = getOffentligTillaegsSatserForDato(overenskomstId, startDato, applyAlmindeligLoenPaaShDageRegel);
+        const slut = getOffentligTillaegsSatserForDato(overenskomstId, slutDato, applyAlmindeligLoenPaaShDageRegel);
+        fritvalgStiger = percentDeltaIsIncrease(start?.fritvalg, slut?.fritvalg);
+        shSoStiger = percentDeltaIsIncrease(start?.shSoSats, slut?.shSoSats);
+        pensionStiger = percentDeltaIsIncrease(start?.agPension, slut?.agPension);
+      } else {
+        const ref = resolveOverenskomstRef(overenskomstId);
+        if (ref) {
+          const start = getEffektiveSatserForDato({
+            overenskomstId: ref.baseId,
+            dato: startDato,
+            applyAlmindeligLoenPaaShDageRegel,
+          });
+          const slut = getEffektiveSatserForDato({
+            overenskomstId: ref.baseId,
+            dato: slutDato,
+            applyAlmindeligLoenPaaShDageRegel,
+          });
+          fritvalgStiger = percentDeltaIsIncrease(start?.fritvalg, slut?.fritvalg);
+          shSoStiger = percentDeltaIsIncrease(start?.shSoSats, slut?.shSoSats);
+          pensionStiger = percentDeltaIsIncrease(start?.agPension, slut?.agPension);
+        }
+      }
+    }
   }
 
   const startBededag = applyAlmindeligLoenPaaShDageRegel && reguleringTableStartIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
@@ -363,7 +387,8 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     });
     renderReguleringIndeksTable(reguleringTableRows);
 
-    if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Overenskomst' && tafBounds) {
+    const loenudviklingGrundlag = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
+    if ((loenudviklingGrundlag === 'Overenskomst' || loenudviklingGrundlag === 'Manuelt angivet') && tafBounds) {
       const reguleringTableStartIso = reguleringsdato && reguleringsdato < tafBounds.foerste
         ? reguleringsdato
         : tafBounds.foerste;
@@ -371,6 +396,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
         ansaettelsesforhold,
         reguleringTableStartIso,
         tafTilIso: tafBounds.sidste,
+        reguleringsvaerdierTableData,
       });
       const text = tillægsStigninger.length > 0
         ? `Regulering foretages på baggrund af den procentuelle udvikling i grundløn. Hertil kommer stigninger i ${joinWithCommaAndOg(tillægsStigninger)}.`

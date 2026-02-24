@@ -78,7 +78,7 @@ describe('getOffentligeYdelserTableValidation', () => {
     });
   });
 
-  it('treats zero amounts as empty for validation', () => {
+  it('treats zero amounts as udfyldt for validation', () => {
     const rows = [
       row('r1', { ydelse: amount(0) }),
       row('r2', { fraDato: '01-01-2024', tilDato: '31-01-2024', ydelsestype: 'flextilskud', ydelse: amount(0) }),
@@ -86,8 +86,9 @@ describe('getOffentligeYdelserTableValidation', () => {
     const result = getOffentligeYdelserTableValidation({ rows });
 
     const issuesByRow = new Map(result.summary.rowIssues.map((issue) => [issue.rowId, issue]));
-    expect(issuesByRow.get('r1')).toBeUndefined();
-    expect(issuesByRow.get('r2')?.level).toBe('warning');
+    expect(issuesByRow.get('r1')?.level).toBe('error');
+    expect(issuesByRow.get('r1')?.reason).toBe('missing');
+    expect(issuesByRow.get('r2')).toBeUndefined();
   });
 
   it('treats zero-like strings as empty', () => {
@@ -97,10 +98,10 @@ describe('getOffentligeYdelserTableValidation', () => {
     expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation('0,00')).toBe(true);
   });
 
-  it('treats expression zeros as empty', () => {
-    expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation({ kind: 'expression', expression: '0', value: 0 })).toBe(true);
-    expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation({ kind: 'expression', expression: '0,00', value: 0 })).toBe(true);
-    expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation({ kind: 'expression', expression: '0.', value: 0 })).toBe(true);
+  it('treats expression zeros as udfyldt', () => {
+    expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation({ kind: 'expression', expression: '0', value: 0 })).toBe(false);
+    expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation({ kind: 'expression', expression: '0,00', value: 0 })).toBe(false);
+    expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation({ kind: 'expression', expression: '0.', value: 0 })).toBe(false);
   });
 
   it('treats non-finite numbers as empty', () => {
@@ -108,8 +109,18 @@ describe('getOffentligeYdelserTableValidation', () => {
     expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation(Number.POSITIVE_INFINITY)).toBe(true);
   });
 
+  it('treats finite numbers as udfyldt', () => {
+    expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation(0)).toBe(false);
+    expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation(1)).toBe(false);
+  });
+
   it('marks non-finite amount values as invalid', () => {
     expect(isOffentligeYdelserAmountValueValidForValidation({ kind: 'number', value: Number.NaN })).toBe(false);
     expect(isOffentligeYdelserAmountValueValidForValidation({ kind: 'expression', value: Number.POSITIVE_INFINITY, expression: '1' })).toBe(false);
+  });
+
+  it('marks zero amount values as valid', () => {
+    expect(isOffentligeYdelserAmountValueValidForValidation({ kind: 'number', value: 0 })).toBe(true);
+    expect(isOffentligeYdelserAmountValueValidForValidation({ kind: 'expression', value: 0, expression: '0' })).toBe(true);
   });
 });

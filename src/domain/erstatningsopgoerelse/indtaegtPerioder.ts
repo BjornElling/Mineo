@@ -342,12 +342,8 @@ export const buildIncomeForRanges = (
     // Offentlige ydelser indgår kun med udfyldt ydelsestype og gyldig periode.
     if ((row.ydelsestype?.trim() ?? '') === '') return 'invalid';
     const interval = parseOffentligInterval(row);
-    if (!interval && import.meta.env.DEV) {
-      throw new Error(
-        `Offentlig ydelse-række ${row.id} kan ikke parses til periode.`
-      );
-    }
-    return interval ? 'valid' : 'invalid';
+    if (!interval) return 'invalid';
+    return 'valid';
   };
   for (const row of values.offentligeYdelserRows ?? []) {
     if (classifyOffentligRow(row) !== 'valid') continue;

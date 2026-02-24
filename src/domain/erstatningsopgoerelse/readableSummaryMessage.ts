@@ -1,3 +1,11 @@
+const SUMMARY_MESSAGES = {
+  missingInput: 'Indtastning mangler',
+  allSalaryMissing: 'Alle lønoplysninger indtastet korrekt mangler',
+  invalidInput: 'Ugyldig indtastning',
+  manualRegulationMissingLegacyA: 'Værdier mangler at blive udfyldt for manuel regulering',
+  manualRegulationMissingLegacyB: 'Mangler udfyldelse af værdier for Manuel Regulering',
+} as const;
+
 export const toReadableSummaryMessage = (message: string): string => {
   const trimmed = message.trim();
   if (trimmed === '') return '';
@@ -5,12 +13,12 @@ export const toReadableSummaryMessage = (message: string): string => {
   const wrappedPrefixMatch = trimmed.match(/^(Fejl|Advarsel)\s*\((.*)\)$/s);
   const core = wrappedPrefixMatch?.[2]?.trim() ?? trimmed;
 
-  if (core === 'Indtastning mangler') return 'mangler';
-  if (core === 'Alle lønoplysninger indtastet korrekt mangler') return 'Lønoplysninger mangler';
-  if (core === 'Ugyldig indtastning') return 'indeholder ugyldig indtastning';
+  if (core === SUMMARY_MESSAGES.missingInput) return 'mangler';
+  if (core === SUMMARY_MESSAGES.allSalaryMissing) return 'Lønoplysninger mangler';
+  if (core === SUMMARY_MESSAGES.invalidInput) return 'indeholder ugyldig indtastning';
   if (
-    core === 'Værdier mangler at blive udfyldt for manuel regulering'
-    || core === 'Mangler udfyldelse af værdier for Manuel Regulering'
+    core === SUMMARY_MESSAGES.manualRegulationMissingLegacyA
+    || core === SUMMARY_MESSAGES.manualRegulationMissingLegacyB
   ) {
     return 'Mangler udfyldte værdier for manuel regulering';
   }
@@ -19,17 +27,7 @@ export const toReadableSummaryMessage = (message: string): string => {
   if (notSelectedMatch?.[1]) {
     const field = notSelectedMatch[1].trim();
     if (field.length > 0) {
-      const lowerField = `${field.charAt(0).toLowerCase()}${field.slice(1)}`;
-      return `"${lowerField}" mangler`;
-    }
-  }
-
-  const missingFieldMatch = core.match(/^(.*)\smangler$/);
-  if (missingFieldMatch?.[1]) {
-    const field = missingFieldMatch[1].trim();
-    if (field.length > 0 && field.toLowerCase() !== 'indtastning') {
-      const lowerField = `${field.charAt(0).toLowerCase()}${field.slice(1)}`;
-      return `"${lowerField}" mangler`;
+      return `${field} mangler`;
     }
   }
 

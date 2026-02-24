@@ -200,6 +200,25 @@ describe('buildIncomeForRanges fail-closed', () => {
     expect(income.benefits).toHaveLength(0);
   });
 
+  it('kaster ikke fejl for offentlig ydelse med ufuldstaendig periode (fail-closed)', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.offentligeYdelserRows = [
+      {
+        id: 'oy-missing-til',
+        fraDato: '01-01-2024',
+        tilDato: '',
+        ydelse: asAmount(100),
+        tillaeg: undefined,
+        ydelsestype: 'sygedagpenge',
+      },
+    ];
+
+    const ranges = [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }] as const;
+    expect(() => buildIncomeForRanges(values, ranges)).not.toThrow();
+    const income = buildIncomeForRanges(values, ranges);
+    expect(income.benefits).toHaveLength(0);
+  });
+
   it('resolver ydelsestype case-insensitivt ud fra label', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.offentligeYdelserRows = [

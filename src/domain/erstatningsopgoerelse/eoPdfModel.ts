@@ -205,6 +205,7 @@ export type LoenudviklingPdfModel = Readonly<{
 
 export type TafIndtaegterPdfModel = Readonly<{
   entries: readonly { label: string; amountOre: MoneyOre }[];
+  oevrigeKravForbeholdYdelsestyper: readonly string[];
   total: Calculable<MoneyOre>;
 }>;
 
@@ -2062,11 +2063,19 @@ const buildTafIndtaegterModel = (values: ErstatningsopgoerelseValues, ranges: re
     // Stabil, brugervendt rækkefølge i PDF-output uafhængigt af input-rækkefølge.
     .sort((a, b) => a.label.localeCompare(b.label, 'da-DK', { sensitivity: 'base' }));
   const entries = [...employerEntries, ...benefitEntries];
+  const oevrigeKravForbeholdYdelsestyper = Array.from(
+    new Set(
+      indtaegter.benefits
+        .map((entry) => entry.typeKey)
+        .filter((typeKey) => typeKey === 'kontanthjaelp' || typeKey === 'ressourceforloebsydelse')
+    )
+  );
 
   // Ingen indtægter i TAF-perioden er gyldigt og opgøres som 0 kr.
   const totalOre = clampMoneyOreToZero(ensureMoneyOre(entries.reduce((acc, entry) => acc + entry.amountOre, 0)));
   return {
     entries,
+    oevrigeKravForbeholdYdelsestyper,
     total: asCalculable(totalOre),
   };
 };
@@ -2082,15 +2091,19 @@ const buildTabtArbejdsfortjenesteModel = (
   }
 
   const eetLinjer: string[] = [];
+  let endeligtEetLinje: string | null = null;
+  let endeligtEetReferenceDato: ISODateString | undefined;
   if (values.endeligtEetAfgorelse === 'Ja') {
     if (values.endeligEETVirkningsdato) {
       const dato = formatDateLong(values.endeligEETVirkningsdato);
       const tekst = `Der er truffet endelig erhvervsevnetabsafgørelse med virkning fra ${dato}.`;
-      eetLinjer.push(values.verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
+      endeligtEetLinje = values.verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst;
+      endeligtEetReferenceDato = values.endeligEETVirkningsdato;
     } else if (values.endeligEETAfgoerelseDato) {
       const dato = formatDateLong(values.endeligEETAfgoerelseDato);
       const tekst = `Der er den ${dato} truffet endelig erhvervsevnetabsafgørelse.`;
-      eetLinjer.push(values.verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
+      endeligtEetLinje = values.verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst;
+      endeligtEetReferenceDato = values.endeligEETAfgoerelseDato;
     }
   } else if (values.midlertidigtEetAfgorelse === 'Ja') {
     if (values.midlertidigEETVirkningsdato) {
@@ -2108,28 +2121,77 @@ const buildTabtArbejdsfortjenesteModel = (
     eetLinjer.push(values.verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
   }
 
-  const differencekravLinje = values.differencekravDato
+  const differencekravLinjeBase = values.differencekravDato
     ? `Der er opgjort differencekrav i sagen den ${formatDateLong(values.differencekravDato)}.`
     : null;
+  const differencekravReferenceDato = values.differencekravDato;
 
   const tafPerioderLinjer = buildTafPerioderLinjer(values);
   const harTafPerioder = tafPerioderLinjer.length > 0;
   const tafRanges = buildTafRanges(values);
+  const tafRangesAsDates = tafRanges.map((range) => ({
+    fra: isoDateToDate(range.fra),
+    til: isoDateToDate(range.til),
+  }));
+  const harTafDagenFoer = (dato: ISODateString | undefined): boolean => {
+    if (!dato) return false;
+    const dagenFoer = subtractOneDay(dato);
+    return Boolean(dagenFoer && perioderCoverDate(tafRangesAsDates, dagenFoer));
+  };
 
+  const endeligtEetBringTilOphoer =
+    values.verserendeKlageEet !== 'Ja' && harTafDagenFoer(endeligtEetReferenceDato);
+  const differencekravBringTilOphoer = harTafDagenFoer(differencekravReferenceDato);
+
+  let differencekravLinje: string | null = differencekravLinjeBase;
+  let viserEndeligtEetLinje = false;
   if (
-    values.endeligtEetAfgorelse === 'Ja' &&
-    values.verserendeKlageEet !== 'Ja' &&
-    values.endeligEETVirkningsdato &&
-    isISODateString(values.endeligEETVirkningsdato)
+    endeligtEetLinje !== null &&
+    endeligtEetReferenceDato !== undefined &&
+    differencekravLinjeBase !== null &&
+    differencekravReferenceDato !== undefined
   ) {
-    const ophoerDato = subtractOneDay(values.endeligEETVirkningsdato);
-    const tafRangesAsDates = tafRanges.map((range) => ({
-      fra: isoDateToDate(range.fra),
-      til: isoDateToDate(range.til),
-    }));
-    if (ophoerDato && perioderCoverDate(tafRangesAsDates, ophoerDato)) {
-      eetLinjer.push('Afgørelsen bringer retten til tabt arbejdsfortjeneste til ophør.');
+    const endeligDato = endeligtEetReferenceDato;
+    const differenceDato = differencekravReferenceDato;
+
+    // ISODateString er canonical "YYYY-MM-DD", så leksikografisk sammenligning
+    // giver samme orden som kronologisk sammenligning.
+    const compareIsoDates = (left: ISODateString, right: ISODateString): number => {
+      if (left < right) return -1;
+      if (left > right) return 1;
+      return 0;
+    };
+
+    const valgtKilde: 'endeligtEet' | 'differencekrav' = (() => {
+      if (endeligtEetBringTilOphoer && !differencekravBringTilOphoer) return 'endeligtEet';
+      if (!endeligtEetBringTilOphoer && differencekravBringTilOphoer) return 'differencekrav';
+      if (endeligtEetBringTilOphoer && differencekravBringTilOphoer) {
+        const endeligDagenFoer = subtractOneDay(endeligDato);
+        const differenceDagenFoer = subtractOneDay(differenceDato);
+        if (!endeligDagenFoer || !differenceDagenFoer) return 'endeligtEet';
+        return compareIsoDates(endeligDagenFoer, differenceDagenFoer) <= 0 ? 'endeligtEet' : 'differencekrav';
+      }
+      return compareIsoDates(endeligDato, differenceDato) <= 0 ? 'endeligtEet' : 'differencekrav';
+    })();
+
+    if (valgtKilde === 'endeligtEet') {
+      eetLinjer.push(endeligtEetLinje);
+      viserEndeligtEetLinje = true;
+      differencekravLinje = null;
+    } else if (valgtKilde === 'differencekrav') {
+      // Explicit branch: når differencekrav vælges, vises endelig EET ikke.
+      differencekravLinje = differencekravLinjeBase;
     }
+  } else if (endeligtEetLinje) {
+    eetLinjer.push(endeligtEetLinje);
+    viserEndeligtEetLinje = true;
+  }
+
+  if (viserEndeligtEetLinje && endeligtEetBringTilOphoer) {
+    eetLinjer.push('Afgørelsen bringer retten til tabt arbejdsfortjeneste til ophør.');
+  }
+  if (differencekravLinje && differencekravBringTilOphoer) {
+    differencekravLinje = `${differencekravLinje} Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.`;
   }
 
   const tafBeregningsenhed = computeTafBeregningsenhed(values);

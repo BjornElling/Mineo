@@ -31,7 +31,9 @@ export type LoenudviklingManuelTableProps = Readonly<{
   onInputErrorChange?: (hasError: boolean) => void;
   baseDateDisplay: string;
   baseDateErrorMessage?: string;
+  baseDateInfoTooltipText?: string;
   baseRowPercentErrors?: Partial<Record<'feriepenge' | 'shSoSats' | 'fritvalg' | 'agPension', string>>;
+  readOnlyBaseRowPercentFields?: boolean;
   useSmallFont?: boolean;
 }>;
 
@@ -84,12 +86,14 @@ const ReadOnlyDateCell = React.memo(
     gridCell,
     value,
     errorMessage,
+    infoTooltipText,
     inputRef,
     sx,
   }: {
     gridCell: GridCellCoord;
     value: string;
     errorMessage?: string;
+    infoTooltipText?: string;
     inputRef?: React.Ref<HTMLInputElement>;
     sx?: SxProps<Theme>;
   }) => {
@@ -97,6 +101,7 @@ const ReadOnlyDateCell = React.memo(
     const inputElRef = React.useRef<HTMLInputElement | null>(null);
 
     const showError = Boolean(errorMessage && errorMessage.trim() !== '');
+    const tooltipText = showError ? (errorMessage ?? '') : (infoTooltipText ?? '');
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
@@ -129,7 +134,7 @@ const ReadOnlyDateCell = React.memo(
     const a11yErrorId = React.useId();
 
     return (
-      <Tooltip title={showError ? errorMessage : ''} arrow placement="top" disableHoverListener={!showError}>
+      <Tooltip title={tooltipText} arrow placement="top" disableHoverListener={tooltipText.trim() === ''}>
         <span style={{ display: 'block', width: '100%', height: '100%' }}>
           <InputBase
             inputRef={(el) => {
@@ -187,6 +192,120 @@ const ReadOnlyDateCell = React.memo(
 
 ReadOnlyDateCell.displayName = 'ReadOnlyDateCell';
 
+const formatReadOnlyPercentDisplay = (value: string | undefined): string => {
+  const trimmed = value?.trim() ?? '';
+  if (trimmed === '') return '';
+  return trimmed.endsWith('%') ? trimmed : `${trimmed} %`;
+};
+
+const ReadOnlyPercentCell = React.memo(
+  ({
+    gridCell,
+    value,
+    errorMessage,
+    infoTooltipText,
+    inputRef,
+    sx,
+  }: {
+    gridCell: GridCellCoord;
+    value: string;
+    errorMessage?: string;
+    infoTooltipText?: string;
+    inputRef?: React.Ref<HTMLInputElement>;
+    sx?: SxProps<Theme>;
+  }) => {
+    const grid = useGridCoreApi();
+    const inputElRef = React.useRef<HTMLInputElement | null>(null);
+
+    const showError = Boolean(errorMessage && errorMessage.trim() !== '');
+    const tooltipText = showError ? (errorMessage ?? '') : (infoTooltipText ?? '');
+
+    const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
+      return {
+        getElement: () => inputElRef.current,
+        getIsLocked: () => true,
+        commitCurrent: () => true,
+        clearAndCommit: () => {
+          // Locked: no-op
+        },
+        cancelEdit: () => {
+          grid.closeEditing();
+        },
+        prepareEditFromKey: () => false,
+        selectAll: () => {
+          // no-op
+        },
+      };
+    }, [grid]);
+
+    React.useEffect(() => {
+      grid.registerEditor(gridCell, editorHandle);
+      return () => {
+        grid.unregisterEditor(gridCell);
+      };
+    }, [editorHandle, grid, gridCell]);
+
+    const a11yErrorId = React.useId();
+
+    return (
+      <Tooltip title={tooltipText} arrow placement="top" disableHoverListener={tooltipText.trim() === ''}>
+        <span style={{ display: 'block', width: '100%', height: '100%' }}>
+          <InputBase
+            inputRef={(el) => {
+              inputElRef.current = el;
+              assignRef(inputRef, el);
+            }}
+            value={formatReadOnlyPercentDisplay(value)}
+            readOnly
+            inputProps={{
+              readOnly: true,
+              inputMode: 'text',
+              'data-mineo-grid-locked': 'true',
+              'aria-describedby': showError ? a11yErrorId : undefined,
+            }}
+            placeholder=""
+            sx={{
+              width: '100%',
+              height: '100%',
+              font: 'inherit',
+              fontSize: 'inherit',
+              fontFamily: 'inherit',
+              lineHeight: 'inherit',
+              color: 'inherit',
+              fontFeatureSettings: '"tnum"',
+              paddingLeft: '8px',
+              paddingRight: '8px',
+              borderRadius: '4px',
+              border: '1px solid',
+              borderColor: showError ? '#d32f2f' : 'transparent',
+              '&:focus-within': {
+                borderColor: '#1976d2',
+              },
+              '& .MuiInputBase-input': {
+                font: 'inherit',
+                fontSize: 'inherit',
+                lineHeight: 'inherit',
+                color: 'rgba(0, 0, 0, 0.6)',
+                textAlign: 'right',
+                cursor: 'default',
+                caretColor: 'transparent',
+              },
+              ...sx,
+            }}
+          />
+          {showError ? (
+            <span id={a11yErrorId} style={visuallyHiddenStyle}>
+              {errorMessage}
+            </span>
+          ) : null}
+        </span>
+      </Tooltip>
+    );
+  }
+);
+
+ReadOnlyPercentCell.displayName = 'ReadOnlyPercentCell';
+
 const LoenudviklingManuelTable = React.memo(
   ({
     tableData,
@@ -194,7 +313,9 @@ const LoenudviklingManuelTable = React.memo(
     onInputErrorChange,
     baseDateDisplay,
     baseDateErrorMessage,
+    baseDateInfoTooltipText,
     baseRowPercentErrors,
+    readOnlyBaseRowPercentFields = false,
     useSmallFont = false,
   }: LoenudviklingManuelTableProps) => {
     const defaultTableData = React.useMemo<LoenudviklingManuelRow[]>(
@@ -477,6 +598,7 @@ const LoenudviklingManuelTable = React.memo(
                       gridCell={{ rowId: row.id, colIndex: 0 }}
                       value={baseDateDisplay}
                       errorMessage={baseDateErrorMessage}
+                      infoTooltipText={baseDateInfoTooltipText}
                     />
                   ) : (
                     <TableDateInput
@@ -499,47 +621,83 @@ const LoenudviklingManuelTable = React.memo(
                 </td>
 
                 <td style={getStandardGridCellStyle({ align: 'right' })}>
-                  <TablePercentInput
-                    gridCell={{ rowId: row.id, colIndex: 2 }}
-                    value={row.feriepenge}
-                    onBlur={(e) => commitRowUpdate(row.id, { feriepenge: e.target.value }, 2)}
-                    onErrorChange={handleErrorChange(row.id, 'feriepenge')}
-                    externalErrorMessage={isBaseRow ? baseRowPercentErrors?.feriepenge : undefined}
-                    placeholder=""
-                  />
+                  {isBaseRow && readOnlyBaseRowPercentFields ? (
+                    <ReadOnlyPercentCell
+                      gridCell={{ rowId: row.id, colIndex: 2 }}
+                      value={row.feriepenge ?? ''}
+                      errorMessage={baseRowPercentErrors?.feriepenge}
+                      infoTooltipText="Værdien angives ovenfor"
+                    />
+                  ) : (
+                    <TablePercentInput
+                      gridCell={{ rowId: row.id, colIndex: 2 }}
+                      value={row.feriepenge}
+                      onBlur={(e) => commitRowUpdate(row.id, { feriepenge: e.target.value }, 2)}
+                      onErrorChange={handleErrorChange(row.id, 'feriepenge')}
+                      externalErrorMessage={isBaseRow ? baseRowPercentErrors?.feriepenge : undefined}
+                      placeholder=""
+                    />
+                  )}
                 </td>
 
                 <td style={getStandardGridCellStyle({ align: 'right' })}>
-                  <TablePercentInput
-                    gridCell={{ rowId: row.id, colIndex: 3 }}
-                    value={row.shSoSats}
-                    onBlur={(e) => commitRowUpdate(row.id, { shSoSats: e.target.value }, 3)}
-                    onErrorChange={handleErrorChange(row.id, 'shSoSats')}
-                    externalErrorMessage={isBaseRow ? baseRowPercentErrors?.shSoSats : undefined}
-                    placeholder=""
-                  />
+                  {isBaseRow && readOnlyBaseRowPercentFields ? (
+                    <ReadOnlyPercentCell
+                      gridCell={{ rowId: row.id, colIndex: 3 }}
+                      value={row.shSoSats ?? ''}
+                      errorMessage={baseRowPercentErrors?.shSoSats}
+                      infoTooltipText="Værdien angives ovenfor"
+                    />
+                  ) : (
+                    <TablePercentInput
+                      gridCell={{ rowId: row.id, colIndex: 3 }}
+                      value={row.shSoSats}
+                      onBlur={(e) => commitRowUpdate(row.id, { shSoSats: e.target.value }, 3)}
+                      onErrorChange={handleErrorChange(row.id, 'shSoSats')}
+                      externalErrorMessage={isBaseRow ? baseRowPercentErrors?.shSoSats : undefined}
+                      placeholder=""
+                    />
+                  )}
                 </td>
 
                 <td style={getStandardGridCellStyle({ align: 'right' })}>
-                  <TablePercentInput
-                    gridCell={{ rowId: row.id, colIndex: 4 }}
-                    value={row.fritvalg}
-                    onBlur={(e) => commitRowUpdate(row.id, { fritvalg: e.target.value }, 4)}
-                    onErrorChange={handleErrorChange(row.id, 'fritvalg')}
-                    externalErrorMessage={isBaseRow ? baseRowPercentErrors?.fritvalg : undefined}
-                    placeholder=""
-                  />
+                  {isBaseRow && readOnlyBaseRowPercentFields ? (
+                    <ReadOnlyPercentCell
+                      gridCell={{ rowId: row.id, colIndex: 4 }}
+                      value={row.fritvalg ?? ''}
+                      errorMessage={baseRowPercentErrors?.fritvalg}
+                      infoTooltipText="Værdien angives ovenfor"
+                    />
+                  ) : (
+                    <TablePercentInput
+                      gridCell={{ rowId: row.id, colIndex: 4 }}
+                      value={row.fritvalg}
+                      onBlur={(e) => commitRowUpdate(row.id, { fritvalg: e.target.value }, 4)}
+                      onErrorChange={handleErrorChange(row.id, 'fritvalg')}
+                      externalErrorMessage={isBaseRow ? baseRowPercentErrors?.fritvalg : undefined}
+                      placeholder=""
+                    />
+                  )}
                 </td>
 
                 <td style={getStandardGridCellStyle({ align: 'right' })}>
-                  <TablePercentInput
-                    gridCell={{ rowId: row.id, colIndex: 5 }}
-                    value={row.agPension}
-                    onBlur={(e) => commitRowUpdate(row.id, { agPension: e.target.value }, 5)}
-                    onErrorChange={handleErrorChange(row.id, 'agPension')}
-                    externalErrorMessage={isBaseRow ? baseRowPercentErrors?.agPension : undefined}
-                    placeholder=""
-                  />
+                  {isBaseRow && readOnlyBaseRowPercentFields ? (
+                    <ReadOnlyPercentCell
+                      gridCell={{ rowId: row.id, colIndex: 5 }}
+                      value={row.agPension ?? ''}
+                      errorMessage={baseRowPercentErrors?.agPension}
+                      infoTooltipText="Værdien angives ovenfor"
+                    />
+                  ) : (
+                    <TablePercentInput
+                      gridCell={{ rowId: row.id, colIndex: 5 }}
+                      value={row.agPension}
+                      onBlur={(e) => commitRowUpdate(row.id, { agPension: e.target.value }, 5)}
+                      onErrorChange={handleErrorChange(row.id, 'agPension')}
+                      externalErrorMessage={isBaseRow ? baseRowPercentErrors?.agPension : undefined}
+                      placeholder=""
+                    />
+                  )}
                 </td>
               </tr>
             );

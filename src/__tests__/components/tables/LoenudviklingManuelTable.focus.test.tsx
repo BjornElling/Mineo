@@ -57,4 +57,60 @@ describe('LoenudviklingManuelTable fokus-gendannelse', () => {
       expect(onTableDataChange).toHaveBeenCalledTimes(1);
     });
   }, TEST_TIMEOUT_MS);
+
+  it('låser base-rækkens procentfelter når readOnlyBaseRowPercentFields er aktiv', () => {
+    render(
+      <LoenudviklingManuelTable
+        tableData={[
+          makeRow('base-row', { feriepenge: '15,00', shSoSats: '0,00', fritvalg: '7,00', agPension: '9,00' }),
+          makeRow('row-a'),
+        ]}
+        baseDateDisplay="01-01-2024"
+        readOnlyBaseRowPercentFields={true}
+      />
+    );
+
+    const rows = getDataRows();
+    const baseRowCells = within(rows[0]!).getAllByRole('cell');
+    const ferieInput = within(baseRowCells[2]!).getByRole('textbox');
+    const shSoInput = within(baseRowCells[3]!).getByRole('textbox');
+    const fritvalgInput = within(baseRowCells[4]!).getByRole('textbox');
+    const pensionInput = within(baseRowCells[5]!).getByRole('textbox');
+
+    expect(ferieInput).toHaveAttribute('data-mineo-grid-locked', 'true');
+    expect(shSoInput).toHaveAttribute('data-mineo-grid-locked', 'true');
+    expect(fritvalgInput).toHaveAttribute('data-mineo-grid-locked', 'true');
+    expect(pensionInput).toHaveAttribute('data-mineo-grid-locked', 'true');
+    expect(ferieInput).toHaveValue('15,00 %');
+    expect(fritvalgInput).toHaveValue('7,00 %');
+    expect(pensionInput).toHaveValue('9,00 %');
+  });
+
+  it('viser tooltip på read-only dato og read-only procentsatser', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <LoenudviklingManuelTable
+        tableData={[
+          makeRow('base-row', { feriepenge: '15,00', shSoSats: '0,00', fritvalg: '7,00', agPension: '9,00' }),
+          makeRow('row-a'),
+        ]}
+        baseDateDisplay="01-01-2024"
+        baseDateInfoTooltipText="Anmeldedato"
+        readOnlyBaseRowPercentFields={true}
+      />
+    );
+
+    const rows = getDataRows();
+    const baseRowCells = within(rows[0]!).getAllByRole('cell');
+    const dateInput = within(baseRowCells[0]!).getByRole('textbox');
+    const ferieInput = within(baseRowCells[2]!).getByRole('textbox');
+
+    await user.hover(dateInput);
+    expect(await screen.findByText('Anmeldedato')).toBeInTheDocument();
+
+    await user.unhover(dateInput);
+    await user.hover(ferieInput);
+    expect(await screen.findByText('Værdien angives ovenfor')).toBeInTheDocument();
+  });
 });

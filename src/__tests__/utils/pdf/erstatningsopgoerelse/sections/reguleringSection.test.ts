@@ -215,3 +215,66 @@ describe('renderReguleringSection – statistik-noter', () => {
     );
   });
 });
+
+describe('renderReguleringSection – reguleringstekst', () => {
+  it('viser reguleringstekst for Manuelt angivet når tafBounds findes', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+        id: 'af-manuel',
+        navnPaaArbejdssted: 'Manuel regulering',
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      },
+    ];
+    const { safeAddWrappedText, ctx } = makeContext(eoValues);
+    ctx.resolveTafDateBounds = vi.fn(() => ({
+      foerste: iso('2023-07-01'),
+      sidste: iso('2025-12-21'),
+    }));
+
+    renderReguleringSection(ctx);
+
+    expect(safeAddWrappedText).toHaveBeenCalledWith(
+      expect.stringContaining('Regulering foretages på baggrund af den procentuelle udvikling i grundløn.')
+    );
+  });
+
+  it('medtager fritvalg og pension for Manuelt angivet når reguleringsværdierne stiger', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+        id: 'af-manuel-stigning',
+        navnPaaArbejdssted: 'Manuel regulering med stigning',
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      },
+    ];
+    const { safeAddWrappedText, ctx } = makeContext(eoValues);
+    ctx.resolveTafDateBounds = vi.fn(() => ({
+      foerste: iso('2023-07-01'),
+      sidste: iso('2025-12-21'),
+    }));
+    ctx.buildReguleringsvaerdierTableData = vi.fn(() => ({
+      columns: ['Dato', 'Grundløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'AG pension'],
+      rows: [
+        ['24-05-2023', '25.174,00', '15 % / 15,00 %', '7,00 %', '7,00 %', '9,00 %'],
+        ['01-05-2025', '26.496,00', '15 % / 15,00 %', '9,00 %', '9,00 %', '12,00 %'],
+      ],
+    }));
+
+    renderReguleringSection(ctx);
+
+    expect(safeAddWrappedText).toHaveBeenCalledWith(
+      expect.stringContaining('Hertil kommer stigninger i')
+    );
+    expect(safeAddWrappedText).toHaveBeenCalledWith(
+      expect.stringContaining('fritvalg')
+    );
+    expect(safeAddWrappedText).toHaveBeenCalledWith(
+      expect.stringContaining('pension')
+    );
+  });
+});

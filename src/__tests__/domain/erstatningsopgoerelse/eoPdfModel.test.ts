@@ -1297,6 +1297,89 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     );
   });
 
+  it('viser kun endelig EET-linje når både midlertidig og endelig EET er angivet', () => {
+    const eoValues = makeValues({
+      endeligtEetAfgorelse: 'Ja',
+      endeligEETVirkningsdato: iso('2024-06-01'),
+      midlertidigtEetAfgorelse: 'Ja',
+      midlertidigEETVirkningsdato: iso('2024-05-01'),
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('endelig erhvervsevnetabsafgørelse'))).toBe(true);
+    expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('midlertidig erhvervsevnetabsafgørelse'))).toBe(false);
+  });
+
+  it('tilføjer ophørstekst for differencekrav når TAF går til dagen før differencekrav', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(30000),
+      differencekravDato: iso('2024-07-01'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-06-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.tabtArbejdsfortjeneste.eetLinjer).toHaveLength(0);
+    expect(model.tabtArbejdsfortjeneste.differencekravLinje).toBe(
+      'Der er opgjort differencekrav i sagen den 1. juli 2024. Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.'
+    );
+  });
+
+  it('viser kun endelig EET når både endelig EET og differencekrav findes, og endelig EET bringer TAF til ophør', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(30000),
+      endeligtEetAfgorelse: 'Ja',
+      endeligEETVirkningsdato: iso('2024-06-15'),
+      differencekravDato: iso('2024-08-01'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('endelig erhvervsevnetabsafgørelse'))).toBe(true);
+    expect(model.tabtArbejdsfortjeneste.eetLinjer).toContain('Afgørelsen bringer retten til tabt arbejdsfortjeneste til ophør.');
+    expect(model.tabtArbejdsfortjeneste.differencekravLinje).toBeNull();
+  });
+
+  it('viser tidligste dato mellem endelig EET og differencekrav når ingen af dem bringer TAF til ophør', () => {
+    const eoValues = makeValues({
+      endeligtEetAfgorelse: 'Ja',
+      endeligEETVirkningsdato: iso('2024-06-01'),
+      differencekravDato: iso('2024-05-01'),
+      tafPerioder: [],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('endelig erhvervsevnetabsafgørelse'))).toBe(false);
+    expect(model.tabtArbejdsfortjeneste.differencekravLinje).toBe('Der er opgjort differencekrav i sagen den 1. maj 2024.');
+  });
+
   it('viser måneder-mellemregning uden fraværsled ved 0 øvrige fraværsdage', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Beregningsperiode',

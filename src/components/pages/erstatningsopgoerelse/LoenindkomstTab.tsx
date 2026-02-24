@@ -40,7 +40,7 @@ import { isISODateString, parseISODate } from '../../../types/branded';
 import { createDate, formatDanishDate } from '../../../utils/dateUtils';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { isLoenperiodeValue } from '../../../utils/zodTypeGuards';
-import { generateAnsaettelsesforholdId } from '../../../utils/eoConverters';
+import { generateAnsaettelsesforholdId, generateLoenudviklingRowId, initialLoenudviklingManuelRow } from '../../../utils/eoConverters';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { UI_STORAGE_KEYS } from '../../../config/storageManifest';
 import {
@@ -102,6 +102,40 @@ const formatReguleringsDatoInterval = (interval?: { fraDato: string; tilDato: st
 const getOffentligLoenEkstraGrundloenSuffix = (
   offentligLoenType: Ansaettelsesforhold['offentligLoenType']
 ): string => (offentligLoenType === 'Timeløn' ? '/ time' : '/ måned');
+
+const formatManualBaseRowPercent = (value: number | undefined): string | undefined => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
+  return value.toFixed(2).replace('.', ',');
+};
+
+const syncManualBaseRowSatser = (af: Ansaettelsesforhold): Ansaettelsesforhold => {
+  if (af.loenudviklingBeregningsgrundlag !== 'Manuelt angivet') return af;
+
+  const currentRows = af.loenudviklingManuelTableData ?? [];
+  const currentBaseRow = currentRows[0]
+    ?? { ...initialLoenudviklingManuelRow, id: generateLoenudviklingRowId() };
+
+  const nextBaseRow = {
+    ...currentBaseRow,
+    feriepenge: formatManualBaseRowPercent(af.feriePct),
+    shSoSats: formatManualBaseRowPercent(af.shSoPct),
+    fritvalg: formatManualBaseRowPercent(af.fritvalgPct),
+    agPension: formatManualBaseRowPercent(af.pensionPct),
+  };
+
+  const hasBaseRowChanged =
+    currentBaseRow.feriepenge !== nextBaseRow.feriepenge ||
+    currentBaseRow.shSoSats !== nextBaseRow.shSoSats ||
+    currentBaseRow.fritvalg !== nextBaseRow.fritvalg ||
+    currentBaseRow.agPension !== nextBaseRow.agPension;
+
+  if (!hasBaseRowChanged && currentRows.length > 0) return af;
+
+  return {
+    ...af,
+    loenudviklingManuelTableData: [nextBaseRow, ...currentRows.slice(1)],
+  };
+};
 
 /**
  * Opretter et nyt tomt Ansættelsesforhold med standardværdier fra settings
@@ -884,7 +918,8 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
         if (index === -1) return prev;
 
         const nextItems = [...items];
-        nextItems[index] = updater(items[index]);
+        const updated = updater(items[index]);
+        nextItems[index] = syncManualBaseRowSatser(updated);
 
         return { ...prev, loenindkomstAnsaettelsesforhold: nextItems };
       });
@@ -1984,25 +2019,39 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 
             {loenudviklingBasis === 'Manuelt angivet' ? (
               <Box sx={{ mt: 1 }}>
-                <Box className="row--label-right-hover">
-                  <Typography className="row--text">Navn på reguleringsform</Typography>
-                  <Box className="row--label-right-hover__content">
-                    <StyledTextField
-                      width={300}
-                      value={af.loenudviklingManuelNavn || ''}
-                      onCommit={handleTextCommit(af.id, 'loenudviklingManuelNavn')}
-                    />
-                  </Box>
-                </Box>
-                <LoenudviklingManuelTable
-                  tableData={af.loenudviklingManuelTableData}
-                  onTableDataChange={handleLoenudviklingManuelTableChange(af.id)}
-                  onInputErrorChange={handleManuelReguleringInputErrorChange(af.id)}
-                  baseDateDisplay={loenudviklingBaseDate.display}
-                  baseDateErrorMessage={loenudviklingBaseDate.display === '' ? loenudviklingBaseDate.errorMessage : undefined}
-                  baseRowPercentErrors={manualBaseRowErrorsByAfId[af.id]}
-                  useSmallFont={true}
-                />
+                {(() => {
+                  const baseDateTooltipText =
+                    af.saerligFraDatoRegulering === undefined &&
+                    stamdataValues?.skadesdato !== undefined &&
+                    loenudviklingBaseDate.display !== ''
+                      ? (stamdataValues.skadestype === 'Erhvervssygdom' ? 'Anmeldedato' : 'Skadesdato')
+                      : undefined;
+                  return (
+                    <>
+                      <Box className="row--label-right-hover">
+                        <Typography className="row--text">Navn på reguleringsform</Typography>
+                        <Box className="row--label-right-hover__content">
+                          <StyledTextField
+                            width={350}
+                            value={af.loenudviklingManuelNavn || ''}
+                            onCommit={handleTextCommit(af.id, 'loenudviklingManuelNavn')}
+                          />
+                        </Box>
+                      </Box>
+                      <LoenudviklingManuelTable
+                        tableData={af.loenudviklingManuelTableData}
+                        onTableDataChange={handleLoenudviklingManuelTableChange(af.id)}
+                        onInputErrorChange={handleManuelReguleringInputErrorChange(af.id)}
+                        baseDateDisplay={loenudviklingBaseDate.display}
+                        baseDateErrorMessage={loenudviklingBaseDate.display === '' ? loenudviklingBaseDate.errorMessage : undefined}
+                        baseDateInfoTooltipText={baseDateTooltipText}
+                        baseRowPercentErrors={manualBaseRowErrorsByAfId[af.id]}
+                        readOnlyBaseRowPercentFields={true}
+                        useSmallFont={true}
+                      />
+                    </>
+                  );
+                })()}
               </Box>
             ) : null}
 
@@ -2443,5 +2492,3 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 LoenindkomstTab.displayName = 'LoenindkomstTab';
 
 export default LoenindkomstTab;
-
-

@@ -1397,12 +1397,10 @@ const EODebug = () => {
         ): string => {
           const isPlainValue = isSimpleIndex || (!numeratorDisplay.includes(' x ') && !denominatorDisplay.includes(' x '));
           if (isSameNumericValue(numeratorValue, denominatorValue)) {
-            return isPlainValue ? numeratorDisplay : `(${numeratorDisplay})`;
+            return numeratorDisplay;
           }
           const formula = isPlainValue
-            ? (isSimpleIndex
-              ? `${numeratorDisplay} / ${denominatorDisplay}`
-              : `(${numeratorDisplay} / ${denominatorDisplay})`)
+            ? `(${numeratorDisplay} / ${denominatorDisplay})`
             : `(${numeratorDisplay}) /\n(${denominatorDisplay})`;
           return wrapIndexFormulaAfterSlashWhenLong(formula);
         };
@@ -2719,7 +2717,7 @@ const EODebug = () => {
       
       {beregnesTabtArbejdsfortjeneste && (
         <ContentBox className="content-box">
-        <Typography className="section-header">Indkomst</Typography>
+        <Typography className="section-header">Kontrol af indkomstoplysninger</Typography>
 
         {indkomstSections.length > 0 ? (
           indkomstSections.map((section) => (
@@ -2735,7 +2733,7 @@ const EODebug = () => {
               </Box>
 
               <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-                <Typography className="row--text">Satser på skadestidspunktet indtastet</Typography>
+                <Typography className="row--text">Satser på skadestidspunktet</Typography>
                 <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
                   <Typography className="row--text">{section.satserMessage}</Typography>
                   {getStatusIcon(section.satserStatus)}
@@ -2743,7 +2741,7 @@ const EODebug = () => {
               </Box>
 
               <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-                <Typography className="row--text">Alle lønoplysninger indtastet korrekt</Typography>
+                <Typography className="row--text">Lønoplysninger</Typography>
                 <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
                   <Typography className="row--text">{section.tableMessage}</Typography>
                   {getStatusIcon(section.tableStatus)}
@@ -2910,5 +2908,3 @@ const EODebug = () => {
 };
 
 export default EODebug;
-
-

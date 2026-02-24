@@ -222,6 +222,78 @@ const Indstillinger = React.memo(() => {
       <Typography className="page-title">Indstillinger</Typography>
 
       <ContentBox className="content-box">
+        <Typography className="section-header">System</Typography>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Placering til gemte filer</Typography>
+          <Box className="row--label-right-hover__content">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                className="row--text"
+                sx={{
+                  fontStyle: settings.defaultDirectoryHandleId ? 'normal' : 'italic',
+                  color: settings.defaultDirectoryHandleId ? 'text.primary' : 'text.secondary',
+                  minWidth: 120,
+                  textAlign: 'right',
+                }}
+              >
+                {isLoadingDirectory ? 'Indlæser...' : directoryDisplayName}
+              </Typography>
+              <Tooltip title="Vælg mappe">
+                <IconButton
+                  onClick={handleChooseDirectory}
+                  size="small"
+                  sx={{
+                    padding: 0.5,
+                    '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' },
+                  }}
+                >
+                  <FolderOpenIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              {settings.defaultDirectoryHandleId && (
+                <Tooltip title="Nulstil til skrivebord">
+                  <Typography
+                    component="span"
+                    onClick={handleResetDirectory}
+                    sx={{
+                      fontSize: '0.75rem',
+                      color: 'text.secondary',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      '&:hover': { color: 'primary.main' },
+                    }}
+                  >
+                    Nulstil
+                  </Typography>
+                </Tooltip>
+              )}
+            </Box>
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover" sx={{ alignItems: 'flex-start' }}>
+          <Typography className="row--text">Indsæt brevhoved i</Typography>
+          <Box className="row--label-right-hover__content">
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0 }}>
+              {/* Første række: Erstatningsopgørelse, SH-dage, Renteberegning */}
+              <BrevhovedCheckboxRow
+                items={brevhovedOptionsRow1}
+                checked={settings.brevhovedIndstillinger}
+                onToggle={handleBrevhovedToggle}
+              />
+              {/* Anden række: Regulering, Varige mén, Satser, Årslønsberegning */}
+              <BrevhovedCheckboxRow
+                items={brevhovedOptionsRow2}
+                checked={settings.brevhovedIndstillinger}
+                onToggle={handleBrevhovedToggle}
+              />
+            </Box>
+          </Box>
+        </Box>
+      </ContentBox>
+
+      <ContentBox className="content-box">
         <Typography className="section-header">Standardværdier</Typography>
 
         <Box className="row--label-right-hover">
@@ -298,58 +370,6 @@ const Indstillinger = React.memo(() => {
         </Box>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Placering til gemte filer</Typography>
-          <Box className="row--label-right-hover__content">
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography
-                className="row--text"
-                sx={{
-                  fontStyle: settings.defaultDirectoryHandleId ? 'normal' : 'italic',
-                  color: settings.defaultDirectoryHandleId ? 'text.primary' : 'text.secondary',
-                  minWidth: 120,
-                  textAlign: 'right',
-                }}
-              >
-                {isLoadingDirectory ? 'Indlæser...' : directoryDisplayName}
-              </Typography>
-              <Tooltip title="Vælg mappe">
-                <IconButton
-                  onClick={handleChooseDirectory}
-                  size="small"
-                  sx={{
-                    padding: 0.5,
-                    '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' },
-                  }}
-                >
-                  <FolderOpenIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              {settings.defaultDirectoryHandleId && (
-                <Tooltip title="Nulstil til skrivebord">
-                  <Typography
-                    component="span"
-                    onClick={handleResetDirectory}
-                    sx={{
-                      fontSize: '0.75rem',
-                      color: 'text.secondary',
-                      cursor: 'pointer',
-                      textDecoration: 'underline',
-                      '&:hover': { color: 'primary.main' },
-                    }}
-                  >
-                    Nulstil
-                  </Typography>
-                </Tooltip>
-              )}
-            </Box>
-          </Box>
-        </Box>
-      </ContentBox>
-
-      <ContentBox className="content-box">
-        <Typography className="section-header">Dokumenter</Typography>
-
-        <Box className="row--label-right-hover">
           <Typography className="row--text">Udkast-stempel på nye dokumenter</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
@@ -380,26 +400,6 @@ const Indstillinger = React.memo(() => {
             </StyledDropdown>
           </Box>
         </Box>
-
-        <Box className="row--label-right-hover" sx={{ alignItems: 'flex-start' }}>
-          <Typography className="row--text">Indsæt brevhoved i</Typography>
-          <Box className="row--label-right-hover__content">
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0 }}>
-              {/* Første række: Erstatningsopgørelse, SH-dage, Renteberegning */}
-              <BrevhovedCheckboxRow
-                items={brevhovedOptionsRow1}
-                checked={settings.brevhovedIndstillinger}
-                onToggle={handleBrevhovedToggle}
-              />
-              {/* Anden række: Regulering, Varige mén, Satser, Årslønsberegning */}
-              <BrevhovedCheckboxRow
-                items={brevhovedOptionsRow2}
-                checked={settings.brevhovedIndstillinger}
-                onToggle={handleBrevhovedToggle}
-              />
-            </Box>
-          </Box>
-        </Box>
       </ContentBox>
 
       <ContentBox className="content-box">
@@ -420,7 +420,7 @@ const Indstillinger = React.memo(() => {
         </Box>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Accepter overenskomst, der er udløbet med</Typography>
+          <Typography className="row--text">Efter udløb anses overenskomst for forældet efter</Typography>
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <StyledDropdown

@@ -52,6 +52,15 @@ export const mergeFeriepengeDisplay = (fromFeriePct: string | undefined, fromFer
     if (trimmed === '' || trimmed === '-') return null;
     return trimmed;
   };
+  const parseComparablePercent = (value: string | null): number | null => {
+    if (value === null) return null;
+    const compact = value.replace('%', '').replace(/\s+/g, '');
+    if (compact === '') return null;
+    if (!/^-?[\d.,]+$/.test(compact)) return null;
+    const normalized = compact.replace(/\./g, '').replace(',', '.');
+    const parsed = Number.parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
 
   const left = normalize(fromFeriePct);
   const right = normalize(fromFeriepenge);
@@ -59,6 +68,11 @@ export const mergeFeriepengeDisplay = (fromFeriePct: string | undefined, fromFer
   if (!left && !right) return '-';
   if (left && !right) return left;
   if (!left && right) return right;
+  const leftPercent = parseComparablePercent(left);
+  const rightPercent = parseComparablePercent(right);
+  if (leftPercent !== null && rightPercent !== null && Math.abs(leftPercent - rightPercent) <= 0.005) {
+    return formatPercentFixed2Shared(leftPercent);
+  }
   if (left === right) return left ?? '-';
   return `${left} / ${right}`;
 };

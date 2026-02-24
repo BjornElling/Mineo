@@ -74,6 +74,92 @@ type OpgorelseSectionContext = Readonly<{
   }>;
 }>;
 
+const resolveOevrigeKravYdelsesforbeholdLinje = (
+  ydelser: readonly string[]
+): string | null => {
+  const hasKontanthjaelp = ydelser.includes('kontanthjaelp');
+  const hasRessourceforloebsydelse = ydelser.includes('ressourceforloebsydelse');
+
+  if (!hasKontanthjaelp && !hasRessourceforloebsydelse) return null;
+
+  const hasBeggeYdelser = hasKontanthjaelp && hasRessourceforloebsydelse;
+  const ydelseTekst = hasBeggeYdelser
+    ? 'kontanthjælp og ressourceforløbsydelse'
+    : hasKontanthjaelp
+      ? 'kontanthjælp'
+      : 'ressourceforløbsydelse';
+  const tilbagebetalingsSubjekt = hasBeggeYdelser ? 'ydelserne' : 'ydelsen';
+
+  return `Skadelidte har modtaget ${ydelseTekst} i erstatningsperioden. Kræves ${tilbagebetalingsSubjekt} tilbagebetalt som følge af erstatningsudbetaling, vil kravet blive forhøjet.`;
+};
+
+const resolveOevrigeKravEetKlageReguleringsLinje = (
+  eoValues: ErstatningsopgoerelseValues
+): string | null => {
+  if (eoValues.verserendeKlageEet !== 'Ja') return null;
+
+  const harMidlertidigEetOplysning =
+    eoValues.midlertidigtEetAfgorelse === 'Ja' &&
+    (eoValues.midlertidigEETVirkningsdato !== undefined || eoValues.midlertidigEETAfgoerelseDato !== undefined);
+  const harEndeligEetOplysning =
+    eoValues.endeligtEetAfgorelse === 'Ja' &&
+    (eoValues.endeligEETVirkningsdato !== undefined || eoValues.endeligEETAfgoerelseDato !== undefined);
+
+  if (!harMidlertidigEetOplysning && !harEndeligEetOplysning) return null;
+
+  return 'Hvis der som følge af den verserende klagesag over erhvervsevnetab sker ændringer i ydelse eller virkningstidspunkt, vil kravet blive reguleret tilsvarende.';
+};
+
+const mergeLoenudviklingSegments = (segments: readonly LoenudviklingSegment[]): readonly LoenudviklingSegment[] => {
+  if (segments.length <= 1) return segments;
+  const merged: LoenudviklingSegment[] = [];
+  for (const segment of segments) {
+    const last = merged[merged.length - 1];
+    if (!last) {
+      merged.push(segment);
+      continue;
+    }
+
+    const isAdjacent = addOneDayIso(last.til) === segment.fra;
+    const isSameKind = last.kind === segment.kind;
+    const isSameDelta = Math.abs(last.deltaPct - segment.deltaPct) < 0.00001;
+
+    if (!isAdjacent || !isSameKind || !isSameDelta) {
+      merged.push(segment);
+      continue;
+    }
+
+    if (last.kind === 'arbejdsdage' && segment.kind === 'arbejdsdage' && last.dagsloenOre === segment.dagsloenOre) {
+      merged[merged.length - 1] = {
+        kind: 'arbejdsdage',
+        fra: last.fra,
+        til: segment.til,
+        arbejdsdage: last.arbejdsdage + segment.arbejdsdage,
+        dagsloenOre: last.dagsloenOre,
+        deltaPct: last.deltaPct,
+        amountOre: (last.amountOre + segment.amountOre) as MoneyOre,
+      };
+      continue;
+    }
+
+    if (last.kind === 'maaneder' && segment.kind === 'maaneder' && last.maanedsloenOre === segment.maanedsloenOre) {
+      merged[merged.length - 1] = {
+        kind: 'maaneder',
+        fra: last.fra,
+        til: segment.til,
+        maaneder: roundToFourDecimals(last.maaneder + segment.maaneder),
+        maanedsloenOre: last.maanedsloenOre,
+        deltaPct: last.deltaPct,
+        amountOre: (last.amountOre + segment.amountOre) as MoneyOre,
+      };
+      continue;
+    }
+
+    merged.push(segment);
+  }
+  return merged;
+};
+
 export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   const {
     model,
@@ -108,56 +194,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     formatPercentDelta,
     writer,
   } = ctx;
-
-  const mergeLoenudviklingSegments = (segments: readonly LoenudviklingSegment[]): readonly LoenudviklingSegment[] => {
-    if (segments.length <= 1) return segments;
-    const merged: LoenudviklingSegment[] = [];
-    for (const segment of segments) {
-      const last = merged[merged.length - 1];
-      if (!last) {
-        merged.push(segment);
-        continue;
-      }
-
-      const isAdjacent = addOneDayIso(last.til) === segment.fra;
-      const isSameKind = last.kind === segment.kind;
-      const isSameDelta = Math.abs(last.deltaPct - segment.deltaPct) < 0.00001;
-
-      if (!isAdjacent || !isSameKind || !isSameDelta) {
-        merged.push(segment);
-        continue;
-      }
-
-      if (last.kind === 'arbejdsdage' && segment.kind === 'arbejdsdage' && last.dagsloenOre === segment.dagsloenOre) {
-        merged[merged.length - 1] = {
-          kind: 'arbejdsdage',
-          fra: last.fra,
-          til: segment.til,
-          arbejdsdage: last.arbejdsdage + segment.arbejdsdage,
-          dagsloenOre: last.dagsloenOre,
-          deltaPct: last.deltaPct,
-          amountOre: (last.amountOre + segment.amountOre) as MoneyOre,
-        };
-        continue;
-      }
-
-      if (last.kind === 'maaneder' && segment.kind === 'maaneder' && last.maanedsloenOre === segment.maanedsloenOre) {
-        merged[merged.length - 1] = {
-          kind: 'maaneder',
-          fra: last.fra,
-          til: segment.til,
-          maaneder: roundToFourDecimals(last.maaneder + segment.maaneder),
-          maanedsloenOre: last.maanedsloenOre,
-          deltaPct: last.deltaPct,
-          amountOre: (last.amountOre + segment.amountOre) as MoneyOre,
-        };
-        continue;
-      }
-
-      merged.push(segment);
-    }
-    return merged;
-  };
 
   renderSectionHeader('Svie- og smertegodtgørelse', lineHeight);
   renderSubheader('Status', lineHeight, { addTopSpacing: false });
@@ -610,9 +646,15 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       renderSubheader('Beregnet krav på tabt arbejdsfortjeneste', lineHeight);
 
       const rightMaxWidth = writer.getTextWidth('000.000.000,00');
-      const leftText = tidligereModtagetTaf.status === 'ok'
-        ? `${formatMoneyOreWithKr(loenudviklingTotal.value)} - ${formatMoneyOreWithKr(tafTotal.value)} - ${formatMoneyOreWithKr(tidligereModtagetTaf.value)} =`
-        : `${formatMoneyOreWithKr(loenudviklingTotal.value)} - ${formatMoneyOreWithKr(tafTotal.value)} =`;
+      const loenudviklingUdenKr = formatCurrencyFromOre(loenudviklingTotal.value);
+      const tafUdenKr = formatCurrencyFromOre(tafTotal.value);
+      const ledFoerLigmed = [loenudviklingUdenKr, tafUdenKr];
+      if (tidligereModtagetTaf.status === 'ok') {
+        ledFoerLigmed.push(formatCurrencyFromOre(tidligereModtagetTaf.value));
+      }
+      const leftText = `${ledFoerLigmed
+        .map((led, index) => (index === ledFoerLigmed.length - 1 ? `${led}${NBSP}kr.` : led))
+        .join(' - ')} =`;
       const rightText = formatMoneyOreWithKr(model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre);
       safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'bold' });
     } else if (model.tabtArbejdsfortjeneste.harTafPerioder) {
@@ -625,10 +667,36 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   const kravEntries = model.oevrigeKrav.entries;
   const kravRightMaxWidth = writer.getTextWidth('000.000.000,00');
   const kravHeaderHeight = lineHeight * 4;
+  const oevrigeKravYdelsesforbeholdLinje = resolveOevrigeKravYdelsesforbeholdLinje(
+    model.tabtArbejdsfortjeneste.tafIndtaegter?.oevrigeKravForbeholdYdelsestyper ?? []
+  );
+  // Intentionel kobling: EET-klage-reguleringslinjen vises kun når der allerede er en
+  // ydelsesforbehold-linje (kontanthjælp/ressourceforløbsydelse), fordi de to linjer
+  // hører samen som én samlet forbehold-blok. En sag med verserende EET-klage men
+  // uden disse ydelser får ikke linjen — det er korrekt adfærd.
+  const oevrigeKravEetKlageReguleringsLinje = oevrigeKravYdelsesforbeholdLinje
+    ? resolveOevrigeKravEetKlageReguleringsLinje(eoValues)
+    : null;
+  const oevrigeKravIntroLinjer = [oevrigeKravYdelsesforbeholdLinje, oevrigeKravEetKlageReguleringsLinje].filter(
+    (line): line is string => line !== null
+  );
+  const renderOevrigeKravIntro = (addTrailingSpacer: boolean): void => {
+    oevrigeKravIntroLinjer.forEach((line, index) => {
+      safeAddWrappedText(line);
+      const erSidsteLinje = index === oevrigeKravIntroLinjer.length - 1;
+      if (!erSidsteLinje || addTrailingSpacer) {
+        writer.addSpacer(lineHeight);
+      }
+    });
+  };
 
   if (kravEntries.length === 0) {
     renderSectionHeader('Øvrige krav', lineHeight);
-    safeAddWrappedText('Ingen');
+    if (oevrigeKravIntroLinjer.length > 0) {
+      renderOevrigeKravIntro(false);
+    } else {
+      safeAddWrappedText('Ingen');
+    }
   } else {
     renderAtomicTableChunks({
       rows: kravEntries,
@@ -636,6 +704,9 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       headerHeight: kravHeaderHeight,
       renderHeader: () => {
         renderSectionHeader('Øvrige krav', lineHeight);
+        if (oevrigeKravIntroLinjer.length > 0) {
+          renderOevrigeKravIntro(true);
+        }
       },
       renderRow: (entry) => {
         const udgiftText = entry.udgiftTil !== '' ? entry.udgiftTil : '-';

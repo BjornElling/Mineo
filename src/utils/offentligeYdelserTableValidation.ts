@@ -5,7 +5,7 @@ import type {
   OffentligeYdelserTableFirstErrorCell,
   OffentligeYdelserTableValidationSummary,
 } from '../types/table';
-import { isAmountValueStrict, isEffectivelyEmptyNumber, isZeroOnlyString } from './tableValidationCommon';
+import { isAmountValueStrict, isZeroOnlyString } from './tableValidationCommon';
 
 export type OffentligeYdelserTableValidationResult = Readonly<{
   summary: OffentligeYdelserTableValidationSummary;
@@ -14,7 +14,7 @@ export type OffentligeYdelserTableValidationResult = Readonly<{
 export const isOffentligeYdelserAmountValueValidForValidation = (value: unknown): boolean => {
   if (value === undefined || value === null) return true;
   if (!isAmountValueStrict(value)) return false;
-  if (isEffectivelyEmptyNumber(value.value)) return false;
+  if (!Number.isFinite(value.value)) return false;
   if (value.kind === 'expression') {
     return value.expression.trim() !== '';
   }
@@ -28,12 +28,12 @@ export const isOffentligeYdelserTableValueEffectivelyEmptyForValidation = (value
     if (trimmed === '') return true;
     return isZeroOnlyString(trimmed);
   }
-  if (typeof value === 'number') return isEffectivelyEmptyNumber(value);
+  if (typeof value === 'number') return !Number.isFinite(value);
   if (isAmountValueStrict(value)) {
-    if (value.kind === 'number') return isEffectivelyEmptyNumber(value.value);
-    if (isEffectivelyEmptyNumber(value.value)) return true;
+    if (value.kind === 'number') return !Number.isFinite(value.value);
+    if (!Number.isFinite(value.value)) return true;
     if (value.expression.trim() === '') return true;
-    return isZeroOnlyString(value.expression);
+    return false;
   }
   return false;
 };
@@ -80,7 +80,7 @@ export const getOffentligeYdelserRowFilledState = (row: OffentligeYdelserRow): O
   };
 };
 
-const COLUMN_ORDER: readonly OffentligeYdelserTableColumnKey[] = [
+export const OFFENTLIGE_YDELSER_COLUMN_ORDER: readonly OffentligeYdelserTableColumnKey[] = [
   'fraDato',
   'tilDato',
   'ydelse',
@@ -167,7 +167,7 @@ export const getOffentligeYdelserTableValidation = ({
       hasErrors = true;
       rowIssues.push({ rowId: row.id, level: 'error', reason: hasInputError ? 'input' : 'missing' });
       if (!firstErrorCell) {
-        for (const colKey of COLUMN_ORDER) {
+        for (const colKey of OFFENTLIGE_YDELSER_COLUMN_ORDER) {
           if (rowErrorKeys.has(colKey)) {
             firstErrorCell = { rowId: row.id, colKey, reason: 'input' };
             break;

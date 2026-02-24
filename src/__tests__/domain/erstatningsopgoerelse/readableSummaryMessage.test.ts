@@ -39,21 +39,21 @@ describe('toReadableSummaryMessage', () => {
 
   // ─── "X er ikke valgt"-mønster ───────────────────────────────────────────────
 
-  it('normaliserer "X er ikke valgt" → "\"x\" mangler"', () => {
+  it('normaliserer "X er ikke valgt" → "X mangler"', () => {
     expect(toReadableSummaryMessage('Beregningsgrundlag er ikke valgt'))
-      .toBe('"beregningsgrundlag" mangler');
+      .toBe('Beregningsgrundlag mangler');
   });
 
-  it('bevarer case for "er ikke valgt"-match bortset fra første bogstav', () => {
+  it('bevarer case for "er ikke valgt"-match', () => {
     expect(toReadableSummaryMessage('ATP-sats er ikke valgt'))
-      .toBe('"aTP-sats" mangler');
+      .toBe('ATP-sats mangler');
   });
 
   // ─── "X mangler"-mønster (feltspecifikt) ─────────────────────────────────────
 
-  it('normaliserer feltspecifik "X mangler" → "\"x\" mangler"', () => {
+  it('normaliserer feltspecifik "X mangler" → "X mangler"', () => {
     expect(toReadableSummaryMessage('Feriedagpengeperiode mangler'))
-      .toBe('"feriedagpengeperiode" mangler');
+      .toBe('Feriedagpengeperiode mangler');
   });
 
   it('normaliserer ikke "Indtastning mangler" via felt-mønster (fanges af tidlig guard)', () => {
@@ -74,7 +74,7 @@ describe('toReadableSummaryMessage', () => {
 
   it('unwrapper "Fejl (X)" med felt-mønster', () => {
     expect(toReadableSummaryMessage('Fejl (Startdato er ikke valgt)'))
-      .toBe('"startdato" mangler');
+      .toBe('Startdato mangler');
   });
 
   // ─── Pass-through ─────────────────────────────────────────────────────────────

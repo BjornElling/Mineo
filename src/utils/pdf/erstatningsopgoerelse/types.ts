@@ -13,6 +13,11 @@ export type ReguleringIndexRow = Readonly<{
   loenudvikling: string;
 }>;
 
+export type ReguleringValuesTableData = Readonly<{
+  columns: readonly string[];
+  rows: ReadonlyArray<ReadonlyArray<string>>;
+}>;
+
 export interface SelectedElements {
   opgoerelse: boolean;
   loenindkomst: boolean;
@@ -22,4 +27,3 @@ export interface SelectedElements {
   okSatser: boolean;
   sygeferiegodtgoerelse: boolean;
 }
-

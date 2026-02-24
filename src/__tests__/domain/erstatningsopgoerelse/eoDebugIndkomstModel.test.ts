@@ -44,7 +44,7 @@ describe('buildIndkomstSectionStatuses', () => {
     const result = buildIndkomstSectionStatuses([af], undefined, 'Beregningsperiode');
 
     expect(result[0]?.tableStatus).toBe('ok');
-    expect(result[0]?.tableMessage).toBe('Ja');
+    expect(result[0]?.tableMessage).toBe('Ok');
   });
 
   it('giver præcis fejltekst ved manglende periodefelt', () => {
@@ -81,7 +81,24 @@ describe('buildIndkomstSectionStatuses', () => {
 });
 
 describe('buildOffentligeYdelserDebugRows', () => {
-  it('giver præcis fejltekst ved manglende fra-dato', () => {
+  it('viser "Ok" ved korrekt udfyldt offentlig ydelse i stedet for beregnet sum', () => {
+    const rows = [
+      {
+        id: 'row-1',
+        fraDato: '01-01-2024',
+        tilDato: '31-01-2024',
+        ydelsestype: 'dagpenge',
+        ydelse: amount(1200),
+      },
+    ];
+
+    const result = buildOffentligeYdelserDebugRows(rows);
+
+    expect(result[0]?.status).toBe('ok');
+    expect(result[0]?.message).toBe('Ok');
+  });
+
+  it('giver fejlteksten "Dato mangler" når dato ikke er fuldt udfyldt', () => {
     const rows = [
       {
         id: 'row-1',
@@ -95,7 +112,26 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const result = buildOffentligeYdelserDebugRows(rows);
 
     expect(result[0]?.status).toBe('error');
-    expect(result[0]?.message).toBe('Fra dato mangler');
+    expect(result[0]?.message).toBe('Dato mangler');
+    expect(result[0]?.summaryDisplay).toBe('messageOnly');
+  });
+
+  it('viser Uspecificeret og fejlteksten "Ydelsestype mangler" når ydelsestype mangler', () => {
+    const rows = [
+      {
+        id: 'row-1',
+        fraDato: '01-01-2024',
+        tilDato: '31-01-2024',
+        ydelsestype: '',
+        ydelse: amount(1200),
+      },
+    ];
+
+    const result = buildOffentligeYdelserDebugRows(rows);
+
+    expect(result[0]?.status).toBe('error');
+    expect(result[0]?.label).toBe('Uspecificeret');
+    expect(result[0]?.message).toBe('Ydelsestype mangler');
     expect(result[0]?.summaryDisplay).toBe('messageOnly');
   });
 
@@ -117,7 +153,7 @@ describe('buildOffentligeYdelserDebugRows', () => {
     expect(result[0]?.summaryDisplay).toBe('messageOnly');
   });
 
-  it('giver præcis warningtekst ved periode uden beløb', () => {
+  it('giver warningteksten "Beløb mangler" ved periode uden beløb', () => {
     const rows = [
       {
         id: 'row-1',
@@ -130,7 +166,24 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const result = buildOffentligeYdelserDebugRows(rows);
 
     expect(result[0]?.status).toBe('warning');
-    expect(result[0]?.message).toBe('Periode og ydelsestype er udfyldt uden ydelse eller tillæg');
+    expect(result[0]?.message).toBe('Beløb mangler');
     expect(result[0]?.summaryDisplay).toBe('messageOnly');
+  });
+
+  it('behandler 0 som gyldigt beløb', () => {
+    const rows = [
+      {
+        id: 'row-1',
+        fraDato: '01-01-2024',
+        tilDato: '31-01-2024',
+        ydelsestype: 'dagpenge',
+        ydelse: amount(0),
+      },
+    ];
+
+    const result = buildOffentligeYdelserDebugRows(rows);
+
+    expect(result[0]?.status).toBe('ok');
+    expect(result[0]?.message).toBe('Ok');
   });
 });
