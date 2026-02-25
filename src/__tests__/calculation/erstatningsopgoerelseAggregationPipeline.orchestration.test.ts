@@ -43,7 +43,7 @@ describe('erstatningsopgoerelseAggregationPipeline orchestration', () => {
     expect(mockedComputeTaf).not.toHaveBeenCalled();
   });
 
-  it('returnerer ok fra snapshot når alle gating-outputs er til stede', () => {
+  it('returnerer fejl fra snapshot uden tilkoblede computed outputs', () => {
     const eo = {
       ...createErstatningsopgoerelseInitialValues(),
       beregnesTabtArbejdsfortjeneste: 'Ja' as const,
@@ -52,13 +52,12 @@ describe('erstatningsopgoerelseAggregationPipeline orchestration', () => {
 
     const result = computeErstatningsopgoerelseAggregationFromSnapshot({
       erstatningsopgoerelse: eo,
-      svieSmerteOutput: { amount: 0 },
-      loenindkomstOutput: { amount: 0 },
-      offentligeYdelserOutput: { amount: 0 },
     });
 
     expect(result).not.toBeNull();
-    expect(result?.kind).toBe('ok');
+    expect(result?.kind).toBe('error');
+    if (!result || result.kind !== 'error') return;
+    expect(result.errors.some((error) => error.lineId === 'svieSmerte' && error.code === 'missing_computed')).toBe(true);
   });
 
   it('logger fejl når en delberegning kaster', () => {

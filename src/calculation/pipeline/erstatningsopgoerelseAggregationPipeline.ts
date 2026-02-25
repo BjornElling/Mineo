@@ -24,9 +24,6 @@ export type ErstatningsopgoerelseAggregationInputs = DeepReadonly<{
 
 export type ErstatningsopgoerelseAggregationSnapshot = DeepReadonly<{
   erstatningsopgoerelse: ErstatningsopgoerelseValues;
-  svieSmerteOutput?: AggregatableComputed | null;
-  loenindkomstOutput?: AggregatableComputed | null;
-  offentligeYdelserOutput?: AggregatableComputed | null;
 }>;
 
 const tryCompute = <T>(compute: () => T): T | null => {
@@ -92,9 +89,6 @@ export const computeErstatningsopgoerelseAggregationFromSnapshot = (
     computeErstatningsopgoerelseAggregation({
       erstatningsopgoerelse: snapshot.erstatningsopgoerelse,
       tafOutput,
-      svieSmerteOutput: snapshot.svieSmerteOutput,
-      loenindkomstOutput: snapshot.loenindkomstOutput,
-      offentligeYdelserOutput: snapshot.offentligeYdelserOutput,
     })
   );
 };
