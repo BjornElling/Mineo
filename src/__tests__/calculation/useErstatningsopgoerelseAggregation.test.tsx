@@ -1,5 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
 import { useErstatningsopgoerelseAggregation } from '../../calculation/useErstatningsopgoerelseAggregation';
 import { usePersistedSection } from '../../hooks/usePersistedSection';
 import { computeErstatningsopgoerelseAggregationFromSnapshot } from '../../calculation/pipeline/erstatningsopgoerelseAggregationPipeline';
@@ -21,8 +22,10 @@ describe('useErstatningsopgoerelseAggregation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     const eoValues = createErstatningsopgoerelseInitialValues();
+    const stamdataValues = structuredClone(STAMDATA_INITIAL_VALUES);
     mockedUsePersistedSection.mockImplementation((section) => {
       if (section === 'erstatningsopgoerelse') return eoValues;
+      if (section === 'stamdata') return stamdataValues;
       return undefined;
     });
     mockedComputeFromSnapshot.mockReturnValue({
@@ -33,8 +36,10 @@ describe('useErstatningsopgoerelseAggregation', () => {
 
   it('videresender snapshot til pipeline-beregning', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
+    const stamdataValues = structuredClone(STAMDATA_INITIAL_VALUES);
     mockedUsePersistedSection.mockImplementation((section) => {
       if (section === 'erstatningsopgoerelse') return eoValues;
+      if (section === 'stamdata') return stamdataValues;
       return undefined;
     });
 
@@ -44,6 +49,10 @@ describe('useErstatningsopgoerelseAggregation', () => {
     expect(mockedComputeFromSnapshot).toHaveBeenCalledTimes(1);
     expect(mockedComputeFromSnapshot).toHaveBeenCalledWith({
       erstatningsopgoerelse: eoValues,
+      stamdata: {
+        skadesdato: stamdataValues.skadesdato,
+        skadestype: stamdataValues.skadestype,
+      },
     });
   });
 

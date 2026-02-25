@@ -105,7 +105,7 @@ describe('aggregationPolicySchema', () => {
     });
 
     it('accepterer mange linjer', () => {
-      const lines = ['taf', 'svieSmerte', 'loenindkomst', 'offentligeYdelser', 'oevrigeKrav'].map((id) => ({
+      const lines = ['taf', 'svieSmerte', 'oevrigeKrav'].map((id) => ({
         id,
         computedSourceId: id,
         strategy: 'computedOnly' as const,

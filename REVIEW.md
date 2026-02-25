@@ -41,7 +41,7 @@ Status pr. kodegennemgang:
    4. `midlertidigt_eet` i offentlige ydelser er en særskilt ydelsestype og behandles som legitim undtagelse (ikke side-integration).
 3. **Opfyldt:** EO-aggregation er afkoblet fra andre fagsider end EO + stamdata.
    1. `useErstatningsopgoerelseAggregation` læser ikke længere `renteberegning`/`varigemen`.
-   2. Snapshot-orchestrering i pipeline bruger ikke tværside persisted inputs.
+   2. Snapshot-orchestrering i pipeline bruger kun EO + `stamdata` (tilladt kontrakt-undtagelse).
 5. **Opfyldt:** Ingen fund af persisted opslag mod `erhvervsevnetab` i EO-flow (`getPersistedData/usePersistedSection`).
 4. **Opfyldt:** Udbredt og legitim tværlæsning af `stamdata` findes på flere sider (som forventet).
 
@@ -58,9 +58,10 @@ Status pr. kodegennemgang:
 5. `nullToUndefinedDeep` er flyttet til shared util (`src/utils/nullToUndefinedDeep.ts`) og dokumenteret med eksplicit kontrakt.
 6. `varigeMen`-PDF er lazy-loadet via `pdfLoader`.
 7. `useMemo`-import i `useErstatningsopgoerelseAggregation` er harmoniseret (`import { useMemo } from 'react'`).
-8. Happy-path orchestration-test for `fromSnapshot` med komplette computed outputs er tilføjet.
+8. Orchestration-tests for `fromSnapshot` er opdateret til green path med intern engine-tilkobling for `taf` + `svieSmerte`.
 9. `EOberegningTab` er synkroniseret med produktreglen: UI-branch for “Samlet erstatningsopgørelse” er fjernet.
 10. `__setSectionUnsafe` og `__setMetaUnsafe` i `formPersistenceStore` er strammet som test-only escape hatches med fail-closed runtime-guard uden for testmiljø.
+11. `stamdata` videresendes nu eksplicit til `computeSvieSmerteEngine` i snapshot-orchestrering, så engine-input er konsistent mellem pipeline og PDF.
 
 ## Verificeret / afklaret
 
@@ -90,12 +91,7 @@ Status pr. kodegennemgang:
 
 ## Medium prioritet
 
-1. **Snapshot-kontrakt vs. faktisk orchestration er ikke fuldt tilkoblet**
-   1. `ErstatningsopgoerelseAggregationSnapshot` understøtter `svieSmerteOutput`, `loenindkomstOutput`, `offentligeYdelserOutput`.
-   2. `useErstatningsopgoerelseAggregation` sender i praksis kun `erstatningsopgoerelse` + `stamdata`.
-   3. Konsekvens: aggregatoren er korrekt fail-closed uden fuld tilkobling, men kontrakt og driftsspor kan forveksles af næste implementor.
-   4. **Valgt retning:** tilkobl manglende engines/adapters til snapshot-orchestrering.
-   5. Implementationsnote: udfør tilkoblingen i små, testdækkede deltrin for at minimere regressionsrisiko i trust-kritisk flow.
+Ingen aktive medium-prioritetsfund.
 
 ## Lav prioritet
 
@@ -107,4 +103,4 @@ Ingen aktive lav-prioritetsfund.
 
 1. **Høj:** Konsolider EO-beregningssandhed mellem pipeline og PDF-model.
 2. **Høj:** Opdel `src/domain/erstatningsopgoerelse/eoPdfModel.ts` i mindre domænemoduler.
-3. **Medium:** Tilkobl manglende engines/adapters til snapshot-orchestrering (valgt retning), med del-leverancer og regressionstests.
+3. **Mellem/lang sigt:** Fortsæt konsolidering af resterende parallelle EO-beregningsspor mellem pipeline og PDF-model.

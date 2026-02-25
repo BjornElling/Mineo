@@ -1,8 +1,7 @@
 import type { DeepReadonly } from '../../types/deepReadonly';
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
-import type { RenteberegningOutput } from '../renteberegning/renteberegningEngine';
 import type { TafEngineOutput } from './tafBeregningsEngine';
-import type { VarigeMenEngineOutput } from '../varigemen/varigeMenEngine';
+import type { SvieSmerteEngineOutput } from './svieSmerteEngine';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { isOevrigeKravRowEmpty } from './rowEmpty';
 
@@ -20,13 +19,6 @@ const sumFinite = (values: ReadonlyArray<number | null | undefined>): number | n
   return total;
 };
 
-export const adaptRenteForAggregation = (
-  output: DeepReadonly<RenteberegningOutput>
-): AggregatableComputed | null => {
-  const amount = sumFinite(output.rows.map((row) => row.calculatedInterest));
-  return amount === null ? null : { amount };
-};
-
 export const adaptTafForAggregation = (
   output: DeepReadonly<TafEngineOutput>
 ): AggregatableComputed | null => {
@@ -34,13 +26,12 @@ export const adaptTafForAggregation = (
   return amount === null ? null : { amount };
 };
 
-export const adaptVarigtMenForAggregation = (
-  output: DeepReadonly<VarigeMenEngineOutput>
+export const adaptSvieSmerteForAggregation = (
+  output: DeepReadonly<SvieSmerteEngineOutput>
 ): AggregatableComputed | null => {
-  if (!output.result) return null;
-  const amount = output.result.beregnetGodtgoerelse;
-  if (typeof amount !== 'number' || !Number.isFinite(amount)) return null;
-  return { amount };
+  const ore = output.totalOre;
+  if (typeof ore !== 'number' || !Number.isFinite(ore) || !Number.isInteger(ore)) return null;
+  return { amount: ore / 100 };
 };
 
 export const adaptOevrigeKravForAggregation = (

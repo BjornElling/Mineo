@@ -1,8 +1,8 @@
 import type { ISODateString } from '../../types/branded';
 import { danishToISO, dateToISO, isoToDanish, isISODateString, subtractOneDay } from '../../types/branded';
-import type { ErstatningsopgoerelseValues, StamdataValues, SvieSmertePeriodeRow, OevrigeKravRow } from '../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, StamdataValues, OevrigeKravRow } from '../../schemas/formSchemas';
 import { erstatningsopgoerelseSchema, stamdataSchema } from '../../schemas/formSchemas';
-import { svieSmerteMax, svieSmertePrDag, aarsloenMax } from '../../data/regulationRates';
+import { aarsloenMax } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatPercent, isSingularCount } from '../../utils/formatUtils';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
@@ -11,14 +11,10 @@ import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, type
 import { calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from './tafCalculations';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from './tafBeregningsenhed';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
-import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../config/dateRanges';
-import { computeRowDateBounds } from './rowDateBounds';
-import { validateISODateRange } from '../../utils/isoDateHelpers';
-import { detectOverlappingPeriods } from './periodOverlapDetection';
-import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { isoDateToDate } from '../dates/isoDate';
 import { addDays, createDate } from '../../utils/dateUtils';
-import { isOevrigeKravRowEmpty, isSvieSmerteRowEmpty, isTafRowEmpty } from './rowEmpty';
+import { isOevrigeKravRowEmpty, isTafRowEmpty } from './rowEmpty';
+import { computeSvieSmerteEngine, getDayAfterIso } from './svieSmerteEngine';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import {
   getEffektiveSatserForDato,
@@ -340,198 +336,36 @@ export const countTafArbejdsdageInRange = (arbejdsdage: ReadonlySet<ISODateStrin
   return count;
 };
 
-const parseForligsgrad = (values: ErstatningsopgoerelseValues): { factor: number | null; label: string | null } => {
-  const procentValue = values.forligAnsvarsgradProcent;
-  if (typeof procentValue === 'number' && Number.isFinite(procentValue) && procentValue > 0 && procentValue <= 100) {
-    return { factor: procentValue / 100, label: ` (forlig på ${procentValue}%)` };
-  }
-
-  const broekValue = values.forligAnsvarsgradBroek;
-  if (typeof broekValue === 'string' && broekValue.trim() !== '') {
-    const match = broekValue.trim().match(/^(\d+)\/(\d+)$/);
-    if (match) {
-      const taeller = Number.parseInt(match[1], 10);
-      const naevner = Number.parseInt(match[2], 10);
-      if (taeller > 0 && naevner > 0 && taeller <= naevner) {
-        return { factor: taeller / naevner, label: ` (forlig på ${broekValue.trim()})` };
-      }
-    }
-  }
-
-  return { factor: null, label: null };
-};
-
-const mergePeriods = (periods: { fra: Date; til: Date }[]): { fra: Date; til: Date }[] => {
-  if (periods.length === 0) return [];
-  const sorted = [...periods].sort((a, b) => a.fra.getTime() - b.fra.getTime());
-  const merged: { fra: Date; til: Date }[] = [];
-  let current = sorted[0];
-  for (let i = 1; i < sorted.length; i += 1) {
-    const next = sorted[i];
-    if (next.fra <= current.til) {
-      current = { fra: current.fra, til: next.til > current.til ? next.til : current.til };
-    } else {
-      merged.push(current);
-      current = next;
-    }
-  }
-  merged.push(current);
-  return merged;
-};
-
-const validateSvieSmertePerioder = (
-  values: ErstatningsopgoerelseValues,
-  context: Readonly<{
-    skadesdatoISO: ISODateString | undefined;
-    erErhvervssygdom: boolean;
-    menAfgoerelseDatoForTabel: ISODateString | undefined;
-    verserendeKlageMen: boolean;
-  }>
-): SvieSmertePeriodeRow[] => {
-  const perioder = values.svieSmertePerioder ?? [];
-  const nonEmpty = perioder.filter((row) => !isSvieSmerteRowEmpty(row));
-  if (nonEmpty.length === 0) return [];
-
-  const skadesdatoMinRule = computeSkadesdatoMinRule({
-    skadesdatoISO: context.skadesdatoISO,
-    erErhvervssygdom: context.erErhvervssygdom,
-    fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMin,
-  });
-
-  const overlapIds = detectOverlappingPeriods(nonEmpty);
-
-  for (const periode of nonEmpty) {
-    const hasFra = typeof periode.fra === 'string' && periode.fra.trim() !== '';
-    const hasTil = typeof periode.til === 'string' && periode.til.trim() !== '';
-    const hasTilstand = typeof periode.tilstand === 'string' && periode.tilstand.trim() !== '';
-    const filledCount = [hasFra, hasTil, hasTilstand].filter(Boolean).length;
-    if (filledCount !== 3) {
-      throw new Error('Svie/smerte-periode er ikke fuldt udfyldt'); // invariant: dækket af validator
-    }
-
-    const fraISO = periode.fra;
-    const tilISO = periode.til;
-    if (!isISODateString(fraISO) || !isISODateString(tilISO)) {
-      throw new Error('Svie/smerte-periode har ugyldig dato'); // invariant: dækket af validator
-    }
-
-    const bounds = computeRowDateBounds({
-      skadesdatoMinDate: skadesdatoMinRule.minDate,
-      rowFra: fraISO,
-      rowTil: tilISO,
-      fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMin,
-      fallbackMax: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMax,
-      tilFallbackMax: dateRanges_erstatningsopgoerelse.tabelSvieSmerteTil.max,
-      tilExtraMaxDate: context.menAfgoerelseDatoForTabel,
-      useTilExtraMaxDate: !context.verserendeKlageMen,
-    });
-
-    if (bounds.fra.min > bounds.fra.max || bounds.til.min > bounds.til.max) {
-      throw new Error('Svie/smerte-periode har ingen gyldige datoer');
-    }
-
-    const fraRange = validateISODateRange(fraISO, bounds.fra.min, bounds.fra.max);
-    if (!fraRange.isValid) {
-      throw new Error(`Svie/smerte-periode: ${fraRange.errorMessage}`);
-    }
-    const tilRange = validateISODateRange(tilISO, bounds.til.min, bounds.til.max);
-    if (!tilRange.isValid) {
-      throw new Error(`Svie/smerte-periode: ${tilRange.errorMessage}`);
-    }
-
-    if (overlapIds.has(periode.id)) {
-      throw new Error('Svie/smerte-perioder overlapper'); // invariant: dækket af validator
-    }
-  }
-
-  return nonEmpty;
-};
 const buildSvieSmerteModel = (
   values: ErstatningsopgoerelseValues,
   stamdataValues: StamdataValues
 ): SvieSmertePdfModel => {
   const beregnes = values.beregnesSvieSmerteGodtgoerelse === 'Ja';
   const statusLinjer: string[] = [];
-
   const periodeTilISO = values.vedroererPeriodeTil;
+
+  const engine = computeSvieSmerteEngine({
+    erstatningsopgoerelse: values,
+    stamdata: {
+      skadesdato: stamdataValues.skadesdato,
+      skadestype: stamdataValues.skadestype,
+    },
+  });
+
+  const constrained = engine.constrainedPeriods.map((p) => ({
+    fra: isoDateToDate(p.fra),
+    til: isoDateToDate(p.til),
+    isDelvist: p.isDelvist,
+  }));
 
   const varigeMenAfgorelse = values.varigeMenAfgorelse;
   const opgLavetDen = values.opgørelseLavetDen;
   const menDato = values.menAfgoerelseDato;
   const verserendeKlageMen = values.verserendeKlageMen;
-
-  const periodeSynlig = beregnes && values.tidligereSsMax === 'Nej';
-  const context = {
-    skadesdatoISO: stamdataValues.skadesdato,
-    erErhvervssygdom: stamdataValues.skadestype === 'Erhvervssygdom',
-    menAfgoerelseDatoForTabel:
-      values.varigeMenAfgorelse === 'Ja' ? subtractOneDay(values.menAfgoerelseDato) : undefined,
-    verserendeKlageMen: values.verserendeKlageMen === 'Ja',
-  };
-
-  const perioder = periodeSynlig ? validateSvieSmertePerioder(values, context) : [];
-  const harInputPerioder = perioder.length > 0;
-
-  const vedroererFra = values.vedroererPeriodeFra;
-  const vedroererTil = values.vedroererPeriodeTil;
-  if (harInputPerioder && (!vedroererFra || !vedroererTil)) {
-    throw new Error('Vedrører perioden mangler for svie/smerte'); // invariant: dækket af validator
-  }
-
-  const shouldApplyMenCutoff = values.varigeMenAfgorelse === 'Ja' && values.verserendeKlageMen !== 'Ja';
-  const menCutoff = shouldApplyMenCutoff ? values.menAfgoerelseDato : undefined;
-
-  const sygemeldtPeriods: { fra: Date; til: Date }[] = [];
-  const delvistPeriods: { fra: Date; til: Date }[] = [];
-
-  for (const periode of perioder) {
-    if (!periode.fra || !periode.til || !periode.tilstand) continue;
-    const fraDate = isoDateToDate(periode.fra);
-    const tilDate = isoDateToDate(periode.til);
-    if (periode.tilstand === 'delvist-sygemeldt') {
-      delvistPeriods.push({ fra: fraDate, til: tilDate });
-    } else {
-      sygemeldtPeriods.push({ fra: fraDate, til: tilDate });
-    }
-  }
-
-  const constrained: Array<{ fra: Date; til: Date; isDelvist: boolean }> = [];
-  if (harInputPerioder && vedroererFra && vedroererTil) {
-    const vedroererFraDate = isoDateToDate(vedroererFra);
-    const vedroererTilDate = isoDateToDate(vedroererTil);
-    let maxDate = vedroererTilDate;
-    const dayBeforeMen = subtractOneDay(menCutoff);
-    if (dayBeforeMen) {
-      const menDate = isoDateToDate(dayBeforeMen);
-      if (menDate < maxDate) maxDate = menDate;
-    }
-
-    const applyConstraint = (periods: { fra: Date; til: Date }[], isDelvist: boolean) => {
-      const merged = mergePeriods(periods);
-      for (const p of merged) {
-        const fra = p.fra < vedroererFraDate ? vedroererFraDate : p.fra;
-        const til = p.til > maxDate ? maxDate : p.til;
-        if (fra > maxDate || til < vedroererFraDate) continue;
-        constrained.push({ fra, til, isDelvist });
-      }
-    };
-
-    applyConstraint(sygemeldtPeriods, false);
-    applyConstraint(delvistPeriods, true);
-  }
-
-  const harPerioder = constrained.length > 0;
-  const periodeHeading =
-    constrained.length > 1
-      ? 'Sygeperioder, hvor der beregnes svie- og smertegodtgørelse'
-      : 'Sygeperiode, hvor der beregnes svie- og smertegodtgørelse';
-
-  constrained.sort((a, b) => a.fra.getTime() - b.fra.getTime());
-
-  const opgjortFremTilPeriodeTil = harPerioder && vedroererTil ? perioderCoverDate(constrained, vedroererTil) : false;
+  const opgjortFremTilPeriodeTil = engine.opgjortFremTilPeriodeTil;
 
   if (values.svieSmerteHelbredsstatus && periodeTilISO) {
-    const dagenEfter = formatDateLong(getDayAfter(periodeTilISO));
+    const dagenEfter = formatDateLong(getDayAfterIso(periodeTilISO));
     if (values.svieSmerteHelbredsstatus === 'Sygemeldt') {
       statusLinjer.push(`Den ${dagenEfter} var skadelidte fortsat sygemeldt.`);
     } else if (values.svieSmerteHelbredsstatus === 'Delvist Sygemeldt') {
@@ -562,75 +396,32 @@ const buildSvieSmerteModel = (
     }
   }
 
-  const periodeLinjer = constrained.map((p) => {
-    const fraISO = dateToISO(p.fra);
-    const tilISO = dateToISO(p.til);
-    if (!fraISO || !tilISO) throw new Error('Ugyldig periode for svie/smerte');
-    const fraDisplay = isoToDanish(fraISO);
-    const tilDisplay = isoToDanish(tilISO);
+  const periodeLinjer = engine.constrainedPeriods.map((p) => {
+    const fraDisplay = isoToDanish(p.fra);
+    const tilDisplay = isoToDanish(p.til);
     if (!fraDisplay || !tilDisplay) throw new Error('Ugyldig periode for svie/smerte');
     const suffix = p.isDelvist ? ' (delvist syg)' : '';
     if (fraDisplay === tilDisplay) return `${fraDisplay}${suffix}`;
     return `${fraDisplay} - ${tilDisplay}${suffix}`;
   });
 
-  const sygedage = constrained
-    .filter((p) => !p.isDelvist)
-    .reduce((sum, p) => sum + (countInclusiveUtcDays(p.fra, p.til) ?? 0), 0);
-  const delviseSygedage = constrained
-    .filter((p) => p.isDelvist)
-    .reduce((sum, p) => sum + (countInclusiveUtcDays(p.fra, p.til) ?? 0), 0);
+  const satserPerDag: Calculable<MoneyOre> = engine.satserPerDagOre === null
+    ? notCalculableMoney('Satser kan ikke beregnes')
+    : asCalculable(ensureMoneyOre(engine.satserPerDagOre));
+  const satserMax: Calculable<MoneyOre> = engine.satserMaxOre === null
+    ? notCalculableMoney('Satser kan ikke beregnes')
+    : asCalculable(ensureMoneyOre(engine.satserMaxOre));
+  const tidligere: Calculable<MoneyOre> = engine.tidligereOre === null
+    ? notCalculableMoney('Ikke angivet')
+    : asCalculable(ensureMoneyOre(engine.tidligereOre));
+  const aktuel: Calculable<MoneyOre> = engine.aktuelOre === null
+    ? notCalculableMoney('Ikke angivet')
+    : asCalculable(ensureMoneyOre(engine.aktuelOre));
 
-  const satserAarValue = values.svieSmerteSatserAar;
-  if (harInputPerioder && typeof satserAarValue !== 'number') {
-    throw new Error('År for svie/smerte-sats mangler'); // invariant: dækket af validator
-  }
-
-  const delvisFaktor: 1 | 0.5 = values.svieSmerteDelvisSygemeldingSats === 'fuld' ? 1 : 0.5;
-  if (harInputPerioder && !values.svieSmerteDelvisSygemeldingSats) {
-    throw new Error('Sats ved delvis sygemelding mangler'); // invariant: dækket af validator
-  }
-
-  let satserPerDag: Calculable<MoneyOre> = notCalculableMoney('Satser kan ikke beregnes');
-  let satserMax: Calculable<MoneyOre> = notCalculableMoney('Satser kan ikke beregnes');
-  let forligLabel: string | null = null;
-  if (harInputPerioder && typeof satserAarValue === 'number') {
-    const satsPerDag = svieSmertePrDag[satserAarValue as keyof typeof svieSmertePrDag];
-    const satsMax = svieSmerteMax[satserAarValue as keyof typeof svieSmerteMax];
-    if (!satsPerDag || !satsMax) {
-      throw new Error(`Ingen svie/smerte satser for år ${satserAarValue}`); // invariant: dækket af validator
-    }
-    const forlig = parseForligsgrad(values);
-    forligLabel = forlig.label;
-    const perDagKroner = forlig.factor !== null ? satsPerDag * forlig.factor : satsPerDag;
-    const maxKroner = forlig.factor !== null ? satsMax * forlig.factor : satsMax;
-    satserPerDag = asCalculable(toOre(roundKroner(perDagKroner)));
-    satserMax = asCalculable(toOre(roundKroner(maxKroner)));
-  }
-
-  const tidligereKroner = amountValueToNumber(values.svieSmerteTidligereTotal);
-  const aktuelKroner = amountValueToNumber(values.svieSmerteAktuelPeriode);
-  const tidligere = tidligereKroner !== undefined ? asCalculable(toOre(tidligereKroner)) : notCalculableMoney('Ikke angivet');
-  const aktuel = aktuelKroner !== undefined ? asCalculable(toOre(aktuelKroner)) : notCalculableMoney('Ikke angivet');
-
-  let totalOre = ensureMoneyOre(0);
-  let maxApplied = false;
-
-  if (harPerioder) {
-    if (satserPerDag.status !== 'ok' || satserMax.status !== 'ok') {
-      throw new Error('Satser mangler for svie/smerte');
-    }
-    const perDagKroner = fromOre(satserPerDag.value);
-    const maxKroner = fromOre(satserMax.value);
-    const rawKroner = (sygedage * perDagKroner) + (delviseSygedage * delvisFaktor * perDagKroner);
-    const tidligereValue = tidligereKroner ?? 0;
-    const allerede = aktuelKroner ?? 0;
-    const restPlads = maxKroner - tidligereValue;
-    const beloebFoerFradrag = Math.min(rawKroner, Math.max(0, restPlads));
-    maxApplied = rawKroner > Math.max(0, restPlads);
-    const beloeb = Math.max(0, beloebFoerFradrag - allerede);
-    totalOre = clampMoneyOreToZero(toOre(roundKroner(beloeb)));
-  }
+  const periodeHeading =
+    engine.constrainedPeriods.length > 1
+      ? 'Sygeperioder, hvor der beregnes svie- og smertegodtgørelse'
+      : 'Sygeperiode, hvor der beregnes svie- og smertegodtgørelse';
 
   return {
     beregnes,
@@ -638,18 +429,18 @@ const buildSvieSmerteModel = (
     opgjortFremTilPeriodeTil,
     periodeHeading,
     periodeLinjer,
-    harPerioder,
-    satserAar: typeof satserAarValue === 'number' ? satserAarValue : null,
+    harPerioder: engine.harPerioder,
+    satserAar: engine.satserAar,
     satserPerDag,
     satserMax,
-    forligLabel,
+    forligLabel: engine.forligLabel,
     tidligere,
     aktuel,
-    sygedage,
-    delviseSygedage,
-    delvisFaktor,
-    maxApplied,
-    totalOre: clampMoneyOreToZero(totalOre),
+    sygedage: engine.sygedage,
+    delviseSygedage: engine.delviseSygedage,
+    delvisFaktor: engine.delvisFaktor,
+    maxApplied: engine.maxApplied,
+    totalOre: clampMoneyOreToZero(ensureMoneyOre(engine.totalOre)),
   };
 };
 

@@ -29,7 +29,7 @@ describe('erstatningsopgoerelseAggregationPipeline', () => {
     expect(result.errors.some((error) => error.lineId === 'svieSmerte' && error.code === 'missing_computed')).toBe(true);
   });
 
-  it('aggregates all sources and applies policy sign and total rounding', () => {
+  it('aggregates taf + svieSmerte + oevrigeKrav and applies total rounding', () => {
     const manualValues = {
       ...createErstatningsopgoerelseInitialValues(),
       oevrigeKravPerioder: [
@@ -41,14 +41,12 @@ describe('erstatningsopgoerelseAggregationPipeline', () => {
       erstatningsopgoerelse: manualValues,
       tafOutput: buildTafOutput(),
       svieSmerteOutput: buildComputedAmount(5),
-      loenindkomstOutput: buildComputedAmount(20),
-      offentligeYdelserOutput: buildComputedAmount(7),
     });
 
     expect(result.kind).toBe('ok');
     if (result.kind !== 'ok') return;
-    // 200 + 5 + 20 - 7 + 15 = 233
-    expect(result.total).toBe(233);
+    // 200 + 5 + 15 = 220
+    expect(result.total).toBe(220);
   });
 
   it('computes aggregation from committed snapshot via pipeline orchestrator', () => {
@@ -57,7 +55,7 @@ describe('erstatningsopgoerelseAggregationPipeline', () => {
     });
 
     expect(result).not.toBeNull();
-    expect(result?.kind).toBe('error');
+    expect(result?.kind).toBe('ok');
   });
 
   it('fails closed when oevrige krav amount cannot be parsed', () => {
@@ -70,8 +68,6 @@ describe('erstatningsopgoerelseAggregationPipeline', () => {
       erstatningsopgoerelse: manualValues,
       tafOutput: buildTafOutput(),
       svieSmerteOutput: buildComputedAmount(5),
-      loenindkomstOutput: buildComputedAmount(20),
-      offentligeYdelserOutput: buildComputedAmount(7),
     });
 
     expect(result.kind).toBe('error');

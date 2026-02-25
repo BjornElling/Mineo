@@ -1,16 +1,20 @@
 import type { DeepReadonly } from '../../types/deepReadonly';
 import type {
   ErstatningsopgoerelseValues,
+  StamdataValues,
 } from '../../schemas/formSchemas';
 import type { TafEngineOutput } from '../../domain/erstatningsopgoerelse/tafBeregningsEngine';
 import type { AggregatableComputed } from '../../domain/erstatningsopgoerelse/aggregationAdapters';
 import {
   adaptOevrigeKravForAggregation,
+  adaptSvieSmerteForAggregation,
   adaptTafForAggregation,
 } from '../../domain/erstatningsopgoerelse/aggregationAdapters';
 import { ERSTATNINGSOPGOERELSE_AGGREGATION_POLICY } from '../policy/erstatningsopgoerelse.policy';
 import { aggregateErstatningsopgoerelse, type AggregationResult } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseAggregationEngine';
 import { computeTafEngine } from '../../domain/erstatningsopgoerelse/tafBeregningsEngine';
+import { computeSvieSmerteEngine } from '../../domain/erstatningsopgoerelse/svieSmerteEngine';
+import { computeTafBeregningsenhed } from '../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { isTafRowEmpty } from '../../domain/erstatningsopgoerelse/rowEmpty';
 import { logError } from '../../utils/logger';
 
@@ -18,12 +22,11 @@ export type ErstatningsopgoerelseAggregationInputs = DeepReadonly<{
   erstatningsopgoerelse: ErstatningsopgoerelseValues;
   tafOutput?: TafEngineOutput | null;
   svieSmerteOutput?: AggregatableComputed | null;
-  loenindkomstOutput?: AggregatableComputed | null;
-  offentligeYdelserOutput?: AggregatableComputed | null;
 }>;
 
 export type ErstatningsopgoerelseAggregationSnapshot = DeepReadonly<{
   erstatningsopgoerelse: ErstatningsopgoerelseValues;
+  stamdata?: Pick<StamdataValues, 'skadesdato' | 'skadestype'> | null;
 }>;
 
 const tryCompute = <T>(compute: () => T): T | null => {
@@ -50,12 +53,8 @@ export const computeErstatningsopgoerelseAggregation = (
   if (input.svieSmerteOutput) {
     computedOutputs.svieSmerte = input.svieSmerteOutput;
   }
-  if (input.loenindkomstOutput) {
-    computedOutputs.loenindkomst = input.loenindkomstOutput;
-  }
-  if (input.offentligeYdelserOutput) {
-    computedOutputs.offentligeYdelser = input.offentligeYdelserOutput;
-  }
+  // oevrigeKrav er en simpel formsum og beregnes derfor direkte fra committed EO-input
+  // i stedet for via separat engine/adapterspor.
   const oevrigeKrav = adaptOevrigeKravForAggregation(input.erstatningsopgoerelse);
   if (oevrigeKrav) {
     computedOutputs.oevrigeKrav = oevrigeKrav;
@@ -83,12 +82,24 @@ export const computeErstatningsopgoerelseAggregationFromSnapshot = (
           ferieperioder: snapshot.erstatningsopgoerelse.ferieperioder,
         })
       )
-      : null;
+      : {
+          beregningsenhed: computeTafBeregningsenhed(snapshot.erstatningsopgoerelse),
+          rows: [],
+        };
+
+  const svieSmerteOutput = tryCompute(() =>
+    computeSvieSmerteEngine({
+      erstatningsopgoerelse: snapshot.erstatningsopgoerelse,
+      stamdata: snapshot.stamdata,
+    })
+  );
+  const svieSmerteAggregated = svieSmerteOutput ? adaptSvieSmerteForAggregation(svieSmerteOutput) : null;
 
   return tryCompute(() =>
     computeErstatningsopgoerelseAggregation({
       erstatningsopgoerelse: snapshot.erstatningsopgoerelse,
       tafOutput,
+      svieSmerteOutput: svieSmerteAggregated,
     })
   );
 };

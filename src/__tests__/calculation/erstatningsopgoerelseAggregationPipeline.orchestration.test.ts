@@ -2,10 +2,30 @@ import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatnin
 import { toISODateString } from '../../types/branded';
 import { computeErstatningsopgoerelseAggregationFromSnapshot } from '../../calculation/pipeline/erstatningsopgoerelseAggregationPipeline';
 import { computeTafEngine } from '../../domain/erstatningsopgoerelse/tafBeregningsEngine';
+import { computeSvieSmerteEngine } from '../../domain/erstatningsopgoerelse/svieSmerteEngine';
 import { logError } from '../../utils/logger';
 
 vi.mock('../../domain/erstatningsopgoerelse/tafBeregningsEngine', () => ({
   computeTafEngine: vi.fn(() => ({ beregningsenhed: 'Måneder', rows: [] })),
+}));
+vi.mock('../../domain/erstatningsopgoerelse/svieSmerteEngine', () => ({
+  computeSvieSmerteEngine: vi.fn(() => ({
+    constrainedPeriods: [],
+    harInputPerioder: false,
+    harPerioder: false,
+    opgjortFremTilPeriodeTil: false,
+    satserAar: null,
+    satserPerDagOre: null,
+    satserMaxOre: null,
+    forligLabel: null,
+    tidligereOre: null,
+    aktuelOre: null,
+    sygedage: 0,
+    delviseSygedage: 0,
+    delvisFaktor: 0.5,
+    maxApplied: false,
+    totalOre: 0,
+  })),
 }));
 
 vi.mock('../../utils/logger', () => ({
@@ -13,6 +33,7 @@ vi.mock('../../utils/logger', () => ({
 }));
 
 const mockedComputeTaf = vi.mocked(computeTafEngine);
+const mockedComputeSvieSmerte = vi.mocked(computeSvieSmerteEngine);
 const mockedLogError = vi.mocked(logError);
 
 describe('erstatningsopgoerelseAggregationPipeline orchestration', () => {
@@ -43,7 +64,7 @@ describe('erstatningsopgoerelseAggregationPipeline orchestration', () => {
     expect(mockedComputeTaf).not.toHaveBeenCalled();
   });
 
-  it('returnerer fejl fra snapshot uden tilkoblede computed outputs', () => {
+  it('returnerer ok fra snapshot når taf/svieSmerte/oevrigeKrav kan udledes', () => {
     const eo = {
       ...createErstatningsopgoerelseInitialValues(),
       beregnesTabtArbejdsfortjeneste: 'Ja' as const,
@@ -55,9 +76,7 @@ describe('erstatningsopgoerelseAggregationPipeline orchestration', () => {
     });
 
     expect(result).not.toBeNull();
-    expect(result?.kind).toBe('error');
-    if (!result || result.kind !== 'error') return;
-    expect(result.errors.some((error) => error.lineId === 'svieSmerte' && error.code === 'missing_computed')).toBe(true);
+    expect(result?.kind).toBe('ok');
   });
 
   it('logger fejl når en delberegning kaster', () => {
@@ -93,6 +112,27 @@ describe('erstatningsopgoerelseAggregationPipeline orchestration', () => {
       erstatningsopgoerelse: eo,
       tafPerioder: eo.tafPerioder,
       ferieperioder: eo.ferieperioder,
+    });
+  });
+
+  it('videresender stamdata til svieSmerte-engine når snapshot indeholder stamdata', () => {
+    const eo = createErstatningsopgoerelseInitialValues();
+
+    computeErstatningsopgoerelseAggregationFromSnapshot({
+      erstatningsopgoerelse: eo,
+      stamdata: {
+        skadesdato: toISODateString('2020-01-01'),
+        skadestype: 'Arbejdsulykke',
+      },
+    });
+
+    expect(mockedComputeSvieSmerte).toHaveBeenCalledTimes(1);
+    expect(mockedComputeSvieSmerte).toHaveBeenCalledWith({
+      erstatningsopgoerelse: eo,
+      stamdata: {
+        skadesdato: toISODateString('2020-01-01'),
+        skadestype: 'Arbejdsulykke',
+      },
     });
   });
 });

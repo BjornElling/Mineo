@@ -20,20 +20,6 @@ export const ERSTATNINGSOPGOERELSE_AGGREGATION_POLICY_RAW = {
       sign: 'positive',
     },
     {
-      id: 'loenindkomst',
-      computedSourceId: 'loenindkomst',
-      computedValuePath: 'amount',
-      strategy: 'computedOnly',
-      sign: 'positive',
-    },
-    {
-      id: 'offentligeYdelser',
-      computedSourceId: 'offentligeYdelser',
-      computedValuePath: 'amount',
-      strategy: 'computedOnly',
-      sign: 'negative',
-    },
-    {
       id: 'oevrigeKrav',
       computedSourceId: 'oevrigeKrav',
       computedValuePath: 'amount',

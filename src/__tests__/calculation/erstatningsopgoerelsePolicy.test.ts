@@ -29,8 +29,8 @@ describe('ERSTATNINGSOPGOERELSE_AGGREGATION_POLICY', () => {
       expect(tr.precision).toBe(0);
     });
 
-    it('indeholder præcis 5 linjer', () => {
-      expect(ERSTATNINGSOPGOERELSE_AGGREGATION_POLICY.lines).toHaveLength(5);
+    it('indeholder præcis 3 linjer', () => {
+      expect(ERSTATNINGSOPGOERELSE_AGGREGATION_POLICY.lines).toHaveLength(3);
     });
   });
 
@@ -41,8 +41,6 @@ describe('ERSTATNINGSOPGOERELSE_AGGREGATION_POLICY', () => {
       const ids = getLineIds();
       expect(ids).toContain('taf');
       expect(ids).toContain('svieSmerte');
-      expect(ids).toContain('loenindkomst');
-      expect(ids).toContain('offentligeYdelser');
       expect(ids).toContain('oevrigeKrav');
     });
 
@@ -66,15 +64,6 @@ describe('ERSTATNINGSOPGOERELSE_AGGREGATION_POLICY', () => {
 
     it('svieSmerte er positiv', () => {
       expect(getLine('svieSmerte').sign).toBe('positive');
-    });
-
-    it('loenindkomst er positiv', () => {
-      expect(getLine('loenindkomst').sign).toBe('positive');
-    });
-
-    it('offentligeYdelser er negativ (fradrag)', () => {
-      const line = getLine('offentligeYdelser');
-      expect(line.sign).toBe('negative');
     });
 
     it('oevrigeKrav er positiv', () => {
