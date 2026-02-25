@@ -26,9 +26,9 @@ import { isoDateToDate } from '../dates/isoDate';
 import { beregnArbejdsdageOgMaaneder } from '../erstatningsopgoerelse/arbejdsdageMaaneder';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
 import {
-  numOrZero,
   parseDanishToIso,
   resolveOffentligLoenEkstraGrundloen,
+  resolvePctDecimalFromSatsOrInput,
 } from '../erstatningsopgoerelse/sharedPdfUtils';
 
 const STORE_BEDEDAG_PCT = 0.0045;
@@ -315,10 +315,10 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
       const referenceValue = computePackageValue({
         grundloen: referenceBase + offentligLoenEkstraGrundloen,
         feriePct,
-        shSoPct: numOrZero(referenceTillaegsSatser?.shSoSats),
-        fritvalgPct: numOrZero(referenceTillaegsSatser?.fritvalg),
+        shSoPct: resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.shSoSats, af.shSoPct),
+        fritvalgPct: resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.fritvalg, af.fritvalgPct),
         storeBededagPct: getStoreBededagPct(referenceIso, loenPaaHelligdage),
-        pensionPct: numOrZero(referenceTillaegsSatser?.agPension),
+        pensionPct: resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.agPension, af.pensionPct),
       });
       if (!Number.isFinite(referenceValue) || referenceValue <= 0) continue;
 
@@ -383,10 +383,10 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         const packageValue = computePackageValue({
           grundloen,
           feriePct,
-          shSoPct: numOrZero(tillaegSats?.shSoSats),
-          fritvalgPct: numOrZero(tillaegSats?.fritvalg),
+          shSoPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.shSoSats, af.shSoPct),
+          fritvalgPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.fritvalg, af.fritvalgPct),
           storeBededagPct: getStoreBededagPct(iso, loenPaaHelligdage),
-          pensionPct: numOrZero(tillaegSats?.agPension),
+          pensionPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.agPension, af.pensionPct),
         });
         const index = referenceValue > 0 ? (packageValue / referenceValue) * 100 : 0;
 
@@ -412,10 +412,10 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           effectiveFrom: iso,
           grundloen,
           feriePct,
-          shSoPct: numOrZero(tillaegSats?.shSoSats),
-          fritvalgPct: numOrZero(tillaegSats?.fritvalg),
+          shSoPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.shSoSats, af.shSoPct),
+          fritvalgPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.fritvalg, af.fritvalgPct),
           storeBededagPct: getStoreBededagPct(iso, loenPaaHelligdage),
-          pensionPct: numOrZero(tillaegSats?.agPension),
+          pensionPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.agPension, af.pensionPct),
           packageValue,
           index,
           arbejdsdage,

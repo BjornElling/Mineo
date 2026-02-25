@@ -296,6 +296,20 @@ describe('buildRegulationTimeline — offentlig løn-path (KL)', () => {
       expect(entry.maaneder).not.toBeNull();
     }
   });
+
+  it('KL fallback: bruger input-pct når overenskomst-tillæg mangler', () => {
+    const input = makeKLInput();
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].shSoPct = 2.5;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].fritvalgPct = 1.25;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].pensionPct = 15.3;
+
+    const result = buildRegulationTimeline(input);
+    const firstEntry = result.ansaettelser[0]?.entries[0];
+    expect(firstEntry).toBeDefined();
+    expect(firstEntry?.shSoPct).toBeCloseTo(0.025, 6);
+    expect(firstEntry?.fritvalgPct).toBeCloseTo(0.0125, 6);
+    expect(firstEntry?.pensionPct).toBeCloseTo(0.153, 6);
+  });
 });
 
 // ─── buildSHDageSet ──────────────────────────────────────────────────────────

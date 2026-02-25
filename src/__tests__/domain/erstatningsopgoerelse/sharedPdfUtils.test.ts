@@ -1,12 +1,16 @@
 import {
+  hasAnyPctSourceOrInput,
   parseOptionalIsoDate,
   parseDanishToIso,
   resolveReguleringsdato,
   resolveStatistikModelId,
   detectDecimalPlaces,
+  hasPctSourceOrInput,
   formatDateShort,
   formatDateLong,
   formatPercentFixed2,
+  resolvePctDecimalFromSatsOrInput,
+  resolvePctPointFromSatsOrInput,
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
 } from '../../../domain/erstatningsopgoerelse/sharedPdfUtils';
@@ -203,6 +207,69 @@ describe('formatPercentFixed2', () => {
 describe('detectDecimalPlaces', () => {
   it('finder decimaler op til maxPlaces', () => {
     expect(detectDecimalPlaces([1, 1.2, 1.23, 1.2345], 4)).toBe(4);
+  });
+});
+
+describe('resolvePctPointFromSatsOrInput', () => {
+  it('bruger overenskomstsats når den findes', () => {
+    expect(resolvePctPointFromSatsOrInput(0.153, 9.9)).toBe(15.3);
+  });
+
+  it('bevarer overenskomstsats 0 frem for fallback til input', () => {
+    expect(resolvePctPointFromSatsOrInput(0, 15.3)).toBe(0);
+  });
+
+  it('falder tilbage til input pct når overenskomstsats mangler', () => {
+    expect(resolvePctPointFromSatsOrInput(null, 15.3)).toBe(15.3);
+  });
+
+  it('returnerer 0 når begge kilder mangler', () => {
+    expect(resolvePctPointFromSatsOrInput(undefined, undefined)).toBe(0);
+  });
+});
+
+describe('resolvePctDecimalFromSatsOrInput', () => {
+  it('returnerer decimal fra overenskomstsats', () => {
+    expect(resolvePctDecimalFromSatsOrInput(0.153, 9.9)).toBeCloseTo(0.153, 6);
+  });
+
+  it('bevarer overenskomstsats 0 frem for fallback til input', () => {
+    expect(resolvePctDecimalFromSatsOrInput(0, 15.3)).toBe(0);
+  });
+
+  it('falder tilbage til input pct konverteret til decimal', () => {
+    expect(resolvePctDecimalFromSatsOrInput(undefined, 15.3)).toBeCloseTo(0.153, 6);
+  });
+});
+
+describe('hasPctSourceOrInput', () => {
+  it('er true når overenskomstsats findes (også 0)', () => {
+    expect(hasPctSourceOrInput(0, undefined)).toBe(true);
+  });
+
+  it('er true når input pct er ikke-nul og sats mangler', () => {
+    expect(hasPctSourceOrInput(null, 15.3)).toBe(true);
+  });
+
+  it('er false når sats mangler og input pct er 0/undefined', () => {
+    expect(hasPctSourceOrInput(undefined, 0)).toBe(false);
+    expect(hasPctSourceOrInput(undefined, undefined)).toBe(false);
+  });
+});
+
+describe('hasAnyPctSourceOrInput', () => {
+  it('er true når mindst én sats har kilde', () => {
+    const satser = [{ shSoSats: null }, { shSoSats: 0.01 }];
+    expect(hasAnyPctSourceOrInput(satser, (s) => s.shSoSats, undefined)).toBe(true);
+  });
+
+  it('er true ved tom liste når input er ikke-nul', () => {
+    expect(hasAnyPctSourceOrInput([], () => null, 15.3)).toBe(true);
+  });
+
+  it('er false ved tom liste når input er 0/undefined', () => {
+    expect(hasAnyPctSourceOrInput([], () => null, 0)).toBe(false);
+    expect(hasAnyPctSourceOrInput([], () => null, undefined)).toBe(false);
   });
 });
 

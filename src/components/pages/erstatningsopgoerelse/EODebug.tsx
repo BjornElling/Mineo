@@ -60,7 +60,10 @@ import {
   convertAnciennitetSats,
   formatAmount2,
   formatAmountWithoutTrailingDecimals,
+  hasAnyPctSourceOrInput,
+  hasPctSourceOrInput,
   numOrZero,
+  resolvePctPointFromSatsOrInput,
   formatPercentFixed2 as formatPercentFixed2Shared,
   resolveOffentligLoenEkstraGrundloen,
   roundToTwoDecimals,
@@ -742,9 +745,9 @@ const EODebug = () => {
               reguleringsdatoDanish,
               applyAlmindeligLoenPaaShDageRegel
             );
-            const hasShSo = (tillaegsSatser?.shSoSats ?? null) !== null;
-            const hasFritvalg = (tillaegsSatser?.fritvalg ?? null) !== null;
-            const hasAgPension = (tillaegsSatser?.agPension ?? null) !== null;
+            const hasShSo = hasPctSourceOrInput(tillaegsSatser?.shSoSats, af.shSoPct);
+            const hasFritvalg = hasPctSourceOrInput(tillaegsSatser?.fritvalg, af.fritvalgPct);
+            const hasAgPension = hasPctSourceOrInput(tillaegsSatser?.agPension, af.pensionPct);
             const hasStoreBededag =
               applyAlmindeligLoenPaaShDageRegel && reguleringsdato >= STORE_BEDEDAG_START;
             const baseValue =
@@ -753,9 +756,9 @@ const EODebug = () => {
               components: {
                 baseValue,
                 feriePct,
-                fritvalgPct: percentFromDecimal(numOrZero(tillaegsSatser?.fritvalg)),
-                shSoPct: percentFromDecimal(numOrZero(tillaegsSatser?.shSoSats)),
-                pensionPct: percentFromDecimal(numOrZero(tillaegsSatser?.agPension)),
+                fritvalgPct: resolvePctPointFromSatsOrInput(tillaegsSatser?.fritvalg, af.fritvalgPct),
+                shSoPct: resolvePctPointFromSatsOrInput(tillaegsSatser?.shSoSats, af.shSoPct),
+                pensionPct: resolvePctPointFromSatsOrInput(tillaegsSatser?.agPension, af.pensionPct),
                 storeBededagPct: getStoreBededagPct(reguleringsdato, af.loenPaaHelligdage),
               },
               visibility: {
@@ -1001,9 +1004,12 @@ const EODebug = () => {
                 tilDato,
                 applyAlmindeligLoenPaaShDageRegel
               );
-              const hasShSo = tillaegsSatser.some((sats) => sats.shSoSats !== null);
-              const hasFritvalg = tillaegsSatser.some((sats) => sats.fritvalg !== null);
-              const hasAgPension = tillaegsSatser.some((sats) => sats.agPension !== null);
+              const hasShSo =
+                hasAnyPctSourceOrInput(tillaegsSatser, (sats) => sats.shSoSats, af.shSoPct);
+              const hasFritvalg =
+                hasAnyPctSourceOrInput(tillaegsSatser, (sats) => sats.fritvalg, af.fritvalgPct);
+              const hasAgPension =
+                hasAnyPctSourceOrInput(tillaegsSatser, (sats) => sats.agPension, af.pensionPct);
 
               const periodStarts = satser
                 .map((sats) => {
@@ -1019,9 +1025,9 @@ const EODebug = () => {
                   const components: FormulaComponents = {
                     baseValue,
                     feriePct,
-                    fritvalgPct: percentFromDecimal(numOrZero(tillaegSats?.fritvalg)),
-                    shSoPct: percentFromDecimal(numOrZero(tillaegSats?.shSoSats)),
-                    pensionPct: percentFromDecimal(numOrZero(tillaegSats?.agPension)),
+                    fritvalgPct: resolvePctPointFromSatsOrInput(tillaegSats?.fritvalg, af.fritvalgPct),
+                    shSoPct: resolvePctPointFromSatsOrInput(tillaegSats?.shSoSats, af.shSoPct),
+                    pensionPct: resolvePctPointFromSatsOrInput(tillaegSats?.agPension, af.pensionPct),
                     storeBededagPct: getStoreBededagPct(startIso, af.loenPaaHelligdage),
                   };
                   return { startIso, components };

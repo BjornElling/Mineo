@@ -42,7 +42,7 @@ import {
   STORE_BEDEDAG_START,
   STORE_BEDEDAG_PCT,
   convertAnciennitetSats,
-  numOrZero,
+  resolvePctPointFromSatsOrInput,
   resolveOffentligLoenEkstraGrundloen,
   roundToTwoDecimals,
   resolveReguleringsdato as resolveReguleringsdatoShared,
@@ -169,6 +169,9 @@ type KonsolideretLoenudviklingV3 =
     overenskomstId: string;
     loenPaaHelligdage: string;
     feriePct: number;
+    fritvalgPct: number;
+    shSoPct: number;
+    pensionPct: number;
     tafBeregningsenhed: TafBeregningsenhed;
     harAnciennitetstillaegEfterSkadesdatoen: boolean;
     anciennitetstillaegDato: ISODateString | undefined;
@@ -496,6 +499,9 @@ const resolveReguleringsStrategiV3 = (
       ? resolveOffentligLoenSelectionV3(active[0], offentligType)
       : null;
     const feriePct = typeof active[0].feriePct === 'number' ? active[0].feriePct : 0;
+    const fritvalgPct = typeof active[0].fritvalgPct === 'number' ? active[0].fritvalgPct : 0;
+    const shSoPct = typeof active[0].shSoPct === 'number' ? active[0].shSoPct : 0;
+    const pensionPct = typeof active[0].pensionPct === 'number' ? active[0].pensionPct : 0;
     const offentligLoenEkstraGrundloenRaw = amountValueToNumber(active[0].offentligLoenEkstraGrundloen);
     return {
       strategi,
@@ -507,6 +513,9 @@ const resolveReguleringsStrategiV3 = (
         overenskomstId: active[0].overenskomstId,
         loenPaaHelligdage,
         feriePct,
+        fritvalgPct,
+        shSoPct,
+        pensionPct,
         tafBeregningsenhed,
         harAnciennitetstillaegEfterSkadesdatoen: active[0].harAnciennitetstillaegEfterSkadesdatoen,
         anciennitetstillaegDato: isISODateString(active[0].anciennitetstillaegDato) ? active[0].anciennitetstillaegDato : undefined,
@@ -780,9 +789,9 @@ const buildLoenudviklingFromOverenskomstV3 = (
     const basePackage = computePackageValue({
       grundloen: baseLoen,
       feriePct,
-      shSoPct: numOrZero(baseTillaegsSatser?.shSoSats) * 100,
-      fritvalgPct: numOrZero(baseTillaegsSatser?.fritvalg) * 100,
-      pensionPct: numOrZero(baseTillaegsSatser?.agPension) * 100,
+      shSoPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.shSoSats, konsolideret.shSoPct),
+      fritvalgPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.fritvalg, konsolideret.fritvalgPct),
+      pensionPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.agPension, konsolideret.pensionPct),
       storeBededagPct: applyShRegel && konsolideret.reguleringsdato >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0,
     });
     if (!Number.isFinite(basePackage) || basePackage <= 0) {
@@ -854,9 +863,9 @@ const buildLoenudviklingFromOverenskomstV3 = (
         const packageValue = computePackageValue({
           grundloen: grundloenForSegment,
           feriePct,
-          shSoPct: numOrZero(segmentTillaegsSatser?.shSoSats) * 100,
-          fritvalgPct: numOrZero(segmentTillaegsSatser?.fritvalg) * 100,
-          pensionPct: numOrZero(segmentTillaegsSatser?.agPension) * 100,
+          shSoPct: resolvePctPointFromSatsOrInput(segmentTillaegsSatser?.shSoSats, konsolideret.shSoPct),
+          fritvalgPct: resolvePctPointFromSatsOrInput(segmentTillaegsSatser?.fritvalg, konsolideret.fritvalgPct),
+          pensionPct: resolvePctPointFromSatsOrInput(segmentTillaegsSatser?.agPension, konsolideret.pensionPct),
           storeBededagPct: applyShRegel && segment.fra >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0,
         });
         if (!Number.isFinite(packageValue) || packageValue <= 0) {

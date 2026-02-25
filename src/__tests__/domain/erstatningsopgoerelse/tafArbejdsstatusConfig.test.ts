@@ -76,9 +76,14 @@ describe('buildTafArbejdsstatusLinje', () => {
     expect(linje).toBe(`Den ${dato} var skadelidte fortsat delvist uarbejdsdygtig.`);
   });
 
-  it('Fuldt arbejdsdygtig: ikke fortsat, ingen prefix/suffix → blot statusTekst + "."', () => {
+  it('Fuldt arbejdsdygtig: default → "var ... raskmeldt."', () => {
     const linje = buildTafArbejdsstatusLinje(dato, 'Fuldt arbejdsdygtig');
-    expect(linje).toBe(`Den ${dato} var skadelidte uarbejdsdygtig.`);
+    expect(linje).toBe(`Den ${dato} var skadelidte raskmeldt.`);
+  });
+
+  it('Fuldt arbejdsdygtig: opgjort til periodeTil → "blev ... raskmeldt."', () => {
+    const linje = buildTafArbejdsstatusLinje(dato, 'Fuldt arbejdsdygtig', { opgjortFremTilPeriodeTil: true });
+    expect(linje).toBe(`Den ${dato} blev skadelidte raskmeldt.`);
   });
 
   it('Fleksjob: prefix=bevilget, suffix=Delvist uarbejdsdygtig → "bevilget fleksjob og således fortsat delvist uarbejdsdygtig."', () => {

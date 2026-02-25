@@ -89,6 +89,64 @@ export const formatAmountWithoutTrailingDecimals = (value: number): string => {
 export const numOrZero = (value: number | null | undefined): number =>
   typeof value === 'number' && Number.isFinite(value) ? value : 0;
 
+/**
+ * Returnerer procentpoint (fx 15,3 for 15,3 %) fra overenskomstsats.
+ * Falder tilbage til brugerens indtastede sats, når overenskomstsatsen mangler.
+ */
+export const resolvePctPointFromSatsOrInput = (
+  overenskomstPctDecimal: number | null | undefined,
+  inputPct: number | undefined
+): number => {
+  if (typeof overenskomstPctDecimal === 'number' && Number.isFinite(overenskomstPctDecimal)) {
+    return roundToTwoDecimals(overenskomstPctDecimal * 100);
+  }
+  return typeof inputPct === 'number' && Number.isFinite(inputPct) ? roundToTwoDecimals(inputPct) : 0;
+};
+
+/**
+ * Returnerer decimal-procent (fx 0,153 for 15,3 %) fra overenskomstsats.
+ * Falder tilbage til brugerens indtastede sats, når overenskomstsatsen mangler.
+ */
+export const resolvePctDecimalFromSatsOrInput = (
+  overenskomstPctDecimal: number | null | undefined,
+  inputPct: number | undefined
+): number => {
+  if (typeof overenskomstPctDecimal === 'number' && Number.isFinite(overenskomstPctDecimal)) {
+    return overenskomstPctDecimal;
+  }
+  if (typeof inputPct === 'number' && Number.isFinite(inputPct)) {
+    return inputPct / 100;
+  }
+  return 0;
+};
+
+/**
+ * Angiver om et pct-led skal vises i formel/tabeller:
+ * - ja, når overenskomstsats findes, eller
+ * - ja, når brugersats er en ikke-nul værdi.
+ */
+export const hasPctSourceOrInput = (
+  overenskomstPctDecimal: number | null | undefined,
+  inputPct: number | undefined
+): boolean => {
+  if (typeof overenskomstPctDecimal === 'number' && Number.isFinite(overenskomstPctDecimal)) return true;
+  return typeof inputPct === 'number' && Number.isFinite(inputPct) && Math.abs(inputPct) > 0;
+};
+
+/**
+ * Samlet check for om et pct-led skal vises på tværs af en sats-liste:
+ * - true hvis mindst én sats har en kildeværdi, eller input er ikke-nul
+ * - true ved tom liste hvis input er ikke-nul
+ */
+export const hasAnyPctSourceOrInput = <TSats>(
+  satser: readonly TSats[],
+  readOverenskomstPctDecimal: (sats: TSats) => number | null | undefined,
+  inputPct: number | undefined
+): boolean => {
+  if (satser.length === 0) return hasPctSourceOrInput(undefined, inputPct);
+  return satser.some((sats) => hasPctSourceOrInput(readOverenskomstPctDecimal(sats), inputPct));
+};
+
 export const resolveOffentligLoenEkstraGrundloen = (
   rawAmount: number | undefined,
   inputPer: 'Måned' | 'Time',

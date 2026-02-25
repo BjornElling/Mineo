@@ -10,6 +10,10 @@ type TafArbejdsstatusConfig = Readonly<{
   fortsat: boolean;
 }>;
 
+type BuildTafArbejdsstatusLinjeOptions = Readonly<{
+  opgjortFremTilPeriodeTil: boolean;
+}>;
+
 export const TAF_ARBEJDSSTATUS_CONFIG: Readonly<Record<Arbejdsstatus, TafArbejdsstatusConfig>> = {
   Uarbejdsdygtig: {
     prefix: null,
@@ -24,9 +28,11 @@ export const TAF_ARBEJDSSTATUS_CONFIG: Readonly<Record<Arbejdsstatus, TafArbejds
     fortsat: true,
   },
   'Fuldt arbejdsdygtig': {
+    // NOTE: Denne entry bevares af hensyn til config-konsistens på tværs af alle Arbejdsstatus.
+    // buildTafArbejdsstatusLinje overstyrer teksten med en særregel ("var/blev ... raskmeldt").
     prefix: null,
     suffix: null,
-    statusTekst: 'uarbejdsdygtig',
+    statusTekst: 'raskmeldt',
     fortsat: false,
   },
   Fleksjob: {
@@ -83,7 +89,16 @@ const normalizeSuffix = (suffix: Exclude<TafArbejdsstatusSuffix, null>): string 
   return suffix.charAt(0).toLowerCase() + suffix.slice(1);
 };
 
-export const buildTafArbejdsstatusLinje = (dagenEfter: string, status: Arbejdsstatus): string => {
+export const buildTafArbejdsstatusLinje = (
+  dagenEfter: string,
+  status: Arbejdsstatus,
+  options?: BuildTafArbejdsstatusLinjeOptions
+): string => {
+  if (status === 'Fuldt arbejdsdygtig') {
+    const verb = options?.opgjortFremTilPeriodeTil ? 'blev' : 'var';
+    return `Den ${dagenEfter} ${verb} skadelidte raskmeldt.`;
+  }
+
   const config = TAF_ARBEJDSSTATUS_CONFIG[status];
   const fortsatSegment = config.fortsat ? 'fortsat ' : '';
   const prefixSegment = config.prefix ? `${config.prefix} ` : '';

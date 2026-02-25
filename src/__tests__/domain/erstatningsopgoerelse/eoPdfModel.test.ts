@@ -1269,6 +1269,54 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     expect(model.tabtArbejdsfortjeneste.statusLinjer).toContain('Den 1. februar 2024 var skadelidte på efterløn.');
   });
 
+  it('viser "blev ... raskmeldt" for Fuldt arbejdsdygtig når TAF går til og med dagen før', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(30000),
+      vedroererPeriodeTil: iso('2024-01-31'),
+      tafArbejdsstatus: 'Fuldt arbejdsdygtig',
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.tabtArbejdsfortjeneste.statusLinjer).toContain('Den 1. februar 2024 blev skadelidte raskmeldt.');
+  });
+
+  it('viser "var ... raskmeldt" for Fuldt arbejdsdygtig når TAF ikke går til dagen før', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(30000),
+      vedroererPeriodeTil: iso('2024-01-31'),
+      tafArbejdsstatus: 'Fuldt arbejdsdygtig',
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-30'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.tabtArbejdsfortjeneste.statusLinjer).toContain('Den 1. februar 2024 var skadelidte raskmeldt.');
+  });
+
   it('tilføjer delvist-uarbejdsdygtig suffix for fleksjob', () => {
     const eoValues = makeValues({
       vedroererPeriodeTil: iso('2024-01-31'),

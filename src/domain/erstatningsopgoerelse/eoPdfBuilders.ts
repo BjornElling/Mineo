@@ -197,9 +197,19 @@ export const buildTabtArbejdsfortjenesteModel = (
 ): TabtArbejdsfortjenestePdfModel => {
   const statusLinjer: string[] = [];
   const periodeTilISO = values.vedroererPeriodeTil;
+  const tafRanges = buildTafRanges(values);
+  const tafRangesAsDates = tafRanges.map((range) => ({
+    fra: isoDateToDate(range.fra),
+    til: isoDateToDate(range.til),
+  }));
+  const tafOpgjortFremTilPeriodeTil = Boolean(periodeTilISO && perioderCoverDate(tafRangesAsDates, periodeTilISO));
   if (values.tafArbejdsstatus && periodeTilISO) {
     const dagenEfter = formatDateLong(getDayAfterIso(periodeTilISO));
-    statusLinjer.push(buildTafArbejdsstatusLinje(dagenEfter, values.tafArbejdsstatus));
+    statusLinjer.push(
+      buildTafArbejdsstatusLinje(dagenEfter, values.tafArbejdsstatus, {
+        opgjortFremTilPeriodeTil: tafOpgjortFremTilPeriodeTil,
+      })
+    );
   }
 
   const eetLinjer: string[] = [];
@@ -240,11 +250,6 @@ export const buildTabtArbejdsfortjenesteModel = (
 
   const tafPerioderLinjer = buildTafPerioderLinjer(values);
   const harTafPerioder = tafPerioderLinjer.length > 0;
-  const tafRanges = buildTafRanges(values);
-  const tafRangesAsDates = tafRanges.map((range) => ({
-    fra: isoDateToDate(range.fra),
-    til: isoDateToDate(range.til),
-  }));
   const harTafDagenFoer = (dato: ISODateString | undefined): boolean => {
     if (!dato) return false;
     const dagenFoer = subtractOneDay(dato);

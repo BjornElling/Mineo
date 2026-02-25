@@ -49,7 +49,10 @@ import {
   STORE_BEDEDAG_PCT,
   convertAnciennitetSats,
   formatAmountWithoutTrailingDecimals,
+  hasAnyPctSourceOrInput,
+  hasPctSourceOrInput,
   numOrZero,
+  resolvePctPointFromSatsOrInput,
   resolveOffentligLoenEkstraGrundloen,
   resolveReguleringsdato as resolveReguleringsdatoShared,
   resolveStatistikModelId,
@@ -514,9 +517,12 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
         tilDato,
         applyAlmindeligLoenPaaShDageRegel
       );
-      const hasShSo = tillaegsSatser.some((sats) => sats.shSoSats !== null);
-      const hasFritvalg = tillaegsSatser.some((sats) => sats.fritvalg !== null);
-      const hasAgPension = tillaegsSatser.some((sats) => sats.agPension !== null);
+      const hasShSo =
+        hasAnyPctSourceOrInput(tillaegsSatser, (sats) => sats.shSoSats, ansaettelsesforhold.shSoPct);
+      const hasFritvalg =
+        hasAnyPctSourceOrInput(tillaegsSatser, (sats) => sats.fritvalg, ansaettelsesforhold.fritvalgPct);
+      const hasAgPension =
+        hasAnyPctSourceOrInput(tillaegsSatser, (sats) => sats.agPension, ansaettelsesforhold.pensionPct);
       const visMaanedsloen = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER;
       const columns = [
         'Fra-dato',
@@ -584,9 +590,9 @@ const buildReguleringsvaerdierTableData = (params: Readonly<{
         rows.push([
           labelDato ?? labelIso,
           visMaanedsloen ? maanedsLoenDisplay : timeLoenDisplay,
-          ...(hasShSo ? [formatOverenskomstPercent(tillaegSats?.shSoSats)] : []),
-          ...(hasFritvalg ? [formatOverenskomstPercent(tillaegSats?.fritvalg)] : []),
-          ...(hasAgPension ? [formatOverenskomstPercent(tillaegSats?.agPension)] : []),
+          ...(hasShSo ? [formatPctFromInput(resolvePctPointFromSatsOrInput(tillaegSats?.shSoSats, ansaettelsesforhold.shSoPct))] : []),
+          ...(hasFritvalg ? [formatPctFromInput(resolvePctPointFromSatsOrInput(tillaegSats?.fritvalg, ansaettelsesforhold.fritvalgPct))] : []),
+          ...(hasAgPension ? [formatPctFromInput(resolvePctPointFromSatsOrInput(tillaegSats?.agPension, ansaettelsesforhold.pensionPct))] : []),
         ]);
       };
 
@@ -985,12 +991,14 @@ const buildReguleringIndexRows = (params: Readonly<{
             )
           : [];
       const hasShSo =
-        (baseTillaegsSatser?.shSoSats ?? null) !== null || periodeTillaegsSatser.some((sats) => sats.shSoSats !== null);
+        hasPctSourceOrInput(baseTillaegsSatser?.shSoSats, ansaettelsesforhold.shSoPct)
+        || hasAnyPctSourceOrInput(periodeTillaegsSatser, (sats) => sats.shSoSats, ansaettelsesforhold.shSoPct);
       const hasFritvalg =
-        (baseTillaegsSatser?.fritvalg ?? null) !== null || periodeTillaegsSatser.some((sats) => sats.fritvalg !== null);
+        hasPctSourceOrInput(baseTillaegsSatser?.fritvalg, ansaettelsesforhold.fritvalgPct)
+        || hasAnyPctSourceOrInput(periodeTillaegsSatser, (sats) => sats.fritvalg, ansaettelsesforhold.fritvalgPct);
       const hasAgPension =
-        (baseTillaegsSatser?.agPension ?? null) !== null ||
-        periodeTillaegsSatser.some((sats) => sats.agPension !== null);
+        hasPctSourceOrInput(baseTillaegsSatser?.agPension, ansaettelsesforhold.pensionPct)
+        || hasAnyPctSourceOrInput(periodeTillaegsSatser, (sats) => sats.agPension, ansaettelsesforhold.pensionPct);
       const hasStoreBededag =
         applyAlmindeligLoenPaaShDageRegel &&
         (reguleringsdato >= STORE_BEDEDAG_START || segmentsForCalc.some((segment) => segment.til >= STORE_BEDEDAG_START));
@@ -1001,9 +1009,9 @@ const buildReguleringIndexRows = (params: Readonly<{
       const baseComponents: FormulaComponents = {
         baseValue,
         feriePct: typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0,
-        fritvalgPct: percentFromDecimal(numOrZero(baseTillaegsSatser?.fritvalg)),
-        shSoPct: percentFromDecimal(numOrZero(baseTillaegsSatser?.shSoSats)),
-        pensionPct: percentFromDecimal(numOrZero(baseTillaegsSatser?.agPension)),
+        fritvalgPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.fritvalg, ansaettelsesforhold.fritvalgPct),
+        shSoPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.shSoSats, ansaettelsesforhold.shSoPct),
+        pensionPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.agPension, ansaettelsesforhold.pensionPct),
         storeBededagPct: getStoreBededagPct(reguleringsdato),
       };
       const baseVisibility: FormulaVisibility = {
@@ -1036,9 +1044,9 @@ const buildReguleringIndexRows = (params: Readonly<{
         const components: FormulaComponents = {
           baseValue: segmentBase,
           feriePct: typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0,
-          fritvalgPct: percentFromDecimal(numOrZero(segmentTillaegsSatser?.fritvalg)),
-          shSoPct: percentFromDecimal(numOrZero(segmentTillaegsSatser?.shSoSats)),
-          pensionPct: percentFromDecimal(numOrZero(segmentTillaegsSatser?.agPension)),
+          fritvalgPct: resolvePctPointFromSatsOrInput(segmentTillaegsSatser?.fritvalg, ansaettelsesforhold.fritvalgPct),
+          shSoPct: resolvePctPointFromSatsOrInput(segmentTillaegsSatser?.shSoSats, ansaettelsesforhold.shSoPct),
+          pensionPct: resolvePctPointFromSatsOrInput(segmentTillaegsSatser?.agPension, ansaettelsesforhold.pensionPct),
           storeBededagPct: getStoreBededagPct(segment.fra),
         };
         const visibility: FormulaVisibility = {

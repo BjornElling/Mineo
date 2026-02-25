@@ -26,7 +26,10 @@ import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { svieSmertePrDag } from '../../data/regulationRates';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
-import { numOrZero, resolveOffentligLoenEkstraGrundloen } from '../erstatningsopgoerelse/sharedPdfUtils';
+import {
+  resolveOffentligLoenEkstraGrundloen,
+  resolvePctDecimalFromSatsOrInput,
+} from '../erstatningsopgoerelse/sharedPdfUtils';
 
 const STORE_BEDEDAG_PCT = 0.0045;
 const STORE_BEDEDAG_START = '2024-01-01';
@@ -212,10 +215,10 @@ export function buildLoenTimeline(input: LoenCoreInput): LoenTimeline {
       const { components, total } = buildLoenComponents({
         grundloen,
         feriePct,
-        shSoPct: numOrZero(tillaegsSatser?.shSoSats),
-        fritvalgPct: numOrZero(tillaegsSatser?.fritvalg),
+        shSoPct: resolvePctDecimalFromSatsOrInput(tillaegsSatser?.shSoSats, af.shSoPct),
+        fritvalgPct: resolvePctDecimalFromSatsOrInput(tillaegsSatser?.fritvalg, af.fritvalgPct),
         storeBededagPct: getStoreBededagPct(debugDay.iso, loenPaaHelligdage),
-        pensionPct: numOrZero(tillaegsSatser?.agPension),
+        pensionPct: resolvePctDecimalFromSatsOrInput(tillaegsSatser?.agPension, af.pensionPct),
       });
 
       if (components.length === 0) continue;

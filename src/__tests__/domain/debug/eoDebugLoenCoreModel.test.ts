@@ -286,4 +286,30 @@ describe('buildLoenTimeline — offentlig løn-path (KL)', () => {
     const types = result.loenDays[0]?.components.map((c) => c.type) ?? [];
     expect(types).toContain('grundloen');
   });
+
+  it('KL fallback: bruger input-pension når overenskomst-tillæg mangler', () => {
+    const debugDays = [makeDebugDay('2024-03-04', true)];
+    const result = buildLoenTimeline(
+      makeKLInput(debugDays, {
+        loenindkomstAnsaettelsesforhold: [
+          {
+            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            id: 'af-kl',
+            harOverenskomst: true,
+            overenskomstId: 'kl-overenskomst',
+            feriePct: 12.5,
+            pensionPct: 15.3,
+            loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
+            offentligLoenType: 'Timeløn',
+            offentligLoenTrin: 20,
+            offentligLoenGruppe: 0,
+          },
+        ],
+      })
+    );
+
+    expect(result.loenDays).toHaveLength(1);
+    const types = result.loenDays[0]?.components.map((c) => c.type) ?? [];
+    expect(types).toContain('pension');
+  });
 });
