@@ -6,6 +6,7 @@ const SRC_ROOT = path.resolve(process.cwd(), 'src');
 const EO_OPLYSNINGER_TAB_PATH = path.resolve(SRC_ROOT, 'components/pages/erstatningsopgoerelse/EOOplysningerTab.tsx');
 const EO_DEBUG_PATH = path.resolve(SRC_ROOT, 'components/pages/erstatningsopgoerelse/EODebug.tsx');
 const EO_PDF_MODEL_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/eoPdfModel.ts');
+const EO_PDF_BUILDERS_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/eoPdfBuilders.ts');
 const ERHVERVSEVNETAB_PAGE_PATH = path.resolve(SRC_ROOT, 'components/pages/Erhvervsevnetab.tsx');
 
 const FORBIDDEN_CROSS_DOMAIN_PATTERNS: ReadonlyArray<RegExp> = [
@@ -61,19 +62,21 @@ describe('eetDomainIsolation', () => {
 
     expect(source).toContain("handleToggleChange('midlertidigtEetAfgorelse')");
     expect(source).toContain("handleToggleChange('endeligtEetAfgorelse')");
-    expect(source).toContain("value={values.midlertidigEETAfgoerelseDato}");
-    expect(source).toContain("value={values.endeligEETAfgoerelseDato}");
-    expect(source).toContain("checked={getChecked(values.verserendeKlageEet)}");
+    expect(source).toContain('value={values.midlertidigEETAfgoerelseDato}');
+    expect(source).toContain('value={values.endeligEETAfgoerelseDato}');
+    expect(source).toContain('checked={getChecked(values.verserendeKlageEet)}');
   });
 
   it('læser EET-oplysninger i debug/PDF fra EO-values (ikke fra erhvervsevnetab-side)', () => {
     const debugSource = fs.readFileSync(EO_DEBUG_PATH, 'utf8');
     const pdfModelSource = fs.readFileSync(EO_PDF_MODEL_PATH, 'utf8');
+    const pdfBuildersSource = fs.readFileSync(EO_PDF_BUILDERS_PATH, 'utf8');
+    const pdfSource = `${pdfModelSource}\n${pdfBuildersSource}`;
 
     expect(debugSource).toContain('erstatningsopgoerelseValues.midlertidigtEetAfgorelse');
     expect(debugSource).toContain('erstatningsopgoerelseValues.endeligtEetAfgorelse');
-    expect(pdfModelSource).toContain('values.midlertidigtEetAfgorelse');
-    expect(pdfModelSource).toContain('values.endeligtEetAfgorelse');
+    expect(pdfSource).toContain('values.midlertidigtEetAfgorelse');
+    expect(pdfSource).toContain('values.endeligtEetAfgorelse');
   });
 
   it('forbyder at Erhvervsevnetab-siden læser EO/EET-data fra erstatningsopgoerelse-persistence', () => {

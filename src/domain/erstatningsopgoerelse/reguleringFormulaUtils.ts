@@ -1,5 +1,5 @@
 import { formatCurrency, formatPercent } from '../../utils/formatUtils';
-import { formatPercentFixed2 as formatPercentFixed2Shared } from './sharedPdfUtils';
+import { formatPercentFixed2 } from './sharedPdfUtils';
 import { roundByMethod } from '../../utils/rounding';
 
 export type FormulaComponents = Readonly<{
@@ -43,7 +43,7 @@ export const formatPercentCellFromRaw = (raw: string | undefined): string => {
   const cleaned = normalized.replace(/\./g, '').replace(',', '.');
   const num = Number.parseFloat(cleaned);
   if (!Number.isFinite(num)) return trimmed.includes('%') ? trimmed : `${trimmed} %`;
-  return formatPercentFixed2Shared(num);
+  return formatPercentFixed2(num);
 };
 
 export const mergeFeriepengeDisplay = (fromFeriePct: string | undefined, fromFeriepenge: string | undefined): string => {
@@ -71,7 +71,7 @@ export const mergeFeriepengeDisplay = (fromFeriePct: string | undefined, fromFer
   const leftPercent = parseComparablePercent(left);
   const rightPercent = parseComparablePercent(right);
   if (leftPercent !== null && rightPercent !== null && Math.abs(leftPercent - rightPercent) <= 0.005) {
-    return formatPercentFixed2Shared(leftPercent);
+    return formatPercentFixed2(leftPercent);
   }
   if (left === right) return left ?? '-';
   return `${left} / ${right}`;
@@ -88,7 +88,7 @@ export const wrapIndexFormulaAfterSlashWhenLong = (value: string, maxInlineLengt
 export const formatOverenskomstPercent = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return '-';
   const pct = roundByMethod(value * 100, 2, 'halfAwayFromZero');
-  return formatPercentFixed2Shared(pct);
+  return formatPercentFixed2(pct);
 };
 
 export const computeFormulaValue = (components: FormulaComponents): number => {
@@ -120,7 +120,7 @@ export const buildFormulaText = (components: FormulaComponents, visibility: Form
     ...(feriePct !== 0 ? [formatPercent(feriePct)] : []),
     ...(visibility.showFritvalg && fritvalgPct !== 0 ? [formatPercent(fritvalgPct)] : []),
     ...(visibility.showShSo && shSoPct !== 0 ? [formatPercent(shSoPct)] : []),
-    ...(visibility.showStoreBededag && storeBededagPct !== 0 ? [formatPercentFixed2Shared(storeBededagPct)] : []),
+    ...(visibility.showStoreBededag && storeBededagPct !== 0 ? [formatPercentFixed2(storeBededagPct)] : []),
   ];
   const factors: string[] = [];
   if (extraParts.length > 0) {

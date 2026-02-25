@@ -15,7 +15,7 @@
 
 ## Konklusion (kort)
 
-De fleste tidligere lav-/medium-fund er nu løst. Den resterende væsentlige arkitekturrisiko er fortsat dobbelte beregningsspor mellem EO-aggregation og EO-PDF-model samt stor kompleksitet i `eoPdfModel.ts`.
+De fleste tidligere lav-/medium-fund er nu løst. Den resterende væsentlige arkitekturrisiko er dobbelte beregningsspor mellem EO-aggregation og EO-PDF-model.
 
 ## Princip-efterlevelse: EET + tværside-data (afklaring)
 
@@ -62,6 +62,7 @@ Status pr. kodegennemgang:
 9. `EOberegningTab` er synkroniseret med produktreglen: UI-branch for “Samlet erstatningsopgørelse” er fjernet.
 10. `__setSectionUnsafe` og `__setMetaUnsafe` i `formPersistenceStore` er strammet som test-only escape hatches med fail-closed runtime-guard uden for testmiljø.
 11. `stamdata` videresendes nu eksplicit til `computeSvieSmerteEngine` i snapshot-orchestrering, så engine-input er konsistent mellem pipeline og PDF.
+12. `eoPdfModel.ts` er opdelt i domænemoduler (`eoPdfLoenudvikling.ts`, `eoPdfIndkomstSkadestidspunkt.ts`, `eoPdfBuilders.ts`, `eoPdfModelTypes.ts`, `eoPdfMoneyUtils.ts`) og fungerer nu som lille entry/barrel.
 
 ## Verificeret / afklaret
 
@@ -84,11 +85,6 @@ Status pr. kodegennemgang:
    3. Risiko: drift mellem interne beregningsresultater og det PDF’en ender med at vise.
    4. Anbefaling: definér én kanonisk beregningskerne pr. EO-delområde og lad både aggregation og PDF bruge samme outputs.
 
-2. **`eoPdfModel.ts` er et arkitektonisk hotspot**
-   1. Filen er meget stor og blander flere domæner/ansvar.
-   2. Risiko: høj regressionsfare ved ændringer, svag auditérbarhed, vanskeligt ejerskab.
-   3. Anbefaling: opdel i domænemoduler (svie/smerte, TAF, lønudvikling, øvrige krav, sammentælling) med tydelige input/output-kontrakter.
-
 ## Medium prioritet
 
 Ingen aktive medium-prioritetsfund.
@@ -102,5 +98,4 @@ Ingen aktive lav-prioritetsfund.
 ## Opdateret prioriteret handlingsliste
 
 1. **Høj:** Konsolider EO-beregningssandhed mellem pipeline og PDF-model.
-2. **Høj:** Opdel `src/domain/erstatningsopgoerelse/eoPdfModel.ts` i mindre domænemoduler.
-3. **Mellem/lang sigt:** Fortsæt konsolidering af resterende parallelle EO-beregningsspor mellem pipeline og PDF-model.
+2. **Mellem/lang sigt:** Fortsæt konsolidering af resterende parallelle EO-beregningsspor mellem pipeline og PDF-model.
