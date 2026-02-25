@@ -63,6 +63,7 @@ Status pr. kodegennemgang:
 10. `__setSectionUnsafe` og `__setMetaUnsafe` i `formPersistenceStore` er strammet som test-only escape hatches med fail-closed runtime-guard uden for testmiljø.
 11. `stamdata` videresendes nu eksplicit til `computeSvieSmerteEngine` i snapshot-orchestrering, så engine-input er konsistent mellem pipeline og PDF.
 12. `eoPdfModel.ts` er opdelt i domænemoduler (`eoPdfLoenudvikling.ts`, `eoPdfIndkomstSkadestidspunkt.ts`, `eoPdfBuilders.ts`, `eoPdfModelTypes.ts`, `eoPdfMoneyUtils.ts`) og fungerer nu som lille entry/barrel.
+13. **Tranche 1 fuldført:** `oevrigeKrav` er konsolideret til én kanonisk parser/summeringsfunktion (`parseOevrigeKravBeloeb`), genbrugt af både aggregation-adapter og PDF-builder, med eksplicit parity-test mellem de to spor.
 
 ## Verificeret / afklaret
 
@@ -80,10 +81,10 @@ Status pr. kodegennemgang:
 ## Høj prioritet
 
 1. **Parallelle beregningssandheder mellem EO-aggregation og EO-PDF**
-   1. EO-aggregation beregnes i `src/calculation/pipeline/erstatningsopgoerelseAggregationPipeline.ts`.
-   2. PDF-beregningen drives af separat model i `src/domain/erstatningsopgoerelse/eoPdfModel.ts` via `src/utils/pdf/erstatningsopgoerelsePdf.ts`.
-   3. Risiko: drift mellem interne beregningsresultater og det PDF’en ender med at vise.
-   4. Anbefaling: definér én kanonisk beregningskerne pr. EO-delområde og lad både aggregation og PDF bruge samme outputs.
+   1. `oevrigeKrav`-delen er nu lukket i Tranche 1 (fælles parser/summering + parity-test).
+   2. Resterende områder (`taf`, `svieSmerte`) har fortsat parallelle beregningsspor mellem aggregation og PDF.
+   3. Risiko: drift mellem interne beregningsresultater og det PDF’en ender med at vise i de resterende delområder.
+   4. Anbefaling: fortsæt konsolidering pr. delområde med én kanonisk beregningskerne og fælles outputs.
 
 ## Medium prioritet
 
@@ -97,5 +98,4 @@ Ingen aktive lav-prioritetsfund.
 
 ## Opdateret prioriteret handlingsliste
 
-1. **Høj:** Konsolider EO-beregningssandhed mellem pipeline og PDF-model.
-2. **Mellem/lang sigt:** Fortsæt konsolidering af resterende parallelle EO-beregningsspor mellem pipeline og PDF-model.
+1. **Høj:** Tranche 2+ — fortsæt konsolidering af resterende parallelle EO-beregningsspor (`taf`, `svieSmerte`) mellem pipeline og PDF-model.

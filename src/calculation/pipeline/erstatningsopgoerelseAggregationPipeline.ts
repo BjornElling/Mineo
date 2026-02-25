@@ -53,9 +53,9 @@ export const computeErstatningsopgoerelseAggregation = (
   if (input.svieSmerteOutput) {
     computedOutputs.svieSmerte = input.svieSmerteOutput;
   }
-  // oevrigeKrav er en simpel formsum og beregnes derfor direkte fra committed EO-input
-  // i stedet for via separat engine/adapterspor.
-  const oevrigeKrav = adaptOevrigeKravForAggregation(input.erstatningsopgoerelse);
+  // oevrigeKrav beregnes fra committed EO-input via den kanoniske parser/summeringsfunktion
+  // (parseOevrigeKravBeloeb) brugt af adapteren; ingen separat engine-spor.
+  const oevrigeKrav = adaptOevrigeKravForAggregation(input.erstatningsopgoerelse.oevrigeKravPerioder ?? []);
   if (oevrigeKrav) {
     computedOutputs.oevrigeKrav = oevrigeKrav;
   }

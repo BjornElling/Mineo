@@ -14,6 +14,7 @@ import { buildLoenudviklingModelV3 } from './eoPdfLoenudvikling';
 import type { Calculable, MoneyOre, OevrigeKravPdfModel, SvieSmertePdfModel, TabtArbejdsfortjenestePdfModel, TafIndtaegterPdfModel } from './eoPdfModelTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from './eoPdfMoneyUtils';
 import { formatDateShort, formatDateLong } from './sharedPdfUtils';
+import { parseOevrigeKravBeloeb } from './oevrigeKravAmountParser';
 
 const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
@@ -368,23 +369,28 @@ export const buildTabtArbejdsfortjenesteModel = (
 };
 
 export const buildOevrigeKravModel = (rows: OevrigeKravRow[]): OevrigeKravPdfModel => {
-  const entries: Array<{ dateText: string; udgiftTil: string; amountOre: MoneyOre }> = [];
-  for (const row of rows) {
-    if (isOevrigeKravRowEmpty(row)) continue;
-    const dateText = row.dato ? formatDateShort(row.dato) : '';
-    const udgiftTil = (row.udgiftTil ?? '').trim();
-    const amountValue = amountValueToNumber(row.beloeb);
-    if (dateText === '' || udgiftTil === '' || amountValue === undefined) {
-      throw new Error('Øvrige krav er ikke fuldt udfyldt'); // invariant: dækket af validator
+  const parsed = parseOevrigeKravBeloeb(rows);
+  if (!parsed) {
+    for (const row of rows) {
+      if (isOevrigeKravRowEmpty(row)) continue;
+      const amountValue = amountValueToNumber(row.beloeb);
+      if (amountValue !== undefined && amountValue < 0) {
+        throw new Error('Øvrige krav kan ikke være negativt'); // invariant: dækket af validator
+      }
     }
-    if (amountValue < 0) {
-      throw new Error('Øvrige krav kan ikke være negativt'); // invariant: dækket af validator
-    }
-    const amountOre = toOre(amountValue);
-    entries.push({ dateText, udgiftTil, amountOre });
+    throw new Error('Øvrige krav er ikke fuldt udfyldt');
   }
 
-  const totalOre = clampMoneyOreToZero(ensureMoneyOre(entries.reduce((acc, entry) => acc + entry.amountOre, 0)));
-  return { entries, totalOre };
+  const entries: Array<{ dateText: string; udgiftTil: string; amountOre: MoneyOre }> = [];
+  for (const row of parsed.rows) {
+    const dateText = row.original.dato ? formatDateShort(row.original.dato) : '';
+    const udgiftTil = (row.original.udgiftTil ?? '').trim();
+    if (dateText === '' || udgiftTil === '') {
+      throw new Error('Øvrige krav er ikke fuldt udfyldt'); // invariant: dækket af validator
+    }
+    entries.push({ dateText, udgiftTil, amountOre: row.amountOre });
+  }
+
+  return { entries, totalOre: parsed.totalOre };
 };
 

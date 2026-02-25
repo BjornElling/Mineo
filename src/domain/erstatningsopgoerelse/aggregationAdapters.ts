@@ -1,9 +1,8 @@
 import type { DeepReadonly } from '../../types/deepReadonly';
-import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
+import type { OevrigeKravRow } from '../../schemas/formSchemas';
 import type { TafEngineOutput } from './tafBeregningsEngine';
 import type { SvieSmerteEngineOutput } from './svieSmerteEngine';
-import { amountValueToNumber } from '../../utils/expressionAmount';
-import { isOevrigeKravRowEmpty } from './rowEmpty';
+import { parseOevrigeKravBeloeb } from './oevrigeKravAmountParser';
 
 export type AggregatableComputed = Readonly<{
   amount: number;
@@ -35,13 +34,9 @@ export const adaptSvieSmerteForAggregation = (
 };
 
 export const adaptOevrigeKravForAggregation = (
-  erstatningsopgoerelse: DeepReadonly<ErstatningsopgoerelseValues>
+  rows: DeepReadonly<ReadonlyArray<OevrigeKravRow>>
 ): AggregatableComputed | null => {
-  const rows = (erstatningsopgoerelse.oevrigeKravPerioder ?? []).filter((row) => !isOevrigeKravRowEmpty(row));
-  const amounts = rows.map((row) => {
-    const value = amountValueToNumber(row.beloeb);
-    return value === undefined ? null : value;
-  });
-  const amount = sumFinite(amounts);
-  return amount === null ? null : { amount };
+  const parsed = parseOevrigeKravBeloeb(rows);
+  if (!parsed) return null;
+  return { amount: parsed.totalOre / 100 };
 };
