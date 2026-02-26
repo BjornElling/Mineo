@@ -33,6 +33,17 @@ type PersistedDataWrapper = {
   data: unknown;
 };
 
+const debugEnabled = import.meta.env.DEV;
+const debugLog = (...args: unknown[]): void => {
+  if (debugEnabled) console.debug(...args);
+};
+const debugGroup = (label: string): void => {
+  if (debugEnabled) console.group(label);
+};
+const debugGroupEnd = (): void => {
+  if (debugEnabled) console.groupEnd();
+};
+
 /**
  * Parser en felt-værdi og håndterer både string og formel-objekter
  */
@@ -83,31 +94,37 @@ export const serializeFieldValue = (internalState: unknown): string | FormulaVal
  * Tjekker om en værdi indeholder meningsfulde data (ikke tom/null).
  */
 export const isMeaningfulValue = (value: unknown): boolean => {
-  if (value === null || value === undefined) {
+  const hasMeaningful = (
+    candidate: unknown,
+    depth: number,
+    seen: WeakSet<object>
+  ): boolean => {
+    if (depth > 10) return false;
+    if (candidate === null || candidate === undefined) return false;
+
+    if (typeof candidate === 'string') {
+      return candidate.trim().length > 0;
+    }
+
+    if (typeof candidate === 'boolean' || typeof candidate === 'number') {
+      return true;
+    }
+
+    if (Array.isArray(candidate)) {
+      return candidate.some((item) => hasMeaningful(item, depth + 1, seen));
+    }
+
+    if (typeof candidate === 'object') {
+      if (seen.has(candidate)) return false;
+      seen.add(candidate);
+      return Object.values(candidate as Record<string, unknown>)
+        .some((item) => hasMeaningful(item, depth + 1, seen));
+    }
+
     return false;
-  }
+  };
 
-  if (typeof value === 'string') {
-    return value.trim().length > 0;
-  }
-
-  if (Array.isArray(value)) {
-    return value.length > 0;
-  }
-
-  if (typeof value === 'object') {
-    return Object.keys(value).length > 0;
-  }
-
-  if (typeof value === 'boolean') {
-    return true; // Booleans tæller altid
-  }
-
-  if (typeof value === 'number') {
-    return true; // Tal tæller altid (inkl. 0)
-  }
-
-  return false;
+  return hasMeaningful(value, 0, new WeakSet<object>());
 };
 
 /**
@@ -212,8 +229,8 @@ export const collectAllData = (): Record<string, unknown> => {
     UI_STORAGE_KEYS.sideMenuExpanded,
   ];
 
-  console.group('[collectAllData] Scanning sessionStorage');
-  console.log(`Total keys in sessionStorage: ${sessionStorage.length}`);
+  debugGroup('[collectAllData] Scanning sessionStorage');
+  debugLog(`Total keys in sessionStorage: ${sessionStorage.length}`);
 
   // Scan alle sessionStorage keys
   for (let i = 0; i < sessionStorage.length; i++) {
@@ -223,18 +240,18 @@ export const collectAllData = (): Record<string, unknown> => {
     if (key && key.startsWith('mineo_')) {
       // UI-state keys er ikke persisted brugerinput og kan være ikke-JSON (fx 'satser')
       if (key.startsWith('mineo_ui_')) {
-        console.log(`  Skipping UI key: ${key}`);
+        debugLog(`  Skipping UI key: ${key}`);
         continue;
       }
 
       // Ignorer metadata-keys
       if (metadataKeys.includes(key)) {
-        console.log(`  Skipping metadata key: ${key}`);
+        debugLog(`  Skipping metadata key: ${key}`);
         continue;
       }
 
       const pageKey = key.replace('mineo_', '');
-      console.log(`  Found data key: ${key} → pageKey: ${pageKey}`);
+      debugLog(`  Found data key: ${key} → pageKey: ${pageKey}`);
 
       try {
         const value = sessionStorage.getItem(key);
@@ -245,23 +262,23 @@ export const collectAllData = (): Record<string, unknown> => {
           // (Nye data har {version, timestamp, data}, gamle data er bare objekter)
           if (isPersistedDataWrapper(parsed)) {
             // Nyt format - unwrap data-feltet
-            console.log(`    ✓ PersistedData format detected (version: ${parsed.version})`);
+            debugLog(`    ✓ PersistedData format detected (version: ${parsed.version})`);
             allData[pageKey] = parsed.data;
           } else {
             // Gammelt format (eller ukomplet data) - brug som er
-            console.log(`    ⚠ Old format (no version field)`);
+            debugLog('    ⚠ Old format (no version field)');
             allData[pageKey] = parsed;
           }
         }
       } catch (error) {
-        console.error(`Fejl ved parsing af sessionStorage key '${key}':`, error);
+        console.warn(`Fejl ved parsing af sessionStorage key '${key}':`, error);
         // Spring denne key over ved fejl
       }
     }
   }
 
-  console.log(`Collected data keys: ${Object.keys(allData).join(', ')}`);
-  console.groupEnd();
+  debugLog(`Collected data keys: ${Object.keys(allData).join(', ')}`);
+  debugGroupEnd();
 
   return allData;
 };
@@ -270,32 +287,7 @@ export const collectAllData = (): Record<string, unknown> => {
  * Tjekker om datasættet indeholder egentligt brugerindhold.
  */
 export const hasRealData = (data: unknown): boolean => {
-  if (!data || typeof data !== 'object') {
-    return false;
-  }
-  const dataRecord = data as Record<string, unknown>;
-
-  // Filtrer metadata-nøgler fra
-  const contentKeys = Object.keys(dataRecord).filter(k => !k.startsWith('_'));
-
-  if (contentKeys.length === 0) {
-    return false;
-  }
-
-  // Tjek om mindst én sektion har meningsfuldt indhold
-  for (const key of contentKeys) {
-    const section = dataRecord[key];
-
-    if (typeof section === 'object' && section !== null) {
-      for (const value of Object.values(section as Record<string, unknown>)) {
-        if (isMeaningfulValue(value)) {
-          return true;
-        }
-      }
-    }
-  }
-
-  return false;
+  return countFilledFields(data) > 0;
 };
 
 /**
@@ -321,7 +313,7 @@ export const clearAllData = (): void => {
     sessionStorage.removeItem(key);
   });
 
-  console.log(`Ryddet ${keysToRemove.length} mineo_* keys fra sessionStorage (beholdt ${keysToPreserve.size})`);
+  debugLog(`Ryddet ${keysToRemove.length} mineo_* keys fra sessionStorage (beholdt ${keysToPreserve.size})`);
 };
 
 /**
@@ -337,14 +329,14 @@ export const saveDataToSessionStorage = (data: unknown): void => {
 
   const CURRENT_VERSION = PERSISTED_DATA_VERSION; // Matcher FormPersistenceContext
 
-  console.group('[saveDataToSessionStorage] Gemmer data fra fil til sessionStorage');
-  console.log(`Input data keys: ${Object.keys(data).join(', ')}`);
+  debugGroup('[saveDataToSessionStorage] Gemmer data fra fil til sessionStorage');
+  debugLog(`Input data keys: ${Object.keys(data).join(', ')}`);
 
   // Gem hver sektion til sessionStorage i PersistedData-format
   for (const [pageKey, pageData] of Object.entries(data as Record<string, unknown>)) {
     // Spring metadata over
     if (pageKey.startsWith('_')) {
-      console.log(`  Skipping metadata key: ${pageKey}`);
+      debugLog(`  Skipping metadata key: ${pageKey}`);
       continue;
     }
 
@@ -361,13 +353,13 @@ export const saveDataToSessionStorage = (data: unknown): void => {
       const fieldCount = (pageData && typeof pageData === 'object' && !Array.isArray(pageData))
         ? Object.keys(pageData as Record<string, unknown>).length
         : 0;
-      console.log(`  ✓ Saved: ${storageKey} (${fieldCount} fields)`);
+      debugLog(`  ✓ Saved: ${storageKey} (${fieldCount} fields)`);
     } catch (error) {
-      console.error(`Fejl ved gemning af ${pageKey} til sessionStorage:`, error);
+      console.warn(`Fejl ved gemning af ${pageKey} til sessionStorage:`, error);
       throw new Error(`Kunne ikke gemme ${pageKey}`);
     }
   }
 
-  console.groupEnd();
+  debugGroupEnd();
 };
 
