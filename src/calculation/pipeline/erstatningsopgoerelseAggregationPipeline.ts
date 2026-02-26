@@ -3,24 +3,24 @@ import type {
   ErstatningsopgoerelseValues,
   StamdataValues,
 } from '../../schemas/formSchemas';
-import type { TafEngineOutput } from '../../domain/erstatningsopgoerelse/tafBeregningsEngine';
+import { erstatningsopgoerelseSchema } from '../../schemas/formSchemas';
 import type { AggregatableComputed } from '../../domain/erstatningsopgoerelse/aggregationAdapters';
 import {
+  adaptMoneyOreForAggregation,
   adaptOevrigeKravForAggregation,
   adaptSvieSmerteForAggregation,
-  adaptTafForAggregation,
 } from '../../domain/erstatningsopgoerelse/aggregationAdapters';
 import { ERSTATNINGSOPGOERELSE_AGGREGATION_POLICY } from '../policy/erstatningsopgoerelse.policy';
 import { aggregateErstatningsopgoerelse, type AggregationResult } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseAggregationEngine';
-import { computeTafEngine } from '../../domain/erstatningsopgoerelse/tafBeregningsEngine';
 import { computeSvieSmerteEngine } from '../../domain/erstatningsopgoerelse/svieSmerteEngine';
-import { computeTafBeregningsenhed } from '../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { isTafRowEmpty } from '../../domain/erstatningsopgoerelse/rowEmpty';
 import { logError } from '../../utils/logger';
+import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
+import { computeTafNettoBeregning } from '../../domain/erstatningsopgoerelse/tafNettoBeregning';
 
 export type ErstatningsopgoerelseAggregationInputs = DeepReadonly<{
   erstatningsopgoerelse: ErstatningsopgoerelseValues;
-  tafOutput?: TafEngineOutput | null;
+  tafOutput?: AggregatableComputed | null;
   svieSmerteOutput?: AggregatableComputed | null;
 }>;
 
@@ -47,8 +47,7 @@ export const computeErstatningsopgoerelseAggregation = (
   const computedOutputs: Record<string, AggregatableComputed> = {};
 
   if (input.tafOutput) {
-    const adapted = adaptTafForAggregation(input.tafOutput);
-    if (adapted) computedOutputs.taf = adapted;
+    computedOutputs.taf = input.tafOutput;
   }
   if (input.svieSmerteOutput) {
     computedOutputs.svieSmerte = input.svieSmerteOutput;
@@ -73,19 +72,25 @@ export const computeErstatningsopgoerelseAggregationFromSnapshot = (
     snapshot.erstatningsopgoerelse.beregnesTabtArbejdsfortjeneste === 'Ja' &&
     snapshot.erstatningsopgoerelse.tafPerioder.some((row) => !isTafRowEmpty(row));
 
-  const tafOutput =
-    shouldComputeTaf
-      ? tryCompute(() =>
-        computeTafEngine({
-          erstatningsopgoerelse: snapshot.erstatningsopgoerelse,
-          tafPerioder: snapshot.erstatningsopgoerelse.tafPerioder,
-          ferieperioder: snapshot.erstatningsopgoerelse.ferieperioder,
-        })
-      )
-      : {
-          beregningsenhed: computeTafBeregningsenhed(snapshot.erstatningsopgoerelse),
-          rows: [],
-        };
+  const tafOutput = shouldComputeTaf
+    ? tryCompute(() => {
+      // Snapshot-input er DeepReadonly; vi parser gennem schema for at få et sikkert,
+      // runtime-valideret mutable EO-objekt til downstream beregninger.
+      const mutableEoValues = erstatningsopgoerelseSchema.parse(snapshot.erstatningsopgoerelse);
+      // Stamdata er valgfrit i snapshot; downstream-beregninger håndterer
+      // undefined skadesdato/skadestype defensivt og kaster ved ufuldstændigt input.
+      const safeStamdata: StamdataValues = {
+        ...STAMDATA_INITIAL_VALUES,
+        ...(snapshot.stamdata ?? {}),
+      };
+      const tafNetto = computeTafNettoBeregning(mutableEoValues, safeStamdata);
+      const adapted = adaptMoneyOreForAggregation(tafNetto.tabtArbejdsfortjenesteOre);
+      if (!adapted) {
+        throw new Error('TAF-netto kunne ikke konverteres til aggregation-beløb');
+      }
+      return adapted;
+    })
+    : ({ amount: 0 } as const);
 
   const svieSmerteOutput = tryCompute(() =>
     computeSvieSmerteEngine({

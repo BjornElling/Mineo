@@ -35,7 +35,7 @@ import useFravaerRows from '../../tables/useFravaerRows';
 import useOevrigeKravRows from '../../tables/useOevrigeKravRows';
 import { createCommitEvent, type CommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
 import type { UsePersistedFormReturn } from '../../../hooks/usePersistedForm';
-import { MAX_YEAR, MIN_YEAR, computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../../config/dateRanges';
+import { CURRENT_YEAR, MIN_YEAR, MIN_SVIESMERTE_YEAR, computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../../config/dateRanges';
 import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import {
@@ -71,7 +71,10 @@ import {
   isOffentligOverenskomstId,
 } from '../../../data/overenskomstRates';
 import { getOffentligLoenTabelForDato } from '../../../data/offentligLoenLookup';
-import { getReguleringsDatoIntervalForStatistikModel } from '../../../data/statistiskLoenudviklingRates';
+import {
+  ASL_AARSLOENSMAKSIMUM_MODEL_LABEL,
+  getReguleringsDatoIntervalForStatistikModel,
+} from '../../../data/statistiskLoenudviklingRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '../../../utils/pdf/pdfService';
@@ -1038,7 +1041,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       computeSkadesdatoMinRule({
         skadesdatoISO,
         erErhvervssygdom,
-        fallbackMin: dateRanges_erstatningsopgoerelse.opgoerelse.min,
+        fallbackMin: dateRanges_erstatningsopgoerelse.opgoerelse.fallbackMin,
       }),
     [erErhvervssygdom, skadesdatoISO]
   );
@@ -1511,8 +1514,8 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       value={values.svieSmerteSatserAar}
                       onCommit={handleNumberBlur('svieSmerteSatserAar')}
                       onFieldError={reportSvieSmerteSatserAarInputError}
-                      minYear={MIN_YEAR}
-                      maxYear={MAX_YEAR}
+                      minYear={MIN_SVIESMERTE_YEAR}
+                      maxYear={CURRENT_YEAR}
                     />
                   </Box>
                 </Box>
@@ -2072,7 +2075,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                         allowEmpty={true}
                         placeholder="Vælg..."
                       >
-                        <MenuItem value="ASL-årslønsmaksimum">ASL-årslønsmaksimum</MenuItem>
+                        <MenuItem value={ASL_AARSLOENSMAKSIMUM_MODEL_LABEL}>{ASL_AARSLOENSMAKSIMUM_MODEL_LABEL}</MenuItem>
                         <MenuItem value="ILON12 (Danmarks Statistik)">ILON12 (Danmarks Statistik)</MenuItem>
                         <MenuItem value="SBLON2 (Danmarks Statistik)">SBLON2 (Danmarks Statistik)</MenuItem>
                       </StyledDropdown>

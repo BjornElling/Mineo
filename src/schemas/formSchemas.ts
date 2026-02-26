@@ -15,10 +15,6 @@ import { optionalAmountValueSchema } from './amountExpressionSchema';
 // BASE SCHEMAS - Genbrugelige building blocks
 // =============================================================================
 
-// Dato-bounds (centraliserede konstanter)
-const DATE_MIN_YEAR = 1900;
-const DATE_MAX_YEAR = 2100;
-
 const normalizeEmptyToUndefined = (value: unknown): unknown => {
   if (value === null) {
     return undefined;
@@ -98,12 +94,15 @@ const nonNegativeInteger = z.preprocess(coerceToIntegerOrUndefined, z.number()
   .optional());
 
 /**
- * År (integer mellem 1900-2100)
+ * År (sanitetsgrænser for persisted data)
+ *
+ * Domænespecifikke grænser håndhæves fortsat af respektive validators/UI,
+ * men schemaet afviser åbenlyst urealistiske årstal ved load/replaceSections.
  */
 const yearInteger = z.preprocess(coerceToIntegerOrUndefined, z.number()
   .int()
-  .min(DATE_MIN_YEAR, `Skal være mindst ${DATE_MIN_YEAR}`)
-  .max(DATE_MAX_YEAR, `Må højst være ${DATE_MAX_YEAR}`)
+  .min(1900, 'Årstal skal være mindst 1900')
+  .max(2100, 'Årstal må højst være 2100')
   .optional());
 
 /**

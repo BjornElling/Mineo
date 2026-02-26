@@ -1,12 +1,20 @@
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../types/branded';
 import { computeErstatningsopgoerelseAggregationFromSnapshot } from '../../calculation/pipeline/erstatningsopgoerelseAggregationPipeline';
-import { computeTafEngine } from '../../domain/erstatningsopgoerelse/tafBeregningsEngine';
 import { computeSvieSmerteEngine } from '../../domain/erstatningsopgoerelse/svieSmerteEngine';
+import { computeTafNettoBeregning } from '../../domain/erstatningsopgoerelse/tafNettoBeregning';
 import { logError } from '../../utils/logger';
 
-vi.mock('../../domain/erstatningsopgoerelse/tafBeregningsEngine', () => ({
-  computeTafEngine: vi.fn(() => ({ beregningsenhed: 'Måneder', rows: [] })),
+vi.mock('../../domain/erstatningsopgoerelse/tafNettoBeregning', () => ({
+  computeTafNettoBeregning: vi.fn(() => ({
+    harTafPerioder: true,
+    tafBeregningsenhed: 'Måneder',
+    indkomstSkadestidspunkt: null,
+    loenudvikling: null,
+    tafIndtaegter: null,
+    tidligereModtagetTaf: { status: 'not_calculable', reason: 'Ikke angivet' },
+    tabtArbejdsfortjenesteOre: 0,
+  })),
 }));
 vi.mock('../../domain/erstatningsopgoerelse/svieSmerteEngine', () => ({
   computeSvieSmerteEngine: vi.fn(() => ({
@@ -32,26 +40,34 @@ vi.mock('../../utils/logger', () => ({
   logError: vi.fn(),
 }));
 
-const mockedComputeTaf = vi.mocked(computeTafEngine);
 const mockedComputeSvieSmerte = vi.mocked(computeSvieSmerteEngine);
+const mockedComputeTafNetto = vi.mocked(computeTafNettoBeregning);
 const mockedLogError = vi.mocked(logError);
 
 describe('erstatningsopgoerelseAggregationPipeline orchestration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedComputeTaf.mockReturnValue({ beregningsenhed: 'Måneder', rows: [] });
+    mockedComputeTafNetto.mockReturnValue({
+      harTafPerioder: true,
+      tafBeregningsenhed: 'Måneder',
+      indkomstSkadestidspunkt: null,
+      loenudvikling: null,
+      tafIndtaegter: null,
+      tidligereModtagetTaf: { status: 'not_calculable', reason: 'Ikke angivet' },
+      tabtArbejdsfortjenesteOre: 0,
+    });
   });
 
-  it('kører ikke TAF-engine for default tom TAF-række', () => {
+  it('kører ikke TAF-netto-beregning for default tom TAF-række', () => {
     const eo = createErstatningsopgoerelseInitialValues();
     computeErstatningsopgoerelseAggregationFromSnapshot({
       erstatningsopgoerelse: eo,
     });
 
-    expect(mockedComputeTaf).not.toHaveBeenCalled();
+    expect(mockedComputeTafNetto).not.toHaveBeenCalled();
   });
 
-  it('kører ikke TAF-engine når TAF ikke skal beregnes', () => {
+  it('kører ikke TAF-netto-beregning når TAF ikke skal beregnes', () => {
     const eo = {
       ...createErstatningsopgoerelseInitialValues(),
       beregnesTabtArbejdsfortjeneste: 'Nej' as const,
@@ -61,7 +77,7 @@ describe('erstatningsopgoerelseAggregationPipeline orchestration', () => {
       erstatningsopgoerelse: eo,
     });
 
-    expect(mockedComputeTaf).not.toHaveBeenCalled();
+    expect(mockedComputeTafNetto).not.toHaveBeenCalled();
   });
 
   it('returnerer ok fra snapshot når taf/svieSmerte/oevrigeKrav kan udledes', () => {
@@ -80,7 +96,7 @@ describe('erstatningsopgoerelseAggregationPipeline orchestration', () => {
   });
 
   it('logger fejl når en delberegning kaster', () => {
-    mockedComputeTaf.mockImplementation(() => {
+    mockedComputeTafNetto.mockImplementation(() => {
       throw new Error('boom');
     });
     const eo = {
@@ -89,14 +105,17 @@ describe('erstatningsopgoerelseAggregationPipeline orchestration', () => {
       tafPerioder: [{ id: 'taf-1', fra: toISODateString('2026-01-01'), til: toISODateString('2026-01-31'), loseFeriedage: undefined }],
     };
 
-    computeErstatningsopgoerelseAggregationFromSnapshot({
+    const result = computeErstatningsopgoerelseAggregationFromSnapshot({
       erstatningsopgoerelse: eo,
     });
 
     expect(mockedLogError).toHaveBeenCalledTimes(1);
+    expect(result?.kind).toBe('error');
+    if (!result || result.kind !== 'error') return;
+    expect(result.errors.some((error) => error.lineId === 'taf' && error.code === 'missing_computed')).toBe(true);
   });
 
-  it('beregner TAF når der findes mindst én udfyldt TAF-periode', () => {
+  it('beregner TAF-netto når der findes mindst én udfyldt TAF-periode', () => {
     const eo = {
       ...createErstatningsopgoerelseInitialValues(),
       beregnesTabtArbejdsfortjeneste: 'Ja' as const,
@@ -107,12 +126,8 @@ describe('erstatningsopgoerelseAggregationPipeline orchestration', () => {
       erstatningsopgoerelse: eo,
     });
 
-    expect(mockedComputeTaf).toHaveBeenCalledTimes(1);
-    expect(mockedComputeTaf).toHaveBeenCalledWith({
-      erstatningsopgoerelse: eo,
-      tafPerioder: eo.tafPerioder,
-      ferieperioder: eo.ferieperioder,
-    });
+    expect(mockedComputeTafNetto).toHaveBeenCalledTimes(1);
+    expect(mockedComputeTafNetto).toHaveBeenCalledWith(expect.objectContaining(eo), expect.any(Object));
   });
 
   it('videresender stamdata til svieSmerte-engine når snapshot indeholder stamdata', () => {

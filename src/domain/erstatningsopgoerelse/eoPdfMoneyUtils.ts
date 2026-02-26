@@ -21,7 +21,7 @@ export const toOre = (value: MoneyKroner): MoneyOre => {
     throw new Error('Ugyldigt beløb: ikke et endeligt tal');
   }
   const scaled = value * 100;
-  const rounded = Math.round(scaled);
+  const rounded = roundByMethod(scaled, 0, 'halfAwayFromZero');
   // Epsilon 1e-4 for at undgå false positives fra floating-point afrunding ved store beløb.
   // Verificeret: toOre(999999.99) er OK, toOre(1.005) kaster (mere end 2 decimaler).
   if (Math.abs(scaled - rounded) > 1e-4) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { referenceRates, surchargeRates, MIN_CALCULATION_DATE } from '../../data/interestRates';
+import { referenceRates, surchargeRates, MIN_INTEREST_DATE } from '../../data/interestRates';
 
 describe('referenceRates', () => {
   it('er ikke tom', () => {
@@ -62,8 +62,8 @@ describe('surchargeRates', () => {
   });
 });
 
-describe('MIN_CALCULATION_DATE', () => {
+describe('MIN_INTEREST_DATE', () => {
   it('er 2005-01-01', () => {
-    expect(MIN_CALCULATION_DATE).toBe('2005-01-01');
+    expect(MIN_INTEREST_DATE).toBe('2005-01-01');
   });
 });

@@ -143,6 +143,14 @@ export const addMonths = (date: Date, months: number): Date => {
 };
 
 /**
+ * Returnerer sidste dato i en periode der starter på `startDate` og varer `months` måneder.
+ * Eksempel: 01-01 + 6 måneder -> 30-06 (inklusive slutdato).
+ */
+export const getInclusivePeriodEndByMonths = (startDate: Date, months: number): Date => {
+  return addDays(addMonths(startDate, months), -1);
+};
+
+/**
  * Parser uge-streng (uu/åååå) til dato-interval (mandag til søndag)
  * Bruger ISO week date system
  */

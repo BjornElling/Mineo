@@ -63,14 +63,10 @@ npm run import:loen
 
 ## Domænedata der opdateres løbende
 
-Halvårligt:
-- Rentesatser i `src/data/interestRates.ts`
-- Offentlige løndata (KL/RLTN) via `npm run import:loen`
-
-Årligt:
 - EAL/ASL-satser i `src/data/regulationRates.ts`
 - Statistiske satser i `src/data/statistiskLoenudviklingRates.ts`
-- Dato-intervaller i `src/config/dateRanges.ts`
+- Rentesatser i `src/data/interestRates.ts`
+- Offentlige løndata (KL/RLTN) via `npm run import:loen`
 
 ## Licens
 
@@ -84,6 +80,6 @@ Bjørn Elling
 
 ---
 
-**Version**: 2026.02.199
+**Version**: 2026.02.200
 
 **Status**: Under udvikling

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   TODAY,
   MIN_YEAR,
-  MAX_YEAR,
+  CURRENT_YEAR,
+  MIN_SVIESMERTE_YEAR,
   dateRanges_stamdata,
   dateRanges_erstatningsopgoerelse,
   computeSkadesdatoMinRule,
@@ -18,17 +19,26 @@ describe('dateRanges – globale konstanter', () => {
     expect(TODAY).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it('MIN_YEAR er 2005', () => {
+  it('MIN_YEAR svarer til årstallet i systemets nedre datogrænse (2005-01-01)', () => {
     expect(MIN_YEAR).toBe(2005);
   });
 
-  it('MAX_YEAR svarer til det aktuelle år i TODAY', () => {
+  it('CURRENT_YEAR svarer til det aktuelle år i TODAY', () => {
     const currentYear = Number(TODAY.slice(0, 4));
-    expect(MAX_YEAR).toBe(currentYear);
+    expect(CURRENT_YEAR).toBe(currentYear);
   });
 
-  it('MIN_YEAR ≤ MAX_YEAR', () => {
-    expect(MIN_YEAR).toBeLessThanOrEqual(MAX_YEAR);
+  it('MIN_YEAR ≤ CURRENT_YEAR', () => {
+    expect(MIN_YEAR).toBeLessThanOrEqual(CURRENT_YEAR);
+  });
+
+  it('MIN_SVIESMERTE_YEAR er et positivt heltal ≥ MIN_YEAR', () => {
+    expect(Number.isInteger(MIN_SVIESMERTE_YEAR)).toBe(true);
+    expect(MIN_SVIESMERTE_YEAR).toBeGreaterThanOrEqual(MIN_YEAR);
+  });
+
+  it('MIN_SVIESMERTE_YEAR ≤ CURRENT_YEAR', () => {
+    expect(MIN_SVIESMERTE_YEAR).toBeLessThanOrEqual(CURRENT_YEAR);
   });
 });
 
@@ -69,8 +79,10 @@ describe('dateRanges_erstatningsopgoerelse', () => {
     expect(dateRanges_erstatningsopgoerelse.periodeTil.min).toBe('DYNAMIC');
   });
 
-  it('opgoerelse er static type', () => {
-    expect(dateRanges_erstatningsopgoerelse.opgoerelse.type).toBe('static');
+  it('opgoerelse er dynamic-min', () => {
+    expect(dateRanges_erstatningsopgoerelse.opgoerelse.type).toBe('dynamic-min');
+    expect(dateRanges_erstatningsopgoerelse.opgoerelse.min).toBe('DYNAMIC');
+    expect(dateRanges_erstatningsopgoerelse.opgoerelse.fallbackMin).toBe('2005-01-01');
     expect(dateRanges_erstatningsopgoerelse.opgoerelse.max).toBe(TODAY);
   });
 

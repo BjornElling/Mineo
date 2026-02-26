@@ -31,6 +31,8 @@ import {
 } from '../../data/offentligLoenTypes';
 import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../data/statistiskLoenudviklingRates';
 import { getKRLSatstabel, type KRLSatstabelId } from '../../data/KRLrates';
+import { STORE_BEDEDAG_START } from '../../config/dateRanges';
+import { STORE_BEDEDAG_PCT } from '../../config/regulatoryRates';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, type LoenudviklingSource } from './angivetLoenHelpers';
 import { buildDatoSetInclusive, buildFerieDageSet, buildShDageSet, isWeekdayUtc, placeLoseFeriedage } from './tafDaySets';
 import { hasIndtastetLoenoplysninger } from './loenoplysningerInput';
@@ -39,8 +41,6 @@ import { isTafRowEmpty } from './rowEmpty';
 import type { Calculable, IndkomstSkadestidspunktPdfModel, LoenudviklingPdfModel, LoenudviklingSegment, MoneyOre } from './eoPdfModelTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from './eoPdfMoneyUtils';
 import {
-  STORE_BEDEDAG_START,
-  STORE_BEDEDAG_PCT,
   convertAnciennitetSats,
   resolvePctPointFromSatsOrInput,
   resolveOffentligLoenEkstraGrundloen,
@@ -1305,4 +1305,3 @@ const getDayAfter = (isoDate: ISODateString): ISODateString => {
   }
   return iso;
 };
-

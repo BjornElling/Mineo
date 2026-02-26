@@ -7,7 +7,7 @@ import TableWeekInput from '../inputs/table/TableWeekInput';
 import TableDateInput from '../inputs/table/TableDateInput';
 import type { TableInputErrorInfo } from '../inputs/table/tableInputContracts';
 
-import { MAX_YEAR, MIN_YEAR, dateRanges_aarsloen } from '../../config/dateRanges';
+import { CURRENT_YEAR, MIN_YEAR, dateRanges_aarsloen } from '../../config/dateRanges';
 import type { AarsloenTableRow, Loenperiode } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { danishToISO } from '../../types/branded';
@@ -635,7 +635,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       onErrorChange={(info) => handleErrorChange(row.id, 'col0_uge', info)}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'col0_uge')}
                       minYear={MIN_YEAR}
-                      maxYear={MAX_YEAR}
+                      maxYear={CURRENT_YEAR}
                     />
                   ) : (
                     <TableDateInput
@@ -669,7 +669,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       onErrorChange={(info) => handleErrorChange(row.id, 'col1_maaned', info)}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'col1_maaned')}
                       minYear={MIN_YEAR}
-                      maxYear={MAX_YEAR}
+                      maxYear={CURRENT_YEAR}
                     />
                   ) : loenperiode === 'uge' ? (
                     <TableWeekInput
@@ -681,7 +681,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
                       onErrorChange={(info) => handleErrorChange(row.id, 'col1_uge', info)}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'col1_uge')}
                       minYear={MIN_YEAR}
-                      maxYear={MAX_YEAR}
+                      maxYear={CURRENT_YEAR}
                     />
                   ) : (
                     <TableDateInput

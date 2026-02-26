@@ -122,6 +122,14 @@ export const svieSmerteMax: YearlyRate = {
   2005: 56000,
 };
 
+export const svieSmerteMaxYearBounds: YearBounds = (() => {
+  const bounds = getYearBoundsForYearlyRate(svieSmerteMax);
+  if (!bounds) {
+    throw new Error('CRITICAL: No yearly rates defined for svieSmerteMax');
+  }
+  return bounds;
+})();
+
 // Maksimum for erhvervsevnetab (§ 13, stk. 1, 2. pkt.)
 export const erhvervsevnetabMax: YearlyRate = {
   2026: 11582500,
@@ -218,6 +226,8 @@ export const getSatserCompleteYearBounds = (): YearBounds => {
     vejledendeUdtalelse,
     varigeMenPrGrad,
     aarsloenMax,
+    // NB: aarsloenMin har bevidst ikke 2024 (split i foer/fra 01-07-2024),
+    // så complete-bounds afspejler med vilje dette hul i basis-tabellen.
     aarsloenMin,
     overgangsbeloeb,
     reguleringsprocentErhvervsevnetabFra2024,
@@ -485,7 +495,7 @@ export const ealReference: YearlyReference = {
   2019: 'Bkg. 1379/2018',
   2018: 'Bkg. 1233/2017',
   2017: 'Bkg. 1416/2016',
-  2016: 'BKg. 1393/2015',
+  2016: 'Bkg. 1393/2015',
   2015: 'Bkg. 1185/2014',
   2014: 'Bkg. 1167/2013',
   2013: 'Bkg. 1059/2012',
@@ -511,7 +521,7 @@ export const aslReference: YearlyReference = {
   2019: 'Bkg. 1232/2018',
   2018: 'Bkg. 1175/2017',
   2017: 'Bkg. 1273/2016',
-  2016: 'BKg. 1220/2015',
+  2016: 'Bkg. 1220/2015',
   2015: 'Bkg. 1114/2014',
   2014: 'Bkg. 1151/2013',
   2013: 'Bkg. 991/2012',
@@ -526,7 +536,9 @@ export const aslReference: YearlyReference = {
 };
 
 // Kapitalisering
-// OBS: Skal ikke udfyldes med årene 2007-2024!
+// OBS: Skal ikke udfyldes med årene 2007-2024.
+// Bekendtgørelse 1068/2003 blev brugt uændret i en lang periode; detaljerede
+// skadeafhængige varianter ligger i kapitaliseringSkade* tabellerne nedenfor.
 export const kapitalisering: YearlyReference = {
   2026: 'Vejl. 10056/2025',
   2025: 'Vejl. 10029/2024',
@@ -652,6 +664,10 @@ export const satserCompleteYearBounds: YearBounds = getSatserCompleteYearBounds(
  * `reguleringsprocentErhvervsevnetabFra2024` og reference-tabeller som `kapitalisering`)
  * med vilje kun er udfyldt for enkelte år. År-vælgeren skal i stedet afgrænses af de
  * satstabeller der er meningsfulde på tværs af hele perioden.
+ *
+ * Bevidst udeladt: kapitaliseringSkadeFra2011/kapitaliseringSkadeFoer2011 og
+ * kapitaliseringSkadeFra2007/kapitaliseringSkadeFoer2007, da de er skadeafhængige
+ * specialtabeller og ikke generelle år-vælger-drivere.
  */
 export const satserAngivAarYearBounds: YearBounds = (() => {
   const bounds = getYearBoundsForAnyCoverage([
@@ -687,7 +703,7 @@ export const satserAngivAarYearBounds: YearBounds = (() => {
  * Returnerer alle satser for et bestemt år
  *
  * Robust over for manglende år i datatabellerne.
- * Hvis et opslag mangler for det ønskede år, returneres 0 (for tal) eller '' (for tekst).
+ * Hvis et opslag mangler for det ønskede år, returneres null (for tal) eller '' (for tekst).
  *
  * @param {number} year - Årstal at hente satser for
  * @returns {Object} Dictionary med alle satser struktureret efter kategori

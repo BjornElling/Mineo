@@ -13,17 +13,11 @@ import { formatIsoDateLong, formatIsoDateShort } from '../../utils/dateFormattin
 import type { StatistiskLoenudviklingId } from '../../data/statistiskLoenudviklingRates';
 import { roundByMethod } from '../../utils/rounding';
 import { formatAsAmount } from '../../utils/formatUtils';
+import { TIMER_TIL_MAANED_FAKTOR } from '../../config/regulatoryRates';
 
 // =============================================================================
 // KONSTANTER
 // =============================================================================
-
-/**
- * Store bededag blev afskaffet fra 2024 – giver 0,45 % tillæg fra denne dato.
- */
-export const STORE_BEDEDAG_START = '2024-01-01' as ISODateString;
-export const STORE_BEDEDAG_PCT = 0.45;
-export const TIMER_TIL_MAANED_FAKTOR = 160.33;
 
 // =============================================================================
 // DATO-FUNKTIONER

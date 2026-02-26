@@ -8,7 +8,6 @@
 
 import type { DanishDateString, ISODateString } from '../types/branded';
 import { toDanishDateString, toISODateString } from '../types/branded';
-import { getTodayLocalISO } from '../utils/dateUtils';
 
 /**
  * Interface for rentesats-objekt
@@ -18,11 +17,6 @@ export interface RateEntry {
   /** Rentesats i procentpoint (fx 2.75 = 2,75 %) */
   ratePct: number;
 }
-
-// Dato-afgrænsninger for renteberegning
-export const MIN_CALCULATION_DATE: ISODateString = toISODateString('2005-01-01'); // Tidligste dato for renteberegning
-export const CURRENT_YEAR: number = Number(getTodayLocalISO().slice(0, 4)); // Nuværende år (dynamisk)
-export const MAX_CALCULATION_YEAR: number = CURRENT_YEAR + 5; // Maksimalt 5 år frem i tiden
 
 const referenceRatesTable: ReadonlyArray<readonly [effectiveDate: string, ratePct: number]> = [
   // dato              │ Rentesats
@@ -76,6 +70,21 @@ const surchargeRatesTable: ReadonlyArray<readonly [effectiveDate: string, ratePc
   ['01-03-2013',            8.0 ],
   ['01-08-2002',            7.0 ],
 ];
+
+// Tidligste dato i referencesatserne — udledt af det ældste element i referenceRatesTable
+// Tabellen er sorteret nyeste-først, så det sidste element har den tidligste dato
+const _minRaw = referenceRatesTable[referenceRatesTable.length - 1][0];
+const [_d, _m, _y] = _minRaw.split('-');
+export const MIN_INTEREST_DATE: ISODateString = toISODateString(`${_y}-${_m}-${_d}`);
+
+// Seneste kalenderår i referencesatserne — udledt af nyeste referencesats
+const _maxRaw = referenceRatesTable[0][0];
+const [, , _maxYear] = _maxRaw.split('-');
+const _parsedMaxYear = Number.parseInt(_maxYear, 10);
+if (!Number.isInteger(_parsedMaxYear)) {
+  throw new Error(`Ugyldig nyeste referencesats-dato: "${_maxRaw}"`);
+}
+export const MAX_INTEREST_YEAR: number = _parsedMaxYear;
 
 export const referenceRates: RateEntry[] = referenceRatesTable.map(([effectiveDate, ratePct]) => ({
   effectiveDate: toDanishDateString(effectiveDate),

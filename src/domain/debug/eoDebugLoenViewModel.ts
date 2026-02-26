@@ -7,7 +7,7 @@
 
 import type { ISODateString } from '../../types/branded';
 import type { CellValue, DebugCellValue } from './eoDebugTypes';
-import { formatCurrency, formatIsoValue } from './eoDebugFormat';
+import { formatAmountDisplay, formatIsoValue } from './eoDebugFormat';
 import type { LoenTimeline, LoenComponentType } from './eoDebugLoenTypes';
 
 export type DailyLoenRow = {
@@ -55,7 +55,7 @@ const COMPONENT_LABELS: Readonly<Record<LoenComponentType, string>> = {
 
 const buildCurrencyCell = (value: number): CellValue<number> => ({
   rawValue: value,
-  displayValue: formatCurrency(value),
+  displayValue: formatAmountDisplay(value),
 });
 
 const buildLoenRows = (timeline: LoenTimeline): LoenDebugTable => {

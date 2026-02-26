@@ -1,10 +1,8 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { MIN_CALCULATION_DATE, MAX_CALCULATION_YEAR } from '../../../data/interestRates';
 import StyledDateField from '../../inputs/StyledDateField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import StyledTextField from '../../inputs/StyledTextField';
-import { toISODateString } from '../../../types/branded';
 import BeregnetRenteTable from '../../tables/BeregnetRenteTable';
 import ContentBox from '../../layout/ContentBox';
 import type { RentekravRow } from '../../../schemas/formSchemas';
@@ -13,6 +11,7 @@ import type { RentekravDraftRow } from '../../../domain/renteberegning/tableDraf
 import type { ValidatedRentekravContext } from '../../../domain/renteberegning/renteEngine';
 import { createCommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
+import { dateRanges_renteberegning } from '../../../config/dateRanges';
 
 interface TechnicalAssumptionsListProps {
   items: readonly string[];
@@ -67,8 +66,8 @@ const RenteberegningTab = React.memo(({
               <StyledDateField
                 value={beregningsdato}
                 onCommit={onBeregningsdatoCommit}
-                minDate={toISODateString(MIN_CALCULATION_DATE)}
-                maxDate={toISODateString(`${MAX_CALCULATION_YEAR}-12-31`)}
+                minDate={dateRanges_renteberegning.renteTil.min}
+                maxDate={dateRanges_renteberegning.renteTil.max}
                 onFieldError={(errorMsg) => setBeregningsdatoHasError(!!errorMsg)}
                 inputRef={beregningsdatoInputRef}
               />

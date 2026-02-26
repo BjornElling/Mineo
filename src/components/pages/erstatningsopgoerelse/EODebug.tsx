@@ -36,11 +36,13 @@ import { useFormFieldErrorsBySource } from '../../../hooks/useFormFieldErrors';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import type { ISODateString } from '../../../types/branded';
-import { isoToDanish, isISODateString, parseISODate, subtractOneDay, toISODateString } from '../../../types/branded';
+import { isoToDanish, isISODateString, parseISODate, subtractOneDay } from '../../../types/branded';
 import { addDays, addMonths, createDate, formatToISO, parseDanishDate } from '../../../utils/dateUtils';
 import { formatCurrency } from '../../../utils/formatUtils';
 import { parseAmount } from '../../../utils/numberParsing';
 import { amountValueToDisplayString, amountValueToNumber } from '../../../utils/expressionAmount';
+import { STORE_BEDEDAG_START } from '../../../config/dateRanges';
+import { STORE_BEDEDAG_PCT, TIMER_TIL_MAANED_FAKTOR } from '../../../config/regulatoryRates';
 import { buildSHDageSet, buildFerieDageSet } from '../../../domain/debug/eoDebugRegulationCore';
 import { beregnArbejdsdageOgMaaneder } from '../../../domain/erstatningsopgoerelse/arbejdsdageMaaneder';
 import StandardDisplayTable, {
@@ -56,7 +58,6 @@ import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../
 import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import { validateIsoRange } from '../../../utils/isoDateHelpers';
 import {
-  TIMER_TIL_MAANED_FAKTOR,
   convertAnciennitetSats,
   formatAmount2,
   formatAmountWithoutTrailingDecimals,
@@ -91,8 +92,6 @@ import {
 // for at sikre, at skjulte elementer (baseret på toggle-værdier) konsekvent behandles som
 // ikke-udfyldte/tomme i alle beregninger og valideringer.
 const LABEL_WIDTH = '250px';
-const STORE_BEDEDAG_START = toISODateString('2024-01-01');
-const STORE_BEDEDAG_PCT = 0.45;
 
 const getStoreBededagPct = (iso: ISODateString, loenPaaHelligdage: string | undefined): number => {
   if (loenPaaHelligdage !== loenPaaHelligdageSchema.enum['Almindelig løn']) return 0;

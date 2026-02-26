@@ -4,7 +4,7 @@
 
 import type { ISODateString } from '../../types/branded';
 import type { DebugCellValue } from './eoDebugTypes';
-import { formatIsoValue, formatCurrency, formatDecimal, formatPercent } from './eoDebugFormat';
+import { formatIsoValue, formatAmountDisplay, formatDecimal, formatPercent } from './eoDebugFormat';
 import type { RegulationIndexTimeline } from './eoDebugRegulationTypes';
 import { getOverenskomstMetaById } from '../../data/overenskomstRates';
 
@@ -33,7 +33,7 @@ export type RegulationDebugTableRow = {
 
 const buildCurrencyCell = (value: number): DebugCellValue => ({
   rawValue: value,
-  displayValue: formatCurrency(value),
+  displayValue: formatAmountDisplay(value),
 });
 
 const buildPercentCell = (value: number): DebugCellValue => ({

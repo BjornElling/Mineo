@@ -1,7 +1,9 @@
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { parseISODate } from '../../types/branded';
-import { createDate, formatDanishDate } from '../../utils/dateUtils';
+import { formatDanishDate } from '../../utils/dateUtils';
+import { STORE_BEDEDAG_START } from '../../config/dateRanges';
+import { STORE_BEDEDAG_PCT } from '../../config/regulatoryRates';
 import {
   getAarsloenTableValidation,
   isAarsloenTableValueEffectivelyEmptyForValidation,
@@ -60,15 +62,11 @@ const hasStoreBededagSatserAfvigelse = (
   reguleringsDato: ISODateString | undefined
 ): boolean => {
   if (!reguleringsDato) return false;
-  const dateObj = parseISODate(reguleringsDato);
-  if (!dateObj) return false;
-
-  const cutoffDate = createDate(2024, 0, 1);
-  const isFrom2024 = dateObj >= cutoffDate;
+  const isFrom2024 = reguleringsDato >= STORE_BEDEDAG_START;
 
   let expectedPct: number;
   if (loenPaaHelligdage === 'Almindelig løn' && isFrom2024) {
-    expectedPct = 0.45;
+    expectedPct = STORE_BEDEDAG_PCT;
   } else {
     expectedPct = 0;
   }

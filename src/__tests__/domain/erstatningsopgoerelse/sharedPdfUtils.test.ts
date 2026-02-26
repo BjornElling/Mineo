@@ -11,9 +11,9 @@ import {
   formatPercentFixed2,
   resolvePctDecimalFromSatsOrInput,
   resolvePctPointFromSatsOrInput,
-  STORE_BEDEDAG_START,
-  STORE_BEDEDAG_PCT,
 } from '../../../domain/erstatningsopgoerelse/sharedPdfUtils';
+import { STORE_BEDEDAG_START } from '../../../config/dateRanges';
+import { STORE_BEDEDAG_PCT } from '../../../config/regulatoryRates';
 import type { ISODateString } from '../../../types/branded';
 
 const iso = (value: string): ISODateString => value as ISODateString;
