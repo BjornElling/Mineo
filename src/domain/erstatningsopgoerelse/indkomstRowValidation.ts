@@ -1,6 +1,6 @@
 import type { OffentligeYdelserRow, AarsloenTableRow, Loenperiode } from '../../schemas/formSchemas';
 import { parseDanishDate, parseWeekString } from '../../utils/dateUtils';
-import { MIN_YEAR, MAX_YEAR } from '../../config/dateRanges';
+import { MIN_YEAR, CURRENT_YEAR } from '../../config/dateRanges';
 import { getAarsloenTableValidation, isAarsloenTableValueEffectivelyEmptyForValidation } from '../../utils/aarsloenTableValidation';
 import {
   getOffentligeYdelserTableValidation,
@@ -20,7 +20,7 @@ const isValidYearValue = (value: string | undefined): boolean => {
   const trimmed = (value ?? '').trim();
   if (!/^\d{4}$/.test(trimmed)) return false;
   const year = Number.parseInt(trimmed, 10);
-  return Number.isFinite(year) && year >= MIN_YEAR && year <= MAX_YEAR;
+  return Number.isFinite(year) && year >= MIN_YEAR && year <= CURRENT_YEAR;
 };
 
 const isValidWeekValue = (value: string | undefined): boolean => {
@@ -32,7 +32,7 @@ const isValidWeekValue = (value: string | undefined): boolean => {
   const year = Number.parseInt(parts[1] ?? '', 10);
   if (!Number.isFinite(week) || !Number.isFinite(year)) return false;
   if (week < 1 || week > 53) return false;
-  if (year < MIN_YEAR || year > MAX_YEAR) return false;
+  if (year < MIN_YEAR || year > CURRENT_YEAR) return false;
   return parseWeekString(trimmed) !== null;
 };
 

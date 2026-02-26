@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   TODAY,
   MIN_YEAR,
-  MAX_YEAR,
+  CURRENT_YEAR,
   dateRanges_stamdata,
   dateRanges_erstatningsopgoerelse,
   computeSkadesdatoMinRule,
@@ -22,13 +22,13 @@ describe('dateRanges – globale konstanter', () => {
     expect(MIN_YEAR).toBe(2005);
   });
 
-  it('MAX_YEAR svarer til det aktuelle år i TODAY', () => {
+  it('CURRENT_YEAR svarer til det aktuelle år i TODAY', () => {
     const currentYear = Number(TODAY.slice(0, 4));
-    expect(MAX_YEAR).toBe(currentYear);
+    expect(CURRENT_YEAR).toBe(currentYear);
   });
 
-  it('MIN_YEAR ≤ MAX_YEAR', () => {
-    expect(MIN_YEAR).toBeLessThanOrEqual(MAX_YEAR);
+  it('MIN_YEAR ≤ CURRENT_YEAR', () => {
+    expect(MIN_YEAR).toBeLessThanOrEqual(CURRENT_YEAR);
   });
 });
 

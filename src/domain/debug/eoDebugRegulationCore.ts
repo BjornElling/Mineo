@@ -29,10 +29,11 @@ import {
   parseDanishToIso,
   resolveOffentligLoenEkstraGrundloen,
   resolvePctDecimalFromSatsOrInput,
+  STORE_BEDEDAG_START,
+  STORE_BEDEDAG_PCT as STORE_BEDEDAG_PCT_PCT,
 } from '../erstatningsopgoerelse/sharedPdfUtils';
 
-const STORE_BEDEDAG_PCT = 0.0045;
-const STORE_BEDEDAG_START = '2024-01-01';
+const STORE_BEDEDAG_PCT = STORE_BEDEDAG_PCT_PCT / 100;
 
 export type RegulationCoreInput = {
   readonly debugDays: readonly DebugDay[];

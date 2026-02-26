@@ -19,7 +19,7 @@ import type { ErstatningsopgoerelseValues, SvieSmertePeriodeRow, TafPeriodeRow, 
 import { erstatningsopgoerelseSchema } from '../schemas/formSchemas';
 import type { FormValidator, ValidationError, ValidationResult } from '../types/validation';
 import { isISODateString } from '../types/branded';
-import { svieSmertePrDag, svieSmerteMax } from '../data/regulationRates';
+import { svieSmertePrDag, svieSmerteMax, satserAngivAarYearBounds } from '../data/regulationRates';
 import { amountValueToNumber } from '../utils/expressionAmount';
 import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/rowEmpty';
 import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/periodOverlapDetection';
@@ -199,7 +199,7 @@ function validateSvieSmerte(values: ErstatningsopgoerelseValues): ValidationErro
       if (!harPrDag || !harMax) {
         errors.push({
           path: 'svieSmerteSatserAar',
-          message: `Satser findes ikke for år ${satserAar} (tilgængelige: 2005-2026)`,
+          message: `Satser findes ikke for år ${satserAar} (tilgængelige: ${satserAngivAarYearBounds.minYear}–${satserAngivAarYearBounds.maxYear})`,
           severity: 'error',
         });
       }

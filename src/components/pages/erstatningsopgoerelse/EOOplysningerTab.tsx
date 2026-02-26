@@ -35,7 +35,7 @@ import useFravaerRows from '../../tables/useFravaerRows';
 import useOevrigeKravRows from '../../tables/useOevrigeKravRows';
 import { createCommitEvent, type CommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
 import type { UsePersistedFormReturn } from '../../../hooks/usePersistedForm';
-import { MAX_YEAR, MIN_YEAR, computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../../config/dateRanges';
+import { CURRENT_YEAR, MIN_YEAR, computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../../config/dateRanges';
 import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import {
@@ -1038,7 +1038,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       computeSkadesdatoMinRule({
         skadesdatoISO,
         erErhvervssygdom,
-        fallbackMin: dateRanges_erstatningsopgoerelse.opgoerelse.min,
+        fallbackMin: dateRanges_erstatningsopgoerelse.opgoerelse.fallbackMin,
       }),
     [erErhvervssygdom, skadesdatoISO]
   );
@@ -1512,7 +1512,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       onCommit={handleNumberBlur('svieSmerteSatserAar')}
                       onFieldError={reportSvieSmerteSatserAarInputError}
                       minYear={MIN_YEAR}
-                      maxYear={MAX_YEAR}
+                      maxYear={CURRENT_YEAR}
                     />
                   </Box>
                 </Box>
