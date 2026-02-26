@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import {
   formatIsoValue,
   formatDanishValue,
-  formatCurrency,
+  formatAmountDisplay,
   formatPercent,
   formatBoolean,
   formatInteger,
@@ -40,25 +40,25 @@ describe('formatDanishValue', () => {
   });
 });
 
-describe('formatCurrency', () => {
+describe('formatAmountDisplay', () => {
   it('returnerer "-" ved null', () => {
-    expect(formatCurrency(null)).toBe('-');
+    expect(formatAmountDisplay(null)).toBe('-');
   });
 
   it('returnerer "-" ved undefined', () => {
-    expect(formatCurrency(undefined)).toBe('-');
+    expect(formatAmountDisplay(undefined)).toBe('-');
   });
 
   it('formaterer positivt beløb med 2 decimaler', () => {
     // 1234.56 → dansk format "1.234,56"
-    const result = formatCurrency(1234.56);
+    const result = formatAmountDisplay(1234.56);
     expect(result).toContain('1');
     expect(result).toContain('234');
     expect(result).toMatch(/\d/);
   });
 
   it('formaterer nul', () => {
-    const result = formatCurrency(0);
+    const result = formatAmountDisplay(0);
     expect(result).not.toBe('-');
   });
 });

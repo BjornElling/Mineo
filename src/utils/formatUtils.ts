@@ -16,11 +16,7 @@ export const formatCountWithUnit = (count: number, singular: string, plural: str
  * Formaterer tal til dansk valuta-format
  */
 export const formatCurrency = (num: number | undefined | null): string => {
-  if (num === null || num === undefined) return '';
-  const rounded = roundByMethod(num, 2, 'halfAwayFromZero');
-  const [intPart, decPart] = rounded.toFixed(2).split('.');
-  const intWithSeparators = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return `${intWithSeparators},${decPart}`;
+  return formatAsAmount(num, 2);
 };
 
 /**
@@ -47,7 +43,8 @@ export const formatAsAmount = (value: number | null | undefined, precision: numb
 
 /**
  * Formaterer procent-tal til dansk format
- * Viser kun decimal hvis der faktisk er en decimal-del (ikke .0)
+ * VIGTIGT: Procent-format følger en bevidst anden visningsregel end formatAsAmount:
+ * trailing .00/.0 fjernes for mere kompakt UI-visning (fx "10 %" i stedet for "10,00 %").
  */
 export const formatPercent = (num: number): string => {
   if (num === null || num === undefined) return '';

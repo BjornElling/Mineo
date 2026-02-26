@@ -7,6 +7,7 @@
 
 import type { ISODateString, DanishDateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
+import { formatAsAmount } from '../../utils/formatUtils';
 
 /**
  * Formaterer ISO-dato til dansk format (dd-mm-åååå)
@@ -40,18 +41,15 @@ export function formatDanishValue(danish: DanishDateString | null): string {
 }
 
 /**
- * Formaterer beløb til dansk format med tusindtalsseparator
+ * Formaterer beløb til debug-display med dansk format.
  *
  * @param amount - Beløb (kr.) eller null
  * @returns Formateret beløb (fx "1.234,56") eller '-'
  */
-export function formatCurrency(amount: number | null | undefined): string {
+export function formatAmountDisplay(amount: number | null | undefined): string {
   if (amount === null || amount === undefined) return '-';
-
-  return amount.toLocaleString('da-DK', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  if (!Number.isFinite(amount)) return '-';
+  return formatAsAmount(amount, 2);
 }
 
 /**
@@ -61,20 +59,17 @@ export function formatCurrency(amount: number | null | undefined): string {
  * @param decimals - Antal decimaler (default: 2)
  * @returns Formateret procent (fx "5,00%") eller '-'
  */
-export function formatPercent(
+export function formatPercentFromDecimal(
   pct: number | null | undefined,
   decimals: number = 2
 ): string {
   if (pct === null || pct === undefined) return '-';
-
+  if (!Number.isFinite(pct)) return '-';
   const percentage = pct * 100;
-  return (
-    percentage.toLocaleString('da-DK', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    }) + '%'
-  );
+  return `${formatAsAmount(percentage, decimals)}%`;
 }
+
+export const formatPercent = formatPercentFromDecimal;
 
 /**
  * Formaterer boolean til Ja/Nej eller custom labels
@@ -98,11 +93,8 @@ export function formatBoolean(
  */
 export function formatInteger(value: number | null | undefined): string {
   if (value === null || value === undefined) return '-';
-
-  return value.toLocaleString('da-DK', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
+  if (!Number.isFinite(value)) return '-';
+  return formatAsAmount(value, 0);
 }
 
 /**
@@ -117,11 +109,8 @@ export function formatDecimal(
   decimals: number = 2
 ): string {
   if (value === null || value === undefined) return '-';
-
-  return value.toLocaleString('da-DK', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
+  if (!Number.isFinite(value)) return '-';
+  return formatAsAmount(value, decimals);
 }
 
 /**

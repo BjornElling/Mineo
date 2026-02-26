@@ -1,11 +1,12 @@
 import type { AarsloenTableRow } from '../schemas/formSchemas';
+import { createRowId } from '../domain/rowId';
 
 /**
  * Initial tom række - indeholder alle periodetyper.
  *
  * VIGTIGT: `id` sættes af caller (fx `generateRowId()`), så her bruges en tom string.
  */
-export const initialRow: Omit<AarsloenTableRow, 'id'> & { id: string } = {
+export const initialRow: Omit<AarsloenTableRow, 'id'> & { id: '' } = {
   id: '',
   col0_maaned: '',
   col1_maaned: '',
@@ -19,16 +20,7 @@ export const initialRow: Omit<AarsloenTableRow, 'id'> & { id: string } = {
   col5: undefined,
 };
 
-const randomId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-};
-
-const createPrefixedId = (prefix: string): string => `${prefix}_${randomId()}`;
-
-export const generateRowId = (): string => createPrefixedId('row');
+export const generateRowId = (): string => createRowId('row');
 
 /**
  * Genererer unikt ID til ansættelsesforhold baseret på timestamp
@@ -36,7 +28,7 @@ export const generateRowId = (): string => createPrefixedId('row');
  * @returns Unikt ansættelsesforhold ID
  */
 export const generateAnsaettelsesforholdId = (): string => {
-  return createPrefixedId('ansaettelsesforhold');
+  return createRowId('ansaettelsesforhold');
 };
 
 /**
@@ -45,7 +37,7 @@ export const generateAnsaettelsesforholdId = (): string => {
  * @returns Unikt offentlig ydelse ID
  */
 export const generateOffentligYdelseRowId = (): string => {
-  return createPrefixedId('offentlig_ydelse');
+  return createRowId('offentlig_ydelse');
 };
 
 /**
@@ -54,7 +46,7 @@ export const generateOffentligYdelseRowId = (): string => {
  * @returns Unikt lønudvikling række-ID
  */
 export const generateLoenudviklingRowId = (): string => {
-  return createPrefixedId('loenudvikling');
+  return createRowId('loenudvikling');
 };
 
 /**

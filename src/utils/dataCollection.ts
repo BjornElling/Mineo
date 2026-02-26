@@ -3,6 +3,7 @@
  */
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { UI_STORAGE_KEYS } from '../config/storageManifest';
+import type { PersistedData } from '../types/persistence';
 
 interface FormulaValue {
   formula: string;
@@ -25,12 +26,6 @@ type FormulaLike = {
 type InternalFieldStateLike = {
   formula?: unknown;
   computed?: unknown;
-};
-
-type PersistedDataWrapper = {
-  version: string;
-  timestamp: number;
-  data: unknown;
 };
 
 const debugEnabled = import.meta.env.DEV;
@@ -197,7 +192,7 @@ export const countFilledFields = (data: unknown): number => {
   return totalCount;
 };
 
-const isPersistedDataWrapper = (value: unknown): value is PersistedDataWrapper => {
+const isPersistedDataWrapper = (value: unknown): value is PersistedData<unknown> => {
   if (!value || typeof value !== 'object') return false;
   const obj = value as Record<string, unknown>;
   return (
@@ -327,8 +322,6 @@ export const saveDataToSessionStorage = (data: unknown): void => {
     throw new Error('Ugyldig data - skal være et objekt');
   }
 
-  const CURRENT_VERSION = PERSISTED_DATA_VERSION; // Matcher FormPersistenceContext
-
   debugGroup('[saveDataToSessionStorage] Gemmer data fra fil til sessionStorage');
   debugLog(`Input data keys: ${Object.keys(data).join(', ')}`);
 
@@ -342,8 +335,8 @@ export const saveDataToSessionStorage = (data: unknown): void => {
 
     try {
       // Wrap i PersistedData-struktur (matcher FormPersistenceContext)
-      const persistedData: PersistedDataWrapper = {
-        version: CURRENT_VERSION,
+      const persistedData: PersistedData<unknown> = {
+        version: PERSISTED_DATA_VERSION,
         timestamp: Date.now(),
         data: pageData,
       };
