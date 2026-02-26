@@ -2,19 +2,17 @@ import type { ErstatningsopgoerelseValues, OevrigeKravRow, StamdataValues } from
 import type { ISODateString } from '../../types/branded';
 import { isISODateString, isoToDanish, subtractOneDay } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { buildTafRanges, buildIncomeForRanges, type IsoRange } from './indtaegtPerioder';
-import { computeTafBeregningsenhed } from './tafBeregningsenhed';
+import { buildTafRanges } from './indtaegtPerioder';
 import { isoDateToDate } from '../dates/isoDate';
 import { isOevrigeKravRowEmpty, isTafRowEmpty } from './rowEmpty';
 import { computeSvieSmerteEngine, getDayAfterIso } from './svieSmerteEngine';
 import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
 import { buildTafArbejdsstatusLinje } from './tafArbejdsstatusConfig';
-import { buildIndkomstSkadestidspunkt } from './eoPdfIndkomstSkadestidspunkt';
-import { buildLoenudviklingModelV3 } from './eoPdfLoenudvikling';
-import type { Calculable, MoneyOre, OevrigeKravPdfModel, SvieSmertePdfModel, TabtArbejdsfortjenestePdfModel, TafIndtaegterPdfModel } from './eoPdfModelTypes';
-import { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from './eoPdfMoneyUtils';
+import type { Calculable, MoneyOre, OevrigeKravPdfModel, SvieSmertePdfModel, TabtArbejdsfortjenestePdfModel } from './eoPdfModelTypes';
+import { clampMoneyOreToZero, ensureMoneyOre } from './eoPdfMoneyUtils';
 import { formatDateShort, formatDateLong } from './sharedPdfUtils';
 import { parseOevrigeKravBeloeb } from './oevrigeKravAmountParser';
+import { computeTafNettoBeregning } from './tafNettoBeregning';
 
 const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
@@ -164,34 +162,6 @@ const buildTafPerioderLinjer = (values: ErstatningsopgoerelseValues): string[] =
   }
   return lines;
 };
-const buildTafIndtaegterModel = (values: ErstatningsopgoerelseValues, ranges: readonly IsoRange[]): TafIndtaegterPdfModel => {
-  const indtaegter = buildIncomeForRanges(values, ranges);
-  const employerEntries: Array<{ label: string; amountOre: MoneyOre }> = [];
-  indtaegter.employers.forEach((entry) => {
-    const label = entry.name !== '' ? entry.name : 'Arbejdssted';
-    employerEntries.push({ label, amountOre: toOre(roundKroner(entry.amount)) });
-  });
-  const benefitEntries = indtaegter.benefits
-    .map((entry) => ({ label: entry.label, amountOre: toOre(roundKroner(entry.amount)) }))
-    // Stabil, brugervendt rækkefølge i PDF-output uafhængigt af input-rækkefølge.
-    .sort((a, b) => a.label.localeCompare(b.label, 'da-DK', { sensitivity: 'base' }));
-  const entries = [...employerEntries, ...benefitEntries];
-  const oevrigeKravForbeholdYdelsestyper = Array.from(
-    new Set(
-      indtaegter.benefits
-        .map((entry) => entry.typeKey)
-        .filter((typeKey) => typeKey === 'kontanthjaelp' || typeKey === 'ressourceforloebsydelse')
-    )
-  );
-
-  // Ingen indtægter i TAF-perioden er gyldigt og opgøres som 0 kr.
-  const totalOre = clampMoneyOreToZero(ensureMoneyOre(entries.reduce((acc, entry) => acc + entry.amountOre, 0)));
-  return {
-    entries,
-    oevrigeKravForbeholdYdelsestyper,
-    total: asCalculable(totalOre),
-  };
-};
 export const buildTabtArbejdsfortjenesteModel = (
   values: ErstatningsopgoerelseValues,
   stamdataValues: StamdataValues
@@ -250,7 +220,8 @@ export const buildTabtArbejdsfortjenesteModel = (
   const differencekravReferenceDato = values.differencekravDato;
 
   const tafPerioderLinjer = buildTafPerioderLinjer(values);
-  const harTafPerioder = tafPerioderLinjer.length > 0;
+  const tafMonetary = computeTafNettoBeregning(values, stamdataValues);
+  const harTafPerioder = tafMonetary.harTafPerioder;
   const harTafDagenFoer = (dato: ISODateString | undefined): boolean => {
     if (!dato) return false;
     const dagenFoer = subtractOneDay(dato);
@@ -312,45 +283,9 @@ export const buildTabtArbejdsfortjenesteModel = (
     differencekravLinje = `${differencekravLinje} Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.`;
   }
 
-  const tafBeregningsenhed = computeTafBeregningsenhed(values);
-
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);
   const skalKomprimereIndkomstBeregning =
     !erFoersteOpgoerelse && values.komprimerBeregningEfterFoersteOpgoerelse === 'Ja';
-
-  const indkomstSkadestidspunkt = harTafPerioder
-    ? buildIndkomstSkadestidspunkt(values, stamdataValues, tafBeregningsenhed)
-    : null;
-  const loenudvikling = harTafPerioder
-    ? buildLoenudviklingModelV3(values, stamdataValues, tafBeregningsenhed, indkomstSkadestidspunkt)
-    : null;
-
-  const tafIndtaegter = harTafPerioder ? buildTafIndtaegterModel(values, tafRanges) : null;
-  const tidligereModtagetTafKroner = amountValueToNumber(values.tidligereModtagetTaf);
-  const tidligereModtagetTaf =
-    tidligereModtagetTafKroner !== undefined
-      ? asCalculable(toOre(tidligereModtagetTafKroner))
-      : notCalculableMoney('Ikke angivet');
-
-  let tabtArbejdsfortjenesteOre = ensureMoneyOre(0);
-  if (harTafPerioder) {
-    if (!loenudvikling) {
-      throw new Error('Lønudvikling kunne ikke beregnes');
-    }
-    if (!tafIndtaegter) {
-      throw new Error('Indtægter i TAF-perioden kunne ikke beregnes');
-    }
-    if (loenudvikling.loenudviklingTotal.status !== 'ok') {
-      throw new Error('Loenudvikling kan ikke beregnes');
-    }
-    if (tafIndtaegter.total.status !== 'ok') {
-      throw new Error('Indtaegter i TAF-perioden kan ikke beregnes');
-    }
-    const tidligereModtagetTafOre = tidligereModtagetTaf.status === 'ok' ? tidligereModtagetTaf.value : ensureMoneyOre(0);
-    tabtArbejdsfortjenesteOre = clampMoneyOreToZero(
-      ensureMoneyOre(loenudvikling.loenudviklingTotal.value - tafIndtaegter.total.value - tidligereModtagetTafOre)
-    );
-  }
 
   return {
     statusLinjer,
@@ -358,13 +293,13 @@ export const buildTabtArbejdsfortjenesteModel = (
     differencekravLinje,
     tafPerioderLinjer,
     harTafPerioder,
-    tafBeregningsenhed,
+    tafBeregningsenhed: tafMonetary.tafBeregningsenhed,
     skalKomprimereIndkomstBeregning,
-    indkomstSkadestidspunkt,
-    loenudvikling,
-    tafIndtaegter,
-    tidligereModtagetTaf,
-    tabtArbejdsfortjenesteOre,
+    indkomstSkadestidspunkt: tafMonetary.indkomstSkadestidspunkt,
+    loenudvikling: tafMonetary.loenudvikling,
+    tafIndtaegter: tafMonetary.tafIndtaegter,
+    tidligereModtagetTaf: tafMonetary.tidligereModtagetTaf,
+    tabtArbejdsfortjenesteOre: tafMonetary.tabtArbejdsfortjenesteOre,
   };
 };
 
@@ -393,4 +328,3 @@ export const buildOevrigeKravModel = (rows: OevrigeKravRow[]): OevrigeKravPdfMod
 
   return { entries, totalOre: parsed.totalOre };
 };
-

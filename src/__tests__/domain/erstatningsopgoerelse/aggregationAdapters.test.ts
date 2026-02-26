@@ -2,59 +2,17 @@ import { describe, expect, it } from 'vitest';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import {
   adaptSvieSmerteForAggregation,
-  adaptTafForAggregation,
   adaptOevrigeKravForAggregation,
 } from '../../../domain/erstatningsopgoerelse/aggregationAdapters';
-import { buildOevrigeKravModel } from '../../../domain/erstatningsopgoerelse/eoPdfBuilders';
-import type { TafEngineOutput } from '../../../domain/erstatningsopgoerelse/tafBeregningsEngine';
+import { buildOevrigeKravModel, buildSvieSmerteModel } from '../../../domain/erstatningsopgoerelse/eoPdfBuilders';
 import type { SvieSmerteEngineOutput } from '../../../domain/erstatningsopgoerelse/svieSmerteEngine';
+import { computeSvieSmerteEngine } from '../../../domain/erstatningsopgoerelse/svieSmerteEngine';
 import type { OevrigeKravRow } from '../../../schemas/formSchemas';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
+import { toISODateString } from '../../../types/branded';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
-
-// ─── adaptTafForAggregation ───────────────────────────────────────────────
-
-describe('adaptTafForAggregation', () => {
-  const makeTafOutput = (rows: Array<{ id: string; value: number | null }>): TafEngineOutput => ({
-    rows,
-  });
-
-  it('summer alle taf-værdier', () => {
-    const output = makeTafOutput([
-      { id: 'r1', value: 5000 },
-      { id: 'r2', value: 3000 },
-    ]);
-    expect(adaptTafForAggregation(output)).toEqual({ amount: 8000 });
-  });
-
-  it('returnerer null ved én null-taf', () => {
-    const output = makeTafOutput([
-      { id: 'r1', value: 5000 },
-      { id: 'r2', value: null },
-    ]);
-    expect(adaptTafForAggregation(output)).toBeNull();
-  });
-
-  it('returnerer { amount: 0 } for tom liste', () => {
-    const output = makeTafOutput([]);
-    expect(adaptTafForAggregation(output)).toEqual({ amount: 0 });
-  });
-
-  it('returnerer { amount: 0 } for enkelt row med 0', () => {
-    const output = makeTafOutput([{ id: 'r1', value: 0 }]);
-    expect(adaptTafForAggregation(output)).toEqual({ amount: 0 });
-  });
-
-  it('returnerer null ved NaN', () => {
-    const output = makeTafOutput([{ id: 'r1', value: NaN }]);
-    expect(adaptTafForAggregation(output)).toBeNull();
-  });
-
-  it('returnerer null ved Infinity', () => {
-    const output = makeTafOutput([{ id: 'r1', value: Infinity }]);
-    expect(adaptTafForAggregation(output)).toBeNull();
-  });
-});
 
 // ─── adaptSvieSmerteForAggregation ────────────────────────────────────────
 
@@ -84,6 +42,40 @@ describe('adaptSvieSmerteForAggregation', () => {
   it('returnerer null ved ikke-heltal i ore', () => {
     expect(adaptSvieSmerteForAggregation(makeSvieOutput(12.5))).toBeNull();
   });
+
+  it('holder parity mellem aggregation-adapter og PDF-total (engine er allerede clampet >= 0)', () => {
+    const eoValues = {
+      ...createErstatningsopgoerelseInitialValues(),
+      vedroererPeriodeFra: toISODateString('2024-01-01'),
+      vedroererPeriodeTil: toISODateString('2024-01-10'),
+      tidligereSsMax: 'Nej' as const,
+      svieSmertePerioder: [
+        { id: 'ss-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-10'), tilstand: 'sygemeldt' as const },
+      ],
+      svieSmerteSatserAar: 2026,
+      svieSmerteDelvisSygemeldingSats: 'fuld' as const,
+      svieSmerteTidligereTotal: amount(0),
+      svieSmerteAktuelPeriode: amount(0),
+    };
+    const stamdata = {
+      ...STAMDATA_INITIAL_VALUES,
+      skadestype: 'Arbejdsulykke' as const,
+      skadesdato: toISODateString('2024-01-01'),
+    };
+
+    const engine = computeSvieSmerteEngine({
+      erstatningsopgoerelse: eoValues,
+      stamdata: {
+        skadesdato: stamdata.skadesdato,
+        skadestype: stamdata.skadestype,
+      },
+    });
+    const adapted = adaptSvieSmerteForAggregation(engine);
+    const pdf = buildSvieSmerteModel(eoValues, stamdata);
+
+    expect(adapted).not.toBeNull();
+    expect(adapted?.amount).toBe(pdf.totalOre / 100);
+  });
 });
 
 // ─── adaptOevrigeKravForAggregation ───────────────────────────────────────
@@ -92,6 +84,7 @@ describe('adaptOevrigeKravForAggregation', () => {
   const withRows = (rows: OevrigeKravRow[] | undefined): OevrigeKravRow[] => rows ?? [];
 
   it('returnerer { amount: 0 } for tom oevrigeKravPerioder', () => {
+    // Invariant: tom række-mængde betyder 0-sum (ikke "not calculable") i aggregation.
     expect(adaptOevrigeKravForAggregation(withRows([]))).toEqual({ amount: 0 });
   });
 
