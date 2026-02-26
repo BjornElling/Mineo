@@ -24,7 +24,7 @@ Se eksakte versionsnumre i `package.json`.
 ## Kom i gang
 
 Forudsætninger:
-- Node.js 20.19+ eller 22.12+
+- Node.js
 - Git
 
 Installation:
@@ -52,20 +52,12 @@ npm run test
 npm run import:loen
 ```
 
-## Dokumentation
-
-- `AGENTS.md`
-  - Overordnede udviklingsregler og trust-kritiske constraints for agentisk udvikling.
-- `src/contracts/`
-  - Normative kontrakter for formularer, keyboard-navigation, dato-håndtering, app settings og fejl/debug.
-- `docs/architecture/calculation-architecture.md`
-  - Normativ beregningsarkitektur (boundary, pipeline, engine-regler, testkrav).
-
 ## Domænedata der opdateres løbende
 
 - EAL/ASL-satser i `src/data/regulationRates.ts`
 - Statistiske satser i `src/data/statistiskLoenudviklingRates.ts`
 - Rentesatser i `src/data/interestRates.ts`
+- Private løndata i `src/data/overenskomstRates.ts`
 - Offentlige løndata (KL/RLTN) via `npm run import:loen`
 
 ## Licens
@@ -80,6 +72,6 @@ Bjørn Elling
 
 ---
 
-**Version**: 2026.02.211
+**Version**: 2026.02.212
 
 **Status**: Under udvikling
