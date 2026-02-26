@@ -2,7 +2,7 @@ import { toISODateString } from '../../types/branded';
 import { beregnHelligdage, beregnHelligdageMedNavn, beregnSHDage, beregnSHDageForDatoSet } from '../../utils/shDageBeregning';
 import { createDate } from '../../utils/dateUtils';
 
-describe('beregnHelligdageMedNavn', () => {
+describe('shDageBeregning', () => {
   it('returnerer samme antal helligdage som beregnHelligdage', () => {
     for (const year of [2020, 2023, 2024, 2025]) {
       const unnamed = beregnHelligdage(year);

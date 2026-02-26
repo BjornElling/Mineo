@@ -7,7 +7,8 @@ type CommittedRow = { id: string; name?: string };
 
 const makeConfig = (
   store: { committed: CommittedRow[] | undefined },
-  resyncToken: unknown
+  resyncToken: unknown,
+  nextId: () => string = () => `id-${Math.random().toString(36).slice(2)}`
 ) => ({
   getCommitted: () => store.committed,
   setCommitted: (updater: (prevRows: CommittedRow[] | undefined) => CommittedRow[] | undefined) => {
@@ -17,7 +18,7 @@ const makeConfig = (
   toCommittedRow: (draft: DraftRow): CommittedRow => ({ id: draft.id, name: draft.name.trim() || undefined }),
   isRowEmpty: (row: CommittedRow) => row.name === undefined,
   ensureRows: (rows: CommittedRow[] | undefined): CommittedRow[] => (rows && rows.length > 0 ? rows : [{ id: 'empty' }]),
-  createId: () => `id-${Math.random().toString(36).slice(2)}`,
+  createId: nextId,
   createEmptyCommittedRow: (id: string): CommittedRow => ({ id }),
   resyncToken,
 });
@@ -73,24 +74,41 @@ describe('useRowDrafts', () => {
     expect(result.current.draftRows[0].name).toBe('new-value');
   });
 
-  it('addRow og removeRow påvirker ikke øvrige committed rows', () => {
+  it('addRow indsætter ny tom række før trailing empty row og bevarer øvrige rows', () => {
     const store: { committed: CommittedRow[] | undefined } = {
-      committed: [{ id: 'r1', name: 'a' }, { id: 'r2', name: 'b' }],
+      committed: [{ id: 'r1', name: 'a' }, { id: 'empty' }],
+    };
+    const nextId = () => 'r2';
+    const { result } = renderHook(() =>
+      useRowDrafts<DraftRow, CommittedRow, 'name'>(makeConfig(store, 1, nextId))
+    );
+
+    act(() => {
+      result.current.addRow();
+    });
+
+    expect(store.committed?.map((row) => row.id)).toEqual(['r1', 'r2', 'empty']);
+    expect(result.current.draftRows.map((row) => row.id)).toEqual(['r1', 'r2', 'empty']);
+  });
+
+  it('removeRow fjerner valgt række og resyncer øvrige drafts fra committed', () => {
+    const store: { committed: CommittedRow[] | undefined } = {
+      committed: [{ id: 'r1', name: 'a-committed' }, { id: 'r2', name: 'b' }, { id: 'empty' }],
     };
     const { result } = renderHook(() =>
       useRowDrafts<DraftRow, CommittedRow, 'name'>(makeConfig(store, 1))
     );
 
     act(() => {
-      result.current.addRow();
+      result.current.onFieldChange('r1', 'name')('a-draft');
     });
-    expect(store.committed?.some((row) => row.id === 'r1' && row.name === 'a')).toBe(true);
-    expect(store.committed?.some((row) => row.id === 'r2' && row.name === 'b')).toBe(true);
 
     act(() => {
       result.current.removeRow('r2');
     });
-    expect(store.committed?.some((row) => row.id === 'r2')).toBe(false);
-    expect(store.committed?.some((row) => row.id === 'r1')).toBe(true);
+
+    expect(store.committed?.map((row) => row.id)).toEqual(['r1', 'empty']);
+    expect(store.committed?.find((row) => row.id === 'r1')?.name).toBe('a-committed');
+    expect(result.current.draftRows.find((row) => row.id === 'r1')?.name).toBe('a-committed');
   });
 });
