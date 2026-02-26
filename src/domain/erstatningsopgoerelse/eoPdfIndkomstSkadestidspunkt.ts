@@ -231,7 +231,7 @@ export const buildIndkomstSkadestidspunkt = (
           const basePart = `${formatDaNumber(arbejdsdageBreakdown.arbejdsdage)} ${dagOrd(arbejdsdageBreakdown.arbejdsdage, 'hverdag', 'hverdage')}`;
           const fradragComponents: Array<{ value: number; label: string }> = [
             { value: arbejdsdageBreakdown.shDage, label: dagOrd(arbejdsdageBreakdown.shDage, 'SH-dag', 'SH-dage') },
-            { value: samletFeriedage, label: dagOrd(samletFeriedage, 'feriedag', 'feriedage') },
+            { value: samletFeriedage, label: dagOrd(samletFeriedage, 'ferie-/feriefridag', 'ferie-/feriefridage') },
             { value: arbejdsdageBreakdown.oevrigeFravaersdage, label: dagOrd(arbejdsdageBreakdown.oevrigeFravaersdage, 'øvrig fraværsdag', 'øvrige fraværsdage') },
           ];
           const fradragParts = fradragComponents

@@ -258,7 +258,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     opgoerelse: true as const,
     loenindkomst: true,
     offentligeYdelser: true,
-    shDage: true,
+    shDage: false,
     regulering: true,
     okSatser: true,
     sygeferiegodtgoerelse: false,
@@ -828,5 +828,4 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 EOberegningTab.displayName = 'EOberegningTab';
 
 export default EOberegningTab;
-
 

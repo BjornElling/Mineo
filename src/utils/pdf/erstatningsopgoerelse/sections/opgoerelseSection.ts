@@ -459,8 +459,8 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           if (indkomst.beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE && indkomst.arbejdsdage) {
             const arbejdsdageText = formatCountWithUnit(indkomst.arbejdsdage, 'arbejdsdag', 'arbejdsdage');
             const basisText = addends.length > 1
-              ? `Dagsløn: (${addends.join(' + ')}${NBSP}kr.) / ${arbejdsdageText} =`
-              : `Dagsløn: ${formatMoneyOreWithKr(indkomst.samletBeregningsgrundlagOre)} / ${arbejdsdageText} =`;
+              ? `Dagsindkomst: (${addends.join(' + ')}${NBSP}kr.) / ${arbejdsdageText} =`
+              : `Dagsindkomst: ${formatMoneyOreWithKr(indkomst.samletBeregningsgrundlagOre)} / ${arbejdsdageText} =`;
             safeAddLeftRightText(
               basisText,
               renderMoneyWithKr(indkomst.dagsloen),
