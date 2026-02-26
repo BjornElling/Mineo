@@ -6,7 +6,7 @@
  */
 
 import { type DanishDateString } from '../types/branded';
-import { addDays, addMonths, formatDanishDate, parseDanishDate } from '../utils/dateUtils';
+import { formatDanishDate, getInclusivePeriodEndByMonths, parseDanishDate } from '../utils/dateUtils';
 import type {
   OffentligOverenskomstType,
   Loengruppe,
@@ -284,6 +284,7 @@ export const getReguleringsDatoer = (
  *
  * fraDato = ældste regulerings-startdato
  * tilDato = nyeste regulerings-startdato + 6 måneder − 1 dag
+ * (offentlige reguleringer håndteres som halvårlige perioder i Mineo)
  */
 export const getReguleringsDatoIntervalForOffentligLoen = (
   overenskomstType: OffentligOverenskomstType
@@ -298,7 +299,7 @@ export const getReguleringsDatoIntervalForOffentligLoen = (
   const nyesteDate = parseDanishDate(nyeste.effectiveDate);
   if (!nyesteDate) return undefined;
 
-  const tilDato = formatDanishDate(addDays(addMonths(nyesteDate, 6), -1));
+  const tilDato = formatDanishDate(getInclusivePeriodEndByMonths(nyesteDate, 6));
 
   return {
     fraDato: aeldste.effectiveDate,

@@ -6,15 +6,14 @@ import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
 import TableIntegerInput from '../inputs/table/TableIntegerInput';
 import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
 import StandardLooseTable from './StandardLooseTable';
-import { MIN_CALCULATION_DATE, MAX_CALCULATION_YEAR } from '../../data/interestRates';
 import { formatAsAmount } from '../../utils/formatUtils';
 import type { ISODateString } from '../../types/branded';
-import { toISODateString } from '../../types/branded';
 import { minISO } from '../../utils/isoDateHelpers';
 import type { RentekravRow } from '../../schemas/formSchemas';
 import type { RentekravDraftRow } from '../../domain/renteberegning/tableDraftRows';
 import { computeRentekravCalculation, type RentekravCalculationResult, type ValidatedRentekravContext } from '../../domain/renteberegning/renteEngine';
 import { amountValueToDraftString } from '../../utils/expressionAmount';
+import { dateRanges_renteberegning } from '../../config/dateRanges';
 
 const ENHED_OPTIONS = [
   { value: 'dage', label: 'Dage' },
@@ -55,15 +54,15 @@ type BeregnetRenteRowProps = Readonly<{
 const BeregnetRenteRow = React.memo(
   ({ row, committedRow, rowIndex, onFieldChange, onRowBlur, beregningsdato, onDownloadSpecifikation, onError, beregningsdatoHasError }: BeregnetRenteRowProps) => {
     const [renterFraHasError, setRenterFraHasError] = React.useState(false);
+    const standardMaxDate = dateRanges_renteberegning.renteTil.max;
 
     const dynamicMaxDate = React.useMemo((): ISODateString => {
       if (!beregningsdato) {
-        return toISODateString(`${MAX_CALCULATION_YEAR}-12-31`);
+        return standardMaxDate;
       }
 
-      const standardMaxDate = toISODateString(`${MAX_CALCULATION_YEAR}-12-31`);
       return minISO(beregningsdato, standardMaxDate);
-    }, [beregningsdato]);
+    }, [beregningsdato, standardMaxDate]);
 
     const { context: validatedCalculation, issue: calculationIssue, actualInterestDate } = useRentekravCalculation(committedRow, beregningsdato);
 
@@ -105,7 +104,7 @@ const BeregnetRenteRow = React.memo(
               onFieldChange(row.id, 'renterFra')(e.target.value ?? '');
               onRowBlur(row.id);
             }}
-            minDate={MIN_CALCULATION_DATE}
+            minDate={dateRanges_renteberegning.renteTil.min}
             maxDate={dynamicMaxDate}
             onErrorChange={(info) => setRenterFraHasError(info.hasError)}
           />

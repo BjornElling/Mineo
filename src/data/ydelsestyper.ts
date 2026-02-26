@@ -14,7 +14,7 @@ export interface YdelsestypeConfig {
   periodiseringLabel: string;  // Vises i readonly-kolonne
 }
 
-export const ydelsestyper: Record<string, YdelsestypeConfig> = {
+const ydelsestyperLiteral = {
   dagpenge: {
     label: 'Dagpenge',
     periodisering: 'kalenderdage',
@@ -83,8 +83,12 @@ export const ydelsestyper: Record<string, YdelsestypeConfig> = {
     periodisering: 'kalenderdage',
     periodiseringLabel: 'Kalenderdage',
   },
-};
+} as const satisfies Record<string, YdelsestypeConfig>;
 
-export type YdelsestypeKey = keyof typeof ydelsestyper;
+export type YdelsestypeKey = keyof typeof ydelsestyperLiteral;
 
-export const ydelsestypeKeys = Object.keys(ydelsestyper) as YdelsestypeKey[];
+export const ydelsestyper:
+  Readonly<Record<string, YdelsestypeConfig>> &
+  Readonly<Record<YdelsestypeKey, YdelsestypeConfig>> = ydelsestyperLiteral;
+
+export const ydelsestypeKeys = Object.keys(ydelsestyperLiteral) as YdelsestypeKey[];

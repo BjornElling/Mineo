@@ -17,7 +17,7 @@
  */
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
-import { addDays, addMonths, formatDanishDate, parseDanishDate } from '../utils/dateUtils';
+import { formatDanishDate, getInclusivePeriodEndByMonths, parseDanishDate } from '../utils/dateUtils';
 
 // ===== TYPE DEFINITIONER =====
 
@@ -191,7 +191,7 @@ export const getKRLSatstabel = (id: KRLSatstabelId): KRLSatstabel | undefined =>
  *
  * fraDato = ældste regulerings-startdato
  * tilDato = nyeste regulerings-startdato + 6 måneder − 1 dag
- *           (KRL-satser gælder i 6 måneder fra startdatoen)
+ *           (KRL-satser behandles som 6-måneders perioder i Mineo)
  */
 export const getReguleringsDatoIntervalForKRL = (
   id: KRLSatstabelId
@@ -206,7 +206,7 @@ export const getReguleringsDatoIntervalForKRL = (
   const nyesteDate = parseDanishDate(nyeste.fraDato);
   if (!nyesteDate) return undefined;
 
-  const tilDato = formatDanishDate(addDays(addMonths(nyesteDate, 6), -1));
+  const tilDato = formatDanishDate(getInclusivePeriodEndByMonths(nyesteDate, 6));
 
   return {
     fraDato: aeldste.fraDato,

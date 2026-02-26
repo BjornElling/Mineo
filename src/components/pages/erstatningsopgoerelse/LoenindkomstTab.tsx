@@ -58,7 +58,10 @@ import {
 } from '../../../data/overenskomstRates';
 import { toLoentrin } from '../../../data/offentligLoenTypes';
 import { getOffentligLoenTabelForDato } from '../../../data/offentligLoenLookup';
-import { getReguleringsDatoIntervalForStatistikModel } from '../../../data/statistiskLoenudviklingRates';
+import {
+  ASL_AARSLOENSMAKSIMUM_MODEL_LABEL,
+  getReguleringsDatoIntervalForStatistikModel,
+} from '../../../data/statistiskLoenudviklingRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
@@ -1988,7 +1991,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
                     allowEmpty={true}
                     placeholder="Vælg..."
                   >
-                    <MenuItem value="ASL-årslønsmaksimum">ASL-årslønsmaksimum</MenuItem>
+                    <MenuItem value={ASL_AARSLOENSMAKSIMUM_MODEL_LABEL}>{ASL_AARSLOENSMAKSIMUM_MODEL_LABEL}</MenuItem>
                     <MenuItem value="ILON12 (Danmarks Statistik)">ILON12 (Danmarks Statistik)</MenuItem>
                     <MenuItem value="SBLON2 (Danmarks Statistik)">SBLON2 (Danmarks Statistik)</MenuItem>
                   </StyledDropdown>

@@ -95,9 +95,7 @@ export type DateRangeConfig =
   | DynamicBothDateRange
   | UnconstrainedDateRange;
 
-export const TODAY: ISODateString = (() => {
-  return getTodayLocalISO();
-})();
+export const TODAY: ISODateString = getTodayLocalISO();
 
 // ============================================================================
 // GLOBALE VÆRDIER
@@ -171,10 +169,6 @@ export const computeSkadesdatoMinRule = (args: Readonly<{
     minBoundReferenceISO: args.skadesdatoISO,
   };
 };
-
-// ============================================================================
-// HJÆLPEFUNKTIONER
-// ============================================================================
 
 // ============================================================================
 // STAMDATA-SIDEN
@@ -426,7 +420,7 @@ export const dateRanges_offentligeYdelser: DateRanges_OffentligeYdelser = {
     fallbackMin: DATE_2005_01_01,
     max: DATE_PLUS_1_YEAR_END,
     placeholder: 'dd-mm-åååå',
-    notes: 'Fra fraDato (eller 1. januar 2005) til 31. december 2030',
+    notes: 'Fra fraDato (eller 1. januar 2005) til 31. december ét år frem',
   },
 };
 

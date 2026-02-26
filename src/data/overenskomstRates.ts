@@ -106,9 +106,9 @@ type OffentligOverenskomstSatser = Readonly<{
 }>;
 
 type ShDageAlmindeligLoenRegel = Readonly<{
-  readonly fritvalgDelta?: number;
-  readonly shSoDelta?: number;
-  readonly shSoOverride?: number | null;
+  readonly fritvalgDelta?: number;              // Decimal-procentpoint (0.01 = +1,00 %-point)
+  readonly shSoDelta?: number;                  // Decimal-procentpoint (0.01 = +1,00 %-point)
+  readonly shSoOverride?: number | null;        // Decimal-procent (0.069 = 6,9 %) eller null
 }>;
 
 // ===== HELPER FUNKTIONER =====
@@ -562,7 +562,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     satser: satserFromTable(
       { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
-        // fraDato          ł Grundløn         ł SH/SO-sats          ł AG-pens.         
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.
         ['01-03-2024',            136.15,            0.0350,            0.1200 ],
         ['01-03-2023',            131.65,            0.0350,            0.1200 ],
         ['01-03-2022',            127.15,            0.0350,            0.1200 ],
@@ -1063,6 +1063,9 @@ type GetEffektiveSatserForDatoArgs = Readonly<{
 export const getEffektiveSatserForDato = (
   args: GetEffektiveSatserForDatoArgs
 ): OverenskomstPeriodeSats | undefined => {
+  // Domænebeslutning: Manglende sats for en given dato er forventet i nogle
+  // overenskomster og behandles derfor ikke som fejl her.
+  // Kaldende kode skal håndtere undefined eksplicit.
   if (getOffentligOverenskomstTypeById(args.overenskomstId as string)) {
     throw new Error('Offentlig overenskomst har ikke standard-satser. Brug offentligt lønopslag.');
   }
@@ -1083,6 +1086,8 @@ type GetEffektiveSatserForPeriodeArgs = Readonly<{
 export const getEffektiveSatserForPeriode = (
   args: GetEffektiveSatserForPeriodeArgs
 ): ReadonlyArray<OverenskomstPeriodeSats> => {
+  // Domænebeslutning: En periode kan lovligt give tomt resultat, hvis der ikke
+  // findes satser i hele intervallet for den valgte overenskomst.
   if (getOffentligOverenskomstTypeById(args.overenskomstId as string)) {
     throw new Error('Offentlig overenskomst har ikke standard-satser. Brug offentligt lønopslag.');
   }
@@ -1092,15 +1097,5 @@ export const getEffektiveSatserForPeriode = (
   const satser = getSatserForAlmindeligLoenPaaShDage(overenskomst, args.applyAlmindeligLoenPaaShDageRegel);
   return getSatserForPeriodeFromList(satser, args.fraDato, args.tilDato);
 };
-
-
-
-
-
-
-
-
-
-
 
 

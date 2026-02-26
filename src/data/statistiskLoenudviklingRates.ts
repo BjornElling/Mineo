@@ -78,6 +78,8 @@ export type ReguleringsDatoInterval = Readonly<{
   tilDato: DanishDateString;
 }>;
 
+export const ASL_AARSLOENSMAKSIMUM_MODEL_LABEL = 'ASL-årslønsmaksimum';
+
 // ===== HELPER FUNKTIONER =====
 
 /**
@@ -218,7 +220,7 @@ export const getReguleringsDatoIntervalForStatistikModel = (rawModel: string): R
   const trimmed = rawModel.trim();
   if (trimmed === '') return undefined;
 
-  if (trimmed === 'ASL-årslønsmaksimum') {
+  if (trimmed === ASL_AARSLOENSMAKSIMUM_MODEL_LABEL) {
     const bounds = getYearBoundsForYearlyRate(aarsloenMax);
     if (!bounds) return undefined;
     return {
@@ -258,5 +260,3 @@ export const getReguleringsDatoIntervalForStatistikModel = (rawModel: string): R
   const tilDato = formatDanishDate(addDays(addMonths(maxStartDate, 12), -1));
   return { fraDato, tilDato };
 };
-
-
