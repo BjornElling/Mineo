@@ -16,12 +16,12 @@ import type { PdfWriter } from '../../pdfWriter';
 import { resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import {
-  STORE_BEDEDAG_PCT,
-  STORE_BEDEDAG_START,
   formatAmount2,
   formatAmountWithoutTrailingDecimals,
   formatAnciennitetConversion,
 } from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
+import { STORE_BEDEDAG_START } from '../../../../config/dateRanges';
+import { STORE_BEDEDAG_PCT } from '../../../../config/regulatoryRates';
 import { isoToDanish, type ISODateString } from '../../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';

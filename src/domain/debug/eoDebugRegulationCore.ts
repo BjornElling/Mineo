@@ -22,6 +22,8 @@ import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { beregnHelligdage } from '../../utils/shDageBeregning';
+import { STORE_BEDEDAG_START } from '../../config/dateRanges';
+import { STORE_BEDEDAG_PCT as STORE_BEDEDAG_PCT_PCT } from '../../config/regulatoryRates';
 import { isoDateToDate } from '../dates/isoDate';
 import { beregnArbejdsdageOgMaaneder } from '../erstatningsopgoerelse/arbejdsdageMaaneder';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
@@ -29,8 +31,6 @@ import {
   parseDanishToIso,
   resolveOffentligLoenEkstraGrundloen,
   resolvePctDecimalFromSatsOrInput,
-  STORE_BEDEDAG_START,
-  STORE_BEDEDAG_PCT as STORE_BEDEDAG_PCT_PCT,
 } from '../erstatningsopgoerelse/sharedPdfUtils';
 
 const STORE_BEDEDAG_PCT = STORE_BEDEDAG_PCT_PCT / 100;

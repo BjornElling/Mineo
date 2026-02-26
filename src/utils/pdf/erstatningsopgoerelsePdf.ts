@@ -20,7 +20,8 @@ import { parseAmount } from '../numberParsing';
 import { roundByMethod } from '../rounding';
 import { parseISODate } from '../../types/branded';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../../domain/erstatningsopgoerelse/tafBeregningsenhed';
-import { TODAY } from '../../config/dateRanges';
+import { STORE_BEDEDAG_START, TODAY } from '../../config/dateRanges';
+import { STORE_BEDEDAG_PCT } from '../../config/regulatoryRates';
 import { amountValueToDisplayString, amountValueToNumber } from '../expressionAmount';
 import { isAarsloenRowEffectivelyEmpty } from '../aarsloenTableCalculations';
 
@@ -45,8 +46,6 @@ import { clampTafRow, resolveTafConstraintBounds } from '../../domain/erstatning
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, parseAarsloenRowInterval } from '../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import { logWarning } from '../logger';
 import {
-  STORE_BEDEDAG_START,
-  STORE_BEDEDAG_PCT,
   convertAnciennitetSats,
   formatAmountWithoutTrailingDecimals,
   hasAnyPctSourceOrInput,
@@ -175,7 +174,7 @@ const resolvePeriodColumns = (row: AarsloenTableRow, loenperiode: Loenperiode): 
   return [row.col0_dag?.trim() ?? '', row.col1_dag?.trim() ?? ''];
 };
 
-// STORE_BEDEDAG_START og STORE_BEDEDAG_PCT importeret fra sharedPdfUtils
+// STORE_BEDEDAG_START og STORE_BEDEDAG_PCT importeret fra config
 
 const renderStandardPdfTable = (params: Readonly<{
   doc: jsPDF;

@@ -37,12 +37,14 @@ import { optionalAmountValueSchema } from '../../../schemas/amountExpressionSche
 import { LOENPERIODE } from '../../../types/loen';
 import type { ISODateString } from '../../../types/branded';
 import { isISODateString, parseISODate } from '../../../types/branded';
-import { createDate, formatDanishDate } from '../../../utils/dateUtils';
+import { formatDanishDate } from '../../../utils/dateUtils';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { isLoenperiodeValue } from '../../../utils/zodTypeGuards';
 import { generateAnsaettelsesforholdId, generateLoenudviklingRowId, initialLoenudviklingManuelRow } from '../../../utils/eoConverters';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { UI_STORAGE_KEYS } from '../../../config/storageManifest';
+import { STORE_BEDEDAG_START } from '../../../config/dateRanges';
+import { STORE_BEDEDAG_PCT } from '../../../config/regulatoryRates';
 import {
   getAlleLoenmodtagerOrg,
   getAlleArbejdsgiverOrg,
@@ -306,18 +308,13 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     ): string | undefined => {
       if (!reguleringsDato) return undefined;
 
-      // Parse dato
-      const dateObj = parseISODate(reguleringsDato);
-      if (!dateObj) return undefined;
-
       // Tjek om dato er fra 1. januar 2024 og frem
-      const cutoffDate = createDate(2024, 0, 1); // 1. januar 2024
-      const isFrom2024 = dateObj >= cutoffDate;
+      const isFrom2024 = reguleringsDato >= STORE_BEDEDAG_START;
 
       // Bestem forventet værdi baseret på logik
       let expectedPct: number;
       if (loenPaaHelligdage === 'Almindelig løn' && isFrom2024) {
-        expectedPct = 0.45;
+        expectedPct = STORE_BEDEDAG_PCT;
       } else {
         expectedPct = 0;
       }

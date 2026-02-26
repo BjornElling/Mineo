@@ -35,7 +35,7 @@ import useFravaerRows from '../../tables/useFravaerRows';
 import useOevrigeKravRows from '../../tables/useOevrigeKravRows';
 import { createCommitEvent, type CommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
 import type { UsePersistedFormReturn } from '../../../hooks/usePersistedForm';
-import { CURRENT_YEAR, MIN_YEAR, computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../../config/dateRanges';
+import { CURRENT_YEAR, MIN_YEAR, MIN_SVIESMERTE_YEAR, computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../../config/dateRanges';
 import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import {
@@ -1514,7 +1514,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       value={values.svieSmerteSatserAar}
                       onCommit={handleNumberBlur('svieSmerteSatserAar')}
                       onFieldError={reportSvieSmerteSatserAarInputError}
-                      minYear={MIN_YEAR}
+                      minYear={MIN_SVIESMERTE_YEAR}
                       maxYear={CURRENT_YEAR}
                     />
                   </Box>

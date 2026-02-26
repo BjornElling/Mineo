@@ -25,12 +25,12 @@ import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { svieSmertePrDag } from '../../data/regulationRates';
+import { STORE_BEDEDAG_START } from '../../config/dateRanges';
+import { STORE_BEDEDAG_PCT as STORE_BEDEDAG_PCT_PCT } from '../../config/regulatoryRates';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
 import {
   resolveOffentligLoenEkstraGrundloen,
   resolvePctDecimalFromSatsOrInput,
-  STORE_BEDEDAG_START,
-  STORE_BEDEDAG_PCT as STORE_BEDEDAG_PCT_PCT,
 } from '../erstatningsopgoerelse/sharedPdfUtils';
 
 const STORE_BEDEDAG_PCT = STORE_BEDEDAG_PCT_PCT / 100;

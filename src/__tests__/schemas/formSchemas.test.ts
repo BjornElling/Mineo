@@ -176,6 +176,11 @@ describe('satserSchema', () => {
       expect(result.data.aargang).toBeUndefined();
     }
   });
+
+  it('afviser åbenlyst urealistisk højt årstal', () => {
+    const result = satserSchema.safeParse({ aargang: 999999 });
+    expect(result.success).toBe(false);
+  });
 });
 
 // ─── rentekravRowSchema ───────────────────────────────────────────────────────

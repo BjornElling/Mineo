@@ -71,20 +71,20 @@ const surchargeRatesTable: ReadonlyArray<readonly [effectiveDate: string, ratePc
   ['01-08-2002',            7.0 ],
 ];
 
-// Tidligste dato for renteberegning — udledt af det ældste element i referenceRatesTable
+// Tidligste dato i referencesatserne — udledt af det ældste element i referenceRatesTable
 // Tabellen er sorteret nyeste-først, så det sidste element har den tidligste dato
 const _minRaw = referenceRatesTable[referenceRatesTable.length - 1][0];
 const [_d, _m, _y] = _minRaw.split('-');
-export const MIN_CALCULATION_DATE: ISODateString = toISODateString(`${_y}-${_m}-${_d}`);
+export const MIN_INTEREST_DATE: ISODateString = toISODateString(`${_y}-${_m}-${_d}`);
 
-// Seneste kalenderår for renteberegning — udledt af nyeste referencesats
+// Seneste kalenderår i referencesatserne — udledt af nyeste referencesats
 const _maxRaw = referenceRatesTable[0][0];
 const [, , _maxYear] = _maxRaw.split('-');
 const _parsedMaxYear = Number.parseInt(_maxYear, 10);
 if (!Number.isInteger(_parsedMaxYear)) {
   throw new Error(`Ugyldig nyeste referencesats-dato: "${_maxRaw}"`);
 }
-export const MAX_CALCULATION_YEAR: number = _parsedMaxYear;
+export const MAX_INTEREST_YEAR: number = _parsedMaxYear;
 
 export const referenceRates: RateEntry[] = referenceRatesTable.map(([effectiveDate, ratePct]) => ({
   effectiveDate: toDanishDateString(effectiveDate),

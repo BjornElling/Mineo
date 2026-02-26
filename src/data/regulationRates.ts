@@ -122,6 +122,14 @@ export const svieSmerteMax: YearlyRate = {
   2005: 56000,
 };
 
+export const svieSmerteMaxYearBounds: YearBounds = (() => {
+  const bounds = getYearBoundsForYearlyRate(svieSmerteMax);
+  if (!bounds) {
+    throw new Error('CRITICAL: No yearly rates defined for svieSmerteMax');
+  }
+  return bounds;
+})();
+
 // Maksimum for erhvervsevnetab (§ 13, stk. 1, 2. pkt.)
 export const erhvervsevnetabMax: YearlyRate = {
   2026: 11582500,

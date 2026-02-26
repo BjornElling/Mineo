@@ -2,14 +2,14 @@
  * Central konfiguration af dato-afgrænsninger for MINEO
  *
  * ÅRLIG OPDATERING:
- * Opdater MIN_YEAR hvis der tilføjes ældre arbejdsskadesatser
+ * Opdater DATE_2005_01_01 hvis der tilføjes ældre arbejdsskadesatser — MIN_YEAR udledes automatisk
  */
 
 import type { ISODateString } from '../types/branded';
 import { toISODateString } from '../types/branded';
 import { getTodayLocalISO } from '../utils/dateUtils';
-import { varigeMenPrGradYearBounds } from '../data/regulationRates';
-import { MIN_CALCULATION_DATE } from '../data/interestRates';
+import { varigeMenPrGradYearBounds, svieSmerteMaxYearBounds } from '../data/regulationRates';
+import { MIN_INTEREST_DATE } from '../data/interestRates';
 
 // ============================================================================
 // KONSTANTER (VALIDEREDE ISO-DATOER)
@@ -21,6 +21,7 @@ const iso = (date: string): ISODateString => toISODateString(date);
 // Statiske datoer
 const DATE_1900_01_01 = iso('1900-01-01'); // Kun brugt som min for varigemen.fodselsdato
 const DATE_2005_01_01 = iso('2005-01-01'); // Systemets nedre grænse — bruges som min/fallbackMin for alle dato-felter undtagen varigemen.fodselsdato
+export const STORE_BEDEDAG_START = iso('2024-01-01');
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -101,8 +102,8 @@ export const TODAY: ISODateString = getTodayLocalISO();
 // GLOBALE VÆRDIER
 // ============================================================================
 
-// Minimums-år for arbejdsskadesatser
-export const MIN_YEAR: number = 2005;
+// Minimums-år — udledt af DATE_2005_01_01 (systemets nedre datogrænse)
+export const MIN_YEAR: number = Number(DATE_2005_01_01.slice(0, 4));
 
 // Aktuelt år (udledt af dags dato)
 export const CURRENT_YEAR: number = Number(TODAY.slice(0, 4));
@@ -118,6 +119,11 @@ const DATE_PLUS_5_YEARS_END = iso(`${CURRENT_YEAR + 5}-12-31`);
 
 // Seneste år med mén-per-grad-sats — udledt af varigeMenPrGrad i regulationRates.ts
 const DATE_VARIGEMEN_MAX = iso(`${varigeMenPrGradYearBounds.maxYear}-12-31`);
+
+// Tidligste år med svie/smerte-sats til UI-årsvælgeren i EO.
+// Autoritativ kilde er svieSmerteMaxYearBounds (samme minYear som svieSmertePrDag i aktuelle datasæt).
+// Validatoren håndhæver datadækning via satserAngivAarYearBounds.
+export const MIN_SVIESMERTE_YEAR: number = svieSmerteMaxYearBounds.minYear;
 
 const maxIso = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
 
@@ -499,13 +505,13 @@ export interface DateRanges_Renteberegning {
 }
 
 export const dateRanges_renteberegning: DateRanges_Renteberegning = {
-  // Rente beregnes til og med
+  // Beregningsdato for renteberegning
   renteTil: {
     type: 'static',
-    min: MIN_CALCULATION_DATE,
+    min: MIN_INTEREST_DATE,
     max: DATE_PLUS_5_YEARS_END,
     placeholder: 'dd-mm-åååå',
-    notes: 'Fra tidligste rentedato i referenceRatesTable til 31. december 5 år frem fra aktuelt år'
+    notes: 'Fra tidligste referencesats-dato til 31. december 5 år frem fra aktuelt år'
   },
 };
 
