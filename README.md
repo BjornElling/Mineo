@@ -68,9 +68,6 @@ npm run import:loen
 - Rentesatser i `src/data/interestRates.ts`
 - Offentlige løndata (KL/RLTN) via `npm run import:loen`
 
-Bemærk: `src/config/dateRanges.ts` indeholder faste datokonstanter (fx systemets minimumsdato og Store Bededag-start), men disse er ikke en del af den løbende, årlige satsopdatering.
-
-
 ## Licens
 
 MIT License, se `LICENSE`.
@@ -83,6 +80,6 @@ Bjørn Elling
 
 ---
 
-**Version**: 2026.02.203
+**Version**: 2026.02.204
 
 **Status**: Under udvikling
