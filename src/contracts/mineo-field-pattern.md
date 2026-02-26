@@ -30,7 +30,9 @@ Must NOT:
 
 Invariants:
 - Accepts only `draft: string` + `onDraftChange(draft: string)`
-- Input handlers are bound to the actual `<input>`/`<textarea>`
+- Input-semantic handlers (`onFocus`/`onBlur`/`onKeyDown`/`onPaste`) are bound to the actual `<input>`/`<textarea>`
+- Mouse-interaction handlers (`onClick`/`onMouseDown`/`onDoubleClick`) are bound to the input root so the full field
+  hit-area (including adornments with `pointer-events: none`) participates in two-stage activation
 - `inputRef` is honestly typed (`HTMLInputElement`/`HTMLTextAreaElement`)
 
 ### Layer B — Draft/commit engine (`useDraftField.ts`)

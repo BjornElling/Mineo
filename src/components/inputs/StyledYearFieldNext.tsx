@@ -1,4 +1,4 @@
-import * as React from 'react';
+﻿import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { interpretYear } from '../../utils/dateInputValidation';
 import StyledTextFieldBase from './StyledTextFieldBase';
@@ -223,7 +223,7 @@ const StyledYearFieldNext = React.forwardRef<HTMLDivElement, StyledYearFieldNext
       return null;
     }, []);
 
-    const activation = useTwoStageInputActivation<HTMLInputElement>({
+    const activation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled),
       getDraftForKey,
       onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),

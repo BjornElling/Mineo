@@ -1,4 +1,4 @@
-import * as React from 'react';
+﻿import * as React from 'react';
 import { InputAdornment } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from './StyledTextFieldBase';
@@ -35,29 +35,6 @@ export type StyledPercentFieldProps = {
    * Must be an integer between 1 and 18.
    */
   maxIntegerDigits?: number;
-
-  /**
-   * Maximum number of decimals accepted on commit.
-   *
-   * Default: `2`.
-   */
-  precision?: number;
-
-  /**
-   * Commit-time canonicalization:
-   * The committed value is always rounded (half away from zero) to `precision` decimals on commit.
-   *
-   * Note: rounding is applied during commit parsing so `useDraftField` (resync/format) operates on the canonical committed value.
-   */
-
-  /**
-   * Display canonicalization:
-   * - If `true`, trailing zeros are removed in the rendered value (e.g. `10,00` -> `10`).
-   * - If `false`, the rendered value keeps a fixed number of decimals equal to `precision`.
-   *
-   * Default: `false` (reversible display; no information loss).
-   */
-  trimTrailingZeros?: boolean;
 
   /**
    * Draft callback (typing only).
@@ -109,8 +86,6 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       maxValue,
       useDefaultPercentRange = false,
       maxIntegerDigits: maxIntegerDigitsProp,
-      precision = 2,
-      trimTrailingZeros = false,
       onDraftChange,
       onCommit,
       onFocus,
@@ -124,19 +99,6 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
     ref
   ) => {
     const inputElementRef = React.useRef<HTMLInputElement>(null);
-
-    // UX contract (user requirement):
-    // - Up to 2 decimals after comma
-    // - Integer part (absolute) must be <= 100
-    // - Display must preserve whether the user typed 0/1/2 decimals (no auto "xx,00" formatting)
-    if (import.meta.env.DEV) {
-      if (precision !== undefined && precision !== 2) {
-        throw new Error('StyledPercentField: precision must be 2 (UX contract)');
-      }
-      if (trimTrailingZeros !== false) {
-        throw new Error('StyledPercentField: trimTrailingZeros must be false (UX contract: preserve typed decimals)');
-      }
-    }
 
     const configErrorMessage = React.useMemo(() => {
       if (!useDefaultPercentRange && minValue === undefined && maxValue === undefined) {
@@ -160,12 +122,8 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
           return 'Ugyldig konfiguration: maxIntegerDigits skal være mellem 1 og 18';
         }
       }
-      if (precision === undefined) return '';
-      if (!Number.isFinite(precision)) return 'Ugyldig konfiguration: precision skal være et tal';
-      if (!Number.isInteger(precision)) return 'Ugyldig konfiguration: precision skal være et heltal';
-      if (precision < 0 || precision > 6) return 'Ugyldig konfiguration: precision skal være mellem 0 og 6';
       return '';
-    }, [allowNegative, maxIntegerDigitsProp, maxValue, minValue, precision, useDefaultPercentRange]);
+    }, [allowNegative, maxIntegerDigitsProp, maxValue, minValue, useDefaultPercentRange]);
 
     const resolvedRange = React.useMemo(() => {
       const effectiveMin = typeof minValue === 'number' ? minValue : useDefaultPercentRange ? 0 : undefined;
@@ -342,12 +300,10 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
     }, [visibleLocalError?.message, onFieldError]);
 
     const skipNextBlurCommitRef = React.useRef(false);
-    const pendingCommitOnBlurRef = React.useRef(false);
 
     const handleDraftChange = React.useCallback(
       (nextDraft: string) => {
         skipNextBlurCommitRef.current = false;
-        pendingCommitOnBlurRef.current = false;
         setDraft(nextDraft);
         onDraftChange?.(createDraftChangeEvent(nextDraft));
       },
@@ -363,7 +319,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       []
     );
 
-    const activation = useTwoStageInputActivation<HTMLInputElement>({
+    const activation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled || hasConfigError),
       getDraftForKey,
       onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
@@ -414,15 +370,15 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
           filterPercentKeyDown(e, { allowNegative });
         }
         onKeyDown?.(e);
-    }, [activation, allowNegative, handleDraftChange, onCommit, onKeyDown, onKeyDownBase, setDraft, value]);
+    }, [activation, allowNegative, formatPercent, handleDraftChange, onCommit, onKeyDown, onKeyDownBase, parsePercent, setDraft, value]);
 
-    const showPercentAdornment = true;
     const percentAdornmentColor = draft.trim() === '' ? 'rgba(0, 0, 0, 0.4)' : 'inherit';
     const endAdornment = (
       <InputAdornment
         position="end"
         sx={{
           marginLeft: 0,
+          pointerEvents: 'none',
           color: percentAdornmentColor,
           font: 'inherit',
           '& span': { font: 'inherit' },
@@ -455,8 +411,6 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
 
           // Reset flags altid på blur.
           skipNextBlurCommitRef.current = false;
-          pendingCommitOnBlurRef.current = false;
-
           onBlur?.(e);
         }}
         onKeyDown={handleKeyDown}
@@ -468,7 +422,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         disabled={disabled || hasConfigError}
         error={resolvedHasError}
         helperText={resolvedErrorMessage}
-        endAdornment={showPercentAdornment ? endAdornment : undefined}
+        endAdornment={endAdornment}
         htmlInputAttributes={{ inputMode: 'decimal', maxLength, readOnly: !activation.isEditorOpen }}
         sx={{
           '& .MuiInputBase-input': {

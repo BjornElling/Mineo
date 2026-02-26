@@ -1,4 +1,4 @@
-import * as React from 'react';
+﻿import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from './StyledTextFieldBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
@@ -290,7 +290,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       return null;
     }, []);
 
-    const activation = useTwoStageInputActivation<HTMLInputElement>({
+    const activation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled),
       getDraftForKey,
       onReplaceDraft: (nextDraft) => setDraft(nextDraft),

@@ -1,4 +1,4 @@
-import * as React from 'react';
+﻿import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase, { type StyledTextFieldBaseInputType } from './StyledTextFieldBase';
 import StyledTextAreaBase from './StyledTextAreaBase';
@@ -195,7 +195,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
 
     const getDraftForKey = React.useCallback((key: string): string | null => key, []);
 
-    const inputActivation = useTwoStageInputActivation<HTMLInputElement>({
+    const inputActivation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled),
       getDraftForKey,
       onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),

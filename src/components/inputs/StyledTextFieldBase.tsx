@@ -31,6 +31,8 @@ export type StyledTextFieldBaseInputType = 'text' | 'search' | 'tel' | 'url' | '
  * - Controlled by `draft` (string); no parsing/validation/commit is performed here.
  * - Single-line only (no textarea / multiline); consumers must use a dedicated component for multiline.
  * - Keyboard handlers are bound to the underlying `<input>` via MUI `slotProps.htmlInput`.
+ * - Mouse interaction handlers (`onClick`/`onMouseDown`/`onDoubleClick`) are bound to the input root
+ *   (`InputProps`) so the full field hit-area (including adornments) participates in two-stage activation.
  * - Invalid-input errors are shown via red border + tooltip on hover (helper text is hidden).
  * - `inputType` only affects browser UI/IME and autofill; it must not be relied on for domain semantics.
  * - `htmlInputAttributes` can affect what the browser allows the user to enter; it must be set by field-adapters
@@ -62,9 +64,9 @@ export type StyledTextFieldBaseProps = {
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  onClick?: (e: React.MouseEvent<HTMLInputElement>) => void;
-  onMouseDown?: (e: React.MouseEvent<HTMLInputElement>) => void;
-  onDoubleClick?: (e: React.MouseEvent<HTMLInputElement>) => void;
+  onClick?: (e: React.MouseEvent<HTMLElement>) => void;
+  onMouseDown?: (e: React.MouseEvent<HTMLElement>) => void;
+  onDoubleClick?: (e: React.MouseEvent<HTMLElement>) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
 
   inputType?: StyledTextFieldBaseInputType;
@@ -141,21 +143,21 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
     );
 
     const handleClick = React.useCallback(
-      (e: React.MouseEvent<HTMLInputElement>) => {
+      (e: React.MouseEvent<HTMLElement>) => {
         onClick?.(e);
       },
       [onClick]
     );
 
     const handleMouseDown = React.useCallback(
-      (e: React.MouseEvent<HTMLInputElement>) => {
+      (e: React.MouseEvent<HTMLElement>) => {
         onMouseDown?.(e);
       },
       [onMouseDown]
     );
 
     const handleDoubleClick = React.useCallback(
-      (e: React.MouseEvent<HTMLInputElement>) => {
+      (e: React.MouseEvent<HTMLElement>) => {
         onDoubleClick?.(e);
       },
       [onDoubleClick]
@@ -182,9 +184,6 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
       onFocus: handleFocus,
       onBlur: handleBlur,
       onKeyDown: handleKeyDown,
-      onClick: handleClick,
-      onMouseDown: handleMouseDown,
-      onDoubleClick: handleDoubleClick,
       onPaste: handlePaste,
     };
 
@@ -219,7 +218,12 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
             type={inputType}
             error={error}
             helperText={undefined}
-            InputProps={endAdornment ? { endAdornment } : undefined}
+            InputProps={{
+              ...(endAdornment ? { endAdornment } : {}),
+              onClick: handleClick as React.MouseEventHandler<HTMLDivElement>,
+              onMouseDown: handleMouseDown as React.MouseEventHandler<HTMLDivElement>,
+              onDoubleClick: handleDoubleClick as React.MouseEventHandler<HTMLDivElement>,
+            }}
             slotProps={{
               htmlInput: mergedHtmlInputProps,
             }}
