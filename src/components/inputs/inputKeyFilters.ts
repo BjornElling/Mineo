@@ -143,9 +143,12 @@ export const filterAmountExpressionKeyDown = (e: KeyDownEvent, options?: { allow
 
 /**
  * Percent: digits and comma, at most one comma, max 2 decimals after comma,
- * and integer part (absolute) must be <= 100.
+ * with optional integer-part constraints supplied via options.
  */
-export const filterPercentKeyDown = (e: KeyDownEvent, options?: { allowNegative?: boolean }): void => {
+export const filterPercentKeyDown = (
+  e: KeyDownEvent,
+  options?: { allowNegative?: boolean; maxIntegerDigits?: number; maxIntegerPart?: number }
+): void => {
   if (!shouldValidateCharInsertion(e)) return;
 
   const allowNegative = options?.allowNegative === true;
@@ -160,12 +163,12 @@ export const filterPercentKeyDown = (e: KeyDownEvent, options?: { allowNegative?
   const normalized = next.startsWith('-') ? next.slice(1) : next;
   const [intPart] = normalized.split(',') as [string, string?];
   if (intPart.length === 0) return;
-  if (intPart.length > 3) {
+  if (typeof options?.maxIntegerDigits === 'number' && intPart.length > options.maxIntegerDigits) {
     block(e);
     return;
   }
   const intNum = Number.parseInt(intPart, 10);
-  if (Number.isFinite(intNum) && intNum > 100) {
+  if (typeof options?.maxIntegerPart === 'number' && Number.isFinite(intNum) && intNum > options.maxIntegerPart) {
     block(e);
   }
 };

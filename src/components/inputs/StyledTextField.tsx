@@ -5,6 +5,7 @@ import StyledTextAreaBase from './StyledTextAreaBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { trimWhitespaceEdges } from '../../utils/draftNormalization';
+import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from './fieldEvents';
 
 export type StyledTextFieldValueCommitEvent = CommitEvent<string>;
@@ -107,15 +108,6 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
     const textAreaElementRef = React.useRef<HTMLTextAreaElement>(null);
     const elementRefForHook = multiline ? textAreaElementRef : inputElementRef;
 
-    const assignRef = <T,>(targetRef: React.Ref<T> | undefined, value: T | null): void => {
-      if (!targetRef) return;
-      if (typeof targetRef === 'function') {
-        targetRef(value);
-        return;
-      }
-      (targetRef as React.MutableRefObject<T | null>).current = value;
-    };
-
     const mergedInputRef = React.useCallback(
       (node: HTMLInputElement | null) => {
         inputElementRef.current = node;
@@ -173,7 +165,6 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
     const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
 
     const skipNextBlurCommitRef = React.useRef(false);
-    const pendingCommitOnBlurRef = React.useRef(false);
 
     const handleFocus = React.useCallback(
       (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -186,7 +177,6 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
     const handleDraftChange = React.useCallback(
       (nextDraft: string) => {
         skipNextBlurCommitRef.current = false;
-        pendingCommitOnBlurRef.current = false;
         setDraftBase(nextDraft);
         onDraftChange?.(createDraftChangeEvent(nextDraft));
       },
@@ -295,7 +285,6 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
             }
             if (textAreaActivation.isEditorOpen) textAreaActivation.closeEditor();
             skipNextBlurCommitRef.current = false;
-            pendingCommitOnBlurRef.current = false;
             onBlur?.(e);
           }}
           onKeyDown={handleKeyDown as (e: React.KeyboardEvent<HTMLTextAreaElement>) => void}
@@ -341,7 +330,6 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
           }
           if (inputActivation.isEditorOpen) inputActivation.closeEditor();
           skipNextBlurCommitRef.current = false;
-          pendingCommitOnBlurRef.current = false;
           onBlur?.(e);
         }}
         onKeyDown={handleKeyDown as (e: React.KeyboardEvent<HTMLInputElement>) => void}

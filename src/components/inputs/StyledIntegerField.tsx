@@ -268,12 +268,10 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
     }, [onFieldError, rangeErrorMessage, shouldShowRangeError, visibleLocalError?.message]);
 
     const skipNextBlurCommitRef = React.useRef(false);
-    const pendingCommitOnBlurRef = React.useRef(false);
 
     const handleDraftChange = React.useCallback(
       (nextDraft: string) => {
         skipNextBlurCommitRef.current = false;
-        pendingCommitOnBlurRef.current = false;
         setRangeErrorMessage('');
         setDraft(nextDraft);
         onDraftChange?.(createDraftChangeEvent(nextDraft));
@@ -382,7 +380,6 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
           }
           if (activation.isEditorOpen) activation.closeEditor();
           skipNextBlurCommitRef.current = false;
-          pendingCommitOnBlurRef.current = false;
           onBlur?.(e);
         }}
         onKeyDown={handleKeyDown}

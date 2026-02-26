@@ -122,8 +122,12 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
             value={resolvedValue}
             aria-describedby={showError ? a11yErrorId : undefined}
             onChange={(e, nextValue) => {
+              const committedValue = nextValue === emptyValue ? undefined : nextValue;
+              if (onCommit) {
+                onCommit(createCommitEvent(committedValue));
+                return;
+              }
               onChange?.(e, nextValue);
-              onCommit?.(createCommitEvent(nextValue === emptyValue ? undefined : nextValue));
             }}
             row={row}
             name={name}

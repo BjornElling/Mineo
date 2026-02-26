@@ -275,15 +275,19 @@ const TableDateInput = React.memo(
       return { kind: 'ok' as const };
     }, [maxDate, minDate, noValidRangeCause]);
 
-    if (boundsStatus.kind !== 'ok') {
+    if (boundsStatus.kind === 'hard-config') {
       throw new Error(boundsStatus.message);
     }
 
+    const configErrorMessage = boundsStatus.kind === 'no-valid-range' ? boundsStatus.message : '';
+    const effectiveMinDate = configErrorMessage === '' ? minDate : undefined;
+    const effectiveMaxDate = configErrorMessage === '' ? maxDate : undefined;
+
     React.useEffect(() => {
       if (!latest.current.onErrorChange) return;
-      const kind: TableInputErrorInfo['kind'] = hasError ? 'input' : 'none';
+      const kind: TableInputErrorInfo['kind'] = configErrorMessage !== '' ? 'config' : hasError ? 'input' : 'none';
       latest.current.onErrorChange({ hasError: kind !== 'none', kind });
-    }, [hasError]);
+    }, [configErrorMessage, hasError]);
 
     React.useEffect(() => {
       const nextCommitted = value ?? '';
@@ -360,8 +364,8 @@ const TableDateInput = React.memo(
         setPreserveInvalidDraft(false);
         if (committed.iso) {
           const rangeErrorMessage = getRangeErrorMessage(committed.iso, {
-            minDate: min,
-            maxDate: max,
+            minDate: effectiveMinDate ?? min,
+            maxDate: effectiveMaxDate ?? max,
             specialRangeErrors: special,
           });
 
@@ -396,7 +400,7 @@ const TableDateInput = React.memo(
         }
         return true;
       },
-      [emitBlur]
+      [effectiveMaxDate, effectiveMinDate, emitBlur]
     );
 
     const handleChange = React.useCallback(
@@ -443,7 +447,7 @@ const TableDateInput = React.memo(
     const a11yErrorId = `${a11yInputId}-error`;
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
-    const showError = (hasExternalError || (touched && hasError)) && !isFocused;
+    const showError = (hasExternalError || configErrorMessage !== '' || (touched && hasError)) && !isFocused;
     const showDraftWhenError = !isEditing && touched && hasError && preserveInvalidDraft;
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
@@ -522,7 +526,7 @@ const TableDateInput = React.memo(
       };
     }, [editorHandle, grid, gridCell]);
 
-    const tooltipText = hasExternalError ? externalErrorText : errorMessage;
+    const tooltipText = hasExternalError ? externalErrorText : (configErrorMessage !== '' ? configErrorMessage : errorMessage);
 
     return (
       <Tooltip title={showError ? tooltipText : ''} arrow placement="top">
@@ -557,6 +561,7 @@ const TableDateInput = React.memo(
               fontFamily: 'inherit',
               lineHeight: 'inherit',
               color: 'inherit',
+              fontFeatureSettings: '"tnum"',
               padding: '4px 8px',
               border: '1px solid',
               borderColor: showError ? '#d32f2f' : inputBorderColor,

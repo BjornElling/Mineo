@@ -7,6 +7,7 @@ import { areSameGridCell } from '../../tables/gridCoreUtils';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
 import { shouldClearField } from '../../../utils/inputValidation';
 import { interpretYear } from '../../../utils/dateInputValidation';
+import { yearHas53Weeks } from '../../../utils/dateUtils';
 import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit, type TableCommitResult, type TableInputErrorInfo } from './tableInputContracts';
 import { assignRef } from './assignRef';
 import { filterWeekKeyDown } from '../inputKeyFilters';
@@ -52,7 +53,7 @@ const parseWeekOnCommit = (
   if (trimmed === '' || shouldClearField(trimmed)) return { ok: true, value: '' };
   if (trimmed.length > MAX_WEEK_DRAFT_LENGTH) return { ok: false, error: 'Ugyldigt format' };
 
-  const normalized = trimmed.replace('-', '/');
+  const normalized = trimmed.replace(/[ .:-]/g, '/');
   const parts = normalized.split('/');
   if (parts.length !== 2) return { ok: false, error: 'Ugyldigt format' };
 
@@ -94,7 +95,12 @@ const parseWeekOnCommit = (
     return { ok: false, error: `År skal være ${maxYear} eller tidligere` };
   }
 
-  return { ok: true, value: `${week}/${yearStr}` };
+  const maxWeek = yearHas53Weeks(year) ? 53 : 52;
+  if (week > maxWeek) {
+    return { ok: false, error: `Uge skal være mellem 1 og ${maxWeek}` };
+  }
+
+  return { ok: true, value: `${String(week).padStart(2, '0')}/${yearStr}` };
 };
 
 const commitWeekDraft = (
@@ -320,7 +326,7 @@ const TableWeekInput = React.memo(
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
         getElement: () => inputElRef.current,
-        getIsLocked: () => latest.current.locked,
+        getIsLocked: () => latest.current.locked ?? false,
         commitCurrent: () => {
           if (latest.current.locked) return true;
           const ok = commitAndEmitBlur(inputElRef.current?.value ?? draftRef.current);

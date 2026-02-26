@@ -91,7 +91,7 @@ const STRING_NOOP_CASES: readonly StringNoopCase[] = [
   },
   {
     label: 'week',
-    value: '1/2025',
+    value: '01/2025',
     renderInput: (value, onBlur) => <TableWeekInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
   },
   {

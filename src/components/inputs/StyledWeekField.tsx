@@ -4,7 +4,7 @@ import StyledTextFieldBase from './StyledTextFieldBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { interpretYear } from '../../utils/dateInputValidation';
-import { isLeapYear } from '../../utils/dateUtils';
+import { yearHas53Weeks } from '../../utils/dateUtils';
 import { filterWeekKeyDown } from './inputKeyFilters';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from './fieldEvents';
@@ -47,12 +47,6 @@ const MAX_CANONICAL_WEEK_LENGTH = 7; // uu/åååå
 // Allow slightly more draft characters than the canonical committed form to support permissive typing
 // (e.g. separators/whitespace) without the UI blocking mid-entry. This is an explicit UX tolerance.
 const MAX_WEEK_DRAFT_LENGTH = MAX_CANONICAL_WEEK_LENGTH + 2;
-
-const yearHas53Weeks = (year: number): boolean => {
-  const dec31 = new Date(Date.UTC(year, 11, 31));
-  const dayOfWeek = dec31.getUTCDay();
-  return dayOfWeek === 4 || (isLeapYear(year) && dayOfWeek === 5);
-};
 
 /**
  * Week input parsing rules:
@@ -192,12 +186,10 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
     const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
 
     const skipNextBlurCommitRef = React.useRef(false);
-    const pendingCommitOnBlurRef = React.useRef(false);
 
     const handleDraftChange = React.useCallback(
       (nextDraft: string) => {
         skipNextBlurCommitRef.current = false;
-        pendingCommitOnBlurRef.current = false;
         setDraft(nextDraft);
         onDraftChange?.(createDraftChangeEvent(nextDraft));
       },
@@ -276,7 +268,6 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
           }
           if (activation.isEditorOpen) activation.closeEditor();
           skipNextBlurCommitRef.current = false;
-          pendingCommitOnBlurRef.current = false;
           onBlur?.(e);
         }}
         onKeyDown={handleKeyDown}

@@ -6,6 +6,7 @@ import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { filterPercentKeyDown } from './inputKeyFilters';
 import { prefixZeroBeforeLeadingComma, trimToNumericEdgesPreserveLeadingMinus } from '../../utils/draftNormalization';
+import { formatAsAmount } from '../../utils/formatUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from './fieldEvents';
 
 export type StyledPercentFieldValueChangeEvent = CommitEvent<number | undefined>;
@@ -73,6 +74,8 @@ const stripTrailingPercent = (placeholder: string | undefined): string | undefin
   }
   return placeholder;
 };
+
+const formatPercentBound = (value: number): string => formatAsAmount(value, 2);
 
 const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldProps>(
   (
@@ -161,7 +164,26 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       throw new Error(resolvedConfigErrorMessage);
     }
 
-    const maxLength = allowNegative ? 7 : 6; // [-]100,99
+    const effectiveMaxIntegerDigits = React.useMemo(() => {
+      if (typeof maxIntegerDigitsProp === 'number') return maxIntegerDigitsProp;
+      const maxAbs = Math.max(
+        Math.abs(resolvedRange.effectiveMin ?? 0),
+        Math.abs(resolvedRange.effectiveMax ?? 0)
+      );
+      if (!Number.isFinite(maxAbs)) return 3;
+      return Math.max(1, Math.floor(maxAbs).toString().length);
+    }, [maxIntegerDigitsProp, resolvedRange.effectiveMax, resolvedRange.effectiveMin]);
+
+    const maxAllowedIntegerPart = React.useMemo(() => {
+      const maxAbs = Math.max(
+        Math.abs(resolvedRange.effectiveMin ?? 0),
+        Math.abs(resolvedRange.effectiveMax ?? 0)
+      );
+      if (!Number.isFinite(maxAbs)) return undefined;
+      return Math.floor(maxAbs);
+    }, [resolvedRange.effectiveMax, resolvedRange.effectiveMin]);
+
+    const maxLength = effectiveMaxIntegerDigits + 3 + (allowNegative ? 1 : 0); // [-]iiii,dd
 
     type PercentDisplayFormat = Readonly<{ value: number | undefined; decimals: 0 | 1 | 2 }>;
     const lastCommittedDisplayRef = React.useRef<PercentDisplayFormat | null>(null);
@@ -225,12 +247,13 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         }
         if (decimalPart !== undefined && !/^\d+$/.test(decimalPart)) return invalidOrPartial('Ugyldig procent');
 
-        const decimals = (decimalPart?.length ?? 0) as 0 | 1 | 2;
-        if (decimals > 2) return invalidOrPartial('Maks 2 decimaler');
+        const decimals = decimalPart?.length === 2 ? 2 : decimalPart?.length === 1 ? 1 : 0;
 
         const integerNum = Number.parseInt(integerPart, 10);
         if (!Number.isFinite(integerNum)) return invalidOrPartial('Ugyldig procent');
-        if (integerNum > 100) return invalidOrPartial('Maks 100 før komma');
+        if (typeof maxAllowedIntegerPart === 'number' && integerNum > maxAllowedIntegerPart) {
+          return invalidOrPartial(`Maks ${maxAllowedIntegerPart} før komma`);
+        }
 
         const decimalScaled =
           decimalPart === undefined
@@ -249,15 +272,15 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         const effectiveMax = resolvedRange.effectiveMax;
         if (typeof effectiveMin === 'number' && signed < effectiveMin) {
           if (typeof effectiveMax === 'number') {
-            return invalidOrPartial(`Procent skal være mellem ${effectiveMin} og ${effectiveMax}`);
+            return invalidOrPartial(`Procent skal være mellem ${formatPercentBound(effectiveMin)} og ${formatPercentBound(effectiveMax)}`);
           }
-          return invalidOrPartial(`Procent skal være ${effectiveMin} eller højere`);
+          return invalidOrPartial(`Procent skal være ${formatPercentBound(effectiveMin)} eller højere`);
         }
         if (typeof effectiveMax === 'number' && signed > effectiveMax) {
           if (typeof effectiveMin === 'number') {
-            return invalidOrPartial(`Procent skal være mellem ${effectiveMin} og ${effectiveMax}`);
+            return invalidOrPartial(`Procent skal være mellem ${formatPercentBound(effectiveMin)} og ${formatPercentBound(effectiveMax)}`);
           }
-          return invalidOrPartial(`Procent skal være ${effectiveMax} eller lavere`);
+          return invalidOrPartial(`Procent skal være ${formatPercentBound(effectiveMax)} eller lavere`);
         }
 
         if (mode === 'commit') {
@@ -265,10 +288,10 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         }
         return { ok: true, value: signed };
       },
-      [allowNegative, maxLength, resolvedRange.effectiveMax, resolvedRange.effectiveMin]
+      [allowNegative, maxAllowedIntegerPart, maxLength, resolvedRange.effectiveMax, resolvedRange.effectiveMin]
     );
 
-    const { draft, setDraft, isFocused: _isFocused, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
+    const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
       useDraftField<number | undefined>({
         value,
         format: formatPercent,
@@ -367,10 +390,14 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         }
 
         if (!e.defaultPrevented) {
-          filterPercentKeyDown(e, { allowNegative });
+          filterPercentKeyDown(e, {
+            allowNegative,
+            maxIntegerDigits: effectiveMaxIntegerDigits,
+            maxIntegerPart: maxAllowedIntegerPart,
+          });
         }
         onKeyDown?.(e);
-    }, [activation, allowNegative, formatPercent, handleDraftChange, onCommit, onKeyDown, onKeyDownBase, parsePercent, setDraft, value]);
+    }, [activation, allowNegative, effectiveMaxIntegerDigits, formatPercent, handleDraftChange, maxAllowedIntegerPart, onCommit, onKeyDown, onKeyDownBase, parsePercent, setDraft, value]);
 
     const percentAdornmentColor = draft.trim() === '' ? 'rgba(0, 0, 0, 0.4)' : 'inherit';
     const endAdornment = (

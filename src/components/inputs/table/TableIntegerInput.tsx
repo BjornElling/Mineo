@@ -335,7 +335,7 @@ const TableIntegerInput = React.memo(
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
         getElement: () => inputElRef.current,
-        getIsLocked: () => latest.current.locked,
+        getIsLocked: () => latest.current.locked ?? false,
         commitCurrent: () => {
           if (latest.current.locked) return true;
           const ok = commitAndEmitBlur(inputElRef.current?.value ?? draftRef.current);

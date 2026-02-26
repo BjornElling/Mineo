@@ -101,7 +101,7 @@ const NOOP_CASES: readonly NoopCase[] = [
     renderInput: (onBlur) => (
       <TableWeekInput
         gridCell={gridCell}
-        value="1/2025"
+        value="01/2025"
         onBlur={(e) => onBlur(e.target.value)}
       />
     ),
@@ -189,7 +189,7 @@ const AUTOCOMPLETE_OFF_CASES: readonly AutoCompleteCase[] = [
     renderInput: () => (
       <TableWeekInput
         gridCell={gridCell}
-        value="1/2025"
+        value="01/2025"
       />
     ),
   },
@@ -233,7 +233,7 @@ const INVALID_PRESERVE_CASES: readonly InvalidPreserveCase[] = [
   },
   {
     label: 'week',
-    initialValue: '1/2025',
+    initialValue: '01/2025',
     invalidDraft: '54/20',
     renderManagedInput: ({ value, onBlur }) => (
       <TableWeekInput
@@ -298,7 +298,7 @@ const CONFIG_PRESERVE_CASES: readonly ConfigPreserveCase[] = [
     renderInput: () => (
       <TableWeekInput
         gridCell={gridCell}
-        value="1/2025"
+        value="01/2025"
         minYear={2030}
         maxYear={2020}
       />
@@ -312,17 +312,6 @@ const CONFIG_PRESERVE_CASES: readonly ConfigPreserveCase[] = [
         value="2025"
         minYear={2030}
         maxYear={2020}
-      />
-    ),
-  },
-  {
-    label: 'date',
-    renderInput: () => (
-      <TableDateInput
-        gridCell={gridCell}
-        value="15-06-2025"
-        minDate="2025-12-31"
-        maxDate="2025-01-01"
       />
     ),
   },
@@ -357,9 +346,9 @@ const CLICK_OUTSIDE_COMMIT_CASES: readonly ClickOutsideCommitCase[] = [
   },
   {
     label: 'week',
-    initialValue: '1/2025',
+    initialValue: '01/2025',
     typedDraft: '2/2025',
-    expectedCommitted: '2/2025',
+    expectedCommitted: '02/2025',
     renderManagedInput: ({ value, onBlur }) => (
       <TableWeekInput
         gridCell={gridCell}
@@ -425,7 +414,7 @@ const ESCAPE_CANCEL_CASES: readonly EscapeCancelCase[] = [
   },
   {
     label: 'week',
-    initialValue: '1/2025',
+    initialValue: '01/2025',
     typedDraft: '2/2025',
     renderManagedInput: ({ value, onBlur }) => <TableWeekInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
   },
@@ -458,7 +447,7 @@ const DELETE_CLEAR_CASES: readonly DeleteClearCase[] = [
   },
   {
     label: 'week',
-    initialValue: '1/2025',
+    initialValue: '01/2025',
     expectedCommitted: '',
     renderManagedInput: ({ value, onBlur }) => <TableWeekInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
   },

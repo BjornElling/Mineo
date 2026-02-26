@@ -111,6 +111,18 @@ export const getDaysInYear = (year: number): number => {
 };
 
 /**
+ * Returnerer om et ISO-år indeholder uge 53.
+ *
+ * ISO-år har 53 uger når 31. december falder på en torsdag,
+ * eller når det er skudår og 31. december falder på en fredag.
+ */
+export const yearHas53Weeks = (year: number): boolean => {
+  const dec31 = createDate(year, 11, 31);
+  const dayOfWeek = dec31.getUTCDay();
+  return dayOfWeek === 4 || (isLeapYear(year) && dayOfWeek === 5);
+};
+
+/**
  * Tilføjer et antal dage til en dato
  */
 export const addDays = (date: Date, days: number): Date => {

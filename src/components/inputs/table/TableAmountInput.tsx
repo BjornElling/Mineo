@@ -146,10 +146,8 @@ const TableAmountInput = React.memo(
     const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, canBeNegative });
 
     React.useEffect(() => {
-      if (!isEditing) {
-        latestCommittedPayloadRef.current = toCommittedAmountPayload(value);
-      }
-    }, [isEditing, value]);
+      latestCommittedPayloadRef.current = toCommittedAmountPayload(value);
+    }, [value]);
 
     React.useEffect(() => {
       latest.current = { onChange, onBlur, onErrorChange, locked, canBeNegative };
@@ -255,7 +253,7 @@ const TableAmountInput = React.memo(
         }
         draftRef.current = nextDraft;
         setDraft(nextDraft);
-        // VIGTIGT: Ingen live preview + Escape kr‘ver at vi IKKE l‘kker draft til parent under edit.
+        // VIGTIGT: Ingen live preview + Escape kræver at vi IKKE lækker draft til parent under edit.
         // Parent opdateres kun ved commit (onBlur/commitAndEmitBlur).
       },
       [isReadOnly]
@@ -356,7 +354,7 @@ const TableAmountInput = React.memo(
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
         getElement: () => inputElRef.current,
-        getIsLocked: () => latest.current.locked,
+        getIsLocked: () => latest.current.locked ?? false,
         commitCurrent: () => {
           if (latest.current.locked) return true;
           const ok = commitAndEmitBlur(inputElRef.current?.value ?? draftRef.current);

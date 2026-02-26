@@ -36,6 +36,7 @@ export type StyledYearFieldNextProps = {
    */
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   /**
    * Level-triggered error signal for parent integrations.
    *
@@ -88,6 +89,7 @@ const StyledYearFieldNext = React.forwardRef<HTMLDivElement, StyledYearFieldNext
       disabled,
       onFocus,
       onBlur,
+      onKeyDown: onKeyDownProp,
       onErrorChange,
       onFieldError,
       externalError,
@@ -206,12 +208,10 @@ const StyledYearFieldNext = React.forwardRef<HTMLDivElement, StyledYearFieldNext
     }, [onFieldError, visibleLocalError?.message]);
 
     const skipNextBlurCommitRef = React.useRef(false);
-    const pendingCommitOnBlurRef = React.useRef(false);
 
     const handleDraftChange = React.useCallback(
       (nextDraft: string) => {
         skipNextBlurCommitRef.current = false;
-        pendingCommitOnBlurRef.current = false;
         setDraft(nextDraft);
         onDraftChange?.(createDraftChangeEvent(nextDraft));
       },
@@ -255,6 +255,7 @@ const StyledYearFieldNext = React.forwardRef<HTMLDivElement, StyledYearFieldNext
           }
           activation.handleKeyDown(e);
           if (e.defaultPrevented) return;
+          onKeyDownProp?.(e);
           return;
         }
 
@@ -269,8 +270,9 @@ const StyledYearFieldNext = React.forwardRef<HTMLDivElement, StyledYearFieldNext
         if (!e.defaultPrevented) {
           filterYearKeyDown(e);
         }
+        onKeyDownProp?.(e);
       },
-      [activation, onCommit, onKeyDown, parseYear, setDraft]
+      [activation, onCommit, onKeyDown, onKeyDownProp, parseYear, setDraft]
     );
 
     return (
@@ -288,7 +290,6 @@ const StyledYearFieldNext = React.forwardRef<HTMLDivElement, StyledYearFieldNext
           }
           if (activation.isEditorOpen) activation.closeEditor();
           skipNextBlurCommitRef.current = false;
-          pendingCommitOnBlurRef.current = false;
           onBlur?.(e);
         }}
         onKeyDown={handleKeyDown}

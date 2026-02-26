@@ -52,26 +52,6 @@ const TableDateIsoInput = React.memo(
     inputRef,
     sx,
   }: TableDateIsoInputProps) => {
-    const configErrorMessage = React.useMemo(() => {
-      if (minDate && maxDate && minDate > maxDate) {
-        const minText = coerceToDanishDateString(minDate) ?? minDate;
-        const maxText = coerceToDanishDateString(maxDate) ?? maxDate;
-        const causeSuffix =
-          typeof noValidRangeCause === 'string' && noValidRangeCause.trim() !== ''
-            ? ` Årsag: ${noValidRangeCause.trim()}`
-            : ' Kontrollér de felter der bestemmer datointervallet.';
-        return `Ingen gyldige datoer: min-dato (${minText}) er efter max-dato (${maxText}).${causeSuffix}`;
-      }
-      return '';
-    }, [maxDate, minDate, noValidRangeCause]);
-
-    const mergedExternalErrorMessage = React.useMemo(() => {
-      const external = (externalErrorMessage ?? '').trim();
-      if (configErrorMessage === '') return external;
-      if (external === '') return configErrorMessage;
-      return `${configErrorMessage}; ${external}`;
-    }, [configErrorMessage, externalErrorMessage]);
-
     const displayValue = React.useMemo(() => {
       return coerceToDanishDateString(value) ?? '';
     }, [value]);
@@ -81,8 +61,8 @@ const TableDateIsoInput = React.memo(
         gridCell={gridCell}
         locked={locked}
         value={displayValue}
-        minDate={configErrorMessage === '' ? minDate : undefined}
-        maxDate={configErrorMessage === '' ? maxDate : undefined}
+        minDate={minDate}
+        maxDate={maxDate}
         specialRangeErrors={specialRangeErrors}
         noValidRangeCause={noValidRangeCause}
         twoDigitYearPolicy={twoDigitYearPolicy}
@@ -94,7 +74,7 @@ const TableDateIsoInput = React.memo(
           onBlur?.({ target: { value: nextIso } });
         }}
         onErrorChange={onErrorChange}
-        externalErrorMessage={mergedExternalErrorMessage}
+        externalErrorMessage={externalErrorMessage}
         inputRef={inputRef}
         sx={sx}
       />

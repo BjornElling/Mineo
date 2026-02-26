@@ -10,6 +10,7 @@ import { validateISODateRange } from '../../utils/isoDateHelpers';
 import { resolveDateRangeErrorMessage, type DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import { filterDateLikeKeyDown } from './inputKeyFilters';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
+import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from './fieldEvents';
 
 export type StyledDateFieldValueChangeEvent = CommitEvent<ISODateString | undefined>;
@@ -115,12 +116,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
     const assignInputRef = React.useCallback(
       (node: HTMLInputElement | null) => {
         inputElementRef.current = node;
-        if (!inputRef) return;
-        if (typeof inputRef === 'function') {
-          inputRef(node);
-        } else if ('current' in inputRef) {
-          (inputRef as React.MutableRefObject<HTMLInputElement | null>).current = node;
-        }
+        assignRef(inputRef, node);
       },
       [inputRef]
     );
@@ -253,7 +249,6 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       setDraft: setDraftBase,
       touched,
       error,
-      isFocused: _isFocused,
       onFocus: onFocusBase,
       onBlur: onBlurBase,
       onKeyDown: onKeyDownBase,
@@ -272,12 +267,10 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
     });
 
     const skipNextBlurCommitRef = React.useRef(false);
-    const pendingCommitOnBlurRef = React.useRef(false);
 
     const setDraft = React.useCallback(
       (nextDraft: string) => {
         skipNextBlurCommitRef.current = false;
-        pendingCommitOnBlurRef.current = false;
         setRangeErrorMessage('');
         setDraftBase(nextDraft);
         onDraftChange?.(createDraftChangeEvent(nextDraft));
@@ -412,7 +405,6 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
           }
           if (activation.isEditorOpen) activation.closeEditor();
           skipNextBlurCommitRef.current = false;
-          pendingCommitOnBlurRef.current = false;
           onBlur?.(e);
         }}
         onKeyDown={handleKeyDown}

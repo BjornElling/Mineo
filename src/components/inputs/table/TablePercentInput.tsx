@@ -53,6 +53,13 @@ const TABLE_PERCENT_PRECISION = 2;
 const MAX_PERCENT_RAW_LENGTH = 64;
 
 type ParsedPercent = { ok: true; numeric: number } | { ok: true; empty: true } | { ok: false; error: string };
+type PreparedPercentCommit =
+  | { kind: 'input-error'; committed: string; errorMessage: string }
+  | {
+      kind: 'ok';
+      canonical: string;
+      payload: CommittedPayload<string, string, PercentFingerprint>;
+    };
 
 const formatPercentBound = (value: number): string => formatAsAmount(value, TABLE_PERCENT_PRECISION);
 
@@ -167,6 +174,37 @@ const toCommittedPercentPayload = (value: TablePercentInputValue): CommittedPayl
     model: canonical,
     canonical,
     fingerprint: percentFingerprintFromCommittedDisplay(canonical),
+  };
+};
+
+const preparePercentCommit = (
+  rawDraft: string,
+  {
+    allowNegative,
+    minValue,
+    maxValue,
+  }: { allowNegative: boolean; minValue: number | undefined; maxValue: number | undefined }
+): PreparedPercentCommit => {
+  const normalized = normalizeTableAmountDraftOnCommit(rawDraft);
+  const committed = commitPercentDraft(normalized, {
+    allowNegative,
+    minValue,
+    maxValue,
+  });
+
+  if (committed.kind === 'input-error') {
+    return { kind: 'input-error', committed: committed.committed, errorMessage: committed.errorMessage };
+  }
+
+  const canonical = committedToString(committed);
+  return {
+    kind: 'ok',
+    canonical,
+    payload: {
+      model: canonical,
+      canonical,
+      fingerprint: percentFingerprintFromCommittedDisplay(canonical),
+    },
   };
 };
 
@@ -286,19 +324,20 @@ const TablePercentInput = React.memo(
     }, [hasError, isEditing, preserveInvalidDraft, value]);
 
     const commitAndEmitBlur = React.useCallback(
-      (rawDraft: string): boolean => {
+      (rawDraft: string, prepared?: PreparedPercentCommit): boolean => {
         setTouched(true);
-        const normalized = normalizeTableAmountDraftOnCommit(rawDraft);
-        const committed = commitPercentDraft(normalized, {
-          allowNegative: latest.current.allowNegative,
-          minValue: latest.current.minValue,
-          maxValue: latest.current.maxValue,
-        });
+        const resolvedPrepared =
+          prepared ??
+          preparePercentCommit(rawDraft, {
+            allowNegative: latest.current.allowNegative,
+            minValue: latest.current.minValue,
+            maxValue: latest.current.maxValue,
+          });
 
-        if (committed.kind === 'input-error') {
+        if (resolvedPrepared.kind === 'input-error') {
           setPreserveInvalidDraft(true);
           setHasError(true);
-          setErrorMessage(committed.errorMessage);
+          setErrorMessage(resolvedPrepared.errorMessage);
           latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
           return false;
         }
@@ -307,17 +346,10 @@ const TablePercentInput = React.memo(
         setHasError(false);
         setErrorMessage('');
         latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
-        const canonical = committedToString(committed);
-        const nextPayload: CommittedPayload<string, string, PercentFingerprint> = {
-          model: canonical,
-          canonical,
-          fingerprint: percentFingerprintFromCommittedDisplay(canonical),
-        };
-
-        const isNoop = nextPayload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
+        const isNoop = resolvedPrepared.payload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
         if (isNoop) return true;
 
-        emitBlur(nextPayload.model);
+        emitBlur(resolvedPrepared.payload.model);
         return true;
       },
       [emitBlur]
@@ -347,10 +379,16 @@ const TablePercentInput = React.memo(
         // Vigtigt: grid kan lukke editor-state før input-blur ved klik udenfor.
         // I den situation skal vi stadig committe draften fra ref, hvis den afviger fra committed.
         const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
-        const committedPlain = latestCommittedPayloadRef.current.canonical;
-        const committedDisplay = committedPlain === '' ? '' : `${committedPlain} %`;
-        if (!isEditing && (rawValue === committedPlain || rawValue === committedDisplay)) return;
-        commitAndEmitBlur(rawValue);
+        const prepared = preparePercentCommit(rawValue, {
+          allowNegative: latest.current.allowNegative,
+          minValue: latest.current.minValue,
+          maxValue: latest.current.maxValue,
+        });
+        if (prepared.kind === 'ok') {
+          const nextFingerprint = prepared.payload.fingerprint;
+          if (!isEditing && nextFingerprint === latestCommittedPayloadRef.current.fingerprint) return;
+        }
+        commitAndEmitBlur(rawValue, prepared);
       },
       [commitAndEmitBlur, isEditing]
     );
@@ -374,7 +412,7 @@ const TablePercentInput = React.memo(
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
         getElement: () => inputElRef.current,
-        getIsLocked: () => latest.current.locked,
+        getIsLocked: () => latest.current.locked ?? false,
         commitCurrent: () => {
           if (latest.current.locked) return true;
           const ok = commitAndEmitBlur(inputElRef.current?.value ?? draftRef.current);

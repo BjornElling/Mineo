@@ -64,9 +64,9 @@ export type StyledTextFieldBaseProps = {
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  onClick?: (e: React.MouseEvent<HTMLElement>) => void;
-  onMouseDown?: (e: React.MouseEvent<HTMLElement>) => void;
-  onDoubleClick?: (e: React.MouseEvent<HTMLElement>) => void;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  onMouseDown?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  onDoubleClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
 
   inputType?: StyledTextFieldBaseInputType;
@@ -143,21 +143,21 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
     );
 
     const handleClick = React.useCallback(
-      (e: React.MouseEvent<HTMLElement>) => {
+      (e: React.MouseEvent<HTMLDivElement>) => {
         onClick?.(e);
       },
       [onClick]
     );
 
     const handleMouseDown = React.useCallback(
-      (e: React.MouseEvent<HTMLElement>) => {
+      (e: React.MouseEvent<HTMLDivElement>) => {
         onMouseDown?.(e);
       },
       [onMouseDown]
     );
 
     const handleDoubleClick = React.useCallback(
-      (e: React.MouseEvent<HTMLElement>) => {
+      (e: React.MouseEvent<HTMLDivElement>) => {
         onDoubleClick?.(e);
       },
       [onDoubleClick]
@@ -220,9 +220,9 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
             helperText={undefined}
             InputProps={{
               ...(endAdornment ? { endAdornment } : {}),
-              onClick: handleClick as React.MouseEventHandler<HTMLDivElement>,
-              onMouseDown: handleMouseDown as React.MouseEventHandler<HTMLDivElement>,
-              onDoubleClick: handleDoubleClick as React.MouseEventHandler<HTMLDivElement>,
+              onClick: handleClick,
+              onMouseDown: handleMouseDown,
+              onDoubleClick: handleDoubleClick,
             }}
             slotProps={{
               htmlInput: mergedHtmlInputProps,

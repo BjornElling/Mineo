@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { GridCoreProvider } from '../../../components/tables/gridCoreContext';
 import type { GridCellCoord } from '../../../components/tables/gridCoreTypes';
-import TableDateInput from '../../../components/inputs/table/TableDateInput';
+import TableWeekInput from '../../../components/inputs/table/TableWeekInput';
 
 const createGridValue = (gridCell: GridCellCoord, editingCell: GridCellCoord | null) => {
   return {
@@ -19,24 +19,24 @@ const createGridValue = (gridCell: GridCellCoord, editingCell: GridCellCoord | n
   };
 };
 
-describe('TableDateInput', () => {
-  it('commits formatted date and shows range error when out of range', async () => {
+describe('TableWeekInput', () => {
+  it('afviser uge 53 i år med kun 52 uger', async () => {
     const user = userEvent.setup();
     const gridCell = { rowId: 'row-1', colIndex: 0 };
+    const onBlur = vi.fn();
 
     const Wrapper = () => {
-      const [value, setValue] = React.useState('');
+      const [value, setValue] = React.useState('01/2025');
       const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
       const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
 
       return (
         <GridCoreProvider value={gridValue}>
-          <TableDateInput
+          <TableWeekInput
             gridCell={gridCell}
             value={value}
-            minDate="2020-01-01"
-            maxDate="2020-12-31"
             onBlur={(e) => {
+              onBlur(e.target.value);
               setValue(e.target.value);
               setEditingCell(null);
             }}
@@ -49,32 +49,35 @@ describe('TableDateInput', () => {
 
     const input = screen.getByRole('textbox');
     await user.click(input);
-    await user.type(input, '1-1-28');
+    await user.clear(input);
+    await user.type(input, '53/2025');
     await user.tab();
 
-    expect(input).toHaveValue('01-01-2028');
+    expect(onBlur).not.toHaveBeenCalled();
+    expect(input).toHaveValue('53/2025');
     const describedBy = input.getAttribute('aria-describedby');
     expect(describedBy).toBeTruthy();
     const errorEl = describedBy ? document.getElementById(describedBy) : null;
-    expect(errorEl).toBeTruthy();
-    expect(errorEl).toHaveTextContent(/Dato skal/);
+    expect(errorEl).toHaveTextContent('Uge skal være mellem 1 og 52');
   });
 
-  it('keeps invalid format and shows error', async () => {
+  it('accepterer uge 53 i år med 53 uger', async () => {
     const user = userEvent.setup();
     const gridCell = { rowId: 'row-2', colIndex: 0 };
+    const onBlur = vi.fn();
 
     const Wrapper = () => {
-      const [value, setValue] = React.useState('');
+      const [value, setValue] = React.useState('01/2004');
       const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
       const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
 
       return (
         <GridCoreProvider value={gridValue}>
-          <TableDateInput
+          <TableWeekInput
             gridCell={gridCell}
             value={value}
             onBlur={(e) => {
+              onBlur(e.target.value);
               setValue(e.target.value);
               setEditingCell(null);
             }}
@@ -87,38 +90,48 @@ describe('TableDateInput', () => {
 
     const input = screen.getByRole('textbox');
     await user.click(input);
-    await user.type(input, '1-1');
+    await user.clear(input);
+    await user.type(input, '53/2004');
     await user.tab();
 
-    expect(input).toHaveValue('1-1');
-    const describedBy = input.getAttribute('aria-describedby');
-    expect(describedBy).toBeTruthy();
-    const errorEl = describedBy ? document.getElementById(describedBy) : null;
-    expect(errorEl).toBeTruthy();
-    expect(errorEl).toHaveTextContent('Ugyldig dato');
+    expect(onBlur).toHaveBeenCalledWith('53/2004');
+    expect(input).toHaveValue('53/2004');
   });
 
-  it('crasher ikke ved minDate > maxDate og viser konfigurationsfejl', () => {
+  it('accepterer punktum som separator og normaliserer til slash', async () => {
+    const user = userEvent.setup();
     const gridCell = { rowId: 'row-3', colIndex: 0 };
-    const gridValue = createGridValue(gridCell, gridCell);
+    const onBlur = vi.fn();
 
-    expect(() => {
-      render(
+    const Wrapper = () => {
+      const [value, setValue] = React.useState('01/2004');
+      const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
+      const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
+
+      return (
         <GridCoreProvider value={gridValue}>
-          <TableDateInput
+          <TableWeekInput
             gridCell={gridCell}
-            value="15-06-2025"
-            minDate="2025-12-31"
-            maxDate="2025-01-01"
+            value={value}
+            onBlur={(e) => {
+              onBlur(e.target.value);
+              setValue(e.target.value);
+              setEditingCell(null);
+            }}
           />
         </GridCoreProvider>
       );
-    }).not.toThrow();
+    };
+
+    render(<Wrapper />);
 
     const input = screen.getByRole('textbox');
-    const describedBy = input.getAttribute('aria-describedby');
-    expect(describedBy).toBeTruthy();
-    const errorEl = describedBy ? document.getElementById(describedBy) : null;
-    expect(errorEl).toHaveTextContent('Ingen gyldige datoer');
+    await user.click(input);
+    await user.clear(input);
+    await user.type(input, '53.2004');
+    await user.tab();
+
+    expect(onBlur).toHaveBeenCalledWith('53/2004');
+    expect(input).toHaveValue('53/2004');
   });
 });

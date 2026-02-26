@@ -209,12 +209,10 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
     }, [onFieldError, visibleLocalError?.message]);
 
     const skipNextBlurCommitRef = React.useRef(false);
-    const pendingCommitOnBlurRef = React.useRef(false);
 
     const handleDraftChange = React.useCallback(
       (nextDraft: string) => {
         skipNextBlurCommitRef.current = false;
-        pendingCommitOnBlurRef.current = false;
         setDraft(nextDraft);
         onDraftChange?.(createDraftChangeEvent(nextDraft));
       },
@@ -293,7 +291,6 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
           }
           if (activation.isEditorOpen) activation.closeEditor();
           skipNextBlurCommitRef.current = false;
-          pendingCommitOnBlurRef.current = false;
           onBlur?.(e);
         }}
         onKeyDown={handleKeyDown}

@@ -817,6 +817,8 @@ type StyledDropdownComponent = {
   displayName?: string;
 };
 
+// `forwardRef` cannot preserve this component's generic call signature.
+// The assertion is intentionally isolated at this boundary.
 const StyledDropdown = React.forwardRef(StyledDropdownInner) as unknown as StyledDropdownComponent;
 
 StyledDropdown.Divider = StyledDropdownDivider;

@@ -137,6 +137,7 @@ const TableTextInput = React.memo(
         const nextDraft = e.target.value ?? '';
         draftRef.current = nextDraft;
         setDraft(nextDraft);
+        latest.current.onChange?.({ target: { value: nextDraft } });
       },
       [isReadOnly]
     );
