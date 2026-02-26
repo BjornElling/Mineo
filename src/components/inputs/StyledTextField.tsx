@@ -1,4 +1,4 @@
-﻿import * as React from 'react';
+import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase, { type StyledTextFieldBaseInputType } from './StyledTextFieldBase';
 import StyledTextAreaBase from './StyledTextAreaBase';

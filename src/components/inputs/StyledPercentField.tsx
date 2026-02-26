@@ -1,4 +1,4 @@
-﻿import * as React from 'react';
+import * as React from 'react';
 import { InputAdornment } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from './StyledTextFieldBase';
