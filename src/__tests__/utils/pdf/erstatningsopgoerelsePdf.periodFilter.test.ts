@@ -6,10 +6,10 @@ import {
   hasAarsloenRowOverlapWithRanges,
   hasOffentligYdelseRowOverlapWithRanges,
   shouldIncludeReguleringBilag,
-  resolveValgtReguleringDisplay,
   shouldIncludeLoenRowInBilag,
   shouldIncludeOffentligYdelseRowInBilag,
-} from '../../../utils/pdf/erstatningsopgoerelsePdf';
+} from '../../../domain/erstatningsopgoerelse/bilagRules';
+import { resolveValgtReguleringDisplay } from '../../../domain/erstatningsopgoerelse/loenudviklingDisplay';
 
 const iso = (value: string) => toISODateString(value);
 

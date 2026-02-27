@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildEODebugIndkomstRows } from '../../../domain/erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
+import { buildEODebugIndkomstRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
 

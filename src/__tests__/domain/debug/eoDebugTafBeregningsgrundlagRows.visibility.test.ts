@@ -1,5 +1,5 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { buildEODebugTafBeregningsgrundlagRows } from '../../../domain/erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
+import { buildEODebugTafBeregningsgrundlagRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';

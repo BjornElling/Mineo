@@ -1,7 +1,7 @@
-import type { DebugRowModel } from '../debug/eoDebugTypes';
-import type { SectionId } from '../debug/eoDebugNavigationMap';
-import type { EODebugExecutionContext } from '../debug/eoDebugExecutionContext';
-import { buildEODebugStamdataRows } from '../debug/eoDebugStamdataModel';
+import type { DebugRowModel } from './eoDebugTypes';
+import type { SectionId } from './eoDebugNavigationMap';
+import type { EODebugExecutionContext } from './eoDebugExecutionContext';
+import { buildEODebugStamdataRows } from './eoDebugStamdataModel';
 import {
   buildEODebugErstatningsopgoerelseRows,
   buildEODebugForligRows,
@@ -14,7 +14,7 @@ import {
   buildEODebugOevrigeKravRows,
   buildEODebugSaerligeKommentarerRows,
 } from './eoDebugErstatningsopgoerelseModel';
-import { buildSvieSmerteContext, buildTaftContext } from '../debug/eoDebugContextBuilders';
+import { buildSvieSmerteContext, buildTaftContext } from './eoDebugContextBuilders';
 
 /**
  * Builder-entry type (meget simpelt)

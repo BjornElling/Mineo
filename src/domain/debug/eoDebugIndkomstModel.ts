@@ -22,8 +22,8 @@ import {
   isOffentligOverenskomstId,
   getOffentligTillaegsSatserForDato,
 } from '../../data/overenskomstRates';
-import type { DebugStatus } from '../debug/eoDebugTypes';
-import { buildAarsloenCellErrors, buildOffentligeYdelserCellErrors } from './indkomstRowValidation';
+import type { DebugStatus } from './eoDebugTypes';
+import { buildAarsloenCellErrors, buildOffentligeYdelserCellErrors } from '../erstatningsopgoerelse/indkomstRowValidation';
 import type { AarsloenTableColumnKey, OffentligeYdelserTableColumnKey } from '../../types/table';
 import type { Loenperiode } from '../../types/loen';
 import { amountValueToNumber } from '../../utils/expressionAmount';

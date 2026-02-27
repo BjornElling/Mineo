@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildIndkomstSectionStatuses,
   buildOffentligeYdelserDebugRows,
-} from '../../../domain/erstatningsopgoerelse/eoDebugIndkomstModel';
+} from '../../../domain/debug/eoDebugIndkomstModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 

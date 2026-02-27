@@ -1,7 +1,7 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { FieldErrorBySource } from '../../types/fieldErrors';
 import { isoToDanish } from '../../types/branded';
-import { collectPresentFieldErrors, isNonEmptyString, resolveDebugDisplay } from '../erstatningsopgoerelse/eoDebugCommon';
+import { collectPresentFieldErrors, isNonEmptyString, resolveDebugDisplay } from './eoDebugCommon';
 import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
 
 /**

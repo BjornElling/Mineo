@@ -25,20 +25,20 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 | 7 | Overlap og uklare ansvarslinjer mellem dato-utility-filer (`dateUtils`, `isoDateHelpers`, `branded`, `domain/dates/*`) | Medium | D1 |
 | 8 | ~~Forbudt datomønster i `addOneDayIso`~~ | ~~Høj~~ | ✅ Implementeret |
 | 9 | Eksporterede sub-schema-typer + robustgørelse af `loenindkomstAnsaettelsesforholdSchema` | Medium | ✅ Implementeret 2026-02-27 (M0-2 afklaret) |
-| 10 | `formSchemas.ts` (845 linjer): monolitisk fil blander primitive helpers, enums og sektionsschemas | Medium | B3 |
-| 11 | `src/domain/erstatningsopgoerelse/sharedPdfUtils.ts` og `src/domain/erstatningsopgoerelse/eoPdfLoenudvikling.ts` har tværlagsforbrug men ligger i domænemappe med PDF-navngivning | Medium | B1 |
+| 10 | `formSchemas.ts` (845 linjer): monolitisk fil blander primitive helpers, enums og sektionsschemas | Medium | ✅ B3 |
+| 11 | `src/domain/erstatningsopgoerelse/sharedPdfUtils.ts` og `src/domain/erstatningsopgoerelse/eoPdfLoenudvikling.ts` har tværlagsforbrug men ligger i domænemappe med PDF-navngivning | Medium | ✅ B1, 🚧 C2 |
 
 ### Tilfældighedsfund (T1–T8)
 
 | # | Problem | Opgave |
 |---|---------|--------|
 | T1 | Dato-utilities: `datePrimitives.ts` overlapper med `branded.ts`/`dateUtils.ts` | D1 |
-| T2 | `src/contexts/FormPersistenceContext.shared.ts` — mulig unødvendig split | B4 |
-| T3 | `src/contexts/FormPersistenceContext.types.ts` — mulig unødvendig split | B4 |
+| T2 | `src/contexts/FormPersistenceContext.shared.ts` — mulig unødvendig split | ✅ B4 |
+| T3 | `src/contexts/FormPersistenceContext.types.ts` — mulig unødvendig split | ✅ B4 |
 | T4 | `src/domain/erstatningsopgoerelse/eoPdfLoenudvikling.ts` placering uhensigtsmæssig ift. laggrænser | B1 |
 | T5 | ~~Ghost-kommentarer i schema fjernet~~ | ✅ Implementeret |
-| T6 | `src/__tests__/quality/*` potentielt ude af sync med aktuelle kontrakter | B2 |
-| T7 | Debug-moduler splittet mellem `domain/debug/` og EO-undermappe | C3 |
+| T6 | `src/__tests__/quality/*` potentielt ude af sync med aktuelle kontrakter | ✅ B2 |
+| T7 | Debug-moduler splittet mellem `domain/debug/` og EO-undermappe | 🚧 C3 |
 | T8 | `src/utils/numberUtils.ts` (4 linjer): mikro-helper uden canonical placering | B1 |
 
 ### Opfølgningsfund
@@ -47,6 +47,14 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 |---|---------|--------|
 | Opf. 1 | ~~Parallel statistikmodel-mapping reduceret~~ | ✅ Implementeret |
 | Opf. 2 | PDF blander stadig model og dataopslag | Åben → C2 |
+
+---
+
+## Statussnapshot (pr. 2026-02-27)
+
+- ✅ Færdig: M0, B1, B2, B3, B4, C1, C2 Fase 0-1.
+- 🚧 I gang: C2 Fase 2-3, C3 (strukturel konsolidering gennemført; afkobling fra parallel beregningslogik udestår).
+- ⏳ Ikke startet: D1.
 
 ---
 
@@ -250,7 +258,7 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 
 ### C2. Fund 4 + Opfølgning 2: EO-PDF skal være renderer, ikke beregningsmotor
 
-**Status:** 🚧 Delvist implementeret 2026-02-27 (Fase 0–1 gennemført: `src/domain/erstatningsopgoerelse/eoCanonicalOutput.ts` + paritetsmatrix/snapshot-tests i `src/__tests__/domain/erstatningsopgoerelse/eoCanonicalOutput*.test.ts`)
+**Status:** 🚧 Delvist implementeret 2026-02-27 (Fase 0–1 gennemført: `src/domain/erstatningsopgoerelse/eoCanonicalOutput.ts` + paritetsmatrix/snapshot-tests i `src/__tests__/domain/erstatningsopgoerelse/eoCanonicalOutput*.test.ts`; C2 Fase 2 påbegyndt med flytning af bilag/regulerings-beslutningslogik fra renderer til domænemodul `src/domain/erstatningsopgoerelse/bilagRules.ts` samt separat regulerings-displayhelper i `src/domain/erstatningsopgoerelse/loenudviklingDisplay.ts`; `bilagRules.ts` er afkoblet fra `sharedPdfUtils.ts` for at undgå PDF-navngivet domæneafhængighed)
 
 **Problem:** PDF-laget (`src/utils/pdf/erstatningsopgoerelsePdf.ts`) indeholder selvstændig beregningslogik og direkte dataopslag parallelt med engines/pipeline. Bryder `calculation-architecture.md`-kontrakten.
 
@@ -272,11 +280,13 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 #### Fase 2: Flytning
 - Flyt beregningsdele fra `erstatningsopgoerelsePdf.ts` og `sharedPdfUtils.ts` til model/pipeline.
 - Beregnings-helpers fra B1-klassificeringen flyttes til deres canonical engine.
+- **Status:** 🚧 Delvist implementeret 2026-02-27 (bilag/regulerings-beslutningslogik udskilt til `bilagRules.ts` og `loenudviklingDisplay.ts`; yderligere beregningsflytninger udestår).
 
 #### Fase 3: Rensning
 - PDF-filen må kun formatere/rendere.
 - Fjern data-lagsimports fra renderer.
 - Formaterings-helpers fra B1-klassificeringen bevares i præsentationslag (evt. `utils/formatting/`).
+- **Status:** ⏳ Ikke startet.
 
 **Testkrav:**
 1. Fuld test suite (`npm run test`) efter hver fase.
@@ -292,12 +302,14 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 
 ### C3. Fund 5 + T7: Debug-lag konsolideres omkring canonical engines
 
+**Status:** 🚧 Delvist implementeret 2026-02-27 (EO-debug-filer konsolideret fra `src/domain/erstatningsopgoerelse/` til `src/domain/debug/`: `eoDebugBuilderRegistry.ts`, `eoDebugCommon.ts`, `eoDebugErstatningsopgoerelseModel.ts`, `eoDebugIndkomstModel.ts`; callsites/tests opdateret inkl. spejling af berørte tests til `src/__tests__/domain/debug/`, adfærd bevaret via fuld test-suite + typecheck)
+
 **Problem:** Debug-model (23+ filer i `src/domain/debug/` + 6 filer i `src/domain/erstatningsopgoerelse/`) har blandet ansvar, duplikeret beregningslogik og potentiale for drift fra canonical engines.
 
 **Scope:**
 1. Definér debug som visning af canonical output (fra engines) + forklaringsmetadata.
 2. Reducér duplikeret beregningslogik — debug skal konsumere engine-output, ikke genberegne.
-3. Konsolidér placering: flyt de 6 EO-debug-filer til `src/domain/debug/`.
+3. Konsolidér placering: flyt EO-debug-filer fra `src/domain/erstatningsopgoerelse/` til `src/domain/debug/`.
 
 **Afhængigheder:** Tæt koblet til C2 — bruger samme `EoCanonicalOutput` og dataflow. C2 Fase 0–1 bør gennemføres først, så debug kan konsumere canonical output.
 
@@ -352,23 +364,23 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 
 ## Samlet leveranceplan (milepæle)
 
-| Milepæl | Indhold | Forudsætning |
-|---------|---------|--------------|
-| **M0** | Auth-dokumentation (M0-1) + Fund 9 restscope afklaret/lukket (M0-2) | Ingen |
-| **M1** | Spor B: B1 klassificering, B2 quality-tests, B4 kontekstfiler | Ingen (kan køre parallelt med M0) |
-| **M2** | C1 Fase 0–1 (state characterization + én SoT) | M1 (B1 klassificering bruges af C2) |
-| **M2b** | C1 Fase 2–3 (revisionsmekanisme + domænespecifik fejlstate) | M2 (Fase 0–1 grøn) |
-| **M3** | C2 Fase 0–1 (paritetsmatrix + paritetstests) | M2b (state-arkitektur fuldt stabil) + M1 (B1 klassificering) |
-| **M4** | C2 Fase 2–3 + C3 (renderer/debug afkobling) | M3 (paritetstests på plads) |
-| **M5** | B3 (schema-split) + D1 (dato-oprydning) | M4 (store refaktorer afsluttet) |
+| Milepæl | Indhold | Forudsætning | Status (pr. 2026-02-27) |
+|---------|---------|--------------|---------------------------|
+| **M0** | Auth-dokumentation (M0-1) + Fund 9 restscope afklaret/lukket (M0-2) | Ingen | ✅ Færdig |
+| **M1** | Spor B: B1 klassificering, B2 quality-tests, B4 kontekstfiler | Ingen (kan køre parallelt med M0) | ✅ Færdig |
+| **M2** | C1 Fase 0–1 (state characterization + én SoT) | M1 (B1 klassificering bruges af C2) | ✅ Færdig |
+| **M2b** | C1 Fase 2–3 (revisionsmekanisme + domænespecifik fejlstate) | M2 (Fase 0–1 grøn) | ✅ Færdig |
+| **M3** | C2 Fase 0–1 (paritetsmatrix + paritetstests) | M2b (state-arkitektur fuldt stabil) + M1 (B1 klassificering) | ✅ Færdig |
+| **M4** | C2 Fase 2–3 + C3 (renderer/debug afkobling) | M3 (paritetstests på plads) | 🚧 I gang |
+| **M5** | D1 (dato-oprydning) | M4 (store refaktorer afsluttet) | ⏳ Ikke startet |
 
 **Sekvenseringsbegrundelse:**
 - M0 og M1 er uafhængige og kan køre parallelt. M0 er ren dokumentation; M1 er klassificering og testarbejde.
 - M2 → M2b: C1's fire faser er sekventielle. M2 og M2b er splittet for at give et naturligt checkpoint efter den mest risikofyldte ændring (Fase 1: fjernelse af React-cache-duplikat).
-- Aktuel status pr. 2026-02-27: M2 og M2b er gennemført for C1.
+- Aktuel status pr. 2026-02-27: M0, M1, M2, M2b og M3 er gennemført; M4 er i gang.
 - M2b før M3: State-arkitekturen (C1) skal være fuldt stabil før PDF/debug-refaktorering, da PDF og debug tilgår persisted state.
 - M3 før M4: Paritetstests (Fase 0–1) skal dokumentere korrekthed *før* kode flyttes (Fase 2–3). Flytning uden paritet er blind refaktorering.
-- M5 sidst: Strukturel oprydning (schema-split, dato-utilities) er lavrisiko og bør ikke blokere eller komplicere de store refaktorer i C1/C2/C3.
+- M5 sidst: Strukturel dato-oprydning (D1) er lavrisiko og bør ikke blokere eller komplicere de store refaktorer i C1/C2/C3.
 
 ---
 

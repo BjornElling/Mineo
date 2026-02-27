@@ -5,7 +5,7 @@ import { subtractOneDay } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { debugTabelColumnId } from './eoDebugLoenTypes';
 import type { EODebugModel } from './eoDebugModel';
-import { buildEODebugSvieSmerteRows } from '../erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
+import { buildEODebugSvieSmerteRows } from './eoDebugErstatningsopgoerelseModel';
 import { calculateTafArbejdsdageBreakdown } from '../erstatningsopgoerelse/tafCalculations';
 import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/beregningsperiodeTafOverlap';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../erstatningsopgoerelse/tafBeregningsenhed';

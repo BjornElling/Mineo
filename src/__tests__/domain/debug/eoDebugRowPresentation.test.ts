@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveDebugRowPresentation } from '../../../domain/debug/eoDebugRowPresentation';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { buildEODebugIndkomstRows } from '../../../domain/erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
+import { buildEODebugIndkomstRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
 
 describe('resolveDebugRowPresentation', () => {
   it('extracts structured message from Fejl (...) as default fallback', () => {

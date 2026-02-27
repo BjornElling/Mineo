@@ -19,7 +19,7 @@ import type {
   ErstatningsopgoerelseFieldErrorsBySource,
 } from './eoDebugExecutionContext';
 import { getNavigationTargetFromRowId } from './eoDebugNavigationMap';
-import { executeAllEODebugBuilders } from '../erstatningsopgoerelse/eoDebugBuilderRegistry';
+import { executeAllEODebugBuilders } from './eoDebugBuilderRegistry';
 import { resolveDebugRowPresentation } from './eoDebugRowPresentation';
 import { toDebugStatusRank } from './eoDebugSeverity';
 

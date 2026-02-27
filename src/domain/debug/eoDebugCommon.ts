@@ -2,7 +2,7 @@ import type { FieldErrorBySource, FieldErrorSource } from '../../types/fieldErro
 import { DEFAULT_FIELD_ERROR_SOURCE_PRIORITY } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
-import type { DebugStatus } from '../debug/eoDebugTypes';
+import type { DebugStatus } from './eoDebugTypes';
 
 export const isNonEmptyString = (value: string | undefined): value is string => {
   if (value === undefined) return false;

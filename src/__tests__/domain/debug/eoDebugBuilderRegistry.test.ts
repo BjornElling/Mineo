@@ -1,7 +1,7 @@
 import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
 import type { EODebugExecutionContext } from '../../../domain/debug/eoDebugExecutionContext';
-import type { EODebugBuilderEntry } from '../../../domain/erstatningsopgoerelse/eoDebugBuilderRegistry';
-import { executeEODebugBuilderEntries } from '../../../domain/erstatningsopgoerelse/eoDebugBuilderRegistry';
+import type { EODebugBuilderEntry } from '../../../domain/debug/eoDebugBuilderRegistry';
+import { executeEODebugBuilderEntries } from '../../../domain/debug/eoDebugBuilderRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 

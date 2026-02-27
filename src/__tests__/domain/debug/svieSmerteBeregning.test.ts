@@ -4,7 +4,7 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { buildEODebugSvieSmerteRows } from '../../../domain/erstatningsopgoerelse/eoDebugErstatningsopgoerelseModel';
+import { buildEODebugSvieSmerteRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
 
 const iso = (value: string) => toISODateString(value);
 

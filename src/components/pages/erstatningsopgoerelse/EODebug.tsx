@@ -6,7 +6,7 @@ import ContentBox from '../../layout/ContentBox';
 import type { DebugRowModel, DebugStatus } from '../../../domain/debug/eoDebugTypes';
 import type { SectionId } from '../../../domain/debug/eoDebugNavigationMap';
 import type { EODebugExecutionContext } from '../../../domain/debug/eoDebugExecutionContext';
-import { EO_DEBUG_BUILDERS } from '../../../domain/erstatningsopgoerelse/eoDebugBuilderRegistry';
+import { EO_DEBUG_BUILDERS } from '../../../domain/debug/eoDebugBuilderRegistry';
 import { aarsloenMax } from '../../../data/regulationRates';
 import {
   getEffektiveSatserForDato,
@@ -51,7 +51,7 @@ import StandardDisplayTable, {
 } from '../../tables/StandardDisplayTable';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from '../../../domain/erstatningsopgoerelse/eoDebugIndkomstModel';
+import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from '../../../domain/debug/eoDebugIndkomstModel';
 import { calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/tafCalculations';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
