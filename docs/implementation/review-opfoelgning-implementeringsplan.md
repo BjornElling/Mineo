@@ -175,6 +175,8 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 
 ### C1. Fund 1–3: Konsolidér state-arkitektur i persistence-laget
 
+**Status:** ⚠️ Igang (2026-02-27): Fase 1 + centrale dele af Fase 2 samt dele af Fase 3 er implementeret samlet.
+
 **Problem:** Dobbelttilstand (React-cache + Zustand) og manuelle revisions-token-mekanismer skaber kompleksitet og latent divergence-risiko. `replaceAllPersistedData` har uafklaret atomicitetsadfærd.
 
 **Strategi:** Faseopdelt refaktor med characterization-tests før kodeændringer. Hver fase skal kunne stå alene — systemet skal være korrekt efter enhver fase, uanset om næste fase gennemføres.
