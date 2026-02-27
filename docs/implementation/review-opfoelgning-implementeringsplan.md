@@ -24,7 +24,7 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 | 6 | Auth-gate er teknisk omgåelig via localStorage/DevTools; mangler konsistent dokumentation af formål | Medium | M0 |
 | 7 | Overlap og uklare ansvarslinjer mellem dato-utility-filer (`dateUtils`, `isoDateHelpers`, `branded`, `domain/dates/*`) | Medium | D1 |
 | 8 | ~~Forbudt datomønster i `addOneDayIso`~~ | ~~Høj~~ | ✅ Implementeret |
-| 9 | Eksporterede sub-schema-typer + robustgørelse af `loenindkomstAnsaettelsesforholdSchema` | Medium | ⚠️ Delvist impl. — resterende scope afklares i M0 |
+| 9 | Eksporterede sub-schema-typer + robustgørelse af `loenindkomstAnsaettelsesforholdSchema` | Medium | ✅ Implementeret 2026-02-27 (M0-2 afklaret) |
 | 10 | `formSchemas.ts` (845 linjer): monolitisk fil blander primitive helpers, enums og sektionsschemas | Medium | B3 |
 | 11 | `src/domain/erstatningsopgoerelse/sharedPdfUtils.ts` og `src/domain/erstatningsopgoerelse/eoPdfLoenudvikling.ts` har tværlagsforbrug men ligger i domænemappe med PDF-navngivning | Medium | B1 |
 
@@ -79,6 +79,23 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 **Exit-kriterier:**
 1. Ét kanonisk dokument i `docs/architecture/` beskriver auth-formål og begrænsning.
 2. Ingen modstridende formuleringer i kode eller docs.
+
+### M0-2. Fund 9: Afklaring af restscope (eksporterede sub-schema-typer + robustgørelse)
+
+**Status:** ✅ Afklaret 2026-02-27 (scope lukket som implementeret)
+
+**Afklaring:**
+1. Eksporterede sub-schema-typer er til stede via facade-exports i `src/schemas/formSchemas.ts`, inkl.:
+   - `loenindkomstAnsaettelsesforholdSchema`
+   - `LoenindkomstAnsaettelsesforhold`
+2. `loenindkomstAnsaettelsesforholdSchema` er robustgjort som strict, kompositionelt schema i `src/schemas/formSchemas/sections/erstatningsopgoerelseSchemas.ts` med eksplicit sammensætning af:
+   - basefelter (`loenindkomstAnsaettelsesforholdBaseSchema`)
+   - anciennitet (`loenindkomstAnciennitetSchema`)
+   - lønudvikling/satser (`loenudviklingOgSatserSchema`)
+
+**Konklusion:**
+- Fund 9's resterende M0-afklaring er lukket.
+- Ingen yderligere M0-opgave nødvendig for Fund 9 på nuværende tidspunkt.
 
 ---
 
@@ -233,6 +250,8 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 
 ### C2. Fund 4 + Opfølgning 2: EO-PDF skal være renderer, ikke beregningsmotor
 
+**Status:** 🚧 Delvist implementeret 2026-02-27 (Fase 0 etableret med `src/domain/erstatningsopgoerelse/eoCanonicalOutput.ts`; initiale paritetstests i `src/__tests__/domain/erstatningsopgoerelse/eoCanonicalOutput*.test.ts`)
+
 **Problem:** PDF-laget (`src/utils/pdf/erstatningsopgoerelsePdf.ts`) indeholder selvstændig beregningslogik og direkte dataopslag parallelt med engines/pipeline. Bryder `calculation-architecture.md`-kontrakten.
 
 **Strategi:** Paritet først, flytning bagefter.
@@ -333,7 +352,7 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 
 | Milepæl | Indhold | Forudsætning |
 |---------|---------|--------------|
-| **M0** | Auth-dokumentation (M0-1) + afklaring af Fund 9 restscope | Ingen |
+| **M0** | Auth-dokumentation (M0-1) + Fund 9 restscope afklaret/lukket (M0-2) | Ingen |
 | **M1** | Spor B: B1 klassificering, B2 quality-tests, B4 kontekstfiler | Ingen (kan køre parallelt med M0) |
 | **M2** | C1 Fase 0–1 (state characterization + én SoT) | M1 (B1 klassificering bruges af C2) |
 | **M2b** | C1 Fase 2–3 (revisionsmekanisme + domænespecifik fejlstate) | M2 (Fase 0–1 grøn) |

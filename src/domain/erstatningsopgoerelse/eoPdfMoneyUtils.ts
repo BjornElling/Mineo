@@ -1,5 +1,8 @@
+import { z } from 'zod';
 import { roundByMethod } from '../../utils/rounding';
 import type { MoneyKroner, MoneyOre } from './eoPdfModelTypes';
+
+export const moneyOreSchema = z.number().int();
 
 export const ensureMoneyOre = (value: number): MoneyOre => {
   if (!Number.isFinite(value) || !Number.isInteger(value)) {
