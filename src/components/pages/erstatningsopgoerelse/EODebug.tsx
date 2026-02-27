@@ -26,7 +26,6 @@ import {
   getReguleringsDatoIntervalForStatistikModel,
   getStatistiskLoenudvikling,
   type Kvartal,
-  type StatistiskLoenudviklingId,
 } from '../../../data/statistiskLoenudviklingRates';
 import { formatKRLSatstabelDisplay, getKRLSatstabel, getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
 import { loenPaaHelligdageSchema } from '../../../schemas/formSchemas';
@@ -59,6 +58,7 @@ import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../../../doma
 import { validateIsoRange } from '../../../utils/isoDateHelpers';
 import {
   convertAnciennitetSats,
+  resolveStatistikModelId,
   formatAmount2,
   formatAmountWithoutTrailingDecimals,
   hasAnyPctSourceOrInput,
@@ -169,15 +169,7 @@ const normalizeTableValue = (value: string | AmountValue | undefined): string =>
   return formatted === '' ? '-' : formatted;
 };
 
-const resolveStatistikModelIdFromLabel = (
-  label: string | undefined
-): StatistiskLoenudviklingId | undefined => {
-  if (!label) return undefined;
-  const trimmed = label.trim();
-  if (trimmed.startsWith('ILON12')) return 'ILON12' as StatistiskLoenudviklingId;
-  if (trimmed.startsWith('SBLON2')) return 'SBLON2' as StatistiskLoenudviklingId;
-  return undefined;
-};
+const resolveStatistikModelIdFromLabel = resolveStatistikModelId;
 
 const getRangeForManualRegulering = (
   baseIso: ISODateString | undefined,

@@ -18,7 +18,10 @@ import { parseDanishDate, formatDanishDate, createDate } from '../dateUtils';
 import { roundByMethod } from '../rounding';
 import { aarsloenMax } from '../../data/regulationRates';
 import { TODAY } from '../../config/dateRanges';
-import { formatAmountWithoutTrailingDecimals } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
+import {
+  formatAmountWithoutTrailingDecimals,
+  resolveStatistikModelId,
+} from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import {
   getEffektiveSatserForPeriode,
   getOffentligTillaegsSatserForDato,
@@ -111,13 +114,7 @@ const resolveOffentligLoenEkstraGrundloenTekst = (params: Readonly<{
 
 const resolveStatistikModelIdFromLabel = (
   label: string
-): StatistiskLoenudviklingId | undefined => {
-  const trimmed = label.trim();
-  if (trimmed === '') return undefined;
-  if (trimmed.startsWith('ILON12')) return 'ILON12' as StatistiskLoenudviklingId;
-  if (trimmed.startsWith('SBLON2')) return 'SBLON2' as StatistiskLoenudviklingId;
-  return undefined;
-};
+): StatistiskLoenudviklingId | undefined => resolveStatistikModelId(label);
 
 const formatOverenskomstPercent = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return '-';

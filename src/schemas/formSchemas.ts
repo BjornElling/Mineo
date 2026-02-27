@@ -721,7 +721,7 @@ export const eoLoenudviklingOgSatserSchema = createLoenudviklingOgSatserSchema(
 export type LoenudviklingOgSatser = z.infer<typeof loenudviklingOgSatserSchema>;
 export type EOLoenudviklingOgSatser = z.infer<typeof eoLoenudviklingOgSatserSchema>;
 
-export const loenindkomstAnsaettelsesforholdSchema = z.object({
+const loenindkomstAnsaettelsesforholdBaseSchema = z.object({
   id: z.string().min(1, 'ID må ikke være tomt'),
 
   navnPaaArbejdssted: optionalString,
@@ -744,12 +744,20 @@ export const loenindkomstAnsaettelsesforholdSchema = z.object({
   // Indtægtsoplysninger (samme tabel-format som i Årsløn)
   indtaegtsoplysningerTableData: z.array(aarsloenTableRowSchema),
   fuldLoenUnderFerie: jaNejEnum,
-}).merge(z.object({
+}).strict();
+
+const loenindkomstAnciennitetSchema = z.object({
   harAnciennitetstillaegEfterSkadesdatoen: z.boolean(),
   anciennitetstillaegDato: optionalIsoDateString,
   anciennitetstillaegSatsAngivesPer: anciennitetSatsPerEnum,
   anciennitetstillaegSats: nonNegativeAmountValue,
-}).strict()).merge(loenudviklingOgSatserSchema).strict();
+}).strict();
+
+export const loenindkomstAnsaettelsesforholdSchema = z.object({
+  ...loenindkomstAnsaettelsesforholdBaseSchema.shape,
+  ...loenindkomstAnciennitetSchema.shape,
+  ...loenudviklingOgSatserSchema.shape,
+}).strict();
 
 export type LoenindkomstAnsaettelsesforhold = z.infer<typeof loenindkomstAnsaettelsesforholdSchema>;
 
