@@ -31,3 +31,10 @@ export const toOre = (value: MoneyKroner): MoneyOre => {
 };
 
 export const fromOre = (value: MoneyOre): MoneyKroner => value / 100;
+
+export const scaleMoneyOre = (value: MoneyOre, factor: number): MoneyOre => {
+  if (!Number.isFinite(factor) || factor <= 0 || factor > 1) {
+    throw new Error('Ugyldig faktor for MoneyOre-skalering');
+  }
+  return ensureMoneyOre(roundByMethod(value * factor, 0, 'halfAwayFromZero'));
+};

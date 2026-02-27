@@ -13,6 +13,7 @@ import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { isoDateToDate } from '../dates/isoDate';
 import { addDays } from '../../utils/dateUtils';
 import { isSvieSmerteRowEmpty } from './rowEmpty';
+import { parseForligsgrad } from './forligsgrad';
 
 type MoneyOre = number;
 type MoneyKroner = number;
@@ -32,6 +33,10 @@ export type SvieSmerteEngineOutput = Readonly<{
   satserPerDagOre: MoneyOre | null;
   satserMaxOre: MoneyOre | null;
   forligLabel: string | null;
+  forligSatserSuffix: string | null;
+  forligFactor: number | null;
+  satserPerDagFoerForligOre: MoneyOre | null;
+  satserMaxFoerForligOre: MoneyOre | null;
   tidligereOre: MoneyOre | null;
   aktuelOre: MoneyOre | null;
   sygedage: number;
@@ -72,27 +77,6 @@ const toOre = (value: MoneyKroner): MoneyOre => {
 };
 
 const fromOre = (value: MoneyOre): MoneyKroner => value / 100;
-
-const parseForligsgrad = (values: DeepReadonly<ErstatningsopgoerelseValues>): { factor: number | null; label: string | null } => {
-  const procentValue = values.forligAnsvarsgradProcent;
-  if (typeof procentValue === 'number' && Number.isFinite(procentValue) && procentValue > 0 && procentValue <= 100) {
-    return { factor: procentValue / 100, label: ` (forlig på ${procentValue}%)` };
-  }
-
-  const broekValue = values.forligAnsvarsgradBroek;
-  if (typeof broekValue === 'string' && broekValue.trim() !== '') {
-    const match = broekValue.trim().match(/^(\d+)\/(\d+)$/);
-    if (match) {
-      const taeller = Number.parseInt(match[1], 10);
-      const naevner = Number.parseInt(match[2], 10);
-      if (taeller > 0 && naevner > 0 && taeller <= naevner) {
-        return { factor: taeller / naevner, label: ` (forlig på ${broekValue.trim()})` };
-      }
-    }
-  }
-
-  return { factor: null, label: null };
-};
 
 const mergePeriods = (periods: { fra: Date; til: Date }[]): { fra: Date; til: Date }[] => {
   if (periods.length === 0) return [];
@@ -282,7 +266,12 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
 
   let satserPerDagOre: MoneyOre | null = null;
   let satserMaxOre: MoneyOre | null = null;
-  let forligLabel: string | null = null;
+  const parsedForlig = parseForligsgrad(values);
+  let forligLabel: string | null = parsedForlig?.label ?? null;
+  let forligSatserSuffix: string | null = parsedForlig ? ` (forlig på ${parsedForlig.label})` : null;
+  let forligFactor: number | null = parsedForlig?.factor ?? null;
+  let satserPerDagFoerForligOre: MoneyOre | null = null;
+  let satserMaxFoerForligOre: MoneyOre | null = null;
 
   if (harInputPerioder && typeof satserAarValue === 'number') {
     const satsPerDag = svieSmertePrDag[satserAarValue as keyof typeof svieSmertePrDag];
@@ -290,10 +279,11 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     if (!satsPerDag || !satsMax) {
       throw new Error(`Ingen svie/smerte satser for år ${satserAarValue}`);
     }
-    const forlig = parseForligsgrad(values);
-    forligLabel = forlig.label;
-    const perDagKroner = forlig.factor !== null ? satsPerDag * forlig.factor : satsPerDag;
-    const maxKroner = forlig.factor !== null ? satsMax * forlig.factor : satsMax;
+    satserPerDagFoerForligOre = toOre(roundKroner(satsPerDag));
+    satserMaxFoerForligOre = toOre(roundKroner(satsMax));
+    const forlig = parsedForlig;
+    const perDagKroner = forlig ? satsPerDag * forlig.factor : satsPerDag;
+    const maxKroner = forlig ? satsMax * forlig.factor : satsMax;
     satserPerDagOre = toOre(roundKroner(perDagKroner));
     satserMaxOre = toOre(roundKroner(maxKroner));
   }
@@ -331,6 +321,10 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     satserPerDagOre,
     satserMaxOre,
     forligLabel,
+    forligSatserSuffix,
+    forligFactor,
+    satserPerDagFoerForligOre,
+    satserMaxFoerForligOre,
     tidligereOre,
     aktuelOre,
     sygedage,

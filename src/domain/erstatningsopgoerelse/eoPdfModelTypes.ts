@@ -23,6 +23,7 @@ export type PdfModel = Readonly<{
     dagsDatoISO: ISODateString;
   }> | null;
   svieSmerte: SvieSmertePdfModel;
+  forlig: ForligPdfModel;
   tabtArbejdsfortjeneste: TabtArbejdsfortjenestePdfModel;
   oevrigeKrav: OevrigeKravPdfModel;
   samlet: Readonly<{
@@ -33,6 +34,18 @@ export type PdfModel = Readonly<{
   }>;
   saerligeKommentarer: string | null;
 }>;
+
+export type ForligPdfModel =
+  | Readonly<{
+    erIndgaaet: false;
+    label: null;
+    dato: null;
+  }>
+  | Readonly<{
+    erIndgaaet: true;
+    label: string;
+    dato: ISODateString | null;
+  }>;
 
 export type SvieSmertePdfModel = Readonly<{
   beregnes: boolean;
@@ -45,6 +58,10 @@ export type SvieSmertePdfModel = Readonly<{
   satserPerDag: Calculable<MoneyOre>;
   satserMax: Calculable<MoneyOre>;
   forligLabel: string | null;
+  forligSatserSuffix: string | null;
+  forligFactor: number | null;
+  satserPerDagFoerForlig: Calculable<MoneyOre>;
+  satserMaxFoerForlig: Calculable<MoneyOre>;
   tidligere: Calculable<MoneyOre>;
   aktuel: Calculable<MoneyOre>;
   sygedage: number;
@@ -66,6 +83,7 @@ export type TabtArbejdsfortjenestePdfModel = Readonly<{
   loenudvikling: LoenudviklingPdfModel | null;
   tafIndtaegter: TafIndtaegterPdfModel | null;
   tidligereModtagetTaf: Calculable<MoneyOre>;
+  tabtArbejdsfortjenesteFoerForligOre: MoneyOre;
   tabtArbejdsfortjenesteOre: MoneyOre;
 }>;
 
@@ -152,5 +170,6 @@ export type TafIndtaegterPdfModel = Readonly<{
 
 export type OevrigeKravPdfModel = Readonly<{
   entries: readonly { dateText: string; udgiftTil: string; amountOre: MoneyOre }[];
+  totalFoerForligOre: MoneyOre;
   totalOre: MoneyOre;
 }>;

@@ -5,7 +5,7 @@ import { buildOevrigeKravModel, buildSvieSmerteModel, buildTabtArbejdsfortjenest
 import type {
   PdfModel,
 } from './eoPdfModelTypes';
-import { clampMoneyOreToZero, ensureMoneyOre } from './eoPdfMoneyUtils';
+import { clampMoneyOreToZero, ensureMoneyOre, scaleMoneyOre } from './eoPdfMoneyUtils';
 import {
   formatDateShort,
   formatDateLong,
@@ -74,19 +74,49 @@ export const buildErstatningsopgoerelsePdfModel = (
   };
 
   const svieSmerte = buildSvieSmerteModel(safeEo, safeStamdata);
-  const tabtArbejdsfortjeneste = buildTabtArbejdsfortjenesteModel(safeEo, safeStamdata);
-  const oevrigeKrav = buildOevrigeKravModel(safeEo.oevrigeKravPerioder ?? []);
+  const tabtArbejdsfortjenesteRaw = buildTabtArbejdsfortjenesteModel(safeEo, safeStamdata);
+  const oevrigeKravRaw = buildOevrigeKravModel(safeEo.oevrigeKravPerioder ?? []);
+  const forlig = svieSmerte.forligFactor !== null && svieSmerte.forligLabel
+    ? {
+      erIndgaaet: true,
+      label: svieSmerte.forligLabel,
+      dato: safeEo.forligDato ?? null,
+    } as const
+    : {
+      erIndgaaet: false,
+      label: null,
+      dato: null,
+    } as const;
+  const forligFactor = forlig.erIndgaaet ? svieSmerte.forligFactor : null;
+  if (forlig.erIndgaaet && forligFactor === null) {
+    throw new Error('Forlig-faktor mangler i svie/smerte-model');
+  }
+
+  const tabtArbejdsfortjenesteOre = forlig.erIndgaaet && forligFactor !== null
+    ? clampMoneyOreToZero(scaleMoneyOre(tabtArbejdsfortjenesteRaw.tabtArbejdsfortjenesteOre, forligFactor))
+    : tabtArbejdsfortjenesteRaw.tabtArbejdsfortjenesteOre;
+  const tabtArbejdsfortjeneste = {
+    ...tabtArbejdsfortjenesteRaw,
+    tabtArbejdsfortjenesteOre,
+  };
+  const oevrigeKravOre = forlig.erIndgaaet && forligFactor !== null
+    ? clampMoneyOreToZero(scaleMoneyOre(oevrigeKravRaw.totalFoerForligOre, forligFactor))
+    : oevrigeKravRaw.totalFoerForligOre;
+  const oevrigeKrav = {
+    ...oevrigeKravRaw,
+    totalOre: oevrigeKravOre,
+  };
 
   const svieSmerteOre = clampMoneyOreToZero(svieSmerte.totalOre);
-  const tabtArbejdsfortjenesteOre = clampMoneyOreToZero(tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre);
-  const oevrigeKravOre = clampMoneyOreToZero(oevrigeKrav.totalOre);
+  const tabtArbejdsfortjenesteOreClamped = clampMoneyOreToZero(tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre);
+  const oevrigeKravOreClamped = clampMoneyOreToZero(oevrigeKrav.totalOre);
   const totalOre = clampMoneyOreToZero(
-    ensureMoneyOre(svieSmerteOre + tabtArbejdsfortjenesteOre + oevrigeKravOre)
+    ensureMoneyOre(svieSmerteOre + tabtArbejdsfortjenesteOreClamped + oevrigeKravOreClamped)
   );
   const samlet = {
     svieSmerteOre,
-    tabtArbejdsfortjenesteOre,
-    oevrigeKravOre,
+    tabtArbejdsfortjenesteOre: tabtArbejdsfortjenesteOreClamped,
+    oevrigeKravOre: oevrigeKravOreClamped,
     totalOre,
   };
 
@@ -99,6 +129,7 @@ export const buildErstatningsopgoerelsePdfModel = (
     skadestypeLinje,
     brevhoved,
     svieSmerte,
+    forlig,
     tabtArbejdsfortjeneste,
     oevrigeKrav,
     samlet,

@@ -239,6 +239,8 @@ export const buildEODebugForligRows = (
   // Beregn ansvarsgrad baseret på procent eller brøk
   const procentValue = values.forligAnsvarsgradProcent;
   const broekValue = values.forligAnsvarsgradBroek;
+  const harProcent = typeof procentValue === 'number';
+  const harBroek = isNonEmptyString(broekValue);
 
   // Tjek om der er fejl i procent eller brøk felterne
   const procentErrors = collectPresentFieldErrors(errors.forligAnsvarsgradProcent);
@@ -260,6 +262,7 @@ export const buildEODebugForligRows = (
   // Konverter forligDato til dansk format
   const danishForligDato = isoToDanish(values.forligDato);
   const hasForligDato = isNonEmptyString(danishForligDato);
+  const manglerAnsvarsgradVedForligDato = hasForligDato && !harProcent && !harBroek;
   const forligDatoErrors = hasForligDato ? errors.forligDato : undefined;
 
   // Konverter procent til string for display
@@ -279,11 +282,18 @@ export const buildEODebugForligRows = (
     {
       id: 'forlig.beregnetAnsvarsgrad',
       label: 'Beregnet ansvarsgrad',
-      displayValue: beregnetAnsvarsgrad,
-      status: 'ok',
+      displayValue: manglerAnsvarsgradVedForligDato
+        ? 'Fejl (Ingen forligsgrad - procent eller brøk)'
+        : beregnetAnsvarsgrad,
+      status: manglerAnsvarsgradVedForligDato ? 'error' : 'ok',
+      message: manglerAnsvarsgradVedForligDato
+        ? 'Der er angivet dato for forlig, men ingen forligsgrad (procent eller brøk)'
+        : undefined,
+      summaryDisplay: 'messageOnly',
       dependsOn: [
         { kind: 'id', id: 'forlig.ansvarsgradProcent' },
         { kind: 'id', id: 'forlig.ansvarsgradBroek' },
+        { kind: 'id', id: 'forlig.dato' },
       ],
     },
     {

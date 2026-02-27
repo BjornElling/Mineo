@@ -31,9 +31,9 @@ describe('ydelsestyper registry', () => {
     expect(andetIndex).toBe(uddannelseshjaelpIndex + 1);
   });
 
-  it('alle 13 forventede ydelsestyper er registreret', () => {
+  it('alle 14 forventede ydelsestyper er registreret', () => {
     const expected = [
-      'dagpenge', 'efterloen', 'flextilskud', 'kontanthjaelp', 'ledighedsydelse',
+      'dagpenge', 'efterloen', 'flextilskud', 'foertidspension', 'kontanthjaelp', 'ledighedsydelse',
       'midlertidigt_eet', 'pension', 'ressourceforloebsydelse', 'revalideringsydelse',
       'sygedagpenge', 'su', 'uddannelseshjaelp', 'andet',
     ];

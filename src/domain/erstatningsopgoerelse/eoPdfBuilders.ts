@@ -93,6 +93,12 @@ export const buildSvieSmerteModel = (
   const satserMax: Calculable<MoneyOre> = engine.satserMaxOre === null
     ? notCalculableMoney('Satser kan ikke beregnes')
     : asCalculable(ensureMoneyOre(engine.satserMaxOre));
+  const satserPerDagFoerForlig: Calculable<MoneyOre> = engine.satserPerDagFoerForligOre === null
+    ? notCalculableMoney('Satser kan ikke beregnes')
+    : asCalculable(ensureMoneyOre(engine.satserPerDagFoerForligOre));
+  const satserMaxFoerForlig: Calculable<MoneyOre> = engine.satserMaxFoerForligOre === null
+    ? notCalculableMoney('Satser kan ikke beregnes')
+    : asCalculable(ensureMoneyOre(engine.satserMaxFoerForligOre));
   const tidligere: Calculable<MoneyOre> = engine.tidligereOre === null
     ? notCalculableMoney('Ikke angivet')
     : asCalculable(ensureMoneyOre(engine.tidligereOre));
@@ -116,6 +122,10 @@ export const buildSvieSmerteModel = (
     satserPerDag,
     satserMax,
     forligLabel: engine.forligLabel,
+    forligSatserSuffix: engine.forligSatserSuffix,
+    forligFactor: engine.forligFactor,
+    satserPerDagFoerForlig,
+    satserMaxFoerForlig,
     tidligere,
     aktuel,
     sygedage: engine.sygedage,
@@ -299,6 +309,7 @@ export const buildTabtArbejdsfortjenesteModel = (
     loenudvikling: tafMonetary.loenudvikling,
     tafIndtaegter: tafMonetary.tafIndtaegter,
     tidligereModtagetTaf: tafMonetary.tidligereModtagetTaf,
+    tabtArbejdsfortjenesteFoerForligOre: tafMonetary.tabtArbejdsfortjenesteOre,
     tabtArbejdsfortjenesteOre: tafMonetary.tabtArbejdsfortjenesteOre,
   };
 };
@@ -326,5 +337,5 @@ export const buildOevrigeKravModel = (rows: OevrigeKravRow[]): OevrigeKravPdfMod
     entries.push({ dateText, udgiftTil, amountOre: row.amountOre });
   }
 
-  return { entries, totalOre: parsed.totalOre };
+  return { entries, totalFoerForligOre: parsed.totalOre, totalOre: parsed.totalOre };
 };

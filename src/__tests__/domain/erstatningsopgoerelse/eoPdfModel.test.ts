@@ -8,6 +8,7 @@ import { buildErstatningsopgoerelsePdfModel, ensureMoneyOre, resolveLoenudviklin
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/tafCalculations';
 import { beregningsmetodeEnum, loenPaaHelligdageSchema, loenudviklingStatistikModelEnum } from '../../../schemas/formSchemas';
+import { roundByMethod } from '../../../utils/rounding';
 
 const iso = (value: string) => toISODateString(value);
 
@@ -267,6 +268,63 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
 
     expect(model.oevrigeKrav.totalOre).toBe(124450);
     expect(model.samlet.oevrigeKravOre).toBe(124450);
+  });
+
+  it('anvender forligsgrad på tabt arbejdsfortjeneste i PDF-model', () => {
+    const baseValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(48705.13),
+      beregnesTabtArbejdsfortjeneste: 'Ja',
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2021-06-01'), til: iso('2021-08-15'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
+    });
+    const withForlig = makeValues({
+      ...baseValues,
+      forligAnsvarsgradProcent: 50,
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2021-06-01') });
+
+    const baseModel = buildErstatningsopgoerelsePdfModel(stamdata, baseValues, { dagsDatoISO: iso('2026-02-10') });
+    const forligModel = buildErstatningsopgoerelsePdfModel(stamdata, withForlig, { dagsDatoISO: iso('2026-02-10') });
+
+    expect(forligModel.forlig.erIndgaaet).toBe(true);
+    expect(forligModel.forlig.label).toBe('50%');
+    expect(forligModel.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteFoerForligOre).toBe(
+      baseModel.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre
+    );
+    expect(forligModel.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre).toBe(
+      roundByMethod(baseModel.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre * 0.5, 0, 'halfAwayFromZero')
+    );
+  });
+
+  it('anvender forligsgrad på øvrige krav i PDF-model', () => {
+    const baseValues = makeValues({
+      oevrigeKravPerioder: [
+        { id: '1', dato: iso('2024-02-01'), udgiftTil: 'Test', beloeb: asAmountValue(1234.5) },
+        { id: '2', dato: iso('2024-03-01'), udgiftTil: 'Test 2', beloeb: asAmountValue(10) },
+      ],
+    });
+    const withForlig = makeValues({
+      ...baseValues,
+      forligAnsvarsgradBroek: '2/3',
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, withForlig, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.forlig.erIndgaaet).toBe(true);
+    expect(model.forlig.label).toBe('2/3');
+    expect(model.oevrigeKrav.totalFoerForligOre).toBe(124450);
+    expect(model.oevrigeKrav.totalOre).toBe(roundByMethod(124450 * (2 / 3), 0, 'halfAwayFromZero'));
+    expect(model.samlet.oevrigeKravOre).toBe(model.oevrigeKrav.totalOre);
   });
 
   it('afviser øvrige krav med manglende beløb', () => {

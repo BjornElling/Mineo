@@ -195,6 +195,15 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     writer,
   } = ctx;
 
+  if (model.forlig.erIndgaaet) {
+    renderSectionHeader('Erstatningsniveau', lineHeight);
+    const forligDatoTekst = model.forlig.dato ? `den ${formatDateLong(model.forlig.dato)}` : null;
+    const tekst = forligDatoTekst
+      ? `Der er ${forligDatoTekst} indgået forlig i sagen på betaling af ${model.forlig.label}.`
+      : `Der er indgået forlig i sagen på betaling af ${model.forlig.label}.`;
+    safeAddWrappedText(tekst);
+  }
+
   renderSectionHeader('Svie- og smertegodtgørelse', lineHeight);
   renderSubheader('Status', lineHeight, { addTopSpacing: false });
   writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
@@ -223,12 +232,52 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
     const perDagDisplayWithKr = renderMoneyWithKrTrimmed(model.svieSmerte.satserPerDag);
     const maxDisplayWithKr = renderMoneyWithKrTrimmed(model.svieSmerte.satserMax);
-    if (model.svieSmerte.delvisFaktor !== 1 && model.svieSmerte.satserPerDag.status === 'ok') {
+    const perDagDisplayWithKrFoerForlig = renderMoneyWithKrTrimmed(model.svieSmerte.satserPerDagFoerForlig);
+    const maxDisplayWithKrFoerForlig = renderMoneyWithKrTrimmed(model.svieSmerte.satserMaxFoerForlig);
+    const forligSatsLabel = model.svieSmerte.forligLabel
+      ? model.svieSmerte.forligLabel.replace('%', ' %')
+      : null;
+    const hasSygedage = model.svieSmerte.sygedage > 0;
+    const hasDelviseSygedage = model.svieSmerte.delviseSygedage > 0;
+    const visForligMedFuldeSatser =
+      forligSatsLabel !== null &&
+      model.svieSmerte.satserPerDagFoerForlig.status === 'ok' &&
+      model.svieSmerte.satserMaxFoerForlig.status === 'ok';
+    if (model.svieSmerte.satserPerDag.status === 'ok') {
       const delvisSatsOre = Math.round(model.svieSmerte.satserPerDag.value * model.svieSmerte.delvisFaktor);
+      const delvisSatsOreFoerForlig = model.svieSmerte.satserPerDagFoerForlig.status === 'ok'
+        ? Math.round(model.svieSmerte.satserPerDagFoerForlig.value * model.svieSmerte.delvisFaktor)
+        : null;
       const delvisSatsDisplayWithKr = formatMoneyOreWithKrTrimmed(delvisSatsOre);
-      safeAddWrappedText(`Taksten udgør ${perDagDisplayWithKr} pr. sygedag og ${delvisSatsDisplayWithKr} pr. delvise sygedag, dog højst ${maxDisplayWithKr}`);
-    } else {
-      safeAddWrappedText(`Taksten udgør ${perDagDisplayWithKr} pr. sygedag, dog højst ${maxDisplayWithKr}`);
+      const delvisSatsDisplayWithKrFoerForlig = delvisSatsOreFoerForlig === null
+        ? null
+        : formatMoneyOreWithKrTrimmed(delvisSatsOreFoerForlig);
+
+      const takstLed: string[] = [];
+      if (hasSygedage) {
+        takstLed.push(`${perDagDisplayWithKr} pr. sygedag`);
+      }
+      if (hasDelviseSygedage) {
+        takstLed.push(`${delvisSatsDisplayWithKr} pr. delvise sygedag`);
+      }
+
+      const takstLedFoerForlig: string[] = [];
+      if (hasSygedage) {
+        takstLedFoerForlig.push(`${perDagDisplayWithKrFoerForlig} pr. sygedag`);
+      }
+      if (hasDelviseSygedage && delvisSatsDisplayWithKrFoerForlig) {
+        takstLedFoerForlig.push(`${delvisSatsDisplayWithKrFoerForlig} pr. delvise sygedag`);
+      }
+
+      if (visForligMedFuldeSatser && takstLedFoerForlig.length > 0) {
+        safeAddWrappedText(
+          `Taksten udgør ${forligSatsLabel} af (${takstLedFoerForlig.join(' og ')}, dog højst ${maxDisplayWithKrFoerForlig})`
+        );
+      } else if (takstLed.length > 0) {
+        safeAddWrappedText(`Taksten udgør ${takstLed.join(' og ')}, dog højst ${maxDisplayWithKr}`);
+      } else {
+        safeAddWrappedText(`Taksten udgør ${perDagDisplayWithKr} pr. sygedag, dog højst ${maxDisplayWithKr}`);
+      }
     }
 
     const tidligere = model.svieSmerte.tidligere;
@@ -652,9 +701,12 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       if (tidligereModtagetTaf.status === 'ok') {
         ledFoerLigmed.push(formatCurrencyFromOre(tidligereModtagetTaf.value));
       }
-      const leftText = `${ledFoerLigmed
+      const expressionText = `${ledFoerLigmed
         .map((led, index) => (index === ledFoerLigmed.length - 1 ? `${led}${NBSP}kr.` : led))
-        .join(' - ')} =`;
+        .join(' - ')}`;
+      const leftText = model.forlig.erIndgaaet
+        ? `${model.forlig.label} x (${expressionText}) =`
+        : `${expressionText} =`;
       const rightText = formatMoneyOreWithKr(model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre);
       safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'bold' });
     } else if (model.tabtArbejdsfortjeneste.harTafPerioder) {
@@ -718,7 +770,13 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
     if (kravEntries.length > 1) {
       writer.addSpacer(lineHeight * 2);
-      safeAddLeftRightText('I alt', formatMoneyOreWithKr(model.oevrigeKrav.totalOre), kravRightMaxWidth, { rightFontStyle: 'bold', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 });
+      safeAddLeftRightText('I alt', formatMoneyOreWithKr(model.oevrigeKrav.totalFoerForligOre), kravRightMaxWidth, { rightFontStyle: 'bold', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 });
+    }
+
+    if (model.forlig.erIndgaaet) {
+      renderSubheader('Beregnet krav på øvrige krav', lineHeight);
+      const leftText = `${model.forlig.label} x (${formatCurrencyFromOre(model.oevrigeKrav.totalFoerForligOre)}${NBSP}kr.) =`;
+      safeAddLeftRightText(leftText, formatMoneyOreWithKr(model.oevrigeKrav.totalOre), kravRightMaxWidth, { rightFontStyle: 'bold' });
     }
   }
   renderSectionHeader('Samlet erstatningskrav', lineHeight);
@@ -744,7 +802,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     renderSectionHeader('Særlige bemærkninger', lineHeight);
     safeAddWrappedText(saerligeKommentarer);
   }
-  writer.advanceY(doubleLineHeight);
+  renderSectionHeader('Bekræftelse', lineHeight);
   if (afsluttesMed === 'Bekræftet godkendt') {
     safeAddWrappedText('Opgørelsen er gennemgået af skadelidte, som har bekræftet, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevante oplysninger, som skadelidte er bekendt med.');
   } else {

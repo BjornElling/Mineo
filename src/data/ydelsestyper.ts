@@ -30,6 +30,11 @@ const ydelsestyperLiteral = {
     periodisering: 'kalenderdage',
     periodiseringLabel: 'Kalenderdage',
   },
+  foertidspension: {
+    label: 'Førtidspension',
+    periodisering: 'kalenderdage',
+    periodiseringLabel: 'Kalenderdage',
+  },
   kontanthjaelp: {
     label: 'Kontanthjælp',
     periodisering: 'kalenderdage',

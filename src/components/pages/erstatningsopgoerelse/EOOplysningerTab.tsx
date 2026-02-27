@@ -763,19 +763,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     };
   }, [values.forligAnsvarsgradProcent, values.forligAnsvarsgradBroek]);
 
-  // Cross-field validering: Forlig dato kræver ansvarsgrad
-  const forligDatoFejl = React.useMemo(() => {
-    const harForligDato = hasNonEmptyDateValue(values.forligDato);
-    const harProcent = values.forligAnsvarsgradProcent !== undefined && values.forligAnsvarsgradProcent !== null;
-    const harBroek = values.forligAnsvarsgradBroek !== undefined && values.forligAnsvarsgradBroek !== null && values.forligAnsvarsgradBroek.trim() !== '';
-    const harAnsvarsgrad = harProcent || harBroek;
-    const fejl = harForligDato && !harAnsvarsgrad;
-    return {
-      harFejl: fejl,
-      fejlbesked: fejl ? 'Forlig dato kræver ansvarsgrad (procent eller brøk)' : '',
-    };
-  }, [values.forligDato, values.forligAnsvarsgradProcent, values.forligAnsvarsgradBroek]);
-
   // Error reporting for debug/diagnostics (runtime-only).
   // These are intentionally reported to the central field-error model so EODebug can reflect current invalid inputs
   // even when the committed persisted value remains unchanged (draft ≠ committed).
@@ -858,7 +845,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     severity: 'error',
     source: 'rule',
   });
-  const reportForligDatoRuleError = useFormFieldErrorReporter('erstatningsopgoerelse', 'forligDato', { severity: 'error', source: 'rule' });
   const reportForligDatoInputErrorSafe = React.useCallback((errorMsg: string | undefined) => {
     if (!hasNonEmptyDateValue(values.forligDato)) {
       reportForligDatoInputError(undefined);
@@ -876,10 +862,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     reportForligAnsvarsgradBroekRuleError,
     reportForligAnsvarsgradProcentRuleError,
   ]);
-
-  React.useEffect(() => {
-    reportForligDatoRuleError(forligDatoFejl.harFejl ? forligDatoFejl.fejlbesked : undefined);
-  }, [forligDatoFejl.fejlbesked, forligDatoFejl.harFejl, reportForligDatoRuleError]);
 
   const svie = useSvieSmerteRows({ values, setValues, resyncToken: formVersion });
   const taf = useTafRows({ values, setValues, resyncToken: formVersion });
@@ -1262,8 +1244,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
               }}
               noValidRangeCause="Skadesdato"
-              error={forligDatoFejl.harFejl}
-              helperText={forligDatoFejl.fejlbesked}
             />
           </Box>
         </Box>
@@ -2498,5 +2478,3 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 EOOplysningerTab.displayName = 'EOOplysningerTab';
 
 export default EOOplysningerTab;
-
-
