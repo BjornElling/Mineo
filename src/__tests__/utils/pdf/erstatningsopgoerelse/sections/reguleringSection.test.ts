@@ -141,6 +141,52 @@ describe('renderReguleringSection – ansættelsesforhold med ingen regulering',
       expect.anything()
     );
   });
+
+  it('skjuler kun underoverskrift for EO-angivet-løn id, ikke for navnet "EO-oplysninger" alene', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+        id: 'custom-id',
+        navnPaaArbejdssted: 'EO-oplysninger',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+      },
+    ];
+    const { renderSubheader, ctx } = makeContext(eoValues);
+
+    renderReguleringSection(ctx);
+
+    expect(renderSubheader).toHaveBeenCalledWith(
+      'EO-oplysninger',
+      expect.anything(),
+      expect.anything()
+    );
+  });
+});
+
+describe('renderReguleringSection – loenSkadesdatoText input', () => {
+  it('videresender rå saerligFraDatoRegulering til resolveLoenSkadesdatoText', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+        id: 'af-raw-dato',
+        navnPaaArbejdssted: 'Test',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        saerligFraDatoRegulering: undefined,
+      },
+    ];
+    const { ctx } = makeContext(eoValues);
+    ctx.resolveReguleringsdato = vi.fn(() => iso('2024-01-01'));
+
+    renderReguleringSection(ctx);
+
+    expect(ctx.resolveLoenSkadesdatoText).toHaveBeenCalledWith(expect.objectContaining({
+      saerligFraDatoRegulering: undefined,
+    }));
+  });
 });
 
 describe('renderReguleringSection – KRL satstabel-note', () => {

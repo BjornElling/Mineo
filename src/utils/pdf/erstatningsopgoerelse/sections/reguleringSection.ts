@@ -13,7 +13,7 @@ import {
   resolveOverenskomstRef,
 } from '../../../../data/overenskomstRates';
 import type { PdfWriter } from '../../pdfWriter';
-import { resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
+import { EO_ANGIVET_LOEN_ID, resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import {
   formatAmount2,
@@ -300,7 +300,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
 
   for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
     const underoverskrift = ansaettelsesforhold.navnPaaArbejdssted?.trim() || `Ansættelsesforhold ${index + 1}`;
-    const visUnderoverskrift = underoverskrift !== 'EO-oplysninger';
+    const visUnderoverskrift = ansaettelsesforhold.id !== EO_ANGIVET_LOEN_ID;
     if (index > 0) writer.addSpacer(lineHeight);
     if (visUnderoverskrift) {
       renderSubheader(underoverskrift, lineHeight, { addTopSpacing: index > 0 });
@@ -317,7 +317,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     const loenSkadesdatoText = resolveLoenSkadesdatoText({
       subject: 'lønnen',
       skadesdato: skadesdatoIso,
-      saerligFraDatoRegulering: reguleringsdato,
+      saerligFraDatoRegulering: parseOptionalIsoDate(ansaettelsesforhold.saerligFraDatoRegulering),
     });
 
     if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Ingen') {

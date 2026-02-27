@@ -6,6 +6,7 @@ import type {
   PdfModel,
 } from './eoPdfModelTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, scaleMoneyOre } from './eoPdfMoneyUtils';
+import { parseForligsgrad } from './forligsgrad';
 import {
   formatDateShort,
   formatDateLong,
@@ -76,10 +77,11 @@ export const buildErstatningsopgoerelsePdfModel = (
   const svieSmerte = buildSvieSmerteModel(safeEo, safeStamdata);
   const tabtArbejdsfortjenesteRaw = buildTabtArbejdsfortjenesteModel(safeEo, safeStamdata);
   const oevrigeKravRaw = buildOevrigeKravModel(safeEo.oevrigeKravPerioder ?? []);
-  const forlig = svieSmerte.forligFactor !== null && svieSmerte.forligLabel
+  const parsedForlig = parseForligsgrad(safeEo);
+  const forlig = parsedForlig
     ? {
       erIndgaaet: true,
-      label: svieSmerte.forligLabel,
+      label: parsedForlig.label,
       dato: safeEo.forligDato ?? null,
     } as const
     : {
@@ -87,9 +89,9 @@ export const buildErstatningsopgoerelsePdfModel = (
       label: null,
       dato: null,
     } as const;
-  const forligFactor = forlig.erIndgaaet ? svieSmerte.forligFactor : null;
+  const forligFactor = parsedForlig?.factor ?? null;
   if (forlig.erIndgaaet && forligFactor === null) {
-    throw new Error('Forlig-faktor mangler i svie/smerte-model');
+    throw new Error('Forlig-faktor mangler i forligs-model');
   }
 
   const tabtArbejdsfortjenesteOre = forlig.erIndgaaet && forligFactor !== null

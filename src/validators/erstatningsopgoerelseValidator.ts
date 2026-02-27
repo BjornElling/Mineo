@@ -137,6 +137,26 @@ function validateForligAnsvarsgrad(values: ErstatningsopgoerelseValues): Validat
   return errors;
 }
 
+/**
+ * Forlig-dato kræver en gyldig ansvarsgrad (procent eller brøk)
+ */
+function validateForligDatoRequiresAnsvarsgrad(values: ErstatningsopgoerelseValues): ValidationError[] {
+  const hasForligDato = typeof values.forligDato === 'string' && values.forligDato.trim() !== '';
+  if (!hasForligDato) return [];
+
+  const hasProcent = typeof values.forligAnsvarsgradProcent === 'number' && Number.isFinite(values.forligAnsvarsgradProcent);
+  const hasBroek = typeof values.forligAnsvarsgradBroek === 'string' && values.forligAnsvarsgradBroek.trim() !== '';
+  if (hasProcent || hasBroek) return [];
+
+  return [
+    {
+      path: 'forligDato',
+      message: 'Dato for forlig kræver, at ansvarsgrad angives som procent eller brøk',
+      severity: 'error',
+    },
+  ];
+}
+
 // ---- Svie/smerte ----
 
 /**
@@ -662,6 +682,7 @@ export const erstatningsopgoerelseValidator: FormValidator<Erstatningsopgoerelse
       ...validateSchema(values),
       ...validateStandaloneRules(values),
       ...validateForligAnsvarsgrad(values),
+      ...validateForligDatoRequiresAnsvarsgrad(values),
       ...validateSvieSmerte(values),
       ...validateTAF(values),
       ...validateOevrigeKrav(values),
@@ -675,5 +696,4 @@ export const erstatningsopgoerelseValidator: FormValidator<Erstatningsopgoerelse
 };
 
 export default erstatningsopgoerelseValidator;
-
 

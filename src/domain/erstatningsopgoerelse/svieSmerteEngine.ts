@@ -4,7 +4,6 @@ import type { DeepReadonly } from '../../types/deepReadonly';
 import { dateToISO, isISODateString, subtractOneDay } from '../../types/branded';
 import { svieSmerteMax, svieSmertePrDag } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { roundByMethod } from '../../utils/rounding';
 import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../config/dateRanges';
 import { computeRowDateBounds } from './rowDateBounds';
 import { validateISODateRange } from '../../utils/isoDateHelpers';
@@ -14,9 +13,8 @@ import { isoDateToDate } from '../dates/isoDate';
 import { addDays } from '../../utils/dateUtils';
 import { isSvieSmerteRowEmpty } from './rowEmpty';
 import { parseForligsgrad } from './forligsgrad';
-
-type MoneyOre = number;
-type MoneyKroner = number;
+import type { MoneyOre } from './eoPdfModelTypes';
+import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from './eoPdfMoneyUtils';
 
 export type SvieSmerteConstrainedPeriod = Readonly<{
   fra: ISODateString;
@@ -50,33 +48,6 @@ export type SvieSmerteEngineInputSnapshot = Readonly<{
   erstatningsopgoerelse: DeepReadonly<ErstatningsopgoerelseValues>;
   stamdata?: DeepReadonly<Pick<StamdataValues, 'skadesdato' | 'skadestype'>> | null;
 }>;
-
-const ensureMoneyOre = (value: number): MoneyOre => {
-  if (!Number.isFinite(value) || !Number.isInteger(value)) {
-    throw new Error('MoneyOre skal være et heltal');
-  }
-  return value as MoneyOre;
-};
-
-const clampMoneyOreToZero = (value: MoneyOre): MoneyOre => {
-  return value < 0 ? ensureMoneyOre(0) : value;
-};
-
-const roundKroner = (value: number): number => roundByMethod(value, 2, 'halfAwayFromZero');
-
-const toOre = (value: MoneyKroner): MoneyOre => {
-  if (!Number.isFinite(value)) {
-    throw new Error('Ugyldigt beløb: ikke et endeligt tal');
-  }
-  const scaled = value * 100;
-  const rounded = Math.round(scaled);
-  if (Math.abs(scaled - rounded) > 1e-4) {
-    throw new Error('Beløb har flere end 2 decimaler');
-  }
-  return ensureMoneyOre(rounded);
-};
-
-const fromOre = (value: MoneyOre): MoneyKroner => value / 100;
 
 const mergePeriods = (periods: { fra: Date; til: Date }[]): { fra: Date; til: Date }[] => {
   if (periods.length === 0) return [];

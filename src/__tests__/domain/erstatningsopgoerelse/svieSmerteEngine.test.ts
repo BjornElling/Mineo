@@ -55,6 +55,29 @@ describe('computeSvieSmerteEngine', () => {
     expect(result.maxApplied).toBe(true);
   });
 
+  it('anvender forlig før max-cap i svie/smerte', () => {
+    const result = computeSvieSmerteEngine({
+      erstatningsopgoerelse: makeValues({
+        tidligereSsMax: 'Nej',
+        vedroererPeriodeFra: iso('2024-01-01'),
+        vedroererPeriodeTil: iso('2025-02-04'),
+        svieSmertePerioder: [
+          { id: '1', fra: iso('2024-01-01'), til: iso('2025-02-04'), tilstand: 'sygemeldt' },
+        ],
+        svieSmerteSatserAar: 2026,
+        svieSmerteDelvisSygemeldingSats: 'fuld',
+        forligAnsvarsgradProcent: 50,
+        svieSmerteTidligereTotal: asAmountValue(0),
+        svieSmerteAktuelPeriode: asAmountValue(0),
+      }),
+    });
+
+    expect(result.satserPerDagOre).toBe(12_500);
+    expect(result.satserMaxOre).toBe(4_800_000);
+    expect(result.totalOre).toBe(4_800_000);
+    expect(result.maxApplied).toBe(true);
+  });
+
   it('fratraekker tidligere opgjort og aktuel periode', () => {
     const result = computeSvieSmerteEngine({
       erstatningsopgoerelse: makeValues({

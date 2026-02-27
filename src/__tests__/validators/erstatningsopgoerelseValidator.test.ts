@@ -68,6 +68,15 @@ describe('forlig ansvarsgrad', () => {
     });
     expect(hasError(values, 'enten procent eller brøk')).toBe(true);
   });
+
+  it('afviser forlig-dato uden ansvarsgrad', () => {
+    const values = makeValues({
+      forligDato: iso('2024-01-10'),
+      forligAnsvarsgradProcent: undefined,
+      forligAnsvarsgradBroek: undefined,
+    });
+    expect(hasError(values, 'Dato for forlig kræver')).toBe(true);
+  });
 });
 
 // =============================================================================
@@ -641,6 +650,5 @@ describe('samlet validering', () => {
     expect(isValid(values)).toBe(true);
   });
 });
-
 
 
