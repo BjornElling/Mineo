@@ -300,9 +300,12 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
 
   for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
     const underoverskrift = ansaettelsesforhold.navnPaaArbejdssted?.trim() || `Ansættelsesforhold ${index + 1}`;
+    const visUnderoverskrift = underoverskrift !== 'EO-oplysninger';
     if (index > 0) writer.addSpacer(lineHeight);
-    renderSubheader(underoverskrift, lineHeight, { addTopSpacing: index > 0 });
-    writer.addSpacer(lineHeight);
+    if (visUnderoverskrift) {
+      renderSubheader(underoverskrift, lineHeight, { addTopSpacing: index > 0 });
+      writer.addSpacer(lineHeight);
+    }
 
     const valgtRegulering = resolveValgtReguleringDisplay(ansaettelsesforhold);
     const valgtReguleringForSection =
@@ -311,11 +314,10 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
         : valgtRegulering;
     const reguleringsdato = resolveReguleringsdato(stamdataValues, eoValues, ansaettelsesforhold);
     const skadesdatoIso = parseOptionalIsoDate(stamdataValues.skadesdato);
-    const saerligFraDatoIso = parseOptionalIsoDate(ansaettelsesforhold.saerligFraDatoRegulering);
     const loenSkadesdatoText = resolveLoenSkadesdatoText({
       subject: 'lønnen',
       skadesdato: skadesdatoIso,
-      saerligFraDatoRegulering: saerligFraDatoIso,
+      saerligFraDatoRegulering: reguleringsdato,
     });
 
     if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Ingen') {
