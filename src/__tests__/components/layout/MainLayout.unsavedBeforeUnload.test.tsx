@@ -431,6 +431,60 @@ describe('MainLayout (unsaved beforeunload)', () => {
     removeEventListenerSpy.mockRestore();
   });
 
+  it('keeps beforeunload disabled after authoritative replace until a new committed edit happens', async () => {
+    const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
+    const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
+    let ctx: ReturnType<typeof useFormPersistence> | null = null;
+
+    const Probe = () => {
+      const value = useFormPersistence();
+      React.useEffect(() => {
+        ctx = value;
+      }, [value]);
+      return null;
+    };
+
+    render(
+      <AppSettingsProvider>
+        <FormPersistenceProvider>
+          <MemoryRouter initialEntries={['/stamdata']}>
+            <Probe />
+            <MainLayout>
+              <div />
+            </MainLayout>
+          </MemoryRouter>
+        </FormPersistenceProvider>
+      </AppSettingsProvider>
+    );
+
+    await waitFor(() => {
+      expect(ctx).not.toBeNull();
+    });
+
+    act(() => {
+      ctx!.replaceAllPersistedData(createSnapshot('Load baseline'));
+    });
+
+    expect(isBeforeUnloadHandlerRegistered(addEventListenerSpy, removeEventListenerSpy)).toBe(false);
+
+    act(() => {
+      ctx!.persistData('stamdata', stampStamdata('Ny ændring'));
+    });
+
+    await waitFor(() => {
+      expect(getLastBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
+    });
+
+    const handler = getLastBeforeUnloadHandler(addEventListenerSpy)!;
+    const event = { preventDefault: vi.fn(), returnValue: undefined } as unknown as BeforeUnloadEvent;
+    handler(event);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    expect(event.returnValue).toBe('');
+
+    addEventListenerSpy.mockRestore();
+    removeEventListenerSpy.mockRestore();
+  });
+
   it('does not leave beforeunload suppression enabled after failed "Slet alt"', async () => {
     const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
     const deleteFileHandleMock = vi.mocked(deleteFileHandleFromIndexedDB);
