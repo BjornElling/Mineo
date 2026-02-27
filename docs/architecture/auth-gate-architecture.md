@@ -1,4 +1,4 @@
-﻿# Auth-gate arkitektur (normativ afklaring)
+# Auth-gate arkitektur (normativ afklaring)
 
 **Status:** Gældende
 **Scope:** Login-gate i klienten (`src/auth/*`, `src/components/AuthGate.tsx`, `src/components/pages/LoginPage.tsx`)

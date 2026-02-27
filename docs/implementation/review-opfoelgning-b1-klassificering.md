@@ -1,4 +1,4 @@
-﻿# B1 klassificering af cross-layer helpers
+# B1 klassificering af cross-layer helpers
 
 Dato: 2026-02-27
 Kilde: `docs/implementation/review-opfoelgning-implementeringsplan.md` (B1, T4, T8)
