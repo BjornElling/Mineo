@@ -112,6 +112,8 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 
 ### B2. T6: Quality-tests alignment med kontrakter
 
+**Status:** ✅ Implementeret 2026-02-27 (quality-guards + kontrakt-matrix for `src/contracts/*.md`)
+
 **Problem:** `src/__tests__/quality/*` kan være ude af sync med aktuelle kontrakter.
 
 **Scope:**
@@ -128,6 +130,8 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 ---
 
 ### B3. Fund 10: Schema-filstruktur (`formSchemas.ts`)
+
+**Status:** ✅ Implementeret 2026-02-27 (split i `baseSchemas`, `enumSchemas`, sektionsfiler + `formSchemas.ts` facade)
 
 **Problem:** `formSchemas.ts` (845 linjer) er en monolitisk fil med blanding af primitive helpers, enums og sektionsschemas.
 
