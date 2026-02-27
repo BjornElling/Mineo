@@ -197,4 +197,96 @@ describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
 
     expect(eoLoenindkomstInputErrorStore.getState().errors).toEqual({ 'af-1': true });
   });
+
+  it('restores form field-errors on rollback failure', async () => {
+    sessionStorage.clear();
+    sessionStorage.setItem('mineo_stamdata', JSON.stringify(persistedWrapper(stampStamdata('X'))));
+
+    let ctx: ReturnType<typeof useFormPersistence> | null = null;
+    const Capture = () => {
+      const value = useFormPersistence();
+      React.useEffect(() => {
+        ctx = value;
+      }, [value]);
+      return null;
+    };
+
+    render(
+      <FormPersistenceProvider>
+        <Capture />
+      </FormPersistenceProvider>
+    );
+
+    await waitFor(() => {
+      expect(ctx).not.toBeNull();
+    });
+
+    await act(async () => {
+      ctx!.setFieldError('stamdata', 'skadelidte', 'input', { message: 'Før rollback', severity: 'error' });
+    });
+    await waitFor(() => {
+      expect(ctx!.getFieldError('stamdata', 'skadelidte')?.message).toBe('Før rollback');
+    });
+    const beforeRevision = ctx!.getFieldErrorRevision('stamdata');
+
+    const storageProto = Object.getPrototypeOf(window.sessionStorage) as { setItem: (key: string, value: string) => void };
+    const setItemSpy = vi.spyOn(storageProto, 'setItem').mockImplementation(() => {
+      throw new Error('Injected failure');
+    });
+
+    const next = emptySnapshot();
+    next.stamdata = stampStamdata('Y');
+
+    await act(async () => {
+      expect(() => ctx!.replaceAllPersistedData(next)).toThrow();
+    });
+
+    setItemSpy.mockRestore();
+
+    expect(ctx!.getFieldError('stamdata', 'skadelidte')?.message).toBe('Før rollback');
+    expect(ctx!.getFieldErrorRevision('stamdata')).toBe(beforeRevision);
+  });
+
+  it('clears form field-errors and EO input-errors on successful replaceAllPersistedData', async () => {
+    sessionStorage.clear();
+
+    let ctx: ReturnType<typeof useFormPersistence> | null = null;
+    const Capture = () => {
+      const value = useFormPersistence();
+      React.useEffect(() => {
+        ctx = value;
+      }, [value]);
+      return null;
+    };
+
+    render(
+      <FormPersistenceProvider>
+        <Capture />
+      </FormPersistenceProvider>
+    );
+
+    await waitFor(() => {
+      expect(ctx).not.toBeNull();
+    });
+
+    await act(async () => {
+      ctx!.setFieldError('stamdata', 'skadelidte', 'input', { message: 'Skal ryddes', severity: 'error' });
+    });
+    await waitFor(() => {
+      expect(ctx!.getFieldError('stamdata', 'skadelidte')?.message).toBe('Skal ryddes');
+    });
+
+    eoLoenindkomstInputErrorStore.getState().setError('af-1', true);
+    expect(eoLoenindkomstInputErrorStore.getState().errors).toEqual({ 'af-1': true });
+
+    const next = emptySnapshot();
+    next.stamdata = stampStamdata('Efter replace');
+
+    await act(async () => {
+      ctx!.replaceAllPersistedData(next);
+    });
+
+    expect(ctx!.getFieldError('stamdata', 'skadelidte')).toBeUndefined();
+    expect(eoLoenindkomstInputErrorStore.getState().errors).toEqual({});
+  });
 });

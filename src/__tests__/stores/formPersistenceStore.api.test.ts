@@ -114,6 +114,21 @@ describe('formPersistenceStore public API', () => {
     expect(after.sectionRevisions.erstatningsopgoerelse).toBe(before.sectionRevisions.erstatningsopgoerelse + 1);
   });
 
+  it('replaceSectionsAndClearFieldErrors is atomic for sections and field-errors', () => {
+    const store = __createTestStore();
+    store.getState().setFieldError('stamdata', 'skadelidte', 'input', { message: 'Fejl', severity: 'error' });
+    const before = store.getState();
+    const nextSections = createValidSections();
+
+    store.getState().replaceSectionsAndClearFieldErrors(nextSections, VALID_META);
+    const after = store.getState();
+
+    expect(after.sections).toEqual(nextSections);
+    expect(after.authoritativeSnapshotEpoch).toBe(before.authoritativeSnapshotEpoch + 1);
+    expect(after.fieldErrors.stamdata).toEqual({});
+    expect(after.fieldErrorRevisions.stamdata).toBe(before.fieldErrorRevisions.stamdata + 1);
+  });
+
   it('rollbackSections restores sections, revisions and epoch exactly', () => {
     const store = __createTestStore();
     store.getState().replaceSections(createValidSections(), VALID_META);
@@ -139,6 +154,80 @@ describe('formPersistenceStore public API', () => {
     expect(restored.sectionRevisions).toEqual(snapshot.sectionRevisions);
     expect(restored.authoritativeSnapshotEpoch).toBe(snapshot.authoritativeSnapshotEpoch);
     expect(restored.meta).toEqual(snapshot.meta);
+  });
+
+  it('rollbackSections preserves existing field-errors', () => {
+    const store = __createTestStore();
+    store.getState().setFieldError('stamdata', 'skadelidte', 'input', { message: 'Bevar mig', severity: 'error' });
+    const beforeFieldErrors = store.getState().fieldErrors;
+    const beforeFieldErrorRevisions = store.getState().fieldErrorRevisions;
+
+    store.getState().replaceSections(createValidSections(), VALID_META);
+    const snapshot = store.getState();
+    store.getState().replaceSections({ ...createValidSections(), satser: { aargang: 2024 } }, VALID_META);
+
+    store.getState().rollbackSections(
+      snapshot.sections,
+      snapshot.sectionRevisions,
+      snapshot.authoritativeSnapshotEpoch,
+      snapshot.meta
+    );
+
+    expect(store.getState().fieldErrors).toEqual(beforeFieldErrors);
+    expect(store.getState().fieldErrorRevisions).toEqual(beforeFieldErrorRevisions);
+  });
+
+  it('setFieldError increments revision only when value actually changes', () => {
+    const store = __createTestStore();
+    const beforeRevision = store.getState().fieldErrorRevisions.stamdata;
+
+    store.getState().setFieldError('stamdata', 'skadelidte', 'input', { message: 'Fejl', severity: 'error' });
+    const afterSet = store.getState().fieldErrorRevisions.stamdata;
+    expect(afterSet).toBe(beforeRevision + 1);
+
+    store.getState().setFieldError('stamdata', 'skadelidte', 'input', { message: 'Fejl', severity: 'error' });
+    const afterNoop = store.getState().fieldErrorRevisions.stamdata;
+    expect(afterNoop).toBe(afterSet);
+  });
+
+  it('clearFieldErrorsForSection bumps only targeted field-error revision', () => {
+    const store = __createTestStore();
+    const before = store.getState().fieldErrorRevisions;
+
+    store.getState().clearFieldErrorsForSection('satser');
+    const after = store.getState().fieldErrorRevisions;
+
+    expect(after.satser).toBe(before.satser + 1);
+    expect(after.stamdata).toBe(before.stamdata);
+  });
+
+  it('clearAllFieldErrors bumps all field-error revisions', () => {
+    const store = __createTestStore();
+    const before = store.getState().fieldErrorRevisions;
+
+    store.getState().clearAllFieldErrors();
+    const after = store.getState().fieldErrorRevisions;
+
+    expect(after.stamdata).toBe(before.stamdata + 1);
+    expect(after.satser).toBe(before.satser + 1);
+    expect(after.aarsloen).toBe(before.aarsloen + 1);
+    expect(after.renteberegning).toBe(before.renteberegning + 1);
+    expect(after.varigemen).toBe(before.varigemen + 1);
+    expect(after.erstatningsopgoerelse).toBe(before.erstatningsopgoerelse + 1);
+  });
+
+  it('restoreFieldErrors restores fieldErrors and revisions exactly', () => {
+    const store = __createTestStore();
+
+    store.getState().setFieldError('stamdata', 'skadelidte', 'input', { message: 'A', severity: 'error' });
+    const snapshotErrors = store.getState().fieldErrors;
+    const snapshotRevisions = store.getState().fieldErrorRevisions;
+
+    store.getState().clearAllFieldErrors();
+    store.getState().restoreFieldErrors(snapshotErrors, snapshotRevisions);
+
+    expect(store.getState().fieldErrors).toEqual(snapshotErrors);
+    expect(store.getState().fieldErrorRevisions).toEqual(snapshotRevisions);
   });
 
   it('hydrate sets schema fingerprint and hydrated flag', () => {

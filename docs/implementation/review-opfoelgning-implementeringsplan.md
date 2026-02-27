@@ -175,7 +175,7 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 
 ### C1. Fund 1–3: Konsolidér state-arkitektur i persistence-laget
 
-**Status:** ⚠️ Igang (2026-02-27): Fase 1 + centrale dele af Fase 2 samt dele af Fase 3 er implementeret samlet.
+**Status:** ✅ Implementeret (2026-02-27): Fase 0–3 er gennemført, inkl. afvikling af hybrid-state for `fieldErrors`/`fieldErrorRevisions`. Opfølgende review for Fase 3 er lukket uden blokerende fund.
 
 **Problem:** Dobbelttilstand (React-cache + Zustand) og manuelle revisions-token-mekanismer skaber kompleksitet og latent divergence-risiko. `replaceAllPersistedData` har uafklaret atomicitetsadfærd.
 
@@ -191,22 +191,26 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
   - Clear/reset flows.
 - **Kan stå alene:** Ja. Tilføjer kun tests.
 - **Rollback:** Ikke relevant (ingen kodeændring).
+- **Status:** ✅ Implementeret (inkl. `hasUnsavedChanges`, debug snapshot-refresh og rollback-scenarier).
 
 #### Fase 1: Én Source of Truth
 - Gør Zustand til eneste persisted SoT.
 - Fjern React-cache/state duplikat.
 - **Kan stå alene:** Ja, men kun hvis alle Fase 0-tests er grønne efter ændring.
 - **Rollback:** Revert hele Fase 1-commit. Fase 0-tests fungerer som regressionsnet.
+- **Status:** ✅ Implementeret for persisted sections (React-cache fjernet, Zustand er SoT).
 
 #### Fase 2: Revisionsmekanisme
 - Erstat manuelle revisionstokens med stabile subscription/selector-mønstre.
 - **Kan stå alene:** Ja.
 - **Rollback:** Revert til post-Fase 1-tilstand. Fase 0-tests bekræfter korrekthed.
+- **Status:** ✅ Implementeret i praksis (revisions/epoch flyttet til store + snapshot-konsolidering i provider).
 
 #### Fase 3: Domænespecifik fejlstate
-- Flyt EO-specifik fejltracking ud af generisk persistence-facade.
+- Flyt EO-specifik fejltracking ud af generisk persistence-facade og konsolidér runtime field-error-state i persistence-store (afvikling af hybrid React/Zustand-state).
 - **Kan stå alene:** Ja.
 - **Rollback:** Revert til post-Fase 2-tilstand.
+- **Status:** ✅ Implementeret (EO lønindkomst-inputfejl i separat Zustand-store; `fieldErrors` + `fieldErrorRevisions` konsolideret i persistence-store).
 
 **Testkrav:**
 1. Fuld test suite (`npm run test`) skal bestå efter hver fase.
@@ -223,6 +227,7 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 1. Kun én canonical persisted tilstand (Zustand).
 2. Ingen skjult adfærdsafhængighed til `cacheRef`/revision-counter.
 3. Alle Fase 0-characterization-tests grønne.
+4. `fieldErrors` og `fieldErrorRevisions` flyttet ud af React-state, så C1 ikke efterlader hybrid-state.
 
 ---
 
@@ -339,6 +344,7 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 **Sekvenseringsbegrundelse:**
 - M0 og M1 er uafhængige og kan køre parallelt. M0 er ren dokumentation; M1 er klassificering og testarbejde.
 - M2 → M2b: C1's fire faser er sekventielle. M2 og M2b er splittet for at give et naturligt checkpoint efter den mest risikofyldte ændring (Fase 1: fjernelse af React-cache-duplikat).
+- Aktuel status pr. 2026-02-27: M2 og M2b er gennemført for C1.
 - M2b før M3: State-arkitekturen (C1) skal være fuldt stabil før PDF/debug-refaktorering, da PDF og debug tilgår persisted state.
 - M3 før M4: Paritetstests (Fase 0–1) skal dokumentere korrekthed *før* kode flyttes (Fase 2–3). Flytning uden paritet er blind refaktorering.
 - M5 sidst: Strukturel oprydning (schema-split, dato-utilities) er lavrisiko og bør ikke blokere eller komplicere de store refaktorer i C1/C2/C3.

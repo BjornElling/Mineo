@@ -1,6 +1,14 @@
 import { createStore } from 'zustand/vanilla';
 import { persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
+import {
+  type FieldErrorBySource,
+  type FieldErrorSeverity,
+  type FieldErrorSource,
+  type FieldErrorsForSection,
+  type FormFieldError,
+  normalizeFieldError,
+} from '../types/fieldErrors';
 
 export type FormPersistenceSections = {
   stamdata: PersistedSectionMap['stamdata'] | null;
@@ -21,15 +29,23 @@ export type SectionRevisionMap = {
   [K in keyof FormPersistenceSections]: number;
 };
 
+export type FieldErrorCache = { [K in keyof FormPersistenceSections]: FieldErrorsForSection<K> };
+export type FieldErrorRevisionMap = { [K in keyof FormPersistenceSections]: number };
+
 export type FormPersistenceStoreState = {
   sections: FormPersistenceSections;
   sectionRevisions: SectionRevisionMap;
+  fieldErrors: FieldErrorCache;
+  fieldErrorRevisions: FieldErrorRevisionMap;
   authoritativeSnapshotEpoch: number;
   meta: FormPersistenceMeta;
   hydrate: (next: FormPersistenceSections, meta: FormPersistenceMeta) => void;
   commitSection: <K extends keyof FormPersistenceSections>(key: K, next: FormPersistenceSections[K] | null, metaPatch?: Partial<FormPersistenceMeta>) => void;
   clearSection: <K extends keyof FormPersistenceSections>(key: K, metaPatch?: Partial<FormPersistenceMeta>) => void;
+  // NOTE: replaceSections preserves existing field-errors.
+  // Use replaceSectionsAndClearFieldErrors for load/replace flows that must clear errors atomically.
   replaceSections: (next: FormPersistenceSections, meta: FormPersistenceMeta) => void;
+  replaceSectionsAndClearFieldErrors: (next: FormPersistenceSections, meta: FormPersistenceMeta) => void;
   clearAll: (meta: FormPersistenceMeta) => void;
   rollbackSections: (
     next: FormPersistenceSections,
@@ -37,30 +53,46 @@ export type FormPersistenceStoreState = {
     authoritativeSnapshotEpoch: number,
     meta: FormPersistenceMeta
   ) => void;
+  setFieldError: <K extends keyof FormPersistenceSections>(
+    key: K,
+    fieldName: Extract<keyof PersistedSectionMap[K], string>,
+    source: FieldErrorSource,
+    error: { message: string; severity: FieldErrorSeverity } | null
+  ) => void;
+  clearFieldErrorsForSection: <K extends keyof FormPersistenceSections>(key: K) => void;
+  clearAllFieldErrors: () => void;
+  restoreFieldErrors: (fieldErrors: FieldErrorCache, fieldErrorRevisions: FieldErrorRevisionMap) => void;
   /** Test-only escape hatch. Runtime brug udenfor test skal fejle lukket. */
   __setSectionUnsafe: <K extends keyof FormPersistenceSections>(key: K, next: FormPersistenceSections[K] | null) => void;
   /** Test-only escape hatch. Runtime brug udenfor test skal fejle lukket. */
   __setMetaUnsafe: (next: Partial<FormPersistenceMeta>) => void;
 };
 
-const EMPTY_SECTIONS: FormPersistenceSections = {
-  stamdata: null,
-  satser: null,
-  aarsloen: null,
-  renteberegning: null,
-  varigemen: null,
-  erstatningsopgoerelse: null,
-};
-
 const REQUIRED_SECTION_KEYS = Object.keys(persistenceSchemas).sort();
-const createInitialSectionRevisions = (): SectionRevisionMap => ({
-  stamdata: 0,
-  satser: 0,
-  aarsloen: 0,
-  renteberegning: 0,
-  varigemen: 0,
-  erstatningsopgoerelse: 0,
-});
+const SECTION_KEYS = REQUIRED_SECTION_KEYS as Array<keyof FormPersistenceSections>;
+
+const EMPTY_SECTIONS: FormPersistenceSections = SECTION_KEYS.reduce((acc, key) => {
+  acc[key] = null;
+  return acc;
+}, {} as FormPersistenceSections);
+
+const createInitialSectionRevisions = (): SectionRevisionMap =>
+  SECTION_KEYS.reduce((acc, key) => {
+    acc[key] = 0;
+    return acc;
+  }, {} as SectionRevisionMap);
+
+const createEmptyFieldErrorCache = (): FieldErrorCache =>
+  SECTION_KEYS.reduce((acc, key) => {
+    acc[key] = {};
+    return acc;
+  }, {} as FieldErrorCache);
+
+const createInitialFieldErrorRevisions = (): FieldErrorRevisionMap =>
+  SECTION_KEYS.reduce((acc, key) => {
+    acc[key] = 0;
+    return acc;
+  }, {} as FieldErrorRevisionMap);
 
 const assertKeyCoverage = (next: FormPersistenceSections): void => {
   const keys = Object.keys(next).sort();
@@ -84,6 +116,30 @@ const assertMetaPatchFingerprint = (metaPatch?: Partial<FormPersistenceMeta>): v
   if (!metaPatch?.schemaFingerprint) return;
   if (metaPatch.schemaFingerprint !== PERSISTED_DATA_VERSION) {
     throw new Error('formPersistenceStore: schemaFingerprint mismatch');
+  }
+};
+
+const assertFieldErrorKeyCoverage = (next: FieldErrorCache): void => {
+  const keys = Object.keys(next).sort();
+  if (keys.length !== REQUIRED_SECTION_KEYS.length) {
+    throw new Error('formPersistenceStore: field-error key coverage mismatch');
+  }
+  for (let i = 0; i < REQUIRED_SECTION_KEYS.length; i += 1) {
+    if (keys[i] !== REQUIRED_SECTION_KEYS[i]) {
+      throw new Error('formPersistenceStore: field-error key coverage mismatch');
+    }
+  }
+};
+
+const assertFieldErrorRevisionKeyCoverage = (next: FieldErrorRevisionMap): void => {
+  const keys = Object.keys(next).sort();
+  if (keys.length !== REQUIRED_SECTION_KEYS.length) {
+    throw new Error('formPersistenceStore: field-error revision key coverage mismatch');
+  }
+  for (let i = 0; i < REQUIRED_SECTION_KEYS.length; i += 1) {
+    if (keys[i] !== REQUIRED_SECTION_KEYS[i]) {
+      throw new Error('formPersistenceStore: field-error revision key coverage mismatch');
+    }
   }
 };
 
@@ -120,6 +176,50 @@ const incrementAllSectionRevisions = (revisions: SectionRevisionMap): SectionRev
   });
   return next;
 };
+const incrementFieldErrorRevision = <K extends keyof FormPersistenceSections>(
+  revisions: FieldErrorRevisionMap,
+  key: K
+): FieldErrorRevisionMap => ({
+  ...revisions,
+  [key]: (revisions[key] ?? 0) + 1,
+});
+const incrementAllFieldErrorRevisions = (revisions: FieldErrorRevisionMap): FieldErrorRevisionMap => {
+  const next = { ...revisions };
+  (Object.keys(next) as Array<keyof FieldErrorRevisionMap>).forEach((key) => {
+    next[key] = (revisions[key] ?? 0) + 1;
+  });
+  return next;
+};
+
+type FieldErrorUpdateResult =
+  | { kind: 'noop' }
+  | { kind: 'deleteField' }
+  | { kind: 'updateField'; nextForField: FieldErrorBySource };
+
+const applyFieldErrorUpdate = (
+  prevForField: FieldErrorBySource,
+  source: FieldErrorSource,
+  next: FormFieldError | null
+): FieldErrorUpdateResult => {
+  if (next === null) {
+    if (!prevForField[source]) return { kind: 'noop' };
+    const updated: FieldErrorBySource = { ...prevForField };
+    delete updated[source];
+    return Object.keys(updated).length === 0 ? { kind: 'deleteField' } : { kind: 'updateField', nextForField: updated };
+  }
+
+  const existing = prevForField[source];
+  if (
+    existing &&
+    existing.message === next.message &&
+    existing.severity === next.severity &&
+    existing.source === next.source
+  ) {
+    return { kind: 'noop' };
+  }
+
+  return { kind: 'updateField', nextForField: { ...prevForField, [source]: next } };
+};
 
 const resolveMeta = (prev: FormPersistenceMeta, metaPatch?: Partial<FormPersistenceMeta>): FormPersistenceMeta => {
   const next: FormPersistenceMeta = {
@@ -140,6 +240,8 @@ const createFormPersistenceStore = () =>
   createStore<FormPersistenceStoreState>((set) => ({
     sections: { ...EMPTY_SECTIONS },
     sectionRevisions: createInitialSectionRevisions(),
+    fieldErrors: createEmptyFieldErrorCache(),
+    fieldErrorRevisions: createInitialFieldErrorRevisions(),
     authoritativeSnapshotEpoch: 0,
     meta: { hydrated: false, schemaFingerprint: PERSISTED_DATA_VERSION },
     hydrate: (next, meta) => {
@@ -149,6 +251,8 @@ const createFormPersistenceStore = () =>
       set((state) => ({
         sections: { ...next },
         sectionRevisions: state.sectionRevisions,
+        fieldErrors: state.fieldErrors,
+        fieldErrorRevisions: state.fieldErrorRevisions,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
       }));
@@ -159,6 +263,8 @@ const createFormPersistenceStore = () =>
       set((state) => ({
         sections: { ...state.sections, [key]: next },
         sectionRevisions: incrementSectionRevision(state.sectionRevisions, key),
+        fieldErrors: state.fieldErrors,
+        fieldErrorRevisions: state.fieldErrorRevisions,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
         meta: resolveMeta(state.meta, { ...metaPatch, lastCommittedAt: Date.now() }),
       }));
@@ -168,6 +274,8 @@ const createFormPersistenceStore = () =>
       set((state) => ({
         sections: { ...state.sections, [key]: null },
         sectionRevisions: incrementSectionRevision(state.sectionRevisions, key),
+        fieldErrors: state.fieldErrors,
+        fieldErrorRevisions: state.fieldErrorRevisions,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
         meta: resolveMeta(state.meta, { ...metaPatch, lastCommittedAt: Date.now() }),
       }));
@@ -179,6 +287,21 @@ const createFormPersistenceStore = () =>
       set((state) => ({
         sections: { ...next },
         sectionRevisions: incrementAllSectionRevisions(state.sectionRevisions),
+        fieldErrors: state.fieldErrors,
+        fieldErrorRevisions: state.fieldErrorRevisions,
+        authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
+        meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+      }));
+    },
+    replaceSectionsAndClearFieldErrors: (next, meta) => {
+      assertKeyCoverage(next);
+      assertMetaFingerprintMatch(meta);
+      assertAllSectionsValid(next);
+      set((state) => ({
+        sections: { ...next },
+        sectionRevisions: incrementAllSectionRevisions(state.sectionRevisions),
+        fieldErrors: createEmptyFieldErrorCache(),
+        fieldErrorRevisions: incrementAllFieldErrorRevisions(state.fieldErrorRevisions),
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
       }));
@@ -188,6 +311,8 @@ const createFormPersistenceStore = () =>
       set((state) => ({
         sections: { ...EMPTY_SECTIONS },
         sectionRevisions: incrementAllSectionRevisions(state.sectionRevisions),
+        fieldErrors: createEmptyFieldErrorCache(),
+        fieldErrorRevisions: incrementAllFieldErrorRevisions(state.fieldErrorRevisions),
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
       }));
@@ -196,11 +321,54 @@ const createFormPersistenceStore = () =>
       assertKeyCoverage(next);
       assertMetaFingerprintMatch(meta);
       assertAllSectionsValid(next);
-      set({
+      // NOTE: rollbackSections intentionally only rolls back section state.
+      // Field errors are restored via restoreFieldErrors() by the caller.
+      set((state) => ({
         sections: { ...next },
         sectionRevisions: { ...sectionRevisions },
+        fieldErrors: state.fieldErrors,
+        fieldErrorRevisions: state.fieldErrorRevisions,
         authoritativeSnapshotEpoch,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+      }));
+    },
+    setFieldError: (key, fieldName, source, error) => {
+      set((state) => {
+        const prevForPage = state.fieldErrors[key] as FieldErrorsForSection<typeof key>;
+        const prevForField = (prevForPage[fieldName] ?? {}) as FieldErrorBySource;
+        const nextForPage: FieldErrorsForSection<typeof key> = { ...prevForPage };
+        const normalized = error === null ? null : normalizeFieldError({ message: error.message, severity: error.severity, source });
+        const update = applyFieldErrorUpdate(prevForField, source, normalized);
+        if (update.kind === 'noop') return state;
+        if (update.kind === 'deleteField') {
+          delete nextForPage[fieldName];
+        } else {
+          nextForPage[fieldName] = update.nextForField as FieldErrorsForSection<typeof key>[typeof fieldName];
+        }
+        return {
+          fieldErrors: { ...state.fieldErrors, [key]: nextForPage } as FieldErrorCache,
+          fieldErrorRevisions: incrementFieldErrorRevision(state.fieldErrorRevisions, key),
+        };
+      });
+    },
+    clearFieldErrorsForSection: (key) => {
+      set((state) => ({
+        fieldErrors: { ...state.fieldErrors, [key]: {} } as FieldErrorCache,
+        fieldErrorRevisions: incrementFieldErrorRevision(state.fieldErrorRevisions, key),
+      }));
+    },
+    clearAllFieldErrors: () => {
+      set((state) => ({
+        fieldErrors: createEmptyFieldErrorCache(),
+        fieldErrorRevisions: incrementAllFieldErrorRevisions(state.fieldErrorRevisions),
+      }));
+    },
+    restoreFieldErrors: (fieldErrors, fieldErrorRevisions) => {
+      assertFieldErrorKeyCoverage(fieldErrors);
+      assertFieldErrorRevisionKeyCoverage(fieldErrorRevisions);
+      set({
+        fieldErrors: { ...fieldErrors },
+        fieldErrorRevisions: { ...fieldErrorRevisions },
       });
     },
     __setSectionUnsafe: (key, next) => {
