@@ -63,6 +63,8 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 
 ### M0-1. Fund 6: Auth-intention dokumenteres fuldt
 
+**Status:** ✅ Implementeret 2026-02-27 (`docs/architecture/auth-gate-architecture.md`)
+
 **Problem:** Auth-gaten er teknisk omgåelig via localStorage/DevTools. Acceptabelt som UX-barriere, men kræver tydelig dokumentation for at undgå falsk sikkerhedsforståelse.
 
 **Scope:**
@@ -83,6 +85,8 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 ## Spor B: Medium prioritet, lav/middel risiko
 
 ### B1. Fund 11 + T4 + T8: Klassificering af cross-layer helpers
+
+**Status:** ✅ Implementeret 2026-02-27 (`docs/implementation/review-opfoelgning-b1-klassificering.md`)
 
 **Problem:** `src/domain/erstatningsopgoerelse/sharedPdfUtils.ts` (274 linjer) og `src/domain/erstatningsopgoerelse/eoPdfLoenudvikling.ts` har tværlagsforbrug men ligger i domænemappe med PDF-navngivning. `src/utils/numberUtils.ts` (4 linjer) mangler canonical placering.
 
@@ -146,6 +150,8 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 ---
 
 ### B4. T2 + T3: Kontekstfiler (`src/contexts/FormPersistenceContext.shared.ts` og `src/contexts/FormPersistenceContext.types.ts`)
+
+**Status:** ✅ Implementeret 2026-02-27 (fuldt konsolideret til `src/contexts/FormPersistenceContext.tsx`; facade-filer fjernet)
 
 **Problem:** Split mellem `.shared` og `.types` kan skyldes cirkulær import-risiko eller være et artefakt.
 

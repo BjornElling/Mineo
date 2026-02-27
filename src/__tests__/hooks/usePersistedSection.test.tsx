@@ -3,8 +3,7 @@ import React from 'react';
 import { render, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { usePersistedSection } from '../../hooks/usePersistedSection';
-import { FormPersistenceContext } from '../../contexts/FormPersistenceContext.shared';
-import type { FormPersistenceContextValue } from '../../contexts/FormPersistenceContext.types';
+import { FormPersistenceContext, type FormPersistenceContextValue } from '../../contexts/FormPersistenceContext';
 import type { StorageKey } from '../../config/storageManifest';
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 
