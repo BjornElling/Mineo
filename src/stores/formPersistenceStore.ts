@@ -17,14 +17,26 @@ export type FormPersistenceMeta = {
   lastCommittedAt?: number;
 };
 
+export type SectionRevisionMap = {
+  [K in keyof FormPersistenceSections]: number;
+};
+
 export type FormPersistenceStoreState = {
   sections: FormPersistenceSections;
+  sectionRevisions: SectionRevisionMap;
+  authoritativeSnapshotEpoch: number;
   meta: FormPersistenceMeta;
   hydrate: (next: FormPersistenceSections, meta: FormPersistenceMeta) => void;
   commitSection: <K extends keyof FormPersistenceSections>(key: K, next: FormPersistenceSections[K] | null, metaPatch?: Partial<FormPersistenceMeta>) => void;
   clearSection: <K extends keyof FormPersistenceSections>(key: K, metaPatch?: Partial<FormPersistenceMeta>) => void;
   replaceSections: (next: FormPersistenceSections, meta: FormPersistenceMeta) => void;
   clearAll: (meta: FormPersistenceMeta) => void;
+  rollbackSections: (
+    next: FormPersistenceSections,
+    sectionRevisions: SectionRevisionMap,
+    authoritativeSnapshotEpoch: number,
+    meta: FormPersistenceMeta
+  ) => void;
   /** Test-only escape hatch. Runtime brug udenfor test skal fejle lukket. */
   __setSectionUnsafe: <K extends keyof FormPersistenceSections>(key: K, next: FormPersistenceSections[K] | null) => void;
   /** Test-only escape hatch. Runtime brug udenfor test skal fejle lukket. */
@@ -41,6 +53,14 @@ const EMPTY_SECTIONS: FormPersistenceSections = {
 };
 
 const REQUIRED_SECTION_KEYS = Object.keys(persistenceSchemas).sort();
+const createInitialSectionRevisions = (): SectionRevisionMap => ({
+  stamdata: 0,
+  satser: 0,
+  aarsloen: 0,
+  renteberegning: 0,
+  varigemen: 0,
+  erstatningsopgoerelse: 0,
+});
 
 const assertKeyCoverage = (next: FormPersistenceSections): void => {
   const keys = Object.keys(next).sort();
@@ -85,6 +105,22 @@ const assertAllSectionsValid = (next: FormPersistenceSections): void => {
   });
 };
 
+const incrementSectionRevision = <K extends keyof FormPersistenceSections>(
+  revisions: SectionRevisionMap,
+  key: K
+): SectionRevisionMap => ({
+  ...revisions,
+  [key]: (revisions[key] ?? 0) + 1,
+});
+
+const incrementAllSectionRevisions = (revisions: SectionRevisionMap): SectionRevisionMap => {
+  const next = { ...revisions };
+  (Object.keys(next) as Array<keyof SectionRevisionMap>).forEach((key) => {
+    next[key] = (revisions[key] ?? 0) + 1;
+  });
+  return next;
+};
+
 const resolveMeta = (prev: FormPersistenceMeta, metaPatch?: Partial<FormPersistenceMeta>): FormPersistenceMeta => {
   const next: FormPersistenceMeta = {
     ...prev,
@@ -103,18 +139,27 @@ const assertTestOnlyUnsafeMutation = (): void => {
 const createFormPersistenceStore = () =>
   createStore<FormPersistenceStoreState>((set) => ({
     sections: { ...EMPTY_SECTIONS },
+    sectionRevisions: createInitialSectionRevisions(),
+    authoritativeSnapshotEpoch: 0,
     meta: { hydrated: false, schemaFingerprint: PERSISTED_DATA_VERSION },
     hydrate: (next, meta) => {
       assertKeyCoverage(next);
       assertMetaFingerprintMatch(meta);
       assertAllSectionsValid(next);
-      set({ sections: { ...next }, meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION } });
+      set((state) => ({
+        sections: { ...next },
+        sectionRevisions: state.sectionRevisions,
+        authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
+        meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+      }));
     },
     commitSection: (key, next, metaPatch) => {
       assertSectionValid(key, next);
       assertMetaPatchFingerprint(metaPatch);
       set((state) => ({
         sections: { ...state.sections, [key]: next },
+        sectionRevisions: incrementSectionRevision(state.sectionRevisions, key),
+        authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
         meta: resolveMeta(state.meta, { ...metaPatch, lastCommittedAt: Date.now() }),
       }));
     },
@@ -122,6 +167,8 @@ const createFormPersistenceStore = () =>
       assertMetaPatchFingerprint(metaPatch);
       set((state) => ({
         sections: { ...state.sections, [key]: null },
+        sectionRevisions: incrementSectionRevision(state.sectionRevisions, key),
+        authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
         meta: resolveMeta(state.meta, { ...metaPatch, lastCommittedAt: Date.now() }),
       }));
     },
@@ -129,11 +176,32 @@ const createFormPersistenceStore = () =>
       assertKeyCoverage(next);
       assertMetaFingerprintMatch(meta);
       assertAllSectionsValid(next);
-      set({ sections: { ...next }, meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION } });
+      set((state) => ({
+        sections: { ...next },
+        sectionRevisions: incrementAllSectionRevisions(state.sectionRevisions),
+        authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
+        meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+      }));
     },
     clearAll: (meta) => {
       assertMetaFingerprintMatch(meta);
-      set({ sections: { ...EMPTY_SECTIONS }, meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION } });
+      set((state) => ({
+        sections: { ...EMPTY_SECTIONS },
+        sectionRevisions: incrementAllSectionRevisions(state.sectionRevisions),
+        authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
+        meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+      }));
+    },
+    rollbackSections: (next, sectionRevisions, authoritativeSnapshotEpoch, meta) => {
+      assertKeyCoverage(next);
+      assertMetaFingerprintMatch(meta);
+      assertAllSectionsValid(next);
+      set({
+        sections: { ...next },
+        sectionRevisions: { ...sectionRevisions },
+        authoritativeSnapshotEpoch,
+        meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+      });
     },
     __setSectionUnsafe: (key, next) => {
       assertTestOnlyUnsafeMutation();

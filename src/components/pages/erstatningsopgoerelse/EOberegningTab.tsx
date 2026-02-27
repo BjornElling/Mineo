@@ -6,6 +6,7 @@ import ContentBox from '../../layout/ContentBox';
 import BugReportButton from '../../errors/BugReportButton';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import { useFieldErrorsBySourceForSection } from '../../../hooks/useFormFieldErrors';
+import { useEOLoenindkomstInputErrors } from '../../../hooks/useEOLoenindkomstInputErrors';
 import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { collectAllDebugRows } from '../../../domain/debug/eoDebugRowAggregator';
 import type { NavigationTarget } from '../../../domain/debug/eoDebugNavigationMap';
@@ -16,7 +17,6 @@ import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { getSammentaellingControlStatus, type SammentaellingDisplayRow } from '../../../domain/debug/eoDebugSammentaelling';
 import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
 import { buildControlMismatchReport, type ControlMismatchReport } from '../../../domain/debug/eoDebugMismatchReport';
-import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import { isoToDanish } from '../../../types/branded';
@@ -61,12 +61,11 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 
   const navigate = useNavigate();
   const { settings } = useAppSettings();
-  const { getLoenindkomstManuelReguleringInputErrors } = useFormPersistence();
   const stamdataValues = usePersistedSection('stamdata');
   const eoValues = usePersistedSection('erstatningsopgoerelse');
   const stamdataErrors = useFieldErrorsBySourceForSection('stamdata');
   const eoErrors = useFieldErrorsBySourceForSection('erstatningsopgoerelse');
-  const manuelReguleringInputErrors = getLoenindkomstManuelReguleringInputErrors();
+  const manuelReguleringInputErrors = useEOLoenindkomstInputErrors();
 
   const [controlMismatchState, setControlMismatchState] = React.useState<{
     open: boolean;
@@ -828,4 +827,3 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 EOberegningTab.displayName = 'EOberegningTab';
 
 export default EOberegningTab;
-

@@ -37,6 +37,7 @@ import { createCommitEvent, type CommitEvent, type CommitHandler } from '../../i
 import type { UsePersistedFormReturn } from '../../../hooks/usePersistedForm';
 import { CURRENT_YEAR, MIN_YEAR, MIN_SVIESMERTE_YEAR, computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../../config/dateRanges';
 import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
+import { useSetEOLoenindkomstInputError } from '../../../hooks/useEOLoenindkomstInputErrors';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import {
   type ErstatningsopgoerelseValues,
@@ -164,7 +165,8 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   const skadesdatoISO = useSkadesdatoFromStamdata();
   const skadestypeFromStamdata = useSkadestypeFromStamdata();
   const { settings } = useAppSettings();
-  const { getPersistedData, setLoenindkomstManuelReguleringInputError } = useFormPersistence();
+  const { getPersistedData } = useFormPersistence();
+  const setLoenindkomstManuelReguleringInputError = useSetEOLoenindkomstInputError();
 
   // Beregn minDate for øvrige krav-tabel
   const oevrigeKravMinDate = React.useMemo(() => {

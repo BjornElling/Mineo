@@ -13,6 +13,7 @@ import { deleteFileHandleFromIndexedDB } from '../../utils/fileHandleStorage';
 import { saveFileHandleToIndexedDB } from '../../utils/fileHandleStorage';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { useEOLoenindkomstInputErrors } from '../../hooks/useEOLoenindkomstInputErrors';
 import { resolveDefaultDirectoryHandle } from '../../utils/fileHelpers';
 import { getGridCoreForTable } from '../tables/gridCoreRegistry';
 import type { SaveFileResult, LoadFileResult } from '../../types/fileOperations';
@@ -227,7 +228,6 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
   const {
     getPersistedData,
     getFieldErrorsBySource,
-    getLoenindkomstManuelReguleringInputErrors,
     replaceAllPersistedData,
     clearAllData,
     lastNotice,
@@ -236,6 +236,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
     getSectionRevision,
     authoritativeSnapshotEpoch,
   } = useFormPersistence();
+  const manuelReguleringInputErrors = useEOLoenindkomstInputErrors();
   const isPwaLoadInProgressRef = React.useRef<boolean>(false);
   const pendingPwaRequestRef = React.useRef<PwaFileOpenRequest | null>(null);
 
@@ -298,8 +299,8 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
       }
     }
 
-    return Object.keys(getLoenindkomstManuelReguleringInputErrors()).length > 0;
-  }, [getFieldErrorsBySource, getLoenindkomstManuelReguleringInputErrors]);
+    return Object.keys(manuelReguleringInputErrors).length > 0;
+  }, [getFieldErrorsBySource, manuelReguleringInputErrors]);
 
   const applyLoadedSnapshot = React.useCallback(async (result: LoadFileResult) => {
     if (!result.snapshot) {
@@ -887,5 +888,4 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
 MainLayout.displayName = 'MainLayout';
 
 export default MainLayout;
-
 

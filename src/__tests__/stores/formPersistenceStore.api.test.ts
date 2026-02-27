@@ -85,6 +85,62 @@ describe('formPersistenceStore public API', () => {
     }
   });
 
+  it('commitSection increments only the targeted section revision', () => {
+    const store = __createTestStore();
+    store.getState().clearAll(VALID_META);
+    const before = store.getState();
+
+    store.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    const after = store.getState();
+
+    expect(after.sectionRevisions.satser).toBe(before.sectionRevisions.satser + 1);
+    expect(after.sectionRevisions.stamdata).toBe(before.sectionRevisions.stamdata);
+    expect(after.authoritativeSnapshotEpoch).toBe(before.authoritativeSnapshotEpoch);
+  });
+
+  it('replaceSections increments all section revisions and authoritative epoch', () => {
+    const store = __createTestStore();
+    const before = store.getState();
+
+    store.getState().replaceSections(createValidSections(), VALID_META);
+    const after = store.getState();
+
+    expect(after.authoritativeSnapshotEpoch).toBe(before.authoritativeSnapshotEpoch + 1);
+    expect(after.sectionRevisions.stamdata).toBe(before.sectionRevisions.stamdata + 1);
+    expect(after.sectionRevisions.satser).toBe(before.sectionRevisions.satser + 1);
+    expect(after.sectionRevisions.aarsloen).toBe(before.sectionRevisions.aarsloen + 1);
+    expect(after.sectionRevisions.renteberegning).toBe(before.sectionRevisions.renteberegning + 1);
+    expect(after.sectionRevisions.varigemen).toBe(before.sectionRevisions.varigemen + 1);
+    expect(after.sectionRevisions.erstatningsopgoerelse).toBe(before.sectionRevisions.erstatningsopgoerelse + 1);
+  });
+
+  it('rollbackSections restores sections, revisions and epoch exactly', () => {
+    const store = __createTestStore();
+    store.getState().replaceSections(createValidSections(), VALID_META);
+    const snapshot = store.getState();
+
+    store.getState().replaceSections(
+      {
+        ...createValidSections(),
+        satser: { aargang: 2024 },
+      },
+      VALID_META
+    );
+
+    store.getState().rollbackSections(
+      snapshot.sections,
+      snapshot.sectionRevisions,
+      snapshot.authoritativeSnapshotEpoch,
+      snapshot.meta
+    );
+    const restored = store.getState();
+
+    expect(restored.sections).toEqual(snapshot.sections);
+    expect(restored.sectionRevisions).toEqual(snapshot.sectionRevisions);
+    expect(restored.authoritativeSnapshotEpoch).toBe(snapshot.authoritativeSnapshotEpoch);
+    expect(restored.meta).toEqual(snapshot.meta);
+  });
+
   it('hydrate sets schema fingerprint and hydrated flag', () => {
     const store = __createTestStore();
     const sections = createValidSections();

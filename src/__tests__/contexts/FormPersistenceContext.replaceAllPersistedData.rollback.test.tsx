@@ -4,6 +4,7 @@ import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import type { StorageKey } from '../../config/storageManifest';
+import { eoLoenindkomstInputErrorStore } from '../../stores/eoLoenindkomstInputErrorStore';
 
 const stampStamdata = (skadelidte: string) => ({
   journalnr: '',
@@ -34,6 +35,10 @@ const emptySnapshot = (): Record<StorageKey, unknown | undefined> => ({
 });
 
 describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
+  beforeEach(() => {
+    eoLoenindkomstInputErrorStore.getState().clearAll();
+  });
+
   it('rolls back sessionStorage and cache when sessionStorage setItem fails mid-apply', async () => {
     sessionStorage.clear();
     sessionStorage.setItem('mineo_stamdata', JSON.stringify(persistedWrapper(stampStamdata('X'))));
@@ -148,5 +153,48 @@ describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
     expect(sessionStorage.getItem('mineo_varigemen')).toBeNull();
     expect(ctx!.getPersistedData('stamdata')?.skadelidte).toBe('X');
     expect(ctx!.getPersistedData('satser')?.aargang).toBe(2020);
+  });
+
+  it('restores EO input-error store on rollback failure', async () => {
+    sessionStorage.clear();
+    sessionStorage.setItem('mineo_stamdata', JSON.stringify(persistedWrapper(stampStamdata('X'))));
+
+    let ctx: ReturnType<typeof useFormPersistence> | null = null;
+    const Capture = () => {
+      const value = useFormPersistence();
+      React.useEffect(() => {
+        ctx = value;
+      }, [value]);
+      return null;
+    };
+
+    render(
+      <FormPersistenceProvider>
+        <Capture />
+      </FormPersistenceProvider>
+    );
+
+    await waitFor(() => {
+      expect(ctx).not.toBeNull();
+    });
+
+    eoLoenindkomstInputErrorStore.getState().setError('af-1', true);
+    expect(eoLoenindkomstInputErrorStore.getState().errors).toEqual({ 'af-1': true });
+
+    const storageProto = Object.getPrototypeOf(window.sessionStorage) as { setItem: (key: string, value: string) => void };
+    const setItemSpy = vi.spyOn(storageProto, 'setItem').mockImplementation((key: string, value: string) => {
+      throw new Error('Injected failure');
+    });
+
+    const next = emptySnapshot();
+    next.stamdata = stampStamdata('Y');
+
+    await act(async () => {
+      expect(() => ctx!.replaceAllPersistedData(next)).toThrow();
+    });
+
+    setItemSpy.mockRestore();
+
+    expect(eoLoenindkomstInputErrorStore.getState().errors).toEqual({ 'af-1': true });
   });
 });

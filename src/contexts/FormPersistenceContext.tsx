@@ -19,6 +19,7 @@ import { sanitizeLegacyPersistedSectionForAarsloenTables } from '../utils/aarslo
 import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
+import { eoLoenindkomstInputErrorStore } from '../stores/eoLoenindkomstInputErrorStore';
 
 export type FormPersistenceContextValue = {
   getPersistedData: <K extends StorageKey>(pageKey: K) => PersistedSectionMap[K] | null;
@@ -42,9 +43,6 @@ export type FormPersistenceContextValue = {
   ) => void;
   clearFieldErrors: (pageKey: StorageKey) => void;
   clearAllFieldErrors: () => void;
-  getLoenindkomstManuelReguleringInputErrors: () => Readonly<Record<string, true>>;
-  setLoenindkomstManuelReguleringInputError: (ansaettelsesforholdId: string, hasError: boolean) => void;
-  clearLoenindkomstManuelReguleringInputErrors: () => void;
   authoritativeSnapshotEpoch: number;
   getSectionRevision: (pageKey: StorageKey) => number;
   getFieldErrorRevision: (pageKey: StorageKey) => number;
@@ -149,13 +147,6 @@ const assignCacheValue = (target: PersistedCache, key: StorageKey, value: unknow
  * Provider komponent der wrapper hele applikationen
  */
 export const FormPersistenceProvider = ({ children }: { children: React.ReactNode }) => {
-  const [authoritativeSnapshotEpoch, bumpAuthoritativeSnapshotEpoch] = React.useReducer((v: number) => v + 1, 0);
-  const initialStamdataRef = React.useRef<PersistedSectionMap['stamdata'] | null>(null);
-  const initialAarsloenRef = React.useRef<PersistedSectionMap['aarsloen'] | null>(null);
-  const initialSatserRef = React.useRef<PersistedSectionMap['satser'] | null>(null);
-  const initialRenteberegningRef = React.useRef<PersistedSectionMap['renteberegning'] | null>(null);
-  const initialVarigemenRef = React.useRef<PersistedSectionMap['varigemen'] | null>(null);
-  const initialErstatningsopgoerelseRef = React.useRef<PersistedSectionMap['erstatningsopgoerelse'] | null>(null);
   const legacySanitizationNotifiedRef = React.useRef<Set<StorageKey>>(new Set());
   const debugSaveStateRef = React.useRef<Map<string, { lastLogAt: number; pendingCount: number; lastFieldCount: number }>>(
     new Map()
@@ -179,8 +170,8 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     shouldGlobalClear: boolean;
     notice: { message: string; type: 'warning' | 'error' } | null;
   } | null>(null);
-
-  const [cache, setCache] = React.useState<PersistedCache>(() => {
+  const initialSectionsRef = React.useRef<PersistedCache | null>(null);
+  if (initialSectionsRef.current === null) {
     const nextCache = createEmptyCache();
     const keysToRemove: string[] = [];
     let shouldGlobalClear = false;
@@ -235,24 +226,11 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       validateAndAssign(pageKey, parsed.data);
     }
 
-    initialStamdataRef.current = shouldGlobalClear ? null : (nextCache.stamdata ?? null);
-    initialAarsloenRef.current = shouldGlobalClear ? null : (nextCache.aarsloen ?? null);
-    initialSatserRef.current = shouldGlobalClear ? null : (nextCache.satser ?? null);
-    initialRenteberegningRef.current = shouldGlobalClear ? null : (nextCache.renteberegning ?? null);
-    initialVarigemenRef.current = shouldGlobalClear ? null : (nextCache.varigemen ?? null);
-    initialErstatningsopgoerelseRef.current = shouldGlobalClear ? null : (nextCache.erstatningsopgoerelse ?? null);
     initPlanRef.current = { keysToRemove, shouldGlobalClear, notice };
-    return shouldGlobalClear ? createEmptyCache() : nextCache;
-  });
+    initialSectionsRef.current = shouldGlobalClear ? createEmptyCache() : nextCache;
+  }
 
   const [fieldErrors, setFieldErrors] = React.useState<FieldErrorCache>(() => createEmptyFieldErrorCache());
-  const [manuelReguleringInputErrors, setManuelReguleringInputErrors] = React.useState<Record<string, true>>({});
-  const [sectionRevisions, setSectionRevisions] = React.useState<Record<StorageKey, number>>(() => {
-    return Object.keys(persistenceSchemas).reduce((acc, key) => {
-      acc[key as StorageKey] = 0;
-      return acc;
-    }, {} as Record<StorageKey, number>);
-  });
   const [fieldErrorRevisions, setFieldErrorRevisions] = React.useState<Record<StorageKey, number>>(() => {
     return Object.keys(persistenceSchemas).reduce((acc, key) => {
       acc[key as StorageKey] = 0;
@@ -265,22 +243,46 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     notice: initPlanRef.current?.notice ?? null,
   }));
 
-  const cacheRef = React.useRef(cache);
-  React.useEffect(() => {
-    cacheRef.current = cache;
-  }, [cache]);
+  const persistenceSnapshotRef = React.useRef<{
+    sections: PersistedCache;
+    sectionRevisions: ReturnType<typeof formPersistenceStore.getState>['sectionRevisions'];
+    authoritativeSnapshotEpoch: number;
+  } | null>(null);
+  const getPersistenceSnapshot = React.useCallback(() => {
+    const state = formPersistenceStore.getState();
+    const prev = persistenceSnapshotRef.current;
+    if (
+      prev &&
+      prev.sections === (state.sections as PersistedCache) &&
+      prev.sectionRevisions === state.sectionRevisions &&
+      prev.authoritativeSnapshotEpoch === state.authoritativeSnapshotEpoch
+    ) {
+      return prev;
+    }
 
+    const next = {
+      sections: state.sections as PersistedCache,
+      sectionRevisions: state.sectionRevisions,
+      authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
+    };
+    persistenceSnapshotRef.current = next;
+    return next;
+  }, []);
+  const persistenceSnapshot = React.useSyncExternalStore(
+    formPersistenceStore.subscribe,
+    getPersistenceSnapshot,
+    getPersistenceSnapshot
+  );
+  const sections = persistenceSnapshot.sections;
+  const sectionRevisions = persistenceSnapshot.sectionRevisions;
+  const authoritativeSnapshotEpoch = persistenceSnapshot.authoritativeSnapshotEpoch;
+
+  // Intentional one-time hydration from the bootstrap snapshot.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(() => {
     const store = formPersistenceStore.getState();
     store.hydrate(
-      {
-        stamdata: initialStamdataRef.current ?? null,
-        aarsloen: initialAarsloenRef.current ?? null,
-        satser: initialSatserRef.current ?? null,
-        renteberegning: initialRenteberegningRef.current ?? null,
-        varigemen: initialVarigemenRef.current ?? null,
-        erstatningsopgoerelse: initialErstatningsopgoerelseRef.current ?? null,
-      },
+      initialSectionsRef.current ?? createEmptyCache(),
       { hydrated: true, schemaFingerprint: CURRENT_VERSION }
     );
   }, []);
@@ -324,6 +326,10 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
   const emitUserNotice = React.useCallback((message: string, type: 'warning' | 'error' = 'warning') => {
     setNoticeState((prev) => ({ epoch: prev.epoch + 1, notice: { message, type } }));
   }, []);
+  const clearEODomainTransientErrors = React.useCallback(() => {
+    // EO-specific input errors belong to erstatningsopgoerelse domain state.
+    eoLoenindkomstInputErrorStore.getState().clearAll();
+  }, []);
 
   const logPersistSaveDebug = React.useCallback((storageKey: string, fieldCount: number) => {
     if (!import.meta.env.DEV) return;
@@ -348,29 +354,20 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
   /**
    * Læs schema-valideret persisted data (ingen side-effects).
    */
-  const setCacheForKey = React.useCallback((pageKey: StorageKey, value: PersistedSectionMap[StorageKey] | null) => {
-    setCache((prev) => {
-      const next = { ...prev };
-      assignCacheValue(next, pageKey, value);
-      return next;
-    });
-  }, []);
-
   const syncSection = React.useCallback(<K extends StorageKey>(pageKey: K, next: PersistedSectionMap[K] | null) => {
     formPersistenceStore.getState().commitSection(pageKey, next, {
       schemaFingerprint: CURRENT_VERSION,
     });
-    setCacheForKey(pageKey, next);
-  }, [setCacheForKey]);
+  }, []);
 
   const getPersistedData = React.useCallback(<K extends StorageKey>(pageKey: K): PersistedSectionMap[K] | null => {
-    const value = cache[pageKey];
+    const value = sections[pageKey];
     return value;
-  }, [cache]);
+  }, [sections]);
 
   const hasAnyData = React.useCallback((): boolean => {
-    return countFilledFields(cacheRef.current) > 0;
-  }, []);
+    return countFilledFields(sections) > 0;
+  }, [sections]);
 
   /**
    * Gem data i sessionStorage med versionering
@@ -426,11 +423,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
 
       sessionStorage.setItem(storageKey, JSON.stringify(persistedData));
       syncSection(pageKey, postSerializeValidated.data as PersistedSectionMap[K]);
-      setSectionRevisions((prev) => {
-        const next = { ...prev };
-        next[pageKey] = (prev[pageKey] ?? 0) + 1;
-        return next;
-      });
       logPersistSaveDebug(storageKey, getFieldCount(data));
     } catch (error) {
       console.error(`[Persistence] Fejl ved gemning af data for '${pageKey}':`, {
@@ -440,10 +432,15 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       });
       emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern fejl.`, 'error');
     }
-  }, [emitUserNotice, logPersistSaveDebug, setCacheForKey, syncSection]);
+  }, [emitUserNotice, logPersistSaveDebug, syncSection]);
 
   const replaceAllPersistedData = React.useCallback((snapshot: Record<StorageKey, unknown | undefined>) => {
-    const prevCache = cacheRef.current;
+    const prevStoreState = formPersistenceStore.getState();
+    const prevSections = prevStoreState.sections as PersistedCache;
+    const prevSectionRevisions = prevStoreState.sectionRevisions;
+    const prevAuthoritativeSnapshotEpoch = prevStoreState.authoritativeSnapshotEpoch;
+    const prevMeta = prevStoreState.meta;
+    const prevEOLoenindkomstInputErrors = eoLoenindkomstInputErrorStore.getState().errors;
     for (const key of Object.keys(persistenceSchemas) as StorageKey[]) {
       if (!Object.prototype.hasOwnProperty.call(snapshot, key)) {
         throw new Error(`Snapshot mangler key '${key}'. Snapshot skal indeholde alle keys (brug undefined for at slette).`);
@@ -502,20 +499,12 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       for (const { storageKey, value } of toWrite) {
         sessionStorage.setItem(storageKey, value);
       }
-      setCache(nextCache);
       formPersistenceStore.getState().replaceSections(
         nextCache,
         { hydrated: true, schemaFingerprint: CURRENT_VERSION, lastCommittedAt: Date.now() }
       );
       setFieldErrors(createEmptyFieldErrorCache());
-      setManuelReguleringInputErrors({});
-      setSectionRevisions((prev) => {
-        const next = { ...prev };
-        for (const key of Object.keys(persistenceSchemas) as StorageKey[]) {
-          next[key] = (prev[key] ?? 0) + 1;
-        }
-        return next;
-      });
+      clearEODomainTransientErrors();
       setFieldErrorRevisions((prev) => {
         const next = { ...prev };
         for (const key of Object.keys(persistenceSchemas) as StorageKey[]) {
@@ -523,7 +512,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         }
         return next;
       });
-      bumpAuthoritativeSnapshotEpoch();
     } catch (error) {
       for (const { storageKey } of toWrite) {
         sessionStorage.removeItem(storageKey);
@@ -535,16 +523,18 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
           sessionStorage.setItem(key, value);
         }
       }
-      // Keep cache consistent with rolled back storage (future-proof if this becomes async/refactored).
-      setCache(prevCache);
-      formPersistenceStore.getState().replaceSections(
-        prevCache,
-        { hydrated: true, schemaFingerprint: CURRENT_VERSION, lastCommittedAt: Date.now() }
+      formPersistenceStore.getState().rollbackSections(
+        prevSections,
+        prevSectionRevisions,
+        prevAuthoritativeSnapshotEpoch,
+        prevMeta
       );
+      eoLoenindkomstInputErrorStore.getState().replaceAll(prevEOLoenindkomstInputErrors);
       const message = error instanceof Error ? error.message : 'Ukendt fejl';
       throw new Error(`Kunne ikke anvende snapshot atomisk: ${message}`);
     }
   }, [
+    clearEODomainTransientErrors,
     createEmptyFieldErrorCache,
     emitUserNotice,
   ]);
@@ -559,13 +549,8 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       syncSection(pageKey, null);
       setFieldErrors((prev) => ({ ...prev, [pageKey]: {} }));
       if (pageKey === 'erstatningsopgoerelse') {
-        setManuelReguleringInputErrors({});
+        clearEODomainTransientErrors();
       }
-      setSectionRevisions((prev) => {
-        const next = { ...prev };
-        next[pageKey] = (prev[pageKey] ?? 0) + 1;
-        return next;
-      });
       setFieldErrorRevisions((prev) => {
         const next = { ...prev };
         next[pageKey] = (prev[pageKey] ?? 0) + 1;
@@ -574,7 +559,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     } catch (error) {
       console.error(`[Persistence] Fejl ved sletning af data for '${pageKey}':`, error);
     }
-  }, [syncSection]);
+  }, [clearEODomainTransientErrors, syncSection]);
 
   /**
    * Slet alle gemte MINEO data
@@ -587,21 +572,9 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       mineoKeys.forEach(key => {
         sessionStorage.removeItem(key);
       });
-      const emptyCache = Object.keys(persistenceSchemas).reduce((acc, k) => {
-        acc[k as StorageKey] = null;
-        return acc;
-      }, {} as PersistedCache);
-      setCache(emptyCache);
       formPersistenceStore.getState().clearAll({ hydrated: true, schemaFingerprint: CURRENT_VERSION, lastCommittedAt: Date.now() });
       setFieldErrors(createEmptyFieldErrorCache());
-      setManuelReguleringInputErrors({});
-      setSectionRevisions((prev) => {
-        const next = { ...prev };
-        for (const key of Object.keys(persistenceSchemas) as StorageKey[]) {
-          next[key] = (prev[key] ?? 0) + 1;
-        }
-        return next;
-      });
+      clearEODomainTransientErrors();
       setFieldErrorRevisions((prev) => {
         const next = { ...prev };
         for (const key of Object.keys(persistenceSchemas) as StorageKey[]) {
@@ -609,14 +582,13 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         }
         return next;
       });
-      bumpAuthoritativeSnapshotEpoch();
       if (import.meta.env.DEV) {
         console.debug('[Persistence] Cleared all persisted data', { keyCount: mineoKeys.length });
       }
     } catch (error) {
       console.error('[Persistence] Fejl ved sletning af alle data:', error);
     }
-  }, [createEmptyFieldErrorCache]);
+  }, [clearEODomainTransientErrors, createEmptyFieldErrorCache]);
 
   const getFieldErrorsBySource = React.useCallback(<K extends StorageKey,>(pageKey: K) => {
     return fieldErrors[pageKey] as FieldErrorsForSection<K>;
@@ -680,18 +652,18 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
   const clearFieldErrors = React.useCallback((pageKey: StorageKey) => {
     setFieldErrors((prev) => ({ ...prev, [pageKey]: {} }));
     if (pageKey === 'erstatningsopgoerelse') {
-      setManuelReguleringInputErrors({});
+      clearEODomainTransientErrors();
     }
     setFieldErrorRevisions((prev) => {
       const next = { ...prev };
       next[pageKey] = (prev[pageKey] ?? 0) + 1;
       return next;
     });
-  }, []);
+  }, [clearEODomainTransientErrors]);
 
   const clearAllFieldErrors = React.useCallback(() => {
     setFieldErrors(createEmptyFieldErrorCache());
-    setManuelReguleringInputErrors({});
+    clearEODomainTransientErrors();
     setFieldErrorRevisions((prev) => {
       const next = { ...prev };
       for (const key of Object.keys(persistenceSchemas) as StorageKey[]) {
@@ -699,7 +671,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       }
       return next;
     });
-  }, [createEmptyFieldErrorCache]);
+  }, [clearEODomainTransientErrors, createEmptyFieldErrorCache]);
 
   const getSectionRevision = React.useCallback((pageKey: StorageKey) => {
     return sectionRevisions[pageKey] ?? 0;
@@ -708,32 +680,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
   const getFieldErrorRevision = React.useCallback((pageKey: StorageKey) => {
     return fieldErrorRevisions[pageKey] ?? 0;
   }, [fieldErrorRevisions]);
-
-  const getLoenindkomstManuelReguleringInputErrors = React.useCallback(() => {
-    return manuelReguleringInputErrors;
-  }, [manuelReguleringInputErrors]);
-
-  const setLoenindkomstManuelReguleringInputError = React.useCallback(
-    (ansaettelsesforholdId: string, hasError: boolean) => {
-      setManuelReguleringInputErrors((prev) => {
-        const nextHasError = Boolean(hasError);
-        const prevHasError = Boolean(prev[ansaettelsesforholdId]);
-        if (prevHasError === nextHasError) return prev;
-        const next = { ...prev };
-        if (nextHasError) {
-          next[ansaettelsesforholdId] = true;
-        } else {
-          delete next[ansaettelsesforholdId];
-        }
-        return next;
-      });
-    },
-    []
-  );
-
-  const clearLoenindkomstManuelReguleringInputErrors = React.useCallback(() => {
-    setManuelReguleringInputErrors({});
-  }, []);
 
   const value = React.useMemo(
     () => ({
@@ -748,9 +694,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       setFieldError,
       clearFieldErrors,
       clearAllFieldErrors,
-      getLoenindkomstManuelReguleringInputErrors,
-      setLoenindkomstManuelReguleringInputError,
-      clearLoenindkomstManuelReguleringInputErrors,
       authoritativeSnapshotEpoch,
       getSectionRevision,
       getFieldErrorRevision,
@@ -770,9 +713,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       setFieldError,
       clearFieldErrors,
       clearAllFieldErrors,
-      getLoenindkomstManuelReguleringInputErrors,
-      setLoenindkomstManuelReguleringInputError,
-      clearLoenindkomstManuelReguleringInputErrors,
       authoritativeSnapshotEpoch,
       getSectionRevision,
       getFieldErrorRevision,

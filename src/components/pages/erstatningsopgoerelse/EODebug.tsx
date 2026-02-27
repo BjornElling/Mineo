@@ -32,6 +32,7 @@ import { loenPaaHelligdageSchema } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { useFormFieldErrorsBySource } from '../../../hooks/useFormFieldErrors';
+import { useEOLoenindkomstInputErrors } from '../../../hooks/useEOLoenindkomstInputErrors';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import type { ISODateString } from '../../../types/branded';
@@ -300,7 +301,8 @@ type IndkomstRow = Readonly<{
 }>;
 
 const EODebug = () => {
-  const { getPersistedData, getLoenindkomstManuelReguleringInputErrors } = useFormPersistence();
+  const { getPersistedData } = useFormPersistence();
+  const manuelReguleringInputErrors = useEOLoenindkomstInputErrors();
   const { settings } = useAppSettings();
   const stamdataValues = React.useMemo(() => {
     return { ...STAMDATA_INITIAL_VALUES, ...(getPersistedData('stamdata') ?? {}) };
@@ -308,7 +310,6 @@ const EODebug = () => {
   const erstatningsopgoerelseValues = React.useMemo(() => {
     return { ...createErstatningsopgoerelseInitialValues(), ...(getPersistedData('erstatningsopgoerelse') ?? {}) };
   }, [getPersistedData]);
-  const manuelReguleringInputErrors = getLoenindkomstManuelReguleringInputErrors();
 
   const beregnesSvieSmerte = erstatningsopgoerelseValues.beregnesSvieSmerteGodtgoerelse === 'Ja';
   const beregnesTabtArbejdsfortjeneste = erstatningsopgoerelseValues.beregnesTabtArbejdsfortjeneste === 'Ja';
