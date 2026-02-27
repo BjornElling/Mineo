@@ -7,7 +7,7 @@
  */
 
 import type { ISODateString } from '../../types/branded';
-import { danishToISO, isISODateString } from '../../types/branded';
+import { danishToISO, dateToISO, isISODateString, parseISODate } from '../../types/branded';
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import { formatIsoDateLong, formatIsoDateShort } from '../../utils/dateFormatting';
 import type { StatistiskLoenudviklingId } from '../../data/statistiskLoenudviklingRates';
@@ -151,11 +151,13 @@ export const resolveOffentligLoenEkstraGrundloen = (
 };
 
 export const addOneDayIso = (iso: ISODateString): ISODateString | null => {
-  const date = new Date(`${iso}T00:00:00Z`);
-  if (!Number.isFinite(date.getTime())) return null;
-  date.setUTCDate(date.getUTCDate() + 1);
-  const nextIso = date.toISOString().slice(0, 10);
-  return isISODateString(nextIso) ? nextIso : null;
+  const date = parseISODate(iso);
+  if (!date) return null;
+
+  const nextDate = new Date(date.getTime());
+  nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+
+  return dateToISO(nextDate) ?? null;
 };
 
 export const convertAnciennitetSats = (

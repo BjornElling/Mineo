@@ -649,19 +649,11 @@ const erstatningsopgoerelseBaseSchema = z.object({
 
   // AES-afgørelser (struktureret sub-schema med validering)
 
-  // Svie/smerte godtgørelse
-
-  // Tabt arbejdsfortjeneste
-
   // Øvrige erstatningskrav
   oevrigeKravPerioder: z.array(oevrigeKravRowSchema),
 
   // Offentlige ydelser
   offentligeYdelserRows: z.array(offentligeYdelserRowSchema),
-
-  // Indtægt før skaden
-
-  // Sygeferiegodtgørelse
 
   // Løn-udvikling
   loenudviklingPaaGrundlagAf: optionalString,
@@ -722,10 +714,12 @@ const createLoenudviklingOgSatserSchema = <TLoenPaaHelligdage extends z.ZodTypeA
   overenskomstFilter: overenskomstFilterSchema,
 }).strict();
 
-const loenudviklingOgSatserSchema = createLoenudviklingOgSatserSchema(loenPaaHelligdageSchema);
-const eoLoenudviklingOgSatserSchema = createLoenudviklingOgSatserSchema(
+export const loenudviklingOgSatserSchema = createLoenudviklingOgSatserSchema(loenPaaHelligdageSchema);
+export const eoLoenudviklingOgSatserSchema = createLoenudviklingOgSatserSchema(
   z.preprocess(normalizeEmptyToUndefined, loenPaaHelligdageSchema.optional())
 );
+export type LoenudviklingOgSatser = z.infer<typeof loenudviklingOgSatserSchema>;
+export type EOLoenudviklingOgSatser = z.infer<typeof eoLoenudviklingOgSatserSchema>;
 
 export const loenindkomstAnsaettelsesforholdSchema = z.object({
   id: z.string().min(1, 'ID må ikke være tomt'),
