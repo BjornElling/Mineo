@@ -1,0 +1,191 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`eoCanonicalOutput parity matrix > 'arbejdsdage-segmenter i loenudvikling' 1`] = `
+{
+  "periodiseringer": {
+    "tafPerioder": [
+      {
+        "fra": "2024-02-01",
+        "til": "2024-02-29",
+      },
+    ],
+  },
+  "regulering": {
+    "loenudviklingSegmenter": [
+      {
+        "amountOre": 2100000,
+        "arbejdsdage": 21,
+        "dagsloenOre": 100000,
+        "deltaPct": 0,
+        "fra": "2024-02-01",
+        "kind": "arbejdsdage",
+        "til": "2024-02-29",
+      },
+    ],
+    "loenudviklingTotalFoerForligOre": 2100000,
+    "perAnsaettelse": [],
+  },
+  "taf": {
+    "harTafPerioder": true,
+    "tafIndtaegterOre": 0,
+    "tidligereModtagetTafOre": null,
+  },
+  "totals": {
+    "oevrigeKravFoerForligOre": 0,
+    "oevrigeKravOre": 0,
+    "samletTotalOre": 2100000,
+    "svieSmerteOre": 0,
+    "tabtArbejdsfortjenesteFoerForligOre": 2100000,
+    "tabtArbejdsfortjenesteOre": 2100000,
+  },
+}
+`;
+
+exports[`eoCanonicalOutput parity matrix > 'forlig + svie/smerte + oevrige krav +…' 1`] = `
+{
+  "periodiseringer": {
+    "tafPerioder": [
+      {
+        "fra": "2024-02-01",
+        "til": "2024-04-30",
+      },
+    ],
+  },
+  "regulering": {
+    "loenudviklingSegmenter": [
+      {
+        "amountOre": 9000000,
+        "deltaPct": 0,
+        "fra": "2024-02-01",
+        "kind": "maaneder",
+        "maaneder": 3,
+        "maanedsloenOre": 3000000,
+        "til": "2024-04-30",
+      },
+    ],
+    "loenudviklingTotalFoerForligOre": 9000000,
+    "perAnsaettelse": [],
+  },
+  "taf": {
+    "harTafPerioder": true,
+    "tafIndtaegterOre": 0,
+    "tidligereModtagetTafOre": null,
+  },
+  "totals": {
+    "oevrigeKravFoerForligOre": 123450,
+    "oevrigeKravOre": 61725,
+    "samletTotalOre": 4686725,
+    "svieSmerteOre": 125000,
+    "tabtArbejdsfortjenesteFoerForligOre": 9000000,
+    "tabtArbejdsfortjenesteOre": 4500000,
+  },
+}
+`;
+
+exports[`eoCanonicalOutput parity matrix > 'forlig via broek (2/3)' 1`] = `
+{
+  "periodiseringer": {
+    "tafPerioder": [
+      {
+        "fra": "2024-02-01",
+        "til": "2024-04-30",
+      },
+    ],
+  },
+  "regulering": {
+    "loenudviklingSegmenter": [
+      {
+        "amountOre": 9000000,
+        "deltaPct": 0,
+        "fra": "2024-02-01",
+        "kind": "maaneder",
+        "maaneder": 3,
+        "maanedsloenOre": 3000000,
+        "til": "2024-04-30",
+      },
+    ],
+    "loenudviklingTotalFoerForligOre": 9000000,
+    "perAnsaettelse": [],
+  },
+  "taf": {
+    "harTafPerioder": true,
+    "tafIndtaegterOre": 0,
+    "tidligereModtagetTafOre": null,
+  },
+  "totals": {
+    "oevrigeKravFoerForligOre": 123450,
+    "oevrigeKravOre": 82300,
+    "samletTotalOre": 6082300,
+    "svieSmerteOre": 0,
+    "tabtArbejdsfortjenesteFoerForligOre": 9000000,
+    "tabtArbejdsfortjenesteOre": 6000000,
+  },
+}
+`;
+
+exports[`eoCanonicalOutput parity matrix > 'ingen taf-perioder' 1`] = `
+{
+  "periodiseringer": {
+    "tafPerioder": [],
+  },
+  "regulering": {
+    "loenudviklingSegmenter": [],
+    "loenudviklingTotalFoerForligOre": null,
+    "perAnsaettelse": [],
+  },
+  "taf": {
+    "harTafPerioder": false,
+    "tafIndtaegterOre": null,
+    "tidligereModtagetTafOre": null,
+  },
+  "totals": {
+    "oevrigeKravFoerForligOre": 0,
+    "oevrigeKravOre": 0,
+    "samletTotalOre": 0,
+    "svieSmerteOre": 0,
+    "tabtArbejdsfortjenesteFoerForligOre": 0,
+    "tabtArbejdsfortjenesteOre": 0,
+  },
+}
+`;
+
+exports[`eoCanonicalOutput parity matrix > 'uden forlig med offentlige ydelser i …' 1`] = `
+{
+  "periodiseringer": {
+    "tafPerioder": [
+      {
+        "fra": "2024-02-01",
+        "til": "2024-02-29",
+      },
+    ],
+  },
+  "regulering": {
+    "loenudviklingSegmenter": [
+      {
+        "amountOre": 3000000,
+        "deltaPct": 0,
+        "fra": "2024-02-01",
+        "kind": "maaneder",
+        "maaneder": 1,
+        "maanedsloenOre": 3000000,
+        "til": "2024-02-29",
+      },
+    ],
+    "loenudviklingTotalFoerForligOre": 3000000,
+    "perAnsaettelse": [],
+  },
+  "taf": {
+    "harTafPerioder": true,
+    "tafIndtaegterOre": 100000,
+    "tidligereModtagetTafOre": null,
+  },
+  "totals": {
+    "oevrigeKravFoerForligOre": 0,
+    "oevrigeKravOre": 0,
+    "samletTotalOre": 2900000,
+    "svieSmerteOre": 0,
+    "tabtArbejdsfortjenesteFoerForligOre": 2900000,
+    "tabtArbejdsfortjenesteOre": 2900000,
+  },
+}
+`;

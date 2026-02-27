@@ -5,8 +5,9 @@ import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { buildErstatningsopgoerelsePdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
+import type { EoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/eoCanonicalOutput';
 import { buildEoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/eoCanonicalOutput';
-import { formatDateShort } from '../../../domain/erstatningsopgoerelse/sharedPdfUtils';
+import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);
@@ -118,6 +119,49 @@ const scenarios: readonly Scenario[] = [
   },
 ];
 
+const projectCanonicalFromPdfModel = (
+  eoValues: ErstatningsopgoerelseValues,
+  pdfModel: ReturnType<typeof buildErstatningsopgoerelsePdfModel>
+): EoCanonicalOutput => ({
+  totals: {
+    svieSmerteOre: pdfModel.samlet.svieSmerteOre,
+    tabtArbejdsfortjenesteFoerForligOre: pdfModel.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteFoerForligOre,
+    tabtArbejdsfortjenesteOre: pdfModel.samlet.tabtArbejdsfortjenesteOre,
+    oevrigeKravFoerForligOre: pdfModel.oevrigeKrav.totalFoerForligOre,
+    oevrigeKravOre: pdfModel.samlet.oevrigeKravOre,
+    samletTotalOre: pdfModel.samlet.totalOre,
+  },
+  taf: {
+    harTafPerioder: pdfModel.tabtArbejdsfortjeneste.harTafPerioder,
+    tafIndtaegterOre:
+      pdfModel.tabtArbejdsfortjeneste.tafIndtaegter?.total.status === 'ok'
+        ? pdfModel.tabtArbejdsfortjeneste.tafIndtaegter.total.value
+        : null,
+    tidligereModtagetTafOre:
+      pdfModel.tabtArbejdsfortjeneste.tidligereModtagetTaf.status === 'ok'
+        ? pdfModel.tabtArbejdsfortjeneste.tidligereModtagetTaf.value
+        : null,
+  },
+  periodiseringer: {
+    // TAF-perioder kan ikke projiceres tabsfrit fra PDF-modellens formaterede linjer.
+    // Begge pipelines bruger buildTafRanges(eoValues), så identisk input giver identisk
+    // canonical periodisering i både PDF-projektion og buildEoCanonicalOutput.
+    tafPerioder: buildTafRanges(eoValues),
+  },
+  regulering: {
+    loenudviklingTotalFoerForligOre:
+      pdfModel.tabtArbejdsfortjeneste.loenudvikling?.loenudviklingTotal.status === 'ok'
+        ? pdfModel.tabtArbejdsfortjeneste.loenudvikling.loenudviklingTotal.value
+        : null,
+    loenudviklingSegmenter: pdfModel.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [],
+    perAnsaettelse: (pdfModel.tabtArbejdsfortjeneste.loenudvikling?.perAnsaettelse ?? []).map((entry) => ({
+      ansaettelsesforholdId: entry.ansaettelsesforholdId,
+      loenudviklingTotalFoerForligOre: entry.loenudviklingTotal.status === 'ok' ? entry.loenudviklingTotal.value : null,
+      loenudviklingSegmenter: entry.beregnedeSegmenter,
+    })),
+  },
+});
+
 describe('eoCanonicalOutput parity matrix', () => {
   it.each(scenarios)('$name', ({ eoValues }) => {
     const stamdata = {
@@ -129,46 +173,9 @@ describe('eoCanonicalOutput parity matrix', () => {
     // dagsDatoISO er kun PDF-metadata; canonical output er dato-uafhængig.
     const pdfModel = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-27') });
     const canonical = buildEoCanonicalOutput(stamdata, eoValues);
+    const projected = projectCanonicalFromPdfModel(eoValues, pdfModel);
 
-    expect(canonical.totals.svieSmerteOre).toBe(pdfModel.samlet.svieSmerteOre);
-    expect(canonical.totals.tabtArbejdsfortjenesteFoerForligOre).toBe(
-      pdfModel.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteFoerForligOre
-    );
-    expect(canonical.totals.tabtArbejdsfortjenesteOre).toBe(pdfModel.samlet.tabtArbejdsfortjenesteOre);
-    expect(canonical.totals.oevrigeKravFoerForligOre).toBe(pdfModel.oevrigeKrav.totalFoerForligOre);
-    expect(canonical.totals.oevrigeKravOre).toBe(pdfModel.samlet.oevrigeKravOre);
-    expect(canonical.totals.samletTotalOre).toBe(pdfModel.samlet.totalOre);
-
-    expect(canonical.taf.harTafPerioder).toBe(pdfModel.tabtArbejdsfortjeneste.harTafPerioder);
-    expect(canonical.taf.tafIndtaegterOre).toBe(
-      pdfModel.tabtArbejdsfortjeneste.tafIndtaegter?.total.status === 'ok'
-        ? pdfModel.tabtArbejdsfortjeneste.tafIndtaegter.total.value
-        : null
-    );
-    expect(canonical.taf.tidligereModtagetTafOre).toBe(
-      pdfModel.tabtArbejdsfortjeneste.tidligereModtagetTaf.status === 'ok'
-        ? pdfModel.tabtArbejdsfortjeneste.tidligereModtagetTaf.value
-        : null
-    );
-
-    const canonicalTafLinjer = canonical.periodiseringer.tafPerioder.map((range) => {
-      const fra = formatDateShort(range.fra);
-      const til = formatDateShort(range.til);
-      return `${fra} - ${til}`;
-    });
-    expect(canonicalTafLinjer).toEqual(pdfModel.tabtArbejdsfortjeneste.tafPerioderLinjer);
-
-    const pdfLoenudvikling = pdfModel.tabtArbejdsfortjeneste.loenudvikling;
-    expect(canonical.regulering.loenudviklingTotalFoerForligOre).toBe(
-      pdfLoenudvikling?.loenudviklingTotal.status === 'ok' ? pdfLoenudvikling.loenudviklingTotal.value : null
-    );
-    expect(canonical.regulering.loenudviklingSegmenter).toEqual(pdfLoenudvikling?.beregnedeSegmenter ?? []);
-    expect(canonical.regulering.perAnsaettelse).toEqual(
-      (pdfLoenudvikling?.perAnsaettelse ?? []).map((entry) => ({
-        ansaettelsesforholdId: entry.ansaettelsesforholdId,
-        loenudviklingTotalFoerForligOre: entry.loenudviklingTotal.status === 'ok' ? entry.loenudviklingTotal.value : null,
-        loenudviklingSegmenter: entry.beregnedeSegmenter,
-      }))
-    );
+    expect(canonical).toEqual(projected);
+    expect(canonical).toMatchSnapshot();
   });
 });

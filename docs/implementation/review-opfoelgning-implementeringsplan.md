@@ -250,7 +250,7 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 
 ### C2. Fund 4 + Opfølgning 2: EO-PDF skal være renderer, ikke beregningsmotor
 
-**Status:** 🚧 Delvist implementeret 2026-02-27 (Fase 0 etableret med `src/domain/erstatningsopgoerelse/eoCanonicalOutput.ts`; initiale paritetstests i `src/__tests__/domain/erstatningsopgoerelse/eoCanonicalOutput*.test.ts`)
+**Status:** 🚧 Delvist implementeret 2026-02-27 (Fase 0–1 gennemført: `src/domain/erstatningsopgoerelse/eoCanonicalOutput.ts` + paritetsmatrix/snapshot-tests i `src/__tests__/domain/erstatningsopgoerelse/eoCanonicalOutput*.test.ts`)
 
 **Problem:** PDF-laget (`src/utils/pdf/erstatningsopgoerelsePdf.ts`) indeholder selvstændig beregningslogik og direkte dataopslag parallelt med engines/pipeline. Bryder `calculation-architecture.md`-kontrakten.
 
@@ -262,10 +262,12 @@ Denne plan omsætter fund fra det arkitekturelle code review til en prioriteret,
 - Materialisér canonical output-felter som en TypeScript `EoCanonicalOutput`-type med tilhørende Zod-schema (jf. `calculation-architecture.md` pipeline-krav: `Engine → OutputSchema`).
 - Felter: TAF-beløb, svie/smerte, totaler, periodiseringer, reguleringsbeløb.
 - **Output-artefakt:** `src/domain/erstatningsopgoerelse/eoCanonicalOutput.ts` med type + schema. Placering i EO-domænemappen (frem for `src/domain/calculations/`) fordi outputtet er EO-specifikt, ikke cross-cutting (jf. `calculation-architecture.md`: "Section-local in `src/domain/calculations/`; cross-cutting engines in dedicated domain modules").
+- **Status:** ✅ Implementeret 2026-02-27.
 
 #### Fase 1: Paritetstests
 - Faste snapshot-tests: engine-output === PDF-model-output for alle felter i paritetsmatrix.
 - Brug B1-klassificeringen til at identificere hvilke `sharedPdfUtils`-helpers der er beregning vs. formattering.
+- **Status:** ✅ Implementeret 2026-02-27 (parameteriseret paritetsmatrix + snapshots).
 
 #### Fase 2: Flytning
 - Flyt beregningsdele fra `erstatningsopgoerelsePdf.ts` og `sharedPdfUtils.ts` til model/pipeline.
