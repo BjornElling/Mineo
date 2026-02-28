@@ -28,6 +28,7 @@ import type { AarsloenBeregningResult } from '../../types/calculation';
 import { amountValueToDisplayString, amountValueToNumber } from '../expressionAmount';
 import { TODAY } from '../../config/dateRanges';
 import { formatAsAmount, formatCountWithUnit, formatPercent } from '../formatUtils';
+import { resolvePdfFileName } from './pdfFormatUtils';
 
 type PdfDoc = jsPDF & {
   lastAutoTable?: {
@@ -39,6 +40,10 @@ const SECTION_HEADING_TO_TABLE_ADJUSTMENT_MM = PDF_BASE_LINE_HEIGHT_MM;
 
 const resolveTableStartYAfterSectionHeading = (headingY: number): number =>
   headingY - SECTION_HEADING_TO_TABLE_ADJUSTMENT_MM;
+
+export const buildAarsloenPdfFilename = (journalnr?: string): string => {
+  return resolvePdfFileName('Årslønsberegning', false, journalnr);
+};
 
 /**
  * Formaterer beløb til dansk format med tusindtalsseparator
@@ -605,9 +610,9 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
   // Dokumentets metadata
   writer.setProperties({
     title: 'Årslønsberegning',
-    subject: 'Årslønsberegning',
-    author: 'MINEO',
-    creator: 'MINEO',
+    subject: 'Erstatningsberegning',
+    author: 'Mineo',
+    creator: 'mineo.dk',
   });
 
   let currentY = MARGINS.top;
@@ -676,18 +681,7 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
   writer.addFooter();
 
   // Generer filnavn
-  let filename = 'Årslønsberegning.pdf';
-  if (stamdata) {
-    const journalnr = stamdata.journalnr || '';
-    const navn = stamdata.skadelidte || '';
-    if (journalnr && navn) {
-      filename = `${journalnr} - ${navn} - Årslønsberegning.pdf`;
-    } else if (journalnr) {
-      filename = `${journalnr} - Årslønsberegning.pdf`;
-    } else if (navn) {
-      filename = `${navn} - Årslønsberegning.pdf`;
-    }
-  }
+  const filename = buildAarsloenPdfFilename(stamdata?.journalnr);
 
   // Download PDF
   writer.save(filename);

@@ -17,8 +17,10 @@ import type { StamdataValues } from '../../schemas/formSchemas';
 import type { VarigeMenBeregningResult } from '../../domain/varigemen/varigeMenCalculations';
 import { TODAY } from '../../config/dateRanges';
 import { formatAsAmount } from '../formatUtils';
+import { resolvePdfFileName } from './pdfFormatUtils';
 
 const formatDateReadable = (isoDate: ISODateString | undefined): string => formatIsoDateLong(isoDate);
+export const buildVarigeMenPdfFilename = (journalnr?: string): string => resolvePdfFileName('Méngodtgørelse', false, journalnr);
 
 /**
  * Tilføj stamdata-sektion
@@ -146,9 +148,9 @@ export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void =
   // Dokumentets metadata
   writer.setProperties({
     title: 'Ménberegning',
-    subject: 'Ménberegning',
-    author: 'MINEO',
-    creator: 'MINEO',
+    subject: 'Erstatningsberegning',
+    author: 'Mineo',
+    creator: 'mineo.dk',
   });
 
   // Tilføj brevhoved hvis aktiveret
@@ -178,18 +180,7 @@ export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void =
   writer.addFooter();
 
   // Generer filnavn
-  let filename = 'Ménberegning.pdf';
-  if (stamdata) {
-    const journalnr = stamdata.journalnr || '';
-    const navn = stamdata.skadelidte || '';
-    if (journalnr && navn) {
-      filename = `${journalnr} - ${navn} - Ménberegning.pdf`;
-    } else if (journalnr) {
-      filename = `${journalnr} - Ménberegning.pdf`;
-    } else if (navn) {
-      filename = `${navn} - Ménberegning.pdf`;
-    }
-  }
+  const filename = buildVarigeMenPdfFilename(stamdata?.journalnr);
 
   // Download PDF
   writer.save(filename);

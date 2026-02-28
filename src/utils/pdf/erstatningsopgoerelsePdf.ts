@@ -217,8 +217,8 @@ export const generateErstatningsopgoerelsePdf = (
   writer.setProperties({
     title: titel,
     subject: 'Erstatningsberegning',
-    author: 'MINEO',
-    creator: 'MINEO',
+    author: 'Mineo',
+    creator: 'mineo.dk',
   });
 
   const renderSectionHeader = (text: string, nextLineHeight: number) => {

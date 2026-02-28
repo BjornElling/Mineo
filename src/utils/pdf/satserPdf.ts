@@ -13,7 +13,7 @@ import { createStandardPdfWriter } from './pdfWriter';
 import { createJsPdfAdapter } from './jsPdfAdapter';
 import { renderEoStylePdfTable } from './pdfTableRenderer';
 import { TODAY } from '../../config/dateRanges';
-import { formatCurrencyPerUnit } from './pdfFormatUtils';
+import { formatCurrencyPerUnit, resolvePdfFileName } from './pdfFormatUtils';
 import { getSatserForYear } from '../../data/regulationRates';
 import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
 import type jsPDF from 'jspdf';
@@ -31,6 +31,8 @@ const formatPercentage = (value: number | null | undefined): string => {
   if (value === null || value === undefined || !Number.isFinite(value)) return '';
   return formatPercent(value);
 };
+
+export const buildSatserPdfFilename = (year: number): string => resolvePdfFileName(`Arbejdsskadesatser ${year}`, false);
 
 /**
  * Generer og download PDF for arbejdsskadesatser
@@ -54,8 +56,8 @@ export const generateSatserPdf = (
   writer.setProperties({
     title: `Arbejdsskadesatser ${year}`,
     subject: 'Erstatningsberegning',
-    author: 'MINEO',
-    creator: 'MINEO',
+    author: 'Mineo',
+    creator: 'mineo.dk',
   });
 
   // Tilføj brevhoved hvis aktiveret
@@ -96,7 +98,7 @@ export const generateSatserPdf = (
   writer.addFooter();
 
   // Download PDF
-  writer.save(`Arbejdsskadesatser ${year}.pdf`);
+  writer.save(buildSatserPdfFilename(year));
 };
 
 

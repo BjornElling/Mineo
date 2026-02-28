@@ -32,6 +32,7 @@ import { referenceRates, surchargeRates } from '../../data/interestRates';
 import { TODAY } from '../../config/dateRanges';
 import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
 import { RENTE_CALCULATION_PRINCIPLES } from '../../domain/renteberegning/renteCalculationPrinciples';
+import { resolvePdfFileName, sanitizeFilenamePart } from './pdfFormatUtils';
 
 /**
  * Stamdata til Rente PDF
@@ -60,6 +61,17 @@ const COLUMN_INDEX_RENTESATS = 2;
 const parseAmountInput = (value: string | number): number => {
   if (typeof value === 'number') return value;
   return Number.parseFloat(value.replace(/\./g, '').replace(',', '.'));
+};
+
+export const buildRentePdfFilename = (
+  baseTitle: string,
+  journalnr?: string
+): string => {
+  return resolvePdfFileName(baseTitle, false, journalnr);
+};
+
+export const buildRentePdfBaseTitle = (amount: number, startDate: Date, endDate: Date): string => {
+  return sanitizeFilenamePart(`Procesrente, ${formatAmount(amount)} kr. (${formatDanishDate(startDate)} - ${formatDanishDate(endDate)})`);
 };
 
 /**
@@ -247,9 +259,9 @@ export const generateRentePdf = (
 
   writer.setProperties({
     title: 'Procesrente',
-    subject: 'Renteberegning',
-    author: 'MINEO',
-    creator: 'MINEO',
+    subject: 'Erstatningsberegning',
+    author: 'Mineo',
+    creator: 'mineo.dk',
   });
 
   // Tilføj brevhoved hvis aktiveret
@@ -280,7 +292,8 @@ export const generateRentePdf = (
 
   // Generer filnavn
   const amountNum = parseAmountInput(amount);
-  const filename = `Procesrente af ${formatAmount(amountNum)} kr. - ${formatDanishDate(startDate)} til ${formatDanishDate(endDate)}.pdf`;
+  const baseTitle = buildRentePdfBaseTitle(amountNum, startDate, endDate);
+  const filename = buildRentePdfFilename(baseTitle, stamdata?.journalnr);
 
   // Download PDF
   writer.save(filename);

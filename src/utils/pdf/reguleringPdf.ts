@@ -39,6 +39,7 @@ import {
 } from '../../data/statistiskLoenudviklingRates';
 import type { DanishDateString } from '../../types/branded';
 import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
+import { resolvePdfFileName, sanitizeFilenamePart } from './pdfFormatUtils';
 
 type ReguleringPdfParams = Readonly<{
   overenskomstLabel: string;
@@ -59,21 +60,15 @@ type TableColumn = Readonly<{
   header: string;
 }>;
 
-const replaceControlChars = (value: string): string => {
-  let out = '';
-  for (let i = 0; i < value.length; i += 1) {
-    const ch = value[i];
-    const code = ch.charCodeAt(0);
-    out += code >= 0 && code <= 31 ? '_' : ch;
-  }
-  return out;
-};
-
-const sanitizeFilenamePart = (value: string): string => {
-  return replaceControlChars(value)
-    .replace(/[<>:"/\\|?*]/g, '_')
-    .replace(/\s+/g, ' ')
-    .trim();
+export const buildReguleringPdfFilename = (params: Readonly<{
+  loenudviklingBasis: 'Overenskomst' | 'Statistik';
+  valgtLabel: string;
+  interval: Readonly<{ fraDato: DanishDateString; tilDato: DanishDateString }>;
+}>): string => {
+  const basisTekst = params.loenudviklingBasis === 'Statistik' ? 'Statistik' : 'Overenskomst';
+  const labelPart = sanitizeFilenamePart(params.valgtLabel);
+  const intervalPart = sanitizeFilenamePart(`${params.interval.fraDato} til ${params.interval.tilDato}`);
+  return resolvePdfFileName(`Regulering - ${basisTekst} - ${labelPart} (${intervalPart})`, false);
 };
 
 const resolveOffentligLoenInfoLine = (params: Readonly<{
@@ -390,8 +385,8 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
   writer.setProperties({
     title: 'Regulering',
     subject: 'Erstatningsberegning',
-    author: 'MINEO',
-    creator: 'MINEO',
+    author: 'Mineo',
+    creator: 'mineo.dk',
   });
 
   // Tilføj brevhoved hvis aktiveret
@@ -456,8 +451,5 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
   }
 
   writer.addFooter();
-  const basisTekst = loenudviklingBasis === 'Statistik' ? 'Statistik' : 'Overenskomst';
-  const labelPart = sanitizeFilenamePart(valgtLabel);
-  const intervalPart = sanitizeFilenamePart(`${interval.fraDato} til ${interval.tilDato}`);
-  writer.save(`Regulering - ${basisTekst} - ${labelPart} (${intervalPart}).pdf`);
+  writer.save(buildReguleringPdfFilename({ loenudviklingBasis, valgtLabel, interval }));
 };

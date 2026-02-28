@@ -3,9 +3,39 @@ import { roundByMethod } from '../rounding';
 
 const NBSP = '\u00A0';
 
+const replaceControlChars = (value: string): string => {
+  let out = '';
+  for (let i = 0; i < value.length; i += 1) {
+    const ch = value[i];
+    const code = ch.charCodeAt(0);
+    out += code <= 31 ? '_' : ch;
+  }
+  return out;
+};
+
+export const sanitizeFilenamePart = (value: string): string => {
+  return replaceControlChars(value)
+    .replace(/[<>:"/\\|?*]/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+/**
+ * Kanonisk filnavnsregel for PDF-downloads.
+ *
+ * Resultat:
+ * - `{journalnr} - {baseTitle}.pdf` når journalnr er udfyldt
+ * - `{baseTitle}.pdf` når journalnr er tomt
+ * - ` (udkast)` indsættes lige før `.pdf` når `isDraft=true`
+ *
+ * Både `journalnr` og `baseTitle` saniteres altid for Windows-ulovlige tegn:
+ * `< > : " / \ | ? *` samt kontroltegn.
+ */
 export const resolvePdfFileName = (baseTitle: string, isDraft: boolean, journalnr?: string): string => {
-  const prefix = journalnr && journalnr.trim() !== '' ? `${journalnr.trim()} - ` : '';
-  return `${prefix}${baseTitle}${isDraft ? ' (udkast)' : ''}.pdf`;
+  const safeJournalnr = typeof journalnr === 'string' ? sanitizeFilenamePart(journalnr.trim()) : '';
+  const prefix = safeJournalnr !== '' ? `${safeJournalnr} - ` : '';
+  const safeTitle = sanitizeFilenamePart(baseTitle);
+  return `${prefix}${safeTitle}${isDraft ? ' (udkast)' : ''}.pdf`;
 };
 
 export const formatMaanederTrimmed = (value: number): string => {

@@ -24,6 +24,7 @@ export const brevhovedIndstillingerSchema = z.object({
   erstatningsopgoerelse: z.boolean(),
   shDage: z.boolean(),
   renteberegning: z.boolean(),
+  // KRL har ingen separat toggle og arver altid denne 1-til-1 i pdfService.
   regulering: z.boolean(),
   varigeMen: z.boolean(),
   satser: z.boolean(),

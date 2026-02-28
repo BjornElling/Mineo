@@ -163,6 +163,21 @@ describe('downloadKrlPdf', () => {
     expect(mockGenerateKRLPdf).toHaveBeenCalled();
   });
 
+  it('arver brevhoved-indstilling 1-til-1 fra regulering', async () => {
+    const settingsWithReguleringBrevhoved = {
+      ...DEFAULT_APP_SETTINGS,
+      brevhovedIndstillinger: {
+        ...DEFAULT_APP_SETTINGS.brevhovedIndstillinger,
+        regulering: true,
+      },
+    };
+    const result = await downloadKrlPdf({ settings: settingsWithReguleringBrevhoved, persistedStamdata: stamdata });
+    expect(result.success).toBe(true);
+
+    const lastCall = mockGenerateKRLPdf.mock.calls.at(-1);
+    expect(lastCall?.[0]).toMatchObject({ visBrevhoved: true });
+  });
+
   it('returnerer success=false ved generator-fejl', async () => {
     mockGenerateKRLPdf.mockImplementationOnce(() => { throw new Error('KRL fejl'); });
     const result = await downloadKrlPdf({ settings, persistedStamdata: null });

@@ -24,11 +24,12 @@ import {
   renderEoStylePdfTable,
 } from './pdfTableRenderer';
 import { parseISODate, type ISODateString } from '../../types/branded';
-import { formatToISO, addDays } from '../dateUtils';
+import { formatToISO, addDays, formatDanishDate } from '../dateUtils';
 import { formatUtcDateLong, WEEKDAY_NAMES_DA } from '../dateFormatting';
 import { TODAY } from '../../config/dateRanges';
 import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
 import type { CellHookData, RowInput } from 'jspdf-autotable';
+import { resolvePdfFileName } from './pdfFormatUtils';
 
 /**
  * Stamdata til SH-dage PDF
@@ -42,6 +43,21 @@ type SHDagEntry = Readonly<{
   helligdagNavn: string;
   erHverdag: boolean;
 }>;
+
+const buildSHDagePeriodLabel = (perioder: ReadonlyArray<SHDagePeriod>): string => {
+  return perioder
+    .map(({ start, end }) => `${formatDanishDate(start)} - ${formatDanishDate(end)}`)
+    .join(' + ');
+};
+
+export const buildSHDagePdfFilename = (
+  perioder: ReadonlyArray<SHDagePeriod>,
+  journalnr?: string
+): string => {
+  const periodLabel = buildSHDagePeriodLabel(perioder);
+  const baseTitle = periodLabel.length > 0 ? `SH-dage (${periodLabel})` : 'SH-dage';
+  return resolvePdfFileName(baseTitle, false, journalnr);
+};
 /**
  * Formater dato til dansk format (d. måned åååå)
  *
@@ -186,8 +202,8 @@ export const generateSHDagePdf = (
   writer.setProperties({
     title: 'SH-dage',
     subject: 'Erstatningsberegning',
-    author: 'MINEO',
-    creator: 'MINEO',
+    author: 'Mineo',
+    creator: 'mineo.dk',
   });
 
   // Tilføj brevhoved hvis aktiveret
@@ -224,7 +240,7 @@ export const generateSHDagePdf = (
   writer.addFooter();
 
   // Download PDF
-  writer.save('SH-dage.pdf');
+  writer.save(buildSHDagePdfFilename(perioder, stamdata?.journalnr));
 };
 
 

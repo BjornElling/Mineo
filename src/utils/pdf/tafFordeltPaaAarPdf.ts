@@ -68,8 +68,8 @@ export const generateTafFordeltPaaAarPdf = (
   writer.setProperties({
     title: titel,
     subject: 'Erstatningsberegning',
-    author: 'MINEO',
-    creator: 'MINEO',
+    author: 'Mineo',
+    creator: 'mineo.dk',
   });
 
   // Udkast-stempel på første side

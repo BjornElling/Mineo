@@ -22,6 +22,8 @@ Konsekvens:
 - **AppSettings er kun defaults** og må kun bruges ved oprettelse af NY sagsdata.
 - **EO-data er altid fuldt udfyldt** (ingen implicitte defaults ved load/merge).
 - **PDF-laget læser aldrig fra AppSettings**; PDF bygger udelukkende på EO-data (og eksplicitte options).
+- **KRL satstabeller har ingen separat brevhoved-toggle**:
+  KRL skal altid arve `regulering`-indstillingen 1-til-1 for visning af brevhoved.
 
 ## Teknisk implementering
 - Programindstillinger persisteres i **`localStorage`** under en dedikeret nøgle: `mineo_app_settings_v1`

@@ -22,6 +22,7 @@ import {
 import { TODAY } from '../../config/dateRanges';
 import { krlSatstabeller } from '../../data/KRLrates';
 import type { DanishDateString } from '../../types/branded';
+import { resolvePdfFileName } from './pdfFormatUtils';
 
 export interface KRLStamdata {
   journalnr?: string;
@@ -38,6 +39,8 @@ const formatPct = (value: number | undefined): string => {
   if (value === undefined || value === 0) return '';
   return value.toLocaleString('da-DK', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' %';
 };
+
+export const buildKRLPdfFilename = (): string => resolvePdfFileName('KRL Satstabeller', false);
 
 /**
  * Bygger én samlet tabel med alle fire KRL satstabeller.
@@ -93,8 +96,8 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
   writer.setProperties({
     title: 'KRL Satstabeller',
     subject: 'Erstatningsberegning',
-    author: 'MINEO',
-    creator: 'MINEO',
+    author: 'Mineo',
+    creator: 'mineo.dk',
   });
 
   if (visBrevhoved) {
@@ -158,5 +161,5 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
   writer.writeWrappedText('KRL\'s sats-tabeller kan genfindes på https://www.krl.dk/#/sats');
 
   writer.addFooter();
-  writer.save('KRL Satstabeller.pdf');
+  writer.save(buildKRLPdfFilename());
 };
