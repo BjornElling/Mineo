@@ -9,84 +9,12 @@
  */
 
 import type { DateInterval } from '../types/calculation';
-import type { DanishDateString, ISODateString } from '../types/branded';
-import { toDanishDateString, toISODateString } from '../types/branded';
-import { createDate as createUTCDate } from './datePrimitives';
+import type { ISODateString } from '../types/branded';
+import { createDate, toISODateString } from '../types/branded';
 
-/**
- * Opretter en Date-objekt med eksplicit år, måned og dag
- * Sikrer at året er korrekt sat (vigtigt for tværårs-beregninger)
- */
-export const createDate = createUTCDate;
-
-/**
- * Konverterer dansk datoformat (dd-mm-åååå) til Date-objekt
- */
-export const parseDanishDate = (dateStr: DanishDateString | string): Date | null => {
-  if (!dateStr || typeof dateStr !== 'string') {
-    return null;
-  }
-
-  const parts = dateStr.split('-');
-  if (parts.length !== 3) {
-    return null;
-  }
-
-  const [dayStr, monthStr, yearStr] = parts;
-  if (dayStr.length < 1 || monthStr.length < 1 || yearStr.length !== 4) {
-    return null;
-  }
-
-  const day = Number(dayStr);
-  const month = Number(monthStr);
-  const year = Number(yearStr);
-
-  if (
-    Number.isNaN(day) ||
-    Number.isNaN(month) ||
-    Number.isNaN(year) ||
-    day < 1 ||
-    month < 1 ||
-    month > 12 ||
-    year < 1900 ||
-    year > 2100
-  ) {
-    return null;
-  }
-
-  const date = createDate(year, month - 1, day);
-
-  // Valider at datoen er gyldig (fanger fx 31-02-2025)
-  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
-    return null;
-  }
-
-  return date;
-};
-
-/**
- * Konverterer Date-objekt til dansk format (dd-mm-åååå)
- */
-export const formatDanishDate = (date: Date): DanishDateString => {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
-    throw new Error('Invalid Date passed to formatDanishDate.');
-  }
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const year = date.getUTCFullYear();
-  return toDanishDateString(`${day}-${month}-${year}`);
-};
-
-/**
- * Konverterer Date-objekt til ISO format (åååå-mm-dd)
- * Manuel formatering for at undgå timezone-problemer
- */
-export const formatToISO = (date: Date): ISODateString => {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  return toISODateString(`${year}-${month}-${day}`);
-};
+export { createDate } from '../types/branded';
+export { parseDanishDate } from '../types/branded';
+export { formatDanishDate, formatToISO } from './dateFormatting';
 
 /**
  * Dags dato i lokal kalender (dd-mm-åååå) som ISODateString.

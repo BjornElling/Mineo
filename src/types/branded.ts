@@ -1,4 +1,13 @@
-import { createDate } from '../utils/datePrimitives';
+/**
+ * Opretter en Date-objekt med eksplicit år, måned og dag.
+ * Date-only kontrakt: datoen behandles som UTC-dag uden klokkeslæt.
+ * Date.UTC fortolker år 0-99 som 1900-baseret offset, derfor korrigeres år eksplicit.
+ */
+export const createDate = (year: number, monthIndex: number, day: number): Date => {
+  const date = new Date(Date.UTC(year, monthIndex, day));
+  date.setUTCFullYear(year);
+  return date;
+};
 
 /**
  * Branded types til runtime-validerede værdier
@@ -9,7 +18,8 @@ import { createDate } from '../utils/datePrimitives';
  *
  * Regler:
  * - AL dato-parsing skal ske via funktioner i denne fil
- * - dateUtils.ts indeholder kun low-level helpers (addDays, createDate, osv.)
+ * - Canonical createDate findes i denne fil
+ * - dateUtils.ts er facade + datoaritmetik/ugehelpers
  * - Ingen domain-kode må parse datoer direkte med new Date() eller Date.parse()
  * - Brug ALTID ISODateString og DanishDateString branded types
  *
@@ -21,7 +31,7 @@ import { createDate } from '../utils/datePrimitives';
  * Branded types sikrer at værdier er validerede før brug i domæne-laget.
  * En ISODateString er ikke bare en string - det er en VALIDERET ISO-dato.
  *
- * @see dateUtils.ts - Low-level dato-helpers (ikke parsing/branding)
+ * @see dateUtils.ts - Facade + datoaritmetik/ugehelpers
  */
 
 /**
@@ -233,6 +243,19 @@ export function parseISODate(isoDate: ISODateString | undefined): Date | undefin
   }
 
   return date;
+}
+
+/**
+ * Parser dansk datoformat (dd-mm-åååå) til Date-objekt (UTC date-only)
+ */
+export function parseDanishDate(danishDate: DanishDateString | string | undefined): Date | null {
+  if (!danishDate || typeof danishDate !== 'string') return null;
+
+  const isoDate = danishToISO(danishDate);
+  if (!isoDate) return null;
+
+  const parsed = parseISODate(isoDate);
+  return parsed ?? null;
 }
 
 /**

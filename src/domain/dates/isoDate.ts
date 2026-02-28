@@ -1,6 +1,5 @@
 import type { ISODateString } from '../../types/branded';
-import { isISODateString } from '../../types/branded';
-import { createDate } from '../../utils/datePrimitives';
+import { createDate, isISODateString } from '../../types/branded';
 
 export const parseIsoDateOrUndefined = (value: string | undefined): ISODateString | undefined => {
   if (typeof value !== 'string') return undefined;

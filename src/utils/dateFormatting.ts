@@ -1,5 +1,5 @@
-import type { ISODateString } from '../types/branded';
-import { dateToISO, isISODateString, isoToDanish } from '../types/branded';
+import type { DanishDateString, ISODateString } from '../types/branded';
+import { dateToISO, isISODateString, isoToDanish, toDanishDateString } from '../types/branded';
 
 export const MONTH_NAMES_DA = [
   'januar',
@@ -70,4 +70,27 @@ export const formatUtcDateLong = (date: Date | undefined): string => {
 export const formatISOToDanish = (isoDate: string): string => {
   const danish = isoToDanish(isISODateString(isoDate) ? isoDate : undefined);
   return danish ?? '';
+};
+
+export const formatDanishDate = (date: Date): DanishDateString => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    throw new Error('Invalid Date passed to formatDanishDate.');
+  }
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const year = date.getUTCFullYear();
+  return toDanishDateString(`${day}-${month}-${year}`);
+};
+
+export const formatToISO = (date: Date): ISODateString => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    throw new Error('Invalid Date passed to formatToISO.');
+  }
+
+  const iso = dateToISO(date);
+  if (!iso) {
+    throw new Error('Could not convert Date to ISODateString.');
+  }
+
+  return iso;
 };

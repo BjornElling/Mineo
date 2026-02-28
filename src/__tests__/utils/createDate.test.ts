@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { createDate } from '../../utils/datePrimitives';
+import { createDate } from '../../types/branded';
 
 describe('createDate', () => {
+  it('bevarer år < 100 korrekt via Date.UTC', () => {
+    const d = createDate(99, 0, 1);
+    expect(d.getUTCFullYear()).toBe(99);
+    expect(d.getUTCMonth()).toBe(0);
+    expect(d.getUTCDate()).toBe(1);
+  });
+
   it('opretter en UTC-dato korrekt', () => {
     const d = createDate(2024, 0, 1); // januar = 0
     expect(d.getUTCFullYear()).toBe(2024);
