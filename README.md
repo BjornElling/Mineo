@@ -1,25 +1,8 @@
 # MINEO Erstatningsberegner
 
-MINEO er en browserbaseret, trust-kritisk erstatningsberegner til arbejdsskadesager.
+MINEO er en browserbaseret erstatningsberegner til arbejdsskadesager.
 
-Appen er 100 % client-side:
-- Ingen backend-kald for sagsdata
-- Ingen telemetri
-- Sagsdata gemmes lokalt i browseren og kan eksporteres/importeres som `.eo`
-
-## Teknologi
-
-Kerne-stack:
-- React
-- TypeScript (strict)
-- Vite
-- Material UI
-- React Router
-- Zod
-- Zustand
-- jsPDF
-
-Se eksakte versionsnumre i `package.json`.
+Appen er udviklet i TypeScript og kører 100 % client-side. Alle data bevares lokalt i browseren og kan eksporteres/importeres som filer af typen `.eo`.
 
 ## Kom i gang
 
@@ -52,7 +35,7 @@ npm run test
 npm run import:loen
 ```
 
-## Domænedata der opdateres løbende
+## Data der skal opdateres løbende
 
 - EAL/ASL-satser i `src/data/regulationRates.ts`
 - Statistiske satser i `src/data/statistiskLoenudviklingRates.ts`
@@ -72,6 +55,6 @@ Bjørn Elling
 
 ---
 
-**Version**: 2026.02.231
+**Version**: 2026.02.232
 
 **Status**: Under udvikling
