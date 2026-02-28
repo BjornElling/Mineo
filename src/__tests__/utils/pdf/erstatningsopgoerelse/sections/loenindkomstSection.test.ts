@@ -67,8 +67,8 @@ const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
       lineHeight: 4,
       startBilagPage,
       renderSubheader,
+      safeAddWrappedText: vi.fn(),
       writeLabelValueLine: vi.fn(),
-      formatJaNej: (value: boolean) => (value ? 'Ja' : 'Nej'),
       formatDateLong: vi.fn(() => ''),
       resolveOverenskomstDisplay: vi.fn(() => ''),
       formatPctFromInput: vi.fn(() => ''),
@@ -115,6 +115,31 @@ describe('renderLoenindkomstSection – gate', () => {
     renderLoenindkomstSection(ctx);
 
     expect(startBilagPage).not.toHaveBeenCalled();
+  });
+});
+
+describe('renderLoenindkomstSection opsigelseslinje', () => {
+  it('viser opsigelseslinje efter lønindkomsttabellen når ansættelsesforhold er opsagt', () => {
+    const { ctx } = makeContext(new Set(['2022-10-01']));
+    ctx.eoValues.loenindkomstAnsaettelsesforhold[0].ansaettelsesforholdOphoert = true;
+    ctx.eoValues.loenindkomstAnsaettelsesforhold[0].sidsteArbejdsdag = undefined;
+
+    renderLoenindkomstSection(ctx);
+
+    expect(ctx.safeAddWrappedText).toHaveBeenCalledWith('Skadelidte er opsagt fra stillingen.');
+  });
+
+  it('viser opsigelseslinje med sidste arbejdsdag når dato er angivet', () => {
+    const { ctx } = makeContext(new Set(['2022-10-01']));
+    ctx.eoValues.loenindkomstAnsaettelsesforhold[0].ansaettelsesforholdOphoert = true;
+    ctx.eoValues.loenindkomstAnsaettelsesforhold[0].sidsteArbejdsdag = iso('2024-04-30');
+    ctx.formatDateLong = vi.fn(() => '30. april 2024');
+
+    renderLoenindkomstSection(ctx);
+
+    expect(ctx.safeAddWrappedText).toHaveBeenCalledWith(
+      'Skadelidte er opsagt fra stillingen med sidste arbejdsdag 30. april 2024.'
+    );
   });
 });
 

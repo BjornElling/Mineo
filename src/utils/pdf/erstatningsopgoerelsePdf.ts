@@ -88,8 +88,6 @@ const renderMoneyWithKrTrimmed = (value: Calculable<MoneyOre>): string => {
 
 const formatMoneyOreWithKrTrimmed = (ore: MoneyOre): string => `${formatCurrencyFromOreTrimmed(ore)}${NBSP}kr.`;
 
-const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
-
 const formatPctFromInput = (value: number | undefined): string => {
   return formatPercentUtil(value ?? 0);
 };
@@ -374,8 +372,8 @@ export const generateErstatningsopgoerelsePdf = (
       lineHeight,
       startBilagPage,
       renderSubheader,
+      safeAddWrappedText,
       writeLabelValueLine,
-      formatJaNej,
       formatDateLong,
       formatPctFromInput,
       isZeroPct,

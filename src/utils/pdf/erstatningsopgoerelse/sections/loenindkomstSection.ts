@@ -17,8 +17,8 @@ type LoenSectionContext = Readonly<{
   lineHeight: number;
   startBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
+  safeAddWrappedText: (text: string) => void;
   writeLabelValueLine: (label: string, value: string) => void;
-  formatJaNej: (value: boolean) => string;
   formatDateLong: (isoDate: ISODateString | undefined) => string;
   formatPctFromInput: (value: number | undefined) => string;
   isZeroPct: (value: number | undefined) => boolean;
@@ -55,8 +55,8 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
     lineHeight,
     startBilagPage,
     renderSubheader,
+    safeAddWrappedText,
     writeLabelValueLine,
-    formatJaNej,
     formatDateLong,
     formatPctFromInput,
     isZeroPct,
@@ -216,22 +216,6 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       const arbejdsstedNavn = ansaettelsesforhold.navnPaaArbejdssted?.trim() || fallbackNavn;
       if (index > 0) writer.addSpacer(lineHeight);
       renderSubheader(arbejdsstedNavn, lineHeight, { addTopSpacing: index > 0 });
-      writeLabelValueLine(
-        'Ansat på skadestidspunktet',
-        formatJaNej(ansaettelsesforhold.ansatPaaSkadestidspunktet)
-      );
-      if (ansaettelsesforhold.ansatPaaSkadestidspunktet !== false) {
-        writeLabelValueLine(
-          'Opsagt fra stillingen',
-          (() => {
-            const isOpsagt = ansaettelsesforhold.ansaettelsesforholdOphoert;
-            if (!isOpsagt) return 'Nej';
-            const sidsteArbejdsdag = formatDateLong(ansaettelsesforhold.sidsteArbejdsdag);
-            if (!sidsteArbejdsdag) return 'Ja';
-            return `Ja, sidste arbejdsdag ${sidsteArbejdsdag}`;
-          })()
-        );
-      }
       writer.addSpacer(lineHeight);
       const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
       if (overenskomstId) {
@@ -258,6 +242,14 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       writer.addSpacer(lineHeight);
       const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
       renderLoenindkomstTable(ansaettelsesforhold, errorRowIds, groupWithRows.group.ranges);
+      if (ansaettelsesforhold.ansaettelsesforholdOphoert) {
+        const sidsteArbejdsdag = formatDateLong(ansaettelsesforhold.sidsteArbejdsdag);
+        const opsigelsesLinje = sidsteArbejdsdag
+          ? `Skadelidte er opsagt fra stillingen med sidste arbejdsdag ${sidsteArbejdsdag}.`
+          : 'Skadelidte er opsagt fra stillingen.';
+        writer.addSpacer(lineHeight);
+        safeAddWrappedText(opsigelsesLinje);
+      }
     }
   }
 };
