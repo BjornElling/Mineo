@@ -30,6 +30,7 @@ import {
 import { formatKRLSatstabelDisplay, getKRLSatstabel, getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
 import { loenPaaHelligdageSchema } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { buildEoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/eoCanonicalOutput';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { useFormFieldErrorsBySource } from '../../../hooks/useFormFieldErrors';
 import { useEOLoenindkomstInputErrors } from '../../../hooks/useEOLoenindkomstInputErrors';
@@ -319,6 +320,13 @@ const EODebug = () => {
 
   const stamdataFieldErrors = useFormFieldErrorsBySource('stamdata');
   const erstatningsopgoerelseFieldErrors = useFormFieldErrorsBySource('erstatningsopgoerelse');
+  const canonicalOutput = React.useMemo(() => {
+    try {
+      return buildEoCanonicalOutput(stamdataValues, erstatningsopgoerelseValues);
+    } catch {
+      return undefined;
+    }
+  }, [stamdataValues, erstatningsopgoerelseValues]);
 
   // ============================================================================
   // EXECUTION CONTEXT
@@ -332,8 +340,9 @@ const EODebug = () => {
       eoErrors: erstatningsopgoerelseFieldErrors,
       loenindkomstManuelReguleringInputErrors: manuelReguleringInputErrors,
       appSettings: settings,
+      canonicalOutput,
     }),
-    [stamdataValues, stamdataFieldErrors, erstatningsopgoerelseValues, erstatningsopgoerelseFieldErrors, manuelReguleringInputErrors, settings]
+    [stamdataValues, stamdataFieldErrors, erstatningsopgoerelseValues, erstatningsopgoerelseFieldErrors, manuelReguleringInputErrors, settings, canonicalOutput]
   );
 
   // ============================================================================

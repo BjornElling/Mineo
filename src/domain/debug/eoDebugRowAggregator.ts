@@ -22,6 +22,7 @@ import { getNavigationTargetFromRowId } from './eoDebugNavigationMap';
 import { executeAllEODebugBuilders } from './eoDebugBuilderRegistry';
 import { resolveDebugRowPresentation } from './eoDebugRowPresentation';
 import { toDebugStatusRank } from './eoDebugSeverity';
+import { buildEoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
 
 /**
  * DebugRowModel udvidet med navigation-metadata
@@ -251,6 +252,13 @@ export const collectAllDebugRows = (
   loenindkomstManuelReguleringInputErrors: Readonly<Record<string, true>> = {},
   appSettings: AppSettings = DEFAULT_APP_SETTINGS
 ): BeregningErrorSummary => {
+  let canonicalOutput: ReturnType<typeof buildEoCanonicalOutput> | undefined;
+  try {
+    canonicalOutput = buildEoCanonicalOutput(stamdataValues, erstatningsopgoerelseValues);
+  } catch {
+    canonicalOutput = undefined;
+  }
+
   // Opret execution context
   const ctx: EODebugExecutionContext = {
     stamdataValues,
@@ -259,6 +267,7 @@ export const collectAllDebugRows = (
     eoErrors: erstatningsopgoerelseErrors,
     loenindkomstManuelReguleringInputErrors,
     appSettings,
+    canonicalOutput,
   };
 
   // Udfør alle builders fra registry

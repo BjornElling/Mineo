@@ -5,27 +5,16 @@ import type {
   OffentligeYdelserRow,
 } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { danishToISO, isISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
 import { getOffentligeYdelserRowFilledState } from '../../utils/offentligeYdelserTableValidation';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, parseAarsloenRowInterval } from './indtaegtPerioder';
 import { resolveLoenudviklingKilde } from './angivetLoenHelpers';
 import type { IsoRange } from './periodRangeGroups';
+import { parseDanishToIso, parseOptionalIsoDate } from './sharedPdfUtils';
 
 type BilagLoenindkomstOgOffentligeYdelserIndgaar =
   ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
-
-const parseOptionalIsoDate = (value: unknown): ISODateString | undefined => {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  return isISODateString(trimmed) ? trimmed : undefined;
-};
-
-const parseDanishToIso = (value: string | undefined): ISODateString | undefined => {
-  if (!value || value.trim() === '') return undefined;
-  return danishToISO(value);
-};
 
 // Overlap er inklusiv begge endepunkter.
 const isIsoRangeOverlap = (a: IsoRange, b: IsoRange): boolean => a.fra <= b.til && b.fra <= a.til;

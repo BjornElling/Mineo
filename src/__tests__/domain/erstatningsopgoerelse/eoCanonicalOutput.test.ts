@@ -65,6 +65,7 @@ describe('eoCanonicalOutput', () => {
     expect(canonical.totals.oevrigeKravFoerForligOre).toBe(pdfModel.oevrigeKrav.totalFoerForligOre);
     expect(canonical.totals.oevrigeKravOre).toBe(pdfModel.samlet.oevrigeKravOre);
     expect(canonical.totals.samletTotalOre).toBe(pdfModel.samlet.totalOre);
+    expect(canonical.svieSmerte.maxApplied).toBe(pdfModel.svieSmerte.maxApplied);
     expect(canonical.taf.harTafPerioder).toBe(pdfModel.tabtArbejdsfortjeneste.harTafPerioder);
     expect(canonical.taf.tafIndtaegterOre).toBe(
       pdfModel.tabtArbejdsfortjeneste.tafIndtaegter?.total.status === 'ok'

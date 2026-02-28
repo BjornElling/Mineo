@@ -4,6 +4,8 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
+import { buildEoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/eoCanonicalOutput';
 import { buildEODebugSvieSmerteRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
 
 const iso = (value: string) => toISODateString(value);
@@ -16,6 +18,16 @@ const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): Erstatningsopg
 };
 
 const isPresent = <T,>(value: T | null | undefined): value is T => value !== null && value !== undefined;
+
+const buildCanonicalForValues = (values: ErstatningsopgoerelseValues) =>
+  buildEoCanonicalOutput(
+    {
+      ...STAMDATA_INITIAL_VALUES,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: iso('2023-01-01'),
+    },
+    values
+  );
 
 /**
  * Helper til at ekstrahere beregnet beløb fra debug rows
@@ -48,7 +60,7 @@ const getBeregnetBeloeb = (values: ErstatningsopgoerelseValues): string => {
     vedroererPeriodeTil: values.vedroererPeriodeTil ?? maxDate,
   };
 
-  const rows = buildEODebugSvieSmerteRows(completeValues, {}, context);
+  const rows = buildEODebugSvieSmerteRows(completeValues, {}, context, buildCanonicalForValues(completeValues));
   const beregnetRow = rows.find((r) => r.id === 'sviesmerte.beregnetBeloeb');
   return beregnetRow?.displayValue ?? '-';
 };
@@ -70,13 +82,35 @@ const getAntalDage = (values: ErstatningsopgoerelseValues): string => {
 };
 
 const getSvieSmerteOphoerRow = (values: ErstatningsopgoerelseValues) => {
+  let minDate = iso('2024-01-01');
+  let maxDate = iso('2025-12-31');
+
+  if (values.svieSmertePerioder && values.svieSmertePerioder.length > 0) {
+    const dates = values.svieSmertePerioder.flatMap((p) => [p.fra, p.til]).filter(isPresent);
+    if (dates.length > 0) {
+      const [firstDate, ...restDates] = dates;
+      minDate = restDates.reduce((min, d) => (d < min ? d : min), firstDate);
+      maxDate = restDates.reduce((max, d) => (d > max ? d : max), firstDate);
+    }
+  }
+  const completeValues = {
+    ...values,
+    vedroererPeriodeFra: values.vedroererPeriodeFra ?? minDate,
+    vedroererPeriodeTil: values.vedroererPeriodeTil ?? maxDate,
+  };
   const context = {
     skadesdatoISO: iso('2023-01-01'),
     erErhvervssygdom: false,
-    menAfgoerelseDatoForTabel: values.varigeMenAfgorelse === 'Ja' ? values.menAfgoerelseDato : undefined,
-    verserendeKlageMen: values.verserendeKlageMen === 'Ja',
+    menAfgoerelseDatoForTabel: completeValues.varigeMenAfgorelse === 'Ja' ? completeValues.menAfgoerelseDato : undefined,
+    verserendeKlageMen: completeValues.verserendeKlageMen === 'Ja',
   };
-  const rows = buildEODebugSvieSmerteRows(values, {}, context);
+  let canonicalOutput: ReturnType<typeof buildCanonicalForValues> | undefined;
+  try {
+    canonicalOutput = buildCanonicalForValues(completeValues);
+  } catch {
+    canonicalOutput = undefined;
+  }
+  const rows = buildEODebugSvieSmerteRows(completeValues, {}, context, canonicalOutput);
   return rows.find((row) => row.id === 'sviesmerte.ophoerSkyldes');
 };
 
@@ -425,7 +459,7 @@ describe('Svie/smerte beregning', () => {
       });
 
       const result = getBeregnetBeloeb(values);
-      expect(result).toBe('7.142,86 kr.');
+      expect(result).toBe('7.143,00 kr.');
     });
 
     it('beregner korrekt med 1/3 forlig', () => {
@@ -445,7 +479,7 @@ describe('Svie/smerte beregning', () => {
       });
 
       const result = getBeregnetBeloeb(values);
-      expect(result).toBe('8.333,33 kr.');
+      expect(result).toBe('8.333,00 kr.');
     });
 
     it('begrænser til reduceret max ved 2/7 forlig', () => {

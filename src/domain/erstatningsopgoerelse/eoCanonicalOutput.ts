@@ -43,6 +43,9 @@ const eoCanonicalOutputSchema = z.object({
     oevrigeKravOre: moneyOreSchema,
     samletTotalOre: moneyOreSchema,
   }).strict(),
+  svieSmerte: z.object({
+    maxApplied: z.boolean(),
+  }).strict(),
   taf: z.object({
     harTafPerioder: z.boolean(),
     tafIndtaegterOre: moneyOreSchema.nullable(),
@@ -140,6 +143,9 @@ export const buildEoCanonicalOutput = (
       oevrigeKravFoerForligOre,
       oevrigeKravOre,
       samletTotalOre,
+    },
+    svieSmerte: {
+      maxApplied: svieSmerte.maxApplied,
     },
     taf: {
       harTafPerioder: tafNetto.harTafPerioder,

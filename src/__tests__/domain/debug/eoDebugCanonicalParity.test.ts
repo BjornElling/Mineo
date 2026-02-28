@@ -1,0 +1,129 @@
+import { describe, expect, it } from 'vitest';
+import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
+import { buildEoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/eoCanonicalOutput';
+import { buildSvieSmerteContext, buildTaftContext } from '../../../domain/debug/eoDebugContextBuilders';
+import {
+  buildEODebugSvieSmerteRows,
+  buildEODebugTaftRows,
+} from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
+import { toISODateString } from '../../../types/branded';
+import { formatCurrency } from '../../../utils/formatUtils';
+
+const iso = (value: string) => toISODateString(value);
+const amount = (value: number): AmountValue => ({ kind: 'number', value });
+
+describe('eoDebug canonical parity', () => {
+  it('læser sviesmerte.beregnetBeloeb fra canonical totals.svieSmerteOre', () => {
+    const eoValues = {
+      ...createErstatningsopgoerelseInitialValues(),
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-12-31'),
+      tidligereSsMax: 'Nej' as const,
+      svieSmertePerioder: [
+        { id: 'ss-1', fra: iso('2024-01-01'), til: iso('2024-01-10'), tilstand: 'sygemeldt' as const },
+      ],
+      svieSmerteSatserAar: 2026,
+      svieSmerteDelvisSygemeldingSats: 'fuld' as const,
+      svieSmerteTidligereTotal: amount(0),
+      svieSmerteAktuelPeriode: amount(0),
+    };
+    const stamdataValues = {
+      ...STAMDATA_INITIAL_VALUES,
+      skadestype: 'Arbejdsulykke' as const,
+      skadesdato: iso('2024-01-01'),
+    };
+    const canonical = buildEoCanonicalOutput(stamdataValues, eoValues);
+
+    const rows = buildEODebugSvieSmerteRows(
+      eoValues,
+      {},
+      buildSvieSmerteContext(stamdataValues, eoValues),
+      canonical
+    );
+    const row = rows.find((entry) => entry.id === 'sviesmerte.beregnetBeloeb');
+
+    expect(row?.status).toBe('ok');
+    expect(row?.displayValue).toBe(`${formatCurrency(canonical.totals.svieSmerteOre / 100)} kr.`);
+  });
+
+  it('læser taf.tidligereModtagetTaf fra canonical taf.tidligereModtagetTafOre', () => {
+    const eoValues = {
+      ...createErstatningsopgoerelseInitialValues(),
+      beregnesTabtArbejdsfortjeneste: 'Ja' as const,
+      beregnesUdFra: 'Angivet månedsløn' as const,
+      maanedsloenenUdgoer: amount(30000),
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-12-31'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-02-01'), til: iso('2024-03-31'), loseFeriedage: 0 },
+      ],
+      tidligereModtagetTaf: amount(12345.67),
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen' as const,
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Ingen' as const,
+      },
+    };
+    const stamdataValues = {
+      ...STAMDATA_INITIAL_VALUES,
+      skadestype: 'Arbejdsulykke' as const,
+      skadesdato: iso('2024-01-01'),
+    };
+    const canonical = buildEoCanonicalOutput(stamdataValues, eoValues);
+
+    const rows = buildEODebugTaftRows(
+      eoValues,
+      {},
+      buildTaftContext(stamdataValues, eoValues),
+      canonical
+    );
+    const row = rows.find((entry) => entry.id === 'taf.tidligereModtagetTaf');
+
+    expect(row?.status).toBe('ok');
+    expect(row?.displayValue).toBe(
+      canonical.taf.tidligereModtagetTafOre !== null
+        ? formatCurrency(canonical.taf.tidligereModtagetTafOre / 100)
+        : formatCurrency(12345.67)
+    );
+  });
+
+  it('viser fejl for sviesmerte.beregnetBeloeb når canonical output mangler', () => {
+    const eoValues = {
+      ...createErstatningsopgoerelseInitialValues(),
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-12-31'),
+      tidligereSsMax: 'Nej' as const,
+      svieSmertePerioder: [
+        { id: 'ss-1', fra: iso('2024-01-01'), til: iso('2024-01-10'), tilstand: 'sygemeldt' as const },
+      ],
+      svieSmerteSatserAar: 2026,
+      svieSmerteDelvisSygemeldingSats: 'fuld' as const,
+      svieSmerteTidligereTotal: amount(0),
+      svieSmerteAktuelPeriode: amount(0),
+    };
+    const stamdataValues = {
+      ...STAMDATA_INITIAL_VALUES,
+      skadestype: 'Arbejdsulykke' as const,
+      skadesdato: iso('2024-01-01'),
+    };
+
+    const rows = buildEODebugSvieSmerteRows(
+      eoValues,
+      {},
+      buildSvieSmerteContext(stamdataValues, eoValues),
+      undefined
+    );
+    const row = rows.find((entry) => entry.id === 'sviesmerte.beregnetBeloeb');
+
+    expect(row?.status).toBe('error');
+    expect(row?.displayValue).toBe('Fejl (Kan ikke beregne - canonical output utilgængeligt)');
+  });
+});

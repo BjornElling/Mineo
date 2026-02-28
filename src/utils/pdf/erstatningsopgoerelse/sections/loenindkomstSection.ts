@@ -6,6 +6,7 @@ import { getAarsloenErrorRowIdSet } from '../../../../domain/erstatningsopgoerel
 import { PDF_CONTENT_WIDTH_MM } from '../../pdfConfig';
 import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
+import { resolveOverenskomstNameOnlyDisplay } from '../../../../data/overenskomstRates';
 import type { SelectedElements } from '../types';
 import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/periodRangeGroups';
 
@@ -19,7 +20,6 @@ type LoenSectionContext = Readonly<{
   writeLabelValueLine: (label: string, value: string) => void;
   formatJaNej: (value: boolean) => string;
   formatDateLong: (isoDate: ISODateString | undefined) => string;
-  resolveOverenskomstDisplay: (overenskomstId: string | undefined) => string;
   formatPctFromInput: (value: number | undefined) => string;
   isZeroPct: (value: number | undefined) => boolean;
   getLoenindkomstTableHeaders: (loenperiode: Loenperiode) => readonly string[];
@@ -58,7 +58,6 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
     writeLabelValueLine,
     formatJaNej,
     formatDateLong,
-    resolveOverenskomstDisplay,
     formatPctFromInput,
     isZeroPct,
     getLoenindkomstTableHeaders,
@@ -236,7 +235,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       writer.addSpacer(lineHeight);
       const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
       if (overenskomstId) {
-        writeLabelValueLine('Overenskomst', resolveOverenskomstDisplay(overenskomstId));
+        writeLabelValueLine('Overenskomst', resolveOverenskomstNameOnlyDisplay(overenskomstId));
         writer.addSpacer(lineHeight);
       }
       if (selectedElements.okSatser) {

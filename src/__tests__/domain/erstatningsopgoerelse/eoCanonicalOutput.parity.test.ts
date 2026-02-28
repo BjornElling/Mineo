@@ -119,6 +119,8 @@ const scenarios: readonly Scenario[] = [
   },
 ];
 
+// Denne test er en konsistens-/paritetstest mellem to interne repræsentationer.
+// Den beviser ikke domænekorrekthed i sig selv; korrekthed ligger i engine/enhedstests.
 const projectCanonicalFromPdfModel = (
   eoValues: ErstatningsopgoerelseValues,
   pdfModel: ReturnType<typeof buildErstatningsopgoerelsePdfModel>
@@ -130,6 +132,9 @@ const projectCanonicalFromPdfModel = (
     oevrigeKravFoerForligOre: pdfModel.oevrigeKrav.totalFoerForligOre,
     oevrigeKravOre: pdfModel.samlet.oevrigeKravOre,
     samletTotalOre: pdfModel.samlet.totalOre,
+  },
+  svieSmerte: {
+    maxApplied: pdfModel.svieSmerte.maxApplied,
   },
   taf: {
     harTafPerioder: pdfModel.tabtArbejdsfortjeneste.harTafPerioder,

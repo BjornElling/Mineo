@@ -103,7 +103,8 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
       return buildEODebugSvieSmerteRows(
         ctx.eoValues,
         ctx.eoErrors,
-        context
+        context,
+        ctx.canonicalOutput
       );
     },
   },
@@ -129,7 +130,8 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
       return buildEODebugTaftRows(
         ctx.eoValues,
         ctx.eoErrors,
-        context
+        context,
+        ctx.canonicalOutput
       );
     },
   },

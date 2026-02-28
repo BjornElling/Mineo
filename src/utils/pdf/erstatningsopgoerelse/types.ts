@@ -5,19 +5,6 @@ export type SHDageTableRow = Readonly<{
   erSHDag: boolean;
 }>;
 
-export type ReguleringIndexRow = Readonly<{
-  fraDato: string;
-  tilDato: string;
-  indeksberegning: string;
-  indeks: string;
-  loenudvikling: string;
-}>;
-
-export type ReguleringValuesTableData = Readonly<{
-  columns: readonly string[];
-  rows: ReadonlyArray<ReadonlyArray<string>>;
-}>;
-
 export interface SelectedElements {
   opgoerelse: boolean;
   loenindkomst: boolean;

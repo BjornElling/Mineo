@@ -29,6 +29,7 @@ import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offent
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/angivetLoenHelpers';
 import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../erstatningsopgoerelse/indtaegtPerioder';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
+import type { EoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -561,7 +562,8 @@ export const buildEODebugSvieSmerteRows = (
     erErhvervssygdom: boolean;
     menAfgoerelseDatoForTabel: ISODateString | undefined;
     verserendeKlageMen: boolean;
-  }>
+  }>,
+  canonicalOutput?: EoCanonicalOutput
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
   const svieSmerteIkkeRejstLabel = 'Ikke rejst svie/smerte-krav for hele perioden';
@@ -1224,114 +1226,19 @@ export const buildEODebugSvieSmerteRows = (
 
   // 8) Beregnet svie/smerte beløb
   const beregnetBeloebResult = (() => {
-    // Hvis ingen perioder, returner tom
-    if (!harPerioder) {
-      return { displayValue: '-', status: 'ok' as DebugStatus, naetMaxIPerioden: false };
+    if (!canonicalOutput) {
+      return {
+        displayValue: 'Fejl (Kan ikke beregne - canonical output utilgængeligt)',
+        status: 'error' as DebugStatus,
+        naetMaxIPerioden: false,
+      };
     }
 
-    // Hvis satser år mangler, returner fejl
-    if (satserAarMangler) {
-      return { displayValue: 'Fejl (År for sats mangler)', status: 'error' as DebugStatus, naetMaxIPerioden: false };
-    }
-
-    // Hvis delvis sygemeldings-sats mangler, returner fejl
-    if (delvisSygemeldingSatsMangler) {
-      return { displayValue: 'Fejl (Sats ved delvis sygemelding mangler)', status: 'error' as DebugStatus, naetMaxIPerioden: false };
-    }
-
-    // Hvis der er fejl i antal dage, returner fejl
-    if (antalDageResult.status === 'error') {
-      return { displayValue: 'Fejl (Kan ikke beregne dage)', status: 'error' as DebugStatus, naetMaxIPerioden: false };
-    }
-
-    // Hvis ingen dage, returner tom
-    if (antalDageResult.displayValue === '-') {
-      return { displayValue: '-', status: 'ok' as DebugStatus, naetMaxIPerioden: false };
-    }
-
-    // Parse antal dage fra den nye format
-    // Format kan være: "x sygedage", "y delvise sygedage", eller "x sygedage, y delvise sygedage"
-    const sygedageMatch = antalDageResult.displayValue.match(/(\d+) sygedage/);
-    const delviseMatch = antalDageResult.displayValue.match(/(\d+) delvise sygedage/);
-
-    const antalSygedage = sygedageMatch ? parseInt(sygedageMatch[1], 10) : 0;
-    const antalDelviseSygedage = delviseMatch ? parseInt(delviseMatch[1], 10) : 0;
-
-    // Parse år
-    const aarString = typeof values.svieSmerteSatserAar === 'number'
-      ? String(values.svieSmerteSatserAar)
-      : values.svieSmerteSatserAar;
-    const aar = parseInt(aarString?.trim() ?? '', 10);
-    if (isNaN(aar)) {
-      return { displayValue: 'Fejl (Ugyldigt år)', status: 'error' as DebugStatus, naetMaxIPerioden: false };
-    }
-
-    // Slå sats op
-    const satsPerDag = svieSmertePrDag[aar as keyof typeof svieSmertePrDag];
-    const satsMax = svieSmerteMax[aar as keyof typeof svieSmerteMax];
-
-    if (!satsPerDag || !satsMax) {
-      return { displayValue: `Fejl (Ingen sats for år ${aar})`, status: 'error' as DebugStatus, naetMaxIPerioden: false };
-    }
-
-    // Beregn forligsgrad hvis den er udfyldt
-    const procentValue = values.forligAnsvarsgradProcent;
-    const broekValue = values.forligAnsvarsgradBroek;
-
-    let forligsgrad: number | undefined = undefined;
-
-    if (typeof procentValue === 'number') {
-      forligsgrad = procentValue / 100;
-    } else if (isNonEmptyString(broekValue)) {
-      // Parse brøk direkte for at undgå afrunding
-      const parts = broekValue.trim().split('/');
-      if (parts.length === 2) {
-        const taeller = parseFloat(parts[0]);
-        const naevner = parseFloat(parts[1]);
-        if (!isNaN(taeller) && !isNaN(naevner) && naevner !== 0) {
-          forligsgrad = taeller / naevner;
-        }
-      }
-    }
-
-    // Reducer satser hvis der er forlig
-    const actualSatsPerDag = forligsgrad !== undefined ? satsPerDag * forligsgrad : satsPerDag;
-    const actualSatsMax = forligsgrad !== undefined ? satsMax * forligsgrad : satsMax;
-
-    // Beregn sats for delvise dage (fuld eller halv)
-    const delvisSatsFaktor = delvisSygemeldingSatsValue === 'fuld' ? 1 : 0.5;
-
-    // Beregn råbeløb: (sygedage * sats) + (delvise dage * delvisSatsFaktor * sats)
-    const raabeloeb = (antalSygedage * actualSatsPerDag) + (antalDelviseSygedage * delvisSatsFaktor * actualSatsPerDag);
-
-    // Hent "Tidligere opgjort" (fra tidligere EO'er)
-    const tidligereOpgjort = amountValueToNumber(values.svieSmerteTidligereTotal) ?? 0;
-
-    // Hent "Evt. allerede modtaget i nuværende periode"
-    const alleredeModtaget = amountValueToNumber(values.svieSmerteAktuelPeriode) ?? 0;
-
-    // Beregn resterende plads til max (kun tidligere opgjort tæller her)
-    const restPlads = actualSatsMax - tidligereOpgjort;
-    const cappedAfMax = raabeloeb > Math.max(0, restPlads);
-
-    // Begræns råbeløb til resterende plads
-    const beloebFoerFradrag = Math.min(raabeloeb, Math.max(0, restPlads));
-
-    // Fratræk allerede modtaget i denne periode
-    let beloeb = beloebFoerFradrag - alleredeModtaget;
-
-    // Hvis negativt, sæt til 0
-    if (beloeb < 0) {
-      beloeb = 0;
-    }
-
-    // Formater til dansk format
-    const formatted = beloeb.toLocaleString('da-DK', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-
-    return { displayValue: `${formatted} kr.`, status: 'ok' as DebugStatus, naetMaxIPerioden: cappedAfMax };
+    return {
+      displayValue: `${formatCurrency(canonicalOutput.totals.svieSmerteOre / 100)} kr.`,
+      status: 'ok' as DebugStatus,
+      naetMaxIPerioden: canonicalOutput.svieSmerte.maxApplied,
+    };
   })();
 
   rows.push({
@@ -1419,7 +1326,8 @@ export const buildEODebugTaftRows = (
     endeligEETBeregnetDato: ISODateString | undefined;
     differencekravDato: ISODateString | undefined;
     verserendeKlageEet: boolean;
-  }>
+  }>,
+  canonicalOutput?: EoCanonicalOutput
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
   const tafBeregnesSom = computeTafBeregningsenhed(values);
@@ -1846,7 +1754,11 @@ export const buildEODebugTaftRows = (
   });
 
   // 4) Evt. allerede modtaget tabt arbejdsfortjeneste for nuværende erstatningsperiode
-  const tidligereModtagetTafDisplay = formatCurrency(amountValueToNumber(values.tidligereModtagetTaf));
+  const tidligereModtagetTafDisplay =
+    canonicalOutput?.taf.tidligereModtagetTafOre !== null &&
+    canonicalOutput?.taf.tidligereModtagetTafOre !== undefined
+      ? formatCurrency(canonicalOutput.taf.tidligereModtagetTafOre / 100)
+      : formatCurrency(amountValueToNumber(values.tidligereModtagetTaf));
   rows.push({
     id: 'taf.tidligereModtagetTaf',
     label: 'Evt. allerede modtaget tabt arbejdsfortjeneste for nuværende erstatningsperiode',
@@ -3005,3 +2917,4 @@ export const buildEODebugSaerligeKommentarerRows = (
     },
   ];
 };
+

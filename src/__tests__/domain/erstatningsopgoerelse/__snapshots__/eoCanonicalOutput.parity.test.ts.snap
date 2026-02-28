@@ -25,6 +25,9 @@ exports[`eoCanonicalOutput parity matrix > 'arbejdsdage-segmenter i loenudviklin
     "loenudviklingTotalFoerForligOre": 2100000,
     "perAnsaettelse": [],
   },
+  "svieSmerte": {
+    "maxApplied": false,
+  },
   "taf": {
     "harTafPerioder": true,
     "tafIndtaegterOre": 0,
@@ -65,6 +68,9 @@ exports[`eoCanonicalOutput parity matrix > 'forlig + svie/smerte + oevrige krav 
     ],
     "loenudviklingTotalFoerForligOre": 9000000,
     "perAnsaettelse": [],
+  },
+  "svieSmerte": {
+    "maxApplied": false,
   },
   "taf": {
     "harTafPerioder": true,
@@ -107,6 +113,9 @@ exports[`eoCanonicalOutput parity matrix > 'forlig via broek (2/3)' 1`] = `
     "loenudviklingTotalFoerForligOre": 9000000,
     "perAnsaettelse": [],
   },
+  "svieSmerte": {
+    "maxApplied": false,
+  },
   "taf": {
     "harTafPerioder": true,
     "tafIndtaegterOre": 0,
@@ -132,6 +141,9 @@ exports[`eoCanonicalOutput parity matrix > 'ingen taf-perioder' 1`] = `
     "loenudviklingSegmenter": [],
     "loenudviklingTotalFoerForligOre": null,
     "perAnsaettelse": [],
+  },
+  "svieSmerte": {
+    "maxApplied": false,
   },
   "taf": {
     "harTafPerioder": false,
@@ -173,6 +185,9 @@ exports[`eoCanonicalOutput parity matrix > 'uden forlig med offentlige ydelser i
     ],
     "loenudviklingTotalFoerForligOre": 3000000,
     "perAnsaettelse": [],
+  },
+  "svieSmerte": {
+    "maxApplied": false,
   },
   "taf": {
     "harTafPerioder": true,

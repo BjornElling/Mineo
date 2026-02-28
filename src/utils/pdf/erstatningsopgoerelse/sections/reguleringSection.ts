@@ -25,8 +25,11 @@ import { STORE_BEDEDAG_PCT } from '../../../../config/regulatoryRates';
 import { isoToDanish, type ISODateString } from '../../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
+import type {
+  ReguleringIndexRow,
+  ReguleringValuesTableData,
+} from '../../../../domain/erstatningsopgoerelse/eoPdfReguleringEngine';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
-import type { ReguleringIndexRow, ReguleringValuesTableData } from '../types';
 
 type ReguleringSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
