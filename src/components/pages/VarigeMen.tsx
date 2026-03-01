@@ -22,7 +22,6 @@ const VarigeMen = React.memo(() => {
   });
 
   const { values, setValues, handleChange } = usePersistedForm(varigeMenSchema, 'varigemen', {
-    fodselsdato: undefined,
     mengrad: undefined,
     beregningsdato: undefined,
   });

@@ -20,6 +20,7 @@ export type StyledPercentFieldProps = {
   disabled?: boolean;
 
   allowNegative?: boolean;
+  allowDecimals?: boolean;
   minValue?: number;
   maxValue?: number;
   /**
@@ -57,10 +58,14 @@ export type StyledPercentFieldProps = {
   sx?: SxProps<Theme>;
 };
 
-const formatPercentMinimal = (value: number | undefined): string => {
+const formatPercentMinimal = (
+  value: number | undefined,
+  decimals: 0 | 2
+): string => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return '';
+  if (decimals === 0) return value.toFixed(0);
   // Do not auto-fill decimals; show up to 2 decimals without unnecessary trailing zeros.
-  let fixed = value.toFixed(2).replace('.', ',');
+  let fixed = value.toFixed(decimals).replace('.', ',');
   while (fixed.endsWith('0')) fixed = fixed.slice(0, -1);
   if (fixed.endsWith(',')) fixed = fixed.slice(0, -1);
   return fixed;
@@ -75,7 +80,11 @@ const stripTrailingPercent = (placeholder: string | undefined): string | undefin
   return placeholder;
 };
 
-const formatPercentBound = (value: number): string => formatAsAmount(value, 2);
+const formatPercentBound = (value: number, decimals: 0 | 2): string =>
+  formatAsAmount(value, decimals);
+
+const MAX_TYPING_PERCENT = 100;
+const MAX_TYPING_PERCENT_INTEGER_DIGITS = 3;
 
 const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldProps>(
   (
@@ -85,6 +94,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       placeholder = '0',
       disabled,
       allowNegative = false,
+      allowDecimals = true,
       minValue,
       maxValue,
       useDefaultPercentRange = false,
@@ -183,11 +193,14 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       return Math.floor(maxAbs);
     }, [resolvedRange.effectiveMax, resolvedRange.effectiveMin]);
 
-    const maxLength = effectiveMaxIntegerDigits + 3 + (allowNegative ? 1 : 0); // [-]iiii,dd
+    const maxLength =
+      effectiveMaxIntegerDigits +
+      (allowDecimals ? 3 : 0) +
+      (allowNegative ? 1 : 0); // [-]iiii[,dd]
 
     type PercentDisplayFormat = Readonly<{ value: number | undefined; decimals: 0 | 1 | 2 }>;
     const lastCommittedDisplayRef = React.useRef<PercentDisplayFormat | null>(null);
-    const pendingCommitDecimalsRef = React.useRef<0 | 1 | 2>(0);
+    const pendingCommitDecimalsRef = React.useRef<0 | 1 | 2>(allowDecimals ? 2 : 0);
 
     const normalizePercentValueForIdentity = React.useCallback((v: number | undefined): number | undefined => {
       if (typeof v !== 'number' || !Number.isFinite(v)) return undefined;
@@ -215,8 +228,8 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         return v.toFixed(decimals).replace('.', ',');
       }
 
-      return formatPercentMinimal(v);
-    }, [normalizePercentValueForIdentity]);
+      return formatPercentMinimal(v, allowDecimals ? 2 : 0);
+    }, [allowDecimals, normalizePercentValueForIdentity]);
 
     const parsePercent: DraftParse<number | undefined> = React.useCallback(
       (draft, { mode }) => {
@@ -231,7 +244,13 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         const normalized = trimmed.replace(/\s+/g, '');
         if (normalized.length > maxLength) return invalidOrPartial('Ugyldig procent');
 
-        const percentPattern = allowNegative ? /^-?\d*(,\d{0,2})?$/ : /^\d*(,\d{0,2})?$/;
+        const percentPattern = allowDecimals
+          ? allowNegative
+            ? /^-?\d*(,\d{0,2})?$/
+            : /^\d*(,\d{0,2})?$/
+          : allowNegative
+            ? /^-?\d*$/
+            : /^\d*$/;
         if (!percentPattern.test(normalized)) return invalidOrPartial('Ugyldig procent');
 
         const hasLeadingMinus = normalized.startsWith('-');
@@ -245,9 +264,19 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         if (decimalPart === '') {
           return invalidOrPartial('Ugyldig procent');
         }
-        if (decimalPart !== undefined && !/^\d+$/.test(decimalPart)) return invalidOrPartial('Ugyldig procent');
+        if (!allowDecimals && decimalPart !== undefined) {
+          return invalidOrPartial('Ugyldig procent');
+        }
+        if (decimalPart !== undefined && !/^\d+$/.test(decimalPart))
+          return invalidOrPartial('Ugyldig procent');
 
-        const decimals = decimalPart?.length === 2 ? 2 : decimalPart?.length === 1 ? 1 : 0;
+        const decimals = allowDecimals
+          ? decimalPart?.length === 2
+            ? 2
+            : decimalPart?.length === 1
+              ? 1
+              : 0
+          : 0;
 
         const integerNum = Number.parseInt(integerPart, 10);
         if (!Number.isFinite(integerNum)) return invalidOrPartial('Ugyldig procent');
@@ -256,7 +285,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         }
 
         const decimalScaled =
-          decimalPart === undefined
+          !allowDecimals || decimalPart === undefined
             ? 0
             : decimalPart.length === 1
               ? Number.parseInt(decimalPart, 10) * 10
@@ -272,15 +301,23 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         const effectiveMax = resolvedRange.effectiveMax;
         if (typeof effectiveMin === 'number' && signed < effectiveMin) {
           if (typeof effectiveMax === 'number') {
-            return invalidOrPartial(`Procent skal være mellem ${formatPercentBound(effectiveMin)} og ${formatPercentBound(effectiveMax)}`);
+            return invalidOrPartial(
+              `Procent skal være mellem ${formatPercentBound(effectiveMin, allowDecimals ? 2 : 0)} og ${formatPercentBound(effectiveMax, allowDecimals ? 2 : 0)}`
+            );
           }
-          return invalidOrPartial(`Procent skal være ${formatPercentBound(effectiveMin)} eller højere`);
+          return invalidOrPartial(
+            `Procent skal være ${formatPercentBound(effectiveMin, allowDecimals ? 2 : 0)} eller højere`
+          );
         }
         if (typeof effectiveMax === 'number' && signed > effectiveMax) {
           if (typeof effectiveMin === 'number') {
-            return invalidOrPartial(`Procent skal være mellem ${formatPercentBound(effectiveMin)} og ${formatPercentBound(effectiveMax)}`);
+            return invalidOrPartial(
+              `Procent skal være mellem ${formatPercentBound(effectiveMin, allowDecimals ? 2 : 0)} og ${formatPercentBound(effectiveMax, allowDecimals ? 2 : 0)}`
+            );
           }
-          return invalidOrPartial(`Procent skal være ${formatPercentBound(effectiveMax)} eller lavere`);
+          return invalidOrPartial(
+            `Procent skal være ${formatPercentBound(effectiveMax, allowDecimals ? 2 : 0)} eller lavere`
+          );
         }
 
         if (mode === 'commit') {
@@ -288,7 +325,14 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         }
         return { ok: true, value: signed };
       },
-      [allowNegative, maxAllowedIntegerPart, maxLength, resolvedRange.effectiveMax, resolvedRange.effectiveMin]
+      [
+        allowDecimals,
+        allowNegative,
+        maxAllowedIntegerPart,
+        maxLength,
+        resolvedRange.effectiveMax,
+        resolvedRange.effectiveMin,
+      ]
     );
 
     const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
@@ -336,10 +380,14 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
     const getDraftForKey = React.useCallback(
       (key: string): string | null => {
         const mapped = key === '.' ? ',' : key;
-        if (/^[0-9,]$/.test(mapped)) return mapped;
+        if (allowDecimals) {
+          if (/^[0-9,]$/.test(mapped)) return mapped;
+          return null;
+        }
+        if (/^[0-9]$/.test(mapped)) return mapped;
         return null;
       },
-      []
+      [allowDecimals]
     );
 
     const activation = useTwoStageInputActivation<HTMLElement>({
@@ -392,12 +440,14 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         if (!e.defaultPrevented) {
           filterPercentKeyDown(e, {
             allowNegative,
-            maxIntegerDigits: effectiveMaxIntegerDigits,
-            maxIntegerPart: maxAllowedIntegerPart,
+            maxIntegerDigits: MAX_TYPING_PERCENT_INTEGER_DIGITS,
+            maxIntegerPart: MAX_TYPING_PERCENT,
+            allowDecimals,
+            maxValue: MAX_TYPING_PERCENT,
           });
         }
         onKeyDown?.(e);
-    }, [activation, allowNegative, effectiveMaxIntegerDigits, formatPercent, handleDraftChange, maxAllowedIntegerPart, onCommit, onKeyDown, onKeyDownBase, parsePercent, setDraft, value]);
+    }, [activation, allowDecimals, allowNegative, formatPercent, handleDraftChange, onCommit, onKeyDown, onKeyDownBase, parsePercent, setDraft, value]);
 
     const percentAdornmentColor = draft.trim() === '' ? 'rgba(0, 0, 0, 0.4)' : 'inherit';
     const endAdornment = (
@@ -450,7 +500,11 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         error={resolvedHasError}
         helperText={resolvedErrorMessage}
         endAdornment={endAdornment}
-        htmlInputAttributes={{ inputMode: 'decimal', maxLength, readOnly: !activation.isEditorOpen }}
+        htmlInputAttributes={{
+          inputMode: allowDecimals ? 'decimal' : 'numeric',
+          maxLength,
+          readOnly: !activation.isEditorOpen,
+        }}
         sx={{
           '& .MuiInputBase-input': {
             textAlign: 'right',

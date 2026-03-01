@@ -8,7 +8,7 @@
 import type { ISODateString } from '../types/branded';
 import { toISODateString } from '../types/branded';
 import { getTodayLocalISO } from '../utils/dateUtils';
-import { varigeMenPrGradYearBounds, svieSmerteMaxYearBounds } from '../data/regulationRates';
+import { varigeMenPrGradYearBounds, svieSmerteMaxYearBounds, eetYearBounds } from '../data/regulationRates';
 import { MIN_INTEREST_DATE } from '../data/interestRates';
 
 // ============================================================================
@@ -19,7 +19,7 @@ import { MIN_INTEREST_DATE } from '../data/interestRates';
 const iso = (date: string): ISODateString => toISODateString(date);
 
 // Statiske datoer
-const DATE_1900_01_01 = iso('1900-01-01'); // Kun brugt som min for varigemen.fodselsdato
+const DATE_1900_01_01 = iso('1900-01-01'); // Min for fodselsdato (stamdata)
 const DATE_2005_01_01 = iso('2005-01-01'); // Systemets nedre grænse — bruges som min/fallbackMin for alle dato-felter undtagen varigemen.fodselsdato
 export const STORE_BEDEDAG_START = iso('2024-01-01');
 
@@ -120,6 +120,9 @@ const DATE_PLUS_5_YEARS_END = iso(`${CURRENT_YEAR + 5}-12-31`);
 // Seneste år med mén-per-grad-sats — udledt af varigeMenPrGrad i regulationRates.ts
 const DATE_VARIGEMEN_MAX = iso(`${varigeMenPrGradYearBounds.maxYear}-12-31`);
 
+// Seneste år med komplet EET-datadækning — intersection af aarsloenMax, reguleringsprocentErhvervsevnetabFra2024 og erhvervsevnetabMax
+const DATE_EET_MAX = iso(`${eetYearBounds.maxYear}-12-31`);
+
 // Tidligste år med svie/smerte-sats til UI-årsvælgeren i EO.
 // Autoritativ kilde er svieSmerteMaxYearBounds (samme minYear som svieSmertePrDag i aktuelle datasæt).
 // Validatoren håndhæver datadækning via satserAngivAarYearBounds.
@@ -185,6 +188,7 @@ export const computeSkadesdatoMinRule = (args: Readonly<{
  */
 export interface DateRanges_Stamdata {
   readonly skadesdato: StaticDateRange;
+  readonly fodselsdato: StaticDateRange;
 }
 
 export const dateRanges_stamdata: DateRanges_Stamdata = {
@@ -196,6 +200,14 @@ export const dateRanges_stamdata: DateRanges_Stamdata = {
     max: TODAY,
     placeholder: 'dd-mm-åååå',
     notes: 'Fra 1. januar 2005 til i dag'
+  },
+  // Fødselsdato — deles af varige mén og EET; gemmes i stamdata-schema
+  fodselsdato: {
+    type: 'static',
+    min: DATE_1900_01_01,
+    max: TODAY,
+    placeholder: 'dd-mm-åååå',
+    notes: 'Fra 1. januar 1900 til i dag',
   },
 };
 
@@ -437,18 +449,10 @@ export const dateRanges_offentligeYdelser: DateRanges_OffentligeYdelser = {
 
 
 export interface DateRanges_VarigeMen {
-  readonly fodselsdato: StaticDateRange;
   readonly beregningsdato: DynamicMinDateRange;
 }
 
 export const dateRanges_varigemen: DateRanges_VarigeMen = {
-  fodselsdato: {
-    type: 'static',
-    min: DATE_1900_01_01,
-    max: TODAY,
-    placeholder: 'dd-mm-åååå',
-    notes: 'Fra 1. januar 1900 til i dag',
-  },
   beregningsdato: {
     type: 'dynamic-min',
     min: 'DYNAMIC', // Højeste af: skadesdato fra Stamdata eller fallbackMin
@@ -516,6 +520,67 @@ export const dateRanges_renteberegning: DateRanges_Renteberegning = {
 };
 
 // ============================================================================
+// ERHVERVSEVNETAB-SIDEN
+// ============================================================================
+
+export interface DateRanges_Erhvervsevnetab {
+  readonly beregningsdato: DynamicMinDateRange;
+  readonly tabelAfgoerelsesdato: DynamicMinDateRange;
+  readonly tabelVirkningsdato: DynamicMinDateRange;
+  readonly tabelKapitaliseringsdato: DynamicMinDateRange;
+  readonly tabelTidlKapitaliseringsdato: DynamicBothDateRange;
+}
+
+export const dateRanges_erhvervsevnetab: DateRanges_Erhvervsevnetab = {
+  // Beregningsdato (fane 1 stamdata-boks)
+  beregningsdato: {
+    type: 'dynamic-min',
+    min: 'DYNAMIC', // Højeste af: skadesdato fra Stamdata eller fallbackMin
+    fallbackMin: DATE_2005_01_01,
+    max: DATE_EET_MAX,
+    placeholder: 'dd-mm-åååå',
+    notes: 'Valideres mod dynamisk min-værdi (skadesdato) og fast max-værdi (31-12 i seneste år med komplet EET-datadækning)',
+  },
+  // ASL afgørelser tabel – kolonne 1: Afgørelsesdato
+  tabelAfgoerelsesdato: {
+    type: 'dynamic-min',
+    min: 'DYNAMIC', // Højeste af: skadesdato (hvis udfyldt) eller fallbackMin
+    fallbackMin: DATE_2005_01_01,
+    max: DATE_EET_MAX,
+    placeholder: 'dd-mm-åååå',
+    notes: 'Valideres mod dynamisk min-værdi (skadesdato) og fast max-værdi (DATE_EET_MAX). Beregningsdato kan sænke max yderligere i tabelkomponenten.',
+  },
+  // ASL afgørelser tabel – kolonne 2: Virkningsdato
+  tabelVirkningsdato: {
+    type: 'dynamic-min',
+    min: 'DYNAMIC', // Højeste af: skadesdato (hvis udfyldt) eller fallbackMin
+    fallbackMin: DATE_2005_01_01,
+    max: DATE_EET_MAX,
+    placeholder: 'dd-mm-åååå',
+    notes: 'Valideres mod dynamisk min-værdi (skadesdato) og fast max-værdi (DATE_EET_MAX). Beregningsdato kan sænke max yderligere i tabelkomponenten.',
+  },
+  // ASL afgørelser tabel – kolonne 4: Kapitaliseringsdato
+  tabelKapitaliseringsdato: {
+    type: 'dynamic-min',
+    min: 'DYNAMIC', // Højeste af: skadesdato (hvis udfyldt) eller fallbackMin
+    fallbackMin: DATE_2005_01_01,
+    max: DATE_EET_MAX,
+    placeholder: 'dd-mm-åååå',
+    notes: 'Valideres mod dynamisk min-værdi (skadesdato) og fast max-værdi (31-12 i seneste år med komplet EET-datadækning). Beregningsdato kan sænke max yderligere i tabelkomponenten.',
+  },
+  // ASL afgørelser tabel – kolonne 7: Evt. tidl. kap.dato
+  tabelTidlKapitaliseringsdato: {
+    type: 'dynamic-both',
+    min: 'DYNAMIC',
+    fallbackMin: DATE_2005_01_01,
+    max: 'DYNAMIC',
+    fallbackMax: DATE_EET_MAX,
+    placeholder: 'dd-mm-åååå',
+    notes: 'Min styres dynamisk af skadesdato. Max styres dynamisk af dagen før afgørelsesdato i den konkrete tabelrække.',
+  },
+};
+
+// ============================================================================
 // SAMLET DATERANGES OBJEKT (til bagudkompatibilitet)
 // ============================================================================
 
@@ -533,6 +598,7 @@ export interface DateRanges {
   readonly varigemen: DateRanges_VarigeMen;
   readonly aarsloen: DateRanges_Aarsloen;
   readonly renteberegning: DateRanges_Renteberegning;
+  readonly erhvervsevnetab: DateRanges_Erhvervsevnetab;
 }
 
 export const dateRanges: DateRanges = {
@@ -541,4 +607,5 @@ export const dateRanges: DateRanges = {
   varigemen: dateRanges_varigemen,
   aarsloen: dateRanges_aarsloen,
   renteberegning: dateRanges_renteberegning,
+  erhvervsevnetab: dateRanges_erhvervsevnetab,
 };

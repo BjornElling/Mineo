@@ -15,7 +15,11 @@ import {
   type TableInputErrorInfo,
 } from './tableInputContracts';
 import { filterPercentKeyDown } from '../inputKeyFilters';
-import { makePercentFingerprintFromCanonical, type CommittedPayload, type PercentFingerprint } from '../shared/parserSpec';
+import {
+  makePercentFingerprintFromCanonical,
+  type CommittedPayload,
+  type PercentFingerprint,
+} from '../shared/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
 export type TablePercentInputValue = string | number | undefined;
@@ -34,6 +38,7 @@ export type TablePercentInputProps = Readonly<{
    */
   value?: TablePercentInputValue;
   allowNegative?: boolean;
+  allowDecimals?: boolean;
   minValue?: number;
   maxValue?: number;
   /**
@@ -49,10 +54,13 @@ export type TablePercentInputProps = Readonly<{
   sx?: SxProps<Theme>;
 }>;
 
-const TABLE_PERCENT_PRECISION = 2;
+const TABLE_PERCENT_DECIMAL_PRECISION = 2;
 const MAX_PERCENT_RAW_LENGTH = 64;
 
-type ParsedPercent = { ok: true; numeric: number } | { ok: true; empty: true } | { ok: false; error: string };
+type ParsedPercent =
+  | { ok: true; numeric: number }
+  | { ok: true; empty: true }
+  | { ok: false; error: string };
 type PreparedPercentCommit =
   | { kind: 'input-error'; committed: string; errorMessage: string }
   | {
@@ -61,65 +69,106 @@ type PreparedPercentCommit =
       payload: CommittedPayload<string, string, PercentFingerprint>;
     };
 
-const formatPercentBound = (value: number): string => formatAsAmount(value, TABLE_PERCENT_PRECISION);
+const getPercentPrecision = (allowDecimals: boolean): 0 | 2 =>
+  allowDecimals ? TABLE_PERCENT_DECIMAL_PRECISION : 0;
+
+const formatPercentBound = (value: number, precision: 0 | 2): string =>
+  formatAsAmount(value, precision);
 
 const parsePercentOnCommit = (
   rawValue: string,
   {
     allowNegative,
+    allowDecimals,
     minValue,
     maxValue,
-  }: { allowNegative: boolean; minValue: number | undefined; maxValue: number | undefined }
+  }: {
+    allowNegative: boolean;
+    allowDecimals: boolean;
+    minValue: number | undefined;
+    maxValue: number | undefined;
+  }
 ): ParsedPercent => {
   const trimmed = rawValue.trim();
   if (trimmed === '') return { ok: true, empty: true };
   if (trimmed === '-') return { ok: false, error: 'Ugyldig procent' };
-  if (trimmed.length > MAX_PERCENT_RAW_LENGTH) return { ok: false, error: 'Ugyldig procent' };
+  if (trimmed.length > MAX_PERCENT_RAW_LENGTH) {
+    return { ok: false, error: 'Ugyldig procent' };
+  }
 
   const compact = trimmed.replace(/\s+/g, '');
   const isNegative = compact.startsWith('-');
-  if (isNegative && !allowNegative) return { ok: false, error: 'Procent kan ikke være negativ' };
+  if (isNegative && !allowNegative) {
+    return { ok: false, error: 'Procent kan ikke være negativ' };
+  }
 
   const unsigned = isNegative ? compact.slice(1) : compact;
   if (unsigned.includes('-')) return { ok: false, error: 'Ugyldig procent' };
-  if (/\s/.test(trimmed) && unsigned.includes('.')) return { ok: false, error: 'Ugyldig procent' };
+  if (/\s/.test(trimmed) && unsigned.includes('.')) {
+    return { ok: false, error: 'Ugyldig procent' };
+  }
+  if (!allowDecimals && unsigned.includes(',')) {
+    return { ok: false, error: 'Ugyldig procent' };
+  }
 
   const commaCount = (unsigned.match(/,/g) ?? []).length;
   if (commaCount > 1) return { ok: false, error: 'Ugyldig procent' };
 
   const [integerRaw, decimalRaw] = unsigned.split(',') as [string, string | undefined];
   if (!integerRaw) return { ok: false, error: 'Ugyldig procent' };
-  if (decimalRaw !== undefined && decimalRaw === '') return { ok: false, error: 'Ugyldig procent' };
+  if (decimalRaw !== undefined && decimalRaw === '') {
+    return { ok: false, error: 'Ugyldig procent' };
+  }
 
   if (decimalRaw !== undefined) {
     if (/[^0-9]/.test(decimalRaw)) return { ok: false, error: 'Ugyldig procent' };
-    if (decimalRaw.length > TABLE_PERCENT_PRECISION) return { ok: false, error: 'Ugyldig procent' };
+    if (!allowDecimals) return { ok: false, error: 'Ugyldig procent' };
+    if (decimalRaw.length > TABLE_PERCENT_DECIMAL_PRECISION) {
+      return { ok: false, error: 'Ugyldig procent' };
+    }
   }
 
   if (integerRaw.includes('.')) {
-    if (!/^\d{1,3}(\.\d{3})*$/.test(integerRaw)) return { ok: false, error: 'Ugyldig procent' };
+    if (!/^\d{1,3}(\.\d{3})*$/.test(integerRaw)) {
+      return { ok: false, error: 'Ugyldig procent' };
+    }
   } else {
     if (/[^0-9]/.test(integerRaw)) return { ok: false, error: 'Ugyldig procent' };
   }
 
   const integerDigits = integerRaw.replace(/\./g, '');
-  const numericValue = Number.parseFloat(`${integerDigits}${decimalRaw ? `.${decimalRaw}` : ''}`);
+  const numericValue = Number.parseFloat(
+    `${integerDigits}${decimalRaw ? `.${decimalRaw}` : ''}`
+  );
   if (!Number.isFinite(numericValue)) return { ok: false, error: 'Ugyldig procent' };
 
   const signed = isNegative ? -numericValue : numericValue;
+  const precision = getPercentPrecision(allowDecimals);
 
   if (typeof minValue === 'number' && signed < minValue) {
     if (typeof maxValue === 'number') {
-      return { ok: false, error: `Procent skal være mellem ${formatPercentBound(minValue)} og ${formatPercentBound(maxValue)}` };
+      return {
+        ok: false,
+        error: `Procent skal være mellem ${formatPercentBound(minValue, precision)} og ${formatPercentBound(maxValue, precision)}`,
+      };
     }
-    return { ok: false, error: `Procent skal være ${formatPercentBound(minValue)} eller højere` };
+    return {
+      ok: false,
+      error: `Procent skal være ${formatPercentBound(minValue, precision)} eller højere`,
+    };
   }
 
   if (typeof maxValue === 'number' && signed > maxValue) {
     if (typeof minValue === 'number') {
-      return { ok: false, error: `Procent skal være mellem ${formatPercentBound(minValue)} og ${formatPercentBound(maxValue)}` };
+      return {
+        ok: false,
+        error: `Procent skal være mellem ${formatPercentBound(minValue, precision)} og ${formatPercentBound(maxValue, precision)}`,
+      };
     }
-    return { ok: false, error: `Procent skal være ${formatPercentBound(maxValue)} eller lavere` };
+    return {
+      ok: false,
+      error: `Procent skal være ${formatPercentBound(maxValue, precision)} eller lavere`,
+    };
   }
 
   return { ok: true, numeric: signed };
@@ -129,51 +178,90 @@ const commitPercentDraft = (
   draft: string,
   {
     allowNegative,
+    allowDecimals,
     minValue,
     maxValue,
-  }: { allowNegative: boolean; minValue: number | undefined; maxValue: number | undefined }
+  }: {
+    allowNegative: boolean;
+    allowDecimals: boolean;
+    minValue: number | undefined;
+    maxValue: number | undefined;
+  }
 ): TableCommitResult => {
-  const parsed = parsePercentOnCommit(draft, { allowNegative, minValue, maxValue });
-  if (!parsed.ok) return { kind: 'input-error', committed: draft, errorMessage: parsed.error };
+  const parsed = parsePercentOnCommit(draft, {
+    allowNegative,
+    allowDecimals,
+    minValue,
+    maxValue,
+  });
+  if (!parsed.ok) {
+    return { kind: 'input-error', committed: draft, errorMessage: parsed.error };
+  }
   if ('empty' in parsed) return { kind: 'ok', committed: asTableCommittedString('') };
-  return { kind: 'ok', committed: asTableCommittedString(formatAsAmount(parsed.numeric, TABLE_PERCENT_PRECISION)) };
+  return {
+    kind: 'ok',
+    committed: asTableCommittedString(
+      formatAsAmount(parsed.numeric, getPercentPrecision(allowDecimals))
+    ),
+  };
 };
 
-const toDisplayString = (value: TablePercentInputValue): string => {
+const toDisplayString = (
+  value: TablePercentInputValue,
+  allowDecimals: boolean
+): string => {
   if (value === undefined) return '';
-  if (typeof value === 'number') return Number.isFinite(value) ? formatAsAmount(value, TABLE_PERCENT_PRECISION) : '';
+  if (typeof value === 'number') {
+    return Number.isFinite(value)
+      ? formatAsAmount(value, getPercentPrecision(allowDecimals))
+      : '';
+  }
   return value;
 };
 
-const percentNumericCanonicalFromDisplay = (display: string): string => {
+const percentNumericCanonicalFromDisplay = (
+  display: string,
+  allowDecimals: boolean
+): string => {
   const trimmed = display.trim();
-  const withoutPercentSuffix = trimmed.endsWith('%') ? trimmed.slice(0, -1).trim() : trimmed;
+  const withoutPercentSuffix = trimmed.endsWith('%')
+    ? trimmed.slice(0, -1).trim()
+    : trimmed;
   const parsed = parsePercentOnCommit(withoutPercentSuffix, {
     allowNegative: true,
+    allowDecimals,
     minValue: undefined,
     maxValue: undefined,
   });
   if (!parsed.ok) {
     if (import.meta.env.DEV && withoutPercentSuffix !== '') {
-      throw new Error(`Invariant brudt: committed procentværdi kan ikke parses (${display})`);
+      throw new Error(
+        `Invariant brudt: committed procentværdi kan ikke parses (${display})`
+      );
     }
     return '';
   }
   if ('empty' in parsed) return '';
-  return parsed.numeric.toFixed(TABLE_PERCENT_PRECISION);
+  return parsed.numeric.toFixed(getPercentPrecision(allowDecimals));
 };
 
-const percentFingerprintFromCommittedDisplay = (display: string): PercentFingerprint => {
-  const numericCanonical = percentNumericCanonicalFromDisplay(display);
+const percentFingerprintFromCommittedDisplay = (
+  display: string,
+  allowDecimals: boolean
+): PercentFingerprint => {
+  const numericCanonical = percentNumericCanonicalFromDisplay(display, allowDecimals);
   return makePercentFingerprintFromCanonical(numericCanonical);
 };
 
-const toCommittedPercentPayload = (value: TablePercentInputValue): CommittedPayload<string, string, PercentFingerprint> => {
-  const canonical = toDisplayString(value);
+const toCommittedPercentPayload = (
+  value: TablePercentInputValue,
+  allowDecimals: boolean
+): CommittedPayload<string, string, PercentFingerprint> => {
+  const canonical = toDisplayString(value, allowDecimals);
   return {
     model: canonical,
     canonical,
-    fingerprint: percentFingerprintFromCommittedDisplay(canonical),
+    fingerprint: percentFingerprintFromCommittedDisplay(canonical, allowDecimals),
   };
 };
 
@@ -181,19 +269,30 @@ const preparePercentCommit = (
   rawDraft: string,
   {
     allowNegative,
+    allowDecimals,
     minValue,
     maxValue,
-  }: { allowNegative: boolean; minValue: number | undefined; maxValue: number | undefined }
+  }: {
+    allowNegative: boolean;
+    allowDecimals: boolean;
+    minValue: number | undefined;
+    maxValue: number | undefined;
+  }
 ): PreparedPercentCommit => {
   const normalized = normalizeTableAmountDraftOnCommit(rawDraft);
   const committed = commitPercentDraft(normalized, {
     allowNegative,
+    allowDecimals,
     minValue,
     maxValue,
   });
 
   if (committed.kind === 'input-error') {
-    return { kind: 'input-error', committed: committed.committed, errorMessage: committed.errorMessage };
+    return {
+      kind: 'input-error',
+      committed: committed.committed,
+      errorMessage: committed.errorMessage,
+    };
   }
 
   const canonical = committedToString(committed);
@@ -203,7 +302,7 @@ const preparePercentCommit = (
     payload: {
       model: canonical,
       canonical,
-      fingerprint: percentFingerprintFromCommittedDisplay(canonical),
+      fingerprint: percentFingerprintFromCommittedDisplay(canonical, allowDecimals),
     },
   };
 };
@@ -214,6 +313,7 @@ const TablePercentInput = React.memo(
     locked = false,
     value,
     allowNegative = false,
+    allowDecimals = true,
     minValue,
     maxValue,
     useDefaultPercentRange = true,
@@ -235,26 +335,40 @@ const TablePercentInput = React.memo(
 
     const inputElRef = React.useRef<HTMLInputElement | null>(null);
 
-    const [draft, setDraft] = React.useState<string>(() => toDisplayString(value));
+    const [draft, setDraft] = React.useState<string>(() =>
+      toDisplayString(value, allowDecimals)
+    );
     const [isFocused, setIsFocused] = React.useState(false);
     const [touched, setTouched] = React.useState(false);
     const [hasError, setHasError] = React.useState(false);
     const [errorMessage, setErrorMessage] = React.useState('');
     const [preserveInvalidDraft, setPreserveInvalidDraft] = React.useState(false);
     const draftRef = React.useRef<string>(draft);
-    const previousCommittedValueRef = React.useRef<string>(toDisplayString(value));
+    const previousCommittedValueRef = React.useRef<string>(
+      toDisplayString(value, allowDecimals)
+    );
 
     const originalValueOnEditStartRef = React.useRef<string>('');
     const keyInitiatedEditRef = React.useRef(false);
-    const latestCommittedPayloadRef = React.useRef<CommittedPayload<string, string, PercentFingerprint>>(toCommittedPercentPayload(value));
+    const latestCommittedPayloadRef = React.useRef<
+      CommittedPayload<string, string, PercentFingerprint>
+    >(toCommittedPercentPayload(value, allowDecimals));
 
     const effectiveMin = minValue ?? (useDefaultPercentRange ? 0 : undefined);
     const effectiveMax = maxValue ?? (useDefaultPercentRange ? 100 : undefined);
 
     const configErrorMessage = React.useMemo(() => {
-      if (minValue !== undefined && !Number.isFinite(minValue)) return 'Ugyldig konfiguration: minValue skal være et tal';
-      if (maxValue !== undefined && !Number.isFinite(maxValue)) return 'Ugyldig konfiguration: maxValue skal være et tal';
-      if (typeof effectiveMin === 'number' && typeof effectiveMax === 'number' && effectiveMin > effectiveMax) {
+      if (minValue !== undefined && !Number.isFinite(minValue)) {
+        return 'Ugyldig konfiguration: minValue skal være et tal';
+      }
+      if (maxValue !== undefined && !Number.isFinite(maxValue)) {
+        return 'Ugyldig konfiguration: maxValue skal være et tal';
+      }
+      if (
+        typeof effectiveMin === 'number' &&
+        typeof effectiveMax === 'number' &&
+        effectiveMin > effectiveMax
+      ) {
         return 'Ugyldig konfiguration: minValue er større end maxValue';
       }
       return '';
@@ -264,26 +378,45 @@ const TablePercentInput = React.memo(
       throw new Error(configErrorMessage);
     }
 
-    const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, allowNegative, minValue: effectiveMin, maxValue: effectiveMax });
+    const latest = React.useRef({
+      onChange,
+      onBlur,
+      onErrorChange,
+      locked,
+      allowNegative,
+      minValue: effectiveMin,
+      maxValue: effectiveMax,
+    });
 
     const emitBlur = React.useCallback((nextValue: string) => {
       latest.current.onBlur?.({ target: { value: nextValue } });
     }, []);
 
     React.useEffect(() => {
-      latest.current = { onChange, onBlur, onErrorChange, locked, allowNegative, minValue: effectiveMin, maxValue: effectiveMax };
+      latest.current = {
+        onChange,
+        onBlur,
+        onErrorChange,
+        locked,
+        allowNegative,
+        minValue: effectiveMin,
+        maxValue: effectiveMax,
+      };
     }, [allowNegative, effectiveMax, effectiveMin, locked, onBlur, onChange, onErrorChange]);
 
     React.useEffect(() => {
-      latestCommittedPayloadRef.current = toCommittedPercentPayload(value);
-    }, [value]);
+      latestCommittedPayloadRef.current = toCommittedPercentPayload(
+        value,
+        allowDecimals
+      );
+    }, [allowDecimals, value]);
 
     React.useEffect(() => {
       draftRef.current = draft;
     }, [draft]);
 
     React.useEffect(() => {
-      const nextCommitted = toDisplayString(value);
+      const nextCommitted = toDisplayString(value, allowDecimals);
       const didParentValueChange = previousCommittedValueRef.current !== nextCommitted;
       previousCommittedValueRef.current = nextCommitted;
       if (!didParentValueChange || isEditing || !preserveInvalidDraft) return;
@@ -291,7 +424,7 @@ const TablePercentInput = React.memo(
       setHasError(false);
       setErrorMessage('');
       setTouched(false);
-    }, [isEditing, preserveInvalidDraft, value]);
+    }, [allowDecimals, isEditing, preserveInvalidDraft, value]);
 
     React.useEffect(() => {
       if (!isEditing) {
@@ -303,9 +436,9 @@ const TablePercentInput = React.memo(
           (activeEl === inputEl || (activeEl instanceof Node && inputEl.contains(activeEl)));
         if (hasPhysicalFocus) return;
         if (hasError || preserveInvalidDraft) return;
-        setDraft(toDisplayString(value));
+        setDraft(toDisplayString(value, allowDecimals));
       }
-    }, [hasError, isEditing, preserveInvalidDraft, value]);
+    }, [allowDecimals, hasError, isEditing, preserveInvalidDraft, value]);
 
     React.useEffect(() => {
       if (!isEditing) {
@@ -317,11 +450,11 @@ const TablePercentInput = React.memo(
           originalValueOnEditStartRef.current = draftRef.current;
           return;
         }
-        const committedValue = toDisplayString(value);
+        const committedValue = toDisplayString(value, allowDecimals);
         originalValueOnEditStartRef.current = committedValue;
         setDraft(committedValue);
       }
-    }, [hasError, isEditing, preserveInvalidDraft, value]);
+    }, [allowDecimals, hasError, isEditing, preserveInvalidDraft, value]);
 
     const commitAndEmitBlur = React.useCallback(
       (rawDraft: string, prepared?: PreparedPercentCommit): boolean => {
@@ -330,6 +463,7 @@ const TablePercentInput = React.memo(
           prepared ??
           preparePercentCommit(rawDraft, {
             allowNegative: latest.current.allowNegative,
+            allowDecimals,
             minValue: latest.current.minValue,
             maxValue: latest.current.maxValue,
           });
@@ -346,13 +480,15 @@ const TablePercentInput = React.memo(
         setHasError(false);
         setErrorMessage('');
         latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
-        const isNoop = resolvedPrepared.payload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
+        const isNoop =
+          resolvedPrepared.payload.fingerprint ===
+          latestCommittedPayloadRef.current.fingerprint;
         if (isNoop) return true;
 
         emitBlur(resolvedPrepared.payload.model);
         return true;
       },
-      [emitBlur]
+      [allowDecimals, emitBlur]
     );
 
     const handleChange = React.useCallback(
@@ -381,25 +517,32 @@ const TablePercentInput = React.memo(
         const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
         const prepared = preparePercentCommit(rawValue, {
           allowNegative: latest.current.allowNegative,
+          allowDecimals,
           minValue: latest.current.minValue,
           maxValue: latest.current.maxValue,
         });
         if (prepared.kind === 'ok') {
           const nextFingerprint = prepared.payload.fingerprint;
-          if (!isEditing && nextFingerprint === latestCommittedPayloadRef.current.fingerprint) return;
+          if (!isEditing && nextFingerprint === latestCommittedPayloadRef.current.fingerprint) {
+            return;
+          }
         }
         commitAndEmitBlur(rawValue, prepared);
       },
-      [commitAndEmitBlur, isEditing]
+      [allowDecimals, commitAndEmitBlur, isEditing]
     );
 
     const handleKeyDown = React.useCallback(
       (e: React.KeyboardEvent<HTMLInputElement>) => {
         // Filtrér kun under edit-mode
         if (!isEditing) return;
-        filterPercentKeyDown(e, { allowNegative });
+        filterPercentKeyDown(e, {
+          allowNegative,
+          allowDecimals,
+          maxValue: effectiveMax,
+        });
       },
-      [allowNegative, isEditing]
+      [allowDecimals, allowNegative, effectiveMax, isEditing]
     );
 
     const a11yErrorId = React.useId();
@@ -448,7 +591,11 @@ const TablePercentInput = React.memo(
         },
         prepareEditFromKey: (key: string) => {
           if (latest.current.locked) return false;
-          if (!/^[0-9,-]$/.test(key)) return false;
+          if (allowDecimals) {
+            if (!/^[0-9,-]$/.test(key)) return false;
+          } else {
+            if (!/^[0-9-]$/.test(key)) return false;
+          }
           if (key === '-' && !latest.current.allowNegative) return false;
           const committedValue = latestCommittedPayloadRef.current.canonical;
           originalValueOnEditStartRef.current = committedValue;
@@ -474,7 +621,7 @@ const TablePercentInput = React.memo(
           requestAnimationFrame(() => inputElRef.current?.select());
         },
       };
-    }, [commitAndEmitBlur, grid]);
+    }, [allowDecimals, commitAndEmitBlur, grid]);
 
     React.useEffect(() => {
       grid.registerEditor(gridCell, editorHandle);
@@ -483,7 +630,7 @@ const TablePercentInput = React.memo(
       };
     }, [editorHandle, grid, gridCell]);
 
-    const displayValue = toDisplayString(value);
+    const displayValue = toDisplayString(value, allowDecimals);
 
     return (
       <Box sx={{ position: 'relative', width: '100%', height: '100%', ...sx }}>
@@ -495,7 +642,15 @@ const TablePercentInput = React.memo(
                 assignRef(inputRef, el);
               }}
               autoComplete="off"
-              value={isEditing ? draft : showDraftWhenError ? draft : (displayValue === '' ? '' : `${displayValue} %`)}
+              value={
+                isEditing
+                  ? draft
+                  : showDraftWhenError
+                    ? draft
+                    : displayValue === ''
+                      ? ''
+                      : `${displayValue} %`
+              }
               readOnly={isReadOnly}
               disabled={locked}
               onChange={handleChange}
@@ -505,7 +660,7 @@ const TablePercentInput = React.memo(
               placeholder={cellFocused && !isReadOnly ? '' : placeholder}
               inputProps={{
                 readOnly: isReadOnly,
-                inputMode: 'decimal',
+                inputMode: allowDecimals ? 'decimal' : 'numeric',
                 'data-mineo-grid-locked': locked ? 'true' : undefined,
                 'aria-describedby': showError ? a11yErrorId : undefined,
               }}
@@ -552,4 +707,3 @@ const TablePercentInput = React.memo(
 TablePercentInput.displayName = 'TablePercentInput';
 
 export default TablePercentInput;
-

@@ -26,7 +26,7 @@ describe('StyledPercentField', () => {
     expect(input.readOnly).toBe(false);
   });
 
-  it('tillader commit over 100 når maxValue er højere', async () => {
+  it('blokerer typing over 100 selv når maxValue er højere', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn();
 
@@ -41,11 +41,11 @@ describe('StyledPercentField', () => {
 
     expect(onCommit).toHaveBeenCalledTimes(1);
     expect(onCommit).toHaveBeenLastCalledWith(
-      expect.objectContaining({ target: { value: 150.25 } })
+      expect.objectContaining({ target: { value: 15.25 } })
     );
   });
 
-  it('accepterer værdi præcis på max-grænsen', async () => {
+  it('accepterer 100 selv når maxValue er højere', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn();
 
@@ -54,16 +54,16 @@ describe('StyledPercentField', () => {
     const input = screen.getByRole('textbox') as HTMLInputElement;
     await user.click(input);
     await user.click(input);
-    await user.type(input, '200,00');
+    await user.type(input, '100,00');
     await user.tab();
 
     expect(onCommit).toHaveBeenCalledTimes(1);
     expect(onCommit).toHaveBeenLastCalledWith(
-      expect.objectContaining({ target: { value: 200 } })
+      expect.objectContaining({ target: { value: 100 } })
     );
   });
 
-  it('afviser værdi lige over max-grænsen', async () => {
+  it('blokerer værdi over 100 under typing', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn();
 
@@ -75,10 +75,9 @@ describe('StyledPercentField', () => {
     await user.type(input, '200,01');
     await user.tab();
 
-    expect(onCommit).not.toHaveBeenCalled();
-    const describedBy = input.getAttribute('aria-describedby');
-    expect(describedBy).toBeTruthy();
-    const errorEl = describedBy ? document.getElementById(describedBy) : null;
-    expect(errorEl).toHaveTextContent('Procent skal være mellem 0,00 og 200,00');
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    expect(onCommit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ target: { value: 20.01 } })
+    );
   });
 });

@@ -2,8 +2,10 @@ import { z } from 'zod';
 import { optionalIsoDateString, percentageDecimal, stripTopLevelKey } from '../baseSchemas';
 
 const varigeMenInnerSchema = z.object({
-  fodselsdato: optionalIsoDateString,
-  mengrad: percentageDecimal,
+  mengrad: percentageDecimal.refine(
+    (value) => value === undefined || Number.isInteger(value),
+    'Méngrad skal være et heltal'
+  ),
   beregningsdato: optionalIsoDateString,
 }).strict();
 

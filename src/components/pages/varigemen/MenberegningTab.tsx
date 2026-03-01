@@ -9,7 +9,7 @@ import StyledDateField from '../../inputs/StyledDateField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import StyledPercentField from '../../inputs/StyledPercentField';
 import ContentBox from '../../layout/ContentBox';
-import { dateRanges_varigemen } from '../../../config/dateRanges';
+import { dateRanges_varigemen, dateRanges_stamdata } from '../../../config/dateRanges';
 import {
   stamdataSchema,
   type VarigeMenValues,
@@ -24,6 +24,7 @@ import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { createCommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
 import { downloadVarigeMenPdf } from '../../../utils/pdf/pdfService';
+import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 
 const VARIGE_MEN_BEREGNINGSDATO_MIN = toISODateString(
   `${varigeMenPrGradYearBounds.minYear}-01-01`
@@ -40,14 +41,7 @@ const MenberegningTab: React.FC<{
     key: K
   ) => CommitHandler<VarigeMenValues[K]>;
 }> = ({ values, setValues, handleChange }) => {
-  const { values: stamValues } = usePersistedForm(stamdataSchema, 'stamdata', {
-    journalnr: '',
-    advokat: '',
-    sagsbehandler: '',
-    skadelidte: '',
-    skadestype: undefined,
-    skadesdato: undefined,
-  });
+  const { values: stamValues, handleChange: handleStamChange } = usePersistedForm(stamdataSchema, 'stamdata', STAMDATA_INITIAL_VALUES);
 
   const { getPersistedData } = useFormPersistence();
   const { settings } = useAppSettings();
@@ -85,18 +79,18 @@ const beregningsFejl = React.useMemo(() => {
 
 // Tjek om indtastninger mangler (altid, uafhængigt af onBlur)
 const manglendeFelter = React.useMemo(() => {
-  if (!values.fodselsdato || !stamValues.skadesdato || !values.beregningsdato || values.mengrad === undefined) {
+  if (!stamValues.fodselsdato || !stamValues.skadesdato || !values.beregningsdato || values.mengrad === undefined) {
     return 'Indtastning mangler';
   }
   if (values.mengrad === 0) {
     return 'Méngrad mangler';
   }
   return null;
-}, [values.fodselsdato, stamValues.skadesdato, values.beregningsdato, values.mengrad]);
+}, [stamValues.fodselsdato, stamValues.skadesdato, values.beregningsdato, values.mengrad]);
 
 // Beregn alder på skadestidspunkt (bruges flere steder)
 const alderVedSkade = React.useMemo(() => {
-  const fodselsdatoISO = coerceToISODateString(values.fodselsdato);
+  const fodselsdatoISO = coerceToISODateString(stamValues.fodselsdato);
   const skadesdatoISO = coerceToISODateString(stamValues.skadesdato);
 
   if (!fodselsdatoISO || !skadesdatoISO) return undefined;
@@ -117,7 +111,7 @@ const alderVedSkade = React.useMemo(() => {
   }
 
   return alder;
-}, [values.fodselsdato, stamValues.skadesdato]);
+}, [stamValues.fodselsdato, stamValues.skadesdato]);
 
 const beregningsResultat = React.useMemo(() => {
   // Hvis der er onBlur-fejl eller manglende felter, vis ikke resultat
@@ -126,7 +120,7 @@ const beregningsResultat = React.useMemo(() => {
   const skadesdatoISO = coerceToISODateString(stamValues.skadesdato);
   if (!skadesdatoISO) return undefined;
 
-  const resultat = beregnVarigeMenGodtgoerelseWithRates(values, skadesdatoISO, varigeMenPrGrad);
+  const resultat = beregnVarigeMenGodtgoerelseWithRates(values, skadesdatoISO, varigeMenPrGrad, coerceToISODateString(stamValues.fodselsdato));
   if (!resultat) return undefined;
 
   return resultat;
@@ -148,9 +142,9 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
 
       // Find første fejlcelle og markér den
       // Prioritering: Fødselsdato -> Skadesdato -> Méngrad -> Beregningsdato
-      if (!values.fodselsdato || fodselsdatoError) {
+      if (!stamValues.fodselsdato || fodselsdatoError) {
         // Markér fødselsdato-feltet (trigger focus vil markere det rødt)
-        const fodselsdatoInput = document.querySelector('input[value*="' + (values.fodselsdato || '') + '"]') as HTMLInputElement;
+        const fodselsdatoInput = document.querySelector('input[value*="' + (stamValues.fodselsdato || '') + '"]') as HTMLInputElement;
         if (fodselsdatoInput) {
           fodselsdatoInput.focus();
           fodselsdatoInput.blur();
@@ -177,7 +171,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
     }
 
     const result = await downloadVarigeMenPdf({
-      fodselsdato: coerceToISODateString(values.fodselsdato),
+      fodselsdato: coerceToISODateString(stamValues.fodselsdato),
       skadesdato: coerceToISODateString(stamValues.skadesdato),
       mengrad: values.mengrad,
       beregningsdato: coerceToISODateString(values.beregningsdato),
@@ -189,7 +183,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
       setDownloadShake(true);
       setTimeout(() => setDownloadShake(false), 500);
     }
-  }, [beregningsFejl, manglendeFelter, beregningsResultat, values, stamValues.skadesdato, fodselsdatoError, mengradError, beregningsdatoError, getPersistedData, settings]);
+  }, [beregningsFejl, manglendeFelter, beregningsResultat, values, stamValues.fodselsdato, stamValues.skadesdato, fodselsdatoError, mengradError, beregningsdatoError, getPersistedData, settings]);
 
   const skadesdatoLabel = React.useMemo(() => {
     if (stamValues.skadestype === 'Erhvervssygdom') return 'Anmeldelsesdato';
@@ -213,10 +207,10 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
         <Typography className="row--text">Fødselsdato</Typography>
         <Box className="row--label-right-hover__content">
           <StyledDateField
-            value={values.fodselsdato || undefined}
-            onCommit={handleChange('fodselsdato')}
-            minDate={dateRanges_varigemen.fodselsdato.min}
-            maxDate={dateRanges_varigemen.fodselsdato.max}
+            value={stamValues.fodselsdato || undefined}
+            onCommit={handleStamChange('fodselsdato')}
+            minDate={dateRanges_stamdata.fodselsdato.min}
+            maxDate={dateRanges_stamdata.fodselsdato.max}
             onFieldError={handleFodselsdatoError}
           />
         </Box>
@@ -259,8 +253,8 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
           className="row--label-right-hover__content"
           style={{ justifyContent: 'flex-end' }}
         >
-          {fodselsdatoError || !values.fodselsdato || !stamValues.skadesdato ? (
-            <Tooltip title={fodselsdatoError || (!values.fodselsdato || !stamValues.skadesdato ? 'Indtastning mangler' : '')} arrow>
+          {fodselsdatoError || !stamValues.fodselsdato || !stamValues.skadesdato ? (
+            <Tooltip title={fodselsdatoError || (!stamValues.fodselsdato || !stamValues.skadesdato ? 'Indtastning mangler' : '')} arrow>
               <Typography className="row--text" color="text.disabled">
                 {fodselsdatoError || 'Indtastning mangler'}
               </Typography>
@@ -288,6 +282,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
                   : undefined;
               handleChange('mengrad')(createCommitEvent(intValue));
             }}
+            allowDecimals={false}
             minValue={0}
             maxValue={100}
             useDefaultPercentRange={false}
@@ -421,5 +416,4 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
 MenberegningTab.displayName = 'MenberegningTab';
 
 export default MenberegningTab;
-
 

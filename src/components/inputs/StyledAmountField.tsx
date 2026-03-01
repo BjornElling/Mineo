@@ -7,6 +7,7 @@ import { containsUnaryMinusToken, filterAmountExpressionKeyDown } from './inputK
 import { stripAmountGroupingSeparators } from '../../utils/draftNormalization';
 import { sanitizePastedAmount } from '../../utils/amountInputUtils';
 import { readClipboardText } from '../../utils/clipboardUtils';
+import { formatAsAmount } from '../../utils/formatUtils';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import {
   amountValueToDisplayString,
@@ -35,6 +36,9 @@ export type StyledAmountFieldProps = {
   width?: number | string;
   placeholder?: string;
   allowNegative?: boolean;
+  allowDecimals?: boolean;
+  minValue?: number;
+  maxValue?: number;
   /**
    * Precision applied to all commits (afrunding af slutresultat).
    *
@@ -84,6 +88,9 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       width = 120,
       placeholder = '0,00',
       allowNegative = true,
+      allowDecimals = true,
+      minValue,
+      maxValue,
       precision = 2,
       disabled,
       onFocus,
@@ -105,17 +112,39 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       if (!Number.isFinite(precision)) return 'Ugyldig konfiguration: precision skal være et tal';
       if (!Number.isInteger(precision)) return 'Ugyldig konfiguration: precision skal være et heltal';
       if (precision < 0 || precision > 6) return 'Ugyldig konfiguration: precision skal være mellem 0 og 6';
+      if (maxValue !== undefined && !Number.isFinite(maxValue)) {
+        return 'Ugyldig konfiguration: maxValue skal være et tal';
+      }
+      if (minValue !== undefined && !Number.isFinite(minValue)) {
+        return 'Ugyldig konfiguration: minValue skal være et tal';
+      }
+      if (typeof minValue === 'number' && typeof maxValue === 'number' && minValue > maxValue) {
+        return 'Ugyldig konfiguration: minValue er større end maxValue';
+      }
+      if (!allowNegative && typeof minValue === 'number' && minValue < 0) {
+        return 'Ugyldig konfiguration: minValue er negativ, men allowNegative=false';
+      }
+      if (!allowNegative && typeof maxValue === 'number' && maxValue < 0) {
+        return 'Ugyldig konfiguration: maxValue er negativ, men allowNegative=false';
+      }
       return '';
-    }, [precision]);
+    }, [allowNegative, maxValue, minValue, precision]);
 
     if (import.meta.env.DEV && roundingConfigError.trim() !== '') {
       throw new Error(roundingConfigError);
     }
 
     const resolvedPrecision = React.useMemo(() => {
+      if (!allowDecimals) return 0;
       if (!Number.isFinite(precision ?? 2) || !Number.isInteger(precision ?? 2)) return 2;
       return clampInt(precision ?? 2, 0, 6);
-    }, [precision]);
+    }, [allowDecimals, precision]);
+
+    const resolvedPlaceholder = React.useMemo(() => {
+      if (allowDecimals) return placeholder;
+      if (placeholder === '0,00') return '0';
+      return placeholder;
+    }, [allowDecimals, placeholder]);
 
     const formatAmount = React.useCallback(
       (v: AmountValue | undefined): string => amountValueToDisplayString(v, resolvedPrecision),
@@ -127,11 +156,33 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
         const parsed = parseAmountInput(draft, {
           precision: resolvedPrecision,
           allowNegative,
+          allowDecimals,
           maxIntegerDigits: MAX_AMOUNT_INTEGER_DIGITS,
           maxRawLength: MAX_AMOUNT_RAW_LENGTH,
         });
 
         if (parsed.ok) {
+          const numericValue = parsed.value?.value;
+          if (
+            typeof minValue === 'number' &&
+            typeof numericValue === 'number' &&
+            Number.isFinite(numericValue) &&
+            numericValue < minValue
+          ) {
+            const errorMessage = `Beløb skal være ${formatAsAmount(minValue, resolvedPrecision)} eller højere`;
+            if (mode === 'typing') return { ok: false, kind: 'partial' };
+            return { ok: false, kind: 'invalid', message: errorMessage };
+          }
+          if (
+            typeof maxValue === 'number' &&
+            typeof numericValue === 'number' &&
+            Number.isFinite(numericValue) &&
+            numericValue > maxValue
+          ) {
+            const errorMessage = `Beløb skal være ${formatAsAmount(maxValue, resolvedPrecision)} eller lavere`;
+            if (mode === 'typing') return { ok: false, kind: 'partial' };
+            return { ok: false, kind: 'invalid', message: errorMessage };
+          }
           return { ok: true, value: parsed.value };
         }
 
@@ -141,7 +192,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
         }
         return { ok: false, kind: 'invalid', message: parsed.error.message };
       },
-      [allowNegative, resolvedPrecision]
+      [allowDecimals, allowNegative, maxValue, minValue, resolvedPrecision]
     );
 
     const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
@@ -196,11 +247,15 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
 
     const getDraftForKey = React.useCallback((key: string): string | null => {
       const mapped = key === '.' ? '.' : key;
-      if (/^[0-9,]$/.test(mapped)) return mapped;
+      if (allowDecimals) {
+        if (/^[0-9,]$/.test(mapped)) return mapped;
+      } else if (/^[0-9]$/.test(mapped)) {
+        return mapped;
+      }
       if (mapped === '-' && !allowNegative) return null;
       if (mapped === '-' || mapped === '(' || mapped === ')') return mapped;
       return null;
-    }, [allowNegative]);
+    }, [allowDecimals, allowNegative]);
 
     const activation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled),
@@ -288,11 +343,11 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
         }
 
         if (!e.defaultPrevented) {
-          filterAmountExpressionKeyDown(e, { allowNegative });
+          filterAmountExpressionKeyDown(e, { allowNegative, allowDecimals });
         }
         onKeyDown?.(e);
       },
-      [activation, allowNegative, onCommit, onKeyDown, onKeyDownBase, setDraft]
+      [activation, allowDecimals, allowNegative, onCommit, onKeyDown, onKeyDownBase, setDraft]
     );
 
     const displayDraft = activation.isEditorOpen ? draft : localHasError ? draft : formatAmount(value);
@@ -306,6 +361,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
 
         const raw = readClipboardText(e);
         const sanitized = sanitizePastedAmount(raw);
+        if (!allowDecimals && sanitized.includes(',')) return;
 
         e.preventDefault();
         e.stopPropagation();
@@ -329,7 +385,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
           }
         });
       },
-      [activation, allowNegative, draft, handleDraftChange]
+      [activation, allowDecimals, allowNegative, draft, handleDraftChange]
     );
 
     return (
@@ -352,7 +408,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
           onBlur?.(e);
         }}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         width={width}
         disabled={disabled}
         error={resolvedHasError}
@@ -360,7 +416,10 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
         onMouseDown={activation.handleMouseDown}
         onClick={activation.handleClick}
         onPaste={handlePaste}
-        htmlInputAttributes={{ inputMode: 'decimal', readOnly: !activation.isEditorOpen }}
+        htmlInputAttributes={{
+          inputMode: allowDecimals ? 'decimal' : 'numeric',
+          readOnly: !activation.isEditorOpen,
+        }}
         sx={{
           '& .MuiInputBase-input': {
             textAlign: 'right',

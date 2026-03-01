@@ -17,6 +17,7 @@ export type FormPersistenceSections = {
   renteberegning: PersistedSectionMap['renteberegning'] | null;
   varigemen: PersistedSectionMap['varigemen'] | null;
   erstatningsopgoerelse: PersistedSectionMap['erstatningsopgoerelse'] | null;
+  erhvervsevnetab: PersistedSectionMap['erhvervsevnetab'] | null;
 };
 
 export type FormPersistenceMeta = {
@@ -253,7 +254,8 @@ const createFormPersistenceStore = () =>
         sectionRevisions: state.sectionRevisions,
         fieldErrors: state.fieldErrors,
         fieldErrorRevisions: state.fieldErrorRevisions,
-        authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
+        // Hydration from persisted storage is authoritative for form consumers.
+        authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
       }));
     },

@@ -6,6 +6,7 @@ import { beregnVarigeMenGodtgoerelseWithRates, type VarigeMenBeregningResult } f
 
 export type VarigeMenEngineInputSnapshot = DeepReadonly<{
   varigemen: VarigeMenValues;
+  fodselsdato: ISODateString | undefined;
   skadestidspunkt: ISODateString | undefined;
   rates: YearlyRate;
 }>;
@@ -18,7 +19,8 @@ export const computeVarigeMenEngine = (input: VarigeMenEngineInputSnapshot): Var
   const result = beregnVarigeMenGodtgoerelseWithRates(
     input.varigemen,
     input.skadestidspunkt,
-    input.rates
+    input.rates,
+    input.fodselsdato
   );
 
   // Missing inputs yield null; this is a deliberate domain decision, not an error state.

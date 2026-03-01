@@ -32,6 +32,7 @@ const emptySnapshot = (): Record<StorageKey, unknown | undefined> => ({
   renteberegning: undefined,
   varigemen: undefined,
   erstatningsopgoerelse: undefined,
+  erhvervsevnetab: undefined,
 });
 
 describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {

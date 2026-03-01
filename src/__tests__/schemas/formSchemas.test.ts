@@ -361,7 +361,6 @@ describe('renteberegningSchema', () => {
 describe('varigeMenSchema', () => {
   it('accepterer tomme felter (alle optional)', () => {
     const result = varigeMenSchema.safeParse({
-      fodselsdato: undefined,
       mengrad: undefined,
       beregningsdato: undefined,
     });
@@ -370,8 +369,7 @@ describe('varigeMenSchema', () => {
 
   it('accepterer gyldige værdier', () => {
     const result = varigeMenSchema.safeParse({
-      fodselsdato: '1980-06-15',
-      mengrad: 0.25,
+      mengrad: 25,
       beregningsdato: '2023-01-01',
     });
     expect(result.success).toBe(true);
@@ -380,7 +378,6 @@ describe('varigeMenSchema', () => {
   it('stripTopLevelKey: activeTab strippes fra input', () => {
     const result = varigeMenSchema.safeParse({
       activeTab: 'some-tab',
-      fodselsdato: undefined,
       mengrad: undefined,
       beregningsdato: undefined,
     });
@@ -389,10 +386,26 @@ describe('varigeMenSchema', () => {
 
   it('ukendt felt afvises (strict)', () => {
     const result = varigeMenSchema.safeParse({
-      fodselsdato: undefined,
       mengrad: undefined,
       beregningsdato: undefined,
       ukendt: 'felt',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('afviser decimal méngrad', () => {
+    const result = varigeMenSchema.safeParse({
+      mengrad: 10.5,
+      beregningsdato: '2023-01-01',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('afviser legacy-feltet fodselsdato', () => {
+    const result = varigeMenSchema.safeParse({
+      mengrad: 10,
+      beregningsdato: '2023-01-01',
+      fodselsdato: '1990-01-01',
     });
     expect(result.success).toBe(false);
   });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormPersistenceContext, type FormPersistenceContextValue } from './FormPersistenceContext';
+import { FormPersistenceContext, type FormPersistenceContextValue } from './FormPersistenceContext.shared';
 
 /**
  * Custom hook til at bruge FormPersistenceContext

@@ -31,6 +31,7 @@ export type AmountParseResult =
 export type AmountParseOptions = Readonly<{
   precision: number;
   allowNegative: boolean;
+  allowDecimals?: boolean;
   maxIntegerDigits?: number;
   maxRawLength?: number;
 }>;
@@ -116,7 +117,8 @@ const roundRationalToScale = (value: Rational, precision: number): bigint => {
 const parseNumberToken = (
   raw: string,
   precision: number,
-  maxIntegerDigits?: number
+  maxIntegerDigits?: number,
+  allowDecimals: boolean = true
 ): { ok: true; value: number; exact: Rational; normalized: string } | { ok: false; error: ExpressionError } => {
   if (raw === '' || raw === ',' || raw === '.') {
     return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' } };
@@ -141,6 +143,9 @@ const parseNumberToken = (
   }
 
   if (decimalRaw !== undefined) {
+    if (!allowDecimals) {
+      return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' } };
+    }
     if (/[^0-9]/.test(decimalRaw)) {
       return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' } };
     }
@@ -176,7 +181,8 @@ const parseNumberToken = (
 const tokenizeExpression = (
   input: string,
   precision: number,
-  maxIntegerDigits?: number
+  maxIntegerDigits?: number,
+  allowDecimals: boolean = true
 ): { ok: true; tokens: Token[]; normalizedExpression: string } | { ok: false; error: ExpressionError } => {
   const trimmed = input.trim();
   if (trimmed === '') {
@@ -217,7 +223,7 @@ const tokenizeExpression = (
         index += 1;
       }
       const rawNumber = trimmed.slice(start, index);
-      const parsed = parseNumberToken(rawNumber, precision, maxIntegerDigits);
+      const parsed = parseNumberToken(rawNumber, precision, maxIntegerDigits, allowDecimals);
       if (!parsed.ok) return parsed;
       tokens.push({ type: 'number', value: parsed.exact, normalized: parsed.normalized });
       normalizedExpression += parsed.normalized;
@@ -406,7 +412,12 @@ export const parseAmountInput = (draft: string, options: AmountParseOptions): Am
       return { ok: false, error: { kind: 'number', message: 'Ugyldigt beløb' } };
     }
 
-    const parsed = parseNumberToken(unsigned, options.precision, options.maxIntegerDigits);
+    const parsed = parseNumberToken(
+      unsigned,
+      options.precision,
+      options.maxIntegerDigits,
+      options.allowDecimals !== false
+    );
     if (!parsed.ok) {
       return { ok: false, error: { kind: 'number', message: parsed.error.message } };
     }
@@ -423,7 +434,12 @@ export const parseAmountInput = (draft: string, options: AmountParseOptions): Am
     };
   }
 
-  const tokenized = tokenizeExpression(trimmed, options.precision, options.maxIntegerDigits);
+  const tokenized = tokenizeExpression(
+    trimmed,
+    options.precision,
+    options.maxIntegerDigits,
+    options.allowDecimals !== false
+  );
   if (!tokenized.ok) {
     return { ok: false, error: { kind: 'expression', message: tokenized.error.message } };
   }

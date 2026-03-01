@@ -657,6 +657,21 @@ export const reguleringssatsReference: YearlyReference = {
 
 export const satserCompleteYearBounds: YearBounds = getSatserCompleteYearBounds();
 
+// Seneste år med komplet datadækning for EET-beregninger:
+// intersection af aarsloenMax, reguleringsprocentErhvervsevnetabFra2024 og erhvervsevnetabMax.
+// Bruges som øvre dato-grænse for EET-siden (EETMaxDato = 31-12 i dette år).
+export const eetYearBounds: YearBounds = (() => {
+  const bounds = getYearBoundsForCompleteCoverage([
+    aarsloenMax,
+    reguleringsprocentErhvervsevnetabFra2024,
+    erhvervsevnetabMax,
+  ]);
+  if (!bounds) {
+    throw new Error('CRITICAL: No shared year coverage for EET year bounds');
+  }
+  return bounds;
+})();
+
 /**
  * Årsgrænser for år-vælgeren på Satser-siden.
  *

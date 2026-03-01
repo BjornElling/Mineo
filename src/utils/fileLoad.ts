@@ -12,7 +12,8 @@ import {
 } from './logger';
 import { FILE_FORMAT_VERSION, MAX_FILE_SIZE } from '../config/version';
 import { STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
-import { persistenceSchemaFingerprint, persistenceSchemas } from '../config/persistenceRegistry';
+import { persistenceSchemas } from '../config/persistenceRegistry';
+import { PERSISTENCE_SCHEMA_FINGERPRINT } from '../config/persistenceVersion';
 import { nullToUndefinedDeep } from './nullToUndefinedDeep';
 import { buildPersistenceDefaults, type PersistedSectionDefaults } from '../config/persistenceDefaults';
 import {
@@ -209,7 +210,7 @@ const processDecryptedContainer = (args: {
     actualFieldCount: loadedFieldCount,
     sectionsInFile: sectionsPresent,
     schemaHashInFile: fileSchemaHash ?? null,
-    schemaHashCurrent: persistenceSchemaFingerprint,
+    schemaHashCurrent: PERSISTENCE_SCHEMA_FINGERPRINT,
     timestamp: new Date().toISOString(),
   };
 

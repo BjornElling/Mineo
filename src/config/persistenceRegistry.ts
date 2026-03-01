@@ -7,6 +7,7 @@ import {
   satserSchema,
   stamdataSchema,
   varigeMenSchema,
+  erhvervsevnetabSchema,
 } from '../schemas/formSchemas';
 import { computeSchemaFingerprint } from '../utils/schemaFingerprint';
 
@@ -17,6 +18,7 @@ export const persistenceSchemas = {
   renteberegning: renteberegningSchema,
   varigemen: varigeMenSchema,
   erstatningsopgoerelse: erstatningsopgoerelseSchema,
+  erhvervsevnetab: erhvervsevnetabSchema,
 } as const satisfies Record<StorageKey, z.ZodTypeAny>;
 
 export const persistenceSchemaFingerprint = computeSchemaFingerprint(persistenceSchemas);

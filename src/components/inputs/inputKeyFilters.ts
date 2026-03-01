@@ -129,15 +129,21 @@ export const filterCommaDecimal2KeyDown = (e: KeyDownEvent, options?: { allowNeg
 /**
  * Amount expressions: allow digits, comma/dot, operators, parentheses, and spaces.
  */
-export const filterAmountExpressionKeyDown = (e: KeyDownEvent, options?: { allowNegative?: boolean }): void => {
+export const filterAmountExpressionKeyDown = (
+  e: KeyDownEvent,
+  options?: { allowNegative?: boolean; allowDecimals?: boolean }
+): void => {
   if (!shouldValidateCharInsertion(e)) return;
   const next = getNextValueFromInsertion(e.currentTarget, e.key);
   const allowNegative = options?.allowNegative === true;
+  const allowDecimals = options?.allowDecimals !== false;
   if (!allowNegative && containsUnaryMinusToken(next)) {
     block(e);
     return;
   }
-  const allowed = /^[0-9+\-*/x()., ]$/;
+  const allowed = allowDecimals
+    ? /^[0-9+\-*/x()., ]$/
+    : /^[0-9+\-*/x() ]$/;
   if (!allowed.test(e.key)) block(e);
 };
 
@@ -147,14 +153,27 @@ export const filterAmountExpressionKeyDown = (e: KeyDownEvent, options?: { allow
  */
 export const filterPercentKeyDown = (
   e: KeyDownEvent,
-  options?: { allowNegative?: boolean; maxIntegerDigits?: number; maxIntegerPart?: number }
+  options?: {
+    allowNegative?: boolean;
+    maxIntegerDigits?: number;
+    maxIntegerPart?: number;
+    allowDecimals?: boolean;
+    maxValue?: number;
+  }
 ): void => {
   if (!shouldValidateCharInsertion(e)) return;
 
   const allowNegative = options?.allowNegative === true;
+  const allowDecimals = options?.allowDecimals !== false;
   const next = getNextValueFromInsertion(e.currentTarget, e.key);
 
-  const pattern = allowNegative ? /^-?\d*(,\d{0,2})?$/ : /^\d*(,\d{0,2})?$/;
+  const pattern = allowDecimals
+    ? allowNegative
+      ? /^-?\d*(,\d{0,2})?$/
+      : /^\d*(,\d{0,2})?$/
+    : allowNegative
+      ? /^-?\d*$/
+      : /^\d*$/;
   if (!pattern.test(next)) {
     block(e);
     return;
@@ -170,6 +189,18 @@ export const filterPercentKeyDown = (
   const intNum = Number.parseInt(intPart, 10);
   if (typeof options?.maxIntegerPart === 'number' && Number.isFinite(intNum) && intNum > options.maxIntegerPart) {
     block(e);
+    return;
+  }
+
+  if (typeof options?.maxValue === 'number') {
+    const compact = next.replace(/\s+/g, '');
+    // Partial decimal input (fx "10,") må passere under typing; commit-validering håndterer endelig værdi.
+    if (compact === '' || compact === '-' || compact.endsWith(',')) return;
+
+    const numeric = Number.parseFloat(compact.replace(',', '.'));
+    if (Number.isFinite(numeric) && numeric > options.maxValue) {
+      block(e);
+    }
   }
 };
 

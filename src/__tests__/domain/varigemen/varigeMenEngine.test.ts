@@ -13,8 +13,8 @@ describe('varigeMenEngine', () => {
       varigemen: {
         mengrad: 10,
         beregningsdato: toISODateString('2024-06-01'),
-        fodselsdato: toISODateString('1990-01-01'),
       },
+      fodselsdato: toISODateString('1990-01-01'),
       skadestidspunkt: toISODateString('2020-01-01'),
       rates,
     });
@@ -35,8 +35,8 @@ describe('varigeMenEngine', () => {
       varigemen: {
         mengrad: 33,
         beregningsdato: toISODateString('2024-06-01'),
-        fodselsdato: toISODateString('1990-01-01'),
       },
+      fodselsdato: toISODateString('1990-01-01'),
       skadestidspunkt: toISODateString('2020-01-01'),
       rates,
     });
@@ -50,8 +50,8 @@ describe('varigeMenEngine', () => {
       varigemen: {
         mengrad: undefined,
         beregningsdato: toISODateString('2024-06-01'),
-        fodselsdato: toISODateString('1990-01-01'),
       },
+      fodselsdato: toISODateString('1990-01-01'),
       skadestidspunkt: toISODateString('2020-01-01'),
       rates,
     });
@@ -65,8 +65,8 @@ describe('varigeMenEngine', () => {
       varigemen: {
         mengrad: 10,
         beregningsdato: toISODateString('2024-06-01'),
-        fodselsdato: toISODateString('1990-01-01'),
       },
+      fodselsdato: toISODateString('1990-01-01'),
       skadestidspunkt: undefined,
       rates,
     });
@@ -80,8 +80,8 @@ describe('varigeMenEngine', () => {
       varigemen: {
         mengrad: 10,
         beregningsdato: toISODateString('2024-06-01'),
-        fodselsdato: toISODateString('1990-01-01'),
       },
+      fodselsdato: toISODateString('1990-01-01'),
       skadestidspunkt: toISODateString('2020-01-01'),
       rates,
     });
@@ -96,8 +96,8 @@ describe('varigeMenEngine', () => {
         varigemen: {
           mengrad: 10,
           beregningsdato: toISODateString('2024-06-01'),
-          fodselsdato: toISODateString(fodselsdato),
         },
+        fodselsdato: toISODateString(fodselsdato),
         skadestidspunkt: toISODateString('2024-01-01'),
         rates,
       }).result;
@@ -115,8 +115,8 @@ describe('varigeMenEngine', () => {
       varigemen: {
         mengrad: 10,
         beregningsdato: toISODateString('2024-06-01'),
-        fodselsdato: toISODateString('1990-01-01'),
       },
+      fodselsdato: toISODateString('1990-01-01'),
       skadestidspunkt: toISODateString('2020-01-01'),
       rates,
     };

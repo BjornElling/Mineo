@@ -3,6 +3,7 @@ import type { ZodIssue } from 'zod';
 import { type StorageKey, getStorageKey, getAllMineoKeys } from '../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import type { PersistedData } from '../types/persistence';
+import { FormPersistenceContext, type FormPersistenceContextValue } from './FormPersistenceContext.shared';
 import {
   type FieldErrorsForSection,
   type FormFieldError,
@@ -18,38 +19,6 @@ import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
 import { eoLoenindkomstInputErrorStore } from '../stores/eoLoenindkomstInputErrorStore';
-
-export type FormPersistenceContextValue = {
-  getPersistedData: <K extends StorageKey>(pageKey: K) => PersistedSectionMap[K] | null;
-  persistData: <K extends StorageKey>(pageKey: K, data: PersistedSectionMap[K]) => void;
-  clearPageData: (pageKey: StorageKey) => void;
-  clearAllData: () => void;
-  hasAnyData: () => boolean;
-  getFieldErrors: <K extends StorageKey>(
-    pageKey: K
-  ) => Partial<Record<Extract<keyof PersistedSectionMap[K], string>, FormFieldError>>;
-  getFieldErrorsBySource: <K extends StorageKey>(pageKey: K) => FieldErrorsForSection<K>;
-  getFieldError: <K extends StorageKey>(
-    pageKey: K,
-    fieldName: Extract<keyof PersistedSectionMap[K], string>
-  ) => FormFieldError | undefined;
-  setFieldError: <K extends StorageKey>(
-    pageKey: K,
-    fieldName: Extract<keyof PersistedSectionMap[K], string>,
-    source: FieldErrorSource,
-    error: { message: string; severity: FieldErrorSeverity } | null
-  ) => void;
-  clearFieldErrors: (pageKey: StorageKey) => void;
-  clearAllFieldErrors: () => void;
-  authoritativeSnapshotEpoch: number;
-  getSectionRevision: (pageKey: StorageKey) => number;
-  getFieldErrorRevision: (pageKey: StorageKey) => number;
-  replaceAllPersistedData: (snapshot: Record<StorageKey, unknown | undefined>) => void;
-  lastNotice: { message: string; type: 'warning' | 'error' } | null;
-  lastNoticeEpoch: number;
-};
-
-export const FormPersistenceContext = React.createContext<FormPersistenceContextValue | null>(null);
 
 // Persisted sections are handled via an internal Zustand store; FormPersistenceContext is a facade and not the SoT for committed inputs.
 
@@ -68,6 +37,20 @@ export const FormPersistenceContext = React.createContext<FormPersistenceContext
  * Nuværende data format version
  */
 const CURRENT_VERSION = PERSISTED_DATA_VERSION;
+
+const isCompatiblePersistedVersion = (storedVersion: string, currentVersion: string): boolean => {
+  if (storedVersion === currentVersion) return true;
+  // Backward compatibility: tidligere builds brugte "<base>-<schemaFingerprint>".
+  //
+  // Sikkerhedsinvariant:
+  // - Selve kompatibilitetschecket er bevidst bredt på base-version.
+  // - Reelt sikkerhedsnet er per-sektion Zod-validering i bootstrap/persist-lag.
+  //
+  // Hvornår strammes igen:
+  // - Hvis vi introducerer migrationer der kræver hard reset på tværs af samme base-version.
+  // - Hvis per-sektion validering ikke længere kan fail-close rydde inkompatible felter.
+  return storedVersion.startsWith(`${currentVersion}-`);
+};
 
 /**
  * Type guard for PersistedData wrapper-struktur
@@ -173,7 +156,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         continue;
       }
 
-      if (parsed.version !== CURRENT_VERSION) {
+      if (!isCompatiblePersistedVersion(parsed.version, CURRENT_VERSION)) {
         // Design choice (trust-critical): hard-fail ved mismatch og ryd ALT persisted data.
         shouldGlobalClear = true;
         notice ??= {

@@ -58,4 +58,44 @@ describe('TablePercentInput', () => {
     expect(onBlur).toHaveBeenCalledWith('150,25');
     expect(input).toHaveValue('150,25 %');
   });
+
+  it('blokerer indtastning over maxValue under typing', async () => {
+    const user = userEvent.setup();
+    const gridCell = { rowId: 'row-1', colIndex: 0 };
+    const onBlur = vi.fn();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<string>('');
+      const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
+      const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
+
+      return (
+        <GridCoreProvider value={gridValue}>
+          <TablePercentInput
+            gridCell={gridCell}
+            value={value}
+            minValue={0}
+            maxValue={100}
+            allowDecimals={false}
+            onBlur={(e) => {
+              onBlur(e.target.value);
+              setValue(e.target.value);
+              setEditingCell(null);
+            }}
+          />
+        </GridCoreProvider>
+      );
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.clear(input);
+    await user.type(input, '101');
+    await user.tab();
+
+    expect(onBlur).toHaveBeenCalledWith('10');
+    expect(input).toHaveValue('10 %');
+  });
 });

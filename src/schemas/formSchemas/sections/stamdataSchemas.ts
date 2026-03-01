@@ -9,6 +9,7 @@ export const stamdataSchema = z.object({
   skadelidte: optionalString,
   skadestype: z.preprocess(normalizeEmptyToUndefined, skadestypeEnum.optional()),
   skadesdato: optionalIsoDateString,
+  fodselsdato: optionalIsoDateString,
 }).strict();
 
 export type StamdataValues = z.infer<typeof stamdataSchema>;

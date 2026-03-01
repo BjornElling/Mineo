@@ -65,3 +65,6 @@ export type KRLSatstabelValg = z.infer<typeof krlSatstabelEnum>;
 
 export const tillaegstidEnhedEnum = z.enum(['dage', 'uger', 'maaneder']);
 export type TillaegstidEnhed = z.infer<typeof tillaegstidEnhedEnum>;
+
+export const afgoerelseTypeEnum = z.enum(['Midlertidig', 'Delvist endelig', 'Endelig']);
+export type AfgoerelseType = z.infer<typeof afgoerelseTypeEnum>;

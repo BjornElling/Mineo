@@ -71,12 +71,13 @@ const roundMenAmount = (value: number): number => {
 export function beregnVarigeMenGodtgoerelseWithRates(
   values: VarigeMenValues,
   skadestidspunktRaw: ISODateString | undefined,
-  rates: YearlyRate
+  rates: YearlyRate,
+  fodselsdatoFromStamdata: ISODateString | undefined
 ): VarigeMenBeregningResult | null {
   // --- Input check ---
   const mengrad = values.mengrad;
   const beregningsdatoRaw = values.beregningsdato;
-  const fodselsdatoRaw = values.fodselsdato;
+  const fodselsdatoRaw = fodselsdatoFromStamdata;
 
   if (
     typeof mengrad !== 'number' ||

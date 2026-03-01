@@ -25,7 +25,7 @@ import {
 } from './fileHandleStorage';
 import type { SaveFileResult } from '../types/fileOperations';
 import { eoFileDataSchema, type EoFileContainer } from '../schemas/eoFileSchema';
-import { persistenceSchemaFingerprint } from '../config/persistenceRegistry';
+import { PERSISTENCE_SCHEMA_FINGERPRINT } from '../config/persistenceVersion';
 import { UI_STORAGE_KEYS } from '../config/storageManifest';
 import type {
   CanonicalEoData,
@@ -174,7 +174,7 @@ export const saveToFile = async (
         exportDate: new Date().toISOString(),
         appVersion: VERSION,
         fieldCount: fieldCount, // VIGTIGT: Bruges til validering ved hent
-        schemaHash: persistenceSchemaFingerprint,
+        schemaHash: PERSISTENCE_SCHEMA_FINGERPRINT,
       },
 
       // Selve data fra alle menupunkter

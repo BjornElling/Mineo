@@ -7,7 +7,7 @@ import {
   useFormFieldErrorsBySource,
   useFormFieldErrorReporter,
 } from '../../hooks/useFormFieldErrors';
-import { FormPersistenceContext, type FormPersistenceContextValue } from '../../contexts/FormPersistenceContext';
+import { FormPersistenceContext, type FormPersistenceContextValue } from '../../contexts/FormPersistenceContext.shared';
 import type { StorageKey } from '../../config/storageManifest';
 import type { FormFieldError } from '../../types/fieldErrors';
 

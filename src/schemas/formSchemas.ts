@@ -29,6 +29,8 @@ export {
   type KRLSatstabelValg,
   tillaegstidEnhedEnum,
   type TillaegstidEnhed,
+  afgoerelseTypeEnum,
+  type AfgoerelseType,
 } from './formSchemas/enumSchemas';
 
 export { stamdataSchema, type StamdataValues } from './formSchemas/sections/stamdataSchemas';
@@ -71,3 +73,9 @@ export {
   type ErstatningsopgoerelseValues,
 } from './formSchemas/sections/erstatningsopgoerelseSchemas';
 export { type AarsloenMetode, type AarsloenBeregningResult, type DateInterval } from './formSchemas/formSchemaTypes';
+export {
+  aslAfgoerelseRowSchema,
+  type AslAfgoerelseRow,
+  erhvervsevnetabSchema,
+  type ErhvervsevnetabValues,
+} from './formSchemas/sections/erhvervsevnetabSchemas';

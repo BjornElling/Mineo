@@ -39,11 +39,17 @@ const createValidSections = (): PersistedSectionMap => ({
     rentekravRows: [],
   },
   varigemen: {
-    fodselsdato: undefined,
     mengrad: undefined,
     beregningsdato: undefined,
   },
   erstatningsopgoerelse: createErstatningsopgoerelseInitialValues(),
+  erhvervsevnetab: {
+    beregningsdato: undefined,
+    aslAfgoerelser: [],
+    aslAarsloen: undefined,
+    ealAarsloen: undefined,
+    ealEetPct: undefined,
+  },
 });
 
 describe('formPersistenceStore public API', () => {
@@ -112,6 +118,7 @@ describe('formPersistenceStore public API', () => {
     expect(after.sectionRevisions.renteberegning).toBe(before.sectionRevisions.renteberegning + 1);
     expect(after.sectionRevisions.varigemen).toBe(before.sectionRevisions.varigemen + 1);
     expect(after.sectionRevisions.erstatningsopgoerelse).toBe(before.sectionRevisions.erstatningsopgoerelse + 1);
+    expect(after.sectionRevisions.erhvervsevnetab).toBe(before.sectionRevisions.erhvervsevnetab + 1);
   });
 
   it('replaceSectionsAndClearFieldErrors is atomic for sections and field-errors', () => {
@@ -214,6 +221,7 @@ describe('formPersistenceStore public API', () => {
     expect(after.renteberegning).toBe(before.renteberegning + 1);
     expect(after.varigemen).toBe(before.varigemen + 1);
     expect(after.erstatningsopgoerelse).toBe(before.erstatningsopgoerelse + 1);
+    expect(after.erhvervsevnetab).toBe(before.erhvervsevnetab + 1);
   });
 
   it('restoreFieldErrors restores fieldErrors and revisions exactly', () => {
@@ -233,9 +241,11 @@ describe('formPersistenceStore public API', () => {
   it('hydrate sets schema fingerprint and hydrated flag', () => {
     const store = __createTestStore();
     const sections = createValidSections();
+    const beforeEpoch = store.getState().authoritativeSnapshotEpoch;
     store.getState().hydrate(sections, { hydrated: false, schemaFingerprint: PERSISTED_DATA_VERSION });
     expect(store.getState().meta.hydrated).toBe(true);
     expect(store.getState().meta.schemaFingerprint).toBe(PERSISTED_DATA_VERSION);
+    expect(store.getState().authoritativeSnapshotEpoch).toBe(beforeEpoch + 1);
   });
 
   it('__setSectionUnsafe allows mutation in test environment', () => {

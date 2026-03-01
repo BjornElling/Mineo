@@ -9,20 +9,15 @@ let isInitialized = false;
 let isInstalled = false;
 let deferredPrompt: BeforeInstallPromptEvent | null = null;
 
-const shouldSuppressAutomaticInstallBanner = (): boolean => {
-  return import.meta.env.DEV;
-};
-
 export const setupPwaInstallPromptCapture = (): void => {
   if (typeof window === 'undefined') return;
   if (isInitialized) return;
   isInitialized = true;
 
   window.addEventListener('beforeinstallprompt', (event: Event) => {
-    if (shouldSuppressAutomaticInstallBanner()) {
-      event.preventDefault();
-    }
-    deferredPrompt = event as BeforeInstallPromptEvent;
+    const promptEvent = event as BeforeInstallPromptEvent;
+    // Vi kalder ikke preventDefault her: browserens standard adfærd bevares også i development.
+    deferredPrompt = promptEvent;
   });
 
   window.addEventListener('appinstalled', () => {

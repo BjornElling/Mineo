@@ -9,6 +9,7 @@
 import { z } from 'zod';
 import {
   aarsloenSchema,
+  erhvervsevnetabSchema,
   erstatningsopgoerelseSchema,
   renteberegningSchema,
   satserSchema,
@@ -29,6 +30,7 @@ const eoFileDataInnerSchema = z.object({
   aarsloen: aarsloenSchema.optional(),
   renteberegning: renteberegningSchema.optional(),
   erstatningsopgoerelse: erstatningsopgoerelseSchema.optional(),
+  erhvervsevnetab: erhvervsevnetabSchema.optional(),
 }).strict();
 
 export const eoFileDataSchema = z.preprocess(nullToUndefinedDeep, eoFileDataInnerSchema);
@@ -53,6 +55,7 @@ const eoFileDataLoadInnerSchema = z.object({
   aarsloen: z.unknown().optional(),
   renteberegning: z.unknown().optional(),
   erstatningsopgoerelse: z.unknown().optional(),
+  erhvervsevnetab: z.unknown().optional(),
 }).passthrough();
 
 export const eoFileDataLoadSchema = z.preprocess(nullToUndefinedDeep, eoFileDataLoadInnerSchema);

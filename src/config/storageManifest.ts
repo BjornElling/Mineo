@@ -18,6 +18,7 @@ export const STORAGE_KEYS = {
   renteberegning: 'mineo_renteberegning',
   varigemen: 'mineo_varigemen',
   erstatningsopgoerelse: 'mineo_erstatningsopgoerelse',
+  erhvervsevnetab: 'mineo_erhvervsevnetab',
 } as const;
 
 export const UI_STORAGE_KEYS = {
