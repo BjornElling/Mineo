@@ -216,11 +216,16 @@ ASL-værdierne bruges som default i EAL-beregningerne. Felterne nedenfor er over
 | Felt | Type | Grænser | Noter |
 |---|---|---|---|
 | Årsløn (hvis forskellig fra ASL) | Beløbsfelt | Min: 1.000 kr., max: 9.999.999 kr. | Hvis tomt bruges ASL-årslønen. |
-| EET %, hvis afviger fra ASL | Procentfelt | Min: 0 %, max: 100 %. Kun heltal deleligt med 5 — ellers fejlmeddelelse. | Hvis tomt bruges EET-procenten fra den ASL-afgørelse med den seneste afgørelsesdato. 0 % behandles som tomt felt. |
+| EET %, hvis afviger fra ASL | Procentfelt | Min: 0 %, max: 100 %. Kun heltal deleligt med 5 — ellers fejlmeddelelse. | Hvis tomt bruges EET-procenten fra ASL efter fallback-reglen i sektion 7. 0 % behandles som tomt felt. |
 
 ### EETMaxDato
 
-`DATE_EET_MAX` i `dateRanges.ts` er den 31. december i det seneste år hvor `regulationRates` har værdier for alle tre: `aarsloenMax`, `reguleringsprocentErhvervsevnetabFra2024` og `erhvervsevnetabMax`. Beregnes via `eetYearBounds` i `regulationRates.ts` efter samme mønster som `varigeMenPrGradYearBounds`. Bruges som øvre grænse for dato-felter på EET-siden. Opdateres automatisk når ny data tilføjes i `regulationRates`.
+`DATE_EET_MAX` i `dateRanges.ts` er den 31. december i det seneste år der opfylder **begge** nedenstående betingelser:
+
+1. `regulationRates` har komplet dækning for alle fire: `aarsloenMax`, `reguleringsprocentErhvervsevnetabFra2024`, `erhvervsevnetabMax` og `reguleringssats`.
+2. Der eksisterer en gyldig kapitaliseringsbekendtgørelse for alle skadesdato-intervaller (dvs. årstallet er ≤ `eetKapitaliseringsDatoMaxFraBekendtgoerelser`).
+
+Beregnes via `eetYearBounds` i `regulationRates.ts` som `Math.min(rate-intersection, bekendtgoerelserMaxYear)`. Bruges som øvre grænse for dato-felter på EET-siden. Opdateres automatisk når ny data tilføjes i `regulationRates` **og** `kapitaliseringsbekendtgørelser.ts`.
 
 ### Inputvalidering — grænser og blokering
 
@@ -233,14 +238,27 @@ Fejl der forhindrer en beregning på fane 2–5 vises desuden i statusboksen på
 
 ### Download-blokering og statusboks (fane 2–5)
 
-Hver af fanerne 2–5 har en statusboks (implementeret som `ContentBox`) placeret over download-knappen. Statusboksen viser:
+Alle beregningsfaner (fane 2–5) følger samme overordnede layoutstruktur, undtagen fane 1 (EET oplysninger):
 
-- **Fejlmeddelelser** (blokerer download): Vises hvis ét eller flere inputfelter der er nødvendige for den pågældende fanes beregning enten (a) har en ugyldig værdi (overskredet grænse) eller (b) mangler at blive udfyldt. Ikonet er `ErrorOutline` med `sx={{ color: 'red', fontSize: 20 }}`.
-- **Advarselsbeskeder** (blokerer ikke download): Vises i særlige situationer defineret per fane. Ikonet er `WarningAmber` med `sx={{ color: 'orange', fontSize: 20 }}`. Konkrete advarselssituationer specificeres per beregningsfane.
+1. **"Fejl og advarsler"** (`ContentBox`) øverst.
+   - Vises kun når der findes mindst én fejl/advarsel.
+   - Fejl vises med `ErrorOutline` (rød), advarsler med `WarningAmber` (orange).
+   - Hver linje er en hoverrow.
+2. **"Beregning"** (`ContentBox`) under fejl/advarsler.
+   - Øverste linje er altid **Beregningsdato**.
+   - Linjen under er **Download specifikation**.
+   - Begge linjer er hoverrows.
+3. **"Specifikation"** (`ContentBox`) under "Beregning".
+   - Indeholder den detaljerede beregningsspecifikation/mellemregninger.
+   - Alle linjer er hoverrows.
+
+Fejlmeddelelser (blokerer download) vises hvis ét eller flere inputfelter der er nødvendige for den pågældende fanes beregning enten (a) har en ugyldig værdi (overskredet grænse) eller (b) mangler at blive udfyldt.
+
+Advarselsbeskeder (blokerer ikke download) vises i særlige situationer defineret per fane.
 
 Ikke alle inputfelter er nødvendige for alle faner. Hvilke felter der er nødvendige for hvilken fane specificeres per fane (se afsnit om de enkelte faner).
 
-Download-knappen er deaktiveret så længe der er aktive fejlmeddelelser i statusboksen. Advarsler deaktiverer ikke download-knappen.
+Download er deaktiveret så længe der er aktive fejlmeddelelser. Advarsler deaktiverer ikke download.
 
 Ikonerne (`ErrorOutline`, `WarningAmber`) og `ContentBox`-komponenten er de samme som bruges på `EOberegningTab`.
 
@@ -254,46 +272,46 @@ Kapitaliseringsberegninger kræver tre typer statiske data, som alle ligger i `s
 
 | Fil | Indhold | Opdateres |
 |---|---|---|
-| `kapitaliseringsTabelOversigt.ts` | Matrix: skadesdato × kapitaliseringsdato → bekendtgørelsesnummer | Manuelt, årligt |
+| `kapitalisering/kapitaliseringsbekendtgørelser.ts` | Matrix: skadesdato × kapitaliseringsdato → bekendtgørelsesnummer + `eetKapitaliseringsDatoMaxFraBekendtgoerelser` | Manuelt, årligt |
 | `kapitaliseringsTabeller/[nr]-[år].ts` | Tabeller (alder → faktor) + særfaktor for < 2 år til folkepension | Via hjælper, årligt |
 | `folkepensionsalder.ts` | Fødselsdato-fra → folkepensionsalder | Sjældent — kun ved lovændring |
 
-### Bekendtgørelsesoversigt (`kapitaliseringsTabelOversigt.ts`)
+### Bekendtgørelsesoversigt (`kapitalisering/kapitaliseringsbekendtgørelser.ts`)
 
 Filen afspejler hvilken bekendtgørelse/vejledning der gælder for en given kombination af skadesdato og kapitaliseringsdato. Strukturen er en liste af skadesdato-intervaller, hver med en liste af kapitaliseringsdato-intervaller og tilhørende bekendtgørelsesnummer.
 
-Bekendtgørelser og vejledninger behandles ens og identificeres udelukkende ved nummer og årstal, fx `10029/2024`. Der skelnes ikke mellem betegnelserne "bekendtgørelse" og "vejledning".
+Bekendtgørelser og vejledninger behandles ens og identificeres udelukkende ved nummer og årstal, fx `10029/2024`. Der skelnes ikke mellem betegnelserne "bekendtgørelse" og "vejledning". Feltet hedder `id` i koden.
 
 Tomme celler i den eksterne oversigt (kombinationer der ikke kan forekomme) udelades simpelthen — de repræsenteres ikke i filen.
 
+Filen eksporterer to ting:
+
+1. **`kapitaliseringsbekendtgoerelser`** — selve oversigten som `KapitaliseringsSkadesdatoInterval[]`.
+2. **`eetKapitaliseringsDatoMaxFraBekendtgoerelser`** — en beregnet `ISODateString` der repræsenterer den seneste dato for hvilken der eksisterer en gyldig bekendtgørelse for **alle** skadesdato-intervaller. Algoritmen: for hvert skadesdato-interval findes den nyeste `kapitaliseringsdatoFra`; derefter tages minimum på tværs af alle intervaller; resultatet konverteres til 31-12 i det fundne år. Denne konstant bruges i `regulationRates.ts` til at capse `eetYearBounds.maxYear`.
+
+**Fail-fast validering:** Alle datostrenge i oversigten konverteres ved modul-load med `toISODateString`. En ugyldig datostreng kaster et exception ved app-start — bevidst, da dette er en trust-kritisk datakilde.
+
+**Udløbsregel for seneste post:** Den sidstnævnte post i hvert skadesdato-interval gælder kun for kapitaliseringsdatoer frem til og med **31-12-X**, hvor X er året i dens `kapitaliseringsdatoFra`. `eetKapitaliseringsDatoMaxFraBekendtgoerelser` beregnes ud fra denne regel.
+
+**Sådan tilføjes et nyt år:**
+1. Tilføj en ny `{ kapitaliseringsdatoFra, id }` linje nederst i **hvert** relevant skadesdato-interval i `RAW_KAPITALISERINGSBEKENDTGOERELSER`.
+2. Tilføj tilsvarende ny data i `regulationRates.ts` (de fire satser).
+3. `eetYearBounds` og `DATE_EET_MAX` opdateres automatisk.
+4. Hvis en ny skadesdato-grænse indføres ved lovændring, tilføjes et nyt objekt i hovedarrayet.
+
 Eksempel på struktur (illustrativ):
 ```ts
-// Manuelt vedligeholdt. Tilføj nye kolonner (kapitaliseringsdatoer) nederst i hvert interval.
-// Format: bekendtgørelsesnummer/årstal — aldrig det fulde navn.
-export const kapitaliseringsTabelOversigt = [
+const RAW_KAPITALISERINGSBEKENDTGOERELSER = [
   {
     skadesdatoFra: '1978-04-01',
     kapitaliseringer: [
-      { kapitaliseringsdatoFra: '2004-01-01', bekendtgoerelse: '1068/2003' },
-      { kapitaliseringsdatoFra: '2007-07-01', bekendtgoerelse: '678/2007' },
+      { kapitaliseringsdatoFra: '2004-01-01', id: '1068/2003' },
       // ...
+      { kapitaliseringsdatoFra: '2026-01-01', id: '10056/2025' }, // seneste post, gælder t.o.m. 31-12-2026
     ],
   },
-  {
-    skadesdatoFra: '2007-07-01',
-    kapitaliseringer: [
-      { kapitaliseringsdatoFra: '2007-07-01', bekendtgoerelse: '1263/2007' },
-      // ...
-    ],
-  },
-  {
-    skadesdatoFra: '2021-01-01',
-    kapitaliseringer: [
-      { kapitaliseringsdatoFra: '2020-12-31', bekendtgoerelse: '9741/2020' },
-      // ...
-    ],
-  },
-] as const
+  // ...
+];
 ```
 
 Nye skadesdato-intervaller kan tilføjes som nye elementer i arrayet. Nye kapitaliseringsdatoer tilføjes som nye elementer i det relevante intervals `kapitaliseringer`-array.
@@ -355,7 +373,7 @@ Opslag sker udelukkende på **skadesdato** og **kapitaliseringsdato**. Fødselsd
 
 **Opslagslogik:** Alle datoer i oversigten er fra-datoer og gælder frem til næste fra-dato. Find den seneste `skadesdatoFra` der er ≤ skadesdato, og inden for det interval den seneste `kapitaliseringsdatoFra` der er ≤ kapitaliseringsdato. Eksempel: skadesdato 01-01-2005 og kapitaliseringsdato 01-06-2005 giver interval 01-04-1978 / 01-01-2004 → Bkg. 1068/2003, fordi skadesdatoen ligger i 01-04-1978-intervallet (før 01-07-2007) og kapitaliseringsdatoen ligger i 01-01-2004-intervallet (før 01-07-2007).
 
-**Udløbsregel for seneste post:** Den sidstnævnte post i hvert skadesdato-interval gælder kun for kapitaliseringsdatoer frem til og med **31-12-X**, hvor X er året i dens `kapitaliseringsdatoFra`. Eksempel: posten `{ kapitaliseringsdatoFra: '2025-01-01', id: '10029/2024' }` må udelukkende anvendes for kapitaliseringsdatoer t.o.m. 31-12-2025. Er kapitaliseringsdatoen 01-01-2026 eller senere, mangler der en gyldig bekendtgørelse, og koden skal fejle synligt — aldrig stille falde tilbage til en forældet bekendtgørelse. Implementationen skal sikre dette.
+**Udløbsregel for seneste post:** Den sidstnævnte post i hvert skadesdato-interval gælder kun for kapitaliseringsdatoer frem til og med **31-12-X**, hvor X er året i dens `kapitaliseringsdatoFra`. Eksempel: posten `{ kapitaliseringsdatoFra: '2026-01-01', id: '10056/2025' }` må udelukkende anvendes for kapitaliseringsdatoer t.o.m. 31-12-2026. Er kapitaliseringsdatoen 01-01-2027 eller senere, mangler der en gyldig bekendtgørelse, og koden skal fejle synligt — aldrig stille falde tilbage til en forældet bekendtgørelse. Implementationen skal sikre dette.
 
 **Note om historiske rækker:** Intervallet 01-04-1978 indeholder bekendtgørelser fra før 2005. Disse kan aldrig forekomme i praksis, da stamdata låser mindste skadesdato til 01-01-2005, og kapitaliseringsdatoen aldrig vil ligge forud for skadesdatoen. De historiske rækker bevares i oversigten af nostalgiske og dokumentationsmæssige årsager.
 
@@ -388,6 +406,7 @@ Den komplette oversigt er:
 | 01-04-1978 | 01-01-2024 | Vejl. 9871/2020 |
 | 01-04-1978 | 01-07-2024 | Vejl. 9376/2024 |
 | 01-04-1978 | 01-01-2025 | Vejl. 10029/2024 |
+| 01-04-1978 | 01-01-2026 | Vejl. 10056/2025 |
 | 01-07-2007 | 01-07-2007 | Bkg. 678/2007 |
 | 01-07-2007 | 01-01-2008 | Bkg. 1263/2007 |
 | 01-07-2007 | 01-01-2009 | Bkg. 1047/2008 |
@@ -412,6 +431,7 @@ Den komplette oversigt er:
 | 01-07-2007 | 01-01-2024 | Vejl. 9871/2020 |
 | 01-07-2007 | 01-07-2024 | Vejl. 9376/2024 |
 | 01-07-2007 | 01-01-2025 | Vejl. 10029/2024 |
+| 01-07-2007 | 01-01-2026 | Vejl. 10056/2025 |
 | 01-01-2011 | 01-01-2011 | Bkg. 1220/2010 |
 | 01-01-2011 | 01-01-2012 | Bkg. 1358/2011 |
 | 01-01-2011 | 01-01-2013 | Bkg. 990/2012 |
@@ -431,12 +451,14 @@ Den komplette oversigt er:
 | 01-01-2011 | 01-01-2024 | Vejl. 9820/2023 |
 | 01-01-2011 | 01-07-2024 | Vejl. 9376/2024 |
 | 01-01-2011 | 01-01-2025 | Vejl. 10029/2024 |
+| 01-01-2011 | 01-01-2026 | Vejl. 10056/2025 |
 | 01-01-2021 | 01-01-2021 | Vejl. 9741/2020 |
 | 01-01-2021 | 01-01-2022 | Vejl. 9864/2021 |
 | 01-01-2021 | 01-01-2023 | Vejl. 10141/2022 |
 | 01-01-2021 | 01-01-2024 | Vejl. 9820/2023 |
 | 01-01-2021 | 01-07-2024 | Vejl. 9376/2024 |
 | 01-01-2021 | 01-01-2025 | Vejl. 10029/2024 |
+| 01-01-2021 | 01-01-2026 | Vejl. 10056/2025 |
 
 Tomme celler i den originale matrix (kombinationer der ikke kan forekomme) er udeladt.
 
@@ -474,3 +496,217 @@ Hvis skadelidte på **afgørelsesdatoen** for endeligt EET er 2 år eller mindre
 ### Kapitaliseringsdato
 
 Angives manuelt af brugeren. Standardantagelse er afgørelsesdatoen, men i praksis er det oftest den 1. i næstkommende måned efter afgørelsesdatoen. Kapitaliseringsdatoen fastsættes på samme måde uanset hvilken beregningsregel der anvendes — reglen om kapitalisering ved < 2 år til FP påvirker udelukkende hvilken bekendtgørelse der bruges til at hente faktoren.
+
+---
+
+## 7. Beregningslogik — EET efter EAL
+
+EAL-beregningen er fuldstændig adskilt fra ASL-beregningen. Ingen logik, satser eller mellemresultater deles mellem de to. EAL-beregningen foregår udelukkende på fane 4.
+
+### Inputværdier
+
+| Værdi | Kilde |
+|---|---|
+| Årsløn | EAL-årsløn fra fane 1, hvis udfyldt. Ellers ASL-årsløn fra fane 1. |
+| EET % | EAL EET % fra fane 1, hvis udfyldt. Ellers EET % fra ASL efter fallback-reglen nedenfor. |
+| Beregningsdato | Fane 1. |
+| Skadesdato | Stamdata. |
+| Fødselsdato | Stamdata. |
+
+**Fallback-regel for EET % fra ASL (når EAL-feltet er tomt):**
+1. Find ASL-afgørelsen med seneste **afgørelsesdato**.
+2. Hvis der er flere, vælg den med seneste **virkningsdato**.
+3. Hvis der stadig er flere med samme afgørelsesdato + virkningsdato:
+   - vælg en række med `Endelig`, hvis en sådan findes
+   - ellers vælg en række med `Delvist endelig`, hvis en sådan findes
+4. Hvis der i dette tie-sæt findes **to eller flere `Endelig`-rækker**, udløses fejl:
+   - "Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato, begge markeret som Endelig"
+5. Hvis den valgte række ikke har en reel EET %-værdi (tom eller 0), kan EET % ikke bestemmes.
+
+### Trin 1 — Regulering af årsløn
+
+Årslønen reguleres fra skadesår til beregningsår ved hjælp af `reguleringssats` fra `regulationRates`.
+
+**Skadesår** = det kalenderår skadesdatoen falder i. **Beregningsår** = det kalenderår beregningsdatoen falder i.
+
+Der sker ingen regulering i skadesåret. Reguleringen sker fra og med det første hele kalenderår efter skadesåret, frem til og med beregningsåret.
+
+Reguleringsfaktoren beregnes som et kædeprodukt:
+
+```
+reguleringsfaktor = ∏ (1 + sats[år]) for år = skadesår+1 → beregningsår
+```
+
+Til både beregning og visning rundes reguleringsprocenten til 4 decimaler:
+
+```
+regulerings_pct = round4((reguleringsfaktor - 1) * 100)
+reguleringsfaktor_afrundet = 1 + regulerings_pct / 100
+```
+
+Reguleret årsløn:
+```
+reguleret_årsløn = round500(årsløn × reguleringsfaktor_afrundet)
+```
+
+**Afrunding:** til nærmeste 500 kr.
+
+**Hvis skadesår = beregningsår:** ingen regulering foretages. Reguleringslinjen vises ikke i outputtet.
+
+**Visning af reguleringsprocent:** vises med op til 4 decimaler. Efterfølgende nuller trimmes (fx `22,8178 %`, `22,81 %`, `23 %`).
+
+**Fejlbetingelse:** Hvis `reguleringssats` mangler én eller flere satser for de nødvendige år, udløses en fejl (se afsnit om fejlhåndtering).
+
+### Trin 2 — Beregning af erhvervsevnetab
+
+Kapitaliseringsfaktoren efter EAL er altid **10**, uden undtagelser. Der bruges ingen kapitaliseringstabeller eller bekendtgørelser i EAL-beregningen.
+
+```
+eet_beløb = round0(reguleret_årsløn × 10 × eet_procent)
+```
+
+**Afrunding:** til nærmeste hele krone (0 decimaler).
+
+Beregnet beløb sammenlignes med `erhvervsevnetabMax` fra `regulationRates` for beregningsåret:
+
+- Hvis `eet_beløb ≤ erhvervsevnetabMax[beregningsår]`: bruges `eet_beløb`. Visningstekst: "Skadelidtes erhvervsevnetab skal ikke reduceres, dvs. udgør: X kr."
+- Hvis `eet_beløb > erhvervsevnetabMax[beregningsår]`: bruges `erhvervsevnetabMax[beregningsår]`. Visningstekst: "Skadelidtes erhvervsevnetab reduceres til det lovbestemte maksimum."
+
+**Fejlbetingelse:** Hvis `erhvervsevnetabMax` mangler en værdi for beregningsåret, udløses en fejl.
+
+Lad `eet_anvendt` betegne den værdi der bruges videre (enten `eet_beløb` eller maks.).
+
+### Trin 3 — Aldersreduktion
+
+Alderen opgøres i **hele opnåede år** på skadesdatoen (måneder og dage ignoreres).
+
+```
+alder = floor((skadesdato − fødselsdato) i hele år)
+```
+
+Aldersreduktionen beregnes som:
+
+```
+hvis alder > 29:
+    reduktion_pct = (min(alder, 69) − 29)
+                  + (hvis alder > 54: 2 × (min(alder, 69) − 54), ellers 0)
+ellers:
+    reduktion_pct = 0
+```
+
+Det naturlige loft på 70 % fremkommer automatisk af `min(alder, 69)` — ingen separat cap-regel er nødvendig.
+
+Eksempler:
+| Alder | Formel | Reduktion |
+|---|---|---|
+| ≤ 29 | 0 | 0 % |
+| 30 | (30−29) | 1 % |
+| 53 | (53−29) | 24 % |
+| 54 | (54−29) | 25 % |
+| 55 | (55−29) + 2×(55−54) | 28 % |
+| 69 | (69−29) + 2×(69−54) | 70 % |
+| 86 | (69−29) + 2×(69−54) | 70 % |
+
+Beregnet aldersreduktionsbeløb:
+
+```
+aldersreduktion_beløb = round0(eet_anvendt × reduktion_pct)
+```
+
+**Afrunding:** til nærmeste hele krone (0 decimaler).
+
+### Trin 4 — Endeligt EAL-krav
+
+```
+eal_krav = eet_anvendt − aldersreduktion_beløb
+```
+
+Hvis resultatet er negativt, sættes `eal_krav = 0`.
+
+**Ingen yderligere afrunding** — resultatet er allerede i hele kroner fra trin 2 og 3.
+
+### Fejlhåndtering og layout (fane 4)
+
+Fanen følger den fælles beregningsfanestruktur med tre ContentBoxe:
+
+1. **"Fejl og advarsler"** — viser fejlmeddelelser (ErrorOutline-ikon, rød) eller advarsler (WarningAmber-ikon, orange).
+2. **"Beregning"** — indeholder kun:
+   - `Beregningsdato` (venstre label, dato til højre)
+   - `Download specifikation` (inaktiv indtil PDF-specifikation er defineret)
+3. **"Specifikation"** — viser den trinvise beregning som beskrevet i trin 1–4 ovenfor.
+
+Fejlbetingelser der skjuler både **"Beregning"** og **"Specifikation"** (så kun "Fejl og advarsler" står tilbage) samt blokerer download:
+
+| Fejlbetingelse | Fejlmeddelelse |
+|---|---|
+| Årsløn mangler | Årsløn er ikke udfyldt |
+| EET % kan ikke bestemmes (ingen ASL-afgørelse og ingen EAL-override) | Erhvervsevnetabsprocent er ikke udfyldt |
+| Fødselsdato mangler | Fødselsdato er ikke udfyldt |
+| Beregningsdato mangler | Beregningsdato er ikke udfyldt |
+| `reguleringssats` mangler for ét eller flere nødvendige år | Reguleringssats mangler for år [X] |
+| `erhvervsevnetabMax` mangler for beregningsåret | Maksimum for erhvervsevnetab mangler for år [X] |
+
+Derudover vises inputvalideringsfejl i "Fejl og advarsler", **men kun** de feltfejl der har betydning for EET efter EAL (dvs. felter der indgår i beregningsgrundlaget for denne fane).
+
+#### Teknisk systematik for fejl/advarsler på fane 4
+
+For at sikre ensartet implementering af både manuelt definerede fejl/advarsler og fejl gengivet fra inputfelter på "EET oplysninger", bruges følgende faste mønster:
+
+1. Alle linjer repræsenteres som `EetEalIssue` med tre felter:
+   - `id` (stabil teknisk nøgle)
+   - `severity` (`error` eller `warning`)
+   - `message` (dansk brugertekst)
+2. Domænelogik i `computeEetEalCalculation` opretter alle beregningsrelaterede issues:
+   - fejl via `toIssue(...)`
+   - advarsler via `toWarning(...)`
+3. Feltvalideringsfejl hentes separat via `useFormFieldErrors(...)` og konverteres til issues med `field-`-prefiks i `id` (fx `field-beregningsdato`).
+4. De to kilder merges i `EetEfterEalTab`:
+   - `issues = uniqueIssues([...calculationResult.issues, ...fieldIssues])`
+   - deduplikering sker på meddelelsestekst, så samme brugerbesked ikke vises flere gange.
+5. Blokering af beregningsvisning/download styres udelukkende af severity:
+   - mindst én `error` => "Beregning" + "Specifikation" skjules.
+   - kun `warning` => beregning vises stadig.
+6. Alle issue-linjer vises i samme hoverrow-format i ContentBox "Fejl og advarsler":
+   - `ErrorOutline` (rød) for `error`
+   - `WarningAmber` (orange) for `warning`
+7. Navigation fra issue-linje til inputsektion styres centralt i `resolveIssueNavigation(issueId)`:
+   - hver relevant `id` skal mappe til `pageName`, `sectionName`, `route`, `sectionId`.
+   - på "EET oplysninger" skal sektionsnavne være præcist: `Stamdata`, `Arbejdsskadesikringsloven`, `Erstatningsansvarsloven`.
+8. Når en ny fejl/advarsel tilføjes, er det obligatorisk at opdatere:
+   - issue-oprettelse i domænelogik eller felt-issue-konvertering
+   - navigation mapping (`resolveIssueNavigation`)
+   - testdækning i `eetEalCalculation.test.ts` (mindst ét testcase for ny regel)
+
+Denne systematik er normativ for fremtidige fejl/advarsler på EET-faner med samme struktur.
+
+##### Nuværende issue-katalog (fane 4)
+
+| Issue ID | Severity | Triggerbetingelse |
+|---|---|---|
+| `aarsloen-missing` | error | Ingen gyldig årsløn fra EAL-override eller ASL-årsløn. |
+| `eet-pct-missing` | error | EET % kan ikke bestemmes fra EAL-override eller ASL-fallback. |
+| `fodselsdato-missing` | error | Fødselsdato mangler i stamdata. |
+| `beregningsdato-missing` | error | Beregningsdato mangler i EET-oplysninger. |
+| `skadesdato-missing` | error | Skadesdato mangler i stamdata. |
+| `reguleringssats-missing` | error | Mindst ét nødvendigt reguleringsår mangler sats. |
+| `eet-max-missing` | error | `erhvervsevnetabMax` mangler for beregningsåret. |
+| `eal-eet-pct-invalid` | error | EAL EET %-override er ikke heltal deleligt med 5. |
+| `asl-selected-eet-pct-invalid` | error | Valgt ASL-fallback-række har ugyldig EET %-værdi. |
+| `asl-identical-endelig` | error | To `Endelig`-rækker har samme afgørelsesdato + virkningsdato i tie-sæt. |
+| `alder-unresolved` | error | Alder på skadestidspunkt kan ikke beregnes ud fra fødselsdato/skadesdato. |
+| `warn-eal-eet-under-15` | warning | EAL EET %-override er udfyldt og under 15 %. |
+| `warn-asl-eet-under-15` | warning | ASL-fallback EET % vælges og er under 15 %. |
+| `warn-eal-aarsloen-empty-for-2024-07-01` | warning | Skadesdato er 1. juli 2024 eller senere, og EAL-årsløn er ikke udfyldt. |
+| `warn-eal-aarsloen-is-max` | warning | EAL-årsløn svarer til maksimum-årsløn for skadesåret. |
+| `warn-asl-aarsloen-is-max` | warning | EAL-årsløn er tom, og ASL-årsløn svarer til maksimum-årsløn for skadesåret. |
+
+Feltvalideringsfejl fra fane 1 gengives derudover som `field-*` issues med `error` severity efter samme merge-regel.
+
+Download-row på fane 4:
+- Der vises en hoverrow med teksten **"Download specifikation"** til venstre og download-ikon til højre.
+- Knappen er foreløbigt inaktiv, indtil PDF-indhold og struktur er defineret.
+
+### Datoformatering på fane 4
+
+- Beregningsdato i "Beregning"-boksen: format `d. MMMM YYYY` (fx "27. februar 2026").
+- Alle øvrige datoer: format `DD-MM-YYYY`.

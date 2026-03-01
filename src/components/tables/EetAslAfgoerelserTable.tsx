@@ -12,6 +12,7 @@ import {
   EET_ASL_MIN_VISIBLE_ROWS,
   createEmptyAslAfgoerelseRow,
   isAslAfgoerelseRowEmpty,
+  validateDuplicateAfgoerelseTriplet,
   validateEetPctByPriorKapPct,
   validateKapDatoByAfgoerelsestype,
   validateKapPctByAfgoerelsestype,
@@ -24,6 +25,7 @@ export type EetAslAfgoerelserTableProps = Readonly<{
   tableData: AslAfgoerelseRow[];
   skadesdatoMin: ISODateString;
   beregningsdato: ISODateString | undefined;
+  fodselsdato: ISODateString | undefined;
   onTableDataChange?: (rows: AslAfgoerelseRow[]) => void;
 }>;
 
@@ -49,7 +51,7 @@ const fingerprintTableData = (rows: readonly AslAfgoerelseRow[]): string => {
 };
 
 const EetAslAfgoerelserTable = React.memo(
-  ({ tableData, skadesdatoMin, beregningsdato, onTableDataChange }: EetAslAfgoerelserTableProps) => {
+  ({ tableData, skadesdatoMin, beregningsdato, fodselsdato, onTableDataChange }: EetAslAfgoerelserTableProps) => {
     const minIso = React.useCallback((a: ISODateString, b: ISODateString): ISODateString => {
       return a < b ? a : b;
     }, []);
@@ -200,9 +202,10 @@ const EetAslAfgoerelserTable = React.memo(
             const eetPctError =
               validatePercentDivisibleBy5FromDraft(row.eetPct, 'EET %') ??
               validateEetPctByPriorKapPct(row, internalTableData);
+            const duplicateTripletError = validateDuplicateAfgoerelseTriplet(row, internalTableData);
             const kapPctError =
               validatePercentDivisibleBy5FromDraft(row.kapPct, 'Kapitaliseringsprocent') ??
-              validateKapPctByAfgoerelsestype(row, internalTableData);
+              validateKapPctByAfgoerelsestype(row, internalTableData, fodselsdato);
             const kapDatoError = validateKapDatoByAfgoerelsestype(row);
             const tidlKapDatoError = validateTidlKapDatoByAfgoerelsestype(row);
             return (
@@ -214,6 +217,7 @@ const EetAslAfgoerelserTable = React.memo(
                     onBlur={(e) => commitRowUpdate(row.id, { afgoerelsesDato: e.target.value || undefined })}
                     minDate={skadesdatoMin}
                     maxDate={tabelAfgoerelsesdatoMax}
+                    externalErrorMessage={duplicateTripletError}
                   />
                 </TableCell>
                 <TableCell>
@@ -223,6 +227,7 @@ const EetAslAfgoerelserTable = React.memo(
                     onBlur={(e) => commitRowUpdate(row.id, { virkningsDato: e.target.value || undefined })}
                     minDate={skadesdatoMin}
                     maxDate={tabelVirkningsdatoMax}
+                    externalErrorMessage={duplicateTripletError}
                   />
                 </TableCell>
                 <TableCell>
@@ -251,6 +256,7 @@ const EetAslAfgoerelserTable = React.memo(
                     }
                     placeholder="Vælg..."
                     options={AFGOERELSES_TYPE_OPTIONS}
+                    externalErrorMessage={duplicateTripletError}
                   />
                 </TableCell>
                 <TableCell>

@@ -120,7 +120,8 @@ const DATE_PLUS_5_YEARS_END = iso(`${CURRENT_YEAR + 5}-12-31`);
 // Seneste år med mén-per-grad-sats — udledt af varigeMenPrGrad i regulationRates.ts
 const DATE_VARIGEMEN_MAX = iso(`${varigeMenPrGradYearBounds.maxYear}-12-31`);
 
-// Seneste år med komplet EET-datadækning — intersection af aarsloenMax, reguleringsprocentErhvervsevnetabFra2024 og erhvervsevnetabMax
+// Seneste år med komplet EET-datadækning — sats-intersection capped af
+// kapitaliseringsbekendtgørelses-oversigtens seneste fælles gyldighedsår.
 const DATE_EET_MAX = iso(`${eetYearBounds.maxYear}-12-31`);
 
 // Tidligste år med svie/smerte-sats til UI-årsvælgeren i EO.

@@ -1,5 +1,8 @@
 import type { AslAfgoerelseRow } from '../../schemas/formSchemas';
-import { coerceToISODateString } from '../../types/branded';
+import type { ISODateString } from '../../types/branded';
+import { coerceToISODateString, dateToISO, parseISODate } from '../../types/branded';
+import { addMonths } from '../../utils/dateUtils';
+import { folkepensionsalderIntervaller } from '../../data/kapitalisering/folkepensionsalder';
 import { createRowId } from '../rowId';
 
 export const EET_ASL_MIN_VISIBLE_ROWS = 2;
@@ -26,7 +29,7 @@ export const isAslAfgoerelseRowEmpty = (row: AslAfgoerelseRow): boolean =>
   !row.afgoerelseType &&
   !row.tidlKapDato;
 
-const parsePercentDraft = (raw: string | undefined): number | undefined => {
+export const parsePercentDraft = (raw: string | undefined): number | undefined => {
   if (!raw || raw.trim() === '') return undefined;
   const cleaned = raw.trim().replace(/\s*%$/, '').replace(',', '.');
   const num = Number.parseFloat(cleaned);
@@ -35,6 +38,40 @@ const parsePercentDraft = (raw: string | undefined): number | undefined => {
 
 const hasValue = (raw: string | undefined): boolean =>
   typeof raw === 'string' && raw.trim() !== '';
+
+const DUPLICATE_AFGOERELSE_MESSAGE = 'Der er angivet to identiske afgørelser';
+
+const resolveFolkepensionsalder = (fodselsdatoIso: ISODateString): number | undefined => {
+  let resolved: number | undefined;
+  for (const interval of folkepensionsalderIntervaller) {
+    if (fodselsdatoIso >= interval.foedselsdatoFra) {
+      resolved = interval.folkepensionsalder;
+    }
+  }
+  if (resolved === undefined && folkepensionsalderIntervaller.length > 0) {
+    return folkepensionsalderIntervaller[0].folkepensionsalder;
+  }
+  return resolved;
+};
+
+export const isAfgoerelseWithinTwoYearsOfFolkepension = (
+  afgoerelsesdatoIso: ISODateString,
+  fodselsdatoIso: ISODateString
+): boolean => {
+  const folkepensionsalder = resolveFolkepensionsalder(fodselsdatoIso);
+  if (folkepensionsalder === undefined) return false;
+
+  const fodselsdato = parseISODate(fodselsdatoIso);
+  if (!fodselsdato) return false;
+
+  const folkepensionsdato = addMonths(fodselsdato, folkepensionsalder * 12);
+  const toAarFoerFolkepensionsdato = addMonths(folkepensionsdato, -24);
+
+  const toAarFoerFolkepensionsdatoIso = dateToISO(toAarFoerFolkepensionsdato);
+  if (!toAarFoerFolkepensionsdatoIso) return false;
+
+  return afgoerelsesdatoIso >= toAarFoerFolkepensionsdatoIso;
+};
 
 const assertNeverAfgoerelsestype = (_value: never): undefined => undefined;
 
@@ -73,9 +110,40 @@ export const validateEetPctByPriorKapPct = (
   return undefined;
 };
 
-export const validateKapPctByAfgoerelsestype = (
+export const validateDuplicateAfgoerelseTriplet = (
   row: AslAfgoerelseRow,
   allRows: readonly AslAfgoerelseRow[] = [row]
+): string | undefined => {
+  const afgoerelsesdatoIso = coerceToISODateString(row.afgoerelsesDato);
+  const virkningsdatoIso = coerceToISODateString(row.virkningsDato);
+  const afgoerelsestype = row.afgoerelseType;
+
+  if (!afgoerelsesdatoIso || !virkningsdatoIso || !afgoerelsestype) return undefined;
+
+  const rowIndex = allRows.findIndex((candidate) => candidate.id === row.id);
+  if (rowIndex <= 0) return undefined;
+
+  for (let i = 0; i < rowIndex; i += 1) {
+    const candidate = allRows[i];
+    const candidateAfgoerelsesdatoIso = coerceToISODateString(candidate.afgoerelsesDato);
+    const candidateVirkningsdatoIso = coerceToISODateString(candidate.virkningsDato);
+
+    if (
+      candidateAfgoerelsesdatoIso === afgoerelsesdatoIso &&
+      candidateVirkningsdatoIso === virkningsdatoIso &&
+      candidate.afgoerelseType === afgoerelsestype
+    ) {
+      return DUPLICATE_AFGOERELSE_MESSAGE;
+    }
+  }
+
+  return undefined;
+};
+
+export const validateKapPctByAfgoerelsestype = (
+  row: AslAfgoerelseRow,
+  allRows: readonly AslAfgoerelseRow[] = [row],
+  fodselsdato: ISODateString | undefined = undefined
 ): string | undefined => {
   const afgoerelsestype = row.afgoerelseType;
   if (afgoerelsestype === undefined || afgoerelsestype === 'Midlertidig') {
@@ -93,15 +161,27 @@ export const validateKapPctByAfgoerelsestype = (
   const priorKapPctSum = sumPriorKapPct(row, allRows);
   const kapPctMedTidligere = kapPct + priorKapPctSum;
 
-  // Hard cap gælder altid, også hvis data kommer fra load/import.
-  if (kapPctMedTidligere > 50) {
+  const eetPctRaw = parsePercentDraft(row.eetPct);
+  const eetPct = eetPctRaw === 0 ? undefined : eetPctRaw;
+  const afgoerelsesdatoIso = coerceToISODateString(row.afgoerelsesDato);
+  const isWithinTwoYearsRuleActive =
+    afgoerelsestype === 'Endelig' &&
+    afgoerelsesdatoIso !== undefined &&
+    fodselsdato !== undefined &&
+    isAfgoerelseWithinTwoYearsOfFolkepension(afgoerelsesdatoIso, fodselsdato);
+
+  if (!isWithinTwoYearsRuleActive && kapPctMedTidligere > 50) {
     return 'Kapitaliseringsprocent kan ikke overstige 50 % (inkl. tidligere kapitaliseringsprocenter)';
   }
 
-  const eetPctRaw = parsePercentDraft(row.eetPct);
-  const eetPct = eetPctRaw === 0 ? undefined : eetPctRaw;
-
   if (afgoerelsestype === 'Endelig') {
+    if (isWithinTwoYearsRuleActive) {
+      if (eetPct !== undefined && kapPctMedTidligere !== eetPct) {
+        return 'Ved < 2 år til folkepension kapitaliseres hele EET';
+      }
+      return undefined;
+    }
+
     if (eetPct !== undefined && kapPctMedTidligere > eetPct) {
       return 'Kapitaliseringsprocent kan ikke være højere end EET % ved endelig afgørelse (inkl. tidligere kapitaliseringsprocenter)';
     }
@@ -139,12 +219,30 @@ export const validateKapDatoByAfgoerelsestype = (
       return 'Kapitaliseringsdato må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype';
     }
   }
+
+  const tidlKapDatoIsSet = hasValue(row.tidlKapDato);
+  const afgoerelsesdatoIso = coerceToISODateString(row.afgoerelsesDato);
+  const kapDatoIso = coerceToISODateString(row.kapDato);
+  if (
+    tidlKapDatoIsSet &&
+    afgoerelsesdatoIso !== undefined &&
+    afgoerelsesdatoIso >= '2024-07-01' &&
+    kapDatoIso !== undefined &&
+    kapDatoIso !== afgoerelsesdatoIso
+  ) {
+    return 'Fra 1.juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse';
+  }
+
   return undefined;
 };
 
 export const validateTidlKapDatoByAfgoerelsestype = (
   row: AslAfgoerelseRow
 ): string | undefined => {
+  if (hasValue(row.tidlKapDato) && !hasValue(row.kapDato)) {
+    return 'Kun relevant ved tidligere kapitalisering';
+  }
+
   const afgoerelsestype = row.afgoerelseType;
   if (afgoerelsestype === undefined || afgoerelsestype === 'Midlertidig') {
     if (hasValue(row.tidlKapDato)) {

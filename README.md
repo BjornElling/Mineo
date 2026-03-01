@@ -42,6 +42,8 @@ npm run import:loen
 - Rentesatser i `src/data/interestRates.ts`
 - Private løndata i `src/data/overenskomstRates.ts`
 - Offentlige løndata (KL/RLTN) via `npm run import:loen`
+- KRL-reguleringssatser i `src/data/KRLrates.ts`
+- Kapitaliseringsbekendtgørelser i `src/data/kapitalisering/kapitaliseringsbekendtgørelser.ts`
 
 ## Licens
 
@@ -55,6 +57,6 @@ Bjørn Elling
 
 ---
 
-**Version**: 2026.02.234
+**Version**: 2026.03.235
 
 **Status**: Under udvikling

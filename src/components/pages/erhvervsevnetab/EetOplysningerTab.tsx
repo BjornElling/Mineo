@@ -43,7 +43,10 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
     return iso ?? dateRanges_erhvervsevnetab.beregningsdato.fallbackMin;
   }, [stamValues.skadesdato]);
 
-  const ealEetPctError = validatePercentDivisibleBy5FromValue(values.ealEetPct, 'EET %');
+  const ealEetPctError = React.useMemo(
+    () => validatePercentDivisibleBy5FromValue(values.ealEetPct, 'EET %'),
+    [values.ealEetPct]
+  );
 
   const handleAslAfgoerelserChange = React.useCallback(
     (rows: ErhvervsevnetabValues['aslAfgoerelser']) => {
@@ -54,7 +57,7 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
 
   return (
     <>
-      <ContentBox className="content-box">
+      <ContentBox className="content-box" data-section-id="eet-oplysninger-stamdata">
         <Typography className="section-header">Stamdata</Typography>
 
         <Box className="row--label-right-hover">
@@ -90,8 +93,8 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
         </Box>
       </ContentBox>
 
-      <ContentBox className="content-box">
-        <Typography className="section-header">Erhvervsevnetab efter ASL</Typography>
+      <ContentBox className="content-box" data-section-id="eet-oplysninger-asl">
+        <Typography className="section-header">Arbejdsskadesikringsloven</Typography>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Årsløn</Typography>
@@ -117,13 +120,14 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
           tableData={values.aslAfgoerelser}
           skadesdatoMin={skadesdatoMin}
           beregningsdato={coerceToISODateString(values.beregningsdato)}
+          fodselsdato={coerceToISODateString(stamValues.fodselsdato)}
           onTableDataChange={handleAslAfgoerelserChange}
         />
       </ContentBox>
 
-      <ContentBox className="content-box">
+      <ContentBox className="content-box" data-section-id="eet-oplysninger-eal">
         <Typography className="section-header">
-          Erhvervsevnetab efter Erstatningsansvarsloven
+          Erstatningsansvarsloven
         </Typography>
 
         <Box className="row--label-right-hover">

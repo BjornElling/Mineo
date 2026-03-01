@@ -1,3 +1,5 @@
+import { eetKapitaliseringsDatoMaxFraBekendtgoerelser } from './kapitalisering/kapitaliseringsbekendtgørelser';
+
 /**
  * Satser på arbejdsskadeområdet 2005 og frem
  *
@@ -658,18 +660,33 @@ export const reguleringssatsReference: YearlyReference = {
 export const satserCompleteYearBounds: YearBounds = getSatserCompleteYearBounds();
 
 // Seneste år med komplet datadækning for EET-beregninger:
-// intersection af aarsloenMax, reguleringsprocentErhvervsevnetabFra2024 og erhvervsevnetabMax.
+// intersection af aarsloenMax, reguleringsprocentErhvervsevnetabFra2024,
+// erhvervsevnetabMax og reguleringssats, capped af kapitaliserings-
+// bekendtgørelsesoversigtens seneste fælles gyldighedsår.
 // Bruges som øvre dato-grænse for EET-siden (EETMaxDato = 31-12 i dette år).
 export const eetYearBounds: YearBounds = (() => {
   const bounds = getYearBoundsForCompleteCoverage([
     aarsloenMax,
     reguleringsprocentErhvervsevnetabFra2024,
     erhvervsevnetabMax,
+    reguleringssats,
   ]);
   if (!bounds) {
     throw new Error('CRITICAL: No shared year coverage for EET year bounds');
   }
-  return bounds;
+
+  const bekendtgoerelserMaxYear = Number.parseInt(
+    eetKapitaliseringsDatoMaxFraBekendtgoerelser.slice(0, 4),
+    10
+  );
+  if (!Number.isInteger(bekendtgoerelserMaxYear)) {
+    throw new Error('CRITICAL: Invalid max year derived from kapitaliseringsbekendtgoerelser');
+  }
+
+  return {
+    minYear: bounds.minYear,
+    maxYear: Math.min(bounds.maxYear, bekendtgoerelserMaxYear),
+  };
 })();
 
 /**

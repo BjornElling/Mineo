@@ -6,6 +6,7 @@ import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { erhvervsevnetabSchema } from '../../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import EetOplysningerTab from './erhvervsevnetab/EetOplysningerTab';
+import EetEfterEalTab from './erhvervsevnetab/EetEfterEalTab';
 
 // ─── Fane-konstanter ─────────────────────────────────────────────────────────
 
@@ -136,7 +137,10 @@ const ErhvervsevnetabDev = React.memo(() => {
         <SkeletonTab titel="Kapitalisering af endeligt EET" />
       )}
       {activeTab === TAB_KEYS.EET_EAL && (
-        <SkeletonTab titel="EET efter Erstatningsansvarsloven" />
+        <EetEfterEalTab
+          values={values}
+          onGoToEetOplysninger={() => setActiveTab(TAB_KEYS.EET_OPLYSNINGER)}
+        />
       )}
       {activeTab === TAB_KEYS.DIFFERENCEKRAV && (
         <SkeletonTab titel="Differencekrav" />

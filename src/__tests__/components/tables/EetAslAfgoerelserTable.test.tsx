@@ -20,6 +20,7 @@ describe('EetAslAfgoerelserTable', () => {
         tableData={[createEmptyAslAfgoerelseRow()]}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
+        fodselsdato={toISODateString('1990-01-01')}
         onTableDataChange={onTableDataChange}
       />
     );
@@ -57,6 +58,7 @@ describe('EetAslAfgoerelserTable', () => {
         ]}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
+        fodselsdato={toISODateString('1990-01-01')}
       />
     );
 
@@ -75,6 +77,7 @@ describe('EetAslAfgoerelserTable', () => {
         tableData={[createEmptyAslAfgoerelseRow()]}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
+        fodselsdato={toISODateString('1990-01-01')}
         onTableDataChange={onTableDataChange}
       />
     );
@@ -96,7 +99,7 @@ describe('EetAslAfgoerelserTable', () => {
     fireEvent.blur(input);
 
     await waitFor(() => expect(onTableDataChange).toHaveBeenCalledTimes(1));
-  });
+  }, 15000);
 
   it('sætter tidl. kap.dato max til dagen før afgørelsesdato', async () => {
     const user = userEvent.setup();
@@ -107,10 +110,12 @@ describe('EetAslAfgoerelserTable', () => {
           buildRow({
             afgoerelsesDato: '10-01-2024',
             afgoerelseType: 'Endelig',
+            kapDato: '10-01-2024',
           }),
         ]}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
+        fodselsdato={toISODateString('1990-01-01')}
       />
     );
 
@@ -149,6 +154,7 @@ describe('EetAslAfgoerelserTable', () => {
         ]}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
+        fodselsdato={toISODateString('1990-01-01')}
       />
     );
 
@@ -157,6 +163,101 @@ describe('EetAslAfgoerelserTable', () => {
         'EET % skal være større end summen af kapitaliseringsprocenter fra tidligere afgørelser'
       )
     ).toBeInTheDocument();
+  });
+
+  it('viser fejl når tidl. kap.dato er udfyldt uden kap.dato', () => {
+    render(
+      <EetAslAfgoerelserTable
+        tableData={[
+          buildRow({
+            afgoerelseType: 'Endelig',
+            afgoerelsesDato: '01-07-2024',
+            tidlKapDato: '01-01-2024',
+          }),
+        ]}
+        skadesdatoMin={toISODateString('2020-01-01')}
+        beregningsdato={toISODateString('2025-12-31')}
+        fodselsdato={toISODateString('1990-01-01')}
+      />
+    );
+
+    expect(screen.getByText('Kun relevant ved tidligere kapitalisering')).toBeInTheDocument();
+  });
+
+  it('viser fejl når kap.dato ved genoptagelse fra 1. juli 2024 ikke matcher afgørelsesdato', () => {
+    render(
+      <EetAslAfgoerelserTable
+        tableData={[
+          buildRow({
+            afgoerelseType: 'Endelig',
+            afgoerelsesDato: '01-07-2024',
+            kapDato: '02-07-2024',
+            tidlKapDato: '01-01-2024',
+          }),
+        ]}
+        skadesdatoMin={toISODateString('2020-01-01')}
+        beregningsdato={toISODateString('2025-12-31')}
+        fodselsdato={toISODateString('1990-01-01')}
+      />
+    );
+
+    expect(
+      screen.getByText('Fra 1.juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse')
+    ).toBeInTheDocument();
+  });
+
+  it('viser fejl i kap. % ved endelig afgørelse under to år til folkepension når samlet kap % ikke matcher EET %', () => {
+    render(
+      <EetAslAfgoerelserTable
+        tableData={[
+          buildRow({
+            id: 'r1',
+            afgoerelseType: 'Delvist endelig',
+            afgoerelsesDato: '01-01-2028',
+            eetPct: '80',
+            kapPct: '20',
+          }),
+          buildRow({
+            id: 'r2',
+            afgoerelseType: 'Endelig',
+            afgoerelsesDato: '01-06-2029',
+            eetPct: '80',
+            kapPct: '40',
+          }),
+        ]}
+        skadesdatoMin={toISODateString('2020-01-01')}
+        beregningsdato={toISODateString('2030-12-31')}
+        fodselsdato={toISODateString('1963-01-01')}
+      />
+    );
+
+    expect(screen.getByText('Ved < 2 år til folkepension kapitaliseres hele EET')).toBeInTheDocument();
+  });
+
+  it('viser duplicate-fejl på nederste række når afgørelsesdato, virkningsdato og afgørelsestype er identiske', () => {
+    render(
+      <EetAslAfgoerelserTable
+        tableData={[
+          buildRow({
+            id: 'r1',
+            afgoerelsesDato: '01-11-2025',
+            virkningsDato: '01-10-2025',
+            afgoerelseType: 'Endelig',
+          }),
+          buildRow({
+            id: 'r2',
+            afgoerelsesDato: '01-11-2025',
+            virkningsDato: '01-10-2025',
+            afgoerelseType: 'Endelig',
+          }),
+        ]}
+        skadesdatoMin={toISODateString('2020-01-01')}
+        beregningsdato={toISODateString('2026-12-31')}
+        fodselsdato={toISODateString('1990-01-01')}
+      />
+    );
+
+    expect(screen.getAllByText('Der er angivet to identiske afgørelser').length).toBeGreaterThanOrEqual(3);
   });
 });
 

@@ -15,8 +15,8 @@ import { toISODateString } from '../../types/branded';
 //
 // Udløbsregel: den seneste (dvs. sidstnævnte) post i hvert skadesdato-interval
 // gælder kun frem til og med 31-12-X, hvor X er året i dens kapitaliseringsdatoFra.
-// Eksempel: { kapitaliseringsdatoFra: '2025-01-01', id: '10029/2024' } gælder kun
-// for kapitaliseringsdatoer t.o.m. 31-12-2025. Er kapitaliseringsdatoen 01-01-2026
+// Eksempel: { kapitaliseringsdatoFra: '2026-01-01', id: '10056/2025' } gælder kun
+// for kapitaliseringsdatoer t.o.m. 31-12-2026. Er kapitaliseringsdatoen 01-01-2027
 // eller senere, mangler der en gyldig bekendtgørelse — der skal tilføjes en ny post.
 //
 // Tomme celler i den originale oversigt (kombinationer der ikke kan forekomme) er udeladt.
@@ -83,6 +83,7 @@ const RAW_KAPITALISERINGSBEKENDTGOERELSER: readonly RawKapitaliseringsSkadesdato
       { kapitaliseringsdatoFra: '2024-01-01', id: '9871/2020' },
       { kapitaliseringsdatoFra: '2024-07-01', id: '9376/2024' },
       { kapitaliseringsdatoFra: '2025-01-01', id: '10029/2024' },
+      { kapitaliseringsdatoFra: '2026-01-01', id: '10056/2025' },
     ],
   },
 
@@ -113,6 +114,7 @@ const RAW_KAPITALISERINGSBEKENDTGOERELSER: readonly RawKapitaliseringsSkadesdato
       { kapitaliseringsdatoFra: '2024-01-01', id: '9871/2020' },
       { kapitaliseringsdatoFra: '2024-07-01', id: '9376/2024' },
       { kapitaliseringsdatoFra: '2025-01-01', id: '10029/2024' },
+      { kapitaliseringsdatoFra: '2026-01-01', id: '10056/2025' },
     ],
   },
 
@@ -138,6 +140,7 @@ const RAW_KAPITALISERINGSBEKENDTGOERELSER: readonly RawKapitaliseringsSkadesdato
       { kapitaliseringsdatoFra: '2024-01-01', id: '9820/2023' },
       { kapitaliseringsdatoFra: '2024-07-01', id: '9376/2024' },
       { kapitaliseringsdatoFra: '2025-01-01', id: '10029/2024' },
+      { kapitaliseringsdatoFra: '2026-01-01', id: '10056/2025' },
     ],
   },
 
@@ -150,6 +153,7 @@ const RAW_KAPITALISERINGSBEKENDTGOERELSER: readonly RawKapitaliseringsSkadesdato
       { kapitaliseringsdatoFra: '2024-01-01', id: '9820/2023' },
       { kapitaliseringsdatoFra: '2024-07-01', id: '9376/2024' },
       { kapitaliseringsdatoFra: '2025-01-01', id: '10029/2024' },
+      { kapitaliseringsdatoFra: '2026-01-01', id: '10056/2025' },
     ],
   },
 
@@ -163,3 +167,37 @@ export const kapitaliseringsbekendtgoerelser: KapitaliseringsSkadesdatoInterval[
       id: kap.id,
     })),
   }));
+
+const maxIsoDate = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
+const minIsoDate = (a: ISODateString, b: ISODateString): ISODateString => (a < b ? a : b);
+
+const resolveLatestKapitaliseringsdatoFraPerSkadesinterval = (
+  interval: KapitaliseringsSkadesdatoInterval
+): ISODateString => {
+  if (interval.kapitaliseringer.length === 0) {
+    throw new Error(
+      `CRITICAL: Kapitaliseringsinterval for skadesdato ${interval.skadesdatoFra} mangler kapitaliseringsdatoer`
+    );
+  }
+
+  return interval.kapitaliseringer.reduce(
+    (latest, current) => maxIsoDate(latest, current.kapitaliseringsdatoFra),
+    interval.kapitaliseringer[0].kapitaliseringsdatoFra
+  );
+};
+
+// EET max-grænse fra bekendtgørelsesoversigten:
+// Find den laveste "seneste kapitaliseringsdatoFra" på tværs af alle skadesdato-intervaller.
+// Denne fra-dato gælder kun til årets udgang, så resultatet er 31-12 i det år.
+export const eetKapitaliseringsDatoMaxFraBekendtgoerelser: ISODateString = (() => {
+  if (kapitaliseringsbekendtgoerelser.length === 0) {
+    throw new Error('CRITICAL: kapitaliseringsbekendtgoerelser er tom');
+  }
+
+  const earliestLatestFraDate = kapitaliseringsbekendtgoerelser
+    .map(resolveLatestKapitaliseringsdatoFraPerSkadesinterval)
+    .reduce((earliest, current) => minIsoDate(earliest, current));
+
+  const year = earliestLatestFraDate.slice(0, 4);
+  return toISODateString(`${year}-12-31`);
+})();

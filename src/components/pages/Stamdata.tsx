@@ -98,7 +98,7 @@ const Stamdata = React.memo(() => {
           hidden={activeTab !== 'stamdata'}
           sx={{ display: activeTab === 'stamdata' ? 'block' : 'none' }}
         >
-          <ContentBox className="content-box">
+          <ContentBox className="content-box" data-section-id="stamdata-sagsinfo">
             <Typography className="section-header">Sagsinfo</Typography>
 
             <Box className="row--label-offset">
@@ -136,7 +136,7 @@ const Stamdata = React.memo(() => {
             </Box>
           </ContentBox>
 
-          <ContentBox className="content-box">
+          <ContentBox className="content-box" data-section-id="stamdata-skadelidte">
             <Typography className="section-header">Skadelidte</Typography>
 
             <Box className="row--label-offset">

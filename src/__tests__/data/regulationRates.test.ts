@@ -9,12 +9,14 @@ import {
   satserCompleteYearBounds,
   satserAngivAarYearBounds,
   varigeMenPrGradYearBounds,
+  eetYearBounds,
   aarsloenMin,
   aarsloenMinFoer20240701,
   aarsloenMinFra20240701,
   reguleringsprocentErhvervsevnetabFoer2024,
   reguleringsprocentErhvervsevnetabFra2024,
 } from '../../data/regulationRates';
+import { eetKapitaliseringsDatoMaxFraBekendtgoerelser } from '../../data/kapitalisering/kapitaliseringsbekendtgørelser';
 import type { YearlyRate } from '../../data/regulationRates';
 
 // ─── getYearBoundsForYearlyRate ──────────────────────────────────────────────
@@ -243,6 +245,13 @@ describe('satserAngivAarYearBounds', () => {
     // angivAar bruger "any coverage" (union af alle årstal i alle dicts)
     expect(satserAngivAarYearBounds.minYear).toBeLessThanOrEqual(satserCompleteYearBounds.minYear);
     expect(satserAngivAarYearBounds.maxYear).toBeGreaterThanOrEqual(satserCompleteYearBounds.maxYear);
+  });
+});
+
+describe('eetYearBounds', () => {
+  it('maxYear er capped af kapitaliseringsbekendtgørelsernes fælles max-år', () => {
+    const expectedMaxYear = Number.parseInt(eetKapitaliseringsDatoMaxFraBekendtgoerelser.slice(0, 4), 10);
+    expect(eetYearBounds.maxYear).toBe(expectedMaxYear);
   });
 });
 
