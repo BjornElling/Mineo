@@ -9,6 +9,11 @@
 
 Placeholder-side eksisterer. Implementering ikke påbegyndt.
 
+Sektion 8 (løbende ydelser) er dokumenteret og verificeret mod konkrete beregningseksempler. Følgende sektioner mangler stadig dokumentation:
+- Sektion 9: Kapitalisering (fane 3)
+- Sektion 10: Differencekrav (fane 5)
+- UX-detaljer for fane 2 metadata-rækker (se uafklarede punkter i sektion 8)
+
 ---
 
 ## 1. Implementeringsregler
@@ -710,3 +715,347 @@ Download-row på fane 4:
 
 - Beregningsdato i "Beregning"-boksen: format `d. MMMM YYYY` (fx "27. februar 2026").
 - Alle øvrige datoer: format `DD-MM-YYYY`.
+
+---
+
+## 8. Beregningslogik — løbende EET-ydelser (ASL, fane 2)
+
+### Overblik
+
+Løbende ydelser beregnes pr. afgørelse. Hver afgørelse producerer én eller to ydelsessektioner:
+
+- **Fuld sektion**: fra virkningsdatoen til og med ophørsdatoen for den fulde EET (dagen før kapitaliseringsdatoen, eller dagen før næste afgørelses virkningsdato, eller beregningsdatoen — se periodeafgrænsning).
+- **Rest-sektion**: fra kapitaliseringsdatoen til ophøret af den løbende ydelse, hvis der er en delvis kapitalisering. Gælder kun hvis rest-EET > 0.
+
+Inden for hver sektion opdeles output i kalenderårs-rækker, fordi den løbende ydelse reguleres pr. 1. januar hvert år.
+
+---
+
+### Stamdata og faste konstanter
+
+| Konstant | Værdi | Kilde |
+|---|---|---|
+| `aslMaxAarsloen2003` | 367.000 kr. | Fast konstant i `regulationRates` — maks. årsløn pr. 1/1-2003 |
+| `aslMaxAarsloen2024` | 608.000 kr. | Fast konstant i `regulationRates` — maks. årsløn pr. 1/1-2024 |
+| Erstatningsniveau, skade fra 01-01-2011 | 83 % | Fast konstant |
+| Erstatningsniveau, skade før 01-01-2011 | 80 % (4/5) | Fast konstant |
+| AM-bidragssats | 8 % | Fast konstant — fratrækkes kun ved skade fra 01-01-2011 eller senere |
+
+Disse konstanter gemmes som navngivne konstanter i `regulationRates.ts`. De ændrer sig aldrig.
+
+---
+
+### Trin 1 — Grundløn
+
+Grundlønnen beregnes **én gang per skade** og er uforanderlig. Den beregnes enten i **2003-niveau** (skade før 01-07-2024) eller **2024-niveau** (skade fra 01-07-2024).
+
+**Skade før 01-07-2024 (2003-niveau):**
+```
+grundløn = round0(årsløn × (aslMaxAarsloen2003 / aarsloenMax[skadesår]))
+```
+
+**Skade fra 01-07-2024 (2024-niveau):**
+```
+grundløn = round0(årsløn × (aslMaxAarsloen2024 / aarsloenMax[skadesår]))
+```
+
+`aarsloenMax[skadesår]` er maksimum-årsløn for det kalenderår skadesdatoen falder i (ingen splitdato — altid ét tal per kalenderår).
+
+**Afrunding:** til nærmeste hele krone (0 decimaler, "half away from zero").
+
+---
+
+### Trin 2 — Grundydelse
+
+Grundydelsen beregnes pr. afgørelse og er ligeledes uforanderlig. Den beregnes altid i det samme niveau som grundlønnen (2003- eller 2024-niveau).
+
+**Skade fra 01-01-2011 eller senere (erstatningsniveau 83 %, AM-bidrag fratrækkes):**
+```
+grundydelse = round2(grundløn × eet_pct × 0,83 × 0,92)
+```
+
+**Skade før 01-01-2011 (erstatningsniveau 80 %, intet AM-bidragsfradrag):**
+```
+grundydelse = round2(grundløn × eet_pct × 0,80)
+```
+
+`eet_pct` er afgørelsens EET-procent som decimaltal (fx 0,45 for 45 %).
+
+**Afrunding:** til 2 decimaler ("half away from zero").
+
+**Ved delvis kapitalisering** beregnes to grundydelser:
+- `grundydelse_fuld`: baseret på afgørelsens fulde EET %
+- `grundydelse_rest`: baseret på rest-EET % = afgørelsens EET % − kapitaliseringsprocent
+
+Rest-grundydelsen er altid proportional: `grundydelse_rest = grundydelse_fuld × (rest_eet_pct / eet_pct)`.
+
+---
+
+### Trin 3 — Årsydelse for et givent beregningsår
+
+Årsydelsen for et givent kalenderår Y beregnes ud fra grundydelsen ved at gange med én opreguleringsfaktor. Faktoren afhænger af grundlønsniveauet og beregningsåret:
+
+#### Skade før 01-07-2024 (grundydelse i 2003-niveau)
+
+| Beregningsår Y | Formel |
+|---|---|
+| Y ≤ 2023 | `grundydelse × (1 + reguleringsprocentErhvervsevnetab[Y] / 100)` |
+| Y = 2024 | `grundydelse × (1 + reguleringsprocentErhvervsevnetabFoer2024[2024] / 100)` = `grundydelse × 1,657` |
+| Y ≥ 2025 | `grundydelse × 1,657 × (1 + reguleringsprocentErhvervsevnetabFra2024[Y] / 100)` |
+
+For Y ≥ 2025 udføres de to multiplikationer separat i denne rækkefølge:
+1. `grundydelse × (1 + 65,7/100)` → melllemresultat i 2024-niveau
+2. `mellemresultat × (1 + reguleringsprocentErhvervsevnetabFra2024[Y] / 100)` → årsydelse
+
+Afrunding til nærmeste 12-delelige sker **efter** begge multiplikationer er udført på det præcise flydetal.
+
+#### Skade fra 01-07-2024 (grundydelse i 2024-niveau)
+
+| Beregningsår Y | Formel |
+|---|---|
+| Y = 2024 | `grundydelse × (1 + 0,0 / 100)` = `grundydelse × 1,000` |
+| Y ≥ 2025 | `grundydelse × (1 + reguleringsprocentErhvervsevnetabFra2024[Y] / 100)` |
+
+**Fejlbetingelse:** Mangler en nødvendig sats for beregningsåret Y, udløses fejl (se fejlhåndtering).
+
+#### Afrunding af årsydelsen
+
+Årsydelsen rundes **op** til nærmeste hele kronebeløb deleligt med 12:
+```
+årsydelse = ceil12(beregnet_årsydelse)
+```
+hvor `ceil12(x) = Math.ceil(x / 12) × 12`.
+
+Der rundes **aldrig ned** i dette trin.
+
+#### Månedlig ydelse
+
+```
+månedlig_ydelse = årsydelse / 12
+```
+
+Ingen yderligere afrunding — resultatet er altid et helt kronebeløb.
+
+---
+
+### Trin 4 — Periodeafgrænsning
+
+#### Hvilken sats bruges for perioden?
+
+Satsen (beregningsår Y) bestemmes af **enten afgørelsesåret eller virkningsåret**, afhængigt af deres indbyrdes relation:
+
+| Situation | Beregningsår Y (sats) |
+|---|---|
+| Virkningsdato ≤ afgørelsesdato | Afgørelsesdatoens kalenderår |
+| Virkningsdato > afgørelsesdato | Virkningsdatoens kalenderår |
+
+Når virkningsdato = afgørelsesdato: brug afgørelsesdatoens kalenderår (de er identiske).
+
+#### Periodeopbygning for en afgørelses fulde sektion
+
+Perioden løber fra virkningsdatoen til og med ophørsdatoen (se nedenfor). Den opdeles i kalenderårs-rækker med følgende logik:
+
+1. **Første række**: fra virkningsdatoen til og med den sidste dag i virkningsårets kalenderår (eller til ophørsdatoen hvis ophøret er i samme år). Satsen er beregningsåret Y som ovenfor.
+2. **Mellemliggende rækker**: hele kalenderår (01-01 til 31-12). Satsen er det pågældende kalenderår.
+3. **Sidste række**: fra 01-01 i ophørsåret til og med ophørsdatoen (eller hele kalenderåret hvis ophøret er 31-12). Satsen er ophørsårets kalenderår.
+
+**Undtagelse ved tilbagevirkende kraft**: Hvis virkningsdatoen er i et tidligere kalenderår end afgørelsesdatoen, gælder afgørelsesårets sats for **hele perioden frem til 31-12 i afgørelsesåret** — dvs. perioden fra virkningsdatoen til 31-12 i afgørelsesåret samles i én række med afgørelsesårets sats. Fra 01-01 det følgende år reguleres normalt.
+
+#### Ophørsdato for en afgørelses fulde sektion
+
+Ophørsdatoen er den **tidligste** af følgende datoer, der er relevante for den aktuelle afgørelse:
+
+1. Beregningsdatoen (altid relevant — den absolut seneste mulige dato).
+2. Dagen **før** næste afgørelses virkningsdato (relevant hvis der er en efterfølgende afgørelse).
+3. Dagen **før** kapitaliseringsdatoen (relevant hvis afgørelsen er fuldt kapitaliseret — dvs. rest-EET = 0).
+4. Dagen **før** den dato der er 2 år før skadelidtes folkepensionsalder (relevant ved tvungen kapitalisering).
+
+Da ingen ophørsårsag har forrang over en anden, er det simpelthen den tidligste dato af dem alle, der gælder. Er der ingen kapitalisering og ingen efterfølgende afgørelse, løber den fulde sektion til beregningsdatoen.
+
+#### Rest-sektionens periodeafgrænsning
+
+Rest-sektionen starter på kapitaliseringsdatoen og løber til den tidligste af:
+
+1. Beregningsdatoen.
+2. Dagen før næste afgørelses virkningsdato.
+3. Dagen før den dato der er 2 år fra folkepensionsalderen (tvungen kapitalisering).
+
+Rest-sektionen opdeles ligeledes i kalenderårs-rækker med normal årsregulering (satsen bestemmes af kalenderåret).
+
+---
+
+### Trin 5 — Beregning af "Beregnet EET" pr. periode-række
+
+For hver kalenderårs-række:
+
+```
+beregnet_eet = round0(måneder × månedlig_ydelse)
+```
+
+Måneder beregnes med `optaelMaanederPraecis` fra `periodiseringsMotor.ts` (tæller dage/dage-i-måneden for hver dag i perioden, summerer). Det præcise decimaltal bruges i beregningen — kun 4 decimaler vises i UI'et, men beregningen bruger det fulde flydetal.
+
+**Afrunding:** til nærmeste hele krone (0 decimaler, "half away from zero").
+
+#### Samlet EET for en afgørelse
+
+Summen af alle "Beregnet EET"-beløb for alle rækker under den pågældende afgørelse (fuld + rest sektion). Ingen separat afrunding — summen af allerede afrundede tal.
+
+#### Samlet total (I alt)
+
+Én "I alt"-linje pr. afgørelse — summen af alle rækker for den afgørelse (fuld + rest sektion samlet). Ingen samlet total på tværs af afgørelser på fane 2.
+
+Format: tom "Fra o.m."- og "Til o.m."-celle, tom "Mdr."-celle, tom "Ydelse/md."-celle, beløb i "Beregnet EET"-kolonnen.
+
+---
+
+### Kumuleret kapitaliseringslogik på tværs af afgørelser
+
+Kapitaliseringsprocenter fra tidligere afgørelser fragår permanent i alle efterfølgende afgørelsers mulige løbende ydelse. Den effektive rest-EET for en afgørelse beregnes som:
+
+```
+rest_eet_pct = afgørelsens_eet_pct − sum(kapitaliseringsprocenter fra alle afgørelser inkl. denne)
+```
+
+**50 %-loftet:** Den samlede kapitaliseringsprocent på tværs af alle afgørelser kan aldrig overstige 50 % — med mindre der er tale om tvungen kapitalisering (≤ 2 år til FP), hvor loftet bortfalder.
+
+**Eksempel:** Afgørelse 1 er delvist endelig med 45 % EET og 25 % kap. Afgørelse 2 er endelig med 75 % EET. Skadelidte har allerede fået 25 % kapitaliseret. Af de 75 % kan han vælge op til 25 % yderligere kapitaliseret (fordi 25 + 25 = 50 % maksimum). Rest-EET som løbende ydelse = 75 % − 50 % = 25 %.
+
+**En afgørelses EET % er altid absolut** — den lægges aldrig oveni en tidligere afgørelses procent. En ny afgørelse på 75 % erstatter fuldt ud den tidligere på 45 %.
+
+**To afgørelser kan aldrig overlappe i tid.** En ny afgørelse trumfer den tidligere afgørelse fra sin virkningsdato.
+
+---
+
+### Ophørslogik — folkepensionsalder og tvungen kapitalisering
+
+**Folkepensionsalder (FP):** Slås op i `folkepensionsalder.ts` ud fra fødselsdato. FP-datoen er den dato skadelidte fylder folkepensionsalderen: `fødselsdato + FP-alder år`.
+
+**Tvungen kapitaliseringsdato:** `FP-dato − 2 år`. Den løbende ydelse ophører dagen **før** denne dato.
+
+Tvungen kapitalisering gælder for afgørelser af typen Endelig eller Delvist endelig — ikke for Midlertidig (midlertidige afgørelser kan pr. definition ikke kapitaliseres).
+
+---
+
+### Layout fane 2 — visningsstruktur
+
+Fanen følger den fælles beregningsfanestruktur (se afsnit 4):
+
+1. **"Fejl og advarsler"** (`ContentBox`) øverst — vises kun ved fejl/advarsler.
+2. **"Beregning"** (`ContentBox`) — indeholder Beregningsdato og Download specifikation.
+3. **"Specifikation"** (`ContentBox`) — indeholder de trinvise beregninger for alle afgørelser.
+
+#### Visning pr. afgørelse i "Specifikation"
+
+Afgørelserne vises sekventielt i kronologisk rækkefølge (rækkefølge bestemmes af afgørelsesdato). For hver afgørelse:
+
+**Overskrift/header:** viser afgørelsesdatoen (fx "Afgørelse 1. juli 2023"). Layout og øvrige metadata-rækker (virkningsdato, ophørsgrunde, kapitalisering mv.) defineres i en separat UX-afklaringsrunde.
+
+**Ydelsestabel:** kolonner er:
+
+| Fra o.m. | Til o.m. | Mdr. | Ydelse/md. | Beregnet EET |
+|---|---|---|---|---|
+
+- Datoer i format `DD-MM-ÅÅÅÅ`
+- Måneder vises med 4 decimaler (det præcise flydetal bruges i beregningen, kun 4 decimaler vises)
+- Ydelse/md. i kr. (helt kronebeløb)
+- Beregnet EET i kr. (helt kronebeløb)
+- Alle rækker er hoverrows
+
+**Rest-sektion:** Hvis afgørelsen er delvist kapitaliseret og rest-EET > 0, fortsætter ydelsesrækkerne for rest-EET i **samme tabel** — ingen separat blok eller overskrift for rest-sektionen. Tabellen er sammenhængende; skiftet fra fuld til rest-ydelse markeres udelukkende ved at en ny kalenderårs-række begynder på kapitaliseringsdatoen med den lavere ydelse.
+
+**"I alt"-linje:** én linje pr. afgørelse i bunden af tabellen. Kun "Beregnet EET"-kolonnen udfyldes med summen af alle rækker under den afgørelse.
+
+Ingen samlet total på tværs af afgørelser.
+
+---
+
+### Fejlbetingelser (fane 2)
+
+Fanen følger den fælles beregningsfanestruktur (se afsnit 4). Fejl der blokerer beregning og download:
+
+| Fejlbetingelse | Fejlmeddelelse |
+|---|---|
+| Årsløn mangler | Årsløn er ikke udfyldt |
+| Ingen afgørelser med reel EET % | Ingen afgørelser med erhvervsevnetabsprocent er udfyldt |
+| Fødselsdato mangler | Fødselsdato er ikke udfyldt |
+| Beregningsdato mangler | Beregningsdato er ikke udfyldt |
+| Skadesdato mangler | Skadesdato er ikke udfyldt |
+| Reguleringstabel mangler sats for et nødvendigt år | Reguleringssats mangler for år [X] |
+| `aarsloenMax` mangler for skadesåret | Maksimum årsløn mangler for år [X] |
+
+Beregningsdatoen er beskyttet af `DATE_EET_MAX`-valideringen — det er umuligt at angive et beregningsår uden satsdækning via UI'et.
+
+---
+
+### Verificerede beregningseksempler
+
+Følgende eksempler er gennemregnet og bekræftet korrekte. Bruges som referencegrundlag ved implementering og test.
+
+#### Eksempel A — skade 01-04-2019, beregningsdato 27-02-2026, to afgørelser
+
+- Årsløn: 489.000 kr., `aarsloenMax[2019]` = 539.000 kr.
+- Grundløn (2003-niveau): `round0(489.000 × 367.000 / 539.000)` = **332.955 kr.**
+
+**Afgørelse 1:** Midlertidig, 45 %, afgørelsesdato 01-07-2023, virkningsdato 01-02-2023
+- Grundydelse: `round2(332.955 × 0,45 × 0,83 × 0,92)` = **114.410,00 kr.**
+- Tilbagevirkende kraft → sats = afgørelsesåret 2023 (60,1 %) for hele perioden 01-02-2023→31-12-2023
+- 2023-årsydelse: `114.410,00 × 1,601 = 183.170,41` → `ceil12` = **183.180 kr.** → **15.265 kr./md.**
+- 2024-grundydelse: `round2(114.410,00 × 1,657)` = **189.577,37 kr.**
+- 2024-årsydelse: `189.577,37 × 1,000 = 189.577,37` → `ceil12` = **189.588 kr.** → **15.799 kr./md.**
+- 2025-årsydelse: `189.577,37 × 1,039 = 196.970,48` → `ceil12` = **196.980 kr.** → **16.415 kr./md.**
+- Ophør pga. ny afgørelses virkningsdato 01-10-2025 → løber til 30-09-2025
+- Perioder: 01-02-2023→31-12-2023 (11,0000 mdr.), 01-01-2024→31-12-2024 (12,0000 mdr.), 01-01-2025→30-09-2025 (9,0000 mdr.)
+- I alt: 167.915 + 189.588 + 147.735 = **505.238 kr.**
+
+**Afgørelse 2:** Endelig (delvist kap.), 75 %, kap. 50 %, afgørelsesdato 01-11-2025, virkningsdato 01-10-2025, kapitaliseringsdato 15-01-2026
+- Rest-EET = 75 % − 50 % = 25 %
+- Grundydelse fuld (75 %): `round2(332.955 × 0,75 × 0,83 × 0,92)` = **190.683,33 kr.**
+- Grundydelse rest (25 %): `round2(332.955 × 0,25 × 0,83 × 0,92)` = **63.561,11 kr.**
+- Sats = afgørelsesåret 2025 (3,9 %); virkningsdato = afgørelsesdato, så ingen tilbagevirkende kraft
+- 2024-grundydelse rest: `round2(63.561,11 × 1,657)` = **105.320,76 kr.**
+- Fuld sektion (75 %): 01-10-2025→14-01-2026 (før kapitaliseringsdatoen)
+  - 2025-årsydelse fuld: `190.683,33 × 1,657 × 1,039 = 315.962,28 × 1,039` = ... → `ceil12` → **27.358 kr./md.**
+  - Perioder: 01-10-2025→31-12-2025 (3,0000 mdr.) = 82.074 kr., 01-01-2026→14-01-2026 (0,4516 mdr.) = 12.950 kr.
+- Rest-sektion (25 %): 15-01-2026→27-02-2026
+  - 2026-årsydelse rest: `105.320,76 × 1,089` = ... → `ceil12` → **9.558 kr./md.**
+  - Periode: 15-01-2026→27-02-2026 (1,5127 mdr.) = 14.458 kr.
+- I alt: 82.074 + 12.950 + 14.458 = **109.482 kr.**
+
+#### Eksempel B — skade 01-07-2024, beregningsdato i 2026 (illustrativt)
+
+- Årsløn: 401.000 kr., `aarsloenMax[2024]` = 608.000 kr.
+- Grundløn (2024-niveau): `round0(401.000 × 608.000 / 632.000)` = **385.772 kr.**
+- Grundydelse (40 %, 83 %, AM-bidrag): `round2(385.772 × 0,40 × 0,83 × 0,92)` = **117.830,20 kr.**
+- 2026-årsydelse: `117.830,20 × 1,089 = 128.317,09` → `ceil12` = **128.328 kr.** → **10.694 kr./md.**
+
+#### Eksempel C — skade fra 01-01-2011, beregningsdato i 2026 (illustrativt)
+
+- Årsløn: 401.000 kr., `aarsloenMax[skadesår]` = 498.000 kr. (antaget 2015)
+- Grundløn (2003-niveau): `round0(401.000 × 367.000 / 498.000)` = **295.516 kr.**
+- Grundydelse (40 %, 83 %, AM-bidrag): `round2(295.516 × 0,40 × 0,83 × 0,92)` = **90.262,41 kr.**
+- 2024-grundydelse: `round2(90.262,41 × 1,657)` = **149.564,81 kr.**
+- 2026-årsydelse: `149.564,81 × 1,089 = 162.876,08` → `ceil12` = **162.888 kr.** → **13.574 kr./md.**
+
+#### Eksempel D — skade før 01-01-2011, beregningsdato i 2026 (illustrativt)
+
+- Årsløn: 401.000 kr., `aarsloenMax[skadesår]` = 434.000 kr. (antaget 2009)
+- Grundløn (2003-niveau): `round0(401.000 × 367.000 / 434.000)` = **339.094 kr.**
+- Grundydelse (40 %, 80 %, **intet AM-bidrag**): `round2(339.094 × 0,40 × 0,80)` = **108.510,08 kr.**
+- 2024-grundydelse: `round2(108.510,08 × 1,657)` = **179.801,20 kr.**
+- 2026-årsydelse: `179.801,20 × 1,089 = 195.803,51` → `ceil12` = **195.804 kr.** → **16.317 kr./md.**
+
+---
+
+### Uafklarede punkter (fane 2) — skal afklares før implementering
+
+Følgende er ikke endeligt specificeret og kræver afklaring i næste session:
+
+1. **Metadata-rækker pr. afgørelse**: hvilke rækker vises under afgørelsesoverskriften ud over ydelsestabellen? I eksemplet ses: Type, Erhvervsevnetab %, Årsløn, Virkningsdato, "Afgørelse med tilbagevirkende kraft? Ja/Nej", ophørsgrunde med datoer, "Ydelser beregnes til og med". Er alle disse rækker med i UI, og i hvilken rækkefølge?
+
+2. **Visuel markering af rest-sektion**: er der nogen visuel adskillelse i tabellen ved skiftet fra fuld til rest-ydelse (fx en stiplet linje, en indrykning, en sublabel), eller er det en ren fortsat tabel uden markering?
+
+3. **Midlertidige afgørelser**: vises de løbende ydelser for midlertidige afgørelser på nøjagtig samme måde som for endelige? Der er ingen forskel i beregningen, men skal der evt. en note om "ikke kapitaliserbar" et sted?
+
+4. **Advarselsbetingelser fane 2**: hvilke situationer — ud over fejlbetingelserne — skal udløse advarsler (orange WarningAmber) uden at blokere download?
+
+5. **Visning af grundløn og grundydelse**: vises mellemregningerne for grundløn og grundydelse eksplicit i "Specifikation"-boksen før ydelsestabellen for den pågældende afgørelse? I de beregningseksempler der er givet, fremgår de — men det er ikke afklaret om og hvordan de skal vises i UI'et.
