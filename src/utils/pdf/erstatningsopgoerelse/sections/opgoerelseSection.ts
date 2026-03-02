@@ -254,19 +254,27 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         : formatMoneyOreWithKrTrimmed(delvisSatsOreFoerForlig);
 
       const takstLed: string[] = [];
-      if (hasSygedage) {
-        takstLed.push(`${perDagDisplayWithKr} pr. sygedag`);
-      }
-      if (hasDelviseSygedage) {
-        takstLed.push(`${delvisSatsDisplayWithKr} pr. delvise sygedag`);
+      if (hasSygedage && hasDelviseSygedage && model.svieSmerte.delvisFaktor === 1) {
+        takstLed.push(`${perDagDisplayWithKr} pr. sygedag og delvis sygedag`);
+      } else {
+        if (hasSygedage) {
+          takstLed.push(`${perDagDisplayWithKr} pr. sygedag`);
+        }
+        if (hasDelviseSygedage) {
+          takstLed.push(`${delvisSatsDisplayWithKr} pr. delvise sygedag`);
+        }
       }
 
       const takstLedFoerForlig: string[] = [];
-      if (hasSygedage) {
-        takstLedFoerForlig.push(`${perDagDisplayWithKrFoerForlig} pr. sygedag`);
-      }
-      if (hasDelviseSygedage && delvisSatsDisplayWithKrFoerForlig) {
-        takstLedFoerForlig.push(`${delvisSatsDisplayWithKrFoerForlig} pr. delvise sygedag`);
+      if (hasSygedage && hasDelviseSygedage && model.svieSmerte.delvisFaktor === 1) {
+        takstLedFoerForlig.push(`${perDagDisplayWithKrFoerForlig} pr. sygedag og delvis sygedag`);
+      } else {
+        if (hasSygedage) {
+          takstLedFoerForlig.push(`${perDagDisplayWithKrFoerForlig} pr. sygedag`);
+        }
+        if (hasDelviseSygedage && delvisSatsDisplayWithKrFoerForlig) {
+          takstLedFoerForlig.push(`${delvisSatsDisplayWithKrFoerForlig} pr. delvise sygedag`);
+        }
       }
 
       if (visForligMedFuldeSatser && takstLedFoerForlig.length > 0) {

@@ -385,8 +385,25 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     });
   }, [errors.length, stamdataValues, eoValues, settings]);
 
+  const getCustomSummaryText = React.useCallback((
+    row: (typeof errors)[number],
+    message: string
+  ): string | null => {
+    if (row.label === 'Valgt regulering' && message === 'Lønudvikling beregnes ud fra mangler') {
+      return 'Der mangler at blive angivet lønregulering, evt. \'Ingen\'';
+    }
+
+    if (row.label === 'Periode til beregning af før-løn' && message === 'Ikke alle felter udfyldt') {
+      return 'Der mangler indtastninger i perioden til beregning af før-løn.';
+    }
+
+    return null;
+  }, []);
+
   const formatSummaryText = React.useCallback((row: (typeof errors)[number]): string => {
     const message = toReadableSummaryMessage(row.message ?? '');
+    const customSummaryText = getCustomSummaryText(row, message);
+    if (customSummaryText) return customSummaryText;
     if (row.summaryDisplay === 'messageOnly') {
       if (message !== '') return message;
       return row.label;
@@ -394,7 +411,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     if (message === '') return row.label;
     if (message.startsWith('mangler')) return `${row.label} ${message}`;
     return `${row.label}: ${message}`;
-  }, []);
+  }, [getCustomSummaryText]);
 
   const renderDebugRows = React.useCallback((
     rows: ReadonlyArray<(typeof errors)[number]>,
