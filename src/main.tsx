@@ -195,7 +195,6 @@ const setupServiceWorkerUpdateChecks = (): void => {
 const bootstrap = async (): Promise<void> => {
   // PWA file handler (Launch Queue) skal initialiseres tidligt, ogs hvis vi ender p unsupported-device gate.
   setupPwaLaunchQueueConsumer();
-  setupPwaInstallPromptCapture();
 
   if (isUnsupportedDevice()) {
     const { default: UnsupportedDevicePage } = await import('./components/pages/UnsupportedDevicePage');
@@ -206,6 +205,8 @@ const bootstrap = async (): Promise<void> => {
     );
     return;
   }
+
+  setupPwaInstallPromptCapture();
 
   await ensureLatestVersionBeforeRender();
   setupServiceWorkerUpdateChecks();
