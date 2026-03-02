@@ -67,31 +67,12 @@ const VirtualizedDisplayTable = React.memo(
     const scrollRef = React.useRef<HTMLDivElement | null>(null);
     const tableRef = React.useRef<HTMLTableElement | null>(null);
     const scrollHostRef = React.useRef<HTMLElement | null>(null);
-    const scrollHostOffsetTopRef = React.useRef(0);
     const rafRef = React.useRef<number | null>(null);
 
     const [scrollTop, setScrollTop] = React.useState(0);
     const [viewportHeight, setViewportHeight] = React.useState(height);
 
     const totalHeight = rowCount * rowHeight;
-
-    const computeScrollHostOffset = React.useCallback(() => {
-      const tableEl = tableRef.current;
-      if (!tableEl) return;
-
-      const hostEl = scrollHostRef.current;
-      if (hostEl) {
-        const hostRect = hostEl.getBoundingClientRect();
-        const tableRect = tableEl.getBoundingClientRect();
-        scrollHostOffsetTopRef.current = tableRect.top - hostRect.top + hostEl.scrollTop;
-        setViewportHeight(hostEl.clientHeight);
-        return;
-      }
-
-      // Fallback: window scrolling
-      scrollHostOffsetTopRef.current = tableEl.getBoundingClientRect().top + window.scrollY;
-      setViewportHeight(window.innerHeight);
-    }, []);
 
     const scheduleScrollUpdate = React.useCallback(() => {
       if (rafRef.current !== null) return;
@@ -106,15 +87,21 @@ const VirtualizedDisplayTable = React.memo(
           return;
         }
 
+        const tableEl = tableRef.current;
+        if (!tableEl) return;
+
         const hostEl = scrollHostRef.current;
         if (hostEl) {
-          const relative = Math.max(0, hostEl.scrollTop - scrollHostOffsetTopRef.current);
+          const hostRect = hostEl.getBoundingClientRect();
+          const tableRect = tableEl.getBoundingClientRect();
+          const relative = Math.max(0, hostRect.top - tableRect.top);
           setScrollTop(relative);
           setViewportHeight(hostEl.clientHeight);
           return;
         }
 
-        const relative = Math.max(0, window.scrollY - scrollHostOffsetTopRef.current);
+        const tableRect = tableEl.getBoundingClientRect();
+        const relative = Math.max(0, -tableRect.top);
         setScrollTop(relative);
         setViewportHeight(window.innerHeight);
       });
@@ -134,14 +121,19 @@ const VirtualizedDisplayTable = React.memo(
       if (!tableEl) return;
 
       scrollHostRef.current = (tableEl.closest('[data-mineo-scroll-container="true"]') as HTMLElement | null) ?? null;
-      computeScrollHostOffset();
       scheduleScrollUpdate();
 
       const hostEl = scrollHostRef.current;
-      const onResize = () => {
-        computeScrollHostOffset();
-        scheduleScrollUpdate();
-      };
+      const onResize = () => scheduleScrollUpdate();
+
+      let resizeObserver: ResizeObserver | null = null;
+      if (typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver(() => {
+          scheduleScrollUpdate();
+        });
+        resizeObserver.observe(tableEl);
+        if (hostEl) resizeObserver.observe(hostEl);
+      }
 
       if (hostEl) {
         hostEl.addEventListener('scroll', onScroll, { passive: true });
@@ -149,6 +141,7 @@ const VirtualizedDisplayTable = React.memo(
         return () => {
           hostEl.removeEventListener('scroll', onScroll);
           window.removeEventListener('resize', onResize);
+          resizeObserver?.disconnect();
         };
       }
 
@@ -157,8 +150,9 @@ const VirtualizedDisplayTable = React.memo(
       return () => {
         window.removeEventListener('scroll', onScroll);
         window.removeEventListener('resize', onResize);
+        resizeObserver?.disconnect();
       };
-    }, [computeScrollHostOffset, height, onScroll, scheduleScrollUpdate, scrollMode]);
+    }, [height, onScroll, scheduleScrollUpdate, scrollMode]);
 
     React.useEffect(() => {
       return () => {
@@ -170,15 +164,20 @@ const VirtualizedDisplayTable = React.memo(
     }, []);
 
     React.useEffect(() => {
-      computeScrollHostOffset();
       scheduleScrollUpdate();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rowCount, columns.length, rowHeight, scrollMode]);
 
     const { startIndex, endIndex, topSpacerHeight, bottomSpacerHeight } = React.useMemo(() => {
-      const maxIndex = Math.max(0, rowCount - 1);
-      const start = Math.max(0, Math.floor(scrollTop / rowHeight) - overscan);
-      const end = Math.min(maxIndex, Math.ceil((scrollTop + viewportHeight) / rowHeight) + overscan);
+      if (rowCount <= 0) {
+        return { startIndex: 0, endIndex: -1, topSpacerHeight: 0, bottomSpacerHeight: 0 };
+      }
+
+      const maxIndex = rowCount - 1;
+      const startUnclamped = Math.max(0, Math.floor(scrollTop / rowHeight) - overscan);
+      const start = Math.min(maxIndex, startUnclamped);
+      const endUnclamped = Math.ceil((scrollTop + viewportHeight) / rowHeight) + overscan;
+      const end = Math.min(maxIndex, Math.max(start, endUnclamped));
       const top = start * rowHeight;
       const bottom = Math.max(0, totalHeight - (end + 1) * rowHeight);
       return { startIndex: start, endIndex: end, topSpacerHeight: top, bottomSpacerHeight: bottom };

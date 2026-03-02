@@ -1,7 +1,28 @@
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import VirtualizedDisplayTable from '../../../components/tables/VirtualizedDisplayTable';
 
 describe('VirtualizedDisplayTable', () => {
+  const waitForRaf = async () => {
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
+  };
+
+  const createRect = (top: number): DOMRect =>
+    ({
+      x: 0,
+      y: top,
+      width: 1000,
+      height: 100,
+      top,
+      left: 0,
+      right: 1000,
+      bottom: top + 100,
+      toJSON: () => ({}),
+    }) as DOMRect;
+
   it('exposes stable column IDs as data attributes when provided', () => {
     render(
       <VirtualizedDisplayTable
@@ -40,5 +61,56 @@ describe('VirtualizedDisplayTable', () => {
     expect(cell01).not.toBeNull();
     expect(cell00).toHaveAttribute('data-mineo-column-id', 'col:a');
     expect(cell01).toHaveAttribute('data-mineo-column-id', 'col:b');
+  });
+
+  it('renders the last row when ancestor scroll position is beyond table range', async () => {
+    const { container } = render(
+      <div data-testid="host" data-mineo-scroll-container="true">
+        <VirtualizedDisplayTable
+          columns={[{ id: 'col:a', header: 'A', width: 80, align: 'left' }]}
+          rowCount={100}
+          rowHeight={10}
+          height={0}
+          scrollMode="ancestor"
+          getRowKey={(rowIndex) => `row-${rowIndex}`}
+          renderCell={(rowIndex, columnIndex) => `${rowIndex}-${columnIndex}`}
+        />
+      </div>
+    );
+
+    const host = screen.getByTestId('host') as HTMLDivElement;
+    Object.defineProperty(host, 'clientHeight', { value: 120, configurable: true });
+    Object.defineProperty(host, 'scrollTop', { value: 10000, writable: true, configurable: true });
+
+    const table = container.querySelector('table');
+    expect(table).not.toBeNull();
+    if (!table) throw new Error('Expected table to exist');
+
+    const hostRectSpy = vi.spyOn(host, 'getBoundingClientRect').mockReturnValue(createRect(0));
+    const tableRectSpy = vi.spyOn(table, 'getBoundingClientRect').mockReturnValue(createRect(-10000));
+
+    fireEvent.scroll(host);
+    await waitForRaf();
+
+    expect(screen.getByText('99-0')).toBeInTheDocument();
+
+    hostRectSpy.mockRestore();
+    tableRectSpy.mockRestore();
+  });
+
+  it('renders no body rows when rowCount is zero', () => {
+    const { container } = render(
+      <VirtualizedDisplayTable
+        columns={[{ id: 'col:a', header: 'A', width: 80, align: 'left' }]}
+        rowCount={0}
+        rowHeight={28}
+        height={100}
+        getRowKey={() => 'unused'}
+        renderCell={() => 'unused'}
+      />
+    );
+
+    const bodyRows = container.querySelectorAll('tbody tr');
+    expect(bodyRows.length).toBe(0);
   });
 });
