@@ -29,6 +29,7 @@ import { parseAmount } from '../../utils/numberParsing';
 import { roundByMethod } from '../../utils/rounding';
 import { aarsloenMax } from '../../data/regulationRates';
 import {
+  assertOffentligReguleringsDatoGyldig,
   getEffektiveSatserForDato,
   getEffektiveSatserForPeriode,
   getGrundloenAngivetPerForOverenskomst,
@@ -230,6 +231,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       const fraDato = isoToDanish(reguleringTableStartIso);
       const tilDato = isoToDanish(tafTil);
       if (!fraDato || !tilDato) return null;
+      assertOffentligReguleringsDatoGyldig(fraDato);
       const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
 
       const baseResult = getOffentligLoenForDato(offentligType, fraDato, loentrin, gruppeValue);
@@ -680,6 +682,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
       if (!baseDato || !loenType || typeof trinValue !== 'number' || typeof gruppeValue !== 'number') {
         return mergeConsecutiveRowsWithSameCalculation(segments.map(fallbackRowWithIso));
       }
+      assertOffentligReguleringsDatoGyldig(baseDato);
       if (!isLoengruppe(gruppeValue)) {
         return mergeConsecutiveRowsWithSameCalculation(segments.map(fallbackRowWithIso));
       }
@@ -703,6 +706,9 @@ export const buildReguleringIndexRows = (params: Readonly<{
         applyAlmindeligLoenPaaShDageRegel
       );
       const førsteSegmentFraDato = isoToDanish(segmentsForCalc[0]?.fra ?? segments[0]?.fra);
+      if (førsteSegmentFraDato) {
+        assertOffentligReguleringsDatoGyldig(førsteSegmentFraDato);
+      }
       const sidsteSegmentTilDato = isoToDanish(
         segmentsForCalc[segmentsForCalc.length - 1]?.til ?? segments[segments.length - 1]?.til
       );
@@ -1230,4 +1236,3 @@ export const buildReguleringIndexRows = (params: Readonly<{
     };
   });
 };
-

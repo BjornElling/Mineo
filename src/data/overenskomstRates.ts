@@ -117,6 +117,8 @@ type ShDageAlmindeligLoenRegel = Readonly<{
  * Kort helper til at oprette DanishDateString
  */
 const d = (dateStr: string): DanishDateString => toDanishDateString(dateStr);
+
+export const OFFENTLIG_REGULERING_MIN_DATO: DanishDateString = d('01-01-2012');
 /**
  * Konverterer DanishDateString (DD-MM-YYYY) til et sammenligneligt tal (YYYYMMDD).
  *
@@ -125,6 +127,16 @@ const d = (dateStr: string): DanishDateString => toDanishDateString(dateStr);
 const danishDateToNumber = (dato: DanishDateString): number => {
   const [day, month, year] = dato.split('-').map(Number);
   return year * 10000 + month * 100 + day;
+};
+
+export const isOffentligReguleringsDatoGyldig = (dato: DanishDateString): boolean =>
+  danishDateToNumber(dato) >= danishDateToNumber(OFFENTLIG_REGULERING_MIN_DATO);
+
+export const assertOffentligReguleringsDatoGyldig = (dato: DanishDateString): void => {
+  if (isOffentligReguleringsDatoGyldig(dato)) return;
+  throw new Error(
+    `Offentlig overenskomst kan ikke reguleres før ${OFFENTLIG_REGULERING_MIN_DATO}`
+  );
 };
 
 /**
@@ -214,7 +226,7 @@ const offentligeOverenskomster: ReadonlyArray<OffentligOverenskomstMeta> = [
     navn: 'KL-overenskomsten',
     loenmodtagerOrg: ['Forhandlingsfællesskabet'],
     arbejdsgiverOrg: ['KL'],
-    grundloenAngivetPer: 'Time',
+    grundloenAngivetPer: 'Måned',
     },
   {
     offentligType: 'RLTN',
@@ -222,7 +234,7 @@ const offentligeOverenskomster: ReadonlyArray<OffentligOverenskomstMeta> = [
     navn: 'RLTN-overenskomsten',
     loenmodtagerOrg: ['Forhandlingsfællesskabet'],
     arbejdsgiverOrg: ['RLTN'],
-    grundloenAngivetPer: 'Time',
+    grundloenAngivetPer: 'Måned',
     },
   {
     offentligType: 'KL',
@@ -252,13 +264,13 @@ const offentligeOverenskomstSatser: ReadonlyArray<OffentligOverenskomstSatser> =
         ['01-04-2022',       null,         0.0138,    0.1730 ],
         ['01-04-2019',       null,         0.0083,    0.1730 ],
         ['01-01-2012',       null,         0.0064,    0.1730 ],
-        ['01-01-1900',       null,         0.0000,    0.1730 ],
       ]
     ),
   },
 ];
 
 export const overenskomster: ReadonlyArray<Overenskomst> = [
+
   // Bygge-/anlægsoverenskomsten
   {
     meta: {
@@ -272,7 +284,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     satser: satserFromTable(
       { fritvalg: null, sfgg: null },
       [
-        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG Fagl.Kbh    │ SFGG Fagl.Prov   │ SFGG Ufagl.Kbh   │ SFGG Ufagl.Prov  
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG Fagl.Kbh    │ SFGG Fagl.Prov   │ SFGG Ufagl.Kbh   │ SFGG Ufagl.Prov
         ['01-03-2027',            153.40,             0.167,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
         ['01-03-2026',            149.90,             0.157,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
         ['01-05-2025',            146.40,             0.147,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
@@ -296,6 +308,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     ),
 
   },
+
   // Bygningsoverenskomsten
   {
     meta: {
@@ -309,7 +322,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     satser: satserFromTable(
       { fritvalg: null, sfgg: null },
       [
-        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG Fagl.Kbh    │ SFGG Fagl.Prov   │ SFGG Ufagl.Kbh   │ SFGG Ufagl.Prov  
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG Fagl.Kbh    │ SFGG Fagl.Prov   │ SFGG Ufagl.Kbh   │ SFGG Ufagl.Prov
         ['01-03-2027',            153.15,             0.167,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
         ['01-03-2026',            149.65,             0.157,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
         ['01-05-2025',            146.15,             0.147,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
@@ -333,6 +346,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     ),
 
   },
+
   // Mureroverenskomsten
   {
     meta: {
@@ -346,7 +360,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     satser: satserFromTable(
       { fritvalg: null, sfgg: null },
       [
-        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG Fagl.Kbh    │ SFGG Fagl.Prov   │ SFGG Ufagl.Kbh   │ SFGG Ufagl.Prov  
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG Fagl.Kbh    │ SFGG Fagl.Prov   │ SFGG Ufagl.Kbh   │ SFGG Ufagl.Prov
         ['01-03-2027',            153.15,             0.167,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
         ['01-03-2026',            149.65,             0.157,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
         ['01-05-2025',            146.15,             0.147,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
@@ -370,6 +384,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     ),
 
   },
+
   // Transportoverenskomsten (ATL)
   {
     meta: {
@@ -382,7 +397,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     satser: satserFromTable(
       { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
-        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG               
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG
         ['01-03-2027',            164.15,            0.0675,            0.1100,            164.70 ],
         ['01-03-2026',            159.65,            0.0675,            0.1100,            160.53 ],
         ['01-05-2025',            154.90,            0.0675,            0.1100,            156.14 ],
@@ -418,7 +433,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     satser: satserFromTable(
       { fritvalg: null, sfgg: null, shSoSats: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
-        // fraDato          │ Grundløn         │ AG-pens.         
+        // fraDato          │ Grundløn         │ AG-pens.
         ['01-03-2027',            176.72,            0.1100 ],
         ['01-03-2026',            172.22,            0.1100 ],
         ['01-05-2025',            167.47,            0.1100 ],
@@ -453,7 +468,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     satser: satserFromTable(
       { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
-        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG         
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG
         ['01-03-2027',            164.15,            0.0675,            0.1100,            164.70 ],
         ['01-03-2026',            159.65,            0.0675,            0.1100,            160.53 ],
         ['01-05-2025',            154.90,            0.0675,            0.1100,            156.14 ],
@@ -489,7 +504,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     satser: satserFromTable(
       { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
-        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG         
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG
         ['01-03-2027',            162.95,            0.0675,            0.1100,            164.70 ],
         ['01-03-2026',            158.45,            0.0675,            0.1100,            160.53 ],
         ['01-05-2025',            153.70,            0.0675,            0.1100,            156.14 ],
@@ -518,7 +533,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     meta: {
       id:               toOverenskomstId('industriens-overenskomst'),
       navn:             'Industriens overenskomst',
-      loenmodtagerOrg:  ['CO-Industri'],
+      loenmodtagerOrg:  ['CO-Industri', '3F', 'Blik&Rør', 'Dansk El-Forbund', 'Dansk Metal', 'HK Privat', 'Malerforbundet', 'Teknisk Landsforbund', 'Serviceforbundet', 'Dansk Jernbaneforbund'],
       arbejdsgiverOrg:  ['Dansk Industri'],
       grundloenAngivetPer: 'Time',
     },
@@ -526,7 +541,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     satser: satserFromTable(
       { shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
-        // fraDato          l Grundl>n         l Fritvalg         l AG-pens.         
+        // fraDato          l Grundl>n         l Fritvalg         l AG-pens.
         ['01-03-2027',            146.90,            0.1500,            0.1100 ],
         ['01-03-2026',            143.40,            0.1400,            0.1100 ],
         ['01-05-2025',            139.90,            0.1300,            0.1100 ],
@@ -549,6 +564,104 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     ),
 
   },
+
+  // Industri- og VVS-overenskomsten
+  {
+    meta: {
+      id:               toOverenskomstId('industri-og-vvs-overenskomsten'),
+      navn:             'Industri- og VVS-overenskomsten',
+      loenmodtagerOrg:  ['Dansk Metal', '3F', 'Blik&Rør'],
+      arbejdsgiverOrg:  ['Tekniq'],
+      grundloenAngivetPer: 'Time',
+    },
+    shDageAlmindeligLoenRegel: { fritvalgDelta: -0.04 },
+    satser: satserFromTable(
+      { shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      [
+        // fraDato          │ Grundløn         │ Fritvalg            │ AG-pens.
+        ['01-03-2027',            146.90,            0.1750,            0.1100 ],
+        ['01-03-2026',            143.40,            0.1650,            0.1100 ],
+        ['01-05-2025',            139.90,            0.1550,            0.1100 ],
+        ['01-03-2024',            136.15,            0.1550,            0.1000 ]
+      ]
+    ),
+  },
+
+  // Låsesmedeoverenskomsten
+  {
+    meta: {
+      id:               toOverenskomstId('laasesmedeoverenskomsten'),
+      navn:             'Låsesmedeoverenskomsten',
+      loenmodtagerOrg:  ['Dansk Metal', '3F'],
+      arbejdsgiverOrg:  ['Låsesmedeforeningen'],
+      grundloenAngivetPer: 'Time',
+    },
+    shDageAlmindeligLoenRegel: { fritvalgDelta: -0.04 },
+    satser: satserFromTable(
+      { shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      [
+        // fraDato          │ Grundløn         │ Fritvalg            │ AG-pens.
+        ['01-03-2027',            146.90,            0.1750,            0.1100 ],
+        ['01-03-2026',            143.40,            0.1650,            0.1100 ],
+        ['01-05-2025',            139.90,            0.1550,            0.1100 ],
+        ['01-03-2024',            136.15,            0.1550,            0.1000 ]
+      ]
+    ),
+  },
+
+  // El-overenskomsten
+  {
+    meta: {
+      id:               toOverenskomstId('el-overenskomsten'),
+      navn:             'El-overenskomsten',
+      loenmodtagerOrg:  ['Dansk El-Forbund'],
+      arbejdsgiverOrg:  ['Dansk Industri'],
+      grundloenAngivetPer: 'Time',
+    },
+    satser: satserFromTable(
+      { sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      [
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ Fritvalg            │ AG-pens.
+        ['01-03-2027',            146.85,             0.099,              0.0700,            0.1100 ],
+        ['01-03-2026',            143.35,             0.099,              0.0600,            0.1100 ],
+        ['01-05-2025',            139.85,             0.099,              0.0500,            0.1100 ]
+      ]
+    ),
+  },
+
+  // Elektrikeroverenskomsten
+  {
+    meta: {
+      id:               toOverenskomstId('elektrikeroverenskomsten'),
+      navn:             'Elektrikeroverenskomsten',
+      loenmodtagerOrg:  ['Dansk El-Forbund'],
+      arbejdsgiverOrg:  ['Tekniq'],
+      grundloenAngivetPer: 'Time',
+    },
+    satser: satserFromTable(
+      { sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      [
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ Fritvalg            │ AG-pens.
+        ['01-03-2027',            145.75,             0.062,              0.1100,            0.1100 ],
+        ['01-03-2026',            142.25,             0.062,              0.1100,            0.1100 ],
+        ['01-05-2025',            138.75,             0.062,              0.1000,            0.1100 ],
+        ['01-03-2025',            138.75,             0.062,              0.1000,            0.1000 ],
+        ['01-03-2024',            135.00,             0.062,              0.0900,            0.1000 ],
+        ['01-06-2023',            130.50,             0.062,              0.0700,            0.1000 ],
+        ['01-03-2023',            130.50,             0.062,              0.0700,            0.0800 ],
+        ['01-03-2022',            126.00,             0.062,              0.0700,            0.0800 ],
+        ['01-03-2021',            123.50,             0.062,              0.0600,            0.0800 ],
+        ['01-03-2020',            121.00,             0.062,              0.0500,            0.0800 ],
+        ['01-03-2019',            118.50,             0.062,              0.0400,            0.0800 ],
+        ['01-03-2018',            116.50,             0.062,              0.0340,            0.0800 ],
+        ['01-03-2017',            114.50,             0.062,              0.0270,            0.0800 ],
+        ['01-03-2016',            112.50,             0.062,              0.0200,            0.0800 ],
+        ['01-03-2015',            110.70,             0.062,              0.0170,            0.0800 ],
+        ['01-03-2014',            109.05,             0.062,              0.0130,            0.0800 ]
+      ]
+    ),
+  },
+
   // Postoverenskomsten
   {
     meta: {
@@ -581,19 +694,20 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     ),
 
   },
+
   // Glasoverenskomsten
   {
     meta: {
       id:               toOverenskomstId('glasoverenskomsten'),
       navn:             'Glasoverenskomsten',
       loenmodtagerOrg:  ['3F'],
-      arbejdsgiverOrg:  ['Glarmesterlauget' ],
+      arbejdsgiverOrg:  ['Glarmesterlauget'],
       grundloenAngivetPer: 'Time',
     },
     satser: satserFromTable(
       { fritvalg: null, sfgg: null },
       [
-        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG Fagl.Kbh    │ SFGG Fagl.Prov   │ SFGG Ufagl.Kbh   │ SFGG Ufagl.Prov  
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG Fagl.Kbh    │ SFGG Fagl.Prov   │ SFGG Ufagl.Kbh   │ SFGG Ufagl.Prov
         ['01-03-2027',            153.15,             0.167,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
         ['01-03-2026',            149.65,             0.157,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
         ['01-05-2025',            146.15,             0.147,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
@@ -630,7 +744,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     satser: satserFromTable(
       { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
-        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.
         ['01-03-2027',            146.90,             0.169,            0.1115 ],
         ['01-03-2026',            143.40,             0.159,            0.1115 ],
         ['01-05-2025',            139.90,             0.149,            0.1115 ],
@@ -653,6 +767,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     ),
 
   },
+
   // HORESTA-overenskomsten
   {
     meta: {
@@ -665,7 +780,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     satser: satserFromTable(
       { fritvalg: null, shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
-        // fraDato          │ Grundløn         │ AG-pens.         
+        // fraDato          │ Grundløn         │ AG-pens.
         ['01-03-2027',            168.92,            0.1115 ],
         ['01-03-2026',            165.07,            0.1115 ],
         ['01-05-2025',            161.22,            0.1115 ],
@@ -700,7 +815,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     satser: satserFromTable(
       { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
-        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.
         ['15-03-2027',            172.00,             0.052,            0.1115 ],
         ['15-03-2026',            167.50,             0.052,            0.1115 ],
         ['15-03-2025',            162.75,             0.052,            0.1015 ],
@@ -735,7 +850,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     satser: satserFromTable(
       { fritvalg: null, sfgg: null, shSoSats: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
-        // fraDato          │ Grundløn         │ AG-pens.         
+        // fraDato          │ Grundløn         │ AG-pens.
         ['01-03-2027',            201.97,            0.1166 ],
         ['01-03-2026',            190.62,            0.1166 ],
         ['01-03-2025',            185.62,            0.1166 ],
@@ -847,6 +962,8 @@ export const getGrundloenAngivetPerForOverenskomst = (
   const meta = getOverenskomstMetaById(rawId);
   if (!meta) return undefined;
 
+  // Offentlige overenskomster (KL/RLTN) styres i runtime af brugerens valg
+  // af TAF-beregningsenhed. Meta-feltet fungerer derfor som fallback/default.
   const offentligType = getOffentligOverenskomstTypeById(rawId);
   if ((offentligType === 'KL' || offentligType === 'RLTN') && tafBeregnesSom) {
     return tafBeregnesSom === 'Måneder' ? 'Måned' : 'Time';
@@ -1097,5 +1214,3 @@ export const getEffektiveSatserForPeriode = (
   const satser = getSatserForAlmindeligLoenPaaShDage(overenskomst, args.applyAlmindeligLoenPaaShDageRegel);
   return getSatserForPeriodeFromList(satser, args.fraDato, args.tilDato);
 };
-
-

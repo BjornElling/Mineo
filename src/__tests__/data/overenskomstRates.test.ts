@@ -116,6 +116,30 @@ describe('getOverenskomstMetaById', () => {
     expect(meta).toBeDefined();
     expect(meta?.navn).toBe('Industriens overenskomst');
   });
+
+  it('industri-og-vvs-overenskomsten eksisterer', () => {
+    const meta = getOverenskomstMetaById('industri-og-vvs-overenskomsten');
+    expect(meta).toBeDefined();
+    expect(meta?.navn).toBe('Industri- og VVS-overenskomsten');
+  });
+
+  it('laasesmedeoverenskomsten eksisterer', () => {
+    const meta = getOverenskomstMetaById('laasesmedeoverenskomsten');
+    expect(meta).toBeDefined();
+    expect(meta?.navn).toBe('Låsesmedeoverenskomsten');
+  });
+
+  it('el-overenskomsten eksisterer', () => {
+    const meta = getOverenskomstMetaById('el-overenskomsten');
+    expect(meta).toBeDefined();
+    expect(meta?.navn).toBe('El-overenskomsten');
+  });
+
+  it('elektrikeroverenskomsten eksisterer', () => {
+    const meta = getOverenskomstMetaById('elektrikeroverenskomsten');
+    expect(meta).toBeDefined();
+    expect(meta?.navn).toBe('Elektrikeroverenskomsten');
+  });
 });
 
 // ─── resolveOverenskomstNameOnlyDisplay ──────────────────────────────────────
@@ -167,10 +191,11 @@ describe('getOverenskomsterByOrg', () => {
 
   it('resultater er sorteret alfabetisk', () => {
     const results = getOverenskomsterByOrg();
+    const collator = new Intl.Collator('da-DK', { usage: 'sort', sensitivity: 'base', numeric: true });
     for (let i = 1; i < results.length; i++) {
-      const a = results[i - 1].navn.toLowerCase();
-      const b = results[i].navn.toLowerCase();
-      expect(a <= b).toBe(true);
+      const a = results[i - 1].navn;
+      const b = results[i].navn;
+      expect(collator.compare(a, b) <= 0).toBe(true);
     }
   });
 });
@@ -343,6 +368,64 @@ describe('getEffektiveSatserForDato', () => {
     if (uden && med && uden.shSoSats !== null && med.shSoSats !== null) {
       expect(med.shSoSats).toBeLessThan(uden.shSoSats);
     }
+  });
+
+  it('shDageRegel true → reducerer fritvalg med 4 procentpoint for industri-og-vvs-overenskomsten', () => {
+    const uden = getEffektiveSatserForDato({
+      overenskomstId: 'industri-og-vvs-overenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2024'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+    const med = getEffektiveSatserForDato({
+      overenskomstId: 'industri-og-vvs-overenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2024'),
+      applyAlmindeligLoenPaaShDageRegel: true,
+    });
+
+    expect(uden?.fritvalg).toBe(0.155);
+    expect(med?.fritvalg).toBeCloseTo(0.115, 10);
+  });
+
+  it('shDageRegel true → reducerer fritvalg med 4 procentpoint for laasesmedeoverenskomsten', () => {
+    const uden = getEffektiveSatserForDato({
+      overenskomstId: 'laasesmedeoverenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2024'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+    const med = getEffektiveSatserForDato({
+      overenskomstId: 'laasesmedeoverenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2024'),
+      applyAlmindeligLoenPaaShDageRegel: true,
+    });
+
+    expect(uden?.fritvalg).toBe(0.155);
+    expect(med?.fritvalg).toBeCloseTo(0.115, 10);
+  });
+
+  it('el-overenskomsten har forventede satser på 01-06-2025', () => {
+    const result = getEffektiveSatserForDato({
+      overenskomstId: 'el-overenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-06-2025'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+
+    expect(result?.grundloen).toBe(139.85);
+    expect(result?.shSoSats).toBe(0.099);
+    expect(result?.fritvalg).toBe(0.05);
+    expect(result?.agPension).toBe(0.11);
+  });
+
+  it('elektrikeroverenskomsten har forventede satser på 01-03-2026', () => {
+    const result = getEffektiveSatserForDato({
+      overenskomstId: 'elektrikeroverenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2026'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+
+    expect(result?.grundloen).toBe(142.25);
+    expect(result?.shSoSats).toBe(0.062);
+    expect(result?.fritvalg).toBe(0.11);
+    expect(result?.agPension).toBe(0.11);
   });
 });
 

@@ -854,6 +854,33 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     expect((loenudvikling?.beregnedeSegmenter ?? [])[0]?.fra).toBe('2024-05-01');
   });
 
+  it('afviser offentlig overenskomst-regulering før 01-01-2012', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
+      maanedsloenenUdgoer: asAmountValue(32000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-05-01'), til: iso('2024-06-30'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
+          overenskomstId: 'laerer-overenskomsten',
+          offentligLoenType: 'Månedsløn',
+          offentligLoenTrin: 31,
+          offentligLoenGruppe: 2,
+          feriePct: 17.68,
+          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          saerligFraDatoRegulering: iso('2011-12-31'),
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2011-12-31') });
+
+    expect(() => buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-19') }))
+      .toThrow('Offentlig overenskomst kan ikke reguleres før 01-01-2012');
+  });
+
   it('bruger samme lønudviklingsresultat for angivet månedsløn uanset persisted anciennitet sats-per (resolver-immunitet)', () => {
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
     const baseEoLoenudvikling = {

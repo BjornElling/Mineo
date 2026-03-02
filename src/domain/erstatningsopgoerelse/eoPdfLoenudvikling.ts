@@ -12,6 +12,7 @@ import { isoDateToDate } from '../dates/isoDate';
 import { addDays, createDate } from '../../utils/dateUtils';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import {
+  assertOffentligReguleringsDatoGyldig,
   getEffektiveSatserForDato,
   getEffektiveSatserForPeriode,
   getGrundloenAngivetPerForOverenskomst,
@@ -764,6 +765,7 @@ const buildLoenudviklingFromOverenskomstV3 = (
 
   const offentlig = konsolideret.offentlig;
   if (offentlig) {
+    assertOffentligReguleringsDatoGyldig(reguleringsdatoDa);
     const applyShRegel = konsolideret.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
     const offentligLoenEkstraGrundloen = resolveOffentligLoenEkstraGrundloen(
       konsolideret.offentligLoenEkstraGrundloen,
@@ -805,6 +807,7 @@ const buildLoenudviklingFromOverenskomstV3 = (
       if (!fraDa || !tilDa) {
         throw new Error('Loenudvikling kan ikke beregnes: ugyldigt segmentinterval');
       }
+      assertOffentligReguleringsDatoGyldig(fraDa);
 
       const satser = getOffentligLoenForPeriode(
         offentlig.overenskomstType,
