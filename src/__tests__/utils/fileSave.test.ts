@@ -43,6 +43,7 @@ describe('fileSave', () => {
         renteberegning: undefined,
         varigemen: undefined,
         erstatningsopgoerelse: undefined,
+        erhvervsevnetab: undefined,
       });
 
       expect(result).toEqual({ stamdata: { journalnr: 'J-1' } });
@@ -69,6 +70,7 @@ describe('fileSave', () => {
           renteberegning: undefined,
           varigemen: undefined,
           erstatningsopgoerelse: undefined,
+          erhvervsevnetab: undefined,
         } as never)
       ).toThrow("Snapshot indeholder null for 'stamdata'");
     });
@@ -82,6 +84,7 @@ describe('fileSave', () => {
           renteberegning: undefined,
           varigemen: undefined,
           erstatningsopgoerelse: undefined,
+          erhvervsevnetab: undefined,
           ukendt: {},
         } as never)
       ).toThrow("Snapshot indeholder ukendt key 'ukendt'");

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import EetAslAfgoerelserTable from '../../../components/tables/EetAslAfgoerelserTable';
 import { createEmptyAslAfgoerelseRow } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
@@ -9,6 +9,14 @@ const buildRow = (patch: Partial<AslAfgoerelseRow>): AslAfgoerelseRow => ({
   ...createEmptyAslAfgoerelseRow(),
   ...patch,
 });
+
+const openInputEditing = async (user: ReturnType<typeof userEvent.setup>, input: HTMLElement) => {
+  await user.click(input);
+  await user.click(input);
+  await waitFor(() => {
+    expect(input).not.toHaveAttribute('readonly');
+  });
+};
 
 describe('EetAslAfgoerelserTable', () => {
   it('persisterer rækkeændringer på blur', async () => {
@@ -30,9 +38,10 @@ describe('EetAslAfgoerelserTable', () => {
     const firstCell = within(firstDataRow).getAllByRole('cell')[0];
     const input = within(firstCell).getByRole('textbox');
 
-    await user.dblClick(input);
+    await openInputEditing(user, input);
+    await user.clear(input);
     await user.type(input, '01-02-2024');
-    fireEvent.blur(input);
+    await user.tab();
 
     await waitFor(() => {
       expect(onTableDataChange).toHaveBeenCalledTimes(1);
@@ -87,16 +96,17 @@ describe('EetAslAfgoerelserTable', () => {
     const firstCell = within(firstDataRow).getAllByRole('cell')[0];
     const input = within(firstCell).getByRole('textbox');
 
-    await user.dblClick(input);
+    await openInputEditing(user, input);
+    await user.clear(input);
     await user.type(input, '01-02-2024');
-    fireEvent.blur(input);
+    await user.tab();
 
     await waitFor(() => expect(onTableDataChange).toHaveBeenCalledTimes(1));
 
-    await user.dblClick(input);
+    await openInputEditing(user, input);
     await user.clear(input);
     await user.type(input, '01-02-2024');
-    fireEvent.blur(input);
+    await user.tab();
 
     await waitFor(() => expect(onTableDataChange).toHaveBeenCalledTimes(1));
   }, 15000);
@@ -124,9 +134,10 @@ describe('EetAslAfgoerelserTable', () => {
     const tidlKapDatoCell = within(firstDataRow).getAllByRole('cell')[6];
     const tidlKapDatoInput = within(tidlKapDatoCell).getByRole('textbox');
 
-    await user.dblClick(tidlKapDatoInput);
+    await openInputEditing(user, tidlKapDatoInput);
+    await user.clear(tidlKapDatoInput);
     await user.type(tidlKapDatoInput, '10-01-2024');
-    fireEvent.blur(tidlKapDatoInput);
+    await user.tab();
 
     await waitFor(() => {
       expect(
@@ -260,4 +271,3 @@ describe('EetAslAfgoerelserTable', () => {
     expect(screen.getAllByText('Der er angivet to identiske afgørelser').length).toBeGreaterThanOrEqual(3);
   });
 });
-

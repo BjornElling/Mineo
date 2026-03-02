@@ -539,10 +539,9 @@ const TablePercentInput = React.memo(
         filterPercentKeyDown(e, {
           allowNegative,
           allowDecimals,
-          maxValue: effectiveMax,
         });
       },
-      [allowDecimals, allowNegative, effectiveMax, isEditing]
+      [allowDecimals, allowNegative, isEditing]
     );
 
     const a11yErrorId = React.useId();

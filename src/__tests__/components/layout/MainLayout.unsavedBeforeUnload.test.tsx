@@ -85,6 +85,7 @@ const createSnapshot = (stamdataSkadelidte: string): Record<StorageKey, unknown 
   renteberegning: undefined,
   varigemen: undefined,
   erstatningsopgoerelse: undefined,
+  erhvervsevnetab: undefined,
 });
 
 describe('MainLayout (unsaved beforeunload)', () => {
