@@ -165,6 +165,43 @@ describe('EetAslAfgoerelserTable', () => {
     ).toBeInTheDocument();
   });
 
+  it('viser ikke no-valid-range fejl for kap.dato når afgørelsesdato er efter max-dato', () => {
+    render(
+      <EetAslAfgoerelserTable
+        tableData={[
+          buildRow({
+            afgoerelseType: 'Endelig',
+            afgoerelsesDato: '30-06-2027',
+          }),
+        ]}
+        skadesdatoMin={toISODateString('2020-01-01')}
+        beregningsdato={toISODateString('2025-12-31')}
+        fodselsdato={toISODateString('1990-01-01')}
+      />
+    );
+
+    expect(screen.queryByText(/Ingen gyldige datoer/)).not.toBeInTheDocument();
+  });
+
+  it('viser ikke no-valid-range fejl for tidl. kap.dato når skadesdato er efter afgørelsesdato', () => {
+    render(
+      <EetAslAfgoerelserTable
+        tableData={[
+          buildRow({
+            afgoerelseType: 'Endelig',
+            afgoerelsesDato: '30-06-2023',
+            kapDato: '30-06-2023',
+          }),
+        ]}
+        skadesdatoMin={toISODateString('2024-08-01')}
+        beregningsdato={toISODateString('2025-12-31')}
+        fodselsdato={toISODateString('1990-01-01')}
+      />
+    );
+
+    expect(screen.queryByText(/Ingen gyldige datoer/)).not.toBeInTheDocument();
+  });
+
   it('viser fejl når tidl. kap.dato er udfyldt uden kap.dato', () => {
     render(
       <EetAslAfgoerelserTable
@@ -202,7 +239,7 @@ describe('EetAslAfgoerelserTable', () => {
     );
 
     expect(
-      screen.getByText('Fra 1.juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse')
+      screen.getByText('Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse')
     ).toBeInTheDocument();
   });
 

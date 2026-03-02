@@ -230,7 +230,7 @@ export const validateKapDatoByAfgoerelsestype = (
     kapDatoIso !== undefined &&
     kapDatoIso !== afgoerelsesdatoIso
   ) {
-    return 'Fra 1.juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse';
+    return 'Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse';
   }
 
   return undefined;

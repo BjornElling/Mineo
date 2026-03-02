@@ -9,10 +9,11 @@
 
 Placeholder-side eksisterer. Implementering ikke påbegyndt.
 
-Sektion 8 (løbende ydelser) er dokumenteret og verificeret mod konkrete beregningseksempler. Følgende sektioner mangler stadig dokumentation:
+Sektion 8 (løbende ydelser) er dokumenteret og verificeret mod konkrete beregningseksempler, herunder fuldt layout for fane 2. Følgende sektioner mangler stadig dokumentation:
 - Sektion 9: Kapitalisering (fane 3)
 - Sektion 10: Differencekrav (fane 5)
-- UX-detaljer for fane 2 metadata-rækker (se uafklarede punkter i sektion 8)
+
+Fane 2 er fuldt specificeret — ingen uafklarede punkter.
 
 ---
 
@@ -938,34 +939,194 @@ Tvungen kapitalisering gælder for afgørelser af typen Endelig eller Delvist en
 
 ### Layout fane 2 — visningsstruktur
 
-Fanen følger den fælles beregningsfanestruktur (se afsnit 4):
+Fanen har følgende ContentBox-struktur i rækkefølge:
 
-1. **"Fejl og advarsler"** (`ContentBox`) øverst — vises kun ved fejl/advarsler.
-2. **"Beregning"** (`ContentBox`) — indeholder Beregningsdato og Download specifikation.
-3. **"Specifikation"** (`ContentBox`) — indeholder de trinvise beregninger for alle afgørelser.
+1. **"Fejl og advarsler"** (`ContentBox`) — vises kun hvis der er mindst én fejl eller advarsel.
+2. **"Beregning"** (`ContentBox`) — tre faste linjer (se nedenfor).
+3. **"Specifikation"** (`ContentBox`) — løbende ydelser pr. afgørelse (se nedenfor).
+4. **"Udvidet specifikation"** (`ContentBox`) — grundløn og grundydelse (se nedenfor). Vises kun hvis togglen i "Beregning" er aktiveret.
 
-#### Visning pr. afgørelse i "Specifikation"
+#### ContentBox: Fejl og advarsler
 
-Afgørelserne vises sekventielt i kronologisk rækkefølge (rækkefølge bestemmes af afgørelsesdato). For hver afgørelse:
+Indeholder fejlmeddelelser og advarsler som hoverrows. Vises kun når der er mindst én linje. Fejl markeres med `ErrorOutline` (rød), advarsler med `WarningAmber` (orange). Indhold:
 
-**Overskrift/header:** viser afgørelsesdatoen (fx "Afgørelse 1. juli 2023"). Layout og øvrige metadata-rækker (virkningsdato, ophørsgrunde, kapitalisering mv.) defineres i en separat UX-afklaringsrunde.
+- **Fejlmeddelelser**: alle fejl fra "Fejl og advarsler"-listen (se afsnit om fejlbetingelser) der er relevante for beregningen på fane 2. Feltvalideringsfejl fra fane 1 gengives kun hvis de vedrører felter der indgår i beregningsgrundlaget for løbende ydelser.
+- **Advarsel — årsløn svarer til maksimum**: vises hvis den benyttede ASL-årsløn svarer til maksimumårslønnen (`aarsloenMax`) for skadesåret. Samme advarselstekst som `warn-asl-aarsloen-is-max` på fane 4, men udløses udelukkende på baggrund af ASL-årslønnens relation til maks. — EAL-årsløn er irrelevant for fane 2.
 
-**Ydelsestabel:** kolonner er:
+#### ContentBox: Beregning
+
+Tre linjer i fast rækkefølge, alle hoverrows:
+
+| Venstre | Højre |
+|---|---|
+| Beregningsdato | dato i format `d. MMMM YYYY` |
+| Medtag udførlig specifikation | toggle switch (standard: **fra/false**) |
+| Download specifikation | download-ikon |
+
+Toggle-linjen kontrollerer synligheden af ContentBox "Udvidet specifikation". Når toggle er fra, vises kun "Specifikation". Når toggle er til, vises både "Specifikation" og "Udvidet specifikation" nedenunder.
+
+Download er deaktiveret så længe der er aktive fejlmeddelelser (advarsler blokerer ikke).
+
+#### ContentBox: Specifikation
+
+Afgørelserne vises sekventielt i kronologisk rækkefølge (sorteret på afgørelsesdato). For hver afgørelse vises følgende blokke:
+
+**Blok 1: Afgørelsesoverskrift og stamoplysninger**
+
+Øverste linje er en overskrift/header der viser afgørelsesdatoen i format `d. MMMM YYYY` — fx "Afgørelse 1. juli 2023". Dernæst tre indrykkede hoverrows:
+
+| Felt | Eksempel |
+|---|---|
+| Type | Midlertidig afgørelse / Endelig afgørelse / Endelig afgørelse (delvist kap.) / Delvist endelig afgørelse |
+| Erhvervsevnetab | 45 % |
+| Årsløn | 489.000 kr. |
+
+Typebetegnelsen afhænger af afgørelsestypen:
+- `Midlertidig` → "Midlertidig afgørelse"
+- `Endelig` med kapitalisering → "Endelig afgørelse (delvist kap.)"
+- `Endelig` uden kapitalisering → "Endelig afgørelse"
+- `Delvist endelig` → "Delvist endelig afgørelse"
+
+**Blok 2: Periodeafgrænsning**
+
+Underoverskrift "Periodeafgrænsning" efterfulgt af indrykkede hoverrows:
+
+| Felt | Eksempel |
+|---|---|
+| Afgørelsesdato | 01-07-2023 |
+| Virkningsdato | 01-02-2023 |
+| Afgørelse med tilbagevirkende kraft? | Ja / Nej |
+
+"Afgørelse med tilbagevirkende kraft?" vises som Ja hvis virkningsdatoen ligger i et tidligere kalenderår end afgørelsesdatoen; ellers Nej. Vises altid (ikke skjult ved Nej).
+
+**Blok 3: Ophørslinje**
+
+Én hoverrow — ikke indsendt under en underoverskrift — med to kolonner:
+
+| Venstre | Højre |
+|---|---|
+| Løbende ydelse ophører | ophørsdato i format `DD-MM-ÅÅÅÅ` |
+| Ophør skyldes | årsagstekst (se nedenfor) |
+
+Årsagstekst afhænger af hvilken ophørsårsag der gælder for afgørelsens fulde sektion:
+
+| Årsag | Tekst |
+|---|---|
+| Beregningsdato | Beregningsdato |
+| Næste afgørelses virkningsdato | Senere afgørelse |
+| Kapitalisering (fuld — rest-EET = 0) | Kapitalisering |
+| Tvungen kapitalisering (< 2 år til FP) | Tvungen kapitalisering |
+
+**Blok 4: Ydelsestabel**
+
+Underoverskrift "Beregnede ydelser" efterfulgt af en tabel med kolonneoverskrifter og datarækkerne:
 
 | Fra o.m. | Til o.m. | Mdr. | Ydelse/md. | Beregnet EET |
 |---|---|---|---|---|
 
 - Datoer i format `DD-MM-ÅÅÅÅ`
-- Måneder vises med 4 decimaler (det præcise flydetal bruges i beregningen, kun 4 decimaler vises)
-- Ydelse/md. i kr. (helt kronebeløb)
-- Beregnet EET i kr. (helt kronebeløb)
-- Alle rækker er hoverrows
+- Måneder med 4 decimaler (fx `11,0000`)
+- Ydelse/md. og Beregnet EET i hele kr. med tusindtalspunktum og "kr."-suffiks
+- Alle datarækker er hoverrows
 
-**Rest-sektion:** Hvis afgørelsen er delvist kapitaliseret og rest-EET > 0, fortsætter ydelsesrækkerne for rest-EET i **samme tabel** — ingen separat blok eller overskrift for rest-sektionen. Tabellen er sammenhængende; skiftet fra fuld til rest-ydelse markeres udelukkende ved at en ny kalenderårs-række begynder på kapitaliseringsdatoen med den lavere ydelse.
+**Rest-sektion:** Hvis afgørelsen er delvist kapitaliseret og rest-EET > 0, fortsætter ydelsesrækkerne for rest-EET i **samme tabel** uden nogen separat overskrift eller visuel adskillelse. Skiftet markeres udelukkende ved at en ny kalenderårs-række begynder på kapitaliseringsdatoen med den lavere ydelse.
 
-**"I alt"-linje:** én linje pr. afgørelse i bunden af tabellen. Kun "Beregnet EET"-kolonnen udfyldes med summen af alle rækker under den afgørelse.
+**"I alt"-linje:** Én hoverrow i bunden af tabellen. Kun "Beregnet EET"-kolonnen udfyldes; "Fra o.m.", "Til o.m.", "Mdr." og "Ydelse/md." er tomme. Beløbet er summen af alle rækker under den pågældende afgørelse (fuld + rest samlet).
 
 Ingen samlet total på tværs af afgørelser.
+
+#### ContentBox: Udvidet specifikation
+
+Vises kun når toggle "Medtag udførlig specifikation" er aktiveret. Indeholder mellemregningerne for grundløn og grundydelse.
+
+**Blok 1: Årslønsafstemning**
+
+Tre indrykkede hoverrows:
+
+| Felt | Eksempel |
+|---|---|
+| ASL årsløn (afrundet til nærmeste 1000) | 489.000 kr. |
+| Maks. årsløn i skadesåret | 539.000 kr. |
+| Benyttet årsløn | 489.000 kr. |
+
+"Benyttet årsløn" er `min(årsløn, aarsloenMax[skadesår])`.
+
+**Blok 2: Grundløn**
+
+Underoverskrift "Grundløn" efterfulgt af indrykkede hoverrows.
+
+*Ved skade før 01-07-2024 (2003-niveau):*
+
+- Tekstlinje: "Der sker omregning af årslønnen til 2003-niveau."
+- Tekstlinje: "Omregning sker med afsæt i ASL's årslønsmaksimum på henholdsvis skadesdagen og 1/1-2003."
+- Tom linje (visuel luft)
+- Hoverrow: `Maks. årsløn 1/1-2003 udgør:` → `367.000 kr.`
+- Tekstlinje: "Den beregnede grundløn bliver dermed:"
+- Formelvisning (se nedenfor)
+- Resultatrow: grundløn i kr. (fx `332.955 kr.`)
+
+Formelvisningen er en multi-linje tekstblok med formlen:
+```
+"Årsløn × (Maks. årsløn 1/1-2003 / Maks. årsløn [skadesdato])
+= [årsløn] kr. × ([367.000] / [aarsloenMax[skadesår]]) ="
+```
+Skadsdato-teksten i formellinjen vises som den faktiske skadesdato (fx "1/4-2019"), ikke blot "skadesdatoen".
+
+*Ved skade fra 01-07-2024 (2024-niveau):*
+
+- Tekstlinje: "Der sker omregning af årslønnen til 2024-niveau."
+- Tekstlinje: "Omregning sker med afsæt i ASL's årslønsmaksimum på henholdsvis skadesdagen og 1/1-2024."
+- Tom linje (visuel luft)
+- Hoverrow: `Maks. årsløn 1/1-2024 udgør:` → `608.000 kr.`
+- Tekstlinje: "Den beregnede grundløn bliver dermed:"
+- Formelvisning:
+  ```
+  "Årsløn × (Maks. årsløn 1/1-2024 / Maks. årsløn [skadesdato])
+  = [årsløn] kr. × ([608.000] / [aarsloenMax[skadesår]]) ="
+  ```
+  Skadesdato-teksten i formellinjen vises som den faktiske skadesdato (fx "1/8-2024").
+- Resultatrow: grundløn i kr.
+
+**Blok 3: Grundydelse**
+
+Underoverskriften er:
+- `"Grundydelse (før 1.1.2024)"` — ved skade **før** 01-07-2024 (grundydelse i 2003-niveau, der efterfølgende opreguleres)
+- `"Grundydelse"` — ved skade **fra** 01-07-2024 (grundydelse direkte i 2024-niveau; ingen opregulering)
+
+Indledende hoverrows der afspejler beregningsreglerne — identiske for begge niveauer:
+
+- Hoverrow: `Da skaden er fra 1/1-2011 eller senere, udgør erstatningsniveauet` → `83 %` **(kun ved skade fra 01-01-2011)**
+- Hoverrow: `Da skaden er sket den 1/1-2011 eller senere, skal der trækkes AM-bidrag fra årslønnen` **(kun ved skade fra 01-01-2011)**
+- Hoverrow: `Da skaden er sket før 1/1-2011, udgør erstatningsniveauet` → `80 %` **(kun ved skade før 01-01-2011; intet AM-bidrag-felt vises)**
+
+Herefter én blok pr. afgørelse (kun afgørelser der indgår i fane 2 — dvs. afgørelser med reel EET %):
+
+- Underoverskrift: `Afgørelse [afgørelsesdato i format "d. MMMM YYYY"] ([EET %])`
+- Formelvisning for grundydelse beregnet af den fulde EET %, fx:
+  ```
+  "Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag)
+  = 332.955 kr. × 45 % × 83 % × 92 % ="
+  ```
+  Ved skade før 01-01-2011 udelades `× (100 % − AM-bidrag)`-delen.
+- Resultatrow: grundydelse i kr. (fx `114.410,00 kr.`) — to decimaler
+- Efterfølgende linje: `Ikke kapitaliseret.` hvis afgørelsen ikke har kapitalisering, ellers: `Efter kapitalisering: (Rest-EET [rest-%])` → `[grundydelse_rest] kr.`
+
+**Blok 4: Grundydelse (fra 1.1.2024)**
+
+Denne blok vises **kun ved skade før 01-07-2024** og viser opreguleringen fra 2003-niveau til 2024-niveau. Ved 2024-niveau-skader er blokken fraværende — årsydelsesberegningen (trin 3) tager direkte udgangspunkt i grundydelsen fra blok 3.
+
+Underoverskrift: `"Grundydelse (fra 1.1.2024)"`.
+
+Én blok pr. afgørelse:
+
+- Underoverskrift: `Afgørelse [dato] ([EET %])`
+- Formelvisning for opregulering til 2024-niveau, fx:
+  ```
+  "Grundydelse i 2003-niveau, opreguleret til 2024-værdi
+  = 114.410,00 kr. × 1,657"
+  ```
+- Resultatrow: 2024-grundydelse (fx `189.577,37 kr.`) — to decimaler
+- Efterfølgende linje: `Ikke kapitaliseret.` eller `Efter kapitalisering: (Rest-EET [rest-%])` → `[2024-grundydelse_rest] kr.`
 
 ---
 
@@ -982,6 +1143,10 @@ Fanen følger den fælles beregningsfanestruktur (se afsnit 4). Fejl der blokere
 | Skadesdato mangler | Skadesdato er ikke udfyldt |
 | Reguleringstabel mangler sats for et nødvendigt år | Reguleringssats mangler for år [X] |
 | `aarsloenMax` mangler for skadesåret | Maksimum årsløn mangler for år [X] |
+| Mindst én afgørelsesrække har kapitaliseringsdato udfyldt men kapitaliseringsprocent tomt | Der er indtastet kapitaliseringsdato men ikke -procent |
+| Mindst én afgørelsesrække har kapitaliseringsprocent udfyldt men kapitaliseringsdato tomt | Der er indtastet kapitaliseringsprocent men ikke -dato |
+| Mindst én afgørelsesrække har type `Endelig`, reel EET % < 50 %, og enten kapitaliseringsdato mangler, kapitaliseringsprocent mangler, eller begge mangler | Endelig afgørelse under 50 % mangler oplysninger om kapitalisering. |
+| Mindst én afgørelsesrække har type `Delvist endelig`, og enten kapitaliseringsdato mangler, kapitaliseringsprocent mangler, eller begge mangler | Der er angivet delvist endelig afgørelse uden kapitalisering. |
 
 Beregningsdatoen er beskyttet af `DATE_EET_MAX`-valideringen — det er umuligt at angive et beregningsår uden satsdækning via UI'et.
 
@@ -1046,16 +1211,14 @@ Følgende eksempler er gennemregnet og bekræftet korrekte. Bruges som reference
 
 ---
 
-### Uafklarede punkter (fane 2) — skal afklares før implementering
+### Advarselsbetingelser (fane 2)
 
-Følgende er ikke endeligt specificeret og kræver afklaring i næste session:
+Følgende situationer udløser advarsler (WarningAmber, orange) uden at blokere download:
 
-1. **Metadata-rækker pr. afgørelse**: hvilke rækker vises under afgørelsesoverskriften ud over ydelsestabellen? I eksemplet ses: Type, Erhvervsevnetab %, Årsløn, Virkningsdato, "Afgørelse med tilbagevirkende kraft? Ja/Nej", ophørsgrunde med datoer, "Ydelser beregnes til og med". Er alle disse rækker med i UI, og i hvilken rækkefølge?
+| Betingelse | Advarselstekst |
+|---|---|
+| Den benyttede ASL-årsløn svarer til `aarsloenMax` for skadesåret | *(samme tekst som `warn-asl-aarsloen-is-max` på fane 4)* |
+| Der er angivet en afgørelse af typen `Midlertidig` eller `Delvist endelig` med afgørelsesdato **efter** afgørelsesdatoen for en `Endelig`-afgørelse | "Der er angivet en midlertidig afgørelse efter en endelig afgørelse." |
+| Mindst én afgørelse har en reel EET % (> 0) der er **< 15 %** | "Der er indtastet en afgørelse med < 15 % erhvervsevnetab." |
+| Skadesdato er fra 01-07-2024, og mindst én afgørelse har en EET % **> 15 %** der ikke er deleligt med 10 (dvs. 25, 35, 45, 55, 65, 75, 85, 95) | "Der er indtastet en ugyldig EET-procent for de nye regler fra 1. juli 2024 og frem." |
 
-2. **Visuel markering af rest-sektion**: er der nogen visuel adskillelse i tabellen ved skiftet fra fuld til rest-ydelse (fx en stiplet linje, en indrykning, en sublabel), eller er det en ren fortsat tabel uden markering?
-
-3. **Midlertidige afgørelser**: vises de løbende ydelser for midlertidige afgørelser på nøjagtig samme måde som for endelige? Der er ingen forskel i beregningen, men skal der evt. en note om "ikke kapitaliserbar" et sted?
-
-4. **Advarselsbetingelser fane 2**: hvilke situationer — ud over fejlbetingelserne — skal udløse advarsler (orange WarningAmber) uden at blokere download?
-
-5. **Visning af grundløn og grundydelse**: vises mellemregningerne for grundløn og grundydelse eksplicit i "Specifikation"-boksen før ydelsestabellen for den pågældende afgørelse? I de beregningseksempler der er givet, fremgår de — men det er ikke afklaret om og hvordan de skal vises i UI'et.

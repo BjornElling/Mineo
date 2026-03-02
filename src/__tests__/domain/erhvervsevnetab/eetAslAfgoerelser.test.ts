@@ -109,7 +109,7 @@ describe('validateKapPctByAfgoerelsestype', () => {
         tidlKapDato: '01-01-2024',
       })
     );
-    expect(error).toBe('Fra 1.juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse');
+    expect(error).toBe('Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse');
   });
 
   it('accepterer gyldig endelig under 50 når kap % matcher EET %', () => {
