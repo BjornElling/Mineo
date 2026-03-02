@@ -140,6 +140,18 @@ describe('getOverenskomstMetaById', () => {
     expect(meta).toBeDefined();
     expect(meta?.navn).toBe('Elektrikeroverenskomsten');
   });
+
+  it('maskinhandler-overenskomsten eksisterer', () => {
+    const meta = getOverenskomstMetaById('maskinhandler-overenskomsten');
+    expect(meta).toBeDefined();
+    expect(meta?.navn).toBe('Maskinhandler-overenskomsten');
+  });
+
+  it('metal-transport-overenskomsten eksisterer', () => {
+    const meta = getOverenskomstMetaById('metal-transport-overenskomsten');
+    expect(meta).toBeDefined();
+    expect(meta?.navn).toBe('Metal-Transport overenskomsten');
+  });
 });
 
 // ─── resolveOverenskomstNameOnlyDisplay ──────────────────────────────────────
@@ -425,6 +437,58 @@ describe('getEffektiveSatserForDato', () => {
     expect(result?.grundloen).toBe(142.25);
     expect(result?.shSoSats).toBe(0.062);
     expect(result?.fritvalg).toBe(0.11);
+    expect(result?.agPension).toBe(0.11);
+  });
+
+  it('maskinhandler-overenskomsten har forventede satser på 01-03-2026', () => {
+    const result = getEffektiveSatserForDato({
+      overenskomstId: 'maskinhandler-overenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2026'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+
+    expect(result?.grundloen).toBe(143.4);
+    expect(result?.fritvalg).toBe(0.18);
+    expect(result?.agPension).toBe(0.115);
+  });
+
+  it('shDageRegel true → reducerer fritvalg med 4,5 procentpoint for maskinhandler-overenskomsten', () => {
+    const uden = getEffektiveSatserForDato({
+      overenskomstId: 'maskinhandler-overenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2024'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+    const med = getEffektiveSatserForDato({
+      overenskomstId: 'maskinhandler-overenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2024'),
+      applyAlmindeligLoenPaaShDageRegel: true,
+    });
+
+    expect(uden?.fritvalg).toBe(0.17);
+    expect(med?.fritvalg).toBeCloseTo(0.125, 10);
+  });
+
+  it('metal-transport-overenskomsten har forventede satser på 01-04-2025', () => {
+    const result = getEffektiveSatserForDato({
+      overenskomstId: 'metal-transport-overenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-04-2025'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+
+    expect(result?.grundloen).toBe(142.51);
+    expect(result?.shSoSats).toBe(0.09);
+    expect(result?.agPension).toBe(0.1);
+  });
+
+  it('metal-transport-overenskomsten har forventede satser på 01-05-2025 (pensionsskift)', () => {
+    const result = getEffektiveSatserForDato({
+      overenskomstId: 'metal-transport-overenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-05-2025'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+
+    expect(result?.grundloen).toBe(142.51);
+    expect(result?.shSoSats).toBe(0.09);
     expect(result?.agPension).toBe(0.11);
   });
 });

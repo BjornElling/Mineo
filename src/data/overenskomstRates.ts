@@ -270,7 +270,6 @@ const offentligeOverenskomstSatser: ReadonlyArray<OffentligOverenskomstSatser> =
 ];
 
 export const overenskomster: ReadonlyArray<Overenskomst> = [
-
   // Bygge-/anlægsoverenskomsten
   {
     meta: {
@@ -347,268 +346,6 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
 
   },
 
-  // Mureroverenskomsten
-  {
-    meta: {
-      id:               toOverenskomstId('mureroverenskomsten'),
-      navn:             'Mureroverenskomsten',
-      loenmodtagerOrg:  ['3F'],
-      arbejdsgiverOrg:  ['Dansk Industri', 'Dansk Byggeri'],
-      grundloenAngivetPer: 'Time',
-    },
-    shDageAlmindeligLoenRegel: { shSoDelta: -0.059 },
-    satser: satserFromTable(
-      { fritvalg: null, sfgg: null },
-      [
-        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG Fagl.Kbh    │ SFGG Fagl.Prov   │ SFGG Ufagl.Kbh   │ SFGG Ufagl.Prov
-        ['01-03-2027',            153.15,             0.167,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
-        ['01-03-2026',            149.65,             0.157,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
-        ['01-05-2025',            146.15,             0.147,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
-        ['01-01-2025',            142.40,             0.147,            0.1015,            217.20,            202.40,            191.40,            192.45 ],
-        ['01-03-2024',            142.40,             0.147,            0.1015,            207.90,            195.90,            184.45,            186.45 ],
-        ['01-06-2023',            137.90,             0.129,            0.1015,            204.25,            190.75,            185.40,            183.90 ],
-        ['01-03-2023',            137.90,             0.129,            0.0815,            204.25,            190.75,            185.40,            183.90 ],
-        ['01-03-2022',            133.40,             0.129,            0.0815,            201.50,            187.20,            179.60,            179.60 ],
-        ['01-01-2021',            130.90,             0.119,            0.0815,            199.75,            184.60,            176.60,            178.45 ],
-        ['01-05-2020',            128.40,             0.109,            0.0815,            198.40,            182.90,            173.00,            175.40 ],
-        ['01-03-2019',            125.90,             0.099,            0.0815,            191.60,            178.70,            170.35,            172.50 ],
-        ['01-03-2018',            123.90,             0.093,            0.0815,            186.40,            174.80,            168.50,            170.65 ],
-        ['01-03-2017',            121.90,             0.086,            0.0815,            183.90,            172.05,            166.20,            169.25 ],
-        ['01-03-2016',            119.90,             0.079,            0.0815,            180.25,            168.95,            164.10,            168.30 ],
-        ['01-03-2015',            118.10,             0.076,            0.0815,            182.00,            167.45,            162.70,            167.15 ],
-        ['01-03-2014',            116.45,             0.072,            0.0815,            182.85,            166.50,            167.75,            163.55 ],
-        ['01-03-2013',            114.95,             0.069,            0.0815,            180.15,            164.25,            163.15,            162.25 ],
-        ['01-03-2012',            113.60,             0.069,            0.0815,            179.15,            164.65,            159.30,            156.65 ],
-        ['01-03-2011',            112.25,             0.069,            0.0800,            177.80,            163.95,            157.30,            158.15 ]
-      ]
-    ),
-
-  },
-
-  // Transportoverenskomsten (ATL)
-  {
-    meta: {
-      id:               toOverenskomstId('transportoverenskomsten-atl'),
-      navn:             'Transportoverenskomsten (ATL)',
-      loenmodtagerOrg:  ['3F'],
-      arbejdsgiverOrg:  ['Dansk Industri'],
-      grundloenAngivetPer: 'Time',
-    },
-    satser: satserFromTable(
-      { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
-      [
-        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG
-        ['01-03-2027',            164.15,            0.0675,            0.1100,            164.70 ],
-        ['01-03-2026',            159.65,            0.0675,            0.1100,            160.53 ],
-        ['01-05-2025',            154.90,            0.0675,            0.1100,            156.14 ],
-        ['01-03-2025',            154.90,            0.0675,            0.1000,            156.14 ],
-        ['01-03-2024',            149.90,            0.0675,            0.1000,            151.52 ],
-        ['01-06-2023',            144.15,            0.0675,            0.1000,            146.20 ],
-        ['01-03-2023',            144.15,            0.0675,            0.0800,            146.20 ],
-        ['01-03-2022',            138.15,            0.0675,            0.0800,            140.65 ],
-        ['01-03-2021',            135.00,            0.0675,            0.0800,            137.73 ],
-        ['01-03-2020',            131.80,            0.0675,            0.0800,            134.77 ],
-        ['01-03-2019',            128.60,            0.0675,            0.0800,            131.81 ],
-        ['01-03-2018',            126.10,            0.0675,            0.0800,            129.50 ],
-        ['01-03-2017',            123.60,            0.0675,            0.0800,            127.19 ],
-        ['01-03-2016',            121.10,            0.0675,            0.0800,            124.88 ],
-        ['01-03-2015',            118.70,            0.0675,            0.0800,            122.66 ],
-        ['01-03-2014',            116.45,            0.0675,            0.0800,            120.57 ],
-        ['01-03-2013',            114.35,            0.0675,            0.0800,            118.63 ],
-        ['01-03-2012',            112.50,            0.0675,            0.0800,            116.92 ],
-        ['01-03-2011',            110.90,            0.0675,            0.0800,            115.44 ]
-      ]
-    ),
-  },
-
-  // Landsoverenskomsten (AKT)
-  {
-    meta: {
-      id:               toOverenskomstId('landsoverenskomsten-akt'),
-      navn:             'Landsoverenskomsten (AKT)',
-      loenmodtagerOrg:  ['3F'],
-      arbejdsgiverOrg:  ['Dansk Industri'],
-      grundloenAngivetPer: 'Time',
-    },
-    satser: satserFromTable(
-      { fritvalg: null, sfgg: null, shSoSats: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
-      [
-        // fraDato          │ Grundløn         │ AG-pens.
-        ['01-03-2027',            176.72,            0.1100 ],
-        ['01-03-2026',            172.22,            0.1100 ],
-        ['01-05-2025',            167.47,            0.1100 ],
-        ['01-03-2025',            167.47,            0.1000 ],
-        ['01-03-2024',            162.47,            0.1000 ],
-        ['01-06-2023',            156.72,            0.1000 ],
-        ['01-03-2022',            150.72,            0.0800 ],
-        ['01-03-2021',            147.57,            0.0800 ],
-        ['01-03-2020',            144.37,            0.0800 ],
-        ['01-03-2019',            142.36,            0.0800 ],
-        ['01-03-2018',            139.86,            0.0800 ],
-        ['01-03-2017',            137.36,            0.0800 ],
-        ['01-03-2016',            134.86,            0.0800 ],
-        ['01-03-2015',            132.46,            0.0800 ],
-        ['01-03-2014',            130.21,            0.0800 ],
-        ['01-03-2013',            126.92,            0.0800 ],
-        ['01-03-2012',            125.07,            0.0800 ],
-        ['01-03-2011',            124.66,            0.0800 ]
-      ]
-    ),
-  },
-
-  // Transportoverenskomsten (DTL)
-  {
-    meta: {
-      id:               toOverenskomstId('transportoverenskomsten-dtl'),
-      navn:             'Transportoverenskomsten (DTL)',
-      loenmodtagerOrg:  ['3F'],
-      arbejdsgiverOrg:  ['DTL-A'],
-      grundloenAngivetPer: 'Time',
-    },
-    satser: satserFromTable(
-      { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
-      [
-        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG
-        ['01-03-2027',            164.15,            0.0675,            0.1100,            164.70 ],
-        ['01-03-2026',            159.65,            0.0675,            0.1100,            160.53 ],
-        ['01-05-2025',            154.90,            0.0675,            0.1100,            156.14 ],
-        ['01-03-2025',            154.90,            0.0675,            0.1000,            156.14 ],
-        ['01-03-2024',            149.90,            0.0675,            0.1000,            151.52 ],
-        ['01-06-2023',            144.15,            0.0675,            0.1000,            146.20 ],
-        ['01-03-2023',            144.15,            0.0675,            0.0800,            146.20 ],
-        ['01-03-2022',            138.15,            0.0675,            0.0800,            140.65 ],
-        ['01-03-2021',            135.00,            0.0675,            0.0800,            137.73 ],
-        ['01-03-2020',            131.80,            0.0675,            0.0800,            134.77 ],
-        ['01-03-2019',            128.60,            0.0675,            0.0800,            131.81 ],
-        ['01-03-2018',            126.10,            0.0675,            0.0800,            129.50 ],
-        ['01-03-2017',            123.60,            0.0675,            0.0800,            127.19 ],
-        ['01-03-2016',            121.10,            0.0675,            0.0800,            124.88 ],
-        ['01-03-2015',            118.70,            0.0675,            0.0800,            122.66 ],
-        ['01-03-2014',            116.45,            0.0675,            0.0800,            120.57 ],
-        ['01-03-2013',            114.35,            0.0675,            0.0800,            118.63 ],
-        ['01-03-2012',            112.50,            0.0675,            0.0800,            116.92 ],
-        ['01-03-2011',            110.90,            0.0675,            0.0800,            115.44 ]
-      ]
-    ),
-  },
-
-  // Fællesoverenskomsten (DIO II)
-  {
-    meta: {
-      id:               toOverenskomstId('faellesoverenskomsten-dio-ii'),
-      navn:             'Fællesoverenskomsten (DIO II)',
-      loenmodtagerOrg:  ['3F'],
-      arbejdsgiverOrg:  ['Dansk Industri'],
-      grundloenAngivetPer: 'Time',
-    },
-    satser: satserFromTable(
-      { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
-      [
-        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG
-        ['01-03-2027',            162.95,            0.0675,            0.1100,            164.70 ],
-        ['01-03-2026',            158.45,            0.0675,            0.1100,            160.53 ],
-        ['01-05-2025',            153.70,            0.0675,            0.1100,            156.14 ],
-        ['01-03-2025',            153.70,            0.0675,            0.1000,            156.14 ],
-        ['01-03-2024',            148.70,            0.0675,            0.1000,            151.52 ],
-        ['01-06-2023',            142.95,            0.0675,            0.1000,            146.20 ],
-        ['01-03-2023',            142.95,            0.0675,            0.0800,            146.20 ],
-        ['01-03-2022',            136.95,            0.0675,            0.0800,            140.65 ],
-        ['01-03-2021',            133.80,            0.0675,            0.0800,            137.73 ],
-        ['01-03-2020',            130.60,            0.0675,            0.0800,            134.77 ],
-        ['01-03-2019',            127.40,            0.0675,            0.0800,            131.81 ],
-        ['01-03-2018',            124.90,            0.0675,            0.0800,            129.50 ],
-        ['01-03-2017',            122.40,            0.0675,            0.0800,            127.19 ],
-        ['01-03-2016',            119.90,            0.0675,            0.0800,            124.88 ],
-        ['01-03-2015',            117.50,            0.0675,            0.0800,            122.66 ],
-        ['01-03-2014',            115.25,            0.0675,            0.0800,            120.57 ],
-        ['01-03-2013',            113.15,            0.0675,            0.0800,            118.63 ],
-        ['01-03-2012',            111.30,            0.0675,            0.0800,            116.92 ],
-        ['01-03-2011',            109.70,            0.0675,            0.0800,            115.44 ]
-      ]
-    ),
-  },
-
-  // Industriens overenskomst
-  {
-    meta: {
-      id:               toOverenskomstId('industriens-overenskomst'),
-      navn:             'Industriens overenskomst',
-      loenmodtagerOrg:  ['CO-Industri', '3F', 'Blik&Rør', 'Dansk El-Forbund', 'Dansk Metal', 'HK Privat', 'Malerforbundet', 'Teknisk Landsforbund', 'Serviceforbundet', 'Dansk Jernbaneforbund'],
-      arbejdsgiverOrg:  ['Dansk Industri'],
-      grundloenAngivetPer: 'Time',
-    },
-    shDageAlmindeligLoenRegel: { fritvalgDelta: -0.04 },
-    satser: satserFromTable(
-      { shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
-      [
-        // fraDato          l Grundl>n         l Fritvalg         l AG-pens.
-        ['01-03-2027',            146.90,            0.1500,            0.1100 ],
-        ['01-03-2026',            143.40,            0.1400,            0.1100 ],
-        ['01-05-2025',            139.90,            0.1300,            0.1100 ],
-        ['01-03-2024',            136.15,            0.1300,            0.1000 ],
-        ['01-06-2023',            131.65,            0.1100,            0.1000 ],
-        ['01-03-2023',            131.65,            0.1100,            0.0800 ],
-        ['01-03-2022',            127.15,            0.1100,            0.0800 ],
-        ['01-03-2021',            124.65,            0.1000,            0.0800 ],
-        ['01-03-2020',            122.15,            0.0900,            0.0800 ],
-        ['01-03-2019',            119.65,            0.0800,            0.0800 ],
-        ['01-03-2018',            117.65,            0.0740,            0.0800 ],
-        ['01-03-2017',            115.65,            0.0670,            0.0800 ],
-        ['01-03-2016',            113.65,            0.0600,            0.0800 ],
-        ['01-03-2015',            111.85,            0.0570,            0.0800 ],
-        ['01-03-2014',            110.20,            0.0530,            0.0800 ],
-        ['01-03-2013',            108.70,            0.0500,            0.0800 ],
-        ['01-03-2012',            107.35,            0.0500,            0.0800 ],
-        ['01-03-2011',            106.00,            0.0500,            0.0800 ]
-      ]
-    ),
-
-  },
-
-  // Industri- og VVS-overenskomsten
-  {
-    meta: {
-      id:               toOverenskomstId('industri-og-vvs-overenskomsten'),
-      navn:             'Industri- og VVS-overenskomsten',
-      loenmodtagerOrg:  ['Dansk Metal', '3F', 'Blik&Rør'],
-      arbejdsgiverOrg:  ['Tekniq'],
-      grundloenAngivetPer: 'Time',
-    },
-    shDageAlmindeligLoenRegel: { fritvalgDelta: -0.04 },
-    satser: satserFromTable(
-      { shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
-      [
-        // fraDato          │ Grundløn         │ Fritvalg            │ AG-pens.
-        ['01-03-2027',            146.90,            0.1750,            0.1100 ],
-        ['01-03-2026',            143.40,            0.1650,            0.1100 ],
-        ['01-05-2025',            139.90,            0.1550,            0.1100 ],
-        ['01-03-2024',            136.15,            0.1550,            0.1000 ]
-      ]
-    ),
-  },
-
-  // Låsesmedeoverenskomsten
-  {
-    meta: {
-      id:               toOverenskomstId('laasesmedeoverenskomsten'),
-      navn:             'Låsesmedeoverenskomsten',
-      loenmodtagerOrg:  ['Dansk Metal', '3F'],
-      arbejdsgiverOrg:  ['Låsesmedeforeningen'],
-      grundloenAngivetPer: 'Time',
-    },
-    shDageAlmindeligLoenRegel: { fritvalgDelta: -0.04 },
-    satser: satserFromTable(
-      { shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
-      [
-        // fraDato          │ Grundløn         │ Fritvalg            │ AG-pens.
-        ['01-03-2027',            146.90,            0.1750,            0.1100 ],
-        ['01-03-2026',            143.40,            0.1650,            0.1100 ],
-        ['01-05-2025',            139.90,            0.1550,            0.1100 ],
-        ['01-03-2024',            136.15,            0.1550,            0.1000 ]
-      ]
-    ),
-  },
-
   // El-overenskomsten
   {
     meta: {
@@ -662,37 +399,40 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     ),
   },
 
-  // Postoverenskomsten
+  // Fællesoverenskomsten (DIO II)
   {
     meta: {
-      id:               toOverenskomstId('postoverenskomsten'),
-      navn:             'Postoverenskomsten',
+      id:               toOverenskomstId('faellesoverenskomsten-dio-ii'),
+      navn:             'Fællesoverenskomsten (DIO II)',
       loenmodtagerOrg:  ['3F'],
-      arbejdsgiverOrg:  ['Postnord'],
+      arbejdsgiverOrg:  ['Dansk Industri'],
       grundloenAngivetPer: 'Time',
     },
-    shDageAlmindeligLoenRegel: { shSoOverride: 0 },
     satser: satserFromTable(
-      { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
-        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.
-        ['01-03-2024',            136.15,            0.0350,            0.1200 ],
-        ['01-03-2023',            131.65,            0.0350,            0.1200 ],
-        ['01-03-2022',            127.15,            0.0350,            0.1200 ],
-        ['01-03-2021',            124.65,            0.0350,            0.1200 ],
-        ['01-03-2020',            122.15,            0.0350,            0.1200 ],
-        ['01-03-2019',            119.65,            0.0350,            0.1200 ],
-        ['01-03-2018',            117.65,            0.0350,            0.1200 ],
-        ['01-03-2017',            115.65,            0.0350,            0.1200 ],
-        ['01-03-2016',            113.65,            0.0350,            0.1200 ],
-        ['01-03-2015',            111.85,            0.0350,            0.1200 ],
-        ['01-03-2014',            110.20,            0.0350,            0.1200 ],
-        ['01-03-2013',            108.70,            0.0350,            0.1200 ],
-        ['01-03-2012',            107.35,            0.0350,            0.1200 ],
-        ['01-03-2011',            106.00,            0.0350,            0.1200 ]
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG
+        ['01-03-2027',            162.95,            0.0675,            0.1100,            164.70 ],
+        ['01-03-2026',            158.45,            0.0675,            0.1100,            160.53 ],
+        ['01-05-2025',            153.70,            0.0675,            0.1100,            156.14 ],
+        ['01-03-2025',            153.70,            0.0675,            0.1000,            156.14 ],
+        ['01-03-2024',            148.70,            0.0675,            0.1000,            151.52 ],
+        ['01-06-2023',            142.95,            0.0675,            0.1000,            146.20 ],
+        ['01-03-2023',            142.95,            0.0675,            0.0800,            146.20 ],
+        ['01-03-2022',            136.95,            0.0675,            0.0800,            140.65 ],
+        ['01-03-2021',            133.80,            0.0675,            0.0800,            137.73 ],
+        ['01-03-2020',            130.60,            0.0675,            0.0800,            134.77 ],
+        ['01-03-2019',            127.40,            0.0675,            0.0800,            131.81 ],
+        ['01-03-2018',            124.90,            0.0675,            0.0800,            129.50 ],
+        ['01-03-2017',            122.40,            0.0675,            0.0800,            127.19 ],
+        ['01-03-2016',            119.90,            0.0675,            0.0800,            124.88 ],
+        ['01-03-2015',            117.50,            0.0675,            0.0800,            122.66 ],
+        ['01-03-2014',            115.25,            0.0675,            0.0800,            120.57 ],
+        ['01-03-2013',            113.15,            0.0675,            0.0800,            118.63 ],
+        ['01-03-2012',            111.30,            0.0675,            0.0800,            116.92 ],
+        ['01-03-2011',            109.70,            0.0675,            0.0800,            115.44 ]
       ]
     ),
-
   },
 
   // Glasoverenskomsten
@@ -727,6 +467,63 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
         ['01-03-2013',            114.95,             0.069,            0.0815,            180.15,            164.25,            163.15,            162.25 ],
         ['01-03-2012',            113.60,             0.069,            0.0815,            179.15,            164.65,            159.30,            156.65 ],
         ['01-03-2011',            112.25,             0.069,            0.0800,            177.80,            163.95,            157.30,            158.15 ]
+      ]
+    ),
+  },
+
+  // Hoteloverenskomsten
+  {
+    meta: {
+      id:               toOverenskomstId('hoteloverenskomsten'),
+      navn:             'Hoteloverenskomsten',
+      loenmodtagerOrg:  ['3F'],
+      arbejdsgiverOrg:  ['Horesta'],
+      grundloenAngivetPer: 'Time',
+    },
+    satser: satserFromTable(
+      { fritvalg: null, shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      [
+        // fraDato          │ Grundløn         │ AG-pens.
+        ['01-03-2027',            168.92,            0.1115 ],
+        ['01-03-2026',            165.07,            0.1115 ],
+        ['01-05-2025',            161.22,            0.1115 ],
+        ['01-03-2024',            157.10,            0.1015 ],
+        ['01-06-2023',            152.15,            0.1015 ],
+        ['01-03-2023',            152.15,            0.0815 ],
+        ['01-03-2022',            147.20,            0.0815 ],
+        ['01-03-2021',            144.45,            0.0815 ],
+        ['01-03-2020',            141.70,            0.0815 ],
+        ['01-03-2019',            138.95,            0.0815 ],
+        ['01-03-2018',            136.75,            0.0815 ],
+        ['01-03-2017',            134.55,            0.0815 ],
+        ['01-03-2016',            132.35,            0.0815 ],
+        ['01-03-2015',            130.37,            0.0815 ],
+        ['01-03-2014',            128.55,            0.0815 ],
+        ['01-03-2013',            126.90,            0.0800 ],
+        ['01-03-2012',            125.42,            0.0800 ],
+        ['01-03-2011',            123.93,            0.0800 ]
+      ]
+    ),
+  },
+
+  // Industri- og VVS-overenskomsten
+  {
+    meta: {
+      id:               toOverenskomstId('industri-og-vvs-overenskomsten'),
+      navn:             'Industri- og VVS-overenskomsten',
+      loenmodtagerOrg:  ['Dansk Metal', '3F', 'Blik&Rør'],
+      arbejdsgiverOrg:  ['Tekniq'],
+      grundloenAngivetPer: 'Time',
+    },
+    shDageAlmindeligLoenRegel: { fritvalgDelta: -0.04 },
+    satser: satserFromTable(
+      { shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      [
+        // fraDato          │ Grundløn         │ Fritvalg            │ AG-pens.
+        ['01-03-2027',            146.90,            0.1750,            0.1100 ],
+        ['01-03-2026',            143.40,            0.1650,            0.1100 ],
+        ['01-05-2025',            139.90,            0.1550,            0.1100 ],
+        ['01-03-2024',            136.15,            0.1550,            0.1000 ]
       ]
     ),
   },
@@ -768,72 +565,118 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
 
   },
 
-  // HORESTA-overenskomsten
+  // Industriens overenskomst
   {
     meta: {
-      id:               toOverenskomstId('horesta-overenskomsten'),
-      navn:             'HORESTA-overenskomsten',
-      loenmodtagerOrg:  ['3F'],
-      arbejdsgiverOrg:  ['Horesta'],
+      id:               toOverenskomstId('industriens-overenskomst'),
+      navn:             'Industriens overenskomst',
+      loenmodtagerOrg:  ['CO-Industri', '3F', 'Blik&Rør', 'Dansk El-Forbund', 'Dansk Metal', 'HK Privat', 'Malerforbundet', 'Teknisk Landsforbund', 'Serviceforbundet', 'Dansk Jernbaneforbund'],
+      arbejdsgiverOrg:  ['Dansk Industri'],
       grundloenAngivetPer: 'Time',
     },
+    shDageAlmindeligLoenRegel: { fritvalgDelta: -0.04 },
     satser: satserFromTable(
-      { fritvalg: null, shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
-        // fraDato          │ Grundløn         │ AG-pens.
-        ['01-03-2027',            168.92,            0.1115 ],
-        ['01-03-2026',            165.07,            0.1115 ],
-        ['01-05-2025',            161.22,            0.1115 ],
-        ['01-03-2024',            157.10,            0.1015 ],
-        ['01-06-2023',            152.15,            0.1015 ],
-        ['01-03-2023',            152.15,            0.0815 ],
-        ['01-03-2022',            147.20,            0.0815 ],
-        ['01-03-2021',            144.45,            0.0815 ],
-        ['01-03-2020',            141.70,            0.0815 ],
-        ['01-03-2019',            138.95,            0.0815 ],
-        ['01-03-2018',            136.75,            0.0815 ],
-        ['01-03-2017',            134.55,            0.0815 ],
-        ['01-03-2016',            132.35,            0.0815 ],
-        ['01-03-2015',            130.37,            0.0815 ],
-        ['01-03-2014',            128.55,            0.0815 ],
-        ['01-03-2013',            126.90,            0.0800 ],
-        ['01-03-2012',            125.42,            0.0800 ],
-        ['01-03-2011',            123.93,            0.0800 ]
+        // fraDato          l Grundl>n         l Fritvalg         l AG-pens.
+        ['01-03-2027',            146.90,            0.1500,            0.1100 ],
+        ['01-03-2026',            143.40,            0.1400,            0.1100 ],
+        ['01-05-2025',            139.90,            0.1300,            0.1100 ],
+        ['01-03-2024',            136.15,            0.1300,            0.1000 ],
+        ['01-06-2023',            131.65,            0.1100,            0.1000 ],
+        ['01-03-2023',            131.65,            0.1100,            0.0800 ],
+        ['01-03-2022',            127.15,            0.1100,            0.0800 ],
+        ['01-03-2021',            124.65,            0.1000,            0.0800 ],
+        ['01-03-2020',            122.15,            0.0900,            0.0800 ],
+        ['01-03-2019',            119.65,            0.0800,            0.0800 ],
+        ['01-03-2018',            117.65,            0.0740,            0.0800 ],
+        ['01-03-2017',            115.65,            0.0670,            0.0800 ],
+        ['01-03-2016',            113.65,            0.0600,            0.0800 ],
+        ['01-03-2015',            111.85,            0.0570,            0.0800 ],
+        ['01-03-2014',            110.20,            0.0530,            0.0800 ],
+        ['01-03-2013',            108.70,            0.0500,            0.0800 ],
+        ['01-03-2012',            107.35,            0.0500,            0.0800 ],
+        ['01-03-2011',            106.00,            0.0500,            0.0800 ]
       ]
     ),
+
   },
 
-  // Serviceoverenskomsten
+  // Landsoverenskomsten (AKT)
   {
     meta: {
-      id:               toOverenskomstId('serviceoverenskomsten-sba'),
-      navn:             'Serviceoverenskomsten (SBA)',
+      id:               toOverenskomstId('landsoverenskomsten-akt'),
+      navn:             'Landsoverenskomsten (AKT)',
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri'],
       grundloenAngivetPer: 'Time',
     },
     satser: satserFromTable(
-      { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { fritvalg: null, sfgg: null, shSoSats: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
-        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.
-        ['15-03-2027',            172.00,             0.052,            0.1115 ],
-        ['15-03-2026',            167.50,             0.052,            0.1115 ],
-        ['15-03-2025',            162.75,             0.052,            0.1015 ],
-        ['01-03-2024',            151.28,             0.052,            0.1015 ],
-        ['01-06-2023',            145.53,             0.052,            0.1015 ],
-        ['01-03-2023',            145.53,             0.052,            0.0815 ],
-        ['01-03-2022',            139.53,             0.052,            0.0815 ],
-        ['01-03-2021',            136.38,             0.052,            0.0815 ],
-        ['01-03-2020',            133.18,             0.052,            0.0815 ],
-        ['01-03-2019',            129.98,             0.052,            0.0815 ],
-        ['01-03-2018',            127.48,             0.052,            0.0815 ],
-        ['01-03-2017',            124.98,             0.052,            0.0815 ],
-        ['01-03-2016',            122.48,             0.052,            0.0815 ],
-        ['01-03-2015',            120.08,             0.052,            0.0815 ],
-        ['01-03-2014',            117.83,             0.052,            0.0815 ],
-        ['01-03-2013',            115.73,             0.052,            0.0815 ],
-        ['01-03-2012',            113.88,             0.052,            0.0815 ],
-        ['01-03-2011',            112.28,             0.052,            0.0800 ]
+        // fraDato          │ Grundløn         │ AG-pens.
+        ['01-03-2027',            176.72,            0.1100 ],
+        ['01-03-2026',            172.22,            0.1100 ],
+        ['01-05-2025',            167.47,            0.1100 ],
+        ['01-03-2025',            167.47,            0.1000 ],
+        ['01-03-2024',            162.47,            0.1000 ],
+        ['01-06-2023',            156.72,            0.1000 ],
+        ['01-03-2022',            150.72,            0.0800 ],
+        ['01-03-2021',            147.57,            0.0800 ],
+        ['01-03-2020',            144.37,            0.0800 ],
+        ['01-03-2019',            142.36,            0.0800 ],
+        ['01-03-2018',            139.86,            0.0800 ],
+        ['01-03-2017',            137.36,            0.0800 ],
+        ['01-03-2016',            134.86,            0.0800 ],
+        ['01-03-2015',            132.46,            0.0800 ],
+        ['01-03-2014',            130.21,            0.0800 ],
+        ['01-03-2013',            126.92,            0.0800 ],
+        ['01-03-2012',            125.07,            0.0800 ],
+        ['01-03-2011',            124.66,            0.0800 ]
+      ]
+    ),
+  },
+
+  // Låsesmedeoverenskomsten
+  {
+    meta: {
+      id:               toOverenskomstId('laasesmedeoverenskomsten'),
+      navn:             'Låsesmedeoverenskomsten',
+      loenmodtagerOrg:  ['Dansk Metal', '3F'],
+      arbejdsgiverOrg:  ['Låsesmedeforeningen'],
+      grundloenAngivetPer: 'Time',
+    },
+    shDageAlmindeligLoenRegel: { fritvalgDelta: -0.04 },
+    satser: satserFromTable(
+      { shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      [
+        // fraDato          │ Grundløn         │ Fritvalg            │ AG-pens.
+        ['01-03-2027',            146.90,            0.1750,            0.1100 ],
+        ['01-03-2026',            143.40,            0.1650,            0.1100 ],
+        ['01-05-2025',            139.90,            0.1550,            0.1100 ],
+        ['01-03-2024',            136.15,            0.1550,            0.1000 ]
+      ]
+    ),
+  },
+
+  // Maskinhandler-overenskomsten
+  {
+    meta: {
+      id:               toOverenskomstId('maskinhandler-overenskomsten'),
+      navn:             'Maskinhandler-overenskomsten',
+      loenmodtagerOrg:  ['Dansk Metal', '3F'],
+      arbejdsgiverOrg:  ['DM-Arbejdsgiver'],
+      grundloenAngivetPer: 'Time',
+    },
+    shDageAlmindeligLoenRegel: { fritvalgDelta: -0.045 },
+    satser: satserFromTable(
+      { shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      [
+        // fraDato          │ Grundløn         │ Fritvalg            │ AG-pens.
+        ['01-03-2027',            146.90,            0.1900,            0.1150 ],
+        ['01-03-2026',            143.40,            0.1800,            0.1150 ],
+        ['01-05-2025',            139.90,            0.1700,            0.1150 ],
+        ['01-03-2024',            136.15,            0.1700,            0.1050 ]
       ]
     ),
   },
@@ -873,6 +716,204 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     ),
   },
 
+  // Metal-Transport overenskomsten
+  {
+    meta: {
+      id:               toOverenskomstId('metal-transport-overenskomsten'),
+      navn:             'Metal-Transport overenskomsten',
+      loenmodtagerOrg:  ['Dansk Metal'],
+      arbejdsgiverOrg:  ['Dansk Industri'],
+      grundloenAngivetPer: 'Time',
+    },
+    satser: satserFromTable(
+      { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      [
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.
+        ['01-03-2027',            149.64,             0.110,            0.1100 ],
+        ['01-03-2026',            146.08,             0.100,            0.1100 ],
+        ['01-05-2025',            142.51,             0.090,            0.1100 ],
+        ['01-03-2025',            142.51,             0.090,            0.1000 ]
+      ]
+    ),
+  },
+
+  // Mureroverenskomsten
+  {
+    meta: {
+      id:               toOverenskomstId('mureroverenskomsten'),
+      navn:             'Mureroverenskomsten',
+      loenmodtagerOrg:  ['3F'],
+      arbejdsgiverOrg:  ['Dansk Industri', 'Dansk Byggeri'],
+      grundloenAngivetPer: 'Time',
+    },
+    shDageAlmindeligLoenRegel: { shSoDelta: -0.059 },
+    satser: satserFromTable(
+      { fritvalg: null, sfgg: null },
+      [
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG Fagl.Kbh    │ SFGG Fagl.Prov   │ SFGG Ufagl.Kbh   │ SFGG Ufagl.Prov
+        ['01-03-2027',            153.15,             0.167,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
+        ['01-03-2026',            149.65,             0.157,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
+        ['01-05-2025',            146.15,             0.147,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
+        ['01-01-2025',            142.40,             0.147,            0.1015,            217.20,            202.40,            191.40,            192.45 ],
+        ['01-03-2024',            142.40,             0.147,            0.1015,            207.90,            195.90,            184.45,            186.45 ],
+        ['01-06-2023',            137.90,             0.129,            0.1015,            204.25,            190.75,            185.40,            183.90 ],
+        ['01-03-2023',            137.90,             0.129,            0.0815,            204.25,            190.75,            185.40,            183.90 ],
+        ['01-03-2022',            133.40,             0.129,            0.0815,            201.50,            187.20,            179.60,            179.60 ],
+        ['01-01-2021',            130.90,             0.119,            0.0815,            199.75,            184.60,            176.60,            178.45 ],
+        ['01-05-2020',            128.40,             0.109,            0.0815,            198.40,            182.90,            173.00,            175.40 ],
+        ['01-03-2019',            125.90,             0.099,            0.0815,            191.60,            178.70,            170.35,            172.50 ],
+        ['01-03-2018',            123.90,             0.093,            0.0815,            186.40,            174.80,            168.50,            170.65 ],
+        ['01-03-2017',            121.90,             0.086,            0.0815,            183.90,            172.05,            166.20,            169.25 ],
+        ['01-03-2016',            119.90,             0.079,            0.0815,            180.25,            168.95,            164.10,            168.30 ],
+        ['01-03-2015',            118.10,             0.076,            0.0815,            182.00,            167.45,            162.70,            167.15 ],
+        ['01-03-2014',            116.45,             0.072,            0.0815,            182.85,            166.50,            167.75,            163.55 ],
+        ['01-03-2013',            114.95,             0.069,            0.0815,            180.15,            164.25,            163.15,            162.25 ],
+        ['01-03-2012',            113.60,             0.069,            0.0815,            179.15,            164.65,            159.30,            156.65 ],
+        ['01-03-2011',            112.25,             0.069,            0.0800,            177.80,            163.95,            157.30,            158.15 ]
+      ]
+    ),
+
+  },
+
+  // Postoverenskomsten
+  {
+    meta: {
+      id:               toOverenskomstId('postoverenskomsten'),
+      navn:             'Postoverenskomsten',
+      loenmodtagerOrg:  ['3F'],
+      arbejdsgiverOrg:  ['Postnord'],
+      grundloenAngivetPer: 'Time',
+    },
+    shDageAlmindeligLoenRegel: { shSoOverride: 0 },
+    satser: satserFromTable(
+      { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      [
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.
+        ['01-03-2024',            136.15,            0.0350,            0.1200 ],
+        ['01-03-2023',            131.65,            0.0350,            0.1200 ],
+        ['01-03-2022',            127.15,            0.0350,            0.1200 ],
+        ['01-03-2021',            124.65,            0.0350,            0.1200 ],
+        ['01-03-2020',            122.15,            0.0350,            0.1200 ],
+        ['01-03-2019',            119.65,            0.0350,            0.1200 ],
+        ['01-03-2018',            117.65,            0.0350,            0.1200 ],
+        ['01-03-2017',            115.65,            0.0350,            0.1200 ],
+        ['01-03-2016',            113.65,            0.0350,            0.1200 ],
+        ['01-03-2015',            111.85,            0.0350,            0.1200 ],
+        ['01-03-2014',            110.20,            0.0350,            0.1200 ],
+        ['01-03-2013',            108.70,            0.0350,            0.1200 ],
+        ['01-03-2012',            107.35,            0.0350,            0.1200 ],
+        ['01-03-2011',            106.00,            0.0350,            0.1200 ]
+      ]
+    ),
+
+  },
+
+  // Serviceoverenskomsten
+  {
+    meta: {
+      id:               toOverenskomstId('serviceoverenskomsten-sba'),
+      navn:             'Serviceoverenskomsten (SBA)',
+      loenmodtagerOrg:  ['3F'],
+      arbejdsgiverOrg:  ['Dansk Industri'],
+      grundloenAngivetPer: 'Time',
+    },
+    satser: satserFromTable(
+      { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      [
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.
+        ['15-03-2027',            172.00,             0.052,            0.1115 ],
+        ['15-03-2026',            167.50,             0.052,            0.1115 ],
+        ['15-03-2025',            162.75,             0.052,            0.1015 ],
+        ['01-03-2024',            151.28,             0.052,            0.1015 ],
+        ['01-06-2023',            145.53,             0.052,            0.1015 ],
+        ['01-03-2023',            145.53,             0.052,            0.0815 ],
+        ['01-03-2022',            139.53,             0.052,            0.0815 ],
+        ['01-03-2021',            136.38,             0.052,            0.0815 ],
+        ['01-03-2020',            133.18,             0.052,            0.0815 ],
+        ['01-03-2019',            129.98,             0.052,            0.0815 ],
+        ['01-03-2018',            127.48,             0.052,            0.0815 ],
+        ['01-03-2017',            124.98,             0.052,            0.0815 ],
+        ['01-03-2016',            122.48,             0.052,            0.0815 ],
+        ['01-03-2015',            120.08,             0.052,            0.0815 ],
+        ['01-03-2014',            117.83,             0.052,            0.0815 ],
+        ['01-03-2013',            115.73,             0.052,            0.0815 ],
+        ['01-03-2012',            113.88,             0.052,            0.0815 ],
+        ['01-03-2011',            112.28,             0.052,            0.0800 ]
+      ]
+    ),
+  },
+
+  // Transportoverenskomsten (ATL)
+  {
+    meta: {
+      id:               toOverenskomstId('transportoverenskomsten-atl'),
+      navn:             'Transportoverenskomsten (ATL)',
+      loenmodtagerOrg:  ['3F'],
+      arbejdsgiverOrg:  ['Dansk Industri'],
+      grundloenAngivetPer: 'Time',
+    },
+    satser: satserFromTable(
+      { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      [
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG
+        ['01-03-2027',            164.15,            0.0675,            0.1100,            164.70 ],
+        ['01-03-2026',            159.65,            0.0675,            0.1100,            160.53 ],
+        ['01-05-2025',            154.90,            0.0675,            0.1100,            156.14 ],
+        ['01-03-2025',            154.90,            0.0675,            0.1000,            156.14 ],
+        ['01-03-2024',            149.90,            0.0675,            0.1000,            151.52 ],
+        ['01-06-2023',            144.15,            0.0675,            0.1000,            146.20 ],
+        ['01-03-2023',            144.15,            0.0675,            0.0800,            146.20 ],
+        ['01-03-2022',            138.15,            0.0675,            0.0800,            140.65 ],
+        ['01-03-2021',            135.00,            0.0675,            0.0800,            137.73 ],
+        ['01-03-2020',            131.80,            0.0675,            0.0800,            134.77 ],
+        ['01-03-2019',            128.60,            0.0675,            0.0800,            131.81 ],
+        ['01-03-2018',            126.10,            0.0675,            0.0800,            129.50 ],
+        ['01-03-2017',            123.60,            0.0675,            0.0800,            127.19 ],
+        ['01-03-2016',            121.10,            0.0675,            0.0800,            124.88 ],
+        ['01-03-2015',            118.70,            0.0675,            0.0800,            122.66 ],
+        ['01-03-2014',            116.45,            0.0675,            0.0800,            120.57 ],
+        ['01-03-2013',            114.35,            0.0675,            0.0800,            118.63 ],
+        ['01-03-2012',            112.50,            0.0675,            0.0800,            116.92 ],
+        ['01-03-2011',            110.90,            0.0675,            0.0800,            115.44 ]
+      ]
+    ),
+  },
+
+  // Transportoverenskomsten (DTL)
+  {
+    meta: {
+      id:               toOverenskomstId('transportoverenskomsten-dtl'),
+      navn:             'Transportoverenskomsten (DTL)',
+      loenmodtagerOrg:  ['3F'],
+      arbejdsgiverOrg:  ['DTL-A'],
+      grundloenAngivetPer: 'Time',
+    },
+    satser: satserFromTable(
+      { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      [
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG
+        ['01-03-2027',            164.15,            0.0675,            0.1100,            164.70 ],
+        ['01-03-2026',            159.65,            0.0675,            0.1100,            160.53 ],
+        ['01-05-2025',            154.90,            0.0675,            0.1100,            156.14 ],
+        ['01-03-2025',            154.90,            0.0675,            0.1000,            156.14 ],
+        ['01-03-2024',            149.90,            0.0675,            0.1000,            151.52 ],
+        ['01-06-2023',            144.15,            0.0675,            0.1000,            146.20 ],
+        ['01-03-2023',            144.15,            0.0675,            0.0800,            146.20 ],
+        ['01-03-2022',            138.15,            0.0675,            0.0800,            140.65 ],
+        ['01-03-2021',            135.00,            0.0675,            0.0800,            137.73 ],
+        ['01-03-2020',            131.80,            0.0675,            0.0800,            134.77 ],
+        ['01-03-2019',            128.60,            0.0675,            0.0800,            131.81 ],
+        ['01-03-2018',            126.10,            0.0675,            0.0800,            129.50 ],
+        ['01-03-2017',            123.60,            0.0675,            0.0800,            127.19 ],
+        ['01-03-2016',            121.10,            0.0675,            0.0800,            124.88 ],
+        ['01-03-2015',            118.70,            0.0675,            0.0800,            122.66 ],
+        ['01-03-2014',            116.45,            0.0675,            0.0800,            120.57 ],
+        ['01-03-2013',            114.35,            0.0675,            0.0800,            118.63 ],
+        ['01-03-2012',            112.50,            0.0675,            0.0800,            116.92 ],
+        ['01-03-2011',            110.90,            0.0675,            0.0800,            115.44 ]
+      ]
+    ),
+  },
 
 ];
 
