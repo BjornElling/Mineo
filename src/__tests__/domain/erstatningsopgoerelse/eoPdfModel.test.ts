@@ -1936,6 +1936,40 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     expect(segments.some((segment) => segment.fra >= '2012-01-01')).toBe(true);
   });
 
+  it('anvender Store Bededag-regulering fra 01-01-2024 som separat segment ved manglende tidlig overenskomstdækning', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(30000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2023-12-01'), til: iso('2024-04-30'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
+          overenskomstId: 'laasesmedeoverenskomsten',
+          feriePct: 12.5,
+          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2020-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
+    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
+
+    const beforeStore = segments.find((segment) => segment.fra === '2023-12-01');
+    const storeSegment = segments.find((segment) => segment.fra === '2024-01-01');
+    const segmentsBeforeStore = segments.filter((segment) => segment.fra < '2024-01-01');
+
+    expect(beforeStore).toBeDefined();
+    expect(beforeStore?.deltaPct).toBe(0);
+    expect(segmentsBeforeStore.every((segment) => segment.deltaPct === 0)).toBe(true);
+    expect(storeSegment).toBeDefined();
+    // 0,36% er den konkrete delta i dette fallback-scenario med laasesmede-satserne.
+    // Vi låser værdien eksplicit for at undgå skjulte regressions i beregningsgrundlaget.
+    expect(storeSegment?.deltaPct).toBeCloseTo(0.36, 2);
+  });
+
   it('fejler fail-closed ved datakorruption i statistikindeks', () => {
     const spy = vi.spyOn(statistikRatesData, 'getStatistiskLoenudvikling').mockReturnValue({
       meta: { id: 'ILON12' as statistikRatesData.StatistiskLoenudviklingId, navn: 'ILON12', hjaelpetekst: 'test' },

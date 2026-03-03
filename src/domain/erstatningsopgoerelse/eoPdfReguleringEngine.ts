@@ -58,6 +58,7 @@ import {
   type FormulaVisibility,
   wrapIndexFormulaAfterSlashWhenLong,
 } from './reguleringFormulaUtils';
+import { resolveOverenskomstEffectiveStartIso } from './reguleringCoverage';
 
 export type ReguleringIndexRow = Readonly<{
   fraDato: string;
@@ -99,6 +100,7 @@ const resolveReguleringTableStartIso = (
   if (!reguleringsdato) return tafFra;
   return reguleringsdato < tafFra ? reguleringsdato : tafFra;
 };
+
 export const resolveTafDateBounds = (
   eoValues: ErstatningsopgoerelseValues
 ): Readonly<{ foerste: ISODateString; sidste: ISODateString }> | null => {
@@ -177,7 +179,7 @@ const findPeriodForDate = (
     if (period.startIso > iso) break;
     candidate = period;
   }
-  return candidate ?? periods[0];
+  return candidate;
 };
 
 const buildIndexFormulaDisplay = (
@@ -213,6 +215,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
   if (grundlag === 'Overenskomst') {
     const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
     if (!overenskomstId) return null;
+    const overenskomstTableStartIso = resolveOverenskomstEffectiveStartIso(overenskomstId, reguleringTableStartIso);
     const offentligType = getOffentligOverenskomstTypeById(overenskomstId);
     if (offentligType) {
       const loenType = resolveOffentligLoenTypeFromLabel(ansaettelsesforhold.offentligLoenType);
@@ -228,7 +231,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         return null;
       }
 
-      const fraDato = isoToDanish(reguleringTableStartIso);
+      const fraDato = isoToDanish(overenskomstTableStartIso);
       const tilDato = isoToDanish(tafTil);
       if (!fraDato || !tilDato) return null;
       assertOffentligReguleringsDatoGyldig(fraDato);
@@ -323,20 +326,20 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         ]);
       };
 
-      addRow(reguleringTableStartIso, baseResult.maanedsLoen, baseResult.timeLoen);
+      addRow(overenskomstTableStartIso, baseResult.maanedsLoen, baseResult.timeLoen);
 
       const rowDates = new Set<ISODateString>();
       for (const entry of satser) {
         const iso = parseDanishToISO(entry.effectiveDate);
         if (!iso) continue;
-        if (iso > reguleringTableStartIso && iso <= tafTil) rowDates.add(iso);
+        if (iso > overenskomstTableStartIso && iso <= tafTil) rowDates.add(iso);
       }
       for (const entry of tillaegsSatser) {
         const iso = parseDanishToISO(entry.fraDato);
         if (!iso) continue;
-        if (iso > reguleringTableStartIso && iso <= tafTil) rowDates.add(iso);
+        if (iso > overenskomstTableStartIso && iso <= tafTil) rowDates.add(iso);
       }
-      if (harAnciennitetstillaeg && anciennitetDatoIso && anciennitetDatoIso > reguleringTableStartIso && anciennitetDatoIso <= tafTil) {
+      if (harAnciennitetstillaeg && anciennitetDatoIso && anciennitetDatoIso > overenskomstTableStartIso && anciennitetDatoIso <= tafTil) {
         rowDates.add(anciennitetDatoIso);
       }
 
@@ -354,7 +357,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
 
     const ref = resolveOverenskomstRef(overenskomstId);
     if (!ref) return null;
-    const fraDato = isoToDanish(reguleringTableStartIso);
+    const fraDato = isoToDanish(overenskomstTableStartIso);
     const tilDato = isoToDanish(tafTil);
     if (!fraDato || !tilDato) return null;
 
@@ -655,6 +658,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
     reguleringsdato &&
     ansaettelsesforhold.overenskomstId
   ) {
+    const effectiveReguleringsdato = resolveOverenskomstEffectiveStartIso(ansaettelsesforhold.overenskomstId, reguleringsdato);
     const fallbackRowWithIso = (segment: LoenudviklingSegment): IndexRowWithIso => {
       const indeksValue = 100 + segment.deltaPct;
       const indeksDisplay = formatIndexValue(indeksValue);
@@ -675,7 +679,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
     const offentligType = getOffentligOverenskomstTypeById(ansaettelsesforhold.overenskomstId);
     if (offentligType) {
       const offentligOverenskomstId = ansaettelsesforhold.overenskomstId;
-      const baseDato = isoToDanish(reguleringsdato);
+      const baseDato = isoToDanish(effectiveReguleringsdato);
       const loenType = resolveOffentligLoenTypeFromLabel(ansaettelsesforhold.offentligLoenType);
       const trinValue = ansaettelsesforhold.offentligLoenTrin;
       const gruppeValue = ansaettelsesforhold.offentligLoenGruppe;
@@ -733,7 +737,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
       const hasStoreBededag =
         applyAlmindeligLoenPaaShDageRegel &&
         (reguleringsdato >= STORE_BEDEDAG_START || segmentsForCalc.some((segment) => segment.til >= STORE_BEDEDAG_START));
-      const baseAnciennitet = anciennitetForIndex && reguleringsdato >= anciennitetForIndex.activeFromIso
+      const baseAnciennitet = anciennitetForIndex && effectiveReguleringsdato >= anciennitetForIndex.activeFromIso
         ? anciennitetForIndex.supplementValue
         : 0;
       const baseValue = (loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen) + offentligLoenEkstraGrundloen + baseAnciennitet;
@@ -813,7 +817,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
     }
 
     const ref = resolveOverenskomstRef(ansaettelsesforhold.overenskomstId);
-    const baseDato = isoToDanish(reguleringsdato);
+    const baseDato = isoToDanish(effectiveReguleringsdato);
     if (ref && baseDato) {
       const baseSats = getEffektiveSatserForDato({
         overenskomstId: ref.baseId,
@@ -835,7 +839,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
           lastSegmentEndIso >= STORE_BEDEDAG_START
         );
         const feriePct = typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0;
-        const baseAnciennitet = anciennitetForIndex && reguleringsdato >= anciennitetForIndex.activeFromIso
+        const baseAnciennitet = anciennitetForIndex && effectiveReguleringsdato >= anciennitetForIndex.activeFromIso
           ? anciennitetForIndex.supplementValue
           : 0;
         const baseComponents: FormulaComponents = {

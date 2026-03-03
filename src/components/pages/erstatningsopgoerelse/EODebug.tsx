@@ -58,6 +58,7 @@ import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../../../domain/ers
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import { validateIsoRange } from '../../../utils/isoDateHelpers';
+import { resolveOverenskomstEffectiveStartIso } from '../../../domain/erstatningsopgoerelse/reguleringCoverage';
 import {
   convertAnciennitetSats,
   resolveStatistikModelId,
@@ -263,7 +264,7 @@ const findPeriodForDate = (periods: readonly ReguleringsPeriode[], iso: ISODateS
     if (period.startIso > iso) break;
     candidate = period;
   }
-  return candidate ?? periods[0];
+  return candidate;
 };
 
 const calculateElapsedWholeMonths = (fromIso: ISODateString, toIso: ISODateString): number => {
@@ -911,6 +912,15 @@ const EODebug = () => {
           return { display: '-', status: 'error' as DebugStatus };
         }
         if (!baseIndex) {
+          // Begrænsning: Dette signalerer kun at fallback *kan* bruges (coverage starter senere),
+          // ikke at indekstabellen nødvendigvis kan materialiseres i den konkrete TAF-periode.
+          const hasOverenskomstFallback = loenudviklingBasis === 'Overenskomst' && Boolean(reguleringsRange.min);
+          if (hasOverenskomstFallback) {
+            return {
+              display: `Nej (fallback i indekstabel fra ${formatIsoValue(reguleringsRange.min)})`,
+              status: allowIncompleteOverenskomst ? 'warning' as DebugStatus : 'error' as DebugStatus,
+            };
+          }
           return {
             display: reguleringsRange.min
               ? `Nej (først fra ${formatIsoValue(reguleringsRange.min)})`
@@ -926,7 +936,6 @@ const EODebug = () => {
         if (!tafStartIso) return null;
         if (!tafEndIso) return null;
         if (tafStartIso > tafEndIso) return null;
-        if (!baseIndex) return null;
         // Bevidst forskel: Indeks-tabellen følger altid TAF-start (ikke reguleringsdato).
 
         const feriePct = typeof af.feriePct === 'number' ? af.feriePct : 0;
@@ -975,6 +984,21 @@ const EODebug = () => {
             components: { ...basePeriod.components },
           });
           periodStarts.sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+        };
+
+        const resolveBaseForStoreBededag = (
+          periodStarts: ReadonlyArray<{ startIso: ISODateString; components: FormulaComponents }>,
+          tafEnd: ISODateString
+        ): Readonly<{ startIso: ISODateString; components: FormulaComponents }> | undefined => {
+          return (
+            [...periodStarts]
+              .filter((period) => period.startIso <= STORE_BEDEDAG_START)
+              .sort((a, b) => (a.startIso < b.startIso ? 1 : -1))[0]
+          ) ?? (
+            [...periodStarts]
+              .filter((period) => period.startIso > STORE_BEDEDAG_START && period.startIso <= tafEnd)
+              .sort((a, b) => (a.startIso < b.startIso ? -1 : 1))[0]
+          );
         };
 
         const periods: ReguleringsPeriode[] = (() => {
@@ -1035,6 +1059,33 @@ const EODebug = () => {
                 })
                 .filter((row): row is Readonly<{ startIso: ISODateString; components: FormulaComponents }> => Boolean(row))
                 .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+              const applyStoreBededagRegulering =
+                applyAlmindeligLoenPaaShDageRegel && tafStartIso < STORE_BEDEDAG_START && tafEndIso >= STORE_BEDEDAG_START;
+              if (applyStoreBededagRegulering) {
+                const baseForStore = resolveBaseForStoreBededag(periodStarts, tafEndIso);
+                if (baseForStore && !periodStarts.some((p) => p.startIso === STORE_BEDEDAG_START)) {
+                  periodStarts.push({
+                    startIso: STORE_BEDEDAG_START,
+                    components: {
+                      ...baseForStore.components,
+                      storeBededagPct: STORE_BEDEDAG_PCT,
+                    },
+                  });
+                }
+                const updated = periodStarts.map((period) => {
+                  if (period.startIso < STORE_BEDEDAG_START) return period;
+                  return {
+                    ...period,
+                    components: {
+                      ...period.components,
+                      storeBededagPct: STORE_BEDEDAG_PCT,
+                    },
+                  };
+                });
+                periodStarts.length = 0;
+                periodStarts.push(...updated);
+                periodStarts.sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+              }
               const hasStoreBededag =
                 applyAlmindeligLoenPaaShDageRegel && periodStarts.some((period) => period.startIso >= STORE_BEDEDAG_START);
 
@@ -1109,9 +1160,7 @@ const EODebug = () => {
               applyAlmindeligLoenPaaShDageRegel && tafStartIso < STORE_BEDEDAG_START && tafEndIso >= STORE_BEDEDAG_START;
 
             if (applyStoreBededagRegulering) {
-              const baseForStore = [...periodStarts]
-                .filter((period) => period.startIso <= STORE_BEDEDAG_START)
-                .sort((a, b) => (a.startIso < b.startIso ? 1 : -1))[0];
+              const baseForStore = resolveBaseForStoreBededag(periodStarts, tafEndIso);
               if (baseForStore && !periodStarts.some((p) => p.startIso === STORE_BEDEDAG_START)) {
                 periodStarts.push({
                   startIso: STORE_BEDEDAG_START,
@@ -1206,9 +1255,7 @@ const EODebug = () => {
                 applyAlmindeligLoenPaaShDageRegel && tafStartIso < STORE_BEDEDAG_START && tafEndIso >= STORE_BEDEDAG_START;
 
               if (applyStoreBededagRegulering) {
-                const baseForStore = [...periodStarts]
-                  .filter((period) => period.startIso <= STORE_BEDEDAG_START)
-                  .sort((a, b) => (a.startIso < b.startIso ? 1 : -1))[0];
+                const baseForStore = resolveBaseForStoreBededag(periodStarts, tafEndIso);
                 if (baseForStore && !periodStarts.some((p) => p.startIso === STORE_BEDEDAG_START)) {
                   periodStarts.push({
                     startIso: STORE_BEDEDAG_START,
@@ -1353,8 +1400,26 @@ const EODebug = () => {
           return [];
         })();
 
-        const baseComponents: FormulaComponents = baseIndex.components;
-        const baseVisibility: FormulaVisibility = baseIndex.visibility;
+        const fallbackBaseIndex =
+          loenudviklingBasis === 'Overenskomst' && periods.length > 0
+            ? {
+                components: {
+                  ...periods[0]!.components,
+                  storeBededagPct: getStoreBededagPct(reguleringsdato ?? periods[0]!.startIso, af.loenPaaHelligdage),
+                },
+                visibility: periods[0]!.visibility ?? {
+                  showFritvalg: true,
+                  showShSo: true,
+                  showPension: true,
+                  showStoreBededag: false,
+                },
+              }
+            : null;
+        const baseForIndex = baseIndex ?? fallbackBaseIndex;
+        if (!baseForIndex) return null;
+
+        const baseComponents: FormulaComponents = baseForIndex.components;
+        const baseVisibility: FormulaVisibility = baseForIndex.visibility;
         const isStatistik = loenudviklingBasis === 'Statistik';
         const isKRL = loenudviklingBasis === 'KRL satstabel';
         const isSimpleIndex = isStatistik || isKRL;
@@ -1524,14 +1589,14 @@ const EODebug = () => {
         if (!loenudviklingBasis || loenudviklingBasis === 'Ingen') return null;
         if (!tafStartIso || !tafEndIso) return null;
         if (tafStartIso > tafEndIso) return null;
-        if (!baseIndex) return null;
         // Bevidst forskel: Reguleringstabellen (satser) må starte tidligere end TAF ved tidlig reguleringsdato.
         const reguleringTableStartIso = resolveReguleringTableStartIso(reguleringsdato, tafStartIso);
 
         if (loenudviklingBasis === 'Overenskomst') {
+            const overenskomstTableStartIso = resolveOverenskomstEffectiveStartIso(af.overenskomstId, reguleringTableStartIso);
             const offentligSelection = resolveOffentligLoenSelection(af);
             if (offentligSelection) {
-              const fraDato = isoToDanish(reguleringTableStartIso);
+              const fraDato = isoToDanish(overenskomstTableStartIso);
               const tilDato = isoToDanish(tafEndIso);
               if (!fraDato || !tilDato) return null;
 
@@ -1615,7 +1680,7 @@ const EODebug = () => {
                 });
               };
 
-              addRow(reguleringTableStartIso, baseResult.maanedsLoen, baseResult.timeLoen);
+              addRow(overenskomstTableStartIso, baseResult.maanedsLoen, baseResult.timeLoen);
 
               const laterSatser = satser
                 .map((entry) => {
@@ -1624,13 +1689,13 @@ const EODebug = () => {
                   return { iso, maanedsLoen: entry.maanedsLoen, timeLoen: entry.timeLoen };
                 })
                 .filter((entry): entry is Readonly<{ iso: ISODateString; maanedsLoen: number; timeLoen: number }> => Boolean(entry))
-                .filter((entry) => entry.iso > reguleringTableStartIso)
+                .filter((entry) => entry.iso > overenskomstTableStartIso)
                 .sort((a, b) => (a.iso < b.iso ? -1 : 1));
 
               if (
                 harAnciennitetstillaeg &&
                 anciennitetDatoIso &&
-                anciennitetDatoIso > reguleringTableStartIso &&
+                anciennitetDatoIso > overenskomstTableStartIso &&
                 anciennitetDatoIso <= tafEndIso &&
                 !laterSatser.some((entry) => entry.iso === anciennitetDatoIso)
               ) {
@@ -1661,10 +1726,10 @@ const EODebug = () => {
             }
             const isAlmindeligLoen = af.loenPaaHelligdage === loenPaaHelligdageSchema.enum['Almindelig løn'];
             const applyStoreBededagRegulering =
-              isAlmindeligLoen && reguleringTableStartIso < STORE_BEDEDAG_START && tafEndIso >= STORE_BEDEDAG_START;
+              isAlmindeligLoen && overenskomstTableStartIso < STORE_BEDEDAG_START && tafEndIso >= STORE_BEDEDAG_START;
             const overenskomstRef = af.overenskomstId ? resolveOverenskomstRef(af.overenskomstId) : undefined;
             if (!overenskomstRef) return null;
-            const fraDato = isoToDanish(reguleringTableStartIso);
+            const fraDato = isoToDanish(overenskomstTableStartIso);
             const tilDato = isoToDanish(tafEndIso);
             if (!fraDato || !tilDato) return null;
             const satser = getEffektiveSatserForPeriode({
@@ -1707,7 +1772,7 @@ const EODebug = () => {
               .sort((a, b) => (a.iso < b.iso ? -1 : 1));
 
             const baseSats = [...satsWithIso]
-              .filter((entry) => entry.iso <= reguleringTableStartIso)
+              .filter((entry) => entry.iso <= overenskomstTableStartIso)
               .sort((a, b) => (a.iso < b.iso ? 1 : -1))[0];
             if (!baseSats) return null;
 
@@ -1733,9 +1798,9 @@ const EODebug = () => {
               });
             };
 
-            addRow(reguleringTableStartIso, baseSats.sats, 0);
+            addRow(overenskomstTableStartIso, baseSats.sats, 0);
 
-            const laterSatser = satsWithIso.filter((entry) => entry.iso > reguleringTableStartIso);
+            const laterSatser = satsWithIso.filter((entry) => entry.iso > overenskomstTableStartIso);
             let storeBededagInserted = false;
 
             for (const entry of laterSatser) {
@@ -1747,7 +1812,7 @@ const EODebug = () => {
               addRow(entry.iso, entry.sats, bededagPct);
             }
 
-            if (applyStoreBededagRegulering && !storeBededagInserted && STORE_BEDEDAG_START > reguleringTableStartIso && STORE_BEDEDAG_START <= tafEndIso) {
+            if (applyStoreBededagRegulering && !storeBededagInserted && STORE_BEDEDAG_START > overenskomstTableStartIso && STORE_BEDEDAG_START <= tafEndIso) {
               addRow(STORE_BEDEDAG_START, baseSats.sats, STORE_BEDEDAG_PCT);
             }
 
@@ -2532,8 +2597,8 @@ const EODebug = () => {
         )}
       </ContentBox>
 
-      
-      
+
+
       {beregnesTabtArbejdsfortjeneste && (
         <ContentBox className="content-box">
         <Typography className="section-header">TAF beregningsgrundlag</Typography>
@@ -2721,7 +2786,7 @@ const EODebug = () => {
       </ContentBox>
       )}
 
-      
+
       {beregnesTabtArbejdsfortjeneste && (
         <ContentBox className="content-box">
         <Typography className="section-header">Kontrol af indkomstoplysninger</Typography>
@@ -2902,7 +2967,7 @@ const EODebug = () => {
           return (
             <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
               <Typography className="row--text">{row.label}</Typography>
-              <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+              <Box className="row--label-right-hover__content" sx={{ gap: '100px' }}>
                 <Typography className="row--text">{row.displayValue}</Typography>
                 {getStatusIcon(row.status)}
               </Box>

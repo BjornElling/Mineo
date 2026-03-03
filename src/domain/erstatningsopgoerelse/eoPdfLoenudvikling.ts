@@ -897,7 +897,7 @@ const buildLoenudviklingFromOverenskomstV3 = (
       shSoPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.shSoSats, konsolideret.shSoPct),
       fritvalgPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.fritvalg, konsolideret.fritvalgPct),
       pensionPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.agPension, konsolideret.pensionPct),
-      storeBededagPct: applyShRegel && offentligEffectiveBase.startIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0,
+      storeBededagPct: applyShRegel && reguleringsdatoIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0,
     });
     if (!Number.isFinite(basePackage) || basePackage <= 0) {
       throw new Error('Loenudvikling kan ikke beregnes: basispakke er ugyldig');
@@ -952,7 +952,16 @@ const buildLoenudviklingFromOverenskomstV3 = (
           offentlig.loentrin,
           offentlig.loengruppe
         );
-        if (segment.fra < offentligEffectiveBase.startIso || !segmentResult) {
+        // Decision note: Vi bruger første tilgængelige sats som proxy i intervallet
+        // [STORE_BEDEDAG_START, effectiveBase.startIso) for at kunne materialisere
+        // den særskilte Store Bededag-regulering fra 01-01-2024 uden at antage
+        // øvrige lønstigninger før første dækkede satsdato.
+        const useFallbackBaseBeforeCoverage =
+          applyShRegel &&
+          segment.fra >= STORE_BEDEDAG_START &&
+          segment.fra < offentligEffectiveBase.startIso;
+        const effectiveSegmentResult = segmentResult ?? (useFallbackBaseBeforeCoverage ? offentligEffectiveBase.result : undefined);
+        if (!effectiveSegmentResult || (segment.fra < offentligEffectiveBase.startIso && !useFallbackBaseBeforeCoverage)) {
           segments.push(buildZeroDeltaSegment(segment));
           continue;
         }
@@ -962,8 +971,8 @@ const buildLoenudviklingFromOverenskomstV3 = (
           applyShRegel
         );
         const segmentLoenRaw = offentlig.loenType === 'maanedsLoen'
-          ? segmentResult.maanedsLoen
-          : segmentResult.timeLoen;
+          ? effectiveSegmentResult.maanedsLoen
+          : effectiveSegmentResult.timeLoen;
         const segmentLoen = ensurePositiveFiniteNumberV3(segmentLoenRaw, 'Loenudvikling kan ikke beregnes: ugyldig segmentgrundloen');
         const anciennitetAktiv = Boolean(anciennitetForIndex && segment.fra >= anciennitetForIndex.activeFromIso);
         const grundloenForSegmentBase = segmentLoen + offentligLoenEkstraGrundloen;
@@ -1035,7 +1044,7 @@ const buildLoenudviklingFromOverenskomstV3 = (
     shSoPct: typeof privateEffectiveBase.sats.shSoSats === 'number' ? privateEffectiveBase.sats.shSoSats * 100 : 0,
     fritvalgPct: typeof privateEffectiveBase.sats.fritvalg === 'number' ? privateEffectiveBase.sats.fritvalg * 100 : 0,
     pensionPct: typeof privateEffectiveBase.sats.agPension === 'number' ? privateEffectiveBase.sats.agPension * 100 : 0,
-    storeBededagPct: applyShRegel && privateEffectiveBase.startIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0,
+    storeBededagPct: applyShRegel && reguleringsdatoIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0,
   });
   if (!Number.isFinite(basePackage) || basePackage <= 0) {
     throw new Error('Loenudvikling kan ikke beregnes: basispakke er ugyldig');
@@ -1081,25 +1090,32 @@ const buildLoenudviklingFromOverenskomstV3 = (
         dato: segmentDa,
         applyAlmindeligLoenPaaShDageRegel: applyShRegel,
       });
-      if (segment.fra < privateEffectiveBase.startIso || !sats) {
+      // Decision note: Samme proxy-regel som i offentlig sti.
+      // Re-evalueres hvis domænet kræver streng 0-delta for hele ude-dækningsintervallet.
+      const useFallbackBaseBeforeCoverage =
+        applyShRegel &&
+        segment.fra >= STORE_BEDEDAG_START &&
+        segment.fra < privateEffectiveBase.startIso;
+      const effectiveSats = sats ?? (useFallbackBaseBeforeCoverage ? privateEffectiveBase.sats : undefined);
+      if (!effectiveSats || (segment.fra < privateEffectiveBase.startIso && !useFallbackBaseBeforeCoverage)) {
         segments.push(buildZeroDeltaSegment(segment));
         continue;
       }
-      if (typeof sats.grundloen !== 'number') {
+      if (typeof effectiveSats.grundloen !== 'number') {
         throw new Error('Loenudvikling kan ikke beregnes: mangler sats for segment');
       }
-      ensurePositiveFiniteNumberV3(sats.grundloen, 'Loenudvikling kan ikke beregnes: ugyldig segmentgrundloen');
+      ensurePositiveFiniteNumberV3(effectiveSats.grundloen, 'Loenudvikling kan ikke beregnes: ugyldig segmentgrundloen');
       const packageValue = computePackageValue({
         grundloen: (() => {
           const anciennitetAktiv = Boolean(anciennitetForIndex && segment.fra >= anciennitetForIndex.activeFromIso);
           return anciennitetAktiv && anciennitetForIndex
-            ? sats.grundloen + anciennitetForIndex.supplementValue
-            : sats.grundloen;
+            ? effectiveSats.grundloen + anciennitetForIndex.supplementValue
+            : effectiveSats.grundloen;
         })(),
         feriePct,
-        shSoPct: typeof sats.shSoSats === 'number' ? sats.shSoSats * 100 : 0,
-        fritvalgPct: typeof sats.fritvalg === 'number' ? sats.fritvalg * 100 : 0,
-        pensionPct: typeof sats.agPension === 'number' ? sats.agPension * 100 : 0,
+        shSoPct: typeof effectiveSats.shSoSats === 'number' ? effectiveSats.shSoSats * 100 : 0,
+        fritvalgPct: typeof effectiveSats.fritvalg === 'number' ? effectiveSats.fritvalg * 100 : 0,
+        pensionPct: typeof effectiveSats.agPension === 'number' ? effectiveSats.agPension * 100 : 0,
         storeBededagPct: applyShRegel && segment.fra >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0,
       });
       if (!Number.isFinite(packageValue) || packageValue <= 0) {

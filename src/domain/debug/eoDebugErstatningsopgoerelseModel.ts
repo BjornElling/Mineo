@@ -2928,7 +2928,7 @@ export const buildEODebugSaerligeKommentarerRows = (
   return [
     {
       id: 'saerligekommentarer',
-      label: harKommentarer ? 'Kommentarer' : '-',
+      label: harKommentarer ? '' : '-',
       displayValue: harKommentarer ? kommentarer.trim() : '-',
       status: 'ok',
     },
