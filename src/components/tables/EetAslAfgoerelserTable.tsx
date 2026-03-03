@@ -260,14 +260,21 @@ const EetAslAfgoerelserTable = React.memo(
                   />
                 </TableCell>
                 <TableCell>
-                  <TableDateInput
-                    gridCell={{ rowId: row.id, colIndex: 4 }}
-                    value={row.kapDato}
-                    onBlur={(e) => commitRowUpdate(row.id, { kapDato: e.target.value || undefined })}
-                    minDate={coerceToISODateString(row.afgoerelsesDato) ?? skadesdatoMin}
-                    maxDate={tabelKapitaliseringsdatoMax}
-                    externalErrorMessage={kapDatoError}
-                  />
+                  {(() => {
+                    const kapDatoMin = coerceToISODateString(row.afgoerelsesDato) ?? skadesdatoMin;
+                    const kapDatoMax = tabelKapitaliseringsdatoMax;
+                    const hasValidRange = !(kapDatoMax !== undefined && kapDatoMin > kapDatoMax);
+                    return (
+                      <TableDateInput
+                        gridCell={{ rowId: row.id, colIndex: 4 }}
+                        value={row.kapDato}
+                        onBlur={(e) => commitRowUpdate(row.id, { kapDato: e.target.value || undefined })}
+                        minDate={hasValidRange ? kapDatoMin : undefined}
+                        maxDate={hasValidRange ? kapDatoMax : undefined}
+                        externalErrorMessage={kapDatoError}
+                      />
+                    );
+                  })()}
                 </TableCell>
                 <TableCell>
                   <TablePercentInput
@@ -283,14 +290,20 @@ const EetAslAfgoerelserTable = React.memo(
                   />
                 </TableCell>
                 <TableCell>
-                  <TableDateInput
-                    gridCell={{ rowId: row.id, colIndex: 6 }}
-                    value={row.tidlKapDato}
-                    onBlur={(e) => commitRowUpdate(row.id, { tidlKapDato: e.target.value || undefined })}
-                    minDate={skadesdatoMin}
-                    maxDate={subtractOneDay(coerceToISODateString(row.afgoerelsesDato))}
-                    externalErrorMessage={tidlKapDatoError}
-                  />
+                  {(() => {
+                    const tidlKapMax = subtractOneDay(coerceToISODateString(row.afgoerelsesDato));
+                    const hasValidRange = !(tidlKapMax !== undefined && skadesdatoMin > tidlKapMax);
+                    return (
+                      <TableDateInput
+                        gridCell={{ rowId: row.id, colIndex: 6 }}
+                        value={row.tidlKapDato}
+                        onBlur={(e) => commitRowUpdate(row.id, { tidlKapDato: e.target.value || undefined })}
+                        minDate={hasValidRange ? skadesdatoMin : undefined}
+                        maxDate={hasValidRange ? tidlKapMax : undefined}
+                        externalErrorMessage={tidlKapDatoError}
+                      />
+                    );
+                  })()}
                 </TableCell>
               </TableRow>
             );

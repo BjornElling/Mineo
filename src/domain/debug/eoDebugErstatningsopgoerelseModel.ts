@@ -28,6 +28,7 @@ import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../dat
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/angivetLoenHelpers';
 import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../erstatningsopgoerelse/indtaegtPerioder';
+import { computeSvieSmerteEngine } from '../erstatningsopgoerelse/svieSmerteEngine';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
 
@@ -1227,11 +1228,27 @@ export const buildEODebugSvieSmerteRows = (
   // 8) Beregnet svie/smerte beløb
   const beregnetBeloebResult = (() => {
     if (!canonicalOutput) {
-      return {
-        displayValue: 'Fejl (Kan ikke beregne - canonical output utilgængeligt)',
-        status: 'error' as DebugStatus,
-        naetMaxIPerioden: false,
-      };
+      try {
+        const fallback = computeSvieSmerteEngine({
+          erstatningsopgoerelse: values,
+          stamdata: {
+            skadesdato: context.skadesdatoISO,
+            skadestype: context.erErhvervssygdom ? 'Erhvervssygdom' : undefined,
+          },
+        });
+
+        return {
+          displayValue: `${formatCurrency(fallback.totalOre / 100)} kr.`,
+          status: 'ok' as DebugStatus,
+          naetMaxIPerioden: fallback.maxApplied,
+        };
+      } catch {
+        return {
+          displayValue: 'Fejl (Kan ikke beregne - canonical output utilgængeligt)',
+          status: 'error' as DebugStatus,
+          naetMaxIPerioden: false,
+        };
+      }
     }
 
     return {
@@ -2917,4 +2934,3 @@ export const buildEODebugSaerligeKommentarerRows = (
     },
   ];
 };
-
