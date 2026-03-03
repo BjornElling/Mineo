@@ -17,6 +17,7 @@ import { TODAY } from '../../config/dateRanges';
 import type jsPDF from 'jspdf';
 import { roundByMethod } from '../rounding';
 import { logWarning } from '../logger';
+import { formatDateLong } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import {
   formatCountWithUnit,
   formatCurrencyFromOre,
@@ -145,6 +146,14 @@ export const generateTafFordeltPaaAarPdf = (
       writer.writeWrappedText(line);
     }
   }
+  if (model.forlig.erIndgaaet) {
+    writer.writeSubheader('Forlig', lineHeight);
+    const forligDatoTekst = model.forlig.dato ? `den ${formatDateLong(model.forlig.dato)}` : null;
+    const forligTekst = forligDatoTekst
+      ? `Der er ${forligDatoTekst} indgået forlig i sagen på betaling af ${model.forlig.label}.`
+      : `Der er indgået forlig i sagen på betaling af ${model.forlig.label}.`;
+    writer.writeWrappedText(forligTekst);
+  }
 
   if (!presentation) {
     writer.writeSubheader('TAF fordelt på kalenderår', lineHeight);
@@ -192,7 +201,12 @@ export const generateTafFordeltPaaAarPdf = (
 
     // I alt for året
     const iAltRightText = ensureNonBreakingKr(formatMoneyOreWithKr(yearEntry.yearTafOre));
-    writer.writeLeftRightText('I alt', iAltRightText, {
+    const iAltLeftText = (() => {
+      if (!model.forlig.erIndgaaet) return 'I alt';
+      const foerForligOre = yearEntry.yearTafFoerForligOre;
+      return `I alt (${model.forlig.label} af ${formatMoneyOreWithKr(foerForligOre)})`;
+    })();
+    writer.writeLeftRightText(iAltLeftText, iAltRightText, {
       rightFontStyle: 'normal',
       lineAboveRightWidth: 33.125,
       lineAboveRightOffset: 4,

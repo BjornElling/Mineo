@@ -151,6 +151,53 @@ describe('buildTafPerYearResult', () => {
     expect(result.years[0].segments[0].kind).toBe('arbejdsdage');
   });
 
+  it('anvender forligsgrad kun på års-I alt (segmenter forbliver fulde)', () => {
+    const baseValues = makeValues({
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmountValue(1000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-02'), til: iso('2024-01-03'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+        },
+      ],
+    });
+    const withForlig = makeValues({
+      ...baseValues,
+      forligAnsvarsgradProcent: 50,
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const baseModel = buildErstatningsopgoerelsePdfModel(stamdata, baseValues, { dagsDatoISO });
+    const forligModel = buildErstatningsopgoerelsePdfModel(stamdata, withForlig, { dagsDatoISO });
+
+    const baseResult = buildTafPerYearResult(baseModel, baseValues);
+    const forligResult = buildTafPerYearResult(forligModel, withForlig);
+    expect(baseResult).not.toBeNull();
+    expect(forligResult).not.toBeNull();
+    if (!baseResult || !forligResult) return;
+
+    assertTotals(baseResult);
+    assertTotals(forligResult);
+    expect(baseResult.years).toHaveLength(1);
+    expect(forligResult.years).toHaveLength(1);
+    expect(baseResult.years[0].segments).toHaveLength(1);
+    expect(forligResult.years[0].segments).toHaveLength(1);
+
+    const baseSeg = baseResult.years[0].segments[0];
+    const forligSeg = forligResult.years[0].segments[0];
+
+    expect(forligSeg.unitAmountOre).toBe(baseSeg.unitAmountOre);
+    expect(forligSeg.amountOre).toBe(baseSeg.amountOre);
+    expect(forligResult.years[0].yearTafFoerForligOre).toBe(baseResult.years[0].yearTafOre);
+    expect(forligResult.years[0].yearTafOre).toBe(Math.round(baseResult.years[0].yearTafOre * 0.5));
+    expect(forligResult.samletTafKravOre).toBe(Math.round(baseResult.samletTafKravOre * 0.5));
+  });
+
   it('segment der krydser kalenderår → splittes korrekt', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet dagsløn',

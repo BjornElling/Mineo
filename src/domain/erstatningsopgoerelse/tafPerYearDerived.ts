@@ -30,6 +30,7 @@ import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { buildTafRanges, buildIncomeCalculationContext, buildIncomeForRanges } from './indtaegtPerioder';
 import { TAF_BEREGNES_SOM } from './tafBeregningsenhed';
 import { roundByMethod } from '../../utils/rounding';
+import { scaleMoneyOre } from './eoPdfMoneyUtils';
 
 /**
  * Beregner antal måneder i et inklusivt range uden SH-/feriedagsjusteringer.
@@ -70,6 +71,7 @@ export type TafYearEntry = Readonly<{
   deductions: readonly TafYearDeduction[];
   yearIncomeOre: MoneyOre;
   yearDeductionsOre: MoneyOre;
+  yearTafFoerForligOre: MoneyOre;
   yearTafOre: MoneyOre;
 }>;
 
@@ -247,6 +249,7 @@ export const buildTafPerYearResult = (
   if (loenudvikling.loenudviklingTotal.status !== 'ok') return null;
 
   const samletTafKravOre = clampMoneyOreToZero(taf.tabtArbejdsfortjenesteOre);
+  const forligFactor = model.forlig?.factor ?? null;
   const isArbejdsdage = taf.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE;
   const tafArbejdsdageSet = isArbejdsdage ? buildTafArbejdsdageSet(eoValues) : null;
 
@@ -334,7 +337,10 @@ export const buildTafPerYearResult = (
 
     const yearIncomeOre = segments.reduce((sum, s) => sum + s.amountOre, 0) as MoneyOre;
     const yearDeductionsOre = deductions.reduce((sum, d) => sum + d.amountOre, 0) as MoneyOre;
-    const yearTafOre = (yearIncomeOre - yearDeductionsOre) as MoneyOre;
+    const yearTafFoerForligOre = (yearIncomeOre - yearDeductionsOre) as MoneyOre;
+    const yearTafOre = forligFactor !== null
+      ? scaleMoneyOre(yearTafFoerForligOre, forligFactor)
+      : yearTafFoerForligOre;
 
     years.push({
       year,
@@ -342,6 +348,7 @@ export const buildTafPerYearResult = (
       deductions,
       yearIncomeOre,
       yearDeductionsOre,
+      yearTafFoerForligOre,
       yearTafOre,
     });
   }

@@ -83,26 +83,24 @@ export const buildErstatningsopgoerelsePdfModel = (
       erIndgaaet: true,
       label: parsedForlig.label,
       dato: safeEo.forligDato ?? null,
+      factor: parsedForlig.factor,
     } as const
     : {
       erIndgaaet: false,
       label: null,
       dato: null,
+      factor: null,
     } as const;
-  const forligFactor = parsedForlig?.factor ?? null;
-  if (forlig.erIndgaaet && forligFactor === null) {
-    throw new Error('Forlig-faktor mangler i forligs-model');
-  }
 
-  const tabtArbejdsfortjenesteOre = forlig.erIndgaaet && forligFactor !== null
-    ? clampMoneyOreToZero(scaleMoneyOre(tabtArbejdsfortjenesteRaw.tabtArbejdsfortjenesteOre, forligFactor))
+  const tabtArbejdsfortjenesteOre = forlig.erIndgaaet
+    ? clampMoneyOreToZero(scaleMoneyOre(tabtArbejdsfortjenesteRaw.tabtArbejdsfortjenesteOre, forlig.factor))
     : tabtArbejdsfortjenesteRaw.tabtArbejdsfortjenesteOre;
   const tabtArbejdsfortjeneste = {
     ...tabtArbejdsfortjenesteRaw,
     tabtArbejdsfortjenesteOre,
   };
-  const oevrigeKravOre = forlig.erIndgaaet && forligFactor !== null
-    ? clampMoneyOreToZero(scaleMoneyOre(oevrigeKravRaw.totalFoerForligOre, forligFactor))
+  const oevrigeKravOre = forlig.erIndgaaet
+    ? clampMoneyOreToZero(scaleMoneyOre(oevrigeKravRaw.totalFoerForligOre, forlig.factor))
     : oevrigeKravRaw.totalFoerForligOre;
   const oevrigeKrav = {
     ...oevrigeKravRaw,

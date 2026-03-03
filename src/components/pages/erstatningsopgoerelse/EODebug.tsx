@@ -2254,6 +2254,52 @@ const EODebug = () => {
       ?.find((row) => (row.id as string) === 'taf.beregningsgrundlag.indkomst');
   }, [rowsBySection]);
 
+  const forligRows = React.useMemo(() => rowsBySection.get('forlig') ?? [], [rowsBySection]);
+  const forligAnsvarsgradProcentRow = React.useMemo(
+    () => forligRows.find((row) => (row.id as string) === 'forlig.ansvarsgradProcent'),
+    [forligRows]
+  );
+  const forligAnsvarsgradBroekRow = React.useMemo(
+    () => forligRows.find((row) => (row.id as string) === 'forlig.ansvarsgradBroek'),
+    [forligRows]
+  );
+  const forligBeregnetAnsvarsgradRow = React.useMemo(
+    () => forligRows.find((row) => (row.id as string) === 'forlig.beregnetAnsvarsgrad'),
+    [forligRows]
+  );
+  const forligDatoRow = React.useMemo(
+    () => forligRows.find((row) => (row.id as string) === 'forlig.dato'),
+    [forligRows]
+  );
+
+  const harForligAnsvarsgradProcentInput = typeof erstatningsopgoerelseValues.forligAnsvarsgradProcent === 'number';
+  const harForligAnsvarsgradBroekInput =
+    typeof erstatningsopgoerelseValues.forligAnsvarsgradBroek === 'string' &&
+    erstatningsopgoerelseValues.forligAnsvarsgradBroek.trim() !== '';
+  const harForligDatoInput =
+    typeof erstatningsopgoerelseValues.forligDato === 'string' &&
+    erstatningsopgoerelseValues.forligDato.trim() !== '';
+  const harBeggeForligAnsvarsgraderInput = harForligAnsvarsgradProcentInput && harForligAnsvarsgradBroekInput;
+  const skalViseAfledteForligRows =
+    harForligAnsvarsgradProcentInput || harForligAnsvarsgradBroekInput || harForligDatoInput;
+
+  const forligAnsvarsgradSamletDisplayValue = harBeggeForligAnsvarsgraderInput
+    ? 'Begge indtastet'
+    : harForligAnsvarsgradProcentInput
+      ? (forligAnsvarsgradProcentRow?.displayValue ?? '-')
+      : harForligAnsvarsgradBroekInput
+        ? (forligAnsvarsgradBroekRow?.displayValue ?? '-')
+        : '-';
+  const forligAnsvarsgradSamletStatus: DebugStatus = harBeggeForligAnsvarsgraderInput
+    ? 'error'
+    : harForligAnsvarsgradProcentInput
+      ? (forligAnsvarsgradProcentRow?.status ?? 'ok')
+      : harForligAnsvarsgradBroekInput
+        ? (forligAnsvarsgradBroekRow?.status ?? 'ok')
+        : (forligBeregnetAnsvarsgradRow?.status ?? 'ok');
+  const skalViseAfledteForligRowsUdenFejl =
+    skalViseAfledteForligRows && forligAnsvarsgradSamletStatus !== 'error';
+
   return (
     <Box>
       <ContentBox className="content-box">
@@ -2275,17 +2321,33 @@ const EODebug = () => {
       <ContentBox className="content-box">
         <Typography className="section-header">Forlig</Typography>
 
-        {rowsBySection.get('forlig')?.map((row) => {
-          return (
-            <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
-              <Typography className="row--text">{row.label}</Typography>
-              <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-                <Typography className="row--text">{row.displayValue}</Typography>
-                {getStatusIcon(row.status)}
-              </Box>
+        <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+          <Typography className="row--text">Forlig om ansvarsgrad, procent/brøk</Typography>
+          <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+            <Typography className="row--text">{forligAnsvarsgradSamletDisplayValue}</Typography>
+            {getStatusIcon(forligAnsvarsgradSamletStatus)}
+          </Box>
+        </Box>
+
+        {skalViseAfledteForligRowsUdenFejl && forligBeregnetAnsvarsgradRow ? (
+          <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+            <Typography className="row--text">{forligBeregnetAnsvarsgradRow.label}</Typography>
+            <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+              <Typography className="row--text">{forligBeregnetAnsvarsgradRow.displayValue}</Typography>
+              {getStatusIcon(forligBeregnetAnsvarsgradRow.status)}
             </Box>
-          );
-        })}
+          </Box>
+        ) : null}
+
+        {skalViseAfledteForligRowsUdenFejl && forligDatoRow ? (
+          <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+            <Typography className="row--text">{forligDatoRow.label}</Typography>
+            <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+              <Typography className="row--text">{forligDatoRow.displayValue}</Typography>
+              {getStatusIcon(forligDatoRow.status)}
+            </Box>
+          </Box>
+        ) : null}
       </ContentBox>
 
       <ContentBox className="content-box">
@@ -2601,7 +2663,10 @@ const EODebug = () => {
             (row) =>
               (row.id as string) === 'taf.beregningsgrundlag.beregnesUdFra' ||
               (row.id as string) === 'taf.beregnesSom' ||
-              (row.id as string) === 'taf.beregningsgrundlag.beregningsperiode'
+              (
+                (row.id as string) === 'taf.beregningsgrundlag.beregningsperiode' &&
+                erstatningsopgoerelseValues.beregnesUdFra === 'Beregningsperiode'
+              )
           )
           .map((row) => {
             return (

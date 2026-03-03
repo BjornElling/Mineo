@@ -40,11 +40,13 @@ export type ForligPdfModel =
     erIndgaaet: false;
     label: null;
     dato: null;
+    factor: null;
   }>
   | Readonly<{
     erIndgaaet: true;
     label: string;
     dato: ISODateString | null;
+    factor: number;
   }>;
 
 export type SvieSmertePdfModel = Readonly<{

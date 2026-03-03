@@ -31,6 +31,7 @@ import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../erstatning
 import { computeSvieSmerteEngine } from '../erstatningsopgoerelse/svieSmerteEngine';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
+import { parseForligsgrad } from '../erstatningsopgoerelse/forligsgrad';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -876,28 +877,9 @@ export const buildEODebugSvieSmerteRows = (
       return { label: 'Satser per dag/max', displayValue: `Fejl (Ingen satser for år ${aar})`, status: 'error' as DebugStatus };
     }
 
-    // Beregn forligsgrad hvis den er udfyldt
-    const procentValue = values.forligAnsvarsgradProcent;
-    const broekValue = values.forligAnsvarsgradBroek;
-
-    let forligsgrad: number | undefined = undefined;
-    let forligLabel = '';
-
-    if (typeof procentValue === 'number') {
-      forligsgrad = procentValue / 100;
-      forligLabel = ` (forlig på ${procentValue}%)`;
-    } else if (isNonEmptyString(broekValue)) {
-      // Parse brøk direkte for at undgå afrunding
-      const parts = broekValue.trim().split('/');
-      if (parts.length === 2) {
-        const taeller = parseFloat(parts[0]);
-        const naevner = parseFloat(parts[1]);
-        if (!isNaN(taeller) && !isNaN(naevner) && naevner !== 0) {
-          forligsgrad = taeller / naevner;
-          forligLabel = ` (forlig på ${broekValue})`;
-        }
-      }
-    }
+    const parsedForlig = parseForligsgrad(values);
+    const forligsgrad = parsedForlig?.factor;
+    const forligLabel = parsedForlig ? ` (forlig på ${parsedForlig.label})` : '';
 
     // Reducer satser hvis der er forlig
     const actualSatsPerDag = forligsgrad !== undefined ? satsPerDag * forligsgrad : satsPerDag;

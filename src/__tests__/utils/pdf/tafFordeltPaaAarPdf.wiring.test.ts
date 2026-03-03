@@ -63,6 +63,7 @@ const FAKE_MODEL = {
   periodeDisplay: '01-01-2024 - 31-12-2024',
   skadelidteNavn: 'Test Person',
   skadestypeLinje: 'Arbejdsulykke den 1. januar 2024',
+  forlig: { erIndgaaet: false, label: null, dato: null, factor: null },
   tabtArbejdsfortjeneste: {
     statusLinjer: ['Status: aktiv'],
     eetLinjer: [],
@@ -93,6 +94,7 @@ const FAKE_RESULT: TafPerYearResult = {
       ],
       yearIncomeOre: 50000000 as MoneyOre,
       yearDeductionsOre: 12500000 as MoneyOre,
+      yearTafFoerForligOre: 37500000 as MoneyOre,
       yearTafOre: 37500000 as MoneyOre,
     },
   ],
@@ -195,5 +197,34 @@ describe('tafFordeltPaaAarPdf wiring', () => {
     const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
     expect(renderedText).toContain('Allerede betalt TAF');
     expect(renderedText).toContain(`- 25.000,00\u00A0kr.`);
+  });
+
+  it('viser forlig-sektion og forlig-reference i "I alt"-linjen når forlig er indgået', async () => {
+    buildErstatningsopgoerelsePdfModelMock.mockReturnValue({
+      ...FAKE_MODEL,
+      forlig: { erIndgaaet: true, label: '50%', dato: '2024-04-01', factor: 0.5 },
+    });
+    buildTafPerYearResultMock.mockReturnValue({
+      ...FAKE_RESULT,
+      years: [
+        {
+          ...FAKE_RESULT.years[0],
+          yearTafFoerForligOre: 37500000 as MoneyOre,
+          yearTafOre: 18750000 as MoneyOre,
+        },
+      ],
+    });
+
+    const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
+
+    generateTafFordeltPaaAarPdf({} as any, {} as any);
+    const instance = MockJsPDF.instances.at(-1);
+    expect(instance).toBeDefined();
+
+    const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
+    expect(renderedText).toContain('Forlig');
+    expect(renderedText.some((text) => String(text).includes('indgået forlig i sagen på betaling af 50%.'))).toBe(true);
+    expect(renderedText.some((text) => String(text).includes('I alt (50% af'))).toBe(true);
+    expect(renderedText).toContain(`187.500,00\u00A0kr.`);
   });
 });
