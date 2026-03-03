@@ -125,8 +125,11 @@ const broekTilProcent = (broek: string | undefined): number | undefined => {
 
   if (isNaN(taeller) || isNaN(naevner) || naevner === 0) return undefined;
 
-  return Math.round((taeller / naevner) * 100);
+  return (taeller / naevner) * 100;
 };
+
+const formatPercentUpToTwoDecimals = (value: number): string =>
+  `${value.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`;
 
 const getYearAfterAddingOneMonth = (isoDate: ISODateString | undefined): number | undefined => {
   if (!isoDate) return undefined;
@@ -253,11 +256,11 @@ export const buildEODebugForligRows = (
   let beregnetAnsvarsgrad: string = '-';
   if (!harFejl) {
     if (typeof procentValue === 'number') {
-      beregnetAnsvarsgrad = `${procentValue}%`;
+      beregnetAnsvarsgrad = formatPercentUpToTwoDecimals(procentValue);
     } else if (isNonEmptyString(broekValue)) {
       const procent = broekTilProcent(broekValue);
       if (procent !== undefined) {
-        beregnetAnsvarsgrad = `${procent}%`;
+        beregnetAnsvarsgrad = formatPercentUpToTwoDecimals(procent);
       }
     }
   }
