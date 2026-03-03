@@ -352,16 +352,23 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       id:               toOverenskomstId('el-overenskomsten'),
       navn:             'El-overenskomsten',
       loenmodtagerOrg:  ['Dansk El-Forbund'],
-      arbejdsgiverOrg:  ['Dansk Industri'],
+      arbejdsgiverOrg:  ['Dansk Industri', 'Dansk Byggeri'],
       grundloenAngivetPer: 'Time',
     },
     satser: satserFromTable(
-      { sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { sfgg: null },
       [
-        // fraDato          │ Grundløn         │ SH/SO-sats          │ Fritvalg            │ AG-pens.
-        ['01-03-2027',            146.85,             0.099,              0.0700,            0.1100 ],
-        ['01-03-2026',            143.35,             0.099,              0.0600,            0.1100 ],
-        ['01-05-2025',            139.85,             0.099,              0.0500,            0.1100 ]
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ Fritvalg            │ AG-pens.         │ SFGG Fagl.Kbh    │ SFGG Fagl.Prov   │ SFGG Ufagl.Kbh   │ SFGG Ufagl.Prov
+        ['01-03-2027',            146.85,             0.099,              0.0700,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
+        ['01-03-2026',            143.35,             0.099,              0.0600,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
+        ['01-05-2025',            139.85,             0.099,              0.0500,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
+        ['01-03-2024',            136.10,             0.099,              0.0500,            0.1015,            207.90,            195.90,            184.45,            186.45 ],
+        ['01-01-2024',            136.10,             0.099,              0.0300,            0.1015,            204.25,            190.75,            185.40,            183.90 ],
+        ['01-06-2023',            131.60,             0.099,              0.0300,            0.1015,            204.25,            190.75,            185.40,            183.90 ],
+        ['01-05-2023',            131.60,             0.099,              0.0300,            0.0815,            204.25,            190.75,            185.40,            183.90 ],
+        ['01-03-2022',            127.10,             0.099,              0.0300,            0.0815,            201.50,            187.20,            179.60,            179.60 ],
+        ['01-01-2021',            124.60,             0.099,              0.0200,            0.0815,            199.75,            184.60,            176.60,            178.45 ],
+        ['01-05-2020',            122.10,             0.099,              0.0100,            0.0815,            198.40,            182.90,            173.00,            175.40 ]
       ]
     ),
   },

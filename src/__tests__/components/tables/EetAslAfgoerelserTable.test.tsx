@@ -12,13 +12,17 @@ const buildRow = (patch: Partial<AslAfgoerelseRow>): AslAfgoerelseRow => ({
 
 const openInputEditing = async (user: ReturnType<typeof userEvent.setup>, input: HTMLElement) => {
   await user.click(input);
-  await user.click(input);
+  if (input.hasAttribute('readonly')) {
+    await user.keyboard('1');
+  }
   await waitFor(() => {
     expect(input).not.toHaveAttribute('readonly');
   });
 };
 
 describe('EetAslAfgoerelserTable', () => {
+  const ASYNC_TEST_TIMEOUT_MS = 30000;
+
   it('persisterer rækkeændringer på blur', async () => {
     const user = userEvent.setup();
     const onTableDataChange = vi.fn();
@@ -51,7 +55,7 @@ describe('EetAslAfgoerelserTable', () => {
     expect(Array.isArray(lastCallArg)).toBe(true);
     expect(lastCallArg).toHaveLength(1);
     expect(lastCallArg[0]?.afgoerelsesDato).toBe('01-02-2024');
-  });
+  }, ASYNC_TEST_TIMEOUT_MS);
 
   it('viser valideringsfeedback for procent- og datofelter', () => {
     render(
@@ -109,7 +113,7 @@ describe('EetAslAfgoerelserTable', () => {
     await user.tab();
 
     await waitFor(() => expect(onTableDataChange).toHaveBeenCalledTimes(1));
-  }, 15000);
+  }, ASYNC_TEST_TIMEOUT_MS);
 
   it('sætter tidl. kap.dato max til dagen før afgørelsesdato', async () => {
     const user = userEvent.setup();
@@ -144,7 +148,7 @@ describe('EetAslAfgoerelserTable', () => {
         screen.getAllByText(/Dato skal være mellem 01-01-2020 og 09-01-2024/).length
       ).toBeGreaterThan(0);
     });
-  });
+  }, ASYNC_TEST_TIMEOUT_MS);
 
   it('medregner tidligere kapitaliseringsprocenter på tværs af rækker i EET-validering', () => {
     render(

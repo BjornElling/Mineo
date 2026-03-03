@@ -6,6 +6,12 @@ import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitia
 import type { LoenudviklingPdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
 import { buildErstatningsopgoerelsePdfModel, ensureMoneyOre, resolveLoenudviklingRowsV3 } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
+import * as statistikRatesData from '../../../data/statistiskLoenudviklingRates';
+import * as krlRatesData from '../../../data/KRLrates';
+import * as overenskomstRatesData from '../../../data/overenskomstRates';
+import * as offentligLoenLookupData from '../../../data/offentligLoenLookup';
+import type { OffentligLoenResultat } from '../../../data/offentligLoenTypes';
+import { aarsloenMax } from '../../../data/regulationRates';
 import { calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/tafCalculations';
 import { beregningsmetodeEnum, loenPaaHelligdageSchema, loenudviklingStatistikModelEnum } from '../../../schemas/formSchemas';
 import { roundByMethod } from '../../../utils/rounding';
@@ -854,12 +860,12 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     expect((loenudvikling?.beregnedeSegmenter ?? [])[0]?.fra).toBe('2024-05-01');
   });
 
-  it('afviser offentlig overenskomst-regulering før 01-01-2012', () => {
+  it('tillader offentlig overenskomst-regulering før 01-01-2012 med fallback-segmenter', () => {
     const eoValues = makeValues({
       beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
       maanedsloenenUdgoer: asAmountValue(32000),
       tafPerioder: [
-        { id: 'taf-1', fra: iso('2024-05-01'), til: iso('2024-06-30'), loseFeriedage: undefined },
+        { id: 'taf-1', fra: iso('2010-01-01'), til: iso('2013-12-31'), loseFeriedage: undefined },
       ],
       loenindkomstAnsaettelsesforhold: [
         {
@@ -877,8 +883,10 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2011-12-31') });
 
-    expect(() => buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-19') }))
-      .toThrow('Offentlig overenskomst kan ikke reguleres før 01-01-2012');
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-19') });
+    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
+    expect(segments.some((segment) => segment.fra === '2010-01-01' && segment.deltaPct === 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra >= '2012-01-01')).toBe(true);
   });
 
   it('bruger samme lønudviklingsresultat for angivet månedsløn uanset persisted anciennitet sats-per (resolver-immunitet)', () => {
@@ -1723,6 +1731,364 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     expect(indkomst?.maanedsloen.status).toBe('ok');
     if (indkomst?.maanedsloen.status === 'ok') {
       expect(indkomst.maanedsloen.value).toBe(100000);
+    }
+  });
+
+  it.each([
+    ['Angivet månedsløn'],
+    ['Angivet dagsløn'],
+  ] as const)('anvender statistik-fallback (variant B) for manglende basisdækning ved %s', (beregningsmetode) => {
+    const baseAf = {
+      ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+      loenudviklingBeregningsgrundlag: 'Statistik' as const,
+      loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
+      indtaegtsoplysningerTableData: [
+        {
+          id: 'r1',
+          col0_maaned: '6',
+          col1_maaned: '2000',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '',
+          col1_dag: '',
+          col2: asAmountValue(10000),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+      ],
+    };
+
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetode,
+      maanedsloenenUdgoer: beregningsmetode === 'Angivet månedsløn' ? asAmountValue(32000) : undefined,
+      dagsloenenUdgoer: beregningsmetode === 'Angivet dagsløn' ? asAmountValue(1500) : undefined,
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2004-01-01'), til: iso('2006-12-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2004',
+          tilDato: '01-01-2004',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [baseAf],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2000-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
+    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
+
+    const firstSegment = segments.find((segment) => segment.fra === '2004-01-01');
+    expect(firstSegment?.deltaPct).toBe(0);
+    expect(segments.some((segment) => segment.fra >= '2006-01-01' && segment.deltaPct > 0)).toBe(true);
+  });
+
+  it('anvender statistik-fallback (variant B) for manglende basisdækning ved Beregningsperiode', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: iso('2023-01-01'),
+      periodeTilBeregningTil: iso('2023-12-31'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2004-01-01'), til: iso('2006-12-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2004',
+          tilDato: '01-01-2004',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Statistik',
+          loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
+          saerligFraDatoRegulering: iso('2000-01-01'),
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'row-1',
+              col0_maaned: '6',
+              col1_maaned: '2023',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: asAmountValue(10000),
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
+    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
+
+    expect(segments.some((segment) => segment.fra === '2004-01-01' && segment.deltaPct === 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra >= '2006-01-01' && segment.deltaPct > 0)).toBe(true);
+  });
+
+  it('bevarer ASL-segmenter uden data som 0-regulering (ikke filtreret væk)', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(30000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2004-01-01'), til: iso('2005-12-31'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Statistik',
+          loenudviklingStatistikModel: loenudviklingStatistikModelEnum.enum['ASL-årslønsmaksimum'],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2000-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
+    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
+
+    expect(segments.some((segment) => segment.fra === '2004-01-01' && segment.deltaPct === 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra === '2005-01-01')).toBe(true);
+  });
+
+  it('anvender KRL-fallback (variant B) når reguleringsdato ligger før første sats', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(30000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2000-01-01'), til: iso('2002-12-31'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'KRL satstabel',
+          loenudviklingKRLSatstabel: 'KTO (kommuner)',
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2000-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
+    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
+
+    expect(segments.some((segment) => segment.fra === '2000-01-01' && segment.deltaPct === 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra >= '2001-10-01' && segment.deltaPct > 0)).toBe(true);
+  });
+
+  it('anvender overenskomst-fallback (privat) for tidlige perioder uden sats', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(30000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2009-01-01'), til: iso('2012-12-31'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
+          overenskomstId: 'bygge-anlaeg',
+          feriePct: 12.5,
+          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2009-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
+    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
+
+    expect(segments.some((segment) => segment.fra === '2009-01-01' && segment.deltaPct === 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra >= '2011-03-01')).toBe(true);
+  });
+
+  it('anvender overenskomst-fallback (offentlig) for perioder før 01-01-2012 uden crash', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(32000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2010-01-01'), til: iso('2013-12-31'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
+          overenskomstId: 'laerer-overenskomsten',
+          offentligLoenType: 'Månedsløn',
+          offentligLoenTrin: 31,
+          offentligLoenGruppe: 2,
+          feriePct: 17.68,
+          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2010-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
+    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
+
+    expect(segments.some((segment) => segment.fra === '2010-01-01' && segment.deltaPct === 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra >= '2012-01-01')).toBe(true);
+  });
+
+  it('fejler fail-closed ved datakorruption i statistikindeks', () => {
+    const spy = vi.spyOn(statistikRatesData, 'getStatistiskLoenudvikling').mockReturnValue({
+      meta: { id: 'ILON12' as statistikRatesData.StatistiskLoenudviklingId, navn: 'ILON12', hjaelpetekst: 'test' },
+      indeksvaerdier: [
+        { kvartal: '2006K1' as statistikRatesData.Kvartal, indeksvaerdi: 0 },
+        { kvartal: '2005K1' as statistikRatesData.Kvartal, indeksvaerdi: 100 },
+      ],
+    });
+    try {
+      const eoValues = makeValues({
+        beregnesUdFra: 'Angivet månedsløn',
+        maanedsloenenUdgoer: asAmountValue(32000),
+        tafPerioder: [{ id: 'taf-1', fra: iso('2006-01-01'), til: iso('2006-12-31'), loseFeriedage: undefined }],
+        loenindkomstAnsaettelsesforhold: [
+          {
+            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            loenudviklingBeregningsgrundlag: 'Statistik',
+            loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
+          },
+        ],
+      });
+      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2005-01-01') });
+      expect(() => buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }))
+        .toThrow('Loenudvikling kan ikke beregnes: ugyldigt indeks for segment');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('fejler fail-closed ved datakorruption i ASL-indeks', () => {
+    // ASL-data eksporteres som en konstant map (ingen funktions-wrapper at spyOn),
+    // så testen muterer midlertidigt og restorer altid i finally.
+    const original2006 = aarsloenMax[2006];
+    aarsloenMax[2006] = 0;
+    try {
+      const eoValues = makeValues({
+        beregnesUdFra: 'Angivet månedsløn',
+        maanedsloenenUdgoer: asAmountValue(32000),
+        tafPerioder: [{ id: 'taf-1', fra: iso('2005-01-01'), til: iso('2006-12-31'), loseFeriedage: undefined }],
+        loenindkomstAnsaettelsesforhold: [
+          {
+            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            loenudviklingBeregningsgrundlag: 'Statistik',
+            loenudviklingStatistikModel: loenudviklingStatistikModelEnum.enum['ASL-årslønsmaksimum'],
+          },
+        ],
+      });
+      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2005-01-01') });
+      expect(() => buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }))
+        .toThrow('Loenudvikling kan ikke beregnes: ugyldigt ASL indeks');
+    } finally {
+      aarsloenMax[2006] = original2006;
+    }
+  });
+
+  it('fejler fail-closed ved datakorruption i KRL-indeks', () => {
+    const spy = vi.spyOn(krlRatesData, 'getKRLSatstabel').mockReturnValue({
+      id: 'KTO (kommuner)',
+      navn: 'KTO (kommuner)',
+      vaerdier: [
+        { fraDato: '01-10-2001', reguleringsPct: -100 },
+        { fraDato: '01-04-2001', reguleringsPct: 0 },
+      ],
+    });
+    try {
+      const eoValues = makeValues({
+        beregnesUdFra: 'Angivet månedsløn',
+        maanedsloenenUdgoer: asAmountValue(32000),
+        tafPerioder: [{ id: 'taf-1', fra: iso('2001-04-01'), til: iso('2002-01-01'), loseFeriedage: undefined }],
+        loenindkomstAnsaettelsesforhold: [
+          {
+            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            loenudviklingBeregningsgrundlag: 'KRL satstabel',
+            loenudviklingKRLSatstabel: 'KTO (kommuner)',
+          },
+        ],
+      });
+      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2001-01-01') });
+      expect(() => buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }))
+        .toThrow('Loenudvikling kan ikke beregnes: ugyldigt KRL indeks for segment');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('fejler fail-closed ved ugyldig overenskomst-satsdata (privat)', () => {
+    const spy = vi.spyOn(overenskomstRatesData, 'getEffektiveSatserForDato').mockReturnValue({
+      fraDato: '01-03-2011',
+      grundloen: 0,
+      shSoSats: 0.069,
+      fritvalg: null,
+      agPension: 0.08,
+      sfgg: null,
+      sfggFaglKbh: null,
+      sfggFaglProv: null,
+      sfggUfaglKbh: null,
+      sfggUfaglProv: null,
+    });
+    try {
+      const eoValues = makeValues({
+        beregnesUdFra: 'Angivet månedsløn',
+        maanedsloenenUdgoer: asAmountValue(32000),
+        tafPerioder: [{ id: 'taf-1', fra: iso('2011-03-01'), til: iso('2011-12-31'), loseFeriedage: undefined }],
+        loenindkomstAnsaettelsesforhold: [
+          {
+            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            loenudviklingBeregningsgrundlag: 'Overenskomst',
+            overenskomstId: 'bygge-anlaeg',
+            feriePct: 12.5,
+            loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          },
+        ],
+      });
+      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2011-03-01') });
+      expect(() => buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }))
+        .toThrow('Loenudvikling kan ikke beregnes: ugyldig basisgrundloen');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('fejler fail-closed ved ugyldig offentlig løndata', () => {
+    const spy = vi.spyOn(offentligLoenLookupData, 'getOffentligLoenForDato').mockReturnValue({
+      overenskomstType: 'KL',
+      effectiveDate: '01-01-2012',
+      loentrin: 31,
+      loengruppe: 2,
+      maanedsLoen: 0,
+      timeLoen: 0,
+    } as OffentligLoenResultat);
+    try {
+      const eoValues = makeValues({
+        beregnesUdFra: 'Angivet månedsløn',
+        maanedsloenenUdgoer: asAmountValue(32000),
+        tafPerioder: [{ id: 'taf-1', fra: iso('2012-01-01'), til: iso('2012-12-31'), loseFeriedage: undefined }],
+        loenindkomstAnsaettelsesforhold: [
+          {
+            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            loenudviklingBeregningsgrundlag: 'Overenskomst',
+            overenskomstId: 'laerer-overenskomsten',
+            offentligLoenType: 'Månedsløn',
+            offentligLoenTrin: 31,
+            offentligLoenGruppe: 2,
+            feriePct: 17.68,
+            loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          },
+        ],
+      });
+      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2012-01-01') });
+      expect(() => buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }))
+        .toThrow('Loenudvikling kan ikke beregnes: ugyldig basisgrundloen');
+    } finally {
+      spy.mockRestore();
     }
   });
 });

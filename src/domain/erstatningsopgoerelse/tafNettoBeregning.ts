@@ -81,9 +81,11 @@ export const computeTafNettoBeregning = (
 
   let tabtArbejdsfortjenesteOre = ensureMoneyOre(0);
   if (harTafPerioder) {
+    // Defensive invariant-guard: modellen skal være bygget når TAF-perioder findes.
     if (!loenudvikling) {
       throw new Error('Lønudvikling kunne ikke beregnes');
     }
+    // Defensive invariant-guard: indtægtsmodel skal være bygget når TAF-perioder findes.
     if (!tafIndtaegter) {
       throw new Error('Indtægter i TAF-perioden kunne ikke beregnes');
     }

@@ -217,7 +217,7 @@ describe('downloadErstatningsopgoerelsePdf', () => {
       selectedElements: {} as never,
       settings,
     });
-    expect(result.success).toBe(false);
+    expect(result).toMatchObject({ success: false, error: 'Kunne ikke generere erstatningsopgørelse-PDF' });
   });
 });
 

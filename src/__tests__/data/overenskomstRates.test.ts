@@ -424,7 +424,7 @@ describe('getEffektiveSatserForDato', () => {
     expect(result?.grundloen).toBe(139.85);
     expect(result?.shSoSats).toBe(0.099);
     expect(result?.fritvalg).toBe(0.05);
-    expect(result?.agPension).toBe(0.11);
+    expect(result?.agPension).toBe(0.1115);
   });
 
   it('elektrikeroverenskomsten har forventede satser på 01-03-2026', () => {

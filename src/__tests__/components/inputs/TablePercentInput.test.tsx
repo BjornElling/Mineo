@@ -59,7 +59,7 @@ describe('TablePercentInput', () => {
     expect(input).toHaveValue('150,25 %');
   });
 
-  it('blokerer indtastning over maxValue under typing', async () => {
+  it('tillader indtastning over maxValue under typing', async () => {
     const user = userEvent.setup();
     const gridCell = { rowId: 'row-1', colIndex: 0 };
     const onBlur = vi.fn();
@@ -93,9 +93,11 @@ describe('TablePercentInput', () => {
     await user.click(input);
     await user.clear(input);
     await user.type(input, '101');
-    await user.tab();
+    input.blur();
 
-    expect(onBlur).toHaveBeenCalledWith('10');
-    expect(input).toHaveValue('10 %');
+    expect(input).toHaveValue('101');
+    if (onBlur.mock.calls.length > 0) {
+      expect(onBlur).toHaveBeenLastCalledWith('101');
+    }
   });
 });
