@@ -2772,7 +2772,7 @@ export const buildEODebugIndkomstRows = (
 
     rows.push({
       id: `${loenudviklingRowPrefix}.reguleringsvaerdi`,
-      label: 'Reguleringsværdi på reguleringsdato',
+      label: 'Reguleringsværdi på reguleringsdato for TAF',
       displayValue: reguleringsvaerdiRowStatus.displayValue,
       status: reguleringsvaerdiRowStatus.status,
       message: buildReguleringsMangelMessage(
@@ -2785,7 +2785,7 @@ export const buildEODebugIndkomstRows = (
     if (harTafDatointerval) {
       rows.push({
         id: `${loenudviklingRowPrefix}.startvaerdi`,
-        label: 'Reguleringsværdi på start-dato',
+        label: 'Reguleringsværdi på start-dato for TAF',
         displayValue: startDateRowStatus.displayValue,
         status: startDateRowStatus.status,
         message: buildReguleringsMangelMessage(
@@ -2797,7 +2797,7 @@ export const buildEODebugIndkomstRows = (
 
       rows.push({
         id: `${loenudviklingRowPrefix}.slutvaerdi`,
-        label: 'Reguleringsværdi på slut-dato',
+        label: 'Reguleringsværdi på slut-dato for TAF',
         displayValue: endDateRowStatus.displayValue,
         status: endDateRowStatus.status,
         message: buildReguleringsMangelMessage(

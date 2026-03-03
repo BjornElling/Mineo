@@ -649,14 +649,7 @@ const EODebug = () => {
 
       const anciennitetBeregningRow = (() => {
         if (!showAnciennitetRows) return null;
-        if (!af.harAnciennitetstillaegEfterSkadesdatoen) {
-          return {
-            id: 'regulering.anciennitet.beregning',
-            label: 'Beregnet anciennitetstillæg',
-            displayValue: '-',
-            status: 'ok' as DebugStatus,
-          };
-        }
+        if (!af.harAnciennitetstillaegEfterSkadesdatoen) return null;
 
         const grundloenAngivetPer = af.overenskomstId
           ? getGrundloenAngivetPerForOverenskomst(af.overenskomstId, tafBeregnesSom)
@@ -2065,7 +2058,7 @@ const EODebug = () => {
           });
           rows.push({
             id: 'regulering.reguleringsvaerdi',
-            label: 'Reguleringsværdi på reguleringsdato',
+            label: 'Reguleringsværdi på reguleringsdato for TAF',
             displayValue: reguleringsvaerdiRow.display,
             status: reguleringsvaerdiRow.status,
           });
@@ -2079,7 +2072,7 @@ const EODebug = () => {
               },
               {
                 id: 'regulering.startvaerdi',
-                label: 'Reguleringsværdi på start-dato',
+                label: 'Reguleringsværdi på start-dato for TAF',
                 displayValue: startDateRow.display,
                 status: startDateRow.status,
               },
@@ -2091,7 +2084,7 @@ const EODebug = () => {
               },
               {
                 id: 'regulering.slutvaerdi',
-                label: 'Reguleringsværdi på slut-dato',
+                label: 'Reguleringsværdi på slut-dato for TAF',
                 displayValue: endDateRow.display,
                 status: endDateRow.status,
               }
