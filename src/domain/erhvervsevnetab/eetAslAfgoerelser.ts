@@ -2,6 +2,8 @@ import type { AslAfgoerelseRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, dateToISO, parseISODate } from '../../types/branded';
 import { addMonths } from '../../utils/dateUtils';
+import { aarsloenMax } from '../../data/regulationRates';
+import { formatAsAmount } from '../../utils/formatUtils';
 import { folkepensionsalderIntervaller } from '../../data/kapitalisering/folkepensionsalder';
 import { createRowId } from '../rowId';
 
@@ -36,12 +38,12 @@ export const parsePercentDraft = (raw: string | undefined): number | undefined =
   return Number.isFinite(num) ? num : undefined;
 };
 
-const hasValue = (raw: string | undefined): boolean =>
+export const hasTextValue = (raw: string | undefined): boolean =>
   typeof raw === 'string' && raw.trim() !== '';
 
 const DUPLICATE_AFGOERELSE_MESSAGE = 'Der er angivet to identiske afgørelser';
 
-const resolveFolkepensionsalder = (fodselsdatoIso: ISODateString): number | undefined => {
+export const resolveFolkepensionsalder = (fodselsdatoIso: ISODateString): number | undefined => {
   let resolved: number | undefined;
   for (const interval of folkepensionsalderIntervaller) {
     if (fodselsdatoIso >= interval.foedselsdatoFra) {
@@ -147,7 +149,7 @@ export const validateKapPctByAfgoerelsestype = (
 ): string | undefined => {
   const afgoerelsestype = row.afgoerelseType;
   if (afgoerelsestype === undefined || afgoerelsestype === 'Midlertidig') {
-    if (hasValue(row.kapPct)) {
+    if (hasTextValue(row.kapPct)) {
       return 'Kapitaliseringsprocent må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype';
     }
     return undefined;
@@ -215,14 +217,17 @@ export const validateKapDatoByAfgoerelsestype = (
 ): string | undefined => {
   const afgoerelsestype = row.afgoerelseType;
   if (afgoerelsestype === undefined || afgoerelsestype === 'Midlertidig') {
-    if (hasValue(row.kapDato)) {
+    if (hasTextValue(row.kapDato)) {
       return 'Kapitaliseringsdato må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype';
     }
   }
 
-  const tidlKapDatoIsSet = hasValue(row.tidlKapDato);
+  const tidlKapDatoIsSet = hasTextValue(row.tidlKapDato);
   const afgoerelsesdatoIso = coerceToISODateString(row.afgoerelsesDato);
   const kapDatoIso = coerceToISODateString(row.kapDato);
+  if (kapDatoIso !== undefined && afgoerelsesdatoIso !== undefined && kapDatoIso < afgoerelsesdatoIso) {
+    return 'Kapitaliseringsdato kan ikke være før afgørelsesdato';
+  }
   if (
     tidlKapDatoIsSet &&
     afgoerelsesdatoIso !== undefined &&
@@ -236,16 +241,73 @@ export const validateKapDatoByAfgoerelsestype = (
   return undefined;
 };
 
+export type EetAslAfgoerelseValidationField =
+  | 'afgoerelsesDato'
+  | 'virkningsDato'
+  | 'eetPct'
+  | 'afgoerelseType'
+  | 'kapDato'
+  | 'kapPct'
+  | 'tidlKapDato';
+
+export type EetAslAfgoerelseValidationIssue = Readonly<{
+  rowId: string;
+  field: EetAslAfgoerelseValidationField;
+  message: string;
+}>;
+
+export const collectEetAslAfgoerelseValidationIssues = (
+  rows: readonly AslAfgoerelseRow[],
+  fodselsdato: ISODateString | undefined
+): EetAslAfgoerelseValidationIssue[] => {
+  const issues: EetAslAfgoerelseValidationIssue[] = [];
+
+  for (const row of rows) {
+    const duplicateTripletError = validateDuplicateAfgoerelseTriplet(row, rows);
+    if (duplicateTripletError) {
+      issues.push({ rowId: row.id, field: 'afgoerelsesDato', message: duplicateTripletError });
+      issues.push({ rowId: row.id, field: 'virkningsDato', message: duplicateTripletError });
+      issues.push({ rowId: row.id, field: 'afgoerelseType', message: duplicateTripletError });
+    }
+
+    const eetPctError =
+      validatePercentDivisibleBy5FromDraft(row.eetPct, 'EET %') ??
+      validateEetPctByPriorKapPct(row, rows);
+    if (eetPctError) {
+      issues.push({ rowId: row.id, field: 'eetPct', message: eetPctError });
+    }
+
+    const kapDatoError = validateKapDatoByAfgoerelsestype(row);
+    if (kapDatoError) {
+      issues.push({ rowId: row.id, field: 'kapDato', message: kapDatoError });
+    }
+
+    const kapPctError =
+      validatePercentDivisibleBy5FromDraft(row.kapPct, 'Kapitaliseringsprocent') ??
+      validateKapPctByAfgoerelsestype(row, rows, fodselsdato);
+    if (kapPctError) {
+      issues.push({ rowId: row.id, field: 'kapPct', message: kapPctError });
+    }
+
+    const tidlKapDatoError = validateTidlKapDatoByAfgoerelsestype(row);
+    if (tidlKapDatoError) {
+      issues.push({ rowId: row.id, field: 'tidlKapDato', message: tidlKapDatoError });
+    }
+  }
+
+  return issues;
+};
+
 export const validateTidlKapDatoByAfgoerelsestype = (
   row: AslAfgoerelseRow
 ): string | undefined => {
-  if (hasValue(row.tidlKapDato) && !hasValue(row.kapDato)) {
+  if (hasTextValue(row.tidlKapDato) && !hasTextValue(row.kapDato)) {
     return 'Kun relevant ved tidligere kapitalisering';
   }
 
   const afgoerelsestype = row.afgoerelseType;
   if (afgoerelsestype === undefined || afgoerelsestype === 'Midlertidig') {
-    if (hasValue(row.tidlKapDato)) {
+    if (hasTextValue(row.tidlKapDato)) {
       return 'Tidligere kapitaliseringsdato må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype';
     }
   }
@@ -273,3 +335,27 @@ export const validatePercentDivisibleBy5FromValue = (
   return undefined;
 };
 
+export const validateAslAarsloenDivisibleBy1000 = (
+  aarsloen: number | undefined
+): string | undefined => {
+  if (aarsloen === undefined || !Number.isFinite(aarsloen)) return undefined;
+  if (aarsloen % 1000 !== 0) return 'Årsløn skal være delelig med 1000';
+  return undefined;
+};
+
+export const validateAslAarsloenBySkadesaarMax = (
+  aarsloen: number | undefined,
+  skadesdatoIso: ISODateString | undefined
+): string | undefined => {
+  if (aarsloen === undefined || !Number.isFinite(aarsloen)) return undefined;
+  if (skadesdatoIso === undefined) return undefined;
+
+  const skadesaar = Number.parseInt(skadesdatoIso.slice(0, 4), 10);
+  if (!Number.isFinite(skadesaar)) return undefined;
+
+  const maxAarsloen = aarsloenMax[skadesaar];
+  if (!Number.isFinite(maxAarsloen)) return undefined;
+  if (aarsloen <= maxAarsloen) return undefined;
+
+  return `Årsløn kan ikke overstige maks årslønnen i skadesåret (${formatAsAmount(maxAarsloen, 0)} kr.)`;
+};

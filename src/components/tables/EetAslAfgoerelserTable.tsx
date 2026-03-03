@@ -10,14 +10,9 @@ import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, subtractOneDay } from '../../types/branded';
 import {
   EET_ASL_MIN_VISIBLE_ROWS,
+  collectEetAslAfgoerelseValidationIssues,
   createEmptyAslAfgoerelseRow,
   isAslAfgoerelseRowEmpty,
-  validateDuplicateAfgoerelseTriplet,
-  validateEetPctByPriorKapPct,
-  validateKapDatoByAfgoerelsestype,
-  validateKapPctByAfgoerelsestype,
-  validateTidlKapDatoByAfgoerelsestype,
-  validatePercentDivisibleBy5FromDraft,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { normalizeGridRows } from './gridModel';
 
@@ -159,6 +154,16 @@ const EetAslAfgoerelserTable = React.memo(
       [normalizeRows, queuePersist]
     );
 
+    const validationMessageByCell = React.useMemo(() => {
+      const issues = collectEetAslAfgoerelseValidationIssues(internalTableData, fodselsdato);
+      const map = new Map<string, string>();
+      for (const issue of issues) {
+        const key = `${issue.rowId}|${issue.field}`;
+        if (!map.has(key)) map.set(key, issue.message);
+      }
+      return map;
+    }, [fodselsdato, internalTableData]);
+
     return (
       <StandardLooseTable
         sx={{
@@ -199,15 +204,13 @@ const EetAslAfgoerelserTable = React.memo(
         </TableHead>
         <TableBody>
           {internalTableData.map((row) => {
-            const eetPctError =
-              validatePercentDivisibleBy5FromDraft(row.eetPct, 'EET %') ??
-              validateEetPctByPriorKapPct(row, internalTableData);
-            const duplicateTripletError = validateDuplicateAfgoerelseTriplet(row, internalTableData);
-            const kapPctError =
-              validatePercentDivisibleBy5FromDraft(row.kapPct, 'Kapitaliseringsprocent') ??
-              validateKapPctByAfgoerelsestype(row, internalTableData, fodselsdato);
-            const kapDatoError = validateKapDatoByAfgoerelsestype(row);
-            const tidlKapDatoError = validateTidlKapDatoByAfgoerelsestype(row);
+            const duplicateAfgoerelsesDatoError = validationMessageByCell.get(`${row.id}|afgoerelsesDato`);
+            const duplicateVirkningsDatoError = validationMessageByCell.get(`${row.id}|virkningsDato`);
+            const eetPctError = validationMessageByCell.get(`${row.id}|eetPct`);
+            const duplicateAfgoerelseTypeError = validationMessageByCell.get(`${row.id}|afgoerelseType`);
+            const kapDatoError = validationMessageByCell.get(`${row.id}|kapDato`);
+            const kapPctError = validationMessageByCell.get(`${row.id}|kapPct`);
+            const tidlKapDatoError = validationMessageByCell.get(`${row.id}|tidlKapDato`);
             return (
               <TableRow key={row.id} data-mineo-row-id={row.id}>
                 <TableCell>
@@ -217,7 +220,7 @@ const EetAslAfgoerelserTable = React.memo(
                     onBlur={(e) => commitRowUpdate(row.id, { afgoerelsesDato: e.target.value || undefined })}
                     minDate={skadesdatoMin}
                     maxDate={tabelAfgoerelsesdatoMax}
-                    externalErrorMessage={duplicateTripletError}
+                    externalErrorMessage={duplicateAfgoerelsesDatoError}
                   />
                 </TableCell>
                 <TableCell>
@@ -227,7 +230,7 @@ const EetAslAfgoerelserTable = React.memo(
                     onBlur={(e) => commitRowUpdate(row.id, { virkningsDato: e.target.value || undefined })}
                     minDate={skadesdatoMin}
                     maxDate={tabelVirkningsdatoMax}
-                    externalErrorMessage={duplicateTripletError}
+                    externalErrorMessage={duplicateVirkningsDatoError}
                   />
                 </TableCell>
                 <TableCell>
@@ -256,7 +259,7 @@ const EetAslAfgoerelserTable = React.memo(
                     }
                     placeholder="Vælg..."
                     options={AFGOERELSES_TYPE_OPTIONS}
-                    externalErrorMessage={duplicateTripletError}
+                    externalErrorMessage={duplicateAfgoerelseTypeError}
                   />
                 </TableCell>
                 <TableCell>
@@ -317,4 +320,3 @@ const EetAslAfgoerelserTable = React.memo(
 EetAslAfgoerelserTable.displayName = 'EetAslAfgoerelserTable';
 
 export default EetAslAfgoerelserTable;
-

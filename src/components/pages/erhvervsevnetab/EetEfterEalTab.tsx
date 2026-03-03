@@ -6,14 +6,15 @@ import ContentBox from '../../layout/ContentBox';
 import type { ErhvervsevnetabValues } from '../../../schemas/formSchemas';
 import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
+import { useScrollToSectionWithRetry } from '../../../hooks/useScrollToSectionWithRetry';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
+import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
 import { aarsloenMax, erhvervsevnetabMax, reguleringssats } from '../../../data/regulationRates';
 import {
   computeEetEalCalculation,
   formatDateShortForEet,
   formatPercentTrimmedFromRounded4,
-  uniqIssues,
   type EetEalIssue,
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 
@@ -151,7 +152,7 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
   const stamdata = usePersistedSection('stamdata');
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
-  const pendingScrollRafRef = React.useRef<number | null>(null);
+  const scrollToSectionWithRetry = useScrollToSectionWithRetry();
 
   const calculationResult = React.useMemo(
     () =>
@@ -185,7 +186,7 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
   ]);
 
   const issues = React.useMemo(
-    () => uniqIssues([...calculationResult.issues, ...fieldIssues]),
+    () => dedupeIssuesBySeverityAndMessage([...calculationResult.issues, ...fieldIssues]),
     [calculationResult.issues, fieldIssues]
   );
 
@@ -201,38 +202,6 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
     }
     return `(${computation.alderVedSkade} - 29) =`;
   }, [computation]);
-
-  const clearPendingScroll = React.useCallback(() => {
-    if (pendingScrollRafRef.current !== null) {
-      cancelAnimationFrame(pendingScrollRafRef.current);
-      pendingScrollRafRef.current = null;
-    }
-  }, []);
-
-  React.useEffect(() => clearPendingScroll, [clearPendingScroll]);
-
-  const scrollToSectionWithRetry = React.useCallback((sectionId: string) => {
-    clearPendingScroll();
-    let attempts = 0;
-    const maxAttempts = 60;
-
-    const tick = () => {
-      const target = document.querySelector<HTMLElement>(`[data-section-id="${sectionId}"]`);
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        pendingScrollRafRef.current = null;
-        return;
-      }
-      attempts += 1;
-      if (attempts < maxAttempts) {
-        pendingScrollRafRef.current = requestAnimationFrame(tick);
-      } else {
-        pendingScrollRafRef.current = null;
-      }
-    };
-
-    pendingScrollRafRef.current = requestAnimationFrame(tick);
-  }, [clearPendingScroll]);
 
   const handleNavigate = React.useCallback((navigation: ErrorNavigation) => {
     if (navigation.route === '/erhvervsevnetab') {

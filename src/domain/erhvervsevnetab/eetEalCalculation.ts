@@ -3,6 +3,7 @@ import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, parseISODate } from '../../types/branded';
 import type { YearlyRate } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
+import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { roundByMethod } from '../../utils/rounding';
 import {
   parsePercentDraft,
@@ -75,17 +76,6 @@ const toWarning = (id: string, message: string): EetEalIssue => ({
   severity: 'warning',
   message,
 });
-
-export const uniqIssues = (issues: readonly EetEalIssue[]): EetEalIssue[] => {
-  const seen = new Set<string>();
-  const unique: EetEalIssue[] = [];
-  for (const issue of issues) {
-    if (seen.has(issue.message)) continue;
-    seen.add(issue.message);
-    unique.push(issue);
-  }
-  return unique;
-};
 
 const calculateAgeInWholeYears = (fodselsdato: ISODateString, skadesdato: ISODateString): number | null => {
   const birthDate = parseISODate(fodselsdato);
@@ -261,7 +251,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 
   const hasBlockingIssues = issues.some((issue) => issue.severity === 'error');
   if (hasBlockingIssues || !aarsloen.value || !aarsloen.source || !eetPctResolution.resolved || !beregningsdato || !skadesdato || !fodselsdato) {
-    return { issues: uniqIssues(issues), computation: null };
+    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
   const skadesaar = Number.parseInt(skadesdato.slice(0, 4), 10);
@@ -345,7 +335,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   }
 
   if (blockingIssues || !Number.isFinite(eetMaks) || alderVedSkade === null) {
-    return { issues: uniqIssues(issues), computation: null };
+    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
   let reguleringsfaktor = 1;
@@ -392,7 +382,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   };
 
   return {
-    issues: uniqIssues(issues),
+    issues: dedupeIssuesBySeverityAndMessage(issues),
     computation,
   };
 };

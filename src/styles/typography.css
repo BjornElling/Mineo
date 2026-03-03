@@ -150,6 +150,14 @@
   line-height: var(--line-height-base);
 }
 
+.MuiTypography-root.row--subheading-underlined {
+  font-size: 15px;
+  font-weight: var(--font-weight-regular);
+  color: var(--mineo-color-row-text);
+  text-decoration-line: underline;
+  text-underline-offset: 3px;
+}
+
 /* ==================== Labels ==================== */
 .MuiTypography-root.row--label-offset__label {
   font-family: var(--font-family-base);

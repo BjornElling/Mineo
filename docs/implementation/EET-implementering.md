@@ -7,7 +7,7 @@
 
 ## Status
 
-Placeholder-side eksisterer. Implementering ikke påbegyndt.
+Erhvervsevnetab-siden er under aktiv implementering. Fane 2 (Løbende ydelser) er implementeret.
 
 Sektion 8 (løbende ydelser) er dokumenteret og verificeret mod konkrete beregningseksempler, herunder fuldt layout for fane 2. Følgende sektioner mangler stadig dokumentation:
 - Sektion 9: Kapitalisering (fane 3)
@@ -206,6 +206,7 @@ Rækker med samme eller senere afgørelsesdato indgår ikke i denne max-kontrol.
 | `Delvist endelig` | Kapitaliseringsprocent < 5 % | Fejl: mindste kapitaliserbare andel er 5 % |
 | `Delvist endelig` | Kapitaliseringsprocent > min(EET % − 5, 50 %) | Fejl: kapitaliseret andel overstiger tilladt maksimum (der skal restere mindst 5 % som midlertidig, og kapitalisering kan højst udgøre 50 %) |
 | `Delvist endelig` | Kapitaliseringsprocent > EET % | Fejl: kapitalisering kan ikke overstige EET % |
+| `Endelig` / `Delvist endelig` | Kapitaliseringsdato < afgørelsesdato | Fejl: kapitaliseringsdato kan ikke være før afgørelsesdato |
 
 **Opslagslogik for kapitaliseringsdato — bekendtgørelsesvalg:**
 
@@ -784,11 +785,30 @@ grundydelse = round2(grundløn × eet_pct × 0,80)
 
 **Afrunding:** til 2 decimaler ("half away from zero").
 
-**Ved delvis kapitalisering** beregnes to grundydelser:
-- `grundydelse_fuld`: baseret på afgørelsens fulde EET %
-- `grundydelse_rest`: baseret på rest-EET % = afgørelsens EET % − kapitaliseringsprocent
+**Ved delvis kapitalisering** beregnes to grundydelser pr. afgørelse:
+- `grundydelse_fuld`: baseret på afgørelsens effektive EET før aktuel kapitalisering
+- `grundydelse_rest`: baseret på rest-EET efter aktuel kapitalisering
 
-Rest-grundydelsen er altid proportional: `grundydelse_rest = grundydelse_fuld × (rest_eet_pct / eet_pct)`.
+Effektiv EET før aktuel kapitalisering:
+```
+eet_pct_foer_aktuel_kap = afgørelsens_eet_pct − sum(tidligere_kapitaliseringsprocenter)
+```
+
+Rest-EET efter aktuel kapitalisering:
+```
+rest_eet_pct = eet_pct_foer_aktuel_kap − aktuel_kapitaliseringsprocent
+```
+
+Rest-grundydelsen er altid proportional:
+```
+grundydelse_rest = grundydelse_fuld × (rest_eet_pct / eet_pct_foer_aktuel_kap)
+```
+
+Reduktionen gælder altid fra kapitaliseringsdatoen, uanset om kapitalisering sker før eller fra 01-01-2024.
+
+Ved skade før 01-07-2024 gælder derudover:
+- Hvis kapitalisering sker før 01-01-2024, er det den reducerede 2003-grundydelse der opreguleres til 2024-niveau.
+- Hvis kapitalisering sker fra 01-01-2024 eller senere, opreguleres fuld grundydelse til 2024-niveau først, og reduktionen til rest-grundydelse sker fra kapitaliseringsdatoen.
 
 ---
 
@@ -911,10 +931,17 @@ Format: tom "Fra o.m."- og "Til o.m."-celle, tom "Mdr."-celle, tom "Ydelse/md."-
 
 ### Kumuleret kapitaliseringslogik på tværs af afgørelser
 
-Kapitaliseringsprocenter fra tidligere afgørelser fragår permanent i alle efterfølgende afgørelsers mulige løbende ydelse. Den effektive rest-EET for en afgørelse beregnes som:
+Kapitaliseringsprocenter fra tidligere afgørelser fragår permanent i alle efterfølgende afgørelsers mulige løbende ydelse. Efterfølgende afgørelser skal derfor både i visning og beregning bruge et reduceret EET-grundlag før ny kapitalisering.
+
+Den effektive EET før aktuel kapitalisering beregnes som:
+```
+eet_pct_foer_aktuel_kap = afgørelsens_eet_pct − sum(kapitaliseringsprocenter fra alle tidligere afgørelser)
+```
+
+Rest-EET efter aktuel kapitalisering beregnes som:
 
 ```
-rest_eet_pct = afgørelsens_eet_pct − sum(kapitaliseringsprocenter fra alle afgørelser inkl. denne)
+rest_eet_pct = eet_pct_foer_aktuel_kap − aktuel_kapitaliseringsprocent
 ```
 
 **50 %-loftet:** Den samlede kapitaliseringsprocent på tværs af alle afgørelser kan aldrig overstige 50 % — med mindre der er tale om tvungen kapitalisering (≤ 2 år til FP), hvor loftet bortfalder.
@@ -944,7 +971,7 @@ Fanen har følgende ContentBox-struktur i rækkefølge:
 1. **"Fejl og advarsler"** (`ContentBox`) — vises kun hvis der er mindst én fejl eller advarsel.
 2. **"Beregning"** (`ContentBox`) — tre faste linjer (se nedenfor).
 3. **"Specifikation"** (`ContentBox`) — løbende ydelser pr. afgørelse (se nedenfor).
-4. **"Udvidet specifikation"** (`ContentBox`) — grundløn og grundydelse (se nedenfor). Vises kun hvis togglen i "Beregning" er aktiveret.
+4. **"Udvidet specifikation"** (`ContentBox`) — grundløn og grundydelse (se nedenfor). Vises altid i UI.
 
 #### ContentBox: Fejl og advarsler
 
@@ -960,10 +987,10 @@ Tre linjer i fast rækkefølge, alle hoverrows:
 | Venstre | Højre |
 |---|---|
 | Beregningsdato | dato i format `d. MMMM YYYY` |
-| Medtag udførlig specifikation | toggle switch (standard: **fra/false**) |
+| Medtag udvidet specifikation i PDF | toggle switch (standard: **fra/false**) |
 | Download specifikation | download-ikon |
 
-Toggle-linjen kontrollerer synligheden af ContentBox "Udvidet specifikation". Når toggle er fra, vises kun "Specifikation". Når toggle er til, vises både "Specifikation" og "Udvidet specifikation" nedenunder.
+Toggle-linjen styrer kun om den udvidede specifikation skal med i PDF. UI-visningen af "Udvidet specifikation" er altid synlig.
 
 Download er deaktiveret så længe der er aktive fejlmeddelelser (advarsler blokerer ikke).
 
@@ -978,12 +1005,13 @@ Afgørelserne vises sekventielt i kronologisk rækkefølge (sorteret på afgøre
 | Felt | Eksempel |
 |---|---|
 | Type | Midlertidig afgørelse / Endelig afgørelse / Endelig afgørelse (delvist kap.) / Delvist endelig afgørelse |
-| Erhvervsevnetab | 45 % |
+| Erhvervsevnetab | 75 % - 25 % tidligere kap. = 50 % *(hvis tidligere kapitalisering findes)*, ellers fx 45 % |
 | Årsløn | 489.000 kr. |
 
 Typebetegnelsen afhænger af afgørelsestypen:
 - `Midlertidig` → "Midlertidig afgørelse"
-- `Endelig` med kapitalisering → "Endelig afgørelse (delvist kap.)"
+- `Endelig` med kapitalisering og rest-EET > 0 → "Endelig afgørelse (delvist kap.)"
+- `Endelig` med fuld kapitalisering (rest-EET = 0) → "Endelig afgørelse (kapitaliseret)"
 - `Endelig` uden kapitalisering → "Endelig afgørelse"
 - `Delvist endelig` → "Delvist endelig afgørelse"
 
@@ -1021,35 +1049,35 @@ Underoverskrift "Periodeafgrænsning" efterfulgt af indrykkede hoverrows:
 
 Underoverskrift "Beregnede ydelser" efterfulgt af en tabel med kolonneoverskrifter og datarækkerne:
 
-| Fra o.m. | Til o.m. | Mdr. | Ydelse/md. | Beregnet EET |
-|---|---|---|---|---|
+| Fra o.m. | Til o.m. | Mdr. | Grundydelse | Regulering | Ydelse/md. (afr.) | Beregnet EET |
+|---|---|---|---|---|---|---|
 
 - Datoer i format `DD-MM-ÅÅÅÅ`
 - Måneder med 4 decimaler (fx `11,0000`)
-- Ydelse/md. og Beregnet EET i hele kr. med tusindtalspunktum og "kr."-suffiks
+- Grundydelse i kr. med 2 decimaler
+- Regulering i procent med fortegn
+- Ydelse/md. (afr.) og Beregnet EET i hele kr. med tusindtalspunktum og "kr."-suffiks
 - Alle datarækker er hoverrows
 
 **Rest-sektion:** Hvis afgørelsen er delvist kapitaliseret og rest-EET > 0, fortsætter ydelsesrækkerne for rest-EET i **samme tabel** uden nogen separat overskrift eller visuel adskillelse. Skiftet markeres udelukkende ved at en ny kalenderårs-række begynder på kapitaliseringsdatoen med den lavere ydelse.
 
-**"I alt"-linje:** Én hoverrow i bunden af tabellen. Kun "Beregnet EET"-kolonnen udfyldes; "Fra o.m.", "Til o.m.", "Mdr." og "Ydelse/md." er tomme. Beløbet er summen af alle rækker under den pågældende afgørelse (fuld + rest samlet).
+**"I alt"-linje:** Én hoverrow i bunden af tabellen. Kun "Fra o.m." ("I alt") og "Beregnet EET"-kolonnen udfyldes; øvrige kolonner er tomme. Beløbet er summen af alle rækker under den pågældende afgørelse (fuld + rest samlet).
 
 Ingen samlet total på tværs af afgørelser.
 
 #### ContentBox: Udvidet specifikation
 
-Vises kun når toggle "Medtag udførlig specifikation" er aktiveret. Indeholder mellemregningerne for grundløn og grundydelse.
+Vises altid i UI. Indeholder mellemregningerne for grundløn og grundydelse.
 
 **Blok 1: Årslønsafstemning**
 
-Tre indrykkede hoverrows:
+Én indrykket hoverrow:
 
 | Felt | Eksempel |
 |---|---|
-| ASL årsløn (afrundet til nærmeste 1000) | 489.000 kr. |
-| Maks. årsløn i skadesåret | 539.000 kr. |
-| Benyttet årsløn | 489.000 kr. |
+| ASL årsløn (afrundet til nærmeste 1000 og maks. årsløn i skadesåret) | 489.000 kr. |
 
-"Benyttet årsløn" er `min(årsløn, aarsloenMax[skadesår])`.
+Den viste værdi er `min(roundNearest1000(årsløn), aarsloenMax[skadesår])`.
 
 **Blok 2: Grundløn**
 
@@ -1102,14 +1130,15 @@ Indledende hoverrows der afspejler beregningsreglerne — identiske for begge ni
 Herefter én blok pr. afgørelse (kun afgørelser der indgår i fane 2 — dvs. afgørelser med reel EET %):
 
 - Underoverskrift: `Afgørelse [afgørelsesdato i format "d. MMMM YYYY"] ([EET %])`
-- Formelvisning for grundydelse beregnet af den fulde EET %, fx:
+- Formelvisning for grundydelse beregnet af den effektive EET før aktuel kapitalisering (`afgørelsens EET % - tidligere kapitaliseringsprocenter`), fx:
   ```
   "Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag)
   = 332.955 kr. × 45 % × 83 % × 92 % ="
   ```
   Ved skade før 01-01-2011 udelades `× (100 % − AM-bidrag)`-delen.
 - Resultatrow: grundydelse i kr. (fx `114.410,00 kr.`) — to decimaler
-- Efterfølgende linje: `Ikke kapitaliseret.` hvis afgørelsen ikke har kapitalisering, ellers: `Efter kapitalisering: (Rest-EET [rest-%])` → `[grundydelse_rest] kr.`
+- Efterfølgende linje: `Ikke kapitaliseret.` hvis afgørelsen ikke har kapitalisering, ellers: `Efter kapitalisering fra [kapitaliseringsdato]: ([effektiv EET før aktuel kap] - [aktuel kap.%] = [rest-%])` → `[grundydelse_rest] kr.`.
+  Reduktionen vises og anvendes altid fra kapitaliseringsdatoen (også når kapitaliseringen ligger fra 01-01-2024 og frem).
 
 **Blok 4: Grundydelse (fra 1.1.2024)**
 
@@ -1126,7 +1155,7 @@ Underoverskrift: `"Grundydelse (fra 1.1.2024)"`.
   = 114.410,00 kr. × 1,657"
   ```
 - Resultatrow: 2024-grundydelse (fx `189.577,37 kr.`) — to decimaler
-- Efterfølgende linje: `Ikke kapitaliseret.` eller `Efter kapitalisering: (Rest-EET [rest-%])` → `[2024-grundydelse_rest] kr.`
+- Efterfølgende linje: `Ikke kapitaliseret.` eller `Efter kapitalisering fra [kapitaliseringsdato]: ([effektiv EET før aktuel kap] - [aktuel kap.%] = [rest-%])` → `[2024-grundydelse_rest] kr.`
 
 ---
 
@@ -1163,7 +1192,7 @@ Følgende eksempler er gennemregnet og bekræftet korrekte. Bruges som reference
 
 **Afgørelse 1:** Midlertidig, 45 %, afgørelsesdato 01-07-2023, virkningsdato 01-02-2023
 - Grundydelse: `round2(332.955 × 0,45 × 0,83 × 0,92)` = **114.410,00 kr.**
-- Tilbagevirkende kraft → sats = afgørelsesåret 2023 (60,1 %) for hele perioden 01-02-2023→31-12-2023
+- Ikke tilbagevirkende kraft efter kalenderårsdefinitionen (virkning og afgørelse i 2023) → sats = 2023 (60,1 %) for perioden 01-02-2023→31-12-2023
 - 2023-årsydelse: `114.410,00 × 1,601 = 183.170,41` → `ceil12` = **183.180 kr.** → **15.265 kr./md.**
 - 2024-grundydelse: `round2(114.410,00 × 1,657)` = **189.577,37 kr.**
 - 2024-årsydelse: `189.577,37 × 1,000 = 189.577,37` → `ceil12` = **189.588 kr.** → **15.799 kr./md.**
@@ -1221,4 +1250,3 @@ Følgende situationer udløser advarsler (WarningAmber, orange) uden at blokere 
 | Der er angivet en afgørelse af typen `Midlertidig` eller `Delvist endelig` med afgørelsesdato **efter** afgørelsesdatoen for en `Endelig`-afgørelse | "Der er angivet en midlertidig afgørelse efter en endelig afgørelse." |
 | Mindst én afgørelse har en reel EET % (> 0) der er **< 15 %** | "Der er indtastet en afgørelse med < 15 % erhvervsevnetab." |
 | Skadesdato er fra 01-07-2024, og mindst én afgørelse har en EET % **> 15 %** der ikke er deleligt med 10 (dvs. 25, 35, 45, 55, 65, 75, 85, 95) | "Der er indtastet en ugyldig EET-procent for de nye regler fra 1. juli 2024 og frem." |
-

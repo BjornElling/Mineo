@@ -3,10 +3,19 @@ import { Box, Tabs, Tab, Typography } from '@mui/material';
 import ContentBox from '../layout/ContentBox';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
+import { usePersistedSection } from '../../hooks/usePersistedSection';
+import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import { erhvervsevnetabSchema } from '../../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
+import { amountValueToNumber } from '../../utils/expressionAmount';
+import {
+  collectEetAslAfgoerelseValidationIssues,
+  validateAslAarsloenBySkadesaarMax,
+  validateAslAarsloenDivisibleBy1000,
+} from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import EetOplysningerTab from './erhvervsevnetab/EetOplysningerTab';
 import EetEfterEalTab from './erhvervsevnetab/EetEfterEalTab';
+import EetLoebendeYdelserTab from './erhvervsevnetab/EetLoebendeYdelserTab';
 
 // ─── Fane-konstanter ─────────────────────────────────────────────────────────
 
@@ -62,6 +71,34 @@ const ErhvervsevnetabDev = React.memo(() => {
     'erhvervsevnetab',
     ERHVERVSEVNETAB_INITIAL_VALUES
   );
+  const stamdata = usePersistedSection('stamdata');
+  const reportAslAfgoerelserRuleError = useFormFieldErrorReporter('erhvervsevnetab', 'aslAfgoerelser', {
+    severity: 'error',
+    source: 'rule',
+  });
+  const reportAslAarsloenRuleError = useFormFieldErrorReporter('erhvervsevnetab', 'aslAarsloen', {
+    severity: 'error',
+    source: 'rule',
+  });
+
+  const aslAarsloenRuleError = React.useMemo(() => {
+    const aarsloen = amountValueToNumber(values.aslAarsloen);
+    const divisibleBy1000Error = validateAslAarsloenDivisibleBy1000(aarsloen);
+    if (divisibleBy1000Error) return divisibleBy1000Error;
+    return validateAslAarsloenBySkadesaarMax(aarsloen, stamdata?.skadesdato);
+  }, [stamdata?.skadesdato, values.aslAarsloen]);
+
+  const aslAfgoerelserValidationIssues = React.useMemo(() => {
+    return collectEetAslAfgoerelseValidationIssues(values.aslAfgoerelser, stamdata?.fodselsdato);
+  }, [stamdata?.fodselsdato, values.aslAfgoerelser]);
+
+  React.useEffect(() => {
+    reportAslAfgoerelserRuleError(aslAfgoerelserValidationIssues[0]?.message);
+  }, [aslAfgoerelserValidationIssues, reportAslAfgoerelserRuleError]);
+
+  React.useEffect(() => {
+    reportAslAarsloenRuleError(aslAarsloenRuleError);
+  }, [aslAarsloenRuleError, reportAslAarsloenRuleError]);
 
   const handleTabChange = React.useCallback(
     (_: React.SyntheticEvent, value: unknown) => {
@@ -131,7 +168,10 @@ const ErhvervsevnetabDev = React.memo(() => {
         <EetOplysningerTab values={values} setValues={setValues} handleChange={handleChange} />
       )}
       {activeTab === TAB_KEYS.LOEBENDE_YDELSER && (
-        <SkeletonTab titel="Løbende EET-ydelser" />
+        <EetLoebendeYdelserTab
+          values={values}
+          onGoToEetOplysninger={() => setActiveTab(TAB_KEYS.EET_OPLYSNINGER)}
+        />
       )}
       {activeTab === TAB_KEYS.KAPITALISERING && (
         <SkeletonTab titel="Kapitalisering af endeligt EET" />

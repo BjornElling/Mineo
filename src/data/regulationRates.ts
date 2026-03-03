@@ -186,6 +186,9 @@ export const vejledendeUdtalelse: YearlyRate = {
 
 // ===== ARBEJDSSKADESIKRINGSLOVEN =====
 
+export const ASL_MAX_AARSLOEN_2003 = 367000;
+export const ASL_MAX_AARSLOEN_2024 = 608000;
+
 // Godtgørelse for varige mén (§ 18, stk. 3, 3. pkt.)
 export const varigeMenPrGrad: YearlyRate = {
   2026: 11035,

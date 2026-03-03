@@ -13,9 +13,12 @@ import {
 } from '../../../schemas/formSchemas';
 import { coerceToISODateString } from '../../../types/branded';
 import { usePersistedForm } from '../../../hooks/usePersistedForm';
+import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createCommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
-import { validatePercentDivisibleBy5FromValue } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
+import {
+  validatePercentDivisibleBy5FromValue,
+} from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 
 export type EetOplysningerTabProps = {
   values: ErhvervsevnetabValues;
@@ -35,6 +38,7 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
     'stamdata',
     STAMDATA_INITIAL_VALUES
   );
+  const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
 
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -108,6 +112,8 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
               maxValue={9999999}
               width={140}
               placeholder="0 kr."
+              error={Boolean(eetFieldErrors.aslAarsloen?.message)}
+              helperText={eetFieldErrors.aslAarsloen?.message ?? ''}
             />
           </Box>
         </Box>
@@ -164,6 +170,31 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
               helperText={ealEetPctError ?? ''}
             />
           </Box>
+        </Box>
+      </ContentBox>
+
+      <ContentBox className="content-box" data-section-id="eet-oplysninger-bemaerk">
+        <Typography className="section-header">Bemærk</Typography>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">
+            For skadelidte i fleksjob skal altid beregnes ny erhvervsevnetabsprocent efter EAL.
+          </Typography>
+          <Box className="row--label-right-hover__content" />
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">
+            Der foretages individuelle fradrag i erhvervsevnetabserstatningen for tjenestemænd
+          </Typography>
+          <Box className="row--label-right-hover__content" />
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">
+            Beregninger foretaget efter den grønlandske arbejdsskadesikringsloven afviger markant.
+          </Typography>
+          <Box className="row--label-right-hover__content" />
         </Box>
       </ContentBox>
     </>

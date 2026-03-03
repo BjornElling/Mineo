@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { AslAfgoerelseRow } from '../../../schemas/formSchemas';
 import {
+  collectEetAslAfgoerelseValidationIssues,
   isAfgoerelseWithinTwoYearsOfFolkepension,
+  validateAslAarsloenDivisibleBy1000,
+  validateAslAarsloenBySkadesaarMax,
   validateDuplicateAfgoerelseTriplet,
   validateEetPctByPriorKapPct,
   validateKapDatoByAfgoerelsestype,
@@ -110,6 +113,17 @@ describe('validateKapPctByAfgoerelsestype', () => {
       })
     );
     expect(error).toBe('Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse');
+  });
+
+  it('afviser når kap.dato ligger før afgørelsesdato', () => {
+    const error = validateKapDatoByAfgoerelsestype(
+      buildRow({
+        afgoerelseType: 'Endelig',
+        afgoerelsesDato: '10-01-2025',
+        kapDato: '09-01-2025',
+      })
+    );
+    expect(error).toBe('Kapitaliseringsdato kan ikke være før afgørelsesdato');
   });
 
   it('accepterer gyldig endelig under 50 når kap % matcher EET %', () => {
@@ -383,6 +397,53 @@ describe('validateDuplicateAfgoerelseTriplet', () => {
   });
 });
 
+describe('validateAslAarsloenBySkadesaarMax', () => {
+  it('giver fejl når årsløn overstiger maks årsløn i skadesåret', () => {
+    const error = validateAslAarsloenBySkadesaarMax(539001, toISODateString('2019-04-01'));
+    expect(error).toBe('Årsløn kan ikke overstige maks årslønnen i skadesåret (539.000 kr.)');
+  });
+
+  it('giver ikke fejl når årsløn er lig eller under maks årsløn i skadesåret', () => {
+    expect(validateAslAarsloenBySkadesaarMax(539000, toISODateString('2019-04-01'))).toBeUndefined();
+    expect(validateAslAarsloenBySkadesaarMax(538999, toISODateString('2019-04-01'))).toBeUndefined();
+  });
+});
+
+describe('validateAslAarsloenDivisibleBy1000', () => {
+  it('giver fejl når årsløn ikke er delelig med 1000', () => {
+    const error = validateAslAarsloenDivisibleBy1000(539500);
+    expect(error).toBe('Årsløn skal være delelig med 1000');
+  });
+
+  it('giver ikke fejl når årsløn er delelig med 1000', () => {
+    expect(validateAslAarsloenDivisibleBy1000(539000)).toBeUndefined();
+  });
+});
+
+describe('collectEetAslAfgoerelseValidationIssues', () => {
+  it('samler krydsfeltsfejl deterministisk for den konkrete række/kolonne', () => {
+    const rows: AslAfgoerelseRow[] = [
+      buildRow({
+        id: 'r1',
+        afgoerelsesDato: '10-01-2025',
+        virkningsDato: '10-01-2025',
+        afgoerelseType: 'Endelig',
+        eetPct: '40',
+        kapDato: '09-01-2025',
+        kapPct: '40',
+      }),
+    ];
+
+    const issues = collectEetAslAfgoerelseValidationIssues(rows, undefined);
+    expect(issues.some((issue) => issue.rowId === 'r1' && issue.field === 'kapDato')).toBe(true);
+    expect(
+      issues.some(
+        (issue) => issue.rowId === 'r1' && issue.field === 'kapDato' && issue.message === 'Kapitaliseringsdato kan ikke være før afgørelsesdato'
+      )
+    ).toBe(true);
+  });
+});
+
 describe('isAfgoerelseWithinTwoYearsOfFolkepension', () => {
   it('returnerer true når afgørelsesdato er inden for to år af folkepensionsdato', () => {
     const result = isAfgoerelseWithinTwoYearsOfFolkepension(
@@ -408,4 +469,3 @@ describe('isAfgoerelseWithinTwoYearsOfFolkepension', () => {
     expect(result).toBe(true);
   });
 });
-
