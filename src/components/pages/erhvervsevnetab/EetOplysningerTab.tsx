@@ -1,13 +1,15 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, MenuItem, Typography } from '@mui/material';
 import StyledDateField from '../../inputs/StyledDateField';
 import StyledAmountField from '../../inputs/StyledAmountField';
 import StyledPercentField from '../../inputs/StyledPercentField';
+import StyledDropdown from '../../inputs/StyledDropdown';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import ContentBox from '../../layout/ContentBox';
 import EetAslAfgoerelserTable from '../../tables/EetAslAfgoerelserTable';
 import { dateRanges_stamdata, dateRanges_erhvervsevnetab } from '../../../config/dateRanges';
 import {
+  koenEnum,
   stamdataSchema,
   type ErhvervsevnetabValues,
 } from '../../../schemas/formSchemas';
@@ -46,6 +48,11 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
     const iso = coerceToISODateString(stamValues.skadesdato);
     return iso ?? dateRanges_erhvervsevnetab.beregningsdato.fallbackMin;
   }, [stamValues.skadesdato]);
+  const visKoenValg = React.useMemo(() => {
+    const iso = coerceToISODateString(stamValues.skadesdato);
+    if (!iso) return false;
+    return iso < '2015-03-01';
+  }, [stamValues.skadesdato]);
 
   const ealEetPctError = React.useMemo(
     () => validatePercentDivisibleBy5FromValue(values.ealEetPct, 'EET %'),
@@ -75,6 +82,26 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
             />
           </Box>
         </Box>
+
+        {visKoenValg && (
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">Køn</Typography>
+            <Box className="row--label-right-hover__content">
+              <StyledDropdown
+                value={values.koen}
+                onChange={(event) => {
+                  const parsed = koenEnum.safeParse(event.target.value);
+                  handleChange('koen')(createCommitEvent(parsed.success ? parsed.data : undefined));
+                }}
+                placeholder="Vælg køn"
+                width={130}
+              >
+                <MenuItem value="Mand">Mand</MenuItem>
+                <MenuItem value="Kvinde">Kvinde</MenuItem>
+              </StyledDropdown>
+            </Box>
+          </Box>
+        )}
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Beregningsdato</Typography>

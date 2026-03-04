@@ -31,6 +31,8 @@ export {
   type TillaegstidEnhed,
   afgoerelseTypeEnum,
   type AfgoerelseType,
+  koenEnum,
+  type Koen,
 } from './formSchemas/enumSchemas';
 
 export { stamdataSchema, type StamdataValues } from './formSchemas/sections/stamdataSchemas';

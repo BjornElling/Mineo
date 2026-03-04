@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { optionalIsoDateString, percentageDecimal, tableAmountCellValue, tableDateCellString, stripTopLevelKey } from '../baseSchemas';
-import { afgoerelseTypeEnum } from '../enumSchemas';
+import { afgoerelseTypeEnum, koenEnum } from '../enumSchemas';
 
 // ─── ASL afgørelser tabel ─────────────────────────────────────────────────────
 
@@ -23,6 +23,7 @@ export type AslAfgoerelseRow = z.infer<typeof aslAfgoerelseRowSchema>;
 
 const erhvervsevnetabInnerSchema = z.object({
   beregningsdato: optionalIsoDateString,
+  koen: koenEnum.optional(),
   aslAfgoerelser: z.array(aslAfgoerelseRowSchema),
   aslAarsloen: tableAmountCellValue,
   ealAarsloen: tableAmountCellValue,

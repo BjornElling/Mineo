@@ -68,3 +68,6 @@ export type TillaegstidEnhed = z.infer<typeof tillaegstidEnhedEnum>;
 
 export const afgoerelseTypeEnum = z.enum(['Midlertidig', 'Delvist endelig', 'Endelig']);
 export type AfgoerelseType = z.infer<typeof afgoerelseTypeEnum>;
+
+export const koenEnum = z.enum(['Mand', 'Kvinde']);
+export type Koen = z.infer<typeof koenEnum>;
