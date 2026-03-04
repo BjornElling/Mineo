@@ -71,11 +71,13 @@
 
 .MuiTypography-root.row--subheading-underlined,
 .row--subheading-underlined {
-  min-height: unset;
-  display: block;
+  min-height: var(--min-height-row);
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
   margin-top: 0;
   margin-bottom: 0;
-  padding: 0 12px;
+  padding: 0;
 }
 
 /* .row--label-offset: Label + indrykket felt */

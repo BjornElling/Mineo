@@ -1249,4 +1249,4 @@ Følgende situationer udløser advarsler (WarningAmber, orange) uden at blokere 
 | Den benyttede ASL-årsløn svarer til `aarsloenMax` for skadesåret | *(samme tekst som `warn-asl-aarsloen-is-max` på fane 4)* |
 | Der er angivet en afgørelse af typen `Midlertidig` eller `Delvist endelig` med afgørelsesdato **efter** afgørelsesdatoen for en `Endelig`-afgørelse | "Der er angivet en midlertidig afgørelse efter en endelig afgørelse." |
 | Mindst én afgørelse har en reel EET % (> 0) der er **< 15 %** | "Der er indtastet en afgørelse med < 15 % erhvervsevnetab." |
-| Skadesdato er fra 01-07-2024, og mindst én afgørelse har en EET % **> 15 %** der ikke er deleligt med 10 (dvs. 25, 35, 45, 55, 65, 75, 85, 95) | "Der er indtastet en ugyldig EET-procent for de nye regler fra 1. juli 2024 og frem." |
+| Skadesdato er fra 01-07-2024, og mindst én afgørelse har en EET % **> 15 %** der ikke er deleligt med 10 (dvs. 25, 35, 45, 55, 65, 75, 85, 95) | "Der er indtastet en ugyldig EET-procent ( [X] %) for skader fra 1. juli 2024." |

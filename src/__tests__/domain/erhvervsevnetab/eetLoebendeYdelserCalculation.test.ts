@@ -140,7 +140,7 @@ describe('computeEetLoebendeYdelser', () => {
             id: 'a1',
             afgoerelsesDato: '01-08-2025',
             virkningsDato: '01-08-2025',
-            eetPct: '25',
+            eetPct: '55',
             kapDato: undefined,
             kapPct: undefined,
             afgoerelseType: 'Midlertidig',
@@ -157,7 +157,7 @@ describe('computeEetLoebendeYdelser', () => {
       result.issues.some(
         (issue) =>
           issue.severity === 'warning' &&
-          issue.message === 'Der er indtastet en ugyldig EET-procent for de nye regler fra 1. juli 2024 og frem.'
+          issue.message === 'Der er indtastet en ugyldig EET-procent ( 55 %) for skader fra 1. juli 2024.'
       )
     ).toBe(true);
   });

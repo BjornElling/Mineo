@@ -113,6 +113,8 @@ const parsePct = (raw: string | undefined): number | undefined => {
   if (parsed === undefined || parsed === 0) return undefined;
   return parsed;
 };
+const formatPctForWarning = (value: number): string =>
+  Number.isInteger(value) ? `${value}` : `${value}`.replace('.', ',');
 
 const toYear = (iso: ISODateString): number => Number.parseInt(iso.slice(0, 4), 10);
 
@@ -222,14 +224,14 @@ const collectWarnings = (
     issues.push(toWarning('warn-asl-eet-under-15', 'Der er indtastet en afgørelse med < 15 % erhvervsevnetab.'));
   }
 
-  if (
-    skadesdato >= SKAERING_2024_07_01 &&
-    afgoerelser.some((row) => row.eetPct > 15 && row.eetPct % 10 !== 0)
-  ) {
+  const firstInvalidPctAfter2024 = skadesdato >= SKAERING_2024_07_01
+    ? afgoerelser.find((row) => row.eetPct > 15 && row.eetPct % 10 !== 0)
+    : undefined;
+  if (firstInvalidPctAfter2024) {
     issues.push(
       toWarning(
         'warn-invalid-eet-pct-after-2024-07-01',
-        'Der er indtastet en ugyldig EET-procent for de nye regler fra 1. juli 2024 og frem.'
+        `Der er indtastet en ugyldig EET-procent ( ${formatPctForWarning(firstInvalidPctAfter2024.eetPct)} %) for skader fra 1. juli 2024.`
       )
     );
   }

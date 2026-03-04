@@ -44,12 +44,14 @@ const formatMaaneder = (value: number): string => formatAsAmount(roundByMethod(v
 const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
 const formatRegulering = (value: number): string => `${value >= 0 ? '+' : '-'} ${formatPct(Math.abs(value))}`;
 const formatPctTal = (value: number): string => formatPct(value).replace(' %', '');
-const formatEetDisplayExpression = (eetPct: number, priorKapPct: number): string =>
+const formatEetHoverLabel = (eetPct: number, priorKapPct: number): string =>
   priorKapPct > 0
-    ? `${formatPct(eetPct)} - ${formatPct(priorKapPct)} tidligere kap. = ${formatPct(Math.max(0, eetPct - priorKapPct))}`
-    : formatPct(eetPct);
+    ? `Erhvervsevnetab (${formatPct(eetPct)} - ${formatPct(priorKapPct)} tidligere kap.) =`
+    : 'Erhvervsevnetab';
+const formatEetHoverValue = (eetPct: number, priorKapPct: number): string =>
+  priorKapPct > 0 ? formatPct(Math.max(0, eetPct - priorKapPct)) : formatPct(eetPct);
 const formatEetFormulaFactor = (eetPct: number, priorKapPct: number): string =>
-  priorKapPct > 0 ? `(${formatPctTal(eetPct)} - ${formatPct(priorKapPct)})` : formatPct(eetPct);
+  priorKapPct > 0 ? formatPct(Math.max(0, eetPct - priorKapPct)) : formatPct(eetPct);
 
 const YDELSER_TABLE_COLUMNS: readonly StandardDisplayTableColumn[] = [
   { header: 'Fra o.m.', align: 'center', width: '14%' },
@@ -274,10 +276,12 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
                 </Box>
 
                 <Box className="row--label-right-hover">
-                  <Typography className="row--text">Erhvervsevnetab</Typography>
+                  <Typography className="row--text">
+                    {formatEetHoverLabel(afgoerelse.eetPct, afgoerelse.priorKapPct)}
+                  </Typography>
                   <Box className="row--label-right-hover__content">
                     <Typography className="row--text">
-                      {formatEetDisplayExpression(afgoerelse.eetPct, afgoerelse.priorKapPct)}
+                      {formatEetHoverValue(afgoerelse.eetPct, afgoerelse.priorKapPct)}
                     </Typography>
                   </Box>
                 </Box>
@@ -422,7 +426,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
                   </Box>
                 </Box>
                 <Box className="row--label-right-hover">
-                  <Typography className="row--text">Der trækkes AM-bidrag (8 %) fra årslønnen, så der sker yderligere regulering til</Typography>
+                  <Typography className="row--text">Der trækkes AM-bidrag (8 %) fra årslønnen og sker dermed yderligere regulering til</Typography>
                   <Box className="row--label-right-hover__content">
                     <Typography className="row--text">92 %</Typography>
                   </Box>
@@ -466,7 +470,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
               )} = ${formatPct(afgoerelse.restEetPct)}`;
               const restTextPrefix =
                 afgoerelse.kapitaliseringsdato !== null
-                  ? `Resterende EET efter kapitalisering ${formatIsoDateShort(afgoerelse.kapitaliseringsdato)}`
+                  ? `Resterende EET (${restEetExpression}) efter kapitalisering ${formatIsoDateShort(afgoerelse.kapitaliseringsdato)}`
                   : 'Resterende EET efter kapitalisering';
               const grundloen2024Niveau =
                 computation.grundloenNiveau === '2003'
@@ -504,11 +508,19 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
               return (
                 <Box key={`grundydelse-${afgoerelse.rowId}`} sx={{ mt: 2 }}>
                   <Typography className="row--subheading">
-                    {`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)} (${formatEetDisplayExpression(
-                      afgoerelse.eetPct,
-                      afgoerelse.priorKapPct
-                    )})`}
+                    {`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`}
                   </Typography>
+
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">
+                      {formatEetHoverLabel(afgoerelse.eetPct, afgoerelse.priorKapPct)}
+                    </Typography>
+                    <Box className="row--label-right-hover__content">
+                      <Typography className="row--text">
+                        {formatEetHoverValue(afgoerelse.eetPct, afgoerelse.priorKapPct)}
+                      </Typography>
+                    </Box>
+                  </Box>
 
                   <UnderlinedHoverRow text={showSplitHeading ? 'Grundydelse før 1. januar 2024' : 'Grundydelse'} />
                   <Box className="row--label-right-hover">
@@ -520,7 +532,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
                   {showRest2003 && (
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">
-                        {`${restTextPrefix} (${restEetExpression})`}
+                        {restTextPrefix}
                       </Typography>
                       <Box className="row--label-right-hover__content">
                         <Typography className="row--text">{formatKr(restGrundydelse2003, 2)}</Typography>
@@ -532,7 +544,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
                     <>
                       <UnderlinedHoverRow text="Grundydelse fra 1. januar 2024" />
                       <Box className="row--label-right-hover">
-                        <Typography className="row--text">{`Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${formatPct(reguleringFoer2024Pct)}): ${formatKr(grundydelse2003BaseFor2024, 2)} × ${reguleringFoer2024FaktorTekst}`}</Typography>
+                        <Typography className="row--text">{`Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${formatPct(reguleringFoer2024Pct)}): ${formatKr(grundydelse2003BaseFor2024, 2)} × ${reguleringFoer2024FaktorTekst} =`}</Typography>
                         <Box className="row--label-right-hover__content">
                           <Typography className="row--text">{formatKr(grundydelse2024Result, 2)}</Typography>
                         </Box>
@@ -540,7 +552,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
                       {showRest2024 && (
                         <Box className="row--label-right-hover">
                           <Typography className="row--text">
-                            {`${restTextPrefix} (${restEetExpression})`}
+                            {restTextPrefix}
                           </Typography>
                           <Box className="row--label-right-hover__content">
                             <Typography className="row--text">{formatKr(restGrundydelse2024, 2)}</Typography>
