@@ -599,7 +599,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
       restEetPct,
       harKapitalisering: hasKapitalisering,
       harRestSektion: hasRestSection,
-      tilbagevirkendeKraft: toYear(current.virkningsdato) < toYear(current.afgoerelsesdato),
+      tilbagevirkendeKraft: current.virkningsdato < current.afgoerelsesdato,
       ophoerDato: finalStop.date,
       ophoerAarsag: finalStop.cause,
       grundydelseFuld,

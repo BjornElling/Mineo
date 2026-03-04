@@ -54,7 +54,7 @@ describe('computeEetLoebendeYdelser', () => {
     expect(computation.afgoerelser).toHaveLength(2);
 
     const first = computation.afgoerelser[0];
-    expect(first.tilbagevirkendeKraft).toBe(false);
+    expect(first.tilbagevirkendeKraft).toBe(true);
     expect(first.perioder).toHaveLength(3);
     expect(first.perioder[0]?.maanedligYdelse).toBe(15265);
     expect(first.perioder[1]?.maanedligYdelse).toBe(15799);

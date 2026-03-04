@@ -152,6 +152,10 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
 
   const hasBlockingErrors = issues.some((issue) => issue.severity === 'error');
   const computation = calculationResult.computation;
+  const visibleAfgoerelser = React.useMemo(
+    () => computation?.afgoerelser.filter((afgoerelse) => afgoerelse.iAltBeregnetEet > 0) ?? [],
+    [computation]
+  );
 
   const handleNavigate = React.useCallback(
     (navigation: ErrorNavigation) => {
@@ -257,7 +261,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
             </Box>
           </ContentBox>
 
-          {computation.afgoerelser.map((afgoerelse) => {
+          {visibleAfgoerelser.map((afgoerelse) => {
             return (
               <ContentBox key={afgoerelse.rowId} className="content-box">
                 <Typography className="section-header">{`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`}</Typography>
@@ -444,7 +448,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
               </>
             )}
 
-            {computation.afgoerelser.map((afgoerelse) => {
+            {visibleAfgoerelser.map((afgoerelse) => {
               const reguleringFoer2024Pct = reguleringsprocentErhvervsevnetabFoer2024[2024] ?? 0;
               const reguleringFoer2024FaktorTekst = formatAsAmount(
                 roundByMethod(1 + reguleringFoer2024Pct / 100, 3, 'halfAwayFromZero'),

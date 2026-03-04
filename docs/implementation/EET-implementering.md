@@ -1025,7 +1025,7 @@ Underoverskrift "Periodeafgrænsning" efterfulgt af indrykkede hoverrows:
 | Virkningsdato | 01-02-2023 |
 | Afgørelse med tilbagevirkende kraft? | Ja / Nej |
 
-"Afgørelse med tilbagevirkende kraft?" vises som Ja hvis virkningsdatoen ligger i et tidligere kalenderår end afgørelsesdatoen; ellers Nej. Vises altid (ikke skjult ved Nej).
+"Afgørelse med tilbagevirkende kraft?" vises som Ja hvis virkningsdatoen ligger før afgørelsesdatoen; ellers Nej. Vises altid (ikke skjult ved Nej).
 
 **Blok 3: Ophørslinje**
 
