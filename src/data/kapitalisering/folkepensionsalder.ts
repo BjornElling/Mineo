@@ -15,13 +15,12 @@ export interface FolkepensionsalderInterval {
   /** Første fødselsdato (inklusiv) dette interval gælder for. ISO 8601. */
   foedselsdatoFra: ISODateString
   /** Folkepensionsalder i hele år. */
-  folkepensionsalder: 67 | 68 | 69 | 70 | 71
+  folkepensionsalder: 67 | 68 | 69 | 70
 }
 
 export const folkepensionsalderIntervaller: FolkepensionsalderInterval[] = [
   { foedselsdatoFra: toISODateString('1955-07-01'), folkepensionsalder: 67 },
   { foedselsdatoFra: toISODateString('1963-01-01'), folkepensionsalder: 68 },
   { foedselsdatoFra: toISODateString('1967-01-01'), folkepensionsalder: 69 },
-  { foedselsdatoFra: toISODateString('1971-01-01'), folkepensionsalder: 70 },
-  { foedselsdatoFra: toISODateString('1975-01-01'), folkepensionsalder: 71 },
+  { foedselsdatoFra: toISODateString('1971-01-01'), folkepensionsalder: 70 }
 ]

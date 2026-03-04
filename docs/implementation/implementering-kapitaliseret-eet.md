@@ -55,7 +55,7 @@ EET-siden læser alle felter fra `stamdataSchema`:
 | `journalnr` | PDF-brevhoved |
 | `advokat` | PDF-brevhoved |
 | `sagsbehandler` | PDF-brevhoved |
-| `fodselsdato` | Folkepensionsalder-opslag, aldersberegning |
+| `fodselsdato` | Tabelopslag i kapitaliseringsbekendtgørelse, aldersberegning |
 
 EET-siden skriver ikke til stamdata — den er udelukkende læsende.
 
@@ -130,7 +130,11 @@ Den dato hvorfra kapitaliseringen beregnes. Angives manuelt af brugeren. Kapital
 **bkg** er forkortelse for **bekendtgørelse**. **vejl** er forkortelse for **vejledning**. Modsat de øvrige forkortelser i projektet bruges disse i brugerfladen (UI-tekst). Forkortelsen **vej** forekommer også som synonym for vejledning i eksterne kilder — programmet skal kunne håndtere denne variant ved indlæsning, men den kanoniske forkortelse i kode og UI er altid **vejl**.
 
 ### Folkepensionsalder / FP
-Alle skadelidte har en folkepensionsalder, der afhænger af deres fødselsdato. Denne mapping gemmes i en særskilt fil i `src/data/`.
+Alle skadelidte har en folkepensionsalder, der afhænger af deres fødselsdato.
+
+I kapitaliseringskontekst må folkepensionsalderen ikke udledes fra den centrale `folkepensionsalder.ts`, fordi den ikke er autoritativ for historiske kapitaliseringer tilbage i tid.
+
+Ved kapitalisering skal folkepensionsalder/tabelvalg i stedet bestemmes ud fra den konkrete kapitaliseringsbekendtgørelse/vejledning, der er valgt for sagen.
 
 Forkortelsen **FP** bruges i EET-konteksten om **folkepensionsalderen**. Bemærk at FP andre steder i programmet bruges om **feriepenge** — de to må ikke forveksles. FP i kode og kommentarer inden for EET-systemet betyder altid folkepensionsalder.
 
@@ -287,7 +291,7 @@ Kapitaliseringsberegninger kræver tre typer statiske data, som alle ligger i `s
 |---|---|---|
 | `kapitalisering/kapitaliseringsbekendtgørelser.ts` | Matrix: skadesdato × kapitaliseringsdato → bekendtgørelsesnummer + `eetKapitaliseringsDatoMaxFraBekendtgoerelser` | Manuelt, årligt |
 | `kapitaliseringsTabeller/[nr]-[år].ts` | Tabeller (alder → faktor) + særfaktor for < 2 år til folkepension | Via hjælper, årligt |
-| `folkepensionsalder.ts` | Fødselsdato-fra → folkepensionsalder | Sjældent — kun ved lovændring |
+| `folkepensionsalder.ts` | Central reference for folkepensionsalderintervaller | Sjældent — kun ved lovændring |
 
 ### Bekendtgørelsesoversigt (`kapitalisering/kapitaliseringsbekendtgørelser.ts`)
 
@@ -346,7 +350,9 @@ Alder opgøres i **hele opnåede år og måneder** — dage medregnes ikke. En s
 
 ### Folkepensionsalder (`folkepensionsalder.ts`)
 
-Manuelt vedligeholdt fil. Indeholder en liste af intervaller: fødselsdato-fra → folkepensionsalder (i hele år). Opdateres kun ved lovændring.
+Manuelt vedligeholdt fil med central reference for folkepensionsalderintervaller.
+
+Vigtigt: Filen er ikke autoritativ for historisk kapitalisering og må derfor ikke bruges til at fastsætte tabelvalg/folkepensionsalder ved opslag i kapitaliseringsbekendtgørelser.
 
 ### PDF-hjælperen
 
@@ -397,7 +403,11 @@ Kapitaliseringsbekendtgørelsesoversigten vedligeholdes centralt i `src/data/kap
 
 ### Valg af tabel inden for bekendtgørelsen
 
-Opslag sker på **skadesdato** og **folkepensionsalder**. Fødselsdato bruges udelukkende til at udlede folkepensionsalderen — selve opslaget beror på pensionsalderen. To skadelidte med samme folkepensionsalder lander altid i samme tabel.
+Opslag sker på **skadesdato** og **fødselsdato** i den konkrete kapitaliseringsbekendtgørelse.
+
+Der må ikke bruges værdier fra den centrale `folkepensionsalder.ts` til at fastsætte folkepensionsalderen i dette opslag.
+
+Folkepensionsalderen, der anvendes i kapitaliseringen, er den som fremgår af den valgte kapitaliseringsbekendtgørelse/vejledning for det relevante fødselsdatoesnit.
 
 Skadesdato-grænserne i tabelvalget er de samme fire som i bekendtgørelsesoversigten (01-04-1978, 01-07-2007, 01-01-2011, 01-01-2021).
 
@@ -420,11 +430,13 @@ Eksempel på struktur (fra Vejl. 10029/2024 — illustrativ):
 | 01-01-2004 | 01-01-1963 | 68 år | N |
 | 01-01-2004 | 01-07-1955 | 67 år | O |
 
-Fødselsdato og folkepensionsalder angives begge i koden — fødselsdato for menneskeligt overblik, folkepensionsalder som den faktiske opslagsnøgle.
+Fødselsdato og folkepensionsalder kan begge fremgå i tabelvalg-data i bekendtgørelsesfilen, men den deterministiske opslagsnøgle er fødselsdato-grænserne i den valgte bekendtgørelse.
 
 ### Kapitalisering ved < 2 år til folkepensionsalderen (FP)
 
 Hvis skadelidte på **afgørelsesdatoen** for endeligt EET er 2 år eller mindre fra sin folkepensionsalder, tilsidesættes alle tabeller. Der bruges i stedet den særlige kapitaliseringsfaktor fra den bekendtgørelse der gælder på **afgørelsesdatoen** — ikke kapitaliseringsdatoen. Dette er en undtagelse fra den normale opslagslogik, hvor kapitaliseringsdatoen bruges. Faktoren er ét fast tal og er uafhængig af alder.
+
+Vurderingen af om sagen er "< 2 år til FP" skal tage udgangspunkt i folkepensionsalderen fra den valgte bekendtgørelses tabelvalg for skadelidtes fødselsdato (ikke fra central `folkepensionsalder.ts`).
 
 ### Kapitaliseringsdato
 
