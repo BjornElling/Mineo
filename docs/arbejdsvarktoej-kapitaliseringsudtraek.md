@@ -28,11 +28,18 @@ Dette matcher implementeringsretningen i:
 - Der må aldrig indføjes, udfyldes, estimeres eller \"genbruges\" værdier fra andre kapitaliseringsbekendtgørelser.
 - Hvis en værdi/tabellerække mangler i kilden, skal den forblive manglende i outputtet (ingen fallback-data).
 - Ingen normalisering må ændre tabelindholdets faktiske værdier eller struktur; kun formatkonvertering er tilladt (fx komma -> punktum i decimaltal).
+- For historiske kilder med kønsopdelte tabeller skal kønsopdelingen bevares fuldt 1:1 i separate exports (ingen sammensmeltning, gennemsnit eller afledte tabeller).
+- Historisk regel: frem til og med 28. februar 2015 anvendes kønsafhængige kapitaliseringssatser. Fra og med 1. marts 2015 bortfalder kønsopdelingen, og kapitalisering sker kønsneutralt med én fælles kapitaliseringsfaktor.
+- Historisk pensionsalder: Det er forventelig adfærd, at pensionsalderen var lavere i ældre bekendtgørelser og er steget over tid. Samme fødselsdato/fødselsinterval kan derfor være knyttet til en lavere pensionsalder i en ældre bekendtgørelse og en højere pensionsalder i en senere bekendtgørelse.
 - Bekendtgørelse og vejledning behandles ens i data: identifikation sker via `id` i format `nummer/år`.
+- `gyldigFra/gyldigTil` er altid kapitaliseringsdato-gyldighed (omsætningstidspunkt) - aldrig fødselsdato-/tabelvalgsintervaller.
 - Der må ikke gættes på uklare værdier. Ved tvivl stoppes udtræk, og uklarhed markeres eksplicit.
 - Output skal være fail-closed: ingen tomme eller "næsten"-tolkede værdier i kritiske felter.
 - Alle datoer skrives som ISO (`YYYY-MM-DD`).
 - Undtagelse: `kapitaliseringsDatering` skrives i kildens officielle format `DD/MM/YYYY` (visningsmetadata), ikke ISO.
+- Dateringsmønster: Det er sædvanligt og forventeligt, at bekendtgørelsens/vejledningens datering ligger nogle måneder før ikrafttrædelsen (fx udstedt 30/10/2020 og gældende for 2021).
+- Flerårige perioder er også forventelige: en udstedt bekendtgørelse/vejledning kan dække både det umiddelbart efterfølgende år og senere år.
+- Plausibilitetskontrol: Det er kun påfaldende, hvis datering ligger markant før ikrafttrædelse (fx udstedt i slutningen af år 1 men først gældende fra år 3). Som tommelfingerregel må udstedelse højst ligge ca. 6 måneder før første ikrafttrædelsesdato.
 - Decimaltal skrives som JavaScript-tal med punktum (ikke komma), uden afrunding medmindre kilden entydigt kræver det.
 - Tabellen skal være menneskeligt læsbar: én række pr. linje, stabil kolonnering, fast sortering.
 - Sortering/ordning er en fast regel og skal altid være den samme:
@@ -43,16 +50,33 @@ Dette matcher implementeringsretningen i:
 - Tabeller for `varige mén` og `behandlingsudgifter` må ikke medtages.
 - Hvis tabeltype ikke kan afgøres entydigt fra kilden, stoppes udtrækket og brugeren skal spørges.
 
+## Kendte undtagelser der skal dokumenteres i filerne
+
+- Kontrakten har to gyldige varianter:
+  - Historisk variant med `historiskErhvervsevnetabTabelvalg` (og evt. kønsopdelte tabeller).
+  - Moderne variant med `erhvervsevnetabTabelvalg`, `forsoergertabTabelvalg` og `saerfaktorUnderToAarTilFpPerSkadesinterval`.
+- Varianterne må ikke blandes ved antagelser; kun felter der findes eksplicit i kilden udfyldes.
+- For VEJ `9921/2019` og `9870/2020` er 2020 bevidst opdelt i to intervaller:
+  - `9921/2019` dækker `2020-01-01` til `2020-12-30`.
+  - `9870/2020` dækker kun `2020-12-31`.
+- For VEJ `9921/2019` og `9870/2020` udfyldes ikke historisk EET-tabelvalg, forsørgertab-tabelvalg eller særfaktor ved `<2 år`, når disse ikke fremgår eksplicit af kilden.
+- For VEJ `9820/2023` og `9376/2024` kan filernes `gyldig`-intervaller overlappe i anden halvdel af 2024; deterministisk prioritering skal styres i `src/data/kapitalisering/kapitaliseringsbekendtgørelser.ts` med skæringsdato `2024-07-01`.
+- For VEJ `9741/2020`, `9864/2021`, `10141/2022` og `9820/2023` er tabelvalg bevidst begrænset til skadesdatoer fra `2011-01-01`, når kilden kun angiver tabeller `A-H`.
+- `forsoergertabAfloesningsTabeller = {}` betyder, at kilden ikke indeholder afløsningstabeller for den bekendtgørelse/vejledning.
+- De fil-lokale interface-definitioner (`AldersFaktorRaekke`, `ForsoergertabMatrixRaekke`, `AldersKoensopdeltFaktorRaekke`) er en bevidst selvstændighedsstrategi for hver tabelfil, ikke en datamæssig forskel.
+
 ## Udtræksflow (hver gang)
 
 1. Identificer metadata i kildeteksten:
 - Type (`bkg`/`vejl`, hvor `vej` normaliseres til `vejl`).
 - Nummer og år.
 - Samlet `id` i format `nummer/år`.
+- Gyldighedsinterval for kapitalisering (`gyldigFra/gyldigTil`) fra anvendelsesbestemmelsen.
 
 2. Identificer og udtræk alle tabeller:
 - Tabel-id (A, B, C, ...).
 - Rækker med `alder` og `faktor`.
+- Markér om tabellen er kønsneutral eller kønsopdelt (`mænd`, `kvinder`).
 - Bevar kildens numeriske præcision.
 - Filtrér til tabeller for erhvervsevnetab/forsørgertabserstatning; udelad varige mén/behandlingsudgifter.
 - Forsørgertabstabeller (`faktorerPraHeleAar`) kan have varierende antal kolonner pr. alder-række. Bevar præcis antal værdier fra kilden; aldrig pad/trunkér.
@@ -109,6 +133,12 @@ import { toISODateString } from '../../../types/branded';
 export interface AldersFaktorRaekke {
   alder: number;
   faktor: number;
+}
+
+export interface AldersKoensopdeltFaktorRaekke {
+  alder: number;
+  maendFaktor: number;
+  kvinderFaktor: number;
 }
 
 export interface ForsoergertabMatrixRaekke {
@@ -192,7 +222,29 @@ export const forsoergertabAfloesningsTabeller = {
     { alder: 56, faktor: 1.539 },
   ],
 } as const satisfies Record<string, readonly AldersFaktorRaekke[]>;
+
+// Historiske filer med kønsopdeling skal desuden eksportere:
+export const historiskErhvervsevnetabTabelvalg = [] as const;
+export const erhvervsevnetabKoensopdelteTabeller = {} as const satisfies Record<
+  string,
+  readonly AldersKoensopdeltFaktorRaekke[]
+>;
+export const forsoergertabTabellerMaend = {} as const satisfies Record<
+  string,
+  readonly ForsoergertabMatrixRaekke[]
+>;
+export const forsoergertabTabellerKvinder = {} as const satisfies Record<
+  string,
+  readonly ForsoergertabMatrixRaekke[]
+>;
 ```
+
+Præcisering for historiske filer:
+
+- Hvis kilden kun har kønsopdelte EET-tabeller, skal `erhvervsevnetabTabeller` være tom (`{}`), og kønsopdelte data skal ligge i `erhvervsevnetabKoensopdelteTabeller`.
+- Hvis kilden kun har kønsopdelte forsørgertabstabeller, skal `forsoergertabTabeller` være tom (`{}`), og data skal ligge i `forsoergertabTabellerMaend` og/eller `forsoergertabTabellerKvinder`.
+- Hvis kilden har både kønsneutrale og kønsopdelte tabeller, skal begge datatyper bevares i hver deres eksport uden transformation.
+- `historiskErhvervsevnetabTabelvalg` bruges når kilden arbejder med historiske ophørsaldre/fødselsintervaller, som ikke kan udtrykkes med den moderne `folkepensionsalderAar`-kontrakt.
 
 ## Krav til tabellignende layout (læsbart i kode)
 
@@ -206,7 +258,7 @@ export const forsoergertabAfloesningsTabeller = {
 1. metadata exports
 2. `..._TABELVALG_DATA` + mapped exports
 3. `...SAERFAKTOR..._DATA` + mapped export
-4. selve tabel-exports (`erhvervsevnetabTabeller`, `forsoergertabTabeller`, `forsoergertabAfloesningsTabeller`)
+4. selve tabel-exports (inkl. historiske kønsopdelte exports når relevante)
 - Historiske tabeller fra kilden skal bevares, også hvis de ikke er refereret i det aktuelle tabelvalg. Tilføj en kort kommentar ved tabellerne om dette.
 - Før første forsørgertabstabel i `forsoergertabTabeller` skal kolonneforklaringen stå:
   - `Kolonne 1: Fyldt alder`
