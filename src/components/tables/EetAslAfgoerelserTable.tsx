@@ -30,6 +30,8 @@ const AFGOERELSES_TYPE_OPTIONS: readonly TableDropdownOption[] = [
   { value: 'Endelig', label: 'Endelig' },
 ];
 
+const KAP_DATO_SPECIAL_RANGE_ERRORS = { minBoundKind: 'afgoerelsesdato' } as const;
+
 const TABLE_FINGERPRINT_KEYS = [
   'id',
   'afgoerelsesDato',
@@ -264,7 +266,8 @@ const EetAslAfgoerelserTable = React.memo(
                 </TableCell>
                 <TableCell>
                   {(() => {
-                    const kapDatoMin = coerceToISODateString(row.afgoerelsesDato) ?? skadesdatoMin;
+                    const afgoerelsesDatoIso = coerceToISODateString(row.afgoerelsesDato);
+                    const kapDatoMin = afgoerelsesDatoIso ?? skadesdatoMin;
                     const kapDatoMax = tabelKapitaliseringsdatoMax;
                     const hasValidRange = !(kapDatoMax !== undefined && kapDatoMin > kapDatoMax);
                     return (
@@ -274,6 +277,7 @@ const EetAslAfgoerelserTable = React.memo(
                         onBlur={(e) => commitRowUpdate(row.id, { kapDato: e.target.value || undefined })}
                         minDate={hasValidRange ? kapDatoMin : undefined}
                         maxDate={hasValidRange ? kapDatoMax : undefined}
+                        specialRangeErrors={afgoerelsesDatoIso ? KAP_DATO_SPECIAL_RANGE_ERRORS : undefined}
                         externalErrorMessage={kapDatoError}
                       />
                     );

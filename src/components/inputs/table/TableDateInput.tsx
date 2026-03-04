@@ -225,6 +225,8 @@ const TableDateInput = React.memo(
     const [errorMessage, setErrorMessage] = React.useState('');
     const [preserveInvalidDraft, setPreserveInvalidDraft] = React.useState(false);
     const draftRef = React.useRef<string>(draft);
+    const hasErrorRef = React.useRef(hasError);
+    const errorMessageRef = React.useRef(errorMessage);
     const previousCommittedValueRef = React.useRef<string>(value ?? '');
 
     const originalValueOnEditStartRef = React.useRef<string>('');
@@ -248,6 +250,13 @@ const TableDateInput = React.memo(
     React.useEffect(() => {
       draftRef.current = draft;
     }, [draft]);
+
+    const setLocalErrorState = React.useCallback((nextHasError: boolean, nextErrorMessage: string) => {
+      hasErrorRef.current = nextHasError;
+      errorMessageRef.current = nextErrorMessage;
+      setHasError(nextHasError);
+      setErrorMessage(nextErrorMessage);
+    }, []);
 
     const boundsStatus = React.useMemo(() => {
       if (minDate !== undefined && coerceToISODateString(minDate) === undefined) {
@@ -287,7 +296,7 @@ const TableDateInput = React.memo(
       if (!latest.current.onErrorChange) return;
       const kind: TableInputErrorInfo['kind'] = configErrorMessage !== '' ? 'config' : hasError ? 'input' : 'none';
       latest.current.onErrorChange({ hasError: kind !== 'none', kind });
-    }, [configErrorMessage, hasError]);
+    }, [configErrorMessage, hasError, onErrorChange]);
 
     React.useEffect(() => {
       const nextCommitted = value ?? '';
@@ -295,10 +304,48 @@ const TableDateInput = React.memo(
       previousCommittedValueRef.current = nextCommitted;
       if (!didParentValueChange || isEditing || !preserveInvalidDraft) return;
       setPreserveInvalidDraft(false);
-      setHasError(false);
-      setErrorMessage('');
+      setLocalErrorState(false, '');
       setTouched(false);
-    }, [isEditing, preserveInvalidDraft, value]);
+    }, [isEditing, preserveInvalidDraft, setLocalErrorState, value]);
+
+    React.useEffect(() => {
+      // Revalider lokal range-fejl når bounds ændres af andre felter.
+      // Gælder kun efter commit-berøring og kun når vi IKKE bevarer et ugyldigt draft.
+      if (!touched && !hasErrorRef.current) return;
+      if (preserveInvalidDraft) return;
+
+      if (configErrorMessage !== '') {
+        if (hasErrorRef.current || errorMessageRef.current !== '') {
+          setLocalErrorState(false, '');
+        }
+        return;
+      }
+
+      const committedIso = value ? coerceToISODateString(value) : undefined;
+      if (!committedIso) {
+        if (hasErrorRef.current || errorMessageRef.current !== '') {
+          setLocalErrorState(false, '');
+        }
+        return;
+      }
+
+      const nextRangeError = getRangeErrorMessage(committedIso, {
+        minDate: effectiveMinDate,
+        maxDate: effectiveMaxDate,
+        specialRangeErrors,
+      });
+
+      if (nextRangeError === null) {
+        if (hasErrorRef.current || errorMessageRef.current !== '') {
+          setLocalErrorState(false, '');
+        }
+        return;
+      }
+
+      if (!hasErrorRef.current || errorMessageRef.current !== nextRangeError) {
+        setLocalErrorState(true, nextRangeError);
+      }
+    }, [configErrorMessage, effectiveMaxDate, effectiveMinDate, preserveInvalidDraft, setLocalErrorState, specialRangeErrors, touched, value]);
 
     React.useEffect(() => {
       if (!isEditing) {
@@ -355,9 +402,7 @@ const TableDateInput = React.memo(
 
         if (committed.kind === 'input-error') {
           setPreserveInvalidDraft(true);
-          setHasError(true);
-          setErrorMessage(committed.errorMessage);
-          latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
+          setLocalErrorState(true, committed.errorMessage);
           return false;
         }
 
@@ -370,18 +415,12 @@ const TableDateInput = React.memo(
           });
 
           if (rangeErrorMessage) {
-            setHasError(true);
-            setErrorMessage(rangeErrorMessage);
-            latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
+            setLocalErrorState(true, rangeErrorMessage);
           } else {
-            setHasError(false);
-            setErrorMessage('');
-            latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
+            setLocalErrorState(false, '');
           }
         } else {
-          setHasError(false);
-          setErrorMessage('');
-          latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
+          setLocalErrorState(false, '');
         }
 
         const canonical = committed.committed;
@@ -400,20 +439,19 @@ const TableDateInput = React.memo(
         }
         return true;
       },
-      [effectiveMaxDate, effectiveMinDate, emitBlur]
+      [effectiveMaxDate, effectiveMinDate, emitBlur, setLocalErrorState]
     );
 
     const handleChange = React.useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         if (isReadOnly) return;
         const nextDraft = e.target.value ?? '';
-        setHasError(false);
-        setErrorMessage('');
+        setLocalErrorState(false, '');
         draftRef.current = nextDraft;
         setDraft(nextDraft);
         // Ingen emitValueChange under edit.
       },
-      [isReadOnly]
+      [isReadOnly, setLocalErrorState]
     );
 
     const handleFocus = React.useCallback(() => {
@@ -465,10 +503,8 @@ const TableDateInput = React.memo(
         clearAndCommit: () => {
           if (latest.current.locked) return;
           setTouched(false);
-          setHasError(false);
+          setLocalErrorState(false, '');
           setPreserveInvalidDraft(false);
-          setErrorMessage('');
-          latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
           keyInitiatedEditRef.current = false;
           setDraft('');
           // Ingen emitValueChange. Commit sker via blur/commit-pipeline:
@@ -479,10 +515,8 @@ const TableDateInput = React.memo(
         cancelEdit: () => {
           if (latest.current.locked) return;
           setTouched(false);
-          setHasError(false);
+          setLocalErrorState(false, '');
           setPreserveInvalidDraft(false);
-          setErrorMessage('');
-          latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
           keyInitiatedEditRef.current = false;
           const original = originalValueOnEditStartRef.current;
           setDraft(original);
@@ -497,9 +531,7 @@ const TableDateInput = React.memo(
           originalValueOnEditStartRef.current = committedValue;
           keyInitiatedEditRef.current = true;
           setTouched(false);
-          setHasError(false);
-          setErrorMessage('');
-          latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
+          setLocalErrorState(false, '');
           setDraft(key);
           // Ingen emitValueChange her – vi må ikke opdatere parent under edit.
           requestAnimationFrame(() => {
@@ -517,7 +549,7 @@ const TableDateInput = React.memo(
           requestAnimationFrame(() => inputElRef.current?.select());
         },
       };
-    }, [commitAndEmitBlur, grid]);
+    }, [commitAndEmitBlur, grid, setLocalErrorState]);
 
     React.useEffect(() => {
       grid.registerEditor(gridCell, editorHandle);
@@ -600,6 +632,4 @@ const TableDateInput = React.memo(
 TableDateInput.displayName = 'TableDateInput';
 
 export default TableDateInput;
-
-
 

@@ -150,6 +150,40 @@ describe('EetAslAfgoerelserTable', () => {
     });
   }, ASYNC_TEST_TIMEOUT_MS);
 
+  it('viser domænespecifik fejl når kap.dato er før afgørelsesdato', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <EetAslAfgoerelserTable
+        tableData={[
+          buildRow({
+            afgoerelseType: 'Endelig',
+            afgoerelsesDato: '10-01-2024',
+          }),
+        ]}
+        skadesdatoMin={toISODateString('2020-01-01')}
+        beregningsdato={toISODateString('2025-12-31')}
+        fodselsdato={toISODateString('1990-01-01')}
+      />
+    );
+
+    const rows = screen.getAllByRole('row');
+    const firstDataRow = rows[1];
+    const kapDatoCell = within(firstDataRow).getAllByRole('cell')[4];
+    const kapDatoInput = within(kapDatoCell).getByRole('textbox');
+
+    await openInputEditing(user, kapDatoInput);
+    await user.clear(kapDatoInput);
+    await user.type(kapDatoInput, '09-01-2024');
+    await user.tab();
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByText('Kapitaliseringsdato kan ikke være før afgørelsesdato').length
+      ).toBeGreaterThan(0);
+    });
+  }, ASYNC_TEST_TIMEOUT_MS);
+
   it('medregner tidligere kapitaliseringsprocenter på tværs af rækker i EET-validering', () => {
     render(
       <EetAslAfgoerelserTable

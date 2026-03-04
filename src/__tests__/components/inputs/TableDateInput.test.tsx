@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { GridCoreProvider } from '../../../components/tables/gridCoreContext';
@@ -120,5 +120,54 @@ describe('TableDateInput', () => {
     expect(describedBy).toBeTruthy();
     const errorEl = describedBy ? document.getElementById(describedBy) : null;
     expect(errorEl).toHaveTextContent('Ingen gyldige datoer');
+  });
+
+  it('revaliderer range-fejl når minDate ændres og rydder fejlen uden ny brugerinput', async () => {
+    const user = userEvent.setup();
+    const gridCell = { rowId: 'row-4', colIndex: 0 };
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState('01-01-2023');
+      const [minDate, setMinDate] = React.useState('2024-01-01');
+      const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
+      const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
+
+      return (
+        <GridCoreProvider value={gridValue}>
+          <button type="button" onClick={() => setMinDate('2023-01-01')}>
+            loosen-min
+          </button>
+          <TableDateInput
+            gridCell={gridCell}
+            value={value}
+            minDate={minDate}
+            maxDate="2026-12-31"
+            onBlur={(e) => {
+              setValue(e.target.value);
+              setEditingCell(null);
+            }}
+          />
+        </GridCoreProvider>
+      );
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.tab();
+
+    let describedBy = input.getAttribute('aria-describedby');
+    expect(describedBy).toBeTruthy();
+    let errorEl = describedBy ? document.getElementById(describedBy) : null;
+    expect(errorEl).toBeTruthy();
+    expect(errorEl).toHaveTextContent(/Dato skal/);
+
+    await user.click(screen.getByRole('button', { name: 'loosen-min' }));
+
+    await waitFor(() => {
+      describedBy = input.getAttribute('aria-describedby');
+      expect(describedBy).toBeNull();
+    });
   });
 });

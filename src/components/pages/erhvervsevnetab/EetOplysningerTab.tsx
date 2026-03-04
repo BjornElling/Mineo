@@ -185,7 +185,7 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">
-            Der foretages individuelle fradrag i erhvervsevnetabserstatningen for tjenestemænd
+            Der foretages individuelle fradrag i erhvervsevnetabserstatningen for tjenestemænd.
           </Typography>
           <Box className="row--label-right-hover__content" />
         </Box>

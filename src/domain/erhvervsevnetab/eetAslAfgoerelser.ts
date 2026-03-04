@@ -222,20 +222,17 @@ export const validateKapDatoByAfgoerelsestype = (
     }
   }
 
-  const tidlKapDatoIsSet = hasTextValue(row.tidlKapDato);
-  const afgoerelsesdatoIso = coerceToISODateString(row.afgoerelsesDato);
-  const kapDatoIso = coerceToISODateString(row.kapDato);
-  if (kapDatoIso !== undefined && afgoerelsesdatoIso !== undefined && kapDatoIso < afgoerelsesdatoIso) {
-    return 'Kapitaliseringsdato kan ikke være før afgørelsesdato';
-  }
-  if (
-    tidlKapDatoIsSet &&
-    afgoerelsesdatoIso !== undefined &&
-    afgoerelsesdatoIso >= '2024-07-01' &&
-    kapDatoIso !== undefined &&
-    kapDatoIso !== afgoerelsesdatoIso
-  ) {
-    return 'Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse';
+  if (hasTextValue(row.tidlKapDato)) {
+    const afgoerelsesdatoIso = coerceToISODateString(row.afgoerelsesDato);
+    const kapDatoIso = coerceToISODateString(row.kapDato);
+    if (
+      afgoerelsesdatoIso !== undefined &&
+      afgoerelsesdatoIso >= '2024-07-01' &&
+      kapDatoIso !== undefined &&
+      kapDatoIso !== afgoerelsesdatoIso
+    ) {
+      return 'Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse';
+    }
   }
 
   return undefined;

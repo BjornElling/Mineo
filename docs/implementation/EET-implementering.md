@@ -808,7 +808,7 @@ Reduktionen gælder altid fra kapitaliseringsdatoen, uanset om kapitalisering sk
 
 Ved skade før 01-07-2024 gælder derudover:
 - Hvis kapitalisering sker før 01-01-2024, er det den reducerede 2003-grundydelse der opreguleres til 2024-niveau.
-- Hvis kapitalisering sker fra 01-01-2024 eller senere, opreguleres fuld grundydelse til 2024-niveau først, og reduktionen til rest-grundydelse sker fra kapitaliseringsdatoen.
+- Hvis kapitalisering sker fra 01-01-2024 eller senere, beregnes rest-grundydelsen først proportionalt i 2003-niveau, og denne rest-grundydelse opreguleres derefter til 2024-niveau.
 
 ---
 
@@ -828,7 +828,7 @@ For Y ≥ 2025 udføres de to multiplikationer separat i denne rækkefølge:
 1. `grundydelse × (1 + 65,7/100)` → melllemresultat i 2024-niveau
 2. `mellemresultat × (1 + reguleringsprocentErhvervsevnetabFra2024[Y] / 100)` → årsydelse
 
-Afrunding til nærmeste 12-delelige sker **efter** begge multiplikationer er udført på det præcise flydetal.
+Afrunding til nærmeste 12-delelige sker **efter** 2024-mellemresultatet er afrundet til 2 decimaler og derefter multipliceret med satsen fra 2024-regimet.
 
 #### Skade fra 01-07-2024 (grundydelse i 2024-niveau)
 

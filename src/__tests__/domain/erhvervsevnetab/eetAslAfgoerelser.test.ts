@@ -115,17 +115,6 @@ describe('validateKapPctByAfgoerelsestype', () => {
     expect(error).toBe('Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse');
   });
 
-  it('afviser når kap.dato ligger før afgørelsesdato', () => {
-    const error = validateKapDatoByAfgoerelsestype(
-      buildRow({
-        afgoerelseType: 'Endelig',
-        afgoerelsesDato: '10-01-2025',
-        kapDato: '09-01-2025',
-      })
-    );
-    expect(error).toBe('Kapitaliseringsdato kan ikke være før afgørelsesdato');
-  });
-
   it('accepterer gyldig endelig under 50 når kap % matcher EET %', () => {
     const error = validateKapPctByAfgoerelsestype(
       buildRow({ afgoerelseType: 'Endelig', eetPct: '40', kapPct: '40' })
@@ -421,7 +410,7 @@ describe('validateAslAarsloenDivisibleBy1000', () => {
 });
 
 describe('collectEetAslAfgoerelseValidationIssues', () => {
-  it('samler krydsfeltsfejl deterministisk for den konkrete række/kolonne', () => {
+  it('producerer ingen kap.dato-issue når kap.dato er før afgørelsesdato (håndhæves af UI-range)', () => {
     const rows: AslAfgoerelseRow[] = [
       buildRow({
         id: 'r1',
@@ -435,10 +424,31 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
     ];
 
     const issues = collectEetAslAfgoerelseValidationIssues(rows, undefined);
+    expect(issues.filter((issue) => issue.rowId === 'r1' && issue.field === 'kapDato')).toHaveLength(0);
+  });
+
+  it('samler krydsfeltsfejl deterministisk for den konkrete række/kolonne', () => {
+    const rows: AslAfgoerelseRow[] = [
+      buildRow({
+        id: 'r1',
+        afgoerelsesDato: '01-07-2024',
+        virkningsDato: '10-01-2025',
+        afgoerelseType: 'Endelig',
+        eetPct: '40',
+        kapDato: '02-07-2024',
+        kapPct: '40',
+        tidlKapDato: '01-01-2024',
+      }),
+    ];
+
+    const issues = collectEetAslAfgoerelseValidationIssues(rows, undefined);
     expect(issues.some((issue) => issue.rowId === 'r1' && issue.field === 'kapDato')).toBe(true);
     expect(
       issues.some(
-        (issue) => issue.rowId === 'r1' && issue.field === 'kapDato' && issue.message === 'Kapitaliseringsdato kan ikke være før afgørelsesdato'
+        (issue) =>
+          issue.rowId === 'r1' &&
+          issue.field === 'kapDato' &&
+          issue.message === 'Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse'
       )
     ).toBe(true);
   });

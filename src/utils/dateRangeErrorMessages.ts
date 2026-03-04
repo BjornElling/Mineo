@@ -9,9 +9,9 @@ export type DateRangeSpecialErrors = {
    */
   fraTilRole?: 'fra' | 'til';
   /**
-   * Used when the effective `minDate` is derived from Skadesdato/Anmeldedato rules.
+   * Identifies the semantic origin of the min-bound for domain-specific error messages.
    */
-  minBoundKind?: 'skadesdato' | 'anmeldedatoMinus5Aar';
+  minBoundKind?: 'skadesdato' | 'anmeldedatoMinus5Aar' | 'afgoerelsesdato';
   /**
    * The user-visible reference date that produced the bound (typically Skadesdato/Anmeldedato).
    * This is used for special messages that must mention the concrete reference date.
@@ -43,6 +43,10 @@ export const resolveDateRangeErrorMessage = (args: {
   if (special?.minBoundKind === 'anmeldedatoMinus5Aar' && minDate && iso < minDate) {
     const reference = special.minBoundReferenceISO ?? minDate;
     return `Datoen er mere end 5 år før anmeldedatoen (${formatISOForTooltip(reference)})`;
+  }
+
+  if (special?.minBoundKind === 'afgoerelsesdato' && minDate && iso < minDate) {
+    return 'Kapitaliseringsdato kan ikke være før afgørelsesdato';
   }
 
   if (special?.fraTilRole === 'fra' && maxDate && iso > maxDate) {

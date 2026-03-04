@@ -152,10 +152,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
 
   const hasBlockingErrors = issues.some((issue) => issue.severity === 'error');
   const computation = calculationResult.computation;
-  const visibleAfgoerelser = React.useMemo(
-    () => computation?.afgoerelser.filter((afgoerelse) => afgoerelse.iAltBeregnetEet > 0) ?? [],
-    [computation]
-  );
+  const afgoerelser = computation?.afgoerelser ?? [];
 
   const handleNavigate = React.useCallback(
     (navigation: ErrorNavigation) => {
@@ -261,7 +258,12 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
             </Box>
           </ContentBox>
 
-          {visibleAfgoerelser.map((afgoerelse) => {
+          {afgoerelser.map((afgoerelse) => {
+            const hasRowsBefore2024 = afgoerelse.perioder.some((row) => row.satsAar <= 2023);
+            const hasRowsFrom2024 = afgoerelse.perioder.some((row) => row.satsAar >= 2024);
+            const viserGrundydelseNiveauSkift =
+              computation.grundloenNiveau === '2003' && hasRowsBefore2024 && hasRowsFrom2024;
+            const ingenLoebendeYdelse = afgoerelse.iAltBeregnetEet === 0;
             return (
               <ContentBox key={afgoerelse.rowId} className="content-box">
                 <Typography className="section-header">{`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`}</Typography>
@@ -348,6 +350,12 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
                 </Box>
 
                 <Typography className="row--subheading">Beregnede ydelser</Typography>
+                {viserGrundydelseNiveauSkift && (
+                  <TextHoverRow text="Frem til 1. januar 2024 beregnes grundydelsen i 2003-niveau og derefter i 2024-niveau." />
+                )}
+                {ingenLoebendeYdelse && (
+                  <TextHoverRow text="Afgørelsen giver ingen løbende ydelse i den valgte periode." />
+                )}
 
                 <StandardDisplayTable
                   columns={YDELSER_TABLE_COLUMNS}
@@ -419,7 +427,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
               </>
             )}
 
-            <Typography className="row--subheading">Regulering</Typography>
+            <Typography className="row--subheading">Ydelsesniveau</Typography>
 
             {computation.erstatningsniveauPct === 83 ? (
               <>
@@ -448,15 +456,15 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
               </>
             )}
 
-            {visibleAfgoerelser.map((afgoerelse) => {
+            {afgoerelser.map((afgoerelse) => {
               const reguleringFoer2024Pct = reguleringsprocentErhvervsevnetabFoer2024[2024] ?? 0;
               const reguleringFoer2024FaktorTekst = formatAsAmount(
                 roundByMethod(1 + reguleringFoer2024Pct / 100, 3, 'halfAwayFromZero'),
                 3
               );
-              const hasYdelseFrom2024 = afgoerelse.perioder.some((row) => row.fra >= '2024-01-01');
-              const showSplitHeading = computation.grundloenNiveau === '2003' && hasYdelseFrom2024;
-              const uses2024GrundloenEquation = computation.grundloenNiveau === '2024';
+              const hasYdelseFrom2024 = afgoerelse.perioder.some((row) => row.satsAar >= 2024);
+              const show2024ConversionBlock = computation.grundloenNiveau === '2003' && hasYdelseFrom2024;
+              const showSplitHeading = show2024ConversionBlock;
               const hasKapitaliseringsdato = afgoerelse.kapitaliseringsdato !== null;
               const hasRestSection = afgoerelse.harRestSektion && hasKapitaliseringsdato;
               const kapitaliseringFra2024 =
@@ -467,8 +475,8 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
                 afgoerelse.kapitaliseringsdato &&
                 afgoerelse.kapitaliseringsdato < '2024-01-01'
               );
-              const showRest2003 = hasRestSection && (!showSplitHeading || !kapitaliseringFra2024);
-              const showRest2024 = showSplitHeading && hasRestSection && kapitaliseringFra2024;
+              const showRest2003 = hasRestSection && (!show2024ConversionBlock || !kapitaliseringFra2024);
+              const showRest2024 = show2024ConversionBlock && hasRestSection && kapitaliseringFra2024;
               const restEetExpression = `${formatPctTal(afgoerelse.eetPctFoerAktuelKap)} - ${formatPct(
                 afgoerelse.kapPctAktuel
               )} = ${formatPct(afgoerelse.restEetPct)}`;
@@ -476,30 +484,15 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
                 afgoerelse.kapitaliseringsdato !== null
                   ? `Resterende EET (${restEetExpression}) efter kapitalisering ${formatIsoDateShort(afgoerelse.kapitaliseringsdato)}`
                   : 'Resterende EET efter kapitalisering';
-              const grundloen2024Niveau =
-                computation.grundloenNiveau === '2003'
-                  ? roundByMethod(
-                      computation.grundloen * (1 + reguleringFoer2024Pct / 100),
-                      0,
-                      'halfAwayFromZero'
-                    )
-                  : computation.grundloen;
+              const grundydelseFormula =
+                computation.erstatningsniveauPct === 83
+                  ? `Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag) = ${formatKr(computation.grundloen)} × ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} × 83 % × 92 % =`
+                  : `Grundløn × EET × Erstatningsniveau = ${formatKr(computation.grundloen)} × ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} × 80 % =`;
 
-              const grundydelseFormula = uses2024GrundloenEquation
-                ? (
-                    computation.erstatningsniveauPct === 83
-                      ? `Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag) = ${formatKr(grundloen2024Niveau)} × ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} × 83 % × 92 % =`
-                      : `Grundløn × EET × Erstatningsniveau = ${formatKr(grundloen2024Niveau)} × ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} × 80 % =`
-                  )
-                : (
-                    computation.erstatningsniveauPct === 83
-                      ? `Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag) = ${formatKr(computation.grundloen)} × ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} × 83 % × 92 % =`
-                      : `Grundløn × EET × Erstatningsniveau = ${formatKr(computation.grundloen)} × ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} × 80 % =`
-                  );
-
-              const primaryGrundydelse = uses2024GrundloenEquation
-                ? afgoerelse.grundydelse2024Fuld
-                : afgoerelse.grundydelseFuld;
+              const primaryGrundydelse =
+                computation.grundloenNiveau === '2024'
+                  ? afgoerelse.grundydelse2024Fuld
+                  : afgoerelse.grundydelseFuld;
               const restGrundydelse2003 = afgoerelse.grundydelseRest ?? afgoerelse.grundydelseFuld;
               const restGrundydelse2024 = afgoerelse.grundydelse2024Rest ?? afgoerelse.grundydelse2024Fuld;
               const grundydelse2003BaseFor2024 = hasRestAfterKapBefore2024
@@ -526,7 +519,15 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
                     </Box>
                   </Box>
 
-                  <UnderlinedHoverRow text={showSplitHeading ? 'Grundydelse før 1. januar 2024' : 'Grundydelse'} />
+                  <UnderlinedHoverRow
+                    text={
+                      showSplitHeading
+                        ? 'Grundydelse før 1. januar 2024'
+                        : show2024ConversionBlock
+                          ? 'Grundydelse fra 1. januar 2024'
+                          : 'Grundydelse'
+                    }
+                  />
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">{grundydelseFormula}</Typography>
                     <Box className="row--label-right-hover__content">
