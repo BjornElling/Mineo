@@ -4,6 +4,8 @@
  * Viser tabt arbejdsfortjeneste brudt ned per kalenderår.
  * Genbruger alle beregningsprincipper fra EO-modellen.
  * Årsbeløb er præsentation – samlet TAF-krav er autoritativt.
+ * Hvis afvigelsen mellem års-sum og autoritativ total overstiger 1 kr.,
+ * vises årsfordeling ikke (fail-closed via buildTafPerYearResult -> null).
  */
 
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';

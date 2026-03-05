@@ -10,6 +10,8 @@
  * PRINCIP:
  *   Årsværdier må gerne være negative; summering og afrunding skal stadig være konsistente
  *   med det autoritative samlede TAF-krav.
+ *   Afrunding mellem summen af år og samlet TAF-krav accepteres kun op til 1 kr. (100 øre).
+ *   Overstiger afvigelsen 1 kr., returneres null (fail-closed) i stedet for en misvisende fordeling.
  *
  * samletTafKravOre beregnes ALDRIG her – det modtages fra PdfModel
  * og bruges kun som facit for afrundingslinjen.
@@ -31,6 +33,8 @@ import { buildTafRanges, buildIncomeCalculationContext, buildIncomeForRanges } f
 import { TAF_BEREGNES_SOM } from './tafBeregningsenhed';
 import { roundByMethod } from '../../utils/rounding';
 import { scaleMoneyOre } from './eoPdfMoneyUtils';
+
+const MAX_AFRUNDING_AFVIGELSE_ORE = 100 as MoneyOre;
 
 /**
  * Beregner antal måneder i et inklusivt range uden SH-/feriedagsjusteringer.
@@ -249,6 +253,18 @@ export const buildTafPerYearResult = (
   if (loenudvikling.loenudviklingTotal.status !== 'ok') return null;
 
   const samletTafKravOre = clampMoneyOreToZero(taf.tabtArbejdsfortjenesteOre);
+  const loenudviklingTotalOre = loenudvikling.loenudviklingTotal.value;
+  const tafIndtaegterTotalOre =
+    taf.tafIndtaegter?.total.status === 'ok'
+      ? taf.tafIndtaegter.total.value
+      : null;
+  if (tafIndtaegterTotalOre === null) return null;
+  const tidligereModtagetTafOre = taf.tidligereModtagetTaf.status === 'ok'
+    ? taf.tidligereModtagetTaf.value
+    : (0 as MoneyOre);
+  const nettoFoerClampOre = (loenudviklingTotalOre - tafIndtaegterTotalOre - tidligereModtagetTafOre) as MoneyOre;
+  if (samletTafKravOre === 0 && nettoFoerClampOre < 0) return null;
+
   const forligFactor = model.forlig?.factor ?? null;
   const isArbejdsdage = taf.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE;
   const tafArbejdsdageSet = isArbejdsdage ? buildTafArbejdsdageSet(eoValues) : null;
@@ -292,9 +308,6 @@ export const buildTafPerYearResult = (
     yearClippedRangesByYear.set(year, buildYearClippedRanges(year, tafRanges));
   }
 
-  const tidligereModtagetTafOre = taf.tidligereModtagetTaf.status === 'ok'
-    ? taf.tidligereModtagetTaf.value
-    : (0 as MoneyOre);
   const weightByYear = new Map<number, number>();
   for (const year of sortedYears) {
     const yearRanges = yearClippedRangesByYear.get(year) ?? [];
@@ -325,7 +338,10 @@ export const buildTafPerYearResult = (
       const amountOre = toOre(roundKroner(emp.amount));
       deductions.push({ label: emp.name || 'Lønindkomst', amountOre });
     }
-    for (const ben of income.benefits) {
+    const sortedBenefits = [...income.benefits].sort((a, b) =>
+      a.label.localeCompare(b.label, 'da-DK', { sensitivity: 'base' })
+    );
+    for (const ben of sortedBenefits) {
       if (ben.amount <= 0) continue;
       const amountOre = toOre(roundKroner(ben.amount));
       deductions.push({ label: ben.label, amountOre });
@@ -355,6 +371,7 @@ export const buildTafPerYearResult = (
 
   const sumYearTafOre = years.reduce((sum, y) => sum + y.yearTafOre, 0) as MoneyOre;
   const afrundingOre = (samletTafKravOre - sumYearTafOre) as MoneyOre;
+  if (Math.abs(afrundingOre) > MAX_AFRUNDING_AFVIGELSE_ORE) return null;
 
   if (import.meta.env.DEV) {
     const check = (sumYearTafOre + afrundingOre) as MoneyOre;

@@ -100,11 +100,16 @@ describe('buildTafPerYearResult', () => {
   /**
    * Årsbeløb må være negative, men sum + afrunding skal altid ramme samlet TAF-krav.
    */
-  const assertTotals = (result: NonNullable<ReturnType<typeof buildTafPerYearResult>>) => {
+  const assertTotals = (
+    result: NonNullable<ReturnType<typeof buildTafPerYearResult>>,
+    model: PdfModel
+  ) => {
     const sum = result.years.reduce((s, y) => s + y.yearTafOre, 0);
     expect(sum).toBe(result.sumYearTafOre);
     const expectedAfrunding = result.samletTafKravOre - result.sumYearTafOre;
     expect(result.afrundingOre).toBe(expectedAfrunding);
+    expect(result.samletTafKravOre).toBe(model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre);
+    expect(Math.abs(result.afrundingOre)).toBeLessThanOrEqual(100);
   };
 
   it('returnerer null for model uden loenudvikling', () => {
@@ -144,7 +149,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertTotals(result);
+    assertTotals(result, model);
     expect(result.years).toHaveLength(1);
     expect(result.years[0].year).toBe(2024);
     expect(result.years[0].segments.length).toBeGreaterThan(0);
@@ -181,8 +186,8 @@ describe('buildTafPerYearResult', () => {
     expect(forligResult).not.toBeNull();
     if (!baseResult || !forligResult) return;
 
-    assertTotals(baseResult);
-    assertTotals(forligResult);
+    assertTotals(baseResult, baseModel);
+    assertTotals(forligResult, forligModel);
     expect(baseResult.years).toHaveLength(1);
     expect(forligResult.years).toHaveLength(1);
     expect(baseResult.years[0].segments).toHaveLength(1);
@@ -222,7 +227,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertTotals(result);
+    assertTotals(result, model);
     expect(result.years).toHaveLength(2);
     expect(result.years[0].year).toBe(2024);
     expect(result.years[1].year).toBe(2025);
@@ -273,7 +278,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertTotals(result);
+    assertTotals(result, model);
 
     // Begge år har fradrag (sygedagpenge strækker over begge)
     const deductionYears = result.years.filter((y) => y.deductions.length > 0);
@@ -282,6 +287,46 @@ describe('buildTafPerYearResult', () => {
     // Total deductions skal matche EO-model (pga. proratering)
     const totalDeductionsOre = result.years.reduce((sum, y) => sum + y.yearDeductionsOre, 0);
     expect(totalDeductionsOre).toBeGreaterThan(0);
+  });
+
+  it('sorterer benefits alfabetisk som EO i per-år fradrag', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmountValue(1500),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-10'), til: iso('2024-01-10'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [],
+      offentligeYdelserRows: [
+        {
+          id: 'y1',
+          fraDato: '10-01-2024',
+          tilDato: '10-01-2024',
+          ydelse: asAmountValue(10),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+        {
+          id: 'y2',
+          fraDato: '10-01-2024',
+          tilDato: '10-01-2024',
+          ydelse: asAmountValue(10),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Midlertidigt EET',
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const result = buildTafPerYearResult(model, eoValues);
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+    assertTotals(result, model);
+    expect(result.years).toHaveLength(1);
+
+    const benefitLabels = result.years[0].deductions.map((d) => d.label);
+    expect(benefitLabels).toEqual(['Midlertidigt EET', 'Sygedagpenge']);
   });
 
   it('sumYearTafOre og afrunding er konsistente ved flere segmenter', () => {
@@ -315,7 +360,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertTotals(result);
+    assertTotals(result, model);
     expect(result.years.length).toBe(3);
     expect(result.years[0].year).toBe(2023);
     expect(result.years[1].year).toBe(2024);
@@ -346,7 +391,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertTotals(result);
+    assertTotals(result, model);
     expect(result.years).toHaveLength(2);
     expect(result.years[0].year).toBe(2024);
     expect(result.years[1].year).toBe(2025);
@@ -379,7 +424,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertTotals(result);
+    assertTotals(result, model);
     expect(result.years).toHaveLength(2);
     // 2024 har fradrag
     expect(result.years[0].deductions.length).toBeGreaterThan(0);
@@ -415,7 +460,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertTotals(result);
+    assertTotals(result, model);
     expect(result.years).toHaveLength(2);
     expect(result.years[0].year).toBe(2024);
     expect(result.years[1].year).toBe(2025);
@@ -445,7 +490,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertTotals(result);
+    assertTotals(result, model);
     expect(result.years.length).toBe(5);
     expect(result.years.map((y) => y.year)).toEqual([2020, 2021, 2022, 2023, 2024]);
   });
@@ -474,7 +519,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertTotals(result);
+    assertTotals(result, model);
     expect(result.years.length).toBe(3);
     for (const year of result.years) {
       expect(year.segments.every((s) => s.kind === 'maaneder')).toBe(true);
@@ -505,9 +550,9 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertTotals(result);
+    assertTotals(result, model);
     // Afrunding bør ikke dominere beløbet (max ±100 øre = 1 kr.)
-    expect(result.afrundingOre).toBeLessThanOrEqual(100);
+    expect(Math.abs(result.afrundingOre)).toBeLessThanOrEqual(100);
   });
 
   it('stort beløb + mange år → akkumuleret afrunding forbliver lille', () => {
@@ -534,10 +579,106 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertTotals(result);
+    assertTotals(result, model);
     expect(result.years.length).toBe(6);
-    // Med 6 år og individuel afrunding bør samlet afrunding holde sig under 10 kr. (1000 øre)
-    expect(result.afrundingOre).toBeLessThanOrEqual(1000);
+    // Med systemets policy må afvigelsen mellem årssum og samlet TAF ikke overstige 1 kr.
+    expect(Math.abs(result.afrundingOre)).toBeLessThanOrEqual(100);
+  });
+
+  it('lønindkomst-fradrag i årsfordeling matcher EO-indtægter inden for 1 kr.', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmountValue(3000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-10'), til: iso('2024-01-10'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          navnPaaArbejdssted: 'Arbejdssted A',
+          loenperiode: 'dag',
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'r1',
+              col0_maaned: '',
+              col1_maaned: '',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '10-01-2024',
+              col1_dag: '10-01-2024',
+              col2: asAmountValue(1000),
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const result = buildTafPerYearResult(model, eoValues);
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+    assertTotals(result, model);
+
+    const modelEmployerOre = model.tabtArbejdsfortjeneste.tafIndtaegter?.entries
+      .filter((entry) => entry.label === 'Arbejdssted A')
+      .reduce((sum, entry) => sum + entry.amountOre, 0) ?? 0;
+    const perYearEmployerOre = result.years
+      .flatMap((year) => year.deductions)
+      .filter((deduction) => deduction.label === 'Arbejdssted A')
+      .reduce((sum, deduction) => sum + deduction.amountOre, 0);
+
+    expect(Math.abs(perYearEmployerOre - modelEmployerOre)).toBeLessThanOrEqual(100);
+  });
+
+  it('returnerer null når EO-netto er clamped til 0 pga. fradrag over indkomst', () => {
+    const mockModel = {
+      tabtArbejdsfortjeneste: {
+        loenudvikling: {
+          loenudviklingTotal: { status: 'ok', value: 10000000 },
+          beregnedeSegmenter: [
+            {
+              kind: 'arbejdsdage',
+              fra: toISODateString('2024-01-10'),
+              til: toISODateString('2024-01-10'),
+              arbejdsdage: 1,
+              dagsloenOre: 10000000,
+              deltaPct: 1,
+              amountOre: 10000000,
+            },
+          ],
+          beregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
+          loenudviklingLabel: '',
+          perAnsaettelse: [],
+        },
+        tafBeregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
+        tabtArbejdsfortjenesteOre: 0,
+        tidligereModtagetTaf: { status: 'ok', value: 0 },
+        statusLinjer: [],
+        eetLinjer: [],
+        differencekravLinje: null,
+        tafPerioderLinjer: [],
+        harTafPerioder: true,
+        skalKomprimereIndkomstBeregning: false,
+        indkomstSkadestidspunkt: null,
+        tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 15000000 } },
+      },
+    } as unknown as PdfModel;
+
+    const eoValues = makeValues({
+      tafPerioder: [{ id: 'taf-1', fra: iso('2024-01-10'), til: iso('2024-01-10'), loseFeriedage: undefined }],
+      loenindkomstAnsaettelsesforhold: [
+        { ...initialEoValues.loenindkomstAnsaettelsesforhold[0], loenudviklingBeregningsgrundlag: 'Ingen' },
+      ],
+      offentligeYdelserRows: [],
+    });
+
+    expect(buildTafPerYearResult(mockModel, eoValues)).toBeNull();
   });
 
   it('segment der starter og slutter samme dag (hverdag) → 1 år, 1 segment', () => {
@@ -565,7 +706,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertTotals(result);
+    assertTotals(result, model);
     expect(result.years).toHaveLength(1);
     expect(result.years[0].year).toBe(2024);
     expect(result.years[0].segments).toHaveLength(1);
@@ -600,7 +741,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertTotals(result);
+    assertTotals(result, model);
     // 2025 skal inkluderes selvom der er 0 segmenter, fordi TAF-range dækker 01-01-2025
     expect(result.years).toHaveLength(2);
     expect(result.years[0].year).toBe(2024);
@@ -638,7 +779,7 @@ describe('buildTafPerYearResult', () => {
     expect(result).not.toBeNull();
     if (!result) return;
 
-    assertTotals(result);
+    assertTotals(result, model);
 
     // Saml alle sub-segmenter på tværs af år, sorteret efter fra
     const allSubs = result.years.flatMap((y) => y.segments).sort((a, b) => (a.fra < b.fra ? -1 : 1));
@@ -691,7 +832,7 @@ describe('buildTafPerYearResult', () => {
         harTafPerioder: false,
         skalKomprimereIndkomstBeregning: false,
         indkomstSkadestidspunkt: null,
-        tafIndtaegter: null,
+        tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 0 } },
       },
     } as unknown as PdfModel;
     const eoValues = makeValues({
@@ -708,7 +849,7 @@ describe('buildTafPerYearResult', () => {
     const mockModel = {
       tabtArbejdsfortjeneste: {
         loenudvikling: {
-          loenudviklingTotal: { status: 'ok', value: 200000 },
+          loenudviklingTotal: { status: 'ok', value: 0 },
           beregnedeSegmenter: [
             {
               kind: 'arbejdsdage',
@@ -725,7 +866,7 @@ describe('buildTafPerYearResult', () => {
           perAnsaettelse: [],
         },
         tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
-        tabtArbejdsfortjenesteOre: 200000,
+        tabtArbejdsfortjenesteOre: 0,
         tidligereModtagetTaf: { status: 'not_calculable', reason: 'test' },
         statusLinjer: [],
         eetLinjer: [],
@@ -734,7 +875,7 @@ describe('buildTafPerYearResult', () => {
         harTafPerioder: true,
         skalKomprimereIndkomstBeregning: false,
         indkomstSkadestidspunkt: null,
-        tafIndtaegter: null,
+        tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 0 } },
       },
     } as unknown as PdfModel;
     const eoValues = makeValues({
@@ -797,16 +938,16 @@ describe('buildTafPerYearResult', () => {
     const mockModel = {
       tabtArbejdsfortjeneste: {
         loenudvikling: {
-          loenudviklingTotal: { status: 'ok', value: 6000 },
+          loenudviklingTotal: { status: 'ok', value: 100 },
           beregnedeSegmenter: [
             {
               kind: 'maaneder',
               fra: toISODateString('2024-01-06'),
               til: toISODateString('2024-01-07'),
               maaneder: 0.0645,
-              maanedsloenOre: 300000,
+              maanedsloenOre: 0,
               deltaPct: 1,
-              amountOre: 6000,
+              amountOre: 0,
             },
           ],
           beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
@@ -815,7 +956,7 @@ describe('buildTafPerYearResult', () => {
         },
         tafBeregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
         tabtArbejdsfortjenesteOre: 0,
-        tidligereModtagetTaf: { status: 'ok', value: 10000 },
+        tidligereModtagetTaf: { status: 'ok', value: 100 },
         statusLinjer: [],
         eetLinjer: [],
         differencekravLinje: null,
@@ -823,7 +964,7 @@ describe('buildTafPerYearResult', () => {
         harTafPerioder: true,
         skalKomprimereIndkomstBeregning: false,
         indkomstSkadestidspunkt: null,
-        tafIndtaegter: null,
+        tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 0 } },
       },
     } as unknown as PdfModel;
     // TAF-periode: kun lørdag-søndag 6-7 januar 2024 → buildTafArbejdsdageSet returnerer tom mængde
@@ -842,7 +983,7 @@ describe('buildTafPerYearResult', () => {
     // Hele beløbet tildeles det første år (allWeights=0 fallback)
     const allPaid = result.years.flatMap((y) => y.deductions).filter((d) => d.label === 'Allerede betalt TAF');
     const totalPaidOre = allPaid.reduce((s, d) => s + d.amountOre, 0);
-    expect(totalPaidOre).toBe(10000);
+    expect(totalPaidOre).toBe(100);
     // Invariant stadig gyldig
     expect(result.sumYearTafOre + result.afrundingOre).toBe(result.samletTafKravOre);
   });
@@ -869,7 +1010,7 @@ describe('buildTafPerYearResult', () => {
 
     expect(result).not.toBeNull();
     if (!result) return;
-    assertTotals(result);
+    assertTotals(result, model);
     expect(result.years).toHaveLength(2);
 
     const firstYearPaid = result.years[0].deductions.find((d) => d.label === 'Allerede betalt TAF');
@@ -906,7 +1047,7 @@ describe('buildTafPerYearResult', () => {
 
     expect(result).not.toBeNull();
     if (!result) return;
-    assertTotals(result);
+    assertTotals(result, model);
     expect(result.years).toHaveLength(2);
 
     const firstYearPaid = result.years[0].deductions.find((d) => d.label === 'Allerede betalt TAF');
@@ -921,3 +1062,4 @@ describe('buildTafPerYearResult', () => {
     expect(totalPaidOre).toBe(30000);
   });
 });
+

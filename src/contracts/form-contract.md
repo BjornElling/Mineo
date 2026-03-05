@@ -339,3 +339,24 @@ Dette afsnit er normativt for alle beløbsfelter, der kan indeholde tal eller ud
 5. Precision-binding (nuværende model):
 - `AmountValue` schema-normalisering er aktuelt bundet til precision 2.
 - Felter med anden precision må derfor ikke persisteres som `AmountValue` uden eksplicit arkitekturændring.
+
+---
+
+## 12. TAF tvær-output konsistens (EO vs. TAF fordelt på år)
+
+Dette afsnit er normativt for visning af tabt arbejdsfortjeneste i flere outputs.
+
+1. Autoritativ total:
+- Den autoritative TAF-total er EO-modellens `tabtArbejdsfortjenesteOre`.
+- Afledte visninger (herunder "TAF fordelt på år") må ikke beregne en alternativ total.
+
+2. Invariant:
+- Summen af årsbeløb plus eventuel afrundingslinje skal være identisk med den autoritative total.
+
+3. Acceptabel afrundingsafvigelse:
+- Den samlede forskel mellem årssum og autoritativ total må højst være 1 kr. (100 øre).
+- Overskrides 1 kr., skal systemet være fail-closed: årsfordelingen må ikke vises som gyldig beregning.
+
+4. Clamp-scenarie:
+- Hvis EO-netto clamped til 0, fordi fradrag overstiger lønudvikling, må der ikke vises en misvisende årsfordeling med stor "Afrunding".
+- Systemet skal i dette tilfælde fail-close årsfordelingen.

@@ -309,6 +309,9 @@ export const buildTabtArbejdsfortjenesteModel = (
     loenudvikling: tafMonetary.loenudvikling,
     tafIndtaegter: tafMonetary.tafIndtaegter,
     tidligereModtagetTaf: tafMonetary.tidligereModtagetTaf,
+    // Initialt sættes begge felter til netto-værdien før forligsskaleret visning.
+    // buildErstatningsopgoerelsePdfModel() overskriver senere tabtArbejdsfortjenesteOre
+    // med den forligsjusterede værdi, mens "FoerForlig" bevarer udgangspunktet.
     tabtArbejdsfortjenesteFoerForligOre: tafMonetary.tabtArbejdsfortjenesteOre,
     tabtArbejdsfortjenesteOre: tafMonetary.tabtArbejdsfortjenesteOre,
   };
