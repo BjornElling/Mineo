@@ -97,16 +97,20 @@ describe('kapitaliseringsbekendtgørelser', () => {
     expect(resolveIdForDatoer('2021-01-01', '2024-07-01')).toBe('9376/2024');
   });
 
-  it('matcher alle foreløbigt indføjede tabelfiler med mindst én reference i oversigten', () => {
+  it('har fuld 1:1 dækning mellem oversigtens IDer og lokale kapitaliseringstabelfiler', () => {
     const lokaleTabeller = readLokalKapitaliseringsTabelMeta();
     const idSetIoversigt = new Set(
       kapitaliseringsbekendtgoerelser.flatMap((interval) =>
         interval.kapitaliseringer.map((entry) => entry.id)
       )
     );
+    const lokalIdSet = new Set(lokaleTabeller.map((tabel) => tabel.id));
 
-    const manglerIOversigt = lokaleTabeller.filter((tabel) => !idSetIoversigt.has(tabel.id));
-    expect(manglerIOversigt).toEqual([]);
+    const manglerIoversigtstabeller = [...idSetIoversigt].filter((id) => !lokalIdSet.has(id));
+    const udenReferenceIOversigt = lokaleTabeller.filter((tabel) => !idSetIoversigt.has(tabel.id));
+
+    expect(manglerIoversigtstabeller).toEqual([]);
+    expect(udenReferenceIOversigt).toEqual([]);
   });
 
   it('holder mappingdatoer inden for gyldighedsintervallet i foreløbigt indføjede tabelfiler', () => {
