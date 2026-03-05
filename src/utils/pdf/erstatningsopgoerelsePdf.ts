@@ -11,7 +11,7 @@ import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from './pdfHelpers';
 import { createPdfWriter } from './pdfWriter';
 import { renderEoStylePdfTable } from './pdfTableRenderer';
 import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../schemas/formSchemas';
-import { buildErstatningsopgoerelsePdfModel, type MoneyOre, type Calculable, type LoenudviklingSegment } from '../../domain/erstatningsopgoerelse/eoPdfModel';
+import { buildErstatningsopgoerelsePdfModel, type MoneyOre, type Calculable } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { formatPercent as formatPercentUtil } from '../formatUtils';
 import { TODAY } from '../../config/dateRanges';
 

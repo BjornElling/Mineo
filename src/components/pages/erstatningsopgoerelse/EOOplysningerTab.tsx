@@ -35,7 +35,12 @@ import useFravaerRows from '../../tables/useFravaerRows';
 import useOevrigeKravRows from '../../tables/useOevrigeKravRows';
 import { createCommitEvent, type CommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
 import type { UsePersistedFormReturn } from '../../../hooks/usePersistedForm';
-import { CURRENT_YEAR, MIN_YEAR, MIN_SVIESMERTE_YEAR, computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../../config/dateRanges';
+import {
+  CURRENT_YEAR,
+  MIN_SVIESMERTE_YEAR,
+  computeSkadesdatoMinRule,
+  dateRanges_erstatningsopgoerelse
+} from '../../../config/dateRanges';
 import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
 import { useSetEOLoenindkomstInputError } from '../../../hooks/useEOLoenindkomstInputErrors';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';

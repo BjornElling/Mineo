@@ -77,7 +77,6 @@ export const usePersistedForm = <K extends StorageKey>(
   const parsePersisted = React.useCallback((persisted: unknown): PersistedSectionMap[K] | null => {
     const parsed = schemaRef.current.safeParse(persisted);
     if (!parsed.success) {
-      console.warn(`[usePersistedForm] Ugyldig persisted data for '${pageKey}', bruger initialValues.`, parsed.error);
       return null;
     }
     return parsed.data;
@@ -113,7 +112,6 @@ export const usePersistedForm = <K extends StorageKey>(
         setValuesState(persisted ? { ...initialValuesRef.current, ...persisted } : initialValuesRef.current);
       }
     } catch (error) {
-      console.warn(`[usePersistedForm] Re-hydration fejl for '${pageKey}':`, error);
       bumpFormVersion();
       clearFieldErrorsRef.current(pageKey);
       setValuesState(initialValuesRef.current);
@@ -178,5 +176,4 @@ export const usePersistedForm = <K extends StorageKey>(
 };
 
 export default usePersistedForm;
-
 

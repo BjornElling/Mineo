@@ -3,7 +3,7 @@ import type { ZodIssue } from 'zod';
 import { type StorageKey, getStorageKey, getAllMineoKeys } from '../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import type { PersistedData } from '../types/persistence';
-import { FormPersistenceContext, type FormPersistenceContextValue } from './FormPersistenceContext.shared';
+import { FormPersistenceContext } from './FormPersistenceContext.shared';
 import {
   type FieldErrorsForSection,
   type FormFieldError,
@@ -257,11 +257,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     return () => {
       if (!import.meta.env.DEV) return;
       for (const [storageKey, entry] of debugSaveState.entries()) {
-        if (entry.pendingCount > 0) {
-          console.debug(`[Persistence] Saved: ${storageKey} (x${entry.pendingCount})`, {
-            fieldCount: entry.lastFieldCount,
-          });
-        }
       }
     };
   }, []);
@@ -285,8 +280,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     entry.lastFieldCount = fieldCount;
 
     if (now - entry.lastLogAt >= PERSISTENCE_DEBUG_MIN_INTERVAL_MS) {
-      const suffix = entry.pendingCount > 1 ? ` (x${entry.pendingCount})` : '';
-      console.debug(`[Persistence] Saved: ${storageKey}${suffix}`, { fieldCount: entry.lastFieldCount });
       entry.pendingCount = 0;
       entry.lastLogAt = now;
     }
@@ -508,9 +501,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       });
       formPersistenceStore.getState().clearAll({ hydrated: true, schemaFingerprint: CURRENT_VERSION, lastCommittedAt: Date.now() });
       clearEODomainTransientErrors();
-      if (import.meta.env.DEV) {
-        console.debug('[Persistence] Cleared all persisted data', { keyCount: mineoKeys.length });
-      }
     } catch (error) {
       console.error('[Persistence] Fejl ved sletning af alle data:', error);
     }

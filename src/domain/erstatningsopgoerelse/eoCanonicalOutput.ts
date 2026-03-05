@@ -2,7 +2,6 @@ import { z } from 'zod';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import { erstatningsopgoerelseSchema, stamdataSchema } from '../../schemas/formSchemas';
 import { isoDateString } from '../../schemas/formSchemas/baseSchemas';
-import type { ISODateString } from '../../types/branded';
 import { buildTafRanges } from './indtaegtPerioder';
 import { parseForligsgrad } from './forligsgrad';
 import { buildOevrigeKravModel } from './eoPdfBuilders';

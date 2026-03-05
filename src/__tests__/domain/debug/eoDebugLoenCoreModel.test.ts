@@ -8,7 +8,6 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schem
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { svieSmertePrDag } from '../../../data/regulationRates';
-import { toDanishDateString } from '../../../types/branded';
 
 const makeDebugDay = (
   iso: string,

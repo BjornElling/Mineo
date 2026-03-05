@@ -9,7 +9,7 @@ import StyledDateField from '../../inputs/StyledDateField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import StyledPercentField from '../../inputs/StyledPercentField';
 import ContentBox from '../../layout/ContentBox';
-import { dateRanges_varigemen, dateRanges_stamdata } from '../../../config/dateRanges';
+import { dateRanges_stamdata } from '../../../config/dateRanges';
 import {
   stamdataSchema,
   type VarigeMenValues,

@@ -1,4 +1,3 @@
-import type { ISODateString } from '../../../types/branded';
 import { toISODateString } from '../../../types/branded';
 
 export interface AldersFaktorRaekke {

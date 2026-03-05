@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import {
-  allowEmptyString,
   coerceToIntegerOrUndefined,
   dayCount,
   loseFeriedageCount,
@@ -13,7 +12,7 @@ import {
   tableCellString,
   tableDateCellString,
   yearInteger,
-  normalizeEmptyToUndefined,
+  normalizeEmptyToUndefined
 } from '../baseSchemas';
 import {
   afsluttesMedEnum,

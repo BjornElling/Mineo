@@ -115,9 +115,6 @@ const persistLog = (entry: Omit<LogEntry, 'id'>): void => {
  * @param {Record<string, unknown>} [data] - Ekstra data
  */
 export const logDebug = (message: string, data?: Record<string, unknown>): void => {
-  if (isDevelopment) {
-    console.debug(`[${getReadableTimestamp()}] [DEBUG]`, message, data || '');
-  }
 };
 
 /**
@@ -127,9 +124,6 @@ export const logDebug = (message: string, data?: Record<string, unknown>): void 
  * @param {Record<string, unknown>} [data] - Ekstra data
  */
 export const logInfo = (message: string, data?: Record<string, unknown>): void => {
-  if (isDevelopment) {
-    console.debug(`[${getReadableTimestamp()}]`, message, data || '');
-  }
 };
 
 /**

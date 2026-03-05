@@ -4,7 +4,6 @@ import type {
   Loenperiode,
   OffentligeYdelserRow,
 } from '../../schemas/formSchemas';
-import type { ISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
 import { getOffentligeYdelserRowFilledState } from '../../utils/offentligeYdelserTableValidation';

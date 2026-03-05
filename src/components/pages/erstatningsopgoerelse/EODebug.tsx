@@ -66,12 +66,11 @@ import {
   formatAmountWithoutTrailingDecimals,
   hasAnyPctSourceOrInput,
   hasPctSourceOrInput,
-  numOrZero,
   resolvePctPointFromSatsOrInput,
   formatPercentFixed2 as formatPercentFixed2Shared,
   resolveOffentligLoenEkstraGrundloen,
   roundToTwoDecimals,
-  detectDecimalPlaces,
+  detectDecimalPlaces
 } from '../../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import {
   buildFormulaText,
