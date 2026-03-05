@@ -13,6 +13,7 @@ import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/indtaegtPerio
 import { SYGEDAGPENGE_SH_CUTOFF } from '../erstatningsopgoerelse/periodiseringsMotor';
 import { buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/tafDaySets';
 import { iterateDatesInclusive, maxISO, minISO, validateIsoRange } from '../../utils/isoDateHelpers';
+import type { DebugDay } from './eoDebugTypes';
 
 export type DebugTabelDateSource = Readonly<{
   label: string;
@@ -72,9 +73,13 @@ export type DebugTabelColumnData = Readonly<{
 
 type EODebugTableData = Readonly<{
   dates: readonly ISODateString[];
+  weekdayIndexByRow: readonly DebugDay['weekday'][];
+  isSognehelligdagByIndex: readonly boolean[];
   isWorkdayByIndex: readonly boolean[];
   ssStatusByIndex: readonly string[];
+  svieSmerteByIndex: readonly DebugDay['svieSmerte'][];
   tafColumnIds: readonly DebugTabelColumnId[];
+  tafFlagsByIndex: readonly ReadonlySet<string>[];
 }>;
 
 export type EODebugModel = Readonly<{
@@ -418,9 +423,13 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
       integrityIssues: [],
       tableData: {
         dates: [],
+        weekdayIndexByRow: [],
+        isSognehelligdagByIndex: [],
         isWorkdayByIndex: [],
         ssStatusByIndex: [],
+        svieSmerteByIndex: [],
         tafColumnIds: [],
+        tafFlagsByIndex: [],
       },
       columnRawValues: new Map(),
     };
@@ -601,6 +610,17 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
   const tafColumnIds = columnData
     .filter((col) => col.id.startsWith('loen:') && col.id.endsWith(':taf'))
     .map((col) => col.id);
+  const tafFlagsByIndex = dates.map((_, rowIndex) => {
+    const activeColumns = tafColumnIds.filter((columnId) => (rows[rowIndex]?.cells[columnId] ?? '') !== '');
+    return new Set<string>(activeColumns);
+  });
+  const weekdayIndexByRow = dates.map((iso) => isoDateToDate(iso).getUTCDay() as DebugDay['weekday']);
+  const isSognehelligdagByIndex = dates.map((iso) => shDays.has(iso));
+  const svieSmerteByIndex = ssStatusByIndex.map((value): DebugDay['svieSmerte'] => {
+    if (value === 'Ja') return 'Fuld';
+    if (value === 'Delvis') return 'Delvis';
+    return 'Ingen';
+  });
 
   return {
     sources,
@@ -619,9 +639,13 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
     integrityIssues,
     tableData: {
       dates,
+      weekdayIndexByRow,
+      isSognehelligdagByIndex,
       isWorkdayByIndex,
       ssStatusByIndex,
+      svieSmerteByIndex,
       tafColumnIds,
+      tafFlagsByIndex,
     },
     columnRawValues,
   };

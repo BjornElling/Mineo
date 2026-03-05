@@ -1,6 +1,5 @@
 import type { AppSettings } from '../../settings/appSettingsSchema';
 import {
-  erstatningsopgoerelseSchema,
   stamdataSchema,
   type AarsloenTableRow,
   type ErstatningsopgoerelseValues,
@@ -25,6 +24,9 @@ import {
 } from './pdfLoader';
 import { coerceToDanishDateString, type ISODateString } from '../../types/branded';
 import type { VarigeMenBeregningResult } from '../../domain/varigemen/varigeMenCalculations';
+import type { EoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot';
+import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
+import { eoSnapshotToTafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
 import { logError, logWarning } from '../logger';
 import { getSatserForYear } from '../../data/regulationRates';
 
@@ -140,45 +142,6 @@ const resolveReguleringInterval = (interval: ReguleringInterval) => {
   return { fraDato, tilDato };
 };
 
-const validateEoPdfPayload = (params: Readonly<{
-  stamdataValues: unknown;
-  eoValues: unknown;
-}>): Readonly<{
-  success: true;
-  stamdataValues: StamdataValues;
-  eoValues: ErstatningsopgoerelseValues;
-}> | Readonly<{ success: false }> => {
-  const parsedStamdata = stamdataSchema.safeParse(params.stamdataValues);
-  const parsedEo = erstatningsopgoerelseSchema.safeParse(params.eoValues);
-  if (!parsedStamdata.success || !parsedEo.success) {
-    logWarning('EO-data kunne ikke valideres til PDF-generering', {
-      context: 'pdfService.validateEoPdfPayload',
-      data: {
-        stamdataIssueCount: parsedStamdata.success ? 0 : parsedStamdata.error.issues.length,
-        eoIssueCount: parsedEo.success ? 0 : parsedEo.error.issues.length,
-      },
-    });
-    return { success: false };
-  }
-  return {
-    success: true,
-    stamdataValues: parsedStamdata.data,
-    eoValues: parsedEo.data,
-  };
-};
-
-export const canDownloadEoPdf = (params: Readonly<{
-  hasBlockingErrors: boolean;
-  stamdataValues: unknown;
-  eoValues: unknown;
-}>): boolean => {
-  if (params.hasBlockingErrors) return false;
-  return validateEoPdfPayload({
-    stamdataValues: params.stamdataValues,
-    eoValues: params.eoValues,
-  }).success;
-};
-
 export const downloadSatserPdf = async (params: Readonly<{
   year: number;
   satser: SatserData;
@@ -260,21 +223,22 @@ export const downloadErstatningsopgoerelsePdf = async (params: Readonly<{
   eoValues: ErstatningsopgoerelseValues;
   selectedElements: SelectedElements;
   settings: AppSettings;
+  snapshot: EoSnapshot;
 }>): Promise<PdfDownloadResult> => {
-  const { selectedElements, settings } = params;
+  const { selectedElements, settings, snapshot } = params;
   const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
-  const validated = validateEoPdfPayload(params);
-
-  if (!validated.success) {
-    return { success: false, error: 'Kan ikke generere PDF: data er ugyldige.' };
+  const eoPdfDocument = eoSnapshotToEoPdfDocument(snapshot);
+  if (eoPdfDocument.kind === 'blocked') {
+    return { success: false, error: eoPdfDocument.message };
   }
 
   try {
     const { generateErstatningsopgoerelsePdf } = await loadErstatningsopgoerelsePdfModule();
-    generateErstatningsopgoerelsePdf(validated.stamdataValues, validated.eoValues, selectedElements, {
+    generateErstatningsopgoerelsePdf(params.stamdataValues, params.eoValues, selectedElements, {
       visBrevhoved,
-      erstatningsopgoerelseAfsluttesMed: validated.eoValues.erstatningsopgoerelseAfsluttesMed,
-      visUdkastStempel: validated.eoValues.indsaetUdkastStempel === 'Ja',
+      erstatningsopgoerelseAfsluttesMed: params.eoValues.erstatningsopgoerelseAfsluttesMed,
+      visUdkastStempel: params.eoValues.indsaetUdkastStempel === 'Ja',
+      document: eoPdfDocument.document,
     });
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
@@ -290,20 +254,21 @@ export const downloadTafFordeltPaaAarPdf = async (params: Readonly<{
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
   settings: AppSettings;
+  snapshot: EoSnapshot;
 }>): Promise<PdfDownloadResult> => {
-  const { settings } = params;
+  const { settings, snapshot } = params;
   const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
-  const validated = validateEoPdfPayload(params);
-
-  if (!validated.success) {
-    return { success: false, error: 'Kan ikke generere PDF: data er ugyldige.' };
+  const tafPdfDocument = eoSnapshotToTafPerYearPdfDocument(snapshot);
+  if (tafPdfDocument.kind === 'blocked') {
+    return { success: false, error: tafPdfDocument.message };
   }
 
   try {
     const { generateTafFordeltPaaAarPdf } = await loadTafFordeltPaaAarPdfModule();
-    generateTafFordeltPaaAarPdf(validated.stamdataValues, validated.eoValues, {
+    generateTafFordeltPaaAarPdf(params.stamdataValues, params.eoValues, {
       visBrevhoved,
-      visUdkastStempel: validated.eoValues.indsaetUdkastStempel === 'Ja',
+      visUdkastStempel: params.eoValues.indsaetUdkastStempel === 'Ja',
+      document: tafPdfDocument.document,
     });
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {

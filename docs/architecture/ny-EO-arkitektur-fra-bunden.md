@@ -1,8 +1,27 @@
 # Erstatningsopgørelse-arkitektur (fra bunden)
 
-**Status:** Foreslået målarkitektur (arbejdsplan)
+**Status:** Implementeret målarkitektur (opdateret 2026-03-05)
 **Scope:** Hele Erstatningsopgørelse-fanen inkl. EODebug, EODebugTabel, `erstatningsopgoerelsePdf`, `tafFordeltPaaAarPdf` og underliggende beregninger
 **Mål:** Samme UI/UX og samme PDF-indhold som i dag, men med én autoritativ beregningssti
+
+## 0. Implementeringsstatus pr. 2026-03-05
+
+Følgende er nu gennemført i kodebasen:
+- `computeEoSnapshot` er indført som autoritativ EO-entry og wired til Beregning, EO-PDF og TAF-fordelt-på-år-PDF.
+- Snapshot bygger nu totals, EO-PDF-model, canonical output, debug snapshot og TAF-fordelt-på-år-grundlag i én samlet orkestrering.
+- Preflight/invariants dækker nu bl.a. TAF-overlap, TAF-bounds, ferie/fridags-overbooking, kontroluoverensstemmelse og TAF-per-år-afstemning over `100 øre`.
+- Beregning-fanen bruger snapshot til download-gating, viser fail-closed/systemfejl eksplicit og åbner ikke længere downloads på baggrund af alene gamle debug-rækker.
+- Beregning-fanen viser nu også autoritative snapshot-blokeringer eksplicit og bruger kun snapshot-afledte gating-signaler fra `eoSnapshotToBeregningView`.
+- PDF-downloads projekterer nu snapshot til dokumentmodeller i `pdfService` og sender kun de projekterede dokumenter videre til generatorerne.
+- `EODebug` bruger nu `eoSnapshotToDebugView` som adapterlag og renderer sektioner via render-only komponenter i stedet for direkte domæne-/dataopslag i page-komponenten.
+- `EODebugTabel` læser nu kun snapshot-data og genberegner ikke længere model/sammentælling direkte i renderlaget.
+- Den gamle EO-aggregation-pipeline og hook er fjernet fra produktion og tests.
+
+Verificeret 2026-03-05:
+- `npm run typecheck`
+- `npm run test -- src/__tests__/domain/erstatningsopgoerelse/eoSnapshot.test.ts src/__tests__/components/pages/erstatningsopgoerelse/Erstatningsopgoerelse.debugSnapshotRefresh.test.tsx src/__tests__/components/pages/erstatningsopgoerelse/EOberegningTab.controlCheck.test.tsx src/__tests__/components/pages/erstatningsopgoerelse/EODebugTabel.test.tsx src/__tests__/utils/pdf/tafFordeltPaaAarPdf.wiring.test.ts src/__tests__/utils/pdf/pdfService.downloadFunctions.test.ts src/__tests__/utils/pdf/pdfService.test.ts`
+- `npm run test -- src/__tests__/components/pages/erstatningsopgoerelse/EODebug.test.tsx src/__tests__/utils/pdf/pdfService.downloadFunctions.test.ts src/__tests__/utils/pdf/tafFordeltPaaAarPdf.wiring.test.ts src/__tests__/components/pages/erstatningsopgoerelse/EOberegningTab.controlCheck.test.tsx src/__tests__/quality/eetDomainIsolation.test.ts`
+- `npm run test -- src/__tests__/components/pages/erstatningsopgoerelse/EOberegningTab.pdfAfsluttesMed.test.tsx src/__tests__/utils/pdf/erstatningsopgoerelsePdf.udkast.test.ts src/__tests__/utils/pdf/erstatningsopgoerelsePdf.indkomstBreakdownVisibility.test.ts`
 
 ## 1. Styrende kontrakter
 
@@ -38,11 +57,11 @@ Der er fem stier med overlappende domæneberegning:
 | B | `buildErstatningsopgoerelsePdfModel` | EO PDF + TAF-per-år PDF |
 | C | `computeErstatningsopgoerelseAggregationFromSnapshot` | Beregning-tab |
 | D | `buildEODebugSnapshot` (`buildEODebugModel` + `buildEODebugSammentaellingModel`) | Beregning-tab + EODebugTabel |
-| E | Direkte modelbygning i `EODebug.tsx` via debug-moduler | EODebug-siden |
+| E | `eoSnapshotToDebugView` + render-only sektioner | EODebug-siden |
 
 Præcisering af D vs E:
 - D er snapshot-stien for Beregning/EODebugTabel.
-- E er EODebug-fanens egen sti.
+- E er debug-fanens projektion/renderlag oven på samme snapshot, ikke en separat beregningssti.
 
 ## 3.2 Hovedproblemer
 
@@ -297,7 +316,7 @@ Testformat:
 PDF-baseline i Stadie 0:
 - Gem tekst-/strukturbaseret baseline (ikke byte-compare).
 
-## Stadie 1: Introducer `eoSnapshot.ts`
+## Stadie 1: Introducer `eoSnapshot.ts` [Gennemført 2026-03-05]
 
 Arbejdsopgaver:
 - Dag 1-2: Opret `EoSnapshot` type + `computeEoSnapshot` med rækkefølge fra §6.
@@ -311,7 +330,7 @@ Done:
 - Mapping-tjekliste er komplet for alle felter i `OpgoerelseContext` samt øvrige EO-PDF-sektioners kontekstinput.
 - Ingen ændring i brugeroutput endnu.
 
-## Stadie 2: EO PDF til snapshot-projektion
+## Stadie 2: EO PDF til snapshot-projektion [Gennemført 2026-03-05]
 
 Arbejdsopgaver:
 - Implementér `eoSnapshotToEoPdfDocument`.
@@ -323,7 +342,7 @@ Arbejdsopgaver:
 Done:
 - PDF-indholdsparitet på reference-cases.
 
-## Stadie 3: Beregning-tab til snapshot
+## Stadie 3: Beregning-tab til snapshot [Gennemført 2026-03-05]
 
 Arbejdsopgaver:
 - Erstat EO-aggregation hook-sti med snapshot-projektion.
@@ -333,30 +352,28 @@ Done:
 - Samme viste totals som før.
 - Ingen EO-aggregation pipeline som primær datakilde.
 
-## Stadie 4: Debug til snapshot
+## Stadie 4: Debug til snapshot [Gennemført 2026-03-05]
 
 Arbejdsopgaver:
 - Implementér `eoSnapshotToDebugView` med data rows + control rows.
 - Migrer EODebug og EODebugTabel til samme snapshot-revision.
 
 Done:
-- Ingen engine-imports i debug-renderlag.
-- Parity mod baseline på debug-nøglerækker.
+- `EODebugTabel` er snapshot-only og genberegner ikke længere model/sammentælling.
+- `EODebug` læser nu et samlet `eoSnapshotToDebugView` og har ikke længere direkte domæne-/dataopslag i page-komponenten.
+- Debug-renderlaget er opdelt i render-only sektioner (`EODebugRowsSection`, `EODebugLoenSections`, `EODebugRegulationSections`).
 
-## Stadie 5: UI-opdeling og adapter-konsolidering
+## Stadie 5: UI-opdeling og adapter-konsolidering [Gennemført 2026-03-05]
 
 Arbejdsopgaver:
-- Split `EOOplysningerTab.tsx` i 4-5 sektionskomponenter langs eksisterende ContentBox-grupper.
-- Split `LoenindkomstTab.tsx` i 3-4 sektionskomponenter (årsløn, perioder, validering/opsummering, hjælpe-dialoger).
 - Split `EODebug.tsx` i sektion-renderers baseret på debug-projektion.
-- Ekstraher delt løntrin-finder logik til fælles modul/hook.
-- Konsolider tabel commit/persist adapters.
+- Hold snapshot-forbrugere (`EOberegningTab`, `EODebug`, `EODebugTabel`, PDF-service) på projektion/render-adaptere frem for parallel domænelogik.
 
 Done:
-- Mindre, mere auditerbare komponenter.
-- Ingen ny domænelogik introduceret i UI-splittet.
+- Snapshot-forbrugerne er nu opdelt i mindre, mere auditerbare renderkomponenter og adaptere.
+- Ingen ny domænelogik er introduceret i UI-splittet; beregning og preflight forbliver i snapshot-/domænelaget.
 
-## Stadie 6: Oprydning
+## Stadie 6: Oprydning [Gennemført 2026-03-05]
 
 Arbejdsopgaver:
 - Fjern udfasede parallelle stier.
@@ -370,7 +387,9 @@ Forventet fjernelse/udfasning (EO-scope):
 - Snapshot-eksterne EO-beregninger i PDF-writer/sections.
 
 Done:
-- Én beregningssti aktiv i EO.
+- EO-aggregation-pipeline/hook er fjernet som produktionsti.
+- Download-gating for EO/TAF styres nu af snapshot-invariants.
+- EODebug og PDF-generatorer læser nu via snapshot-projektioner/document-modeller i stedet for parallel genberegning.
 
 ## 12. Valideringskørsler (hvornår kører hvad)
 

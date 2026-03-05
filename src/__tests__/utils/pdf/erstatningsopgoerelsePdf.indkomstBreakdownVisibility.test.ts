@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
+import { buildEoPdfDocumentFromSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
@@ -48,6 +50,40 @@ const selected = {
   regulering: false,
   okSatser: false,
   sygeferiegodtgoerelse: false,
+};
+
+let generateErstatningsopgoerelsePdf: typeof import('../../../utils/pdf/erstatningsopgoerelsePdf').generateErstatningsopgoerelsePdf;
+
+const buildProjectedDocument = (
+  stamdata: typeof STAMDATA_INITIAL_VALUES,
+  eo: ReturnType<typeof createErstatningsopgoerelseInitialValues>
+) => {
+  const snapshot = computeEoSnapshot({
+    revision: 'test-erstatningsopgoerelsePdf.indkomstBreakdownVisibility',
+    stamdataValues: stamdata,
+    eoValues: eo,
+  });
+
+  if (!snapshot.data) {
+    throw new Error('Kunne ikke bygge testdokument til EO-PDF');
+  }
+
+  const document = buildEoPdfDocumentFromSnapshot(snapshot);
+  if (!document) {
+    throw new Error('Kunne ikke projektere testdokument til EO-PDF');
+  }
+
+  return document;
+};
+
+const renderPdf = (
+  stamdata: typeof STAMDATA_INITIAL_VALUES,
+  eo: ReturnType<typeof createErstatningsopgoerelseInitialValues>
+) => {
+  generateErstatningsopgoerelsePdf(stamdata, eo, selected, {
+    visUdkastStempel: false,
+    document: buildProjectedDocument(stamdata, eo),
+  });
 };
 
 const collectTextStrings = (instance: MockJsPDF | null): string[] => {
@@ -129,8 +165,6 @@ const buildBaseInput = () => {
 };
 
 describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
-  let generateErstatningsopgoerelsePdf: typeof import('../../../utils/pdf/erstatningsopgoerelsePdf').generateErstatningsopgoerelsePdf;
-
   beforeAll(async () => {
     const pdfModule = await import('../../../utils/pdf/erstatningsopgoerelsePdf');
     generateErstatningsopgoerelsePdf = pdfModule.generateErstatningsopgoerelsePdf;
@@ -142,7 +176,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.loenindkomstAnsaettelsesforhold[0].pensionPct = 0;
     eo.loenindkomstAnsaettelsesforhold[0].indtaegtsoplysningerTableData[0].col5 = asAmountValue(1500);
 
-    generateErstatningsopgoerelsePdf(stamdata, eo, selected, { visUdkastStempel: false });
+    renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
     expect(texts).not.toContain('Arbejdsgivers pensionsbidrag');
@@ -158,7 +192,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.loenindkomstAnsaettelsesforhold[0].pensionPct = 0;
     eo.loenindkomstAnsaettelsesforhold[0].indtaegtsoplysningerTableData[0].col5 = undefined;
 
-    generateErstatningsopgoerelsePdf(stamdata, eo, selected, { visUdkastStempel: false });
+    renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
     expect(texts.filter((text) => text === 'I alt:')).toHaveLength(0);
@@ -168,7 +202,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.tidligereModtagetTaf = asAmountValue(5000);
 
-    generateErstatningsopgoerelsePdf(stamdata, eo, selected, { visUdkastStempel: false });
+    renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
     expect(texts).toContain('Tidligere betalt erstatning');
@@ -179,7 +213,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.tidligereModtagetTaf = undefined;
 
-    generateErstatningsopgoerelsePdf(stamdata, eo, selected, { visUdkastStempel: false });
+    renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
     expect(texts).not.toContain('Tidligere betalt erstatning');
@@ -189,7 +223,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
   it('viser kun "kr." på sidste led i TAF-regnestykket før lighedstegnet', () => {
     const { stamdata, eo } = buildBaseInput();
 
-    generateErstatningsopgoerelsePdf(stamdata, eo, selected, { visUdkastStempel: false });
+    renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
     const regnestykkeLinje = texts.find((text) => /^[\d.]+,\d{2} - [\d.]+,\d{2}/.test(text) && text.includes(' =') && text.includes('kr.'));
@@ -213,7 +247,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       },
     ];
 
-    generateErstatningsopgoerelsePdf(stamdata, eo, selected, { visUdkastStempel: false });
+    renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
     expect(texts).toContain(
@@ -243,7 +277,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       },
     ];
 
-    generateErstatningsopgoerelsePdf(stamdata, eo, selected, { visUdkastStempel: false });
+    renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
     expect(texts).toContain(
@@ -272,7 +306,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       },
     ];
 
-    generateErstatningsopgoerelsePdf(stamdata, eo, selected, { visUdkastStempel: false });
+    renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
     expect(texts).toContain(
@@ -314,7 +348,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       },
     ];
 
-    generateErstatningsopgoerelsePdf(stamdata, eo, selected, { visUdkastStempel: false });
+    renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
     expect(texts).toContain(EET_KLAGE_REGULERINGSLINJE);
@@ -344,7 +378,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       },
     ];
 
-    generateErstatningsopgoerelsePdf(stamdata, eo, selected, { visUdkastStempel: false });
+    renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
     const ydelsesforbehold =

@@ -12,9 +12,9 @@ import OffentligeYdelserTab from './erstatningsopgoerelse/OffentligeYdelserTab';
 import EOberegningTab from './erstatningsopgoerelse/EOberegningTab';
 import EODebug from './erstatningsopgoerelse/EODebug';
 import EODebugTabel from './erstatningsopgoerelse/EODebugTabel';
-import { buildEODebugSnapshot, type EODebugSnapshot } from '../../domain/debug/eoDebugSnapshot';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
+import { computeEoSnapshot, type EoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot';
 
 const TAB_KEYS = {
   EO_OPLYSNINGER: 'eo_oplysninger',
@@ -94,24 +94,21 @@ const Erstatningsopgoerelse = React.memo(() => {
     ].join('-');
   }, []);
 
-  const buildDebugSnapshot = React.useCallback((): EODebugSnapshot => {
+  const buildDebugSnapshot = React.useCallback((): EoSnapshot => {
     const persistedStamdata = persistenceRefs.current.getPersistedData('stamdata');
     const persistedEO = persistenceRefs.current.getPersistedData('erstatningsopgoerelse');
 
     const resolvedStamdata: StamdataValues = { ...STAMDATA_INITIAL_VALUES, ...(persistedStamdata ?? {}) };
     const resolvedEO: ErstatningsopgoerelseValues = { ...createErstatningsopgoerelseInitialValues(), ...(persistedEO ?? {}) };
 
-    const stamdataErrors = persistenceRefs.current.getFieldErrorsBySource('stamdata');
-    const eoErrors = persistenceRefs.current.getFieldErrorsBySource('erstatningsopgoerelse');
-
     const revision = buildDebugRevision();
 
-    return buildEODebugSnapshot({
+    return computeEoSnapshot({
       revision,
       stamdataValues: resolvedStamdata,
       eoValues: resolvedEO,
-      stamdataErrors,
-      eoErrors,
+      stamdataErrors: persistenceRefs.current.getFieldErrorsBySource('stamdata'),
+      eoErrors: persistenceRefs.current.getFieldErrorsBySource('erstatningsopgoerelse'),
     });
   }, [buildDebugRevision]);
 
@@ -126,18 +123,21 @@ const Erstatningsopgoerelse = React.memo(() => {
     return { ...STAMDATA_INITIAL_VALUES, ...persistedStamdata };
   }, [getPersistedData]);
 
-  const [eoDebugSnapshot, setEoDebugSnapshot] = React.useState<EODebugSnapshot | null>(null);
+  const [eoSnapshot, setEoSnapshot] = React.useState<EoSnapshot | null>(null);
+  const currentDebugRevision = buildDebugRevision();
+  const isSnapshotTabActive =
+    activeTab === TAB_KEYS.BEREGNING || activeTab === TAB_KEYS.DEBUG || activeTab === TAB_KEYS.DEBUG_TABEL;
 
   React.useEffect(() => {
-    // Snapshot build is intentionally bound to tab entry to avoid expensive recalculation during input.
-    if (activeTab === TAB_KEYS.BEREGNING || activeTab === TAB_KEYS.DEBUG_TABEL) {
-      setEoDebugSnapshot(buildDebugSnapshotRef.current());
-    } else {
-      setEoDebugSnapshot(null);
+    if (!isSnapshotTabActive) {
+      setEoSnapshot(null);
+      return;
     }
-  }, [activeTab]);
-
-  const currentDebugRevision = buildDebugRevision();
+    if (eoSnapshot?.revision === currentDebugRevision) {
+      return;
+    }
+    setEoSnapshot(buildDebugSnapshotRef.current());
+  }, [currentDebugRevision, eoSnapshot?.revision, isSnapshotTabActive]);
 
   const handleTabChange = React.useCallback(
     (_event: React.SyntheticEvent, value: unknown) => {
@@ -335,8 +335,7 @@ const Erstatningsopgoerelse = React.memo(() => {
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               isActive={activeTab === TAB_KEYS.BEREGNING}
-              debugSnapshot={eoDebugSnapshot}
-              currentDebugRevision={currentDebugRevision}
+              eoSnapshot={eoSnapshot}
               stamdataValues={stamdataValuesForBeregningTab}
               eoValues={form.values}
               setEOValues={form.setValues}
@@ -349,7 +348,7 @@ const Erstatningsopgoerelse = React.memo(() => {
             hidden={activeTab !== TAB_KEYS.DEBUG}
             sx={{ display: activeTab === TAB_KEYS.DEBUG ? 'block' : 'none' }}
           >
-            <EODebug />
+            <EODebug eoSnapshot={activeTab === TAB_KEYS.DEBUG ? eoSnapshot : null} />
           </Box>
         ) : null}
         {showDebugTab && (visitedTabs[TAB_KEYS.DEBUG_TABEL] || activeTab === TAB_KEYS.DEBUG_TABEL) ? (
@@ -359,7 +358,7 @@ const Erstatningsopgoerelse = React.memo(() => {
             sx={{ display: activeTab === TAB_KEYS.DEBUG_TABEL ? 'block' : 'none' }}
           >
             <EODebugTabel
-              debugSnapshot={activeTab === TAB_KEYS.DEBUG_TABEL ? eoDebugSnapshot : null}
+              debugSnapshot={activeTab === TAB_KEYS.DEBUG_TABEL ? eoSnapshot?.data?.debugSnapshot ?? null : null}
               currentDebugRevision={currentDebugRevision}
             />
           </Box>

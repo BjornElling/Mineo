@@ -3,31 +3,15 @@ import { Alert, AlertTitle, Box, Tooltip, Typography } from '@mui/material';
 import { Check, Download, ErrorOutline, WarningAmber } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import ContentBox from '../../layout/ContentBox';
-
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { buildEODebugModel } from '../../../domain/debug/eoDebugModel';
-import {
-  buildEODebugSammentaellingModel,
-  buildSammentaellingDisplayTables,
-  buildSvieSmerteContext,
-  buildTaftContext,
-  getSammentaellingControlStatus,
-  getSammentaellingWarningMeta,
-  type SammentaellingControl,
-  type SammentaellingDisplayRow,
-} from '../../../domain/debug/eoDebugSammentaelling';
+import { getSammentaellingControlStatus, getSammentaellingWarningMeta, type SammentaellingControl, type SammentaellingDisplayRow } from '../../../domain/debug/eoDebugSammentaelling';
 import { CSV_DELIMITER, escapeCsvCell, normalizeCsvHeader, toCsvScalar } from '../../../domain/debug/eoDebugCsv';
 import { formatCurrency } from '../../../utils/formatUtils';
-import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { ISODateString } from '../../../types/branded';
 import { isoToDanish } from '../../../types/branded';
 import { downloadFile } from '../../../utils/fileHelpers';
-import { useFormPersistence } from '../../../contexts/useFormPersistence';
-import { useFormFieldErrorsBySource } from '../../../hooks/useFormFieldErrors';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import VirtualizedDisplayTable from '../../tables/VirtualizedDisplayTable';
-import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
 
 const ROW_HEIGHT = 28;
@@ -52,54 +36,8 @@ type EODebugTabelProps = {
 
 const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }: EODebugTabelProps) => {
   const theme = useTheme();
-  const { getPersistedData } = useFormPersistence();
-
-  const stamdataValues = React.useMemo(() => {
-    return { ...STAMDATA_INITIAL_VALUES, ...(getPersistedData('stamdata') ?? {}) };
-  }, [getPersistedData]);
-
-  const erstatningsopgoerelseValues = React.useMemo<ErstatningsopgoerelseValues>(() => {
-    return { ...createErstatningsopgoerelseInitialValues(), ...(getPersistedData('erstatningsopgoerelse') ?? {}) };
-  }, [getPersistedData]);
-
-  const erstatningsopgoerelseFieldErrors = useFormFieldErrorsBySource('erstatningsopgoerelse');
-
-  const deferredStamdata = React.useDeferredValue(stamdataValues);
-  const deferredEO = React.useDeferredValue(erstatningsopgoerelseValues);
-
-  const svieSmerteContext = React.useMemo(
-    () => buildSvieSmerteContext(deferredStamdata, deferredEO),
-    [deferredStamdata, deferredEO]
-  );
-
-  const taftContext = React.useMemo(
-    () => buildTaftContext(deferredStamdata, deferredEO),
-    [deferredStamdata, deferredEO]
-  );
-
-  const model = React.useMemo(() => {
-    if (debugSnapshot && debugSnapshot.revision === currentDebugRevision) return debugSnapshot.model;
-    return buildEODebugModel(deferredEO);
-  }, [debugSnapshot, currentDebugRevision, deferredEO]);
-
-  const sammentaelling = React.useMemo(() => {
-    if (debugSnapshot && debugSnapshot.revision === currentDebugRevision) return debugSnapshot.sammentaelling;
-    return buildEODebugSammentaellingModel({
-      values: deferredEO,
-      errors: erstatningsopgoerelseFieldErrors,
-      model,
-      svieSmerteContext,
-      taftContext,
-    });
-  }, [
-    debugSnapshot,
-    currentDebugRevision,
-    deferredEO,
-    erstatningsopgoerelseFieldErrors,
-    model,
-    svieSmerteContext,
-    taftContext,
-  ]);
+  const snapshot = debugSnapshot && debugSnapshot.revision === currentDebugRevision ? debugSnapshot : null;
+  const model = snapshot?.model ?? null;
 
   const formatIso = React.useCallback((iso: ISODateString | undefined): string => {
     if (!iso) return '-';
@@ -107,9 +45,11 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
   }, []);
 
   const summaryRows = React.useMemo(() => {
-    const rows: StandardDisplayTableRow[] = model.sources.map((s) => ({
-      key: s.label,
-      cells: [s.label, formatIso(s.fra), formatIso(s.til)],
+    if (!model) return [] as StandardDisplayTableRow[];
+
+    const rows: StandardDisplayTableRow[] = model.sources.map((source) => ({
+      key: source.label,
+      cells: [source.label, formatIso(source.fra), formatIso(source.til)],
     }));
 
     rows.push({
@@ -136,14 +76,7 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
     });
 
     return rows;
-  }, [
-    formatIso,
-    model.combinedMaxTil,
-    model.combinedMinFra,
-    model.sources,
-    model.summaryTableFra,
-    model.summaryTableTil,
-  ]);
+  }, [formatIso, model]);
 
   const sammentaellingTables = React.useMemo(() => {
     const formatDaValue = (value: number): string => value.toLocaleString('da-DK');
@@ -175,11 +108,6 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
       return <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />;
     };
 
-    const useSnapshot = debugSnapshot && debugSnapshot.revision === currentDebugRevision;
-    const displayTables = useSnapshot
-      ? debugSnapshot.sammentaellingTables
-      : buildSammentaellingDisplayTables(sammentaelling);
-
     const toTableRows = (displayRows: readonly SammentaellingDisplayRow[]): StandardDisplayTableRow[] => {
       return displayRows.map((entry) => ({
         key: entry.key,
@@ -192,33 +120,43 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
       }));
     };
 
+    if (!snapshot) {
+      return {
+        basis: [] as StandardDisplayTableRow[],
+        beregningsperiode: [] as StandardDisplayTableRow[],
+        taf: [] as StandardDisplayTableRow[],
+      };
+    }
+
     return {
-      basis: toTableRows(displayTables.basis),
-      beregningsperiode: toTableRows(displayTables.beregningsperiode),
-      taf: toTableRows(displayTables.taf),
+      basis: toTableRows(snapshot.sammentaellingTables.basis),
+      beregningsperiode: toTableRows(snapshot.sammentaellingTables.beregningsperiode),
+      taf: toTableRows(snapshot.sammentaellingTables.taf),
     };
-  }, [sammentaelling, debugSnapshot, currentDebugRevision]);
+  }, [snapshot]);
 
   const tableColumns = React.useMemo(() => {
-    return model.columns.map((c) => ({
-      id: c.id,
-      header: c.header,
-      align: c.align,
-      width: c.width,
-      borderLeft: c.borderLeft,
+    if (!model) return [];
+    return model.columns.map((column) => ({
+      id: column.id,
+      header: column.header,
+      align: column.align,
+      width: column.width,
+      borderLeft: column.borderLeft,
     }));
-  }, [model.columns]);
+  }, [model]);
 
   const renderCell = React.useCallback(
     (rowIndex: number, colIndex: number) => {
-      const col = model.columns[colIndex];
-      return col ? col.getCell(rowIndex) : '';
+      if (!model) return '';
+      const column = model.columns[colIndex];
+      return column ? column.getCell(rowIndex) : '';
     },
-    [model.columns]
+    [model]
   );
 
   const stickyHeaderTop = React.useMemo(() => -Number.parseFloat(theme.spacing(3)), [theme]);
-  const canDownloadDebugTable = Boolean(model.tableFra && model.tableTil);
+  const canDownloadDebugTable = Boolean(model?.tableFra && model?.tableTil);
 
   const formatCsvAmountCell = React.useCallback((value: unknown): string => {
     const scalar = toCsvScalar(value);
@@ -231,16 +169,16 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
   }, []);
 
   const handleDownloadDebugTable = React.useCallback(() => {
-    if (!canDownloadDebugTable) return;
+    if (!canDownloadDebugTable || !model) return;
 
-    const headers = model.columns.map((col) => escapeCsvCell(normalizeCsvHeader(col.header)));
+    const headers = model.columns.map((column) => escapeCsvCell(normalizeCsvHeader(column.header)));
     const lines: string[] = [];
     lines.push(headers.join(CSV_DELIMITER));
 
     for (let rowIndex = 0; rowIndex < model.rowCount; rowIndex += 1) {
-      const cells = model.columns.map((col) => {
-        const cellValue = col.getCell(rowIndex);
-        const scalar = isAmountColumnId(col.id) ? formatCsvAmountCell(cellValue) : toCsvScalar(cellValue);
+      const cells = model.columns.map((column) => {
+        const cellValue = column.getCell(rowIndex);
+        const scalar = isAmountColumnId(column.id) ? formatCsvAmountCell(cellValue) : toCsvScalar(cellValue);
         return escapeCsvCell(scalar);
       });
       lines.push(cells.join(CSV_DELIMITER));
@@ -248,80 +186,88 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
 
     const content = `\ufeff${lines.join('\r\n')}`;
     downloadFile(content, 'debug-tabel.csv', 'text/csv;charset=utf-8');
-  }, [canDownloadDebugTable, formatCsvAmountCell, model.columns, model.rowCount]);
+  }, [canDownloadDebugTable, formatCsvAmountCell, model]);
 
   return (
     <Box>
       <ContentBox className="content-box">
         <Typography className="section-header">Debug tabel</Typography>
 
-        <StandardDisplayTable
-          useSmallFont
-          columns={[
-            { header: 'Interval', align: 'left', width: 520 },
-            { header: 'Fra', align: 'center', width: 180 },
-            { header: 'Til', align: 'center', width: 180 },
-          ]}
-          rows={summaryRows}
-          containerSx={{ mb: 2 }}
-        />
-        <Box className="row--label-right-hover" sx={{ mt: 2 }}>
-          <Typography className="row--text">Download tabel (CSV-format)</Typography>
-          <Box className="row--label-right-hover__content" sx={{ mr: '90px' }}>
-            <Box
-              onClick={canDownloadDebugTable ? handleDownloadDebugTable : undefined}
-              tabIndex={-1}
-              sx={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: canDownloadDebugTable ? 'pointer' : 'default',
-                transition: 'background-color 0.2s',
-                '&:hover': canDownloadDebugTable ? { backgroundColor: '#e3f2fd' } : undefined,
-                '&:active': canDownloadDebugTable ? { backgroundColor: '#bbdefb' } : undefined,
-              }}
-            >
-              <Download
-                sx={{
-                  fontSize: '24px',
-                  color: canDownloadDebugTable ? 'primary.main' : 'text.disabled',
-                }}
-              />
+        {snapshot ? (
+          <>
+            <StandardDisplayTable
+              useSmallFont
+              columns={[
+                { header: 'Interval', align: 'left', width: 520 },
+                { header: 'Fra', align: 'center', width: 180 },
+                { header: 'Til', align: 'center', width: 180 },
+              ]}
+              rows={summaryRows}
+              containerSx={{ mb: 2 }}
+            />
+            <Box className="row--label-right-hover" sx={{ mt: 2 }}>
+              <Typography className="row--text">Download tabel (CSV-format)</Typography>
+              <Box className="row--label-right-hover__content" sx={{ mr: '90px' }}>
+                <Box
+                  onClick={canDownloadDebugTable ? handleDownloadDebugTable : undefined}
+                  tabIndex={-1}
+                  sx={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: canDownloadDebugTable ? 'pointer' : 'default',
+                    transition: 'background-color 0.2s',
+                    '&:hover': canDownloadDebugTable ? { backgroundColor: '#e3f2fd' } : undefined,
+                    '&:active': canDownloadDebugTable ? { backgroundColor: '#bbdefb' } : undefined,
+                  }}
+                >
+                  <Download
+                    sx={{
+                      fontSize: '24px',
+                      color: canDownloadDebugTable ? 'primary.main' : 'text.disabled',
+                    }}
+                  />
+                </Box>
+              </Box>
             </Box>
-          </Box>
-        </Box>
-
+          </>
+        ) : (
+          <Alert severity="info" sx={{ borderRadius: '10px' }}>
+            <AlertTitle sx={{ fontWeight: 500 }}>Debug-tabellen er ikke opdateret endnu</AlertTitle>
+            Åbn fanen igen fra Erstatningsopgørelse for at bygge et friskt snapshot.
+          </Alert>
+        )}
       </ContentBox>
 
       <ContentBox className="content-box">
         <Typography className="section-header">Sammentælling</Typography>
 
-          <StandardDisplayTable
-            useSmallFont
-            columns={[
-              { header: 'Enhed', align: 'left', width: 520 },
-              { header: 'Beregnet', align: 'center', width: 160 },
-              { header: 'Tabel', align: 'center', width: 160 },
-              { header: 'Kontrol', align: 'center', width: 120 },
-            ]}
-            rows={sammentaellingTables.basis}
-            containerSx={{ mb: 4 }}
-          />
+        <StandardDisplayTable
+          useSmallFont
+          columns={[
+            { header: 'Enhed', align: 'left', width: 520 },
+            { header: 'Beregnet', align: 'center', width: 160 },
+            { header: 'Tabel', align: 'center', width: 160 },
+            { header: 'Kontrol', align: 'center', width: 120 },
+          ]}
+          rows={sammentaellingTables.basis}
+          containerSx={{ mb: 4 }}
+        />
 
-          <StandardDisplayTable
-            useSmallFont
-            columns={[
-              { header: 'Beregningsperiode', align: 'left', width: 520 },
-              { header: 'Beregnet', align: 'center', width: 160 },
-              { header: 'Tabel', align: 'center', width: 160 },
-              { header: 'Kontrol', align: 'center', width: 120 },
-            ]}
-            rows={sammentaellingTables.beregningsperiode}
-            containerSx={{ mb: 4 }}
-          />
+        <StandardDisplayTable
+          useSmallFont
+          columns={[
+            { header: 'Beregningsperiode', align: 'left', width: 520 },
+            { header: 'Beregnet', align: 'center', width: 160 },
+            { header: 'Tabel', align: 'center', width: 160 },
+            { header: 'Kontrol', align: 'center', width: 120 },
+          ]}
+          rows={sammentaellingTables.beregningsperiode}
+          containerSx={{ mb: 4 }}
+        />
 
         <StandardDisplayTable
           useSmallFont
@@ -336,7 +282,12 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
       </ContentBox>
 
       <Box sx={{ mt: 2 }}>
-        {model.rowCount === 0 ? (
+        {!snapshot ? (
+          <Alert severity="info" sx={{ borderRadius: '10px' }}>
+            <AlertTitle sx={{ fontWeight: 500 }}>Debug-tabellen kræver et friskt snapshot</AlertTitle>
+            Der vises ingen debug-tidslinje, før fanen er åbnet med committed EO-data.
+          </Alert>
+        ) : model?.rowCount === 0 ? (
           <Alert severity="info" sx={{ borderRadius: '10px' }}>
             <AlertTitle sx={{ fontWeight: 500 }}>Kan ikke oprette debug-tabel</AlertTitle>
             <Typography variant="body2" sx={{ mb: 1 }}>
@@ -360,10 +311,10 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
         ) : (
           <VirtualizedDisplayTable
             columns={tableColumns}
-            rowCount={model.rowCount}
+            rowCount={model!.rowCount}
             rowHeight={ROW_HEIGHT}
             height={0}
-            getRowKey={model.getRowKey}
+            getRowKey={model!.getRowKey}
             renderCell={renderCell}
             useSmallFont
             scrollMode="ancestor"
@@ -372,7 +323,6 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
           />
         )}
       </Box>
-
     </Box>
   );
 });
@@ -380,5 +330,3 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
 EODebugTabel.displayName = 'EODebugTabel';
 
 export default EODebugTabel;
-
-

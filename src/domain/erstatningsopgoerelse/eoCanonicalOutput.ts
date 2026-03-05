@@ -6,9 +6,10 @@ import { buildTafRanges } from './indtaegtPerioder';
 import { parseForligsgrad } from './forligsgrad';
 import { buildOevrigeKravModel } from './eoPdfBuilders';
 import { clampMoneyOreToZero, ensureMoneyOre, moneyOreSchema, scaleMoneyOre } from './eoPdfMoneyUtils';
-import { computeSvieSmerteEngine } from './svieSmerteEngine';
-import { computeTafNettoBeregning } from './tafNettoBeregning';
+import { computeSvieSmerteEngine, type SvieSmerteEngineOutput } from './svieSmerteEngine';
+import { computeTafNettoBeregning, type TafNettoBeregningResult } from './tafNettoBeregning';
 import type { Calculable, LoenudviklingSegment, MoneyOre } from './eoPdfModelTypes';
+import type { OevrigeKravPdfModel } from './eoPdfModel';
 
 const isoDateSchema = isoDateString;
 
@@ -78,6 +79,63 @@ const calculableMoneyToNullable = (value: Calculable<MoneyOre> | null | undefine
 const toCanonicalSegment = (segment: LoenudviklingSegment): z.infer<typeof loenudviklingSegmentSchema> =>
   loenudviklingSegmentSchema.parse(segment);
 
+export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
+  tafRanges: ReadonlyArray<{ fra: z.infer<typeof isoDateSchema>; til: z.infer<typeof isoDateSchema> }>;
+  svieSmerte: SvieSmerteEngineOutput;
+  tafNetto: TafNettoBeregningResult;
+  oevrige: OevrigeKravPdfModel;
+  forligFactor: number | null;
+}>): EoCanonicalOutput => {
+  const tabtArbejdsfortjenesteFoerForligOre = clampMoneyOreToZero(ensureMoneyOre(args.tafNetto.tabtArbejdsfortjenesteOre));
+  const tabtArbejdsfortjenesteOre = args.forligFactor !== null
+    ? clampMoneyOreToZero(scaleMoneyOre(tabtArbejdsfortjenesteFoerForligOre, args.forligFactor))
+    : tabtArbejdsfortjenesteFoerForligOre;
+
+  const oevrigeKravFoerForligOre = clampMoneyOreToZero(ensureMoneyOre(args.oevrige.totalFoerForligOre));
+  const oevrigeKravOre = args.forligFactor !== null
+    ? clampMoneyOreToZero(scaleMoneyOre(oevrigeKravFoerForligOre, args.forligFactor))
+    : oevrigeKravFoerForligOre;
+
+  const svieSmerteOre = clampMoneyOreToZero(ensureMoneyOre(args.svieSmerte.totalOre));
+  const samletTotalOre = clampMoneyOreToZero(
+    ensureMoneyOre(svieSmerteOre + tabtArbejdsfortjenesteOre + oevrigeKravOre)
+  );
+
+  const loenudviklingSegmenter = (args.tafNetto.loenudvikling?.beregnedeSegmenter ?? []).map(toCanonicalSegment);
+  const perAnsaettelse = (args.tafNetto.loenudvikling?.perAnsaettelse ?? []).map((entry) => ({
+    ansaettelsesforholdId: entry.ansaettelsesforholdId,
+    loenudviklingTotalFoerForligOre: calculableMoneyToNullable(entry.loenudviklingTotal),
+    loenudviklingSegmenter: entry.beregnedeSegmenter.map(toCanonicalSegment),
+  }));
+
+  return eoCanonicalOutputSchema.parse({
+    totals: {
+      svieSmerteOre,
+      tabtArbejdsfortjenesteFoerForligOre,
+      tabtArbejdsfortjenesteOre,
+      oevrigeKravFoerForligOre,
+      oevrigeKravOre,
+      samletTotalOre,
+    },
+    svieSmerte: {
+      maxApplied: args.svieSmerte.maxApplied,
+    },
+    taf: {
+      harTafPerioder: args.tafNetto.harTafPerioder,
+      tafIndtaegterOre: calculableMoneyToNullable(args.tafNetto.tafIndtaegter?.total),
+      tidligereModtagetTafOre: calculableMoneyToNullable(args.tafNetto.tidligereModtagetTaf),
+    },
+    periodiseringer: {
+      tafPerioder: args.tafRanges,
+    },
+    regulering: {
+      loenudviklingTotalFoerForligOre: calculableMoneyToNullable(args.tafNetto.loenudvikling?.loenudviklingTotal),
+      loenudviklingSegmenter,
+      perAnsaettelse,
+    },
+  });
+};
+
 export const buildEoCanonicalOutput = (
   stamdataValues: StamdataValues,
   eoValues: ErstatningsopgoerelseValues
@@ -109,55 +167,17 @@ export const buildEoCanonicalOutput = (
     },
   });
 
-  const tafNetto = computeTafNettoBeregning(safeEo, safeStamdata);
+  const tafRanges = buildTafRanges(safeEo, { clamp: false });
+  const tafNetto = computeTafNettoBeregning(safeEo, safeStamdata, {
+    tafRanges,
+    clampTafRows: false,
+  });
   const oevrige = buildOevrigeKravModel(safeEo.oevrigeKravPerioder ?? []);
-
-  const tabtArbejdsfortjenesteFoerForligOre = clampMoneyOreToZero(ensureMoneyOre(tafNetto.tabtArbejdsfortjenesteOre));
-  const tabtArbejdsfortjenesteOre = forlig !== null && forligFactor !== null
-    ? clampMoneyOreToZero(scaleMoneyOre(tabtArbejdsfortjenesteFoerForligOre, forligFactor))
-    : tabtArbejdsfortjenesteFoerForligOre;
-
-  const oevrigeKravFoerForligOre = clampMoneyOreToZero(ensureMoneyOre(oevrige.totalFoerForligOre));
-  const oevrigeKravOre = forlig !== null && forligFactor !== null
-    ? clampMoneyOreToZero(scaleMoneyOre(oevrigeKravFoerForligOre, forligFactor))
-    : oevrigeKravFoerForligOre;
-
-  const svieSmerteOre = clampMoneyOreToZero(ensureMoneyOre(svieSmerte.totalOre));
-  const samletTotalOre = clampMoneyOreToZero(
-    ensureMoneyOre(svieSmerteOre + tabtArbejdsfortjenesteOre + oevrigeKravOre)
-  );
-
-  const loenudviklingSegmenter = (tafNetto.loenudvikling?.beregnedeSegmenter ?? []).map(toCanonicalSegment);
-  const perAnsaettelse = (tafNetto.loenudvikling?.perAnsaettelse ?? []).map((entry) => ({
-    ansaettelsesforholdId: entry.ansaettelsesforholdId,
-    loenudviklingTotalFoerForligOre: calculableMoneyToNullable(entry.loenudviklingTotal),
-    loenudviklingSegmenter: entry.beregnedeSegmenter.map(toCanonicalSegment),
-  }));
-
-  return eoCanonicalOutputSchema.parse({
-    totals: {
-      svieSmerteOre,
-      tabtArbejdsfortjenesteFoerForligOre,
-      tabtArbejdsfortjenesteOre,
-      oevrigeKravFoerForligOre,
-      oevrigeKravOre,
-      samletTotalOre,
-    },
-    svieSmerte: {
-      maxApplied: svieSmerte.maxApplied,
-    },
-    taf: {
-      harTafPerioder: tafNetto.harTafPerioder,
-      tafIndtaegterOre: calculableMoneyToNullable(tafNetto.tafIndtaegter?.total),
-      tidligereModtagetTafOre: calculableMoneyToNullable(tafNetto.tidligereModtagetTaf),
-    },
-    periodiseringer: {
-      tafPerioder: buildTafRanges(safeEo),
-    },
-    regulering: {
-      loenudviklingTotalFoerForligOre: calculableMoneyToNullable(tafNetto.loenudvikling?.loenudviklingTotal),
-      loenudviklingSegmenter,
-      perAnsaettelse,
-    },
+  return buildEoCanonicalOutputFromComputed({
+    tafRanges,
+    svieSmerte,
+    tafNetto,
+    oevrige,
+    forligFactor,
   });
 };

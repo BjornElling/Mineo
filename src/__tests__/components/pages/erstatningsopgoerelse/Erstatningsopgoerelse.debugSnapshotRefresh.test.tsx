@@ -8,8 +8,14 @@ import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceCon
 import { useFormPersistence } from '../../../../contexts/useFormPersistence';
 import { LOCAL_STORAGE_KEY, writeLocalStorage } from '../../../../settings/appSettingsStorage';
 
-const { buildEODebugSnapshotMock } = vi.hoisted(() => ({
-  buildEODebugSnapshotMock: vi.fn(() => ({ revision: 'mock-revision' })),
+const { computeEoSnapshotMock } = vi.hoisted(() => ({
+  computeEoSnapshotMock: vi.fn((args: { revision: string }) => ({
+    revision: args.revision,
+    status: 'ok',
+    data: null,
+    invariants: [],
+    input: { stamdata: null, erstatningsopgoerelse: null },
+  })),
 }));
 
 vi.mock('../../../../components/pages/erstatningsopgoerelse/EOOplysningerTab', () => ({
@@ -36,21 +42,21 @@ vi.mock('../../../../components/pages/erstatningsopgoerelse/EODebugTabel', () =>
   default: () => <div>Debug tabel indhold</div>,
 }));
 
-vi.mock('../../../../domain/debug/eoDebugSnapshot', () => ({
-  buildEODebugSnapshot: buildEODebugSnapshotMock,
+vi.mock('../../../../domain/erstatningsopgoerelse/eoSnapshot', () => ({
+  computeEoSnapshot: computeEoSnapshotMock,
 }));
 
 describe('Erstatningsopgoerelse debug snapshot-refresh', () => {
   beforeEach(() => {
     sessionStorage.clear();
-    buildEODebugSnapshotMock.mockClear();
+    computeEoSnapshotMock.mockClear();
     writeLocalStorage(
       LOCAL_STORAGE_KEY,
       JSON.stringify({ showEODebugMenu: true })
     );
   });
 
-  it('rebuilds only on tab entry to Beregning/Debug tabel and not on persisted updates', async () => {
+  it('rebuilds on first snapshot-tab entry and whenever committed revision changes while snapshot faner er aktive', async () => {
     let ctx: ReturnType<typeof useFormPersistence> | null = null;
 
     const Probe = () => {
@@ -74,7 +80,7 @@ describe('Erstatningsopgoerelse debug snapshot-refresh', () => {
       expect(ctx).not.toBeNull();
     });
 
-    expect(buildEODebugSnapshotMock).toHaveBeenCalledTimes(0);
+    expect(computeEoSnapshotMock).toHaveBeenCalledTimes(0);
 
     act(() => {
       ctx!.persistData('stamdata', {
@@ -86,11 +92,11 @@ describe('Erstatningsopgoerelse debug snapshot-refresh', () => {
         skadesdato: '',
       });
     });
-    expect(buildEODebugSnapshotMock).toHaveBeenCalledTimes(0);
+    expect(computeEoSnapshotMock).toHaveBeenCalledTimes(0);
 
     fireEvent.click(screen.getByRole('tab', { name: 'Beregning' }));
     await waitFor(() => {
-      expect(buildEODebugSnapshotMock).toHaveBeenCalledTimes(1);
+      expect(computeEoSnapshotMock).toHaveBeenCalledTimes(1);
     });
 
     act(() => {
@@ -103,12 +109,12 @@ describe('Erstatningsopgoerelse debug snapshot-refresh', () => {
         skadesdato: '',
       });
     });
-    expect(buildEODebugSnapshotMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(computeEoSnapshotMock).toHaveBeenCalledTimes(2);
+    });
 
     fireEvent.click(screen.getByText('Debug tabel'));
-    await waitFor(() => {
-      expect(buildEODebugSnapshotMock).toHaveBeenCalledTimes(2);
-    });
+    expect(computeEoSnapshotMock).toHaveBeenCalledTimes(2);
 
     act(() => {
       ctx!.persistData('stamdata', {
@@ -120,6 +126,8 @@ describe('Erstatningsopgoerelse debug snapshot-refresh', () => {
         skadesdato: '',
       });
     });
-    expect(buildEODebugSnapshotMock).toHaveBeenCalledTimes(2);
+    await waitFor(() => {
+      expect(computeEoSnapshotMock).toHaveBeenCalledTimes(3);
+    });
   });
 });

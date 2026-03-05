@@ -76,6 +76,8 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
 
     baseStamdata = structuredClone(STAMDATA_INITIAL_VALUES);
     baseEo = createErstatningsopgoerelseInitialValues();
+    baseEo.beregnesSvieSmerteGodtgoerelse = 'Nej';
+    baseEo.beregnesTabtArbejdsfortjeneste = 'Nej';
     generateErstatningsopgoerelsePdf = pdfModule.generateErstatningsopgoerelsePdf;
     resolveUdkastStempelValue = pdfModule.resolveUdkastStempelValue;
   });

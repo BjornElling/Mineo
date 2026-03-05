@@ -12,7 +12,7 @@ import { createDate, parseDanishDate } from '../../utils/dateUtils';
 import { ydelsestyper } from '../../data/ydelsestyper';
 import { type DateInterval, type IsoRange, validateIsoRange } from '../../utils/isoDateHelpers';
 import { mergeIsoDateRanges } from './periodMerging';
-import { buildClampedTafRanges, resolveTafConstraintBounds } from './tafPeriodConstraints';
+import { buildClampedTafRanges, buildValidTafRanges, resolveTafConstraintBounds } from './tafPeriodConstraints';
 import { getAarsloenErrorRowIdSet } from './indkomstRowValidation';
 import { isAarsloenTableValueEffectivelyEmptyForValidation } from '../../utils/aarsloenTableValidation';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
@@ -103,9 +103,13 @@ const resolveYdelsestype = (raw: string): Readonly<{ key: string; label: string;
   return null;
 };
 
-export const buildTafRanges = (values: ErstatningsopgoerelseValues): IsoRange[] => {
-  const bounds = resolveTafConstraintBounds(values);
-  const ranges = buildClampedTafRanges(values.tafPerioder ?? [], bounds);
+export const buildTafRanges = (
+  values: ErstatningsopgoerelseValues,
+  options: Readonly<{ clamp?: boolean }> = {}
+): IsoRange[] => {
+  const ranges = options.clamp === false
+    ? buildValidTafRanges(values.tafPerioder ?? [])
+    : buildClampedTafRanges(values.tafPerioder ?? [], resolveTafConstraintBounds(values));
   return mergeIsoDateRanges(ranges, { mergeAdjacent: true });
 };
 

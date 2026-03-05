@@ -59,9 +59,10 @@ export type TafNettoBeregningResult = Readonly<{
 
 export const computeTafNettoBeregning = (
   values: ErstatningsopgoerelseValues,
-  stamdataValues: StamdataValues
+  stamdataValues: StamdataValues,
+  options: Readonly<{ tafRanges?: readonly IsoRange[]; clampTafRows?: boolean }> = {}
 ): TafNettoBeregningResult => {
-  const tafRanges = buildTafRanges(values);
+  const tafRanges = options.tafRanges ?? buildTafRanges(values);
   const harTafPerioder = tafRanges.length > 0;
   const tafBeregningsenhed = computeTafBeregningsenhed(values);
 
@@ -69,7 +70,10 @@ export const computeTafNettoBeregning = (
     ? buildIndkomstSkadestidspunkt(values, stamdataValues, tafBeregningsenhed)
     : null;
   const loenudvikling = harTafPerioder
-    ? buildLoenudviklingModelV3(values, stamdataValues, tafBeregningsenhed, indkomstSkadestidspunkt)
+    ? buildLoenudviklingModelV3(values, stamdataValues, tafBeregningsenhed, indkomstSkadestidspunkt, {
+      tafRanges,
+      clampTafRows: options.clampTafRows,
+    })
     : null;
   const tafIndtaegter = harTafPerioder ? buildTafIndtaegterModel(values, tafRanges) : null;
 

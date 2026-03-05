@@ -11,7 +11,7 @@ import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from './pdfHelpers';
 import { createPdfWriter } from './pdfWriter';
 import { renderEoStylePdfTable } from './pdfTableRenderer';
 import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../schemas/formSchemas';
-import { buildErstatningsopgoerelsePdfModel, type MoneyOre, type Calculable } from '../../domain/erstatningsopgoerelse/eoPdfModel';
+import { type MoneyOre, type Calculable } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { formatPercent as formatPercentUtil } from '../formatUtils';
 import { TODAY } from '../../config/dateRanges';
 
@@ -53,6 +53,9 @@ import { renderOffentligeYdelserSection } from './erstatningsopgoerelse/sections
 import { renderShDageSection } from './erstatningsopgoerelse/sections/shDageSection';
 import { renderReguleringSection } from './erstatningsopgoerelse/sections/reguleringSection';
 import { renderOpgorelseSection } from './erstatningsopgoerelse/sections/opgoerelseSection';
+import { computeEoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot';
+import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
+import type { PdfModel } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 
 const NBSP = '\u00A0';
 const EO_RIGHT_COLUMN_WIDTH = 33.125;
@@ -165,6 +168,7 @@ interface ErstatningsopgoerelsePdfOptions {
   visBrevhoved?: boolean;
   erstatningsopgoerelseAfsluttesMed?: 'Bekræftet godkendt' | 'Underskrift-linje';
   visUdkastStempel?: boolean;
+  document?: PdfModel;
 }
 
 /**
@@ -192,7 +196,19 @@ export const generateErstatningsopgoerelsePdf = (
   const afsluttesMed = options.erstatningsopgoerelseAfsluttesMed ?? eoValues.erstatningsopgoerelseAfsluttesMed;
   const lineHeight = 5;
   const doubleLineHeight = lineHeight * 2;
-  const model = buildErstatningsopgoerelsePdfModel(stamdataValues, eoValues, { dagsDatoISO: TODAY });
+  const model = options.document ?? (() => {
+    const snapshot = computeEoSnapshot({
+      revision: 'pdf-erstatningsopgoerelse',
+      stamdataValues,
+      eoValues,
+      dagsDatoISO: TODAY,
+    });
+    const projection = eoSnapshotToEoPdfDocument(snapshot);
+    if (projection.kind === 'blocked') {
+      throw new Error(projection.message);
+    }
+    return projection.document;
+  })();
   const bilagIndkomstYdelserMode: BilagLoenindkomstOgOffentligeYdelserIndgaar =
     eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
   const bilagIndkomstYdelserRanges = buildBilagIndkomstYdelserRanges(eoValues, bilagIndkomstYdelserMode);
@@ -470,4 +486,3 @@ export const generateErstatningsopgoerelsePdf = (
   // Download PDF
   writer.save(resolvePdfFileName(titel, visUdkastStempel, model.brevhoved?.journalnr));
 };
-

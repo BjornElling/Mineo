@@ -9,8 +9,6 @@
  */
 
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
-import { buildErstatningsopgoerelsePdfModel } from '../../domain/erstatningsopgoerelse/eoPdfModel';
-import { buildTafPerYearResult } from '../../domain/erstatningsopgoerelse/tafPerYearDerived';
 import { createPdfWriter } from './pdfWriter';
 import { ensureNonBreakingKr } from './pdfTextUtils';
 import { PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
@@ -29,6 +27,9 @@ import {
   isSingularCount,
   resolvePdfFileName,
 } from './pdfFormatUtils';
+import { computeEoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot';
+import { eoSnapshotToTafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
+import type { TafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
 
 const NBSP = '\u00A0';
 const FILE_BASE_NAME = 'Tabt arbejdsfortjeneste fordelt på år';
@@ -38,6 +39,7 @@ const FILE_BASE_NAME = 'Tabt arbejdsfortjeneste fordelt på år';
 interface TafFordeltPaaAarPdfOptions {
   visBrevhoved?: boolean;
   visUdkastStempel?: boolean;
+  document?: TafPerYearPdfDocument;
 }
 
 export const generateTafFordeltPaaAarPdf = (
@@ -49,8 +51,19 @@ export const generateTafFordeltPaaAarPdf = (
   const lineHeight = 5;
   const doubleLineHeight = lineHeight * 2;
 
-  const model = buildErstatningsopgoerelsePdfModel(stamdataValues, eoValues, { dagsDatoISO: TODAY });
-  const presentation = buildTafPerYearResult(model, eoValues);
+  const { model, presentation } = options.document ?? (() => {
+    const snapshot = computeEoSnapshot({
+      revision: 'pdf-taf-per-year',
+      stamdataValues,
+      eoValues,
+      dagsDatoISO: TODAY,
+    });
+    const projection = eoSnapshotToTafPerYearPdfDocument(snapshot);
+    if (projection.kind === 'blocked') {
+      throw new Error(projection.message);
+    }
+    return projection.document;
+  })();
 
   const titel = 'Tabt arbejdsfortjeneste fordelt på år';
 

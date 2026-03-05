@@ -7,7 +7,9 @@ import EOberegningTab from '../../../../components/pages/erstatningsopgoerelse/E
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
 import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
 import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { computeEoSnapshot } from '../../../../domain/erstatningsopgoerelse/eoSnapshot';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
+import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/eoSnapshot';
 
 const { generateErstatningsopgoerelsePdfMock, loadErstatningsopgoerelsePdfModuleMock } = vi.hoisted(() => {
   return {
@@ -37,14 +39,22 @@ vi.mock('../../../../utils/pdf/pdfLoader', () => ({
 
 describe('EOberegningTab PDF-afslutning', () => {
   let eoValuesFromForm: ReturnType<typeof createErstatningsopgoerelseInitialValues>;
+  let eoSnapshot: EoSnapshot;
 
   beforeEach(() => {
     generateErstatningsopgoerelsePdfMock.mockReset();
     loadErstatningsopgoerelsePdfModuleMock.mockClear();
 
     eoValuesFromForm = createErstatningsopgoerelseInitialValues();
+    eoValuesFromForm.beregnesSvieSmerteGodtgoerelse = 'Nej';
+    eoValuesFromForm.beregnesTabtArbejdsfortjeneste = 'Nej';
     eoValuesFromForm.erstatningsopgoerelseAfsluttesMed = 'Underskrift-linje';
     eoValuesFromForm.differencekravDato = '2026-01-15';
+    eoSnapshot = computeEoSnapshot({
+      revision: 'rev-1',
+      stamdataValues: structuredClone(STAMDATA_INITIAL_VALUES),
+      eoValues: eoValuesFromForm,
+    });
   });
 
   it('sender committed EO-værdi for afslutningstype til PDF-generator', async () => {
@@ -56,8 +66,7 @@ describe('EOberegningTab PDF-afslutning', () => {
               activeTab="beregning"
               setActiveTab={vi.fn()}
               isActive={true}
-              debugSnapshot={null}
-              currentDebugRevision="rev-1"
+              eoSnapshot={eoSnapshot}
               stamdataValues={structuredClone(STAMDATA_INITIAL_VALUES)}
               eoValues={eoValuesFromForm}
               setEOValues={vi.fn()}
@@ -84,8 +93,7 @@ describe('EOberegningTab PDF-afslutning', () => {
               activeTab="beregning"
               setActiveTab={vi.fn()}
               isActive={true}
-              debugSnapshot={null}
-              currentDebugRevision="rev-1"
+              eoSnapshot={eoSnapshot}
               stamdataValues={structuredClone(STAMDATA_INITIAL_VALUES)}
               eoValues={eoValuesFromForm}
               setEOValues={vi.fn()}

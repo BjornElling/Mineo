@@ -19,6 +19,12 @@ export type TafConstraintBounds = Readonly<{
   maxEnd?: ISODateString;
 }>;
 
+export type TafConstraintBoundSource = Readonly<{
+  field: string;
+  label: string;
+  value: ISODateString;
+}>;
+
 const minIso = (a: ISODateString, b: ISODateString): ISODateString => (a < b ? a : b);
 const maxIso = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
 
@@ -52,6 +58,49 @@ export const resolveTafConstraintBounds = (values: TafConstraintSource): TafCons
   const maxEnd = minDefined(erstatningsTil, differencekravMax, endeligEetMax);
 
   return { minStart, maxEnd };
+};
+
+export const resolveTafConstraintBoundSources = (values: TafConstraintSource): readonly TafConstraintBoundSource[] => {
+  const sources: TafConstraintBoundSource[] = [];
+  const vedroererPeriodeFra = resolveIso(values.vedroererPeriodeFra);
+  if (vedroererPeriodeFra) {
+    sources.push({
+      field: 'vedroererPeriodeFra',
+      label: 'Vedrører periode fra',
+      value: vedroererPeriodeFra,
+    });
+  }
+
+  const vedroererPeriodeTil = resolveIso(values.vedroererPeriodeTil);
+  if (vedroererPeriodeTil) {
+    sources.push({
+      field: 'vedroererPeriodeTil',
+      label: 'Vedrører periode til',
+      value: vedroererPeriodeTil,
+    });
+  }
+
+  const differencekravDato = resolveIso(values.differencekravDato);
+  const differencekravMax = subtractOneDay(differencekravDato);
+  if (differencekravMax) {
+    sources.push({
+      field: 'differencekravDato',
+      label: 'Differencekrav-dato',
+      value: differencekravMax,
+    });
+  }
+
+  const endeligEetDato = resolveEndeligEetDato(values);
+  const endeligEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(endeligEetDato);
+  if (endeligEetMax) {
+    sources.push({
+      field: values.endeligEETVirkningsdato ? 'endeligEETVirkningsdato' : 'endeligEETAfgoerelseDato',
+      label: values.endeligEETVirkningsdato ? 'Endelig EET-virkningsdato' : 'Endelig EET-afgørelsesdato',
+      value: endeligEetMax,
+    });
+  }
+
+  return sources;
 };
 
 export const clampTafRange = (range: IsoRange, bounds: TafConstraintBounds): IsoRange | null => {
@@ -88,6 +137,17 @@ export const buildClampedTafRanges = (rows: readonly TafPeriodeRow[], bounds: Ta
   for (const row of rows) {
     const clamped = clampTafRow(row, bounds);
     if (clamped) ranges.push(clamped);
+  }
+  return ranges;
+};
+
+export const buildValidTafRanges = (rows: readonly TafPeriodeRow[]): IsoRange[] => {
+  const ranges: IsoRange[] = [];
+  for (const row of rows) {
+    const validRange = getValidTafRange(row);
+    if (validRange) {
+      ranges.push(validRange);
+    }
   }
   return ranges;
 };

@@ -5,14 +5,14 @@ import { amountValueToNumber } from '../../utils/expressionAmount';
 import { buildTafRanges } from './indtaegtPerioder';
 import { isoDateToDate } from '../dates/isoDate';
 import { isOevrigeKravRowEmpty, isTafRowEmpty } from './rowEmpty';
-import { computeSvieSmerteEngine, getDayAfterIso } from './svieSmerteEngine';
+import { computeSvieSmerteEngine, getDayAfterIso, type SvieSmerteEngineOutput } from './svieSmerteEngine';
 import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
 import { buildTafArbejdsstatusLinje } from './tafArbejdsstatusConfig';
 import type { Calculable, MoneyOre, OevrigeKravPdfModel, SvieSmertePdfModel, TabtArbejdsfortjenestePdfModel } from './eoPdfModelTypes';
 import { clampMoneyOreToZero, ensureMoneyOre } from './eoPdfMoneyUtils';
 import { formatDateShort, formatDateLong } from './sharedPdfUtils';
 import { parseOevrigeKravBeloeb } from './oevrigeKravAmountParser';
-import { computeTafNettoBeregning } from './tafNettoBeregning';
+import { computeTafNettoBeregning, type TafNettoBeregningResult } from './tafNettoBeregning';
 
 const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
@@ -20,13 +20,14 @@ const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculab
 
 export const buildSvieSmerteModel = (
   values: ErstatningsopgoerelseValues,
-  stamdataValues: StamdataValues
+  stamdataValues: StamdataValues,
+  options: Readonly<{ engine?: SvieSmerteEngineOutput }> = {}
 ): SvieSmertePdfModel => {
   const beregnes = values.beregnesSvieSmerteGodtgoerelse === 'Ja';
   const statusLinjer: string[] = [];
   const periodeTilISO = values.vedroererPeriodeTil;
 
-  const engine = computeSvieSmerteEngine({
+  const engine = options.engine ?? computeSvieSmerteEngine({
     erstatningsopgoerelse: values,
     stamdata: {
       skadesdato: stamdataValues.skadesdato,
@@ -174,7 +175,8 @@ const buildTafPerioderLinjer = (values: ErstatningsopgoerelseValues): string[] =
 };
 export const buildTabtArbejdsfortjenesteModel = (
   values: ErstatningsopgoerelseValues,
-  stamdataValues: StamdataValues
+  stamdataValues: StamdataValues,
+  options: Readonly<{ tafNetto?: TafNettoBeregningResult }> = {}
 ): TabtArbejdsfortjenestePdfModel => {
   const statusLinjer: string[] = [];
   const periodeTilISO = values.vedroererPeriodeTil;
@@ -230,7 +232,7 @@ export const buildTabtArbejdsfortjenesteModel = (
   const differencekravReferenceDato = values.differencekravDato;
 
   const tafPerioderLinjer = buildTafPerioderLinjer(values);
-  const tafMonetary = computeTafNettoBeregning(values, stamdataValues);
+  const tafMonetary = options.tafNetto ?? computeTafNettoBeregning(values, stamdataValues);
   const harTafPerioder = tafMonetary.harTafPerioder;
   const harTafDagenFoer = (dato: ISODateString | undefined): boolean => {
     if (!dato) return false;

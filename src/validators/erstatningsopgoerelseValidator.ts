@@ -26,6 +26,15 @@ import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/period
 import { resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { resolveStatistikModelId } from '../domain/erstatningsopgoerelse/sharedPdfUtils';
 import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/loenoplysningerInput';
+import {
+  getValidTafRange,
+  resolveTafConstraintBounds,
+  resolveTafConstraintBoundSources,
+} from '../domain/erstatningsopgoerelse/tafPeriodConstraints';
+import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/tafCalculations';
+
+export const TAF_OVERLAP_ERROR_MESSAGE = 'TAF-perioder overlapper';
+export const TAF_BOUNDS_ERROR_MESSAGE_BASE = 'TAF-periode ligger uden for tilladt interval';
 
 // =============================================================================
 // LAG 1: SCHEMA-VALIDERING
@@ -299,6 +308,7 @@ function validateTAF(values: ErstatningsopgoerelseValues): ValidationError[] {
   if (!beregnes) return errors;
 
   const tafPerioder = values.tafPerioder ?? [];
+  const nonEmpty = tafPerioder.filter((row) => !isTafRowEmpty(row));
 
   // Validér ikke-tomme rækker er fuldt udfyldt
   for (let i = 0; i < tafPerioder.length; i += 1) {
@@ -308,6 +318,22 @@ function validateTAF(values: ErstatningsopgoerelseValues): ValidationError[] {
     errors.push(...errors_);
   }
 
+  if (nonEmpty.length > 1) {
+    const overlapIds = detectOverlappingPeriods(nonEmpty);
+    for (let i = 0; i < tafPerioder.length; i += 1) {
+      if (!overlapIds.has(tafPerioder[i].id)) continue;
+      errors.push({
+        path: `tafPerioder[${i}].fra`,
+        message: TAF_OVERLAP_ERROR_MESSAGE,
+        severity: 'error',
+      });
+    }
+  }
+
+  errors.push(...validateTafBounds(values));
+  errors.push(...validateTafLoseFeriedage(values));
+  errors.push(...validateBeregningsperiodeLoseFeriedage(values));
+
   // Validér beregnesUdFra matchende felter
   errors.push(...validateBeregnesUdFra(values));
 
@@ -316,6 +342,103 @@ function validateTAF(values: ErstatningsopgoerelseValues): ValidationError[] {
   errors.push(...validateLoenudviklingsKravForAktivKilde(values));
 
   return errors;
+}
+
+export function validateTafBounds(values: ErstatningsopgoerelseValues): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const bounds = resolveTafConstraintBounds(values);
+  const boundsText = [
+    bounds.minStart ? `fra ${bounds.minStart}` : null,
+    bounds.maxEnd ? `til ${bounds.maxEnd}` : null,
+  ].filter((value): value is string => value !== null).join(' og med ');
+  const boundSourceText = resolveTafConstraintBoundSources(values)
+    .map((source) => `${source.label}: ${source.value}`)
+    .join(', ');
+
+  for (let i = 0; i < (values.tafPerioder ?? []).length; i += 1) {
+    const row = values.tafPerioder[i];
+    const validRange = getValidTafRange(row);
+    if (!validRange) continue;
+
+    if (bounds.minStart && validRange.fra < bounds.minStart) {
+      errors.push({
+        path: `tafPerioder[${i}].fra`,
+        message: boundsText !== ''
+          ? `${TAF_BOUNDS_ERROR_MESSAGE_BASE} (${boundsText}${boundSourceText ? `; bounds fra ${boundSourceText}` : ''})`
+          : TAF_BOUNDS_ERROR_MESSAGE_BASE,
+        severity: 'error',
+      });
+    }
+    if (bounds.maxEnd && validRange.til > bounds.maxEnd) {
+      errors.push({
+        path: `tafPerioder[${i}].til`,
+        message: boundsText !== ''
+          ? `${TAF_BOUNDS_ERROR_MESSAGE_BASE} (${boundsText}${boundSourceText ? `; bounds fra ${boundSourceText}` : ''})`
+          : TAF_BOUNDS_ERROR_MESSAGE_BASE,
+        severity: 'error',
+      });
+    }
+  }
+
+  return errors;
+}
+
+export function validateTafLoseFeriedage(values: ErstatningsopgoerelseValues): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const ferieperioder = [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])];
+
+  for (let i = 0; i < (values.tafPerioder ?? []).length; i += 1) {
+    const row = values.tafPerioder[i];
+    if (typeof row.loseFeriedage !== 'number') continue;
+    const validRange = getValidTafRange(row);
+    if (!validRange) continue;
+
+    const breakdown = calculateTafArbejdsdageBreakdown(
+      validRange.fra,
+      validRange.til,
+      ferieperioder,
+      row.loseFeriedage,
+      { kind: 'taf' }
+    );
+    if (!breakdown) continue;
+    if (row.loseFeriedage <= breakdown.loseFeriedage) continue;
+
+    errors.push({
+      path: `tafPerioder[${i}].loseFeriedage`,
+      message: `Løse feriedage overstiger mulige arbejdsdage i perioden (maksimalt ${breakdown.loseFeriedage})`,
+      severity: 'error',
+    });
+  }
+
+  return errors;
+}
+
+export function validateBeregningsperiodeLoseFeriedage(values: ErstatningsopgoerelseValues): ValidationError[] {
+  if (values.beregnesUdFra !== 'Beregningsperiode') return [];
+  if (typeof values.uspecificeredeFerieFridage !== 'number') return [];
+  if (!values.periodeTilBeregningFra || !values.periodeTilBeregningTil) return [];
+
+  const breakdown = calculateTafArbejdsdageBreakdown(
+    values.periodeTilBeregningFra,
+    values.periodeTilBeregningTil,
+    values.fravaerPerioder ?? [],
+    values.uspecificeredeFerieFridage,
+    {
+      kind: 'beregningsgrundlag',
+      oevrigeFravaersdage:
+        values.oevrigtFravaerUdenLoen === 'Ja' && typeof values.oevrigeFravaersdage === 'number'
+          ? values.oevrigeFravaersdage
+          : 0,
+    }
+  );
+  if (!breakdown) return [];
+  if (values.uspecificeredeFerieFridage <= breakdown.loseFeriedage) return [];
+
+  return [{
+    path: 'uspecificeredeFerieFridage',
+    message: `Uspecificerede ferie-/feriefridage overstiger mulige arbejdsdage i beregningsperioden (maksimalt ${breakdown.loseFeriedage})`,
+    severity: 'error',
+  }];
 }
 
 /**
@@ -676,10 +799,13 @@ function validateOevrigeKravRowCompleteness(row: OevrigeKravRow, index: number):
  * Kører alle validerings-lag sekventielt og kombinerer errors.
  * Sektions-valideringer kører uafhængigt, så alle fejl rapporteres samlet.
  */
-export const erstatningsopgoerelseValidator: FormValidator<ErstatningsopgoerelseValues> = {
-  validate(values: ErstatningsopgoerelseValues): ValidationResult {
+type ErstatningsopgoerelseValidator = FormValidator<ErstatningsopgoerelseValues> & Readonly<{
+  validateParsed(values: ErstatningsopgoerelseValues): ValidationResult;
+}>;
+
+export const erstatningsopgoerelseValidator: ErstatningsopgoerelseValidator = {
+  validateParsed(values: ErstatningsopgoerelseValues): ValidationResult {
     const errors: ValidationError[] = [
-      ...validateSchema(values),
       ...validateStandaloneRules(values),
       ...validateForligAnsvarsgrad(values),
       ...validateForligDatoRequiresAnsvarsgrad(values),
@@ -693,7 +819,17 @@ export const erstatningsopgoerelseValidator: FormValidator<Erstatningsopgoerelse
       isValid: errors.filter((e) => e.severity !== 'warning').length === 0,
     };
   },
+  validate(values: ErstatningsopgoerelseValues): ValidationResult {
+    const errors: ValidationError[] = [
+      ...validateSchema(values),
+      ...erstatningsopgoerelseValidator.validateParsed(values).errors,
+    ];
+
+    return {
+      errors,
+      isValid: errors.filter((e) => e.severity !== 'warning').length === 0,
+    };
+  },
 };
 
 export default erstatningsopgoerelseValidator;
-

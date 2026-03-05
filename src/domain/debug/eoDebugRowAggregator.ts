@@ -250,13 +250,16 @@ export const collectAllDebugRows = (
   erstatningsopgoerelseValues: ErstatningsopgoerelseValues,
   erstatningsopgoerelseErrors: ErstatningsopgoerelseFieldErrorsBySource,
   loenindkomstManuelReguleringInputErrors: Readonly<Record<string, true>> = {},
-  appSettings: AppSettings = DEFAULT_APP_SETTINGS
+  appSettings: AppSettings = DEFAULT_APP_SETTINGS,
+  canonicalOutputOverride?: ReturnType<typeof buildEoCanonicalOutput>
 ): BeregningErrorSummary => {
-  let canonicalOutput: ReturnType<typeof buildEoCanonicalOutput> | undefined;
-  try {
-    canonicalOutput = buildEoCanonicalOutput(stamdataValues, erstatningsopgoerelseValues);
-  } catch {
-    canonicalOutput = undefined;
+  let canonicalOutput: ReturnType<typeof buildEoCanonicalOutput> | undefined = canonicalOutputOverride;
+  if (!canonicalOutput) {
+    try {
+      canonicalOutput = buildEoCanonicalOutput(stamdataValues, erstatningsopgoerelseValues);
+    } catch {
+      canonicalOutput = undefined;
+    }
   }
 
   // Opret execution context

@@ -37,7 +37,7 @@ import { STORE_BEDEDAG_PCT } from '../../config/regulatoryRates';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, type LoenudviklingSource } from './angivetLoenHelpers';
 import { buildDatoSetInclusive, buildFerieDageSet, buildShDageSet, isWeekdayUtc, placeLoseFeriedage } from './tafDaySets';
 import { hasIndtastetLoenoplysninger } from './loenoplysningerInput';
-import { clampTafRow, resolveTafConstraintBounds } from './tafPeriodConstraints';
+import { clampTafRow, getValidTafRange, resolveTafConstraintBounds } from './tafPeriodConstraints';
 import { isTafRowEmpty } from './rowEmpty';
 import type { Calculable, IndkomstSkadestidspunktPdfModel, LoenudviklingPdfModel, LoenudviklingSegment, MoneyOre } from './eoPdfModelTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from './eoPdfMoneyUtils';
@@ -92,7 +92,10 @@ const collectTafArbejdsdageForRange = (
   return arbejdsdage;
 };
 
-export const buildTafArbejdsdageSet = (values: ErstatningsopgoerelseValues): Set<ISODateString> => {
+export const buildTafArbejdsdageSet = (
+  values: ErstatningsopgoerelseValues,
+  options: Readonly<{ clamp?: boolean }> = {}
+): Set<ISODateString> => {
   const ferieperioder = values.ferieperioder ?? [];
   const rows = values.tafPerioder ?? [];
   const arbejdsdage = new Set<ISODateString>();
@@ -100,8 +103,10 @@ export const buildTafArbejdsdageSet = (values: ErstatningsopgoerelseValues): Set
 
   for (const row of rows) {
     if (isTafRowEmpty(row)) continue;
-    const clamped = clampTafRow(row, tafBounds);
-    if (!clamped) {
+    const range = options.clamp === false
+      ? getValidTafRange(row)
+      : clampTafRow(row, tafBounds);
+    if (!range) {
       const fra = row.fra;
       const til = row.til;
       if (!fra || !til) {
@@ -112,7 +117,7 @@ export const buildTafArbejdsdageSet = (values: ErstatningsopgoerelseValues): Set
       }
       continue;
     }
-    const { fra, til } = clamped;
+    const { fra, til } = range;
     if (!fra || !til) {
       throw new Error('TAF-periode mangler fra/til'); // invariant: dækket af validator
     }
@@ -379,7 +384,8 @@ const resolveEffectiveBaseEntryV3 = <T extends { startIso: ISODateString }>(
 const resolveReguleringsStrategiV3 = (
   values: ErstatningsopgoerelseValues,
   stamdataValues: StamdataValues,
-  tafBeregningsenhed: TafBeregningsenhed
+  tafBeregningsenhed: TafBeregningsenhed,
+  options: Readonly<{ tafRanges?: readonly IsoRange[] }> = {}
 ): Readonly<{ strategi: LoenudviklingStrategiV3; label: string; konsolideret: KonsolideretLoenudviklingV3 | null }> => {
   // Strategikontrakt:
   // - ingen: ingen ekstra krav
@@ -484,7 +490,7 @@ const resolveReguleringsStrategiV3 = (
     { saerligFraDatoRegulering: active[0].saerligFraDatoRegulering },
     skadesdato
   );
-  const tafRanges = buildTafRanges(values);
+  const tafRanges = options.tafRanges ?? buildTafRanges(values);
   const label =
     strategi === 'statistik'
       ? ((active[0].loenudviklingStatistikModel ?? '').trim() || '-')
@@ -1207,9 +1213,10 @@ export const buildLoenudviklingModelV3 = (
   values: ErstatningsopgoerelseValues,
   stamdataValues: StamdataValues,
   tafBeregningsenhed: TafBeregningsenhed,
-  indkomstSkadestidspunkt: IndkomstSkadestidspunktPdfModel | null
+  indkomstSkadestidspunkt: IndkomstSkadestidspunktPdfModel | null,
+  options: Readonly<{ tafRanges?: readonly IsoRange[]; clampTafRows?: boolean }> = {}
 ): LoenudviklingPdfModel => {
-  const tafRanges = buildTafRanges(values);
+  const tafRanges = options.tafRanges ?? buildTafRanges(values);
   const buildFromStrategiAndBase = (
     strategiData: Readonly<{ strategi: LoenudviklingStrategiV3; label: string; konsolideret: KonsolideretLoenudviklingV3 | null }>,
     baseLoen: number
@@ -1224,7 +1231,9 @@ export const buildLoenudviklingModelV3 = (
 
     const baseLoenRounded = roundKroner(baseLoen);
     const baseLoenOre = toOre(baseLoenRounded);
-    const tafArbejdageSet = tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE ? buildTafArbejdsdageSet(values) : null;
+    const tafArbejdageSet = tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
+      ? buildTafArbejdsdageSet(values, { clamp: options.clampTafRows !== false })
+      : null;
     const loenudviklingLabel = strategiData.label;
 
     const loenreguleringssegmenter: ReadonlyArray<LoenreguleringsSegmentV3> = (() => {
@@ -1301,7 +1310,7 @@ export const buildLoenudviklingModelV3 = (
   };
 
   try {
-    const strategiData = resolveReguleringsStrategiV3(values, stamdataValues, tafBeregningsenhed);
+    const strategiData = resolveReguleringsStrategiV3(values, stamdataValues, tafBeregningsenhed, { tafRanges });
     const maanedsloenBase = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
       ? resolveMaanedsloenBase(values, indkomstSkadestidspunkt)
       : null;
@@ -1355,7 +1364,7 @@ export const buildLoenudviklingModelV3 = (
       ...values,
       loenindkomstAnsaettelsesforhold: [ansaettelsesforhold],
     };
-    const strategiData = resolveReguleringsStrategiV3(valuesForAf, stamdataValues, tafBeregningsenhed);
+    const strategiData = resolveReguleringsStrategiV3(valuesForAf, stamdataValues, tafBeregningsenhed, { tafRanges });
     const modelForAf = buildFromStrategiAndBase(strategiData, baseLoen);
     const ansaettelsesforholdNavn = employer.name !== ''
       ? employer.name

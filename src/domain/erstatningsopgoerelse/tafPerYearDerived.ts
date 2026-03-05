@@ -19,7 +19,15 @@
 
 import type { ISODateString } from '../../types/branded';
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
-import type { PdfModel, MoneyOre, LoenudviklingSegment } from './eoPdfModel';
+import type { TafNettoBeregningResult } from './tafNettoBeregning';
+import type {
+  PdfModel,
+  MoneyOre,
+  LoenudviklingSegment,
+  Calculable,
+  LoenudviklingPdfModel,
+  TafIndtaegterPdfModel,
+} from './eoPdfModel';
 import {
   buildTafArbejdsdageSet,
   countTafArbejdsdageInRange,
@@ -30,7 +38,7 @@ import {
 } from './eoPdfModel';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { buildTafRanges, buildIncomeCalculationContext, buildIncomeForRanges } from './indtaegtPerioder';
-import { TAF_BEREGNES_SOM } from './tafBeregningsenhed';
+import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from './tafBeregningsenhed';
 import { roundByMethod } from '../../utils/rounding';
 import { scaleMoneyOre } from './eoPdfMoneyUtils';
 
@@ -85,6 +93,39 @@ export type TafPerYearResult = Readonly<{
   afrundingOre: MoneyOre;
   samletTafKravOre: MoneyOre;
 }>;
+
+export type TafPerYearSource = Readonly<{
+  loenudvikling: LoenudviklingPdfModel | null;
+  tafIndtaegter: TafIndtaegterPdfModel | null;
+  tidligereModtagetTaf: Calculable<MoneyOre>;
+  tabtArbejdsfortjenesteOre: MoneyOre;
+  tafBeregningsenhed: TafBeregningsenhed;
+  forligFactor: number | null;
+}>;
+
+export type TafPerYearBuildOutcome =
+  | Readonly<{ kind: 'ok'; result: TafPerYearResult }>
+  | Readonly<{ kind: 'not_applicable'; reason: 'missing_loenudvikling' | 'missing_taf_indtaegter' }>
+  | Readonly<{
+    kind: 'error';
+    reason: 'afrunding_over_100';
+    afrundingOre: MoneyOre;
+    sumYearTafOre: MoneyOre;
+    samletTafKravOre: MoneyOre;
+  }>;
+
+export const buildTafPerYearSourceFromComputed = (args: Readonly<{
+  tafNetto: TafNettoBeregningResult;
+  tabtArbejdsfortjenesteOre: MoneyOre;
+  forligFactor: number | null;
+}>): TafPerYearSource => ({
+  loenudvikling: args.tafNetto.loenudvikling,
+  tafIndtaegter: args.tafNetto.tafIndtaegter,
+  tidligereModtagetTaf: args.tafNetto.tidligereModtagetTaf,
+  tabtArbejdsfortjenesteOre: args.tabtArbejdsfortjenesteOre,
+  tafBeregningsenhed: args.tafNetto.tafBeregningsenhed,
+  forligFactor: args.forligFactor,
+});
 
 // ─── Utilities ──────────────────────────────────────────────────────────
 
@@ -243,31 +284,37 @@ const allocateOreByWeight = (
   return result;
 };
 
-export const buildTafPerYearResult = (
-  model: PdfModel,
-  eoValues: ErstatningsopgoerelseValues
-): TafPerYearResult | null => {
-  const taf = model.tabtArbejdsfortjeneste;
-  const loenudvikling = taf.loenudvikling;
-  if (!loenudvikling || loenudvikling.beregnedeSegmenter.length === 0) return null;
-  if (loenudvikling.loenudviklingTotal.status !== 'ok') return null;
+export const buildTafPerYearBuildOutcome = (
+  source: TafPerYearSource,
+  eoValues: ErstatningsopgoerelseValues,
+  options: Readonly<{ tafRanges: readonly { fra: ISODateString; til: ISODateString }[] }>
+): TafPerYearBuildOutcome => {
+  const loenudvikling = source.loenudvikling;
+  if (!loenudvikling || loenudvikling.beregnedeSegmenter.length === 0) {
+    return { kind: 'not_applicable', reason: 'missing_loenudvikling' };
+  }
+  if (loenudvikling.loenudviklingTotal.status !== 'ok') {
+    return { kind: 'not_applicable', reason: 'missing_loenudvikling' };
+  }
 
-  const samletTafKravOre = clampMoneyOreToZero(taf.tabtArbejdsfortjenesteOre);
+  const samletTafKravOre = clampMoneyOreToZero(source.tabtArbejdsfortjenesteOre);
   const loenudviklingTotalOre = loenudvikling.loenudviklingTotal.value;
   const tafIndtaegterTotalOre =
-    taf.tafIndtaegter?.total.status === 'ok'
-      ? taf.tafIndtaegter.total.value
+    source.tafIndtaegter?.total.status === 'ok'
+      ? source.tafIndtaegter.total.value
       : null;
-  if (tafIndtaegterTotalOre === null) return null;
-  const tidligereModtagetTafOre = taf.tidligereModtagetTaf.status === 'ok'
-    ? taf.tidligereModtagetTaf.value
+  if (tafIndtaegterTotalOre === null) {
+    return { kind: 'not_applicable', reason: 'missing_taf_indtaegter' };
+  }
+  const tidligereModtagetTafOre = source.tidligereModtagetTaf.status === 'ok'
+    ? source.tidligereModtagetTaf.value
     : (0 as MoneyOre);
-  const nettoFoerClampOre = (loenudviklingTotalOre - tafIndtaegterTotalOre - tidligereModtagetTafOre) as MoneyOre;
-  if (samletTafKravOre === 0 && nettoFoerClampOre < 0) return null;
 
-  const forligFactor = model.forlig?.factor ?? null;
-  const isArbejdsdage = taf.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE;
-  const tafArbejdsdageSet = isArbejdsdage ? buildTafArbejdsdageSet(eoValues) : null;
+  const forligFactor = source.forligFactor;
+  const isArbejdsdage = source.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE;
+  const tafArbejdsdageSet = isArbejdsdage
+    ? buildTafArbejdsdageSet(eoValues, { clamp: false })
+    : null;
 
   // 1. Split segmenter per kalenderår
   const yearSegmentsMap = new Map<number, TafYearSegment[]>();
@@ -287,7 +334,7 @@ export const buildTafPerYearResult = (
   }
 
   // 2. Byg TAF-ranges og bestem alle relevante årstal
-  const tafRanges = buildTafRanges(eoValues);
+  const tafRanges = options.tafRanges;
   const incomeContext = buildIncomeCalculationContext(eoValues, tafRanges);
 
   // Samler årstal fra segmenter OG TAF-ranges (fradrag kan dække år uden segmenter)
@@ -301,7 +348,9 @@ export const buildTafPerYearResult = (
   }
 
   const sortedYears = [...allYearsSet].sort((a, b) => a - b);
-  if (sortedYears.length === 0) return null;
+  if (sortedYears.length === 0) {
+    return { kind: 'not_applicable', reason: 'missing_loenudvikling' };
+  }
 
   const yearClippedRangesByYear = new Map<number, readonly { fra: ISODateString; til: ISODateString }[]>();
   for (const year of sortedYears) {
@@ -371,7 +420,15 @@ export const buildTafPerYearResult = (
 
   const sumYearTafOre = years.reduce((sum, y) => sum + y.yearTafOre, 0) as MoneyOre;
   const afrundingOre = (samletTafKravOre - sumYearTafOre) as MoneyOre;
-  if (Math.abs(afrundingOre) > MAX_AFRUNDING_AFVIGELSE_ORE) return null;
+  if (Math.abs(afrundingOre) > MAX_AFRUNDING_AFVIGELSE_ORE) {
+    return {
+      kind: 'error',
+      reason: 'afrunding_over_100',
+      afrundingOre,
+      sumYearTafOre,
+      samletTafKravOre,
+    };
+  }
 
   if (import.meta.env.DEV) {
     const check = (sumYearTafOre + afrundingOre) as MoneyOre;
@@ -383,9 +440,31 @@ export const buildTafPerYearResult = (
   }
 
   return {
-    years,
-    sumYearTafOre,
-    afrundingOre,
-    samletTafKravOre,
+    kind: 'ok',
+    result: {
+      years,
+      sumYearTafOre,
+      afrundingOre,
+      samletTafKravOre,
+    },
   };
+};
+
+const pdfModelToSource = (model: PdfModel): TafPerYearSource => ({
+  loenudvikling: model.tabtArbejdsfortjeneste.loenudvikling,
+  tafIndtaegter: model.tabtArbejdsfortjeneste.tafIndtaegter,
+  tidligereModtagetTaf: model.tabtArbejdsfortjeneste.tidligereModtagetTaf,
+  tabtArbejdsfortjenesteOre: model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre,
+  tafBeregningsenhed: model.tabtArbejdsfortjeneste.tafBeregningsenhed,
+  forligFactor: model.forlig?.factor ?? null,
+});
+
+export const buildTafPerYearResult = (
+  model: PdfModel,
+  eoValues: ErstatningsopgoerelseValues
+): TafPerYearResult | null => {
+  const outcome = buildTafPerYearBuildOutcome(pdfModelToSource(model), eoValues, {
+    tafRanges: buildTafRanges(eoValues, { clamp: false }),
+  });
+  return outcome.kind === 'ok' ? outcome.result : null;
 };

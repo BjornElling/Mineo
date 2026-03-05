@@ -1,21 +1,22 @@
 /// <reference types="vitest/globals" />
 /**
  * Wiring-test: verificerer at tafFordeltPaaAarPdf.ts
- * bruger buildTafPerYearResult som sin eneste datakilde
- * og ikke genberegner TAF-krav selvstændigt.
+ * bruger EO-snapshot som eneste entry til model + årsfordeling
+ * og ikke genberegner TAF-krav selvstændigt i PDF-laget.
  */
 
 import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/tafPerYearDerived';
 import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
+import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
 
 // ─── Mocks ──────────────────────────────────────────────────────────────
 
 const {
-  buildTafPerYearResultMock,
-  buildErstatningsopgoerelsePdfModelMock,
+  computeEoSnapshotMock,
+  eoSnapshotToTafPerYearPdfDocumentMock,
 } = vi.hoisted(() => ({
-  buildTafPerYearResultMock: vi.fn(),
-  buildErstatningsopgoerelsePdfModelMock: vi.fn(),
+  computeEoSnapshotMock: vi.fn(),
+  eoSnapshotToTafPerYearPdfDocumentMock: vi.fn(),
 }));
 
 class MockJsPDF {
@@ -48,12 +49,12 @@ class MockJsPDF {
 
 vi.mock('jspdf', () => ({ default: MockJsPDF }));
 
-vi.mock('../../../domain/erstatningsopgoerelse/tafPerYearDerived', () => ({
-  buildTafPerYearResult: buildTafPerYearResultMock,
+vi.mock('../../../domain/erstatningsopgoerelse/eoSnapshot', () => ({
+  computeEoSnapshot: computeEoSnapshotMock,
 }));
 
-vi.mock('../../../domain/erstatningsopgoerelse/eoPdfModel', () => ({
-  buildErstatningsopgoerelsePdfModel: buildErstatningsopgoerelsePdfModelMock,
+vi.mock('../../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument', () => ({
+  eoSnapshotToTafPerYearPdfDocument: eoSnapshotToTafPerYearPdfDocumentMock,
 }));
 
 // ─── Fixtures ───────────────────────────────────────────────────────────
@@ -103,31 +104,71 @@ const FAKE_RESULT: TafPerYearResult = {
   samletTafKravOre: 37500000 as MoneyOre,
 };
 
+const FAKE_SNAPSHOT = {
+  revision: 'rev-1',
+  status: 'ok',
+  invariants: [],
+  data: {
+    engines: {
+      tafPerYear: FAKE_RESULT,
+    },
+  },
+} as unknown as EoSnapshot;
+
+const FAKE_DOCUMENT = {
+  model: FAKE_MODEL,
+  presentation: FAKE_RESULT,
+};
+
 // ─── Tests ──────────────────────────────────────────────────────────────
 
 describe('tafFordeltPaaAarPdf wiring', () => {
   beforeEach(() => {
     MockJsPDF.instances = [];
-    buildErstatningsopgoerelsePdfModelMock.mockReturnValue(FAKE_MODEL);
-    buildTafPerYearResultMock.mockReturnValue(FAKE_RESULT);
+    computeEoSnapshotMock.mockReset();
+    eoSnapshotToTafPerYearPdfDocumentMock.mockReset();
+    computeEoSnapshotMock.mockReturnValue(FAKE_SNAPSHOT);
+    eoSnapshotToTafPerYearPdfDocumentMock.mockReturnValue({
+      kind: 'ok',
+      document: FAKE_DOCUMENT,
+    });
   });
 
-  it('kalder buildTafPerYearResult med model og eoValues', async () => {
+  it('kalder snapshot-entry og TAF-per-år-projektion med inputtet', async () => {
     const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
 
     const stamdata = {} as any;
     const eoValues = {} as any;
     generateTafFordeltPaaAarPdf(stamdata, eoValues);
 
-    expect(buildErstatningsopgoerelsePdfModelMock).toHaveBeenCalledTimes(1);
-    expect(buildErstatningsopgoerelsePdfModelMock).toHaveBeenCalledWith(stamdata, eoValues, expect.objectContaining({ dagsDatoISO: expect.any(String) }));
+    expect(computeEoSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(computeEoSnapshotMock).toHaveBeenCalledWith(expect.objectContaining({
+      stamdataValues: stamdata,
+      eoValues,
+      dagsDatoISO: expect.any(String),
+    }));
 
-    expect(buildTafPerYearResultMock).toHaveBeenCalledTimes(1);
-    expect(buildTafPerYearResultMock).toHaveBeenCalledWith(FAKE_MODEL, eoValues);
+    expect(eoSnapshotToTafPerYearPdfDocumentMock).toHaveBeenCalledTimes(1);
+    expect(eoSnapshotToTafPerYearPdfDocumentMock).toHaveBeenCalledWith(FAKE_SNAPSHOT);
   });
 
-  it('kaster ikke fejl når buildTafPerYearResult returnerer null', async () => {
-    buildTafPerYearResultMock.mockReturnValue(null);
+  it('genbruger givet dokument og genberegner ikke i PDF-generatoren', async () => {
+    const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
+
+    generateTafFordeltPaaAarPdf({} as any, {} as any, { document: FAKE_DOCUMENT });
+
+    expect(computeEoSnapshotMock).not.toHaveBeenCalled();
+    expect(eoSnapshotToTafPerYearPdfDocumentMock).not.toHaveBeenCalled();
+  });
+
+  it('kaster ikke fejl når snapshot-projektionen returnerer null-presentation', async () => {
+    eoSnapshotToTafPerYearPdfDocumentMock.mockReturnValue({
+      kind: 'ok',
+      document: {
+        model: FAKE_MODEL,
+        presentation: null,
+      },
+    });
 
     const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
 
@@ -155,9 +196,15 @@ describe('tafFordeltPaaAarPdf wiring', () => {
   });
 
   it('prepender journalnr i filnavn når journalnr er udfyldt', async () => {
-    buildErstatningsopgoerelsePdfModelMock.mockReturnValue({
-      ...FAKE_MODEL,
-      brevhoved: { journalnr: '1234' },
+    eoSnapshotToTafPerYearPdfDocumentMock.mockReturnValue({
+      kind: 'ok',
+      document: {
+        model: {
+          ...FAKE_MODEL,
+          brevhoved: { journalnr: '1234' },
+        },
+        presentation: FAKE_RESULT,
+      },
     });
     const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
 
@@ -168,14 +215,20 @@ describe('tafFordeltPaaAarPdf wiring', () => {
   });
 
   it('viser negativt beløb for negativt I alt pr. år', async () => {
-    buildTafPerYearResultMock.mockReturnValue({
-      ...FAKE_RESULT,
-      years: [
-        {
-          ...FAKE_RESULT.years[0],
-          yearTafOre: (-5000) as MoneyOre,
+    eoSnapshotToTafPerYearPdfDocumentMock.mockReturnValue({
+      kind: 'ok',
+      document: {
+        model: FAKE_MODEL,
+        presentation: {
+          ...FAKE_RESULT,
+          years: [
+            {
+              ...FAKE_RESULT.years[0],
+              yearTafOre: (-5000) as MoneyOre,
+            },
+          ],
         },
-      ],
+      },
     });
 
     const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
@@ -200,19 +253,24 @@ describe('tafFordeltPaaAarPdf wiring', () => {
   });
 
   it('viser forlig-sektion og forlig-reference i "I alt"-linjen når forlig er indgået', async () => {
-    buildErstatningsopgoerelsePdfModelMock.mockReturnValue({
-      ...FAKE_MODEL,
-      forlig: { erIndgaaet: true, label: '50%', dato: '2024-04-01', factor: 0.5 },
-    });
-    buildTafPerYearResultMock.mockReturnValue({
-      ...FAKE_RESULT,
-      years: [
-        {
-          ...FAKE_RESULT.years[0],
-          yearTafFoerForligOre: 37500000 as MoneyOre,
-          yearTafOre: 18750000 as MoneyOre,
+    eoSnapshotToTafPerYearPdfDocumentMock.mockReturnValue({
+      kind: 'ok',
+      document: {
+        model: {
+          ...FAKE_MODEL,
+          forlig: { erIndgaaet: true, label: '50%', dato: '2024-04-01', factor: 0.5 },
         },
-      ],
+        presentation: {
+          ...FAKE_RESULT,
+          years: [
+            {
+              ...FAKE_RESULT.years[0],
+              yearTafFoerForligOre: 37500000 as MoneyOre,
+              yearTafOre: 18750000 as MoneyOre,
+            },
+          ],
+        },
+      },
     });
 
     const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');

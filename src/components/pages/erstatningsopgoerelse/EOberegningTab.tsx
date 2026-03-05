@@ -13,20 +13,17 @@ import { scrollToSection } from '../../../utils/scrollToSection';
 import { scrollToDebugRow } from '../../../utils/scrollToDebugRow';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
-import { getSammentaellingControlStatus, type SammentaellingDisplayRow } from '../../../domain/debug/eoDebugSammentaelling';
-import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
-import { buildControlMismatchReport, type ControlMismatchReport } from '../../../domain/debug/eoDebugMismatchReport';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import { isoToDanish } from '../../../types/branded';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../../inputs/StyledDropdown';
 import { toReadableSummaryMessage } from '../../../domain/erstatningsopgoerelse/readableSummaryMessage';
 import type { StamdataValues } from '../../../schemas/formSchemas';
 import {
-  canDownloadEoPdf,
   downloadErstatningsopgoerelsePdf,
   downloadTafFordeltPaaAarPdf,
 } from '../../../utils/pdf/pdfService';
+import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
+import { eoSnapshotToBeregningView } from '../../../domain/erstatningsopgoerelse/eoSnapshotToBeregningView';
 
 type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
 
@@ -34,28 +31,21 @@ interface EOberegningTabProps {
   activeTab: TabKey;
   setActiveTab: (tab: TabKey) => void;
   isActive: boolean;
-  debugSnapshot: EODebugSnapshot | null;
-  currentDebugRevision: string;
+  eoSnapshot?: EoSnapshot | null;
   stamdataValues: StamdataValues | null;
   eoValues: ErstatningsopgoerelseValues;
   setEOValues: React.Dispatch<React.SetStateAction<ErstatningsopgoerelseValues>>;
 }
 
 /**
- * Beregning-fanen - Viser fejl/warnings fra EODebug + download-funktionalitet
+ * Beregning-fanen viser debug-fejl/advarsler og snapshot-baseret downloadstatus.
  *
- * Denne komponent er en "dumb" visningsside der:
- * - Genbruger al EODebug-funktionalitet via eoDebugRowAggregator
- * - Viser fejl og warnings i separate ContentBox'e
- * - Tilbyder navigation til fejlkilder med scroll-to-sektion
- * - Forbereder download-funktionalitet (inaktiv i denne version)
- *
- * Designprincipper (normative):
- * - Fejl/advarsler i contentboxe må kun komme fra EODebug-rows (ingen generiske runtime-fejl).
- * - Download af PDF blokeres altid ved fejl, men aldrig ved advarsler.
+ * Debug-rækker er et separat forklaringslag til brugernavigation.
+ * Download-gating er autoritativt snapshot-baseret og må ikke afhænge af
+ * separate debug-aggregator-fejl.
  */
 const EOberegningTab = React.memo<EOberegningTabProps>((
-  { activeTab, setActiveTab, isActive, debugSnapshot, currentDebugRevision, stamdataValues, eoValues, setEOValues }
+  { activeTab, setActiveTab, isActive, eoSnapshot = null, stamdataValues, eoValues, setEOValues }
 ) => {
   // ============================================================================
   // DATA FRA COMMITTED STATE + PERSISTENCE FACADE
@@ -67,88 +57,17 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   const eoErrors = useFieldErrorsBySourceForSection('erstatningsopgoerelse');
   const manuelReguleringInputErrors = useEOLoenindkomstInputErrors();
 
-  const [controlMismatchState, setControlMismatchState] = React.useState<{
+  const [downloadErrorState, setDownloadErrorState] = React.useState<{
     open: boolean;
-    rows: SammentaellingDisplayRow[];
-    report: ControlMismatchReport | null;
-    reportError: Error | null;
+    title: string;
+    message: string;
+    error: Error | null;
   }>({
     open: false,
-    rows: [],
-    report: null,
-    reportError: null,
+    title: '',
+    message: '',
+    error: null,
   });
-  const hasRunControlCheckRef = React.useRef(false);
-  const debugSnapshotRef = React.useRef<EODebugSnapshot | null>(null);
-  debugSnapshotRef.current = debugSnapshot;
-
-  const buildControlMismatchError = React.useCallback((report: ControlMismatchReport): Error => {
-    const lines = report.mismatches.map((row) => {
-      return `${row.label}: beregnet=${row.beregnet}, tabel=${row.tabel}`;
-    });
-    return new Error(['Sammentælling kontroluoverensstemmelser', ...lines].join('\n'));
-  }, []);
-
-  const controlMismatchReportExtras = React.useCallback(() => {
-    if (!controlMismatchState.report) return [];
-    return [
-      { title: 'Kontroluoverensstemmelse (snapshot)', data: controlMismatchState.report },
-    ];
-  }, [controlMismatchState.report]);
-
-  const runControlCheckOnceOnTabEntryRef = React.useRef<() => void>(() => {});
-  runControlCheckOnceOnTabEntryRef.current = () => {
-    const snapshot = debugSnapshotRef.current;
-    if (!snapshot) return;
-    if (snapshot.revision !== currentDebugRevision) return;
-    if (!snapshot.hasControlErrors) {
-      setControlMismatchState({
-        open: false,
-        rows: [],
-        report: null,
-        reportError: null,
-      });
-      return;
-    }
-
-    const mismatches = snapshot.sammentaellingRows.filter(
-      (row) => getSammentaellingControlStatus(row.control) === 'error'
-    );
-
-    if (mismatches.length === 0) {
-      setControlMismatchState({
-        open: false,
-        rows: [],
-        report: null,
-        reportError: null,
-      });
-      return;
-    }
-
-    const report = buildControlMismatchReport(snapshot, mismatches);
-    setControlMismatchState({
-      open: true,
-      rows: mismatches,
-      report,
-      reportError: buildControlMismatchError(report),
-    });
-  };
-
-  React.useEffect(() => {
-    if (!isActive) {
-      // Navigation-guard: reset when leaving tab so entry is explicit.
-      hasRunControlCheckRef.current = false;
-      setControlMismatchState((prev) => ({ ...prev, open: false }));
-      return;
-    }
-    if (hasRunControlCheckRef.current) return;
-    const snapshot = debugSnapshotRef.current;
-    if (!snapshot) return;
-    if (snapshot.revision !== currentDebugRevision) return;
-    runControlCheckOnceOnTabEntryRef.current();
-    hasRunControlCheckRef.current = true;
-  }, [isActive, currentDebugRevision, debugSnapshot]);
-
   // ============================================================================
   // SAMLE ALLE DEBUG-ROWS MED NAVIGATION
   // ============================================================================
@@ -168,9 +87,67 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       eoValues,
       eoErrors,
       manuelReguleringInputErrors,
-      settings
+      settings,
+      eoSnapshot?.data?.canonicalOutput
     );
-  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, settings]);
+  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, settings, eoSnapshot]);
+
+  const beregningView = React.useMemo(
+    () => (eoSnapshot ? eoSnapshotToBeregningView(eoSnapshot) : null),
+    [eoSnapshot]
+  );
+  const authoritativeBlockingInvariants = beregningView?.authoritativeBlockingInvariants ?? [];
+  const eoPdfBlockingInvariants = beregningView?.eoPdfBlockingInvariants ?? [];
+  const tafPdfBlockingInvariants = beregningView?.tafPerYearPdfBlockingInvariants ?? [];
+
+  const snapshotSystemError = React.useMemo(() => {
+    if (eoSnapshot?.status !== 'fail_closed') return null;
+    const message = eoSnapshot.invariants[0]?.message ?? 'Der opstod en intern fejl i EO-snapshot.';
+    return new Error(message);
+  }, [eoSnapshot]);
+
+  const canDownloadSnapshotEoPdf = Boolean(
+    stamdataValues &&
+    eoSnapshot &&
+    eoSnapshot.status !== 'fail_closed' &&
+    authoritativeBlockingInvariants.length === 0 &&
+    eoPdfBlockingInvariants.length === 0
+  );
+  const canDownloadSnapshotTafPdf = Boolean(
+    stamdataValues &&
+    eoSnapshot &&
+    eoSnapshot.status !== 'fail_closed' &&
+    authoritativeBlockingInvariants.length === 0 &&
+    tafPdfBlockingInvariants.length === 0
+  );
+
+  const eoPdfDisabledReason = React.useMemo(() => {
+    if (!stamdataValues || !eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
+    if (eoSnapshot.status === 'fail_closed') {
+      return eoSnapshot.invariants[0]?.message ?? 'EO-PDF kan ikke genereres for den aktuelle sag.';
+    }
+    if (authoritativeBlockingInvariants.length > 0) {
+      return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller.';
+    }
+    if (eoPdfBlockingInvariants.length > 0) {
+      return eoPdfBlockingInvariants[0]?.message ?? 'EO-PDF er blokeret af snapshot-kontroller.';
+    }
+    return null;
+  }, [authoritativeBlockingInvariants, eoPdfBlockingInvariants, eoSnapshot, stamdataValues]);
+
+  const tafPdfDisabledReason = React.useMemo(() => {
+    if (!stamdataValues || !eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
+    if (eoSnapshot.status === 'fail_closed') {
+      return eoSnapshot.invariants[0]?.message ?? 'TAF fordelt på år kan ikke genereres for den aktuelle sag.';
+    }
+    if (authoritativeBlockingInvariants.length > 0) {
+      return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller.';
+    }
+    if (tafPdfBlockingInvariants.length > 0) {
+      return tafPdfBlockingInvariants[0]?.message ?? 'TAF fordelt på år er blokeret af snapshot-kontroller.';
+    }
+    return null;
+  }, [authoritativeBlockingInvariants, eoSnapshot, stamdataValues, tafPdfBlockingInvariants]);
 
   // ============================================================================
   // NAVIGATION-HÅNDTERING
@@ -324,7 +301,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       return tafPeriodeFejl;
     }
 
-    const ranges = buildTafRanges(eoValues);
+    const ranges = eoSnapshot?.data?.canonicalOutput.periodiseringer.tafPerioder ?? [];
     return ranges
       .map((range) => {
         const fra = isoToDanish(range.fra);
@@ -332,7 +309,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         return fra && til ? `${fra} - ${til}` : '';
       })
       .filter((value) => value !== '');
-  }, [beregnesTabtArbejdsfortjeneste, eoValues, relevantRows]);
+  }, [beregnesTabtArbejdsfortjeneste, eoSnapshot, eoValues, relevantRows]);
   const harTafPerioder =
     beregnesTabtArbejdsfortjeneste &&
     (eoValues.tafPerioder ?? []).some((row) => row.fra || row.til || typeof row.loseFeriedage === 'number') &&
@@ -359,31 +336,49 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   // ============================================================================
 
   const handleDownloadPdf = React.useCallback(async () => {
-    if (!canDownloadEoPdf({ hasBlockingErrors: errors.length > 0, stamdataValues, eoValues })) {
+    if (!canDownloadSnapshotEoPdf) {
       return;
     }
-    if (!stamdataValues) return;
+    if (!stamdataValues || !eoSnapshot) return;
 
-    await downloadErstatningsopgoerelsePdf({
+    const result = await downloadErstatningsopgoerelsePdf({
       stamdataValues,
       eoValues,
       selectedElements,
       settings,
+      snapshot: eoSnapshot,
     });
-  }, [errors.length, stamdataValues, eoValues, selectedElements, settings]);
+    if (!result.success) {
+      setDownloadErrorState({
+        open: true,
+        title: 'Download mislykkedes',
+        message: result.error,
+        error: new Error(result.error),
+      });
+    }
+  }, [canDownloadSnapshotEoPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings]);
 
   const handleDownloadTafFordeltPdf = React.useCallback(async () => {
-    if (!canDownloadEoPdf({ hasBlockingErrors: errors.length > 0, stamdataValues, eoValues })) {
+    if (!canDownloadSnapshotTafPdf) {
       return;
     }
-    if (!stamdataValues) return;
+    if (!stamdataValues || !eoSnapshot) return;
 
-    await downloadTafFordeltPaaAarPdf({
+    const result = await downloadTafFordeltPaaAarPdf({
       stamdataValues,
       eoValues,
       settings,
+      snapshot: eoSnapshot,
     });
-  }, [errors.length, stamdataValues, eoValues, settings]);
+    if (!result.success) {
+      setDownloadErrorState({
+        open: true,
+        title: 'Download mislykkedes',
+        message: result.error,
+        error: new Error(result.error),
+      });
+    }
+  }, [canDownloadSnapshotTafPdf, eoSnapshot, stamdataValues, eoValues, settings]);
 
   const getCustomSummaryText = React.useCallback((
     row: (typeof errors)[number],
@@ -486,6 +481,68 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 
   return (
     <Box>
+      {eoSnapshot?.status === 'fail_closed' && (
+        <ContentBox>
+          <Typography className="section-header">Systemfejl</Typography>
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">
+              {eoSnapshot.invariants[0]?.message ?? 'Der opstod en intern fejl i EO-snapshot.'}
+            </Typography>
+            <Box className="row--label-right-hover__content">
+              {snapshotSystemError ? (
+                <BugReportButton
+                  variant="outlined"
+                  label="Send fejloplysninger"
+                  context={{
+                    source: 'Beregning-fane: EO snapshot fail-closed',
+                    error: snapshotSystemError,
+                  }}
+                />
+              ) : null}
+            </Box>
+          </Box>
+        </ContentBox>
+      )}
+
+      {(eoPdfBlockingInvariants.length > 0 || tafPdfBlockingInvariants.length > 0) && (
+        <ContentBox>
+          <Typography className="section-header">Download-kontroller</Typography>
+          {eoPdfBlockingInvariants.map((invariant) => (
+            <Box key={`eo-${invariant.id}`} className="row--label-right-hover" sx={{ '--label-width': '400px' }}>
+              <Typography className="row--text">Erstatningsopgørelse-PDF</Typography>
+              <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
+                <Typography className="row--text">{invariant.message}</Typography>
+                <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
+              </Box>
+            </Box>
+          ))}
+          {tafPdfBlockingInvariants.map((invariant) => (
+            <Box key={`taf-${invariant.id}`} className="row--label-right-hover" sx={{ '--label-width': '400px' }}>
+              <Typography className="row--text">TAF fordelt på år</Typography>
+              <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
+                <Typography className="row--text">{invariant.message}</Typography>
+                <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
+              </Box>
+            </Box>
+          ))}
+        </ContentBox>
+      )}
+
+      {eoSnapshot?.status !== 'fail_closed' && authoritativeBlockingInvariants.length > 0 && (
+        <ContentBox>
+          <Typography className="section-header">Beregning blokeret</Typography>
+          {authoritativeBlockingInvariants.map((invariant) => (
+            <Box key={invariant.id} className="row--label-right-hover" sx={{ '--label-width': '400px' }}>
+              <Typography className="row--text">Autoritativ EO-beregning</Typography>
+              <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
+                <Typography className="row--text">{invariant.message}</Typography>
+                <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
+              </Box>
+            </Box>
+          ))}
+        </ContentBox>
+      )}
+
       {/* ========================================================================
           CONTENTBOX 1: FEJL
           ======================================================================== */}
@@ -564,7 +621,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         <Box className="row--label-right-hover">
           <Typography className="row--text">Hent opgørelse</Typography>
           <Box className="row--label-right-hover__content">
-            {errors.length === 0 && (
+            {canDownloadSnapshotEoPdf && (
               <Box
                 onClick={handleDownloadPdf}
                 tabIndex={-1}
@@ -593,9 +650,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                 />
               </Box>
             )}
-            {errors.length > 0 && (
+            {!canDownloadSnapshotEoPdf && (
               <Tooltip
-                title="Download ikke mulig, så længe der er fejl ovenfor"
+                title={eoPdfDisabledReason ?? 'EO-PDF kan ikke genereres for den aktuelle sag.'}
                 arrow
                 placement="top"
               >
@@ -734,7 +791,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         <Box className="row--label-right-hover">
           <Typography className="row--text">TAF-krav fordelt på kalenderår</Typography>
           <Box className="row--label-right-hover__content">
-            {errors.length === 0 && (
+            {canDownloadSnapshotTafPdf && (
               <Box
                 onClick={handleDownloadTafFordeltPdf}
                 tabIndex={-1}
@@ -763,9 +820,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                 />
               </Box>
             )}
-            {errors.length > 0 && (
+            {!canDownloadSnapshotTafPdf && (
               <Tooltip
-                title="Download ikke mulig, så længe der er fejl ovenfor"
+                title={tafPdfDisabledReason ?? 'TAF fordelt på år kan ikke genereres for den aktuelle sag.'}
                 arrow
                 placement="top"
               >
@@ -795,44 +852,23 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       </ContentBox>
 
       <ConfirmationDialog
-        open={controlMismatchState.open}
-        title="Uoverensstemmelse i kontrolberegning"
-        message={
-          <Box>
-            <Typography variant="body2" sx={{ marginBottom: 1 }}>
-              Der er konstateret en uoverensstemmelse mellem de beregnede værdier og en bagvedliggende
-              kontrolberegning. Det er en sikkerhedsforanstaltning, der ikke nødvendigvis betyder, at
-              beregningen er forkert - men kontroller den grundigt.
-            </Typography>
-            <Typography variant="body2" sx={{ marginBottom: 0.5 }}>
-              Uoverensstemmelser:
-            </Typography>
-            <Box component="ul" sx={{ margin: 0, paddingLeft: 2 }}>
-              {controlMismatchState.rows.map((row) => (
-                <li key={row.key}>
-                  <Typography variant="body2">
-                    {row.label}: Beregnet {row.control.beregnetDisplay} · Tabel {row.control.tabelDisplay}
-                  </Typography>
-                </li>
-              ))}
-            </Box>
-          </Box>
-        }
+        open={downloadErrorState.open}
+        title={downloadErrorState.title}
+        message={downloadErrorState.message}
         cancelText="Luk"
         confirmText="OK"
         confirmColor="primary"
-        onCancel={() => setControlMismatchState((prev) => ({ ...prev, open: false }))}
-        onConfirm={() => setControlMismatchState((prev) => ({ ...prev, open: false }))}
+        onCancel={() => setDownloadErrorState((prev) => ({ ...prev, open: false }))}
+        onConfirm={() => setDownloadErrorState((prev) => ({ ...prev, open: false }))}
         extraActions={
-          controlMismatchState.reportError ? (
+          downloadErrorState.error ? (
             <BugReportButton
               variant="outlined"
               label="Send fejloplysninger"
               context={{
-                source: 'Beregning-fane: Kontroluoverensstemmelse i sammentælling',
-                error: controlMismatchState.reportError,
+                source: 'Beregning-fane: EO download fejlede',
+                error: downloadErrorState.error,
               }}
-              getExtraSections={controlMismatchReportExtras}
             />
           ) : null
         }

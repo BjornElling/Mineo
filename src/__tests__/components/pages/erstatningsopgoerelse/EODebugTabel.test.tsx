@@ -1,44 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
-import type { EODebugModel } from '../../../../domain/debug/eoDebugModel';
-import { buildEODebugModel } from '../../../../domain/debug/eoDebugModel';
-import type { SammentaellingModel } from '../../../../domain/debug/eoDebugSammentaelling';
-import { buildEODebugSammentaellingModel } from '../../../../domain/debug/eoDebugSammentaelling';
-import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import EODebugTabel from '../../../../components/pages/erstatningsopgoerelse/EODebugTabel';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
-
-const mockBuildEODebugModel = vi.mocked(buildEODebugModel);
-const mockBuildEODebugSammentaellingModel = vi.mocked(buildEODebugSammentaellingModel);
-
-vi.mock('../../../../contexts/useFormPersistence', () => {
-  return {
-    useFormPersistence: () => ({
-      getPersistedData: () => null,
-    }),
-  };
-});
-
-vi.mock('../../../../hooks/useFormFieldErrors', () => {
-  return {
-    useFormFieldErrorsBySource: () => ({}),
-  };
-});
-
-vi.mock('../../../../domain/debug/eoDebugModel', () => ({
-  buildEODebugModel: vi.fn(),
-}));
-
-vi.mock('../../../../domain/debug/eoDebugSammentaelling', async () => {
-  const actual = await vi.importActual<typeof import('../../../../domain/debug/eoDebugSammentaelling')>(
-    '../../../../domain/debug/eoDebugSammentaelling'
-  );
-  return {
-    ...actual,
-    buildEODebugSammentaellingModel: vi.fn(),
-  };
-});
+import type { EODebugModel } from '../../../../domain/debug/eoDebugModel';
+import type { EODebugSnapshot } from '../../../../domain/debug/eoDebugSnapshot';
+import type { SammentaellingDisplayTables, SammentaellingModel } from '../../../../domain/debug/eoDebugSammentaelling';
+import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
+import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 
 const makeModel = (patch: Partial<EODebugModel>): EODebugModel => {
   const base: EODebugModel = {
@@ -58,9 +28,13 @@ const makeModel = (patch: Partial<EODebugModel>): EODebugModel => {
     integrityIssues: [],
     tableData: {
       dates: [],
+      weekdayIndexByRow: [],
+      isSognehelligdagByIndex: [],
       isWorkdayByIndex: [],
       ssStatusByIndex: [],
+      svieSmerteByIndex: [],
       tafColumnIds: [],
+      tafFlagsByIndex: [],
     },
     columnRawValues: new Map(),
   };
@@ -90,31 +64,57 @@ const makeSammentaelling = (patch: Partial<SammentaellingModel>): Sammentaelling
   return { ...base, ...patch };
 };
 
+const makeSnapshot = (model: EODebugModel, revision = 'rev-1'): EODebugSnapshot => {
+  const emptyTables: SammentaellingDisplayTables = {
+    basis: [],
+    beregningsperiode: [],
+    taf: [],
+  };
+
+  return {
+    revision,
+    createdAt: '2026-03-05T00:00:00.000Z',
+    model,
+    sammentaelling: makeSammentaelling({}),
+    sammentaellingTables: emptyTables,
+    sammentaellingRows: [],
+    hasControlErrors: false,
+    stamdataValues: STAMDATA_INITIAL_VALUES,
+    eoValues: createErstatningsopgoerelseInitialValues(),
+    fieldErrors: {
+      stamdata: {},
+      erstatningsopgoerelse: {},
+    },
+  };
+};
+
+const renderComponent = (props: React.ComponentProps<typeof EODebugTabel>) => {
+  render(
+    <MemoryRouter>
+      <AppSettingsProvider>
+        <EODebugTabel {...props} />
+      </AppSettingsProvider>
+    </MemoryRouter>,
+  );
+};
+
 describe('EODebugTabel', () => {
-  it('renders debug tabel headings', () => {
-    mockBuildEODebugModel.mockReturnValue(makeModel({}));
-    mockBuildEODebugSammentaellingModel.mockReturnValue(makeSammentaelling({}));
-    render(
-      <MemoryRouter>
-        <AppSettingsProvider>
-          <EODebugTabel />
-        </AppSettingsProvider>
-      </MemoryRouter>,
-    );
+  it('viser info når der ikke findes et aktuelt snapshot', () => {
+    renderComponent({});
+
     expect(screen.getByText('Debug tabel')).toBeInTheDocument();
-    expect(screen.getByText('Sammentælling')).toBeInTheDocument();
+    expect(screen.getByText('Debug-tabellen er ikke opdateret endnu')).toBeInTheDocument();
   });
 
-  it('shows the missing-data alert when no rows can be built', async () => {
-    mockBuildEODebugModel.mockReturnValue(makeModel({ rowCount: 0 }));
-    mockBuildEODebugSammentaellingModel.mockReturnValue(makeSammentaelling({}));
-    render(
-      <MemoryRouter>
-        <AppSettingsProvider>
-          <EODebugTabel />
-        </AppSettingsProvider>
-      </MemoryRouter>,
-    );
-    expect(await screen.findByText('Kan ikke oprette debug-tabel')).toBeInTheDocument();
+  it('viser den normale tom-tabel advarsel når snapshot findes men ikke kan bygge rækker', () => {
+    const snapshot = makeSnapshot(makeModel({ rowCount: 0, tableFra: '2026-01-01', tableTil: '2026-01-31' }));
+
+    renderComponent({
+      debugSnapshot: snapshot,
+      currentDebugRevision: snapshot.revision,
+    });
+
+    expect(screen.getByText('Sammentælling')).toBeInTheDocument();
+    expect(screen.getByText('Kan ikke oprette debug-tabel')).toBeInTheDocument();
   });
 });
