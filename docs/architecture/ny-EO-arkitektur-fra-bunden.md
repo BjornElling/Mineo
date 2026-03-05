@@ -389,3 +389,64 @@ Done:
 ## 15. Samlet konklusion
 
 Dette dokument er nu en implementeringsplan, ikke kun en arkitekturbeskrivelse. Den centrale beslutning er at gøre `computeEoSnapshot` til eneste beregnings-exit og migrere alle forbrugere (Beregning, Debug, PDF) over på snapshot-projektioner via parallelkørsel og parity-tests. Dermed bevares output for brugeren, mens arkitekturen bliver deterministisk, auditerbar og vedligeholdbar.
+
+## 16. Opsamling fra EO-principaudit (tråd 2026-03-05)
+
+Formål med denne opsamling:
+- Bevare alle afklarede beregningsprincipper som bindende input til ny EO-arkitektur.
+- Samle konstaterede afvigelser i nuværende løsning, så migrationen kan være fail-closed.
+- Fastholde åbne spørgsmål og udestående undersøgelser, så arbejdet kan genoptages direkte.
+
+### 16.1 Bindende principbeslutninger afklaret i tråden
+
+- Autoritativ slutvisning er `Erstatningsopgørelse-PDF`. `EODebug` og `EODebugTabel` er mellemregning/forklaring.
+- Eventuelle afvigelser mellem nuværende modeller er ikke tilsigtede; afvigelser skal synliggøres og afklares eksplicit.
+- Der må ikke findes fallback-beløb i EO. Manglende beregningsmulighed er alvorlig systemfejl.
+- `0` må kun vises for gennemført beregning med faktisk resultat `0`.
+- Tom indtastning i `tidligereModtagetTaf` er tilladt og tolkes som `0 kr`.
+- Bruger skal kunne efterberegne viste mellemregninger; skjult højere præcision må kun bruges i særtilfælde, individuelt besluttet og dokumenteret.
+- Overlappende TAF-perioder skal give fejl (må ikke accepteres uden fejlfeedback).
+- Brugeren må ikke præsenteres for beregninger, der ikke findes/ikke kunne udføres.
+- Kontroluoverensstemmelser er alvorlig systemfejl og må ikke nå brugerflow som normaltilstand.
+- TAF per år må være negativ pr. årslinje, men samlet TAF-krav må aldrig være under `0`.
+- Hvis TAF per år-afstemning kræver afrunding over `100 øre`, er det systemfejl.
+- I case hvor bevidst undergrænsemekanisme clampler til `0`, er resultatet en gyldigt beregnet `0`.
+- Ved runtimefejl skal eksisterende fejlvisning med indbygget fejloplysninger/rapportering bruges.
+- For de afklarede visningscases er "Visning B" valgt (tooltip-baseret fejlfeedback), forudsat individuel beslutning og dokumentation pr. undtagelse.
+
+### 16.2 Konstaterede afvigelser/risici i nuværende løsning
+
+- Canonical-output-fejl kan blive slugt i debug-aggregator, hvorefter fallback-beregning kan vises som `ok`.
+- Sammentælling behandler `0` og `null` ens i visse status-/displaygrene.
+- Kontroluoverensstemmelser vises i dialogflow, men er ikke hårdt koblet til download-blockering som systemfejlsgate.
+- TAF per år returnerer `null` i scenarier, hvor trådbeslutninger nu kræver henholdsvis:
+  - gyldig beregnet `0` (negativ netto før clamp),
+  - egentlig systemfejl (`|afrunding| > 100 øre`).
+- `TAF fordelt på år`-PDF kan vise "kan ikke beregnes" i stedet for fail-closed systemfejl.
+- Tabelinputs kan committe out-of-range værdier med fejlmarkering, men stadig sende værdier videre i beregningsflow.
+- TAF-overlap håndteres delvist som UI-fejl, men kerneflow merger perioder for beregning.
+- `erstatningsopgoerelseValidator` ser ikke ud til at være aktiv runtime-gate i produktion (kun test-imports fundet).
+
+### 16.3 Åbne principspørgsmål (skal afklares før implementering)
+
+- Skal out-of-range `loseFeriedage` være hård beregningsblokering (ingen totals/PDF), eller må systemet fortsætte med intern justering?
+- Skal TAF-perioder uden for tilladte grænser (differencekrav/endelig EET) blokere hele EO-beregningen, eller må de clamples/ignoreres med tooltip-fejl?
+- Ved kontroluoverensstemmelse: skal alle downloads hard-blokeres som systemfejl med rapportering?
+- For TAF-fordeling per år ved afrundingsafvigelse over `100 øre`: skal download afvises helt (ingen PDF genereres)?
+
+### 16.4 Udestående undersøgelser (teknisk) før endelig løsningsdesign
+
+- Kortlægge præcist hvor table-input-fejl bliver (og ikke bliver) løftet til samlet EO-fejlmodel/gating.
+- Kortlægge alle download-entrypoints for EO og sikre, at `PdfDownloadResult.success=false` ikke kan blive tavst for bruger.
+- Kortlægge alle steder hvor `0` og `null` normaliseres/konflateres i EO debug/sammentælling/PDF.
+- Verificere overlap-regelhåndhævelse på tværs af:
+  - UI-commit,
+  - runtime-beregning,
+  - PDF-projektion,
+  - load/preflight af `.eo` data.
+
+### 16.5 Resume-startpunkt til næste session
+
+- Start med at lukke de åbne principspørgsmål i 16.3.
+- Derefter omsættes 16.2 + 16.4 til en konkret "fail-closed migrationscheckliste" under Stadie 0/1.
+- Før første refaktor-commit etableres tests, der låser de afklarede principper (især `0` vs `null`, control mismatch-gating, TAF-per-år-afstemning).
