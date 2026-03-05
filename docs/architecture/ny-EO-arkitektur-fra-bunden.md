@@ -152,7 +152,7 @@ type EoSnapshotFailClosed = Readonly<{
     message: string;
     evidence?: ReadonlyArray<string>;
   }>;
-  failClosedReason: 'schema_guard' | 'critical_invariant' | 'unexpected_state';
+  failClosedReason: 'schema_guard' | 'critical_invariant' | 'runtime_exception';
 }>;
 
 type EoSnapshot = EoSnapshotComputed | EoSnapshotFailClosed;
@@ -167,12 +167,19 @@ type EoSnapshot = EoSnapshotComputed | EoSnapshotFailClosed;
 ## 5.3 Regel for `snapshot.status`
 
 Status sættes deterministisk sådan:
-- `fail_closed`: schema-guard fejler, eller mindst én invariant med `severity='error'` og `passed=false`, hvor beregning ikke kan fortsætte sikkert.
-- `error`: preflight-fejl (manglende nødvendige inputs) uden intern inkonsistens.
+- `fail_closed`: schema-guard fejler, intern runtime-fejl opstår i snapshot-build, eller mindst én invariant med `severity='error'` og `passed=false`, hvor den autoritative EO-beregning ikke kan fortsætte sikkert.
+- `error`: preflight-fejl (manglende nødvendige inputs) eller output-specifikke fejl, som ikke gør den autoritative EO-beregning intern inkonsistent, men som blokerer den relevante projektion/download.
 - `warning`: ingen errors/fail_closed, men mindst én warning-invariant med `passed=false`.
 - `ok`: ingen brudte invariants og ingen preflight-fejl.
 
 Projektioner pattern-matcher altid først på `status`. Ved `fail_closed` renderes fejl-/tomvisning uden antagelse om `engines`/`totals`.
+
+## 5.4 Projektion-adfærd pr. status
+
+- `fail_closed`: visning går til fejl-/runtime-fejlflow. Totals og mellemregninger må ikke vises som gyldige. Eksisterende fejlvisning med fejloplysninger/rapportering anvendes ved runtimefejl.
+- `error`: visning viser eksplicit liste over brudte preflight-/invariant-checks. EO-totaler må kun eksponeres, hvis fejlen er output-specifik og ikke underminerer den autoritative EO-beregning. Berørte downloads blokeres.
+- `warning`: totals og mellemregninger må vises, men med tydelig warning-/fejlmarkering.
+- `ok`: normal visning.
 
 ## 6. Beregningsrækkefølge og afhængigheder
 
@@ -195,6 +202,9 @@ Kald i denne rækkefølge:
 7. Byg TAF-per-år grundlag og kør `buildTafPerYearResult`.
 8. Kør invariant-registry (afhænger af engines + totals + tafPerYear).
 9. Sæt samlet snapshot-status via regler i §5.3 og returnér `EoSnapshotComputed`.
+
+Præcisering:
+- Kontekstuelle checks, der afhænger af beregnede arbejdsdage i perioden (fx ferie/fridags-overbooking ift. mulige arbejdsdage), hører til i invariant-registryet efter engine-kald og er ikke preflight-checks.
 
 ## 6.2 Beslutning om aggregation-engine
 
@@ -223,6 +233,7 @@ Kald i denne rækkefølge:
 
 - Hvis `snapshot.revision !== currentCommittedRevision`, bygges nyt snapshot før normal visning i fanen.
 - Eventuel stale-indikator er et UX-signal, ikke en separat blokering af interaktion.
+- Stale state er ikke en kontroluoverensstemmelse. Kontroluoverensstemmelse i blokkeringsforstand må kun konstateres på et friskt snapshot, hvor `snapshot.revision === currentCommittedRevision`.
 
 ## 8. Debug-model (to typer rows)
 
@@ -253,7 +264,9 @@ Konsekvens:
 ## 9.3 Invariant for TAF per år
 
 - Afstemning (max 1 kr afvigelse) er en invariant i snapshot-registry.
-- Brud giver `error`/`fail_closed` i snapshot og blokerer TAF-per-år visning/download.
+- Brud over `100 øre` er en `error`-severity invariant, der blokerer TAF-per-år visning/download.
+- Brud over `100 øre` gør ikke i sig selv EO-totalen ugyldig og må derfor ikke alene eskalere hele snapshot til `fail_closed`.
+- EO-PDF og Beregning-tab kan fortsat vises fra samme snapshot, hvis den autoritative EO-beregning ellers er intern konsistent.
 
 ## 10. Migreringsstrategi (parallelkørsel)
 
@@ -268,12 +281,13 @@ Princip pr. stadie:
 
 ## Stadie 0: Baseline-tests (obligatorisk før kodeflyt)
 
-Reference-cases (mindst 5):
+Reference-cases (mindst 6):
 1. Simpel sag uden TAF.
 2. TAF-sag inden for ét kalenderår.
 3. TAF over flere år med afstemningslinje.
 4. Sag med flere øvrige krav-typer.
 5. Sag med forligsgrad.
+6. TAF over flere år med forligsgrad, så per-år-afrunding og samlet afstemning testes sammen.
 
 Testformat:
 - Input fixture: `StamdataValues + ErstatningsopgoerelseValues`.
@@ -413,6 +427,12 @@ Formål med denne opsamling:
 - I case hvor bevidst undergrænsemekanisme clampler til `0`, er resultatet en gyldigt beregnet `0`.
 - Ved runtimefejl skal eksisterende fejlvisning med indbygget fejloplysninger/rapportering bruges.
 - For de afklarede visningscases er "Visning B" valgt (tooltip-baseret fejlfeedback), forudsat individuel beslutning og dokumentation pr. undtagelse.
+- Snapshot-orchestreringen følger en hybridmodel: forudsigelige input-/preflight-fejl stoppes før engine-kald med brugernær fejlmodel, mens uventede engine-/runtimefejl routes til `fail_closed` og eksisterende runtime-fejlvisning.
+- Clamp af TAF-perioder må ikke indgå i den autoritative beregningssti. UI må gerne vise bounds/guidance, men snapshot-beregningen må ikke automatisk afskære perioden.
+- Tomt `tidligereModtagetTaf` er semantisk `0 kr` og skal eksponeres entydigt som `0`, ikke `null`, i snapshot/projektioner.
+- Svie/smerte-periode med gyldig datoformat men out-of-range bounds er en almindelig brugerrettelig `error`-tilstand, ikke i sig selv `fail_closed`/runtimefejl.
+- TAF-per-år er et snapshot-trin, ikke et PDF-særflow. Samme grundlag skal bruges i Beregning, Debug og PDF-gating.
+- TAF-per-år-afstemningsgrænsen på `100 øre` er bevidst også ved forligsgrad. Afvigelse over `100 øre` anses som tegn på et større systemteknisk problem, ikke legitim afrundingsakkumulering.
 
 ### 16.2 Konstaterede afvigelser/risici i nuværende løsning
 
@@ -427,12 +447,15 @@ Formål med denne opsamling:
 - TAF-overlap håndteres delvist som UI-fejl, men kerneflow merger perioder for beregning.
 - `erstatningsopgoerelseValidator` ser ikke ud til at være aktiv runtime-gate i produktion (kun test-imports fundet).
 
-### 16.3 Åbne principspørgsmål (skal afklares før implementering)
+### 16.3 Afklarede principspørgsmål (lukket 2026-03-05)
 
-- Skal out-of-range `loseFeriedage` være hård beregningsblokering (ingen totals/PDF), eller må systemet fortsætte med intern justering?
-- Skal TAF-perioder uden for tilladte grænser (differencekrav/endelig EET) blokere hele EO-beregningen, eller må de clamples/ignoreres med tooltip-fejl?
-- Ved kontroluoverensstemmelse: skal alle downloads hard-blokeres som systemfejl med rapportering?
-- For TAF-fordeling per år ved afrundingsafvigelse over `100 øre`: skal download afvises helt (ingen PDF genereres)?
+- Out-of-range ferie/fridagsfelter, der bruges i EO-beregning, er hård beregningsblokering. Dette gælder både:
+  - `tafPerioder[].loseFeriedage` (per TAF-periode)
+  - `uspecificeredeFerieFridage` (globalt EO-felt)
+- Derudover skal invariant-registryet have kontekstuelle checks, hvor ferie/fridage ikke må overstige det beregningsmæssigt mulige antal arbejdsdage i den relevante periode. Ingen totals eller EO-downloads må behandles som gyldige, før sådanne fejl er rettet.
+- TAF-perioder uden for tilladte grænser (differencekrav/endelig EET) er hård beregningsblokering. Perioder må ikke clamples eller ignoreres i autoritativ beregningssti. Fejlvisning skal pege på både den blokerende TAF-periode og den bound-kilde, der udløser blokeringen.
+- Ved kontroluoverensstemmelse hard-blokeres alle EO-downloads som systemfejl, og eksisterende fejlvisning med fejloplysninger anvendes.
+- For TAF-fordeling per år ved afrundingsafvigelse over `100 øre` afvises download helt; dokumentet må ikke genereres.
 
 ### 16.4 Udestående undersøgelser (teknisk) før endelig løsningsdesign
 
@@ -447,6 +470,68 @@ Formål med denne opsamling:
 
 ### 16.5 Resume-startpunkt til næste session
 
-- Start med at lukke de åbne principspørgsmål i 16.3.
-- Derefter omsættes 16.2 + 16.4 til en konkret "fail-closed migrationscheckliste" under Stadie 0/1.
+- 16.3 er nu lukket; næste arbejde er at omsætte 16.2 + 16.4 til en konkret "fail-closed migrationscheckliste" under Stadie 0/1.
 - Før første refaktor-commit etableres tests, der låser de afklarede principper (især `0` vs `null`, control mismatch-gating, TAF-per-år-afstemning).
+
+### 16.6 Fail-closed migrationscheckliste til Stadie 0/1
+
+Denne checkliste er bindende for første migrationsarbejde og skal være opfyldt, før gammel EO-sti kan udfases.
+
+#### Stadie 0: Test- og kortlægningsgate
+
+- Etabler reference-tests, der eksplicit låser forskellen mellem gyldig beregnet `0` og manglende/ugyldig beregning (`null`/fail-closed).
+- Etabler reference-tests for out-of-range ferie/fridagsfelter:
+  - `tafPerioder[].loseFeriedage`
+  - `uspecificeredeFerieFridage`
+  hvor EO-beregning og downloads ikke må optræde som gyldige.
+- Etabler reference-tests for kontekstuelle ferie/fridagsfejl, hvor antal ferie/fridage overstiger mulige arbejdsdage i den relevante beregningsperiode.
+- Etabler reference-tests for TAF-perioder uden for tilladte bounds, hvor autoritativ sti skal ende i fejl/fail-closed og ikke intern clamp.
+- Etabler reference-tests for kontroluoverensstemmelse, hvor både EO-PDF og TAF-fordelt-på-år-PDF skal være blokeret.
+- Etabler reference-tests for TAF-per-år-afstemning over `100 øre`, hvor dokumentmodellen/PDF-generationen afvises helt.
+- Kortlæg og klassificer alle TAF-bounds som enten:
+  - commit-validerbare input-bounds
+  - snapshot-afledte bounds fra andre committed felter
+- For snapshot-afledte bounds skal fejlmodellen kunne pege på både symptomfeltet (TAF-periode) og årsagsfeltet (fx differencekrav-dato eller endelig EET-dato).
+- Kortlæg alle steder hvor `0` og `null` normaliseres eller behandles ens i EO canonical/debug/sammentælling/PDF.
+- Kortlæg alle download-entrypoints i EO-scope og verificer, at fejlresultater ikke kan blive tavse for brugeren.
+- Kortlæg hvor tabelinput-fejl løftes til samlet EO-fejlmodel/gating, og dokumenter alle huller.
+- Kortlæg overlap-regelhåndhævelse på tværs af UI-commit, runtime-beregning, PDF-projektion og load/preflight.
+- Kortlæg alle steder hvor stale snapshot kan opstå, og verificer at stale state aldrig klassificeres som kontroluoverensstemmelse eller systemfejl.
+- Kortlæg alle nuværende brugere af `buildTafRanges` og klassificer dem som:
+  - autoritativ beregningssti
+  - UI-/hjælpevisning
+  - legacy/parity-reference
+
+#### Stadie 1: Snapshot- og invariant-gate
+
+- `computeEoSnapshot` skal starte med defensiv schema-guard og returnere fail-closed i stedet for fallback-beregning ved korrupt input.
+- Uventede runtime-undtagelser i `computeEoSnapshot` skal:
+  - ende i `fail_closed`
+  - bruge `failClosedReason='runtime_exception'`
+  - logges lokalt via `console.error` med tilstrækkelig kontekst til reproduktion
+  - route brugeroplevelsen til eksisterende runtime-fejlvisning, ikke en tavs tomvisning
+- Snapshot-orchestreringen skal udføre preflight-checks før engine-kald for alle fejl, der kan udtrykkes brugernært på snapshot-niveau (fx overlap, out-of-range periods/bounds, manglende nødvendige inputfelter).
+- Engine-throws må ikke være primær mekanisme for forventelige brugerinputfejl i den autoritative sti. Hvis en engine kaster på sådan et tilfælde, er det et hul i preflight-dækningen, som skal lukkes.
+- Snapshot må ikke indeholde eller eksponere parallel fallback-totaler; der skal kun være én autoritativ beregningssti.
+- Snapshot-stien må ikke bruge clampende `buildTafRanges` direkte. Der skal introduceres en clamp-fri afløser eller refaktorering, som gør begge dele synlige:
+  - rå TAF-ranges til autoritativ beregning
+  - bound-violations til invariant-registry
+- Clamp-baserede TAF-ranges må kun bevares til UI-hjælpemidler og legacy/parity-sammenligning, ikke som input til autoritativ snapshot-beregning.
+- Invariant-registry skal have eksplicitte checks for:
+  - out-of-range `tafPerioder[].loseFeriedage`
+  - out-of-range `uspecificeredeFerieFridage`
+  - kontekstuel ferie/fridags-overbooking ift. mulige arbejdsdage
+  - TAF-periode uden for bounds
+  - overlap i TAF-perioder
+  - kontroluoverensstemmelse mellem totals/kontrolsum i friskt snapshot
+  - TAF-per-år-afstemning over `100 øre`
+- Invariant-brud, som gør beregning eller download utroværdig, skal klassificeres som `error` eller `fail_closed`, aldrig som almindelig warning.
+- Projektioner til Beregning, Debug og PDF skal pattern-matche på snapshot-status først og må ikke antage, at totals findes ved `fail_closed`.
+- EO-PDF og TAF-fordelt-på-år-PDF må kun modtage snapshot-/document-model-data, aldrig rå form-state.
+- `tidligereModtagetTaf` skal i snapshot/totals være normaliseret til et entydigt numerisk `0`, når feltet er tomt.
+- Svie/smerte-bounds-fejl med gyldige committed datoer skal klassificeres som brugerrettelig `error`, så fejl kan vises præcist uden at maskere sig som runtimefejl.
+- `buildTafPerYearResult` skal refaktoreres væk fra `PdfModel`-afhængighed og i stedet modtage snapshot-relevante domænedata direkte som del af snapshot-build.
+- TAF-fordelt-på-år-projektionen må kun eksistere, hvis afstemning mod EO-total er inden for `100 øre`; ellers returneres fejlblokering, ikke tom eller alternativ visning.
+- Download-gating skal centraliseres omkring snapshot-status og invariant-resultater, men være output-specifik:
+  - kontroluoverensstemmelse i frisk snapshot blokerer alle EO-downloads
+  - TAF-per-år-afstemningsfejl over `100 øre` blokerer kun TAF-fordelt-på-år-download
