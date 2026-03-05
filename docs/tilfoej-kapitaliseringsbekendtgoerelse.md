@@ -63,6 +63,7 @@ Dette matcher implementeringsretningen i:
 - For VEJ `9820/2023` og `9376/2024` kan filernes `gyldig`-intervaller overlappe i anden halvdel af 2024; deterministisk prioritering skal styres i `src/data/kapitalisering/kapitaliseringsbekendtgørelser.ts` med skæringsdato `2024-07-01`.
 - For VEJ `9741/2020`, `9864/2021`, `10141/2022` og `9820/2023` er tabelvalg bevidst begrænset til skadesdatoer fra `2011-01-01`, når kilden kun angiver tabeller `A-H`.
 - `forsoergertabAfloesningsTabeller = {}` betyder, at kilden ikke indeholder afløsningstabeller for den bekendtgørelse/vejledning.
+- Historisk undtagelse: Hvis kilden kun angiver kønsopdelte afløsningstabeller, skal de bevares i `forsoergertabAfloesningsTabellerKoensopdelt` (ingen sammenfletning til kønsneutral tabel).
 - De fil-lokale interface-definitioner (`AldersFaktorRaekke`, `ForsoergertabMatrixRaekke`, `AldersKoensopdeltFaktorRaekke`) er en bevidst selvstændighedsstrategi for hver tabelfil, ikke en datamæssig forskel.
 
 ## Udtræksflow (hver gang)
@@ -236,6 +237,10 @@ export const forsoergertabTabellerMaend = {} as const satisfies Record<
 export const forsoergertabTabellerKvinder = {} as const satisfies Record<
   string,
   readonly ForsoergertabMatrixRaekke[]
+>;
+export const forsoergertabAfloesningsTabellerKoensopdelt = {} as const satisfies Record<
+  string,
+  readonly AldersKoensopdeltFaktorRaekke[]
 >;
 ```
 

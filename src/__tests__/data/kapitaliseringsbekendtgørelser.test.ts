@@ -39,6 +39,7 @@ const resolveIdForDatoer = (
 
 type LokalTabelMeta = {
   filnavn: string;
+  expectedFilnavn: string;
   id: string;
   gyldigFra: string;
   gyldigTil: string;
@@ -65,6 +66,7 @@ const readLokalKapitaliseringsTabelMeta = (): LokalTabelMeta[] => {
 
     return {
       filnavn,
+      expectedFilnavn: `${idMatch[1].replace('/', '-')}.ts`,
       id: idMatch[1],
       gyldigFra: gyldigFraMatch[1],
       gyldigTil: gyldigTilMatch[1],
@@ -111,6 +113,13 @@ describe('kapitaliseringsbekendtgørelser', () => {
 
     expect(manglerIoversigtstabeller).toEqual([]);
     expect(udenReferenceIOversigt).toEqual([]);
+  });
+
+  it('har filnavn der matcher kapitaliseringsId (slash -> bindestreg)', () => {
+    const lokaleTabeller = readLokalKapitaliseringsTabelMeta();
+    const fejl = lokaleTabeller.filter((tabel) => tabel.filnavn !== tabel.expectedFilnavn);
+
+    expect(fejl).toEqual([]);
   });
 
   it('holder mappingdatoer inden for gyldighedsintervallet i foreløbigt indføjede tabelfiler', () => {

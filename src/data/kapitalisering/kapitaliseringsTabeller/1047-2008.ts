@@ -20,7 +20,7 @@ export const kapitaliseringsId = '1047/2008' as const;
 export const kapitaliseringsType = 'bkg' as const;
 export const kapitaliseringsFuldeNavn =
   'Bekendtgørelse om omsætning af løbende ydelser til kapitalbeløb' as const;
-export const kapitaliseringsDatering = '01/01/1900' as const;
+export const kapitaliseringsDatering = '21/10/2008' as const;
 export const gyldigFra = toISODateString('2009-01-01');
 export const gyldigTil = toISODateString('2009-06-30');
 

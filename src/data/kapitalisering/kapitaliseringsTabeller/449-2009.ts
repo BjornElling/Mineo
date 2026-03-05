@@ -406,6 +406,9 @@ export const forsoergertabTabellerKvinder =
 
 export const forsoergertabAfloesningsTabeller = {} as const satisfies Record<string, readonly AldersFaktorRaekke[]>;
 
+// Undtagelse: Kilden angiver kun kønsopdelte afløsningstabeller.
+// Risiko: Data går tabt ved sammenfletning til kønsneutral struktur.
+// Revurder hvis en fælles canonical model for kønsopdelt afløsning indføres.
 export const forsoergertabAfloesningsTabellerKoensopdelt = 
 {
   J: [
