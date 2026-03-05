@@ -120,6 +120,12 @@ const Erstatningsopgoerelse = React.memo(() => {
     buildDebugSnapshotRef.current = buildDebugSnapshot;
   }, [buildDebugSnapshot]);
 
+  const stamdataValuesForBeregningTab = React.useMemo<StamdataValues | null>(() => {
+    const persistedStamdata = getPersistedData('stamdata');
+    if (!persistedStamdata) return null;
+    return { ...STAMDATA_INITIAL_VALUES, ...persistedStamdata };
+  }, [getPersistedData]);
+
   const [eoDebugSnapshot, setEoDebugSnapshot] = React.useState<EODebugSnapshot | null>(null);
 
   React.useEffect(() => {
@@ -331,6 +337,8 @@ const Erstatningsopgoerelse = React.memo(() => {
               isActive={activeTab === TAB_KEYS.BEREGNING}
               debugSnapshot={eoDebugSnapshot}
               currentDebugRevision={currentDebugRevision}
+              stamdataValues={stamdataValuesForBeregningTab}
+              eoValues={form.values}
               setEOValues={form.setValues}
             />
           </Box>
@@ -364,5 +372,3 @@ const Erstatningsopgoerelse = React.memo(() => {
 Erstatningsopgoerelse.displayName = 'Erstatningsopgoerelse';
 
 export default Erstatningsopgoerelse;
-
-

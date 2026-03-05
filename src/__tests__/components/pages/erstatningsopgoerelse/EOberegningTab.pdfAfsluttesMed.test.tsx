@@ -9,19 +9,14 @@ import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceCon
 import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 
-const { mockSections, generateErstatningsopgoerelsePdfMock, loadErstatningsopgoerelsePdfModuleMock } = vi.hoisted(() => {
+const { generateErstatningsopgoerelsePdfMock, loadErstatningsopgoerelsePdfModuleMock } = vi.hoisted(() => {
   return {
-    mockSections: {} as Record<string, unknown>,
     generateErstatningsopgoerelsePdfMock: vi.fn(),
     loadErstatningsopgoerelsePdfModuleMock: vi.fn(async () => ({
       generateErstatningsopgoerelsePdf: generateErstatningsopgoerelsePdfMock,
     })),
   };
 });
-
-vi.mock('../../../../hooks/usePersistedSection', () => ({
-  usePersistedSection: (sectionKey: string) => mockSections[sectionKey] ?? null,
-}));
 
 vi.mock('../../../../hooks/useFormFieldErrors', () => ({
   useFieldErrorsBySourceForSection: () => ({}),
@@ -41,15 +36,15 @@ vi.mock('../../../../utils/pdf/pdfLoader', () => ({
 }));
 
 describe('EOberegningTab PDF-afslutning', () => {
+  let eoValuesFromForm: ReturnType<typeof createErstatningsopgoerelseInitialValues>;
+
   beforeEach(() => {
     generateErstatningsopgoerelsePdfMock.mockReset();
     loadErstatningsopgoerelsePdfModuleMock.mockClear();
 
-    const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.erstatningsopgoerelseAfsluttesMed = 'Underskrift-linje';
-
-    mockSections.stamdata = structuredClone(STAMDATA_INITIAL_VALUES);
-    mockSections.erstatningsopgoerelse = eoValues;
+    eoValuesFromForm = createErstatningsopgoerelseInitialValues();
+    eoValuesFromForm.erstatningsopgoerelseAfsluttesMed = 'Underskrift-linje';
+    eoValuesFromForm.differencekravDato = '2026-01-15';
   });
 
   it('sender committed EO-værdi for afslutningstype til PDF-generator', async () => {
@@ -63,6 +58,9 @@ describe('EOberegningTab PDF-afslutning', () => {
               isActive={true}
               debugSnapshot={null}
               currentDebugRevision="rev-1"
+              stamdataValues={structuredClone(STAMDATA_INITIAL_VALUES)}
+              eoValues={eoValuesFromForm}
+              setEOValues={vi.fn()}
             />
           </FormPersistenceProvider>
         </AppSettingsProvider>
@@ -75,5 +73,33 @@ describe('EOberegningTab PDF-afslutning', () => {
 
     const options = generateErstatningsopgoerelsePdfMock.mock.calls[0]?.[3];
     expect(options.erstatningsopgoerelseAfsluttesMed).toBe('Underskrift-linje');
+  });
+
+  it('bruger aktuelle EO-værdier ved PDF-download, ikke stale persisted snapshot', async () => {
+    render(
+      <MemoryRouter>
+        <AppSettingsProvider>
+          <FormPersistenceProvider>
+            <EOberegningTab
+              activeTab="beregning"
+              setActiveTab={vi.fn()}
+              isActive={true}
+              debugSnapshot={null}
+              currentDebugRevision="rev-1"
+              stamdataValues={structuredClone(STAMDATA_INITIAL_VALUES)}
+              eoValues={eoValuesFromForm}
+              setEOValues={vi.fn()}
+            />
+          </FormPersistenceProvider>
+        </AppSettingsProvider>
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getAllByTestId('DownloadIcon')[0]);
+
+    await waitFor(() => expect(generateErstatningsopgoerelsePdfMock).toHaveBeenCalledTimes(1));
+
+    const submittedEo = generateErstatningsopgoerelsePdfMock.mock.calls[0]?.[1];
+    expect(submittedEo.differencekravDato).toBe('2026-01-15');
   });
 });

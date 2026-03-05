@@ -305,6 +305,8 @@ const EODebug = () => {
   const { getPersistedData } = useFormPersistence();
   const manuelReguleringInputErrors = useEOLoenindkomstInputErrors();
   const { settings } = useAppSettings();
+  // Debug-panelet er bevidst bundet til persisted committed data fra persistence-laget.
+  // Derfor kan visningen kortvarigt halte ét render-cyklus ift. lokale form-drafts.
   const stamdataValues = React.useMemo(() => {
     return { ...STAMDATA_INITIAL_VALUES, ...(getPersistedData('stamdata') ?? {}) };
   }, [getPersistedData]);

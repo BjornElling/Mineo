@@ -7,7 +7,6 @@ import BugReportButton from '../../errors/BugReportButton';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import { useFieldErrorsBySourceForSection } from '../../../hooks/useFormFieldErrors';
 import { useEOLoenindkomstInputErrors } from '../../../hooks/useEOLoenindkomstInputErrors';
-import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { collectAllDebugRows } from '../../../domain/debug/eoDebugRowAggregator';
 import type { NavigationTarget } from '../../../domain/debug/eoDebugNavigationMap';
 import { scrollToSection } from '../../../utils/scrollToSection';
@@ -22,6 +21,7 @@ import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPe
 import { isoToDanish } from '../../../types/branded';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../../inputs/StyledDropdown';
 import { toReadableSummaryMessage } from '../../../domain/erstatningsopgoerelse/readableSummaryMessage';
+import type { StamdataValues } from '../../../schemas/formSchemas';
 import {
   canDownloadEoPdf,
   downloadErstatningsopgoerelsePdf,
@@ -36,6 +36,8 @@ interface EOberegningTabProps {
   isActive: boolean;
   debugSnapshot: EODebugSnapshot | null;
   currentDebugRevision: string;
+  stamdataValues: StamdataValues | null;
+  eoValues: ErstatningsopgoerelseValues;
   setEOValues: React.Dispatch<React.SetStateAction<ErstatningsopgoerelseValues>>;
 }
 
@@ -53,16 +55,14 @@ interface EOberegningTabProps {
  * - Download af PDF blokeres altid ved fejl, men aldrig ved advarsler.
  */
 const EOberegningTab = React.memo<EOberegningTabProps>((
-  { activeTab, setActiveTab, isActive, debugSnapshot, currentDebugRevision, setEOValues }
+  { activeTab, setActiveTab, isActive, debugSnapshot, currentDebugRevision, stamdataValues, eoValues, setEOValues }
 ) => {
   // ============================================================================
-  // DATA INDSAMLING FRA FORMPERSISTENCE
+  // DATA FRA COMMITTED STATE + PERSISTENCE FACADE
   // ============================================================================
 
   const navigate = useNavigate();
   const { settings } = useAppSettings();
-  const stamdataValues = usePersistedSection('stamdata');
-  const eoValues = usePersistedSection('erstatningsopgoerelse');
   const stamdataErrors = useFieldErrorsBySourceForSection('stamdata');
   const eoErrors = useFieldErrorsBySourceForSection('erstatningsopgoerelse');
   const manuelReguleringInputErrors = useEOLoenindkomstInputErrors();
@@ -253,7 +253,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   // CHECKBOX STATE FOR ERSTATNINGSOPGØRELSE-DOWNLOAD
   // ============================================================================
 
-  const selectedElements = eoValues?.eoBilagSelection ?? {
+  const selectedElements = eoValues.eoBilagSelection ?? {
     opgoerelse: true as const,
     loenindkomst: true,
     offentligeYdelser: true,
@@ -263,7 +263,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     sygeferiegodtgoerelse: false,
   };
   const loenindkomstOgOffentligeYdelserIndgaar =
-    eoValues?.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
+    eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
 
   const updateSelectedElement = React.useCallback(
     (
@@ -293,8 +293,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     [setEOValues]
   );
 
-  const beregnesSvieSmerte = eoValues?.beregnesSvieSmerteGodtgoerelse === 'Ja';
-  const beregnesTabtArbejdsfortjeneste = eoValues?.beregnesTabtArbejdsfortjeneste === 'Ja';
+  const beregnesSvieSmerte = eoValues.beregnesSvieSmerteGodtgoerelse === 'Ja';
+  const beregnesTabtArbejdsfortjeneste = eoValues.beregnesTabtArbejdsfortjeneste === 'Ja';
 
   const svieSmerteRow = relevantRows.find((row) => row.id === 'sviesmerte.beregnetPeriode');
   const svieSmerteDisplayParts = (beregnesSvieSmerte ? (svieSmerteRow?.displayValue ?? '-') : '-')
@@ -304,7 +304,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   const svieSmerteLines = svieSmerteDisplayParts;
   const harSvieSmertePerioder =
     beregnesSvieSmerte &&
-    (eoValues?.svieSmertePerioder ?? []).some((row) => row.fra || row.til || row.tilstand) &&
+    (eoValues.svieSmertePerioder ?? []).some((row) => row.fra || row.til || row.tilstand) &&
     svieSmerteLines.length > 0;
   const svieSmerteSummaryLines = harSvieSmertePerioder ? svieSmerteLines : ['Nej'];
   const svieSmerteSummaryLabel = harSvieSmertePerioder && svieSmerteLines.length > 1
@@ -335,7 +335,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   }, [beregnesTabtArbejdsfortjeneste, eoValues, relevantRows]);
   const harTafPerioder =
     beregnesTabtArbejdsfortjeneste &&
-    (eoValues?.tafPerioder ?? []).some((row) => row.fra || row.til || typeof row.loseFeriedage === 'number') &&
+    (eoValues.tafPerioder ?? []).some((row) => row.fra || row.til || typeof row.loseFeriedage === 'number') &&
     tafPerioderLabels.length > 0;
   const tafPerioderLines = tafPerioderLabels;
   const tafSummaryLines = harTafPerioder ? tafPerioderLines : ['Nej'];
@@ -345,11 +345,11 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   const skadesdatoLabel = erErhvervssygdom ? 'Anmeldelsesdato' : 'Skadesdato';
   const skadesdatoDisplay = formatIsoDateLong(stamdataValues?.skadesdato) || '-';
 
-  const erRevideret = eoValues?.revideretOpgoerelse === 'Ja';
+  const erRevideret = eoValues.revideretOpgoerelse === 'Ja';
   const revideretPrefix = erRevideret ? 'Revideret ' : '';
   const erstatningsord = erRevideret ? 'erstatningsopgørelse' : 'Erstatningsopgørelse';
-  const eoNummer = eoValues?.eoNummer?.trim() ?? '';
-  const eoLedsagetekst = eoValues?.eoLedsagetekst?.trim() ?? '';
+  const eoNummer = eoValues.eoNummer?.trim() ?? '';
+  const eoLedsagetekst = eoValues.eoLedsagetekst?.trim() ?? '';
   const eoNummerPart = eoNummer ? ` ${eoNummer}` : '';
   const eoLedsagetekstPart = eoLedsagetekst ? ` (${eoLedsagetekst})` : '';
   const erstatningsopgoerelseTitel = `${revideretPrefix}${erstatningsord}${eoNummerPart}${eoLedsagetekstPart}`.trim();
@@ -362,7 +362,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     if (!canDownloadEoPdf({ hasBlockingErrors: errors.length > 0, stamdataValues, eoValues })) {
       return;
     }
-    if (!stamdataValues || !eoValues) return;
+    if (!stamdataValues) return;
 
     await downloadErstatningsopgoerelsePdf({
       stamdataValues,
@@ -376,7 +376,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     if (!canDownloadEoPdf({ hasBlockingErrors: errors.length > 0, stamdataValues, eoValues })) {
       return;
     }
-    if (!stamdataValues || !eoValues) return;
+    if (!stamdataValues) return;
 
     await downloadTafFordeltPaaAarPdf({
       stamdataValues,

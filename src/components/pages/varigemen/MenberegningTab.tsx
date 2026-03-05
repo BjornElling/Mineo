@@ -17,7 +17,6 @@ import {
 import { coerceToISODateString, parseISODate, toISODateString } from '../../../types/branded';
 import { beregnVarigeMenGodtgoerelseWithRates } from '../../../domain/varigemen/varigeMenCalculations';
 import { usePersistedForm } from '../../../hooks/usePersistedForm';
-import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import { useNavigate } from 'react-router-dom';
 import { varigeMenPrGrad, varigeMenPrGradYearBounds } from '../../../data/regulationRates';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
@@ -43,7 +42,6 @@ const MenberegningTab: React.FC<{
 }> = ({ values, setValues, handleChange }) => {
   const { values: stamValues, handleChange: handleStamChange } = usePersistedForm(stamdataSchema, 'stamdata', STAMDATA_INITIAL_VALUES);
 
-  const { getPersistedData } = useFormPersistence();
   const { settings } = useAppSettings();
   const navigate = useNavigate();
 
@@ -177,13 +175,13 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
       beregningsdato: coerceToISODateString(values.beregningsdato),
       beregningsResultat: beregningsResultat,
       settings,
-      persistedStamdata: getPersistedData('stamdata'),
+      persistedStamdata: stamValues,
     });
     if (!result.success) {
       setDownloadShake(true);
       setTimeout(() => setDownloadShake(false), 500);
     }
-  }, [beregningsFejl, manglendeFelter, beregningsResultat, values, stamValues.fodselsdato, stamValues.skadesdato, fodselsdatoError, mengradError, beregningsdatoError, getPersistedData, settings]);
+  }, [beregningsFejl, manglendeFelter, beregningsResultat, values, stamValues, fodselsdatoError, mengradError, beregningsdatoError, settings]);
 
   const skadesdatoLabel = React.useMemo(() => {
     if (stamValues.skadestype === 'Erhvervssygdom') return 'Anmeldelsesdato';

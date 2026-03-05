@@ -17,10 +17,6 @@ import { buildControlMismatchReport } from '../../../../domain/debug/eoDebugMism
 
 const mockBuildControlMismatchReport = vi.mocked(buildControlMismatchReport);
 
-vi.mock('../../../../hooks/usePersistedSection', () => ({
-  usePersistedSection: () => null,
-}));
-
 vi.mock('../../../../hooks/useFormFieldErrors', () => ({
   useFieldErrorsBySourceForSection: () => ({}),
 }));
@@ -124,8 +120,13 @@ const renderTab = (props: React.ComponentProps<typeof EOberegningTab>) => {
 };
 
 describe('EOberegningTab kontroltjek', () => {
+  const baseStamdataValues = structuredClone(STAMDATA_INITIAL_VALUES);
+  const baseEoValues = createErstatningsopgoerelseInitialValues();
+  const baseSetEoValues = vi.fn();
+
   beforeEach(() => {
     mockBuildControlMismatchReport.mockReset();
+    baseSetEoValues.mockReset();
   });
 
   it('åbner popup én gang ved fane-entry', () => {
@@ -164,6 +165,9 @@ describe('EOberegningTab kontroltjek', () => {
       isActive: false,
       debugSnapshot: snapshot,
       currentDebugRevision: snapshot.revision,
+      stamdataValues: baseStamdataValues,
+      eoValues: baseEoValues,
+      setEOValues: baseSetEoValues,
     });
 
     rerender(
@@ -176,6 +180,9 @@ describe('EOberegningTab kontroltjek', () => {
               isActive={true}
               debugSnapshot={snapshot}
               currentDebugRevision={snapshot.revision}
+              stamdataValues={baseStamdataValues}
+              eoValues={baseEoValues}
+              setEOValues={baseSetEoValues}
             />
           </FormPersistenceProvider>
         </AppSettingsProvider>
@@ -195,6 +202,9 @@ describe('EOberegningTab kontroltjek', () => {
               isActive={true}
               debugSnapshot={snapshot}
               currentDebugRevision={snapshot.revision}
+              stamdataValues={baseStamdataValues}
+              eoValues={baseEoValues}
+              setEOValues={baseSetEoValues}
             />
           </FormPersistenceProvider>
         </AppSettingsProvider>
@@ -240,6 +250,9 @@ describe('EOberegningTab kontroltjek', () => {
       isActive: true,
       debugSnapshot: null,
       currentDebugRevision: snapshot.revision,
+      stamdataValues: baseStamdataValues,
+      eoValues: baseEoValues,
+      setEOValues: baseSetEoValues,
     });
 
     expect(screen.queryByText('Uoverensstemmelse i kontrolberegning')).not.toBeInTheDocument();
@@ -254,6 +267,9 @@ describe('EOberegningTab kontroltjek', () => {
               isActive={true}
               debugSnapshot={snapshot}
               currentDebugRevision={snapshot.revision}
+              stamdataValues={baseStamdataValues}
+              eoValues={baseEoValues}
+              setEOValues={baseSetEoValues}
             />
           </FormPersistenceProvider>
         </AppSettingsProvider>
@@ -301,6 +317,9 @@ describe('EOberegningTab kontroltjek', () => {
       isActive: true,
       debugSnapshot: snapshot,
       currentDebugRevision: snapshot.revision,
+      stamdataValues: baseStamdataValues,
+      eoValues: baseEoValues,
+      setEOValues: baseSetEoValues,
     });
 
     expect(screen.queryByText('Uoverensstemmelse i kontrolberegning')).not.toBeInTheDocument();
@@ -356,6 +375,9 @@ describe('EOberegningTab kontroltjek', () => {
       isActive: true,
       debugSnapshot: snapshot,
       currentDebugRevision: snapshot.revision,
+      stamdataValues: baseStamdataValues,
+      eoValues: baseEoValues,
+      setEOValues: baseSetEoValues,
     });
 
     expect(screen.getByText('Ansættelsesforhold: Beregnet 100,00 · Tabel 90,00')).toBeInTheDocument();
@@ -410,6 +432,9 @@ describe('EOberegningTab kontroltjek', () => {
       isActive: true,
       debugSnapshot: snapshot,
       currentDebugRevision: snapshot.revision,
+      stamdataValues: baseStamdataValues,
+      eoValues: baseEoValues,
+      setEOValues: baseSetEoValues,
     });
 
     expect(screen.getByText('Ansættelsesforhold: Beregnet 100,00 · Tabel 90,00')).toBeInTheDocument();
