@@ -16,6 +16,7 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.status).toBe('fail_closed');
     expect(snapshot.failClosedReason).toBe('schema_guard');
     expect(snapshot.data).toBeNull();
+    expect(snapshot.debugSnapshot).toBeNull();
   });
 
   it('returnerer error uden data ved overlappende TAF-perioder', () => {
@@ -37,16 +38,23 @@ describe('computeEoSnapshot', () => {
 
     expect(snapshot.status).toBe('error');
     expect(snapshot.data).toBeNull();
+    expect(snapshot.debugSnapshot).not.toBeNull();
     expect(snapshot.invariants.some((invariant) => invariant.id.startsWith('taf_perioder:overlap:'))).toBe(true);
   });
 
-  it('returnerer error uden data ved TAF-periode uden for bounds', () => {
+  it('clampper TAF-periode til EO-bounds og bevarer autoritativt snapshot-data', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = '2024-01-01';
     eoValues.vedroererPeriodeTil = '2024-12-31';
     eoValues.periodeTilBeregningFra = '2023-01-01';
     eoValues.periodeTilBeregningTil = '2023-12-31';
     eoValues.differencekravDato = '2024-07-01';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+        loenudviklingBeregningsgrundlag: 'Ingen',
+      },
+    ];
     eoValues.tafPerioder = [
       { id: 'r1', fra: '2024-01-01', til: '2024-07-15', loseFeriedage: 0 },
     ];
@@ -57,9 +65,44 @@ describe('computeEoSnapshot', () => {
       eoValues,
     });
 
-    expect(snapshot.status).toBe('error');
-    expect(snapshot.data).toBeNull();
-    expect(snapshot.invariants.some((invariant) => invariant.id.startsWith('taf_perioder:bounds:'))).toBe(true);
+    expect(snapshot.status).toBe('ok');
+    expect(snapshot.data).not.toBeNull();
+    expect(snapshot.debugSnapshot).not.toBeNull();
+    expect(snapshot.data?.canonicalOutput.periodiseringer.tafPerioder).toEqual([
+      { fra: '2024-01-01', til: '2024-06-30' },
+    ]);
+  });
+
+  it('clampper svie/smerte-periode til ménafgørelse uden fail_closed systemfejl', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.vedroererPeriodeFra = '2023-05-24';
+    eoValues.vedroererPeriodeTil = '2025-12-21';
+    eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
+    eoValues.beregnesTabtArbejdsfortjeneste = 'Nej';
+    eoValues.tidligereSsMax = 'Nej';
+    eoValues.varigeMenAfgorelse = 'Ja';
+    eoValues.verserendeKlageMen = 'Nej';
+    eoValues.menAfgoerelseDato = '2024-04-22';
+    eoValues.svieSmerteSatserAar = 2026;
+    eoValues.svieSmerteDelvisSygemeldingSats = 'fuld';
+    eoValues.svieSmertePerioder = [
+      { id: 'ss-1', fra: '2023-05-24', til: '2025-04-21', tilstand: 'sygemeldt' },
+    ];
+
+    const snapshot = computeEoSnapshot({
+      revision: 'svie-men-clamp',
+      stamdataValues: STAMDATA_INITIAL_VALUES,
+      eoValues,
+    });
+
+    expect(snapshot.status).toBe('ok');
+    expect(snapshot.failClosedReason).toBeUndefined();
+    expect(snapshot.data).not.toBeNull();
+    expect(snapshot.debugSnapshot).not.toBeNull();
+    expect(snapshot.data?.engines.svieSmerte.constrainedPeriods).toEqual([
+      { fra: '2023-05-24', til: '2024-04-21', isDelvist: false },
+    ]);
+    expect(snapshot.invariants.some((invariant) => invariant.id === 'runtime_exception')).toBe(false);
   });
 
   it('returnerer error uden data ved overbooking af løse feriedage i TAF-periode', () => {
@@ -80,6 +123,7 @@ describe('computeEoSnapshot', () => {
 
     expect(snapshot.status).toBe('error');
     expect(snapshot.data).toBeNull();
+    expect(snapshot.debugSnapshot).not.toBeNull();
     expect(snapshot.invariants.some((invariant) => invariant.id.includes('taf_perioder:lose_feriedage:'))).toBe(true);
   });
 
@@ -99,6 +143,7 @@ describe('computeEoSnapshot', () => {
 
     expect(snapshot.status).toBe('error');
     expect(snapshot.data).toBeNull();
+    expect(snapshot.debugSnapshot).not.toBeNull();
     expect(snapshot.invariants.some((invariant) => invariant.id === 'beregningsperiode:uspecificerede_feriefridage')).toBe(true);
   });
 
@@ -142,6 +187,7 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.status).toBe('error');
     expect(snapshot.failClosedReason).toBeUndefined();
     expect(snapshot.data).toBeNull();
+    expect(snapshot.debugSnapshot).not.toBeNull();
     expect(snapshot.invariants.some((invariant) =>
       invariant.id === 'validation:loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag'
     )).toBe(true);

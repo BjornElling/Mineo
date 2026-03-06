@@ -617,6 +617,13 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           dates.add(iso);
         }
       }
+      if (
+        applyAlmindeligLoenPaaShDageRegel &&
+        timelineStartIso < STORE_BEDEDAG_START &&
+        eoRange.til >= STORE_BEDEDAG_START
+      ) {
+        dates.add(STORE_BEDEDAG_START);
+      }
       dates.add(referenceIso);
 
       const sortedDates = Array.from(dates).sort((a, b) => a.localeCompare(b));

@@ -4,9 +4,6 @@ import type { DeepReadonly } from '../../types/deepReadonly';
 import { dateToISO, isISODateString, subtractOneDay } from '../../types/branded';
 import { svieSmerteMax, svieSmertePrDag } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../config/dateRanges';
-import { computeRowDateBounds } from './rowDateBounds';
-import { validateISODateRange } from '../../utils/isoDateHelpers';
 import { detectOverlappingPeriods } from './periodOverlapDetection';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { isoDateToDate } from '../dates/isoDate';
@@ -77,7 +74,7 @@ const perioderCoverDate = (perioder: Array<{ fra: Date; til: Date }>, target: IS
 
 const validateSvieSmertePerioder = (
   values: DeepReadonly<ErstatningsopgoerelseValues>,
-  context: Readonly<{
+  _context: Readonly<{
     skadesdatoISO: ISODateString | undefined;
     erErhvervssygdom: boolean;
     menAfgoerelseDatoForTabel: ISODateString | undefined;
@@ -87,12 +84,6 @@ const validateSvieSmertePerioder = (
   const perioder = values.svieSmertePerioder ?? [];
   const nonEmpty = perioder.filter((row) => !isSvieSmerteRowEmpty(row));
   if (nonEmpty.length === 0) return [];
-
-  const skadesdatoMinRule = computeSkadesdatoMinRule({
-    skadesdatoISO: context.skadesdatoISO,
-    erErhvervssygdom: context.erErhvervssygdom,
-    fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMin,
-  });
 
   const overlapIds = detectOverlappingPeriods(nonEmpty);
 
@@ -109,30 +100,6 @@ const validateSvieSmertePerioder = (
     const tilISO = periode.til;
     if (!isISODateString(fraISO) || !isISODateString(tilISO)) {
       throw new Error('Svie/smerte-periode har ugyldig dato');
-    }
-
-    const bounds = computeRowDateBounds({
-      skadesdatoMinDate: skadesdatoMinRule.minDate,
-      rowFra: fraISO,
-      rowTil: tilISO,
-      fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMin,
-      fallbackMax: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMax,
-      tilFallbackMax: dateRanges_erstatningsopgoerelse.tabelSvieSmerteTil.max,
-      tilExtraMaxDate: context.menAfgoerelseDatoForTabel,
-      useTilExtraMaxDate: !context.verserendeKlageMen,
-    });
-
-    if (bounds.fra.min > bounds.fra.max || bounds.til.min > bounds.til.max) {
-      throw new Error('Svie/smerte-periode har ingen gyldige datoer');
-    }
-
-    const fraRange = validateISODateRange(fraISO, bounds.fra.min, bounds.fra.max);
-    if (!fraRange.isValid) {
-      throw new Error(`Svie/smerte-periode: ${fraRange.errorMessage}`);
-    }
-    const tilRange = validateISODateRange(tilISO, bounds.til.min, bounds.til.max);
-    if (!tilRange.isValid) {
-      throw new Error(`Svie/smerte-periode: ${tilRange.errorMessage}`);
     }
 
     if (overlapIds.has(periode.id)) {
@@ -197,7 +164,7 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
       for (const p of merged) {
         const fra = p.fra < vedroererFraDate ? vedroererFraDate : p.fra;
         const til = p.til > maxDate ? maxDate : p.til;
-        if (fra > maxDate || til < vedroererFraDate) continue;
+        if (fra > til) continue;
         constrained.push({ fra, til, isDelvist });
       }
     };

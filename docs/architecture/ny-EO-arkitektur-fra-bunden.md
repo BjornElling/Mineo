@@ -447,7 +447,7 @@ Formål med denne opsamling:
 - Ved runtimefejl skal eksisterende fejlvisning med indbygget fejloplysninger/rapportering bruges.
 - For de afklarede visningscases er "Visning B" valgt (tooltip-baseret fejlfeedback), forudsat individuel beslutning og dokumentation pr. undtagelse.
 - Snapshot-orchestreringen følger en hybridmodel: forudsigelige input-/preflight-fejl stoppes før engine-kald med brugernær fejlmodel, mens uventede engine-/runtimefejl routes til `fail_closed` og eksisterende runtime-fejlvisning.
-- Clamp af TAF-perioder må ikke indgå i den autoritative beregningssti. UI må gerne vise bounds/guidance, men snapshot-beregningen må ikke automatisk afskære perioden.
+- Clamp af TAF-perioder og andre brugerrettelige inputfejl må ikke blokere snapshot-opbygning. UI må gerne vise bounds/guidance og downloads må fortsat kunne blokeres særskilt, men debug-/snapshot-laget skal fortsat kunne bygges på committed data.
 - Tomt `tidligereModtagetTaf` er semantisk `0 kr` og skal eksponeres entydigt som `0`, ikke `null`, i snapshot/projektioner.
 - Svie/smerte-periode med gyldig datoformat men out-of-range bounds er en almindelig brugerrettelig `error`-tilstand, ikke i sig selv `fail_closed`/runtimefejl.
 - TAF-per-år er et snapshot-trin, ikke et PDF-særflow. Samme grundlag skal bruges i Beregning, Debug og PDF-gating.
@@ -535,7 +535,7 @@ Denne checkliste er bindende for første migrationsarbejde og skal være opfyldt
 - Snapshot-stien må ikke bruge clampende `buildTafRanges` direkte. Der skal introduceres en clamp-fri afløser eller refaktorering, som gør begge dele synlige:
   - rå TAF-ranges til autoritativ beregning
   - bound-violations til invariant-registry
-- Clamp-baserede TAF-ranges må kun bevares til UI-hjælpemidler og legacy/parity-sammenligning, ikke som input til autoritativ snapshot-beregning.
+- Clamp-baserede TAF-ranges må ikke i sig selv forhindre snapshot-opbygning. Snapshot/debug skal kunne bygges på committed data også når der forekommer brugerrettelige bounds-fejl eller stille clamping, mens output-gating fortsat håndteres eksplicit pr. output.
 - Invariant-registry skal have eksplicitte checks for:
   - out-of-range `tafPerioder[].loseFeriedage`
   - out-of-range `uspecificeredeFerieFridage`

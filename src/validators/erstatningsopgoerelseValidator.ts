@@ -27,14 +27,13 @@ import { resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/er
 import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/sharedPdfUtils';
 import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/loenoplysningerInput';
 import {
+  clampTafRow,
   getValidTafRange,
   resolveTafConstraintBounds,
-  resolveTafConstraintBoundSources,
 } from '../domain/erstatningsopgoerelse/tafPeriodConstraints';
 import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/tafCalculations';
 
 export const TAF_OVERLAP_ERROR_MESSAGE = 'TAF-perioder overlapper';
-export const TAF_BOUNDS_ERROR_MESSAGE_BASE = 'TAF-periode ligger uden for tilladt interval';
 
 // =============================================================================
 // LAG 1: SCHEMA-VALIDERING
@@ -330,7 +329,6 @@ function validateTAF(values: ErstatningsopgoerelseValues): ValidationError[] {
     }
   }
 
-  errors.push(...validateTafBounds(values));
   errors.push(...validateTafLoseFeriedage(values));
   errors.push(...validateBeregningsperiodeLoseFeriedage(values));
 
@@ -344,58 +342,26 @@ function validateTAF(values: ErstatningsopgoerelseValues): ValidationError[] {
   return errors;
 }
 
-export function validateTafBounds(values: ErstatningsopgoerelseValues): ValidationError[] {
-  const errors: ValidationError[] = [];
-  const bounds = resolveTafConstraintBounds(values);
-  const boundsText = [
-    bounds.minStart ? `fra ${bounds.minStart}` : null,
-    bounds.maxEnd ? `til ${bounds.maxEnd}` : null,
-  ].filter((value): value is string => value !== null).join(' og med ');
-  const boundSourceText = resolveTafConstraintBoundSources(values)
-    .map((source) => `${source.label}: ${source.value}`)
-    .join(', ');
-
-  for (let i = 0; i < (values.tafPerioder ?? []).length; i += 1) {
-    const row = values.tafPerioder[i];
-    const validRange = getValidTafRange(row);
-    if (!validRange) continue;
-
-    if (bounds.minStart && validRange.fra < bounds.minStart) {
-      errors.push({
-        path: `tafPerioder[${i}].fra`,
-        message: boundsText !== ''
-          ? `${TAF_BOUNDS_ERROR_MESSAGE_BASE} (${boundsText}${boundSourceText ? `; bounds fra ${boundSourceText}` : ''})`
-          : TAF_BOUNDS_ERROR_MESSAGE_BASE,
-        severity: 'error',
-      });
-    }
-    if (bounds.maxEnd && validRange.til > bounds.maxEnd) {
-      errors.push({
-        path: `tafPerioder[${i}].til`,
-        message: boundsText !== ''
-          ? `${TAF_BOUNDS_ERROR_MESSAGE_BASE} (${boundsText}${boundSourceText ? `; bounds fra ${boundSourceText}` : ''})`
-          : TAF_BOUNDS_ERROR_MESSAGE_BASE,
-        severity: 'error',
-      });
-    }
-  }
-
-  return errors;
-}
-
 export function validateTafLoseFeriedage(values: ErstatningsopgoerelseValues): ValidationError[] {
   const errors: ValidationError[] = [];
   const ferieperioder = [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])];
+  const tafBounds = resolveTafConstraintBounds(values);
 
   for (let i = 0; i < (values.tafPerioder ?? []).length; i += 1) {
     const row = values.tafPerioder[i];
     if (typeof row.loseFeriedage !== 'number') continue;
-    const validRange = getValidTafRange(row);
-    if (!validRange) continue;
+    const clampedRange = clampTafRow(row, tafBounds);
+    if (!clampedRange) {
+      // Rå rækker uden gyldig dato håndteres af rækkevalideringen ovenfor.
+      // Når en ellers gyldig TAF-række clampes helt bort, følger vi EO-kontrakten:
+      // perioden indgår ikke i den autoritative beregning, og løse feriedage må ikke blokere.
+      if (!getValidTafRange(row)) continue;
+      continue;
+    }
 
     const breakdown = calculateTafArbejdsdageBreakdown(
-      validRange.fra,
-      validRange.til,
+      clampedRange.fra,
+      clampedRange.til,
       ferieperioder,
       row.loseFeriedage,
       { kind: 'taf' }

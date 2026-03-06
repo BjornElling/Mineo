@@ -386,6 +386,57 @@ describe('svie/smerte — ekstra valideringscases', () => {
   });
 });
 
+describe('TAF — clampede feriedage', () => {
+  it('validerer løse feriedage mod den clampede TAF-periode', () => {
+    const values = makeValues({
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-01-05'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-10'), loseFeriedage: 5 },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+        },
+      ],
+      periodeTilBeregningFra: iso('2023-01-01'),
+      periodeTilBeregningTil: iso('2023-12-31'),
+    });
+
+    const result = erstatningsopgoerelseValidator.validate(values);
+    expect(
+      result.errors.some((error) =>
+        error.path === 'tafPerioder[0].loseFeriedage' &&
+        error.message.startsWith('Løse feriedage overstiger mulige arbejdsdage i perioden')
+      )
+    ).toBe(true);
+  });
+
+  it('ignorerer løse feriedage når en ellers gyldig TAF-periode clampes helt bort', () => {
+    const values = makeValues({
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-01-05'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-10'), til: iso('2024-01-12'), loseFeriedage: 5 },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+        },
+      ],
+      periodeTilBeregningFra: iso('2023-01-01'),
+      periodeTilBeregningTil: iso('2023-12-31'),
+    });
+
+    const result = erstatningsopgoerelseValidator.validate(values);
+    expect(
+      result.errors.some((error) => error.path === 'tafPerioder[0].loseFeriedage')
+    ).toBe(false);
+  });
+});
+
 // =============================================================================
 // TAF — EKSTRA CASES
 // =============================================================================

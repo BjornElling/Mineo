@@ -15,6 +15,7 @@ import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import ContentBox from '../../layout/ContentBox';
 import { getRegulationTableColumns } from './regulationTableColumns';
+import { renderRegulationTableCellContent } from './regulationTableCellContent';
 
 const LABEL_WIDTH = '250px';
 
@@ -69,7 +70,9 @@ const EODebugRegulationSections = React.memo<{
                         rows={table.rows.map((row, index): StandardDisplayTableRow => ({
                           key: `${table.id}-row-${index}`,
                           cells: row.cells.map((cell) =>
-                            typeof cell === 'string' ? cell : cell.displayValue
+                            typeof cell === 'string'
+                              ? renderRegulationTableCellContent(cell)
+                              : renderRegulationTableCellContent(cell.displayValue)
                           ),
                         }))}
                         containerSx={{ mb: tableIndex === tables.length - 1 ? 2 : 4, width: '100%' }}
@@ -78,7 +81,7 @@ const EODebugRegulationSections = React.memo<{
                           tableLayout: 'fixed',
                           '& .MuiTableCell-root': {
                             whiteSpace: 'normal',
-                            overflowWrap: 'anywhere',
+                            overflowWrap: 'break-word',
                           },
                         }}
                       />

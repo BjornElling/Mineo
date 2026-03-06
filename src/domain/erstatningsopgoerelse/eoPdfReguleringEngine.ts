@@ -340,6 +340,13 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         if (!iso) continue;
         if (iso > overenskomstTableStartIso && iso <= tafTil) rowDates.add(iso);
       }
+      if (
+        applyAlmindeligLoenPaaShDageRegel &&
+        overenskomstTableStartIso < STORE_BEDEDAG_START &&
+        tafTil >= STORE_BEDEDAG_START
+      ) {
+        rowDates.add(STORE_BEDEDAG_START);
+      }
       if (harAnciennitetstillaeg && anciennitetDatoIso && anciennitetDatoIso > overenskomstTableStartIso && anciennitetDatoIso <= tafTil) {
         rowDates.add(anciennitetDatoIso);
       }

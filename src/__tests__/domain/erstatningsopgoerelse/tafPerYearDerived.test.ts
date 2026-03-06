@@ -754,6 +754,37 @@ describe('buildTafPerYearResult', () => {
     expect(result.years[1].yearIncomeOre).toBe(0);
   });
 
+  it('clampper TAF-ranges til EO-perioden i TAF per år-resultatet', () => {
+    const eoValues = makeValues({
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-01-05'),
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmountValue(3000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-10'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        { id: 'y1', fraDato: '01-01-2024', tilDato: '10-01-2024', ydelse: asAmountValue(500), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+
+    const result = buildTafPerYearResult(model, eoValues);
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    expect(result.years).toHaveLength(1);
+    expect(result.years[0].year).toBe(2024);
+    expect(result.years[0].segments.every((segment) => segment.til <= iso('2024-01-05'))).toBe(true);
+  });
+
   it('sub-segmenter har ingen overlap eller huller per originalt segment', () => {
     // Et enkelt originalt segment der krydser 3 kalenderår
     const eoValues = makeValues({
@@ -1062,4 +1093,3 @@ describe('buildTafPerYearResult', () => {
     expect(totalPaidOre).toBe(30000);
   });
 });
-

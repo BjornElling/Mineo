@@ -7,7 +7,7 @@
  * - Ingen beregnings-tests (det er domain-tests)
  */
 
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import EODebugRegulationSections from '../../../../components/pages/erstatningsopgoerelse/EODebugRegulationSections';
@@ -128,6 +128,39 @@ describe('EODebugRegulationSections - Phase 4.5 UI', () => {
     // Tjek at displayValue vises (ikke rawValue)
     expect(getByText('01-01-2024')).toBeDefined();
     expect(getByText('1,3800')).toBeDefined();
+  });
+
+  it('indsatter wrap-punkt efter skrastreg i tabelceller', () => {
+    const sections: RegulationDebugSection[] = [
+      {
+        id: 'regulation.timeline',
+        header: 'Regulerings-tidslinje',
+        rows: [],
+        tables: [
+          {
+            id: 'regulation.timeline:table1',
+            columns: ['Indeksberegning'],
+            rows: [
+              {
+                id: 'timeline.row1',
+                cells: ['Dansk Industri/HK'],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const { container } = render(
+      <MemoryRouter>
+        <EODebugRegulationSections sections={sections} />
+      </MemoryRouter>
+    );
+
+    const cell = container.querySelector('tbody td');
+    expect(cell?.textContent).toBe('Dansk Industri/HK');
+    expect(cell?.querySelectorAll('span[style*="white-space: nowrap"]').length).toBe(3);
+    expect(cell?.innerHTML).toContain('<wbr>');
   });
 
   it('crasher ikke ved missing table', () => {

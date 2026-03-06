@@ -65,11 +65,11 @@ export const eoSnapshotToDebugView = (args: Readonly<{
     };
   }
 
-  if (hasEoSnapshotData(snapshot)) {
-    const debugSnapshot = snapshot.data.debugSnapshot;
+  const debugSnapshot = snapshot.debugSnapshot;
+  if (debugSnapshot) {
     const stamdataValues = debugSnapshot.stamdataValues;
     const erstatningsopgoerelseValues = debugSnapshot.eoValues;
-    const canonicalOutput = snapshot.data.canonicalOutput;
+    const canonicalOutput = hasEoSnapshotData(snapshot) ? snapshot.data.canonicalOutput : undefined;
 
     const ctx: EODebugExecutionContext = {
       stamdataValues,

@@ -312,8 +312,12 @@ export const buildTafPerYearBuildOutcome = (
 
   const forligFactor = source.forligFactor;
   const isArbejdsdage = source.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE;
+  // NOTE: Arbejdsdagesættet bygges fra rækkeinput i stedet for `options.tafRanges`.
+  // Årsag: mergede ranges bærer ikke rækkevis `loseFeriedage`, så genbrug ville miste
+  // autoritativ feriedagsplacering i arbejdsdagsmodellen. Revurder hvis TAF-ranges senere
+  // udvides med nok metadata til at bevare denne semantik.
   const tafArbejdsdageSet = isArbejdsdage
-    ? buildTafArbejdsdageSet(eoValues, { clamp: false })
+    ? buildTafArbejdsdageSet(eoValues)
     : null;
 
   // 1. Split segmenter per kalenderår
@@ -468,7 +472,7 @@ export const buildTafPerYearResult = (
   eoValues: ErstatningsopgoerelseValues
 ): TafPerYearResult | null => {
   const outcome = buildTafPerYearBuildOutcome(pdfModelToSource(model), eoValues, {
-    tafRanges: buildTafRanges(eoValues, { clamp: false }),
+    tafRanges: buildTafRanges(eoValues),
   });
   return outcome.kind === 'ok' ? outcome.result : null;
 };

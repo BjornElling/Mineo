@@ -58,6 +58,7 @@ export type EoSnapshot = Readonly<{
   status: 'ok' | 'warning' | 'error' | 'fail_closed';
   invariants: readonly EoInvariant[];
   data: EoSnapshotComputedData | null;
+  debugSnapshot: EODebugSnapshot | null;
   input: Readonly<{
     stamdata: StamdataValues | null;
     erstatningsopgoerelse: ErstatningsopgoerelseValues | null;
@@ -150,6 +151,7 @@ export const computeEoSnapshot = (args: Readonly<{
         blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf'],
       })),
       data: null,
+      debugSnapshot: null,
       input: {
         stamdata: parsedStamdata.success ? parsedStamdata.data : null,
         erstatningsopgoerelse: parsedEo.success ? parsedEo.data : null,
@@ -157,6 +159,14 @@ export const computeEoSnapshot = (args: Readonly<{
       failClosedReason: 'schema_guard',
     };
   }
+
+  const debugSnapshot = buildDebugSnapshotForComputed({
+    revision: args.revision,
+    stamdata: parsedStamdata.data,
+    eoValues: parsedEo.data,
+    stamdataErrors,
+    eoErrors,
+  });
 
   const validationResult = erstatningsopgoerelseValidator.validateParsed(parsedEo.data);
   const validationInvariants = buildValidationInvariants(validationResult.errors);
@@ -166,6 +176,7 @@ export const computeEoSnapshot = (args: Readonly<{
       status: 'error',
       invariants: validationInvariants,
       data: null,
+      debugSnapshot,
       input: {
         stamdata: parsedStamdata.data,
         erstatningsopgoerelse: parsedEo.data,
@@ -174,7 +185,7 @@ export const computeEoSnapshot = (args: Readonly<{
   }
 
   try {
-    const tafRanges = buildTafRanges(parsedEo.data, { clamp: false });
+    const tafRanges = buildTafRanges(parsedEo.data);
     const forlig = parseForligsgrad(parsedEo.data);
     const forligFactor = forlig?.factor ?? null;
     const svieSmerte = computeSvieSmerteEngine({
@@ -186,7 +197,6 @@ export const computeEoSnapshot = (args: Readonly<{
     });
     const tafNetto = computeTafNettoBeregning(parsedEo.data, parsedStamdata.data, {
       tafRanges,
-      clampTafRows: false,
     });
     const oevrigeKrav = buildOevrigeKravModel(parsedEo.data.oevrigeKravPerioder ?? []);
     const totals = buildEoComputedTotals({
@@ -214,14 +224,6 @@ export const computeEoSnapshot = (args: Readonly<{
       oevrigeKrav,
       totals,
     });
-    const debugSnapshot = buildDebugSnapshotForComputed({
-      revision: args.revision,
-      stamdata: parsedStamdata.data,
-      eoValues: parsedEo.data,
-      stamdataErrors,
-      eoErrors,
-    });
-
     const invariants: EoInvariant[] = [...validationInvariants];
     if (tafPerYearOutcome.kind === 'error' && tafPerYearOutcome.reason === 'afrunding_over_100') {
       invariants.push(buildTafPerYearAfrundingInvariant({
@@ -267,6 +269,7 @@ export const computeEoSnapshot = (args: Readonly<{
       status,
       invariants,
       data,
+      debugSnapshot,
       input: {
         stamdata: parsedStamdata.data,
         erstatningsopgoerelse: parsedEo.data,
@@ -292,6 +295,7 @@ export const computeEoSnapshot = (args: Readonly<{
         blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf'],
       }],
       data: null,
+      debugSnapshot,
       input: {
         stamdata: parsedStamdata.data,
         erstatningsopgoerelse: parsedEo.data,

@@ -83,6 +83,7 @@ describe('eoSnapshotToDebugView', () => {
         revision: 'rev-1',
         status: 'ok',
         invariants: [],
+        debugSnapshot,
         data: {
           canonicalOutput: { marker: 'canonical' },
           debugSnapshot,
@@ -129,6 +130,7 @@ describe('eoSnapshotToDebugView', () => {
           message: 'Intern fejl',
         }],
         data: null,
+        debugSnapshot: null,
         input: {
           stamdata: null,
           erstatningsopgoerelse: null,
@@ -146,7 +148,37 @@ describe('eoSnapshotToDebugView', () => {
     });
   });
 
-  it('returnerer blocked-view når snapshot kun har valideringsfejl uden debug-data', () => {
+  it('returnerer ready-view når snapshot har valideringsfejl men debugSnapshot findes', () => {
+    const debugSnapshot = {
+      model: {
+        tableData: {
+          dates: ['2024-01-01'],
+          weekdayIndexByRow: [1],
+          isSognehelligdagByIndex: [false],
+          isWorkdayByIndex: [true],
+          ssStatusByIndex: ['Nej'],
+          svieSmerteByIndex: ['Ingen'],
+          tafColumnIds: [],
+          tafFlagsByIndex: [new Set<string>()],
+        },
+      },
+      debugDays: [],
+      sammentaellingRows: [],
+      stamdataValues: {
+        journalnr: 'J-2',
+        skadesdato: '2024-01-01',
+        skadestype: 'Arbejdsulykke',
+      },
+      eoValues: {
+        midlertidigtEetAfgorelse: 'Nej',
+        endeligtEetAfgorelse: 'Nej',
+      },
+      fieldErrors: {
+        stamdata: {},
+        erstatningsopgoerelse: {},
+      },
+    } as never;
+
     const view = eoSnapshotToDebugView({
       snapshot: {
         revision: 'rev-error',
@@ -158,6 +190,7 @@ describe('eoSnapshotToDebugView', () => {
           message: 'Lønregulering skal vælges, evt. "Ingen"',
         }],
         data: null,
+        debugSnapshot,
         input: {
           stamdata: {
             journalnr: 'J-2',
@@ -174,11 +207,6 @@ describe('eoSnapshotToDebugView', () => {
       loenindkomstManuelReguleringInputErrors: {},
     });
 
-    expect(view).toEqual({
-      kind: 'blocked',
-      severity: 'info',
-      title: 'EO debug kræver et gyldigt debug-snapshot',
-      message: 'Ret valideringsfejlene i sagen og åbn debug-fanen igen for at bygge debug på korrekt committede data.',
-    });
+    expect(view.kind).toBe('ready');
   });
 });

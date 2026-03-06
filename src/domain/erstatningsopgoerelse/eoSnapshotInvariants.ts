@@ -2,7 +2,6 @@ import type { ValidationError } from '../../types/validation';
 import type { MoneyOre, PdfModel } from './eoPdfModel';
 import type { EoSnapshotWithData } from './eoSnapshot';
 import {
-  TAF_BOUNDS_ERROR_MESSAGE_BASE,
   TAF_OVERLAP_ERROR_MESSAGE,
 } from '../../validators/erstatningsopgoerelseValidator';
 
@@ -24,9 +23,6 @@ const buildValidationInvariantId = (error: ValidationError, index: number): stri
   const path = error.path ?? `${index}`;
   if (error.message === TAF_OVERLAP_ERROR_MESSAGE) {
     return `taf_perioder:overlap:${path}`;
-  }
-  if (error.message.startsWith(TAF_BOUNDS_ERROR_MESSAGE_BASE)) {
-    return `taf_perioder:bounds:${path}`;
   }
   if (path.includes('.loseFeriedage')) {
     return `taf_perioder:lose_feriedage:${path}`;

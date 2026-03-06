@@ -203,10 +203,9 @@ export const buildEoCanonicalOutput = (
     },
   });
 
-  const tafRanges = buildTafRanges(safeEo, { clamp: false });
+  const tafRanges = buildTafRanges(safeEo);
   const tafNetto = computeTafNettoBeregning(safeEo, safeStamdata, {
     tafRanges,
-    clampTafRows: false,
   });
   const oevrige = buildOevrigeKravModel(safeEo.oevrigeKravPerioder ?? []);
   const totals = buildEoComputedTotals({

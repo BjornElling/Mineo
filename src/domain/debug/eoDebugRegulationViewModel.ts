@@ -168,7 +168,7 @@ const COLUMN_DEFS: ReadonlyArray<Readonly<{
   },
   {
     key: 'ferie',
-    header: 'Ferie',
+    header: 'Feriepenge',
     getCell: (entry) => buildPercentCell(entry.feriePct),
     shouldInclude: (_timeline, entries) => entries.some((entry) => entry.feriePct !== 0),
   },

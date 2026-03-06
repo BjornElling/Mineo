@@ -72,4 +72,26 @@ describe('eoPdfReguleringEngine', () => {
     expect(rows[0]?.fraDato).toBe('01-04-2020');
     expect(rows[0]?.indeks).toBe('100,00');
   });
+
+  it('indsætter Store Bededag som separat række 01-01-2024 i offentlig reguleringsværdier-tabel', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'kl-overenskomst';
+    af.offentligLoenType = 'Timeløn';
+    af.offentligLoenTrin = 20;
+    af.offentligLoenGruppe = 0;
+    af.loenPaaHelligdage = 'Almindelig løn';
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      reguleringsdato: iso('2023-05-24'),
+      tafFra: iso('2023-06-01'),
+      tafTil: iso('2025-12-31'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
+  });
 });

@@ -373,6 +373,18 @@ describe('buildRegulationTimeline — offentlig løn-path (KL)', () => {
     expect(entries[0]?.effectiveFrom).toBe(iso('2023-11-01'));
     expect(entries.some((entry) => entry.effectiveFrom === iso('2023-11-01'))).toBe(true);
   });
+
+  it('indsætter Store Bededag som separat reguleringsdato 01-01-2024 for offentlig løn', () => {
+    const input = makeKLInput();
+    input.eoValues.vedroererPeriodeFra = '2023-06-01';
+    input.eoValues.vedroererPeriodeTil = '2025-12-31';
+    input.stamdataValues.skadesdato = iso('2023-05-24');
+
+    const result = buildRegulationTimeline(input);
+    const entries = result.ansaettelser[0]?.entries ?? [];
+
+    expect(entries.some((entry) => entry.effectiveFrom === iso('2024-01-01'))).toBe(true);
+  });
 });
 
 // ─── buildSHDageSet ──────────────────────────────────────────────────────────

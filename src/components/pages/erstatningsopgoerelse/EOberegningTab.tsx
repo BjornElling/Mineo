@@ -49,6 +49,24 @@ type SystemIssueRow = Readonly<{
   }>;
 }>;
 
+const FEJL_ADVARSLER_ROW_SX = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 58ch) max-content',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  gap: 1,
+  '& > :first-of-type': {
+    minWidth: 0,
+    overflowWrap: 'break-word',
+  },
+  '& .row--label-right-hover__content': {
+    minWidth: 'max-content',
+    flexWrap: 'nowrap',
+    whiteSpace: 'nowrap',
+    alignSelf: 'flex-start',
+  },
+} as const;
+
 /**
  * Beregning-fanen viser debug-fejl/advarsler og snapshot-baseret downloadstatus.
  *
@@ -459,6 +477,23 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     row: (typeof errors)[number],
     message: string
   ): string | null => {
+    if (
+      row.label === 'Periode til beregning af før-løn'
+      && message.startsWith('Der er overlap mellem beregningsperioden (')
+    ) {
+      return message;
+    }
+
+    if (
+      row.label.startsWith('Periode (')
+      && message.startsWith('Dato skal være mellem ')
+    ) {
+      const prefix = row.id.startsWith('sviesmerte.periode.')
+        ? 'Svie/smerte-perioden'
+        : 'TAF-perioden';
+      return `${prefix} skal være mellem ${message.replace('Dato skal være mellem ', '')}`;
+    }
+
     if (row.label === 'Valgt regulering' && message === 'Lønudvikling beregnes ud fra mangler') {
       return 'Der mangler at blive angivet lønregulering, evt. \'Ingen\'';
     }
@@ -492,7 +527,14 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       : <WarningAmber sx={{ color: 'orange', fontSize: 20 }} />;
 
     return rows.map((row) => (
-      <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': '400px' }}>
+      <Box
+        key={row.id}
+        className="row--label-right-hover"
+        sx={{
+          '--label-width': '400px',
+          ...FEJL_ADVARSLER_ROW_SX,
+        }}
+      >
         <Typography className="row--text">{formatSummaryText(row)}</Typography>
         <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
           {row.navigation.kind === 'erstatningsopgoerelse-tab' && (
@@ -552,7 +594,14 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 
   const renderSystemIssueRows = React.useCallback((rows: readonly SystemIssueRow[]) => {
     return rows.map((row) => (
-      <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': '400px' }}>
+      <Box
+        key={row.id}
+        className="row--label-right-hover"
+        sx={{
+          '--label-width': '400px',
+          ...FEJL_ADVARSLER_ROW_SX,
+        }}
+      >
         <Typography className="row--text">{row.message}</Typography>
         <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
           {row.bugReportContext ? (
