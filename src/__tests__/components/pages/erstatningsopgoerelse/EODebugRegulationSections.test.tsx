@@ -8,12 +8,22 @@
  */
 
 import { render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import EODebugRegulationSections from '../../../../components/pages/erstatningsopgoerelse/EODebugRegulationSections';
 import type { RegulationDebugSection } from '../../../../domain/debug/eoDebugRegulationViewModel';
 
+vi.mock('../../../../contexts/AppSettingsContext', () => ({
+  useAppSettings: () => ({ settings: { showContentBoxReportButton: false } }),
+}));
+
 describe('EODebugRegulationSections - Phase 4.5 UI', () => {
   it('viser "Ingen reguleringsdata" når sections er tom', () => {
-    const { getByText } = render(<EODebugRegulationSections sections={[]} />);
+    const { getByText } = render(
+      <MemoryRouter>
+        <EODebugRegulationSections sections={[]} />
+      </MemoryRouter>
+    );
 
     expect(getByText('Ingen reguleringsdata')).toBeDefined();
   });
@@ -36,20 +46,23 @@ describe('EODebugRegulationSections - Phase 4.5 UI', () => {
         id: 'regulation.timeline',
         header: 'Regulerings-tidslinje',
         rows: [],
-        table: {
-          columns: ['Dato', 'Kumulativ faktor', 'Årsag', 'Steps'],
-          rows: [
-            {
-              id: 'timeline.row1',
-              cells: [
-                { rawValue: '2024-01-01', displayValue: '01-01-2024' },
-                { rawValue: 1.38, displayValue: '1,3800' },
-                'Årlig indeks',
-                'Årlig indeks=1,3800',
-              ],
-            },
-          ],
-        },
+        tables: [
+          {
+            id: 'regulation.timeline:table1',
+            columns: ['Dato', 'Kumulativ faktor', 'Årsag', 'Steps'],
+            rows: [
+              {
+                id: 'timeline.row1',
+                cells: [
+                  { rawValue: '2024-01-01', displayValue: '01-01-2024' },
+                  { rawValue: 1.38, displayValue: '1,3800' },
+                  'Årlig indeks',
+                  'Årlig indeks=1,3800',
+                ],
+              },
+            ],
+          },
+        ],
       },
       {
         id: 'regulation.storebededag',
@@ -61,12 +74,17 @@ describe('EODebugRegulationSections - Phase 4.5 UI', () => {
       },
     ];
 
-    const { getByText, getAllByText } = render(<EODebugRegulationSections sections={sections} />);
+    const { container, getByText, getAllByText } = render(
+      <MemoryRouter>
+        <EODebugRegulationSections sections={sections} />
+      </MemoryRouter>
+    );
 
     // Tjek at headers vises
     expect(getByText('Regulerings-overblik')).toBeDefined();
     expect(getByText('Regulerings-tidslinje')).toBeDefined();
     expect(getByText('Store Bededag')).toBeDefined();
+    expect(container.querySelectorAll('.content-box')).toHaveLength(3);
 
     // Tjek at displayValue vises (kan være flere steder)
     expect(getAllByText('01-01-2024').length).toBeGreaterThan(0);
@@ -79,22 +97,29 @@ describe('EODebugRegulationSections - Phase 4.5 UI', () => {
         id: 'regulation.timeline',
         header: 'Regulerings-tidslinje',
         rows: [],
-        table: {
-          columns: ['Dato', 'Kumulativ faktor'],
-          rows: [
-            {
-              id: 'timeline.row1',
-              cells: [
-                { rawValue: '2024-01-01', displayValue: '01-01-2024' },
-                { rawValue: 1.38, displayValue: '1,3800' },
-              ],
-            },
-          ],
-        },
+        tables: [
+          {
+            id: 'regulation.timeline:table1',
+            columns: ['Dato', 'Kumulativ faktor'],
+            rows: [
+              {
+                id: 'timeline.row1',
+                cells: [
+                  { rawValue: '2024-01-01', displayValue: '01-01-2024' },
+                  { rawValue: 1.38, displayValue: '1,3800' },
+                ],
+              },
+            ],
+          },
+        ],
       },
     ];
 
-    const { getByText } = render(<EODebugRegulationSections sections={sections} />);
+    const { getByText } = render(
+      <MemoryRouter>
+        <EODebugRegulationSections sections={sections} />
+      </MemoryRouter>
+    );
 
     // Tjek at tabel-header vises
     expect(getByText('Dato')).toBeDefined();
@@ -114,7 +139,11 @@ describe('EODebugRegulationSections - Phase 4.5 UI', () => {
       },
     ];
 
-    const { getByText } = render(<EODebugRegulationSections sections={sections} />);
+    const { getByText } = render(
+      <MemoryRouter>
+        <EODebugRegulationSections sections={sections} />
+      </MemoryRouter>
+    );
 
     expect(getByText('Regulerings-overblik')).toBeDefined();
     expect(getByText('Test')).toBeDefined();

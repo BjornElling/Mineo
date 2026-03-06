@@ -12,7 +12,10 @@ import { downloadFile } from '../../../utils/fileHelpers';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import VirtualizedDisplayTable from '../../tables/VirtualizedDisplayTable';
+import type { VirtualizedDisplayTableHeaderRow } from '../../tables/VirtualizedDisplayTable';
 import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
+import { buildEODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
+import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
 
 const ROW_HEIGHT = 28;
 
@@ -29,14 +32,48 @@ const parseDanishNumberString = (value: string): number => {
   return Number.isFinite(parsed) ? parsed : Number.NaN;
 };
 
+const resolveEmploymentHeaderTitle = (snapshot: EODebugSnapshot, employmentIndex: number): string => {
+  const employment = snapshot.eoValues.loenindkomstAnsaettelsesforhold?.[employmentIndex];
+  const arbejdsstedNavn = employment?.navnPaaArbejdssted?.trim() ?? '';
+  return arbejdsstedNavn !== '' ? arbejdsstedNavn : `Ansættelsessted ${employmentIndex + 1}`;
+};
+
+const parseEmploymentIndexFromColumnId = (columnId: string): number | null => {
+  const match = columnId.match(/^loen:(\d+):(taf_regulering|wage:)/);
+  if (!match) return null;
+  const parsed = Number.parseInt(match[1] ?? '', 10);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 type EODebugTabelProps = {
   debugSnapshot?: EODebugSnapshot | null;
+  eoSnapshot?: EoSnapshot | null;
   currentDebugRevision?: string;
 };
 
-const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }: EODebugTabelProps) => {
+const EODebugTabel = React.memo(({ debugSnapshot = null, eoSnapshot = null, currentDebugRevision }: EODebugTabelProps) => {
   const theme = useTheme();
-  const snapshot = debugSnapshot && debugSnapshot.revision === currentDebugRevision ? debugSnapshot : null;
+  const snapshot = React.useMemo(() => {
+    if (debugSnapshot && debugSnapshot.revision === currentDebugRevision) {
+      return debugSnapshot;
+    }
+    if (!eoSnapshot || eoSnapshot.revision !== currentDebugRevision) {
+      return null;
+    }
+    if (!eoSnapshot.input.stamdata || !eoSnapshot.input.erstatningsopgoerelse) {
+      return null;
+    }
+    if (eoSnapshot.status === 'fail_closed') {
+      return null;
+    }
+    return buildEODebugSnapshot({
+      revision: eoSnapshot.revision,
+      stamdataValues: eoSnapshot.input.stamdata,
+      eoValues: eoSnapshot.input.erstatningsopgoerelse,
+      stamdataErrors: {},
+      eoErrors: {},
+    });
+  }, [currentDebugRevision, debugSnapshot, eoSnapshot]);
   const model = snapshot?.model ?? null;
 
   const formatIso = React.useCallback((iso: ISODateString | undefined): string => {
@@ -146,6 +183,71 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
     }));
   }, [model]);
 
+  const tableHeaderRows = React.useMemo(() => {
+    if (!snapshot || !model) return undefined;
+
+    const topRowCells: Array<VirtualizedDisplayTableHeaderRow['cells'][number]> = [];
+    let columnIndex = 0;
+
+    while (columnIndex < model.columns.length) {
+      const column = model.columns[columnIndex];
+      if (!column) break;
+
+      const employmentIndex = parseEmploymentIndexFromColumnId(column.id);
+      if (employmentIndex === null) {
+        topRowCells.push({
+          key: `top:${column.id}`,
+          content: '',
+          columnId: undefined,
+          colSpan: 1,
+          width: column.width,
+          borderLeft: column.borderLeft,
+        });
+        columnIndex += 1;
+        continue;
+      }
+
+      let spanWidth = column.width;
+      let spanCount = 1;
+      let nextIndex = columnIndex + 1;
+      while (nextIndex < model.columns.length) {
+        const nextColumn = model.columns[nextIndex];
+        if (!nextColumn) break;
+        if (parseEmploymentIndexFromColumnId(nextColumn.id) !== employmentIndex) break;
+        spanWidth += nextColumn.width;
+        spanCount += 1;
+        nextIndex += 1;
+      }
+
+      topRowCells.push({
+        key: `employment:${employmentIndex}`,
+        content: (
+          <Box component="span" sx={{ display: 'block', fontWeight: 700, textAlign: 'center' }}>
+            {resolveEmploymentHeaderTitle(snapshot, employmentIndex)}
+          </Box>
+        ),
+        colSpan: spanCount,
+        width: spanWidth,
+        borderLeft: column.borderLeft,
+      });
+      columnIndex = nextIndex;
+    }
+
+    const bottomRowCells: Array<VirtualizedDisplayTableHeaderRow['cells'][number]> = model.columns.map((column) => ({
+      key: `bottom:${column.id}`,
+      content: column.header,
+      columnId: column.id,
+      width: column.width,
+      align: 'center',
+      borderLeft: column.borderLeft,
+    }));
+
+    return [
+      { key: 'employment-groups', cells: topRowCells, stickyHeight: 32 },
+      { key: 'column-labels', cells: bottomRowCells, stickyHeight: 44 },
+    ] satisfies readonly VirtualizedDisplayTableHeaderRow[];
+  }, [model, snapshot]);
+
   const renderCell = React.useCallback(
     (rowIndex: number, colIndex: number) => {
       if (!model) return '';
@@ -155,7 +257,7 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
     [model]
   );
 
-  const stickyHeaderTop = React.useMemo(() => -Number.parseFloat(theme.spacing(3)), [theme]);
+  const stickyHeaderTop = React.useMemo(() => -Number.parseFloat(theme.spacing(3)) - 2, [theme]);
   const canDownloadDebugTable = Boolean(model?.tableFra && model?.tableTil);
 
   const formatCsvAmountCell = React.useCallback((value: unknown): string => {
@@ -311,6 +413,7 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
         ) : (
           <VirtualizedDisplayTable
             columns={tableColumns}
+            headerRows={tableHeaderRows}
             rowCount={model!.rowCount}
             rowHeight={ROW_HEIGHT}
             height={0}

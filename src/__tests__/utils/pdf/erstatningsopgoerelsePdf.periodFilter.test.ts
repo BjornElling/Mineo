@@ -490,7 +490,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
       loenudviklingManuelNavn: 'DA-tillægstrin',
     };
 
-    expect(resolveValgtReguleringDisplay(af)).toBe('DA-tillægstrin');
+    expect(resolveValgtReguleringDisplay(af)).toBe('Manuelt angivet (DA-tillægstrin)');
   });
 
   it('falder tilbage til Manuelt angivet når navn på reguleringsform mangler', () => {

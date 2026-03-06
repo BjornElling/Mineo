@@ -1,59 +1,67 @@
 import * as React from 'react';
-import { Alert, AlertTitle, Box, Typography } from '@mui/material';
-import { Check, ErrorOutline, WarningAmber } from '@mui/icons-material';
+import { Alert, AlertTitle, Box } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
 import { useEOLoenindkomstInputErrors } from '../../../hooks/useEOLoenindkomstInputErrors';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 import { eoSnapshotToDebugView } from '../../../domain/erstatningsopgoerelse/eoSnapshotToDebugView';
-import { getSammentaellingControlStatus, type SammentaellingDisplayRow } from '../../../domain/debug/eoDebugSammentaelling';
+import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
 import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
-import EODebugLoenSections from './EODebugLoenSections';
 import EODebugRegulationSections from './EODebugRegulationSections';
 import EODebugRowsSection from './EODebugRowsSection';
+import EODebugEmploymentSections from './EODebugEmploymentSections';
+import type { RegulationDebugSection } from '../../../domain/debug/eoDebugRegulationViewModel';
 
 type EODebugProps = Readonly<{
   eoSnapshot?: EoSnapshot | null;
 }>;
 
-const getControlIcon = (row: SammentaellingDisplayRow): React.ReactElement => {
-  const status = getSammentaellingControlStatus(row.control);
-  switch (status) {
-    case 'error':
-      return <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />;
-    case 'warning':
-      return <WarningAmber sx={{ color: 'orange', fontSize: 20 }} />;
-    case 'ok':
-      return <Check sx={{ color: 'green', fontSize: 20 }} />;
-  }
+const getLoenindkomstAnsaettelsesforholdId = (rowId: string): string | null => {
+  const match = /^loenindkomst\.([^.]+)\./.exec(rowId);
+  return match?.[1] ?? null;
 };
 
-const EODebugSammentaellingSection = React.memo<{
-  rows: readonly SammentaellingDisplayRow[];
-}>(({ rows }) => {
-  if (rows.length === 0) {
-    return null;
-  }
+const isLoenindkomstRegulationRow = (row: DebugRowModel): boolean => row.id.includes('.regulering.');
 
-  return (
-    <ContentBox className="content-box">
-      <Typography className="section-header">Sammentælling</Typography>
+const buildLoenindkomstSections = (rows: readonly DebugRowModel[]) => {
+  const grouped = new Map<string, DebugRowModel[]>();
+  const order: string[] = [];
 
-      {rows.map((row) => (
-        <Box key={row.key} className="row--label-right-hover" sx={{ '--label-width': '360px' }}>
-          <Typography className="row--text">{row.label}</Typography>
-          <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-            <Typography className="row--text">
-              Beregnet: {row.control.beregnetDisplay} | Tabel: {row.control.tabelDisplay}
-            </Typography>
-            {getControlIcon(row)}
-          </Box>
-        </Box>
-      ))}
-    </ContentBox>
-  );
-});
+  rows.forEach((row) => {
+    const ansaettelsesforholdId = getLoenindkomstAnsaettelsesforholdId(row.id);
+    if (!ansaettelsesforholdId) return;
+    if (!grouped.has(ansaettelsesforholdId)) {
+      grouped.set(ansaettelsesforholdId, []);
+      order.push(ansaettelsesforholdId);
+    }
+    grouped.get(ansaettelsesforholdId)?.push(row);
+  });
 
-EODebugSammentaellingSection.displayName = 'EODebugSammentaellingSection';
+  return order.map((ansaettelsesforholdId, index) => {
+    const sectionRows = grouped.get(ansaettelsesforholdId) ?? [];
+    const arbejdsstedNavn = sectionRows.find((row) => row.label === 'Navn på arbejdssted')?.displayValue.trim() ?? '';
+    const hasNamedArbejdssted = arbejdsstedNavn !== '' && arbejdsstedNavn !== '-';
+    const title = hasNamedArbejdssted
+      ? arbejdsstedNavn
+      : `Arbejdssted ${index + 1}`;
+    const visibleRows = hasNamedArbejdssted
+      ? sectionRows.filter((row) => row.label !== 'Navn på arbejdssted')
+      : sectionRows;
+    const loenRows = visibleRows.filter((row) => !isLoenindkomstRegulationRow(row));
+    const regulationRows = visibleRows.filter(isLoenindkomstRegulationRow);
+
+    return {
+      id: ansaettelsesforholdId,
+      title,
+      loenRows,
+      regulationRows,
+    };
+  });
+};
+
+const getRegulationEmploymentId = (section: RegulationDebugSection): string | null => {
+  const match = /^regulation\.(.+)$/.exec(section.id);
+  return match?.[1] ?? null;
+};
 
 const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
   const manuelReguleringInputErrors = useEOLoenindkomstInputErrors();
@@ -80,9 +88,28 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
   const viserMidlertidigtEet = erstatningsopgoerelseValues.midlertidigtEetAfgorelse === 'Ja';
   const viserEndeligtEet = erstatningsopgoerelseValues.endeligtEetAfgorelse === 'Ja';
   const aesRows = rowsBySection.get('aes') ?? [];
+  const loenindkomstRows = rowsBySection.get('loenindkomst') ?? [];
+  const loenindkomstSections = buildLoenindkomstSections(loenindkomstRows);
+  const regulationSectionsByEmploymentId = new Map<string, RegulationDebugSection>();
+  view.regulationSections.forEach((section) => {
+    const employmentId = getRegulationEmploymentId(section);
+    if (!employmentId) return;
+    regulationSectionsByEmploymentId.set(employmentId, section);
+  });
+  const employmentSections = loenindkomstSections.map((section) => ({
+    id: section.id,
+    title: section.title,
+    loenRows: section.loenRows,
+    regulationRows: section.regulationRows,
+    regulationSection: regulationSectionsByEmploymentId.get(section.id),
+  }));
+  const orphanRegulationSections = view.regulationSections.filter((section) => {
+    const employmentId = getRegulationEmploymentId(section);
+    return !employmentId || !loenindkomstSections.some((loenSection) => loenSection.id === employmentId);
+  });
   const filtreredeAesRows = aesRows.filter((row) => {
-    if (!viserMidlertidigtEet && row.group === 'aes.midlertidigtEet') return false;
-    if (!viserEndeligtEet && row.group === 'aes.endeligtEet') return false;
+    if (!viserMidlertidigtEet && row.group === 'aes.midlertidigtEet' && row.id !== 'aes.midlertidigtEetAfgorelse') return false;
+    if (!viserEndeligtEet && row.group === 'aes.endeligtEet' && row.id !== 'aes.endeligtEetAfgorelse') return false;
     return true;
   });
 
@@ -92,29 +119,18 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
       <EODebugRowsSection title="Erstatningsopgørelse" rows={rowsBySection.get('erstatningsopgoerelse') ?? []} />
       <EODebugRowsSection title="Forlig" rows={rowsBySection.get('forlig') ?? []} />
       <EODebugRowsSection title="AES" rows={filtreredeAesRows} />
-      <EODebugRowsSection title="Lønindkomst" rows={rowsBySection.get('loenindkomst') ?? []} />
-      <EODebugRowsSection title="Offentlige ydelser" rows={rowsBySection.get('offentlige-ydelser') ?? []} />
       <EODebugRowsSection title="Svie og smerte" rows={rowsBySection.get('sviesmerte') ?? []} />
+      <EODebugRowsSection title="Tabt arbejdsfortjeneste" rows={rowsBySection.get('taf') ?? []} />
       <EODebugRowsSection title="TAF beregningsgrundlag" rows={rowsBySection.get('taf-beregningsgrundlag') ?? []} />
-      <EODebugRowsSection title="TAF" rows={rowsBySection.get('taf') ?? []} />
+      {employmentSections.length > 0
+        ? <EODebugEmploymentSections sections={employmentSections} />
+        : <EODebugRowsSection title="Lønindkomst" rows={loenindkomstRows} />}
+      <EODebugRowsSection title="Offentlige ydelser" rows={rowsBySection.get('offentlige-ydelser') ?? []} />
 
-      {view.regulationSections.length > 0 && (
-        <ContentBox className="content-box">
-          <Typography className="section-header">Regulering</Typography>
-          <EODebugRegulationSections sections={view.regulationSections} />
-        </ContentBox>
-      )}
-
-      {view.loenSections.length > 0 && (
-        <ContentBox className="content-box">
-          <Typography className="section-header">Lønoversigter</Typography>
-          <EODebugLoenSections sections={view.loenSections} />
-        </ContentBox>
-      )}
+      {orphanRegulationSections.length > 0 && <EODebugRegulationSections sections={orphanRegulationSections} />}
 
       <EODebugRowsSection title="Øvrige erstatningskrav" rows={rowsBySection.get('oevrige-krav') ?? []} />
       <EODebugRowsSection title="Eventuelle særlige kommentarer" rows={rowsBySection.get('saerlige-kommentarer') ?? []} />
-      <EODebugSammentaellingSection rows={view.debugSnapshot.sammentaellingRows} />
     </Box>
   );
 };

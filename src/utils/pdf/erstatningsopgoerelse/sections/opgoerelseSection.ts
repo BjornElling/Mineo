@@ -647,7 +647,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           writer.addSpacer(lineHeight);
           writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
           writer.writeUnderlinedLabel(entry.ansaettelsesforholdNavn, MARGINS.left);
-          renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, true);
+          renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, false);
         }
         if (loenudvikling.loenudviklingTotal.status === 'ok') {
           writer.addSpacer(lineHeight);

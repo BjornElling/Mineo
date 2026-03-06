@@ -1276,7 +1276,7 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     assertTotalMatchesSegmentSum(loenudvikling);
   });
 
-  it('forbliver i konsolideret path når alle ansaettelser bruger samme strategi', () => {
+  it('beregner stadig pr. ansaettelsesforhold selv når alle ansaettelser bruger samme strategi', () => {
     const eoValues = makeValues({
       beregnesUdFra: beregningsmetodeEnum.enum.Beregningsperiode,
       periodeTilBeregningFra: iso('2023-01-01'),
@@ -1345,8 +1345,12 @@ describe('buildErstatningsopgoerelsePdfModel', () => {
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
 
     expect(loenudvikling).not.toBeNull();
-    expect(loenudvikling?.perAnsaettelse).toHaveLength(0);
+    expect(loenudvikling?.perAnsaettelse).toHaveLength(2);
     expect(loenudvikling?.loenudviklingLabel).toBe('ILON12 (Danmarks Statistik)');
+    expect(loenudvikling?.perAnsaettelse.map((entry) => entry.loenudviklingLabel)).toEqual([
+      'ILON12 (Danmarks Statistik)',
+      'ILON12 (Danmarks Statistik)',
+    ]);
     assertTotalMatchesSegmentSum(loenudvikling);
   });
 

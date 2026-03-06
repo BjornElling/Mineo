@@ -492,6 +492,12 @@ export const createPdfWriter = (params: Readonly<{
   };
 
   const writeUnderlinedLabel = (text: string, x: number) => {
+    const excessTopSpacing = Math.max(0, manualSpacingSinceLastContent - lineHeight);
+    if (excessTopSpacing > 0) {
+      cursor.advanceY(-excessTopSpacing);
+      manualSpacingSinceLastContent -= excessTopSpacing;
+    }
+
     const existingTopSpacing = Math.min(lineHeight, manualSpacingSinceLastContent);
     let topSpacing = lineHeight - existingTopSpacing;
     const beforeEnsureY = cursor.getY();

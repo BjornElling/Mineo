@@ -19,6 +19,7 @@ import {
   resolveOffentligLoenEkstraGrundloen,
   resolvePctPointFromSatsOrInput,
   resolveReguleringsdato as resolveReguleringsdatoShared,
+  isAslStatistikModel,
   resolveStatistikModelId,
   roundToTwoDecimals,
 } from './sharedPdfUtils';
@@ -448,7 +449,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const modelLabel = (ansaettelsesforhold.loenudviklingStatistikModel ?? '').trim();
     if (modelLabel === '') return null;
 
-    if (modelLabel.startsWith('ASL-')) {
+    if (isAslStatistikModel(modelLabel)) {
       const regDate = parseIsoDateToUtcDate(reguleringsdato);
       const tafFraDate = parseIsoDateToUtcDate(reguleringTableStartIso);
       const tafTilDate = parseIsoDateToUtcDate(tafTil);
@@ -563,7 +564,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
   const isStatistik = loenudviklingBasis === 'Statistik';
   const isKRL = loenudviklingBasis === 'KRL satstabel';
   const isSimpleIndex = isStatistik || isKRL;
-  const isAslModel = isStatistik && statistikModelLabel.startsWith('ASL-');
+  const isAslModel = isStatistik && isAslStatistikModel(statistikModelLabel);
   const statDecimalPlaces = (() => {
     if (isKRL) return 4;
     if (!isStatistik || isAslModel) return 2;

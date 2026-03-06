@@ -376,6 +376,74 @@ describe('buildEODebugModel — columnRawValues', () => {
 // ─── Loen/offentligeydelser kolonner (smoke-tests) ────────────────────────────
 
 describe('buildEODebugModel — loenindkomst og offentligeydelser kolonner (smoke)', () => {
+  it('viser kun én fælles TAF dag-kolonne selv ved flere ansættelsesforhold', () => {
+    const model = buildEODebugModel({
+      ...base(),
+      vedroererPeriodeFra: '2024-01-01' as never,
+      vedroererPeriodeTil: '2024-01-31' as never,
+      tafPerioder: [{ id: 'taf-1', fra: '2024-01-02', til: '2024-01-10', loseFeriedage: 0 }] as never,
+      loenindkomstAnsaettelsesforhold: [
+        {
+          id: 'af-1',
+          navnPaaArbejdssted: 'Arbejdssted 1',
+          harOverenskomst: true,
+          overenskomstId: 'bygge-anlaeg',
+          ansatPaaSkadestidspunktet: true,
+          ansaettelsesforholdOphoert: false,
+          sidsteArbejdsdag: undefined,
+          feriePct: 12.5,
+          fritvalgPct: undefined,
+          shSoPct: undefined,
+          storeBededagPct: undefined,
+          pensionPct: undefined,
+          loenperiode: 'maaned',
+          fuldLoenUnderFerie: 'Nej',
+          loenPaaHelligdage: 'Almindelig',
+          saerligFraDatoRegulering: undefined,
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          loenudviklingStatistikModel: undefined,
+          loenudviklingManuelTableData: [],
+          indtaegtsoplysningerTableData: [
+            { id: 'row-1', fra: '2024-01-01', til: '2024-01-31', loen: '30000', loenperiode: 'maaned' },
+          ],
+        },
+        {
+          id: 'af-2',
+          navnPaaArbejdssted: 'Arbejdssted 2',
+          harOverenskomst: true,
+          overenskomstId: 'bygge-anlaeg',
+          ansatPaaSkadestidspunktet: true,
+          ansaettelsesforholdOphoert: false,
+          sidsteArbejdsdag: undefined,
+          feriePct: 12.5,
+          fritvalgPct: undefined,
+          shSoPct: undefined,
+          storeBededagPct: undefined,
+          pensionPct: undefined,
+          loenperiode: 'maaned',
+          fuldLoenUnderFerie: 'Nej',
+          loenPaaHelligdage: 'Almindelig',
+          saerligFraDatoRegulering: undefined,
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          loenudviklingStatistikModel: undefined,
+          loenudviklingManuelTableData: [],
+          indtaegtsoplysningerTableData: [
+            { id: 'row-2', fra: '2024-01-01', til: '2024-01-31', loen: '32000', loenperiode: 'maaned' },
+          ],
+        },
+      ] as never,
+    });
+
+    const tafDayColumns = model.columns.filter((column) => column.id === 'base:taf_day');
+    const tafReguleringColumns = model.columns.filter((column) => column.id.includes(':taf_regulering'));
+
+    expect(tafDayColumns).toHaveLength(1);
+    expect(tafDayColumns[0]?.header).toBe('TAF dag');
+    expect(tafReguleringColumns).toHaveLength(2);
+    expect(tafReguleringColumns[0]?.borderLeft).toBe(true);
+    expect(tafReguleringColumns[1]?.borderLeft).toBe(true);
+  });
+
   it('model med lønindkomst-rækker indeholder kolonner udover basiskolonnerne', () => {
     // Tabellen skal have loen-kolonner når der er ansaettelsesforhold med data
     const model = buildEODebugModel({
@@ -418,6 +486,81 @@ describe('buildEODebugModel — loenindkomst og offentligeydelser kolonner (smok
     const columnIds = model.columns.map((c) => c.id);
     const hasLoenKolonne = columnIds.some((id) => id.startsWith('loen:'));
     expect(hasLoenKolonne).toBe(true);
+  });
+
+  it('employment-kolonner viser nu underoverskrifter uden ansættelsesnummer', () => {
+    const model = buildEODebugModel({
+      ...base(),
+      vedroererPeriodeFra: '2024-01-01' as never,
+      vedroererPeriodeTil: '2024-01-31' as never,
+      loenindkomstAnsaettelsesforhold: [
+        {
+          id: 'af-1',
+          navnPaaArbejdssted: 'Tandlægerne Toft og Vedsted',
+          harOverenskomst: true,
+          overenskomstId: 'bygge-anlaeg',
+          ansatPaaSkadestidspunktet: true,
+          ansaettelsesforholdOphoert: false,
+          sidsteArbejdsdag: undefined,
+          feriePct: 12.5,
+          fritvalgPct: undefined,
+          shSoPct: undefined,
+          storeBededagPct: undefined,
+          pensionPct: undefined,
+          loenperiode: 'maaned',
+          fuldLoenUnderFerie: 'Nej',
+          loenPaaHelligdage: 'Almindelig',
+          saerligFraDatoRegulering: undefined,
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          loenudviklingStatistikModel: undefined,
+          loenudviklingManuelTableData: [],
+          indtaegtsoplysningerTableData: [
+            { id: 'row-1', fra: '2024-01-01', til: '2024-01-31', loen: '30000', loenperiode: 'maaned' },
+          ],
+        },
+      ] as never,
+    });
+
+    const employmentColumn = model.columns.find((column) => column.id === 'loen:0:taf_regulering');
+    expect(employmentColumn).toBeDefined();
+    expect(employmentColumn?.header).toBe('TAF-regulering');
+  });
+
+  it('employment-kolonner bruger samme underoverskrift uden fallback-navn i kolonneoverskriften', () => {
+    const model = buildEODebugModel({
+      ...base(),
+      vedroererPeriodeFra: '2024-01-01' as never,
+      vedroererPeriodeTil: '2024-01-31' as never,
+      loenindkomstAnsaettelsesforhold: [
+        {
+          id: 'af-1',
+          navnPaaArbejdssted: undefined,
+          harOverenskomst: true,
+          overenskomstId: 'bygge-anlaeg',
+          ansatPaaSkadestidspunktet: true,
+          ansaettelsesforholdOphoert: false,
+          sidsteArbejdsdag: undefined,
+          feriePct: 12.5,
+          fritvalgPct: undefined,
+          shSoPct: undefined,
+          storeBededagPct: undefined,
+          pensionPct: undefined,
+          loenperiode: 'maaned',
+          fuldLoenUnderFerie: 'Nej',
+          loenPaaHelligdage: 'Almindelig',
+          saerligFraDatoRegulering: undefined,
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          loenudviklingStatistikModel: undefined,
+          loenudviklingManuelTableData: [],
+          indtaegtsoplysningerTableData: [
+            { id: 'row-1', fra: '2024-01-01', til: '2024-01-31', loen: '30000', loenperiode: 'maaned' },
+          ],
+        },
+      ] as never,
+    });
+
+    const reguleringColumn = model.columns.find((column) => column.id === 'loen:0:taf_regulering');
+    expect(reguleringColumn?.header).toBe('TAF-regulering');
   });
 
   it('model med offentligeYdelserRows indeholder offentlig-kolonner', () => {

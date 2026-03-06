@@ -365,6 +365,7 @@ const Erstatningsopgoerelse = React.memo(() => {
           >
             <EODebugTabel
               debugSnapshot={activeTab === TAB_KEYS.DEBUG_TABEL ? eoSnapshot?.data?.debugSnapshot ?? null : null}
+              eoSnapshot={activeTab === TAB_KEYS.DEBUG_TABEL ? eoSnapshot : null}
               currentDebugRevision={currentDebugRevision}
             />
           </Box>

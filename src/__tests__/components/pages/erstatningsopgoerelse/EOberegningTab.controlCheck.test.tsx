@@ -13,12 +13,16 @@ import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataIni
 import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/eoSnapshot';
 import type { MoneyOre } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
 
+const { collectAllDebugRowsMock } = vi.hoisted(() => ({
+  collectAllDebugRowsMock: vi.fn(),
+}));
+
 vi.mock('../../../../hooks/useFormFieldErrors', () => ({
   useFieldErrorsBySourceForSection: () => ({}),
 }));
 
 vi.mock('../../../../domain/debug/eoDebugRowAggregator', () => ({
-  collectAllDebugRows: () => ({ errors: [], warnings: [], allRows: [], relevantRows: [] }),
+  collectAllDebugRows: collectAllDebugRowsMock,
 }));
 
 vi.mock('../../../../utils/scrollToSection', () => ({
@@ -50,9 +54,11 @@ describe('EOberegningTab kontroltjek', () => {
 
   beforeEach(() => {
     baseSetEoValues.mockReset();
+    collectAllDebugRowsMock.mockReset();
+    collectAllDebugRowsMock.mockReturnValue({ errors: [], warnings: [], allRows: [], relevantRows: [] });
   });
 
-  it('viser kontroluoverensstemmelse i download-kontroller og ikke i separat dialog', () => {
+  it('samler kontroluoverensstemmelse i én contentbox for fejl og advarsler', () => {
     const snapshot: EoSnapshot = {
       revision: 'rev-1',
       status: 'error',
@@ -78,14 +84,14 @@ describe('EOberegningTab kontroltjek', () => {
       setEOValues: baseSetEoValues,
     });
 
-    expect(screen.getByText('Download-kontroller')).toBeInTheDocument();
-    expect(screen.getByText('Erstatningsopgørelse-PDF')).toBeInTheDocument();
-    expect(screen.getByText('TAF fordelt på år')).toBeInTheDocument();
-    expect(screen.getAllByText('Der er konstateret kontroluoverensstemmelser i EO-beregningen.')).toHaveLength(2);
-    expect(screen.queryByText('Uoverensstemmelse i kontrolberegning')).not.toBeInTheDocument();
+    expect(screen.getByText('Fejl og advarsler')).toBeInTheDocument();
+    expect(screen.getByText('Der er konstateret kontroluoverensstemmelser i EO-beregningen.')).toBeInTheDocument();
+    expect(screen.queryByText('Download-kontroller')).not.toBeInTheDocument();
+    expect(screen.queryByText('Systemfejl')).not.toBeInTheDocument();
+    expect(screen.queryByText('Beregning blokeret')).not.toBeInTheDocument();
   });
 
-  it('viser projektion-blokering i download-kontroller når dokumentmodel divergerer fra snapshot', () => {
+  it('samler projektion-blokering i fejl og advarsler når dokumentmodel divergerer fra snapshot', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = '2024-01-01';
     eoValues.vedroererPeriodeTil = '2024-01-31';
@@ -128,7 +134,64 @@ describe('EOberegningTab kontroltjek', () => {
       setEOValues: baseSetEoValues,
     });
 
-    expect(screen.getByText('Download-kontroller')).toBeInTheDocument();
-    expect(screen.getAllByText('Dokumentmodellen matcher ikke snapshot-totalerne.').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Fejl og advarsler')).toBeInTheDocument();
+    expect(screen.getByText('Dokumentmodellen matcher ikke snapshot-totalerne.')).toBeInTheDocument();
+    expect(screen.queryByText('Download-kontroller')).not.toBeInTheDocument();
+  });
+
+  it('viser brugerens manglende indtastning som navigerbar fejl og ikke som systemfejl', () => {
+    collectAllDebugRowsMock.mockReturnValue({
+      errors: [{
+        id: 'loenindkomst.af1.regulering.valgtRegulering',
+        label: 'Valgt regulering',
+        displayValue: 'Fejl (Lønudvikling beregnes ud fra mangler)',
+        status: 'error',
+        message: 'Lønudvikling beregnes ud fra mangler',
+        summaryDisplay: 'default',
+        navigation: {
+          kind: 'erstatningsopgoerelse-tab',
+          tabId: 'loenindkomst',
+          tabName: 'Lønindkomst',
+          sectionTitle: 'Lønindkomst',
+        },
+      }],
+      warnings: [],
+      allRows: [],
+      relevantRows: [],
+    });
+
+    const snapshot: EoSnapshot = {
+      revision: 'rev-2',
+      status: 'error',
+      invariants: [{
+        id: 'taf_per_year:missing_loenudvikling',
+        passed: false,
+        severity: 'error',
+        message: 'TAF fordelt på år kan ikke genereres, fordi lønudvikling ikke kunne beregnes autoritativt.',
+        blocksOutputs: ['taf_per_year_pdf'],
+      }],
+      data: null,
+      input: {
+        stamdata: baseStamdataValues,
+        erstatningsopgoerelse: baseEoValues,
+      },
+    };
+
+    renderTab({
+      activeTab: 'beregning',
+      setActiveTab: vi.fn(),
+      isActive: true,
+      eoSnapshot: snapshot,
+      stamdataValues: baseStamdataValues,
+      eoValues: baseEoValues,
+      setEOValues: baseSetEoValues,
+    });
+
+    expect(screen.getByText('Fejl og advarsler')).toBeInTheDocument();
+    expect(screen.getByText("Der mangler at blive angivet lønregulering, evt. 'Ingen'")).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lønindkomst' })).toBeInTheDocument();
+    expect(screen.queryByText('Send fejloplysninger')).not.toBeInTheDocument();
+    expect(screen.queryByText('Systemfejl')).not.toBeInTheDocument();
+    expect(screen.queryByText('TAF fordelt på år kan ikke genereres, fordi lønudvikling ikke kunne beregnes autoritativt.')).not.toBeInTheDocument();
   });
 });

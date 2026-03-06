@@ -244,6 +244,12 @@ export const resolveStatistikModelId = (label: string | undefined): StatistiskLo
   return undefined;
 };
 
+export const isAslStatistikModel = (label: string | undefined): boolean => {
+  if (!label) return false;
+  const trimmed = label.trim();
+  return trimmed.startsWith('ASL-') || trimmed === 'ASL-årslønsmaksimum';
+};
+
 // =============================================================================
 // DECIMALDETEKTERING
 // =============================================================================

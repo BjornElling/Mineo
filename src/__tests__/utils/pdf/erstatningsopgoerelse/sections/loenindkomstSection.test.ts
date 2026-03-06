@@ -77,9 +77,7 @@ const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
       resolvePeriodColumns: vi.fn(() => ['01-10-2022', '31-10-2022'] as const),
       hasNonZeroLoenAmount: vi.fn((value) => Boolean(value && value.kind === 'number' && value.value !== 0)),
       shouldIncludeLoenRowInBilag: vi.fn(({ ranges }) => {
-        const firstRange = ranges[0];
-        if (!firstRange) return false;
-        return includeRangeFromDates.has(firstRange.fra);
+        return ranges.some((range) => includeRangeFromDates.has(range.fra));
       }),
       bilagIndkomstYdelserMode: 'Perioden' as const,
       bilagIndkomstYdelserRanges: [],
@@ -156,13 +154,15 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
     expect(renderSubheader).toHaveBeenCalledWith('Kerteminde Kommune', expect.anything(), expect.anything());
   });
 
-  it('viser både TAF-/Beregningsperiode-underoverskrifter når begge periodegrupper har rækker', () => {
+  it('viser heller ikke TAF-/Beregningsperiode-underoverskrifter når begge periodegrupper har rækker', () => {
     const { ctx, renderSubheader } = makeContext(new Set(['2022-10-01', '2024-01-01']));
 
     renderLoenindkomstSection(ctx);
 
-    expect(renderSubheader).toHaveBeenCalledWith('TAF-periode', expect.anything(), expect.anything());
-    expect(renderSubheader).toHaveBeenCalledWith('Beregningsperiode', expect.anything(), expect.anything());
+    expect(renderSubheader).not.toHaveBeenCalledWith('TAF-periode', expect.anything(), expect.anything());
+    expect(renderSubheader).not.toHaveBeenCalledWith('Beregningsperiode', expect.anything(), expect.anything());
+    expect(renderSubheader).toHaveBeenCalledWith('Kerteminde Kommune', expect.anything(), expect.anything());
+    expect(renderSubheader.mock.calls.filter(([text]) => text === 'Kerteminde Kommune')).toHaveLength(1);
   });
 
   it('fordeler lønindkomstkolonner over fuld tabelbredde i PDF', () => {

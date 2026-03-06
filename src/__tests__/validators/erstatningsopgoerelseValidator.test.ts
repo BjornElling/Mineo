@@ -473,7 +473,7 @@ describe('validateLoenudviklingKonsistens', () => {
     expect(hasError(values, 'ens på tværs af ansættelsesforhold')).toBe(false);
   });
 
-  it('fanger uens beregningsgrundlag på tværs af AF (Overenskomst vs Statistik)', () => {
+  it('tillader forskelligt beregningsgrundlag på tværs af AF', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
       periodeTilBeregningFra: iso('2024-01-01'),
@@ -483,10 +483,10 @@ describe('validateLoenudviklingKonsistens', () => {
         makeAF({ loenudviklingBeregningsgrundlag: 'Statistik', loenudviklingStatistikModel: 'DA/LO', loenPaaHelligdage: 'Almindelig løn' }),
       ],
     });
-    expect(hasError(values, 'Lønudviklingsgrundlag skal være ens')).toBe(true);
+    expect(hasError(values, 'Lønudviklingsgrundlag skal være ens')).toBe(false);
   });
 
-  it('fanger uens overenskomst på tværs af AF', () => {
+  it('tillader uens overenskomst på tværs af AF', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
       periodeTilBeregningFra: iso('2024-01-01'),
@@ -496,10 +496,10 @@ describe('validateLoenudviklingKonsistens', () => {
         makeAF({ loenudviklingBeregningsgrundlag: 'Overenskomst', overenskomstId: 'handel', loenPaaHelligdage: 'Almindelig løn' }),
       ],
     });
-    expect(hasError(values, 'Overenskomst skal være ens')).toBe(true);
+    expect(hasError(values, 'Overenskomst skal være ens')).toBe(false);
   });
 
-  it('fanger uens statistikmodel på tværs af AF', () => {
+  it('tillader uens statistikmodel på tværs af AF', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
       periodeTilBeregningFra: iso('2024-01-01'),
@@ -509,7 +509,7 @@ describe('validateLoenudviklingKonsistens', () => {
         makeAF({ loenudviklingBeregningsgrundlag: 'Statistik', loenudviklingStatistikModel: 'KL-gruppen' }),
       ],
     });
-    expect(hasError(values, 'Statistikmodel skal være ens')).toBe(true);
+    expect(hasError(values, 'Statistikmodel skal være ens')).toBe(false);
   });
 
   it('ingen fejl når alle AF har samme beregningsgrundlag og overenskomst', () => {
@@ -650,5 +650,4 @@ describe('samlet validering', () => {
     expect(isValid(values)).toBe(true);
   });
 });
-
 

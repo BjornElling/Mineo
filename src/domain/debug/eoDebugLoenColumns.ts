@@ -193,63 +193,63 @@ export const buildLoenindkomstColumns = (args: {
     erstatningsRange ? iso >= erstatningsRange.fra && iso <= erstatningsRange.til : false
   );
 
-  const tafStatusByEmployment: ReadonlyArray<Uint8Array> = ansaettelser.map(() => new Uint8Array(dates.length));
+  const tafStatus = new Uint8Array(dates.length);
 
   for (let i = 0; i < dates.length; i += 1) {
     const iso = dates[i];
     const within = isWithinErstatningsByIndex[i] === true;
     const isWork = isWorkdayByIndex[i] === true;
 
-    for (let afIndex = 0; afIndex < ansaettelser.length; afIndex += 1) {
-      if (!within) {
-        tafStatusByEmployment[afIndex][i] = 0;
-        continue;
-      }
-
-      if (endeligEetDato && iso === endeligEetDato) {
-        tafStatusByEmployment[afIndex][i] = 2;
-        continue;
-      }
-      if (endeligEetDato && iso > endeligEetDato) {
-        tafStatusByEmployment[afIndex][i] = 0;
-        continue;
-      }
-
-      if (differencekravDato && iso >= differencekravDato) {
-        tafStatusByEmployment[afIndex][i] = 0;
-        continue;
-      }
-
-      if (!tafDates.has(iso)) {
-        tafStatusByEmployment[afIndex][i] = 0;
-        continue;
-      }
-
-      const isTafDay = isWork;
-      tafStatusByEmployment[afIndex][i] = isTafDay ? 1 : 0;
+    if (!within) {
+      tafStatus[i] = 0;
+      continue;
     }
+
+    if (endeligEetDato && iso === endeligEetDato) {
+      tafStatus[i] = 2;
+      continue;
+    }
+    if (endeligEetDato && iso > endeligEetDato) {
+      tafStatus[i] = 0;
+      continue;
+    }
+
+    if (differencekravDato && iso >= differencekravDato) {
+      tafStatus[i] = 0;
+      continue;
+    }
+
+    if (!tafDates.has(iso)) {
+      tafStatus[i] = 0;
+      continue;
+    }
+
+    tafStatus[i] = isWork ? 1 : 0;
+  }
+
+  if (ansaettelser.length > 0) {
+    const tafValues: string[] = dates.map((_iso, rowIndex) => {
+      if (!isWithinErstatningsByIndex[rowIndex] && !isWithinBeregningsByIndex[rowIndex]) return '';
+      const code = tafStatus[rowIndex];
+      if (code === 2) return 'Endeligt EET';
+      if (code === 1) return 'Ja';
+      return isWithinErstatningsByIndex[rowIndex] ? '-' : '';
+    });
+
+    columns.push({
+      id: debugTabelColumnId.taf,
+      header: 'TAF dag',
+      align: 'center',
+      width: columnWidthPx,
+      borderLeft: true,
+      values: tafValues,
+    });
   }
 
   for (let afIndex = 0; afIndex < ansaettelser.length; afIndex += 1) {
     const af = ansaettelser[afIndex];
     const suffix = hasMultiple ? ` (${afIndex + 1})` : '';
     const errorRowIds = errorRowIdsByIndex[afIndex] ?? new Set<string>();
-
-    const tafValues: string[] = dates.map((_iso, rowIndex) => {
-      if (!isWithinErstatningsByIndex[rowIndex] && !isWithinBeregningsByIndex[rowIndex]) return '';
-      const code = tafStatusByEmployment[afIndex][rowIndex];
-      if (code === 2) return 'Endeligt EET';
-      if (code === 1) return 'Ja';
-      return isWithinErstatningsByIndex[rowIndex] ? '-' : '';
-    });
-    columns.push({
-      id: debugTabelColumnId.taf(afIndex),
-      header: `TAF dag${suffix}`,
-      align: 'center',
-      width: columnWidthPx,
-      borderLeft: true,
-      values: tafValues,
-    });
 
     const reguleringFlags = buildOverenskomstRegulering(
       dates,
@@ -265,9 +265,10 @@ export const buildLoenindkomstColumns = (args: {
     );
     columns.push({
       id: debugTabelColumnId.tafRegulering(afIndex),
-      header: `TAF-regulering${suffix}`,
+      header: 'TAF-regulering',
       align: 'center',
       width: columnWidthPx,
+      borderLeft: true,
       values: reguleringValues,
     });
 
@@ -424,7 +425,7 @@ export const buildLoenindkomstColumns = (args: {
     }
 
     for (const col of includeKeys) {
-      const header = `${col.header}${suffix}`;
+      const header = col.header;
       const amountsByIndex = arraysByKey.get(col.key) ?? new Float64Array(dates.length);
       const valuesByIndex: string[] = Array.from({ length: dates.length }, (_, rowIndex) => {
         const value = amountsByIndex[rowIndex];

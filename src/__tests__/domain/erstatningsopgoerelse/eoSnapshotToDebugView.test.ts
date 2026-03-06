@@ -59,8 +59,8 @@ describe('eoSnapshotToDebugView', () => {
           isWorkdayByIndex: [false],
           ssStatusByIndex: ['Ja'],
           svieSmerteByIndex: ['Fuld'],
-          tafColumnIds: ['loen:0:taf'],
-          tafFlagsByIndex: [new Set(['loen:0:taf'])],
+          tafColumnIds: ['base:taf_day'],
+          tafFlagsByIndex: [new Set(['base:taf_day'])],
         },
       },
       debugDays: [
@@ -70,7 +70,7 @@ describe('eoSnapshotToDebugView', () => {
           isWeekend: false,
           isSognehelligdag: true,
           isArbejdsdag: false,
-          tafFlags: new Set(['loen:0:taf']),
+          tafFlags: new Set(['base:taf_day']),
           svieSmerte: 'Fuld',
         },
       ],
@@ -162,5 +162,42 @@ describe('eoSnapshotToDebugView', () => {
       title: 'EO debug er blokeret',
       message: 'Intern fejl',
     });
+  });
+
+  it('bygger debug-view fra committed input når snapshot har valideringsfejl uden data', () => {
+    const view = eoSnapshotToDebugView({
+      snapshot: {
+        revision: 'rev-error',
+        status: 'error',
+        invariants: [{
+          id: 'validation:loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag',
+          passed: false,
+          severity: 'error',
+          message: 'Lønregulering skal vælges, evt. "Ingen"',
+        }],
+        data: null,
+        input: {
+          stamdata: {
+            journalnr: 'J-2',
+            skadesdato: '2024-01-01',
+            skadestype: 'Arbejdsulykke',
+          },
+          erstatningsopgoerelse: {
+            midlertidigtEetAfgorelse: 'Nej',
+            endeligtEetAfgorelse: 'Nej',
+          },
+        },
+      } as never,
+      appSettings: DEFAULT_APP_SETTINGS,
+      loenindkomstManuelReguleringInputErrors: {},
+    });
+
+    expect(view.kind).toBe('ready');
+    if (view.kind !== 'ready') return;
+
+    expect(view.canonicalOutput).toBeUndefined();
+    expect(view.rowsBySection.get('stamdata')).toEqual([
+      { id: 'stamdata.journalnr', label: 'Journalnr', displayValue: 'J-2', status: 'ok' },
+    ]);
   });
 });

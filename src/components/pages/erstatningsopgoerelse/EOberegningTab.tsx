@@ -26,6 +26,7 @@ import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapsho
 import { eoSnapshotToBeregningView } from '../../../domain/erstatningsopgoerelse/eoSnapshotToBeregningView';
 import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
 import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
+import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/eoSnapshotInvariants';
 
 type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
 
@@ -38,6 +39,15 @@ interface EOberegningTabProps {
   eoValues: ErstatningsopgoerelseValues;
   setEOValues: React.Dispatch<React.SetStateAction<ErstatningsopgoerelseValues>>;
 }
+
+type SystemIssueRow = Readonly<{
+  id: string;
+  message: string;
+  bugReportContext?: Readonly<{
+    source: string;
+    error: Error;
+  }>;
+}>;
 
 /**
  * Beregning-fanen viser debug-fejl/advarsler og snapshot-baseret downloadstatus.
@@ -114,6 +124,15 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     ? tafPdfProjection.invariants
     : [];
 
+  const isSystemInvariant = React.useCallback((invariant: EoInvariant): boolean => {
+    if (invariant.id.startsWith('validation:')) return false;
+    if (invariant.id.startsWith('taf_perioder:')) return false;
+    if (invariant.id === 'beregningsperiode:uspecificerede_feriefridage') return false;
+    if (invariant.id === 'taf_per_year:missing_loenudvikling') return false;
+    if (invariant.id === 'taf_per_year:missing_taf_indtaegter') return false;
+    return true;
+  }, []);
+
   const snapshotSystemError = React.useMemo(() => {
     if (eoSnapshot?.status !== 'fail_closed') return null;
     const message = eoSnapshot.invariants[0]?.message ?? 'Der opstod en intern fejl i EO-snapshot.';
@@ -156,6 +175,57 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     }
     return null;
   }, [authoritativeBlockingInvariants, eoSnapshot, stamdataValues, tafPdfProjection]);
+
+  const systemIssueRows = React.useMemo<readonly SystemIssueRow[]>(() => {
+    const rows: SystemIssueRow[] = [];
+    const seen = new Set<string>();
+
+    const pushIssue = (issue: SystemIssueRow) => {
+      const key = `${issue.id}::${issue.message}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      rows.push(issue);
+    };
+
+    if (eoSnapshot?.status === 'fail_closed') {
+      pushIssue({
+        id: 'snapshot-fail-closed',
+        message: eoSnapshot.invariants[0]?.message ?? 'Der opstod en intern fejl i EO-snapshot.',
+        bugReportContext: snapshotSystemError
+          ? {
+            source: 'Beregning-fane: EO snapshot fail-closed',
+            error: snapshotSystemError,
+          }
+          : undefined,
+      });
+    }
+
+    [
+      ...authoritativeBlockingInvariants,
+      ...eoPdfBlockingInvariants,
+      ...tafPdfBlockingInvariants,
+      ...(eoPdfProjection?.kind === 'blocked' ? eoPdfProjection.invariants : []),
+      ...(tafPdfProjection?.kind === 'blocked' ? tafPdfProjection.invariants : []),
+    ]
+      .filter(isSystemInvariant)
+      .forEach((invariant) => {
+        pushIssue({
+          id: invariant.id,
+          message: invariant.message,
+        });
+      });
+
+    return rows;
+  }, [
+    authoritativeBlockingInvariants,
+    eoPdfBlockingInvariants,
+    eoPdfProjection,
+    eoSnapshot,
+    isSystemInvariant,
+    snapshotSystemError,
+    tafPdfBlockingInvariants,
+    tafPdfProjection,
+  ]);
 
   // ============================================================================
   // NAVIGATION-HÅNDTERING
@@ -483,89 +553,35 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     ));
   }, [formatSummaryText, handleNavigate]);
 
+  const renderSystemIssueRows = React.useCallback((rows: readonly SystemIssueRow[]) => {
+    return rows.map((row) => (
+      <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': '400px' }}>
+        <Typography className="row--text">{row.message}</Typography>
+        <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
+          {row.bugReportContext ? (
+            <BugReportButton
+              variant="outlined"
+              label="Send fejloplysninger"
+              context={row.bugReportContext}
+            />
+          ) : null}
+          <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
+        </Box>
+      </Box>
+    ));
+  }, []);
+
   // ============================================================================
   // RENDER
   // ============================================================================
 
   return (
     <Box>
-      {eoSnapshot?.status === 'fail_closed' && (
+      {(systemIssueRows.length > 0 || errors.length > 0 || warnings.length > 0) && (
         <ContentBox>
-          <Typography className="section-header">Systemfejl</Typography>
-          <Box className="row--label-right-hover">
-            <Typography className="row--text">
-              {eoSnapshot.invariants[0]?.message ?? 'Der opstod en intern fejl i EO-snapshot.'}
-            </Typography>
-            <Box className="row--label-right-hover__content">
-              {snapshotSystemError ? (
-                <BugReportButton
-                  variant="outlined"
-                  label="Send fejloplysninger"
-                  context={{
-                    source: 'Beregning-fane: EO snapshot fail-closed',
-                    error: snapshotSystemError,
-                  }}
-                />
-              ) : null}
-            </Box>
-          </Box>
-        </ContentBox>
-      )}
-
-      {(eoPdfBlockingInvariants.length > 0 || tafPdfBlockingInvariants.length > 0) && (
-        <ContentBox>
-          <Typography className="section-header">Download-kontroller</Typography>
-          {eoPdfBlockingInvariants.map((invariant) => (
-            <Box key={`eo-${invariant.id}`} className="row--label-right-hover" sx={{ '--label-width': '400px' }}>
-              <Typography className="row--text">Erstatningsopgørelse-PDF</Typography>
-              <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-                <Typography className="row--text">{invariant.message}</Typography>
-                <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
-              </Box>
-            </Box>
-          ))}
-          {tafPdfBlockingInvariants.map((invariant) => (
-            <Box key={`taf-${invariant.id}`} className="row--label-right-hover" sx={{ '--label-width': '400px' }}>
-              <Typography className="row--text">TAF fordelt på år</Typography>
-              <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-                <Typography className="row--text">{invariant.message}</Typography>
-                <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
-              </Box>
-            </Box>
-          ))}
-        </ContentBox>
-      )}
-
-      {eoSnapshot?.status !== 'fail_closed' && authoritativeBlockingInvariants.length > 0 && (
-        <ContentBox>
-          <Typography className="section-header">Beregning blokeret</Typography>
-          {authoritativeBlockingInvariants.map((invariant) => (
-            <Box key={invariant.id} className="row--label-right-hover" sx={{ '--label-width': '400px' }}>
-              <Typography className="row--text">Autoritativ EO-beregning</Typography>
-              <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-                <Typography className="row--text">{invariant.message}</Typography>
-                <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
-              </Box>
-            </Box>
-          ))}
-        </ContentBox>
-      )}
-
-      {/* ========================================================================
-          CONTENTBOX 1: FEJL
-          ======================================================================== */}
-      {errors.length > 0 && (
-        <ContentBox>
-          <Typography className="section-header">Fejl</Typography>
+          <Typography className="section-header">Fejl og advarsler</Typography>
+          {renderSystemIssueRows(systemIssueRows)}
           {renderDebugRows(errors, 'error')}
-        </ContentBox>
-      )}
-      {/* ========================================================================
-          CONTENTBOX 2: ADVARSLER
-          ======================================================================== */}
-      {warnings.length > 0 && (
-        <ContentBox>
-          <Typography className="section-header">Advarsler</Typography>
           {renderDebugRows(warnings, 'warning')}
         </ContentBox>
       )}

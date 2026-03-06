@@ -20,6 +20,7 @@ import { aarsloenMax } from '../../data/regulationRates';
 import { TODAY } from '../../config/dateRanges';
 import {
   formatAmountWithoutTrailingDecimals,
+  isAslStatistikModel,
   resolveStatistikModelId,
 } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import {
@@ -310,7 +311,7 @@ const buildStatistikTable = (
   const trimmed = modelLabel.trim();
   if (trimmed === '') return null;
 
-  if (trimmed.startsWith('ASL-')) {
+  if (isAslStatistikModel(trimmed)) {
     const start = parseDanishDate(interval.fraDato);
     const end = parseDanishDate(interval.tilDato);
     if (!start || !end) return null;

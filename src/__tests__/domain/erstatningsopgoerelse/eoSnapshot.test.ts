@@ -102,6 +102,52 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.invariants.some((invariant) => invariant.id === 'beregningsperiode:uspecificerede_feriefridage')).toBe(true);
   });
 
+  it('behandler manglende lønregulering som valideringsfejl og ikke som fail_closed runtimefejl', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.vedroererPeriodeFra = '2024-01-01';
+    eoValues.vedroererPeriodeTil = '2024-12-31';
+    eoValues.periodeTilBeregningFra = '2023-01-01';
+    eoValues.periodeTilBeregningTil = '2023-12-31';
+    eoValues.tafPerioder = [
+      { id: 'taf-1', fra: '2024-01-01', til: '2024-01-31', loseFeriedage: 0 },
+    ];
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+        indtaegtsoplysningerTableData: [
+          {
+            id: 'ind-1',
+            col0_maaned: '12',
+            col1_maaned: '2023',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: '',
+            col1_dag: '',
+            col2: { kind: 'number', value: 30000 },
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          },
+        ],
+        loenudviklingBeregningsgrundlag: undefined,
+      },
+    ];
+
+    const snapshot = computeEoSnapshot({
+      revision: 'missing-loenregulering',
+      stamdataValues: STAMDATA_INITIAL_VALUES,
+      eoValues,
+    });
+
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.failClosedReason).toBeUndefined();
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.invariants.some((invariant) =>
+      invariant.id === 'validation:loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag'
+    )).toBe(true);
+    expect(snapshot.invariants.some((invariant) => invariant.message === 'Lønregulering skal vælges, evt. "Ingen"')).toBe(true);
+  });
+
   it('normaliserer tom tidligere modtaget TAF til 0 i totals', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesSvieSmerteGodtgoerelse = 'Nej';

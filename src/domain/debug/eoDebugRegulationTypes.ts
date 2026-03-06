@@ -3,6 +3,7 @@
  */
 
 import type { ISODateString } from '../../types/branded';
+import type { TafBeregningsenhed } from '../erstatningsopgoerelse/tafBeregningsenhed';
 
 export type IndeksEntry = Readonly<{
   effectiveFrom: ISODateString;
@@ -21,12 +22,16 @@ export type IndeksEntry = Readonly<{
 export type AnsaettelsesforholdIndeks = Readonly<{
   ansaettelsesforholdId: string;
   navn: string | undefined;
-  overenskomstId: string;
+  kildeLabel: string;
+  kildeVaerdi: string;
+  overenskomstId?: string;
   referenceIso: ISODateString;
+  referenceLabel: 'Skadedato' | 'Manuelt angivet';
   referenceValue: number;
   entries: readonly IndeksEntry[];
 }>;
 
 export type RegulationIndexTimeline = Readonly<{
+  tafBeregningsenhed: TafBeregningsenhed;
   ansaettelser: readonly AnsaettelsesforholdIndeks[];
 }>;

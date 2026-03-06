@@ -531,113 +531,21 @@ function validateBeregnesUdFra(values: ErstatningsopgoerelseValues): ValidationE
   return errors;
 }
 
-/**
- * Validér at lønudviklingsindstillinger er konsistente på tværs af ansættelsesforhold
- *
- * Alle aktive ansættelsesforhold (med lønudvikling != 'Ingen') skal have:
- * - Samme beregningsgrundlag
- * - Samme overenskomst (ved overenskomst)
- * - Samme statistikmodel (ved statistik)
- * - Samme feriepct (ved overenskomst/manuelt)
- * - Samme loenPaaHelligdage (ved overenskomst)
- */
 function validateLoenudviklingKonsistens(values: ErstatningsopgoerelseValues): ValidationError[] {
-  const errors: ValidationError[] = [];
-  let loenudviklingsKilde: ReturnType<typeof resolveLoenudviklingKilde>;
   try {
-    loenudviklingsKilde = resolveLoenudviklingKilde(values);
+    resolveLoenudviklingKilde(values);
+    return [];
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Ugyldig lønudviklingskilde';
     const errorPath = error instanceof LoenudviklingKildeError && error.code === 'invalid_beregnes_udfra'
       ? 'beregnesUdFra'
       : 'eoAngivetLoenLoenudvikling.loenPaaHelligdage';
-    errors.push({
+    return [{
       path: errorPath,
       message,
       severity: 'error',
-    });
-    return errors;
+    }];
   }
-
-  const active = loenudviklingsKilde.filter(
-    (af) => af.loenudviklingBeregningsgrundlag && af.loenudviklingBeregningsgrundlag !== 'Ingen'
-  );
-  if (active.length <= 1) return errors;
-  const activeMedLoenoplysninger = values.beregnesUdFra === 'Beregningsperiode'
-    ? active.filter((af) => hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []))
-    : active;
-
-  // Alle aktive skal have samme beregningsgrundlag
-  const firstGrundlag = active[0].loenudviklingBeregningsgrundlag;
-  for (let i = 1; i < active.length; i += 1) {
-    if (active[i].loenudviklingBeregningsgrundlag !== firstGrundlag) {
-      errors.push({
-        path: `loenindkomstAnsaettelsesforhold[${i}].loenudviklingBeregningsgrundlag`,
-        message: 'Lønudviklingsgrundlag skal være ens på tværs af ansættelsesforhold',
-        severity: 'error',
-      });
-    }
-  }
-
-  // Grundlag-specifikke konsistens-checks
-  if (firstGrundlag === 'Overenskomst') {
-    const firstOverenskomst = active[0].overenskomstId ?? '';
-    const firstLoenPaaHelligdage = active[0].loenPaaHelligdage ?? '';
-    const firstFeriePct = activeMedLoenoplysninger[0]?.feriePct;
-    for (let i = 1; i < active.length; i += 1) {
-      if ((active[i].overenskomstId ?? '') !== firstOverenskomst) {
-        errors.push({
-          path: `loenindkomstAnsaettelsesforhold[${i}].overenskomstId`,
-          message: 'Overenskomst skal være ens på tværs af ansættelsesforhold',
-          severity: 'error',
-        });
-      }
-      if ((active[i].loenPaaHelligdage ?? '') !== firstLoenPaaHelligdage) {
-        errors.push({
-          path: `loenindkomstAnsaettelsesforhold[${i}].loenPaaHelligdage`,
-          message: 'Løn på helligdage skal være ens på tværs af ansættelsesforhold',
-          severity: 'error',
-        });
-      }
-      const shouldCompareFeriePct = values.beregnesUdFra !== 'Beregningsperiode'
-        || hasIndtastetLoenoplysninger(active[i].indtaegtsoplysningerTableData ?? []);
-      if (firstFeriePct !== undefined && shouldCompareFeriePct && active[i].feriePct !== firstFeriePct) {
-        errors.push({
-          path: `loenindkomstAnsaettelsesforhold[${i}].feriePct`,
-          message: 'Ferieprocent skal være ens på tværs af ansættelsesforhold',
-          severity: 'error',
-        });
-      }
-    }
-  }
-
-  if (firstGrundlag === 'Statistik') {
-    const firstModel = (active[0].loenudviklingStatistikModel ?? '').trim();
-    for (let i = 1; i < active.length; i += 1) {
-      if ((active[i].loenudviklingStatistikModel ?? '').trim() !== firstModel) {
-        errors.push({
-          path: `loenindkomstAnsaettelsesforhold[${i}].loenudviklingStatistikModel`,
-          message: 'Statistikmodel skal være ens på tværs af ansættelsesforhold',
-          severity: 'error',
-        });
-      }
-    }
-  }
-
-  if (firstGrundlag === 'KRL satstabel') {
-    const firstKrl = active[0].loenudviklingKRLSatstabel ?? '';
-    for (let i = 1; i < active.length; i += 1) {
-      if ((active[i].loenudviklingKRLSatstabel ?? '') !== firstKrl) {
-        errors.push({
-          path: `loenindkomstAnsaettelsesforhold[${i}].loenudviklingKRLSatstabel`,
-          message: 'KRL satstabel skal være ens på tværs af ansættelsesforhold',
-          severity: 'error',
-        });
-      }
-    }
-  }
-
-  return errors;
 }
 
 // ---- Øvrige krav ----
@@ -674,7 +582,15 @@ function validateLoenudviklingsKravForAktivKilde(values: ErstatningsopgoerelseVa
         : `eoAngivetLoenLoenudvikling.${field}`;
 
     const grundlag = af.loenudviklingBeregningsgrundlag;
-    if (!grundlag || grundlag === 'Ingen') return;
+    if (!grundlag) {
+      errors.push({
+        path: path('loenudviklingBeregningsgrundlag'),
+        message: 'Lønregulering skal vælges, evt. "Ingen"',
+        severity: 'error',
+      });
+      return;
+    }
+    if (grundlag === 'Ingen') return;
 
     const kræverFeriePct = values.beregnesUdFra === 'Beregningsperiode'
       && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []);

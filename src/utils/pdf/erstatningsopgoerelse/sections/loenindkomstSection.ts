@@ -185,37 +185,26 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
 
   startBilagPage('Lønindkomst');
   writer.addSpacer(lineHeight);
-  const groupsWithRows = rangeGroups.flatMap((group) => {
-    const ansaettelser = (eoValues.loenindkomstAnsaettelsesforhold ?? []).filter((ansaettelsesforhold) => {
-      const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
-      return (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).some((row) => {
-        return shouldIncludeLoenRowInBilag({
-          row,
-          loenperiode: ansaettelsesforhold.loenperiode,
-          mode: normalizedBilagMode,
-          ranges: group.ranges,
-          errorRowIds,
-        });
-      });
-    });
-    return ansaettelser.length > 0 ? [{ group, ansaettelser }] : [];
+  const combinedRanges = rangeGroups.flatMap((group) => group.ranges);
+  const ansaettelserWithRows = (eoValues.loenindkomstAnsaettelsesforhold ?? []).filter((ansaettelsesforhold) => {
+    const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
+    return (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).some((row) =>
+      shouldIncludeLoenRowInBilag({
+        row,
+        loenperiode: ansaettelsesforhold.loenperiode,
+        mode: normalizedBilagMode,
+        ranges: combinedRanges,
+        errorRowIds,
+      })
+    );
   });
 
-  const shouldRenderPeriodSubheaders =
-    groupsWithRows.length > 1 && groupsWithRows.every(({ group }) => group.label !== null);
-
-  for (const [groupIndex, groupWithRows] of groupsWithRows.entries()) {
-    if (shouldRenderPeriodSubheaders && groupWithRows.group.label) {
-      if (groupIndex > 0) writer.addSpacer(lineHeight);
-      renderSubheader(groupWithRows.group.label, lineHeight, { addTopSpacing: groupIndex > 0 });
-      writer.addSpacer(lineHeight);
-    }
-
-    for (const [index, ansaettelsesforhold] of groupWithRows.ansaettelser.entries()) {
+  for (const [index, ansaettelsesforhold] of ansaettelserWithRows.entries()) {
       const fallbackNavn = `Ansættelsesforhold ${index + 1}`;
       const arbejdsstedNavn = ansaettelsesforhold.navnPaaArbejdssted?.trim() || fallbackNavn;
-      if (index > 0) writer.addSpacer(lineHeight);
-      renderSubheader(arbejdsstedNavn, lineHeight, { addTopSpacing: index > 0 });
+      const shouldAddTopSpacing = index > 0;
+      if (shouldAddTopSpacing) writer.addSpacer(lineHeight);
+      renderSubheader(arbejdsstedNavn, lineHeight, { addTopSpacing: shouldAddTopSpacing });
       writer.addSpacer(lineHeight);
       const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
       if (overenskomstId) {
@@ -241,7 +230,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       }
       writer.addSpacer(lineHeight);
       const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
-      renderLoenindkomstTable(ansaettelsesforhold, errorRowIds, groupWithRows.group.ranges);
+      renderLoenindkomstTable(ansaettelsesforhold, errorRowIds, combinedRanges);
       if (ansaettelsesforhold.ansaettelsesforholdOphoert) {
         const sidsteArbejdsdag = formatDateLong(ansaettelsesforhold.sidsteArbejdsdag);
         const opsigelsesLinje = sidsteArbejdsdag
@@ -250,6 +239,5 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
         writer.addSpacer(lineHeight);
         safeAddWrappedText(opsigelsesLinje);
       }
-    }
   }
 };

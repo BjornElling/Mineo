@@ -3,6 +3,7 @@ import {
   EO_DEBUG_BUILDERS,
 } from '../debug/eoDebugBuilderRegistry';
 import type { EODebugExecutionContext } from '../debug/eoDebugExecutionContext';
+import { buildEODebugSnapshot } from '../debug/eoDebugSnapshot';
 import { buildLoenTimeline } from '../debug/eoDebugLoenCoreModel';
 import type { LoenDebugSection } from '../debug/eoDebugLoenViewModel';
 import { buildLoenDebugSections } from '../debug/eoDebugLoenViewModel';
@@ -60,7 +61,57 @@ export const eoSnapshotToDebugView = (args: Readonly<{
   loenindkomstManuelReguleringInputErrors: Readonly<Record<string, true>>;
 }>): EoDebugView => {
   const snapshot = args.snapshot ?? null;
-  if (!snapshot || !hasEoSnapshotData(snapshot)) {
+  if (!snapshot) {
+    return {
+      kind: 'blocked',
+      severity: 'info',
+      title: 'EO debug kræver et friskt snapshot',
+      message: 'Åbn debug-fanen igen fra Erstatningsopgørelse for at bygge snapshot på committed data.',
+    };
+  }
+
+  if (hasEoSnapshotData(snapshot)) {
+    const debugSnapshot = snapshot.data.debugSnapshot;
+    const stamdataValues = debugSnapshot.stamdataValues;
+    const erstatningsopgoerelseValues = debugSnapshot.eoValues;
+    const canonicalOutput = snapshot.data.canonicalOutput;
+
+    const ctx: EODebugExecutionContext = {
+      stamdataValues,
+      stamdataErrors: debugSnapshot.fieldErrors.stamdata,
+      eoValues: erstatningsopgoerelseValues,
+      eoErrors: debugSnapshot.fieldErrors.erstatningsopgoerelse,
+      loenindkomstManuelReguleringInputErrors: args.loenindkomstManuelReguleringInputErrors,
+      appSettings: args.appSettings,
+      canonicalOutput,
+    };
+
+    return {
+      kind: 'ready',
+      canonicalOutput,
+      debugSnapshot,
+      stamdataValues,
+      erstatningsopgoerelseValues,
+      rowsBySection: buildRowsBySection(ctx),
+      loenSections: buildLoenDebugSections(buildLoenTimeline({
+        debugDays: debugSnapshot.debugDays,
+        eoValues: erstatningsopgoerelseValues,
+        stamdataValues,
+      })),
+      regulationSections: buildRegulationDebugSections({
+        timeline: buildRegulationTimeline({
+          debugDays: debugSnapshot.debugDays,
+          eoValues: erstatningsopgoerelseValues,
+          stamdataValues,
+        }),
+        canonicalOutput,
+        eoValues: erstatningsopgoerelseValues,
+        stamdataValues,
+      }),
+    };
+  }
+
+  if (!snapshot.input.stamdata || !snapshot.input.erstatningsopgoerelse) {
     if (snapshot?.status === 'fail_closed') {
       return {
         kind: 'blocked',
@@ -78,10 +129,16 @@ export const eoSnapshotToDebugView = (args: Readonly<{
     };
   }
 
-  const debugSnapshot = snapshot.data.debugSnapshot;
+  const debugSnapshot = buildEODebugSnapshot({
+    revision: snapshot.revision,
+    stamdataValues: snapshot.input.stamdata,
+    eoValues: snapshot.input.erstatningsopgoerelse,
+    stamdataErrors: {},
+    eoErrors: {},
+  });
   const stamdataValues = debugSnapshot.stamdataValues;
   const erstatningsopgoerelseValues = debugSnapshot.eoValues;
-  const canonicalOutput = snapshot.data.canonicalOutput;
+  const canonicalOutput = undefined;
 
   const ctx: EODebugExecutionContext = {
     stamdataValues,
@@ -105,10 +162,15 @@ export const eoSnapshotToDebugView = (args: Readonly<{
       eoValues: erstatningsopgoerelseValues,
       stamdataValues,
     })),
-    regulationSections: buildRegulationDebugSections(buildRegulationTimeline({
-      debugDays: debugSnapshot.debugDays,
+    regulationSections: buildRegulationDebugSections({
+      timeline: buildRegulationTimeline({
+        debugDays: debugSnapshot.debugDays,
+        eoValues: erstatningsopgoerelseValues,
+        stamdataValues,
+      }),
+      canonicalOutput,
       eoValues: erstatningsopgoerelseValues,
       stamdataValues,
-    })),
+    }),
   };
 };

@@ -19,6 +19,7 @@ import {
   formatAmount2,
   formatAmountWithoutTrailingDecimals,
   formatAnciennitetConversion,
+  isAslStatistikModel,
 } from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import { STORE_BEDEDAG_START } from '../../../../config/dateRanges';
 import { STORE_BEDEDAG_PCT } from '../../../../config/regulatoryRates';
@@ -86,6 +87,30 @@ const joinWithCommaAndOg = (parts: readonly string[]): string => {
   if (parts.length === 1) return parts[0]!;
   if (parts.length === 2) return `${parts[0]} og ${parts[1]}`;
   return `${parts.slice(0, -1).join(', ')} og ${parts[parts.length - 1]}`;
+};
+
+const isPopulatedReguleringsCell = (value: string | undefined): boolean => {
+  if (typeof value !== 'string') return false;
+  const normalized = value.trim();
+  return normalized !== '' && normalized !== '-';
+};
+
+const stripEmptyReguleringsColumns = (
+  tableData: ReguleringValuesTableData
+): Readonly<{ columns: readonly string[]; rows: readonly (readonly string[])[] }> => {
+  if (tableData.rows.length === 0) {
+    return tableData;
+  }
+
+  const visibleColumnIndices = tableData.columns.flatMap((_, columnIndex) => {
+    const hasDataInAnyRow = tableData.rows.some((row) => isPopulatedReguleringsCell(row[columnIndex]));
+    return hasDataInAnyRow ? [columnIndex] : [];
+  });
+
+  return {
+    columns: visibleColumnIndices.map((index) => tableData.columns[index] ?? ''),
+    rows: tableData.rows.map((row) => visibleColumnIndices.map((index) => row[index] ?? '')),
+  };
 };
 
 const resolveOverenskomstTillægsStigninger = (params: Readonly<{
@@ -274,9 +299,11 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       return;
     }
 
+    const normalizedTableData = stripEmptyReguleringsColumns(tableData);
+
     const tableRows: RowInput[] = [
-      tableData.columns.map((column) => createPdfTableHeaderCell(column, 'center')),
-      ...tableData.rows.map((row) =>
+      normalizedTableData.columns.map((column) => createPdfTableHeaderCell(column, 'center')),
+      ...normalizedTableData.rows.map((row) =>
         row.map((value) => createPdfTableCell(value, { halign: 'center' }))
       ),
     ];
@@ -422,7 +449,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       } else if (statistikModelId === 'SBLON2') {
         writer.addSpacer(lineHeight);
         safeAddWrappedText('Det Standardberegnede Lønindeks fra Danmarks Statistik (SBLON2) anvendes som et retvisende reguleringsgrundlag for lønudvikling i samfundet. Regulering foretages med afsæt i værdierne for K1 (1. kvartal 2016 = indeksværdi 100).');
-      } else if (statistikLabel.startsWith('ASL-')) {
+      } else if (isAslStatistikModel(statistikLabel)) {
         writer.addSpacer(lineHeight);
         safeAddWrappedText('ASL-årslønsmaksimum fremgår ikke eksplicit som reguleringsgrundlag i EAL § 15, men anvendes til fremskrivning på erstatnings- og arbejdsskadeområdet, og beror på den statslige tilpasningsprocent, der i almindelighed anvendes til fremskrivning af ydelser i samfundet.');
       }

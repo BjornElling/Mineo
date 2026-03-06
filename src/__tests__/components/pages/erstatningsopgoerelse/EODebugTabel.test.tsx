@@ -9,6 +9,7 @@ import type { SammentaellingDisplayTables, SammentaellingModel } from '../../../
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
+import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/eoSnapshot';
 
 const makeModel = (patch: Partial<EODebugModel>): EODebugModel => {
   const base: EODebugModel = {
@@ -113,6 +114,34 @@ describe('EODebugTabel', () => {
       currentDebugRevision: snapshot.revision,
     });
 
+    expect(screen.getByText('Sammentælling')).toBeInTheDocument();
+    expect(screen.getByText('Kan ikke oprette debug-tabel')).toBeInTheDocument();
+  });
+
+  it('bygger debug-tabellen fra committed input når eoSnapshot har valideringsfejl uden debugSnapshot', () => {
+    const eoSnapshot: EoSnapshot = {
+      revision: 'rev-error',
+      status: 'error',
+      invariants: [{
+        id: 'validation:loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag',
+        passed: false,
+        severity: 'error',
+        message: 'Lønregulering skal vælges, evt. "Ingen"',
+      }],
+      data: null,
+      input: {
+        stamdata: STAMDATA_INITIAL_VALUES,
+        erstatningsopgoerelse: createErstatningsopgoerelseInitialValues(),
+      },
+    };
+
+    renderComponent({
+      eoSnapshot,
+      currentDebugRevision: eoSnapshot.revision,
+    });
+
+    expect(screen.queryByText('Debug-tabellen er ikke opdateret endnu')).not.toBeInTheDocument();
+    expect(screen.queryByText('Debug-tabellen kræver et friskt snapshot')).not.toBeInTheDocument();
     expect(screen.getByText('Sammentælling')).toBeInTheDocument();
     expect(screen.getByText('Kan ikke oprette debug-tabel')).toBeInTheDocument();
   });

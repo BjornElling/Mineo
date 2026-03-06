@@ -19,7 +19,7 @@ export const resolveValgtReguleringDisplay = (
   }
   if (grundlag === 'Manuelt angivet') {
     const manuelNavn = ansaettelsesforhold.loenudviklingManuelNavn?.trim() ?? '';
-    return manuelNavn !== '' ? manuelNavn : 'Manuelt angivet';
+    return manuelNavn !== '' ? `Manuelt angivet (${manuelNavn})` : 'Manuelt angivet';
   }
   if (grundlag === 'KRL satstabel') {
     const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel;

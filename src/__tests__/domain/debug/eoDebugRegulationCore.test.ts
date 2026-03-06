@@ -53,7 +53,7 @@ const makeInput = (): {
         fuldLoenUnderFerie: 'Nej',
         loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
         saerligFraDatoRegulering: undefined,
-        loenudviklingBeregningsgrundlag: 'Ingen',
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
         loenudviklingStatistikModel: undefined,
         loenudviklingManuelTableData: [],
       },
@@ -94,6 +94,7 @@ describe('buildRegulationTimeline - Index model', () => {
     input.eoValues.vedroererPeriodeFra = '2023-12-01';
     input.eoValues.vedroererPeriodeTil = '2024-06-01';
     input.eoValues.loenindkomstAnsaettelsesforhold[0].loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.SH_UDBETALING;
+    input.stamdataValues.skadesdato = iso('2023-12-01');
 
     const result = buildRegulationTimeline(input);
     const entries = result.ansaettelser[0]?.entries ?? [];
@@ -140,6 +141,31 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     expect(matchingEntry!.index).toBeGreaterThan(0);
   });
 
+  it('bruger manuel reguleringsdato som reference og markerer den som manuelt angivet', () => {
+    const input = makeInput();
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].saerligFraDatoRegulering = '2024-02-01';
+
+    const result = buildRegulationTimeline(input);
+    const af = result.ansaettelser[0];
+
+    expect(af).toBeDefined();
+    expect(af?.referenceIso).toBe(iso('2024-02-01'));
+    expect(af?.referenceLabel).toBe('Manuelt angivet');
+  });
+
+  it('inkluderer altid en entry på reference-/reguleringsdatoen for privat overenskomst', () => {
+    const input = makeInput();
+    input.eoValues.vedroererPeriodeFra = '2024-01-01';
+    input.eoValues.vedroererPeriodeTil = '2024-12-31';
+    input.stamdataValues.skadesdato = iso('2023-11-01');
+
+    const result = buildRegulationTimeline(input);
+    const entries = result.ansaettelser[0]?.entries ?? [];
+
+    expect(entries[0]?.effectiveFrom).toBe(iso('2023-11-01'));
+    expect(entries.some((entry) => entry.effectiveFrom === iso('2023-11-01'))).toBe(true);
+  });
+
   it('entry indeholder alle forventede felter', () => {
     const input = makeInput();
     const result = buildRegulationTimeline(input);
@@ -174,8 +200,32 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
   it('returnerer tom ansaettelser ved manglende overenskomstId', () => {
     const input = makeInput();
     input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag = 'Overenskomst';
     const result = buildRegulationTimeline(input);
     expect(result.ansaettelser).toHaveLength(0);
+  });
+
+  it('bygger manuel reguleringssektion uden overenskomstId', () => {
+    const input = makeInput();
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingManuelNavn = 'overenskomst Tandlægeforening/HK';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingManuelTableData = [
+      {
+        id: 'row-1',
+        dato: '',
+        grundloen: { value: 150 },
+        feriepenge: '12,5',
+        shSoSats: '0',
+        fritvalg: '0',
+        agPension: '10,15',
+      } as any,
+    ];
+
+    const result = buildRegulationTimeline(input);
+    expect(result.ansaettelser).toHaveLength(1);
+    expect(result.ansaettelser[0]?.kildeLabel).toBe('Navn på reguleringsform');
+    expect(result.ansaettelser[0]?.kildeVaerdi).toBe('Manuelt angivet (overenskomst Tandlægeforening/HK)');
   });
 });
 
@@ -256,7 +306,7 @@ describe('buildRegulationTimeline — offentlig løn-path (KL)', () => {
           fuldLoenUnderFerie: 'Nej',
           loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
           saerligFraDatoRegulering: undefined,
-          loenudviklingBeregningsgrundlag: 'Ingen',
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
           loenudviklingStatistikModel: undefined,
           loenudviklingManuelTableData: [],
           offentligLoenType: 'Timeløn',
@@ -309,6 +359,19 @@ describe('buildRegulationTimeline — offentlig løn-path (KL)', () => {
     expect(firstEntry?.shSoPct).toBeCloseTo(0.025, 6);
     expect(firstEntry?.fritvalgPct).toBeCloseTo(0.0125, 6);
     expect(firstEntry?.pensionPct).toBeCloseTo(0.153, 6);
+  });
+
+  it('inkluderer altid en entry på reference-/reguleringsdatoen for offentlig løn', () => {
+    const input = makeKLInput();
+    input.eoValues.vedroererPeriodeFra = '2024-01-01';
+    input.eoValues.vedroererPeriodeTil = '2024-12-31';
+    input.stamdataValues.skadesdato = iso('2023-11-01');
+
+    const result = buildRegulationTimeline(input);
+    const entries = result.ansaettelser[0]?.entries ?? [];
+
+    expect(entries[0]?.effectiveFrom).toBe(iso('2023-11-01'));
+    expect(entries.some((entry) => entry.effectiveFrom === iso('2023-11-01'))).toBe(true);
   });
 });
 

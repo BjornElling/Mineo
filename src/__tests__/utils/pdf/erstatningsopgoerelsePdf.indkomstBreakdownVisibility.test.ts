@@ -110,6 +110,14 @@ const hasTextAfterHeader = (texts: readonly string[], header: string, expected: 
   return texts.slice(index + 1).some((text) => text === expected);
 };
 
+const getTextsBetween = (texts: readonly string[], startHeader: string, endHeader: string): string[] => {
+  const startIndex = texts.indexOf(startHeader);
+  if (startIndex === -1) return [];
+  const endIndex = texts.indexOf(endHeader);
+  const sliceEnd = endIndex === -1 ? texts.length : endIndex;
+  return texts.slice(startIndex + 1, sliceEnd);
+};
+
 const findTextY = (instance: MockJsPDF | null, text: string): number | null => {
   if (!instance) return null;
   for (const call of instance.text.mock.calls) {
@@ -232,6 +240,76 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(regnestykkeLinje).toMatch(/ - [\d.]+,\d{2}\s*kr\. =/);
     const krForekomsterFoerLigmed = (regnestykkeLinje ?? '').split('=')[0]?.match(/kr\./g)?.length ?? 0;
     expect(krForekomsterFoerLigmed).toBe(1);
+  });
+
+  it('viser ikke ansættelsesforhold-subtotal når et ansættelsesforhold kun har én lønudviklingslinje', () => {
+    const { stamdata, eo } = buildBaseInput();
+    stamdata.skadesdato = iso('2023-07-01');
+    eo.vedroererPeriodeFra = iso('2023-07-01');
+    eo.vedroererPeriodeTil = iso('2025-12-21');
+    eo.periodeTilBeregningFra = iso('2023-07-01');
+    eo.periodeTilBeregningTil = iso('2023-07-31');
+    eo.tafPerioder = [{ id: 'taf-1', fra: iso('2023-07-01'), til: iso('2025-12-21'), loseFeriedage: undefined }];
+    eo.loenindkomstAnsaettelsesforhold = [
+      {
+        ...eo.loenindkomstAnsaettelsesforhold[0],
+        id: 'af-1',
+        navnPaaArbejdssted: 'Tandlægerne Toft og Vedsted',
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        overenskomstId: 'bygge-anlaeg',
+        feriePct: 12.5,
+        loenPaaHelligdage: 'Almindelig løn',
+        indtaegtsoplysningerTableData: [
+          {
+            id: 'af-1-row-1',
+            col0_maaned: '7',
+            col1_maaned: '2023',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: '',
+            col1_dag: '',
+            col2: asAmountValue(31829.38),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          },
+        ],
+      },
+      {
+        ...eo.loenindkomstAnsaettelsesforhold[0],
+        id: 'af-2',
+        navnPaaArbejdssted: 'Nillers Nisseforretning',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        indtaegtsoplysningerTableData: [
+          {
+            id: 'af-2-row-1',
+            col0_maaned: '7',
+            col1_maaned: '2023',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: '',
+            col1_dag: '',
+            col2: asAmountValue(32642.83),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          },
+        ],
+      },
+    ];
+
+    renderPdf(stamdata, eo);
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const loenudviklingBlock = getTextsBetween(
+      texts,
+      'Indkomst, hvis skaden ikke var indtrådt',
+      'Indtægter i erstatningsperioden'
+    );
+
+    const nillersHeaderIndex = loenudviklingBlock.indexOf('Nillers Nisseforretning');
+    expect(nillersHeaderIndex).toBeGreaterThanOrEqual(0);
+
+    expect(loenudviklingBlock.filter((text) => text === 'I alt').length).toBe(2);
   });
 
   it('viser forbeholdstekst i "Øvrige krav" ved kontanthjælp i indtægter i erstatningsperioden', () => {

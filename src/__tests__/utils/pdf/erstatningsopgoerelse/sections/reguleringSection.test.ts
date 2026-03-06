@@ -324,3 +324,47 @@ describe('renderReguleringSection – reguleringstekst', () => {
     );
   });
 });
+
+describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => {
+  it('skjuler kolonner hvor alle værdier er tomme eller "-"', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+        id: 'af-kolonnefilter',
+        navnPaaArbejdssted: 'Teststed',
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      },
+    ];
+    const { ctx } = makeContext(eoValues);
+    ctx.resolveTafDateBounds = vi.fn(() => ({
+      foerste: iso('2023-07-01'),
+      sidste: iso('2025-12-21'),
+    }));
+    ctx.buildReguleringsvaerdierTableData = vi.fn(() => ({
+      columns: ['Dato', 'Grundløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'AG pension'],
+      rows: [
+        ['24-05-2023', '25.174,00', '15,00 %', '-', '7,00 %', '9,00 %'],
+        ['01-06-2023', '25.174,00', '15,00 %', '-', '7,00 %', '11,00 %'],
+        ['01-03-2024', '25.174,00', '15,00 %', '-', '9,00 %', '11,00 %'],
+      ],
+    }));
+
+    renderReguleringSection(ctx);
+
+    const renderTableMock = vi.mocked(ctx.renderStandardPdfTable);
+    const firstCall = renderTableMock.mock.calls[0]?.[0];
+    const headerRow = firstCall?.body[0];
+
+    expect(headerRow).toBeDefined();
+    expect(headerRow).toHaveLength(5);
+    expect(headerRow?.map((cell) => ('content' in cell ? cell.content : ''))).toEqual([
+      'Dato',
+      'Grundløn',
+      'Feriepenge',
+      'Fritvalg',
+      'AG pension',
+    ]);
+  });
+});

@@ -89,7 +89,7 @@ export type DebugTabelWageColumnKey =
   | 'samlet';
 
 export const debugTabelColumnId = {
-  taf: (employmentIndex: number): `loen:${number}:taf` => `loen:${employmentIndex}:taf`,
+  taf: 'base:taf_day',
   tafRegulering: (employmentIndex: number): `loen:${number}:taf_regulering` => `loen:${employmentIndex}:taf_regulering`,
   loenWage: (employmentIndex: number, wageKey: DebugTabelWageColumnKey): `loen:${number}:wage:${DebugTabelWageColumnKey}` =>
     `loen:${employmentIndex}:wage:${wageKey}`,
@@ -99,7 +99,7 @@ export const debugTabelColumnId = {
 export const WAGE_COLUMNS: ReadonlyArray<Readonly<{ key: DebugTabelWageColumnKey; header: string }>> = [
   { key: 'grundloen', header: 'Grundløn' },
   { key: 'tillaeg', header: 'Tillæg' },
-  { key: 'ikkePensionsgivende', header: 'Ikke-pensionsgivende løn' },
+  { key: 'ikkePensionsgivende', header: 'Ikke-pens.\ngivende løn' },
   { key: 'atp', header: 'ATP og anden ikke-FB løn' },
   { key: 'ferieberettiget', header: 'Ferieberet.\nløn' },
   { key: 'fpFvShSoStb', header: 'FP/FV/SH/\nSO/St.B.' },

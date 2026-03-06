@@ -20,8 +20,25 @@ export type VirtualizedDisplayTableColumn = Readonly<{
   borderLeft?: boolean;
 }>;
 
+export type VirtualizedDisplayTableHeaderCell = Readonly<{
+  key?: React.Key;
+  content: React.ReactNode;
+  columnId?: string;
+  colSpan?: number;
+  width?: number;
+  align?: 'left' | 'center' | 'right';
+  borderLeft?: boolean;
+}>;
+
+export type VirtualizedDisplayTableHeaderRow = Readonly<{
+  key?: React.Key;
+  cells: readonly VirtualizedDisplayTableHeaderCell[];
+  stickyHeight?: number;
+}>;
+
 export type VirtualizedDisplayTableProps = Readonly<{
   columns: readonly VirtualizedDisplayTableColumn[];
+  headerRows?: readonly VirtualizedDisplayTableHeaderRow[];
   rowCount: number;
   rowHeight: number;
   height: number;
@@ -52,6 +69,7 @@ export type VirtualizedDisplayTableProps = Readonly<{
 const VirtualizedDisplayTable = React.memo(
   ({
     columns,
+    headerRows,
     rowCount,
     rowHeight,
     height,
@@ -197,16 +215,13 @@ const VirtualizedDisplayTable = React.memo(
       [rowHeight]
     );
 
-    const stickyHeaderStyle = React.useMemo<React.CSSProperties>(
-      () =>
-        stickyHeader
-          ? {
-              position: 'sticky',
-              top: stickyHeaderTop,
-              zIndex: 4,
-            }
-          : {},
-      [stickyHeader, stickyHeaderTop]
+    const headerCellBaseStyle = React.useMemo<React.CSSProperties>(
+      () => ({
+        padding: '6px 8px',
+        border: 'none',
+        fontVariantNumeric: 'tabular-nums',
+      }),
+      []
     );
 
     const headerSeparatorBackground = React.useMemo<React.CSSProperties>(
@@ -217,6 +232,68 @@ const VirtualizedDisplayTable = React.memo(
       }),
       []
     );
+
+    const resolvedHeaderRows = React.useMemo<readonly VirtualizedDisplayTableHeaderRow[]>(
+      () => headerRows ?? [{
+        key: 'default',
+        cells: columns.map((column, index) => ({
+          key: column.id ?? index,
+          content: column.header,
+          columnId: column.id,
+          width: column.width,
+          align: 'center',
+          borderLeft: column.borderLeft,
+        })),
+      }],
+      [columns, headerRows]
+    );
+
+    const renderHeader = React.useCallback(() => (
+      <thead>
+        {resolvedHeaderRows.map((row, rowIndex) => (
+          <tr key={row.key ?? rowIndex}>
+            {row.cells.map((cell, cellIndex) => (
+              <th
+                key={cell.key ?? cellIndex}
+                data-mineo-column-id={cell.columnId}
+                colSpan={cell.colSpan ?? 1}
+                style={{
+                  ...htmlTableHeaderStyles,
+                  ...headerCellBaseStyle,
+                  ...(stickyHeader
+                    ? {
+                        position: 'sticky',
+                        top: stickyHeaderTop + resolvedHeaderRows
+                          .slice(0, rowIndex)
+                          .reduce((sum, currentRow) => sum + (currentRow.stickyHeight ?? 36), 0),
+                        zIndex: 4 + (resolvedHeaderRows.length - rowIndex),
+                        backgroundColor: tableColors.headerBackground,
+                        backgroundImage: 'none',
+                      }
+                    : {}),
+                  width: cell.width,
+                  height: row.stickyHeight,
+                  minHeight: row.stickyHeight,
+                  boxSizing: 'border-box',
+                  textAlign: cell.align ?? 'center',
+                  verticalAlign: 'bottom',
+                  whiteSpace: 'pre-line',
+                  overflowWrap: 'anywhere',
+                  wordBreak: 'break-word',
+                  borderBottom: rowIndex === resolvedHeaderRows.length - 1
+                    ? htmlTableHeaderStyles.borderBottom
+                    : 'none',
+                  ...(rowIndex === resolvedHeaderRows.length - 1 ? headerSeparatorBackground : {}),
+                  borderLeft: cell.borderLeft ? `2px solid ${tableColors.border}` : undefined,
+                }}
+              >
+                {cell.content}
+              </th>
+            ))}
+          </tr>
+        ))}
+      </thead>
+    ), [headerCellBaseStyle, headerSeparatorBackground, resolvedHeaderRows, stickyHeader, stickyHeaderTop]);
 
     if (scrollMode === 'ancestor') {
       return (
@@ -232,31 +309,7 @@ const VirtualizedDisplayTable = React.memo(
               tableLayout: 'fixed',
             }}
           >
-            <thead>
-              <tr>
-                {columns.map((col, idx) => (
-                  <th
-                    key={col.id ?? idx}
-                    data-mineo-column-id={col.id}
-                    style={{
-                      ...htmlTableHeaderStyles,
-                      ...cellBaseStyle,
-                      ...stickyHeaderStyle,
-                      width: col.width,
-                      textAlign: 'center',
-                      verticalAlign: 'bottom',
-                      whiteSpace: 'pre-line',
-                      overflowWrap: 'anywhere',
-                      wordBreak: 'break-word',
-                      ...headerSeparatorBackground,
-                      borderLeft: col.borderLeft ? `2px solid ${tableColors.border}` : undefined,
-                    }}
-                  >
-                    {col.header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
+            {renderHeader()}
 
             <tbody>
               {topSpacerHeight > 0 ? (
@@ -303,31 +356,7 @@ const VirtualizedDisplayTable = React.memo(
     return (
       <Box sx={{ width: 'fit-content', ...containerSx }}>
         <table style={{ ...tableStyle, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, width: 'fit-content', tableLayout: 'fixed' }}>
-          <thead>
-            <tr>
-              {columns.map((col, idx) => (
-                <th
-                  key={col.id ?? idx}
-                  data-mineo-column-id={col.id}
-                  style={{
-                    ...htmlTableHeaderStyles,
-                    ...cellBaseStyle,
-                    ...stickyHeaderStyle,
-                    width: col.width,
-                    textAlign: 'center',
-                    verticalAlign: 'bottom',
-                    whiteSpace: 'pre-line',
-                    overflowWrap: 'anywhere',
-                    wordBreak: 'break-word',
-                    ...headerSeparatorBackground,
-                    borderLeft: col.borderLeft ? `2px solid ${tableColors.border}` : undefined,
-                  }}
-                >
-                  {col.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
+          {renderHeader()}
         </table>
 
         <Box

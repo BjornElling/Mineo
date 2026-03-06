@@ -30,6 +30,7 @@ describe('VirtualizedDisplayTable', () => {
           { id: 'col:a', header: 'A', width: 80, align: 'left' },
           { id: 'col:b', header: 'B', width: 80, align: 'left' },
         ]}
+        stickyHeader
         rowCount={1}
         rowHeight={28}
         height={28}
@@ -112,5 +113,48 @@ describe('VirtualizedDisplayTable', () => {
 
     const bodyRows = container.querySelectorAll('tbody tr');
     expect(bodyRows.length).toBe(0);
+  });
+
+  it('renders multiple header rows with colSpan groups', () => {
+    render(
+      <VirtualizedDisplayTable
+        columns={[
+          { id: 'col:a', header: 'A', width: 80, align: 'left' },
+          { id: 'col:b', header: 'B', width: 80, align: 'left' },
+          { id: 'col:c', header: 'C', width: 80, align: 'left' },
+        ]}
+        headerRows={[
+          {
+            key: 'groups',
+            stickyHeight: 32,
+            cells: [
+              { key: 'blank', content: '', colSpan: 1, width: 80 },
+              { key: 'group-1', content: 'Ansættelsessted 1', colSpan: 2, width: 160 },
+            ],
+          },
+          {
+            key: 'labels',
+            stickyHeight: 44,
+            cells: [
+              { key: 'a', content: 'A', columnId: 'col:a', width: 80 },
+              { key: 'b', content: 'B', columnId: 'col:b', width: 80 },
+              { key: 'c', content: 'C', columnId: 'col:c', width: 80 },
+            ],
+          },
+        ]}
+        rowCount={1}
+        rowHeight={28}
+        height={28}
+        getRowKey={() => 'row0'}
+        renderCell={(rowIndex, columnIndex) => `${rowIndex}-${columnIndex}`}
+      />
+    );
+
+    const groupedHeader = screen.getByText('Ansættelsessted 1').closest('th');
+    expect(groupedHeader).not.toBeNull();
+    expect(groupedHeader).toHaveAttribute('colspan', '2');
+    expect(screen.getByText('A').closest('th')).toHaveAttribute('data-mineo-column-id', 'col:a');
+    expect(screen.getByText('B').closest('th')).toHaveAttribute('data-mineo-column-id', 'col:b');
+    expect(screen.getByText('C').closest('th')).toHaveAttribute('data-mineo-column-id', 'col:c');
   });
 });

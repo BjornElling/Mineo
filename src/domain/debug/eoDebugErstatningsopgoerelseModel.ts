@@ -27,6 +27,7 @@ import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statisti
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/KRLrates';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/angivetLoenHelpers';
+import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/loenudviklingDisplay';
 import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../erstatningsopgoerelse/indtaegtPerioder';
 import { computeSvieSmerteEngine } from '../erstatningsopgoerelse/svieSmerteEngine';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
@@ -47,8 +48,7 @@ export type DebugRowId =
   | 'erstatningsopgoerelse.opgørelseLavetDen'
   | 'erstatningsopgoerelse.helbredsstatus'
   | 'erstatningsopgoerelse.arbejdsstatus'
-  | 'forlig.ansvarsgradProcent'
-  | 'forlig.ansvarsgradBroek'
+  | 'forlig.ansvarsgrad'
   | 'forlig.beregnetAnsvarsgrad'
   | 'forlig.dato'
   | 'aes.varigeMenAfgorelse'
@@ -107,26 +107,6 @@ export type DebugRowId =
 type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];
 type ErstatningsopgoerelseFieldName = Extract<keyof ErstatningsopgoerelseValues, string>;
 type ErstatningsopgoerelseFieldErrorsBySource = Partial<Record<ErstatningsopgoerelseFieldName, FieldErrorBySource>>;
-
-/**
- * Konverterer brøk til procent
- *
- * @param broek - Brøk i format "tæller/nævner" (fx "2/3")
- * @returns Procent afrundet til 0 decimaler, eller undefined hvis ugyldig
- */
-const broekTilProcent = (broek: string | undefined): number | undefined => {
-  if (!broek || broek.trim() === '') return undefined;
-
-  const parts = broek.trim().split('/');
-  if (parts.length !== 2) return undefined;
-
-  const taeller = parseFloat(parts[0]);
-  const naevner = parseFloat(parts[1]);
-
-  if (isNaN(taeller) || isNaN(naevner) || naevner === 0) return undefined;
-
-  return (taeller / naevner) * 100;
-};
 
 const formatPercentUpToTwoDecimals = (value: number): string =>
   `${value.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`;
@@ -242,70 +222,66 @@ export const buildEODebugForligRows = (
   values: ErstatningsopgoerelseValues,
   errors: ErstatningsopgoerelseFieldErrorsBySource
 ): DebugRowModel[] => {
-  // Beregn ansvarsgrad baseret på procent eller brøk
   const procentValue = values.forligAnsvarsgradProcent;
   const broekValue = values.forligAnsvarsgradBroek;
   const harProcent = typeof procentValue === 'number';
   const harBroek = isNonEmptyString(broekValue);
-
-  // Tjek om der er fejl i procent eller brøk felterne
   const procentErrors = collectPresentFieldErrors(errors.forligAnsvarsgradProcent);
   const broekErrors = collectPresentFieldErrors(errors.forligAnsvarsgradBroek);
-  const harFejl = procentErrors.length > 0 || broekErrors.length > 0;
-
-  let beregnetAnsvarsgrad: string = '-';
-  if (!harFejl) {
-    if (typeof procentValue === 'number') {
-      beregnetAnsvarsgrad = formatPercentUpToTwoDecimals(procentValue);
-    } else if (isNonEmptyString(broekValue)) {
-      const procent = broekTilProcent(broekValue);
-      if (procent !== undefined) {
-        beregnetAnsvarsgrad = formatPercentUpToTwoDecimals(procent);
-      }
+  const samledeForligErrors = procentErrors.concat(broekErrors);
+  const harPraecisEnUdfyldt = harProcent !== harBroek;
+  const harBeggeUdfyldt = harProcent && harBroek;
+  const parsedForligsgrad = harPraecisEnUdfyldt ? parseForligsgrad(values) : null;
+  const samletForligDisplay = harProcent
+    ? `${procentValue}%`
+    : (harBroek ? broekValue.trim() : undefined);
+  const danishForligDato = isoToDanish(values.forligDato);
+  const combinedForligMessages = Array.from(new Set(samledeForligErrors.map((error) => error.message.trim())));
+  const fallbackBothFilledMessage = 'Angiv enten procent eller brøk – ikke begge';
+  const forligErrorMessages = harBeggeUdfyldt && combinedForligMessages.length === 0
+    ? [fallbackBothFilledMessage]
+    : combinedForligMessages;
+  const forligRow: DebugRowModel = forligErrorMessages.length > 0
+    ? {
+      id: 'forlig.ansvarsgrad',
+      label: 'Forlig om ansvarsgrad',
+      displayValue: `Fejl (${forligErrorMessages.join('; ')})`,
+      status:
+        harBeggeUdfyldt || samledeForligErrors.some((error) => error.severity === 'error')
+          ? 'error'
+          : 'warning',
+      message: forligErrorMessages.join('; '),
+      summaryDisplay: 'messageOnly',
     }
+    : {
+      id: 'forlig.ansvarsgrad',
+      label: 'Forlig om ansvarsgrad',
+      ...resolveDebugDisplay({ value: samletForligDisplay, errors: undefined, emptyState: 'ok' }),
+    };
+
+  if (!harPraecisEnUdfyldt) {
+    return [forligRow];
   }
 
-  // Konverter forligDato til dansk format
-  const danishForligDato = isoToDanish(values.forligDato);
-  const hasForligDato = isNonEmptyString(danishForligDato);
-  const manglerAnsvarsgradVedForligDato = hasForligDato && !harProcent && !harBroek;
-  const forligDatoErrors = hasForligDato ? errors.forligDato : undefined;
-
-  // Konverter procent til string for display
-  const procentDisplay = typeof procentValue === 'number' ? `${procentValue}%` : undefined;
-
   return [
-    {
-      id: 'forlig.ansvarsgradProcent',
-      label: 'Forlig om ansvarsgrad, procent',
-      ...resolveDebugDisplay({ value: procentDisplay, errors: errors.forligAnsvarsgradProcent, emptyState: 'ok' }),
-    },
-    {
-      id: 'forlig.ansvarsgradBroek',
-      label: 'Forlig om ansvarsgrad, brøk',
-      ...resolveDebugDisplay({ value: broekValue, errors: errors.forligAnsvarsgradBroek, emptyState: 'ok' }),
-    },
+    forligRow,
     {
       id: 'forlig.beregnetAnsvarsgrad',
       label: 'Beregnet ansvarsgrad',
-      displayValue: manglerAnsvarsgradVedForligDato
-        ? 'Fejl (Ingen forligsgrad - procent eller brøk)'
-        : beregnetAnsvarsgrad,
-      status: manglerAnsvarsgradVedForligDato ? 'error' : 'ok',
-      message: manglerAnsvarsgradVedForligDato
-        ? 'Der er angivet dato for forlig, men ingen forligsgrad (procent eller brøk)'
-        : undefined,
-      summaryDisplay: 'messageOnly',
+      displayValue:
+        parsedForligsgrad === null
+          ? '-'
+          : formatPercentUpToTwoDecimals(parsedForligsgrad.factor * 100),
+      status: 'ok',
       dependsOn: [
-        { kind: 'id', id: 'forlig.ansvarsgradProcent' },
-        { kind: 'id', id: 'forlig.ansvarsgradBroek' },
+        { kind: 'id', id: 'forlig.ansvarsgrad' },
         { kind: 'id', id: 'forlig.dato' },
       ],
     },
     {
       id: 'forlig.dato',
       label: 'Evt. dato for forlig',
-      ...resolveDebugDisplay({ value: danishForligDato, errors: forligDatoErrors, emptyState: 'ok' }),
+      ...resolveDebugDisplay({ value: danishForligDato, errors: errors.forligDato, emptyState: 'ok' }),
     },
   ];
 };
@@ -905,8 +881,7 @@ export const buildEODebugSvieSmerteRows = (
     status: satserPerDagMax.status,
     dependsOn: [
       { kind: 'id', id: 'sviesmerte.satserAar' },
-      { kind: 'id', id: 'forlig.ansvarsgradProcent' },
-      { kind: 'id', id: 'forlig.ansvarsgradBroek' },
+      { kind: 'id', id: 'forlig.ansvarsgrad' },
     ],
   });
 
@@ -1612,6 +1587,7 @@ export const buildEODebugTaftRows = (
 
   // 2) Ferieperiode-rækker fra tabellen
   const harFerieperioder = ferieperioder.length > 0 && ferieperioder.some((p) => p.fra || p.til);
+  const ferieperiodeLabel = ferieperioder.filter((p) => p.fra || p.til).length === 1 ? 'Ferieperiode' : 'Ferieperioder';
 
   // Detektér overlappende ferieperioder
   const ferieOverlappingIds = detectOverlappingPeriods(ferieperioder);
@@ -1619,7 +1595,7 @@ export const buildEODebugTaftRows = (
   if (!harFerieperioder) {
     rows.push({
       id: 'taf.ferie.empty',
-      label: 'Ferieperiode',
+      label: ferieperiodeLabel,
       displayValue: '-',
       status: 'ok',
     });
@@ -1644,7 +1620,7 @@ export const buildEODebugTaftRows = (
         const displayValue = 'Fejl (Ikke alle felter udfyldt)';
         rows.push({
           id: `taf.ferie.${periode.id}`,
-          label: 'Ferieperiode',
+          label: ferieperiodeLabel,
           displayValue,
           status: 'error',
         });
@@ -1659,7 +1635,7 @@ export const buildEODebugTaftRows = (
         const displayValue = 'Fejl (Ugyldig dato)';
         rows.push({
           id: `taf.ferie.${periode.id}`,
-          label: 'Ferieperiode',
+          label: ferieperiodeLabel,
           displayValue,
           status: 'error',
         });
@@ -1714,7 +1690,7 @@ export const buildEODebugTaftRows = (
         const errorMessages = hasOverlap ? 'Der er overlappende perioder' : computedRangeMessages.join('; ');
         rows.push({
           id: `taf.ferie.${periode.id}`,
-          label: 'Ferieperiode',
+          label: ferieperiodeLabel,
           displayValue: `Fejl (${errorMessages})`,
           status: 'error',
         });
@@ -1726,7 +1702,7 @@ export const buildEODebugTaftRows = (
       if (!fraDanish || !tilDanish) {
         rows.push({
           id: `taf.ferie.${periode.id}`,
-          label: 'Ferieperiode',
+          label: ferieperiodeLabel,
           displayValue: 'Fejl (Ugyldig dato)',
           status: 'error',
         });
@@ -1738,7 +1714,7 @@ export const buildEODebugTaftRows = (
 
       rows.push({
         id: `taf.ferie.${periode.id}`,
-        label: 'Ferieperiode',
+        label: ferieperiodeLabel,
         displayValue: periodeDisplay,
         status: 'ok',
       });
@@ -2463,14 +2439,14 @@ export const buildEODebugIndkomstRows = (
     rows.push({
       id: `loenindkomst.${section.id}.satserSkadestidspunkt`,
       label: 'Satser på skadestidspunktet',
-      displayValue: formatStatusMessage(section.satserStatus, section.satserMessage),
+      displayValue: section.satserStatus === 'ok' ? 'Ja' : formatStatusMessage(section.satserStatus, section.satserMessage),
       status: section.satserStatus,
     });
 
     rows.push({
       id: `loenindkomst.${section.id}.loenoplysninger`,
       label: 'Alle lønoplysninger indtastet korrekt',
-      displayValue: formatStatusMessage(section.tableStatus, section.tableMessage),
+      displayValue: section.tableStatus === 'ok' ? 'Ja' : formatStatusMessage(section.tableStatus, section.tableMessage),
       status: section.tableStatus,
       summaryDisplay: 'messageOnly',
     });
@@ -2505,13 +2481,21 @@ export const buildEODebugIndkomstRows = (
     rows.push({
       id: valgtReguleringRowId,
       label: 'Valgt regulering',
-      displayValue: formatStatusMessage(status, message),
+      displayValue: status === 'ok' ? 'Ja' : formatStatusMessage(status, message),
       status,
     });
     const harGyldigValgtRegulering = status === 'ok';
     if (!harGyldigValgtRegulering) {
       return;
     }
+
+    rows.push({
+      id: `${loenudviklingRowPrefix}.navn`,
+      label: 'Navn på reguleringsform',
+      displayValue: resolveValgtReguleringDisplay(ansaettelsesforhold),
+      status: 'ok',
+      dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
+    });
 
     if (
       loenudviklingBasis === 'Overenskomst' &&
@@ -2632,21 +2616,6 @@ export const buildEODebugIndkomstRows = (
         status: ok ? 'ok' : 'error' as DebugStatus,
       };
     })();
-
-    if (loenudviklingBasis === 'Manuelt angivet') {
-      const manuelNavn = (ansaettelsesforhold.loenudviklingManuelNavn ?? '').trim();
-      const harManuelNavn = manuelNavn !== '';
-      rows.push({
-        id: `${loenudviklingRowPrefix}.navn`,
-        label: 'Navn på reguleringsform',
-        displayValue: formatStatusMessage(
-          harManuelNavn ? 'ok' : 'warning',
-          harManuelNavn ? manuelNavn : 'Navn på reguleringsform mangler'
-        ),
-        status: harManuelNavn ? 'ok' : 'warning',
-        dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
-      });
-    }
 
     if (loenudviklingBasis !== 'Ingen') {
       rows.push({
@@ -2807,7 +2776,7 @@ export const buildEODebugOffentligeYdelserRows = (
     rows.push({
       id: `offentligeYdelser.${row.id}`,
       label: row.label,
-      displayValue: formatStatusMessage(row.status, row.message),
+      displayValue: row.status === 'ok' ? 'ok' : formatStatusMessage(row.status, row.message),
       status: row.status,
       summaryDisplay: row.summaryDisplay ?? 'default',
     });
@@ -2913,7 +2882,7 @@ export const buildEODebugSaerligeKommentarerRows = (
   return [
     {
       id: 'saerligekommentarer',
-      label: harKommentarer ? '' : '-',
+      label: harKommentarer ? '' : 'Ingen',
       displayValue: harKommentarer ? kommentarer.trim() : '-',
       status: 'ok',
     },

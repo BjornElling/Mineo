@@ -201,6 +201,19 @@ describe('pdfWriter writeUnderlinedLabel', () => {
     expect(writer.getY()).toBe(110);
   });
 
+  it('kollapser flere manuelle spacere så der samlet kun er én linje over label', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    writer.setY(100);
+
+    writer.addSpacer(5);
+    writer.addSpacer(5);
+    writer.writeUnderlinedLabel('Offentlige ydelser', 10);
+
+    // 100 -> normaliseret til 5 mm afstand over label + 5 mm label-linje
+    expect(writer.getY()).toBe(110);
+  });
+
   it('holder underlinjet label sammen med næste linje ved sideskift', async () => {
     const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
     const writer = createStandardPdfWriter();

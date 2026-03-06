@@ -23,7 +23,6 @@ export type DebugTabelDateSource = Readonly<{
 
 export type DebugTabelColumnId =
   | (typeof DEBUG_TABEL_COLUMN_IDS)[keyof typeof DEBUG_TABEL_COLUMN_IDS]
-  | `loen:${number}:taf`
   | `loen:${number}:taf_regulering`
   | `loen:${number}:wage:${DebugTabelWageColumnKey}`
   | `offentlig:${string}`;
@@ -45,6 +44,7 @@ export const DEBUG_TABEL_COLUMN_IDS = {
   ferieDay: 'base:ferie_day',
   arbejdsdag: 'base:arbejdsdag',
   ssDay: 'base:ss_day',
+  tafDay: 'base:taf_day',
 } as const;
 
 export type DebugTabelIntegrityIssue = Readonly<{
@@ -608,7 +608,7 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
 
   // Summary table uses the same range as the debug table (month boundaries).
   const tafColumnIds = columnData
-    .filter((col) => col.id.startsWith('loen:') && col.id.endsWith(':taf'))
+    .filter((col) => col.id === DEBUG_TABEL_COLUMN_IDS.tafDay)
     .map((col) => col.id);
   const tafFlagsByIndex = dates.map((_, rowIndex) => {
     const activeColumns = tafColumnIds.filter((columnId) => (rows[rowIndex]?.cells[columnId] ?? '') !== '');

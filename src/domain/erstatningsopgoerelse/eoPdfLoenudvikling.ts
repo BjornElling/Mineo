@@ -43,6 +43,7 @@ import type { Calculable, IndkomstSkadestidspunktPdfModel, LoenudviklingPdfModel
 import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from './eoPdfMoneyUtils';
 import {
   convertAnciennitetSats,
+  isAslStatistikModel,
   resolvePctPointFromSatsOrInput,
   resolveOffentligLoenEkstraGrundloen,
   roundToTwoDecimals,
@@ -624,7 +625,7 @@ const buildLoenudviklingFromStatistikV3 = (
     throw new Error('Loenudvikling kan ikke beregnes: reguleringsdato mangler');
   }
 
-  if (modelLabel.startsWith('ASL-')) {
+  if (isAslStatistikModel(modelLabel)) {
     const baseYear = Number(konsolideret.reguleringsdato.slice(0, 4));
     const directBaseIndex = Number.isFinite(baseYear) ? aarsloenMax[baseYear as keyof typeof aarsloenMax] : undefined;
     if (directBaseIndex !== undefined) {
@@ -1309,103 +1310,141 @@ export const buildLoenudviklingModelV3 = (
     return { loenudviklingLabel, loenudviklingTotal: asCalculable(totalOre), beregnedeSegmenter };
   };
 
-  try {
-    const strategiData = resolveReguleringsStrategiV3(values, stamdataValues, tafBeregningsenhed, { tafRanges });
-    const maanedsloenBase = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
-      ? resolveMaanedsloenBase(values, indkomstSkadestidspunkt)
-      : null;
-    const dagsloenBase = tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
-      ? resolveDagsloenBase(values, indkomstSkadestidspunkt)
-      : null;
-    const baseLoen = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? maanedsloenBase : dagsloenBase;
-    if (typeof baseLoen !== 'number') {
+  const buildPerAnsaettelseModel = (): LoenudviklingPdfModel => {
+    const beregningsperiodeRange = buildBeregningsperiodeRange(values);
+    if (!beregningsperiodeRange) {
       throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
     }
-    const model = buildFromStrategiAndBase(strategiData, baseLoen);
-    return {
-      loenudviklingLabel: model.loenudviklingLabel,
-      loenudviklingTotal: model.loenudviklingTotal,
-      beregningsenhed: tafBeregningsenhed,
-      beregnedeSegmenter: model.beregnedeSegmenter,
-      perAnsaettelse: [],
-    };
-  } catch (error) {
-    // Fallback-path: kun ved inkonsistente loenudviklingsindstillinger i Beregningsperiode
-    // beregnes lønudvikling pr. ansættelse i stedet for konsolideret.
-    if (values.beregnesUdFra !== 'Beregningsperiode' || !(error instanceof InkonsistenteLoenudviklingsindstillingerError)) {
-      throw error;
-    }
-  }
-
-  const beregningsperiodeRange = buildBeregningsperiodeRange(values);
-  if (!beregningsperiodeRange) {
-    throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
-  }
-  const income = buildIncomeForRanges(values, [beregningsperiodeRange]);
-  if (income.employers.length === 0) {
-    throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
-  }
-
-  const divisor = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
-    ? indkomstSkadestidspunkt?.maaneder
-    : indkomstSkadestidspunkt?.arbejdsdage;
-  if (!Number.isFinite(divisor) || !divisor || divisor <= 0) {
-    throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
-  }
-
-  const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
-  const perAnsaettelse: Array<LoenudviklingPdfModel['perAnsaettelse'][number]> = [];
-
-  for (const employer of income.employers) {
-    const ansaettelsesforhold = ansaettelser[employer.index];
-    if (!ansaettelsesforhold) continue;
-    const baseLoen = employer.amount / divisor;
-    const valuesForAf: ErstatningsopgoerelseValues = {
+    const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
+    const strategiDataByIndex = ansaettelser.map((ansaettelsesforhold) => resolveReguleringsStrategiV3({
       ...values,
       loenindkomstAnsaettelsesforhold: [ansaettelsesforhold],
-    };
-    const strategiData = resolveReguleringsStrategiV3(valuesForAf, stamdataValues, tafBeregningsenhed, { tafRanges });
-    const modelForAf = buildFromStrategiAndBase(strategiData, baseLoen);
-    const ansaettelsesforholdNavn = employer.name !== ''
-      ? employer.name
-      : (ansaettelsesforhold.navnPaaArbejdssted?.trim() || 'Arbejdssted');
+    }, stamdataValues, tafBeregningsenhed, { tafRanges }));
+    const income = buildIncomeForRanges(values, [beregningsperiodeRange]);
+    if (income.employers.length === 0) {
+      const alleIngen = strategiDataByIndex.every((strategiData) => strategiData.strategi === 'ingen');
+      if (alleIngen) {
+        const beregnedeSegmenter = tafRanges.map<LoenudviklingSegment>((range) => (
+          tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
+            ? {
+              kind: 'maaneder',
+              fra: range.fra,
+              til: range.til,
+              maaneder: roundByMethod(
+                beregnArbejdsdageOgMaaneder(range.fra, range.til, new Set<ISODateString>(), new Set<ISODateString>()).maaneder,
+                4,
+                'halfAwayFromZero'
+              ),
+              maanedsloenOre: 0,
+              deltaPct: 0,
+              amountOre: 0,
+            }
+            : {
+              kind: 'arbejdsdage',
+              fra: range.fra,
+              til: range.til,
+              arbejdsdage: countTafArbejdsdageInRange(
+                buildTafArbejdsdageSet(values, { clamp: options.clampTafRows !== false }),
+                range.fra,
+                range.til
+              ),
+              dagsloenOre: 0,
+              deltaPct: 0,
+              amountOre: 0,
+            }
+        ));
+        return {
+          loenudviklingLabel: 'Ingen',
+          loenudviklingTotal: asCalculable(0),
+          beregningsenhed: tafBeregningsenhed,
+          beregnedeSegmenter,
+          perAnsaettelse: [],
+        };
+      }
+      throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
+    }
 
-    perAnsaettelse.push({
-      ansaettelsesforholdId: ansaettelsesforhold.id,
-      ansaettelsesforholdNavn,
-      loenudviklingLabel: modelForAf.loenudviklingLabel,
-      loenudviklingTotal: modelForAf.loenudviklingTotal,
-      beregnedeSegmenter: modelForAf.beregnedeSegmenter,
-    });
+    const divisor = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
+      ? indkomstSkadestidspunkt?.maaneder
+      : indkomstSkadestidspunkt?.arbejdsdage;
+    if (!Number.isFinite(divisor) || !divisor || divisor <= 0) {
+      throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
+    }
+
+    const perAnsaettelse: Array<LoenudviklingPdfModel['perAnsaettelse'][number]> = [];
+
+    for (const employer of income.employers) {
+      const ansaettelsesforhold = ansaettelser[employer.index];
+      if (!ansaettelsesforhold) continue;
+      const baseLoen = employer.amount / divisor;
+      const strategiData = strategiDataByIndex[employer.index];
+      if (!strategiData) continue;
+      const modelForAf = buildFromStrategiAndBase(strategiData, baseLoen);
+      const ansaettelsesforholdNavn = employer.name !== ''
+        ? employer.name
+        : (ansaettelsesforhold.navnPaaArbejdssted?.trim() || 'Arbejdssted');
+
+      perAnsaettelse.push({
+        ansaettelsesforholdId: ansaettelsesforhold.id,
+        ansaettelsesforholdNavn,
+        loenudviklingLabel: modelForAf.loenudviklingLabel,
+        loenudviklingTotal: modelForAf.loenudviklingTotal,
+        beregnedeSegmenter: modelForAf.beregnedeSegmenter,
+      });
+    }
+
+    if (perAnsaettelse.length === 0) {
+      throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
+    }
+
+    const beregnedeSegmenter = perAnsaettelse
+      .flatMap((entry) => entry.beregnedeSegmenter)
+      .slice()
+      .sort((a, b) => (a.fra < b.fra ? -1 : a.fra > b.fra ? 1 : 0));
+    const totalOre = clampMoneyOreToZero(
+      ensureMoneyOre(
+        perAnsaettelse.reduce((sum, entry) => {
+          if (entry.loenudviklingTotal.status !== 'ok') {
+            throw new Error('Loenudvikling kan ikke beregnes for den valgte opsætning.');
+          }
+          return sum + entry.loenudviklingTotal.value;
+        }, 0)
+      )
+    );
+    const labels = Array.from(new Set(perAnsaettelse.map((entry) => entry.loenudviklingLabel)));
+    const loenudviklingLabel = labels.length === 1 ? labels[0] : 'Flere reguleringstyper';
+
+    return {
+      loenudviklingLabel,
+      loenudviklingTotal: asCalculable(totalOre),
+      beregningsenhed: tafBeregningsenhed,
+      beregnedeSegmenter,
+      perAnsaettelse,
+    };
+  };
+
+  if (values.beregnesUdFra === 'Beregningsperiode') {
+    return buildPerAnsaettelseModel();
   }
 
-  if (perAnsaettelse.length === 0) {
+  const strategiData = resolveReguleringsStrategiV3(values, stamdataValues, tafBeregningsenhed, { tafRanges });
+  const maanedsloenBase = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
+    ? resolveMaanedsloenBase(values, indkomstSkadestidspunkt)
+    : null;
+  const dagsloenBase = tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
+    ? resolveDagsloenBase(values, indkomstSkadestidspunkt)
+    : null;
+  const baseLoen = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? maanedsloenBase : dagsloenBase;
+  if (typeof baseLoen !== 'number') {
     throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
   }
-
-  const beregnedeSegmenter = perAnsaettelse
-    .flatMap((entry) => entry.beregnedeSegmenter)
-    .slice()
-    .sort((a, b) => (a.fra < b.fra ? -1 : a.fra > b.fra ? 1 : 0));
-  const totalOre = clampMoneyOreToZero(
-    ensureMoneyOre(
-      perAnsaettelse.reduce((sum, entry) => {
-        if (entry.loenudviklingTotal.status !== 'ok') {
-          throw new Error('Loenudvikling kan ikke beregnes for den valgte opsætning.');
-        }
-        return sum + entry.loenudviklingTotal.value;
-      }, 0)
-    )
-  );
-  const labels = Array.from(new Set(perAnsaettelse.map((entry) => entry.loenudviklingLabel)));
-  const loenudviklingLabel = labels.length === 1 ? labels[0] : 'Flere reguleringstyper';
-
+  const model = buildFromStrategiAndBase(strategiData, baseLoen);
   return {
-    loenudviklingLabel,
-    loenudviklingTotal: asCalculable(totalOre),
+    loenudviklingLabel: model.loenudviklingLabel,
+    loenudviklingTotal: model.loenudviklingTotal,
     beregningsenhed: tafBeregningsenhed,
-    beregnedeSegmenter,
-    perAnsaettelse,
+    beregnedeSegmenter: model.beregnedeSegmenter,
+    perAnsaettelse: [],
   };
 };
 
