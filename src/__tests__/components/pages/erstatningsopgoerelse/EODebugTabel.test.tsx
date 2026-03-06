@@ -110,19 +110,10 @@ describe('EODebugTabel', () => {
 
     renderComponent({
       debugSnapshot: snapshot,
-      currentDebugRevision: snapshot.revision,
     });
 
     expect(screen.getByText('Sammentælling')).toBeInTheDocument();
     expect(screen.getByText('Kan ikke oprette debug-tabel')).toBeInTheDocument();
   });
 
-  it('viser info når debugSnapshot ikke matcher den aktuelle revision', () => {
-    renderComponent({
-      debugSnapshot: makeSnapshot(makeModel({ rowCount: 0 }), 'rev-old'),
-      currentDebugRevision: 'rev-current',
-    });
-
-    expect(screen.getByText('Debug-tabellen er ikke opdateret endnu')).toBeInTheDocument();
-  });
 });

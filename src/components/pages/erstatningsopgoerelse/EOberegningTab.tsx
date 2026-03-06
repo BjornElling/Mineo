@@ -35,7 +35,7 @@ interface EOberegningTabProps {
   setActiveTab: (tab: TabKey) => void;
   isActive: boolean;
   eoSnapshot?: EoSnapshot | null;
-  stamdataValues: StamdataValues | null;
+  stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
   setEOValues: React.Dispatch<React.SetStateAction<ErstatningsopgoerelseValues>>;
 }
@@ -107,7 +107,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       return { errors: [], warnings: [], relevantRows: [] };
     }
     // Return tom liste hvis data ikke er loaded endnu
-    if (!stamdataValues || !eoValues) {
+    if (!eoValues) {
       return { errors: [], warnings: [], relevantRows: [] };
     }
 
@@ -158,17 +158,11 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     return new Error(message);
   }, [eoSnapshot]);
 
-  const canDownloadSnapshotEoPdf = Boolean(
-    stamdataValues &&
-    eoPdfProjection?.kind === 'ok'
-  );
-  const canDownloadSnapshotTafPdf = Boolean(
-    stamdataValues &&
-    tafPdfProjection?.kind === 'ok'
-  );
+  const canDownloadSnapshotEoPdf = eoPdfProjection?.kind === 'ok';
+  const canDownloadSnapshotTafPdf = tafPdfProjection?.kind === 'ok';
 
   const eoPdfDisabledReason = React.useMemo(() => {
-    if (!stamdataValues || !eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
+    if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
     if (eoSnapshot.status === 'fail_closed') {
       return eoSnapshot.invariants[0]?.message ?? 'EO-PDF kan ikke genereres for den aktuelle sag.';
     }
@@ -179,10 +173,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       return eoPdfProjection.message;
     }
     return null;
-  }, [authoritativeBlockingInvariants, eoPdfProjection, eoSnapshot, stamdataValues]);
+  }, [authoritativeBlockingInvariants, eoPdfProjection, eoSnapshot]);
 
   const tafPdfDisabledReason = React.useMemo(() => {
-    if (!stamdataValues || !eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
+    if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
     if (eoSnapshot.status === 'fail_closed') {
       return eoSnapshot.invariants[0]?.message ?? 'TAF fordelt på år kan ikke genereres for den aktuelle sag.';
     }
@@ -193,7 +187,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       return tafPdfProjection.message;
     }
     return null;
-  }, [authoritativeBlockingInvariants, eoSnapshot, stamdataValues, tafPdfProjection]);
+  }, [authoritativeBlockingInvariants, eoSnapshot, tafPdfProjection]);
 
   const systemIssueRows = React.useMemo<readonly SystemIssueRow[]>(() => {
     const rows: SystemIssueRow[] = [];
@@ -432,7 +426,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     if (!canDownloadSnapshotEoPdf) {
       return;
     }
-    if (!stamdataValues || !eoSnapshot) return;
+    if (!eoSnapshot) return;
 
     const result = await downloadErstatningsopgoerelsePdf({
       stamdataValues,
@@ -455,7 +449,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     if (!canDownloadSnapshotTafPdf) {
       return;
     }
-    if (!stamdataValues || !eoSnapshot) return;
+    if (!eoSnapshot) return;
 
     const result = await downloadTafFordeltPaaAarPdf({
       stamdataValues,

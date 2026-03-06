@@ -45,12 +45,11 @@ const parseEmploymentIndexFromColumnId = (columnId: string): number | null => {
 
 type EODebugTabelProps = {
   debugSnapshot?: EODebugSnapshot | null;
-  currentDebugRevision?: string;
 };
 
-const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }: EODebugTabelProps) => {
+const EODebugTabel = React.memo(({ debugSnapshot = null }: EODebugTabelProps) => {
   const theme = useTheme();
-  const snapshot = debugSnapshot && debugSnapshot.revision === currentDebugRevision ? debugSnapshot : null;
+  const snapshot = debugSnapshot;
   const model = snapshot?.model ?? null;
 
   const formatIso = React.useCallback((iso: ISODateString | undefined): string => {
@@ -316,7 +315,7 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
         ) : (
           <Alert severity="info" sx={{ borderRadius: '10px' }}>
             <AlertTitle sx={{ fontWeight: 500 }}>Debug-tabellen er ikke opdateret endnu</AlertTitle>
-            Åbn fanen igen fra Erstatningsopgørelse for at bygge et friskt snapshot.
+            Snapshottet bygges automatisk ved første visit til fanen.
           </Alert>
         )}
       </ContentBox>
@@ -361,12 +360,7 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }:
       </ContentBox>
 
       <Box sx={{ mt: 2 }}>
-        {!snapshot ? (
-          <Alert severity="info" sx={{ borderRadius: '10px' }}>
-            <AlertTitle sx={{ fontWeight: 500 }}>Debug-tabellen kræver et friskt snapshot</AlertTitle>
-            Der vises ingen debug-tidslinje, før fanen er åbnet med committed EO-data.
-          </Alert>
-        ) : model?.rowCount === 0 ? (
+        {!snapshot ? null : model?.rowCount === 0 ? (
           <Alert severity="info" sx={{ borderRadius: '10px' }}>
             <AlertTitle sx={{ fontWeight: 500 }}>Kan ikke oprette debug-tabel</AlertTitle>
             <Typography variant="body2" sx={{ mb: 1 }}>

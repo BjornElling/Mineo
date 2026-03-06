@@ -116,9 +116,9 @@ const Erstatningsopgoerelse = React.memo(() => {
     buildDebugSnapshotRef.current = buildDebugSnapshot;
   }, [buildDebugSnapshot]);
 
-  const stamdataValuesForBeregningTab = React.useMemo<StamdataValues | null>(() => {
+  const stamdataValuesForBeregningTab = React.useMemo<StamdataValues>(() => {
     const persistedStamdata = getPersistedData('stamdata');
-    if (!persistedStamdata) return null;
+    if (!persistedStamdata) return STAMDATA_INITIAL_VALUES;
     return { ...STAMDATA_INITIAL_VALUES, ...persistedStamdata };
   }, [getPersistedData]);
 
@@ -135,13 +135,8 @@ const Erstatningsopgoerelse = React.memo(() => {
     activeTab === TAB_KEYS.BEREGNING || activeTab === TAB_KEYS.DEBUG || activeTab === TAB_KEYS.DEBUG_TABEL;
 
   React.useEffect(() => {
-    if (!isSnapshotTabActive) {
-      setEoSnapshot(null);
-      return;
-    }
-    if (eoSnapshot?.revision === currentDebugRevision) {
-      return;
-    }
+    if (!isSnapshotTabActive) return;
+    if (eoSnapshot?.revision === currentDebugRevision) return;
     setEoSnapshot(buildDebugSnapshotRef.current());
   }, [currentDebugRevision, eoSnapshot?.revision, isSnapshotTabActive]);
 
@@ -365,7 +360,6 @@ const Erstatningsopgoerelse = React.memo(() => {
           >
             <EODebugTabel
               debugSnapshot={activeTab === TAB_KEYS.DEBUG_TABEL ? eoSnapshot?.debugSnapshot ?? null : null}
-              currentDebugRevision={currentDebugRevision}
             />
           </Box>
         ) : null}
