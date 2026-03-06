@@ -191,4 +191,48 @@ describe('buildEODebugSammentaellingModel regression', () => {
     );
     expect(hasParseAmountStringWarn).toBe(false);
   });
+
+  it('viser clampede svie/smerte-dage i sammentælling i stedet for range-fejl', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      vedroererPeriodeFra: '2023-05-24',
+      vedroererPeriodeTil: '2025-12-21',
+      beregnesSvieSmerteGodtgoerelse: 'Ja' as const,
+      beregnesTabtArbejdsfortjeneste: 'Nej' as const,
+      tidligereSsMax: 'Nej' as const,
+      varigeMenAfgorelse: 'Ja' as const,
+      verserendeKlageMen: 'Nej' as const,
+      menAfgoerelseDato: '2024-04-22',
+      svieSmertePerioder: [
+        {
+          id: 'svie-1',
+          fra: '2023-05-24',
+          til: '2025-04-21',
+          tilstand: 'sygemeldt' as const,
+        },
+      ],
+      svieSmerteSatserAar: 2026,
+      svieSmerteDelvisSygemeldingSats: 'fuld' as const,
+    };
+
+    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const model = buildEODebugModel(values);
+    const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
+    const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
+
+    const sammentaelling = buildEODebugSammentaellingModel({
+      values,
+      errors,
+      model,
+      svieSmerteContext,
+      taftContext,
+    });
+
+    expect(sammentaelling.svieSmerteSygedage.beregnetDisplay).toBe('334');
+    expect(sammentaelling.svieSmerteSygedage.tabelDisplay).toBe('334');
+    expect(sammentaelling.svieSmerteSygedage.beregnetValue).toBe(334);
+    expect(sammentaelling.svieSmerteSygedage.tabelValue).toBe(334);
+    expect(sammentaelling.svieSmerteDelvise.beregnetDisplay).toBe('-');
+    expect(sammentaelling.svieSmerteDelvise.tabelDisplay).toBe('-');
+  });
 });

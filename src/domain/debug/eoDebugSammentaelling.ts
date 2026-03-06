@@ -13,6 +13,7 @@ import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, type
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
 import { buildFerieDageSet, buildSHDageSet } from './eoDebugRegulationCore';
 import { computeTafArbejdsdageAggregation } from '../erstatningsopgoerelse/tafBeregningsEngine';
+import { computeSvieSmerteEngine } from '../erstatningsopgoerelse/svieSmerteEngine';
 
 export type SvieSmerteContext = Readonly<{
   skadesdatoISO: ISODateString | undefined;
@@ -539,12 +540,41 @@ export const buildEODebugSammentaellingModel = (args: {
   const tafArbejdsdageFromTable = isTafEnabled ? countTafDaysFromTable(model) : null;
   const svieSmerteTabelCounts = isSvieSmerteEnabled ? countSvieSmerteFromTable(model, erstatningsRange) : null;
 
+  const svieSmerteEngineCounts = (() => {
+    if (!isSvieSmerteEnabled) return null;
+    try {
+      return computeSvieSmerteEngine({
+        erstatningsopgoerelse: values,
+        stamdata: {
+          skadesdato: svieSmerteContext.skadesdatoISO,
+          skadestype: svieSmerteContext.erErhvervssygdom ? 'Erhvervssygdom' : undefined,
+        },
+      });
+    } catch {
+      return null;
+    }
+  })();
+
   const svieSmerteBeregnetRow = svieSmerteRows.find((row) => row.id === 'sviesmerte.antalDage');
   const svieSmerteBeregnetCounts = svieSmerteBeregnetRow
     ? parseSvieSmerteCounts(svieSmerteBeregnetRow.displayValue)
     : null;
 
+  const svieSmerteResolvedCounts = svieSmerteEngineCounts
+    ? {
+      sygedage: svieSmerteEngineCounts.sygedage,
+      delviseSygedage: svieSmerteEngineCounts.delviseSygedage,
+    }
+    : svieSmerteBeregnetCounts;
+
   const svieSmerteSygedageDisplays = (() => {
+    if (svieSmerteEngineCounts) {
+      return {
+        beregnet: formatOptionalInt(svieSmerteEngineCounts.sygedage),
+        tabel: svieSmerteTabelCounts ? formatOptionalInt(svieSmerteTabelCounts.sygedage) : '-',
+      };
+    }
+
     if (!svieSmerteBeregnetRow) {
       return { beregnet: '-', tabel: '-' };
     }
@@ -560,6 +590,13 @@ export const buildEODebugSammentaellingModel = (args: {
   })();
 
   const svieSmerteDelviseDisplays = (() => {
+    if (svieSmerteEngineCounts) {
+      return {
+        beregnet: formatOptionalInt(svieSmerteEngineCounts.delviseSygedage),
+        tabel: svieSmerteTabelCounts ? formatOptionalInt(svieSmerteTabelCounts.delviseSygedage) : '-',
+      };
+    }
+
     if (!svieSmerteBeregnetRow) {
       return { beregnet: '-', tabel: '-' };
     }
@@ -752,8 +789,8 @@ export const buildEODebugSammentaellingModel = (args: {
     svieSmerteSygedage: {
       beregnetDisplay: svieSmerteSygedageDisplays.beregnet,
       tabelDisplay: svieSmerteSygedageDisplays.tabel,
-      beregnetValue: null,
-      tabelValue: null,
+      beregnetValue: svieSmerteResolvedCounts?.sygedage ?? null,
+      tabelValue: svieSmerteTabelCounts?.sygedage ?? null,
       loseFeriedage: 0,
       oevrigeFravaersdage: 0,
       warningEligible: false,
@@ -761,8 +798,8 @@ export const buildEODebugSammentaellingModel = (args: {
     svieSmerteDelvise: {
       beregnetDisplay: svieSmerteDelviseDisplays.beregnet,
       tabelDisplay: svieSmerteDelviseDisplays.tabel,
-      beregnetValue: null,
-      tabelValue: null,
+      beregnetValue: svieSmerteResolvedCounts?.delviseSygedage ?? null,
+      tabelValue: svieSmerteTabelCounts?.delviseSygedage ?? null,
       loseFeriedage: 0,
       oevrigeFravaersdage: 0,
       warningEligible: false,
