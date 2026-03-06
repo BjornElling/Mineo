@@ -24,7 +24,7 @@ import { amountValueToNumber } from '../utils/expressionAmount';
 import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/rowEmpty';
 import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/periodOverlapDetection';
 import { resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/angivetLoenHelpers';
-import { resolveStatistikModelId } from '../domain/erstatningsopgoerelse/sharedPdfUtils';
+import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/sharedPdfUtils';
 import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/loenoplysningerInput';
 import {
   getValidTafRange,
@@ -536,15 +536,7 @@ function validateLoenudviklingKonsistens(values: ErstatningsopgoerelseValues): V
     resolveLoenudviklingKilde(values);
     return [];
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Ugyldig lønudviklingskilde';
-    const errorPath = error instanceof LoenudviklingKildeError && error.code === 'invalid_beregnes_udfra'
-      ? 'beregnesUdFra'
-      : 'eoAngivetLoenLoenudvikling.loenPaaHelligdage';
-    return [{
-      path: errorPath,
-      message,
-      severity: 'error',
-    }];
+    return [buildLoenudviklingsKildeResolutionError(error)];
   }
 }
 
@@ -563,15 +555,7 @@ function validateLoenudviklingsKravForAktivKilde(values: ErstatningsopgoerelseVa
   try {
     loenudviklingsKilde = resolveLoenudviklingKilde(values);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Ugyldig lønudviklingskilde';
-    const errorPath = error instanceof LoenudviklingKildeError && error.code === 'invalid_beregnes_udfra'
-      ? 'beregnesUdFra'
-      : 'eoAngivetLoenLoenudvikling.loenPaaHelligdage';
-    errors.push({
-      path: errorPath,
-      message,
-      severity: 'error',
-    });
+    errors.push(buildLoenudviklingsKildeResolutionError(error));
     return errors;
   }
 
@@ -609,7 +593,7 @@ function validateLoenudviklingsKravForAktivKilde(values: ErstatningsopgoerelseVa
 
     if (grundlag === 'Statistik') {
       const modelLabel = (af.loenudviklingStatistikModel ?? '').trim();
-      const erAsl = modelLabel.startsWith('ASL-');
+      const erAsl = isAslStatistikModel(modelLabel);
       const mappedModel = resolveStatistikModelId(modelLabel);
       if (modelLabel === '' || (!erAsl && !mappedModel)) {
         errors.push({
@@ -664,6 +648,19 @@ function validateLoenudviklingsKravForAktivKilde(values: ErstatningsopgoerelseVa
 
   return errors;
 }
+
+const buildLoenudviklingsKildeResolutionError = (error: unknown): ValidationError => {
+  const message = error instanceof Error ? error.message : 'Ugyldig lønudviklingskilde';
+  const errorPath = error instanceof LoenudviklingKildeError && error.code === 'invalid_beregnes_udfra'
+    ? 'beregnesUdFra'
+    : 'eoAngivetLoenLoenudvikling.loenPaaHelligdage';
+
+  return {
+    path: errorPath,
+    message,
+    severity: 'error',
+  };
+};
 
 function validateOevrigeKrav(values: ErstatningsopgoerelseValues): ValidationError[] {
   const errors: ValidationError[] = [];

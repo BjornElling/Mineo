@@ -86,11 +86,11 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 
   const { errors, warnings, relevantRows } = React.useMemo(() => {
     if (!isActive) {
-      return { errors: [], warnings: [], allRows: [], relevantRows: [] };
+      return { errors: [], warnings: [], relevantRows: [] };
     }
     // Return tom liste hvis data ikke er loaded endnu
     if (!stamdataValues || !eoValues) {
-      return { errors: [], warnings: [], allRows: [], relevantRows: [] };
+      return { errors: [], warnings: [], relevantRows: [] };
     }
 
     return collectAllDebugRows(
@@ -128,6 +128,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     if (invariant.id.startsWith('validation:')) return false;
     if (invariant.id.startsWith('taf_perioder:')) return false;
     if (invariant.id === 'beregningsperiode:uspecificerede_feriefridage') return false;
+    if (invariant.id === 'taf_per_year:afrunding_over_100') return false;
     if (invariant.id === 'taf_per_year:missing_loenudvikling') return false;
     if (invariant.id === 'taf_per_year:missing_taf_indtaegter') return false;
     return true;
@@ -204,8 +205,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       ...authoritativeBlockingInvariants,
       ...eoPdfBlockingInvariants,
       ...tafPdfBlockingInvariants,
-      ...(eoPdfProjection?.kind === 'blocked' ? eoPdfProjection.invariants : []),
-      ...(tafPdfProjection?.kind === 'blocked' ? tafPdfProjection.invariants : []),
     ]
       .filter(isSystemInvariant)
       .forEach((invariant) => {
@@ -219,12 +218,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   }, [
     authoritativeBlockingInvariants,
     eoPdfBlockingInvariants,
-    eoPdfProjection,
     eoSnapshot,
     isSystemInvariant,
     snapshotSystemError,
     tafPdfBlockingInvariants,
-    tafPdfProjection,
   ]);
 
   // ============================================================================
@@ -585,9 +582,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
           {renderDebugRows(warnings, 'warning')}
         </ContentBox>
       )}
-      {/* ========================================================================
-          CONTENTBOX 3: ERSTATNINGSOPGØRELSE (DOWNLOAD)
-          ======================================================================== */}
       <ContentBox>
         <Typography className="section-header">Beregning</Typography>
 

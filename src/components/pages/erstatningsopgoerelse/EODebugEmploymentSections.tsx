@@ -6,6 +6,7 @@ import type { RegulationDebugSection } from '../../../domain/debug/eoDebugRegula
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import { Check, ErrorOutline, WarningAmber } from '@mui/icons-material';
+import { getRegulationTableColumns } from './regulationTableColumns';
 
 const LABEL_WIDTH = '320px';
 
@@ -111,27 +112,6 @@ const renderCombinedTafRegulationValueRow = (
     </Box>
   </Box>
 );
-
-const getRegulationTableColumns = (table: NonNullable<RegulationDebugSection['tables']>[number]) => {
-  const isBeregnetTabel = table.columns.includes('Indeksberegning');
-  return table.columns.map((header) => ({
-    header,
-    align: 'center' as const,
-    width: isBeregnetTabel
-      ? header === 'Indeksberegning'
-        ? '52%'
-        : header === 'Fra-dato' || header === 'Til-dato'
-          ? '12%'
-          : '12%'
-      : undefined,
-    cellSx: isBeregnetTabel && header === 'Indeksberegning'
-      ? { whiteSpace: 'pre-line', verticalAlign: 'top' as const }
-      : undefined,
-    headerSx: isBeregnetTabel && header === 'Indeksberegning'
-      ? { whiteSpace: 'normal' as const }
-      : undefined,
-  }));
-};
 
 const buildEmploymentRegulationDisplayRows = (
   regulationRows: readonly DebugRowModel[],

@@ -18,14 +18,14 @@ vi.mock('../../../../contexts/AppSettingsContext', () => ({
 }));
 
 describe('EODebugRegulationSections - Phase 4.5 UI', () => {
-  it('viser "Ingen reguleringsdata" når sections er tom', () => {
-    const { getByText } = render(
+  it('renderer intet når sections er tom', () => {
+    const { container } = render(
       <MemoryRouter>
         <EODebugRegulationSections sections={[]} />
       </MemoryRouter>
     );
 
-    expect(getByText('Ingen reguleringsdata')).toBeDefined();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('renderer sections korrekt (struktur test)', () => {

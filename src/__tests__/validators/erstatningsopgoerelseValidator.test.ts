@@ -544,6 +544,21 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
     expect(hasError(values, 'Statistisk beregningsmodel skal vælges')).toBe(true);
   });
 
+  it('accepterer ASL-årslønsmaksimum som gyldig statistikmodel', () => {
+    const values = makeValues({
+      beregnesTabtArbejdsfortjeneste: 'Nej',
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmount(30000),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Statistik',
+        loenudviklingStatistikModel: 'ASL-årslønsmaksimum',
+      },
+    });
+
+    expect(hasError(values, 'Statistisk beregningsmodel skal vælges')).toBe(false);
+  });
+
   it('fanger manglende KRL satstabel ved grundlag=KRL satstabel', () => {
     const values = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
@@ -650,4 +665,3 @@ describe('samlet validering', () => {
     expect(isValid(values)).toBe(true);
   });
 });
-

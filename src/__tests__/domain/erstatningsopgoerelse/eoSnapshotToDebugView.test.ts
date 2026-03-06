@@ -1,13 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
 const {
-  buildLoenTimelineMock,
-  buildLoenDebugSectionsMock,
   buildRegulationTimelineMock,
   buildRegulationDebugSectionsMock,
 } = vi.hoisted(() => ({
-  buildLoenTimelineMock: vi.fn(() => ({ loenDays: [], svieSmerteDays: [] })),
-  buildLoenDebugSectionsMock: vi.fn(() => []),
   buildRegulationTimelineMock: vi.fn(() => ({ ansaettelser: [] })),
   buildRegulationDebugSectionsMock: vi.fn(() => []),
 }));
@@ -27,14 +23,6 @@ vi.mock('../../../domain/debug/eoDebugBuilderRegistry', () => ({
       },
     },
   ],
-}));
-
-vi.mock('../../../domain/debug/eoDebugLoenCoreModel', () => ({
-  buildLoenTimeline: buildLoenTimelineMock,
-}));
-
-vi.mock('../../../domain/debug/eoDebugLoenViewModel', () => ({
-  buildLoenDebugSections: buildLoenDebugSectionsMock,
 }));
 
 vi.mock('../../../domain/debug/eoDebugRegulationCore', () => ({
@@ -122,12 +110,6 @@ describe('eoSnapshotToDebugView', () => {
         status: 'error',
       },
     ]);
-
-    expect(buildLoenTimelineMock).toHaveBeenCalledWith({
-      debugDays: debugSnapshot.debugDays,
-      eoValues: debugSnapshot.eoValues,
-      stamdataValues: debugSnapshot.stamdataValues,
-    });
     expect(buildRegulationTimelineMock).toHaveBeenCalledWith({
       debugDays: debugSnapshot.debugDays,
       eoValues: debugSnapshot.eoValues,
@@ -164,7 +146,7 @@ describe('eoSnapshotToDebugView', () => {
     });
   });
 
-  it('bygger debug-view fra committed input når snapshot har valideringsfejl uden data', () => {
+  it('returnerer blocked-view når snapshot kun har valideringsfejl uden debug-data', () => {
     const view = eoSnapshotToDebugView({
       snapshot: {
         revision: 'rev-error',
@@ -192,12 +174,11 @@ describe('eoSnapshotToDebugView', () => {
       loenindkomstManuelReguleringInputErrors: {},
     });
 
-    expect(view.kind).toBe('ready');
-    if (view.kind !== 'ready') return;
-
-    expect(view.canonicalOutput).toBeUndefined();
-    expect(view.rowsBySection.get('stamdata')).toEqual([
-      { id: 'stamdata.journalnr', label: 'Journalnr', displayValue: 'J-2', status: 'ok' },
-    ]);
+    expect(view).toEqual({
+      kind: 'blocked',
+      severity: 'info',
+      title: 'EO debug kræver et gyldigt debug-snapshot',
+      message: 'Ret valideringsfejlene i sagen og åbn debug-fanen igen for at bygge debug på korrekt committede data.',
+    });
   });
 });

@@ -14,30 +14,9 @@ import type { RegulationDebugSection } from '../../../domain/debug/eoDebugRegula
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import ContentBox from '../../layout/ContentBox';
+import { getRegulationTableColumns } from './regulationTableColumns';
 
 const LABEL_WIDTH = '250px';
-
-const getRegulationTableColumns = (table: NonNullable<RegulationDebugSection['tables']>[number]) =>
-  table.columns.map((header) => {
-    const isBeregnetTabel = table.columns.includes('Indeksberegning');
-    return {
-      header,
-      align: 'center' as const,
-      width: isBeregnetTabel
-        ? header === 'Indeksberegning'
-          ? '52%'
-          : header === 'Fra-dato' || header === 'Til-dato'
-            ? '12%'
-            : '12%'
-        : undefined,
-      cellSx: isBeregnetTabel && header === 'Indeksberegning'
-        ? { whiteSpace: 'pre-line', verticalAlign: 'top' as const }
-        : undefined,
-      headerSx: isBeregnetTabel && header === 'Indeksberegning'
-        ? { whiteSpace: 'normal' as const }
-        : undefined,
-    };
-  });
 
 /**
  * Render regulation sections (summary, timeline, store bededag)
@@ -53,11 +32,7 @@ const EODebugRegulationSections = React.memo<{
   sections: readonly RegulationDebugSection[];
 }>(({ sections }) => {
   if (sections.length === 0) {
-    return (
-      <Typography className="row--text" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
-        Ingen reguleringsdata
-      </Typography>
-    );
+    return null;
   }
 
   return (

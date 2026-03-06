@@ -77,16 +77,6 @@ describe('EODebug', () => {
         ['stamdata', [{ id: 'stamdata.skadesdato', label: 'Skadesdato', displayValue: '01-01-2024', status: 'ok' }]],
         ['aes', [{ id: 'aes.varigeMen', label: 'Varigt mén', displayValue: 'Nej', status: 'ok', group: 'aes.varigeMen' }]],
       ]),
-      loenSections: [
-        {
-          id: 'loen.summary',
-          header: 'Lønoversigt',
-          table: {
-            columns: ['Komponent', 'Samlet beløb'],
-            rows: [{ id: 'loen.summary:grundloen', cells: ['Grundløn', '10.000,00'] }],
-          },
-        },
-      ],
       regulationSections: [
         {
           id: 'regulation.1',
@@ -182,7 +172,6 @@ describe('EODebug', () => {
           },
         ]],
       ]),
-      loenSections: [],
       regulationSections: [
         {
           id: 'regulation.af1',
@@ -285,7 +274,6 @@ describe('EODebug', () => {
           },
         ]],
       ]),
-      loenSections: [],
       regulationSections: [],
     });
 
@@ -309,7 +297,6 @@ describe('EODebug', () => {
         endeligtEetAfgorelse: 'Nej',
       },
       rowsBySection: new Map(),
-      loenSections: [],
       regulationSections: [
         {
           id: 'regulation.af-1',
@@ -345,7 +332,6 @@ describe('EODebug', () => {
         endeligtEetAfgorelse: 'Nej',
       },
       rowsBySection: new Map(),
-      loenSections: [],
       regulationSections: [
         {
           id: 'regulation.af-ukendt',
@@ -391,7 +377,6 @@ describe('EODebug', () => {
           },
         ]],
       ]),
-      loenSections: [],
       regulationSections: [],
     });
 
@@ -432,7 +417,6 @@ describe('EODebug', () => {
           },
         ]],
       ]),
-      loenSections: [],
       regulationSections: [],
     });
 
@@ -473,7 +457,6 @@ describe('EODebug', () => {
           },
         ]],
       ]),
-      loenSections: [],
       regulationSections: [],
     });
 
@@ -512,7 +495,6 @@ describe('EODebug', () => {
           },
         ]],
       ]),
-      loenSections: [],
       regulationSections: [],
     });
 
@@ -546,7 +528,6 @@ describe('EODebug', () => {
           },
         ]],
       ]),
-      loenSections: [],
       regulationSections: [],
     });
 
@@ -578,7 +559,6 @@ describe('EODebug', () => {
           },
         ]],
       ]),
-      loenSections: [],
       regulationSections: [],
     });
 

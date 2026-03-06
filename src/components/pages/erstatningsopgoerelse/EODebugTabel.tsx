@@ -14,8 +14,6 @@ import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable'
 import VirtualizedDisplayTable from '../../tables/VirtualizedDisplayTable';
 import type { VirtualizedDisplayTableHeaderRow } from '../../tables/VirtualizedDisplayTable';
 import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
-import { buildEODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
-import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
 
 const ROW_HEIGHT = 28;
 
@@ -39,7 +37,7 @@ const resolveEmploymentHeaderTitle = (snapshot: EODebugSnapshot, employmentIndex
 };
 
 const parseEmploymentIndexFromColumnId = (columnId: string): number | null => {
-  const match = columnId.match(/^loen:(\d+):(taf_regulering|wage:)/);
+  const match = columnId.match(/^loen:(\d+):(taf_regulering|wage:[^:]+)$/);
   if (!match) return null;
   const parsed = Number.parseInt(match[1] ?? '', 10);
   return Number.isFinite(parsed) ? parsed : null;
@@ -47,33 +45,12 @@ const parseEmploymentIndexFromColumnId = (columnId: string): number | null => {
 
 type EODebugTabelProps = {
   debugSnapshot?: EODebugSnapshot | null;
-  eoSnapshot?: EoSnapshot | null;
   currentDebugRevision?: string;
 };
 
-const EODebugTabel = React.memo(({ debugSnapshot = null, eoSnapshot = null, currentDebugRevision }: EODebugTabelProps) => {
+const EODebugTabel = React.memo(({ debugSnapshot = null, currentDebugRevision }: EODebugTabelProps) => {
   const theme = useTheme();
-  const snapshot = React.useMemo(() => {
-    if (debugSnapshot && debugSnapshot.revision === currentDebugRevision) {
-      return debugSnapshot;
-    }
-    if (!eoSnapshot || eoSnapshot.revision !== currentDebugRevision) {
-      return null;
-    }
-    if (!eoSnapshot.input.stamdata || !eoSnapshot.input.erstatningsopgoerelse) {
-      return null;
-    }
-    if (eoSnapshot.status === 'fail_closed') {
-      return null;
-    }
-    return buildEODebugSnapshot({
-      revision: eoSnapshot.revision,
-      stamdataValues: eoSnapshot.input.stamdata,
-      eoValues: eoSnapshot.input.erstatningsopgoerelse,
-      stamdataErrors: {},
-      eoErrors: {},
-    });
-  }, [currentDebugRevision, debugSnapshot, eoSnapshot]);
+  const snapshot = debugSnapshot && debugSnapshot.revision === currentDebugRevision ? debugSnapshot : null;
   const model = snapshot?.model ?? null;
 
   const formatIso = React.useCallback((iso: ISODateString | undefined): string => {

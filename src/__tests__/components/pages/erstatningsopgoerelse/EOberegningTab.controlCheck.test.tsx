@@ -194,4 +194,36 @@ describe('EOberegningTab kontroltjek', () => {
     expect(screen.queryByText('Systemfejl')).not.toBeInTheDocument();
     expect(screen.queryByText('TAF fordelt på år kan ikke genereres, fordi lønudvikling ikke kunne beregnes autoritativt.')).not.toBeInTheDocument();
   });
+
+  it('viser ikke TAF afrunding over 1 kr. som systemfejl i fejlsektionen', () => {
+    const snapshot: EoSnapshot = {
+      revision: 'rev-3',
+      status: 'error',
+      invariants: [{
+        id: 'taf_per_year:afrunding_over_100',
+        passed: false,
+        severity: 'error',
+        message: 'TAF fordelt på år kan ikke afstemmes inden for 1 kr.',
+        blocksOutputs: ['taf_per_year_pdf'],
+      }],
+      data: null,
+      input: {
+        stamdata: baseStamdataValues,
+        erstatningsopgoerelse: baseEoValues,
+      },
+    };
+
+    renderTab({
+      activeTab: 'beregning',
+      setActiveTab: vi.fn(),
+      isActive: true,
+      eoSnapshot: snapshot,
+      stamdataValues: baseStamdataValues,
+      eoValues: baseEoValues,
+      setEOValues: baseSetEoValues,
+    });
+
+    expect(screen.queryByText('Fejl og advarsler')).not.toBeInTheDocument();
+    expect(screen.queryByText('TAF fordelt på år kan ikke afstemmes inden for 1 kr.')).not.toBeInTheDocument();
+  });
 });
