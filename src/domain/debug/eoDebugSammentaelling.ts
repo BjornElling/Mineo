@@ -159,7 +159,7 @@ export type SammentaellingDisplayTables = Readonly<{
   taf: readonly SammentaellingDisplayRow[];
 }>;
 
-export const buildSammentaellingDisplayTables = (model: SammentaellingModel): SammentaellingDisplayTables => {
+const buildSammentaellingRowsBySection = (model: SammentaellingModel): SammentaellingDisplayTables => {
   const formatCount = (value: number | null | undefined): string => {
     const resolved = typeof value === 'number' && Number.isFinite(value) ? value : 0;
     return resolved.toLocaleString('da-DK');
@@ -236,9 +236,31 @@ export const buildSammentaellingDisplayTables = (model: SammentaellingModel): Sa
   };
 };
 
-export const buildSammentaellingDisplayRows = (model: SammentaellingModel): SammentaellingDisplayRow[] => {
-  const tables = buildSammentaellingDisplayTables(model);
+export const buildSammentaellingDisplayTables = (model: SammentaellingModel): SammentaellingDisplayTables => {
+  return buildSammentaellingRowsBySection(model);
+};
+
+export const flattenSammentaellingDisplayTables = (
+  tables: SammentaellingDisplayTables
+): readonly SammentaellingDisplayRow[] => {
   return [...tables.basis, ...tables.beregningsperiode, ...tables.taf];
+};
+
+export const buildSammentaellingDisplayRows = (model: SammentaellingModel): SammentaellingDisplayRow[] => {
+  return [...flattenSammentaellingDisplayTables(buildSammentaellingRowsBySection(model))];
+};
+
+const isSammentaellingDisplayRows = (
+  source: SammentaellingModel | readonly SammentaellingDisplayRow[]
+): source is readonly SammentaellingDisplayRow[] => Array.isArray(source);
+
+export const collectSammentaellingControlMismatchMessages = (
+  source: SammentaellingModel | readonly SammentaellingDisplayRow[]
+): readonly string[] => {
+  const rows = isSammentaellingDisplayRows(source) ? source : buildSammentaellingDisplayRows(source);
+  return rows
+    .filter((row) => getSammentaellingControlStatus(row.control) === 'error')
+    .map((row) => `${row.label}: beregnet=${row.control.beregnetDisplay}, tabel=${row.control.tabelDisplay}`);
 };
 
 const getIsoRange = (

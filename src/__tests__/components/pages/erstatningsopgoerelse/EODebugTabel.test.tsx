@@ -78,7 +78,6 @@ const makeSnapshot = (model: EODebugModel, revision = 'rev-1'): EODebugSnapshot 
     sammentaelling: makeSammentaelling({}),
     sammentaellingTables: emptyTables,
     sammentaellingRows: [],
-    hasControlErrors: false,
     stamdataValues: STAMDATA_INITIAL_VALUES,
     eoValues: createErstatningsopgoerelseInitialValues(),
     fieldErrors: {

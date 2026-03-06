@@ -4,16 +4,14 @@
  * Viser tabt arbejdsfortjeneste brudt ned per kalenderår.
  * Genbruger alle beregningsprincipper fra EO-modellen.
  * Årsbeløb er præsentation – samlet TAF-krav er autoritativt.
- * Hvis afvigelsen mellem års-sum og autoritativ total overstiger 1 kr.,
- * vises årsfordeling ikke (fail-closed via buildTafPerYearResult -> null).
+ * Dokumentet genererer kun fra et præ-projiceret snapshot-dokument.
+ * Eventuel fail-closed / blokering er allerede afgjort før denne generator kaldes.
  */
 
-import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import { createPdfWriter } from './pdfWriter';
 import { ensureNonBreakingKr } from './pdfTextUtils';
 import { PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
 import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from './pdfHelpers';
-import { TODAY } from '../../config/dateRanges';
 import type jsPDF from 'jspdf';
 import { roundByMethod } from '../rounding';
 import { logWarning } from '../logger';
@@ -27,8 +25,6 @@ import {
   isSingularCount,
   resolvePdfFileName,
 } from './pdfFormatUtils';
-import { computeEoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot';
-import { eoSnapshotToTafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
 import type { TafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
 
 const NBSP = '\u00A0';
@@ -37,33 +33,18 @@ const FILE_BASE_NAME = 'Tabt arbejdsfortjeneste fordelt på år';
 // NOTE: Årsbeløb må være negative; PDF viser de beregnede værdier direkte.
 
 interface TafFordeltPaaAarPdfOptions {
+  document: TafPerYearPdfDocument;
   visBrevhoved?: boolean;
   visUdkastStempel?: boolean;
-  document?: TafPerYearPdfDocument;
 }
 
 export const generateTafFordeltPaaAarPdf = (
-  stamdataValues: StamdataValues,
-  eoValues: ErstatningsopgoerelseValues,
-  options: TafFordeltPaaAarPdfOptions = {}
+  options: TafFordeltPaaAarPdfOptions
 ): jsPDF => {
   const { visBrevhoved = false, visUdkastStempel = false } = options;
   const lineHeight = 5;
   const doubleLineHeight = lineHeight * 2;
-
-  const { model, presentation } = options.document ?? (() => {
-    const snapshot = computeEoSnapshot({
-      revision: 'pdf-taf-per-year',
-      stamdataValues,
-      eoValues,
-      dagsDatoISO: TODAY,
-    });
-    const projection = eoSnapshotToTafPerYearPdfDocument(snapshot);
-    if (projection.kind === 'blocked') {
-      throw new Error(projection.message);
-    }
-    return projection.document;
-  })();
+  const { model, presentation } = options.document;
 
   const titel = 'Tabt arbejdsfortjeneste fordelt på år';
 

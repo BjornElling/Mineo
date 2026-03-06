@@ -10,9 +10,9 @@ import { buildRegulationTimeline } from '../debug/eoDebugRegulationCore';
 import type { RegulationDebugSection } from '../debug/eoDebugRegulationViewModel';
 import { buildRegulationDebugSections } from '../debug/eoDebugRegulationViewModel';
 import type { SectionId } from '../debug/eoDebugNavigationMap';
-import type { DebugDay, DebugRowModel } from '../debug/eoDebugTypes';
+import type { DebugRowModel } from '../debug/eoDebugTypes';
 import type { EoCanonicalOutput } from './eoCanonicalOutput';
-import type { EoSnapshot } from './eoSnapshot';
+import { hasEoSnapshotData, type EoSnapshot } from './eoSnapshot';
 
 type EoDebugViewBlocked = Readonly<{
   kind: 'blocked';
@@ -54,32 +54,13 @@ const buildRowsBySection = (ctx: EODebugExecutionContext): ReadonlyMap<SectionId
   return map;
 };
 
-const buildDebugDaysFromSnapshot = (
-  snapshot: NonNullable<NonNullable<EoSnapshot['data']>['debugSnapshot']>
-): readonly DebugDay[] => {
-  const { tableData } = snapshot.model;
-  const dates = tableData.dates;
-
-  return dates.map((iso, rowIndex) => {
-    return {
-      iso,
-      weekday: tableData.weekdayIndexByRow[rowIndex] ?? 1,
-      isWeekend: [0, 6].includes(tableData.weekdayIndexByRow[rowIndex] ?? 1),
-      isSognehelligdag: tableData.isSognehelligdagByIndex[rowIndex] ?? false,
-      isArbejdsdag: tableData.isWorkdayByIndex[rowIndex] ?? false,
-      tafFlags: tableData.tafFlagsByIndex[rowIndex] ?? new Set<string>(),
-      svieSmerte: tableData.svieSmerteByIndex[rowIndex] ?? 'Ingen',
-    };
-  });
-};
-
 export const eoSnapshotToDebugView = (args: Readonly<{
   snapshot?: EoSnapshot | null;
   appSettings: AppSettings;
   loenindkomstManuelReguleringInputErrors: Readonly<Record<string, true>>;
 }>): EoDebugView => {
   const snapshot = args.snapshot ?? null;
-  if (!snapshot?.data?.debugSnapshot) {
+  if (!snapshot || !hasEoSnapshotData(snapshot)) {
     if (snapshot?.status === 'fail_closed') {
       return {
         kind: 'blocked',
@@ -101,7 +82,6 @@ export const eoSnapshotToDebugView = (args: Readonly<{
   const stamdataValues = debugSnapshot.stamdataValues;
   const erstatningsopgoerelseValues = debugSnapshot.eoValues;
   const canonicalOutput = snapshot.data.canonicalOutput;
-  const debugDays = buildDebugDaysFromSnapshot(debugSnapshot);
 
   const ctx: EODebugExecutionContext = {
     stamdataValues,
@@ -121,12 +101,12 @@ export const eoSnapshotToDebugView = (args: Readonly<{
     erstatningsopgoerelseValues,
     rowsBySection: buildRowsBySection(ctx),
     loenSections: buildLoenDebugSections(buildLoenTimeline({
-      debugDays,
+      debugDays: debugSnapshot.debugDays,
       eoValues: erstatningsopgoerelseValues,
       stamdataValues,
     })),
     regulationSections: buildRegulationDebugSections(buildRegulationTimeline({
-      debugDays,
+      debugDays: debugSnapshot.debugDays,
       eoValues: erstatningsopgoerelseValues,
       stamdataValues,
     })),

@@ -1,9 +1,14 @@
 import type { TafPerYearResult } from './tafPerYearDerived';
-import type { EoSnapshot } from './eoSnapshot';
+import { hasEoSnapshotData, type EoSnapshot } from './eoSnapshot';
 import type { EoInvariant } from './eoSnapshotInvariants';
-import { getBlockingInvariantsForOutput } from './eoSnapshotInvariants';
+import {
+  buildBlockingMessageForOutput,
+  getBlockingInvariantsForOutput,
+  getEoPdfDocumentTotalsMismatchInvariant,
+} from './eoSnapshotInvariants';
 import { buildEoPdfDocumentFromSnapshot } from './eoSnapshotToEoPdfDocument';
 import type { PdfModel } from './eoPdfModel';
+import { logError } from '../../utils/logger';
 
 export type TafPerYearPdfDocument = Readonly<{
   model: PdfModel;
@@ -14,18 +19,17 @@ export type TafPerYearPdfDocumentProjection =
   | Readonly<{ kind: 'ok'; document: TafPerYearPdfDocument }>
   | Readonly<{ kind: 'blocked'; message: string; invariants: readonly EoInvariant[] }>;
 
-const buildBlockingMessage = (snapshot: EoSnapshot, fallback: string): string => {
-  const messages = getBlockingInvariantsForOutput(snapshot.invariants, 'taf_per_year_pdf').map((invariant) => invariant.message);
-  if (messages.length === 0) return fallback;
-  return messages.join('; ');
-};
-
 export const eoSnapshotToTafPerYearPdfDocument = (snapshot: EoSnapshot): TafPerYearPdfDocumentProjection => {
   const blockingInvariants = getBlockingInvariantsForOutput(snapshot.invariants, 'taf_per_year_pdf');
-  if (snapshot.status === 'fail_closed' || !snapshot.data) {
+  const blockedMessage = buildBlockingMessageForOutput(
+    snapshot.invariants,
+    'taf_per_year_pdf',
+    'TAF fordelt på år kan ikke genereres for den aktuelle sag.'
+  );
+  if (!hasEoSnapshotData(snapshot)) {
     return {
       kind: 'blocked',
-      message: buildBlockingMessage(snapshot, 'TAF fordelt på år kan ikke genereres for den aktuelle sag.'),
+      message: blockedMessage,
       invariants: blockingInvariants,
     };
   }
@@ -33,17 +37,26 @@ export const eoSnapshotToTafPerYearPdfDocument = (snapshot: EoSnapshot): TafPerY
   if (blockingInvariants.length > 0) {
     return {
       kind: 'blocked',
-      message: buildBlockingMessage(snapshot, 'TAF fordelt på år kan ikke genereres for den aktuelle sag.'),
+      message: blockedMessage,
       invariants: blockingInvariants,
     };
   }
 
   const model = buildEoPdfDocumentFromSnapshot(snapshot);
-  if (!model) {
+  const totalsMismatchInvariant = getEoPdfDocumentTotalsMismatchInvariant(model, snapshot);
+  if (totalsMismatchInvariant) {
+    logError('TAF-per-år dokumentmodel matcher ikke snapshot-totalerne', {
+      context: 'eoSnapshotToTafPerYearPdfDocument.documentTotalsMismatch',
+      error: new Error(totalsMismatchInvariant.message),
+      data: {
+        revision: snapshot.revision,
+        evidence: totalsMismatchInvariant.evidence,
+      },
+    });
     return {
       kind: 'blocked',
-      message: buildBlockingMessage(snapshot, 'TAF fordelt på år kan ikke genereres for den aktuelle sag.'),
-      invariants: blockingInvariants,
+      message: totalsMismatchInvariant.message,
+      invariants: [totalsMismatchInvariant],
     };
   }
 

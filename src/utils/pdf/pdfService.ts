@@ -265,7 +265,7 @@ export const downloadTafFordeltPaaAarPdf = async (params: Readonly<{
 
   try {
     const { generateTafFordeltPaaAarPdf } = await loadTafFordeltPaaAarPdfModule();
-    generateTafFordeltPaaAarPdf(params.stamdataValues, params.eoValues, {
+    generateTafFordeltPaaAarPdf({
       visBrevhoved,
       visUdkastStempel: params.eoValues.indsaetUdkastStempel === 'Ja',
       document: tafPdfDocument.document,

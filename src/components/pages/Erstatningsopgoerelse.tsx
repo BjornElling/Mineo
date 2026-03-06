@@ -13,7 +13,7 @@ import EOberegningTab from './erstatningsopgoerelse/EOberegningTab';
 import EODebug from './erstatningsopgoerelse/EODebug';
 import EODebugTabel from './erstatningsopgoerelse/EODebugTabel';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
-import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
+import type { StamdataValues } from '../../schemas/formSchemas';
 import { computeEoSnapshot, type EoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot';
 
 const TAB_KEYS = {
@@ -75,6 +75,8 @@ const Erstatningsopgoerelse = React.memo(() => {
     'erstatningsopgoerelse',
     initialValues
   );
+  const initialValuesRef = React.useRef(initialValues);
+  initialValuesRef.current = initialValues;
 
   const persistenceRefs = React.useRef({
     getPersistedData,
@@ -98,15 +100,12 @@ const Erstatningsopgoerelse = React.memo(() => {
     const persistedStamdata = persistenceRefs.current.getPersistedData('stamdata');
     const persistedEO = persistenceRefs.current.getPersistedData('erstatningsopgoerelse');
 
-    const resolvedStamdata: StamdataValues = { ...STAMDATA_INITIAL_VALUES, ...(persistedStamdata ?? {}) };
-    const resolvedEO: ErstatningsopgoerelseValues = { ...createErstatningsopgoerelseInitialValues(), ...(persistedEO ?? {}) };
-
     const revision = buildDebugRevision();
 
     return computeEoSnapshot({
       revision,
-      stamdataValues: resolvedStamdata,
-      eoValues: resolvedEO,
+      stamdataValues: persistedStamdata ?? STAMDATA_INITIAL_VALUES,
+      eoValues: persistedEO ?? initialValuesRef.current,
       stamdataErrors: persistenceRefs.current.getFieldErrorsBySource('stamdata'),
       eoErrors: persistenceRefs.current.getFieldErrorsBySource('erstatningsopgoerelse'),
     });
@@ -124,7 +123,14 @@ const Erstatningsopgoerelse = React.memo(() => {
   }, [getPersistedData]);
 
   const [eoSnapshot, setEoSnapshot] = React.useState<EoSnapshot | null>(null);
-  const currentDebugRevision = buildDebugRevision();
+  const stamdataRevision = getSectionRevision('stamdata');
+  const eoRevision = getSectionRevision('erstatningsopgoerelse');
+  const stamdataErrorRevision = getFieldErrorRevision('stamdata');
+  const eoErrorRevision = getFieldErrorRevision('erstatningsopgoerelse');
+  const currentDebugRevision = React.useMemo(
+    () => [stamdataRevision, eoRevision, stamdataErrorRevision, eoErrorRevision].join('-'),
+    [eoErrorRevision, eoRevision, stamdataErrorRevision, stamdataRevision]
+  );
   const isSnapshotTabActive =
     activeTab === TAB_KEYS.BEREGNING || activeTab === TAB_KEYS.DEBUG || activeTab === TAB_KEYS.DEBUG_TABEL;
 

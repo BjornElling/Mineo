@@ -1,13 +1,13 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { FieldErrorsForSection } from '../../types/fieldErrors';
 import { buildEODebugModel } from './eoDebugModel';
+import type { DebugDay } from './eoDebugTypes';
 import {
   buildEODebugSammentaellingModel,
   buildSammentaellingDisplayTables,
-  buildSammentaellingDisplayRows,
+  flattenSammentaellingDisplayTables,
   buildSvieSmerteContext,
   buildTaftContext,
-  getSammentaellingControlStatus,
   type SammentaellingDisplayRow,
   type SammentaellingDisplayTables,
   type SammentaellingModel,
@@ -20,17 +20,15 @@ import type { EODebugModel } from './eoDebugModel';
  * Invariants:
  * - built only on tab entry
  * - revision is monotonic and must change on EO input/error mutation
- * - hasControlErrors === sammentaellingRows.some(status === 'error')
  */
 export type EODebugSnapshot = Readonly<{
   revision: string;
   createdAt: string;
   model: EODebugModel;
+  debugDays: readonly DebugDay[];
   sammentaelling: SammentaellingModel;
   sammentaellingTables: SammentaellingDisplayTables;
   sammentaellingRows: readonly SammentaellingDisplayRow[];
-  // Must remain equivalent to sammentaellingRows.some(status === 'error').
-  hasControlErrors: boolean;
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
   fieldErrors: Readonly<{
@@ -38,6 +36,19 @@ export type EODebugSnapshot = Readonly<{
     erstatningsopgoerelse: FieldErrorsForSection<'erstatningsopgoerelse'>;
   }>;
 }>;
+
+const buildDebugDaysFromModel = (model: EODebugModel): readonly DebugDay[] => {
+  const { tableData } = model;
+  return tableData.dates.map((iso, rowIndex) => ({
+    iso,
+    weekday: tableData.weekdayIndexByRow[rowIndex] ?? 1,
+    isWeekend: [0, 6].includes(tableData.weekdayIndexByRow[rowIndex] ?? 1),
+    isSognehelligdag: tableData.isSognehelligdagByIndex[rowIndex] ?? false,
+    isArbejdsdag: tableData.isWorkdayByIndex[rowIndex] ?? false,
+    tafFlags: tableData.tafFlagsByIndex[rowIndex] ?? new Set<string>(),
+    svieSmerte: tableData.svieSmerteByIndex[rowIndex] ?? 'Ingen',
+  }));
+};
 
 export const buildEODebugSnapshot = (args: {
   revision: string;
@@ -50,6 +61,7 @@ export const buildEODebugSnapshot = (args: {
   const svieSmerteContext = buildSvieSmerteContext(stamdataValues, eoValues);
   const taftContext = buildTaftContext(stamdataValues, eoValues);
   const model = buildEODebugModel(eoValues);
+  const debugDays = buildDebugDaysFromModel(model);
   const sammentaelling = buildEODebugSammentaellingModel({
     values: eoValues,
     errors: eoErrors,
@@ -58,19 +70,16 @@ export const buildEODebugSnapshot = (args: {
     taftContext,
   });
   const sammentaellingTables = buildSammentaellingDisplayTables(sammentaelling);
-  const sammentaellingRows = buildSammentaellingDisplayRows(sammentaelling);
-  const hasControlErrors = sammentaellingRows.some(
-    (row) => getSammentaellingControlStatus(row.control) === 'error'
-  );
+  const sammentaellingRows = flattenSammentaellingDisplayTables(sammentaellingTables);
 
   return {
     revision,
     createdAt: new Date().toISOString(),
     model,
+    debugDays,
     sammentaelling,
     sammentaellingTables,
     sammentaellingRows,
-    hasControlErrors,
     stamdataValues,
     eoValues,
     fieldErrors: {

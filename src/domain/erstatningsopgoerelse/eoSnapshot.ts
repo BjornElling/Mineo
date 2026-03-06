@@ -4,16 +4,18 @@ import type { ISODateString } from '../../types/branded';
 import type { FieldErrorsForSection } from '../../types/fieldErrors';
 import { erstatningsopgoerelseValidator } from '../../validators/erstatningsopgoerelseValidator';
 import { buildEODebugSnapshot, type EODebugSnapshot } from '../debug/eoDebugSnapshot';
-import { getSammentaellingControlStatus } from '../debug/eoDebugSammentaelling';
 import { parseForligsgrad } from './forligsgrad';
 import { buildOevrigeKravModel } from './eoPdfBuilders';
 import { buildEoPdfPresentation, type EoPdfPresentation } from './eoPdfModel';
-import { clampMoneyOreToZero, ensureMoneyOre, scaleMoneyOre } from './eoPdfMoneyUtils';
 import type { MoneyOre } from './eoPdfModel';
 import { computeSvieSmerteEngine, type SvieSmerteEngineOutput } from './svieSmerteEngine';
 import { computeTafNettoBeregning, type TafNettoBeregningResult } from './tafNettoBeregning';
 import { buildTafPerYearBuildOutcome, buildTafPerYearSourceFromComputed, type TafPerYearResult } from './tafPerYearDerived';
-import { buildEoCanonicalOutputFromComputed, type EoCanonicalOutput } from './eoCanonicalOutput';
+import {
+  buildEoCanonicalOutputFromComputed,
+  buildEoComputedTotals,
+  type EoCanonicalOutput,
+} from './eoCanonicalOutput';
 import { buildTafRanges } from './indtaegtPerioder';
 import { logError } from '../../utils/logger';
 import {
@@ -26,6 +28,7 @@ import {
   hasAuthoritativeBlockingInvariant,
   type EoInvariant,
 } from './eoSnapshotInvariants';
+import { collectSammentaellingControlMismatchMessages } from '../debug/eoDebugSammentaelling';
 
 export type EoSnapshotComputedData = Readonly<{
   engines: Readonly<{
@@ -65,38 +68,23 @@ export type EoSnapshot = Readonly<{
 const EMPTY_STAMDATA_ERRORS: FieldErrorsForSection<'stamdata'> = {};
 const EMPTY_EO_ERRORS: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
 
-const buildTotals = (args: Readonly<{
-  svieSmerte: SvieSmerteEngineOutput;
-  tafNetto: TafNettoBeregningResult;
-  oevrigeKrav: ReturnType<typeof buildOevrigeKravModel>;
-  forligFactor: number | null;
-}>): EoSnapshotComputedData['totals'] => {
-  const tabtArbejdsfortjenesteFoerForligOre = clampMoneyOreToZero(ensureMoneyOre(args.tafNetto.tabtArbejdsfortjenesteOre));
-  const tabtArbejdsfortjenesteOre = args.forligFactor !== null
-    ? clampMoneyOreToZero(scaleMoneyOre(tabtArbejdsfortjenesteFoerForligOre, args.forligFactor))
-    : tabtArbejdsfortjenesteFoerForligOre;
-  const oevrigeKravFoerForligOre = clampMoneyOreToZero(ensureMoneyOre(args.oevrigeKrav.totalFoerForligOre));
-  const oevrigeKravOre = args.forligFactor !== null
-    ? clampMoneyOreToZero(scaleMoneyOre(oevrigeKravFoerForligOre, args.forligFactor))
-    : oevrigeKravFoerForligOre;
-  const svieSmerteOre = clampMoneyOreToZero(ensureMoneyOre(args.svieSmerte.totalOre));
-  const samletTotalOre = clampMoneyOreToZero(
-    ensureMoneyOre(svieSmerteOre + tabtArbejdsfortjenesteOre + oevrigeKravOre)
-  );
-  const tidligereModtagetTafOre = args.tafNetto.tidligereModtagetTaf.status === 'ok'
-    ? ensureMoneyOre(args.tafNetto.tidligereModtagetTaf.value)
-    : ensureMoneyOre(0);
+export type EoSnapshotWithData = Readonly<Omit<EoSnapshot, 'data' | 'input'>> & Readonly<{
+  data: EoSnapshotComputedData;
+  input: Readonly<{
+    stamdata: StamdataValues;
+    erstatningsopgoerelse: ErstatningsopgoerelseValues;
+  }>;
+}>;
 
-  return {
-    svieSmerteOre,
-    tabtArbejdsfortjenesteFoerForligOre,
-    tabtArbejdsfortjenesteOre,
-    oevrigeKravFoerForligOre,
-    oevrigeKravOre,
-    samletTotalOre,
-    tidligereModtagetTafOre,
-    forligFactor: args.forligFactor,
-  };
+export const hasEoSnapshotData = (
+  snapshot: EoSnapshot
+): snapshot is EoSnapshotWithData => {
+  // Current snapshot contract only materializes `data` for non-fail-closed computed snapshots.
+  // This guard intentionally narrows on data/input presence instead of `status`, because projections
+  // depend on the computed payload rather than a specific status string.
+  return snapshot.data !== null &&
+    snapshot.input.stamdata !== null &&
+    snapshot.input.erstatningsopgoerelse !== null;
 };
 
 const buildCanonicalOutput = (args: Readonly<{
@@ -104,14 +92,14 @@ const buildCanonicalOutput = (args: Readonly<{
   svieSmerte: SvieSmerteEngineOutput;
   tafNetto: TafNettoBeregningResult;
   oevrigeKrav: ReturnType<typeof buildOevrigeKravModel>;
-  forligFactor: number | null;
+  totals: EoSnapshotComputedData['totals'];
 }>): EoCanonicalOutput => {
   return buildEoCanonicalOutputFromComputed({
     tafRanges: args.tafRanges,
     svieSmerte: args.svieSmerte,
     tafNetto: args.tafNetto,
     oevrige: args.oevrigeKrav,
-    forligFactor: args.forligFactor,
+    totals: args.totals,
   });
 };
 
@@ -201,10 +189,10 @@ export const computeEoSnapshot = (args: Readonly<{
       clampTafRows: false,
     });
     const oevrigeKrav = buildOevrigeKravModel(parsedEo.data.oevrigeKravPerioder ?? []);
-    const totals = buildTotals({
+    const totals = buildEoComputedTotals({
       svieSmerte,
       tafNetto,
-      oevrigeKrav,
+      oevrige: oevrigeKrav,
       forligFactor,
     });
     const presentation = buildEoPdfPresentation(parsedStamdata.data, parsedEo.data, { dagsDatoISO });
@@ -224,7 +212,7 @@ export const computeEoSnapshot = (args: Readonly<{
       svieSmerte,
       tafNetto,
       oevrigeKrav,
-      forligFactor,
+      totals,
     });
     const debugSnapshot = buildDebugSnapshotForComputed({
       revision: args.revision,
@@ -246,9 +234,10 @@ export const computeEoSnapshot = (args: Readonly<{
       invariants.push(buildTafPerYearUnavailableInvariant(tafPerYearOutcome.reason));
     }
 
-    const controlMismatchMessages = debugSnapshot.sammentaellingRows
-      .filter((row) => getSammentaellingControlStatus(row.control) === 'error')
-      .map((row) => `${row.label}: beregnet=${row.control.beregnetDisplay}, tabel=${row.control.tabelDisplay}`);
+    // This invariant is intentionally derived from the debug-table sammentælling model.
+    // It cross-checks authoritative engine outputs against the committed EO debug table projection,
+    // so it depends on debug infrastructure by design rather than being a pure engine-to-engine check.
+    const controlMismatchMessages = collectSammentaellingControlMismatchMessages(debugSnapshot.sammentaellingRows);
     if (controlMismatchMessages.length > 0) {
       invariants.push(buildControlMismatchInvariant(controlMismatchMessages));
     }

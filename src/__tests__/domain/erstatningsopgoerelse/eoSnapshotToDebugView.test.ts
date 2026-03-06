@@ -63,6 +63,17 @@ describe('eoSnapshotToDebugView', () => {
           tafFlagsByIndex: [new Set(['loen:0:taf'])],
         },
       },
+      debugDays: [
+        {
+          iso: '2024-01-01',
+          weekday: 1,
+          isWeekend: false,
+          isSognehelligdag: true,
+          isArbejdsdag: false,
+          tafFlags: new Set(['loen:0:taf']),
+          svieSmerte: 'Fuld',
+        },
+      ],
       sammentaellingRows: [],
       stamdataValues: { journalnr: 'J-1' },
       eoValues: {
@@ -113,32 +124,12 @@ describe('eoSnapshotToDebugView', () => {
     ]);
 
     expect(buildLoenTimelineMock).toHaveBeenCalledWith({
-      debugDays: [
-        {
-          iso: '2024-01-01',
-          weekday: 1,
-          isWeekend: false,
-          isSognehelligdag: true,
-          isArbejdsdag: false,
-          tafFlags: new Set(['loen:0:taf']),
-          svieSmerte: 'Fuld',
-        },
-      ],
+      debugDays: debugSnapshot.debugDays,
       eoValues: debugSnapshot.eoValues,
       stamdataValues: debugSnapshot.stamdataValues,
     });
     expect(buildRegulationTimelineMock).toHaveBeenCalledWith({
-      debugDays: [
-        {
-          iso: '2024-01-01',
-          weekday: 1,
-          isWeekend: false,
-          isSognehelligdag: true,
-          isArbejdsdag: false,
-          tafFlags: new Set(['loen:0:taf']),
-          svieSmerte: 'Fuld',
-        },
-      ],
+      debugDays: debugSnapshot.debugDays,
       eoValues: debugSnapshot.eoValues,
       stamdataValues: debugSnapshot.stamdataValues,
     });

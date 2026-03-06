@@ -176,11 +176,14 @@ const buildTafPerioderLinjer = (values: ErstatningsopgoerelseValues): string[] =
 export const buildTabtArbejdsfortjenesteModel = (
   values: ErstatningsopgoerelseValues,
   stamdataValues: StamdataValues,
-  options: Readonly<{ tafNetto?: TafNettoBeregningResult }> = {}
+  options: Readonly<{
+    tafNetto?: TafNettoBeregningResult;
+    tafRanges?: readonly { fra: ISODateString; til: ISODateString }[];
+  }> = {}
 ): TabtArbejdsfortjenestePdfModel => {
   const statusLinjer: string[] = [];
   const periodeTilISO = values.vedroererPeriodeTil;
-  const tafRanges = buildTafRanges(values);
+  const tafRanges = options.tafRanges ?? buildTafRanges(values);
   const tafRangesAsDates = tafRanges.map((range) => ({
     fra: isoDateToDate(range.fra),
     til: isoDateToDate(range.til),

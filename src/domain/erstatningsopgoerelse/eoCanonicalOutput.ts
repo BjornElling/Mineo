@@ -71,6 +71,17 @@ const eoCanonicalOutputSchema = z.object({
 export type EoCanonicalOutput = z.infer<typeof eoCanonicalOutputSchema>;
 export const EoCanonicalOutputSchema = eoCanonicalOutputSchema;
 
+export type EoComputedTotals = Readonly<{
+  svieSmerteOre: MoneyOre;
+  tabtArbejdsfortjenesteFoerForligOre: MoneyOre;
+  tabtArbejdsfortjenesteOre: MoneyOre;
+  oevrigeKravFoerForligOre: MoneyOre;
+  oevrigeKravOre: MoneyOre;
+  samletTotalOre: MoneyOre;
+  tidligereModtagetTafOre: MoneyOre;
+  forligFactor: number | null;
+}>;
+
 const calculableMoneyToNullable = (value: Calculable<MoneyOre> | null | undefined): MoneyOre | null => {
   if (!value || value.status !== 'ok') return null;
   return ensureMoneyOre(value.value);
@@ -79,13 +90,12 @@ const calculableMoneyToNullable = (value: Calculable<MoneyOre> | null | undefine
 const toCanonicalSegment = (segment: LoenudviklingSegment): z.infer<typeof loenudviklingSegmentSchema> =>
   loenudviklingSegmentSchema.parse(segment);
 
-export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
-  tafRanges: ReadonlyArray<{ fra: z.infer<typeof isoDateSchema>; til: z.infer<typeof isoDateSchema> }>;
+export const buildEoComputedTotals = (args: Readonly<{
   svieSmerte: SvieSmerteEngineOutput;
   tafNetto: TafNettoBeregningResult;
   oevrige: OevrigeKravPdfModel;
   forligFactor: number | null;
-}>): EoCanonicalOutput => {
+}>): EoComputedTotals => {
   const tabtArbejdsfortjenesteFoerForligOre = clampMoneyOreToZero(ensureMoneyOre(args.tafNetto.tabtArbejdsfortjenesteOre));
   const tabtArbejdsfortjenesteOre = args.forligFactor !== null
     ? clampMoneyOreToZero(scaleMoneyOre(tabtArbejdsfortjenesteFoerForligOre, args.forligFactor))
@@ -100,7 +110,29 @@ export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
   const samletTotalOre = clampMoneyOreToZero(
     ensureMoneyOre(svieSmerteOre + tabtArbejdsfortjenesteOre + oevrigeKravOre)
   );
+  const tidligereModtagetTafOre = args.tafNetto.tidligereModtagetTaf.status === 'ok'
+    ? ensureMoneyOre(args.tafNetto.tidligereModtagetTaf.value)
+    : ensureMoneyOre(0);
 
+  return {
+    svieSmerteOre,
+    tabtArbejdsfortjenesteFoerForligOre,
+    tabtArbejdsfortjenesteOre,
+    oevrigeKravFoerForligOre,
+    oevrigeKravOre,
+    samletTotalOre,
+    tidligereModtagetTafOre,
+    forligFactor: args.forligFactor,
+  };
+};
+
+export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
+  tafRanges: ReadonlyArray<{ fra: z.infer<typeof isoDateSchema>; til: z.infer<typeof isoDateSchema> }>;
+  svieSmerte: SvieSmerteEngineOutput;
+  tafNetto: TafNettoBeregningResult;
+  oevrige: OevrigeKravPdfModel;
+  totals: EoComputedTotals;
+}>): EoCanonicalOutput => {
   const loenudviklingSegmenter = (args.tafNetto.loenudvikling?.beregnedeSegmenter ?? []).map(toCanonicalSegment);
   const perAnsaettelse = (args.tafNetto.loenudvikling?.perAnsaettelse ?? []).map((entry) => ({
     ansaettelsesforholdId: entry.ansaettelsesforholdId,
@@ -110,12 +142,12 @@ export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
 
   return eoCanonicalOutputSchema.parse({
     totals: {
-      svieSmerteOre,
-      tabtArbejdsfortjenesteFoerForligOre,
-      tabtArbejdsfortjenesteOre,
-      oevrigeKravFoerForligOre,
-      oevrigeKravOre,
-      samletTotalOre,
+      svieSmerteOre: args.totals.svieSmerteOre,
+      tabtArbejdsfortjenesteFoerForligOre: args.totals.tabtArbejdsfortjenesteFoerForligOre,
+      tabtArbejdsfortjenesteOre: args.totals.tabtArbejdsfortjenesteOre,
+      oevrigeKravFoerForligOre: args.totals.oevrigeKravFoerForligOre,
+      oevrigeKravOre: args.totals.oevrigeKravOre,
+      samletTotalOre: args.totals.samletTotalOre,
     },
     svieSmerte: {
       maxApplied: args.svieSmerte.maxApplied,
@@ -136,6 +168,10 @@ export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
   });
 };
 
+/**
+ * Legacy test helper.
+ * Produktionskoden skal projicere canonical output fra `computeEoSnapshot`, ikke via denne standalone entry.
+ */
 export const buildEoCanonicalOutput = (
   stamdataValues: StamdataValues,
   eoValues: ErstatningsopgoerelseValues
@@ -173,11 +209,17 @@ export const buildEoCanonicalOutput = (
     clampTafRows: false,
   });
   const oevrige = buildOevrigeKravModel(safeEo.oevrigeKravPerioder ?? []);
+  const totals = buildEoComputedTotals({
+    svieSmerte,
+    tafNetto,
+    oevrige,
+    forligFactor,
+  });
   return buildEoCanonicalOutputFromComputed({
     tafRanges,
     svieSmerte,
     tafNetto,
     oevrige,
-    forligFactor,
+    totals,
   });
 };

@@ -144,6 +144,14 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.data?.totals.tabtArbejdsfortjenesteOre).toBe(0);
     expect(snapshot.data?.totals.oevrigeKravOre).toBe(120000);
     expect(snapshot.data?.totals.samletTotalOre).toBe(120000);
+    expect(snapshot.data?.canonicalOutput.totals).toEqual({
+      svieSmerteOre: snapshot.data?.totals.svieSmerteOre,
+      tabtArbejdsfortjenesteFoerForligOre: snapshot.data?.totals.tabtArbejdsfortjenesteFoerForligOre,
+      tabtArbejdsfortjenesteOre: snapshot.data?.totals.tabtArbejdsfortjenesteOre,
+      oevrigeKravFoerForligOre: snapshot.data?.totals.oevrigeKravFoerForligOre,
+      oevrigeKravOre: snapshot.data?.totals.oevrigeKravOre,
+      samletTotalOre: snapshot.data?.totals.samletTotalOre,
+    });
     expect(snapshot.data?.canonicalOutput.totals.oevrigeKravOre).toBe(120000);
     expect(snapshot.data?.canonicalOutput.periodiseringer.tafPerioder).toEqual([]);
     expect(snapshot.data?.engines.tafPerYear).toBeNull();

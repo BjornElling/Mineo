@@ -1,13 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { eoSnapshotToBeregningView } from '../../../domain/erstatningsopgoerelse/eoSnapshotToBeregningView';
-import {
-  buildControlMismatchInvariant,
-  buildTafPerYearAfrundingInvariant,
-} from '../../../domain/erstatningsopgoerelse/eoSnapshotInvariants';
+import { buildControlMismatchInvariant, buildTafPerYearAfrundingInvariant } from '../../../domain/erstatningsopgoerelse/eoSnapshotInvariants';
 
 describe('eoSnapshotToBeregningView', () => {
-  it('filtrerer autoritative og output-specifikke blokeringer deterministisk', () => {
+  it('filtrerer autoritative blokeringer deterministisk og bevarer snapshot-invarianter', () => {
     const snapshot = {
       revision: 'rev-1',
       status: 'error',
@@ -31,15 +28,7 @@ describe('eoSnapshotToBeregningView', () => {
 
     const view = eoSnapshotToBeregningView(snapshot);
 
+    expect(view.invariants).toEqual(snapshot.invariants);
     expect(view.authoritativeBlockingInvariants.map((invariant) => invariant.id)).toEqual(['validation:block']);
-    expect(view.eoPdfBlockingInvariants.map((invariant) => invariant.id)).toEqual([
-      'validation:block',
-      'debug:control_mismatch',
-    ]);
-    expect(view.tafPerYearPdfBlockingInvariants.map((invariant) => invariant.id)).toEqual([
-      'validation:block',
-      'debug:control_mismatch',
-      'taf_per_year:afrunding_over_100',
-    ]);
   });
 });

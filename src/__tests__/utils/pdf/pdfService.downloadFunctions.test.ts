@@ -351,8 +351,6 @@ describe('downloadTafFordeltPaaAarPdf', () => {
 
     expect(result.success).toBe(true);
     expect(mockGenerateTafFordeltPaaAarPdf).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
       expect.objectContaining({ document: projectedDocument })
     );
   });

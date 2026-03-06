@@ -1,5 +1,6 @@
 import type { ValidationError } from '../../types/validation';
-import type { MoneyOre } from './eoPdfModel';
+import type { MoneyOre, PdfModel } from './eoPdfModel';
+import type { EoSnapshotWithData } from './eoSnapshot';
 import {
   TAF_BOUNDS_ERROR_MESSAGE_BASE,
   TAF_OVERLAP_ERROR_MESSAGE,
@@ -84,6 +85,40 @@ export const buildControlMismatchInvariant = (messages: readonly string[]): EoIn
   blocksOutputs: ['eo_pdf', 'taf_per_year_pdf'],
 });
 
+export const buildDocumentTotalsMismatchInvariant = (evidence: readonly string[]): EoInvariant => ({
+  id: 'projection:document_totals_mismatch',
+  passed: false,
+  severity: 'error',
+  message: 'Dokumentmodellen matcher ikke snapshot-totalerne.',
+  evidence,
+  blocksOutputs: ['eo_pdf', 'taf_per_year_pdf'],
+});
+
+const documentMatchesSnapshotTotals = (document: PdfModel, snapshot: EoSnapshotWithData): boolean => {
+  return document.samlet.svieSmerteOre === snapshot.data.totals.svieSmerteOre &&
+    document.samlet.tabtArbejdsfortjenesteOre === snapshot.data.totals.tabtArbejdsfortjenesteOre &&
+    document.samlet.oevrigeKravOre === snapshot.data.totals.oevrigeKravOre &&
+    document.samlet.totalOre === snapshot.data.totals.samletTotalOre;
+};
+
+export const getEoPdfDocumentTotalsMismatchInvariant = (
+  document: PdfModel,
+  snapshot: EoSnapshotWithData
+): EoInvariant | null => {
+  if (documentMatchesSnapshotTotals(document, snapshot)) return null;
+
+  return buildDocumentTotalsMismatchInvariant([
+    `snapshot.svieSmerteOre=${snapshot.data.totals.svieSmerteOre}`,
+    `document.svieSmerteOre=${document.samlet.svieSmerteOre}`,
+    `snapshot.tabtArbejdsfortjenesteOre=${snapshot.data.totals.tabtArbejdsfortjenesteOre}`,
+    `document.tabtArbejdsfortjenesteOre=${document.samlet.tabtArbejdsfortjenesteOre}`,
+    `snapshot.oevrigeKravOre=${snapshot.data.totals.oevrigeKravOre}`,
+    `document.oevrigeKravOre=${document.samlet.oevrigeKravOre}`,
+    `snapshot.samletTotalOre=${snapshot.data.totals.samletTotalOre}`,
+    `document.samletTotalOre=${document.samlet.totalOre}`,
+  ]);
+};
+
 export const hasAuthoritativeBlockingInvariant = (invariants: readonly EoInvariant[]): boolean =>
   invariants.some((invariant) => !invariant.passed && invariant.severity === 'error' && invariant.blocksAuthoritativeComputation);
 
@@ -108,4 +143,14 @@ export const getBlockingInvariantsForOutput = (
   return invariants.filter((invariant) =>
     !invariant.passed && invariant.severity === 'error' && (invariant.blocksOutputs ?? []).includes(target)
   );
+};
+
+export const buildBlockingMessageForOutput = (
+  invariants: readonly EoInvariant[],
+  target: EoProjectionTarget,
+  fallback: string
+): string => {
+  const messages = getBlockingInvariantsForOutput(invariants, target).map((invariant) => invariant.message);
+  if (messages.length === 0) return fallback;
+  return messages.join('; ');
 };

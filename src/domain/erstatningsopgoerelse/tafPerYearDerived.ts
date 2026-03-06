@@ -459,6 +459,10 @@ const pdfModelToSource = (model: PdfModel): TafPerYearSource => ({
   forligFactor: model.forlig?.factor ?? null,
 });
 
+/**
+ * Legacy compatibility adapter for test/parity usage.
+ * Produktionskoden skal bruge `buildTafPerYearBuildOutcome` via EO-snapshot, ikke denne PdfModel-entry.
+ */
 export const buildTafPerYearResult = (
   model: PdfModel,
   eoValues: ErstatningsopgoerelseValues

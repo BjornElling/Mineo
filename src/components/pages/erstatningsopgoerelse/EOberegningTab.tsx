@@ -24,6 +24,8 @@ import {
 } from '../../../utils/pdf/pdfService';
 import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
 import { eoSnapshotToBeregningView } from '../../../domain/erstatningsopgoerelse/eoSnapshotToBeregningView';
+import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
+import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
 
 type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
 
@@ -97,8 +99,20 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     [eoSnapshot]
   );
   const authoritativeBlockingInvariants = beregningView?.authoritativeBlockingInvariants ?? [];
-  const eoPdfBlockingInvariants = beregningView?.eoPdfBlockingInvariants ?? [];
-  const tafPdfBlockingInvariants = beregningView?.tafPerYearPdfBlockingInvariants ?? [];
+  const eoPdfProjection = React.useMemo(
+    () => (eoSnapshot ? eoSnapshotToEoPdfDocument(eoSnapshot) : null),
+    [eoSnapshot]
+  );
+  const tafPdfProjection = React.useMemo(
+    () => (eoSnapshot ? eoSnapshotToTafPerYearPdfDocument(eoSnapshot) : null),
+    [eoSnapshot]
+  );
+  const eoPdfBlockingInvariants = eoPdfProjection?.kind === 'blocked'
+    ? eoPdfProjection.invariants
+    : [];
+  const tafPdfBlockingInvariants = tafPdfProjection?.kind === 'blocked'
+    ? tafPdfProjection.invariants
+    : [];
 
   const snapshotSystemError = React.useMemo(() => {
     if (eoSnapshot?.status !== 'fail_closed') return null;
@@ -108,17 +122,11 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 
   const canDownloadSnapshotEoPdf = Boolean(
     stamdataValues &&
-    eoSnapshot &&
-    eoSnapshot.status !== 'fail_closed' &&
-    authoritativeBlockingInvariants.length === 0 &&
-    eoPdfBlockingInvariants.length === 0
+    eoPdfProjection?.kind === 'ok'
   );
   const canDownloadSnapshotTafPdf = Boolean(
     stamdataValues &&
-    eoSnapshot &&
-    eoSnapshot.status !== 'fail_closed' &&
-    authoritativeBlockingInvariants.length === 0 &&
-    tafPdfBlockingInvariants.length === 0
+    tafPdfProjection?.kind === 'ok'
   );
 
   const eoPdfDisabledReason = React.useMemo(() => {
@@ -129,11 +137,11 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     if (authoritativeBlockingInvariants.length > 0) {
       return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller.';
     }
-    if (eoPdfBlockingInvariants.length > 0) {
-      return eoPdfBlockingInvariants[0]?.message ?? 'EO-PDF er blokeret af snapshot-kontroller.';
+    if (eoPdfProjection?.kind === 'blocked') {
+      return eoPdfProjection.message;
     }
     return null;
-  }, [authoritativeBlockingInvariants, eoPdfBlockingInvariants, eoSnapshot, stamdataValues]);
+  }, [authoritativeBlockingInvariants, eoPdfProjection, eoSnapshot, stamdataValues]);
 
   const tafPdfDisabledReason = React.useMemo(() => {
     if (!stamdataValues || !eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
@@ -143,11 +151,11 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     if (authoritativeBlockingInvariants.length > 0) {
       return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller.';
     }
-    if (tafPdfBlockingInvariants.length > 0) {
-      return tafPdfBlockingInvariants[0]?.message ?? 'TAF fordelt på år er blokeret af snapshot-kontroller.';
+    if (tafPdfProjection?.kind === 'blocked') {
+      return tafPdfProjection.message;
     }
     return null;
-  }, [authoritativeBlockingInvariants, eoSnapshot, stamdataValues, tafPdfBlockingInvariants]);
+  }, [authoritativeBlockingInvariants, eoSnapshot, stamdataValues, tafPdfProjection]);
 
   // ============================================================================
   // NAVIGATION-HÅNDTERING
@@ -224,7 +232,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     return () => {
       cancelled = true;
     };
-  }, [activeTab, pendingNavigation, scrollToSection, scrollToDebugRow]);
+  }, [activeTab, pendingNavigation]);
 
   // ============================================================================
   // CHECKBOX STATE FOR ERSTATNINGSOPGØRELSE-DOWNLOAD

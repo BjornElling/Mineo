@@ -556,4 +556,26 @@ describe('collectAllDebugRows', () => {
     expect(errors).toEqual([]);
     expect(warnings.map((row) => row.id)).toEqual(['child.warning']);
   });
+
+  it('materialises ikke canonical output via intern fallback når override mangler', () => {
+    let seenCanonicalOutput: unknown = 'unset';
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: (ctx) => {
+          seenCanonicalOutput = ctx.canonicalOutput;
+          return [makeRow('stamdata.journalnr', 'ok')];
+        },
+      },
+    ]);
+
+    collectAllDebugRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      createErstatningsopgoerelseInitialValues(),
+      eoErrors
+    );
+
+    expect(seenCanonicalOutput).toBeUndefined();
+  });
 });

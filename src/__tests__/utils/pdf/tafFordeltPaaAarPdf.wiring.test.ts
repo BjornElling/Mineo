@@ -1,23 +1,8 @@
 /// <reference types="vitest/globals" />
-/**
- * Wiring-test: verificerer at tafFordeltPaaAarPdf.ts
- * bruger EO-snapshot som eneste entry til model + årsfordeling
- * og ikke genberegner TAF-krav selvstændigt i PDF-laget.
- */
 
 import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/tafPerYearDerived';
 import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
-import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
-
-// ─── Mocks ──────────────────────────────────────────────────────────────
-
-const {
-  computeEoSnapshotMock,
-  eoSnapshotToTafPerYearPdfDocumentMock,
-} = vi.hoisted(() => ({
-  computeEoSnapshotMock: vi.fn(),
-  eoSnapshotToTafPerYearPdfDocumentMock: vi.fn(),
-}));
+import type { TafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
 
 class MockJsPDF {
   static instances: MockJsPDF[] = [];
@@ -48,16 +33,6 @@ class MockJsPDF {
 }
 
 vi.mock('jspdf', () => ({ default: MockJsPDF }));
-
-vi.mock('../../../domain/erstatningsopgoerelse/eoSnapshot', () => ({
-  computeEoSnapshot: computeEoSnapshotMock,
-}));
-
-vi.mock('../../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument', () => ({
-  eoSnapshotToTafPerYearPdfDocument: eoSnapshotToTafPerYearPdfDocumentMock,
-}));
-
-// ─── Fixtures ───────────────────────────────────────────────────────────
 
 const FAKE_MODEL = {
   brevhoved: null,
@@ -104,138 +79,91 @@ const FAKE_RESULT: TafPerYearResult = {
   samletTafKravOre: 37500000 as MoneyOre,
 };
 
-const FAKE_SNAPSHOT = {
-  revision: 'rev-1',
-  status: 'ok',
-  invariants: [],
-  data: {
-    engines: {
-      tafPerYear: FAKE_RESULT,
-    },
-  },
-} as unknown as EoSnapshot;
-
-const FAKE_DOCUMENT = {
-  model: FAKE_MODEL,
+const FAKE_DOCUMENT: TafPerYearPdfDocument = {
+  model: FAKE_MODEL as never,
   presentation: FAKE_RESULT,
 };
-
-// ─── Tests ──────────────────────────────────────────────────────────────
 
 describe('tafFordeltPaaAarPdf wiring', () => {
   beforeEach(() => {
     MockJsPDF.instances = [];
-    computeEoSnapshotMock.mockReset();
-    eoSnapshotToTafPerYearPdfDocumentMock.mockReset();
-    computeEoSnapshotMock.mockReturnValue(FAKE_SNAPSHOT);
-    eoSnapshotToTafPerYearPdfDocumentMock.mockReturnValue({
-      kind: 'ok',
-      document: FAKE_DOCUMENT,
-    });
   });
 
-  it('kalder snapshot-entry og TAF-per-år-projektion med inputtet', async () => {
+  it('kræver et præ-projiceret dokument fra snapshot-laget', async () => {
     const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
 
-    const stamdata = {} as any;
-    const eoValues = {} as any;
-    generateTafFordeltPaaAarPdf(stamdata, eoValues);
-
-    expect(computeEoSnapshotMock).toHaveBeenCalledTimes(1);
-    expect(computeEoSnapshotMock).toHaveBeenCalledWith(expect.objectContaining({
-      stamdataValues: stamdata,
-      eoValues,
-      dagsDatoISO: expect.any(String),
-    }));
-
-    expect(eoSnapshotToTafPerYearPdfDocumentMock).toHaveBeenCalledTimes(1);
-    expect(eoSnapshotToTafPerYearPdfDocumentMock).toHaveBeenCalledWith(FAKE_SNAPSHOT);
+    expect(() => generateTafFordeltPaaAarPdf(undefined as never)).toThrow();
   });
 
-  it('genbruger givet dokument og genberegner ikke i PDF-generatoren', async () => {
+  it('genbruger givet dokument uden at kræve rå snapshot-input', async () => {
     const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
 
-    generateTafFordeltPaaAarPdf({} as any, {} as any, { document: FAKE_DOCUMENT });
-
-    expect(computeEoSnapshotMock).not.toHaveBeenCalled();
-    expect(eoSnapshotToTafPerYearPdfDocumentMock).not.toHaveBeenCalled();
+    expect(() => generateTafFordeltPaaAarPdf({ document: FAKE_DOCUMENT })).not.toThrow();
   });
 
-  it('kaster ikke fejl når snapshot-projektionen returnerer null-presentation', async () => {
-    eoSnapshotToTafPerYearPdfDocumentMock.mockReturnValue({
-      kind: 'ok',
-      document: {
-        model: FAKE_MODEL,
-        presentation: null,
-      },
-    });
-
+  it('kaster ikke fejl når dokumentet indeholder null-presentation', async () => {
     const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
 
-    expect(() => generateTafFordeltPaaAarPdf({} as any, {} as any)).not.toThrow();
+    expect(() =>
+      generateTafFordeltPaaAarPdf({
+        document: {
+          model: FAKE_MODEL as never,
+          presentation: null,
+        },
+      })
+    ).not.toThrow();
   });
 
   it('gemmer PDF med korrekt filnavn', async () => {
     const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
 
-    const doc = generateTafFordeltPaaAarPdf({} as any, {} as any);
+    const doc = generateTafFordeltPaaAarPdf({ document: FAKE_DOCUMENT });
     const instance = MockJsPDF.instances.at(-1);
     expect(doc).toBeInstanceOf(MockJsPDF);
-    expect(instance).toBeDefined();
-    expect(instance?.save).toHaveBeenCalledTimes(1);
     expect(instance?.save).toHaveBeenCalledWith('Tabt arbejdsfortjeneste fordelt på år.pdf');
   });
 
   it('gemmer PDF med udkast-suffix når visUdkastStempel=true', async () => {
     const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
 
-    generateTafFordeltPaaAarPdf({} as any, {} as any, { visUdkastStempel: true });
+    generateTafFordeltPaaAarPdf({
+      document: FAKE_DOCUMENT,
+      visUdkastStempel: true,
+    });
     const instance = MockJsPDF.instances.at(-1);
-    expect(instance).toBeDefined();
     expect(instance?.save).toHaveBeenCalledWith('Tabt arbejdsfortjeneste fordelt på år (udkast).pdf');
   });
 
   it('prepender journalnr i filnavn når journalnr er udfyldt', async () => {
-    eoSnapshotToTafPerYearPdfDocumentMock.mockReturnValue({
-      kind: 'ok',
+    const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
+
+    generateTafFordeltPaaAarPdf({
       document: {
         model: {
           ...FAKE_MODEL,
           brevhoved: { journalnr: '1234' },
-        },
+        } as never,
         presentation: FAKE_RESULT,
       },
+      visUdkastStempel: true,
     });
-    const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
-
-    generateTafFordeltPaaAarPdf({} as any, {} as any, { visUdkastStempel: true });
     const instance = MockJsPDF.instances.at(-1);
-    expect(instance).toBeDefined();
     expect(instance?.save).toHaveBeenCalledWith('1234 - Tabt arbejdsfortjeneste fordelt på år (udkast).pdf');
   });
 
   it('viser negativt beløb for negativt I alt pr. år', async () => {
-    eoSnapshotToTafPerYearPdfDocumentMock.mockReturnValue({
-      kind: 'ok',
+    const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
+
+    generateTafFordeltPaaAarPdf({
       document: {
-        model: FAKE_MODEL,
+        model: FAKE_MODEL as never,
         presentation: {
           ...FAKE_RESULT,
-          years: [
-            {
-              ...FAKE_RESULT.years[0],
-              yearTafOre: (-5000) as MoneyOre,
-            },
-          ],
+          years: [{ ...FAKE_RESULT.years[0], yearTafOre: (-5000) as MoneyOre }],
         },
       },
     });
-
-    const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
-
-    generateTafFordeltPaaAarPdf({} as any, {} as any);
     const instance = MockJsPDF.instances.at(-1);
-    expect(instance).toBeDefined();
     const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
     expect(renderedText).toContain(`-50,00\u00A0kr.`);
   });
@@ -243,23 +171,22 @@ describe('tafFordeltPaaAarPdf wiring', () => {
   it('renderer "Allerede betalt TAF" som fradragslinje', async () => {
     const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
 
-    generateTafFordeltPaaAarPdf({} as any, {} as any);
+    generateTafFordeltPaaAarPdf({ document: FAKE_DOCUMENT });
     const instance = MockJsPDF.instances.at(-1);
-    expect(instance).toBeDefined();
-
     const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
     expect(renderedText).toContain('Allerede betalt TAF');
     expect(renderedText).toContain(`- 25.000,00\u00A0kr.`);
   });
 
-  it('viser forlig-sektion og forlig-reference i "I alt"-linjen når forlig er indgået', async () => {
-    eoSnapshotToTafPerYearPdfDocumentMock.mockReturnValue({
-      kind: 'ok',
+  it('viser forlig-sektion og forlig-reference i \"I alt\"-linjen når forlig er indgået', async () => {
+    const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
+
+    generateTafFordeltPaaAarPdf({
       document: {
         model: {
           ...FAKE_MODEL,
           forlig: { erIndgaaet: true, label: '50%', dato: '2024-04-01', factor: 0.5 },
-        },
+        } as never,
         presentation: {
           ...FAKE_RESULT,
           years: [
@@ -272,13 +199,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
         },
       },
     });
-
-    const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
-
-    generateTafFordeltPaaAarPdf({} as any, {} as any);
     const instance = MockJsPDF.instances.at(-1);
-    expect(instance).toBeDefined();
-
     const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
     expect(renderedText).toContain('Forlig');
     expect(renderedText.some((text) => String(text).includes('indgået forlig i sagen på betaling af 50%.'))).toBe(true);

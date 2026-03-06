@@ -22,7 +22,7 @@ import { getNavigationTargetFromRowId } from './eoDebugNavigationMap';
 import { executeAllEODebugBuilders } from './eoDebugBuilderRegistry';
 import { resolveDebugRowPresentation } from './eoDebugRowPresentation';
 import { toDebugStatusRank } from './eoDebugSeverity';
-import { buildEoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
+import type { EoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
 
 /**
  * DebugRowModel udvidet med navigation-metadata
@@ -251,17 +251,8 @@ export const collectAllDebugRows = (
   erstatningsopgoerelseErrors: ErstatningsopgoerelseFieldErrorsBySource,
   loenindkomstManuelReguleringInputErrors: Readonly<Record<string, true>> = {},
   appSettings: AppSettings = DEFAULT_APP_SETTINGS,
-  canonicalOutputOverride?: ReturnType<typeof buildEoCanonicalOutput>
+  canonicalOutputOverride?: EoCanonicalOutput
 ): BeregningErrorSummary => {
-  let canonicalOutput: ReturnType<typeof buildEoCanonicalOutput> | undefined = canonicalOutputOverride;
-  if (!canonicalOutput) {
-    try {
-      canonicalOutput = buildEoCanonicalOutput(stamdataValues, erstatningsopgoerelseValues);
-    } catch {
-      canonicalOutput = undefined;
-    }
-  }
-
   // Opret execution context
   const ctx: EODebugExecutionContext = {
     stamdataValues,
@@ -270,7 +261,7 @@ export const collectAllDebugRows = (
     eoErrors: erstatningsopgoerelseErrors,
     loenindkomstManuelReguleringInputErrors,
     appSettings,
-    canonicalOutput,
+    canonicalOutput: canonicalOutputOverride,
   };
 
   // Udfør alle builders fra registry
