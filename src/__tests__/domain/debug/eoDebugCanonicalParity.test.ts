@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { buildEoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/eoCanonicalOutput';
+import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
 import { computeSvieSmerteEngine } from '../../../domain/erstatningsopgoerelse/svieSmerteEngine';
 import { buildSvieSmerteContext, buildTaftContext } from '../../../domain/debug/eoDebugContextBuilders';
 import {
@@ -17,8 +17,9 @@ const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
 describe('eoDebug canonical parity', () => {
   it('læser sviesmerte.beregnetBeloeb fra canonical totals.svieSmerteOre', () => {
+    const initial = createErstatningsopgoerelseInitialValues();
     const eoValues = {
-      ...createErstatningsopgoerelseInitialValues(),
+      ...initial,
       vedroererPeriodeFra: iso('2024-01-01'),
       vedroererPeriodeTil: iso('2024-12-31'),
       tidligereSsMax: 'Nej' as const,
@@ -29,13 +30,22 @@ describe('eoDebug canonical parity', () => {
       svieSmerteDelvisSygemeldingSats: 'fuld' as const,
       svieSmerteTidligereTotal: amount(0),
       svieSmerteAktuelPeriode: amount(0),
+      periodeTilBeregningFra: iso('2024-01-01'),
+      periodeTilBeregningTil: iso('2024-12-31'),
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...initial.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen' as const,
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
     };
     const stamdataValues = {
       ...STAMDATA_INITIAL_VALUES,
       skadestype: 'Arbejdsulykke' as const,
       skadesdato: iso('2024-01-01'),
     };
-    const canonical = buildEoCanonicalOutput(stamdataValues, eoValues);
+    const canonical = computeEoSnapshot({ revision: 'test', stamdataValues, eoValues }).data!.canonicalOutput;
 
     const rows = buildEODebugSvieSmerteRows(
       eoValues,
@@ -78,7 +88,7 @@ describe('eoDebug canonical parity', () => {
       skadestype: 'Arbejdsulykke' as const,
       skadesdato: iso('2024-01-01'),
     };
-    const canonical = buildEoCanonicalOutput(stamdataValues, eoValues);
+    const canonical = computeEoSnapshot({ revision: 'test', stamdataValues, eoValues }).data!.canonicalOutput;
 
     const rows = buildEODebugTaftRows(
       eoValues,

@@ -49,7 +49,6 @@ const makeSammentaelling = (patch: Partial<SammentaellingModel>): Sammentaelling
     tabelValue: null,
     loseFeriedage: 0,
     oevrigeFravaersdage: 0,
-    warningEligible: false,
   } as const;
 
   const base: SammentaellingModel = {

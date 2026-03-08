@@ -1,6 +1,8 @@
-import type { ErstatningsopgoerelseValues, OffentligeYdelserRow, SvieSmertePeriodeRow, TafPeriodeRow } from '../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, OffentligeYdelserRow, SvieSmertePeriodeRow } from '../../schemas/formSchemas';
+import type { SvieSmerteConstrainedPeriod } from '../erstatningsopgoerelse/svieSmerteEngine';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, isoToDanish, subtractOneDay } from '../../types/branded';
+import { buildClampedTafRanges, resolveTafConstraintBounds, type IsoRange } from '../erstatningsopgoerelse/tafPeriodConstraints';
 import { formatCurrency } from '../../utils/formatUtils';
 import { isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
 import { buildOffentligeYdelserColumns, parseOffentligDato } from './eoDebugOffentligeYdelserColumns';
@@ -223,13 +225,9 @@ const buildExplicitFerieSet = (values: ErstatningsopgoerelseValues, shDays: Read
   return set;
 };
 
-const buildTafRangeSet = (values: ErstatningsopgoerelseValues): ReadonlySet<ISODateString> => {
+const buildTafDatesFromRanges = (tafRanges: readonly IsoRange[]): ReadonlySet<ISODateString> => {
   const set = new Set<ISODateString>();
-  const tafRows: readonly TafPeriodeRow[] = values.tafPerioder ?? [];
-
-  for (const row of tafRows) {
-    const range = validateIsoRange(row.fra, row.til);
-    if (!range) continue;
+  for (const range of tafRanges) {
     const start = isoDateToDate(range.fra);
     const end = isoDateToDate(range.til);
     iterateDatesInclusive(start, end, (d) => {
@@ -237,7 +235,6 @@ const buildTafRangeSet = (values: ErstatningsopgoerelseValues): ReadonlySet<ISOD
       if (iso) set.add(iso);
     });
   }
-
   return set;
 };
 
@@ -300,7 +297,11 @@ const buildSsCoverage = (
   values: ErstatningsopgoerelseValues,
   erstatningsFra: ISODateString | undefined,
   erstatningsTil: ISODateString | undefined,
-  menStopDato: ISODateString | undefined
+  menStopDato: ISODateString | undefined,
+  /** Clampede svie/smerte-perioder fra engine. Når leveret bruges disse direkte
+   *  i stedet for at genimplementere clamping fra values — sikrer at tabellen
+   *  afspejler præcis de perioder der indgik i beregningen. */
+  constrainedPeriods?: readonly SvieSmerteConstrainedPeriod[]
 ): { statusByIndex: readonly string[]; stopAfterMenByIndex: readonly boolean[] } => {
   const dayCount = dates.length;
   const statusByIndex: string[] = Array.from({ length: dayCount }, () => '-');
@@ -312,33 +313,52 @@ const buildSsCoverage = (
   }
 
   const maxSsDato = menStopDato ? subtractOneDay(menStopDato) : erstatningsRange.til;
-  const hasSsMax = maxSsDato !== undefined;
 
   const sygemeldt = new Uint8Array(dayCount);
   const delvist = new Uint8Array(dayCount);
 
-  const perioder: readonly SvieSmertePeriodeRow[] = values.svieSmertePerioder ?? [];
-  for (const periode of perioder) {
-    const tilstand = periode.tilstand;
-    if (tilstand !== 'sygemeldt' && tilstand !== 'delvist-sygemeldt') continue;
-    const periodeRange = validateIsoRange(periode.fra, periode.til);
-    if (!periodeRange) continue;
+  if (constrainedPeriods) {
+    // Autoritativ sti: brug engine-outputtets clampede perioder direkte.
+    // constrainedPeriods er allerede clamped mod alle bounds (vedroerer, ménafgørelse osv.).
+    for (const periode of constrainedPeriods) {
+      const start = isoDateToDate(periode.fra);
+      const end = isoDateToDate(periode.til);
+      iterateDatesInclusive(start, end, (d) => {
+        const iso = dateToISO(d);
+        if (!iso) return;
+        const idx = isoIndex.get(iso);
+        if (idx === undefined) return;
+        if (periode.isDelvist) delvist[idx] = 1;
+        else sygemeldt[idx] = 1;
+      });
+    }
+  } else {
+    // Fallback: validerings-fejl-sti og standalone/test-brug.
+    // Genimplementerer clamping fra values — samme logik som engine, men selvstændig.
+    const hasSsMax = maxSsDato !== undefined;
+    const perioder: readonly SvieSmertePeriodeRow[] = values.svieSmertePerioder ?? [];
+    for (const periode of perioder) {
+      const tilstand = periode.tilstand;
+      if (tilstand !== 'sygemeldt' && tilstand !== 'delvist-sygemeldt') continue;
+      const periodeRange = validateIsoRange(periode.fra, periode.til);
+      if (!periodeRange) continue;
 
-    const clampedFra = maxISO(periodeRange.fra, erstatningsRange.fra);
-    const clampedTil = hasSsMax ? minISO(periodeRange.til, maxSsDato) : periodeRange.til;
-    const clampedRange = validateIsoRange(clampedFra, clampedTil);
-    if (!clampedRange) continue;
+      const clampedFra = maxISO(periodeRange.fra, erstatningsRange.fra);
+      const clampedTil = hasSsMax ? minISO(periodeRange.til, maxSsDato) : periodeRange.til;
+      const clampedRange = validateIsoRange(clampedFra, clampedTil);
+      if (!clampedRange) continue;
 
-    const start = isoDateToDate(clampedRange.fra);
-    const end = isoDateToDate(clampedRange.til);
-    iterateDatesInclusive(start, end, (d) => {
-      const iso = dateToISO(d);
-      if (!iso) return;
-      const idx = isoIndex.get(iso);
-      if (idx === undefined) return;
-      if (tilstand === 'sygemeldt') sygemeldt[idx] = 1;
-      else delvist[idx] = 1;
-    });
+      const start = isoDateToDate(clampedRange.fra);
+      const end = isoDateToDate(clampedRange.til);
+      iterateDatesInclusive(start, end, (d) => {
+        const iso = dateToISO(d);
+        if (!iso) return;
+        const idx = isoIndex.get(iso);
+        if (idx === undefined) return;
+        if (tilstand === 'sygemeldt') sygemeldt[idx] = 1;
+        else delvist[idx] = 1;
+      });
+    }
   }
 
   for (let i = 0; i < dayCount; i += 1) {
@@ -372,7 +392,15 @@ const buildSsCoverage = (
   return { statusByIndex, stopAfterMenByIndex };
 };
 
-export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugModel => {
+export const buildEODebugModel = (
+  values: ErstatningsopgoerelseValues,
+  options: Readonly<{
+    tafRanges?: readonly IsoRange[];
+    /** Clampede svie/smerte-perioder fra engine. Når leveret afspejler debug-tabellen
+     *  præcist de perioder der indgik i beregningen — ikke de rå committede datoer. */
+    svieSmerteConstrainedPeriods?: readonly SvieSmerteConstrainedPeriod[];
+  }> = {}
+): EODebugModel => {
   const erstatningsFra = values.vedroererPeriodeFra;
   const erstatningsTil = values.vedroererPeriodeTil;
   const beregningsFra = values.periodeTilBeregningFra;
@@ -441,7 +469,15 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
   const erMaaneder = beregningsenhed === TAF_BEREGNES_SOM.MAANEDER;
   const shDays = buildShDageSetFromIsoRange(tableFra, tableTil);
   const explicitFerie = buildExplicitFerieSet(values, shDays);
-  const tafDates = buildTafRangeSet(values);
+  // Brug clampede tafRanges hvis de er leveret (fra engines — altid præfereret).
+  // Fallback: kald resolveTafConstraintBounds + buildClampedTafRanges, som er den samme logik
+  // engines bruger. Fallback bruges i validerings-fejl-stien og ved standalone/test-brug.
+  // BEMÆRK: fallback bruger values direkte og matcher ikke nødvendigvis det exakt beregnede
+  // snapshot-output, da engines-stien kan have kontekst-specifikke bounds. Levér altid
+  // tafRanges fra snapshot-pipelinen for fuld parity.
+  const resolvedTafRanges: readonly IsoRange[] = options.tafRanges
+    ?? buildClampedTafRanges(values.tafPerioder ?? [], resolveTafConstraintBounds(values));
+  const tafDates = buildTafDatesFromRanges(resolvedTafRanges);
 
   const beregningsRange = validateIsoRange(beregningsFra, beregningsTil);
   const weekdayByIndex: string[] = new Array(dates.length);
@@ -482,7 +518,8 @@ export const buildEODebugModel = (values: ErstatningsopgoerelseValues): EODebugM
     values,
     erstatningsFra,
     erstatningsTil,
-    menStopDato
+    menStopDato,
+    options.svieSmerteConstrainedPeriods
   );
 
   const baseColumns: DebugTabelColumnData[] = [

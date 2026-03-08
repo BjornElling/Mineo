@@ -1,9 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderShDageSection } from '../../../../../utils/pdf/erstatningsopgoerelse/sections/shDageSection';
 import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { toISODateString } from '../../../../../types/branded';
+import { toISODateString, isISODateString } from '../../../../../types/branded';
+import type { IsoRange } from '../../../../../domain/erstatningsopgoerelse/tafPeriodConstraints';
 
 const iso = (value: string) => toISODateString(value);
+
+const tafRangesFromEoValues = (eoValues: ReturnType<typeof createErstatningsopgoerelseInitialValues>): IsoRange[] =>
+  (eoValues.tafPerioder ?? [])
+    .filter((row): row is typeof row & { fra: ReturnType<typeof toISODateString>; til: ReturnType<typeof toISODateString> } =>
+      isISODateString(row.fra) && isISODateString(row.til))
+    .map((row) => ({ fra: row.fra, til: row.til }));
 
 const makeContext = (eoValues: ReturnType<typeof createErstatningsopgoerelseInitialValues>) => {
   let y = 0;
@@ -19,6 +26,7 @@ const makeContext = (eoValues: ReturnType<typeof createErstatningsopgoerelseInit
     renderStandardPdfTable,
     ctx: {
       eoValues,
+      tafRanges: tafRangesFromEoValues(eoValues),
       lineHeight: 4,
       startBilagPage,
       renderSubheader,

@@ -9,26 +9,11 @@
  * 5. SVIE_SMERTE_MISMATCH - Antal svie/smerte-dage i felter vs. tabel
  */
 
-import type { ISODateString } from '../../types/branded';
 import { IntegrityInvariant, type DebugDay, type IntegrityIssue, type DateRange } from './eoDebugTypes';
 import type { DebugModelInput } from './eoDebugCoreModel';
-import { getOverlap, getIsoRange } from './eoDebugDateUtils';
-import { subtractOneDay, toISODateString } from '../../types/branded';
+import { getOverlap, getIsoRange, tryParseIso } from './eoDebugDateUtils';
+import { subtractOneDay } from '../../types/branded';
 import { clampTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
-
-/**
- * Helper til at validere og konvertere til ISODateString
- *
- * VIGTIGT: Data kommer allerede i ISO-format fra persistence layer
- */
-const tryParseIso = (value: unknown): ISODateString | undefined => {
-  if (!value || typeof value !== 'string' || value.trim() === '') return undefined;
-  try {
-    return toISODateString(value);
-  } catch {
-    return undefined;
-  }
-};
 
 /**
  * Tjek for overlappende TAF-perioder
@@ -217,7 +202,7 @@ const checkSvieSmerteMismatch = (
       : undefined;
   const menStopDato =
     input.erstatningsopgoerelseValues.varigeMenAfgorelse === 'Ja' &&
-    input.erstatningsopgoerelseValues.verserendeKlageMen !== 'Ja'
+    input.erstatningsopgoerelseValues.verserendeKlageMen === 'Nej'
       ? subtractOneDay(tryParseIso(input.erstatningsopgoerelseValues.menAfgoerelseDato))
       : undefined;
 

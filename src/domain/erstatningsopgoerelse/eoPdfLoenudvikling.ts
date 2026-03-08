@@ -491,6 +491,8 @@ const resolveReguleringsStrategiV3 = (
     { saerligFraDatoRegulering: active[0].saerligFraDatoRegulering },
     skadesdato
   );
+  // Kanonisk brug: tafRanges leveres fra computeEoSnapshot (clampede ranges).
+  // Fallback sikrer at builderen kan bruges isoleret (fx i tests).
   const tafRanges = options.tafRanges ?? buildTafRanges(values);
   const label =
     strategi === 'statistik'
@@ -1217,6 +1219,8 @@ export const buildLoenudviklingModelV3 = (
   indkomstSkadestidspunkt: IndkomstSkadestidspunktPdfModel | null,
   options: Readonly<{ tafRanges?: readonly IsoRange[]; clampTafRows?: boolean }> = {}
 ): LoenudviklingPdfModel => {
+  // Kanonisk brug: tafRanges leveres fra computeEoSnapshot (clampede ranges).
+  // Fallback sikrer at builderen kan bruges isoleret (fx i tests).
   const tafRanges = options.tafRanges ?? buildTafRanges(values);
   const buildFromStrategiAndBase = (
     strategiData: Readonly<{ strategi: LoenudviklingStrategiV3; label: string; konsolideret: KonsolideretLoenudviklingV3 | null }>,

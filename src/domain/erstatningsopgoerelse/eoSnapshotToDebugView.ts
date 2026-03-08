@@ -21,7 +21,7 @@ type EoDebugViewBlocked = Readonly<{
 type EoDebugViewReady = Readonly<{
   kind: 'ready';
   canonicalOutput: EoCanonicalOutput | undefined;
-  debugSnapshot: NonNullable<NonNullable<EoSnapshot['data']>['debugSnapshot']>;
+  debugSnapshot: NonNullable<EoSnapshot['debugSnapshot']>;
   stamdataValues: NonNullable<EoSnapshot['input']['stamdata']>;
   erstatningsopgoerelseValues: NonNullable<EoSnapshot['input']['erstatningsopgoerelse']>;
   rowsBySection: ReadonlyMap<SectionId, readonly DebugRowModel[]>;
@@ -65,6 +65,16 @@ export const eoSnapshotToDebugView = (args: Readonly<{
     };
   }
 
+  // fail_closed routes altid til fejlvisning — uanset om debugSnapshot er tilstede.
+  if (snapshot.status === 'fail_closed') {
+    return {
+      kind: 'blocked',
+      severity: 'error',
+      title: 'EO debug er blokeret',
+      message: snapshot.invariants[0]?.message ?? 'Der opstod en intern fejl i EO-snapshot.',
+    };
+  }
+
   const debugSnapshot = snapshot.debugSnapshot;
   if (debugSnapshot) {
     const stamdataValues = debugSnapshot.stamdataValues;
@@ -101,24 +111,8 @@ export const eoSnapshotToDebugView = (args: Readonly<{
     };
   }
 
-  if (!snapshot.input.stamdata || !snapshot.input.erstatningsopgoerelse) {
-    if (snapshot?.status === 'fail_closed') {
-      return {
-        kind: 'blocked',
-        severity: 'error',
-        title: 'EO debug er blokeret',
-        message: snapshot.invariants[0]?.message ?? 'Der opstod en intern fejl i EO-snapshot.',
-      };
-    }
-
-    return {
-      kind: 'blocked',
-      severity: 'info',
-      title: 'EO debug kræver et friskt snapshot',
-      message: 'Åbn debug-fanen igen fra Erstatningsopgørelse for at bygge snapshot på committed data.',
-    };
-  }
-
+  // Alle ikke-fail_closed snapshots har gyldigt input, men manglende debugSnapshot
+  // skyldes at valideringen blokerede engine-kørslen. Vis den relevante fejlbesked.
   return {
     kind: 'blocked',
     severity: 'info',

@@ -1,13 +1,8 @@
 import { z } from 'zod';
-import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
-import { erstatningsopgoerelseSchema, stamdataSchema } from '../../schemas/formSchemas';
 import { isoDateString } from '../../schemas/formSchemas/baseSchemas';
-import { buildTafRanges } from './indtaegtPerioder';
-import { parseForligsgrad } from './forligsgrad';
-import { buildOevrigeKravModel } from './eoPdfBuilders';
 import { clampMoneyOreToZero, ensureMoneyOre, moneyOreSchema, scaleMoneyOre } from './eoPdfMoneyUtils';
-import { computeSvieSmerteEngine, type SvieSmerteEngineOutput } from './svieSmerteEngine';
-import { computeTafNettoBeregning, type TafNettoBeregningResult } from './tafNettoBeregning';
+import type { SvieSmerteEngineOutput } from './svieSmerteEngine';
+import type { TafNettoBeregningResult } from './tafNettoBeregning';
 import type { Calculable, LoenudviklingSegment, MoneyOre } from './eoPdfModelTypes';
 import type { OevrigeKravPdfModel } from './eoPdfModel';
 
@@ -168,57 +163,3 @@ export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
   });
 };
 
-/**
- * Legacy test helper.
- * Produktionskoden skal projicere canonical output fra `computeEoSnapshot`, ikke via denne standalone entry.
- */
-export const buildEoCanonicalOutput = (
-  stamdataValues: StamdataValues,
-  eoValues: ErstatningsopgoerelseValues
-): EoCanonicalOutput => {
-  const stamdataParsed = stamdataSchema.safeParse(stamdataValues);
-  const eoParsed = erstatningsopgoerelseSchema.safeParse(eoValues);
-  if (!stamdataParsed.success || !eoParsed.success) {
-    const errors = [
-      ...(stamdataParsed.success ? [] : stamdataParsed.error.issues),
-      ...(eoParsed.success ? [] : eoParsed.error.issues),
-    ].map((issue) => issue.message).join('; ');
-    throw new Error(`Ugyldigt input til EO canonical output: ${errors}`);
-  }
-
-  const safeStamdata = stamdataParsed.data;
-  const safeEo = eoParsed.data;
-
-  const forlig = parseForligsgrad(safeEo);
-  const forligFactor = forlig?.factor ?? null;
-  if (forlig !== null && forligFactor === null) {
-    throw new Error('Forlig-faktor mangler i canonical output');
-  }
-
-  const svieSmerte = computeSvieSmerteEngine({
-    erstatningsopgoerelse: safeEo,
-    stamdata: {
-      skadesdato: safeStamdata.skadesdato,
-      skadestype: safeStamdata.skadestype,
-    },
-  });
-
-  const tafRanges = buildTafRanges(safeEo);
-  const tafNetto = computeTafNettoBeregning(safeEo, safeStamdata, {
-    tafRanges,
-  });
-  const oevrige = buildOevrigeKravModel(safeEo.oevrigeKravPerioder ?? []);
-  const totals = buildEoComputedTotals({
-    svieSmerte,
-    tafNetto,
-    oevrige,
-    forligFactor,
-  });
-  return buildEoCanonicalOutputFromComputed({
-    tafRanges,
-    svieSmerte,
-    tafNetto,
-    oevrige,
-    totals,
-  });
-};

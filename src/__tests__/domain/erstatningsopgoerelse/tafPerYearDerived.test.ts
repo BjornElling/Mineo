@@ -3,7 +3,8 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { buildErstatningsopgoerelsePdfModel, type PdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
+import type { PdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModelTypes';
+import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
 import {
   splitRangeByCalendarYearsInclusive,
   buildTafPerYearResult,
@@ -35,6 +36,19 @@ const makeStamdata = (patch: Partial<StamdataValues>): StamdataValues => {
 };
 
 const dagsDatoISO = iso('2026-02-04');
+
+const buildPdfModel = (
+  stamdata: StamdataValues,
+  eoValues: ErstatningsopgoerelseValues,
+  opts: Readonly<{ dagsDatoISO: ReturnType<typeof iso> }> = { dagsDatoISO }
+): PdfModel => {
+  const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues, dagsDatoISO: opts.dagsDatoISO });
+  if (!snapshot.data) {
+    const message = snapshot.invariants[0]?.message ?? 'Snapshot fejlede';
+    throw new Error(message);
+  }
+  return snapshot.data.pdfModel;
+};
 
 // ─── splitRangeByCalendarYearsInclusive ──────────────────────────────────
 
@@ -119,7 +133,7 @@ describe('buildTafPerYearResult', () => {
       beregnesTabtArbejdsfortjeneste: 'Nej',
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
 
     const result = buildTafPerYearResult(model, eoValues);
     expect(result).toBeNull();
@@ -143,7 +157,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
 
     const result = buildTafPerYearResult(model, eoValues);
     expect(result).not.toBeNull();
@@ -177,8 +191,8 @@ describe('buildTafPerYearResult', () => {
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
 
-    const baseModel = buildErstatningsopgoerelsePdfModel(stamdata, baseValues, { dagsDatoISO });
-    const forligModel = buildErstatningsopgoerelsePdfModel(stamdata, withForlig, { dagsDatoISO });
+    const baseModel = buildPdfModel(stamdata, baseValues, { dagsDatoISO });
+    const forligModel = buildPdfModel(stamdata, withForlig, { dagsDatoISO });
 
     const baseResult = buildTafPerYearResult(baseModel, baseValues);
     const forligResult = buildTafPerYearResult(forligModel, withForlig);
@@ -221,7 +235,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
 
     const result = buildTafPerYearResult(model, eoValues);
     expect(result).not.toBeNull();
@@ -272,7 +286,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
 
     const result = buildTafPerYearResult(model, eoValues);
     expect(result).not.toBeNull();
@@ -317,7 +331,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
     const result = buildTafPerYearResult(model, eoValues);
 
     expect(result).not.toBeNull();
@@ -354,7 +368,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2023-06-22') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
 
     const result = buildTafPerYearResult(model, eoValues);
     expect(result).not.toBeNull();
@@ -385,7 +399,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
 
     const result = buildTafPerYearResult(model, eoValues);
     expect(result).not.toBeNull();
@@ -418,7 +432,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
 
     const result = buildTafPerYearResult(model, eoValues);
     expect(result).not.toBeNull();
@@ -454,7 +468,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
 
     const result = buildTafPerYearResult(model, eoValues);
     expect(result).not.toBeNull();
@@ -484,7 +498,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2020-06-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
 
     const result = buildTafPerYearResult(model, eoValues);
     expect(result).not.toBeNull();
@@ -513,7 +527,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2023-10-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
 
     const result = buildTafPerYearResult(model, eoValues);
     expect(result).not.toBeNull();
@@ -544,7 +558,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
 
     const result = buildTafPerYearResult(model, eoValues);
     expect(result).not.toBeNull();
@@ -573,7 +587,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2020-03-15') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
 
     const result = buildTafPerYearResult(model, eoValues);
     expect(result).not.toBeNull();
@@ -618,7 +632,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
     const result = buildTafPerYearResult(model, eoValues);
 
     expect(result).not.toBeNull();
@@ -700,7 +714,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
 
     const result = buildTafPerYearResult(model, eoValues);
     expect(result).not.toBeNull();
@@ -735,7 +749,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
 
     const result = buildTafPerYearResult(model, eoValues);
     expect(result).not.toBeNull();
@@ -774,7 +788,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
 
     const result = buildTafPerYearResult(model, eoValues);
     expect(result).not.toBeNull();
@@ -804,7 +818,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2023-06-22') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
 
     const result = buildTafPerYearResult(model, eoValues);
     expect(result).not.toBeNull();
@@ -953,10 +967,10 @@ describe('buildTafPerYearResult', () => {
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
 
-    const model1 = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model1 = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
     const result1 = buildTafPerYearResult(model1, eoValues);
 
-    const model2 = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model2 = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
     const result2 = buildTafPerYearResult(model2, eoValues);
 
     expect(result1).toEqual(result2);
@@ -1036,7 +1050,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
     const result = buildTafPerYearResult(model, eoValues);
 
     expect(result).not.toBeNull();
@@ -1073,7 +1087,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
-    const model = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO });
     const result = buildTafPerYearResult(model, eoValues);
 
     expect(result).not.toBeNull();

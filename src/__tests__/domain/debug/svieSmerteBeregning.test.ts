@@ -5,7 +5,7 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { buildEoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/eoCanonicalOutput';
+import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
 import { buildEODebugSvieSmerteRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
 
 const iso = (value: string) => toISODateString(value);
@@ -19,15 +19,10 @@ const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): Erstatningsopg
 
 const isPresent = <T,>(value: T | null | undefined): value is T => value !== null && value !== undefined;
 
-const buildCanonicalForValues = (values: ErstatningsopgoerelseValues) =>
-  buildEoCanonicalOutput(
-    {
-      ...STAMDATA_INITIAL_VALUES,
-      skadestype: 'Arbejdsulykke',
-      skadesdato: iso('2023-01-01'),
-    },
-    values
-  );
+const buildCanonicalForValues = (values: ErstatningsopgoerelseValues) => {
+  const stamdata = { ...STAMDATA_INITIAL_VALUES, skadestype: 'Arbejdsulykke' as const, skadesdato: iso('2023-01-01') };
+  return computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues: values }).data?.canonicalOutput;
+};
 
 /**
  * Helper til at ekstrahere beregnet beløb fra debug rows
@@ -104,12 +99,7 @@ const getSvieSmerteOphoerRow = (values: ErstatningsopgoerelseValues) => {
     menAfgoerelseDatoForTabel: completeValues.varigeMenAfgorelse === 'Ja' ? completeValues.menAfgoerelseDato : undefined,
     verserendeKlageMen: completeValues.verserendeKlageMen === 'Ja',
   };
-  let canonicalOutput: ReturnType<typeof buildCanonicalForValues> | undefined;
-  try {
-    canonicalOutput = buildCanonicalForValues(completeValues);
-  } catch {
-    canonicalOutput = undefined;
-  }
+  const canonicalOutput = buildCanonicalForValues(completeValues);
   const rows = buildEODebugSvieSmerteRows(completeValues, {}, context, canonicalOutput);
   return rows.find((row) => row.id === 'sviesmerte.ophoerSkyldes');
 };

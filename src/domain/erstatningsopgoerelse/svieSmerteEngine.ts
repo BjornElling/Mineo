@@ -72,66 +72,86 @@ const perioderCoverDate = (perioder: Array<{ fra: Date; til: Date }>, target: IS
   return false;
 };
 
-const validateSvieSmertePerioder = (
+/**
+ * Filtrerer svie/smerte-perioder til gyldige, komplete og ikke-overlappende rækker.
+ * Returnerer null hvis input er ugyldigt på en måde der forhindrer beregning
+ * (overlap, ufuldstændige rækker, ugyldige datoer). Kaster ikke — fejl rapporteres
+ * via validator/invariants.
+ */
+const filterValidSvieSmertePerioder = (
   values: DeepReadonly<ErstatningsopgoerelseValues>,
-  _context: Readonly<{
-    skadesdatoISO: ISODateString | undefined;
-    erErhvervssygdom: boolean;
-    menAfgoerelseDatoForTabel: ISODateString | undefined;
-    verserendeKlageMen: boolean;
-  }>
-): SvieSmertePeriodeRow[] => {
+): SvieSmertePeriodeRow[] | null => {
   const perioder = values.svieSmertePerioder ?? [];
   const nonEmpty = perioder.filter((row) => !isSvieSmerteRowEmpty(row));
   if (nonEmpty.length === 0) return [];
 
-  const overlapIds = detectOverlappingPeriods(nonEmpty);
-
+  // Tjek for ufuldstændige rækker eller ugyldige datoer
   for (const periode of nonEmpty) {
-    const hasFra = typeof periode.fra === 'string' && periode.fra.trim() !== '';
-    const hasTil = typeof periode.til === 'string' && periode.til.trim() !== '';
+    const hasFra = typeof periode.fra === 'string' && periode.fra.trim() !== '' && isISODateString(periode.fra);
+    const hasTil = typeof periode.til === 'string' && periode.til.trim() !== '' && isISODateString(periode.til);
     const hasTilstand = typeof periode.tilstand === 'string' && periode.tilstand.trim() !== '';
-    const filledCount = [hasFra, hasTil, hasTilstand].filter(Boolean).length;
-    if (filledCount !== 3) {
-      throw new Error('Svie/smerte-periode er ikke fuldt udfyldt');
-    }
-
-    const fraISO = periode.fra;
-    const tilISO = periode.til;
-    if (!isISODateString(fraISO) || !isISODateString(tilISO)) {
-      throw new Error('Svie/smerte-periode har ugyldig dato');
-    }
-
-    if (overlapIds.has(periode.id)) {
-      throw new Error('Svie/smerte-perioder overlapper');
-    }
+    if (!hasFra || !hasTil || !hasTilstand) return null;
   }
 
+  // Tjek for overlap — ved overlap kan perioder ikke aggregeres korrekt
+  const overlapIds = detectOverlappingPeriods(nonEmpty);
+  if (overlapIds.size > 0) return null;
+
   return nonEmpty;
+};
+
+/**
+ * Returnerer en nul-output for svie/smerte-engine.
+ * Bruges når perioder er ugyldige/ufuldstændige/overlappende eller satser mangler.
+ * Fejl rapporteres via validator/invariants — engineen kaster ikke.
+ */
+const buildZeroOutput = (values: DeepReadonly<ErstatningsopgoerelseValues>): SvieSmerteEngineOutput => {
+  const parsedForlig = parseForligsgrad(values);
+  const tidligereKroner = amountValueToNumber(values.svieSmerteTidligereTotal);
+  const aktuelKroner = amountValueToNumber(values.svieSmerteAktuelPeriode);
+  return {
+    constrainedPeriods: [],
+    harInputPerioder: false,
+    harPerioder: false,
+    opgjortFremTilPeriodeTil: false,
+    satserAar: typeof values.svieSmerteSatserAar === 'number' ? values.svieSmerteSatserAar : null,
+    satserPerDagOre: null,
+    satserMaxOre: null,
+    forligLabel: parsedForlig?.label ?? null,
+    forligSatserSuffix: parsedForlig ? ` (forlig på ${parsedForlig.label})` : null,
+    forligFactor: parsedForlig?.factor ?? null,
+    satserPerDagFoerForligOre: null,
+    satserMaxFoerForligOre: null,
+    tidligereOre: tidligereKroner !== undefined ? toOre(tidligereKroner) : null,
+    aktuelOre: aktuelKroner !== undefined ? toOre(aktuelKroner) : null,
+    sygedage: 0,
+    delviseSygedage: 0,
+    delvisFaktor: values.svieSmerteDelvisSygemeldingSats === 'fuld' ? 1 : 0.5,
+    maxApplied: false,
+    totalOre: ensureMoneyOre(0),
+  };
 };
 
 export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): SvieSmerteEngineOutput => {
   const values = input.erstatningsopgoerelse;
 
   const periodeSynlig = values.beregnesSvieSmerteGodtgoerelse === 'Ja' && values.tidligereSsMax === 'Nej';
-  const context = {
-    skadesdatoISO: isISODateString(input.stamdata?.skadesdato) ? input.stamdata.skadesdato : undefined,
-    erErhvervssygdom: input.stamdata?.skadestype === 'Erhvervssygdom',
-    menAfgoerelseDatoForTabel:
-      values.varigeMenAfgorelse === 'Ja' ? subtractOneDay(values.menAfgoerelseDato) : undefined,
-    verserendeKlageMen: values.verserendeKlageMen === 'Ja',
-  };
 
-  const perioder = periodeSynlig ? validateSvieSmertePerioder(values, context) : [];
+  // filterValidSvieSmertePerioder returnerer null ved overlap/ufuldstændige rækker/ugyldige datoer.
+  // I disse tilfælde er perioderne ikke brugbare til beregning — vi behandler det som ingen perioder.
+  // Fejl rapporteres via validator/invariants, ikke via throws.
+  const filteredPerioder = periodeSynlig ? filterValidSvieSmertePerioder(values) : [];
+  const perioder = filteredPerioder ?? [];
   const harInputPerioder = perioder.length > 0;
 
   const vedroererFra = values.vedroererPeriodeFra;
   const vedroererTil = values.vedroererPeriodeTil;
+  // Manglende vedrører-periode med gyldige perioder → ingen beregning (fejl dækkes af validator)
   if (harInputPerioder && (!vedroererFra || !vedroererTil)) {
-    throw new Error('Vedrører perioden mangler for svie/smerte');
+    return buildZeroOutput(values);
   }
 
-  const shouldApplyMenCutoff = values.varigeMenAfgorelse === 'Ja' && values.verserendeKlageMen !== 'Ja';
+  const shouldApplyMenCutoff = values.varigeMenAfgorelse === 'Ja' && values.verserendeKlageMen === 'Nej';
   const menCutoff = shouldApplyMenCutoff ? values.menAfgoerelseDato : undefined;
 
   const sygemeldtPeriods: { fra: Date; til: Date }[] = [];
@@ -175,12 +195,15 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
 
   constrained.sort((a, b) => a.fra.getTime() - b.fra.getTime());
 
-  const constrainedPeriods: SvieSmerteConstrainedPeriod[] = constrained.map((p) => {
+  const constrainedPeriods: SvieSmerteConstrainedPeriod[] = [];
+  for (const p of constrained) {
     const fra = dateToISO(p.fra);
     const til = dateToISO(p.til);
-    if (!fra || !til) throw new Error('Ugyldig periode for svie/smerte');
-    return { fra, til, isDelvist: p.isDelvist };
-  });
+    // Kan ikke ske i praksis da isoDateToDate + Date-aritmetik altid producerer gyldig dato,
+    // men guards mod uventet null fra dateToISO
+    if (!fra || !til) continue;
+    constrainedPeriods.push({ fra, til, isDelvist: p.isDelvist });
+  }
 
   const harPerioder = constrainedPeriods.length > 0;
   const opgjortFremTilPeriodeTil = harPerioder && vedroererTil ? perioderCoverDate(constrained, vedroererTil) : false;
@@ -193,29 +216,32 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     .reduce((sum, p) => sum + (countInclusiveUtcDays(p.fra, p.til) ?? 0), 0);
 
   const satserAarValue = values.svieSmerteSatserAar;
+  // Manglende sats-år med gyldige perioder → ingen beregning (fejl dækkes af validator)
   if (harInputPerioder && typeof satserAarValue !== 'number') {
-    throw new Error('År for svie/smerte-sats mangler');
+    return buildZeroOutput(values);
   }
 
   const delvisFaktor: 1 | 0.5 = values.svieSmerteDelvisSygemeldingSats === 'fuld' ? 1 : 0.5;
+  // Manglende delvis-sats med gyldige perioder → ingen beregning (fejl dækkes af validator)
   if (harInputPerioder && !values.svieSmerteDelvisSygemeldingSats) {
-    throw new Error('Sats ved delvis sygemelding mangler');
+    return buildZeroOutput(values);
   }
 
   let satserPerDagOre: MoneyOre | null = null;
   let satserMaxOre: MoneyOre | null = null;
   const parsedForlig = parseForligsgrad(values);
-  let forligLabel: string | null = parsedForlig?.label ?? null;
-  let forligSatserSuffix: string | null = parsedForlig ? ` (forlig på ${parsedForlig.label})` : null;
-  let forligFactor: number | null = parsedForlig?.factor ?? null;
+  const forligLabel: string | null = parsedForlig?.label ?? null;
+  const forligSatserSuffix: string | null = parsedForlig ? ` (forlig på ${parsedForlig.label})` : null;
+  const forligFactor: number | null = parsedForlig?.factor ?? null;
   let satserPerDagFoerForligOre: MoneyOre | null = null;
   let satserMaxFoerForligOre: MoneyOre | null = null;
 
   if (harInputPerioder && typeof satserAarValue === 'number') {
     const satsPerDag = svieSmertePrDag[satserAarValue as keyof typeof svieSmertePrDag];
     const satsMax = svieSmerteMax[satserAarValue as keyof typeof svieSmerteMax];
+    // Manglende satser for det valgte år → ingen beregning (fejl dækkes af validator)
     if (!satsPerDag || !satsMax) {
-      throw new Error(`Ingen svie/smerte satser for år ${satserAarValue}`);
+      return buildZeroOutput(values);
     }
     satserPerDagFoerForligOre = toOre(roundKroner(satsPerDag));
     satserMaxFoerForligOre = toOre(roundKroner(satsMax));
@@ -235,8 +261,10 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
   let maxApplied = false;
 
   if (harPerioder) {
+    // Satser er garanteret tilstede her: harPerioder kræver harInputPerioder,
+    // og vi har allerede returneret buildZeroOutput hvis satser manglede.
     if (satserPerDagOre === null || satserMaxOre === null) {
-      throw new Error('Satser mangler for svie/smerte');
+      return buildZeroOutput(values);
     }
     const perDagKroner = fromOre(satserPerDagOre);
     const maxKroner = fromOre(satserMaxOre);

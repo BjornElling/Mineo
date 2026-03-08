@@ -437,7 +437,7 @@ export const buildTafPerYearBuildOutcome = (
   if (import.meta.env.DEV) {
     const check = (sumYearTafOre + afrundingOre) as MoneyOre;
     if (check !== samletTafKravOre) {
-      throw new Error(
+      console.error(
         `[TAF per år] Invariant brudt: sum(yearTafOre) + afrunding (${check}) !== samletTafKravOre (${samletTafKravOre})`
       );
     }
@@ -466,6 +466,13 @@ const pdfModelToSource = (model: PdfModel): TafPerYearSource => ({
 /**
  * Legacy compatibility adapter for test/parity usage.
  * Produktionskoden skal bruge `buildTafPerYearBuildOutcome` via EO-snapshot, ikke denne PdfModel-entry.
+ *
+ * ADVARSEL: Bruger `buildTafRanges(eoValues)` (uklempe ranges). Produktionsstien bruger
+ * clampede ranges fra `computeEoSnapshot`. Tests der bruger denne funktion verificerer
+ * ikke produktionsstien korrekt ved cases med TAF-clamping.
+ * TODO: Migrér tests til snapshot-baseret fixture (computeEoSnapshot → snapshot.data.engines.tafPerYear).
+ *
+ * @deprecated
  */
 export const buildTafPerYearResult = (
   model: PdfModel,

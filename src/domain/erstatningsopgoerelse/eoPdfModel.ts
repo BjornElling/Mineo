@@ -1,12 +1,9 @@
 import type { ISODateString } from '../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
-import { erstatningsopgoerelseSchema, stamdataSchema } from '../../schemas/formSchemas';
-import { buildOevrigeKravModel, buildSvieSmerteModel, buildTabtArbejdsfortjenesteModel } from './eoPdfBuilders';
 import type {
   PdfModel,
 } from './eoPdfModelTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, scaleMoneyOre } from './eoPdfMoneyUtils';
-import { parseForligsgrad } from './forligsgrad';
 import {
   formatDateShort,
   formatDateLong,
@@ -17,6 +14,7 @@ import type {
   SvieSmertePdfModel,
   TabtArbejdsfortjenestePdfModel,
 } from './eoPdfModelTypes';
+import type { IsoRange } from './tafPeriodConstraints';
 
 export type {
   Calculable,
@@ -97,6 +95,7 @@ export const buildErstatningsopgoerelsePdfModelFromComputed = (args: Readonly<{
   tabtArbejdsfortjeneste: TabtArbejdsfortjenestePdfModel;
   oevrigeKrav: OevrigeKravPdfModel;
   forlig: ForligPdfModel;
+  tafRanges: readonly IsoRange[];
 }>): PdfModel => {
   const tabtArbejdsfortjenesteOre = args.forlig.erIndgaaet
     ? clampMoneyOreToZero(scaleMoneyOre(args.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteFoerForligOre, args.forlig.factor))
@@ -139,54 +138,7 @@ export const buildErstatningsopgoerelsePdfModelFromComputed = (args: Readonly<{
       totalOre,
     },
     saerligeKommentarer: args.presentation.saerligeKommentarer,
+    tafRanges: args.tafRanges,
   };
 };
 
-export const buildErstatningsopgoerelsePdfModel = (
-  stamdataValues: StamdataValues,
-  eoValues: ErstatningsopgoerelseValues,
-  options: Readonly<{ dagsDatoISO: ISODateString }>
-): PdfModel => {
-  const stamdataParsed = stamdataSchema.safeParse(stamdataValues);
-  const eoParsed = erstatningsopgoerelseSchema.safeParse(eoValues);
-  if (!stamdataParsed.success || !eoParsed.success) {
-    const errors = [
-      ...(stamdataParsed.success ? [] : stamdataParsed.error.issues),
-      ...(eoParsed.success ? [] : eoParsed.error.issues),
-    ]
-      .map((e) => e.message)
-      .join('; ');
-    throw new Error(`Ugyldigt input til PDF: ${errors}`);
-  }
-
-  const safeStamdata = stamdataParsed.data;
-  const safeEo = eoParsed.data;
-
-  const presentation = buildEoPdfPresentation(safeStamdata, safeEo, options);
-
-  const svieSmerte = buildSvieSmerteModel(safeEo, safeStamdata);
-  const tabtArbejdsfortjenesteRaw = buildTabtArbejdsfortjenesteModel(safeEo, safeStamdata);
-  const oevrigeKravRaw = buildOevrigeKravModel(safeEo.oevrigeKravPerioder ?? []);
-  const parsedForlig = parseForligsgrad(safeEo);
-  const forlig = parsedForlig
-    ? {
-      erIndgaaet: true,
-      label: parsedForlig.label,
-      dato: safeEo.forligDato ?? null,
-      factor: parsedForlig.factor,
-    } as const
-    : {
-      erIndgaaet: false,
-      label: null,
-      dato: null,
-      factor: null,
-    } as const;
-
-  return buildErstatningsopgoerelsePdfModelFromComputed({
-    presentation,
-    svieSmerte,
-    tabtArbejdsfortjeneste: tabtArbejdsfortjenesteRaw,
-    oevrigeKrav: oevrigeKravRaw,
-    forlig,
-  });
-};

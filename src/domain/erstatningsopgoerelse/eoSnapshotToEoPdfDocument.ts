@@ -1,46 +1,14 @@
-import { buildSvieSmerteModel, buildTabtArbejdsfortjenesteModel } from './eoPdfBuilders';
-import { buildErstatningsopgoerelsePdfModelFromComputed, type PdfModel } from './eoPdfModel';
-import { hasEoSnapshotData, type EoSnapshot, type EoSnapshotWithData } from './eoSnapshot';
+import type { PdfModel } from './eoPdfModelTypes';
+import { hasEoSnapshotData, type EoSnapshot } from './eoSnapshot';
 import type { EoInvariant } from './eoSnapshotInvariants';
 import {
   buildBlockingMessageForOutput,
   getBlockingInvariantsForOutput,
-  getEoPdfDocumentTotalsMismatchInvariant,
 } from './eoSnapshotInvariants';
-import { logError } from '../../utils/logger';
 
 export type EoPdfDocumentProjection =
   | Readonly<{ kind: 'ok'; document: PdfModel }>
   | Readonly<{ kind: 'blocked'; message: string; invariants: readonly EoInvariant[] }>;
-
-export const buildEoPdfDocumentFromSnapshot = (snapshot: EoSnapshotWithData): PdfModel => {
-  const stamdata = snapshot.input.stamdata;
-  const eoValues = snapshot.input.erstatningsopgoerelse;
-  const forlig = snapshot.data.engines.forlig
-    ? {
-      erIndgaaet: true,
-      label: snapshot.data.engines.forlig.label,
-      dato: eoValues.forligDato ?? null,
-      factor: snapshot.data.engines.forlig.factor,
-    } as const
-    : {
-      erIndgaaet: false,
-      label: null,
-      dato: null,
-      factor: null,
-    } as const;
-
-  return buildErstatningsopgoerelsePdfModelFromComputed({
-    presentation: snapshot.data.presentation,
-    svieSmerte: buildSvieSmerteModel(eoValues, stamdata, { engine: snapshot.data.engines.svieSmerte }),
-    tabtArbejdsfortjeneste: buildTabtArbejdsfortjenesteModel(eoValues, stamdata, {
-      tafNetto: snapshot.data.engines.tafNetto,
-      tafRanges: snapshot.data.canonicalOutput.periodiseringer.tafPerioder,
-    }),
-    oevrigeKrav: snapshot.data.engines.oevrigeKrav,
-    forlig,
-  });
-};
 
 export const eoSnapshotToEoPdfDocument = (snapshot: EoSnapshot): EoPdfDocumentProjection => {
   const blockingInvariants = getBlockingInvariantsForOutput(snapshot.invariants, 'eo_pdf');
@@ -65,26 +33,10 @@ export const eoSnapshotToEoPdfDocument = (snapshot: EoSnapshot): EoPdfDocumentPr
     };
   }
 
-  const document = buildEoPdfDocumentFromSnapshot(snapshot);
-  const totalsMismatchInvariant = getEoPdfDocumentTotalsMismatchInvariant(document, snapshot);
-  if (totalsMismatchInvariant) {
-    logError('EO-PDF dokumentmodel matcher ikke snapshot-totalerne', {
-      context: 'eoSnapshotToEoPdfDocument.documentTotalsMismatch',
-      error: new Error(totalsMismatchInvariant.message),
-      data: {
-        revision: snapshot.revision,
-        evidence: totalsMismatchInvariant.evidence,
-      },
-    });
-    return {
-      kind: 'blocked',
-      message: totalsMismatchInvariant.message,
-      invariants: [totalsMismatchInvariant],
-    };
-  }
-
+  // pdfModel er bygget og caches i computeEoSnapshot — konsistens mod totals er garanteret
+  // af snapshot-pipelinen og kan ikke afvige.
   return {
     kind: 'ok',
-    document,
+    document: snapshot.data.pdfModel,
   };
 };

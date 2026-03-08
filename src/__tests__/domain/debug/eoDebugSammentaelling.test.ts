@@ -15,7 +15,6 @@ const baseControl: SammentaellingControl = {
   tabelValue: null,
   loseFeriedage: 0,
   oevrigeFravaersdage: 0,
-  warningEligible: false,
 };
 
 describe('getSammentaellingControlStatus', () => {
@@ -63,28 +62,13 @@ describe('getSammentaellingControlStatus', () => {
     expect(getSammentaellingControlStatus(control)).toBe('ok');
   });
 
-  it('returns warning when warning-eligible match holds', () => {
+  it('returns error when values differ', () => {
     const control: SammentaellingControl = {
       ...baseControl,
       beregnetDisplay: '8',
       tabelDisplay: '10',
       beregnetValue: 8,
       tabelValue: 10,
-      loseFeriedage: 1,
-      oevrigeFravaersdage: 1,
-      warningEligible: true,
-    };
-    expect(getSammentaellingControlStatus(control)).toBe('warning');
-  });
-
-  it('returns error otherwise', () => {
-    const control: SammentaellingControl = {
-      ...baseControl,
-      beregnetDisplay: '8',
-      tabelDisplay: '10',
-      beregnetValue: 8,
-      tabelValue: 10,
-      warningEligible: false,
     };
     expect(getSammentaellingControlStatus(control)).toBe('error');
   });

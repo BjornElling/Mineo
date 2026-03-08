@@ -4,10 +4,10 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { buildErstatningsopgoerelsePdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
 import type { EoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/eoCanonicalOutput';
-import { buildEoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/eoCanonicalOutput';
 import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
+import type { PdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModelTypes';
+import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);
@@ -123,7 +123,7 @@ const scenarios: readonly Scenario[] = [
 // Den beviser ikke domænekorrekthed i sig selv; korrekthed ligger i engine/enhedstests.
 const projectCanonicalFromPdfModel = (
   eoValues: ErstatningsopgoerelseValues,
-  pdfModel: ReturnType<typeof buildErstatningsopgoerelsePdfModel>
+  pdfModel: PdfModel
 ): EoCanonicalOutput => ({
   totals: {
     svieSmerteOre: pdfModel.samlet.svieSmerteOre,
@@ -176,8 +176,9 @@ describe('eoCanonicalOutput parity matrix', () => {
     };
 
     // dagsDatoISO er kun PDF-metadata; canonical output er dato-uafhængig.
-    const pdfModel = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-27') });
-    const canonical = buildEoCanonicalOutput(stamdata, eoValues);
+    const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues, dagsDatoISO: iso('2026-02-27') });
+    const pdfModel = snapshot.data!.pdfModel;
+    const canonical = snapshot.data!.canonicalOutput;
     const projected = projectCanonicalFromPdfModel(eoValues, pdfModel);
 
     expect(canonical).toEqual(projected);

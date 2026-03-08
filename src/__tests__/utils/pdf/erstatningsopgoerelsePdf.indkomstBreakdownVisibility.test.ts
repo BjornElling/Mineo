@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
-import { buildEoPdfDocumentFromSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
@@ -68,12 +67,7 @@ const buildProjectedDocument = (
     throw new Error('Kunne ikke bygge testdokument til EO-PDF');
   }
 
-  const document = buildEoPdfDocumentFromSnapshot(snapshot);
-  if (!document) {
-    throw new Error('Kunne ikke projektere testdokument til EO-PDF');
-  }
-
-  return document;
+  return snapshot.data.pdfModel;
 };
 
 const renderPdf = (

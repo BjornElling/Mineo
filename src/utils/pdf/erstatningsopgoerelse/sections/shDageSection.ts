@@ -9,8 +9,8 @@ import { parseISODate, type ISODateString } from '../../../../types/branded';
 import { beregnHelligdageMedNavn } from '../../../shDageBeregning';
 import { formatDateLong } from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
-import { buildTafRanges } from '../../../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import { buildBeregningsperiodeRange } from '../../../../domain/erstatningsopgoerelse/indtaegtPerioder';
+import type { IsoRange } from '../../../../domain/erstatningsopgoerelse/tafPeriodConstraints';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../../domain/erstatningsopgoerelse/eoNummerValidering';
 
 type SHDageTableRow = Readonly<{
@@ -22,6 +22,7 @@ type SHDageTableRow = Readonly<{
 
 type SHDageSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
+  tafRanges: readonly IsoRange[];
   lineHeight: number;
   startBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
@@ -80,6 +81,7 @@ const findHelligdageInRange = (fra: ISODateString | undefined, til: ISODateStrin
 export const renderShDageSection = (ctx: SHDageSectionContext): void => {
   const {
     eoValues,
+    tafRanges,
     lineHeight,
     startBilagPage,
     renderSubheader,
@@ -164,7 +166,6 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(eoValues.eoNummer);
   const beregningsperiodeRange =
     eoValues.beregnesUdFra === 'Beregningsperiode' ? buildBeregningsperiodeRange(eoValues) : undefined;
-  const tafRanges = buildTafRanges(eoValues);
   const tafFra = tafRanges.length > 0 ? tafRanges[0].fra : undefined;
   const tafTil = tafRanges.length > 0 ? tafRanges[tafRanges.length - 1].til : undefined;
 

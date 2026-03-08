@@ -5,15 +5,14 @@ import { subtractOneDay } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { debugTabelColumnId } from './eoDebugLoenTypes';
 import type { EODebugModel } from './eoDebugModel';
-import { buildEODebugSvieSmerteRows } from './eoDebugErstatningsopgoerelseModel';
 import { calculateTafArbejdsdageBreakdown } from '../erstatningsopgoerelse/tafCalculations';
 import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/beregningsperiodeTafOverlap';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../erstatningsopgoerelse/tafBeregningsenhed';
-import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, type IsoRange } from '../erstatningsopgoerelse/indtaegtPerioder';
+import { buildBeregningsperiodeRange, buildIncomeForRanges, type IsoRange } from '../erstatningsopgoerelse/indtaegtPerioder';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
 import { buildFerieDageSet, buildSHDageSet } from './eoDebugRegulationCore';
 import { computeTafArbejdsdageAggregation } from '../erstatningsopgoerelse/tafBeregningsEngine';
-import { computeSvieSmerteEngine } from '../erstatningsopgoerelse/svieSmerteEngine';
+import { computeSvieSmerteEngine, type SvieSmerteEngineOutput } from '../erstatningsopgoerelse/svieSmerteEngine';
 
 export type SvieSmerteContext = Readonly<{
   skadesdatoISO: ISODateString | undefined;
@@ -37,7 +36,6 @@ export type SammentaellingControl = Readonly<{
   tabelValue: number | null;
   loseFeriedage: number;
   oevrigeFravaersdage: number;
-  warningEligible: boolean;
   feriedageCount?: number | null;
   ferieDageCount?: number | null;
   dateredeFerieDageCount?: number | null;
@@ -45,7 +43,13 @@ export type SammentaellingControl = Readonly<{
   shDageCount?: number | null;
 }>;
 
-export type SammentaellingControlStatus = 'ok' | 'warning' | 'error';
+export type SammentaellingControlStatus = 'ok' | 'error';
+
+export type SammentaellingDisplayRow = Readonly<{
+  key: string;
+  label: string;
+  control: SammentaellingControl;
+}>;
 
 export type SammentaellingModel = Readonly<{
   beregningsenhed: TafBeregningsenhed;
@@ -53,25 +57,11 @@ export type SammentaellingModel = Readonly<{
   taf: SammentaellingControl;
   svieSmerteSygedage: SammentaellingControl;
   svieSmerteDelvise: SammentaellingControl;
-  beregningsperiodeIndtaegter: readonly SammentaellingEntry[];
-  tafIndtaegter: readonly SammentaellingEntry[];
+  beregningsperiodeIndtaegter: readonly SammentaellingDisplayRow[];
+  tafIndtaegter: readonly SammentaellingDisplayRow[];
 }>;
-
-type SvieSmerteCounts = Readonly<{ sygedage: number; delviseSygedage: number }>;
 
 type ErstatningsopgoerelseFieldErrors = FieldErrorsForSection<'erstatningsopgoerelse'>;
-
-export type SammentaellingEntry = Readonly<{
-  key: string;
-  label: string;
-  control: SammentaellingControl;
-}>;
-
-export type SammentaellingDisplayRow = Readonly<{
-  key: string;
-  label: string;
-  control: SammentaellingControl;
-}>;
 
 export const buildSvieSmerteContext = (
   stamdataValues: StamdataValues,
@@ -110,25 +100,6 @@ export const buildTaftContext = (
   };
 };
 
-export const getSammentaellingWarningMeta = (
-  control: SammentaellingControl
-): Readonly<{ tabel: number; lose: number; oevrige: number; beregnet: number }> | null => {
-  if (!control.warningEligible) return null;
-  if (control.beregnetValue === null || control.tabelValue === null) return null;
-  if (control.beregnetValue === control.tabelValue) return null;
-
-  if (control.tabelValue - control.loseFeriedage - control.oevrigeFravaersdage !== control.beregnetValue) {
-    return null;
-  }
-
-  return {
-    tabel: control.tabelValue,
-    lose: control.loseFeriedage,
-    oevrige: control.oevrigeFravaersdage,
-    beregnet: control.beregnetValue,
-  };
-};
-
 export const getSammentaellingControlStatus = (control: SammentaellingControl): SammentaellingControlStatus => {
   // Explicit domain choice: tiny tolerance (0.005) for floating rounding; 0 and null are treated as empty ("-") in UI.
   const EPS = 0.005;
@@ -148,9 +119,6 @@ export const getSammentaellingControlStatus = (control: SammentaellingControl): 
   ) {
     return 'ok';
   }
-  if (getSammentaellingWarningMeta(control)) {
-    return 'warning';
-  }
   return 'error';
 };
 
@@ -160,7 +128,7 @@ export type SammentaellingDisplayTables = Readonly<{
   taf: readonly SammentaellingDisplayRow[];
 }>;
 
-const buildSammentaellingRowsBySection = (model: SammentaellingModel): SammentaellingDisplayTables => {
+export const buildSammentaellingDisplayTables = (model: SammentaellingModel): SammentaellingDisplayTables => {
   const formatCount = (value: number | null | undefined): string => {
     const resolved = typeof value === 'number' && Number.isFinite(value) ? value : 0;
     return resolved.toLocaleString('da-DK');
@@ -218,27 +186,11 @@ const buildSammentaellingRowsBySection = (model: SammentaellingModel): Sammentae
     },
   ];
 
-  const beregningsperiodeRows = model.beregningsperiodeIndtaegter.map((entry) => ({
-    key: entry.key,
-    label: entry.label,
-    control: entry.control,
-  }));
-
-  const tafRows = model.tafIndtaegter.map((entry) => ({
-    key: entry.key,
-    label: entry.label,
-    control: entry.control,
-  }));
-
   return {
     basis: basisRows,
-    beregningsperiode: beregningsperiodeRows,
-    taf: tafRows,
+    beregningsperiode: model.beregningsperiodeIndtaegter,
+    taf: model.tafIndtaegter,
   };
-};
-
-export const buildSammentaellingDisplayTables = (model: SammentaellingModel): SammentaellingDisplayTables => {
-  return buildSammentaellingRowsBySection(model);
 };
 
 export const flattenSammentaellingDisplayTables = (
@@ -247,23 +199,21 @@ export const flattenSammentaellingDisplayTables = (
   return [...tables.basis, ...tables.beregningsperiode, ...tables.taf];
 };
 
-export const buildSammentaellingDisplayRows = (model: SammentaellingModel): SammentaellingDisplayRow[] => {
-  return [...flattenSammentaellingDisplayTables(buildSammentaellingRowsBySection(model))];
-};
-
-const isSammentaellingDisplayRows = (
-  source: SammentaellingModel | readonly SammentaellingDisplayRow[]
-): source is readonly SammentaellingDisplayRow[] => Array.isArray(source);
-
 export const collectSammentaellingControlMismatchMessages = (
-  source: SammentaellingModel | readonly SammentaellingDisplayRow[]
+  rows: readonly SammentaellingDisplayRow[]
 ): readonly string[] => {
-  const rows = isSammentaellingDisplayRows(source) ? source : buildSammentaellingDisplayRows(source);
   return rows
     .filter((row) => getSammentaellingControlStatus(row.control) === 'error')
     .map((row) => `${row.label}: beregnet=${row.control.beregnetDisplay}, tabel=${row.control.tabelDisplay}`);
 };
 
+/**
+ * Lokal hjælper: returnerer et IsoRange-objekt eller null hvis perioden er ugyldig.
+ *
+ * NB: Ikke det samme som `getIsoRange` fra `eoDebugDateUtils`, som genererer et
+ * array af alle dage i et interval. Denne funktion validerer blot perioden og
+ * returnerer den som et typet objekt.
+ */
 const getIsoRange = (
   fra: ISODateString | undefined,
   til: ISODateString | undefined
@@ -385,28 +335,6 @@ const sumDebugTableColumnInRanges = (
   return { sum: hasValue ? sum : null, hasColumn: true };
 };
 
-const parseSvieSmerteCounts = (value: string): SvieSmerteCounts | null => {
-  const trimmed = value.trim();
-  if (trimmed === '' || trimmed === '-') {
-    return { sygedage: 0, delviseSygedage: 0 };
-  }
-  if (trimmed.toLowerCase().startsWith('fejl')) return null;
-
-  const sygedageMatch = trimmed.match(/([0-9.,]+)\s+sygedage/i);
-  const delviseMatch = trimmed.match(/([0-9.,]+)\s+delvise sygedage/i);
-
-  if (!sygedageMatch && !delviseMatch) return null;
-
-  const sygedage = sygedageMatch ? parseDanishNumberString(sygedageMatch[1]) : 0;
-  const delviseSygedage = delviseMatch ? parseDanishNumberString(delviseMatch[1]) : 0;
-  if (sygedage === null || delviseSygedage === null) return null;
-
-  return {
-    sygedage: Math.trunc(sygedage),
-    delviseSygedage: Math.trunc(delviseSygedage),
-  };
-};
-
 const countArbejdsdageInRange = (
   model: EODebugModel,
   range: Readonly<{ fra: ISODateString; til: ISODateString }> | null
@@ -438,7 +366,7 @@ const countTafDaysFromTable = (model: EODebugModel): number | null => {
 const countSvieSmerteFromTable = (
   model: EODebugModel,
   range: Readonly<{ fra: ISODateString; til: ISODateString }> | null
-): SvieSmerteCounts | null => {
+): Readonly<{ sygedage: number; delviseSygedage: number }> | null => {
   if (!range || model.rowCount === 0) return null;
   let sygedage = 0;
   let delviseSygedage = 0;
@@ -458,10 +386,14 @@ export const buildEODebugSammentaellingModel = (args: {
   model: EODebugModel;
   svieSmerteContext: SvieSmerteContext;
   taftContext: TaftContext;
+  tafRanges?: readonly IsoRange[];
+  /** Autoritativt svie/smerte-engine-output fra EO-snapshot. Når tilstede bruges dette
+   *  direkte i stedet for et nyt kald — sikrer at sammentællingen bruger præcis
+   *  det samme resultat som beregningen. */
+  svieSmerteEngine?: SvieSmerteEngineOutput;
 }): SammentaellingModel => {
   const { values, errors, model, svieSmerteContext } = args;
 
-  const svieSmerteRows = buildEODebugSvieSmerteRows(values, errors, svieSmerteContext);
   const beregningsenhed = computeTafBeregningsenhed(values);
   const isBeregningsperiode = values.beregnesUdFra === 'Beregningsperiode';
   const isTafEnabled = values.beregnesTabtArbejdsfortjeneste === 'Ja';
@@ -540,76 +472,34 @@ export const buildEODebugSammentaellingModel = (args: {
   const tafArbejdsdageFromTable = isTafEnabled ? countTafDaysFromTable(model) : null;
   const svieSmerteTabelCounts = isSvieSmerteEnabled ? countSvieSmerteFromTable(model, erstatningsRange) : null;
 
-  const svieSmerteEngineCounts = (() => {
-    if (!isSvieSmerteEnabled) return null;
-    try {
-      return computeSvieSmerteEngine({
-        erstatningsopgoerelse: values,
-        stamdata: {
-          skadesdato: svieSmerteContext.skadesdatoISO,
-          skadestype: svieSmerteContext.erErhvervssygdom ? 'Erhvervssygdom' : undefined,
-        },
-      });
-    } catch {
-      return null;
-    }
-  })();
-
-  const svieSmerteBeregnetRow = svieSmerteRows.find((row) => row.id === 'sviesmerte.antalDage');
-  const svieSmerteBeregnetCounts = svieSmerteBeregnetRow
-    ? parseSvieSmerteCounts(svieSmerteBeregnetRow.displayValue)
+  // Brug autoritativt engine-output fra snapshot hvis tilgængeligt.
+  // Eliminerer re-kald fra snapshot-pipelinen og sikrer at sammentællingen bruger præcis
+  // samme beregning som beregningsresultatet. Faldbak: kald engine direkte (kun til standalone/test-brug).
+  // computeSvieSmerteEngine bruger ikke stamdata.skadestype — feltet indgår ikke i engine-logikken.
+  const svieSmerteEngineCounts = isSvieSmerteEnabled
+    ? (args.svieSmerteEngine ?? computeSvieSmerteEngine({
+      erstatningsopgoerelse: values,
+      stamdata: { skadesdato: svieSmerteContext.skadesdatoISO, skadestype: undefined },
+    }))
     : null;
 
   const svieSmerteResolvedCounts = svieSmerteEngineCounts
+    ? { sygedage: svieSmerteEngineCounts.sygedage, delviseSygedage: svieSmerteEngineCounts.delviseSygedage }
+    : null;
+
+  const svieSmerteSygedageDisplays = svieSmerteEngineCounts
     ? {
-      sygedage: svieSmerteEngineCounts.sygedage,
-      delviseSygedage: svieSmerteEngineCounts.delviseSygedage,
+      beregnet: formatOptionalInt(svieSmerteEngineCounts.sygedage),
+      tabel: svieSmerteTabelCounts ? formatOptionalInt(svieSmerteTabelCounts.sygedage) : '-',
     }
-    : svieSmerteBeregnetCounts;
+    : { beregnet: '-', tabel: '-' };
 
-  const svieSmerteSygedageDisplays = (() => {
-    if (svieSmerteEngineCounts) {
-      return {
-        beregnet: formatOptionalInt(svieSmerteEngineCounts.sygedage),
-        tabel: svieSmerteTabelCounts ? formatOptionalInt(svieSmerteTabelCounts.sygedage) : '-',
-      };
+  const svieSmerteDelviseDisplays = svieSmerteEngineCounts
+    ? {
+      beregnet: formatOptionalInt(svieSmerteEngineCounts.delviseSygedage),
+      tabel: svieSmerteTabelCounts ? formatOptionalInt(svieSmerteTabelCounts.delviseSygedage) : '-',
     }
-
-    if (!svieSmerteBeregnetRow) {
-      return { beregnet: '-', tabel: '-' };
-    }
-
-    const trimmed = svieSmerteBeregnetRow.displayValue.trim();
-    if (trimmed.toLowerCase().startsWith('fejl')) {
-      return { beregnet: svieSmerteBeregnetRow.displayValue, tabel: '-' };
-    }
-
-    const beregnet = svieSmerteBeregnetCounts ? formatOptionalInt(svieSmerteBeregnetCounts.sygedage) : '-';
-    const tabel = svieSmerteTabelCounts ? formatOptionalInt(svieSmerteTabelCounts.sygedage) : '-';
-    return { beregnet, tabel };
-  })();
-
-  const svieSmerteDelviseDisplays = (() => {
-    if (svieSmerteEngineCounts) {
-      return {
-        beregnet: formatOptionalInt(svieSmerteEngineCounts.delviseSygedage),
-        tabel: svieSmerteTabelCounts ? formatOptionalInt(svieSmerteTabelCounts.delviseSygedage) : '-',
-      };
-    }
-
-    if (!svieSmerteBeregnetRow) {
-      return { beregnet: '-', tabel: '-' };
-    }
-
-    const trimmed = svieSmerteBeregnetRow.displayValue.trim();
-    if (trimmed.toLowerCase().startsWith('fejl')) {
-      return { beregnet: svieSmerteBeregnetRow.displayValue, tabel: '-' };
-    }
-
-    const beregnet = svieSmerteBeregnetCounts ? formatOptionalInt(svieSmerteBeregnetCounts.delviseSygedage) : '-';
-    const tabel = svieSmerteTabelCounts ? formatOptionalInt(svieSmerteTabelCounts.delviseSygedage) : '-';
-    return { beregnet, tabel };
-  })();
+    : { beregnet: '-', tabel: '-' };
 
   const tafBeregnetDays = isTafEnabled
     ? computeTafArbejdsdageAggregation({
@@ -708,11 +598,12 @@ export const buildEODebugSammentaellingModel = (args: {
 
   const beregningsperiodeRange = isBeregningsperiode ? buildBeregningsperiodeRange(values) : undefined;
   const beregningsperiodeRanges = beregningsperiodeRange ? [beregningsperiodeRange] : [];
-  const tafRanges = isTafEnabled ? buildTafRanges(values) : [];
+  // tafRanges skal altid leveres fra engines (clampede); tom liste ved validerings-fejl-sti.
+  const tafRanges = isTafEnabled ? (args.tafRanges ?? []) : [];
 
-  const buildIndtaegtEntries = (ranges: readonly IsoRange[], scopeLabel: string): SammentaellingEntry[] => {
+  const buildIndtaegtEntries = (ranges: readonly IsoRange[], scopeLabel: string): SammentaellingDisplayRow[] => {
     const income = buildIncomeForRanges(values, ranges);
-    const entries: SammentaellingEntry[] = [];
+    const entries: SammentaellingDisplayRow[] = [];
 
     income.employers.forEach((entry, index) => {
       const baseLabel = index === 0 ? 'Ansættelsesforhold' : `Ansættelsesforhold ${index + 1}`;
@@ -730,7 +621,6 @@ export const buildEODebugSammentaellingModel = (args: {
           tabelValue: tabel.sum,
           loseFeriedage: 0,
           oevrigeFravaersdage: 0,
-          warningEligible: false,
         },
       });
     });
@@ -748,7 +638,6 @@ export const buildEODebugSammentaellingModel = (args: {
           tabelValue: tabel.sum,
           loseFeriedage: 0,
           oevrigeFravaersdage: 0,
-          warningEligible: false,
         },
       });
     });
@@ -765,7 +654,6 @@ export const buildEODebugSammentaellingModel = (args: {
       tabelValue: beregningsTabelValueForControl,
       loseFeriedage: beregningsLoseFeriedage,
       oevrigeFravaersdage: beregningsOevrigeFravaersdage,
-      warningEligible: false,
       feriedageCount: isBeregningsperiode ? beregningsFeriedageCount : 0,
       ferieDageCount: isBeregningsperiode ? beregningsFerieDageCount : 0,
       dateredeFerieDageCount: isBeregningsperiode ? beregningsDateredeFerieDageCount : 0,
@@ -779,7 +667,6 @@ export const buildEODebugSammentaellingModel = (args: {
       tabelValue: tafTabelValueForControl,
       loseFeriedage: tafLoseFeriedageForControl,
       oevrigeFravaersdage: 0,
-      warningEligible: false,
       feriedageCount: isTafEnabled ? tafFeriedageCount : 0,
       ferieDageCount: isTafEnabled ? tafFerieDageCount : 0,
       dateredeFerieDageCount: isTafEnabled ? tafDateredeFerieDageCount : 0,
@@ -793,7 +680,6 @@ export const buildEODebugSammentaellingModel = (args: {
       tabelValue: svieSmerteTabelCounts?.sygedage ?? null,
       loseFeriedage: 0,
       oevrigeFravaersdage: 0,
-      warningEligible: false,
     },
     svieSmerteDelvise: {
       beregnetDisplay: svieSmerteDelviseDisplays.beregnet,
@@ -802,7 +688,6 @@ export const buildEODebugSammentaellingModel = (args: {
       tabelValue: svieSmerteTabelCounts?.delviseSygedage ?? null,
       loseFeriedage: 0,
       oevrigeFravaersdage: 0,
-      warningEligible: false,
     },
     beregningsperiodeIndtaegter: buildIndtaegtEntries(beregningsperiodeRanges, 'beregningsperiode'),
     tafIndtaegter: buildIndtaegtEntries(tafRanges, 'taf'),

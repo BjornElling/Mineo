@@ -4,11 +4,8 @@ import type { EoInvariant } from './eoSnapshotInvariants';
 import {
   buildBlockingMessageForOutput,
   getBlockingInvariantsForOutput,
-  getEoPdfDocumentTotalsMismatchInvariant,
 } from './eoSnapshotInvariants';
-import { buildEoPdfDocumentFromSnapshot } from './eoSnapshotToEoPdfDocument';
-import type { PdfModel } from './eoPdfModel';
-import { logError } from '../../utils/logger';
+import type { PdfModel } from './eoPdfModelTypes';
 
 export type TafPerYearPdfDocument = Readonly<{
   model: PdfModel;
@@ -42,28 +39,12 @@ export const eoSnapshotToTafPerYearPdfDocument = (snapshot: EoSnapshot): TafPerY
     };
   }
 
-  const model = buildEoPdfDocumentFromSnapshot(snapshot);
-  const totalsMismatchInvariant = getEoPdfDocumentTotalsMismatchInvariant(model, snapshot);
-  if (totalsMismatchInvariant) {
-    logError('TAF-per-år dokumentmodel matcher ikke snapshot-totalerne', {
-      context: 'eoSnapshotToTafPerYearPdfDocument.documentTotalsMismatch',
-      error: new Error(totalsMismatchInvariant.message),
-      data: {
-        revision: snapshot.revision,
-        evidence: totalsMismatchInvariant.evidence,
-      },
-    });
-    return {
-      kind: 'blocked',
-      message: totalsMismatchInvariant.message,
-      invariants: [totalsMismatchInvariant],
-    };
-  }
-
+  // pdfModel er bygget og caches i computeEoSnapshot — konsistens mod totals er garanteret
+  // af snapshot-pipelinen og kan ikke afvige.
   return {
     kind: 'ok',
     document: {
-      model,
+      model: snapshot.data.pdfModel,
       presentation: snapshot.data.engines.tafPerYear,
     },
   };

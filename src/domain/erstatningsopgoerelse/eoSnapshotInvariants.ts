@@ -1,6 +1,5 @@
 import type { ValidationError } from '../../types/validation';
-import type { MoneyOre, PdfModel } from './eoPdfModel';
-import type { EoSnapshotWithData } from './eoSnapshot';
+import type { MoneyOre } from './eoPdfModelTypes';
 import {
   TAF_OVERLAP_ERROR_MESSAGE,
 } from '../../validators/erstatningsopgoerelseValidator';
@@ -59,6 +58,7 @@ export const buildTafPerYearAfrundingInvariant = (args: Readonly<{
     `Årssum: ${args.sumYearTafOre}`,
     `Samlet TAF-krav: ${args.samletTafKravOre}`,
   ],
+  blocksAuthoritativeComputation: false,
   blocksOutputs: ['taf_per_year_pdf'],
 });
 
@@ -69,6 +69,7 @@ export const buildTafPerYearUnavailableInvariant = (reason: 'missing_loenudvikli
   message: reason === 'missing_loenudvikling'
     ? 'TAF fordelt på år kan ikke genereres, fordi lønudvikling ikke kunne beregnes autoritativt.'
     : 'TAF fordelt på år kan ikke genereres, fordi indtægter i TAF-perioden ikke kunne beregnes autoritativt.',
+  blocksAuthoritativeComputation: false,
   blocksOutputs: ['taf_per_year_pdf'],
 });
 
@@ -78,42 +79,10 @@ export const buildControlMismatchInvariant = (messages: readonly string[]): EoIn
   severity: 'error',
   message: 'Der er konstateret kontroluoverensstemmelser i EO-beregningen.',
   evidence: messages,
+  blocksAuthoritativeComputation: false,
   blocksOutputs: ['eo_pdf', 'taf_per_year_pdf'],
 });
 
-export const buildDocumentTotalsMismatchInvariant = (evidence: readonly string[]): EoInvariant => ({
-  id: 'projection:document_totals_mismatch',
-  passed: false,
-  severity: 'error',
-  message: 'Dokumentmodellen matcher ikke snapshot-totalerne.',
-  evidence,
-  blocksOutputs: ['eo_pdf', 'taf_per_year_pdf'],
-});
-
-const documentMatchesSnapshotTotals = (document: PdfModel, snapshot: EoSnapshotWithData): boolean => {
-  return document.samlet.svieSmerteOre === snapshot.data.totals.svieSmerteOre &&
-    document.samlet.tabtArbejdsfortjenesteOre === snapshot.data.totals.tabtArbejdsfortjenesteOre &&
-    document.samlet.oevrigeKravOre === snapshot.data.totals.oevrigeKravOre &&
-    document.samlet.totalOre === snapshot.data.totals.samletTotalOre;
-};
-
-export const getEoPdfDocumentTotalsMismatchInvariant = (
-  document: PdfModel,
-  snapshot: EoSnapshotWithData
-): EoInvariant | null => {
-  if (documentMatchesSnapshotTotals(document, snapshot)) return null;
-
-  return buildDocumentTotalsMismatchInvariant([
-    `snapshot.svieSmerteOre=${snapshot.data.totals.svieSmerteOre}`,
-    `document.svieSmerteOre=${document.samlet.svieSmerteOre}`,
-    `snapshot.tabtArbejdsfortjenesteOre=${snapshot.data.totals.tabtArbejdsfortjenesteOre}`,
-    `document.tabtArbejdsfortjenesteOre=${document.samlet.tabtArbejdsfortjenesteOre}`,
-    `snapshot.oevrigeKravOre=${snapshot.data.totals.oevrigeKravOre}`,
-    `document.oevrigeKravOre=${document.samlet.oevrigeKravOre}`,
-    `snapshot.samletTotalOre=${snapshot.data.totals.samletTotalOre}`,
-    `document.samletTotalOre=${document.samlet.totalOre}`,
-  ]);
-};
 
 export const hasAuthoritativeBlockingInvariant = (invariants: readonly EoInvariant[]): boolean =>
   invariants.some((invariant) => !invariant.passed && invariant.severity === 'error' && invariant.blocksAuthoritativeComputation);

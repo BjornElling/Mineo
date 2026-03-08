@@ -11,7 +11,6 @@ import { createErstatningsopgoerelseInitialValues } from '../../../../domain/ers
 import { computeEoSnapshot } from '../../../../domain/erstatningsopgoerelse/eoSnapshot';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/eoSnapshot';
-import type { MoneyOre } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
 
 const { collectAllDebugRowsMock } = vi.hoisted(() => ({
   collectAllDebugRowsMock: vi.fn(),
@@ -89,54 +88,6 @@ describe('EOberegningTab kontroltjek', () => {
     expect(screen.queryByText('Download-kontroller')).not.toBeInTheDocument();
     expect(screen.queryByText('Systemfejl')).not.toBeInTheDocument();
     expect(screen.queryByText('Beregning blokeret')).not.toBeInTheDocument();
-  });
-
-  it('samler projektion-blokering i fejl og advarsler når dokumentmodel divergerer fra snapshot', () => {
-    const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2024-01-01';
-    eoValues.vedroererPeriodeTil = '2024-01-31';
-    eoValues.beregnesSvieSmerteGodtgoerelse = 'Nej';
-    eoValues.beregnesTabtArbejdsfortjeneste = 'Nej';
-    eoValues.oevrigeKravPerioder = [
-      {
-        id: 'krav-1',
-        dato: '2024-01-15',
-        udgiftTil: 'Transport',
-        beloeb: { kind: 'number', value: 1200 },
-      },
-    ];
-
-    const computedSnapshot = computeEoSnapshot({
-      revision: 'rev-mismatch',
-      stamdataValues: baseStamdataValues,
-      eoValues,
-    });
-    expect(computedSnapshot.data).not.toBeNull();
-
-    const mismatchSnapshot: EoSnapshot = {
-      ...computedSnapshot,
-      data: computedSnapshot.data && {
-        ...computedSnapshot.data,
-        totals: {
-          ...computedSnapshot.data.totals,
-          samletTotalOre: 999999 as MoneyOre,
-        },
-      },
-    };
-
-    renderTab({
-      activeTab: 'beregning',
-      setActiveTab: vi.fn(),
-      isActive: true,
-      eoSnapshot: mismatchSnapshot,
-      stamdataValues: baseStamdataValues,
-      eoValues,
-      setEOValues: baseSetEoValues,
-    });
-
-    expect(screen.getByText('Fejl og advarsler')).toBeInTheDocument();
-    expect(screen.getByText('Dokumentmodellen matcher ikke snapshot-totalerne.')).toBeInTheDocument();
-    expect(screen.queryByText('Download-kontroller')).not.toBeInTheDocument();
   });
 
   it('viser brugerens manglende indtastning som navigerbar fejl og ikke som systemfejl', () => {

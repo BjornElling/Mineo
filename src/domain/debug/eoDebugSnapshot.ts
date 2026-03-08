@@ -1,5 +1,7 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { FieldErrorsForSection } from '../../types/fieldErrors';
+import type { IsoRange } from '../erstatningsopgoerelse/tafPeriodConstraints';
+import type { SvieSmerteEngineOutput } from '../erstatningsopgoerelse/svieSmerteEngine';
 import { buildEODebugModel } from './eoDebugModel';
 import type { DebugDay } from './eoDebugTypes';
 import {
@@ -56,11 +58,19 @@ export const buildEODebugSnapshot = (args: {
   eoValues: ErstatningsopgoerelseValues;
   stamdataErrors: FieldErrorsForSection<'stamdata'>;
   eoErrors: FieldErrorsForSection<'erstatningsopgoerelse'>;
+  /** Clampede TAF-ranges fra engines. Når disse er leveret afspejler debug-tabellen
+   *  præcis de perioder der indgik i beregningen — ikke de rå committede datoer. */
+  tafRanges?: readonly IsoRange[];
+  /** Autoritativt svie/smerte-engine-output fra EO-snapshot-pipelinen. */
+  svieSmerteEngine?: SvieSmerteEngineOutput;
 }): EODebugSnapshot => {
-  const { revision, stamdataValues, eoValues, stamdataErrors, eoErrors } = args;
+  const { revision, stamdataValues, eoValues, stamdataErrors, eoErrors, tafRanges } = args;
   const svieSmerteContext = buildSvieSmerteContext(stamdataValues, eoValues);
   const taftContext = buildTaftContext(stamdataValues, eoValues);
-  const model = buildEODebugModel(eoValues);
+  const model = buildEODebugModel(eoValues, {
+    tafRanges,
+    svieSmerteConstrainedPeriods: args.svieSmerteEngine?.constrainedPeriods,
+  });
   const debugDays = buildDebugDaysFromModel(model);
   const sammentaelling = buildEODebugSammentaellingModel({
     values: eoValues,
@@ -68,6 +78,8 @@ export const buildEODebugSnapshot = (args: {
     model,
     svieSmerteContext,
     taftContext,
+    tafRanges,
+    svieSmerteEngine: args.svieSmerteEngine,
   });
   const sammentaellingTables = buildSammentaellingDisplayTables(sammentaelling);
   const sammentaellingRows = flattenSammentaellingDisplayTables(sammentaellingTables);

@@ -1,10 +1,8 @@
 import type { ErstatningsopgoerelseValues, OevrigeKravRow, StamdataValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { isISODateString, isoToDanish, subtractOneDay } from '../../types/branded';
-import { amountValueToNumber } from '../../utils/expressionAmount';
-import { buildTafRanges } from './indtaegtPerioder';
 import { isoDateToDate } from '../dates/isoDate';
-import { isOevrigeKravRowEmpty, isTafRowEmpty } from './rowEmpty';
+import { isTafRowEmpty } from './rowEmpty';
 import { computeSvieSmerteEngine, getDayAfterIso, type SvieSmerteEngineOutput } from './svieSmerteEngine';
 import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
 import { buildTafArbejdsstatusLinje } from './tafArbejdsstatusConfig';
@@ -27,6 +25,8 @@ export const buildSvieSmerteModel = (
   const statusLinjer: string[] = [];
   const periodeTilISO = values.vedroererPeriodeTil;
 
+  // Kanonisk brug: engine er allerede beregnet i computeEoSnapshot og sendes via options.
+  // Fallback-beregning her sikrer at builderen kan bruges isoleret (fx i tests).
   const engine = options.engine ?? computeSvieSmerteEngine({
     erstatningsopgoerelse: values,
     stamdata: {
@@ -72,20 +72,20 @@ export const buildSvieSmerteModel = (
     statusLinjer.push(verserendeKlageMen === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
   }
 
-  if (varigeMenAfgorelse === 'Ja' && verserendeKlageMen !== 'Ja' && menDato && isISODateString(menDato)) {
+  if (varigeMenAfgorelse === 'Ja' && verserendeKlageMen === 'Nej' && menDato && isISODateString(menDato)) {
     const ophoerDato = subtractOneDay(menDato);
     if (ophoerDato && perioderCoverDate(constrained, ophoerDato)) {
       statusLinjer.push('Afgørelsen bringer retten til svie- og smertegodtgørelse til ophør.');
     }
   }
 
-  const periodeLinjer = engine.constrainedPeriods.map((p) => {
+  const periodeLinjer = engine.constrainedPeriods.flatMap((p) => {
     const fraDisplay = isoToDanish(p.fra);
     const tilDisplay = isoToDanish(p.til);
-    if (!fraDisplay || !tilDisplay) throw new Error('Ugyldig periode for svie/smerte');
+    if (!fraDisplay || !tilDisplay) return [];
     const suffix = p.isDelvist ? ' (delvist syg)' : '';
-    if (fraDisplay === tilDisplay) return `${fraDisplay}${suffix}`;
-    return `${fraDisplay} - ${tilDisplay}${suffix}`;
+    if (fraDisplay === tilDisplay) return [`${fraDisplay}${suffix}`];
+    return [`${fraDisplay} - ${tilDisplay}${suffix}`];
   });
 
   const satserPerDag: Calculable<MoneyOre> = engine.satserPerDagOre === null
@@ -145,31 +145,21 @@ const perioderCoverDate = (perioder: Array<{ fra: Date; til: Date }>, target: IS
   return false;
 };
 
-const buildTafPerioderLinjer = (values: ErstatningsopgoerelseValues): string[] => {
+const buildTafPerioderLinjer = (
+  values: ErstatningsopgoerelseValues,
+  tafRanges: readonly { fra: ISODateString; til: ISODateString }[]
+): string[] => {
   const rows = values.tafPerioder ?? [];
   const nonEmpty = rows.filter((row) => !isTafRowEmpty(row));
   if (nonEmpty.length === 0) return [];
 
-  for (const row of nonEmpty) {
-    const fra = row.fra;
-    const til = row.til;
-    if (!fra || !til) {
-      throw new Error('TAF-periode mangler fra/til'); // invariant: dækket af validator
-    }
-    if (!isISODateString(fra) || !isISODateString(til) || fra > til) {
-      throw new Error('TAF-periode er ugyldig'); // invariant: dækket af validator
-    }
-  }
-
-  const ranges = buildTafRanges(values);
   const lines: string[] = [];
-  for (const range of ranges) {
+  for (const range of tafRanges) {
     const fraText = formatDateShort(range.fra);
     const tilText = formatDateShort(range.til);
-    if (!fraText || !tilText) {
-      throw new Error('TAF-periode er ugyldig'); // invariant: dækket af validator
+    if (fraText && tilText) {
+      lines.push(`${fraText} - ${tilText}`);
     }
-    lines.push(`${fraText} - ${tilText}`);
   }
   return lines;
 };
@@ -178,12 +168,12 @@ export const buildTabtArbejdsfortjenesteModel = (
   stamdataValues: StamdataValues,
   options: Readonly<{
     tafNetto?: TafNettoBeregningResult;
-    tafRanges?: readonly { fra: ISODateString; til: ISODateString }[];
-  }> = {}
+    tafRanges: readonly { fra: ISODateString; til: ISODateString }[];
+  }>
 ): TabtArbejdsfortjenestePdfModel => {
   const statusLinjer: string[] = [];
   const periodeTilISO = values.vedroererPeriodeTil;
-  const tafRanges = options.tafRanges ?? buildTafRanges(values);
+  const tafRanges = options.tafRanges;
   const tafRangesAsDates = tafRanges.map((range) => ({
     fra: isoDateToDate(range.fra),
     til: isoDateToDate(range.til),
@@ -234,7 +224,10 @@ export const buildTabtArbejdsfortjenesteModel = (
     : null;
   const differencekravReferenceDato = values.differencekravDato;
 
-  const tafPerioderLinjer = buildTafPerioderLinjer(values);
+  const tafPerioderLinjer = buildTafPerioderLinjer(values, tafRanges);
+  // tafNetto er optional (til forskel fra tafRanges): kanonisk brug sender det fra computeEoSnapshot,
+  // men fallback-beregning sikrer isoleret brug (fx i tests). tafRanges er required fordi
+  // det altid er tilgængeligt på kaldsstedet og clamping-semantikken er afgørende for korrekthed.
   const tafMonetary = options.tafNetto ?? computeTafNettoBeregning(values, stamdataValues);
   const harTafPerioder = tafMonetary.harTafPerioder;
   const harTafDagenFoer = (dato: ISODateString | undefined): boolean => {
@@ -314,9 +307,8 @@ export const buildTabtArbejdsfortjenesteModel = (
     loenudvikling: tafMonetary.loenudvikling,
     tafIndtaegter: tafMonetary.tafIndtaegter,
     tidligereModtagetTaf: tafMonetary.tidligereModtagetTaf,
-    // Initialt sættes begge felter til netto-værdien før forligsskaleret visning.
-    // buildErstatningsopgoerelsePdfModel() overskriver senere tabtArbejdsfortjenesteOre
-    // med den forligsjusterede værdi, mens "FoerForlig" bevarer udgangspunktet.
+    // Begge felter sættes til netto-værdien. buildErstatningsopgoerelsePdfModelFromComputed
+    // applicerer forligskalering på tabtArbejdsfortjenesteOre; FoerForlig bevarer udgangspunktet.
     tabtArbejdsfortjenesteFoerForligOre: tafMonetary.tabtArbejdsfortjenesteOre,
     tabtArbejdsfortjenesteOre: tafMonetary.tabtArbejdsfortjenesteOre,
   };
@@ -325,23 +317,14 @@ export const buildTabtArbejdsfortjenesteModel = (
 export const buildOevrigeKravModel = (rows: OevrigeKravRow[]): OevrigeKravPdfModel => {
   const parsed = parseOevrigeKravBeloeb(rows);
   if (!parsed) {
-    for (const row of rows) {
-      if (isOevrigeKravRowEmpty(row)) continue;
-      const amountValue = amountValueToNumber(row.beloeb);
-      if (amountValue !== undefined && amountValue < 0) {
-        throw new Error('Øvrige krav kan ikke være negativt'); // invariant: dækket af validator
-      }
-    }
-    throw new Error('Øvrige krav er ikke fuldt udfyldt');
+    return { entries: [], totalFoerForligOre: ensureMoneyOre(0), totalOre: ensureMoneyOre(0) };
   }
 
   const entries: Array<{ dateText: string; udgiftTil: string; amountOre: MoneyOre }> = [];
   for (const row of parsed.rows) {
     const dateText = row.original.dato ? formatDateShort(row.original.dato) : '';
     const udgiftTil = (row.original.udgiftTil ?? '').trim();
-    if (dateText === '' || udgiftTil === '') {
-      throw new Error('Øvrige krav er ikke fuldt udfyldt'); // invariant: dækket af validator
-    }
+    if (dateText === '' || udgiftTil === '') continue;
     entries.push({ dateText, udgiftTil, amountOre: row.amountOre });
   }
 

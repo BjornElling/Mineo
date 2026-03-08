@@ -1,6 +1,7 @@
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import type { TafBeregningsenhed } from './tafBeregningsenhed';
+import type { IsoRange } from './tafPeriodConstraints';
 
 export type MoneyOre = number;
 export type MoneyKroner = number;
@@ -33,6 +34,8 @@ export type PdfModel = Readonly<{
     totalOre: MoneyOre;
   }>;
   saerligeKommentarer: string | null;
+  /** Clampede TAF-ranges brugt i beregningen — bruges af shDageSection til at bestemme helligdage-interval. */
+  tafRanges: readonly IsoRange[];
 }>;
 
 export type ForligPdfModel =

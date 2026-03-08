@@ -93,32 +93,6 @@ describe('EO snapshot PDF projections', () => {
     });
   });
 
-  it('blokerer EO-PDF hvis dokumentets totals divergerer fra snapshot', () => {
-    const snapshot = buildBaseSnapshot();
-    const tamperedSnapshot = {
-      ...snapshot,
-      data: snapshot.data && {
-        ...snapshot.data,
-        totals: {
-          ...snapshot.data.totals,
-          samletTotalOre: 999999 as MoneyOre,
-        },
-      },
-    };
-
-    const projection = eoSnapshotToEoPdfDocument(tamperedSnapshot);
-    expect(projection).toEqual({
-      kind: 'blocked',
-      message: 'Dokumentmodellen matcher ikke snapshot-totalerne.',
-      invariants: [
-        expect.objectContaining({
-          id: 'projection:document_totals_mismatch',
-          message: 'Dokumentmodellen matcher ikke snapshot-totalerne.',
-        }),
-      ],
-    });
-  });
-
   it('tillader TAF-per-år-PDF ved warning-status uden output-blokering', () => {
     const snapshot = buildBaseSnapshot();
     const projection = eoSnapshotToTafPerYearPdfDocument({

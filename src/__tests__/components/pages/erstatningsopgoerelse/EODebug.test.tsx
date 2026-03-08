@@ -63,7 +63,6 @@ describe('EODebug', () => {
               tabelValue: 10,
               loseFeriedage: 0,
               oevrigeFravaersdage: 0,
-              warningEligible: false,
             },
           },
         ],

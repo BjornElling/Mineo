@@ -5,9 +5,10 @@ import type { FieldErrorsForSection } from '../../types/fieldErrors';
 import { erstatningsopgoerelseValidator } from '../../validators/erstatningsopgoerelseValidator';
 import { buildEODebugSnapshot, type EODebugSnapshot } from '../debug/eoDebugSnapshot';
 import { parseForligsgrad } from './forligsgrad';
-import { buildOevrigeKravModel } from './eoPdfBuilders';
-import { buildEoPdfPresentation, type EoPdfPresentation } from './eoPdfModel';
+import { buildOevrigeKravModel, buildSvieSmerteModel, buildTabtArbejdsfortjenesteModel } from './eoPdfBuilders';
+import { buildEoPdfPresentation, buildErstatningsopgoerelsePdfModelFromComputed, type EoPdfPresentation } from './eoPdfModel';
 import type { MoneyOre } from './eoPdfModel';
+import type { PdfModel } from './eoPdfModelTypes';
 import { computeSvieSmerteEngine, type SvieSmerteEngineOutput } from './svieSmerteEngine';
 import { computeTafNettoBeregning, type TafNettoBeregningResult } from './tafNettoBeregning';
 import { buildTafPerYearBuildOutcome, buildTafPerYearSourceFromComputed, type TafPerYearResult } from './tafPerYearDerived';
@@ -28,6 +29,7 @@ import {
   hasAuthoritativeBlockingInvariant,
   type EoInvariant,
 } from './eoSnapshotInvariants';
+import type { IsoRange } from './tafPeriodConstraints';
 import { collectSammentaellingControlMismatchMessages } from '../debug/eoDebugSammentaelling';
 
 export type EoSnapshotComputedData = Readonly<{
@@ -50,7 +52,9 @@ export type EoSnapshotComputedData = Readonly<{
   }>;
   presentation: EoPdfPresentation;
   canonicalOutput: EoCanonicalOutput;
-  debugSnapshot: EODebugSnapshot;
+  /** Færdigbygget PDF-dokumentmodel. Caches i snapshot for at undgå dobbeltkald
+   *  fra eoSnapshotToEoPdfDocument og eoSnapshotToTafPerYearPdfDocument. */
+  pdfModel: PdfModel;
 }>;
 
 export type EoSnapshot = Readonly<{
@@ -110,6 +114,8 @@ const buildDebugSnapshotForComputed = (args: Readonly<{
   eoValues: ErstatningsopgoerelseValues;
   stamdataErrors: FieldErrorsForSection<'stamdata'>;
   eoErrors: FieldErrorsForSection<'erstatningsopgoerelse'>;
+  tafRanges?: readonly IsoRange[];
+  svieSmerteEngine?: SvieSmerteEngineOutput;
 }>): EODebugSnapshot => {
   return buildEODebugSnapshot({
     revision: args.revision,
@@ -117,6 +123,8 @@ const buildDebugSnapshotForComputed = (args: Readonly<{
     eoValues: args.eoValues,
     stamdataErrors: args.stamdataErrors,
     eoErrors: args.eoErrors,
+    tafRanges: args.tafRanges,
+    svieSmerteEngine: args.svieSmerteEngine,
   });
 };
 
@@ -160,29 +168,34 @@ export const computeEoSnapshot = (args: Readonly<{
     };
   }
 
-  const debugSnapshot = buildDebugSnapshotForComputed({
-    revision: args.revision,
-    stamdata: parsedStamdata.data,
-    eoValues: parsedEo.data,
-    stamdataErrors,
-    eoErrors,
-  });
-
   const validationResult = erstatningsopgoerelseValidator.validateParsed(parsedEo.data);
   const validationInvariants = buildValidationInvariants(validationResult.errors);
   if (hasAuthoritativeBlockingInvariant(validationInvariants)) {
+    // Validerings-fejl-sti: engines ikke kørt, tafRanges ikke beregnet endnu.
+    // debugSnapshot bygges uden clamping — debug-tabellen viser de rå committede datoer.
+    const debugSnapshotForValidationError = buildDebugSnapshotForComputed({
+      revision: args.revision,
+      stamdata: parsedStamdata.data,
+      eoValues: parsedEo.data,
+      stamdataErrors,
+      eoErrors,
+    });
     return {
       revision: args.revision,
       status: 'error',
       invariants: validationInvariants,
       data: null,
-      debugSnapshot,
+      debugSnapshot: debugSnapshotForValidationError,
       input: {
         stamdata: parsedStamdata.data,
         erstatningsopgoerelse: parsedEo.data,
       },
     };
   }
+
+  // debugSnapshot deklareres her så catch-blokken har adgang til den,
+  // selv hvis en fejl opstår efter at den er bygget inde i try-blokken.
+  let debugSnapshot: EODebugSnapshot | null = null;
 
   try {
     const tafRanges = buildTafRanges(parsedEo.data);
@@ -194,6 +207,18 @@ export const computeEoSnapshot = (args: Readonly<{
         skadesdato: parsedStamdata.data.skadesdato,
         skadestype: parsedStamdata.data.skadestype,
       },
+    });
+    // debugSnapshot bygges efter tafRanges og svieSmerte er beregnet, så:
+    // - debug-tabellen afspejler præcis de clampede perioder der indgik i beregningen
+    // - sammentællingen bruger det autoritative svie/smerte-resultat direkte
+    debugSnapshot = buildDebugSnapshotForComputed({
+      revision: args.revision,
+      stamdata: parsedStamdata.data,
+      eoValues: parsedEo.data,
+      stamdataErrors,
+      eoErrors,
+      tafRanges,
+      svieSmerteEngine: svieSmerte,
     });
     const tafNetto = computeTafNettoBeregning(parsedEo.data, parsedStamdata.data, {
       tafRanges,
@@ -213,9 +238,7 @@ export const computeEoSnapshot = (args: Readonly<{
         forligFactor,
       }),
       parsedEo.data,
-      {
-      tafRanges,
-      }
+      { tafRanges }
     );
     const canonicalOutput = buildCanonicalOutput({
       tafRanges,
@@ -225,6 +248,7 @@ export const computeEoSnapshot = (args: Readonly<{
       totals,
     });
     const invariants: EoInvariant[] = [...validationInvariants];
+
     if (tafPerYearOutcome.kind === 'error' && tafPerYearOutcome.reason === 'afrunding_over_100') {
       invariants.push(buildTafPerYearAfrundingInvariant({
         afrundingOre: tafPerYearOutcome.afrundingOre,
@@ -239,11 +263,26 @@ export const computeEoSnapshot = (args: Readonly<{
     // This invariant is intentionally derived from the debug-table sammentælling model.
     // It cross-checks authoritative engine outputs against the committed EO debug table projection,
     // so it depends on debug infrastructure by design rather than being a pure engine-to-engine check.
-    const controlMismatchMessages = collectSammentaellingControlMismatchMessages(debugSnapshot.sammentaellingRows);
+    // debugSnapshot er altid non-null her: den er sat tidligt i try-blokken inden engine-kald.
+    const controlMismatchMessages = collectSammentaellingControlMismatchMessages(debugSnapshot!.sammentaellingRows);
     if (controlMismatchMessages.length > 0) {
       invariants.push(buildControlMismatchInvariant(controlMismatchMessages));
     }
 
+    const forligForPdf = forlig
+      ? { erIndgaaet: true, label: forlig.label, dato: parsedEo.data.forligDato ?? null, factor: forlig.factor } as const
+      : { erIndgaaet: false, label: null, dato: null, factor: null } as const;
+    const pdfModel = buildErstatningsopgoerelsePdfModelFromComputed({
+      presentation,
+      svieSmerte: buildSvieSmerteModel(parsedEo.data, parsedStamdata.data, { engine: svieSmerte }),
+      tabtArbejdsfortjeneste: buildTabtArbejdsfortjenesteModel(parsedEo.data, parsedStamdata.data, {
+        tafNetto,
+        tafRanges: canonicalOutput.periodiseringer.tafPerioder,
+      }),
+      oevrigeKrav,
+      forlig: forligForPdf,
+      tafRanges: canonicalOutput.periodiseringer.tafPerioder,
+    });
     const data: EoSnapshotComputedData = {
       engines: {
         svieSmerte,
@@ -255,7 +294,7 @@ export const computeEoSnapshot = (args: Readonly<{
       totals,
       presentation,
       canonicalOutput,
-      debugSnapshot,
+      pdfModel,
     };
 
     const status = hasAnyErrorInvariant(invariants)

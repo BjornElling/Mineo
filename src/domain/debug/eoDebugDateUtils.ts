@@ -6,8 +6,22 @@
  */
 
 import type { ISODateString } from '../../types/branded';
+import { toISODateString } from '../../types/branded';
 import { createDate } from '../../utils/dateUtils';
 import type { DateRange, OverlapResult } from './eoDebugTypes';
+
+/**
+ * Parser en ukendt værdi til ISODateString, eller undefined hvis ugyldig.
+ * Data fra persistence-laget er allerede i ISO-format.
+ */
+export function tryParseIso(value: unknown): ISODateString | undefined {
+  if (!value || typeof value !== 'string' || value.trim() === '') return undefined;
+  try {
+    return toISODateString(value);
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Sammenligner to ISO-datoer

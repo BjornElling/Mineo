@@ -24,9 +24,9 @@ import {
   shouldIncludeReguleringBilag,
 } from '../../domain/erstatningsopgoerelse/bilagRules';
 import {
-  parseOptionalIsoDate as parseOptionalIsoDateShared,
-  formatDateShort as formatDateShortShared,
-  formatDateLong as formatDateLongShared,
+  parseOptionalIsoDate,
+  formatDateShort,
+  formatDateLong,
 } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import {
   buildReguleringIndexRows,
@@ -132,8 +132,6 @@ const resolvePeriodColumns = (row: AarsloenTableRow, loenperiode: Loenperiode): 
   return [row.col0_dag?.trim() ?? '', row.col1_dag?.trim() ?? ''];
 };
 
-// STORE_BEDEDAG_START og STORE_BEDEDAG_PCT importeret fra config
-
 const renderStandardPdfTable = (params: Readonly<{
   doc: jsPDF;
   startY: number;
@@ -151,11 +149,7 @@ const renderStandardPdfTable = (params: Readonly<{
   });
 };
 
-const parseOptionalIsoDate = parseOptionalIsoDateShared;
 type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
-
-const formatDateShort = formatDateShortShared;
-const formatDateLong = formatDateLongShared;
 export const resolveUdkastStempelValue = (value: unknown): boolean => value === 'Ja';
 
 
@@ -465,6 +459,7 @@ export const generateErstatningsopgoerelsePdf = (
   if (selectedElements.shDage) {
     renderShDageSection({
       eoValues,
+      tafRanges: model.tafRanges,
       lineHeight,
       startBilagPage,
       renderSubheader,

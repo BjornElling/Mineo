@@ -3,11 +3,8 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { buildErstatningsopgoerelsePdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
-import {
-  buildEoCanonicalOutput,
-  EoCanonicalOutputSchema,
-} from '../../../domain/erstatningsopgoerelse/eoCanonicalOutput';
+import { EoCanonicalOutputSchema } from '../../../domain/erstatningsopgoerelse/eoCanonicalOutput';
+import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);
@@ -55,8 +52,9 @@ describe('eoCanonicalOutput', () => {
     };
 
     // dagsDatoISO er kun PDF-metadata; canonical output er dato-uafhængig.
-    const pdfModel = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-27') });
-    const canonical = buildEoCanonicalOutput(stamdata, eoValues);
+    const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues, dagsDatoISO: iso('2026-02-27') });
+    const pdfModel = snapshot.data!.pdfModel;
+    const canonical = snapshot.data!.canonicalOutput;
 
     expect(EoCanonicalOutputSchema.safeParse(canonical).success).toBe(true);
     expect(canonical.totals.svieSmerteOre).toBe(pdfModel.samlet.svieSmerteOre);
@@ -117,8 +115,9 @@ describe('eoCanonicalOutput', () => {
     };
 
     // dagsDatoISO er kun PDF-metadata; canonical output er dato-uafhængig.
-    const pdfModel = buildErstatningsopgoerelsePdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-27') });
-    const canonical = buildEoCanonicalOutput(stamdata, eoValues);
+    const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues, dagsDatoISO: iso('2026-02-27') });
+    const pdfModel = snapshot.data!.pdfModel;
+    const canonical = snapshot.data!.canonicalOutput;
 
     const pdfLoenudvikling = pdfModel.tabtArbejdsfortjeneste.loenudvikling;
     if (!pdfLoenudvikling || pdfLoenudvikling.loenudviklingTotal.status !== 'ok') {
@@ -131,14 +130,16 @@ describe('eoCanonicalOutput', () => {
     expect(canonical.regulering.loenudviklingSegmenter).toEqual(pdfLoenudvikling.beregnedeSegmenter);
   });
 
-  it('kaster ved ugyldigt input', () => {
+  it('giver fail_closed ved ugyldigt input', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     const invalidStamdata = {
       ...STAMDATA_INITIAL_VALUES,
       skadesdato: '31-12-2024',
     } as unknown as typeof STAMDATA_INITIAL_VALUES;
 
-    expect(() => buildEoCanonicalOutput(invalidStamdata, eoValues)).toThrow('Ugyldigt input til EO canonical output');
+    const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: invalidStamdata, eoValues });
+    expect(snapshot.status).toBe('fail_closed');
+    expect(snapshot.data).toBeNull();
   });
 
   it('returnerer 0 for svie/smerte uden perioder', () => {
@@ -148,6 +149,15 @@ describe('eoCanonicalOutput', () => {
       svieSmertePerioder: [],
       vedroererPeriodeFra: iso('2024-01-01'),
       vedroererPeriodeTil: iso('2024-12-31'),
+      periodeTilBeregningFra: iso('2024-01-01'),
+      periodeTilBeregningTil: iso('2024-12-31'),
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...initial.loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen' as const,
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
     };
     const stamdata = {
       ...STAMDATA_INITIAL_VALUES,
@@ -155,7 +165,8 @@ describe('eoCanonicalOutput', () => {
       skadesdato: iso('2024-01-01'),
     };
 
-    const canonical = buildEoCanonicalOutput(stamdata, eoValues);
+    const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues });
+    const canonical = snapshot.data!.canonicalOutput;
     expect(canonical.totals.svieSmerteOre).toBe(0);
   });
 });

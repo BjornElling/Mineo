@@ -98,6 +98,12 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     message: '',
     error: null,
   });
+  const beregningView = React.useMemo(
+    () => (eoSnapshot ? eoSnapshotToBeregningView(eoSnapshot) : null),
+    [eoSnapshot]
+  );
+  const authoritativeBlockingInvariants = beregningView?.authoritativeBlockingInvariants ?? [];
+
   // ============================================================================
   // SAMLE ALLE DEBUG-ROWS MED NAVIGATION
   // ============================================================================
@@ -118,15 +124,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       eoErrors,
       manuelReguleringInputErrors,
       settings,
-      eoSnapshot?.data?.canonicalOutput
+      beregningView?.canonicalOutput
     );
-  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, settings, eoSnapshot]);
-
-  const beregningView = React.useMemo(
-    () => (eoSnapshot ? eoSnapshotToBeregningView(eoSnapshot) : null),
-    [eoSnapshot]
-  );
-  const authoritativeBlockingInvariants = beregningView?.authoritativeBlockingInvariants ?? [];
+  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, settings, beregningView]);
   const eoPdfProjection = React.useMemo(
     () => (eoSnapshot ? eoSnapshotToEoPdfDocument(eoSnapshot) : null),
     [eoSnapshot]
@@ -388,7 +388,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       return tafPeriodeFejl;
     }
 
-    const ranges = eoSnapshot?.data?.canonicalOutput.periodiseringer.tafPerioder ?? [];
+    const ranges = beregningView?.tafPerioder ?? [];
     return ranges
       .map((range) => {
         const fra = isoToDanish(range.fra);
@@ -396,7 +396,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         return fra && til ? `${fra} - ${til}` : '';
       })
       .filter((value) => value !== '');
-  }, [beregnesTabtArbejdsfortjeneste, eoSnapshot, eoValues, relevantRows]);
+  }, [beregnesTabtArbejdsfortjeneste, beregningView, eoValues, relevantRows]);
   const harTafPerioder =
     beregnesTabtArbejdsfortjeneste &&
     (eoValues.tafPerioder ?? []).some((row) => row.fra || row.til || typeof row.loseFeriedage === 'number') &&

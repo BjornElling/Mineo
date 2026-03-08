@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { Alert, AlertTitle, Box, Tooltip, Typography } from '@mui/material';
-import { Check, Download, ErrorOutline, WarningAmber } from '@mui/icons-material';
+import { Alert, AlertTitle, Box, Typography } from '@mui/material';
+import { Check, Download, ErrorOutline } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import ContentBox from '../../layout/ContentBox';
-import { getSammentaellingControlStatus, getSammentaellingWarningMeta, type SammentaellingControl, type SammentaellingDisplayRow } from '../../../domain/debug/eoDebugSammentaelling';
+import { getSammentaellingControlStatus, type SammentaellingControl, type SammentaellingDisplayRow } from '../../../domain/debug/eoDebugSammentaelling';
 import { CSV_DELIMITER, escapeCsvCell, normalizeCsvHeader, toCsvScalar } from '../../../domain/debug/eoDebugCsv';
 import { formatCurrency } from '../../../utils/formatUtils';
 import type { ISODateString } from '../../../types/branded';
@@ -92,32 +92,11 @@ const EODebugTabel = React.memo(({ debugSnapshot = null }: EODebugTabelProps) =>
   }, [formatIso, model]);
 
   const sammentaellingTables = React.useMemo(() => {
-    const formatDaValue = (value: number): string => value.toLocaleString('da-DK');
-
-    const getWarningTooltipText = (tabel: number, lose: number, oevrige: number, beregnet: number): string => {
-      return `${formatDaValue(tabel)} - ${formatDaValue(lose)} løse feriedage - ${formatDaValue(oevrige)} øvrige fraværsdage = ${formatDaValue(beregnet)}`;
-    };
-
     const renderControl = (control: SammentaellingControl): React.ReactElement => {
       const status = getSammentaellingControlStatus(control);
       if (status === 'ok') {
         return <Check sx={{ color: 'green', fontSize: 20 }} />;
       }
-
-      if (status === 'warning') {
-        const warningMeta = getSammentaellingWarningMeta(control);
-        if (!warningMeta) {
-          return <WarningAmber sx={{ color: 'orange', fontSize: 20 }} />;
-        }
-        return (
-          <Tooltip
-            title={getWarningTooltipText(warningMeta.tabel, warningMeta.lose, warningMeta.oevrige, warningMeta.beregnet)}
-          >
-            <WarningAmber sx={{ color: 'orange', fontSize: 20 }} />
-          </Tooltip>
-        );
-      }
-
       return <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />;
     };
 

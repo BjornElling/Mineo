@@ -13,8 +13,8 @@ import type {
   SvieSmertePeriodeRow,
 } from '../../schemas/formSchemas';
 import type { DebugDay, SvieSmerte } from './eoDebugTypes';
-import { getIsoRange, minDate, maxDate } from './eoDebugDateUtils';
-import { subtractOneDay, toISODateString } from '../../types/branded';
+import { getIsoRange, minDate, maxDate, tryParseIso } from './eoDebugDateUtils';
+import { subtractOneDay } from '../../types/branded';
 import { clampTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
 import { buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/tafDaySets';
 
@@ -24,20 +24,6 @@ import { buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/tafDaySets'
 export type DebugModelInput = {
   readonly stamdataValues: StamdataValues;
   readonly erstatningsopgoerelseValues: ErstatningsopgoerelseValues;
-};
-
-/**
- * Helper til at validere og konvertere til ISODateString
- *
- * VIGTIGT: Data kommer allerede i ISO-format fra persistence layer
- */
-const tryParseIso = (value: unknown): ISODateString | undefined => {
-  if (!value || typeof value !== 'string' || value.trim() === '') return undefined;
-  try {
-    return toISODateString(value);
-  } catch {
-    return undefined;
-  }
 };
 
 /**
@@ -64,7 +50,7 @@ const extractDateSources = (
 
   const menStopDato =
     input.erstatningsopgoerelseValues.varigeMenAfgorelse === 'Ja' &&
-    input.erstatningsopgoerelseValues.verserendeKlageMen !== 'Ja'
+    input.erstatningsopgoerelseValues.verserendeKlageMen === 'Nej'
       ? subtractOneDay(tryParseIso(input.erstatningsopgoerelseValues.menAfgoerelseDato))
       : undefined;
 
@@ -197,18 +183,14 @@ const buildSvieSmerte = (
 /**
  * Byg DebugDay[] tidslinje
  *
- * FASE 2 SCOPE:
- * - Tidslinje (alle dage)
- * - Weekday, weekend
+ * Bygger en kalender-baseret tidslinje over alle dage i EO-perioden med:
+ * - Weekday/weekend-klassifikation
  * - Søgnehelligdage
  * - Arbejdsdag-klassifikation
  * - TAF-perioder (markering)
  * - Svie/smerte-status
  *
- * IKKE i scope:
- * - Løn, beløb, regulering
- * - Offentlige ydelser
- * - Integrity checks (kommer i Fase 3)
+ * Indeholder ikke løn, beløb, regulering eller offentlige ydelser.
  *
  * @param input - Form values
  * @returns Array af DebugDay (tom hvis ingen gyldige datoer)
@@ -239,7 +221,7 @@ export function buildDebugCoreModel(input: DebugModelInput): readonly DebugDay[]
     erstatningsFra && erstatningsTil && erstatningsFra <= erstatningsTil ? { fra: erstatningsFra, til: erstatningsTil } : undefined;
   const menStopDato =
     input.erstatningsopgoerelseValues.varigeMenAfgorelse === 'Ja' &&
-    input.erstatningsopgoerelseValues.verserendeKlageMen !== 'Ja'
+    input.erstatningsopgoerelseValues.verserendeKlageMen === 'Nej'
       ? subtractOneDay(tryParseIso(input.erstatningsopgoerelseValues.menAfgoerelseDato))
       : undefined;
   const ssMap = buildSvieSmerte(ssPerioder, { erstatningsRange, menStopDato });
