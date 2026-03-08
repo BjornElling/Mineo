@@ -1,7 +1,12 @@
 import type { ErstatningsopgoerelseValues, StamdataValues, SvieSmertePeriodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import type { DeepReadonly } from '../../types/deepReadonly';
-import { dateToISO, isISODateString, subtractOneDay } from '../../types/branded';
+import { dateToISO, isISODateString } from '../../types/branded';
+import {
+  clampSvieSmerteRange,
+  resolveSvieSmerteEoPeriodeBounds,
+  resolveSvieSmerteFejlgivendeBounds,
+} from './svieSmerteConstraints';
 import { svieSmerteMax, svieSmertePrDag } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { detectOverlappingPeriods } from './periodOverlapDetection';
@@ -151,9 +156,6 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     return buildZeroOutput(values);
   }
 
-  const shouldApplyMenCutoff = values.varigeMenAfgorelse === 'Ja' && values.verserendeKlageMen === 'Nej';
-  const menCutoff = shouldApplyMenCutoff ? values.menAfgoerelseDato : undefined;
-
   const sygemeldtPeriods: { fra: Date; til: Date }[] = [];
   const delvistPeriods: { fra: Date; til: Date }[] = [];
 
@@ -168,24 +170,39 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     }
   }
 
+  // Tre-trins clamping (jf. eo-snapshot-contract.md §2.3):
+  // 1. Clamp mod fejlgivende øvre grænse (menAfgoerelseDato) — validator rapporterer violation
+  // 2. Merge overlappende og tilstødende ranges (på ISO-niveau via mergePeriods)
+  // 3. Stille clamping mod EO-perioden (ingen fejlindikation)
+  //
+  // Rationale for rækkefølge: fejlgivende clamping sker FØR EO-periode-clamping, så feltfejlen
+  // vises for den overskridende dato og ikke skjules af EO-periode-clampen.
+  const fejlgivendeBounds = resolveSvieSmerteFejlgivendeBounds(values);
+  const eoPeriodeBounds = resolveSvieSmerteEoPeriodeBounds(values);
+
   const constrained: Array<{ fra: Date; til: Date; isDelvist: boolean }> = [];
   if (harInputPerioder && vedroererFra && vedroererTil) {
-    const vedroererFraDate = isoDateToDate(vedroererFra);
-    const vedroererTilDate = isoDateToDate(vedroererTil);
-    let maxDate = vedroererTilDate;
-    const dayBeforeMen = subtractOneDay(menCutoff);
-    if (dayBeforeMen) {
-      const menDate = isoDateToDate(dayBeforeMen);
-      if (menDate < maxDate) maxDate = menDate;
-    }
-
     const applyConstraint = (periods: { fra: Date; til: Date }[], isDelvist: boolean) => {
-      const merged = mergePeriods(periods);
+      // Trin 1: fejlgivende clamping per periode (via ISO-konvertering)
+      const afterFejlgivende: { fra: Date; til: Date }[] = [];
+      for (const p of periods) {
+        const fra = dateToISO(p.fra);
+        const til = dateToISO(p.til);
+        if (!fra || !til) continue;
+        const clamped = clampSvieSmerteRange({ fra, til }, fejlgivendeBounds);
+        if (!clamped) continue;
+        afterFejlgivende.push({ fra: isoDateToDate(clamped.fra), til: isoDateToDate(clamped.til) });
+      }
+      // Trin 2: merge
+      const merged = mergePeriods(afterFejlgivende);
+      // Trin 3: stille clamping mod EO-perioden
       for (const p of merged) {
-        const fra = p.fra < vedroererFraDate ? vedroererFraDate : p.fra;
-        const til = p.til > maxDate ? maxDate : p.til;
-        if (fra > til) continue;
-        constrained.push({ fra, til, isDelvist });
+        const fra = dateToISO(p.fra);
+        const til = dateToISO(p.til);
+        if (!fra || !til) continue;
+        const clamped = clampSvieSmerteRange({ fra, til }, eoPeriodeBounds);
+        if (!clamped) continue;
+        constrained.push({ fra: isoDateToDate(clamped.fra), til: isoDateToDate(clamped.til), isDelvist });
       }
     };
 
@@ -301,12 +318,3 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
   };
 };
 
-export const getDayAfterIso = (isoDate: ISODateString): ISODateString => {
-  const date = isoDateToDate(isoDate);
-  const nextDate = addDays(date, 1);
-  const iso = dateToISO(nextDate);
-  if (!iso) {
-    throw new Error('Kunne ikke formatere ISO-dato i getDayAfterIso.');
-  }
-  return iso;
-};

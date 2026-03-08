@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Checkbox, FormControlLabel, Tooltip, MenuItem } from '@mui/material';
 import { Download, ErrorOutline, WarningAmber } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
-import BugReportButton from '../../errors/BugReportButton';
-import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import { useFieldErrorsBySourceForSection } from '../../../hooks/useFormFieldErrors';
 import { useEOLoenindkomstInputErrors } from '../../../hooks/useEOLoenindkomstInputErrors';
 import { collectAllDebugRows } from '../../../domain/debug/eoDebugRowAggregator';
@@ -43,10 +41,6 @@ interface EOberegningTabProps {
 type SystemIssueRow = Readonly<{
   id: string;
   message: string;
-  bugReportContext?: Readonly<{
-    source: string;
-    error: Error;
-  }>;
 }>;
 
 const FEJL_ADVARSLER_ROW_SX = {
@@ -87,17 +81,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   const eoErrors = useFieldErrorsBySourceForSection('erstatningsopgoerelse');
   const manuelReguleringInputErrors = useEOLoenindkomstInputErrors();
 
-  const [downloadErrorState, setDownloadErrorState] = React.useState<{
-    open: boolean;
-    title: string;
-    message: string;
-    error: Error | null;
-  }>({
-    open: false,
-    title: '',
-    message: '',
-    error: null,
-  });
   const beregningView = React.useMemo(
     () => (eoSnapshot ? eoSnapshotToBeregningView(eoSnapshot) : null),
     [eoSnapshot]
@@ -143,20 +126,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     : [];
 
   const isSystemInvariant = React.useCallback((invariant: EoInvariant): boolean => {
-    if (invariant.id.startsWith('validation:')) return false;
-    if (invariant.id.startsWith('taf_perioder:')) return false;
-    if (invariant.id === 'beregningsperiode:uspecificerede_feriefridage') return false;
-    if (invariant.id === 'taf_per_year:afrunding_over_100') return false;
-    if (invariant.id === 'taf_per_year:missing_loenudvikling') return false;
-    if (invariant.id === 'taf_per_year:missing_taf_indtaegter') return false;
-    return true;
+    return invariant.source === 'system';
   }, []);
 
-  const snapshotSystemError = React.useMemo(() => {
-    if (eoSnapshot?.status !== 'fail_closed') return null;
-    const message = eoSnapshot.invariants[0]?.message ?? 'Der opstod en intern fejl i EO-snapshot.';
-    return new Error(message);
-  }, [eoSnapshot]);
 
   const canDownloadSnapshotEoPdf = eoPdfProjection?.kind === 'ok';
   const canDownloadSnapshotTafPdf = tafPdfProjection?.kind === 'ok';
@@ -201,22 +173,21 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     };
 
     if (eoSnapshot?.status === 'fail_closed') {
+      // Neutral fejlbesked uden BugReportButton for alle fail_closed-årsager.
+      // schema_guard: forventelig inkonsistens (manglende felter, korrupt .eo).
+      // runtime_exception: logges via console.error i computeEoSnapshot og routes til
+      // ErrorFallback/ErrorBoundary. BugReportButton vises ikke her (jf. eo-snapshot-contract.md §7).
       pushIssue({
         id: 'snapshot-fail-closed',
-        message: eoSnapshot.invariants[0]?.message ?? 'Der opstod en intern fejl i EO-snapshot.',
-        bugReportContext: snapshotSystemError
-          ? {
-            source: 'Beregning-fane: EO snapshot fail-closed',
-            error: snapshotSystemError,
-          }
-          : undefined,
+        message: eoSnapshot.invariants[0]?.message ?? 'Beregningen kan ikke gennemføres — ret manglende eller ugyldige felter.',
       });
     }
 
+    // Kun autoritative og EO-PDF-blokerende system-invarianter vises i systemfejl-sektionen.
+    // tafPdfBlockingInvariants blokerer kun TAF-PDF-download og vises ikke som globale systemfejl.
     [
       ...authoritativeBlockingInvariants,
       ...eoPdfBlockingInvariants,
-      ...tafPdfBlockingInvariants,
     ]
       .filter(isSystemInvariant)
       .forEach((invariant) => {
@@ -232,7 +203,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     eoPdfBlockingInvariants,
     eoSnapshot,
     isSystemInvariant,
-    snapshotSystemError,
     tafPdfBlockingInvariants,
   ]);
 
@@ -436,12 +406,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       snapshot: eoSnapshot,
     });
     if (!result.success) {
-      setDownloadErrorState({
-        open: true,
-        title: 'Download mislykkedes',
-        message: result.error,
-        error: new Error(result.error),
-      });
+      // Runtime-fejl under PDF-generering er en systemteknisk fejl — logges til devtools-monitor.
+      // Ingen dialog eller BugReportButton vises til brugeren (jf. error-debug-contract.md §8.1).
+      console.error('[EOberegningTab] EO PDF download fejlede:', result.error);
     }
   }, [canDownloadSnapshotEoPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings]);
 
@@ -458,12 +425,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       snapshot: eoSnapshot,
     });
     if (!result.success) {
-      setDownloadErrorState({
-        open: true,
-        title: 'Download mislykkedes',
-        message: result.error,
-        error: new Error(result.error),
-      });
+      // Runtime-fejl under PDF-generering er en systemteknisk fejl — logges til devtools-monitor.
+      // Ingen dialog eller BugReportButton vises til brugeren (jf. error-debug-contract.md §8.1).
+      console.error('[EOberegningTab] TAF fordelt på år PDF download fejlede:', result.error);
     }
   }, [canDownloadSnapshotTafPdf, eoSnapshot, stamdataValues, eoValues, settings]);
 
@@ -598,13 +562,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       >
         <Typography className="row--text">{row.message}</Typography>
         <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-          {row.bugReportContext ? (
-            <BugReportButton
-              variant="outlined"
-              label="Send fejloplysninger"
-              context={row.bugReportContext}
-            />
-          ) : null}
           <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
         </Box>
       </Box>
@@ -912,28 +869,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         </Box>
       </ContentBox>
 
-      <ConfirmationDialog
-        open={downloadErrorState.open}
-        title={downloadErrorState.title}
-        message={downloadErrorState.message}
-        cancelText="Luk"
-        confirmText="OK"
-        confirmColor="primary"
-        onCancel={() => setDownloadErrorState((prev) => ({ ...prev, open: false }))}
-        onConfirm={() => setDownloadErrorState((prev) => ({ ...prev, open: false }))}
-        extraActions={
-          downloadErrorState.error ? (
-            <BugReportButton
-              variant="outlined"
-              label="Send fejloplysninger"
-              context={{
-                source: 'Beregning-fane: EO download fejlede',
-                error: downloadErrorState.error,
-              }}
-            />
-          ) : null
-        }
-      />
     </Box>
   );
 });

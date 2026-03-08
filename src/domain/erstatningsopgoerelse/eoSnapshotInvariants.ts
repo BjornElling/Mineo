@@ -6,10 +6,16 @@ import {
 
 export type EoProjectionTarget = 'beregning' | 'debug' | 'eo_pdf' | 'taf_per_year_pdf';
 
+/**
+ * source klassificerer invariantens oprindelse:
+ * - 'validation': stammer fra felter/valideringsregler (vises som feltfejl og i "Fejl og advarsler")
+ * - 'system': stammer fra engine/beregningslag (vises i systemfejl-sektion, evt. med BugReportButton)
+ */
 export type EoInvariant = Readonly<{
   id: string;
   passed: boolean;
   severity: 'warning' | 'error';
+  source: 'validation' | 'system';
   message: string;
   evidence?: ReadonlyArray<string>;
   blocksAuthoritativeComputation?: boolean;
@@ -37,6 +43,7 @@ export const buildValidationInvariants = (errors: readonly ValidationError[]): r
     id: buildValidationInvariantId(error, index),
     passed: false,
     severity: error.severity === 'warning' ? 'warning' : 'error',
+    source: 'validation' as const,
     message: error.message,
     evidence: error.path ? [error.path] : undefined,
     blocksAuthoritativeComputation: error.severity !== 'warning',
@@ -52,6 +59,7 @@ export const buildTafPerYearAfrundingInvariant = (args: Readonly<{
   id: 'taf_per_year:afrunding_over_100',
   passed: false,
   severity: 'error',
+  source: 'system',
   message: 'TAF fordelt på år kan ikke afstemmes inden for 1 kr.',
   evidence: [
     `Afrunding: ${args.afrundingOre}`,
@@ -66,6 +74,7 @@ export const buildTafPerYearUnavailableInvariant = (reason: 'missing_loenudvikli
   id: `taf_per_year:${reason}`,
   passed: false,
   severity: 'error',
+  source: 'system',
   message: reason === 'missing_loenudvikling'
     ? 'TAF fordelt på år kan ikke genereres, fordi lønudvikling ikke kunne beregnes autoritativt.'
     : 'TAF fordelt på år kan ikke genereres, fordi indtægter i TAF-perioden ikke kunne beregnes autoritativt.',
@@ -77,6 +86,7 @@ export const buildControlMismatchInvariant = (messages: readonly string[]): EoIn
   id: 'debug:control_mismatch',
   passed: false,
   severity: 'error',
+  source: 'system',
   message: 'Der er konstateret kontroluoverensstemmelser i EO-beregningen.',
   evidence: messages,
   blocksAuthoritativeComputation: false,

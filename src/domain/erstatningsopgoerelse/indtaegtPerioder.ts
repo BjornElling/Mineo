@@ -12,7 +12,13 @@ import { createDate, parseDanishDate } from '../../utils/dateUtils';
 import { ydelsestyper } from '../../data/ydelsestyper';
 import { type DateInterval, type IsoRange, validateIsoRange } from '../../utils/isoDateHelpers';
 import { mergeIsoDateRanges } from './periodMerging';
-import { buildClampedTafRanges, buildValidTafRanges, resolveTafConstraintBounds } from './tafPeriodConstraints';
+import {
+  buildClampedTafRanges,
+  buildValidTafRanges,
+  clampTafRange,
+  resolveTafEoPeriodeBounds,
+  resolveTafFejlgivendeBounds,
+} from './tafPeriodConstraints';
 import { getAarsloenErrorRowIdSet } from './indkomstRowValidation';
 import { isAarsloenTableValueEffectivelyEmptyForValidation } from '../../utils/aarsloenTableValidation';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
@@ -107,10 +113,23 @@ export const buildTafRanges = (
   values: ErstatningsopgoerelseValues,
   options: Readonly<{ clamp?: boolean }> = {}
 ): IsoRange[] => {
-  const ranges = options.clamp === false
-    ? buildValidTafRanges(values.tafPerioder ?? [])
-    : buildClampedTafRanges(values.tafPerioder ?? [], resolveTafConstraintBounds(values));
-  return mergeIsoDateRanges(ranges, { mergeAdjacent: true });
+  if (options.clamp === false) {
+    return mergeIsoDateRanges(buildValidTafRanges(values.tafPerioder ?? []), { mergeAdjacent: true });
+  }
+  // Tre-trins clamping (jf. eo-snapshot-contract.md §2.3):
+  // 1. Clamp mod fejlgivende øvre grænser (differencekrav, EET) — validator rapporterer violation
+  const fejlgivendeBounds = resolveTafFejlgivendeBounds(values);
+  const afterFejlgivende = buildClampedTafRanges(values.tafPerioder ?? [], fejlgivendeBounds);
+  // 2. Merge overlappende og tilstødende ranges
+  const merged = mergeIsoDateRanges(afterFejlgivende, { mergeAdjacent: true });
+  // 3. Stille clamping mod EO-perioden (ingen fejlindikation)
+  const eoBounds = resolveTafEoPeriodeBounds(values);
+  const result: IsoRange[] = [];
+  for (const range of merged) {
+    const clamped = clampTafRange(range, eoBounds);
+    if (clamped) result.push(clamped);
+  }
+  return result;
 };
 
 export const buildBeregningsperiodeRange = (

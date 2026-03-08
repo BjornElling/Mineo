@@ -42,9 +42,11 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.invariants.some((invariant) => invariant.id.startsWith('taf_perioder:overlap:'))).toBe(true);
   });
 
-  it('clampper TAF-periode til differencekrav-bound: bevarer autoritativt snapshot-data uden ekstra invariant', () => {
-    // TAF til-dato >= differencekravDato clampes stille i snapshot.
-    // Bound-violations vises som felt-niveau fejl i TAFPeriodeTable — ikke som snapshot-invariants.
+  it('TAF-periode clampes mod differencekrav: feltfejl i UI, snapshot beregnes på clampet værdi (korrekt adfærd)', () => {
+    // KONTRAKTSTATUS (eo-snapshot-contract.md §2.2): TAF til-dato >= differencekravDato er en fejlgivende bound.
+    // Korrekt adfærd: feltfejl (rød kant + tooltip) i TAFPeriodeTable + EOBeregningTab blokerer download.
+    // Snapshot producerer ingen invariant for dette — snapshot beregnes på den clampede værdi med data tilgængeligt.
+    // Dette er den korrekte og tilstrækkelige mekanisme; feltfejl-tilgangen er ikke et udestående.
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = '2024-01-01';
     eoValues.vedroererPeriodeTil = '2024-12-31';
@@ -67,11 +69,11 @@ describe('computeEoSnapshot', () => {
       eoValues,
     });
 
-    // Clamping er nu stille: data tilgængeligt, ingen ekstra bound violation invariant
+    // Snapshot: data tilgængeligt (beregnet på clampet range), ingen snapshot-invariant for differencekravDato-bound.
     expect(snapshot.data).not.toBeNull();
     expect(snapshot.debugSnapshot).not.toBeNull();
     expect(snapshot.invariants.some((inv) => inv.id.includes('taf_perioder:upper_bound:differencekrav'))).toBe(false);
-    // Canonical output bruger den clampede range (til 2024-06-30 = dagen før differencekravDato)
+    // Snapshot bruger den clampede range (til 2024-06-30 = dagen før differencekravDato)
     expect(snapshot.data?.canonicalOutput.periodiseringer.tafPerioder).toEqual([
       { fra: '2024-01-01', til: '2024-06-30' },
     ]);
@@ -109,9 +111,11 @@ describe('computeEoSnapshot', () => {
     ]);
   });
 
-  it('clampper svie/smerte-periode til ménafgørelse: bevarer autoritativt snapshot-data uden ekstra invariant', () => {
-    // Svie/smerte til-dato >= ménafgørelsesdato clampes stille i snapshot.
-    // Bound-violations vises som felt-niveau fejl i SvieSmerteTable — ikke som snapshot-invariants.
+  it('svie/smerte til-dato >= ménafgørelsesdato: fejlgivende bound giver validator-fejl og blokerer data', () => {
+    // Svie/smerte til-dato >= ménafgørelsesdato er en FEJLGIVENDE bound (ikke stille clamping).
+    // jf. eo-snapshot-contract.md §2.2 og form-contract.md §13.2.
+    // Validator rapporterer fejl → blocksAuthoritativeComputation: true → data: null.
+    // Snapshot status er 'error', debugSnapshot er tilgængeligt (bygges i validerings-fejl-stien).
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = '2023-05-24';
     eoValues.vedroererPeriodeTil = '2025-12-21';
@@ -124,23 +128,90 @@ describe('computeEoSnapshot', () => {
     eoValues.svieSmerteSatserAar = 2026;
     eoValues.svieSmerteDelvisSygemeldingSats = 'fuld';
     eoValues.svieSmertePerioder = [
+      // til-dato 2025-04-21 >= menAfgoerelseDato 2024-04-22 → fejlgivende bound
       { id: 'ss-1', fra: '2023-05-24', til: '2025-04-21', tilstand: 'sygemeldt' },
     ];
 
     const snapshot = computeEoSnapshot({
-      revision: 'svie-men-clamp',
+      revision: 'svie-men-bound',
       stamdataValues: STAMDATA_INITIAL_VALUES,
       eoValues,
     });
 
-    // Clamping er nu stille: data tilgængeligt, ingen ekstra bound violation invariant
+    // Fejlgivende bound → validator-fejl → data null
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.data).toBeNull();
     expect(snapshot.failClosedReason).toBeUndefined();
-    expect(snapshot.data).not.toBeNull();
+    // debugSnapshot bygges i validerings-fejl-stien
     expect(snapshot.debugSnapshot).not.toBeNull();
-    expect(snapshot.invariants.some((inv) => inv.id.includes('svie_smerte_perioder:upper_bound:menAfgoerelsesdato'))).toBe(false);
-    // Engine bruger clampet periode (til dagen FØR ménafgørelsesdato)
+    expect(snapshot.invariants.some((invariant) => invariant.id === 'runtime_exception')).toBe(false);
+    // Fejl-invariant er til stede
+    const tilFejl = snapshot.invariants.find((inv) => inv.evidence?.some((e) => e.includes('svieSmertePerioder')));
+    expect(tilFejl).toBeDefined();
+  });
+
+  it('svie/smerte til-dato inden for EO-perioden men >= ménafgørelsesdato: fejlgivende bound', () => {
+    // Perioden overskrider ménafgørelsesdatoen, selv om den OGSÅ overstiger vedroererPeriodeTil.
+    // Ménafgørelsesbound er fejlgivende uanset om EO-periode-clamping ville have begrænset perioden.
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.vedroererPeriodeFra = '2023-05-24';
+    eoValues.vedroererPeriodeTil = '2024-06-01';
+    eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
+    eoValues.beregnesTabtArbejdsfortjeneste = 'Nej';
+    eoValues.tidligereSsMax = 'Nej';
+    eoValues.varigeMenAfgorelse = 'Ja';
+    eoValues.verserendeKlageMen = 'Nej';
+    eoValues.menAfgoerelseDato = '2024-04-22';
+    eoValues.svieSmerteSatserAar = 2026;
+    eoValues.svieSmerteDelvisSygemeldingSats = 'fuld';
+    eoValues.svieSmertePerioder = [
+      // til-dato 2024-05-01 >= menAfgoerelseDato 2024-04-22 → fejlgivende bound
+      { id: 'ss-1', fra: '2023-05-24', til: '2024-05-01', tilstand: 'sygemeldt' },
+    ];
+
+    const snapshot = computeEoSnapshot({
+      revision: 'svie-men-bound-2',
+      stamdataValues: STAMDATA_INITIAL_VALUES,
+      eoValues,
+    });
+
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.invariants.some((invariant) => invariant.id === 'runtime_exception')).toBe(false);
+  });
+
+  it('svie/smerte til-dato under ménafgørelsesdato: ingen fejl (stille clamping mod EO-periode)', () => {
+    // til-dato er lovlig ift. ménafgørelse, men overskrider EO-perioden → stille clamping
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.vedroererPeriodeFra = '2023-05-24';
+    eoValues.vedroererPeriodeTil = '2024-03-01';
+    eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
+    eoValues.beregnesTabtArbejdsfortjeneste = 'Nej';
+    eoValues.tidligereSsMax = 'Nej';
+    eoValues.varigeMenAfgorelse = 'Ja';
+    eoValues.verserendeKlageMen = 'Nej';
+    eoValues.menAfgoerelseDato = '2024-04-22';
+    eoValues.svieSmerteSatserAar = 2026;
+    eoValues.svieSmerteDelvisSygemeldingSats = 'fuld';
+    eoValues.svieSmertePerioder = [
+      // til-dato 2024-04-01 < menAfgoerelseDato 2024-04-22 → ménafgørelse-bound OK
+      // men > vedroererPeriodeTil 2024-03-01 → stille clamping
+      { id: 'ss-1', fra: '2023-05-24', til: '2024-04-01', tilstand: 'sygemeldt' },
+    ];
+
+    const snapshot = computeEoSnapshot({
+      revision: 'svie-eo-periode-clamp',
+      stamdataValues: STAMDATA_INITIAL_VALUES,
+      eoValues,
+    });
+
+    // Stille clamping: ingen fejl, data tilgængeligt
+    expect(snapshot.status).toBe('ok');
+    expect(snapshot.data).not.toBeNull();
+    expect(snapshot.failClosedReason).toBeUndefined();
+    // Engine clamper til vedroererPeriodeTil
     expect(snapshot.data?.engines.svieSmerte.constrainedPeriods).toEqual([
-      { fra: '2023-05-24', til: '2024-04-21', isDelvist: false },
+      { fra: '2023-05-24', til: '2024-03-01', isDelvist: false },
     ]);
     expect(snapshot.invariants.some((invariant) => invariant.id === 'runtime_exception')).toBe(false);
   });

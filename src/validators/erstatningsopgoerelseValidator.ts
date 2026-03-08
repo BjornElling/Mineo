@@ -192,7 +192,7 @@ function validateSvieSmerte(values: ErstatningsopgoerelseValues): ValidationErro
   for (let i = 0; i < perioder.length; i += 1) {
     const row = perioder[i];
     if (isSvieSmerteRowEmpty(row)) continue;
-    const errors_ = validateSvieSmerteRowCompleteness(row, i);
+    const errors_ = validateSvieSmerteRowCompleteness(row, i, values);
     errors.push(...errors_);
   }
 
@@ -256,9 +256,17 @@ function validateSvieSmerte(values: ErstatningsopgoerelseValues): ValidationErro
 }
 
 /**
- * Validér at en ikke-tom svie/smerte-række er fuldt udfyldt og har gyldige datoer
+ * Validér at en ikke-tom svie/smerte-række er fuldt udfyldt og har gyldige datoer.
+ * menAfgoerelseDato-grænsen er en fejlgivende bound (jf. eo-snapshot-contract.md §2.2):
+ * svie/smerte til-dato >= menAfgoerelseDato (når afgørelse ikke er påklaget) giver feltfejl.
+ * Format-validering (isISODateString) er redundant her da validateParsed modtager
+ * schema-validerede værdier, men bevares som defensivt invariant-check.
  */
-function validateSvieSmerteRowCompleteness(row: SvieSmertePeriodeRow, index: number): ValidationError[] {
+function validateSvieSmerteRowCompleteness(
+  row: SvieSmertePeriodeRow,
+  index: number,
+  values: ErstatningsopgoerelseValues
+): ValidationError[] {
   const errors: ValidationError[] = [];
   const prefix = `svieSmertePerioder[${index}]`;
 
@@ -276,14 +284,27 @@ function validateSvieSmerteRowCompleteness(row: SvieSmertePeriodeRow, index: num
     errors.push({ path: `${prefix}.tilstand`, message: 'Tilstand mangler', severity: 'error' });
   }
 
-  // Dato-interval validering
-  if (hasFra && hasTil && row.fra && row.til) {
-    if (!isISODateString(row.fra)) {
-      errors.push({ path: `${prefix}.fra`, message: 'Ugyldig dato', severity: 'error' });
-    } else if (!isISODateString(row.til)) {
-      errors.push({ path: `${prefix}.til`, message: 'Ugyldig dato', severity: 'error' });
-    } else if (row.fra > row.til) {
+  // Dato-interval validering. isISODateString-guards er type narrowing — ikke format-validering.
+  // Format er garanteret af Zod-schema (validateParsed modtager kun schema-validerede værdier).
+  if (hasFra && hasTil && isISODateString(row.fra) && isISODateString(row.til)) {
+    if (row.fra > row.til) {
       errors.push({ path: `${prefix}.fra`, message: 'Fra-dato må ikke være efter til-dato', severity: 'error' });
+    } else {
+      // Fejlgivende bound: til-dato >= menAfgoerelseDato når afgørelse er truffet og ikke påklaget.
+      // Gælder uanset skadestype (jf. eo-snapshot-contract.md §2.2 og form-contract.md §13.2).
+      // Stille clamping mod vedroererPeriodeTil sker i engineen — det er ikke en feltfejl.
+      const menAfgoerelseDato = isISODateString(values.menAfgoerelseDato) ? values.menAfgoerelseDato : undefined;
+      const menBoundActive =
+        values.varigeMenAfgorelse === 'Ja' &&
+        values.verserendeKlageMen === 'Nej' &&
+        menAfgoerelseDato !== undefined;
+      if (menBoundActive && menAfgoerelseDato !== undefined && row.til >= menAfgoerelseDato) {
+        errors.push({
+          path: `${prefix}.til`,
+          message: `Til-dato kan ikke være på eller efter afgørelsesdato for varige mén (${menAfgoerelseDato})`,
+          severity: 'error',
+        });
+      }
     }
   }
 
@@ -424,12 +445,9 @@ function validateTafRowCompleteness(row: TafPeriodeRow, index: number): Validati
     errors.push({ path: `${prefix}.til`, message: 'Til-dato mangler', severity: 'error' });
   }
 
-  if (hasFra && hasTil && row.fra && row.til) {
-    if (!isISODateString(row.fra)) {
-      errors.push({ path: `${prefix}.fra`, message: 'Ugyldig dato', severity: 'error' });
-    } else if (!isISODateString(row.til)) {
-      errors.push({ path: `${prefix}.til`, message: 'Ugyldig dato', severity: 'error' });
-    } else if (row.fra > row.til) {
+  // isISODateString-guards er type narrowing — format er garanteret af Zod-schema.
+  if (hasFra && hasTil && isISODateString(row.fra) && isISODateString(row.til)) {
+    if (row.fra > row.til) {
       errors.push({ path: `${prefix}.fra`, message: 'Fra-dato må ikke være efter til-dato', severity: 'error' });
     }
   }

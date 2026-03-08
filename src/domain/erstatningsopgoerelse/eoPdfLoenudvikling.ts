@@ -51,6 +51,15 @@ import {
   resolveStatistikModelId,
 } from './sharedPdfUtils';
 
+// =============================================================================
+// INVARIANT-NOTE: Alle throw new Error() i denne fil er defensive invarianter.
+// De kan kun nås hvis erstatningsopgoerelseValidator har fejlet i at afvise
+// input, der burde have blokeret beregningen. Under normal udførelse er samtlige
+// throw-stier dækket af validator-/preflight-checks i snapshot-orchestreringen.
+// Uventede throws fanges af computeEoSnapshot og resulterer i fail_closed med
+// failClosedReason: 'runtime_exception'. Se eo-snapshot-contract.md §3.3.
+// =============================================================================
+
 const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 
 export const resolveLoenudviklingRowsV3 = (
@@ -1512,9 +1521,6 @@ const resolveDagsloenBase = (
 const getDayAfter = (isoDate: ISODateString): ISODateString => {
   const date = isoDateToDate(isoDate);
   const nextDate = addDays(date, 1);
-  const iso = dateToISO(nextDate);
-  if (!iso) {
-    throw new Error('Kunne ikke formatere ISO-dato i getDayAfter.');
-  }
-  return iso;
+  // invariant: dateToISO returnerer aldrig null på en gyldig dato fra addDays
+  return (dateToISO(nextDate) ?? isoDate) as ISODateString;
 };

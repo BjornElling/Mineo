@@ -1,6 +1,6 @@
 # Erstatningsopgørelse-arkitektur (fra bunden)
 
-**Status:** Implementeret målarkitektur (opdateret 2026-03-07)
+**Status:** Implementeret målarkitektur (opdateret 2026-03-08)
 **Scope:** Hele Erstatningsopgørelse-fanen inkl. EODebug, EODebugTabel, `erstatningsopgoerelsePdf`, `tafFordeltPaaAarPdf` og underliggende beregninger
 **Mål:** Samme UI/UX og samme PDF-indhold som i dag, men med én autoritativ beregningssti
 
@@ -9,7 +9,7 @@
 Følgende er nu gennemført i kodebasen:
 - `computeEoSnapshot` er indført som autoritativ EO-entry og wired til Beregning, EO-PDF og TAF-fordelt-på-år-PDF.
 - Snapshot bygger nu totals, EO-PDF-model, canonical output, debug snapshot og TAF-fordelt-på-år-grundlag i én samlet orkestrering.
-- Preflight/invariants dækker nu bl.a. TAF-overlap, ferie/fridags-overbooking, kontroluoverensstemmelse og TAF-per-år-afstemning over `100 øre`. Bounds-violations (TAF/svie-smerte mod differencekrav, EET og ménafgørelse) håndteres som stille clamping — ikke som snapshot-invariants (jf. §16.3).
+- Preflight/invariants dækker nu bl.a. TAF-overlap, ferie/fridags-overbooking, kontroluoverensstemmelse og TAF-per-år-afstemning over `100 øre`. Stille clamping sker **kun** mod `vedroererPeriodeFra`/`vedroererPeriodeTil` — ingen fejlindikation. Bounds-violations mod differencekravDato, EET-virkningsdato og ménafgørelsesdato er **fejlgivende bounds**: snapshot bruger clampede værdier, og violations eksponeres som feltfejl (rød kant + tooltip) i TAFPeriodeTable/SvieSmerteTable og gengives på EOBeregningTab, der blokerer download. Se `src/contracts/eo-snapshot-contract.md` §2 for den bindende todelt bounds-model.
 - Beregning-fanen bruger snapshot til download-gating, viser fail-closed/systemfejl eksplicit og åbner ikke længere downloads på baggrund af alene gamle debug-rækker.
 - Beregning-fanen viser nu også autoritative snapshot-blokeringer eksplicit og bruger kun snapshot-afledte gating-signaler fra `eoSnapshotToBeregningView`.
 - PDF-downloads projekterer nu snapshot til dokumentmodeller i `pdfService` og sender kun de projekterede dokumenter videre til generatorerne.
@@ -19,8 +19,15 @@ Følgende er nu gennemført i kodebasen:
 
 **Tilføjet 2026-03-07 (todelt bounds-model, jf. §16.3):**
 - `svieSmerteEngine` kaster ikke længere på forventelige brugerinputfejl (overlap, ufuldstændige perioder, manglende satser). I stedet returneres et nul-output via `buildZeroOutput`. Fejlrapportering sker udelukkende via validator/invariants — engine-throws var et hul i preflight-dækningen.
-- Bounds-violations (TAF og svie/smerte) håndteres som **stille clamping** i snapshot-orchestreringen: clamping sker altid mod alle bounds (inkl. differencekravDato, EET-virkningsdato og ménafgørelsesdato), men trigger ikke snapshot-invariants. Snapshot data/totals bygges på de clampede værdier; debugSnapshot afspejler de clampede perioder. Bounds-fejl der skal vises for brugeren eksponeres som felt-niveau fejl i UI-komponenterne (TAFPeriodeTable, SvieSmerteTable) — ikke som snapshot-invariants.
-- Stille clamping mod `vedroererPeriodeFra`/`vedroererPeriodeTil` samt mod differencekravDato/EET/ménafgørelsesdato er uændret (ingen fejlindikation i snapshot).
+- Clamping mod EO-perioden (`vedroererPeriodeFra`/`vedroererPeriodeTil`) sker **stille** — ingen fejlindikation i felt, EOBeregningTab eller snapshot-invariants. Dette er en udtømmende undtagelse: der er ingen andre bounds der clampes stille. Clamping kan resultere i tomme perioder — dette er normal og forventelig adfærd (PDF viser 'Ingen').
+- Bounds-violations mod differencekravDato, EET-virkningsdato og ménafgørelsesdato er **fejlgivende bounds**: snapshot bygges stadig på de clampede værdier. Violations eksponeres som feltfejl (rød kant + tooltip) i TAFPeriodeTable/SvieSmerteTable og gengives på EOBeregningTab, der blokerer download. Se `src/contracts/eo-snapshot-contract.md` §2.2 for den normative liste.
+
+**Tilføjet 2026-03-08 (tretrin clamping-rækkefølge, jf. §16.3 og eo-snapshot-contract.md §2.3):**
+- TAF- og svie/smerte-perioder behandles nu i en **eksplicit tretrinsrækkefølge**: (1) fejlgivende clamping mod differencekravDato/EET-virkningsdato/ménafgørelsesdato, (2) merge af overlappende og tilstødende perioder, (3) stille clamping mod EO-perioden. Rækkefølgen er semantisk vigtig: feltfejl for fejlgivende bounds må ikke skjules af at EO-periode-clamping forinden har afkortet perioden.
+- `tafPeriodConstraints.ts` eksporterer nu `resolveTafFejlgivendeBounds` og `resolveTafEoPeriodeBounds` som separate funktioner (i stedet for den tidligere kombinerede `resolveTafConstraintBounds` til brug i `buildTafRanges`). `resolveTafConstraintBounds` er bevaret til debug-/UI-visning, der har brug for den samlede grænse.
+- `svieSmerteConstraints.ts` (ny fil) spejler `tafPeriodConstraints.ts`-mønstret med `resolveSvieSmerteFejlgivendeBounds`, `resolveSvieSmerteEoPeriodeBounds` og `clampSvieSmerteRange`.
+
+**Bounds-mekanisme (2026-03-08, opdateret):** Fejlgivende bounds (differencekravDato, EET-virkningsdato, ménafgørelsesdato) eksponeres via feltfejl (rød kant + tooltip) i UI-komponenterne (TAFPeriodeTable, SvieSmerteTable), og fejlen gengives på EOBeregningTab, der blokerer download-funktionaliteten. Dette er den korrekte og tilstrækkelige mekanisme. Bounds-violations producerer ikke snapshot-invariants — snapshot beregnes stadig på clampede værdier og `data` er tilgængeligt. Se `src/contracts/eo-snapshot-contract.md` §2.2.
 
 **Tilføjet 2026-03-07 (debug-snapshot clamping):**
 - `debugSnapshot` bygges nu **efter** `buildTafRanges` i `computeEoSnapshot`, og de clampede ranges sendes eksplicit til `buildEODebugSnapshot` → `buildEODebugModel` og `buildEODebugSammentaellingModel`. EODebug-tabellen afspejler dermed præcist de perioder der indgik i beregningen — ikke de rå committede datoer.
@@ -104,6 +111,8 @@ src/domain/erstatningsopgoerelse/
   eoSnapshotToDebugView.ts
   eoSnapshotToEoPdfDocument.ts
   eoSnapshotToTafPerYearPdfDocument.ts
+  tafPeriodConstraints.ts      # TAF clamping-bounds og range-hjælpere
+  svieSmerteConstraints.ts     # Svie/smerte clamping-bounds (parallel til tafPeriodConstraints)
 ```
 
 Begrundelse:
@@ -476,13 +485,17 @@ Formål med denne opsamling:
 - TAF-overlap håndteres delvist som UI-fejl, men kerneflow merger perioder for beregning.
 - `erstatningsopgoerelseValidator` ser ikke ud til at være aktiv runtime-gate i produktion (kun test-imports fundet).
 
-### 16.3 Afklarede principspørgsmål (lukket 2026-03-05, opdateret 2026-03-07)
+### 16.3 Afklarede principspørgsmål (lukket 2026-03-05, opdateret 2026-03-08)
+
+Den normative specifikation af todelt bounds-model og clampingmodel er nu i
+`src/contracts/eo-snapshot-contract.md` §2. Nedenstående er historisk dokumentation
+og resumé; kontrakten har prioritet ved eventuel uoverensstemmelse.
 
 - Out-of-range ferie/fridagsfelter, der bruges i EO-beregning, er hård beregningsblokering. Dette gælder både:
   - `tafPerioder[].loseFeriedage` (per TAF-periode)
   - `uspecificeredeFerieFridage` (globalt EO-felt)
 - Derudover skal invariant-registryet have kontekstuelle checks, hvor ferie/fridage ikke må overstige det beregningsmæssigt mulige antal arbejdsdage i den relevante periode. Ingen totals eller EO-downloads må behandles som gyldige, før sådanne fejl er rettet.
-- TAF- og svie/smerte-perioder følger en todelt bounds-model (opdateret 2026-03-07):
+- TAF- og svie/smerte-perioder følger en todelt bounds-model (se `eo-snapshot-contract.md` §2):
   - **Fejlgivende bounds** (fejl i inputfelt + EOBeregningTab, blokerer download, snapshot bruger clampet værdi):
     - TAF fra-dato: `< 2005-01-01`, `< skadesdato` (ikke-erhvervssygdom), `< anmeldedato − 5 år` (erhvervssygdom), `> til-dato i samme række`
     - TAF til-dato: `< fra-dato i samme række`, `>= differencekravDato`, `>= beregnet EET-virkningsdato` (når EET ikke er påklaget)
@@ -490,14 +503,20 @@ Formål med denne opsamling:
     - Svie/smerte til-dato: `< fra-dato i samme række`, `>= afgørelsesdato for varige mén` (når ménafgørelse ikke er påklaget — gælder uanset skadestype)
     - Manglende fra- eller til-dato på ikke-tom række: fejl kun på EOBeregningTab (ikke i felt), blokerer download
     - Overlap mellem rækker: fejl i felt + EOBeregningTab, blokerer download
-  - **Stille clamping** (ingen fejlindikation, snapshot og EODebug bruger clampet værdi som om den var indtastet):
+  - **Stille clamping** (ingen fejlindikation, snapshot og EODebug bruger clampet værdi som om den var indtastet) — **udtømmende liste, ingen andre bounds clampes stille:**
     - TAF fra-dato `< vedroererPeriodeFra`
-    - TAF til-dato `> vedroererPeriodeTil` (når ingen EET/differencekrav-fejl er aktiv)
+    - TAF til-dato `> vedroererPeriodeTil`
     - Svie/smerte fra-dato `< vedroererPeriodeFra`
-    - Svie/smerte til-dato `> vedroererPeriodeTil` (når ingen ménafgørelsesfejl er aktiv)
-  - Alle bounds-fejl der blokerer download skal løftes til validator og derfra til snapshot-invariants — det er ikke tilstrækkeligt at vise dem i UI-komponenterne alene.
+    - Svie/smerte til-dato `> vedroererPeriodeTil`
+  - **Nul-range er normal adfærd:** Clamping kan reducere en periode til ingenting. Dette er
+    forventeligt og fejlfrit — fx når brugerens TAF-periode slet ikke falder inden for EO-perioden.
+    Resultatet er en tom periodesamling; PDF-sektionen viser 'Ingen', identisk med toggle-switch-valget
+    om ikke at beregne TAF/svie-smerte. Ingen fejl gives i dette tilfælde.
+  - **Tretrin clamping-rækkefølge (implementeret 2026-03-08):** TAF- og svie/smerte-perioder behandles i denne rækkefølge: (1) fejlgivende clamping (differencekravDato/EET-virkningsdato/ménafgørelsesdato), (2) merge af overlappende og tilstødende ranges, (3) stille clamping mod EO-perioden. Se `src/contracts/eo-snapshot-contract.md` §2.3 for den normative seksvejsbeskrivelse. Rækkefølgen er vigtig: fejlgivende clamping sker FØR stille, så feltfejl ikke skjules.
+  - Fejlgivende bounds-fejl der blokerer download eksponeres som feltfejl (rød kant + tooltip) i UI-komponenterne og gengives på EOBeregningTab, der blokerer download. Adfærden er identisk for differencekravDato, EET-virkningsdato og ménafgørelsesdato. Bounds-violations producerer ikke snapshot-invariants — snapshot beregnes på clampede værdier og `data` er tilgængeligt. Se `src/contracts/eo-snapshot-contract.md` §2.2.
   - Snapshot bruger altid clampede værdier, også når der vises fejl. EODebug viser de clampede værdier.
   - `debugSnapshot` bygges **efter** `buildTafRanges` er kaldt i `computeEoSnapshot`, og de clampede ranges sendes eksplicit til `buildEODebugSnapshot` → `buildEODebugModel` og `buildEODebugSammentaellingModel`. EODebug-tabellen afspejler dermed præcist de perioder der faktisk indgik i beregningen. I validerings-fejl-stien (engines ikke kørt) bygges `debugSnapshot` uden ranges — debug-tabellen viser de rå committede datoer.
+- Tomt `tidligereModtagetTaf` er semantisk `0 kr` og skal eksponeres entydigt som `0`, ikke `null`, i snapshot/projektioner. (Normativ regel: se `src/contracts/eo-snapshot-contract.md` §6 og `form-contract.md` §14.)
 - Ved kontroluoverensstemmelse hard-blokeres alle EO-downloads som systemfejl, og eksisterende fejlvisning med fejloplysninger anvendes.
 - For TAF-fordeling per år ved afrundingsafvigelse over `100 øre` afvises download helt; dokumentet må ikke genereres.
 
@@ -529,12 +548,13 @@ Denne checkliste er bindende for første migrationsarbejde og skal være opfyldt
   - `uspecificeredeFerieFridage`
   hvor EO-beregning og downloads ikke må optræde som gyldige.
 - Etabler reference-tests for kontekstuelle ferie/fridagsfejl, hvor antal ferie/fridage overstiger mulige arbejdsdage i den relevante beregningsperiode.
-- Etabler reference-tests for TAF- og svie/smerte-perioder med fejlgivende bounds-violations (jf. §16.3), der skal give fejl i validator/invariants og blokere download — men hvor snapshot bruger clampet værdi og EODebug viser clampet indhold.
+- Etabler reference-tests for TAF- og svie/smerte-perioder med fejlgivende bounds-violations (jf. §16.3), der skal give feltfejl (rød kant + tooltip) og blokere download via EOBeregningTab — men hvor snapshot bruger clampet værdi, ingen snapshot-invariant produceres, og EODebug viser clampet indhold.
 - Etabler reference-tests for TAF- og svie/smerte-perioder der kun overskrider EO-perioden (`vedroererPeriodeFra`/`vedroererPeriodeTil`), der skal resultere i stille clamping uden fejlindikation.
+- Etabler reference-tests for det tilfælde hvor clamping resulterer i tomme perioder (nul-ranges) — dette skal give `harTafPerioder = false` og PDF-visning 'Ingen' uden fejl, identisk med toggle-switch-valget om ikke at beregne TAF.
 - Etabler reference-tests for kontroluoverensstemmelse, hvor både EO-PDF og TAF-fordelt-på-år-PDF skal være blokeret.
 - Etabler reference-tests for TAF-per-år-afstemning over `100 øre`, hvor dokumentmodellen/PDF-generationen afvises helt.
 - Kortlæg og klassificer alle TAF- og svie/smerte-bounds som enten:
-  - fejlgivende bounds (validatorfejl → invariant → blokeret download)
+  - fejlgivende bounds (feltfejl i UI-komponent + EOBeregningTab blokerer download, ingen snapshot-invariant)
   - stille-clampende bounds (kun mod EO-perioden, ingen fejlindikation)
 - For fejlgivende bounds skal fejlmodellen kunne pege på både symptomfeltet (TAF/svie-smerte-periode) og årsagsfeltet (fx differencekrav-dato, EET-virkningsdato, ménafgørelsesdato, skadesdato).
 - Kortlæg alle steder hvor `0` og `null` normaliseres eller behandles ens i EO canonical/debug/sammentælling/PDF.
@@ -558,8 +578,8 @@ Denne checkliste er bindende for første migrationsarbejde og skal være opfyldt
 - Snapshot-orchestreringen skal udføre preflight-checks før engine-kald for alle fejl, der kan udtrykkes brugernært på snapshot-niveau (fx overlap, out-of-range periods/bounds, manglende nødvendige inputfelter).
 - Engine-throws må ikke være primær mekanisme for forventelige brugerinputfejl i den autoritative sti. Hvis en engine kaster på sådan et tilfælde, er det et hul i preflight-dækningen, som skal lukkes.
 - Snapshot må ikke indeholde eller eksponere parallel fallback-totaler; der skal kun være én autoritativ beregningssti.
-- Snapshot-stien bruger clampede TAF-ranges som grundlag for autoritativ beregning. Clamping sker altid — både mod EO-periodens grænser (stille) og mod EET/differencekrav-grænser (fejlgivende). Snapshot/debug skal kunne bygges på committed data i begge tilfælde. `debugSnapshot` bygges eksplicit med de clampede ranges efter `buildTafRanges` i `computeEoSnapshot`, så EODebug aldrig viser TAF-dage der ikke indgik i beregningen.
-- Bounds-violations der er fejlgivende (jf. §16.3) skal opdages og rapporteres som post-computation invariants i snapshot-orchestreringen, **ikke** via engine-throws og **ikke** via `buildValidationInvariants`. `buildValidationInvariants` sætter altid `blocksAuthoritativeComputation: true` og er derfor ikke egnet til bounds-violations, der kun skal blokere outputs. Bounds-violation invariants bygges direkte i `eoSnapshotInvariants.ts` med `blocksOutputs` men uden `blocksAuthoritativeComputation`. Engine-throws på sådanne tilfælde er huller i preflight-dækningen.
+- Snapshot-stien bruger clampede TAF-ranges som grundlag for autoritativ beregning. Clamping sker altid i tre trin: (1) fejlgivende clamping mod differencekravDato/EET-virkningsdato (via `resolveTafFejlgivendeBounds`), (2) merge af overlappende og tilstødende ranges, (3) stille clamping mod EO-perioden (via `resolveTafEoPeriodeBounds`). Tilsvarende for svie/smerte via `svieSmerteConstraints.ts`. Snapshot/debug skal kunne bygges på committed data i alle tilfælde. `debugSnapshot` bygges eksplicit med de clampede ranges efter `buildTafRanges` i `computeEoSnapshot`, så EODebug aldrig viser TAF-dage der ikke indgik i beregningen.
+- Bounds-violations der er fejlgivende (jf. §16.3) eksponeres som feltfejl (rød kant + tooltip) i UI-komponenterne og blokerer download via EOBeregningTab. De producerer ikke snapshot-invariants. Engine-throws på sådanne tilfælde er huller i preflight-dækningen.
 - Invariant-registry skal have eksplicitte checks for:
   - out-of-range `tafPerioder[].loseFeriedage`
   - out-of-range `uspecificeredeFerieFridage`
@@ -567,12 +587,12 @@ Denne checkliste er bindende for første migrationsarbejde og skal være opfyldt
   - overlap i TAF-perioder
   - overlap i svie/smerte-perioder
   - TAF fra-dato < skadesdato / anmeldedato − 5 år
-  - TAF til-dato >= differencekravDato eller >= beregnet EET-virkningsdato (når ikke påklaget)
   - Svie/smerte fra-dato < skadesdato / anmeldedato − 5 år
-  - Svie/smerte til-dato >= afgørelsesdato for varige mén (når ikke påklaget)
   - Manglende fra- eller til-dato på ikke-tom TAF/svie-smerte-række
   - kontroluoverensstemmelse mellem totals/kontrolsum i friskt snapshot
   - TAF-per-år-afstemning over `100 øre`
+  - Bemærk: TAF til-dato >= differencekravDato/EET-virkningsdato og svie/smerte til-dato >= ménafgørelsesdato
+    håndteres som feltfejl i UI-komponenter (ikke som snapshot-invariants) — se §2.2 i eo-snapshot-contract.md.
 - Validator (`erstatningsopgoerelseValidator`) modtager i dag kun `ErstatningsopgoerelseValues`. Bounds der afhænger af `StamdataValues` (skadesdato, skadestype) skal enten løftes til en kombineret cross-schema validering i snapshot-orchestreringen eller til en udvidelse af `validateParsed` med stamdata-kontekst.
 - Invariant-brud, som gør beregning eller download utroværdig, skal klassificeres som `error` eller `fail_closed`, aldrig som almindelig warning.
 - Projektioner til Beregning, Debug og PDF skal pattern-matche på snapshot-status først og må ikke antage, at totals findes ved `fail_closed`.

@@ -21,7 +21,6 @@ import type { ISODateString } from '../../types/branded';
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import type { TafNettoBeregningResult } from './tafNettoBeregning';
 import type {
-  PdfModel,
   MoneyOre,
   LoenudviklingSegment,
   Calculable,
@@ -37,7 +36,7 @@ import {
   toOre,
 } from './eoPdfModel';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
-import { buildTafRanges, buildIncomeCalculationContext, buildIncomeForRanges } from './indtaegtPerioder';
+import { buildIncomeCalculationContext, buildIncomeForRanges } from './indtaegtPerioder';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from './tafBeregningsenhed';
 import { roundByMethod } from '../../utils/rounding';
 import { scaleMoneyOre } from './eoPdfMoneyUtils';
@@ -454,32 +453,3 @@ export const buildTafPerYearBuildOutcome = (
   };
 };
 
-const pdfModelToSource = (model: PdfModel): TafPerYearSource => ({
-  loenudvikling: model.tabtArbejdsfortjeneste.loenudvikling,
-  tafIndtaegter: model.tabtArbejdsfortjeneste.tafIndtaegter,
-  tidligereModtagetTaf: model.tabtArbejdsfortjeneste.tidligereModtagetTaf,
-  tabtArbejdsfortjenesteOre: model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre,
-  tafBeregningsenhed: model.tabtArbejdsfortjeneste.tafBeregningsenhed,
-  forligFactor: model.forlig?.factor ?? null,
-});
-
-/**
- * Legacy compatibility adapter for test/parity usage.
- * Produktionskoden skal bruge `buildTafPerYearBuildOutcome` via EO-snapshot, ikke denne PdfModel-entry.
- *
- * ADVARSEL: Bruger `buildTafRanges(eoValues)` (uklempe ranges). Produktionsstien bruger
- * clampede ranges fra `computeEoSnapshot`. Tests der bruger denne funktion verificerer
- * ikke produktionsstien korrekt ved cases med TAF-clamping.
- * TODO: Migrér tests til snapshot-baseret fixture (computeEoSnapshot → snapshot.data.engines.tafPerYear).
- *
- * @deprecated
- */
-export const buildTafPerYearResult = (
-  model: PdfModel,
-  eoValues: ErstatningsopgoerelseValues
-): TafPerYearResult | null => {
-  const outcome = buildTafPerYearBuildOutcome(pdfModelToSource(model), eoValues, {
-    tafRanges: buildTafRanges(eoValues),
-  });
-  return outcome.kind === 'ok' ? outcome.result : null;
-};

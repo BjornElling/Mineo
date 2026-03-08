@@ -3,12 +3,12 @@ import type { ISODateString } from '../../types/branded';
 import { isISODateString, isoToDanish, subtractOneDay } from '../../types/branded';
 import { isoDateToDate } from '../dates/isoDate';
 import { isTafRowEmpty } from './rowEmpty';
-import { computeSvieSmerteEngine, getDayAfterIso, type SvieSmerteEngineOutput } from './svieSmerteEngine';
+import { computeSvieSmerteEngine, type SvieSmerteEngineOutput } from './svieSmerteEngine';
 import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
 import { buildTafArbejdsstatusLinje } from './tafArbejdsstatusConfig';
 import type { Calculable, MoneyOre, OevrigeKravPdfModel, SvieSmertePdfModel, TabtArbejdsfortjenestePdfModel } from './eoPdfModelTypes';
 import { clampMoneyOreToZero, ensureMoneyOre } from './eoPdfMoneyUtils';
-import { formatDateShort, formatDateLong } from './sharedPdfUtils';
+import { formatDateShort, formatDateLong, getDayAfterIso } from './sharedPdfUtils';
 import { parseOevrigeKravBeloeb } from './oevrigeKravAmountParser';
 import { computeTafNettoBeregning, type TafNettoBeregningResult } from './tafNettoBeregning';
 

@@ -167,6 +167,7 @@ eller library-opgraderinger må ikke bryde disse semantikker.
   - Gyldigt datoformat committes altid og formateres til canonical form (dd-mm-åååå/ISO)
   - Udenfor interval giver fejlvisning (tooltip + rød ramme), men commit sker
   - Ugyldigt format committes ikke
+- Undtagelse: visse EO-feltspecifikke bounds giver fejlvisning direkte i feltet fra commit-tidspunktet — se §13.
 
 ---
 
@@ -360,3 +361,76 @@ Dette afsnit er normativt for visning af tabt arbejdsfortjeneste i flere outputs
 4. Clamp-scenarie:
 - Hvis EO-netto clamped til 0, fordi fradrag overstiger lønudvikling, må der ikke vises en misvisende årsfordeling med stor "Afrunding".
 - Systemet skal i dette tilfælde fail-close årsfordelingen.
+
+---
+
+## 13. EO feltklassificering og todelt bounds-model
+
+Dette afsnit er normativt for alle EO-felter og supplerer §7 (Validering).
+Se `src/contracts/eo-snapshot-contract.md` §2 for den bindende specifikation af clamping.
+
+### 13.1 Tre kategorier af EO-felter
+
+**Valgfrie felter:**
+- Tomt felt er gyldigt og semantisk neutralt.
+- Giver ingen fejl — hverken i felt eller i EOBeregningTab.
+- Eksempel: `tidligereModtagetTaf` (tomt = 0 kr., ikke en fejl), `differencekravDato`.
+
+**Påkrævede felter:**
+- Tomt felt giver fejl **kun** på EOBeregningTab-niveau (ikke som feltfejl).
+- Blokerer download.
+- Eksempel: Fra- eller til-dato på en ikke-tom TAF- eller svie/smerte-række.
+
+**Særlige felter med immediate feltfejl:**
+- Bounds-violation giver fejl direkte i inputfeltet fra commit-tidspunktet (tooltip + rød ramme).
+- Fejlen vises også på EOBeregningTab og blokerer download.
+- Eksempel: TAF til-dato `>= differencekravDato`, svie/smerte til-dato `>= ménafgørelsesdato`.
+- Se §13.2 for den udtømmende liste.
+
+### 13.2 Todelt bounds-model for TAF- og svie/smerte-perioder
+
+**Fejlgivende bounds** (feltfejl + EOBeregningTab + blokerer download):
+
+TAF fra-dato: `< 2005-01-01`, `< skadesdato` (ikke-erhvervssygdom), `< anmeldedato − 5 år`
+(erhvervssygdom), `> til-dato i samme række`.
+
+TAF til-dato: `< fra-dato i samme række`, `>= differencekravDato`,
+`>= beregnet EET-virkningsdato` (når EET-afgørelse ikke er påklaget).
+
+Svie/smerte fra-dato: `< 2005-01-01`, `< skadesdato` (ikke-erhvervssygdom),
+`< anmeldedato − 5 år` (erhvervssygdom), `> til-dato i samme række`.
+
+Svie/smerte til-dato: `< fra-dato i samme række`,
+`>= afgørelsesdato for varige mén` (når ménafgørelse ikke er påklaget).
+
+Overlap mellem rækker: fejl i felt + EOBeregningTab.
+
+**Stille clamping** (ingen fejlindikation — udtømmende):
+
+Kun mod EO-periodens grænser (`vedroererPeriodeFra`/`vedroererPeriodeTil`):
+- TAF eller svie/smerte fra-dato `< vedroererPeriodeFra` → clampes stille
+- TAF eller svie/smerte til-dato `> vedroererPeriodeTil` → clampes stille
+
+Der er ingen andre bounds der clampes stille. Dette er en udtømmende undtagelse.
+
+### 13.3 Clamping-tidspunkt og commit-semantik
+
+Clamping sker pre-snapshot i `computeEoSnapshot`. Det ændrer ikke committed form-state.
+Engines arbejder altid på clampede værdier.
+Gyldigt datoformat committes altid — clamping er et post-commit snapshot-anliggende, ikke
+et commit-tidspunkt-anliggende.
+
+---
+
+## 14. `tidligereModtagetTaf`-isometri
+
+Dette afsnit er normativt for feltet `tidligereModtagetTaf` (og analogt for tilsvarende
+"tidligere modtaget"-felter med same semantik).
+
+1. Tom committed værdi (`undefined`) repræsenterer semantisk `0 kr`.
+2. I snapshot/totals og alle projektioner (Beregning-tab, EODebug, PDF) normaliseres dette
+   til numerisk `0` (MoneyOre). `null` eller `undefined` må ikke propagere som resultat
+   af at feltet er tomt.
+3. Der er ingen semantisk forskel på "0 kr" og "tomt" for dette felt — begge tolkes som
+   `0 kr` fradrag.
+4. Feltet er **valgfrit** (jf. §13.1) — tomt felt giver ingen fejl.

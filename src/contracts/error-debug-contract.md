@@ -129,3 +129,82 @@ Der findes to gyldige strategier for debug-visninger:
 - Viser input/schema/rule samtidig og gør prioritet synlig
 
 Mineo’s `EODebug` er på nuværende tidspunkt designet til strategi **B**.
+
+---
+
+## 7. `BugReportButton` — tilladte placeringer
+
+`BugReportButton` er en fejlrapporteringskomponent til **systemtekniske runtime-fejl**.
+Den er ikke beregnet til normale valideringsfejl, manglende brugerinput eller
+out-of-range-input, som håndteres via feltfejl og EOBeregningTab-blokering.
+
+### 7.1 Tilladte placeringer
+
+- `ErrorFallback` (ErrorBoundary-flow ved uventede React-komponent-crashes)
+- `DevtoolsIssueNotice` (devtools-monitor-flow ved `console.error`-detektion)
+
+### 7.2 Forbudte placeringer
+
+- Som inline-element i normale beregningstabs, inputsider eller resultatvisninger
+- I `EODebug` eller `EODebugTabel`
+- I “Fejl og advarsler”-sektionen i `EOberegningTab` — hverken ved `fail_closed` med
+  `runtime_exception` eller `schema_guard`
+- I download-fejl-dialog eller enhver anden dialog som del af normale brugerflows
+- Enhver visning der vises som fast element ved normale og forventelige brugerscenarier
+
+### 7.3 `fail_closed`-snapshot og BugReportButton
+
+`fail_closed` med `schema_guard` (forventelig inkonsistens i committed state, fx ved
+korrupt `.eo`-fil) vises som en neutral fejlbesked i `EOberegningTab` uden `BugReportButton`.
+Brugeren vejledes om at rette manglende felter.
+
+`fail_closed` med `runtime_exception` er en uventet systemfejl. Den logges via
+`console.error` og routes til `ErrorFallback`/ErrorBoundary-flowet der allerede
+indeholder `BugReportButton`. Fejlen vises ikke som inline-element i `EOberegningTab`.
+
+---
+
+## 8. Runtime-fejlbehandling i EO-scope
+
+### 8.1 PDF-download-fejl og download-gating
+
+**Download-gating:** Download-knappen er aktiv hvis og kun hvis `errors`-listen fra
+`collectAllDebugRows` er tom (ingen fejl i felter fra EO-oplysninger eller stamdata).
+Snapshot-baserede invariants (`authoritativeBlockingInvariants`, `eoPdfBlockingInvariants`)
+bidrager til `systemIssueRows` men blokerer knappen via den samlede fejl-og-advarsler-visning.
+
+**PDF-download-fejl:** Kan PDF’en alligevel ikke genereres (runtime-undtagelse i
+jsPDF-laget), er det en systemteknisk fejl — ikke en brugerrettelig valideringsfejl.
+
+Korrekt håndtering:
+- Ingen dialog (`ConfirmationDialog`) vises til brugeren
+- Ingen `BugReportButton` vises i UI
+- Fejlen logges via `console.error` til devtools-monitor-flowet
+- `DevtoolsIssueNotice` håndterer fejlrapporteringsflowet for udviklere
+
+Rationale: Alle forhold der burde forhindre PDF-download bør have været fanget af
+validator/invariants der inaktiverede download-knappen. Sker der alligevel en runtime-fejl
+under download, er det et systemteknisk problem der ikke kan løses af brugeren — og
+brugeren skal ikke præsenteres for en fejlrapporteringsknap som del af sit normale arbejde.
+
+### 8.2 EODebug og EODebugTabel — altid-kan-dannes garanti
+
+EODebug og EODebugTabel **kan altid dannes** fra snapshot-data (clampede værdier).
+
+**Manglende fra- eller til-datoer** på TAF/svie-smerte-rækker er **forventelig adfærd**
+(brugeren har ikke udfyldt dem endnu). Det er ikke en systemfejl, og det må ikke:
+- Udløse en `BugReportButton` i EODebug
+- Forhindre debug-visningen i at dannes
+- Klassificeres som runtime-fejl
+
+Validator og snapshot-invariants klassificerer manglende datoer som fejl og viser dem
+i EOBeregningTab — ikke i EODebug-visningen.
+
+Hvis `debugSnapshot` er `null` (ved `fail_closed` inden engines kørte), vises en passende
+tom-/fejltilstand uden at forsøge at rendere beregningsindhold. Dette er forventelig adfærd.
+
+### 8.3 Generel regel
+
+Al fejlhåndtering der viser `BugReportButton` som del af sideflowet skal overholde §7.
+Runtime-fejl der opstår i beregningstabs skal logges via `logError`/devtools-monitor og
+routes til eksisterende systemfejl-flow — ikke vises som inline-elementer i normale visninger.

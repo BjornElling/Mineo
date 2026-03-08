@@ -13,6 +13,7 @@ describe('eoSnapshotToBeregningView', () => {
           id: 'validation:block',
           passed: false,
           severity: 'error',
+          source: 'validation' as const,
           message: 'Autoritativ fejl',
           blocksAuthoritativeComputation: true,
           blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf'],

@@ -39,6 +39,43 @@ const resolveEndeligEetDato = (values: TafConstraintSource): ISODateString | und
   return resolveIso(values.endeligEETVirkningsdato) ?? resolveIso(values.endeligEETAfgoerelseDato);
 };
 
+/**
+ * Fejlgivende øvre grænse for TAF-perioder: strengeste af differencekravDato−1 og
+ * EET-virkningsdato−1 (jf. eo-snapshot-contract.md §2.2).
+ *
+ * Korrekt adfærd: til-dato >= disse grænser er fejlgivende bounds — feltfejl (rød kant +
+ * tooltip) vises i TAFPeriodeTable og fejlen gengives på EOBeregningTab, der blokerer download.
+ * Engineen clamper stadig til den beregnede maxEnd for at producere korrekte resultater.
+ */
+export const resolveTafFejlgivendeBounds = (values: TafConstraintSource): TafConstraintBounds => {
+  const differencekravDato = resolveIso(values.differencekravDato);
+  const differencekravMax = subtractOneDay(differencekravDato);
+
+  const endeligEetDato = resolveEndeligEetDato(values);
+  const endeligEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(endeligEetDato);
+
+  const maxEnd = minDefined(differencekravMax, endeligEetMax);
+  return { maxEnd };
+};
+
+/**
+ * Stille clamping-grænser for TAF-perioder: kun EO-periodens grænser.
+ *
+ * Stille clamping (jf. eo-snapshot-contract.md §2.1): ingen fejlindikation.
+ */
+export const resolveTafEoPeriodeBounds = (values: TafConstraintSource): TafConstraintBounds => {
+  const minStart = resolveIso(values.vedroererPeriodeFra);
+  const maxEnd = resolveIso(values.vedroererPeriodeTil);
+  return { minStart, maxEnd };
+};
+
+/**
+ * Kombineret bounds-resolver der returnerer strengeste grænse fra alle kilder.
+ * Bruges af debug-visninger og UI-komponenter der skal vise den endelige clampede dato.
+ *
+ * Til `buildTafRanges` bruges i stedet `resolveTafFejlgivendeBounds` + `resolveTafEoPeriodeBounds`
+ * separat, da rækkefølgen af clampingen her er semantisk vigtig.
+ */
 export const resolveTafConstraintBounds = (values: TafConstraintSource): TafConstraintBounds => {
   const minStart = resolveIso(values.vedroererPeriodeFra);
   const erstatningsTil = resolveIso(values.vedroererPeriodeTil);
@@ -50,10 +87,16 @@ export const resolveTafConstraintBounds = (values: TafConstraintSource): TafCons
   const endeligEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(endeligEetDato);
 
   const maxEnd = minDefined(erstatningsTil, differencekravMax, endeligEetMax);
-
   return { minStart, maxEnd };
 };
 
+/**
+ * Clamper en TAF-range til bounds. Returnerer null hvis perioden reduceres til ingenting.
+ *
+ * Denne funktion er bounds-agnostisk — den kender ikke forskel på stille og fejlgivende clamping.
+ * Kalderen er ansvarlig for at anvende korrekte bounds i korrekt rækkefølge
+ * (jf. eo-snapshot-contract.md §2.3 og buildTafRanges i indtaegtPerioder.ts).
+ */
 export const clampTafRange = (range: IsoRange, bounds: TafConstraintBounds): IsoRange | null => {
   let fra = range.fra;
   let til = range.til;
