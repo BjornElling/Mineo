@@ -261,3 +261,55 @@ Brugeren orienteres udelukkende via feltfejl i EOBeregningTab om hvad der skal r
 - Versionsstyrede
 
 **Kode må aldrig stiltiende afvige fra kontrakten.**
+
+---
+
+## 9. Betingede felter i PDF-renderere (toggle-guard-krav)
+
+### Baggrund
+
+Committed form-state indeholder altid alle felters værdier — også felter der aktuelt er
+skjult i UI'et af en toggle, et valg eller en anden betingelse. Et felt der er skjult kan
+indeholde en stale værdi fra en tidligere aktiveret tilstand.
+
+PDF-renderere læser direkte fra `eoValues` uden forudgående rensning. Det betyder at en
+renderer, der ikke aktivt tjekker den betingelse der styrer feltets synlighed i UI'et, kan
+komme til at udskrive stale data i en PDF, selv om feltet ikke er aktivt for den konkrete sag.
+
+### Regel
+
+Når et felt i UI'et vises betinget af et toggle-switch, et valg eller andet brugerinput,
+**skal** PDF-rendereren der udskriver feltets værdi have en tilsvarende guard, der afspejler
+samme betingelse.
+
+Tommelfingerregel: find den variabel i UI-komponenten der styrer feltets synlighed
+(fx `const showFelt = af.harToggle && af.harBetingelse`). PDF-rendereren skal kontrollere
+identisk logik med `if`-guard inden den udskriver feltets værdi.
+
+### Mønstre
+
+To eksisterende mønstre er acceptable:
+
+**Mønster A — sektionsniveau:** Engine returnerer nul-output når toggle er slukket.
+PDF-renderer tjekker `model.beregnes`-flaget inden sektionen tegnes.
+Eksempel: `beregnesSvieSmerteGodtgoerelse` i `eoPdfBuilders.ts`.
+
+**Mønster B — feltniveau:** Inline `if`-guard direkte i renderer-funktionen.
+Foretrukket mønster for enkeltfelter og felter med overlappende afhængigheder.
+Eksempel: `if (overenskomstId && ansaettelsesforhold.harOverenskomst)` i `loenindkomstSection.ts`.
+
+Undgå at indføre et tredje mønster (fx pre-computation masking, normalisering eller
+datastruktur-mutationer i PDF-entry-punktet) — det skaber inkonsistens og gør
+ansvarsfordelingen uklar.
+
+### Tjekliste ved tilføjelse af nye felter
+
+Når du tilføjer et nyt felt eller gør et eksisterende felt betinget:
+
+1. Find eller opret den betingelse der styrer synlighed i UI-komponenten.
+2. Find den PDF-renderer-funktion der udskriver feltets værdi.
+3. Tilsæt en `if`-guard (Mønster B) eller opdater engine-output + `beregnes`-flag (Mønster A).
+4. Tilsvarende: hvis et toggle fjernes og et felt altid vises, fjern da den tilhørende guard.
+
+Manglende guard er en **Kritisk** fejl i review — den kan udskrive stale data i tillid-kritiske
+PDF-dokumenter.

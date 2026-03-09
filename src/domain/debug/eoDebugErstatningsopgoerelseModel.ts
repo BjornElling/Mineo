@@ -687,9 +687,12 @@ export const buildEODebugSvieSmerteRows = (
 
       // Hvis der er fejl i felterne, vis fejlmeddelelsen
       if (harFejl) {
+        const fraFoerTilError = fraISO && tilISO && fraISO > tilISO
+          ? 'Der er indtastet en til-dato, som ligger før fra-datoen'
+          : undefined;
         const allMessages = computedRangeMessages.map((m) => m.trim()).filter((m) => m !== '');
 
-        const errorMessages = hasOverlap ? 'Der er overlappende perioder' : allMessages.join('; ');
+        const errorMessages = hasOverlap ? 'Der er overlappende perioder' : (fraFoerTilError ?? allMessages.join('; '));
         const displayValue = `Fejl (${errorMessages})`;
         periodeFejlBeskeder.push(displayValue);
         rows.push({
@@ -1529,7 +1532,10 @@ export const buildEODebugTaftRows = (
 
       const hasOverlap = tafOverlappingIds.has(periode.id);
       if (hasOverlap || computedRangeMessages.length > 0) {
-        const errorMessages = hasOverlap ? 'Der er overlappende perioder' : computedRangeMessages.join('; ');
+        const fraFoerTilError = fraISO > tilISO
+          ? 'Der er indtastet en til-dato, som ligger før fra-datoen'
+          : undefined;
+        const errorMessages = hasOverlap ? 'Der er overlappende perioder' : (fraFoerTilError ?? computedRangeMessages.join('; '));
         rows.push({
           id: `taf.periode.${periode.id}`,
           label: periodeLabel,

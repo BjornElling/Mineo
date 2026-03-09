@@ -163,7 +163,7 @@ const resolveOverenskomstTillægsStigninger = (params: Readonly<{
 
   if (!fritvalgStiger && !shSoStiger && !pensionStiger) {
     const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
-    if (overenskomstId) {
+    if (overenskomstId && ansaettelsesforhold.harOverenskomst) {
       const offentligType = getOffentligOverenskomstTypeById(overenskomstId);
       if (offentligType) {
         const start = getOffentligTillaegsSatserForDato(overenskomstId, startDato, applyAlmindeligLoenPaaShDageRegel);
@@ -236,6 +236,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]
   ): string | null => {
     if (ansaettelsesforhold.loenudviklingBeregningsgrundlag !== 'Overenskomst') return null;
+    if (!ansaettelsesforhold.harOverenskomst) return null;
     if (!ansaettelsesforhold.harAnciennitetstillaegEfterSkadesdatoen) return null;
     if (!ansaettelsesforhold.overenskomstId) return null;
 

@@ -119,6 +119,7 @@ describe('renderLoenindkomstSection – gate', () => {
 describe('renderLoenindkomstSection opsigelseslinje', () => {
   it('viser opsigelseslinje efter lønindkomsttabellen når ansættelsesforhold er opsagt', () => {
     const { ctx } = makeContext(new Set(['2022-10-01']));
+    ctx.eoValues.loenindkomstAnsaettelsesforhold[0].ansatPaaSkadestidspunktet = true;
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0].ansaettelsesforholdOphoert = true;
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0].sidsteArbejdsdag = undefined;
 
@@ -129,6 +130,7 @@ describe('renderLoenindkomstSection opsigelseslinje', () => {
 
   it('viser opsigelseslinje med sidste arbejdsdag når dato er angivet', () => {
     const { ctx } = makeContext(new Set(['2022-10-01']));
+    ctx.eoValues.loenindkomstAnsaettelsesforhold[0].ansatPaaSkadestidspunktet = true;
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0].ansaettelsesforholdOphoert = true;
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0].sidsteArbejdsdag = iso('2024-04-30');
     ctx.formatDateLong = vi.fn(() => '30. april 2024');

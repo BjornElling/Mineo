@@ -338,7 +338,7 @@ export const generateErstatningsopgoerelsePdf = (
 
   renderOpgorelseSection({
     model,
-    eoValues,
+    eoValues: eoValues,
     stamdataValues,
     lineHeight,
     doubleLineHeight,
@@ -378,7 +378,7 @@ export const generateErstatningsopgoerelsePdf = (
   if (selectedElements.loenindkomst && skalViseIndkomstOgYdelserBilag) {
     renderLoenindkomstSection({
       selectedElements,
-      eoValues,
+      eoValues: eoValues,
       lineHeight,
       startBilagPage,
       renderSubheader,
@@ -406,7 +406,7 @@ export const generateErstatningsopgoerelsePdf = (
 
   if (selectedElements.offentligeYdelser && skalViseIndkomstOgYdelserBilag) {
     renderOffentligeYdelserSection({
-      eoValues,
+      eoValues: eoValues,
       lineHeight,
       startBilagPage,
       renderSubheader,
@@ -426,7 +426,7 @@ export const generateErstatningsopgoerelsePdf = (
 
   if (selectedElements.regulering && skalViseIndkomstOgYdelserBilag && shouldIncludeReguleringBilag(eoValues)) {
     renderReguleringSection({
-      eoValues,
+      eoValues: eoValues,
       stamdataValues,
       lineHeight,
       modelLoenudviklingSegmenter: model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [],
@@ -458,7 +458,7 @@ export const generateErstatningsopgoerelsePdf = (
 
   if (selectedElements.shDage) {
     renderShDageSection({
-      eoValues,
+      eoValues: eoValues,
       tafRanges: model.tafRanges,
       lineHeight,
       startBilagPage,

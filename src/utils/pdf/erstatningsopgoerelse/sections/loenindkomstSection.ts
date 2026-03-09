@@ -207,7 +207,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       renderSubheader(arbejdsstedNavn, lineHeight, { addTopSpacing: shouldAddTopSpacing });
       writer.addSpacer(lineHeight);
       const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
-      if (overenskomstId) {
+      if (overenskomstId && ansaettelsesforhold.harOverenskomst) {
         writeLabelValueLine('Overenskomst', resolveOverenskomstNameOnlyDisplay(overenskomstId));
         writer.addSpacer(lineHeight);
       }
@@ -231,7 +231,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       writer.addSpacer(lineHeight);
       const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
       renderLoenindkomstTable(ansaettelsesforhold, errorRowIds, combinedRanges);
-      if (ansaettelsesforhold.ansaettelsesforholdOphoert) {
+      if (ansaettelsesforhold.ansatPaaSkadestidspunktet && ansaettelsesforhold.ansaettelsesforholdOphoert) {
         const sidsteArbejdsdag = formatDateLong(ansaettelsesforhold.sidsteArbejdsdag);
         const opsigelsesLinje = sidsteArbejdsdag
           ? `Skadelidte er opsagt fra stillingen med sidste arbejdsdag ${sidsteArbejdsdag}.`
