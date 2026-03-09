@@ -30,32 +30,23 @@ describe('resolveTafConstraintBounds', () => {
       expect(bounds.minStart).toBeUndefined();
       expect(bounds.maxEnd).toBeUndefined();
     });
-
-    it('ignorerer ikke-ISO strenge', () => {
-      const bounds = resolveTafConstraintBounds({
-        vedroererPeriodeFra: 'ikke-en-dato',
-        vedroererPeriodeTil: '01-01-2024',
-      });
-      expect(bounds.minStart).toBeUndefined();
-      expect(bounds.maxEnd).toBeUndefined();
-    });
   });
 
   describe('vedroererPeriode', () => {
     it('vedroererPeriodeFra sætter minStart', () => {
-      const bounds = resolveTafConstraintBounds({ vedroererPeriodeFra: '2022-01-01' });
+      const bounds = resolveTafConstraintBounds({ vedroererPeriodeFra: iso('2022-01-01') });
       expect(bounds.minStart).toBe('2022-01-01');
     });
 
     it('vedroererPeriodeTil sætter maxEnd', () => {
-      const bounds = resolveTafConstraintBounds({ vedroererPeriodeTil: '2024-12-31' });
+      const bounds = resolveTafConstraintBounds({ vedroererPeriodeTil: iso('2024-12-31') });
       expect(bounds.maxEnd).toBe('2024-12-31');
     });
 
     it('begge vedroererPeriode felter sætter begge bounds', () => {
       const bounds = resolveTafConstraintBounds({
-        vedroererPeriodeFra: '2022-01-01',
-        vedroererPeriodeTil: '2024-12-31',
+        vedroererPeriodeFra: iso('2022-01-01'),
+        vedroererPeriodeTil: iso('2024-12-31'),
       });
       expect(bounds.minStart).toBe('2022-01-01');
       expect(bounds.maxEnd).toBe('2024-12-31');
@@ -64,28 +55,28 @@ describe('resolveTafConstraintBounds', () => {
 
   describe('differencekravDato', () => {
     it('sætter maxEnd til dagen før differencekravDato', () => {
-      const bounds = resolveTafConstraintBounds({ differencekravDato: '2024-06-15' });
+      const bounds = resolveTafConstraintBounds({ differencekravDato: iso('2024-06-15') });
       expect(bounds.maxEnd).toBe('2024-06-14');
     });
 
     it('differencekravDato 1. januar → maxEnd 31. december året før', () => {
-      const bounds = resolveTafConstraintBounds({ differencekravDato: '2024-01-01' });
+      const bounds = resolveTafConstraintBounds({ differencekravDato: iso('2024-01-01') });
       expect(bounds.maxEnd).toBe('2023-12-31');
     });
 
     it('bruger den mindste af vedroererPeriodeTil og differencekravMax', () => {
       // vedroererPeriodeTil = 2024-12-31, differencekravMax = 2024-06-14
       const bounds = resolveTafConstraintBounds({
-        vedroererPeriodeTil: '2024-12-31',
-        differencekravDato: '2024-06-15',
+        vedroererPeriodeTil: iso('2024-12-31'),
+        differencekravDato: iso('2024-06-15'),
       });
       expect(bounds.maxEnd).toBe('2024-06-14');
     });
 
     it('differencekravMax er mindste (vedroererPeriodeTil er større)', () => {
       const bounds = resolveTafConstraintBounds({
-        vedroererPeriodeTil: '2024-01-01',
-        differencekravDato: '2024-06-15',
+        vedroererPeriodeTil: iso('2024-01-01'),
+        differencekravDato: iso('2024-06-15'),
       });
       expect(bounds.maxEnd).toBe('2024-01-01');
     });
@@ -95,7 +86,7 @@ describe('resolveTafConstraintBounds', () => {
     it('endeligtEetAfgorelse = Nej → ingen EET-begrænsning', () => {
       const bounds = resolveTafConstraintBounds({
         endeligtEetAfgorelse: 'Nej',
-        endeligEETVirkningsdato: '2023-01-01',
+        endeligEETVirkningsdato: iso('2023-01-01'),
       });
       expect(bounds.maxEnd).toBeUndefined();
     });
@@ -103,7 +94,7 @@ describe('resolveTafConstraintBounds', () => {
     it('endeligtEetAfgorelse = Ja + virkningsdato → maxEnd = virkningsdato - 1 dag', () => {
       const bounds = resolveTafConstraintBounds({
         endeligtEetAfgorelse: 'Ja',
-        endeligEETVirkningsdato: '2024-03-01',
+        endeligEETVirkningsdato: iso('2024-03-01'),
       });
       expect(bounds.maxEnd).toBe('2024-02-29'); // 2024 er skudår
     });
@@ -111,7 +102,7 @@ describe('resolveTafConstraintBounds', () => {
     it('endeligtEetAfgorelse = Ja + kun afgoerelsesdato → maxEnd = afgoerelsesdato - 1', () => {
       const bounds = resolveTafConstraintBounds({
         endeligtEetAfgorelse: 'Ja',
-        endeligEETAfgoerelseDato: '2024-06-15',
+        endeligEETAfgoerelseDato: iso('2024-06-15'),
       });
       expect(bounds.maxEnd).toBe('2024-06-14');
     });
@@ -119,8 +110,8 @@ describe('resolveTafConstraintBounds', () => {
     it('endeligtEetAfgorelse = Ja + virkningsdato → bruger virkningsdato (ikke afgoerelsesdato)', () => {
       const bounds = resolveTafConstraintBounds({
         endeligtEetAfgorelse: 'Ja',
-        endeligEETVirkningsdato: '2024-03-01',
-        endeligEETAfgoerelseDato: '2024-06-15',
+        endeligEETVirkningsdato: iso('2024-03-01'),
+        endeligEETAfgoerelseDato: iso('2024-06-15'),
       });
       // virkningsdato tages før afgoerelsesdato (via ??)
       expect(bounds.maxEnd).toBe('2024-02-29');
@@ -129,7 +120,7 @@ describe('resolveTafConstraintBounds', () => {
     it('verserendeKlageEet = Ja → EET-begrænsning ignoreres', () => {
       const bounds = resolveTafConstraintBounds({
         endeligtEetAfgorelse: 'Ja',
-        endeligEETVirkningsdato: '2024-03-01',
+        endeligEETVirkningsdato: iso('2024-03-01'),
         verserendeKlageEet: 'Ja',
       });
       // verserendeKlageEet = Ja → endeligEetMax = undefined → ingen begrænsning
@@ -138,10 +129,10 @@ describe('resolveTafConstraintBounds', () => {
 
     it('bruger mindste af alle maxEnd-candidater', () => {
       const bounds = resolveTafConstraintBounds({
-        vedroererPeriodeTil: '2025-12-31',
-        differencekravDato: '2024-07-01',  // max = 2024-06-30
+        vedroererPeriodeTil: iso('2025-12-31'),
+        differencekravDato: iso('2024-07-01'),  // max = 2024-06-30
         endeligtEetAfgorelse: 'Ja',
-        endeligEETVirkningsdato: '2024-04-01', // max = 2024-03-31
+        endeligEETVirkningsdato: iso('2024-04-01'), // max = 2024-03-31
       });
       expect(bounds.maxEnd).toBe('2024-03-31');
     });

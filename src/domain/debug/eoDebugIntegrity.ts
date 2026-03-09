@@ -149,7 +149,16 @@ const checkTafDaysMismatch = (
 ): IntegrityIssue[] => {
   const issues: IntegrityIssue[] = [];
   const tafPerioder = input.erstatningsopgoerelseValues.tafPerioder ?? [];
-  const tafBounds = resolveTafConstraintBounds(input.erstatningsopgoerelseValues);
+  const eo = input.erstatningsopgoerelseValues;
+  const tafBounds = resolveTafConstraintBounds({
+    vedroererPeriodeFra: tryParseIso(eo.vedroererPeriodeFra),
+    vedroererPeriodeTil: tryParseIso(eo.vedroererPeriodeTil),
+    differencekravDato: tryParseIso(eo.differencekravDato),
+    endeligtEetAfgorelse: eo.endeligtEetAfgorelse,
+    endeligEETVirkningsdato: tryParseIso(eo.endeligEETVirkningsdato),
+    endeligEETAfgoerelseDato: tryParseIso(eo.endeligEETAfgoerelseDato),
+    verserendeKlageEet: eo.verserendeKlageEet,
+  });
 
   for (const periode of tafPerioder) {
     const fra = tryParseIso(periode.fra);

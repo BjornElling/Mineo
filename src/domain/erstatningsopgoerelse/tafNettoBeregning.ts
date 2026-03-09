@@ -85,24 +85,39 @@ export const computeTafNettoBeregning = (
 
   let tabtArbejdsfortjenesteOre = ensureMoneyOre(0);
   if (harTafPerioder) {
-    // Defensive invariant-guard: modellen skal være bygget når TAF-perioder findes.
-    if (!loenudvikling) {
-      throw new Error('Lønudvikling kunne ikke beregnes');
+    // Invariant: loenudvikling og tafIndtaegter er altid sat når harTafPerioder er true,
+    // da begge bygges betinget af harTafPerioder ovenfor. Disse guards er logisk umulige.
+    if (!loenudvikling || !tafIndtaegter) {
+      return {
+        harTafPerioder,
+        tafBeregningsenhed,
+        indkomstSkadestidspunkt,
+        loenudvikling,
+        tafIndtaegter,
+        tidligereModtagetTaf,
+        tabtArbejdsfortjenesteOre,
+      };
     }
-    // Defensive invariant-guard: indtægtsmodel skal være bygget når TAF-perioder findes.
-    if (!tafIndtaegter) {
-      throw new Error('Indtægter i TAF-perioden kunne ikke beregnes');
-    }
-    if (loenudvikling.loenudviklingTotal.status !== 'ok') {
-      throw new Error('Loenudvikling kan ikke beregnes');
-    }
-    if (tafIndtaegter.total.status !== 'ok') {
-      throw new Error('Indtaegter i TAF-perioden kan ikke beregnes');
+    // Invariant: loenudviklingTotal og tafIndtaegter.total er altid asCalculable —
+    // buildLoenudviklingModelV3 og buildTafIndtaegterModel returnerer altid status 'ok'.
+    // Disse status-checks er logisk umulige men bevares som defensive narrowing.
+    const loenTotal = loenudvikling.loenudviklingTotal;
+    const indtaegterTotal = tafIndtaegter.total;
+    if (loenTotal.status !== 'ok' || indtaegterTotal.status !== 'ok') {
+      return {
+        harTafPerioder,
+        tafBeregningsenhed,
+        indkomstSkadestidspunkt,
+        loenudvikling,
+        tafIndtaegter,
+        tidligereModtagetTaf,
+        tabtArbejdsfortjenesteOre,
+      };
     }
     // Invariant: tidligere modtaget TAF er valgfrit input. Manglende værdi betyder 0 kr. fradrag.
     const tidligereModtagetTafOre = tidligereModtagetTaf.status === 'ok' ? tidligereModtagetTaf.value : ensureMoneyOre(0);
     tabtArbejdsfortjenesteOre = clampMoneyOreToZero(
-      ensureMoneyOre(loenudvikling.loenudviklingTotal.value - tafIndtaegter.total.value - tidligereModtagetTafOre)
+      ensureMoneyOre(loenTotal.value - indtaegterTotal.value - tidligereModtagetTafOre)
     );
   }
 

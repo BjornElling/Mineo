@@ -1,16 +1,17 @@
 import type { TafPeriodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { isISODateString, subtractOneDay } from '../../types/branded';
+import { minISO, maxISO } from '../../utils/isoDateHelpers';
 
 export type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
 
 export type TafConstraintSource = Readonly<{
-  vedroererPeriodeFra?: ISODateString | string | undefined;
-  vedroererPeriodeTil?: ISODateString | string | undefined;
-  differencekravDato?: ISODateString | string | undefined;
+  vedroererPeriodeFra?: ISODateString | undefined;
+  vedroererPeriodeTil?: ISODateString | undefined;
+  differencekravDato?: ISODateString | undefined;
   endeligtEetAfgorelse?: 'Ja' | 'Nej' | undefined;
-  endeligEETVirkningsdato?: ISODateString | string | undefined;
-  endeligEETAfgoerelseDato?: ISODateString | string | undefined;
+  endeligEETVirkningsdato?: ISODateString | undefined;
+  endeligEETAfgoerelseDato?: ISODateString | undefined;
   verserendeKlageEet?: 'Ja' | 'Nej' | undefined;
 }>;
 
@@ -18,9 +19,6 @@ export type TafConstraintBounds = Readonly<{
   minStart?: ISODateString;
   maxEnd?: ISODateString;
 }>;
-
-const minIso = (a: ISODateString, b: ISODateString): ISODateString => (a < b ? a : b);
-const maxIso = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
 
 const minDefined = (...values: Array<ISODateString | undefined>): ISODateString | undefined => {
   let current: ISODateString | undefined = undefined;
@@ -31,12 +29,9 @@ const minDefined = (...values: Array<ISODateString | undefined>): ISODateString 
   return current;
 };
 
-const resolveIso = (value: unknown): ISODateString | undefined =>
-  typeof value === 'string' && isISODateString(value) ? value : undefined;
-
 const resolveEndeligEetDato = (values: TafConstraintSource): ISODateString | undefined => {
   if (values.endeligtEetAfgorelse !== 'Ja') return undefined;
-  return resolveIso(values.endeligEETVirkningsdato) ?? resolveIso(values.endeligEETAfgoerelseDato);
+  return values.endeligEETVirkningsdato ?? values.endeligEETAfgoerelseDato;
 };
 
 /**
@@ -48,8 +43,7 @@ const resolveEndeligEetDato = (values: TafConstraintSource): ISODateString | und
  * Engineen clamper stadig til den beregnede maxEnd for at producere korrekte resultater.
  */
 export const resolveTafFejlgivendeBounds = (values: TafConstraintSource): TafConstraintBounds => {
-  const differencekravDato = resolveIso(values.differencekravDato);
-  const differencekravMax = subtractOneDay(differencekravDato);
+  const differencekravMax = subtractOneDay(values.differencekravDato);
 
   const endeligEetDato = resolveEndeligEetDato(values);
   const endeligEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(endeligEetDato);
@@ -64,9 +58,7 @@ export const resolveTafFejlgivendeBounds = (values: TafConstraintSource): TafCon
  * Stille clamping (jf. eo-snapshot-contract.md §2.1): ingen fejlindikation.
  */
 export const resolveTafEoPeriodeBounds = (values: TafConstraintSource): TafConstraintBounds => {
-  const minStart = resolveIso(values.vedroererPeriodeFra);
-  const maxEnd = resolveIso(values.vedroererPeriodeTil);
-  return { minStart, maxEnd };
+  return { minStart: values.vedroererPeriodeFra, maxEnd: values.vedroererPeriodeTil };
 };
 
 /**
@@ -77,11 +69,10 @@ export const resolveTafEoPeriodeBounds = (values: TafConstraintSource): TafConst
  * separat, da rækkefølgen af clampingen her er semantisk vigtig.
  */
 export const resolveTafConstraintBounds = (values: TafConstraintSource): TafConstraintBounds => {
-  const minStart = resolveIso(values.vedroererPeriodeFra);
-  const erstatningsTil = resolveIso(values.vedroererPeriodeTil);
+  const minStart = values.vedroererPeriodeFra;
+  const erstatningsTil = values.vedroererPeriodeTil;
 
-  const differencekravDato = resolveIso(values.differencekravDato);
-  const differencekravMax = subtractOneDay(differencekravDato);
+  const differencekravMax = subtractOneDay(values.differencekravDato);
 
   const endeligEetDato = resolveEndeligEetDato(values);
   const endeligEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(endeligEetDato);
@@ -102,11 +93,11 @@ export const clampTafRange = (range: IsoRange, bounds: TafConstraintBounds): Iso
   let til = range.til;
 
   if (bounds.minStart) {
-    fra = maxIso(fra, bounds.minStart);
+    fra = maxISO(fra, bounds.minStart);
   }
 
   if (bounds.maxEnd) {
-    til = minIso(til, bounds.maxEnd);
+    til = minISO(til, bounds.maxEnd);
   }
 
   if (fra > til) return null;

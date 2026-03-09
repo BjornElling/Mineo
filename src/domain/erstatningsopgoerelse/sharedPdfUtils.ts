@@ -292,3 +292,18 @@ export const detectDecimalPlaces = (values: readonly number[], maxPlaces = 4): n
   }
   return max;
 };
+
+// =============================================================================
+// PERIODE-HJÆLPERE
+// =============================================================================
+
+/**
+ * Returnerer true hvis target-datoen falder inden for mindst én periode i listen.
+ */
+export const perioderCoverDate = (perioder: Array<{ fra: Date; til: Date }>, target: ISODateString): boolean => {
+  const targetDate = isoDateToDate(target);
+  for (const periode of perioder) {
+    if (periode.fra <= targetDate && periode.til >= targetDate) return true;
+  }
+  return false;
+};

@@ -1,12 +1,10 @@
 import type { ISODateString } from '../../types/branded';
+import { minISO, maxISO } from '../../utils/isoDateHelpers';
 
 export type RowDateBounds = Readonly<{
   fra: Readonly<{ min: ISODateString; max: ISODateString }>;
   til: Readonly<{ min: ISODateString; max: ISODateString }>;
 }>;
-
-const minIso = (a: ISODateString, b: ISODateString): ISODateString => (a < b ? a : b);
-const maxIso = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
 
 export const computeRowDateBounds = (args: {
   skadesdatoMinDate?: ISODateString | undefined;
@@ -26,13 +24,13 @@ export const computeRowDateBounds = (args: {
   const fraMax = args.rowTil || args.fallbackMax;
 
   // Til-dato: >= fra-dato i samme række (eller absoluteMin), <= dags dato og evt. ekstra afgrænsning
-  const tilMin = args.rowFra ? maxIso(args.rowFra, absoluteMin) : absoluteMin;
+  const tilMin = args.rowFra ? maxISO(args.rowFra, absoluteMin) : absoluteMin;
   let tilMax = args.tilFallbackMax; // Default: dags dato
 
   // Hvis der er en ekstra øvre grænse (fx menAfgoerelseDato), brug den laveste
   // Bemærk: Regel gælder ikke hvis verserende klagesag
   if (args.useTilExtraMaxDate !== false && args.tilExtraMaxDate) {
-    tilMax = minIso(tilMax, args.tilExtraMaxDate);
+    tilMax = minISO(tilMax, args.tilExtraMaxDate);
   }
 
   return { fra: { min: absoluteMin, max: fraMax }, til: { min: tilMin, max: tilMax } };

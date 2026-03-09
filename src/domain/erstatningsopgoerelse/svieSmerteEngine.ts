@@ -13,6 +13,7 @@ import { detectOverlappingPeriods } from './periodOverlapDetection';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { isoDateToDate } from '../dates/isoDate';
 import { addDays } from '../../utils/dateUtils';
+import { perioderCoverDate } from './sharedPdfUtils';
 import { isSvieSmerteRowEmpty } from './rowEmpty';
 import { parseForligsgrad } from './forligsgrad';
 import type { MoneyOre } from './eoPdfModelTypes';
@@ -51,6 +52,13 @@ export type SvieSmerteEngineInputSnapshot = Readonly<{
   stamdata?: DeepReadonly<Pick<StamdataValues, 'skadesdato' | 'skadestype'>> | null;
 }>;
 
+/**
+ * Merger overlappende og tilstødende (adjacent) perioder af samme sygemeldingstype.
+ *
+ * Adjacent-merge: to perioder med til === addDays(næste.fra, -1) slås sammen.
+ * Type-betingelse: perioder splittes i sygemeldt vs. delvist-sygemeldt INDEN kald,
+ * så merge kun sker inden for samme type (jf. eo-snapshot-contract.md §2.3).
+ */
 const mergePeriods = (periods: { fra: Date; til: Date }[]): { fra: Date; til: Date }[] => {
   if (periods.length === 0) return [];
   const sorted = [...periods].sort((a, b) => a.fra.getTime() - b.fra.getTime());
@@ -58,7 +66,10 @@ const mergePeriods = (periods: { fra: Date; til: Date }[]): { fra: Date; til: Da
   let current = sorted[0];
   for (let i = 1; i < sorted.length; i += 1) {
     const next = sorted[i];
-    if (next.fra <= current.til) {
+    // Overlap: next.fra <= current.til
+    // Adjacent: next.fra === addDays(current.til, 1), dvs. next.fra.getTime() - current.til.getTime() === 86400000
+    const gap = next.fra.getTime() - current.til.getTime();
+    if (gap <= 86_400_000) {
       current = { fra: current.fra, til: next.til > current.til ? next.til : current.til };
     } else {
       merged.push(current);
@@ -67,14 +78,6 @@ const mergePeriods = (periods: { fra: Date; til: Date }[]): { fra: Date; til: Da
   }
   merged.push(current);
   return merged;
-};
-
-const perioderCoverDate = (perioder: Array<{ fra: Date; til: Date }>, target: ISODateString): boolean => {
-  const targetDate = isoDateToDate(target);
-  for (const periode of perioder) {
-    if (periode.fra <= targetDate && periode.til >= targetDate) return true;
-  }
-  return false;
 };
 
 /**

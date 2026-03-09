@@ -1,25 +1,20 @@
 import type { ISODateString } from '../../types/branded';
-import { isISODateString, subtractOneDay } from '../../types/branded';
+import { subtractOneDay } from '../../types/branded';
+import { minISO, maxISO } from '../../utils/isoDateHelpers';
 import type { IsoRange } from './tafPeriodConstraints';
 
 export type SvieSmerteConstraintSource = Readonly<{
-  vedroererPeriodeFra?: ISODateString | string | undefined;
-  vedroererPeriodeTil?: ISODateString | string | undefined;
+  vedroererPeriodeFra?: ISODateString | undefined;
+  vedroererPeriodeTil?: ISODateString | undefined;
   varigeMenAfgorelse?: 'Ja' | 'Nej' | undefined;
   verserendeKlageMen?: 'Ja' | 'Nej' | undefined;
-  menAfgoerelseDato?: ISODateString | string | undefined;
+  menAfgoerelseDato?: ISODateString | undefined;
 }>;
 
 export type SvieSmerteConstraintBounds = Readonly<{
   minStart?: ISODateString;
   maxEnd?: ISODateString;
 }>;
-
-const minIso = (a: ISODateString, b: ISODateString): ISODateString => (a < b ? a : b);
-const maxIso = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
-
-const resolveIso = (value: unknown): ISODateString | undefined =>
-  typeof value === 'string' && isISODateString(value) ? value : undefined;
 
 /**
  * Fejlgivende øvre grænse for svie/smerte-perioder: menAfgoerelseDato − 1.
@@ -36,9 +31,7 @@ export const resolveSvieSmerteFejlgivendeBounds = (
 ): SvieSmerteConstraintBounds => {
   const shouldApplyMenCutoff =
     values.varigeMenAfgorelse === 'Ja' && values.verserendeKlageMen === 'Nej';
-  const menAfgoerelseDato = shouldApplyMenCutoff
-    ? resolveIso(values.menAfgoerelseDato)
-    : undefined;
+  const menAfgoerelseDato = shouldApplyMenCutoff ? values.menAfgoerelseDato : undefined;
   const maxEnd = subtractOneDay(menAfgoerelseDato);
   return { maxEnd };
 };
@@ -51,9 +44,7 @@ export const resolveSvieSmerteFejlgivendeBounds = (
 export const resolveSvieSmerteEoPeriodeBounds = (
   values: SvieSmerteConstraintSource,
 ): SvieSmerteConstraintBounds => {
-  const minStart = resolveIso(values.vedroererPeriodeFra);
-  const maxEnd = resolveIso(values.vedroererPeriodeTil);
-  return { minStart, maxEnd };
+  return { minStart: values.vedroererPeriodeFra, maxEnd: values.vedroererPeriodeTil };
 };
 
 /**
@@ -69,10 +60,10 @@ export const clampSvieSmerteRange = (
   let til = range.til;
 
   if (bounds.minStart) {
-    fra = maxIso(fra, bounds.minStart);
+    fra = maxISO(fra, bounds.minStart);
   }
   if (bounds.maxEnd) {
-    til = minIso(til, bounds.maxEnd);
+    til = minISO(til, bounds.maxEnd);
   }
   if (fra > til) return null;
   return { fra, til };

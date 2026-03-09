@@ -56,7 +56,17 @@ const extractDateSources = (
 
   // TAF-perioder (allerede ISO-format, men afgrænses af erstatningsperioden)
   const tafPerioder = input.erstatningsopgoerelseValues.tafPerioder ?? [];
-  const tafBounds = resolveTafConstraintBounds(input.erstatningsopgoerelseValues);
+  const eo = input.erstatningsopgoerelseValues;
+  const tafConstraintSource = {
+    vedroererPeriodeFra: eoFra,
+    vedroererPeriodeTil: eoTil,
+    differencekravDato: tryParseIso(eo.differencekravDato),
+    endeligtEetAfgorelse: eo.endeligtEetAfgorelse,
+    endeligEETVirkningsdato: tryParseIso(eo.endeligEETVirkningsdato),
+    endeligEETAfgoerelseDato: tryParseIso(eo.endeligEETAfgoerelseDato),
+    verserendeKlageEet: eo.verserendeKlageEet,
+  };
+  const tafBounds = resolveTafConstraintBounds(tafConstraintSource);
   for (const periode of tafPerioder) {
     const fra = tryParseIso(periode.fra);
     const til = tryParseIso(periode.til);
@@ -210,13 +220,23 @@ export function buildDebugCoreModel(input: DebugModelInput): readonly DebugDay[]
 
   // Byg TAF-periode map
   const tafPerioder = input.erstatningsopgoerelseValues.tafPerioder ?? [];
-  const tafBounds = resolveTafConstraintBounds(input.erstatningsopgoerelseValues);
+  const erstatningsFra = tryParseIso(input.erstatningsopgoerelseValues.vedroererPeriodeFra);
+  const erstatningsTil = tryParseIso(input.erstatningsopgoerelseValues.vedroererPeriodeTil);
+  const eo2 = input.erstatningsopgoerelseValues;
+  const tafConstraintSource2 = {
+    vedroererPeriodeFra: erstatningsFra,
+    vedroererPeriodeTil: erstatningsTil,
+    differencekravDato: tryParseIso(eo2.differencekravDato),
+    endeligtEetAfgorelse: eo2.endeligtEetAfgorelse,
+    endeligEETVirkningsdato: tryParseIso(eo2.endeligEETVirkningsdato),
+    endeligEETAfgoerelseDato: tryParseIso(eo2.endeligEETAfgoerelseDato),
+    verserendeKlageEet: eo2.verserendeKlageEet,
+  };
+  const tafBounds = resolveTafConstraintBounds(tafConstraintSource2);
   const tafMap = buildTafPeriodeMap(tafPerioder, tafBounds);
 
   // Byg svie/smerte map
   const ssPerioder = input.erstatningsopgoerelseValues.svieSmertePerioder ?? [];
-  const erstatningsFra = tryParseIso(input.erstatningsopgoerelseValues.vedroererPeriodeFra);
-  const erstatningsTil = tryParseIso(input.erstatningsopgoerelseValues.vedroererPeriodeTil);
   const erstatningsRange =
     erstatningsFra && erstatningsTil && erstatningsFra <= erstatningsTil ? { fra: erstatningsFra, til: erstatningsTil } : undefined;
   const menStopDato =

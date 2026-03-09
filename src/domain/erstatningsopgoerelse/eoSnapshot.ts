@@ -264,8 +264,9 @@ export const computeEoSnapshot = (args: Readonly<{
     // This invariant is intentionally derived from the debug-table sammentælling model.
     // It cross-checks authoritative engine outputs against the committed EO debug table projection,
     // so it depends on debug infrastructure by design rather than being a pure engine-to-engine check.
-    // debugSnapshot er altid non-null her: den er sat tidligt i try-blokken inden engine-kald.
-    const controlMismatchMessages = collectSammentaellingControlMismatchMessages(debugSnapshot!.sammentaellingRows);
+    // Invariant: debugSnapshot er altid non-null her, da den sættes tidligt i try-blokken inden engine-kald.
+    if (!debugSnapshot) throw new Error('debugSnapshot mangler ved kontrol-mismatch-check — invariant brudt');
+    const controlMismatchMessages = collectSammentaellingControlMismatchMessages(debugSnapshot.sammentaellingRows);
     if (controlMismatchMessages.length > 0) {
       invariants.push(buildControlMismatchInvariant(controlMismatchMessages));
     }
@@ -275,8 +276,8 @@ export const computeEoSnapshot = (args: Readonly<{
       : { erIndgaaet: false, label: null, dato: null, factor: null } as const;
     const pdfModel = buildErstatningsopgoerelsePdfModelFromComputed({
       presentation,
-      svieSmerte: buildSvieSmerteModel(parsedEo.data, parsedStamdata.data, { engine: svieSmerte }),
-      tabtArbejdsfortjeneste: buildTabtArbejdsfortjenesteModel(parsedEo.data, parsedStamdata.data, {
+      svieSmerte: buildSvieSmerteModel(parsedEo.data, { engine: svieSmerte }),
+      tabtArbejdsfortjeneste: buildTabtArbejdsfortjenesteModel(parsedEo.data, {
         tafNetto,
         tafRanges: canonicalOutput.periodiseringer.tafPerioder,
       }),

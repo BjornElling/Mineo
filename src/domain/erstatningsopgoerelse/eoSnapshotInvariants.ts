@@ -18,7 +18,7 @@ export type EoInvariant = Readonly<{
   source: 'validation' | 'system';
   message: string;
   evidence?: ReadonlyArray<string>;
-  blocksAuthoritativeComputation?: boolean;
+  blocksAuthoritativeComputation: boolean;
   blocksOutputs?: ReadonlyArray<EoProjectionTarget>;
 }>;
 
