@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
+import { computeSvieSmerteEngine } from '../../../domain/erstatningsopgoerelse/svieSmerteEngine';
 import { buildEODebugModel } from '../../../domain/debug/eoDebugModel';
 import {
   buildEODebugSammentaellingModel,
@@ -226,6 +227,13 @@ describe('buildEODebugSammentaellingModel regression', () => {
       model,
       svieSmerteContext,
       taftContext,
+      svieSmerteEngine: computeSvieSmerteEngine({
+        erstatningsopgoerelse: values,
+        stamdata: {
+          skadesdato: STAMDATA_INITIAL_VALUES.skadesdato,
+          skadestype: STAMDATA_INITIAL_VALUES.skadestype,
+        },
+      }),
     });
 
     expect(sammentaelling.svieSmerteSygedage.beregnetDisplay).toBe('334');
@@ -234,5 +242,41 @@ describe('buildEODebugSammentaellingModel regression', () => {
     expect(sammentaelling.svieSmerteSygedage.tabelValue).toBe(334);
     expect(sammentaelling.svieSmerteDelvise.beregnetDisplay).toBe('-');
     expect(sammentaelling.svieSmerteDelvise.tabelDisplay).toBe('-');
+  });
+
+  it('viser ikke beregnede svie/smerte-tal uden autoritativt engine-output', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      vedroererPeriodeFra: '2024-01-01',
+      vedroererPeriodeTil: '2024-01-31',
+      beregnesSvieSmerteGodtgoerelse: 'Ja' as const,
+      svieSmerteHelbredsstatus: 'Sygemeldt' as const,
+      svieSmertePerioder: [
+        {
+          id: 'svie-1',
+          fra: '2024-01-01',
+          til: '2024-01-10',
+          tilstand: 'sygemeldt' as const,
+        },
+      ],
+    };
+
+    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const model = buildEODebugModel(values);
+    const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
+    const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
+
+    const sammentaelling = buildEODebugSammentaellingModel({
+      values,
+      errors,
+      model,
+      svieSmerteContext,
+      taftContext,
+    });
+
+    expect(sammentaelling.svieSmerteSygedage.beregnetDisplay).toBe('-');
+    expect(sammentaelling.svieSmerteSygedage.beregnetValue).toBeNull();
+    expect(sammentaelling.svieSmerteDelvise.beregnetDisplay).toBe('-');
+    expect(sammentaelling.svieSmerteDelvise.beregnetValue).toBeNull();
   });
 });

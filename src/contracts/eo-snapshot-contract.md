@@ -5,7 +5,7 @@
 **Formål:** At fastlægge bindende regler for `computeEoSnapshot`, clampingmodel,
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
-**Prioritet:** `src/contracts/form-contract.md` > denne kontrakt > `docs/architecture/ny-EO-arkitektur-fra-bunden.md`
+**Prioritet:** `src/contracts/form-contract.md` > denne kontrakt
 
 ---
 
@@ -39,8 +39,11 @@ Alle committede TAF- og svie/smerte-perioder gennemgår clamping i `buildTafRang
 Clamping kan resultere i, at en periode reduceres til ingenting (tom range). Dette er
 **normal og forventelig adfærd** — ikke en fejl. Det sker fx når brugeren har indtastet en
 TAF-periode der slet ikke falder inden for EO-perioden. I dette tilfælde er der ingen
-TAF-perioder at vise, og PDF-sektionen viser teksten 'Ingen' — præcis som når brugeren
-via toggleswitch har angivet, at der ikke beregnes TAF. Samme gælder svie/smerte.
+TAF-perioder at vise, og både erstatningsopgørelse-PDF og TAF fordelt på år-PDF skal stadig
+kunne dannes. Den relevante PDF-sektion viser i stedet teksten 'Ingen' — præcis som når
+brugeren via toggleswitch har angivet, at der ikke beregnes TAF. Samme princip gælder
+svie/smerte i erstatningsopgørelse-PDF: hvis der ikke er nogen perioder at vise, dannes
+PDF'en stadig, og sektionen viser 'Ingen'.
 
 ### 2.1 Stille clamping (ingen fejlindikation — udtømmende liste)
 
@@ -99,6 +102,11 @@ Adfærden er identisk for alle fejlgivende bounds uanset årsag (differencekrav,
 **Manglende datoer:** Manglende fra- eller til-dato på ikke-tom række: fejl kun på
 EOBeregningTab (ikke i felt), blokerer download.
 
+**Ferieperioder i EO-oplysninger:** Ferieperioder clampes ikke og begrænses ikke af andre
+indtastninger. De lægges ukritisk til grund som indtastet. Den eneste undtagelse er
+rækkens egen datologik: `fra-dato > til-dato` eller `til-dato < fra-dato` er fejl på samme
+niveau som tilsvarende rækkefejl for TAF- og svie/smerte-perioder.
+
 ### 2.3 Fuld behandlingsrækkefølge for TAF-perioder
 
 1. **Syntaksvalidering:** Ufuldstændige datoer (fx `dd-mm`) afvises i inputfeltet og
@@ -110,10 +118,54 @@ EOBeregningTab (ikke i felt), blokerer download.
    skadesdato/anmeldedato-grænse, fra > til, til < fra, til >= differencekravDato,
    til >= EET-virkningsdato (ikke påklaget), overlap mellem rækker.
 
+   Validering sker på de committede rækker som sådanne — ikke først efter en
+   relevansvurdering mod de autoritative, clampede ranges. En ugyldig TAF-række bliver
+   derfor ikke "reddet" af, at den senere ville være uden betydning for det autoritative
+   beregningsinterval.
+
 3. **Clamping mod fejlgivende øvre grænser:** Til-dato clampes mod `differencekravDato − 1`
    og `EET-virkningsdato − 1` (strengeste grænse vinder). Validator rapporterer violation
    som feltfejl der blokerer download. Rækkefølge: FØR EO-periode-clamping, så feltfejlen
    ikke skjules af at EO-perioden forinden har afkortet perioden.
+
+4. **Løse feriedage er række-bundne før merge:** Hvis brugeren har indtastet
+   `loseFeriedage` på en TAF-række, knyttes disse dage til den oprindelige indtastede række
+   og placeres fra periodens start i netop denne række. Hvis flere TAF-rækker efterfølgende
+   merges, ændrer merge ikke den logiske placering af løse feriedage; placeringen sker
+   dermed pre-merge, ikke på baggrund af den samlede merged periode.
+
+5. **Merge:** Overlappende og tilstødende ranges slås sammen til sammenhængende perioder
+   (`mergeAdjacent: true`).
+
+6. **Stille clamping mod EO-perioden:** Fra-dato `< vedroererPeriodeFra` clampes til
+   `vedroererPeriodeFra`. Til-dato `> vedroererPeriodeTil` clampes til `vedroererPeriodeTil`.
+   Ingen fejlindikation. Sker EFTER fejlgivende clamping.
+
+7. De resulterende ranges lægges til grund for beregning i EODebug, EODebugTabel og
+   EOBeregning. Download er blokeret hvis der er fejl fra trin 2.
+
+Bemærk om projektioner: EO-domænet kan have flere tekniske TAF-forbrugere, fx en
+per-række/merged-output-sti og en snapshot-baseret aggregationssti. Det er ikke i sig selv
+et kontraktbrud, så længe de følger samme autoritative domænesemantik: clampede ranges som
+beregningsgrundlag, pre-merge placering af løse feriedage og ingen parallelle fallback-totaler.
+
+Tilsvarende proces gælder for svie/smerte-perioder:
+
+1. **Syntaksvalidering:** Ufuldstændige datoer (fx `dd-mm`) afvises i inputfeltet og
+   committes ikke. Kun gyldige ISO-datoer committes.
+
+2. **Semantisk validering (fejlgivende bounds):** Efter commit undersøges de committede
+   datoer mod fejlgivende bounds (§2.2). Violation giver feltfejl (rød kant + tooltip) og
+   blokerer download via EOBeregningTab. Disse checks inkluderer: fra-dato mod 2005-grænse,
+   skadesdato/anmeldedato-grænse, fra > til, til < fra, til >= ménafgørelsesdato
+   (ikke påklaget), overlap mellem rækker.
+
+3. **Clamping mod fejlgivende øvre grænse:** Til-dato clampes mod
+   `menAfgoerelseDato − 1`, når ménafgørelsen er endelig
+   (`varigeMenAfgorelse = 'Ja'` og `verserendeKlageMen = 'Nej'`).
+   Validator rapporterer violation som feltfejl der blokerer download. Rækkefølge: FØR
+   EO-periode-clamping, så feltfejlen ikke skjules af at EO-perioden forinden har afkortet
+   perioden.
 
 4. **Merge:** Overlappende og tilstødende ranges slås sammen til sammenhængende perioder
    (`mergeAdjacent: true`).
@@ -125,10 +177,9 @@ EOBeregningTab (ikke i felt), blokerer download.
 6. De resulterende ranges lægges til grund for beregning i EODebug, EODebugTabel og
    EOBeregning. Download er blokeret hvis der er fejl fra trin 2.
 
-Tilsvarende proces gælder for svie/smerte-perioder med `menAfgoerelseDato` i stedet for
-differencekravDato/EET-virkningsdato. Implementeringen bruger parallelle constraint-typer
-(`SvieSmerteConstraintBounds`, `resolveSvieSmerteFejlgivendeBounds`,
-`resolveSvieSmerteEoPeriodeBounds`) i `svieSmerteConstraints.ts`.
+Implementeringen bruger parallelle constraint-typer (`SvieSmerteConstraintBounds`,
+`resolveSvieSmerteFejlgivendeBounds`, `resolveSvieSmerteEoPeriodeBounds`) i
+`svieSmerteConstraints.ts`.
 
 ### 2.4 Clampinggaranti
 
@@ -140,6 +191,9 @@ værdier — også når der vises fejl for fejlgivende bounds (§2.2).
 
 I validerings-fejl-stien (engines ikke kørt) bygges `debugSnapshot` uden ranges — dette er
 korrekt, da ingen beregning har fundet sted.
+Debug-laget må i denne sti ikke lave nye fallback-enginekald for at udfylde svie/smerte-tal,
+TAF-tal eller andre delresultater. Når autoritativt engine-output mangler, skal debug vise
+tom/ikke-beregnet tilstand i stedet for semi-autoritative beløb eller dagtal.
 
 ---
 
@@ -195,7 +249,26 @@ mellemregninger utilgængelige og må ikke vises som gyldige.
 
 ---
 
-## 5. EODebug og EODebugTabel — altid-kan-dannes garanti
+## 5. Snapshot-livscyklus og friskhed
+
+Snapshot er bundet til en committed revision.
+
+**Regler:**
+- `snapshot.revision` skal altid svare til den committed inputrevision der blev brugt til
+  den autoritative beregning.
+- Hvis `snapshot.revision !== currentCommittedRevision`, er snapshot stale og må ikke bruges
+  som grundlag for at konstatere kontroluoverensstemmelse eller anden blokering, der
+  forudsætter et friskt snapshot.
+- Ved visning af Beregning, EODebug og EODebugTabel skal et stale snapshot erstattes af en ny
+  snapshot-build før normal visning fortsætter.
+- Stale state er et refresh-behov, ikke en systemfejl.
+
+Rationale: Kontroluoverensstemmelse og output-gating må kun vurderes på samme committed
+input, ellers risikerer systemet at blokere på baggrund af forældede mellemresultater.
+
+---
+
+## 6. EODebug og EODebugTabel — altid-kan-dannes garanti
 
 EODebug og EODebugTabel **kan altid dannes** fra snapshot-data.
 
@@ -212,7 +285,7 @@ tom-/fejltilstand uden at forsøge at rendere beregningsindhold.
 
 ---
 
-## 6. `tidligereModtagetTaf`-isometri
+## 7. `tidligereModtagetTaf`-isometri
 
 Tom committed værdi (`undefined`) for `tidligereModtagetTaf` repræsenterer semantisk `0 kr`.
 
@@ -226,7 +299,7 @@ Der er ingen semantisk forskel på "0" og "tomt" for dette felt.
 
 ---
 
-## 7. `BugReportButton` i EO-kontekst
+## 8. `BugReportButton` i EO-kontekst
 
 `BugReportButton` er en fejlrapporteringskomponent til systemtekniske runtime-fejl.
 Den hører ikke hjemme i normale beregningstabs eller resultatvisninger som del af sideflowet.
@@ -253,7 +326,7 @@ Brugeren orienteres udelukkende via feltfejl i EOBeregningTab om hvad der skal r
 
 ---
 
-## 8. Ændringer af kontrakten
+## 9. Ændringer af kontrakten
 
 Ændringer skal være:
 - Eksplicitte
@@ -264,7 +337,7 @@ Brugeren orienteres udelukkende via feltfejl i EOBeregningTab om hvad der skal r
 
 ---
 
-## 9. Betingede felter i PDF-renderere (toggle-guard-krav)
+## 10. Betingede felter i PDF-renderere (toggle-guard-krav)
 
 ### Baggrund
 

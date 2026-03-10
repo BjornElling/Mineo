@@ -125,14 +125,3 @@ export const buildClampedTafRanges = (rows: readonly TafPeriodeRow[], bounds: Ta
   }
   return ranges;
 };
-
-export const buildValidTafRanges = (rows: readonly TafPeriodeRow[]): IsoRange[] => {
-  const ranges: IsoRange[] = [];
-  for (const row of rows) {
-    const validRange = getValidTafRange(row);
-    if (validRange) {
-      ranges.push(validRange);
-    }
-  }
-  return ranges;
-};

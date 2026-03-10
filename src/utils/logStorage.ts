@@ -16,6 +16,10 @@ const STORE_NAME = 'errorLogs';
 const MAX_ENTRIES = 1000;
 const MAX_AGE_DAYS = 30;
 
+const hasIndexedDbSupport = (): boolean => {
+  return typeof indexedDB !== 'undefined' && typeof IDBKeyRange !== 'undefined';
+};
+
 export interface LogEntry {
   id?: number; // Auto-increment primary key
   timestamp: string; // ISO string
@@ -31,6 +35,10 @@ export interface LogEntry {
  */
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
+    if (!hasIndexedDbSupport()) {
+      reject(new Error('IndexedDB er ikke tilgængelig i dette miljø'));
+      return;
+    }
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onerror = () => {
@@ -63,6 +71,9 @@ function openDatabase(): Promise<IDBDatabase> {
  * Gem log entry til IndexedDB
  */
 export async function saveLogEntry(entry: Omit<LogEntry, 'id'>): Promise<void> {
+  if (!hasIndexedDbSupport()) {
+    return;
+  }
   try {
     const db = await openDatabase();
     const transaction = db.transaction([STORE_NAME], 'readwrite');
@@ -91,6 +102,9 @@ export async function saveLogEntry(entry: Omit<LogEntry, 'id'>): Promise<void> {
  * Hent alle log entries (seneste først)
  */
 export async function getAllLogEntries(): Promise<LogEntry[]> {
+  if (!hasIndexedDbSupport()) {
+    return [];
+  }
   try {
     const db = await openDatabase();
     const transaction = db.transaction([STORE_NAME], 'readonly');
@@ -130,6 +144,9 @@ export async function getRecentLogEntries(count: number): Promise<LogEntry[]> {
  * Slet alle log entries
  */
 export async function clearAllLogs(): Promise<void> {
+  if (!hasIndexedDbSupport()) {
+    return;
+  }
   try {
     const db = await openDatabase();
     const transaction = db.transaction([STORE_NAME], 'readwrite');
@@ -150,6 +167,9 @@ export async function clearAllLogs(): Promise<void> {
  * Cleanup: Slet gamle entries og trim til MAX_ENTRIES
  */
 async function cleanupOldEntries(): Promise<void> {
+  if (!hasIndexedDbSupport()) {
+    return;
+  }
   try {
     const db = await openDatabase();
     const transaction = db.transaction([STORE_NAME], 'readwrite');

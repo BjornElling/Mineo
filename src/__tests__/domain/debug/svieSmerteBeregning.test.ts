@@ -19,9 +19,30 @@ const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): Erstatningsopg
 
 const isPresent = <T,>(value: T | null | undefined): value is T => value !== null && value !== undefined;
 
+const buildCanonicalReadyValues = (values: ErstatningsopgoerelseValues): ErstatningsopgoerelseValues => {
+  const hasSvieSmertePerioder = (values.svieSmertePerioder ?? []).some((periode) => periode.fra || periode.til || periode.tilstand);
+  return {
+    ...values,
+    beregnesTabtArbejdsfortjeneste: 'Nej',
+    beregnesSvieSmerteGodtgoerelse:
+      values.beregnesSvieSmerteGodtgoerelse === 'Nej'
+        ? 'Nej'
+        : hasSvieSmertePerioder
+          ? 'Ja'
+          : values.beregnesSvieSmerteGodtgoerelse,
+    svieSmerteHelbredsstatus:
+      values.svieSmerteHelbredsstatus
+      ?? (hasSvieSmertePerioder ? 'Sygemeldt' : values.svieSmerteHelbredsstatus),
+  };
+};
+
 const buildCanonicalForValues = (values: ErstatningsopgoerelseValues) => {
   const stamdata = { ...STAMDATA_INITIAL_VALUES, skadestype: 'Arbejdsulykke' as const, skadesdato: iso('2023-01-01') };
-  return computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues: values }).data?.canonicalOutput;
+  return computeEoSnapshot({
+    revision: 'test',
+    stamdataValues: stamdata,
+    eoValues: buildCanonicalReadyValues(values),
+  }).data?.canonicalOutput;
 };
 
 /**

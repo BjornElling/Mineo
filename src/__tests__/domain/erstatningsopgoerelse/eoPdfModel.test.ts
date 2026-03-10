@@ -4,7 +4,7 @@ import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { LoenudviklingPdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
-import { ensureMoneyOre, resolveLoenudviklingRowsV3 } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
+import { ensureMoneyOre, resolveLoenudviklingRows } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
 import type { PdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModelTypes';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
@@ -125,7 +125,7 @@ describe('eoPdfModel', () => {
         { ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0], id: 'a2' },
       ],
     });
-    const rows = resolveLoenudviklingRowsV3(values);
+    const rows = resolveLoenudviklingRows(values);
     expect(rows.map((r) => r.id)).toEqual(['a1', 'a2']);
   });
 
@@ -137,7 +137,7 @@ describe('eoPdfModel', () => {
         { ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0], id: 'a2' },
       ],
     });
-    const rows = resolveLoenudviklingRowsV3(values);
+    const rows = resolveLoenudviklingRows(values);
     expect(rows.map((r) => r.id)).toEqual(['eo-angivet-loen']);
   });
 
@@ -146,7 +146,7 @@ describe('eoPdfModel', () => {
       beregnesUdFra: 'Angivet dagsløn',
       loenindkomstAnsaettelsesforhold: [],
     });
-    const rows = resolveLoenudviklingRowsV3(values);
+    const rows = resolveLoenudviklingRows(values);
     expect(rows.map((r) => r.id)).toEqual(['eo-angivet-loen']);
   });
 

@@ -270,6 +270,29 @@ describe('tafBeregningsEngine', () => {
     expect(aggregated).toBe(4);
   });
 
+  it('bruger autoritative clampede tafRanges i aggregation uden at flytte loseFeriedage vaek fra den oprindelige raekke', () => {
+    const values = {
+      ...baseValues(),
+      beregnesUdFra: 'Angivet dagsløn' as const,
+      vedroererPeriodeFra: toISODateString('2024-02-05'),
+      vedroererPeriodeTil: toISODateString('2024-02-12'),
+    };
+    const tafPerioder: TafPeriodeRow[] = [
+      { id: 'row-1', fra: toISODateString('2024-02-05'), til: toISODateString('2024-02-09'), loseFeriedage: 1 },
+      { id: 'row-2', fra: toISODateString('2024-02-10'), til: toISODateString('2024-02-12'), loseFeriedage: 2 },
+    ];
+
+    const aggregated = computeTafArbejdsdageAggregation({
+      erstatningsopgoerelse: values,
+      tafPerioder,
+      ferieperioder: [],
+      beregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
+      tafRanges: [{ fra: toISODateString('2024-02-05'), til: toISODateString('2024-02-12') }],
+    });
+
+    expect(aggregated).toBe(4);
+  });
+
   it('returnerer null fra aggregation når alle TAF-rækker er ugyldige', () => {
     const values = baseValues();
     const tafPerioder: TafPeriodeRow[] = [
@@ -296,10 +319,10 @@ describe('tafBeregningsEngine', () => {
     expect(output.rows).toEqual([]);
   });
 
-  it('summerer loseFeriedage på tværs af overlappende perioder', () => {
-    // 2024-02-05 til 2024-02-14 (man-tor): 8 hverdage
-    // loseFeriedage = 2 + 3 = 5 (summeret fra merged)
-    // Forventet: 8 - 5 = 3 taf-dage
+  it('bevarer loseFeriedage paa den oprindelige raekke ved overlap i stedet for at genplacere dem paa den merged periode', () => {
+    // Row 1: 2024-02-05 til 2024-02-09 -> 5 hverdage, 2 loseFeriedage => 3 arbejdsdage
+    // Row 2: 2024-02-08 til 2024-02-14 -> 5 hverdage, 3 loseFeriedage => arbejdsdage {13,14}
+    // Union paa merged perioden 2024-02-05 til 2024-02-14 => {07,08,09,13,14} = 5 arbejdsdage
     const values = {
       ...baseValues(),
       beregnesUdFra: 'Angivet dagsløn' as const,
@@ -315,10 +338,8 @@ describe('tafBeregningsEngine', () => {
       ferieperioder: [],
     });
 
-    // Perioderne merger til 2024-02-05 til 2024-02-14
     expect(output.rows).toHaveLength(1);
-    // 2024-02-05 til 2024-02-14 = 8 hverdage (man-fre, ingen helligdage i feb), loseFeriedage=5
-    expect(output.rows[0]?.value).toBe(3);
+    expect(output.rows[0]?.value).toBe(5);
   });
 
   it('invalide rækker inkluderes i output med value=null og nulstillet loseFeriedage', () => {
@@ -359,8 +380,6 @@ describe('tafBeregningsEngine', () => {
       ferieperioder: [],
     });
 
-    // Row er udover bounds → udeladt fra merged groups (eller clamped to null)
-    // Resultat: ingen gyldige merged groups, kun invalid (clamped away)
-    expect(output.rows.every((r) => r.value === null || r.value === 0)).toBe(true);
+    expect(output.rows).toEqual([]);
   });
 });

@@ -29,7 +29,7 @@ export type {
   TafIndtaegterPdfModel,
 } from './eoPdfModelTypes';
 export { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from './eoPdfMoneyUtils';
-export { buildTafArbejdsdageSet, countTafArbejdsdageInRange, resolveLoenudviklingRowsV3, segmentAmountOreV3 } from './eoPdfLoenudvikling';
+export { buildTafArbejdsdageSet, countTafArbejdsdageInRange, resolveLoenudviklingRows, segmentAmountOre } from './eoPdfLoenudvikling';
 
 export type EoPdfPresentation = Readonly<{
   titel: string;
@@ -141,4 +141,3 @@ export const buildErstatningsopgoerelsePdfModelFromComputed = (args: Readonly<{
     tafRanges: args.tafRanges,
   };
 };
-

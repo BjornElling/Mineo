@@ -200,6 +200,10 @@ EODebug og EODebugTabel **kan altid dannes** fra snapshot-data (clampede værdie
 Validator og snapshot-invariants klassificerer manglende datoer som fejl og viser dem
 i EOBeregningTab — ikke i EODebug-visningen.
 
+I validerings-fejl-stien, hvor snapshot ikke har autoritativt engine-output, må debug-laget
+ikke lave nye fallback-enginekald for at udfylde svie/smerte-tal, TAF-tal eller andre
+delresultater. Debug skal i stedet vise tom/ikke-beregnet tilstand for sådanne felter.
+
 Hvis `debugSnapshot` er `null` (ved `fail_closed` inden engines kørte), vises en passende
 tom-/fejltilstand uden at forsøge at rendere beregningsindhold. Dette er forventelig adfærd.
 

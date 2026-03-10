@@ -5,7 +5,7 @@
  * på kalenderår. Det er et afledt beregningslag, ikke blot præsentation:
  * - Segmenter splittes ved kalenderårsskift → nye mængder (dage/måneder) beregnes
  * - Fradrag prorateres per år via overlap med TAF-ranges
- * - Sub-segmenter afrundes individuelt via segmentAmountOreV3
+ * - Sub-segmenter afrundes individuelt via segmentAmountOre
  *
  * PRINCIP:
  *   Årsværdier må gerne være negative; summering og afrunding skal stadig være konsistente
@@ -31,7 +31,7 @@ import {
   buildTafArbejdsdageSet,
   countTafArbejdsdageInRange,
   clampMoneyOreToZero,
-  segmentAmountOreV3,
+  segmentAmountOre,
   roundKroner,
   toOre,
 } from './eoPdfModel';
@@ -182,7 +182,7 @@ const buildSubSegment = (
   original: LoenudviklingSegment,
   subFra: ISODateString,
   subTil: ISODateString,
-  tafArbejdsdageSet: Set<ISODateString> | null
+  tafArbejdsdageSet: ReadonlySet<ISODateString> | null
 ): TafYearSegment | null => {
   if (original.kind === 'arbejdsdage') {
     if (!tafArbejdsdageSet) return null;
@@ -196,7 +196,7 @@ const buildSubSegment = (
       quantity,
       unitAmountOre: original.dagsloenOre,
       deltaPct: original.deltaPct,
-      amountOre: segmentAmountOreV3(baseLoenKroner, quantity, original.deltaPct),
+      amountOre: segmentAmountOre(baseLoenKroner, quantity, original.deltaPct),
     };
   }
 
@@ -210,7 +210,7 @@ const buildSubSegment = (
     quantity,
     unitAmountOre: original.maanedsloenOre,
     deltaPct: original.deltaPct,
-    amountOre: segmentAmountOreV3(baseLoenKroner, quantity, original.deltaPct),
+    amountOre: segmentAmountOre(baseLoenKroner, quantity, original.deltaPct),
   };
 };
 
@@ -311,12 +311,8 @@ export const buildTafPerYearBuildOutcome = (
 
   const forligFactor = source.forligFactor;
   const isArbejdsdage = source.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE;
-  // NOTE: Arbejdsdagesættet bygges fra rækkeinput i stedet for `options.tafRanges`.
-  // Årsag: mergede ranges bærer ikke rækkevis `loseFeriedage`, så genbrug ville miste
-  // autoritativ feriedagsplacering i arbejdsdagsmodellen. Revurder hvis TAF-ranges senere
-  // udvides med nok metadata til at bevare denne semantik.
   const tafArbejdsdageSet = isArbejdsdage
-    ? buildTafArbejdsdageSet(eoValues)
+    ? buildTafArbejdsdageSet(eoValues, options.tafRanges)
     : null;
 
   // 1. Split segmenter per kalenderår
@@ -452,4 +448,3 @@ export const buildTafPerYearBuildOutcome = (
     },
   };
 };
-

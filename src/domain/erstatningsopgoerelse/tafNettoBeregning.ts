@@ -1,9 +1,9 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { buildIncomeForRanges, buildTafRanges, type IsoRange } from './indtaegtPerioder';
+import { buildIncomeForRanges, type IsoRange } from './indtaegtPerioder';
 import { computeTafBeregningsenhed } from './tafBeregningsenhed';
 import { buildIndkomstSkadestidspunkt } from './eoPdfIndkomstSkadestidspunkt';
-import { buildLoenudviklingModelV3 } from './eoPdfLoenudvikling';
+import { buildLoenudviklingModel } from './eoPdfLoenudvikling';
 import type {
   Calculable,
   IndkomstSkadestidspunktPdfModel,
@@ -60,9 +60,9 @@ export type TafNettoBeregningResult = Readonly<{
 export const computeTafNettoBeregning = (
   values: ErstatningsopgoerelseValues,
   stamdataValues: StamdataValues,
-  options: Readonly<{ tafRanges?: readonly IsoRange[]; clampTafRows?: boolean }> = {}
+  options: Readonly<{ tafRanges: readonly IsoRange[] }>
 ): TafNettoBeregningResult => {
-  const tafRanges = options.tafRanges ?? buildTafRanges(values);
+  const tafRanges = options.tafRanges;
   const harTafPerioder = tafRanges.length > 0;
   const tafBeregningsenhed = computeTafBeregningsenhed(values);
 
@@ -70,9 +70,8 @@ export const computeTafNettoBeregning = (
     ? buildIndkomstSkadestidspunkt(values, stamdataValues, tafBeregningsenhed)
     : null;
   const loenudvikling = harTafPerioder
-    ? buildLoenudviklingModelV3(values, stamdataValues, tafBeregningsenhed, indkomstSkadestidspunkt, {
+    ? buildLoenudviklingModel(values, stamdataValues, tafBeregningsenhed, indkomstSkadestidspunkt, {
       tafRanges,
-      clampTafRows: options.clampTafRows,
     })
     : null;
   const tafIndtaegter = harTafPerioder ? buildTafIndtaegterModel(values, tafRanges) : null;
@@ -99,7 +98,7 @@ export const computeTafNettoBeregning = (
       };
     }
     // Invariant: loenudviklingTotal og tafIndtaegter.total er altid asCalculable —
-    // buildLoenudviklingModelV3 og buildTafIndtaegterModel returnerer altid status 'ok'.
+    // buildLoenudviklingModel og buildTafIndtaegterModel returnerer altid status 'ok'.
     // Disse status-checks er logisk umulige men bevares som defensive narrowing.
     const loenTotal = loenudvikling.loenudviklingTotal;
     const indtaegterTotal = tafIndtaegter.total;

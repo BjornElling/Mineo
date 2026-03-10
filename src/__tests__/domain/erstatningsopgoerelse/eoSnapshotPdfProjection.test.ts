@@ -121,4 +121,14 @@ describe('EO snapshot PDF projections', () => {
     if (projection.kind !== 'ok') return;
     expect(projection.document.presentation).toBe(FAKE_TAF_PER_YEAR_RESULT);
   });
+
+  it('tillader TAF-per-år-PDF uden TAF-perioder og giver null-praesentation', () => {
+    const snapshot = buildBaseSnapshot();
+    const projection = eoSnapshotToTafPerYearPdfDocument(snapshot);
+
+    expect(projection.kind).toBe('ok');
+    if (projection.kind !== 'ok') return;
+    expect(projection.document.presentation).toBeNull();
+    expect(projection.document.model.tabtArbejdsfortjeneste.harTafPerioder).toBe(false);
+  });
 });

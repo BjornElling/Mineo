@@ -14,7 +14,6 @@ import { type DateInterval, type IsoRange, validateIsoRange } from '../../utils/
 import { mergeIsoDateRanges } from './periodMerging';
 import {
   buildClampedTafRanges,
-  buildValidTafRanges,
   clampTafRange,
   resolveTafEoPeriodeBounds,
   resolveTafFejlgivendeBounds,
@@ -110,12 +109,8 @@ const resolveYdelsestype = (raw: string): Readonly<{ key: string; label: string;
 };
 
 export const buildTafRanges = (
-  values: ErstatningsopgoerelseValues,
-  options: Readonly<{ clamp?: boolean }> = {}
+  values: ErstatningsopgoerelseValues
 ): IsoRange[] => {
-  if (options.clamp === false) {
-    return mergeIsoDateRanges(buildValidTafRanges(values.tafPerioder ?? []), { mergeAdjacent: true });
-  }
   // Tre-trins clamping (jf. eo-snapshot-contract.md §2.3):
   // 1. Clamp mod fejlgivende øvre grænser (differencekrav, EET) — validator rapporterer violation
   const fejlgivendeBounds = resolveTafFejlgivendeBounds(values);

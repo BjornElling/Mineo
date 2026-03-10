@@ -12,7 +12,7 @@ import { buildBeregningsperiodeRange, buildIncomeForRanges, type IsoRange } from
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
 import { buildFerieDageSet, buildSHDageSet } from './eoDebugRegulationCore';
 import { computeTafArbejdsdageAggregation } from '../erstatningsopgoerelse/tafBeregningsEngine';
-import { computeSvieSmerteEngine, type SvieSmerteEngineOutput } from '../erstatningsopgoerelse/svieSmerteEngine';
+import type { SvieSmerteEngineOutput } from '../erstatningsopgoerelse/svieSmerteEngine';
 
 export type SvieSmerteContext = Readonly<{
   skadesdatoISO: ISODateString | undefined;
@@ -214,7 +214,7 @@ export const collectSammentaellingControlMismatchMessages = (
  * array af alle dage i et interval. Denne funktion validerer blot perioden og
  * returnerer den som et typet objekt.
  */
-const getIsoRange = (
+const toIsoRange = (
   fra: ISODateString | undefined,
   til: ISODateString | undefined
 ): Readonly<{ fra: ISODateString; til: ISODateString }> | null => {
@@ -399,8 +399,8 @@ export const buildEODebugSammentaellingModel = (args: {
   const isTafEnabled = values.beregnesTabtArbejdsfortjeneste === 'Ja';
   const isSvieSmerteEnabled = values.beregnesSvieSmerteGodtgoerelse === 'Ja';
 
-  const beregningsRange = getIsoRange(values.periodeTilBeregningFra, values.periodeTilBeregningTil);
-  const erstatningsRange = getIsoRange(values.vedroererPeriodeFra, values.vedroererPeriodeTil);
+  const beregningsRange = toIsoRange(values.periodeTilBeregningFra, values.periodeTilBeregningTil);
+  const erstatningsRange = toIsoRange(values.vedroererPeriodeFra, values.vedroererPeriodeTil);
 
   const beregningsFerieDates = buildFerieDatesInRange(values, beregningsRange, {
     includeBeregningsperiodeLoseFeriedage: true,
@@ -472,15 +472,10 @@ export const buildEODebugSammentaellingModel = (args: {
   const tafArbejdsdageFromTable = isTafEnabled ? countTafDaysFromTable(model) : null;
   const svieSmerteTabelCounts = isSvieSmerteEnabled ? countSvieSmerteFromTable(model, erstatningsRange) : null;
 
-  // Brug autoritativt engine-output fra snapshot hvis tilgængeligt.
-  // Eliminerer re-kald fra snapshot-pipelinen og sikrer at sammentællingen bruger præcis
-  // samme beregning som beregningsresultatet. Faldbak: kald engine direkte (kun til standalone/test-brug).
-  // computeSvieSmerteEngine bruger ikke stamdata.skadestype — feltet indgår ikke i engine-logikken.
+  // Sammentællingen må kun vise autoritative svie/smerte-tal fra snapshot-pipelinen.
+  // Hvis engine-output ikke er leveret, vises ingen beregnet værdi.
   const svieSmerteEngineCounts = isSvieSmerteEnabled
-    ? (args.svieSmerteEngine ?? computeSvieSmerteEngine({
-      erstatningsopgoerelse: values,
-      stamdata: { skadesdato: svieSmerteContext.skadesdatoISO, skadestype: undefined },
-    }))
+    ? (args.svieSmerteEngine ?? null)
     : null;
 
   const svieSmerteResolvedCounts = svieSmerteEngineCounts
@@ -507,6 +502,7 @@ export const buildEODebugSammentaellingModel = (args: {
       tafPerioder: values.tafPerioder ?? [],
       ferieperioder: values.ferieperioder ?? [],
       beregningsenhed,
+      tafRanges: args.tafRanges,
     })
     : null;
 

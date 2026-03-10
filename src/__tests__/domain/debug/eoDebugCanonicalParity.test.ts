@@ -3,7 +3,6 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
-import { computeSvieSmerteEngine } from '../../../domain/erstatningsopgoerelse/svieSmerteEngine';
 import { buildSvieSmerteContext, buildTaftContext } from '../../../domain/debug/eoDebugContextBuilders';
 import {
   buildEODebugSvieSmerteRows,
@@ -106,7 +105,7 @@ describe('eoDebug canonical parity', () => {
     );
   });
 
-  it('beregner sviesmerte.beregnetBeloeb via fallback-engine når canonical output mangler', () => {
+  it('viser ikke sviesmerte.beregnetBeloeb når canonical output mangler', () => {
     const eoValues = {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: iso('2019-04-01'),
@@ -132,17 +131,9 @@ describe('eoDebug canonical parity', () => {
       buildSvieSmerteContext(stamdataValues, eoValues),
       undefined
     );
-    const fallback = computeSvieSmerteEngine({
-      erstatningsopgoerelse: eoValues,
-      stamdata: {
-        skadesdato: stamdataValues.skadesdato,
-        skadestype: stamdataValues.skadestype,
-      },
-    });
     const row = rows.find((entry) => entry.id === 'sviesmerte.beregnetBeloeb');
 
-    expect(fallback.totalOre).toBe(8000000);
     expect(row?.status).toBe('ok');
-    expect(row?.displayValue).toBe(`${formatCurrency(80000)} kr.`);
+    expect(row?.displayValue).toBe('-');
   });
 });
