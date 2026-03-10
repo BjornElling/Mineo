@@ -28,7 +28,8 @@ import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../dat
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/angivetLoenHelpers';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/loenudviklingDisplay';
-import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../erstatningsopgoerelse/indtaegtPerioder';
+import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges } from '../erstatningsopgoerelse/indtaegtPerioder';
+import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/oevrigeKravIntro';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
 import { parseForligsgrad } from '../erstatningsopgoerelse/forligsgrad';
@@ -2526,7 +2527,7 @@ export const buildEODebugIndkomstRows = (
 
       const offentligDisplayValue =
         offentligStatus === 'ok'
-          ? `${typeLabel}, ${trinValue}, ${gruppeValue}`
+          ? `${typeLabel}, løntrin ${String(trinValue)}, gruppe ${String(gruppeValue)}`
           : formatStatusMessage('error', offentligMessage);
 
       rows.push({
@@ -2779,17 +2780,39 @@ export const buildEODebugOffentligeYdelserRows = (
  */
 export const buildEODebugOevrigeKravRows = (
   values: ErstatningsopgoerelseValues,
-  _errors: ErstatningsopgoerelseFieldErrorsBySource
+  _errors: ErstatningsopgoerelseFieldErrorsBySource,
+  canonicalOutput?: EoCanonicalOutput
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
+  const tafRanges = canonicalOutput?.periodiseringer.tafPerioder ?? buildTafRanges(values);
+  const oevrigeKravForbeholdYdelsestyper = Array.from(
+    new Set(
+      buildIncomeForRanges(values, tafRanges).benefits
+        .map((entry) => entry.typeKey)
+        .filter((typeKey) => typeKey === 'kontanthjaelp' || typeKey === 'ressourceforloebsydelse')
+    )
+  );
+  const introLinjer = resolveOevrigeKravIntroLinjer({
+    eoValues: values,
+    ydelser: oevrigeKravForbeholdYdelsestyper,
+  });
+
+  introLinjer.forEach((linje, index) => {
+    rows.push({
+      id: `oevrigekrav.intro.${index + 1}`,
+      label: linje,
+      displayValue: '-',
+      status: 'ok',
+    });
+  });
 
   const oevrigeKrav = values.oevrigeKravPerioder ?? [];
   const harKrav = oevrigeKrav.length > 0 && oevrigeKrav.some((k) => k.dato || k.udgiftTil || k.beloeb);
 
-  if (!harKrav) {
+  if (!harKrav && introLinjer.length === 0) {
     rows.push({
       id: 'oevrigekrav.empty',
-      label: '-',
+      label: 'Ingen',
       displayValue: '-',
       status: 'ok',
     });

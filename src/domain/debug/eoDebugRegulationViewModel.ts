@@ -198,6 +198,16 @@ const COLUMN_DEFS: ReadonlyArray<Readonly<{
   },
 ];
 
+const resolveVisibleColumnHeader = (
+  column: Readonly<{ key: RegulationColumnKey; header: string }>,
+  timeline: RegulationIndexTimeline
+): string => {
+  if (column.key === 'grundloen') {
+    return timeline.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE ? 'Timeløn' : 'Månedsløn';
+  }
+  return column.header;
+};
+
 /**
  * Byg regulation debug sections (indeks) pr. ansaettelsesforhold
  */
@@ -230,7 +240,11 @@ export function buildRegulationDebugSections(
 
     const latest = af.entries[af.entries.length - 1];
     const sectionId = `regulation.${af.ansaettelsesforholdId}`;
-    const visibleColumns = COLUMN_DEFS.filter((column) => column.shouldInclude(timeline, af.entries));
+    const visibleColumns = COLUMN_DEFS.filter((column) =>
+      column.key !== 'arbejdsdage' &&
+      column.key !== 'maaneder' &&
+      column.shouldInclude(timeline, af.entries)
+    );
     const rows: RegulationDebugRow[] = [
       {
         id: `${sectionId}:kilde`,
@@ -256,7 +270,7 @@ export function buildRegulationDebugSections(
 
     const tables: RegulationDebugTable[] = [{
       id: `${sectionId}:vaerdier`,
-      columns: visibleColumns.map((column) => column.header),
+      columns: visibleColumns.map((column) => resolveVisibleColumnHeader(column, timeline)),
       rows: af.entries.map((entry) => ({
         id: `regulation.table:${af.ansaettelsesforholdId}:${entry.effectiveFrom}`,
         cells: visibleColumns.map((column) => column.getCell(entry)),

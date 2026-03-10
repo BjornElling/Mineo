@@ -6,6 +6,7 @@ import {
   addOneDayIso,
   roundToFourDecimals,
 } from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
+import { resolveOevrigeKravIntroLinjer } from '../../../../domain/erstatningsopgoerelse/oevrigeKravIntro';
 import type { Calculable, LoenudviklingSegment, MoneyOre, PdfModel } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
@@ -73,42 +74,6 @@ type OpgorelseSectionContext = Readonly<{
     writeSignatureBlock: (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => void;
   }>;
 }>;
-
-const resolveOevrigeKravYdelsesforbeholdLinje = (
-  ydelser: readonly string[]
-): string | null => {
-  const hasKontanthjaelp = ydelser.includes('kontanthjaelp');
-  const hasRessourceforloebsydelse = ydelser.includes('ressourceforloebsydelse');
-
-  if (!hasKontanthjaelp && !hasRessourceforloebsydelse) return null;
-
-  const hasBeggeYdelser = hasKontanthjaelp && hasRessourceforloebsydelse;
-  const ydelseTekst = hasBeggeYdelser
-    ? 'kontanthjælp og ressourceforløbsydelse'
-    : hasKontanthjaelp
-      ? 'kontanthjælp'
-      : 'ressourceforløbsydelse';
-  const tilbagebetalingsSubjekt = hasBeggeYdelser ? 'ydelserne' : 'ydelsen';
-
-  return `Skadelidte har modtaget ${ydelseTekst} i erstatningsperioden. Kræves ${tilbagebetalingsSubjekt} tilbagebetalt som følge af erstatningsudbetaling, vil kravet blive forhøjet.`;
-};
-
-const resolveOevrigeKravEetKlageReguleringsLinje = (
-  eoValues: ErstatningsopgoerelseValues
-): string | null => {
-  if (eoValues.verserendeKlageEet !== 'Ja') return null;
-
-  const harMidlertidigEetOplysning =
-    eoValues.midlertidigtEetAfgorelse === 'Ja' &&
-    (eoValues.midlertidigEETVirkningsdato !== undefined || eoValues.midlertidigEETAfgoerelseDato !== undefined);
-  const harEndeligEetOplysning =
-    eoValues.endeligtEetAfgorelse === 'Ja' &&
-    (eoValues.endeligEETVirkningsdato !== undefined || eoValues.endeligEETAfgoerelseDato !== undefined);
-
-  if (!harMidlertidigEetOplysning && !harEndeligEetOplysning) return null;
-
-  return 'Hvis der som følge af den verserende klagesag over erhvervsevnetab sker ændringer i ydelse eller virkningstidspunkt, vil kravet blive reguleret tilsvarende.';
-};
 
 const mergeLoenudviklingSegments = (segments: readonly LoenudviklingSegment[]): readonly LoenudviklingSegment[] => {
   if (segments.length <= 1) return segments;
@@ -727,19 +692,10 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   const kravEntries = model.oevrigeKrav.entries;
   const kravRightMaxWidth = writer.getTextWidth('000.000.000,00');
   const kravHeaderHeight = lineHeight * 4;
-  const oevrigeKravYdelsesforbeholdLinje = resolveOevrigeKravYdelsesforbeholdLinje(
-    model.tabtArbejdsfortjeneste.tafIndtaegter?.oevrigeKravForbeholdYdelsestyper ?? []
-  );
-  // Intentionel kobling: EET-klage-reguleringslinjen vises kun når der allerede er en
-  // ydelsesforbehold-linje (kontanthjælp/ressourceforløbsydelse), fordi de to linjer
-  // hører samen som én samlet forbehold-blok. En sag med verserende EET-klage men
-  // uden disse ydelser får ikke linjen — det er korrekt adfærd.
-  const oevrigeKravEetKlageReguleringsLinje = oevrigeKravYdelsesforbeholdLinje
-    ? resolveOevrigeKravEetKlageReguleringsLinje(eoValues)
-    : null;
-  const oevrigeKravIntroLinjer = [oevrigeKravYdelsesforbeholdLinje, oevrigeKravEetKlageReguleringsLinje].filter(
-    (line): line is string => line !== null
-  );
+  const oevrigeKravIntroLinjer = resolveOevrigeKravIntroLinjer({
+    eoValues,
+    ydelser: model.tabtArbejdsfortjeneste.tafIndtaegter?.oevrigeKravForbeholdYdelsestyper ?? [],
+  });
   const renderOevrigeKravIntro = (addTrailingSpacer: boolean): void => {
     oevrigeKravIntroLinjer.forEach((line, index) => {
       safeAddWrappedText(line);

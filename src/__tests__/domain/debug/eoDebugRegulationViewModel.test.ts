@@ -115,6 +115,13 @@ describe('buildRegulationDebugSections', () => {
 
     expect(sections).toHaveLength(1);
     expect(sections[0]?.tables).toHaveLength(2);
+    expect(sections[0]?.tables?.[0]?.columns).toEqual([
+      'Dato',
+      'Månedsløn',
+      'Feriepenge',
+      'Fritvalg',
+      'Pension',
+    ]);
     expect(sections[0]?.tables?.[1]?.columns).toEqual(['Fra-dato', 'Til-dato', 'Indeksberegning', 'Indeks', 'Lønudvikling']);
     expect(sections[0]?.tables?.[1]?.rows.length).toBeGreaterThan(0);
   });
@@ -200,5 +207,56 @@ describe('buildRegulationDebugSections', () => {
     expect(sections[0]?.tables).toHaveLength(2);
     expect(sections[0]?.tables?.[1]?.rows.length).toBeGreaterThan(0);
     expect(sections[0]?.tables?.[1]?.rows[0]?.cells[0]).toBe('01-07-2023');
+  });
+
+  it('udelader arbejdsdage-kolonnen og bruger Timeløn ved arbejdsdagsbaseret regulering', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    const stamdataValues = {
+      ...STAMDATA_INITIAL_VALUES,
+      skadesdato: iso('2023-05-24'),
+    };
+
+    const sections = buildRegulationDebugSections({
+      timeline: {
+        tafBeregningsenhed: 'Arbejdsdage',
+        ansaettelser: [
+          {
+            ansaettelsesforholdId: 'af-arbejdsdage',
+            navn: 'Arbejdsdage A/S',
+            kildeLabel: 'Overenskomst',
+            kildeVaerdi: 'Eksempel',
+            referenceIso: iso('2023-05-24'),
+            referenceLabel: 'Skadedato',
+            referenceValue: 100,
+            entries: [
+              {
+                effectiveFrom: iso('2023-05-24'),
+                grundloen: 24550,
+                feriePct: 0.15,
+                shSoPct: 0,
+                fritvalgPct: 0.07,
+                storeBededagPct: 0,
+                pensionPct: 0.09,
+                packageValue: 100,
+                index: 100,
+                arbejdsdage: 21,
+                maaneder: null,
+              },
+            ],
+          },
+        ],
+      },
+      canonicalOutput: undefined,
+      eoValues,
+      stamdataValues,
+    });
+
+    expect(sections[0]?.tables?.[0]?.columns).toEqual([
+      'Dato',
+      'Timeløn',
+      'Feriepenge',
+      'Fritvalg',
+      'Pension',
+    ]);
   });
 });

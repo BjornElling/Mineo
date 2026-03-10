@@ -213,7 +213,7 @@ describe('EODebug', () => {
     expect(screen.getByText('ASL-årslønsmaksimum')).toBeInTheDocument();
     expect(screen.getAllByText('24-05-2023').length).toBeGreaterThan(0);
     expect(screen.getByText('ATL')).toBeInTheDocument();
-    expect(screen.getByText('Reguleringstabeller')).toBeInTheDocument();
+    expect(screen.getByText('Beregnet regulering')).toBeInTheDocument();
     expect(screen.queryByText('Basisværdi (indeks 100)')).not.toBeInTheDocument();
     expect(screen.queryByText('Seneste indeks')).not.toBeInTheDocument();
     expect(screen.queryByText('Pakke')).not.toBeInTheDocument();
@@ -222,13 +222,13 @@ describe('EODebug', () => {
     expect(screen.queryByText('Reguleringsværdi på start-dato for TAF')).not.toBeInTheDocument();
     expect(screen.queryByText('Reguleringsværdi på slut-dato for TAF')).not.toBeInTheDocument();
     expect(screen.getByText('Reguleringsværdi på: Reguleringsdato / start-dato for TAF / slut-dato for TAF')).toBeInTheDocument();
-    expect(screen.getByText('Fra-dato')).toBeInTheDocument();
+    expect(screen.getAllByText('Fra-dato').length).toBeGreaterThan(0);
     expect(screen.getByText('Til-dato')).toBeInTheDocument();
     expect(screen.getByText('Indeksberegning')).toBeInTheDocument();
     expect(screen.getByText('Lønudvikling')).toBeInTheDocument();
     expect(screen.getAllByText('Lønindkomst').every((element) => element.classList.contains('row--subheading-underlined'))).toBe(true);
     expect(screen.getAllByText('Regulering').every((element) => element.classList.contains('row--subheading-underlined'))).toBe(true);
-    expect(screen.getAllByText('Reguleringstabeller').every((element) => element.classList.contains('row--subheading-underlined'))).toBe(true);
+    expect(screen.getAllByText('Beregnet regulering').every((element) => element.classList.contains('row--subheading-underlined'))).toBe(true);
     const regulationSubheading = screen.getAllByText('Regulering')[0];
     const datoRow = screen.getByText('Reguleringsdato (Skadedato)');
     const valgtReguleringRow = screen.getByText('Valgt regulering');
@@ -565,5 +565,51 @@ describe('EODebug', () => {
 
     expect(screen.getByText('Tabt arbejdsfortjeneste')).toBeInTheDocument();
     expect(screen.queryByText('TAF')).not.toBeInTheDocument();
+  });
+
+  it('viser grønne statusikoner for afledte reguleringsrækker uden egen fejllogik', () => {
+    eoSnapshotToDebugViewMock.mockReturnValue({
+      kind: 'ready',
+      canonicalOutput: undefined,
+      debugSnapshot: {
+        sammentaellingRows: [],
+      },
+      stamdataValues: {},
+      erstatningsopgoerelseValues: {
+        midlertidigtEetAfgorelse: 'Nej',
+        endeligtEetAfgorelse: 'Nej',
+      },
+      rowsBySection: new Map([
+        ['loenindkomst', [
+          {
+            id: 'loenindkomst.af1.regulering.valgt',
+            label: 'Valgt regulering',
+            displayValue: 'Ja',
+            status: 'ok',
+          },
+        ]],
+      ]),
+      regulationSections: [
+        {
+          id: 'regulation.af1',
+          header: 'Regulering (Test)',
+          rows: [
+            { id: 'regulation.af1:skadesdato', label: 'Reguleringsdato (Skadedato)', value: '26-01-2024' },
+            { id: 'regulation.af1:overenskomst', label: 'Overenskomst', value: 'KL-overenskomsten (Forhandlingsfællesskabet / KL)' },
+          ],
+        },
+      ],
+    });
+
+    const { container } = renderComponent({ revision: 'rev-1' } as never);
+
+    const skadesdatoLabel = screen.getByText('Reguleringsdato (Skadedato)');
+    const overenskomstLabel = screen.getByText('Overenskomst');
+    const skadesdatoRow = skadesdatoLabel.closest('.row--label-right-hover');
+    const overenskomstRow = overenskomstLabel.closest('.row--label-right-hover');
+
+    expect(skadesdatoRow?.querySelector('[data-testid=\"CheckIcon\"]')).not.toBeNull();
+    expect(overenskomstRow?.querySelector('[data-testid=\"CheckIcon\"]')).not.toBeNull();
+    expect(container.querySelectorAll('[data-testid=\"CheckIcon\"]').length).toBeGreaterThanOrEqual(3);
   });
 });

@@ -426,6 +426,19 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).toContain(EET_KLAGE_REGULERINGSLINJE);
   });
 
+  it('viser klage-reguleringslinje i "Øvrige krav" også uden ydelsesforbehold', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.endeligtEetAfgorelse = 'Ja';
+    eo.endeligEETVirkningsdato = iso('2024-03-01');
+    eo.verserendeKlageEet = 'Ja';
+
+    renderPdf(stamdata, eo);
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+
+    expect(texts).toContain(EET_KLAGE_REGULERINGSLINJE);
+    expect(hasTextAfterHeader(texts, 'Øvrige krav', 'Ingen')).toBe(false);
+  });
+
   it('placerer klage-reguleringslinje mellem ydelsesforbehold og øvrige krav med én linjeafstand', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.offentligeYdelserRows = [

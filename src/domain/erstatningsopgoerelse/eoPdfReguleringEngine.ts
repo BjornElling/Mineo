@@ -201,6 +201,14 @@ const buildIndexFormulaDisplay = (
   return wrapIndexFormulaAfterSlashWhenLong(formula);
 };
 
+const resolveReguleringsvaerdierLoenHeader = (
+  tafBeregningsenhed: TafBeregningsenhed
+): 'Timeløn' | 'Månedsløn' =>
+  tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE ? 'Timeløn' : 'Månedsløn';
+
+const REGULERINGSVAERDIER_FRA_DATO_HEADER = 'Fra-dato';
+const REGULERINGSVAERDIER_PENSION_HEADER = 'AG pens. bidrag';
+
 export const buildReguleringsvaerdierTableData = (params: Readonly<{
   ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
   reguleringsdato: ISODateString | undefined;
@@ -254,13 +262,15 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         hasAnyPctSourceOrInput(tillaegsSatser, (sats) => sats.fritvalg, ansaettelsesforhold.fritvalgPct);
       const hasAgPension =
         hasAnyPctSourceOrInput(tillaegsSatser, (sats) => sats.agPension, ansaettelsesforhold.pensionPct);
-      const visMaanedsloen = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER;
+      const showFeriePctColumn = !isZeroPct(ansaettelsesforhold.feriePct);
+      const loenHeader = resolveReguleringsvaerdierLoenHeader(tafBeregningsenhed);
       const columns = [
-        'Fra-dato',
-        ...(visMaanedsloen ? ['Månedsløn'] : ['Timeløn']),
+        REGULERINGSVAERDIER_FRA_DATO_HEADER,
+        loenHeader,
+        ...(showFeriePctColumn ? ['Feriepenge'] : []),
         ...(hasShSo ? ['SH/SO'] : []),
         ...(hasFritvalg ? ['Fritvalg'] : []),
-        ...(hasAgPension ? ['AG pension'] : []),
+        ...(hasAgPension ? [REGULERINGSVAERDIER_PENSION_HEADER] : []),
       ];
 
       const rows: string[][] = [];
@@ -320,7 +330,8 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
             : formatCurrency(timeLoen);
         rows.push([
           labelDato ?? labelIso,
-          visMaanedsloen ? maanedsLoenDisplay : timeLoenDisplay,
+          loenHeader === 'Månedsløn' ? maanedsLoenDisplay : timeLoenDisplay,
+          ...(showFeriePctColumn ? [formatPctFromInput(ansaettelsesforhold.feriePct)] : []),
           ...(hasShSo ? [formatPctFromInput(resolvePctPointFromSatsOrInput(tillaegSats?.shSoSats, ansaettelsesforhold.shSoPct))] : []),
           ...(hasFritvalg ? [formatPctFromInput(resolvePctPointFromSatsOrInput(tillaegSats?.fritvalg, ansaettelsesforhold.fritvalgPct))] : []),
           ...(hasAgPension ? [formatPctFromInput(resolvePctPointFromSatsOrInput(tillaegSats?.agPension, ansaettelsesforhold.pensionPct))] : []),
@@ -387,13 +398,14 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const hasSfggUfaglProv = allSatser.some((sats) => sats.sfggUfaglProv !== null);
     const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
     const showFeriePctColumn = !isZeroPct(ansaettelsesforhold.feriePct);
+    const loenHeader = resolveReguleringsvaerdierLoenHeader(tafBeregningsenhed);
     const columns = [
-      'Fra-dato',
-      ...(hasGrundloen ? ['Grundløn'] : []),
+      REGULERINGSVAERDIER_FRA_DATO_HEADER,
+      ...(hasGrundloen ? [loenHeader] : []),
       ...(hasGrundloen && showFeriePctColumn ? ['Feriepenge'] : []),
       ...(hasShSo ? ['SH/SO'] : []),
       ...(hasFritvalg ? ['Fritvalg'] : []),
-      ...(hasAgPension ? ['AG pension'] : []),
+      ...(hasAgPension ? [REGULERINGSVAERDIER_PENSION_HEADER] : []),
       ...(hasSfgg ? ['SFGG'] : []),
       ...(hasSfggFaglKbh ? ['SFGG\nfagl. Kbh'] : []),
       ...(hasSfggFaglProv ? ['SFGG\nfagl. prov'] : []),
@@ -441,12 +453,12 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       .map((row) => row.cells);
     return {
       columns: [
-        'Dato',
-        'Grundløn',
+        REGULERINGSVAERDIER_FRA_DATO_HEADER,
+        resolveReguleringsvaerdierLoenHeader(tafBeregningsenhed),
         'Feriepenge',
         'SH/SO',
         'Fritvalg',
-        'AG pension',
+        REGULERINGSVAERDIER_PENSION_HEADER,
       ],
       rows,
     };

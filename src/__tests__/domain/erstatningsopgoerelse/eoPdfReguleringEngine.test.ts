@@ -82,6 +82,8 @@ describe('eoPdfReguleringEngine', () => {
     af.offentligLoenTrin = 20;
     af.offentligLoenGruppe = 0;
     af.loenPaaHelligdage = 'Almindelig løn';
+    af.feriePct = 16.95;
+    af.pensionPct = 14.37;
 
     const table = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af,
@@ -92,6 +94,35 @@ describe('eoPdfReguleringEngine', () => {
     });
 
     expect(table).not.toBeNull();
+    expect(table?.columns).toEqual(['Fra-dato', 'Månedsløn', 'Feriepenge', 'AG pens. bidrag']);
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
+  });
+
+  it('bruger samme første tabelkolonner som eodebug for manuel arbejdsdagsbaseret regulering', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    af.feriePct = 16.95;
+    af.loenudviklingManuelTableData = [
+      {
+        dato: '26-01-2024',
+        grundloen: '177,56',
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '14,37',
+      },
+    ];
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      reguleringsdato: iso('2024-01-26'),
+      tafFra: iso('2024-01-26'),
+      tafTil: iso('2024-10-20'),
+      tafBeregningsenhed: 'Arbejdsdage',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'AG pens. bidrag']);
   });
 });

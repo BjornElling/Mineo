@@ -304,7 +304,7 @@ describe('renderReguleringSection – reguleringstekst', () => {
       sidste: iso('2025-12-21'),
     }));
     ctx.buildReguleringsvaerdierTableData = vi.fn(() => ({
-      columns: ['Dato', 'Grundløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'AG pension'],
+      columns: ['Fra-dato', 'Timeløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'AG pens. bidrag'],
       rows: [
         ['24-05-2023', '25.174,00', '15 % / 15,00 %', '7,00 %', '7,00 %', '9,00 %'],
         ['01-05-2025', '26.496,00', '15 % / 15,00 %', '9,00 %', '9,00 %', '12,00 %'],
@@ -343,7 +343,7 @@ describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => 
       sidste: iso('2025-12-21'),
     }));
     ctx.buildReguleringsvaerdierTableData = vi.fn(() => ({
-      columns: ['Dato', 'Grundløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'AG pension'],
+      columns: ['Fra-dato', 'Timeløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'AG pens. bidrag'],
       rows: [
         ['24-05-2023', '25.174,00', '15,00 %', '-', '7,00 %', '9,00 %'],
         ['01-06-2023', '25.174,00', '15,00 %', '-', '7,00 %', '11,00 %'],
@@ -360,11 +360,11 @@ describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => 
     expect(headerRow).toBeDefined();
     expect(headerRow).toHaveLength(5);
     expect(headerRow?.map((cell) => ('content' in cell ? cell.content : ''))).toEqual([
-      'Dato',
-      'Grundløn',
+      'Fra-dato',
+      'Timeløn',
       'Feriepenge',
       'Fritvalg',
-      'AG pension',
+      'AG pens. bidrag',
     ]);
   });
 });

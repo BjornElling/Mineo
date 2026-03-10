@@ -159,7 +159,7 @@ const resolveOverenskomstTillægsStigninger = (params: Readonly<{
 
   fritvalgStiger = resolveIncreaseFromTable(['fritvalg']);
   shSoStiger = resolveIncreaseFromTable(['sh/so', 'shso']);
-  pensionStiger = resolveIncreaseFromTable(['ag pension', 'pension']);
+  pensionStiger = resolveIncreaseFromTable(['ag pens. bidrag', 'ag pension', 'pension']);
 
   if (!fritvalgStiger && !shSoStiger && !pensionStiger) {
     const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();

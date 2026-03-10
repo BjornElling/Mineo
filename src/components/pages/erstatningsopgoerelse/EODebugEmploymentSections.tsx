@@ -40,11 +40,16 @@ const getStatusIcon = (status: DebugStatus): React.ReactElement => {
   }
 };
 
+const getDisplayValueSx = (displayValue: string) => ({
+  whiteSpace: 'pre-line' as const,
+  textAlign: displayValue.includes('\n') ? 'right' as const : 'inherit',
+});
+
 const renderRows = (rows: readonly DebugRowModel[]) => rows.map((row) => (
   <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
     <Typography className="row--text">{row.label}</Typography>
     <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-      <Typography className="row--text">{row.displayValue}</Typography>
+      <Typography className="row--text" sx={getDisplayValueSx(row.displayValue)}>{row.displayValue}</Typography>
       {getStatusIcon(row.status)}
     </Box>
   </Box>
@@ -54,9 +59,10 @@ const renderRegulationRows = (rows: NonNullable<RegulationDebugSection['rows']>)
   <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': '250px' }}>
     <Typography className="row--text">{row.label}</Typography>
     <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-      <Typography className="row--text">
+      <Typography className="row--text" sx={getDisplayValueSx(typeof row.value === 'string' ? row.value : row.value.displayValue)}>
         {typeof row.value === 'string' ? row.value : row.value.displayValue}
       </Typography>
+      {getStatusIcon('ok')}
     </Box>
   </Box>
 ));
@@ -106,7 +112,7 @@ const renderCombinedTafRegulationValueRow = (
       {parts.map((part, index) => (
         <React.Fragment key={part.id}>
           {index > 0 ? <Typography className="row--text">/</Typography> : null}
-          <Typography className="row--text">{part.displayValue}</Typography>
+          <Typography className="row--text" sx={getDisplayValueSx(part.displayValue)}>{part.displayValue}</Typography>
           {getStatusIcon(part.status)}
         </React.Fragment>
       ))}
@@ -226,7 +232,7 @@ const EODebugEmploymentSections = React.memo<{
 
                     {regulationTables.length > 0 ? (
                       <>
-                        <UnderlinedHoverRow text="Reguleringstabeller" />
+                        <UnderlinedHoverRow text="Beregnet regulering" />
                         {regulationTables.map((table, tableIndex) => (
                           <StandardDisplayTable
                             key={table.id}

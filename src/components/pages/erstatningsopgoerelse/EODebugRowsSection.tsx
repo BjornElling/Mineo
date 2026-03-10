@@ -17,6 +17,11 @@ const getStatusIcon = (status: DebugStatus): React.ReactElement => {
   }
 };
 
+const getDisplayValueSx = (displayValue: string) => ({
+  whiteSpace: 'pre-line' as const,
+  textAlign: displayValue.includes('\n') ? 'right' as const : 'inherit',
+});
+
 const EODebugRowsSection = React.memo<{
   title: string;
   rows: readonly DebugRowModel[];
@@ -33,7 +38,7 @@ const EODebugRowsSection = React.memo<{
         <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
           <Typography className="row--text">{row.label}</Typography>
           <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
-            <Typography className="row--text">{row.displayValue}</Typography>
+            <Typography className="row--text" sx={getDisplayValueSx(row.displayValue)}>{row.displayValue}</Typography>
             {getStatusIcon(row.status)}
           </Box>
         </Box>

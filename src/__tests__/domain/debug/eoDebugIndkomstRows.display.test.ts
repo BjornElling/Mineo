@@ -90,4 +90,30 @@ describe('buildEODebugIndkomstRows display', () => {
     expect(nameRow?.displayValue).toBe('Manuelt angivet');
     expect(nameRow?.status).toBe('ok');
   });
+
+  it('viser løntrin og gruppe med eksplicitte etiketter for KL-/RLTN-oplysninger', () => {
+    const values = cloneInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.navnPaaArbejdssted = 'Arbejdssted A';
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'kl-overenskomst';
+    af.offentligLoenType = 'Timeløn';
+    af.offentligLoenTrin = 26;
+    af.offentligLoenGruppe = 2;
+    af.indtaegtsoplysningerTableData = [
+      {
+        id: 'row-1',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+        col2: amount(1000),
+      },
+    ];
+
+    const rows = buildEODebugIndkomstRows(values, undefined, {});
+    const offentligRow = rows.find((row) => row.id === `loenindkomst.${af.id}.regulering.offentligLoenoplysninger`);
+
+    expect(offentligRow?.displayValue).toBe('Timeløn, løntrin 26, gruppe 2');
+    expect(offentligRow?.status).toBe('ok');
+  });
 });
