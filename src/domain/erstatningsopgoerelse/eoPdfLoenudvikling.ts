@@ -144,6 +144,7 @@ type KonsolideretLoenudvikling =
     strategi: 'manual';
     label: string;
     reguleringsdato: ISODateString | undefined;
+    loenPaaHelligdage: string;
     feriePct: number;
     manualRows: readonly LoenudviklingManualRow[];
     tafRanges: readonly IsoRange[];
@@ -535,6 +536,7 @@ const resolveReguleringsStrategi = (
         strategi,
         label,
         reguleringsdato,
+        loenPaaHelligdage: active[0].loenPaaHelligdage ?? '',
         feriePct,
         manualRows: active[0].loenudviklingManuelTableData ?? [],
         tafRanges,
@@ -893,6 +895,9 @@ const buildLoenudviklingFromOverenskomst = (
         const startIso = parseDanishToIso(sats.fraDato);
         if (startIso && startIso > range.fra && startIso <= range.til) starts.add(startIso);
       }
+      if (applyShRegel && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
+        starts.add(STORE_BEDEDAG_START);
+      }
       if (offentligEffectiveBase.startIso > range.fra && offentligEffectiveBase.startIso <= range.til) {
         starts.add(offentligEffectiveBase.startIso);
       }
@@ -1122,21 +1127,32 @@ const buildLoenudviklingFromManual = (
     .map((row) => {
       const startIso = parseDanishToIso(row.dato);
       if (!startIso) return null;
-      const packageValue = computePackageValue({
+      const components = {
         grundloen: amountValueToNumber(row.grundloen) ?? 0,
         feriePct,
         shSoPct: parseManualPercentToPct(row.shSoSats),
         fritvalgPct: parseManualPercentToPct(row.fritvalg),
         pensionPct: parseManualPercentToPct(row.agPension),
+      };
+      const packageValue = computePackageValue({
+        ...components,
         storeBededagPct: 0,
       });
       if (!Number.isFinite(packageValue) || packageValue <= 0) {
         throw new Error('Loenudvikling kan ikke beregnes: ugyldig manuel pakkevaerdi');
       }
-      return { startIso, packageValue };
+      return { startIso, packageValue, components };
     })
-    .filter((row): row is Readonly<{ startIso: ISODateString; packageValue: number }> => Boolean(row))
+    .filter((row): row is Readonly<{
+      startIso: ISODateString;
+      packageValue: number;
+      components: Readonly<{ grundloen: number; feriePct: number; shSoPct: number; fritvalgPct: number; pensionPct: number }>;
+    }> => Boolean(row))
     .sort((a, b) => a.startIso.localeCompare(b.startIso));
+
+  const applyStoreBededagRegulering =
+    konsolideret.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG &&
+    konsolideret.tafRanges.some((range) => range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START);
 
   const segments: LoenreguleringsSegment[] = [];
   for (const range of konsolideret.tafRanges) {
@@ -1144,9 +1160,26 @@ const buildLoenudviklingFromManual = (
     for (const row of datedRows) {
       if (row.startIso > range.fra && row.startIso <= range.til) starts.add(row.startIso);
     }
+    if (applyStoreBededagRegulering && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
+      starts.add(STORE_BEDEDAG_START);
+    }
     for (const segment of buildSegmentsFromStartDates(range, starts)) {
       const segmentRow = findLatestByDateInSortedList(datedRows, segment.fra, 'manual:segment');
-      const packageValue = segmentRow ? segmentRow.packageValue : basePackage;
+      const packageValueBase = segmentRow ? segmentRow.packageValue : basePackage;
+      const packageValue = applyStoreBededagRegulering && segment.fra >= STORE_BEDEDAG_START
+        ? computePackageValue({
+            ...(segmentRow
+              ? segmentRow.components
+              : {
+                  grundloen: amountValueToNumber(baseRow.grundloen) ?? 0,
+                  feriePct,
+                  shSoPct: parseManualPercentToPct(baseRow.shSoSats),
+                  fritvalgPct: parseManualPercentToPct(baseRow.fritvalg),
+                  pensionPct: parseManualPercentToPct(baseRow.agPension),
+                }),
+            storeBededagPct: STORE_BEDEDAG_PCT,
+          })
+        : packageValueBase;
       if (!Number.isFinite(packageValue) || packageValue <= 0) {
         throw new Error('Loenudvikling kan ikke beregnes: ugyldig manuel segmentvaerdi');
       }

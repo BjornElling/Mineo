@@ -104,6 +104,7 @@ Formål:
 - Manglende basissats på reguleringsdato -> effective base = første tilgængelige sats
 - Segment uden sats -> `deltaPct = 0`
 - Segment med sats -> regulering relativt til effective base
+- Ved almindelig løn på helligdage skal Store Bededag-tillæg altid materialiseres som særskilt reguleringsskæring pr. `01-01-2024`, også når næste ordinære overenskomstændring ligger senere
 - Ugyldige satsdata/packageValue -> `throw`
 
 ### Overenskomst (offentlig)
@@ -112,6 +113,7 @@ Formål:
 - Manglende base på reguleringsdato -> effective base = første tilgængelige offentlige lønresultat
 - Segment uden resultat -> `deltaPct = 0`
 - Segment med resultat -> regulering relativt til effective base
+- Ved almindelig løn på helligdage skal Store Bededag-tillæg altid materialiseres som særskilt reguleringsskæring pr. `01-01-2024`, også når næste ordinære regulering ligger senere
 - Ugyldige data -> `throw`
 
 ### Manual og Ingen

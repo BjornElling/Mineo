@@ -79,6 +79,7 @@ import {
   validateLoenudviklingManualBaseRowSatser,
   type ManualBaseRowCellErrors,
 } from '../../../domain/erstatningsopgoerelse/loenudviklingManuelBaseRowValidation';
+import { updateValidationFlagById } from './updateValidationFlagById';
 
 type ErstatningsopgoerelseFormApi = Pick<
   UsePersistedFormReturn<ErstatningsopgoerelseValues>,
@@ -1264,14 +1265,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
   const handleAarsloenValidationChange = React.useCallback(
     (id: string) => (summary: AarsloenTableValidationSummary) => {
       setAarsloenTableHasErrorsByAfId((prev) => {
-        const hasError = summary.hasErrors;
-        const next = { ...prev };
-        if (hasError) {
-          next[id] = true;
-        } else {
-          delete next[id];
-        }
-        return next;
+        return updateValidationFlagById(prev, id, summary.hasErrors);
       });
     },
     []

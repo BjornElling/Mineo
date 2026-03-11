@@ -1977,6 +1977,33 @@ describe('eoPdfModel', () => {
     expect(segments.some((segment) => segment.fra >= '2012-01-01')).toBe(true);
   });
 
+  it('indsætter Store Bededag som separat segment 01-01-2024 for offentlig overenskomst', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(32000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2023-12-01'), til: iso('2024-03-31'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
+          overenskomstId: 'kl-overenskomst',
+          offentligLoenType: 'Timeløn',
+          offentligLoenTrin: 20,
+          offentligLoenGruppe: 0,
+          feriePct: 16.95,
+          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2023-05-24') });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
+    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
+
+    expect(segments.some((segment) => segment.fra === '2024-01-01')).toBe(true);
+  });
+
   it('anvender Store Bededag-regulering fra 01-01-2024 som separat segment ved manglende tidlig overenskomstdækning', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
@@ -2009,6 +2036,61 @@ describe('eoPdfModel', () => {
     // 0,36% er den konkrete delta i dette fallback-scenario med laasesmede-satserne.
     // Vi låser værdien eksplicit for at undgå skjulte regressions i beregningsgrundlaget.
     expect(storeSegment?.deltaPct).toBeCloseTo(0.36, 2);
+  });
+
+  it('anvender Store Bededag-regulering fra 01-01-2024 i manuel regulering selv når næste manuelle række er 01-03-2024', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(30000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2023-06-01'), til: iso('2024-04-30'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+          loenudviklingManuelNavn: 'overenskomst Tandlægeforening/HK',
+          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          feriePct: 15,
+          loenudviklingManuelTableData: [
+            {
+              id: 'm1',
+              dato: '',
+              grundloen: asAmountValue(25174),
+              feriepenge: '15,00',
+              shSoSats: '',
+              fritvalg: '7,00',
+              agPension: '9,00',
+            },
+            {
+              id: 'm2',
+              dato: '01-03-2024',
+              grundloen: asAmountValue(25174),
+              feriepenge: '15,00',
+              shSoSats: '',
+              fritvalg: '9,00',
+              agPension: '11,00',
+            },
+            {
+              id: 'm3',
+              dato: '01-04-2024',
+              grundloen: asAmountValue(25895),
+              feriepenge: '15,00',
+              shSoSats: '',
+              fritvalg: '9,00',
+              agPension: '11,00',
+            },
+          ],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2023-05-24') });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
+    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
+
+    const storeSegment = segments.find((segment) => segment.fra === '2024-01-01');
+    expect(storeSegment).toBeDefined();
+    expect(storeSegment?.til).toBe('2024-02-29');
   });
 
   it('fejler fail-closed ved datakorruption i statistikindeks', () => {

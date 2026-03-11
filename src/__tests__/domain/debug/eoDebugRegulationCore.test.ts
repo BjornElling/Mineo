@@ -227,6 +227,52 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     expect(result.ansaettelser[0]?.kildeLabel).toBe('Navn på reguleringsform');
     expect(result.ansaettelser[0]?.kildeVaerdi).toBe('Manuelt angivet (overenskomst Tandlægeforening/HK)');
   });
+
+  it('indsætter 01-01-2024 som separat manuel reguleringsdato for Store Bededag selv når næste række er 01-03-2024', () => {
+    const input = makeInput();
+    input.eoValues.vedroererPeriodeFra = '2023-06-01';
+    input.eoValues.vedroererPeriodeTil = '2026-02-04';
+    input.stamdataValues.skadesdato = iso('2023-05-24');
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingManuelNavn = 'overenskomst Tandlægeforening/HK';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].feriePct = 15;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.ALMINDELIG;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingManuelTableData = [
+      {
+        id: 'row-1',
+        dato: '',
+        grundloen: { value: 25174 },
+        feriepenge: '15,00',
+        shSoSats: '',
+        fritvalg: '7,00',
+        agPension: '9,00',
+      } as any,
+      {
+        id: 'row-2',
+        dato: '01-03-2024',
+        grundloen: { value: 25174 },
+        feriepenge: '15,00',
+        shSoSats: '',
+        fritvalg: '9,00',
+        agPension: '11,00',
+      } as any,
+      {
+        id: 'row-3',
+        dato: '01-04-2024',
+        grundloen: { value: 25895 },
+        feriepenge: '15,00',
+        shSoSats: '',
+        fritvalg: '9,00',
+        agPension: '11,00',
+      } as any,
+    ];
+
+    const result = buildRegulationTimeline(input);
+    const entries = result.ansaettelser[0]?.entries ?? [];
+
+    expect(entries.some((entry) => entry.effectiveFrom === '2024-01-01')).toBe(true);
+  });
 });
 
 // ─── Periode-overgange ────────────────────────────────────────────────────────

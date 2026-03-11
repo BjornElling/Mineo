@@ -174,6 +174,13 @@ const buildManualEntries = (args: Readonly<{
     if (!iso) continue;
     if (iso >= args.eoFra && iso <= args.eoTil) dates.add(iso);
   }
+  if (
+    args.af.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG &&
+    args.eoFra <= STORE_BEDEDAG_START &&
+    args.eoTil >= STORE_BEDEDAG_START
+  ) {
+    dates.add(STORE_BEDEDAG_START);
+  }
 
   const sortedDates = Array.from(dates).sort((a, b) => a.localeCompare(b));
   const entries = sortedDates.map((iso, index) => {

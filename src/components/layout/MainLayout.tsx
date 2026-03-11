@@ -72,6 +72,8 @@ type GridCommitAttemptResult = Readonly<{
   firstFailedElement: HTMLElement | null;
 }>;
 
+const NON_TEXT_EDITING_INPUT_TYPES = new Set(['checkbox', 'radio', 'range', 'button', 'submit', 'reset', 'file', 'color']);
+
 const waitForAnimationFrame = (): Promise<void> =>
   new Promise<void>((resolve) => {
     requestAnimationFrame(() => resolve());
@@ -89,6 +91,19 @@ const restoreFocusIfPossible = (element: HTMLElement | null): void => {
   if (!element || !element.isConnected) return;
   if (element.matches(':disabled')) return;
   focusElementWithoutScroll(element);
+};
+
+const isOpenTextEditorElement = (element: Element | null): element is HTMLInputElement | HTMLTextAreaElement => {
+  if (element instanceof HTMLTextAreaElement) {
+    return !element.readOnly;
+  }
+  if (!(element instanceof HTMLInputElement)) {
+    return false;
+  }
+  if (NON_TEXT_EDITING_INPUT_TYPES.has(element.type)) {
+    return false;
+  }
+  return !element.readOnly;
 };
 
 const waitForCommitFlush = async (): Promise<void> => {
@@ -280,9 +295,43 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
     };
   }, [hasUnsavedChanges]);
 
-  const handlePageChange = React.useCallback((pageId: string) => {
-    navigate(`/${pageId}`);
-  }, [navigate]);
+  const handlePageChange = React.useCallback(async (pageId: string) => {
+    if (location.pathname === `/${pageId}`) {
+      return;
+    }
+
+    const activeElement = document.activeElement;
+    if (isOpenTextEditorElement(activeElement)) {
+      isUserFeedbackRef.current = true;
+      setOverlay({
+        message: 'Kan ikke skifte side: afslut eller ret det aktive felt først.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    try {
+      const gridCommitResult = commitActiveGridEditors();
+      if (gridCommitResult.failedCount > 0) {
+        restoreFocusIfPossible(gridCommitResult.firstFailedElement);
+        isUserFeedbackRef.current = true;
+        setOverlay({
+          message: 'Kan ikke skifte side: afslut eller ret det aktive felt først.',
+          type: 'warning',
+        });
+        return;
+      }
+
+      navigate(`/${pageId}`);
+    } catch (error) {
+      console.warn('Sideskift blev afbrudt, fordi aktivt felt ikke kunne afsluttes.', error);
+      isUserFeedbackRef.current = true;
+      setOverlay({
+        message: 'Kan ikke skifte side: afslut eller ret det aktive felt først.',
+        type: 'warning',
+      });
+    }
+  }, [location.pathname, navigate]);
 
   const hasBlockingInputErrors = React.useCallback((): boolean => {
     for (const pageKey of Object.keys(persistenceSchemas) as StorageKey[]) {
@@ -888,4 +937,3 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
 MainLayout.displayName = 'MainLayout';
 
 export default MainLayout;
-

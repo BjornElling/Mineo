@@ -89,7 +89,7 @@ const utilityItems: NavigationItem[] = [
  */
 interface SideMenuProps {
   activePage: string;
-  onPageChange: (pageId: string) => void;
+  onPageChange: (pageId: string) => void | Promise<void>;
   onGem: () => void;
   onHent: () => void;
   onSletAlt: () => void;
@@ -124,8 +124,9 @@ const SideMenu: React.FC<SideMenuProps> = React.memo(({ activePage, onPageChange
     operation.action();
   }, []);
 
-  const handleSaveMouseDown = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    // Keep current field/cell focus when file operations are triggered by pointer click.
+  const handleMenuButtonMouseDown = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    // Keep current field/cell focus when menu actions are triggered by pointer click.
+    // MainLayout performs the authoritative commit/navigation flow explicitly on click.
     event.preventDefault();
   }, []);
 
@@ -194,6 +195,7 @@ const SideMenu: React.FC<SideMenuProps> = React.memo(({ activePage, onPageChange
             <Button
               fullWidth
               onClick={() => handleNavigation(item.id)}
+              onMouseDown={handleMenuButtonMouseDown}
               startIcon={item.icon}
               tabIndex={-1}
               className={activePage === item.id ? 'menu-item active' : 'menu-item'}
@@ -236,7 +238,7 @@ const SideMenu: React.FC<SideMenuProps> = React.memo(({ activePage, onPageChange
             <Button
               fullWidth
               onClick={() => handleFileOperation(item)}
-              onMouseDown={handleSaveMouseDown}
+              onMouseDown={handleMenuButtonMouseDown}
               startIcon={item.icon}
               tabIndex={-1}
               className="menu-item"
@@ -279,6 +281,7 @@ const SideMenu: React.FC<SideMenuProps> = React.memo(({ activePage, onPageChange
             <Button
               fullWidth
               onClick={() => handleNavigation(item.id)}
+              onMouseDown={handleMenuButtonMouseDown}
               startIcon={item.icon}
               tabIndex={-1}
               className={activePage === item.id ? 'menu-item active' : 'menu-item'}

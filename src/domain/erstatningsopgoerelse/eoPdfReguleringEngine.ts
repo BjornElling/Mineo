@@ -385,7 +385,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       fraDato,
       tilDato,
       applyAlmindeligLoenPaaShDageRegel: ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn',
-    }).slice().reverse();
+    });
     const allSatser = getOverenskomst(ref.baseId)?.satser ?? satser;
     const hasGrundloen = allSatser.some((sats) => sats.grundloen !== null);
     const hasShSo = allSatser.some((sats) => sats.shSoSats !== null);
@@ -412,8 +412,32 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       ...(hasSfggUfaglKbh ? ['SFGG\nufagl. Kbh'] : []),
       ...(hasSfggUfaglProv ? ['SFGG\nufagl. prov'] : []),
     ] as const;
-    const rows = satser.map((sats) => {
-      const row: string[] = [sats.fraDato];
+    const rowDates = new Set<ISODateString>([overenskomstTableStartIso]);
+    for (const sats of satser) {
+      const iso = parseDanishToISO(sats.fraDato);
+      if (!iso) continue;
+      if (iso > overenskomstTableStartIso && iso <= tafTil) rowDates.add(iso);
+    }
+    if (
+      ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn' &&
+      overenskomstTableStartIso < STORE_BEDEDAG_START &&
+      tafTil >= STORE_BEDEDAG_START
+    ) {
+      rowDates.add(STORE_BEDEDAG_START);
+    }
+
+    const rows = Array.from(rowDates)
+      .sort((a, b) => (a < b ? -1 : 1))
+      .map((iso) => {
+        const danish = isoToDanish(iso);
+        if (!danish) return null;
+        const sats = getEffektiveSatserForDato({
+          overenskomstId: ref.baseId,
+          dato: danish,
+          applyAlmindeligLoenPaaShDageRegel: ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn',
+        });
+        if (!sats) return null;
+        const row: string[] = [danish];
       if (hasGrundloen) row.push(formatOverenskomstAmount(sats.grundloen));
       if (hasGrundloen && showFeriePctColumn) row.push(mergeFeriepengeDisplay(feriePctDisplay, undefined));
       if (hasShSo) row.push(formatOverenskomstPercent(sats.shSoSats));
@@ -425,32 +449,52 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       if (hasSfggUfaglKbh) row.push(formatOverenskomstAmount(sats.sfggUfaglKbh));
       if (hasSfggUfaglProv) row.push(formatOverenskomstAmount(sats.sfggUfaglProv));
       return row;
-    });
+      })
+      .filter((row): row is string[] => Boolean(row));
     return { columns, rows };
   }
 
   if (grundlag === 'Manuelt angivet') {
     const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
     const showFeriePctColumn = !isZeroPct(ansaettelsesforhold.feriePct);
-    const rows = (ansaettelsesforhold.loenudviklingManuelTableData ?? [])
+    const applyStoreBededagRegulering =
+      ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn' &&
+      reguleringTableStartIso < STORE_BEDEDAG_START &&
+      tafTil >= STORE_BEDEDAG_START;
+    const manualRows = ansaettelsesforhold.loenudviklingManuelTableData ?? [];
+    const normalizedRows = manualRows
       .map((row, index) => {
         const iso = index === 0 ? reguleringTableStartIso : parseDanishToISO(row.dato);
         if (!iso || iso < reguleringTableStartIso || iso > tafTil) return null;
-        const cells: string[] = [
-          formatDateShort(iso),
-          amountValueToDisplayString(row.grundloen, 2) || '-',
-        ];
-        cells.push(
-          mergeFeriepengeDisplay(showFeriePctColumn ? feriePctDisplay : undefined, formatPercentCellFromRaw(row.feriepenge)),
-          formatPercentCellFromRaw(row.shSoSats),
-          formatPercentCellFromRaw(row.fritvalg),
-          formatPercentCellFromRaw(row.agPension)
-        );
-        return { iso, cells };
+        return { iso, row };
       })
-      .filter((row): row is Readonly<{ iso: ISODateString; cells: string[] }> => Boolean(row))
-      .sort((a, b) => (a.iso < b.iso ? -1 : 1))
-      .map((row) => row.cells);
+      .filter((row): row is Readonly<{ iso: ISODateString; row: NonNullable<typeof manualRows>[number] }> => Boolean(row))
+      .sort((a, b) => (a.iso < b.iso ? -1 : 1));
+
+    if (applyStoreBededagRegulering && !normalizedRows.some((entry) => entry.iso === STORE_BEDEDAG_START)) {
+      const baseForStore = [...normalizedRows]
+        .filter((entry) => entry.iso <= STORE_BEDEDAG_START)
+        .sort((a, b) => (a.iso < b.iso ? 1 : -1))[0];
+      if (baseForStore) {
+        normalizedRows.push({ iso: STORE_BEDEDAG_START, row: baseForStore.row });
+        normalizedRows.sort((a, b) => (a.iso < b.iso ? -1 : 1));
+      }
+    }
+
+    const rows = normalizedRows.map(({ iso, row }) => {
+      const cells: string[] = [
+        formatDateShort(iso),
+        amountValueToDisplayString(row.grundloen, 2) || '-',
+      ];
+      cells.push(
+        mergeFeriepengeDisplay(showFeriePctColumn ? feriePctDisplay : undefined, formatPercentCellFromRaw(row.feriepenge)),
+        formatPercentCellFromRaw(row.shSoSats),
+        formatPercentCellFromRaw(row.fritvalg),
+        ...(applyStoreBededagRegulering ? [iso >= STORE_BEDEDAG_START ? formatPctFromInput(STORE_BEDEDAG_PCT) : formatPctFromInput(0)] : []),
+        formatPercentCellFromRaw(row.agPension)
+      );
+      return cells;
+    });
     return {
       columns: [
         REGULERINGSVAERDIER_FRA_DATO_HEADER,
@@ -458,6 +502,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         'Feriepenge',
         'SH/SO',
         'Fritvalg',
+        ...(applyStoreBededagRegulering ? ['Store Bededag'] : []),
         REGULERINGSVAERDIER_PENSION_HEADER,
       ],
       rows,
@@ -672,6 +717,14 @@ export const buildReguleringIndexRows = (params: Readonly<{
   const segmentsForCalc = anciennitetForIndex && anciennitetForIndex.segmentBoundaryIso > tafStartIso
     ? splitSegmentsAtBoundary(segments, anciennitetForIndex.segmentBoundaryIso)
     : segments;
+  const segmentsForOverenskomstCalc = (
+    loenudviklingBasis === 'Overenskomst' &&
+    applyAlmindeligLoenPaaShDageRegel &&
+    tafStartIso < STORE_BEDEDAG_START &&
+    tafEndIso >= STORE_BEDEDAG_START
+  )
+    ? splitSegmentsAtBoundary(segmentsForCalc, STORE_BEDEDAG_START)
+    : segmentsForCalc;
 
   if (
     ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Overenskomst' &&
@@ -729,12 +782,12 @@ export const buildReguleringIndexRows = (params: Readonly<{
         baseDato,
         applyAlmindeligLoenPaaShDageRegel
       );
-      const førsteSegmentFraDato = isoToDanish(segmentsForCalc[0]?.fra ?? segments[0]?.fra);
+      const førsteSegmentFraDato = isoToDanish(segmentsForOverenskomstCalc[0]?.fra ?? segments[0]?.fra);
       if (førsteSegmentFraDato) {
         assertOffentligReguleringsDatoGyldig(førsteSegmentFraDato);
       }
       const sidsteSegmentTilDato = isoToDanish(
-        segmentsForCalc[segmentsForCalc.length - 1]?.til ?? segments[segments.length - 1]?.til
+        segmentsForOverenskomstCalc[segmentsForOverenskomstCalc.length - 1]?.til ?? segments[segments.length - 1]?.til
       );
       const periodeTillaegsSatser =
         førsteSegmentFraDato && sidsteSegmentTilDato
@@ -756,7 +809,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
         || hasAnyPctSourceOrInput(periodeTillaegsSatser, (sats) => sats.agPension, ansaettelsesforhold.pensionPct);
       const hasStoreBededag =
         applyAlmindeligLoenPaaShDageRegel &&
-        (reguleringsdato >= STORE_BEDEDAG_START || segmentsForCalc.some((segment) => segment.til >= STORE_BEDEDAG_START));
+        (reguleringsdato >= STORE_BEDEDAG_START || segmentsForOverenskomstCalc.some((segment) => segment.til >= STORE_BEDEDAG_START));
       const baseAnciennitet = anciennitetForIndex && effectiveReguleringsdato >= anciennitetForIndex.activeFromIso
         ? anciennitetForIndex.supplementValue
         : 0;
@@ -778,7 +831,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
       const baseFormula = buildFormulaText(baseComponents, baseVisibility);
       const baseValueRaw = computeFormulaValue(baseComponents);
 
-      const rows = segmentsForCalc.map((segment) => {
+      const rows = segmentsForOverenskomstCalc.map((segment) => {
         const segmentDato = isoToDanish(segment.fra);
         const segmentResult = segmentDato
           ? getOffentligLoenForDato(offentligType, segmentDato, loentrin, gruppeValue)
@@ -849,8 +902,8 @@ export const buildReguleringIndexRows = (params: Readonly<{
         const hasShSo = allSatser.some((sats) => sats.shSoSats !== null);
         const hasFritvalg = allSatser.some((sats) => sats.fritvalg !== null);
         const hasAgPension = allSatser.some((sats) => sats.agPension !== null);
-        const firstSegmentStartIso = segments[0]?.fra;
-        const lastSegmentEndIso = segments[segments.length - 1]?.til;
+        const firstSegmentStartIso = segmentsForOverenskomstCalc[0]?.fra ?? segments[0]?.fra;
+        const lastSegmentEndIso = segmentsForOverenskomstCalc[segmentsForOverenskomstCalc.length - 1]?.til ?? segments[segments.length - 1]?.til;
         const applyStoreBededagRegulering = Boolean(
           firstSegmentStartIso &&
           lastSegmentEndIso &&
@@ -879,7 +932,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
         const baseFormula = buildFormulaText(baseComponents, baseVisibility);
         const baseValueRaw = computeFormulaValue(baseComponents);
 
-        const rows = segmentsForCalc.map((segment) => {
+        const rows = segmentsForOverenskomstCalc.map((segment) => {
           const segmentDato = isoToDanish(segment.fra);
           const sats = segmentDato
             ? getEffektiveSatserForDato({
