@@ -3,10 +3,14 @@ import type { AarsloenTableRow, OffentligeYdelserRow } from '../../../schemas/fo
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import {
   buildAarsloenCellErrors,
+  buildAarsloenZeroArbejdsdageCellErrorMessages,
+  buildAarsloenZeroArbejdsdageIssues,
   buildOffentligeYdelserCellErrors,
+  buildLoenindkomstZeroArbejdsdageMessage,
   getAarsloenErrorRowIdSet,
   getOffentligeYdelserErrorRowIdSet,
 } from '../../../domain/erstatningsopgoerelse/indkomstRowValidation';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -309,6 +313,80 @@ describe('getAarsloenErrorRowIdSet', () => {
     const result = getAarsloenErrorRowIdSet(rows, 'maaned');
     expect(result.has('r1')).toBe(true);
     expect(result.has('r2')).toBe(false);
+  });
+});
+
+describe('buildAarsloenZeroArbejdsdageIssues', () => {
+  it('returnerer fejl for lønrække med beløb og ingen arbejdsdage i arbejdsdags-sporet', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet dagsløn';
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.fuldLoenUnderFerie = 'Nej';
+    af.indtaegtsoplysningerTableData = [
+      {
+        ...baseAarsloenRow('row-1'),
+        col0_maaned: '7',
+        col1_maaned: '2024',
+        col2: amount(1000),
+      },
+    ];
+    values.ferieperioder = [{ id: 'ferie-1', fra: '2024-07-01', til: '2024-07-31' }];
+
+    const result = buildAarsloenZeroArbejdsdageIssues(values, af.id);
+
+    expect(result).toEqual([
+      {
+        rowId: 'row-1',
+        colKeys: ['col2'],
+        message: buildLoenindkomstZeroArbejdsdageMessage(new Date(Date.UTC(2024, 6, 1)), new Date(Date.UTC(2024, 6, 31))),
+      },
+    ]);
+  });
+
+  it('returnerer ingen fejl i månedssporet', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.fuldLoenUnderFerie = 'Ja';
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.indtaegtsoplysningerTableData = [
+      {
+        ...baseAarsloenRow('row-1'),
+        col0_maaned: '7',
+        col1_maaned: '2024',
+        col2: amount(1000),
+      },
+    ];
+    values.ferieperioder = [{ id: 'ferie-1', fra: '2024-07-01', til: '2024-07-31' }];
+
+    const result = buildAarsloenZeroArbejdsdageIssues(values, af.id);
+
+    expect(result).toEqual([]);
+  });
+});
+
+describe('buildAarsloenZeroArbejdsdageCellErrorMessages', () => {
+  it('markerer alle udfyldte beløbsceller i den berørte række', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet dagsløn';
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.fuldLoenUnderFerie = 'Nej';
+    af.indtaegtsoplysningerTableData = [
+      {
+        ...baseAarsloenRow('row-1'),
+        col0_maaned: '7',
+        col1_maaned: '2024',
+        col2: amount(1000),
+        col3: amount(200),
+      },
+    ];
+    values.ferieperioder = [{ id: 'ferie-1', fra: '2024-07-01', til: '2024-07-31' }];
+
+    const result = buildAarsloenZeroArbejdsdageCellErrorMessages(values, af.id);
+
+    expect(result).toEqual({
+      'row-1:col2': buildLoenindkomstZeroArbejdsdageMessage(new Date(Date.UTC(2024, 6, 1)), new Date(Date.UTC(2024, 6, 31))),
+      'row-1:col3': buildLoenindkomstZeroArbejdsdageMessage(new Date(Date.UTC(2024, 6, 1)), new Date(Date.UTC(2024, 6, 31))),
+    });
   });
 });
 

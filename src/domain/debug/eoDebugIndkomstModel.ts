@@ -27,6 +27,7 @@ import { buildAarsloenCellErrors, buildOffentligeYdelserCellErrors } from '../er
 import type { AarsloenTableColumnKey, OffentligeYdelserTableColumnKey } from '../../types/table';
 import type { Loenperiode } from '../../types/loen';
 import { amountValueToNumber } from '../../utils/expressionAmount';
+import { buildAarsloenZeroArbejdsdageIssues } from '../erstatningsopgoerelse/indkomstRowValidation';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -253,10 +254,11 @@ const collectOffentligeYdelserCellErrorsByRow = (
 };
 
 export const buildIndkomstSectionStatuses = (
-  ansaettelsesforhold: ReadonlyArray<Ansaettelsesforhold>,
-  skadesdato: ISODateString | undefined,
-  beregnesUdFra?: string
+  values: ErstatningsopgoerelseValues,
+  skadesdato: ISODateString | undefined
 ): ReadonlyArray<IndkomstSectionStatus> => {
+  const ansaettelsesforhold = values.loenindkomstAnsaettelsesforhold ?? [];
+
   return ansaettelsesforhold.map((af, index) => {
     const baseHeaderText = index === 0 ? 'Ansættelsesforhold' : `Ansættelsesforhold ${index + 1}`;
     const arbejdsstedNavn = af.navnPaaArbejdssted?.trim() ?? '';
@@ -276,7 +278,11 @@ export const buildIndkomstSectionStatuses = (
 
     let tableStatus: DebugStatus = 'ok';
     let tableMessage = 'Ok';
-    if (tableValidation.summary.hasErrors) {
+    const zeroArbejdsdageIssue = buildAarsloenZeroArbejdsdageIssues(values, af.id)[0];
+    if (zeroArbejdsdageIssue) {
+      tableStatus = 'error';
+      tableMessage = zeroArbejdsdageIssue.message;
+    } else if (tableValidation.summary.hasErrors) {
       tableStatus = 'error';
       const firstErrorCell = tableValidation.summary.firstErrorCell;
       if (!firstErrorCell) {
@@ -300,7 +306,7 @@ export const buildIndkomstSectionStatuses = (
       id: af.id,
       headerText,
       arbejdsstedNavnDisplay: arbejdsstedNavn !== '' ? arbejdsstedNavn : '-',
-      arbejdsstedNavnStatus: arbejdsstedNavn !== '' ? 'ok' : (beregnesUdFra === 'Beregningsperiode' ? 'warning' : 'ok'),
+      arbejdsstedNavnStatus: arbejdsstedNavn !== '' ? 'ok' : (values.beregnesUdFra === 'Beregningsperiode' ? 'warning' : 'ok'),
       satserStatus,
       satserMessage,
       tableStatus,

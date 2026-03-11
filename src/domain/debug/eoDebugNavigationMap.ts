@@ -104,6 +104,7 @@ export const getNavigationTargetFromRowId = (rowId: string): NavigationTarget =>
     return {
       kind: 'erstatningsopgoerelse-tab',
       tabId: 'loenindkomst',
+      sectionId: 'loenindkomst',
       tabName: 'Lønindkomst',
       sectionTitle: 'Lønindkomst',
     };

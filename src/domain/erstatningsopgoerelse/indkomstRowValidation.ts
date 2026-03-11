@@ -1,13 +1,32 @@
-import type { OffentligeYdelserRow, AarsloenTableRow, Loenperiode } from '../../schemas/formSchemas';
+import type { OffentligeYdelserRow, AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../schemas/formSchemas';
+import { dateToISO } from '../../types/branded';
 import { parseDanishDate, parseWeekString } from '../../utils/dateUtils';
 import { MIN_YEAR, CURRENT_YEAR } from '../../config/dateRanges';
 import { getAarsloenTableValidation, isAarsloenTableValueEffectivelyEmptyForValidation } from '../../utils/aarsloenTableValidation';
+import type { AarsloenTableColumnKey } from '../../types/table';
 import {
   getOffentligeYdelserTableValidation,
   isOffentligeYdelserAmountValueValidForValidation,
   isOffentligeYdelserTableValueEffectivelyEmptyForValidation,
   buildOffentligeYdelserCellKey,
 } from '../../utils/offentligeYdelserTableValidation';
+import { amountValueToNumber } from '../../utils/expressionAmount';
+import { parseAarsloenRowInterval } from './aarsloenRowInterval';
+import { buildLoenArbejdsdageSet } from './periodiseringsMotor';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
+import { formatDanishDate } from '../../utils/dateUtils';
+
+const AARSLOEN_AMOUNT_COLUMN_KEYS = ['col2', 'col3', 'col4', 'col5'] as const satisfies ReadonlyArray<AarsloenTableColumnKey>;
+
+export const buildLoenindkomstZeroArbejdsdageMessage = (fra: Date, til: Date): string => {
+  return `Perioden (${formatDanishDate(fra)} - ${formatDanishDate(til)}) indeholder løn, men ingen arbejdsdage.`;
+};
+
+type AarsloenZeroArbejdsdageIssue = Readonly<{
+  rowId: string;
+  colKeys: readonly AarsloenTableColumnKey[];
+  message: string;
+}>;
 
 const isValidMonthValue = (value: string | undefined): boolean => {
   if (isAarsloenTableValueEffectivelyEmptyForValidation(value)) return true;
@@ -108,6 +127,69 @@ export const getAarsloenErrorRowIdSet = (rows: readonly AarsloenTableRow[], loen
   const cellErrors = buildAarsloenCellErrors(rows, loenperiode);
   const validation = getAarsloenTableValidation({ rows, loenperiode, cellErrorsByCellKey: cellErrors });
   return new Set(validation.summary.rowIssues.filter((issue) => issue.level === 'error').map((issue) => issue.rowId));
+};
+
+const hasPositiveAmountInput = (row: AarsloenTableRow): boolean => {
+  return AARSLOEN_AMOUNT_COLUMN_KEYS.some((colKey) => {
+    // Zero beløb giver ikke denne fejl. Reglen gælder kun rækker med faktisk positiv lønindtastning.
+    const value = amountValueToNumber(row[colKey]);
+    return typeof value === 'number' && Number.isFinite(value) && value > 0;
+  });
+};
+
+const getFilledAmountColumnKeys = (row: AarsloenTableRow): readonly AarsloenTableColumnKey[] => {
+  return AARSLOEN_AMOUNT_COLUMN_KEYS.filter((colKey) => !isAarsloenTableValueEffectivelyEmptyForValidation(row[colKey]));
+};
+
+export const buildAarsloenZeroArbejdsdageIssues = (
+  values: ErstatningsopgoerelseValues,
+  employmentId: string
+): ReadonlyArray<AarsloenZeroArbejdsdageIssue> => {
+  if (computeTafBeregningsenhed(values) !== TAF_BEREGNES_SOM.ARBEJDSDAGE) return [];
+
+  const employment = (values.loenindkomstAnsaettelsesforhold ?? []).find((af) => af.id === employmentId);
+  if (!employment) return [];
+
+  const ferieOgFravaersperioder = [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])];
+  const issues: AarsloenZeroArbejdsdageIssue[] = [];
+
+  for (const row of employment.indtaegtsoplysningerTableData ?? []) {
+    if (!hasPositiveAmountInput(row)) continue;
+
+    const interval = parseAarsloenRowInterval(row, employment.loenperiode);
+    if (!interval) continue;
+
+    const fra = dateToISO(interval.start);
+    const til = dateToISO(interval.end);
+    if (!fra || !til) continue;
+
+    const arbejdsdageSet = buildLoenArbejdsdageSet({ fra, til }, ferieOgFravaersperioder);
+    if (arbejdsdageSet.size > 0) continue;
+
+    const colKeys = getFilledAmountColumnKeys(row);
+    if (colKeys.length === 0) continue;
+
+    issues.push({
+      rowId: row.id,
+      colKeys,
+      message: buildLoenindkomstZeroArbejdsdageMessage(interval.start, interval.end),
+    });
+  }
+
+  return issues;
+};
+
+export const buildAarsloenZeroArbejdsdageCellErrorMessages = (
+  values: ErstatningsopgoerelseValues,
+  employmentId: string
+): Readonly<Record<string, string>> => {
+  const messages: Record<string, string> = {};
+  for (const issue of buildAarsloenZeroArbejdsdageIssues(values, employmentId)) {
+    for (const colKey of issue.colKeys) {
+      messages[`${issue.rowId}:${colKey}`] = issue.message;
+    }
+  }
+  return messages;
 };
 
 export const getOffentligeYdelserErrorRowIdSet = (rows: readonly OffentligeYdelserRow[]): ReadonlySet<string> => {

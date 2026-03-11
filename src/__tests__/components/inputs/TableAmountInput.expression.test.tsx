@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GridCoreProvider } from '../../../components/tables/gridCoreContext';
 import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCoreTypes';
@@ -224,6 +224,56 @@ describe('TableAmountInput expression behavior', () => {
       })
     );
     expect(input).toHaveValue('12,30');
+  }, TEST_TIMEOUT_MS);
+
+  it('commits pasted currency text without opening table edit mode', async () => {
+    const user = userEvent.setup();
+    const { input, onBlur, setEditingCell } = setup(undefined);
+
+    setEditingCell(null);
+    await user.click(input);
+    await user.paste(input, '9.602,05 kr.');
+
+    await waitFor(() => {
+      expect(onBlur).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target: {
+            value: { kind: 'number', value: 9602.05 },
+          },
+        })
+      );
+      expect(input).toHaveValue('9.602,05');
+    });
+    expect(input).toHaveAttribute('readonly');
+    expect(document.activeElement).toBe(input);
+  }, TEST_TIMEOUT_MS);
+
+  it('shows error and does not commit invalid normalized paste while not editing', async () => {
+    const user = userEvent.setup();
+    const { input, onBlur, setEditingCell } = setup(undefined, { canBeNegative: false });
+
+    setEditingCell(null);
+    await user.click(input);
+    await user.paste(input, '-9.602,05 kr.');
+
+    await waitFor(() => {
+      expect(onBlur).not.toHaveBeenCalled();
+      expect(input).toHaveValue('-9602,05');
+    });
+    expect(input).toHaveAttribute('readonly');
+    expect(document.activeElement).toBe(input);
+  }, TEST_TIMEOUT_MS);
+
+  it('does not clear existing value when non-editing paste normalizes to empty', async () => {
+    const user = userEvent.setup();
+    const { input, onBlur, setEditingCell } = setup({ kind: 'number', value: 42 });
+
+    setEditingCell(null);
+    await user.click(input);
+    await user.paste(input, 'kr.');
+
+    expect(onBlur).not.toHaveBeenCalled();
+    expect(input).toHaveValue('42,00');
   }, TEST_TIMEOUT_MS);
 
   it('rejects leading minus in prepareEditFromKey when canBeNegative=false', async () => {

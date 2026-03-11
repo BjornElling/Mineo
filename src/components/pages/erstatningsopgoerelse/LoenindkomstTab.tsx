@@ -42,6 +42,7 @@ import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { isLoenperiodeValue } from '../../../utils/zodTypeGuards';
 import { generateAnsaettelsesforholdId, generateLoenudviklingRowId, initialLoenudviklingManuelRow } from '../../../utils/eoConverters';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
+import type { AarsloenTableValidationSummary } from '../../../types/table';
 import { UI_STORAGE_KEYS } from '../../../config/storageManifest';
 import { STORE_BEDEDAG_START } from '../../../config/dateRanges';
 import { STORE_BEDEDAG_PCT } from '../../../config/regulatoryRates';
@@ -73,6 +74,7 @@ import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '
 import { formatCurrency } from '../../../utils/formatUtils';
 import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerelse/loenoplysningerInput';
 import { DEFAULT_ANCIENNITET_FIELDS } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { buildAarsloenZeroArbejdsdageCellErrorMessages } from '../../../domain/erstatningsopgoerelse/indkomstRowValidation';
 import {
   validateLoenudviklingManualBaseRowSatser,
   type ManualBaseRowCellErrors,
@@ -260,6 +262,8 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 
   // State til fejlmeddelelser per Ansættelsesforhold
   const [satsErrors, setSatsErrors] = React.useState<Record<string, SatsErrorState>>({});
+  const [aarsloenTableHasErrorsByAfId, setAarsloenTableHasErrorsByAfId] = React.useState<Record<string, true>>({});
+  const [manuelReguleringHasErrorsByAfId, setManuelReguleringHasErrorsByAfId] = React.useState<Record<string, true>>({});
   const [loentrinFinderOpenForAfId, setLoentrinFinderOpenForAfId] = React.useState<string | null>(null);
   const [loentrinFinderAnsaettelse, setLoentrinFinderAnsaettelse] = React.useState<OffentligLoenTypeLabel>('Månedsløn');
   const [loentrinFinderBeloeb, setLoentrinFinderBeloeb] = React.useState<Ansaettelsesforhold['offentligLoenEkstraGrundloen']>(undefined);
@@ -291,6 +295,17 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     }
     return result;
   }, [values.loenindkomstAnsaettelsesforhold]);
+  const aarsloenExternalCellErrorMessagesByAfId = React.useMemo<Record<string, Readonly<Record<string, string>>>>(() => {
+    const result: Record<string, Readonly<Record<string, string>>> = {};
+    for (const af of values.loenindkomstAnsaettelsesforhold) {
+      const messages = buildAarsloenZeroArbejdsdageCellErrorMessages(values, af.id);
+      if (Object.keys(messages).length > 0) {
+        result[af.id] = messages;
+      }
+    }
+    return result;
+  }, [values]);
+  const syncedLoenindkomstErrorIdsRef = React.useRef<ReadonlySet<string>>(new Set());
 
   // Hent stamdata for skadesdato
   const stamdataValues = getPersistedData('stamdata');
@@ -529,6 +544,25 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 
     setSatsErrors(allErrors);
   }, [values.loenindkomstAnsaettelsesforhold, validateAllSatserForAnsaettelsesforhold]);
+
+  React.useEffect(() => {
+    const currentIds = new Set(values.loenindkomstAnsaettelsesforhold.map((af) => af.id));
+    for (const id of syncedLoenindkomstErrorIdsRef.current) {
+      if (!currentIds.has(id)) {
+        setLoenindkomstManuelReguleringInputError(id, false);
+      }
+    }
+    for (const id of currentIds) {
+      const hasError = Boolean(aarsloenTableHasErrorsByAfId[id] || manuelReguleringHasErrorsByAfId[id]);
+      setLoenindkomstManuelReguleringInputError(id, hasError);
+    }
+    syncedLoenindkomstErrorIdsRef.current = currentIds;
+  }, [
+    aarsloenTableHasErrorsByAfId,
+    manuelReguleringHasErrorsByAfId,
+    setLoenindkomstManuelReguleringInputError,
+    values.loenindkomstAnsaettelsesforhold,
+  ]);
 
   const getSaerligFraDatoReguleringLabel = React.useCallback((iso: ISODateString | undefined): string | undefined => {
     if (!iso) return undefined;
@@ -1227,12 +1261,32 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     [updateAnsaettelsesforhold]
   );
 
+  const handleAarsloenValidationChange = React.useCallback(
+    (id: string) => (summary: AarsloenTableValidationSummary) => {
+      setAarsloenTableHasErrorsByAfId((prev) => {
+        const hasError = summary.hasErrors;
+        const next = { ...prev };
+        if (hasError) {
+          next[id] = true;
+        } else {
+          delete next[id];
+        }
+        return next;
+      });
+    },
+    []
+  );
+
   const handleLoenudviklingBeregningsgrundlagChange = React.useCallback(
     (id: string) =>
       (event: StyledDropdownChangeEvent<string | undefined>) => {
         const raw = event.target.value;
         if (!raw) {
-          setLoenindkomstManuelReguleringInputError(id, false);
+          setManuelReguleringHasErrorsByAfId((prev) => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+          });
           // Når grundlag cleares, nulstil også alle tilknyttede felter
           updateAnsaettelsesforhold(id, (prev) => ({
             ...prev,
@@ -1249,7 +1303,11 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 
         // Nulstil fejl-state for manuelt angivet hvis nødvendigt
         if (parsed.data !== 'Manuelt angivet') {
-          setLoenindkomstManuelReguleringInputError(id, false);
+          setManuelReguleringHasErrorsByAfId((prev) => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+          });
         }
 
         // Centraliseret state-oprydning: nulstil alle felter der ikke er relevante for det nye grundlag
@@ -1273,7 +1331,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
           return { ...prev, ...updates };
         });
       },
-    [setLoenindkomstManuelReguleringInputError, updateAnsaettelsesforhold]
+    [updateAnsaettelsesforhold]
   );
 
   const handleLoenudviklingStatistikModelChange = React.useCallback(
@@ -1316,9 +1374,17 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
 
   const handleManuelReguleringInputErrorChange = React.useCallback(
     (id: string) => (hasError: boolean) => {
-      setLoenindkomstManuelReguleringInputError(id, hasError);
+      setManuelReguleringHasErrorsByAfId((prev) => {
+        const next = { ...prev };
+        if (hasError) {
+          next[id] = true;
+        } else {
+          delete next[id];
+        }
+        return next;
+      });
     },
-    [setLoenindkomstManuelReguleringInputError]
+    []
   );
 
   const resolveOverenskomstLabel = React.useCallback((overenskomstId: string | undefined): string => {
@@ -1364,7 +1430,16 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
   const handleDeleteConfirm = React.useCallback(() => {
     if (!deleteTargetId) return;
     try {
-      setLoenindkomstManuelReguleringInputError(deleteTargetId, false);
+      setAarsloenTableHasErrorsByAfId((prev) => {
+        const next = { ...prev };
+        delete next[deleteTargetId];
+        return next;
+      });
+      setManuelReguleringHasErrorsByAfId((prev) => {
+        const next = { ...prev };
+        delete next[deleteTargetId];
+        return next;
+      });
       setValues((prev) => ({
         ...prev,
         loenindkomstAnsaettelsesforhold: prev.loenindkomstAnsaettelsesforhold.filter(
@@ -1375,7 +1450,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
       setDeleteDialogOpen(false);
       setDeleteTargetId(null);
     }
-  }, [deleteTargetId, setLoenindkomstManuelReguleringInputError, setValues]);
+  }, [deleteTargetId, setValues]);
 
   const handleMoveUp = React.useCallback((afId: string) => {
     setValues((prev) => {
@@ -1466,7 +1541,7 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
   const showDeleteButton = totalAnsaettelsesforhold > 1;
 
   return (
-    <Box>
+    <Box data-section-id="loenindkomst">
       {values.loenindkomstAnsaettelsesforhold.map((af, index) => {
         const showOverenskomst = af.harOverenskomst;
         const showMedlemOpsagt = af.ansatPaaSkadestidspunktet;
@@ -1861,6 +1936,8 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
               } satisfies AarsloenTableSatser}
               tableData={af.indtaegtsoplysningerTableData}
               onTableDataChange={handleTableDataChange(af.id)}
+              onValidationChange={handleAarsloenValidationChange(af.id)}
+              externalCellErrorMessagesByCellKey={aarsloenExternalCellErrorMessagesByAfId[af.id] ?? {}}
               useSmallFont={true}
             />
 

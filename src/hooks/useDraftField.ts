@@ -82,6 +82,7 @@ export type UseDraftFieldResult = {
    * suppression externally.
    */
   commit: () => void;
+  commitDraft: (nextDraft: string) => void;
   cancel: () => void;
 };
 
@@ -224,10 +225,10 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
     pendingValueResyncRef.current = { active: false };
   }, [format]);
 
-  const commitFrom = React.useCallback((source: 'blur' | 'enter' | 'imperative') => {
+  const commitFromDraft = React.useCallback((rawDraft: string, source: 'blur' | 'enter' | 'imperative') => {
     setTouched(true);
 
-    const draftForCommit = (normalizeDraftOnCommit ?? defaultNormalizeDraftOnCommit)(draft);
+    const draftForCommit = (normalizeDraftOnCommit ?? defaultNormalizeDraftOnCommit)(rawDraft);
     const result = parse(draftForCommit, { mode: 'commit' });
 
     if (result.ok) {
@@ -265,11 +266,18 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
     }
 
     setError({ kind: result.kind, message: result.message });
-  }, [draft, format, normalizeDraftOnCommit, onCommit, parse, value]);
+  }, [format, normalizeDraftOnCommit, onCommit, parse, value]);
 
   const commit = React.useCallback(() => {
-    commitFrom('imperative');
-  }, [commitFrom]);
+    commitFromDraft(draft, 'imperative');
+  }, [commitFromDraft, draft]);
+
+  const commitDraft = React.useCallback((nextDraft: string) => {
+    suppressNextBlurCommitRef.current = true;
+    pendingValueResyncRef.current = { active: false };
+    setDraftState(nextDraft);
+    commitFromDraft(nextDraft, 'imperative');
+  }, [commitFromDraft]);
 
   const shouldBubbleEnterForNavigation = React.useCallback((target: EventTarget | null): boolean => {
     if (!(target instanceof HTMLElement)) return false;
@@ -290,9 +298,9 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       return;
     }
     if (commitOnBlur) {
-      commitFrom('blur');
+      commitFromDraft(draft, 'blur');
     }
-  }, [commitFrom, commitOnBlur]);
+  }, [commitFromDraft, commitOnBlur, draft]);
 
   const onKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (e.key === 'Escape') {
@@ -312,9 +320,9 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
         e.stopPropagation();
       }
       suppressNextBlurCommitRef.current = true;
-      commitFrom('enter');
+      commitFromDraft(draft, 'enter');
     }
-  }, [cancel, commitFrom, commitOnEnter, shouldBubbleEnterForNavigation]);
+  }, [cancel, commitFromDraft, commitOnEnter, draft, shouldBubbleEnterForNavigation]);
 
   return {
     draft,
@@ -326,6 +334,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
     onBlur,
     onKeyDown,
     commit,
+    commitDraft,
     cancel,
   };
 };

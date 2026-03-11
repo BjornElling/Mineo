@@ -5,7 +5,7 @@ import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { containsUnaryMinusToken, filterAmountExpressionKeyDown } from './inputKeyFilters';
 import { stripAmountGroupingSeparators } from '../../utils/draftNormalization';
-import { sanitizePastedAmount } from '../../utils/amountInputUtils';
+import { normalizePastedAmount, sanitizePastedAmount } from '../../utils/amountInputUtils';
 import { readClipboardText } from '../../utils/clipboardUtils';
 import { formatAsAmount } from '../../utils/formatUtils';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
@@ -195,7 +195,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       [allowDecimals, allowNegative, maxValue, minValue, resolvedPrecision]
     );
 
-    const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
+    const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit, commitDraft } =
       useDraftField<AmountValue | undefined>({
         value,
         format: formatAmount,
@@ -260,7 +260,6 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
     const activation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled),
       getDraftForKey,
-      normalizePasteText: sanitizePastedAmount,
       onReplaceDraft: (nextDraft) => {
         if (!allowNegative && containsUnaryMinusToken(nextDraft)) return;
         handleDraftChange(nextDraft);
@@ -354,27 +353,32 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
 
     const handlePaste = React.useCallback(
       (e: React.ClipboardEvent<HTMLInputElement>) => {
+        const raw = readClipboardText(e);
+        const normalized = normalizePastedAmount(raw);
+
         if (!activation.isEditorOpen) {
-          activation.handlePaste(e);
+          e.preventDefault();
+          e.stopPropagation();
+          if (normalized === '') return;
+          skipNextBlurCommitRef.current = true;
+          commitDraft(normalized);
           return;
         }
 
-        const raw = readClipboardText(e);
-        const sanitized = sanitizePastedAmount(raw);
-        if (!allowDecimals && sanitized.includes(',')) return;
+        if (!allowDecimals && normalized.includes(',')) return;
 
         e.preventDefault();
         e.stopPropagation();
-        if (sanitized === '') return;
+        if (normalized === '') return;
 
         const input = inputElementRef.current;
         const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
         const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
-        const nextDraft = draft.slice(0, start) + sanitized + draft.slice(end);
+        const nextDraft = draft.slice(0, start) + normalized + draft.slice(end);
         if (!allowNegative && containsUnaryMinusToken(nextDraft)) return;
         handleDraftChange(nextDraft);
 
-        const nextCaret = start + sanitized.length;
+        const nextCaret = start + normalized.length;
         requestAnimationFrame(() => {
           const el = inputElementRef.current;
           if (!el) return;
@@ -385,7 +389,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
           }
         });
       },
-      [activation, allowDecimals, allowNegative, draft, handleDraftChange]
+      [activation.isEditorOpen, allowDecimals, allowNegative, commitDraft, draft, handleDraftChange]
     );
 
     return (

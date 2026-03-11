@@ -1,4 +1,5 @@
 import {
+  normalizePastedAmount,
   sanitizePastedAmount,
   containsAnyDigit,
   normalizeTrailingSeparator,
@@ -20,6 +21,33 @@ describe('sanitizePastedAmount', () => {
 
   it('tom streng → tom streng', () => {
     expect(sanitizePastedAmount('')).toBe('');
+  });
+});
+
+describe('normalizePastedAmount', () => {
+  it('normaliserer dansk valutaformat med kr til rent beløb', () => {
+    expect(normalizePastedAmount('9.602,05 kr.')).toBe('9602,05');
+  });
+
+  it('udtrækker beløb fra labeltekst før valutaenhed', () => {
+    expect(normalizePastedAmount('Hovedstol: 17.613,05 kr.')).toBe('17613,05');
+  });
+
+  it('normaliserer international valutaformat med spaces og punktum-decimal', () => {
+    expect(normalizePastedAmount('DKK 9 602.05')).toBe('9602,05');
+  });
+
+  it('bevarer udtryk som udtryk i stedet for at tvinge tal-normalisering', () => {
+    expect(normalizePastedAmount('1.200,50 / 2')).toBe('1.200,50 / 2');
+  });
+
+  it('bevarer subtraktion som udtryk i stedet for at tolke det som negativt beløb', () => {
+    expect(normalizePastedAmount('1200 - 200')).toBe('1200 - 200');
+    expect(normalizePastedAmount('1.200,50 - 2')).toBe('1.200,50 - 2');
+  });
+
+  it('tolker parentes-notation som negativt beløb for plain money-like paste', () => {
+    expect(normalizePastedAmount('(9.602,05 kr.)')).toBe('-9602,05');
   });
 });
 

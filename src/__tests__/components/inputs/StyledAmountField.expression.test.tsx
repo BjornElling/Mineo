@@ -149,6 +149,59 @@ describe('StyledAmountField expression behavior', () => {
     expect(input).toHaveValue('12,30');
   }, TEST_TIMEOUT_MS);
 
+  it('normalizes pasted currency text during edit before commit', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn<OnCommit>();
+    const input = renderField(undefined, onCommit);
+
+    await openEditor(user, input);
+    await user.paste(input, '9.602,05 kr.');
+    await user.tab();
+
+    expect(onCommit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          value: { kind: 'number', value: 9602.05 },
+        },
+      })
+    );
+    expect(input).toHaveValue('9.602,05');
+  }, TEST_TIMEOUT_MS);
+
+  it('commits pasted currency text while editor is closed', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn<OnCommit>();
+    const input = renderField(undefined, onCommit);
+
+    await user.click(input);
+    await user.paste(input, '9.602,05 kr.');
+    await user.tab();
+
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    expect(onCommit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          value: { kind: 'number', value: 9602.05 },
+        },
+      })
+    );
+    expect(input).toHaveValue('9.602,05');
+    expect(input).toHaveAttribute('readonly');
+  }, TEST_TIMEOUT_MS);
+
+  it('ignores closed-editor paste that normalizes to empty', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn<OnCommit>();
+    const input = renderField({ kind: 'number', value: 42 }, onCommit);
+
+    await user.click(input);
+    await user.paste(input, 'se bilag');
+
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(input).toHaveValue('42,00');
+    expect(input).toHaveAttribute('readonly');
+  }, TEST_TIMEOUT_MS);
+
   it('blocks unary minus typing when allowNegative=false', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn<OnCommit>();

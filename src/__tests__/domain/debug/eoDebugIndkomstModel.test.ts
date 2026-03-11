@@ -4,18 +4,19 @@ import {
   buildOffentligeYdelserDebugRows,
 } from '../../../domain/debug/eoDebugIndkomstModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { buildLoenindkomstZeroArbejdsdageMessage } from '../../../domain/erstatningsopgoerelse/indkomstRowValidation';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
-const buildAnsForhold = () => {
+const buildValuesWithAnsForhold = () => {
   const values = createErstatningsopgoerelseInitialValues();
-  return { ...values.loenindkomstAnsaettelsesforhold[0] };
+  return { values, af: values.loenindkomstAnsaettelsesforhold[0] };
 };
 
 describe('buildIndkomstSectionStatuses', () => {
   it('giver præcis warning når lønperiode er udfyldt uden beløb', () => {
-    const af = buildAnsForhold();
+    const { values, af } = buildValuesWithAnsForhold();
     af.indtaegtsoplysningerTableData = [
       {
         id: 'row-1',
@@ -24,14 +25,14 @@ describe('buildIndkomstSectionStatuses', () => {
       },
     ];
 
-    const result = buildIndkomstSectionStatuses([af], undefined, 'Beregningsperiode');
+    const result = buildIndkomstSectionStatuses(values, undefined);
 
     expect(result[0]?.tableStatus).toBe('warning');
     expect(result[0]?.tableMessage).toBe('Lønperiode er udfyldt uden beløb i lønfelterne');
   });
 
   it('markerer ikke manglende beløb når lønfelt er udfyldt med 0', () => {
-    const af = buildAnsForhold();
+    const { values, af } = buildValuesWithAnsForhold();
     af.indtaegtsoplysningerTableData = [
       {
         id: 'row-1',
@@ -41,14 +42,14 @@ describe('buildIndkomstSectionStatuses', () => {
       },
     ];
 
-    const result = buildIndkomstSectionStatuses([af], undefined, 'Beregningsperiode');
+    const result = buildIndkomstSectionStatuses(values, undefined);
 
     expect(result[0]?.tableStatus).toBe('ok');
     expect(result[0]?.tableMessage).toBe('Ok');
   });
 
   it('giver præcis fejltekst ved manglende periodefelt', () => {
-    const af = buildAnsForhold();
+    const { values, af } = buildValuesWithAnsForhold();
     af.indtaegtsoplysningerTableData = [
       {
         id: 'row-1',
@@ -57,14 +58,14 @@ describe('buildIndkomstSectionStatuses', () => {
       },
     ];
 
-    const result = buildIndkomstSectionStatuses([af], undefined, 'Beregningsperiode');
+    const result = buildIndkomstSectionStatuses(values, undefined);
 
     expect(result[0]?.tableStatus).toBe('error');
     expect(result[0]?.tableMessage).toBe('År mangler');
   });
 
   it('giver præcis fejltekst ved ugyldig periodeværdi', () => {
-    const af = buildAnsForhold();
+    const { values, af } = buildValuesWithAnsForhold();
     af.indtaegtsoplysningerTableData = [
       {
         id: 'row-1',
@@ -73,10 +74,32 @@ describe('buildIndkomstSectionStatuses', () => {
       },
     ];
 
-    const result = buildIndkomstSectionStatuses([af], undefined, 'Beregningsperiode');
+    const result = buildIndkomstSectionStatuses(values, undefined);
 
     expect(result[0]?.tableStatus).toBe('error');
     expect(result[0]?.tableMessage).toBe('Ugyldig værdi i Måned');
+  });
+
+  it('gengiver 0-arbejdsdage-fejl med den specifikke besked', () => {
+    const { values, af } = buildValuesWithAnsForhold();
+    values.beregnesUdFra = 'Angivet dagsløn';
+    af.fuldLoenUnderFerie = 'Nej';
+    af.indtaegtsoplysningerTableData = [
+      {
+        id: 'row-1',
+        col0_maaned: '7',
+        col1_maaned: '2024',
+        col2: amount(1000),
+      },
+    ];
+    values.ferieperioder = [{ id: 'ferie-1', fra: '2024-07-01', til: '2024-07-31' }];
+
+    const result = buildIndkomstSectionStatuses(values, undefined);
+
+    expect(result[0]?.tableStatus).toBe('error');
+    expect(result[0]?.tableMessage).toBe(
+      buildLoenindkomstZeroArbejdsdageMessage(new Date(Date.UTC(2024, 6, 1)), new Date(Date.UTC(2024, 6, 31)))
+    );
   });
 });
 

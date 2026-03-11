@@ -9,7 +9,7 @@ import { assignRef } from './assignRef';
 import { type TableInputErrorInfo } from './tableInputContracts';
 import { containsUnaryMinusToken, filterAmountExpressionKeyDown } from '../inputKeyFilters';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import { sanitizePastedAmount } from '../../../utils/amountInputUtils';
+import { normalizePastedAmount, sanitizePastedAmount } from '../../../utils/amountInputUtils';
 import { readClipboardText } from '../../../utils/clipboardUtils';
 import {
   amountValueToDisplayString,
@@ -310,18 +310,29 @@ const TableAmountInput = React.memo(
 
     const handlePaste = React.useCallback(
       (e: React.ClipboardEvent<HTMLInputElement>) => {
-        if (!isEditing) return;
         const raw = readClipboardText(e);
-        const sanitized = sanitizePastedAmount(raw);
+        const normalized = normalizePastedAmount(raw);
+
+        if (!isEditing) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (normalized === '') return;
+          setDraft(normalized);
+          draftRef.current = normalized;
+          const ok = commitAndEmitBlur(normalized);
+          if (!ok) return;
+          setIsFocused(true);
+          return;
+        }
 
         e.preventDefault();
         e.stopPropagation();
-        if (sanitized === '') return;
+        if (normalized === '') return;
 
         const input = inputElRef.current;
         const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
         const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
-        const nextDraft = draft.slice(0, start) + sanitized + draft.slice(end);
+        const nextDraft = draft.slice(0, start) + normalized + draft.slice(end);
         if (!canBeNegative && containsUnaryMinusToken(nextDraft)) return;
         setHasError(false);
         setErrorMessage('');
@@ -331,7 +342,7 @@ const TableAmountInput = React.memo(
         draftRef.current = nextDraft;
         setDraft(nextDraft);
 
-        const nextCaret = start + sanitized.length;
+        const nextCaret = start + normalized.length;
         requestAnimationFrame(() => {
           const el = inputElRef.current;
           if (!el) return;
@@ -342,7 +353,7 @@ const TableAmountInput = React.memo(
           }
         });
       },
-      [canBeNegative, draft, isEditing]
+      [canBeNegative, commitAndEmitBlur, draft, isEditing]
     );
 
     const a11yErrorId = React.useId();
@@ -515,7 +526,4 @@ const TableAmountInput = React.memo(
 TableAmountInput.displayName = 'TableAmountInput';
 
 export default TableAmountInput;
-
-
-
 

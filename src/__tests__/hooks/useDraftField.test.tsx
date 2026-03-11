@@ -134,4 +134,25 @@ describe('useDraftField', () => {
     expect(result.current.draft).toBe('efter');
     expect(onCommit).toHaveBeenCalledTimes(1);
   });
+
+  it('commitDraft suppress’er efterfølgende blur-commit', () => {
+    const onCommit = vi.fn();
+    const { result } = renderHook(() =>
+      useDraftField({
+        value: 'old',
+        format: (v) => v,
+        parse: parseTrimmedString,
+        onCommit,
+      })
+    );
+
+    act(() => {
+      result.current.onFocus();
+      result.current.commitDraft('next');
+      result.current.onBlur();
+    });
+
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    expect(onCommit).toHaveBeenCalledWith('next');
+  });
 });

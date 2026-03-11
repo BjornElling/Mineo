@@ -50,6 +50,7 @@ export type AarsloenTableProps = {
   tableData: AarsloenTableRow[];
   onTableDataChange?: (data: AarsloenTableRow[]) => void;
   onValidationChange?: (summary: AarsloenTableValidationSummary) => void;
+  externalCellErrorMessagesByCellKey?: Readonly<Record<string, string>>;
   useSmallFont?: boolean;
 };
 
@@ -85,7 +86,7 @@ type TableRowsState = {
 };
 
 const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
-  ({ loenperiode, satser, tableData, onTableDataChange, onValidationChange, useSmallFont = false }, ref) => {
+  ({ loenperiode, satser, tableData, onTableDataChange, onValidationChange, externalCellErrorMessagesByCellKey = {}, useSmallFont = false }, ref) => {
     const defaultTableData = React.useMemo<AarsloenTableRow[]>(() => {
       return [
         { ...initialRow, id: generateRowId() },
@@ -306,12 +307,17 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
     );
 
     const getValidationResult = React.useCallback(() => {
+      const combinedCellErrorsByCellKey: Record<string, true> = { ...cellErrorsByCellKeyRef.current };
+      for (const [cellKey, message] of Object.entries(externalCellErrorMessagesByCellKey)) {
+        if (message.trim() === '') continue;
+        combinedCellErrorsByCellKey[cellKey] = true;
+      }
       return getAarsloenTableValidation({
         rows: committedTableData,
         loenperiode,
-        cellErrorsByCellKey: cellErrorsByCellKeyRef.current,
+        cellErrorsByCellKey: combinedCellErrorsByCellKey,
       });
-    }, [committedTableData, loenperiode]);
+    }, [committedTableData, externalCellErrorMessagesByCellKey, loenperiode]);
 
     const notifyValidationChange = React.useCallback(() => {
       if (!onValidationChange) return;
@@ -457,13 +463,14 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
 
     const getExternalErrorMessage = React.useCallback(
       (rowId: string, colKey: AarsloenTableColumnKey): string | undefined => {
-        if (!externalCellError) return undefined;
-        if (externalCellError.rowId !== rowId) return undefined;
-        if (externalCellError.colKey !== colKey) return undefined;
-        if (!isVisibleColKey(colKey)) return undefined;
-        return externalCellError.message;
+        if (externalCellError && externalCellError.rowId === rowId && externalCellError.colKey === colKey && isVisibleColKey(colKey)) {
+          return externalCellError.message;
+        }
+        const propErrorMessage = externalCellErrorMessagesByCellKey[`${rowId}:${colKey}`];
+        if (!propErrorMessage || !isVisibleColKey(colKey)) return undefined;
+        return propErrorMessage;
       },
-      [externalCellError, isVisibleColKey]
+      [externalCellError, externalCellErrorMessagesByCellKey, isVisibleColKey]
     );
 
     React.useEffect(() => {

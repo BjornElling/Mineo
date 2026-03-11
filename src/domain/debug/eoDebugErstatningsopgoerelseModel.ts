@@ -2417,7 +2417,7 @@ export const buildEODebugIndkomstRows = (
   const overenskomstUdloebMaanederGraense = appSettings.allowReguleringMedUdloebMedMaaneder;
   const tafBoundaryDates = resolveTafBoundaryDatesInSkadetPeriode(values);
 
-  const sections = buildIndkomstSectionStatuses(values.loenindkomstAnsaettelsesforhold ?? [], skadesdato, values.beregnesUdFra);
+  const sections = buildIndkomstSectionStatuses(values, skadesdato);
   sections.forEach((section) => {
     rows.push({
       id: `loenindkomst.${section.id}.arbejdsstedNavn`,
