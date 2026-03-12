@@ -19,7 +19,7 @@ import {
   type KapitaliseringsTabelData,
   getKapitaliseringsTabelData,
 } from '../../data/kapitalisering/kapitaliseringsTabeller';
-import { hasTextValue, parsePercentDraft } from './eetAslAfgoerelser';
+import { hasTextValue, isAslAfgoerelseRowEmpty, parsePercentDraft } from './eetAslAfgoerelser';
 import {
   calculateAgeYearsMonths,
   resolveKapitaliseringsbekendtgoerelseId,
@@ -244,7 +244,8 @@ const collectResolvedRows = (
   issues: EetKapitaliseringIssue[]
 ): ResolvedKapitaliseringsRow[] => {
   const result: ResolvedKapitaliseringsRow[] = [];
-  const rowsWithAfgoerelse = rows.filter((row) => {
+  const startedRows = rows.filter((row) => !isAslAfgoerelseRowEmpty(row));
+  const rowsWithAfgoerelse = startedRows.filter((row) => {
     const eetPct = parsePercentDraft(row.eetPct);
     return (
       eetPct !== undefined &&
@@ -258,9 +259,19 @@ const collectResolvedRows = (
   );
 
   if (rowsWithAfgoerelse.length === 0) {
-    const hasAnyAfgoerelsesdato = rows.some((row) => toIsoDate(row.afgoerelsesDato) !== undefined);
-    const hasAnyAfgoerelsestype = rows.some((row) => row.afgoerelseType !== undefined);
-    const hasAnyEetPct = rows.some((row) => {
+    if (startedRows.length === 0) {
+      issues.push(
+        toIssue(
+          'asl-afgoerelser-empty',
+          'Ingen afgørelser med erhvervsevnetabsprocent er udfyldt'
+        )
+      );
+      return result;
+    }
+
+    const hasAnyAfgoerelsesdato = startedRows.some((row) => toIsoDate(row.afgoerelsesDato) !== undefined);
+    const hasAnyAfgoerelsestype = startedRows.some((row) => row.afgoerelseType !== undefined);
+    const hasAnyEetPct = startedRows.some((row) => {
       const eetPct = parsePercentDraft(row.eetPct);
       return eetPct !== undefined && eetPct > 0;
     });

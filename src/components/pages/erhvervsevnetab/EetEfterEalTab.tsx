@@ -379,7 +379,7 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
                   : 'Skadelidtes erhvervsevnetab skal ikke reduceres, dvs. udgør'}
               </Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatKr(computation.eetAnvendt)}</Typography>
+                <Typography className="row--text text-bold">{formatKr(computation.eetAnvendt)}</Typography>
               </Box>
             </Box>
 
@@ -407,22 +407,18 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
             </Box>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text">
-                {`${formatKr(computation.eetAnvendt)} x (- ${formatPct(computation.aldersreduktionPct)}) =`}
-              </Typography>
+              <Typography className="row--text text-bold">{`${formatKr(computation.eetAnvendt)} x (- ${formatPct(computation.aldersreduktionPct)}) =`}</Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{`- ${formatKr(computation.aldersreduktionBeloeb)}`}</Typography>
+                <Typography className="row--text text-bold">{`- ${formatKr(computation.aldersreduktionBeloeb)}`}</Typography>
               </Box>
             </Box>
 
             <Typography className="row--subheading">Beregnet EAL-krav</Typography>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text">
-                {`${formatKr(computation.eetAnvendt)} - ${formatKr(computation.aldersreduktionBeloeb)} =`}
-              </Typography>
+              <Typography className="row--text text-bold">{`${formatKr(computation.eetAnvendt)} - ${formatKr(computation.aldersreduktionBeloeb)} =`}</Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatKr(computation.ealKrav)}</Typography>
+                <Typography className="row--text text-bold">{formatKr(computation.ealKrav)}</Typography>
               </Box>
             </Box>
           </ContentBox>

@@ -213,14 +213,14 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">
-            Der foretages individuelle fradrag i erhvervsevnetabserstatningen for tjenestemænd.
+            Det er ikke muligt for programmet at tage højde for de særlige fradrag, der foretages for tjenestemænd.
           </Typography>
           <Box className="row--label-right-hover__content" />
         </Box>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">
-            Beregninger foretaget efter den grønlandske arbejdsskadesikringsloven afviger markant.
+            Programmet kan ikke foretage beregninger efter den grønlandske arbejdsskadesikringslov.
           </Typography>
           <Box className="row--label-right-hover__content" />
         </Box>

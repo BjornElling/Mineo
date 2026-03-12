@@ -6,7 +6,7 @@ import { computeEetKapitaliseringCalculation } from '../../../domain/erhvervsevn
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
 describe('computeEetKapitaliseringCalculation', () => {
-  it('giver felt-specifikke fejl når der ikke er indtastet nogen afgørelse', () => {
+  it('giver en generel fejl når der ikke er indtastet nogen afgørelse', () => {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -19,20 +19,46 @@ describe('computeEetKapitaliseringCalculation', () => {
 
     expect(result.computation).toBeNull();
     expect(result.issues).toContainEqual({
-      id: 'missing-afgoerelsesdato',
+      id: 'asl-afgoerelser-empty',
       severity: 'error',
-      message: 'Der mangler indtastning af afgørelsesdato',
+      message: 'Ingen afgørelser med erhvervsevnetabsprocent er udfyldt',
     });
+    expect(result.issues.some((issue) => issue.id === 'missing-afgoerelsesdato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'missing-afgoerelsestype')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'missing-eet-pct')).toBe(false);
+  });
+
+  it('giver samme generelle fejl for tom placeholder-række uden indtastning', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: asAmount(632000),
+        aslAfgoerelser: [
+          {
+            id: 'a',
+            afgoerelsesDato: undefined,
+            virkningsDato: undefined,
+            eetPct: undefined,
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: undefined,
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadesdato: '2025-01-01',
+      fodselsdato: '1965-01-01',
+    });
+
+    expect(result.computation).toBeNull();
     expect(result.issues).toContainEqual({
-      id: 'missing-afgoerelsestype',
+      id: 'asl-afgoerelser-empty',
       severity: 'error',
-      message: 'Der mangler indtastning af afgørelsestype',
+      message: 'Ingen afgørelser med erhvervsevnetabsprocent er udfyldt',
     });
-    expect(result.issues).toContainEqual({
-      id: 'missing-eet-pct',
-      severity: 'error',
-      message: 'Der mangler indtastning af EET %',
-    });
+    expect(result.issues.some((issue) => issue.id === 'missing-afgoerelsesdato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'missing-afgoerelsestype')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'missing-eet-pct')).toBe(false);
   });
 
   it('giver felt-specifikke fejl når der er indtastet afgørelse uden kapitaliseringsdato og -procent', () => {
