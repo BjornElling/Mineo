@@ -4,7 +4,9 @@ import StyledTextFieldBase from './StyledTextFieldBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { filterFractionKeyDown } from './inputKeyFilters';
+import { readClipboardText } from '../../utils/clipboardUtils';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
+import { DEFAULT_FRACTION_MAX_DIGITS, getFractionMaxLength, INTEGER_FRACTION_FORMAT_MESSAGE, parseFractionString, sanitizePastedFraction } from '../../utils/fraction';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from './fieldEvents';
 
 export type StyledFractionFieldValueChangeEvent = CommitEvent<string | undefined>;
@@ -17,8 +19,7 @@ export type StyledFractionFieldProps = {
   placeholder?: string;
   disabled?: boolean;
   /**
-   * Legacy konfigurationsprop.
-   * Kun værdien `2` er understøttet for at bevare eksisterende inputkontrakt.
+   * Maks antal cifre før og efter decimaltegn i hver del af brøken.
    */
   maxDigits?: number;
   allowNegative?: boolean;
@@ -34,6 +35,7 @@ export type StyledFractionFieldProps = {
    * Note: if `allowZeroNumerator=true`, `0/x` is canonicalized to `0/1` when `canonicalizeOnCommit=true`.
    */
   canonicalizeOnCommit?: boolean;
+  requireIntegerFraction?: boolean;
 
   onDraftChange?: DraftChangeHandler;
   onCommit?: CommitHandler<string | undefined>;
@@ -55,17 +57,6 @@ export type StyledFractionFieldProps = {
 
 const formatFraction = (value: string | undefined): string => value ?? '';
 
-const gcd = (a: number, b: number): number => {
-  let x = Math.abs(a);
-  let y = Math.abs(b);
-  while (y !== 0) {
-    const t = y;
-    y = x % y;
-    x = t;
-  }
-  return x === 0 ? 1 : x;
-};
-
 const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionFieldProps>(
   (
     {
@@ -73,10 +64,11 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
       width = 100,
       placeholder = 'fx 1/3',
       disabled,
-      maxDigits = 2,
+      maxDigits = DEFAULT_FRACTION_MAX_DIGITS,
       allowNegative = false,
       allowZeroNumerator = false,
       canonicalizeOnCommit = true,
+      requireIntegerFraction = false,
       onDraftChange,
       onCommit,
       onFocus,
@@ -94,22 +86,17 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
     const configErrorMessage = React.useMemo(() => {
       if (!Number.isFinite(maxDigits)) return 'Ugyldig konfiguration: maxDigits skal være et tal';
       if (!Number.isInteger(maxDigits)) return 'Ugyldig konfiguration: maxDigits skal være et heltal';
-      if (maxDigits !== 2) return 'Ugyldig konfiguration: maxDigits skal være 2';
+      if (maxDigits < 1 || maxDigits > 10) return 'Ugyldig konfiguration: maxDigits skal være mellem 1 og 10';
       return '';
     }, [maxDigits]);
 
     if (import.meta.env.DEV && configErrorMessage.trim() !== '') {
       throw new Error(configErrorMessage);
     }
-
-    const resolvedMaxDigits = 2;
-
     const parseFraction: DraftParse<string | undefined> = React.useCallback(
       (draft, { mode }) => {
         const trimmed = draft.trim();
         if (trimmed === '') return { ok: true, value: undefined };
-
-        const normalized = trimmed.replace(/[ .:-]/g, '/');
 
         if (mode === 'typing') {
           // Invariant: typing must not claim committable for incomplete non-empty input.
@@ -121,67 +108,37 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
           return { ok: false, kind: 'invalid', message: configErrorMessage };
         }
 
-        const hasLeadingMinus = normalized.startsWith('-');
-        if (hasLeadingMinus && !allowNegative) {
-          return {
-            ok: false,
-            kind: 'invalid',
-            message: 'Negative brøker er ikke tilladt',
-          };
-        }
-
-        const withoutSign = hasLeadingMinus ? normalized.slice(1) : normalized;
-        if (/[^0-9/]/.test(withoutSign)) {
-          return { ok: false, kind: 'invalid', message: 'Ugyldig værdi' };
-        }
-
-        const slashCount = (withoutSign.match(/\//g) ?? []).length;
-        if (slashCount !== 1) {
-          return { ok: false, kind: 'invalid', message: 'Ugyldig værdi' };
-        }
-
-        const [numeratorRaw, denominatorRaw] = withoutSign.split('/') as [string, string];
-        if (numeratorRaw === '' || denominatorRaw === '') {
-          return { ok: false, kind: 'invalid', message: 'Ugyldig værdi' };
-        }
-
-        if (numeratorRaw.length > resolvedMaxDigits || denominatorRaw.length > resolvedMaxDigits) {
-          return { ok: false, kind: 'invalid', message: 'Maks 2 cifre før og efter /' };
-        }
-
-        const numerator = Number.parseInt(numeratorRaw, 10);
-        const denominator = Number.parseInt(denominatorRaw, 10);
-        if (!Number.isFinite(numerator) || !Number.isFinite(denominator)) {
-          return { ok: false, kind: 'invalid', message: 'Ugyldig værdi' };
-        }
-
-        if (denominator === 0) {
-          return { ok: false, kind: 'invalid', message: 'Ugyldig værdi' };
-        }
-
-        if (numerator === 0) {
-          if (!allowZeroNumerator) {
-            return { ok: false, kind: 'invalid', message: 'Tæller kan ikke være 0' };
+        const result = parseFractionString(trimmed, {
+          maxDigits,
+          allowNegative,
+          allowZeroNumerator,
+          canonicalizeOnCommit,
+          requireIntegerFraction,
+        });
+        if (!result.ok) {
+          switch (result.reason) {
+            case 'zero-denominator':
+              return { ok: false, kind: 'invalid', message: 'Nævner kan ikke være 0' };
+            case 'zero-numerator':
+              return { ok: false, kind: 'invalid', message: 'Tæller kan ikke være 0' };
+            case 'negative-not-allowed':
+              return { ok: false, kind: 'invalid', message: 'Negative brøker er ikke tilladt' };
+            case 'non-integer':
+              return { ok: false, kind: 'invalid', message: INTEGER_FRACTION_FORMAT_MESSAGE };
+            default:
+              return {
+                ok: false,
+                kind: 'invalid',
+                message: requireIntegerFraction
+                  ? `Brøk skal angives som fx "1/3" (maks. ${maxDigits} cifre i tæller og nævner)`
+                  : `Brøk skal angives som fx "1/3" eller "1,5/3,5" (maks. ${maxDigits} cifre før og efter decimaltegn)`,
+              };
           }
-          if (!canonicalizeOnCommit) {
-            return { ok: true, value: `0/${denominator}` };
-          }
-          return { ok: true, value: '0/1' };
         }
 
-        const signedNumerator = hasLeadingMinus ? -numerator : numerator;
-
-        if (!canonicalizeOnCommit) {
-          return { ok: true, value: `${signedNumerator}/${denominator}` };
-        }
-
-        const divisor = gcd(signedNumerator, denominator);
-        const reducedNumerator = signedNumerator / divisor;
-        const reducedDenominator = denominator / divisor;
-
-        return { ok: true, value: `${reducedNumerator}/${reducedDenominator}` };
+        return { ok: true, value: result.parsed.value };
       },
-      [allowNegative, allowZeroNumerator, canonicalizeOnCommit, configErrorMessage]
+      [allowNegative, allowZeroNumerator, canonicalizeOnCommit, configErrorMessage, maxDigits, requireIntegerFraction]
     );
 
     const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
@@ -210,24 +167,30 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
 
     const skipNextBlurCommitRef = React.useRef(false);
 
+    const applyDraft = React.useCallback((nextDraft: string) => {
+      skipNextBlurCommitRef.current = false;
+      setDraft(nextDraft);
+      onDraftChange?.(createDraftChangeEvent(nextDraft));
+    }, [onDraftChange, setDraft]);
+
     const handleDraftChange = React.useCallback(
       (nextDraft: string) => {
-        skipNextBlurCommitRef.current = false;
-        setDraft(nextDraft);
-        onDraftChange?.(createDraftChangeEvent(nextDraft));
+        applyDraft(sanitizePastedFraction(nextDraft, { allowNegative }));
       },
-      [onDraftChange, setDraft]
+      [allowNegative, applyDraft]
     );
 
     const getDraftForKey = React.useCallback((key: string): string | null => {
-      if (/^[0-9/]$/.test(key)) return key;
+      if (/^[0-9/,]$/.test(key)) return key;
+      if (allowNegative && key === '-') return key;
       return null;
-    }, []);
+    }, [allowNegative]);
 
     const activation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled),
       getDraftForKey,
-      onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
+      normalizePasteText: (text) => sanitizePastedFraction(text, { allowNegative }),
+      onReplaceDraft: (nextDraft) => applyDraft(nextDraft),
     });
 
     const handleFocus = React.useCallback(
@@ -269,11 +232,43 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
           return;
         }
         if (!e.defaultPrevented) {
-          filterFractionKeyDown(e);
+          filterFractionKeyDown(e, { maxDigits, allowNegative });
         }
         onKeyDown?.(e);
       },
-      [activation, onCommit, onKeyDown, onKeyDownBase, parseFraction, setDraft]
+      [activation, allowNegative, maxDigits, onCommit, onKeyDown, onKeyDownBase, parseFraction, setDraft]
+    );
+
+    const handlePaste = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        if (!activation.isEditorOpen) {
+          activation.handlePaste(e);
+          return;
+        }
+
+        const normalized = sanitizePastedFraction(readClipboardText(e), { allowNegative });
+        e.preventDefault();
+        e.stopPropagation();
+        if (normalized === '') return;
+
+        const input = inputElementRef.current;
+        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
+        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
+        const nextDraft = draft.slice(0, start) + normalized + draft.slice(end);
+        applyDraft(nextDraft);
+
+        const nextCaret = start + normalized.length;
+        requestAnimationFrame(() => {
+          const el = inputElementRef.current;
+          if (!el) return;
+          try {
+            el.setSelectionRange(nextCaret, nextCaret);
+          } catch {
+            // no-op
+          }
+        });
+      },
+      [activation, allowNegative, applyDraft, draft]
     );
 
     return (
@@ -296,15 +291,15 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
         onKeyDown={handleKeyDown}
         onMouseDown={activation.handleMouseDown}
         onClick={activation.handleClick}
-        onPaste={activation.handlePaste}
+        onPaste={handlePaste}
         placeholder={placeholder}
         width={width}
         disabled={disabled}
         error={resolvedHasError}
         helperText={resolvedErrorMessage}
         htmlInputAttributes={{
-          inputMode: 'numeric',
-          maxLength: (allowNegative ? 1 : 0) + resolvedMaxDigits + 1 + resolvedMaxDigits,
+          inputMode: 'decimal',
+          maxLength: getFractionMaxLength(maxDigits, allowNegative),
           readOnly: !activation.isEditorOpen,
         }}
         sx={{

@@ -338,6 +338,33 @@ describe('eoPdfModel', () => {
     );
   });
 
+  it('fejler fail-closed ved ugyldig decimal-brøk for forlig i PDF-model', () => {
+    const baseValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(48705.13),
+      beregnesTabtArbejdsfortjeneste: 'Ja',
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2021-06-01'), til: iso('2021-08-15'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
+    });
+    const withForlig = makeValues({
+      ...baseValues,
+      forligAnsvarsgradBroek: '1,25/3,5',
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2021-06-01') });
+
+    buildPdfModel(stamdata, baseValues, { dagsDatoISO: iso('2026-02-10') });
+    expect(() => buildPdfModel(stamdata, withForlig, { dagsDatoISO: iso('2026-02-10') }))
+      .toThrow('Brøk skal angives som fx "1/3"');
+  });
+
   it('anvender forligsgrad på øvrige krav i PDF-model', () => {
     const baseValues = makeValues({
       oevrigeKravPerioder: [

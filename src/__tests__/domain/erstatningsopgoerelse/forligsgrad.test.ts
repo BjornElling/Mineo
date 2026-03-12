@@ -23,6 +23,7 @@ describe('parseForligsgrad', () => {
     expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '0/5' })).toBeNull();
     expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '5/0' })).toBeNull();
     expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '3/2' })).toBeNull();
+    expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '1,25/3,5' })).toBeNull();
     expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '' })).toBeNull();
     expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '   ' })).toBeNull();
   });

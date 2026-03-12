@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import { readClipboardText } from '../../utils/clipboardUtils';
+import { isFractionDraftAllowed } from '../../utils/fraction';
 
 type KeyDownEvent = React.KeyboardEvent<HTMLInputElement>;
 type PasteEvent = React.ClipboardEvent<HTMLInputElement>;
@@ -109,10 +110,13 @@ export const filterYearKeyDown = (e: KeyDownEvent): void => {
 /**
  * Fraction: digits and '/', at most one slash.
  */
-export const filterFractionKeyDown = (e: KeyDownEvent): void => {
+export const filterFractionKeyDown = (
+  e: KeyDownEvent,
+  options?: Readonly<{ maxDigits?: number; allowNegative?: boolean }>
+): void => {
   if (!shouldValidateCharInsertion(e)) return;
   const next = getNextValueFromInsertion(e.currentTarget, e.key);
-  if (!/^\d{0,2}(\/\d{0,2})?$/.test(next)) block(e);
+  if (!isFractionDraftAllowed(next, options)) block(e);
 };
 
 /**

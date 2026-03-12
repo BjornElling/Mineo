@@ -1,4 +1,5 @@
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
+import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../../utils/fraction';
 
 export type Forligsgrad = Readonly<{
   factor: number;
@@ -18,17 +19,18 @@ export const parseForligsgrad = (
 
   const broekValue = values.forligAnsvarsgradBroek;
   if (typeof broekValue === 'string' && broekValue.trim() !== '') {
-    const trimmed = broekValue.trim();
-    const match = trimmed.match(/^(\d+)\/(\d+)$/);
-    if (match) {
-      const taeller = Number.parseInt(match[1], 10);
-      const naevner = Number.parseInt(match[2], 10);
-      if (taeller > 0 && naevner > 0 && taeller <= naevner) {
-        return {
-          factor: taeller / naevner,
-          label: trimmed,
-        };
-      }
+    const result = parseFractionString(broekValue, {
+      maxDigits: DEFAULT_FRACTION_MAX_DIGITS,
+      allowNegative: false,
+      allowZeroNumerator: false,
+      canonicalizeOnCommit: true,
+      requireIntegerFraction: true,
+    });
+    if (result.ok && result.parsed.numerator <= result.parsed.denominator) {
+      return {
+        factor: result.parsed.factor,
+        label: result.parsed.value,
+      };
     }
   }
 

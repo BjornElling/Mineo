@@ -32,6 +32,7 @@ import {
   resolveTafConstraintBounds,
 } from '../domain/erstatningsopgoerelse/tafPeriodConstraints';
 import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/tafCalculations';
+import { DEFAULT_FRACTION_MAX_DIGITS, INTEGER_FRACTION_FORMAT_MESSAGE, parseFractionString } from '../utils/fraction';
 
 export const TAF_OVERLAP_ERROR_MESSAGE = 'TAF-perioder overlapper';
 
@@ -107,38 +108,45 @@ function validateForligAnsvarsgrad(values: ErstatningsopgoerelseValues): Validat
     );
   }
 
-  // Brøk format-validering: skal matche "tæller/nævner" med positive heltal
+  // Brøk format-validering
   if (hasBroek) {
-    const broekPattern = /^\s*(\d+)\s*\/\s*(\d+)\s*$/;
-    const match = broekTrimmed.match(broekPattern);
-    if (!match) {
+    const parsedBroek = parseFractionString(broekTrimmed, {
+      maxDigits: DEFAULT_FRACTION_MAX_DIGITS,
+      allowNegative: false,
+      allowZeroNumerator: false,
+      canonicalizeOnCommit: true,
+      requireIntegerFraction: true,
+    });
+    if (!parsedBroek.ok) {
+      let message = 'Brøk skal angives som fx "1/3"';
+      switch (parsedBroek.reason) {
+        case 'negative-not-allowed':
+          message = 'Negative brøker er ikke tilladt';
+          break;
+        case 'zero-denominator':
+          message = 'Nævner kan ikke være 0';
+          break;
+        case 'zero-numerator':
+          message = 'Tæller kan ikke være 0 (ville nulstille erstatningen)';
+          break;
+        case 'non-integer':
+          message = INTEGER_FRACTION_FORMAT_MESSAGE;
+          break;
+        default:
+          break;
+      }
+
       errors.push({
         path: 'forligAnsvarsgradBroek',
-        message: 'Brøk skal angives som fx "1/3" (positive heltal)',
+        message,
         severity: 'error',
       });
-    } else {
-      const taeller = Number.parseInt(match[1], 10);
-      const naevner = Number.parseInt(match[2], 10);
-      if (naevner === 0) {
-        errors.push({
-          path: 'forligAnsvarsgradBroek',
-          message: 'Nævner kan ikke være 0',
-          severity: 'error',
-        });
-      } else if (taeller === 0) {
-        errors.push({
-          path: 'forligAnsvarsgradBroek',
-          message: 'Tæller kan ikke være 0 (ville nulstille erstatningen)',
-          severity: 'error',
-        });
-      } else if (taeller > naevner) {
-        errors.push({
-          path: 'forligAnsvarsgradBroek',
-          message: 'Brøk kan ikke overstige 1 (tæller > nævner)',
-          severity: 'error',
-        });
-      }
+    } else if (parsedBroek.parsed.numerator > parsedBroek.parsed.denominator) {
+      errors.push({
+        path: 'forligAnsvarsgradBroek',
+        message: 'Brøk kan ikke overstige 1 (tæller > nævner)',
+        severity: 'error',
+      });
     }
   }
 

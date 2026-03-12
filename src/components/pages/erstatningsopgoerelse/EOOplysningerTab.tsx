@@ -1228,6 +1228,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               <StyledFractionField
                 width={120}
                 value={values.forligAnsvarsgradBroek}
+                requireIntegerFraction
                 onCommit={handleStringBlur('forligAnsvarsgradBroek')}
                 onFieldError={reportForligAnsvarsgradBroekInputError}
                 error={forligFejl.harFejl}

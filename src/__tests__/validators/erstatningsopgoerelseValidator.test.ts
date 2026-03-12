@@ -48,17 +48,17 @@ describe('forlig ansvarsgrad', () => {
 
   it('afviser ugyldigt brøk-format', () => {
     const values = makeValues({ forligAnsvarsgradBroek: 'abc' });
-    expect(hasError(values, 'positive heltal')).toBe(true);
+    expect(hasError(values, 'Brøk skal angives som fx "1/3"')).toBe(true);
   });
 
   it('afviser negativ brøk', () => {
     const values = makeValues({ forligAnsvarsgradBroek: '-1/3' });
-    expect(hasError(values, 'positive heltal')).toBe(true);
+    expect(hasError(values, 'Negative brøker er ikke tilladt')).toBe(true);
   });
 
   it('afviser decimal-brøk', () => {
-    const values = makeValues({ forligAnsvarsgradBroek: '1.5/2.5' });
-    expect(hasError(values, 'positive heltal')).toBe(true);
+    const values = makeValues({ forligAnsvarsgradBroek: '1,5/2,5' });
+    expect(hasError(values, 'kun hele tal i tæller og nævner')).toBe(true);
   });
 
   it('afviser samtidig procent og brøk', () => {
