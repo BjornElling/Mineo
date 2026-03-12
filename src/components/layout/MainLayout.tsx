@@ -12,7 +12,7 @@ import { loadFromFile, loadFromFileHandle } from '../../utils/fileLoad';
 import { deleteFileHandleFromIndexedDB } from '../../utils/fileHandleStorage';
 import { saveFileHandleToIndexedDB } from '../../utils/fileHandleStorage';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
-import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { useAppSettings } from '../../contexts/useAppSettings';
 import { useEOLoenindkomstInputErrors } from '../../hooks/useEOLoenindkomstInputErrors';
 import { resolveDefaultDirectoryHandle } from '../../utils/fileHelpers';
 import { getGridCoreForTable } from '../tables/gridCoreRegistry';

@@ -10,7 +10,7 @@ vi.mock('../../../contexts/useFormPersistence', () => ({
   }),
 }));
 
-vi.mock('../../../contexts/AppSettingsContext', () => ({
+vi.mock('../../../contexts/useAppSettings', () => ({
   useAppSettings: () => ({
     settings: {},
   }),

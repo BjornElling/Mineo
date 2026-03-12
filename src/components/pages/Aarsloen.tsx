@@ -13,7 +13,7 @@ import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAarsloenBeregning } from '../../hooks/useAarsloenBeregning';
 import { useOmregningToggle } from '../../hooks/useOmregningToggle';
 import { useAarsloenPdfGates } from '../../hooks/useAarsloenPdfGates';
-import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { useAppSettings } from '../../contexts/useAppSettings';
 import { formatCountWithUnit, formatCurrency } from '../../utils/formatUtils';
 import { aarsloenSchema } from '../../schemas/formSchemas';
 import { isLoenperiodeValue, isLoenPaaHelligdageValue } from '../../utils/zodTypeGuards';

@@ -1,7 +1,8 @@
 import * as React from 'react';
 import type { AppSettings } from '../settings/appSettingsSchema';
 import { LOCAL_STORAGE_KEY, writeLocalStorage } from '../settings/appSettingsStorage';
-import { loadInitialSettings, parseStoredSettings } from '../settings/appSettingsParse';
+import { loadInitialSettings, mergeAppSettings } from '../settings/appSettingsParse';
+import { AppSettingsContext, type AppSettingsContextValue } from './AppSettingsContext.shared';
 
 /**
  * AppSettingsContext
@@ -15,19 +16,12 @@ import { loadInitialSettings, parseStoredSettings } from '../settings/appSetting
  * See `src/contracts/app-settings.md` for normative rationale and constraints.
  */
 
-type AppSettingsContextValue = Readonly<{
-  settings: AppSettings;
-  updateSettings: (patch: Readonly<Partial<AppSettings>>) => void;
-}>;
-
-const AppSettingsContext = React.createContext<AppSettingsContextValue | null>(null);
-
 export const AppSettingsProvider = ({ children }: { children: React.ReactNode }): React.ReactElement => {
-  const [settings, setSettings] = React.useState<AppSettings>(() => loadInitialSettings());
+  const [settings, setSettings] = React.useState(() => loadInitialSettings());
 
   const updateSettings = React.useCallback((patch: Readonly<Partial<AppSettings>>) => {
     setSettings((prev) => {
-      const next = parseStoredSettings({ ...prev, ...patch });
+      const next = mergeAppSettings(prev, patch);
       return next;
     });
   }, []);
@@ -45,12 +39,4 @@ export const AppSettingsProvider = ({ children }: { children: React.ReactNode })
   const value = React.useMemo<AppSettingsContextValue>(() => ({ settings, updateSettings }), [settings, updateSettings]);
 
   return <AppSettingsContext.Provider value={value}>{children}</AppSettingsContext.Provider>;
-};
-
-export const useAppSettings = (): AppSettingsContextValue => {
-  const context = React.useContext(AppSettingsContext);
-  if (!context) {
-    throw new Error('AppSettingsContext ikke tilgængelig. Sørg for at komponenten er wrapped i AppSettingsProvider.');
-  }
-  return context;
 };

@@ -10,7 +10,7 @@ import type { NavigationTarget } from '../../../domain/debug/eoDebugNavigationMa
 import { scrollToSection } from '../../../utils/scrollToSection';
 import { scrollToDebugRow } from '../../../utils/scrollToDebugRow';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
-import { useAppSettings } from '../../../contexts/AppSettingsContext';
+import { useAppSettings } from '../../../contexts/useAppSettings';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { isoToDanish } from '../../../types/branded';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../../inputs/StyledDropdown';

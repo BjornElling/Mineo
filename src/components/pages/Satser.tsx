@@ -7,7 +7,7 @@ import { downloadSatserPdf } from '../../utils/pdf/pdfService';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { satserSchema } from '../../schemas/formSchemas';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
-import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { useAppSettings } from '../../contexts/useAppSettings';
 import {
   canDownloadSatser,
   resolveSatserAargangErrorMessage,

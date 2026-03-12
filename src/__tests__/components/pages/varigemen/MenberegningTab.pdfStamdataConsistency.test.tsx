@@ -29,7 +29,7 @@ vi.mock('../../../../hooks/usePersistedForm', () => ({
   }),
 }));
 
-vi.mock('../../../../contexts/AppSettingsContext', () => ({
+vi.mock('../../../../contexts/useAppSettings', () => ({
   useAppSettings: () => ({
     settings: {},
   }),

@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, MenuItem, Typography } from '@mui/material';
 
 import { dateRanges_stamdata } from '../../config/dateRanges';
-import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { useAppSettings } from '../../contexts/useAppSettings';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { stamdataSchema } from '../../schemas/formSchemas';

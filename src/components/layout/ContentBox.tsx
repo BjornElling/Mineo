@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Fab, Tooltip, type BoxProps } from '@mui/material';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import { useLocation } from 'react-router-dom';
-import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { useAppSettings } from '../../contexts/useAppSettings';
 import ContentBoxReportDialog from '../reports/ContentBoxReportDialog';
 import type { ContentBoxIdentity } from '../../utils/bugReport';
 

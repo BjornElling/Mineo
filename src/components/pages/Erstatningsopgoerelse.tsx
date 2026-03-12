@@ -13,7 +13,7 @@ import {
 } from '../../hooks/useFormPersistenceSelectors';
 import { erstatningsopgoerelseSchema } from '../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { useAppSettings } from '../../contexts/useAppSettings';
 import EOOplysningerTab from './erstatningsopgoerelse/EOOplysningerTab';
 import LoenindkomstTab from './erstatningsopgoerelse/LoenindkomstTab';
 import OffentligeYdelserTab from './erstatningsopgoerelse/OffentligeYdelserTab';

@@ -68,7 +68,7 @@ import {
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import { useSetEOLoenindkomstInputError } from '../../../hooks/useEOLoenindkomstInputErrors';
-import { useAppSettings } from '../../../contexts/AppSettingsContext';
+import { useAppSettings } from '../../../contexts/useAppSettings';
 import { appSettingsSchema, DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../../settings/appSettingsSchema';
 import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '../../../utils/pdf/pdfService';
 import { formatCurrency } from '../../../utils/formatUtils';

@@ -13,7 +13,7 @@ import { vi } from 'vitest';
 import EODebugRegulationSections from '../../../../components/pages/erstatningsopgoerelse/EODebugRegulationSections';
 import type { RegulationDebugSection } from '../../../../domain/debug/eoDebugRegulationViewModel';
 
-vi.mock('../../../../contexts/AppSettingsContext', () => ({
+vi.mock('../../../../contexts/useAppSettings', () => ({
   useAppSettings: () => ({ settings: { showContentBoxReportButton: false } }),
 }));
 

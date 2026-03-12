@@ -82,7 +82,7 @@ import {
   getReguleringsDatoIntervalForStatistikModel,
 } from '../../../data/statistiskLoenudviklingRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
-import { useAppSettings } from '../../../contexts/AppSettingsContext';
+import { useAppSettings } from '../../../contexts/useAppSettings';
 import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '../../../utils/pdf/pdfService';
 import { formatCurrency } from '../../../utils/formatUtils';
 

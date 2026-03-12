@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import EODebugRowsSection from '../../../../components/pages/erstatningsopgoerelse/EODebugRowsSection';
 import { vi } from 'vitest';
 
-vi.mock('../../../../contexts/AppSettingsContext', () => ({
+vi.mock('../../../../contexts/useAppSettings', () => ({
   useAppSettings: () => ({ settings: { showContentBoxReportButton: false } }),
 }));
 

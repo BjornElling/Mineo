@@ -19,7 +19,7 @@ import { beregnVarigeMenGodtgoerelseWithRates } from '../../../domain/varigemen/
 import { usePersistedForm } from '../../../hooks/usePersistedForm';
 import { useNavigate } from 'react-router-dom';
 import { varigeMenPrGrad, varigeMenPrGradYearBounds } from '../../../data/regulationRates';
-import { useAppSettings } from '../../../contexts/AppSettingsContext';
+import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { createCommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
 import { downloadVarigeMenPdf } from '../../../utils/pdf/pdfService';
@@ -414,4 +414,3 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
 MenberegningTab.displayName = 'MenberegningTab';
 
 export default MenberegningTab;
-

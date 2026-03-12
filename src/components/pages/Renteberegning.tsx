@@ -8,7 +8,7 @@ import useRentekravRows from '../tables/useRentekravRows';
 import { createEmptyRentekravCommittedRow, createRentekravRowId } from '../../domain/renteberegning/rentekravTableModel';
 import type { ValidatedRentekravContext } from '../../domain/renteberegning/renteEngine';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
-import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { useAppSettings } from '../../contexts/useAppSettings';
 import { downloadRentePdf } from '../../utils/pdf/pdfService';
 import type { CommitHandler } from '../inputs/fieldEvents';
 import RenteberegningTab from './renteberegning/RenteberegningTab';

@@ -12,7 +12,7 @@ vi.mock('../../../../hooks/useEOLoenindkomstInputErrors', () => ({
   useEOLoenindkomstInputErrors: () => ({}),
 }));
 
-vi.mock('../../../../contexts/AppSettingsContext', () => ({
+vi.mock('../../../../contexts/useAppSettings', () => ({
   useAppSettings: () => ({ settings: {} }),
 }));
 

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Alert, AlertTitle, Box } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
 import { useEOLoenindkomstInputErrors } from '../../../hooks/useEOLoenindkomstInputErrors';
-import { useAppSettings } from '../../../contexts/AppSettingsContext';
+import { useAppSettings } from '../../../contexts/useAppSettings';
 import { eoSnapshotToDebugView } from '../../../domain/erstatningsopgoerelse/eoSnapshotToDebugView';
 import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
 import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
