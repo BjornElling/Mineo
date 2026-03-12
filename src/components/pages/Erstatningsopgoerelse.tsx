@@ -2,10 +2,18 @@ import React from 'react';
 import { Box, Tabs, Tab, Typography } from '@mui/material';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
+import {
+  getFieldErrorRevisionSnapshot,
+  getFieldErrorsBySourceSnapshot,
+  getPersistedSectionSnapshot,
+  getSectionRevisionSnapshot,
+  useFieldErrorRevisionSelector,
+  usePersistedSectionSelector,
+  useSectionRevisionSelector,
+} from '../../hooks/useFormPersistenceSelectors';
 import { erstatningsopgoerelseSchema } from '../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
-import { useFormPersistence } from '../../contexts/useFormPersistence';
 import EOOplysningerTab from './erstatningsopgoerelse/EOOplysningerTab';
 import LoenindkomstTab from './erstatningsopgoerelse/LoenindkomstTab';
 import OffentligeYdelserTab from './erstatningsopgoerelse/OffentligeYdelserTab';
@@ -32,7 +40,6 @@ type TabKey = typeof TAB_KEYS[keyof typeof TAB_KEYS];
  */
 const Erstatningsopgoerelse = React.memo(() => {
   const { settings } = useAppSettings();
-  const { getPersistedData, getFieldErrorsBySource, getSectionRevision, getFieldErrorRevision } = useFormPersistence();
   const showDebugTab = settings.showEODebugMenu;
 
   const allowedTabs = React.useMemo(() => {
@@ -78,27 +85,18 @@ const Erstatningsopgoerelse = React.memo(() => {
   const initialValuesRef = React.useRef(initialValues);
   initialValuesRef.current = initialValues;
 
-  const persistenceRefs = React.useRef({
-    getPersistedData,
-    getFieldErrorsBySource,
-    getSectionRevision,
-    getFieldErrorRevision,
-  });
-  persistenceRefs.current = { getPersistedData, getFieldErrorsBySource, getSectionRevision, getFieldErrorRevision };
-
   const buildDebugRevision = React.useCallback((): string => {
-    const { getSectionRevision: readSectionRevision, getFieldErrorRevision: readFieldErrorRevision } = persistenceRefs.current;
     return [
-      readSectionRevision('stamdata'),
-      readSectionRevision('erstatningsopgoerelse'),
-      readFieldErrorRevision('stamdata'),
-      readFieldErrorRevision('erstatningsopgoerelse'),
+      getSectionRevisionSnapshot('stamdata'),
+      getSectionRevisionSnapshot('erstatningsopgoerelse'),
+      getFieldErrorRevisionSnapshot('stamdata'),
+      getFieldErrorRevisionSnapshot('erstatningsopgoerelse'),
     ].join('-');
   }, []);
 
   const buildDebugSnapshot = React.useCallback((): EoSnapshot => {
-    const persistedStamdata = persistenceRefs.current.getPersistedData('stamdata');
-    const persistedEO = persistenceRefs.current.getPersistedData('erstatningsopgoerelse');
+    const persistedStamdata = getPersistedSectionSnapshot('stamdata');
+    const persistedEO = getPersistedSectionSnapshot('erstatningsopgoerelse');
 
     const revision = buildDebugRevision();
 
@@ -106,8 +104,8 @@ const Erstatningsopgoerelse = React.memo(() => {
       revision,
       stamdataValues: persistedStamdata ?? STAMDATA_INITIAL_VALUES,
       eoValues: persistedEO ?? initialValuesRef.current,
-      stamdataErrors: persistenceRefs.current.getFieldErrorsBySource('stamdata'),
-      eoErrors: persistenceRefs.current.getFieldErrorsBySource('erstatningsopgoerelse'),
+      stamdataErrors: getFieldErrorsBySourceSnapshot('stamdata'),
+      eoErrors: getFieldErrorsBySourceSnapshot('erstatningsopgoerelse'),
     });
   }, [buildDebugRevision]);
 
@@ -116,17 +114,18 @@ const Erstatningsopgoerelse = React.memo(() => {
     buildDebugSnapshotRef.current = buildDebugSnapshot;
   }, [buildDebugSnapshot]);
 
+  const persistedStamdata = usePersistedSectionSelector('stamdata');
   const stamdataValuesForBeregningTab = React.useMemo<StamdataValues>(() => {
-    const persistedStamdata = getPersistedData('stamdata');
-    if (!persistedStamdata) return STAMDATA_INITIAL_VALUES;
-    return { ...STAMDATA_INITIAL_VALUES, ...persistedStamdata };
-  }, [getPersistedData]);
+    const nextPersistedStamdata = persistedStamdata;
+    if (!nextPersistedStamdata) return STAMDATA_INITIAL_VALUES;
+    return { ...STAMDATA_INITIAL_VALUES, ...nextPersistedStamdata };
+  }, [persistedStamdata]);
 
   const [eoSnapshot, setEoSnapshot] = React.useState<EoSnapshot | null>(null);
-  const stamdataRevision = getSectionRevision('stamdata');
-  const eoRevision = getSectionRevision('erstatningsopgoerelse');
-  const stamdataErrorRevision = getFieldErrorRevision('stamdata');
-  const eoErrorRevision = getFieldErrorRevision('erstatningsopgoerelse');
+  const stamdataRevision = useSectionRevisionSelector('stamdata');
+  const eoRevision = useSectionRevisionSelector('erstatningsopgoerelse');
+  const stamdataErrorRevision = useFieldErrorRevisionSelector('stamdata');
+  const eoErrorRevision = useFieldErrorRevisionSelector('erstatningsopgoerelse');
   const currentDebugRevision = React.useMemo(
     () => [stamdataRevision, eoRevision, stamdataErrorRevision, eoErrorRevision].join('-'),
     [eoErrorRevision, eoRevision, stamdataErrorRevision, stamdataRevision]
@@ -139,6 +138,16 @@ const Erstatningsopgoerelse = React.memo(() => {
     if (eoSnapshot?.revision === currentDebugRevision) return;
     setEoSnapshot(buildDebugSnapshotRef.current());
   }, [currentDebugRevision, eoSnapshot?.revision, isSnapshotTabActive]);
+
+  const handleOffentligeYdelserRowsChange = React.useCallback(
+    (newData: NonNullable<typeof form.values.offentligeYdelserRows>) => {
+      form.setValues((prev) => ({
+        ...prev,
+        offentligeYdelserRows: newData,
+      }));
+    },
+    [form.setValues]
+  );
 
   const handleTabChange = React.useCallback(
     (_event: React.SyntheticEvent, value: unknown) => {
@@ -323,7 +332,10 @@ const Erstatningsopgoerelse = React.memo(() => {
             hidden={activeTab !== TAB_KEYS.OFFENTLIGE_YDELSER}
             sx={{ display: activeTab === TAB_KEYS.OFFENTLIGE_YDELSER ? 'block' : 'none' }}
           >
-            <OffentligeYdelserTab form={form} />
+            <OffentligeYdelserTab
+              rows={form.values.offentligeYdelserRows ?? []}
+              onRowsChange={handleOffentligeYdelserRowsChange}
+            />
           </Box>
         )}
         {(visitedTabs[TAB_KEYS.BEREGNING] || activeTab === TAB_KEYS.BEREGNING) && (

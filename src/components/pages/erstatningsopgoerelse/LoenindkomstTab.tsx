@@ -74,7 +74,10 @@ import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '
 import { formatCurrency } from '../../../utils/formatUtils';
 import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerelse/loenoplysningerInput';
 import { DEFAULT_ANCIENNITET_FIELDS } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { buildAarsloenZeroArbejdsdageCellErrorMessages } from '../../../domain/erstatningsopgoerelse/indkomstRowValidation';
+import {
+  buildAarsloenZeroArbejdsdageCellErrorMessages,
+  type AarsloenZeroArbejdsdageValidationInput,
+} from '../../../domain/erstatningsopgoerelse/indkomstRowValidation';
 import {
   validateLoenudviklingManualBaseRowSatser,
   type ManualBaseRowCellErrors,
@@ -296,16 +299,31 @@ const LoenindkomstTab = React.memo(({ form }: Props) => {
     }
     return result;
   }, [values.loenindkomstAnsaettelsesforhold]);
+  const aarsloenZeroArbejdsdageValidationInput = React.useMemo<AarsloenZeroArbejdsdageValidationInput>(() => ({
+    beregnesUdFra: values.beregnesUdFra,
+    periodeTilBeregningFra: values.periodeTilBeregningFra,
+    periodeTilBeregningTil: values.periodeTilBeregningTil,
+    loenindkomstAnsaettelsesforhold: values.loenindkomstAnsaettelsesforhold,
+    ferieperioder: values.ferieperioder,
+    fravaerPerioder: values.fravaerPerioder,
+  }), [
+    values.beregnesUdFra,
+    values.ferieperioder,
+    values.fravaerPerioder,
+    values.loenindkomstAnsaettelsesforhold,
+    values.periodeTilBeregningFra,
+    values.periodeTilBeregningTil,
+  ]);
   const aarsloenExternalCellErrorMessagesByAfId = React.useMemo<Record<string, Readonly<Record<string, string>>>>(() => {
     const result: Record<string, Readonly<Record<string, string>>> = {};
     for (const af of values.loenindkomstAnsaettelsesforhold) {
-      const messages = buildAarsloenZeroArbejdsdageCellErrorMessages(values, af.id);
+      const messages = buildAarsloenZeroArbejdsdageCellErrorMessages(aarsloenZeroArbejdsdageValidationInput, af.id);
       if (Object.keys(messages).length > 0) {
         result[af.id] = messages;
       }
     }
     return result;
-  }, [values]);
+  }, [aarsloenZeroArbejdsdageValidationInput, values.loenindkomstAnsaettelsesforhold]);
   const syncedLoenindkomstErrorIdsRef = React.useRef<ReadonlySet<string>>(new Set());
 
   // Hent stamdata for skadesdato

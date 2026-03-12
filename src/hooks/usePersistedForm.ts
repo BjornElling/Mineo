@@ -62,6 +62,8 @@ export const usePersistedForm = <K extends StorageKey>(
   const initialValuesRef = React.useRef(initialValues);
   const schemaRef = React.useRef(_schema);
   const getPersistedDataRef = React.useRef(getPersistedData);
+  const persistDataRef = React.useRef(persistData);
+  const clearPageDataRef = React.useRef(clearPageData);
   const clearFieldErrorsRef = React.useRef(clearFieldErrors);
   React.useEffect(() => {
     initialValuesRef.current = initialValues;
@@ -71,8 +73,10 @@ export const usePersistedForm = <K extends StorageKey>(
   }, [_schema]);
   React.useEffect(() => {
     getPersistedDataRef.current = getPersistedData;
+    persistDataRef.current = persistData;
+    clearPageDataRef.current = clearPageData;
     clearFieldErrorsRef.current = clearFieldErrors;
-  }, [getPersistedData, clearFieldErrors]);
+  }, [clearFieldErrors, clearPageData, getPersistedData, persistData]);
 
   const parsePersisted = React.useCallback((persisted: unknown): PersistedSectionMap[K] | null => {
     const parsed = schemaRef.current.safeParse(persisted);
@@ -80,7 +84,7 @@ export const usePersistedForm = <K extends StorageKey>(
       return null;
     }
     return parsed.data;
-  }, [pageKey]);
+  }, []);
 
   // Defensiv merge med Zod validation
   const [values, setValuesState] = React.useState<PersistedSectionMap[K]>(() => {
@@ -129,16 +133,16 @@ export const usePersistedForm = <K extends StorageKey>(
       }
 
       bumpFormVersion();
-      clearFieldErrors(pageKey);
+      clearFieldErrorsRef.current(pageKey);
       setValuesState(updater);
     },
-    [clearFieldErrors, pageKey]
+    [pageKey]
   );
 
   // Persist ved hver ændring (schema-valideres i persistence-laget)
   React.useEffect(() => {
-    persistData(pageKey, values);
-  }, [values, pageKey, persistData]);
+    persistDataRef.current(pageKey, values);
+  }, [pageKey, values]);
 
   /**
    * Håndterer feltændringer med type-aware konvertering
@@ -162,9 +166,9 @@ export const usePersistedForm = <K extends StorageKey>(
    */
   const resetForm = React.useCallback(() => {
     setValues(initialValuesRef.current);
-    clearPageData(pageKey);
-    clearFieldErrors(pageKey);
-  }, [clearPageData, clearFieldErrors, pageKey, setValues]);
+    clearPageDataRef.current(pageKey);
+    clearFieldErrorsRef.current(pageKey);
+  }, [pageKey, setValues]);
 
   return {
     values,
@@ -176,4 +180,3 @@ export const usePersistedForm = <K extends StorageKey>(
 };
 
 export default usePersistedForm;
-

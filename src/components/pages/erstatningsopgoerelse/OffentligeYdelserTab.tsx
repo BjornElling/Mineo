@@ -2,36 +2,26 @@ import React from 'react';
 import { Typography } from '@mui/material';
 import OffentligeYdelserTable from '../../tables/OffentligeYdelserTable';
 import ContentBox from '../../layout/ContentBox';
-import type { UsePersistedFormReturn } from '../../../hooks/usePersistedForm';
-import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../schemas/formSchemas';
+import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/offentligeYdelserDerived';
 import { formatCurrency } from '../../../utils/formatUtils';
 
-type ErstatningsopgoerelseFormApi = Pick<UsePersistedFormReturn<ErstatningsopgoerelseValues>, 'values' | 'setValues'>;
+type Props = Readonly<{
+  rows: OffentligeYdelserRow[];
+  onRowsChange: (rows: OffentligeYdelserRow[]) => void;
+}>;
 
 /**
  * Offentlige ydelser-fanen - modtagne ydelser
  */
-const OffentligeYdelserTab = React.memo(({ form }: { form: ErstatningsopgoerelseFormApi }) => {
-  const { values, setValues } = form;
-
+const OffentligeYdelserTab = React.memo(({ rows, onRowsChange }: Props) => {
   const formatAntalDage = React.useCallback((value: number): string => {
     return new Intl.NumberFormat('da-DK', { maximumFractionDigits: 0 }).format(value);
   }, []);
 
-  const handleTableDataChange = React.useCallback(
-    (newData: OffentligeYdelserRow[]) => {
-      setValues((prev) => ({
-        ...prev,
-        offentligeYdelserRows: newData,
-      }));
-    },
-    [setValues]
-  );
-
   const derivedByRowId = React.useMemo(() => {
     const map = new Map<string, { periodiseringLabel: string; antalDageDisplay: string; ydelsePerDagDisplay: string }>();
-    for (const row of values.offentligeYdelserRows ?? []) {
+    for (const row of rows) {
       const derived = deriveOffentligeYdelserRow(row);
       map.set(row.id, {
         periodiseringLabel: derived.periodiseringLabel,
@@ -40,7 +30,7 @@ const OffentligeYdelserTab = React.memo(({ form }: { form: Erstatningsopgoerelse
       });
     }
     return map;
-  }, [formatAntalDage, values.offentligeYdelserRows]);
+  }, [formatAntalDage, rows]);
 
   return (
     <ContentBox className="content-box">
@@ -50,9 +40,9 @@ const OffentligeYdelserTab = React.memo(({ form }: { form: Erstatningsopgoerelse
       </Typography>
 
       <OffentligeYdelserTable
-        tableData={values.offentligeYdelserRows || []}
+        tableData={rows}
         derivedByRowId={derivedByRowId}
-        onTableDataChange={handleTableDataChange}
+        onTableDataChange={onRowsChange}
       />
     </ContentBox>
   );

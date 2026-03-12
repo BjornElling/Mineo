@@ -18,6 +18,16 @@ import { formatDanishDate } from '../../utils/dateUtils';
 
 const AARSLOEN_AMOUNT_COLUMN_KEYS = ['col2', 'col3', 'col4', 'col5'] as const satisfies ReadonlyArray<AarsloenTableColumnKey>;
 
+export type AarsloenZeroArbejdsdageValidationInput = Pick<
+  ErstatningsopgoerelseValues,
+  | 'beregnesUdFra'
+  | 'periodeTilBeregningFra'
+  | 'periodeTilBeregningTil'
+  | 'loenindkomstAnsaettelsesforhold'
+  | 'ferieperioder'
+  | 'fravaerPerioder'
+>;
+
 export const buildLoenindkomstZeroArbejdsdageMessage = (fra: Date, til: Date): string => {
   return `Perioden (${formatDanishDate(fra)} - ${formatDanishDate(til)}) indeholder løn, men ingen arbejdsdage.`;
 };
@@ -142,7 +152,7 @@ const getFilledAmountColumnKeys = (row: AarsloenTableRow): readonly AarsloenTabl
 };
 
 export const buildAarsloenZeroArbejdsdageIssues = (
-  values: ErstatningsopgoerelseValues,
+  values: AarsloenZeroArbejdsdageValidationInput,
   employmentId: string
 ): ReadonlyArray<AarsloenZeroArbejdsdageIssue> => {
   if (computeTafBeregningsenhed(values) !== TAF_BEREGNES_SOM.ARBEJDSDAGE) return [];
@@ -180,7 +190,7 @@ export const buildAarsloenZeroArbejdsdageIssues = (
 };
 
 export const buildAarsloenZeroArbejdsdageCellErrorMessages = (
-  values: ErstatningsopgoerelseValues,
+  values: AarsloenZeroArbejdsdageValidationInput,
   employmentId: string
 ): Readonly<Record<string, string>> => {
   const messages: Record<string, string> = {};
