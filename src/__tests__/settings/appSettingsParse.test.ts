@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseStoredSettings, loadInitialSettings } from '../../settings/appSettingsParse';
+import { loadInitialSettings, mergeAppSettings, parseStoredSettings, resolveAppSettings } from '../../settings/appSettingsParse';
 import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
 import { writeLocalStorage, LOCAL_STORAGE_KEY } from '../../settings/appSettingsStorage';
 
@@ -78,6 +78,48 @@ describe('parseStoredSettings', () => {
     const r1 = parseStoredSettings(input);
     const r2 = parseStoredSettings(input);
     expect(r1).toEqual(r2);
+  });
+
+  it('merger nested brevhovedIndstillinger med defaults ved schema-evolution', () => {
+    const result = parseStoredSettings({
+      brevhovedIndstillinger: {
+        erstatningsopgoerelse: false,
+      },
+    });
+
+    expect(result.brevhovedIndstillinger.erstatningsopgoerelse).toBe(false);
+    expect(result.brevhovedIndstillinger.regulering).toBe(DEFAULT_APP_SETTINGS.brevhovedIndstillinger.regulering);
+    expect(result.brevhovedIndstillinger.aarsloensberegning).toBe(DEFAULT_APP_SETTINGS.brevhovedIndstillinger.aarsloensberegning);
+  });
+});
+
+describe('resolveAppSettings', () => {
+  it('ugyldig settings → falder tilbage til defaults', () => {
+    // @ts-expect-error – bevidst ugyldig settings
+    const result = resolveAppSettings({ invalid: true });
+    expect(result).toEqual(DEFAULT_APP_SETTINGS);
+  });
+});
+
+describe('mergeAppSettings', () => {
+  it('merger partial patch uden localStorage-parsing-semantik', () => {
+    const result = mergeAppSettings(DEFAULT_APP_SETTINGS, {
+      showEODebugMenu: true,
+    });
+
+    expect(result.showEODebugMenu).toBe(true);
+    expect(result.defaultFuldLoenUnderFerie).toBe(DEFAULT_APP_SETTINGS.defaultFuldLoenUnderFerie);
+  });
+
+  it('merger nested brevhovedIndstillinger uden at nulstille øvrige flags', () => {
+    const result = mergeAppSettings(DEFAULT_APP_SETTINGS, {
+      brevhovedIndstillinger: {
+        regulering: true,
+      },
+    });
+
+    expect(result.brevhovedIndstillinger.regulering).toBe(true);
+    expect(result.brevhovedIndstillinger.erstatningsopgoerelse).toBe(DEFAULT_APP_SETTINGS.brevhovedIndstillinger.erstatningsopgoerelse);
   });
 });
 

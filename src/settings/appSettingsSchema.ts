@@ -43,18 +43,28 @@ export const DEFAULT_BREVHOVED_INDSTILLINGER: BrevhovedIndstillinger = {
   aarsloensberegning: false,
 };
 
+export const APP_SETTINGS_AFSLUTTES_MED_OPTIONS = ['Bekræftet godkendt', 'Underskrift-linje'] as const;
+export const APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS = ['Almindelig løn', 'SH-udbetaling', 'Ingen'] as const;
+export const APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS = ['fuld', 'halv'] as const;
+
+export type AppSettingsAfsluttesMedOption = (typeof APP_SETTINGS_AFSLUTTES_MED_OPTIONS)[number];
+export type AppSettingsLoenPaaHelligdageOption = (typeof APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS)[number];
+export type AppSettingsSvieSmerteDelvisSygemeldingSatsOption =
+  (typeof APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS)[number];
+
 export const appSettingsSchema = z
   .object({
     showContentBoxReportButton: z.boolean(),
     showEODebugMenu: z.boolean(),
     fontStyleColorDebug: z.boolean(),
     showStamdataTestTab: z.boolean(),
-    erstatningsopgoerelseAfsluttesMed: z.enum(['Bekræftet godkendt', 'Underskrift-linje']),
+    erstatningsopgoerelseAfsluttesMed: z.enum(APP_SETTINGS_AFSLUTTES_MED_OPTIONS),
     // Standardværdier for nye ansættelsesforhold
     defaultFuldLoenUnderFerie: z.boolean(),
-    defaultLoenPaaHelligdage: z.enum(['Almindelig løn', 'SH-udbetaling', 'Ingen']),
+    defaultLoenPaaHelligdage: z.enum(APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS),
     defaultOverenskomstLoenmodtager: z.string(),
     defaultOverenskomstArbejdsgiver: z.string(),
+    defaultSvieSmerteDelvisSygemeldingSats: z.enum(APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS),
     defaultIndsaetUdkastStempel: z.boolean(),
     allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: z.boolean(),
     allowReguleringMedUdloebMedMaaneder: z.number().int().min(0).max(12),
@@ -78,6 +88,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   defaultLoenPaaHelligdage: 'Almindelig løn',
   defaultOverenskomstLoenmodtager: 'ALLE',
   defaultOverenskomstArbejdsgiver: 'ALLE',
+  defaultSvieSmerteDelvisSygemeldingSats: 'halv',
   defaultIndsaetUdkastStempel: true,
   allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
   allowReguleringMedUdloebMedMaaneder: 6,
@@ -110,23 +121,16 @@ export type OverenskomstFilter = Readonly<{
  * - createErstatningsopgoerelseInitialValues() – første ansættelsesforhold i ny sag
  * - createBlankAnsaettelsesforhold() – tilføjelse af nyt ansættelsesforhold
  *
- * Validering:
- * - AppSettings valideres via safeParse ved grænsefladen til sagsdata
- * - Ved invalid settings bruges DEFAULT_APP_SETTINGS som fallback
- *
  * Normalisering:
  * - 'ALLE' (UI-værdi) → undefined (domæne-værdi)
  * - Alle andre værdier bevares
  *
- * @param settings AppSettings med standardværdier (optional)
+ * @param settings Valideret AppSettings med standardværdier
  * @returns OverenskomstFilter med domæne-værdier
  */
-export const resolveDefaultOverenskomstFilter = (settings?: AppSettings): OverenskomstFilter => {
-  const parsed = settings ? appSettingsSchema.safeParse(settings) : { success: false as const };
-  const safeSettings = parsed.success ? parsed.data : DEFAULT_APP_SETTINGS;
-
+export const resolveDefaultOverenskomstFilter = (settings: AppSettings): OverenskomstFilter => {
   return {
-    loenmodtager: safeSettings.defaultOverenskomstLoenmodtager === 'ALLE' ? undefined : safeSettings.defaultOverenskomstLoenmodtager,
-    arbejdsgiver: safeSettings.defaultOverenskomstArbejdsgiver === 'ALLE' ? undefined : safeSettings.defaultOverenskomstArbejdsgiver,
+    loenmodtager: settings.defaultOverenskomstLoenmodtager === 'ALLE' ? undefined : settings.defaultOverenskomstLoenmodtager,
+    arbejdsgiver: settings.defaultOverenskomstArbejdsgiver === 'ALLE' ? undefined : settings.defaultOverenskomstArbejdsgiver,
   };
 };

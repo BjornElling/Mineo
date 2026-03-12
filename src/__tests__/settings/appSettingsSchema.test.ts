@@ -6,6 +6,7 @@ import {
   brevhovedIndstillingerSchema,
   resolveDefaultOverenskomstFilter,
 } from '../../settings/appSettingsSchema';
+import { resolveAppSettings } from '../../settings/appSettingsParse';
 
 describe('DEFAULT_APP_SETTINGS', () => {
   it('er gyldig iht. appSettingsSchema', () => {
@@ -18,6 +19,7 @@ describe('DEFAULT_APP_SETTINGS', () => {
     expect(typeof DEFAULT_APP_SETTINGS.showEODebugMenu).toBe('boolean');
     expect(typeof DEFAULT_APP_SETTINGS.defaultFuldLoenUnderFerie).toBe('boolean');
     expect(typeof DEFAULT_APP_SETTINGS.defaultLoenPaaHelligdage).toBe('string');
+    expect(DEFAULT_APP_SETTINGS.defaultSvieSmerteDelvisSygemeldingSats).toBe('halv');
     expect(DEFAULT_APP_SETTINGS.erstatningsopgoerelseAfsluttesMed).toBe('Bekræftet godkendt');
     expect(DEFAULT_APP_SETTINGS.allowReguleringMedUdloebMedMaaneder).toBe(6);
     expect(DEFAULT_APP_SETTINGS.brevhovedIndstillinger).toBeDefined();
@@ -85,11 +87,16 @@ describe('appSettingsSchema', () => {
     const withoutId = appSettingsSchema.safeParse({ ...DEFAULT_APP_SETTINGS, defaultDirectoryHandleId: undefined });
     expect(withoutId.success).toBe(true);
   });
+
+  it('accepterer defaultSvieSmerteDelvisSygemeldingSats="fuld"', () => {
+    const result = appSettingsSchema.safeParse({ ...DEFAULT_APP_SETTINGS, defaultSvieSmerteDelvisSygemeldingSats: 'fuld' });
+    expect(result.success).toBe(true);
+  });
 });
 
 describe('resolveDefaultOverenskomstFilter', () => {
-  it('undefined settings → bruger DEFAULT_APP_SETTINGS → begge undefined (ALLE → undefined)', () => {
-    const filter = resolveDefaultOverenskomstFilter(undefined);
+  it('DEFAULT_APP_SETTINGS → begge undefined (ALLE → undefined)', () => {
+    const filter = resolveDefaultOverenskomstFilter(DEFAULT_APP_SETTINGS);
     expect(filter.loenmodtager).toBeUndefined();
     expect(filter.arbejdsgiver).toBeUndefined();
   });
@@ -116,7 +123,7 @@ describe('resolveDefaultOverenskomstFilter', () => {
 
   it('ugyldig settings → falder tilbage til DEFAULT_APP_SETTINGS', () => {
     // @ts-expect-error – bevidst ugyldig settings
-    const filter = resolveDefaultOverenskomstFilter({ invalid: true });
+    const filter = resolveDefaultOverenskomstFilter(resolveAppSettings({ invalid: true }));
     // Default = ALLE → undefined
     expect(filter.loenmodtager).toBeUndefined();
     expect(filter.arbejdsgiver).toBeUndefined();

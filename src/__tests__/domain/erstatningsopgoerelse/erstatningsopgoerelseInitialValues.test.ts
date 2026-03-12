@@ -101,6 +101,12 @@ describe('createErstatningsopgoerelseInitialValues – settings-integration', ()
     expect(values.loenindkomstAnsaettelsesforhold[0].fuldLoenUnderFerie).toBe('Nej');
   });
 
+  it('defaultSvieSmerteDelvisSygemeldingSats="fuld" → svieSmerteDelvisSygemeldingSats="fuld"', () => {
+    const settings = { ...DEFAULT_APP_SETTINGS, defaultSvieSmerteDelvisSygemeldingSats: 'fuld' as const };
+    const values = createErstatningsopgoerelseInitialValues(settings);
+    expect(values.svieSmerteDelvisSygemeldingSats).toBe('fuld');
+  });
+
   it('ugyldig settings → falder tilbage til defaults og returnerer gyldigt skema', () => {
     // Bevidst ugyldig settings-type (cast til any)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

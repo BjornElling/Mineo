@@ -3,18 +3,68 @@ import { Box, Checkbox, FormControlLabel, IconButton, MenuItem, Tooltip, Typogra
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../inputs/StyledDropdown';
+import StyledRadioButton from '../inputs/StyledRadioButton';
 import type { CommitEvent } from '../inputs/fieldEvents';
-import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { useAppSettings } from '../../contexts/useAppSettings';
 import ContentBox from '../layout/ContentBox';
 import { getAlleLoenmodtagerOrg, getAlleArbejdsgiverOrg } from '../../data/overenskomstRates';
 import { saveDefaultDirectoryHandle, deleteDefaultDirectoryHandle, getDirectoryDisplayInfo } from '../../utils/fileHandleStorage';
 import { logInfo, logWarning } from '../../utils/logger';
-import type { BrevhovedIndstillinger } from '../../settings/appSettingsSchema';
+import {
+  APP_SETTINGS_AFSLUTTES_MED_OPTIONS,
+  APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS,
+  APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS,
+  type AppSettingsAfsluttesMedOption,
+  type AppSettingsLoenPaaHelligdageOption,
+  type AppSettingsSvieSmerteDelvisSygemeldingSatsOption,
+  type BrevhovedIndstillinger,
+} from '../../settings/appSettingsSchema';
 
 type BrevhovedOption = Readonly<{
   key: keyof BrevhovedIndstillinger;
   label: string;
 }>;
+
+const brevhovedOptionsRow1: readonly BrevhovedOption[] = [
+  { key: 'erstatningsopgoerelse', label: 'Erstatningsopgørelse' },
+  { key: 'shDage', label: 'SH-dage' },
+  { key: 'renteberegning', label: 'Renteberegning' },
+];
+
+const brevhovedOptionsRow2: readonly BrevhovedOption[] = [
+  { key: 'regulering', label: 'Regulering' },
+  { key: 'varigeMen', label: 'Varige mén' },
+  { key: 'satser', label: 'Satser' },
+  { key: 'aarsloensberegning', label: 'Årslønsberegning' },
+];
+
+const loenPaaHelligdageOptions = APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS;
+const afsluttesMedOptions = APP_SETTINGS_AFSLUTTES_MED_OPTIONS;
+const svieSmerteDelvisSygemeldingSatsValues = APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS;
+
+const isLoenPaaHelligdageOption = (value: string): value is AppSettingsLoenPaaHelligdageOption => {
+  return (loenPaaHelligdageOptions as readonly string[]).includes(value);
+};
+
+const isAfsluttesMedOption = (value: string): value is AppSettingsAfsluttesMedOption => {
+  return (afsluttesMedOptions as readonly string[]).includes(value);
+};
+
+const isSvieSmerteDelvisSygemeldingSatsOption = (
+  value: string | undefined
+): value is AppSettingsSvieSmerteDelvisSygemeldingSatsOption => {
+  return typeof value === 'string' && (svieSmerteDelvisSygemeldingSatsValues as readonly string[]).includes(value);
+};
+
+const svieSmerteDelvisSygemeldingSatsOptions = svieSmerteDelvisSygemeldingSatsValues.map((value) => ({
+  value,
+  label: value === 'fuld' ? 'Fuld sats' : 'Halv sats',
+})) as ReadonlyArray<Readonly<{
+  value: AppSettingsSvieSmerteDelvisSygemeldingSatsOption;
+  label: string;
+}>>;
+
+const udloebMaanederOptions = Array.from({ length: 13 }, (_, index) => index);
 
 const BrevhovedCheckboxRow = React.memo((props: {
   items: readonly BrevhovedOption[];
@@ -66,18 +116,7 @@ const Indstillinger = React.memo(() => {
 
   // State for default directory display name
   const [directoryDisplayName, setDirectoryDisplayName] = React.useState<string>('Skrivebord (standard)');
-  const [isLoadingDirectory, setIsLoadingDirectory] = React.useState(true);
-  const brevhovedOptionsRow1: readonly BrevhovedOption[] = React.useMemo(() => ([
-    { key: 'erstatningsopgoerelse', label: 'Erstatningsopgørelse' },
-    { key: 'shDage', label: 'SH-dage' },
-    { key: 'renteberegning', label: 'Renteberegning' },
-  ]), []);
-  const brevhovedOptionsRow2: readonly BrevhovedOption[] = React.useMemo(() => ([
-    { key: 'regulering', label: 'Regulering' },
-    { key: 'varigeMen', label: 'Varige mén' },
-    { key: 'satser', label: 'Satser' },
-    { key: 'aarsloensberegning', label: 'Årslønsberegning' },
-  ]), []);
+  const [isLoadingDirectory, setIsLoadingDirectory] = React.useState(() => Boolean(settings.defaultDirectoryHandleId));
   const handleBrevhovedToggle = React.useCallback((key: keyof BrevhovedIndstillinger, checked: boolean) => {
     const newBrevhovedIndstillinger: BrevhovedIndstillinger = {
       ...settings.brevhovedIndstillinger,
@@ -146,14 +185,14 @@ const Indstillinger = React.memo(() => {
 
       logInfo(`Standardplacering sat til: ${directoryHandle.name}`);
 
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
         // Bruger annullerede - ingen handling
         return;
       }
       logWarning('Fejl ved valg af standardplacering', {
         context: 'Indstillinger.handleChooseDirectory',
-        data: { error: error.message },
+        data: { error: error instanceof Error ? error.message : String(error) },
       });
     }
   }, [updateSettings]);
@@ -172,49 +211,16 @@ const Indstillinger = React.memo(() => {
 
       logInfo('Standardplacering nulstillet til skrivebord');
     } catch (error) {
-      logWarning('Fejl ved nulstilling af standardplacering', { context: 'Indstillinger.handleResetDirectory' });
+      logWarning('Fejl ved nulstilling af standardplacering', {
+        context: 'Indstillinger.handleResetDirectory',
+        data: { error: error instanceof Error ? error.message : String(error) },
+      });
     }
   }, [updateSettings]);
 
   // Hent alle organisationer til overenskomst-dropdowns
   const alleLoenmodtagerOrg = React.useMemo(() => getAlleLoenmodtagerOrg(), []);
   const alleArbejdsgiverOrg = React.useMemo(() => getAlleArbejdsgiverOrg(), []);
-
-  // Løn på helligdage options
-  const loenPaaHelligdageOptions = React.useMemo(
-    () => ['Almindelig løn', 'SH-udbetaling', 'Ingen'] as const,
-    []
-  );
-  type LoenPaaHelligdageOption = (typeof loenPaaHelligdageOptions)[number];
-  const isLoenPaaHelligdageOption = (value: string): value is LoenPaaHelligdageOption => {
-    return (loenPaaHelligdageOptions as readonly string[]).includes(value);
-  };
-
-  const afsluttesMedOptions = React.useMemo(
-    () => ['Bekræftet godkendt', 'Underskrift-linje'] as const,
-    []
-  );
-  const udloebMaanederOptions = React.useMemo(
-    () => Array.from({ length: 13 }, (_, index) => index),
-    []
-  );
-  type AfsluttesMedOption = (typeof afsluttesMedOptions)[number];
-  const isAfsluttesMedOption = (value: string): value is AfsluttesMedOption => {
-    return (afsluttesMedOptions as readonly string[]).includes(value);
-  };
-
-  const resolvedAfsluttesMed = isAfsluttesMedOption(settings.erstatningsopgoerelseAfsluttesMed)
-    ? settings.erstatningsopgoerelseAfsluttesMed
-    : 'Bekræftet godkendt';
-  const resolvedUdloebMaaneder = udloebMaanederOptions.includes(settings.allowReguleringMedUdloebMedMaaneder)
-    ? settings.allowReguleringMedUdloebMedMaaneder
-    : 6;
-
-  React.useEffect(() => {
-    if (settings.erstatningsopgoerelseAfsluttesMed !== resolvedAfsluttesMed) {
-      updateSettings({ erstatningsopgoerelseAfsluttesMed: resolvedAfsluttesMed });
-    }
-  }, [resolvedAfsluttesMed, settings.erstatningsopgoerelseAfsluttesMed, updateSettings]);
 
   return (
     <Box>
@@ -297,6 +303,11 @@ const Indstillinger = React.memo(() => {
         <Typography className="section-header">Standardværdier</Typography>
 
         <Box className="row--label-right-hover">
+          <Typography className="row--subheading-underlined">Tabt arbejdsfortjeneste</Typography>
+          <Box className="row--label-right-hover__content" />
+        </Box>
+
+        <Box className="row--label-right-hover">
           <Typography className="row--text">Fuld løn under ferie</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
@@ -336,6 +347,7 @@ const Indstillinger = React.memo(() => {
               <StyledDropdown
                 value={settings.defaultOverenskomstLoenmodtager}
                 onChange={(e: StyledDropdownChangeEvent<string>) => {
+                  // Alle dropdownens string-værdier er gyldige her; schemaet håndhæver kun at feltet er en string.
                   updateSettings({ defaultOverenskomstLoenmodtager: e.target.value });
                 }}
                 width={200}
@@ -353,6 +365,7 @@ const Indstillinger = React.memo(() => {
               <StyledDropdown
                 value={settings.defaultOverenskomstArbejdsgiver}
                 onChange={(e: StyledDropdownChangeEvent<string>) => {
+                  // Alle dropdownens string-værdier er gyldige her; schemaet håndhæver kun at feltet er en string.
                   updateSettings({ defaultOverenskomstArbejdsgiver: e.target.value });
                 }}
                 width={200}
@@ -370,6 +383,33 @@ const Indstillinger = React.memo(() => {
         </Box>
 
         <Box className="row--label-right-hover">
+          <Typography className="row--subheading-underlined">Svie- og smerte</Typography>
+          <Box className="row--label-right-hover__content" />
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Svie/smerte sats ved delvis sygemelding</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledRadioButton
+              value={settings.defaultSvieSmerteDelvisSygemeldingSats}
+              onCommit={(event) => {
+                const next = event.target.value;
+                if (isSvieSmerteDelvisSygemeldingSatsOption(next)) {
+                  updateSettings({ defaultSvieSmerteDelvisSygemeldingSats: next });
+                }
+              }}
+              row={true}
+              options={svieSmerteDelvisSygemeldingSatsOptions.map((option) => ({ ...option }))}
+            />
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--subheading-underlined">Erstatningsopgørelse</Typography>
+          <Box className="row--label-right-hover__content" />
+        </Box>
+
+        <Box className="row--label-right-hover">
           <Typography className="row--text">Udkast-stempel på nye dokumenter</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
@@ -384,7 +424,7 @@ const Indstillinger = React.memo(() => {
           <Box className="row--label-right-hover__content">
             <StyledDropdown
               allowEmpty={false}
-              value={resolvedAfsluttesMed}
+              value={settings.erstatningsopgoerelseAfsluttesMed}
               onChange={(e) => {
                 if (isAfsluttesMedOption(e.target.value)) {
                   updateSettings({ erstatningsopgoerelseAfsluttesMed: e.target.value });
@@ -425,8 +465,9 @@ const Indstillinger = React.memo(() => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <StyledDropdown
                 allowEmpty={false}
-                value={resolvedUdloebMaaneder}
+                value={settings.allowReguleringMedUdloebMedMaaneder}
                 onChange={(e: StyledDropdownChangeEvent<number>) => {
+                  // Kun værdier fra udloebMaanederOptions kan nå hertil; schemaets min/max er defensiv backup.
                   updateSettings({ allowReguleringMedUdloebMedMaaneder: e.target.value });
                 }}
                 width={80}
@@ -445,6 +486,7 @@ const Indstillinger = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Endelig EET-afgørelse kan gøre tidligere udbetalt midl. EET til endeligt med tilbagevirkende kraft</Typography>
           <Box className="row--label-right-hover__content">
+            {/* Programmet er beregningsteknisk låst til denne invariant indtil indstillingen får egen state. */}
             <StyledToggleSwitch checked disabled onCommit={() => {}} />
           </Box>
         </Box>

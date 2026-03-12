@@ -1,7 +1,8 @@
 import type { PersistedSectionMap } from './persistenceRegistry';
 import type { StorageKey } from './storageManifest';
-import { DEFAULT_APP_SETTINGS, appSettingsSchema, resolveDefaultOverenskomstFilter, type AppSettings } from '../settings/appSettingsSchema';
-import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../types/loen';
+import { resolveDefaultOverenskomstFilter, type AppSettings } from '../settings/appSettingsSchema';
+import { resolveAppSettings } from '../settings/appSettingsParse';
+import { LOENPERIODE } from '../types/loen';
 import { DEFAULT_ANCIENNITET_FIELDS } from '../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 export type DeepPartial<T> = {
@@ -16,11 +17,6 @@ export type PersistedSectionDefaults = {
   [K in StorageKey]?: DeepPartial<PersistedSectionMap[K]>;
 };
 
-const resolveSafeSettings = (settings?: AppSettings): AppSettings => {
-  const parsed = settings ? appSettingsSchema.safeParse(settings) : { success: false as const };
-  return parsed.success ? parsed.data : DEFAULT_APP_SETTINGS;
-};
-
 /**
  * Build default values for missing fields when loading `.eo` files.
  *
@@ -30,7 +26,7 @@ const resolveSafeSettings = (settings?: AppSettings): AppSettings => {
  * - Defaults must be deterministic and side-effect free.
  */
 export const buildPersistenceDefaults = (settings?: AppSettings): PersistedSectionDefaults => {
-  const safeSettings = resolveSafeSettings(settings);
+  const safeSettings = resolveAppSettings(settings);
 
   return {
     stamdata: {
@@ -43,9 +39,9 @@ export const buildPersistenceDefaults = (settings?: AppSettings): PersistedSecti
       loenperiode: LOENPERIODE.MAANED,
       tableData: [],
       omregningTilFuldtAar: false,
-      fuldLoenUnderFerie: true,
+      fuldLoenUnderFerie: safeSettings.defaultFuldLoenUnderFerie,
       retTilSjetteFerieuge: true,
-      loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
+      loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
     },
     renteberegning: {
       rentekravRows: [],
@@ -64,7 +60,7 @@ export const buildPersistenceDefaults = (settings?: AppSettings): PersistedSecti
       beregnesSvieSmerteGodtgoerelse: 'Ja',
       tidligereSsMax: 'Nej',
       svieSmertePerioder: [],
-      svieSmerteDelvisSygemeldingSats: 'halv',
+      svieSmerteDelvisSygemeldingSats: safeSettings.defaultSvieSmerteDelvisSygemeldingSats,
 
       beregnesTabtArbejdsfortjeneste: 'Ja',
       tafPerioder: [],

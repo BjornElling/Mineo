@@ -24,9 +24,12 @@ describe('buildPersistenceDefaults', () => {
       expect(defaults.aarsloen?.tableData).toEqual([]);
     });
 
-    it('fuldLoenUnderFerie = true (standard)', () => {
-      const defaults = buildPersistenceDefaults();
-      expect(defaults.aarsloen?.fuldLoenUnderFerie).toBe(true);
+    it('fuldLoenUnderFerie følger settings', () => {
+      const defaults = buildPersistenceDefaults({
+        ...DEFAULT_APP_SETTINGS,
+        defaultFuldLoenUnderFerie: false,
+      });
+      expect(defaults.aarsloen?.fuldLoenUnderFerie).toBe(false);
     });
 
     it('retTilSjetteFerieuge = true (standard)', () => {
@@ -34,9 +37,12 @@ describe('buildPersistenceDefaults', () => {
       expect(defaults.aarsloen?.retTilSjetteFerieuge).toBe(true);
     });
 
-    it('loenPaaHelligdage = "Almindelig løn" (standard)', () => {
-      const defaults = buildPersistenceDefaults();
-      expect(defaults.aarsloen?.loenPaaHelligdage).toBe('Almindelig løn');
+    it('loenPaaHelligdage følger settings', () => {
+      const defaults = buildPersistenceDefaults({
+        ...DEFAULT_APP_SETTINGS,
+        defaultLoenPaaHelligdage: 'SH-udbetaling',
+      });
+      expect(defaults.aarsloen?.loenPaaHelligdage).toBe('SH-udbetaling');
     });
   });
 
@@ -67,6 +73,14 @@ describe('buildPersistenceDefaults', () => {
         erstatningsopgoerelseAfsluttesMed: 'Underskrift-linje',
       });
       expect(defaults.erstatningsopgoerelse?.erstatningsopgoerelseAfsluttesMed).toBe('Underskrift-linje');
+    });
+
+    it('svieSmerteDelvisSygemeldingSats følger settings', () => {
+      const defaults = buildPersistenceDefaults({
+        ...DEFAULT_APP_SETTINGS,
+        defaultSvieSmerteDelvisSygemeldingSats: 'fuld',
+      });
+      expect(defaults.erstatningsopgoerelse?.svieSmerteDelvisSygemeldingSats).toBe('fuld');
     });
   });
 

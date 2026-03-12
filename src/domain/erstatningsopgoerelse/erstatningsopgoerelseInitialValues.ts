@@ -4,7 +4,8 @@ import { ensureSvieRows } from './svieSmerteTableModel';
 import { ensureTafRows } from './tafTableModel';
 import { ensureFravaerRows, ensureTafFerieRows } from './ferieTableModel';
 import { ensureOevrigeKravRows } from './oevrigeKravTableModel';
-import { appSettingsSchema, DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../settings/appSettingsSchema';
+import { resolveDefaultOverenskomstFilter, type AppSettings } from '../../settings/appSettingsSchema';
+import { resolveAppSettings } from '../../settings/appSettingsParse';
 import { erstatningsopgoerelseSchema } from '../../schemas/formSchemas';
 
 const createDefaultAngivetLoenLoenudvikling = (settings: AppSettings): PersistedSectionMap['erstatningsopgoerelse']['eoAngivetLoenLoenudvikling'] => ({
@@ -40,9 +41,7 @@ export const DEFAULT_ANCIENNITET_FIELDS = {
  * - Må ALDRIG anvendes ved load/merge af eksisterende data
  */
 const createNewEOInitialValuesFromSettings = (settings?: AppSettings): PersistedSectionMap['erstatningsopgoerelse'] => {
-  // Valider settings én gang ved grænsefladen til sagsdata
-  const parsed = settings ? appSettingsSchema.safeParse(settings) : { success: false as const };
-  const safeSettings = parsed.success ? parsed.data : DEFAULT_APP_SETTINGS;
+  const safeSettings = resolveAppSettings(settings);
 
   return erstatningsopgoerelseSchema.parse({
   // Erstatningsopgørelse info
@@ -85,7 +84,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   tidligereSsMax: 'Nej',
   svieSmertePerioder: ensureSvieRows(undefined),
   svieSmerteSatserAar: undefined,
-  svieSmerteDelvisSygemeldingSats: 'halv',
+  svieSmerteDelvisSygemeldingSats: safeSettings.defaultSvieSmerteDelvisSygemeldingSats,
   svieSmerteTidligereTotal: undefined,
   svieSmerteAktuelPeriode: undefined,
 
@@ -158,7 +157,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
       offentligLoenGruppe: undefined,
       offentligLoenEkstraGrundloen: undefined,
       // Overenskomst-filter: initialiseres fra settings ved oprettelse (centraliseret mapping)
-      overenskomstFilter: resolveDefaultOverenskomstFilter(settings),
+      overenskomstFilter: resolveDefaultOverenskomstFilter(safeSettings),
     },
   ],
 
