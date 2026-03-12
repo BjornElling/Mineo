@@ -1,11 +1,55 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
 import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 
+const { logErrorMock } = vi.hoisted(() => ({
+  logErrorMock: vi.fn(),
+}));
+
+vi.mock('../../../utils/logger', () => ({
+  logError: logErrorMock,
+}));
+
 describe('computeEoSnapshot', () => {
+  beforeEach(() => {
+    logErrorMock.mockReset();
+  });
+
+  it('returnerer fail_closed og logger systemfejl når skjult EO-lønfelt mangler ved angivet løn', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Angivet månedsløn';
+    eoValues.eoAngivetLoenLoenudvikling.loenPaaHelligdage = undefined;
+
+    const snapshot = computeEoSnapshot({
+      revision: 'eo-hidden-loen-state',
+      stamdataValues: STAMDATA_INITIAL_VALUES,
+      eoValues,
+    });
+
+    expect(snapshot.status).toBe('fail_closed');
+    expect(snapshot.failClosedReason).toBe('schema_guard');
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.invariants).toEqual([
+      expect.objectContaining({
+        id: 'schema_guard:eo_angivet_loen_loen_paa_helligdage',
+        source: 'system',
+      }),
+    ]);
+    expect(logErrorMock).toHaveBeenCalledWith(
+      'EO-snapshot afvist pga. intern datainkonsistens i angivet løn',
+      expect.objectContaining({
+        context: 'eoSnapshot.computeEoSnapshot',
+        data: expect.objectContaining({
+          revision: 'eo-hidden-loen-state',
+          beregnesUdFra: 'Angivet månedsløn',
+        }),
+      })
+    );
+  });
+
   it('returnerer fail_closed ved schema-guard fejl', () => {
     const snapshot = computeEoSnapshot({
       revision: 'schema-fail',

@@ -60,7 +60,7 @@ describe('buildEODebugForligRows visibility', () => {
     expect(rows[2]?.displayValue).toBe('-');
   });
 
-  it('viser kun samlet fejl-række når både procent og brøk er udfyldt', () => {
+  it('viser samlet fejl-række samt datolinje når både procent og brøk er udfyldt og dato findes', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.forligAnsvarsgradProcent = 50;
     values.forligAnsvarsgradBroek = '1/3';
@@ -83,7 +83,7 @@ describe('buildEODebugForligRows visibility', () => {
       },
     });
 
-    expect(rows).toHaveLength(1);
+    expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({
       id: 'forlig.ansvarsgrad',
       label: 'Forlig om ansvarsgrad',
@@ -91,5 +91,40 @@ describe('buildEODebugForligRows visibility', () => {
       summaryDisplay: 'messageOnly',
     });
     expect(rows[0]?.displayValue).toContain('Angiv enten procent eller brøk');
+    expect(rows[1]).toMatchObject({
+      id: 'forlig.dato',
+      label: 'Evt. dato for forlig',
+      displayValue: '31-01-2024',
+      status: 'ok',
+    });
+  });
+
+  it('viser fejl på forligsdato når dato er udfyldt uden ansvarsgrad', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.forligDato = '2024-01-31';
+
+    const rows = buildEODebugForligRows(values, {
+      forligDato: {
+        rule: {
+          source: 'rule',
+          severity: 'error',
+          message: 'Dato for forlig kræver, at ansvarsgrad angives som procent eller brøk',
+        },
+      },
+    });
+
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      id: 'forlig.ansvarsgrad',
+      label: 'Forlig om ansvarsgrad',
+      displayValue: '-',
+      status: 'ok',
+    });
+    expect(rows[1]).toMatchObject({
+      id: 'forlig.dato',
+      label: 'Evt. dato for forlig',
+      displayValue: 'Fejl (Dato for forlig kræver, at ansvarsgrad angives som procent eller brøk)',
+      status: 'error',
+    });
   });
 });

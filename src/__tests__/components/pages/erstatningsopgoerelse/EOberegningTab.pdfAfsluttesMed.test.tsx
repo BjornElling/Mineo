@@ -20,12 +20,16 @@ const { generateErstatningsopgoerelsePdfMock, loadErstatningsopgoerelsePdfModule
   };
 });
 
+const { collectAllDebugRowsMock } = vi.hoisted(() => ({
+  collectAllDebugRowsMock: vi.fn(() => ({ errors: [], warnings: [], allRows: [], relevantRows: [] })),
+}));
+
 vi.mock('../../../../hooks/useFormFieldErrors', () => ({
   useFieldErrorsBySourceForSection: () => ({}),
 }));
 
 vi.mock('../../../../domain/debug/eoDebugRowAggregator', () => ({
-  collectAllDebugRows: () => ({ errors: [], warnings: [], allRows: [], relevantRows: [] }),
+  collectAllDebugRows: collectAllDebugRowsMock,
 }));
 
 vi.mock('../../../../utils/scrollToSection', () => ({
@@ -44,6 +48,8 @@ describe('EOberegningTab PDF-afslutning', () => {
   beforeEach(() => {
     generateErstatningsopgoerelsePdfMock.mockReset();
     loadErstatningsopgoerelsePdfModuleMock.mockClear();
+    collectAllDebugRowsMock.mockReset();
+    collectAllDebugRowsMock.mockReturnValue({ errors: [], warnings: [], allRows: [], relevantRows: [] });
 
     eoValuesFromForm = createErstatningsopgoerelseInitialValues();
     eoValuesFromForm.beregnesSvieSmerteGodtgoerelse = 'Nej';
@@ -109,5 +115,49 @@ describe('EOberegningTab PDF-afslutning', () => {
 
     const submittedEo = generateErstatningsopgoerelsePdfMock.mock.calls[0]?.[1];
     expect(submittedEo.differencekravDato).toBe('2026-01-15');
+  });
+
+  it('blokerer PDF-download når Beregning-fanen har brugerfejl', async () => {
+    collectAllDebugRowsMock.mockReturnValue({
+      errors: [{
+        id: 'forlig.dato',
+        label: 'Evt. dato for forlig',
+        status: 'error',
+        message: 'Dato for forlig kræver, at ansvarsgrad angives som procent eller brøk',
+        navigation: {
+          kind: 'erstatningsopgoerelse-tab',
+          tabId: 'eo_oplysninger',
+          tabName: 'EO oplysninger',
+          sectionTitle: 'Forlig',
+        },
+      }],
+      warnings: [],
+      allRows: [],
+      relevantRows: [],
+    });
+
+    render(
+      <MemoryRouter>
+        <AppSettingsProvider>
+          <FormPersistenceProvider>
+            <EOberegningTab
+              activeTab="beregning"
+              setActiveTab={vi.fn()}
+              isActive={true}
+              eoSnapshot={eoSnapshot}
+              stamdataValues={structuredClone(STAMDATA_INITIAL_VALUES)}
+              eoValues={eoValuesFromForm}
+              setEOValues={vi.fn()}
+            />
+          </FormPersistenceProvider>
+        </AppSettingsProvider>
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getAllByTestId('DownloadIcon')[0]);
+
+    await waitFor(() => {
+      expect(generateErstatningsopgoerelsePdfMock).not.toHaveBeenCalled();
+    });
   });
 });

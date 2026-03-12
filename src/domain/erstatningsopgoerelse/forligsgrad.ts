@@ -23,8 +23,7 @@ export const parseForligsgrad = (
       maxDigits: DEFAULT_FRACTION_MAX_DIGITS,
       allowNegative: false,
       allowZeroNumerator: false,
-      canonicalizeOnCommit: true,
-      requireIntegerFraction: true,
+      canonicalizeOnCommit: false,
     });
     if (result.ok && result.parsed.numerator <= result.parsed.denominator) {
       return {

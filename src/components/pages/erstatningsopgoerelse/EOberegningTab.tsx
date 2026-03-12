@@ -6,6 +6,7 @@ import ContentBox from '../../layout/ContentBox';
 import { useFieldErrorsBySourceForSection } from '../../../hooks/useFormFieldErrors';
 import { useEOLoenindkomstInputErrors } from '../../../hooks/useEOLoenindkomstInputErrors';
 import { collectAllDebugRows } from '../../../domain/debug/eoDebugRowAggregator';
+import type { DebugRowWithNavigation } from '../../../domain/debug/eoDebugRowAggregator';
 import type { NavigationTarget } from '../../../domain/debug/eoDebugNavigationMap';
 import { scrollToSection } from '../../../utils/scrollToSection';
 import { scrollToDebugRow } from '../../../utils/scrollToDebugRow';
@@ -65,9 +66,46 @@ const FEJL_ADVARSLER_ROW_SX = {
  * Beregning-fanen viser debug-fejl/advarsler og snapshot-baseret downloadstatus.
  *
  * Debug-rækker er et separat forklaringslag til brugernavigation.
- * Download-gating er autoritativt snapshot-baseret og må ikke afhænge af
- * separate debug-aggregator-fejl.
+ * Download-gating følger den samlede EO-fejlliste fra debug-aggregatoren
+ * og snapshot-/projektionstilstanden.
  */
+
+const getCustomDebugRowMessage = (
+  row: Pick<DebugRowWithNavigation, 'id' | 'label' | 'message'>
+): string | null => {
+  const message = row.message?.trim() ?? '';
+  if (
+    row.label === 'Periode til beregning af før-løn'
+    && message.startsWith('Der er overlap mellem beregningsperioden (')
+  ) {
+    return message;
+  }
+
+  if (
+    row.label.startsWith('Periode (')
+    && message.startsWith('Dato skal være mellem ')
+  ) {
+    const prefix = row.id.startsWith('sviesmerte.periode.')
+      ? 'Svie/smerte-perioden'
+      : 'TAF-perioden';
+    return `${prefix} skal være mellem ${message.replace('Dato skal være mellem ', '')}`;
+  }
+
+  if (row.label === 'Valgt regulering' && message === 'Lønudvikling beregnes ud fra mangler') {
+    return 'Der mangler at blive angivet lønregulering, evt. \'Ingen\'';
+  }
+
+  if (row.label === 'Periode til beregning af før-løn' && message === 'Ikke alle felter udfyldt') {
+    return 'Der mangler indtastninger i perioden til beregning af før-løn.';
+  }
+
+  if (row.id === 'forlig.dato' && message === 'Dato for forlig kræver, at ansvarsgrad angives som procent eller brøk') {
+    return 'Der er indtastet forligsdato, men ikke forligsprocent eller -brøk';
+  }
+
+  return null;
+};
+
 const EOberegningTab = React.memo<EOberegningTabProps>((
   { activeTab, setActiveTab, isActive, eoSnapshot = null, stamdataValues, eoValues, setEOValues }
 ) => {
@@ -129,11 +167,21 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     return invariant.source === 'system';
   }, []);
 
+  const firstBlockingDebugErrorMessage = React.useMemo(() => {
+    const firstError = errors[0];
+    if (!firstError) return null;
+    const normalizedMessage = firstError.message?.trim() || '';
+    return getCustomDebugRowMessage(firstError) ?? (normalizedMessage || firstError.label);
+  }, [errors]);
 
-  const canDownloadSnapshotEoPdf = eoPdfProjection?.kind === 'ok';
-  const canDownloadSnapshotTafPdf = tafPdfProjection?.kind === 'ok';
+  const hasBlockingDebugErrors = errors.length > 0;
+  const canDownloadSnapshotEoPdf = eoPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors;
+  const canDownloadSnapshotTafPdf = tafPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors;
 
   const eoPdfDisabledReason = React.useMemo(() => {
+    if (firstBlockingDebugErrorMessage) {
+      return firstBlockingDebugErrorMessage;
+    }
     if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
     if (eoSnapshot.status === 'fail_closed') {
       return eoSnapshot.invariants[0]?.message ?? 'EO-PDF kan ikke genereres for den aktuelle sag.';
@@ -145,9 +193,12 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       return eoPdfProjection.message;
     }
     return null;
-  }, [authoritativeBlockingInvariants, eoPdfProjection, eoSnapshot]);
+  }, [authoritativeBlockingInvariants, eoPdfProjection, eoSnapshot, firstBlockingDebugErrorMessage]);
 
   const tafPdfDisabledReason = React.useMemo(() => {
+    if (firstBlockingDebugErrorMessage) {
+      return firstBlockingDebugErrorMessage;
+    }
     if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
     if (eoSnapshot.status === 'fail_closed') {
       return eoSnapshot.invariants[0]?.message ?? 'TAF fordelt på år kan ikke genereres for den aktuelle sag.';
@@ -159,7 +210,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       return tafPdfProjection.message;
     }
     return null;
-  }, [authoritativeBlockingInvariants, eoSnapshot, tafPdfProjection]);
+  }, [authoritativeBlockingInvariants, eoSnapshot, tafPdfProjection, firstBlockingDebugErrorMessage]);
 
   const systemIssueRows = React.useMemo<readonly SystemIssueRow[]>(() => {
     const rows: SystemIssueRow[] = [];
@@ -431,41 +482,13 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     }
   }, [canDownloadSnapshotTafPdf, eoSnapshot, stamdataValues, eoValues, settings]);
 
-  const getCustomSummaryText = React.useCallback((
-    row: (typeof errors)[number],
-    message: string
-  ): string | null => {
-    if (
-      row.label === 'Periode til beregning af før-løn'
-      && message.startsWith('Der er overlap mellem beregningsperioden (')
-    ) {
-      return message;
-    }
-
-    if (
-      row.label.startsWith('Periode (')
-      && message.startsWith('Dato skal være mellem ')
-    ) {
-      const prefix = row.id.startsWith('sviesmerte.periode.')
-        ? 'Svie/smerte-perioden'
-        : 'TAF-perioden';
-      return `${prefix} skal være mellem ${message.replace('Dato skal være mellem ', '')}`;
-    }
-
-    if (row.label === 'Valgt regulering' && message === 'Lønudvikling beregnes ud fra mangler') {
-      return 'Der mangler at blive angivet lønregulering, evt. \'Ingen\'';
-    }
-
-    if (row.label === 'Periode til beregning af før-løn' && message === 'Ikke alle felter udfyldt') {
-      return 'Der mangler indtastninger i perioden til beregning af før-løn.';
-    }
-
-    return null;
+  const getCustomSummaryText = React.useCallback((row: (typeof errors)[number]): string | null => {
+    return getCustomDebugRowMessage(row);
   }, []);
 
   const formatSummaryText = React.useCallback((row: (typeof errors)[number]): string => {
     const message = toReadableSummaryMessage(row.message ?? '');
-    const customSummaryText = getCustomSummaryText(row, message);
+    const customSummaryText = getCustomSummaryText(row);
     if (customSummaryText) return customSummaryText;
     if (row.summaryDisplay === 'messageOnly') {
       if (message !== '') return message;

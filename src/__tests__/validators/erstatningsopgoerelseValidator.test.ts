@@ -56,9 +56,9 @@ describe('forlig ansvarsgrad', () => {
     expect(hasError(values, 'Negative brøker er ikke tilladt')).toBe(true);
   });
 
-  it('afviser decimal-brøk', () => {
+  it('accepterer decimal-brøk med op til to decimaler', () => {
     const values = makeValues({ forligAnsvarsgradBroek: '1,5/2,5' });
-    expect(hasError(values, 'kun hele tal i tæller og nævner')).toBe(true);
+    expect(hasError(values, 'Brøk')).toBe(false);
   });
 
   it('afviser samtidig procent og brøk', () => {
@@ -69,13 +69,13 @@ describe('forlig ansvarsgrad', () => {
     expect(hasError(values, 'enten procent eller brøk')).toBe(true);
   });
 
-  it('afviser forlig-dato uden ansvarsgrad', () => {
+  it('tillader forlig-dato uden ansvarsgrad og behandler det som intet forlig', () => {
     const values = makeValues({
       forligDato: iso('2024-01-10'),
       forligAnsvarsgradProcent: undefined,
       forligAnsvarsgradBroek: undefined,
     });
-    expect(hasError(values, 'Dato for forlig kræver')).toBe(true);
+    expect(hasError(values, 'Dato for forlig kræver')).toBe(false);
   });
 });
 

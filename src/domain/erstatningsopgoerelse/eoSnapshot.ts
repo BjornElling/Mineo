@@ -128,6 +128,15 @@ const buildDebugSnapshotForComputed = (args: Readonly<{
   });
 };
 
+const isAngivetLoenHiddenStateInvalid = (
+  values: ErstatningsopgoerelseValues
+): boolean => {
+  return (
+    (values.beregnesUdFra === 'Angivet månedsløn' || values.beregnesUdFra === 'Angivet dagsløn') &&
+    values.eoAngivetLoenLoenudvikling.loenPaaHelligdage === undefined
+  );
+};
+
 export const computeEoSnapshot = (args: Readonly<{
   revision: string;
   stamdataValues: unknown;
@@ -164,6 +173,36 @@ export const computeEoSnapshot = (args: Readonly<{
       input: {
         stamdata: parsedStamdata.success ? parsedStamdata.data : null,
         erstatningsopgoerelse: parsedEo.success ? parsedEo.data : null,
+      },
+      failClosedReason: 'schema_guard',
+    };
+  }
+
+  if (isAngivetLoenHiddenStateInvalid(parsedEo.data)) {
+    logError('EO-snapshot afvist pga. intern datainkonsistens i angivet løn', {
+      context: 'eoSnapshot.computeEoSnapshot',
+      data: {
+        revision: args.revision,
+        beregnesUdFra: parsedEo.data.beregnesUdFra,
+      },
+    });
+    return {
+      revision: args.revision,
+      status: 'fail_closed',
+      invariants: [{
+        id: 'schema_guard:eo_angivet_loen_loen_paa_helligdage',
+        passed: false,
+        severity: 'error' as const,
+        source: 'system' as const,
+        message: 'EO-beregningen kan ikke gennemføres på grund af en intern datafejl i angivet løn. Genindlæs sagen eller vælg beregningsgrundlaget igen.',
+        blocksAuthoritativeComputation: true,
+        blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf'] as const,
+      }],
+      data: null,
+      debugSnapshot: null,
+      input: {
+        stamdata: parsedStamdata.data,
+        erstatningsopgoerelse: parsedEo.data,
       },
       failClosedReason: 'schema_guard',
     };

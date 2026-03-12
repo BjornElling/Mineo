@@ -187,6 +187,10 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   }[keyof ErstatningsopgoerelseValues];
 
   const getChecked = React.useCallback((val: JaNej): boolean => val === 'Ja', []);
+  const ensureEoLoenPaaHelligdage = React.useCallback(
+    (value: EOAngivetLoenLoenudvikling['loenPaaHelligdage']) => value ?? settings.defaultLoenPaaHelligdage,
+    [settings.defaultLoenPaaHelligdage]
+  );
 
   const handleToggleChange = React.useCallback(
     (fieldName: ToggleFieldName): CommitHandler<boolean> =>
@@ -265,13 +269,14 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       beregnesUdFra: parsed.data,
       eoAngivetLoenLoenudvikling: {
         ...prev.eoAngivetLoenLoenudvikling,
+        loenPaaHelligdage: ensureEoLoenPaaHelligdage(prev.eoAngivetLoenLoenudvikling.loenPaaHelligdage),
         anciennitetstillaegSatsAngivesPer:
           parsed.data === 'Angivet dagsløn'
             ? 'Time'
             : 'Måned',
       },
     }));
-  }, [setValues]);
+  }, [ensureEoLoenPaaHelligdage, setValues]);
 
   const handleAfsluttesMedChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = afsluttesMedEnum.safeParse(event.target.value);
@@ -852,6 +857,10 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     severity: 'error',
     source: 'rule',
   });
+  const reportForligDatoRuleError = useFormFieldErrorReporter('erstatningsopgoerelse', 'forligDato', {
+    severity: 'error',
+    source: 'rule',
+  });
   const reportForligDatoInputErrorSafe = React.useCallback((errorMsg: string | undefined) => {
     if (!hasNonEmptyDateValue(values.forligDato)) {
       reportForligDatoInputError(undefined);
@@ -868,6 +877,23 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     forligFejl.harFejl,
     reportForligAnsvarsgradBroekRuleError,
     reportForligAnsvarsgradProcentRuleError,
+  ]);
+  React.useEffect(() => {
+    const hasForligDato = typeof values.forligDato === 'string' && values.forligDato.trim() !== '';
+    const hasProcent = typeof values.forligAnsvarsgradProcent === 'number' && Number.isFinite(values.forligAnsvarsgradProcent);
+    const hasBroek = typeof values.forligAnsvarsgradBroek === 'string' && values.forligAnsvarsgradBroek.trim() !== '';
+
+    if (!hasForligDato || hasProcent || hasBroek) {
+      reportForligDatoRuleError(undefined);
+      return;
+    }
+
+    reportForligDatoRuleError('Dato for forlig kræver, at ansvarsgrad angives som procent eller brøk');
+  }, [
+    reportForligDatoRuleError,
+    values.forligAnsvarsgradBroek,
+    values.forligAnsvarsgradProcent,
+    values.forligDato,
   ]);
 
   const svie = useSvieSmerteRows({ values, setValues, resyncToken: formVersion });
@@ -1228,7 +1254,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               <StyledFractionField
                 width={120}
                 value={values.forligAnsvarsgradBroek}
-                requireIntegerFraction
                 onCommit={handleStringBlur('forligAnsvarsgradBroek')}
                 onFieldError={reportForligAnsvarsgradBroekInputError}
                 error={forligFejl.harFejl}

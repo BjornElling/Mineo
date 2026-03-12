@@ -228,6 +228,7 @@ export const buildEODebugForligRows = (
   const harBroek = isNonEmptyString(broekValue);
   const procentErrors = collectPresentFieldErrors(errors.forligAnsvarsgradProcent);
   const broekErrors = collectPresentFieldErrors(errors.forligAnsvarsgradBroek);
+  const forligDatoErrors = collectPresentFieldErrors(errors.forligDato);
   const samledeForligErrors = procentErrors.concat(broekErrors);
   const harPraecisEnUdfyldt = harProcent !== harBroek;
   const harBeggeUdfyldt = harProcent && harBroek;
@@ -258,9 +259,21 @@ export const buildEODebugForligRows = (
       label: 'Forlig om ansvarsgrad',
       ...resolveDebugDisplay({ value: samletForligDisplay, errors: undefined, emptyState: 'ok' }),
     };
+  const forligDatoRow: DebugRowModel = {
+    id: 'forlig.dato',
+    label: 'Evt. dato for forlig',
+    ...resolveDebugDisplay({
+      value: danishForligDato,
+      errors: errors.forligDato,
+      emptyState: 'ok',
+    }),
+  };
 
   if (!harPraecisEnUdfyldt) {
-    return [forligRow];
+    const skalViseForligDatoRow = danishForligDato !== undefined || forligDatoErrors.length > 0;
+    return skalViseForligDatoRow
+      ? [forligRow, forligDatoRow]
+      : [forligRow];
   }
 
   return [
@@ -279,9 +292,7 @@ export const buildEODebugForligRows = (
       ],
     },
     {
-      id: 'forlig.dato',
-      label: 'Evt. dato for forlig',
-      ...resolveDebugDisplay({ value: danishForligDato, errors: errors.forligDato, emptyState: 'ok' }),
+      ...forligDatoRow,
     },
   ];
 };

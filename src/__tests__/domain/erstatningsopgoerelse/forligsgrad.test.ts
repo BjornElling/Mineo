@@ -17,13 +17,15 @@ describe('parseForligsgrad', () => {
     expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '1/1' })).toEqual({ factor: 1, label: '1/1' });
     expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '1/3' })).toEqual({ factor: 1 / 3, label: '1/3' });
     expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '2/7' })).toEqual({ factor: 2 / 7, label: '2/7' });
+    expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '1,25/3,5' })).toEqual({ factor: 1.25 / 3.5, label: '1,25/3,5' });
   });
 
   it('returnerer null for ugyldige brøker', () => {
     expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '0/5' })).toBeNull();
+    expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '0,0/3' })).toBeNull();
     expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '5/0' })).toBeNull();
     expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '3/2' })).toBeNull();
-    expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '1,25/3,5' })).toBeNull();
+    expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '2,5/1,5' })).toBeNull();
     expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '' })).toBeNull();
     expect(parseForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '   ' })).toBeNull();
   });

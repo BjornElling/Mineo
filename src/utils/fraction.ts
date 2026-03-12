@@ -121,7 +121,7 @@ export const parseFractionString = (
   const maxDigits = options.maxDigits ?? DEFAULT_FRACTION_MAX_DIGITS;
   const allowNegative = options.allowNegative === true;
   const allowZeroNumerator = options.allowZeroNumerator === true;
-  const canonicalizeOnCommit = options.canonicalizeOnCommit !== false;
+  const canonicalizeOnCommit = options.canonicalizeOnCommit === true;
   const requireIntegerFraction = options.requireIntegerFraction === true;
   const trimmed = raw.trim();
 

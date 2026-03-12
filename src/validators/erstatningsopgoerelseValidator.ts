@@ -32,7 +32,7 @@ import {
   resolveTafConstraintBounds,
 } from '../domain/erstatningsopgoerelse/tafPeriodConstraints';
 import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/tafCalculations';
-import { DEFAULT_FRACTION_MAX_DIGITS, INTEGER_FRACTION_FORMAT_MESSAGE, parseFractionString } from '../utils/fraction';
+import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../utils/fraction';
 
 export const TAF_OVERLAP_ERROR_MESSAGE = 'TAF-perioder overlapper';
 
@@ -114,8 +114,7 @@ function validateForligAnsvarsgrad(values: ErstatningsopgoerelseValues): Validat
       maxDigits: DEFAULT_FRACTION_MAX_DIGITS,
       allowNegative: false,
       allowZeroNumerator: false,
-      canonicalizeOnCommit: true,
-      requireIntegerFraction: true,
+      canonicalizeOnCommit: false,
     });
     if (!parsedBroek.ok) {
       let message = 'Brøk skal angives som fx "1/3"';
@@ -128,9 +127,6 @@ function validateForligAnsvarsgrad(values: ErstatningsopgoerelseValues): Validat
           break;
         case 'zero-numerator':
           message = 'Tæller kan ikke være 0 (ville nulstille erstatningen)';
-          break;
-        case 'non-integer':
-          message = INTEGER_FRACTION_FORMAT_MESSAGE;
           break;
         default:
           break;
@@ -151,26 +147,6 @@ function validateForligAnsvarsgrad(values: ErstatningsopgoerelseValues): Validat
   }
 
   return errors;
-}
-
-/**
- * Forlig-dato kræver en gyldig ansvarsgrad (procent eller brøk)
- */
-function validateForligDatoRequiresAnsvarsgrad(values: ErstatningsopgoerelseValues): ValidationError[] {
-  const hasForligDato = typeof values.forligDato === 'string' && values.forligDato.trim() !== '';
-  if (!hasForligDato) return [];
-
-  const hasProcent = typeof values.forligAnsvarsgradProcent === 'number' && Number.isFinite(values.forligAnsvarsgradProcent);
-  const hasBroek = typeof values.forligAnsvarsgradBroek === 'string' && values.forligAnsvarsgradBroek.trim() !== '';
-  if (hasProcent || hasBroek) return [];
-
-  return [
-    {
-      path: 'forligDato',
-      message: 'Dato for forlig kræver, at ansvarsgrad angives som procent eller brøk',
-      severity: 'error',
-    },
-  ];
 }
 
 // ---- Svie/smerte ----
@@ -713,7 +689,6 @@ export const erstatningsopgoerelseValidator: ErstatningsopgoerelseValidator = {
     const errors: ValidationError[] = [
       ...validateStandaloneRules(values),
       ...validateForligAnsvarsgrad(values),
-      ...validateForligDatoRequiresAnsvarsgrad(values),
       ...validateSvieSmerte(values),
       ...validateTAF(values),
       ...validateOevrigeKrav(values),

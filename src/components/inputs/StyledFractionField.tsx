@@ -67,7 +67,7 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
       maxDigits = DEFAULT_FRACTION_MAX_DIGITS,
       allowNegative = false,
       allowZeroNumerator = false,
-      canonicalizeOnCommit = true,
+      canonicalizeOnCommit = false,
       requireIntegerFraction = false,
       onDraftChange,
       onCommit,

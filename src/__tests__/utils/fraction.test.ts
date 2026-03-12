@@ -43,7 +43,7 @@ describe('fraction utils', () => {
       parsed: {
         numerator: 0,
         denominator: 5,
-        value: '0/1',
+        value: '0/5',
         factor: 0,
       },
     });
@@ -62,8 +62,21 @@ describe('fraction utils', () => {
     });
   });
 
-  it('reducerer heltalsbrøker til laveste fællesnævner ved commit', () => {
+  it('bevarer heltalsbrøker som indtastet som standard', () => {
     expect(parseFractionString('6/4')).toMatchObject({
+      ok: true,
+      parsed: {
+        numerator: 6,
+        denominator: 4,
+        value: '6/4',
+        factor: 1.5,
+        isIntegerFraction: true,
+      },
+    });
+  });
+
+  it('kan reducere heltalsbrøker når canonicalizeOnCommit er sat eksplicit', () => {
+    expect(parseFractionString('6/4', { canonicalizeOnCommit: true })).toMatchObject({
       ok: true,
       parsed: {
         numerator: 6,
