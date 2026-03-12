@@ -1,5 +1,5 @@
 /**
- * Regulation Core Model - Indeks ud fra overenskomstperioder (rettet)
+ * Regulation Core Model - Indeksvisning for reguleringskilder
  */
 
 import type { ISODateString, DanishDateString } from '../../types/branded';
@@ -38,7 +38,7 @@ import {
   resolvePctDecimalFromSatsOrInput,
   resolveReguleringsdato,
 } from '../erstatningsopgoerelse/sharedPdfUtils';
-import { getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/angivetLoenHelpers';
+import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/angivetLoenHelpers';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/loenudviklingDisplay';
 
 const STORE_BEDEDAG_PCT = STORE_BEDEDAG_PCT_PCT / 100;
@@ -143,6 +143,16 @@ const getTidsenhedsvaerdier = (
   };
 };
 
+const resolveManualFeriePctDecimal = (
+  rowFeriepenge: string | undefined,
+  defaultFeriePct: number | undefined
+): number => {
+  if (typeof rowFeriepenge === 'string' && rowFeriepenge.trim() !== '') {
+    return parsePercentToDecimal(rowFeriepenge);
+  }
+  return parsePercentToDecimal(defaultFeriePct);
+};
+
 const buildManualEntries = (args: Readonly<{
   af: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
   eoFra: ISODateString;
@@ -156,16 +166,16 @@ const buildManualEntries = (args: Readonly<{
   const baseGrundloen = amountValueToNumber(baseRow?.grundloen);
   if (typeof baseGrundloen !== 'number' || !Number.isFinite(baseGrundloen) || baseGrundloen <= 0) return null;
 
-  const buildPackageValue = (iso: ISODateString, grundloen: number, row: typeof baseRow): number => computePackageValue({
+  const buildPackageValueDecimal = (iso: ISODateString, grundloen: number, row: typeof baseRow): number => computePackageValueDecimal({
     grundloen,
-    feriePct: parsePercentToDecimal(row?.feriepenge) || parsePercentToDecimal(args.af.feriePct),
+    feriePct: resolveManualFeriePctDecimal(row?.feriepenge, args.af.feriePct),
     shSoPct: parsePercentToDecimal(row?.shSoSats),
     fritvalgPct: parsePercentToDecimal(row?.fritvalg),
     storeBededagPct: getStoreBededagPct(iso, args.af.loenPaaHelligdage),
     pensionPct: parsePercentToDecimal(row?.agPension),
   });
 
-  const referenceValue = buildPackageValue(args.referenceIso, baseGrundloen, baseRow);
+  const referenceValue = buildPackageValueDecimal(args.referenceIso, baseGrundloen, baseRow);
   if (!Number.isFinite(referenceValue) || referenceValue <= 0) return null;
 
   const dates = new Set<ISODateString>([args.referenceIso]);
@@ -191,13 +201,13 @@ const buildManualEntries = (args: Readonly<{
       .filter((entry) => entry.iso <= iso)
       .sort((a, b) => b.iso.localeCompare(a.iso))[0]?.row ?? baseRow;
     const grundloen = amountValueToNumber(matchingRow?.grundloen) ?? 0;
-    const packageValue = buildPackageValue(iso, grundloen, matchingRow);
+    const packageValue = buildPackageValueDecimal(iso, grundloen, matchingRow);
     const tidsenhed = getTidsenhedsvaerdier(index, sortedDates, args.eoTil, args.shDageSet, args.ferieDageSet);
 
     return {
       effectiveFrom: iso,
       grundloen,
-      feriePct: parsePercentToDecimal(matchingRow?.feriepenge) || parsePercentToDecimal(args.af.feriePct),
+      feriePct: resolveManualFeriePctDecimal(matchingRow?.feriepenge, args.af.feriePct),
       shSoPct: parsePercentToDecimal(matchingRow?.shSoSats),
       fritvalgPct: parsePercentToDecimal(matchingRow?.fritvalg),
       storeBededagPct: getStoreBededagPct(iso, args.af.loenPaaHelligdage),
@@ -223,18 +233,26 @@ const buildStatistikEntries = (args: Readonly<{
   const modelLabel = (args.af.loenudviklingStatistikModel ?? '').trim();
   if (modelLabel === '') return null;
 
+  // Intentional: debug viser basis-/reguleringsdatoen som første entry,
+  // også når den ligger før EO-periodens første data-start.
+  // Arbejdsdage og måneder afgrænses stadig til EO-perioden via getTidsenhedsvaerdier.
   const dates = new Set<ISODateString>([args.referenceIso]);
   const valuesByIso = new Map<ISODateString, number>();
 
   if (isAslStatistikModel(modelLabel)) {
     const startYear = Number(args.referenceIso.slice(0, 4));
     const endYear = Number(args.eoTil.slice(0, 4));
+    let firstAvailableValue: number | null = null;
     for (let year = startYear; year <= endYear; year += 1) {
       const value = aarsloenMax[year as keyof typeof aarsloenMax];
       if (typeof value !== 'number') continue;
+      if (firstAvailableValue === null) firstAvailableValue = value;
       const iso = `${year}-01-01` as ISODateString;
       if (iso >= args.referenceIso && iso <= args.eoTil) dates.add(iso);
       valuesByIso.set(iso, value);
+    }
+    if (firstAvailableValue !== null && !valuesByIso.has(args.referenceIso)) {
+      valuesByIso.set(args.referenceIso, firstAvailableValue);
     }
   } else {
     const modelId = resolveStatistikModelId(modelLabel);
@@ -288,6 +306,7 @@ const buildStatistikEntries = (args: Readonly<{
 
 const buildKrlEntries = (args: Readonly<{
   af: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
+  eoFra: ISODateString;
   eoTil: ISODateString;
   referenceIso: ISODateString;
   shDageSet: ReadonlySet<ISODateString>;
@@ -316,6 +335,10 @@ const buildKrlEntries = (args: Readonly<{
   const referenceValue = resolveValueAt(args.referenceIso);
   if (referenceValue === null || !Number.isFinite(referenceValue) || referenceValue <= 0) return null;
 
+  // Intentional parity med statistik-path og PDF-motor:
+  // KRL-entries starter ved reference-/reguleringsdatoen, ikke eoFra.
+  // Debug viser dermed basisindekset på reguleringsdatoen, mens tidsenhederne
+  // fortsat afgrænses til EO-perioden via getTidsenhedsvaerdier.
   const dates = new Set<ISODateString>([args.referenceIso]);
   for (const entry of valuesByIso) {
     if (entry.iso >= args.referenceIso && entry.iso <= args.eoTil) dates.add(entry.iso);
@@ -330,6 +353,8 @@ const buildKrlEntries = (args: Readonly<{
       feriePct: 0,
       shSoPct: 0,
       fritvalgPct: 0,
+      // Bevidst parity med eoPdfLoenudvikling: Statistik/KRL modellerer kun indeksserien.
+      // Store Bededag indgår ikke som særskilt breakpoint i disse strategier.
       storeBededagPct: 0,
       pensionPct: 0,
       packageValue: value,
@@ -349,7 +374,7 @@ const buildKrlEntries = (args: Readonly<{
  * - Alle procentsatser angives som decimaler (fx `0.173` for 17,3 %).
  * - Funktionen anvender derfor procentsatserne direkte uden division med 100.
  */
-const computePackageValue = (args: {
+const computePackageValueDecimal = (args: {
   grundloen: number;
   feriePct: number;
   shSoPct: number;
@@ -374,7 +399,7 @@ const buildEntryForDate = (args: {
   const pensionPct = args.sats.agPension ?? 0;
   const storeBededagPct = getStoreBededagPct(args.iso, args.loenPaaHelligdage);
 
-  const packageValue = computePackageValue({
+  const packageValue = computePackageValueDecimal({
     grundloen: args.sats.grundloen,
     feriePct: args.feriePct,
     shSoPct,
@@ -519,7 +544,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
 
   const ansaettelser: AnsaettelsesforholdIndeks[] = [];
 
-  for (const af of input.eoValues.loenindkomstAnsaettelsesforhold ?? []) {
+  for (const af of resolveLoenudviklingKilde(input.eoValues)) {
     const feriePct = parsePercentToDecimal(af.feriePct);
     const loenPaaHelligdage = af.loenPaaHelligdage;
     const grundlag = af.loenudviklingBeregningsgrundlag;
@@ -532,6 +557,9 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
       skadesdato: skadesdatoIso,
     });
     if (!referenceIso) continue;
+    // Ved Beregningsperiode kan hvert ansættelsesforhold have egen særlig fra-dato.
+    // Ved Angivet månedsløn/dagsløn er resolveLoenudviklingKilde ét syntetisk EO-element,
+    // så den fælles angivetLoenOpreguleresFraDato gælder for hele løkken.
     const referenceLabel =
       input.eoValues.beregnesUdFra === 'Beregningsperiode'
         ? (saerligFraDatoRegulering ? 'Manuelt angivet' : 'Skadedato')
@@ -581,7 +609,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         offentligSelection.loenType === 'maanedsLoen'
           ? referenceResult.maanedsLoen
           : referenceResult.timeLoen;
-      const referenceValue = computePackageValue({
+      const referenceValue = computePackageValueDecimal({
         grundloen: referenceBase + offentligLoenEkstraGrundloen,
         feriePct,
         shSoPct: resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.shSoSats, af.shSoPct),
@@ -655,7 +683,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
 
         const grundloen =
           (offentligSelection.loenType === 'maanedsLoen' ? sats.maanedsLoen : sats.timeLoen) + offentligLoenEkstraGrundloen;
-        const packageValue = computePackageValue({
+        const packageValue = computePackageValueDecimal({
           grundloen,
           feriePct,
           shSoPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.shSoSats, af.shSoPct),
@@ -814,7 +842,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         : grundlag === 'Statistik'
           ? buildStatistikEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
           : grundlag === 'KRL satstabel'
-            ? buildKrlEntries({ af, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
+            ? buildKrlEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
             : null;
     if (!built || built.entries.length === 0) continue;
 

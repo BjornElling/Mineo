@@ -1857,12 +1857,14 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     !hasPeriodeErrorSeverity &&
     !beregningsperiodeOverlap.firstOverlapMessage;
 
-  rows.push({
-    id: 'taf.beregningsgrundlag.beregningsperiode',
-    label: 'Periode til beregning af før-løn',
-    displayValue: beregningsperiodeDisplay.displayValue,
-    status: beregningsperiodeDisplay.status,
-  });
+  if (isBeregningsperiode) {
+    rows.push({
+      id: 'taf.beregningsgrundlag.beregningsperiode',
+      label: 'Periode til beregning af før-løn',
+      displayValue: beregningsperiodeDisplay.displayValue,
+      status: beregningsperiodeDisplay.status,
+    });
+  }
 
   const indkomstIBeregningsperiodenDisplay = (() => {
     if (!isBeregningsperiode) return null;
@@ -1939,7 +1941,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     hasEmployerIncomeWithoutFuldLoenUnderFerie &&
     hasSixPlusMaanederBeregningsperiode;
 
-  if (!shouldIncludeFravaer || !harFravaer) {
+  if (shouldIncludeFravaer && !harFravaer) {
     rows.push({
       id: 'taf.beregningsgrundlag.ferie.empty',
       label: 'Ferieperiode',
@@ -1950,7 +1952,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
         : undefined,
       summaryDisplay: shouldShowLongBeregningsperiodeNoFerieWarning ? 'messageOnly' : undefined,
     });
-  } else {
+  } else if (shouldIncludeFravaer) {
     fravaerPerioder.forEach((periode) => {
       const hasFra = isNonEmptyString(periode.fra);
       const hasTil = isNonEmptyString(periode.til);
@@ -2036,22 +2038,24 @@ export const buildEODebugTafBeregningsgrundlagRows = (
   }
 
   const uspecificeredeFerie = values.uspecificeredeFerieFridage;
-  rows.push({
-    id: 'taf.beregningsgrundlag.uspecificeredeFerieFridage',
-    label: 'Uspecificerede ferie-/feriefridage',
-    displayValue:
-      isBeregningsperiode && typeof uspecificeredeFerie === 'number'
-        ? `${formatDaNumber(uspecificeredeFerie)} dage`
-        : '-',
-    status: 'ok',
-  });
+  if (isBeregningsperiode) {
+    rows.push({
+      id: 'taf.beregningsgrundlag.uspecificeredeFerieFridage',
+      label: 'Uspecificerede ferie-/feriefridage',
+      displayValue:
+        typeof uspecificeredeFerie === 'number'
+          ? `${formatDaNumber(uspecificeredeFerie)} dage`
+          : '-',
+      status: 'ok',
+    });
 
-  rows.push({
-    id: 'taf.beregningsgrundlag.oevrigtFravaerUdenLoen',
-    label: 'Øvrigt fravær uden løn',
-    displayValue: isBeregningsperiode ? values.oevrigtFravaerUdenLoen : '-',
-    status: 'ok',
-  });
+    rows.push({
+      id: 'taf.beregningsgrundlag.oevrigtFravaerUdenLoen',
+      label: 'Øvrigt fravær uden løn',
+      displayValue: values.oevrigtFravaerUdenLoen,
+      status: 'ok',
+    });
+  }
 
   const oevrigeFravaersdage = values.oevrigeFravaersdage;
   const oevrigtFravaerAktivt = isBeregningsperiode && values.oevrigtFravaerUdenLoen === 'Ja';
@@ -2066,12 +2070,14 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     return { displayValue: `${formatDaNumber(oevrigeFravaersdage)} dage`, status: 'ok' as DebugStatus };
   })();
 
-  rows.push({
-    id: 'taf.beregningsgrundlag.oevrigeFravaersdage',
-    label: 'Antal fraværsdage',
-    displayValue: oevrigeFravaersdageDisplay.displayValue,
-    status: oevrigeFravaersdageDisplay.status,
-  });
+  if (isBeregningsperiode) {
+    rows.push({
+      id: 'taf.beregningsgrundlag.oevrigeFravaersdage',
+      label: 'Antal fraværsdage',
+      displayValue: oevrigeFravaersdageDisplay.displayValue,
+      status: oevrigeFravaersdageDisplay.status,
+    });
+  }
 
   const oevrigeFravaerBeskrivelse = values.oevrigeFravaersdageBeskrivelse?.trim() ?? '';
   const oevrigeFravaerBeskrivelseDisplay = (() => {
@@ -2082,12 +2088,14 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     return { displayValue: oevrigeFravaerBeskrivelse, status: 'ok' as DebugStatus };
   })();
 
-  rows.push({
-    id: 'taf.beregningsgrundlag.oevrigeFravaersdageBeskrivelse',
-    label: 'Beskrivelse',
-    displayValue: oevrigeFravaerBeskrivelseDisplay.displayValue,
-    status: oevrigeFravaerBeskrivelseDisplay.status,
-  });
+  if (isBeregningsperiode) {
+    rows.push({
+      id: 'taf.beregningsgrundlag.oevrigeFravaersdageBeskrivelse',
+      label: 'Beskrivelse',
+      displayValue: oevrigeFravaerBeskrivelseDisplay.displayValue,
+      status: oevrigeFravaerBeskrivelseDisplay.status,
+    });
+  }
 
   const arbejdsdageRow = (() => {
     if (!isBeregningsperiode) {
@@ -2214,7 +2222,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     return { label, displayValue, status: 'ok' as DebugStatus };
   })();
 
-  if (tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER) {
+  if (isBeregningsperiode && tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER) {
     rows.push({
       id: 'taf.beregningsgrundlag.maaneder',
       label: maanederRow.label,

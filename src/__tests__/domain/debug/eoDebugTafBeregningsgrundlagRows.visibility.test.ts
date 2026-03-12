@@ -12,6 +12,24 @@ const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): Erstatningsopg
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 
 describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
+  it('hides beregningsperiode-only rows when beregnes ud fra is not Beregningsperiode', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Angivet årsløn',
+    });
+
+    const rows = buildEODebugTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
+    const ids = new Set(rows.map((row) => row.id));
+
+    expect(ids.has('taf.beregningsgrundlag.beregningsperiode')).toBe(false);
+    expect(ids.has('taf.beregningsgrundlag.ferie.empty')).toBe(false);
+    expect(Array.from(ids).some((id) => id.startsWith('taf.beregningsgrundlag.ferie.'))).toBe(false);
+    expect(ids.has('taf.beregningsgrundlag.uspecificeredeFerieFridage')).toBe(false);
+    expect(ids.has('taf.beregningsgrundlag.oevrigtFravaerUdenLoen')).toBe(false);
+    expect(ids.has('taf.beregningsgrundlag.oevrigeFravaersdage')).toBe(false);
+    expect(ids.has('taf.beregningsgrundlag.oevrigeFravaersdageBeskrivelse')).toBe(false);
+    expect(ids.has('taf.beregningsgrundlag.maaneder')).toBe(false);
+  });
+
   it('hides Arbejdsdage when TAF beregnes som is Måneder', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',

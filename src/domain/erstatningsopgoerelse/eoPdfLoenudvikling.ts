@@ -1,6 +1,6 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { danishToISO, dateToISO, isoToDanish, isISODateString, subtractOneDay } from '../../types/branded';
+import { dateToISO, isoToDanish, isISODateString, subtractOneDay } from '../../types/branded';
 import { aarsloenMax } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
@@ -43,6 +43,7 @@ import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from
 import {
   convertAnciennitetSats,
   isAslStatistikModel,
+  parseDanishToIso,
   resolvePctPointFromSatsOrInput,
   resolveOffentligLoenEkstraGrundloen,
   roundToTwoDecimals,
@@ -157,12 +158,18 @@ type KonsolideretLoenudvikling =
     tafRanges: readonly IsoRange[];
   }>;
 
-const parseDanishToIso = (danishDate: string | undefined): ISODateString | undefined => {
-  if (!danishDate || danishDate.trim() === '') return undefined;
-  return danishToISO(danishDate);
-};
-
 const parseManualPercentToPct = (value: string | undefined): number => parsePercentToDecimal(value) * 100;
+
+/**
+ * Manuel ferieprocent i PDF-sporet returneres i pct-point-konvention
+ * (fx `15` for 15 %), fordi computePackageValuePct arbejder i pct-point.
+ */
+const resolveManualFeriePctPct = (rowFeriepenge: string | undefined, defaultFeriePct: number | undefined): number => {
+  if (typeof rowFeriepenge === 'string' && rowFeriepenge.trim() !== '') {
+    return parsePercentToDecimal(rowFeriepenge) * 100;
+  }
+  return defaultFeriePct ?? 0;
+};
 
 const resolveStatistikModelIdFromLabel = (label: string): StatistiskLoenudviklingId | undefined =>
   resolveStatistikModelId(label);
@@ -174,7 +181,7 @@ const resolveStatistikModelIdFromLabel = (label: string): StatistiskLoenudviklin
  * - Alle procentsatser angives som hele pct-tal (fx `17.3` for 17,3 %).
  * - Funktionen dividerer derfor procentsatser med 100 internt.
  */
-const computePackageValue = (args: {
+const computePackageValuePct = (args: {
   grundloen: number;
   feriePct: number;
   shSoPct: number;
@@ -688,6 +695,9 @@ const buildLoenudviklingFromKRL = (
   if (!tabel || tabel.vaerdier.length === 0) {
     throw new Error('Loenudvikling kan ikke beregnes: KRL satstabel mangler');
   }
+  // Bevidst parity med eoDebugRegulationCore:
+  // KRL strategien modellerer kun selve KRL-indeksserien.
+  // Store Bededag indgår derfor ikke som separat breakpoint i denne strategi.
 
   // Byg sorteret liste af periodestarter med ISO-datoer
   const periodStarts = tabel.vaerdier
@@ -852,7 +862,7 @@ const buildLoenudviklingFromOverenskomst = (
       ? offentligEffectiveBase.result.maanedsLoen
       : offentligEffectiveBase.result.timeLoen) + offentligLoenEkstraGrundloen;
     const baseLoen = ensurePositiveFiniteNumber(baseLoenRaw, 'Loenudvikling kan ikke beregnes: ugyldig basisgrundloen');
-    const basePackage = computePackageValue({
+    const basePackage = computePackageValuePct({
       grundloen: baseLoen,
       feriePct,
       shSoPct: resolvePctPointFromSatsOrInput(baseTillaegsSatser?.shSoSats, konsolideret.shSoPct),
@@ -943,7 +953,7 @@ const buildLoenudviklingFromOverenskomst = (
         const grundloenForSegment = anciennitetAktiv && anciennitetForIndex
           ? grundloenForSegmentBase + anciennitetForIndex.supplementValue
           : grundloenForSegmentBase;
-        const packageValue = computePackageValue({
+        const packageValue = computePackageValuePct({
           grundloen: grundloenForSegment,
           feriePct,
           shSoPct: resolvePctPointFromSatsOrInput(segmentTillaegsSatser?.shSoSats, konsolideret.shSoPct),
@@ -1002,7 +1012,7 @@ const buildLoenudviklingFromOverenskomst = (
   }
   ensurePositiveFiniteNumber(privateEffectiveBase.sats.grundloen, 'Loenudvikling kan ikke beregnes: ugyldig basisgrundloen');
 
-  const basePackage = computePackageValue({
+  const basePackage = computePackageValuePct({
     grundloen: privateEffectiveBase.sats.grundloen,
     feriePct,
     shSoPct: typeof privateEffectiveBase.sats.shSoSats === 'number' ? privateEffectiveBase.sats.shSoSats * 100 : 0,
@@ -1014,6 +1024,9 @@ const buildLoenudviklingFromOverenskomst = (
     throw new Error('Loenudvikling kan ikke beregnes: basispakke er ugyldig');
   }
 
+  // Bevidst adskilt fra eoDebugRegulationCore:
+  // denne motor bygger relative deltaPct-segmenter til TAF-beregning,
+  // mens debug-motoren bygger absolutte indeks-entries til visning.
   const segments: LoenreguleringsSegment[] = [];
   for (const range of konsolideret.tafRanges) {
     const fraDa = isoToDanish(range.fra);
@@ -1069,7 +1082,7 @@ const buildLoenudviklingFromOverenskomst = (
         throw new Error('Loenudvikling kan ikke beregnes: mangler sats for segment');
       }
       ensurePositiveFiniteNumber(effectiveSats.grundloen, 'Loenudvikling kan ikke beregnes: ugyldig segmentgrundloen');
-      const packageValue = computePackageValue({
+      const packageValue = computePackageValuePct({
         grundloen: (() => {
           const anciennitetAktiv = Boolean(anciennitetForIndex && segment.fra >= anciennitetForIndex.activeFromIso);
           return anciennitetAktiv && anciennitetForIndex
@@ -1109,10 +1122,9 @@ const buildLoenudviklingFromManual = (
     throw new Error('Loenudvikling kan ikke beregnes: manuelle reguleringsraekker mangler');
   }
 
-  const feriePct = konsolideret.feriePct;
-  const basePackage = computePackageValue({
+  const basePackage = computePackageValuePct({
     grundloen: amountValueToNumber(baseRow.grundloen) ?? 0,
-    feriePct,
+    feriePct: resolveManualFeriePctPct(baseRow.feriepenge, konsolideret.feriePct),
     shSoPct: parseManualPercentToPct(baseRow.shSoSats),
     fritvalgPct: parseManualPercentToPct(baseRow.fritvalg),
     pensionPct: parseManualPercentToPct(baseRow.agPension),
@@ -1129,12 +1141,12 @@ const buildLoenudviklingFromManual = (
       if (!startIso) return null;
       const components = {
         grundloen: amountValueToNumber(row.grundloen) ?? 0,
-        feriePct,
+        feriePct: resolveManualFeriePctPct(row.feriepenge, konsolideret.feriePct),
         shSoPct: parseManualPercentToPct(row.shSoSats),
         fritvalgPct: parseManualPercentToPct(row.fritvalg),
         pensionPct: parseManualPercentToPct(row.agPension),
       };
-      const packageValue = computePackageValue({
+      const packageValue = computePackageValuePct({
         ...components,
         storeBededagPct: 0,
       });
@@ -1167,12 +1179,12 @@ const buildLoenudviklingFromManual = (
       const segmentRow = findLatestByDateInSortedList(datedRows, segment.fra, 'manual:segment');
       const packageValueBase = segmentRow ? segmentRow.packageValue : basePackage;
       const packageValue = applyStoreBededagRegulering && segment.fra >= STORE_BEDEDAG_START
-        ? computePackageValue({
+        ? computePackageValuePct({
             ...(segmentRow
               ? segmentRow.components
               : {
                   grundloen: amountValueToNumber(baseRow.grundloen) ?? 0,
-                  feriePct,
+                  feriePct: resolveManualFeriePctPct(baseRow.feriepenge, konsolideret.feriePct),
                   shSoPct: parseManualPercentToPct(baseRow.shSoSats),
                   fritvalgPct: parseManualPercentToPct(baseRow.fritvalg),
                   pensionPct: parseManualPercentToPct(baseRow.agPension),

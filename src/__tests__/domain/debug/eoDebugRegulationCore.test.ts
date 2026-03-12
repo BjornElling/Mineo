@@ -8,6 +8,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schem
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import type { ISODateString } from '../../../types/branded';
+import { aarsloenMax, getYearBoundsForYearlyRate } from '../../../data/regulationRates';
 
 // Test helper: Cast string literal til ISODateString (kun til tests)
 const iso = (date: string): ISODateString => date as ISODateString;
@@ -188,6 +189,112 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     input.eoValues.vedroererPeriodeTil = '' as any;
     const result = buildRegulationTimeline(input);
     expect(result.ansaettelser).toHaveLength(0);
+  });
+
+  it('bygger regulering fra eoAngivetLoenLoenudvikling ved angivet månedsløn og KRL satstabel', () => {
+    const input = makeInput();
+    input.eoValues.beregnesUdFra = 'Angivet månedsløn';
+    input.eoValues.vedroererPeriodeFra = '2019-04-01';
+    input.eoValues.vedroererPeriodeTil = '2026-02-26';
+    input.eoValues.angivetMaanedsloenOpreguleresFraDato = iso('2020-01-01') as any;
+    input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'KRL satstabel';
+    input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingKRLSatstabel = 'KTO (kommuner)';
+    input.eoValues.eoAngivetLoenLoenudvikling.loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.ALMINDELIG;
+    input.stamdataValues.skadesdato = iso('2023-05-24');
+
+    const result = buildRegulationTimeline(input);
+
+    expect(result.ansaettelser).toHaveLength(1);
+    expect(result.ansaettelser[0]?.ansaettelsesforholdId).toBe('eo-angivet-loen');
+    expect(result.ansaettelser[0]?.navn).toBe('EO-oplysninger');
+    expect(result.ansaettelser[0]?.kildeLabel).toBe('KRL satstabel');
+    expect(result.ansaettelser[0]?.kildeVaerdi).toContain('KTO');
+    expect(result.ansaettelser[0]?.entries.length).toBeGreaterThan(0);
+  });
+
+  it('bygger regulering fra eoAngivetLoenLoenudvikling ved angivet månedsløn og statistikgrundlag', () => {
+    const input = makeInput();
+    input.eoValues.beregnesUdFra = 'Angivet månedsløn';
+    input.eoValues.vedroererPeriodeFra = '2019-04-01';
+    input.eoValues.vedroererPeriodeTil = '2026-02-26';
+    input.eoValues.angivetMaanedsloenOpreguleresFraDato = iso('2020-01-01') as any;
+    input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Statistik';
+    input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel = 'ASL-årslønsmaksimum';
+    input.eoValues.eoAngivetLoenLoenudvikling.loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.ALMINDELIG;
+    input.stamdataValues.skadesdato = iso('2023-05-24');
+
+    const result = buildRegulationTimeline(input);
+
+    expect(result.ansaettelser).toHaveLength(1);
+    expect(result.ansaettelser[0]?.ansaettelsesforholdId).toBe('eo-angivet-loen');
+    expect(result.ansaettelser[0]?.navn).toBe('EO-oplysninger');
+    expect(result.ansaettelser[0]?.kildeLabel).toBe('Statistikmodel');
+    expect(result.ansaettelser[0]?.kildeVaerdi).toBe('ASL-årslønsmaksimum');
+    expect(result.ansaettelser[0]?.entries.length).toBeGreaterThan(0);
+  });
+
+  it('falder tilbage til første tilgængelige ASL-år når referenceåret mangler i ASL-data', () => {
+    const aslBounds = getYearBoundsForYearlyRate(aarsloenMax);
+    expect(aslBounds).not.toBeNull();
+    expect(aslBounds?.minYear).toBeGreaterThan(2000);
+
+    const input = makeInput();
+    input.eoValues.beregnesUdFra = 'Angivet månedsløn';
+    input.eoValues.vedroererPeriodeFra = '2000-01-01';
+    input.eoValues.vedroererPeriodeTil = '2006-12-31';
+    input.eoValues.angivetMaanedsloenOpreguleresFraDato = iso('2000-06-01') as any;
+    input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Statistik';
+    input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel = 'ASL-årslønsmaksimum';
+    input.eoValues.eoAngivetLoenLoenudvikling.loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.ALMINDELIG;
+
+    const result = buildRegulationTimeline(input);
+
+    expect(result.ansaettelser).toHaveLength(1);
+    expect(result.ansaettelser[0]?.entries.length).toBeGreaterThan(0);
+    expect(result.ansaettelser[0]?.referenceValue).toBeGreaterThan(0);
+  });
+
+  it('bevarer 0 pct ferie i manuelle reguleringsrækker uden fallback til ansættelsens feriePct', () => {
+    const input = makeInput();
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingManuelNavn = 'Manuel test';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].feriePct = 12.5;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingManuelTableData = [
+      {
+        id: 'row-1',
+        dato: '',
+        grundloen: { value: 100 } as any,
+        feriepenge: '0',
+        shSoSats: '0',
+        fritvalg: '0',
+        agPension: '0',
+      } as any,
+    ];
+
+    const result = buildRegulationTimeline(input);
+    const firstEntry = result.ansaettelser[0]?.entries[0];
+
+    expect(firstEntry?.feriePct).toBe(0);
+    expect(firstEntry?.packageValue).toBeCloseTo(100.45, 6);
+  });
+
+  it('bygger regulering fra eoAngivetLoenLoenudvikling ved angivet dagsløn og statistikgrundlag', () => {
+    const input = makeInput();
+    input.eoValues.beregnesUdFra = 'Angivet dagsløn';
+    input.eoValues.vedroererPeriodeFra = '2019-04-01';
+    input.eoValues.vedroererPeriodeTil = '2026-02-26';
+    input.eoValues.angivetDagsloenOpreguleresFraDato = iso('2020-01-01') as any;
+    input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Statistik';
+    input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel = 'ASL-årslønsmaksimum';
+    input.eoValues.eoAngivetLoenLoenudvikling.loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.ALMINDELIG;
+
+    const result = buildRegulationTimeline(input);
+
+    expect(result.ansaettelser).toHaveLength(1);
+    expect(result.ansaettelser[0]?.ansaettelsesforholdId).toBe('eo-angivet-loen');
+    expect(result.ansaettelser[0]?.kildeLabel).toBe('Statistikmodel');
+    expect(result.ansaettelser[0]?.entries.length).toBeGreaterThan(0);
   });
 
   it('returnerer tom ansaettelser ved manglende skadesdato', () => {

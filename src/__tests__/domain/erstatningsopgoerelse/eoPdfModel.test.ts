@@ -338,7 +338,7 @@ describe('eoPdfModel', () => {
     );
   });
 
-  it('fejler fail-closed ved ugyldig decimal-brøk for forlig i PDF-model', () => {
+  it('anvender decimal-brøk for forlig i PDF-model', () => {
     const baseValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(48705.13),
@@ -360,9 +360,14 @@ describe('eoPdfModel', () => {
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2021-06-01') });
 
-    buildPdfModel(stamdata, baseValues, { dagsDatoISO: iso('2026-02-10') });
-    expect(() => buildPdfModel(stamdata, withForlig, { dagsDatoISO: iso('2026-02-10') }))
-      .toThrow('Brøk skal angives som fx "1/3"');
+    const baseModel = buildPdfModel(stamdata, baseValues, { dagsDatoISO: iso('2026-02-10') });
+    const forligModel = buildPdfModel(stamdata, withForlig, { dagsDatoISO: iso('2026-02-10') });
+
+    expect(forligModel.forlig.erIndgaaet).toBe(true);
+    expect(forligModel.forlig.label).toBe('1,25/3,5');
+    expect(forligModel.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre).toBe(
+      roundByMethod(baseModel.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre * (1.25 / 3.5), 0, 'halfAwayFromZero')
+    );
   });
 
   it('anvender forligsgrad på øvrige krav i PDF-model', () => {
@@ -1185,6 +1190,84 @@ describe('eoPdfModel', () => {
     expect(segments.length).toBe(1);
     expect(segments[0].fra).toBe('2024-01-01');
     expect(segments[0].til).toBe('2024-01-31');
+  });
+
+  it('anvender manuel ferieprocent fra dateret række i PDF-reguleringen', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
+      maanedsloenenUdgoer: asAmountValue(30000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-12-01'), til: iso('2025-12-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-12-2024',
+          tilDato: '01-12-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+          feriePct: 12.5,
+          loenudviklingManuelNavn: 'Manuel test',
+          loenudviklingManuelTableData: [
+            { id: 'm1', dato: '', grundloen: asAmountValue(30000), feriepenge: '12,5', shSoSats: '0', fritvalg: '0', agPension: '10' },
+            { id: 'm2', dato: '01-01-2025', grundloen: asAmountValue(31000), feriepenge: '15,0', shSoSats: '0', fritvalg: '0', agPension: '10' },
+          ],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-12-01') });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
+    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
+
+    const changedSegment = segments.find((segment) => segment.fra === '2025-01-01');
+    expect(changedSegment).toBeDefined();
+    expect(changedSegment?.deltaPct).toBeCloseTo(5.63, 2);
+  });
+
+  it('falder tilbage til ansættelsens ferieprocent når manuel række har tom feriepenge', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
+      maanedsloenenUdgoer: asAmountValue(30000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-12-01'), til: iso('2025-12-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-12-2024',
+          tilDato: '01-12-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+          feriePct: 15,
+          loenudviklingManuelNavn: 'Manuel test',
+          loenudviklingManuelTableData: [
+            { id: 'm1', dato: '', grundloen: asAmountValue(30000), feriepenge: '', shSoSats: '0', fritvalg: '0', agPension: '10' },
+            { id: 'm2', dato: '01-01-2025', grundloen: asAmountValue(31000), feriepenge: '', shSoSats: '0', fritvalg: '0', agPension: '10' },
+          ],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-12-01') });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
+    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
+
+    const changedSegment = segments.find((segment) => segment.fra === '2025-01-01');
+    expect(changedSegment).toBeDefined();
+    expect(changedSegment?.deltaPct).toBeCloseTo(3.33, 2);
   });
 
   it('beregner loenudvikling pr. ansaettelsesforhold ved inkonsistente reguleringer i beregningsperiode', () => {
