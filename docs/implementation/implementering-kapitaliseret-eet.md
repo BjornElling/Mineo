@@ -3,6 +3,7 @@
 Denne fil beskriver implementeringen af kapitaliseret erhvervsevnetab (ASL kapitalisering og EAL-beregning).
 
 For løbende erhvervsevnetab, se: `docs/implementation/implementering-loebende-eet.md`.
+For differencekrav, se: `docs/implementation/implementering-differencekrav.md`.
 
 ---
 > Arbejdsdokument for planlægning og implementering af Erhvervsevnetab-siden.
@@ -14,11 +15,13 @@ For løbende erhvervsevnetab, se: `docs/implementation/implementering-loebende-e
 
 Erhvervsevnetab-siden er under aktiv implementering. Fane 2 (Løbende ydelser) er implementeret.
 
-Sektion 8 (løbende ydelser) er dokumenteret og verificeret mod konkrete beregningseksempler, herunder fuldt layout for fane 2. Følgende sektioner mangler stadig dokumentation:
-- Sektion 9: Kapitalisering (fane 3)
-- Sektion 10: Differencekrav (fane 5)
+Sektion 8 (løbende ydelser) er dokumenteret og verificeret mod konkrete beregningseksempler, herunder fuldt layout for fane 2.
+
+Sektion 9 og 10 (kapitalisering, fane 3) er nu dokumenteret samlet, inkl. beregningslogik, layout og issue-katalog. Der er i første implementering ingen særskilte warnings på fane 3.
 
 Fane 2 er fuldt specificeret — ingen uafklarede punkter.
+
+Differencekrav (fane 5) er udskilt til en selvstændig fil: `docs/implementation/implementering-differencekrav.md`.
 
 ---
 
@@ -130,9 +133,16 @@ Den dato hvorfra kapitaliseringen beregnes. Angives manuelt af brugeren. Kapital
 **bkg** er forkortelse for **bekendtgørelse**. **vejl** er forkortelse for **vejledning**. Modsat de øvrige forkortelser i projektet bruges disse i brugerfladen (UI-tekst). Forkortelsen **vej** forekommer også som synonym for vejledning i eksterne kilder — programmet skal kunne håndtere denne variant ved indlæsning, men den kanoniske forkortelse i kode og UI er altid **vejl**.
 
 ### Folkepensionsalder / FP
-Alle skadelidte har en folkepensionsalder, der afhænger af deres fødselsdato.
+Alle skadelidte har en folkepensionsalder/ophørsalder, som i denne løsning alene bestemmes via opslag i den kapitaliseringsbekendtgørelse, der gælder for skadelidte på kontroltidspunktet.
 
-I kapitaliseringskontekst må folkepensionsalderen ikke udledes fra den centrale `folkepensionsalder.ts`, fordi den ikke er autoritativ for historiske kapitaliseringer tilbage i tid.
+Hvis skadelidtes fødselsdato ligger før den laveste `foedselsdatoFra` i bekendtgørelsens tabelvalg for det relevante skadesinterval, skal folkepensionsalderen ikke behandles som ukendt. I stedet anvendes følgende normative fortolkning, som anses for den korrekte historiske afspejling af folkepensionsalderen/ophørsalderen for disse ældre fødselskohorter:
+
+- født i første halvår 1955: `66,5 år`
+- født i andet halvår 1954: `66 år`
+- født i første halvår 1954: `65,5 år`
+- født i 1953 eller tidligere: `65 år`
+
+Denne regel er en del af den autoritative opslagslogik for folkepensionsalder. Den er ikke en midlertidig fallback og må ikke behandles som sådan i kode, dokumentation eller dataudtræk.
 
 Ved kapitalisering skal folkepensionsalder/tabelvalg i stedet bestemmes ud fra den konkrete kapitaliseringsbekendtgørelse/vejledning, der er valgt for sagen.
 
@@ -169,6 +179,7 @@ Alle rækker i fane 1 er hover-rows.
 | Felt | Type | Grænser | Noter |
 |---|---|---|---|
 | Fødselsdato | Datofelt | Min: 1900-01-01, max: dags dato | Identisk med fødselsdagsfelt på varige mén-siden. Skriver til `stamdata`-storen. |
+| Køn | Dropdown | — | Vises kun hvis skadesdato er før 2015-03-01. Valg: `Mand`, `Kvinde`. Bruges kun ved opslag i historiske, kønsopdelte kapitaliseringstabeller. |
 | Beregningsdato | Datofelt | Min: skadesdato (fallback: 2005-01-01), max: DATE_EET_MAX | Den dato løbende ydelser opgøres frem til, EET efter EAL opgøres per, og differencekrav opgøres per. |
 
 #### ContentBox: ASL
@@ -189,7 +200,7 @@ Loose grid table med automatisk tilføjelse af nye rækker i takt med indtastnin
 | 2 | Virkningsdato | Datofelt | Min: skadesdato (fallback: 2005-01-01), max: min(DATE_EET_MAX, beregningsdato hvis udfyldt) | Den dato de løbende ydelser begynder. Kan ligge før eller efter afgørelsesdatoen. |
 | 3 | EET % | Procentfelt | Min: 0 %, max: 100 %. Kun heltal. Skal være deleligt med 5 — ellers fejlmeddelelse. 0 % behandles som tomt felt. Hvis der findes tidligere afgørelser med udfyldt kap. %, skal EET % være større end summen af disse kap. %-værdier. | |
 | 4 | Afgørelsestype | Dropdown | — | Valgmuligheder: `Midlertidig`, `Delvist endelig`, `Endelig`. Ved `Delvist endelig`: kolonne 3 (EET %) angiver den samlede procent; kolonne 6 (Kapitaliseringsprocent) angiver den endelige andel der kapitaliseres. Den midlertidige andel er implicit forskellen. |
-| 5 | Kapitaliseringsdato | Datofelt | Min: afgørelsesdato (fallback: 2005-01-01), max: min(DATE_EET_MAX, beregningsdato hvis udfyldt) | Redigerbar. Viser fejlmeddelelse hvis udfyldt og afgørelsestype er `Midlertidig`. |
+| 5 | Kapitaliseringsdato | Datofelt | Min: afgørelsesdato (fallback: 2005-01-01), max: min(DATE_EET_MAX, beregningsdato hvis udfyldt) | Redigerbar. Viser fejlmeddelelse hvis udfyldt og afgørelsestype er `Midlertidig` eller ikke er valgt. |
 | 6 | Kapitaliseringsprocent | Procentfelt | Se nedenfor | Redigerbar. Kun heltal deleligt med 5 — ellers fejlmeddelelse. Se valideringsregler nedenfor. |
 | 7 | Evt. tidl. kap.dato, hvis genoptaget | Datofelt | Min: skadesdato (fallback: 2005-01-01), max: dagen før afgørelsesdato | Udfyldes kun ved genoptagne afgørelser. Indeholder kapitaliseringsdatoen fra den ophævede afgørelse. Bruges som opslagsgrundlag for bekendtgørelsesvalg i stedet for den aktuelle kapitaliseringsdato. |
 
@@ -207,7 +218,7 @@ Rækker med samme eller senere afgørelsesdato indgår ikke i denne max-kontrol.
 
 | Afgørelsestype | Betingelse | Fejlregel |
 |---|---|---|
-| `Midlertidig` | Feltet er udfyldt | Fejl: kapitalisering ikke mulig ved midlertidig afgørelse |
+| `Midlertidig` / ikke valgt | Feltet er udfyldt | Fejl: kapitalisering ikke mulig ved midlertidig eller ikke-valgt afgørelse |
 | `Endelig` | EET % udfyldt og < 50 %, og samlet kapitaliseringsprocent (aktuel + tidligere kapitaliseringsprocenter) ≠ EET % | Fejl: tvungen fuld kapitalisering ved endeligt EET under 50 % |
 | `Endelig` | EET % udfyldt og ≥ 50 %, og kapitaliseringsprocent > 50 % | Fejl: kapitalisering kan højst udgøre 50 % |
 | `Endelig` | Kapitaliseringsprocent > EET % | Fejl: kapitalisering kan ikke overstige EET % |
@@ -216,6 +227,9 @@ Rækker med samme eller senere afgørelsesdato indgår ikke i denne max-kontrol.
 | `Delvist endelig` | Kapitaliseringsprocent > min(EET % − 5, 50 %) | Fejl: kapitaliseret andel overstiger tilladt maksimum (der skal restere mindst 5 % som midlertidig, og kapitalisering kan højst udgøre 50 %) |
 | `Delvist endelig` | Kapitaliseringsprocent > EET % | Fejl: kapitalisering kan ikke overstige EET % |
 | `Endelig` / `Delvist endelig` | Kapitaliseringsdato < afgørelsesdato | Fejl: kapitaliseringsdato kan ikke være før afgørelsesdato |
+| `Endelig` | Skadelidte er `≤ 2 år` fra folkepensionsalderen på kontroltidspunktet, og kapitaliseringsdato ≠ afgørelsesdato | Fejl: ved < 2 år til folkepension sker kapitalisering fra afgørelsesdagen |
+| `Endelig` / `Delvist endelig` | Kapitaliseringsprocent er udfyldt, men kapitaliseringsdato er tom | Fejl: der er indtastet kapitaliseringsprocent men ikke -dato |
+| `Endelig` / `Delvist endelig` | Kapitaliseringsdato er udfyldt, men kapitaliseringsprocent er tom | Fejl: der er indtastet kapitaliseringsdato men ikke -procent |
 
 **Opslagslogik for kapitaliseringsdato — bekendtgørelsesvalg:**
 
@@ -223,7 +237,7 @@ For hver afgørelsesrække gælder følgende prioriterede logik ved valg af beke
 
 1. Hvis kolonne 7 (tidligere kap.dato) er udfyldt → opslag på denne dato
 2. Ellers hvis kolonne 5 (kapitaliseringsdato) er udfyldt → opslag på denne dato
-3. Ellers → opslag på kolonne 1 (afgørelsesdato) som fallback
+3. Ellers → ingen kapitalisering kan beregnes; rækken giver en blokerende fejl på kapitaliseringsfanen
 
 #### ContentBox: EAL
 
@@ -291,7 +305,6 @@ Kapitaliseringsberegninger kræver tre typer statiske data, som alle ligger i `s
 |---|---|---|
 | `kapitalisering/kapitaliseringsbekendtgørelser.ts` | Matrix: skadesdato × kapitaliseringsdato → bekendtgørelsesnummer + `eetKapitaliseringsDatoMaxFraBekendtgoerelser` | Manuelt, årligt |
 | `kapitaliseringsTabeller/[nr]-[år].ts` | Tabeller (alder → faktor) + særfaktor for < 2 år til folkepension | Via hjælper, årligt |
-| `folkepensionsalder.ts` | Central reference for folkepensionsalderintervaller | Sjældent — kun ved lovændring |
 
 ### Bekendtgørelsesoversigt (`kapitalisering/kapitaliseringsbekendtgørelser.ts`)
 
@@ -348,11 +361,9 @@ I tabellerne er alder altid et helt antal år. Når den beregnede alder ikke er 
 
 Alder opgøres i **hele opnåede år og måneder** — dage medregnes ikke. En skadelidt der er 37 år, 9 måneder og 3 dage behandles som 37 år og 9 måneder.
 
-### Folkepensionsalder (`folkepensionsalder.ts`)
+### Folkepensionsalder
 
-Manuelt vedligeholdt fil med central reference for folkepensionsalderintervaller.
-
-Vigtigt: Filen er ikke autoritativ for historisk kapitalisering og må derfor ikke bruges til at fastsætte tabelvalg/folkepensionsalder ved opslag i kapitaliseringsbekendtgørelser.
+Der findes ingen separat central folkepensionsalder-fil for EET-kapitalisering. Folkepensionsalder/ophørsalder fastsættes udelukkende via tabelvalg-data i den relevante kapitaliseringsbekendtgørelse samt den normative før-minimum-fødselsdato-regel beskrevet i sektion 3, når kilden starter sine fødselsintervaller senere end de ældste berørte fødselskohorter.
 
 ### PDF-hjælperen
 
@@ -364,7 +375,13 @@ Kører lokalt af udvikler én gang om året. Læser PDF-filen fra en lokal mappe
 
 ### Kapitaliseringsfaktor — beregningsregler
 
-Der gælder tre tilfælde afhængigt af skadelidtes alder på afgørelsestidspunktet, opgjort i år og måneder:
+Der gælder tre tilfælde afhængigt af skadelidtes alder på **kapitaliseringstidspunktet**, opgjort i år og måneder.
+
+**Kapitaliseringstidspunktet** betyder:
+- normalt: kapitaliseringsdatoen
+- ved genoptagelse: den tidligere kapitaliseringsdato (kolonne 7)
+
+Undtagelse: Den særskilte kontrol af om skadelidte er `≤ 2 år` fra folkepensionsalderen foretages ikke på kapitaliseringstidspunktet, men efter den særlige regel i afsnittet "Kapitalisering ved ≤ 2 år til folkepensionsalderen (FP)" nedenfor.
 
 **Tilfælde 1: Alder ligger inden for tabellens aldersinterval**
 Faktoren beregnes som en vægtet sum af de to nærmeste hele år. Faktoren falder altid med stigende alder (kapitaliseringsfaktoren udtrykker antal år tilbage til folkepensionsalderen):
@@ -405,7 +422,7 @@ Kapitaliseringsbekendtgørelsesoversigten vedligeholdes centralt i `src/data/kap
 
 Opslag sker på **skadesdato** og **fødselsdato** i den konkrete kapitaliseringsbekendtgørelse.
 
-Der må ikke bruges værdier fra den centrale `folkepensionsalder.ts` til at fastsætte folkepensionsalderen i dette opslag.
+Der må ikke bruges nogen separat fallback-kilde til at fastsætte folkepensionsalderen i dette opslag. Hvis fødselsdatoen ligger før den laveste `foedselsdatoFra` i det relevante skadesinterval, anvendes i stedet den normative kohorteregel for `66,5 / 66 / 65,5 / 65 år`.
 
 Folkepensionsalderen, der anvendes i kapitaliseringen, er den som fremgår af den valgte kapitaliseringsbekendtgørelse/vejledning for det relevante fødselsdatoesnit.
 
@@ -432,15 +449,25 @@ Eksempel på struktur (fra Vejl. 10029/2024 — illustrativ):
 
 Fødselsdato og folkepensionsalder kan begge fremgå i tabelvalg-data i bekendtgørelsesfilen, men den deterministiske opslagsnøgle er fødselsdato-grænserne i den valgte bekendtgørelse.
 
-### Kapitalisering ved < 2 år til folkepensionsalderen (FP)
+### Kapitalisering ved ≤ 2 år til folkepensionsalderen (FP)
 
-Hvis skadelidte på **afgørelsesdatoen** for endeligt EET er 2 år eller mindre fra sin folkepensionsalder, tilsidesættes alle tabeller. Der bruges i stedet den særlige kapitaliseringsfaktor fra den bekendtgørelse der gælder på **afgørelsesdatoen** — ikke kapitaliseringsdatoen. Dette er en undtagelse fra den normale opslagslogik, hvor kapitaliseringsdatoen bruges. Faktoren er ét fast tal og er uafhængig af alder.
+Hvis skadelidte er ≤ 2 år fra sin folkepensionsalder på det relevante **kontroltidspunkt**, tilsidesættes den ordinære tabelopslag og interpolationsberegning. Der bruges i stedet den særlige kapitaliseringsfaktor fra den bekendtgørelse der gælder på dette kontroltidspunkt. Faktoren er ét fast tal og er uafhængig af alder.
 
-Vurderingen af om sagen er "< 2 år til FP" skal tage udgangspunkt i folkepensionsalderen fra den valgte bekendtgørelses tabelvalg for skadelidtes fødselsdato (ikke fra central `folkepensionsalder.ts`).
+**Kontroltidspunktet** er:
+- normalt: afgørelsesdatoen
+- ved genoptagelse: den oprindelige kapitaliseringsdato (kolonne 7)
+
+Det er altså ikke altid den aktuelle afgørelsesdato der bruges ved genoptagelse. Ved genoptagelse låses vurderingen til den oprindelige kapitaliseringsafgørelse.
+
+Den fulde beregningssekvens for dette tilfælde er beskrevet i sektion 9 (trin 0). Vurderingen foretages på baggrund af folkepensionsalderen i den bekendtgørelse der er gældende på kontroltidspunktet for skadelidtes fødselsdato.
 
 ### Kapitaliseringsdato
 
-Angives manuelt af brugeren. Standardantagelse er afgørelsesdatoen, men i praksis er det oftest den 1. i næstkommende måned efter afgørelsesdatoen. Kapitaliseringsdatoen fastsættes på samme måde uanset hvilken beregningsregel der anvendes — reglen om kapitalisering ved < 2 år til FP påvirker udelukkende hvilken bekendtgørelse der bruges til at hente faktoren.
+Angives manuelt af brugeren. Standardantagelse er afgørelsesdatoen, men i praksis er det oftest den 1. i næstkommende måned efter afgørelsesdatoen.
+
+Undtagelser:
+- ved kapitalisering under `≤ 2 år` til folkepension skal kapitaliseringsdatoen være lig afgørelsesdatoen
+- ved genoptagelse fra 1. juli 2024 eller senere skal kapitaliseringsdatoen være lig afgørelsesdatoen
 
 ---
 
@@ -655,5 +682,292 @@ Download-row på fane 4:
 
 - Beregningsdato i "Beregning"-boksen: format `d. MMMM YYYY` (fx "27. februar 2026").
 - Alle øvrige datoer: format `DD-MM-YYYY`.
+
+---
+
+## 9. Beregningslogik — Kapitaliseret EET (fane 3)
+
+Kapitaliseringen omsætter en løbende ydelse — helt eller delvist — til et éngangsbeløb.
+
+### Overordnet princip
+
+Et antal procentpoint (kapitaliseringsprocenten, angivet af brugeren på fane 1) udgår som løbende ydelse og danner grundlag for et kapitaliseret beløb. Beregningssekvensen er:
+
+1. **Forhåndsvurdering** — afgør om særfaktor (≤ 2 år til folkepension) skal bruges, og find i så fald den gældende bekendtgørelse på det relevante **kontroltidspunkt**.
+2. Hvis særfaktor ikke gælder: find den gældende bekendtgørelse på **kapitaliseringsdatoen** (eller tidligere kap.dato ved genoptagelse).
+3. Beregn grundydelse for de kapitaliserede procentpoint.
+4. Regulér grundydelsen til årsydelse på kapitaliseringstidspunktet.
+5. Beregn kapitaliseringsfaktoren ud fra skadelidtes alder.
+6. Kapitalbeløbet = årsydelse × kapitaliseringsfaktor.
+
+Trin 3–4 genbruger 1-til-1 systematikken fra løbende ydelser (`eetLoebendeYdelserCalculation.ts`). Der må ingen afvigelser være for disse trin — hverken i formler, afrunding, niveauskift (2003/2024) eller regulering.
+
+### Trin 0 — Forhåndsvurdering: ≤ 2 år til folkepension?
+
+Inden den ordinære kapitaliseringssekvens vurderes om skadelidte er ≤ 2 år fra sin folkepensionsalder på det relevante **kontroltidspunkt**.
+
+**Kontroltidspunktet** er:
+- normalt: afgørelsesdatoen
+- ved genoptagelse: den tidligere kapitaliseringsdato (kolonne 7)
+
+**Fremgangsmåde:**
+
+1. Find den kapitaliseringsbekendtgørelse der er gældende på **kontroltidspunktet** (opslag på skadesdato + kontroltidspunkt).
+2. Slå folkepensionsalderen op i denne bekendtgørelses tabelvalg-data for skadelidtes fødselsdato. Hvis fødselsdatoen ligger før den laveste `foedselsdatoFra` i det relevante skadesinterval, anvendes den normative kohorteregel for ældre fødselsdatoer (`66,5 / 66 / 65,5 / 65 år`).
+3. Beregn skadelidtes alder på kontroltidspunktet (i hele opnåede år og måneder).
+4. Hvis `folkepensionsalder − alder ≤ 2 år`: anvend særfaktoren fra bekendtgørelsen gældende på kontroltidspunktet direkte. Gå ikke videre til ordinær tabelopslag. Kapitaliseringsfaktoren er særfaktoren.
+5. Hvis `folkepensionsalder − alder > 2 år`: fortsæt til ordinær kapitaliseringssekvens (trin 1–5 nedenfor).
+
+Vurderingen foretages i hele opnåede år og måneder — dage ignoreres (svarende til aldersopgørelse andetsteds i systemet).
+
+Særfaktoren varierer fra bekendtgørelse til bekendtgørelse og læses fra den relevante bekendtgørelsesfil.
+
+### Trin 1 — Valg af kapitaliseringsbekendtgørelse (ordinær sekvens)
+
+Gælder kun hvis trin 0 ikke udløste særfaktor.
+
+Opslagsgrundlaget bestemmes efter prioriteret logik (svarende til sektion 4, opslagslogik for kapitaliseringsdato):
+
+1. Hvis kolonne 7 (tidligere kap.dato) er udfyldt → opslag på denne dato (**genoptagelse**)
+2. Ellers hvis kolonne 5 (kapitaliseringsdato) er udfyldt → opslag på denne dato
+3. Ellers → beregningen kan ikke gennemføres; rækken giver blokerende fejl
+
+Selve opslagslogikken (skadesdato × kapitaliseringsdato → bekendtgørelse) er beskrevet i sektion 6.
+
+**Ved genoptagelse** gælder: beregningen foretages som om kapitaliseringen skete på den tidligere kapitaliseringsdato i alle henseender — herunder kontrol af `≤ 2 år til FP`, bekendtgørelsesvalg, tabelvalg, folkepensionsalder og kapitaliseringsfaktor — med den ene undtagelse at reguleringen i trin 3 sker frem til årstallet for den **nye** kapitaliseringsdato (kolonne 5), ikke den gamle.
+
+### Trin 2 — Valg af tabel og folkepensionsalder
+
+Inden for den fundne bekendtgørelse opslås tabel og folkepensionsalder på baggrund af skadesdato og fødselsdato, bortset fra de tidligste historiske bekendtgørelser hvor kilden ikke arbejder med fødselsdato-intervaller. For disse bruges den særskilte historiske tabelvalgskontrakt uden fødselsdato, hvor ophørsalder og tabel er knyttet direkte til skadesdato-intervallet. Hvis fødselsdatoen i et fødselsdato-baseret tabelvalg ligger før den laveste `foedselsdatoFra` for det relevante skadesinterval, anvendes den normative kohorteregel for ældre fødselsdatoer (`66,5 / 66 / 65,5 / 65 år`) som korrekt historisk folkepensionsalder. Opslagslogikken er beskrevet i sektion 6.
+
+### Trin 3 — Grundydelse og regulering til kapitaliseringstidspunktet
+
+Grundydelse beregnes for de kapitaliserede procentpoint. Beregningen genbruger 1-til-1 systematikken fra løbende ydelser:
+
+```
+grundydelse = round2(grundløn × kap_pct × erstatningsniveau × amFaktor)
+```
+
+- `grundløn`, `erstatningsniveau`, `amFaktor` og niveauskiftet 2003/2024: identisk med løbende ydelser
+- `kap_pct`: de procentpoint der kapitaliseres (brugerens input, ikke den samlede EET %)
+
+Reguleringen sker til årsydelsen på kapitaliseringstidspunktet. Reguleringssatsen følger **kalenderåret** for kapitaliseringsdatoen — datoen inden for året er uden betydning. Ved genoptagelse bruges kalenderåret for den **nye** kapitaliseringsdato.
+
+Reguleringen på ASL-sporet er et **rent tabelopslag**, ikke en kædeberegning:
+- hvis kapitaliseringsåret er 2026, bruges satsen for 2026 direkte
+- hvis kapitaliseringsåret er 2025, bruges satsen for 2025 direkte
+- osv.
+
+Dette gælder både løbende ydelser og kapitalisering.
+
+Kun EET efter EAL bruger kædeopregning på tværs af flere år. EAL-regulering og ASL-regulering må aldrig dele helper eller beregningssti.
+
+Årsydelsen afrundes til 2 decimaler — der sker **ikke** oprunding til nærmeste tal deleligt med 12 (`ceil12`), som ellers gælder for løbende ydelser:
+
+```
+årsydelse = round2(reguleringsgrundlag × reguleringsfaktor)
+```
+
+Hvor:
+
+- `reguleringsfaktor` er den direkte tabelfaktor for kapitaliseringsåret efter ASL-reglerne
+- `reguleringsgrundlag` er:
+  - `grundydelse`, hvis skaden er fra 2024-07-01 eller senere
+  - `grundydelse × (1 + reguleringsprocentErhvervsevnetabFoer2024[2024])`, hvis skaden er før 2024-07-01 og kapitaliseringsåret er 2024 eller senere
+  - ellers `grundydelse`
+
+Kapitalisering genbruger dermed samme ASL-reguleringssystematik som løbende ydelser:
+- 2005-2023: direkte opslag i `reguleringsprocentErhvervsevnetab[år]`
+- 2024 for skader før 2024-07-01: niveauskift via `reguleringsprocentErhvervsevnetabFoer2024[2024]`, hvorefter selve årsfaktoren for 2024 er `1`
+- 2024 og frem på nyt niveau: direkte opslag i `reguleringsprocentErhvervsevnetabFra2024[år]`
+
+### Trin 4 — Kapitaliseringsfaktor
+
+Faktoren beregnes ud fra skadelidtes alder i **år og måneder** på det effektive kapitaliseringstidspunkt (kolonne 7 hvis udfyldt, ellers kolonne 5), efter de tre tilfælde i sektion 6.
+
+- Tilfælde 1: alder inden for tabellens interval → interpolation på måneder
+- Tilfælde 2: alder over tabellens interval, men > 2 år fra FP → lineær interpolation mod særfaktor
+- Tilfælde 3: særfaktor direkte (se trin 0)
+
+```
+kapFaktor = round3(tabelopslag_med_interpolation)
+```
+
+Indtil videre lægges beregningsteknisk til grund, at alle kapitaliseringsbekendtgørelser anvender månedsafhængige mellemfaktorer. Feltet "Faktor måneds-afhængig?" vises derfor som `Ja` for alle afgørelser.
+
+### Trin 5 — Kapitalbeløbet
+
+```
+kapitalbeløb = ceil0(årsydelse × kapFaktor)
+```
+
+Afrunding: kapitalbeløbet afrundes **op** til nærmeste hele krone (0 decimaler).
+
+Afrundingshelpers fra `src/utils/rounding.ts`:
+- `round2`: `roundByMethod(value, 2, 'halfAwayFromZero')`
+- `round3`: `roundByMethod(value, 3, 'halfAwayFromZero')`
+- `ceil0`: `roundByMethod(value, 0, 'ceil')`
+
+Hver afgørelse giver sit eget kapitalbeløb. Der beregnes ingen samlet sum på tværs af afgørelser.
+
+---
+
+## 10. Layout — Fane 3 (Kapitalisering)
+
+Fanen følger den fælles beregningsfanestruktur beskrevet i sektion 4. Systematik for fejl/advarsler, hoverrows og download følger fane 2 (løbende ydelser) med de afvigelser der er angivet nedenfor.
+
+### ContentBox: Fejl og advarsler
+
+Vises øverst — kun når der er mindst én fejl eller advarsel. Følger præcis samme systematik som fane 2:
+
+- Fejl vises med `ErrorOutline` (rød), advarsler med `WarningAmber` (orange).
+- Hver linje er en hoverrow med navigation til det relevante inputfelt.
+- Fejl der stammer fra inputfelter på fane 1 og har betydning for kapitalisering, gengives her.
+- Der er pt. ingen særskilte advarsler på denne fane.
+- Blokerende fejl skjuler "Beregning"-ContentBox og alle afgørelses-ContentBoxe — kun fejl/advarsler-boksen vises.
+
+#### Teknisk systematik for fejl/advarsler på fane 3
+
+Fane 3 følger samme grundmønster som fane 4:
+
+1. Alle linjer repræsenteres som `EetKapitaliseringIssue` med:
+   - `id`
+   - `severity` (`error` eller `warning`)
+   - `message`
+2. Domænelogik i `computeEetKapitaliseringCalculation` opretter beregningsrelaterede issues.
+3. Feltvalideringsfejl fra inputs hentes separat via `useFormFieldErrors(...)` og konverteres til `field-*` issues.
+4. De to kilder merges i `EetKapitaliseringTab` og deduplikeres på meddelelsestekst.
+5. Mindst én `error` skjuler "Beregning" og alle afgørelsesbokse og blokerer download.
+6. Navigation fra issue-linje til inputsektion styres centralt i `resolveIssueNavigation(issueId)`.
+
+#### Issue-katalog (fane 3)
+
+Domænefejl:
+
+Fejltekster på fane 3 skal så vidt muligt være årsagsspecifikke og pege på den konkrete manglende oplysning eller den konkrete manglende faktor, ikke kun på et generisk tabelopslag.
+
+| Issue ID | Severity | Triggerbetingelse |
+|---|---|---|
+| `aarsloen-missing` | error | ASL-årsløn mangler. |
+| `fodselsdato-missing` | error | Fødselsdato mangler i stamdata. |
+| `skadesdato-missing` | error | Skadesdato mangler i stamdata. |
+| `kapitaliseringsbekendtgoerelse-missing-control-date` | error | Der findes ingen gyldig kapitaliseringsbekendtgørelse for kontroltidspunktet i trin 0. |
+| `kapitaliseringsbekendtgoerelse-missing-effective-date` | error | Der findes ingen gyldig kapitaliseringsbekendtgørelse for den effektive kapitaliseringsdato i trin 1. |
+| `kapitaliseringstabel-missing` | error | Bekendtgørelsen indeholder intet matchende tabelvalg for kombinationen af skadesdato og fødselsdato. |
+| `kapitaliseringsalder-under-minimum` | error | Skadelidtes alder på kapitaliseringstidspunktet ligger under tabellens laveste alder. |
+| `kapitaliseringsfaktor-unresolved` | error | Kapitaliseringsfaktor kan ikke beregnes ud fra tabeldata og særfaktor. |
+| `reguleringssats-missing` | error | Nødvendig reguleringssats mangler for et eller flere år. |
+| `kap-dato-without-kap-pct` | error | Mindst én kapitaliserbar afgørelse har kapitaliseringsdato men ikke kapitaliseringsprocent. |
+| `kap-pct-without-kap-dato` | error | Mindst én kapitaliserbar afgørelse har kapitaliseringsprocent men ikke kapitaliseringsdato. |
+
+Derudover gengives som `field-*` issues med `error` severity:
+
+- alle feltfejl fra contentboxen **Arbejdsskadesikringsloven** på fane 1
+- `field-fodselsdato` fra stamdata
+- `field-skadesdato` fra stamdata
+
+Hvis en historisk, kønsopdelt tabel skal anvendes, og `Køn` ikke er valgt, må kapitaliseringsfaktoren ikke udledes ved gæt. Beregningen skal i stedet fejle synligt via `kapitaliseringstabel-missing`.
+
+Følgende gengives **ikke** på fane 3:
+
+- feltfejl fra contentboxen **Erstatningsansvarsloven**
+- feltfejl på **Beregningsdato**, da feltet ikke indgår i kapitaliseringsberegningen
+
+Der er ingen særskilte warnings på fane 3 i første implementering.
+
+### ContentBox: Beregning
+
+| Række | Label (venstre) | Indhold (højre) |
+|---|---|---|
+| 1 | Download specifikation | Download-ikon (disabled, tooltip: "Download bliver tilgængelig, når PDF-specifikationen er defineret") |
+
+Ingen beregningsdato-række på denne fane — kapitaliseringsdatoen fremgår per afgørelse.
+
+### Ingen kapitaliserede afgørelser
+
+Hvis der ingen afgørelser er med kapitaliseringsprocent > 0, vises en TextHoverRow med teksten "Der er ingen kapitaliserede afgørelser i sagen." — svarende til mønsteret på fane 2 ("Afgørelsen giver ingen løbende ydelse i den valgte periode."). "Beregning"-ContentBox vises stadig.
+
+### ContentBox per kapitaliseret afgørelse
+
+Én ContentBox per afgørelse der har en kapitaliseringsprocent > 0. Afgørelser uden kapitalisering vises ikke på denne fane.
+
+**Overskrift:** `Afgørelse [d. MMMM YYYY]` — afgørelsesdatoen i langt format, svarende til systematikken på fane 2.
+
+Rækkerne inden for hver ContentBox vises i følgende rækkefølge:
+
+#### Blok 1 — Grundydelse og regulering
+
+| Række | Label (venstre) | Indhold (højre) |
+|---|---|---|
+| 1 | Kapitaliseringsdato | `DD-MM-YYYY` |
+| 2 | Kapitalisering | `[kap.pct] %` |
+| 3 | Grundydelse ([kap.pct] %): `Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag) = [grundløn] kr. × [kap.pct] % × 83 % × 92 % =` | `[grundydelse] kr.` (2 decimaler) |
+| 4 | Reguleringsprocent ([kapitaliseringsdato lang]) | `[regulering] %` |
+| 5 | Årlig ydelse på kapitaliseringstidspunkt | `[reguleret_ydelse] kr.` (2 decimaler) |
+
+Række 3's formeltekst varierer efter erstatningsniveau (83 %/80 %) og AM-bidragsstatus, svarende til systematikken i den udvidede specifikation på fane 2.
+
+Reguleringsprocenten (række 4) vises med op til 4 decimaler med trimmede efterfølgende nuller, svarende til systematikken på fane 4.
+
+#### Blok 2 — Kapitaliseringsbekendtgørelse og tabel
+
+| Række | Label (venstre) | Indhold (højre) |
+|---|---|---|
+| 1 | Kapitaliseringsbekendtgørelse | `[bkg/vejl.] [nr]/[år], tabel [bogstav]` — fx "Vejl. 10029/2024, tabel B" |
+| 2 | Folkepensionsalder | `[alder] år` |
+| 3 | Særfaktor (< 2 år til folkepension) | `[særfaktor]` — fx "1,245" |
+
+#### Blok 3 — Kapitaliseringsfaktor
+
+| Række | Label (venstre) | Indhold (højre) |
+|---|---|---|
+| 1 | Alder ved kapitalisering | `[år] år, [måneder] måneder` |
+| 2 | Faktor måneds-afhængig? | `Ja` |
+| 3 | Kapitaliseret pga. < 2 år til folkepension? | `Ja` / `Nej` |
+| 4 | Kapitaliseringsfaktor | `[faktor]` — fx "5,312" |
+
+#### Blok 4 — Kapitalbeløb
+
+| Række | Label (venstre) | Indhold (højre) |
+|---|---|---|
+| 1 | Beregnet kapitalbeløb | `[beløb] kr.` (0 decimaler, fed) |
+
+### Eksempler (verificerede)
+
+**Afgørelse 1. juli 2025**
+
+| Felt | Værdi |
+|---|---|
+| Kapitaliseringsdato | 01-10-2025 |
+| Kapitalisering | 25 % |
+| Grundydelse (25 %): Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag) = 432.000 kr. × 25 % × 83 % × 92 % = | 82.468,80 kr. |
+| Reguleringsprocent (1. oktober 2025) | 3,90 % |
+| Årlig ydelse på kapitaliseringstidspunkt | 85.685,08 kr. |
+| Kapitaliseringsbekendtgørelse | Vejl. 10029/2024, tabel B |
+| Folkepensionsalder | 68 år |
+| Særfaktor (< 2 år til folkepension) | 1,245 |
+| Alder ved kapitalisering | 59 år, 8 måneder |
+| Faktor måneds-afhængig? | Ja |
+| Kapitaliseret pga. < 2 år til folkepension? | Nej |
+| Kapitaliseringsfaktor | 5,312 |
+| **Beregnet kapitalbeløb** | **455.160 kr.** |
+
+**Afgørelse 1. november 2025**
+
+| Felt | Værdi |
+|---|---|
+| Kapitaliseringsdato | 15-07-2026 |
+| Kapitalisering | 25 % |
+| Grundydelse (25 %): Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag) = 432.000 kr. × 25 % × 83 % × 92 % = | 82.468,80 kr. |
+| Reguleringsprocent (15. juli 2026) | 8,90 % |
+| Årlig ydelse på kapitaliseringstidspunkt | 89.808,52 kr. |
+| Kapitaliseringsbekendtgørelse | Vejl. 10056/2025, tabel C |
+| Folkepensionsalder | 68 år |
+| Særfaktor (< 2 år til folkepension) | 1,246 |
+| Alder ved kapitalisering | 60 år, 6 måneder |
+| Faktor måneds-afhængig? | Ja |
+| Kapitaliseret pga. < 2 år til folkepension? | Nej |
+| Kapitaliseringsfaktor | 4,798 |
+| **Beregnet kapitalbeløb** | **430.902 kr.** |
 
 ---

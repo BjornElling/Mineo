@@ -130,7 +130,7 @@ Den dato hvorfra kapitaliseringen beregnes. Angives manuelt af brugeren. Kapital
 **bkg** er forkortelse for **bekendtgørelse**. **vejl** er forkortelse for **vejledning**. Modsat de øvrige forkortelser i projektet bruges disse i brugerfladen (UI-tekst). Forkortelsen **vej** forekommer også som synonym for vejledning i eksterne kilder — programmet skal kunne håndtere denne variant ved indlæsning, men den kanoniske forkortelse i kode og UI er altid **vejl**.
 
 ### Folkepensionsalder / FP
-Alle skadelidte har en folkepensionsalder, der afhænger af deres fødselsdato. Denne mapping gemmes i en særskilt fil i `src/data/`.
+Alle skadelidte har en folkepensionsalder/ophørsalder, som i denne løsning fastsættes via opslag i den kapitaliseringsbekendtgørelse, der gælder for skadelidte på afgørelsestidspunktet.
 
 Forkortelsen **FP** bruges i EET-konteksten om **folkepensionsalderen**. Bemærk at FP andre steder i programmet bruges om **feriepenge** — de to må ikke forveksles. FP i kode og kommentarer inden for EET-systemet betyder altid folkepensionsalder.
 
@@ -513,7 +513,7 @@ rest_eet_pct = eet_pct_foer_aktuel_kap − aktuel_kapitaliseringsprocent
 
 ### Ophørslogik — folkepensionsalder og tvungen kapitalisering
 
-**Folkepensionsalder (FP):** Slås op i `folkepensionsalder.ts` ud fra fødselsdato. FP-datoen er den dato skadelidte fylder folkepensionsalderen: `fødselsdato + FP-alder år`.
+**Folkepensionsalder (FP):** Slås op i den relevante kapitaliseringsbekendtgørelse ud fra skadesdato, afgørelsestidspunkt og fødselsdato. FP-datoen er den dato skadelidte fylder den ophørsalder/folkepensionsalder, som bekendtgørelsen knytter til den valgte tabel.
 
 **Tvungen kapitaliseringsdato:** `FP-dato − 2 år`. Den løbende ydelse ophører dagen **før** denne dato.
 

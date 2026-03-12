@@ -30,6 +30,7 @@ describe('EetAslAfgoerelserTable', () => {
     render(
       <EetAslAfgoerelserTable
         tableData={[createEmptyAslAfgoerelseRow()]}
+        skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         fodselsdato={toISODateString('1990-01-01')}
@@ -69,6 +70,7 @@ describe('EetAslAfgoerelserTable', () => {
             tidlKapDato: '01-01-2024',
           }),
         ]}
+        skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         fodselsdato={toISODateString('1990-01-01')}
@@ -88,6 +90,7 @@ describe('EetAslAfgoerelserTable', () => {
     render(
       <EetAslAfgoerelserTable
         tableData={[createEmptyAslAfgoerelseRow()]}
+        skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         fodselsdato={toISODateString('1990-01-01')}
@@ -127,6 +130,7 @@ describe('EetAslAfgoerelserTable', () => {
             kapDato: '10-01-2024',
           }),
         ]}
+        skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         fodselsdato={toISODateString('1990-01-01')}
@@ -161,6 +165,7 @@ describe('EetAslAfgoerelserTable', () => {
             afgoerelsesDato: '10-01-2024',
           }),
         ]}
+        skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         fodselsdato={toISODateString('1990-01-01')}
@@ -201,6 +206,7 @@ describe('EetAslAfgoerelserTable', () => {
             afgoerelseType: 'Endelig',
           }),
         ]}
+        skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         fodselsdato={toISODateString('1990-01-01')}
@@ -223,6 +229,7 @@ describe('EetAslAfgoerelserTable', () => {
             afgoerelsesDato: '30-06-2027',
           }),
         ]}
+        skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         fodselsdato={toISODateString('1990-01-01')}
@@ -242,6 +249,7 @@ describe('EetAslAfgoerelserTable', () => {
             kapDato: '30-06-2023',
           }),
         ]}
+        skadesdato={toISODateString('2024-08-01')}
         skadesdatoMin={toISODateString('2024-08-01')}
         beregningsdato={toISODateString('2025-12-31')}
         fodselsdato={toISODateString('1990-01-01')}
@@ -261,6 +269,7 @@ describe('EetAslAfgoerelserTable', () => {
             tidlKapDato: '01-01-2024',
           }),
         ]}
+        skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         fodselsdato={toISODateString('1990-01-01')}
@@ -281,6 +290,7 @@ describe('EetAslAfgoerelserTable', () => {
             tidlKapDato: '01-01-2024',
           }),
         ]}
+        skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         fodselsdato={toISODateString('1990-01-01')}
@@ -299,25 +309,79 @@ describe('EetAslAfgoerelserTable', () => {
           buildRow({
             id: 'r1',
             afgoerelseType: 'Delvist endelig',
-            afgoerelsesDato: '01-01-2028',
+            afgoerelsesDato: '01-01-2024',
             eetPct: '80',
             kapPct: '20',
           }),
           buildRow({
             id: 'r2',
             afgoerelseType: 'Endelig',
-            afgoerelsesDato: '01-06-2029',
+            afgoerelsesDato: '01-07-2025',
             eetPct: '80',
             kapPct: '40',
           }),
         ]}
+        skadesdato={toISODateString('2025-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
-        beregningsdato={toISODateString('2030-12-31')}
-        fodselsdato={toISODateString('1963-01-01')}
+        beregningsdato={toISODateString('2025-12-31')}
+        fodselsdato={toISODateString('1959-01-01')}
       />
     );
 
     expect(screen.getByText('Ved < 2 år til folkepension kapitaliseres hele EET')).toBeInTheDocument();
+  });
+
+  it('genberegner kap.dato- og kap.%-fejl når fodselsdato ændres', async () => {
+    const initialRows = [
+      buildRow({
+        id: 'r1',
+        afgoerelseType: 'Endelig',
+        afgoerelsesDato: '01-07-2025',
+        virkningsDato: '01-07-2025',
+        eetPct: '80',
+        kapDato: '01-10-2025',
+        kapPct: '40',
+      }),
+    ];
+
+    const { rerender } = render(
+      <EetAslAfgoerelserTable
+        tableData={initialRows}
+        skadesdato={toISODateString('2025-01-01')}
+        skadesdatoMin={toISODateString('2020-01-01')}
+        beregningsdato={toISODateString('2025-12-31')}
+        fodselsdato={toISODateString('1990-01-01')}
+      />
+    );
+
+    expect(screen.queryByText('Ved < 2 år til folkepension sker kapitalisering fra afgørelsesdagen')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ved < 2 år til folkepension kapitaliseres hele EET')).not.toBeInTheDocument();
+
+    rerender(
+      <EetAslAfgoerelserTable
+        tableData={initialRows}
+        skadesdato={toISODateString('2025-01-01')}
+        skadesdatoMin={toISODateString('2020-01-01')}
+        beregningsdato={toISODateString('2025-12-31')}
+        fodselsdato={toISODateString('1959-01-01')}
+      />
+    );
+
+    expect(screen.getByText('Ved < 2 år til folkepension sker kapitalisering fra afgørelsesdagen')).toBeInTheDocument();
+    expect(screen.getByText('Ved < 2 år til folkepension kapitaliseres hele EET')).toBeInTheDocument();
+
+    rerender(
+      <EetAslAfgoerelserTable
+        tableData={initialRows}
+        skadesdato={toISODateString('2025-01-01')}
+        skadesdatoMin={toISODateString('2020-01-01')}
+        beregningsdato={toISODateString('2025-12-31')}
+        fodselsdato={toISODateString('1990-01-01')}
+      />
+    );
+
+    expect(screen.queryByText('Ved < 2 år til folkepension sker kapitalisering fra afgørelsesdagen')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ved < 2 år til folkepension kapitaliseres hele EET')).not.toBeInTheDocument();
   });
 
   it('viser duplicate-fejl på nederste række når afgørelsesdato, virkningsdato og afgørelsestype er identiske', () => {
@@ -337,6 +401,7 @@ describe('EetAslAfgoerelserTable', () => {
             afgoerelseType: 'Endelig',
           }),
         ]}
+        skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2026-12-31')}
         fodselsdato={toISODateString('1990-01-01')}

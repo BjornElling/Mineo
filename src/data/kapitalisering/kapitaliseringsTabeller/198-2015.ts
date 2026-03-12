@@ -28,7 +28,29 @@ export const gyldigTil = toISODateString('2015-12-28');
 // Kun tabeller for erhvervsevnetab og forsørgertab er medtaget.
 // Tabeller for varigt mén og behandlingsudgifter er bevidst udeladt.
 
-export const historiskErhvervsevnetabTabelvalg = [] as const;
+const HISTORISK_ERHVERVSEVNETAB_TABELVALG_DATA = [
+  // skadesdatoFra     foedselsdatoFra     foedselsdatoTil     ophoersalderAarLabel     tabel
+  ['2007-07-01',     '1955-07-01',     null,     '67',     'A'],
+  ['2007-07-01',     '1955-01-01',     '1955-06-30',     '66.5',     'B'],
+  ['2007-07-01',     '1954-07-01',     '1954-12-31',     '66',     'C'],
+  ['2007-07-01',     '1954-01-01',     '1954-06-30',     '65.5',     'D'],
+  ['2007-07-01',     '1900-01-01',     '1953-12-31',     '65',     'E'],
+  ['2004-01-01',     '1955-07-01',     null,     '67',     'G'],
+  ['2004-01-01',     '1955-01-01',     '1955-06-30',     '66.5',     'H'],
+  ['2004-01-01',     '1954-07-01',     '1954-12-31',     '66',     'I'],
+  ['2004-01-01',     '1954-01-01',     '1954-06-30',     '65.5',     'J'],
+  ['2004-01-01',     '1900-01-01',     '1953-12-31',     '65',     'K'],
+] as const;
+
+export const historiskErhvervsevnetabTabelvalg = HISTORISK_ERHVERVSEVNETAB_TABELVALG_DATA.map(
+  ([skadesdatoFra, foedselsdatoFra, foedselsdatoTil, ophoersalderAarLabel, tabel]) => ({
+    skadesdatoFra: toISODateString(skadesdatoFra),
+    foedselsdatoFra: toISODateString(foedselsdatoFra),
+    foedselsdatoTil: foedselsdatoTil ? toISODateString(foedselsdatoTil) : null,
+    ophoersalderAarLabel,
+    tabel,
+  })
+);
 
 export const erhvervsevnetabTabelvalg = [] as const;
 

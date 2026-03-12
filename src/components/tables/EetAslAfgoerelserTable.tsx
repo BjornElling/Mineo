@@ -18,6 +18,7 @@ import { normalizeGridRows } from './gridModel';
 
 export type EetAslAfgoerelserTableProps = Readonly<{
   tableData: AslAfgoerelseRow[];
+  skadesdato: ISODateString | undefined;
   skadesdatoMin: ISODateString;
   beregningsdato: ISODateString | undefined;
   fodselsdato: ISODateString | undefined;
@@ -48,7 +49,7 @@ const fingerprintTableData = (rows: readonly AslAfgoerelseRow[]): string => {
 };
 
 const EetAslAfgoerelserTable = React.memo(
-  ({ tableData, skadesdatoMin, beregningsdato, fodselsdato, onTableDataChange }: EetAslAfgoerelserTableProps) => {
+  ({ tableData, skadesdato, skadesdatoMin, beregningsdato, fodselsdato, onTableDataChange }: EetAslAfgoerelserTableProps) => {
     const minIso = React.useCallback((a: ISODateString, b: ISODateString): ISODateString => {
       return a < b ? a : b;
     }, []);
@@ -157,14 +158,14 @@ const EetAslAfgoerelserTable = React.memo(
     );
 
     const validationMessageByCell = React.useMemo(() => {
-      const issues = collectEetAslAfgoerelseValidationIssues(internalTableData, fodselsdato);
+      const issues = collectEetAslAfgoerelseValidationIssues(internalTableData, skadesdato, fodselsdato);
       const map = new Map<string, string>();
       for (const issue of issues) {
         const key = `${issue.rowId}|${issue.field}`;
         if (!map.has(key)) map.set(key, issue.message);
       }
       return map;
-    }, [fodselsdato, internalTableData]);
+    }, [fodselsdato, internalTableData, skadesdato]);
 
     return (
       <StandardLooseTable

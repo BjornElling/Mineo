@@ -427,6 +427,70 @@ describe('computeEetLoebendeYdelser', () => {
     expect(computation.grundloen).toBe(339094);
     expect(afgoerelse.grundydelseFuld).toBe(roundByMethod(339094 * 0.4 * 0.8, 2, 'halfAwayFromZero'));
   });
+
+  it('opregulerer præ-2024-skade til 2024-niveau uden ekstra 2024-sats i periodefaktoren', () => {
+    const result = computeEetLoebendeYdelser({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: '2024-12-31',
+        aslAarsloen: asAmount(489000),
+        aslAfgoerelser: [
+          {
+            id: 'a1',
+            afgoerelsesDato: '01-01-2024',
+            virkningsDato: '01-01-2024',
+            eetPct: '40',
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Midlertidig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadesdato: '2019-04-01',
+      fodselsdato: '1980-01-01',
+    });
+
+    expect(result.issues.some((issue) => issue.severity === 'error')).toBe(false);
+    const periode = result.computation?.afgoerelser[0]?.perioder[0];
+    expect(periode?.satsAar).toBe(2024);
+    expect(periode?.reguleringPct).toBe(0);
+    expect(periode?.grundydelseAfrundet).toBe(168513.22);
+    expect(periode?.maanedligYdelse).toBe(14043);
+  });
+
+  it('fastsaetter tvungen kapitalisering ud fra bekendtgoerelsen paa afgoerelsestidspunktet', () => {
+    const result = computeEetLoebendeYdelser({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: '2021-12-31',
+        aslAarsloen: asAmount(401000),
+        aslAfgoerelser: [
+          {
+            id: 'a1',
+            afgoerelsesDato: '01-08-2021',
+            virkningsDato: '01-08-2021',
+            eetPct: '60',
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadesdato: '2019-04-01',
+      fodselsdato: '1955-07-01',
+    });
+
+    expect(result.computation).not.toBeNull();
+    const computation = result.computation;
+    if (!computation) throw new Error('expected computation');
+    const afgoerelse = computation.afgoerelser[0];
+    if (!afgoerelse) throw new Error('expected first decision');
+
+    expect(afgoerelse.ophoerAarsag).toBe('tvungen-kapitalisering');
+    expect(afgoerelse.ophoerDato).toBe('2020-06-30');
+  });
 });
 
 describe('toAfgoerelseTypeLabel', () => {

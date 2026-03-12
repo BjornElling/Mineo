@@ -30,7 +30,24 @@ export const gyldigTil = toISODateString('2024-12-31');
 
 export const historiskErhvervsevnetabTabelvalg = [] as const;
 
-export const erhvervsevnetabTabelvalg = [] as const;
+const ERHVERVSEVNETAB_TABELVALG_DATA = [
+  // skadesdatoFra     foedselsdatoFra     folkepensionsalderAar     tabel
+  ['2007-07-01',     '1967-01-01',     69,     'A'],
+  ['2007-07-01',     '1963-01-01',     68,     'B'],
+  ['2007-07-01',     '1955-07-01',     67,     'C'],
+  ['2004-01-01',     '1967-01-01',     69,     'E'],
+  ['2004-01-01',     '1963-01-01',     68,     'F'],
+  ['2004-01-01',     '1955-07-01',     67,     'G'],
+] as const;
+
+export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
+  ([skadesdatoFra, foedselsdatoFra, folkepensionsalderAar, tabel]) => ({
+    skadesdatoFra: toISODateString(skadesdatoFra),
+    foedselsdatoFra: toISODateString(foedselsdatoFra),
+    folkepensionsalderAar,
+    tabel,
+  })
+);
 
 export const erhvervsevnetabTabeller = 
 {

@@ -5,6 +5,8 @@ import {
   kapitaliseringsbekendtgoerelser,
   eetKapitaliseringsDatoMaxFraBekendtgoerelser,
 } from '../../data/kapitalisering/kapitaliseringsbekendtgørelser';
+import { dateToISO, parseISODate } from '../../types/branded';
+import { addDays } from '../../utils/dateUtils';
 
 const resolveIdForDatoer = (
   skadesdato: string,
@@ -32,8 +34,26 @@ const resolveIdForDatoer = (
     return undefined;
   }
 
-  const aar = kandidat.kapitaliseringsdatoFra.slice(0, 4);
-  const gyldigTil = `${aar}-12-31`;
+  const sortedKapitaliseringer = [...skadesinterval.kapitaliseringer].sort((a, b) =>
+    a.kapitaliseringsdatoFra.localeCompare(b.kapitaliseringsdatoFra)
+  );
+  const kandidatIndex = sortedKapitaliseringer.findIndex(
+    (entry) =>
+      entry.kapitaliseringsdatoFra === kandidat.kapitaliseringsdatoFra &&
+      entry.id === kandidat.id
+  );
+  if (kandidatIndex < 0) {
+    return undefined;
+  }
+
+  const nextEntry = sortedKapitaliseringer[kandidatIndex + 1];
+  const nextDate = nextEntry ? parseISODate(nextEntry.kapitaliseringsdatoFra) : null;
+  const gyldigTil = nextDate
+    ? dateToISO(addDays(nextDate, -1))
+    : `${kandidat.kapitaliseringsdatoFra.slice(0, 4)}-12-31`;
+  if (!gyldigTil) {
+    return undefined;
+  }
   return kapitaliseringsdato <= gyldigTil ? kandidat.id : undefined;
 };
 
@@ -50,7 +70,7 @@ const readLokalKapitaliseringsTabelMeta = (): LokalTabelMeta[] => {
     __dirname,
     '../../data/kapitalisering/kapitaliseringsTabeller'
   );
-  const filer = fs.readdirSync(tabellerDir).filter((fil) => fil.endsWith('.ts'));
+  const filer = fs.readdirSync(tabellerDir).filter((fil) => fil.endsWith('.ts') && fil !== 'index.ts');
 
   return filer.map((filnavn) => {
     const fuldsti = path.join(tabellerDir, filnavn);

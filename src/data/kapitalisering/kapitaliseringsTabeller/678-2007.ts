@@ -30,6 +30,20 @@ export const gyldigTil = toISODateString('2007-12-31');
 
 export const historiskErhvervsevnetabTabelvalg = [] as const;
 
+const HISTORISK_ERHVERVSEVNETAB_TABELVALG_UDEN_FOEDSELSDATO_DATA = [
+  // skadesdatoFra     ophoersalderAarLabel     tabel
+  ['2007-07-01',     '65',     'A'],
+] as const;
+
+export const historiskErhvervsevnetabTabelvalgUdenFoedselsdato =
+  HISTORISK_ERHVERVSEVNETAB_TABELVALG_UDEN_FOEDSELSDATO_DATA.map(
+    ([skadesdatoFra, ophoersalderAarLabel, tabel]) => ({
+      skadesdatoFra: toISODateString(skadesdatoFra),
+      ophoersalderAarLabel,
+      tabel,
+    })
+  );
+
 export const erhvervsevnetabTabelvalg = [] as const;
 
 export const erhvervsevnetabTabeller = {} as const satisfies Record<string, readonly AldersFaktorRaekke[]>;

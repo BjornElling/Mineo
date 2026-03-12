@@ -3,6 +3,8 @@ import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, parseISODate } from '../../types/branded';
 import type { YearlyRate } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
+import { formatIsoDateShort } from '../../utils/dateFormatting';
+import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { roundByMethod } from '../../utils/rounding';
 import {
@@ -220,6 +222,29 @@ const resolveAarsloen = (values: ErhvervsevnetabValues): { value: number | null;
   return { value: null, source: null };
 };
 
+const computeEalReguleringsfaktorFromYearlyChain = (
+  skadesaar: number,
+  beregningsaar: number,
+  reguleringssats: YearlyRate
+): Readonly<{ reguleringsaar: number[]; manglendeAar: number[]; faktor: number }> => {
+  const reguleringsaar: number[] = [];
+  for (let year = skadesaar + 1; year <= beregningsaar; year += 1) {
+    reguleringsaar.push(year);
+  }
+
+  const manglendeAar = reguleringsaar.filter((year) => {
+    const sats = reguleringssats[year];
+    return !Number.isFinite(sats);
+  });
+
+  let faktor = 1;
+  for (const year of reguleringsaar) {
+    faktor *= 1 + reguleringssats[year] / 100;
+  }
+
+  return { reguleringsaar, manglendeAar, faktor };
+};
+
 export const computeEetEalCalculation = (input: Input): EetEalCalculationResult => {
   const issues: EetEalIssue[] = [];
   const values = input.erhvervsevnetab;
@@ -256,15 +281,9 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 
   const skadesaar = Number.parseInt(skadesdato.slice(0, 4), 10);
   const beregningsaar = Number.parseInt(beregningsdato.slice(0, 4), 10);
-  const reguleringsaar: number[] = [];
-  for (let year = skadesaar + 1; year <= beregningsaar; year += 1) {
-    reguleringsaar.push(year);
-  }
-
-  const manglendeReguleringsaar = reguleringsaar.filter((year) => {
-    const sats = input.reguleringssats[year];
-    return !Number.isFinite(sats);
-  });
+  const ealRegulering = computeEalReguleringsfaktorFromYearlyChain(skadesaar, beregningsaar, input.reguleringssats);
+  const reguleringsaar = ealRegulering.reguleringsaar;
+  const manglendeReguleringsaar = ealRegulering.manglendeAar;
   if (manglendeReguleringsaar.length > 0) {
     issues.push(
       toIssue(
@@ -338,10 +357,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
-  let reguleringsfaktor = 1;
-  for (const year of reguleringsaar) {
-    reguleringsfaktor *= 1 + input.reguleringssats[year] / 100;
-  }
+  const reguleringsfaktor = ealRegulering.faktor;
 
   const reguleringsPctRounded4 = round4((reguleringsfaktor - 1) * 100);
   const reguleringsfaktorRounded4 = 1 + reguleringsPctRounded4 / 100;
@@ -388,12 +404,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 };
 
 export const formatPercentTrimmedFromRounded4 = (value: number): string => {
-  const rounded = round4(value);
-  const fixed = rounded.toFixed(4).replace('.', ',');
-  return fixed.replace(/,?0+$/, '');
+  return formatAsAmountTrimmed(round4(value), 4);
 };
 
-export const formatDateShortForEet = (iso: ISODateString): string => {
-  const [year, month, day] = iso.split('-');
-  return `${day}-${month}-${year}`;
-};
+export const formatDateShortForEet = (iso: ISODateString): string => formatIsoDateShort(iso);

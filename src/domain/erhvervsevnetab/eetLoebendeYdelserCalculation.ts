@@ -10,11 +10,13 @@ import {
   reguleringsprocentErhvervsevnetabFra2024,
 } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
+import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { addDays, addMonths } from '../../utils/dateUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { roundByMethod } from '../../utils/rounding';
 import { optaelMaanederPraecis } from '../erstatningsopgoerelse/periodiseringsMotor';
-import { hasTextValue, parsePercentDraft, resolveFolkepensionsalder } from './eetAslAfgoerelser';
+import { hasTextValue, parsePercentDraft } from './eetAslAfgoerelser';
+import { resolveKapitaliseringTabelvalgForControlDate } from './eetKapitaliseringOpslag';
 
 export type EetLoebendeIssue = Readonly<{
   id: string;
@@ -134,7 +136,7 @@ const isoDayAfter = (iso: ISODateString): ISODateString | undefined => {
   return dateToISO(addDays(parsed, 1));
 };
 
-const buildRateInfo = (
+const resolveAslReguleringRateInfoForSatsAar = (
   year: number,
   before2024Skade: boolean,
   issues: EetLoebendeIssue[]
@@ -150,11 +152,8 @@ const buildRateInfo = (
     }
 
     if (year === 2024) {
-      const pct2024 = reguleringsprocentErhvervsevnetabFoer2024[2024];
-      if (!Number.isFinite(pct2024)) {
-        issues.push(toIssue('reguleringssats-missing-2024', 'Reguleringssats mangler for år 2024'));
-        return null;
-      }
+      // 2024 er referenceår for opregulering fra 2003-niveau.
+      // Selve 2024-opreguleringen anvendes særskilt på grundydelsen, så satsfaktoren her er 1.
       return { factor: 1, reguleringPct: 0 };
     }
 
@@ -370,14 +369,16 @@ const buildRestSectionPeriods = (
 
 const resolveTvungenStopDato = (
   afgoerelseType: ResolvedAfgoerelse['afgoerelseType'],
-  fodselsdato: ISODateString
+  skadesdato: ISODateString,
+  fodselsdato: ISODateString,
+  controlDate: ISODateString
 ): ISODateString | undefined => {
   if (afgoerelseType === 'Midlertidig') return undefined;
-  const fpAlder = resolveFolkepensionsalder(fodselsdato);
-  if (fpAlder === undefined) return undefined;
+  const tabelvalg = resolveKapitaliseringTabelvalgForControlDate(skadesdato, fodselsdato, controlDate);
+  if (!tabelvalg) return undefined;
   const parsedBirth = parseISODate(fodselsdato);
   if (!parsedBirth) return undefined;
-  const folkepensionsdato = addMonths(parsedBirth, fpAlder * 12);
+  const folkepensionsdato = addMonths(parsedBirth, tabelvalg.folkepensionsalderMaaneder);
   const tvungenKapDato = addMonths(folkepensionsdato, -24);
   const tvungenKapIso = dateToISO(tvungenKapDato);
   if (!tvungenKapIso) return undefined;
@@ -497,7 +498,12 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
     const hasRestSection = hasKapitalisering && restEetPct > 0;
 
     const dayBeforeNextVirkning = next ? isoDayBefore(next.virkningsdato) : undefined;
-    const tvungenStopDato = resolveTvungenStopDato(current.afgoerelseType, fodselsdato);
+    const tvungenStopDato = resolveTvungenStopDato(
+      current.afgoerelseType,
+      skadesdato,
+      fodselsdato,
+      current.afgoerelsesdato
+    );
     const dayBeforeKapitalisering = current.kapDato ? isoDayBefore(current.kapDato) : undefined;
 
     const finalCandidates: Array<Readonly<{ date: ISODateString; cause: EetLoebendeAfgoerelseComputation['ophoerAarsag'] }>> = [
@@ -551,7 +557,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
     const computedRows: EetLoebendePeriodeRow[] = [];
 
     for (const sectionRow of allPeriods) {
-      const rateInfo = buildRateInfo(sectionRow.satsAar, before2024Skade, issues);
+      const rateInfo = resolveAslReguleringRateInfoForSatsAar(sectionRow.satsAar, before2024Skade, issues);
       if (rateInfo === null) continue;
 
       const usingRest = hasRestSection && current.kapDato !== undefined && sectionRow.fra >= current.kapDato;
@@ -637,9 +643,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
 };
 
 export const formatPercentTrimmedFromRounded4 = (value: number): string => {
-  const rounded = round4(value);
-  const fixed = rounded.toFixed(4).replace('.', ',');
-  return fixed.replace(/,?0+$/, '');
+  return formatAsAmountTrimmed(round4(value), 4);
 };
 
 export const toAfgoerelseTypeLabel = (

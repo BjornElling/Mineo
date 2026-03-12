@@ -13,11 +13,11 @@ import { toISODateString } from '../../types/branded';
 // Opslagslogik: find seneste skadesdatoFra ≤ skadesdato, og inden for det interval
 // seneste kapitaliseringsdatoFra ≤ kapitaliseringsdato.
 //
-// Udløbsregel: den seneste (dvs. sidstnævnte) post i hvert skadesdato-interval
-// gælder kun frem til og med 31-12-X, hvor X er året i dens kapitaliseringsdatoFra.
-// Eksempel: { kapitaliseringsdatoFra: '2026-01-01', id: '10056/2025' } gælder kun
-// for kapitaliseringsdatoer t.o.m. 31-12-2026. Er kapitaliseringsdatoen 01-01-2027
-// eller senere, mangler der en gyldig bekendtgørelse — der skal tilføjes en ny post.
+// Udløbsregel: en post gælder til dagen før næste kapitaliseringsdatoFra i samme
+// skadesinterval. Hvis der ikke findes en senere post endnu, gælder den foreløbigt
+// kun til og med 31-12 i året for dens kapitaliseringsdatoFra. Dermed kan en ny
+// bekendtgørelse midt i et år erstatte den tidligere straks fra sin ikrafttrædelsesdato,
+// mens manglende fremtidige år stadig fail-closed ved næste årsskifte.
 //
 // Tomme celler i den originale oversigt (kombinationer der ikke kan forekomme) er udeladt.
 //
@@ -188,7 +188,8 @@ const resolveLatestKapitaliseringsdatoFraPerSkadesinterval = (
 
 // EET max-grænse fra bekendtgørelsesoversigten:
 // Find den laveste "seneste kapitaliseringsdatoFra" på tværs af alle skadesdato-intervaller.
-// Denne fra-dato gælder kun til årets udgang, så resultatet er 31-12 i det år.
+// Når en seneste post endnu ikke er afløst af en ny post, gælder den foreløbigt kun
+// til årets udgang, så resultatet er 31-12 i det år.
 export const eetKapitaliseringsDatoMaxFraBekendtgoerelser: ISODateString = (() => {
   if (kapitaliseringsbekendtgoerelser.length === 0) {
     throw new Error('CRITICAL: kapitaliseringsbekendtgoerelser er tom');

@@ -54,6 +54,7 @@ Dette matcher implementeringsretningen i:
 
 - Kontrakten har to gyldige varianter:
   - Historisk variant med `historiskErhvervsevnetabTabelvalg` (og evt. kønsopdelte tabeller).
+  - Tidlig historisk variant med `historiskErhvervsevnetabTabelvalgUdenFoedselsdato` når kilden angiver ophørsalder pr. tabel, men ikke fødselsdato-intervaller.
   - Moderne variant med `erhvervsevnetabTabelvalg`, `forsoergertabTabelvalg` og `saerfaktorUnderToAarTilFpPerSkadesinterval`.
 - Varianterne må ikke blandes ved antagelser; kun felter der findes eksplicit i kilden udfyldes.
 - For VEJ `9921/2019` og `9870/2020` er 2020 bevidst opdelt i to intervaller:
@@ -65,6 +66,7 @@ Dette matcher implementeringsretningen i:
 - `forsoergertabAfloesningsTabeller = {}` betyder, at kilden ikke indeholder afløsningstabeller for den bekendtgørelse/vejledning.
 - Historisk undtagelse: Hvis kilden kun angiver kønsopdelte afløsningstabeller, skal de bevares i `forsoergertabAfloesningsTabellerKoensopdelt` (ingen sammenfletning til kønsneutral tabel).
 - De fil-lokale interface-definitioner (`AldersFaktorRaekke`, `ForsoergertabMatrixRaekke`, `AldersKoensopdeltFaktorRaekke`) er en bevidst selvstændighedsstrategi for hver tabelfil, ikke en datamæssig forskel.
+- Hvis kilden kun har én EET-tabel med formuleringer som `tilkendt til det 65. år, men uden omsætningsmulighed efter 63. år` eller `uden omsætningsmulighed fra det 63. år`, skal ophørsalderen stadig udtrækkes, og tabelvalget udtrykkes i `historiskErhvervsevnetabTabelvalgUdenFoedselsdato`. I disse kilder er fødselsdato ikke en del af opslagsnøglen.
 
 ## Udtræksflow (hver gang)
 
@@ -85,8 +87,20 @@ Dette matcher implementeringsretningen i:
 3. Identificer tabelvalg-oplysninger:
 - `skadesdatoFra`.
 - `foedselsdatoFra`.
-- `folkepensionsalderAar`.
+- `folkepensionsalderAar` eller historisk `ophoersalderAarLabel` direkte fra kilden.
 - Hvilken tabel (`A`, `B`, ...).
+
+Fortolkning af pensionsalder i kilden:
+
+- Hvis kilden ikke bruger ordet `folkepensionsalder`, men i stedet beskriver at den løbende ydelse `ophører ved det fyldte [x] år`, skal denne alder behandles som det samme som folkepensionsalderen/ophørsalderen i tabelvalget.
+- Hvis et fødselsdato-baseret tabelvalg starter ved en senere `foedselsdatoFra` end de ældste relevante fødselskohorter, er det en del af den normative model at ældre fødselsdatoer fortolkes sådan:
+  - første halvår 1955: `66,5 år`
+  - andet halvår 1954: `66 år`
+  - første halvår 1954: `65,5 år`
+  - 1953 eller tidligere: `65 år`
+- Denne fortolkning er ikke en fallback, men en korrekt historisk afspejling af folkepensionsalderen/ophørsalderen og skal respekteres ved både udtræk, opslag og test.
+- Eksempel: formuleringen `for hvem den løbende ydelse ophører ved det fyldte 66½. år` skal udtrækkes som historisk ophørsalder `66½` for den pågældende fødselsgruppe/tabel.
+- Denne fortolkning er ikke en afledning fra ekstern lovviden, men en direkte udlæsning af bekendtgørelsens egen beskrivelse af ophørstidspunktet for den løbende ydelse.
 
 4. Identificer særfaktor ved under 2 år til folkepension.
 
@@ -117,9 +131,12 @@ Normalisering fra denne CSV-type:
 
 Vigtigt om folkepensionsalder:
 
-- Hvis pensionsalder ikke står eksplicit i kilden, må den ikke gættes.
-- `folkepensionsalderAar` afledes via den kanoniske mapping i `src/data/kapitalisering/folkepensionsalder.ts` ud fra `foedselsdatoFra`.
-- Hvis opslag ikke kan afgøres entydigt, stoppes udtrækket og markeres som afklaring nødvendig.
+- Folkepensionsalder/ophørsalder skal udtrækkes direkte fra den konkrete bekendtgørelse eller vejledning.
+- En formulering om at den løbende ydelse ophører ved en bestemt alder er i denne kontekst autoritativ folkepensionsalder/ophørsalder og skal udtrækkes som sådan.
+- Hvis pensionsalder ikke står eksplicit i kilden, må den ikke gættes eller afledes fra andre filer.
+- Der findes ingen separat autoritativ `folkepensionsalder.ts`-fallback. Folkepensionsalder/ophørsalder skal altid udtrækkes direkte fra bekendtgørelsen.
+- Når bekendtgørelsen ikke eksplicit medtager de ældste fødselskohorter i sine `foedselsdatoFra`-rækker, skal de ovenstående kohorter (`66,5 / 66 / 65,5 / 65 år`) behandles som en del af den autoritative fortolkning af bekendtgørelsen.
+- Hvis folkepensionsalder ikke kan udtrækkes entydigt, stoppes udtrækket og markeres som afklaring nødvendig.
 
 ## Fast kodekontrakt for hver `xxxx-yyyy.ts`
 
@@ -250,6 +267,7 @@ Præcisering for historiske filer:
 - Hvis kilden kun har kønsopdelte forsørgertabstabeller, skal `forsoergertabTabeller` være tom (`{}`), og data skal ligge i `forsoergertabTabellerMaend` og/eller `forsoergertabTabellerKvinder`.
 - Hvis kilden har både kønsneutrale og kønsopdelte tabeller, skal begge datatyper bevares i hver deres eksport uden transformation.
 - `historiskErhvervsevnetabTabelvalg` bruges når kilden arbejder med historiske ophørsaldre/fødselsintervaller, som ikke kan udtrykkes med den moderne `folkepensionsalderAar`-kontrakt.
+- `historiskErhvervsevnetabTabelvalgUdenFoedselsdato` bruges når kilden arbejder med historiske ophørsaldre pr. tabel, men uden fødselsdato-intervaller.
 
 ## Krav til tabellignende layout (læsbart i kode)
 
@@ -285,7 +303,7 @@ Når en ny fil er udtrukket:
 
 1. Læg filen i `src/data/kapitalisering/kapitaliseringsTabeller/`.
 2. Opdater `src/data/kapitalisering/kapitaliseringsbekendtgørelser.ts` med korrekt `id` og relevante `kapitaliseringsdatoFra`-poster.
-3. Hvis ny vejledning kræver ny folkepensionsalder i tabelvalg (fx en alder der ikke findes i `folkepensionsalder.ts`), opdater `src/data/kapitalisering/folkepensionsalder.ts`.
+3. Verificer at den nye fil indeholder folkepensionsalder/ophørsalder direkte i sine EET-tabelvalg.
 4. Verificer at udløbsreglen for seneste post stadig er opfyldt.
 5. Kør `npm run typecheck`.
 
@@ -299,6 +317,7 @@ Opgave: Udtræk kapitaliseringsdata fra vedlagte tekst og lever en compile-klar 
 Krav:
 - Brug præcis den faste kodekontrakt fra `docs/arbejdsvarktoej-kapitaliseringsudtraek.md`.
 - Ingen antagelser ved tvivl; markér i stedet manglende/uklare felter.
+- Folkepensionsalder/ophørsalder skal udtrækkes direkte fra kilden, ikke afledes fra andre filer.
 - Bevar numerisk præcision fra kilden.
 - Output skal være tabellignende og menneskeligt læsbart.
 - Brug `id` som `nummer/år` og filnavn som `nummer-år.ts`.

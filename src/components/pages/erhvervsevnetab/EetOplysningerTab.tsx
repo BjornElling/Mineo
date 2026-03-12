@@ -151,6 +151,7 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
 
         <EetAslAfgoerelserTable
           tableData={values.aslAfgoerelser}
+          skadesdato={coerceToISODateString(stamValues.skadesdato)}
           skadesdatoMin={skadesdatoMin}
           beregningsdato={coerceToISODateString(values.beregningsdato)}
           fodselsdato={coerceToISODateString(stamValues.fodselsdato)}

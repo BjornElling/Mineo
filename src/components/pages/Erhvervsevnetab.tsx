@@ -16,6 +16,7 @@ import {
 import EetOplysningerTab from './erhvervsevnetab/EetOplysningerTab';
 import EetEfterEalTab from './erhvervsevnetab/EetEfterEalTab';
 import EetLoebendeYdelserTab from './erhvervsevnetab/EetLoebendeYdelserTab';
+import EetKapitaliseringTab from './erhvervsevnetab/EetKapitaliseringTab';
 
 // ─── Fane-konstanter ─────────────────────────────────────────────────────────
 
@@ -89,8 +90,8 @@ const ErhvervsevnetabDev = React.memo(() => {
   }, [stamdata?.skadesdato, values.aslAarsloen]);
 
   const aslAfgoerelserValidationIssues = React.useMemo(() => {
-    return collectEetAslAfgoerelseValidationIssues(values.aslAfgoerelser, stamdata?.fodselsdato);
-  }, [stamdata?.fodselsdato, values.aslAfgoerelser]);
+    return collectEetAslAfgoerelseValidationIssues(values.aslAfgoerelser, stamdata?.skadesdato, stamdata?.fodselsdato);
+  }, [stamdata?.fodselsdato, stamdata?.skadesdato, values.aslAfgoerelser]);
 
   React.useEffect(() => {
     reportAslAfgoerelserRuleError(aslAfgoerelserValidationIssues[0]?.message);
@@ -174,7 +175,10 @@ const ErhvervsevnetabDev = React.memo(() => {
         />
       )}
       {activeTab === TAB_KEYS.KAPITALISERING && (
-        <SkeletonTab titel="Kapitalisering af endeligt EET" />
+        <EetKapitaliseringTab
+          values={values}
+          onGoToEetOplysninger={() => setActiveTab(TAB_KEYS.EET_OPLYSNINGER)}
+        />
       )}
       {activeTab === TAB_KEYS.EET_EAL && (
         <EetEfterEalTab
