@@ -41,6 +41,14 @@ export const formatAsAmount = (value: number | null | undefined, precision: numb
   return `${isNegative ? '-' : ''}${formatted},${decimalPart.padEnd(resolvedPrecision, '0')}`;
 };
 
+export const formatAsAmountTrimmed = (value: number | null | undefined, precision: number = 2): string => {
+  const formatted = formatAsAmount(value, precision);
+  if (formatted === '' || !formatted.includes(',')) {
+    return formatted;
+  }
+  return formatted.replace(/,?0+$/, '');
+};
+
 /**
  * Formaterer procent-tal til dansk format
  * VIGTIGT: Procent-format følger en bevidst anden visningsregel end formatAsAmount:

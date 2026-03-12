@@ -83,11 +83,17 @@ Det betyder:
 - Producenten skal **rydde** fejl når den ikke længere er aktiv.
 - Producenten må kun rydde **sin egen** source (må ikke slette andre sources).
 
-### 4.2 Unmount-cleanup (forbud mod orphaned errors)
+### 4.2 Navigation/unmount må ikke rydde committed feltfejl
 
-Når en producer unmount’er, skal den rydde sine fejl for at undgå “orphaned errors”.
+Når en producer unmount’er pga. faneskift, sideskift eller anden navigation, må dens feltfejl
+ikke ryddes automatisk. Ellers mister appen sammenhæng mellem committed input og fejltilstand,
+og andre beregningsfaner kan ikke gengive de samme blokkerende fejl deterministisk.
 
-Dette er en del af hook-kontrakten i `useFormFieldErrorReporter`.
+Feltfejl ryddes kun ved:
+- eksplicit clear fra den producer der ejer `(pageKey, fieldName, source)`
+- autoritative state replacements (fx reset/load/migration), hvor form-laget rydder fejl atomisk
+
+`useFormFieldErrorReporter` må derfor ikke have implicit unmount-cleanup.
 
 ### 4.3 Autoritative state replacements
 

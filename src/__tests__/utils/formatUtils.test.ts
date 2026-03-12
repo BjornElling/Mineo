@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { formatPercent, formatCurrency, formatAsAmount, isSingularCount, formatCountWithUnit } from '../../utils/formatUtils';
+import {
+  formatPercent,
+  formatCurrency,
+  formatAsAmount,
+  formatAsAmountTrimmed,
+  isSingularCount,
+  formatCountWithUnit,
+} from '../../utils/formatUtils';
 import { parseAmount } from '../../utils/numberParsing';
 
 describe('formatPercent', () => {
@@ -107,6 +114,21 @@ describe('formatAsAmount', () => {
   it('precision = NaN → defaults til 2', () => {
     const result = formatAsAmount(1234.567, NaN);
     expect(result).toBe('1.234,57');
+  });
+});
+
+describe('formatAsAmountTrimmed', () => {
+  it('fjerner trailing nuller efter komma', () => {
+    expect(formatAsAmountTrimmed(22.81, 4)).toBe('22,81');
+    expect(formatAsAmountTrimmed(22.8, 4)).toBe('22,8');
+  });
+
+  it('bevarer hele tal uden komma', () => {
+    expect(formatAsAmountTrimmed(23, 4)).toBe('23');
+  });
+
+  it('returnerer tom streng for ugyldige input', () => {
+    expect(formatAsAmountTrimmed(undefined, 4)).toBe('');
   });
 });
 

@@ -214,7 +214,7 @@ describe('useFormFieldErrorReporter', () => {
     );
   });
 
-  it('rydder fejl ved unmount (cleanup)', async () => {
+  it('rydder ikke fejl ved unmount', async () => {
     const setFieldError = vi.fn();
     const ctx = makeCtx({ setFieldError });
 
@@ -235,6 +235,6 @@ describe('useFormFieldErrorReporter', () => {
       unmount();
     });
 
-    expect(setFieldError).toHaveBeenCalledWith('stamdata', 'journalnr', 'input', null);
+    expect(setFieldError).not.toHaveBeenCalled();
   });
 });

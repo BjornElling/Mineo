@@ -45,7 +45,8 @@ type ReporterOptions = {
  * Contract (normative):
  * - The caller owns the error for `(pageKey, fieldName, source)`.
  * - Clearing (`undefined` / empty string) only clears the caller's `source` (never other sources).
- * - On unmount, the reporter clears the same `(pageKey, fieldName, source)` to avoid orphaned errors.
+ * - Component unmount/navigation does not clear errors. Only an explicit clear from the producer
+ *   or an authoritative form reset/load may remove them.
  *
  * Preferred usage:
  * - Bind this reporter at the call-site that owns the error (typically an input adapter).
@@ -76,12 +77,6 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
     },
     [fieldName, pageKey, setFieldError, severity, source]
   );
-
-  React.useEffect(() => {
-    return () => {
-      setFieldError(pageKey, fieldName, source, null);
-    };
-  }, [fieldName, pageKey, setFieldError, source]);
 
   return reportError;
 };

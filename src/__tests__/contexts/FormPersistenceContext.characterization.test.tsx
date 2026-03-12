@@ -4,6 +4,7 @@ import { act, render, waitFor } from '@testing-library/react';
 import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import type { StorageKey } from '../../config/storageManifest';
+import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 
 const stampStamdata = (skadelidte: string) => ({
   journalnr: '',
@@ -39,6 +40,46 @@ const renderProvider = () => {
     </FormPersistenceProvider>
   );
   return { getCtx: () => ctx };
+};
+
+const renderProviderWithReporter = () => {
+  let ctx: ReturnType<typeof useFormPersistence> | null = null;
+  let reportError: ((message: string | undefined) => void) | null = null;
+
+  const Capture = ({ mounted }: { mounted: boolean }) => {
+    const value = useFormPersistence();
+    React.useEffect(() => {
+      ctx = value;
+    }, [value]);
+
+    if (!mounted) return null;
+    return <ReporterCapture />;
+  };
+
+  const ReporterCapture = () => {
+    reportError = useFormFieldErrorReporter('erhvervsevnetab', 'aslAfgoerelser', {
+      source: 'input',
+      severity: 'error',
+    });
+    return null;
+  };
+
+  const rendered = render(
+    <FormPersistenceProvider>
+      <Capture mounted />
+    </FormPersistenceProvider>
+  );
+
+  return {
+    getCtx: () => ctx,
+    getReporter: () => reportError,
+    rerenderMounted: (mounted: boolean) =>
+      rendered.rerender(
+        <FormPersistenceProvider>
+          <Capture mounted={mounted} />
+        </FormPersistenceProvider>
+      ),
+  };
 };
 
 describe('FormPersistenceContext characterization', () => {
@@ -147,5 +188,64 @@ describe('FormPersistenceContext characterization', () => {
     expect(getCtx()!.getSectionRevision('satser')).toBe(beforeSatserRevision + 1);
     expect(getCtx()!.getPersistedData('stamdata')).toBeNull();
     expect(getCtx()!.getPersistedData('satser')).toBeNull();
+  });
+
+  it('bevarer feltfejl over unmount/remount og rydder dem først ved clearAllData', async () => {
+    const { getCtx, getReporter, rerenderMounted } = renderProviderWithReporter();
+    await waitFor(() => expect(getCtx()).not.toBeNull());
+    await waitFor(() => expect(getReporter()).not.toBeNull());
+
+    await act(async () => {
+      getReporter()!('Kapitaliseringsdato kan ikke være før afgørelsesdato');
+    });
+
+    expect(getCtx()!.getFieldError('erhvervsevnetab', 'aslAfgoerelser')?.message).toBe(
+      'Kapitaliseringsdato kan ikke være før afgørelsesdato'
+    );
+
+    await act(async () => {
+      rerenderMounted(false);
+    });
+
+    expect(getCtx()!.getFieldError('erhvervsevnetab', 'aslAfgoerelser')?.message).toBe(
+      'Kapitaliseringsdato kan ikke være før afgørelsesdato'
+    );
+
+    await act(async () => {
+      rerenderMounted(true);
+    });
+
+    expect(getCtx()!.getFieldError('erhvervsevnetab', 'aslAfgoerelser')?.message).toBe(
+      'Kapitaliseringsdato kan ikke være før afgørelsesdato'
+    );
+
+    await act(async () => {
+      getCtx()!.clearAllData();
+    });
+
+    expect(getCtx()!.getFieldError('erhvervsevnetab', 'aslAfgoerelser')).toBeUndefined();
+  });
+
+  it('rydder feltfejl ved replaceAllPersistedData', async () => {
+    const { getCtx, getReporter } = renderProviderWithReporter();
+    await waitFor(() => expect(getCtx()).not.toBeNull());
+    await waitFor(() => expect(getReporter()).not.toBeNull());
+
+    await act(async () => {
+      getReporter()!('Kapitaliseringsdato kan ikke være før afgørelsesdato');
+    });
+
+    expect(getCtx()!.getFieldError('erhvervsevnetab', 'aslAfgoerelser')?.message).toBe(
+      'Kapitaliseringsdato kan ikke være før afgørelsesdato'
+    );
+
+    const snapshot = emptySnapshot();
+    snapshot.stamdata = stampStamdata('Efter load');
+
+    await act(async () => {
+      getCtx()!.replaceAllPersistedData(snapshot);
+    });
+
+    expect(getCtx()!.getFieldError('erhvervsevnetab', 'aslAfgoerelser')).toBeUndefined();
   });
 });
