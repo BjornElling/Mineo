@@ -1306,6 +1306,19 @@ export const buildEODebugTaftRows = (
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
   const tafBeregnesSom = computeTafBeregningsenhed(values);
+  const perioder = values.tafPerioder ?? [];
+  const synligeTafPerioder = perioder.filter((periode) => periode.fra || periode.til);
+  const harPerioder = synligeTafPerioder.length > 0;
+  const periodeLabel = synligeTafPerioder.length === 1 ? 'Periode' : 'Perioder';
+
+  if (!harPerioder) {
+    return [{
+      id: 'taf.periode.empty',
+      label: periodeLabel,
+      displayValue: 'Ingen',
+      status: 'ok',
+    }];
+  }
 
   const tafBounds = resolveTafConstraintBounds(values);
   const clampedTafById = new Map<string, { fra: ISODateString; til: ISODateString }>();
@@ -1414,8 +1427,6 @@ export const buildEODebugTaftRows = (
   };
 
   // 1) Periode-rækker fra tabellen
-  const perioder = values.tafPerioder ?? [];
-  const harPerioder = perioder.length > 0 && perioder.some((p) => p.fra || p.til);
   const tafOverlappingIds = detectOverlappingPeriods(values.tafPerioder ?? []);
 
   const ferieperioder = values.ferieperioder ?? [];
@@ -1426,165 +1437,156 @@ export const buildEODebugTaftRows = (
     return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
   };
 
-  if (!harPerioder) {
-    rows.push({
-      id: 'taf.periode.empty',
-      label: 'Periode',
-      displayValue: '-',
-      status: 'ok',
-    });
-  } else {
-    perioder.forEach((periode) => {
-      const hasFra = isNonEmptyString(periode.fra);
-      const hasTil = isNonEmptyString(periode.til);
+  perioder.forEach((periode) => {
+    const hasFra = isNonEmptyString(periode.fra);
+    const hasTil = isNonEmptyString(periode.til);
 
-      // Tjek om begge felter er udfyldt eller begge er tomme
-      const filledCount = [hasFra, hasTil].filter(Boolean).length;
-      const allFilled = filledCount === 2;
-      const noneFilled = filledCount === 0;
+    // Tjek om begge felter er udfyldt eller begge er tomme
+    const filledCount = [hasFra, hasTil].filter(Boolean).length;
+    const allFilled = filledCount === 2;
+    const noneFilled = filledCount === 0;
 
-      // Spring over rækker hvor intet er udfyldt
-      if (noneFilled) return;
+    // Spring over rækker hvor intet er udfyldt
+    if (noneFilled) return;
 
-      // Hvis ikke alle felter er udfyldt, vis fejl
-      if (!allFilled) {
-        const displayValue = 'Fejl (Ikke alle felter udfyldt)';
-        rows.push({
-          id: `taf.periode.${periode.id}`,
-          label: 'Periode',
-          displayValue,
-          status: 'error',
-        });
-        return;
-      }
-
-      // Konverter til dansk format for visning
-      const fraISO = periode.fra;
-      const tilISO = periode.til;
-
-      if (!fraISO || !tilISO) {
-        const displayValue = 'Fejl (Ugyldig dato)';
-        rows.push({
-          id: `taf.periode.${periode.id}`,
-          label: 'Periode',
-          displayValue,
-          status: 'error',
-        });
-        return;
-      }
-
-      const clamped = clampedTafById.get(periode.id);
-      const displayFra = clamped?.fra;
-      const displayTil = clamped?.til;
-      const displayFraDanish = displayFra ? isoToDanish(displayFra) : undefined;
-      const displayTilDanish = displayTil ? isoToDanish(displayTil) : undefined;
-      const periodeLabel =
-        displayFraDanish && displayTilDanish ? `Periode (${displayFraDanish} - ${displayTilDanish})` : 'Periode';
-
-      const bounds = computeRowDateBounds({
-        skadesdatoMinDate: skadesdatoMinRule.minDate,
-        rowFra: fraISO,
-        rowTil: tilISO,
-        fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
-        fallbackMax: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMax,
-        tilFallbackMax: TODAY,
-        tilExtraMaxDate: combinedExtraMaxDate,
-        useTilExtraMaxDate: true,
-      });
-
-      const fraNoValidRangeCause = (() => {
-        const parts: string[] = [];
-        if (skadesdatoMinRule.minBoundKind) parts.push('skadesdato');
-        if (tilISO) parts.push('til-dato i samme række');
-        return parts.length > 0 ? parts.join(', ') : undefined;
-      })();
-
-      const tilNoValidRangeCause = (() => {
-        const parts: string[] = [];
-        if (!fraISO && skadesdatoMinRule.minBoundKind) parts.push('skadesdato');
-        if (fraISO) parts.push('fra-dato i samme række');
-        parts.push('dags dato');
-        if (context.differencekravDato) parts.push('differencekrav-dato');
-        if (!context.verserendeKlageEet && context.endeligEETBeregnetDato) parts.push('beregnet dato for endeligt EET');
-        return parts.join(', ');
-      })();
-
-      const fraRangeErrorMessage = validateRowDate({
-        iso: fraISO,
-        minDate: bounds.fra.min,
-        maxDate: bounds.fra.max,
-        noValidRangeCause: fraNoValidRangeCause,
-      });
-      const tilRangeErrorMessage = validateRowDate({
-        iso: tilISO,
-        minDate: bounds.til.min,
-        maxDate: bounds.til.max,
-        noValidRangeCause: tilNoValidRangeCause,
-      });
-      const computedRangeMessages = [fraRangeErrorMessage, tilRangeErrorMessage].filter(
-        (m): m is string => typeof m === 'string' && m.trim() !== ''
-      );
-
-      const hasOverlap = tafOverlappingIds.has(periode.id);
-      if (hasOverlap || computedRangeMessages.length > 0) {
-        const fraFoerTilError = fraISO > tilISO
-          ? 'Der er indtastet en til-dato, som ligger før fra-datoen'
-          : undefined;
-        const errorMessages = hasOverlap ? 'Der er overlappende perioder' : (fraFoerTilError ?? computedRangeMessages.join('; '));
-        rows.push({
-          id: `taf.periode.${periode.id}`,
-          label: periodeLabel,
-          displayValue: `Fejl (${errorMessages})`,
-          status: 'error',
-        });
-        return;
-      }
-
-      if (!displayFra || !displayTil || !displayFraDanish || !displayTilDanish) {
-        rows.push({
-          id: `taf.periode.${periode.id}`,
-          label: 'Periode',
-          displayValue: '-',
-          status: 'ok',
-        });
-        return;
-      }
-
-      const loseFeriedage = typeof periode.loseFeriedage === 'number' ? periode.loseFeriedage : 0;
-      const breakdown = calculateTafArbejdsdageBreakdown(
-        displayFra,
-        displayTil,
-        ferieperioder,
-        loseFeriedage,
-        { kind: 'taf' }
-      );
-
-      const antalMaaneder = calculateTafAntalMaanederPraecis(
-        displayFra,
-        displayTil,
-        0
-      );
-      const maanederDisplay = antalMaaneder === null ? '-' : `${formatMaaneder(antalMaaneder)} måneder`;
-      const arbejdsdageDisplay = breakdown
-        ? `${formatDaNumber(breakdown.arbejdsdage)} hverdage - ${formatDaNumber(breakdown.shDage)} SH-dage - ${formatDaNumber(breakdown.feriedage)} feriedage - ${formatDaNumber(breakdown.loseFeriedage)} løse feriedage = ${formatDaNumber(breakdown.tafDage)} arbejdsdage`
-        : '-';
-
-      const visMaaneder = tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER;
-      const displayValue = visMaaneder ? maanederDisplay : arbejdsdageDisplay;
-      const status: DebugStatus = visMaaneder
-        ? (antalMaaneder === null ? 'error' : 'ok')
-        : (breakdown ? 'ok' : 'error');
-
+    // Hvis ikke alle felter er udfyldt, vis fejl
+    if (!allFilled) {
+      const displayValue = 'Fejl (Ikke alle felter udfyldt)';
       rows.push({
         id: `taf.periode.${periode.id}`,
         label: periodeLabel,
         displayValue,
-        status,
+        status: 'error',
       });
+      return;
+    }
 
-      // TODO(b): Tilføj en ekstra debug-linje pr. periode med den tilsvarende månedsberegning (samme princip som EO-oplysninger, men eksplicit i debug-output).
+    // Konverter til dansk format for visning
+    const fraISO = periode.fra;
+    const tilISO = periode.til;
+
+    if (!fraISO || !tilISO) {
+      const displayValue = 'Fejl (Ugyldig dato)';
+      rows.push({
+        id: `taf.periode.${periode.id}`,
+        label: periodeLabel,
+        displayValue,
+        status: 'error',
+      });
+      return;
+    }
+
+    const clamped = clampedTafById.get(periode.id);
+    const displayFra = clamped?.fra;
+    const displayTil = clamped?.til;
+    const displayFraDanish = displayFra ? isoToDanish(displayFra) : undefined;
+    const displayTilDanish = displayTil ? isoToDanish(displayTil) : undefined;
+    const periodeRowLabel =
+      displayFraDanish && displayTilDanish ? `${periodeLabel} (${displayFraDanish} - ${displayTilDanish})` : periodeLabel;
+
+    const bounds = computeRowDateBounds({
+      skadesdatoMinDate: skadesdatoMinRule.minDate,
+      rowFra: fraISO,
+      rowTil: tilISO,
+      fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
+      fallbackMax: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMax,
+      tilFallbackMax: TODAY,
+      tilExtraMaxDate: combinedExtraMaxDate,
+      useTilExtraMaxDate: true,
     });
-  }
+
+    const fraNoValidRangeCause = (() => {
+      const parts: string[] = [];
+      if (skadesdatoMinRule.minBoundKind) parts.push('skadesdato');
+      if (tilISO) parts.push('til-dato i samme række');
+      return parts.length > 0 ? parts.join(', ') : undefined;
+    })();
+
+    const tilNoValidRangeCause = (() => {
+      const parts: string[] = [];
+      if (!fraISO && skadesdatoMinRule.minBoundKind) parts.push('skadesdato');
+      if (fraISO) parts.push('fra-dato i samme række');
+      parts.push('dags dato');
+      if (context.differencekravDato) parts.push('differencekrav-dato');
+      if (!context.verserendeKlageEet && context.endeligEETBeregnetDato) parts.push('beregnet dato for endeligt EET');
+      return parts.join(', ');
+    })();
+
+    const fraRangeErrorMessage = validateRowDate({
+      iso: fraISO,
+      minDate: bounds.fra.min,
+      maxDate: bounds.fra.max,
+      noValidRangeCause: fraNoValidRangeCause,
+    });
+    const tilRangeErrorMessage = validateRowDate({
+      iso: tilISO,
+      minDate: bounds.til.min,
+      maxDate: bounds.til.max,
+      noValidRangeCause: tilNoValidRangeCause,
+    });
+    const computedRangeMessages = [fraRangeErrorMessage, tilRangeErrorMessage].filter(
+      (m): m is string => typeof m === 'string' && m.trim() !== ''
+    );
+
+    const hasOverlap = tafOverlappingIds.has(periode.id);
+    if (hasOverlap || computedRangeMessages.length > 0) {
+      const fraFoerTilError = fraISO > tilISO
+        ? 'Der er indtastet en til-dato, som ligger før fra-datoen'
+        : undefined;
+      const errorMessages = hasOverlap ? 'Der er overlappende perioder' : (fraFoerTilError ?? computedRangeMessages.join('; '));
+      rows.push({
+        id: `taf.periode.${periode.id}`,
+        label: periodeRowLabel,
+        displayValue: `Fejl (${errorMessages})`,
+        status: 'error',
+      });
+      return;
+    }
+
+    if (!displayFra || !displayTil || !displayFraDanish || !displayTilDanish) {
+      rows.push({
+        id: `taf.periode.${periode.id}`,
+        label: periodeRowLabel,
+        displayValue: '-',
+        status: 'ok',
+      });
+      return;
+    }
+
+    const loseFeriedage = typeof periode.loseFeriedage === 'number' ? periode.loseFeriedage : 0;
+    const breakdown = calculateTafArbejdsdageBreakdown(
+      displayFra,
+      displayTil,
+      ferieperioder,
+      loseFeriedage,
+      { kind: 'taf' }
+    );
+
+    const antalMaaneder = calculateTafAntalMaanederPraecis(
+      displayFra,
+      displayTil,
+      0
+    );
+    const maanederDisplay = antalMaaneder === null ? '-' : `${formatMaaneder(antalMaaneder)} måneder`;
+    const arbejdsdageDisplay = breakdown
+      ? `${formatDaNumber(breakdown.arbejdsdage)} hverdage - ${formatDaNumber(breakdown.shDage)} SH-dage - ${formatDaNumber(breakdown.feriedage)} feriedage - ${formatDaNumber(breakdown.loseFeriedage)} løse feriedage = ${formatDaNumber(breakdown.tafDage)} arbejdsdage`
+      : '-';
+
+    const visMaaneder = tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER;
+    const displayValue = visMaaneder ? maanederDisplay : arbejdsdageDisplay;
+    const status: DebugStatus = visMaaneder
+      ? (antalMaaneder === null ? 'error' : 'ok')
+      : (breakdown ? 'ok' : 'error');
+
+    rows.push({
+      id: `taf.periode.${periode.id}`,
+      label: periodeRowLabel,
+      displayValue,
+      status,
+    });
+
+    // TODO(b): Tilføj en ekstra debug-linje pr. periode med den tilsvarende månedsberegning (samme princip som EO-oplysninger, men eksplicit i debug-output).
+  });
 
   // 2) Ferieperiode-rækker fra tabellen
   const harFerieperioder = ferieperioder.length > 0 && ferieperioder.some((p) => p.fra || p.til);
@@ -1597,7 +1599,7 @@ export const buildEODebugTaftRows = (
     rows.push({
       id: 'taf.ferie.empty',
       label: ferieperiodeLabel,
-      displayValue: '-',
+      displayValue: 'Ingen',
       status: 'ok',
     });
   } else {

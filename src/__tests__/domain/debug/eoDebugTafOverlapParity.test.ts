@@ -39,7 +39,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
     expect(rowC?.displayValue).toContain('Der er overlappende perioder');
   });
 
-  it('does not warn when TAF period extends beyond vedrører-periodens til-dato', () => {
+  it('advarer ikke når TAF-periode går ud over vedrører-periodens til-dato', () => {
     const values = {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: iso('2024-06-01'),
@@ -66,7 +66,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
     expect(ophoerRow?.displayValue).toContain('Erstatningsperiodens ophør');
   });
 
-  it('uses plural label for ferie rows when more than one ferieperiode is filled', () => {
+  it('bruger flertalslabel for ferie-rækker når mere end én ferieperiode er udfyldt', () => {
     const values = {
       ...createErstatningsopgoerelseInitialValues(),
       tafPerioder: [
@@ -92,5 +92,169 @@ describe('buildEODebugTaftRows overlap parity', () => {
 
     expect(ferieRows).toHaveLength(2);
     expect(ferieRows.every((row) => row.label === 'Ferieperioder')).toBe(true);
+  });
+
+  it('bruger entalslabel for ferie-række når præcis én ferieperiode er udfyldt', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      tafPerioder: [
+        { id: 'a', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+      ],
+      ferieperioder: [
+        { id: 'f1', fra: iso('2024-01-05'), til: iso('2024-01-10') },
+      ],
+    };
+
+    const context = {
+      skadesdatoISO: iso('2023-01-01'),
+      erErhvervssygdom: false,
+      endeligEETBeregnetDato: undefined,
+      differencekravDato: undefined,
+      verserendeKlageEet: false,
+    };
+
+    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
+    const rows = buildEODebugTaftRows(values, errors, context);
+    const ferieRows = rows.filter((row) => row.id.startsWith('taf.ferie.'));
+
+    expect(ferieRows).toHaveLength(1);
+    expect(ferieRows[0]?.label).toBe('Ferieperiode');
+  });
+
+  it('viser "Ingen" og skjuler øvrige TAF-rækker når ingen TAF-perioder er udfyldt', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      tafPerioder: [],
+      ferieperioder: [
+        { id: 'f1', fra: iso('2024-01-05'), til: iso('2024-01-10') },
+      ],
+      tidligereModtagetTaf: { value: 1234, expression: '1234' },
+    };
+
+    const context = {
+      skadesdatoISO: iso('2023-01-01'),
+      erErhvervssygdom: false,
+      endeligEETBeregnetDato: undefined,
+      differencekravDato: undefined,
+      verserendeKlageEet: false,
+    };
+
+    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
+    const rows = buildEODebugTaftRows(values, errors, context);
+
+    expect(rows).toEqual([
+      {
+        id: 'taf.periode.empty',
+        label: 'Perioder',
+        displayValue: 'Ingen',
+        status: 'ok',
+      },
+    ]);
+  });
+
+  it('bruger entalslabel når præcis én TAF-periode er synlig', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      tafPerioder: [
+        { id: 'a', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+      ],
+      ferieperioder: [],
+    };
+
+    const context = {
+      skadesdatoISO: iso('2023-01-01'),
+      erErhvervssygdom: false,
+      endeligEETBeregnetDato: undefined,
+      differencekravDato: undefined,
+      verserendeKlageEet: false,
+    };
+
+    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
+    const rows = buildEODebugTaftRows(values, errors, context);
+    const periodRows = rows.filter((row) => row.id.startsWith('taf.periode.'));
+
+    expect(periodRows).toHaveLength(1);
+    expect(periodRows[0]?.label).toBe('Periode (01-01-2024 - 31-01-2024)');
+  });
+
+  it('bruger flertalslabel når flere TAF-perioder er synlige', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      tafPerioder: [
+        { id: 'a', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+        { id: 'b', fra: iso('2024-02-01'), til: iso('2024-02-29'), loseFeriedage: undefined },
+      ],
+      ferieperioder: [],
+    };
+
+    const context = {
+      skadesdatoISO: iso('2023-01-01'),
+      erErhvervssygdom: false,
+      endeligEETBeregnetDato: undefined,
+      differencekravDato: undefined,
+      verserendeKlageEet: false,
+    };
+
+    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
+    const rows = buildEODebugTaftRows(values, errors, context);
+    const periodRows = rows.filter((row) => row.id.startsWith('taf.periode.'));
+
+    expect(periodRows).toHaveLength(2);
+    expect(periodRows.every((row) => row.label.startsWith('Perioder'))).toBe(true);
+  });
+
+  it('bruger flertalslabel når én periode er fuldt udfyldt og en anden er delvist udfyldt', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      tafPerioder: [
+        { id: 'a', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+        { id: 'b', fra: iso('2024-02-01'), til: undefined, loseFeriedage: undefined },
+      ],
+      ferieperioder: [],
+    };
+
+    const context = {
+      skadesdatoISO: iso('2023-01-01'),
+      erErhvervssygdom: false,
+      endeligEETBeregnetDato: undefined,
+      differencekravDato: undefined,
+      verserendeKlageEet: false,
+    };
+
+    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
+    const rows = buildEODebugTaftRows(values, errors, context);
+    const periodRows = rows.filter((row) => row.id.startsWith('taf.periode.'));
+
+    expect(periodRows).toHaveLength(2);
+    expect(periodRows.every((row) => row.label.startsWith('Perioder'))).toBe(true);
+  });
+
+  it('viser "Ingen" for tom ferieperiode-sektion', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      tafPerioder: [
+        { id: 'a', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+      ],
+      ferieperioder: [],
+    };
+
+    const context = {
+      skadesdatoISO: iso('2023-01-01'),
+      erErhvervssygdom: false,
+      endeligEETBeregnetDato: undefined,
+      differencekravDato: undefined,
+      verserendeKlageEet: false,
+    };
+
+    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
+    const rows = buildEODebugTaftRows(values, errors, context);
+    const ferieEmptyRow = rows.find((row) => row.id === 'taf.ferie.empty');
+
+    expect(ferieEmptyRow).toEqual({
+      id: 'taf.ferie.empty',
+      label: 'Ferieperioder',
+      displayValue: 'Ingen',
+      status: 'ok',
+    });
   });
 });

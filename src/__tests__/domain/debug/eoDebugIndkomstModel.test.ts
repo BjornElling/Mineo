@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   buildIndkomstSectionStatuses,
   buildOffentligeYdelserDebugRows,
+  isLoenindkomstAnsaettelsesforholdEffectivelyEmpty,
 } from '../../../domain/debug/eoDebugIndkomstModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { buildLoenindkomstZeroArbejdsdageMessage } from '../../../domain/erstatningsopgoerelse/indkomstRowValidation';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -100,6 +102,66 @@ describe('buildIndkomstSectionStatuses', () => {
     expect(result[0]?.tableMessage).toBe(
       buildLoenindkomstZeroArbejdsdageMessage(new Date(Date.UTC(2024, 6, 1)), new Date(Date.UTC(2024, 6, 31)))
     );
+  });
+});
+
+describe('isLoenindkomstAnsaettelsesforholdEffectivelyEmpty', () => {
+  it('returnerer true for det initiale tomme ansættelsesforhold', () => {
+    const { af } = buildValuesWithAnsForhold();
+
+    expect(isLoenindkomstAnsaettelsesforholdEffectivelyEmpty(af)).toBe(true);
+  });
+
+  it('returnerer true for load-normaliseret tomt ansættelsesforhold med beregningsgrundlag=Ingen', () => {
+    const { af } = buildValuesWithAnsForhold();
+    af.loenudviklingBeregningsgrundlag = 'Ingen';
+
+    expect(isLoenindkomstAnsaettelsesforholdEffectivelyEmpty(af)).toBe(true);
+  });
+
+  it('returnerer false når der er indtastet lønoplysninger', () => {
+    const { af } = buildValuesWithAnsForhold();
+    af.indtaegtsoplysningerTableData = [
+      {
+        id: 'row-1',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+        col2: amount(1000),
+      },
+    ];
+
+    expect(isLoenindkomstAnsaettelsesforholdEffectivelyEmpty(af)).toBe(false);
+  });
+
+  it('returnerer false når reguleringsgrundlag er valgt til andet end Ingen', () => {
+    const { af } = buildValuesWithAnsForhold();
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+
+    expect(isLoenindkomstAnsaettelsesforholdEffectivelyEmpty(af)).toBe(false);
+  });
+
+  it('returnerer false når overenskomstfilter afviger fra default', () => {
+    const { af } = buildValuesWithAnsForhold();
+    af.overenskomstFilter = {
+      loenmodtager: '3F',
+      arbejdsgiver: undefined,
+    };
+
+    expect(isLoenindkomstAnsaettelsesforholdEffectivelyEmpty(af)).toBe(false);
+  });
+
+  it('returnerer true når ansættelsesforholdet kun indeholder app-settings-defaults', () => {
+    const settings = {
+      ...DEFAULT_APP_SETTINGS,
+      defaultFuldLoenUnderFerie: false,
+      defaultLoenPaaHelligdage: 'SH-udbetaling' as const,
+      defaultOverenskomstLoenmodtager: '3F',
+      defaultOverenskomstArbejdsgiver: 'DI',
+    };
+    const values = createErstatningsopgoerelseInitialValues(settings);
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+
+    expect(isLoenindkomstAnsaettelsesforholdEffectivelyEmpty(af, settings)).toBe(true);
   });
 });
 

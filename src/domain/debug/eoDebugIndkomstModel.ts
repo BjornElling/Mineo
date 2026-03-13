@@ -28,6 +28,7 @@ import type { AarsloenTableColumnKey, OffentligeYdelserTableColumnKey } from '..
 import type { Loenperiode } from '../../types/loen';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { buildAarsloenZeroArbejdsdageIssues } from '../erstatningsopgoerelse/indkomstRowValidation';
+import { DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../settings/appSettingsSchema';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -217,6 +218,85 @@ const countRowsWithPeriodOnly = (
 
     return hasAmounts ? count : count + 1;
   }, 0);
+};
+
+const isLoenRowEffectivelyEmpty = (
+  row: Ansaettelsesforhold['indtaegtsoplysningerTableData'][number],
+  loenperiode: Loenperiode
+): boolean => {
+  const periodKeys: ReadonlyArray<AarsloenTableColumnKey> = loenperiode === 'maaned'
+    ? ['col0_maaned', 'col1_maaned']
+    : loenperiode === 'uge'
+      ? ['col0_uge', 'col1_uge']
+      : ['col0_dag', 'col1_dag'];
+  const allKeys: ReadonlyArray<AarsloenTableColumnKey> = [...periodKeys, 'col2', 'col3', 'col4', 'col5'];
+
+  return allKeys.every((key) =>
+    isAarsloenTableValueEffectivelyEmptyForValidation(row[key])
+  );
+};
+
+const isManualReguleringRowEffectivelyEmpty = (
+  row: NonNullable<Ansaettelsesforhold['loenudviklingManuelTableData']>[number]
+): boolean => {
+  return (
+    (row.dato?.trim() ?? '') === '' &&
+    isAarsloenTableValueEffectivelyEmptyForValidation(row.grundloen) &&
+    (row.feriepenge?.trim() ?? '') === '' &&
+    (row.shSoSats?.trim() ?? '') === '' &&
+    (row.fritvalg?.trim() ?? '') === '' &&
+    (row.agPension?.trim() ?? '') === ''
+  );
+};
+
+export const isLoenindkomstAnsaettelsesforholdEffectivelyEmpty = (
+  af: Ansaettelsesforhold,
+  appSettings: AppSettings = DEFAULT_APP_SETTINGS
+): boolean => {
+  const defaultFuldLoenUnderFerie = appSettings.defaultFuldLoenUnderFerie ? 'Ja' : 'Nej';
+  const defaultOverenskomstFilter = resolveDefaultOverenskomstFilter(appSettings);
+  const hasAnyLoenRowInput = (af.indtaegtsoplysningerTableData ?? []).some((row) => !isLoenRowEffectivelyEmpty(row, af.loenperiode));
+  const hasAnyManualReguleringInput = (af.loenudviklingManuelTableData ?? []).some((row) => !isManualReguleringRowEffectivelyEmpty(row));
+  const overenskomstFilter = af.overenskomstFilter ?? { loenmodtager: undefined, arbejdsgiver: undefined };
+  const hasNonDefaultOverenskomstFilter =
+    overenskomstFilter.loenmodtager !== defaultOverenskomstFilter.loenmodtager ||
+    overenskomstFilter.arbejdsgiver !== defaultOverenskomstFilter.arbejdsgiver;
+  const loenudviklingBeregningsgrundlag = af.loenudviklingBeregningsgrundlag;
+  const hasLoenudviklingBeregningsgrundlag =
+    loenudviklingBeregningsgrundlag !== undefined && loenudviklingBeregningsgrundlag !== 'Ingen';
+
+  return !(
+    (af.navnPaaArbejdssted?.trim() ?? '') !== '' ||
+    af.harOverenskomst !== true ||
+    (af.overenskomstId?.trim() ?? '') !== '' ||
+    af.ansatPaaSkadestidspunktet !== true ||
+    af.ansaettelsesforholdOphoert !== false ||
+    af.sidsteArbejdsdag !== undefined ||
+    af.harAnciennitetstillaegEfterSkadesdatoen !== false ||
+    af.anciennitetstillaegDato !== undefined ||
+    af.anciennitetstillaegSats !== undefined ||
+    af.anciennitetstillaegSatsAngivesPer !== 'Måned' ||
+    af.feriePct !== undefined ||
+    af.fritvalgPct !== undefined ||
+    af.shSoPct !== undefined ||
+    af.storeBededagPct !== undefined ||
+    af.pensionPct !== undefined ||
+    af.loenperiode !== 'maaned' ||
+    af.fuldLoenUnderFerie !== defaultFuldLoenUnderFerie ||
+    af.loenPaaHelligdage !== appSettings.defaultLoenPaaHelligdage ||
+    af.saerligFraDatoRegulering !== undefined ||
+    hasAnyLoenRowInput ||
+    hasLoenudviklingBeregningsgrundlag ||
+    af.loenudviklingStatistikModel !== undefined ||
+    af.loenudviklingKRLSatstabel !== undefined ||
+    (af.loenudviklingManuelNavn?.trim() ?? '') !== '' ||
+    hasAnyManualReguleringInput ||
+    af.offentligLoenType !== 'Månedsløn' ||
+    af.offentligLoenTrin !== undefined ||
+    af.offentligLoenGruppe !== undefined ||
+    af.offentligLoenEkstraGrundloen !== undefined ||
+    hasNonDefaultOverenskomstFilter
+  );
 };
 
 const resolveOffentligeYdelserColumnLabel = (colKey: OffentligeYdelserTableColumnKey): string => {

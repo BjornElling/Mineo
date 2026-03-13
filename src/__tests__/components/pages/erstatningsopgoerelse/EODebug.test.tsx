@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import EODebug from '../../../../components/pages/erstatningsopgoerelse/EODebug';
+import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 const { eoSnapshotToDebugViewMock } = vi.hoisted(() => ({
   eoSnapshotToDebugViewMock: vi.fn(),
@@ -13,7 +14,12 @@ vi.mock('../../../../hooks/useEOLoenindkomstInputErrors', () => ({
 }));
 
 vi.mock('../../../../contexts/useAppSettings', () => ({
-  useAppSettings: () => ({ settings: {} }),
+  useAppSettings: () => ({
+    settings: {
+      defaultFuldLoenUnderFerie: true,
+      defaultLoenPaaHelligdage: 'Almindelig løn',
+    },
+  }),
 }));
 
 vi.mock('../../../../domain/erstatningsopgoerelse/eoSnapshotToDebugView', () => ({
@@ -21,6 +27,11 @@ vi.mock('../../../../domain/erstatningsopgoerelse/eoSnapshotToDebugView', () => 
 }));
 
 describe('EODebug', () => {
+  const createEmployment = (id: string) => ({
+    ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+    id,
+  });
+
   const renderComponent = (snapshot: React.ComponentProps<typeof EODebug>['eoSnapshot']) => {
     return render(
       <MemoryRouter>
@@ -71,6 +82,10 @@ describe('EODebug', () => {
       erstatningsopgoerelseValues: {
         midlertidigtEetAfgorelse: 'Nej',
         endeligtEetAfgorelse: 'Nej',
+        loenindkomstAnsaettelsesforhold: [
+          { ...createEmployment('af1'), navnPaaArbejdssted: 'Tandlægerne Toft og Vedsted', loenudviklingBeregningsgrundlag: 'Overenskomst' },
+          { ...createEmployment('af2'), navnPaaArbejdssted: 'Hennings Autoophug', loenudviklingBeregningsgrundlag: 'Overenskomst' },
+        ],
       },
       rowsBySection: new Map([
         ['stamdata', [{ id: 'stamdata.skadesdato', label: 'Skadesdato', displayValue: '01-01-2024', status: 'ok' }]],
@@ -106,6 +121,10 @@ describe('EODebug', () => {
       erstatningsopgoerelseValues: {
         midlertidigtEetAfgorelse: 'Nej',
         endeligtEetAfgorelse: 'Nej',
+        loenindkomstAnsaettelsesforhold: [
+          { ...createEmployment('af1'), loenudviklingBeregningsgrundlag: 'Overenskomst' },
+          { ...createEmployment('af2'), loenudviklingBeregningsgrundlag: 'Overenskomst' },
+        ],
       },
       rowsBySection: new Map([
         ['loenindkomst', [
@@ -256,6 +275,9 @@ describe('EODebug', () => {
       erstatningsopgoerelseValues: {
         midlertidigtEetAfgorelse: 'Nej',
         endeligtEetAfgorelse: 'Nej',
+        loenindkomstAnsaettelsesforhold: [
+          { ...createEmployment('af1'), loenudviklingBeregningsgrundlag: 'Overenskomst' },
+        ],
       },
       rowsBySection: new Map([
         ['loenindkomst', [
@@ -283,6 +305,79 @@ describe('EODebug', () => {
     expect(screen.getByText('ASL-årslønsmaksimum')).toBeInTheDocument();
   });
 
+  it('skjuler tomme ansættelsesforhold i EODebug, også når load har sat beregningsgrundlag til Ingen', () => {
+    eoSnapshotToDebugViewMock.mockReturnValue({
+      kind: 'ready',
+      canonicalOutput: undefined,
+      debugSnapshot: {
+        sammentaellingRows: [],
+      },
+      stamdataValues: {},
+      erstatningsopgoerelseValues: {
+        midlertidigtEetAfgorelse: 'Nej',
+        endeligtEetAfgorelse: 'Nej',
+        loenindkomstAnsaettelsesforhold: [
+          {
+            id: 'af1',
+            navnPaaArbejdssted: undefined,
+            harOverenskomst: true,
+            overenskomstId: undefined,
+            ansatPaaSkadestidspunktet: true,
+            ansaettelsesforholdOphoert: false,
+            sidsteArbejdsdag: undefined,
+            harAnciennitetstillaegEfterSkadesdatoen: false,
+            anciennitetstillaegDato: undefined,
+            anciennitetstillaegSatsAngivesPer: 'Måned',
+            anciennitetstillaegSats: undefined,
+            feriePct: undefined,
+            fritvalgPct: undefined,
+            shSoPct: undefined,
+            storeBededagPct: undefined,
+            pensionPct: undefined,
+            loenperiode: 'maaned',
+            fuldLoenUnderFerie: 'Ja',
+            loenPaaHelligdage: 'Almindelig løn',
+            saerligFraDatoRegulering: undefined,
+            indtaegtsoplysningerTableData: [],
+            loenudviklingBeregningsgrundlag: 'Ingen',
+            loenudviklingStatistikModel: undefined,
+            loenudviklingKRLSatstabel: undefined,
+            loenudviklingManuelNavn: '',
+            loenudviklingManuelTableData: [],
+            offentligLoenType: 'Månedsløn',
+            offentligLoenTrin: undefined,
+            offentligLoenGruppe: undefined,
+            offentligLoenEkstraGrundloen: undefined,
+            overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
+          },
+        ],
+      },
+      rowsBySection: new Map([
+        ['loenindkomst', [
+          {
+            id: 'loenindkomst.af1.arbejdsstedNavn',
+            label: 'Navn på arbejdssted',
+            displayValue: '-',
+            status: 'ok',
+          },
+          {
+            id: 'loenindkomst.af1.loenoplysninger',
+            label: 'Alle lønoplysninger indtastet korrekt',
+            displayValue: 'Ja',
+            status: 'ok',
+          },
+        ]],
+      ]),
+      regulationSections: [],
+    });
+
+    renderComponent({ revision: 'rev-1' } as never);
+
+    expect(screen.queryByText('Lønindkomst')).not.toBeInTheDocument();
+    expect(screen.queryByText('Arbejdssted 1')).not.toBeInTheDocument();
+    expect(screen.queryByText('Navn på arbejdssted')).not.toBeInTheDocument();
+  });
+
   it('renderer en regulerings-contentbox pr. ansættelsesforhold', () => {
     eoSnapshotToDebugViewMock.mockReturnValue({
       kind: 'ready',
@@ -294,6 +389,9 @@ describe('EODebug', () => {
       erstatningsopgoerelseValues: {
         midlertidigtEetAfgorelse: 'Nej',
         endeligtEetAfgorelse: 'Nej',
+        loenindkomstAnsaettelsesforhold: [
+          { ...createEmployment('af1'), loenudviklingBeregningsgrundlag: 'Overenskomst' },
+        ],
       },
       rowsBySection: new Map(),
       regulationSections: [
@@ -567,7 +665,7 @@ describe('EODebug', () => {
     expect(screen.queryByText('TAF')).not.toBeInTheDocument();
   });
 
-  it('viser grønne statusikoner for afledte reguleringsrækker uden egen fejllogik', () => {
+  it('viser "Perioder: Ingen" i TAF-sektionen når ingen erstatningsperioder findes', () => {
     eoSnapshotToDebugViewMock.mockReturnValue({
       kind: 'ready',
       canonicalOutput: undefined,
@@ -580,7 +678,49 @@ describe('EODebug', () => {
         endeligtEetAfgorelse: 'Nej',
       },
       rowsBySection: new Map([
+        ['taf', [
+          {
+            id: 'taf.periode.empty',
+            label: 'Perioder',
+            displayValue: 'Ingen',
+            status: 'ok',
+          },
+        ]],
+      ]),
+      regulationSections: [],
+    });
+
+    renderComponent({ revision: 'rev-1' } as never);
+
+    expect(screen.getByText('Tabt arbejdsfortjeneste')).toBeInTheDocument();
+    expect(screen.getByText('Perioder')).toBeInTheDocument();
+    expect(screen.getByText('Ingen')).toBeInTheDocument();
+    expect(screen.queryByText('TAF-ophør skyldes')).not.toBeInTheDocument();
+  });
+
+  it('viser afledte reguleringsrækker uden egen fejllogik', () => {
+    eoSnapshotToDebugViewMock.mockReturnValue({
+      kind: 'ready',
+      canonicalOutput: undefined,
+      debugSnapshot: {
+        sammentaellingRows: [],
+      },
+      stamdataValues: {},
+      erstatningsopgoerelseValues: {
+        midlertidigtEetAfgorelse: 'Nej',
+        endeligtEetAfgorelse: 'Nej',
+        loenindkomstAnsaettelsesforhold: [
+          { ...createEmployment('af1'), loenudviklingBeregningsgrundlag: 'Overenskomst' },
+        ],
+      },
+      rowsBySection: new Map([
         ['loenindkomst', [
+          {
+            id: 'loenindkomst.af1.regulering.navn',
+            label: 'Navn på reguleringsform',
+            displayValue: 'KL-overenskomsten (Forhandlingsfællesskabet / KL)',
+            status: 'ok',
+          },
           {
             id: 'loenindkomst.af1.regulering.valgt',
             label: 'Valgt regulering',
@@ -603,13 +743,9 @@ describe('EODebug', () => {
 
     const { container } = renderComponent({ revision: 'rev-1' } as never);
 
-    const skadesdatoLabel = screen.getByText('Reguleringsdato (Skadedato)');
-    const overenskomstLabel = screen.getByText('Overenskomst');
-    const skadesdatoRow = skadesdatoLabel.closest('.row--label-right-hover');
-    const overenskomstRow = overenskomstLabel.closest('.row--label-right-hover');
-
-    expect(skadesdatoRow?.querySelector('[data-testid=\"CheckIcon\"]')).not.toBeNull();
-    expect(overenskomstRow?.querySelector('[data-testid=\"CheckIcon\"]')).not.toBeNull();
-    expect(container.querySelectorAll('[data-testid=\"CheckIcon\"]').length).toBeGreaterThanOrEqual(3);
+    expect(screen.getByText('Reguleringsdato (Skadedato)')).toBeInTheDocument();
+    expect(screen.getByText('Overenskomst')).toBeInTheDocument();
+    expect(screen.getByText('Valgt regulering')).toBeInTheDocument();
+    expect(container.querySelectorAll('[data-testid="CheckIcon"]').length).toBeGreaterThan(0);
   });
 });

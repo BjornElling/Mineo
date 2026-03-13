@@ -10,6 +10,7 @@ import EODebugRegulationSections from './EODebugRegulationSections';
 import EODebugRowsSection from './EODebugRowsSection';
 import EODebugEmploymentSections from './EODebugEmploymentSections';
 import type { RegulationDebugSection } from '../../../domain/debug/eoDebugRegulationViewModel';
+import { isLoenindkomstAnsaettelsesforholdEffectivelyEmpty } from '../../../domain/debug/eoDebugIndkomstModel';
 
 type EODebugProps = Readonly<{
   eoSnapshot?: EoSnapshot | null;
@@ -88,7 +89,15 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
   const viserMidlertidigtEet = erstatningsopgoerelseValues.midlertidigtEetAfgorelse === 'Ja';
   const viserEndeligtEet = erstatningsopgoerelseValues.endeligtEetAfgorelse === 'Ja';
   const aesRows = rowsBySection.get('aes') ?? [];
-  const loenindkomstRows = rowsBySection.get('loenindkomst') ?? [];
+  const visibleEmploymentIds = new Set(
+    (erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? [])
+      .filter((af) => !isLoenindkomstAnsaettelsesforholdEffectivelyEmpty(af, settings))
+      .map((af) => af.id)
+  );
+  const loenindkomstRows = (rowsBySection.get('loenindkomst') ?? []).filter((row) => {
+    const ansaettelsesforholdId = getLoenindkomstAnsaettelsesforholdId(row.id);
+    return ansaettelsesforholdId === null || visibleEmploymentIds.has(ansaettelsesforholdId);
+  });
   const loenindkomstSections = buildLoenindkomstSections(loenindkomstRows);
   const regulationSectionsByEmploymentId = new Map<string, RegulationDebugSection>();
   view.regulationSections.forEach((section) => {
