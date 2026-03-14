@@ -5,15 +5,15 @@ import {
   ASL_MAX_AARSLOEN_2003,
   ASL_MAX_AARSLOEN_2024,
   aarsloenMax,
-  reguleringsprocentErhvervsevnetab,
   reguleringsprocentErhvervsevnetabFoer2024,
-  reguleringsprocentErhvervsevnetabFra2024,
 } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { addDays, addMonths } from '../../utils/dateUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
-import { roundByMethod } from '../../utils/rounding';
+import { round0, round2, round4, roundNearest1000 } from './eetRounding';
+import { SKAERING_2011_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
+import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
 import { optaelMaanederPraecis } from '../erstatningsopgoerelse/periodiseringsMotor';
 import { hasTextValue, parsePercentDraft } from './eetAslAfgoerelser';
 import { resolveKapitaliseringTabelvalgForControlDate } from './eetKapitaliseringOpslag';
@@ -97,16 +97,8 @@ type ResolvedAfgoerelse = Readonly<{
   sortKey: string;
 }>;
 
-const SKAERING_2024_07_01 = '2024-07-01';
-const SKAERING_2011_01_01 = '2011-01-01';
-
 const toIssue = (id: string, message: string): EetLoebendeIssue => ({ id, severity: 'error', message });
 const toWarning = (id: string, message: string): EetLoebendeIssue => ({ id, severity: 'warning', message });
-
-const round0 = (value: number): number => roundByMethod(value, 0, 'halfAwayFromZero');
-const round2 = (value: number): number => roundByMethod(value, 2, 'halfAwayFromZero');
-const round4 = (value: number): number => roundByMethod(value, 4, 'halfAwayFromZero');
-const roundNearest1000 = (value: number): number => roundByMethod(value / 1000, 0, 'halfAwayFromZero') * 1000;
 const ceil12 = (value: number): number => Math.ceil(value / 12) * 12;
 
 const parsePct = (raw: string | undefined): number | undefined => {
@@ -134,43 +126,6 @@ const isoDayAfter = (iso: ISODateString): ISODateString | undefined => {
   const parsed = parseISODate(iso);
   if (!parsed) return undefined;
   return dateToISO(addDays(parsed, 1));
-};
-
-const resolveAslReguleringRateInfoForSatsAar = (
-  year: number,
-  before2024Skade: boolean,
-  issues: EetLoebendeIssue[]
-): Readonly<{ factor: number; reguleringPct: number }> | null => {
-  if (before2024Skade) {
-    if (year <= 2023) {
-      const pct = reguleringsprocentErhvervsevnetab[year];
-      if (!Number.isFinite(pct)) {
-        issues.push(toIssue(`reguleringssats-missing-${year}`, `Reguleringssats mangler for år ${year}`));
-        return null;
-      }
-      return { factor: 1 + pct / 100, reguleringPct: pct };
-    }
-
-    if (year === 2024) {
-      // 2024 er referenceår for opregulering fra 2003-niveau.
-      // Selve 2024-opreguleringen anvendes særskilt på grundydelsen, så satsfaktoren her er 1.
-      return { factor: 1, reguleringPct: 0 };
-    }
-
-    const pctFrom2024 = reguleringsprocentErhvervsevnetabFra2024[year];
-    if (!Number.isFinite(pctFrom2024)) {
-      issues.push(toIssue(`reguleringssats-missing-${year}`, `Reguleringssats mangler for år ${year}`));
-      return null;
-    }
-    return { factor: 1 + pctFrom2024 / 100, reguleringPct: pctFrom2024 };
-  }
-
-  const pct = reguleringsprocentErhvervsevnetabFra2024[year];
-  if (!Number.isFinite(pct)) {
-    issues.push(toIssue(`reguleringssats-missing-${year}`, `Reguleringssats mangler for år ${year}`));
-    return null;
-  }
-  return { factor: 1 + pct / 100, reguleringPct: pct };
 };
 
 const sortResolvedAfgoerelser = (rows: readonly ResolvedAfgoerelse[]): ResolvedAfgoerelse[] => {
@@ -557,7 +512,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
     const computedRows: EetLoebendePeriodeRow[] = [];
 
     for (const sectionRow of allPeriods) {
-      const rateInfo = resolveAslReguleringRateInfoForSatsAar(sectionRow.satsAar, before2024Skade, issues);
+      const rateInfo = resolveAslReguleringRateForSatsAar(sectionRow.satsAar, before2024Skade, issues);
       if (rateInfo === null) continue;
 
       const usingRest = hasRestSection && current.kapDato !== undefined && sectionRow.fra >= current.kapDato;

@@ -7,12 +7,11 @@ import type { ErhvervsevnetabValues } from '../../../schemas/formSchemas';
 import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import { useScrollToSectionWithRetry } from '../../../hooks/useScrollToSectionWithRetry';
-import { formatIsoDateLong } from '../../../utils/dateFormatting';
+import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import { formatAsAmount, formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
 import {
   computeEetKapitaliseringCalculation,
-  formatDateShortForEet,
   formatKapitaliseringsPct,
   type EetKapitaliseringIssue,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
@@ -63,6 +62,18 @@ const resolveIssueNavigation = (issueId: string): ErrorNavigation | null => {
   };
 };
 
+const NAVIGATION_SORT_ORDER: Record<string, number> = {
+  'stamdata-skadelidte': 0,
+  'eet-oplysninger-stamdata': 1,
+  'eet-oplysninger-asl': 2,
+  'eet-oplysninger-eal': 3,
+};
+
+const navigationSortKey = (issueId: string): number => {
+  const nav = resolveIssueNavigation(issueId);
+  return nav !== null ? (NAVIGATION_SORT_ORDER[nav.sectionId] ?? 99) : 99;
+};
+
 const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
   const navigate = useNavigate();
   const stamdata = usePersistedSection('stamdata');
@@ -95,7 +106,10 @@ const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger })
   ]);
 
   const issues = React.useMemo(
-    () => dedupeIssuesBySeverityAndMessage([...calculationResult.issues, ...fieldIssues]),
+    () =>
+      dedupeIssuesBySeverityAndMessage([...calculationResult.issues, ...fieldIssues]).sort(
+        (a, b) => navigationSortKey(a.id) - navigationSortKey(b.id)
+      ),
     [calculationResult.issues, fieldIssues]
   );
 
@@ -207,7 +221,7 @@ const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger })
             <Box className="row--label-right-hover">
               <Typography className="row--text">Kapitaliseringsdato</Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatDateShortForEet(afgoerelse.kapitaliseringsdato)}</Typography>
+                <Typography className="row--text">{formatIsoDateShort(afgoerelse.kapitaliseringsdato)}</Typography>
               </Box>
             </Box>
 

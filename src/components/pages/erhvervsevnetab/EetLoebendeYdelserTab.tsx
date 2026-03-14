@@ -111,6 +111,18 @@ const resolveIssueNavigation = (issueId: string): ErrorNavigation | null => {
   };
 };
 
+const NAVIGATION_SORT_ORDER: Record<string, number> = {
+  'stamdata-skadelidte': 0,
+  'eet-oplysninger-stamdata': 1,
+  'eet-oplysninger-asl': 2,
+  'eet-oplysninger-eal': 3,
+};
+
+const navigationSortKey = (issueId: string): number => {
+  const nav = resolveIssueNavigation(issueId);
+  return nav !== null ? (NAVIGATION_SORT_ORDER[nav.sectionId] ?? 99) : 99;
+};
+
 const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
   const navigate = useNavigate();
   const stamdata = usePersistedSection('stamdata');
@@ -146,7 +158,10 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
   ]);
 
   const issues = React.useMemo(
-    () => dedupeIssuesBySeverityAndMessage([...calculationResult.issues, ...fieldIssues]),
+    () =>
+      dedupeIssuesBySeverityAndMessage([...calculationResult.issues, ...fieldIssues]).sort(
+        (a, b) => navigationSortKey(a.id) - navigationSortKey(b.id)
+      ),
     [calculationResult.issues, fieldIssues]
   );
 

@@ -1,6 +1,7 @@
 import { kapitaliseringsbekendtgoerelser } from '../../data/kapitalisering/kapitaliseringsbekendtgørelser';
 import {
   getKapitaliseringsTabelData,
+  type AldersFaktorRaekke,
   type HistoriskErhvervsevnetabTabelvalg,
   type HistoriskErhvervsevnetabTabelvalgUdenFoedselsdato,
   type KapitaliseringsTabelData,
@@ -9,6 +10,7 @@ import {
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, parseISODate } from '../../types/branded';
 import { addDays } from '../../utils/dateUtils';
+import type { ErhvervsevnetabValues } from '../../schemas/formSchemas';
 
 export type AgeYearsMonths = Readonly<{
   years: number;
@@ -256,6 +258,82 @@ export const resolveKapitaliseringTabelvalgForControlDate = (
   if (!controlData) return null;
 
   return resolveKapitaliseringTabelvalg(controlData, skadesdato, fodselsdato);
+};
+
+export type ResolveFactorTableResult = Readonly<{
+  rows: readonly AldersFaktorRaekke[] | null;
+  reason: 'missing-table' | 'missing-koen' | null;
+}>;
+
+export const resolveSaerfaktor = (
+  tabeldata: KapitaliseringsTabelData,
+  skadesdato: ISODateString
+): number | null => {
+  const kandidat = tabeldata.saerfaktorUnderToAarTilFpPerSkadesinterval
+    .filter((entry) => entry.skadesdatoFra <= skadesdato)
+    .reduce<typeof tabeldata.saerfaktorUnderToAarTilFpPerSkadesinterval[number] | null>((latest, current) => {
+      if (!latest) return current;
+      return current.skadesdatoFra > latest.skadesdatoFra ? current : latest;
+    }, null);
+  return kandidat?.faktor ?? null;
+};
+
+export const interpolateFactorWithinTable = (
+  rows: readonly AldersFaktorRaekke[],
+  age: AgeYearsMonths
+): number | null => {
+  const first = rows[0];
+  const last = rows[rows.length - 1];
+  if (!first || !last) return null;
+  if (age.years < first.alder) return null;
+  if (age.years > last.alder) return null;
+  if (age.years === last.alder) return last.faktor;
+  const lower = rows.find((r) => r.alder === age.years);
+  const upper = rows.find((r) => r.alder === age.years + 1);
+  if (!lower || !upper) return null;
+  return ((12 - age.months) / 12) * lower.faktor + (age.months / 12) * upper.faktor;
+};
+
+export const interpolateFactorBeyondTable = (
+  rows: readonly AldersFaktorRaekke[],
+  age: AgeYearsMonths,
+  folkepensionsalderMaaneder: number,
+  saerfaktor: number
+): number | null => {
+  const last = rows[rows.length - 1];
+  if (!last) return null;
+  const lastAgeMonths = last.alder * 12;
+  const boundaryMonths = folkepensionsalderMaaneder - 24;
+  if (boundaryMonths < lastAgeMonths) return null;
+  if (age.totalMonths <= lastAgeMonths) return last.faktor;
+  if (age.totalMonths >= boundaryMonths) return saerfaktor;
+  const totalMonths = boundaryMonths - lastAgeMonths;
+  if (totalMonths <= 0) return null;
+  const monthsOver = age.totalMonths - lastAgeMonths;
+  return last.faktor + (monthsOver / totalMonths) * (saerfaktor - last.faktor);
+};
+
+export const resolveFactorTable = (
+  tabeldata: KapitaliseringsTabelData,
+  tabel: string,
+  koen: ErhvervsevnetabValues['koen']
+): ResolveFactorTableResult => {
+  const simpleTable = tabeldata.erhvervsevnetabTabeller[tabel];
+  if (simpleTable && simpleTable.length > 0) {
+    return { rows: simpleTable, reason: null };
+  }
+  const koensTable = tabeldata.erhvervsevnetabKoensopdelteTabeller[tabel];
+  if (!koensTable || koensTable.length === 0) {
+    return { rows: null, reason: 'missing-table' };
+  }
+  if (!koen) {
+    return { rows: null, reason: 'missing-koen' };
+  }
+  const normalized = koensTable.map<AldersFaktorRaekke>((row) => ({
+    alder: row.alder,
+    faktor: koen === 'Mand' ? row.maendFaktor : row.kvinderFaktor,
+  }));
+  return { rows: normalized, reason: null };
 };
 
 export const isUnderOrEqualTwoYearsToFpByBekendtgoerelse = (

@@ -3,40 +3,32 @@ import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatIsoDateShort } from '../../utils/dateFormatting';
-import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
-import { roundByMethod } from '../../utils/rounding';
 import {
   ASL_MAX_AARSLOEN_2003,
   ASL_MAX_AARSLOEN_2024,
   aarsloenMax,
-  reguleringsprocentErhvervsevnetab,
   reguleringsprocentErhvervsevnetabFoer2024,
-  reguleringsprocentErhvervsevnetabFra2024,
 } from '../../data/regulationRates';
 import {
-  type AldersFaktorRaekke,
   type KapitaliseringsTabelData,
   getKapitaliseringsTabelData,
 } from '../../data/kapitalisering/kapitaliseringsTabeller';
 import { hasTextValue, isAslAfgoerelseRowEmpty, parsePercentDraft } from './eetAslAfgoerelser';
 import {
   calculateAgeYearsMonths,
+  interpolateFactorBeyondTable,
+  interpolateFactorWithinTable,
+  resolveFactorTable,
   resolveKapitaliseringsbekendtgoerelseId,
   resolveKapitaliseringTabelvalg,
+  resolveSaerfaktor,
   type AgeYearsMonths,
   type ResolvedKapitaliseringTabelvalg as ResolvedTabelvalg,
 } from './eetKapitaliseringOpslag';
-
-const SKAERING_2011_01_01 = '2011-01-01';
-const SKAERING_2024_07_01 = '2024-07-01';
-
-const round0 = (value: number): number => roundByMethod(value, 0, 'halfAwayFromZero');
-const round2 = (value: number): number => roundByMethod(value, 2, 'halfAwayFromZero');
-const round3 = (value: number): number => roundByMethod(value, 3, 'halfAwayFromZero');
-const round4 = (value: number): number => roundByMethod(value, 4, 'halfAwayFromZero');
-const roundNearest1000 = (value: number): number => roundByMethod(value / 1000, 0, 'halfAwayFromZero') * 1000;
-const ceil0 = (value: number): number => roundByMethod(value, 0, 'ceil');
+import { ceil0, round0, round2, round3, round4, roundNearest1000 } from './eetRounding';
+import { resolveAslReguleringRateForKapAar } from './eetReguleringRater';
+import { SKAERING_2011_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 
 export type EetKapitaliseringIssue = Readonly<{
   id: string;
@@ -90,16 +82,6 @@ type ResolvedKapitaliseringsRow = Readonly<{
   tidlKapDato: ISODateString | null;
 }>;
 
-type AslReguleringRateInfo = Readonly<{
-  factor: number;
-  reguleringPct: number;
-}>;
-
-type ResolveFactorTableResult = Readonly<{
-  rows: readonly AldersFaktorRaekke[] | null;
-  reason: 'missing-table' | 'missing-koen' | null;
-}>;
-
 const toIssue = (id: string, message: string): EetKapitaliseringIssue => ({
   id,
   severity: 'error',
@@ -117,127 +99,7 @@ const compareIso = (a: ISODateString, b: ISODateString): number => {
   return 0;
 };
 
-const formatPercentTrimmedFromRounded4 = (value: number): string => {
-  return formatAsAmountTrimmed(round4(value), 4);
-};
-
-export const formatDateShortForEet = (iso: ISODateString): string => formatIsoDateShort(iso);
-
-const resolveSaerfaktor = (
-  tabeldata: KapitaliseringsTabelData,
-  skadesdato: ISODateString
-): number | null => {
-  const kandidat = tabeldata.saerfaktorUnderToAarTilFpPerSkadesinterval
-    .filter((entry) => entry.skadesdatoFra <= skadesdato)
-    .reduce<typeof tabeldata.saerfaktorUnderToAarTilFpPerSkadesinterval[number] | null>((latest, current) => {
-      if (!latest) return current;
-      return current.skadesdatoFra > latest.skadesdatoFra ? current : latest;
-    }, null);
-  return kandidat?.faktor ?? null;
-};
-
-const resolveFactorTable = (
-  tabeldata: KapitaliseringsTabelData,
-  tabel: string,
-  koen: ErhvervsevnetabValues['koen']
-): ResolveFactorTableResult => {
-  const simpleTable = tabeldata.erhvervsevnetabTabeller[tabel];
-  if (simpleTable && simpleTable.length > 0) {
-    return { rows: simpleTable, reason: null };
-  }
-
-  const koensTable = tabeldata.erhvervsevnetabKoensopdelteTabeller[tabel];
-  if (!koensTable || koensTable.length === 0) {
-    return { rows: null, reason: 'missing-table' };
-  }
-  if (!koen) {
-    return { rows: null, reason: 'missing-koen' };
-  }
-
-  const normalized = koensTable.map<AldersFaktorRaekke>((row) => ({
-    alder: row.alder,
-    faktor: koen === 'Mand' ? row.maendFaktor : row.kvinderFaktor,
-  }));
-  return { rows: normalized, reason: null };
-};
-
 const formatAgeForIssue = (age: AgeYearsMonths): string => `${age.years} år, ${age.months} måneder`;
-
-const interpolateFactorWithinTable = (
-  rows: readonly AldersFaktorRaekke[],
-  age: AgeYearsMonths
-): number | null => {
-  const first = rows[0];
-  const last = rows[rows.length - 1];
-  if (!first || !last) return null;
-  if (age.years < first.alder) return null;
-  if (age.years > last.alder) return null;
-  if (age.years === last.alder) return last.faktor;
-
-  const lower = rows.find((row) => row.alder === age.years);
-  const upper = rows.find((row) => row.alder === age.years + 1);
-  if (!lower || !upper) return null;
-
-  return ((12 - age.months) / 12) * lower.faktor + (age.months / 12) * upper.faktor;
-};
-
-const interpolateFactorBeyondTable = (
-  rows: readonly AldersFaktorRaekke[],
-  age: AgeYearsMonths,
-  folkepensionsalderMaaneder: number,
-  saerfaktor: number
-): number | null => {
-  const last = rows[rows.length - 1];
-  if (!last) return null;
-
-  const lastAgeMonths = last.alder * 12;
-  const boundaryMonths = folkepensionsalderMaaneder - 24;
-  if (boundaryMonths < lastAgeMonths) return null;
-  if (age.totalMonths <= lastAgeMonths) return last.faktor;
-  if (age.totalMonths >= boundaryMonths) return saerfaktor;
-
-  const totalMonths = boundaryMonths - lastAgeMonths;
-  if (totalMonths <= 0) return null;
-  const monthsOver = age.totalMonths - lastAgeMonths;
-  return last.faktor + (monthsOver / totalMonths) * (saerfaktor - last.faktor);
-};
-
-const resolveAslReguleringRateInfoForKapitaliseringsAar = (
-  kapitaliseringsaar: number,
-  before2024Skade: boolean,
-  issues: EetKapitaliseringIssue[]
-): AslReguleringRateInfo | null => {
-  if (before2024Skade) {
-    if (kapitaliseringsaar <= 2023) {
-      const pct = reguleringsprocentErhvervsevnetab[kapitaliseringsaar];
-      if (!Number.isFinite(pct)) {
-        issues.push(toIssue('reguleringssats-missing', `Reguleringssats mangler for år ${kapitaliseringsaar}`));
-        return null;
-      }
-      return { factor: 1 + pct / 100, reguleringPct: pct };
-    }
-
-    if (kapitaliseringsaar === 2024) {
-      // 2024 er referenceår for opregulering fra 2003-niveau.
-      // Selve 2024-opreguleringen anvendes særskilt på grundydelsen, så satsfaktoren her er 1.
-      return { factor: 1, reguleringPct: 0 };
-    }
-
-    const pct = reguleringsprocentErhvervsevnetabFra2024[kapitaliseringsaar];
-    if (!Number.isFinite(pct)) {
-      issues.push(toIssue('reguleringssats-missing', `Reguleringssats mangler for år ${kapitaliseringsaar}`));
-      return null;
-    }
-    return { factor: 1 + pct / 100, reguleringPct: pct };
-  } else {
-    const pct = reguleringsprocentErhvervsevnetabFra2024[kapitaliseringsaar];
-    if (!Number.isFinite(pct)) {
-      issues.push(toIssue('reguleringssats-missing', `Reguleringssats mangler for år ${kapitaliseringsaar}`));
-      return null;
-    }
-    return { factor: 1 + pct / 100, reguleringPct: pct };
-  }
-};
 
 const collectResolvedRows = (
   rows: readonly AslAfgoerelseRow[],
@@ -403,7 +265,7 @@ export const computeEetKapitaliseringCalculation = (
       issues.push(
         toIssue(
           'kapitaliseringsbekendtgoerelse-missing-control-date',
-          `Kapitaliseringsbekendtgørelse mangler for ${formatDateShortForEet(controlDate)}`
+          `Kapitaliseringsbekendtgørelse mangler for ${formatIsoDateShort(controlDate)}`
         )
       );
       continue;
@@ -466,7 +328,7 @@ export const computeEetKapitaliseringCalculation = (
         issues.push(
           toIssue(
             'kapitaliseringsbekendtgoerelse-missing-effective-date',
-            `Kapitaliseringsbekendtgørelse mangler for ${formatDateShortForEet(effectiveKapDato)}`
+            `Kapitaliseringsbekendtgørelse mangler for ${formatIsoDateShort(effectiveKapDato)}`
           )
         );
         continue;
@@ -572,7 +434,7 @@ export const computeEetKapitaliseringCalculation = (
     }
 
     const kapitaliseringsaar = Number.parseInt(row.kapDato.slice(0, 4), 10);
-    const aslReguleringRateInfo = resolveAslReguleringRateInfoForKapitaliseringsAar(
+    const aslReguleringRateInfo = resolveAslReguleringRateForKapAar(
       kapitaliseringsaar,
       before2024Skade,
       issues
@@ -626,4 +488,4 @@ export const computeEetKapitaliseringCalculation = (
   };
 };
 
-export const formatKapitaliseringsPct = (value: number): string => `${formatPercentTrimmedFromRounded4(value)} %`;
+export { formatPct as formatKapitaliseringsPct } from './eetLoebendeYdelserCalculation';

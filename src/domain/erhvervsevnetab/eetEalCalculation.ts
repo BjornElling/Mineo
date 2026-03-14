@@ -4,7 +4,6 @@ import { coerceToISODateString, parseISODate } from '../../types/branded';
 import type { YearlyRate } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatIsoDateShort } from '../../utils/dateFormatting';
-import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { roundByMethod } from '../../utils/rounding';
 import {
@@ -12,6 +11,7 @@ import {
   validatePercentDivisibleBy5FromDraft,
   validatePercentDivisibleBy5FromValue,
 } from './eetAslAfgoerelser';
+import { round0, round4 } from './eetRounding';
 
 export type EetEalIssue = Readonly<{
   id: string;
@@ -63,8 +63,6 @@ type Input = Readonly<{
   aarsloenMax: YearlyRate;
 }>;
 
-const round0 = (value: number): number => roundByMethod(value, 0, 'halfAwayFromZero');
-const round4 = (value: number): number => roundByMethod(value, 4, 'halfAwayFromZero');
 const round500 = (value: number): number => roundByMethod(value / 500, 0, 'halfAwayFromZero') * 500;
 
 const toIssue = (id: string, message: string): EetEalIssue => ({
@@ -403,8 +401,5 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   };
 };
 
-export const formatPercentTrimmedFromRounded4 = (value: number): string => {
-  return formatAsAmountTrimmed(round4(value), 4);
-};
+export { formatPercentTrimmedFromRounded4 } from './eetLoebendeYdelserCalculation';
 
-export const formatDateShortForEet = (iso: ISODateString): string => formatIsoDateShort(iso);

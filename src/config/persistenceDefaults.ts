@@ -124,5 +124,13 @@ export const buildPersistenceDefaults = (settings?: AppSettings): PersistedSecti
         overenskomstFilter: resolveDefaultOverenskomstFilter(safeSettings),
       },
     },
+    erhvervsevnetab: {
+      eetDifferencekravBilagSelection: {
+        loebendeYdelser: true,
+        kapitalisering: true,
+        eetEfterEal: true,
+        proformaKapitalisering: true,
+      },
+    },
   };
 };

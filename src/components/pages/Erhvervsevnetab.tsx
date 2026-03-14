@@ -17,6 +17,7 @@ import EetOplysningerTab from './erhvervsevnetab/EetOplysningerTab';
 import EetEfterEalTab from './erhvervsevnetab/EetEfterEalTab';
 import EetLoebendeYdelserTab from './erhvervsevnetab/EetLoebendeYdelserTab';
 import EetKapitaliseringTab from './erhvervsevnetab/EetKapitaliseringTab';
+import EetDifferencekravTab from './erhvervsevnetab/EetDifferencekravTab';
 
 // ─── Fane-konstanter ─────────────────────────────────────────────────────────
 
@@ -30,7 +31,7 @@ const TAB_KEYS = {
 
 type TabKey = (typeof TAB_KEYS)[keyof typeof TAB_KEYS];
 
-// ─── Skeleton-fane (fane 2–5) ────────────────────────────────────────────────
+// ─── Skeleton-fane ───────────────────────────────────────────────────────────
 
 const SkeletonTab: React.FC<{ titel: string }> = ({ titel }) => (
   <ContentBox className="content-box">
@@ -187,7 +188,11 @@ const ErhvervsevnetabDev = React.memo(() => {
         />
       )}
       {activeTab === TAB_KEYS.DIFFERENCEKRAV && (
-        <SkeletonTab titel="Differencekrav" />
+        <EetDifferencekravTab
+          values={values}
+          setValues={setValues}
+          onGoToEetOplysninger={() => setActiveTab(TAB_KEYS.EET_OPLYSNINGER)}
+        />
       )}
     </Box>
   );

@@ -7,4 +7,10 @@ export const ERHVERVSEVNETAB_INITIAL_VALUES = {
   aslAarsloen: undefined,
   ealAarsloen: undefined,
   ealEetPct: undefined,
+  eetDifferencekravBilagSelection: {
+    loebendeYdelser: true,
+    kapitalisering: true,
+    eetEfterEal: true,
+    proformaKapitalisering: true,
+  },
 } satisfies PersistedSectionMap['erhvervsevnetab'];

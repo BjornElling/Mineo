@@ -7,13 +7,12 @@ import type { ErhvervsevnetabValues } from '../../../schemas/formSchemas';
 import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import { useScrollToSectionWithRetry } from '../../../hooks/useScrollToSectionWithRetry';
-import { formatIsoDateLong } from '../../../utils/dateFormatting';
+import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
 import { aarsloenMax, erhvervsevnetabMax, reguleringssats } from '../../../data/regulationRates';
 import {
   computeEetEalCalculation,
-  formatDateShortForEet,
   formatPercentTrimmedFromRounded4,
   type EetEalIssue,
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
@@ -64,6 +63,7 @@ const resolveIssueNavigation = (issueId: string): ErrorNavigation | null => {
 
   if (
     issueId === 'aarsloen-missing' ||
+    issueId === 'eet-pct-missing' ||
     issueId === 'field-aarsloen-asl' ||
     issueId === 'field-aarsloen-eal'
   ) {
@@ -75,11 +75,7 @@ const resolveIssueNavigation = (issueId: string): ErrorNavigation | null => {
     };
   }
 
-  if (
-    issueId === 'eet-pct-missing' ||
-    issueId === 'eal-eet-pct-invalid' ||
-    issueId === 'field-eal-eet-pct'
-  ) {
+  if (issueId === 'eal-eet-pct-invalid' || issueId === 'field-eal-eet-pct') {
     return {
       pageName: 'EET oplysninger',
       sectionName: 'Erstatningsansvarsloven',
@@ -147,6 +143,18 @@ const resolveIssueNavigation = (issueId: string): ErrorNavigation | null => {
   return null;
 };
 
+const NAVIGATION_SORT_ORDER: Record<string, number> = {
+  'stamdata-skadelidte': 0,
+  'eet-oplysninger-stamdata': 1,
+  'eet-oplysninger-asl': 2,
+  'eet-oplysninger-eal': 3,
+};
+
+const navigationSortKey = (issueId: string): number => {
+  const nav = resolveIssueNavigation(issueId);
+  return nav !== null ? (NAVIGATION_SORT_ORDER[nav.sectionId] ?? 99) : 99;
+};
+
 const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
   const navigate = useNavigate();
   const stamdata = usePersistedSection('stamdata');
@@ -186,7 +194,10 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
   ]);
 
   const issues = React.useMemo(
-    () => dedupeIssuesBySeverityAndMessage([...calculationResult.issues, ...fieldIssues]),
+    () =>
+      dedupeIssuesBySeverityAndMessage([...calculationResult.issues, ...fieldIssues]).sort(
+        (a, b) => navigationSortKey(a.id) - navigationSortKey(b.id)
+      ),
     [calculationResult.issues, fieldIssues]
   );
 
@@ -388,7 +399,7 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
             <Box className="row--label-right-hover">
               <Typography className="row--text">Fødselsdato</Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatDateShortForEet(computation.fodselsdato)}</Typography>
+                <Typography className="row--text">{formatIsoDateShort(computation.fodselsdato)}</Typography>
               </Box>
             </Box>
 

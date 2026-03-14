@@ -49,6 +49,12 @@ const createValidSections = (): PersistedSectionMap => ({
     aslAarsloen: undefined,
     ealAarsloen: undefined,
     ealEetPct: undefined,
+    eetDifferencekravBilagSelection: {
+      loebendeYdelser: true,
+      kapitalisering: true,
+      eetEfterEal: true,
+      proformaKapitalisering: true,
+    },
   },
 });
 

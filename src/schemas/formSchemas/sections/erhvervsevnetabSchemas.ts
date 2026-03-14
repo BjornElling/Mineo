@@ -21,6 +21,15 @@ export type AslAfgoerelseRow = z.infer<typeof aslAfgoerelseRowSchema>;
 
 // ─── Erhvervsevnetab (fane 1) ─────────────────────────────────────────────────
 
+const eetDifferencekravBilagSelectionSchema = z.object({
+  loebendeYdelser: z.boolean(),
+  kapitalisering: z.boolean(),
+  eetEfterEal: z.boolean(),
+  proformaKapitalisering: z.boolean(),
+}).strict();
+
+export type EetDifferencekravBilagSelection = z.infer<typeof eetDifferencekravBilagSelectionSchema>;
+
 const erhvervsevnetabInnerSchema = z.object({
   beregningsdato: optionalIsoDateString,
   koen: koenEnum.optional(),
@@ -29,6 +38,7 @@ const erhvervsevnetabInnerSchema = z.object({
   ealAarsloen: tableAmountCellValue,
   // ealEetPct gemmes som decimaltal (ikke tabel-draft-string) og parses derfor i schema-laget.
   ealEetPct: percentageDecimal,
+  eetDifferencekravBilagSelection: eetDifferencekravBilagSelectionSchema,
 }).strict();
 
 export const erhvervsevnetabSchema = z.preprocess(
