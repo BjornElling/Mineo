@@ -11,12 +11,24 @@ export type DateRangeSpecialErrors = {
   /**
    * Identifies the semantic origin of the min-bound for domain-specific error messages.
    */
-  minBoundKind?: 'skadesdato' | 'anmeldedatoMinus5Aar' | 'afgoerelsesdato';
+  minBoundKind?: 'skadesdato' | 'anmeldedatoMinus5Aar' | 'kapDatoFoerAfgoerelsesdato';
   /**
    * The user-visible reference date that produced the bound (typically Skadesdato/Anmeldedato).
    * This is used for special messages that must mention the concrete reference date.
    */
   minBoundReferenceISO?: ISODateString;
+  /**
+   * When set, overrides the generic max-date error with "[fieldLabel] kan senest være 31. december ÅÅÅÅ".
+   * The year is extracted from maxDate. Use for EET fields bounded by data coverage year.
+   */
+  maxBoundKind?: 'eetDataMax' | 'foerAfgoerelsesdato';
+  /** The field label used in the maxBoundKind error message, e.g. "Beregningsdato". */
+  maxBoundFieldLabel?: string;
+  /**
+   * The reference date shown in the 'foerAfgoerelsesdato' max-bound error message.
+   * Should be the afgørelsesdato of the row (not the derived max = subtractOneDay(afgørelsesdato)).
+   */
+  maxBoundReferenceISO?: ISODateString;
 };
 
 const formatISOForTooltip = (iso: ISODateString): string => isoToDanish(iso) ?? iso;
@@ -45,8 +57,20 @@ export const resolveDateRangeErrorMessage = (args: {
     return `Datoen er mere end 5 år før anmeldedatoen (${formatISOForTooltip(reference)})`;
   }
 
-  if (special?.minBoundKind === 'afgoerelsesdato' && minDate && iso < minDate) {
-    return 'Kapitaliseringsdato kan ikke være før afgørelsesdato';
+  if (special?.minBoundKind === 'kapDatoFoerAfgoerelsesdato' && minDate && iso < minDate) {
+    const reference = special.minBoundReferenceISO ?? minDate;
+    return `Kapitaliseringsdato kan ikke være før afgørelsesdatoen (${formatISOForTooltip(reference)})`;
+  }
+
+  if (special?.maxBoundKind === 'eetDataMax' && maxDate && iso > maxDate) {
+    const year = Number.parseInt(maxDate.slice(0, 4), 10);
+    const label = special.maxBoundFieldLabel ?? 'Datoen';
+    return `${label} kan senest være 31. december ${year}`;
+  }
+
+  if (special?.maxBoundKind === 'foerAfgoerelsesdato' && maxDate && iso > maxDate) {
+    const reference = special.maxBoundReferenceISO ?? maxDate;
+    return `Tidl. kap.dato skal være før afgørelsesdatoen (${formatISOForTooltip(reference)})`;
   }
 
   if (special?.fraTilRole === 'fra' && maxDate && iso > maxDate) {

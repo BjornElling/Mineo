@@ -89,9 +89,8 @@ const toIssue = (id: string, message: string): EetKapitaliseringIssue => ({
 });
 
 const toMissingFieldIssue = (fieldId: string, fieldLabel: string): EetKapitaliseringIssue =>
-  toIssue(`missing-${fieldId}`, `Der mangler indtastning af ${fieldLabel}`);
+  toIssue(`missing-${fieldId}`, `Der mangler indtastning af ${fieldLabel}.`);
 
-const toIsoDate = (value: unknown): ISODateString | undefined => coerceToISODateString(value);
 
 const compareIso = (a: ISODateString, b: ISODateString): number => {
   if (a < b) return -1;
@@ -112,7 +111,7 @@ const collectResolvedRows = (
     return (
       eetPct !== undefined &&
       eetPct > 0 &&
-      toIsoDate(row.afgoerelsesDato) !== undefined &&
+      coerceToISODateString(row.afgoerelsesDato) !== undefined &&
       row.afgoerelseType !== undefined
     );
   });
@@ -125,13 +124,13 @@ const collectResolvedRows = (
       issues.push(
         toIssue(
           'asl-afgoerelser-empty',
-          'Ingen afgørelser med erhvervsevnetabsprocent er udfyldt'
+          'Ingen afgørelser med erhvervsevnetabsprocent er udfyldt.'
         )
       );
       return result;
     }
 
-    const hasAnyAfgoerelsesdato = startedRows.some((row) => toIsoDate(row.afgoerelsesDato) !== undefined);
+    const hasAnyAfgoerelsesdato = startedRows.some((row) => coerceToISODateString(row.afgoerelsesDato) !== undefined);
     const hasAnyAfgoerelsestype = startedRows.some((row) => row.afgoerelseType !== undefined);
     const hasAnyEetPct = startedRows.some((row) => {
       const eetPct = parsePercentDraft(row.eetPct);
@@ -164,7 +163,7 @@ const collectResolvedRows = (
       !hasTextValue(row.kapPct)
   );
   if (hasKapDatoWithoutKapPct) {
-    issues.push(toIssue('kap-dato-without-kap-pct', 'Der er indtastet kapitaliseringsdato men ikke -procent'));
+    issues.push(toIssue('kap-dato-without-kap-pct', 'Der er indtastet kapitaliseringsdato men ikke -procent.'));
   }
 
   const hasKapPctWithoutKapDato = rowsWithKapitaliserbarAfgoerelse.some(
@@ -173,7 +172,7 @@ const collectResolvedRows = (
       !hasTextValue(row.kapDato)
   );
   if (hasKapPctWithoutKapDato) {
-    issues.push(toIssue('kap-pct-without-kap-dato', 'Der er indtastet kapitaliseringsprocent men ikke -dato'));
+    issues.push(toIssue('kap-pct-without-kap-dato', 'Der er indtastet kapitaliseringsprocent men ikke -dato.'));
   }
 
   for (const row of rows) {
@@ -181,8 +180,8 @@ const collectResolvedRows = (
     const kapPct = parsePercentDraft(row.kapPct);
     if (kapPct === undefined || kapPct <= 0) continue;
 
-    const afgoerelsesdato = toIsoDate(row.afgoerelsesDato);
-    const kapDato = toIsoDate(row.kapDato);
+    const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
+    const kapDato = coerceToISODateString(row.kapDato);
     if (!afgoerelsesdato || !kapDato) continue;
 
     result.push({
@@ -191,15 +190,21 @@ const collectResolvedRows = (
       kapDato,
       kapPct,
       afgoerelseType: row.afgoerelseType,
-      tidlKapDato: toIsoDate(row.tidlKapDato) ?? null,
+      tidlKapDato: coerceToISODateString(row.tidlKapDato) ?? null,
     });
   }
+
+  const hasKapPctZeroOnKapitaliserbarRow = rowsWithKapitaliserbarAfgoerelse.some((row) => {
+    const kapPct = parsePercentDraft(row.kapPct);
+    return hasTextValue(row.kapPct) && (kapPct === undefined || kapPct === 0);
+  });
 
   if (
     rowsWithKapitaliserbarAfgoerelse.length > 0 &&
     result.length === 0 &&
     !hasKapDatoWithoutKapPct &&
-    !hasKapPctWithoutKapDato
+    !hasKapPctWithoutKapDato &&
+    !hasKapPctZeroOnKapitaliserbarRow
   ) {
     issues.push(toMissingFieldIssue('kap-dato', 'kapitaliseringsdato'));
     issues.push(toMissingFieldIssue('kap-pct', 'kapitaliseringsprocent'));
@@ -222,13 +227,15 @@ export const computeEetKapitaliseringCalculation = (
   const aarsloen = amountValueToNumber(values.aslAarsloen);
 
   if (!Number.isFinite(aarsloen)) {
-    issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt'));
+    issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt.'));
+  } else if (aarsloen === 0) {
+    issues.push(toIssue('aarsloen-zero', 'Årsløn må ikke være 0 kr.'));
   }
   if (!fodselsdato) {
-    issues.push(toIssue('fodselsdato-missing', 'Fødselsdato er ikke udfyldt'));
+    issues.push(toIssue('fodselsdato-missing', 'Fødselsdato er ikke udfyldt.'));
   }
   if (!skadesdato) {
-    issues.push(toIssue('skadesdato-missing', 'Skadesdato er ikke udfyldt'));
+    issues.push(toIssue('skadesdato-missing', 'Skadesdato er ikke udfyldt.'));
   }
 
   const resolvedRows = collectResolvedRows(values.aslAfgoerelser, issues);
@@ -240,7 +247,7 @@ export const computeEetKapitaliseringCalculation = (
   const skadesaar = Number.parseInt(skadesdato.slice(0, 4), 10);
   const maxAarsloenISkadesaar = aarsloenMax[skadesaar];
   if (!Number.isFinite(maxAarsloenISkadesaar)) {
-    issues.push(toIssue('aarsloen-max-missing', `Maksimum årsløn mangler for år ${skadesaar}`));
+    issues.push(toIssue('aarsloen-max-missing', `Maksimum årsløn mangler for år ${skadesaar}.`));
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
@@ -265,7 +272,7 @@ export const computeEetKapitaliseringCalculation = (
       issues.push(
         toIssue(
           'kapitaliseringsbekendtgoerelse-missing-control-date',
-          `Kapitaliseringsbekendtgørelse mangler for ${formatIsoDateShort(controlDate)}`
+          `Kapitaliseringsbekendtgørelse mangler for ${formatIsoDateShort(controlDate)}.`
         )
       );
       continue;
@@ -276,7 +283,7 @@ export const computeEetKapitaliseringCalculation = (
       issues.push(
         toIssue(
           'kapitaliseringsbekendtgoerelse-missing-control-date',
-          `Kapitaliseringsdata mangler for ${controlBekId}`
+          `Kapitaliseringsdata mangler for ${controlBekId}.`
         )
       );
       continue;
@@ -287,7 +294,7 @@ export const computeEetKapitaliseringCalculation = (
       issues.push(
         toIssue(
           'kapitaliseringstabel-missing',
-          `Ingen kapitaliseringstabel i ${controlBekId} matcher skadesdato og fødselsdato på kontroltidspunktet`
+          `Ingen kapitaliseringstabel i ${controlBekId} matcher skadesdato og fødselsdato på kontroltidspunktet.`
         )
       );
       continue;
@@ -295,7 +302,7 @@ export const computeEetKapitaliseringCalculation = (
 
     const controlAge = calculateAgeYearsMonths(fodselsdato, controlDate);
     if (!controlAge) {
-      issues.push(toIssue('kapitaliseringsfaktor-unresolved', 'Alder kan ikke beregnes for kontroltidspunktet'));
+      issues.push(toIssue('kapitaliseringsfaktor-unresolved', 'Alder kan ikke beregnes for kontroltidspunktet.'));
       continue;
     }
 
@@ -315,7 +322,7 @@ export const computeEetKapitaliseringCalculation = (
         issues.push(
           toIssue(
             'kapitaliseringsfaktor-unresolved',
-            'Særfaktor mangler for kapitalisering under 2 år til folkepension'
+            'Særfaktor mangler for kapitalisering under 2 år til folkepension.'
           )
         );
         continue;
@@ -328,7 +335,7 @@ export const computeEetKapitaliseringCalculation = (
         issues.push(
           toIssue(
             'kapitaliseringsbekendtgoerelse-missing-effective-date',
-            `Kapitaliseringsbekendtgørelse mangler for ${formatIsoDateShort(effectiveKapDato)}`
+            `Kapitaliseringsbekendtgørelse mangler for ${formatIsoDateShort(effectiveKapDato)}.`
           )
         );
         continue;
@@ -339,7 +346,7 @@ export const computeEetKapitaliseringCalculation = (
         issues.push(
           toIssue(
             'kapitaliseringsbekendtgoerelse-missing-effective-date',
-            `Kapitaliseringsdata mangler for ${effectiveBekId}`
+            `Kapitaliseringsdata mangler for ${effectiveBekId}.`
           )
         );
         continue;
@@ -350,7 +357,7 @@ export const computeEetKapitaliseringCalculation = (
         issues.push(
           toIssue(
             'kapitaliseringstabel-missing',
-            `Ingen kapitaliseringstabel i ${effectiveBekId} matcher skadesdato og fødselsdato på kapitaliseringstidspunktet`
+            `Ingen kapitaliseringstabel i ${effectiveBekId} matcher skadesdato og fødselsdato på kapitaliseringstidspunktet.`
           )
         );
         continue;
@@ -359,7 +366,7 @@ export const computeEetKapitaliseringCalculation = (
       resolvedSaerfaktor = resolveSaerfaktor(effectiveData, skadesdato);
       const effectiveAge = calculateAgeYearsMonths(fodselsdato, effectiveKapDato);
       if (!effectiveAge) {
-        issues.push(toIssue('kapitaliseringsfaktor-unresolved', 'Alder kan ikke beregnes på kapitaliseringstidspunktet'));
+        issues.push(toIssue('kapitaliseringsfaktor-unresolved', 'Alder kan ikke beregnes på kapitaliseringstidspunktet.'));
         continue;
       }
       ageForFactor = effectiveAge;
@@ -369,8 +376,8 @@ export const computeEetKapitaliseringCalculation = (
       if (!factorTable || factorTable.length === 0) {
         const message =
           factorTableResult.reason === 'missing-koen'
-            ? `Køn mangler for kapitaliseringstabel ${effectiveTabelvalg.tabel}`
-            : `Ingen kapitaliseringsfaktorer indtastet for tabel ${effectiveTabelvalg.tabel}`;
+            ? `Køn mangler for kapitaliseringstabel ${effectiveTabelvalg.tabel}.`
+            : `Ingen kapitaliseringsfaktorer indtastet for tabel ${effectiveTabelvalg.tabel}.`;
         issues.push(
           toIssue(
             'kapitaliseringstabel-missing',
@@ -385,7 +392,7 @@ export const computeEetKapitaliseringCalculation = (
         issues.push(
           toIssue(
             'kapitaliseringsalder-under-minimum',
-            `Ingen kapitaliseringsfaktor indtastet for alder (${formatAgeForIssue(ageForFactor)}) - tabellen starter ved ${minAge} år`
+            `Ingen kapitaliseringsfaktor indtastet for alder (${formatAgeForIssue(ageForFactor)}) — tabellen starter ved ${minAge} år.`
           )
         );
         continue;
@@ -400,7 +407,7 @@ export const computeEetKapitaliseringCalculation = (
           issues.push(
             toIssue(
               'kapitaliseringsfaktor-unresolved',
-              `Ingen kapitaliseringsfaktor indtastet for alder (${formatAgeForIssue(ageForFactor)}) i tabel ${effectiveTabelvalg.tabel}`
+              `Ingen kapitaliseringsfaktor indtastet for alder (${formatAgeForIssue(ageForFactor)}) i tabel ${effectiveTabelvalg.tabel}.`
             )
           );
           continue;
@@ -409,7 +416,7 @@ export const computeEetKapitaliseringCalculation = (
           issues.push(
             toIssue(
               'kapitaliseringsfaktor-unresolved',
-              'Kapitaliseringsfaktor kan ikke beregnes, fordi særfaktor mangler'
+              'Kapitaliseringsfaktor kan ikke beregnes, fordi særfaktor mangler.'
             )
           );
           continue;
@@ -424,7 +431,7 @@ export const computeEetKapitaliseringCalculation = (
           issues.push(
             toIssue(
               'kapitaliseringsfaktor-unresolved',
-              `Kapitaliseringsfaktor kan ikke beregnes for alder (${formatAgeForIssue(ageForFactor)}) ud fra tabel ${effectiveTabelvalg.tabel} og særfaktor`
+              `Kapitaliseringsfaktor kan ikke beregnes for alder (${formatAgeForIssue(ageForFactor)}) ud fra tabel ${effectiveTabelvalg.tabel} og særfaktor.`
             )
           );
           continue;
@@ -444,7 +451,7 @@ export const computeEetKapitaliseringCalculation = (
     const grundydelse = round2(grundloen * (row.kapPct / 100) * erstatningsniveau * amFaktor);
     const reguleringFoer2024 = reguleringsprocentErhvervsevnetabFoer2024[2024];
     if (before2024Skade && !Number.isFinite(reguleringFoer2024)) {
-      issues.push(toIssue('reguleringssats-missing', 'Reguleringssats mangler for år 2024'));
+      issues.push(toIssue('reguleringssats-missing', 'Reguleringssats mangler for år 2024.'));
       continue;
     }
     const grundydelse2024 = before2024Skade

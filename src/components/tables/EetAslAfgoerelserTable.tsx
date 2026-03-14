@@ -5,6 +5,7 @@ import TablePercentInput from '../inputs/table/TablePercentInput';
 import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
 import StandardLooseTable from './StandardLooseTable';
 import { dateRanges_erhvervsevnetab } from '../../config/dateRanges';
+import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import type { AslAfgoerelseRow, AfgoerelseType } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, subtractOneDay } from '../../types/branded';
@@ -31,7 +32,8 @@ const AFGOERELSES_TYPE_OPTIONS: readonly TableDropdownOption[] = [
   { value: 'Endelig', label: 'Endelig' },
 ];
 
-const KAP_DATO_SPECIAL_RANGE_ERRORS = { minBoundKind: 'afgoerelsesdato' } as const;
+const VIRKNINGSDATO_SPECIAL_RANGE_ERRORS: DateRangeSpecialErrors = { maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Virkningsdato' };
+const KAPDATO_NO_AFGOERELSESDATO_SPECIAL_RANGE_ERRORS: DateRangeSpecialErrors = { maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Kapitaliseringsdato' };
 
 const TABLE_FINGERPRINT_KEYS = [
   'id',
@@ -50,24 +52,14 @@ const fingerprintTableData = (rows: readonly AslAfgoerelseRow[]): string => {
 
 const EetAslAfgoerelserTable = React.memo(
   ({ tableData, skadesdato, skadesdatoMin, beregningsdato, fodselsdato, onTableDataChange }: EetAslAfgoerelserTableProps) => {
-    const minIso = React.useCallback((a: ISODateString, b: ISODateString): ISODateString => {
-      return a < b ? a : b;
-    }, []);
+    const tabelAfgoerelsesdatoMax = dateRanges_erhvervsevnetab.tabelAfgoerelsesdato.max;
+    const tabelVirkningsdatoMax = dateRanges_erhvervsevnetab.tabelVirkningsdato.max;
+    const tabelKapitaliseringsdatoMax = dateRanges_erhvervsevnetab.tabelKapitaliseringsdato.max;
 
-    const tabelAfgoerelsesdatoMax = React.useMemo(() => {
-      const staticMax = dateRanges_erhvervsevnetab.tabelAfgoerelsesdato.max;
-      return beregningsdato ? minIso(staticMax, beregningsdato) : staticMax;
-    }, [beregningsdato, minIso]);
-
-    const tabelVirkningsdatoMax = React.useMemo(() => {
-      const staticMax = dateRanges_erhvervsevnetab.tabelVirkningsdato.max;
-      return beregningsdato ? minIso(staticMax, beregningsdato) : staticMax;
-    }, [beregningsdato, minIso]);
-
-    const tabelKapitaliseringsdatoMax = React.useMemo(() => {
-      const staticMax = dateRanges_erhvervsevnetab.tabelKapitaliseringsdato.max;
-      return beregningsdato ? minIso(staticMax, beregningsdato) : staticMax;
-    }, [beregningsdato, minIso]);
+    const afgoerelsesDatoSpecialErrors = React.useMemo<DateRangeSpecialErrors>(
+      () => ({ minBoundKind: 'skadesdato', minBoundReferenceISO: skadesdato, maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Afgørelsesdato' }),
+      [skadesdato]
+    );
 
     const defaultTableData = React.useMemo<AslAfgoerelseRow[]>(
       () => [createEmptyAslAfgoerelseRow(), createEmptyAslAfgoerelseRow()],
@@ -223,6 +215,7 @@ const EetAslAfgoerelserTable = React.memo(
                     onBlur={(e) => commitRowUpdate(row.id, { afgoerelsesDato: e.target.value || undefined })}
                     minDate={skadesdatoMin}
                     maxDate={tabelAfgoerelsesdatoMax}
+                    specialRangeErrors={afgoerelsesDatoSpecialErrors}
                     externalErrorMessage={duplicateAfgoerelsesDatoError}
                   />
                 </TableCell>
@@ -233,6 +226,7 @@ const EetAslAfgoerelserTable = React.memo(
                     onBlur={(e) => commitRowUpdate(row.id, { virkningsDato: e.target.value || undefined })}
                     minDate={skadesdatoMin}
                     maxDate={tabelVirkningsdatoMax}
+                    specialRangeErrors={VIRKNINGSDATO_SPECIAL_RANGE_ERRORS}
                     externalErrorMessage={duplicateVirkningsDatoError}
                   />
                 </TableCell>
@@ -271,6 +265,9 @@ const EetAslAfgoerelserTable = React.memo(
                     const kapDatoMin = afgoerelsesDatoIso ?? skadesdatoMin;
                     const kapDatoMax = tabelKapitaliseringsdatoMax;
                     const hasValidRange = !(kapDatoMax !== undefined && kapDatoMin > kapDatoMax);
+                    const kapDatoSpecialErrors: DateRangeSpecialErrors = afgoerelsesDatoIso
+                      ? { minBoundKind: 'kapDatoFoerAfgoerelsesdato', minBoundReferenceISO: afgoerelsesDatoIso, maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Kapitaliseringsdato' }
+                      : KAPDATO_NO_AFGOERELSESDATO_SPECIAL_RANGE_ERRORS;
                     return (
                       <TableDateInput
                         gridCell={{ rowId: row.id, colIndex: 4 }}
@@ -278,7 +275,7 @@ const EetAslAfgoerelserTable = React.memo(
                         onBlur={(e) => commitRowUpdate(row.id, { kapDato: e.target.value || undefined })}
                         minDate={hasValidRange ? kapDatoMin : undefined}
                         maxDate={hasValidRange ? kapDatoMax : undefined}
-                        specialRangeErrors={afgoerelsesDatoIso ? KAP_DATO_SPECIAL_RANGE_ERRORS : undefined}
+                        specialRangeErrors={kapDatoSpecialErrors}
                         externalErrorMessage={kapDatoError}
                       />
                     );
@@ -299,8 +296,14 @@ const EetAslAfgoerelserTable = React.memo(
                 </TableCell>
                 <TableCell>
                   {(() => {
-                    const tidlKapMax = subtractOneDay(coerceToISODateString(row.afgoerelsesDato));
+                    const afgoerelsesDatoIso = coerceToISODateString(row.afgoerelsesDato);
+                    const tidlKapMax = subtractOneDay(afgoerelsesDatoIso);
                     const hasValidRange = !(tidlKapMax !== undefined && skadesdatoMin > tidlKapMax);
+                    const tidlKapSpecialErrors: DateRangeSpecialErrors = {
+                      minBoundKind: 'skadesdato',
+                      maxBoundKind: 'foerAfgoerelsesdato',
+                      maxBoundReferenceISO: afgoerelsesDatoIso,
+                    };
                     return (
                       <TableDateInput
                         gridCell={{ rowId: row.id, colIndex: 6 }}
@@ -308,6 +311,7 @@ const EetAslAfgoerelserTable = React.memo(
                         onBlur={(e) => commitRowUpdate(row.id, { tidlKapDato: e.target.value || undefined })}
                         minDate={hasValidRange ? skadesdatoMin : undefined}
                         maxDate={hasValidRange ? tidlKapMax : undefined}
+                        specialRangeErrors={tidlKapSpecialErrors}
                         externalErrorMessage={tidlKapDatoError}
                       />
                     );

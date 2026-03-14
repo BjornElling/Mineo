@@ -54,9 +54,12 @@ export type EetDifferencekravLoebendeAfgoerelse = Readonly<{
 export type EetDifferencekravKapitaliseretAfgoerelse = Readonly<{
   rowId: string;
   afgoerelsesdato: ISODateString;
+  // null = ikke kapitaliseret
   kapitaliseringsdato: ISODateString | null;
   kapitaliseringspct: number | null;
   kapitalbelob: number | null;
+  // true = kapitalisering er angivet, men datoen er efter beregningsdatoen og medregnes ikke
+  kapitaliseringEfterBeregningsdato: boolean;
 }>;
 
 export type EetDifferencekravProformaKapitalisering = Readonly<{
@@ -116,15 +119,15 @@ const NON_BLOCKING_KAP_ISSUE_IDS = new Set([
   'kapitaliseringstabel-missing',
   'kapitaliseringsalder-under-minimum',
   'kapitaliseringsfaktor-unresolved',
-  'kap-dato-without-kap-pct',
-  'kap-pct-without-kap-dato',
+  'kap-dato-without-kap-pct',   // også i NON_BLOCKING_LOEBENDE_ISSUE_IDS — kan komme fra begge faner
+  'kap-pct-without-kap-dato',   // også i NON_BLOCKING_LOEBENDE_ISSUE_IDS — kan komme fra begge faner
 ]);
 
 // Issue IDs from fane 2 (løbende) that are non-blocking on fane 5
 // when there are no capitalized settlements.
 const NON_BLOCKING_LOEBENDE_ISSUE_IDS = new Set([
-  'kap-dato-without-kap-pct',
-  'kap-pct-without-kap-dato',
+  'kap-dato-without-kap-pct',   // også i NON_BLOCKING_KAP_ISSUE_IDS — kan komme fra begge faner
+  'kap-pct-without-kap-dato',   // også i NON_BLOCKING_KAP_ISSUE_IDS — kan komme fra begge faner
   'endelig-under-50-missing-kapitalisering',
   'delvist-endelig-missing-kapitalisering',
 ]);
@@ -151,7 +154,7 @@ const computeProformaKapitalisering = (
   if (!controlBekId) {
     issues.push(toIssue(
       'proforma-kapitaliseringsbekendtgoerelse-missing',
-      `Der findes ingen gyldig kapitaliseringsbekendtgørelse for beregningsdatoen ${formatIsoDateShort(beregningsdato)}`
+      `Der findes ingen gyldig kapitaliseringsbekendtgørelse for beregningsdatoen ${formatIsoDateShort(beregningsdato)}.`
     ));
     return null;
   }
@@ -160,7 +163,7 @@ const computeProformaKapitalisering = (
   if (!tabeldata) {
     issues.push(toIssue(
       'proforma-kapitaliseringsbekendtgoerelse-missing',
-      `Kapitaliseringsdata mangler for ${controlBekId}`
+      `Kapitaliseringsdata mangler for ${controlBekId}.`
     ));
     return null;
   }
@@ -169,14 +172,14 @@ const computeProformaKapitalisering = (
   if (!tabelvalg) {
     issues.push(toIssue(
       'proforma-kapitaliseringstabel-missing',
-      'Ingen kapitaliseringstabel matcher skadesdato og fødselsdato på beregningsdatoen'
+      'Ingen kapitaliseringstabel matcher skadesdato og fødselsdato på beregningsdatoen.'
     ));
     return null;
   }
 
   const age = calculateAgeYearsMonths(fodselsdato, beregningsdato);
   if (!age) {
-    issues.push(toIssue('proforma-kapitaliseringsfaktor-unresolved', 'Alder kan ikke beregnes på beregningsdatoen'));
+    issues.push(toIssue('proforma-kapitaliseringsfaktor-unresolved', 'Alder kan ikke beregnes på beregningsdatoen.'));
     return null;
   }
 
@@ -189,7 +192,7 @@ const computeProformaKapitalisering = (
     if (saerfaktor === null) {
       issues.push(toIssue(
         'proforma-kapitaliseringsfaktor-unresolved',
-        'Særfaktor mangler for proformakapitalisering under 2 år til folkepension'
+        'Særfaktor mangler for proformakapitalisering under 2 år til folkepension.'
       ));
       return null;
     }
@@ -200,8 +203,8 @@ const computeProformaKapitalisering = (
     const factorRows = factorTableResult.rows;
     if (!factorRows || factorRows.length === 0) {
       const message = factorTableResult.reason === 'missing-koen'
-        ? `Køn mangler for kapitaliseringstabel ${tabelvalg.tabel}`
-        : `Ingen kapitaliseringsfaktorer for tabel ${tabelvalg.tabel}`;
+        ? `Køn mangler for kapitaliseringstabel ${tabelvalg.tabel}.`
+        : `Ingen kapitaliseringsfaktorer for tabel ${tabelvalg.tabel}.`;
       issues.push(toIssue('proforma-kapitaliseringstabel-missing', message));
       return null;
     }
@@ -210,7 +213,7 @@ const computeProformaKapitalisering = (
     if (minAge === undefined || age.years < minAge) {
       issues.push(toIssue(
         'proforma-kapitaliseringsalder-under-minimum',
-        `Ingen kapitaliseringsfaktor for alder (${age.years} år, ${age.months} mdr.) - tabellen starter ved ${minAge} år`
+        `Ingen kapitaliseringsfaktor for alder (${age.years} år, ${age.months} mdr.) — tabellen starter ved ${minAge} år.`
       ));
       return null;
     }
@@ -223,14 +226,14 @@ const computeProformaKapitalisering = (
       if (maxAge !== undefined && age.years <= maxAge) {
         issues.push(toIssue(
           'proforma-kapitaliseringsfaktor-unresolved',
-          `Ingen kapitaliseringsfaktor for alder (${age.years} år, ${age.months} mdr.) i tabel ${tabelvalg.tabel}`
+          `Ingen kapitaliseringsfaktor for alder (${age.years} år, ${age.months} mdr.) i tabel ${tabelvalg.tabel}.`
         ));
         return null;
       }
       if (saerfaktor === null) {
         issues.push(toIssue(
           'proforma-kapitaliseringsfaktor-unresolved',
-          'Kapitaliseringsfaktor kan ikke beregnes, fordi særfaktor mangler'
+          'Kapitaliseringsfaktor kan ikke beregnes, fordi særfaktor mangler.'
         ));
         return null;
       }
@@ -238,7 +241,7 @@ const computeProformaKapitalisering = (
       if (beyondTable === null) {
         issues.push(toIssue(
           'proforma-kapitaliseringsfaktor-unresolved',
-          `Kapitaliseringsfaktor kan ikke beregnes for alder (${age.years} år, ${age.months} mdr.)`
+          `Kapitaliseringsfaktor kan ikke beregnes for alder (${age.years} år, ${age.months} mdr.).`
         ));
         return null;
       }
@@ -253,7 +256,7 @@ const computeProformaKapitalisering = (
   const grundydelse = round2(args.grundloen * (loebendeEetPct / 100) * args.erstatningsniveau * args.amFaktor);
   const reguleringFoer2024 = reguleringsprocentErhvervsevnetabFoer2024[2024];
   if (args.before2024Skade && !Number.isFinite(reguleringFoer2024)) {
-    issues.push(toIssue('proforma-reguleringssats-missing-2024', 'Reguleringssats mangler for år 2024'));
+    issues.push(toIssue('proforma-reguleringssats-missing-2024', 'Reguleringssats mangler for år 2024.'));
     return null;
   }
   const grundydelse2024 = args.before2024Skade
@@ -388,9 +391,9 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       allSourceIssues.push(issue as EetDifferencekravIssue);
     }
   } else if (!beregningsdato) {
-    allSourceIssues.push({ id: 'beregningsdato-missing', severity: 'error', message: 'Beregningsdato er ikke udfyldt' });
+    allSourceIssues.push({ id: 'beregningsdato-missing', severity: 'error', message: 'Beregningsdato er ikke udfyldt.' });
   } else if (!dagFoerBeregningsdato) {
-    allSourceIssues.push({ id: 'beregningsdato-invalid', severity: 'error', message: 'Beregningsdato er ugyldig' });
+    allSourceIssues.push({ id: 'beregningsdato-invalid', severity: 'error', message: 'Beregningsdato er ugyldig.' });
   }
 
   // ─── Fradrag 3: Proformakapitalisering (issues indgår i blocking-evaluering) ──
@@ -458,12 +461,17 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
     allSourceIssues.push(issue);
   }
 
-  const aggregatedIssues = dedupeIssuesBySeverityAndMessage(allSourceIssues);
+  // 'no-endelig-afgoerelser' er kun relevant på fane 3 og må ikke vises eller blokere på fane 5.
+  const aggregatedIssues = dedupeIssuesBySeverityAndMessage(allSourceIssues)
+    .filter((issue) => issue.id !== 'no-endelig-afgoerelser');
 
   // Download blocking: errors, excluding non-blocking issues when no kapitaliserede afgørelser exist.
   // Baseres på rådata (ikke kapResult.computation) så issues som kap-dato-without-kap-pct korrekt
   // blokerer download selv når kapResult.computation er null pga. andre blokerende fejl.
+  // Midlertidig-rækker tæller ikke som "kapitaliserede" — kapitaliseringsdata på dem er altid en fejl,
+  // og de skal ikke aktivere den skærpede blokerings-tilstand for øvrige fane-3-fejl.
   const kapHasCapitalized = input.erhvervsevnetab.aslAfgoerelser.some((row) => {
+    if (row.afgoerelseType === 'Midlertidig') return false;
     const kapDato = coerceToISODateString(row.kapDato);
     const kapPct = parsePercentDraft(row.kapPct);
     return (kapDato !== undefined) || (kapPct !== undefined && kapPct > 0);
@@ -538,7 +546,10 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
     .map((row) => {
       const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato)!;
       const kapComp = kapResult.computation?.afgoerelser.find((a) => a.rowId === row.id);
-      if (kapComp) {
+      // Kapitalisering medregnes kun hvis kapitaliseringsdatoen er <= beregningsdatoen.
+      // Er kapitaliseringsdatoen efter beregningsdatoen, vises afgørelsen som "ikke kapitaliseret
+      // på beregningsdatoen" og bidrager ikke til fradragKapitaliseretEet.
+      if (kapComp && kapComp.kapitaliseringsdato <= beregningsdato) {
         fradragKapitaliseretEet += kapComp.kapitalbelob;
         return {
           rowId: row.id,
@@ -546,6 +557,17 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
           kapitaliseringsdato: kapComp.kapitaliseringsdato,
           kapitaliseringspct: kapComp.kapitaliseringspct,
           kapitalbelob: kapComp.kapitalbelob,
+          kapitaliseringEfterBeregningsdato: false,
+        };
+      }
+      if (kapComp && kapComp.kapitaliseringsdato > beregningsdato) {
+        return {
+          rowId: row.id,
+          afgoerelsesdato,
+          kapitaliseringsdato: null as ISODateString | null,
+          kapitaliseringspct: null as number | null,
+          kapitalbelob: null as number | null,
+          kapitaliseringEfterBeregningsdato: true,
         };
       }
       return {
@@ -554,6 +576,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
         kapitaliseringsdato: null as ISODateString | null,
         kapitaliseringspct: null as number | null,
         kapitalbelob: null as number | null,
+        kapitaliseringEfterBeregningsdato: false,
       };
     })
     .sort((a, b) => a.afgoerelsesdato.localeCompare(b.afgoerelsesdato));

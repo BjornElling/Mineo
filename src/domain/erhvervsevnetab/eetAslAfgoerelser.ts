@@ -40,7 +40,7 @@ export const parsePercentDraft = (raw: string | undefined): number | undefined =
 export const hasTextValue = (raw: string | undefined): boolean =>
   typeof raw === 'string' && raw.trim() !== '';
 
-const DUPLICATE_AFGOERELSE_MESSAGE = 'Der er angivet to identiske afgørelser';
+const DUPLICATE_AFGOERELSE_MESSAGE = 'Der er angivet to identiske afgørelser.';
 
 const assertNeverAfgoerelsestype = (_value: never): undefined => undefined;
 
@@ -73,7 +73,7 @@ export const validateEetPctByPriorKapPct = (
   if (priorKapPctSum <= 0) return undefined;
 
   if (eetPct <= priorKapPctSum) {
-    return 'EET % skal være større end summen af kapitaliseringsprocenter fra tidligere afgørelser';
+    return 'EET % skal være større end summen af kapitaliseringsprocenter fra tidligere afgørelser.';
   }
 
   return undefined;
@@ -118,14 +118,14 @@ export const validateKapPctByAfgoerelsestype = (
   const afgoerelsestype = row.afgoerelseType;
   if (afgoerelsestype === undefined || afgoerelsestype === 'Midlertidig') {
     if (hasTextValue(row.kapPct)) {
-      return 'Kapitaliseringsprocent må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype';
+      return 'Kapitaliseringsprocent må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype.';
     }
     return undefined;
   }
 
   const kapPct = parsePercentDraft(row.kapPct);
   if (afgoerelsestype === 'Delvist endelig' && kapPct === undefined) {
-    return 'Kapitaliseringsprocent er påkrævet ved delvist endelig afgørelse';
+    return 'Kapitaliseringsprocent er påkrævet ved delvist endelig afgørelse.';
   }
   if (kapPct === undefined) return undefined;
   const priorKapPctSum = sumPriorKapPct(row, allRows);
@@ -143,35 +143,35 @@ export const validateKapPctByAfgoerelsestype = (
   if (afgoerelsestype === 'Endelig') {
     if (isWithinTwoYearsRuleActive) {
       if (eetPct !== undefined && kapPctMedTidligere !== eetPct) {
-        return 'Ved < 2 år til folkepension kapitaliseres hele EET';
+        return 'Ved < 2 år til folkepension kapitaliseres hele EET.';
       }
       return undefined;
     }
 
     if (kapPctMedTidligere > 50) {
-      return 'Kapitaliseringsprocent kan ikke overstige 50 % (inkl. tidligere kapitaliseringsprocenter)';
+      return 'Kapitaliseringsprocent kan ikke overstige 50 % (inkl. tidligere kapitaliseringsprocenter).';
     }
 
     if (eetPct !== undefined && kapPctMedTidligere > eetPct) {
-      return 'Kapitaliseringsprocent kan ikke være højere end EET % ved endelig afgørelse (inkl. tidligere kapitaliseringsprocenter)';
+      return 'Kapitaliseringsprocent kan ikke være højere end EET % ved endelig afgørelse (inkl. tidligere kapitaliseringsprocenter).';
     }
     if (eetPct !== undefined && eetPct < 50 && kapPctMedTidligere < eetPct) {
-      return 'Ved endelig afgørelse under 50 % skal samlet kapitaliseringsprocent (inkl. tidligere kapitaliseringsprocenter) svare til EET %';
+      return 'Ved endelig afgørelse under 50 % skal samlet kapitaliseringsprocent (inkl. tidligere kapitaliseringsprocenter) svare til EET %.';
     }
     return undefined;
   }
 
   if (afgoerelsestype === 'Delvist endelig') {
     if (kapPct < 5) {
-      return 'Mindste kapitaliserbare andel er 5 %';
+      return 'Mindste kapitaliserbare andel er 5 %.';
     }
     if (eetPct !== undefined) {
       const maxKapPct = Math.min(eetPct - 5, 50);
       if (kapPctMedTidligere > maxKapPct) {
-        return 'Kapitaliseret andel overstiger tilladt maksimum (der skal restere mindst 5 % som midlertidig, og kapitalisering kan højst udgøre 50 %)';
+        return 'Kapitaliseret andel overstiger tilladt maksimum (der skal restere mindst 5 % som midlertidig, og kapitalisering kan højst udgøre 50 %).';
       }
       if (kapPctMedTidligere > eetPct) {
-        return 'Kapitaliseringsprocent kan ikke overstige EET %';
+        return 'Kapitaliseringsprocent kan ikke overstige EET %.';
       }
     }
     return undefined;
@@ -190,12 +190,12 @@ export const validateKapDatoByAfgoerelsestype = (
   const kapDatoIso = coerceToISODateString(row.kapDato);
   if (afgoerelsestype === undefined || afgoerelsestype === 'Midlertidig') {
     if (hasTextValue(row.kapDato)) {
-      return 'Kapitaliseringsdato må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype';
+      return 'Kapitaliseringsdato må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype.';
     }
   }
 
   if (kapDatoIso !== undefined && virkningsdatoIso !== undefined && kapDatoIso < virkningsdatoIso) {
-    return 'Kapitaliseringsdato er før virkningsdato';
+    return 'Kapitaliseringsdato er før virkningsdato.';
   }
 
   if (hasTextValue(row.tidlKapDato)) {
@@ -206,7 +206,7 @@ export const validateKapDatoByAfgoerelsestype = (
       kapDatoIso !== undefined &&
       kapDatoIso !== afgoerelsesdatoIso
     ) {
-      return 'Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse';
+      return 'Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse.';
     }
   }
 
@@ -220,7 +220,7 @@ export const validateKapDatoByAfgoerelsestype = (
     isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadesdato, fodselsdato, controlDateIso);
 
   if (isWithinTwoYearsRuleActive && kapDatoIso !== afgoerelsesdatoIso) {
-    return 'Ved < 2 år til folkepension sker kapitalisering fra afgørelsesdagen';
+    return 'Ved < 2 år til folkepension sker kapitalisering fra afgørelsesdagen.';
   }
 
   return undefined;
@@ -241,6 +241,18 @@ export type EetAslAfgoerelseValidationIssue = Readonly<{
   message: string;
 }>;
 
+const validateDateNotBeforeSkadesdato = (
+  dateRaw: string | undefined,
+  fieldLabel: string,
+  skadesdato: ISODateString | undefined
+): string | undefined => {
+  if (!skadesdato) return undefined;
+  const dateIso = coerceToISODateString(dateRaw);
+  if (dateIso === undefined) return undefined;
+  if (dateIso < skadesdato) return `Der er indtastet en ${fieldLabel} før skadesdatoen.`;
+  return undefined;
+};
+
 export const collectEetAslAfgoerelseValidationIssues = (
   rows: readonly AslAfgoerelseRow[],
   skadesdato: ISODateString | undefined,
@@ -256,26 +268,40 @@ export const collectEetAslAfgoerelseValidationIssues = (
       issues.push({ rowId: row.id, field: 'afgoerelseType', message: duplicateTripletError });
     }
 
+    const afgoerelsesDatoBeforeSkadesdatoError = validateDateNotBeforeSkadesdato(row.afgoerelsesDato, 'afgørelsesdato', skadesdato);
+    if (afgoerelsesDatoBeforeSkadesdatoError) {
+      issues.push({ rowId: row.id, field: 'afgoerelsesDato', message: afgoerelsesDatoBeforeSkadesdatoError });
+    }
+
+    const virkningsDatoBeforeSkadesdatoError = validateDateNotBeforeSkadesdato(row.virkningsDato, 'virkningsdato', skadesdato);
+    if (virkningsDatoBeforeSkadesdatoError) {
+      issues.push({ rowId: row.id, field: 'virkningsDato', message: virkningsDatoBeforeSkadesdatoError });
+    }
+
     const eetPctError =
+      validatePercentNotZeroFromDraft(row.eetPct, 'EET %') ??
       validatePercentDivisibleBy5FromDraft(row.eetPct, 'EET %') ??
       validateEetPctByPriorKapPct(row, rows);
     if (eetPctError) {
       issues.push({ rowId: row.id, field: 'eetPct', message: eetPctError });
     }
 
-    const kapDatoError = validateKapDatoByAfgoerelsestype(row, skadesdato, fodselsdato);
+    const kapDatoBeforeSkadesdatoError = validateDateNotBeforeSkadesdato(row.kapDato, 'kapitaliseringsdato', skadesdato);
+    const kapDatoError = kapDatoBeforeSkadesdatoError ?? validateKapDatoByAfgoerelsestype(row, skadesdato, fodselsdato);
     if (kapDatoError) {
       issues.push({ rowId: row.id, field: 'kapDato', message: kapDatoError });
     }
 
     const kapPctError =
+      validatePercentNotZeroFromDraft(row.kapPct, 'Kapitaliseringsprocent') ??
       validatePercentDivisibleBy5FromDraft(row.kapPct, 'Kapitaliseringsprocent') ??
       validateKapPctByAfgoerelsestype(row, rows, skadesdato, fodselsdato);
     if (kapPctError) {
       issues.push({ rowId: row.id, field: 'kapPct', message: kapPctError });
     }
 
-    const tidlKapDatoError = validateTidlKapDatoByAfgoerelsestype(row);
+    const tidlKapDatoBeforeSkadesdatoError = validateDateNotBeforeSkadesdato(row.tidlKapDato, 'genoptagelsesdato', skadesdato);
+    const tidlKapDatoError = tidlKapDatoBeforeSkadesdatoError ?? validateTidlKapDatoByAfgoerelsestype(row);
     if (tidlKapDatoError) {
       issues.push({ rowId: row.id, field: 'tidlKapDato', message: tidlKapDatoError });
     }
@@ -288,15 +314,34 @@ export const validateTidlKapDatoByAfgoerelsestype = (
   row: AslAfgoerelseRow
 ): string | undefined => {
   if (hasTextValue(row.tidlKapDato) && !hasTextValue(row.kapDato)) {
-    return 'Kun relevant ved tidligere kapitalisering';
+    return 'Kun relevant ved tidligere kapitalisering.';
   }
 
   const afgoerelsestype = row.afgoerelseType;
   if (afgoerelsestype === undefined || afgoerelsestype === 'Midlertidig') {
     if (hasTextValue(row.tidlKapDato)) {
-      return 'Tidligere kapitaliseringsdato må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype';
+      return 'Tidligere kapitaliseringsdato må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype.';
     }
   }
+
+  if (hasTextValue(row.tidlKapDato)) {
+    const tidlKapDatoIso = coerceToISODateString(row.tidlKapDato);
+    const afgoerelsesdatoIso = coerceToISODateString(row.afgoerelsesDato);
+    if (tidlKapDatoIso !== undefined && afgoerelsesdatoIso !== undefined && afgoerelsesdatoIso <= tidlKapDatoIso) {
+      return 'Datoen for den tidligere afgørelse skal være før afgørelsesdatoen.';
+    }
+  }
+
+  return undefined;
+};
+
+export const validatePercentNotZeroFromDraft = (
+  raw: string | undefined,
+  label: string
+): string | undefined => {
+  const parsed = parsePercentDraft(raw);
+  if (parsed === undefined) return undefined;
+  if (parsed === 0) return `${label} må ikke være 0 %.`;
   return undefined;
 };
 
@@ -306,8 +351,8 @@ export const validatePercentDivisibleBy5FromDraft = (
 ): string | undefined => {
   const parsed = parsePercentDraft(raw);
   if (parsed === undefined) return undefined;
-  if (!Number.isInteger(parsed)) return `${label} skal være et heltal`;
-  if (parsed % 5 !== 0) return `${label} skal være deleligt med 5`;
+  if (!Number.isInteger(parsed)) return `${label} skal være et heltal.`;
+  if (parsed % 5 !== 0) return `${label} skal være deleligt med 5.`;
   return undefined;
 };
 
@@ -316,8 +361,8 @@ export const validatePercentDivisibleBy5FromValue = (
   label: string
 ): string | undefined => {
   if (value === undefined || !Number.isFinite(value)) return undefined;
-  if (!Number.isInteger(value)) return `${label} skal være et heltal`;
-  if (value % 5 !== 0) return `${label} skal være deleligt med 5`;
+  if (!Number.isInteger(value)) return `${label} skal være et heltal.`;
+  if (value % 5 !== 0) return `${label} skal være deleligt med 5.`;
   return undefined;
 };
 
@@ -325,7 +370,7 @@ export const validateAslAarsloenDivisibleBy1000 = (
   aarsloen: number | undefined
 ): string | undefined => {
   if (aarsloen === undefined || !Number.isFinite(aarsloen)) return undefined;
-  if (aarsloen % 1000 !== 0) return 'Årsløn skal være delelig med 1000';
+  if (aarsloen % 1000 !== 0) return 'Årsløn skal være deleligt med 1.000.';
   return undefined;
 };
 

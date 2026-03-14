@@ -165,15 +165,10 @@ const collectResolvedAfgoerelser = (
 
 const collectWarnings = (
   skadesdato: ISODateString,
+  beregningsdato: ISODateString,
   afgoerelser: readonly ResolvedAfgoerelse[],
-  indtastetAarsloen: number,
-  maxAarsloen: number,
   issues: EetLoebendeIssue[]
 ): void => {
-  if (indtastetAarsloen === maxAarsloen) {
-    issues.push(toWarning('warn-asl-aarsloen-is-max', 'Skadelidtes fulde årsløn skal indtastes - ikke maks årslønnen efter ASL'));
-  }
-
   if (afgoerelser.some((row) => row.eetPct < 15)) {
     issues.push(toWarning('warn-asl-eet-under-15', 'Der er indtastet en afgørelse med < 15 % erhvervsevnetab.'));
   }
@@ -185,7 +180,7 @@ const collectWarnings = (
     issues.push(
       toWarning(
         'warn-invalid-eet-pct-after-2024-07-01',
-        `Der er indtastet en ugyldig EET-procent ( ${formatPctForWarning(firstInvalidPctAfter2024.eetPct)} %) for skader fra 1. juli 2024.`
+        `Der er indtastet en ugyldig EET-procent (${formatPctForWarning(firstInvalidPctAfter2024.eetPct)} %) for skader fra 1. juli 2024.`
       )
     );
   }
@@ -206,22 +201,34 @@ const collectWarnings = (
       issues.push(
         toWarning(
           'warn-non-endelig-after-endelig',
-          'Der er angivet en midlertidig afgørelse efter en endelig afgørelse.'
+          'Der er angivet en midlertidig eller delvist endelig afgørelse efter en endelig afgørelse.'
         )
       );
     }
+  }
+
+  if (afgoerelser.some((row) => row.afgoerelsesdato > beregningsdato)) {
+    issues.push(toWarning('warn-afgoerelsesdato-after-beregningsdato', 'Der er angivet en afgørelsesdato efter beregningsdatoen.'));
+  }
+
+  if (afgoerelser.some((row) => row.virkningsdato > beregningsdato)) {
+    issues.push(toWarning('warn-virkningsdato-after-beregningsdato', 'Der er angivet en virkningsdato efter beregningsdatoen.'));
+  }
+
+  if (afgoerelser.some((row) => row.kapDato !== undefined && row.kapDato > beregningsdato)) {
+    issues.push(toWarning('warn-kap-dato-after-beregningsdato', 'Der er angivet en kapitaliseringsdato efter beregningsdatoen.'));
   }
 };
 
 const collectBlockingInputIssues = (rows: readonly AslAfgoerelseRow[], issues: EetLoebendeIssue[]): void => {
   const hasKapDatoWithoutKapPct = rows.some((row) => hasTextValue(row.kapDato) && !hasTextValue(row.kapPct));
   if (hasKapDatoWithoutKapPct) {
-    issues.push(toIssue('kap-dato-without-kap-pct', 'Der er indtastet kapitaliseringsdato men ikke -procent'));
+    issues.push(toIssue('kap-dato-without-kap-pct', 'Der er indtastet kapitaliseringsdato men ikke -procent.'));
   }
 
   const hasKapPctWithoutKapDato = rows.some((row) => hasTextValue(row.kapPct) && !hasTextValue(row.kapDato));
   if (hasKapPctWithoutKapDato) {
-    issues.push(toIssue('kap-pct-without-kap-dato', 'Der er indtastet kapitaliseringsprocent men ikke -dato'));
+    issues.push(toIssue('kap-pct-without-kap-dato', 'Der er indtastet kapitaliseringsprocent men ikke -dato.'));
   }
 
   const hasEndeligUnder50WithoutKapInfo = rows.some((row) => {
@@ -247,7 +254,7 @@ const collectBlockingInputIssues = (rows: readonly AslAfgoerelseRow[], issues: E
     issues.push(
       toIssue(
         'delvist-endelig-missing-kapitalisering',
-        'Der er angivet delvist endelig afgørelse uden kapitalisering.'
+        'Der er angivet en delvist endelig afgørelse uden kapitalisering.'
       )
     );
   }
@@ -369,16 +376,18 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
   const aslAarsloenRaw = amountValueToNumber(input.erhvervsevnetab.aslAarsloen);
 
   if (!Number.isFinite(aslAarsloenRaw)) {
-    issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt'));
+    issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt.'));
+  } else if (aslAarsloenRaw === 0) {
+    issues.push(toIssue('aarsloen-zero', 'Årsløn må ikke være 0 kr.'));
   }
   if (!fodselsdato) {
-    issues.push(toIssue('fodselsdato-missing', 'Fødselsdato er ikke udfyldt'));
+    issues.push(toIssue('fodselsdato-missing', 'Fødselsdato er ikke udfyldt.'));
   }
   if (!beregningsdato) {
-    issues.push(toIssue('beregningsdato-missing', 'Beregningsdato er ikke udfyldt'));
+    issues.push(toIssue('beregningsdato-missing', 'Beregningsdato er ikke udfyldt.'));
   }
   if (!skadesdato) {
-    issues.push(toIssue('skadesdato-missing', 'Skadesdato er ikke udfyldt'));
+    issues.push(toIssue('skadesdato-missing', 'Skadesdato er ikke udfyldt.'));
   }
 
   collectBlockingInputIssues(input.erhvervsevnetab.aslAfgoerelser, issues);
@@ -388,7 +397,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
     issues.push(
       toIssue(
         'asl-afgoerelser-empty',
-        'Ingen afgørelser med erhvervsevnetabsprocent er udfyldt'
+        'Ingen afgørelser med erhvervsevnetabsprocent er udfyldt.'
       )
     );
   }
@@ -414,7 +423,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
   const aslAarsloenAfrundet1000 = roundNearest1000(aslAarsloen);
   const benyttetAarsloen = Math.min(aslAarsloenAfrundet1000, maxAarsloenISkadesaar);
 
-  collectWarnings(skadesdato, resolvedAfgoerelser, aslAarsloen, maxAarsloenISkadesaar, issues);
+  collectWarnings(skadesdato, beregningsdato, resolvedAfgoerelser, issues);
 
   const before2024Skade = skadesdato < SKAERING_2024_07_01;
   const from2011 = skadesdato >= SKAERING_2011_01_01;
@@ -440,7 +449,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
     const next = resolvedAfgoerelser[i + 1];
 
     const priorKapPct = resolvedAfgoerelser
-      .filter((row) => row.afgoerelsesdato < current.afgoerelsesdato)
+      .filter((row) => row.afgoerelsesdato < current.afgoerelsesdato && row.afgoerelseType !== 'Midlertidig')
       .reduce((sum, row) => sum + row.kapPct, 0);
 
     const kapPctKumulativ = priorKapPct + current.kapPct;

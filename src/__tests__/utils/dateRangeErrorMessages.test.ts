@@ -37,12 +37,12 @@ describe('resolveDateRangeErrorMessage', () => {
     expect(message).toContain('dags dato');
   });
 
-  it('uses domain-specific kap.dato message when minBoundKind=afgoerelsesdato', () => {
+  it('uses domain-specific kap.dato message when minBoundKind=kapDatoFoerAfgoerelsesdato', () => {
     const message = resolveDateRangeErrorMessage({
       iso: iso('2024-01-09'),
       minDate: iso('2024-01-10'),
       maxDate: iso('2030-12-31'),
-      special: { minBoundKind: 'afgoerelsesdato' },
+      special: { minBoundKind: 'kapDatoFoerAfgoerelsesdato' },
     });
     expect(message).toBe('Kapitaliseringsdato kan ikke være før afgørelsesdato');
   });

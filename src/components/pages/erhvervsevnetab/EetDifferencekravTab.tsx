@@ -88,7 +88,12 @@ const resolveIssueNavigation = (issueId: string): ErrorNavigation | null => {
     };
   }
 
-  if (issueId === 'eal-eet-pct-invalid') {
+  if (
+    issueId === 'eal-eet-pct-invalid' ||
+    issueId === 'warn-eal-eet-under-15' ||
+    issueId === 'warn-eal-aarsloen-is-max' ||
+    issueId === 'warn-eal-aarsloen-empty-for-2024-07-01'
+  ) {
     return {
       pageName: 'EET oplysninger',
       sectionName: 'Erstatningsansvarsloven',
@@ -101,7 +106,12 @@ const resolveIssueNavigation = (issueId: string): ErrorNavigation | null => {
     issueId === 'asl-selected-eet-pct-invalid' ||
     issueId === 'asl-identical-endelig' ||
     issueId === 'asl-afgoerelser-empty' ||
-    issueId === 'no-endelig-afgoerelser'
+    issueId === 'warn-asl-eet-under-15' ||
+    issueId === 'warn-invalid-eet-pct-after-2024-07-01' ||
+    issueId === 'warn-non-endelig-after-endelig' ||
+    issueId === 'warn-afgoerelsesdato-after-beregningsdato' ||
+    issueId === 'warn-virkningsdato-after-beregningsdato' ||
+    issueId === 'warn-kap-dato-after-beregningsdato'
   ) {
     return {
       pageName: 'EET oplysninger',
@@ -126,9 +136,11 @@ const navigationSortKey = (issueId: string): number => {
   return nav !== null ? (NAVIGATION_SORT_ORDER[nav.sectionId] ?? 99) : 99;
 };
 
-// EAL-felterne (ealAarsloen, ealEetPct) er valgfrie på fane 5: mangler de, falder beregningen
-// tilbage på ASL-værdier. Disse issue-IDs dækkes af 'asl-afgoerelser-empty' eller 'aarsloen-missing'
-// (der begge peger på ASL-sektionen) og skal ikke vises selvstændigt på fane 5.
+// Issue-IDs der undertrykkes på fane 5 — enten fordi de ikke er relevante for differencekrav,
+// eller fordi de allerede dækkes af et andet issue på fane 5:
+// - 'eet-pct-missing', 'field-eal-eet-pct', 'field-aarsloen-eal': EAL-felterne er valgfrie på
+//   fane 5 (beregningen falder tilbage på ASL-værdier) og dækkes af 'asl-afgoerelser-empty' /
+//   'aarsloen-missing', der begge peger på ASL-sektionen.
 const SUPPRESSED_ISSUE_IDS_FANE5 = new Set(['eet-pct-missing', 'field-eal-eet-pct', 'field-aarsloen-eal']);
 
 const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOplysninger }) => {
@@ -216,7 +228,7 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
                 <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
                   {navigation && (
                     <>
-                      <Typography className="row--text">{navigation.pageName} {'->'} </Typography>
+                      <Typography className="row--text">{navigation.pageName} {'→'} </Typography>
                       <Typography
                         className="row--text icon-text-link"
                         component="button"
@@ -399,7 +411,7 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
                 )}
 
                 {foretages && afgoerelse.beloeb === 0 && (
-                  <TextHoverRow text="Ingen løbende ydelser" />
+                  <TextHoverRow text="Ingen løbende ydelser." />
                 )}
               </Box>
             );
@@ -425,8 +437,10 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
                     <Typography className="row--text">{`- ${formatKr(afgoerelse.kapitalbelob)}`}</Typography>
                   </Box>
                 </Box>
+              ) : afgoerelse.kapitaliseringEfterBeregningsdato ? (
+                <TextHoverRow text="Ikke kapitaliseret på beregningsdatoen." />
               ) : (
-                <TextHoverRow text="Ikke kapitaliseret" />
+                <TextHoverRow text="Ikke kapitaliseret." />
               )}
             </Box>
           ))}

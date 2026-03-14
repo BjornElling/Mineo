@@ -111,6 +111,7 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
               onCommit={handleChange('beregningsdato')}
               minDate={skadesdatoMin}
               maxDate={dateRanges_erhvervsevnetab.beregningsdato.max}
+              specialRangeErrors={{ maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Beregningsdato' }}
               noValidRangeCause="Skadesdato i Stamdata"
               inputRef={beregningsdatoInputRef}
             />
@@ -176,6 +177,8 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
               maxValue={9999999}
               width={140}
               placeholder="0 kr."
+              error={Boolean(eetFieldErrors.ealAarsloen?.message)}
+              helperText={eetFieldErrors.ealAarsloen?.message ?? ''}
             />
           </Box>
         </Box>
@@ -213,7 +216,7 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">
-            Det er ikke muligt for programmet at tage højde for de særlige fradrag, der foretages for tjenestemænd.
+            Det er ikke muligt for programmet at tage højde for de særlige fradrag, der foretages i EET for tjenestemænd.
           </Typography>
           <Box className="row--label-right-hover__content" />
         </Box>
