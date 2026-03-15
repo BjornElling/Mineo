@@ -14,11 +14,9 @@ import {
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
 import {
   EetIssuesBox,
-  formatKr,
-  navigationSortKey,
-  toFieldIssue,
   TextHoverRow,
 } from './eetTabShared';
+import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabValues;

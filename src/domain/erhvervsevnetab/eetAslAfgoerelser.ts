@@ -40,7 +40,7 @@ export const parsePercentDraft = (raw: string | undefined): number | undefined =
 export const hasTextValue = (raw: string | undefined): boolean =>
   typeof raw === 'string' && raw.trim() !== '';
 
-const DUPLICATE_AFGOERELSE_MESSAGE = 'Der er angivet to identiske afgørelser.';
+const DUPLICATE_AFGOERELSE_MESSAGE = 'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato.';
 
 const assertNeverAfgoerelsestype = (_value: never): undefined => undefined;
 
@@ -79,15 +79,14 @@ export const validateEetPctByPriorKapPct = (
   return undefined;
 };
 
-export const validateDuplicateAfgoerelseTriplet = (
+export const validateDuplicateAfgoerelse = (
   row: AslAfgoerelseRow,
   allRows: readonly AslAfgoerelseRow[] = [row]
 ): string | undefined => {
   const afgoerelsesdatoIso = coerceToISODateString(row.afgoerelsesDato);
   const virkningsdatoIso = coerceToISODateString(row.virkningsDato);
-  const afgoerelsestype = row.afgoerelseType;
 
-  if (!afgoerelsesdatoIso || !virkningsdatoIso || !afgoerelsestype) return undefined;
+  if (!afgoerelsesdatoIso || !virkningsdatoIso) return undefined;
 
   const rowIndex = allRows.findIndex((candidate) => candidate.id === row.id);
   if (rowIndex <= 0) return undefined;
@@ -99,8 +98,7 @@ export const validateDuplicateAfgoerelseTriplet = (
 
     if (
       candidateAfgoerelsesdatoIso === afgoerelsesdatoIso &&
-      candidateVirkningsdatoIso === virkningsdatoIso &&
-      candidate.afgoerelseType === afgoerelsestype
+      candidateVirkningsdatoIso === virkningsdatoIso
     ) {
       return DUPLICATE_AFGOERELSE_MESSAGE;
     }
@@ -268,11 +266,10 @@ export const collectEetAslAfgoerelseValidationIssues = (
   const issues: EetAslAfgoerelseValidationIssue[] = [];
 
   for (const row of rows) {
-    const duplicateTripletError = validateDuplicateAfgoerelseTriplet(row, rows);
-    if (duplicateTripletError) {
-      issues.push({ rowId: row.id, field: 'afgoerelsesDato', message: duplicateTripletError });
-      issues.push({ rowId: row.id, field: 'virkningsDato', message: duplicateTripletError });
-      issues.push({ rowId: row.id, field: 'afgoerelseType', message: duplicateTripletError });
+    const duplicateError = validateDuplicateAfgoerelse(row, rows);
+    if (duplicateError) {
+      issues.push({ rowId: row.id, field: 'afgoerelsesDato', message: duplicateError });
+      issues.push({ rowId: row.id, field: 'virkningsDato', message: duplicateError });
     }
 
     const afgoerelsesDatoBeforeSkadesdatoError = validateDateNotBeforeSkadesdato(row.afgoerelsesDato, 'afgørelsesdato', skadesdato);
@@ -513,10 +510,9 @@ export const collectIncompleteRowIssues = (
   return issues;
 };
 
-// To rækker er identiske når afgørelsesdato + virkningsdato + afgørelsestype er ens (triplet).
-// Delegerer til validateDuplicateAfgoerelseTriplet for at undgå duplikeret logik.
+// To rækker er identiske når afgørelsesdato og virkningsdato begge er ens.
 export const hasIdenticalAfgoerelser = (rows: readonly AslAfgoerelseRow[]): boolean =>
-  rows.some((row) => validateDuplicateAfgoerelseTriplet(row, rows) !== undefined);
+  rows.some((row) => validateDuplicateAfgoerelse(row, rows) !== undefined);
 
 export const validateAslAarsloenDivisibleBy1000 = (
   aarsloen: number | undefined

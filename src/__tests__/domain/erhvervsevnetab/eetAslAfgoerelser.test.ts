@@ -4,7 +4,7 @@ import {
   collectEetAslAfgoerelseValidationIssues,
   validateAslAarsloenDivisibleBy1000,
   validateAslAarsloenBySkadesaarMax,
-  validateDuplicateAfgoerelseTriplet,
+  validateDuplicateAfgoerelse,
   validateEetPctByPriorKapPct,
   validateKapDatoByAfgoerelsestype,
   validateKapPctByAfgoerelsestype,
@@ -377,29 +377,27 @@ describe('validateEetPctByPriorKapPct', () => {
   });
 });
 
-describe('validateDuplicateAfgoerelseTriplet', () => {
-  it('giver fejl for nederste række når afgørelsesdato, virkningsdato og afgørelsestype er identiske', () => {
+describe('validateDuplicateAfgoerelse', () => {
+  it('giver fejl for nederste række når afgørelsesdato og virkningsdato er identiske', () => {
     const first = buildRow({
       id: 'r1',
       afgoerelsesDato: '01-11-2025',
       virkningsDato: '01-10-2025',
-      afgoerelseType: 'Endelig',
     });
     const second = buildRow({
       id: 'r2',
       afgoerelsesDato: '01-11-2025',
       virkningsDato: '01-10-2025',
-      afgoerelseType: 'Endelig',
     });
 
-    const firstError = validateDuplicateAfgoerelseTriplet(first, [first, second]);
-    const secondError = validateDuplicateAfgoerelseTriplet(second, [first, second]);
+    const firstError = validateDuplicateAfgoerelse(first, [first, second]);
+    const secondError = validateDuplicateAfgoerelse(second, [first, second]);
 
     expect(firstError).toBeUndefined();
-    expect(secondError).toBe('Der er angivet to identiske afgørelser.');
+    expect(secondError).toBe('Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato.');
   });
 
-  it('giver ingen fejl når kun to af tre felter matcher', () => {
+  it('giver fejl selvom afgørelsestype er forskellig', () => {
     const first = buildRow({
       id: 'r1',
       afgoerelsesDato: '01-11-2025',
@@ -413,7 +411,23 @@ describe('validateDuplicateAfgoerelseTriplet', () => {
       afgoerelseType: 'Delvist endelig',
     });
 
-    const secondError = validateDuplicateAfgoerelseTriplet(second, [first, second]);
+    const secondError = validateDuplicateAfgoerelse(second, [first, second]);
+    expect(secondError).toBe('Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato.');
+  });
+
+  it('giver ingen fejl når virkningsdato er forskellig', () => {
+    const first = buildRow({
+      id: 'r1',
+      afgoerelsesDato: '01-11-2025',
+      virkningsDato: '01-10-2025',
+    });
+    const second = buildRow({
+      id: 'r2',
+      afgoerelsesDato: '01-11-2025',
+      virkningsDato: '01-11-2025',
+    });
+
+    const secondError = validateDuplicateAfgoerelse(second, [first, second]);
     expect(secondError).toBeUndefined();
   });
 });

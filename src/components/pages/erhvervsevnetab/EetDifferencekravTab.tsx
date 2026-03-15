@@ -14,12 +14,10 @@ import {
 } from '../../../domain/erhvervsevnetab/eetDifferencekravCalculation';
 import {
   EetIssuesBox,
-  formatKr,
-  navigationSortKey,
-  toFieldIssue,
   TextHoverRow,
   UnderlinedHoverRow,
 } from './eetTabShared';
+import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabValues;

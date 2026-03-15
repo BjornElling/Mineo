@@ -408,6 +408,6 @@ describe('EetAslAfgoerelserTable', () => {
       />
     );
 
-    expect(screen.getAllByText('Der er angivet to identiske afgørelser.').length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByText('Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato.').length).toBeGreaterThanOrEqual(2);
   });
 });

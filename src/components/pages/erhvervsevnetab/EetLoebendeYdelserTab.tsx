@@ -25,12 +25,10 @@ import {
 import { roundByMethod } from '../../../utils/rounding';
 import {
   EetIssuesBox,
-  formatKr,
-  navigationSortKey,
-  toFieldIssue,
   TextHoverRow,
   UnderlinedHoverRow,
 } from './eetTabShared';
+import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabValues;

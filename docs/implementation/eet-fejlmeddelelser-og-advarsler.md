@@ -209,7 +209,7 @@ Fane 1 har ingen fejlboks — fejl vises inline ved det relevante felt og er ikk
 | **Vises på** | F2, F3, F4, F5 |
 | **Navigationslink** | EET oplysninger → Arbejdsskadesikringsloven |
 
-**Betingelse:** To rækker har identisk afgørelsesdato, virkningsdato **og** afgørelsestype (triplet). Blokerer på alle faner fordi sammenfaldende afgørelser skaber tvivl om beregningsgrundlaget.
+**Betingelse:** To rækker har identisk afgørelsesdato **og** virkningsdato. Afgørelsestype indgår ikke i sammenligningen. Blokerer på alle faner fordi sammenfaldende afgørelser skaber tvivl om beregningsgrundlaget.
 
 ---
 

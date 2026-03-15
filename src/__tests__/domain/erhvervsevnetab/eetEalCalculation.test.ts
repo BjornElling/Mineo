@@ -57,7 +57,7 @@ describe('computeEetEalCalculation', () => {
           {
             id: 'b',
             afgoerelsesDato: '2025-01-01',
-            virkningsDato: '2025-06-01',
+            virkningsDato: '2025-09-01',
             eetPct: '45',
             kapDato: undefined,
             kapPct: undefined,

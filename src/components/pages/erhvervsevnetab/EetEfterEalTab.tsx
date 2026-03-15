@@ -14,10 +14,8 @@ import {
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import {
   EetIssuesBox,
-  formatKr,
-  navigationSortKey,
-  toFieldIssue,
 } from './eetTabShared';
+import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabValues;
