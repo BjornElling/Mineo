@@ -59,6 +59,22 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
     [values.ealEetPct]
   );
 
+  const koenError = React.useMemo(() => {
+    if (values.koen) return undefined;
+    const hasKapDatoFoer2015 = values.aslAfgoerelser.some((row) => {
+      const kapDato = coerceToISODateString(row.kapDato);
+      return kapDato !== undefined && kapDato < '2015-03-01';
+    });
+    if (hasKapDatoFoer2015) {
+      return 'Ved kapitalisering før 1. marts 2015 skal køn angives.';
+    }
+    const beregningsdato = coerceToISODateString(values.beregningsdato);
+    if (beregningsdato !== undefined && beregningsdato < '2015-03-01') {
+      return 'Ved beregning før 1. marts 2015 skal køn angives.';
+    }
+    return undefined;
+  }, [values.aslAfgoerelser, values.beregningsdato, values.koen]);
+
   const handleAslAfgoerelserChange = React.useCallback(
     (rows: ErhvervsevnetabValues['aslAfgoerelser']) => {
       setValues((prev) => ({ ...prev, aslAfgoerelser: rows }));
@@ -83,7 +99,7 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
           </Box>
         </Box>
 
-        {visKoenValg && (
+        {(visKoenValg || Boolean(koenError)) && (
           <Box className="row--label-right-hover">
             <Typography className="row--text">Køn</Typography>
             <Box className="row--label-right-hover__content">
@@ -95,6 +111,8 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
                 }}
                 placeholder="Vælg køn"
                 width={130}
+                error={Boolean(koenError)}
+                helperText={koenError ?? ''}
               >
                 <MenuItem value="Mand">Mand</MenuItem>
                 <MenuItem value="Kvinde">Kvinde</MenuItem>

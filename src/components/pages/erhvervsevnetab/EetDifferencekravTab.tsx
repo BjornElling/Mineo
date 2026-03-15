@@ -163,13 +163,11 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
   const fieldIssues = React.useMemo(() => {
     return [
       toFieldIssue('field-beregningsdato', eetFieldErrors.beregningsdato?.message),
-      toFieldIssue('field-aarsloen-asl', eetFieldErrors.aslAarsloen?.message),
       toFieldIssue('field-fodselsdato', stamdataFieldErrors.fodselsdato?.message),
       toFieldIssue('field-skadesdato', stamdataFieldErrors.skadesdato?.message),
     ].filter((issue): issue is EetDifferencekravIssue => issue !== null);
   }, [
     eetFieldErrors.beregningsdato?.message,
-    eetFieldErrors.aslAarsloen?.message,
     stamdataFieldErrors.fodselsdato?.message,
     stamdataFieldErrors.skadesdato?.message,
   ]);
@@ -574,9 +572,18 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">Faktor måneds-afhængig?</Typography>
                       <Box className="row--label-right-hover__content">
-                        <Typography className="row--text">Ja</Typography>
+                        <Typography className="row--text">{pk.faktorMaanedsAfhaengig ? 'Ja' : 'Nej'}</Typography>
                       </Box>
                     </Box>
+
+                    {pk.koenOpdelt && (
+                      <Box className="row--label-right-hover">
+                        <Typography className="row--text">Køn</Typography>
+                        <Box className="row--label-right-hover__content">
+                          <Typography className="row--text">{values.koen}</Typography>
+                        </Box>
+                      </Box>
+                    )}
 
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">Kapitaliseringsfaktor</Typography>

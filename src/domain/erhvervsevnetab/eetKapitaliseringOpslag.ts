@@ -263,6 +263,7 @@ export const resolveKapitaliseringTabelvalgForControlDate = (
 export type ResolveFactorTableResult = Readonly<{
   rows: readonly AldersFaktorRaekke[] | null;
   reason: 'missing-table' | 'missing-koen' | null;
+  koenOpdelt: boolean;
 }>;
 
 export const resolveSaerfaktor = (
@@ -280,7 +281,8 @@ export const resolveSaerfaktor = (
 
 export const interpolateFactorWithinTable = (
   rows: readonly AldersFaktorRaekke[],
-  age: AgeYearsMonths
+  age: AgeYearsMonths,
+  maanedsAfhaengig: boolean
 ): number | null => {
   const first = rows[0];
   const last = rows[rows.length - 1];
@@ -291,6 +293,7 @@ export const interpolateFactorWithinTable = (
   const lower = rows.find((r) => r.alder === age.years);
   const upper = rows.find((r) => r.alder === age.years + 1);
   if (!lower || !upper) return null;
+  if (!maanedsAfhaengig) return lower.faktor;
   return ((12 - age.months) / 12) * lower.faktor + (age.months / 12) * upper.faktor;
 };
 
@@ -298,19 +301,29 @@ export const interpolateFactorBeyondTable = (
   rows: readonly AldersFaktorRaekke[],
   age: AgeYearsMonths,
   folkepensionsalderMaaneder: number,
-  saerfaktor: number
+  saerfaktor: number,
+  maanedsAfhaengig: boolean
 ): number | null => {
   const last = rows[rows.length - 1];
   if (!last) return null;
   const lastAgeMonths = last.alder * 12;
   const boundaryMonths = folkepensionsalderMaaneder - 24;
   if (boundaryMonths < lastAgeMonths) return null;
-  if (age.totalMonths <= lastAgeMonths) return last.faktor;
-  if (age.totalMonths >= boundaryMonths) return saerfaktor;
-  const totalMonths = boundaryMonths - lastAgeMonths;
-  if (totalMonths <= 0) return null;
-  const monthsOver = age.totalMonths - lastAgeMonths;
-  return last.faktor + (monthsOver / totalMonths) * (saerfaktor - last.faktor);
+  if (maanedsAfhaengig) {
+    if (age.totalMonths <= lastAgeMonths) return last.faktor;
+    if (age.totalMonths >= boundaryMonths) return saerfaktor;
+    const totalMonths = boundaryMonths - lastAgeMonths;
+    if (totalMonths <= 0) return null;
+    const monthsOver = age.totalMonths - lastAgeMonths;
+    return last.faktor + (monthsOver / totalMonths) * (saerfaktor - last.faktor);
+  } else {
+    if (age.years * 12 <= lastAgeMonths) return last.faktor;
+    if (age.years * 12 >= boundaryMonths) return saerfaktor;
+    const totalMonths = boundaryMonths - lastAgeMonths;
+    if (totalMonths <= 0) return null;
+    const monthsOver = age.years * 12 - lastAgeMonths;
+    return last.faktor + (monthsOver / totalMonths) * (saerfaktor - last.faktor);
+  }
 };
 
 export const resolveFactorTable = (
@@ -320,20 +333,20 @@ export const resolveFactorTable = (
 ): ResolveFactorTableResult => {
   const simpleTable = tabeldata.erhvervsevnetabTabeller[tabel];
   if (simpleTable && simpleTable.length > 0) {
-    return { rows: simpleTable, reason: null };
+    return { rows: simpleTable, reason: null, koenOpdelt: false };
   }
   const koensTable = tabeldata.erhvervsevnetabKoensopdelteTabeller[tabel];
   if (!koensTable || koensTable.length === 0) {
-    return { rows: null, reason: 'missing-table' };
+    return { rows: null, reason: 'missing-table', koenOpdelt: false };
   }
   if (!koen) {
-    return { rows: null, reason: 'missing-koen' };
+    return { rows: null, reason: 'missing-koen', koenOpdelt: true };
   }
   const normalized = koensTable.map<AldersFaktorRaekke>((row) => ({
     alder: row.alder,
     faktor: koen === 'Mand' ? row.maendFaktor : row.kvinderFaktor,
   }));
-  return { rows: normalized, reason: null };
+  return { rows: normalized, reason: null, koenOpdelt: true };
 };
 
 export const isUnderOrEqualTwoYearsToFpByBekendtgoerelse = (

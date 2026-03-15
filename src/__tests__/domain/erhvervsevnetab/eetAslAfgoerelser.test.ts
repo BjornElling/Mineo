@@ -65,11 +65,11 @@ describe('validateKapPctByAfgoerelsestype', () => {
     expect(error).toContain('tilladt maksimum');
   });
 
-  it('afviser delvist endelig når kap % mangler', () => {
+  it('accepterer delvist endelig når kap % mangler (fejl vises på andre faner)', () => {
     const error = validateKapPctByAfgoerelsestype(
       buildRow({ afgoerelseType: 'Delvist endelig', eetPct: '40', kapPct: undefined })
     );
-    expect(error).toContain('påkrævet');
+    expect(error).toBeUndefined();
   });
 
   it('afviser midlertidig eller tom type når kap % er over 0', () => {

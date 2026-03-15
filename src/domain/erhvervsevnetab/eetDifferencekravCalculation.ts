@@ -14,7 +14,7 @@ import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatIsoDateShort } from '../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { addDays } from '../../utils/dateUtils';
-import { parsePercentDraft } from './eetAslAfgoerelser';
+import { INCOMPLETE_ROW_ISSUE_IDS, parsePercentDraft } from './eetAslAfgoerelser';
 import {
   calculateAgeYearsMonths,
   interpolateFactorBeyondTable,
@@ -27,7 +27,7 @@ import {
 } from './eetKapitaliseringOpslag';
 import { ceil0, round0, round2, round3, round4, roundNearest1000 } from './eetRounding';
 import { resolveAslReguleringRateForKapAar } from './eetReguleringRater';
-import { SKAERING_2011_01_01, SKAERING_2011_06_16, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
+import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2011_06_16, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { computeEetLoebendeYdelser } from './eetLoebendeYdelserCalculation';
 import { computeEetEalCalculation } from './eetEalCalculation';
 import { computeEetKapitaliseringCalculation } from './eetKapitaliseringCalculation';
@@ -73,9 +73,11 @@ export type EetDifferencekravProformaKapitalisering = Readonly<{
   alderAar: number;
   alderMaaneder: number;
   kapitaliseretPgaUnderToAarTilFp: boolean;
+  faktorMaanedsAfhaengig: boolean;
   saerfaktor: number | null;
   kapitaliseringsfaktor: number;
   proformaBeloeb: number;
+  koenOpdelt: boolean;
 }>;
 
 export type EetDifferencekravComputation = Readonly<{
@@ -111,25 +113,31 @@ const toIssue = (id: string, message: string): EetDifferencekravIssue => ({ id, 
 
 export { formatPct as formatKapPct } from './eetLoebendeYdelserCalculation';
 
-// Issue IDs from fane 3 (kapitalisering) that are non-blocking on fane 5
-// when there are no capitalized settlements.
-const NON_BLOCKING_KAP_ISSUE_IDS = new Set([
+// Issue IDs from fane 3 (kapitalisering) der ikke er relevante på fane 5
+// når der ingen kapitaliserede afgørelser er — de skal hverken vises eller blokere.
+const FANE3_ISSUES_HIDDEN_WITHOUT_KAPITALISERING: Set<string> = new Set([
   'kapitaliseringsbekendtgoerelse-missing-control-date',
   'kapitaliseringsbekendtgoerelse-missing-effective-date',
   'kapitaliseringstabel-missing',
   'kapitaliseringsalder-under-minimum',
   'kapitaliseringsfaktor-unresolved',
-  'kap-dato-without-kap-pct',   // også i NON_BLOCKING_LOEBENDE_ISSUE_IDS — kan komme fra begge faner
-  'kap-pct-without-kap-dato',   // også i NON_BLOCKING_LOEBENDE_ISSUE_IDS — kan komme fra begge faner
+  INCOMPLETE_ROW_ISSUE_IDS.kapDatoWithoutKapPct,
+  INCOMPLETE_ROW_ISSUE_IDS.kapPctWithoutKapDato,
+  // 'missing-kap-dato' og 'missing-kap-pct' emitteres af collectResolvedRows i Fane 3
+  // når der er kapitaliserbare afgørelser men ingen kap.dato/kap.% er udfyldt overhovedet.
+  'missing-kap-dato',
+  'missing-kap-pct',
 ]);
 
-// Issue IDs from fane 2 (løbende) that are non-blocking on fane 5
-// when there are no capitalized settlements.
-const NON_BLOCKING_LOEBENDE_ISSUE_IDS = new Set([
-  'kap-dato-without-kap-pct',   // også i NON_BLOCKING_KAP_ISSUE_IDS — kan komme fra begge faner
-  'kap-pct-without-kap-dato',   // også i NON_BLOCKING_KAP_ISSUE_IDS — kan komme fra begge faner
-  'endelig-under-50-missing-kapitalisering',
-  'delvist-endelig-missing-kapitalisering',
+// Issue IDs from fane 2 (løbende) der ikke er relevante på fane 5
+// når der ingen kapitaliserede afgørelser er — de skal hverken vises eller blokere.
+// Bemærk: 'delvist-endelig-missing-kapitalisering' er IKKE i dette sæt — en delvist endelig
+// afgørelse uden kapitalisering er altid en fejl der skal rettes, uanset om der er
+// andre kapitaliserede afgørelser. Den blokerer bevidst for download på fane 5.
+const FANE2_ISSUES_HIDDEN_WITHOUT_KAPITALISERING: Set<string> = new Set([
+  INCOMPLETE_ROW_ISSUE_IDS.kapDatoWithoutKapPct,
+  INCOMPLETE_ROW_ISSUE_IDS.kapPctWithoutKapDato,
+  INCOMPLETE_ROW_ISSUE_IDS.endeligUnder50MissingKap,
 ]);
 
 // ─── Proforma-kapitalisering ──────────────────────────────────────────────────
@@ -149,6 +157,11 @@ const computeProformaKapitalisering = (
   issues: EetDifferencekravIssue[]
 ): EetDifferencekravProformaKapitalisering | null => {
   const { loebendeEetPct, beregningsdato, skadesdato, fodselsdato } = args;
+
+  if (!args.koen && beregningsdato < '2015-03-01') {
+    issues.push(toIssue('missing-koen', 'Ved beregning før 1. marts 2015 skal køn angives.'));
+    return null;
+  }
 
   const controlBekId = resolveKapitaliseringsbekendtgoerelseId(skadesdato, beregningsdato);
   if (!controlBekId) {
@@ -187,6 +200,8 @@ const computeProformaKapitalisering = (
   const useDirectSaerfaktor = tabelvalg.folkepensionsalderMaaneder - age.totalMonths <= 24;
   let kapitaliseringsfaktor: number | null = null;
   let kapitaliseretPgaUnderToAarTilFp = false;
+  let koenOpdelt = false;
+  const faktorMaanedsAfhaengig = skadesdato >= SKAERING_2007_07_01;
 
   if (useDirectSaerfaktor) {
     if (saerfaktor === null) {
@@ -200,12 +215,14 @@ const computeProformaKapitalisering = (
     kapitaliseretPgaUnderToAarTilFp = true;
   } else {
     const factorTableResult = resolveFactorTable(tabeldata, tabelvalg.tabel, args.koen);
+    koenOpdelt = factorTableResult.koenOpdelt;
     const factorRows = factorTableResult.rows;
     if (!factorRows || factorRows.length === 0) {
-      const message = factorTableResult.reason === 'missing-koen'
-        ? `Køn mangler for kapitaliseringstabel ${tabelvalg.tabel}.`
-        : `Ingen kapitaliseringsfaktorer for tabel ${tabelvalg.tabel}.`;
-      issues.push(toIssue('proforma-kapitaliseringstabel-missing', message));
+      if (factorTableResult.reason === 'missing-koen') {
+        issues.push(toIssue('missing-koen', 'Ved kapitalisering før 1. marts 2015 skal køn angives.'));
+      } else {
+        issues.push(toIssue('proforma-kapitaliseringstabel-missing', `Ingen kapitaliseringsfaktorer for tabel ${tabelvalg.tabel}.`));
+      }
       return null;
     }
 
@@ -218,7 +235,7 @@ const computeProformaKapitalisering = (
       return null;
     }
 
-    const withinTable = interpolateFactorWithinTable(factorRows, age);
+    const withinTable = interpolateFactorWithinTable(factorRows, age, faktorMaanedsAfhaengig);
     if (withinTable !== null) {
       kapitaliseringsfaktor = round3(withinTable);
     } else {
@@ -237,7 +254,7 @@ const computeProformaKapitalisering = (
         ));
         return null;
       }
-      const beyondTable = interpolateFactorBeyondTable(factorRows, age, tabelvalg.folkepensionsalderMaaneder, saerfaktor);
+      const beyondTable = interpolateFactorBeyondTable(factorRows, age, tabelvalg.folkepensionsalderMaaneder, saerfaktor, faktorMaanedsAfhaengig);
       if (beyondTable === null) {
         issues.push(toIssue(
           'proforma-kapitaliseringsfaktor-unresolved',
@@ -278,9 +295,11 @@ const computeProformaKapitalisering = (
     alderAar: age.years,
     alderMaaneder: age.months,
     kapitaliseretPgaUnderToAarTilFp,
+    faktorMaanedsAfhaengig,
     saerfaktor,
     kapitaliseringsfaktor,
     proformaBeloeb,
+    koenOpdelt,
   };
 };
 
@@ -461,15 +480,8 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
     allSourceIssues.push(issue);
   }
 
-  // 'no-endelig-afgoerelser' er kun relevant på fane 3 og må ikke vises eller blokere på fane 5.
-  const aggregatedIssues = dedupeIssuesBySeverityAndMessage(allSourceIssues)
-    .filter((issue) => issue.id !== 'no-endelig-afgoerelser');
-
-  // Download blocking: errors, excluding non-blocking issues when no kapitaliserede afgørelser exist.
-  // Baseres på rådata (ikke kapResult.computation) så issues som kap-dato-without-kap-pct korrekt
-  // blokerer download selv når kapResult.computation er null pga. andre blokerende fejl.
   // Midlertidig-rækker tæller ikke som "kapitaliserede" — kapitaliseringsdata på dem er altid en fejl,
-  // og de skal ikke aktivere den skærpede blokerings-tilstand for øvrige fane-3-fejl.
+  // og de skal ikke aktivere den skærpede visningstilstand for øvrige fane-3-fejl.
   const kapHasCapitalized = input.erhvervsevnetab.aslAfgoerelser.some((row) => {
     if (row.afgoerelseType === 'Midlertidig') return false;
     const kapDato = coerceToISODateString(row.kapDato);
@@ -477,12 +489,18 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
     return (kapDato !== undefined) || (kapPct !== undefined && kapPct > 0);
   });
 
-  const blockingErrors = aggregatedIssues.filter((issue) => {
-    if (issue.severity !== 'error') return false;
-    if (!kapHasCapitalized && NON_BLOCKING_KAP_ISSUE_IDS.has(issue.id)) return false;
-    if (!kapHasCapitalized && NON_BLOCKING_LOEBENDE_ISSUE_IDS.has(issue.id)) return false;
-    return true;
-  });
+  // Issues der kun er relevante ved kapitalisering fjernes helt fra fane 5 når der ingen
+  // kapitaliserede afgørelser er — de skal hverken vises eller blokere for download.
+  // 'no-endelig-afgoerelser' er kun relevant på fane 3 og filtreres altid væk.
+  const aggregatedIssues = dedupeIssuesBySeverityAndMessage(allSourceIssues)
+    .filter((issue) => {
+      if (issue.id === 'no-endelig-afgoerelser') return false;
+      if (!kapHasCapitalized && FANE3_ISSUES_HIDDEN_WITHOUT_KAPITALISERING.has(issue.id)) return false;
+      if (!kapHasCapitalized && FANE2_ISSUES_HIDDEN_WITHOUT_KAPITALISERING.has(issue.id)) return false;
+      return true;
+    });
+
+  const blockingErrors = aggregatedIssues.filter((issue) => issue.severity === 'error');
 
   const hasBlockingErrors = blockingErrors.length > 0;
 

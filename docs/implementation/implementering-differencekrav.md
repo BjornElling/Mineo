@@ -93,6 +93,8 @@ Fradraget er summen af de løbende ydelsesbeløb for alle afgørelser der opfyld
 
 Det samlede kapitaliserede beløb fra fane 3 fratrækkes i sin helhed. Der beregnes ingen ny eller alternativ kapitaliseringsberegning her — beløbet konsumeres direkte fra fane 3's kanoniske output.
 
+Kun kapitaliseringer med kapitaliseringsdato ≤ beregningsdato medregnes. En kapitalisering dateret efter beregningsdatoen er endnu ikke sket set fra beregningsdatoens perspektiv og tæller ikke med i fradraget.
+
 ---
 
 **Fradrag 3 — Proformakapitalisering af tilbageværende løbende EET**

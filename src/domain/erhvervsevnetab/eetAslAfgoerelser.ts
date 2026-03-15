@@ -124,9 +124,6 @@ export const validateKapPctByAfgoerelsestype = (
   }
 
   const kapPct = parsePercentDraft(row.kapPct);
-  if (afgoerelsestype === 'Delvist endelig' && kapPct === undefined) {
-    return 'Kapitaliseringsprocent er påkrævet ved delvist endelig afgørelse.';
-  }
   if (kapPct === undefined) return undefined;
   const priorKapPctSum = sumPriorKapPct(row, allRows);
   const kapPctMedTidligere = kapPct + priorKapPctSum;
@@ -162,6 +159,10 @@ export const validateKapPctByAfgoerelsestype = (
   }
 
   if (afgoerelsestype === 'Delvist endelig') {
+    // Bemærk: krav om at kap. % skal udfyldes ved "Delvist endelig" håndhæves ikke her
+    // (feltniveau), men via collectIncompleteRowIssues (faneniveau). Det er en bevidst
+    // trade-off: brugeren kan midlertidigt gemme en delvist udfyldt rækkeindtastning
+    // uden at blive blokeret på feltet, men kan ikke downloade PDF'en.
     if (kapPct < 5) {
       return 'Mindste kapitaliserbare andel er 5 %.';
     }
@@ -364,6 +365,87 @@ export const validatePercentDivisibleBy5FromValue = (
   if (!Number.isInteger(value)) return `${label} skal være et heltal.`;
   if (value % 5 !== 0) return `${label} skal være deleligt med 5.`;
   return undefined;
+};
+
+/**
+ * Returnerer fejlmeddelelser for en ufuldstændig men påbegyndt afgørelsesrække.
+ * Bruges af alle tre beregnere (løbende, kapitalisering, differencekrav) for
+ * at sikre konsistente fejlmeddelelser på tværs af faner.
+ *
+ * En række er "påbegyndt" hvis mindst ét felt er udfyldt. For sådanne rækker
+ * håndhæves følgende invarianter:
+ *   1. Afgørelsesdato skal være udfyldt
+ *   2. EET % skal være udfyldt
+ *   3. Afgørelsestype skal være valgt
+ *   4. Endelig afgørelse med EET % < 50 kræver både kap.dato og kap. %
+ *   5. Kap.dato uden kap. % er ikke tilladt
+ *   6. Kap. % uden kap.dato er ikke tilladt
+ *
+ * IDs er stabile konstanter — brug dem i filter-sæt fremfor at generere fra message-tekst.
+ */
+export const INCOMPLETE_ROW_ISSUE_IDS = {
+  missingAfgoerelsesdato: 'missing-afgoerelsesdato',
+  missingEetPct: 'missing-eet-pct',
+  missingAfgoerelseType: 'missing-afgoerelseType',
+  endeligUnder50MissingKap: 'endelig-under-50-missing-kapitalisering',
+  kapDatoWithoutKapPct: 'kap-dato-without-kap-pct',
+  kapPctWithoutKapDato: 'kap-pct-without-kap-dato',
+} as const;
+
+export type IncompleteRowIssue = Readonly<{
+  id: string;
+  message: string;
+}>;
+
+export const collectIncompleteRowIssues = (
+  rows: readonly AslAfgoerelseRow[]
+): IncompleteRowIssue[] => {
+  const issues: IncompleteRowIssue[] = [];
+  const startedRows = rows.filter((row) => !isAslAfgoerelseRowEmpty(row));
+
+  const hasMissingAfgoerelsesdato = startedRows.some((row) => !coerceToISODateString(row.afgoerelsesDato));
+  if (hasMissingAfgoerelsesdato) {
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.missingAfgoerelsesdato, message: 'Der er en afgørelse uden afgørelsesdato.' });
+  }
+
+  const hasMissingEetPct = startedRows.some((row) => {
+    const pct = parsePercentDraft(row.eetPct);
+    return pct === undefined || pct === 0;
+  });
+  if (hasMissingEetPct) {
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.missingEetPct, message: 'Der er en afgørelse uden EET %.' });
+  }
+
+  const hasMissingAfgoerelseType = startedRows.some((row) => !row.afgoerelseType);
+  if (hasMissingAfgoerelseType) {
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.missingAfgoerelseType, message: 'Der er en afgørelse uden afgørelsestype.' });
+  }
+
+  const hasEndeligUnder50MissingKap = startedRows.some((row) => {
+    if (row.afgoerelseType !== 'Endelig') return false;
+    const eetPct = parsePercentDraft(row.eetPct);
+    if (eetPct === undefined || eetPct === 0 || eetPct >= 50) return false;
+    return !hasTextValue(row.kapDato) && !hasTextValue(row.kapPct);
+  });
+  if (hasEndeligUnder50MissingKap) {
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.endeligUnder50MissingKap, message: 'Endelig afgørelse under 50 % mangler oplysninger om kapitalisering.' });
+  }
+
+  const hasKapDatoWithoutKapPct = startedRows.some(
+    (row) => hasTextValue(row.kapDato) && !hasTextValue(row.kapPct)
+  );
+  if (hasKapDatoWithoutKapPct) {
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.kapDatoWithoutKapPct, message: 'Der er indtastet kapitaliseringsdato men ikke -procent.' });
+  }
+
+  const hasKapPctWithoutKapDato = startedRows.some(
+    (row) => hasTextValue(row.kapPct) && !hasTextValue(row.kapDato)
+  );
+  if (hasKapPctWithoutKapDato) {
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.kapPctWithoutKapDato, message: 'Der er indtastet kapitaliseringsprocent men ikke -dato.' });
+  }
+
+  return issues;
 };
 
 export const validateAslAarsloenDivisibleBy1000 = (

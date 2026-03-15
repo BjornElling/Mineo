@@ -783,17 +783,28 @@ Kapitalisering genbruger dermed samme ASL-reguleringssystematik som løbende yde
 
 ### Trin 4 — Kapitaliseringsfaktor
 
-Faktoren beregnes ud fra skadelidtes alder i **år og måneder** på det effektive kapitaliseringstidspunkt (kolonne 7 hvis udfyldt, ellers kolonne 5), efter de tre tilfælde i sektion 6.
+Faktoren beregnes ud fra skadelidtes alder på det effektive kapitaliseringstidspunkt (kolonne 7 hvis udfyldt, ellers kolonne 5), efter de tre tilfælde i sektion 6.
 
-- Tilfælde 1: alder inden for tabellens interval → interpolation på måneder
-- Tilfælde 2: alder over tabellens interval, men > 2 år fra FP → lineær interpolation mod særfaktor
-- Tilfælde 3: særfaktor direkte (se trin 0)
+**Måneds-afhængighed:** Bestemt af skadesdato.
+
+| Skadesdato | Måneds-afhængig | Aldersmål ved interpolation |
+|---|---|---|
+| Før 01-07-2007 | Nej | Kun hele opnåede år — måneder ignoreres |
+| 01-07-2007 eller senere | Ja | År og måneder |
+
+Når måneds-afhængig = **Nej** bruges alene det hele antal opnåede år i tabelopslaget — ingen interpolation på måneder. Faktoren for det nedre hele år bruges direkte.
+
+Når måneds-afhængig = **Ja** interpoleres faktoren måneds-baseret efter tilfælde 1–2 i sektion 6.
+
+- Tilfælde 1 (måneds-afhængig = Ja): alder inden for tabellens interval → interpolation på måneder
+- Tilfælde 1 (måneds-afhængig = Nej): alder inden for tabellens interval → faktor for det opnåede hele år
+- Tilfælde 2 (måneds-afhængig = Ja): alder over tabellens interval, men > 2 år fra FP → lineær interpolation mod særfaktor på månedsbasis
+- Tilfælde 2 (måneds-afhængig = Nej): alder over tabellens interval, men > 2 år fra FP → lineær interpolation mod særfaktor på helårsbasis
+- Tilfælde 3: særfaktor direkte (se trin 0) — uafhængigt af måneds-afhængighed
 
 ```
 kapFaktor = round3(tabelopslag_med_interpolation)
 ```
-
-Indtil videre lægges beregningsteknisk til grund, at alle kapitaliseringsbekendtgørelser anvender månedsafhængige mellemfaktorer. Feltet "Faktor måneds-afhængig?" vises derfor som `Ja` for alle afgørelser.
 
 ### Trin 5 — Kapitalbeløbet
 
@@ -922,7 +933,7 @@ Reguleringsprocenten (række 4) vises med op til 4 decimaler med trimmede efterf
 | Række | Label (venstre) | Indhold (højre) |
 |---|---|---|
 | 1 | Alder ved kapitalisering | `[år] år, [måneder] måneder` |
-| 2 | Faktor måneds-afhængig? | `Ja` |
+| 2 | Faktor måneds-afhængig? | `Ja` (skadesdato ≥ 01-07-2007) / `Nej` (skadesdato < 01-07-2007) |
 | 3 | Kapitaliseret pga. < 2 år til folkepension? | `Ja` / `Nej` |
 | 4 | Kapitaliseringsfaktor | `[faktor]` — fx "5,312" |
 

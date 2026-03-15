@@ -263,7 +263,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 
   const eetPctResolution = resolveEetPct(values);
   issues.push(...eetPctResolution.issues);
-  if (!eetPctResolution.resolved) {
+  if (!eetPctResolution.resolved && eetPctResolution.issues.length === 0) {
     issues.push(toIssue('eet-pct-missing', 'Erhvervsevnetabsprocent er ikke udfyldt.'));
   }
 

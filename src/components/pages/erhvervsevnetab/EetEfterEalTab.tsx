@@ -64,18 +64,10 @@ const resolveIssueNavigation = (issueId: string): ErrorNavigation | null => {
   if (
     issueId === 'aarsloen-missing' ||
     issueId === 'eet-pct-missing' ||
-    issueId === 'field-aarsloen-asl' ||
-    issueId === 'field-aarsloen-eal'
+    issueId === 'eal-eet-pct-invalid' ||
+    issueId === 'field-aarsloen-eal' ||
+    issueId === 'field-eal-eet-pct'
   ) {
-    return {
-      pageName: 'EET oplysninger',
-      sectionName: 'Arbejdsskadesikringsloven',
-      route: '/erhvervsevnetab',
-      sectionId: 'eet-oplysninger-asl',
-    };
-  }
-
-  if (issueId === 'eal-eet-pct-invalid' || issueId === 'field-eal-eet-pct') {
     return {
       pageName: 'EET oplysninger',
       sectionName: 'Erstatningsansvarsloven',
@@ -180,12 +172,10 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
       toFieldIssue('field-beregningsdato', eetFieldErrors.beregningsdato?.message),
       toFieldIssue('field-eal-eet-pct', eetFieldErrors.ealEetPct?.message),
       toFieldIssue('field-aarsloen-eal', eetFieldErrors.ealAarsloen?.message),
-      toFieldIssue('field-aarsloen-asl', eetFieldErrors.aslAarsloen?.message),
       toFieldIssue('field-fodselsdato', stamdataFieldErrors.fodselsdato?.message),
       toFieldIssue('field-skadesdato', stamdataFieldErrors.skadesdato?.message),
     ].filter((issue): issue is EetEalIssue => issue !== null);
   }, [
-    eetFieldErrors.aslAarsloen?.message,
     eetFieldErrors.beregningsdato?.message,
     eetFieldErrors.ealAarsloen?.message,
     eetFieldErrors.ealEetPct?.message,

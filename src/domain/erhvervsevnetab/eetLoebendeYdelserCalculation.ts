@@ -15,7 +15,7 @@ import { round0, round2, round4, roundNearest1000 } from './eetRounding';
 import { SKAERING_2011_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
 import { optaelMaanederPraecis } from '../erstatningsopgoerelse/periodiseringsMotor';
-import { hasTextValue, parsePercentDraft } from './eetAslAfgoerelser';
+import { collectIncompleteRowIssues, hasTextValue, parsePercentDraft } from './eetAslAfgoerelser';
 import { resolveKapitaliseringTabelvalgForControlDate } from './eetKapitaliseringOpslag';
 
 export type EetLoebendeIssue = Readonly<{
@@ -221,34 +221,13 @@ const collectWarnings = (
 };
 
 const collectBlockingInputIssues = (rows: readonly AslAfgoerelseRow[], issues: EetLoebendeIssue[]): void => {
-  const hasKapDatoWithoutKapPct = rows.some((row) => hasTextValue(row.kapDato) && !hasTextValue(row.kapPct));
-  if (hasKapDatoWithoutKapPct) {
-    issues.push(toIssue('kap-dato-without-kap-pct', 'Der er indtastet kapitaliseringsdato men ikke -procent.'));
-  }
-
-  const hasKapPctWithoutKapDato = rows.some((row) => hasTextValue(row.kapPct) && !hasTextValue(row.kapDato));
-  if (hasKapPctWithoutKapDato) {
-    issues.push(toIssue('kap-pct-without-kap-dato', 'Der er indtastet kapitaliseringsprocent men ikke -dato.'));
-  }
-
-  const hasEndeligUnder50WithoutKapInfo = rows.some((row) => {
-    if (row.afgoerelseType !== 'Endelig') return false;
-    const eetPct = parsePct(row.eetPct);
-    if (eetPct === undefined || eetPct >= 50) return false;
-    return !hasTextValue(row.kapDato) || !hasTextValue(row.kapPct);
-  });
-  if (hasEndeligUnder50WithoutKapInfo) {
-    issues.push(
-      toIssue(
-        'endelig-under-50-missing-kapitalisering',
-        'Endelig afgørelse under 50 % mangler oplysninger om kapitalisering.'
-      )
-    );
+  for (const issue of collectIncompleteRowIssues(rows)) {
+    issues.push(toIssue(issue.id, issue.message));
   }
 
   const hasDelvistEndeligWithoutKapInfo = rows.some((row) => {
     if (row.afgoerelseType !== 'Delvist endelig') return false;
-    return !hasTextValue(row.kapDato) || !hasTextValue(row.kapPct);
+    return !hasTextValue(row.kapDato) && !hasTextValue(row.kapPct);
   });
   if (hasDelvistEndeligWithoutKapInfo) {
     issues.push(

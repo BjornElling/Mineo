@@ -14,7 +14,7 @@ import {
   type KapitaliseringsTabelData,
   getKapitaliseringsTabelData,
 } from '../../data/kapitalisering/kapitaliseringsTabeller';
-import { hasTextValue, isAslAfgoerelseRowEmpty, parsePercentDraft } from './eetAslAfgoerelser';
+import { collectIncompleteRowIssues, hasTextValue, isAslAfgoerelseRowEmpty, parsePercentDraft } from './eetAslAfgoerelser';
 import {
   calculateAgeYearsMonths,
   interpolateFactorBeyondTable,
@@ -28,7 +28,7 @@ import {
 } from './eetKapitaliseringOpslag';
 import { ceil0, round0, round2, round3, round4, roundNearest1000 } from './eetRounding';
 import { resolveAslReguleringRateForKapAar } from './eetReguleringRater';
-import { SKAERING_2011_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
+import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 
 export type EetKapitaliseringIssue = Readonly<{
   id: string;
@@ -54,8 +54,10 @@ export type EetKapitaliseringAfgoerelseComputation = Readonly<{
   alderAar: number;
   alderMaaneder: number;
   kapitaliseretPgaUnderToAarTilFp: boolean;
+  faktorMaanedsAfhaengig: boolean;
   kapitaliseringsfaktor: number;
   kapitalbelob: number;
+  koenOpdelt: boolean;
 }>;
 
 export type EetKapitaliseringComputation = Readonly<{
@@ -119,33 +121,18 @@ const collectResolvedRows = (
     (row) => row.afgoerelseType === 'Endelig' || row.afgoerelseType === 'Delvist endelig'
   );
 
-  if (rowsWithAfgoerelse.length === 0) {
-    if (startedRows.length === 0) {
-      issues.push(
-        toIssue(
-          'asl-afgoerelser-empty',
-          'Ingen afgørelser med erhvervsevnetabsprocent er udfyldt.'
-        )
-      );
-      return result;
-    }
+  if (startedRows.length === 0) {
+    issues.push(
+      toIssue(
+        'asl-afgoerelser-empty',
+        'Ingen afgørelser med erhvervsevnetabsprocent er udfyldt.'
+      )
+    );
+    return result;
+  }
 
-    const hasAnyAfgoerelsesdato = startedRows.some((row) => coerceToISODateString(row.afgoerelsesDato) !== undefined);
-    const hasAnyAfgoerelsestype = startedRows.some((row) => row.afgoerelseType !== undefined);
-    const hasAnyEetPct = startedRows.some((row) => {
-      const eetPct = parsePercentDraft(row.eetPct);
-      return eetPct !== undefined && eetPct > 0;
-    });
-
-    if (!hasAnyAfgoerelsesdato) {
-      issues.push(toMissingFieldIssue('afgoerelsesdato', 'afgørelsesdato'));
-    }
-    if (!hasAnyAfgoerelsestype) {
-      issues.push(toMissingFieldIssue('afgoerelsestype', 'afgørelsestype'));
-    }
-    if (!hasAnyEetPct) {
-      issues.push(toMissingFieldIssue('eet-pct', 'EET %'));
-    }
+  for (const issue of collectIncompleteRowIssues(rows)) {
+    issues.push(toIssue(issue.id, issue.message));
   }
 
   if (rowsWithAfgoerelse.length > 0 && rowsWithKapitaliserbarAfgoerelse.length === 0) {
@@ -155,24 +142,6 @@ const collectResolvedRows = (
         'Ingen endelig eller delvist endelig afgørelser indtastet.'
       )
     );
-  }
-
-  const hasKapDatoWithoutKapPct = rowsWithKapitaliserbarAfgoerelse.some(
-    (row) =>
-      hasTextValue(row.kapDato) &&
-      !hasTextValue(row.kapPct)
-  );
-  if (hasKapDatoWithoutKapPct) {
-    issues.push(toIssue('kap-dato-without-kap-pct', 'Der er indtastet kapitaliseringsdato men ikke -procent.'));
-  }
-
-  const hasKapPctWithoutKapDato = rowsWithKapitaliserbarAfgoerelse.some(
-    (row) =>
-      hasTextValue(row.kapPct) &&
-      !hasTextValue(row.kapDato)
-  );
-  if (hasKapPctWithoutKapDato) {
-    issues.push(toIssue('kap-pct-without-kap-dato', 'Der er indtastet kapitaliseringsprocent men ikke -dato.'));
   }
 
   for (const row of rows) {
@@ -194,10 +163,29 @@ const collectResolvedRows = (
     });
   }
 
+  const hasDelvistEndeligWithoutKapInfo = rowsWithKapitaliserbarAfgoerelse.some(
+    (row) => row.afgoerelseType === 'Delvist endelig' && !hasTextValue(row.kapDato) && !hasTextValue(row.kapPct)
+  );
+  if (hasDelvistEndeligWithoutKapInfo) {
+    issues.push(toIssue(
+      'delvist-endelig-missing-kapitalisering',
+      'Der er angivet en delvist endelig afgørelse uden kapitalisering.'
+    ));
+  }
+
   const hasKapPctZeroOnKapitaliserbarRow = rowsWithKapitaliserbarAfgoerelse.some((row) => {
     const kapPct = parsePercentDraft(row.kapPct);
     return hasTextValue(row.kapPct) && (kapPct === undefined || kapPct === 0);
   });
+
+  // Guards: forhindrer at den generiske "ingen kap.dato/pct overhovedet"-fejl emitteres
+  // når problemet er et inkonsistens-problem (dato uden procent eller omvendt). De to
+  // fejltyper er gensidigt eksklusivt relevante — inkonsistens-fejlen er mere præcis og
+  // skal ikke suppleres af den generiske.
+  // Checkes på alle rækker (ikke kun kapitaliserbare) for at fange kap-felter udfyldt
+  // på Midlertidig-rækker, som sorteres fra inden result bygges.
+  const hasKapDatoWithoutKapPct = rows.some((row) => hasTextValue(row.kapDato) && !hasTextValue(row.kapPct));
+  const hasKapPctWithoutKapDato = rows.some((row) => hasTextValue(row.kapPct) && !hasTextValue(row.kapDato));
 
   if (
     rowsWithKapitaliserbarAfgoerelse.length > 0 &&
@@ -261,6 +249,12 @@ export const computeEetKapitaliseringCalculation = (
     : round0(benyttetAarsloen * (ASL_MAX_AARSLOEN_2024 / maxAarsloenISkadesaar));
   const erstatningsniveau = from2011 ? 0.83 : 0.8;
   const amFaktor = from2011 ? 0.92 : 1;
+  const needsKoen = resolvedRows.some((row) => row.kapDato < '2015-03-01');
+  if (needsKoen && !values.koen) {
+    issues.push(toIssue('missing-koen', 'Ved kapitalisering før 1. marts 2015 skal køn angives.'));
+    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+  }
+
   const computations: EetKapitaliseringAfgoerelseComputation[] = [];
 
   for (const row of resolvedRows) {
@@ -316,6 +310,8 @@ export const computeEetKapitaliseringCalculation = (
     let ageForFactor = controlAge;
     let kapitaliseringsfaktor: number | null = null;
     let kapitaliseretPgaUnderToAarTilFp = false;
+    let koenOpdelt = false;
+    const faktorMaanedsAfhaengig = skadesdato >= SKAERING_2007_07_01;
 
     if (useDirectSaerfaktor) {
       if (resolvedSaerfaktor === null) {
@@ -372,18 +368,13 @@ export const computeEetKapitaliseringCalculation = (
       ageForFactor = effectiveAge;
 
       const factorTableResult = resolveFactorTable(effectiveData, effectiveTabelvalg.tabel, values.koen);
+      koenOpdelt = factorTableResult.koenOpdelt;
       const factorTable = factorTableResult.rows;
       if (!factorTable || factorTable.length === 0) {
-        const message =
-          factorTableResult.reason === 'missing-koen'
-            ? `Køn mangler for kapitaliseringstabel ${effectiveTabelvalg.tabel}.`
-            : `Ingen kapitaliseringsfaktorer indtastet for tabel ${effectiveTabelvalg.tabel}.`;
-        issues.push(
-          toIssue(
-            'kapitaliseringstabel-missing',
-            message
-          )
-        );
+        issues.push(toIssue(
+          'kapitaliseringstabel-missing',
+          `Ingen kapitaliseringsfaktorer indtastet for tabel ${effectiveTabelvalg.tabel}.`
+        ));
         continue;
       }
 
@@ -398,7 +389,7 @@ export const computeEetKapitaliseringCalculation = (
         continue;
       }
 
-      const withinTable = interpolateFactorWithinTable(factorTable, ageForFactor);
+      const withinTable = interpolateFactorWithinTable(factorTable, ageForFactor, faktorMaanedsAfhaengig);
       if (withinTable !== null) {
         kapitaliseringsfaktor = round3(withinTable);
       } else {
@@ -425,7 +416,8 @@ export const computeEetKapitaliseringCalculation = (
           factorTable,
           ageForFactor,
           effectiveTabelvalg.folkepensionsalderMaaneder,
-          resolvedSaerfaktor
+          resolvedSaerfaktor,
+          faktorMaanedsAfhaengig
         );
         if (beyondTable === null) {
           issues.push(
@@ -480,8 +472,10 @@ export const computeEetKapitaliseringCalculation = (
       alderAar: ageForFactor.years,
       alderMaaneder: ageForFactor.months,
       kapitaliseretPgaUnderToAarTilFp,
+      faktorMaanedsAfhaengig,
       kapitaliseringsfaktor,
       kapitalbelob,
+      koenOpdelt,
     });
   }
 

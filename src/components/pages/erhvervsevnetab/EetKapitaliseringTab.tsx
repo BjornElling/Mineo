@@ -305,9 +305,18 @@ const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger })
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Faktor måneds-afhængig?</Typography>
                   <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">Ja</Typography>
+                    <Typography className="row--text">{afgoerelse.faktorMaanedsAfhaengig ? 'Ja' : 'Nej'}</Typography>
                   </Box>
                 </Box>
+
+                {afgoerelse.koenOpdelt && (
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">Køn</Typography>
+                    <Box className="row--label-right-hover__content">
+                      <Typography className="row--text">{values.koen}</Typography>
+                    </Box>
+                  </Box>
+                )}
 
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Kapitaliseringsfaktor</Typography>

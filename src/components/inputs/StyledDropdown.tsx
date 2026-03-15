@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Box, MenuItem, OutlinedInput, Popover } from '@mui/material';
+import { Box, MenuItem, OutlinedInput, Popover, Tooltip } from '@mui/material';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { createCommitEvent, type CommitEvent } from './fieldEvents';
@@ -34,6 +34,7 @@ type StyledDropdownCommonProps<TValue extends StyledDropdownValue> = Omit<
   children?: React.ReactNode;
   name?: string;
   error?: boolean;
+  helperText?: string;
   /**
    * Optional styling hooks for the popover listbox and its options.
    *
@@ -127,6 +128,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     children,
     name,
     error = false,
+    helperText = '',
     getOptionLabel,
     allowEmpty = true,
     returnFocusOnClose = true,
@@ -587,7 +589,17 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         color: 'rgba(0,0,0,0.6)',
       };
 
+  const showError = error && helperText.trim() !== '';
+
   return (
+    <Tooltip
+      title={showError ? helperText : ''}
+      arrow
+      placement="top"
+      disableHoverListener={!showError}
+      disableFocusListener={!showError}
+      disableTouchListener={!showError}
+    >
     <Box sx={containerSxMerged}>
       <OutlinedInput
         {...outlinedInputProps}
@@ -806,6 +818,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         </Box>
       </Popover>
     </Box>
+    </Tooltip>
   );
 };
 
