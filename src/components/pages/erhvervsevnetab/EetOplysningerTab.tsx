@@ -85,7 +85,7 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
   return (
     <>
       <ContentBox className="content-box" data-section-id="eet-oplysninger-stamdata">
-        <Typography className="section-header">Stamdata</Typography>
+        <Typography className="section-header">Grundlæggende oplysninger</Typography>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Fødselsdato</Typography>

@@ -44,6 +44,6 @@ describe('resolveDateRangeErrorMessage', () => {
       maxDate: iso('2030-12-31'),
       special: { minBoundKind: 'kapDatoFoerAfgoerelsesdato' },
     });
-    expect(message).toBe('Kapitaliseringsdato kan ikke være før afgørelsesdato');
+    expect(message).toContain('Kapitaliseringsdato kan ikke være før afgørelsesdatoen');
   });
 });

@@ -1,4 +1,5 @@
 import type { ErhvervsevnetabValues } from '../../schemas/formSchemas';
+import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, dateToISO, parseISODate } from '../../types/branded';
 import {
@@ -14,7 +15,7 @@ import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatIsoDateShort } from '../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { addDays } from '../../utils/dateUtils';
-import { INCOMPLETE_ROW_ISSUE_IDS, parsePercentDraft } from './eetAslAfgoerelser';
+import { parsePercentDraft } from './eetAslAfgoerelser';
 import {
   calculateAgeYearsMonths,
   interpolateFactorBeyondTable,
@@ -30,15 +31,9 @@ import { resolveAslReguleringRateForKapAar } from './eetReguleringRater';
 import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2011_06_16, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { computeEetLoebendeYdelser } from './eetLoebendeYdelserCalculation';
 import { computeEetEalCalculation } from './eetEalCalculation';
-import { computeEetKapitaliseringCalculation } from './eetKapitaliseringCalculation';
+import { computeEetKapitaliseringCalculation, WARN_NO_KAP_INPUT_ID } from './eetKapitaliseringCalculation';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-export type EetDifferencekravIssue = Readonly<{
-  id: string;
-  severity: 'error' | 'warning';
-  message: string;
-}>;
 
 export type EetDifferencekravLoebendeAfgoerelse = Readonly<{
   rowId: string;
@@ -95,8 +90,10 @@ export type EetDifferencekravComputation = Readonly<{
   kapitaliseringerAfgoerelser: readonly EetDifferencekravKapitaliseretAfgoerelse[];
 }>;
 
+/** hasBlockingErrors er eksplicit her fordi differencekrav-fanen bruger den direkte;
+ *  de øvrige faner udleder den fra issues.some(). */
 export type EetDifferencekravCalculationResult = Readonly<{
-  issues: readonly EetDifferencekravIssue[];
+  issues: readonly EetIssue[];
   computation: EetDifferencekravComputation | null;
   hasBlockingErrors: boolean;
 }>;
@@ -109,36 +106,9 @@ type Input = Readonly<{
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const toIssue = (id: string, message: string): EetDifferencekravIssue => ({ id, severity: 'error', message });
+const toIssue = (id: string, message: string): EetIssue => ({ id, severity: 'error', message });
 
 export { formatPct as formatKapPct } from './eetLoebendeYdelserCalculation';
-
-// Issue IDs from fane 3 (kapitalisering) der ikke er relevante på fane 5
-// når der ingen kapitaliserede afgørelser er — de skal hverken vises eller blokere.
-const FANE3_ISSUES_HIDDEN_WITHOUT_KAPITALISERING: Set<string> = new Set([
-  'kapitaliseringsbekendtgoerelse-missing-control-date',
-  'kapitaliseringsbekendtgoerelse-missing-effective-date',
-  'kapitaliseringstabel-missing',
-  'kapitaliseringsalder-under-minimum',
-  'kapitaliseringsfaktor-unresolved',
-  INCOMPLETE_ROW_ISSUE_IDS.kapDatoWithoutKapPct,
-  INCOMPLETE_ROW_ISSUE_IDS.kapPctWithoutKapDato,
-  // 'missing-kap-dato' og 'missing-kap-pct' emitteres af collectResolvedRows i Fane 3
-  // når der er kapitaliserbare afgørelser men ingen kap.dato/kap.% er udfyldt overhovedet.
-  'missing-kap-dato',
-  'missing-kap-pct',
-]);
-
-// Issue IDs from fane 2 (løbende) der ikke er relevante på fane 5
-// når der ingen kapitaliserede afgørelser er — de skal hverken vises eller blokere.
-// Bemærk: 'delvist-endelig-missing-kapitalisering' er IKKE i dette sæt — en delvist endelig
-// afgørelse uden kapitalisering er altid en fejl der skal rettes, uanset om der er
-// andre kapitaliserede afgørelser. Den blokerer bevidst for download på fane 5.
-const FANE2_ISSUES_HIDDEN_WITHOUT_KAPITALISERING: Set<string> = new Set([
-  INCOMPLETE_ROW_ISSUE_IDS.kapDatoWithoutKapPct,
-  INCOMPLETE_ROW_ISSUE_IDS.kapPctWithoutKapDato,
-  INCOMPLETE_ROW_ISSUE_IDS.endeligUnder50MissingKap,
-]);
 
 // ─── Proforma-kapitalisering ──────────────────────────────────────────────────
 
@@ -154,7 +124,7 @@ const computeProformaKapitalisering = (
     before2024Skade: boolean;
     koen: ErhvervsevnetabValues['koen'];
   }>,
-  issues: EetDifferencekravIssue[]
+  issues: EetIssue[]
 ): EetDifferencekravProformaKapitalisering | null => {
   const { loebendeEetPct, beregningsdato, skadesdato, fodselsdato } = args;
 
@@ -273,7 +243,7 @@ const computeProformaKapitalisering = (
   const grundydelse = round2(args.grundloen * (loebendeEetPct / 100) * args.erstatningsniveau * args.amFaktor);
   const reguleringFoer2024 = reguleringsprocentErhvervsevnetabFoer2024[2024];
   if (args.before2024Skade && !Number.isFinite(reguleringFoer2024)) {
-    issues.push(toIssue('proforma-reguleringssats-missing-2024', 'Reguleringssats mangler for år 2024.'));
+    issues.push(toIssue('proforma-reguleringssats-missing', 'Reguleringssats mangler for år 2024.'));
     return null;
   }
   const grundydelse2024 = args.before2024Skade
@@ -397,17 +367,17 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   }
 
   // ─── Aggreger issues fra fane 2, 3 og 4 ──────────────────────────────────
-  const allSourceIssues: EetDifferencekravIssue[] = [];
+  const allSourceIssues: EetIssue[] = [];
 
   for (const issue of ealResult.issues) {
-    allSourceIssues.push(issue as EetDifferencekravIssue);
+    allSourceIssues.push(issue);
   }
   for (const issue of kapResult.issues) {
-    allSourceIssues.push(issue as EetDifferencekravIssue);
+    if (issue.id !== WARN_NO_KAP_INPUT_ID) allSourceIssues.push(issue);
   }
   if (loebendeResult) {
     for (const issue of loebendeResult.issues) {
-      allSourceIssues.push(issue as EetDifferencekravIssue);
+      allSourceIssues.push(issue);
     }
   } else if (!beregningsdato) {
     allSourceIssues.push({ id: 'beregningsdato-missing', severity: 'error', message: 'Beregningsdato er ikke udfyldt.' });
@@ -419,7 +389,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   // Proformaberegningen kræver eal-computation og alle stamdata — kør kun hvis
   // disse forudsætninger er til stede, så vi undgår fejl-stacking ovenpå allerede
   // kendte blokerende fejl.
-  const proformaIssues: EetDifferencekravIssue[] = [];
+  const proformaIssues: EetIssue[] = [];
   let proformaKapitalisering: EetDifferencekravProformaKapitalisering | null = null;
   let loebendeEetPct = 0;
 
@@ -480,25 +450,14 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
     allSourceIssues.push(issue);
   }
 
-  // Midlertidig-rækker tæller ikke som "kapitaliserede" — kapitaliseringsdata på dem er altid en fejl,
-  // og de skal ikke aktivere den skærpede visningstilstand for øvrige fane-3-fejl.
-  const kapHasCapitalized = input.erhvervsevnetab.aslAfgoerelser.some((row) => {
-    if (row.afgoerelseType === 'Midlertidig') return false;
-    const kapDato = coerceToISODateString(row.kapDato);
-    const kapPct = parsePercentDraft(row.kapPct);
-    return (kapDato !== undefined) || (kapPct !== undefined && kapPct > 0);
-  });
-
-  // Issues der kun er relevante ved kapitalisering fjernes helt fra fane 5 når der ingen
-  // kapitaliserede afgørelser er — de skal hverken vises eller blokere for download.
-  // 'no-endelig-afgoerelser' er kun relevant på fane 3 og filtreres altid væk.
-  const aggregatedIssues = dedupeIssuesBySeverityAndMessage(allSourceIssues)
-    .filter((issue) => {
-      if (issue.id === 'no-endelig-afgoerelser') return false;
-      if (!kapHasCapitalized && FANE3_ISSUES_HIDDEN_WITHOUT_KAPITALISERING.has(issue.id)) return false;
-      if (!kapHasCapitalized && FANE2_ISSUES_HIDDEN_WITHOUT_KAPITALISERING.has(issue.id)) return false;
-      return true;
-    });
+  // 'no-endelig-afgoerelser' er kun relevant på fane 3 og filtreres altid væk fra fane 5.
+  // F5 proformakapitaliserer uafhængigt af om der tidligere er foretaget kapitalisering.
+  const deduped = dedupeIssuesBySeverityAndMessage(allSourceIssues)
+    .filter((issue) => issue.id !== 'no-endelig-afgoerelser');
+  const hasAslAfgoerelserEmpty = deduped.some((issue) => issue.id === 'asl-afgoerelser-empty');
+  const aggregatedIssues = hasAslAfgoerelserEmpty
+    ? deduped.filter((issue) => issue.id !== 'eet-pct-missing')
+    : deduped;
 
   const blockingErrors = aggregatedIssues.filter((issue) => issue.severity === 'error');
 

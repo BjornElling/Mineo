@@ -149,7 +149,7 @@ describe('computeEetEalCalculation', () => {
     });
 
     expect(result.computation).toBeNull();
-    expect(result.issues.some((issue) => issue.message === 'Erhvervsevnetabsprocent er ikke udfyldt')).toBe(true);
+    expect(result.issues.some((issue) => issue.message === 'Erhvervsevnetabsprocent er ikke udfyldt.')).toBe(true);
   });
 
   it('giver fejl når reguleringssats mangler for et nødvendigt år', () => {
@@ -310,7 +310,7 @@ describe('computeEetEalCalculation', () => {
       result.issues.some(
         (issue) =>
           issue.severity === 'warning' &&
-          issue.message === 'For skader fra 1. juli 2024 og frem beregnes årsløn forskelligt efter EAL og ASL'
+          issue.message === 'For skader fra 1. juli 2024 og frem beregnes årsløn forskelligt efter EAL og ASL.'
       )
     ).toBe(true);
   });

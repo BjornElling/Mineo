@@ -1,20 +1,25 @@
 import React from 'react';
 import { Box, Checkbox, FormControlLabel, Tooltip, Typography } from '@mui/material';
-import { Download, ErrorOutline, WarningAmber } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { Download } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
 import type { ErhvervsevnetabValues } from '../../../schemas/formSchemas';
 import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
-import { useScrollToSectionWithRetry } from '../../../hooks/useScrollToSectionWithRetry';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import { formatAsAmount, formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
 import {
   computeEetDifferencekravCalculation,
   formatKapPct,
-  type EetDifferencekravIssue,
 } from '../../../domain/erhvervsevnetab/eetDifferencekravCalculation';
+import {
+  EetIssuesBox,
+  formatKr,
+  navigationSortKey,
+  toFieldIssue,
+  TextHoverRow,
+  UnderlinedHoverRow,
+} from './eetTabShared';
 
 type Props = Readonly<{
   values: ErhvervsevnetabValues;
@@ -22,133 +27,13 @@ type Props = Readonly<{
   onGoToEetOplysninger: () => void;
 }>;
 
-type ErrorNavigation = Readonly<{
-  pageName: string;
-  sectionName: string;
-  route: '/stamdata' | '/erhvervsevnetab';
-  sectionId: string;
-}>;
-
-const formatKr = (value: number): string => `${formatAsAmount(value, 0)} kr.`;
 const formatFaktor = (value: number): string => formatAsAmountTrimmed(value, 3);
 
-const TextHoverRow: React.FC<Readonly<{ text: string }>> = ({ text }) => (
-  <Box className="row--label-right-hover">
-    <Typography className="row--text">{text}</Typography>
-    <Box className="row--label-right-hover__content" />
-  </Box>
-);
-
-const UnderlinedHoverRow: React.FC<Readonly<{ text: string }>> = ({ text }) => (
-  <Box className="row--label-right-hover">
-    <Typography className="row--subheading-underlined">{text}</Typography>
-    <Box className="row--label-right-hover__content" />
-  </Box>
-);
-
-const toFieldIssue = (id: string, message: string | undefined): EetDifferencekravIssue | null => {
-  if (!message || message.trim() === '') return null;
-  return { id, severity: 'error', message: message.trim() };
-};
-
-const resolveIssueNavigation = (issueId: string): ErrorNavigation | null => {
-  if (
-    issueId === 'fodselsdato-missing' ||
-    issueId === 'field-fodselsdato' ||
-    issueId === 'skadesdato-missing' ||
-    issueId === 'field-skadesdato'
-  ) {
-    return {
-      pageName: 'Stamdata',
-      sectionName: 'Skadelidte',
-      route: '/stamdata',
-      sectionId: 'stamdata-skadelidte',
-    };
-  }
-
-  if (issueId === 'beregningsdato-missing' || issueId === 'field-beregningsdato') {
-    return {
-      pageName: 'EET oplysninger',
-      sectionName: 'Stamdata',
-      route: '/erhvervsevnetab',
-      sectionId: 'eet-oplysninger-stamdata',
-    };
-  }
-
-  if (
-    issueId === 'aarsloen-missing' ||
-    issueId === 'field-aarsloen-asl' ||
-    issueId === 'field-aarsloen-eal'
-  ) {
-    return {
-      pageName: 'EET oplysninger',
-      sectionName: 'Arbejdsskadesikringsloven',
-      route: '/erhvervsevnetab',
-      sectionId: 'eet-oplysninger-asl',
-    };
-  }
-
-  if (
-    issueId === 'eal-eet-pct-invalid' ||
-    issueId === 'warn-eal-eet-under-15' ||
-    issueId === 'warn-eal-aarsloen-is-max' ||
-    issueId === 'warn-eal-aarsloen-empty-for-2024-07-01'
-  ) {
-    return {
-      pageName: 'EET oplysninger',
-      sectionName: 'Erstatningsansvarsloven',
-      route: '/erhvervsevnetab',
-      sectionId: 'eet-oplysninger-eal',
-    };
-  }
-
-  if (
-    issueId === 'asl-selected-eet-pct-invalid' ||
-    issueId === 'asl-identical-endelig' ||
-    issueId === 'asl-afgoerelser-empty' ||
-    issueId === 'warn-asl-eet-under-15' ||
-    issueId === 'warn-invalid-eet-pct-after-2024-07-01' ||
-    issueId === 'warn-non-endelig-after-endelig' ||
-    issueId === 'warn-afgoerelsesdato-after-beregningsdato' ||
-    issueId === 'warn-virkningsdato-after-beregningsdato' ||
-    issueId === 'warn-kap-dato-after-beregningsdato'
-  ) {
-    return {
-      pageName: 'EET oplysninger',
-      sectionName: 'Arbejdsskadesikringsloven',
-      route: '/erhvervsevnetab',
-      sectionId: 'eet-oplysninger-asl',
-    };
-  }
-
-  return null;
-};
-
-const NAVIGATION_SORT_ORDER: Record<string, number> = {
-  'stamdata-skadelidte': 0,
-  'eet-oplysninger-stamdata': 1,
-  'eet-oplysninger-asl': 2,
-  'eet-oplysninger-eal': 3,
-};
-
-const navigationSortKey = (issueId: string): number => {
-  const nav = resolveIssueNavigation(issueId);
-  return nav !== null ? (NAVIGATION_SORT_ORDER[nav.sectionId] ?? 99) : 99;
-};
-
-// Issue-IDs der undertrykkes på fane 5 — enten fordi de ikke er relevante for differencekrav,
-// eller fordi de allerede dækkes af et andet issue på fane 5:
-// - 'eet-pct-missing', 'field-eal-eet-pct', 'field-aarsloen-eal': EAL-felterne er valgfrie på
-//   fane 5 (beregningen falder tilbage på ASL-værdier) og dækkes af 'asl-afgoerelser-empty' /
-//   'aarsloen-missing', der begge peger på ASL-sektionen.
-const SUPPRESSED_ISSUE_IDS_FANE5 = new Set(['eet-pct-missing', 'field-eal-eet-pct', 'field-aarsloen-eal']);
 
 const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOplysninger }) => {
-  const navigate = useNavigate();
   const stamdata = usePersistedSection('stamdata');
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
-  const scrollToSectionWithRetry = useScrollToSectionWithRetry();
 
   const calculationResult = React.useMemo(
     () =>
@@ -163,10 +48,14 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
   const fieldIssues = React.useMemo(() => {
     return [
       toFieldIssue('field-beregningsdato', eetFieldErrors.beregningsdato?.message),
+      toFieldIssue('field-aarsloen-asl', eetFieldErrors.aslAarsloen?.message),
+      toFieldIssue('field-asl-afgoerelser', eetFieldErrors.aslAfgoerelser?.message),
       toFieldIssue('field-fodselsdato', stamdataFieldErrors.fodselsdato?.message),
       toFieldIssue('field-skadesdato', stamdataFieldErrors.skadesdato?.message),
-    ].filter((issue): issue is EetDifferencekravIssue => issue !== null);
+    ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
   }, [
+    eetFieldErrors.aslAarsloen?.message,
+    eetFieldErrors.aslAfgoerelser?.message,
     eetFieldErrors.beregningsdato?.message,
     stamdataFieldErrors.fodselsdato?.message,
     stamdataFieldErrors.skadesdato?.message,
@@ -175,7 +64,6 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
   const issues = React.useMemo(
     () =>
       dedupeIssuesBySeverityAndMessage([...calculationResult.issues, ...fieldIssues])
-        .filter((issue) => !SUPPRESSED_ISSUE_IDS_FANE5.has(issue.id))
         .sort((a, b) => navigationSortKey(a.id) - navigationSortKey(b.id)),
     [calculationResult.issues, fieldIssues]
   );
@@ -198,64 +86,12 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
     [bilagSelection, setValues, values]
   );
 
-  const handleNavigate = React.useCallback(
-    (navigation: ErrorNavigation) => {
-      if (navigation.route === '/erhvervsevnetab') {
-        onGoToEetOplysninger();
-        scrollToSectionWithRetry(navigation.sectionId);
-        return;
-      }
-      navigate(navigation.route);
-      scrollToSectionWithRetry(navigation.sectionId);
-    },
-    [navigate, onGoToEetOplysninger, scrollToSectionWithRetry]
-  );
-
   return (
     <Box>
-      {/* Fejl og advarsler */}
-      {issues.length > 0 && (
-        <ContentBox className="content-box">
-          <Typography className="section-header">Fejl og advarsler</Typography>
-
-          {issues.map((issue) => {
-            const navigation = resolveIssueNavigation(issue.id);
-            return (
-              <Box key={`${issue.severity}-${issue.id}-${issue.message}`} className="row--label-right-hover">
-                <Typography className="row--text">{issue.message}</Typography>
-                <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-                  {navigation && (
-                    <>
-                      <Typography className="row--text">{navigation.pageName} {'→'} </Typography>
-                      <Typography
-                        className="row--text icon-text-link"
-                        component="button"
-                        type="button"
-                        onClick={() => handleNavigate(navigation)}
-                        sx={{
-                          cursor: 'pointer',
-                          border: 0,
-                          background: 'transparent',
-                          p: 0,
-                          m: 0,
-                          font: 'inherit',
-                        }}
-                      >
-                        {navigation.sectionName}
-                      </Typography>
-                    </>
-                  )}
-                  {issue.severity === 'error' ? (
-                    <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
-                  ) : (
-                    <WarningAmber sx={{ color: 'orange', fontSize: 20 }} />
-                  )}
-                </Box>
-              </Box>
-            );
-          })}
-        </ContentBox>
-      )}
+      <EetIssuesBox
+        issues={issues}
+        onGoToEetOplysninger={onGoToEetOplysninger}
+      />
 
       {/* Beregning */}
       {!hasBlockingErrors && computation && (
@@ -504,7 +340,7 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
                     {`Grundydelse (${formatKapPct(pk.loebendeEetPct)}): Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag)`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">{`${formatAsAmount(pk.grundydelse, 2)} kr.`}</Typography>
+                    <Typography className="row--text">{formatKr(pk.grundydelse, 2)}</Typography>
                   </Box>
                 </Box>
 
@@ -519,7 +355,7 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
 
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
-                    {`Årlig ydelse (${formatAsAmount(pk.grundydelse, 2)} kr. x ${formatAsAmountTrimmed(100 + pk.reguleringsPctRounded4, 4)} %)`}
+                    {`Årlig ydelse (${formatKr(pk.grundydelse, 2)} x ${formatAsAmountTrimmed(100 + pk.reguleringsPctRounded4, 4)} %)`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
                     <Typography className="row--text">{`${formatAsAmount(pk.aarsydelse, 2)} kr.`}</Typography>

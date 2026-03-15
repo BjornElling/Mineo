@@ -1,158 +1,36 @@
 import React from 'react';
 import { Box, Tooltip, Typography } from '@mui/material';
-import { Download, ErrorOutline, WarningAmber } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { Download } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
 import type { ErhvervsevnetabValues } from '../../../schemas/formSchemas';
 import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
-import { useScrollToSectionWithRetry } from '../../../hooks/useScrollToSectionWithRetry';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
-import { formatAsAmount } from '../../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
 import { aarsloenMax, erhvervsevnetabMax, reguleringssats } from '../../../data/regulationRates';
 import {
   computeEetEalCalculation,
   formatPercentTrimmedFromRounded4,
-  type EetEalIssue,
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import {
+  EetIssuesBox,
+  formatKr,
+  navigationSortKey,
+  toFieldIssue,
+} from './eetTabShared';
 
 type Props = Readonly<{
   values: ErhvervsevnetabValues;
   onGoToEetOplysninger: () => void;
 }>;
 
-const formatKr = (value: number): string => `${formatAsAmount(value, 0)} kr.`;
 const formatPct = (value: number): string => `${formatPercentTrimmedFromRounded4(value)} %`;
 
-const toFieldIssue = (id: string, message: string | undefined): EetEalIssue | null => {
-  if (!message || message.trim() === '') return null;
-  return { id, severity: 'error', message: message.trim() };
-};
-
-type ErrorNavigation = Readonly<{
-  pageName: string;
-  sectionName: string;
-  route: '/stamdata' | '/erhvervsevnetab';
-  sectionId: string;
-}>;
-
-const resolveIssueNavigation = (issueId: string): ErrorNavigation | null => {
-  if (
-    issueId === 'fodselsdato-missing' ||
-    issueId === 'skadesdato-missing' ||
-    issueId === 'field-fodselsdato' ||
-    issueId === 'field-skadesdato'
-  ) {
-    return {
-      pageName: 'Stamdata',
-      sectionName: 'Skadelidte',
-      route: '/stamdata',
-      sectionId: 'stamdata-skadelidte',
-    };
-  }
-
-  if (issueId === 'beregningsdato-missing' || issueId === 'field-beregningsdato') {
-    return {
-      pageName: 'EET oplysninger',
-      sectionName: 'Stamdata',
-      route: '/erhvervsevnetab',
-      sectionId: 'eet-oplysninger-stamdata',
-    };
-  }
-
-  if (
-    issueId === 'aarsloen-missing' ||
-    issueId === 'eet-pct-missing' ||
-    issueId === 'eal-eet-pct-invalid' ||
-    issueId === 'field-aarsloen-eal' ||
-    issueId === 'field-eal-eet-pct'
-  ) {
-    return {
-      pageName: 'EET oplysninger',
-      sectionName: 'Erstatningsansvarsloven',
-      route: '/erhvervsevnetab',
-      sectionId: 'eet-oplysninger-eal',
-    };
-  }
-
-  if (
-    issueId === 'asl-selected-eet-pct-invalid' ||
-    issueId === 'asl-identical-endelig'
-  ) {
-    return {
-      pageName: 'EET oplysninger',
-      sectionName: 'Arbejdsskadesikringsloven',
-      route: '/erhvervsevnetab',
-      sectionId: 'eet-oplysninger-asl',
-    };
-  }
-
-  if (issueId === 'warn-eal-eet-under-15') {
-    return {
-      pageName: 'EET oplysninger',
-      sectionName: 'Erstatningsansvarsloven',
-      route: '/erhvervsevnetab',
-      sectionId: 'eet-oplysninger-eal',
-    };
-  }
-
-  if (issueId === 'warn-asl-eet-under-15') {
-    return {
-      pageName: 'EET oplysninger',
-      sectionName: 'Arbejdsskadesikringsloven',
-      route: '/erhvervsevnetab',
-      sectionId: 'eet-oplysninger-asl',
-    };
-  }
-
-  if (
-    issueId === 'warn-eal-aarsloen-is-max' ||
-    issueId === 'warn-eal-aarsloen-empty-for-2024-07-01'
-  ) {
-    return {
-      pageName: 'EET oplysninger',
-      sectionName: 'Erstatningsansvarsloven',
-      route: '/erhvervsevnetab',
-      sectionId: 'eet-oplysninger-eal',
-    };
-  }
-
-  if (issueId === 'warn-asl-aarsloen-is-max') {
-    return {
-      pageName: 'EET oplysninger',
-      sectionName: 'Arbejdsskadesikringsloven',
-      route: '/erhvervsevnetab',
-      sectionId: 'eet-oplysninger-asl',
-    };
-  }
-
-  if (issueId === 'alder-unresolved') {
-    // Afledt fejl: brugeren guides via de konkrete dato-felter på fane 1.
-    return null;
-  }
-
-  return null;
-};
-
-const NAVIGATION_SORT_ORDER: Record<string, number> = {
-  'stamdata-skadelidte': 0,
-  'eet-oplysninger-stamdata': 1,
-  'eet-oplysninger-asl': 2,
-  'eet-oplysninger-eal': 3,
-};
-
-const navigationSortKey = (issueId: string): number => {
-  const nav = resolveIssueNavigation(issueId);
-  return nav !== null ? (NAVIGATION_SORT_ORDER[nav.sectionId] ?? 99) : 99;
-};
 
 const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
-  const navigate = useNavigate();
   const stamdata = usePersistedSection('stamdata');
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
-  const scrollToSectionWithRetry = useScrollToSectionWithRetry();
 
   const calculationResult = React.useMemo(
     () =>
@@ -174,7 +52,7 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
       toFieldIssue('field-aarsloen-eal', eetFieldErrors.ealAarsloen?.message),
       toFieldIssue('field-fodselsdato', stamdataFieldErrors.fodselsdato?.message),
       toFieldIssue('field-skadesdato', stamdataFieldErrors.skadesdato?.message),
-    ].filter((issue): issue is EetEalIssue => issue !== null);
+    ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
   }, [
     eetFieldErrors.beregningsdato?.message,
     eetFieldErrors.ealAarsloen?.message,
@@ -204,64 +82,12 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
     return `(${computation.alderVedSkade} - 29) =`;
   }, [computation]);
 
-  const handleNavigate = React.useCallback((navigation: ErrorNavigation) => {
-    if (navigation.route === '/erhvervsevnetab') {
-      onGoToEetOplysninger();
-      scrollToSectionWithRetry(navigation.sectionId);
-      return;
-    }
-
-    navigate(navigation.route);
-    scrollToSectionWithRetry(navigation.sectionId);
-  }, [navigate, onGoToEetOplysninger, scrollToSectionWithRetry]);
-
   return (
     <Box>
-      {issues.length > 0 && (
-      <ContentBox className="content-box">
-        <Typography className="section-header">Fejl og advarsler</Typography>
-
-        {issues.map((issue) => {
-          const navigation = resolveIssueNavigation(issue.id);
-          return (
-          <Box key={issue.id} className="row--label-right-hover">
-            <Typography className="row--text">{issue.message}</Typography>
-            <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-              {navigation && (
-                <>
-                  <Typography className="row--text">
-                    {navigation.pageName} {'→'}{' '}
-                  </Typography>
-                  <Typography
-                    className="row--text icon-text-link"
-                    component="button"
-                    type="button"
-                    onClick={() => handleNavigate(navigation)}
-                    sx={{
-                      cursor: 'pointer',
-                      border: 0,
-                      background: 'transparent',
-                      p: 0,
-                      m: 0,
-                      font: 'inherit',
-                    }}
-                  >
-                    {navigation.sectionName}
-                  </Typography>
-                </>
-              )}
-              {issue.severity === 'error' ? (
-                <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
-              ) : (
-                <WarningAmber sx={{ color: 'orange', fontSize: 20 }} />
-              )}
-            </Box>
-          </Box>
-          );
-        })}
-
-      </ContentBox>
-      )}
+      <EetIssuesBox
+        issues={issues}
+        onGoToEetOplysninger={onGoToEetOplysninger}
+      />
 
       {!hasBlockingErrors && computation && (
         <>

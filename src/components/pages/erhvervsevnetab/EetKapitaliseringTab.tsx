@@ -1,85 +1,38 @@
 import React from 'react';
 import { Box, Tooltip, Typography } from '@mui/material';
-import { Download, ErrorOutline, WarningAmber } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { Download } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
 import type { ErhvervsevnetabValues } from '../../../schemas/formSchemas';
 import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
-import { useScrollToSectionWithRetry } from '../../../hooks/useScrollToSectionWithRetry';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import { formatAsAmount, formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
 import {
   computeEetKapitaliseringCalculation,
   formatKapitaliseringsPct,
-  type EetKapitaliseringIssue,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
+import {
+  EetIssuesBox,
+  formatKr,
+  navigationSortKey,
+  toFieldIssue,
+  TextHoverRow,
+} from './eetTabShared';
 
 type Props = Readonly<{
   values: ErhvervsevnetabValues;
   onGoToEetOplysninger: () => void;
 }>;
 
-type ErrorNavigation = Readonly<{
-  pageName: string;
-  sectionName: string;
-  route: '/stamdata' | '/erhvervsevnetab';
-  sectionId: string;
-}>;
-
-const formatKr = (value: number, precision: 0 | 2 = 0): string => `${formatAsAmount(value, precision)} kr.`;
 const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
 const formatFaktor = (value: number): string => formatAsAmount(value, 3);
 
-const TextHoverRow: React.FC<Readonly<{ text: string }>> = ({ text }) => (
-  <Box className="row--label-right-hover">
-    <Typography className="row--text">{text}</Typography>
-    <Box className="row--label-right-hover__content" />
-  </Box>
-);
-
-const toFieldIssue = (id: string, message: string | undefined): EetKapitaliseringIssue | null => {
-  if (!message || message.trim() === '') return null;
-  return { id, severity: 'error', message: message.trim() };
-};
-
-const resolveIssueNavigation = (issueId: string): ErrorNavigation | null => {
-  if (issueId === 'fodselsdato-missing' || issueId === 'field-fodselsdato' || issueId === 'skadesdato-missing' || issueId === 'field-skadesdato') {
-    return {
-      pageName: 'Stamdata',
-      sectionName: 'Skadelidte',
-      route: '/stamdata',
-      sectionId: 'stamdata-skadelidte',
-    };
-  }
-
-  return {
-    pageName: 'EET oplysninger',
-    sectionName: 'Arbejdsskadesikringsloven',
-    route: '/erhvervsevnetab',
-    sectionId: 'eet-oplysninger-asl',
-  };
-};
-
-const NAVIGATION_SORT_ORDER: Record<string, number> = {
-  'stamdata-skadelidte': 0,
-  'eet-oplysninger-stamdata': 1,
-  'eet-oplysninger-asl': 2,
-  'eet-oplysninger-eal': 3,
-};
-
-const navigationSortKey = (issueId: string): number => {
-  const nav = resolveIssueNavigation(issueId);
-  return nav !== null ? (NAVIGATION_SORT_ORDER[nav.sectionId] ?? 99) : 99;
-};
 
 const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
-  const navigate = useNavigate();
   const stamdata = usePersistedSection('stamdata');
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
-  const scrollToSectionWithRetry = useScrollToSectionWithRetry();
 
   const calculationResult = React.useMemo(
     () =>
@@ -97,7 +50,7 @@ const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger })
       toFieldIssue('field-asl-afgoerelser', eetFieldErrors.aslAfgoerelser?.message),
       toFieldIssue('field-fodselsdato', stamdataFieldErrors.fodselsdato?.message),
       toFieldIssue('field-skadesdato', stamdataFieldErrors.skadesdato?.message),
-    ].filter((issue): issue is EetKapitaliseringIssue => issue !== null);
+    ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
   }, [
     eetFieldErrors.aslAfgoerelser?.message,
     eetFieldErrors.aslAarsloen?.message,
@@ -117,64 +70,12 @@ const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger })
   const computation = calculationResult.computation;
   const afgoerelser = computation?.afgoerelser ?? [];
 
-  const handleNavigate = React.useCallback(
-    (navigation: ErrorNavigation) => {
-      if (navigation.route === '/erhvervsevnetab') {
-        onGoToEetOplysninger();
-        scrollToSectionWithRetry(navigation.sectionId);
-        return;
-      }
-
-      navigate(navigation.route);
-      scrollToSectionWithRetry(navigation.sectionId);
-    },
-    [navigate, onGoToEetOplysninger, scrollToSectionWithRetry]
-  );
-
   return (
     <Box>
-      {issues.length > 0 && (
-        <ContentBox className="content-box">
-          <Typography className="section-header">Fejl og advarsler</Typography>
-
-          {issues.map((issue) => {
-            const navigation = resolveIssueNavigation(issue.id);
-            return (
-              <Box key={`${issue.severity}-${issue.id}-${issue.message}`} className="row--label-right-hover">
-                <Typography className="row--text">{issue.message}</Typography>
-                <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-                  {navigation && (
-                    <>
-                      <Typography className="row--text">{navigation.pageName} {'->'} </Typography>
-                      <Typography
-                        className="row--text icon-text-link"
-                        component="button"
-                        type="button"
-                        onClick={() => handleNavigate(navigation)}
-                        sx={{
-                          cursor: 'pointer',
-                          border: 0,
-                          background: 'transparent',
-                          p: 0,
-                          m: 0,
-                          font: 'inherit',
-                        }}
-                      >
-                        {navigation.sectionName}
-                      </Typography>
-                    </>
-                  )}
-                  {issue.severity === 'error' ? (
-                    <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
-                  ) : (
-                    <WarningAmber sx={{ color: 'orange', fontSize: 20 }} />
-                  )}
-                </Box>
-              </Box>
-            );
-          })}
-        </ContentBox>
-      )}
+      <EetIssuesBox
+        issues={issues}
+        onGoToEetOplysninger={onGoToEetOplysninger}
+      />
 
       {!hasBlockingErrors && (
         <ContentBox className="content-box">

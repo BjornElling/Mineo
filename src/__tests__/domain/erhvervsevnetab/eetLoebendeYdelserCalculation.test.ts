@@ -93,7 +93,7 @@ describe('computeEetLoebendeYdelser', () => {
     });
 
     expect(result.computation).toBeNull();
-    expect(result.issues.some((issue) => issue.message === 'Der er indtastet kapitaliseringsdato men ikke -procent')).toBe(true);
+    expect(result.issues.some((issue) => issue.message === 'Der er indtastet kapitaliseringsdato men ikke -procent.')).toBe(true);
   });
 
   it('stopper beregning når endelig afgørelse under 50 % mangler kapitaliseringsoplysninger', () => {
@@ -157,7 +157,7 @@ describe('computeEetLoebendeYdelser', () => {
       result.issues.some(
         (issue) =>
           issue.severity === 'warning' &&
-          issue.message === 'Der er indtastet en ugyldig EET-procent ( 55 %) for skader fra 1. juli 2024.'
+          issue.message === 'Der er indtastet en ugyldig EET-procent (55 %) for skader fra 1. juli 2024.'
       )
     ).toBe(true);
   });

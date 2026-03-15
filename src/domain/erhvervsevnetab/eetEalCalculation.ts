@@ -1,4 +1,5 @@
 import type { ErhvervsevnetabValues, AslAfgoerelseRow } from '../../schemas/formSchemas';
+import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, parseISODate } from '../../types/branded';
 import type { YearlyRate } from '../../data/regulationRates';
@@ -7,17 +8,13 @@ import { formatIsoDateShort } from '../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { roundByMethod } from '../../utils/rounding';
 import {
+  ASL_IDENTICAL_AFGOERELSER_ID,
+  hasIdenticalAfgoerelser,
   parsePercentDraft,
   validatePercentDivisibleBy5FromDraft,
   validatePercentDivisibleBy5FromValue,
 } from './eetAslAfgoerelser';
 import { round0, round4 } from './eetRounding';
-
-export type EetEalIssue = Readonly<{
-  id: string;
-  severity: 'error' | 'warning';
-  message: string;
-}>;
 
 export type EetEalResolvedEetPct = Readonly<{
   value: number;
@@ -50,7 +47,7 @@ export type EetEalComputation = Readonly<{
 }>;
 
 export type EetEalCalculationResult = Readonly<{
-  issues: readonly EetEalIssue[];
+  issues: readonly EetIssue[];
   computation: EetEalComputation | null;
 }>;
 
@@ -65,13 +62,13 @@ type Input = Readonly<{
 
 const round500 = (value: number): number => roundByMethod(value / 500, 0, 'halfAwayFromZero') * 500;
 
-const toIssue = (id: string, message: string): EetEalIssue => ({
+const toIssue = (id: string, message: string): EetIssue => ({
   id,
   severity: 'error',
   message,
 });
 
-const toWarning = (id: string, message: string): EetEalIssue => ({
+const toWarning = (id: string, message: string): EetIssue => ({
   id,
   severity: 'warning',
   message,
@@ -101,16 +98,10 @@ const calculateAldersreduktionPct = (ageAtInjury: number): number => {
 };
 
 
-const compareIso = (a: ISODateString, b: ISODateString): number => {
-  if (a < b) return -1;
-  if (a > b) return 1;
-  return 0;
-};
-
 const resolveEetPctFromAslRows = (
   rows: readonly AslAfgoerelseRow[]
-): { resolved: EetEalResolvedEetPct | null; issues: EetEalIssue[] } => {
-  const issues: EetEalIssue[] = [];
+): { resolved: EetEalResolvedEetPct | null; issues: EetIssue[] } => {
+  const issues: EetIssue[] = [];
   const rowsWithAfgoerelsesdato = rows
     .map((row) => ({ row, afgoerelsesdato: coerceToISODateString(row.afgoerelsesDato) }))
     .filter((entry): entry is { row: AslAfgoerelseRow; afgoerelsesdato: ISODateString } => entry.afgoerelsesdato !== undefined);
@@ -120,7 +111,7 @@ const resolveEetPctFromAslRows = (
   }
 
   const latestAfgoerelsesdato = rowsWithAfgoerelsesdato.reduce((latest, current) => {
-    return compareIso(current.afgoerelsesdato, latest) > 0 ? current.afgoerelsesdato : latest;
+    return current.afgoerelsesdato > latest ? current.afgoerelsesdato : latest;
   }, rowsWithAfgoerelsesdato[0].afgoerelsesdato);
 
   const sameAfgoerelsesdato = rowsWithAfgoerelsesdato.filter(
@@ -136,7 +127,7 @@ const resolveEetPctFromAslRows = (
 
   const maxVirkningsdato = withVirkningsdato.length > 0
     ? withVirkningsdato.reduce((latest, current) => {
-      return compareIso(current.virkningsdato, latest) > 0 ? current.virkningsdato : latest;
+      return current.virkningsdato > latest ? current.virkningsdato : latest;
     }, withVirkningsdato[0].virkningsdato)
     : null;
 
@@ -146,16 +137,6 @@ const resolveEetPctFromAslRows = (
       : withVirkningsdato.filter((entry) => entry.virkningsdato === maxVirkningsdato);
 
   const endelig = tiedOnDates.filter((entry) => entry.row.afgoerelseType === 'Endelig');
-  if (endelig.length >= 2) {
-    issues.push(
-      toIssue(
-        'asl-identical-endelig',
-        'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato, begge markeret som Endelig.'
-      )
-    );
-    return { resolved: null, issues };
-  }
-
   const delvist = tiedOnDates.filter((entry) => entry.row.afgoerelseType === 'Delvist endelig');
   const selected = endelig[0] ?? delvist[0] ?? tiedOnDates[0];
   if (!selected) return { resolved: null, issues };
@@ -183,8 +164,8 @@ const resolveEetPctFromAslRows = (
 
 const resolveEetPct = (
   values: ErhvervsevnetabValues
-): { resolved: EetEalResolvedEetPct | null; issues: EetEalIssue[] } => {
-  const issues: EetEalIssue[] = [];
+): { resolved: EetEalResolvedEetPct | null; issues: EetIssue[] } => {
+  const issues: EetIssue[] = [];
 
   const ealDivisibleError = validatePercentDivisibleBy5FromValue(values.ealEetPct, 'EET %');
   if (ealDivisibleError) {
@@ -243,7 +224,7 @@ const computeEalReguleringsfaktorFromYearlyChain = (
 };
 
 export const computeEetEalCalculation = (input: Input): EetEalCalculationResult => {
-  const issues: EetEalIssue[] = [];
+  const issues: EetIssue[] = [];
   const values = input.erhvervsevnetab;
 
   const beregningsdato = coerceToISODateString(values.beregningsdato);
@@ -259,6 +240,10 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     issues.push(toIssue('aarsloen-zero', 'Årsløn må ikke være 0 kr.'));
   } else if (aarsloen.value === null || aarsloen.source === null) {
     issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt.'));
+  }
+
+  if (hasIdenticalAfgoerelser(values.aslAfgoerelser ?? [])) {
+    issues.push(toIssue(ASL_IDENTICAL_AFGOERELSER_ID, 'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato.'));
   }
 
   const eetPctResolution = resolveEetPct(values);
@@ -345,6 +330,14 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
       ealAarsloenInput === maxAarsloenForSkadesaar
     ) {
       issues.push(toWarning('warn-eal-aarsloen-is-max', maxAarsloenWarningMessage));
+    } else if (
+      (ealAarsloenInput === undefined || !Number.isFinite(ealAarsloenInput)) &&
+      aarsloen.source === 'asl'
+    ) {
+      const aslAarsloenValue = amountValueToNumber(values.aslAarsloen);
+      if (typeof aslAarsloenValue === 'number' && aslAarsloenValue === maxAarsloenForSkadesaar) {
+        issues.push(toWarning('warn-asl-aarsloen-is-max', maxAarsloenWarningMessage));
+      }
     }
   }
 
@@ -399,4 +392,3 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 };
 
 export { formatPercentTrimmedFromRounded4 } from './eetLoebendeYdelserCalculation';
-

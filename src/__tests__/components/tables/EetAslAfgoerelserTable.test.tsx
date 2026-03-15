@@ -77,10 +77,10 @@ describe('EetAslAfgoerelserTable', () => {
       />
     );
 
-    expect(screen.getByText('EET % skal være deleligt med 5')).toBeInTheDocument();
-    expect(screen.getByText('Kapitaliseringsprocent må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype')).toBeInTheDocument();
-    expect(screen.getByText('Kapitaliseringsdato må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype')).toBeInTheDocument();
-    expect(screen.getByText('Tidligere kapitaliseringsdato må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype')).toBeInTheDocument();
+    expect(screen.getByText('EET % skal være deleligt med 5.')).toBeInTheDocument();
+    expect(screen.getByText('Kapitaliseringsprocent må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype.')).toBeInTheDocument();
+    expect(screen.getByText('Kapitaliseringsdato må kun udfyldes ved endelig eller delvist endelig afgørelsestype.')).toBeInTheDocument();
+    expect(screen.getByText('Tidligere kapitaliseringsdato må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype.')).toBeInTheDocument();
   });
 
   it('deduplikerer identiske opdateringer så onTableDataChange ikke trigges igen', async () => {
@@ -149,7 +149,7 @@ describe('EetAslAfgoerelserTable', () => {
 
     await waitFor(() => {
       expect(
-        screen.getAllByText(/Dato skal være mellem 01-01-2020 og 09-01-2024/).length
+        screen.getAllByText(/Datoen for den tidligere afgørelse skal være før afgørelsesdatoen|Tidl. kap.dato skal være før afgørelsesdatoen/).length
       ).toBeGreaterThan(0);
     });
   }, ASYNC_TEST_TIMEOUT_MS);
@@ -184,7 +184,7 @@ describe('EetAslAfgoerelserTable', () => {
 
     await waitFor(() => {
       expect(
-        screen.getAllByText('Kapitaliseringsdato kan ikke være før afgørelsesdato').length
+        screen.getAllByText(/Kapitaliseringsdato kan ikke være før afgørelsesdatoen/).length
       ).toBeGreaterThan(0);
     });
   }, ASYNC_TEST_TIMEOUT_MS);
@@ -215,7 +215,7 @@ describe('EetAslAfgoerelserTable', () => {
 
     expect(
       screen.getByText(
-        'EET % skal være større end summen af kapitaliseringsprocenter fra tidligere afgørelser'
+        'EET % skal være større end summen af kapitaliseringsprocenter fra tidligere afgørelser.'
       )
     ).toBeInTheDocument();
   });
@@ -276,7 +276,7 @@ describe('EetAslAfgoerelserTable', () => {
       />
     );
 
-    expect(screen.getByText('Kun relevant ved tidligere kapitalisering')).toBeInTheDocument();
+    expect(screen.getByText('Kun relevant ved tidligere kapitalisering.')).toBeInTheDocument();
   });
 
   it('viser fejl når kap.dato ved genoptagelse fra 1. juli 2024 ikke matcher afgørelsesdato', () => {
@@ -298,7 +298,7 @@ describe('EetAslAfgoerelserTable', () => {
     );
 
     expect(
-      screen.getByText('Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse')
+      screen.getByText('Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse.')
     ).toBeInTheDocument();
   });
 
@@ -328,7 +328,7 @@ describe('EetAslAfgoerelserTable', () => {
       />
     );
 
-    expect(screen.getByText('Ved < 2 år til folkepension kapitaliseres hele EET')).toBeInTheDocument();
+    expect(screen.getByText('Ved < 2 år til folkepension kapitaliseres hele EET.')).toBeInTheDocument();
   });
 
   it('genberegner kap.dato- og kap.%-fejl når fodselsdato ændres', async () => {
@@ -354,8 +354,8 @@ describe('EetAslAfgoerelserTable', () => {
       />
     );
 
-    expect(screen.queryByText('Ved < 2 år til folkepension sker kapitalisering fra afgørelsesdagen')).not.toBeInTheDocument();
-    expect(screen.queryByText('Ved < 2 år til folkepension kapitaliseres hele EET')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ved < 2 år til folkepension sker kapitalisering fra afgørelsesdagen.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ved < 2 år til folkepension kapitaliseres hele EET.')).not.toBeInTheDocument();
 
     rerender(
       <EetAslAfgoerelserTable
@@ -367,8 +367,8 @@ describe('EetAslAfgoerelserTable', () => {
       />
     );
 
-    expect(screen.getByText('Ved < 2 år til folkepension sker kapitalisering fra afgørelsesdagen')).toBeInTheDocument();
-    expect(screen.getByText('Ved < 2 år til folkepension kapitaliseres hele EET')).toBeInTheDocument();
+    expect(screen.getByText('Ved < 2 år til folkepension sker kapitalisering fra afgørelsesdagen.')).toBeInTheDocument();
+    expect(screen.getByText('Ved < 2 år til folkepension kapitaliseres hele EET.')).toBeInTheDocument();
 
     rerender(
       <EetAslAfgoerelserTable
@@ -380,8 +380,8 @@ describe('EetAslAfgoerelserTable', () => {
       />
     );
 
-    expect(screen.queryByText('Ved < 2 år til folkepension sker kapitalisering fra afgørelsesdagen')).not.toBeInTheDocument();
-    expect(screen.queryByText('Ved < 2 år til folkepension kapitaliseres hele EET')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ved < 2 år til folkepension sker kapitalisering fra afgørelsesdagen.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ved < 2 år til folkepension kapitaliseres hele EET.')).not.toBeInTheDocument();
   });
 
   it('viser duplicate-fejl på nederste række når afgørelsesdato, virkningsdato og afgørelsestype er identiske', () => {
@@ -408,6 +408,6 @@ describe('EetAslAfgoerelserTable', () => {
       />
     );
 
-    expect(screen.getAllByText('Der er angivet to identiske afgørelser').length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByText('Der er angivet to identiske afgørelser.').length).toBeGreaterThanOrEqual(3);
   });
 });

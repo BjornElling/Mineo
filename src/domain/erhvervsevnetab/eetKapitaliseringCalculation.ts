@@ -1,4 +1,5 @@
 import type { AslAfgoerelseRow, ErhvervsevnetabValues } from '../../schemas/formSchemas';
+import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
@@ -24,17 +25,10 @@ import {
   resolveKapitaliseringTabelvalg,
   resolveSaerfaktor,
   type AgeYearsMonths,
-  type ResolvedKapitaliseringTabelvalg as ResolvedTabelvalg,
 } from './eetKapitaliseringOpslag';
 import { ceil0, round0, round2, round3, round4, roundNearest1000 } from './eetRounding';
 import { resolveAslReguleringRateForKapAar } from './eetReguleringRater';
 import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
-
-export type EetKapitaliseringIssue = Readonly<{
-  id: string;
-  severity: 'error' | 'warning';
-  message: string;
-}>;
 
 export type EetKapitaliseringAfgoerelseComputation = Readonly<{
   rowId: string;
@@ -64,8 +58,10 @@ export type EetKapitaliseringComputation = Readonly<{
   afgoerelser: readonly EetKapitaliseringAfgoerelseComputation[];
 }>;
 
+export const WARN_NO_KAP_INPUT_ID = 'warn-ingen-kap-input';
+
 export type EetKapitaliseringCalculationResult = Readonly<{
-  issues: readonly EetKapitaliseringIssue[];
+  issues: readonly EetIssue[];
   computation: EetKapitaliseringComputation | null;
 }>;
 
@@ -84,27 +80,26 @@ type ResolvedKapitaliseringsRow = Readonly<{
   tidlKapDato: ISODateString | null;
 }>;
 
-const toIssue = (id: string, message: string): EetKapitaliseringIssue => ({
+const toIssue = (id: string, message: string): EetIssue => ({
   id,
   severity: 'error',
   message,
 });
 
-const toMissingFieldIssue = (fieldId: string, fieldLabel: string): EetKapitaliseringIssue =>
+const toWarning = (id: string, message: string): EetIssue => ({
+  id,
+  severity: 'warning',
+  message,
+});
+
+const toMissingFieldIssue = (fieldId: string, fieldLabel: string): EetIssue =>
   toIssue(`missing-${fieldId}`, `Der mangler indtastning af ${fieldLabel}.`);
-
-
-const compareIso = (a: ISODateString, b: ISODateString): number => {
-  if (a < b) return -1;
-  if (a > b) return 1;
-  return 0;
-};
 
 const formatAgeForIssue = (age: AgeYearsMonths): string => `${age.years} år, ${age.months} måneder`;
 
 const collectResolvedRows = (
   rows: readonly AslAfgoerelseRow[],
-  issues: EetKapitaliseringIssue[]
+  issues: EetIssue[]
 ): ResolvedKapitaliseringsRow[] => {
   const result: ResolvedKapitaliseringsRow[] = [];
   const startedRows = rows.filter((row) => !isAslAfgoerelseRowEmpty(row));
@@ -125,7 +120,7 @@ const collectResolvedRows = (
     issues.push(
       toIssue(
         'asl-afgoerelser-empty',
-        'Ingen afgørelser med erhvervsevnetabsprocent er udfyldt.'
+        'Ingen ASL-afgørelser er indtastet.'
       )
     );
     return result;
@@ -173,23 +168,36 @@ const collectResolvedRows = (
     ));
   }
 
+  const hasEndeligUnder50MissingKap = rowsWithKapitaliserbarAfgoerelse.some((row) => {
+    if (row.afgoerelseType !== 'Endelig') return false;
+    const eetPct = parsePercentDraft(row.eetPct);
+    if (eetPct === undefined || eetPct === 0 || eetPct >= 50) return false;
+    return !hasTextValue(row.kapDato) && !hasTextValue(row.kapPct);
+  });
+
   const hasKapPctZeroOnKapitaliserbarRow = rowsWithKapitaliserbarAfgoerelse.some((row) => {
     const kapPct = parsePercentDraft(row.kapPct);
     return hasTextValue(row.kapPct) && (kapPct === undefined || kapPct === 0);
   });
 
   // Guards: forhindrer at den generiske "ingen kap.dato/pct overhovedet"-fejl emitteres
-  // når problemet er et inkonsistens-problem (dato uden procent eller omvendt). De to
-  // fejltyper er gensidigt eksklusivt relevante — inkonsistens-fejlen er mere præcis og
-  // skal ikke suppleres af den generiske.
+  // når problemet allerede er beskrevet af en mere præcis fejl.
   // Checkes på alle rækker (ikke kun kapitaliserbare) for at fange kap-felter udfyldt
   // på Midlertidig-rækker, som sorteres fra inden result bygges.
   const hasKapDatoWithoutKapPct = rows.some((row) => hasTextValue(row.kapDato) && !hasTextValue(row.kapPct));
   const hasKapPctWithoutKapDato = rows.some((row) => hasTextValue(row.kapPct) && !hasTextValue(row.kapDato));
+  const hasAnyKapInput = rows.some((row) => hasTextValue(row.kapDato) || hasTextValue(row.kapPct));
+
+  if (startedRows.length > 0 && !hasAnyKapInput) {
+    issues.push(toWarning(WARN_NO_KAP_INPUT_ID, 'Der er ikke angivet kapitaliseringsdato eller -procent for nogen afgørelse.'));
+  }
 
   if (
     rowsWithKapitaliserbarAfgoerelse.length > 0 &&
     result.length === 0 &&
+    hasAnyKapInput &&
+    !hasDelvistEndeligWithoutKapInfo &&
+    !hasEndeligUnder50MissingKap &&
     !hasKapDatoWithoutKapPct &&
     !hasKapPctWithoutKapDato &&
     !hasKapPctZeroOnKapitaliserbarRow
@@ -198,9 +206,14 @@ const collectResolvedRows = (
     issues.push(toMissingFieldIssue('kap-pct', 'kapitaliseringsprocent'));
   }
 
+  const hasKapPctUnder15 = result.some((row) => row.kapPct > 0 && row.kapPct < 15);
+  if (hasKapPctUnder15) {
+    issues.push(toWarning('warn-kap-pct-under-15', 'Der er angivet kapitalisering med mindre end 15 %.'));
+  }
+
   return result.sort((a, b) => {
-    if (a.afgoerelsesdato !== b.afgoerelsesdato) return compareIso(a.afgoerelsesdato, b.afgoerelsesdato);
-    if (a.kapDato !== b.kapDato) return compareIso(a.kapDato, b.kapDato);
+    if (a.afgoerelsesdato !== b.afgoerelsesdato) return a.afgoerelsesdato < b.afgoerelsesdato ? -1 : 1;
+    if (a.kapDato !== b.kapDato) return a.kapDato < b.kapDato ? -1 : 1;
     return a.rowId.localeCompare(b.rowId);
   });
 };
@@ -208,7 +221,7 @@ const collectResolvedRows = (
 export const computeEetKapitaliseringCalculation = (
   input: Input
 ): EetKapitaliseringCalculationResult => {
-  const issues: EetKapitaliseringIssue[] = [];
+  const issues: EetIssue[] = [];
   const values = input.erhvervsevnetab;
   const skadesdato = input.skadesdato;
   const fodselsdato = input.fodselsdato;

@@ -1,4 +1,5 @@
 import type { AslAfgoerelseRow, ErhvervsevnetabValues } from '../../schemas/formSchemas';
+import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, dateToISO, parseISODate } from '../../types/branded';
 import {
@@ -15,14 +16,8 @@ import { round0, round2, round4, roundNearest1000 } from './eetRounding';
 import { SKAERING_2011_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
 import { optaelMaanederPraecis } from '../erstatningsopgoerelse/periodiseringsMotor';
-import { collectIncompleteRowIssues, hasTextValue, parsePercentDraft } from './eetAslAfgoerelser';
+import { ASL_IDENTICAL_AFGOERELSER_ID, collectIncompleteRowIssues, hasIdenticalAfgoerelser, hasTextValue, isAslAfgoerelseRowEmpty, parsePercentDraft } from './eetAslAfgoerelser';
 import { resolveKapitaliseringTabelvalgForControlDate } from './eetKapitaliseringOpslag';
-
-export type EetLoebendeIssue = Readonly<{
-  id: string;
-  severity: 'error' | 'warning';
-  message: string;
-}>;
 
 export type EetLoebendePeriodeRow = Readonly<{
   fra: ISODateString;
@@ -76,7 +71,7 @@ export type EetLoebendeComputation = Readonly<{
 }>;
 
 export type EetLoebendeCalculationResult = Readonly<{
-  issues: readonly EetLoebendeIssue[];
+  issues: readonly EetIssue[];
   computation: EetLoebendeComputation | null;
 }>;
 
@@ -97,8 +92,8 @@ type ResolvedAfgoerelse = Readonly<{
   sortKey: string;
 }>;
 
-const toIssue = (id: string, message: string): EetLoebendeIssue => ({ id, severity: 'error', message });
-const toWarning = (id: string, message: string): EetLoebendeIssue => ({ id, severity: 'warning', message });
+const toIssue = (id: string, message: string): EetIssue => ({ id, severity: 'error', message });
+const toWarning = (id: string, message: string): EetIssue => ({ id, severity: 'warning', message });
 const ceil12 = (value: number): number => Math.ceil(value / 12) * 12;
 
 const parsePct = (raw: string | undefined): number | undefined => {
@@ -167,7 +162,7 @@ const collectWarnings = (
   skadesdato: ISODateString,
   beregningsdato: ISODateString,
   afgoerelser: readonly ResolvedAfgoerelse[],
-  issues: EetLoebendeIssue[]
+  issues: EetIssue[]
 ): void => {
   if (afgoerelser.some((row) => row.eetPct < 15)) {
     issues.push(toWarning('warn-asl-eet-under-15', 'Der er indtastet en afgørelse med < 15 % erhvervsevnetab.'));
@@ -220,7 +215,7 @@ const collectWarnings = (
   }
 };
 
-const collectBlockingInputIssues = (rows: readonly AslAfgoerelseRow[], issues: EetLoebendeIssue[]): void => {
+const collectBlockingInputIssues = (rows: readonly AslAfgoerelseRow[], issues: EetIssue[]): void => {
   for (const issue of collectIncompleteRowIssues(rows)) {
     issues.push(toIssue(issue.id, issue.message));
   }
@@ -237,6 +232,16 @@ const collectBlockingInputIssues = (rows: readonly AslAfgoerelseRow[], issues: E
       )
     );
   }
+
+  if (hasIdenticalAfgoerelser(rows)) {
+    issues.push(toIssue(
+      ASL_IDENTICAL_AFGOERELSER_ID,
+      'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato.'
+    ));
+  }
+  // 'endelig-under-50-missing-kapitalisering' checkes ikke her — løbende ydelser
+  // beregnes uafhængigt af om der foreligger kapitalisering. Fejlen emitteres af
+  // eetKapitaliseringCalculation og eetDifferencekravCalculation (via kap-result).
 };
 
 const buildFullSectionPeriods = (
@@ -346,7 +351,7 @@ const toAfgoerelseLabel = (
 };
 
 export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationResult => {
-  const issues: EetLoebendeIssue[] = [];
+  const issues: EetIssue[] = [];
 
   const beregningsdato = coerceToISODateString(input.erhvervsevnetab.beregningsdato);
   const skadesdato = input.skadesdato;
@@ -372,13 +377,9 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
   collectBlockingInputIssues(input.erhvervsevnetab.aslAfgoerelser, issues);
 
   const resolvedAfgoerelser = collectResolvedAfgoerelser(input.erhvervsevnetab.aslAfgoerelser);
-  if (resolvedAfgoerelser.length === 0) {
-    issues.push(
-      toIssue(
-        'asl-afgoerelser-empty',
-        'Ingen afgørelser med erhvervsevnetabsprocent er udfyldt.'
-      )
-    );
+  const allRowsEmpty = input.erhvervsevnetab.aslAfgoerelser.every((row) => isAslAfgoerelseRowEmpty(row));
+  if (allRowsEmpty) {
+    issues.push(toIssue('asl-afgoerelser-empty', 'Ingen ASL-afgørelser er indtastet.'));
   }
 
   if (
@@ -403,6 +404,11 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
   const benyttetAarsloen = Math.min(aslAarsloenAfrundet1000, maxAarsloenISkadesaar);
 
   collectWarnings(skadesdato, beregningsdato, resolvedAfgoerelser, issues);
+
+  const ealAarsloenInput = amountValueToNumber(input.erhvervsevnetab.ealAarsloen);
+  if ((ealAarsloenInput === undefined || !Number.isFinite(ealAarsloenInput)) && aslAarsloen === maxAarsloenISkadesaar) {
+    issues.push(toWarning('warn-asl-aarsloen-is-max', 'Skadelidtes fulde årsløn skal indtastes for EAL — ikke maks. årslønnen efter ASL.'));
+  }
 
   const before2024Skade = skadesdato < SKAERING_2024_07_01;
   const from2011 = skadesdato >= SKAERING_2011_01_01;

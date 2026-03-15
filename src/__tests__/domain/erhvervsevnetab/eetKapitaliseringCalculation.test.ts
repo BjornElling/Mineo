@@ -21,7 +21,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues).toContainEqual({
       id: 'asl-afgoerelser-empty',
       severity: 'error',
-      message: 'Ingen afgørelser med erhvervsevnetabsprocent er udfyldt',
+      message: 'Ingen ASL-afgørelser er indtastet.',
     });
     expect(result.issues.some((issue) => issue.id === 'missing-afgoerelsesdato')).toBe(false);
     expect(result.issues.some((issue) => issue.id === 'missing-afgoerelsestype')).toBe(false);
@@ -54,14 +54,14 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues).toContainEqual({
       id: 'asl-afgoerelser-empty',
       severity: 'error',
-      message: 'Ingen afgørelser med erhvervsevnetabsprocent er udfyldt',
+      message: 'Ingen ASL-afgørelser er indtastet.',
     });
     expect(result.issues.some((issue) => issue.id === 'missing-afgoerelsesdato')).toBe(false);
     expect(result.issues.some((issue) => issue.id === 'missing-afgoerelsestype')).toBe(false);
     expect(result.issues.some((issue) => issue.id === 'missing-eet-pct')).toBe(false);
   });
 
-  it('giver felt-specifikke fejl når der er indtastet afgørelse uden kapitaliseringsdato og -procent', () => {
+  it('giver ikke felt-specifikke fejl når kapitaliseringsdato og -procent begge er tomme', () => {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -83,17 +83,70 @@ describe('computeEetKapitaliseringCalculation', () => {
       fodselsdato: '1965-01-01',
     });
 
-    expect(result.computation).toBeNull();
-    expect(result.issues).toContainEqual({
-      id: 'missing-kap-dato',
-      severity: 'error',
-      message: 'Der mangler indtastning af kapitaliseringsdato',
+    expect(result.issues.some((issue) => issue.id === 'missing-kap-dato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'missing-kap-pct')).toBe(false);
+  });
+
+  it('giver kap-dato-without-kap-pct fejl når kapitaliseringsdato er udfyldt men ikke -procent', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: asAmount(632000),
+        aslAfgoerelser: [
+          {
+            id: 'a',
+            afgoerelsesDato: '2025-07-01',
+            virkningsDato: '2025-07-01',
+            eetPct: '50',
+            kapDato: '2025-07-01',
+            kapPct: undefined,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadesdato: '2025-01-01',
+      fodselsdato: '1965-01-01',
     });
+
     expect(result.issues).toContainEqual({
-      id: 'missing-kap-pct',
+      id: 'kap-dato-without-kap-pct',
       severity: 'error',
-      message: 'Der mangler indtastning af kapitaliseringsprocent',
+      message: 'Der er indtastet kapitaliseringsdato men ikke -procent.',
     });
+    expect(result.issues.some((issue) => issue.id === 'missing-kap-dato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'missing-kap-pct')).toBe(false);
+  });
+
+  it('giver kap-pct-without-kap-dato fejl når kapitaliseringsprocent er udfyldt men ikke -dato', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: asAmount(632000),
+        aslAfgoerelser: [
+          {
+            id: 'a',
+            afgoerelsesDato: '2025-07-01',
+            virkningsDato: '2025-07-01',
+            eetPct: '50',
+            kapDato: undefined,
+            kapPct: '50',
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadesdato: '2025-01-01',
+      fodselsdato: '1965-01-01',
+    });
+
+    expect(result.issues).toContainEqual({
+      id: 'kap-pct-without-kap-dato',
+      severity: 'error',
+      message: 'Der er indtastet kapitaliseringsprocent men ikke -dato.',
+    });
+    expect(result.issues.some((issue) => issue.id === 'missing-kap-dato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'missing-kap-pct')).toBe(false);
   });
 
   it('giver fejl om manglende endelig eller delvist endelig afgørelse når kun midlertidige afgørelser er indtastet', () => {
@@ -151,8 +204,8 @@ describe('computeEetKapitaliseringCalculation', () => {
     });
 
     expect(result.computation).toBeNull();
-    expect(result.issues.some((issue) => issue.message === 'Der mangler indtastning af afgørelsesdato')).toBe(true);
-    expect(result.issues.some((issue) => issue.message === 'Der mangler indtastning af EET %')).toBe(false);
+    expect(result.issues.some((issue) => issue.message === 'Der er en afgørelse uden afgørelsesdato.')).toBe(true);
+    expect(result.issues.some((issue) => issue.message === 'Der er en afgørelse uden EET %.')).toBe(false);
   });
 
   it('beregner kapitalisering med tabelinterpolation for en moderne bekendtgørelse', () => {
@@ -322,9 +375,9 @@ describe('computeEetKapitaliseringCalculation', () => {
 
     expect(result.computation).toBeNull();
     expect(result.issues).toContainEqual({
-      id: 'kapitaliseringstabel-missing',
+      id: 'missing-koen',
       severity: 'error',
-      message: 'Køn mangler for kapitaliseringstabel A',
+      message: 'Ved kapitalisering før 1. marts 2015 skal køn angives.',
     });
   });
 
@@ -361,6 +414,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        koen: 'Mand',
         aslAarsloen: asAmount(400000),
         aslAfgoerelser: [
           {
@@ -383,7 +437,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues).toContainEqual({
       id: 'kapitaliseringstabel-missing',
       severity: 'error',
-      message: 'Ingen kapitaliseringsfaktorer indtastet for tabel A',
+      message: 'Ingen kapitaliseringsfaktorer indtastet for tabel A.',
     });
   });
 
