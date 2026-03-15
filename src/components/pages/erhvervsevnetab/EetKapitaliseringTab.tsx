@@ -12,10 +12,8 @@ import {
   computeEetKapitaliseringCalculation,
   formatKapitaliseringsPct,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
-import {
-  EetIssuesBox,
-  TextHoverRow,
-} from './eetTabShared';
+import EetIssuesBox from './EetIssuesBox';
+import TextHoverRow from './TextHoverRow';
 import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
 type Props = Readonly<{

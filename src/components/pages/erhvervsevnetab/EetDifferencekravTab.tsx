@@ -12,11 +12,9 @@ import {
   computeEetDifferencekravCalculation,
   formatKapPct,
 } from '../../../domain/erhvervsevnetab/eetDifferencekravCalculation';
-import {
-  EetIssuesBox,
-  TextHoverRow,
-  UnderlinedHoverRow,
-} from './eetTabShared';
+import EetIssuesBox from './EetIssuesBox';
+import TextHoverRow from './TextHoverRow';
+import UnderlinedHoverRow from './UnderlinedHoverRow';
 import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
 type Props = Readonly<{

@@ -7,15 +7,12 @@ import { useScrollToSectionWithRetry } from '../../../hooks/useScrollToSectionWi
 import type { EetIssue } from '../../../domain/erhvervsevnetab/eetTypes';
 import { type EetTabNavigation, resolveEetIssueNavigation } from './eetTabSharedUtils';
 
-type IssuesBoxProps = Readonly<{
+type Props = Readonly<{
   issues: readonly EetIssue[];
   onGoToEetOplysninger: () => void;
 }>;
 
-export const EetIssuesBox: React.FC<IssuesBoxProps> = ({
-  issues,
-  onGoToEetOplysninger,
-}) => {
+const EetIssuesBox: React.FC<Props> = ({ issues, onGoToEetOplysninger }) => {
   const navigate = useNavigate();
   const scrollToSectionWithRetry = useScrollToSectionWithRetry();
 
@@ -26,6 +23,7 @@ export const EetIssuesBox: React.FC<IssuesBoxProps> = ({
         scrollToSectionWithRetry(navigation.sectionId);
         return;
       }
+
       navigate(navigation.route);
       scrollToSectionWithRetry(navigation.sectionId);
     },
@@ -91,16 +89,6 @@ export const EetIssuesBox: React.FC<IssuesBoxProps> = ({
   );
 };
 
-export const TextHoverRow: React.FC<Readonly<{ text: string }>> = ({ text }) => (
-  <Box className="row--label-right-hover">
-    <Typography className="row--text">{text}</Typography>
-    <Box className="row--label-right-hover__content" />
-  </Box>
-);
+EetIssuesBox.displayName = 'EetIssuesBox';
 
-export const UnderlinedHoverRow: React.FC<Readonly<{ text: string }>> = ({ text }) => (
-  <Box className="row--label-right-hover">
-    <Typography className="row--subheading-underlined">{text}</Typography>
-    <Box className="row--label-right-hover__content" />
-  </Box>
-);
+export default EetIssuesBox;

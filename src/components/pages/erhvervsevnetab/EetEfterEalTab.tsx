@@ -12,9 +12,7 @@ import {
   computeEetEalCalculation,
   formatPercentTrimmedFromRounded4,
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
-import {
-  EetIssuesBox,
-} from './eetTabShared';
+import EetIssuesBox from './EetIssuesBox';
 import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
 type Props = Readonly<{
