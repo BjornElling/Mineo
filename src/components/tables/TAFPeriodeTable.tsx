@@ -22,6 +22,8 @@ export type TAFPeriodeTableProps = Readonly<{
   overlapWithBeregningsperiodeByRowId: Readonly<Record<string, string>>;
   skadesdatoISO: ISODateString | undefined;
   endeligEETBeregnetDato: ISODateString | undefined;
+  /** Midlertidig EET-dato som TAF-afgrænsning — kun sat ved skadesdato < 2011-06-16. */
+  midlertidigEETBeregnetDato: ISODateString | undefined;
   differencekravDato: ISODateString | undefined;
   erErhvervssygdom: boolean;
   verserendeKlageEet: boolean;
@@ -39,6 +41,7 @@ const TAFPeriodeTable = React.memo(
     overlapWithBeregningsperiodeByRowId,
     skadesdatoISO,
     endeligEETBeregnetDato,
+    midlertidigEETBeregnetDato,
     differencekravDato,
     erErhvervssygdom,
     verserendeKlageEet,
@@ -79,9 +82,11 @@ const TAFPeriodeTable = React.memo(
             const maxDigitsForLoseFeriedage = maxValue !== undefined ? Math.max(3, String(Math.trunc(maxValue)).length) : 3;
 
             // Beregn den laveste af ekstra max-datoer for til-dato:
-            // - endeligEETBeregnetDato-1 (hvis ikke verserende klage)
             // - differencekravDato-1 (altid anvendt)
+            // - endeligEETBeregnetDato-1 (hvis ikke verserende klage)
+            // - midlertidigEETBeregnetDato-1 (hvis ikke verserende klage; kun sat ved skadesdato < 2011-06-16)
             const endeligEETMinus1 = endeligEETBeregnetDato ? subtractOneDay(endeligEETBeregnetDato) : undefined;
+            const midlertidigEETMinus1 = midlertidigEETBeregnetDato ? subtractOneDay(midlertidigEETBeregnetDato) : undefined;
             const differencekravMinus1 = differencekravDato ? subtractOneDay(differencekravDato) : undefined;
 
             let combinedExtraMaxDate: ISODateString | undefined = undefined;
@@ -95,6 +100,13 @@ const TAFPeriodeTable = React.memo(
             if (!verserendeKlageEet && endeligEETMinus1) {
               if (!combinedExtraMaxDate || endeligEETMinus1 < combinedExtraMaxDate) {
                 combinedExtraMaxDate = endeligEETMinus1;
+              }
+            }
+
+            // Midlertidig EET anvendes kun hvis ikke verserende klage (dato er allerede undefined ved skadesdato >= 2011-06-16)
+            if (!verserendeKlageEet && midlertidigEETMinus1) {
+              if (!combinedExtraMaxDate || midlertidigEETMinus1 < combinedExtraMaxDate) {
+                combinedExtraMaxDate = midlertidigEETMinus1;
               }
             }
 
@@ -134,6 +146,7 @@ const TAFPeriodeTable = React.memo(
               parts.push('dags dato');
               if (differencekravDato) parts.push('differencekrav-dato');
               if (!verserendeKlageEet && endeligEETBeregnetDato) parts.push('beregnet dato for endeligt EET');
+              if (!verserendeKlageEet && midlertidigEETBeregnetDato) parts.push('beregnet dato for midlertidigt EET');
               return parts.join(', ');
             })();
 
@@ -146,16 +159,21 @@ const TAFPeriodeTable = React.memo(
                 ? `${beregningsperiodeOverlapError}; ${internalOverlapError}`
                 : beregningsperiodeOverlapError ?? internalOverlapError;
 
-            const eetCutoff = !verserendeKlageEet ? endeligEETBeregnetDato : undefined;
+            const endeligEetCutoff = !verserendeKlageEet ? endeligEETBeregnetDato : undefined;
+            const midlertidigEetCutoff = !verserendeKlageEet ? midlertidigEETBeregnetDato : undefined;
             const buildCutoffErrors = (value: ISODateString | undefined): string | undefined => {
               const parts: string[] = [];
               if (differencekravDato && value && value >= differencekravDato) {
                 const dateText = isoToDanish(differencekravDato) ?? differencekravDato;
                 parts.push(`Der er angivet tabt arbejdsfortjeneste, efter differencekrav er opgjort (${dateText})`);
               }
-              if (eetCutoff && value && value >= eetCutoff) {
-                const dateText = isoToDanish(eetCutoff) ?? eetCutoff;
+              if (endeligEetCutoff && value && value >= endeligEetCutoff) {
+                const dateText = isoToDanish(endeligEetCutoff) ?? endeligEetCutoff;
                 parts.push(`Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (${dateText})`);
+              }
+              if (midlertidigEetCutoff && value && value >= midlertidigEetCutoff) {
+                const dateText = isoToDanish(midlertidigEetCutoff) ?? midlertidigEetCutoff;
+                parts.push(`Der er angivet tabt arbejdsfortjeneste efter afgørelse om midlertidigt erhvervsevnetab (${dateText})`);
               }
               return parts.length > 0 ? parts.join('; ') : undefined;
             };

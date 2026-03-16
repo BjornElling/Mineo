@@ -64,7 +64,11 @@ const extractDateSources = (
     endeligtEetAfgorelse: eo.endeligtEetAfgorelse,
     endeligEETVirkningsdato: tryParseIso(eo.endeligEETVirkningsdato),
     endeligEETAfgoerelseDato: tryParseIso(eo.endeligEETAfgoerelseDato),
+    midlertidigtEetAfgorelse: eo.midlertidigtEetAfgorelse,
+    midlertidigEETVirkningsdato: tryParseIso(eo.midlertidigEETVirkningsdato),
+    midlertidigEETAfgoerelseDato: tryParseIso(eo.midlertidigEETAfgoerelseDato),
     verserendeKlageEet: eo.verserendeKlageEet,
+    skadesdatoISO: tryParseIso(input.stamdataValues.skadesdato),
   };
   const tafBounds = resolveTafConstraintBounds(tafConstraintSource);
   for (const periode of tafPerioder) {
@@ -230,7 +234,11 @@ export function buildDebugCoreModel(input: DebugModelInput): readonly DebugDay[]
     endeligtEetAfgorelse: eo2.endeligtEetAfgorelse,
     endeligEETVirkningsdato: tryParseIso(eo2.endeligEETVirkningsdato),
     endeligEETAfgoerelseDato: tryParseIso(eo2.endeligEETAfgoerelseDato),
+    midlertidigtEetAfgorelse: eo2.midlertidigtEetAfgorelse,
+    midlertidigEETVirkningsdato: tryParseIso(eo2.midlertidigEETVirkningsdato),
+    midlertidigEETAfgoerelseDato: tryParseIso(eo2.midlertidigEETAfgoerelseDato),
     verserendeKlageEet: eo2.verserendeKlageEet,
+    skadesdatoISO: tryParseIso(input.stamdataValues.skadesdato),
   };
   const tafBounds = resolveTafConstraintBounds(tafConstraintSource2);
   const tafMap = buildTafPeriodeMap(tafPerioder, tafBounds);

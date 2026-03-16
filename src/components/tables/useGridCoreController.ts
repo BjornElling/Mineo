@@ -3,8 +3,7 @@ import { flushSync } from 'react-dom';
 import { areSameGridCellOrBothNull, gridCellKey } from './gridCoreUtils';
 import type { FocusPlan, GridCellCoord, GridCellEditorHandle, GridCoreController, GridOpenEditSource } from './gridCoreTypes';
 import { attachGridCoreToTable, detachGridCoreFromTable } from './gridCoreRegistry';
-import type { GridCoreContextValue } from './gridCoreContext';
-import type { GridCoreTableKind } from './gridCoreContext';
+import type { GridCoreContextValue, GridCoreTableKind } from './gridCoreContext.shared';
 
 type UseGridCoreControllerResult = Readonly<{
   internalTableRef: React.MutableRefObject<HTMLTableElement | null>;

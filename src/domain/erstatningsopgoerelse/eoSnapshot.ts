@@ -238,7 +238,7 @@ export const computeEoSnapshot = (args: Readonly<{
   let debugSnapshot: EODebugSnapshot | null = null;
 
   try {
-    const tafRanges = buildTafRanges(parsedEo.data);
+    const tafRanges = buildTafRanges(parsedEo.data, { skadesdatoISO: parsedStamdata.data.skadesdato });
     const forlig = parseForligsgrad(parsedEo.data);
     const forligFactor = forlig?.factor ?? null;
     const svieSmerte = computeSvieSmerteEngine({
@@ -319,6 +319,7 @@ export const computeEoSnapshot = (args: Readonly<{
       tabtArbejdsfortjeneste: buildTabtArbejdsfortjenesteModel(parsedEo.data, {
         tafNetto,
         tafRanges: canonicalOutput.periodiseringer.tafPerioder,
+        skadesdatoISO: parsedStamdata.data.skadesdato,
       }),
       oevrigeKrav,
       forlig: forligForPdf,

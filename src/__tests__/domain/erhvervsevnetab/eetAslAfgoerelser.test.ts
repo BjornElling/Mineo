@@ -499,6 +499,33 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
     ).toBe(true);
   });
 
+  it('prioriterer afgørelsestype-fejl i kap.dato over genoptagelses-fejl', () => {
+    const rows: AslAfgoerelseRow[] = [
+      buildRow({
+        id: 'r1',
+        afgoerelseType: 'Midlertidig',
+        kapDato: '01-01-2024',
+        tidlKapDato: '01-01-2024',
+      }),
+    ];
+
+    const issues = collectEetAslAfgoerelseValidationIssues(rows, undefined, undefined);
+
+    expect(issues).toContainEqual({
+      rowId: 'r1',
+      field: 'kapDato',
+      message: 'Kapitaliseringsdato må kun udfyldes ved endelig eller delvist endelig afgørelsestype.',
+    });
+    expect(
+      issues.some(
+        (issue) =>
+          issue.rowId === 'r1' &&
+          issue.field === 'kapDato' &&
+          issue.message === 'Ved genoptagne afgørelser skal den nye kapitaliseringsdato angives.'
+      )
+    ).toBe(false);
+  });
+
   it('genberegner kap.dato-issue når fodselsdato ændrer < 2 år til folkepension-reglen', () => {
     const rows: AslAfgoerelseRow[] = [
       buildRow({

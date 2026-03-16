@@ -109,11 +109,14 @@ const resolveYdelsestype = (raw: string): Readonly<{ key: string; label: string;
 };
 
 export const buildTafRanges = (
-  values: ErstatningsopgoerelseValues
+  values: ErstatningsopgoerelseValues,
+  options?: Readonly<{ skadesdatoISO?: ISODateString }>
 ): IsoRange[] => {
   // Tre-trins clamping (jf. eo-snapshot-contract.md §2.3):
-  // 1. Clamp mod fejlgivende øvre grænser (differencekrav, EET) — validator rapporterer violation
-  const fejlgivendeBounds = resolveTafFejlgivendeBounds(values);
+  // 1. Clamp mod fejlgivende øvre grænser (differencekrav, endelig EET, og ved skader
+  //    opstået før 2011-06-16 tillige midlertidig EET) — validator rapporterer violation
+  const constraintSource = { ...values, skadesdatoISO: options?.skadesdatoISO };
+  const fejlgivendeBounds = resolveTafFejlgivendeBounds(constraintSource);
   const afterFejlgivende = buildClampedTafRanges(values.tafPerioder ?? [], fejlgivendeBounds);
   // 2. Merge overlappende og tilstødende ranges
   const merged = mergeIsoDateRanges(afterFejlgivende, { mergeAdjacent: true });

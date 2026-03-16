@@ -293,7 +293,10 @@ export const collectEetAslAfgoerelseValidationIssues = (
     }
 
     const kapDatoBeforeSkadesdatoError = validateDateNotBeforeSkadesdato(row.kapDato, 'kapitaliseringsdato', skadesdato);
-    const kapDatoError = kapDatoBeforeSkadesdatoError ?? validateKapDatoByTidlKapDato(row) ?? validateKapDatoByAfgoerelsestype(row, skadesdato, fodselsdato);
+    const kapDatoError =
+      kapDatoBeforeSkadesdatoError ??
+      validateKapDatoByAfgoerelsestype(row, skadesdato, fodselsdato) ??
+      validateKapDatoByTidlKapDato(row);
     if (kapDatoError) {
       issues.push({ rowId: row.id, field: 'kapDato', message: kapDatoError });
     }

@@ -8,7 +8,7 @@ import { resolveDateRangeErrorMessage, type DateRangeSpecialErrors } from '../..
 import { coerceToDanishDateString, coerceToISODateString, type ISODateString } from '../../../types/branded';
 import { asTableCommittedString, normalizeTableDraftOnCommit, type TableInputErrorInfo } from './tableInputContracts';
 import { assignRef } from './assignRef';
-import { useGridCore } from '../../tables/gridCoreContext';
+import { useGridCoreApi, useGridCoreState } from '../../tables/useGridCore';
 import { areSameGridCell } from '../../tables/gridCoreUtils';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
@@ -208,11 +208,12 @@ const TableDateInput = React.memo(
     inputRef,
     sx,
   }: TableDateInputProps) => {
-    const grid = useGridCore();
-    const cellFocused = areSameGridCell(grid.focusedCell, gridCell);
-    const isEditing = areSameGridCell(grid.editingCell, gridCell);
+    const gridState = useGridCoreState();
+    const gridApi = useGridCoreApi();
+    const cellFocused = areSameGridCell(gridState.focusedCell, gridCell);
+    const isEditing = areSameGridCell(gridState.editingCell, gridCell);
     const isReadOnly = locked || !isEditing;
-    const isLooseTable = grid.tableKind === 'loose';
+    const isLooseTable = gridApi.tableKind === 'loose';
     const inputBorderRadius = isLooseTable ? '10px' : '0px';
     const inputBorderColor = isLooseTable ? 'rgba(0, 0, 0, 0.12)' : 'transparent';
 
@@ -497,7 +498,7 @@ const TableDateInput = React.memo(
           const ok = commitAndEmitBlur(inputElRef.current?.value ?? draftRef.current);
           if (!ok) return false;
           setIsFocused(false);
-          grid.closeEditing();
+          gridApi.closeEditing();
           return true;
         },
         clearAndCommit: () => {
@@ -510,7 +511,7 @@ const TableDateInput = React.memo(
           // Ingen emitValueChange. Commit sker via blur/commit-pipeline:
           const ok = commitAndEmitBlur('');
           if (!ok) return;
-          grid.closeEditing();
+          gridApi.closeEditing();
         },
         cancelEdit: () => {
           if (latest.current.locked) return;
@@ -522,7 +523,7 @@ const TableDateInput = React.memo(
           setDraft(original);
           // KRITISK INVARIANT: cancelEdit må ALDRIG udløse onChange eller onBlur
           // Original værdi er allerede committed - ingen onChange skal sendes til parent
-          grid.closeEditing();
+          gridApi.closeEditing();
         },
         prepareEditFromKey: (key: string) => {
           if (latest.current.locked) return false;
@@ -549,14 +550,14 @@ const TableDateInput = React.memo(
           requestAnimationFrame(() => inputElRef.current?.select());
         },
       };
-    }, [commitAndEmitBlur, grid, setLocalErrorState]);
+    }, [commitAndEmitBlur, gridApi, setLocalErrorState]);
 
     React.useEffect(() => {
-      grid.registerEditor(gridCell, editorHandle);
+      gridApi.registerEditor(gridCell, editorHandle);
       return () => {
-        grid.unregisterEditor(gridCell);
+        gridApi.unregisterEditor(gridCell);
       };
-    }, [editorHandle, grid, gridCell]);
+    }, [editorHandle, gridApi, gridCell]);
 
     const tooltipText = hasExternalError ? externalErrorText : (configErrorMessage !== '' ? configErrorMessage : errorMessage);
 

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Divider, MenuItem, Select, Tooltip, type SelectChangeEvent } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { assignRef } from './assignRef';
-import { useGridCoreApi } from '../../tables/gridCoreContext';
+import { useGridCoreApi } from '../../tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 

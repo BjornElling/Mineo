@@ -2,6 +2,7 @@ import type { TafPeriodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { isISODateString, subtractOneDay } from '../../types/branded';
 import { minISO, maxISO } from '../../utils/isoDateHelpers';
+import { TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from './periodiseringsMotor';
 
 export type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
 
@@ -12,7 +13,12 @@ export type TafConstraintSource = Readonly<{
   endeligtEetAfgorelse?: 'Ja' | 'Nej' | undefined;
   endeligEETVirkningsdato?: ISODateString | undefined;
   endeligEETAfgoerelseDato?: ISODateString | undefined;
+  midlertidigtEetAfgorelse?: 'Ja' | 'Nej' | undefined;
+  midlertidigEETVirkningsdato?: ISODateString | undefined;
+  midlertidigEETAfgoerelseDato?: ISODateString | undefined;
   verserendeKlageEet?: 'Ja' | 'Nej' | undefined;
+  /** Skadesdato fra stamdata — bruges til at afgøre om midlertidig EET afgrænser TAF. */
+  skadesdatoISO?: ISODateString | undefined;
 }>;
 
 export type TafConstraintBounds = Readonly<{
@@ -35,8 +41,26 @@ const resolveEndeligEetDato = (values: TafConstraintSource): ISODateString | und
 };
 
 /**
- * Fejlgivende øvre grænse for TAF-perioder: strengeste af differencekravDato−1 og
- * EET-virkningsdato−1 (jf. eo-snapshot-contract.md §2.2).
+ * Returnerer den beregnede virkningsdato for midlertidig EET, hvis den er aktiv som TAF-afgrænsning.
+ *
+ * Betingelser:
+ * - `midlertidigtEetAfgorelse = 'Ja'`
+ * - Skadesdato er angivet og ligger **før** TAF_MIDLERTIDIG_EET_SKAERINGSDATO (2011-06-16)
+ *
+ * Checker IKKE `verserendeKlageEet` — det er kalderens ansvar at udelade resultatet ved aktiv klage.
+ *
+ * Hvis blot én betingelse mangler, returneres undefined (ingen afgrænsning).
+ */
+export const resolveMidlertidigEetDatoHvisAktiv = (values: TafConstraintSource): ISODateString | undefined => {
+  if (values.midlertidigtEetAfgorelse !== 'Ja') return undefined;
+  if (!values.skadesdatoISO || values.skadesdatoISO >= TAF_MIDLERTIDIG_EET_SKAERINGSDATO) return undefined;
+  return values.midlertidigEETVirkningsdato ?? values.midlertidigEETAfgoerelseDato;
+};
+
+/**
+ * Fejlgivende øvre grænse for TAF-perioder: strengeste af differencekravDato−1,
+ * endelig EET-virkningsdato−1 og (ved skadesdato < 2011-06-16) midlertidig EET-virkningsdato−1
+ * (jf. eo-snapshot-contract.md §2.2).
  *
  * Korrekt adfærd: til-dato >= disse grænser er fejlgivende bounds — feltfejl (rød kant +
  * tooltip) vises i TAFPeriodeTable og fejlen gengives på EOBeregningTab, der blokerer download.
@@ -48,7 +72,10 @@ export const resolveTafFejlgivendeBounds = (values: TafConstraintSource): TafCon
   const endeligEetDato = resolveEndeligEetDato(values);
   const endeligEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(endeligEetDato);
 
-  const maxEnd = minDefined(differencekravMax, endeligEetMax);
+  const midlertidigEetDato = resolveMidlertidigEetDatoHvisAktiv(values);
+  const midlertidigEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(midlertidigEetDato);
+
+  const maxEnd = minDefined(differencekravMax, endeligEetMax, midlertidigEetMax);
   return { maxEnd };
 };
 
@@ -77,7 +104,10 @@ export const resolveTafConstraintBounds = (values: TafConstraintSource): TafCons
   const endeligEetDato = resolveEndeligEetDato(values);
   const endeligEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(endeligEetDato);
 
-  const maxEnd = minDefined(erstatningsTil, differencekravMax, endeligEetMax);
+  const midlertidigEetDato = resolveMidlertidigEetDatoHvisAktiv(values);
+  const midlertidigEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(midlertidigEetDato);
+
+  const maxEnd = minDefined(erstatningsTil, differencekravMax, endeligEetMax, midlertidigEetMax);
   return { minStart, maxEnd };
 };
 

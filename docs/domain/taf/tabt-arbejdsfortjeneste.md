@@ -40,7 +40,9 @@ Faktor: 1 arbejdsdag = 0,048 måneder (4,8 %).
 TAF-perioderne, som brugeren angiver, clampes automatisk til gældende grænser:
 
 - **Stille clamping** (ingen fejlindikation): perioden klemmes til EO's vedørende periode (`vedroererPeriodeFra`–`vedroererPeriodeTil`).
-- **Fejlgivende clamping** (rød kant + tooltip): perioden må ikke nå op til eller forbi `differencekravDato − 1 dag` eller EET-virkningsdato − 1 dag (medmindre der er verserende klage over EET-afgørelsen).
+- **Fejlgivende clamping** (rød kant + tooltip): perioden må ikke nå op til eller forbi `differencekravDato − 1 dag`, endelig EET-virkningsdato − 1 dag, eller (ved skadesdato < 16. juni 2011) midlertidig EET-virkningsdato − 1 dag. Differencekrav-grænsen gælder altid. EET-grænserne (endelig og midlertidig) ophæves hvis der er verserende klage over EET-afgørelsen.
+
+For skader opstået **før 16. juni 2011** (`TAF_MIDLERTIDIG_EET_SKAERINGSDATO` i `periodiseringsMotor.ts`) afgrænser en upåklaget midlertidig EET-afgørelse retten til tabt arbejdsfortjeneste på præcis samme måde som en endelig afgørelse. Betingelserne er identiske: `midlertidigtEetAfgorelse = 'Ja'`, dato angivet, og `verserendeKlageEet ≠ 'Ja'`. Beregnet dato: `midlertidigEETVirkningsdato ?? midlertidigEETAfgoerelseDato`. Logikken er indkapslet i `resolveMidlertidigEetDatoHvisAktiv` i `tafPeriodConstraints.ts`.
 
 Overlappende TAF-perioder merges til sammenhængende intervaller inden beregning for at undgå dobbeltoptælling. Mergede grupper bærer det første kilderækkes ID som repræsentativt ID.
 
@@ -87,6 +89,12 @@ Offentlige ydelser periodiseres forskelligt:
 ### TAF fordelt på kalenderår
 
 Til PDF-bilag beregnes TAF fordelt pr. kalenderår. Segmenter splittes ved kalenderårsskift, fradrag prorateres via overlap med TAF-ranges, og individuelle årsbeløb afrundes. Summen af årsbeløb må maksimalt afvige 1 kr. (100 øre) fra det samlede TAF-krav — overskrides dette, returneres fejl (`afrunding_over_100`) og fordeling vises ikke.
+
+### PDF-visning af afgrænsningskilde
+
+I PDF-afsnittet om tabt arbejdsfortjeneste vises **kun den tidligste afgrænsningskilde** (midlertidig EET, endelig EET eller differencekrav). Prioritet: kilder der faktisk bringer TAF til ophør (TAF-periode slutter dagen før kildens dato) over informative kilder; dernæst kronologisk på referencedato. De øvrige undertykkes.
+
+Ophørstekst for midlertidig EET (skadesdato < 16. juni 2011): *"Da skaden er sket før 16. juni 2011, bringer afgørelsen retten til tabt arbejdsfortjeneste til ophør."*
 
 ### TAF-status per dag
 
@@ -215,8 +223,9 @@ ArbejdsdageBeregningskontekst =
 ### Grænse-konstanter
 
 ```typescript
-TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR = 0.048  // 1 arbejdsdag = 4,8% af måned
-SYGEDAGPENGE_SH_CUTOFF = '2012-07-02'     // sygedagpenge før denne dato: ingen SH-fradrag
+TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR = 0.048      // 1 arbejdsdag = 4,8% af måned
+SYGEDAGPENGE_SH_CUTOFF = '2012-07-02'         // sygedagpenge før denne dato: ingen SH-fradrag
+TAF_MIDLERTIDIG_EET_SKAERINGSDATO = '2011-06-16' // skader før denne dato: midlertidig EET afgrænser TAF
 ```
 
 ### Afrunding
@@ -254,13 +263,24 @@ resolveTafEoPeriodeBounds(values): TafConstraintBounds
 
 // Fejlgivende clamping (rød kant + tooltip):
 resolveTafFejlgivendeBounds(values): TafConstraintBounds
-// → maxEnd: min(differencekravDato−1, endeligEetVirkningsdato−1)
-//   (EET-grænsen ignoreres hvis verserendeKlageEet = 'Ja')
+// → maxEnd: min(
+//     differencekravDato−1,
+//     endeligEetVirkningsdato−1,                       // kun hvis verserendeKlageEet ≠ 'Ja'
+//     midlertidigEetVirkningsdato−1                    // kun hvis skadesdato < 2011-06-16 OG verserendeKlageEet ≠ 'Ja'
+//   )
+
+// Intern helper — ikke eksporteret:
+resolveMidlertidigEetDatoHvisAktiv(values): ISODateString | undefined
+// → returnerer midlertidigEETVirkningsdato ?? midlertidigEETAfgoerelseDato
+//   når midlertidigtEetAfgorelse = 'Ja' OG skadesdato < 2011-06-16
+//   Checker IKKE verserendeKlageEet — det gøres af kalderne.
 
 // Kombineret (bruges af debug og UI):
 resolveTafConstraintBounds(values): TafConstraintBounds
 // → strengeste af alle grænser
 ```
+
+`TafConstraintSource` inkluderer nu `skadesdatoISO` (fra stamdata) for at kunne evaluere midlertidig EET-betingelsen. `buildTafRanges` accepterer et optional `options`-objekt med `skadesdatoISO`.
 
 ### Afhængigheder
 

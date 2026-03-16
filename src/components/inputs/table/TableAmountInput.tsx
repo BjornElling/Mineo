@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
-import { useGridCore } from '../../tables/gridCoreContext';
+import { useGridCoreApi, useGridCoreState } from '../../tables/useGridCore';
 import { areSameGridCell } from '../../tables/gridCoreUtils';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
 import { assignRef } from './assignRef';
@@ -119,11 +119,12 @@ const TableAmountInput = React.memo(
     inputRef,
     sx,
   }: TableAmountInputProps) => {
-    const grid = useGridCore();
-    const cellFocused = areSameGridCell(grid.focusedCell, gridCell);
-    const isEditing = areSameGridCell(grid.editingCell, gridCell);
+    const gridState = useGridCoreState();
+    const gridApi = useGridCoreApi();
+    const cellFocused = areSameGridCell(gridState.focusedCell, gridCell);
+    const isEditing = areSameGridCell(gridState.editingCell, gridCell);
     const isReadOnly = locked || !isEditing;
-    const isLooseTable = grid.tableKind === 'loose';
+    const isLooseTable = gridApi.tableKind === 'loose';
     const inputBorderRadius = isLooseTable ? '10px' : '0px';
     const inputBorderColor = isLooseTable ? 'rgba(0, 0, 0, 0.12)' : 'transparent';
 
@@ -371,7 +372,7 @@ const TableAmountInput = React.memo(
           const ok = commitAndEmitBlur(inputElRef.current?.value ?? draftRef.current);
           if (!ok) return false;
           setIsFocused(false);
-          grid.closeEditing();
+          gridApi.closeEditing();
           return true;
         },
         clearAndCommit: () => {
@@ -385,7 +386,7 @@ const TableAmountInput = React.memo(
           // Ingen emitValueChange. Commit sker via blur/commit-pipeline:
           const ok = commitAndEmitBlur('');
           if (!ok) return;
-          grid.closeEditing();
+          gridApi.closeEditing();
         },
         cancelEdit: () => {
           if (latest.current.locked) return;
@@ -397,7 +398,7 @@ const TableAmountInput = React.memo(
           const original = originalValueOnEditStartRef.current;
           setDraft(original);
           // Ingen emitValueChange. Cancel skal være 100% lokal.
-          grid.closeEditing();
+          gridApi.closeEditing();
         },
         prepareEditFromKey: (key: string) => {
           if (latest.current.locked) return false;
@@ -428,14 +429,14 @@ const TableAmountInput = React.memo(
           requestAnimationFrame(() => inputElRef.current?.select());
         },
       };
-    }, [commitAndEmitBlur, grid]);
+    }, [commitAndEmitBlur, gridApi]);
 
     React.useEffect(() => {
-      grid.registerEditor(gridCell, editorHandle);
+      gridApi.registerEditor(gridCell, editorHandle);
       return () => {
-        grid.unregisterEditor(gridCell);
+        gridApi.unregisterEditor(gridCell);
       };
-    }, [editorHandle, grid, gridCell]);
+    }, [editorHandle, gridApi, gridCell]);
 
     return (
       <Box sx={{ position: 'relative', width: '100%', height: '100%', ...sx }}>

@@ -77,7 +77,7 @@ const fingerprintTableData = (rows: readonly OffentligeYdelserRow[]): string => 
   );
 };
 
-const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, OffentligeYdelserTableProps>(
+const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTableHandle, OffentligeYdelserTableProps>(
   ({ tableData, derivedByRowId, onTableDataChange, onValidationChange }, ref) => {
     const defaultTableData = React.useMemo<OffentligeYdelserRow[]>(
       () => [
@@ -598,7 +598,7 @@ const OffentligeYdelserTable = React.forwardRef<OffentligeYdelserTableHandle, Of
       </div>
     );
   }
-);
+));
 
 OffentligeYdelserTable.displayName = 'OffentligeYdelserTable';
 

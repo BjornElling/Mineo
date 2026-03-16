@@ -7,7 +7,7 @@ import TableDateInput from '../inputs/table/TableDateInput';
 import TablePercentInput from '../inputs/table/TablePercentInput';
 import type { TableInputErrorInfo } from '../inputs/table/tableInputContracts';
 import { assignRef } from '../inputs/table/assignRef';
-import { useGridCoreApi } from './gridCoreContext';
+import { useGridCoreApi } from './useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from './gridCoreTypes';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './standardGridStyles';

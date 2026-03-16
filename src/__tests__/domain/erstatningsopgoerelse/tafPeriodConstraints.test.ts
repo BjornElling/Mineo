@@ -3,6 +3,7 @@ import type { ISODateString } from '../../../types/branded';
 import type { TafConstraintSource, TafConstraintBounds, IsoRange } from '../../../domain/erstatningsopgoerelse/tafPeriodConstraints';
 import {
   resolveTafConstraintBounds,
+  resolveTafFejlgivendeBounds,
   clampTafRange,
   getValidTafRange,
   clampTafRow,
@@ -135,6 +136,116 @@ describe('resolveTafConstraintBounds', () => {
         endeligEETVirkningsdato: iso('2024-04-01'), // max = 2024-03-31
       });
       expect(bounds.maxEnd).toBe('2024-03-31');
+    });
+  });
+
+  describe('midlertidigtEetAfgorelse (skadesdato < 2011-06-16)', () => {
+    const skadesdatoFoer = iso('2011-06-15'); // én dag før skæringsdato
+    const skadesdatoPaa  = iso('2011-06-16'); // præcis skæringsdato — ingen afgrænsning
+    const skadesdatoEfter = iso('2015-01-01'); // efter skæringsdato — ingen afgrænsning
+
+    it('midlertidigtEetAfgorelse = Nej → ingen midlertidig EET-begrænsning', () => {
+      const bounds = resolveTafConstraintBounds({
+        midlertidigtEetAfgorelse: 'Nej',
+        midlertidigEETVirkningsdato: iso('2010-01-01'),
+        skadesdatoISO: skadesdatoFoer,
+      });
+      expect(bounds.maxEnd).toBeUndefined();
+    });
+
+    it('midlertidigtEetAfgorelse = Ja + skadesdato < skæringsdato + virkningsdato → maxEnd = virkningsdato - 1', () => {
+      const bounds = resolveTafConstraintBounds({
+        midlertidigtEetAfgorelse: 'Ja',
+        midlertidigEETVirkningsdato: iso('2011-03-01'),
+        skadesdatoISO: skadesdatoFoer,
+      });
+      expect(bounds.maxEnd).toBe('2011-02-28');
+    });
+
+    it('midlertidigtEetAfgorelse = Ja + skadesdato < skæringsdato + kun afgørelsesdato → maxEnd = afgørelsesdato - 1', () => {
+      const bounds = resolveTafConstraintBounds({
+        midlertidigtEetAfgorelse: 'Ja',
+        midlertidigEETAfgoerelseDato: iso('2010-06-15'),
+        skadesdatoISO: skadesdatoFoer,
+      });
+      expect(bounds.maxEnd).toBe('2010-06-14');
+    });
+
+    it('midlertidigtEetAfgorelse = Ja + skadesdato præcis på skæringsdato → ingen afgrænsning', () => {
+      const bounds = resolveTafConstraintBounds({
+        midlertidigtEetAfgorelse: 'Ja',
+        midlertidigEETVirkningsdato: iso('2011-03-01'),
+        skadesdatoISO: skadesdatoPaa,
+      });
+      expect(bounds.maxEnd).toBeUndefined();
+    });
+
+    it('midlertidigtEetAfgorelse = Ja + skadesdato efter skæringsdato → ingen afgrænsning', () => {
+      const bounds = resolveTafConstraintBounds({
+        midlertidigtEetAfgorelse: 'Ja',
+        midlertidigEETVirkningsdato: iso('2015-06-01'),
+        skadesdatoISO: skadesdatoEfter,
+      });
+      expect(bounds.maxEnd).toBeUndefined();
+    });
+
+    it('midlertidigtEetAfgorelse = Ja + skadesdatoISO mangler → ingen afgrænsning', () => {
+      const bounds = resolveTafConstraintBounds({
+        midlertidigtEetAfgorelse: 'Ja',
+        midlertidigEETVirkningsdato: iso('2011-03-01'),
+        skadesdatoISO: undefined,
+      });
+      expect(bounds.maxEnd).toBeUndefined();
+    });
+
+    it('verserendeKlageEet = Ja → midlertidig EET-begrænsning ignoreres', () => {
+      const bounds = resolveTafConstraintBounds({
+        midlertidigtEetAfgorelse: 'Ja',
+        midlertidigEETVirkningsdato: iso('2011-03-01'),
+        skadesdatoISO: skadesdatoFoer,
+        verserendeKlageEet: 'Ja',
+      });
+      expect(bounds.maxEnd).toBeUndefined();
+    });
+
+    it('midlertidig er tidligst → maxEnd fra midlertidig (ikke endelig)', () => {
+      const bounds = resolveTafConstraintBounds({
+        midlertidigtEetAfgorelse: 'Ja',
+        midlertidigEETVirkningsdato: iso('2010-03-01'), // tidligst
+        endeligtEetAfgorelse: 'Ja',
+        endeligEETVirkningsdato: iso('2011-01-01'),
+        skadesdatoISO: skadesdatoFoer,
+      });
+      expect(bounds.maxEnd).toBe('2010-02-28');
+    });
+
+    it('endelig er tidligst → maxEnd fra endelig (ikke midlertidig)', () => {
+      const bounds = resolveTafConstraintBounds({
+        midlertidigtEetAfgorelse: 'Ja',
+        midlertidigEETVirkningsdato: iso('2011-01-01'),
+        endeligtEetAfgorelse: 'Ja',
+        endeligEETVirkningsdato: iso('2010-03-01'), // tidligst
+        skadesdatoISO: skadesdatoFoer,
+      });
+      expect(bounds.maxEnd).toBe('2010-02-28');
+    });
+
+    it('resolveTafFejlgivendeBounds inkluderer midlertidig EET ved skadesdato < skæringsdato', () => {
+      const bounds = resolveTafFejlgivendeBounds({
+        midlertidigtEetAfgorelse: 'Ja',
+        midlertidigEETVirkningsdato: iso('2011-03-01'),
+        skadesdatoISO: skadesdatoFoer,
+      });
+      expect(bounds.maxEnd).toBe('2011-02-28');
+    });
+
+    it('resolveTafFejlgivendeBounds ignorerer midlertidig EET ved skadesdato >= skæringsdato', () => {
+      const bounds = resolveTafFejlgivendeBounds({
+        midlertidigtEetAfgorelse: 'Ja',
+        midlertidigEETVirkningsdato: iso('2011-03-01'),
+        skadesdatoISO: skadesdatoPaa,
+      });
+      expect(bounds.maxEnd).toBeUndefined();
     });
   });
 });

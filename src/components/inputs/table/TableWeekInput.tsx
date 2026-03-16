@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
-import { useGridCore } from '../../tables/gridCoreContext';
+import { useGridCoreApi, useGridCoreState } from '../../tables/useGridCore';
 import { areSameGridCell } from '../../tables/gridCoreUtils';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
 import { shouldClearField } from '../../../utils/inputValidation';
@@ -145,11 +145,12 @@ const TableWeekInput = React.memo(
     inputRef,
     sx,
   }: TableWeekInputProps) => {
-    const grid = useGridCore();
-    const cellFocused = areSameGridCell(grid.focusedCell, gridCell);
-    const isEditing = areSameGridCell(grid.editingCell, gridCell);
+    const gridState = useGridCoreState();
+    const gridApi = useGridCoreApi();
+    const cellFocused = areSameGridCell(gridState.focusedCell, gridCell);
+    const isEditing = areSameGridCell(gridState.editingCell, gridCell);
     const isReadOnly = locked || !isEditing;
-    const isLooseTable = grid.tableKind === 'loose';
+    const isLooseTable = gridApi.tableKind === 'loose';
     const inputBorderRadius = isLooseTable ? '10px' : '0px';
     const inputBorderColor = isLooseTable ? 'rgba(0, 0, 0, 0.12)' : 'transparent';
 
@@ -332,7 +333,7 @@ const TableWeekInput = React.memo(
           const ok = commitAndEmitBlur(inputElRef.current?.value ?? draftRef.current);
           if (!ok) return false;
           setIsFocused(false);
-          grid.closeEditing();
+          gridApi.closeEditing();
           return true;
         },
         clearAndCommit: () => {
@@ -347,7 +348,7 @@ const TableWeekInput = React.memo(
           // Ingen emitValueChange. Commit sker via blur/commit-pipeline:
           const ok = commitAndEmitBlur('');
           if (!ok) return;
-          grid.closeEditing();
+          gridApi.closeEditing();
         },
         cancelEdit: () => {
           if (latest.current.locked) return;
@@ -361,7 +362,7 @@ const TableWeekInput = React.memo(
           setDraft(original);
           // KRITISK INVARIANT: cancelEdit må ALDRIG udløse onChange eller onBlur
           // Original værdi er allerede committed - ingen onChange skal sendes til parent
-          grid.closeEditing();
+          gridApi.closeEditing();
         },
         prepareEditFromKey: (key: string) => {
           if (latest.current.locked) return false;
@@ -389,12 +390,12 @@ const TableWeekInput = React.memo(
         },
         selectAll: () => requestAnimationFrame(() => inputElRef.current?.select()),
       };
-    }, [commitAndEmitBlur, grid]);
+    }, [commitAndEmitBlur, gridApi]);
 
     React.useEffect(() => {
-      grid.registerEditor(gridCell, editorHandle);
-      return () => grid.unregisterEditor(gridCell);
-    }, [editorHandle, grid, gridCell]);
+      gridApi.registerEditor(gridCell, editorHandle);
+      return () => gridApi.unregisterEditor(gridCell);
+    }, [editorHandle, gridApi, gridCell]);
 
     return (
       <Tooltip title={showError ? tooltipText : ''} arrow placement="top">

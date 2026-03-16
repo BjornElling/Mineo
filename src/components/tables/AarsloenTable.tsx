@@ -85,7 +85,7 @@ type TableRowsState = {
   committed: AarsloenTableRow[];
 };
 
-const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
+const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
   ({ loenperiode, satser, tableData, onTableDataChange, onValidationChange, externalCellErrorMessagesByCellKey = {}, useSmallFont = false }, ref) => {
     const defaultTableData = React.useMemo<AarsloenTableRow[]>(() => {
       return [
@@ -779,7 +779,7 @@ const AarsloenTable = React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
       </StandardGridTable>
     );
   }
-);
+));
 
 AarsloenTable.displayName = 'AarsloenTable';
 

@@ -41,6 +41,7 @@ import {
   computeSkadesdatoMinRule,
   dateRanges_erstatningsopgoerelse
 } from '../../../config/dateRanges';
+import { resolveMidlertidigEetDatoHvisAktiv } from '../../../domain/erstatningsopgoerelse/tafPeriodConstraints';
 import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
 import { useSetEOLoenindkomstInputError } from '../../../hooks/useEOLoenindkomstInputErrors';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
@@ -1039,6 +1040,12 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     return values.endeligEETVirkningsdato || values.endeligEETAfgoerelseDato;
   }, [values.endeligtEetAfgorelse, values.endeligEETVirkningsdato, values.endeligEETAfgoerelseDato]);
 
+  // Midlertidig EET-dato som TAF-afgrænsning — kun aktiv ved skadesdato < 2011-06-16.
+  const midlertidigEETBeregnetDato = React.useMemo(
+    () => resolveMidlertidigEetDatoHvisAktiv({ ...values, skadesdatoISO }),
+    [values.midlertidigtEetAfgorelse, values.midlertidigEETVirkningsdato, values.midlertidigEETAfgoerelseDato, skadesdatoISO]
+  );
+
   const erErhvervssygdom = skadestypeFromStamdata === 'Erhvervssygdom';
 
   const skadesdatoMinRule = React.useMemo(
@@ -1612,6 +1619,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               overlapWithBeregningsperiodeByRowId={beregningsperiodeTafOverlap.overlapMessageByRowId}
               skadesdatoISO={skadesdatoISO}
               endeligEETBeregnetDato={endeligEETBeregnetDato}
+              midlertidigEETBeregnetDato={midlertidigEETBeregnetDato}
               differencekravDato={values.differencekravDato}
               erErhvervssygdom={erErhvervssygdom}
               verserendeKlageEet={verserendeKlageEet}

@@ -11,7 +11,7 @@ import {
   usePersistedSectionSelector,
   useSectionRevisionSelector,
 } from '../../hooks/useFormPersistenceSelectors';
-import { erstatningsopgoerelseSchema } from '../../schemas/formSchemas';
+import { erstatningsopgoerelseSchema, type ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import EOOplysningerTab from './erstatningsopgoerelse/EOOplysningerTab';
@@ -85,6 +85,11 @@ const Erstatningsopgoerelse = React.memo(() => {
   const initialValuesRef = React.useRef(initialValues);
   initialValuesRef.current = initialValues;
 
+  // Intentional split: useSectionRevisionSelector/useFieldErrorRevisionSelector (hooks) subscribe to
+  // store changes and trigger re-renders when revisions change. buildDebugRevision and buildDebugSnapshot
+  // use snapshot functions (getState() reads) instead of hooks — this gives consistent state at
+  // call-time without creating hook dependencies. Do not collapse these into hook reads: hooks inside
+  // a useCallback would be illegal, and reading hook values via closure would give stale snapshots.
   const buildDebugRevision = React.useCallback((): string => {
     return [
       getSectionRevisionSnapshot('stamdata'),
@@ -144,6 +149,16 @@ const Erstatningsopgoerelse = React.memo(() => {
       form.setValues((prev) => ({
         ...prev,
         offentligeYdelserRows: newData,
+      }));
+    },
+    [form.setValues]
+  );
+
+  const handleLoenindkomstAnsaettelsesforholdChange = React.useCallback(
+    (updater: (prev: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold']) => ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold']) => {
+      form.setValues((prev) => ({
+        ...prev,
+        loenindkomstAnsaettelsesforhold: updater(prev.loenindkomstAnsaettelsesforhold),
       }));
     },
     [form.setValues]
@@ -323,7 +338,15 @@ const Erstatningsopgoerelse = React.memo(() => {
             hidden={activeTab !== TAB_KEYS.LOENINDKOMST}
             sx={{ display: activeTab === TAB_KEYS.LOENINDKOMST ? 'block' : 'none' }}
           >
-            <LoenindkomstTab form={form} />
+            <LoenindkomstTab
+              loenindkomstAnsaettelsesforhold={form.values.loenindkomstAnsaettelsesforhold}
+              beregnesUdFra={form.values.beregnesUdFra}
+              periodeTilBeregningFra={form.values.periodeTilBeregningFra}
+              periodeTilBeregningTil={form.values.periodeTilBeregningTil}
+              ferieperioder={form.values.ferieperioder}
+              fravaerPerioder={form.values.fravaerPerioder}
+              onAnsaettelsesforholdChange={handleLoenindkomstAnsaettelsesforholdChange}
+            />
           </Box>
         )}
         {(visitedTabs[TAB_KEYS.OFFENTLIGE_YDELSER] || activeTab === TAB_KEYS.OFFENTLIGE_YDELSER) && (

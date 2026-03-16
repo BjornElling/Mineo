@@ -85,7 +85,8 @@ Adfærden er identisk for alle fejlgivende bounds uanset årsag (differencekrav,
 **TAF til-dato:**
 - `< fra-dato i samme række`
 - `>= differencekravDato`
-- `>= beregnet EET-virkningsdato` (når EET-afgørelse ikke er påklaget)
+- `>= beregnet endelig EET-virkningsdato` (når EET-afgørelse ikke er påklaget)
+- `>= beregnet midlertidig EET-virkningsdato` (når EET-afgørelse ikke er påklaget **og** skadesdato < 2011-06-16)
 
 **Svie/smerte fra-dato:**
 - `< 2005-01-01`
@@ -123,10 +124,11 @@ niveau som tilsvarende rækkefejl for TAF- og svie/smerte-perioder.
    derfor ikke "reddet" af, at den senere ville være uden betydning for det autoritative
    beregningsinterval.
 
-3. **Clamping mod fejlgivende øvre grænser:** Til-dato clampes mod `differencekravDato − 1`
-   og `EET-virkningsdato − 1` (strengeste grænse vinder). Validator rapporterer violation
-   som feltfejl der blokerer download. Rækkefølge: FØR EO-periode-clamping, så feltfejlen
-   ikke skjules af at EO-perioden forinden har afkortet perioden.
+3. **Clamping mod fejlgivende øvre grænser:** Til-dato clampes mod strengeste af:
+   `differencekravDato − 1`, `endelig EET-virkningsdato − 1`, og (ved skadesdato < 2011-06-16)
+   `midlertidig EET-virkningsdato − 1`. Alle tre EET-grænser ophæves hvis `verserendeKlageEet = 'Ja'`.
+   Validator rapporterer violation som feltfejl der blokerer download. Rækkefølge: FØR
+   EO-periode-clamping, så feltfejlen ikke skjules af at EO-perioden forinden har afkortet perioden.
 
 4. **Løse feriedage er række-bundne før merge:** Hvis brugeren har indtastet
    `loseFeriedage` på en TAF-række, knyttes disse dage til den oprindelige indtastede række
