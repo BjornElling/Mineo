@@ -8,7 +8,7 @@ import '@fontsource/montserrat/600.css';
 import '@fontsource/montserrat/700.css';
 import './index.css';
 import { setupPwaLaunchQueueConsumer } from './utils/pwaLaunchQueue';
-import { setupPwaInstallPromptCapture } from './utils/pwaInstallPrompt';
+import { setupPwaInstallPromptCapture, suppressPwaInstallPrompt } from './utils/pwaInstallPrompt';
 import { VERSION } from './config/version';
 import AuthGate from './components/AuthGate';
 
@@ -197,6 +197,7 @@ const bootstrap = async (): Promise<void> => {
   setupPwaLaunchQueueConsumer();
 
   if (isUnsupportedDevice()) {
+    suppressPwaInstallPrompt();
     const { default: UnsupportedDevicePage } = await import('./components/pages/UnsupportedDevicePage');
     root.render(
       <React.StrictMode>
