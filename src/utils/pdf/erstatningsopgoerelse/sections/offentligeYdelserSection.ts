@@ -1,3 +1,4 @@
+import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
 import { amountValueToDisplayString, amountValueToNumber } from '../../../expressionAmount';
 import { formatAsAmount } from '../../../formatUtils';
@@ -6,6 +7,7 @@ import { ydelsestyper } from '../../../../data/ydelsestyper';
 import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/indkomstRowValidation';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
 import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/periodRangeGroups';
+import { renderEoStylePdfTable } from '../../pdfTableRenderer';
 
 type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 const OFFENTLIGE_YDELSER_HEADERS = [
@@ -29,12 +31,6 @@ type OffentligeYdelserSectionContext = Readonly<{
   }>) => boolean;
   bilagIndkomstYdelserMode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
   bilagIndkomstYdelserRanges: readonly IsoRange[];
-  renderStandardPdfTable: (params: Readonly<{
-    doc: unknown;
-    startY: number;
-    body: RowInput[];
-    columnStyles?: unknown;
-  }>) => number;
   writer: Readonly<{
     addSpacer: (height: number) => void;
     setY: (y: number) => void;
@@ -52,7 +48,6 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
     shouldIncludeOffentligYdelseRowInBilag,
     bilagIndkomstYdelserMode,
     bilagIndkomstYdelserRanges,
-    renderStandardPdfTable,
     writer,
   } = ctx;
   const normalizedBilagMode = normalizeBilagIndkomstYdelserMode(bilagIndkomstYdelserMode);
@@ -104,7 +99,7 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
       grouped.get(ydelsestypeLabel)?.push(row);
     }
 
-    const doc = writer.getDoc();
+    const doc = writer.getDoc() as jsPDF;
     const equalColumnWidth = PDF_CONTENT_WIDTH_MM / OFFENTLIGE_YDELSER_HEADERS.length;
     const columnStyles = Object.fromEntries(
       Array.from({ length: OFFENTLIGE_YDELSER_HEADERS.length }, (_, index) => [index, { cellWidth: equalColumnWidth }])
@@ -114,7 +109,7 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
       if (index > 0) writer.addSpacer(lineHeight);
       renderSubheader(label, lineHeight, { addTopSpacing: index > 0 });
       const tableRows = buildTableRows(grouped.get(label) ?? []);
-      const finalY = renderStandardPdfTable({
+      const finalY = renderEoStylePdfTable({
         doc,
         startY: writer.getY(),
         body: tableRows,

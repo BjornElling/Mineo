@@ -4,7 +4,7 @@
  * Genererer PDF-dokument med reguleringssatser for overenskomst/statistik
  */
 
-import jsPDF from 'jspdf';
+import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
 import {
   resolvePdfSectionEndY,
@@ -39,7 +39,7 @@ import {
   type StatistiskLoenudviklingId,
 } from '../../data/statistiskLoenudviklingRates';
 import type { DanishDateString } from '../../types/branded';
-import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
+import type { PdfCommonOptions } from './pdfOptions';
 import { resolvePdfFileName, sanitizeFilenamePart } from './pdfFormatUtils';
 
 type ReguleringPdfParams = Readonly<{
@@ -54,8 +54,7 @@ type ReguleringPdfParams = Readonly<{
   offentligLoenGruppe?: number;
   offentligLoenEkstraGrundloen?: number;
 }> &
-  PdfCommonOptions &
-  Readonly<{ stamdata?: PdfStamdata | null }>;
+  PdfCommonOptions;
 
 type TableColumn = Readonly<{
   header: string;

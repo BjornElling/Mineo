@@ -117,9 +117,9 @@ describe('tafFordeltPaaAarPdf wiring', () => {
   it('gemmer PDF med korrekt filnavn', async () => {
     const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
 
-    const doc = generateTafFordeltPaaAarPdf({ document: FAKE_DOCUMENT });
+    generateTafFordeltPaaAarPdf({ document: FAKE_DOCUMENT });
     const instance = MockJsPDF.instances.at(-1);
-    expect(doc).toBeInstanceOf(MockJsPDF);
+    expect(instance).toBeInstanceOf(MockJsPDF);
     expect(instance?.save).toHaveBeenCalledWith('Tabt arbejdsfortjeneste fordelt på år.pdf');
   });
 

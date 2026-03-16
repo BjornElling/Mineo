@@ -41,6 +41,7 @@ const FOOTER_MIN_HEIGHT_PX = 96;
 const FOOTER_MAX_HEIGHT_PX = 220;
 const footerImageCache = new Map<string, Readonly<{ dataUrl: string; format: 'JPEG'; widthMm: number; heightMm: number }> | null>();
 export const clearFooterImageCacheForTests = (): void => {
+  if (import.meta.env.MODE !== 'test') return;
   footerImageCache.clear();
 };
 
@@ -245,8 +246,7 @@ export const addBrevhoved = (doc: PdfDocumentAdapter, data: BrevhovedData): numb
   doc.setFontSize(PDF_BREVHOVED_FONT_SIZE);
   doc.text(resolvedDatoText, rightX, currentY, { align: 'right' });
 
-  // Eksplicit font reset — undgå implicit afhængighed af applyNormalTextStyle
-  doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+  // Eksplicit font reset til normal brødtekststørrelse — undgå implicit afhængighed af applyNormalTextStyle
   doc.setFontSize(FONT_SIZES.normal);
 
   return MARGINS.top;

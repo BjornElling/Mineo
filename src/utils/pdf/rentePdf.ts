@@ -26,7 +26,6 @@ import {
 } from './pdfTableRenderer';
 import { createDate, formatDanishDate, getDaysInYear, parseDanishDate } from '../dateUtils';
 import { countInclusiveUtcDays } from '../utcDayMath';
-import { logError } from '../logger';
 import type { RateEntry } from '../../data/interestRates';
 import { referenceRates, surchargeRates } from '../../data/interestRates';
 import { TODAY } from '../../config/dateRanges';
@@ -235,27 +234,18 @@ export const generateRentePdf = (
   const periods = generateDetailedSpecification(amount, interestStartDate, calculationDate);
 
   if (!periods || periods.length === 0) {
-    logError('Ingen perioder fundet for renteberegning', {
-      context: 'rentePdf.generateRentePdf',
-      error: new Error('No periods generated'),
-    });
-    return;
+    throw new Error('Ingen perioder fundet for renteberegning');
   }
 
-  const writer = createStandardPdfWriter();
-  writer.setDisplayMode('fullheight');
-
-  // Dokumentets metadata
   const startDate = parseDanishDate(interestStartDate);
   const endDate = parseDanishDate(calculationDate);
 
   if (!startDate || !endDate) {
-    logError('Ugyldige datoer for renteberegning', {
-      context: 'rentePdf.generateRentePdf',
-      error: new Error('Invalid interest date range'),
-    });
-    return;
+    throw new Error('Ugyldige datoer for renteberegning');
   }
+
+  const writer = createStandardPdfWriter();
+  writer.setDisplayMode('fullheight');
 
   writer.setProperties({
     title: 'Procesrente',
@@ -444,7 +434,7 @@ const addSpecificationTable = (
   });
 
   writer.setY(
-    resolvePdfSectionEndY(finalY, startY, {
+    resolvePdfSectionEndY(finalY, tableStartY, {
       spacer: SECTION_SPACER - PDF_BASE_LINE_HEIGHT_MM,
     })
   );

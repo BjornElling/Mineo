@@ -1,3 +1,4 @@
+import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
 import { formatAsAmount } from '../../../formatUtils';
 import { amountValueToDisplayString } from '../../../expressionAmount';
@@ -9,6 +10,7 @@ import type { ISODateString } from '../../../../types/branded';
 import { resolveOverenskomstNameOnlyDisplay } from '../../../../data/overenskomstRates';
 import type { SelectedElements } from '../types';
 import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/periodRangeGroups';
+import { renderEoStylePdfTable } from '../../pdfTableRenderer';
 
 type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 type LoenSectionContext = Readonly<{
@@ -34,12 +36,6 @@ type LoenSectionContext = Readonly<{
   }>) => boolean;
   bilagIndkomstYdelserMode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
   bilagIndkomstYdelserRanges: readonly IsoRange[];
-  renderStandardPdfTable: (params: Readonly<{
-    doc: unknown;
-    startY: number;
-    body: RowInput[];
-    columnStyles?: unknown;
-  }>) => number;
   writer: Readonly<{
     addSpacer: (height: number) => void;
     setY: (y: number) => void;
@@ -66,7 +62,6 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
     shouldIncludeLoenRowInBilag,
     bilagIndkomstYdelserMode,
     bilagIndkomstYdelserRanges,
-    renderStandardPdfTable,
     writer,
   } = ctx;
 
@@ -151,13 +146,13 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       );
     }
 
-    const doc = writer.getDoc();
+    const doc = writer.getDoc() as jsPDF;
     const columnCount = headers.length;
     const defaultCellWidth = PDF_CONTENT_WIDTH_MM / columnCount;
     const columnStyles = Object.fromEntries(
       Array.from({ length: columnCount }, (_, index) => [index, { cellWidth: defaultCellWidth }])
     );
-    const finalY = renderStandardPdfTable({
+    const finalY = renderEoStylePdfTable({
       doc,
       startY: writer.getY(),
       body: tableRows,

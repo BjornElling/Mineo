@@ -76,7 +76,6 @@ export type AarsloenPdfInput = Readonly<{
   loenPaaHelligdage: LoenPaaHelligdage;
   shDageAntal: number | null;
   beregningsData: AarsloenBeregningResult;
-  fejlmeddelelser: readonly string[];
 }>;
 
 type SHDagePeriod = Readonly<{
@@ -328,12 +327,19 @@ export const downloadAarsloenPdf = async (params: Readonly<{
 }>): Promise<PdfDownloadResult> => {
   const { input, settings, persistedStamdata } = params;
   const common = buildCommonPdfContext(settings, 'aarsloensberegning', persistedStamdata);
+  const stamdata = common.stamdata
+    ? {
+        journalnr: common.stamdata.journalnr,
+        advokat: common.stamdata.advokat,
+        sagsbehandler: common.stamdata.sagsbehandler,
+      }
+    : null;
 
   try {
     const { generateAarsloenPdf } = await loadAarsloenPdfModule();
     generateAarsloenPdf({
       ...input,
-      stamdata: common.stamdata,
+      stamdata,
       visBrevhoved: common.visBrevhoved,
     });
     return PDF_DOWNLOAD_SUCCESS;
@@ -352,7 +358,7 @@ export const downloadSHDagePdf = async (params: Readonly<{
 
   try {
     const { generateSHDagePdf } = await loadSHDagePdfModule();
-    generateSHDagePdf(perioder, common.stamdata, { visBrevhoved: common.visBrevhoved });
+    generateSHDagePdf(perioder, common);
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
     return createPdfDownloadFailure('Kunne ikke generere SH-dage-PDF', 'pdfService.downloadSHDagePdf', error);

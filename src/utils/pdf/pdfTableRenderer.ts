@@ -3,7 +3,7 @@ import type jsPDF from 'jspdf';
 import { COLORS, MARGINS, PDF_CONTENT_WIDTH_MM, PDF_FONT_FAMILY, TABLE_STYLES } from './pdfConfig';
 
 export const EO_TABLE_FONT_SIZE = 8;
-export const EO_TABLE_CELL_PADDING = 1.5;
+export const EO_TABLE_CELL_PADDING = TABLE_STYLES.cellPadding;
 
 type PdfAutoTableDoc = jsPDF & {
   lastAutoTable?: {
@@ -72,6 +72,7 @@ export const renderEoStylePdfTable = (params: Readonly<{
   tableWidth?: number;
   hasHeaderRow?: boolean;
   transparentRowIndices?: readonly number[];
+  estimatedRowHeight?: number;
   didParseCell?: (data: CellHookData) => void;
   didDrawCell?: NonNullable<Parameters<typeof autoTable>[1]>['didDrawCell'];
 }>): number => {
@@ -83,6 +84,7 @@ export const renderEoStylePdfTable = (params: Readonly<{
     tableWidth = PDF_CONTENT_WIDTH_MM,
     hasHeaderRow = true,
     transparentRowIndices = [],
+    estimatedRowHeight = 8,
     didParseCell,
     didDrawCell,
   } = params;
@@ -91,7 +93,6 @@ export const renderEoStylePdfTable = (params: Readonly<{
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentBottom = pageHeight - MARGINS.bottom;
   const remainingHeight = contentBottom - startY;
-  const estimatedRowHeight = 8;
   const rowsToKeepTogether = Math.min(body.length, 2);
   const requiredHeight = estimatedRowHeight * rowsToKeepTogether;
   const resolvedStartY = remainingHeight < requiredHeight ? MARGINS.top : startY;

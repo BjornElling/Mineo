@@ -7,14 +7,15 @@
 import type { RowInput } from 'jspdf-autotable';
 import {
   PDF_BASE_LINE_HEIGHT_MM,
+  resolvePdfSectionEndY,
   type BrevhovedData,
 } from './pdfHelpers';
 import { createStandardPdfWriter, type PdfWriter } from './pdfWriter';
 import { cellLeft, cellRight, createPdfTableCell, renderEoStylePdfTable } from './pdfTableRenderer';
 import { formatIsoDateLong } from '../dateFormatting';
 import type { ISODateString } from '../../types/branded';
-import type { StamdataValues } from '../../schemas/formSchemas';
 import type { VarigeMenBeregningResult } from '../../domain/varigemen/varigeMenCalculations';
+import type { PdfCommonOptions } from './pdfOptions';
 import { TODAY } from '../../config/dateRanges';
 import { formatAsAmount } from '../formatUtils';
 import { resolvePdfFileName } from './pdfFormatUtils';
@@ -49,7 +50,7 @@ const addStamdataSection = (
       1: { cellWidth: 60 },
     },
   });
-  writer.setY(finalY + PDF_BASE_LINE_HEIGHT_MM);
+  writer.setY(resolvePdfSectionEndY(finalY, startY));
 };
 
 /**
@@ -77,7 +78,7 @@ const addBeregningsgrundlagSection = (
       1: { cellWidth: 60 },
     },
   });
-  writer.setY(finalY + PDF_BASE_LINE_HEIGHT_MM);
+  writer.setY(resolvePdfSectionEndY(finalY, startY));
 };
 
 /**
@@ -115,20 +116,18 @@ const addResultatSection = (
       1: { cellWidth: 60 },
     },
   });
-  writer.setY(finalY + PDF_BASE_LINE_HEIGHT_MM);
+  writer.setY(resolvePdfSectionEndY(finalY, startY));
 };
 
 /**
  * Generer og download PDF for ménberegning
  */
-type GenerateVarigeMenPdfParams = Readonly<{
+type GenerateVarigeMenPdfParams = PdfCommonOptions & Readonly<{
   fodselsdato: ISODateString | undefined;
   skadesdato: ISODateString | undefined;
   mengrad: number | undefined;
   beregningsdato: ISODateString | undefined;
   beregningsResultat: VarigeMenBeregningResult;
-  stamdata: StamdataValues | null;
-  visBrevhoved?: boolean;
 }>;
 
 export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void => {

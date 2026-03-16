@@ -8,11 +8,10 @@
  * Eventuel fail-closed / blokering er allerede afgjort før denne generator kaldes.
  */
 
-import { createPdfWriter } from './pdfWriter';
+import { createStandardPdfWriter } from './pdfWriter';
 import { ensureNonBreakingKr } from './pdfTextUtils';
 import { PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
 import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from './pdfHelpers';
-import type jsPDF from 'jspdf';
 import { roundByMethod } from '../rounding';
 import { logWarning } from '../logger';
 import { formatDateLong } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
@@ -29,6 +28,7 @@ import type { TafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/e
 
 const NBSP = '\u00A0';
 const FILE_BASE_NAME = 'Tabt arbejdsfortjeneste fordelt på år';
+const TAF_RIGHT_COLUMN_WIDTH = 33.125;
 
 // NOTE: Årsbeløb må være negative; PDF viser de beregnede værdier direkte.
 
@@ -40,17 +40,14 @@ interface TafFordeltPaaAarPdfOptions {
 
 export const generateTafFordeltPaaAarPdf = (
   options: TafFordeltPaaAarPdfOptions
-): jsPDF => {
+): void => {
   const { visBrevhoved = false, visUdkastStempel = false } = options;
   const lineHeight = 5;
-  const doubleLineHeight = lineHeight * 2;
   const { model, presentation } = options.document;
 
   const titel = 'Tabt arbejdsfortjeneste fordelt på år';
 
-  const writer = createPdfWriter({
-    lineHeight,
-    doubleLineHeight,
+  const writer = createStandardPdfWriter({
     visUdkastStempel,
     onLayoutFallback: (message: string) => {
       logWarning('PDF-layout fallback aktiveret', {
@@ -60,7 +57,6 @@ export const generateTafFordeltPaaAarPdf = (
     },
   });
   writer.setDisplayMode('fullheight');
-  const doc = writer.getDoc();
 
   writer.setProperties({
     title: titel,
@@ -136,7 +132,7 @@ export const generateTafFordeltPaaAarPdf = (
     writer.writeWrappedText('Ingen');
     writer.addFooter();
     writer.save(resolvePdfFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
-    return doc;
+    return;
   } else {
     for (const line of model.tabtArbejdsfortjeneste.tafPerioderLinjer) {
       writer.writeWrappedText(line);
@@ -157,7 +153,7 @@ export const generateTafFordeltPaaAarPdf = (
     writer.writeWrappedText('TAF fordelt på år kan ikke beregnes for den valgte opsætning.');
     writer.addFooter();
     writer.save(resolvePdfFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
-    return doc;
+    return;
   }
 
   // ─── TAF fordelt på kalenderår ────────────────────────────────────────
@@ -204,7 +200,7 @@ export const generateTafFordeltPaaAarPdf = (
     })();
     writer.writeLeftRightText(iAltLeftText, iAltRightText, {
       rightFontStyle: 'normal',
-      lineAboveRightWidth: 33.125,
+      lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
       lineAboveRightOffset: 4,
       minRightColumnWidth: rightMaxWidth,
     });
@@ -231,7 +227,7 @@ export const generateTafFordeltPaaAarPdf = (
   const samletText = ensureNonBreakingKr(formatMoneyOreWithKr(presentation.samletTafKravOre));
   writer.writeLeftRightText('Samlet TAF-krav', samletText, {
     rightFontStyle: 'bold',
-    lineAboveRightWidth: 33.125,
+    lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
     lineAboveRightOffset: 4,
     minRightColumnWidth: rightMaxWidth,
   });
@@ -239,5 +235,4 @@ export const generateTafFordeltPaaAarPdf = (
   // Footer og gem
   writer.addFooter();
   writer.save(resolvePdfFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
-  return doc;
 };

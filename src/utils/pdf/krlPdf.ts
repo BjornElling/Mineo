@@ -6,7 +6,7 @@
  */
 
 import type { RowInput } from 'jspdf-autotable';
-import { MARGINS } from './pdfConfig';
+import { PDF_CONTENT_WIDTH_MM } from './pdfConfig';
 import {
   PDF_BASE_LINE_HEIGHT_MM,
   resolvePdfSectionEndY,
@@ -23,17 +23,9 @@ import { TODAY } from '../../config/dateRanges';
 import { krlSatstabeller } from '../../data/KRLrates';
 import type { DanishDateString } from '../../types/branded';
 import { resolvePdfFileName } from './pdfFormatUtils';
+import type { PdfCommonOptions } from './pdfOptions';
 
-export interface KRLStamdata {
-  journalnr?: string;
-  advokat?: string;
-  sagsbehandler?: string;
-}
-
-type KRLPdfParams = Readonly<{
-  visBrevhoved?: boolean;
-  stamdata?: KRLStamdata | null;
-}>;
+type KRLPdfParams = PdfCommonOptions;
 
 const formatPct = (value: number | undefined): string => {
   if (value === undefined || value === 0) return '';
@@ -138,7 +130,7 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
   }
 
   // Beregn lige kolonnebredder
-  const tableWidth = writer.getPageWidth() - MARGINS.left - MARGINS.right;
+  const tableWidth = PDF_CONTENT_WIDTH_MM;
   const colWidth = tableWidth / 5;
   const tableRows: RowInput[] = [headerRow, ...bodyRows];
 
@@ -153,8 +145,7 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
     },
   });
 
-  const resolvedFinalY = resolvePdfSectionEndY(finalY, writer.getY(), { spacer: 0 });
-  writer.setY(resolvedFinalY + PDF_BASE_LINE_HEIGHT_MM);
+  writer.setY(resolvePdfSectionEndY(finalY, writer.getY()));
 
   // Kildetekst under tabellen
   writer.writeSubheader('Kilde', PDF_BASE_LINE_HEIGHT_MM);

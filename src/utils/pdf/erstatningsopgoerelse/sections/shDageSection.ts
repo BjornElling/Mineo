@@ -1,8 +1,10 @@
+import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
 import { formatUtcDateLong, WEEKDAY_NAMES_DA } from '../../../dateFormatting';
 import {
   createPdfTableCell,
   createPdfTableHeaderCell,
+  renderEoStylePdfTable,
 } from '../../pdfTableRenderer';
 import { PDF_TABLE_NARROW_COLUMN_WIDTH } from '../../pdfConfig';
 import { parseISODate, type ISODateString } from '../../../../types/branded';
@@ -27,13 +29,6 @@ type SHDageSectionContext = Readonly<{
   startBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
-  renderStandardPdfTable: (params: Readonly<{
-    doc: unknown;
-    startY: number;
-    body: RowInput[];
-    columnStyles?: unknown;
-    transparentRowIndices?: readonly number[];
-  }>) => number;
   writer: Readonly<{
     addSpacer: (height: number) => void;
     setY: (y: number) => void;
@@ -86,7 +81,6 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
     startBilagPage,
     renderSubheader,
     safeAddWrappedText,
-    renderStandardPdfTable,
     writer,
   } = ctx;
 
@@ -123,8 +117,8 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
       createPdfTableCell(String(antalShDage), { halign: 'center', bold: true, transparent: true }),
     ]);
 
-    const doc = writer.getDoc();
-    const finalY = renderStandardPdfTable({
+    const doc = writer.getDoc() as jsPDF;
+    const finalY = renderEoStylePdfTable({
       doc,
       startY: writer.getY(),
       body: tableRows,

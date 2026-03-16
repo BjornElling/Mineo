@@ -401,7 +401,6 @@ export type PdfWriter = {
 
 export const createPdfWriter = (params: Readonly<{
   lineHeight: number;
-  doubleLineHeight: number;
   visUdkastStempel: boolean;
   onLayoutFallback: (message: string) => void;
 }>): PdfWriter => {
@@ -592,7 +591,6 @@ export const createStandardPdfWriter = (params?: Readonly<{
   const onLayoutFallback = params?.onLayoutFallback ?? (() => {});
   return createPdfWriter({
     lineHeight: 5,
-    doubleLineHeight: 10,
     visUdkastStempel,
     onLayoutFallback,
   });

@@ -7,7 +7,6 @@
 import {
   PDF_MUTED_TEXT_COLOR,
   PDF_TABLE_NARROW_COLUMN_WIDTH,
-  TABLE_STYLES,
   SECTION_SPACER,
 } from './pdfConfig';
 import { beregnHelligdageMedNavn } from '../shDageBeregning';
@@ -18,6 +17,7 @@ import {
 } from './pdfHelpers';
 import { createStandardPdfWriter, type PdfWriter } from './pdfWriter';
 import {
+  EO_TABLE_FONT_SIZE,
   createPdfTableCell,
   createPdfTableHeaderCell,
   createPdfTableTransparentRow,
@@ -27,15 +27,11 @@ import { parseISODate, type ISODateString } from '../../types/branded';
 import { formatToISO, addDays, formatDanishDate } from '../dateUtils';
 import { formatUtcDateLong, WEEKDAY_NAMES_DA } from '../dateFormatting';
 import { TODAY } from '../../config/dateRanges';
-import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
+import type { PdfCommonOptions } from './pdfOptions';
 import type { CellHookData, RowInput } from 'jspdf-autotable';
 import { resolvePdfFileName } from './pdfFormatUtils';
 
-/**
- * Stamdata til SH-dage PDF
- */
 type SHDagePdfOptions = PdfCommonOptions;
-type SHDageStamdata = PdfStamdata;
 type SHDagePeriod = { start: Date; end: Date };
 type SHDagEntry = Readonly<{
   dato: Date;
@@ -58,6 +54,7 @@ export const buildSHDagePdfFilename = (
   const baseTitle = periodLabel.length > 0 ? `SH-dage (${periodLabel})` : 'SH-dage';
   return resolvePdfFileName(baseTitle, false, journalnr);
 };
+
 /**
  * Formater dato til dansk format (d. måned åååå)
  *
@@ -186,12 +183,10 @@ const formaterPeriodeOversigt = (perioder: ReadonlyArray<SHDagePeriod>): string 
  * Generer og download PDF for SH-dage
  *
  * @param {Array} perioder - Array af {start: Date, end: Date} periode-objekter
- * @param {SHDageStamdata | null} stamdata - Stamdata objekt med navn, skadesdato, journalnr (optional)
- * @param {SHDagePdfOptions} options - Valgfrie indstillinger
+ * @param {SHDagePdfOptions} options - Valgfrie indstillinger (inkl. stamdata og brevhoved)
  */
 export const generateSHDagePdf = (
   perioder: ReadonlyArray<SHDagePeriod>,
-  stamdata: SHDageStamdata | null = null,
   options: SHDagePdfOptions = {}
 ): void => {
   const { visBrevhoved = false } = options;
@@ -209,9 +204,9 @@ export const generateSHDagePdf = (
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved) {
     const brevhovedData: BrevhovedData = {
-      journalnr: stamdata?.journalnr,
-      advokat: stamdata?.advokat,
-      sagsbehandler: stamdata?.sagsbehandler,
+      journalnr: options.stamdata?.journalnr,
+      advokat: options.stamdata?.advokat,
+      sagsbehandler: options.stamdata?.sagsbehandler,
       dagsDatoISO: TODAY,
     };
     writer.writeBrevhoved(brevhovedData);
@@ -240,7 +235,7 @@ export const generateSHDagePdf = (
   writer.addFooter();
 
   // Download PDF
-  writer.save(buildSHDagePdfFilename(perioder, stamdata?.journalnr));
+  writer.save(buildSHDagePdfFilename(perioder, options.stamdata?.journalnr));
 };
 
 
@@ -279,7 +274,7 @@ const addSHDageTable = (writer: PdfWriter, helligdage: ReadonlyArray<SHDagEntry>
       createPdfTableCell(ugedag, { halign: 'left' }),
       createPdfTableCell(formatDanskDato(dato), { halign: 'left' }),
       createPdfTableCell(helligdagNavn, { halign: 'left' }),
-      createPdfTableCell(erHverdag ? 'x' : '', { halign: 'center', valign: 'middle', fontSize: TABLE_STYLES.fontSize - 2 }),
+      createPdfTableCell(erHverdag ? 'x' : '', { halign: 'center', valign: 'middle', fontSize: EO_TABLE_FONT_SIZE }),
     ]);
   }
 

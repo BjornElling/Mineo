@@ -51,6 +51,14 @@ export const formatCurrencyFromOre = (ore: number): string => {
 
 export const formatMoneyOreWithKr = (ore: number): string => `${formatCurrencyFromOre(ore)}${NBSP}kr.`;
 
+/** Formaterer øre-beløb uden decimaler når de er ,00 */
+export const formatCurrencyFromOreTrimmed = (ore: number): string => {
+  const formatted = formatCurrencyFromOre(ore);
+  return formatted.endsWith(',00') ? formatted.slice(0, -3) : formatted;
+};
+
+export const formatMoneyOreWithKrTrimmed = (ore: number): string => `${formatCurrencyFromOreTrimmed(ore)}${NBSP}kr.`;
+
 export const formatCurrencyPerUnit = (amount: number | null | undefined, unit: string): string => {
   if (amount === null || amount === undefined || !Number.isFinite(amount)) return '';
   return `${formatCurrency(amount)}${NBSP}kr./${unit}`;

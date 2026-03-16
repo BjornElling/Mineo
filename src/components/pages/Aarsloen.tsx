@@ -126,7 +126,6 @@ const Aarsloen = React.memo(() => {
     shDageAntal,
     beregnetAarsloen,
     beregningsData,
-    fejlmeddelelser,
     harFatalBeregningsFejl,
     tabelRef,
     getPersistedData,

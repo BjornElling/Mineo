@@ -57,7 +57,6 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   let baseStamdata: typeof STAMDATA_INITIAL_VALUES;
   let baseEo: ReturnType<typeof createErstatningsopgoerelseInitialValues>;
   let generateErstatningsopgoerelsePdf: typeof import('../../../utils/pdf/erstatningsopgoerelsePdf').generateErstatningsopgoerelsePdf;
-  let resolveUdkastStempelValue: typeof import('../../../utils/pdf/erstatningsopgoerelsePdf').resolveUdkastStempelValue;
 
   const selected = {
     opgoerelse: true,
@@ -79,7 +78,6 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
     baseEo.beregnesSvieSmerteGodtgoerelse = 'Nej';
     baseEo.beregnesTabtArbejdsfortjeneste = 'Nej';
     generateErstatningsopgoerelsePdf = pdfModule.generateErstatningsopgoerelsePdf;
-    resolveUdkastStempelValue = pdfModule.resolveUdkastStempelValue;
   });
 
   beforeEach(() => {
@@ -119,10 +117,6 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
     const fileName = String(lastSaveCall?.[0] ?? '');
     expect(fileName.endsWith('.pdf')).toBe(true);
     expect(fileName.includes(' (udkast).pdf')).toBe(false);
-  });
-
-  it('resolverer manglende indsaetUdkastStempel som false', () => {
-    expect(resolveUdkastStempelValue(undefined)).toBe(false);
   });
 
   it('throws for unsupported selected PDF elements', () => {

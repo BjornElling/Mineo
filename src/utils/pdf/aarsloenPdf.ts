@@ -4,10 +4,9 @@
  * Genererer detaljeret specifikation af årslønsberegning med satser, indtægtsoplysninger og beregning
  */
 
-import jsPDF from 'jspdf';
 import type { CellDef, RowInput } from 'jspdf-autotable';
-import { MARGINS } from './pdfConfig';
-import { addSectionHeading, PDF_BASE_LINE_HEIGHT_MM, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
+import type jsPDF from 'jspdf';
+import { addSectionHeading, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
 import { createStandardPdfWriter } from './pdfWriter';
 import { createJsPdfAdapter } from './jsPdfAdapter';
 import {
@@ -20,9 +19,11 @@ import {
   createPdfTableHeaderCell,
   renderEoStylePdfTable,
 } from './pdfTableRenderer';
+import { PDF_SECTION_HEADING_GAP } from './pdfConfig';
 import { calculateAarsloenRowDerived, type AarsloenSatserInput } from '../aarsloenTableCalculations';
+import type { PdfCommonOptions } from './pdfOptions';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
-import type { AarsloenTableRow, LoenPaaHelligdage, Loenperiode, StamdataValues } from '../../schemas/formSchemas';
+import type { AarsloenTableRow, LoenPaaHelligdage, Loenperiode } from '../../schemas/formSchemas';
 import type { PeriodeResult } from '../periodeBeregning';
 import type { AarsloenBeregningResult } from '../../types/calculation';
 import { amountValueToDisplayString, amountValueToNumber } from '../expressionAmount';
@@ -30,16 +31,10 @@ import { TODAY } from '../../config/dateRanges';
 import { formatAsAmount, formatCountWithUnit, formatPercent } from '../formatUtils';
 import { resolvePdfFileName } from './pdfFormatUtils';
 
-type PdfDoc = jsPDF & {
-  lastAutoTable?: {
-    finalY?: number;
-  };
-};
 const NBSP = '\u00A0';
-const SECTION_HEADING_TO_TABLE_ADJUSTMENT_MM = PDF_BASE_LINE_HEIGHT_MM;
 
 const resolveTableStartYAfterSectionHeading = (headingY: number): number =>
-  headingY - SECTION_HEADING_TO_TABLE_ADJUSTMENT_MM;
+  headingY - PDF_SECTION_HEADING_GAP;
 
 export const buildAarsloenPdfFilename = (journalnr?: string): string => {
   return resolvePdfFileName('Årslønsberegning', false, journalnr);
@@ -109,14 +104,10 @@ const formatPdfPercent = (pct: unknown): string => {
 };
 
 /**
- * Parser beløb-værdi til tal for beregninger
- */
-
-/**
  * Tilføj satser-tabel
  * VIGTIGT: Filtrerer tomme/nul satser - returnerer null hvis ingen satser er udfyldt
  */
-const addSatserTable = (doc: PdfDoc, satser: AarsloenSatserInput, currentY: number): number | null => {
+const addSatserTable = (doc: jsPDF, satser: AarsloenSatserInput, currentY: number): number | null => {
   // Definer alle mulige satser
   const satsDefinitioner: Array<{ key: keyof AarsloenSatserInput; label: string }> = [
     { key: 'feriePct', label: 'Feriegodtgørelse/-tillæg' },
@@ -164,13 +155,16 @@ const addSatserTable = (doc: PdfDoc, satser: AarsloenSatserInput, currentY: numb
  * Tilføj indtægtsoplysninger-tabel
  */
 const addIndtaegtsoplysningerTable = (
-  doc: PdfDoc,
+  doc: jsPDF,
   tableData: readonly AarsloenTableRow[],
   loenperiode: Loenperiode,
   satser: AarsloenSatserInput,
   beregnetAarsloen: number,
   currentY: number
 ): number => {
+  const headingY = addSectionHeading(createJsPdfAdapter(doc), 'Indtægtsoplysninger', currentY);
+  const tableStartY = resolveTableStartYAfterSectionHeading(headingY);
+
   // Filtrer rækker - behold kun rækker hvor MINDST én input-celle er udfyldt
   const filteredData = tableData.filter(row => {
     // Tjek periode-kolonner baseret på loenperiode
@@ -285,7 +279,7 @@ const addIndtaegtsoplysningerTable = (
 
   const finalY = renderEoStylePdfTable({
     doc,
-    startY: currentY,
+    startY: tableStartY,
     body: tableRows,
     columnStyles: createPdfFixedColumnStyles(10, 17),
     didParseCell: (data) => {
@@ -301,6 +295,9 @@ const addIndtaegtsoplysningerTable = (
       const lastRowIndex = tableRows.length - 1;
       if (data.row.index === lastRowIndex && data.column.index === 8) {
         const cell = data.cell;
+        // Direkte jsPDF-kald er accepteret i autotable-callbacks — PdfDocumentAdapter
+        // dækker ikke tegneprimitiverne (setLineWidth, setDrawColor, line), og
+        // data.doc er autotable's egen eksponering af jsPDF-instansen.
         doc.setLineWidth(0.15);
         doc.setDrawColor(0, 0, 0);
         doc.line(cell.x, cell.y, cell.x + cell.width, cell.y);
@@ -323,7 +320,7 @@ type BeregningsprincipperParams = Readonly<{
   shDageAntal: number | null;
 }>;
 
-const addBeregningsprinciperTable = (doc: PdfDoc, params: BeregningsprincipperParams, currentY: number): number => {
+const addBeregningsprinciperTable = (doc: jsPDF, params: BeregningsprincipperParams, currentY: number): number => {
   const { periodeData, fuldLoenUnderFerie, retTilSjetteFerieuge, antalFeriedage, loenPaaHelligdage, shDageAntal } = params;
 
   const tableData: RowInput[] = [];
@@ -408,7 +405,7 @@ type BeregningSectionParams = Readonly<{
   retTilSjetteFerieuge: boolean;
 }>;
 
-const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, currentY: number): number => {
+const addBeregningSection = (doc: jsPDF, params: BeregningSectionParams, currentY: number): number => {
   const { beregningsData, beregnetAarsloen, fuldLoenUnderFerie, shDageAntal, loenperiode, retTilSjetteFerieuge } = params;
 
   const tableData: RowInput[] = [];
@@ -568,7 +565,7 @@ const addBeregningSection = (doc: PdfDoc, params: BeregningSectionParams, curren
  *
  * @param {object} params - Parameter-objekt med alle nødvendige data
  */
-type GenerateAarsloenPdfParams = Readonly<{
+type GenerateAarsloenPdfParams = PdfCommonOptions & Readonly<{
   satser: AarsloenSatserInput;
   loenperiode: Loenperiode;
   tableData: readonly AarsloenTableRow[];
@@ -581,8 +578,6 @@ type GenerateAarsloenPdfParams = Readonly<{
   loenPaaHelligdage: LoenPaaHelligdage;
   shDageAntal: number | null;
   beregningsData: AarsloenBeregningResult;
-  stamdata: StamdataValues | null;
-  visBrevhoved?: boolean;
 }>;
 
 export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => {
@@ -605,7 +600,7 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
 
   const writer = createStandardPdfWriter();
   writer.setDisplayMode('fullheight');
-  const doc = writer.getDoc() as PdfDoc;
+  const doc = writer.getDoc();
 
   // Dokumentets metadata
   writer.setProperties({
@@ -614,8 +609,6 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
     author: 'Mineo',
     creator: 'mineo.dk',
   });
-
-  let currentY = MARGINS.top;
 
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved) {
@@ -626,54 +619,49 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
       dagsDatoISO: TODAY,
     };
     writer.writeBrevhoved(brevhovedData);
-    currentY = writer.getY();
   }
 
   // Tilføj titel
-  writer.setY(currentY);
   writer.writeTitle('Årslønsberegning');
-  currentY = writer.getY();
 
   // Tilføj satser-tabel (kun hvis der er udfyldte satser)
-  const satserY = addSatserTable(doc, satser, currentY);
+  const satserY = addSatserTable(doc, satser, writer.getY());
   if (satserY !== null) {
-    currentY = satserY;
+    writer.setY(satserY);
   }
 
-  currentY = addSectionHeading(createJsPdfAdapter(doc), 'Indtægtsoplysninger', currentY);
-
   // Tilføj indtægtsoplysninger-tabel (inkl. "I alt"-linje)
-  currentY = addIndtaegtsoplysningerTable(
+  writer.setY(addIndtaegtsoplysningerTable(
     doc,
     tableData,
     loenperiode,
     satser,
     beregnetAarsloen,
-    resolveTableStartYAfterSectionHeading(currentY)
-  );
+    writer.getY()
+  ));
 
   // Betinget: Beregningsprincipper og beregning (kun hvis omregning er aktiveret)
   if (omregningTilFuldtAar && periodeData) {
     // Tilføj beregningsprincipper-tabel
-    currentY = addBeregningsprinciperTable(doc, {
+    writer.setY(addBeregningsprinciperTable(doc, {
       periodeData,
       fuldLoenUnderFerie,
       retTilSjetteFerieuge,
       antalFeriedage,
       loenPaaHelligdage,
       shDageAntal
-    }, currentY);
+    }, writer.getY()));
 
     // Tilføj beregning-sektion (kun hvis der er mellemregning)
     if (beregningsData.metode !== 'ingen' && !beregningsData.erEtAar) {
-      currentY = addBeregningSection(doc, {
+      writer.setY(addBeregningSection(doc, {
         beregningsData,
         beregnetAarsloen,
         fuldLoenUnderFerie,
         shDageAntal,
         loenperiode,
         retTilSjetteFerieuge
-      }, currentY);
+      }, writer.getY()));
     }
   }
 

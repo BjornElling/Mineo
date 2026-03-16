@@ -45,7 +45,6 @@ const makeBaseProps = (overrides: Partial<Parameters<typeof useAarsloenPdfGates>
   shDageAntal: null,
   beregnetAarsloen: 0,
   beregningsData: { metode: 'ingen' as const, erEtAar: false },
-  fejlmeddelelser: [],
   harFatalBeregningsFejl: false,
   tabelRef: React.createRef<AarsloenTableHandle | null>(),
   getPersistedData: vi.fn(() => null),

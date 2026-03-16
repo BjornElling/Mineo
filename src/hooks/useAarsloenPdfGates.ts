@@ -36,7 +36,6 @@ type UseAarsloenPdfGatesProps = {
   shDageAntal: number | null;
   beregnetAarsloen: number;
   beregningsData: AarsloenBeregningResult;
-  fejlmeddelelser: string[];
   harFatalBeregningsFejl: boolean;
   tabelRef: React.RefObject<AarsloenTableHandle | null>;
   getPersistedData: <K extends StorageKey>(formName: K) => unknown;
@@ -68,7 +67,6 @@ export const useAarsloenPdfGates = ({
   shDageAntal,
   beregnetAarsloen,
   beregningsData,
-  fejlmeddelelser,
   harFatalBeregningsFejl,
   tabelRef,
   getPersistedData,
@@ -230,7 +228,6 @@ export const useAarsloenPdfGates = ({
         loenPaaHelligdage,
         shDageAntal,
         beregningsData,
-        fejlmeddelelser,
       },
       settings,
       persistedStamdata: getPersistedData('stamdata'),
@@ -255,7 +252,6 @@ export const useAarsloenPdfGates = ({
     loenPaaHelligdage,
     shDageAntal,
     beregningsData,
-    fejlmeddelelser,
     triggerDownloadShake,
     harFatalBeregningsFejl,
     getPersistedData,

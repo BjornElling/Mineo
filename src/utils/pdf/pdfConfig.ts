@@ -45,7 +45,7 @@ export const FONT_SIZES = {
 // Tabel-styling
 export const TABLE_STYLES = {
   fontSize: FONT_SIZES.normal,
-  cellPadding: 2,
+  cellPadding: 1.5,
   headerBackgroundColor: COLORS.lightBackground,
   alternateRowBackgroundColor: COLORS.lightBackground,
 };

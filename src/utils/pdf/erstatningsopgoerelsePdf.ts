@@ -4,12 +4,11 @@
  * Genererer PDF-dokument med komplet erstatningsopgørelse
  */
 
-import jsPDF from 'jspdf';
-import { type RowInput } from 'jspdf-autotable';
+import type jsPDF from 'jspdf';
 import { PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
 import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from './pdfHelpers';
-import { createPdfWriter } from './pdfWriter';
-import { renderEoStylePdfTable } from './pdfTableRenderer';
+import type { PdfCommonOptions } from './pdfOptions';
+import { createStandardPdfWriter } from './pdfWriter';
 import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../schemas/formSchemas';
 import { type MoneyOre, type Calculable } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { formatPercent as formatPercentUtil } from '../formatUtils';
@@ -40,14 +39,15 @@ import { resolveValgtReguleringDisplay } from '../../domain/erstatningsopgoerels
 import {
   formatCountWithUnit,
   formatCurrencyFromOre,
+  formatCurrencyFromOreTrimmed,
   formatMaanederTrimmed,
   formatMoneyOreWithKr,
+  formatMoneyOreWithKrTrimmed,
   formatPercentDelta,
   isSingularCount,
   resolvePdfFileName,
 } from './pdfFormatUtils';
 import type { SelectedElements } from './erstatningsopgoerelse/types';
-import { assertNoUnsupportedSygeferiegodtgoerelseSelection } from './erstatningsopgoerelse/sections/sygeferiegodtgoerelseSection';
 import { renderLoenindkomstSection } from './erstatningsopgoerelse/sections/loenindkomstSection';
 import { renderOffentligeYdelserSection } from './erstatningsopgoerelse/sections/offentligeYdelserSection';
 import { renderShDageSection } from './erstatningsopgoerelse/sections/shDageSection';
@@ -78,18 +78,10 @@ const renderMoneyWithKrOrError = (value: Calculable<MoneyOre>): string => {
   return `Fejl (${value.reason})`;
 };
 
-/** Formaterer øre-beløb uden decimaler når de er ,00 */
-const formatCurrencyFromOreTrimmed = (ore: MoneyOre): string => {
-  const formatted = formatCurrencyFromOre(ore);
-  return formatted.endsWith(',00') ? formatted.slice(0, -3) : formatted;
-};
-
 const renderMoneyWithKrTrimmed = (value: Calculable<MoneyOre>): string => {
   if (value.status !== 'ok') return '—';
   return `${formatCurrencyFromOreTrimmed(value.value)}${NBSP}kr.`;
 };
-
-const formatMoneyOreWithKrTrimmed = (ore: MoneyOre): string => `${formatCurrencyFromOreTrimmed(ore)}${NBSP}kr.`;
 
 const formatPctFromInput = (value: number | undefined): string => {
   return formatPercentUtil(value ?? 0);
@@ -132,34 +124,26 @@ const resolvePeriodColumns = (row: AarsloenTableRow, loenperiode: Loenperiode): 
   return [row.col0_dag?.trim() ?? '', row.col1_dag?.trim() ?? ''];
 };
 
-const renderStandardPdfTable = (params: Readonly<{
-  doc: jsPDF;
-  startY: number;
-  body: RowInput[];
-  columnStyles?: NonNullable<Parameters<typeof renderEoStylePdfTable>[0]>['columnStyles'];
-  transparentRowIndices?: readonly number[];
-}>): number => {
-  const { doc, startY, body, columnStyles, transparentRowIndices } = params;
-  return renderEoStylePdfTable({
-    doc,
-    startY,
-    body,
-    columnStyles,
-    transparentRowIndices,
-  });
-};
 
 type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
-export const resolveUdkastStempelValue = (value: unknown): boolean => value === 'Ja';
+const resolveUdkastStempelValue = (value: unknown): boolean => value === 'Ja';
 
 
 
+
+// Sygeferiegodtgørelse er ikke implementeret endnu — fail-closed guard.
+const assertNoUnsupportedSygeferiegodtgoerelseSelection = (selectedElements: SelectedElements): void => {
+  if (!selectedElements.sygeferiegodtgoerelse) return;
+  throw new Error('Valgte PDF-elementer er ikke understøttet endnu: Sygeferiegodtgørelse.');
+};
 
 /**
  * Options for erstatningsopgørelse PDF
+ *
+ * Udvider PdfCommonOptions for visBrevhoved-kontrakten.
+ * stamdata fra PdfCommonOptions bruges ikke — brevhoved-data hentes fra model.brevhoved.
  */
-interface ErstatningsopgoerelsePdfOptions {
-  visBrevhoved?: boolean;
+interface ErstatningsopgoerelsePdfOptions extends PdfCommonOptions {
   erstatningsopgoerelseAfsluttesMed?: 'Bekræftet godkendt' | 'Underskrift-linje';
   visUdkastStempel?: boolean;
   document?: PdfModel;
@@ -215,9 +199,7 @@ export const generateErstatningsopgoerelsePdf = (
     });
   };
 
-  const writer = createPdfWriter({
-    lineHeight,
-    doubleLineHeight,
+  const writer = createStandardPdfWriter({
     visUdkastStempel,
     onLayoutFallback: warnLayoutFallback,
   });
@@ -393,13 +375,6 @@ export const generateErstatningsopgoerelsePdf = (
       shouldIncludeLoenRowInBilag,
       bilagIndkomstYdelserMode,
       bilagIndkomstYdelserRanges,
-      renderStandardPdfTable: ({ doc, startY, body, columnStyles }) =>
-        renderStandardPdfTable({
-          doc: doc as jsPDF,
-          startY,
-          body,
-          columnStyles: columnStyles as NonNullable<Parameters<typeof renderEoStylePdfTable>[0]>['columnStyles'],
-        }),
       writer,
     });
   }
@@ -413,13 +388,6 @@ export const generateErstatningsopgoerelsePdf = (
       shouldIncludeOffentligYdelseRowInBilag,
       bilagIndkomstYdelserMode,
       bilagIndkomstYdelserRanges,
-      renderStandardPdfTable: ({ doc, startY, body, columnStyles }) =>
-        renderStandardPdfTable({
-          doc: doc as jsPDF,
-          startY,
-          body,
-          columnStyles: columnStyles as NonNullable<Parameters<typeof renderEoStylePdfTable>[0]>['columnStyles'],
-        }),
       writer,
     });
   }
@@ -445,13 +413,6 @@ export const generateErstatningsopgoerelsePdf = (
         tafBeregningsenhed: model.tabtArbejdsfortjeneste.tafBeregningsenhed,
       }),
       resolveStatistikModelIdFromLabel,
-      renderStandardPdfTable: ({ doc, startY, body, columnStyles }) =>
-        renderStandardPdfTable({
-          doc: doc as jsPDF,
-          startY,
-          body,
-          columnStyles: columnStyles as NonNullable<Parameters<typeof renderEoStylePdfTable>[0]>['columnStyles'],
-        }),
       writer,
     });
   }
@@ -464,14 +425,6 @@ export const generateErstatningsopgoerelsePdf = (
       startBilagPage,
       renderSubheader,
       safeAddWrappedText,
-      renderStandardPdfTable: ({ doc, startY, body, columnStyles, transparentRowIndices }) =>
-        renderStandardPdfTable({
-          doc: doc as jsPDF,
-          startY,
-          body,
-          columnStyles: columnStyles as NonNullable<Parameters<typeof renderEoStylePdfTable>[0]>['columnStyles'],
-          transparentRowIndices,
-        }),
       writer,
     });
   }

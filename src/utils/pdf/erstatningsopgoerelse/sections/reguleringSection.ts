@@ -1,8 +1,10 @@
+import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
 import { MARGINS } from '../../pdfConfig';
 import {
   createPdfTableCell,
   createPdfTableHeaderCell,
+  renderEoStylePdfTable,
 } from '../../pdfTableRenderer';
 import {
   getEffektiveSatserForDato,
@@ -67,12 +69,6 @@ type ReguleringSectionContext = Readonly<{
     reguleringsdato: ISODateString | undefined;
   }>) => readonly ReguleringIndexRow[];
   resolveStatistikModelIdFromLabel: (label: string | undefined) => string | undefined;
-  renderStandardPdfTable: (params: Readonly<{
-    doc: unknown;
-    startY: number;
-    body: RowInput[];
-    columnStyles?: unknown;
-  }>) => number;
   writer: PdfWriter;
 }>;
 
@@ -222,7 +218,6 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     buildReguleringsvaerdierTableData,
     buildReguleringIndexRows,
     resolveStatistikModelIdFromLabel,
-    renderStandardPdfTable,
     writer,
   } = ctx;
   const toSentenceCase = (value: string): string => {
@@ -285,8 +280,8 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       ]);
     }
 
-    const doc = writer.getDoc();
-    const finalY = renderStandardPdfTable({
+    const doc = writer.getDoc() as jsPDF;
+    const finalY = renderEoStylePdfTable({
       doc,
       startY: writer.getY(),
       body: tableRows,
@@ -309,8 +304,8 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       ),
     ];
 
-    const doc = writer.getDoc();
-    const finalY = renderStandardPdfTable({
+    const doc = writer.getDoc() as jsPDF;
+    const finalY = renderEoStylePdfTable({
       doc,
       startY: writer.getY(),
       body: tableRows,

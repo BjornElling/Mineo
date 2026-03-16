@@ -15,11 +15,11 @@ import { renderEoStylePdfTable } from './pdfTableRenderer';
 import { TODAY } from '../../config/dateRanges';
 import { formatCurrencyPerUnit, resolvePdfFileName } from './pdfFormatUtils';
 import { getSatserForYear } from '../../data/regulationRates';
-import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
+import type { PdfCommonOptions } from './pdfOptions';
 import type jsPDF from 'jspdf';
 
 type SatserData = ReturnType<typeof getSatserForYear>;
-type SatserPdfOptions = PdfCommonOptions & Readonly<{ stamdata?: PdfStamdata | null }>;
+type SatserPdfOptions = PdfCommonOptions;
 
 const isPositiveFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value > 0;
