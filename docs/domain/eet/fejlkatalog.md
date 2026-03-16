@@ -1,0 +1,489 @@
+# EET — Fejlkatalog
+
+Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregningerne. Den erstatter fejlbeskrivelserne der tidligere var spredt på tværs af implementeringsfilerne.
+
+**Forkortelser:** F2 = Løbende ydelser, F3 = Kapitalisering, F4 = EET efter EAL, F5 = Differencekrav.
+
+---
+
+## Del 1 — For dig
+
+### Terminologi
+
+| Begreb | Forklaring |
+|---|---|
+| **Fejl** | Rød ikon (`ErrorOutline`). Blokerer beregning og download på den pågældende fane. |
+| **Advarsel** | Orange ikon (`WarningAmber`). Blokerer ikke beregning. |
+| **Felt-fejl** | Produceret af Zod-validering, eksponeret via `useFormFieldErrors`. Vises både inline på fane 1 og i fejlboksen på beregningsfanerne. |
+| **Beregningsfejl** | Produceret af `computeXxx`-funktionen. Vises kun i fejlboksen. |
+
+### Principper
+
+- Alle fejl har et navigationslink til det felt brugeren skal rette. Undtagelse: fejl der udelukkende skyldes manglende systemdata (satser mv.) brugeren ikke kan rette.
+- `alder-unresolved` undertrykkes hvis `fodselsdato-missing` eller `skadesdato-missing` allerede er aktiv — den afledte fejl er redundant.
+- `warn-eal-aarsloen-empty-for-2024-07-01` undertrykkes ikke af `aarsloen-missing` — de to kan vises samtidigt.
+- `eet-pct-missing` undertrykkes på F5 hvis `asl-afgoerelser-empty` er aktiv.
+- På F5 filtreres `no-endelig-afgoerelser` og `warn-ingen-kap-input` altid fra.
+
+---
+
+## Del 2 — Fejl
+
+### Stamdata
+
+#### `skadesdato-missing` — "Skadesdato er ikke udfyldt."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F4, F5 |
+| Navigationslink | Stamdata → Skadelidte |
+| Betingelse | `skadesdato` fra stamdata er ikke udfyldt |
+
+#### `fodselsdato-missing` — "Fødselsdato er ikke udfyldt."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F4, F5 |
+| Navigationslink | Stamdata → Skadelidte |
+| Betingelse | `fodselsdato` fra stamdata-sektionen er ikke udfyldt |
+
+#### `alder-unresolved` — "Alder på skadestidspunkt kan ikke beregnes."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F4, F5 |
+| Navigationslink | Stamdata → Skadelidte |
+| Betingelse | Afledt fejl: fødselsdato og skadesdato begge udfyldt men alder kan alligevel ikke beregnes (datoparse-fejl). Undertrykkes hvis `fodselsdato-missing` eller `skadesdato-missing` er aktiv. F2 og F3 bruger ikke alder og emitterer ikke denne fejl. |
+
+---
+
+### Grundlæggende oplysninger (fane 1)
+
+#### `beregningsdato-missing` — "Beregningsdato er ikke udfyldt."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F4, F5 |
+| Navigationslink | EET oplysninger → Grundlæggende oplysninger |
+| Betingelse | `!beregningsdato`. F3 bruger ikke beregningsdato. |
+
+#### `beregningsdato-invalid` — "Beregningsdato er ugyldig."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F5 |
+| Navigationslink | EET oplysninger → Grundlæggende oplysninger |
+| Betingelse | Beregningsdato er udfyldt men kan ikke parses. Opstår på F5 som fallback når `dagFørBeregningsdato` ikke kan beregnes. |
+
+---
+
+### Arbejdsskadesikringsloven
+
+#### `aarsloen-missing` — "Årsløn er ikke udfyldt."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F4, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse F2, F3 | `!Number.isFinite(aslAarsloenRaw)` |
+| Betingelse F4, F5 | `aarsloen.value === null` — hverken EAL-årsløn > 0 eller ASL-årsløn > 0 |
+
+#### `aarsloen-zero` — "Årsløn må ikke være 0 kr."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F4, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse F2, F3 | `aslAarsloenRaw === 0` |
+| Betingelse F4, F5 | `aslAarsloenRaw === 0` og `ealAarsloenRaw !== 0`. Hvis `ealAarsloenRaw === 0` emitteres i stedet `eal-aarsloen-zero`. |
+
+#### `aarsloen-max-missing` — "Maksimum årsløn mangler for år {år}."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3 |
+| Navigationslink | — (systemfejl) |
+| Betingelse | Maks. årsløn for skadesåret mangler i datakonstanterne |
+
+#### `asl-afgoerelser-empty` — "Ingen ASL-afgørelser er indtastet."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Alle rækker i afgørelsestabellen er tomme. På F5 undertrykker denne `eet-pct-missing`. |
+
+#### `missing-afgoerelsesdato` — "Der er en afgørelse uden afgørelsesdato."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Mindst én påbegyndt række mangler afgørelsesdato |
+
+#### `missing-eet-pct` — "Der er en afgørelse uden EET %."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Mindst én påbegyndt række mangler EET % (tom eller 0) |
+
+#### `missing-afgoerelseType` — "Der er en afgørelse uden afgørelsestype."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Mindst én påbegyndt række mangler afgørelsestype |
+
+#### `asl-identiske-afgoerelser` — "Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F4, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | To rækker har identisk afgørelsesdato **og** virkningsdato. Afgørelsestype indgår ikke. Blokerer alle faner. |
+
+#### `no-endelig-afgoerelser` — "Ingen endelig eller delvist endelig afgørelser indtastet."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F3 (filtreres fra F5) |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Rækker med EET % findes, men ingen er `Endelig` eller `Delvist endelig`. F5 filtrerer altid denne fejl fra — fane 5 proformakapitaliserer uafhængigt af om der tidligere er foretaget kapitalisering. |
+
+#### `endelig-under-50-missing-kapitalisering` — "Endelig afgørelse under 50 % mangler oplysninger om kapitalisering."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Mindst én Endelig afgørelse med EET % < 50 har hverken kap.dato eller kap.% udfyldt. Vises ikke hvis kun ét felt mangler — det fanges af `kap-dato-without-kap-pct` / `kap-pct-without-kap-dato`. |
+
+#### `delvist-endelig-missing-kapitalisering` — "Der er angivet en delvist endelig afgørelse uden kapitalisering."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Mindst én `Delvist endelig` afgørelse har hverken kap.dato eller kap.% udfyldt. |
+
+#### `kap-dato-without-kap-pct` — "Der er indtastet kapitaliseringsdato men ikke -procent."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Mindst én påbegyndt række (`Endelig` eller `Delvist endelig`) har kap.dato men ikke kap.%. Undertrykkes hvis `delvist-endelig-missing-kapitalisering` eller `endelig-under-50-missing-kapitalisering` er aktiv. |
+
+#### `kap-pct-without-kap-dato` — "Der er indtastet kapitaliseringsprocent men ikke -dato."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Mindst én påbegyndt række (`Endelig` eller `Delvist endelig`) har kap.% men ikke kap.dato. Undertrykkes som ovenfor. |
+
+#### `missing-kap-dato` / `missing-kap-pct` — "Der mangler indtastning af kapitaliseringsdato." / "...kapitaliseringsprocent."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Der er `Endelig`/`Delvist endelig` afgørelser og noget kap.-input, men ingen rækker resulterer i en komplet kapitalisering, og ingen af de mere specifikke fejl er aktive. |
+
+#### `missing-koen` — "Ved kapitalisering før 1. marts 2015 skal køn angives." (F3) / "Ved beregning før 1. marts 2015 skal køn angives." (F5)
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse F3 | Mindst én afgørelses kap.dato er < 2015-03-01 og `koen` er ikke udfyldt |
+| Betingelse F5 | `koen` mangler og `beregningsdato < '2015-03-01'` (proformaberegning) |
+| Bemærkning | Samme issue-ID, forskellig beskedtekst på de to faner. |
+
+#### `virkningsdato-after-tidlkap-dato` — "Ved genoptagelse af en tidligere afgørelse skal den oprindelige virkningsdato angives."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Mindst én påbegyndt række har `tidlKapDato` udfyldt og `virkningsdato > tidlKapDato` |
+
+#### `kap-dato-not-after-tidlkap-dato` — "Ved genoptagne afgørelser skal den nye kapitaliseringsdato angives."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Mindst én påbegyndt række har `tidlKapDato` udfyldt og `kap.dato ≤ tidlKapDato` |
+
+---
+
+### Regulering og satser
+
+#### `reguleringssats-missing` — "Reguleringssats mangler for år {år}" (F3, F4) / `reguleringssats-missing-{år}` (F2)
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F4 (ikke F5 — proforma har eget ID) |
+| Navigationslink | — (systemfejl) |
+| Betingelse | En påkrævet ASL-reguleringssats mangler. F2 bruger per-år-ID (`reguleringssats-missing-2026`), F3 og F4 bruger det generiske ID. |
+
+#### `eet-max-missing` — "Maksimum for erhvervsevnetab mangler for år {år}."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F4, F5 |
+| Navigationslink | EET oplysninger → Grundlæggende oplysninger |
+| Betingelse | `erhvervsevnetabMax` for beregningsåret mangler i datakonstanterne |
+
+---
+
+### Kapitalisering
+
+#### `kapitaliseringsbekendtgoerelse-missing-control-date` — "Kapitaliseringsbekendtgørelse mangler for {dato}." (kontroldato)
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Ingen bekendtgørelse dækker kombinationen skadesdato × kontroldato (afgørelsesdato eller tidligere kap.dato) |
+
+#### `kapitaliseringsbekendtgoerelse-missing-effective-date` — "Kapitaliseringsbekendtgørelse mangler for {dato}." (effektiv dato)
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Som ovenfor, men for den effektive kapitaliseringsdato |
+
+#### `kapitaliseringstabel-missing` — "Ingen kapitaliseringstabel i {id} matcher…"
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Bekendtgørelsen eksisterer, men ingen tabel matcher skadesdato × fødselsdato, eller tabellen har ingen faktorer |
+
+#### `kapitaliseringsalder-under-minimum` — "Ingen kapitaliseringsfaktor indtastet for alder ({alder}) — tabellen starter ved {min} år."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Skadelidtes alder er lavere end tabellens mindste alder |
+
+#### `kapitaliseringsfaktor-unresolved` — "Kapitaliseringsfaktor kan ikke beregnes…" (varierende tekst)
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Faktoren kan ikke bestemmes: alder kan ikke beregnes, særfaktor mangler, ingen faktor i tabellen, interpolation fejler |
+
+---
+
+### Erstatningsansvarsloven
+
+#### `eet-pct-missing` — "Erhvervsevnetabsprocent er ikke udfyldt."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F4, F5 |
+| Navigationslink | EET oplysninger → Erstatningsansvarsloven |
+| Betingelse | `ealEetPct` ikke udfyldt, og seneste ASL-afgørelses EET % er tom eller 0. Undertrykkes på F5 hvis `asl-afgoerelser-empty` er aktiv. |
+
+#### `eal-aarsloen-zero` — "EAL-årsløn må ikke være 0 kr."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F4, F5 |
+| Navigationslink | EET oplysninger → Erstatningsansvarsloven |
+| Betingelse | `ealAarsloenRaw === 0`. Har forrang over `aarsloen-zero`. |
+
+#### `eal-eet-pct-invalid` — "EET % skal være deleligt med 5." (EAL)
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F4, F5 |
+| Navigationslink | EET oplysninger → Erstatningsansvarsloven |
+| Betingelse | `ealEetPct` udfyldt men ikke deleligt med 5 (eller ikke heltal) |
+
+#### `asl-selected-eet-pct-invalid` — "EET % skal være deleligt med 5." (ASL-afgørelse)
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F4, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Den valgte ASL-fallback-afgørelses EET % er ikke deleligt med 5 |
+
+---
+
+### Proforma-kapitaliseringsfejl (F5-specifikke)
+
+Produceres kun af proformaberegningen i `computeEetDifferencekravCalculation`. Udspringer alle af beregningsdatoen.
+
+| Issue-ID | Meddelelse | Navigationslink |
+|---|---|---|
+| `proforma-kapitaliseringsbekendtgoerelse-missing` | "Der findes ingen gyldig kapitaliseringsbekendtgørelse for beregningsdatoen {dato}." / "Kapitaliseringsdata mangler for {id}." | EET oplysninger → Grundlæggende oplysninger |
+| `proforma-kapitaliseringstabel-missing` | "Ingen kapitaliseringstabel matcher skadesdato og fødselsdato på beregningsdatoen." / "Ingen kapitaliseringsfaktorer for tabel {tabel}." | EET oplysninger → Grundlæggende oplysninger |
+| `proforma-kapitaliseringsalder-under-minimum` | "Ingen kapitaliseringsfaktor for alder ({alder}) — tabellen starter ved {min} år." | EET oplysninger → Grundlæggende oplysninger |
+| `proforma-kapitaliseringsfaktor-unresolved` | Varierer | EET oplysninger → Grundlæggende oplysninger |
+| `proforma-reguleringssats-missing` | "Reguleringssats mangler for år 2024." | EET oplysninger → Grundlæggende oplysninger |
+
+---
+
+### Felt-fejl (fra Zod-validering)
+
+Produceres af `useFormFieldErrors` og vises foruden inline ved feltet på fane 1.
+
+| Issue-ID | Felt | Vises på | Navigationslink |
+|---|---|---|---|
+| `field-fodselsdato` | Fødselsdato | F2, F3, F4, F5 | Stamdata → Skadelidte |
+| `field-skadesdato` | Skadesdato | F2, F3, F4, F5 | Stamdata → Skadelidte |
+| `field-beregningsdato` | Beregningsdato | F2, F4, F5 | EET oplysninger → Grundlæggende oplysninger |
+| `field-aarsloen-asl` | ASL årsløn | F2, F3, F5 | EET oplysninger → Arbejdsskadesikringsloven |
+| `field-asl-afgoerelser` | Afgørelsestabel | F2, F3, F5 | EET oplysninger → Arbejdsskadesikringsloven |
+| `field-aarsloen-eal` | EAL årsløn | F4 | EET oplysninger → Erstatningsansvarsloven |
+| `field-eal-eet-pct` | EET % (EAL) | F4 | EET oplysninger → Erstatningsansvarsloven |
+
+---
+
+## Del 3 — Advarsler
+
+#### `warn-asl-eet-under-15` — "Der er indtastet en afgørelse med < 15 % erhvervsevnetab."
+| Felt | Værdi |
+|---|---|
+| Type | Advarsel |
+| Vises på | F2, F3, F4, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse F2, F3, F5 | Mindst én afgørelse med EET % > 0 har EET % < 15 |
+| Betingelse F4 | `ealEetPct` ikke udfyldt og seneste ASL-afgørelse har EET % < 15. Hvis `ealEetPct` er udfyldt bruges `warn-eal-eet-under-15` i stedet. |
+
+#### `warn-eal-eet-under-15` — "Der er angivet et EET efter EAL på mindre end 15 %."
+| Felt | Værdi |
+|---|---|
+| Type | Advarsel |
+| Vises på | F4, F5 |
+| Navigationslink | EET oplysninger → Erstatningsansvarsloven |
+| Betingelse | `ealEetPct` udfyldt med værdi > 0 og < 15 |
+
+#### `warn-invalid-eet-pct-after-2024-07-01` — "Der er indtastet en ugyldig EET-procent ({x} %) for skader fra 1. juli 2024."
+| Felt | Værdi |
+|---|---|
+| Type | Advarsel |
+| Vises på | F2, F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | `skadesdato ≥ 2024-07-01` og mindst én afgørelse har EET % > 15 der ikke er deleligt med 10. Advarsel (ikke fejl) — 'hvad nu hvis'-beregninger kan have behov for det. |
+
+#### `warn-non-endelig-after-endelig` — "Der er angivet en midlertidig eller delvist endelig afgørelse efter en endelig afgørelse."
+| Felt | Værdi |
+|---|---|
+| Type | Advarsel |
+| Vises på | F2, F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Mindst én `Midlertidig` eller `Delvist endelig` afgørelse har afgørelsesdato efter den tidligste `Endelig` afgørelses dato |
+
+#### `warn-afgoerelsesdato-after-beregningsdato` — "Der er angivet en afgørelsesdato efter beregningsdatoen."
+| Felt | Værdi |
+|---|---|
+| Type | Advarsel |
+| Vises på | F2, F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Mindst én afgørelses afgørelsesdato er efter beregningsdato |
+
+#### `warn-virkningsdato-after-beregningsdato` — "Der er angivet en virkningsdato efter beregningsdatoen."
+| Felt | Værdi |
+|---|---|
+| Type | Advarsel |
+| Vises på | F2, F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Mindst én afgørelses virkningsdato er efter beregningsdato |
+
+#### `warn-kap-dato-after-beregningsdato` — "Der er angivet en kapitaliseringsdato efter beregningsdatoen."
+| Felt | Værdi |
+|---|---|
+| Type | Advarsel |
+| Vises på | F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Mindst én afgørelses kap.dato er udfyldt og er efter beregningsdato |
+
+#### `warn-ingen-kap-input` — "Der er ikke angivet kapitaliseringsdato eller -procent for nogen afgørelse."
+| Felt | Værdi |
+|---|---|
+| Type | Advarsel |
+| Vises på | F3 (filtreres altid fra F5) |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Der er påbegyndte rækker, men ingen har kap.dato eller kap.% udfyldt. ID: `WARN_NO_KAP_INPUT_ID` exporteret fra `eetKapitaliseringCalculation.ts`. |
+
+#### `warn-kap-pct-under-15` — "Der er angivet kapitalisering med mindre end 15 %."
+| Felt | Værdi |
+|---|---|
+| Type | Advarsel |
+| Vises på | F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Mindst én kapitaliseret afgørelse har kap.% > 0 og < 15 |
+
+#### `warn-eal-aarsloen-empty-for-2024-07-01` — "For skader fra 1. juli 2024 og frem beregnes årsløn forskelligt efter EAL og ASL."
+| Felt | Værdi |
+|---|---|
+| Type | Advarsel |
+| Vises på | F4, F5 |
+| Navigationslink | EET oplysninger → Erstatningsansvarsloven |
+| Betingelse | `skadesdato ≥ 2024-07-01` og `ealAarsloen` ikke udfyldt. Undertrykkes ikke af `aarsloen-missing`. |
+
+#### `warn-eal-aarsloen-is-max` — "Skadelidtes fulde årsløn skal indtastes for EAL — ikke maks. årslønnen efter ASL."
+| Felt | Værdi |
+|---|---|
+| Type | Advarsel |
+| Vises på | F4, F5 |
+| Navigationslink | EET oplysninger → Erstatningsansvarsloven |
+| Betingelse | `ealAarsloen` er udfyldt og er præcis lig maks. årsløn for skadesåret |
+
+#### `warn-asl-aarsloen-is-max` — "Skadelidtes fulde årsløn skal indtastes for EAL — ikke maks. årslønnen efter ASL." (ASL-fallback)
+| Felt | Værdi |
+|---|---|
+| Type | Advarsel |
+| Vises på | F2, F4, F5 |
+| Navigationslink | EET oplysninger → Erstatningsansvarsloven |
+| Betingelse F2 | `ealAarsloen` ikke udfyldt og `aslAarsloen` er præcis lig maks. årsløn for skadesåret |
+| Betingelse F4, F5 | `ealAarsloen` ikke udfyldt og `aslAarsloen` er præcis lig maks. årsløn for skadesåret |
+
+---
+
+## Del 4 — AI-agent: teknisk reference
+
+### Deduplication
+
+Issues deduplikeres på `severity + message` via `dedupeIssuesBySeverityAndMessage()` fra `src/utils/issueUtils.ts`. To issues med samme tekst men forskellig severity bevares begge.
+
+### `EetIssue`-typen
+
+```typescript
+// src/domain/erhvervsevnetab/eetTypes.ts
+type EetIssue = Readonly<{
+  id: string;
+  severity: 'error' | 'warning';
+  message: string;
+}>
+```
+
+### Produktion af issues
+
+Alle `toIssue()` og `toWarning()` helper-funktioner er defineret lokalt i de respektive calculation-filer (ikke en delt helper) — de er identiske i struktur men ikke importeret fra en fælles kilde.
+
+### Navigation
+
+Navigation fra fejl-linje til inputsektion styres centralt i `resolveIssueNavigation(issueId)`. Hver `id` skal mappe til `pageName`, `sectionName`, `route`, `sectionId`. Sektionsnavnene på "EET oplysninger" er præcist: `Stamdata`, `Arbejdsskadesikringsloven`, `Erstatningsansvarsloven`.
+
+### Tests
+
+`src/__tests__/domain/erhvervsevnetab/eetAslAfgoerelser.test.ts` (710 linjer) dækker felt-validering og row-niveau-validering.
+
+---
+
+## Kendte udeståender
+
+*Ingen kendte udeståender pr. dags dato. Filen er synkroniseret med koden.*

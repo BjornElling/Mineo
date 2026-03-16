@@ -45,6 +45,11 @@ npm run import:loen
 - KRL-reguleringssatser i `src/data/KRLrates.ts`
 - Kapitaliseringsbekendtgørelser i `src/data/kapitalisering/kapitaliseringsbekendtgørelser.ts`
 
+## Hjælpefiler til opdateringer
+
+- Overenskomst: `docs/tilfoej-overenskomst.md`
+- Kapitaliseringsbekendtgørelser: `docs\tilfoej-overenskomst.md`
+
 ## Licens
 
 MIT License, se `LICENSE`.
@@ -57,6 +62,6 @@ Bjørn Elling
 
 ---
 
-**Version**: 2026.03.300
+**Version**: 2026.03.301
 
 **Status**: Under udvikling

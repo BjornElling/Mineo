@@ -1,205 +1,226 @@
 # Hurtigere faneskift i Erstatningsopgørelse
 
-Dette notat beskriver de mest sandsynlige årsager til langsomme faneskift i `Erstatningsopgørelse`, især når der er mange indtastninger i `Lønindkomst` og `Offentlige ydelser`. Notatet er verificeret mod kildekoden (2026-03-11).
+Dette notat beskriver de mest sandsynlige årsager til langsomme faneskift i `Erstatningsopgørelse`, især når der er mange indtastninger i `Lønindkomst` og `Offentlige ydelser`. Notatet er verificeret mod kildekoden (2026-03-16).
+
+---
+
+## Status på implementering
+
+| Punkt | Beskrivelse | Status |
+|---|---|---|
+| 1.5 / 2.1a | Props til `OffentligeYdelserTab` indsnævret | ✅ Implementeret |
+| 1.4 / 2.2 | `aarsloenExternalCellErrorMessagesByAfId`-dependency indsnævret | ✅ Implementeret |
+| 1.7 / 2.5 | Selector-baseret persistence (snapshot via `useSyncExternalStore`) | ✅ Implementeret |
+| 1.2 / 2.1b | Props til `LoenindkomstTab` indsnævret | ❌ Ikke implementeret |
+| 2.3 | `LoenindkomstTab` opdelt i delkomponenter pr. ansættelsesforhold | ❌ Ikke implementeret |
+| 2.6 | Virtualisering | ❌ Ikke implementeret (lavest prioritet) |
+
+---
 
 ## 1. Årsager til problemet
 
 ### 1.1 Monterede faner holdes i live efter første besøg
 
-I [Erstatningsopgoerelse.tsx](src/components/pages/Erstatningsopgoerelse.tsx#L55) bruges en `visitedTabs`-strategi, hvor tunge faner mountes ved første besøg og derefter forbliver mounted. De skjules kun med `display: none`, jf. [Erstatningsopgoerelse.tsx](src/components/pages/Erstatningsopgoerelse.tsx#L299).
+I [Erstatningsopgoerelse.tsx](src/components/pages/Erstatningsopgoerelse.tsx) bruges en `visitedTabs`-strategi, hvor tunge faner mountes ved første besøg og derefter forbliver mounted. De skjules med `display: none`.
 
 Konsekvens:
 - Skjulte faner kan stadig rerendere.
-- Faneskift bliver ikke kun et spørgsmål om at vise/skjule UI, men også om reconciliation af allerede tunge undertræer.
+- Faneskift er ikke kun et spørgsmål om at vise/skjule UI, men også om reconciliation af allerede tunge undertræer.
 - Problemet er proportionalt med antallet af ansættelsesforhold og tabeller i de skjulte faner.
 
-Denne strategi er en bevidst arkitektonisk forudsætning for at overholde no-live-preview- og draft/commit-kontrakten. Strategien bør **ikke** løses med unmount som første greb — det risikerer at flytte problemet fra performance til dataintegritet og draft-tab. Se 2.4.
+Strategien er en bevidst arkitektonisk forudsætning for at overholde no-live-preview- og draft/commit-kontrakten. Den bør **ikke** løses med unmount som første greb — det risikerer at flytte problemet fra performance til dataintegritet og draft-tab. Se 2.4.
 
-### 1.2 Fanerne modtager for brede props fra parent
+### 1.2 LoenindkomstTab modtager stadig hele `form` som prop
 
-`LoenindkomstTab`, `OffentligeYdelserTab` og `EOberegningTab` modtager brede props fra parent, især `form` eller hele `eoValues`, jf. [Erstatningsopgoerelse.tsx](src/components/pages/Erstatningsopgoerelse.tsx#L317), [Erstatningsopgoerelse.tsx](src/components/pages/Erstatningsopgoerelse.tsx#L326) og [Erstatningsopgoerelse.tsx](src/components/pages/Erstatningsopgoerelse.tsx#L335).
+`LoenindkomstTab` modtager `form: ErstatningsopgoerelseFormApi` (dvs. `{ values, setValues }`), som giver ny reference ved enhver EO-ændring. Fanens `React.memo` bryder dermed ved enhver value-ændring i hele EO — uanset om ændringen berører lønindkomst.
 
-Konkret: `EOOplysningerTab` og `LoenindkomstTab` modtager `form` (linje 309, 317). `OffentligeYdelserTab` modtager `form` som `ErstatningsopgoerelseFormApi` (linje 326). `EOberegningTab` modtager `eoValues={form.values}` og `setEOValues={form.setValues}` (linje 341–342).
+**Status: Ikke implementeret.** Se åbne fund i afsnit 4.
 
-Konsekvens:
-- `Erstatningsopgoerelse` er wrappet i `React.memo(() => {...})` (linje 33) uden custom comparator og uden props — det er en page-komponent der ikke modtager props fra forældre. `React.memo` har aldrig haft effekt på parent-niveauet. Parent re-renders styres udelukkende af intern state og hooks (`activeTab`, `visitedTabs`, `eoSnapshot`, `usePersistedForm`, `useAppSettings`, `useFormPersistence`).
-- Det kritiske problem er at `form`-objektet (returneret fra `usePersistedForm`) får ny reference ved enhver value-ændring, fordi `setValuesState` altid producerer et nyt objekt. Dette propagerer til alle fane-komponenters `React.memo`-tjek, som dermed bryder ved enhver EO-ændring — uanset om den konkrete fane berøres.
-- De to niveauer (parent re-renders og child memo-brud) forstærker hinanden og kan ikke løses uafhængigt med fuld effekt.
+### 1.3 LoenindkomstTab genberegner bredt på tværs af hele fanen
 
-### 1.3 Lønindkomst-fanen genberegner bredt på tværs af hele fanen
-
-`LoenindkomstTab` er stor og centraliseret, og den laver flere afledte beregninger over alle ansættelsesforhold i samme komponent, jf. [LoenindkomstTab.tsx](src/components/pages/erstatningsopgoerelse/LoenindkomstTab.tsx#L262), [LoenindkomstTab.tsx](src/components/pages/erstatningsopgoerelse/LoenindkomstTab.tsx#L297) og [LoenindkomstTab.tsx](src/components/pages/erstatningsopgoerelse/LoenindkomstTab.tsx#L1553).
+`LoenindkomstTab` er stor og centraliseret og laver afledte beregninger over alle ansættelsesforhold i samme komponent.
 
 Konsekvens:
-- Små ændringer kan udløse bred genberegning og bred rerendering.
-- Jo flere ansættelsesforhold og jo flere tabeller pr. ansættelsesforhold, desto dyrere bliver faneskift og almindelige EO-opdateringer.
+- Små ændringer kan udløse bred genberegning og rerendering.
+- Jo flere ansættelsesforhold og tabeller, desto dyrere ved faneskift og EO-opdateringer.
 
-### 1.4 Mindst én memo-dependency er for bred
+**Status: Ikke implementeret.** Se åbne fund i afsnit 4.
 
-`aarsloenExternalCellErrorMessagesByAfId` afhænger i dag af hele `values`, jf. [LoenindkomstTab.tsx](src/components/pages/erstatningsopgoerelse/LoenindkomstTab.tsx#L313).
+### 1.4 Memo-dependency for `aarsloenExternalCellErrorMessagesByAfId` — ✅ Rettet
 
-Konsekvens:
-- Memoen genberegner ved enhver EO-ændring, også når ændringen kommer fra andre faner.
-- Det øger arbejdet unødigt ved faneskift og ved commits uden relation til lønindkomst.
+Tidligere var dependency `[values]` (hele state-objektet). Nu er den indsnævret:
 
-Dependency på `[values]` er ikke forkert pr. definition — den er nødvendig i det nuværende design, fordi `buildAarsloenZeroArbejdsdageCellErrorMessages` kalder `buildAarsloenZeroArbejdsdageIssues` (indkomstRowValidation.ts linje 144–180), som læser:
-1. `computeTafBeregningsenhed(values)` — afhænger af TAF-felter, ikke kun løn
-2. `values.loenindkomstAnsaettelsesforhold` — løn-relevant
-3. `values.ferieperioder` — EO-fælles felt
-4. `values.fravaerPerioder` — EO-fælles felt
+```tsx
+// LoenindkomstTab.tsx — nu implementeret
+const aarsloenZeroArbejdsdageValidationInput = React.useMemo<AarsloenZeroArbejdsdageValidationInput>(() => ({
+  beregnesUdFra: values.beregnesUdFra,
+  periodeTilBeregningFra: values.periodeTilBeregningFra,
+  periodeTilBeregningTil: values.periodeTilBeregningTil,
+  loenindkomstAnsaettelsesforhold: values.loenindkomstAnsaettelsesforhold,
+  ferieperioder: values.ferieperioder,
+  fravaerPerioder: values.fravaerPerioder,
+}), [
+  values.beregnesUdFra,
+  values.ferieperioder,
+  values.fravaerPerioder,
+  values.loenindkomstAnsaettelsesforhold,
+  values.periodeTilBeregningFra,
+  values.periodeTilBeregningTil,
+]);
 
-Dependency kan indsnævres til `[values.loenindkomstAnsaettelsesforhold, values.ferieperioder, values.fravaerPerioder, values.tafBeregningsgrundlag]` (eller hvad `computeTafBeregningsenhed` konkret læser — dette bør verificeres). Indsnævring kræver kortlægning af `computeTafBeregningsenhed`'s faktiske inputs. Hvis et felt overses, beregner memoen ikke om, og fejlmeddelelser vises ikke. Dette er korrekthedsarbejde, ikke kosmetisk performancetuning.
+const aarsloenExternalCellErrorMessagesByAfId = React.useMemo(..., [
+  aarsloenZeroArbejdsdageValidationInput,
+  values.loenindkomstAnsaettelsesforhold,
+]);
+```
 
-### 1.5 Offentlige ydelser er bedre afgrænset, men stadig koblet bredere end nødvendigt
+Implementeringen er korrekt og præcist afgrænset til de felter `computeTafBeregningsenhed` og valideringshelpers faktisk læser. Det er en to-trins memoization: den dyre validering afhænger af `aarsloenZeroArbejdsdageValidationInput`, som kun ændres når de relevante felter skifter.
 
-`OffentligeYdelserTab` modtager hele `form` og bygger afledte værdier i fanen, jf. [OffentligeYdelserTab.tsx](src/components/pages/erstatningsopgoerelse/OffentligeYdelserTab.tsx#L15) og [OffentligeYdelserTab.tsx](src/components/pages/erstatningsopgoerelse/OffentligeYdelserTab.tsx#L32).
+**Review-fund:** Se afsnit 4.1.
 
-`derivedByRowId`-memoen (linje 32–43) har dependency `[formatAntalDage, values.offentligeYdelserRows]` — altså præcist afgrænset til sine egne rækker. Det er korrekt. Det egentlige problem er at fanens `React.memo` sammenligner `form`-objektet som helhed — og da `form` inkluderer `values` og `setValues`, er det nok at `values`-referencen skifter for at memo bryder.
+### 1.5 OffentligeYdelserTab modtog hele `form` — ✅ Rettet
 
-Konsekvens:
-- Fanen rerenderer på ændringer, der ikke vedrører offentlige ydelser.
-- Afledte rækkeværdier beregnes igen, selv når kun andre EO-dele er ændret.
+`OffentligeYdelserTab` modtager nu præcist afgrænsede props:
 
-Løsningen for denne fane er enkel og lav risiko: send `values.offentligeYdelserRows` og en memoized `onTableDataChange`-callback direkte som props i stedet for hele `form`. Prop-omlægningen berører commit-flowet ind i tabellen, men ændrer ikke domæneberegningerne. Dette er den lavest-hængende frugt i afsnit 2.
+```tsx
+// Erstatningsopgoerelse.tsx — nu implementeret
+const handleOffentligeYdelserRowsChange = React.useCallback(
+  (newData: ...) => {
+    form.setValues((prev) => ({ ...prev, offentligeYdelserRows: newData }));
+  },
+  [form.setValues]
+);
 
-### 1.6 Beregning-fanen er allerede delvist gated, men er stadig tung når den er aktiv
+<OffentligeYdelserTab
+  rows={form.values.offentligeYdelserRows ?? []}
+  onRowsChange={handleOffentligeYdelserRowsChange}
+/>
+```
 
-Snapshot-opbygning er korrekt gated bag `isSnapshotTabActive` i [Erstatningsopgoerelse.tsx](src/components/pages/Erstatningsopgoerelse.tsx#L134), og debug-row aggregation er korrekt gated bag `isActive` i [EOberegningTab.tsx](src/components/pages/erstatningsopgoerelse/EOberegningTab.tsx#L94).
+Fanen modtager nu `rows: OffentligeYdelserRow[]` og `onRowsChange: (rows) => void` — ikke `form`. `React.memo` bryder kun når `offentligeYdelserRows` referencen skifter.
 
-`isSnapshotTabActive` er korrekt defineret (linje 134–135) og `useEffect`-gate er korrekt (linje 137–141). Snapshot bygges synkront i den gated effect med `buildDebugSnapshotRef.current()` og sættes i state — det trigger én ekstra re-render af Beregning-fanen ved aktivering, men det er forventeligt og acceptabelt.
+**Review-fund:** Se afsnit 4.2.
 
-Konsekvens:
-- Denne del er ikke den første fejl at angribe.
-- Men skift til `Beregning` kan stadig være tungt, fordi der her udføres reelt arbejde med snapshot- og debugprojektioner.
+### 1.6 Beregning-fanen er gated korrekt
 
-### 1.7 Persistence/context kan forplante rerenders bredt
+Snapshot-opbygning er korrekt gated bag `isSnapshotTabActive`. Snapshot bygges i en gated effect med `buildDebugSnapshotRef.current()` og sættes i state — det trigger én ekstra re-render ved aktivering, men det er forventeligt.
 
-`FormPersistenceContext` bygger ét samlet context-value, jf. [FormPersistenceContext.tsx](src/contexts/FormPersistenceContext.tsx#L567). `usePersistedForm` persisterer desuden ved hver value-ændring, jf. [usePersistedForm.ts](src/hooks/usePersistedForm.ts#L138).
+Ingen ændringer her. Status uændret.
 
-`usePersistedForm` (linje 138–141) kører `persistData(pageKey, values)` i en `useEffect` der afhænger af `values`. Enhver `values`-ændring trigger persistering og potentiel context-opdatering. Alle consumers der kalder `useFormPersistence()` kan re-render ved revision-opdateringer.
+### 1.7 Persistence-rerenders — ✅ Rettet via selector-arkitektur
 
-Et understreget problem: `useFormPersistence()` kaldes direkte i parent-komponenten (linje 35 i Erstatningsopgoerelse.tsx), hvilket betyder at parent re-renders på *alle* persistence-opdateringer fra enhver sektion — ikke kun EO. Dette forstærker problemet i 1.2. Mekanismen er reel, ikke blot hypotetisk.
+`FormPersistenceContext`s brede context-consumer er erstattet med selector-baseret adgang via `useSyncExternalStore`:
 
-Konsekvens:
-- Dette er en sekundær forklaring sammenlignet med de brede fanepops og den store `LoenindkomstTab`, men forstærker begge.
-- Det er en forstærker, ikke en alternativ hovedkilde — reducering her løser ikke problemet i 1.2.
+```typescript
+// useFormPersistenceSelectors.ts — nu implementeret
+export const usePersistedSectionSelector = <K extends StorageKey>(pageKey: K) =>
+  React.useSyncExternalStore(
+    subscribeToFormPersistenceStore,
+    () => getPersistedSectionSnapshot(pageKey),
+    () => getPersistedSectionSnapshot(pageKey)
+  );
+
+export const useSectionRevisionSelector = (pageKey: StorageKey) =>
+  React.useSyncExternalStore(subscribeToFormPersistenceStore, ...);
+```
+
+Parent-komponenten kalder nu de granulære selectors direkte frem for `useFormPersistence()`:
+
+```tsx
+// Erstatningsopgoerelse.tsx — nu implementeret
+const persistedStamdata = usePersistedSectionSelector('stamdata');
+const stamdataRevision = useSectionRevisionSelector('stamdata');
+const eoRevision = useSectionRevisionSelector('erstatningsopgoerelse');
+const stamdataErrorRevision = useFieldErrorRevisionSelector('stamdata');
+const eoErrorRevision = useFieldErrorRevisionSelector('erstatningsopgoerelse');
+```
+
+`buildDebugRevision` bruger snapshot-funktioner (ikke hooks) og er en `useCallback` der aldrig ændres (`[]`-deps). Parent re-renders drives nu kun af revision-ændringer i de konkrete sektioner den abonnerer på, ikke af context-opdateringer fra andre sektioner.
+
+**Review-fund:** Se afsnit 4.3.
 
 ---
 
-## 2. Foreslåede løsninger
-
-Løsningerne er rangeret efter anbefalet rækkefølge.
+## 2. Foreslåede løsninger — implementeringstilstand
 
 ### 2.1 Indsnævr props til hver fane
 
-Anbefaling:
-- Parent skal sende den mindst mulige del af EO-state til hver fane i stedet for hele `form` eller hele `eoValues`.
-- Start med `OffentligeYdelserTab` — den er den letteste: fanen bruger kun `values.offentligeYdelserRows` og én `setValues`-callback. Prop-kontrakten er triviel at indsnævre og risikoen er lav.
-- `LoenindkomstTab` kræver forudgående statisk kortlægning af samtlige brugte felter (`values`-felter, ferieperioder, fravaerPerioder, TAF-felter, stamdataValues via `getPersistedData`). Kortlæg ved statisk analyse af komponentens usages af `values`, ikke ved estimat — ellers er der risiko for at udelade felter der faktisk bruges.
-- `EOberegningTab` modtager allerede relativt præcise props, men `eoValues={form.values}` sender hele `ErstatningsopgoerelseValues`. Mulighed: send kun de felter `EOberegningTab` faktisk bruger til at bygge sin UI (snapshot er allerede løftet ud).
+- **`OffentligeYdelserTab`** ✅ — Implementeret, se 1.5.
+- **`LoenindkomstTab`** ❌ — Modtager stadig `form`. Kræver forudgående kortlægning af alle `values`-felter fanen faktisk bruger. Se åbne fund 4.4.
+- **`EOberegningTab`** — Sender stadig `eoValues={form.values}`. Ikke ændret, men mindre kritisk da fanen er gated.
 
-Hvor omfattende er ændringen:
-- Mellem for `OffentligeYdelserTab`; stor for `LoenindkomstTab` (kræver forudgående kortlægning).
-- Ændrer ikke domænelogikken i sig selv.
+### 2.2 Indsnævr memo-dependencies i Lønindkomst
 
-Forventet effekt:
-- Stor.
-- Dette er den mest sandsynlige enkeltændring med høj effekt, fordi den direkte forbedrer `React.memo` og reducerer rerenders i skjulte faner.
+✅ Implementeret for `aarsloenExternalCellErrorMessagesByAfId`. Se 1.4.
 
-### 2.2 Indsnævr for brede memo-dependencies i Lønindkomst
+### 2.3 Opdel LoenindkomstTab i delkomponenter pr. ansættelsesforhold
 
-Anbefaling:
-- `aarsloenExternalCellErrorMessagesByAfId` er den eneste bekræftede instans af en for bred dependency. Behandl den som et selvstændigt og afgrænset trin — ikke som del af en generel gennemgang.
-- Indsnævr dependency fra `[values]` til de konkrete felter funktionen læser: `loenindkomstAnsaettelsesforhold`, `ferieperioder`, `fravaerPerioder`, og de felter `computeTafBeregningsenhed` læser (bør kortlægges inden rettelsen).
-- Ledsag rettelsen af en test der verificerer at memoen genberegner ved ændring af hvert relevant felt. Hvis testen bliver for UI-tung, bør afhængighedskortlægningen flyttes ned på helper-niveau og testes dér — det giver et mere deterministisk regressionssignal.
+❌ Ikke implementeret. Afhænger af prop-isolering (2.1) som forudsætning.
 
-Vigtigt: Memo-optimering er korrekthedsarbejde. Hvis et felt overses i dependency-listen, beregner memoen ikke om, og fejlmeddelelser vises ikke for brugeren.
+### 2.4 Behold "mount once, hide"
 
-Hvor omfattende er ændringen:
-- Lille til mellem pr. rettelse; kræver verifikation af hvilke felter helperne faktisk læser.
+Strategien er fastholdt som planlagt. Ingen ændring.
 
-Forventet effekt:
-- Mellem.
-- Den samlede effekt kan være mærkbar i en stor komponent som `LoenindkomstTab`.
+### 2.5 Selector-baseret persistence
 
-### 2.3 Opdel Lønindkomst i memoiserede delkomponenter pr. ansættelsesforhold
+✅ Implementeret. Se 1.7.
 
-Anbefaling:
-- Ekstrahér rendering og lokal afledt logik for ét ansættelsesforhold til en selvstændig memoiseret komponent.
-- Parent-fanen bør kun mappe over ansættelsesforhold og sende snævre props videre.
+### 2.6 Virtualisering
 
-Dette er et kontrolleret større indgreb, ikke et quick win. Inden refaktoreringen startes, skal følgende kortlægges eksplicit:
-- `LoenindkomstTab` har tværgående dialog-state: `loentrinFinderOpenForAfId`, `loentrinFinderAnsaettelse`, `loentrinFinderBeloeb`, `loentrinFinderDato`, og tilhørende refs (linje 282–295). Disse er fælles for alle ansættelsesforhold (kun ét finder-dialog åbent ad gangen). Det skal besluttes, hvor denne state skal leve efter opsplitningen — i fanen, løftet op i parent, eller i en selvstændig dialog-komponent.
-- Opsplitningen skal sættes *efter* prop-isolering (2.1), da en smal prop-kontrakt er en forudsætning for at delkomponenterne overhovedet er isolerede nok til at vinde noget ved memoization.
-
-Hvor omfattende er ændringen:
-- Stor.
-- Kræver omhyggelig regressionstest.
-
-Forventet effekt:
-- Stor.
-- Forventes at reducere den brede reconciliation markant, især i sager med mange ansættelsesforhold og mange tabeller.
-
-### 2.4 Behold "mount once, hide", men først efter prop-isolering
-
-Anbefaling:
-- Strategien med at bevare mounted faner bør som udgangspunkt beholdes af hensyn til draft state og fejltilstand — jf. 1.1.
-- Den giver først en god performanceprofil, når props og rerender-flader er gjort smallere.
-
-Hvor omfattende er ændringen:
-- Lille, hvis strategien blot fastholdes som den er.
-- Mellem til stor, hvis den senere ønskes justeret med mere avanceret suspendering eller selektiv unmount.
-
-Forventet effekt:
-- Lille alene.
-- Strategien er ikke i sig selv løsningen; den bliver først billig, når de øvrige optimeringer er indført.
-
-### 2.5 Isolér persistence-kontekst og overvej selector-baseret adgang på sigt
-
-Anbefaling:
-- **Pragmatisk mellemtrin (anbefalet som næste trin):** Parent-komponentens `useFormPersistence()`-kald kan isoleres uden fuld selector-arkitektur. I dag henter parent fire funktioner direkte (linje 35: `getPersistedData`, `getFieldErrorsBySource`, `getSectionRevision`, `getFieldErrorRevision`) og re-renders ved enhver context-ændring, selv fra Stamdata. Disse funktioner bruges udelukkende til at bygge `buildDebugRevision` og `stamdataValuesForBeregningTab` via refs og useMemo. Hvis disse kald flyttes til de steder de faktisk bruges (fx en custom hook der kun aktiveres når snapshot-tab er aktiv), undgår man parent re-renders drevet af Stamdata-ændringer. Dette er lettere at implementere end fuld selector-arkitektur og giver reel gevinst.
-- **Længere sigt:** Overvej at erstatte brede context-consumers med selector-baseret subscription, så komponenter kun reagerer på de sections eller revisions, de faktisk bruger.
-
-Hvor omfattende er ændringen:
-- Lille til mellem for mellemtrinnet; stor for fuld selector-arkitektur.
-- Fuld selector-arkitektur er en tværgående arkitekturændring og skal udføres med særlig forsigtighed i en trust-critical applikation.
-
-Forventet effekt:
-- Mellemtrinnet: Konkret og målrettet.
-- Fuld selector-arkitektur: Sandsynligvis nyttig, men mindre prioriteret end at isolere props og splitte `LoenindkomstTab`.
-
-### 2.6 Overvej virtualisering i de tungeste tabeller som sidste trin
-
-Anbefaling:
-- Vurder kun virtualisering, hvis der fortsat er mærkbar træghed efter de mere direkte render-optimeringer.
-- Projektet har allerede en virtualiseret display-tabel i [VirtualizedDisplayTable.tsx](src/components/tables/VirtualizedDisplayTable.tsx), men de tunge EO-edit-tabeller er mere følsomme pga. tastatur- og commit-kontrakter.
-
-Konkrete risici ved virtualisering i redigerbare tabeller:
-- **Commit-on-blur:** Hvis en celle scroller ud af DOM mens brugeren taster, mistes commit-event. Dette er en dokumenteret faldgruppe i virtualiserede edit-grids — ikke hypotetisk.
-- **Fokus-håndtering og tastatur-navigation:** I denne kodebase er fejl i fokusrækkefølge eller blur-semantik et kontraktbrud, ikke blot et usability-problem.
-
-Hvor omfattende er ændringen:
-- Stor.
-
-Forventet effekt:
-- Mellem til stor ved meget store datamængder, men ændringen er dyr og bør ikke være første skridt.
+❌ Ikke implementeret. Korrekt prioritering — bør vente til øvrige optimeringer er indført.
 
 ---
 
-## Samlet anbefaling
+## 3. Samlet anbefaling (opdateret)
 
-Anbefalet rækkefølge:
-1. Indsnævr props til `OffentligeYdelserTab` (lille ændring, lav risiko, konkret gevinst).
-2. Indsnævr brede memo-dependencies i `LoenindkomstTab` — start med `aarsloenExternalCellErrorMessagesByAfId`.
-3. Kortlæg `LoenindkomstTab`'s faktiske `values`-brug statisk; indsnævr derefter props til fanen.
-4. Opdel `LoenindkomstTab` i memoiserede delkomponenter pr. ansættelsesforhold — efter prop-isolering og kortlægning af dialog-state.
-5. Isolér parent-komponentens `useFormPersistence()`-kald fra Stamdata-ændringer.
-6. Overvej fuld selector-baseret persistence-store som senere arkitekturarbejde.
-7. Overvej virtualisering til sidst, hvis der stadig er et performanceproblem.
+Gennemført:
+1. ~~Indsnævr props til `OffentligeYdelserTab`~~ ✅
+2. ~~Indsnævr `aarsloenExternalCellErrorMessagesByAfId`-dependency~~ ✅
+3. ~~Selector-baseret persistence i parent~~ ✅
 
-Den hurtigste sikre gevinst forventes at ligge i kombinationen af:
-- smallere props til fanerne (start med `OffentligeYdelserTab`)
-- smallere dependencies i `LoenindkomstTab`
+Udestår:
+4. Kortlæg `LoenindkomstTab`'s faktiske `values`-brug statisk; indsnævr derefter props til fanen.
+5. Opdel `LoenindkomstTab` i memoiserede delkomponenter pr. ansættelsesforhold — efter prop-isolering.
+6. Overvej virtualisering til sidst, hvis der stadig er et performanceproblem.
 
-Den største strukturelle gevinst forventes derefter at være:
-- opsplitning af `LoenindkomstTab` pr. ansættelsesforhold
+---
+
+## 4. Review-fund
+
+### 4.1 `aarsloenZeroArbejdsdageValidationInput` — overflødig double-dependency (Lav)
+
+**Lokation:** [LoenindkomstTab.tsx](src/components/pages/erstatningsopgoerelse/LoenindkomstTab.tsx), linje 317–326
+
+`aarsloenExternalCellErrorMessagesByAfId`-memoen har dependency på både `aarsloenZeroArbejdsdageValidationInput` **og** `values.loenindkomstAnsaettelsesforhold`. Sidstnævnte er allerede indeholdt i `aarsloenZeroArbejdsdageValidationInput`, som ændres præcist når `values.loenindkomstAnsaettelsesforhold` skifter. Dobbelt-dependency er ikke forkert — React deduplikerer ikke, men memoen genberegner stadig korrekt — men den er misvisende og skaber tvivl om hvad der faktisk driver genberegningen.
+
+**Anbefaling:** Fjern `values.loenindkomstAnsaettelsesforhold` fra dependency-listen og behold kun `aarsloenZeroArbejdsdageValidationInput`. Bekræft at `aarsloenZeroArbejdsdageValidationInput` allerede dækker alle felter funktionen læser — det gør den.
+
+### 4.2 `handleOffentligeYdelserRowsChange` — dependency på `form.setValues` (Lav)
+
+**Lokation:** [Erstatningsopgoerelse.tsx](src/components/pages/Erstatningsopgoerelse.tsx)
+
+`handleOffentligeYdelserRowsChange` er memoized med `[form.setValues]` som dependency. `form.setValues` er returneret fra `usePersistedForm`, og dens reference-stabilitet afhænger af hookens implementering. Hvis `setValues` er stabil (som den bør være for en form-hook), er dette korrekt. Hvis den ikke er det, bryder `handleOffentligeYdelserRowsChange` ved enhver render, og `OffentligeYdelserTab`s `React.memo` er ineffektiv.
+
+**Anbefaling:** Verificér at `usePersistedForm` returnerer en stabil `setValues`-reference (dvs. at den er pakket i `useCallback` med tomme deps eller kun nødvendige deps). Dokumentér stabilitetsgarantien i `usePersistedForm`.
+
+### 4.3 `buildDebugRevision` — `useCallback([])`-deps korrekt men afhænger af snapshot-funktioner (Medium)
+
+**Lokation:** [Erstatningsopgoerelse.tsx](src/components/pages/Erstatningsopgoerelse.tsx)
+
+`buildDebugRevision` og `buildDebugSnapshot` er begge `useCallback` med tomme deps (`[]`). De kalder `getSectionRevisionSnapshot`, `getFieldErrorRevisionSnapshot`, `getPersistedSectionSnapshot` og `getFieldErrorsBySourceSnapshot` — alle snapshot-funktioner der læser direkte fra `formPersistenceStore.getState()` uden React-subscription. Det er korrekt at deps er tomme, da funktionerne ikke er closures over React-state.
+
+Problemet er at `buildDebugRevision` alligevel aldrig ændres (tom dep-liste), men `currentDebugRevision` ændres korrekt via `useSectionRevisionSelector`-hooks. De to reads (hook-subscription for revision-detektion + snapshot-læsning i callback) er intentionelt adskilte, men den dobbelte semantik (subscriber vs. snapshot) er ikke dokumenteret i koden.
+
+**Anbefaling:** Tilføj en kommentar der forklarer det intentionelle split: revision-hooks bruges til at trigge re-render ved ændring; snapshot-funktioner bruges til at læse konsistent state ved byggetidspunktet. Uden denne kommentar risikerer fremtidige udviklere at forenkle det til kun at bruge hooks, hvilket ville give stale reads.
+
+### 4.4 `LoenindkomstTab` modtager stadig `form` — `React.memo` bryder ved enhver EO-ændring (Høj)
+
+**Lokation:** [Erstatningsopgoerelse.tsx](src/components/pages/Erstatningsopgoerelse.tsx), [LoenindkomstTab.tsx](src/components/pages/erstatningsopgoerelse/LoenindkomstTab.tsx)
+
+`LoenindkomstTab` modtager `form: { values, setValues }`. Da `values` er et nyt objekt ved enhver EO-ændring, bryder `LoenindkomstTab`s `React.memo` ved enhver ændring i EO — herunder ændringer i `OffentligeYdelser` og `Beregning`-data. Fanen er skjult men forbliver i DOM og reconcilierer det fulde undertræ inkl. alle ansættelsesforhold.
+
+Dette er det største tilbageværende performanceproblem, og det blokerer gevinsten af 2.3 (opsplitning i delkomponenter), da delkomponenter med brede props ikke profiterer af memoization.
+
+**Anbefaling:** Kortlæg alle `values`-felter `LoenindkomstTab` faktisk læser (statisk analyse af komponentens kode — ikke estimat). Indsnævr derefter prop-kontrakten til de specifikke felter. Gør dette inden opdeling i delkomponenter (2.3).
+
+Vigtig forudsætning: `LoenindkomstTab` kalder `getPersistedData('stamdata')` via `useFormPersistence()`. Hvis dette kald er det eneste brug af `useFormPersistence()` i fanen, bør det erstattes af `usePersistedSectionSelector('stamdata')` (selector-baseret, som allerede er implementeret i parent). Det eliminerer `useFormPersistence`-context-subscription fra fanen helt.
