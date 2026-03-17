@@ -1,6 +1,7 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { ISODateString } from '../../types/branded';
 import { subtractOneDay } from '../../types/branded';
+import { resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/tafPeriodConstraints';
 
 type StamdataValues = PersistedSectionMap['stamdata'];
 type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];
@@ -22,6 +23,7 @@ export type TaftContext = {
   skadesdatoISO: ISODateString | undefined;
   erErhvervssygdom: boolean;
   endeligEETBeregnetDato: ISODateString | undefined;
+  midlertidigEETBeregnetDato: ISODateString | undefined;
   differencekravDato: ISODateString | undefined;
   verserendeKlageEet: boolean;
 };
@@ -60,12 +62,17 @@ export const buildTaftContext = (
     erstatningsopgoerelseValues.endeligtEetAfgorelse === 'Ja'
       ? erstatningsopgoerelseValues.endeligEETVirkningsdato || erstatningsopgoerelseValues.endeligEETAfgoerelseDato
       : undefined;
+  const midlertidigEETBeregnetDato = resolveMidlertidigEetDatoHvisAktiv({
+    ...erstatningsopgoerelseValues,
+    skadesdatoISO: stamdataValues.skadesdato,
+  });
   const verserendeKlageEet = erstatningsopgoerelseValues.verserendeKlageEet === 'Ja';
 
   return {
     skadesdatoISO: stamdataValues.skadesdato,
     erErhvervssygdom,
     endeligEETBeregnetDato,
+    midlertidigEETBeregnetDato,
     differencekravDato: erstatningsopgoerelseValues.differencekravDato,
     verserendeKlageEet,
   };

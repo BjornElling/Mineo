@@ -130,6 +130,8 @@ export const buildPersistenceDefaults = (settings?: AppSettings): PersistedSecti
         kapitalisering: true,
         eetEfterEal: true,
         proformaKapitalisering: true,
+        visUdvidetSpecifikation: false,
+        visUdvidetSpecifikationLoebendeYdelserBilag: false,
       },
     },
   };

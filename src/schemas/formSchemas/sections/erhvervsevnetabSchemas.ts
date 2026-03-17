@@ -26,6 +26,8 @@ const eetDifferencekravBilagSelectionSchema = z.object({
   kapitalisering: z.boolean(),
   eetEfterEal: z.boolean(),
   proformaKapitalisering: z.boolean(),
+  visUdvidetSpecifikation: z.boolean(),
+  visUdvidetSpecifikationLoebendeYdelserBilag: z.boolean(),
 }).strict();
 
 export type EetDifferencekravBilagSelection = z.infer<typeof eetDifferencekravBilagSelectionSchema>;
@@ -47,4 +49,3 @@ export const erhvervsevnetabSchema = z.preprocess(
 );
 
 export type ErhvervsevnetabValues = z.infer<typeof erhvervsevnetabSchema>;
-

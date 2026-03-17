@@ -172,6 +172,7 @@ const ErhvervsevnetabDev = React.memo(() => {
       {activeTab === TAB_KEYS.LOEBENDE_YDELSER && (
         <EetLoebendeYdelserTab
           values={values}
+          setValues={setValues}
           onGoToEetOplysninger={() => setActiveTab(TAB_KEYS.EET_OPLYSNINGER)}
         />
       )}

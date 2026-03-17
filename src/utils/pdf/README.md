@@ -20,11 +20,14 @@ Alle typografiske/layout-mønstre skal implementeres i de delte API'er i `pdfWri
 - `writer.writeWrappedText(text)`
   - Løbende brødtekst.
 - `writer.writeLeftRightText(left, right, options)`
-  - Standard linje med venstre/højre-kolonne.
+  - Standard linje med venstre/højre-kolonne for almindeligt indhold, specifikationer og regnestykker.
+- `renderEoStylePdfTable(...)`
+  - Kun til faktiske tabeller med kolonneoverskrifter og tabelstruktur.
 
 ## Forbudt mønster
 
 - Lokal, filspecifik typografi- eller spacing-logik for generiske overskrifter/tekst.
+- Headerløse pseudo-tabeller til almindelige oplysningslinjer.
 - Parallelle implementationer af samme formatering i flere PDF-filer.
 
 Hvis en ny formatteringsvariant er nødvendig, skal den først lægges ind centralt i `pdfWriter.ts`/`pdfHelpers.ts` og derefter bruges fra de enkelte PDF-filer.

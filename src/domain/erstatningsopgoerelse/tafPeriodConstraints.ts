@@ -1,6 +1,6 @@
 import type { TafPeriodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { isISODateString, subtractOneDay } from '../../types/branded';
+import { isISODateString, isoToDanish, subtractOneDay } from '../../types/branded';
 import { minISO, maxISO } from '../../utils/isoDateHelpers';
 import { TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from './periodiseringsMotor';
 
@@ -55,6 +55,35 @@ export const resolveMidlertidigEetDatoHvisAktiv = (values: TafConstraintSource):
   if (values.midlertidigtEetAfgorelse !== 'Ja') return undefined;
   if (!values.skadesdatoISO || values.skadesdatoISO >= TAF_MIDLERTIDIG_EET_SKAERINGSDATO) return undefined;
   return values.midlertidigEETVirkningsdato ?? values.midlertidigEETAfgoerelseDato;
+};
+
+export const buildTafCutoffErrorMessage = (args: Readonly<{
+  value: ISODateString | undefined;
+  differencekravDato?: ISODateString | undefined;
+  endeligEETDato?: ISODateString | undefined;
+  midlertidigEETDato?: ISODateString | undefined;
+}>): string | undefined => {
+  const { value, differencekravDato, endeligEETDato, midlertidigEETDato } = args;
+  if (!value) return undefined;
+
+  const parts: string[] = [];
+
+  if (differencekravDato && value >= differencekravDato) {
+    const dateText = isoToDanish(differencekravDato) ?? differencekravDato;
+    parts.push(`Der er angivet tabt arbejdsfortjeneste, efter differencekrav er opgjort (${dateText})`);
+  }
+
+  if (endeligEETDato && value >= endeligEETDato) {
+    const dateText = isoToDanish(endeligEETDato) ?? endeligEETDato;
+    parts.push(`Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (${dateText})`);
+  }
+
+  if (midlertidigEETDato && value >= midlertidigEETDato) {
+    const dateText = isoToDanish(midlertidigEETDato) ?? midlertidigEETDato;
+    parts.push(`Der er angivet tabt arbejdsfortjeneste efter afgørelse om midlertidigt erhvervsevnetab (${dateText})`);
+  }
+
+  return parts.length > 0 ? parts.join('; ') : undefined;
 };
 
 /**

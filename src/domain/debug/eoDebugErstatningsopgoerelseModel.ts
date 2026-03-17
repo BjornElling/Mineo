@@ -21,7 +21,7 @@ import { calculateFerieHverdageMinusSHDage } from '../erstatningsopgoerelse/feri
 import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/beregningsperiodeTafOverlap';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoDebugIndkomstModel';
 import { mergeDateRanges } from '../erstatningsopgoerelse/periodMerging';
-import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
+import { buildTafCutoffErrorMessage, clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
 import { getReguleringsDatoIntervalForOverenskomst, isOffentligOverenskomstId } from '../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskLoenudviklingRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/KRLrates';
@@ -1299,6 +1299,7 @@ export const buildEODebugTaftRows = (
     skadesdatoISO: ISODateString | undefined;
     erErhvervssygdom: boolean;
     endeligEETBeregnetDato: ISODateString | undefined;
+    midlertidigEETBeregnetDato: ISODateString | undefined;
     differencekravDato: ISODateString | undefined;
     verserendeKlageEet: boolean;
   }>,
@@ -1529,11 +1530,36 @@ export const buildEODebugTaftRows = (
     );
 
     const hasOverlap = tafOverlappingIds.has(periode.id);
-    if (hasOverlap || computedRangeMessages.length > 0) {
+    const endeligEetCutoff = !context.verserendeKlageEet ? context.endeligEETBeregnetDato : undefined;
+    const midlertidigEetCutoff = !context.verserendeKlageEet ? context.midlertidigEETBeregnetDato : undefined;
+    const fraCutoffError = buildTafCutoffErrorMessage({
+      value: fraISO,
+      differencekravDato: context.differencekravDato,
+      endeligEETDato: endeligEetCutoff,
+      midlertidigEETDato: midlertidigEetCutoff,
+    });
+    const tilCutoffError = buildTafCutoffErrorMessage({
+      value: tilISO,
+      differencekravDato: context.differencekravDato,
+      endeligEETDato: endeligEetCutoff,
+      midlertidigEETDato: midlertidigEetCutoff,
+    });
+    const preferredFieldErrorMessages = [fraCutoffError, tilCutoffError].filter(
+      (message): message is string => typeof message === 'string' && message.trim() !== ''
+    );
+
+    if (hasOverlap || preferredFieldErrorMessages.length > 0 || computedRangeMessages.length > 0) {
       const fraFoerTilError = fraISO > tilISO
         ? 'Der er indtastet en til-dato, som ligger før fra-datoen'
         : undefined;
-      const errorMessages = hasOverlap ? 'Der er overlappende perioder' : (fraFoerTilError ?? computedRangeMessages.join('; '));
+      const rangeOrCutoffErrorMessage =
+        preferredFieldErrorMessages.length > 0
+          ? preferredFieldErrorMessages.join('; ')
+          : (fraFoerTilError ?? computedRangeMessages.join('; '));
+      const errorMessages =
+        hasOverlap && rangeOrCutoffErrorMessage
+          ? `${rangeOrCutoffErrorMessage}; Der er overlappende perioder`
+          : (rangeOrCutoffErrorMessage || 'Der er overlappende perioder');
       rows.push({
         id: `taf.periode.${periode.id}`,
         label: periodeRowLabel,

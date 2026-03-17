@@ -131,7 +131,7 @@ PDF_CONTENT_WIDTH_MM    // 170 mm  (= 210 - 20 - 20)
 FONT_SIZES.title    // 16 pt
 FONT_SIZES.header   // 12 pt
 FONT_SIZES.normal   // 10 pt
-// Tabelindhold bruger EO_TABLE_FONT_SIZE = 8 pt (defineret i pdfTableRenderer.ts)
+// Tabelindhold bruger TABLE_FONT_SIZE = 8 pt (defineret i pdfTableRenderer.ts)
 // TABLE_STYLES.fontSize = 10 pt bruges ikke af tabelrenderen — kun til reference
 // Footer bruger PDF_FOOTER_FONT_SIZE = 6 pt
 // Brevhoved bruger PDF_BREVHOVED_FONT_SIZE = 9 pt
@@ -140,7 +140,7 @@ FONT_SIZES.normal   // 10 pt
 ### Tabelstilarter (`TABLE_STYLES`)
 
 ```typescript
-TABLE_STYLES.fontSize                   // 10 pt — bruges ikke af tabelrenderen (se EO_TABLE_FONT_SIZE = 8 pt i pdfTableRenderer.ts)
+TABLE_STYLES.fontSize                   // 10 pt — bruges ikke af tabelrenderen (se TABLE_FONT_SIZE = 8 pt i pdfTableRenderer.ts)
 TABLE_STYLES.cellPadding                // 1.5 mm
 TABLE_STYLES.headerBackgroundColor      // COLORS.lightBackground
 TABLE_STYLES.alternateRowBackgroundColor // COLORS.lightBackground
@@ -238,6 +238,11 @@ writer.writeBrevhoved(brevhovedData);
 // Indhold
 writer.writeTitle(text);             // 16 pt bold, øverst i indholdsbeskeden
 writer.writeSubheader(text, nextLineHeight);  // 10 pt bold, sikrer plads til efterfølgende indhold
+// INVARIANT: writeSubheader garanterer præcis 1× lineHeight (5 mm) over sig selv,
+// uanset hvad der gik forud. Allerede akkumuleret spacing fra addSpacer()/advanceY()
+// modregnes automatisk, så det samlede mellemrum aldrig overstiger 1× lineHeight.
+// Brug options.addTopSpacing = false for at undertrykke spacing eksplicit
+// (fx første underoverskrift direkte under en sektionsoverskrift).
 writer.writeWrappedText(text);       // 10 pt normal, linjebrydes automatisk
 writer.writeSectionHeader(text, nextLineHeight);  // 12 pt bold, markerer sektionsskift
 
@@ -257,7 +262,8 @@ writer.save(filename);              // Gem og download PDF
 
 // Avancerede metoder
 writer.writeLeftRightText(leftText, rightText, options?);
-// Beløbslinje med venstretekst og højrejusteret beløb.
+// Standard for almindelige oplysningslinjer, formler og beløb
+// der ikke hører til i en egentlig tabel.
 // options: { rightFontStyle, lineAboveRightWidth, lineAboveRightOffset, leftNoWrap, minRightColumnWidth }
 
 writer.writeLeftRightTextSingleLine(leftText, rightText, options?);
@@ -346,7 +352,9 @@ Eksporteret konstant (15 mm) for afstand under dokumenttitel. Bruges af generato
 
 ## 7. Tabelrenderer – `pdfTableRenderer.ts`
 
-Alle tabeller renders via **`renderEoStylePdfTable()`** — aldrig ved direkte kald til `jsPDF.autoTable()`.
+Alle egentlige tabeller renders via **`renderEoStylePdfTable()`** — aldrig ved direkte kald til `jsPDF.autoTable()`.
+
+**Vigtig afgrænsning:** `renderEoStylePdfTable()` må kun bruges til faktiske tabeller med kolonneoverskrifter og/eller reel tabelstruktur. Almindelige oplysningslinjer, key/value-par, regnestykker og specifikationer uden tabelheader skal renderes som tekst via writeren (`writeWrappedText()`, `writeLeftRightText()`, `writeLeftRightTextSingleLine()`).
 
 ### Celle-builders
 
@@ -554,10 +562,10 @@ Følgende mønster skal følges konsekvent. Afvigelser fra dette er arkitekturfe
 // minNyPdf.ts
 
 import { MARGINS, SECTION_SPACER, PDF_SECTION_HEADING_GAP } from './pdfConfig';
-import { addSectionHeading, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
+import { addSectionHeading, PDF_BASE_LINE_HEIGHT_MM, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
 import { createStandardPdfWriter } from './pdfWriter';
 import { createJsPdfAdapter } from './jsPdfAdapter';
-import { cellLeft, cellRight, renderEoStylePdfTable } from './pdfTableRenderer';
+import { cellLeft, cellRight, createPdfTableHeaderCell, renderEoStylePdfTable } from './pdfTableRenderer';
 import { resolvePdfFileName } from './pdfFormatUtils';
 import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
 import { TODAY } from '../../config/dateRanges';
@@ -602,7 +610,13 @@ export const generateMinNyPdf = (options: MinNyPdfOptions): void => {
   // 5. Sektioner
   const doc = writer.getDoc();
 
-  // Sektion med tabel
+  // Almindelige oplysningslinjer skrives som tekst
+  writer.writeSubheader('Stamdata', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeLeftRightTextSingleLine('Beregningsdato', '17. marts 2026', { rightFontStyle: 'normal' });
+  writer.writeLeftRightText('Årsløn', '500.000 kr.', { rightFontStyle: 'normal' });
+  writer.addSpacer(SECTION_SPACER);
+
+  // Kun faktiske tabeller bruger tabelrendereren
   const headingY = addSectionHeading(createJsPdfAdapter(doc), 'Sektion 1', writer.getY());
   const tableStartY = headingY - PDF_SECTION_HEADING_GAP;
 
@@ -610,9 +624,10 @@ export const generateMinNyPdf = (options: MinNyPdfOptions): void => {
     doc,
     startY: tableStartY,
     body: [
-      [cellLeft('Beskrivelse'), cellRight('Værdi')],
+      [createPdfTableHeaderCell('Beskrivelse', 'left'), createPdfTableHeaderCell('Værdi', 'right')],
+      [cellLeft('Række 1'), cellRight('1.234,00 kr.')],
     ],
-    hasHeaderRow: false,
+    hasHeaderRow: true,
     columnStyles: {
       0: { cellWidth: 'auto' },
       1: { cellWidth: 60 },
@@ -655,8 +670,8 @@ Alle generatorer **skal** bruge disse værdier. Det er den visuelle kontrakt, de
 | Dokumenttitel      | helvetica   | bold   | 16 pt           |
 | Sektionsoverskrift | helvetica   | bold   | 12 pt (`writeSectionHeader`) eller 10 pt (`writeSubheader` / `addSectionHeading`) |
 | Brødtekst          | helvetica   | normal | 10 pt           |
-| Tabelindhold       | helvetica   | normal | 8 pt (`EO_TABLE_FONT_SIZE`) |
-| Tabelheader        | helvetica   | bold   | 8 pt (`EO_TABLE_FONT_SIZE`) |
+| Tabelindhold       | helvetica   | normal | 8 pt (`TABLE_FONT_SIZE`) |
+| Tabelheader        | helvetica   | bold   | 8 pt (`TABLE_FONT_SIZE`) |
 | Brevhoved          | helvetica   | normal | 9 pt            |
 | Footer             | helvetica   | normal | 6 pt            |
 
@@ -739,13 +754,17 @@ Brug `formatAmount2()` fra `sharedPdfUtils.ts` eller `formatAmount()` fra `pdfHe
 | KRL-satstabeller           | `krlPdf.ts`                    | KTO/SHK × kommuner/regioner                     | Nej                 | Ja               |
 | Reguleringsgrundlag        | `reguleringPdf.ts`             | Overenskomst/statistikmodeller og offentlige satser | Nej             | Ja               |
 
+### Pseudo-tabeller er forbudt
+
+Headerløse 2-kolonne-layouts må ikke implementeres via `renderEoStylePdfTable()`. Hvis indholdet semantisk er almindelig tekst og ikke en tabel, skal det skrives via writeren. Eksempler:
+
+- Ménberegningens stamdata- og resultatlinjer
+- Årsløns-PDF'ens satser, beregningsprincipper og mellemregninger
+- Satser-PDF'ens lovspecifikationer og referencer
+
 ### Filnavngivning og journalnr
 
 `satserPdf.ts` inkluderer bevidst ikke journalnr i filnavnet — satser er årsspecifikke og sagsagnostiske. Alle øvrige generatorer prefixer filnavnet med journalnr via `resolvePdfFileName(title, isDraft, journalnr)`.
-
-### `EO_TABLE_FONT_SIZE` i `pdfTableRenderer.ts`
-
-Konstanten eksporteres med `EO`-præfix, men bruges af alle generatorer (ikke kun EO-systemet). Præfikset er misvisende og bør på sigt omdøbes til `TABLE_FONT_SIZE` eller lignende.
 
 ### Erstatningsopgørelse: model-renderer-split
 
@@ -760,4 +779,4 @@ Dette mønster er **ikke påkrævet** for simple generatorer, men bør anvendes,
 
 ## 16. Udeståender
 
-- **`EO_TABLE_FONT_SIZE`-præfix:** Konstanten hedder `EO_TABLE_FONT_SIZE` men bruges af alle generatorer (ikke kun EO). Bør omdøbes til `TABLE_FONT_SIZE` — se afsnit 15.
+*(ingen kendte udeståender)*

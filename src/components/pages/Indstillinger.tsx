@@ -36,6 +36,7 @@ const brevhovedOptionsRow2: readonly BrevhovedOption[] = [
   { key: 'varigeMen', label: 'Varige mén' },
   { key: 'satser', label: 'Satser' },
   { key: 'aarsloensberegning', label: 'Årslønsberegning' },
+  { key: 'erhvervsevnetab', label: 'Erhvervsevnetab' },
 ];
 
 const loenPaaHelligdageOptions = APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS;

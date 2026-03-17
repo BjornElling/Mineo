@@ -2,7 +2,7 @@ import autoTable, { type CellDef, type CellHookData, type RowInput, type Styles 
 import type jsPDF from 'jspdf';
 import { COLORS, MARGINS, PDF_CONTENT_WIDTH_MM, PDF_FONT_FAMILY, TABLE_STYLES } from './pdfConfig';
 
-export const EO_TABLE_FONT_SIZE = 8;
+export const TABLE_FONT_SIZE = 8;
 export const EO_TABLE_CELL_PADDING = TABLE_STYLES.cellPadding;
 
 type PdfAutoTableDoc = jsPDF & {
@@ -111,7 +111,7 @@ export const renderEoStylePdfTable = (params: Readonly<{
     tableWidth,
     styles: {
       font: PDF_FONT_FAMILY,
-      fontSize: EO_TABLE_FONT_SIZE,
+      fontSize: TABLE_FONT_SIZE,
       cellPadding: EO_TABLE_CELL_PADDING,
       textColor: COLORS.text,
     },

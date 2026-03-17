@@ -8,6 +8,7 @@
 import {
   FONT_SIZES,
   MARGINS,
+  PDF_BASE_LINE_HEIGHT_MM,
   PDF_BREVHOVED_FONT_SIZE,
   PDF_BREVHOVED_LINE_HEIGHT,
   PDF_BREVHOVED_START_Y,
@@ -26,9 +27,6 @@ import type { ISODateString } from '../../types/branded';
 
 import { formatIsoDateLong } from '../dateFormatting';
 import { formatAsAmount, formatPercent as formatPercentUtil } from '../formatUtils';
-
-export const PDF_BASE_LINE_HEIGHT_MM = 5;
-export const PDF_TITLE_BOTTOM_SPACING_MM = 15;
 const FOOTER_IMAGE_WIDTH_MM = 5.2;
 const FOOTER_BASE_CANVAS_WIDTH_PX = 20;
 const FOOTER_RENDER_SCALE = 6;
@@ -200,8 +198,6 @@ export const formatPercent = (percent: number | null | undefined): string => {
   return formatPercentUtil(percent);
 };
 
-const formatISODateReadable = (isoDate: ISODateString | undefined): string => formatIsoDateLong(isoDate);
-
 /**
  * Tilføj brevhoved til PDF-dokument
  *
@@ -215,7 +211,7 @@ const formatISODateReadable = (isoDate: ISODateString | undefined): string => fo
 export const addBrevhoved = (doc: PdfDocumentAdapter, data: BrevhovedData): number => {
   const { journalnr, dagsDatoISO, advokat, sagsbehandler } = data;
   const trimmedJournalnr = typeof journalnr === 'string' ? journalnr.trim() : '';
-  const resolvedDatoText = formatISODateReadable(dagsDatoISO);
+  const resolvedDatoText = formatIsoDateLong(dagsDatoISO);
   if (!resolvedDatoText) {
     throw new Error('CRITICAL: Brevhoved kræver en gyldig dagsDatoISO');
   }
@@ -228,6 +224,9 @@ export const addBrevhoved = (doc: PdfDocumentAdapter, data: BrevhovedData): numb
   const rightX = doc.getPageWidth() - MARGINS.right;
   let currentY = PDF_BREVHOVED_START_Y;
 
+  doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+  doc.setFontSize(PDF_BREVHOVED_FONT_SIZE);
+
   if (hasJournalnr) {
     const roleSuffix = hasAdvokat && hasSagsbehandler
       ? ` ${trimmedAdvokat}/${trimmedSagsbehandler}`
@@ -236,14 +235,10 @@ export const addBrevhoved = (doc: PdfDocumentAdapter, data: BrevhovedData): numb
         : hasSagsbehandler
           ? ` ${trimmedSagsbehandler}`
           : '';
-    doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
-    doc.setFontSize(PDF_BREVHOVED_FONT_SIZE);
     doc.text(`J.nr. ${trimmedJournalnr}${roleSuffix}`, rightX, currentY, { align: 'right' });
     currentY += PDF_BREVHOVED_LINE_HEIGHT;
   }
 
-  doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
-  doc.setFontSize(PDF_BREVHOVED_FONT_SIZE);
   doc.text(resolvedDatoText, rightX, currentY, { align: 'right' });
 
   // Eksplicit font reset til normal brødtekststørrelse — undgå implicit afhængighed af applyNormalTextStyle
@@ -251,3 +246,7 @@ export const addBrevhoved = (doc: PdfDocumentAdapter, data: BrevhovedData): numb
 
   return MARGINS.top;
 };
+
+// Re-eksporterede konfigurationskonstanter — beholdt her for at undgå at alle
+// importerende generatorer skal ændre deres importsti fra pdfHelpers til pdfConfig.
+export { PDF_BASE_LINE_HEIGHT_MM, PDF_TITLE_BOTTOM_SPACING_MM } from './pdfConfig';

@@ -10,6 +10,7 @@ import { isoToDanish, subtractOneDay } from '../../types/branded';
 import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/rowDateBounds';
 import type { TafDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
 import { calculateFerieHverdageMinusSHDage } from '../../domain/erstatningsopgoerelse/ferieCalculations';
+import { buildTafCutoffErrorMessage } from '../../domain/erstatningsopgoerelse/tafPeriodConstraints';
 
 export type TAFPeriodeTableProps = Readonly<{
   rows: TafDraftRow[];
@@ -161,25 +162,18 @@ const TAFPeriodeTable = React.memo(
 
             const endeligEetCutoff = !verserendeKlageEet ? endeligEETBeregnetDato : undefined;
             const midlertidigEetCutoff = !verserendeKlageEet ? midlertidigEETBeregnetDato : undefined;
-            const buildCutoffErrors = (value: ISODateString | undefined): string | undefined => {
-              const parts: string[] = [];
-              if (differencekravDato && value && value >= differencekravDato) {
-                const dateText = isoToDanish(differencekravDato) ?? differencekravDato;
-                parts.push(`Der er angivet tabt arbejdsfortjeneste, efter differencekrav er opgjort (${dateText})`);
-              }
-              if (endeligEetCutoff && value && value >= endeligEetCutoff) {
-                const dateText = isoToDanish(endeligEetCutoff) ?? endeligEetCutoff;
-                parts.push(`Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (${dateText})`);
-              }
-              if (midlertidigEetCutoff && value && value >= midlertidigEetCutoff) {
-                const dateText = isoToDanish(midlertidigEetCutoff) ?? midlertidigEetCutoff;
-                parts.push(`Der er angivet tabt arbejdsfortjeneste efter afgørelse om midlertidigt erhvervsevnetab (${dateText})`);
-              }
-              return parts.length > 0 ? parts.join('; ') : undefined;
-            };
-
-            const fraCutoffError = buildCutoffErrors(fraISO);
-            const tilCutoffError = buildCutoffErrors(tilISO);
+            const fraCutoffError = buildTafCutoffErrorMessage({
+              value: fraISO,
+              differencekravDato,
+              endeligEETDato: endeligEetCutoff,
+              midlertidigEETDato: midlertidigEetCutoff,
+            });
+            const tilCutoffError = buildTafCutoffErrorMessage({
+              value: tilISO,
+              differencekravDato,
+              endeligEETDato: endeligEetCutoff,
+              midlertidigEETDato: midlertidigEetCutoff,
+            });
 
             const fraErrorMessage =
               fraCutoffError && overlapError ? `${fraCutoffError}; ${overlapError}` : fraCutoffError ?? overlapError;

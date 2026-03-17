@@ -1,12 +1,15 @@
 import React from 'react';
-import { Box, Tooltip, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
+import type { CommitEvent } from '../../inputs/fieldEvents';
 import StandardDisplayTable, { type StandardDisplayTableColumn, type StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import type { ErhvervsevnetabValues } from '../../../schemas/formSchemas';
 import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
+import { useAppSettings } from '../../../contexts/useAppSettings';
+import { downloadLoebendeYdelserPdf } from '../../../utils/pdf/pdfService';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
@@ -30,6 +33,7 @@ import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabValues;
+  setValues: (values: ErhvervsevnetabValues) => void;
   onGoToEetOplysninger: () => void;
 }>;
 
@@ -52,16 +56,18 @@ const YDELSER_TABLE_COLUMNS: readonly StandardDisplayTableColumn[] = [
   { header: 'Mdr.', align: 'right', width: '10%' },
   { header: 'Grundydelse', align: 'right', width: '18%' },
   { header: 'Regulering', align: 'right', width: '12%' },
-  { header: 'Ydelse/md. (afr.)', align: 'right', width: '14%' },
+  { header: 'Ydelse/md.', align: 'right', width: '14%' },
   { header: 'Beregnet EET', align: 'right', width: '18%' },
 ];
 
 
-const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
+const EetLoebendeYdelserTab: React.FC<Props> = ({ values, setValues, onGoToEetOplysninger }) => {
   const stamdata = usePersistedSection('stamdata');
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
-  const [showExtendedSpecification, setShowExtendedSpecification] = React.useState(false);
+  const { settings } = useAppSettings();
+  const showExtendedSpecification = values.eetDifferencekravBilagSelection.visUdvidetSpecifikation;
+  const [downloadShake, setDownloadShake] = React.useState(false);
 
   const calculationResult = React.useMemo(
     () =>
@@ -101,6 +107,33 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
   const computation = calculationResult.computation;
   const afgoerelser = computation?.afgoerelser ?? [];
 
+  const handleExtendedSpecificationCommit = React.useCallback(
+    (event: CommitEvent<boolean>) => {
+      setValues({
+        ...values,
+        eetDifferencekravBilagSelection: {
+          ...values.eetDifferencekravBilagSelection,
+          visUdvidetSpecifikation: event.target.value,
+        },
+      });
+    },
+    [setValues, values]
+  );
+
+  const handlePdfDownload = React.useCallback(async () => {
+    if (!computation) {
+      setDownloadShake(true);
+      setTimeout(() => setDownloadShake(false), 500);
+      return;
+    }
+    await downloadLoebendeYdelserPdf({
+      computation,
+      visUdvidetSpecifikation: showExtendedSpecification,
+      settings,
+      persistedStamdata: stamdata,
+    });
+  }, [computation, showExtendedSpecification, settings, stamdata]);
+
   return (
     <Box>
       <EetIssuesBox
@@ -125,7 +158,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
               <Box className="row--label-right-hover__content">
                 <StyledToggleSwitch
                   checked={showExtendedSpecification}
-                  onCommit={(event) => setShowExtendedSpecification(event.target.value)}
+                  onCommit={handleExtendedSpecificationCommit}
                 />
               </Box>
             </Box>
@@ -133,22 +166,30 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, onGoToEetOplysninger }
             <Box className="row--label-right-hover">
               <Typography className="row--text">Download specifikation</Typography>
               <Box className="row--label-right-hover__content">
-                <Tooltip title="Download bliver tilgængelig, når PDF-specifikationen er defineret" arrow placement="top">
-                  <Box
-                    tabIndex={-1}
-                    sx={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '6px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'default',
-                    }}
-                  >
-                    <Download sx={{ fontSize: '24px', color: 'text.disabled' }} />
-                  </Box>
-                </Tooltip>
+                <Box
+                  onClick={handlePdfDownload}
+                  tabIndex={-1}
+                  sx={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s',
+                    animation: downloadShake ? 'shake 0.5s' : 'none',
+                    '&:hover': { backgroundColor: '#e3f2fd' },
+                    '&:active': { backgroundColor: '#bbdefb' },
+                    '@keyframes shake': {
+                      '0%, 100%': { transform: 'translateX(0)' },
+                      '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },
+                      '20%, 40%, 60%, 80%': { transform: 'translateX(5px)' },
+                    },
+                  }}
+                >
+                  <Download sx={{ fontSize: '24px', color: 'primary.main' }} />
+                </Box>
               </Box>
             </Box>
           </ContentBox>

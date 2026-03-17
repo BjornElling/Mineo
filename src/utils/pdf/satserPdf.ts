@@ -4,19 +4,14 @@
  * Genererer PDF-dokument med årlige satser for arbejdsskadeområdet
  */
 
-import {
-  PDF_SECTION_HEADING_GAP,
-} from './pdfConfig';
+import { MARGINS, PDF_LINE_BOTTOM_SPACING_MM, SECTION_SPACER } from './pdfConfig';
 import { formatCurrency, formatPercent } from '../formatUtils';
-import { addSectionHeading, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
-import { createStandardPdfWriter } from './pdfWriter';
-import { createJsPdfAdapter } from './jsPdfAdapter';
-import { renderEoStylePdfTable } from './pdfTableRenderer';
+import { PDF_BASE_LINE_HEIGHT_MM, type BrevhovedData } from './pdfHelpers';
+import { createStandardPdfWriter, type PdfWriter } from './pdfWriter';
 import { TODAY } from '../../config/dateRanges';
 import { formatCurrencyPerUnit, resolvePdfFileName } from './pdfFormatUtils';
 import { getSatserForYear } from '../../data/regulationRates';
 import type { PdfCommonOptions } from './pdfOptions';
-import type jsPDF from 'jspdf';
 
 type SatserData = ReturnType<typeof getSatserForYear>;
 type SatserPdfOptions = PdfCommonOptions;
@@ -34,6 +29,24 @@ const formatPercentage = (value: number | null | undefined): string => {
 
 export const buildSatserPdfFilename = (year: number): string => resolvePdfFileName(`Arbejdsskadesatser ${year}`, false);
 
+const writeRows = (
+  writer: PdfWriter,
+  rows: ReadonlyArray<ReadonlyArray<string>>,
+): void => {
+  for (const row of rows) {
+    const [label = '', value = ''] = row;
+    const rightLines = value.split('\n');
+    const [firstLine = '', ...restLines] = rightLines;
+    writer.writeLeftRightText(label, firstLine, { rightFontStyle: 'normal' });
+    for (const line of restLines) {
+      writer.advanceY(-PDF_LINE_BOTTOM_SPACING_MM);
+      const lineStartX = writer.getPageWidth() - MARGINS.right - writer.getTextWidth(line);
+      writer.writeWrappedTextContinued(line, writer.getTextWidth(line), lineStartX);
+    }
+    if (restLines.length > 0) writer.addSpacer(PDF_LINE_BOTTOM_SPACING_MM);
+  }
+};
+
 /**
  * Generer og download PDF for arbejdsskadesatser
  *
@@ -50,7 +63,6 @@ export const generateSatserPdf = (
 
   const writer = createStandardPdfWriter();
   writer.setDisplayMode('fullheight');
-  const doc = writer.getDoc();
 
   // Dokumentets metadata
   writer.setProperties({
@@ -76,22 +88,22 @@ export const generateSatserPdf = (
 
   // Tilføj Erstatningsansvarsloven sektion
   if (satser && satser.eal) {
-    writer.setY(addEalSection(doc, satser.eal, writer.getY()));
+    addEalSection(writer, satser.eal);
   }
 
   // Tilføj Arbejdsskadesikringsloven sektion
   if (satser && satser.asl) {
-    writer.setY(addAslSection(doc, satser.asl, writer.getY()));
+    addAslSection(writer, satser.asl);
   }
 
   // Tilføj Diverse sektion
   if (satser && satser.diverse) {
-    writer.setY(addDiverseSection(doc, satser.diverse, writer.getY()));
+    addDiverseSection(writer, satser.diverse);
   }
 
   // Tilføj Referencer sektion
   if (satser && satser.referencer) {
-    writer.setY(addReferenserSection(doc, satser.referencer, writer.getY()));
+    addReferenserSection(writer, satser.referencer);
   }
 
   // Tilføj footer med versionsnummer
@@ -106,10 +118,9 @@ export const generateSatserPdf = (
  * Tilføj Erstatningsansvarsloven sektion
  */
 const addEalSection = (
-  doc: jsPDF,
+  writer: PdfWriter,
   eal: SatserData['eal'],
-  startY: number
-): number => {
+): void => {
   const rows: string[][] = [];
 
   // Godtgørelse for svie og smerte
@@ -142,20 +153,17 @@ const addEalSection = (
   }
 
   if (rows.length > 0) {
-    return addTable(doc, rows, 'Erstatningsansvarsloven', startY);
+    addRowsSection(writer, rows, 'Erstatningsansvarsloven');
   }
-
-  return startY;
 };
 
 /**
  * Tilføj Arbejdsskadesikringsloven sektion
  */
 const addAslSection = (
-  doc: jsPDF,
+  writer: PdfWriter,
   asl: SatserData['asl'],
-  startY: number
-): number => {
+): void => {
   const rows: string[][] = [];
 
   // Godtgørelse for varige mén
@@ -222,20 +230,17 @@ const addAslSection = (
   }
 
   if (rows.length > 0) {
-    return addTable(doc, rows, 'Arbejdsskadesikringsloven', startY);
+    addRowsSection(writer, rows, 'Arbejdsskadesikringsloven');
   }
-
-  return startY;
 };
 
 /**
  * Tilføj Diverse sektion
  */
 const addDiverseSection = (
-  doc: jsPDF,
+  writer: PdfWriter,
   diverse: SatserData['diverse'],
-  startY: number
-): number => {
+): void => {
   const rows: string[][] = [];
 
   // Beløbsgrænse for fri proces
@@ -260,20 +265,17 @@ const addDiverseSection = (
   }
 
   if (rows.length > 0) {
-    return addTable(doc, rows, 'Diverse', startY);
+    addRowsSection(writer, rows, 'Diverse');
   }
-
-  return startY;
 };
 
 /**
  * Tilføj Referencer sektion
  */
 const addReferenserSection = (
-  doc: jsPDF,
+  writer: PdfWriter,
   referencer: SatserData['referencer'],
-  startY: number
-): number => {
+): void => {
   const rows: string[][] = [];
 
   const mapping = [
@@ -308,35 +310,16 @@ const addReferenserSection = (
   }
 
   if (rows.length > 0) {
-    return addTable(doc, rows, 'Referencer', startY);
+    addRowsSection(writer, rows, 'Referencer');
   }
-
-  return startY;
 };
 
-/**
- * Tilføj tabel med header og data
- */
-const addTable = (
-  doc: jsPDF,
+const addRowsSection = (
+  writer: PdfWriter,
   rows: string[][],
   header: string,
-  startY: number
-): number => {
-  const headingY = addSectionHeading(createJsPdfAdapter(doc), header, startY);
-  const tableStartY = headingY - PDF_SECTION_HEADING_GAP;
-
-  const finalY = renderEoStylePdfTable({
-    doc,
-    startY: tableStartY,
-    body: rows,
-    hasHeaderRow: false,
-    columnStyles: {
-      0: { cellWidth: 'auto', halign: 'left' },
-      1: { cellWidth: 80, halign: 'right' },
-    },
-  });
-
-  // Returner ny Y-position efter tabel + spacing
-  return resolvePdfSectionEndY(finalY, startY);
+): void => {
+  writer.writeSubheader(header, PDF_BASE_LINE_HEIGHT_MM);
+  writeRows(writer, rows);
+  writer.addSpacer(SECTION_SPACER);
 };

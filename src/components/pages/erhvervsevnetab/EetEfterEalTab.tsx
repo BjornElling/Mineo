@@ -1,10 +1,11 @@
 import React from 'react';
-import { Box, Tooltip, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
 import type { ErhvervsevnetabValues } from '../../../schemas/formSchemas';
 import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
+import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
 import { aarsloenMax, erhvervsevnetabMax, reguleringssats } from '../../../data/regulationRates';
@@ -12,6 +13,7 @@ import {
   computeEetEalCalculation,
   formatPercentTrimmedFromRounded4,
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import { downloadEfterEalPdf } from '../../../utils/pdf/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
@@ -27,6 +29,8 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
   const stamdata = usePersistedSection('stamdata');
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
+  const { settings } = useAppSettings();
+  const [downloadShake, setDownloadShake] = React.useState(false);
 
   const calculationResult = React.useMemo(
     () =>
@@ -68,6 +72,19 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
   const hasBlockingErrors = issues.some((issue) => issue.severity === 'error');
   const computation = calculationResult.computation;
 
+  const handlePdfDownload = React.useCallback(async () => {
+    if (!computation) {
+      setDownloadShake(true);
+      setTimeout(() => setDownloadShake(false), 500);
+      return;
+    }
+    await downloadEfterEalPdf({
+      computation,
+      settings,
+      persistedStamdata: stamdata,
+    });
+  }, [computation, settings, stamdata]);
+
   const aldersreduktionFormula = React.useMemo(() => {
     if (!computation) return '';
     if (computation.alderVedSkade <= 29) return '0 =';
@@ -100,31 +117,30 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
             <Box className="row--label-right-hover">
               <Typography className="row--text">Download specifikation</Typography>
               <Box className="row--label-right-hover__content">
-                <Tooltip
-                  title="Download bliver tilgængelig, når PDF-specifikationen er defineret"
-                  arrow
-                  placement="top"
+                <Box
+                  onClick={handlePdfDownload}
+                  tabIndex={-1}
+                  sx={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s',
+                    animation: downloadShake ? 'shake 0.5s' : 'none',
+                    '&:hover': { backgroundColor: '#e3f2fd' },
+                    '&:active': { backgroundColor: '#bbdefb' },
+                    '@keyframes shake': {
+                      '0%, 100%': { transform: 'translateX(0)' },
+                      '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },
+                      '20%, 40%, 60%, 80%': { transform: 'translateX(5px)' },
+                    },
+                  }}
                 >
-                  <Box
-                    tabIndex={-1}
-                    sx={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '6px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'default',
-                    }}
-                  >
-                    <Download
-                      sx={{
-                        fontSize: '24px',
-                        color: 'text.disabled',
-                      }}
-                    />
-                  </Box>
-                </Tooltip>
+                  <Download sx={{ fontSize: '24px', color: 'primary.main' }} />
+                </Box>
               </Box>
             </Box>
           </ContentBox>
@@ -230,7 +246,7 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
             </Box>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text text-bold">{`${formatKr(computation.eetAnvendt)} x (- ${formatPct(computation.aldersreduktionPct)}) =`}</Typography>
+              <Typography className="row--text">{`${formatKr(computation.eetAnvendt)} x (- ${formatPct(computation.aldersreduktionPct)}) =`}</Typography>
               <Box className="row--label-right-hover__content">
                 <Typography className="row--text text-bold">{`- ${formatKr(computation.aldersreduktionBeloeb)}`}</Typography>
               </Box>
@@ -239,7 +255,7 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
             <Typography className="row--subheading">Beregnet EAL-krav</Typography>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text text-bold">{`${formatKr(computation.eetAnvendt)} - ${formatKr(computation.aldersreduktionBeloeb)} =`}</Typography>
+              <Typography className="row--text">{`${formatKr(computation.eetAnvendt)} - ${formatKr(computation.aldersreduktionBeloeb)} =`}</Typography>
               <Box className="row--label-right-hover__content">
                 <Typography className="row--text text-bold">{formatKr(computation.ealKrav)}</Typography>
               </Box>

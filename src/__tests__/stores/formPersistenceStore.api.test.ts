@@ -54,6 +54,8 @@ const createValidSections = (): PersistedSectionMap => ({
       kapitalisering: true,
       eetEfterEal: true,
       proformaKapitalisering: true,
+      visUdvidetSpecifikation: false,
+      visUdvidetSpecifikationLoebendeYdelserBilag: false,
     },
   },
 });

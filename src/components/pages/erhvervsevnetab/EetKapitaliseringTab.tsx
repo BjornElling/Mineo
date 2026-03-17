@@ -1,10 +1,11 @@
 import React from 'react';
-import { Box, Tooltip, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
 import type { ErhvervsevnetabValues } from '../../../schemas/formSchemas';
 import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
+import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import { formatAsAmount, formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
@@ -12,6 +13,7 @@ import {
   computeEetKapitaliseringCalculation,
   formatKapitaliseringsPct,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
+import { downloadKapitaliseringPdf } from '../../../utils/pdf/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import TextHoverRow from './TextHoverRow';
 import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
@@ -29,6 +31,8 @@ const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger })
   const stamdata = usePersistedSection('stamdata');
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
+  const { settings } = useAppSettings();
+  const [downloadShake, setDownloadShake] = React.useState(false);
 
   const calculationResult = React.useMemo(
     () =>
@@ -66,6 +70,20 @@ const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger })
   const computation = calculationResult.computation;
   const afgoerelser = computation?.afgoerelser ?? [];
 
+  const handlePdfDownload = React.useCallback(async () => {
+    if (!computation) {
+      setDownloadShake(true);
+      setTimeout(() => setDownloadShake(false), 500);
+      return;
+    }
+    await downloadKapitaliseringPdf({
+      computation,
+      koen: values.koen ?? undefined,
+      settings,
+      persistedStamdata: stamdata,
+    });
+  }, [computation, values.koen, settings, stamdata]);
+
   return (
     <Box>
       <EetIssuesBox
@@ -80,22 +98,30 @@ const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger })
           <Box className="row--label-right-hover">
             <Typography className="row--text">Download specifikation</Typography>
             <Box className="row--label-right-hover__content">
-              <Tooltip title="Download bliver tilgængelig, når PDF-specifikationen er defineret" arrow placement="top">
-                <Box
-                  tabIndex={-1}
-                  sx={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'default',
-                  }}
-                >
-                  <Download sx={{ fontSize: '24px', color: 'text.disabled' }} />
-                </Box>
-              </Tooltip>
+              <Box
+                onClick={handlePdfDownload}
+                tabIndex={-1}
+                sx={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                  animation: downloadShake ? 'shake 0.5s' : 'none',
+                  '&:hover': { backgroundColor: '#e3f2fd' },
+                  '&:active': { backgroundColor: '#bbdefb' },
+                  '@keyframes shake': {
+                    '0%, 100%': { transform: 'translateX(0)' },
+                    '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },
+                    '20%, 40%, 60%, 80%': { transform: 'translateX(5px)' },
+                  },
+                }}
+              >
+                <Download sx={{ fontSize: '24px', color: 'primary.main' }} />
+              </Box>
             </Box>
           </Box>
         </ContentBox>
@@ -229,7 +255,7 @@ const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger })
             <Box className="row--label-right-hover">
               <Typography className="row--text">{`Beregnet kapitalbeløb (${formatKr(afgoerelse.aarsydelse, 2)} x ${formatFaktor(afgoerelse.kapitaliseringsfaktor)})`}</Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text" sx={{ fontWeight: 700 }}>{formatKr(afgoerelse.kapitalbelob, 0)}</Typography>
+                <Typography className="row--text text-bold">{formatKr(afgoerelse.kapitalbelob, 0)}</Typography>
               </Box>
             </Box>
           </ContentBox>

@@ -15,6 +15,10 @@ import {
   loadAarsloenPdfModule,
   loadErstatningsopgoerelsePdfModule,
   loadKRLPdfModule,
+  loadLoebendeYdelserPdfModule,
+  loadKapitaliseringPdfModule,
+  loadEfterEalPdfModule,
+  loadDifferencekravPdfModule,
   loadReguleringPdfModule,
   loadRentePdfModule,
   loadSHDagePdfModule,
@@ -24,6 +28,11 @@ import {
 } from './pdfLoader';
 import { coerceToDanishDateString, type ISODateString } from '../../types/branded';
 import type { VarigeMenBeregningResult } from '../../domain/varigemen/varigeMenCalculations';
+import type { EetLoebendeComputation } from '../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
+import type { EetKapitaliseringComputation } from '../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
+import type { EetEalComputation } from '../../domain/erhvervsevnetab/eetEalCalculation';
+import type { EetDifferencekravComputation } from '../../domain/erhvervsevnetab/eetDifferencekravCalculation';
+import type { BilagSelection } from './differencekravPdf';
 import type { EoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot';
 import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
 import { eoSnapshotToTafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
@@ -362,5 +371,113 @@ export const downloadSHDagePdf = async (params: Readonly<{
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
     return createPdfDownloadFailure('Kunne ikke generere SH-dage-PDF', 'pdfService.downloadSHDagePdf', error);
+  }
+};
+
+export const downloadKapitaliseringPdf = async (params: Readonly<{
+  computation: EetKapitaliseringComputation;
+  koen?: string;
+  settings: AppSettings;
+  persistedStamdata: unknown;
+}>): Promise<PdfDownloadResult> => {
+  const { computation, koen, settings, persistedStamdata } = params;
+  const common = buildCommonPdfContext(settings, 'erhvervsevnetab', persistedStamdata);
+
+  try {
+    const { generateKapitaliseringPdf } = await loadKapitaliseringPdfModule();
+    generateKapitaliseringPdf({
+      computation,
+      koen,
+      visBrevhoved: common.visBrevhoved,
+      stamdata: common.stamdata,
+    });
+    return PDF_DOWNLOAD_SUCCESS;
+  } catch (error) {
+    return createPdfDownloadFailure(
+      'Kunne ikke generere kapitalisering-PDF',
+      'pdfService.downloadKapitaliseringPdf',
+      error
+    );
+  }
+};
+
+export const downloadEfterEalPdf = async (params: Readonly<{
+  computation: EetEalComputation;
+  settings: AppSettings;
+  persistedStamdata: unknown;
+}>): Promise<PdfDownloadResult> => {
+  const { computation, settings, persistedStamdata } = params;
+  const common = buildCommonPdfContext(settings, 'erhvervsevnetab', persistedStamdata);
+
+  try {
+    const { generateEfterEalPdf } = await loadEfterEalPdfModule();
+    generateEfterEalPdf({
+      computation,
+      visBrevhoved: common.visBrevhoved,
+      stamdata: common.stamdata,
+    });
+    return PDF_DOWNLOAD_SUCCESS;
+  } catch (error) {
+    return createPdfDownloadFailure(
+      'Kunne ikke generere EET efter EAL-PDF',
+      'pdfService.downloadEfterEalPdf',
+      error
+    );
+  }
+};
+
+export const downloadDifferencekravPdf = async (params: Readonly<{
+  computation: EetDifferencekravComputation;
+  koen?: string;
+  bilagSelection: BilagSelection;
+  settings: AppSettings;
+  persistedStamdata: unknown;
+}>): Promise<PdfDownloadResult> => {
+  const { computation, koen, bilagSelection, settings, persistedStamdata } = params;
+  const common = buildCommonPdfContext(settings, 'erhvervsevnetab', persistedStamdata);
+
+  try {
+    const { generateDifferencekravPdf } = await loadDifferencekravPdfModule();
+    generateDifferencekravPdf({
+      computation,
+      koen,
+      bilagSelection,
+      visBrevhoved: common.visBrevhoved,
+      stamdata: common.stamdata,
+    });
+    return PDF_DOWNLOAD_SUCCESS;
+  } catch (error) {
+    return createPdfDownloadFailure(
+      'Kunne ikke generere differencekrav-PDF',
+      'pdfService.downloadDifferencekravPdf',
+      error
+    );
+  }
+};
+
+export const downloadLoebendeYdelserPdf = async (params: Readonly<{
+  computation: EetLoebendeComputation;
+  visUdvidetSpecifikation: boolean;
+  settings: AppSettings;
+  persistedStamdata: unknown;
+}>): Promise<PdfDownloadResult> => {
+  const { computation, visUdvidetSpecifikation, settings, persistedStamdata } = params;
+  const common = buildCommonPdfContext(settings, 'erhvervsevnetab', persistedStamdata);
+
+  try {
+    const { generateLoebendeYdelserPdf } = await loadLoebendeYdelserPdfModule();
+    generateLoebendeYdelserPdf({
+      computation,
+      visUdvidetSpecifikation,
+      visBrevhoved: common.visBrevhoved,
+      stamdata: common.stamdata,
+    });
+    return PDF_DOWNLOAD_SUCCESS;
+  } catch (error) {
+    return createPdfDownloadFailure(
+      'Kunne ikke generere løbende ydelser-PDF',
+      'pdfService.downloadLoebendeYdelserPdf',
+      error
+    );
   }
 };

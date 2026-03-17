@@ -7,11 +7,13 @@
 export type PdfColor = [number, number, number];
 
 // Farver
-export const COLORS: Record<'lightBackground' | 'white' | 'black' | 'text', PdfColor> = {
+export const COLORS: Record<'lightBackground' | 'white' | 'black' | 'text' | 'muted' | 'footerText', PdfColor> = {
   lightBackground: [248, 248, 248], // RGB for #f8f9fa
   white: [255, 255, 255],
   black: [0, 0, 0],
   text: [51, 51, 51],
+  muted: [150, 150, 150],
+  footerText: [200, 200, 200],
 };
 
 // Margener (i mm)
@@ -51,20 +53,37 @@ export const TABLE_STYLES = {
 };
 
 // Fælles detail-konstanter for ensartet PDF-udtryk
-export const PDF_MUTED_TEXT_COLOR: PdfColor = [150, 150, 150];
+export const PDF_MUTED_TEXT_COLOR: PdfColor = COLORS.muted;
 export const PDF_TABLE_NARROW_COLUMN_WIDTH = 25;
 export const PDF_FINAL_Y_FALLBACK_HEIGHT = 50;
+// Legacy: bruges af addSectionHeading() i pdfHelpers (autotable-generatorer).
 export const PDF_SECTION_HEADING_GAP = 3;
 
-// Mellemrum mellem sektioner
+// Legacy: bruges af autotable-baserede generatorer (satserPdf, aarsloenPdf, shDagePdf m.fl.)
+// og af resolvePdfSectionEndY. Writer-baserede generatorer bruger writer.addSpacer().
 export const SECTION_SPACER = 10; // mm
+
+// Standard linjeafstand for brødtekst i alle PDF'er
+export const PDF_BASE_LINE_HEIGHT_MM = 5; // mm
+
+// Afstand efter hver fritekst-linje (writeWrappedText, writeLeftRightText, writeUnderlinedLabel)
+export const PDF_LINE_BOTTOM_SPACING_MM = 2; // mm
+
+// Afstand over understreget label (writeUnderlinedLabel)
+export const PDF_UNDERLINED_LABEL_TOP_SPACING_MM = 4; // mm
+
+// Ekstra afstand under fed underoverskrift (writeSubheader)
+export const PDF_SUBHEADER_BOTTOM_SPACING_MM = 1; // mm
+
+// Afstand under dokumenttitel (writeTitle)
+export const PDF_TITLE_BOTTOM_SPACING_MM = 15; // mm
 
 // Brevhoved layout-konstanter
 export const PDF_BREVHOVED_START_Y = 15; // mm fra øverste kant
 export const PDF_BREVHOVED_LINE_HEIGHT = 5; // mm pr. linje
-export const PDF_BREVHOVED_FONT_SIZE = FONT_SIZES.normal - 1; // 9pt
+export const PDF_BREVHOVED_FONT_SIZE = 9; // pt
 
 // Footer-konstanter
 export const PDF_FOOTER_FONT_SIZE = 6; // pt
-export const PDF_FOOTER_TEXT_COLOR: PdfColor = [200, 200, 200];
+export const PDF_FOOTER_TEXT_COLOR: PdfColor = COLORS.footerText;
 export const PDF_FOOTER_MARGIN_MM = 5; // mm fra sidens kant

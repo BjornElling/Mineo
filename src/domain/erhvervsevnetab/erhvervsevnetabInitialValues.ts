@@ -12,5 +12,7 @@ export const ERHVERVSEVNETAB_INITIAL_VALUES = {
     kapitalisering: true,
     eetEfterEal: true,
     proformaKapitalisering: true,
+    visUdvidetSpecifikation: false,
+    visUdvidetSpecifikationLoebendeYdelserBilag: false,
   },
 } satisfies PersistedSectionMap['erhvervsevnetab'];

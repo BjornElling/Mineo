@@ -1,10 +1,13 @@
 import React from 'react';
-import { Box, Checkbox, FormControlLabel, Tooltip, Typography } from '@mui/material';
+import { Box, Checkbox, FormControlLabel, Typography } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
+import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
+import type { CommitEvent } from '../../inputs/fieldEvents';
 import type { ErhvervsevnetabValues } from '../../../schemas/formSchemas';
 import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
+import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import { formatAsAmount, formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
@@ -12,6 +15,7 @@ import {
   computeEetDifferencekravCalculation,
   formatKapPct,
 } from '../../../domain/erhvervsevnetab/eetDifferencekravCalculation';
+import { downloadDifferencekravPdf } from '../../../utils/pdf/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import TextHoverRow from './TextHoverRow';
 import UnderlinedHoverRow from './UnderlinedHoverRow';
@@ -30,6 +34,8 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
   const stamdata = usePersistedSection('stamdata');
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
+  const { settings } = useAppSettings();
+  const [downloadShake, setDownloadShake] = React.useState(false);
 
   const calculationResult = React.useMemo(
     () =>
@@ -82,6 +88,34 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
     [bilagSelection, setValues, values]
   );
 
+  const handlePdfDownload = React.useCallback(async () => {
+    if (!computation) {
+      setDownloadShake(true);
+      setTimeout(() => setDownloadShake(false), 500);
+      return;
+    }
+    await downloadDifferencekravPdf({
+      computation,
+      koen: values.koen ?? undefined,
+      bilagSelection,
+      settings,
+      persistedStamdata: stamdata,
+    });
+  }, [computation, values.koen, bilagSelection, settings, stamdata]);
+
+  const handleExtendedSpecificationCommit = React.useCallback(
+    (event: CommitEvent<boolean>) => {
+      setValues({
+        ...values,
+        eetDifferencekravBilagSelection: {
+          ...values.eetDifferencekravBilagSelection,
+          visUdvidetSpecifikationLoebendeYdelserBilag: event.target.value,
+        },
+      });
+    },
+    [setValues, values]
+  );
+
   return (
     <Box>
       <EetIssuesBox
@@ -104,26 +138,30 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
           <Box className="row--label-right-hover">
             <Typography className="row--text">Download specifikation</Typography>
             <Box className="row--label-right-hover__content">
-              <Tooltip
-                title="Download bliver tilgængelig, når PDF-specifikationen er defineret"
-                arrow
-                placement="top"
+              <Box
+                onClick={handlePdfDownload}
+                tabIndex={-1}
+                sx={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                  animation: downloadShake ? 'shake 0.5s' : 'none',
+                  '&:hover': { backgroundColor: '#e3f2fd' },
+                  '&:active': { backgroundColor: '#bbdefb' },
+                  '@keyframes shake': {
+                    '0%, 100%': { transform: 'translateX(0)' },
+                    '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },
+                    '20%, 40%, 60%, 80%': { transform: 'translateX(5px)' },
+                  },
+                }}
               >
-                <Box
-                  tabIndex={-1}
-                  sx={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'default',
-                  }}
-                >
-                  <Download sx={{ fontSize: '24px', color: 'text.disabled' }} />
-                </Box>
-              </Tooltip>
+                <Download sx={{ fontSize: '24px', color: 'primary.main' }} />
+              </Box>
             </Box>
           </Box>
 
@@ -176,6 +214,16 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
                   />
                 </Box>
               </Box>
+            </Box>
+          </Box>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">Medtag udvidet specifikation på løbende ydelser</Typography>
+            <Box className="row--label-right-hover__content">
+              <StyledToggleSwitch
+                checked={bilagSelection.visUdvidetSpecifikationLoebendeYdelserBilag}
+                onCommit={handleExtendedSpecificationCommit}
+              />
             </Box>
           </Box>
         </ContentBox>

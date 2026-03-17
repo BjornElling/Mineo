@@ -88,6 +88,10 @@ export type EetDifferencekravComputation = Readonly<{
   differencekrav: number;
   afgoerelser: readonly EetDifferencekravLoebendeAfgoerelse[];
   kapitaliseringerAfgoerelser: readonly EetDifferencekravKapitaliseretAfgoerelse[];
+  // Sub-beregninger til brug i bilag-PDF'er
+  loebendeComputation: import('./eetLoebendeYdelserCalculation').EetLoebendeComputation | null;
+  kapComputation: import('./eetKapitaliseringCalculation').EetKapitaliseringComputation | null;
+  ealComputation: import('./eetEalCalculation').EetEalComputation | null;
 }>;
 
 /** hasBlockingErrors er eksplicit her fordi differencekrav-fanen bruger den direkte;
@@ -583,6 +587,9 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       differencekrav,
       afgoerelser: loebendeAfgoerelser,
       kapitaliseringerAfgoerelser: kapAfgoerelser,
+      loebendeComputation: loebendeResult?.computation ?? null,
+      kapComputation: kapResult.computation,
+      ealComputation: ealResult.computation,
     },
   };
 };

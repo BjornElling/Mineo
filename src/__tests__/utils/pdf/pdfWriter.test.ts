@@ -48,6 +48,20 @@ describe('pdfWriter layout fallback', () => {
 
     expect(onLayoutFallback).not.toHaveBeenCalled();
   });
+
+  it('normaliserer højrejusteret kr.-tekst til almindeligt mellemrum før rendering', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+
+    writer.writeLeftRightTextSingleLine('Venstre', '123,45 kr.');
+
+    const renderedRightTextCall = writer.getDoc().text.mock.calls.find(
+      (call: unknown[]) => call[0] === '123,45 kr.'
+    );
+
+    expect(renderedRightTextCall).toBeDefined();
+    expect(writer.getDoc().text.mock.calls.some((call: unknown[]) => call[0] === '123,45\u00A0kr.')).toBe(false);
+  });
 });
 
 // ─── Cursor / Y-position ─────────────────────────────────────────────────────
@@ -173,6 +187,21 @@ describe('pdfWriter headers', () => {
     const before = writer.getY();
     writer.writeSubheader('Underoverskrift', 5);
     expect(writer.getY()).toBeGreaterThan(before);
+  });
+
+  it('tilføjer ikke ekstra topafstand når writeSubheader følger direkte efter writeSectionHeader', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+
+    writer.setY(100);
+    writer.writeSectionHeader('Sektion', 5);
+    const afterSectionHeader = writer.getY();
+
+    writer.writeSubheader('Underoverskrift', 5);
+
+    // Underoverskriften skal kun bruge sin egen teksthøjde + bundafstand,
+    // ikke yderligere topafstand oven på section headerens bundafstand.
+    expect(writer.getY() - afterSectionHeader).toBe(8);
   });
 });
 

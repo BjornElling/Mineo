@@ -17,7 +17,7 @@ import {
 } from './pdfHelpers';
 import { createStandardPdfWriter, type PdfWriter } from './pdfWriter';
 import {
-  EO_TABLE_FONT_SIZE,
+  TABLE_FONT_SIZE,
   createPdfTableCell,
   createPdfTableHeaderCell,
   createPdfTableTransparentRow,
@@ -274,7 +274,7 @@ const addSHDageTable = (writer: PdfWriter, helligdage: ReadonlyArray<SHDagEntry>
       createPdfTableCell(ugedag, { halign: 'left' }),
       createPdfTableCell(formatDanskDato(dato), { halign: 'left' }),
       createPdfTableCell(helligdagNavn, { halign: 'left' }),
-      createPdfTableCell(erHverdag ? 'x' : '', { halign: 'center', valign: 'middle', fontSize: EO_TABLE_FONT_SIZE }),
+      createPdfTableCell(erHverdag ? 'x' : '', { halign: 'center', valign: 'middle', fontSize: TABLE_FONT_SIZE }),
     ]);
   }
 

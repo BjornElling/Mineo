@@ -4,14 +4,12 @@
  * Genererer PDF-dokumentation af ménberegning med fødselsdato, skadesdato, méngrad og resultat
  */
 
-import type { RowInput } from 'jspdf-autotable';
 import {
   PDF_BASE_LINE_HEIGHT_MM,
-  resolvePdfSectionEndY,
   type BrevhovedData,
 } from './pdfHelpers';
+import { SECTION_SPACER } from './pdfConfig';
 import { createStandardPdfWriter, type PdfWriter } from './pdfWriter';
-import { cellLeft, cellRight, createPdfTableCell, renderEoStylePdfTable } from './pdfTableRenderer';
 import { formatIsoDateLong } from '../dateFormatting';
 import type { ISODateString } from '../../types/branded';
 import type { VarigeMenBeregningResult } from '../../domain/varigemen/varigeMenCalculations';
@@ -23,6 +21,23 @@ import { resolvePdfFileName } from './pdfFormatUtils';
 const formatDateReadable = (isoDate: ISODateString | undefined): string => formatIsoDateLong(isoDate);
 export const buildVarigeMenPdfFilename = (journalnr?: string): string => resolvePdfFileName('Méngodtgørelse', false, journalnr);
 
+const writeRows = (
+  writer: PdfWriter,
+  rows: ReadonlyArray<
+    Readonly<{
+      label: string;
+      value: string;
+      rightFontStyle?: 'normal' | 'bold';
+    }>
+  >
+): void => {
+  for (const row of rows) {
+    writer.writeLeftRightText(row.label, row.value, {
+      rightFontStyle: row.rightFontStyle ?? 'normal',
+    });
+  }
+};
+
 /**
  * Tilføj stamdata-sektion
  */
@@ -33,24 +48,12 @@ const addStamdataSection = (
   alderVedSkade: number
 ): void => {
   writer.writeSubheader('Stamdata', PDF_BASE_LINE_HEIGHT_MM);
-  const tableData: RowInput[] = [
-    [cellLeft('Fødselsdato'), cellRight(formatDateReadable(fodselsdato))],
-    [cellLeft('Skadesdato'), cellRight(formatDateReadable(skadesdato))],
-    [cellLeft('Alder på skadestidspunkt'), cellRight(`${alderVedSkade} år`)],
-  ];
-  const doc = writer.getDoc();
-  const startY = writer.getY();
-  const finalY = renderEoStylePdfTable({
-    doc,
-    startY,
-    body: tableData,
-    hasHeaderRow: false,
-    columnStyles: {
-      0: { cellWidth: 'auto' },
-      1: { cellWidth: 60 },
-    },
-  });
-  writer.setY(resolvePdfSectionEndY(finalY, startY));
+  writeRows(writer, [
+    { label: 'Fødselsdato', value: formatDateReadable(fodselsdato) },
+    { label: 'Skadesdato', value: formatDateReadable(skadesdato) },
+    { label: 'Alder på skadestidspunkt', value: `${alderVedSkade} år` },
+  ]);
+  writer.addSpacer(SECTION_SPACER);
 };
 
 /**
@@ -62,23 +65,11 @@ const addBeregningsgrundlagSection = (
   beregningsdato: ISODateString | undefined
 ): void => {
   writer.writeSubheader('Beregningsgrundlag', PDF_BASE_LINE_HEIGHT_MM);
-  const tableData: RowInput[] = [
-    [cellLeft('Méngrad'), cellRight(mengrad !== undefined ? `${mengrad} %` : '')],
-    [cellLeft('Beregningsdato'), cellRight(formatDateReadable(beregningsdato))],
-  ];
-  const doc = writer.getDoc();
-  const startY = writer.getY();
-  const finalY = renderEoStylePdfTable({
-    doc,
-    startY,
-    body: tableData,
-    hasHeaderRow: false,
-    columnStyles: {
-      0: { cellWidth: 'auto' },
-      1: { cellWidth: 60 },
-    },
-  });
-  writer.setY(resolvePdfSectionEndY(finalY, startY));
+  writeRows(writer, [
+    { label: 'Méngrad', value: mengrad !== undefined ? `${mengrad} %` : '' },
+    { label: 'Beregningsdato', value: formatDateReadable(beregningsdato) },
+  ]);
+  writer.addSpacer(SECTION_SPACER);
 };
 
 /**
@@ -90,33 +81,22 @@ const addResultatSection = (
   beregningsResultat: VarigeMenBeregningResult
 ): void => {
   writer.writeSubheader('Beregnet méngodtgørelse', PDF_BASE_LINE_HEIGHT_MM);
-  const tableData: RowInput[] = [];
-  tableData.push([
-    cellLeft(`Grundbeløb: ${mengrad} % mén á ${formatAsAmount(beregningsResultat.satsPerMengrad, 2)} kr.`),
-    cellRight(`${formatAsAmount(beregningsResultat.grundbeloebUdenReduktion, 2)} kr.`),
-  ]);
   const reduktionsBeloeb = beregningsResultat.grundbeloebUdenReduktion * beregningsResultat.aldersreduktionPct / 100;
-  tableData.push([
-    cellLeft(`Aldersreduktion, ${beregningsResultat.alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`),
-    cellRight(`- ${formatAsAmount(reduktionsBeloeb, 2)} kr.`),
-  ]);
-  tableData.push([
-    cellLeft('Beregnet méngodtgørelse'),
-    createPdfTableCell(`${formatAsAmount(beregningsResultat.beregnetGodtgoerelse)} kr.`, { halign: 'right', bold: true }),
-  ]);
-  const doc = writer.getDoc();
-  const startY = writer.getY();
-  const finalY = renderEoStylePdfTable({
-    doc,
-    startY,
-    body: tableData,
-    hasHeaderRow: false,
-    columnStyles: {
-      0: { cellWidth: 'auto' },
-      1: { cellWidth: 60 },
+  writeRows(writer, [
+    {
+      label: `Grundbeløb: ${mengrad} % mén á ${formatAsAmount(beregningsResultat.satsPerMengrad, 2)} kr.`,
+      value: `${formatAsAmount(beregningsResultat.grundbeloebUdenReduktion, 2)} kr.`,
     },
-  });
-  writer.setY(resolvePdfSectionEndY(finalY, startY));
+    {
+      label: `Aldersreduktion, ${beregningsResultat.alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`,
+      value: `- ${formatAsAmount(reduktionsBeloeb, 2)} kr.`,
+    },
+    {
+      label: 'Beregnet méngodtgørelse',
+      value: `${formatAsAmount(beregningsResultat.beregnetGodtgoerelse)} kr.`,
+      rightFontStyle: 'bold',
+    },
+  ]);
 };
 
 /**
