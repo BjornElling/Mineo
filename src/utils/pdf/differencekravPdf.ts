@@ -33,9 +33,13 @@ import { TODAY } from '../../config/dateRanges';
 import { resolvePdfFileName } from './pdfFormatUtils';
 import {
   addLoebendeAfgoerelseSection,
+  addLoebendeYdelserEmptyState,
   addLoebendeUdvidetSpecifikationPage,
 } from './loebendeYdelserPdf';
-import { addKapitaliseringAfgoerelseSection } from './kapitaliseringPdf';
+import {
+  addKapitaliseringAfgoerelseSection,
+  addKapitaliseringEmptyState,
+} from './kapitaliseringPdf';
 import { renderEfterEalBody } from './efterEalPdf';
 
 const formatKr = (value: number, decimals = 0): string =>
@@ -84,7 +88,7 @@ const addProformaKapitaliseringSection = (
     `Grundydelse (${formatKapPct(pk.loebendeEetPct)}): Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag) =`
   );
   writer.writeLeftRightText(
-    `Grundløn × ${formatKapPct(pk.loebendeEetPct)} × Erstatningsniveau × AM-faktor =`,
+    `${formatKr(pk.grundloen, 0)} × ${formatKapPct(pk.loebendeEetPct)} × ${pk.erstatningsniveauPct} % × ${100 - pk.amBidragPct} % =`,
     formatKr(pk.grundydelse, 2),
     rowOpts
   );
@@ -362,9 +366,13 @@ export const generateDifferencekravPdf = (
     const lc = computation.loebendeComputation;
     writer.addPage();
     writer.writeTitle('Løbende ydelser (EET)');
-    lc.afgoerelser.forEach((afgoerelse, index) => {
-      addLoebendeAfgoerelseSection(writer, afgoerelse, lc, index === 0);
-    });
+    if (lc.afgoerelser.length === 0) {
+      addLoebendeYdelserEmptyState(writer);
+    } else {
+      lc.afgoerelser.forEach((afgoerelse, index) => {
+        addLoebendeAfgoerelseSection(writer, afgoerelse, lc, index === 0);
+      });
+    }
     if (bilagSelection.visUdvidetSpecifikationLoebendeYdelserBilag) {
       addLoebendeUdvidetSpecifikationPage(writer, lc);
     }
@@ -375,9 +383,13 @@ export const generateDifferencekravPdf = (
     const kc = computation.kapComputation;
     writer.addPage();
     writer.writeTitle('Kapitalisering (EET)');
-    kc.afgoerelser.forEach((afgoerelse, index) => {
-      addKapitaliseringAfgoerelseSection(writer, afgoerelse, koen, index === 0);
-    });
+    if (kc.afgoerelser.length === 0) {
+      addKapitaliseringEmptyState(writer);
+    } else {
+      kc.afgoerelser.forEach((afgoerelse, index) => {
+        addKapitaliseringAfgoerelseSection(writer, afgoerelse, koen, index === 0);
+      });
+    }
   }
 
   // Bilag: Proformakapitalisering af rest-EET

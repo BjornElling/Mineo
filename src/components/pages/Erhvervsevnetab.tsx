@@ -31,30 +31,7 @@ const TAB_KEYS = {
 
 type TabKey = (typeof TAB_KEYS)[keyof typeof TAB_KEYS];
 
-// ─── Skeleton-fane ───────────────────────────────────────────────────────────
-
-const SkeletonTab: React.FC<{ titel: string }> = ({ titel }) => (
-  <ContentBox className="content-box">
-    <Typography className="section-header">{titel}</Typography>
-    <Typography className="row--text">Kommer...</Typography>
-  </ContentBox>
-);
-
-const ErhvervsevnetabProductionPlaceholder = React.memo(() => (
-  <Box>
-    <Typography className="page-title">Erhvervsevnetab</Typography>
-    <ContentBox className="content-box">
-      <Typography className="section-header">
-        Beregning af erhvervsevnetabserstatning
-      </Typography>
-      <Typography className="row--text">Kommer...</Typography>
-    </ContentBox>
-  </Box>
-));
-
-ErhvervsevnetabProductionPlaceholder.displayName = 'ErhvervsevnetabProductionPlaceholder';
-
-const ErhvervsevnetabDev = React.memo(() => {
+const ErhvervsevnetabPage = React.memo(() => {
   const { activeTab, setActiveTab, isAllowedTab } = usePersistedActiveTab<TabKey>({
     pageId: 'erhvervsevnetab',
     allowedTabs: [
@@ -199,21 +176,12 @@ const ErhvervsevnetabDev = React.memo(() => {
   );
 });
 
-ErhvervsevnetabDev.displayName = 'ErhvervsevnetabDev';
+ErhvervsevnetabPage.displayName = 'ErhvervsevnetabPage';
 
 // ─── Komponent ───────────────────────────────────────────────────────────────
 
-/**
- * Erhvervsevnetab-siden.
- *
- * I development-mode vises den fulde implementering.
- * I production vises en "Kommer..."-placeholder.
- */
 const Erhvervsevnetab = React.memo(() => {
-  const isDev = import.meta.env.DEV;
-  // NOTE: Denne gate styrer runtime-aktivering. Dev-kode kan stadig indgå i production bundle,
-  // men hooks/state mountes ikke i production fordi placeholder-komponenten renderes i stedet.
-  return isDev ? <ErhvervsevnetabDev /> : <ErhvervsevnetabProductionPlaceholder />;
+  return <ErhvervsevnetabPage />;
 });
 
 Erhvervsevnetab.displayName = 'Erhvervsevnetab';

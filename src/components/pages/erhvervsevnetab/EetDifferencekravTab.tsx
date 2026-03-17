@@ -1,7 +1,7 @@
 import React from 'react';
-import { Box, Checkbox, FormControlLabel, Typography } from '@mui/material';
-import { Download } from '@mui/icons-material';
+import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
+import StyledCheckbox from '../../inputs/StyledCheckbox';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
 import type { CommitEvent } from '../../inputs/fieldEvents';
 import type { ErhvervsevnetabValues } from '../../../schemas/formSchemas';
@@ -19,11 +19,13 @@ import { downloadDifferencekravPdf } from '../../../utils/pdf/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import TextHoverRow from './TextHoverRow';
 import UnderlinedHoverRow from './UnderlinedHoverRow';
+import EetPdfDownloadButton from './EetPdfDownloadButton';
+import { useEetShakeFlag } from './useEetShakeFlag';
 import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabValues;
-  setValues: (values: ErhvervsevnetabValues) => void;
+  setValues: React.Dispatch<React.SetStateAction<ErhvervsevnetabValues>>;
   onGoToEetOplysninger: () => void;
 }>;
 
@@ -35,7 +37,7 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
   const { settings } = useAppSettings();
-  const [downloadShake, setDownloadShake] = React.useState(false);
+  const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
 
   const calculationResult = React.useMemo(
     () =>
@@ -70,28 +72,27 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
     [calculationResult.issues, fieldIssues]
   );
 
-  const hasBlockingErrors = calculationResult.hasBlockingErrors;
+  const hasBlockingErrors = issues.some((issue) => issue.severity === 'error');
 
   const computation = calculationResult.computation;
   const bilagSelection = values.eetDifferencekravBilagSelection;
 
   const updateBilag = React.useCallback(
     (key: keyof typeof bilagSelection, checked: boolean) => {
-      setValues({
-        ...values,
+      setValues((prev) => ({
+        ...prev,
         eetDifferencekravBilagSelection: {
-          ...bilagSelection,
+          ...prev.eetDifferencekravBilagSelection,
           [key]: checked,
         },
-      });
+      }));
     },
-    [bilagSelection, setValues, values]
+    [setValues]
   );
 
   const handlePdfDownload = React.useCallback(async () => {
     if (!computation) {
-      setDownloadShake(true);
-      setTimeout(() => setDownloadShake(false), 500);
+      triggerDownloadShake();
       return;
     }
     await downloadDifferencekravPdf({
@@ -101,19 +102,27 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
       settings,
       persistedStamdata: stamdata,
     });
-  }, [computation, values.koen, bilagSelection, settings, stamdata]);
+  }, [bilagSelection, computation, settings, stamdata, triggerDownloadShake, values.koen]);
 
   const handleExtendedSpecificationCommit = React.useCallback(
     (event: CommitEvent<boolean>) => {
-      setValues({
-        ...values,
+      setValues((prev) => ({
+        ...prev,
         eetDifferencekravBilagSelection: {
-          ...values.eetDifferencekravBilagSelection,
+          ...prev.eetDifferencekravBilagSelection,
           visUdvidetSpecifikationLoebendeYdelserBilag: event.target.value,
         },
-      });
+      }));
     },
-    [setValues, values]
+    [setValues]
+  );
+
+  const createBilagCommitHandler = React.useCallback(
+    (key: keyof typeof bilagSelection) =>
+      (event: CommitEvent<boolean>) => {
+        updateBilag(key, event.target.value);
+      },
+    [bilagSelection, updateBilag]
   );
 
   return (
@@ -138,30 +147,7 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
           <Box className="row--label-right-hover">
             <Typography className="row--text">Download specifikation</Typography>
             <Box className="row--label-right-hover__content">
-              <Box
-                onClick={handlePdfDownload}
-                tabIndex={-1}
-                sx={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s',
-                  animation: downloadShake ? 'shake 0.5s' : 'none',
-                  '&:hover': { backgroundColor: '#e3f2fd' },
-                  '&:active': { backgroundColor: '#bbdefb' },
-                  '@keyframes shake': {
-                    '0%, 100%': { transform: 'translateX(0)' },
-                    '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },
-                    '20%, 40%, 60%, 80%': { transform: 'translateX(5px)' },
-                  },
-                }}
-              >
-                <Download sx={{ fontSize: '24px', color: 'primary.main' }} />
-              </Box>
+              <EetPdfDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
             </Box>
           </Box>
 
@@ -170,46 +156,26 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
             <Box className="row--label-right-hover__content">
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                 <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                  <FormControlLabel
-                    control={(
-                      <Checkbox
-                        checked={bilagSelection.loebendeYdelser}
-                        onChange={(e) => updateBilag('loebendeYdelser', e.target.checked)}
-                        size="small"
-                      />
-                    )}
+                  <StyledCheckbox
+                    checked={bilagSelection.loebendeYdelser}
+                    onCommit={createBilagCommitHandler('loebendeYdelser')}
                     label="Løbende ydelser"
                   />
-                  <FormControlLabel
-                    control={(
-                      <Checkbox
-                        checked={bilagSelection.kapitalisering}
-                        onChange={(e) => updateBilag('kapitalisering', e.target.checked)}
-                        size="small"
-                      />
-                    )}
+                  <StyledCheckbox
+                    checked={bilagSelection.kapitalisering}
+                    onCommit={createBilagCommitHandler('kapitalisering')}
                     label="Kapitalisering"
                   />
                 </Box>
                 <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                  <FormControlLabel
-                    control={(
-                      <Checkbox
-                        checked={bilagSelection.eetEfterEal}
-                        onChange={(e) => updateBilag('eetEfterEal', e.target.checked)}
-                        size="small"
-                      />
-                    )}
+                  <StyledCheckbox
+                    checked={bilagSelection.eetEfterEal}
+                    onCommit={createBilagCommitHandler('eetEfterEal')}
                     label="EET efter EAL"
                   />
-                  <FormControlLabel
-                    control={(
-                      <Checkbox
-                        checked={bilagSelection.proformaKapitalisering}
-                        onChange={(e) => updateBilag('proformaKapitalisering', e.target.checked)}
-                        size="small"
-                      />
-                    )}
+                  <StyledCheckbox
+                    checked={bilagSelection.proformaKapitalisering}
+                    onCommit={createBilagCommitHandler('proformaKapitalisering')}
                     label="Proformakap. af rest-EET"
                   />
                 </Box>

@@ -31,6 +31,13 @@ const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
 export const buildKapitaliseringPdfFilename = (journalnr?: string): string =>
   resolvePdfFileName('Kapitalisering (EET)', false, journalnr);
 
+export const addKapitaliseringEmptyState = (
+  writer: ReturnType<typeof createStandardPdfWriter>
+): void => {
+  writer.writeSectionHeader('Specifikation', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeWrappedText('Der er ingen kapitaliserede afgørelser i sagen.');
+};
+
 // ============================================================================
 // AFGØRELSE-SIDE
 // ============================================================================
@@ -190,10 +197,14 @@ export const generateKapitaliseringPdf = (
 
   writer.writeTitle('Kapitalisering (EET)');
 
-  // Én side pr. afgørelse
-  computation.afgoerelser.forEach((afgoerelse, index) => {
-    addKapitaliseringAfgoerelseSection(writer, afgoerelse, koen, index === 0);
-  });
+  if (computation.afgoerelser.length === 0) {
+    addKapitaliseringEmptyState(writer);
+  } else {
+    // Én side pr. afgørelse
+    computation.afgoerelser.forEach((afgoerelse, index) => {
+      addKapitaliseringAfgoerelseSection(writer, afgoerelse, koen, index === 0);
+    });
+  }
 
   writer.addFooter();
   writer.save(buildKapitaliseringPdfFilename(stamdata?.journalnr));

@@ -10,8 +10,6 @@ export const useScrollToSectionWithRetry = (): ((sectionId: string) => void) => 
     }
   }, []);
 
-  React.useEffect(() => clearPendingScroll, [clearPendingScroll]);
-
   return React.useCallback(
     (sectionId: string) => {
       clearPendingScroll();

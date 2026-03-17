@@ -60,6 +60,9 @@ export type EetDifferencekravKapitaliseretAfgoerelse = Readonly<{
 export type EetDifferencekravProformaKapitalisering = Readonly<{
   loebendeEetPct: number;
   kapitaliseringsdato: ISODateString;
+  grundloen: number;
+  erstatningsniveauPct: number;
+  amBidragPct: number;
   grundydelse: number;
   reguleringsPctRounded4: number;
   aarsydelse: number;
@@ -261,6 +264,9 @@ const computeProformaKapitalisering = (
   return {
     loebendeEetPct,
     kapitaliseringsdato: beregningsdato,
+    grundloen: args.grundloen,
+    erstatningsniveauPct: round0(args.erstatningsniveau * 100),
+    amBidragPct: round0((1 - args.amFaktor) * 100),
     grundydelse: effektivGrundydelse,
     reguleringsPctRounded4: round4(rateInfo.reguleringPct),
     aarsydelse,

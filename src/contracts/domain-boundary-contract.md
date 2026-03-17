@@ -18,12 +18,12 @@ Dette dokument fastlægger bindende grænser mellem sider/domæner, så tværkob
 2. Eneste generelle undtagelse er `Stamdata`, som må læses på tværs.
 3. Tværside-afhængigheder må kun etableres ved en eksplicit kontraktændring i denne fil.
 
-## 2. Erhvervsevnetab (ikke udviklet endnu)
+## 2. Erhvervsevnetab
 
-1. `Erhvervsevnetab` er indtil videre ikke implementeret som aktivt beregningsdomæne.
-2. Siden må gerne være synlig i navigation og åbnes som placeholder-side.
-3. Der må ikke indføres nye beregningsafhængigheder, policy-linjer eller pipeline-koblinger, der forudsætter en EET-engine eller EET-side-data.
-4. Når siden implementeres senere, skal integration ske via en særskilt kontraktændring og dedikeret domæne-review.
+1. `Erhvervsevnetab` er et aktivt, selvstændigt beregningsdomæne med egen persisted state.
+2. Siden må være fuldt tilgængelig i navigation, routing, persistence, save/load og PDF-generering på linje med de øvrige fagsider.
+3. Implementeringen ændrer ikke sidegrænserne i §1: EET må stadig ikke læse eller beregne på persisted sagsdata fra andre fagsider end `stamdata`.
+4. Nye beregningsafhængigheder, policy-linjer eller pipelines på tværs af fagsider kræver fortsat en eksplicit kontraktændring i denne fil.
 
 ## 3. Navnekollision: "Midlertidigt EET"
 

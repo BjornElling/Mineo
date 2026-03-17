@@ -1,6 +1,5 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { Download } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
 import type { CommitEvent } from '../../inputs/fieldEvents';
@@ -29,11 +28,13 @@ import { roundByMethod } from '../../../utils/rounding';
 import EetIssuesBox from './EetIssuesBox';
 import TextHoverRow from './TextHoverRow';
 import UnderlinedHoverRow from './UnderlinedHoverRow';
+import EetPdfDownloadButton from './EetPdfDownloadButton';
+import { useEetShakeFlag } from './useEetShakeFlag';
 import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabValues;
-  setValues: (values: ErhvervsevnetabValues) => void;
+  setValues: React.Dispatch<React.SetStateAction<ErhvervsevnetabValues>>;
   onGoToEetOplysninger: () => void;
 }>;
 
@@ -67,7 +68,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, setValues, onGoToEetOp
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
   const { settings } = useAppSettings();
   const showExtendedSpecification = values.eetDifferencekravBilagSelection.visUdvidetSpecifikation;
-  const [downloadShake, setDownloadShake] = React.useState(false);
+  const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
 
   const calculationResult = React.useMemo(
     () =>
@@ -109,21 +110,20 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, setValues, onGoToEetOp
 
   const handleExtendedSpecificationCommit = React.useCallback(
     (event: CommitEvent<boolean>) => {
-      setValues({
-        ...values,
+      setValues((prev) => ({
+        ...prev,
         eetDifferencekravBilagSelection: {
-          ...values.eetDifferencekravBilagSelection,
+          ...prev.eetDifferencekravBilagSelection,
           visUdvidetSpecifikation: event.target.value,
         },
-      });
+      }));
     },
-    [setValues, values]
+    [setValues]
   );
 
   const handlePdfDownload = React.useCallback(async () => {
     if (!computation) {
-      setDownloadShake(true);
-      setTimeout(() => setDownloadShake(false), 500);
+      triggerDownloadShake();
       return;
     }
     await downloadLoebendeYdelserPdf({
@@ -132,7 +132,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, setValues, onGoToEetOp
       settings,
       persistedStamdata: stamdata,
     });
-  }, [computation, showExtendedSpecification, settings, stamdata]);
+  }, [computation, showExtendedSpecification, settings, stamdata, triggerDownloadShake]);
 
   return (
     <Box>
@@ -166,30 +166,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, setValues, onGoToEetOp
             <Box className="row--label-right-hover">
               <Typography className="row--text">Download specifikation</Typography>
               <Box className="row--label-right-hover__content">
-                <Box
-                  onClick={handlePdfDownload}
-                  tabIndex={-1}
-                  sx={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s',
-                    animation: downloadShake ? 'shake 0.5s' : 'none',
-                    '&:hover': { backgroundColor: '#e3f2fd' },
-                    '&:active': { backgroundColor: '#bbdefb' },
-                    '@keyframes shake': {
-                      '0%, 100%': { transform: 'translateX(0)' },
-                      '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },
-                      '20%, 40%, 60%, 80%': { transform: 'translateX(5px)' },
-                    },
-                  }}
-                >
-                  <Download sx={{ fontSize: '24px', color: 'primary.main' }} />
-                </Box>
+                <EetPdfDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
               </Box>
             </Box>
           </ContentBox>

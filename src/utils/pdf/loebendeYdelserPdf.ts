@@ -68,6 +68,13 @@ const formatEetValue = (eetPct: number, priorKapPct: number): string =>
 export const buildLoebendeYdelserPdfFilename = (journalnr?: string): string =>
   resolvePdfFileName('Løbende ydelser (EET)', false, journalnr);
 
+export const addLoebendeYdelserEmptyState = (
+  writer: PdfWriter
+): void => {
+  writer.writeSectionHeader('Specifikation', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeWrappedText('Der er ingen afgørelser i sagen.');
+};
+
 // ============================================================================
 // AFGØRELSE-SIDE
 // ============================================================================
@@ -385,10 +392,14 @@ export const generateLoebendeYdelserPdf = (
 
   writer.writeTitle('Løbende ydelser (EET)');
 
-  // Én side pr. afgørelse
-  computation.afgoerelser.forEach((afgoerelse, index) => {
-    addLoebendeAfgoerelseSection(writer, afgoerelse, computation, index === 0);
-  });
+  if (computation.afgoerelser.length === 0) {
+    addLoebendeYdelserEmptyState(writer);
+  } else {
+    // Én side pr. afgørelse
+    computation.afgoerelser.forEach((afgoerelse, index) => {
+      addLoebendeAfgoerelseSection(writer, afgoerelse, computation, index === 0);
+    });
+  }
 
   // Udvidet specifikation på separat slutside
   if (visUdvidetSpecifikation) {
