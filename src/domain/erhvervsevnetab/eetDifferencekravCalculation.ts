@@ -91,7 +91,6 @@ export type EetDifferencekravComputation = Readonly<{
   fradragLoebendeYdelser: number;
   fradragKapitaliseretEet: number;
   proformaKapitalisering: EetDifferencekravProformaKapitalisering | null;
-  proformaBeloeb: number;
   differencekrav: number;
   afgoerelser: readonly EetDifferencekravLoebendeAfgoerelse[];
   kapitaliseringerAfgoerelser: readonly EetDifferencekravKapitaliseretAfgoerelse[];
@@ -119,7 +118,6 @@ type Input = Readonly<{
 
 const toIssue = (id: string, message: string): EetIssue => ({ id, severity: 'error', message });
 
-export { formatPct as formatKapPct } from './eetLoebendeYdelserCalculation';
 
 // ─── Proforma-kapitalisering ──────────────────────────────────────────────────
 
@@ -568,10 +566,9 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   kapAfgoerelser.push(...aslRowsForDisplay);
 
   // ─── Endeligt differencekrav ──────────────────────────────────────────────
-  const proformaBeloeb = proformaKapitalisering?.proformaBeloeb ?? 0;
   const differencekrav = Math.max(
     0,
-    round0(ealKrav - fradragLoebendeYdelser - fradragKapitaliseretEet - proformaBeloeb)
+    round0(ealKrav - fradragLoebendeYdelser - fradragKapitaliseretEet - (proformaKapitalisering?.proformaBeloeb ?? 0))
   );
 
   return {
@@ -587,7 +584,6 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       fradragLoebendeYdelser,
       fradragKapitaliseretEet,
       proformaKapitalisering,
-      proformaBeloeb,
       differencekrav,
       afgoerelser: loebendeAfgoerelser,
       kapitaliseringerAfgoerelser: kapAfgoerelser,

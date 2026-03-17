@@ -4,7 +4,22 @@ import { toISODateString } from '../../../../../types/branded';
 import { renderLoenindkomstSection } from '../../../../../utils/pdf/erstatningsopgoerelse/sections/loenindkomstSection';
 import type { SelectedElements } from '../../../../../utils/pdf/erstatningsopgoerelse/types';
 
+const { autoTableMock } = vi.hoisted(() => ({
+  autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number }) => {
+    doc.lastAutoTable = { finalY: (options.startY ?? 0) + 10 };
+  }),
+}));
+
+vi.mock('jspdf-autotable', () => ({
+  default: autoTableMock,
+}));
+
 const iso = (value: string) => toISODateString(value);
+
+const createMockPdfDoc = () => ({
+  internal: { pageSize: { width: 210, height: 297 } },
+  addPage: vi.fn(),
+});
 
 const selectedElements: SelectedElements = {
   opgoerelse: false,
@@ -55,6 +70,7 @@ const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
   ];
 
   let y = 0;
+  const doc = createMockPdfDoc();
   const renderSubheader = vi.fn();
   const startBilagPage = vi.fn();
 
@@ -81,14 +97,13 @@ const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
       }),
       bilagIndkomstYdelserMode: 'Perioden' as const,
       bilagIndkomstYdelserRanges: [],
-      renderStandardPdfTable: vi.fn(({ startY }) => startY + 10),
       writer: {
         addSpacer: vi.fn(),
         setY: vi.fn((nextY: number) => {
           y = nextY;
         }),
         getY: vi.fn(() => y),
-        getDoc: vi.fn(() => ({})),
+        getDoc: vi.fn(() => doc),
       },
     },
   };
@@ -168,14 +183,13 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
   });
 
   it('fordeler lønindkomstkolonner over fuld tabelbredde i PDF', () => {
+    autoTableMock.mockClear();
     const { ctx } = makeContext(new Set(['2022-10-01']));
 
     renderLoenindkomstSection(ctx);
 
-    const renderTableMock = vi.mocked(ctx.renderStandardPdfTable);
-    expect(renderTableMock).toHaveBeenCalled();
-
-    const firstCall = renderTableMock.mock.calls[0]?.[0];
+    expect(autoTableMock).toHaveBeenCalled();
+    const firstCall = autoTableMock.mock.calls[0]?.[1];
     const firstColumnStyle = (firstCall?.columnStyles as Record<number, { cellWidth: number }>)[0];
 
     expect(firstColumnStyle.cellWidth).toBeCloseTo(170 / 7, 6);

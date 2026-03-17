@@ -11,7 +11,7 @@ import {
 } from './pdfHelpers';
 import { createStandardPdfWriter } from './pdfWriter';
 import { formatIsoDateLong, formatIsoDateShort } from '../dateFormatting';
-import { formatAsAmount, formatAsAmountTrimmed } from '../formatUtils';
+import { formatAsAmountTrimmed } from '../formatUtils';
 import type {
   EetKapitaliseringAfgoerelseComputation,
   EetKapitaliseringComputation,
@@ -24,13 +24,7 @@ import {
 import type { PdfCommonOptions } from './pdfOptions';
 import { TODAY } from '../../config/dateRanges';
 import { resolvePdfFileName } from './pdfFormatUtils';
-
-const formatKr = (value: number, decimals = 0): string =>
-  `${formatAsAmount(value, decimals)} kr.`;
-
-const formatFaktor = (value: number): string => formatAsAmount(value, 3);
-
-const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
+import { formatFaktorEet as formatFaktor, formatJaNejEet as formatJaNej, formatKrEet as formatKr } from './eetPdfUtils';
 
 export const buildKapitaliseringPdfFilename = (journalnr?: string): string =>
   resolvePdfFileName('Kapitalisering (EET)', false, journalnr);
@@ -95,7 +89,7 @@ export const addKapitaliseringAfgoerelseSection = (
   );
 
   writer.writeLeftRightTextSingleLine(
-    `Reguleringsprocent (${formatIsoDateLong(afgoerelse.kapitaliseringsdato)})`,
+    `Reguleringsprocent (${formatIsoDateShort(afgoerelse.kapitaliseringsdato)})`,
     `${formatAsAmountTrimmed(afgoerelse.reguleringsPctRounded4, 4)} %`,
     rowOpts
   );

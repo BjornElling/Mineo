@@ -11,14 +11,14 @@ import {
 } from './pdfHelpers';
 import { createStandardPdfWriter } from './pdfWriter';
 import { formatIsoDateLong, formatIsoDateShort } from '../dateFormatting';
-import { formatAsAmount } from '../formatUtils';
 import type { EetEalComputation } from '../../domain/erhvervsevnetab/eetEalCalculation';
-import { formatPercentTrimmedFromRounded4 } from '../../domain/erhvervsevnetab/eetEalCalculation';
+import { formatPercentTrimmedFromRounded4, buildAldersreduktionFormelTekst } from '../../domain/erhvervsevnetab/eetEalCalculation';
 import type { PdfCommonOptions } from './pdfOptions';
 import { TODAY } from '../../config/dateRanges';
 import { resolvePdfFileName } from './pdfFormatUtils';
+import { formatAsAmount } from '../formatUtils';
+import { formatKrEet as formatKr } from './eetPdfUtils';
 
-const formatKr = (value: number): string => `${formatAsAmount(value, 0)} kr.`;
 const formatPct = (value: number): string => `${formatPercentTrimmedFromRounded4(value)} %`;
 
 export const buildEfterEalPdfFilename = (journalnr?: string): string =>
@@ -86,7 +86,8 @@ export const renderEfterEalBody = (
 
   writer.writeLeftRightTextSingleLine(
     'Kapitaliseringsfaktor',
-    String(computation.kapitaliseringsfaktor),
+    // EAL-faktoren er altid 10 (fast ved lov) — vises som heltal uden decimaler
+    formatAsAmount(computation.kapitaliseringsfaktor, 0),
     rowOpts
   );
 
@@ -124,14 +125,10 @@ export const renderEfterEalBody = (
     rowOpts
   );
 
-  const aldersreduktionFormula = (() => {
-    if (computation.alderVedSkade <= 29) return '0 =';
-    if (computation.alderVedSkade > 54) {
-      const cappedAge = Math.min(computation.alderVedSkade, 69);
-      return `(${cappedAge} - 29) + (${cappedAge} - 54) x 2 =`;
-    }
-    return `(${computation.alderVedSkade} - 29) =`;
-  })();
+  const aldersreduktionFormula = buildAldersreduktionFormelTekst(
+    computation.alderVedSkade,
+    computation.alderVedSkadeCapped
+  );
 
   writer.writeLeftRightTextSingleLine(
     `Aldersreduktion ${aldersreduktionFormula}`,

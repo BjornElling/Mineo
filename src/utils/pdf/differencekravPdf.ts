@@ -8,7 +8,7 @@
  *  - EET efter EAL (beregningssiden)
  *  - Proformakapitalisering af rest-EET
  *
- * Formatering af bilag følger slavisk de individuelle PDF-generatorer.
+ * Formatering af bilag følger nøjagtigt de individuelle PDF-generatorer.
  * Beregningerne stammer fra differencekrav-beregningen (ikke fra de
  * individuelle faner), da der kan være mindre afvigelser (fx ophørsdato
  * for løbende ydelser = beregningsdato − 1 dag i differencekrav).
@@ -21,12 +21,12 @@ import {
 import { MARGINS } from './pdfConfig';
 import { createStandardPdfWriter } from './pdfWriter';
 import { formatIsoDateLong, formatIsoDateShort } from '../dateFormatting';
-import { formatAsAmount, formatAsAmountTrimmed } from '../formatUtils';
+import { formatAsAmountTrimmed } from '../formatUtils';
 import type {
   EetDifferencekravComputation,
   EetDifferencekravProformaKapitalisering,
 } from '../../domain/erhvervsevnetab/eetDifferencekravCalculation';
-import { formatKapPct } from '../../domain/erhvervsevnetab/eetDifferencekravCalculation';
+import { formatPct as formatKapPct } from '../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { formatKapitaliseringsPct } from '../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
 import {
   buildKapitaliseringGrundydelseExpression,
@@ -35,6 +35,7 @@ import {
 import type { PdfCommonOptions } from './pdfOptions';
 import { TODAY } from '../../config/dateRanges';
 import { resolvePdfFileName } from './pdfFormatUtils';
+import { formatFaktorEet as formatFaktor, formatJaNejEet as formatJaNej, formatKrEet as formatKr } from './eetPdfUtils';
 import {
   addLoebendeAfgoerelseSection,
   addLoebendeYdelserEmptyState,
@@ -45,13 +46,6 @@ import {
   addKapitaliseringEmptyState,
 } from './kapitaliseringPdf';
 import { renderEfterEalBody } from './efterEalPdf';
-
-const formatKr = (value: number, decimals = 0): string =>
-  `${formatAsAmount(value, decimals)} kr.`;
-
-const formatFaktor = (value: number): string => formatAsAmountTrimmed(value, 3);
-
-const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
 
 export const buildDifferencekravPdfFilename = (journalnr?: string): string =>
   resolvePdfFileName('Differencekrav (EET)', false, journalnr);
@@ -106,7 +100,7 @@ const addProformaKapitaliseringSection = (
   );
 
   writer.writeLeftRightTextSingleLine(
-    `Reguleringsprocent (${formatIsoDateLong(pk.kapitaliseringsdato)})`,
+    `Reguleringsprocent (${formatIsoDateShort(pk.kapitaliseringsdato)})`,
     `${formatAsAmountTrimmed(pk.reguleringsPctRounded4, 4)} %`,
     rowOpts
   );
@@ -296,7 +290,7 @@ const renderDifferencekravPage = (
     writer.writeWrappedText('Der foretages fradrag med kapitaliseringsværdien af resterende EET.');
     writer.writeLeftRightTextSingleLine(
       `Proformakapitalisering (${formatKapPct(pk.loebendeEetPct)}) den ${formatIsoDateShort(pk.kapitaliseringsdato)}:`,
-      `- ${formatKr(computation.proformaBeloeb)}`,
+      `- ${formatKr(pk.proformaBeloeb)}`,
       rowOpts
     );
   }

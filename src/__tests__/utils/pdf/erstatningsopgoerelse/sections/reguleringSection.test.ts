@@ -4,7 +4,22 @@ import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/
 import { STAMDATA_INITIAL_VALUES } from '../../../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../../../types/branded';
 
+const { autoTableMock } = vi.hoisted(() => ({
+  autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number }) => {
+    doc.lastAutoTable = { finalY: (options.startY ?? 0) + 20 };
+  }),
+}));
+
+vi.mock('jspdf-autotable', () => ({
+  default: autoTableMock,
+}));
+
 const iso = (value: string) => toISODateString(value);
+
+const createMockPdfDoc = () => ({
+  internal: { pageSize: { width: 210, height: 297 } },
+  addPage: vi.fn(),
+});
 
 const makeContext = (
   eoValues: ReturnType<typeof createErstatningsopgoerelseInitialValues>,
@@ -16,6 +31,7 @@ const makeContext = (
   const writeLabelValueLine = vi.fn();
 
   let y = 0;
+  const doc = createMockPdfDoc();
 
   return {
     startBilagPage,
@@ -42,14 +58,12 @@ const makeContext = (
       buildReguleringsvaerdierTableData: vi.fn(() => null),
       buildReguleringIndexRows: vi.fn(() => []),
       resolveStatistikModelIdFromLabel: vi.fn(() => undefined),
-      renderStandardPdfTable: vi.fn(({ startY }: { startY: number }) => startY + 20),
       writer: {
         addSpacer: vi.fn(),
         setY: vi.fn((nextY: number) => { y = nextY; }),
         getY: vi.fn(() => y),
-        getDoc: vi.fn(() => ({})),
+        getDoc: vi.fn(() => doc),
         writeUnderlinedLabel: vi.fn(),
-        setY: vi.fn(),
       },
     },
   };
@@ -327,6 +341,7 @@ describe('renderReguleringSection – reguleringstekst', () => {
 
 describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => {
   it('skjuler kolonner hvor alle værdier er tomme eller "-"', () => {
+    autoTableMock.mockClear();
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
     eoValues.loenindkomstAnsaettelsesforhold = [
@@ -353,8 +368,7 @@ describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => 
 
     renderReguleringSection(ctx);
 
-    const renderTableMock = vi.mocked(ctx.renderStandardPdfTable);
-    const firstCall = renderTableMock.mock.calls[0]?.[0];
+    const firstCall = autoTableMock.mock.calls[0]?.[1];
     const headerRow = firstCall?.body[0];
 
     expect(headerRow).toBeDefined();

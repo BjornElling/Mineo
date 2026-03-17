@@ -226,8 +226,8 @@ describe('pdfWriter writeUnderlinedLabel', () => {
     writer.addSpacer(5);
     writer.writeUnderlinedLabel('Offentlige ydelser', 10);
 
-    // 100 -> +5 spacer +5 label-linje (ingen ekstra top-spacing i label)
-    expect(writer.getY()).toBe(110);
+    // 100 -> +5 spacer +5 label-linje +1 bundafstand (ingen ekstra top-spacing i label)
+    expect(writer.getY()).toBe(111);
   });
 
   it('kollapser flere manuelle spacere så der samlet kun er én linje over label', async () => {
@@ -239,8 +239,8 @@ describe('pdfWriter writeUnderlinedLabel', () => {
     writer.addSpacer(5);
     writer.writeUnderlinedLabel('Offentlige ydelser', 10);
 
-    // 100 -> normaliseret til 5 mm afstand over label + 5 mm label-linje
-    expect(writer.getY()).toBe(110);
+    // 100 -> normaliseret til 5 mm afstand over label + 5 mm label-linje +1 bundafstand
+    expect(writer.getY()).toBe(111);
   });
 
   it('holder underlinjet label sammen med næste linje ved sideskift', async () => {

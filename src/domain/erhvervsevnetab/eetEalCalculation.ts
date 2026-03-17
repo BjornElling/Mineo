@@ -404,3 +404,4 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 };
 
 export { formatPercentTrimmedFromRounded4 } from './eetLoebendeYdelserCalculation';
+

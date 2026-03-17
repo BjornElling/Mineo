@@ -165,7 +165,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
     });
     const instance = MockJsPDF.instances.at(-1);
     const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
-    expect(renderedText).toContain(`-50,00\u00A0kr.`);
+    expect(renderedText).toContain('-50,00 kr.');
   });
 
   it('renderer "Allerede betalt TAF" som fradragslinje', async () => {
@@ -175,7 +175,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
     const instance = MockJsPDF.instances.at(-1);
     const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
     expect(renderedText).toContain('Allerede betalt TAF');
-    expect(renderedText).toContain(`- 25.000,00\u00A0kr.`);
+    expect(renderedText).toContain('- 25.000,00 kr.');
   });
 
   it('viser forlig-sektion og forlig-reference i \"I alt\"-linjen når forlig er indgået', async () => {
@@ -204,6 +204,6 @@ describe('tafFordeltPaaAarPdf wiring', () => {
     expect(renderedText).toContain('Forlig');
     expect(renderedText.some((text) => String(text).includes('indgået forlig i sagen på betaling af 50%.'))).toBe(true);
     expect(renderedText.some((text) => String(text).includes('I alt (50% af'))).toBe(true);
-    expect(renderedText).toContain(`187.500,00\u00A0kr.`);
+    expect(renderedText).toContain('187.500,00 kr.');
   });
 });

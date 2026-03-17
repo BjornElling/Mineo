@@ -1,6 +1,7 @@
 import autoTable, { type CellDef, type CellHookData, type RowInput, type Styles } from 'jspdf-autotable';
 import type jsPDF from 'jspdf';
 import { COLORS, MARGINS, PDF_CONTENT_WIDTH_MM, PDF_FONT_FAMILY, TABLE_STYLES } from './pdfConfig';
+import { createJsPdfAdapter } from './jsPdfAdapter';
 
 export const TABLE_FONT_SIZE = 8;
 export const EO_TABLE_CELL_PADDING = TABLE_STYLES.cellPadding;
@@ -90,7 +91,7 @@ export const renderEoStylePdfTable = (params: Readonly<{
   } = params;
 
   const transparentSet = new Set(transparentRowIndices);
-  const pageHeight = doc.internal.pageSize.getHeight();
+  const pageHeight = createJsPdfAdapter(doc).getPageHeight();
   const contentBottom = pageHeight - MARGINS.bottom;
   const remainingHeight = contentBottom - startY;
   const rowsToKeepTogether = Math.min(body.length, 2);

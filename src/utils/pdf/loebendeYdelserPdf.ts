@@ -37,23 +37,19 @@ import type { PdfCommonOptions } from './pdfOptions';
 import { TODAY } from '../../config/dateRanges';
 import { formatAsAmount } from '../formatUtils';
 import { resolvePdfFileName } from './pdfFormatUtils';
-import { roundByMethod } from '../rounding';
+import { round4 } from '../../domain/erhvervsevnetab/eetRounding';
 import {
   ASL_MAX_AARSLOEN_2003,
   ASL_MAX_AARSLOEN_2024,
   reguleringsprocentErhvervsevnetabFoer2024,
 } from '../../data/regulationRates';
-
-const formatKr = (value: number, decimals = 0): string =>
-  `${formatAsAmount(value, decimals)} kr.`;
-
-const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
+import { formatJaNejEet as formatJaNej, formatKrEet as formatKr } from './eetPdfUtils';
 
 const formatRegulering = (value: number): string =>
   `${value >= 0 ? '+' : '-'} ${formatPct(Math.abs(value))}`;
 
 const formatMaaneder = (value: number): string =>
-  formatAsAmount(roundByMethod(value, 4, 'halfAwayFromZero'), 4);
+  formatAsAmount(round4(value), 4);
 
 const formatEetLabel = (eetPct: number, priorKapPct: number): string =>
   priorKapPct > 0
@@ -261,7 +257,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
   // Grundydelse pr. afgørelse
   const reguleringFoer2024Pct = reguleringsprocentErhvervsevnetabFoer2024[2024] ?? 0;
   const reguleringFoer2024FaktorTekst = formatAsAmount(
-    roundByMethod(1 + reguleringFoer2024Pct / 100, 3, 'halfAwayFromZero'),
+    round4(1 + reguleringFoer2024Pct / 100),
     3
   );
 

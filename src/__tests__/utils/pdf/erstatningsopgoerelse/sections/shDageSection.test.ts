@@ -4,7 +4,22 @@ import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/
 import { toISODateString, isISODateString } from '../../../../../types/branded';
 import type { IsoRange } from '../../../../../domain/erstatningsopgoerelse/tafPeriodConstraints';
 
+const { autoTableMock } = vi.hoisted(() => ({
+  autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number }) => {
+    doc.lastAutoTable = { finalY: (options.startY ?? 0) + 20 };
+  }),
+}));
+
+vi.mock('jspdf-autotable', () => ({
+  default: autoTableMock,
+}));
+
 const iso = (value: string) => toISODateString(value);
+
+const createMockPdfDoc = () => ({
+  internal: { pageSize: { width: 210, height: 297 } },
+  addPage: vi.fn(),
+});
 
 const tafRangesFromEoValues = (eoValues: ReturnType<typeof createErstatningsopgoerelseInitialValues>): IsoRange[] =>
   (eoValues.tafPerioder ?? [])
@@ -14,16 +29,15 @@ const tafRangesFromEoValues = (eoValues: ReturnType<typeof createErstatningsopgo
 
 const makeContext = (eoValues: ReturnType<typeof createErstatningsopgoerelseInitialValues>) => {
   let y = 0;
+  const doc = createMockPdfDoc();
   const safeAddWrappedText = vi.fn();
   const renderSubheader = vi.fn();
   const startBilagPage = vi.fn();
-  const renderStandardPdfTable = vi.fn(({ startY }: { startY: number }) => startY + 20);
 
   return {
     safeAddWrappedText,
     renderSubheader,
     startBilagPage,
-    renderStandardPdfTable,
     ctx: {
       eoValues,
       tafRanges: tafRangesFromEoValues(eoValues),
@@ -31,12 +45,11 @@ const makeContext = (eoValues: ReturnType<typeof createErstatningsopgoerelseInit
       startBilagPage,
       renderSubheader,
       safeAddWrappedText,
-      renderStandardPdfTable,
       writer: {
         addSpacer: vi.fn(),
         setY: vi.fn((nextY: number) => { y = nextY; }),
         getY: vi.fn(() => y),
-        getDoc: vi.fn(() => ({})),
+        getDoc: vi.fn(() => doc),
       },
     },
   };
@@ -82,28 +95,30 @@ describe('renderShDageSection – TAF-periode uden helligdage', () => {
 
 describe('renderShDageSection – TAF-periode med helligdage', () => {
   it('kalder renderStandardPdfTable når der er helligdage i perioden', () => {
+    autoTableMock.mockClear();
     const eoValues = createErstatningsopgoerelseInitialValues();
     // Juleperioden 2024 indeholder helligdage (25. + 26. december)
     eoValues.tafPerioder = [
       { id: 'taf-1', fra: iso('2024-12-24'), til: iso('2024-12-26'), loseFeriedage: undefined },
     ];
-    const { renderStandardPdfTable, ctx } = makeContext(eoValues);
+    const { ctx } = makeContext(eoValues);
 
     renderShDageSection(ctx);
 
-    expect(renderStandardPdfTable).toHaveBeenCalled();
+    expect(autoTableMock).toHaveBeenCalled();
   });
 
   it('tabellen indeholder juleaftensrækker for 25. december 2024 (SH-dag – onsdag)', () => {
+    autoTableMock.mockClear();
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.tafPerioder = [
       { id: 'taf-1', fra: iso('2024-12-24'), til: iso('2024-12-26'), loseFeriedage: undefined },
     ];
-    const { renderStandardPdfTable, ctx } = makeContext(eoValues);
+    const { ctx } = makeContext(eoValues);
 
     renderShDageSection(ctx);
 
-    const call = renderStandardPdfTable.mock.calls[0]?.[0];
+    const call = autoTableMock.mock.calls[0]?.[1];
     expect(call).toBeDefined();
     // body er et array af rækker; header er første række, data følger
     const body: unknown[][] = (call as { body: unknown[][] }).body;

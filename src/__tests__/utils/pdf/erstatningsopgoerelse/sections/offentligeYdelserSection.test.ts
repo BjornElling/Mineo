@@ -2,13 +2,28 @@ import { describe, expect, it, vi } from 'vitest';
 import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { renderOffentligeYdelserSection } from '../../../../../utils/pdf/erstatningsopgoerelse/sections/offentligeYdelserSection';
 
+const { autoTableMock } = vi.hoisted(() => ({
+  autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number }) => {
+    doc.lastAutoTable = { finalY: (options.startY ?? 0) + 10 };
+  }),
+}));
+
+vi.mock('jspdf-autotable', () => ({
+  default: autoTableMock,
+}));
+
+const createMockPdfDoc = () => ({
+  internal: { pageSize: { width: 210, height: 297 } },
+  addPage: vi.fn(),
+});
+
 const makeCtx = (override: Partial<Parameters<typeof renderOffentligeYdelserSection>[0]> = {}) => {
   let y = 0;
   const eoValues = createErstatningsopgoerelseInitialValues();
+  const doc = createMockPdfDoc();
   return {
     startBilagPage: vi.fn(),
     renderSubheader: vi.fn(),
-    renderStandardPdfTable: vi.fn(({ startY }: { startY: number }) => startY + 10),
     ctx: {
       eoValues,
       lineHeight: 4,
@@ -17,12 +32,11 @@ const makeCtx = (override: Partial<Parameters<typeof renderOffentligeYdelserSect
       shouldIncludeOffentligYdelseRowInBilag: vi.fn(() => true),
       bilagIndkomstYdelserMode: 'Alle' as const,
       bilagIndkomstYdelserRanges: [] as const,
-      renderStandardPdfTable: vi.fn(({ startY }: { startY: number }) => startY + 10),
       writer: {
         addSpacer: vi.fn(),
         setY: vi.fn((nextY: number) => { y = nextY; }),
         getY: vi.fn(() => y),
-        getDoc: vi.fn(() => ({})),
+        getDoc: vi.fn(() => doc),
       },
       ...override,
     },
@@ -114,6 +128,7 @@ describe('renderOffentligeYdelserSection – gruppering per ydelsestype', () => 
 
 describe('renderOffentligeYdelserSection tabelbredde', () => {
   it('fordeler kolonner over fuld tabelbredde i PDF', () => {
+    autoTableMock.mockClear();
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.offentligeYdelserRows = [
       {
@@ -127,7 +142,7 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
     ];
 
     let y = 0;
-    const renderStandardPdfTable = vi.fn(({ startY }) => startY + 10);
+    const doc = createMockPdfDoc();
 
     renderOffentligeYdelserSection({
       eoValues,
@@ -137,19 +152,18 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
       shouldIncludeOffentligYdelseRowInBilag: vi.fn(() => true),
       bilagIndkomstYdelserMode: 'Alle',
       bilagIndkomstYdelserRanges: [],
-      renderStandardPdfTable,
       writer: {
         addSpacer: vi.fn(),
         setY: vi.fn((nextY: number) => {
           y = nextY;
         }),
         getY: vi.fn(() => y),
-        getDoc: vi.fn(() => ({})),
+        getDoc: vi.fn(() => doc),
       },
     });
 
-    expect(renderStandardPdfTable).toHaveBeenCalled();
-    const firstCall = renderStandardPdfTable.mock.calls[0]?.[0];
+    expect(autoTableMock).toHaveBeenCalled();
+    const firstCall = autoTableMock.mock.calls[0]?.[1];
     const firstColumnStyle = (firstCall?.columnStyles as Record<number, { cellWidth: number }>)[0];
 
     expect(firstColumnStyle.cellWidth).toBeCloseTo(170 / 5, 6);

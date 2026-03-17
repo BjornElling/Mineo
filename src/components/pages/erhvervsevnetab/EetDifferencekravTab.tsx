@@ -13,9 +13,9 @@ import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
 import {
   computeEetDifferencekravCalculation,
-  formatKapPct,
   type EetDifferencekravProformaKapitalisering,
 } from '../../../domain/erhvervsevnetab/eetDifferencekravCalculation';
+import { formatPct as formatKapPct } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import {
   buildKapitaliseringGrundydelseExpression,
   buildKapitaliseringGrundydelseLabel,
@@ -447,10 +447,10 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
               <TextHoverRow text="Der foretages fradrag med kapitaliseringsværdien af resterende EET." />
               <Box className="row--label-right-hover">
                 <Typography className="row--text">
-                  {`Proformakapitalisering (${formatKapPct(computation.proformaKapitalisering.loebendeEetPct)}) per ${formatIsoDateLong(computation.proformaKapitalisering.kapitaliseringsdato)}:`}
+                  {`Proformakapitalisering (${formatKapPct(computation.proformaKapitalisering.loebendeEetPct)}) den ${formatIsoDateShort(computation.proformaKapitalisering.kapitaliseringsdato)}:`}
                 </Typography>
                 <Box className="row--label-right-hover__content">
-                  <Typography className="row--text">{`- ${formatKr(computation.proformaBeloeb)}`}</Typography>
+                  <Typography className="row--text">{`- ${formatKr(computation.proformaKapitalisering.proformaBeloeb)}`}</Typography>
                 </Box>
               </Box>
             </>
