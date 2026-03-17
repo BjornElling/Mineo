@@ -28,7 +28,7 @@ export const gyldigTil = toISODateString('2015-02-28');
 // Kun tabeller for erhvervsevnetab og forsørgertab er medtaget.
 // Tabeller for varigt mén og behandlingsudgifter er bevidst udeladt.
 
-const HISTORISK_ERHVERVSEVNETAB_TABELVALG_DATA = [
+const ERHVERVSEVNETAB_TABELVALG_DATA = [
   // skadesdatoFra     foedselsdatoFra     foedselsdatoTil     ophoersalderAarLabel     tabel
   ['2011-01-01',     '1955-07-01',     null,     '67',     'A'],
   ['2011-01-01',     '1955-01-01',     '1955-06-30',     '66.5',     'B'],
@@ -36,11 +36,12 @@ const HISTORISK_ERHVERVSEVNETAB_TABELVALG_DATA = [
   ['2011-01-01',     '1954-01-01',     '1954-06-30',     '65.5',     'D'],
 ] as const;
 
-export const historiskErhvervsevnetabTabelvalg = HISTORISK_ERHVERVSEVNETAB_TABELVALG_DATA.map(
+export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
   ([skadesdatoFra, foedselsdatoFra, foedselsdatoTil, ophoersalderAarLabel, tabel]) => ({
     skadesdatoFra: toISODateString(skadesdatoFra),
     foedselsdatoFra: toISODateString(foedselsdatoFra),
     foedselsdatoTil: foedselsdatoTil ? toISODateString(foedselsdatoTil) : null,
+    folkepensionsalderAar: null,
     ophoersalderAarLabel,
     tabel,
   })
@@ -238,4 +239,3 @@ export const forsoergertabTabellerKvinder = {
 } as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
 
 export const forsoergertabAfloesningsTabeller = {} as const satisfies Record<string, readonly AldersFaktorRaekke[]>;
-

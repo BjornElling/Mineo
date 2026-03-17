@@ -667,7 +667,7 @@ describe('isUnderOrEqualTwoYearsToFpByBekendtgoerelse', () => {
 });
 
 describe('resolveKapitaliseringTabelvalg', () => {
-  it('resolver historisk tabelvalg uden fødselsdato for 1047/2008', () => {
+  it('resolver tabelvalg med ophørsalder uden fødselsintervaller for 1047/2008', () => {
     const tabeldata = getKapitaliseringsTabelData('1047/2008');
     expect(tabeldata).toBeDefined();
 
@@ -685,7 +685,7 @@ describe('resolveKapitaliseringTabelvalg', () => {
     });
   });
 
-  it('resolver historisk tabelvalg uden fødselsdato for 1068/2003', () => {
+  it('resolver tabelvalg med ophørsalder uden fødselsintervaller for 1068/2003', () => {
     const tabeldata = getKapitaliseringsTabelData('1068/2003');
     expect(tabeldata).toBeDefined();
 
@@ -717,6 +717,24 @@ describe('resolveKapitaliseringTabelvalg', () => {
       tabel: 'D',
       folkepensionsalderMaaneder: 786,
       folkepensionsalderLabel: '65,5 år',
+      usesKoen: false,
+    });
+  });
+
+  it('resolver 9871/2020 via samme tabelvalgskontrakt som oevrige bekendtgoerelser', () => {
+    const tabeldata = getKapitaliseringsTabelData('9871/2020');
+    expect(tabeldata).toBeDefined();
+
+    const result = resolveKapitaliseringTabelvalg(
+      tabeldata!,
+      toISODateString('2007-07-01'),
+      toISODateString('1972-01-08')
+    );
+
+    expect(result).toEqual({
+      tabel: 'A',
+      folkepensionsalderMaaneder: 828,
+      folkepensionsalderLabel: '69 år',
       usesKoen: false,
     });
   });

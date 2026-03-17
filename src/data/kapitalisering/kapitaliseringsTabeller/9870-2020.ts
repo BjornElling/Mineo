@@ -29,10 +29,8 @@ export const gyldigTil = toISODateString('2020-12-31');
 // Udtrukket fra VEJ nr 9870 af 01/12/2020.
 // Kun tabeller for erhvervsevnetab og forsørgertab er medtaget.
 // Tabeller for varigt mén og behandlingsudgifter er bevidst udeladt.
-// Kilden angiver ikke eksplicit historisk EET-tabelvalg, forsørgertab-tabelvalg
+// Kilden angiver ikke eksplicit EET-tabelvalg for ældre ordninger, forsørgertab-tabelvalg
 // eller særfaktor ved <2 år til folkepension. Disse felter udfyldes derfor ikke.
-
-export const historiskErhvervsevnetabTabelvalg = [] as const;
 
 const ERHVERVSEVNETAB_TABELVALG_DATA = [
   // skadesdatoFra     foedselsdatoFra     folkepensionsalderAar     tabel

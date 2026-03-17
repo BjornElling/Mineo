@@ -67,6 +67,8 @@ export type EetLoebendeComputation = Readonly<{
   grundloen: number;
   erstatningsniveauPct: 80 | 83;
   amBidragPct: 0 | 8;
+  // Kumuleret regulering fra 2003-niveau til 2024-niveau. Kun relevant for grundloenNiveau === '2003'.
+  reguleringFoer2024Pct: number;
   afgoerelser: readonly EetLoebendeAfgoerelseComputation[];
 }>;
 
@@ -582,6 +584,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
     grundloen,
     erstatningsniveauPct,
     amBidragPct,
+    reguleringFoer2024Pct: before2024Skade ? (reguleringFoer2024 ?? 0) : 0,
     afgoerelser: computations,
   };
 

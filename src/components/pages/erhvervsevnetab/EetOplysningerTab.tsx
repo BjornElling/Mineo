@@ -10,13 +10,11 @@ import EetAslAfgoerelserTable from '../../tables/EetAslAfgoerelserTable';
 import { dateRanges_stamdata, dateRanges_erhvervsevnetab } from '../../../config/dateRanges';
 import {
   koenEnum,
-  stamdataSchema,
   type ErhvervsevnetabValues,
+  type StamdataValues,
 } from '../../../schemas/formSchemas';
 import { coerceToISODateString } from '../../../types/branded';
-import { usePersistedForm } from '../../../hooks/usePersistedForm';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
-import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createCommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
 import {
   validatePercentDivisibleBy5FromValue,
@@ -28,18 +26,17 @@ export type EetOplysningerTabProps = {
   handleChange: <K extends keyof ErhvervsevnetabValues>(
     key: K
   ) => CommitHandler<ErhvervsevnetabValues[K]>;
+  stamValues: StamdataValues;
+  handleStamChange: <K extends keyof StamdataValues>(key: K) => CommitHandler<StamdataValues[K]>;
 };
 
 const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
   values,
   setValues,
   handleChange,
+  stamValues,
+  handleStamChange,
 }) => {
-  const { values: stamValues, handleChange: handleStamChange } = usePersistedForm(
-    stamdataSchema,
-    'stamdata',
-    STAMDATA_INITIAL_VALUES
-  );
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
 
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);

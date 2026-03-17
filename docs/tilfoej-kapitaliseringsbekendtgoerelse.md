@@ -28,9 +28,9 @@ Dette matcher implementeringsretningen i:
 - Der må aldrig indføjes, udfyldes, estimeres eller \"genbruges\" værdier fra andre kapitaliseringsbekendtgørelser.
 - Hvis en værdi/tabellerække mangler i kilden, skal den forblive manglende i outputtet (ingen fallback-data).
 - Ingen normalisering må ændre tabelindholdets faktiske værdier eller struktur; kun formatkonvertering er tilladt (fx komma -> punktum i decimaltal).
-- For historiske kilder med kønsopdelte tabeller skal kønsopdelingen bevares fuldt 1:1 i separate exports (ingen sammensmeltning, gennemsnit eller afledte tabeller).
-- Historisk regel: frem til og med 28. februar 2015 anvendes kønsafhængige kapitaliseringssatser. Fra og med 1. marts 2015 bortfalder kønsopdelingen, og kapitalisering sker kønsneutralt med én fælles kapitaliseringsfaktor.
-- Historisk pensionsalder: Det er forventelig adfærd, at pensionsalderen var lavere i ældre bekendtgørelser og er steget over tid. Samme fødselsdato/fødselsinterval kan derfor være knyttet til en lavere pensionsalder i en ældre bekendtgørelse og en højere pensionsalder i en senere bekendtgørelse.
+- For ældre kilder med kønsopdelte tabeller skal kønsopdelingen bevares fuldt 1:1 i separate exports (ingen sammensmeltning, gennemsnit eller afledte tabeller).
+- Regel for kønsopdeling: frem til og med 28. februar 2015 anvendes kønsafhængige kapitaliseringssatser. Fra og med 1. marts 2015 bortfalder kønsopdelingen, og kapitalisering sker kønsneutralt med én fælles kapitaliseringsfaktor.
+- Pensionsalder i ældre bekendtgørelser: Det er forventelig adfærd, at pensionsalderen var lavere i ældre bekendtgørelser og er steget over tid. Samme fødselsdato/fødselsinterval kan derfor være knyttet til en lavere pensionsalder i en ældre bekendtgørelse og en højere pensionsalder i en senere bekendtgørelse.
 - Bekendtgørelse og vejledning behandles ens i data: identifikation sker via `id` i format `nummer/år`.
 - `gyldigFra/gyldigTil` er altid kapitaliseringsdato-gyldighed (omsætningstidspunkt) - aldrig fødselsdato-/tabelvalgsintervaller.
 - Der må ikke gættes på uklare værdier. Ved tvivl stoppes udtræk, og uklarhed markeres eksplicit.
@@ -52,21 +52,20 @@ Dette matcher implementeringsretningen i:
 
 ## Kendte undtagelser der skal dokumenteres i filerne
 
-- Kontrakten har to gyldige varianter:
-  - Historisk variant med `historiskErhvervsevnetabTabelvalg` (og evt. kønsopdelte tabeller).
-  - Tidlig historisk variant med `historiskErhvervsevnetabTabelvalgUdenFoedselsdato` når kilden angiver ophørsalder pr. tabel, men ikke fødselsdato-intervaller.
-  - Moderne variant med `erhvervsevnetabTabelvalg`, `forsoergertabTabelvalg` og `saerfaktorUnderToAarTilFpPerSkadesinterval`.
-- Varianterne må ikke blandes ved antagelser; kun felter der findes eksplicit i kilden udfyldes.
+- Der findes kun én gyldig EET-kontrakt i programmet: `erhvervsevnetabTabelvalg`.
+- Ældre bekendtgørelser skal stadig registreres i samme kontrakt som nyere bekendtgørelser. Programmet skal kunne beregne bagud i tid, men bekendtgørelser må aldrig registreres som en særskilt type.
+- Hvis kilden arbejder med ophørsalder i stedet for et helt `folkepensionsalderAar`, lægges værdien stadig i `erhvervsevnetabTabelvalg` via `ophoersalderAarLabel`.
+- Hvis kilden ikke har fødselsdato-intervaller, bruges stadig `erhvervsevnetabTabelvalg` med et eksplicit bredt fødselsinterval i data i stedet for en særskilt alternativ export.
 - For VEJ `9921/2019` og `9870/2020` er 2020 bevidst opdelt i to intervaller:
   - `9921/2019` dækker `2020-01-01` til `2020-12-30`.
   - `9870/2020` dækker kun `2020-12-31`.
-- For VEJ `9921/2019` og `9870/2020` udfyldes ikke historisk EET-tabelvalg, forsørgertab-tabelvalg eller særfaktor ved `<2 år`, når disse ikke fremgår eksplicit af kilden.
+- For VEJ `9921/2019` og `9870/2020` udfyldes ikke ekstra EET-tabelvalg for ældre ordninger, forsørgertab-tabelvalg eller særfaktor ved `<2 år`, når disse ikke fremgår eksplicit af kilden.
 - For VEJ `9820/2023` og `9376/2024` kan filernes `gyldig`-intervaller overlappe i anden halvdel af 2024; deterministisk prioritering skal styres i `src/data/kapitalisering/kapitaliseringsbekendtgørelser.ts` med skæringsdato `2024-07-01`.
 - For VEJ `9741/2020`, `9864/2021`, `10141/2022` og `9820/2023` er tabelvalg bevidst begrænset til skadesdatoer fra `2011-01-01`, når kilden kun angiver tabeller `A-H`.
 - `forsoergertabAfloesningsTabeller = {}` betyder, at kilden ikke indeholder afløsningstabeller for den bekendtgørelse/vejledning.
-- Historisk undtagelse: Hvis kilden kun angiver kønsopdelte afløsningstabeller, skal de bevares i `forsoergertabAfloesningsTabellerKoensopdelt` (ingen sammenfletning til kønsneutral tabel).
+- Hvis kilden kun angiver kønsopdelte afløsningstabeller, skal de bevares i `forsoergertabAfloesningsTabellerKoensopdelt` (ingen sammenfletning til kønsneutral tabel).
 - De fil-lokale interface-definitioner (`AldersFaktorRaekke`, `ForsoergertabMatrixRaekke`, `AldersKoensopdeltFaktorRaekke`) er en bevidst selvstændighedsstrategi for hver tabelfil, ikke en datamæssig forskel.
-- Hvis kilden kun har én EET-tabel med formuleringer som `tilkendt til det 65. år, men uden omsætningsmulighed efter 63. år` eller `uden omsætningsmulighed fra det 63. år`, skal ophørsalderen stadig udtrækkes, og tabelvalget udtrykkes i `historiskErhvervsevnetabTabelvalgUdenFoedselsdato`. I disse kilder er fødselsdato ikke en del af opslagsnøglen.
+- Hvis kilden kun har én EET-tabel med formuleringer som `tilkendt til det 65. år, men uden omsætningsmulighed efter 63. år` eller `uden omsætningsmulighed fra det 63. år`, skal ophørsalderen stadig udtrækkes, og tabelvalget udtrykkes i `erhvervsevnetabTabelvalg`. I disse kilder kan fødselsintervallet være bredt, fordi fødselsdato ikke er en reel del af opslagsnøglen i kilden.
 
 ## Udtræksflow (hver gang)
 
@@ -87,7 +86,7 @@ Dette matcher implementeringsretningen i:
 3. Identificer tabelvalg-oplysninger:
 - `skadesdatoFra`.
 - `foedselsdatoFra`.
-- `folkepensionsalderAar` eller historisk `ophoersalderAarLabel` direkte fra kilden.
+- `folkepensionsalderAar` eller `ophoersalderAarLabel` direkte fra kilden.
 - Hvilken tabel (`A`, `B`, ...).
 
 Fortolkning af pensionsalder i kilden:
@@ -98,8 +97,8 @@ Fortolkning af pensionsalder i kilden:
   - andet halvår 1954: `66 år`
   - første halvår 1954: `65,5 år`
   - 1953 eller tidligere: `65 år`
-- Denne fortolkning er ikke en fallback, men en korrekt historisk afspejling af folkepensionsalderen/ophørsalderen og skal respekteres ved både udtræk, opslag og test.
-- Eksempel: formuleringen `for hvem den løbende ydelse ophører ved det fyldte 66½. år` skal udtrækkes som historisk ophørsalder `66½` for den pågældende fødselsgruppe/tabel.
+- Denne fortolkning er ikke en fallback, men en korrekt afspejling af folkepensionsalderen/ophørsalderen i den konkrete bekendtgørelse og skal respekteres ved både udtræk, opslag og test.
+- Eksempel: formuleringen `for hvem den løbende ydelse ophører ved det fyldte 66½. år` skal udtrækkes som ophørsalder `66½` for den pågældende fødselsgruppe/tabel.
 - Denne fortolkning er ikke en afledning fra ekstern lovviden, men en direkte udlæsning af bekendtgørelsens egen beskrivelse af ophørstidspunktet for den løbende ydelse.
 
 4. Identificer særfaktor ved under 2 år til folkepension.
@@ -241,8 +240,7 @@ export const forsoergertabAfloesningsTabeller = {
   ],
 } as const satisfies Record<string, readonly AldersFaktorRaekke[]>;
 
-// Historiske filer med kønsopdeling skal desuden eksportere:
-export const historiskErhvervsevnetabTabelvalg = [] as const;
+// Filer med kønsopdeling skal desuden eksportere:
 export const erhvervsevnetabKoensopdelteTabeller = {} as const satisfies Record<
   string,
   readonly AldersKoensopdeltFaktorRaekke[]
@@ -261,13 +259,14 @@ export const forsoergertabAfloesningsTabellerKoensopdelt = {} as const satisfies
 >;
 ```
 
-Præcisering for historiske filer:
+Præcisering for filer med ældre bekendtgørelser:
 
 - Hvis kilden kun har kønsopdelte EET-tabeller, skal `erhvervsevnetabTabeller` være tom (`{}`), og kønsopdelte data skal ligge i `erhvervsevnetabKoensopdelteTabeller`.
 - Hvis kilden kun har kønsopdelte forsørgertabstabeller, skal `forsoergertabTabeller` være tom (`{}`), og data skal ligge i `forsoergertabTabellerMaend` og/eller `forsoergertabTabellerKvinder`.
 - Hvis kilden har både kønsneutrale og kønsopdelte tabeller, skal begge datatyper bevares i hver deres eksport uden transformation.
-- `historiskErhvervsevnetabTabelvalg` bruges når kilden arbejder med historiske ophørsaldre/fødselsintervaller, som ikke kan udtrykkes med den moderne `folkepensionsalderAar`-kontrakt.
-- `historiskErhvervsevnetabTabelvalgUdenFoedselsdato` bruges når kilden arbejder med historiske ophørsaldre pr. tabel, men uden fødselsdato-intervaller.
+- Alle bekendtgørelser, også ældre, skal bruge `erhvervsevnetabTabelvalg`.
+- Brug `folkepensionsalderAar` når kilden angiver hele år direkte. Brug `ophoersalderAarLabel` når kilden angiver ophørsalder som fx `66.5`.
+- Brug et eksplicit bredt fødselsinterval i `erhvervsevnetabTabelvalg`, når kilden ikke arbejder med fødselsdato som egentlig opslagsnøgle.
 
 ## Krav til tabellignende layout (læsbart i kode)
 
@@ -281,8 +280,8 @@ Præcisering for historiske filer:
 1. metadata exports
 2. `..._TABELVALG_DATA` + mapped exports
 3. `...SAERFAKTOR..._DATA` + mapped export
-4. selve tabel-exports (inkl. historiske kønsopdelte exports når relevante)
-- Historiske tabeller fra kilden skal bevares, også hvis de ikke er refereret i det aktuelle tabelvalg. Tilføj en kort kommentar ved tabellerne om dette.
+4. selve tabel-exports (inkl. kønsopdelte exports når relevante)
+- Tabeller fra kilden skal bevares, også hvis de ikke er refereret i det aktuelle tabelvalg. Tilføj en kort kommentar ved tabellerne om dette.
 - Før første forsørgertabstabel i `forsoergertabTabeller` skal kolonneforklaringen stå:
   - `Kolonne 1: Fyldt alder`
   - `Kolonne 2: Resterende erstatningsperiode, antal hele år`

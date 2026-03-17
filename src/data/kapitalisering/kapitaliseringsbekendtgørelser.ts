@@ -21,7 +21,7 @@ import { toISODateString } from '../../types/branded';
 //
 // Tomme celler i den originale oversigt (kombinationer der ikke kan forekomme) er udeladt.
 //
-// Note: Intervallet 01-04-1978 indeholder historiske bekendtgørelser fra før 2005.
+// Note: Intervallet 01-04-1978 indeholder ældre bekendtgørelser fra før 2005.
 // Disse kan aldrig forekomme i praksis (stamdata låser mindste skadesdato til 01-01-2005),
 // men bevares af dokumentationsmæssige årsager.
 //

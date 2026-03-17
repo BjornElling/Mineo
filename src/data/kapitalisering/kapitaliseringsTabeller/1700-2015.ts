@@ -28,7 +28,7 @@ export const gyldigTil = toISODateString('2020-12-30');
 // Kun tabeller for erhvervsevnetab og forsørgertab er medtaget.
 // Tabeller for varigt mén og behandlingsudgifter er bevidst udeladt.
 
-const HISTORISK_ERHVERVSEVNETAB_TABELVALG_DATA = [
+const ERHVERVSEVNETAB_TABELVALG_DATA = [
   // skadesdatoFra     foedselsdatoFra     foedselsdatoTil     ophoersalderAarLabel     tabel
   ['2007-07-01',     '1963-01-01',     null,     '68',     'A'],
   ['2007-07-01',     '1955-07-01',     '1962-12-31',     '67',     'B'],
@@ -44,17 +44,16 @@ const HISTORISK_ERHVERVSEVNETAB_TABELVALG_DATA = [
   ['2004-01-01',     '1900-01-01',     '1953-12-31',     '65',     'M'],
 ] as const;
 
-export const historiskErhvervsevnetabTabelvalg = HISTORISK_ERHVERVSEVNETAB_TABELVALG_DATA.map(
+export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
   ([skadesdatoFra, foedselsdatoFra, foedselsdatoTil, ophoersalderAarLabel, tabel]) => ({
     skadesdatoFra: toISODateString(skadesdatoFra),
     foedselsdatoFra: toISODateString(foedselsdatoFra),
     foedselsdatoTil: foedselsdatoTil ? toISODateString(foedselsdatoTil) : null,
+    folkepensionsalderAar: null,
     ophoersalderAarLabel,
     tabel,
   })
 );
-
-export const erhvervsevnetabTabelvalg = [] as const;
 
 export const erhvervsevnetabTabeller = 
 {

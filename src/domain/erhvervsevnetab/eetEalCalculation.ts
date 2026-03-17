@@ -41,6 +41,8 @@ export type EetEalComputation = Readonly<{
   eetAnvendt: number;
   eetReduceretTilMaks: boolean;
   alderVedSkade: number;
+  // Alder brugt i aldersreduktionsformlen — capped til 69 ved > 69 år
+  alderVedSkadeCapped: number;
   aldersreduktionPct: number;
   aldersreduktionBeloeb: number;
   ealKrav: number;
@@ -95,6 +97,12 @@ const calculateAldersreduktionPct = (ageAtInjury: number): number => {
   const base = cappedAge - 29;
   const extra = ageAtInjury > 54 ? 2 * (cappedAge - 54) : 0;
   return base + extra;
+};
+
+export const buildAldersreduktionFormelTekst = (alderVedSkade: number, alderVedSkadeCapped: number): string => {
+  if (alderVedSkade <= 29) return '0 =';
+  if (alderVedSkade > 54) return `(${alderVedSkadeCapped} - 29) + (${alderVedSkadeCapped} - 54) x 2 =`;
+  return `(${alderVedSkade} - 29) =`;
 };
 
 
@@ -232,6 +240,8 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const fodselsdato = input.fodselsdato;
 
   const aarsloen = resolveAarsloen(values);
+  // amountValueToNumber returnerer undefined for ikke-udfyldt felt og 0 for et committed 0-beløb.
+  // Rækkefølgen herunder er intentionel: explicit 0 er en fejl; undefined er "mangler".
   const ealAarsloenRaw = amountValueToNumber(values.ealAarsloen);
   const aslAarsloenRaw = amountValueToNumber(values.aslAarsloen);
   if (ealAarsloenRaw === 0) {
@@ -357,6 +367,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const eetReduceretTilMaks = eetBeregnet > eetMaks;
   const eetAnvendt = eetReduceretTilMaks ? eetMaks : eetBeregnet;
 
+  const alderVedSkadeCapped = Math.min(alderVedSkade, 69);
   const aldersreduktionPct = calculateAldersreduktionPct(alderVedSkade);
   const aldersreduktionBeloeb = round0(eetAnvendt * (aldersreduktionPct / 100));
   const ealKrav = Math.max(0, round0(eetAnvendt - aldersreduktionBeloeb));
@@ -380,6 +391,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     eetAnvendt,
     eetReduceretTilMaks,
     alderVedSkade,
+    alderVedSkadeCapped,
     aldersreduktionPct,
     aldersreduktionBeloeb,
     ealKrav,

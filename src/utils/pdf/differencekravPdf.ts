@@ -28,6 +28,10 @@ import type {
 } from '../../domain/erhvervsevnetab/eetDifferencekravCalculation';
 import { formatKapPct } from '../../domain/erhvervsevnetab/eetDifferencekravCalculation';
 import { formatKapitaliseringsPct } from '../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
+import {
+  buildKapitaliseringGrundydelseExpression,
+  buildKapitaliseringGrundydelseLabel,
+} from '../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import type { PdfCommonOptions } from './pdfOptions';
 import { TODAY } from '../../config/dateRanges';
 import { resolvePdfFileName } from './pdfFormatUtils';
@@ -85,10 +89,18 @@ const addProformaKapitaliseringSection = (
   );
 
   writer.writeWrappedTextContinued(
-    `Grundydelse (${formatKapPct(pk.loebendeEetPct)}): Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag) =`
+    `${buildKapitaliseringGrundydelseLabel(
+      formatKapPct(pk.loebendeEetPct),
+      pk.amBidragPct
+    )} =`
   );
   writer.writeLeftRightText(
-    `${formatKr(pk.grundloen, 0)} × ${formatKapPct(pk.loebendeEetPct)} × ${pk.erstatningsniveauPct} % × ${100 - pk.amBidragPct} % =`,
+    buildKapitaliseringGrundydelseExpression(
+      formatKr(pk.grundloen, 0),
+      formatKapPct(pk.loebendeEetPct),
+      pk.erstatningsniveauPct,
+      pk.amBidragPct
+    ),
     formatKr(pk.grundydelse, 2),
     rowOpts
   );

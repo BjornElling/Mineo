@@ -1,4 +1,4 @@
-import { formatAsAmount } from '../../../utils/formatUtils';
+import { formatAsAmount, formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import type { EetIssue } from '../../../domain/erhvervsevnetab/eetTypes';
 
 export type EetTabNavigation = Readonly<{
@@ -10,6 +10,10 @@ export type EetTabNavigation = Readonly<{
 
 export const formatKr = (value: number, precision: 0 | 2 = 0): string =>
   `${formatAsAmount(value, precision)} kr.`;
+
+export const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
+
+export const formatFaktor = (value: number): string => formatAsAmountTrimmed(value, 3);
 
 export const toFieldIssue = (
   id: string,
@@ -24,6 +28,7 @@ export const NAVIGATION_SORT_ORDER: Record<string, number> = {
   'eet-oplysninger-stamdata': 1,
   'eet-oplysninger-asl': 2,
   'eet-oplysninger-eal': 3,
+  // 99 bruges implicit for issues uden navigation — her dokumenteret eksplicit
 };
 
 const NAV_STAMDATA_SKADELIDTE: EetTabNavigation = {

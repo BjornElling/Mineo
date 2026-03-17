@@ -6,26 +6,28 @@ import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
-import { formatAsAmount, formatAsAmountTrimmed } from '../../../utils/formatUtils';
+import { coerceToISODateString } from '../../../types/branded';
+import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
 import {
   computeEetKapitaliseringCalculation,
   formatKapitaliseringsPct,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
+import {
+  buildKapitaliseringGrundydelseExpression,
+  buildKapitaliseringGrundydelseLabel,
+} from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import { downloadKapitaliseringPdf } from '../../../utils/pdf/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import TextHoverRow from './TextHoverRow';
 import EetPdfDownloadButton from './EetPdfDownloadButton';
 import { useEetShakeFlag } from './useEetShakeFlag';
-import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
+import { formatFaktor, formatJaNej, formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabValues;
   onGoToEetOplysninger: () => void;
 }>;
-
-const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
-const formatFaktor = (value: number): string => formatAsAmount(value, 3);
 
 
 const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
@@ -119,6 +121,13 @@ const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger })
             </Typography>
 
             <Box className="row--label-right-hover">
+              <Typography className="row--text">Beregningsdato</Typography>
+              <Box className="row--label-right-hover__content">
+                <Typography className="row--text">{formatIsoDateShort(coerceToISODateString(values.beregningsdato))}</Typography>
+              </Box>
+            </Box>
+
+            <Box className="row--label-right-hover">
               <Typography className="row--text">Kapitaliseringsdato</Typography>
               <Box className="row--label-right-hover__content">
                 <Typography className="row--text">{formatIsoDateShort(afgoerelse.kapitaliseringsdato)}</Typography>
@@ -136,11 +145,20 @@ const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger })
 
             <Box className="row--label-right-hover">
               <Typography className="row--text">
-                Grundydelse ({formatKapitaliseringsPct(afgoerelse.kapitaliseringspct)}): Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag)
+                {buildKapitaliseringGrundydelseLabel(
+                  formatKapitaliseringsPct(afgoerelse.kapitaliseringspct),
+                  afgoerelse.amBidragPct
+                )}
               </Typography>
               <Box className="row--label-right-hover__content">
                 <Typography className="row--text">
-                  {formatKr(afgoerelse.grundloen, 0)} × {formatKapitaliseringsPct(afgoerelse.kapitaliseringspct)} × {afgoerelse.erstatningsniveauPct} % × {100 - afgoerelse.amBidragPct} % = {formatKr(afgoerelse.grundydelse, 2)}
+                  {buildKapitaliseringGrundydelseExpression(
+                    formatKr(afgoerelse.grundloen, 0),
+                    formatKapitaliseringsPct(afgoerelse.kapitaliseringspct),
+                    afgoerelse.erstatningsniveauPct,
+                    afgoerelse.amBidragPct,
+                    formatKr(afgoerelse.grundydelse, 2)
+                  )}
                 </Typography>
               </Box>
             </Box>

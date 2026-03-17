@@ -9,6 +9,7 @@ import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormat
 import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
 import { aarsloenMax, erhvervsevnetabMax, reguleringssats } from '../../../data/regulationRates';
 import {
+  buildAldersreduktionFormelTekst,
   computeEetEalCalculation,
   formatPercentTrimmedFromRounded4,
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
@@ -85,15 +86,9 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
     });
   }, [computation, settings, stamdata, triggerDownloadShake]);
 
-  const aldersreduktionFormula = React.useMemo(() => {
-    if (!computation) return '';
-    if (computation.alderVedSkade <= 29) return '0 =';
-    if (computation.alderVedSkade > 54) {
-      const cappedAge = Math.min(computation.alderVedSkade, 69);
-      return `(${cappedAge} - 29) + (${cappedAge} - 54) x 2 =`;
-    }
-    return `(${computation.alderVedSkade} - 29) =`;
-  }, [computation]);
+  const aldersreduktionFormula = computation
+    ? buildAldersreduktionFormelTekst(computation.alderVedSkade, computation.alderVedSkadeCapped)
+    : '';
 
   return (
     <Box>

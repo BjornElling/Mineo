@@ -45,25 +45,22 @@ export type AldersKoensopdeltFaktorRaekke = Readonly<{
   kvinderFaktor: number;
 }>;
 
-export type ModerneErhvervsevnetabTabelvalg = Readonly<{
-  skadesdatoFra: ISODateString;
-  foedselsdatoFra: ISODateString;
-  folkepensionsalderAar: number;
-  tabel: string;
-}>;
-
-export type HistoriskErhvervsevnetabTabelvalg = Readonly<{
+export type ErhvervsevnetabTabelvalg = Readonly<{
   skadesdatoFra: ISODateString;
   foedselsdatoFra: ISODateString;
   foedselsdatoTil: ISODateString | null;
+  folkepensionsalderAar: number | null;
   ophoersalderAarLabel: string;
   tabel: string;
 }>;
 
-export type HistoriskErhvervsevnetabTabelvalgUdenFoedselsdato = Readonly<{
+type InputErhvervsevnetabTabelvalg = Readonly<{
   skadesdatoFra: ISODateString;
-  ophoersalderAarLabel: string;
+  foedselsdatoFra: ISODateString;
   tabel: string;
+  foedselsdatoTil?: ISODateString | null;
+  folkepensionsalderAar?: number | null;
+  ophoersalderAarLabel?: string;
 }>;
 
 export type SaerfaktorPerSkadesinterval = Readonly<{
@@ -74,87 +71,76 @@ export type SaerfaktorPerSkadesinterval = Readonly<{
 export type KapitaliseringsTabelData = Readonly<{
   kapitaliseringsId: string;
   kapitaliseringsType: KapitaliseringsType;
-  erhvervsevnetabTabelvalg: readonly ModerneErhvervsevnetabTabelvalg[];
-  historiskErhvervsevnetabTabelvalg: readonly HistoriskErhvervsevnetabTabelvalg[];
-  historiskErhvervsevnetabTabelvalgUdenFoedselsdato: readonly HistoriskErhvervsevnetabTabelvalgUdenFoedselsdato[];
+  erhvervsevnetabTabelvalg: readonly ErhvervsevnetabTabelvalg[];
   erhvervsevnetabTabeller: Readonly<Record<string, readonly AldersFaktorRaekke[]>>;
   erhvervsevnetabKoensopdelteTabeller: Readonly<Record<string, readonly AldersKoensopdeltFaktorRaekke[]>>;
   saerfaktorUnderToAarTilFpPerSkadesinterval: readonly SaerfaktorPerSkadesinterval[];
 }>;
 
-type ModerneModul = Readonly<{
+type KapitaliseringsModul = Readonly<{
   kapitaliseringsId: string;
   kapitaliseringsType: KapitaliseringsType;
-  erhvervsevnetabTabelvalg: readonly ModerneErhvervsevnetabTabelvalg[];
-  erhvervsevnetabTabeller: Readonly<Record<string, readonly AldersFaktorRaekke[]>>;
-  saerfaktorUnderToAarTilFpPerSkadesinterval?: readonly SaerfaktorPerSkadesinterval[];
-}>;
-
-type HistoriskModul = Readonly<{
-  kapitaliseringsId: string;
-  kapitaliseringsType: KapitaliseringsType;
-  historiskErhvervsevnetabTabelvalg?: readonly HistoriskErhvervsevnetabTabelvalg[];
-  historiskErhvervsevnetabTabelvalgUdenFoedselsdato?: readonly HistoriskErhvervsevnetabTabelvalgUdenFoedselsdato[];
+  erhvervsevnetabTabelvalg: readonly InputErhvervsevnetabTabelvalg[];
   erhvervsevnetabTabeller?: Readonly<Record<string, readonly AldersFaktorRaekke[]>>;
   erhvervsevnetabKoensopdelteTabeller?: Readonly<Record<string, readonly AldersKoensopdeltFaktorRaekke[]>>;
   saerfaktorUnderToAarTilFpPerSkadesinterval?: readonly SaerfaktorPerSkadesinterval[];
 }>;
 
-const createModernEntry = (modul: ModerneModul): KapitaliseringsTabelData => ({
-  kapitaliseringsId: modul.kapitaliseringsId,
-  kapitaliseringsType: modul.kapitaliseringsType,
-  erhvervsevnetabTabelvalg: modul.erhvervsevnetabTabelvalg,
-  historiskErhvervsevnetabTabelvalg: [],
-  historiskErhvervsevnetabTabelvalgUdenFoedselsdato: [],
-  erhvervsevnetabTabeller: modul.erhvervsevnetabTabeller,
-  erhvervsevnetabKoensopdelteTabeller: {},
-  saerfaktorUnderToAarTilFpPerSkadesinterval: modul.saerfaktorUnderToAarTilFpPerSkadesinterval ?? [],
-});
+const normalizeErhvervsevnetabTabelvalg = (
+  entries: readonly InputErhvervsevnetabTabelvalg[]
+): readonly ErhvervsevnetabTabelvalg[] =>
+  entries.map((entry) => ({
+    skadesdatoFra: entry.skadesdatoFra,
+    foedselsdatoFra: entry.foedselsdatoFra,
+    foedselsdatoTil: entry.foedselsdatoTil ?? null,
+    folkepensionsalderAar: entry.folkepensionsalderAar ?? null,
+    ophoersalderAarLabel:
+      entry.ophoersalderAarLabel ?? `${entry.folkepensionsalderAar ?? ''}`,
+    tabel: entry.tabel,
+  }));
 
-const createHistoriskEntry = (modul: HistoriskModul): KapitaliseringsTabelData => ({
+const createKapitaliseringsEntry = (modul: KapitaliseringsModul): KapitaliseringsTabelData => ({
   kapitaliseringsId: modul.kapitaliseringsId,
   kapitaliseringsType: modul.kapitaliseringsType,
-  erhvervsevnetabTabelvalg: [],
-  historiskErhvervsevnetabTabelvalg: modul.historiskErhvervsevnetabTabelvalg ?? [],
-  historiskErhvervsevnetabTabelvalgUdenFoedselsdato: modul.historiskErhvervsevnetabTabelvalgUdenFoedselsdato ?? [],
+  erhvervsevnetabTabelvalg: normalizeErhvervsevnetabTabelvalg(modul.erhvervsevnetabTabelvalg),
   erhvervsevnetabTabeller: modul.erhvervsevnetabTabeller ?? {},
   erhvervsevnetabKoensopdelteTabeller: modul.erhvervsevnetabKoensopdelteTabeller ?? {},
   saerfaktorUnderToAarTilFpPerSkadesinterval: modul.saerfaktorUnderToAarTilFpPerSkadesinterval ?? [],
 });
 
 export const kapitaliseringsTabelDataById: Readonly<Record<string, KapitaliseringsTabelData>> = {
-  [k10029_2024.kapitaliseringsId]: createModernEntry(k10029_2024),
-  [k10056_2025.kapitaliseringsId]: createModernEntry(k10056_2025),
-  [k10141_2022.kapitaliseringsId]: createModernEntry(k10141_2022),
-  [k1022_2009.kapitaliseringsId]: createHistoriskEntry(k1022_2009),
-  [k1047_2008.kapitaliseringsId]: createHistoriskEntry(k1047_2008),
-  [k1068_2003.kapitaliseringsId]: createHistoriskEntry(k1068_2003),
-  [k1156_2017.kapitaliseringsId]: createHistoriskEntry(k1156_2017),
-  [k1202_2013.kapitaliseringsId]: createHistoriskEntry(k1202_2013),
-  [k1220_2010.kapitaliseringsId]: createHistoriskEntry(k1220_2010),
-  [k1221_2010.kapitaliseringsId]: createHistoriskEntry(k1221_2010),
-  [k1233_2018.kapitaliseringsId]: createHistoriskEntry(k1233_2018),
-  [k1263_2007.kapitaliseringsId]: createHistoriskEntry(k1263_2007),
-  [k1275_2014.kapitaliseringsId]: createHistoriskEntry(k1275_2014),
-  [k1275_2016.kapitaliseringsId]: createHistoriskEntry(k1275_2016),
-  [k1358_2011.kapitaliseringsId]: createHistoriskEntry(k1358_2011),
-  [k1403_2011.kapitaliseringsId]: createHistoriskEntry(k1403_2011),
-  [k1663_2015.kapitaliseringsId]: createHistoriskEntry(k1663_2015),
-  [k1664_2015.kapitaliseringsId]: createHistoriskEntry(k1664_2015),
-  [k1700_2015.kapitaliseringsId]: createHistoriskEntry(k1700_2015),
-  [k198_2015.kapitaliseringsId]: createHistoriskEntry(k198_2015),
-  [k199_2015.kapitaliseringsId]: createHistoriskEntry(k199_2015),
-  [k440_2009.kapitaliseringsId]: createHistoriskEntry(k440_2009),
-  [k449_2009.kapitaliseringsId]: createHistoriskEntry(k449_2009),
-  [k678_2007.kapitaliseringsId]: createHistoriskEntry(k678_2007),
-  [k9376_2024.kapitaliseringsId]: createModernEntry(k9376_2024),
-  [k9741_2020.kapitaliseringsId]: createModernEntry(k9741_2020),
-  [k9820_2023.kapitaliseringsId]: createModernEntry(k9820_2023),
-  [k9864_2021.kapitaliseringsId]: createModernEntry(k9864_2021),
-  [k9870_2020.kapitaliseringsId]: createHistoriskEntry(k9870_2020),
-  [k9871_2020.kapitaliseringsId]: createHistoriskEntry(k9871_2020),
-  [k990_2012.kapitaliseringsId]: createHistoriskEntry(k990_2012),
-  [k9921_2019.kapitaliseringsId]: createHistoriskEntry(k9921_2019),
+  [k10029_2024.kapitaliseringsId]: createKapitaliseringsEntry(k10029_2024),
+  [k10056_2025.kapitaliseringsId]: createKapitaliseringsEntry(k10056_2025),
+  [k10141_2022.kapitaliseringsId]: createKapitaliseringsEntry(k10141_2022),
+  [k1022_2009.kapitaliseringsId]: createKapitaliseringsEntry(k1022_2009),
+  [k1047_2008.kapitaliseringsId]: createKapitaliseringsEntry(k1047_2008),
+  [k1068_2003.kapitaliseringsId]: createKapitaliseringsEntry(k1068_2003),
+  [k1156_2017.kapitaliseringsId]: createKapitaliseringsEntry(k1156_2017),
+  [k1202_2013.kapitaliseringsId]: createKapitaliseringsEntry(k1202_2013),
+  [k1220_2010.kapitaliseringsId]: createKapitaliseringsEntry(k1220_2010),
+  [k1221_2010.kapitaliseringsId]: createKapitaliseringsEntry(k1221_2010),
+  [k1233_2018.kapitaliseringsId]: createKapitaliseringsEntry(k1233_2018),
+  [k1263_2007.kapitaliseringsId]: createKapitaliseringsEntry(k1263_2007),
+  [k1275_2014.kapitaliseringsId]: createKapitaliseringsEntry(k1275_2014),
+  [k1275_2016.kapitaliseringsId]: createKapitaliseringsEntry(k1275_2016),
+  [k1358_2011.kapitaliseringsId]: createKapitaliseringsEntry(k1358_2011),
+  [k1403_2011.kapitaliseringsId]: createKapitaliseringsEntry(k1403_2011),
+  [k1663_2015.kapitaliseringsId]: createKapitaliseringsEntry(k1663_2015),
+  [k1664_2015.kapitaliseringsId]: createKapitaliseringsEntry(k1664_2015),
+  [k1700_2015.kapitaliseringsId]: createKapitaliseringsEntry(k1700_2015),
+  [k198_2015.kapitaliseringsId]: createKapitaliseringsEntry(k198_2015),
+  [k199_2015.kapitaliseringsId]: createKapitaliseringsEntry(k199_2015),
+  [k440_2009.kapitaliseringsId]: createKapitaliseringsEntry(k440_2009),
+  [k449_2009.kapitaliseringsId]: createKapitaliseringsEntry(k449_2009),
+  [k678_2007.kapitaliseringsId]: createKapitaliseringsEntry(k678_2007),
+  [k9376_2024.kapitaliseringsId]: createKapitaliseringsEntry(k9376_2024),
+  [k9741_2020.kapitaliseringsId]: createKapitaliseringsEntry(k9741_2020),
+  [k9820_2023.kapitaliseringsId]: createKapitaliseringsEntry(k9820_2023),
+  [k9864_2021.kapitaliseringsId]: createKapitaliseringsEntry(k9864_2021),
+  [k9870_2020.kapitaliseringsId]: createKapitaliseringsEntry(k9870_2020),
+  [k9871_2020.kapitaliseringsId]: createKapitaliseringsEntry(k9871_2020),
+  [k990_2012.kapitaliseringsId]: createKapitaliseringsEntry(k990_2012),
+  [k9921_2019.kapitaliseringsId]: createKapitaliseringsEntry(k9921_2019),
 } as const;
 
 export const getKapitaliseringsTabelData = (kapitaliseringsId: string): KapitaliseringsTabelData | undefined => {

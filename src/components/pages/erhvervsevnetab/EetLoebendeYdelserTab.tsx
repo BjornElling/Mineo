@@ -15,7 +15,6 @@ import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
 import {
   ASL_MAX_AARSLOEN_2003,
   ASL_MAX_AARSLOEN_2024,
-  reguleringsprocentErhvervsevnetabFoer2024,
 } from '../../../data/regulationRates';
 import {
   computeEetLoebendeYdelser,
@@ -30,7 +29,7 @@ import TextHoverRow from './TextHoverRow';
 import UnderlinedHoverRow from './UnderlinedHoverRow';
 import EetPdfDownloadButton from './EetPdfDownloadButton';
 import { useEetShakeFlag } from './useEetShakeFlag';
-import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
+import { formatJaNej, formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabValues;
@@ -39,7 +38,6 @@ type Props = Readonly<{
 }>;
 
 const formatMaaneder = (value: number): string => formatAsAmount(roundByMethod(value, 4, 'halfAwayFromZero'), 4);
-const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
 const formatRegulering = (value: number): string => `${value >= 0 ? '+' : '-'} ${formatPct(Math.abs(value))}`;
 const formatPctTal = (value: number): string => formatPct(value).replace(' %', '');
 const formatEetHoverLabel = (eetPct: number, priorKapPct: number): string =>
@@ -370,7 +368,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, setValues, onGoToEetOp
             )}
 
             {afgoerelser.map((afgoerelse) => {
-              const reguleringFoer2024Pct = reguleringsprocentErhvervsevnetabFoer2024[2024] ?? 0;
+              const reguleringFoer2024Pct = computation.reguleringFoer2024Pct;
               const reguleringFoer2024FaktorTekst = formatAsAmount(
                 roundByMethod(1 + reguleringFoer2024Pct / 100, 3, 'halfAwayFromZero'),
                 3

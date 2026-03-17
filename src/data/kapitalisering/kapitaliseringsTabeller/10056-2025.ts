@@ -85,7 +85,7 @@ export const saerfaktorUnderToAarTilFpPerSkadesinterval: ReadonlyArray<{
   faktor,
 }));
 
-// Historiske EET-tabeller fra vejledningen (fx U, V, X, Y) bevares uændret fra kilden,
+// Ekstra EET-tabeller fra vejledningen (fx U, V, X, Y) bevares uændret fra kilden,
 // selv når de ikke er refereret i det aktuelle tabelvalg.
 // Tabelnavne og sekvens følger altid kilden 1:1.
 

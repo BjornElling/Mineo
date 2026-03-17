@@ -2,9 +2,11 @@ import type { ErhvervsevnetabValues } from '../../schemas/formSchemas';
 import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, dateToISO, parseISODate } from '../../types/branded';
+// Disse tabeller importeres direkte fordi computeEetDifferencekravCalculation selv kører
+// sub-beregningerne for fane 3 og 4 og sender dem videre som parametre. Dette bryder
+// parametrerings-mønsteret i de øvrige beregningsfunktioner, men er en bevidst trade-off:
+// differencekrav-beregningen er det naturlige aggregeringspunkt og kalder selv de andre.
 import {
-  ASL_MAX_AARSLOEN_2003,
-  ASL_MAX_AARSLOEN_2024,
   aarsloenMax,
   erhvervsevnetabMax,
   reguleringssats,
@@ -26,7 +28,7 @@ import {
   resolveSaerfaktor,
   type AgeYearsMonths,
 } from './eetKapitaliseringOpslag';
-import { ceil0, round0, round2, round3, round4, roundNearest1000 } from './eetRounding';
+import { ceil0, round0, round2, round3, round4 } from './eetRounding';
 import { resolveAslReguleringRateForKapAar } from './eetReguleringRater';
 import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2011_06_16, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { computeEetLoebendeYdelser } from './eetLoebendeYdelserCalculation';
@@ -82,6 +84,8 @@ export type EetDifferencekravComputation = Readonly<{
   beregningsdato: ISODateString;
   skadesdato: ISODateString;
   dagFoerBeregningsdato: ISODateString;
+  // true = skadesdato < 2011-06-16: fradrag for midlertidige/delvist endelige ydelser foretages
+  fradragGaelderForFoer2011: boolean;
   ealKrav: number;
   ealEetPct: number;
   fradragLoebendeYdelser: number;
@@ -406,20 +410,13 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   if (ealResult.computation && beregningsdato && skadesdato && fodselsdato && dagFoerBeregningsdato) {
     const loebendeComputation = loebendeResult?.computation ?? null;
 
-    const aslAarsloenRaw = amountValueToNumber(input.erhvervsevnetab.aslAarsloen);
-    const skadesaar = Number.parseInt(skadesdato.slice(0, 4), 10);
-    const maxAarsloenISkadesaar = aarsloenMax[skadesaar] ?? 0;
-    const aslAarsloenAfrundet1000 = Number.isFinite(aslAarsloenRaw)
-      ? roundNearest1000(aslAarsloenRaw as number)
-      : 0;
-    const benyttetAarsloen = Math.min(aslAarsloenAfrundet1000, maxAarsloenISkadesaar);
     const before2024Skade = skadesdato < SKAERING_2024_07_01;
     const from2011 = skadesdato >= SKAERING_2011_01_01;
-    const grundloen = maxAarsloenISkadesaar > 0
-      ? round0(benyttetAarsloen * (before2024Skade ? ASL_MAX_AARSLOEN_2003 : ASL_MAX_AARSLOEN_2024) / maxAarsloenISkadesaar)
-      : 0;
     const erstatningsniveau = from2011 ? 0.83 : 0.8;
     const amFaktor = from2011 ? 0.92 : 1;
+    // Grundlønnen genbruges fra fane 2's computation frem for at rekonstruere den lokalt.
+    // loebendeComputation er garanteret non-null når loebendeEetPct > 0 (se resolveLoebendeEetPct).
+    const grundloen = loebendeComputation?.grundloen ?? 0;
 
     // Bestem løbende EET-pct til proformakapitalisering.
     // Afgørelseslisten hentes fra løbende-computation til tie-breaking (seneste afgørelse).
@@ -584,6 +581,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       beregningsdato,
       skadesdato,
       dagFoerBeregningsdato,
+      fradragGaelderForFoer2011: skadesdato < SKAERING_2011_06_16,
       ealKrav,
       ealEetPct,
       fradragLoebendeYdelser,

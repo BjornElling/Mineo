@@ -15,7 +15,7 @@ type Issue = Readonly<{ id: string; severity: 'error' | 'warning'; message: stri
  *
  * Logik:
  * - Skader FØR 2024-07-01 (before2024Skade):
- *   - År ≤ 2023: brug reguleringsprocentErhvervsevnetab (det historiske indeks)
+ *   - År ≤ 2023: brug reguleringsprocentErhvervsevnetab (det tidligere indeks)
  *   - År === 2024: faktor 1 (2024 er referenceår; selve 2024-opreguleringen anvendes separat på grundydelsen)
  *   - År > 2024: brug reguleringsprocentErhvervsevnetabFra2024
  * - Skader FRA 2024-07-01: brug reguleringsprocentErhvervsevnetabFra2024 for alle år

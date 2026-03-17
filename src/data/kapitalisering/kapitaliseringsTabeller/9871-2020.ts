@@ -28,8 +28,6 @@ export const gyldigTil = toISODateString('2024-12-31');
 // Kun tabeller for erhvervsevnetab og forsørgertab er medtaget.
 // Tabeller for varigt mén og behandlingsudgifter er bevidst udeladt.
 
-export const historiskErhvervsevnetabTabelvalg = [] as const;
-
 const ERHVERVSEVNETAB_TABELVALG_DATA = [
   // skadesdatoFra     foedselsdatoFra     folkepensionsalderAar     tabel
   ['2007-07-01',     '1967-01-01',     69,     'A'],

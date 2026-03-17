@@ -5,8 +5,9 @@ import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { usePersistedSection } from '../../hooks/usePersistedSection';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
-import { erhvervsevnetabSchema } from '../../schemas/formSchemas';
+import { erhvervsevnetabSchema, stamdataSchema } from '../../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
+import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import {
   collectEetAslAfgoerelseValidationIssues,
@@ -50,6 +51,11 @@ const ErhvervsevnetabPage = React.memo(() => {
     'erhvervsevnetab',
     ERHVERVSEVNETAB_INITIAL_VALUES
   );
+  const { values: stamValues, handleChange: handleStamChange } = usePersistedForm(
+    stamdataSchema,
+    'stamdata',
+    STAMDATA_INITIAL_VALUES
+  );
   const stamdata = usePersistedSection('stamdata');
   const reportAslAfgoerelserRuleError = useFormFieldErrorReporter('erhvervsevnetab', 'aslAfgoerelser', {
     severity: 'error',
@@ -71,6 +77,10 @@ const ErhvervsevnetabPage = React.memo(() => {
     return collectEetAslAfgoerelseValidationIssues(values.aslAfgoerelser, stamdata?.skadesdato, stamdata?.fodselsdato);
   }, [stamdata?.fodselsdato, stamdata?.skadesdato, values.aslAfgoerelser]);
 
+  // Kun den første fejl rapporteres til error-bus — feltniveau-fejl på individuelle rækker
+  // vises inline i tabellen og aggregeres ikke i EetIssuesBox. Dette er en bevidst
+  // trade-off: EetIssuesBox viser den første tabelblokerende fejl som navigation-target,
+  // mens øvrige row-fejl er synlige direkte i tabellen.
   React.useEffect(() => {
     reportAslAfgoerelserRuleError(aslAfgoerelserValidationIssues[0]?.message);
   }, [aslAfgoerelserValidationIssues, reportAslAfgoerelserRuleError]);
@@ -144,7 +154,13 @@ const ErhvervsevnetabPage = React.memo(() => {
 
       {/* Tab-indhold */}
       {activeTab === TAB_KEYS.EET_OPLYSNINGER && (
-        <EetOplysningerTab values={values} setValues={setValues} handleChange={handleChange} />
+        <EetOplysningerTab
+          values={values}
+          setValues={setValues}
+          handleChange={handleChange}
+          stamValues={stamValues}
+          handleStamChange={handleStamChange}
+        />
       )}
       {activeTab === TAB_KEYS.LOEBENDE_YDELSER && (
         <EetLoebendeYdelserTab
