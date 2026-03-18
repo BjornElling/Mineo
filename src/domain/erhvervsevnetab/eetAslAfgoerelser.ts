@@ -44,18 +44,34 @@ const DUPLICATE_AFGOERELSE_MESSAGE = 'Der er angivet to identiske afgørelser me
 
 const assertNeverAfgoerelsestype = (_value: never): undefined => undefined;
 
+const compareAfgoerelseOrder = (
+  left: Pick<AslAfgoerelseRow, 'afgoerelsesDato' | 'virkningsDato'>,
+  right: Pick<AslAfgoerelseRow, 'afgoerelsesDato' | 'virkningsDato'>
+): number | null => {
+  const leftAfgoerelsesdatoIso = coerceToISODateString(left.afgoerelsesDato);
+  const rightAfgoerelsesdatoIso = coerceToISODateString(right.afgoerelsesDato);
+  if (leftAfgoerelsesdatoIso === undefined || rightAfgoerelsesdatoIso === undefined) return null;
+  if (leftAfgoerelsesdatoIso !== rightAfgoerelsesdatoIso) {
+    return leftAfgoerelsesdatoIso < rightAfgoerelsesdatoIso ? -1 : 1;
+  }
+
+  const leftVirkningsdatoIso = coerceToISODateString(left.virkningsDato);
+  const rightVirkningsdatoIso = coerceToISODateString(right.virkningsDato);
+  if (leftVirkningsdatoIso === undefined || rightVirkningsdatoIso === undefined) return 0;
+  if (leftVirkningsdatoIso !== rightVirkningsdatoIso) {
+    return leftVirkningsdatoIso < rightVirkningsdatoIso ? -1 : 1;
+  }
+  return 0;
+};
+
 const sumPriorKapPct = (
   row: AslAfgoerelseRow,
   allRows: readonly AslAfgoerelseRow[]
 ): number => {
-  const currentAfgoerelsesdatoIso = coerceToISODateString(row.afgoerelsesDato);
-  if (currentAfgoerelsesdatoIso === undefined) return 0;
-
   return allRows.reduce((sum, candidate) => {
     if (candidate.id === row.id) return sum;
-    const candidateAfgoerelsesdatoIso = coerceToISODateString(candidate.afgoerelsesDato);
-    if (candidateAfgoerelsesdatoIso === undefined) return sum;
-    if (candidateAfgoerelsesdatoIso >= currentAfgoerelsesdatoIso) return sum;
+    const compare = compareAfgoerelseOrder(candidate, row);
+    if (compare === null || compare >= 0) return sum;
     const candidateKapPct = parsePercentDraft(candidate.kapPct);
     if (candidateKapPct === undefined) return sum;
     return sum + candidateKapPct;
@@ -72,8 +88,8 @@ export const validateEetPctByPriorKapPct = (
   const priorKapPctSum = sumPriorKapPct(row, allRows);
   if (priorKapPctSum <= 0) return undefined;
 
-  if (eetPct <= priorKapPctSum) {
-    return 'EET % skal være større end summen af kapitaliseringsprocenter fra tidligere afgørelser.';
+  if (eetPct < priorKapPctSum) {
+    return 'EET % kan ikke være lavere end den akkumulerede kapitaliseringsprocent fra tidligere afgørelser.';
   }
 
   return undefined;
@@ -138,7 +154,7 @@ export const validateKapPctByAfgoerelsestype = (
   if (afgoerelsestype === 'Endelig') {
     if (isWithinTwoYearsRuleActive) {
       if (eetPct !== undefined && kapPctMedTidligere !== eetPct) {
-        return 'Ved < 2 år til folkepension kapitaliseres hele EET.';
+        return 'Ved ≤ 2 år til folkepension kapitaliseres hele EET.';
       }
       return undefined;
     }
@@ -163,6 +179,7 @@ export const validateKapPctByAfgoerelsestype = (
     // (feltniveau), men via collectIncompleteRowIssues (faneniveau). Det er en bevidst
     // trade-off: brugeren kan midlertidigt gemme en delvist udfyldt rækkeindtastning
     // uden at blive blokeret på feltet, men kan ikke downloade PDF'en.
+    //
     if (kapPct < 5) {
       return 'Mindste kapitaliserbare andel er 5 %.';
     }
@@ -225,7 +242,20 @@ export const validateKapDatoByAfgoerelsestype = (
     isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadesdato, fodselsdato, controlDateIso);
 
   if (isWithinTwoYearsRuleActive && kapDatoIso !== afgoerelsesdatoIso) {
-    return 'Ved < 2 år til folkepension sker kapitalisering fra afgørelsesdagen.';
+    return 'Ved ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.';
+  }
+
+  if (
+    afgoerelsestype === 'Delvist endelig' &&
+    kapDatoIso !== undefined &&
+    afgoerelsesdatoIso !== undefined &&
+    skadesdato !== undefined &&
+    fodselsdato !== undefined &&
+    controlDateIso !== undefined &&
+    isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadesdato, fodselsdato, controlDateIso) &&
+    kapDatoIso !== afgoerelsesdatoIso
+  ) {
+    return 'Ved delvist endelig afgørelse ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.';
   }
 
   return undefined;

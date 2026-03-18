@@ -30,7 +30,7 @@ export const gyldigTil = toISODateString('2020-12-30');
 // Kun tabeller for erhvervsevnetab og forsørgertab er medtaget.
 // Tabeller for varigt mén og behandlingsudgifter er bevidst udeladt.
 // Kilden angiver ikke eksplicit EET-tabelvalg for ældre ordninger, forsørgertab-tabelvalg
-// eller særfaktor ved <2 år til folkepension. Disse felter udfyldes derfor ikke.
+// eller særfaktor ved ≤2 år til folkepension. Disse felter udfyldes derfor ikke.
 
 const ERHVERVSEVNETAB_TABELVALG_DATA = [
   // skadesdatoFra     foedselsdatoFra     folkepensionsalderAar     tabel

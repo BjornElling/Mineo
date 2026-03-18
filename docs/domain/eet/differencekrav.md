@@ -7,6 +7,7 @@ Se også:
 - [kapitaliseret-eet.md](./kapitaliseret-eet.md) — fane 3
 - [eal-beregning.md](./eal-beregning.md) — fane 4
 - [fejlkatalog.md](./fejlkatalog.md) — alle fejl og advarsler
+- [under-to-aar-til-fp.md](./under-to-aar-til-fp.md) — særregel for ≤ 2 år til folkepensionsalderen
 
 ---
 
@@ -27,30 +28,23 @@ differencekrav = eal_krav
 hvis differencekrav < 0: differencekrav = 0
 ```
 
-Fane 5 er udelukkende forbruger — den beregner intet nyt om ASL eller EAL, men trækker de allerede beregnede resultater fra fane 2, 3 og 4 ind. Dog med én vigtig afvigelse for fradrag 1 og 3.
+Fane 5 beregner ikke nye ASL- eller EAL-typer. Den trækker de øvrige faners resultater ind, men fradrag 1 og 3 har deres egen særlogik.
 
 ### Dataflow
 
-Fane 5 kører tre underberegninger internt, ikke blot opslår resultater:
-
 | Kilde | Særlighed |
 |---|---|
-| **EAL-krav (fane 4)** | Kørsel af `computeEetEalCalculation` — identisk med fane 4 |
-| **Kapitaliseret EET (fane 3)** | Kørsel af `computeEetKapitaliseringCalculation` — identisk med fane 3 |
+| **EAL-krav (fane 4)** | Kørsel af `computeEetEalCalculation` |
+| **Kapitaliseret EET (fane 3)** | Kørsel af `computeEetKapitaliseringCalculation` |
 | **Løbende ydelser (fane 2)** | Kørsel af `computeEetLoebendeYdelser` med `beregningsdato = dagFørBeregningsdato` |
-
-Intet flyder fra fane 5 til de øvrige faner.
 
 ### Fradrag 1 — Løbende ydelser
 
-Beregningen er identisk med fane 2 — men med en kritisk forskel i slutdatoen:
+Fradrag 1 beregnes med samme grundmodel som fane 2, men altid kun til og med dagen før beregningsdatoen.
 
-- **Fane 2:** beregner frem til og med beregningsdatoen
-- **Fane 5:** beregner frem til og med *dagen før* beregningsdatoen
+Differencekravet ser kun på afgørelser, der både er truffet og har virkning senest på beregningsdatoen.
 
-Begrundelse: Beregningsdatoen er den dag EAL-kravet opgøres. ASL-ydelser frem til og med *denne* dag skal fratrækkes som allerede modtaget, men ikke ydelser på selve dagen (der medregnes i fane 4's opgørelse).
-
-**Fradragsregel per afgørelse** afhænger af skadsdatoen:
+Fradragsreglen per afgørelse afhænger fortsat af skadesdatoen:
 
 | Skadesdato | Afgørelsestype | Fradrages? |
 |---|---|---|
@@ -61,76 +55,69 @@ Begrundelse: Beregningsdatoen er den dag EAL-kravet opgøres. ASL-ydelser frem t
 | 16-06-2011 eller senere | Delvist endelig | Nej |
 | 16-06-2011 eller senere | Endelig | Ja |
 
-For hver afgørelse er fradraget enten `iAltBeregnetEet` fra løbende beregningen (hvis fradrag foretages) eller 0.
-
-`fradragesTil` vises per afgørelse og bestemmes af:
-- For den seneste afgørelse (sorteret på virkningsdato): `dagFørBeregningsdato`
-- For tidligere afgørelser: dagen før næste afgørelses virkningsdato
+Ved særreglen for ≤ 2 år til folkepension gælder derudover:
+- Hvis der er truffet `Endelig` afgørelse inden for eller præcis 2 år før folkepensionsalderen, og virkningsdatoen ligger før 2-årsgrænsen, fratrækkes løbende ydelser kun frem til og med dagen før afgørelsesdatoen.
+- Hvis der er truffet `Endelig` afgørelse inden for eller præcis 2 år før folkepensionsalderen, og virkningsdatoen ligger på eller efter 2-årsgrænsen, fratrækkes ingen løbende ydelser.
+- Hvis der er truffet `Endelig` afgørelse mere end 2 år før folkepension, eller afgørelsen ikke er endelig, fratrækkes løbende ydelser til og med den faktiske sidste dag, som ydelsen er beregnet til, dog aldrig efter dagen før folkepensionsdatoen.
 
 ### Fradrag 2 — Kapitaliseret EET
 
-Det samlede kapitaliserede beløb hentes direkte fra fane 3's output. **Kun kapitaliseringer med kapitaliseringsdato ≤ beregningsdatoen medregnes.** En kapitalisering med fremtidig dato er endnu ikke sket set fra beregningsdatoens perspektiv og tæller ikke med.
+Det samlede kapitaliserede beløb hentes fra fane 3. Kun kapitaliseringer med kapitaliseringsdato på eller før beregningsdatoen medregnes.
+
+Ved særreglen er dette især relevant i to situationer:
+- `Endelig` inden for eller præcis 2 år før folkepension: hele kapitalbeløbet fratrækkes.
+- `Delvist endelig` inden for eller præcis 2 år før folkepension: kun den faktisk kapitaliserede andel fratrækkes.
 
 ### Fradrag 3 — Proformakapitalisering af tilbageværende EET
 
-Proformakapitaliseringen svarer til spørgsmålet: "Hvad ville det tilbageværende løbende erhvervsevnetab være værd som éngangsbeløb, hvis det blev kapitaliseret på beregningsdatoen?"
+Proformakapitaliseringen svarer til spørgsmålet:
+
+"Hvad ville det tilbageværende løbende erhvervsevnetab være værd som éngangsbeløb, hvis det blev kapitaliseret på beregningsdatoen?"
 
 **Tilbageværende EET-procent:**
 ```
 løbende_eet_pct = seneste_afgørelses_eet_pct − sum(kapPct fra afgørelser med kapDato ≤ beregningsdato)
 ```
 
-`seneste_afgørelses_eet_pct` bestemmes med samme tie-breaking som EAL-fallback-reglen: seneste afgørelsesdato → seneste virkningsdato → Endelig > Delvist endelig. Kun kapitaliseringer med kapDato ≤ beregningsdato medregnes i summen.
+Hvis `løbende_eet_pct = 0`, springes proformakapitaliseringen over.
 
-`løbende_eet_pct` kan aldrig blive negativ (inputvalidering på fane 1 håndhæver dette).
-
-Hvis `løbende_eet_pct = 0` (fuld kapitalisering): proformakapitaliseringen springes over.
-
-**Proformakapitaliseringen genbruger kapitaliseringslogikken fra fane 3** med disse afvigelser:
-- Kapitaliseringsdatoen = beregningsdatoen
-- Alle afgørelsestyper kan indgå (inkl. midlertidige)
+Proformakapitaliseringen genbruger kapitaliseringslogikken fra fane 3 med disse afvigelser:
+- kapitaliseringsdatoen = beregningsdatoen
+- alle afgørelsestyper kan indgå
 - 50 %-loftet gælder ikke
-- Bekendtgørelse og tabel opslås på beregningsdatoen
-- Kontroltidspunktet for ≤ 2 år til folkepension er beregningsdatoen
+- bekendtgørelse og tabel opslås på beregningsdatoen
+- kontroltidspunktet for ≤ 2 år til folkepension er beregningsdatoen
 
-Proformaberegningen kørers kun hvis EAL-beregningen er gennemført (`ealResult.computation !== null`) og alle stamdata er til stede.
+Proformakapitalisering er differencekravets egen beregningsteknik. Den kan derfor godt forekomme, selv om der i ASL-sporet aldrig er sket nogen faktisk kapitalisering.
 
-### Issues og blokeringslogik
+Hvis der på beregningsdatoen fortsat består en løbende ydelse, kapitaliseres hele rest-EET proforma på beregningsdatoen.
 
-Fane 5 aggregerer issues fra fane 2, 3 og 4 samt egne proforma-issues. Følgende filtreres fra download-blokering:
+Ved vurderingen af om beregningsdatoen falder inden for `≤ 2 år` til folkepension, behandles datoer på eller efter folkepensionsdatoen på samme måde som andre `≤ 2 år`-tilfælde. Særfaktoren kan derfor fortsat blive relevant.
 
-**Fjernes altid fra fane 5:**
-- `no-endelig-afgoerelser` — Fane 5 proformakapitaliserer uafhængigt af om der tidligere er foretaget kapitalisering
-- `warn-ingen-kap-input` — Fane 5 håndterer manglende kapitalisering via proformaberegningen
+### Særreglen i differencekrav
 
-**Undertrykkelse:**
-- `eet-pct-missing` undertykkes hvis `asl-afgoerelser-empty` er aktiv (ingen afgørelsestabel at hente EET-% fra)
+#### Endelig afgørelse ≤ 2 år før folkepension, virkning før 2-årsgrænsen
 
-Issues deduplikeres på meddelelsestekst og severity.
+Skadelidte har i denne situation:
+- fået løbende ydelser fra virkningsdatoen til og med dagen før afgørelsesdatoen
+- fået et kapitalbeløb pr. afgørelsesdatoen
 
-Download er deaktiveret så længe der er mindst én aktiv `error` der ikke er filtreret fra.
+Differencekravet fratrækker derfor både de løbende ydelser og kapitalbeløbet.
 
-### Verificeret eksempel
+#### Endelig afgørelse ≤ 2 år før folkepension, virkning på eller efter 2-årsgrænsen
 
-**Stamdata:**
-- Skadesdato: 2023 (skadeår 2023, beregningsår 2026)
-- Fødselsdato: 08-01-1972
-- Beregningsdato: 01-10-2026
+Skadelidte har i denne situation:
+- ikke fået løbende ydelser
+- fået et kapitalbeløb pr. afgørelsesdatoen
 
-**ASL-input:**
-- Årsløn: 432.000 kr.
-- Afgørelse 1: 12-03-2024, virkningsdato 01-01-2024, EET 75 %, Midlertidig
-- Afgørelse 2: 17-09-2025, virkningsdato 01-08-2025, EET 60 %, Endelig, ingen kapitalisering
+Differencekravet fratrækker derfor kun kapitalbeløbet.
 
-**EAL-input:** Årsløn: 700.000 kr., EET: 70 %
+#### Endelig afgørelse > 2 år før folkepension, eller ikke-endelig afgørelse
 
-| Trin | Beskrivelse | Beløb |
-|---|---|---|
-| EAL-krav | 789.000 × 10 × 70 % = 5.523.000, aldersreduktion 22 % (alder 51) | 4.307.940 kr. |
-| Fradrag 1: løbende ydelser | Kun endelig afgørelse fratrækkes (skadesdato ≥ 16-06-2011). Frem til 30-09-2026 | −255.813 kr. |
-| Fradrag 2: kapitaliseret EET | Ingen kapitaliserede afgørelser | −0 kr. |
-| Fradrag 3: proformakapitalisering | `løbende_eet_pct` = 60 % − 0 % = 60 %. Beregningsdato 01-10-2026. Vejl. 10056/2025, tabel A, FP 69 år. Alder 54 år 8 mdr. Faktor 10,267. Årsydelse 222.915,68 kr. | −2.288.676 kr. |
-| **Differencekrav** | 4.307.940 − 255.813 − 0 − 2.288.676 | **1.763.451 kr.** |
+I disse situationer er der ikke sket tvungen fuldkapitalisering efter hovedreglen. Differencekravet fraviger derfor ASL-forløbet på ét punkt:
+- løbende ydelser fratrækkes kun til og med dagen før beregningsdatoen, dog aldrig efter dagen før folkepensionsdatoen
+- hvis der på beregningsdatoen fortsat består rest-EET, proformakapitaliseres hele rest-EET på beregningsdatoen
+- ligger beregningsdatoen inden for eller efter 2-årsgrænsen til folkepension, anvendes særfaktoren
 
 ---
 
@@ -138,134 +125,28 @@ Download er deaktiveret så længe der er mindst én aktiv `error` der ikke er f
 
 ### Primær fil
 
-`src/domain/erhvervsevnetab/eetDifferencekravCalculation.ts` (589 linjer)
-
-### Indgangspunkt
-
-```typescript
-computeEetDifferencekravCalculation(input: Input): EetDifferencekravCalculationResult
-```
-
-`Input` = `{ erhvervsevnetab, skadesdato, fodselsdato }`. Rate-tabeller (`reguleringssats`, `erhvervsevnetabMax`, `aarsloenMax`) importeres direkte i filen fra `regulationRates.ts` og passes videre til EAL-beregningen.
-
-### Nøgletyper
-
-```typescript
-EetDifferencekravCalculationResult = {
-  issues: readonly EetIssue[],
-  computation: EetDifferencekravComputation | null,
-  hasBlockingErrors: boolean   // eksplicit, da fanen bruger den direkte
-}
-
-EetDifferencekravComputation = {
-  beregningsdato, skadesdato, dagFoerBeregningsdato,
-  ealKrav, ealEetPct,
-  fradragLoebendeYdelser, fradragKapitaliseretEet,
-  proformaKapitalisering: EetDifferencekravProformaKapitalisering | null,
-  proformaBeloeb,
-  differencekrav,
-  afgoerelser: readonly EetDifferencekravLoebendeAfgoerelse[],
-  kapitaliseringerAfgoerelser: readonly EetDifferencekravKapitaliseretAfgoerelse[]
-}
-
-EetDifferencekravLoebendeAfgoerelse = {
-  rowId, afgoerelsesdato, virkningsdato, afgoerelseType,
-  eetPct, fradragesTil, beloeb, fradragForetages: boolean
-}
-
-EetDifferencekravKapitaliseretAfgoerelse = {
-  rowId, afgoerelsesdato,
-  kapitaliseringsdato: ISODateString | null,
-  kapitaliseringspct: number | null,
-  kapitalbelob: number | null,
-  kapitaliseringEfterBeregningsdato: boolean
-}
-
-EetDifferencekravProformaKapitalisering = {
-  loebendeEetPct, kapitaliseringsdato, grundydelse,
-  reguleringsPctRounded4, aarsydelse,
-  kapitaliseringsbekendtgoerelseLabel, folkepensionsalderLabel,
-  alderAar, alderMaaneder,
-  kapitaliseretPgaUnderToAarTilFp, faktorMaanedsAfhaengig,
-  saerfaktor: number | null,
-  kapitaliseringsfaktor, proformaBeloeb, koenOpdelt
-}
-```
+`src/domain/erhvervsevnetab/eetDifferencekravCalculation.ts`
 
 ### Interne hjælpefunktioner
 
 | Funktion | Beskrivelse |
 |---|---|
-| `computeProformaKapitalisering(args, issues)` | Proformaberegning. Fuldt analog med fane 3's kapitaliserings-loop men med `beregningsdato` som kapitaliseringsdato og ingen 50 %-begrænsning |
-| `resolveLoebendeEetPct(afgoerelser, kapitaliseringer)` | Bestemmer `løbende_eet_pct` til proformakapitalisering. Tie-breaking identisk med EAL-fallback-reglen |
-| `skalFradragForetages(afgoerelseType, skadesdato)` | `skadesdato < SKAERING_2011_06_16 → true`, ellers kun `Endelig → true` |
+| `computeProformaKapitalisering(args, issues)` | Proformaberegning på beregningsdatoen |
+| `resolveLoebendeEetPct(afgoerelser, kapitaliseringer)` | Bestemmer tilbageværende løbende EET-procent |
+| `skalFradragForetages(afgoerelseType, skadesdato)` | Afgør om en afgørelse skal fratrækkes |
 
-### Issue-aggregering og filtrering
+### Implementeringsstatus
 
-```typescript
-// Fra fane 3: filtrer 'warn-ingen-kap-input' fra
-for (const issue of kapResult.issues) {
-  if (issue.id !== WARN_NO_KAP_INPUT_ID) allSourceIssues.push(issue);
-}
+Dokumentationen ovenfor beskriver den fastlagte forretningslogik.
 
-// Efter deduplication: fjern 'no-endelig-afgoerelser'
-const deduped = dedupeIssuesBySeverityAndMessage(allSourceIssues)
-  .filter((issue) => issue.id !== 'no-endelig-afgoerelser');
-
-// Undertrykke 'eet-pct-missing' hvis 'asl-afgoerelser-empty' er aktiv
-const hasAslAfgoerelserEmpty = deduped.some((issue) => issue.id === 'asl-afgoerelser-empty');
-const aggregatedIssues = hasAslAfgoerelserEmpty
-  ? deduped.filter((issue) => issue.id !== 'eet-pct-missing')
-  : deduped;
-```
-
-### Kapitaliseringsfilter i fradrag 2
-
-```typescript
-// Kun kapitaliseringer med dato <= beregningsdato medregnes
-if (kapComp && kapComp.kapitaliseringsdato <= beregningsdato) {
-  fradragKapitaliseretEet += kapComp.kapitalbelob;
-  // kapitaliseringEfterBeregningsdato = false
-} else if (kapComp && kapComp.kapitaliseringsdato > beregningsdato) {
-  // kapitaliseringEfterBeregningsdato = true — vises men bidrager ikke
-}
-```
-
-### Proforma-kønstjek
-
-Fane 5 tjekker selv om `koen` mangler for beregningsdatoer < 2015-03-01:
-```typescript
-if (!args.koen && beregningsdato < '2015-03-01') {
-  issues.push(toIssue('missing-koen', 'Ved beregning før 1. marts 2015 skal køn angives.'));
-}
-```
-Dette er et separat tjek fra fane 3's tilsvarende — note at issue-ID er det samme (`missing-koen`), men meddelelsesteksten er anderledes.
-
-### Afhængigheder
-
-| Import | Kilde |
-|---|---|
-| `reguleringssats`, `erhvervsevnetabMax`, `aarsloenMax`, `ASL_MAX_AARSLOEN_2003/2024`, `reguleringsprocentErhvervsevnetabFoer2024` | `src/data/regulationRates.ts` |
-| `computeEetLoebendeYdelser` | `eetLoebendeYdelserCalculation.ts` |
-| `computeEetEalCalculation` | `eetEalCalculation.ts` |
-| `computeEetKapitaliseringCalculation`, `WARN_NO_KAP_INPUT_ID` | `eetKapitaliseringCalculation.ts` |
-| Opslagsfunktioner | `eetKapitaliseringOpslag.ts` |
-| `ceil0`, `round0`, `round2`, `round3`, `round4`, `roundNearest1000` | `eetRounding.ts` |
-| `SKAERING_2007_07_01`, `SKAERING_2011_01_01`, `SKAERING_2011_06_16`, `SKAERING_2024_07_01` | `eetSkaeringsdatoer.ts` |
+Den nuværende implementering er under tilpasning til denne model. Hvis dokumentation og kode afviger, er denne fil den normative beskrivelse af forretningslogikken.
 
 ### Proforma-specifikke issue-ID'er
 
-Se [fejlkatalog.md](./fejlkatalog.md) for komplet beskrivelse. ID'erne er:
-- `proforma-kapitaliseringsbekendtgoerelse-missing`
-- `proforma-kapitaliseringstabel-missing`
-- `proforma-kapitaliseringsalder-under-minimum`
-- `proforma-kapitaliseringsfaktor-unresolved`
-- `proforma-reguleringssats-missing`
-- `missing-koen` (delt med fane 3, men med anden beskedtekst)
-- `beregningsdato-invalid` (kun fane 5 — fallback hvis dagFørBeregningsdato ikke kan beregnes)
+Se [fejlkatalog.md](./fejlkatalog.md) for komplet beskrivelse.
 
 ---
 
 ## Kendte udeståender
 
-*Ingen kendte udeståender pr. dags dato. Filen er synkroniseret med koden.*
+Dokumentationen afspejler den fastlagte forretningslogik for differencekrav.

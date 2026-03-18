@@ -20,6 +20,7 @@ import {
   calculateAgeYearsMonths,
   interpolateFactorBeyondTable,
   interpolateFactorWithinTable,
+  isUnderOrEqualTwoYearsToFpByBekendtgoerelse,
   resolveFactorTable,
   resolveKapitaliseringsbekendtgoerelseId,
   resolveKapitaliseringTabelvalg,
@@ -74,7 +75,9 @@ type Input = Readonly<{
 type ResolvedKapitaliseringsRow = Readonly<{
   rowId: string;
   afgoerelsesdato: ISODateString;
-  kapDato: ISODateString;
+  virkningsdato: ISODateString | null;
+  eetPct: number;
+  kapDato: ISODateString | null;
   kapPct: number;
   afgoerelseType: 'Endelig' | 'Delvist endelig';
   tidlKapDato: ISODateString | null;
@@ -99,7 +102,9 @@ const formatAgeForIssue = (age: AgeYearsMonths): string => `${age.years} år, ${
 
 const collectResolvedRows = (
   rows: readonly AslAfgoerelseRow[],
-  issues: EetIssue[]
+  issues: EetIssue[],
+  skadesdato: ISODateString | undefined,
+  fodselsdato: ISODateString | undefined
 ): ResolvedKapitaliseringsRow[] => {
   const result: ResolvedKapitaliseringsRow[] = [];
   const startedRows = rows.filter((row) => !isAslAfgoerelseRowEmpty(row));
@@ -142,17 +147,23 @@ const collectResolvedRows = (
   for (const row of rows) {
     if (row.afgoerelseType !== 'Endelig' && row.afgoerelseType !== 'Delvist endelig') continue;
     const kapPct = parsePercentDraft(row.kapPct);
-    if (kapPct === undefined || kapPct <= 0) continue;
-
     const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
-    const kapDato = coerceToISODateString(row.kapDato);
-    if (!afgoerelsesdato || !kapDato) continue;
+    if (!afgoerelsesdato) continue;
+    const controlDate = coerceToISODateString(row.tidlKapDato) ?? afgoerelsesdato;
+    const isEndeligUnderOrEqualTwoYears =
+      row.afgoerelseType === 'Endelig' &&
+      skadesdato !== undefined &&
+      fodselsdato !== undefined &&
+      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadesdato, fodselsdato, controlDate);
+    if (!isEndeligUnderOrEqualTwoYears && (kapPct === undefined || kapPct <= 0)) continue;
 
     result.push({
       rowId: row.id,
       afgoerelsesdato,
-      kapDato,
-      kapPct,
+      virkningsdato: coerceToISODateString(row.virkningsDato) ?? null,
+      eetPct: parsePercentDraft(row.eetPct) ?? 0,
+      kapDato: coerceToISODateString(row.kapDato) ?? null,
+      kapPct: kapPct ?? 0,
       afgoerelseType: row.afgoerelseType,
       tidlKapDato: coerceToISODateString(row.tidlKapDato) ?? null,
     });
@@ -168,13 +179,6 @@ const collectResolvedRows = (
     ));
   }
 
-  const hasEndeligUnder50MissingKap = rowsWithKapitaliserbarAfgoerelse.some((row) => {
-    if (row.afgoerelseType !== 'Endelig') return false;
-    const eetPct = parsePercentDraft(row.eetPct);
-    if (eetPct === undefined || eetPct === 0 || eetPct >= 50) return false;
-    return !hasTextValue(row.kapDato) && !hasTextValue(row.kapPct);
-  });
-
   const hasKapPctZeroOnKapitaliserbarRow = rowsWithKapitaliserbarAfgoerelse.some((row) => {
     const kapPct = parsePercentDraft(row.kapPct);
     return hasTextValue(row.kapPct) && (kapPct === undefined || kapPct === 0);
@@ -186,9 +190,34 @@ const collectResolvedRows = (
   // på Midlertidig-rækker, som sorteres fra inden result bygges.
   const hasKapDatoWithoutKapPct = rows.some((row) => hasTextValue(row.kapDato) && !hasTextValue(row.kapPct));
   const hasKapPctWithoutKapDato = rows.some((row) => hasTextValue(row.kapPct) && !hasTextValue(row.kapDato));
+  const hasEndeligUnder50MissingKap = rowsWithKapitaliserbarAfgoerelse.some((row) => {
+    if (row.afgoerelseType !== 'Endelig') return false;
+    const eetPct = parsePercentDraft(row.eetPct);
+    if (eetPct === undefined || eetPct === 0 || eetPct >= 50) return false;
+    const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
+    const controlDate = coerceToISODateString(row.tidlKapDato) ?? afgoerelsesdato;
+    const isForcedUnderTwoYears =
+      skadesdato !== undefined &&
+      fodselsdato !== undefined &&
+      controlDate !== undefined &&
+      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadesdato, fodselsdato, controlDate);
+    if (isForcedUnderTwoYears) return false;
+    return !hasTextValue(row.kapDato) && !hasTextValue(row.kapPct);
+  });
   const hasAnyKapInput = rows.some((row) => hasTextValue(row.kapDato) || hasTextValue(row.kapPct));
+  const hasForcedEndeligUnderTwoYears = rowsWithKapitaliserbarAfgoerelse.some((row) => {
+    const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
+    const controlDate = coerceToISODateString(row.tidlKapDato) ?? afgoerelsesdato;
+    return (
+      row.afgoerelseType === 'Endelig' &&
+      skadesdato !== undefined &&
+      fodselsdato !== undefined &&
+      controlDate !== undefined &&
+      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadesdato, fodselsdato, controlDate)
+    );
+  });
 
-  if (startedRows.length > 0 && !hasAnyKapInput) {
+  if (startedRows.length > 0 && !hasAnyKapInput && !hasForcedEndeligUnderTwoYears) {
     issues.push(toWarning(WARN_NO_KAP_INPUT_ID, 'Der er ikke angivet kapitaliseringsdato eller -procent for nogen afgørelse.'));
   }
 
@@ -213,7 +242,12 @@ const collectResolvedRows = (
 
   return result.sort((a, b) => {
     if (a.afgoerelsesdato !== b.afgoerelsesdato) return a.afgoerelsesdato < b.afgoerelsesdato ? -1 : 1;
-    if (a.kapDato !== b.kapDato) return a.kapDato < b.kapDato ? -1 : 1;
+    const aVirkningsdato = a.virkningsdato ?? '';
+    const bVirkningsdato = b.virkningsdato ?? '';
+    if (aVirkningsdato !== bVirkningsdato) return aVirkningsdato < bVirkningsdato ? -1 : 1;
+    const aKapDato = a.kapDato ?? '';
+    const bKapDato = b.kapDato ?? '';
+    if (aKapDato !== bKapDato) return aKapDato < bKapDato ? -1 : 1;
     return a.rowId.localeCompare(b.rowId);
   });
 };
@@ -239,7 +273,7 @@ export const computeEetKapitaliseringCalculation = (
     issues.push(toIssue('skadesdato-missing', 'Skadesdato er ikke udfyldt.'));
   }
 
-  const resolvedRows = collectResolvedRows(values.aslAfgoerelser, issues);
+  const resolvedRows = collectResolvedRows(values.aslAfgoerelser, issues, skadesdato, fodselsdato);
 
   if (issues.some((issue) => issue.severity === 'error') || !Number.isFinite(aarsloen) || !skadesdato || !fodselsdato) {
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
@@ -262,17 +296,29 @@ export const computeEetKapitaliseringCalculation = (
     : round0(benyttetAarsloen * (ASL_MAX_AARSLOEN_2024 / maxAarsloenISkadesaar));
   const erstatningsniveau = from2011 ? 0.83 : 0.8;
   const amFaktor = from2011 ? 0.92 : 1;
-  const needsKoen = resolvedRows.some((row) => row.kapDato < '2015-03-01');
+  const needsKoen = resolvedRows.some((row) => row.kapDato !== null && row.kapDato < '2015-03-01');
   if (needsKoen && !values.koen) {
     issues.push(toIssue('missing-koen', 'Ved kapitalisering før 1. marts 2015 skal køn angives.'));
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
   const computations: EetKapitaliseringAfgoerelseComputation[] = [];
+  let kumulativKapPct = 0;
 
   for (const row of resolvedRows) {
     const controlDate = row.tidlKapDato ?? row.afgoerelsesdato;
-    const effectiveKapDato = row.tidlKapDato ?? row.kapDato;
+    const isEndeligUnderOrEqualTwoYears =
+      row.afgoerelseType === 'Endelig' &&
+      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadesdato, fodselsdato, controlDate);
+    const effectiveKapPct = isEndeligUnderOrEqualTwoYears
+      ? Math.max(0, row.eetPct - kumulativKapPct)
+      : row.kapPct;
+    const effectiveKapDato = isEndeligUnderOrEqualTwoYears
+      ? row.afgoerelsesdato
+      : row.kapDato;
+    if (!effectiveKapDato || effectiveKapPct <= 0) {
+      continue;
+    }
 
     const controlBekId = resolveKapitaliseringsbekendtgoerelseId(skadesdato, controlDate);
     if (!controlBekId) {
@@ -445,7 +491,7 @@ export const computeEetKapitaliseringCalculation = (
       }
     }
 
-    const kapitaliseringsaar = Number.parseInt(row.kapDato.slice(0, 4), 10);
+    const kapitaliseringsaar = Number.parseInt(effectiveKapDato.slice(0, 4), 10);
     const aslReguleringRateInfo = resolveAslReguleringRateForKapAar(
       kapitaliseringsaar,
       before2024Skade,
@@ -453,7 +499,7 @@ export const computeEetKapitaliseringCalculation = (
     );
     if (!aslReguleringRateInfo || kapitaliseringsfaktor === null) continue;
 
-    const grundydelse = round2(grundloen * (row.kapPct / 100) * erstatningsniveau * amFaktor);
+    const grundydelse = round2(grundloen * (effectiveKapPct / 100) * erstatningsniveau * amFaktor);
     const reguleringFoer2024 = reguleringsprocentErhvervsevnetabFoer2024[2024];
     if (before2024Skade && !Number.isFinite(reguleringFoer2024)) {
       issues.push(toIssue('reguleringssats-missing', 'Reguleringssats mangler for år 2024.'));
@@ -470,8 +516,8 @@ export const computeEetKapitaliseringCalculation = (
     computations.push({
       rowId: row.rowId,
       afgoerelsesdato: row.afgoerelsesdato,
-      kapitaliseringsdato: row.kapDato,
-      kapitaliseringspct: row.kapPct,
+      kapitaliseringsdato: effectiveKapDato,
+      kapitaliseringspct: effectiveKapPct,
       grundloen,
       erstatningsniveauPct: from2011 ? 83 : 80,
       amBidragPct: from2011 ? 8 : 0,
@@ -490,6 +536,7 @@ export const computeEetKapitaliseringCalculation = (
       kapitalbelob,
       koenOpdelt,
     });
+    kumulativKapPct += effectiveKapPct;
   }
 
   if (issues.some((issue) => issue.severity === 'error')) {

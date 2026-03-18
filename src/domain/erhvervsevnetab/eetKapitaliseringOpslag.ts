@@ -139,6 +139,8 @@ export const calculateAgeYearsMonths = (
 
   let years = refDate.getUTCFullYear() - birthDate.getUTCFullYear();
   let months = refDate.getUTCMonth() - birthDate.getUTCMonth();
+  // Dag-sammenligningen bruger getUTCDate fordi parseISODate altid returnerer midnat UTC.
+  // Ændres parseISODate til lokal tid, skal dette opdateres tilsvarende.
   if (refDate.getUTCDate() < birthDate.getUTCDate()) {
     months -= 1;
   }

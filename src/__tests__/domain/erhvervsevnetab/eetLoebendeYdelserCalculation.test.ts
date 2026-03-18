@@ -35,7 +35,7 @@ describe('computeEetLoebendeYdelser', () => {
             eetPct: '75',
             kapDato: '15-01-2026',
             kapPct: '50',
-            afgoerelseType: 'Endelig',
+            afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
@@ -96,7 +96,7 @@ describe('computeEetLoebendeYdelser', () => {
     expect(result.issues.some((issue) => issue.message === 'Der er indtastet kapitaliseringsdato men ikke -procent.')).toBe(true);
   });
 
-  it('stopper beregning når endelig afgørelse under 50 % mangler kapitaliseringsoplysninger', () => {
+  it('fortsætter løbende beregning når endelig afgørelse under 50 % ikke kapitaliseres', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -119,14 +119,8 @@ describe('computeEetLoebendeYdelser', () => {
       fodselsdato: '1980-01-01',
     });
 
-    expect(result.computation).toBeNull();
-    expect(
-      result.issues.some(
-        (issue) =>
-          issue.id === 'endelig-under-50-missing-kapitalisering' &&
-          issue.message === 'Endelig afgørelse under 50 % mangler oplysninger om kapitalisering.'
-      )
-    ).toBe(true);
+    expect(result.computation).not.toBeNull();
+    expect(result.issues.some((issue) => issue.id === 'endelig-under-50-missing-kapitalisering')).toBe(false);
   });
 
   it('giver advarsel ved ugyldig EET-procent for regler fra 1. juli 2024', () => {
@@ -176,7 +170,7 @@ describe('computeEetLoebendeYdelser', () => {
             eetPct: '75',
             kapDato: '15-01-2026',
             kapPct: '50',
-            afgoerelseType: 'Endelig',
+            afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
@@ -215,7 +209,7 @@ describe('computeEetLoebendeYdelser', () => {
             eetPct: '60',
             kapDato: '01-10-2023',
             kapPct: '25',
-            afgoerelseType: 'Endelig',
+            afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
           {
@@ -225,7 +219,7 @@ describe('computeEetLoebendeYdelser', () => {
             eetPct: '75',
             kapDato: '15-07-2026',
             kapPct: '25',
-            afgoerelseType: 'Endelig',
+            afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
@@ -459,17 +453,24 @@ describe('computeEetLoebendeYdelser', () => {
     expect(periode?.maanedligYdelse).toBe(14043);
   });
 
-  it('fastsaetter tvungen kapitalisering ud fra bekendtgoerelsen paa afgoerelsestidspunktet', () => {
+  it('stopper løbende ydelse ved folkepensionsdato når endelig afgørelse er mere end 2 år før FP', () => {
+    // Skadesdato 2019-04-01, fødselsdato 1955-07-01.
+    // Bekendtgørelsen giver FP = 67 år → folkepensionsdato = 2022-07-01.
+    // Afgørelsesdato 2019-06-01: 37 måneder til FP — klart > 2 år.
+    // tvungen_stop_dato = 2020-06-30 (2 år før FP).
+    // folkepensionsDagFoer = 2022-06-30.
+    // Beregningsdato 2023-12-31 (efter FP).
+    // Tidligste kandidat er tvungen-kapitalisering (2020-06-30).
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2021-12-31',
+        beregningsdato: '2023-12-31',
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-08-2021',
-            virkningsDato: '01-08-2021',
+            afgoerelsesDato: '01-06-2019',
+            virkningsDato: '01-06-2019',
             eetPct: '60',
             kapDato: undefined,
             kapPct: undefined,
@@ -488,8 +489,159 @@ describe('computeEetLoebendeYdelser', () => {
     const afgoerelse = computation.afgoerelser[0];
     if (!afgoerelse) throw new Error('expected first decision');
 
-    expect(afgoerelse.ophoerAarsag).toBe('tvungen-kapitalisering');
-    expect(afgoerelse.ophoerDato).toBe('2020-06-30');
+    expect(afgoerelse.ophoerAarsag).toBe('folkepensionsdato');
+    expect(afgoerelse.ophoerDato).toBe('2022-06-30');
+  });
+
+  it('folkepensionsdato-kandidat er registreret med korrekt aarsag og dato', () => {
+    // Verificerer at folkepensionsDagFoer tilføjes og at ophoerDato er korrekt.
+    // Skadesdato 2019-04-01, fødselsdato 1955-07-01 → FP 2022-07-01, tvungen 2020-07-01.
+    // Afgørelsesdato 2019-06-01: 37 mdr til FP → tvungenStopDato = 2020-06-30.
+    // folkepensionsDagFoer = 2022-06-30.
+    // Beregningsdato 2023-12-31 (efter FP).
+    // tvungen (2020-06-30) < folkepensionsdato (2022-06-30) < beregningsdato (2023-12-31).
+    // Ophør = tvungen-kapitalisering med dato 2020-06-30.
+    // folkepensionsDagFoer tilføjes som kandidat men taber til tvungen.
+    const result = computeEetLoebendeYdelser({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: '2023-12-31',
+        aslAarsloen: asAmount(401000),
+        aslAfgoerelser: [
+          {
+            id: 'a1',
+            afgoerelsesDato: '01-06-2019',
+            virkningsDato: '01-06-2019',
+            eetPct: '60',
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadesdato: '2019-04-01',
+      fodselsdato: '1955-07-01',
+    });
+
+    expect(result.computation).not.toBeNull();
+    const computation = result.computation;
+    if (!computation) throw new Error('expected computation');
+    const afgoerelse = computation.afgoerelser[0];
+    if (!afgoerelse) throw new Error('expected first decision');
+
+    expect(afgoerelse.ophoerAarsag).toBe('folkepensionsdato');
+    expect(afgoerelse.ophoerDato).toBe('2022-06-30');
+    const sisteRaekke = afgoerelse.perioder[afgoerelse.perioder.length - 1];
+    expect(sisteRaekke?.til <= '2022-06-30').toBe(true);
+  });
+
+  it('lader to afgørelser med samme afgørelsesdato afløse hinanden efter virkningsdato', () => {
+    const result = computeEetLoebendeYdelser({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: '2024-12-31',
+        aslAarsloen: asAmount(401000),
+        aslAfgoerelser: [
+          {
+            id: 'a1',
+            afgoerelsesDato: '01-05-2024',
+            virkningsDato: '01-01-2024',
+            eetPct: '50',
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Midlertidig',
+            tidlKapDato: undefined,
+          },
+          {
+            id: 'a2',
+            afgoerelsesDato: '01-05-2024',
+            virkningsDato: '01-07-2024',
+            eetPct: '30',
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Midlertidig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadesdato: '2019-04-01',
+      fodselsdato: '1980-01-01',
+    });
+
+    expect(result.issues.some((issue) => issue.severity === 'error')).toBe(false);
+    expect(result.computation?.afgoerelser).toHaveLength(2);
+    expect(result.computation?.afgoerelser[0]?.ophoerAarsag).toBe('senere-afgoerelse');
+    expect(result.computation?.afgoerelser[0]?.ophoerDato).toBe('2024-06-30');
+    expect(result.computation?.afgoerelser[1]?.virkningsdato).toBe('2024-07-01');
+  });
+
+  it('ender med kapitalisering på afgørelsesdatoen når endelig afgørelse er ≤ 2 år før FP', () => {
+    const result = computeEetLoebendeYdelser({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: '2021-12-31',
+        aslAarsloen: asAmount(401000),
+        aslAfgoerelser: [
+          {
+            id: 'a1',
+            afgoerelsesDato: '01-08-2021',
+            virkningsDato: '01-01-2020',
+            eetPct: '60',
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadesdato: '2019-04-01',
+      fodselsdato: '1955-07-01',
+    });
+
+    expect(result.computation).not.toBeNull();
+    const computation = result.computation;
+    if (!computation) throw new Error('expected computation');
+    const afgoerelse = computation.afgoerelser[0];
+    if (!afgoerelse) throw new Error('expected first decision');
+
+    expect(afgoerelse.ophoerAarsag).toBe('kapitalisering');
+    expect(afgoerelse.ophoerDato).toBe('2021-07-31');
+  });
+
+  it('midlertidig afgoerelse faar ikke tvungen-kapitalisering eller folkepensionsdato som ophoer', () => {
+    // Midlertidige afgørelser er aldrig tvungent kapitaliserede.
+    // Ophør bestemmes af beregningsdato, ikke FP-relaterede kandidater.
+    // Samme fødselsdato som de øvrige FP-tests (FP = 2022-07-01, tvungen = 2020-06-30),
+    // men afgørelsestype Midlertidig — ophør skal falde på beregningsdato.
+    const result = computeEetLoebendeYdelser({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: '2021-06-30',
+        aslAarsloen: asAmount(401000),
+        aslAfgoerelser: [{
+          id: 'a1',
+          afgoerelsesDato: '01-06-2019',
+          virkningsDato: '01-06-2019',
+          eetPct: '40',
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: 'Midlertidig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadesdato: '2019-04-01',
+      fodselsdato: '1955-07-01',
+    });
+
+    expect(result.computation).not.toBeNull();
+    const computation = result.computation;
+    if (!computation) throw new Error('expected computation');
+    const afgoerelse = computation.afgoerelser[0];
+    if (!afgoerelse) throw new Error('expected first decision');
+
+    expect(afgoerelse.ophoerAarsag).toBe('beregningsdato');
+    expect(afgoerelse.ophoerDato).toBe('2021-06-30');
   });
 });
 

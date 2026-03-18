@@ -118,6 +118,18 @@ type Input = Readonly<{
 
 const toIssue = (id: string, message: string): EetIssue => ({ id, severity: 'error', message });
 
+const filterAslRowsKnownAtBeregningsdato = (
+  rows: readonly ErhvervsevnetabValues['aslAfgoerelser'][number][],
+  beregningsdato: ISODateString | undefined
+): readonly ErhvervsevnetabValues['aslAfgoerelser'][number][] => {
+  if (!beregningsdato) return rows;
+  return rows.filter((row) => {
+    const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
+    const virkningsdato = coerceToISODateString(row.virkningsDato);
+    if (afgoerelsesdato === undefined || virkningsdato === undefined) return true;
+    return afgoerelsesdato <= beregningsdato && virkningsdato <= beregningsdato;
+  });
+};
 
 // ─── Proforma-kapitalisering ──────────────────────────────────────────────────
 
@@ -302,6 +314,10 @@ const resolveLoebendeEetPct = (
 
   // Tie-breaking matches fane 4's resolveEetPctFromAslRows:
   // 1. Latest afgørelsesdato, 2. Latest virkningsdato, 3. Endelig > Delvist endelig > rest
+  // Invariant: senestEetPct antages at være >= alle tidligere afgørelsers EET-procenter.
+  // Domænet tillader ikke reduktion i EET-procent, så sumKapPct fratrukket senestEetPct
+  // er altid >= 0 (clamped af Math.max). Hvis denne invariant brydes (f.eks. via en
+  // afgørelse der sætter EET lavere end en tidligere) returneres 0, ikke negativt.
   const latestAfgoerelsesdato = afgoerelser.reduce<ISODateString>(
     (latest, a) => (a.afgoerelsesdato > latest ? a.afgoerelsesdato : latest),
     afgoerelser[0]!.afgoerelsesdato
@@ -341,10 +357,15 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   const beregningsdato = coerceToISODateString(input.erhvervsevnetab.beregningsdato);
   const skadesdato = input.skadesdato;
   const fodselsdato = input.fodselsdato;
+  const aslRowsKnownAtBeregningsdato = filterAslRowsKnownAtBeregningsdato(input.erhvervsevnetab.aslAfgoerelser, beregningsdato);
+  const filteredErhvervsevnetab = {
+    ...input.erhvervsevnetab,
+    aslAfgoerelser: [...aslRowsKnownAtBeregningsdato],
+  };
 
   // ─── Kør eal-beregning (fane 4) ───────────────────────────────────────────
   const ealResult = computeEetEalCalculation({
-    erhvervsevnetab: input.erhvervsevnetab,
+    erhvervsevnetab: filteredErhvervsevnetab,
     skadesdato,
     fodselsdato,
     reguleringssats,
@@ -354,7 +375,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
 
   // ─── Kør kapitaliserings-beregning (fane 3) ───────────────────────────────
   const kapResult = computeEetKapitaliseringCalculation({
-    erhvervsevnetab: input.erhvervsevnetab,
+    erhvervsevnetab: filteredErhvervsevnetab,
     skadesdato,
     fodselsdato,
   });
@@ -370,7 +391,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       if (dayBefore) {
         dagFoerBeregningsdato = dayBefore;
         loebendeResult = computeEetLoebendeYdelser({
-          erhvervsevnetab: { ...input.erhvervsevnetab, beregningsdato: dayBefore },
+          erhvervsevnetab: { ...filteredErhvervsevnetab, beregningsdato: dayBefore },
           skadesdato,
           fodselsdato,
         });
@@ -418,14 +439,12 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
 
     // Bestem løbende EET-pct til proformakapitalisering.
     // Afgørelseslisten hentes fra løbende-computation til tie-breaking (seneste afgørelse).
-    // Kapitaliseringsprocenterne hentes fra råinput og filtreres: kun kap.dato <= beregningsdato
-    // medregnes — fremtidige kapitaliseringer er endnu ikke sket per beregningsdatoen.
-    const kapitaliseringerForProforma = input.erhvervsevnetab.aslAfgoerelser
-      .map((row) => ({
-        kapDato: coerceToISODateString(row.kapDato),
-        kapPct: parsePercentDraft(row.kapPct) ?? 0,
-      }))
-      .filter((k) => k.kapDato !== undefined && k.kapDato <= beregningsdato && k.kapPct > 0) as readonly { kapPct: number }[];
+    // Kapitaliseringsprocenterne hentes fra fane 3's resolvede computation og filtreres:
+    // kun kapitaliseringer med dato <= beregningsdato medregnes.
+    const kapitaliseringerForProforma =
+      kapResult.computation?.afgoerelser
+        .filter((afgoerelse) => afgoerelse.kapitaliseringsdato <= beregningsdato && afgoerelse.kapitaliseringspct > 0)
+        .map((afgoerelse) => ({ kapPct: afgoerelse.kapitaliseringspct })) ?? [];
 
     loebendeEetPct = loebendeComputation
       ? resolveLoebendeEetPct(loebendeComputation.afgoerelser, kapitaliseringerForProforma)
@@ -491,14 +510,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
     for (let i = 0; i < sortedByVirkningsdato.length; i++) {
       const afgoerelse = sortedByVirkningsdato[i]!;
       const naeste = sortedByVirkningsdato[i + 1];
-      let fradragesTil: ISODateString;
-      if (naeste) {
-        const naesteParsed = parseISODate(naeste.virkningsdato);
-        const dagenFoerNaeste = naesteParsed ? dateToISO(addDays(naesteParsed, -1)) : null;
-        fradragesTil = dagenFoerNaeste ?? dagFoerBeregningsdato;
-      } else {
-        fradragesTil = dagFoerBeregningsdato;
-      }
+      const fradragesTil = afgoerelse.ophoerDato;
 
       const foretages = skalFradragForetages(afgoerelse.afgoerelseType, skadesdato);
       const beloeb = foretages ? afgoerelse.iAltBeregnetEet : 0;
@@ -520,7 +532,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   const kapAfgoerelser: EetDifferencekravKapitaliseretAfgoerelse[] = [];
   let fradragKapitaliseretEet = 0;
 
-  const aslRowsForDisplay = input.erhvervsevnetab.aslAfgoerelser
+  const aslRowsForDisplay = aslRowsKnownAtBeregningsdato
     .filter((row) => {
       const eetPct = parsePercentDraft(row.eetPct);
       return eetPct !== undefined && eetPct > 0 && coerceToISODateString(row.afgoerelsesDato) !== undefined;

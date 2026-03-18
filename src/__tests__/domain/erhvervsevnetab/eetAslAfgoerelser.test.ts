@@ -30,25 +30,34 @@ const buildRow = (patch: Partial<AslAfgoerelseRow>): AslAfgoerelseRow => ({
 });
 
 describe('validateKapPctByAfgoerelsestype', () => {
-  it('afviser kap % over 50 uanset afgørelsestype', () => {
+  it('anvender de almindelige kapitaliseringsregler ved endelig afgørelse mere end 2 år før folkepension', () => {
     const error = validateKapPctByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Endelig', eetPct: '80', kapPct: '55' })
+      buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: '80', kapPct: '55' }),
+      [buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: '80', kapPct: '55' })],
+      toISODateString('2025-01-01'),
+      toISODateString('1965-01-01')
     );
-    expect(error).toContain('50 %');
+    expect(error).toBe('Kapitaliseringsprocent kan ikke overstige 50 % (inkl. tidligere kapitaliseringsprocenter).');
   });
 
-  it('afviser endelig når kap % er højere end EET %', () => {
+  it('afviser endelig kapitalisering mere end 2 år før folkepension når kap % overstiger EET %', () => {
     const error = validateKapPctByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Endelig', eetPct: '40', kapPct: '45' })
+      buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: '40', kapPct: '45' }),
+      [buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: '40', kapPct: '45' })],
+      toISODateString('2025-01-01'),
+      toISODateString('1965-01-01')
     );
-    expect(error).toContain('mere end det samlede EET');
+    expect(error).toBe('Der kan ikke kapitaliseres mere end det samlede EET.');
   });
 
-  it('afviser endelig når EET % < 50 og kap % er lavere end EET %', () => {
+  it('kræver fortsat fuld kapitalisering ved endelig afgørelse under 50 % mere end 2 år før folkepension', () => {
     const error = validateKapPctByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Endelig', eetPct: '40', kapPct: '35' })
+      buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: '40', kapPct: '35' }),
+      [buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: '40', kapPct: '35' })],
+      toISODateString('2025-01-01'),
+      toISODateString('1965-01-01')
     );
-    expect(error).toContain('under 50 %');
+    expect(error).toBe('Ved endelig afgørelse under 50 % skal samlet kapitaliseringsprocent (inkl. tidligere kapitaliseringsprocenter) svare til EET %.');
   });
 
   it('afviser delvist endelig når kap % er under 5 %', () => {
@@ -119,7 +128,7 @@ describe('validateKapPctByAfgoerelsestype', () => {
     expect(error).toBe('Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse.');
   });
 
-  it('afviser kap.dato ved endelig afgørelse < 2 år til folkepension når kap.dato afviger fra afgørelsesdato', () => {
+  it('afviser kap.dato ved endelig afgørelse ≤ 2 år til folkepension når kap.dato afviger fra afgørelsesdato', () => {
     const error = validateKapDatoByAfgoerelsestype(
       buildRow({
         afgoerelseType: 'Endelig',
@@ -130,7 +139,7 @@ describe('validateKapPctByAfgoerelsestype', () => {
       toISODateString('2025-01-01'),
       toISODateString('1959-01-01')
     );
-    expect(error).toBe('Ved < 2 år til folkepension sker kapitalisering fra afgørelsesdagen.');
+    expect(error).toBe('Ved ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.');
   });
 
   it('afviser kap.dato når den ligger før virkningsdato', () => {
@@ -179,18 +188,18 @@ describe('validateKapPctByAfgoerelsestype', () => {
     expect(error).toBeUndefined();
   });
 
-  it('afviser når senere kap % + tidligere kap % overstiger 50 %', () => {
+  it('afviser fortsat delvist endelig når senere kap % + tidligere kap % overstiger 50 %', () => {
     const previous = buildRow({
       id: 'r0',
       afgoerelsesDato: '01-01-2024',
-      afgoerelseType: 'Endelig',
+      afgoerelseType: 'Delvist endelig',
       eetPct: '80',
       kapPct: '30',
     });
     const current = buildRow({
       id: 'r1',
       afgoerelsesDato: '01-03-2024',
-      afgoerelseType: 'Endelig',
+      afgoerelseType: 'Delvist endelig',
       eetPct: '80',
       kapPct: '25',
     });
@@ -199,18 +208,18 @@ describe('validateKapPctByAfgoerelsestype', () => {
     expect(error).toContain('50 %');
   });
 
-  it('afviser når senere kap % + tidligere kap % overstiger EET % ved endelig', () => {
+  it('afviser delvist endelig når senere kap % + tidligere kap % overstiger EET %', () => {
     const previous = buildRow({
       id: 'r0',
       afgoerelsesDato: '01-01-2024',
-      afgoerelseType: 'Endelig',
+      afgoerelseType: 'Delvist endelig',
       eetPct: '40',
       kapPct: '20',
     });
     const current = buildRow({
       id: 'r1',
       afgoerelsesDato: '01-03-2024',
-      afgoerelseType: 'Endelig',
+      afgoerelseType: 'Delvist endelig',
       eetPct: '40',
       kapPct: '25',
     });
@@ -219,25 +228,25 @@ describe('validateKapPctByAfgoerelsestype', () => {
     expect(error).toContain('fradrag for tidligere kapitalisering');
   });
 
-  it('medregner kap % fra alle tidligere afgørelser (ikke kun én)', () => {
+  it('medregner kap % fra alle tidligere delvise kapitaliseringer (ikke kun én)', () => {
     const previousA = buildRow({
       id: 'r0',
       afgoerelsesDato: '01-01-2024',
-      afgoerelseType: 'Endelig',
+      afgoerelseType: 'Delvist endelig',
       eetPct: '80',
       kapPct: '10',
     });
     const previousB = buildRow({
       id: 'r1',
       afgoerelsesDato: '01-02-2024',
-      afgoerelseType: 'Endelig',
+      afgoerelseType: 'Delvist endelig',
       eetPct: '80',
       kapPct: '20',
     });
     const current = buildRow({
       id: 'r2',
       afgoerelsesDato: '01-03-2024',
-      afgoerelseType: 'Endelig',
+      afgoerelseType: 'Delvist endelig',
       eetPct: '80',
       kapPct: '25',
     });
@@ -266,7 +275,7 @@ describe('validateKapPctByAfgoerelsestype', () => {
     expect(error).toBeUndefined();
   });
 
-  it('kræver fuld kapitalisering ved endelig afgørelse < 2 år til folkepension (inkl. tidligere kapitalisering)', () => {
+  it('kræver fuld kapitalisering ved endelig afgørelse ≤ 2 år til folkepension (inkl. tidligere kapitalisering)', () => {
     const previous = buildRow({
       id: 'r0',
       afgoerelsesDato: '01-01-2024',
@@ -288,10 +297,10 @@ describe('validateKapPctByAfgoerelsestype', () => {
       toISODateString('2025-01-01'),
       toISODateString('1959-01-01')
     );
-    expect(error).toBe('Ved < 2 år til folkepension kapitaliseres hele EET.');
+    expect(error).toBe('Ved ≤ 2 år til folkepension kapitaliseres hele EET.');
   });
 
-  it('accepterer kap % over 50 ved endelig afgørelse < 2 år til folkepension når samlet kap % matcher EET %', () => {
+  it('accepterer kap % over 50 ved endelig afgørelse ≤ 2 år til folkepension når samlet kap % matcher EET %', () => {
     const previous = buildRow({
       id: 'r0',
       afgoerelsesDato: '01-01-2024',
@@ -318,7 +327,28 @@ describe('validateKapPctByAfgoerelsestype', () => {
 });
 
 describe('validateEetPctByPriorKapPct', () => {
-  it('afviser når EET % ikke overstiger summen af tidligere kap %', () => {
+  it('afviser når EET % er lavere end akkumuleret tidligere kap %', () => {
+    const previousA = buildRow({
+      id: 'r0',
+      afgoerelsesDato: '01-01-2024',
+      kapPct: '10',
+    });
+    const previousB = buildRow({
+      id: 'r1',
+      afgoerelsesDato: '01-02-2024',
+      kapPct: '20',
+    });
+    const current = buildRow({
+      id: 'r2',
+      afgoerelsesDato: '01-03-2024',
+      eetPct: '25',
+    });
+
+    const error = validateEetPctByPriorKapPct(current, [previousA, previousB, current]);
+    expect(error).toBe('EET % kan ikke være lavere end den akkumulerede kapitaliseringsprocent fra tidligere afgørelser.');
+  });
+
+  it('accepterer når EET % er lig med akkumuleret tidligere kap %', () => {
     const previousA = buildRow({
       id: 'r0',
       afgoerelsesDato: '01-01-2024',
@@ -336,31 +366,10 @@ describe('validateEetPctByPriorKapPct', () => {
     });
 
     const error = validateEetPctByPriorKapPct(current, [previousA, previousB, current]);
-    expect(error).toContain('større end summen');
-  });
-
-  it('accepterer når EET % overstiger summen af tidligere kap %', () => {
-    const previousA = buildRow({
-      id: 'r0',
-      afgoerelsesDato: '01-01-2024',
-      kapPct: '10',
-    });
-    const previousB = buildRow({
-      id: 'r1',
-      afgoerelsesDato: '01-02-2024',
-      kapPct: '20',
-    });
-    const current = buildRow({
-      id: 'r2',
-      afgoerelsesDato: '01-03-2024',
-      eetPct: '35',
-    });
-
-    const error = validateEetPctByPriorKapPct(current, [previousA, previousB, current]);
     expect(error).toBeUndefined();
   });
 
-  it('ser bort fra senere afgørelser ved beregning af tidligere kap %-sum', () => {
+  it('ser fortsat bort fra senere afgørelser ved vurdering af tidligere kap %-sum', () => {
     const later = buildRow({
       id: 'r3',
       afgoerelsesDato: '01-05-2024',
@@ -526,13 +535,13 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
     ).toBe(false);
   });
 
-  it('genberegner kap.dato-issue når fodselsdato ændrer < 2 år til folkepension-reglen', () => {
+  it('genberegner kap.dato-issue når fodselsdato ændrer ≤ 2 år til folkepension-reglen', () => {
     const rows: AslAfgoerelseRow[] = [
       buildRow({
         id: 'r1',
         afgoerelsesDato: '01-07-2025',
         virkningsDato: '01-07-2025',
-        afgoerelseType: 'Endelig',
+        afgoerelseType: 'Delvist endelig',
         eetPct: '80',
         kapDato: '01-10-2025',
         kapPct: '80',
@@ -554,7 +563,7 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
     expect(withFpIssue).toContainEqual({
       rowId: 'r1',
       field: 'kapDato',
-      message: 'Ved < 2 år til folkepension sker kapitalisering fra afgørelsesdagen.',
+      message: 'Ved delvist endelig afgørelse ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.',
     });
   });
 
@@ -581,7 +590,7 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
         (issue) =>
           issue.rowId === 'r1' &&
           issue.field === 'kapDato' &&
-          issue.message === 'Ved < 2 år til folkepension sker kapitalisering fra afgørelsesdagen.'
+          issue.message === 'Ved ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.'
       )
     ).toBe(false);
     expect(
@@ -589,12 +598,12 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
         (issue) =>
           issue.rowId === 'r1' &&
           issue.field === 'kapPct' &&
-          issue.message === 'Ved < 2 år til folkepension kapitaliseres hele EET.'
+          issue.message === 'Ved ≤ 2 år til folkepension kapitaliseres hele EET.'
       )
     ).toBe(false);
   });
 
-  it('prioriterer den særlige < 2 år-fejl i kap. % over det almindelige 50 %-loft', () => {
+  it('prioriterer den særlige ≤ 2 år-fejl i kap. % over det almindelige 50 %-loft', () => {
     const rows: AslAfgoerelseRow[] = [
       buildRow({
         id: 'r0',
@@ -624,7 +633,7 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
     expect(issues).toContainEqual({
       rowId: 'r1',
       field: 'kapPct',
-      message: 'Ved < 2 år til folkepension kapitaliseres hele EET.',
+      message: 'Ved ≤ 2 år til folkepension kapitaliseres hele EET.',
     });
     expect(
       issues.some(

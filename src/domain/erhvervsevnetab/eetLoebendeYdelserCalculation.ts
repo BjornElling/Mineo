@@ -17,7 +17,7 @@ import { SKAERING_2011_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
 import { optaelMaanederPraecis } from '../erstatningsopgoerelse/periodiseringsMotor';
 import { ASL_IDENTICAL_AFGOERELSER_ID, collectIncompleteRowIssues, hasIdenticalAfgoerelser, hasTextValue, isAslAfgoerelseRowEmpty, parsePercentDraft } from './eetAslAfgoerelser';
-import { resolveKapitaliseringTabelvalgForControlDate } from './eetKapitaliseringOpslag';
+import { isUnderOrEqualTwoYearsToFpByBekendtgoerelse, resolveKapitaliseringTabelvalgForControlDate } from './eetKapitaliseringOpslag';
 
 export type EetLoebendePeriodeRow = Readonly<{
   fra: ISODateString;
@@ -46,7 +46,7 @@ export type EetLoebendeAfgoerelseComputation = Readonly<{
   harRestSektion: boolean;
   tilbagevirkendeKraft: boolean;
   ophoerDato: ISODateString;
-  ophoerAarsag: 'beregningsdato' | 'senere-afgoerelse' | 'kapitalisering' | 'tvungen-kapitalisering';
+  ophoerAarsag: 'beregningsdato' | 'senere-afgoerelse' | 'kapitalisering' | 'tvungen-kapitalisering' | 'folkepensionsdato';
   grundydelseFuld: number;
   grundydelseRest: number | null;
   grundydelse2024Fuld: number;
@@ -219,6 +219,7 @@ const collectWarnings = (
 
 const collectBlockingInputIssues = (rows: readonly AslAfgoerelseRow[], issues: EetIssue[]): void => {
   for (const issue of collectIncompleteRowIssues(rows)) {
+    if (issue.id === 'endelig-under-50-missing-kapitalisering') continue;
     issues.push(toIssue(issue.id, issue.message));
   }
 
@@ -241,9 +242,6 @@ const collectBlockingInputIssues = (rows: readonly AslAfgoerelseRow[], issues: E
       'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato.'
     ));
   }
-  // 'endelig-under-50-missing-kapitalisering' checkes ikke her — løbende ydelser
-  // beregnes uafhængigt af om der foreligger kapitalisering. Fejlen emitteres af
-  // eetKapitaliseringCalculation og eetDifferencekravCalculation (via kap-result).
 };
 
 const buildFullSectionPeriods = (
@@ -315,29 +313,31 @@ const buildRestSectionPeriods = (
   return result;
 };
 
-const resolveTvungenStopDato = (
-  afgoerelseType: ResolvedAfgoerelse['afgoerelseType'],
+/**
+ * Beregner dagen før folkepensionsdatoen for én afgørelse.
+ * Returnerer undefined hvis tabelvalget ikke kan slås op.
+ */
+const resolveFolkepensionsDagFoer = (
   skadesdato: ISODateString,
   fodselsdato: ISODateString,
   controlDate: ISODateString
 ): ISODateString | undefined => {
-  if (afgoerelseType === 'Midlertidig') return undefined;
   const tabelvalg = resolveKapitaliseringTabelvalgForControlDate(skadesdato, fodselsdato, controlDate);
   if (!tabelvalg) return undefined;
   const parsedBirth = parseISODate(fodselsdato);
   if (!parsedBirth) return undefined;
   const folkepensionsdato = addMonths(parsedBirth, tabelvalg.folkepensionsalderMaaneder);
-  const tvungenKapDato = addMonths(folkepensionsdato, -24);
-  const tvungenKapIso = dateToISO(tvungenKapDato);
-  if (!tvungenKapIso) return undefined;
-  return isoDayBefore(tvungenKapIso);
+  const folkepensionsdatoIso = dateToISO(folkepensionsdato);
+  if (!folkepensionsdatoIso) return undefined;
+  return isoDayBefore(folkepensionsdatoIso);
 };
 
 const OPHOER_AARSAG_PRIORITY: Readonly<Record<EetLoebendeAfgoerelseComputation['ophoerAarsag'], number>> = {
   'senere-afgoerelse': 1,
   'tvungen-kapitalisering': 2,
   kapitalisering: 3,
-  beregningsdato: 4,
+  folkepensionsdato: 4,
+  beregningsdato: 5,
 };
 
 const toAfgoerelseLabel = (
@@ -430,38 +430,39 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
   const amBidragPct = from2011 ? 8 : 0;
 
   const computations: EetLoebendeAfgoerelseComputation[] = [];
+  let kumulativKapPct = 0;
 
   for (let i = 0; i < resolvedAfgoerelser.length; i += 1) {
     const current = resolvedAfgoerelser[i];
     const next = resolvedAfgoerelser[i + 1];
+    const priorKapPct = kumulativKapPct;
+    const isEndeligUnderOrEqualTwoYears =
+      current.afgoerelseType === 'Endelig' &&
+      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadesdato, fodselsdato, current.afgoerelsesdato);
 
-    const priorKapPct = resolvedAfgoerelser
-      .filter((row) => row.afgoerelsesdato < current.afgoerelsesdato && row.afgoerelseType !== 'Midlertidig')
-      .reduce((sum, row) => sum + row.kapPct, 0);
-
-    const kapPctKumulativ = priorKapPct + current.kapPct;
     const eetPctFoerAktuelKapRaw = current.eetPct - priorKapPct;
     const eetPctFoerAktuelKap = eetPctFoerAktuelKapRaw > 0 ? eetPctFoerAktuelKapRaw : 0;
-    const restEetPctRaw = eetPctFoerAktuelKap - current.kapPct;
+    const effectiveKapPct = isEndeligUnderOrEqualTwoYears
+      ? eetPctFoerAktuelKap
+      : current.kapPct;
+    const kapPctKumulativ = priorKapPct + effectiveKapPct;
+    const restEetPctRaw = eetPctFoerAktuelKap - effectiveKapPct;
     const restEetPct = restEetPctRaw > 0 ? restEetPctRaw : 0;
-
-    const hasKapitalisering = !!current.kapDato && current.kapPct > 0;
+    const effectiveKapDato = isEndeligUnderOrEqualTwoYears
+      ? current.afgoerelsesdato
+      : current.kapDato;
+    const hasKapitalisering = !!effectiveKapDato && effectiveKapPct > 0;
     const hasRestSection = hasKapitalisering && restEetPct > 0;
 
     const dayBeforeNextVirkning = next ? isoDayBefore(next.virkningsdato) : undefined;
-    const tvungenStopDato = resolveTvungenStopDato(
-      current.afgoerelseType,
-      skadesdato,
-      fodselsdato,
-      current.afgoerelsesdato
-    );
-    const dayBeforeKapitalisering = current.kapDato ? isoDayBefore(current.kapDato) : undefined;
+    const folkepensionsDagFoer = resolveFolkepensionsDagFoer(skadesdato, fodselsdato, current.afgoerelsesdato);
+    const dayBeforeKapitalisering = effectiveKapDato ? isoDayBefore(effectiveKapDato) : undefined;
 
     const finalCandidates: Array<Readonly<{ date: ISODateString; cause: EetLoebendeAfgoerelseComputation['ophoerAarsag'] }>> = [
       { date: beregningsdato, cause: 'beregningsdato' },
     ];
     if (dayBeforeNextVirkning) finalCandidates.push({ date: dayBeforeNextVirkning, cause: 'senere-afgoerelse' });
-    if (tvungenStopDato) finalCandidates.push({ date: tvungenStopDato, cause: 'tvungen-kapitalisering' });
+    if (folkepensionsDagFoer) finalCandidates.push({ date: folkepensionsDagFoer, cause: 'folkepensionsdato' });
     if (!hasRestSection && dayBeforeKapitalisering) {
       finalCandidates.push({ date: dayBeforeKapitalisering, cause: 'kapitalisering' });
     }
@@ -485,8 +486,8 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
       slutdato: fullSectionEnd,
     });
 
-    const restSectionPeriods = hasRestSection && current.kapDato && current.kapDato <= finalStop.date
-      ? buildRestSectionPeriods({ fra: current.kapDato, til: finalStop.date })
+    const restSectionPeriods = hasRestSection && effectiveKapDato && effectiveKapDato <= finalStop.date
+      ? buildRestSectionPeriods({ fra: effectiveKapDato, til: finalStop.date })
       : [];
 
     const fullPctFactor = eetPctFoerAktuelKap / 100;
@@ -511,7 +512,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
       const rateInfo = resolveAslReguleringRateForSatsAar(sectionRow.satsAar, before2024Skade, issues);
       if (rateInfo === null) continue;
 
-      const usingRest = hasRestSection && current.kapDato !== undefined && sectionRow.fra >= current.kapDato;
+      const usingRest = hasRestSection && effectiveKapDato !== undefined && sectionRow.fra >= effectiveKapDato;
       const grundydelseBase = usingRest ? grundydelseRest : grundydelseFuld;
       const grundydelse2024Base = usingRest ? grundydelse2024Rest : grundydelse2024Fuld;
       const effektivGrundydelseBase =
@@ -546,12 +547,12 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
       rowId: current.rowId,
       afgoerelsesdato: current.afgoerelsesdato,
       virkningsdato: current.virkningsdato,
-      kapitaliseringsdato: hasKapitalisering && current.kapDato ? current.kapDato : null,
+      kapitaliseringsdato: hasKapitalisering && effectiveKapDato ? effectiveKapDato : null,
       afgoerelseType: current.afgoerelseType,
       eetPct: current.eetPct,
       priorKapPct,
       eetPctFoerAktuelKap,
-      kapPctAktuel: current.kapPct,
+      kapPctAktuel: effectiveKapPct,
       kapPctKumulativ,
       restEetPct,
       harKapitalisering: hasKapitalisering,
@@ -566,6 +567,8 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
       perioder: computedRows,
       iAltBeregnetEet,
     });
+
+    kumulativKapPct = kapPctKumulativ;
   }
 
   if (issues.some((issue) => issue.severity === 'error')) {
@@ -616,6 +619,8 @@ export const toOphoerAarsagLabel = (
       return 'Kapitalisering';
     case 'tvungen-kapitalisering':
       return 'Tvungen kapitalisering';
+    case 'folkepensionsdato':
+      return 'Folkepensionsdato';
     default:
       return cause;
   }

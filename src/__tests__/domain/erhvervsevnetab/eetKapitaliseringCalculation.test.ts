@@ -208,7 +208,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues.some((issue) => issue.message === 'Der er en afgørelse uden EET %.')).toBe(false);
   });
 
-  it('beregner kapitalisering med tabelinterpolation for en moderne bekendtgørelse', () => {
+  it('beregner delvis kapitalisering med tabelinterpolation for en moderne bekendtgørelse', () => {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -221,7 +221,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             eetPct: '50',
             kapDato: '2025-10-01',
             kapPct: '25',
-            afgoerelseType: 'Endelig',
+            afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
@@ -252,7 +252,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             eetPct: '25',
             kapDato: '2024-02-01',
             kapPct: '25',
-            afgoerelseType: 'Endelig',
+            afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
@@ -293,7 +293,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues).toEqual([]);
     expect(result.computation?.afgoerelser[0]?.kapitaliseringsfaktor).toBe(1.245);
     expect(result.computation?.afgoerelser[0]?.kapitaliseretPgaUnderToAarTilFp).toBe(true);
-    expect(result.computation?.afgoerelser[0]?.kapitalbelob).toBe(150140);
+    expect(result.computation?.afgoerelser[0]?.kapitalbelob).toBe(300279);
   });
 
   it('låser faktorgrundlaget til afgørelsestidspunktet når kapitaliseret pga. under to år til folkepension er ja', () => {
@@ -309,7 +309,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             eetPct: '50',
             kapDato: '2026-12-01',
             kapPct: '25',
-            afgoerelseType: 'Endelig',
+            afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
@@ -337,7 +337,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             eetPct: '50',
             kapDato: undefined,
             kapPct: '25',
-            afgoerelseType: 'Endelig',
+            afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
@@ -364,7 +364,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             eetPct: '50',
             kapDato: '2008-02-01',
             kapPct: '25',
-            afgoerelseType: 'Endelig',
+            afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
@@ -395,7 +395,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             eetPct: '50',
             kapDato: '2008-02-01',
             kapPct: '25',
-            afgoerelseType: 'Endelig',
+            afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
@@ -424,7 +424,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             eetPct: '50',
             kapDato: '2004-02-01',
             kapPct: '25',
-            afgoerelseType: 'Endelig',
+            afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
@@ -454,7 +454,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             eetPct: '50',
             kapDato: '2025-10-01',
             kapPct: '25',
-            afgoerelseType: 'Endelig',
+            afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
           {
@@ -464,7 +464,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             eetPct: '50',
             kapDato: '2025-08-01',
             kapPct: '25',
-            afgoerelseType: 'Endelig',
+            afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
           {
@@ -474,7 +474,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             eetPct: '50',
             kapDato: '2025-09-01',
             kapPct: '25',
-            afgoerelseType: 'Endelig',
+            afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],

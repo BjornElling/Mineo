@@ -121,14 +121,14 @@ export const addKapitaliseringAfgoerelseSection = (
   );
 
   writer.writeLeftRightTextSingleLine(
-    'Kapitaliseret pga. < 2 år til folkepension?',
+    'Kapitaliseret pga. ≤ 2 år til folkepension?',
     formatJaNej(afgoerelse.kapitaliseretPgaUnderToAarTilFp),
     rowOpts
   );
 
   if (afgoerelse.kapitaliseretPgaUnderToAarTilFp) {
     writer.writeLeftRightTextSingleLine(
-      'Særfaktor (< 2 år til folkepension)',
+      'Særfaktor (≤ 2 år til folkepension)',
       afgoerelse.saerfaktor === null ? '-' : formatFaktor(afgoerelse.saerfaktor),
       rowOpts
     );
