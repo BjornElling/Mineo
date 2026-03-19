@@ -84,8 +84,8 @@ const UnsupportedDevicePage: React.FC = () => {
 
             <div className="body-text">
               <p style={{ marginTop: 0 }}>
-                Mineo er et komplekst regneprogram til udarbejdelse af
-                erstatningsopgørelser.
+                Mineo er et komplekst program, der beregner erstatning
+                i arbejdsskadesager.
               </p>
 
               <p style={{ marginTop: '16px' }}>
