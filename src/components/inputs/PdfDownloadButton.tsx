@@ -8,7 +8,7 @@ type Props = Readonly<{
   disabled?: boolean;
 }>;
 
-const EetPdfDownloadButton: React.FC<Props> = ({ onClick, shake = false, disabled = false }) => {
+const PdfDownloadButton: React.FC<Props> = ({ onClick, shake = false, disabled = false }) => {
   return (
     <IconButton
       aria-label="Download specifikation"
@@ -33,6 +33,6 @@ const EetPdfDownloadButton: React.FC<Props> = ({ onClick, shake = false, disable
   );
 };
 
-EetPdfDownloadButton.displayName = 'EetPdfDownloadButton';
+PdfDownloadButton.displayName = 'PdfDownloadButton';
 
-export default EetPdfDownloadButton;
+export default PdfDownloadButton;

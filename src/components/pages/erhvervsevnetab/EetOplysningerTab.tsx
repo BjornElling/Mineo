@@ -6,12 +6,12 @@ import StyledDropdown from '../../inputs/StyledDropdown';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import ContentBox from '../../layout/ContentBox';
 import EetAslAfgoerelserTable from '../../tables/EetAslAfgoerelserTable';
-import { dateRanges_stamdata, dateRanges_erhvervsevnetab } from '../../../config/dateRanges';
+import { dateRanges_erhvervsevnetab } from '../../../config/dateRanges';
 import {
   koenEnum,
+  type FaellesPersondataValues,
   type ErhvervsevnetabComposedValues,
   type ErhvervsevnetabValues,
-  type StamdataValues,
 } from '../../../schemas/formSchemas';
 import { coerceToISODateString } from '../../../types/branded';
 import { useFormFieldErrorReporter, useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
@@ -27,23 +27,28 @@ export type EetOplysningerTabProps = {
   handleChange: <K extends keyof ErhvervsevnetabValues>(
     key: K
   ) => CommitHandler<ErhvervsevnetabValues[K]>;
+  handleSkadelidteFodselsdatoChange: CommitHandler<FaellesPersondataValues['skadelidteFodselsdato']>;
   handleAslAarsloenChange: CommitHandler<ErhvervsevnetabComposedValues['aslAarsloen']>;
   handleEalAarsloenChange: CommitHandler<ErhvervsevnetabComposedValues['ealAarsloen']>;
-  stamValues: StamdataValues;
-  handleStamChange: <K extends keyof StamdataValues>(key: K) => CommitHandler<StamdataValues[K]>;
+  skadesdato: string | undefined;
 };
 
 const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
   values,
   setValues,
   handleChange,
+  handleSkadelidteFodselsdatoChange,
   handleAslAarsloenChange,
   handleEalAarsloenChange,
-  stamValues,
-  handleStamChange,
+  skadesdato,
 }) => {
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
+  const faellesPersondataFieldErrors = useFormFieldErrors('faellesPersondata');
   const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
+  const reportSkadelidteFodselsdatoInputError = useFormFieldErrorReporter('faellesPersondata', 'skadelidteFodselsdato', {
+    severity: 'error',
+    source: 'input',
+  });
   const reportAslAarsloenInputError = useFormFieldErrorReporter('faellesAarsloen', 'aslAarsloen', {
     severity: 'error',
     source: 'input',
@@ -56,14 +61,14 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
 
   const skadesdatoMin = React.useMemo(() => {
-    const iso = coerceToISODateString(stamValues.skadesdato);
+    const iso = coerceToISODateString(skadesdato);
     return iso ?? dateRanges_erhvervsevnetab.beregningsdato.fallbackMin;
-  }, [stamValues.skadesdato]);
+  }, [skadesdato]);
   const visKoenValg = React.useMemo(() => {
-    const iso = coerceToISODateString(stamValues.skadesdato);
+    const iso = coerceToISODateString(skadesdato);
     if (!iso) return false;
     return iso < '2015-03-01';
-  }, [stamValues.skadesdato]);
+  }, [skadesdato]);
 
   const ealEetPctError = React.useMemo(
     () => validatePercentDivisibleBy5FromValue(values.ealEetPct, 'EET %'),
@@ -95,17 +100,20 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
 
   return (
     <>
-      <ContentBox className="content-box" data-section-id="eet-oplysninger-stamdata">
+      <ContentBox className="content-box" data-section-id="eet-oplysninger-grundlaeggende">
         <Typography className="section-header">Grundlæggende oplysninger</Typography>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Fødselsdato</Typography>
           <Box className="row--label-right-hover__content">
             <StyledDateField
-              value={stamValues.fodselsdato || undefined}
-              onCommit={handleStamChange('fodselsdato')}
-              minDate={dateRanges_stamdata.fodselsdato.min}
-              maxDate={dateRanges_stamdata.fodselsdato.max}
+              value={values.skadelidteFodselsdato || undefined}
+              onCommit={handleSkadelidteFodselsdatoChange}
+              minDate={dateRanges_erhvervsevnetab.skadelidteFodselsdato.min}
+              maxDate={dateRanges_erhvervsevnetab.skadelidteFodselsdato.max}
+              error={Boolean(faellesPersondataFieldErrors.skadelidteFodselsdato?.message)}
+              helperText={faellesPersondataFieldErrors.skadelidteFodselsdato?.message ?? ''}
+              onFieldError={reportSkadelidteFodselsdatoInputError}
             />
           </Box>
         </Box>
@@ -171,10 +179,10 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
 
         <EetAslAfgoerelserTable
           tableData={values.aslAfgoerelser}
-          skadesdato={coerceToISODateString(stamValues.skadesdato)}
+          skadesdato={coerceToISODateString(skadesdato)}
           skadesdatoMin={skadesdatoMin}
           beregningsdato={coerceToISODateString(values.beregningsdato)}
-          fodselsdato={coerceToISODateString(stamValues.fodselsdato)}
+          skadelidteFodselsdato={coerceToISODateString(values.skadelidteFodselsdato)}
           onTableDataChange={handleAslAfgoerelserChange}
         />
       </ContentBox>

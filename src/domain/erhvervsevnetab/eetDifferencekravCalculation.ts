@@ -111,7 +111,7 @@ export type EetDifferencekravCalculationResult = Readonly<{
 type Input = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadesdato: ISODateString | undefined;
-  fodselsdato: ISODateString | undefined;
+  skadelidteFodselsdato: ISODateString | undefined;
 }>;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -363,7 +363,7 @@ const skalFradragForetages = (
 export const computeEetDifferencekravCalculation = (input: Input): EetDifferencekravCalculationResult => {
   const beregningsdato = coerceToISODateString(input.erhvervsevnetab.beregningsdato);
   const skadesdato = input.skadesdato;
-  const fodselsdato = input.fodselsdato;
+  const fodselsdato = input.skadelidteFodselsdato;
   const aslRowsKnownAtBeregningsdato = filterAslRowsKnownAtBeregningsdato(input.erhvervsevnetab.aslAfgoerelser, beregningsdato);
   const filteredErhvervsevnetab = {
     ...input.erhvervsevnetab,
@@ -374,7 +374,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   const ealResult = computeEetEalCalculation({
     erhvervsevnetab: filteredErhvervsevnetab,
     skadesdato,
-    fodselsdato,
+    skadelidteFodselsdato: fodselsdato,
     reguleringssats,
     erhvervsevnetabMax,
     aarsloenMax,
@@ -384,7 +384,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   const kapResult = computeEetKapitaliseringCalculation({
     erhvervsevnetab: filteredErhvervsevnetab,
     skadesdato,
-    fodselsdato,
+    skadelidteFodselsdato: fodselsdato,
   });
 
   // ─── Kør løbende ydelser med ophørsdato = beregningsdato − 1 dag ─────────
@@ -400,7 +400,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
         loebendeResult = computeEetLoebendeYdelser({
           erhvervsevnetab: { ...filteredErhvervsevnetab, beregningsdato: dayBefore },
           skadesdato,
-          fodselsdato,
+          skadelidteFodselsdato: fodselsdato,
         });
       }
     }

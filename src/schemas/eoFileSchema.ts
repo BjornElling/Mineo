@@ -10,6 +10,7 @@ import { z } from 'zod';
 import {
   aarsloenSchema,
   faellesAarsloenSchema,
+  faellesPersondataSchema,
   forsoergertabSchema,
   erhvervsevnetabSchema,
   erstatningsopgoerelseSchema,
@@ -30,6 +31,7 @@ const eoFileDataInnerSchema = z.object({
   satser: satserSchema.optional(),
   varigemen: varigeMenSchema.optional(),
   faellesAarsloen: faellesAarsloenSchema.optional(),
+  faellesPersondata: faellesPersondataSchema.optional(),
   forsoergertab: forsoergertabSchema.optional(),
   aarsloen: aarsloenSchema.optional(),
   renteberegning: renteberegningSchema.optional(),
@@ -57,6 +59,7 @@ const eoFileDataLoadInnerSchema = z.object({
   satser: z.unknown().optional(),
   varigemen: z.unknown().optional(),
   faellesAarsloen: z.unknown().optional(),
+  faellesPersondata: z.unknown().optional(),
   forsoergertab: z.unknown().optional(),
   aarsloen: z.unknown().optional(),
   renteberegning: z.unknown().optional(),

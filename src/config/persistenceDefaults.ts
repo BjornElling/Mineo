@@ -35,6 +35,9 @@ export const buildPersistenceDefaults = (settings?: AppSettings): PersistedSecti
       sagsbehandler: '',
       skadelidte: '',
     },
+    satser: {
+      aargang: undefined,
+    },
     aarsloen: {
       loenperiode: LOENPERIODE.MAANED,
       tableData: [],
@@ -44,8 +47,13 @@ export const buildPersistenceDefaults = (settings?: AppSettings): PersistedSecti
       loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
     },
     faellesAarsloen: {},
+    faellesPersondata: {},
     renteberegning: {
       rentekravRows: [],
+    },
+    varigemen: {
+      mengrad: undefined,
+      beregningsdato: undefined,
     },
     forsoergertab: {},
     erstatningsopgoerelse: {

@@ -4,7 +4,6 @@ import {
   nonNegativeInteger,
   optionalIsoDateString,
   optionalString,
-  stripTopLevelKey,
 } from '../baseSchemas';
 import { tillaegstidEnhedEnum } from '../enumSchemas';
 
@@ -18,15 +17,10 @@ export const rentekravRowSchema = z.object({
 
 export type RentekravRow = z.infer<typeof rentekravRowSchema>;
 
-const renteberegningInnerSchema = z.object({
+export const renteberegningSchema = z.object({
   beregningsdato: optionalIsoDateString,
   kommentarer: optionalString,
   rentekravRows: z.array(rentekravRowSchema),
 }).strict();
-
-export const renteberegningSchema = z.preprocess(
-  (value) => stripTopLevelKey(value, 'activeTab'),
-  renteberegningInnerSchema
-);
 
 export type RenteberegningValues = z.infer<typeof renteberegningSchema>;

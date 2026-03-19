@@ -69,7 +69,7 @@ export type EetKapitaliseringCalculationResult = Readonly<{
 type Input = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadesdato: ISODateString | undefined;
-  fodselsdato: ISODateString | undefined;
+  skadelidteFodselsdato: ISODateString | undefined;
 }>;
 
 type ResolvedKapitaliseringsRow = Readonly<{
@@ -258,7 +258,7 @@ export const computeEetKapitaliseringCalculation = (
   const issues: EetIssue[] = [];
   const values = input.erhvervsevnetab;
   const skadesdato = input.skadesdato;
-  const fodselsdato = input.fodselsdato;
+  const fodselsdato = input.skadelidteFodselsdato;
   const aarsloen = amountValueToNumber(values.aslAarsloen);
 
   if (!Number.isFinite(aarsloen)) {
@@ -267,7 +267,7 @@ export const computeEetKapitaliseringCalculation = (
     issues.push(toIssue('aarsloen-zero', 'Årsløn må ikke være 0 kr.'));
   }
   if (!fodselsdato) {
-    issues.push(toIssue('fodselsdato-missing', 'Fødselsdato er ikke udfyldt.'));
+    issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt.'));
   }
   if (!skadesdato) {
     issues.push(toIssue('skadesdato-missing', 'Skadesdato er ikke udfyldt.'));

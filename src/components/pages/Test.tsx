@@ -13,7 +13,7 @@ import StyledTextField from '../inputs/StyledTextField';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
 import type { CommitEvent } from '../inputs/fieldEvents';
 import StyledWeekField from '../inputs/StyledWeekField';
-import StyledYearFieldNext from '../inputs/StyledYearFieldNext';
+import StyledYearField from '../inputs/StyledYearField';
 import ContentBox from '../layout/ContentBox';
 import { markDevtoolsTestScenario } from '../../utils/devtoolsMonitor';
 
@@ -160,13 +160,13 @@ const Test = React.memo(() => {
           </Box>
         </Box>
 
-        {/* StyledYearFieldNext */}
+        {/* StyledYearField */}
         <Box className="row--label-offset">
           <Typography className="row--text" minWidth="250px">
-            StyledYearFieldNext
+            StyledYearField
           </Typography>
           <Box className="row--label-offset__content">
-            <StyledYearFieldNext
+            <StyledYearField
               value={yearValue}
               onCommit={(e) => setYearValue(e.target.value)}
             />
@@ -219,4 +219,3 @@ const Test = React.memo(() => {
 Test.displayName = 'Test';
 
 export default Test;
-

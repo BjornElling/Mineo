@@ -185,7 +185,7 @@ UI base invariants (a11y + contract):
 Use these as canonical examples:
 - `src/hooks/useDraftField.ts`
 - `src/components/inputs/StyledTextFieldBase.tsx`
-- `src/components/inputs/StyledYearFieldNext.tsx`
+- `src/components/inputs/StyledYearField.tsx`
 
 ## Checklist for new fields
 

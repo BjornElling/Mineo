@@ -80,7 +80,7 @@ export type EetLoebendeCalculationResult = Readonly<{
 type Input = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadesdato: ISODateString | undefined;
-  fodselsdato: ISODateString | undefined;
+  skadelidteFodselsdato: ISODateString | undefined;
 }>;
 
 type ResolvedAfgoerelse = Readonly<{
@@ -360,7 +360,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
 
   const beregningsdato = coerceToISODateString(input.erhvervsevnetab.beregningsdato);
   const skadesdato = input.skadesdato;
-  const fodselsdato = input.fodselsdato;
+  const fodselsdato = input.skadelidteFodselsdato;
 
   const aslAarsloenRaw = amountValueToNumber(input.erhvervsevnetab.aslAarsloen);
 
@@ -370,7 +370,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
     issues.push(toIssue('aarsloen-zero', 'Årsløn må ikke være 0 kr.'));
   }
   if (!fodselsdato) {
-    issues.push(toIssue('fodselsdato-missing', 'Fødselsdato er ikke udfyldt.'));
+    issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt.'));
   }
   if (!beregningsdato) {
     issues.push(toIssue('beregningsdato-missing', 'Beregningsdato er ikke udfyldt.'));

@@ -93,6 +93,16 @@ Object.defineProperty(globalThis, 'ClipboardEvent', {
   value: undefined,
 });
 
+Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+  configurable: true,
+  value: function getContext(
+    _contextId: string,
+    _options?: unknown
+  ) {
+    return null;
+  },
+});
+
 const clipboardStore = { text: '' };
 
 Object.defineProperty(window.Event.prototype, 'clipboardData', {

@@ -54,6 +54,11 @@ export type ErhvervsevnetabTabelvalg = Readonly<{
   tabel: string;
 }>;
 
+export type ForsoergertabTabelvalg = Readonly<{
+  skadesdatoFra: ISODateString;
+  tabel: string;
+}>;
+
 type InputErhvervsevnetabTabelvalg = Readonly<{
   skadesdatoFra: ISODateString;
   foedselsdatoFra: ISODateString;
@@ -68,12 +73,21 @@ export type SaerfaktorPerSkadesinterval = Readonly<{
   faktor: number;
 }>;
 
+export type ForsoergertabMatrixRaekke = Readonly<{
+  alder: number;
+  faktorerPraHeleAar: readonly number[];
+}>;
+
 export type KapitaliseringsTabelData = Readonly<{
   kapitaliseringsId: string;
   kapitaliseringsType: KapitaliseringsType;
   erhvervsevnetabTabelvalg: readonly ErhvervsevnetabTabelvalg[];
   erhvervsevnetabTabeller: Readonly<Record<string, readonly AldersFaktorRaekke[]>>;
   erhvervsevnetabKoensopdelteTabeller: Readonly<Record<string, readonly AldersKoensopdeltFaktorRaekke[]>>;
+  forsoergertabTabelvalg: readonly ForsoergertabTabelvalg[];
+  forsoergertabTabeller: Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
+  forsoergertabTabellerMaend: Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
+  forsoergertabTabellerKvinder: Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
   saerfaktorUnderToAarTilFpPerSkadesinterval: readonly SaerfaktorPerSkadesinterval[];
 }>;
 
@@ -83,6 +97,10 @@ type KapitaliseringsModul = Readonly<{
   erhvervsevnetabTabelvalg: readonly InputErhvervsevnetabTabelvalg[];
   erhvervsevnetabTabeller?: Readonly<Record<string, readonly AldersFaktorRaekke[]>>;
   erhvervsevnetabKoensopdelteTabeller?: Readonly<Record<string, readonly AldersKoensopdeltFaktorRaekke[]>>;
+  forsoergertabTabelvalg?: readonly ForsoergertabTabelvalg[];
+  forsoergertabTabeller?: Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
+  forsoergertabTabellerMaend?: Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
+  forsoergertabTabellerKvinder?: Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
   saerfaktorUnderToAarTilFpPerSkadesinterval?: readonly SaerfaktorPerSkadesinterval[];
 }>;
 
@@ -105,6 +123,10 @@ const createKapitaliseringsEntry = (modul: KapitaliseringsModul): Kapitalisering
   erhvervsevnetabTabelvalg: normalizeErhvervsevnetabTabelvalg(modul.erhvervsevnetabTabelvalg),
   erhvervsevnetabTabeller: modul.erhvervsevnetabTabeller ?? {},
   erhvervsevnetabKoensopdelteTabeller: modul.erhvervsevnetabKoensopdelteTabeller ?? {},
+  forsoergertabTabelvalg: modul.forsoergertabTabelvalg ?? [],
+  forsoergertabTabeller: modul.forsoergertabTabeller ?? {},
+  forsoergertabTabellerMaend: modul.forsoergertabTabellerMaend ?? {},
+  forsoergertabTabellerKvinder: modul.forsoergertabTabellerKvinder ?? {},
   saerfaktorUnderToAarTilFpPerSkadesinterval: modul.saerfaktorUnderToAarTilFpPerSkadesinterval ?? [],
 });
 

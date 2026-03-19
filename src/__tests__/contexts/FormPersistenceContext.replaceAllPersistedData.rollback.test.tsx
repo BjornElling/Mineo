@@ -30,6 +30,7 @@ const emptySnapshot = (): Record<StorageKey, unknown | undefined> => ({
   satser: undefined,
   aarsloen: undefined,
   faellesAarsloen: undefined,
+  faellesPersondata: undefined,
   renteberegning: undefined,
   varigemen: undefined,
   forsoergertab: undefined,

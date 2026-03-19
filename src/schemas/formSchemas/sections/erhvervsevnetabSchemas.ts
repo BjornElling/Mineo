@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import { optionalIsoDateString, percentageDecimal, tableDateCellString, stripTopLevelKey } from '../baseSchemas';
+import { optionalIsoDateString, percentageDecimal, tableDateCellString } from '../baseSchemas';
 import { afgoerelseTypeEnum, koenEnum } from '../enumSchemas';
 import type { FaellesAarsloenValues } from './faellesAarsloenSchemas';
+import type { FaellesPersondataValues } from './faellesPersondataSchemas';
 
 // ─── ASL afgørelser tabel ─────────────────────────────────────────────────────
 
@@ -33,7 +34,7 @@ const eetDifferencekravBilagSelectionSchema = z.object({
 
 export type EetDifferencekravBilagSelection = z.infer<typeof eetDifferencekravBilagSelectionSchema>;
 
-const erhvervsevnetabInnerSchema = z.object({
+export const erhvervsevnetabSchema = z.object({
   beregningsdato: optionalIsoDateString,
   koen: koenEnum.optional(),
   aslAfgoerelser: z.array(aslAfgoerelseRowSchema),
@@ -42,10 +43,5 @@ const erhvervsevnetabInnerSchema = z.object({
   eetDifferencekravBilagSelection: eetDifferencekravBilagSelectionSchema,
 }).strict();
 
-export const erhvervsevnetabSchema = z.preprocess(
-  (value) => stripTopLevelKey(value, 'activeTab'),
-  erhvervsevnetabInnerSchema
-);
-
 export type ErhvervsevnetabValues = z.infer<typeof erhvervsevnetabSchema>;
-export type ErhvervsevnetabComposedValues = ErhvervsevnetabValues & FaellesAarsloenValues;
+export type ErhvervsevnetabComposedValues = ErhvervsevnetabValues & FaellesAarsloenValues & FaellesPersondataValues;

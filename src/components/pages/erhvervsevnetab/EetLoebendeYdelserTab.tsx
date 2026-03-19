@@ -27,7 +27,7 @@ import { roundByMethod } from '../../../utils/rounding';
 import EetIssuesBox from './EetIssuesBox';
 import TextHoverRow from './TextHoverRow';
 import UnderlinedHoverRow from './UnderlinedHoverRow';
-import EetPdfDownloadButton from './EetPdfDownloadButton';
+import PdfDownloadButton from '../../inputs/PdfDownloadButton';
 import { useEetShakeFlag } from './useEetShakeFlag';
 import { formatJaNej, formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
@@ -65,6 +65,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, setValues, onGoToEetOp
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
   const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
+  const faellesPersondataFieldErrors = useFormFieldErrors('faellesPersondata');
   const { settings } = useAppSettings();
   const showExtendedSpecification = values.eetDifferencekravBilagSelection.visUdvidetSpecifikation;
   const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
@@ -74,9 +75,9 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, setValues, onGoToEetOp
       computeEetLoebendeYdelser({
         erhvervsevnetab: values,
         skadesdato: stamdata?.skadesdato,
-        fodselsdato: stamdata?.fodselsdato,
+        skadelidteFodselsdato: values.skadelidteFodselsdato,
       }),
-    [stamdata?.fodselsdato, stamdata?.skadesdato, values]
+    [stamdata?.skadesdato, values]
   );
 
   const fieldIssues = React.useMemo(() => {
@@ -84,14 +85,14 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, setValues, onGoToEetOp
       toFieldIssue('field-beregningsdato', eetFieldErrors.beregningsdato?.message),
       toFieldIssue('field-aarsloen-asl', faellesAarsloenFieldErrors.aslAarsloen?.message),
       toFieldIssue('field-asl-afgoerelser', eetFieldErrors.aslAfgoerelser?.message),
-      toFieldIssue('field-fodselsdato', stamdataFieldErrors.fodselsdato?.message),
+      toFieldIssue('field-skadelidte-fodselsdato', faellesPersondataFieldErrors.skadelidteFodselsdato?.message),
       toFieldIssue('field-skadesdato', stamdataFieldErrors.skadesdato?.message),
     ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
   }, [
     eetFieldErrors.aslAfgoerelser?.message,
     eetFieldErrors.beregningsdato?.message,
+    faellesPersondataFieldErrors.skadelidteFodselsdato?.message,
     faellesAarsloenFieldErrors.aslAarsloen?.message,
-    stamdataFieldErrors.fodselsdato?.message,
     stamdataFieldErrors.skadesdato?.message,
   ]);
 
@@ -165,7 +166,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, setValues, onGoToEetOp
             <Box className="row--label-right-hover">
               <Typography className="row--text">Download specifikation</Typography>
               <Box className="row--label-right-hover__content">
-                <EetPdfDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
+                <PdfDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
               </Box>
             </Box>
           </ContentBox>
@@ -303,9 +304,7 @@ const EetLoebendeYdelserTab: React.FC<Props> = ({ values, setValues, onGoToEetOp
             <Typography className="row--subheading">Årsløn</Typography>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text">
-                {`ASL årsløn (afrundet til nærmeste 1000 og maks. ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)} kr.)`}
-              </Typography>
+              <Typography className="row--text">ASL-årsløn</Typography>
               <Box className="row--label-right-hover__content">
                 <Typography className="row--text">{formatKr(computation.benyttetAarsloen)}</Typography>
               </Box>

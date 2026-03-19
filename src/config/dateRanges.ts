@@ -19,8 +19,8 @@ import { MIN_INTEREST_DATE } from '../data/interestRates';
 const iso = (date: string): ISODateString => toISODateString(date);
 
 // Statiske datoer
-const DATE_1900_01_01 = iso('1900-01-01'); // Min for fodselsdato (stamdata)
-const DATE_2005_01_01 = iso('2005-01-01'); // Systemets nedre grænse — bruges som min/fallbackMin for alle dato-felter undtagen varigemen.fodselsdato
+const DATE_1900_01_01 = iso('1900-01-01'); // Min for fødselsdato-felter
+const DATE_2005_01_01 = iso('2005-01-01'); // Systemets nedre grænse — bruges som min/fallbackMin for alle dynamiske dato-felter
 export const STORE_BEDEDAG_START = iso('2024-01-01');
 
 // ============================================================================
@@ -189,7 +189,6 @@ export const computeSkadesdatoMinRule = (args: Readonly<{
  */
 export interface DateRanges_Stamdata {
   readonly skadesdato: StaticDateRange;
-  readonly fodselsdato: StaticDateRange;
 }
 
 export const dateRanges_stamdata: DateRanges_Stamdata = {
@@ -201,14 +200,6 @@ export const dateRanges_stamdata: DateRanges_Stamdata = {
     max: TODAY,
     placeholder: 'dd-mm-åååå',
     notes: 'Fra 1. januar 2005 til i dag'
-  },
-  // Fødselsdato — deles af varige mén og EET; gemmes i stamdata-schema
-  fodselsdato: {
-    type: 'static',
-    min: DATE_1900_01_01,
-    max: TODAY,
-    placeholder: 'dd-mm-åååå',
-    notes: 'Fra 1. januar 1900 til i dag',
   },
 };
 
@@ -469,11 +460,19 @@ export const dateRanges_varigemen: DateRanges_VarigeMen = {
 // ============================================================================
 
 export interface DateRanges_Forsoergertab {
+  readonly efterladteFodselsdato: StaticDateRange;
   readonly beregningsdato: DynamicMinDateRange;
   readonly virkningsdato: DynamicMinDateRange;
 }
 
 export const dateRanges_forsoergertab: DateRanges_Forsoergertab = {
+  efterladteFodselsdato: {
+    type: 'static',
+    min: DATE_1900_01_01,
+    max: TODAY,
+    placeholder: 'dd-mm-åååå',
+    notes: 'Fra 1. januar 1900 til i dag.',
+  },
   beregningsdato: {
     type: 'dynamic-min',
     min: 'DYNAMIC',
@@ -553,6 +552,7 @@ export const dateRanges_renteberegning: DateRanges_Renteberegning = {
 // ============================================================================
 
 export interface DateRanges_Erhvervsevnetab {
+  readonly skadelidteFodselsdato: StaticDateRange;
   readonly beregningsdato: DynamicMinDateRange;
   readonly tabelAfgoerelsesdato: DynamicMinDateRange;
   readonly tabelVirkningsdato: DynamicMinDateRange;
@@ -561,6 +561,13 @@ export interface DateRanges_Erhvervsevnetab {
 }
 
 export const dateRanges_erhvervsevnetab: DateRanges_Erhvervsevnetab = {
+  skadelidteFodselsdato: {
+    type: 'static',
+    min: DATE_1900_01_01,
+    max: TODAY,
+    placeholder: 'dd-mm-åååå',
+    notes: 'Fra 1. januar 1900 til i dag.',
+  },
   // Beregningsdato (fane 1 stamdata-boks)
   beregningsdato: {
     type: 'dynamic-min',

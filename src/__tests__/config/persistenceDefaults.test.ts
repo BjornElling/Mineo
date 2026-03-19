@@ -46,6 +46,14 @@ describe('buildPersistenceDefaults', () => {
     });
   });
 
+  describe('satser defaults', () => {
+    it('inkluderer aargang i defaults-output', () => {
+      const defaults = buildPersistenceDefaults();
+      expect(defaults.satser).toHaveProperty('aargang');
+      expect(defaults.satser?.aargang).toBeUndefined();
+    });
+  });
+
   describe('renteberegning defaults', () => {
     it('rentekravRows = tom liste', () => {
       const defaults = buildPersistenceDefaults();
@@ -55,6 +63,16 @@ describe('buildPersistenceDefaults', () => {
     it('inkluderer ikke kommentarer-feltet i defaults-output', () => {
       const defaults = buildPersistenceDefaults();
       expect(defaults.renteberegning).not.toHaveProperty('kommentarer');
+    });
+  });
+
+  describe('varigemen defaults', () => {
+    it('inkluderer centrale felter i defaults-output', () => {
+      const defaults = buildPersistenceDefaults();
+      expect(defaults.varigemen).toEqual({
+        mengrad: undefined,
+        beregningsdato: undefined,
+      });
     });
   });
 

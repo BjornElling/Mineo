@@ -46,7 +46,11 @@ describe('eoFileDataSchema', () => {
         aslAarsloen: { kind: 'number', value: 450000 },
         ealAarsloen: { kind: 'expression', expression: '500000', value: 500000 },
       },
+      faellesPersondata: {
+        skadelidteFodselsdato: '1990-01-01',
+      },
       forsoergertab: {
+        efterladteFodselsdato: '1988-03-04',
         beregningsdato: '2025-01-15',
         virkningsdato: '2025-01-01',
         tilkendtForPeriodeAar: 5,

@@ -4,13 +4,15 @@ import { MemoryRouter } from 'react-router-dom';
 import type { CommitHandler } from '../../../../components/inputs/fieldEvents';
 import type { VarigeMenValues } from '../../../../schemas/formSchemas';
 
-const { mockDownloadVarigeMenPdf, mockBeregnVarigeMenGodtgoerelseWithRates, mockStamValues } = vi.hoisted(() => ({
+const { mockDownloadVarigeMenPdf, mockBeregnVarigeMenGodtgoerelseWithRates, mockStamValues, mockFaellesPersondataValues } = vi.hoisted(() => ({
   mockDownloadVarigeMenPdf: vi.fn(),
   mockBeregnVarigeMenGodtgoerelseWithRates: vi.fn(),
   mockStamValues: {
-    fodselsdato: '1980-01-01',
     skadestype: 'Arbejdsulykke',
     skadesdato: '2025-01-01',
+  },
+  mockFaellesPersondataValues: {
+    skadelidteFodselsdato: '1980-01-01',
   },
 }));
 
@@ -23,10 +25,18 @@ vi.mock('../../../../domain/varigemen/varigeMenCalculations', () => ({
 }));
 
 vi.mock('../../../../hooks/usePersistedForm', () => ({
-  usePersistedForm: () => ({
-    values: mockStamValues,
-    handleChange: vi.fn(),
-  }),
+  usePersistedForm: (_schema: unknown, pageKey: string) => {
+    if (pageKey === 'faellesPersondata') {
+      return {
+        values: mockFaellesPersondataValues,
+        handleChange: vi.fn(),
+      };
+    }
+    return {
+      values: mockStamValues,
+      handleChange: vi.fn(),
+    };
+  },
 }));
 
 vi.mock('../../../../contexts/useAppSettings', () => ({

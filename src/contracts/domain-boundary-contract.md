@@ -41,6 +41,14 @@ Dette dokument fastlægger bindende grænser mellem sider/domæner, så tværkob
 6. Eventuelle tværgående hooks/komponenter for disse felter skal navngives neutralt og må ikke leve i en sidespecifik mappe.
 7. Denne undtagelse gælder kun de to nævnte felter og deres fælles valideringsregler; øvrige tværside-afhængigheder er fortsat forbudt uden ny kontraktændring.
 
+## 2c. Fælles persondata
+
+1. `faellesPersondata` er en neutral persisted sektion til fælles, autoritative personfelter.
+2. Sektionen må kun indeholde feltet `skadelidteFodselsdato`.
+3. `Erhvervsevnetab`, `Forsørgertab` og `Varige mén` må læse og skrive `faellesPersondata`.
+4. `skadelidteFodselsdato` må ikke persisteres parallelt i `stamdata`-, `erhvervsevnetab`- eller `forsoergertab`-sektionerne.
+5. Denne undtagelse gælder kun det nævnte felt; øvrige tværside-afhængigheder er fortsat forbudt uden ny kontraktændring.
+
 ## 3. Navnekollision: "Midlertidigt EET"
 
 1. Ydelsestypen `midlertidigt_eet` i offentlige ydelser er en selvstændig ydelseskategori.

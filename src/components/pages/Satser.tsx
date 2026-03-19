@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { Download } from '@mui/icons-material';
-import StyledYearFieldNext from '../inputs/StyledYearFieldNext';
+import StyledYearField from '../inputs/StyledYearField';
 import { getSatserForYear, satserAngivAarYearBounds } from '../../data/regulationRates';
 import { downloadSatserPdf } from '../../utils/pdf/pdfService';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
@@ -149,7 +149,7 @@ const Satser = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Vis satser for år:</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledYearFieldNext
+            <StyledYearField
               value={values.aargang}
               onCommit={handleYearCommit}
               minYear={MIN_SATSER_YEAR}

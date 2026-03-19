@@ -92,6 +92,7 @@ Only 3 immediate-commit exceptions:
 Follow these documents as binding contracts:
 - `src/contracts/form-contract.md`
 - `src/contracts/domain-boundary-contract.md`
+- `src/contracts/page-component-contract.md`
 - `src/contracts/keyboard-navigation.md`
 - `src/contracts/keyboard-navigation-test-checklist.md`
 

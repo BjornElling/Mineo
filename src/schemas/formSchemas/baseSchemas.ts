@@ -114,14 +114,3 @@ export const tableDateCellString = z.preprocess((val) => {
 }, z.string().optional());
 
 export const tableAmountCellValue = optionalAmountValueSchema;
-
-export const stripTopLevelKey = (value: unknown, keyToStrip: string): unknown => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
-
-  const record = value as Record<string, unknown>;
-  if (!Object.prototype.hasOwnProperty.call(record, keyToStrip)) return value;
-
-  const out: Record<string, unknown> = { ...record };
-  delete out[keyToStrip];
-  return out;
-};

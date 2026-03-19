@@ -20,7 +20,7 @@ import {
 import { downloadKapitaliseringPdf } from '../../../utils/pdf/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import TextHoverRow from './TextHoverRow';
-import EetPdfDownloadButton from './EetPdfDownloadButton';
+import PdfDownloadButton from '../../inputs/PdfDownloadButton';
 import { useEetShakeFlag } from './useEetShakeFlag';
 import { formatFaktor, formatJaNej, formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
@@ -35,6 +35,7 @@ const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger })
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
   const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
+  const faellesPersondataFieldErrors = useFormFieldErrors('faellesPersondata');
   const { settings } = useAppSettings();
   const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
 
@@ -43,24 +44,24 @@ const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger })
       computeEetKapitaliseringCalculation({
         erhvervsevnetab: values,
         skadesdato: stamdata?.skadesdato,
-        fodselsdato: stamdata?.fodselsdato,
+        skadelidteFodselsdato: values.skadelidteFodselsdato,
       }),
-    [stamdata?.fodselsdato, stamdata?.skadesdato, values]
+    [stamdata?.skadesdato, values]
   );
 
   const fieldIssues = React.useMemo(() => {
-    return [
-      toFieldIssue('field-aarsloen-asl', faellesAarsloenFieldErrors.aslAarsloen?.message),
-      toFieldIssue('field-asl-afgoerelser', eetFieldErrors.aslAfgoerelser?.message),
-      toFieldIssue('field-fodselsdato', stamdataFieldErrors.fodselsdato?.message),
-      toFieldIssue('field-skadesdato', stamdataFieldErrors.skadesdato?.message),
-    ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
-  }, [
-    eetFieldErrors.aslAfgoerelser?.message,
-    faellesAarsloenFieldErrors.aslAarsloen?.message,
-    stamdataFieldErrors.fodselsdato?.message,
-    stamdataFieldErrors.skadesdato?.message,
-  ]);
+      return [
+        toFieldIssue('field-aarsloen-asl', faellesAarsloenFieldErrors.aslAarsloen?.message),
+        toFieldIssue('field-asl-afgoerelser', eetFieldErrors.aslAfgoerelser?.message),
+        toFieldIssue('field-skadelidte-fodselsdato', faellesPersondataFieldErrors.skadelidteFodselsdato?.message),
+        toFieldIssue('field-skadesdato', stamdataFieldErrors.skadesdato?.message),
+      ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
+    }, [
+      eetFieldErrors.aslAfgoerelser?.message,
+      faellesPersondataFieldErrors.skadelidteFodselsdato?.message,
+      faellesAarsloenFieldErrors.aslAarsloen?.message,
+      stamdataFieldErrors.skadesdato?.message,
+    ]);
 
   const issues = React.useMemo(
     () =>
@@ -101,7 +102,7 @@ const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger })
           <Box className="row--label-right-hover">
             <Typography className="row--text">Download specifikation</Typography>
             <Box className="row--label-right-hover__content">
-              <EetPdfDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
+              <PdfDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
             </Box>
           </Box>
         </ContentBox>

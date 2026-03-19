@@ -293,7 +293,7 @@ const TableYearInput = React.memo(
 
     const handleKeyDown = React.useCallback(
       (e: React.KeyboardEvent<HTMLInputElement>) => {
-        // Filtrér kun under edit-mode (arvet fra StyledYearFieldNext)
+        // Filtrér kun under edit-mode (arvet fra StyledYearField)
         if (!isEditing) return;
         filterYearKeyDown(e);
       },
@@ -449,6 +449,5 @@ const TableYearInput = React.memo(
 TableYearInput.displayName = 'TableYearInput';
 
 export default TableYearInput;
-
 
 

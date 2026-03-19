@@ -15,7 +15,7 @@ import {
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { downloadEfterEalPdf } from '../../../utils/pdf/pdfService';
 import EetIssuesBox from './EetIssuesBox';
-import EetPdfDownloadButton from './EetPdfDownloadButton';
+import PdfDownloadButton from '../../inputs/PdfDownloadButton';
 import { useEetShakeFlag } from './useEetShakeFlag';
 import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
@@ -32,6 +32,7 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
   const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
+  const faellesPersondataFieldErrors = useFormFieldErrors('faellesPersondata');
   const { settings } = useAppSettings();
   const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
 
@@ -40,12 +41,12 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
       computeEetEalCalculation({
         erhvervsevnetab: values,
         skadesdato: stamdata?.skadesdato,
-        fodselsdato: stamdata?.fodselsdato,
+        skadelidteFodselsdato: values.skadelidteFodselsdato,
         reguleringssats,
         erhvervsevnetabMax,
         aarsloenMax,
       }),
-    [stamdata?.fodselsdato, stamdata?.skadesdato, values]
+    [stamdata?.skadesdato, values]
   );
 
   const fieldIssues = React.useMemo(() => {
@@ -53,14 +54,14 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
       toFieldIssue('field-beregningsdato', eetFieldErrors.beregningsdato?.message),
       toFieldIssue('field-eal-eet-pct', eetFieldErrors.ealEetPct?.message),
       toFieldIssue('field-aarsloen-eal', faellesAarsloenFieldErrors.ealAarsloen?.message),
-      toFieldIssue('field-fodselsdato', stamdataFieldErrors.fodselsdato?.message),
+      toFieldIssue('field-skadelidte-fodselsdato', faellesPersondataFieldErrors.skadelidteFodselsdato?.message),
       toFieldIssue('field-skadesdato', stamdataFieldErrors.skadesdato?.message),
     ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
   }, [
     eetFieldErrors.beregningsdato?.message,
     eetFieldErrors.ealEetPct?.message,
+    faellesPersondataFieldErrors.skadelidteFodselsdato?.message,
     faellesAarsloenFieldErrors.ealAarsloen?.message,
-    stamdataFieldErrors.fodselsdato?.message,
     stamdataFieldErrors.skadesdato?.message,
   ]);
 
@@ -113,7 +114,7 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
             <Box className="row--label-right-hover">
               <Typography className="row--text">Download specifikation</Typography>
               <Box className="row--label-right-hover__content">
-                <EetPdfDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
+                <PdfDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
               </Box>
             </Box>
           </ContentBox>

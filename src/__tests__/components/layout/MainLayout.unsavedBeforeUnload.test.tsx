@@ -83,6 +83,7 @@ const createSnapshot = (stamdataSkadelidte: string): Record<StorageKey, unknown 
   aarsloen: undefined,
   satser: undefined,
   faellesAarsloen: undefined,
+  faellesPersondata: undefined,
   renteberegning: undefined,
   varigemen: undefined,
   forsoergertab: undefined,
@@ -490,6 +491,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
 
   it('does not leave beforeunload suppression enabled after failed "Slet alt"', async () => {
     const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const deleteFileHandleMock = vi.mocked(deleteFileHandleFromIndexedDB);
     deleteFileHandleMock.mockRejectedValue(new Error('Simuleret cleanup-fejl'));
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
@@ -548,6 +550,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
     expect(confirmSpy).toHaveBeenCalled();
 
     addEventListenerSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
     confirmSpy.mockRestore();
   });
 });

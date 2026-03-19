@@ -22,7 +22,7 @@ export type EetAslAfgoerelserTableProps = Readonly<{
   skadesdato: ISODateString | undefined;
   skadesdatoMin: ISODateString;
   beregningsdato: ISODateString | undefined;
-  fodselsdato: ISODateString | undefined;
+  skadelidteFodselsdato: ISODateString | undefined;
   onTableDataChange?: (rows: AslAfgoerelseRow[]) => void;
 }>;
 
@@ -51,7 +51,7 @@ const fingerprintTableData = (rows: readonly AslAfgoerelseRow[]): string => {
 };
 
 const EetAslAfgoerelserTable = React.memo(
-  ({ tableData, skadesdato, skadesdatoMin, beregningsdato, fodselsdato, onTableDataChange }: EetAslAfgoerelserTableProps) => {
+  ({ tableData, skadesdato, skadesdatoMin, beregningsdato, skadelidteFodselsdato, onTableDataChange }: EetAslAfgoerelserTableProps) => {
     const tabelAfgoerelsesdatoMax = dateRanges_erhvervsevnetab.tabelAfgoerelsesdato.max;
     const tabelVirkningsdatoMax = dateRanges_erhvervsevnetab.tabelVirkningsdato.max;
     const tabelKapitaliseringsdatoMax = dateRanges_erhvervsevnetab.tabelKapitaliseringsdato.max;
@@ -150,14 +150,14 @@ const EetAslAfgoerelserTable = React.memo(
     );
 
     const validationMessageByCell = React.useMemo(() => {
-      const issues = collectEetAslAfgoerelseValidationIssues(internalTableData, skadesdato, fodselsdato);
+      const issues = collectEetAslAfgoerelseValidationIssues(internalTableData, skadesdato, skadelidteFodselsdato);
       const map = new Map<string, string>();
       for (const issue of issues) {
         const key = `${issue.rowId}|${issue.field}`;
         if (!map.has(key)) map.set(key, issue.message);
       }
       return map;
-    }, [fodselsdato, internalTableData, skadesdato]);
+    }, [internalTableData, skadelidteFodselsdato, skadesdato]);
 
     return (
       <StandardLooseTable

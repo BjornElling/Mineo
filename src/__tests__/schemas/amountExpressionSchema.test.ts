@@ -30,10 +30,12 @@ describe('amountExpressionSchema', () => {
   });
 
   it('normaliserer videnskabelig notation deterministisk til schema-precision', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const parsed = amountNumberSchema.parse({
       kind: 'number',
       value: 1e-7,
     });
+    warnSpy.mockRestore();
 
     expect(parsed.value).toBe(0);
   });

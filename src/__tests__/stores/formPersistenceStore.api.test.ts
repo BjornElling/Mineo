@@ -2,6 +2,7 @@ import { __createTestStore } from '../../stores/formPersistenceStore';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
+import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../../domain/faellesPersondata/faellesPersondataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 
@@ -38,6 +39,7 @@ const createValidSections = (): PersistedSectionMap => ({
     aslAarsloen: undefined,
     ealAarsloen: undefined,
   },
+  faellesPersondata: FAELLES_PERSONDATA_INITIAL_VALUES,
   renteberegning: {
     beregningsdato: undefined,
     rentekravRows: [],
@@ -131,6 +133,7 @@ describe('formPersistenceStore public API', () => {
     expect(after.sectionRevisions.satser).toBe(before.sectionRevisions.satser + 1);
     expect(after.sectionRevisions.aarsloen).toBe(before.sectionRevisions.aarsloen + 1);
     expect(after.sectionRevisions.faellesAarsloen).toBe(before.sectionRevisions.faellesAarsloen + 1);
+    expect(after.sectionRevisions.faellesPersondata).toBe(before.sectionRevisions.faellesPersondata + 1);
     expect(after.sectionRevisions.renteberegning).toBe(before.sectionRevisions.renteberegning + 1);
     expect(after.sectionRevisions.varigemen).toBe(before.sectionRevisions.varigemen + 1);
     expect(after.sectionRevisions.forsoergertab).toBe(before.sectionRevisions.forsoergertab + 1);
@@ -236,6 +239,7 @@ describe('formPersistenceStore public API', () => {
     expect(after.satser).toBe(before.satser + 1);
     expect(after.aarsloen).toBe(before.aarsloen + 1);
     expect(after.faellesAarsloen).toBe(before.faellesAarsloen + 1);
+    expect(after.faellesPersondata).toBe(before.faellesPersondata + 1);
     expect(after.renteberegning).toBe(before.renteberegning + 1);
     expect(after.varigemen).toBe(before.varigemen + 1);
     expect(after.forsoergertab).toBe(before.forsoergertab + 1);

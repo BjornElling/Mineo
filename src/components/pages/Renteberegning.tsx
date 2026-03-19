@@ -31,7 +31,6 @@ const Renteberegning = React.memo(() => {
     pageId: 'renteberegning',
     allowedTabs: [TAB_KEYS.RATES, TAB_KEYS.CALCULATION],
     defaultTab: TAB_KEYS.CALCULATION,
-    legacySource: { persistedPageKey: 'renteberegning', fieldName: 'activeTab' },
   });
 
   const { values, setValues, formVersion } = usePersistedForm(

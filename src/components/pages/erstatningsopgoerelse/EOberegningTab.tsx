@@ -91,6 +91,16 @@ const getCustomDebugRowMessage = (
     return `${prefix} skal være mellem ${message.replace('Dato skal være mellem ', '')}`;
   }
 
+  if (
+    row.label.startsWith('Periode (')
+    && (
+      message.startsWith('Der er angivet tabt arbejdsfortjeneste efter ')
+      || message.startsWith('Der er angivet tabt arbejdsfortjeneste, efter differencekrav er opgjort ')
+    )
+  ) {
+    return message;
+  }
+
   if (row.label === 'Valgt regulering' && message === 'Lønudvikling beregnes ud fra mangler') {
     return 'Der mangler at blive angivet lønregulering, evt. \'Ingen\'';
   }
@@ -382,11 +392,14 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   const beregnesTabtArbejdsfortjeneste = eoValues.beregnesTabtArbejdsfortjeneste === 'Ja';
 
   const svieSmerteRow = relevantRows.find((row) => row.id === 'sviesmerte.beregnetPeriode');
-  const svieSmerteDisplayParts = (beregnesSvieSmerte ? (svieSmerteRow?.displayValue ?? '-') : '-')
-    .split('\n')
-    .map((value) => value.trim())
-    .filter((value) => value !== '' && value !== '-');
-  const svieSmerteLines = svieSmerteDisplayParts;
+  const svieSmerteLines = React.useMemo(() => {
+    if (!beregnesSvieSmerte) return [];
+    if (svieSmerteRow?.status === 'error') return ['Fejl'];
+    return (svieSmerteRow?.displayValue ?? '-')
+      .split('\n')
+      .map((value) => value.trim())
+      .filter((value) => value !== '' && value !== '-');
+  }, [beregnesSvieSmerte, svieSmerteRow]);
   const harSvieSmertePerioder =
     beregnesSvieSmerte &&
     (eoValues.svieSmertePerioder ?? []).some((row) => row.fra || row.til || row.tilstand) &&
@@ -400,13 +413,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     if (!beregnesTabtArbejdsfortjeneste || !eoValues) return [];
 
     const tafPeriodeRows = relevantRows.filter((row) => row.id.startsWith('taf.periode.') && row.id !== 'taf.periode.empty');
-    const tafPeriodeFejl = tafPeriodeRows
-      .filter((row) => row.status === 'error')
-      .map((row) => row.displayValue.trim())
-      .filter((value, index, arr) => value !== '' && arr.indexOf(value) === index);
+    const harTafPeriodeFejl = tafPeriodeRows.some((row) => row.status === 'error');
 
-    if (tafPeriodeFejl.length > 0) {
-      return tafPeriodeFejl;
+    if (harTafPeriodeFejl) {
+      return ['Fejl'];
     }
 
     const ranges = beregningView?.tafPerioder ?? [];

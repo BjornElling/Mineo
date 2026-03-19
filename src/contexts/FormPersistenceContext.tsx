@@ -14,7 +14,6 @@ import {
 import { serializeFormValues } from '../utils/serialization';
 import { persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
 import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
-import { sanitizeLegacyPersistedSectionForAarsloenTables } from '../utils/aarsloenTableLegacySanitization';
 import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
@@ -97,7 +96,6 @@ const assignCacheValue = (target: PersistedCache, key: StorageKey, value: unknow
  * Provider komponent der wrapper hele applikationen
  */
 export const FormPersistenceProvider = ({ children }: { children: React.ReactNode }) => {
-  const legacySanitizationNotifiedRef = React.useRef<Set<StorageKey>>(new Set());
   const debugSaveStateRef = React.useRef<Map<string, { lastLogAt: number; pendingCount: number; lastFieldCount: number }>>(
     new Map()
   );
@@ -123,15 +121,11 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     const validateAndAssign = <K extends StorageKey>(pageKey: K, rawData: unknown): void => {
       const schema = persistenceSchemas[pageKey];
       const normalized = nullToUndefinedDeep(rawData);
-      const sanitized = sanitizeLegacyPersistedSectionForAarsloenTables(pageKey, normalized);
-      const validated = schema.safeParse(sanitized.value);
+      const validated = schema.safeParse(normalized);
       if (!validated.success) {
         keysToRemove.push(getStorageKey(pageKey));
         notice ??= { message: `Gemte data for '${pageKey}' matcher ikke denne versions schema og er ryddet.`, type: 'error' };
         return;
-      }
-      if (sanitized.changed && sanitized.warnings.length > 0) {
-        notice ??= { message: sanitized.warnings.slice(0, 2).join('\n'), type: 'warning' };
       }
       assignCacheValue(nextCache, pageKey, validated.data);
     };
@@ -324,8 +318,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
 
       const schema = persistenceSchemas[pageKey];
       const normalized = nullToUndefinedDeep(data);
-      const sanitized = sanitizeLegacyPersistedSectionForAarsloenTables(pageKey, normalized);
-      const validated = schema.safeParse(sanitized.value);
+      const validated = schema.safeParse(normalized);
       if (!validated.success) {
         const issues = formatZodIssues(validated.error.issues, 3);
         console.error(`[Persistence] Schema mismatch for '${pageKey}':\n${issues}`, {
@@ -337,10 +330,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
           'error'
         );
         return;
-      }
-      if (sanitized.changed && sanitized.warnings.length > 0 && !legacySanitizationNotifiedRef.current.has(pageKey)) {
-        legacySanitizationNotifiedRef.current.add(pageKey);
-        emitUserNotice(sanitized.warnings.slice(0, 2).join('\n'), 'warning');
       }
 
       const persistedSectionData = serializeFormValues(validated.data);
@@ -404,15 +393,10 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
 
       const schema = persistenceSchemas[pageKey];
       const normalized = nullToUndefinedDeep(raw);
-      const sanitized = sanitizeLegacyPersistedSectionForAarsloenTables(pageKey, normalized);
-      const validated = schema.safeParse(sanitized.value);
+      const validated = schema.safeParse(normalized);
       if (!validated.success) {
         const issues = formatZodIssues(validated.error.issues, 2);
         throw new Error(`Kan ikke anvende snapshot: '${pageKey}' matcher ikke schema.\n${issues}`);
-      }
-      if (sanitized.changed && sanitized.warnings.length > 0 && !legacySanitizationNotifiedRef.current.has(pageKey)) {
-        legacySanitizationNotifiedRef.current.add(pageKey);
-        emitUserNotice(sanitized.warnings.slice(0, 2).join('\n'), 'warning');
       }
 
       const persistedSectionData = serializeFormValues(validated.data);
@@ -468,7 +452,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     }
   }, [
     clearEODomainTransientErrors,
-    emitUserNotice,
   ]);
 
   /**

@@ -1,28 +1,31 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, MenuItem, Typography } from '@mui/material';
 import StyledDateField from '../inputs/StyledDateField';
+import StyledDropdown from '../inputs/StyledDropdown';
 import StyledIntegerField from '../inputs/StyledIntegerField';
 import InsertTodayDateButton from '../inputs/InsertTodayDateButton';
 import { createCommitEvent } from '../inputs/fieldEvents';
 import ContentBox from '../layout/ContentBox';
-import { dateRanges_forsoergertab } from '../../config/dateRanges';
+import { dateRanges_erhvervsevnetab, dateRanges_forsoergertab } from '../../config/dateRanges';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedSection } from '../../hooks/usePersistedSection';
 import { useFormFieldErrorReporter, useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import { useAslAarsloenRuleReporter } from '../../hooks/useAslAarsloenRuleReporter';
-import { faellesAarsloenSchema, forsoergertabSchema } from '../../schemas/formSchemas';
+import { faellesAarsloenSchema, faellesPersondataSchema, forsoergertabSchema, koenEnum } from '../../schemas/formSchemas';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/faellesAarsloen/faellesAarsloenInitialValues';
+import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../../domain/faellesPersondata/faellesPersondataInitialValues';
 import { FORSOERGERTAB_INITIAL_VALUES } from '../../domain/forsoergertab/forsoergertabInitialValues';
+import { computeForsoergertabCalculation } from '../../domain/forsoergertab/forsoergertabCalculation';
+import { PRE_2015_CUTOFF } from '../../domain/shared/forsoergertabConstants';
 import { coerceToISODateString, type ISODateString } from '../../types/branded';
-import EetPdfDownloadButton from './erhvervsevnetab/EetPdfDownloadButton';
+import { formatAsAmountTrimmed, formatCountWithUnit, formatKr } from '../../utils/formatUtils';
+import PdfDownloadButton from '../inputs/PdfDownloadButton';
 import AarsloenAmountFieldRow from '../inputs/AarsloenAmountFieldRow';
+import { buildAldersreduktionFormelTekst } from '../../domain/shared/ealAldersreduktion';
 
 const maxIso = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
 const minIso = (a: ISODateString, b: ISODateString): ISODateString => (a < b ? a : b);
 
-// Foreloebig side-skitse til afklaring af layout og inputflow. Den endelige
-// forretningslogik, beregninger og afledte resultater for forsoergertab
-// implementeres senere, naar de faglige regler er fastlagt.
 const Forsoergertab = React.memo(() => {
   const { values, handleChange } = usePersistedForm(
     forsoergertabSchema,
@@ -34,12 +37,26 @@ const Forsoergertab = React.memo(() => {
     'faellesAarsloen',
     FAELLES_AARSLOEN_INITIAL_VALUES
   );
+  const { values: faellesPersondataValues, handleChange: handleFaellesPersondataChange } = usePersistedForm(
+    faellesPersondataSchema,
+    'faellesPersondata',
+    FAELLES_PERSONDATA_INITIAL_VALUES
+  );
   const stamdata = usePersistedSection('stamdata');
 
   const forsoergertabFieldErrors = useFormFieldErrors('forsoergertab');
   const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
+  const faellesPersondataFieldErrors = useFormFieldErrors('faellesPersondata');
 
   const reportBeregningsdatoError = useFormFieldErrorReporter('forsoergertab', 'beregningsdato', {
+    severity: 'error',
+    source: 'input',
+  });
+  const reportSkadelidteFodselsdatoError = useFormFieldErrorReporter('faellesPersondata', 'skadelidteFodselsdato', {
+    severity: 'error',
+    source: 'input',
+  });
+  const reportEfterladteFodselsdatoError = useFormFieldErrorReporter('forsoergertab', 'efterladteFodselsdato', {
     severity: 'error',
     source: 'input',
   });
@@ -47,6 +64,7 @@ const Forsoergertab = React.memo(() => {
     severity: 'error',
     source: 'input',
   });
+  const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const reportTilkendtForPeriodeError = useFormFieldErrorReporter('forsoergertab', 'tilkendtForPeriodeAar', {
     severity: 'error',
     source: 'input',
@@ -79,12 +97,168 @@ const Forsoergertab = React.memo(() => {
     return beregningsdato ? minIso(eetMax, beregningsdato) : eetMax;
   }, [values.beregningsdato]);
 
+  const visKoenValg = React.useMemo(() => {
+    const beregningsdato = coerceToISODateString(values.beregningsdato);
+    return beregningsdato !== undefined && beregningsdato < PRE_2015_CUTOFF;
+  }, [values.beregningsdato]);
+  const calculationResult = React.useMemo(
+    () =>
+      computeForsoergertabCalculation({
+        skadesdato: coerceToISODateString(stamdata?.skadesdato),
+        skadelidteFodselsdato: coerceToISODateString(faellesPersondataValues.skadelidteFodselsdato),
+        efterladteFodselsdato: coerceToISODateString(values.efterladteFodselsdato),
+        beregningsdato: coerceToISODateString(values.beregningsdato),
+        virkningsdato: coerceToISODateString(values.virkningsdato),
+        koen: values.koen,
+        tilkendtForPeriodeAar: values.tilkendtForPeriodeAar,
+        aslAarsloen: faellesAarsloenValues.aslAarsloen,
+        ealAarsloen: faellesAarsloenValues.ealAarsloen,
+      }),
+    [
+      faellesAarsloenValues.aslAarsloen,
+      faellesAarsloenValues.ealAarsloen,
+      faellesPersondataValues.skadelidteFodselsdato,
+      stamdata?.skadesdato,
+      values,
+    ]
+  );
+
+  const helperIssueMessage = React.useCallback(
+    (ids: readonly string[]): string | undefined => {
+      const message = calculationResult.issues.find((issue) => ids.includes(issue.id))?.message;
+      return message && message.trim() !== '' ? message : undefined;
+    },
+    [calculationResult.issues]
+  );
+
+  const hasSkadelidteFodselsdatoError = Boolean(faellesPersondataFieldErrors.skadelidteFodselsdato?.message);
+  const hasEfterladteFodselsdatoError = Boolean(
+    forsoergertabFieldErrors.efterladteFodselsdato?.message ||
+      helperIssueMessage(['forsoergertab-alder-unresolved', 'forsoergertab-alder-missing'])
+  );
+  const hasBeregningsdatoError = Boolean(
+    forsoergertabFieldErrors.beregningsdato?.message ||
+      helperIssueMessage([
+        'aarsloen-max-missing-beregningsaar',
+        'beregningsdato-before-virkningsdato',
+        'kapitaliseringsbekendtgoerelse-missing',
+        'folkepensionsalder-unresolved',
+        'forsoergertab-tabel-missing',
+        'forsoergertab-tabel-rows-missing',
+        'forsoergertab-faktor-unresolved',
+      ])
+  );
+  const hasVirkningsdatoError = Boolean(
+    forsoergertabFieldErrors.virkningsdato?.message ||
+      helperIssueMessage(['beregningsdato-before-virkningsdato'])
+  );
+  const hasKoenError = Boolean(forsoergertabFieldErrors.koen?.message || helperIssueMessage(['missing-koen']));
+  const hasTilkendtForPeriodeError = Boolean(
+    forsoergertabFieldErrors.tilkendtForPeriodeAar?.message || helperIssueMessage(['tilkendt-for-periode-invalid'])
+  );
+  const hasAslAarsloenError = Boolean(
+    faellesAarsloenFieldErrors.aslAarsloen?.message || helperIssueMessage(['asl-aarsloen-zero'])
+  );
+  const hasEalAarsloenError = Boolean(
+    faellesAarsloenFieldErrors.ealAarsloen?.message || helperIssueMessage(['eal-aarsloen-zero'])
+  );
+  const hasSkadesdatoError = Boolean(
+    stamdataFieldErrors.skadesdato?.message || helperIssueMessage(['skadesdato-missing', 'aarsloen-max-missing-skadesaar'])
+  );
+
+  const result = calculationResult.result;
+  const ealComputation = calculationResult.ealComputation;
+  const aslComputation = calculationResult.aslComputation;
+  const hasCoreFieldValues =
+    Boolean(faellesPersondataValues.skadelidteFodselsdato) &&
+    Boolean(values.efterladteFodselsdato) &&
+    Boolean(values.beregningsdato);
+  const canShowEal =
+    hasCoreFieldValues &&
+    !hasSkadelidteFodselsdatoError &&
+    !hasEfterladteFodselsdatoError &&
+    !hasBeregningsdatoError &&
+    !hasSkadesdatoError &&
+    !hasEalAarsloenError &&
+    ealComputation !== null;
+  const canShowAsl =
+    hasCoreFieldValues &&
+    !hasSkadelidteFodselsdatoError &&
+    !hasEfterladteFodselsdatoError &&
+    !hasBeregningsdatoError &&
+    !hasSkadesdatoError &&
+    Boolean(faellesAarsloenValues.aslAarsloen) &&
+    Boolean(values.virkningsdato) &&
+    values.tilkendtForPeriodeAar !== undefined &&
+    !hasAslAarsloenError &&
+    !hasVirkningsdatoError &&
+    !hasTilkendtForPeriodeError &&
+    !hasKoenError &&
+    aslComputation !== null;
+  const canShowResult = canShowEal && canShowAsl && result !== null;
+
   return (
     <Box>
       <Typography className="page-title">Forsørgertab</Typography>
 
-      <ContentBox className="content-box">
+      <ContentBox className="content-box" data-section-id="forsoergertab-beregning">
         <Typography className="section-header">Beregning</Typography>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Skadelidtes fødselsdato</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledDateField
+              value={faellesPersondataValues.skadelidteFodselsdato || undefined}
+              onCommit={handleFaellesPersondataChange('skadelidteFodselsdato')}
+              minDate={dateRanges_erhvervsevnetab.skadelidteFodselsdato.min}
+              maxDate={dateRanges_erhvervsevnetab.skadelidteFodselsdato.max}
+              error={hasSkadelidteFodselsdatoError}
+              helperText={faellesPersondataFieldErrors.skadelidteFodselsdato?.message ?? ''}
+              onFieldError={reportSkadelidteFodselsdatoError}
+            />
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Efterladte ægtefælle/samlevers fødselsdato</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledDateField
+              value={values.efterladteFodselsdato || undefined}
+              onCommit={handleChange('efterladteFodselsdato')}
+              minDate={dateRanges_forsoergertab.efterladteFodselsdato.min}
+              maxDate={dateRanges_forsoergertab.efterladteFodselsdato.max}
+              error={hasEfterladteFodselsdatoError}
+              helperText={
+                forsoergertabFieldErrors.efterladteFodselsdato?.message ??
+                helperIssueMessage(['forsoergertab-alder-unresolved', 'forsoergertab-alder-missing']) ??
+                ''
+              }
+              onFieldError={reportEfterladteFodselsdatoError}
+            />
+          </Box>
+        </Box>
+
+        {(visKoenValg || Boolean(forsoergertabFieldErrors.koen?.message)) && (
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">Køn</Typography>
+            <Box className="row--label-right-hover__content">
+              <StyledDropdown
+                value={values.koen}
+                onChange={(event) => {
+                  const parsed = koenEnum.safeParse(event.target.value);
+                  handleChange('koen')(createCommitEvent(parsed.success ? parsed.data : undefined));
+                }}
+                placeholder="Vælg køn"
+                width={130}
+                error={Boolean(forsoergertabFieldErrors.koen?.message || helperIssueMessage(['missing-koen']))}
+                helperText={forsoergertabFieldErrors.koen?.message ?? helperIssueMessage(['missing-koen']) ?? ''}
+              >
+                <MenuItem value="Mand">Mand</MenuItem>
+                <MenuItem value="Kvinde">Kvinde</MenuItem>
+              </StyledDropdown>
+            </Box>
+          </Box>
+        )}
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Beregningsdato</Typography>
@@ -96,8 +270,20 @@ const Forsoergertab = React.memo(() => {
               maxDate={dateRanges_forsoergertab.beregningsdato.max}
               noValidRangeCause="Skadesdato i Stamdata og Virkningsdato"
               specialRangeErrors={{ maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Beregningsdato' }}
-              error={Boolean(forsoergertabFieldErrors.beregningsdato?.message)}
-              helperText={forsoergertabFieldErrors.beregningsdato?.message ?? ''}
+              error={hasBeregningsdatoError}
+              helperText={
+                forsoergertabFieldErrors.beregningsdato?.message ??
+                helperIssueMessage([
+                  'beregningsdato-before-virkningsdato',
+                  'kapitaliseringsbekendtgoerelse-missing',
+                  'folkepensionsalder-unresolved',
+                  'forsoergertab-tabel-missing',
+                  'forsoergertab-tabel-rows-missing',
+                  'forsoergertab-faktor-unresolved',
+                  'aarsloen-max-missing-beregningsaar',
+                ]) ??
+                ''
+              }
               onFieldError={reportBeregningsdatoError}
               inputRef={beregningsdatoInputRef}
             />
@@ -113,22 +299,25 @@ const Forsoergertab = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Download specifikation</Typography>
           <Box className="row--label-right-hover__content">
-            <EetPdfDownloadButton disabled />
+            <PdfDownloadButton disabled />
           </Box>
         </Box>
 
         <Typography className="row--subheading">ASL-ydelse</Typography>
 
         <AarsloenAmountFieldRow
-          label="Årsløn (efter ASL)"
+          label="Skadelidtes årsløn (efter ASL)"
           value={faellesAarsloenValues.aslAarsloen}
           onCommit={handleFaellesAarsloenChange('aslAarsloen')}
-          errorMessage={faellesAarsloenFieldErrors.aslAarsloen?.message}
+          errorMessage={
+            faellesAarsloenFieldErrors.aslAarsloen?.message ??
+            helperIssueMessage(['asl-aarsloen-zero'])
+          }
           onFieldError={reportAslAarsloenError}
         />
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Virkningsdato</Typography>
+          <Typography className="row--text">Startdato for ASL-ydelse</Typography>
           <Box className="row--label-right-hover__content">
             <StyledDateField
               value={values.virkningsdato || undefined}
@@ -137,8 +326,12 @@ const Forsoergertab = React.memo(() => {
               maxDate={virkningsdatoMax}
               noValidRangeCause="Skadesdato i Stamdata og Beregningsdato"
               specialRangeErrors={{ maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Virkningsdato' }}
-              error={Boolean(forsoergertabFieldErrors.virkningsdato?.message)}
-              helperText={forsoergertabFieldErrors.virkningsdato?.message ?? ''}
+              error={hasVirkningsdatoError}
+              helperText={
+                forsoergertabFieldErrors.virkningsdato?.message ??
+                helperIssueMessage(['beregningsdato-before-virkningsdato']) ??
+                ''
+              }
               onFieldError={reportVirkningsdatoError}
             />
           </Box>
@@ -154,8 +347,12 @@ const Forsoergertab = React.memo(() => {
               maxValue={10}
               allowNegative={false}
               width={80}
-              error={Boolean(forsoergertabFieldErrors.tilkendtForPeriodeAar?.message)}
-              helperText={forsoergertabFieldErrors.tilkendtForPeriodeAar?.message ?? ''}
+              error={hasTilkendtForPeriodeError}
+              helperText={
+                forsoergertabFieldErrors.tilkendtForPeriodeAar?.message ??
+                helperIssueMessage(['tilkendt-for-periode-invalid']) ??
+                ''
+              }
               onFieldError={reportTilkendtForPeriodeError}
             />
             <Typography className="row--text">år</Typography>
@@ -165,13 +362,257 @@ const Forsoergertab = React.memo(() => {
         <Typography className="row--subheading">EAL-ydelse</Typography>
 
         <AarsloenAmountFieldRow
-          label="Årsløn (efter EAL)"
+          label="Skadelidtes årsløn (efter EAL)"
           value={faellesAarsloenValues.ealAarsloen}
           onCommit={handleFaellesAarsloenChange('ealAarsloen')}
-          errorMessage={faellesAarsloenFieldErrors.ealAarsloen?.message}
+          errorMessage={
+            faellesAarsloenFieldErrors.ealAarsloen?.message ??
+            helperIssueMessage(['eal-aarsloen-zero'])
+          }
           onFieldError={reportEalAarsloenError}
         />
       </ContentBox>
+
+      {canShowResult && result && (
+        <ContentBox className="content-box">
+          <Typography className="section-header">Beregnet forsørgertab</Typography>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">EAL-krav</Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text">{formatKr(result.ealKrav)}</Typography>
+            </Box>
+          </Box>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">ASL-kapitalbeløb</Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text">{`- ${formatKr(result.aslKapitalbelob)}`}</Typography>
+            </Box>
+          </Box>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">Forsørgertabserstatning</Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text text-bold">{formatKr(result.nettokrav)}</Typography>
+            </Box>
+          </Box>
+        </ContentBox>
+      )}
+
+      {canShowEal && ealComputation && (
+        <ContentBox className="content-box" data-section-id="forsoergertab-eal">
+          <Typography className="section-header">EAL-krav</Typography>
+
+          <Typography className="row--subheading">Årsløn</Typography>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">Skadelidtes årsløn på skadestidspunktet</Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text">{formatKr(ealComputation.aarsloen)}</Typography>
+            </Box>
+          </Box>
+
+          {ealComputation.reguleringsaar.length > 0 && (
+            <>
+              <Box className="row--label-right-hover">
+                <Typography className="row--text">
+                  {`Regulering fra skadesår ${ealComputation.skadesaar} til beregningsår ${ealComputation.beregningsaar}`}
+                </Typography>
+                <Box className="row--label-right-hover__content">
+                  <Typography className="row--text">{`+ ${formatAsAmountTrimmed(ealComputation.reguleringsPctRounded4, 4)} %`}</Typography>
+                </Box>
+              </Box>
+
+              <Box className="row--label-right-hover">
+                <Typography className="row--text">
+                  {`${formatKr(ealComputation.aarsloen)} x (100 % + ${formatAsAmountTrimmed(ealComputation.reguleringsPctRounded4, 4)} %) (afrundet) =`}
+                </Typography>
+                <Box className="row--label-right-hover__content">
+                  <Typography className="row--text">{formatKr(ealComputation.reguleretAarsloen)}</Typography>
+                </Box>
+              </Box>
+            </>
+          )}
+
+          <Typography className="row--subheading">Erhvervsevnetab</Typography>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">Erstatningsprocent (jf. erstatningsansvarslovens § 13)</Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text">30 %</Typography>
+            </Box>
+          </Box>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">Kapitaliseringsfaktor</Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text">{ealComputation.kapitaliseringsfaktor}</Typography>
+            </Box>
+          </Box>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">
+              {`Beregnet forsørgertab (${formatKr(ealComputation.reguleretAarsloen)} x ${ealComputation.kapitaliseringsfaktor} x 30 %) =`}
+            </Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text">{formatKr(ealComputation.eetBeregnet)}</Typography>
+            </Box>
+          </Box>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">{`Maksimalt erstatningsniveau i beregningsåret ${ealComputation.beregningsaar}`}</Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text">{formatKr(ealComputation.eetMaks)}</Typography>
+            </Box>
+          </Box>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">
+              {ealComputation.eetReduceretTilMaks
+                ? 'Det beregnede forsørgertab skal reduceres til maksimum, dvs. udgør'
+                : 'Det beregnede forsørgertab skal ikke reduceres, dvs. udgør'}
+            </Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text">{formatKr(ealComputation.eetAnvendt)}</Typography>
+            </Box>
+          </Box>
+
+          <Typography className="row--subheading">Aldersreduktion</Typography>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">Skadelidtes alder på skadestidspunkt</Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text">{formatCountWithUnit(ealComputation.alderVedSkade, 'år', 'år')}</Typography>
+            </Box>
+          </Box>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">
+              {`Aldersreduktion ${buildAldersreduktionFormelTekst(ealComputation.alderVedSkade, ealComputation.alderVedSkadeCapped)}`}
+            </Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text">{`${ealComputation.aldersreduktionPct} %`}</Typography>
+            </Box>
+          </Box>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">
+              {`${formatKr(ealComputation.eetAnvendt)} x (- ${ealComputation.aldersreduktionPct} %) =`}
+            </Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text">{`- ${formatKr(ealComputation.aldersreduktionBeloeb)}`}</Typography>
+            </Box>
+          </Box>
+
+          <Typography className="row--subheading">Beregnet EAL-krav</Typography>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">
+              {`${formatKr(ealComputation.eetAnvendt)} - ${formatKr(ealComputation.aldersreduktionBeloeb)} =`}
+            </Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text text-bold">{formatKr(ealComputation.ealKrav)}</Typography>
+            </Box>
+          </Box>
+        </ContentBox>
+      )}
+
+      {canShowAsl && aslComputation && (
+        <ContentBox className="content-box" data-section-id="forsoergertab-asl">
+          <Typography className="section-header">ASL-ydelser</Typography>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">Der foretages proformakapitalisering af løbende forsørgertab efter ASL</Typography>
+            <Box className="row--label-right-hover__content" />
+          </Box>
+
+          <Typography className="row--subheading">Årlig ydelse</Typography>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">ASL-årsløn</Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text">{formatKr(aslComputation.aslAarsloen)}</Typography>
+            </Box>
+          </Box>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">
+              {`Årlig ydelse i ${aslComputation.beregningsaar}-værdi: 30 % x ${formatKr(aslComputation.benyttetAarsloen)} × (${formatAsAmountTrimmed(aslComputation.aarsloenMaxBeregningsaar, 0)} / ${formatAsAmountTrimmed(aslComputation.aarsloenMaxSkadesaar, 0)}) =`}
+            </Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text">{formatKr(aslComputation.opreguleretAarligYdelse, 2)}</Typography>
+            </Box>
+          </Box>
+
+          <Typography className="row--subheading">Beregnet kapitalbeløb</Typography>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">Resterende periode</Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text">
+                {`${formatCountWithUnit(aslComputation.resterendeAar, 'år', 'år')} og ${formatCountWithUnit(aslComputation.resterendeMaaneder, 'måned', 'måneder')}`}
+              </Typography>
+            </Box>
+          </Box>
+
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">Efterladtes fyldte alder på beregningsdatoen</Typography>
+            <Box className="row--label-right-hover__content">
+              <Typography className="row--text">{formatCountWithUnit(aslComputation.alderHeleAar, 'år', 'år')}</Typography>
+            </Box>
+          </Box>
+
+          {aslComputation.harNaaetFolkepensionsalder ? (
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">Værdien af løbende ydelser efter folkepensionsalderen udgør</Typography>
+              <Box className="row--label-right-hover__content">
+                <Typography className="row--text text-bold">0 kr.</Typography>
+              </Box>
+            </Box>
+          ) : (
+            <>
+              <Box className="row--label-right-hover">
+                <Typography className="row--text">Kapitaliseringsbekendtgørelse</Typography>
+                <Box className="row--label-right-hover__content">
+                  <Typography className="row--text">
+                    {aslComputation.kapitaliseringsTabel
+                      ? `Vejl. ${aslComputation.kapitaliseringsbekendtgoerelseId}, tabel ${aslComputation.kapitaliseringsTabel}`
+                      : `Vejl. ${aslComputation.kapitaliseringsbekendtgoerelseId}`}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {aslComputation.kapitaliseringsTabelKoensopdelt && aslComputation.koen && (
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">Køn</Typography>
+                  <Box className="row--label-right-hover__content">
+                    <Typography className="row--text">{aslComputation.koen}</Typography>
+                  </Box>
+                </Box>
+              )}
+
+              {aslComputation.kapitalfaktor !== null && (
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">Kapitalfaktor</Typography>
+                  <Box className="row--label-right-hover__content">
+                    <Typography className="row--text">{formatAsAmountTrimmed(aslComputation.kapitalfaktor, 3)}</Typography>
+                  </Box>
+                </Box>
+              )}
+
+              <Box className="row--label-right-hover">
+                <Typography className="row--text">
+                  {`Beregnet kapitalbeløb (${formatKr(aslComputation.opreguleretAarligYdelse, 2)} x ${formatAsAmountTrimmed(aslComputation.kapitalfaktor ?? 0, 3)})`}
+                </Typography>
+                <Box className="row--label-right-hover__content">
+                  <Typography className="row--text text-bold">{formatKr(aslComputation.kapitalbelob)}</Typography>
+                </Box>
+              </Box>
+            </>
+          )}
+        </ContentBox>
+      )}
     </Box>
   );
 });

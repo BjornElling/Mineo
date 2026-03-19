@@ -221,6 +221,71 @@ describe('EOberegningTab kontroltjek', () => {
     expect(screen.queryByText('Periode (24-05-2023 - 21-12-2025): Dato skal være mellem 24-05-2023 og 22-12-2025')).not.toBeInTheDocument();
   });
 
+  it('viser cutoff-fejl uden periode-label i fejlboksen og kun "Fejl" i TAF-oversigten', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.revideretOpgoerelse = 'Ja';
+    eoValues.eoNummer = '1';
+    eoValues.beregnesTabtArbejdsfortjeneste = 'Ja';
+    eoValues.tafPerioder = [
+      { id: 'taf-1', fra: '2024-01-01', til: '2025-01-01', loseFeriedage: 0 },
+    ];
+
+    collectAllDebugRowsMock.mockReturnValue({
+      errors: [{
+        id: 'taf.periode.taf-1',
+        label: 'Periode (01-01-2024 - 01-01-2025)',
+        displayValue: 'Fejl (Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (01-07-2025))',
+        status: 'error',
+        message: 'Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (01-07-2025)',
+        summaryDisplay: 'default',
+        navigation: {
+          kind: 'erstatningsopgoerelse-tab',
+          tabId: 'eo_oplysninger',
+          tabName: 'EO oplysninger',
+          sectionTitle: 'Tabt arbejdsfortjeneste',
+        },
+      }],
+      warnings: [],
+      allRows: [],
+      relevantRows: [{
+        id: 'taf.periode.taf-1',
+        label: 'Periode (01-01-2024 - 01-01-2025)',
+        displayValue: 'Fejl (Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (01-07-2025))',
+        status: 'error',
+        message: 'Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (01-07-2025)',
+        summaryDisplay: 'default',
+        navigation: {
+          kind: 'erstatningsopgoerelse-tab',
+          tabId: 'eo_oplysninger',
+          tabName: 'EO oplysninger',
+          sectionTitle: 'Tabt arbejdsfortjeneste',
+        },
+      }],
+    });
+
+    renderTab({
+      activeTab: 'beregning',
+      setActiveTab: vi.fn(),
+      isActive: true,
+      eoSnapshot: null,
+      stamdataValues: baseStamdataValues,
+      eoValues,
+      setEOValues: baseSetEoValues,
+    });
+
+    expect(
+      screen.getByText('Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (01-07-2025)')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Periode (01-01-2024 - 01-01-2025): Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (01-07-2025)')
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('TAF-periode')).toBeInTheDocument();
+    expect(screen.getByText(/^Fejl$/)).toBeInTheDocument();
+    expect(
+      screen.queryByText('Fejl (Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (01-07-2025))')
+    ).not.toBeInTheDocument();
+  });
+
   it('viser svie/smerte-range-fejl med korrekt brugertekst og uden systemfejl', () => {
     collectAllDebugRowsMock.mockReturnValue({
       errors: [{
@@ -276,6 +341,48 @@ describe('EOberegningTab kontroltjek', () => {
     expect(screen.getByRole('button', { name: 'Svie/smerte godtgørelse' })).toBeInTheDocument();
     expect(screen.queryByText('Send fejloplysninger')).not.toBeInTheDocument();
     expect(screen.queryByText('Svie/smerte-periode: Dato skal være mellem 24-05-2023 og 21-04-2024')).not.toBeInTheDocument();
+  });
+
+  it('viser kun "Fejl" i svie/smerte-oversigten når perioden har fejl', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
+    eoValues.svieSmertePerioder = [
+      { id: 'ss-1', fra: '2024-01-01', til: '2025-01-01', tilstand: 'sygemeldt' },
+    ];
+
+    collectAllDebugRowsMock.mockReturnValue({
+      errors: [],
+      warnings: [],
+      allRows: [],
+      relevantRows: [{
+        id: 'sviesmerte.beregnetPeriode',
+        label: 'Svie/smerte-periode',
+        displayValue: 'Fejl (Dato skal være mellem 24-05-2023 og 21-04-2024)',
+        status: 'error',
+        message: 'Dato skal være mellem 24-05-2023 og 21-04-2024',
+        summaryDisplay: 'default',
+        navigation: {
+          kind: 'erstatningsopgoerelse-tab',
+          tabId: 'eo_oplysninger',
+          tabName: 'EO oplysninger',
+          sectionTitle: 'Svie/smerte godtgørelse',
+        },
+      }],
+    });
+
+    renderTab({
+      activeTab: 'beregning',
+      setActiveTab: vi.fn(),
+      isActive: true,
+      eoSnapshot: null,
+      stamdataValues: baseStamdataValues,
+      eoValues,
+      setEOValues: baseSetEoValues,
+    });
+
+    expect(screen.getByText('Svie/smerte-periode')).toBeInTheDocument();
+    expect(screen.getByText(/^Fejl$/)).toBeInTheDocument();
+    expect(screen.queryByText('Fejl (Dato skal være mellem 24-05-2023 og 21-04-2024)')).not.toBeInTheDocument();
   });
 
   it('viser clampet TAF-periode i beregningsoversigten når snapshotten er autoritativt beregnet', () => {

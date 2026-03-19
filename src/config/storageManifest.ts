@@ -16,6 +16,7 @@ export const STORAGE_KEYS = {
   satser: 'mineo_satser',
   aarsloen: 'mineo_aarsloen',
   faellesAarsloen: 'mineo_faellesAarsloen',
+  faellesPersondata: 'mineo_faellesPersondata',
   renteberegning: 'mineo_renteberegning',
   varigemen: 'mineo_varigemen',
   forsoergertab: 'mineo_forsoergertab',
@@ -38,10 +39,6 @@ const UI_STORAGE_PREFIXES = {
 } as const;
 
 export const createActiveTabStorageKey = (pageId: string): string => `${UI_STORAGE_PREFIXES.activeTab}${pageId}`;
-
-const isDynamicUiStorageKey = (key: string): boolean => {
-  return key.startsWith(UI_STORAGE_PREFIXES.activeTab);
-};
 
 const STORAGE_KEY_SET: ReadonlySet<string> = new Set([
   ...Object.values(STORAGE_KEYS),
@@ -73,7 +70,7 @@ export const getStorageKey = (pageKey: StorageKey): string => {
  * @returns true hvis key er en kendt MINEO key
  */
 export const isValidStorageKey = (key: string): boolean => {
-  return STORAGE_KEY_SET.has(key) || isDynamicUiStorageKey(key);
+  return STORAGE_KEY_SET.has(key) || key.startsWith(UI_STORAGE_PREFIXES.activeTab);
 };
 
 /**

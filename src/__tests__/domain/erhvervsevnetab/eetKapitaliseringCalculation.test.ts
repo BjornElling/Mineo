@@ -14,7 +14,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [],
       },
       skadesdato: '2025-01-01',
-      fodselsdato: '1965-01-01',
+      skadelidteFodselsdato: '1965-01-01',
     });
 
     expect(result.computation).toBeNull();
@@ -47,7 +47,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadesdato: '2025-01-01',
-      fodselsdato: '1965-01-01',
+      skadelidteFodselsdato: '1965-01-01',
     });
 
     expect(result.computation).toBeNull();
@@ -80,7 +80,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadesdato: '2025-01-01',
-      fodselsdato: '1965-01-01',
+      skadelidteFodselsdato: '1965-01-01',
     });
 
     expect(result.issues.some((issue) => issue.id === 'missing-kap-dato')).toBe(false);
@@ -106,7 +106,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadesdato: '2025-01-01',
-      fodselsdato: '1965-01-01',
+      skadelidteFodselsdato: '1965-01-01',
     });
 
     expect(result.issues).toContainEqual({
@@ -137,7 +137,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadesdato: '2025-01-01',
-      fodselsdato: '1965-01-01',
+      skadelidteFodselsdato: '1965-01-01',
     });
 
     expect(result.issues).toContainEqual({
@@ -168,7 +168,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadesdato: '2025-01-01',
-      fodselsdato: '1965-01-01',
+      skadelidteFodselsdato: '1965-01-01',
     });
 
     expect(result.computation).toBeNull();
@@ -200,7 +200,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadesdato: '2025-01-01',
-      fodselsdato: '1965-01-01',
+      skadelidteFodselsdato: '1965-01-01',
     });
 
     expect(result.computation).toBeNull();
@@ -227,7 +227,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadesdato: '2025-01-01',
-      fodselsdato: '1965-01-01',
+      skadelidteFodselsdato: '1965-01-01',
     });
 
     expect(result.issues).toEqual([]);
@@ -258,7 +258,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadesdato: '2011-01-01',
-      fodselsdato: '1961-11-01',
+      skadelidteFodselsdato: '1961-11-01',
     });
 
     expect(result.issues).toEqual([]);
@@ -288,7 +288,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1965-01-01',
+      skadelidteFodselsdato: '1965-01-01',
     });
 
     expect(result.issues).toEqual([]);
@@ -317,7 +317,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadesdato: '2025-01-01',
-      fodselsdato: '1959-01-01',
+      skadelidteFodselsdato: '1959-01-01',
     });
 
     expect(result.issues).toEqual([]);
@@ -345,7 +345,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadesdato: '2025-01-01',
-      fodselsdato: '1959-01-01',
+      skadelidteFodselsdato: '1959-01-01',
     });
 
     expect(result.issues).toEqual([]);
@@ -373,7 +373,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadesdato: '2025-01-01',
-      fodselsdato: '1965-01-01',
+      skadelidteFodselsdato: '1965-01-01',
     });
 
     expect(result.computation).toBeNull();
@@ -400,7 +400,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadesdato: '2007-07-01',
-      fodselsdato: '1960-01-01',
+      skadelidteFodselsdato: '1960-01-01',
     });
 
     expect(result.computation).toBeNull();
@@ -431,7 +431,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadesdato: '2007-07-01',
-      fodselsdato: '1960-01-01',
+      skadelidteFodselsdato: '1960-01-01',
     });
 
     expect(result.issues).toEqual([]);
@@ -460,7 +460,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadesdato: '2005-01-01',
-      fodselsdato: '1944-01-01',
+      skadelidteFodselsdato: '1944-01-01',
     });
 
     expect(result.computation).toBeNull();
@@ -510,7 +510,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadesdato: '2025-01-01',
-      fodselsdato: '1965-01-01',
+      skadelidteFodselsdato: '1965-01-01',
     });
 
     expect(result.issues).toEqual([]);

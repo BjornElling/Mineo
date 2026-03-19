@@ -2,9 +2,14 @@ import type { AslAfgoerelseRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
 import { createRowId } from '../rowId';
+import {
+  validateAslAarsloenBySkadesaarMax,
+  validateAslAarsloenDivisibleBy1000,
+} from '../faellesAarsloen/aarsloenValidators';
 import { isUnderOrEqualTwoYearsToFpByBekendtgoerelse } from './eetKapitaliseringOpslag';
 
 export const EET_ASL_MIN_VISIBLE_ROWS = 2;
+export { validateAslAarsloenBySkadesaarMax, validateAslAarsloenDivisibleBy1000 };
 
 export const createAslAfgoerelseRowId = (): string => createRowId('eet_asl');
 

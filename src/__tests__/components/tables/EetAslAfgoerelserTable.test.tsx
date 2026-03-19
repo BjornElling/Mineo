@@ -33,7 +33,7 @@ describe('EetAslAfgoerelserTable', () => {
         skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
-        fodselsdato={toISODateString('1990-01-01')}
+        skadelidteFodselsdato={toISODateString('1990-01-01')}
         onTableDataChange={onTableDataChange}
       />
     );
@@ -73,7 +73,7 @@ describe('EetAslAfgoerelserTable', () => {
         skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
-        fodselsdato={toISODateString('1990-01-01')}
+        skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
     );
 
@@ -93,7 +93,7 @@ describe('EetAslAfgoerelserTable', () => {
         skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
-        fodselsdato={toISODateString('1990-01-01')}
+        skadelidteFodselsdato={toISODateString('1990-01-01')}
         onTableDataChange={onTableDataChange}
       />
     );
@@ -133,7 +133,7 @@ describe('EetAslAfgoerelserTable', () => {
         skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
-        fodselsdato={toISODateString('1990-01-01')}
+        skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
     );
 
@@ -168,7 +168,7 @@ describe('EetAslAfgoerelserTable', () => {
         skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
-        fodselsdato={toISODateString('1990-01-01')}
+        skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
     );
 
@@ -207,7 +207,7 @@ describe('EetAslAfgoerelserTable', () => {
         skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
-        fodselsdato={toISODateString('1990-01-01')}
+        skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
     );
 
@@ -230,7 +230,7 @@ describe('EetAslAfgoerelserTable', () => {
         skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
-        fodselsdato={toISODateString('1990-01-01')}
+        skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
     );
 
@@ -250,7 +250,7 @@ describe('EetAslAfgoerelserTable', () => {
         skadesdato={toISODateString('2024-08-01')}
         skadesdatoMin={toISODateString('2024-08-01')}
         beregningsdato={toISODateString('2025-12-31')}
-        fodselsdato={toISODateString('1990-01-01')}
+        skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
     );
 
@@ -270,7 +270,7 @@ describe('EetAslAfgoerelserTable', () => {
         skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
-        fodselsdato={toISODateString('1990-01-01')}
+        skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
     );
 
@@ -291,7 +291,7 @@ describe('EetAslAfgoerelserTable', () => {
         skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
-        fodselsdato={toISODateString('1990-01-01')}
+        skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
     );
 
@@ -322,7 +322,7 @@ describe('EetAslAfgoerelserTable', () => {
         skadesdato={toISODateString('2025-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
-        fodselsdato={toISODateString('1959-01-01')}
+        skadelidteFodselsdato={toISODateString('1959-01-01')}
       />
     );
 
@@ -348,7 +348,7 @@ describe('EetAslAfgoerelserTable', () => {
         skadesdato={toISODateString('2025-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
-        fodselsdato={toISODateString('1990-01-01')}
+        skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
     );
 
@@ -361,7 +361,7 @@ describe('EetAslAfgoerelserTable', () => {
         skadesdato={toISODateString('2025-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
-        fodselsdato={toISODateString('1959-01-01')}
+        skadelidteFodselsdato={toISODateString('1959-01-01')}
       />
     );
 
@@ -374,7 +374,7 @@ describe('EetAslAfgoerelserTable', () => {
         skadesdato={toISODateString('2025-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
-        fodselsdato={toISODateString('1990-01-01')}
+        skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
     );
 
@@ -402,7 +402,7 @@ describe('EetAslAfgoerelserTable', () => {
         skadesdato={toISODateString('2020-01-01')}
         skadesdatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2026-12-31')}
-        fodselsdato={toISODateString('1990-01-01')}
+        skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
     );
 

@@ -3,6 +3,7 @@ import type { StorageKey } from './storageManifest';
 import {
   aarsloenSchema,
   faellesAarsloenSchema,
+  faellesPersondataSchema,
   erstatningsopgoerelseSchema,
   renteberegningSchema,
   satserSchema,
@@ -18,6 +19,7 @@ export const persistenceSchemas = {
   satser: satserSchema,
   aarsloen: aarsloenSchema,
   faellesAarsloen: faellesAarsloenSchema,
+  faellesPersondata: faellesPersondataSchema,
   renteberegning: renteberegningSchema,
   varigemen: varigeMenSchema,
   forsoergertab: forsoergertabSchema,

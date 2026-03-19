@@ -3,7 +3,9 @@ import {
   erstatningsopgoerelseSchema,
   renteberegningSchema,
   varigeMenSchema,
+  faellesPersondataSchema,
   forsoergertabSchema,
+  erhvervsevnetabSchema,
   stamdataSchema,
   satserSchema,
   rentekravRowSchema,
@@ -149,6 +151,97 @@ describe('stamdataSchema', () => {
       ukendt: 'felt',
     });
     expect(result.success).toBe(false);
+  });
+
+  it('afviser legacy-EET-feltet skadelidteFodselsdato', () => {
+    const result = stamdataSchema.safeParse({
+      skadelidteFodselsdato: '1990-01-01',
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('erhvervsevnetabSchema', () => {
+  it('accepterer værdier uden skadelidtes fødselsdato', () => {
+    const result = erhvervsevnetabSchema.safeParse({
+      beregningsdato: '2024-01-01',
+      koen: 'Mand',
+      aslAfgoerelser: [],
+      ealEetPct: undefined,
+      eetDifferencekravBilagSelection: {
+        loebendeYdelser: true,
+        kapitalisering: true,
+        eetEfterEal: true,
+        proformaKapitalisering: true,
+        visUdvidetSpecifikation: false,
+        visUdvidetSpecifikationLoebendeYdelserBilag: false,
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('afviser legacy-feltet skadelidteFodselsdato', () => {
+    const result = erhvervsevnetabSchema.safeParse({
+      beregningsdato: '2024-01-01',
+      skadelidteFodselsdato: '1990-01-01',
+      aslAfgoerelser: [],
+      ealEetPct: undefined,
+      eetDifferencekravBilagSelection: {
+        loebendeYdelser: true,
+        kapitalisering: true,
+        eetEfterEal: true,
+        proformaKapitalisering: true,
+        visUdvidetSpecifikation: false,
+        visUdvidetSpecifikationLoebendeYdelserBilag: false,
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('faellesPersondataSchema', () => {
+  it('accepterer skadelidtes fødselsdato som eget fælles felt', () => {
+    const result = faellesPersondataSchema.safeParse({
+      skadelidteFodselsdato: '1990-01-01',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('afviser legacy-feltet fodselsdato', () => {
+    const result = faellesPersondataSchema.safeParse({
+      fodselsdato: '1990-01-01',
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('forsoergertabSchema', () => {
+  it('kræver køn ved beregning før 1. marts 2015', () => {
+    const result = forsoergertabSchema.safeParse({
+      efterladteFodselsdato: '1980-01-01',
+      beregningsdato: '2015-02-28',
+      virkningsdato: '2015-02-01',
+      tilkendtForPeriodeAar: 5,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('giver fejl på både beregningsdato og virkningsdato når beregningsdato er før virkningsdato', () => {
+    const result = forsoergertabSchema.safeParse({
+      efterladteFodselsdato: '1980-01-01',
+      beregningsdato: '2020-01-01',
+      virkningsdato: '2020-02-01',
+      tilkendtForPeriodeAar: 5,
+      koen: 'Mand',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const paths = result.error.issues.map((issue) => issue.path.join('.'));
+      expect(paths).toContain('beregningsdato');
+      expect(paths).toContain('virkningsdato');
+    }
   });
 });
 
@@ -340,12 +433,12 @@ describe('renteberegningSchema', () => {
     }
   });
 
-  it('stripTopLevelKey: activeTab strippes fra input', () => {
+  it('afviser activeTab som ukendt felt', () => {
     const result = renteberegningSchema.safeParse({
       activeTab: 'some-tab',
       rentekravRows: [],
     });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 
   it('ukendt felt afvises (strict)', () => {
@@ -376,13 +469,13 @@ describe('varigeMenSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('stripTopLevelKey: activeTab strippes fra input', () => {
+  it('afviser activeTab som ukendt felt', () => {
     const result = varigeMenSchema.safeParse({
       activeTab: 'some-tab',
       mengrad: undefined,
       beregningsdato: undefined,
     });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 
   it('ukendt felt afvises (strict)', () => {
@@ -415,6 +508,7 @@ describe('varigeMenSchema', () => {
 describe('forsoergertabSchema', () => {
   it('accepterer tomme felter (alle optional)', () => {
     const result = forsoergertabSchema.safeParse({
+      efterladteFodselsdato: undefined,
       beregningsdato: undefined,
       virkningsdato: undefined,
       tilkendtForPeriodeAar: undefined,
@@ -424,6 +518,7 @@ describe('forsoergertabSchema', () => {
 
   it('accepterer gyldige værdier', () => {
     const result = forsoergertabSchema.safeParse({
+      efterladteFodselsdato: '1988-03-04',
       beregningsdato: '2024-01-01',
       virkningsdato: '2024-01-01',
       tilkendtForPeriodeAar: 4,
@@ -438,12 +533,19 @@ describe('forsoergertabSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('stripTopLevelKey: activeTab strippes fra input', () => {
+  it('afviser activeTab som ukendt felt', () => {
     const result = forsoergertabSchema.safeParse({
       activeTab: 'some-tab',
       beregningsdato: undefined,
     });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
+  });
+
+  it('afviser legacy-feltet fodselsdato', () => {
+    const result = forsoergertabSchema.safeParse({
+      fodselsdato: '1988-03-04',
+    });
+    expect(result.success).toBe(false);
   });
 });
 

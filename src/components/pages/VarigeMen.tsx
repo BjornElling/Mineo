@@ -18,7 +18,6 @@ const VarigeMen = React.memo(() => {
     pageId: 'varigemen',
     allowedTabs: [TAB_KEYS.MENBEREGNING, TAB_KEYS.SATSER],
     defaultTab: TAB_KEYS.MENBEREGNING,
-    legacySource: { persistedPageKey: 'varigemen', fieldName: 'activeTab' },
   });
 
   const { values, setValues, handleChange } = usePersistedForm(varigeMenSchema, 'varigemen', {

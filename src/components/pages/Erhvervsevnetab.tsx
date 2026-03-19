@@ -8,12 +8,12 @@ import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import {
   erhvervsevnetabSchema,
   faellesAarsloenSchema,
-  stamdataSchema,
+  faellesPersondataSchema,
   type ErhvervsevnetabComposedValues,
 } from '../../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/faellesAarsloen/faellesAarsloenInitialValues';
-import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
+import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../../domain/faellesPersondata/faellesPersondataInitialValues';
 import {
   collectEetAslAfgoerelseValidationIssues,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
@@ -47,7 +47,6 @@ const ErhvervsevnetabPage = React.memo(() => {
       TAB_KEYS.DIFFERENCEKRAV,
     ],
     defaultTab: TAB_KEYS.EET_OPLYSNINGER,
-    legacySource: { persistedPageKey: 'erhvervsevnetab', fieldName: 'activeTab' },
   });
 
   const { values, setValues, handleChange } = usePersistedForm(
@@ -55,15 +54,15 @@ const ErhvervsevnetabPage = React.memo(() => {
     'erhvervsevnetab',
     ERHVERVSEVNETAB_INITIAL_VALUES
   );
+  const { values: faellesPersondataValues, handleChange: handleFaellesPersondataChange } = usePersistedForm(
+    faellesPersondataSchema,
+    'faellesPersondata',
+    FAELLES_PERSONDATA_INITIAL_VALUES
+  );
   const { values: faellesAarsloenValues, handleChange: handleFaellesAarsloenChange } = usePersistedForm(
     faellesAarsloenSchema,
     'faellesAarsloen',
     FAELLES_AARSLOEN_INITIAL_VALUES
-  );
-  const { values: stamValues, handleChange: handleStamChange } = usePersistedForm(
-    stamdataSchema,
-    'stamdata',
-    STAMDATA_INITIAL_VALUES
   );
   const stamdata = usePersistedSection('stamdata');
   const reportAslAfgoerelserRuleError = useFormFieldErrorReporter('erhvervsevnetab', 'aslAfgoerelser', {
@@ -73,13 +72,17 @@ const ErhvervsevnetabPage = React.memo(() => {
   useAslAarsloenRuleReporter(faellesAarsloenValues.aslAarsloen, stamdata?.skadesdato);
 
   const composedValues = React.useMemo<ErhvervsevnetabComposedValues>(
-    () => ({ ...values, ...faellesAarsloenValues }),
-    [faellesAarsloenValues, values]
+    () => ({ ...values, ...faellesAarsloenValues, ...faellesPersondataValues }),
+    [faellesAarsloenValues, faellesPersondataValues, values]
   );
 
   const aslAfgoerelserValidationIssues = React.useMemo(() => {
-    return collectEetAslAfgoerelseValidationIssues(values.aslAfgoerelser, stamdata?.skadesdato, stamdata?.fodselsdato);
-  }, [stamdata?.fodselsdato, stamdata?.skadesdato, values.aslAfgoerelser]);
+    return collectEetAslAfgoerelseValidationIssues(
+      values.aslAfgoerelser,
+      stamdata?.skadesdato,
+      faellesPersondataValues.skadelidteFodselsdato
+    );
+  }, [faellesPersondataValues.skadelidteFodselsdato, stamdata?.skadesdato, values.aslAfgoerelser]);
 
   // Kun den første fejl rapporteres til error-bus — feltniveau-fejl på individuelle rækker
   // vises inline i tabellen og aggregeres ikke i EetIssuesBox. Dette er en bevidst
@@ -157,10 +160,10 @@ const ErhvervsevnetabPage = React.memo(() => {
           values={composedValues}
           setValues={setValues}
           handleChange={handleChange}
+          handleSkadelidteFodselsdatoChange={handleFaellesPersondataChange('skadelidteFodselsdato')}
           handleAslAarsloenChange={handleFaellesAarsloenChange('aslAarsloen')}
           handleEalAarsloenChange={handleFaellesAarsloenChange('ealAarsloen')}
-          stamValues={stamValues}
-          handleStamChange={handleStamChange}
+          skadesdato={stamdata?.skadesdato}
         />
       )}
       {activeTab === TAB_KEYS.LOEBENDE_YDELSER && (

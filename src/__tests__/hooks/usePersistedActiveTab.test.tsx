@@ -24,13 +24,11 @@ const Harness = ({
   pageId = PAGE_ID,
   allowedTabs = ALLOWED,
   defaultTab = 'tab-a' as Tab,
-  legacySource,
 }: Partial<React.ComponentProps<typeof HarnessImpl>>) => (
   <HarnessImpl
     pageId={pageId}
     allowedTabs={allowedTabs}
     defaultTab={defaultTab}
-    legacySource={legacySource}
   />
 );
 
@@ -38,11 +36,10 @@ type HarnessImplProps = {
   pageId: string;
   allowedTabs: readonly Tab[];
   defaultTab: Tab;
-  legacySource?: Parameters<typeof usePersistedActiveTab<Tab>>[0]['legacySource'];
 };
 
-const HarnessImpl = ({ pageId, allowedTabs, defaultTab, legacySource }: HarnessImplProps) => {
-  const result = usePersistedActiveTab<Tab>({ pageId, allowedTabs, defaultTab, legacySource });
+const HarnessImpl = ({ pageId, allowedTabs, defaultTab }: HarnessImplProps) => {
+  const result = usePersistedActiveTab<Tab>({ pageId, allowedTabs, defaultTab });
   lastResult = result;
   return null;
 };
@@ -139,86 +136,5 @@ describe('usePersistedActiveTab', () => {
     expect(lastResult!.isAllowedTab(42)).toBe(false);
     expect(lastResult!.isAllowedTab(null)).toBe(false);
     expect(lastResult!.isAllowedTab(undefined)).toBe(false);
-  });
-
-  // ── Legacy migration ───────────────────────────────────────────────────────
-
-  it('reads legacy tab from a persisted section when UI key is absent', () => {
-    // Simulate a legacy persisted page that embeds activeTab in its .data blob.
-    sessionStorage.setItem(
-      'mineo_renteberegning',
-      JSON.stringify({
-        version: '1',
-        timestamp: Date.now(),
-        data: { legacyActiveTab: 'tab-c' },
-      })
-    );
-
-    render(
-      <Harness
-        pageId="legacy-test"
-        legacySource={{ persistedPageKey: 'renteberegning', fieldName: 'legacyActiveTab' }}
-      />
-    );
-
-    expect(lastResult!.activeTab).toBe('tab-c');
-  });
-
-  it('ignores legacy value when UI key is already set', () => {
-    const uiKey = createActiveTabStorageKey('legacy-override-test');
-    sessionStorage.setItem(uiKey, 'tab-b');
-    sessionStorage.setItem(
-      'mineo_renteberegning',
-      JSON.stringify({
-        version: '1',
-        timestamp: Date.now(),
-        data: { legacyActiveTab: 'tab-c' },
-      })
-    );
-
-    render(
-      <Harness
-        pageId="legacy-override-test"
-        legacySource={{ persistedPageKey: 'renteberegning', fieldName: 'legacyActiveTab' }}
-      />
-    );
-
-    // UI key wins over legacy
-    expect(lastResult!.activeTab).toBe('tab-b');
-  });
-
-  it('ignores legacy value when it is not in allowedTabs', () => {
-    sessionStorage.setItem(
-      'mineo_renteberegning',
-      JSON.stringify({
-        version: '1',
-        timestamp: Date.now(),
-        data: { legacyActiveTab: 'not-a-real-tab' },
-      })
-    );
-
-    render(
-      <Harness
-        pageId="legacy-invalid-test"
-        defaultTab="tab-a"
-        legacySource={{ persistedPageKey: 'renteberegning', fieldName: 'legacyActiveTab' }}
-      />
-    );
-
-    expect(lastResult!.activeTab).toBe('tab-a');
-  });
-
-  it('ignores legacy source when the raw sessionStorage value is not valid JSON', () => {
-    sessionStorage.setItem('mineo_renteberegning', 'not-json!!!');
-
-    render(
-      <Harness
-        pageId="legacy-bad-json"
-        defaultTab="tab-a"
-        legacySource={{ persistedPageKey: 'renteberegning', fieldName: 'legacyActiveTab' }}
-      />
-    );
-
-    expect(lastResult!.activeTab).toBe('tab-a');
   });
 });

@@ -7,6 +7,7 @@ import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatIsoDateShort } from '../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { roundByMethod } from '../../utils/rounding';
+import { buildAldersreduktionFormelTekst } from '../shared/ealAldersreduktion';
 import {
   ASL_IDENTICAL_AFGOERELSER_ID,
   hasIdenticalAfgoerelser,
@@ -56,7 +57,7 @@ export type EetEalCalculationResult = Readonly<{
 type Input = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadesdato: ISODateString | undefined;
-  fodselsdato: ISODateString | undefined;
+  skadelidteFodselsdato: ISODateString | undefined;
   reguleringssats: YearlyRate;
   erhvervsevnetabMax: YearlyRate;
   aarsloenMax: YearlyRate;
@@ -97,16 +98,6 @@ const calculateAldersreduktionPct = (ageAtInjury: number): number => {
   const base = cappedAge - 29;
   const extra = ageAtInjury > 54 ? 2 * (cappedAge - 54) : 0;
   return base + extra;
-};
-
-export const buildAldersreduktionFormelTekst = (alderVedSkade: number, alderVedSkadeCapped: number): string => {
-  if (alderVedSkade <= 29) return '0 =';
-  if (alderVedSkade > 54) {
-    const uncappedPct = (alderVedSkade - 29) + (alderVedSkade - 54) * 2;
-    const suffix = uncappedPct > 70 ? ' (max 70 %)' : '';
-    return `(${alderVedSkade} - 29) + (${alderVedSkade} - 54) x 2${suffix} =`;
-  }
-  return `(${alderVedSkade} - 29) =`;
 };
 
 
@@ -241,7 +232,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 
   const beregningsdato = coerceToISODateString(values.beregningsdato);
   const skadesdato = input.skadesdato;
-  const fodselsdato = input.fodselsdato;
+  const fodselsdato = input.skadelidteFodselsdato;
 
   const aarsloen = resolveAarsloen(values);
   // amountValueToNumber returnerer undefined for ikke-udfyldt felt og 0 for et committed 0-beløb.
@@ -267,7 +258,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   }
 
   if (!fodselsdato) {
-    issues.push(toIssue('fodselsdato-missing', 'Fødselsdato er ikke udfyldt.'));
+    issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt.'));
   }
   if (!beregningsdato) {
     issues.push(toIssue('beregningsdato-missing', 'Beregningsdato er ikke udfyldt.'));
@@ -408,3 +399,4 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 };
 
 export { formatPercentTrimmedFromRounded4 } from './eetLoebendeYdelserCalculation';
+export { buildAldersreduktionFormelTekst } from '../shared/ealAldersreduktion';

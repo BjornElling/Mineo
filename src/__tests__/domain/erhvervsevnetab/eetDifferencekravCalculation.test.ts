@@ -30,7 +30,7 @@ describe('computeEetDifferencekravCalculation', () => {
           }],
         },
         skadesdato: '2019-04-01',
-        fodselsdato: '1980-01-01',
+        skadelidteFodselsdato: '1980-01-01',
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -61,7 +61,7 @@ describe('computeEetDifferencekravCalculation', () => {
           }],
         },
         skadesdato: '2019-04-01',
-        fodselsdato: '1955-07-01',
+        skadelidteFodselsdato: '1955-07-01',
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -99,7 +99,7 @@ describe('computeEetDifferencekravCalculation', () => {
           }],
         },
         skadesdato: '2019-04-01',
-        fodselsdato: '1955-07-01',
+        skadelidteFodselsdato: '1955-07-01',
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -137,7 +137,7 @@ describe('computeEetDifferencekravCalculation', () => {
           }],
         },
         skadesdato: '2019-04-01',
-        fodselsdato: '1955-07-01',
+        skadelidteFodselsdato: '1955-07-01',
       });
 
       const loebendeAfg = result.computation?.loebendeComputation?.afgoerelser[0];
@@ -169,7 +169,7 @@ describe('computeEetDifferencekravCalculation', () => {
           }],
         },
         skadesdato: '2019-04-01',
-        fodselsdato: '1955-07-01',
+        skadelidteFodselsdato: '1955-07-01',
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -205,7 +205,7 @@ describe('computeEetDifferencekravCalculation', () => {
           }],
         },
         skadesdato: '2019-04-01',
-        fodselsdato: '1955-07-01',
+        skadelidteFodselsdato: '1955-07-01',
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -243,7 +243,7 @@ describe('computeEetDifferencekravCalculation', () => {
           }],
         },
         skadesdato: '2019-04-01',
-        fodselsdato: '1955-07-01',
+        skadelidteFodselsdato: '1955-07-01',
       });
 
       expect(result.computation?.proformaKapitalisering).toBeNull();
@@ -268,7 +268,7 @@ describe('computeEetDifferencekravCalculation', () => {
           }],
         },
         skadesdato: '2019-04-01',
-        fodselsdato: '1955-07-01',
+        skadelidteFodselsdato: '1955-07-01',
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -310,7 +310,7 @@ describe('computeEetDifferencekravCalculation', () => {
         ],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1955-07-01',
+      skadelidteFodselsdato: '1955-07-01',
     });
 
     expect(result.hasBlockingErrors).toBe(false);
@@ -349,7 +349,7 @@ describe('computeEetDifferencekravCalculation', () => {
         ],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1955-07-01',
+      skadelidteFodselsdato: '1955-07-01',
     });
 
     expect(result.hasBlockingErrors).toBe(false);
@@ -376,7 +376,7 @@ describe('computeEetDifferencekravCalculation', () => {
         }],
       },
       skadesdato: '2011-01-01',
-      fodselsdato: '1961-11-01',
+      skadelidteFodselsdato: '1961-11-01',
     });
 
     expect(result.hasBlockingErrors).toBe(false);

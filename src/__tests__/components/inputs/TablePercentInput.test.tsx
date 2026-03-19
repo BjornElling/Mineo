@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { GridCoreProvider } from '../../../components/tables/gridCoreContext';
@@ -93,7 +93,9 @@ describe('TablePercentInput', () => {
     await user.click(input);
     await user.clear(input);
     await user.type(input, '101');
-    input.blur();
+    await act(async () => {
+      input.blur();
+    });
 
     expect(input).toHaveValue('101');
     if (onBlur.mock.calls.length > 0) {

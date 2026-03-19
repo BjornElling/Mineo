@@ -1,5 +1,7 @@
-import { formatAsAmount, formatAsAmountTrimmed } from '../../../utils/formatUtils';
+import { formatAsAmount, formatAsAmountTrimmed, formatKr } from '../../../utils/formatUtils';
 import type { EetIssue } from '../../../domain/erhvervsevnetab/eetTypes';
+
+export { formatKr };
 
 export type EetTabNavigation = Readonly<{
   pageName: string;
@@ -7,9 +9,6 @@ export type EetTabNavigation = Readonly<{
   route: '/stamdata' | '/erhvervsevnetab';
   sectionId: string;
 }>;
-
-export const formatKr = (value: number, precision: 0 | 2 = 0): string =>
-  `${formatAsAmount(value, precision)} kr.`;
 
 export const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
 
@@ -25,7 +24,7 @@ export const toFieldIssue = (
 
 export const NAVIGATION_SORT_ORDER: Record<string, number> = {
   'stamdata-skadelidte': 0,
-  'eet-oplysninger-stamdata': 1,
+  'eet-oplysninger-grundlaeggende': 1,
   'eet-oplysninger-asl': 2,
   'eet-oplysninger-eal': 3,
   // 99 bruges implicit for issues uden navigation — her dokumenteret eksplicit
@@ -42,7 +41,7 @@ const NAV_EET_GRUNDLAEGGENDE: EetTabNavigation = {
   pageName: 'EET oplysninger',
   sectionName: 'Grundlæggende oplysninger',
   route: '/erhvervsevnetab',
-  sectionId: 'eet-oplysninger-stamdata',
+  sectionId: 'eet-oplysninger-grundlaeggende',
 };
 
 const NAV_EET_ASL: EetTabNavigation = {
@@ -60,14 +59,14 @@ const NAV_EET_EAL: EetTabNavigation = {
 };
 
 const STAMDATA_IDS = new Set([
-  'fodselsdato-missing',
-  'field-fodselsdato',
   'skadesdato-missing',
   'field-skadesdato',
   'alder-unresolved',
 ]);
 
 const GRUNDLAEGGENDE_IDS = new Set([
+  'skadelidte-fodselsdato-missing',
+  'field-skadelidte-fodselsdato',
   'beregningsdato-missing',
   'beregningsdato-invalid',
   'field-beregningsdato',

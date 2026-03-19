@@ -1,0 +1,313 @@
+import { describe, expect, it } from 'vitest';
+import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import { computeForsoergertabCalculation } from '../../../domain/forsoergertab/forsoergertabCalculation';
+import { computeForsoergertabAslYdelser } from '../../../domain/forsoergertab/forsoergertabAslYdelser';
+import { aarsloenMax } from '../../../data/regulationRates';
+
+const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
+
+describe('computeForsoergertabCalculation', () => {
+  it('beregner den løbende ASL-ydelse som 30 pct. af den opregulerede ASL-årsløn', () => {
+    const result = computeForsoergertabCalculation({
+      skadesdato: '2020-05-01',
+      skadelidteFodselsdato: '1980-01-01',
+      efterladteFodselsdato: '1973-01-01',
+      beregningsdato: '2026-03-19',
+      virkningsdato: '2025-01-01',
+      koen: 'Kvinde',
+      tilkendtForPeriodeAar: 10,
+      aslAarsloen: asAmount(450000),
+      ealAarsloen: asAmount(450000),
+    });
+
+    expect(result.aslComputation).not.toBeNull();
+    const computation = result.aslComputation!;
+    const expectedBenyttetAarsloen = 450000;
+    const expectedOpreguleringsfaktor = aarsloenMax[2026] / aarsloenMax[2020];
+    const expectedOpreguleretAarligYdelse = Number((0.3 * expectedBenyttetAarsloen * expectedOpreguleringsfaktor).toFixed(2));
+
+    expect(computation.benyttetAarsloen).toBe(expectedBenyttetAarsloen);
+    expect(computation.aarsloenMaxSkadesaar).toBe(aarsloenMax[2020]);
+    expect(computation.aarsloenMaxBeregningsaar).toBe(aarsloenMax[2026]);
+    expect(computation.opreguleringsfaktor).toBe(expectedOpreguleringsfaktor);
+    expect(computation.opreguleretAarligYdelse).toBe(expectedOpreguleretAarligYdelse);
+  });
+
+  it('kræver køn og slår korrekt op i kønsafhængige tabeller før 1. marts 2015', () => {
+    const commonInput = {
+      skadesdato: '2008-01-10' as const,
+      skadelidteFodselsdato: '1980-01-01' as const,
+      efterladteFodselsdato: '1973-01-01' as const,
+      beregningsdato: '2014-02-15' as const,
+      virkningsdato: '2013-01-01' as const,
+      tilkendtForPeriodeAar: 10,
+      aslAarsloen: asAmount(400000),
+      ealAarsloen: asAmount(400000),
+    };
+
+    const missingKoen = computeForsoergertabCalculation({
+      ...commonInput,
+      koen: undefined,
+    });
+    expect(missingKoen.result).toBeNull();
+    expect(missingKoen.issues.some((issue) => issue.id === 'missing-koen')).toBe(true);
+
+    const mand = computeForsoergertabCalculation({
+      ...commonInput,
+      koen: 'Mand',
+    });
+    const kvinde = computeForsoergertabCalculation({
+      ...commonInput,
+      koen: 'Kvinde',
+    });
+
+    expect(mand.aslComputation?.kapitaliseringsbekendtgoerelseId).toBe('1403/2011');
+    expect(mand.aslComputation?.kapitaliseringsTabel).toBe('F');
+    expect(kvinde.aslComputation?.kapitaliseringsTabel).toBe('G');
+    expect(mand.aslComputation?.kapitalbelob).not.toBe(kvinde.aslComputation?.kapitalbelob);
+  });
+
+  it('giver blokerende fejl når beregningsdato er før virkningsdato', () => {
+    const result = computeForsoergertabCalculation({
+      skadesdato: '2020-01-01',
+      skadelidteFodselsdato: '1980-01-01',
+      efterladteFodselsdato: '1980-01-01',
+      beregningsdato: '2020-01-01',
+      virkningsdato: '2020-02-01',
+      koen: 'Mand',
+      tilkendtForPeriodeAar: 5,
+      aslAarsloen: asAmount(400000),
+      ealAarsloen: asAmount(400000),
+    });
+
+    expect(result.result).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'beregningsdato-before-virkningsdato',
+      severity: 'error',
+      message: 'Beregningsdato må ikke være før virkningsdato.',
+    });
+  });
+
+  it('sætter ASL-kapitalbeløbet til 0 når folkepensionsalderen er nået på beregningsdatoen', () => {
+    const result = computeForsoergertabCalculation({
+      skadesdato: '2025-01-01',
+      skadelidteFodselsdato: '1980-01-01',
+      efterladteFodselsdato: '1950-01-01',
+      beregningsdato: '2026-03-01',
+      virkningsdato: '2025-01-01',
+      koen: 'Kvinde',
+      tilkendtForPeriodeAar: 10,
+      aslAarsloen: asAmount(500000),
+      ealAarsloen: asAmount(500000),
+    });
+
+    expect(result.aslComputation?.harNaaetFolkepensionsalder).toBe(true);
+    expect(result.aslComputation?.kapitalbelob).toBe(0);
+    expect(result.result?.aslKapitalbelob).toBe(0);
+  });
+
+  it('kræver eksakt aldersmatch i forsørgertabstabellen', () => {
+    const result = computeForsoergertabCalculation({
+      skadesdato: '2008-01-01',
+      skadelidteFodselsdato: '1980-01-01',
+      efterladteFodselsdato: '1997-06-01',
+      beregningsdato: '2014-02-15',
+      virkningsdato: '2013-01-01',
+      koen: 'Mand',
+      tilkendtForPeriodeAar: 5,
+      aslAarsloen: asAmount(400000),
+      ealAarsloen: asAmount(400000),
+    });
+
+    expect(result.result).toBeNull();
+    expect(result.issues.some((issue) => issue.id === 'forsoergertab-alder-missing')).toBe(true);
+  });
+
+  it('bruger kønsneutral forsørgertabstabel fra og med 1. marts 2015 uden køn', () => {
+    const result = computeForsoergertabCalculation({
+      skadesdato: '2014-01-10',
+      skadelidteFodselsdato: '1980-01-01',
+      efterladteFodselsdato: '1970-01-01',
+      beregningsdato: '2015-03-01',
+      virkningsdato: '2014-03-01',
+      koen: undefined,
+      tilkendtForPeriodeAar: 5,
+      aslAarsloen: asAmount(400000),
+      ealAarsloen: asAmount(400000),
+    });
+
+    expect(result.issues.some((issue) => issue.id === 'missing-koen')).toBe(false);
+    expect(result.aslComputation?.kapitaliseringsTabelKoensopdelt).toBe(false);
+    expect(result.aslComputation?.kapitaliseringsTabel).toBeTruthy();
+  });
+
+  it('clamp er nettokrav til 0 når ASL-kapitalbeløbet overstiger EAL-kravet', () => {
+    const result = computeForsoergertabCalculation({
+      skadesdato: '2020-05-01',
+      skadelidteFodselsdato: '1980-01-01',
+      efterladteFodselsdato: '1976-01-01',
+      beregningsdato: '2026-03-19',
+      virkningsdato: '2025-01-01',
+      koen: undefined,
+      tilkendtForPeriodeAar: 10,
+      aslAarsloen: asAmount(700000),
+      ealAarsloen: asAmount(100000),
+    });
+
+    expect(result.result).not.toBeNull();
+    expect(result.result?.aslKapitalbelob).toBeGreaterThan(result.result?.ealKrav ?? 0);
+    expect(result.result?.nettokrav).toBe(0);
+  });
+});
+
+describe('computeForsoergertabAslYdelser', () => {
+  it('sætter kapitalbeløbet til 0 når resterende periode er 0 måneder', () => {
+    const result = computeForsoergertabAslYdelser({
+      skadesdato: '2020-05-01',
+      beregningsdato: '2026-01-01',
+      virkningsdato: '2025-01-01',
+      efterladteFodselsdato: '1976-01-01',
+      koen: undefined,
+      tilkendtForPeriodeAar: 1,
+      aslAarsloen: asAmount(450000),
+    });
+
+    expect(result.computation).not.toBeNull();
+    expect(result.computation?.resterendeMaanederTotal).toBe(0);
+    expect(result.computation?.kapitalfaktor).toBeNull();
+    expect(result.computation?.kapitalbelob).toBe(0);
+  });
+
+  it('interpolerer lineært for 0 år og 9 måneder', () => {
+    // De konkrete faktorværdier følger de nuværende kapitaliseringstabeller og skal opdateres,
+    // hvis datagrundlaget ændres legitimt.
+    const exactOneYear = computeForsoergertabAslYdelser({
+      skadesdato: '2020-05-01',
+      beregningsdato: '2026-03-19',
+      virkningsdato: '2025-04-01',
+      efterladteFodselsdato: '1976-01-01',
+      koen: undefined,
+      tilkendtForPeriodeAar: 2,
+      aslAarsloen: asAmount(450000),
+    });
+    const result = computeForsoergertabAslYdelser({
+      skadesdato: '2020-05-01',
+      beregningsdato: '2026-03-19',
+      virkningsdato: '2026-01-01',
+      efterladteFodselsdato: '1976-01-01',
+      koen: undefined,
+      tilkendtForPeriodeAar: 1,
+      aslAarsloen: asAmount(450000),
+    });
+
+    expect(result.computation).not.toBeNull();
+    expect(exactOneYear.computation?.kapitalfaktor).not.toBeNull();
+    expect(result.computation?.resterendeAar).toBe(0);
+    expect(result.computation?.resterendeMaaneder).toBe(9);
+    expect(result.computation?.kapitalfaktor).toBe(0.469);
+    expect(result.computation?.kapitalfaktor).toBe(
+      Number(((exactOneYear.computation?.kapitalfaktor ?? 0) * (9 / 12)).toFixed(3))
+    );
+  });
+
+  it('interpolerer lineært for 2 år og 6 måneder', () => {
+    // De konkrete faktorværdier følger de nuværende kapitaliseringstabeller og skal opdateres,
+    // hvis datagrundlaget ændres legitimt.
+    const exactTwoYears = computeForsoergertabAslYdelser({
+      skadesdato: '2020-05-01',
+      beregningsdato: '2026-03-19',
+      virkningsdato: '2025-04-01',
+      efterladteFodselsdato: '1976-01-01',
+      koen: undefined,
+      tilkendtForPeriodeAar: 3,
+      aslAarsloen: asAmount(450000),
+    });
+    const exactThreeYears = computeForsoergertabAslYdelser({
+      skadesdato: '2020-05-01',
+      beregningsdato: '2026-03-19',
+      virkningsdato: '2025-04-01',
+      efterladteFodselsdato: '1976-01-01',
+      koen: undefined,
+      tilkendtForPeriodeAar: 4,
+      aslAarsloen: asAmount(450000),
+    });
+    const result = computeForsoergertabAslYdelser({
+      skadesdato: '2020-05-01',
+      beregningsdato: '2026-03-19',
+      virkningsdato: '2025-10-01',
+      efterladteFodselsdato: '1976-01-01',
+      koen: undefined,
+      tilkendtForPeriodeAar: 3,
+      aslAarsloen: asAmount(450000),
+    });
+
+    expect(result.computation).not.toBeNull();
+    expect(exactTwoYears.computation?.kapitalfaktor).not.toBeNull();
+    expect(exactThreeYears.computation?.kapitalfaktor).not.toBeNull();
+    expect(result.computation?.resterendeAar).toBe(2);
+    expect(result.computation?.resterendeMaaneder).toBe(6);
+    expect(result.computation?.kapitalfaktor).toBe(1.572);
+    expect(result.computation?.kapitalfaktor).toBe(
+      Number(
+        (
+          (exactTwoYears.computation?.kapitalfaktor ?? 0) +
+          ((exactThreeYears.computation?.kapitalfaktor ?? 0) - (exactTwoYears.computation?.kapitalfaktor ?? 0)) * 0.5
+        ).toFixed(3)
+      )
+    );
+  });
+
+  it('afrunder kapitalbeløbet opad med ceil0', () => {
+    const result = computeForsoergertabAslYdelser({
+      skadesdato: '2020-05-01',
+      beregningsdato: '2026-03-19',
+      virkningsdato: '2025-10-01',
+      efterladteFodselsdato: '1976-01-01',
+      koen: undefined,
+      tilkendtForPeriodeAar: 3,
+      aslAarsloen: asAmount(450000),
+    });
+
+    expect(result.computation).not.toBeNull();
+    const computation = result.computation!;
+    const nonRounded = computation.opreguleretAarligYdelse * (computation.kapitalfaktor ?? 0);
+
+    expect(nonRounded % 1).not.toBe(0);
+    expect(computation.kapitalbelob).toBe(Math.ceil(nonRounded));
+  });
+
+  it('tæller virkningsdato og beregningsdato i samme måned som 1 allerede udbetalt måned', () => {
+    const result = computeForsoergertabAslYdelser({
+      skadesdato: '2020-05-01',
+      beregningsdato: '2026-03-01',
+      virkningsdato: '2026-03-01',
+      efterladteFodselsdato: '1976-01-01',
+      koen: undefined,
+      tilkendtForPeriodeAar: 1,
+      aslAarsloen: asAmount(450000),
+    });
+
+    expect(result.computation).not.toBeNull();
+    expect(result.computation?.alleredeUdbetaltMaaneder).toBe(1);
+    expect(result.computation?.resterendeMaanederTotal).toBe(11);
+  });
+
+  it('afviser ugyldig tilkendt periode i domænelaget', () => {
+    const result = computeForsoergertabAslYdelser({
+      skadesdato: '2020-05-01',
+      beregningsdato: '2026-03-19',
+      virkningsdato: '2026-01-01',
+      efterladteFodselsdato: '1976-01-01',
+      koen: undefined,
+      tilkendtForPeriodeAar: 0,
+      aslAarsloen: asAmount(450000),
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'tilkendt-for-periode-invalid',
+      severity: 'error',
+      message: 'Tilkendt periode skal være mindst 1 år.',
+    });
+  });
+});

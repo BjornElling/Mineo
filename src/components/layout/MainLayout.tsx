@@ -19,7 +19,6 @@ import { getGridCoreForTable } from '../tables/gridCoreRegistry';
 import type { SaveFileResult, LoadFileResult } from '../../types/fileOperations';
 import { persistenceSchemas } from '../../config/persistenceRegistry';
 import { UI_STORAGE_KEYS, type StorageKey } from '../../config/storageManifest';
-import { sanitizeLegacyPersistedSectionForAarsloenTables } from '../../utils/aarsloenTableLegacySanitization';
 import { MINEO_PWA_FILE_OPEN_EVENT, takeNextPwaFileOpenRequest, type PwaFileOpenRequest } from '../../utils/pwaLaunchQueue';
 import {
   getDevtoolsIssueSnapshot,
@@ -432,24 +431,10 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
       }, {} as Record<StorageKey, unknown | undefined>);
       const snapshotRevision = combinedSectionRevisionRef.current;
 
-      // Sanitization (dev + upgrade-safety): remove/translate legacy table columns that can appear in session state (e.g. via HMR).
-      const warnings: string[] = [];
-      const sanitizedSnapshot: Record<StorageKey, unknown | undefined> = { ...snapshot };
-      const keysToSanitize = ['aarsloen', 'erstatningsopgoerelse'] as const;
-      for (const pageKey of keysToSanitize) {
-        const raw = sanitizedSnapshot[pageKey];
-        if (raw === undefined) continue;
-        const sanitized = sanitizeLegacyPersistedSectionForAarsloenTables(pageKey, raw);
-        if (sanitized.changed) {
-          sanitizedSnapshot[pageKey] = sanitized.value;
-          warnings.push(...sanitized.warnings);
-        }
-      }
-
       // Resolve default directory for file picker startIn
       const resolvedDirectory = await resolveDefaultDirectoryHandle(settings);
 
-      const result: SaveFileResult = await saveToFile(sanitizedSnapshot, resolvedDirectory);
+      const result: SaveFileResult = await saveToFile(snapshot, resolvedDirectory);
 
       if (result.cancelled) {
         restoreFocusIfPossible(focusTargetBeforeSave);
@@ -462,8 +447,8 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
         setSavedRevisionBaseline(snapshotRevision);
         isUserFeedbackRef.current = true;
         setOverlay({
-          message: warnings.length > 0 ? `Gemt\n\n${warnings.slice(0, 2).join('\n')}` : 'Gemt',
-          type: warnings.length > 0 ? 'warning' : 'success',
+          message: 'Gemt',
+          type: 'success',
         });
       }
     } catch (error) {

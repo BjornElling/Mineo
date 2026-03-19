@@ -41,7 +41,7 @@ describe('computeEetLoebendeYdelser', () => {
         ],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1980-01-01',
+      skadelidteFodselsdato: '1980-01-01',
     });
 
     expect(result.issues.some((issue) => issue.severity === 'error')).toBe(false);
@@ -89,7 +89,7 @@ describe('computeEetLoebendeYdelser', () => {
         ],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1980-01-01',
+      skadelidteFodselsdato: '1980-01-01',
     });
 
     expect(result.computation).toBeNull();
@@ -116,7 +116,7 @@ describe('computeEetLoebendeYdelser', () => {
         ],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1980-01-01',
+      skadelidteFodselsdato: '1980-01-01',
     });
 
     expect(result.computation).not.toBeNull();
@@ -143,7 +143,7 @@ describe('computeEetLoebendeYdelser', () => {
         ],
       },
       skadesdato: '2024-07-01',
-      fodselsdato: '1980-01-01',
+      skadelidteFodselsdato: '1980-01-01',
     });
 
     expect(result.computation).not.toBeNull();
@@ -176,7 +176,7 @@ describe('computeEetLoebendeYdelser', () => {
         ],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1980-01-01',
+      skadelidteFodselsdato: '1980-01-01',
     });
 
     expect(result.computation).not.toBeNull();
@@ -225,7 +225,7 @@ describe('computeEetLoebendeYdelser', () => {
         ],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1980-01-01',
+      skadelidteFodselsdato: '1980-01-01',
     });
 
     expect(result.computation).not.toBeNull();
@@ -278,7 +278,7 @@ describe('computeEetLoebendeYdelser', () => {
         ],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1980-01-01',
+      skadelidteFodselsdato: '1980-01-01',
     });
 
     expect(result.issues.some((issue) => issue.id === 'warn-non-endelig-after-endelig')).toBe(true);
@@ -304,7 +304,7 @@ describe('computeEetLoebendeYdelser', () => {
         ],
       },
       skadesdato: '2024-07-01',
-      fodselsdato: '1980-01-01',
+      skadelidteFodselsdato: '1980-01-01',
     });
 
     expect(result.computation).toBeNull();
@@ -331,7 +331,7 @@ describe('computeEetLoebendeYdelser', () => {
         ],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1980-01-01',
+      skadelidteFodselsdato: '1980-01-01',
     });
 
     expect(result.computation).not.toBeNull();
@@ -372,7 +372,7 @@ describe('computeEetLoebendeYdelser', () => {
         ],
       },
       skadesdato: '2024-07-01',
-      fodselsdato: '1980-01-01',
+      skadelidteFodselsdato: '1980-01-01',
     });
 
     expect(result.computation).not.toBeNull();
@@ -407,7 +407,7 @@ describe('computeEetLoebendeYdelser', () => {
         ],
       },
       skadesdato: '2009-01-01',
-      fodselsdato: '1980-01-01',
+      skadelidteFodselsdato: '1980-01-01',
     });
 
     expect(result.computation).not.toBeNull();
@@ -442,7 +442,7 @@ describe('computeEetLoebendeYdelser', () => {
         ],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1980-01-01',
+      skadelidteFodselsdato: '1980-01-01',
     });
 
     expect(result.issues.some((issue) => issue.severity === 'error')).toBe(false);
@@ -479,7 +479,7 @@ describe('computeEetLoebendeYdelser', () => {
         ],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1955-07-01',
+      skadelidteFodselsdato: '1955-07-01',
     });
 
     expect(result.computation).not.toBeNull();
@@ -522,7 +522,7 @@ describe('computeEetLoebendeYdelser', () => {
         ],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1980-01-01',
+      skadelidteFodselsdato: '1980-01-01',
     });
 
     expect(result.issues.some((issue) => issue.severity === 'error')).toBe(false);
@@ -552,7 +552,7 @@ describe('computeEetLoebendeYdelser', () => {
         ],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1955-07-01',
+      skadelidteFodselsdato: '1955-07-01',
     });
 
     expect(result.computation).not.toBeNull();
@@ -585,7 +585,7 @@ describe('computeEetLoebendeYdelser', () => {
         }],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1955-07-01',
+      skadelidteFodselsdato: '1955-07-01',
     });
 
     expect(result.computation).not.toBeNull();
@@ -633,7 +633,7 @@ describe('warn-asl-aarsloen-is-max', () => {
         ],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1980-01-01',
+      skadelidteFodselsdato: '1980-01-01',
     });
 
     expect(result.issues.some((issue) => issue.id === 'warn-asl-aarsloen-is-max')).toBe(true);
@@ -662,7 +662,7 @@ describe('warn-asl-aarsloen-is-max', () => {
         ],
       },
       skadesdato: '2019-04-01',
-      fodselsdato: '1980-01-01',
+      skadelidteFodselsdato: '1980-01-01',
     });
 
     expect(result.issues.some((issue) => issue.id === 'warn-asl-aarsloen-is-max')).toBe(false);

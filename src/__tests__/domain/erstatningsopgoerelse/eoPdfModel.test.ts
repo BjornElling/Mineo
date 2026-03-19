@@ -116,6 +116,15 @@ const assertTotalMatchesSegmentSum = (loenudvikling: LoenudviklingPdfModel | nul
   expect(loenudvikling.loenudviklingTotal.value).toBe(segmentSum);
 };
 
+const expectSilencedConsoleErrorThrow = (run: () => void, message: string): void => {
+  const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    expect(run).toThrow(message);
+  } finally {
+    errorSpy.mockRestore();
+  }
+};
+
 describe('eoPdfModel', () => {
   it('uses all employments for lønudvikling in Beregningsperiode', () => {
     const values = makeValues({
@@ -2281,8 +2290,10 @@ describe('eoPdfModel', () => {
         ],
       });
       const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2005-01-01') });
-      expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }))
-        .toThrow('Loenudvikling kan ikke beregnes: ugyldigt indeks for segment');
+      expectSilencedConsoleErrorThrow(
+        () => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }),
+        'Loenudvikling kan ikke beregnes: ugyldigt indeks for segment'
+      );
     } finally {
       spy.mockRestore();
     }
@@ -2307,8 +2318,10 @@ describe('eoPdfModel', () => {
         ],
       });
       const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2005-01-01') });
-      expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }))
-        .toThrow('Loenudvikling kan ikke beregnes: ugyldigt ASL indeks');
+      expectSilencedConsoleErrorThrow(
+        () => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }),
+        'Loenudvikling kan ikke beregnes: ugyldigt ASL indeks'
+      );
     } finally {
       aarsloenMax[2006] = original2006;
     }
@@ -2337,8 +2350,10 @@ describe('eoPdfModel', () => {
         ],
       });
       const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2001-01-01') });
-      expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }))
-        .toThrow('Loenudvikling kan ikke beregnes: ugyldigt KRL indeks for segment');
+      expectSilencedConsoleErrorThrow(
+        () => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }),
+        'Loenudvikling kan ikke beregnes: ugyldigt KRL indeks for segment'
+      );
     } finally {
       spy.mockRestore();
     }
@@ -2373,8 +2388,10 @@ describe('eoPdfModel', () => {
         ],
       });
       const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2011-03-01') });
-      expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }))
-        .toThrow('Loenudvikling kan ikke beregnes: ugyldig basisgrundloen');
+      expectSilencedConsoleErrorThrow(
+        () => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }),
+        'Loenudvikling kan ikke beregnes: ugyldig basisgrundloen'
+      );
     } finally {
       spy.mockRestore();
     }
@@ -2408,8 +2425,10 @@ describe('eoPdfModel', () => {
         ],
       });
       const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2012-01-01') });
-      expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }))
-        .toThrow('Loenudvikling kan ikke beregnes: ugyldig basisgrundloen');
+      expectSilencedConsoleErrorThrow(
+        () => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }),
+        'Loenudvikling kan ikke beregnes: ugyldig basisgrundloen'
+      );
     } finally {
       spy.mockRestore();
     }

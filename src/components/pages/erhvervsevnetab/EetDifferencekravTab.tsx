@@ -24,7 +24,7 @@ import { downloadDifferencekravPdf } from '../../../utils/pdf/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import TextHoverRow from './TextHoverRow';
 import UnderlinedHoverRow from './UnderlinedHoverRow';
-import EetPdfDownloadButton from './EetPdfDownloadButton';
+import PdfDownloadButton from '../../inputs/PdfDownloadButton';
 import { useEetShakeFlag } from './useEetShakeFlag';
 import { formatFaktor, formatJaNej, formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
@@ -184,6 +184,7 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
   const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
+  const faellesPersondataFieldErrors = useFormFieldErrors('faellesPersondata');
   const { settings } = useAppSettings();
   const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
 
@@ -192,9 +193,9 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
       computeEetDifferencekravCalculation({
         erhvervsevnetab: values,
         skadesdato: stamdata?.skadesdato,
-        fodselsdato: stamdata?.fodselsdato,
+        skadelidteFodselsdato: values.skadelidteFodselsdato,
       }),
-    [stamdata?.fodselsdato, stamdata?.skadesdato, values]
+    [stamdata?.skadesdato, values]
   );
 
   const fieldIssues = React.useMemo(() => {
@@ -202,14 +203,14 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
       toFieldIssue('field-beregningsdato', eetFieldErrors.beregningsdato?.message),
       toFieldIssue('field-aarsloen-asl', faellesAarsloenFieldErrors.aslAarsloen?.message),
       toFieldIssue('field-asl-afgoerelser', eetFieldErrors.aslAfgoerelser?.message),
-      toFieldIssue('field-fodselsdato', stamdataFieldErrors.fodselsdato?.message),
+      toFieldIssue('field-skadelidte-fodselsdato', faellesPersondataFieldErrors.skadelidteFodselsdato?.message),
       toFieldIssue('field-skadesdato', stamdataFieldErrors.skadesdato?.message),
     ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
   }, [
     eetFieldErrors.aslAfgoerelser?.message,
     eetFieldErrors.beregningsdato?.message,
+    faellesPersondataFieldErrors.skadelidteFodselsdato?.message,
     faellesAarsloenFieldErrors.aslAarsloen?.message,
-    stamdataFieldErrors.fodselsdato?.message,
     stamdataFieldErrors.skadesdato?.message,
   ]);
 
@@ -295,7 +296,7 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
           <Box className="row--label-right-hover">
             <Typography className="row--text">Download specifikation</Typography>
             <Box className="row--label-right-hover__content">
-              <EetPdfDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
+              <PdfDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
             </Box>
           </Box>
 

@@ -19,6 +19,9 @@ export const formatCurrency = (num: number | undefined | null): string => {
   return formatAsAmount(num, 2);
 };
 
+export const formatKr = (value: number, precision: 0 | 2 = 0): string =>
+  `${formatAsAmount(value, precision)} kr.`;
+
 /**
  * Formaterer tal til dansk beløbsformat med valgfri precision.
  */

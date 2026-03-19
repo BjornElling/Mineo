@@ -102,9 +102,9 @@ describe('persistenceSchemas', () => {
   });
 
   describe('renteberegning', () => {
-    it('stripper activeTab fra input', () => {
+    it('afviser activeTab som ukendt felt', () => {
       const result = persistenceSchemas.renteberegning.safeParse({ rentekravRows: [], activeTab: 'anything' });
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
     });
 
     it('beregningsdato er optional', () => {
@@ -118,9 +118,9 @@ describe('persistenceSchemas', () => {
       expect(persistenceSchemas.varigemen.safeParse({}).success).toBe(true);
     });
 
-    it('stripper activeTab fra input', () => {
+    it('afviser activeTab som ukendt felt', () => {
       const result = persistenceSchemas.varigemen.safeParse({ activeTab: 'rm' });
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
     });
   });
 
@@ -129,9 +129,9 @@ describe('persistenceSchemas', () => {
       expect(persistenceSchemas.forsoergertab.safeParse({}).success).toBe(true);
     });
 
-    it('stripper activeTab fra input', () => {
+    it('afviser activeTab som ukendt felt', () => {
       const result = persistenceSchemas.forsoergertab.safeParse({ activeTab: 'ft' });
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
     });
   });
 
