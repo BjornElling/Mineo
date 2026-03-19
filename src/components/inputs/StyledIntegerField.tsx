@@ -5,8 +5,8 @@ import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { filterIntegerKeyDown, filterIntegerPaste, isIntegerDraftAllowed } from './inputKeyFilters';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
-import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from './fieldEvents';
-import { getIntegerRangeErrorMessage } from './shared/integerRange';
+import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
+import { getIntegerRangeErrorMessage } from '../../utils/integerRange';
 import { readClipboardText } from '../../utils/clipboardUtils';
 
 export type StyledIntegerFieldValueChangeEvent = CommitEvent<number | undefined>;

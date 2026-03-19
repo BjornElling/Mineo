@@ -12,7 +12,7 @@ import {
   type ErhvervsevnetabComposedValues,
 } from '../../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
-import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/faellesAarsloen/faellesAarsloenInitialValues';
+import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../../domain/faellesPersondata/faellesPersondataInitialValues';
 import {
   collectEetAslAfgoerelseValidationIssues,

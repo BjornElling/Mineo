@@ -7,13 +7,13 @@ import { STORE_BEDEDAG_PCT } from '../../config/regulatoryRates';
 import {
   getAarsloenTableValidation,
   isAarsloenTableValueEffectivelyEmptyForValidation,
-} from '../../utils/aarsloenTableValidation';
+} from '../aarsloen/aarsloenTableValidation';
 import {
   OFFENTLIGE_YDELSER_COLUMN_ORDER,
   getOffentligeYdelserRowFilledState,
   getOffentligeYdelserTableValidation,
   parseOffentligeYdelserCellKey,
-} from '../../utils/offentligeYdelserTableValidation';
+} from '../erstatningsopgoerelse/offentligeYdelserTableValidation';
 import { ydelsestyper } from '../../data/ydelsestyper';
 import {
   getEffektiveSatserForDato,

@@ -4,10 +4,10 @@
  * Disse funktioner er rene (ingen side effects) og kan testes isoleret.
  */
 
-import type { AarsloenTableRow, LoenPaaHelligdage, Loenperiode } from '../schemas/formSchemas';
-import { LOEN_PAA_HELLIGDAGE } from '../types/loen';
-import { formatPercent } from './formatUtils';
-import { hasCompletePeriodForLoenperiode } from './aarsloenTableCalculations';
+import type { AarsloenTableRow, LoenPaaHelligdage, Loenperiode } from '../../schemas/formSchemas';
+import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
+import { formatPercent } from '../../utils/formatUtils';
+import { hasCompletePeriodForLoenperiode } from './aarsloenRowCalculations';
 import { getAarsloenTableValidation } from './aarsloenTableValidation';
 
 /**

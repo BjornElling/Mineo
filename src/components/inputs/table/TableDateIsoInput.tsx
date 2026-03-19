@@ -2,10 +2,10 @@ import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import type { ISODateString } from '../../../types/branded';
 import { coerceToDanishDateString, coerceToISODateString } from '../../../types/branded';
-import type { GridCellCoord } from '../../tables/gridCoreTypes';
+import type { GridCellCoord } from '../../tables/gridCore/gridCoreTypes';
 import type { DateRangeSpecialErrors } from '../../../utils/dateRangeErrorMessages';
 import TableDateInput from './TableDateInput';
-import type { TableInputErrorInfo } from './tableInputContracts';
+import type { TableInputErrorInfo } from '../../../utils/tableInputContracts';
 
 /**
  * TableDateIsoInput is the canonical adapter for table rows that persist ISO dates

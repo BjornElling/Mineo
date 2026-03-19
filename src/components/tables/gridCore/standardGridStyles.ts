@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { tableColors } from '../../config/tableTheme';
+import { tableColors } from '../../../config/tableTheme';
 
 export const getStandardGridBodyRowStyle = (rowIndex: number): CSSProperties => {
   return {

@@ -7,7 +7,7 @@ import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatIsoDateShort } from '../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { roundByMethod } from '../../utils/rounding';
-import { buildAldersreduktionFormelTekst } from '../shared/ealAldersreduktion';
+import { buildAldersreduktionFormelTekst } from './eetAldersreduktionFormel';
 import {
   ASL_IDENTICAL_AFGOERELSER_ID,
   hasIdenticalAfgoerelser,
@@ -399,4 +399,4 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 };
 
 export { formatPercentTrimmedFromRounded4 } from './eetLoebendeYdelserCalculation';
-export { buildAldersreduktionFormelTekst } from '../shared/ealAldersreduktion';
+export { buildAldersreduktionFormelTekst } from './eetAldersreduktionFormel';

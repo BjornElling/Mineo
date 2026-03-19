@@ -4,7 +4,7 @@ import {
   createDateParserSpec,
   createIntegerParserSpec,
   createPercentParserSpec,
-} from '../../../components/inputs/shared/fingerprintParserSpecs';
+} from '../../../utils/fingerprintParsers';
 
 const expectOkAndIdempotent = <TModel, TCanonical, TFingerprint>(
   spec: { parse: (raw: string) => { kind: 'ok'; model: TModel; canonical: TCanonical; fingerprint: TFingerprint } | { kind: 'invalid' | 'config-error' } },

@@ -2,10 +2,10 @@ import React from 'react';
 import TableAmountInput from '../inputs/table/TableAmountInput';
 import TableDateInput from '../inputs/table/TableDateInput';
 import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
-import type { TableInputErrorInfo } from '../inputs/table/tableInputContracts';
+import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
 import { dateRanges_offentligeYdelser } from '../../config/dateRanges';
 import { coerceToISODateString } from '../../types/branded';
-import { initialOffentligYdelseRow, generateOffentligYdelseRowId } from '../../utils/eoConverters';
+import { initialOffentligYdelseRow, generateOffentligYdelseRowId } from '../../domain/erstatningsopgoerelse/eoRowInitialValues';
 import type { OffentligeYdelserRow } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';
@@ -21,15 +21,15 @@ import {
   getOffentligeYdelserTableValidation,
   isOffentligeYdelserTableValueEffectivelyEmptyForValidation,
   parseOffentligeYdelserCellKey,
-} from '../../utils/offentligeYdelserTableValidation';
+} from '../../domain/erstatningsopgoerelse/offentligeYdelserTableValidation';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
-import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './standardGridStyles';
-import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridModel';
+import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
+import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridCore/gridModel';
 import {
   applyRowRemovalFocusPlan,
   evaluateRowCommit,
   type RowRemovalFocusPlan,
-} from './tableRowFocus';
+} from './gridCore/tableRowFocus';
 
 export type OffentligeYdelserDerivedCellValues = Readonly<{
   periodiseringLabel: string;

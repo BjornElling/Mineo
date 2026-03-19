@@ -10,7 +10,7 @@ import './index.css';
 import { setupPwaLaunchQueueConsumer } from './utils/pwaLaunchQueue';
 import { setupPwaInstallPromptCapture, suppressPwaInstallPrompt } from './utils/pwaInstallPrompt';
 import { VERSION } from './config/version';
-import AuthGate from './components/AuthGate';
+import AuthGate from './auth/AuthGate';
 
 const UNSUPPORTED_MAX_SCREEN_WIDTH_PX = 1366;
 const SW_UPDATE_CHECK_TIMEOUT_MS = 5000;

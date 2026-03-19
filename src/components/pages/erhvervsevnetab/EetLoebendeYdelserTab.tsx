@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
-import type { CommitEvent } from '../../inputs/fieldEvents';
+import type { CommitEvent } from '../../../types/fieldEvents';
 import StandardDisplayTable, { type StandardDisplayTableColumn, type StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import type { ErhvervsevnetabComposedValues, ErhvervsevnetabValues } from '../../../schemas/formSchemas';
 import { usePersistedSection } from '../../../hooks/usePersistedSection';
@@ -28,8 +28,8 @@ import EetIssuesBox from './EetIssuesBox';
 import TextHoverRow from './TextHoverRow';
 import UnderlinedHoverRow from './UnderlinedHoverRow';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
-import { useEetShakeFlag } from './useEetShakeFlag';
-import { formatJaNej, formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
+import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
+import { formatJaNej, formatKr, navigationSortKey, toFieldIssue } from './eetFormatUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabComposedValues;

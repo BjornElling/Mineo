@@ -1,7 +1,7 @@
 import React from 'react';
 import App from '../App';
-import LoginPage from './pages/LoginPage';
-import { isAuthenticated } from '../auth/auth';
+import LoginPage from '../components/pages/LoginPage';
+import { isAuthenticated } from './auth';
 
 const AuthGate = (): React.JSX.Element => {
   const [authenticated, setAuthenticated] = React.useState<boolean>(() => isAuthenticated());

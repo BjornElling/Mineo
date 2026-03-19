@@ -1,11 +1,11 @@
 import type { RowId } from '../../rowDrafts/types';
 import type { TafPeriodeRow } from '../../schemas/formSchemas';
-import { createRowId } from '../rowId';
+import { createRowId } from '../../utils/rowId';
 import { commitIsoDateFromDraftString } from '../dates/dateCommit';
-import { ensureRowsWithTrailingEmpty } from '../tableRowManagement';
+import { ensureRowsWithTrailingEmpty } from '../../utils/tableRows';
 import { isTafRowEmpty } from './rowEmpty';
 import type { TafDraftRow } from './tableDraftRows';
-import { parseOptionalIntegerFromString } from '../tableModelUtils';
+import { parseOptionalIntegerFromString } from '../../utils/numberParsing';
 
 export const createTafRowId = (): RowId => createRowId('taf_row');
 

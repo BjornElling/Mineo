@@ -3,14 +3,14 @@ import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
 import { useGridCoreApi, useGridCoreState } from '../../tables/useGridCore';
-import { areSameGridCell } from '../../tables/gridCoreUtils';
-import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
+import { areSameGridCell } from '../../tables/gridCore/gridCoreUtils';
+import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
 import { shouldClearField } from '../../../utils/inputValidation';
-import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit, type TableCommitResult, type TableInputErrorInfo } from './tableInputContracts';
+import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit, type TableCommitResult, type TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import { assignRef } from './assignRef';
 import { filterIntegerKeyDown, filterIntegerPaste } from '../inputKeyFilters';
-import { makeIntegerFingerprintFromCanonical, type CommittedPayload, type IntegerFingerprint } from '../shared/parserSpec';
-import { getIntegerRangeErrorMessage } from '../shared/integerRange';
+import { makeIntegerFingerprintFromCanonical, type CommittedPayload, type IntegerFingerprint } from '../../../types/parserSpec';
+import { getIntegerRangeErrorMessage } from '../../../utils/integerRange';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
 export type TableIntegerInputChangeEvent = { target: { value: string } };

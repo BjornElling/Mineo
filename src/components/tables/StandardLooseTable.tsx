@@ -2,14 +2,14 @@ import * as React from 'react';
 import { Table, type TableProps } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { getMuiTableStyles, tableColors } from '../../config/tableTheme';
-import { GridCoreProvider } from './gridCoreContext';
+import { GridCoreProvider } from './gridCore/gridCoreContext';
 import {
   handleTableBlurCapture,
   handleTableDoubleClickCapture,
   handleTableFocusCapture,
   handleTableKeyDownCapture,
   handleTablePointerDownCapture,
-} from './tableKeyboardNavigation';
+} from './gridCore/tableKeyboardNavigation';
 import { useGridCoreController } from './useGridCoreController';
 
 export type StandardLooseTableProps = Omit<TableProps, 'sx'> & Readonly<{

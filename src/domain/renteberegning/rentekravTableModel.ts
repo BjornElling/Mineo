@@ -2,13 +2,13 @@ import type { RowId } from '../../rowDrafts/types';
 import type { RentekravRow } from '../../schemas/formSchemas';
 import { tillaegstidEnhedEnum } from '../../schemas/formSchemas';
 import { commitIsoDateFromDraftString } from '../dates/dateCommit';
-import { createRowId } from '../rowId';
-import { ensureRowsWithTrailingEmpty } from '../tableRowManagement';
+import { createRowId } from '../../utils/rowId';
+import { ensureRowsWithTrailingEmpty } from '../../utils/tableRows';
 import { isRentekravRowEmpty } from './rowEmpty';
 import type { RentekravDraftRow } from './tableDraftRows';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToDraftString, parseAmountInput } from '../../utils/expressionAmount';
-import { parseOptionalIntegerFromString } from '../tableModelUtils';
+import { parseOptionalIntegerFromString } from '../../utils/numberParsing';
 
 export const createRentekravRowId = (): RowId => createRowId('rentekrav_row');
 

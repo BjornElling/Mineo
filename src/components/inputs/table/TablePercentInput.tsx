@@ -4,8 +4,8 @@ import type { SxProps, Theme } from '@mui/material/styles';
 
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { useGridCoreApi, useGridCoreState } from '../../tables/useGridCore';
-import { areSameGridCell } from '../../tables/gridCoreUtils';
-import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
+import { areSameGridCell } from '../../tables/gridCore/gridCoreUtils';
+import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
 import { assignRef } from './assignRef';
 import {
   asTableCommittedString,
@@ -13,13 +13,13 @@ import {
   normalizeTableAmountDraftOnCommit,
   type TableCommitResult,
   type TableInputErrorInfo,
-} from './tableInputContracts';
+} from '../../../utils/tableInputContracts';
 import { filterPercentKeyDown } from '../inputKeyFilters';
 import {
   makePercentFingerprintFromCanonical,
   type CommittedPayload,
   type PercentFingerprint,
-} from '../shared/parserSpec';
+} from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
 export type TablePercentInputValue = string | number | undefined;

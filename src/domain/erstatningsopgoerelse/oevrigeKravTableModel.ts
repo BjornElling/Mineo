@@ -1,8 +1,8 @@
 import type { RowId } from '../../rowDrafts/types';
 import type { OevrigeKravRow } from '../../schemas/formSchemas';
-import { createRowId } from '../rowId';
+import { createRowId } from '../../utils/rowId';
 import { commitIsoDateFromDraftString } from '../dates/dateCommit';
-import { ensureRowsWithTrailingEmpty } from '../tableRowManagement';
+import { ensureRowsWithTrailingEmpty } from '../../utils/tableRows';
 import { isOevrigeKravRowEmpty } from './rowEmpty';
 import type { OevrigeKravDraftRow } from './tableDraftRows';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';

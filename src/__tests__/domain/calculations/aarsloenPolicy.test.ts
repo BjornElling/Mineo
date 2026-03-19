@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { AarsloenValues } from '../../../domain/calculations/aarsloenPolicy';
+import type { AarsloenValues } from '../../../domain/policies/aarsloenPolicy';
 import {
   resolveAarsloenDefaultLoenperiode,
   hasAarsloenEffectiveRows,
   shouldShowAarsloenFerieFields,
   shouldShowAarsloenShDageFields,
   shouldWarnAarsloenFeriePct,
-} from '../../../domain/calculations/aarsloenPolicy';
+} from '../../../domain/policies/aarsloenPolicy';
 import type { AarsloenTableRow } from '../../../schemas/formSchemas';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────

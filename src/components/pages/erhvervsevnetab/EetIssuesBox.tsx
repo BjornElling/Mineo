@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import ContentBox from '../../layout/ContentBox';
 import { useScrollToSectionWithRetry } from '../../../hooks/useScrollToSectionWithRetry';
 import type { EetIssue } from '../../../domain/erhvervsevnetab/eetTypes';
-import { type EetTabNavigation, resolveEetIssueNavigation } from './eetTabSharedUtils';
+import { type EetTabNavigation, resolveEetIssueNavigation } from './eetFormatUtils';
 
 type Props = Readonly<{
   issues: readonly EetIssue[];

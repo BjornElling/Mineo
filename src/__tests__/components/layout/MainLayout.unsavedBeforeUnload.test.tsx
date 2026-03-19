@@ -30,14 +30,14 @@ vi.mock('../../../utils/fileHandleStorage', () => ({
   saveFileHandleToIndexedDB: vi.fn(async () => {}),
 }));
 
-vi.mock('../../../components/tables/gridCoreRegistry', () => ({
+vi.mock('../../../components/tables/gridCore/gridCoreRegistry', () => ({
   getGridCoreForTable: vi.fn(),
 }));
 
 import MainLayout from '../../../components/layout/MainLayout';
 import { saveToFile } from '../../../utils/fileSave';
 import { deleteFileHandleFromIndexedDB } from '../../../utils/fileHandleStorage';
-import { getGridCoreForTable } from '../../../components/tables/gridCoreRegistry';
+import { getGridCoreForTable } from '../../../components/tables/gridCore/gridCoreRegistry';
 
 const stampStamdata = (skadelidte: string) => ({
   journalnr: '',

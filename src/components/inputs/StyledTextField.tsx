@@ -6,7 +6,7 @@ import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { trimWhitespaceEdges } from '../../utils/draftNormalization';
 import { assignRef } from '../../utils/refUtils';
-import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from './fieldEvents';
+import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 
 export type StyledTextFieldValueCommitEvent = CommitEvent<string>;
 export type StyledTextFieldDraftChangeEvent = DraftChangeEvent;

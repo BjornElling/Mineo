@@ -15,7 +15,7 @@ import {
 } from '../../../schemas/formSchemas';
 import { coerceToISODateString } from '../../../types/branded';
 import { useFormFieldErrorReporter, useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
-import { createCommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
+import { createCommitEvent, type CommitHandler } from '../../../types/fieldEvents';
 import {
   validatePercentDivisibleBy5FromValue,
 } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';

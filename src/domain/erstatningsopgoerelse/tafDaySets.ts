@@ -3,8 +3,8 @@ import type { ISODateString } from '../../types/branded';
 import { dateToISO } from '../../types/branded';
 import { isoDateToDate } from '../dates/isoDate';
 import { addDays } from '../../utils/dateUtils';
-import { beregnHelligdage } from '../../utils/shDageBeregning';
-import { toNonNegativeInt } from '../../utils/numberUtils';
+import { beregnHelligdage } from '../dates/shDageBeregning';
+import { toNonNegativeInt } from '../../utils/numberParsing';
 import { getValidTafRange } from './tafPeriodConstraints';
 
 export const isWeekdayUtc = (date: Date): boolean => {

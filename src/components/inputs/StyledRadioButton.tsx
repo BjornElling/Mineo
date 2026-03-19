@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Radio, FormControlLabel, RadioGroup, FormLabel, FormControl, Tooltip, Typography } from '@mui/material';
-import { createCommitEvent, type CommitHandler } from './fieldEvents';
+import { createCommitEvent, type CommitHandler } from '../../types/fieldEvents';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 
 /**

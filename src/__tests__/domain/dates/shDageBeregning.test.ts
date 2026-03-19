@@ -1,6 +1,6 @@
-import { toISODateString } from '../../types/branded';
-import { beregnHelligdage, beregnHelligdageMedNavn, beregnSHDage, beregnSHDageForDatoSet } from '../../utils/shDageBeregning';
-import { createDate } from '../../utils/dateUtils';
+import { toISODateString } from '../../../types/branded';
+import { beregnHelligdage, beregnHelligdageMedNavn, beregnSHDage, beregnSHDageForDatoSet } from '../../../domain/dates/shDageBeregning';
+import { createDate } from '../../../utils/dateUtils';
 
 describe('shDageBeregning', () => {
   it('returnerer samme antal helligdage som beregnHelligdage', () => {

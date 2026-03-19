@@ -1,6 +1,6 @@
-import type { AarsloenTableRow, Loenperiode } from '../schemas/formSchemas';
-import { parseAmount, parsePercentToDecimal } from './numberParsing';
-import { roundByMethod } from './rounding';
+import type { AarsloenTableRow, Loenperiode } from '../../schemas/formSchemas';
+import { parseAmount, parsePercentToDecimal } from '../../utils/numberParsing';
+import { roundByMethod } from '../../utils/rounding';
 
 export type AarsloenSatserInput = {
   feriePct?: string | number;

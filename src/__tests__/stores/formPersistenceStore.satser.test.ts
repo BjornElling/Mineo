@@ -6,7 +6,7 @@ import {
   hasSatserAny,
   resolveSatserAargangErrorMessage,
   resolveSatserEffectiveAargang,
-} from '../../domain/calculations';
+} from '../../domain/policies';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 
 const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };

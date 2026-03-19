@@ -3,14 +3,14 @@ import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
 import { useGridCoreApi, useGridCoreState } from '../../tables/useGridCore';
-import { areSameGridCell } from '../../tables/gridCoreUtils';
-import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
+import { areSameGridCell } from '../../tables/gridCore/gridCoreUtils';
+import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
 import { shouldClearField } from '../../../utils/inputValidation';
 import { interpretYear } from '../../../utils/dateInputValidation';
-import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit, type TableCommitResult, type TableInputErrorInfo } from './tableInputContracts';
+import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit, type TableCommitResult, type TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import { assignRef } from './assignRef';
 import { filterYearKeyDown } from '../inputKeyFilters';
-import { makeYearFingerprintFromCanonical, type CommittedPayload, type YearFingerprint } from '../shared/parserSpec';
+import { makeYearFingerprintFromCanonical, type CommittedPayload, type YearFingerprint } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
 const MAX_YEAR_DRAFT_LENGTH = 6;

@@ -1,4 +1,4 @@
-import type { AmountFingerprint, DateFingerprint, ParserSpec } from '../../components/inputs/shared/parserSpec';
+import type { AmountFingerprint, DateFingerprint, ParserSpec } from '../../types/parserSpec';
 
 declare const amountFingerprint: AmountFingerprint;
 declare const dateFingerprint: DateFingerprint;

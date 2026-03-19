@@ -1,5 +1,5 @@
 import type { ISODateString } from '../../types/branded';
-import { beregnSHDage } from '../../utils/shDageBeregning';
+import { beregnSHDage } from '../dates/shDageBeregning';
 import { isoDateToDate } from '../dates/isoDate';
 
 export const calculateFerieHverdageMinusSHDage = (

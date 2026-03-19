@@ -1,8 +1,8 @@
 import type { RentekravRow } from '../../schemas/formSchemas';
 import type { DanishDateString, ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
-import { calculateProcessInterest } from '../../utils/interestCalculator';
-import { calculateInterestDate, validateInterestCalculation, type InterestDateInput } from '../../utils/interestDomain';
+import { calculateProcessInterest } from './procesrenteCalculator';
+import { calculateInterestDate, validateInterestCalculation, type InterestDateInput } from './rentekravValidation';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 
 // Legacy per-row engine til tabelkontekst.

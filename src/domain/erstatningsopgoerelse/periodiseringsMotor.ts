@@ -8,7 +8,7 @@ import { buildDatoSetInclusiveFromDates, buildFerieDageSet, buildShDageSet, isWe
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR } from './tafBeregningsenhed';
 import { roundByMethod } from '../../utils/rounding';
 import { type DateInterval, type IsoRange } from '../../utils/isoDateHelpers';
-import { toNonNegativeInt } from '../../utils/numberUtils';
+import { toNonNegativeInt } from '../../utils/numberParsing';
 import { assertNever } from '../../utils/assertNever';
 
 /**

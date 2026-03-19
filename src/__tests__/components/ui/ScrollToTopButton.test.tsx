@@ -12,7 +12,7 @@ import '@testing-library/jest-dom/vitest';
 
 import ScrollToTopButton from '../../../components/ui/ScrollToTopButton';
 import { ScrollContainerProvider } from '../../../contexts/ScrollContainerContext';
-import { SCROLL_VISIBILITY_THRESHOLD_PX } from '../../../components/ui/scrollToTopConfig';
+import { SCROLL_VISIBILITY_THRESHOLD_PX } from '../../../config/scrollToTopConfig';
 
 function createScrollContainer(initialScrollTop = 0) {
   const el = document.createElement('div');

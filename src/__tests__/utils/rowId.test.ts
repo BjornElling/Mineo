@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createRowId } from '../../domain/rowId';
+import { createRowId } from '../../utils/rowId';
 
 describe('createRowId', () => {
   it('returnerer en streng', () => {

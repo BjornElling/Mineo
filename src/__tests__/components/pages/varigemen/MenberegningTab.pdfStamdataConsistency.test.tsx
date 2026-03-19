@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import type { CommitHandler } from '../../../../components/inputs/fieldEvents';
+import type { CommitHandler } from '../../../../types/fieldEvents';
 import type { VarigeMenValues } from '../../../../schemas/formSchemas';
 
 const { mockDownloadVarigeMenPdf, mockBeregnVarigeMenGodtgoerelseWithRates, mockStamValues, mockFaellesPersondataValues } = vi.hoisted(() => ({

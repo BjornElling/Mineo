@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { coerceToIntegerOrUndefined, optionalIsoDateString } from '../baseSchemas';
 import { koenEnum } from '../enumSchemas';
-import { PRE_2015_CUTOFF } from '../../../domain/shared/forsoergertabConstants';
+import { PRE_2015_CUTOFF } from '../../../domain/forsoergertab/forsoergertabConstants';
 
 export const forsoergertabSchema = z.object({
   efterladteFodselsdato: optionalIsoDateString,

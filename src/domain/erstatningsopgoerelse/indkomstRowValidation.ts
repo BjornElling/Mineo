@@ -2,14 +2,14 @@ import type { OffentligeYdelserRow, AarsloenTableRow, ErstatningsopgoerelseValue
 import { dateToISO } from '../../types/branded';
 import { parseDanishDate, parseWeekString } from '../../utils/dateUtils';
 import { MIN_YEAR, CURRENT_YEAR } from '../../config/dateRanges';
-import { getAarsloenTableValidation, isAarsloenTableValueEffectivelyEmptyForValidation } from '../../utils/aarsloenTableValidation';
+import { getAarsloenTableValidation, isAarsloenTableValueEffectivelyEmptyForValidation } from '../aarsloen/aarsloenTableValidation';
 import type { AarsloenTableColumnKey } from '../../types/table';
 import {
   getOffentligeYdelserTableValidation,
   isOffentligeYdelserAmountValueValidForValidation,
   isOffentligeYdelserTableValueEffectivelyEmptyForValidation,
   buildOffentligeYdelserCellKey,
-} from '../../utils/offentligeYdelserTableValidation';
+} from './offentligeYdelserTableValidation';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parseAarsloenRowInterval } from './aarsloenRowInterval';
 import { buildLoenArbejdsdageSet } from './periodiseringsMotor';

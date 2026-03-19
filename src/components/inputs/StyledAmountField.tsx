@@ -23,7 +23,7 @@ import {
   type CommitHandler,
   type DraftChangeEvent,
   type DraftChangeHandler,
-} from './fieldEvents';
+} from '../../types/fieldEvents';
 
 export type StyledAmountFieldValueChangeEvent = CommitEvent<AmountValue | undefined>;
 export type StyledAmountFieldDraftChangeEvent = DraftChangeEvent;

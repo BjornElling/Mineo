@@ -3,15 +3,15 @@ import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
 import { useGridCoreApi, useGridCoreState } from '../../tables/useGridCore';
-import { areSameGridCell } from '../../tables/gridCoreUtils';
-import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
+import { areSameGridCell } from '../../tables/gridCore/gridCoreUtils';
+import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
 import { shouldClearField } from '../../../utils/inputValidation';
 import { interpretYear } from '../../../utils/dateInputValidation';
 import { yearHas53Weeks } from '../../../utils/dateUtils';
-import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit, type TableCommitResult, type TableInputErrorInfo } from './tableInputContracts';
+import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit, type TableCommitResult, type TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import { assignRef } from './assignRef';
 import { filterWeekKeyDown } from '../inputKeyFilters';
-import { makeWeekFingerprintFromCanonical, type CommittedPayload, type WeekFingerprint } from '../shared/parserSpec';
+import { makeWeekFingerprintFromCanonical, type CommittedPayload, type WeekFingerprint } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
 const MAX_WEEK_DRAFT_LENGTH = 8;

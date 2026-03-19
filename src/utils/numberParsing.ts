@@ -45,3 +45,15 @@ export const parseAmount = (val: number | AmountValue | undefined): number => {
   }
   return 0;
 };
+
+export const parseOptionalIntegerFromString = (value: string): number | undefined => {
+  const trimmed = value.trim();
+  if (trimmed === '') return undefined;
+  const parsed = Number.parseInt(trimmed, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+export const toNonNegativeInt = (value: number): number => {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.trunc(value));
+};

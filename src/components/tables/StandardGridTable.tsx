@@ -4,9 +4,9 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import type { CSSProperties } from 'react';
 import { getHtmlTableStyles, tableColors } from '../../config/tableTheme';
-import { GridCoreProvider } from './gridCoreContext';
-import { handleTableBlurCapture, handleTableDoubleClickCapture, handleTableFocusCapture, handleTableKeyDownCapture, handleTablePointerDownCapture } from './tableKeyboardNavigation';
-import type { GridSortDirection, GridSortRole } from './gridModel';
+import { GridCoreProvider } from './gridCore/gridCoreContext';
+import { handleTableBlurCapture, handleTableDoubleClickCapture, handleTableFocusCapture, handleTableKeyDownCapture, handleTablePointerDownCapture } from './gridCore/tableKeyboardNavigation';
+import type { GridSortDirection, GridSortRole } from './gridCore/gridModel';
 import { assignRef } from '../inputs/table/assignRef';
 import { useGridCoreController } from './useGridCoreController';
 

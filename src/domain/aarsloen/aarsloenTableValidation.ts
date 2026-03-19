@@ -1,11 +1,11 @@
-import type { AarsloenTableRow, Loenperiode } from '../schemas/formSchemas';
+import type { AarsloenTableRow, Loenperiode } from '../../schemas/formSchemas';
 import type {
   AarsloenTableColumnKey,
   AarsloenTableFirstErrorCell,
   AarsloenTableValidationSummary,
   TableError,
-} from '../types/table';
-import { isAmountValueStrict } from './tableValidationCommon';
+} from '../../types/table';
+import { isAmountValueStrict } from '../../utils/tableValidationCommon';
 
 export type AarsloenTableCellErrorMap = Readonly<Record<string, true>>;
 

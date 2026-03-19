@@ -7,7 +7,7 @@ import { filterFractionKeyDown } from './inputKeyFilters';
 import { readClipboardText } from '../../utils/clipboardUtils';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { DEFAULT_FRACTION_MAX_DIGITS, getFractionMaxLength, INTEGER_FRACTION_FORMAT_MESSAGE, parseFractionString, sanitizePastedFraction } from '../../utils/fraction';
-import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from './fieldEvents';
+import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 
 export type StyledFractionFieldValueChangeEvent = CommitEvent<string | undefined>;
 export type StyledFractionFieldDraftChangeEvent = DraftChangeEvent;

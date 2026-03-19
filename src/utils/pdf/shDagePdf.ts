@@ -9,7 +9,7 @@ import {
   PDF_TABLE_NARROW_COLUMN_WIDTH,
   SECTION_SPACER,
 } from './pdfConfig';
-import { beregnHelligdageMedNavn } from '../shDageBeregning';
+import { beregnHelligdageMedNavn } from '../../domain/dates/shDageBeregning';
 import {
   PDF_BASE_LINE_HEIGHT_MM,
   resolvePdfSectionEndY,

@@ -4,8 +4,8 @@ import {
   resolveSatserAargangErrorMessage,
   canDownloadSatser,
   hasSatserAny,
-} from '../../../domain/calculations/satserCalculations';
-import type { SatserValues } from '../../../domain/calculations/satserCalculations';
+} from '../../../domain/policies/satserCalculations';
+import type { SatserValues } from '../../../domain/policies/satserCalculations';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 

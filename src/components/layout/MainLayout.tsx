@@ -15,7 +15,7 @@ import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { useEOLoenindkomstInputErrors } from '../../hooks/useEOLoenindkomstInputErrors';
 import { resolveDefaultDirectoryHandle } from '../../utils/fileHelpers';
-import { getGridCoreForTable } from '../tables/gridCoreRegistry';
+import { getGridCoreForTable } from '../tables/gridCore/gridCoreRegistry';
 import type { SaveFileResult, LoadFileResult } from '../../types/fileOperations';
 import { persistenceSchemas } from '../../config/persistenceRegistry';
 import { UI_STORAGE_KEYS, type StorageKey } from '../../config/storageManifest';

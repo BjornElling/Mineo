@@ -11,7 +11,7 @@ import type { ISODateString } from '../../types/branded';
 import { minISO } from '../../utils/isoDateHelpers';
 import type { RentekravRow } from '../../schemas/formSchemas';
 import type { RentekravDraftRow } from '../../domain/renteberegning/tableDraftRows';
-import { computeRentekravCalculation, type RentekravCalculationResult, type ValidatedRentekravContext } from '../../domain/renteberegning/renteEngine';
+import { computeRentekravCalculation, type RentekravCalculationResult, type ValidatedRentekravContext } from '../../domain/renteberegning/renteberegningRowEngine';
 import { amountValueToDraftString } from '../../utils/expressionAmount';
 import { dateRanges_renteberegning } from '../../config/dateRanges';
 

@@ -1,5 +1,5 @@
-import type { AarsloenTableRow } from '../schemas/formSchemas';
-import { createRowId } from '../domain/rowId';
+import type { AarsloenTableRow } from '../../schemas/formSchemas';
+import { createRowId } from '../../utils/rowId';
 
 /**
  * Initial tom række - indeholder alle periodetyper.

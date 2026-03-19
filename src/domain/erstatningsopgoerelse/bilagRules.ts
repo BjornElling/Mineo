@@ -5,8 +5,8 @@ import type {
   OffentligeYdelserRow,
 } from '../../schemas/formSchemas';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
-import { getOffentligeYdelserRowFilledState } from '../../utils/offentligeYdelserTableValidation';
+import { isAarsloenRowEffectivelyEmpty } from '../aarsloen/aarsloenRowCalculations';
+import { getOffentligeYdelserRowFilledState } from './offentligeYdelserTableValidation';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, parseAarsloenRowInterval } from './indtaegtPerioder';
 import { resolveLoenudviklingKilde } from './angivetLoenHelpers';
 import type { IsoRange } from './periodRangeGroups';

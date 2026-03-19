@@ -9,7 +9,7 @@ import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { Koen } from '../../schemas/formSchemas';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
-import { PRE_2015_CUTOFF } from '../shared/forsoergertabConstants';
+import { PRE_2015_CUTOFF } from './forsoergertabConstants';
 import {
   calculateAgeYearsMonths,
   resolveKapitaliseringsbekendtgoerelseId,

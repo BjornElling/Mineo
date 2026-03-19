@@ -8,7 +8,7 @@ import {
 } from '../../pdfTableRenderer';
 import { PDF_TABLE_NARROW_COLUMN_WIDTH } from '../../pdfConfig';
 import { parseISODate, type ISODateString } from '../../../../types/branded';
-import { beregnHelligdageMedNavn } from '../../../shDageBeregning';
+import { beregnHelligdageMedNavn } from '../../../../domain/dates/shDageBeregning';
 import { formatDateLong } from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
 import { buildBeregningsperiodeRange } from '../../../../domain/erstatningsopgoerelse/indtaegtPerioder';

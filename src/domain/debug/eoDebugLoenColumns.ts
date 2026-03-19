@@ -4,7 +4,7 @@ import type { ISODateString } from '../../types/branded';
 import { dateToISO, isoToDanish } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { parseAmount } from '../../utils/numberParsing';
-import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
+import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../aarsloen/aarsloenRowCalculations';
 import {
   resolveOverenskomstRef,
   getEffektiveSatserForPeriode,

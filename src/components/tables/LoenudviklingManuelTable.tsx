@@ -5,20 +5,20 @@ import type { SxProps, Theme } from '@mui/material/styles';
 import TableAmountInput from '../inputs/table/TableAmountInput';
 import TableDateInput from '../inputs/table/TableDateInput';
 import TablePercentInput from '../inputs/table/TablePercentInput';
-import type { TableInputErrorInfo } from '../inputs/table/tableInputContracts';
+import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
 import { assignRef } from '../inputs/table/assignRef';
 import { useGridCoreApi } from './useGridCore';
-import type { GridCellCoord, GridCellEditorHandle } from './gridCoreTypes';
+import type { GridCellCoord, GridCellEditorHandle } from './gridCore/gridCoreTypes';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
-import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './standardGridStyles';
-import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridModel';
+import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
+import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridCore/gridModel';
 import {
   applyRowRemovalFocusPlan,
   evaluateRowCommit,
   type RowRemovalFocusPlan,
-} from './tableRowFocus';
+} from './gridCore/tableRowFocus';
 import { coerceToISODateString } from '../../types/branded';
-import { initialLoenudviklingManuelRow, generateLoenudviklingRowId } from '../../utils/eoConverters';
+import { initialLoenudviklingManuelRow, generateLoenudviklingRowId } from '../../domain/erstatningsopgoerelse/eoRowInitialValues';
 import type { LoenudviklingManuelRow } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';

@@ -8,7 +8,7 @@ import type { DateInterval } from '../types/calculation';
 import type { AarsloenTableRow } from '../schemas/formSchemas';
 import { parseISODate, toISODateString, type ISODateString } from '../types/branded';
 import { addDays, createDate, formatToISO, isLeapYear, parseDanishDate, parseWeekString } from './dateUtils';
-import { beregnSHDageForDatoSet } from './shDageBeregning';
+import { beregnSHDageForDatoSet } from '../domain/dates/shDageBeregning';
 import type { Periodisering } from '../data/ydelsestyper';
 import { countInclusiveUtcDays, diffUtcDaysAbs } from './utcDayMath';
 import { MONTH_NAMES_DA_SHORT } from './dateFormatting';

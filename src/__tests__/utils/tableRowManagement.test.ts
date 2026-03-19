@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ensureRowsWithTrailingEmpty } from '../../domain/tableRowManagement';
+import { ensureRowsWithTrailingEmpty } from '../../utils/tableRows';
 
 // ─── Test setup ───────────────────────────────────────────────────────────
 

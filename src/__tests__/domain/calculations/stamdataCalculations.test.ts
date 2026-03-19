@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   resolveStamdataDatoLabel,
   hasStamdataAny,
-} from '../../../domain/calculations/stamdataCalculations';
-import type { StamdataValues } from '../../../domain/calculations/stamdataCalculations';
+} from '../../../domain/policies/stamdataCalculations';
+import type { StamdataValues } from '../../../domain/policies/stamdataCalculations';
 import type { ISODateString } from '../../../types/branded';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────

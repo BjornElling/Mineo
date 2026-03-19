@@ -2,7 +2,7 @@ import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
 import { formatAsAmount } from '../../../formatUtils';
 import { amountValueToDisplayString } from '../../../expressionAmount';
-import { calculateAarsloenRowDerived } from '../../../aarsloenTableCalculations';
+import { calculateAarsloenRowDerived } from '../../../../domain/aarsloen/aarsloenRowCalculations';
 import { getAarsloenErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/indkomstRowValidation';
 import { PDF_CONTENT_WIDTH_MM } from '../../pdfConfig';
 import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../../../schemas/formSchemas';

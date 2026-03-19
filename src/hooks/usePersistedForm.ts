@@ -3,7 +3,7 @@ import { type z } from 'zod';
 import { useFormPersistence } from '../contexts/useFormPersistence';
 import type { StorageKey } from '../config/storageManifest';
 import type { PersistedSectionMap } from '../config/persistenceRegistry';
-import type { CommitHandler } from '../components/inputs/fieldEvents';
+import type { CommitHandler } from '../types/fieldEvents';
 
 /**
  * Return type for usePersistedForm hook

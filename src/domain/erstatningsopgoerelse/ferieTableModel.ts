@@ -1,8 +1,8 @@
 import type { RowId } from '../../rowDrafts/types';
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
-import { createRowId } from '../rowId';
+import { createRowId } from '../../utils/rowId';
 import { commitIsoDateFromDraftString } from '../dates/dateCommit';
-import { ensureRowsWithTrailingEmpty } from '../tableRowManagement';
+import { ensureRowsWithTrailingEmpty } from '../../utils/tableRows';
 import { isFerieRowEmpty } from './rowEmpty';
 import type { FerieDraftRow } from './tableDraftRows';
 

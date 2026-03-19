@@ -21,8 +21,8 @@ import { downloadKapitaliseringPdf } from '../../../utils/pdf/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import TextHoverRow from './TextHoverRow';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
-import { useEetShakeFlag } from './useEetShakeFlag';
-import { formatFaktor, formatJaNej, formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
+import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
+import { formatFaktor, formatJaNej, formatKr, navigationSortKey, toFieldIssue } from './eetFormatUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabComposedValues;

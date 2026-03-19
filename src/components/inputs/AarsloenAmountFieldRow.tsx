@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import StyledAmountField from './StyledAmountField';
-import type { CommitHandler } from './fieldEvents';
+import type { CommitHandler } from '../../types/fieldEvents';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 
 type Props = Readonly<{

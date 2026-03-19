@@ -7,7 +7,7 @@ import { interpretYear } from '../../utils/dateInputValidation';
 import { yearHas53Weeks } from '../../utils/dateUtils';
 import { filterWeekKeyDown } from './inputKeyFilters';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
-import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from './fieldEvents';
+import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 
 export type StyledWeekFieldValueChangeEvent = CommitEvent<string | undefined>;
 export type StyledWeekFieldDraftChangeEvent = DraftChangeEvent;

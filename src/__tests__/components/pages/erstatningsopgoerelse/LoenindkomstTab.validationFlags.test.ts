@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { updateValidationFlagById } from '../../../../components/pages/erstatningsopgoerelse/updateValidationFlagById';
+import { updateValidationFlagById } from '../../../../utils/validationFlagMap';
 
 describe('updateValidationFlagById', () => {
   it('returns same object when repeated error=true update is unchanged', () => {

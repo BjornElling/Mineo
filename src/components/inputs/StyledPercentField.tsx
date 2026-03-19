@@ -7,7 +7,7 @@ import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivati
 import { filterPercentKeyDown } from './inputKeyFilters';
 import { prefixZeroBeforeLeadingComma, trimToNumericEdgesPreserveLeadingMinus } from '../../utils/draftNormalization';
 import { formatAsAmount } from '../../utils/formatUtils';
-import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from './fieldEvents';
+import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 
 export type StyledPercentFieldValueChangeEvent = CommitEvent<number | undefined>;
 export type StyledPercentFieldDraftChangeEvent = DraftChangeEvent;
