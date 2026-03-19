@@ -14,17 +14,17 @@ import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../types/loen';
 import type { AarsloenValues } from '../schemas/formSchemas';
 import { safeCompute } from '../utils/safeComputation';
 import { isErr, type Result } from '../types/result';
-import { calculateAarsloenRowDerived, roundAarsloenAmountToTwoDecimals } from '../utils/aarsloenTableCalculations';
+import { calculateAarsloenRowDerived, roundAarsloenAmountToTwoDecimals } from '../domain/aarsloen/aarsloenRowCalculations';
 import {
   beregnMaanedPeriode,
   beregnUgePeriode,
   beregnDagPeriode,
   type PeriodeResult
 } from '../utils/periodeBeregning';
-import { beregnSHDageForDatoSet } from '../utils/shDageBeregning';
+import { beregnSHDageForDatoSet } from '../domain/dates/shDageBeregning';
 import { beregnOmregnetAarsloen } from '../domain/aarsloen/aarsloenCalculations';
 import type { AarsloenBeregningResult } from '../types/calculation';
-import { beregnFejlmeddelelser, harTabelData } from '../utils/aarsloenValidation';
+import { beregnFejlmeddelelser, harTabelData } from '../domain/aarsloen/aarsloenValidationPolicies';
 
 export type AarsloenBeregningState = {
   // Beregnings-resultater

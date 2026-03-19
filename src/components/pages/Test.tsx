@@ -11,7 +11,7 @@ import StyledIntegerField from '../inputs/StyledIntegerField';
 import StyledPercentField from '../inputs/StyledPercentField';
 import StyledTextField from '../inputs/StyledTextField';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
-import type { CommitEvent } from '../inputs/fieldEvents';
+import type { CommitEvent } from '../../types/fieldEvents';
 import StyledWeekField from '../inputs/StyledWeekField';
 import StyledYearField from '../inputs/StyledYearField';
 import ContentBox from '../layout/ContentBox';

@@ -4,16 +4,16 @@ import { useAarsloenBeregning } from '../../hooks/useAarsloenBeregning';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import type { AarsloenValues } from '../../schemas/formSchemas';
 import { safeCompute } from '../../utils/safeComputation';
-import { beregnSHDageForDatoSet } from '../../utils/shDageBeregning';
+import { beregnSHDageForDatoSet } from '../../domain/dates/shDageBeregning';
 import { beregnOmregnetAarsloen } from '../../domain/aarsloen/aarsloenCalculations';
-import { harTabelData } from '../../utils/aarsloenValidation';
+import { harTabelData } from '../../domain/aarsloen/aarsloenValidationPolicies';
 import { beregnMaanedPeriode } from '../../utils/periodeBeregning';
 
 vi.mock('../../utils/safeComputation', () => ({
   safeCompute: vi.fn(),
 }));
 
-vi.mock('../../utils/aarsloenTableCalculations', () => ({
+vi.mock('../../domain/aarsloen/aarsloenRowCalculations', () => ({
   calculateAarsloenRowDerived: vi.fn(() => ({ samlet: 100 })),
   roundAarsloenAmountToTwoDecimals: vi.fn((value: number) => value),
 }));
@@ -24,7 +24,7 @@ vi.mock('../../utils/periodeBeregning', () => ({
   beregnDagPeriode: vi.fn(),
 }));
 
-vi.mock('../../utils/shDageBeregning', () => ({
+vi.mock('../../domain/dates/shDageBeregning', () => ({
   beregnSHDageForDatoSet: vi.fn(),
 }));
 
@@ -32,7 +32,7 @@ vi.mock('../../domain/aarsloen/aarsloenCalculations', () => ({
   beregnOmregnetAarsloen: vi.fn(),
 }));
 
-vi.mock('../../utils/aarsloenValidation', () => ({
+vi.mock('../../domain/aarsloen/aarsloenValidationPolicies', () => ({
   beregnFejlmeddelelser: vi.fn(() => []),
   harTabelData: vi.fn(),
 }));

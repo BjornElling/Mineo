@@ -33,7 +33,7 @@ import useTafRows from '../../tables/useTafRows';
 import useFerieRows from '../../tables/useFerieRows';
 import useFravaerRows from '../../tables/useFravaerRows';
 import useOevrigeKravRows from '../../tables/useOevrigeKravRows';
-import { createCommitEvent, type CommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
+import { createCommitEvent, type CommitEvent, type CommitHandler } from '../../../types/fieldEvents';
 import type { UsePersistedFormReturn } from '../../../hooks/usePersistedForm';
 import {
   CURRENT_YEAR,

@@ -1,7 +1,7 @@
 import type { AarsloenTableRow, ErstatningsopgoerelseValues, JaNej, LoenPaaHelligdage } from '../../schemas/formSchemas';
 import type { DeepReadonly } from '../../types/deepReadonly';
 import { parseISODate } from '../../types/branded';
-import { isAarsloenTableValueEffectivelyEmptyForValidation } from '../../utils/aarsloenTableValidation';
+import { isAarsloenTableValueEffectivelyEmptyForValidation } from '../aarsloen/aarsloenTableValidation';
 import { type DateInterval } from '../../utils/isoDateHelpers';
 import { parseAarsloenRowInterval } from './aarsloenRowInterval';
 

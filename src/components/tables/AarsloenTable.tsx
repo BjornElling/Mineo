@@ -5,7 +5,7 @@ import TableIntegerInput from '../inputs/table/TableIntegerInput';
 import TableYearInput from '../inputs/table/TableYearInput';
 import TableWeekInput from '../inputs/table/TableWeekInput';
 import TableDateInput from '../inputs/table/TableDateInput';
-import type { TableInputErrorInfo } from '../inputs/table/tableInputContracts';
+import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
 
 import { CURRENT_YEAR, MIN_YEAR, dateRanges_aarsloen } from '../../config/dateRanges';
 import type { AarsloenTableRow, Loenperiode } from '../../schemas/formSchemas';
@@ -19,22 +19,22 @@ import type {
   TableError,
 } from '../../types/table';
 import type { AarsloenTableHandle } from '../../types/handles';
-import { initialRow, generateRowId } from '../../utils/eoConverters';
+import { initialRow, generateRowId } from '../../domain/erstatningsopgoerelse/eoRowInitialValues';
 import {
   calculateAarsloenRowDerived,
   isAarsloenRowEffectivelyEmpty,
   roundAarsloenAmountToTwoDecimals,
-} from '../../utils/aarsloenTableCalculations';
-import { getAarsloenTableValidation, isAarsloenTableValueEffectivelyEmptyForValidation } from '../../utils/aarsloenTableValidation';
+} from '../../domain/aarsloen/aarsloenRowCalculations';
+import { getAarsloenTableValidation, isAarsloenTableValueEffectivelyEmptyForValidation } from '../../domain/aarsloen/aarsloenTableValidation';
 
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
-import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './standardGridStyles';
-import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridModel';
+import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
+import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridCore/gridModel';
 import {
   applyRowRemovalFocusPlan,
   evaluateRowCommit,
   type RowRemovalFocusPlan,
-} from './tableRowFocus';
+} from './gridCore/tableRowFocus';
 
 export type AarsloenTableSatser = {
   ferie?: number;

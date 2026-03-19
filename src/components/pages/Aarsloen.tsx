@@ -17,12 +17,12 @@ import { useAppSettings } from '../../contexts/useAppSettings';
 import { formatCountWithUnit, formatCurrency } from '../../utils/formatUtils';
 import { aarsloenSchema } from '../../schemas/formSchemas';
 import { isLoenperiodeValue, isLoenPaaHelligdageValue } from '../../utils/zodTypeGuards';
-import { harTabelData } from '../../utils/aarsloenValidation';
+import { harTabelData } from '../../domain/aarsloen/aarsloenValidationPolicies';
 import {
   shouldShowAarsloenFerieFields,
   shouldShowAarsloenShDageFields,
   shouldWarnAarsloenFeriePct,
-} from '../../domain/calculations';
+} from '../../domain/policies';
 import type { z } from 'zod';
 import type {
   AarsloenTableValidationSummary,
@@ -32,7 +32,7 @@ import { LOEN_PAA_HELLIGDAGE, LOENPERIODE } from '../../types/loen';
 import type { StyledPercentFieldValueChangeEvent } from '../inputs/StyledPercentField';
 import type { StyledIntegerFieldValueChangeEvent } from '../inputs/StyledIntegerField';
 import type { StyledDropdownChangeEvent } from '../inputs/StyledDropdown';
-import type { CommitEvent, CommitHandler } from '../inputs/fieldEvents';
+import type { CommitEvent, CommitHandler } from '../../types/fieldEvents';
 
 // Infer type from Zod schema (source of truth for runtime validation)
 type AarsloenValues = z.infer<typeof aarsloenSchema>;

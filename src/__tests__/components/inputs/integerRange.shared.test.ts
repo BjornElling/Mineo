@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getIntegerRangeErrorMessage } from '../../../components/inputs/shared/integerRange';
+import { getIntegerRangeErrorMessage } from '../../../utils/integerRange';
 
 describe('integerRange shared helper', () => {
   it('returns empty when value is in range', () => {

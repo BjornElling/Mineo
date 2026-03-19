@@ -3,12 +3,12 @@ import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
 import { useGridCoreApi, useGridCoreState } from '../../tables/useGridCore';
-import { areSameGridCell } from '../../tables/gridCoreUtils';
-import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
+import { areSameGridCell } from '../../tables/gridCore/gridCoreUtils';
+import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
 import { assignRef } from './assignRef';
-import type { TableInputErrorInfo } from './tableInputContracts';
+import type { TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import { trimWhitespaceEdges } from '../../../utils/draftNormalization';
-import { makeStringFingerprintFromCanonical, type CommittedPayload, type StringFingerprint } from '../shared/parserSpec';
+import { makeStringFingerprintFromCanonical, type CommittedPayload, type StringFingerprint } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
 export type TableTextInputChangeEvent = { target: { value: string } };

@@ -7,7 +7,7 @@ import {
   SCROLL_BUTTON_POSITION_BOTTOM_PX,
   SCROLL_BUTTON_POSITION_RIGHT_PX,
   SCROLL_BUTTON_SIZE_PX,
-} from './scrollToTopConfig';
+} from '../../config/scrollToTopConfig';
 
 /**
  * Flydende scroll-til-top knap der vises når brugeren har scrollet ned

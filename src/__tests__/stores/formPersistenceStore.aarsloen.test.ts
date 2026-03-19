@@ -7,7 +7,7 @@ import {
   shouldShowAarsloenFerieFields,
   shouldShowAarsloenShDageFields,
   shouldWarnAarsloenFeriePct,
-} from '../../domain/calculations';
+} from '../../domain/policies';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import type { AarsloenTableRow } from '../../schemas/formSchemas';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';

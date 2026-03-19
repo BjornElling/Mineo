@@ -16,7 +16,7 @@ import StyledPercentField from '../../inputs/StyledPercentField';
 import StyledRadioButton from '../../inputs/StyledRadioButton';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
 import StyledIntegerField from '../../inputs/StyledIntegerField';
-import type { CommitEvent, CommitHandler } from '../../inputs/fieldEvents';
+import type { CommitEvent, CommitHandler } from '../../../types/fieldEvents';
 import AarsloenTable, { type AarsloenTableSatser } from '../../tables/AarsloenTable';
 import LoenudviklingManuelTable from '../../tables/LoenudviklingManuelTable';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
@@ -39,7 +39,7 @@ import { isISODateString, parseISODate } from '../../../types/branded';
 import { formatDanishDate } from '../../../utils/dateUtils';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { isLoenperiodeValue } from '../../../utils/zodTypeGuards';
-import { generateAnsaettelsesforholdId, generateLoenudviklingRowId, initialLoenudviklingManuelRow } from '../../../utils/eoConverters';
+import { generateAnsaettelsesforholdId, generateLoenudviklingRowId, initialLoenudviklingManuelRow } from '../../../domain/erstatningsopgoerelse/eoRowInitialValues';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import type { AarsloenTableValidationSummary } from '../../../types/table';
 import { UI_STORAGE_KEYS } from '../../../config/storageManifest';
@@ -81,7 +81,7 @@ import {
   validateLoenudviklingManualBaseRowSatser,
   type ManualBaseRowCellErrors,
 } from '../../../domain/erstatningsopgoerelse/loenudviklingManuelBaseRowValidation';
-import { updateValidationFlagById } from './updateValidationFlagById';
+import { updateValidationFlagById } from '../../../utils/validationFlagMap';
 
 type AnsaettelsesforholdList = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'];
 

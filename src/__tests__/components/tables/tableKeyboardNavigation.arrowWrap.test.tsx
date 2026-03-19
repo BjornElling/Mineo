@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { handleTableKeyDownCapture } from '../../../components/tables/tableKeyboardNavigation';
+import { handleTableKeyDownCapture } from '../../../components/tables/gridCore/tableKeyboardNavigation';
 
 const GridTableHarness = () => {
   return (

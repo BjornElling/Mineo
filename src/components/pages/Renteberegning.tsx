@@ -6,11 +6,11 @@ import { renteberegningSchema } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import useRentekravRows from '../tables/useRentekravRows';
 import { createEmptyRentekravCommittedRow, createRentekravRowId } from '../../domain/renteberegning/rentekravTableModel';
-import type { ValidatedRentekravContext } from '../../domain/renteberegning/renteEngine';
+import type { ValidatedRentekravContext } from '../../domain/renteberegning/renteberegningRowEngine';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { downloadRentePdf } from '../../utils/pdf/pdfService';
-import type { CommitHandler } from '../inputs/fieldEvents';
+import type { CommitHandler } from '../../types/fieldEvents';
 import RenteberegningTab from './renteberegning/RenteberegningTab';
 import RentesatserTab from './renteberegning/RentesatserTab';
 

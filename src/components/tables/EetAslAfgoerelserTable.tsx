@@ -15,7 +15,7 @@ import {
   createEmptyAslAfgoerelseRow,
   isAslAfgoerelseRowEmpty,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
-import { normalizeGridRows } from './gridModel';
+import { normalizeGridRows } from './gridCore/gridModel';
 
 export type EetAslAfgoerelserTableProps = Readonly<{
   tableData: AslAfgoerelseRow[];

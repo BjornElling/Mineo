@@ -1,11 +1,11 @@
-import type { OffentligeYdelserRow } from '../schemas/formSchemas';
+import type { OffentligeYdelserRow } from '../../schemas/formSchemas';
 import type {
   OffentligeYdelserTableCellErrorMap,
   OffentligeYdelserTableColumnKey,
   OffentligeYdelserTableFirstErrorCell,
   OffentligeYdelserTableValidationSummary,
-} from '../types/table';
-import { isAmountValueStrict, isZeroOnlyString } from './tableValidationCommon';
+} from '../../types/table';
+import { isAmountValueStrict, isZeroOnlyString } from '../../utils/tableValidationCommon';
 
 export type OffentligeYdelserTableValidationResult = Readonly<{
   summary: OffentligeYdelserTableValidationSummary;

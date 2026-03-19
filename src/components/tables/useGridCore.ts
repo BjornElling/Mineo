@@ -1,6 +1,6 @@
 import * as React from 'react';
-import type { GridCoreContextValue, GridCoreStateContextValue, GridCoreApiContextValue } from './gridCoreContext.shared';
-import { GridCoreStateReactContext, GridCoreApiReactContext } from './gridCoreContext.shared';
+import type { GridCoreContextValue, GridCoreStateContextValue, GridCoreApiContextValue } from './gridCore/gridCoreContext.shared';
+import { GridCoreStateReactContext, GridCoreApiReactContext } from './gridCore/gridCoreContext.shared';
 
 export const useGridCoreState = (): GridCoreStateContextValue => {
   const ctx = React.useContext(GridCoreStateReactContext);

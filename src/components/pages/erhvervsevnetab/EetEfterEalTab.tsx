@@ -16,8 +16,8 @@ import {
 import { downloadEfterEalPdf } from '../../../utils/pdf/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
-import { useEetShakeFlag } from './useEetShakeFlag';
-import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
+import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
+import { formatKr, navigationSortKey, toFieldIssue } from './eetFormatUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabComposedValues;

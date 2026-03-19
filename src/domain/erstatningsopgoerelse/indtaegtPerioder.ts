@@ -6,7 +6,7 @@ import type {
 } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, isISODateString } from '../../types/branded';
-import { calculateAarsloenRowDerived } from '../../utils/aarsloenTableCalculations';
+import { calculateAarsloenRowDerived } from '../aarsloen/aarsloenRowCalculations';
 import { parseAmount } from '../../utils/numberParsing';
 import { createDate, parseDanishDate } from '../../utils/dateUtils';
 import { ydelsestyper } from '../../data/ydelsestyper';
@@ -19,7 +19,7 @@ import {
   resolveTafFejlgivendeBounds,
 } from './tafPeriodConstraints';
 import { getAarsloenErrorRowIdSet } from './indkomstRowValidation';
-import { isAarsloenTableValueEffectivelyEmptyForValidation } from '../../utils/aarsloenTableValidation';
+import { isAarsloenTableValueEffectivelyEmptyForValidation } from '../aarsloen/aarsloenTableValidation';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
 import { parseAarsloenRowInterval } from './aarsloenRowInterval';
 import { buildShDageSetFromIsoRange } from './tafDaySets';

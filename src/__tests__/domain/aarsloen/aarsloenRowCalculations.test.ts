@@ -7,8 +7,8 @@ import {
   hasCompletePeriodForLoenperiode,
   hasAtLeastOneValidRow,
   type AarsloenSatserInput,
-} from '../../utils/aarsloenTableCalculations';
-import type { AarsloenTableRow } from '../../schemas/formSchemas';
+} from '../../../domain/aarsloen/aarsloenRowCalculations';
+import type { AarsloenTableRow } from '../../../schemas/formSchemas';
 
 const createRow = (overrides: Partial<AarsloenTableRow> = {}): AarsloenTableRow => ({
   id: 'row-1',

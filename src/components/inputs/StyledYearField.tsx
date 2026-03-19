@@ -6,7 +6,7 @@ import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { filterYearKeyDown } from './inputKeyFilters';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
-import { createCommitEvent, createDraftChangeEvent, type CommitHandler, type DraftChangeHandler } from './fieldEvents';
+import { createCommitEvent, createDraftChangeEvent, type CommitHandler, type DraftChangeHandler } from '../../types/fieldEvents';
 
 export type StyledYearFieldProps = {
   value: number | undefined;

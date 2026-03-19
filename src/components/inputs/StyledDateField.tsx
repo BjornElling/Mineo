@@ -11,7 +11,7 @@ import { resolveDateRangeErrorMessage, type DateRangeSpecialErrors } from '../..
 import { filterDateLikeKeyDown } from './inputKeyFilters';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { assignRef } from '../../utils/refUtils';
-import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from './fieldEvents';
+import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 
 export type StyledDateFieldValueChangeEvent = CommitEvent<ISODateString | undefined>;
 export type StyledDateFieldDraftChangeEvent = DraftChangeEvent;

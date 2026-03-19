@@ -22,7 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { varigeMenPrGrad, varigeMenPrGradYearBounds } from '../../../data/regulationRates';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
-import { createCommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
+import { createCommitEvent, type CommitHandler } from '../../../types/fieldEvents';
 import { downloadVarigeMenPdf } from '../../../utils/pdf/pdfService';
 import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../../../domain/faellesPersondata/faellesPersondataInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';

@@ -6,14 +6,14 @@ import { interpretYear } from '../../../utils/dateInputValidation';
 import { validateISODateRange } from '../../../utils/isoDateHelpers';
 import { resolveDateRangeErrorMessage, type DateRangeSpecialErrors } from '../../../utils/dateRangeErrorMessages';
 import { coerceToDanishDateString, coerceToISODateString, type ISODateString } from '../../../types/branded';
-import { asTableCommittedString, normalizeTableDraftOnCommit, type TableInputErrorInfo } from './tableInputContracts';
+import { asTableCommittedString, normalizeTableDraftOnCommit, type TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import { assignRef } from './assignRef';
 import { useGridCoreApi, useGridCoreState } from '../../tables/useGridCore';
-import { areSameGridCell } from '../../tables/gridCoreUtils';
-import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
+import { areSameGridCell } from '../../tables/gridCore/gridCoreUtils';
+import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { filterDateLikeKeyDown } from '../inputKeyFilters';
-import { makeDateFingerprintFromCanonical, type CommittedPayload, type DateFingerprint } from '../shared/parserSpec';
+import { makeDateFingerprintFromCanonical, type CommittedPayload, type DateFingerprint } from '../../../types/parserSpec';
 
 export type TableDateInputChangeEvent = { target: { value: string } };
 export type TableDateSanitizeCallback = (value: string) => string;

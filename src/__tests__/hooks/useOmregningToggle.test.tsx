@@ -2,7 +2,7 @@
 import React from 'react';
 import { act, render } from '@testing-library/react';
 import { useOmregningToggle } from '../../hooks/useOmregningToggle';
-import type { CommitEvent } from '../../components/inputs/fieldEvents';
+import type { CommitEvent } from '../../types/fieldEvents';
 import type {
   AarsloenTableValidationSummary,
 } from '../../types/table';

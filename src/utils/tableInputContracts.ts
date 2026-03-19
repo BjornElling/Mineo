@@ -1,4 +1,4 @@
-import { prefixZeroBeforeLeadingComma, trimToAlphanumericEdges, trimToNumericEdgesPreserveLeadingMinus } from '../../../utils/draftNormalization';
+import { prefixZeroBeforeLeadingComma, trimToAlphanumericEdges, trimToNumericEdgesPreserveLeadingMinus } from './draftNormalization';
 
 export type TableInputErrorKind = 'none' | 'input' | 'config';
 

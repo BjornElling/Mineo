@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Box, MenuItem, OutlinedInput, Popover, Tooltip } from '@mui/material';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import type { SxProps, Theme } from '@mui/material/styles';
-import { createCommitEvent, type CommitEvent } from './fieldEvents';
+import { createCommitEvent, type CommitEvent } from '../../types/fieldEvents';
 
 /**
  * StyledDropdown (combobox trigger + popover listbox)

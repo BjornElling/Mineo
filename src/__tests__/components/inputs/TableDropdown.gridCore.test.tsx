@@ -2,8 +2,8 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import TableDropdown from '../../../components/inputs/table/TableDropdown';
-import { GridCoreProvider } from '../../../components/tables/gridCoreContext';
-import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCoreTypes';
+import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
+import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCore/gridCoreTypes';
 
 describe('TableDropdown GridCore integration', () => {
   it('registrerer editor-handle når gridCell er sat', () => {

@@ -1,8 +1,8 @@
 import type { RowId } from '../../rowDrafts/types';
 import type { SvieSmertePeriodeRow } from '../../schemas/formSchemas';
 import { tilstandEnum } from '../../schemas/formSchemas';
-import { ensureRowsWithTrailingEmpty } from '../tableRowManagement';
-import { createRowId } from '../rowId';
+import { ensureRowsWithTrailingEmpty } from '../../utils/tableRows';
+import { createRowId } from '../../utils/rowId';
 import { commitIsoDateFromDraftString } from '../dates/dateCommit';
 import { isSvieSmerteRowEmpty } from './rowEmpty';
 import type { SvieSmerteDraftRow } from './tableDraftRows';

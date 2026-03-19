@@ -3,7 +3,7 @@ import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
 import StyledCheckbox from '../../inputs/StyledCheckbox';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
-import type { CommitEvent } from '../../inputs/fieldEvents';
+import type { CommitEvent } from '../../../types/fieldEvents';
 import type { ErhvervsevnetabComposedValues, ErhvervsevnetabValues } from '../../../schemas/formSchemas';
 import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
@@ -25,8 +25,8 @@ import EetIssuesBox from './EetIssuesBox';
 import TextHoverRow from './TextHoverRow';
 import UnderlinedHoverRow from './UnderlinedHoverRow';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
-import { useEetShakeFlag } from './useEetShakeFlag';
-import { formatFaktor, formatJaNej, formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
+import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
+import { formatFaktor, formatJaNej, formatKr, navigationSortKey, toFieldIssue } from './eetFormatUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabComposedValues;

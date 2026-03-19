@@ -5,9 +5,9 @@
  * De er deterministiske, testbare og kan bruges til både UI og PDF.
  */
 
-import type { DanishDateString } from '../types/branded';
-import { danishToISO, isoToDanish, parseISODate, dateToISO } from '../types/branded';
-import type { Result } from '../types/result';
+import type { DanishDateString } from '../../types/branded';
+import { danishToISO, isoToDanish, parseISODate, dateToISO } from '../../types/branded';
+import type { Result } from '../../types/result';
 
 // ============================================================================
 // ERROR TYPES

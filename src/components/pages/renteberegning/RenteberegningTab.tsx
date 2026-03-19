@@ -8,8 +8,8 @@ import ContentBox from '../../layout/ContentBox';
 import type { RentekravRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import type { RentekravDraftRow } from '../../../domain/renteberegning/tableDraftRows';
-import type { ValidatedRentekravContext } from '../../../domain/renteberegning/renteEngine';
-import { createCommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
+import type { ValidatedRentekravContext } from '../../../domain/renteberegning/renteberegningRowEngine';
+import { createCommitEvent, type CommitHandler } from '../../../types/fieldEvents';
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
 import { dateRanges_renteberegning } from '../../../config/dateRanges';
 

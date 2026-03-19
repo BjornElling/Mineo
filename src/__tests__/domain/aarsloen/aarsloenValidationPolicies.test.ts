@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { AarsloenTableRow } from '../../schemas/formSchemas';
+import type { AarsloenTableRow } from '../../../schemas/formSchemas';
 import {
   beregnFejlmeddelelser,
   harTabelValideringsFejl,
   harTabelData,
-} from '../../utils/aarsloenValidation';
+} from '../../../domain/aarsloen/aarsloenValidationPolicies';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 

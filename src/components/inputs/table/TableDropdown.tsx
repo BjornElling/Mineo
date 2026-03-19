@@ -3,7 +3,7 @@ import { Divider, MenuItem, Select, Tooltip, type SelectChangeEvent } from '@mui
 import type { SxProps, Theme } from '@mui/material/styles';
 import { assignRef } from './assignRef';
 import { useGridCoreApi } from '../../tables/useGridCore';
-import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
+import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
 /**

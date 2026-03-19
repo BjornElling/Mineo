@@ -4,7 +4,7 @@ import type { ISODateString } from '../../types/branded';
 import { dateToISO, isoToDanish, subtractOneDay } from '../../types/branded';
 import { buildClampedTafRanges, resolveTafConstraintBounds, type IsoRange } from '../erstatningsopgoerelse/tafPeriodConstraints';
 import { formatCurrency } from '../../utils/formatUtils';
-import { isAarsloenRowEffectivelyEmpty } from '../../utils/aarsloenTableCalculations';
+import { isAarsloenRowEffectivelyEmpty } from '../aarsloen/aarsloenRowCalculations';
 import { buildOffentligeYdelserColumns, parseOffentligDato } from './eoDebugOffentligeYdelserColumns';
 import { buildLoenindkomstColumns } from './eoDebugLoenColumns';
 import { debugTabelColumnId, type DebugTabelWageColumnKey } from './eoDebugLoenTypes';

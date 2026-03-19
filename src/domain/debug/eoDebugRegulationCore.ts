@@ -24,7 +24,7 @@ import { getStatistiskLoenudvikling } from '../../data/statistiskLoenudviklingRa
 import { getKRLSatstabel, formatKRLSatstabelDisplay, isKRLSatstabelId } from '../../data/KRLrates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
-import { beregnHelligdage } from '../../utils/shDageBeregning';
+import { beregnHelligdage } from '../dates/shDageBeregning';
 import { STORE_BEDEDAG_START } from '../../config/dateRanges';
 import { STORE_BEDEDAG_PCT as STORE_BEDEDAG_PCT_PCT } from '../../config/regulatoryRates';
 import { isoDateToDate } from '../dates/isoDate';

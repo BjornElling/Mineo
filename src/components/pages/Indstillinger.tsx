@@ -4,7 +4,7 @@ import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../inputs/StyledDropdown';
 import StyledRadioButton from '../inputs/StyledRadioButton';
-import type { CommitEvent } from '../inputs/fieldEvents';
+import type { CommitEvent } from '../../types/fieldEvents';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import ContentBox from '../layout/ContentBox';
 import { getAlleLoenmodtagerOrg, getAlleArbejdsgiverOrg } from '../../data/overenskomstRates';

@@ -1,9 +1,9 @@
 /// <reference types="vitest/globals" />
 import { describe, expect, it } from 'vitest';
-import type { AmountValue } from '../../schemas/amountExpressionSchema';
-import type { AarsloenTableRow } from '../../schemas/formSchemas';
-import { getAarsloenTableValidation } from '../../utils/aarsloenTableValidation';
-import { isAarsloenTableValueEffectivelyEmptyForValidation } from '../../utils/aarsloenTableValidation';
+import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import type { AarsloenTableRow } from '../../../schemas/formSchemas';
+import { getAarsloenTableValidation } from '../../../domain/aarsloen/aarsloenTableValidation';
+import { isAarsloenTableValueEffectivelyEmptyForValidation } from '../../../domain/aarsloen/aarsloenTableValidation';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 

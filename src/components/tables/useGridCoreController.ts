@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { flushSync } from 'react-dom';
-import { areSameGridCellOrBothNull, gridCellKey } from './gridCoreUtils';
-import type { FocusPlan, GridCellCoord, GridCellEditorHandle, GridCoreController, GridOpenEditSource } from './gridCoreTypes';
-import { attachGridCoreToTable, detachGridCoreFromTable } from './gridCoreRegistry';
-import type { GridCoreContextValue, GridCoreTableKind } from './gridCoreContext.shared';
+import { areSameGridCellOrBothNull, gridCellKey } from './gridCore/gridCoreUtils';
+import type { FocusPlan, GridCellCoord, GridCellEditorHandle, GridCoreController, GridOpenEditSource } from './gridCore/gridCoreTypes';
+import { attachGridCoreToTable, detachGridCoreFromTable } from './gridCore/gridCoreRegistry';
+import type { GridCoreContextValue, GridCoreTableKind } from './gridCore/gridCoreContext.shared';
 
 type UseGridCoreControllerResult = Readonly<{
   internalTableRef: React.MutableRefObject<HTMLTableElement | null>;

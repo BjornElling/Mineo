@@ -7,7 +7,7 @@ import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { stamdataSchema } from '../../schemas/formSchemas';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
-import { resolveStamdataDatoLabel } from '../../domain/calculations';
+import { resolveStamdataDatoLabel } from '../../domain/policies';
 import StyledDateField from '../inputs/StyledDateField';
 import StyledDropdown from '../inputs/StyledDropdown';
 import StyledTextField, { type StyledTextFieldValueCommitEvent } from '../inputs/StyledTextField';

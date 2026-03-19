@@ -7,7 +7,7 @@ import {
   buildRowRemovalFocusPlan,
   evaluateRowCommit,
   type RowRemovalFocusPlan,
-} from '../../../components/tables/tableRowFocus';
+} from '../../../components/tables/gridCore/tableRowFocus';
 
 type Row = { id: string };
 

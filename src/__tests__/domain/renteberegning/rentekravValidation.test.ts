@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { calculateInterestDate, validateInterestCalculation } from '../../utils/interestDomain';
-import type { DanishDateString } from '../../types/branded';
+import { calculateInterestDate, validateInterestCalculation } from '../../../domain/renteberegning/rentekravValidation';
+import type { DanishDateString } from '../../../types/branded';
 
 const d = (s: string): DanishDateString => s as DanishDateString;
 

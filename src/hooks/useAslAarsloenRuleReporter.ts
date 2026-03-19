@@ -3,7 +3,7 @@ import { amountValueToNumber } from '../utils/expressionAmount';
 import {
   validateAslAarsloenBySkadesaarMax,
   validateAslAarsloenDivisibleBy1000,
-} from '../domain/faellesAarsloen/aarsloenValidators';
+} from '../domain/aslEalAarsloen/aarsloenValidators';
 import { useFormFieldErrorReporter } from './useFormFieldErrors';
 import type { FaellesAarsloenValues } from '../schemas/formSchemas';
 import type { ISODateString } from '../types/branded';

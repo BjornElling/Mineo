@@ -3,10 +3,10 @@ import { toDanishDateString, toISODateString } from '../../../types/branded';
 import { parseDanishDate } from '../../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
 import { computeRenteberegning } from '../../../domain/renteberegning/renteberegningEngine';
-import { calculateProcessInterestWithRates } from '../../../utils/interestCalculator';
+import { calculateProcessInterestWithRates } from '../../../domain/renteberegning/procesrenteCalculator';
 import { roundByMethod } from '../../../utils/rounding';
 import { isoToDanish } from '../../../types/branded';
-import { computeRentekravCalculation } from '../../../domain/renteberegning/renteEngine';
+import { computeRentekravCalculation } from '../../../domain/renteberegning/renteberegningRowEngine';
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
 
 const buildRates = (referenceRatePct = 1, surchargeRatePct = 2): { referenceRates: RateEntry[]; surchargeRates: RateEntry[] } => ({

@@ -1,7 +1,7 @@
-import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import { parseAmountInput } from '../../../utils/expressionAmount';
-import { formatAsAmount } from '../../../utils/formatUtils';
-import { danishToISO } from '../../../types/branded';
+import type { AmountValue } from '../schemas/amountExpressionSchema';
+import { parseAmountInput } from './expressionAmount';
+import { formatAsAmount } from './formatUtils';
+import { danishToISO } from '../types/branded';
 import {
   EMPTY_AMOUNT_FINGERPRINT,
   EMPTY_DATE_FINGERPRINT,
@@ -16,7 +16,7 @@ import {
   type IntegerFingerprint,
   type ParserSpec,
   type PercentFingerprint,
-} from './parserSpec';
+} from '../types/parserSpec';
 
 const amountCanonicalFromModel = (value: AmountValue | undefined, precision: number): string => {
   if (!value) return '';

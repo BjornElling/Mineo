@@ -20,7 +20,7 @@ import {
   renderEoStylePdfTable,
 } from './pdfTableRenderer';
 import { PDF_SECTION_HEADING_GAP, SECTION_SPACER } from './pdfConfig';
-import { calculateAarsloenRowDerived, type AarsloenSatserInput } from '../aarsloenTableCalculations';
+import { calculateAarsloenRowDerived, type AarsloenSatserInput } from '../../domain/aarsloen/aarsloenRowCalculations';
 import type { PdfCommonOptions } from './pdfOptions';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { AarsloenTableRow, LoenPaaHelligdage, Loenperiode } from '../../schemas/formSchemas';

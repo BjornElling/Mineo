@@ -3,8 +3,8 @@ import type { RentekravRow, RenteberegningValues } from '../../schemas/formSchem
 import type { ISODateString } from '../../types/branded';
 import type { DeepReadonly } from '../../types/deepReadonly';
 import { danishToISO, isoToDanish } from '../../types/branded';
-import { calculateProcessInterestWithRates } from '../../utils/interestCalculator';
-import { calculateInterestDate, validateInterestCalculation, type InterestDateInput } from '../../utils/interestDomain';
+import { calculateProcessInterestWithRates } from './procesrenteCalculator';
+import { calculateInterestDate, validateInterestCalculation, type InterestDateInput } from './rentekravValidation';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { roundByMethod } from '../../utils/rounding';
 

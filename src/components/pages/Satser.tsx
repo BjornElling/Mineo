@@ -12,7 +12,7 @@ import {
   canDownloadSatser,
   resolveSatserAargangErrorMessage,
   resolveSatserEffectiveAargang,
-} from '../../domain/calculations';
+} from '../../domain/policies';
 import ContentBox from '../layout/ContentBox';
 import { formatAsAmount, formatPercent } from '../../utils/formatUtils';
 

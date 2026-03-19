@@ -3,10 +3,10 @@ import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
 import { useGridCoreApi, useGridCoreState } from '../../tables/useGridCore';
-import { areSameGridCell } from '../../tables/gridCoreUtils';
-import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCoreTypes';
+import { areSameGridCell } from '../../tables/gridCore/gridCoreUtils';
+import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
 import { assignRef } from './assignRef';
-import { type TableInputErrorInfo } from './tableInputContracts';
+import { type TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import { containsUnaryMinusToken, filterAmountExpressionKeyDown } from '../inputKeyFilters';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { normalizePastedAmount, sanitizePastedAmount } from '../../../utils/amountInputUtils';
@@ -18,7 +18,7 @@ import {
   parseAmountInput,
 } from '../../../utils/expressionAmount';
 import { stripAmountGroupingSeparators } from '../../../utils/draftNormalization';
-import { makeAmountFingerprintFromCanonical, type AmountFingerprint, type CommittedPayload } from '../shared/parserSpec';
+import { makeAmountFingerprintFromCanonical, type AmountFingerprint, type CommittedPayload } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
 export type TableAmountInputValue = AmountValue | undefined;

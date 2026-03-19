@@ -1,6 +1,6 @@
 import React from 'react';
 import { Switch, FormControlLabel } from '@mui/material';
-import { createCommitEvent, type CommitHandler } from './fieldEvents';
+import { createCommitEvent, type CommitHandler } from '../../types/fieldEvents';
 import type { StyledToggleSwitchHandle } from '../../types/handles';
 
 /**

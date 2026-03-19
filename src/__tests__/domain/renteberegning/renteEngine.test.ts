@@ -4,7 +4,7 @@ import type { ISODateString } from '../../../types/branded';
 import {
   calculateActualInterestDate,
   computeRentekravCalculation,
-} from '../../../domain/renteberegning/renteEngine';
+} from '../../../domain/renteberegning/renteberegningRowEngine';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

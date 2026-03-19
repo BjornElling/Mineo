@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { GridCoreProvider } from '../../../components/tables/gridCoreContext';
-import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCoreTypes';
+import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
+import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCore/gridCoreTypes';
 import TableAmountInput from '../../../components/inputs/table/TableAmountInput';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 

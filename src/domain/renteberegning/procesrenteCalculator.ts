@@ -8,12 +8,12 @@
  * - Halvårlige periodebaserede renteberegninger
  */
 
-import type { RateEntry } from '../data/interestRates';
-import { referenceRates, surchargeRates } from '../data/interestRates';
-import type { DanishDateString } from '../types/branded';
-import { createDate, getDaysInYear, parseDanishDate } from './dateUtils';
-import { countInclusiveUtcDays } from './utcDayMath';
-import { roundByMethod } from './rounding';
+import type { RateEntry } from '../../data/interestRates';
+import { referenceRates, surchargeRates } from '../../data/interestRates';
+import type { DanishDateString } from '../../types/branded';
+import { createDate, getDaysInYear, parseDanishDate } from '../../utils/dateUtils';
+import { countInclusiveUtcDays } from '../../utils/utcDayMath';
+import { roundByMethod } from '../../utils/rounding';
 
 type DatedRate = Readonly<{ date: Date; ratePct: number }>;
 

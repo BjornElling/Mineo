@@ -3,7 +3,7 @@ import React from 'react';
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import StyledToggleSwitch from '../../../components/inputs/StyledToggleSwitch';
-import type { CommitEvent } from '../../../components/inputs/fieldEvents';
+import type { CommitEvent } from '../../../types/fieldEvents';
 import type { StyledToggleSwitchHandle } from '../../../types/handles';
 
 /**

@@ -7,7 +7,7 @@ import {
   generateLoenudviklingRowId,
   initialOffentligYdelseRow,
   initialLoenudviklingManuelRow,
-} from '../../utils/eoConverters';
+} from '../../../domain/erstatningsopgoerelse/eoRowInitialValues';
 
 // ─── initialRow ───────────────────────────────────────────────────────────────
 

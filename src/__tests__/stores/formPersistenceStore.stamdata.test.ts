@@ -1,7 +1,7 @@
 import {
   __createTestStore,
 } from '../../stores/formPersistenceStore';
-import { hasStamdataAny, resolveStamdataDatoLabel } from '../../domain/calculations';
+import { hasStamdataAny, resolveStamdataDatoLabel } from '../../domain/policies';
 import { toISODateString } from '../../types/branded';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 

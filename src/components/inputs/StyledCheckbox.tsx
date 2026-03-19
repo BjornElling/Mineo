@@ -1,6 +1,6 @@
 import React from 'react';
 import { Checkbox, FormControlLabel } from '@mui/material';
-import { createCommitEvent, type CommitHandler } from './fieldEvents';
+import { createCommitEvent, type CommitHandler } from '../../types/fieldEvents';
 
 type StyledCheckboxProps = Readonly<{
   checked: boolean;
