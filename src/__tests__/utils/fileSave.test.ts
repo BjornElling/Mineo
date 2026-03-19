@@ -40,8 +40,10 @@ describe('fileSave', () => {
         stamdata: { journalnr: 'J-1' },
         satser: undefined,
         aarsloen: undefined,
+        faellesAarsloen: undefined,
         renteberegning: undefined,
         varigemen: undefined,
+        forsoergertab: undefined,
         erstatningsopgoerelse: undefined,
         erhvervsevnetab: undefined,
       });
@@ -55,8 +57,10 @@ describe('fileSave', () => {
           stamdata: {},
           satser: undefined,
           aarsloen: undefined,
+          faellesAarsloen: undefined,
           renteberegning: undefined,
           varigemen: undefined,
+          forsoergertab: undefined,
         } as never)
       ).toThrow("Snapshot mangler key 'erstatningsopgoerelse'");
     });
@@ -67,8 +71,10 @@ describe('fileSave', () => {
           stamdata: null,
           satser: undefined,
           aarsloen: undefined,
+          faellesAarsloen: undefined,
           renteberegning: undefined,
           varigemen: undefined,
+          forsoergertab: undefined,
           erstatningsopgoerelse: undefined,
           erhvervsevnetab: undefined,
         } as never)
@@ -81,8 +87,10 @@ describe('fileSave', () => {
           stamdata: {},
           satser: undefined,
           aarsloen: undefined,
+          faellesAarsloen: undefined,
           renteberegning: undefined,
           varigemen: undefined,
+          forsoergertab: undefined,
           erstatningsopgoerelse: undefined,
           erhvervsevnetab: undefined,
           ukendt: {},
@@ -200,6 +208,53 @@ describe('fileSave', () => {
       expect(result.success).toBe(true);
       expect(result.verified).toBe(true);
       expect(result.warning).toBeUndefined();
+    });
+
+    it('bevarer faellesAarsloen, forsoergertab og erhvervsevnetab i round-trip verifikation', async () => {
+      const expectedData = eoFileDataSchema.parse({
+        faellesAarsloen: {
+          aslAarsloen: { kind: 'number', value: 450000 },
+          ealAarsloen: { kind: 'number', value: 500000 },
+        },
+        forsoergertab: {
+          beregningsdato: '2025-01-15',
+          virkningsdato: '2025-01-01',
+          tilkendtForPeriodeAar: 5,
+        },
+        erhvervsevnetab: {
+          beregningsdato: '2025-01-15',
+          koen: 'Kvinde',
+          aslAfgoerelser: [
+            {
+              id: 'eet_asl_1',
+              afgoerelsesDato: '2025-01-15',
+              virkningsDato: '2025-01-01',
+              eetPct: '20',
+              kapDato: undefined,
+              kapPct: undefined,
+              afgoerelseType: 'Midlertidig',
+              tidlKapDato: undefined,
+            },
+          ],
+          ealEetPct: 25,
+          eetDifferencekravBilagSelection: {
+            loebendeYdelser: true,
+            kapitalisering: true,
+            eetEfterEal: true,
+            proformaKapitalisering: true,
+            visUdvidetSpecifikation: false,
+            visUdvidetSpecifikationLoebendeYdelserBilag: false,
+          },
+        },
+      });
+
+      mockedDecryptFromString.mockResolvedValueOnce({
+        data: structuredClone(expectedData),
+      });
+
+      const result = await verifyAfterSave('encrypted', expectedData, false);
+      expect(result.success).toBe(true);
+      expect(result.verified).toBe(true);
     });
   });
 });

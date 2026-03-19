@@ -24,6 +24,14 @@ const formatKroner = (value: number | null | undefined): string => {
   return `${formatAsAmount(value, 0)} kr.`;
 };
 
+const formatKronerPair = (
+  first: number | null | undefined,
+  second: number | null | undefined
+): string => {
+  if (first === null || first === undefined || second === null || second === undefined) return '';
+  return `${formatAsAmount(first, 0)} / ${formatAsAmount(second, 0)} kr.`;
+};
+
 /**
  * Formaterer beløb per enhed til dansk format
  */
@@ -54,13 +62,12 @@ const DataRow: React.FC<DataRowProps> = ({ label, value, rightAlign = true }) =>
   if (!value) return null;
 
   return (
-    <Box className="row--label-right">
+    <Box className="row--label-right-hover">
       <Typography className="row--text">{label}:</Typography>
       <Typography
         className="row--text"
         sx={{
           textAlign: rightAlign ? 'right' : 'left',
-          whiteSpace: 'pre-line',
           marginLeft: '16px',
         }}
       >
@@ -139,10 +146,9 @@ const Satser = React.memo(() => {
       <ContentBox className="content-box">
         <Typography className="section-header">Årstal</Typography>
 
-        {/* Angiv år */}
-        <Box className="row--label-offset">
-          <Typography className="row--text" width='200px'>Angiv år:</Typography>
-          <Box className="row--label-offset__content">
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Vis satser for år:</Typography>
+          <Box className="row--label-right-hover__content">
             <StyledYearFieldNext
               value={values.aargang}
               onCommit={handleYearCommit}
@@ -152,8 +158,12 @@ const Satser = React.memo(() => {
               externalError={yearError}
             />
           </Box>
-          <Box sx={{ flex: 1 }} />
-          {canDownload && (
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Download specifikation:</Typography>
+          <Box className="row--label-right-hover__content">
+            {canDownload && (
             <Box
               onClick={handleDownloadPdf}
               tabIndex={-1}
@@ -181,7 +191,8 @@ const Satser = React.memo(() => {
                 }}
               />
             </Box>
-          )}
+            )}
+          </Box>
         </Box>
       </ContentBox>
 
@@ -254,12 +265,19 @@ const Satser = React.memo(() => {
         <Typography className="section-header">Diverse</Typography>
 
         <DataRow
-          label="Beløbsgrænse for fri proces"
+          label="Beløbsgrænse for fri proces (enlig/samlevende)"
           value={
             satser
-              ? `${formatKroner(satser.diverse.friProcesEnlig)} (enlig) / ${formatKroner(satser.diverse.friProcesSamlevende)} (samlevende)\n+ ${formatKroner(satser.diverse.friProcesBarn)} per barn under 18 år`
+              ? formatKronerPair(
+                  satser.diverse.friProcesEnlig,
+                  satser.diverse.friProcesSamlevende
+                )
               : ''
           }
+        />
+        <DataRow
+          label="+ Tillæg per barn under 18 år"
+          value={satser ? formatKroner(satser.diverse.friProcesBarn) : ''}
         />
         <DataRow
           label="Reguleringssats"

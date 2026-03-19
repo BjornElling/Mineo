@@ -8,6 +8,7 @@ import {
   ListAlt,
   TrendingUp,
   PersonalInjury,
+  Flare,
   Person,
   BrowserUpdated,
   Save,
@@ -66,6 +67,7 @@ const navigationItems: NavigationItem[] = [
   { id: 'erstatningsopgoerelse', label: 'Erstatningsopgørelse', icon: <Payments /> },
   { id: 'erhvervsevnetab', label: 'Erhvervsevnetab', icon: <AssistWalker /> },
   { id: 'varigemen', label: 'Varige mén', icon: <PersonalInjury /> },
+  { id: 'forsoergertab', label: 'Forsørgertab', icon: <Flare /> },
   { id: 'aarsloen', label: 'Årslønsberegning', icon: <EventRepeat /> },
   { id: 'renteberegning', label: 'Renteberegning', icon: <TrendingUp /> },
   { id: 'satser', label: 'Satser', icon: <ListAlt /> }

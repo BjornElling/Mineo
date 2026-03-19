@@ -29,6 +29,14 @@ import { formatFaktorEet as formatFaktor, formatJaNejEet as formatJaNej, formatK
 export const buildKapitaliseringPdfFilename = (journalnr?: string): string =>
   resolvePdfFileName('Kapitalisering (EET)', false, journalnr);
 
+// Bevidst PDF-formulering: Vi viser "< 2 år" som en kortere og mere læsbar
+// etikette i PDF'en, selv om særreglen også omfatter kontroltidspunktet præcis
+// 2 år før folkepensionsalderen. PDF-teksten er derfor en præsentationsmæssig
+// forenkling og må ikke bruges som normativ regeltekst eller som grundlag for
+// ændring af beregningslogikken.
+export const PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL =
+  'Kapitaliseret pga. < 2 år til folkepension?';
+
 export const addKapitaliseringEmptyState = (
   writer: ReturnType<typeof createStandardPdfWriter>
 ): void => {
@@ -121,7 +129,7 @@ export const addKapitaliseringAfgoerelseSection = (
   );
 
   writer.writeLeftRightTextSingleLine(
-    'Kapitaliseret pga. ≤ 2 år til folkepension?',
+    PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL,
     formatJaNej(afgoerelse.kapitaliseretPgaUnderToAarTilFp),
     rowOpts
   );

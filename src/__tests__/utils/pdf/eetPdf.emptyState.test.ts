@@ -121,6 +121,7 @@ describe('EET PDF empty states', () => {
     expect(renderedText).toContain('Grundydelse (50 %): Grundløn × EET × Erstatningsniveau =');
     expect(joinedText).toContain('351.539');
     expect(joinedText).toContain('× 50 % × 80 % =');
+    expect(renderedText).toContain('Kapitaliseret pga. < 2 år til folkepension?');
     expect(renderedText).not.toContain(
       'Grundydelse (50 %): Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag) ='
     );
@@ -244,6 +245,7 @@ describe('EET PDF empty states', () => {
     expect(renderedText).toContain('Grundydelse (50 %): Grundløn × EET × Erstatningsniveau =');
     expect(joinedText).toContain('351.539');
     expect(joinedText).toContain('× 50 % × 80 % =');
+    expect(renderedText).toContain('Kapitaliseret pga. < 2 år til folkepension?');
     expect(renderedText).not.toContain(
       'Grundydelse (50 %): Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag) ='
     );

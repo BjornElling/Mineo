@@ -2,12 +2,14 @@ import { z } from 'zod';
 import type { StorageKey } from './storageManifest';
 import {
   aarsloenSchema,
+  faellesAarsloenSchema,
   erstatningsopgoerelseSchema,
   renteberegningSchema,
   satserSchema,
   stamdataSchema,
   varigeMenSchema,
   erhvervsevnetabSchema,
+  forsoergertabSchema,
 } from '../schemas/formSchemas';
 import { computeSchemaFingerprint } from '../utils/schemaFingerprint';
 
@@ -15,8 +17,10 @@ export const persistenceSchemas = {
   stamdata: stamdataSchema,
   satser: satserSchema,
   aarsloen: aarsloenSchema,
+  faellesAarsloen: faellesAarsloenSchema,
   renteberegning: renteberegningSchema,
   varigemen: varigeMenSchema,
+  forsoergertab: forsoergertabSchema,
   erstatningsopgoerelse: erstatningsopgoerelseSchema,
   erhvervsevnetab: erhvervsevnetabSchema,
 } as const satisfies Record<StorageKey, z.ZodTypeAny>;

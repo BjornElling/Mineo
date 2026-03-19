@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyDefaultsDeep, stripUnknownFieldsBySchema } from '../../utils/persistenceLoadSanitization';
 import { buildPersistenceDefaults } from '../../config/persistenceDefaults';
 import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
-import { erstatningsopgoerelseSchema } from '../../schemas/formSchemas';
+import { erhvervsevnetabSchema, erstatningsopgoerelseSchema } from '../../schemas/formSchemas';
 
 describe('persistence load sanitization', () => {
   it('fills missing defaults without overriding existing values', () => {
@@ -136,5 +136,15 @@ describe('persistence load sanitization', () => {
     if (!parsed.success) return;
     expect(parsed.data.tidligereModtagetTaf?.value).toBe(1.01);
     expect(parsed.data.oevrigeKravPerioder[0]?.beloeb?.value).toBe(1.01);
+  });
+
+  it('kan parse erhvervsevnetab med defaults når sektionen mangler i en ældre fil', () => {
+    const defaults = buildPersistenceDefaults(DEFAULT_APP_SETTINGS);
+    const filled = applyDefaultsDeep(undefined, defaults.erhvervsevnetab);
+
+    const parsed = erhvervsevnetabSchema.safeParse(filled);
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.aslAfgoerelser).toEqual([]);
   });
 });

@@ -1,4 +1,4 @@
-import type { ErhvervsevnetabValues, AslAfgoerelseRow } from '../../schemas/formSchemas';
+import type { ErhvervsevnetabComposedValues, AslAfgoerelseRow } from '../../schemas/formSchemas';
 import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, parseISODate } from '../../types/branded';
@@ -54,7 +54,7 @@ export type EetEalCalculationResult = Readonly<{
 }>;
 
 type Input = Readonly<{
-  erhvervsevnetab: ErhvervsevnetabValues;
+  erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadesdato: ISODateString | undefined;
   fodselsdato: ISODateString | undefined;
   reguleringssats: YearlyRate;
@@ -171,7 +171,7 @@ const resolveEetPctFromAslRows = (
 };
 
 const resolveEetPct = (
-  values: ErhvervsevnetabValues
+  values: ErhvervsevnetabComposedValues
 ): { resolved: EetEalResolvedEetPct | null; issues: EetIssue[] } => {
   const issues: EetIssue[] = [];
 
@@ -196,7 +196,7 @@ const resolveEetPct = (
   return { resolved: fallback.resolved, issues };
 };
 
-const resolveAarsloen = (values: ErhvervsevnetabValues): { value: number | null; source: 'eal' | 'asl' | null } => {
+const resolveAarsloen = (values: ErhvervsevnetabComposedValues): { value: number | null; source: 'eal' | 'asl' | null } => {
   const ealAarsloen = amountValueToNumber(values.ealAarsloen);
   if (typeof ealAarsloen === 'number' && Number.isFinite(ealAarsloen) && ealAarsloen > 0) {
     return { value: ealAarsloen, source: 'eal' };
@@ -404,4 +404,3 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 };
 
 export { formatPercentTrimmedFromRounded4 } from './eetLoebendeYdelserCalculation';
-

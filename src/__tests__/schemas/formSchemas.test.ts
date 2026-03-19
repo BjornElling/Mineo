@@ -3,6 +3,7 @@ import {
   erstatningsopgoerelseSchema,
   renteberegningSchema,
   varigeMenSchema,
+  forsoergertabSchema,
   stamdataSchema,
   satserSchema,
   rentekravRowSchema,
@@ -408,6 +409,41 @@ describe('varigeMenSchema', () => {
       fodselsdato: '1990-01-01',
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe('forsoergertabSchema', () => {
+  it('accepterer tomme felter (alle optional)', () => {
+    const result = forsoergertabSchema.safeParse({
+      beregningsdato: undefined,
+      virkningsdato: undefined,
+      tilkendtForPeriodeAar: undefined,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepterer gyldige værdier', () => {
+    const result = forsoergertabSchema.safeParse({
+      beregningsdato: '2024-01-01',
+      virkningsdato: '2024-01-01',
+      tilkendtForPeriodeAar: 4,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('afviser værdier uden for 1-10 år', () => {
+    const result = forsoergertabSchema.safeParse({
+      tilkendtForPeriodeAar: 11,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('stripTopLevelKey: activeTab strippes fra input', () => {
+    const result = forsoergertabSchema.safeParse({
+      activeTab: 'some-tab',
+      beregningsdato: undefined,
+    });
+    expect(result.success).toBe(true);
   });
 });
 

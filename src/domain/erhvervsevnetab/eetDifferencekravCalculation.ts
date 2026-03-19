@@ -1,4 +1,4 @@
-import type { ErhvervsevnetabValues } from '../../schemas/formSchemas';
+import type { ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
 import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, dateToISO, parseISODate } from '../../types/branded';
@@ -109,7 +109,7 @@ export type EetDifferencekravCalculationResult = Readonly<{
 }>;
 
 type Input = Readonly<{
-  erhvervsevnetab: ErhvervsevnetabValues;
+  erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadesdato: ISODateString | undefined;
   fodselsdato: ISODateString | undefined;
 }>;
@@ -119,14 +119,16 @@ type Input = Readonly<{
 const toIssue = (id: string, message: string): EetIssue => ({ id, severity: 'error', message });
 
 const filterAslRowsKnownAtBeregningsdato = (
-  rows: readonly ErhvervsevnetabValues['aslAfgoerelser'][number][],
+  rows: readonly ErhvervsevnetabComposedValues['aslAfgoerelser'][number][],
   beregningsdato: ISODateString | undefined
-): readonly ErhvervsevnetabValues['aslAfgoerelser'][number][] => {
+): readonly ErhvervsevnetabComposedValues['aslAfgoerelser'][number][] => {
   if (!beregningsdato) return rows;
   return rows.filter((row) => {
     const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
     const virkningsdato = coerceToISODateString(row.virkningsDato);
-    if (afgoerelsesdato === undefined || virkningsdato === undefined) return true;
+    // Fane 5 må kun se afgørelser, der både er truffet og har virkning senest på beregningsdatoen.
+    // Rækker uden begge datoer er derfor ikke "known at beregningsdato" og udelades fail-closed.
+    if (afgoerelsesdato === undefined || virkningsdato === undefined) return false;
     return afgoerelsesdato <= beregningsdato && virkningsdato <= beregningsdato;
   });
 };
@@ -143,7 +145,7 @@ const computeProformaKapitalisering = (
     erstatningsniveau: number;
     amFaktor: number;
     before2024Skade: boolean;
-    koen: ErhvervsevnetabValues['koen'];
+    koen: ErhvervsevnetabComposedValues['koen'];
   }>,
   issues: EetIssue[]
 ): EetDifferencekravProformaKapitalisering | null => {
@@ -434,7 +436,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
     const erstatningsniveau = from2011 ? 0.83 : 0.8;
     const amFaktor = from2011 ? 0.92 : 1;
     // Grundlønnen genbruges fra fane 2's computation frem for at rekonstruere den lokalt.
-    // loebendeComputation er garanteret non-null når loebendeEetPct > 0 (se resolveLoebendeEetPct).
+    // Invariant: loebendeEetPct kan kun blive > 0 når loebendeComputation findes; ?? 0 er kun defensivt.
     const grundloen = loebendeComputation?.grundloen ?? 0;
 
     // Bestem løbende EET-pct til proformakapitalisering.
@@ -479,6 +481,8 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   const deduped = dedupeIssuesBySeverityAndMessage(allSourceIssues)
     .filter((issue) => issue.id !== 'no-endelig-afgoerelser');
   const hasAslAfgoerelserEmpty = deduped.some((issue) => issue.id === 'asl-afgoerelser-empty');
+  // 'eet-pct-missing' undertrykkes når afgørelsestabellen er tom.
+  // Ellers vises både den generelle tom-tabel-fejl og den afledte feltfejl for samme rodproblem.
   const aggregatedIssues = hasAslAfgoerelserEmpty
     ? deduped.filter((issue) => issue.id !== 'eet-pct-missing')
     : deduped;
@@ -509,7 +513,6 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
 
     for (let i = 0; i < sortedByVirkningsdato.length; i++) {
       const afgoerelse = sortedByVirkningsdato[i]!;
-      const naeste = sortedByVirkningsdato[i + 1];
       const fradragesTil = afgoerelse.ophoerDato;
 
       const foretages = skalFradragForetages(afgoerelse.afgoerelseType, skadesdato);

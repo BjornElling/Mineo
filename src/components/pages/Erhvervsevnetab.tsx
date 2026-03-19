@@ -5,20 +5,24 @@ import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { usePersistedSection } from '../../hooks/usePersistedSection';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
-import { erhvervsevnetabSchema, stamdataSchema } from '../../schemas/formSchemas';
+import {
+  erhvervsevnetabSchema,
+  faellesAarsloenSchema,
+  stamdataSchema,
+  type ErhvervsevnetabComposedValues,
+} from '../../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
+import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/faellesAarsloen/faellesAarsloenInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
-import { amountValueToNumber } from '../../utils/expressionAmount';
 import {
   collectEetAslAfgoerelseValidationIssues,
-  validateAslAarsloenBySkadesaarMax,
-  validateAslAarsloenDivisibleBy1000,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import EetOplysningerTab from './erhvervsevnetab/EetOplysningerTab';
 import EetEfterEalTab from './erhvervsevnetab/EetEfterEalTab';
 import EetLoebendeYdelserTab from './erhvervsevnetab/EetLoebendeYdelserTab';
 import EetKapitaliseringTab from './erhvervsevnetab/EetKapitaliseringTab';
 import EetDifferencekravTab from './erhvervsevnetab/EetDifferencekravTab';
+import { useAslAarsloenRuleReporter } from '../../hooks/useAslAarsloenRuleReporter';
 
 // ─── Fane-konstanter ─────────────────────────────────────────────────────────
 
@@ -51,6 +55,11 @@ const ErhvervsevnetabPage = React.memo(() => {
     'erhvervsevnetab',
     ERHVERVSEVNETAB_INITIAL_VALUES
   );
+  const { values: faellesAarsloenValues, handleChange: handleFaellesAarsloenChange } = usePersistedForm(
+    faellesAarsloenSchema,
+    'faellesAarsloen',
+    FAELLES_AARSLOEN_INITIAL_VALUES
+  );
   const { values: stamValues, handleChange: handleStamChange } = usePersistedForm(
     stamdataSchema,
     'stamdata',
@@ -61,17 +70,12 @@ const ErhvervsevnetabPage = React.memo(() => {
     severity: 'error',
     source: 'rule',
   });
-  const reportAslAarsloenRuleError = useFormFieldErrorReporter('erhvervsevnetab', 'aslAarsloen', {
-    severity: 'error',
-    source: 'rule',
-  });
+  useAslAarsloenRuleReporter(faellesAarsloenValues.aslAarsloen, stamdata?.skadesdato);
 
-  const aslAarsloenRuleError = React.useMemo(() => {
-    const aarsloen = amountValueToNumber(values.aslAarsloen);
-    const divisibleBy1000Error = validateAslAarsloenDivisibleBy1000(aarsloen);
-    if (divisibleBy1000Error) return divisibleBy1000Error;
-    return validateAslAarsloenBySkadesaarMax(aarsloen, stamdata?.skadesdato);
-  }, [stamdata?.skadesdato, values.aslAarsloen]);
+  const composedValues = React.useMemo<ErhvervsevnetabComposedValues>(
+    () => ({ ...values, ...faellesAarsloenValues }),
+    [faellesAarsloenValues, values]
+  );
 
   const aslAfgoerelserValidationIssues = React.useMemo(() => {
     return collectEetAslAfgoerelseValidationIssues(values.aslAfgoerelser, stamdata?.skadesdato, stamdata?.fodselsdato);
@@ -84,11 +88,6 @@ const ErhvervsevnetabPage = React.memo(() => {
   React.useEffect(() => {
     reportAslAfgoerelserRuleError(aslAfgoerelserValidationIssues[0]?.message);
   }, [aslAfgoerelserValidationIssues, reportAslAfgoerelserRuleError]);
-
-  React.useEffect(() => {
-    reportAslAarsloenRuleError(aslAarsloenRuleError);
-  }, [aslAarsloenRuleError, reportAslAarsloenRuleError]);
-
   const handleTabChange = React.useCallback(
     (_: React.SyntheticEvent, value: unknown) => {
       if (!isAllowedTab(value)) return;
@@ -155,35 +154,37 @@ const ErhvervsevnetabPage = React.memo(() => {
       {/* Tab-indhold */}
       {activeTab === TAB_KEYS.EET_OPLYSNINGER && (
         <EetOplysningerTab
-          values={values}
+          values={composedValues}
           setValues={setValues}
           handleChange={handleChange}
+          handleAslAarsloenChange={handleFaellesAarsloenChange('aslAarsloen')}
+          handleEalAarsloenChange={handleFaellesAarsloenChange('ealAarsloen')}
           stamValues={stamValues}
           handleStamChange={handleStamChange}
         />
       )}
       {activeTab === TAB_KEYS.LOEBENDE_YDELSER && (
         <EetLoebendeYdelserTab
-          values={values}
+          values={composedValues}
           setValues={setValues}
           onGoToEetOplysninger={() => setActiveTab(TAB_KEYS.EET_OPLYSNINGER)}
         />
       )}
       {activeTab === TAB_KEYS.KAPITALISERING && (
         <EetKapitaliseringTab
-          values={values}
+          values={composedValues}
           onGoToEetOplysninger={() => setActiveTab(TAB_KEYS.EET_OPLYSNINGER)}
         />
       )}
       {activeTab === TAB_KEYS.EET_EAL && (
         <EetEfterEalTab
-          values={values}
+          values={composedValues}
           onGoToEetOplysninger={() => setActiveTab(TAB_KEYS.EET_OPLYSNINGER)}
         />
       )}
       {activeTab === TAB_KEYS.DIFFERENCEKRAV && (
         <EetDifferencekravTab
-          values={values}
+          values={composedValues}
           setValues={setValues}
           onGoToEetOplysninger={() => setActiveTab(TAB_KEYS.EET_OPLYSNINGER)}
         />

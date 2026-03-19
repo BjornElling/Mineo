@@ -43,9 +43,11 @@ export const buildPersistenceDefaults = (settings?: AppSettings): PersistedSecti
       retTilSjetteFerieuge: true,
       loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
     },
+    faellesAarsloen: {},
     renteberegning: {
       rentekravRows: [],
     },
+    forsoergertab: {},
     erstatningsopgoerelse: {
       indsaetUdkastStempel: safeSettings.defaultIndsaetUdkastStempel ? 'Ja' : 'Nej',
       revideretOpgoerelse: 'Nej',
@@ -125,6 +127,7 @@ export const buildPersistenceDefaults = (settings?: AppSettings): PersistedSecti
       },
     },
     erhvervsevnetab: {
+      aslAfgoerelser: [],
       eetDifferencekravBilagSelection: {
         loebendeYdelser: true,
         kapitalisering: true,

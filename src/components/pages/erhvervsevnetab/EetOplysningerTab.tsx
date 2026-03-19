@@ -1,7 +1,6 @@
 import React from 'react';
 import { Box, MenuItem, Typography } from '@mui/material';
 import StyledDateField from '../../inputs/StyledDateField';
-import StyledAmountField from '../../inputs/StyledAmountField';
 import StyledPercentField from '../../inputs/StyledPercentField';
 import StyledDropdown from '../../inputs/StyledDropdown';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
@@ -10,22 +9,26 @@ import EetAslAfgoerelserTable from '../../tables/EetAslAfgoerelserTable';
 import { dateRanges_stamdata, dateRanges_erhvervsevnetab } from '../../../config/dateRanges';
 import {
   koenEnum,
+  type ErhvervsevnetabComposedValues,
   type ErhvervsevnetabValues,
   type StamdataValues,
 } from '../../../schemas/formSchemas';
 import { coerceToISODateString } from '../../../types/branded';
-import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
+import { useFormFieldErrorReporter, useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import { createCommitEvent, type CommitHandler } from '../../inputs/fieldEvents';
 import {
   validatePercentDivisibleBy5FromValue,
 } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
+import AarsloenAmountFieldRow from '../../inputs/AarsloenAmountFieldRow';
 
 export type EetOplysningerTabProps = {
-  values: ErhvervsevnetabValues;
+  values: ErhvervsevnetabComposedValues;
   setValues: React.Dispatch<React.SetStateAction<ErhvervsevnetabValues>>;
   handleChange: <K extends keyof ErhvervsevnetabValues>(
     key: K
   ) => CommitHandler<ErhvervsevnetabValues[K]>;
+  handleAslAarsloenChange: CommitHandler<ErhvervsevnetabComposedValues['aslAarsloen']>;
+  handleEalAarsloenChange: CommitHandler<ErhvervsevnetabComposedValues['ealAarsloen']>;
   stamValues: StamdataValues;
   handleStamChange: <K extends keyof StamdataValues>(key: K) => CommitHandler<StamdataValues[K]>;
 };
@@ -34,10 +37,21 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
   values,
   setValues,
   handleChange,
+  handleAslAarsloenChange,
+  handleEalAarsloenChange,
   stamValues,
   handleStamChange,
 }) => {
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
+  const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
+  const reportAslAarsloenInputError = useFormFieldErrorReporter('faellesAarsloen', 'aslAarsloen', {
+    severity: 'error',
+    source: 'input',
+  });
+  const reportEalAarsloenInputError = useFormFieldErrorReporter('faellesAarsloen', 'ealAarsloen', {
+    severity: 'error',
+    source: 'input',
+  });
 
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -143,23 +157,13 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
       <ContentBox className="content-box" data-section-id="eet-oplysninger-asl">
         <Typography className="section-header">Arbejdsskadesikringsloven</Typography>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Årsløn</Typography>
-          <Box className="row--label-right-hover__content">
-            <StyledAmountField
-              value={values.aslAarsloen}
-              onCommit={handleChange('aslAarsloen')}
-              allowNegative={false}
-              allowDecimals={false}
-              minValue={1000}
-              maxValue={9999999}
-              width={140}
-              placeholder="0 kr."
-              error={Boolean(eetFieldErrors.aslAarsloen?.message)}
-              helperText={eetFieldErrors.aslAarsloen?.message ?? ''}
-            />
-          </Box>
-        </Box>
+        <AarsloenAmountFieldRow
+          label="Årsløn"
+          value={values.aslAarsloen}
+          onCommit={handleAslAarsloenChange}
+          errorMessage={faellesAarsloenFieldErrors.aslAarsloen?.message}
+          onFieldError={reportAslAarsloenInputError}
+        />
 
         <Typography className="row--subheading" sx={{ mt: 2 }}>
           Afgørelser
@@ -180,23 +184,13 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
           Erstatningsansvarsloven
         </Typography>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Årsløn (hvis forskellig fra ASL)</Typography>
-          <Box className="row--label-right-hover__content">
-            <StyledAmountField
-              value={values.ealAarsloen}
-              onCommit={handleChange('ealAarsloen')}
-              allowNegative={false}
-              allowDecimals={false}
-              minValue={1000}
-              maxValue={9999999}
-              width={140}
-              placeholder="0 kr."
-              error={Boolean(eetFieldErrors.ealAarsloen?.message)}
-              helperText={eetFieldErrors.ealAarsloen?.message ?? ''}
-            />
-          </Box>
-        </Box>
+        <AarsloenAmountFieldRow
+          label="Årsløn (hvis forskellig fra ASL)"
+          value={values.ealAarsloen}
+          onCommit={handleEalAarsloenChange}
+          errorMessage={faellesAarsloenFieldErrors.ealAarsloen?.message}
+          onFieldError={reportEalAarsloenInputError}
+        />
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">EET % (hvis afviger fra ASL)</Typography>
@@ -231,7 +225,7 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">
-            Det er ikke muligt for programmet at tage højde for de særlige fradrag, der foretages i EET for tjenestemænd.
+            Det er ikke muligt for programmet at tage højde for tilskadekomstpension til tidligere tjenestemænd.
           </Typography>
           <Box className="row--label-right-hover__content" />
         </Box>

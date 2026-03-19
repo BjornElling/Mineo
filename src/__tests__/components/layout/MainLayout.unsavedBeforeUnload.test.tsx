@@ -82,8 +82,10 @@ const createSnapshot = (stamdataSkadelidte: string): Record<StorageKey, unknown 
   stamdata: stampStamdata(stamdataSkadelidte),
   aarsloen: undefined,
   satser: undefined,
+  faellesAarsloen: undefined,
   renteberegning: undefined,
   varigemen: undefined,
+  forsoergertab: undefined,
   erstatningsopgoerelse: undefined,
   erhvervsevnetab: undefined,
 });

@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { optionalIsoDateString, percentageDecimal, tableAmountCellValue, tableDateCellString, stripTopLevelKey } from '../baseSchemas';
+import { optionalIsoDateString, percentageDecimal, tableDateCellString, stripTopLevelKey } from '../baseSchemas';
 import { afgoerelseTypeEnum, koenEnum } from '../enumSchemas';
+import type { FaellesAarsloenValues } from './faellesAarsloenSchemas';
 
 // ─── ASL afgørelser tabel ─────────────────────────────────────────────────────
 
@@ -36,8 +37,6 @@ const erhvervsevnetabInnerSchema = z.object({
   beregningsdato: optionalIsoDateString,
   koen: koenEnum.optional(),
   aslAfgoerelser: z.array(aslAfgoerelseRowSchema),
-  aslAarsloen: tableAmountCellValue,
-  ealAarsloen: tableAmountCellValue,
   // ealEetPct gemmes som decimaltal (ikke tabel-draft-string) og parses derfor i schema-laget.
   ealEetPct: percentageDecimal,
   eetDifferencekravBilagSelection: eetDifferencekravBilagSelectionSchema,
@@ -49,3 +48,4 @@ export const erhvervsevnetabSchema = z.preprocess(
 );
 
 export type ErhvervsevnetabValues = z.infer<typeof erhvervsevnetabSchema>;
+export type ErhvervsevnetabComposedValues = ErhvervsevnetabValues & FaellesAarsloenValues;

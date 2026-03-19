@@ -50,6 +50,7 @@ export {
   type RenteberegningValues,
 } from './formSchemas/sections/renteberegningSchemas';
 export { varigeMenSchema, type VarigeMenValues } from './formSchemas/sections/varigeMenSchemas';
+export { faellesAarsloenSchema, type FaellesAarsloenValues } from './formSchemas/sections/faellesAarsloenSchemas';
 export {
   svieSmertePeriodeRowSchema,
   type SvieSmertePeriodeRow,
@@ -80,4 +81,9 @@ export {
   type AslAfgoerelseRow,
   erhvervsevnetabSchema,
   type ErhvervsevnetabValues,
+  type ErhvervsevnetabComposedValues,
 } from './formSchemas/sections/erhvervsevnetabSchemas';
+export {
+  forsoergertabSchema,
+  type ForsoergertabValues,
+} from './formSchemas/sections/forsoergertabSchemas';

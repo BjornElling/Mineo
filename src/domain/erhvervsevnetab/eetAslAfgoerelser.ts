@@ -1,8 +1,6 @@
 import type { AslAfgoerelseRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
-import { aarsloenMax } from '../../data/regulationRates';
-import { formatAsAmount } from '../../utils/formatUtils';
 import { createRowId } from '../rowId';
 import { isUnderOrEqualTwoYearsToFpByBekendtgoerelse } from './eetKapitaliseringOpslag';
 
@@ -44,6 +42,12 @@ const DUPLICATE_AFGOERELSE_MESSAGE = 'Der er angivet to identiske afgørelser me
 
 const assertNeverAfgoerelsestype = (_value: never): undefined => undefined;
 
+/**
+ * Returnerer rækkefølge mellem to afgørelser.
+ *
+ * null betyder "kan ikke afgøres fail-closed", fordi mindst én afgørelsesdato mangler.
+ * Kaldere skal i så fald behandle kandidaterne som ikke-dokumenteret tidligere.
+ */
 const compareAfgoerelseOrder = (
   left: Pick<AslAfgoerelseRow, 'afgoerelsesDato' | 'virkningsDato'>,
   right: Pick<AslAfgoerelseRow, 'afgoerelsesDato' | 'virkningsDato'>
@@ -243,19 +247,6 @@ export const validateKapDatoByAfgoerelsestype = (
 
   if (isWithinTwoYearsRuleActive && kapDatoIso !== afgoerelsesdatoIso) {
     return 'Ved ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.';
-  }
-
-  if (
-    afgoerelsestype === 'Delvist endelig' &&
-    kapDatoIso !== undefined &&
-    afgoerelsesdatoIso !== undefined &&
-    skadesdato !== undefined &&
-    fodselsdato !== undefined &&
-    controlDateIso !== undefined &&
-    isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadesdato, fodselsdato, controlDateIso) &&
-    kapDatoIso !== afgoerelsesdatoIso
-  ) {
-    return 'Ved delvist endelig afgørelse ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.';
   }
 
   return undefined;
@@ -546,28 +537,3 @@ export const collectIncompleteRowIssues = (
 // To rækker er identiske når afgørelsesdato og virkningsdato begge er ens.
 export const hasIdenticalAfgoerelser = (rows: readonly AslAfgoerelseRow[]): boolean =>
   rows.some((row) => validateDuplicateAfgoerelse(row, rows) !== undefined);
-
-export const validateAslAarsloenDivisibleBy1000 = (
-  aarsloen: number | undefined
-): string | undefined => {
-  if (aarsloen === undefined || !Number.isFinite(aarsloen)) return undefined;
-  if (aarsloen % 1000 !== 0) return 'Årsløn skal være deleligt med 1.000.';
-  return undefined;
-};
-
-export const validateAslAarsloenBySkadesaarMax = (
-  aarsloen: number | undefined,
-  skadesdatoIso: ISODateString | undefined
-): string | undefined => {
-  if (aarsloen === undefined || !Number.isFinite(aarsloen)) return undefined;
-  if (skadesdatoIso === undefined) return undefined;
-
-  const skadesaar = Number.parseInt(skadesdatoIso.slice(0, 4), 10);
-  if (!Number.isFinite(skadesaar)) return undefined;
-
-  const maxAarsloen = aarsloenMax[skadesaar];
-  if (!Number.isFinite(maxAarsloen)) return undefined;
-  if (aarsloen <= maxAarsloen) return undefined;
-
-  return `Årsløn kan ikke overstige maks årslønnen i skadesåret (${formatAsAmount(maxAarsloen, 0)} kr.)`;
-};

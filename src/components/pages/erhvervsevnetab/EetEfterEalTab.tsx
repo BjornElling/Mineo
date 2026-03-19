@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import type { ErhvervsevnetabValues } from '../../../schemas/formSchemas';
+import type { ErhvervsevnetabComposedValues } from '../../../schemas/formSchemas';
 import { usePersistedSection } from '../../../hooks/usePersistedSection';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import { useAppSettings } from '../../../contexts/useAppSettings';
@@ -20,7 +20,7 @@ import { useEetShakeFlag } from './useEetShakeFlag';
 import { formatKr, navigationSortKey, toFieldIssue } from './eetTabSharedUtils';
 
 type Props = Readonly<{
-  values: ErhvervsevnetabValues;
+  values: ErhvervsevnetabComposedValues;
   onGoToEetOplysninger: () => void;
 }>;
 
@@ -31,6 +31,7 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
   const stamdata = usePersistedSection('stamdata');
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
+  const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
   const { settings } = useAppSettings();
   const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
 
@@ -51,14 +52,14 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
     return [
       toFieldIssue('field-beregningsdato', eetFieldErrors.beregningsdato?.message),
       toFieldIssue('field-eal-eet-pct', eetFieldErrors.ealEetPct?.message),
-      toFieldIssue('field-aarsloen-eal', eetFieldErrors.ealAarsloen?.message),
+      toFieldIssue('field-aarsloen-eal', faellesAarsloenFieldErrors.ealAarsloen?.message),
       toFieldIssue('field-fodselsdato', stamdataFieldErrors.fodselsdato?.message),
       toFieldIssue('field-skadesdato', stamdataFieldErrors.skadesdato?.message),
     ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
   }, [
     eetFieldErrors.beregningsdato?.message,
-    eetFieldErrors.ealAarsloen?.message,
     eetFieldErrors.ealEetPct?.message,
+    faellesAarsloenFieldErrors.ealAarsloen?.message,
     stamdataFieldErrors.fodselsdato?.message,
     stamdataFieldErrors.skadesdato?.message,
   ]);

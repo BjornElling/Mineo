@@ -3,22 +3,24 @@ import { IconButton } from '@mui/material';
 import { Download } from '@mui/icons-material';
 
 type Props = Readonly<{
-  onClick: () => void;
-  shake: boolean;
+  onClick?: () => void;
+  shake?: boolean;
+  disabled?: boolean;
 }>;
 
-const EetPdfDownloadButton: React.FC<Props> = ({ onClick, shake }) => {
+const EetPdfDownloadButton: React.FC<Props> = ({ onClick, shake = false, disabled = false }) => {
   return (
     <IconButton
       aria-label="Download specifikation"
       onClick={onClick}
       size="small"
+      disabled={disabled}
       sx={{
         borderRadius: '6px',
         transition: 'background-color 0.2s',
         animation: shake ? 'shake 0.5s' : 'none',
-        '&:hover': { backgroundColor: '#e3f2fd' },
-        '&:active': { backgroundColor: '#bbdefb' },
+        '&:hover': disabled ? {} : { backgroundColor: '#e3f2fd' },
+        '&:active': disabled ? {} : { backgroundColor: '#bbdefb' },
         '@keyframes shake': {
           '0%, 100%': { transform: 'translateX(0)' },
           '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },
@@ -26,7 +28,7 @@ const EetPdfDownloadButton: React.FC<Props> = ({ onClick, shake }) => {
         },
       }}
     >
-      <Download sx={{ fontSize: '24px', color: 'primary.main' }} />
+      <Download sx={{ fontSize: '24px', color: disabled ? 'text.disabled' : 'primary.main' }} />
     </IconButton>
   );
 };

@@ -8,7 +8,7 @@ import {
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, parseISODate } from '../../types/branded';
 import { addDays } from '../../utils/dateUtils';
-import type { ErhvervsevnetabValues } from '../../schemas/formSchemas';
+import type { ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
 
 export type AgeYearsMonths = Readonly<{
   years: number;
@@ -286,7 +286,7 @@ export const interpolateFactorBeyondTable = (
 export const resolveFactorTable = (
   tabeldata: KapitaliseringsTabelData,
   tabel: string,
-  koen: ErhvervsevnetabValues['koen']
+  koen: ErhvervsevnetabComposedValues['koen']
 ): ResolveFactorTableResult => {
   const simpleTable = tabeldata.erhvervsevnetabTabeller[tabel];
   if (simpleTable && simpleTable.length > 0) {

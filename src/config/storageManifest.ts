@@ -15,8 +15,10 @@ export const STORAGE_KEYS = {
   stamdata: 'mineo_stamdata',
   satser: 'mineo_satser',
   aarsloen: 'mineo_aarsloen',
+  faellesAarsloen: 'mineo_faellesAarsloen',
   renteberegning: 'mineo_renteberegning',
   varigemen: 'mineo_varigemen',
+  forsoergertab: 'mineo_forsoergertab',
   erstatningsopgoerelse: 'mineo_erstatningsopgoerelse',
   erhvervsevnetab: 'mineo_erhvervsevnetab',
 } as const;

@@ -1,4 +1,4 @@
-import type { AslAfgoerelseRow, ErhvervsevnetabValues } from '../../schemas/formSchemas';
+import type { AslAfgoerelseRow, ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
 import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
@@ -67,7 +67,7 @@ export type EetKapitaliseringCalculationResult = Readonly<{
 }>;
 
 type Input = Readonly<{
-  erhvervsevnetab: ErhvervsevnetabValues;
+  erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadesdato: ISODateString | undefined;
   fodselsdato: ISODateString | undefined;
 }>;

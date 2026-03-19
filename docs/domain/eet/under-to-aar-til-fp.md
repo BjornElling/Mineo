@@ -173,15 +173,13 @@ Hvis en del af EET allerede er kapitaliseret, og en del stadig løber:
 | Fil | Funktion | Beskrivelse |
 |---|---|---|
 | `eetLoebendeYdelserCalculation.ts` | `resolveFolkepensionsDagFoer()` | Beregner dagen før folkepensionsdatoen som ophørskandidat for løbende ydelser. |
-| `eetKapitaliseringCalculation.ts:317` | `useDirectSaerfaktor` | `controlTabelvalg.folkepensionsalderMaaneder − controlAge.totalMonths ≤ 24` |
-| `eetDifferencekravCalculation.ts:179` | `useDirectSaerfaktor` (proforma) | Samme betingelse, men med beregningsdato som referencepunkt |
-| `eetKapitaliseringOpslag.ts:307` | `isUnderOrEqualTwoYearsToFpByBekendtgoerelse()` | Eksponeret hjælpefunktion til UI-validering |
+| `eetKapitaliseringCalculation.ts:363` | `useDirectSaerfaktor` | `controlTabelvalg.folkepensionsalderMaaneder − controlAge.totalMonths ≤ 24` |
+| `eetDifferencekravCalculation.ts:194` | `useDirectSaerfaktor` (proforma) | Samme betingelse, men med beregningsdato som referencepunkt |
+| `eetKapitaliseringOpslag.ts:309` | `isUnderOrEqualTwoYearsToFpByBekendtgoerelse()` | Eksponeret hjælpefunktion til UI-validering |
 
 ### Implementeringsstatus
 
-Dokumentationen beskriver den fastlagte forretningslogik.
-
-Den nuværende implementering er under tilpasning til denne model. Hvis dokumentation og kode afviger, er denne fil den normative beskrivelse af forretningslogikken.
+Dokumentationen beskriver den implementerede forretningslogik. Hvis dokumentation og kode afviger, er denne fil den normative beskrivelse af forretningslogikken.
 
 ---
 

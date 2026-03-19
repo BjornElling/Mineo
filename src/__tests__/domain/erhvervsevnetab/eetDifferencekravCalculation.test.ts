@@ -6,12 +6,74 @@ import { computeEetDifferencekravCalculation } from '../../../domain/erhvervsevn
 // Fælles stamdata for alle ≤ 2 år-tests i denne fil:
 //   skadesdato 2019-04-01, fødselsdato 1955-07-01
 //   FP = 67 år → folkepensionsdato = 2022-07-01
-//   tvungen_kap_dato = 2020-07-01, tvungen_stop_dato = 2020-06-30
 //   Bekendtgørelse BEK 9921/2019 → særfaktor = 1.245 (67 år, skadesdato 2019)
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
 describe('computeEetDifferencekravCalculation', () => {
+  describe('uden ≤ 2 år til folkepension', () => {
+    it('fradrager løbende ydelser til dagen før beregningsdatoen og proformakapitaliserer rest-EET', () => {
+      const result = computeEetDifferencekravCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          beregningsdato: '2026-12-01',
+          aslAarsloen: asAmount(401000),
+          aslAfgoerelser: [{
+            id: 'a1',
+            afgoerelsesDato: '01-01-2024',
+            virkningsDato: '01-01-2024',
+            eetPct: '60',
+            kapDato: '01-01-2025',
+            kapPct: '30',
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          }],
+        },
+        skadesdato: '2019-04-01',
+        fodselsdato: '1980-01-01',
+      });
+
+      expect(result.hasBlockingErrors).toBe(false);
+      expect(result.computation).not.toBeNull();
+      expect(result.computation?.fradragLoebendeYdelser).toBeGreaterThan(0);
+      expect(result.computation?.fradragKapitaliseretEet).toBeGreaterThan(0);
+      expect(result.computation?.proformaKapitalisering).not.toBeNull();
+      expect(result.computation?.proformaKapitalisering?.kapitaliseretPgaUnderToAarTilFp).toBe(false);
+    });
+  });
+
+  describe('≤ 2 år til folkepension — scenarie 1 (afgørelsesdato > 2 år før FP)', () => {
+    it('fradrager løbende ydelser til folkepensionsdatoen og proformakapitaliserer rest-EET på beregningsdatoen', () => {
+      const result = computeEetDifferencekravCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          beregningsdato: '2022-09-01',
+          aslAarsloen: asAmount(401000),
+          aslAfgoerelser: [{
+            id: 'a1',
+            afgoerelsesDato: '01-06-2019',
+            virkningsDato: '01-06-2019',
+            eetPct: '60',
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          }],
+        },
+        skadesdato: '2019-04-01',
+        fodselsdato: '1955-07-01',
+      });
+
+      expect(result.hasBlockingErrors).toBe(false);
+      expect(result.computation).not.toBeNull();
+      expect(result.computation?.loebendeComputation?.afgoerelser[0]?.ophoerAarsag).toBe('folkepensionsdato');
+      expect(result.computation?.loebendeComputation?.afgoerelser[0]?.ophoerDato).toBe('2022-06-30');
+      expect(result.computation?.fradragKapitaliseretEet).toBe(0);
+      expect(result.computation?.proformaKapitalisering).not.toBeNull();
+      expect(result.computation?.proformaKapitalisering?.kapitaliseretPgaUnderToAarTilFp).toBe(true);
+    });
+  });
+
   describe('≤ 2 år til folkepension — scenarie 2 (afgørelses­dato ≤ 2 år, virknings­dato > 2 år)', () => {
     // Afgørelsesdato 2021-10-01 er 9 måneder til FP → ≤ 2 år ✓
     // Virkningsdato 2020-01-01 er 30 måneder til FP → > 2 år ✓
@@ -239,6 +301,45 @@ describe('computeEetDifferencekravCalculation', () => {
             id: 'a2',
             afgoerelsesDato: '01-02-2022',
             virkningsDato: '01-02-2022',
+            eetPct: '80',
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadesdato: '2019-04-01',
+      fodselsdato: '1955-07-01',
+    });
+
+    expect(result.hasBlockingErrors).toBe(false);
+    expect(result.computation?.afgoerelser).toHaveLength(1);
+    expect(result.computation?.afgoerelser[0]?.rowId).toBe('a1');
+    expect(result.computation?.proformaKapitalisering?.loebendeEetPct).toBe(30);
+  });
+
+  it('ser bort fra ufuldstændige afgørelser uden dokumenteret afgørelsesdato og virkningsdato på beregningsdatoen', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: '2021-12-01',
+        aslAarsloen: asAmount(401000),
+        aslAfgoerelser: [
+          {
+            id: 'a1',
+            afgoerelsesDato: '01-10-2021',
+            virkningsDato: '01-10-2021',
+            eetPct: '60',
+            kapDato: '01-10-2021',
+            kapPct: '30',
+            afgoerelseType: 'Delvist endelig',
+            tidlKapDato: undefined,
+          },
+          {
+            id: 'a2',
+            afgoerelsesDato: '01-11-2021',
+            virkningsDato: undefined,
             eetPct: '80',
             kapDato: undefined,
             kapPct: undefined,

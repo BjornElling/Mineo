@@ -117,7 +117,7 @@ Differencekravet fratrækker derfor kun kapitalbeløbet.
 I disse situationer er der ikke sket tvungen fuldkapitalisering efter hovedreglen. Differencekravet fraviger derfor ASL-forløbet på ét punkt:
 - løbende ydelser fratrækkes kun til og med dagen før beregningsdatoen, dog aldrig efter dagen før folkepensionsdatoen
 - hvis der på beregningsdatoen fortsat består rest-EET, proformakapitaliseres hele rest-EET på beregningsdatoen
-- ligger beregningsdatoen inden for eller efter 2-årsgrænsen til folkepension, anvendes særfaktoren
+- ligger beregningsdatoen inden for, præcis på eller efter 2-årsgrænsen til folkepension, anvendes særfaktoren, også når beregningsdatoen er på eller efter folkepensionsdatoen
 
 ---
 
@@ -138,8 +138,7 @@ I disse situationer er der ikke sket tvungen fuldkapitalisering efter hovedregle
 ### Implementeringsstatus
 
 Dokumentationen ovenfor beskriver den fastlagte forretningslogik.
-
-Den nuværende implementering er under tilpasning til denne model. Hvis dokumentation og kode afviger, er denne fil den normative beskrivelse af forretningslogikken.
+Dokumentationen beskriver den implementerede forretningslogik. Hvis dokumentation og kode afviger, er denne fil den normative beskrivelse af forretningslogikken.
 
 ### Proforma-specifikke issue-ID'er
 

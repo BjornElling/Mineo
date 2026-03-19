@@ -12,6 +12,7 @@ import Satser from './components/pages/Satser';
 import Renteberegning from './components/pages/Renteberegning';
 import Aarsloen from './components/pages/Aarsloen';
 import VarigeMen from './components/pages/VarigeMen';
+import Forsoergertab from './components/pages/Forsoergertab';
 import Indstillinger from './components/pages/Indstillinger';
 import Om from './components/pages/Om';
 import OpenEo from './components/pages/OpenEo';
@@ -104,6 +105,7 @@ const routes: AppRoute[] = [
   { path: '/satser', component: Satser },
   { path: '/renteberegning', component: Renteberegning },
   { path: '/varigemen', component: VarigeMen },
+  { path: '/forsoergertab', component: Forsoergertab },
   { path: '/aarsloen', component: Aarsloen },
   { path: '/indstillinger', component: Indstillinger },
   { path: '/om', component: Om },

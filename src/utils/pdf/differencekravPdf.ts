@@ -44,6 +44,7 @@ import {
 import {
   addKapitaliseringAfgoerelseSection,
   addKapitaliseringEmptyState,
+  PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL,
 } from './kapitaliseringPdf';
 import { renderEfterEalBody } from './efterEalPdf';
 
@@ -132,7 +133,7 @@ const addProformaKapitaliseringSection = (
   );
 
   writer.writeLeftRightTextSingleLine(
-    'Kapitaliseret pga. ≤ 2 år til folkepension?',
+    PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL,
     formatJaNej(pk.kapitaliseretPgaUnderToAarTilFp),
     rowOpts
   );

@@ -39,6 +39,47 @@ describe('eoFileDataSchema', () => {
       expect(result.data.aarsloen).toBeUndefined();
     }
   });
+
+  it('accepterer de nye sektioner med fuldt udfyldte, schema-gyldige værdier', () => {
+    const result = eoFileDataSchema.safeParse({
+      faellesAarsloen: {
+        aslAarsloen: { kind: 'number', value: 450000 },
+        ealAarsloen: { kind: 'expression', expression: '500000', value: 500000 },
+      },
+      forsoergertab: {
+        beregningsdato: '2025-01-15',
+        virkningsdato: '2025-01-01',
+        tilkendtForPeriodeAar: 5,
+      },
+      erhvervsevnetab: {
+        beregningsdato: '2025-01-15',
+        koen: 'Mand',
+        aslAfgoerelser: [
+          {
+            id: 'eet_asl_1',
+            afgoerelsesDato: '2025-01-15',
+            virkningsDato: '2025-01-01',
+            eetPct: '15',
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Midlertidig',
+            tidlKapDato: undefined,
+          },
+        ],
+        ealEetPct: 20,
+        eetDifferencekravBilagSelection: {
+          loebendeYdelser: true,
+          kapitalisering: true,
+          eetEfterEal: true,
+          proformaKapitalisering: false,
+          visUdvidetSpecifikation: false,
+          visUdvidetSpecifikationLoebendeYdelserBilag: false,
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
+  });
 });
 
 // ─── eoFileDataLoadSchema ─────────────────────────────────────────────────────

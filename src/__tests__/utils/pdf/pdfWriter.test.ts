@@ -267,6 +267,15 @@ describe('pdfWriter fitTextToWidth', () => {
     const result = writer.fitTextToWidth('abc', 100);
     expect(result).toBe('abc');
   });
+
+  it('trunkerer med ASCII-ellipsis for PDF-sikker rendering', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+
+    const result = writer.fitTextToWidth('abcdef', 8);
+
+    expect(result).toBe('a...');
+  });
 });
 
 // ─── visUdkastStempel ────────────────────────────────────────────────────────

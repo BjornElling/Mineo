@@ -1,4 +1,4 @@
-import type { AslAfgoerelseRow, ErhvervsevnetabValues } from '../../schemas/formSchemas';
+import type { AslAfgoerelseRow, ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
 import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, dateToISO, parseISODate } from '../../types/branded';
@@ -46,7 +46,7 @@ export type EetLoebendeAfgoerelseComputation = Readonly<{
   harRestSektion: boolean;
   tilbagevirkendeKraft: boolean;
   ophoerDato: ISODateString;
-  ophoerAarsag: 'beregningsdato' | 'senere-afgoerelse' | 'kapitalisering' | 'tvungen-kapitalisering' | 'folkepensionsdato';
+  ophoerAarsag: 'beregningsdato' | 'senere-afgoerelse' | 'kapitalisering' | 'folkepensionsdato';
   grundydelseFuld: number;
   grundydelseRest: number | null;
   grundydelse2024Fuld: number;
@@ -78,7 +78,7 @@ export type EetLoebendeCalculationResult = Readonly<{
 }>;
 
 type Input = Readonly<{
-  erhvervsevnetab: ErhvervsevnetabValues;
+  erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadesdato: ISODateString | undefined;
   fodselsdato: ISODateString | undefined;
 }>;
@@ -257,6 +257,8 @@ const buildFullSectionPeriods = (
   const afgoerelsesaar = toYear(args.afgoerelsesdato);
 
   if (virkningsaar < afgoerelsesaar) {
+    // Første periode bruger afgørelsesårets sats, når virkning starter i et tidligere år.
+    // Derefter skifter satsår normalt ved hvert årsskifte frem til slutdatoen.
     const firstEnd = minIso(args.slutdato, endOfYearIso(afgoerelsesaar));
     result.push({ fra: args.virkningsdato, til: firstEnd, satsAar: afgoerelsesaar });
     const nextStart = isoDayAfter(firstEnd);
@@ -274,6 +276,8 @@ const buildFullSectionPeriods = (
     return result;
   }
 
+  // Når virkning og afgørelse ligger i samme år, bliver satsåret dette år uanset datoorden.
+  // Hvis virkning først indtræder efter afgørelsesdatoen i et senere år, følger første satsår virkningsåret.
   const firstSatsAar = args.virkningsdato <= args.afgoerelsesdato ? afgoerelsesaar : virkningsaar;
   const firstEnd = minIso(args.slutdato, endOfYearIso(virkningsaar));
   result.push({ fra: args.virkningsdato, til: firstEnd, satsAar: firstSatsAar });
@@ -334,10 +338,9 @@ const resolveFolkepensionsDagFoer = (
 
 const OPHOER_AARSAG_PRIORITY: Readonly<Record<EetLoebendeAfgoerelseComputation['ophoerAarsag'], number>> = {
   'senere-afgoerelse': 1,
-  'tvungen-kapitalisering': 2,
-  kapitalisering: 3,
-  folkepensionsdato: 4,
-  beregningsdato: 5,
+  kapitalisering: 2,
+  folkepensionsdato: 3,
+  beregningsdato: 4,
 };
 
 const toAfgoerelseLabel = (
@@ -617,8 +620,6 @@ export const toOphoerAarsagLabel = (
       return 'Senere afgørelse';
     case 'kapitalisering':
       return 'Kapitalisering';
-    case 'tvungen-kapitalisering':
-      return 'Tvungen kapitalisering';
     case 'folkepensionsdato':
       return 'Folkepensionsdato';
     default:

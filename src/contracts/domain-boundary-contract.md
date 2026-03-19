@@ -25,6 +25,22 @@ Dette dokument fastlægger bindende grænser mellem sider/domæner, så tværkob
 3. Implementeringen ændrer ikke sidegrænserne i §1: EET må stadig ikke læse eller beregne på persisted sagsdata fra andre fagsider end `stamdata`.
 4. Nye beregningsafhængigheder, policy-linjer eller pipelines på tværs af fagsider kræver fortsat en eksplicit kontraktændring i denne fil.
 
+## 2a. Forsørgertab
+
+1. `Forsørgertab` er et selvstændigt beregningsdomæne med egen persisted state.
+2. Siden må være fuldt tilgængelig i navigation, routing, persistence, save/load og PDF-generering på linje med de øvrige fagsider.
+3. Siden må læse `stamdata`.
+
+## 2b. Fælles årsløn
+
+1. `faellesAarsloen` er en neutral persisted sektion til fælles, autoritative årslønsfelter.
+2. Sektionen må kun indeholde de fælles felter `aslAarsloen` og `ealAarsloen`.
+3. `Erhvervsevnetab` og `Forsørgertab` må læse og skrive `faellesAarsloen`.
+4. De to årslønsfelter må ikke persisteres parallelt i `erhvervsevnetab`- eller `forsoergertab`-sektionerne.
+5. Delte ASL-årslønregler må implementeres i neutrale, fælles moduler under `src/domain/faellesAarsloen/` og må bruges af begge sider.
+6. Eventuelle tværgående hooks/komponenter for disse felter skal navngives neutralt og må ikke leve i en sidespecifik mappe.
+7. Denne undtagelse gælder kun de to nævnte felter og deres fælles valideringsregler; øvrige tværside-afhængigheder er fortsat forbudt uden ny kontraktændring.
+
 ## 3. Navnekollision: "Midlertidigt EET"
 
 1. Ydelsestypen `midlertidigt_eet` i offentlige ydelser er en selvstændig ydelseskategori.

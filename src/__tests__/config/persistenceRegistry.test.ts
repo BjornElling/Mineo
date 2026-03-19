@@ -124,6 +124,17 @@ describe('persistenceSchemas', () => {
     });
   });
 
+  describe('forsoergertab', () => {
+    it('accepterer tomt objekt (alle felter optional)', () => {
+      expect(persistenceSchemas.forsoergertab.safeParse({}).success).toBe(true);
+    });
+
+    it('stripper activeTab fra input', () => {
+      const result = persistenceSchemas.forsoergertab.safeParse({ activeTab: 'ft' });
+      expect(result.success).toBe(true);
+    });
+  });
+
   describe('erstatningsopgoerelse', () => {
     it('afviser null', () => {
       const result = persistenceSchemas.erstatningsopgoerelse.safeParse(null);

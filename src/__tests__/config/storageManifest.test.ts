@@ -9,13 +9,15 @@ import {
 import type { StorageKey } from '../../config/storageManifest';
 
 describe('STORAGE_KEYS', () => {
-  it('indeholder alle 6 forventede pagekeys', () => {
+  it('indeholder alle forventede pagekeys', () => {
     expect(STORAGE_KEYS).toHaveProperty('stamdata');
     expect(STORAGE_KEYS).toHaveProperty('satser');
     expect(STORAGE_KEYS).toHaveProperty('aarsloen');
     expect(STORAGE_KEYS).toHaveProperty('renteberegning');
     expect(STORAGE_KEYS).toHaveProperty('varigemen');
+    expect(STORAGE_KEYS).toHaveProperty('forsoergertab');
     expect(STORAGE_KEYS).toHaveProperty('erstatningsopgoerelse');
+    expect(STORAGE_KEYS).toHaveProperty('erhvervsevnetab');
   });
 
   it('alle keys starter med "mineo_"', () => {

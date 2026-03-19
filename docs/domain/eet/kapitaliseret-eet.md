@@ -127,8 +127,7 @@ Når en `Endelig` afgørelse er inden for eller præcis 2 år før folkepension,
 ### Implementeringsstatus
 
 Dokumentationen ovenfor beskriver den fastlagte forretningslogik.
-
-Den nuværende implementering er under tilpasning til denne model. Hvis dokumentation og kode afviger, er denne fil den normative beskrivelse af forretningslogikken.
+Dokumentationen beskriver den implementerede forretningslogik. Hvis dokumentation og kode afviger, er denne fil den normative beskrivelse af forretningslogikken.
 
 ### Tests
 

@@ -58,6 +58,13 @@ describe('buildPersistenceDefaults', () => {
     });
   });
 
+  describe('erhvervsevnetab defaults', () => {
+    it('aslAfgoerelser = tom liste', () => {
+      const defaults = buildPersistenceDefaults();
+      expect(defaults.erhvervsevnetab?.aslAfgoerelser).toEqual([]);
+    });
+  });
+
   describe('erstatningsopgoerelse defaults', () => {
     it('indsaetUdkastStempel følger settings.defaultIndsaetUdkastStempel', () => {
       const withStempel = buildPersistenceDefaults({ ...DEFAULT_APP_SETTINGS, defaultIndsaetUdkastStempel: true });

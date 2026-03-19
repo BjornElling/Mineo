@@ -465,6 +465,34 @@ export const dateRanges_varigemen: DateRanges_VarigeMen = {
 };
 
 // ============================================================================
+// FORSØRGERTAB-SIDEN
+// ============================================================================
+
+export interface DateRanges_Forsoergertab {
+  readonly beregningsdato: DynamicMinDateRange;
+  readonly virkningsdato: DynamicMinDateRange;
+}
+
+export const dateRanges_forsoergertab: DateRanges_Forsoergertab = {
+  beregningsdato: {
+    type: 'dynamic-min',
+    min: 'DYNAMIC',
+    fallbackMin: DATE_2005_01_01,
+    max: DATE_EET_MAX,
+    placeholder: 'dd-mm-åååå',
+    notes: 'Valideres mod dynamisk min-værdi (højeste af skadesdato og virkningsdato) og fast max-værdi (samme som EET-beregningsdato).',
+  },
+  virkningsdato: {
+    type: 'dynamic-min',
+    min: 'DYNAMIC',
+    fallbackMin: DATE_2005_01_01,
+    max: DATE_EET_MAX,
+    placeholder: 'dd-mm-åååå',
+    notes: 'Valideres mod dynamisk min-værdi (skadesdato) og dynamisk max-værdi (laveste af EET-max og beregningsdato).',
+  },
+};
+
+// ============================================================================
 // ÅRSLØN-SIDEN
 // ============================================================================
 
@@ -597,6 +625,7 @@ export interface DateRanges {
   readonly stamdata: DateRanges_Stamdata;
   readonly erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse;
   readonly varigemen: DateRanges_VarigeMen;
+  readonly forsoergertab: DateRanges_Forsoergertab;
   readonly aarsloen: DateRanges_Aarsloen;
   readonly renteberegning: DateRanges_Renteberegning;
   readonly erhvervsevnetab: DateRanges_Erhvervsevnetab;
@@ -606,6 +635,7 @@ export const dateRanges: DateRanges = {
   stamdata: dateRanges_stamdata,
   erstatningsopgoerelse: dateRanges_erstatningsopgoerelse,
   varigemen: dateRanges_varigemen,
+  forsoergertab: dateRanges_forsoergertab,
   aarsloen: dateRanges_aarsloen,
   renteberegning: dateRanges_renteberegning,
   erhvervsevnetab: dateRanges_erhvervsevnetab,

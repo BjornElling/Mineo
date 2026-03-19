@@ -535,7 +535,7 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
     ).toBe(false);
   });
 
-  it('genberegner kap.dato-issue når fodselsdato ændrer ≤ 2 år til folkepension-reglen', () => {
+  it('giver ikke kap.dato-fejl for delvist endelig ved ≤ 2 år til folkepension', () => {
     const rows: AslAfgoerelseRow[] = [
       buildRow({
         id: 'r1',
@@ -560,11 +560,7 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
       toISODateString('2025-01-01'),
       toISODateString('1959-01-01')
     );
-    expect(withFpIssue).toContainEqual({
-      rowId: 'r1',
-      field: 'kapDato',
-      message: 'Ved delvist endelig afgørelse ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.',
-    });
+    expect(withFpIssue.some((issue) => issue.rowId === 'r1' && issue.field === 'kapDato')).toBe(false);
   });
 
   it('giver ikke særskilt 2-årsregel-fejl i felterne, når skadesdato mangler', () => {

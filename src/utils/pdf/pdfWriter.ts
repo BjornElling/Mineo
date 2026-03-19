@@ -20,7 +20,7 @@ import { normalizeRightAlignedTextForPdf, normalizeTextForPdf } from './pdfTextU
 
 const fitTextToWidth = (doc: jsPDF, text: string, maxWidth: number): string => {
   if (doc.getTextWidth(text) <= maxWidth) return text;
-  const ellipsis = '…';
+  const ellipsis = '...';
   const ellipsisWidth = doc.getTextWidth(ellipsis);
   if (ellipsisWidth >= maxWidth) return '';
   let trimmed = text;
