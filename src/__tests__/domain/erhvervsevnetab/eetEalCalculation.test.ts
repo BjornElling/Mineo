@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
-import { computeEetEalCalculation, formatPercentTrimmedFromRounded4 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import {
+  buildAldersreduktionFormelTekst,
+  computeEetEalCalculation,
+  formatPercentTrimmedFromRounded4,
+} from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { aarsloenMax, erhvervsevnetabMax, reguleringssats } from '../../../data/regulationRates';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
@@ -322,5 +326,17 @@ describe('formatPercentTrimmedFromRounded4', () => {
     expect(formatPercentTrimmedFromRounded4(22.8100)).toBe('22,81');
     expect(formatPercentTrimmedFromRounded4(22.8)).toBe('22,8');
     expect(formatPercentTrimmedFromRounded4(23)).toBe('23');
+  });
+});
+
+describe('buildAldersreduktionFormelTekst', () => {
+  it('tilføjer max 70 %-markering når den ubeskårne aldersreduktion ville overstige 70 %', () => {
+    expect(buildAldersreduktionFormelTekst(72, 69)).toBe('(72 - 29) + (72 - 54) x 2 (max 70 %) =');
+  });
+
+  it('viser ikke max 70 %-markering når aldersreduktionen ikke capped ved 70 %', () => {
+    expect(buildAldersreduktionFormelTekst(54, 54)).toBe('(54 - 29) =');
+    expect(buildAldersreduktionFormelTekst(69, 69)).toBe('(69 - 29) + (69 - 54) x 2 =');
+    expect(buildAldersreduktionFormelTekst(70, 69)).toBe('(70 - 29) + (70 - 54) x 2 (max 70 %) =');
   });
 });
