@@ -246,7 +246,12 @@ export const interpolateFactorWithinTable = (
   if (!first || !last) return null;
   if (age.years < first.alder) return null;
   if (age.years > last.alder) return null;
-  if (age.years === last.alder) return last.faktor;
+  // I månedsafhængige tabeller er fx "64 år, 2 måneder" ikke lig med faktor-rækken for 64 år.
+  // Når alderen ligger efter tabellens sidste hele år, skal kaldere falde videre til
+  // interpolation mod særfaktoren i intervallet frem til 2-årsgrænsen før folkepension.
+  if (age.years === last.alder) {
+    return maanedsAfhaengig && age.months > 0 ? null : last.faktor;
+  }
   const lower = rows.find((r) => r.alder === age.years);
   const upper = rows.find((r) => r.alder === age.years + 1);
   if (!lower || !upper) return null;

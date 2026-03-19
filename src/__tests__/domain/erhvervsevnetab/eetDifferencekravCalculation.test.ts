@@ -357,4 +357,31 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.computation?.afgoerelser[0]?.rowId).toBe('a1');
     expect(result.computation?.proformaKapitalisering?.loebendeEetPct).toBe(30);
   });
+
+  it('proformakapitaliserer med interpolation mod særfaktoren efter tabellens sidste hele alder', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: '2026-01-01',
+        aslAarsloen: asAmount(632000),
+        aslAfgoerelser: [{
+          id: 'a1',
+          afgoerelsesDato: '2025-01-01',
+          virkningsDato: '2025-01-01',
+          eetPct: '50',
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: 'Endelig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadesdato: '2011-01-01',
+      fodselsdato: '1961-11-01',
+    });
+
+    expect(result.hasBlockingErrors).toBe(false);
+    expect(result.computation?.proformaKapitalisering).not.toBeNull();
+    expect(result.computation?.proformaKapitalisering?.kapitaliseretPgaUnderToAarTilFp).toBe(false);
+    expect(result.computation?.proformaKapitalisering?.kapitaliseringsfaktor).toBe(1.759);
+  });
 });

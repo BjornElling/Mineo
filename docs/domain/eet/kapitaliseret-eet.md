@@ -96,6 +96,9 @@ Faktoren bestemmes af skadelidtes alder på kapitaliseringstidspunktet og afhæn
 - Over tabellens maksimum, men stadig mere end 2 år fra folkepension: lineær ekstrapolation mod særfaktoren.
 - Inden for eller præcis 2 år til folkepension: særfaktoren direkte.
 
+Ved månedsafhængige tabeller betyder "over tabellens maksimum" også tilfælde, hvor tabellen slutter på et helt år, men skadelidte er ældre end dette med ekstra måneder.
+Eksempel: Hvis tabellen slutter ved 64 år, er `64 år, 2 måneder` ikke lig faktor-rækken for 64 år; der skal i stedet interpoleres videre mod særfaktoren frem til 2-årsgrænsen før folkepension.
+
 Kapitaliseringsfaktoren afrundes til 3 decimaler.
 
 #### Trin 5 — Kapitalbeløb

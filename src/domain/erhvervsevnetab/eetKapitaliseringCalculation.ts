@@ -453,7 +453,12 @@ export const computeEetKapitaliseringCalculation = (
         kapitaliseringsfaktor = round3(withinTable);
       } else {
         const maxAge = factorTable[factorTable.length - 1]?.alder;
-        if (maxAge !== undefined && ageForFactor.years <= maxAge) {
+        const isBeyondLastWholeYearInMonthDependentTable =
+          faktorMaanedsAfhaengig &&
+          maxAge !== undefined &&
+          ageForFactor.years === maxAge &&
+          ageForFactor.months > 0;
+        if (maxAge !== undefined && ageForFactor.years <= maxAge && !isBeyondLastWholeYearInMonthDependentTable) {
           issues.push(
             toIssue(
               'kapitaliseringsfaktor-unresolved',

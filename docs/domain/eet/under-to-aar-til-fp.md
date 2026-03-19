@@ -90,6 +90,10 @@ kapitaliseretPgaUnderToAarTilFp = true
 
 Særfaktoren siger kun noget om kapitaliseringsfaktoren. Om der overhovedet skal ske kapitalisering, afhænger af afgørelsestypen og hovedreglen nedenfor.
 
+Hvis skadelidte endnu ikke er inden for 2-årsgrænsen, men alderstabellen allerede er udtømt, fortsætter faktorberegningen lineært mod særfaktoren.
+Det gælder også i månedsafhængige tabeller, når den sidste tabelrække er et helt år, men skadelidte er ældre end dette med ekstra måneder.
+Eksempel: Slutter tabellen ved 64 år, skal `64 år, 2 måneder` interpoleres mellem 64-års-faktoren og særfaktoren ved 65 år, ikke låses til 64-års-faktoren.
+
 ### Hvilke afgørelser kapitaliseres?
 
 - `Endelig` inden for eller præcis 2 år før folkepension: hele EET kapitaliseres pr. afgørelsesdatoen.

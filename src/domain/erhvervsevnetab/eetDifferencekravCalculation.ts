@@ -233,7 +233,12 @@ const computeProformaKapitalisering = (
       kapitaliseringsfaktor = round3(withinTable);
     } else {
       const maxAge = factorRows[factorRows.length - 1]?.alder;
-      if (maxAge !== undefined && age.years <= maxAge) {
+      const isBeyondLastWholeYearInMonthDependentTable =
+        faktorMaanedsAfhaengig &&
+        maxAge !== undefined &&
+        age.years === maxAge &&
+        age.months > 0;
+      if (maxAge !== undefined && age.years <= maxAge && !isBeyondLastWholeYearInMonthDependentTable) {
         issues.push(toIssue(
           'proforma-kapitaliseringsfaktor-unresolved',
           `Ingen kapitaliseringsfaktor for alder (${age.years} år, ${age.months} mdr.) i tabel ${tabelvalg.tabel}.`

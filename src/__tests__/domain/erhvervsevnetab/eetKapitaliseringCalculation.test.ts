@@ -239,6 +239,36 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.computation?.afgoerelser[0]?.kapitaliseretPgaUnderToAarTilFp).toBe(false);
   });
 
+  it('interpolerer mod særfaktoren efter tabellens sidste hele alder i månedsafhængige tabeller', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: asAmount(632000),
+        aslAfgoerelser: [
+          {
+            id: 'a',
+            afgoerelsesDato: '2026-01-01',
+            virkningsDato: '2026-01-01',
+            eetPct: '50',
+            kapDato: '2026-01-01',
+            kapPct: '25',
+            afgoerelseType: 'Delvist endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadesdato: '2011-01-01',
+      fodselsdato: '1961-11-01',
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.computation?.afgoerelser[0]?.tabelLabel).toBe('I');
+    expect(result.computation?.afgoerelser[0]?.alderAar).toBe(64);
+    expect(result.computation?.afgoerelser[0]?.alderMaaneder).toBe(2);
+    expect(result.computation?.afgoerelser[0]?.kapitaliseretPgaUnderToAarTilFp).toBe(false);
+    expect(result.computation?.afgoerelser[0]?.kapitaliseringsfaktor).toBe(1.759);
+  });
+
   it('opregulerer præ-2024-skade til 2024-niveau uden ekstra 2024-sats i kapitaliseringsleddet', () => {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {
