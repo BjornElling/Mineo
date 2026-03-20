@@ -2,8 +2,6 @@ import {
   countFilledFields,
   hasRealData,
   isMeaningfulValue,
-  parseFieldValue,
-  serializeFieldValue,
 } from '../../utils/dataCollection';
 
 describe('dataCollection', () => {
@@ -149,42 +147,6 @@ describe('dataCollection', () => {
       expect(isMeaningfulValue({})).toBe(false);
       expect(isMeaningfulValue({ a: undefined })).toBe(false);
       expect(isMeaningfulValue({ a: { b: '' }, c: { d: 1 } })).toBe(true);
-    });
-  });
-
-  describe('parseFieldValue', () => {
-    it('parser string til computed uden formula', () => {
-      expect(parseFieldValue('abc')).toEqual({ formula: null, computed: 'abc' });
-    });
-
-    it('parser formula-objekt med trimmed formula', () => {
-      expect(parseFieldValue({ formula: 'x+1', value: '2' })).toEqual({ formula: 'x+1', computed: '2' });
-      expect(parseFieldValue({ formula: '   ', value: '2' })).toEqual({ formula: null, computed: '2' });
-    });
-
-    it('normaliserer null/undefined og ikke-string value fail-closed', () => {
-      expect(parseFieldValue(null)).toEqual({ formula: null, computed: '' });
-      expect(parseFieldValue(undefined)).toEqual({ formula: null, computed: '' });
-      expect(parseFieldValue(123)).toEqual({ formula: null, computed: '123' });
-      expect(parseFieldValue({ formula: 'x+1', value: 2 })).toEqual({ formula: 'x+1', computed: '' });
-    });
-  });
-
-  describe('serializeFieldValue', () => {
-    it('serialiserer formula-state som objekt', () => {
-      expect(serializeFieldValue({ formula: 'a+b', computed: '3' })).toEqual({ formula: 'a+b', value: '3' });
-    });
-
-    it('serialiserer computed string uden formula som string', () => {
-      expect(serializeFieldValue({ formula: '', computed: '3' })).toBe('3');
-      expect(serializeFieldValue({ computed: 'x' })).toBe('x');
-    });
-
-    it('fallbacker deterministisk for primitive og nullish', () => {
-      expect(serializeFieldValue('abc')).toBe('abc');
-      expect(serializeFieldValue(42)).toBe('42');
-      expect(serializeFieldValue(null)).toBe('');
-      expect(serializeFieldValue(undefined)).toBe('');
     });
   });
 });

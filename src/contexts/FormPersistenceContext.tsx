@@ -37,20 +37,6 @@ import { eoLoenindkomstInputErrorStore } from '../stores/eoLoenindkomstInputErro
  */
 const CURRENT_VERSION = PERSISTED_DATA_VERSION;
 
-const isCompatiblePersistedVersion = (storedVersion: string, currentVersion: string): boolean => {
-  if (storedVersion === currentVersion) return true;
-  // Backward compatibility: tidligere builds brugte "<base>-<schemaFingerprint>".
-  //
-  // Sikkerhedsinvariant:
-  // - Selve kompatibilitetschecket er bevidst bredt på base-version.
-  // - Reelt sikkerhedsnet er per-sektion Zod-validering i bootstrap/persist-lag.
-  //
-  // Hvornår strammes igen:
-  // - Hvis vi introducerer migrationer der kræver hard reset på tværs af samme base-version.
-  // - Hvis per-sektion validering ikke længere kan fail-close rydde inkompatible felter.
-  return storedVersion.startsWith(`${currentVersion}-`);
-};
-
 /**
  * Type guard for PersistedData wrapper-struktur
  *
@@ -150,7 +136,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         continue;
       }
 
-      if (!isCompatiblePersistedVersion(parsed.version, CURRENT_VERSION)) {
+      if (parsed.version !== CURRENT_VERSION) {
         // Design choice (trust-critical): hard-fail ved mismatch og ryd ALT persisted data.
         shouldGlobalClear = true;
         notice ??= {

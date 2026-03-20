@@ -1,6 +1,4 @@
 /**
- * Rentesatser hentet fra tidligere Python-projekt.
- *
  * Filen eksporterer to datasæt:
  * - referenceRates: Nationalbankens udlånsrente (nyeste først)
  * - surchargeRates: Tillægssats jf. renteloven

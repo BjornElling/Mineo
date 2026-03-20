@@ -124,6 +124,12 @@ describe('eoFileContainerSchema', () => {
   it('gyldigt container med version og tom data → success', () => {
     const result = eoFileContainerSchema.safeParse({
       version: '1.0',
+      _metadata: {
+        exportDate: '2024-01-01T00:00:00Z',
+        appVersion: '1.2.3',
+        fieldCount: 0,
+        schemaHash: 'abc123',
+      },
       data: {},
     });
     expect(result.success).toBe(true);
@@ -139,6 +145,12 @@ describe('eoFileContainerSchema', () => {
   it('mangler data → fejler', () => {
     const result = eoFileContainerSchema.safeParse({
       version: '1.0',
+      _metadata: {
+        exportDate: '2024-01-01T00:00:00Z',
+        appVersion: '1.2.3',
+        fieldCount: 0,
+        schemaHash: 'abc123',
+      },
     });
     expect(result.success).toBe(false);
   });
@@ -146,13 +158,19 @@ describe('eoFileContainerSchema', () => {
   it('ukendt felt → fejler (strict schema)', () => {
     const result = eoFileContainerSchema.safeParse({
       version: '1.0',
+      _metadata: {
+        exportDate: '2024-01-01T00:00:00Z',
+        appVersion: '1.2.3',
+        fieldCount: 0,
+        schemaHash: 'abc123',
+      },
       data: {},
       ukendt: 'felt',
     });
     expect(result.success).toBe(false);
   });
 
-  it('med optional _metadata → success', () => {
+  it('med _metadata → success', () => {
     const result = eoFileContainerSchema.safeParse({
       version: '2.0',
       _metadata: {
@@ -166,7 +184,7 @@ describe('eoFileContainerSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('_metadata uden schemaHash → success (schemaHash er optional)', () => {
+  it('_metadata uden schemaHash → fejler', () => {
     const result = eoFileContainerSchema.safeParse({
       version: '2.0',
       _metadata: {
@@ -176,7 +194,15 @@ describe('eoFileContainerSchema', () => {
       },
       data: {},
     });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
+  });
+
+  it('mangler _metadata → fejler', () => {
+    const result = eoFileContainerSchema.safeParse({
+      version: '2.0',
+      data: {},
+    });
+    expect(result.success).toBe(false);
   });
 
   it('_metadata med negativ fieldCount → fejler', () => {
@@ -195,6 +221,12 @@ describe('eoFileContainerSchema', () => {
   it('data med ukendt sektion → fejler (strict indre schema)', () => {
     const result = eoFileContainerSchema.safeParse({
       version: '1.0',
+      _metadata: {
+        exportDate: '2024-01-01T00:00:00Z',
+        appVersion: '1.2.3',
+        fieldCount: 0,
+        schemaHash: 'abc123',
+      },
       data: { ukendtSektion: {} },
     });
     expect(result.success).toBe(false);
@@ -203,6 +235,12 @@ describe('eoFileContainerSchema', () => {
   it('inferred type EoFileContainer har korrekte nøgler', () => {
     const container = {
       version: '1.0',
+      _metadata: {
+        exportDate: '2024-01-01T00:00:00Z',
+        appVersion: '1.2.3',
+        fieldCount: 0,
+        schemaHash: 'abc123',
+      },
       data: {},
     };
     const result = eoFileContainerSchema.parse(container);

@@ -80,8 +80,8 @@ export const eoFileContainerSchema = z.object({
     exportDate: z.string(),
     appVersion: z.string(),
     fieldCount: z.number().int().nonnegative(),
-    schemaHash: z.string().optional(),
-  }).optional(),
+    schemaHash: z.string(),
+  }),
   data: eoFileDataSchema,
 }).strict();
 
@@ -98,8 +98,8 @@ export const eoFileContainerLoadSchema = z.object({
     exportDate: z.string(),
     appVersion: z.string(),
     fieldCount: z.number().int().nonnegative(),
-    schemaHash: z.string().optional(),
-  }).optional(),
+    schemaHash: z.string(),
+  }),
   data: eoFileDataLoadSchema,
 }).strict();
 

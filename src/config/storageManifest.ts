@@ -27,7 +27,7 @@ export const STORAGE_KEYS = {
 export const UI_STORAGE_KEYS = {
   lastSavedFilename: 'mineo_ui_lastSavedFilename',
   lastSavedFilenameBasis: 'mineo_ui_lastSavedFilenameBasis',
-  loentrinFinderOverlay: 'mineo_ui_loentrinFinderOverlay_v1',
+  loentrinFinderOverlay: 'mineo_ui_loentrinFinderOverlay',
   devtoolsLastSeenIssueId: 'mineo_ui_devtools_lastSeenIssueId',
   pendingOverlay: 'mineo_pendingOverlay',
   sideMenuExpanded: 'mineo_sideMenuExpanded',

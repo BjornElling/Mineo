@@ -464,8 +464,5 @@ export const saveToFile = async (
 export const resetSavedFilePath = () => {
   sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilename);
   sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
-  // Backward cleanup (ældre keys)
-  sessionStorage.removeItem('mineo_lastSavedFilePath');
-  sessionStorage.removeItem('mineo_lastSavedStamdata');
   logInfo('Filsti nulstillet - næste gem vil prompte for nyt navn');
 };

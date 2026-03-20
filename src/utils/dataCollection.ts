@@ -1,32 +1,6 @@
-/**
- * Formel-værdi struktur
- */
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { UI_STORAGE_KEYS } from '../config/storageManifest';
 import type { PersistedData } from '../types/persistence';
-
-interface FormulaValue {
-  formula: string;
-  value: string;
-}
-
-/**
- * Parsed field value
- */
-interface ParsedFieldValue {
-  formula: string | null;
-  computed: string;
-}
-
-type FormulaLike = {
-  formula?: unknown;
-  value?: unknown;
-};
-
-type InternalFieldStateLike = {
-  formula?: unknown;
-  computed?: unknown;
-};
 
 const debugEnabled = import.meta.env.DEV;
 const debugLog = (...args: unknown[]): void => {
@@ -37,52 +11,6 @@ const debugGroup = (label: string): void => {
 };
 const debugGroupEnd = (): void => {
   if (debugEnabled) console.groupEnd();
-};
-
-/**
- * Parser en felt-værdi og håndterer både string og formel-objekter
- */
-export const parseFieldValue = (value: unknown): ParsedFieldValue => {
-  // Hvis value er et objekt med formula property
-  if (value && typeof value === 'object' && 'formula' in (value as Record<string, unknown>)) {
-    const v = value as FormulaLike;
-    return {
-      formula: typeof v.formula === 'string' && v.formula.trim() ? v.formula : null,
-      computed: typeof v.value === 'string' ? v.value : ''
-    };
-  }
-
-  // Ellers normal string (backward compatible)
-  return {
-    formula: null,
-    computed: typeof value === 'string' ? value : (value === null || value === undefined ? '' : String(value))
-  };
-};
-
-/**
- * Serialiserer en felt-værdi til gem-format
- */
-export const serializeFieldValue = (internalState: unknown): string | FormulaValue => {
-  const state = (internalState && typeof internalState === 'object')
-    ? (internalState as InternalFieldStateLike)
-    : null;
-
-  // Hvis der er en formel, gem som object
-  if (state && typeof state.formula === 'string' && state.formula.trim().length > 0) {
-    return {
-      formula: state.formula,
-      value: typeof state.computed === 'string' ? state.computed : ''
-    };
-  }
-
-  // Ellers gem som string (backward compatible)
-  if (state && typeof state.computed === 'string') {
-    return state.computed;
-  }
-
-  return typeof internalState === 'string'
-    ? internalState
-    : (internalState === null || internalState === undefined ? '' : String(internalState));
 };
 
 /**
@@ -213,13 +141,10 @@ export const collectAllData = (): Record<string, unknown> => {
   const allData: Record<string, unknown> = {};
 
   // Liste over metadata-keys der skal ignoreres
-  const metadataKeys = [
+  const metadataKeys: string[] = [
     UI_STORAGE_KEYS.pendingOverlay,
     UI_STORAGE_KEYS.lastSavedFilename,
     UI_STORAGE_KEYS.lastSavedFilenameBasis,
-    'mineo_lastSavedFilePath',
-    'mineo_lastSavedStamdata',
-    'mineo_debug_lastLoad',
     UI_STORAGE_KEYS.debugLastLoadInfo,
     UI_STORAGE_KEYS.sideMenuExpanded,
   ];
@@ -253,16 +178,11 @@ export const collectAllData = (): Record<string, unknown> => {
         if (value) {
           const parsed: unknown = JSON.parse(value);
 
-          // Unwrap PersistedData-struktur hvis den findes
-          // (Nye data har {version, timestamp, data}, gamle data er bare objekter)
           if (isPersistedDataWrapper(parsed)) {
-            // Nyt format - unwrap data-feltet
             debugLog(`    ✓ PersistedData format detected (version: ${parsed.version})`);
             allData[pageKey] = parsed.data;
           } else {
-            // Gammelt format (eller ukomplet data) - brug som er
-            debugLog('    ⚠ Old format (no version field)');
-            allData[pageKey] = parsed;
+            debugLog(`    Skipping non-PersistedData payload for key: ${key}`);
           }
         }
       } catch (error) {

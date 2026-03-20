@@ -122,8 +122,8 @@ const processDecryptedContainer = (args: {
     });
   }
 
-  const expectedFieldCount = fileContainer._metadata?.fieldCount;
-  const fileSchemaHash = fileContainer._metadata?.schemaHash;
+  const expectedFieldCount = fileContainer._metadata.fieldCount;
+  const fileSchemaHash = fileContainer._metadata.schemaHash;
   logDebug(`Forventet antal felter: ${expectedFieldCount ?? 'ikke angivet'}`);
 
   logDataStats(fileData as unknown as Record<string, unknown>, 'Dekrypteret data');
@@ -209,7 +209,7 @@ const processDecryptedContainer = (args: {
     expectedFieldCount,
     actualFieldCount: loadedFieldCount,
     sectionsInFile: sectionsPresent,
-    schemaHashInFile: fileSchemaHash ?? null,
+    schemaHashInFile: fileSchemaHash,
     schemaHashCurrent: PERSISTENCE_SCHEMA_FINGERPRINT,
     timestamp: new Date().toISOString(),
   };
