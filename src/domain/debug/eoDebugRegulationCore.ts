@@ -19,7 +19,7 @@ import {
 } from '../../data/overenskomstRates';
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
-import { aarsloenMax } from '../../data/regulationRates';
+import { aarsloenAslMax } from '../../data/regulationRates';
 import { getStatistiskLoenudvikling } from '../../data/statistiskLoenudviklingRates';
 import { getKRLSatstabel, formatKRLSatstabelDisplay, isKRLSatstabelId } from '../../data/KRLrates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
@@ -244,7 +244,7 @@ const buildStatistikEntries = (args: Readonly<{
     const endYear = Number(args.eoTil.slice(0, 4));
     let firstAvailableValue: number | null = null;
     for (let year = startYear; year <= endYear; year += 1) {
-      const value = aarsloenMax[year as keyof typeof aarsloenMax];
+      const value = aarsloenAslMax[year as keyof typeof aarsloenAslMax];
       if (typeof value !== 'number') continue;
       if (firstAvailableValue === null) firstAvailableValue = value;
       const iso = `${year}-01-01` as ISODateString;

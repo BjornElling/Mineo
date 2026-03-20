@@ -42,6 +42,8 @@ export const computeForsoergertabCalculation = (input: Input): ForsoergertabCalc
       issues,
       ealComputation: ealResult.computation,
       aslComputation: aslResult.computation,
+      foersoergertabEalMinSats: ealResult.foersoergertabEalMinSats,
+      foersoergertabForhoejtetTilMin: ealResult.foersoergertabForhoejtetTilMin,
       result: null,
     };
   }
@@ -54,6 +56,8 @@ export const computeForsoergertabCalculation = (input: Input): ForsoergertabCalc
     issues,
     ealComputation: ealResult.computation,
     aslComputation: aslResult.computation,
+    foersoergertabEalMinSats: ealResult.foersoergertabEalMinSats,
+    foersoergertabForhoejtetTilMin: ealResult.foersoergertabForhoejtetTilMin,
     result: {
       ealKrav,
       aslKapitalbelob,

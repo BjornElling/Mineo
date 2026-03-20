@@ -13,7 +13,7 @@
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
 import { addDays, addMonths, formatDanishDate, parseDanishDate } from '../utils/dateUtils';
-import { aarsloenMax, getYearBoundsForYearlyRate } from './regulationRates';
+import { aarsloenAslMax, getYearBoundsForYearlyRate } from './regulationRates';
 
 // ===== TYPE DEFINITIONER =====
 
@@ -221,7 +221,7 @@ export const getReguleringsDatoIntervalForStatistikModel = (rawModel: string): R
   if (trimmed === '') return undefined;
 
   if (trimmed === ASL_AARSLOENSMAKSIMUM_MODEL_LABEL) {
-    const bounds = getYearBoundsForYearlyRate(aarsloenMax);
+    const bounds = getYearBoundsForYearlyRate(aarsloenAslMax);
     if (!bounds) return undefined;
     return {
       fraDato: toDanishDateString(`01-01-${bounds.minYear}`),

@@ -169,6 +169,8 @@ const Forsoergertab = React.memo(() => {
   const result = calculationResult.result;
   const ealComputation = calculationResult.ealComputation;
   const aslComputation = calculationResult.aslComputation;
+  const foersoergertabEalMinSats = calculationResult.foersoergertabEalMinSats;
+  const foersoergertabForhoejtetTilMin = calculationResult.foersoergertabForhoejtetTilMin;
   const hasCoreFieldValues =
     Boolean(faellesPersondataValues.skadelidteFodselsdato) &&
     Boolean(values.efterladteFodselsdato) &&
@@ -460,18 +462,20 @@ const Forsoergertab = React.memo(() => {
             </Box>
           </Box>
 
-          <Box className="row--label-right-hover">
-            <Typography className="row--text">{`Maksimalt erstatningsniveau i beregningsåret ${ealComputation.beregningsaar}`}</Typography>
-            <Box className="row--label-right-hover__content">
-              <Typography className="row--text">{formatKr(ealComputation.eetMaks)}</Typography>
+          {foersoergertabEalMinSats !== null && (
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">{`Mindste erstatningsniveau i beregningsåret ${ealComputation.beregningsaar}`}</Typography>
+              <Box className="row--label-right-hover__content">
+                <Typography className="row--text">{formatKr(foersoergertabEalMinSats)}</Typography>
+              </Box>
             </Box>
-          </Box>
+          )}
 
           <Box className="row--label-right-hover">
             <Typography className="row--text">
-              {ealComputation.eetReduceretTilMaks
-                ? 'Det beregnede forsørgertab skal reduceres til maksimum, dvs. udgør'
-                : 'Det beregnede forsørgertab skal ikke reduceres, dvs. udgør'}
+              {foersoergertabForhoejtetTilMin
+                ? 'Det beregnede forsørgertab skal forhøjes til minimum, dvs. udgør'
+                : 'Det beregnede forsørgertab skal ikke forhøjes, dvs. udgør'}
             </Typography>
             <Box className="row--label-right-hover__content">
               <Typography className="row--text">{formatKr(ealComputation.eetAnvendt)}</Typography>

@@ -1,5 +1,5 @@
 import type { ISODateString } from '../../types/branded';
-import { aarsloenMax } from '../../data/regulationRates';
+import { aarsloenAslMax } from '../../data/regulationRates';
 import { formatAsAmount } from '../../utils/formatUtils';
 
 export const validateAslAarsloenDivisibleBy1000 = (
@@ -20,7 +20,7 @@ export const validateAslAarsloenBySkadesaarMax = (
   const skadesaar = Number.parseInt(skadesdatoIso.slice(0, 4), 10);
   if (!Number.isFinite(skadesaar)) return undefined;
 
-  const maxAarsloen = aarsloenMax[skadesaar];
+  const maxAarsloen = aarsloenAslMax[skadesaar];
   if (!Number.isFinite(maxAarsloen)) return undefined;
   if (aarsloen <= maxAarsloen) return undefined;
 

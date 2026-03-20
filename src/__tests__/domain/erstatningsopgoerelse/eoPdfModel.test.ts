@@ -13,7 +13,7 @@ import * as krlRatesData from '../../../data/KRLrates';
 import * as overenskomstRatesData from '../../../data/overenskomstRates';
 import * as offentligLoenLookupData from '../../../data/offentligLoenLookup';
 import type { OffentligLoenResultat } from '../../../data/offentligLoenTypes';
-import { aarsloenMax } from '../../../data/regulationRates';
+import { aarsloenAslMax } from '../../../data/regulationRates';
 import { calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/tafCalculations';
 import { beregningsmetodeEnum, loenPaaHelligdageSchema, loenudviklingStatistikModelEnum } from '../../../schemas/formSchemas';
 import { roundByMethod } from '../../../utils/rounding';
@@ -2302,8 +2302,8 @@ describe('eoPdfModel', () => {
   it('fejler fail-closed ved datakorruption i ASL-indeks', () => {
     // ASL-data eksporteres som en konstant map (ingen funktions-wrapper at spyOn),
     // så testen muterer midlertidigt og restorer altid i finally.
-    const original2006 = aarsloenMax[2006];
-    aarsloenMax[2006] = 0;
+    const original2006 = aarsloenAslMax[2006];
+    aarsloenAslMax[2006] = 0;
     try {
       const eoValues = makeValues({
         beregnesUdFra: 'Angivet månedsløn',
@@ -2323,7 +2323,7 @@ describe('eoPdfModel', () => {
         'Loenudvikling kan ikke beregnes: ugyldigt ASL indeks'
       );
     } finally {
-      aarsloenMax[2006] = original2006;
+      aarsloenAslMax[2006] = original2006;
     }
   });
 

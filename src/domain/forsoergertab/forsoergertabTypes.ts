@@ -8,6 +8,8 @@ export type ForsoergertabIssue = EetIssue;
 export type ForsoergertabEalKravResult = Readonly<{
   issues: readonly ForsoergertabIssue[];
   computation: EetEalComputation | null;
+  foersoergertabEalMinSats: number | null;
+  foersoergertabForhoejtetTilMin: boolean;
 }>;
 
 export type ForsoergertabAslComputation = Readonly<{
@@ -56,5 +58,7 @@ export type ForsoergertabCalculationResult = Readonly<{
   issues: readonly ForsoergertabIssue[];
   ealComputation: EetEalComputation | null;
   aslComputation: ForsoergertabAslComputation | null;
+  foersoergertabEalMinSats: number | null;
+  foersoergertabForhoejtetTilMin: boolean;
   result: ForsoergertabCalculation | null;
 }>;

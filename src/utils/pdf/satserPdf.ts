@@ -137,18 +137,18 @@ const addEalSection = (
   }
 
   // Maksimum for erhvervsevnetabserstatning
-  if (isPositiveFiniteNumber(eal.erhvervsevnetabMax)) {
+  if (isPositiveFiniteNumber(eal.erhvervsevnetabEalMax)) {
     rows.push([
       'Maksimum for erhvervsevnetabserstatning',
-      formatCurrency(eal.erhvervsevnetabMax),
+      formatCurrency(eal.erhvervsevnetabEalMax),
     ]);
   }
 
   // Vejledende udtalelse
-  if (isPositiveFiniteNumber(eal.vejledendeUdtalelse)) {
+  if (isPositiveFiniteNumber(eal.vejledendeUdtalelseEet)) {
     rows.push([
       'Vejledende udtalelse om erhvervsevnetab',
-      formatCurrency(eal.vejledendeUdtalelse),
+      formatCurrency(eal.vejledendeUdtalelseEet),
     ]);
   }
 
@@ -175,8 +175,8 @@ const addAslSection = (
   }
 
   // Maksimum årsløn
-  if (isPositiveFiniteNumber(asl.aarsloenMax)) {
-    rows.push(['Maksimum årsløn', formatCurrency(asl.aarsloenMax)]);
+  if (isPositiveFiniteNumber(asl.aarsloenAslMax)) {
+    rows.push(['Maksimum årsløn', formatCurrency(asl.aarsloenAslMax)]);
   }
 
   // Minimum årsløn

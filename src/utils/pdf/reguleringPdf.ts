@@ -16,7 +16,7 @@ import { renderEoStylePdfTable } from './pdfTableRenderer';
 import { formatAsAmount, formatCurrency, formatPercent } from '../formatUtils';
 import { parseDanishDate, formatDanishDate, createDate } from '../dateUtils';
 import { roundByMethod } from '../rounding';
-import { aarsloenMax } from '../../data/regulationRates';
+import { aarsloenAslMax } from '../../data/regulationRates';
 import { TODAY } from '../../config/dateRanges';
 import {
   formatAmountWithoutTrailingDecimals,
@@ -317,7 +317,7 @@ const buildStatistikTable = (
 
     const rows: string[][] = [];
     for (let year = start.getUTCFullYear(); year <= end.getUTCFullYear(); year += 1) {
-      const value = aarsloenMax[year as keyof typeof aarsloenMax];
+      const value = aarsloenAslMax[year as keyof typeof aarsloenAslMax];
       if (typeof value !== 'number') continue;
       rows.push([String(year), formatCurrency(value)]);
     }

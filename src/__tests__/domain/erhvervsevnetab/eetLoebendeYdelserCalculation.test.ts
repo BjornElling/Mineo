@@ -1,7 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
-import { aarsloenMax } from '../../../data/regulationRates';
+import { aarsloenAslMax } from '../../../data/regulationRates';
 import { roundByMethod } from '../../../utils/rounding';
 import {
   computeEetLoebendeYdelser,
@@ -611,7 +610,7 @@ describe('toAfgoerelseTypeLabel', () => {
 
 describe('warn-asl-aarsloen-is-max', () => {
   it('viser advarsel når indtastet årsløn er præcis lig maksimum for skadesåret', () => {
-    const maxAarsloen2019 = aarsloenMax[2019];
+    const maxAarsloen2019 = aarsloenAslMax[2019];
     if (!Number.isFinite(maxAarsloen2019)) throw new Error('expected max salary for 2019');
 
     const result = computeEetLoebendeYdelser({
@@ -640,7 +639,7 @@ describe('warn-asl-aarsloen-is-max', () => {
   });
 
   it('viser ikke advarsel når indtastet årsløn er højere end maksimum for skadesåret', () => {
-    const maxAarsloen2019 = aarsloenMax[2019];
+    const maxAarsloen2019 = aarsloenAslMax[2019];
     if (!Number.isFinite(maxAarsloen2019)) throw new Error('expected max salary for 2019');
 
     const result = computeEetLoebendeYdelser({

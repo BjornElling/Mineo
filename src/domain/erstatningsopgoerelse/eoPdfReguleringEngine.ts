@@ -28,7 +28,7 @@ import { amountValueToDisplayString, amountValueToNumber } from '../../utils/exp
 import { formatAsAmount, formatCurrency, formatPercent as formatPercentUtil } from '../../utils/formatUtils';
 import { parseAmount } from '../../utils/numberParsing';
 import { roundByMethod } from '../../utils/rounding';
-import { aarsloenMax } from '../../data/regulationRates';
+import { aarsloenAslMax } from '../../data/regulationRates';
 import {
   assertOffentligReguleringsDatoGyldig,
   getEffektiveSatserForDato,
@@ -522,11 +522,11 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       const startYear = tafFraDate.getUTCFullYear();
       const endYear = tafTilDate.getUTCFullYear();
       const rows: string[][] = [];
-      const regValue = aarsloenMax[regYear as keyof typeof aarsloenMax];
+      const regValue = aarsloenAslMax[regYear as keyof typeof aarsloenAslMax];
       if (typeof regValue === 'number') rows.push([String(regYear), formatCurrency(regValue)]);
       for (let year = startYear; year <= endYear; year += 1) {
         if (year === regYear) continue;
-        const value = aarsloenMax[year as keyof typeof aarsloenMax];
+        const value = aarsloenAslMax[year as keyof typeof aarsloenAslMax];
         if (typeof value !== 'number') continue;
         rows.push([String(year), formatCurrency(value)]);
       }
@@ -1014,7 +1014,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
       if (isAslModel) {
         const regDate = parseIsoDateToUtcDate(reguleringsdato);
         if (!regDate) return null;
-        const value = aarsloenMax[regDate.getUTCFullYear() as keyof typeof aarsloenMax];
+        const value = aarsloenAslMax[regDate.getUTCFullYear() as keyof typeof aarsloenAslMax];
         if (typeof value !== 'number') return null;
         return {
           components: {
@@ -1195,7 +1195,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
         const endYear = end.getUTCFullYear();
         const periodStarts: Array<{ startIso: ISODateString; components: FormulaComponents }> = [];
         for (let year = startYear; year <= endYear; year += 1) {
-          const value = aarsloenMax[year as keyof typeof aarsloenMax];
+          const value = aarsloenAslMax[year as keyof typeof aarsloenAslMax];
           if (typeof value !== 'number') continue;
           const startIso = parseOptionalIsoDate(`${year}-01-01`);
           if (!startIso) continue;

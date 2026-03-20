@@ -1,8 +1,7 @@
-import { describe, expect, it } from 'vitest';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { computeForsoergertabCalculation } from '../../../domain/forsoergertab/forsoergertabCalculation';
 import { computeForsoergertabAslYdelser } from '../../../domain/forsoergertab/forsoergertabAslYdelser';
-import { aarsloenMax } from '../../../data/regulationRates';
+import { aarsloenAslMax } from '../../../data/regulationRates';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -23,12 +22,12 @@ describe('computeForsoergertabCalculation', () => {
     expect(result.aslComputation).not.toBeNull();
     const computation = result.aslComputation!;
     const expectedBenyttetAarsloen = 450000;
-    const expectedOpreguleringsfaktor = aarsloenMax[2026] / aarsloenMax[2020];
+    const expectedOpreguleringsfaktor = aarsloenAslMax[2026] / aarsloenAslMax[2020];
     const expectedOpreguleretAarligYdelse = Number((0.3 * expectedBenyttetAarsloen * expectedOpreguleringsfaktor).toFixed(2));
 
     expect(computation.benyttetAarsloen).toBe(expectedBenyttetAarsloen);
-    expect(computation.aarsloenMaxSkadesaar).toBe(aarsloenMax[2020]);
-    expect(computation.aarsloenMaxBeregningsaar).toBe(aarsloenMax[2026]);
+    expect(computation.aarsloenMaxSkadesaar).toBe(aarsloenAslMax[2020]);
+    expect(computation.aarsloenMaxBeregningsaar).toBe(aarsloenAslMax[2026]);
     expect(computation.opreguleringsfaktor).toBe(expectedOpreguleringsfaktor);
     expect(computation.opreguleretAarligYdelse).toBe(expectedOpreguleretAarligYdelse);
   });

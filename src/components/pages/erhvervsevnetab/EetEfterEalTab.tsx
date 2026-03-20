@@ -7,7 +7,7 @@ import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
-import { aarsloenMax, erhvervsevnetabMax, reguleringssats } from '../../../data/regulationRates';
+import { aarsloenAslMax, erhvervsevnetabEalMax, reguleringssats } from '../../../data/regulationRates';
 import {
   buildAldersreduktionFormelTekst,
   computeEetEalCalculation,
@@ -43,8 +43,8 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
         skadesdato: stamdata?.skadesdato,
         skadelidteFodselsdato: values.skadelidteFodselsdato,
         reguleringssats,
-        erhvervsevnetabMax,
-        aarsloenMax,
+        erhvervsevnetabEalMax,
+        aarsloenAslMax,
       }),
     [stamdata?.skadesdato, values]
   );

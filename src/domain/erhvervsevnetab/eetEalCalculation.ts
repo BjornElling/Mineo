@@ -4,10 +4,8 @@ import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, parseISODate } from '../../types/branded';
 import type { YearlyRate } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { formatIsoDateShort } from '../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { roundByMethod } from '../../utils/rounding';
-import { buildAldersreduktionFormelTekst } from './eetAldersreduktionFormel';
 import {
   ASL_IDENTICAL_AFGOERELSER_ID,
   hasIdenticalAfgoerelser,
@@ -59,8 +57,8 @@ type Input = Readonly<{
   skadesdato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
   reguleringssats: YearlyRate;
-  erhvervsevnetabMax: YearlyRate;
-  aarsloenMax: YearlyRate;
+  erhvervsevnetabEalMax: YearlyRate;
+  aarsloenAslMax: YearlyRate;
 }>;
 
 const round500 = (value: number): number => roundByMethod(value / 500, 0, 'halfAwayFromZero') * 500;
@@ -286,7 +284,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     );
   }
 
-  const eetMaks = input.erhvervsevnetabMax[beregningsaar];
+  const eetMaks = input.erhvervsevnetabEalMax[beregningsaar];
   if (!Number.isFinite(eetMaks)) {
     issues.push(toIssue('eet-max-missing', `Maksimum for erhvervsevnetab mangler for år ${beregningsaar}`));
   }
@@ -311,7 +309,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   }
 
   const ealAarsloenInput = amountValueToNumber(values.ealAarsloen);
-  const maxAarsloenForSkadesaar = input.aarsloenMax[skadesaar];
+  const maxAarsloenForSkadesaar = input.aarsloenAslMax[skadesaar];
   const maxAarsloenWarningMessage =
     'Skadelidtes fulde årsløn skal indtastes for EAL — ikke maks. årslønnen efter ASL.';
   const isSkadeFraJuli2024EllerSenere = skadesdato >= '2024-07-01';

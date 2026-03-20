@@ -5,7 +5,7 @@ import { coerceToISODateString, dateToISO, parseISODate } from '../../types/bran
 import {
   ASL_MAX_AARSLOEN_2003,
   ASL_MAX_AARSLOEN_2024,
-  aarsloenMax,
+  aarsloenAslMax,
   reguleringsprocentErhvervsevnetabFoer2024,
 } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
@@ -398,7 +398,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
   }
 
   const skadesaar = toYear(skadesdato);
-  const maxAarsloenISkadesaar = aarsloenMax[skadesaar];
+  const maxAarsloenISkadesaar = aarsloenAslMax[skadesaar];
   if (!Number.isFinite(maxAarsloenISkadesaar)) {
     issues.push(toIssue('aarsloen-max-missing', `Maksimum årsløn mangler for år ${skadesaar}`));
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };

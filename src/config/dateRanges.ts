@@ -8,7 +8,7 @@
 import type { ISODateString } from '../types/branded';
 import { toISODateString } from '../types/branded';
 import { getTodayLocalISO } from '../utils/dateUtils';
-import { varigeMenPrGradYearBounds, svieSmerteMaxYearBounds, eetYearBounds } from '../data/regulationRates';
+import { varigeMenPrGradYearBounds, svieSmerteMaxYearBounds, eetYearBounds, foersoergertabYearBounds } from '../data/regulationRates';
 import { MIN_INTEREST_DATE } from '../data/interestRates';
 
 // ============================================================================
@@ -123,6 +123,10 @@ const DATE_VARIGEMEN_MAX = iso(`${varigeMenPrGradYearBounds.maxYear}-12-31`);
 // Seneste år med komplet EET-datadækning — sats-intersection capped af
 // kapitaliseringsbekendtgørelses-oversigtens seneste fælles gyldighedsår.
 const DATE_EET_MAX = iso(`${eetYearBounds.maxYear}-12-31`);
+
+// Seneste år med komplet forsørgertab-datadækning — inkluderer foersoergertabEalMin
+// ud over EET-satserne, capped af kapitaliseringsbekendtgørelsesoversigtens seneste år.
+const DATE_FORSOERGERTAB_MAX = iso(`${foersoergertabYearBounds.maxYear}-12-31`);
 
 // Tidligste år med svie/smerte-sats til UI-årsvælgeren i EO.
 // Autoritativ kilde er svieSmerteMaxYearBounds (samme minYear som svieSmertePrDag i aktuelle datasæt).
@@ -477,17 +481,17 @@ export const dateRanges_forsoergertab: DateRanges_Forsoergertab = {
     type: 'dynamic-min',
     min: 'DYNAMIC',
     fallbackMin: DATE_2005_01_01,
-    max: DATE_EET_MAX,
+    max: DATE_FORSOERGERTAB_MAX,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod dynamisk min-værdi (højeste af skadesdato og virkningsdato) og fast max-værdi (samme som EET-beregningsdato).',
+    notes: 'Valideres mod dynamisk min-værdi (højeste af skadesdato og virkningsdato) og fast max-værdi (31-12 i seneste år med komplet forsørgertab-datadækning).',
   },
   virkningsdato: {
     type: 'dynamic-min',
     min: 'DYNAMIC',
     fallbackMin: DATE_2005_01_01,
-    max: DATE_EET_MAX,
+    max: DATE_FORSOERGERTAB_MAX,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod dynamisk min-værdi (skadesdato) og dynamisk max-værdi (laveste af EET-max og beregningsdato).',
+    notes: 'Valideres mod dynamisk min-værdi (skadesdato) og dynamisk max-værdi (laveste af forsørgertab-max og beregningsdato).',
   },
 };
 

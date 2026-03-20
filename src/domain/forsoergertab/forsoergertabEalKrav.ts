@@ -1,11 +1,13 @@
 import type { ISODateString } from '../../types/branded';
 import {
-  aarsloenMax,
-  erhvervsevnetabMax,
+  aarsloenAslMax,
+  erhvervsevnetabEalMax,
+  foersoergertabEalMin,
   reguleringssats,
 } from '../../data/regulationRates';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { computeEetEalCalculation } from '../erhvervsevnetab/eetEalCalculation';
+import { round0 } from '../erhvervsevnetab/eetRounding';
 import type { ForsoergertabEalKravResult } from './forsoergertabTypes';
 
 type Input = Readonly<{
@@ -17,7 +19,7 @@ type Input = Readonly<{
 }>;
 
 export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravResult => {
-  return computeEetEalCalculation({
+  const eetResult = computeEetEalCalculation({
     erhvervsevnetab: {
       beregningsdato: input.beregningsdato,
       skadelidteFodselsdato: undefined,
@@ -40,7 +42,42 @@ export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravR
     skadesdato: input.skadesdato,
     skadelidteFodselsdato: input.skadelidteFodselsdato,
     reguleringssats,
-    erhvervsevnetabMax,
-    aarsloenMax,
+    erhvervsevnetabEalMax,
+    aarsloenAslMax,
   });
+
+  if (!eetResult.computation) {
+    return {
+      ...eetResult,
+      foersoergertabEalMinSats: null,
+      foersoergertabForhoejtetTilMin: false,
+    };
+  }
+
+  const beregningsaar = eetResult.computation.beregningsaar;
+  const minSats = foersoergertabEalMin[beregningsaar];
+  const foersoergertabEalMinSats = Number.isFinite(minSats) ? minSats : null;
+  const foersoergertabForhoejtetTilMin =
+    foersoergertabEalMinSats !== null && eetResult.computation.eetBeregnet < foersoergertabEalMinSats;
+
+  if (foersoergertabForhoejtetTilMin && foersoergertabEalMinSats !== null) {
+    const comp = eetResult.computation;
+    return {
+      ...eetResult,
+      computation: {
+        ...comp,
+        eetAnvendt: foersoergertabEalMinSats,
+        aldersreduktionBeloeb: round0(foersoergertabEalMinSats * (comp.aldersreduktionPct / 100)),
+        ealKrav: Math.max(0, round0(foersoergertabEalMinSats - round0(foersoergertabEalMinSats * (comp.aldersreduktionPct / 100)))),
+      },
+      foersoergertabEalMinSats,
+      foersoergertabForhoejtetTilMin: true,
+    };
+  }
+
+  return {
+    ...eetResult,
+    foersoergertabEalMinSats,
+    foersoergertabForhoejtetTilMin: false,
+  };
 };

@@ -35,7 +35,7 @@ export const IntegrityInvariant = {
   SVIE_SMERTE_MISMATCH: 'SVIE_SMERTE_MISMATCH',
 } as const;
 
-export type IntegrityInvariant =
+export type IntegrityInvariantValue =
   typeof IntegrityInvariant[keyof typeof IntegrityInvariant];
 
 export type PrimitiveCell =
@@ -61,7 +61,7 @@ export type DebugCellValue =
  */
 export type IntegrityIssue = {
   readonly severity: IntegritySeverity;
-  readonly invariant: IntegrityInvariant;
+  readonly invariant: IntegrityInvariantValue;
   readonly message: string;
   readonly affectedRows?: readonly number[];
   readonly expected?: number | string;

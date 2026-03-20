@@ -1,4 +1,4 @@
-import { aarsloenMax } from '../../data/regulationRates';
+import { aarsloenAslMax } from '../../data/regulationRates';
 import {
   getKapitaliseringsTabelData,
   type ForsoergertabMatrixRaekke,
@@ -190,8 +190,8 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
 
   const skadesaar = Number(input.skadesdato.slice(0, 4));
   const beregningsaar = Number(input.beregningsdato.slice(0, 4));
-  const aarsloenMaxSkadesaar = aarsloenMax[skadesaar];
-  const aarsloenMaxBeregningsaar = aarsloenMax[beregningsaar];
+  const aarsloenMaxSkadesaar = aarsloenAslMax[skadesaar];
+  const aarsloenMaxBeregningsaar = aarsloenAslMax[beregningsaar];
   if (!Number.isFinite(aarsloenMaxSkadesaar)) {
     issues.push(toIssue('aarsloen-max-missing-skadesaar', `Årslønsmaksimum mangler for år ${skadesaar}.`));
   }

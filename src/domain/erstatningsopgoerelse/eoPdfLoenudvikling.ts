@@ -1,7 +1,7 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, isoToDanish, isISODateString, subtractOneDay } from '../../types/branded';
-import { aarsloenMax } from '../../data/regulationRates';
+import { aarsloenAslMax } from '../../data/regulationRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { roundByMethod } from '../../utils/rounding';
@@ -588,12 +588,12 @@ const buildLoenudviklingFromStatistik = (
 
   if (isAslStatistikModel(modelLabel)) {
     const baseYear = Number(konsolideret.reguleringsdato.slice(0, 4));
-    const directBaseIndex = Number.isFinite(baseYear) ? aarsloenMax[baseYear as keyof typeof aarsloenMax] : undefined;
+    const directBaseIndex = Number.isFinite(baseYear) ? aarsloenAslMax[baseYear as keyof typeof aarsloenAslMax] : undefined;
     if (directBaseIndex !== undefined) {
       ensurePositiveFiniteNumber(directBaseIndex, 'Loenudvikling kan ikke beregnes: ugyldigt ASL basisindeks');
     }
 
-    const availableAslYears = Object.entries(aarsloenMax)
+    const availableAslYears = Object.entries(aarsloenAslMax)
       .map(([yearRaw, idxRaw]) => ({ year: Number(yearRaw), idx: idxRaw }))
       .filter((entry) => Number.isFinite(entry.year))
       .sort((a, b) => a.year - b.year);
@@ -616,7 +616,7 @@ const buildLoenudviklingFromStatistik = (
         if (segment.year < effectiveBaseYear) {
           return buildZeroDeltaSegment(segment);
         }
-        const idx = aarsloenMax[segment.year as keyof typeof aarsloenMax];
+        const idx = aarsloenAslMax[segment.year as keyof typeof aarsloenAslMax];
         if (idx === undefined) {
           return buildZeroDeltaSegment(segment);
         }

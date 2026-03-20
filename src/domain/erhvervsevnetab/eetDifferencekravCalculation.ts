@@ -7,13 +7,12 @@ import { coerceToISODateString, dateToISO, parseISODate } from '../../types/bran
 // parametrerings-mønsteret i de øvrige beregningsfunktioner, men er en bevidst trade-off:
 // differencekrav-beregningen er det naturlige aggregeringspunkt og kalder selv de andre.
 import {
-  aarsloenMax,
-  erhvervsevnetabMax,
+  aarsloenAslMax,
+  erhvervsevnetabEalMax,
   reguleringssats,
   reguleringsprocentErhvervsevnetabFoer2024,
 } from '../../data/regulationRates';
 import { getKapitaliseringsTabelData } from '../../data/kapitalisering/kapitaliseringsTabeller';
-import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatIsoDateShort } from '../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { addDays } from '../../utils/dateUtils';
@@ -26,7 +25,6 @@ import {
   resolveKapitaliseringsbekendtgoerelseId,
   resolveKapitaliseringTabelvalg,
   resolveSaerfaktor,
-  type AgeYearsMonths,
 } from './eetKapitaliseringOpslag';
 import { ceil0, round0, round2, round3, round4 } from './eetRounding';
 import { resolveAslReguleringRateForKapAar } from './eetReguleringRater';
@@ -376,8 +374,8 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
     skadesdato,
     skadelidteFodselsdato: fodselsdato,
     reguleringssats,
-    erhvervsevnetabMax,
-    aarsloenMax,
+    erhvervsevnetabEalMax,
+    aarsloenAslMax,
   });
 
   // ─── Kør kapitaliserings-beregning (fane 3) ───────────────────────────────

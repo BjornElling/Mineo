@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import {
   statistiskLoenudvikling,
   getStatistiskLoenudvikling,
@@ -133,7 +132,7 @@ describe('getReguleringsDatoIntervalForStatistikModel', () => {
   });
 
   it('ASL-årslønsmaksimum → returnerer interval eller undefined (afhænger af data)', () => {
-    // Denne model bruger aarsloenMax fra regulationRates
+    // Denne model bruger aarsloenAslMax fra regulationRates
     const interval = getReguleringsDatoIntervalForStatistikModel('ASL-årslønsmaksimum');
     // Enten defineret eller undefined – vi kontrollerer bare at det ikke kaster
     expect(interval === undefined || typeof interval === 'object').toBe(true);

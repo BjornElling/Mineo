@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import {
   getYearBoundsForYearlyRate,
   getYearBoundsForCompleteCoverage,
@@ -10,9 +9,9 @@ import {
   satserAngivAarYearBounds,
   varigeMenPrGradYearBounds,
   eetYearBounds,
-  aarsloenMin,
-  aarsloenMinFoer20240701,
-  aarsloenMinFra20240701,
+  aarsloenAslMin,
+  aarsloenAslMinFoer20240701,
+  aarsloenAslMinFra20240701,
   reguleringsprocentErhvervsevnetabFoer2024,
   reguleringsprocentErhvervsevnetabFra2024,
 } from '../../data/regulationRates';
@@ -150,9 +149,9 @@ describe('getSatserForYear', () => {
       expect(satser.asl.varigeMenPrGrad).toBeGreaterThan(0);
     });
 
-    it('asl.aarsloenMax er et positivt tal', () => {
+    it('asl.aarsloenAslMax er et positivt tal', () => {
       const satser = getSatserForYear(2024);
-      expect(satser.asl.aarsloenMax).toBeGreaterThan(0);
+      expect(satser.asl.aarsloenAslMax).toBeGreaterThan(0);
     });
 
     it('referencer.ealReference er en ikke-tom streng', () => {
@@ -177,8 +176,8 @@ describe('getSatserForYear', () => {
       const satser = getSatserForYear(1800);
       expect(satser.eal.svieSmertePrDag).toBeNull();
       expect(satser.eal.svieSmerteMax).toBeNull();
-      expect(satser.eal.erhvervsevnetabMax).toBeNull();
-      expect(satser.eal.vejledendeUdtalelse).toBeNull();
+      expect(satser.eal.erhvervsevnetabEalMax).toBeNull();
+      expect(satser.eal.vejledendeUdtalelseEet).toBeNull();
     });
 
     it('ukendt år (fx 1800) → referencer er tomme strenge', () => {
@@ -263,37 +262,37 @@ describe('varigeMenPrGradYearBounds', () => {
   });
 });
 
-describe('aarsloenMin invariant', () => {
-  it('aarsloenMin indeholder IKKE 2024 (bevidst erstattet af fra/foer-varianter)', () => {
-    expect(aarsloenMin[2024]).toBeUndefined();
+describe('aarsloenAslMin invariant', () => {
+  it('aarsloenAslMin indeholder IKKE 2024 (bevidst erstattet af fra/foer-varianter)', () => {
+    expect(aarsloenAslMin[2024]).toBeUndefined();
   });
 
-  it('aarsloenMin indeholder gyldige satser for 2023', () => {
-    expect(aarsloenMin[2023]).toBeGreaterThan(0);
+  it('aarsloenAslMin indeholder gyldige satser for 2023', () => {
+    expect(aarsloenAslMin[2023]).toBeGreaterThan(0);
   });
 });
 
 // ─── 2024 split-værdier ───────────────────────────────────────────────────────
 
-describe('aarsloenMinFoer20240701', () => {
+describe('aarsloenAslMinFoer20240701', () => {
   it('[2024] = 227000', () => {
-    expect(aarsloenMinFoer20240701[2024]).toBe(227000);
+    expect(aarsloenAslMinFoer20240701[2024]).toBe(227000);
   });
 
   it('indeholder positive satser', () => {
-    for (const [, sats] of Object.entries(aarsloenMinFoer20240701)) {
+    for (const [, sats] of Object.entries(aarsloenAslMinFoer20240701)) {
       expect(sats).toBeGreaterThan(0);
     }
   });
 });
 
-describe('aarsloenMinFra20240701', () => {
+describe('aarsloenAslMinFra20240701', () => {
   it('[2024] = 257000', () => {
-    expect(aarsloenMinFra20240701[2024]).toBe(257000);
+    expect(aarsloenAslMinFra20240701[2024]).toBe(257000);
   });
 
   it('fra20240701 er større end foer20240701 for 2024', () => {
-    expect(aarsloenMinFra20240701[2024]).toBeGreaterThan(aarsloenMinFoer20240701[2024]!);
+    expect(aarsloenAslMinFra20240701[2024]).toBeGreaterThan(aarsloenAslMinFoer20240701[2024]!);
   });
 });
 

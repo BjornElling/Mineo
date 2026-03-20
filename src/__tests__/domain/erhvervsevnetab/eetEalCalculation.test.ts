@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import {
@@ -6,7 +5,7 @@ import {
   computeEetEalCalculation,
   formatPercentTrimmedFromRounded4,
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
-import { aarsloenMax, erhvervsevnetabMax, reguleringssats } from '../../../data/regulationRates';
+import { aarsloenAslMax, erhvervsevnetabEalMax, reguleringssats } from '../../../data/regulationRates';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -24,8 +23,8 @@ describe('computeEetEalCalculation', () => {
       skadesdato: '2019-06-01',
       skadelidteFodselsdato: '1966-01-08',
       reguleringssats,
-      erhvervsevnetabMax,
-      aarsloenMax,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
     });
 
     expect(result.issues).toEqual([]);
@@ -73,8 +72,8 @@ describe('computeEetEalCalculation', () => {
       skadesdato: '2020-01-01',
       skadelidteFodselsdato: '1990-01-01',
       reguleringssats,
-      erhvervsevnetabMax,
-      aarsloenMax,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
     });
 
     expect(result.issues).toEqual([]);
@@ -116,8 +115,8 @@ describe('computeEetEalCalculation', () => {
       skadesdato: '2020-01-01',
       skadelidteFodselsdato: '1990-01-01',
       reguleringssats,
-      erhvervsevnetabMax,
-      aarsloenMax,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
     });
 
     expect(result.computation).toBeNull();
@@ -148,8 +147,8 @@ describe('computeEetEalCalculation', () => {
       skadesdato: '2020-01-01',
       skadelidteFodselsdato: '1990-01-01',
       reguleringssats,
-      erhvervsevnetabMax,
-      aarsloenMax,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
     });
 
     expect(result.computation).toBeNull();
@@ -169,8 +168,8 @@ describe('computeEetEalCalculation', () => {
       skadesdato: '2024-01-01',
       skadelidteFodselsdato: '1990-01-01',
       reguleringssats: { ...reguleringssats, 2025: undefined as unknown as number },
-      erhvervsevnetabMax,
-      aarsloenMax,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
     });
 
     expect(result.computation).toBeNull();
@@ -190,8 +189,8 @@ describe('computeEetEalCalculation', () => {
       skadesdato: '2026-01-01',
       skadelidteFodselsdato: '1990-01-01',
       reguleringssats,
-      erhvervsevnetabMax,
-      aarsloenMax,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
     });
 
     expect(result.issues).toEqual([]);
@@ -215,8 +214,8 @@ describe('computeEetEalCalculation', () => {
       skadesdato: '2020-01-01',
       skadelidteFodselsdato: '1990-01-01',
       reguleringssats,
-      erhvervsevnetabMax,
-      aarsloenMax,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
     });
 
     expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message.includes('EET efter EAL på mindre end 15 %'))).toBe(true);
@@ -246,8 +245,8 @@ describe('computeEetEalCalculation', () => {
       skadesdato: '2020-01-01',
       skadelidteFodselsdato: '1990-01-01',
       reguleringssats,
-      erhvervsevnetabMax,
-      aarsloenMax,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
     });
 
     expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message.includes('Der er angivet et EET på mindre end 15 %'))).toBe(true);
@@ -266,8 +265,8 @@ describe('computeEetEalCalculation', () => {
       skadesdato: '2019-01-01',
       skadelidteFodselsdato: '1990-01-01',
       reguleringssats,
-      erhvervsevnetabMax,
-      aarsloenMax,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
     });
 
     expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message.includes('fulde årsløn skal indtastes'))).toBe(true);
@@ -286,8 +285,8 @@ describe('computeEetEalCalculation', () => {
       skadesdato: '2019-01-01',
       skadelidteFodselsdato: '1990-01-01',
       reguleringssats,
-      erhvervsevnetabMax,
-      aarsloenMax,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
     });
 
     expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message.includes('fulde årsløn skal indtastes'))).toBe(true);
@@ -306,8 +305,8 @@ describe('computeEetEalCalculation', () => {
       skadesdato: '2024-07-01',
       skadelidteFodselsdato: '1990-01-01',
       reguleringssats,
-      erhvervsevnetabMax,
-      aarsloenMax,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
     });
 
     expect(

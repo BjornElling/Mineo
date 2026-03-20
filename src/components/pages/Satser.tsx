@@ -210,11 +210,11 @@ const Satser = React.memo(() => {
         />
         <DataRow
           label="Maksimum for erhvervsevnetabserstatning"
-          value={satser ? formatKroner(satser.eal.erhvervsevnetabMax) : ''}
+          value={satser ? formatKroner(satser.eal.erhvervsevnetabEalMax) : ''}
         />
         <DataRow
           label="Vejledende udtalelse om erhvervsevnetab"
-          value={satser ? formatKroner(satser.eal.vejledendeUdtalelse) : ''}
+          value={satser ? formatKroner(satser.eal.vejledendeUdtalelseEet) : ''}
         />
       </ContentBox>
 
@@ -228,7 +228,7 @@ const Satser = React.memo(() => {
         />
         <DataRow
           label="Maksimum årsløn"
-          value={satser ? formatKroner(satser.asl.aarsloenMax) : ''}
+          value={satser ? formatKroner(satser.asl.aarsloenAslMax) : ''}
         />
         <DataRow
           label="Minimum årsløn"

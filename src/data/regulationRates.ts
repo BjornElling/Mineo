@@ -133,7 +133,7 @@ export const svieSmerteMaxYearBounds: YearBounds = (() => {
 })();
 
 // Maksimum for erhvervsevnetab (§ 13, stk. 1, 2. pkt.)
-export const erhvervsevnetabMax: YearlyRate = {
+export const erhvervsevnetabEalMax: YearlyRate = {
   2026: 11582500,
   2025: 11052000,
   2024: 10637000,
@@ -158,8 +158,34 @@ export const erhvervsevnetabMax: YearlyRate = {
   2005: 6678500,
 };
 
+// Mindstebeløb for forsørgertab (§ 13, 2. pkt.)
+export const foersoergertabEalMin: YearlyRate = {
+  2026: 1239000,
+  2025: 1182500,
+  2024: 1138000,
+  2023: 1099500,
+  2022: 1067500,
+  2021: 1055000,
+  2020: 1031000,
+  2019: 1009000,
+  2018: 987000,
+  2017: 966000,
+  2016: 945000,
+  2015: 932000,
+  2014: 918500,
+  2013: 902000,
+  2012: 888000,
+  2011: 860500,
+  2010: 844500,
+  2009: 812000,
+  2008: 785000,
+  2007: 760500,
+  2006: 740500,
+  2005: 724000,
+};
+
 // Vejledende udtalelse om erhvervsevnetab (§ 10)
-export const vejledendeUdtalelse: YearlyRate = {
+export const vejledendeUdtalelseEet: YearlyRate = {
   2026: 26378,
   2025: 25122,
   2024: 24390,
@@ -227,13 +253,14 @@ export const getSatserCompleteYearBounds = (): YearBounds => {
   const bounds = getYearBoundsForCompleteCoverage([
     svieSmertePrDag,
     svieSmerteMax,
-    erhvervsevnetabMax,
-    vejledendeUdtalelse,
+    erhvervsevnetabEalMax,
+    foersoergertabEalMin,
+    vejledendeUdtalelseEet,
     varigeMenPrGrad,
-    aarsloenMax,
+    aarsloenAslMax,
     // NB: aarsloenMin har bevidst ikke 2024 (split i foer/fra 01-07-2024),
     // så complete-bounds afspejler med vilje dette hul i basis-tabellen.
-    aarsloenMin,
+    aarsloenAslMin,
     overgangsbeloeb,
     reguleringsprocentErhvervsevnetabFra2024,
     friProcesEnlig,
@@ -254,7 +281,7 @@ export const getSatserCompleteYearBounds = (): YearBounds => {
 };
 
 // Maksimum årsløn (§ 24, stk. 10)
-export const aarsloenMax: YearlyRate = {
+export const aarsloenAslMax: YearlyRate = {
   2026: 662000,
   2025: 632000,
   2024: 608000,
@@ -281,7 +308,7 @@ export const aarsloenMax: YearlyRate = {
 
 // Minimum årsløn (§ 24, stk. 10)
 // OBS: 2024 bevidst udeladt!
-export const aarsloenMin: YearlyRate = {
+export const aarsloenAslMin: YearlyRate = {
   2026: 280000,
   2025: 267000,
   2023: 219000,
@@ -307,13 +334,13 @@ export const aarsloenMin: YearlyRate = {
 
 // Minimum årsløn (skader før 1.7.2024)
 // OBS: Skal ikke opdateres!
-export const aarsloenMinFoer20240701: YearlyRate = {
+export const aarsloenAslMinFoer20240701: YearlyRate = {
   2024: 227000,
 };
 
 // Minimum årsløn (skader fra 1.7.2024)
 // OBS: Skal ikke opdateres!
-export const aarsloenMinFra20240701: YearlyRate = {
+export const aarsloenAslMinFra20240701: YearlyRate = {
   2024: 257000,
 };
 
@@ -663,19 +690,48 @@ export const reguleringssatsReference: YearlyReference = {
 export const satserCompleteYearBounds: YearBounds = getSatserCompleteYearBounds();
 
 // Seneste år med komplet datadækning for EET-beregninger:
-// intersection af aarsloenMax, reguleringsprocentErhvervsevnetabFra2024,
-// erhvervsevnetabMax og reguleringssats, capped af kapitaliserings-
+// intersection af aarsloenAslMax, reguleringsprocentErhvervsevnetabFra2024,
+// erhvervsevnetabEalMax og reguleringssats, capped af kapitaliserings-
 // bekendtgørelsesoversigtens seneste fælles gyldighedsår.
 // Bruges som øvre dato-grænse for EET-siden (EETMaxDato = 31-12 i dette år).
 export const eetYearBounds: YearBounds = (() => {
   const bounds = getYearBoundsForCompleteCoverage([
-    aarsloenMax,
+    aarsloenAslMax,
     reguleringsprocentErhvervsevnetabFra2024,
-    erhvervsevnetabMax,
+    erhvervsevnetabEalMax,
     reguleringssats,
   ]);
   if (!bounds) {
     throw new Error('CRITICAL: No shared year coverage for EET year bounds');
+  }
+
+  const bekendtgoerelserMaxYear = Number.parseInt(
+    eetKapitaliseringsDatoMaxFraBekendtgoerelser.slice(0, 4),
+    10
+  );
+  if (!Number.isInteger(bekendtgoerelserMaxYear)) {
+    throw new Error('CRITICAL: Invalid max year derived from kapitaliseringsbekendtgoerelser');
+  }
+
+  return {
+    minYear: bounds.minYear,
+    maxYear: Math.min(bounds.maxYear, bekendtgoerelserMaxYear),
+  };
+})();
+
+// Seneste år med komplet datadækning for forsørgertabsberegninger:
+// intersection af EET-satser (aarsloenAslMax, erhvervsevnetabEalMax, reguleringssats) og
+// foersoergertabEalMin, capped af kapitaliseringsbekendtgørelsesoversigtens seneste år.
+// Bruges som øvre dato-grænse for forsørgertab-siden.
+export const foersoergertabYearBounds: YearBounds = (() => {
+  const bounds = getYearBoundsForCompleteCoverage([
+    aarsloenAslMax,
+    erhvervsevnetabEalMax,
+    reguleringssats,
+    foersoergertabEalMin,
+  ]);
+  if (!bounds) {
+    throw new Error('CRITICAL: No shared year coverage for forsørgertab year bounds');
   }
 
   const bekendtgoerelserMaxYear = Number.parseInt(
@@ -708,11 +764,12 @@ export const satserAngivAarYearBounds: YearBounds = (() => {
   const bounds = getYearBoundsForAnyCoverage([
     svieSmertePrDag,
     svieSmerteMax,
-    erhvervsevnetabMax,
-    vejledendeUdtalelse,
+    erhvervsevnetabEalMax,
+    foersoergertabEalMin,
+    vejledendeUdtalelseEet,
     varigeMenPrGrad,
-    aarsloenMax,
-    aarsloenMin,
+    aarsloenAslMax,
+    aarsloenAslMin,
     overgangsbeloeb,
     reguleringsprocentErhvervsevnetabFra2024,
     friProcesEnlig,
@@ -751,15 +808,16 @@ export const getSatserForYear = (year: number) => {
     eal: {
       svieSmertePrDag: num(svieSmertePrDag),
       svieSmerteMax: num(svieSmerteMax),
-      erhvervsevnetabMax: num(erhvervsevnetabMax),
-      vejledendeUdtalelse: num(vejledendeUdtalelse),
+      erhvervsevnetabEalMax: num(erhvervsevnetabEalMax),
+      foersoergertabEalMin: num(foersoergertabEalMin),
+      vejledendeUdtalelseEet: num(vejledendeUdtalelseEet),
     },
     asl: {
       varigeMenPrGrad: num(varigeMenPrGrad),
-      aarsloenMax: num(aarsloenMax),
-      aarsloenMin: num(aarsloenMin),
-      aarsloenMinFoer2024: num(aarsloenMinFoer20240701),
-      aarsloenMinFra2024: num(aarsloenMinFra20240701),
+      aarsloenAslMax: num(aarsloenAslMax),
+      aarsloenMin: num(aarsloenAslMin),
+      aarsloenMinFoer2024: num(aarsloenAslMinFoer20240701),
+      aarsloenMinFra2024: num(aarsloenAslMinFra20240701),
       overgangsbelob: num(overgangsbeloeb),
       reguleringProcentErhvervsevnetab: num(reguleringsprocentErhvervsevnetab),
       reguleringProcentErhvervsevnetabFoer2024: num(reguleringsprocentErhvervsevnetabFoer2024),

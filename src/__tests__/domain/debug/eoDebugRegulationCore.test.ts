@@ -8,7 +8,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schem
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import type { ISODateString } from '../../../types/branded';
-import { aarsloenMax, getYearBoundsForYearlyRate } from '../../../data/regulationRates';
+import { aarsloenAslMax, getYearBoundsForYearlyRate } from '../../../data/regulationRates';
 
 // Test helper: Cast string literal til ISODateString (kun til tests)
 const iso = (date: string): ISODateString => date as ISODateString;
@@ -234,7 +234,7 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
   });
 
   it('falder tilbage til første tilgængelige ASL-år når referenceåret mangler i ASL-data', () => {
-    const aslBounds = getYearBoundsForYearlyRate(aarsloenMax);
+    const aslBounds = getYearBoundsForYearlyRate(aarsloenAslMax);
     expect(aslBounds).not.toBeNull();
     expect(aslBounds?.minYear).toBeGreaterThan(2000);
 
