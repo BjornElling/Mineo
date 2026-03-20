@@ -1,4 +1,4 @@
-import { persistenceSchemas, persistenceSchemaFingerprint } from '../../config/persistenceRegistry';
+import { persistenceSchemas } from '../../config/persistenceRegistry';
 import { STORAGE_KEYS } from '../../config/storageManifest';
 import type { StorageKey } from '../../config/storageManifest';
 import { z } from 'zod';
@@ -144,22 +144,5 @@ describe('persistenceSchemas', () => {
       const result = persistenceSchemas.erstatningsopgoerelse.safeParse('ugyldig');
       expect(result.success).toBe(false);
     });
-  });
-});
-
-describe('persistenceSchemaFingerprint', () => {
-  it('er en streng', () => {
-    expect(typeof persistenceSchemaFingerprint).toBe('string');
-  });
-
-  it('er ikke tom', () => {
-    expect(persistenceSchemaFingerprint.length).toBeGreaterThan(0);
-  });
-
-  it('er deterministisk (samme fingerprint ved to opkald)', () => {
-    // Re-import fra samme modul er det samme objekt — men vi kan bekræfte at det er stabilt
-    const fp1 = persistenceSchemaFingerprint;
-    const fp2 = persistenceSchemaFingerprint;
-    expect(fp1).toBe(fp2);
   });
 });

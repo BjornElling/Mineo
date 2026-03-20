@@ -31,7 +31,6 @@ export const UI_STORAGE_KEYS = {
   devtoolsLastSeenIssueId: 'mineo_ui_devtools_lastSeenIssueId',
   pendingOverlay: 'mineo_pendingOverlay',
   sideMenuExpanded: 'mineo_sideMenuExpanded',
-  debugLastLoadInfo: 'mineo_debug_lastLoadInfo',
 } as const;
 
 const UI_STORAGE_PREFIXES = {

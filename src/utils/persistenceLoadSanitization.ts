@@ -7,29 +7,52 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 };
 
-const cloneDefault = (value: unknown): unknown => {
-  if (Array.isArray(value)) return value.map(cloneDefault);
-  if (isRecord(value)) {
-    const out: Record<string, unknown> = {};
-    for (const [key, val] of Object.entries(value)) {
-      out[key] = cloneDefault(val);
-    }
-    return out;
-  }
-  return value;
-};
-
+/**
+ * Pakker et Zod-schema ud til dets inderste ZodObject eller ZodArray.
+ *
+ * ADVARSEL: Verificeret mod Zod 4.3.6. Bruger Zod's offentlige `.def`-felt (`type`, `in`, `out`) for at
+ * traversere pipe-wrappere (z.preprocess / z.transform). Hvis Zod ændrer
+ * sin `.def`-struktur for pipes, returnerer funktionen det umodificerede schema
+ * lydløst — hvilket medfører at ukendte felter *ikke* strippes.
+ * Verificer mod Zod-changelog ved opgradering.
+ */
 const unwrapSchema = (schema: ZodSchema): ZodSchema => {
-  // Intentional: only unwrap simple wrappers we fully understand.
-  // Treat effects/unions as opaque to avoid false-positive stripping.
   let current = schema;
-  while (
-    current instanceof z.ZodOptional ||
-    current instanceof z.ZodNullable ||
-    current instanceof z.ZodDefault
-  ) {
-    current = current.def.innerType as ZodSchema;
+  while (true) {
+    if (
+      current instanceof z.ZodOptional ||
+      current instanceof z.ZodNullable ||
+      current instanceof z.ZodDefault
+    ) {
+      current = current.def.innerType as ZodSchema;
+      continue;
+    }
+
+    const currentDef = current.def as unknown as Record<string, unknown>;
+    if (currentDef.type === 'pipe') {
+      const inputSchema = currentDef.in;
+      const outputSchema = currentDef.out;
+      if (inputSchema instanceof z.ZodType) {
+        const unwrappedInput = unwrapSchema(inputSchema);
+        if (unwrappedInput instanceof z.ZodObject || unwrappedInput instanceof z.ZodArray) {
+          current = unwrappedInput;
+          continue;
+        }
+      }
+      if (outputSchema instanceof z.ZodType) {
+        const unwrappedOutput = unwrapSchema(outputSchema);
+        if (unwrappedOutput instanceof z.ZodObject || unwrappedOutput instanceof z.ZodArray) {
+          current = unwrappedOutput;
+        } else {
+          current = outputSchema;
+        }
+        continue;
+      }
+    }
+
+    break;
   }
+
   return current;
 };
 
@@ -60,6 +83,7 @@ export const stripUnknownFieldsBySchema = (
         unknownPaths.push([key]);
         continue;
       }
+
       const child = stripUnknownFieldsBySchema(childSchema, val);
       sanitized[key] = child.sanitized;
       for (const path of child.unknownPaths) {
@@ -72,6 +96,7 @@ export const stripUnknownFieldsBySchema = (
 
   if (base instanceof z.ZodArray) {
     if (!Array.isArray(value)) return { sanitized: value, unknownPaths: [] };
+
     const elementSchema = base.element as ZodSchema;
     const unknownPaths: UnknownPath[] = [];
     const sanitized = value.map((item, index) => {
@@ -81,53 +106,9 @@ export const stripUnknownFieldsBySchema = (
       }
       return child.sanitized;
     });
+
     return { sanitized, unknownPaths };
   }
 
   return { sanitized: value, unknownPaths: [] };
-};
-
-export const applyDefaultsDeep = (
-  value: unknown,
-  defaults: unknown
-): unknown => {
-  if (defaults === undefined) return value;
-  if (value === undefined) return cloneDefault(defaults);
-
-  if (Array.isArray(defaults)) {
-    // Array defaults must be either [] (no defaults) or [elementDefault].
-    // Empty array means "no defaults".
-    if (defaults.length > 1) {
-      throw new Error('Ugyldig default-konfiguration: Array defaults må kun indeholde 0 eller 1 element.');
-    }
-    if (!Array.isArray(value)) return value;
-    if (defaults.length === 0) return value;
-    const elementDefaults = defaults[0];
-    if (!isRecord(elementDefaults)) return value;
-
-    const updated = value.map((item) => {
-      if (!isRecord(item)) return item;
-      return applyDefaultsDeep(item, elementDefaults);
-    });
-    return updated;
-  }
-
-  if (isRecord(defaults) && isRecord(value)) {
-    let changed = false;
-    const next: Record<string, unknown> = { ...value };
-
-    for (const [key, defVal] of Object.entries(defaults)) {
-      if (defVal === undefined) continue;
-      const current = value[key];
-      const nextVal = applyDefaultsDeep(current, defVal);
-      if (nextVal !== current) {
-        next[key] = nextVal;
-        changed = true;
-      }
-    }
-
-    return changed ? next : value;
-  }
-
-  return value;
 };

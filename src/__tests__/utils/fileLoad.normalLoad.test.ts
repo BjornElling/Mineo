@@ -1,14 +1,17 @@
 // @vitest-environment jsdom
 import { webcrypto } from 'node:crypto';
-import { loadFromFile, validateEoFile } from '../../utils/fileLoad';
+import { loadFromFile, loadFromFileHandle, validateEoFile } from '../../utils/fileLoad';
 import { encryptToString } from '../../utils/encryption';
+import { countFilledFields } from '../../utils/dataCollection';
+import { FILE_FORMAT_VERSION, VERSION } from '../../config/version';
 
-vi.mock('../../utils/fileSystemAccess', () => ({
+const readFromFileHandleMock = vi.fn();
+
+vi.mock('../../utils/fileSystemAccess', async () => ({
   isFileSystemAccessSupported: () => false,
   openFileWithPicker: vi.fn(),
-  readFromFileHandle: vi.fn(),
+  readFromFileHandle: (...args: unknown[]) => readFromFileHandleMock(...args),
 }));
-
 const selectFileMock = vi.fn();
 const readFileMock = vi.fn();
 
@@ -36,22 +39,30 @@ beforeAll(() => {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const makeValidContainer = async (overrides: Record<string, unknown> = {}): Promise<string> => {
-  const container = {
-    version: '1.0.0',
-    data: {
-      stamdata: {
-        journalnr: 'J-2024-001',
-        advokat: '',
-        sagsbehandler: '',
-        skadelidte: 'Testperson',
-        skadestype: 'Arbejdsulykke',
-        skadesdato: '2024-01-15',
-      },
-      ...overrides,
+const encryptLoadContainer = async (data: Record<string, unknown>): Promise<string> => {
+  return encryptToString({
+    version: FILE_FORMAT_VERSION,
+    _metadata: {
+      exportDate: '2026-03-20T00:00:00.000Z',
+      appVersion: VERSION,
+      fieldCount: countFilledFields(data),
     },
-  };
-  return encryptToString(container);
+    data,
+  });
+};
+
+const makeValidContainer = async (overrides: Record<string, unknown> = {}): Promise<string> => {
+  return encryptLoadContainer({
+    stamdata: {
+      journalnr: 'J-2024-001',
+      advokat: '',
+      sagsbehandler: '',
+      skadelidte: 'Testperson',
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2024-01-15',
+    },
+    ...overrides,
+  });
 };
 
 // ─── loadFromFile – success ───────────────────────────────────────────────────
@@ -116,11 +127,8 @@ describe('fileLoad – normalLoadFlow', () => {
 
   it('kaster fejl for fil med nul udfyldte felter', async () => {
     // Container med kun tomme felter → fileFieldCount === 0
-    const emptyContainer = await encryptToString({
-      version: '1.0.0',
-      data: {
-        stamdata: { journalnr: '', advokat: '', sagsbehandler: '', skadelidte: '', skadestype: undefined, skadesdato: undefined },
-      },
+    const emptyContainer = await encryptLoadContainer({
+      stamdata: { journalnr: '', advokat: '', sagsbehandler: '', skadelidte: '', skadestype: undefined, skadesdato: undefined },
     });
     const file = new File([emptyContainer], 'tom.eo', { type: 'application/octet-stream' });
     selectFileMock.mockResolvedValueOnce(file);
@@ -129,9 +137,14 @@ describe('fileLoad – normalLoadFlow', () => {
     await expect(loadFromFile()).rejects.toThrow();
   });
 
-  it('sætter preflightWarning ved ukendte sektioner i filen', async () => {
+  it('returnerer preflight-advarsel og bevarer kendte sektioner ved ukendt sektion', async () => {
     const content = await encryptToString({
-      version: '1.0.0',
+      version: FILE_FORMAT_VERSION,
+      _metadata: {
+        exportDate: '2026-03-20T00:00:00.000Z',
+        appVersion: VERSION,
+        fieldCount: 1,
+      },
       data: {
         stamdata: {
           journalnr: 'J-001',
@@ -151,8 +164,142 @@ describe('fileLoad – normalLoadFlow', () => {
     const result = await loadFromFile();
     expect(result.success).toBe(true);
     if (!result.success) return;
-    expect(result.preflightWarning).toBeDefined();
-    expect(result.preflightWarning?.issues.some((i) => i.path === 'ukendtSektion')).toBe(true);
+    expect(result.snapshot?.stamdata).toBeDefined();
+    expect(result.preflightWarning?.issues.some((issue) => issue.path === 'ukendtSektion')).toBe(true);
+  });
+
+  it('returnerer preflight-advarsel og stripper ukendte felter i kendt sektion', async () => {
+    const content = await encryptLoadContainer({
+      stamdata: {
+        journalnr: 'J-001',
+        advokat: '',
+        sagsbehandler: '',
+        skadelidte: 'Test',
+        skadestype: undefined,
+        skadesdato: undefined,
+        uventetFelt: 'fjernes',
+      },
+    });
+    const file = new File([content], 'sag.eo', { type: 'application/octet-stream' });
+    selectFileMock.mockResolvedValueOnce(file);
+    readFileMock.mockResolvedValueOnce(content);
+
+    const result = await loadFromFile();
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect((result.snapshot?.stamdata as Record<string, unknown>)?.uventetFelt).toBeUndefined();
+    expect(result.preflightWarning?.issues.some((issue) => issue.path === 'stamdata.uventetFelt')).toBe(true);
+  });
+
+  it('springer ugyldig sektion over og bevarer øvrige gyldige sektioner', async () => {
+    const content = await encryptLoadContainer({
+      stamdata: {
+        journalnr: 'J-001',
+        advokat: '',
+        sagsbehandler: '',
+        skadelidte: 'Test',
+        skadestype: undefined,
+        skadesdato: undefined,
+      },
+      renteberegning: {
+        rentekravRows: 'forkert-type',
+      },
+    });
+    const file = new File([content], 'delvist-gyldig.eo', { type: 'application/octet-stream' });
+    selectFileMock.mockResolvedValueOnce(file);
+    readFileMock.mockResolvedValueOnce(content);
+
+    const result = await loadFromFile();
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.snapshot?.stamdata).toBeDefined();
+    expect(result.snapshot?.renteberegning).toBeUndefined();
+    expect(result.preflightWarning?.issues.some((issue) => issue.path.startsWith('renteberegning'))).toBe(true);
+  });
+
+  it('afviser filer hvor kun ukendte sektioner har indhold', async () => {
+    const content = await encryptToString({
+      version: FILE_FORMAT_VERSION,
+      _metadata: {
+        exportDate: '2026-03-20T00:00:00.000Z',
+        appVersion: VERSION,
+        fieldCount: 2,
+      },
+      data: {
+        ukendtSektion: { noget: 'data' },
+      },
+    });
+    const file = new File([content], 'kun-ukendt-sektion.eo', { type: 'application/octet-stream' });
+    selectFileMock.mockResolvedValueOnce(file);
+    readFileMock.mockResolvedValueOnce(content);
+
+    await expect(loadFromFile()).rejects.toThrow('ingen data der kan indlæses');
+  });
+
+  it('afviser forkert filversion eksplicit', async () => {
+    const content = await encryptToString({
+      version: '1.0.0',
+      _metadata: {
+        exportDate: '2026-03-20T00:00:00.000Z',
+        appVersion: VERSION,
+        fieldCount: 1,
+      },
+      data: {
+        stamdata: {
+          journalnr: 'J-001',
+          advokat: '',
+          sagsbehandler: '',
+          skadelidte: 'Test',
+          skadestype: undefined,
+          skadesdato: undefined,
+        },
+      },
+    });
+    const file = new File([content], 'forkert-version.eo', { type: 'application/octet-stream' });
+    selectFileMock.mockResolvedValueOnce(file);
+    readFileMock.mockResolvedValueOnce(content);
+
+    await expect(loadFromFile()).rejects.toThrow(`format ${FILE_FORMAT_VERSION}`);
+  });
+
+  it('afviser filer uden obligatorisk metadata i nyt format', async () => {
+    const content = await encryptToString({
+      version: FILE_FORMAT_VERSION,
+      data: {
+        stamdata: {
+          journalnr: 'J-001',
+          advokat: '',
+          sagsbehandler: '',
+          skadelidte: 'Test',
+          skadestype: undefined,
+          skadesdato: undefined,
+        },
+      },
+    });
+    const file = new File([content], 'mangler-metadata.eo', { type: 'application/octet-stream' });
+    selectFileMock.mockResolvedValueOnce(file);
+    readFileMock.mockResolvedValueOnce(content);
+
+    await expect(loadFromFile()).rejects.toThrow('ugyldig .eo-struktur');
+  });
+});
+
+describe('loadFromFileHandle', () => {
+  it('returnerer success med snapshot ved gyldig PWA-fil', async () => {
+    const content = await makeValidContainer();
+    const handle = {
+      getFile: vi.fn().mockResolvedValue(new File([content], 'pwa.eo', { type: 'application/octet-stream' })),
+    } as unknown as FileSystemFileHandle;
+    readFromFileHandleMock.mockResolvedValueOnce(content);
+
+    const result = await loadFromFileHandle(handle, { requestId: 'req-1' });
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.source).toBe('pwa');
+    expect(result.requestId).toBe('req-1');
+    expect(result.snapshot?.stamdata).toBeDefined();
   });
 });
 
@@ -160,7 +307,7 @@ describe('fileLoad – normalLoadFlow', () => {
 
 describe('validateEoFile', () => {
   it('returnerer true for gyldig krypteret .eo fil', async () => {
-    const container = { version: '1.0.0', data: {} };
+    const container = { version: FILE_FORMAT_VERSION, data: {} };
     const encrypted = await encryptToString(container);
     const file = new File([encrypted], 'sag.eo', { type: 'application/octet-stream' });
     readFileMock.mockResolvedValueOnce(encrypted);

@@ -41,22 +41,15 @@ describe('parseStoredSettings', () => {
     expect(result).toEqual(DEFAULT_APP_SETTINGS);
   });
 
-  it('delvis settings (kun ét felt) → merger med defaults', () => {
-    // Kun ét felt – resten skal hentes fra defaults
+  it('delvis settings (ukendt felt) → merger med defaults, alle kendte felter er defaults', () => {
     const partial = { advokat: 'Advokat Jensens Kontor' };
     const result = parseStoredSettings(partial);
-    // Ukendt felt ignoreres (schema merger kun kendte fields)
-    // Men defaults for alle kendte felter bevares
-    expect(result).toBeDefined();
-    // Skal matche DEFAULT_APP_SETTINGS for alle felter der er i schema
-    expect(typeof result).toBe('object');
+    expect(result).toEqual(DEFAULT_APP_SETTINGS);
   });
 
-  it('settings med ugyldigt felt → falder tilbage til defaults', () => {
-    // Ugyldigt felt (forkert type for et required felt)
+  it('settings med ukendt felt → strict schema afviser → falder tilbage til defaults', () => {
     const invalid = { ...DEFAULT_APP_SETTINGS, overenskomstFilter: 999 };
     const result = parseStoredSettings(invalid);
-    // Schema fejler → returnerer defaults
     expect(result).toEqual(DEFAULT_APP_SETTINGS);
   });
 

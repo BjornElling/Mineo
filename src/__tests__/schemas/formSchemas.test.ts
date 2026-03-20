@@ -16,7 +16,6 @@ import {
   offentligeYdelserRowSchema,
 } from '../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { buildPersistenceDefaults } from '../../config/persistenceDefaults';
 
 // ─── aarsloenSchema ────────────────────────────────────────────────────────────
 
@@ -153,7 +152,7 @@ describe('stamdataSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('afviser legacy-EET-feltet skadelidteFodselsdato', () => {
+  it('afviser ukendt felt skadelidteFodselsdato', () => {
     const result = stamdataSchema.safeParse({
       skadelidteFodselsdato: '1990-01-01',
     });
@@ -180,7 +179,7 @@ describe('erhvervsevnetabSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('afviser legacy-feltet skadelidteFodselsdato', () => {
+  it('afviser ukendt felt skadelidteFodselsdato', () => {
     const result = erhvervsevnetabSchema.safeParse({
       beregningsdato: '2024-01-01',
       skadelidteFodselsdato: '1990-01-01',
@@ -207,7 +206,7 @@ describe('faellesPersondataSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('afviser legacy-feltet fodselsdato', () => {
+  it('afviser ukendt felt fodselsdato', () => {
     const result = faellesPersondataSchema.safeParse({
       fodselsdato: '1990-01-01',
     });
@@ -414,9 +413,8 @@ describe('offentligeYdelserRowSchema', () => {
 // ─── renteberegningSchema round-trip ─────────────────────────────────────────
 
 describe('renteberegningSchema', () => {
-  it('persistenceDefaults er gyldige mod renteberegningSchema', () => {
-    const defaults = buildPersistenceDefaults().renteberegning;
-    const result = renteberegningSchema.safeParse(defaults);
+  it('tom rentekravRows er gyldigt (minimalt gyldigt objekt)', () => {
+    const result = renteberegningSchema.safeParse({ rentekravRows: [] });
     expect(result.success).toBe(true);
   });
 
@@ -495,7 +493,7 @@ describe('varigeMenSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('afviser legacy-feltet fodselsdato', () => {
+  it('afviser ukendt felt fodselsdato', () => {
     const result = varigeMenSchema.safeParse({
       mengrad: 10,
       beregningsdato: '2023-01-01',
@@ -541,7 +539,7 @@ describe('forsoergertabSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('afviser legacy-feltet fodselsdato', () => {
+  it('afviser ukendt felt fodselsdato', () => {
     const result = forsoergertabSchema.safeParse({
       fodselsdato: '1988-03-04',
     });
@@ -552,12 +550,6 @@ describe('forsoergertabSchema', () => {
 // ─── aarsloenSchema round-trip ────────────────────────────────────────────────
 
 describe('aarsloenSchema (round-trip)', () => {
-  it('persistenceDefaults er gyldige mod aarsloenSchema', () => {
-    const defaults = buildPersistenceDefaults().aarsloen;
-    const result = aarsloenSchema.safeParse(defaults);
-    expect(result.success).toBe(true);
-  });
-
   it('accepterer minimalt gyldigt objekt', () => {
     const result = aarsloenSchema.safeParse({
       loenperiode: 'maaned',

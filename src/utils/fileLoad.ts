@@ -13,9 +13,7 @@ import {
 import { FILE_FORMAT_VERSION, MAX_FILE_SIZE } from '../config/version';
 import { STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
 import { persistenceSchemas } from '../config/persistenceRegistry';
-import { PERSISTENCE_SCHEMA_FINGERPRINT } from '../config/persistenceVersion';
 import { nullToUndefinedDeep } from './nullToUndefinedDeep';
-import { buildPersistenceDefaults, type PersistedSectionDefaults } from '../config/persistenceDefaults';
 import {
   isFileSystemAccessSupported,
   openFileWithPicker,
@@ -24,8 +22,7 @@ import {
 import type { LoadFileResult } from '../types/fileOperations';
 import { eoFileContainerLoadSchema, type EoFileContainerLoad } from '../schemas/eoFileSchema';
 import { CalculationError } from './errorMessages';
-import { applyDefaultsDeep, stripUnknownFieldsBySchema, type UnknownPath } from './persistenceLoadSanitization';
-import type { AppSettings } from '../settings/appSettingsSchema';
+import { stripUnknownFieldsBySchema, type UnknownPath } from './persistenceLoadSanitization';
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -50,37 +47,31 @@ const normalizeDecryptedContainer = (decrypted: unknown): EoFileContainerLoad =>
     throw new Error('Ugyldig fil-struktur (ikke et objekt)');
   }
 
+  const rawVersion = decrypted.version;
+  if (typeof rawVersion === 'string' && rawVersion !== FILE_FORMAT_VERSION) {
+    throw new Error(`Ugyldig filversion. Forventet format ${FILE_FORMAT_VERSION}.`);
+  }
+
   const parsed = eoFileContainerLoadSchema.safeParse(decrypted);
   if (!parsed.success) {
     const issues = formatZodIssues(parsed.error.issues, 3);
     const suffix = issues.trim() !== '' ? `\n\nDetaljer (første 3):\n${issues}` : '';
     throw new Error(
-      `Filen matcher ikke denne versions data-schema og kan derfor ikke indlæses.\n` +
-      `Den er sandsynligvis gemt i en ældre version, eller filen er korrupt.${suffix}`
+      'Filen har ugyldig .eo-struktur og kan derfor ikke indlæses.\n' +
+      `Filen er sandsynligvis korrupt eller ikke opbygget som en gyldig Mineo-fil.${suffix}`
     );
   }
 
   return parsed.data;
 };
 
-/**
- * Indlæser data fra krypteret .eo fil.
- *
- * VIGTIGT (trust-critical):
- * - Load validerer og returnerer et snapshot; selve anvendelsen sker atomisk via persistence-laget.
- *
- * @param resolvedDirectory - Optional resolved directory fra resolveDefaultDirectoryHandle
- */
-type LoadIssue = { path: string; reason: string };
-type ZodIssueLike = { path: Array<string | number | symbol>; message?: string };
-
 const formatPathSegments = (segments: Array<string | number>): string => {
   let out = '';
-  for (const seg of segments) {
-    if (typeof seg === 'number') {
-      out += `[${seg + 1}]`;
+  for (const segment of segments) {
+    if (typeof segment === 'number') {
+      out += `[${segment + 1}]`;
     } else {
-      out += out === '' ? seg : `.${seg}`;
+      out += out === '' ? segment : `.${segment}`;
     }
   }
   return out === '' ? '(root)' : out;
@@ -91,40 +82,29 @@ const toLoadIssuePath = (sectionKey: StorageKey, path: UnknownPath): string => {
   return detailPath === '(root)' ? sectionKey : `${sectionKey}.${detailPath}`;
 };
 
-const applyDefaultsForSection = (
-  sectionKey: StorageKey,
-  value: unknown,
-  defaults: PersistedSectionDefaults
-): unknown => {
-  const sectionDefaults = defaults[sectionKey];
-  return sectionDefaults ? applyDefaultsDeep(value, sectionDefaults) : value;
-};
-
+/**
+ * Indlæser data fra krypteret .eo fil.
+ *
+ * VIGTIGT (trust-critical):
+ * - Load validerer og returnerer et snapshot; selve anvendelsen sker atomisk via persistence-laget.
+ *
+ * @param resolvedDirectory - Optional resolved directory fra resolveDefaultDirectoryHandle
+ */
 const processDecryptedContainer = (args: {
   fileContainer: EoFileContainerLoad;
   filename: string;
   source: 'manual' | 'pwa';
   fileHandle?: FileSystemFileHandle;
   requestId?: string;
-  settings?: AppSettings;
 }): LoadFileResult => {
   const { fileContainer, filename, source, fileHandle, requestId } = args;
   const fileData = fileContainer.data;
-  const loadIssues: LoadIssue[] = [];
-  const defaults = buildPersistenceDefaults(args.settings);
+  const { fieldCount: expectedFieldCount } = fileContainer._metadata;
+  const loadIssues: Array<{ path: string; reason: string }> = [];
 
-  const fileVersion = fileContainer.version || 'ukendt';
+  const fileVersion = fileContainer.version;
   logDebug(`Fil version: ${fileVersion}`);
-  if (fileVersion !== FILE_FORMAT_VERSION) {
-    loadIssues.push({
-      path: 'version',
-      reason: `Filen er gemt i en anden version (${fileVersion}) og kan mangle felter i denne version`,
-    });
-  }
-
-  const expectedFieldCount = fileContainer._metadata.fieldCount;
-  const fileSchemaHash = fileContainer._metadata.schemaHash;
-  logDebug(`Forventet antal felter: ${expectedFieldCount ?? 'ikke angivet'}`);
+  logDebug(`Forventet antal felter: ${expectedFieldCount}`);
 
   logDataStats(fileData as unknown as Record<string, unknown>, 'Dekrypteret data');
 
@@ -139,46 +119,42 @@ const processDecryptedContainer = (args: {
 
   const snapshot: Partial<Record<StorageKey, unknown>> = {};
   for (const sectionKey of Object.keys(persistenceSchemas) as StorageKey[]) {
-    const raw = (fileData as Record<string, unknown>)[sectionKey];
-    if (raw === undefined) continue;
-
-    const schema = persistenceSchemas[sectionKey];
-    const normalized = nullToUndefinedDeep(raw);
-    const stripped = stripUnknownFieldsBySchema(schema, normalized);
-    if (stripped.unknownPaths.length > 0) {
-      stripped.unknownPaths.forEach((path) => {
-        loadIssues.push({
-          path: toLoadIssuePath(sectionKey, path),
-          reason: 'Feltet findes ikke i denne version og blev ikke indlæst',
-        });
-      });
-    }
-
-    const withDefaults = applyDefaultsForSection(sectionKey, stripped.sanitized, defaults);
-    const direct = schema.safeParse(withDefaults);
-    if (direct.success) {
-      snapshot[sectionKey] = direct.data;
+    const rawValue = (fileData as Record<string, unknown>)[sectionKey];
+    if (rawValue === undefined) {
       continue;
     }
 
-    const primaryIssue = direct.error.issues[0] as unknown as ZodIssueLike | undefined;
-    const normalizedPath = primaryIssue
-      ? primaryIssue.path.filter((seg): seg is string | number => typeof seg === 'string' || typeof seg === 'number')
-      : [];
-    const detailPath = normalizedPath.length > 0 ? formatPathSegments(normalizedPath) : '(root)';
+    const schema = persistenceSchemas[sectionKey];
+    const normalizedValue = nullToUndefinedDeep(rawValue);
+    const stripped = stripUnknownFieldsBySchema(schema, normalizedValue);
+
+    for (const path of stripped.unknownPaths) {
+      loadIssues.push({
+        path: toLoadIssuePath(sectionKey, path),
+        reason: 'Feltet findes ikke i denne version og blev ikke indlæst',
+      });
+    }
+
+    const parsedSection = schema.safeParse(stripped.sanitized);
+    if (parsedSection.success) {
+      snapshot[sectionKey] = parsedSection.data;
+      continue;
+    }
+
+    const firstIssue = parsedSection.error.issues[0];
+    const issuePathSegments = (firstIssue?.path ?? [])
+      .filter((segment): segment is string | number => typeof segment === 'string' || typeof segment === 'number');
+    const detailPath = formatPathSegments(issuePathSegments);
     const issuePath = detailPath === '(root)' ? sectionKey : `${sectionKey}.${detailPath}`;
-    const reasonDetail = primaryIssue?.message ?? 'Forkert format';
     loadIssues.push({
       path: issuePath,
-      reason: `Sektionen kunne ikke indlæses (${reasonDetail}) og blev ikke indlæst`,
+      reason: `Sektionen kunne ikke indlæses (${firstIssue?.message ?? 'Forkert format'}) og blev ikke indlæst`,
     });
   }
 
-  // Ukendte sektioner i filen (fra andre versioner) kan ikke indlæses.
   for (const key of Object.keys(fileData as Record<string, unknown>)) {
     if (key.startsWith('_')) continue;
-    const isKnown = Object.prototype.hasOwnProperty.call(persistenceSchemas, key);
-    if (!isKnown) {
+    if (!Object.prototype.hasOwnProperty.call(persistenceSchemas, key)) {
       loadIssues.push({
         path: key,
         reason: 'Sektionen findes ikke i denne version og blev ikke indlæst',
@@ -191,30 +167,6 @@ const processDecryptedContainer = (args: {
     throw new Error('Filen indeholder ingen data der kan indlæses i denne version');
   }
 
-  const expectedCountForUser = expectedFieldCount ?? fileFieldCount;
-  const failedCountForUser = expectedCountForUser >= loadedFieldCount
-    ? expectedCountForUser - loadedFieldCount
-    : 0;
-
-  const fieldCountWarning = expectedFieldCount !== undefined && expectedFieldCount !== loadedFieldCount
-    ? {
-      message: `Forventet ${expectedFieldCount} felter, fandt ${loadedFieldCount} (diff: ${loadedFieldCount - expectedFieldCount})`,
-      expected: expectedFieldCount,
-      actual: loadedFieldCount,
-      difference: loadedFieldCount - expectedFieldCount,
-    }
-    : undefined;
-
-  const debugInfo = {
-    expectedFieldCount,
-    actualFieldCount: loadedFieldCount,
-    sectionsInFile: sectionsPresent,
-    schemaHashInFile: fileSchemaHash,
-    schemaHashCurrent: PERSISTENCE_SCHEMA_FINGERPRINT,
-    timestamp: new Date().toISOString(),
-  };
-
-  const shouldPreflightWarn = loadIssues.length > 0;
   return {
     success: true,
     source,
@@ -226,13 +178,11 @@ const processDecryptedContainer = (args: {
     sections: sectionsPresent.length,
     version: fileVersion,
     snapshot,
-    debugInfo,
-    fieldCountWarning,
-    preflightWarning: shouldPreflightWarn
+    preflightWarning: loadIssues.length > 0
       ? {
-        expectedCount: expectedFieldCount ?? fileFieldCount,
+        expectedCount: expectedFieldCount,
         loadedCount: loadedFieldCount,
-        failedCount: failedCountForUser,
+        failedCount: Math.max(expectedFieldCount - loadedFieldCount, 0),
         issues: loadIssues,
       }
       : undefined,
@@ -240,8 +190,7 @@ const processDecryptedContainer = (args: {
 };
 
 export const loadFromFile = async (
-  resolvedDirectory?: ResolvedDirectory,
-  options?: { settings?: AppSettings }
+  resolvedDirectory?: ResolvedDirectory
 ): Promise<LoadFileResult> => {
   logOperationStart('Hent fil');
 
@@ -330,7 +279,6 @@ export const loadFromFile = async (
       filename: file.name,
       source: 'manual',
       fileHandle: fileHandle ?? undefined,
-      settings: options?.settings,
     });
 
     logOperationEnd('Hent fil', true);
@@ -353,7 +301,7 @@ export const loadFromFile = async (
 
 export const loadFromFileHandle = async (
   fileHandle: FileSystemFileHandle,
-  options?: { requestId?: string; settings?: AppSettings }
+  options?: { requestId?: string }
 ): Promise<LoadFileResult> => {
   logOperationStart('Hent fil');
 
@@ -397,7 +345,6 @@ export const loadFromFileHandle = async (
       source: 'pwa',
       requestId: options?.requestId,
       fileHandle,
-      settings: options?.settings,
     });
 
     logOperationEnd('Hent fil', true);

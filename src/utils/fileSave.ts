@@ -25,7 +25,6 @@ import {
 } from './fileHandleStorage';
 import type { SaveFileResult } from '../types/fileOperations';
 import { eoFileDataSchema, type EoFileContainer } from '../schemas/eoFileSchema';
-import { PERSISTENCE_SCHEMA_FINGERPRINT } from '../config/persistenceVersion';
 import { UI_STORAGE_KEYS } from '../config/storageManifest';
 import type {
   CanonicalEoData,
@@ -51,6 +50,14 @@ export class SaveUnusableFileError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'SaveUnusableFileError';
+  }
+}
+
+export class SaveValidationError extends Error {
+  readonly kind = 'validation' as const;
+  constructor(message: string) {
+    super(message);
+    this.name = 'SaveValidationError';
   }
 }
 
@@ -88,6 +95,19 @@ const saveFilenameMetadata = (filename: string, stamdata: unknown): void => {
   sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, JSON.stringify(buildFilenameBasis(stamdata)));
 };
 
+const hasFilenameBasisChanged = (
+  previousBasis: unknown,
+  nextStamdata: unknown
+): boolean => {
+  if (!isRecord(previousBasis)) return false;
+  const nextBasis = buildFilenameBasis(nextStamdata);
+  return (
+    previousBasis.skadelidte !== nextBasis.skadelidte ||
+    previousBasis.skadestype !== nextBasis.skadestype ||
+    previousBasis.skadesdato !== nextBasis.skadesdato
+  );
+};
+
 const isFileSystemFileHandle = (value: unknown): value is FileSystemFileHandle => {
   if (!value || typeof value !== 'object') return false;
   const obj = value as Record<string, unknown>;
@@ -118,17 +138,10 @@ export const saveToFile = async (
   logOperationStart('Gem fil');
 
   try {
-    // 0. Byg data fra persistence snapshot (til verificering)
-    // Dette skal ske FØR collectAllData() for at fange eventuelle fejl i den funktion
     logInfo('Indsamler data fra persistence snapshot...');
-    const snapshotDataRaw = buildAllDataRawFromSnapshot(snapshot);
-    const snapshotFieldCount = countFilledFields(snapshotDataRaw);
-    const expectedFieldCount = snapshotFieldCount;
+    const allDataRaw = buildAllDataRawFromSnapshot(snapshot);
+    const expectedFieldCount = countFilledFields(allDataRaw);
     logInfo(`✓ Forventet data indsamlet: ${expectedFieldCount} felter`);
-
-    // 1. Indsaml data til fil fra persistence snapshot
-    logInfo('Indsamler data fra persistence snapshot...');
-    const allDataRaw = snapshotDataRaw;
     logDataStats(allDataRaw, 'Indsamlet data');
 
     // VIGTIGT: `.eo` fil må kun indeholde schema-valideret brugerinput.
@@ -142,7 +155,7 @@ export const saveToFile = async (
 
     // 2. Valider at vi har egentlige data at gemme
     if (!hasRealData(canonicalData)) {
-      const error = new Error('Ingen data fundet at gemme');
+      const error = new SaveValidationError('Ingen data fundet at gemme');
       logError('Validering fejlede', {
         context: 'saveToFile.validation',
         error,
@@ -151,12 +164,12 @@ export const saveToFile = async (
     }
     logInfo('✓ Data valideret - indeholder meningsfulde værdier');
 
-    // 3. Tæl antal felter med data (KRITISK for validering ved hent!)
+    // 3. Tæl antal felter med data til preflight-rapportering ved hent
     const fieldCount = countFilledFields(canonicalData);
     logInfo(`✓ Talt ${fieldCount} felter med data`);
 
     if (fieldCount === 0) {
-      const error = new Error('Ingen udfyldte felter fundet');
+      const error = new SaveValidationError('Ingen udfyldte felter fundet');
       logError('Feltoptælling fejlede', {
         context: 'saveToFile.fieldCount',
         error,
@@ -173,8 +186,7 @@ export const saveToFile = async (
       _metadata: {
         exportDate: new Date().toISOString(),
         appVersion: VERSION,
-        fieldCount: fieldCount, // VIGTIGT: Bruges til validering ved hent
-        schemaHash: PERSISTENCE_SCHEMA_FINGERPRINT,
+        fieldCount: fieldCount, // VIGTIGT: Bruges til preflight-rapportering ved hent
       },
 
       // Selve data fra alle menupunkter
@@ -215,11 +227,7 @@ export const saveToFile = async (
         const currentStamdata = fileData.data.stamdata || {};
 
         // Sammenlign kun de felter der påvirker filnavnet
-        const stamdataChanged = savedStamdata && (
-          savedStamdata.skadelidte !== currentStamdata.skadelidte ||
-          savedStamdata.skadestype !== currentStamdata.skadestype ||
-          savedStamdata.skadesdato !== currentStamdata.skadesdato
-        );
+        const stamdataChanged = hasFilenameBasisChanged(savedStamdata, currentStamdata);
 
         if (!stamdataChanged) {
           // Stamdata uændret (eller ikke gemt tidligere) - brug gemt handle
@@ -336,12 +344,7 @@ export const saveToFile = async (
       const savedStamdataJson = sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
       const savedStamdata = savedStamdataJson ? JSON.parse(savedStamdataJson) : null;
       const currentStamdata = fileData.data.stamdata || {};
-      const currentBasis = buildFilenameBasis(currentStamdata);
-      const stamdataChanged = savedStamdata && (
-        savedStamdata.skadelidte !== currentBasis.skadelidte ||
-        savedStamdata.skadestype !== currentBasis.skadestype ||
-        savedStamdata.skadesdato !== currentBasis.skadesdato
-      );
+      const stamdataChanged = hasFilenameBasisChanged(savedStamdata, currentStamdata);
 
       // Brug sidste gemte filnavn hvis stamdata er uændret, ellers brug nyt baseret på stamdata
       if (lastSavedPath && !stamdataChanged) {
@@ -441,17 +444,8 @@ export const saveToFile = async (
     });
 
     // Genkast med brugervenlig besked
-    if (err instanceof SaveIntegrityError || err instanceof SaveUnusableFileError) {
+    if (err instanceof SaveIntegrityError || err instanceof SaveUnusableFileError || err instanceof SaveValidationError) {
       throw err;
-    }
-    if (err.message.includes('Ingen data')) {
-      throw err; // Bevar validerings-fejl som er
-    }
-    if (err.message.includes('Ingen udfyldte felter')) {
-      throw err; // Bevar validerings-fejl som er
-    }
-    if (err.message.includes('annulleret')) {
-      throw err; // Bevar annullerings-besked
     }
 
     throw new Error(`Kunne ikke gemme fil: ${err.message}`);

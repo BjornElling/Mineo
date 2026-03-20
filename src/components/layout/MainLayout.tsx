@@ -379,9 +379,6 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
     } else {
       sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
     }
-    if (import.meta.env.DEV && result.debugInfo) {
-      sessionStorage.setItem(UI_STORAGE_KEYS.debugLastLoadInfo, JSON.stringify(result.debugInfo, null, 2));
-    }
     if (result.fileHandle) {
       await saveFileHandleToIndexedDB(result.fileHandle);
     }
@@ -475,7 +472,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
       // Resolve default directory for file picker startIn
       const resolvedDirectory = await resolveDefaultDirectoryHandle(settings);
 
-      const result: LoadFileResult = await loadFromFile(resolvedDirectory, { settings });
+      const result: LoadFileResult = await loadFromFile(resolvedDirectory);
 
       if (result.cancelled) {
         restoreFocusIfPossible(focusTargetBeforeLoad);
@@ -510,7 +507,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
     try {
       setPendingLoadResult(null);
       setPendingOverwriteApply(null);
-      const result: LoadFileResult = await loadFromFileHandle(request.fileHandle, { requestId: request.id, settings });
+      const result: LoadFileResult = await loadFromFileHandle(request.fileHandle, { requestId: request.id });
 
       if (result.cancelled) {
         return 'cancelled';
@@ -799,7 +796,6 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
     const uiMeta = {
       lastSavedFilename: sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilename),
       lastSavedFilenameBasis: parseSessionJson(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)),
-      lastLoadDebugInfo: parseSessionJson(sessionStorage.getItem(UI_STORAGE_KEYS.debugLastLoadInfo)),
       route: {
         pathname: location.pathname,
         search: location.search,

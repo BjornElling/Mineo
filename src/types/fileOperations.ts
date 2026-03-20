@@ -54,13 +54,6 @@ export interface LoadFileResult {
   expectedFieldCount?: number;
   /** Antal data-sektioner */
   sections?: number;
-  /** Advarsel hvis field count afviger */
-  fieldCountWarning?: {
-    message: string;
-    expected: number;
-    actual: number;
-    difference: number;
-  };
   /** Fil-version */
   version?: string;
   /**
@@ -83,23 +76,7 @@ export interface LoadFileResult {
     }>;
   };
   /**
-   * Felter/sektioner i filen som ikke kunne indlæses fordi de ikke findes i denne version,
-   * eller fordi de er ukendte for de aktuelle schemas.
-   *
-   * VIGTIGT: Disse værdier bliver IKKE bevaret ved efterfølgende save.
-   */
-  unloadedFieldsWarning?: {
-    message: string;
-    unloadedPaths: string[];
-    count: number;
-  };
-  /**
    * Schema-valideret snapshot af indlæst data pr. side (anvendes atomisk via persistence-laget).
    */
   snapshot?: Partial<Record<StorageKey, unknown>>;
-  /**
-   * Debug-info om load (til intern diagnose).
-   */
-  debugInfo?: Record<string, unknown>;
 }
-

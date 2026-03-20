@@ -12,7 +12,6 @@ import {
   erhvervsevnetabSchema,
   forsoergertabSchema,
 } from '../schemas/formSchemas';
-import { computeSchemaFingerprint } from '../utils/schemaFingerprint';
 
 export const persistenceSchemas = {
   stamdata: stamdataSchema,
@@ -26,8 +25,6 @@ export const persistenceSchemas = {
   erstatningsopgoerelse: erstatningsopgoerelseSchema,
   erhvervsevnetab: erhvervsevnetabSchema,
 } as const satisfies Record<StorageKey, z.ZodTypeAny>;
-
-export const persistenceSchemaFingerprint = computeSchemaFingerprint(persistenceSchemas);
 
 export type PersistedSectionMap = {
   [K in keyof typeof persistenceSchemas]: z.infer<(typeof persistenceSchemas)[K]>;

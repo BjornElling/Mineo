@@ -145,7 +145,6 @@ export const collectAllData = (): Record<string, unknown> => {
     UI_STORAGE_KEYS.pendingOverlay,
     UI_STORAGE_KEYS.lastSavedFilename,
     UI_STORAGE_KEYS.lastSavedFilenameBasis,
-    UI_STORAGE_KEYS.debugLastLoadInfo,
     UI_STORAGE_KEYS.sideMenuExpanded,
   ];
 
@@ -275,4 +274,3 @@ export const saveDataToSessionStorage = (data: unknown): void => {
 
   debugGroupEnd();
 };
-

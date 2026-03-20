@@ -2,7 +2,9 @@ import {
   eoFileDataSchema,
   eoFileDataLoadSchema,
   eoFileContainerSchema,
+  eoFileContainerLoadSchema,
 } from '../../schemas/eoFileSchema';
+import { FILE_FORMAT_VERSION } from '../../config/version';
 
 // ─── eoFileDataSchema ─────────────────────────────────────────────────────────
 
@@ -85,36 +87,27 @@ describe('eoFileDataSchema', () => {
   });
 });
 
-// ─── eoFileDataLoadSchema ─────────────────────────────────────────────────────
-
 describe('eoFileDataLoadSchema', () => {
   it('tomt objekt → success', () => {
     const result = eoFileDataLoadSchema.safeParse({});
     expect(result.success).toBe(true);
   });
 
-  it('accepterer ukendte sektioner (passthrough)', () => {
-    // Load-schema er passthrough: ukendte felter accepteres
-    const result = eoFileDataLoadSchema.safeParse({ ukendt: 'noget', stamdata: { a: 1 } });
-    expect(result.success).toBe(true);
-  });
-
-  it('kendte sektioner er unknown (al indhold accepteres)', () => {
+  it('accepterer ukendte sektioner under load', () => {
     const result = eoFileDataLoadSchema.safeParse({
-      stamdata: { journalnr: '123', whatever: 'noget' },
-      aarsloen: 'forkert type',
+      stamdata: { journalnr: '123' },
+      ukendtSektion: { noget: true },
     });
     expect(result.success).toBe(true);
   });
 
-  it('null-værdier konverteres via preprocessor', () => {
+  it('konverterer null-sektion til undefined via preprocessor', () => {
     const result = eoFileDataLoadSchema.safeParse({
       stamdata: null,
     });
     expect(result.success).toBe(true);
-    if (result.success) {
-      expect((result.data as Record<string, unknown>).stamdata).toBeUndefined();
-    }
+    if (!result.success) return;
+    expect((result.data as Record<string, unknown>).stamdata).toBeUndefined();
   });
 });
 
@@ -123,12 +116,11 @@ describe('eoFileDataLoadSchema', () => {
 describe('eoFileContainerSchema', () => {
   it('gyldigt container med version og tom data → success', () => {
     const result = eoFileContainerSchema.safeParse({
-      version: '1.0',
+      version: FILE_FORMAT_VERSION,
       _metadata: {
         exportDate: '2024-01-01T00:00:00Z',
         appVersion: '1.2.3',
         fieldCount: 0,
-        schemaHash: 'abc123',
       },
       data: {},
     });
@@ -144,12 +136,11 @@ describe('eoFileContainerSchema', () => {
 
   it('mangler data → fejler', () => {
     const result = eoFileContainerSchema.safeParse({
-      version: '1.0',
+      version: FILE_FORMAT_VERSION,
       _metadata: {
         exportDate: '2024-01-01T00:00:00Z',
         appVersion: '1.2.3',
         fieldCount: 0,
-        schemaHash: 'abc123',
       },
     });
     expect(result.success).toBe(false);
@@ -162,7 +153,6 @@ describe('eoFileContainerSchema', () => {
         exportDate: '2024-01-01T00:00:00Z',
         appVersion: '1.2.3',
         fieldCount: 0,
-        schemaHash: 'abc123',
       },
       data: {},
       ukendt: 'felt',
@@ -172,25 +162,23 @@ describe('eoFileContainerSchema', () => {
 
   it('med _metadata → success', () => {
     const result = eoFileContainerSchema.safeParse({
-      version: '2.0',
+      version: FILE_FORMAT_VERSION,
       _metadata: {
         exportDate: '2024-01-01T00:00:00Z',
         appVersion: '1.2.3',
         fieldCount: 42,
-        schemaHash: 'abc123',
       },
       data: {},
     });
     expect(result.success).toBe(true);
   });
 
-  it('_metadata uden schemaHash → fejler', () => {
+  it('_metadata uden fieldCount → fejler', () => {
     const result = eoFileContainerSchema.safeParse({
-      version: '2.0',
+      version: FILE_FORMAT_VERSION,
       _metadata: {
         exportDate: '2024-01-01T00:00:00Z',
         appVersion: '1.2.3',
-        fieldCount: 0,
       },
       data: {},
     });
@@ -199,7 +187,7 @@ describe('eoFileContainerSchema', () => {
 
   it('mangler _metadata → fejler', () => {
     const result = eoFileContainerSchema.safeParse({
-      version: '2.0',
+      version: FILE_FORMAT_VERSION,
       data: {},
     });
     expect(result.success).toBe(false);
@@ -207,7 +195,7 @@ describe('eoFileContainerSchema', () => {
 
   it('_metadata med negativ fieldCount → fejler', () => {
     const result = eoFileContainerSchema.safeParse({
-      version: '2.0',
+      version: FILE_FORMAT_VERSION,
       _metadata: {
         exportDate: '2024-01-01',
         appVersion: '1.0',
@@ -220,31 +208,75 @@ describe('eoFileContainerSchema', () => {
 
   it('data med ukendt sektion → fejler (strict indre schema)', () => {
     const result = eoFileContainerSchema.safeParse({
-      version: '1.0',
+      version: FILE_FORMAT_VERSION,
       _metadata: {
         exportDate: '2024-01-01T00:00:00Z',
         appVersion: '1.2.3',
         fieldCount: 0,
-        schemaHash: 'abc123',
       },
       data: { ukendtSektion: {} },
     });
     expect(result.success).toBe(false);
   });
 
+  it('load-schema accepterer ukendt sektion i data', () => {
+    const result = eoFileContainerLoadSchema.safeParse({
+      version: FILE_FORMAT_VERSION,
+      _metadata: {
+        exportDate: '2024-01-01T00:00:00Z',
+        appVersion: '1.2.3',
+        fieldCount: 1,
+      },
+      data: { ukendtSektion: {} },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('load-schema afviser metadata uden fieldCount', () => {
+    const result = eoFileContainerLoadSchema.safeParse({
+      version: FILE_FORMAT_VERSION,
+      _metadata: {
+        exportDate: '2024-01-01T00:00:00Z',
+        appVersion: '1.2.3',
+      },
+      data: {},
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('load-schema afviser helt manglende _metadata', () => {
+    const result = eoFileContainerLoadSchema.safeParse({
+      version: FILE_FORMAT_VERSION,
+      data: {},
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('load-schema afviser forkert formatversion', () => {
+    const result = eoFileContainerLoadSchema.safeParse({
+      version: '1.0.0',
+      _metadata: {
+        exportDate: '2024-01-01T00:00:00Z',
+        appVersion: '1.2.3',
+        fieldCount: 1,
+      },
+      data: {},
+    });
+    expect(result.success).toBe(false);
+  });
+
   it('inferred type EoFileContainer har korrekte nøgler', () => {
     const container = {
-      version: '1.0',
+      version: FILE_FORMAT_VERSION,
       _metadata: {
         exportDate: '2024-01-01T00:00:00Z',
         appVersion: '1.2.3',
         fieldCount: 0,
-        schemaHash: 'abc123',
       },
       data: {},
     };
     const result = eoFileContainerSchema.parse(container);
-    expect(result.version).toBe('1.0');
+    expect(result.version).toBe(FILE_FORMAT_VERSION);
     expect(result.data).toBeDefined();
   });
 });

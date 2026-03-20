@@ -135,10 +135,16 @@ Effects that synchronize props to state must never overwrite already committed u
 ## Save/load guarantees (.eo)
 - Save/load is trust-critical; silent data loss is unacceptable.
 - Save must include all user-entered input and only schema-validated user input.
+- Mineo must not keep legacy runtime code or compatibility-only code paths solely to preserve old internal models.
 - Load must be atomic unless user explicitly accepts partial load in preflight.
 - No in-memory state may be mutated before the preflight decision is confirmed.
 - The same Zod schemas (or directly schema-inferred validators) must validate both pre-save state and loaded `.eo` data before apply.
 - Preflight (before apply) must include expected/loadable/failing counts and user-friendly failure reasons.
+- Loading an old `.eo` file must preserve and import as much schema-valid user input as safely possible.
+- Unknown/removed fields or sections in old files must not by themselves fail the entire load if the remaining data can be imported safely.
+- Future schema additions must never block loading an older `.eo` file merely because those newer fields are absent in the file.
+- If all values actually present in an older file can be loaded, the load counts as successful and the user must not be warned only because newer schema fields do not exist in that file.
+- App settings or other device-local defaults must not be injected during load just to make an old file look complete under a newer schema.
 - Preflight must offer exactly:
   - "Indlæs trods fejl"
   - "Send fejloplysninger"

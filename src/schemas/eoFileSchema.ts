@@ -3,22 +3,12 @@
  *
  * VIGTIGT:
  * - `.eo` filer må kun indeholde schema-defineret brugerinput (ingen derived/UI state).
- * - Validering skal være fail-fast: hvis data ikke matcher schemas, må intet indlæses.
+ * - Save er strict; load er best-effort pr. sektion med preflight ved delvis import.
  */
 
 import { z } from 'zod';
-import {
-  aarsloenSchema,
-  faellesAarsloenSchema,
-  faellesPersondataSchema,
-  forsoergertabSchema,
-  erhvervsevnetabSchema,
-  erstatningsopgoerelseSchema,
-  renteberegningSchema,
-  satserSchema,
-  stamdataSchema,
-  varigeMenSchema,
-} from './formSchemas';
+import { FILE_FORMAT_VERSION } from '../config/version';
+import { persistenceSchemas } from '../config/persistenceRegistry';
 import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
 
 /**
@@ -27,16 +17,16 @@ import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
  * NOTE: keys matches `StorageKey` (see `src/config/storageManifest.ts`).
  */
 const eoFileDataInnerSchema = z.object({
-  stamdata: stamdataSchema.optional(),
-  satser: satserSchema.optional(),
-  varigemen: varigeMenSchema.optional(),
-  faellesAarsloen: faellesAarsloenSchema.optional(),
-  faellesPersondata: faellesPersondataSchema.optional(),
-  forsoergertab: forsoergertabSchema.optional(),
-  aarsloen: aarsloenSchema.optional(),
-  renteberegning: renteberegningSchema.optional(),
-  erstatningsopgoerelse: erstatningsopgoerelseSchema.optional(),
-  erhvervsevnetab: erhvervsevnetabSchema.optional(),
+  stamdata: persistenceSchemas.stamdata.optional(),
+  satser: persistenceSchemas.satser.optional(),
+  aarsloen: persistenceSchemas.aarsloen.optional(),
+  faellesAarsloen: persistenceSchemas.faellesAarsloen.optional(),
+  faellesPersondata: persistenceSchemas.faellesPersondata.optional(),
+  renteberegning: persistenceSchemas.renteberegning.optional(),
+  varigemen: persistenceSchemas.varigemen.optional(),
+  forsoergertab: persistenceSchemas.forsoergertab.optional(),
+  erstatningsopgoerelse: persistenceSchemas.erstatningsopgoerelse.optional(),
+  erhvervsevnetab: persistenceSchemas.erhvervsevnetab.optional(),
 }).strict();
 
 export const eoFileDataSchema = z.preprocess(nullToUndefinedDeep, eoFileDataInnerSchema);
@@ -44,43 +34,23 @@ export const eoFileDataSchema = z.preprocess(nullToUndefinedDeep, eoFileDataInne
 export type EoFileData = z.infer<typeof eoFileDataSchema>;
 
 /**
- * Load-only schema: accepts unknown sections and unknown fields inside sections.
+ * Load-only data schema.
  *
- * Rationale (trust-critical):
- * - Old files may contain fields/sections that no longer exist; we must be able to load the rest,
- *   while reporting exactly what could not be loaded.
- * - New fields added since save-time will be missing; they must not block load.
- *
- * NOTE: This schema does NOT validate section content. Content is validated/sanitized
- * in `src/utils/fileLoad.ts` with strict per-section schemas.
+ * Accepterer alle sektioner som unknown så load-pipelinen kan validere kendte sektioner
+ * enkeltvis og rapportere ukendte felter/sektioner i preflight.
  */
-const eoFileDataLoadInnerSchema = z.object({
-  stamdata: z.unknown().optional(),
-  satser: z.unknown().optional(),
-  varigemen: z.unknown().optional(),
-  faellesAarsloen: z.unknown().optional(),
-  faellesPersondata: z.unknown().optional(),
-  forsoergertab: z.unknown().optional(),
-  aarsloen: z.unknown().optional(),
-  renteberegning: z.unknown().optional(),
-  erstatningsopgoerelse: z.unknown().optional(),
-  erhvervsevnetab: z.unknown().optional(),
-}).passthrough();
+export const eoFileDataLoadSchema = z.preprocess(nullToUndefinedDeep, z.looseObject({}));
 
-export const eoFileDataLoadSchema = z.preprocess(nullToUndefinedDeep, eoFileDataLoadInnerSchema);
-
-export type EoFileDataLoad = z.infer<typeof eoFileDataLoadSchema>;
 
 /**
- * Full decrypted `.eo` container before encryption.
+ * Full decrypted `.eo` container.
  */
 export const eoFileContainerSchema = z.object({
-  version: z.string(),
+  version: z.literal(FILE_FORMAT_VERSION),
   _metadata: z.object({
     exportDate: z.string(),
     appVersion: z.string(),
     fieldCount: z.number().int().nonnegative(),
-    schemaHash: z.string(),
   }),
   data: eoFileDataSchema,
 }).strict();
@@ -88,17 +58,21 @@ export const eoFileContainerSchema = z.object({
 export type EoFileContainer = z.infer<typeof eoFileContainerSchema>;
 
 /**
- * Load-only container schema.
+ * Load-only decrypted `.eo` container.
  *
- * Allows unknown sections in `data` so we can report them without blocking load.
+ * Top-level container skal stadig have korrekt struktur, men `data` er permissiv så
+ * kendte sektioner kan valideres enkeltvis.
+ *
+ * NOTE: `.strict()` på container-niveau er bevidst — container-strukturen er fast og
+ * versionsstyret. Nye top-level felter kræver en bevidst migrering af dette schema.
+ * Permissiviteten er afgrænset til `data`-sektionen og `_metadata`-felternes indhold.
  */
 export const eoFileContainerLoadSchema = z.object({
-  version: z.string(),
+  version: z.literal(FILE_FORMAT_VERSION),
   _metadata: z.object({
     exportDate: z.string(),
     appVersion: z.string(),
     fieldCount: z.number().int().nonnegative(),
-    schemaHash: z.string(),
   }),
   data: eoFileDataLoadSchema,
 }).strict();

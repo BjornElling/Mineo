@@ -53,7 +53,7 @@ export const buildAllDataRawFromSnapshot = (snapshot: SaveSnapshot): Record<stri
   return out;
 };
 
-export const stripUndefinedDeep = (value: unknown): unknown => {
+const stripUndefinedDeep = (value: unknown): unknown => {
   if (value === undefined) return undefined;
   if (value === null) return null;
   if (Array.isArray(value)) return value.map(stripUndefinedDeep);
@@ -179,14 +179,14 @@ export const verifyAfterSave = async (
         throw new Error('Intern fejl: verifyAfterSave forventede fil-indhold som string');
       }
       fileContent = fileHandleOrContent;
-      logInfo(`✓ Fil-indhold verificeres (${fileContent.length} bytes)`);
+      logInfo(`✓ Krypteret indhold klar til round-trip-verifikation (${fileContent.length} bytes)`);
     }
 
     // Dekrypter filen
     let decrypted: unknown;
     try {
       decrypted = await decryptFromString(fileContent);
-      logInfo('✓ Fil kan dekrypteres korrekt');
+      logInfo(isFileHandle ? '✓ Fil kan dekrypteres korrekt' : '✓ Krypterings-round-trip kan dekrypteres korrekt');
     } catch (error) {
       logError('⚠ KRITISK: Fil kan IKKE dekrypteres!');
       return {
@@ -282,7 +282,11 @@ export const verifyAfterSave = async (
       };
     }
 
-    logInfo('✓ Fil verificeret succesfuldt - alle data er gemt korrekt!');
+    logInfo(
+      isFileHandle
+        ? '✓ Fil verificeret succesfuldt - alle data er gemt korrekt!'
+        : '✓ Krypterings-round-trip verificeret succesfuldt - data er serialiseret korrekt'
+    );
     return {
       success: true,
       verified: true,

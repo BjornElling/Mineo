@@ -1,149 +1,66 @@
-import { applyDefaultsDeep, stripUnknownFieldsBySchema } from '../../utils/persistenceLoadSanitization';
-import { buildPersistenceDefaults } from '../../config/persistenceDefaults';
-import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
-import { erhvervsevnetabSchema, erstatningsopgoerelseSchema } from '../../schemas/formSchemas';
+import { stripUnknownFieldsBySchema } from '../../utils/persistenceLoadSanitization';
+import { stamdataSchema } from '../../schemas/formSchemas';
+import { z } from 'zod';
 
-describe('persistence load sanitization', () => {
-  it('fills missing defaults without overriding existing values', () => {
-    const defaults = buildPersistenceDefaults(DEFAULT_APP_SETTINGS);
-    const filled = applyDefaultsDeep(
-      { indsaetUdkastStempel: 'Nej' },
-      defaults.erstatningsopgoerelse
+describe('persistenceLoadSanitization', () => {
+  it('stripper ukendte felter og rapporterer deres stier', () => {
+    const result = stripUnknownFieldsBySchema(stamdataSchema, {
+      journalnr: 'J-1',
+      skadelidte: 'Test',
+      uventetFelt: 'fjern mig',
+    });
+
+    expect(result.unknownPaths).toContainEqual(['uventetFelt']);
+    expect(result.sanitized).toEqual({
+      journalnr: 'J-1',
+      skadelidte: 'Test',
+    });
+  });
+
+  it('stripper ukendte felter gennem pipe-wrappere som preprocess/transform bruger i Zod v4', () => {
+    const schema = z.preprocess(
+      (value) => value,
+      z.object({
+        navn: z.string(),
+      }).strict()
     );
 
-    const parsed = erstatningsopgoerelseSchema.safeParse(filled);
-    expect(parsed.success).toBe(true);
-    if (!parsed.success) return;
-    expect(parsed.data.indsaetUdkastStempel).toBe('Nej');
+    const result = stripUnknownFieldsBySchema(schema, {
+      navn: 'Test',
+      uventetFelt: true,
+    });
+
+    expect(result.unknownPaths).toContainEqual(['uventetFelt']);
+    expect(result.sanitized).toEqual({
+      navn: 'Test',
+    });
   });
 
-  it('applies defaults for missing fields', () => {
-    const defaults = buildPersistenceDefaults(DEFAULT_APP_SETTINGS);
-    const filled = applyDefaultsDeep({}, defaults.erstatningsopgoerelse);
+  it('stripper ukendte felter i objekter inde i et array og rapporterer indekserede stier', () => {
+    const schema = z.object({
+      items: z.array(
+        z.object({
+          id: z.string(),
+          value: z.number(),
+        })
+      ),
+    });
 
-    const parsed = erstatningsopgoerelseSchema.safeParse(filled);
-    expect(parsed.success).toBe(true);
-    if (!parsed.success) return;
-    expect(parsed.data.indsaetUdkastStempel).toBe('Ja');
-  });
-
-  it('detects and strips unknown fields (root + nested)', () => {
-    const input = {
-      indsaetUdkastStempel: 'Ja',
-      legacyField: 'x',
-      loenindkomstAnsaettelsesforhold: [
-        {
-          id: 'ansaettelsesforhold_1',
-          harOverenskomst: true,
-          ansatPaaSkadestidspunktet: true,
-          ansaettelsesforholdOphoert: false,
-          loenperiode: 'maaned',
-          fuldLoenUnderFerie: 'Ja',
-          loenPaaHelligdage: 'Almindelig løn',
-          indtaegtsoplysningerTableData: [],
-          loenudviklingBeregningsgrundlag: 'Ingen',
-          loenudviklingManuelTableData: [],
-          overenskomstFilter: {
-            loenmodtager: undefined,
-            arbejdsgiver: undefined,
-          },
-          extra: 'x',
-        },
+    const result = stripUnknownFieldsBySchema(schema, {
+      items: [
+        { id: 'a', value: 1, uventetFelt: 'fjern' },
+        { id: 'b', value: 2 },
+        { id: 'c', value: 3, etAndetUventetFelt: true },
       ],
-    };
+    });
 
-    const result = stripUnknownFieldsBySchema(erstatningsopgoerelseSchema, input);
-    expect(result.unknownPaths).toContainEqual(['legacyField']);
-    expect(result.unknownPaths).toContainEqual(['loenindkomstAnsaettelsesforhold', 0, 'extra']);
+    expect(result.unknownPaths).toContainEqual(['items', 0, 'uventetFelt']);
+    expect(result.unknownPaths).toContainEqual(['items', 2, 'etAndetUventetFelt']);
+    expect(result.unknownPaths).toHaveLength(2);
 
-    const sanitized = result.sanitized as Record<string, unknown>;
-    expect(Object.prototype.hasOwnProperty.call(sanitized, 'legacyField')).toBe(false);
-    const af = (sanitized.loenindkomstAnsaettelsesforhold as Array<Record<string, unknown>>)[0];
-    expect(Object.prototype.hasOwnProperty.call(af, 'extra')).toBe(false);
-  });
-
-  it('handles missing + unknown fields in same section', () => {
-    const defaults = buildPersistenceDefaults(DEFAULT_APP_SETTINGS);
-    const input = {
-      legacyField: 'x',
-      loenindkomstAnsaettelsesforhold: [
-        {
-          id: 'ansaettelsesforhold_1',
-          harOverenskomst: true,
-          ansatPaaSkadestidspunktet: true,
-          ansaettelsesforholdOphoert: false,
-          loenperiode: 'maaned',
-          fuldLoenUnderFerie: 'Ja',
-          loenPaaHelligdage: 'Almindelig løn',
-          indtaegtsoplysningerTableData: [],
-          loenudviklingBeregningsgrundlag: 'Ingen',
-          loenudviklingManuelTableData: [],
-          overenskomstFilter: {
-            loenmodtager: undefined,
-            arbejdsgiver: undefined,
-          },
-          extra: 'x',
-        },
-      ],
-    };
-
-    const stripped = stripUnknownFieldsBySchema(erstatningsopgoerelseSchema, input);
-    expect(stripped.unknownPaths).toContainEqual(['legacyField']);
-    expect(stripped.unknownPaths).toContainEqual(['loenindkomstAnsaettelsesforhold', 0, 'extra']);
-
-    const withDefaults = applyDefaultsDeep(stripped.sanitized, defaults.erstatningsopgoerelse);
-    const parsed = erstatningsopgoerelseSchema.safeParse(withDefaults);
-    expect(parsed.success).toBe(true);
-    if (!parsed.success) return;
-    expect(parsed.data.indsaetUdkastStempel).toBe('Ja');
-  });
-
-  it('stripUnknownFieldsBySchema returnerer uændret ikke-objekt for ZodObject-schema', () => {
-    // En primitiv (streng/tal) mod et objekt-schema → returneres urørt
-    const result = stripUnknownFieldsBySchema(erstatningsopgoerelseSchema, 'ikke et objekt');
-    expect(result.sanitized).toBe('ikke et objekt');
-    expect(result.unknownPaths).toHaveLength(0);
-  });
-
-  it('applyDefaultsDeep med array-defaults >1 element kaster fejl', () => {
-    // Array-defaults med 2 elementer er en konfigurationsfejl
-    expect(() => applyDefaultsDeep(['a', 'b'], ['x', 'y'])).toThrow('Ugyldig default-konfiguration');
-  });
-
-  it('applyDefaultsDeep med tom array-default returnerer value urørt', () => {
-    const arr = ['a', 'b'];
-    const result = applyDefaultsDeep(arr, []);
-    expect(result).toBe(arr);
-  });
-
-  it('normalizes loaded AmountValue values to 2 decimals before calculations consume them', () => {
-    const defaults = buildPersistenceDefaults(DEFAULT_APP_SETTINGS);
-    const loaded = structuredClone(defaults.erstatningsopgoerelse) as Record<string, unknown>;
-
-    loaded.tidligereModtagetTaf = { kind: 'number', value: 1.005 };
-    loaded.oevrigeKravPerioder = [
-      {
-        id: 'k1',
-        dato: '2024-01-01',
-        udgiftTil: 'Test',
-        beloeb: { kind: 'expression', expression: '1,005', value: 1.005 },
-      },
-    ];
-
-    const parsed = erstatningsopgoerelseSchema.safeParse(loaded);
-    expect(parsed.success).toBe(true);
-    if (!parsed.success) return;
-    expect(parsed.data.tidligereModtagetTaf?.value).toBe(1.01);
-    expect(parsed.data.oevrigeKravPerioder[0]?.beloeb?.value).toBe(1.01);
-  });
-
-  it('kan parse erhvervsevnetab med defaults når sektionen mangler i en ældre fil', () => {
-    const defaults = buildPersistenceDefaults(DEFAULT_APP_SETTINGS);
-    const filled = applyDefaultsDeep(undefined, defaults.erhvervsevnetab);
-
-    const parsed = erhvervsevnetabSchema.safeParse(filled);
-    expect(parsed.success).toBe(true);
-    if (!parsed.success) return;
-    expect(parsed.data.aslAfgoerelser).toEqual([]);
+    const sanitized = result.sanitized as { items: Array<Record<string, unknown>> };
+    expect(sanitized.items[0]).toEqual({ id: 'a', value: 1 });
+    expect(sanitized.items[1]).toEqual({ id: 'b', value: 2 });
+    expect(sanitized.items[2]).toEqual({ id: 'c', value: 3 });
   });
 });

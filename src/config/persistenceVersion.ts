@@ -1,5 +1,3 @@
-import { persistenceSchemaFingerprint } from './persistenceRegistry';
-
 /**
  * Version for PersistedData wrapper stored in `sessionStorage`.
  *
@@ -8,11 +6,3 @@ import { persistenceSchemaFingerprint } from './persistenceRegistry';
  */
 
 export const PERSISTED_DATA_VERSION = '1.0.0';
-
-/**
- * `.eo`-schemafingerprint (brugt i save/load-preflight).
- *
- * `.eo`-håndtering bruger fingerprint til diagnostik ved indlæsning.
- */
-export const PERSISTENCE_SCHEMA_FINGERPRINT = persistenceSchemaFingerprint;
-
