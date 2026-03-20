@@ -56,10 +56,10 @@ export const TABLE_STYLES = {
 export const PDF_MUTED_TEXT_COLOR: PdfColor = COLORS.muted;
 export const PDF_TABLE_NARROW_COLUMN_WIDTH = 25;
 export const PDF_FINAL_Y_FALLBACK_HEIGHT = 50;
-// Legacy: bruges af addSectionHeading() i pdfHelpers (autotable-generatorer).
+// Bruges af addSectionHeading() i pdfHelpers (autotable-generatorer).
 export const PDF_SECTION_HEADING_GAP = 3;
 
-// Legacy: bruges af autotable-baserede generatorer (satserPdf, aarsloenPdf, shDagePdf m.fl.)
+// Bruges af autotable-baserede generatorer (satserPdf, aarsloenPdf, shDagePdf m.fl.)
 // og af resolvePdfSectionEndY. Writer-baserede generatorer bruger writer.addSpacer().
 export const SECTION_SPACER = 10; // mm
 

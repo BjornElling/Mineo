@@ -80,7 +80,7 @@ export const appSettingsSchema = z
 export type AppSettings = z.infer<typeof appSettingsSchema>;
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
-  showContentBoxReportButton: true,
+  showContentBoxReportButton: false,
   showEODebugMenu: false,
   fontStyleColorDebug: false,
   showStamdataTestTab: false,

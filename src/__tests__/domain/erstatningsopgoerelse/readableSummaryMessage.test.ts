@@ -26,13 +26,8 @@ describe('toReadableSummaryMessage', () => {
     expect(toReadableSummaryMessage('Ugyldig indtastning')).toBe('indeholder ugyldig indtastning');
   });
 
-  it('normaliserer manuel regulering-besked med ny tekst', () => {
+  it('normaliserer manuel regulering-besked', () => {
     expect(toReadableSummaryMessage('Værdier mangler at blive udfyldt for manuel regulering'))
-      .toBe('Mangler udfyldte værdier for manuel regulering');
-  });
-
-  it('normaliserer manuel regulering-besked med gammel tekst (bagudkompatibilitet)', () => {
-    expect(toReadableSummaryMessage('Mangler udfyldelse af værdier for Manuel Regulering'))
       .toBe('Mangler udfyldte værdier for manuel regulering');
   });
 

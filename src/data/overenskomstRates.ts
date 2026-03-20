@@ -36,17 +36,18 @@ export type OverenskomstRef = Readonly<{
   baseId: OverenskomstId;
 }>;
 
-const LEGACY_SH_DAGE_LOEN_SUFFIX = '-almindelig-loen-paa-sh-dage';
+// Obsolete suffix from a previous data format; still handled for saved cases that may contain it.
+const OBSOLETE_SH_DAGE_LOEN_SUFFIX = '-almindelig-loen-paa-sh-dage';
 
 const resolveOverenskomstRefFromString = (rawId: string): OverenskomstRef | undefined => {
   const normalized = rawId.trim().toLowerCase();
   if (normalized.length === 0) return undefined;
 
-  if (!normalized.endsWith(LEGACY_SH_DAGE_LOEN_SUFFIX)) {
+  if (!normalized.endsWith(OBSOLETE_SH_DAGE_LOEN_SUFFIX)) {
     return { baseId: toOverenskomstId(normalized) };
   }
 
-  const baseCandidate = normalized.slice(0, -LEGACY_SH_DAGE_LOEN_SUFFIX.length);
+  const baseCandidate = normalized.slice(0, -OBSOLETE_SH_DAGE_LOEN_SUFFIX.length);
   if (baseCandidate.length === 0) return undefined;
 
   return { baseId: toOverenskomstId(baseCandidate) };

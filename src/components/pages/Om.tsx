@@ -56,8 +56,8 @@ const Om = React.memo(() => {
         </Typography>
 
         <Typography className="row--text">
-          Selvom der er indlagt en vis fejlkontrol i programmet, kan det ikke forhindre dig 
-          i at lægge forkerte forudsætninger til grund. Sørg for at vide, hvad du laver, og 
+          Selvom der er indlagt en vis fejlkontrol i programmet, kan det ikke forhindre dig
+          i at lægge forkerte forudsætninger til grund. Sørg for at vide, hvad du laver, og
           kontrollér altid dine beregninger grundigt.
         </Typography>
 
@@ -71,7 +71,7 @@ const Om = React.memo(() => {
 
         <Typography className="row--text">
           For at kunne dobbeltklikke på lokale .eo-filer og åbne dem direkte i MINEO, skal du installere et
-          hjælpeprogram. Det kan hentes via linket nedenfor eller ved at klikke på installationsikonet yderst 
+          hjælpeprogram. Det kan hentes via linket nedenfor eller ved at klikke på installationsikonet yderst
           til højre i browserens adresselinje (Google Chrome {' '}
           <BrowserUpdatedIcon fontSize="small" sx={{ verticalAlign: 'text-bottom' }} />
           {' '} / Microsoft Edge {' '}
@@ -116,13 +116,13 @@ const Om = React.memo(() => {
         <Typography className="section-header">Persondata</Typography>
 
         <Typography className="row--text">
-          MINEO er udviklet som en client-side applikation. Det indebærer, at al 
+          MINEO er udviklet som en client-side applikation. Det indebærer, at al
           databehandling finder sted i browseren på brugerens egen computer.
         </Typography>
 
         <Typography className="row--text">
-          Programmet kommunikerer ikke med nogen server under brug, og der indsamles, 
-          gemmes eller transmitteres ingen data - hverken persondata, brugsstatistik 
+          Programmet kommunikerer ikke med nogen server under brug, og der indsamles,
+          gemmes eller transmitteres ingen data - hverken persondata, brugsstatistik
           eller anden information.
         </Typography>
 
@@ -180,8 +180,8 @@ const Om = React.memo(() => {
         </Box>
 
         <Typography className="row--text">
-          Ved brug af programmet skal du være opmærksom på, at det er udviklet af en jurist, 
-          der ved mere om paragraffer end om koder. Programmet er grundigt testet, men fejl 
+          Ved brug af programmet skal du være opmærksom på, at det er udviklet af en jurist,
+          der ved mere om paragraffer end om koder. Programmet er grundigt testet, men fejl
           kan forekomme. Sørg derfor altid for at kontrollere dine beregninger.
         </Typography>
 
@@ -253,35 +253,12 @@ const Om = React.memo(() => {
         <Typography className="section-header">Status</Typography>
 
         <Typography className="row--text">
-          Programmet er fortsat under udvikling og vil løbende få opdateringer og nye funktioner. 
-          Dette er nogle af de planlagte forbedringer:
+          Programmet er fortsat under udvikling og vil løbende få opdateringer og nye funktioner.
         </Typography>
 
-        <Box
-          component="ul"
-          className="list-container"
-          sx={{ marginTop: 0, marginBottom: 0, paddingLeft: '20px', color: 'var(--color-text-primary)', lineHeight: 1.6 }}
-        >
-          <Box component="li" sx={{ marginBottom: '8px' }}>
-            Bedre håndtering af skadelidte, der ikke arbejder mandag-fredag, men fx kun i weekenden
-          </Box>
-          <Box component="li" sx={{ marginBottom: '8px' }}>
-            Mulighed for automatisk beregning af sociale ydelser
-          </Box>
-          <Box component="li" sx={{ marginBottom: '8px' }}>
-            Udvidede hjælpefunktioner til opgørelse af offentlige ydelser
-          </Box>
-          <Box component="li" sx={{ marginBottom: '8px' }}>
-            Opgørelse af forsørgertabserstatning
-          </Box>
-          <Box component="li" sx={{ marginBottom: 0 }}>
-            Håndtering af ferieperioder for delvist raskmeldte i TAF-beregninger
-          </Box>
-        </Box>
-
         <Typography className="row--text">
-          Eftersom der er tale om et program, som udvikles i fritiden og alene er drevet af personlig interesse, 
-          er der ingen tidsplan for, hvornår forbedringer vil blive implementeret.
+          Udviklingen sker i fritiden og drives udelukkende af personlig interesse. Alle konstaterede fejl rettes straks,
+          men nye funktionaliteter udvikles og implementeres kun, når tid og overskud tillader det.
         </Typography>
 
         <Typography className="row--text">

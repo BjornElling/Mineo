@@ -2,8 +2,7 @@ const SUMMARY_MESSAGES = {
   missingInput: 'Indtastning mangler',
   allSalaryMissing: 'Alle lønoplysninger indtastet korrekt mangler',
   invalidInput: 'Ugyldig indtastning',
-  manualRegulationMissingLegacyA: 'Værdier mangler at blive udfyldt for manuel regulering',
-  manualRegulationMissingLegacyB: 'Mangler udfyldelse af værdier for Manuel Regulering',
+  manualRegulationMissing: 'Værdier mangler at blive udfyldt for manuel regulering',
 } as const;
 
 export const toReadableSummaryMessage = (message: string): string => {
@@ -16,10 +15,7 @@ export const toReadableSummaryMessage = (message: string): string => {
   if (core === SUMMARY_MESSAGES.missingInput) return 'mangler';
   if (core === SUMMARY_MESSAGES.allSalaryMissing) return 'Lønoplysninger mangler';
   if (core === SUMMARY_MESSAGES.invalidInput) return 'indeholder ugyldig indtastning';
-  if (
-    core === SUMMARY_MESSAGES.manualRegulationMissingLegacyA
-    || core === SUMMARY_MESSAGES.manualRegulationMissingLegacyB
-  ) {
+  if (core === SUMMARY_MESSAGES.manualRegulationMissing) {
     return 'Mangler udfyldte værdier for manuel regulering';
   }
 

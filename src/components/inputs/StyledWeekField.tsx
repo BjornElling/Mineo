@@ -22,7 +22,7 @@ export type StyledWeekFieldProps = {
    * Policy for interpreting 1-2 digit years on commit.
    *
    * - `reject`: reject 1-2 digit years (must enter 4 digits)
-   * - `infer`: infer century (legacy behavior via `interpretYear`)
+   * - `infer`: infer century via `interpretYear`
    * - `assume20xx`: always interpret as 20xx
    *
    * Default: `infer`.
@@ -178,6 +178,8 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
         },
         inputElementRef,
         clearErrorOnDraftChange: true,
+        // Feltet ejer blur-commit eksplicit, så vi kan undlade touched/commit ved uændret blur
+        // og koordinere Enter/Escape-suppression med 2-trins editor-aktivering.
         commitOnBlur: false,
       });
 

@@ -315,7 +315,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       e.preventDefault();
       // IMPORTANT:
       // Enter must bubble for Container/table-owned traversal.
-      // Outside those contexts (e.g. dialogs/overlays), keep legacy local handling.
+      // Outside those contexts (e.g. dialogs/overlays), handle locally.
       if (!shouldBubbleEnterForNavigation(e.target)) {
         e.stopPropagation();
       }

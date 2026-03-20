@@ -139,7 +139,7 @@ export const buildOffentligeYdelserColumns = (args: {
 
     let amounts = byType.get(typeKey);
     if (!amounts) {
-      // NOTE: Float64Array is intentional for deterministic summation and legacy parity.
+      // NOTE: Float64Array is intentional for deterministic summation.
       amounts = new Float64Array(dates.length);
       byType.set(typeKey, amounts);
       typeOrder.push(typeKey);

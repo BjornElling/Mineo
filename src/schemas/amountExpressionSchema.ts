@@ -50,7 +50,7 @@ export const amountValueSchema = z.union([amountNumberSchema, amountExpressionSc
 
 export type AmountValue = z.infer<typeof amountValueSchema>;
 
-const parseLegacyAmountString = (value: string): number | undefined => {
+const parsePersistedAmountString = (value: string): number | undefined => {
   const trimmed = value.trim();
   if (trimmed === '') return undefined;
   const clean = trimmed.replace(/\./g, '').replace(',', '.');
@@ -64,7 +64,7 @@ export const coerceToAmountValue = (value: unknown): unknown => {
   if (typeof value === 'string') {
     const trimmed = value.trim();
     if (trimmed === '') return undefined;
-    const parsed = parseLegacyAmountString(trimmed);
+    const parsed = parsePersistedAmountString(trimmed);
     if (parsed !== undefined) return { kind: 'number', value: parsed };
     return value;
   }

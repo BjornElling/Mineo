@@ -27,7 +27,7 @@ export type TableWeekInputProps = Readonly<{
   /**
    * Policy for interpreting 1-2 digit years on commit.
    *
-   * Default: `infer` (legacy behavior via `interpretYear`).
+   * Default: `infer` (via `interpretYear`).
    */
   twoDigitYearPolicy?: 'reject' | 'infer' | 'assume20xx';
   placeholder?: string;
@@ -466,6 +466,3 @@ const TableWeekInput = React.memo(
 TableWeekInput.displayName = 'TableWeekInput';
 
 export default TableWeekInput;
-
-
-

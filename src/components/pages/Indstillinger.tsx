@@ -39,31 +39,24 @@ const brevhovedOptionsRow2: readonly BrevhovedOption[] = [
   { key: 'erhvervsevnetab', label: 'Erhvervsevnetab' },
 ];
 
-const loenPaaHelligdageOptions = APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS;
-const afsluttesMedOptions = APP_SETTINGS_AFSLUTTES_MED_OPTIONS;
-const svieSmerteDelvisSygemeldingSatsValues = APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS;
-
 const isLoenPaaHelligdageOption = (value: string): value is AppSettingsLoenPaaHelligdageOption => {
-  return (loenPaaHelligdageOptions as readonly string[]).includes(value);
+  return (APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS as readonly string[]).includes(value);
 };
 
 const isAfsluttesMedOption = (value: string): value is AppSettingsAfsluttesMedOption => {
-  return (afsluttesMedOptions as readonly string[]).includes(value);
+  return (APP_SETTINGS_AFSLUTTES_MED_OPTIONS as readonly string[]).includes(value);
 };
 
 const isSvieSmerteDelvisSygemeldingSatsOption = (
   value: string | undefined
 ): value is AppSettingsSvieSmerteDelvisSygemeldingSatsOption => {
-  return typeof value === 'string' && (svieSmerteDelvisSygemeldingSatsValues as readonly string[]).includes(value);
+  return typeof value === 'string' && (APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS as readonly string[]).includes(value);
 };
 
-const svieSmerteDelvisSygemeldingSatsOptions = svieSmerteDelvisSygemeldingSatsValues.map((value) => ({
+const svieSmerteDelvisSygemeldingSatsOptions = APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS.map((value) => ({
   value,
   label: value === 'fuld' ? 'Fuld sats' : 'Halv sats',
-})) as ReadonlyArray<Readonly<{
-  value: AppSettingsSvieSmerteDelvisSygemeldingSatsOption;
-  label: string;
-}>>;
+} satisfies { value: AppSettingsSvieSmerteDelvisSygemeldingSatsOption; label: string }));
 
 const udloebMaanederOptions = Array.from({ length: 13 }, (_, index) => index);
 
@@ -331,7 +324,7 @@ const Indstillinger = React.memo(() => {
               }}
               width={185}
             >
-              {loenPaaHelligdageOptions.map((option) => (
+              {APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS.map((option) => (
                 <MenuItem key={option} value={option}>
                   {option}
                 </MenuItem>
@@ -433,7 +426,7 @@ const Indstillinger = React.memo(() => {
               }}
               width={220}
             >
-              {afsluttesMedOptions.map((option) => (
+              {APP_SETTINGS_AFSLUTTES_MED_OPTIONS.map((option) => (
                 <MenuItem key={option} value={option}>
                   {option}
                 </MenuItem>
@@ -485,10 +478,15 @@ const Indstillinger = React.memo(() => {
         </Box>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Endelig EET-afgørelse kan gøre tidligere udbetalt midl. EET til endeligt med tilbagevirkende kraft</Typography>
+          <Typography className="row--text">
+            Endelig EET-afgørelse kan gøre tidligere udbetalt midl. EET til endeligt med tilbagevirkende kraft
+          </Typography>
           <Box className="row--label-right-hover__content">
-            {/* Programmet er beregningsteknisk låst til denne invariant indtil indstillingen får egen state. */}
-            <StyledToggleSwitch checked disabled onCommit={() => {}} />
+            <Tooltip title="Ikke implementeret som valgfri indstilling — programmet er låst til denne adfærd">
+              <span>
+                <StyledToggleSwitch checked disabled onCommit={() => {}} />
+              </span>
+            </Tooltip>
           </Box>
         </Box>
 

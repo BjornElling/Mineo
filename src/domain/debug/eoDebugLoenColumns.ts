@@ -288,7 +288,7 @@ export const buildLoenindkomstColumns = (args: {
       shouldIncludeWageColumn(af.indtaegtsoplysningerTableData ?? [], af.loenperiode, satser, col.key, errorRowIds)
     );
 
-    // NOTE: Float64Array is intentional for deterministic summation and legacy parity.
+    // NOTE: Float64Array is intentional for deterministic summation.
     const arraysByKey = new Map<(typeof WAGE_COLUMNS)[number]['key'], Float64Array>();
     for (const col of includeKeys) {
       arraysByKey.set(col.key, new Float64Array(dates.length));

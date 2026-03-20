@@ -100,8 +100,8 @@ describe('getOverenskomstMetaById', () => {
     expect(getOverenskomstMetaById('nonexistent-overenskomst')).toBeUndefined();
   });
 
-  it('legacy -almindelig-loen-paa-sh-dage suffix → løser til base', () => {
-    // Legacy suffix skal strippes og baseId returneres
+  it('obsolet -almindelig-loen-paa-sh-dage suffix → løser til base', () => {
+    // Obsolet suffix strippes og baseId returneres
     const meta = getOverenskomstMetaById('bygge-anlaeg-almindelig-loen-paa-sh-dage');
     expect(meta).toBeDefined();
     expect(meta?.id).toBe('bygge-anlaeg');
@@ -546,7 +546,7 @@ describe('resolveOverenskomstRef', () => {
     expect(ref?.baseId).toBe('bygge-anlaeg');
   });
 
-  it('legacy -almindelig-loen-paa-sh-dage suffix → baseId er stripped', () => {
+  it('obsolet -almindelig-loen-paa-sh-dage suffix → baseId er stripped', () => {
     const ref = resolveOverenskomstRef('bygge-anlaeg-almindelig-loen-paa-sh-dage');
     expect(ref).toBeDefined();
     expect(ref?.baseId).toBe('bygge-anlaeg');

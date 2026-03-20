@@ -28,7 +28,7 @@ type Input = Readonly<{
   aslAarsloen: AmountValue | undefined;
 }>;
 
-type LegacyTableChoice = Readonly<{
+type FallbackTableChoice = Readonly<{
   neutral?: string;
   maend?: string;
   kvinder?: string;
@@ -37,9 +37,9 @@ type LegacyTableChoice = Readonly<{
 const SKADESDATO_2007 = '2007-07-01' as ISODateString;
 const FORSOERGERTABSPROCENT = 0.3;
 
-const LEGACY_FORSOERGERTAB_TABLE_CHOICES: Readonly<Record<string, Readonly<{
-  before2007: LegacyTableChoice;
-  from2007: LegacyTableChoice;
+const FORSOERGERTAB_TABLE_CHOICES_FALLBACK: Readonly<Record<string, Readonly<{
+  before2007: FallbackTableChoice;
+  from2007: FallbackTableChoice;
 }>>> = {
   '1221/2010': {
     before2007: { maend: 'M', kvinder: 'N' },
@@ -65,13 +65,13 @@ const toIssue = (id: string, message: string): ForsoergertabIssue => ({
   message,
 });
 
-const resolveLegacyForsoergertabTable = (
+const resolveForsoergertabTableFallback = (
   tabeldata: KapitaliseringsTabelData,
   skadesdato: ISODateString,
   usesKoen: boolean,
   koen: Koen | undefined
 ): string | null => {
-  const explicit = LEGACY_FORSOERGERTAB_TABLE_CHOICES[tabeldata.kapitaliseringsId];
+  const explicit = FORSOERGERTAB_TABLE_CHOICES_FALLBACK[tabeldata.kapitaliseringsId];
   if (explicit) {
     const bucket = skadesdato >= SKADESDATO_2007 ? explicit.from2007 : explicit.before2007;
     if (!usesKoen) {
@@ -103,7 +103,7 @@ const resolveForsoergertabTabel = (
     }, null);
 
   if (explicit) return explicit.tabel;
-  return resolveLegacyForsoergertabTable(tabeldata, skadesdato, usesKoen, koen);
+  return resolveForsoergertabTableFallback(tabeldata, skadesdato, usesKoen, koen);
 };
 
 const resolveForsoergertabRows = (
