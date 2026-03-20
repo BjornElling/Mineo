@@ -1,8 +1,10 @@
 import { buildReguleringsvaerdierTableData, buildReguleringIndexRows } from '../../../domain/erstatningsopgoerelse/eoPdfReguleringEngine';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
 
 const iso = (value: string) => toISODateString(value);
+const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 
 const cloneInitialValues = () => ({
   ...createErstatningsopgoerelseInitialValues(),
@@ -94,7 +96,7 @@ describe('eoPdfReguleringEngine', () => {
 
     expect(table).not.toBeNull();
     expect(table?.columns).toEqual(['Fra-dato', 'Månedsløn', 'Feriepenge', 'AG pens. bidrag']);
-    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
+    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(false);
   });
 
   it('indsætter Store Bededag som separat række 01-01-2024 i privat reguleringsværdier-tabel', () => {
@@ -114,7 +116,7 @@ describe('eoPdfReguleringEngine', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
+    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(false);
   });
 
   it('splitter private indeksrækker ved 01-01-2024 selv når inputsegmentet krydser datoen', () => {
@@ -297,5 +299,173 @@ describe('eoPdfReguleringEngine', () => {
     });
 
     expect(rows.some((row) => row.fraDato === '01-01-2024')).toBe(true);
+  });
+
+  it('sammenklapper uændrede manuelle reguleringsværdier til én periode i første tabel', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    af.loenudviklingManuelTableData = [
+      {
+        dato: '',
+        grundloen: asAmountValue(141.24),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+      {
+        dato: '01-04-2020',
+        grundloen: asAmountValue(141.78),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+      {
+        dato: '01-10-2020',
+        grundloen: asAmountValue(142.85),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+      {
+        dato: '01-04-2021',
+        grundloen: asAmountValue(144.28),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+      {
+        dato: '01-10-2021',
+        grundloen: asAmountValue(145.69),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+      {
+        dato: '01-04-2022',
+        grundloen: asAmountValue(145.69),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+    ];
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      reguleringsdato: iso('2020-01-01'),
+      tafFra: iso('2020-01-01'),
+      tafTil: iso('2022-09-30'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.rows.map((row) => row[0])).toEqual([
+      '01-01-2020',
+      '01-04-2020',
+      '01-10-2020',
+      '01-04-2021',
+      '01-10-2021',
+    ]);
+  });
+
+  it('forlænger indeksperioder når manuel regulering ikke ændrer beregningen', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    af.loenudviklingManuelTableData = [
+      {
+        dato: '',
+        grundloen: asAmountValue(141.2411),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+      {
+        dato: '01-04-2020',
+        grundloen: asAmountValue(141.7798),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+      {
+        dato: '01-10-2020',
+        grundloen: asAmountValue(142.8511),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+      {
+        dato: '01-04-2021',
+        grundloen: asAmountValue(144.2796),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+      {
+        dato: '01-10-2021',
+        grundloen: asAmountValue(145.6933),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+      {
+        dato: '01-04-2022',
+        grundloen: asAmountValue(145.6933),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+      {
+        dato: '01-10-2022',
+        grundloen: asAmountValue(149.4018),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+      {
+        dato: '01-01-2023',
+        grundloen: asAmountValue(149.4018),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+    ];
+
+    const rows = buildReguleringIndexRows({
+      segments: [
+        { kind: 'maaneder', fra: iso('2020-04-01'), til: iso('2020-09-30'), maaneder: 6, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
+        { kind: 'maaneder', fra: iso('2020-10-01'), til: iso('2021-03-31'), maaneder: 6, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
+        { kind: 'maaneder', fra: iso('2021-04-01'), til: iso('2021-09-30'), maaneder: 6, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
+        { kind: 'maaneder', fra: iso('2021-10-01'), til: iso('2022-03-31'), maaneder: 6, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
+        { kind: 'maaneder', fra: iso('2022-04-01'), til: iso('2022-09-30'), maaneder: 6, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
+        { kind: 'maaneder', fra: iso('2022-10-01'), til: iso('2022-12-31'), maaneder: 3, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
+        { kind: 'maaneder', fra: iso('2023-01-01'), til: iso('2023-03-31'), maaneder: 3, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
+      ],
+      ansaettelsesforhold: af,
+      reguleringsdato: iso('2020-01-01'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(rows.map((row) => [row.fraDato, row.tilDato])).toEqual([
+      ['01-04-2020', '30-09-2020'],
+      ['01-10-2020', '31-03-2021'],
+      ['01-04-2021', '30-09-2021'],
+      ['01-10-2021', '30-09-2022'],
+      ['01-10-2022', '31-03-2023'],
+    ]);
   });
 });

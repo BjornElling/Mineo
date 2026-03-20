@@ -282,6 +282,23 @@ describe('Svie/smerte beregning', () => {
 
       expect(row?.status).toBe('warning');
       expect(row?.displayValue).toBe('Svie/smerte satsen for 2026 kan anvendes.');
+      expect(row?.message).toBe('Svie/smerte satsen for 2026 kan anvendes.');
+      expect(row?.summaryDisplay).toBe('messageOnly');
+    });
+
+    it('sætter en ren custom fejlmeddelelse når sats-år mangler', () => {
+      const row = getSvieSmerteSatserAarRow(
+        makeValues({
+          svieSmertePerioder: [{ id: '1', fra: iso('2025-01-01'), til: iso('2025-01-31'), tilstand: 'sygemeldt' }],
+          svieSmerteSatserAar: undefined,
+          tidligereSsMax: 'Nej',
+        })
+      );
+
+      expect(row?.status).toBe('error');
+      expect(row?.displayValue).toBe('Fejl (Indtastet sygeperiode men ikke år for sats)');
+      expect(row?.message).toBe('Indtastet sygeperiode men ikke år for sats');
+      expect(row?.summaryDisplay).toBe('messageOnly');
     });
 
     it('viser ikke warning når der er tale om revideret opgørelse', () => {

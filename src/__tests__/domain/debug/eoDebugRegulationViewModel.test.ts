@@ -1,9 +1,11 @@
 import { buildRegulationDebugSections } from '../../../domain/debug/eoDebugRegulationViewModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
+import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
 
 const iso = (value: string) => toISODateString(value);
+const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 
 describe('buildRegulationDebugSections', () => {
   it('bygger også beregnet reguleringstabel for ASL-årslønsmaksimum', () => {
@@ -256,6 +258,277 @@ describe('buildRegulationDebugSections', () => {
       'Feriepenge',
       'Fritvalg',
       'Pension',
+    ]);
+  });
+
+  it('sammenklapper uændrede reguleringsværdier og indeksperioder i debug-tabellerne', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: iso('2020-04-01'),
+        til: iso('2022-09-30'),
+        loseFeriedage: undefined,
+      },
+    ];
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+        id: 'af-manuel',
+        navnPaaArbejdssted: 'Manuel regulering',
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+        loenudviklingManuelTableData: [
+          {
+            dato: '',
+            grundloen: asAmountValue(141.2411),
+            feriepenge: '',
+            shSoSats: '',
+            fritvalg: '',
+            agPension: '',
+          },
+          {
+            dato: '01-04-2020',
+            grundloen: asAmountValue(141.7798),
+            feriepenge: '',
+            shSoSats: '',
+            fritvalg: '',
+            agPension: '',
+          },
+          {
+            dato: '01-10-2020',
+            grundloen: asAmountValue(142.8511),
+            feriepenge: '',
+            shSoSats: '',
+            fritvalg: '',
+            agPension: '',
+          },
+          {
+            dato: '01-04-2021',
+            grundloen: asAmountValue(144.2796),
+            feriepenge: '',
+            shSoSats: '',
+            fritvalg: '',
+            agPension: '',
+          },
+          {
+            dato: '01-10-2021',
+            grundloen: asAmountValue(145.6933),
+            feriepenge: '',
+            shSoSats: '',
+            fritvalg: '',
+            agPension: '',
+          },
+          {
+            dato: '01-04-2022',
+            grundloen: asAmountValue(145.6933),
+            feriepenge: '',
+            shSoSats: '',
+            fritvalg: '',
+            agPension: '',
+          },
+        ],
+      },
+    ];
+    const stamdataValues = {
+      ...STAMDATA_INITIAL_VALUES,
+      skadesdato: iso('2020-01-01'),
+    };
+
+    const sections = buildRegulationDebugSections({
+      timeline: {
+        tafBeregningsenhed: 'Måneder',
+        ansaettelser: [
+          {
+            ansaettelsesforholdId: 'af-manuel',
+            navn: 'Manuel regulering',
+            kildeLabel: 'Manuelt angivet',
+            kildeVaerdi: 'Manuelt angivet',
+            referenceIso: iso('2020-01-01'),
+            referenceLabel: 'Skadedato',
+            referenceValue: 141.2411,
+            entries: [
+              {
+                effectiveFrom: iso('2020-01-01'),
+                grundloen: 141.2411,
+                feriePct: 0,
+                shSoPct: 0,
+                fritvalgPct: 0,
+                storeBededagPct: 0,
+                pensionPct: 0,
+                packageValue: 141.2411,
+                index: 100,
+                arbejdsdage: null,
+                maaneder: 0,
+              },
+              {
+                effectiveFrom: iso('2020-04-01'),
+                grundloen: 141.7798,
+                feriePct: 0,
+                shSoPct: 0,
+                fritvalgPct: 0,
+                storeBededagPct: 0,
+                pensionPct: 0,
+                packageValue: 141.7798,
+                index: 100.38,
+                arbejdsdage: null,
+                maaneder: 0,
+              },
+              {
+                effectiveFrom: iso('2020-10-01'),
+                grundloen: 142.8511,
+                feriePct: 0,
+                shSoPct: 0,
+                fritvalgPct: 0,
+                storeBededagPct: 0,
+                pensionPct: 0,
+                packageValue: 142.8511,
+                index: 101.14,
+                arbejdsdage: null,
+                maaneder: 0,
+              },
+              {
+                effectiveFrom: iso('2021-04-01'),
+                grundloen: 144.2796,
+                feriePct: 0,
+                shSoPct: 0,
+                fritvalgPct: 0,
+                storeBededagPct: 0,
+                pensionPct: 0,
+                packageValue: 144.2796,
+                index: 102.15,
+                arbejdsdage: null,
+                maaneder: 0,
+              },
+              {
+                effectiveFrom: iso('2021-10-01'),
+                grundloen: 145.6933,
+                feriePct: 0,
+                shSoPct: 0,
+                fritvalgPct: 0,
+                storeBededagPct: 0,
+                pensionPct: 0,
+                packageValue: 145.6933,
+                index: 103.15,
+                arbejdsdage: null,
+                maaneder: 0,
+              },
+              {
+                effectiveFrom: iso('2022-04-01'),
+                grundloen: 145.6933,
+                feriePct: 0,
+                shSoPct: 0,
+                fritvalgPct: 0,
+                storeBededagPct: 0,
+                pensionPct: 0,
+                packageValue: 145.6933,
+                index: 103.15,
+                arbejdsdage: null,
+                maaneder: 0,
+              },
+            ],
+          },
+        ],
+      },
+      canonicalOutput: {
+        totals: {
+          svieSmerteOre: 0,
+          tabtArbejdsfortjenesteFoerForligOre: 0,
+          tabtArbejdsfortjenesteOre: 0,
+          oevrigeKravFoerForligOre: 0,
+          oevrigeKravOre: 0,
+          samletTotalOre: 0,
+        },
+        svieSmerte: { maxApplied: false },
+        taf: {
+          harTafPerioder: true,
+          tafIndtaegterOre: 0,
+          tidligereModtagetTafOre: 0,
+        },
+        periodiseringer: {
+          tafPerioder: [
+            {
+              id: 'taf-1',
+              fra: iso('2020-04-01'),
+              til: iso('2022-09-30'),
+              loseFeriedage: undefined,
+            },
+          ],
+        },
+        regulering: {
+          loenudviklingTotalFoerForligOre: 0,
+          loenudviklingSegmenter: [],
+          perAnsaettelse: [
+            {
+              ansaettelsesforholdId: 'af-manuel',
+              loenudviklingTotalFoerForligOre: 0,
+              loenudviklingSegmenter: [
+                {
+                  kind: 'maaneder',
+                  fra: iso('2020-04-01'),
+                  til: iso('2020-09-30'),
+                  maaneder: 6,
+                  maanedsloenOre: 0,
+                  deltaPct: 0,
+                  amountOre: 0,
+                },
+                {
+                  kind: 'maaneder',
+                  fra: iso('2020-10-01'),
+                  til: iso('2021-03-31'),
+                  maaneder: 6,
+                  maanedsloenOre: 0,
+                  deltaPct: 0,
+                  amountOre: 0,
+                },
+                {
+                  kind: 'maaneder',
+                  fra: iso('2021-04-01'),
+                  til: iso('2021-09-30'),
+                  maaneder: 6,
+                  maanedsloenOre: 0,
+                  deltaPct: 0,
+                  amountOre: 0,
+                },
+                {
+                  kind: 'maaneder',
+                  fra: iso('2021-10-01'),
+                  til: iso('2022-03-31'),
+                  maaneder: 6,
+                  maanedsloenOre: 0,
+                  deltaPct: 0,
+                  amountOre: 0,
+                },
+                {
+                  kind: 'maaneder',
+                  fra: iso('2022-04-01'),
+                  til: iso('2022-09-30'),
+                  maaneder: 6,
+                  maanedsloenOre: 0,
+                  deltaPct: 0,
+                  amountOre: 0,
+                },
+              ],
+            },
+          ],
+        },
+      },
+      eoValues,
+      stamdataValues,
+    });
+
+    expect(sections[0]?.tables?.[0]?.rows.map((row) => typeof row.cells[0] === 'string' ? row.cells[0] : row.cells[0].displayValue)).toEqual([
+      '01-01-2020',
+      '01-04-2020',
+      '01-10-2020',
+      '01-04-2021',
+      '01-10-2021',
+    ]);
+    expect(sections[0]?.tables?.[1]?.rows.map((row) => [row.cells[0], row.cells[1]])).toEqual([
+      ['01-04-2020', '30-09-2020'],
+      ['01-10-2020', '31-03-2021'],
+      ['01-04-2021', '30-09-2021'],
+      ['01-10-2021', '30-09-2022'],
     ]);
   });
 });

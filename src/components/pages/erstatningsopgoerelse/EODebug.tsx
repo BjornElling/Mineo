@@ -86,6 +86,8 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
   }
 
   const { erstatningsopgoerelseValues, rowsBySection } = view;
+  const viserSvieSmerte = erstatningsopgoerelseValues.beregnesSvieSmerteGodtgoerelse !== 'Nej';
+  const viserTabtArbejdsfortjeneste = erstatningsopgoerelseValues.beregnesTabtArbejdsfortjeneste !== 'Nej';
   const viserMidlertidigtEet = erstatningsopgoerelseValues.midlertidigtEetAfgorelse === 'Ja';
   const viserEndeligtEet = erstatningsopgoerelseValues.endeligtEetAfgorelse === 'Ja';
   const aesRows = rowsBySection.get('aes') ?? [];
@@ -128,15 +130,21 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
       <EODebugRowsSection title="Erstatningsopgørelse" rows={rowsBySection.get('erstatningsopgoerelse') ?? []} />
       <EODebugRowsSection title="Forlig" rows={rowsBySection.get('forlig') ?? []} />
       <EODebugRowsSection title="AES" rows={filtreredeAesRows} />
-      <EODebugRowsSection title="Svie og smerte" rows={rowsBySection.get('sviesmerte') ?? []} />
-      <EODebugRowsSection title="Tabt arbejdsfortjeneste" rows={rowsBySection.get('taf') ?? []} />
-      <EODebugRowsSection title="TAF beregningsgrundlag" rows={rowsBySection.get('taf-beregningsgrundlag') ?? []} />
-      {employmentSections.length > 0
-        ? <EODebugEmploymentSections sections={employmentSections} />
-        : <EODebugRowsSection title="Lønindkomst" rows={loenindkomstRows} />}
-      <EODebugRowsSection title="Offentlige ydelser" rows={rowsBySection.get('offentlige-ydelser') ?? []} />
+      {viserSvieSmerte && <EODebugRowsSection title="Svie og smerte" rows={rowsBySection.get('sviesmerte') ?? []} />}
+      {viserTabtArbejdsfortjeneste && <EODebugRowsSection title="Tabt arbejdsfortjeneste" rows={rowsBySection.get('taf') ?? []} />}
+      {viserTabtArbejdsfortjeneste && <EODebugRowsSection title="TAF beregningsgrundlag" rows={rowsBySection.get('taf-beregningsgrundlag') ?? []} />}
+      {viserTabtArbejdsfortjeneste && (
+        employmentSections.length > 0
+          ? <EODebugEmploymentSections sections={employmentSections} />
+          : <EODebugRowsSection title="Lønindkomst" rows={loenindkomstRows} />
+      )}
+      {viserTabtArbejdsfortjeneste && (
+        <EODebugRowsSection title="Offentlige ydelser" rows={rowsBySection.get('offentlige-ydelser') ?? []} />
+      )}
 
-      {orphanRegulationSections.length > 0 && <EODebugRegulationSections sections={orphanRegulationSections} />}
+      {viserTabtArbejdsfortjeneste && orphanRegulationSections.length > 0 && (
+        <EODebugRegulationSections sections={orphanRegulationSections} />
+      )}
 
       <EODebugRowsSection title="Øvrige erstatningskrav" rows={rowsBySection.get('oevrige-krav') ?? []} />
       <EODebugRowsSection title="Eventuelle særlige kommentarer" rows={rowsBySection.get('saerlige-kommentarer') ?? []} />

@@ -71,7 +71,7 @@ const FEJL_ADVARSLER_ROW_SX = {
  */
 
 const getCustomDebugRowMessage = (
-  row: Pick<DebugRowWithNavigation, 'id' | 'label' | 'message'>
+  row: Pick<DebugRowWithNavigation, 'id' | 'label' | 'message' | 'displayValue'>
 ): string | null => {
   const message = row.message?.trim() ?? '';
   if (

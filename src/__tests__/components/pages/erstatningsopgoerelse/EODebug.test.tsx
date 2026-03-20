@@ -664,6 +664,119 @@ describe('EODebug', () => {
     expect(screen.queryByText('TAF')).not.toBeInTheDocument();
   });
 
+  it('skjuler svie/smerte-contentbox når svie/smerte er fravalgt', () => {
+    eoSnapshotToDebugViewMock.mockReturnValue({
+      kind: 'ready',
+      canonicalOutput: undefined,
+      debugSnapshot: {
+        sammentaellingRows: [],
+      },
+      stamdataValues: {},
+      erstatningsopgoerelseValues: {
+        beregnesSvieSmerteGodtgoerelse: 'Nej',
+        beregnesTabtArbejdsfortjeneste: 'Ja',
+        midlertidigtEetAfgorelse: 'Nej',
+        endeligtEetAfgorelse: 'Nej',
+      },
+      rowsBySection: new Map([
+        ['sviesmerte', [
+          {
+            id: 'sviesmerte.satserAar',
+            label: 'Hvilket års svie/smerte satser lægges til grund?',
+            displayValue: 'Svie/smerte satsen for 2026 kan anvendes.',
+            status: 'warning',
+          },
+        ]],
+      ]),
+      regulationSections: [],
+    });
+
+    renderComponent({ revision: 'rev-1' } as never);
+
+    expect(screen.queryByText('Svie og smerte')).not.toBeInTheDocument();
+    expect(screen.queryByText('Hvilket års svie/smerte satser lægges til grund?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Svie/smerte satsen for 2026 kan anvendes.')).not.toBeInTheDocument();
+  });
+
+  it('skjuler TAF-, beregningsgrundlag-, lønindkomst- og reguleringsbokse når TAF er fravalgt', () => {
+    eoSnapshotToDebugViewMock.mockReturnValue({
+      kind: 'ready',
+      canonicalOutput: undefined,
+      debugSnapshot: {
+        sammentaellingRows: [],
+      },
+      stamdataValues: {},
+      erstatningsopgoerelseValues: {
+        beregnesSvieSmerteGodtgoerelse: 'Ja',
+        beregnesTabtArbejdsfortjeneste: 'Nej',
+        midlertidigtEetAfgorelse: 'Nej',
+        endeligtEetAfgorelse: 'Nej',
+        loenindkomstAnsaettelsesforhold: [
+          { ...createEmployment('af1'), navnPaaArbejdssted: 'Tandlægerne Toft og Vedsted', loenudviklingBeregningsgrundlag: 'Overenskomst' },
+        ],
+      },
+      rowsBySection: new Map([
+        ['taf', [
+          {
+            id: 'taf.ophoerSkyldes',
+            label: 'TAF-ophør skyldes',
+            displayValue: 'Erstatningsperiodens ophør (21-12-2025)',
+            status: 'ok',
+          },
+        ]],
+        ['taf-beregningsgrundlag', [
+          {
+            id: 'taf.beregningsgrundlag.indkomst',
+            label: 'Indkomst',
+            displayValue: 'Ja',
+            status: 'ok',
+          },
+        ]],
+        ['loenindkomst', [
+          {
+            id: 'loenindkomst.af1.arbejdsstedNavn',
+            label: 'Navn på arbejdssted',
+            displayValue: 'Tandlægerne Toft og Vedsted',
+            status: 'ok',
+          },
+          {
+            id: 'loenindkomst.af1.regulering.navn',
+            label: 'Navn på reguleringsform',
+            displayValue: 'overenskomst Tandlægeforening/HK',
+            status: 'ok',
+          },
+        ]],
+        ['offentlige-ydelser', [
+          {
+            id: 'offentligeYdelser.sygedagpenge',
+            label: 'Sygedagpenge',
+            displayValue: 'ok',
+            status: 'ok',
+          },
+        ]],
+      ]),
+      regulationSections: [
+        {
+          id: 'regulation.af1',
+          header: 'Regulering (Tandlægerne Toft og Vedsted)',
+          rows: [{ id: 'regulation.af1:overenskomst', label: 'Overenskomst', value: 'Tandlægeforening/HK' }],
+        },
+      ],
+    });
+
+    renderComponent({ revision: 'rev-1' } as never);
+
+    expect(screen.queryByText('Tabt arbejdsfortjeneste')).not.toBeInTheDocument();
+    expect(screen.queryByText('TAF beregningsgrundlag')).not.toBeInTheDocument();
+    expect(screen.queryByText('Lønindkomst')).not.toBeInTheDocument();
+    expect(screen.queryByText('Offentlige ydelser')).not.toBeInTheDocument();
+    expect(screen.queryByText('Regulering (Tandlægerne Toft og Vedsted)')).not.toBeInTheDocument();
+    expect(screen.queryByText('TAF-ophør skyldes')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tandlægerne Toft og Vedsted')).not.toBeInTheDocument();
+    expect(screen.queryByText('overenskomst Tandlægeforening/HK')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sygedagpenge')).not.toBeInTheDocument();
+  });
+
   it('viser "Perioder: Ingen" i TAF-sektionen når ingen erstatningsperioder findes', () => {
     eoSnapshotToDebugViewMock.mockReturnValue({
       kind: 'ready',

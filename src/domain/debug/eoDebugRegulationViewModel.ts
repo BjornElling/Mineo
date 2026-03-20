@@ -63,11 +63,6 @@ const buildPercentCell = (value: number): DebugCellValue => ({
   displayValue: formatPercent(value, 2),
 });
 
-const buildIndexCell = (value: number): DebugCellValue => ({
-  rawValue: value,
-  displayValue: formatDecimal(value, 2),
-});
-
 const buildFallbackSegmentsFromTimeline = (params: Readonly<{
   entries: readonly RegulationIndexTimeline['ansaettelser'][number]['entries'][number][];
   tafBeregningsenhed: RegulationIndexTimeline['tafBeregningsenhed'];
@@ -208,6 +203,28 @@ const resolveVisibleColumnHeader = (
   return column.header;
 };
 
+const toComparableDebugCell = (cell: DebugCellValue | string): string =>
+  typeof cell === 'string' ? cell : cell.displayValue;
+
+const mergeConsecutiveDebugRows = (
+  rows: readonly RegulationDebugTableRow[]
+): readonly RegulationDebugTableRow[] => {
+  if (rows.length <= 1) return rows;
+  const merged: RegulationDebugTableRow[] = [];
+  for (const row of rows) {
+    const last = merged[merged.length - 1];
+    const hasSameValues = Boolean(
+      last &&
+      last.cells.length === row.cells.length &&
+      last.cells.slice(1).every((cell, index) => toComparableDebugCell(cell) === toComparableDebugCell(row.cells[index + 1]!))
+    );
+    if (!hasSameValues) {
+      merged.push(row);
+    }
+  }
+  return merged;
+};
+
 /**
  * Byg regulation debug sections (indeks) pr. ansaettelsesforhold
  */
@@ -238,7 +255,6 @@ export function buildRegulationDebugSections(
       ? `Regulering (${af.navn.trim()})`
       : `Regulering (Ansættelsesforhold ${idx + 1})`;
 
-    const latest = af.entries[af.entries.length - 1];
     const sectionId = `regulation.${af.ansaettelsesforholdId}`;
     const visibleColumns = COLUMN_DEFS.filter((column) =>
       column.key !== 'arbejdsdage' &&
@@ -256,25 +272,17 @@ export function buildRegulationDebugSections(
         label: `Reguleringsdato (${af.referenceLabel})`,
         value: { rawValue: af.referenceIso, displayValue: formatIsoValue(af.referenceIso) },
       },
-      {
-        id: `${sectionId}:basisvaerdi`,
-        label: 'Basisværdi (indeks 100)',
-        value: buildCurrencyCell(af.referenceValue),
-      },
-      {
-        id: `${sectionId}:seneste_indeks`,
-        label: 'Seneste indeks',
-        value: latest ? buildIndexCell(latest.index) : '-',
-      },
     ];
+
+    const valueRows = mergeConsecutiveDebugRows(af.entries.map((entry) => ({
+      id: `regulation.table:${af.ansaettelsesforholdId}:${entry.effectiveFrom}`,
+      cells: visibleColumns.map((column) => column.getCell(entry)),
+    })));
 
     const tables: RegulationDebugTable[] = [{
       id: `${sectionId}:vaerdier`,
       columns: visibleColumns.map((column) => resolveVisibleColumnHeader(column, timeline)),
-      rows: af.entries.map((entry) => ({
-        id: `regulation.table:${af.ansaettelsesforholdId}:${entry.effectiveFrom}`,
-        cells: visibleColumns.map((column) => column.getCell(entry)),
-      })),
+      rows: valueRows,
     }];
 
     const ansaettelsesforhold = loenudviklingsKilderById.get(af.ansaettelsesforholdId);

@@ -384,6 +384,44 @@ describe('EOberegningTab kontroltjek', () => {
     expect(screen.queryByText('Fejl (Dato skal være mellem 24-05-2023 og 21-04-2024)')).not.toBeInTheDocument();
   });
 
+  it('viser svie/smerte sats-år-advarslen med indhold i fejl og advarsler', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
+
+    collectAllDebugRowsMock.mockReturnValue({
+      errors: [],
+      warnings: [{
+        id: 'sviesmerte.satserAar',
+        label: 'Hvilket års svie/smerte satser lægges til grund?',
+        displayValue: 'Svie/smerte satsen for 2026 kan anvendes.',
+        status: 'warning',
+        message: 'Svie/smerte satsen for 2026 kan anvendes.',
+        summaryDisplay: 'messageOnly',
+        navigation: {
+          kind: 'erstatningsopgoerelse-tab',
+          tabId: 'eo_oplysninger',
+          tabName: 'EO oplysninger',
+          sectionTitle: 'Svie/smerte godtgørelse',
+        },
+      }],
+      allRows: [],
+      relevantRows: [],
+    });
+
+    renderTab({
+      activeTab: 'beregning',
+      setActiveTab: vi.fn(),
+      isActive: true,
+      eoSnapshot: null,
+      stamdataValues: baseStamdataValues,
+      eoValues,
+      setEOValues: baseSetEoValues,
+    });
+
+    expect(screen.getByText('Svie/smerte satsen for 2026 kan anvendes.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Svie/smerte godtgørelse' })).toBeInTheDocument();
+  });
+
   it('viser clampet TAF-periode i beregningsoversigten når snapshotten er autoritativt beregnet', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = '2024-01-01';

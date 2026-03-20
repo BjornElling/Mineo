@@ -74,6 +74,12 @@ export type ReguleringValuesTableData = Readonly<{
   rows: ReadonlyArray<ReadonlyArray<string>>;
 }>;
 
+type IndexRowWithIso = ReguleringIndexRow & Readonly<{
+  fraIso: ISODateString;
+  tilIso: ISODateString;
+  signature: string;
+}>;
+
 const parseOptionalIsoDate = parseOptionalIsoDateShared;
 const parseDanishToISO = parseDanishToIsoShared;
 export const resolveStatistikModelIdFromLabel = resolveStatistikModelId;
@@ -208,6 +214,44 @@ const resolveReguleringsvaerdierLoenHeader = (
 
 const REGULERINGSVAERDIER_FRA_DATO_HEADER = 'Fra-dato';
 const REGULERINGSVAERDIER_PENSION_HEADER = 'AG pens. bidrag';
+
+const mergeConsecutiveValueRows = (rows: readonly string[][]): readonly string[][] => {
+  if (rows.length <= 1) return rows;
+  const merged: string[][] = [];
+  for (const row of rows) {
+    const last = merged[merged.length - 1];
+    const hasSameValues = Boolean(
+      last &&
+      last.length === row.length &&
+      last.slice(1).every((cell, index) => cell === row[index + 1])
+    );
+    if (!hasSameValues) {
+      merged.push(row);
+    }
+  }
+  return merged;
+};
+
+const mergeConsecutiveRowsWithSameCalculation = (rows: readonly IndexRowWithIso[]): readonly ReguleringIndexRow[] => {
+  if (rows.length <= 1) return rows;
+  const merged: IndexRowWithIso[] = [];
+  for (const row of rows) {
+    const last = merged[merged.length - 1];
+    const isAdjacent = Boolean(last && subtractOneDay(row.fraIso) === last.tilIso);
+    const hasSameCalculation = Boolean(last && last.signature === row.signature);
+    if (last && isAdjacent && hasSameCalculation) {
+      const updated: IndexRowWithIso = {
+        ...last,
+        tilIso: row.tilIso,
+        tilDato: formatDateShort(row.tilIso),
+      };
+      merged[merged.length - 1] = updated;
+    } else {
+      merged.push(row);
+    }
+  }
+  return merged;
+};
 
 export const buildReguleringsvaerdierTableData = (params: Readonly<{
   ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
@@ -371,7 +415,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         addRow(iso, loen.maanedsLoen, loen.timeLoen);
       }
 
-      return { columns, rows };
+      return { columns, rows: mergeConsecutiveValueRows(rows) };
     }
 
     const ref = resolveOverenskomstRef(overenskomstId);
@@ -451,7 +495,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       return row;
       })
       .filter((row): row is string[] => Boolean(row));
-    return { columns, rows };
+    return { columns, rows: mergeConsecutiveValueRows(rows) };
   }
 
   if (grundlag === 'Manuelt angivet') {
@@ -505,7 +549,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         ...(applyStoreBededagRegulering ? ['Store Bededag'] : []),
         REGULERINGSVAERDIER_PENSION_HEADER,
       ],
-      rows,
+      rows: mergeConsecutiveValueRows(rows),
     };
   }
 
@@ -662,33 +706,6 @@ export const buildReguleringIndexRows = (params: Readonly<{
       }
     }
     return result;
-  };
-
-  type IndexRowWithIso = ReguleringIndexRow & Readonly<{
-    fraIso: ISODateString;
-    tilIso: ISODateString;
-    signature: string;
-  }>;
-
-  const mergeConsecutiveRowsWithSameCalculation = (rows: readonly IndexRowWithIso[]): readonly ReguleringIndexRow[] => {
-    if (rows.length <= 1) return rows;
-    const merged: IndexRowWithIso[] = [];
-    for (const row of rows) {
-      const last = merged[merged.length - 1];
-      const isAdjacent = Boolean(last && subtractOneDay(row.fraIso) === last.tilIso);
-      const hasSameCalculation = Boolean(last && last.signature === row.signature);
-      if (last && isAdjacent && hasSameCalculation) {
-        const updated: IndexRowWithIso = {
-          ...last,
-          tilIso: row.tilIso,
-          tilDato: formatDateShort(row.tilIso),
-        };
-        merged[merged.length - 1] = updated;
-      } else {
-        merged.push(row);
-      }
-    }
-    return merged;
   };
 
   const anciennitetForIndex = (() => {
@@ -1282,21 +1299,24 @@ export const buildReguleringIndexRows = (params: Readonly<{
   })();
 
   if (!baseComponents || !baseVisibility || baseValueRaw === null || baseFormula === null || periods.length === 0) {
-    return segments.map((segment) => {
+    return mergeConsecutiveRowsWithSameCalculation(segments.map((segment) => {
       const indeksValue = 100 + segment.deltaPct;
       const indeksDisplay = formatIndexValue(indeksValue);
       const formulaText = Math.abs(indeksValue - 100) < 0.000001 ? '100,00' : `${indeksDisplay} /\n100,00`;
       return {
+        fraIso: segment.fra,
+        tilIso: segment.til,
         fraDato: formatDateShort(segment.fra),
         tilDato: formatDateShort(segment.til),
         indeksberegning: formulaText,
         indeks: indeksDisplay,
         loenudvikling: formatLoenudviklingFromIndex(indeksValue),
+        signature: `${formulaText}|${indeksDisplay}|${formatLoenudviklingFromIndex(indeksValue)}`,
       };
-    });
+    }));
   }
 
-  return segments.map((segment) => {
+  return mergeConsecutiveRowsWithSameCalculation(segments.map((segment) => {
     const period = findPeriodForDate(periods, segment.fra);
     const components = period?.components ?? baseComponents;
     const visibility = period?.visibility ?? baseVisibility;
@@ -1304,12 +1324,17 @@ export const buildReguleringIndexRows = (params: Readonly<{
     const formula = isSimpleIndex ? formatStatValue(valueRaw) : buildFormulaText(components, visibility);
     const indeksValue = baseValueRaw > 0 ? (valueRaw / baseValueRaw) * 100 : Number.NaN;
     const indeksDisplay = Number.isFinite(indeksValue) ? formatIndexValue(indeksValue) : '-';
+    const indeksberegning = buildIndexFormulaDisplay(formula, baseFormula, valueRaw, baseValueRaw, isSimpleIndex);
+    const loenudvikling = formatLoenudviklingFromIndex(indeksValue);
     return {
+      fraIso: segment.fra,
+      tilIso: segment.til,
       fraDato: formatDateShort(segment.fra),
       tilDato: formatDateShort(segment.til),
-      indeksberegning: buildIndexFormulaDisplay(formula, baseFormula, valueRaw, baseValueRaw, isSimpleIndex),
+      indeksberegning,
       indeks: indeksDisplay,
-      loenudvikling: formatLoenudviklingFromIndex(indeksValue),
+      loenudvikling,
+      signature: `${indeksberegning}|${indeksDisplay}|${loenudvikling}`,
     };
-  });
+  }));
 };

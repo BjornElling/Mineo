@@ -820,6 +820,13 @@ export const buildEODebugSvieSmerteRows = (
     label: 'Hvilket års svie/smerte satser lægges til grund?',
     displayValue: satserAarDisplay,
     status: satserAarStatus,
+    message:
+      satserAarMangler
+        ? 'Indtastet sygeperiode men ikke år for sats'
+        : shouldShowSatsYearSuggestionWarning
+          ? satserAarDisplay
+          : undefined,
+    summaryDisplay: satserAarStatus !== 'ok' ? 'messageOnly' : undefined,
   });
 
   // 3b) Svie/smerte sats ved delvis sygemelding
