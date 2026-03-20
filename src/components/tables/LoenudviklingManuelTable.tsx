@@ -11,7 +11,8 @@ import { useGridCoreApi } from './useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from './gridCore/gridCoreTypes';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
-import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridCore/gridModel';
+import { normalizeGridRows } from './gridCore/gridModel';
+import { useTableSort } from './useTableSort';
 import {
   applyRowRemovalFocusPlan,
   evaluateRowCommit,
@@ -469,53 +470,33 @@ const LoenudviklingManuelTable = React.memo(
       notifyInputErrorChange();
     }, [notifyInputErrorChange]);
 
-    const [sortState, setSortState] = React.useState<GridSortState>({});
     const baseRowId = internalTableData[0]?.id ?? null;
     const isRowEmptyForSort = React.useCallback(
       (row: LoenudviklingManuelRow) => (row.id === baseRowId ? false : isRowEmpty(row)),
       [baseRowId]
     );
 
-    const getSortDirection = (colId: string): GridSortDirection => {
-      if (sortState.primary?.colId === colId) return sortState.primary.dir;
-      if (sortState.secondary?.colId === colId) return sortState.secondary.dir;
-      return 'asc';
-    };
-
-    const getSortValueByColId = React.useCallback(
-      (colId: string) => {
-        switch (colId) {
-          case 'dato':
-            return (row: LoenudviklingManuelRow) => {
-              const raw = row.id === baseRowId ? baseDateDisplay : row.dato;
-              return coerceToISODateString(raw?.trim() ?? '') ?? '';
-            };
-          case 'grundloen':
-            return (row: LoenudviklingManuelRow) => parseAmountForSort(row.grundloen);
-          case 'feriepenge':
-            return (row: LoenudviklingManuelRow) => parsePercentForSort(row.feriepenge);
-          case 'shSoSats':
-            return (row: LoenudviklingManuelRow) => parsePercentForSort(row.shSoSats);
-          case 'fritvalg':
-            return (row: LoenudviklingManuelRow) => parsePercentForSort(row.fritvalg);
-          case 'agPension':
-            return (row: LoenudviklingManuelRow) => parsePercentForSort(row.agPension);
-          default:
-            return undefined;
-        }
+    const sortColumns = React.useMemo(() => [
+      {
+        colId: 'dato',
+        getSortValue: (row: LoenudviklingManuelRow) => {
+          const raw = row.id === baseRowId ? baseDateDisplay : row.dato;
+          return coerceToISODateString(raw?.trim() ?? '') ?? '';
+        },
       },
-      [baseDateDisplay, baseRowId]
-    );
+      { colId: 'grundloen', getSortValue: (row: LoenudviklingManuelRow) => parseAmountForSort(row.grundloen) },
+      { colId: 'feriepenge', getSortValue: (row: LoenudviklingManuelRow) => parsePercentForSort(row.feriepenge) },
+      { colId: 'shSoSats', getSortValue: (row: LoenudviklingManuelRow) => parsePercentForSort(row.shSoSats) },
+      { colId: 'fritvalg', getSortValue: (row: LoenudviklingManuelRow) => parsePercentForSort(row.fritvalg) },
+      { colId: 'agPension', getSortValue: (row: LoenudviklingManuelRow) => parsePercentForSort(row.agPension) },
+    ], [baseDateDisplay, baseRowId]);
 
-    const visibleRows = React.useMemo(() => {
-      return sortGridRows({
-        rows: internalTableData,
-        getRowId: (row) => row.id,
-        isRowEmpty: isRowEmptyForSort,
-        sortState,
-        getSortValueByColId,
-      });
-    }, [getSortValueByColId, internalTableData, isRowEmptyForSort, sortState]);
+    const { sortedRows: visibleRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
+      rows: internalTableData,
+      getRowId: (row) => row.id,
+      isRowEmpty: isRowEmptyForSort,
+      columns: sortColumns,
+    });
     const visibleRowIds = React.useMemo(() => visibleRows.map((row) => row.id), [visibleRows]);
 
     React.useLayoutEffect(() => {
@@ -542,46 +523,22 @@ const LoenudviklingManuelTable = React.memo(
 
         <thead>
           <tr>
-            <StandardGridHeaderCell
-              onClick={() => setSortState((prev) => toggleGridSort(prev, 'dato'))}
-              sortRole={getGridSortRole(sortState, 'dato')}
-              sortDirection={getSortDirection('dato')}
-            >
+            <StandardGridHeaderCell onClick={() => handleHeaderClick('dato')} sortRole={getSortRole('dato')} sortDirection={getSortDirection('dato')}>
               Dato
             </StandardGridHeaderCell>
-            <StandardGridHeaderCell
-              onClick={() => setSortState((prev) => toggleGridSort(prev, 'grundloen'))}
-              sortRole={getGridSortRole(sortState, 'grundloen')}
-              sortDirection={getSortDirection('grundloen')}
-            >
+            <StandardGridHeaderCell onClick={() => handleHeaderClick('grundloen')} sortRole={getSortRole('grundloen')} sortDirection={getSortDirection('grundloen')}>
               Grundløn
             </StandardGridHeaderCell>
-            <StandardGridHeaderCell
-              onClick={() => setSortState((prev) => toggleGridSort(prev, 'feriepenge'))}
-              sortRole={getGridSortRole(sortState, 'feriepenge')}
-              sortDirection={getSortDirection('feriepenge')}
-            >
+            <StandardGridHeaderCell onClick={() => handleHeaderClick('feriepenge')} sortRole={getSortRole('feriepenge')} sortDirection={getSortDirection('feriepenge')}>
               Feriepenge
             </StandardGridHeaderCell>
-            <StandardGridHeaderCell
-              onClick={() => setSortState((prev) => toggleGridSort(prev, 'shSoSats'))}
-              sortRole={getGridSortRole(sortState, 'shSoSats')}
-              sortDirection={getSortDirection('shSoSats')}
-            >
+            <StandardGridHeaderCell onClick={() => handleHeaderClick('shSoSats')} sortRole={getSortRole('shSoSats')} sortDirection={getSortDirection('shSoSats')}>
               SH/SO-sats
             </StandardGridHeaderCell>
-            <StandardGridHeaderCell
-              onClick={() => setSortState((prev) => toggleGridSort(prev, 'fritvalg'))}
-              sortRole={getGridSortRole(sortState, 'fritvalg')}
-              sortDirection={getSortDirection('fritvalg')}
-            >
+            <StandardGridHeaderCell onClick={() => handleHeaderClick('fritvalg')} sortRole={getSortRole('fritvalg')} sortDirection={getSortDirection('fritvalg')}>
               Fritvalg
             </StandardGridHeaderCell>
-            <StandardGridHeaderCell
-              onClick={() => setSortState((prev) => toggleGridSort(prev, 'agPension'))}
-              sortRole={getGridSortRole(sortState, 'agPension')}
-              sortDirection={getSortDirection('agPension')}
-            >
+            <StandardGridHeaderCell onClick={() => handleHeaderClick('agPension')} sortRole={getSortRole('agPension')} sortDirection={getSortDirection('agPension')}>
               AG pension
             </StandardGridHeaderCell>
           </tr>

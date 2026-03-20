@@ -9,7 +9,6 @@ import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
 
 import { CURRENT_YEAR, MIN_YEAR, dateRanges_aarsloen } from '../../config/dateRanges';
 import type { AarsloenTableRow, Loenperiode } from '../../schemas/formSchemas';
-import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { danishToISO } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import type {
@@ -29,7 +28,8 @@ import { getAarsloenTableValidation, isAarsloenTableValueEffectivelyEmptyForVali
 
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
-import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridCore/gridModel';
+import { normalizeGridRows } from './gridCore/gridModel';
+import { useTableSort } from './useTableSort';
 import {
   applyRowRemovalFocusPlan,
   evaluateRowCommit,
@@ -276,13 +276,6 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
     // KRITISK INVARIANT: Table*Input-komponenter SKAL kalde handleErrorChange deterministisk
     // ved alle transitions mellem {ingen fejl ↔ fejl} og {fejl A ↔ fejl B}.
     // Hvis error-emission throttles/debounces/kun sker på blur, kan tabel-validering blive stale.
-    const handleErrorChange = React.useCallback((rowId: string, colKey: AarsloenTableColumnKey, info: TableInputErrorInfo) => {
-      const key = `${rowId}:${colKey}`;
-      if (info.hasError) cellErrorsByCellKeyRef.current[key] = true;
-      else delete cellErrorsByCellKeyRef.current[key];
-      notifyValidationRef.current();
-    }, []);
-
     const getSatserInput = React.useCallback(() => {
       return {
         feriePct: satser?.ferie,
@@ -324,106 +317,71 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
       onValidationChange(getValidationResult().summary);
     }, [getValidationResult, onValidationChange]);
 
-    const notifyValidationRef = React.useRef(notifyValidationChange);
-    React.useEffect(() => {
-      notifyValidationRef.current = notifyValidationChange;
+    const handleErrorChange = React.useCallback((rowId: string, colKey: AarsloenTableColumnKey, info: TableInputErrorInfo) => {
+      const key = `${rowId}:${colKey}`;
+      if (info.hasError) cellErrorsByCellKeyRef.current[key] = true;
+      else delete cellErrorsByCellKeyRef.current[key];
+      notifyValidationChange();
     }, [notifyValidationChange]);
 
     React.useEffect(() => {
       notifyValidationChange();
     }, [committedTableData, loenperiode, notifyValidationChange]);
 
-    const [sortState, setSortState] = React.useState<GridSortState>({});
+    const parseSortableInteger = React.useCallback((value: string | undefined): number | undefined => {
+      const trimmed = value?.trim() ?? '';
+      if (trimmed === '') return undefined;
+      const parsed = Number.parseInt(trimmed, 10);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    }, []);
 
-    const getSortDirection = React.useCallback(
-      (colId: string): GridSortDirection => {
-        if (sortState.primary?.colId === colId) return sortState.primary.dir;
-        if (sortState.secondary?.colId === colId) return sortState.secondary.dir;
-        return 'asc';
+    const parseSortableWeekKey = React.useCallback((value: string | undefined): string | undefined => {
+      const trimmed = value?.trim() ?? '';
+      if (trimmed === '') return undefined;
+      const parts = trimmed.split('/');
+      if (parts.length !== 2) return undefined;
+      const week = Number.parseInt(parts[0] ?? '', 10);
+      const year = Number.parseInt(parts[1] ?? '', 10);
+      if (!Number.isFinite(week) || !Number.isFinite(year)) return undefined;
+      if (week < 1 || week > 53) return undefined;
+      return `${year.toString().padStart(4, '0')}-${week.toString().padStart(2, '0')}`;
+    }, []);
+
+    const sortColumns = React.useMemo(() => [
+      {
+        colId: 'col-0',
+        getSortValue: (row: AarsloenTableRow) => {
+          const committed = resolveCommittedRow(row);
+          if (loenperiode === 'maaned') return parseSortableInteger(committed.col0_maaned);
+          if (loenperiode === 'uge') return parseSortableWeekKey(committed.col0_uge);
+          return danishToISO(committed.col0_dag ?? '');
+        },
       },
-      [sortState.primary, sortState.secondary]
-    );
-
-    const getSortValueByColId = React.useCallback(
-      (colId: string) => {
-        const colIdx = Number.parseInt(colId.replace('col-', ''), 10);
-        if (!Number.isFinite(colIdx)) return undefined;
-
-        const parseSortableInteger = (value: string | undefined): number | undefined => {
-          const trimmed = value?.trim() ?? '';
-          if (trimmed === '') return undefined;
-          const parsed = Number.parseInt(trimmed, 10);
-          return Number.isFinite(parsed) ? parsed : undefined;
-        };
-
-        const parseSortableWeekKey = (value: string | undefined): string | undefined => {
-          const trimmed = value?.trim() ?? '';
-          if (trimmed === '') return undefined;
-          const parts = trimmed.split('/');
-          if (parts.length !== 2) return undefined;
-          const week = Number.parseInt(parts[0] ?? '', 10);
-          const year = Number.parseInt(parts[1] ?? '', 10);
-          if (!Number.isFinite(week) || !Number.isFinite(year)) return undefined;
-          if (week < 1 || week > 53) return undefined;
-          return `${year.toString().padStart(4, '0')}-${week.toString().padStart(2, '0')}`;
-        };
-
-        const parseSortableAmount = (value: AmountValue | undefined): number | undefined => {
-          return amountValueToNumber(value);
-        };
-
-        if (colIdx === 0) {
-          return (row: AarsloenTableRow) => {
-            const committed = resolveCommittedRow(row);
-            if (loenperiode === 'maaned') return parseSortableInteger(committed.col0_maaned);
-            if (loenperiode === 'uge') return parseSortableWeekKey(committed.col0_uge);
-            return danishToISO(committed.col0_dag ?? '');
-          };
-        }
-
-        if (colIdx === 1) {
-          return (row: AarsloenTableRow) => {
-            const committed = resolveCommittedRow(row);
-            if (loenperiode === 'maaned') return parseSortableInteger(committed.col1_maaned);
-            if (loenperiode === 'uge') return parseSortableWeekKey(committed.col1_uge);
-            return danishToISO(committed.col1_dag ?? '');
-          };
-        }
-
-        if (colIdx >= 2 && colIdx <= 5) {
-          return (row: AarsloenTableRow) => {
-            const committed = resolveCommittedRow(row);
-            if (colIdx === 2) return parseSortableAmount(committed.col2);
-            if (colIdx === 3) return parseSortableAmount(committed.col3);
-            if (colIdx === 4) return parseSortableAmount(committed.col4);
-            return parseSortableAmount(committed.col5);
-          };
-        }
-
-        if (colIdx >= 6 && colIdx <= 9) {
-          return (row: AarsloenTableRow) => {
-            const derived = calculateRow(resolveCommittedRow(row));
-            if (colIdx === 6) return derived.col6;
-            if (colIdx === 7) return derived.col7;
-            if (colIdx === 8) return derived.col8;
-            return derived.col9;
-          };
-        }
-
-        return undefined;
+      {
+        colId: 'col-1',
+        getSortValue: (row: AarsloenTableRow) => {
+          const committed = resolveCommittedRow(row);
+          if (loenperiode === 'maaned') return parseSortableInteger(committed.col1_maaned);
+          if (loenperiode === 'uge') return parseSortableWeekKey(committed.col1_uge);
+          return danishToISO(committed.col1_dag ?? '');
+        },
       },
-      [calculateRow, loenperiode, resolveCommittedRow]
-    );
+      { colId: 'col-2', getSortValue: (row: AarsloenTableRow) => amountValueToNumber(resolveCommittedRow(row).col2) },
+      { colId: 'col-3', getSortValue: (row: AarsloenTableRow) => amountValueToNumber(resolveCommittedRow(row).col3) },
+      { colId: 'col-4', getSortValue: (row: AarsloenTableRow) => amountValueToNumber(resolveCommittedRow(row).col4) },
+      { colId: 'col-5', getSortValue: (row: AarsloenTableRow) => amountValueToNumber(resolveCommittedRow(row).col5) },
+      { colId: 'col-6', getSortValue: (row: AarsloenTableRow) => calculateRow(resolveCommittedRow(row)).col6 },
+      { colId: 'col-7', getSortValue: (row: AarsloenTableRow) => calculateRow(resolveCommittedRow(row)).col7 },
+      { colId: 'col-8', getSortValue: (row: AarsloenTableRow) => calculateRow(resolveCommittedRow(row)).col8 },
+      { colId: 'col-9', getSortValue: (row: AarsloenTableRow) => calculateRow(resolveCommittedRow(row)).col9 },
+    ], [calculateRow, loenperiode, parseSortableInteger, parseSortableWeekKey, resolveCommittedRow]);
 
-    const visibleRows = React.useMemo(() => {
-      return sortGridRows({
-        rows: rowsState.draft,
-        getRowId: (row) => row.id,
-        isRowEmpty,
-        sortState,
-        getSortValueByColId,
-      });
-    }, [getSortValueByColId, rowsState.draft, sortState]);
+    const { sortedRows: visibleRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
+      rows: rowsState.draft,
+      getRowId: (row) => row.id,
+      isRowEmpty,
+      columns: sortColumns,
+    });
     const visibleRowIds = React.useMemo(() => visibleRows.map((row) => row.id), [visibleRows]);
 
     React.useLayoutEffect(() => {
@@ -597,8 +555,8 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
               return (
                 <StandardGridHeaderCell
                   key={colId}
-                  onClick={() => setSortState((prev) => toggleGridSort(prev, colId))}
-                  sortRole={getGridSortRole(sortState, colId)}
+                  onClick={() => handleHeaderClick(colId)}
+                  sortRole={getSortRole(colId)}
                   sortDirection={getSortDirection(colId)}
                 >
                   <span style={{ whiteSpace: 'pre-line' }}>{header}</span>

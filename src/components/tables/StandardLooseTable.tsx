@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Table, type TableProps } from '@mui/material';
+import { Table, TableCell, type TableProps } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { getMuiTableStyles, tableColors } from '../../config/tableTheme';
 import { GridCoreProvider } from './gridCore/gridCoreContext';
@@ -10,6 +10,8 @@ import {
   handleTableKeyDownCapture,
   handleTablePointerDownCapture,
 } from './gridCore/tableKeyboardNavigation';
+import type { GridSortDirection, GridSortRole } from './gridCore/gridModel';
+import { SortIcon } from './SortIcon';
 import { useGridCoreController } from './useGridCoreController';
 
 export type StandardLooseTableProps = Omit<TableProps, 'sx'> & Readonly<{
@@ -89,3 +91,37 @@ const StandardLooseTable = React.memo(({
 StandardLooseTable.displayName = 'StandardLooseTable';
 
 export default StandardLooseTable;
+
+export type StandardLooseHeaderCellProps = Readonly<{
+  children: React.ReactNode;
+  onClick?: () => void;
+  sortRole?: GridSortRole;
+  sortDirection?: GridSortDirection | undefined;
+  sx?: SxProps<Theme>;
+}>;
+
+export const StandardLooseHeaderCell = React.memo(
+  ({ children, onClick, sortRole = 'none', sortDirection = 'asc', sx }: StandardLooseHeaderCellProps) => {
+    return (
+      <TableCell
+        onClick={onClick}
+        sx={[
+          {
+            cursor: onClick ? 'pointer' : 'default',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            position: 'relative',
+            userSelect: onClick ? 'none' : undefined,
+          },
+          ...(sx === undefined ? [] : Array.isArray(sx) ? sx : [sx]),
+        ]}
+      >
+        {children}
+        {sortRole !== 'none' ? <SortIcon sortRole={sortRole} sortDirection={sortDirection} /> : null}
+      </TableCell>
+    );
+  }
+);
+
+StandardLooseHeaderCell.displayName = 'StandardLooseHeaderCell';

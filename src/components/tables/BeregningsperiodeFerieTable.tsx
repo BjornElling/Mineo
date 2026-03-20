@@ -5,7 +5,8 @@ import type { ISODateString } from '../../types/branded';
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
 import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
-import StandardLooseTable from './StandardLooseTable';
+import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
+import { useTableSort } from './useTableSort';
 
 export type BeregningsperiodeFerieTableProps = Readonly<{
   rows: FerieDraftRow[];
@@ -19,6 +20,9 @@ export type BeregningsperiodeFerieTableProps = Readonly<{
 
 const OUTSIDE_BEREGNINGSPERIODE_ERROR_MESSAGE = 'Ferie i beregningsperioden skal også ligge inden for beregningsperioden.';
 
+const getRowId = (row: FerieDraftRow) => row.id;
+const isRowEmpty = (row: FerieDraftRow) => row.fra.trim() === '' && row.til.trim() === '';
+
 const BeregningsperiodeFerieTable = React.memo(
   ({
     rows,
@@ -29,6 +33,19 @@ const BeregningsperiodeFerieTable = React.memo(
     beregningsperiodeFra,
     beregningsperiodeTil,
   }: BeregningsperiodeFerieTableProps) => {
+    const sortColumns = React.useMemo(() => [
+      { colId: 'fra', getSortValue: (row: FerieDraftRow) => committedById.get(row.id)?.fra },
+      { colId: 'til', getSortValue: (row: FerieDraftRow) => committedById.get(row.id)?.til },
+      { colId: 'feriedage', getSortValue: (row: FerieDraftRow) => feriedageById[row.id] ?? undefined },
+    ], [committedById, feriedageById]);
+
+    const { sortedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
+      rows,
+      getRowId,
+      isRowEmpty,
+      columns: sortColumns,
+    });
+
     const hasValidBeregningsperiodeBounds =
       beregningsperiodeFra !== undefined &&
       beregningsperiodeTil !== undefined &&
@@ -60,13 +77,13 @@ const BeregningsperiodeFerieTable = React.memo(
       >
         <TableHead>
           <TableRow>
-            <TableCell sx={{ width: 180 }}>Fra o.m.</TableCell>
-            <TableCell sx={{ width: 180 }}>Til o.m.</TableCell>
-            <TableCell sx={{ width: 160 }}>Feriedage</TableCell>
+            <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('fra')} sortRole={getSortRole('fra')} sortDirection={getSortDirection('fra')}>Fra o.m.</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('til')} sortRole={getSortRole('til')} sortDirection={getSortDirection('til')}>Til o.m.</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell sx={{ width: 160 }} onClick={() => handleHeaderClick('feriedage')} sortRole={getSortRole('feriedage')} sortDirection={getSortDirection('feriedage')}>Feriedage</StandardLooseHeaderCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map((row) => {
+          {sortedRows.map((row) => {
             const committed = committedById.get(row.id);
             const fraISO = committed?.fra;
             const tilISO = committed?.til;

@@ -24,7 +24,8 @@ import {
 } from '../../domain/erstatningsopgoerelse/offentligeYdelserTableValidation';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
-import { getGridSortRole, normalizeGridRows, sortGridRows, toggleGridSort, type GridSortDirection, type GridSortState } from './gridCore/gridModel';
+import { normalizeGridRows } from './gridCore/gridModel';
+import { useTableSort } from './useTableSort';
 import {
   applyRowRemovalFocusPlan,
   evaluateRowCommit,
@@ -98,6 +99,25 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
       committedRowIdsRef.current = new Set(rows.map((row) => row.id));
     }, []);
 
+    const getValidationResult = React.useCallback(() => {
+      const validRowIds = new Set(committedRowsRef.current.map((row) => row.id));
+      const filteredCellErrorsByCellKey = Object.fromEntries(
+        Object.entries(cellErrorsByCellKeyRef.current).filter(([cellKey]) => {
+          const parsed = parseOffentligeYdelserCellKey(cellKey);
+          return parsed ? validRowIds.has(parsed.rowId) : false;
+        })
+      ) as Record<string, true>;
+      return getOffentligeYdelserTableValidation({
+        rows: committedRowsRef.current,
+        cellErrorsByCellKey: filteredCellErrorsByCellKey,
+      });
+    }, []);
+
+    const notifyValidationChange = React.useCallback(() => {
+      if (!onValidationChange) return;
+      onValidationChange(getValidationResult().summary);
+    }, [getValidationResult, onValidationChange]);
+
     const persistTableData = React.useCallback(
       (internalData: OffentligeYdelserRow[]) => {
         if (!onTableDataChange) return;
@@ -105,9 +125,9 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
         syncCommittedRowIds(internalData);
         lastPersistedFingerprintRef.current = fingerprintTableData(internalData);
         onTableDataChange(internalData);
-        notifyValidationRef.current();
+        notifyValidationChange();
       },
-      [onTableDataChange, onValidationChange, syncCommittedRowIds]
+      [notifyValidationChange, onTableDataChange, syncCommittedRowIds]
     );
 
     const createEmptyRow = React.useCallback((): OffentligeYdelserRow => {
@@ -121,51 +141,25 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
       [createEmptyRow]
     );
 
-    const [internalTableData, setInternalTableData] = React.useState<OffentligeYdelserRow[]>(() => {
-      const initial = tableData.length > 0 ? normalizeRows(tableData) : normalizeRows(defaultTableData);
-      // Treat the initial normalized rows as "synced" so blur without edits does not trigger persistence.
-      lastPersistedFingerprintRef.current = fingerprintTableData(initial);
-      committedRowsRef.current = initial;
-      syncCommittedRowIds(initial);
-      return initial;
-    });
+    const initialTableData = React.useMemo(
+      () => (tableData.length > 0 ? normalizeRows(tableData) : normalizeRows(defaultTableData)),
+      [defaultTableData, normalizeRows, tableData]
+    );
+    const [internalTableData, setInternalTableData] = React.useState<OffentligeYdelserRow[]>(initialTableData);
 
     React.useEffect(() => {
-      if (tableData.length > 0) {
-        const normalizedData = normalizeRows(tableData);
-        const fingerprint = fingerprintTableData(normalizedData);
-        if (lastPersistedFingerprintRef.current === fingerprint) {
-          return;
-        }
-        lastPersistedFingerprintRef.current = fingerprint;
-        committedRowsRef.current = normalizedData;
-        syncCommittedRowIds(normalizedData);
-        setInternalTableData(normalizedData);
-        notifyValidationRef.current();
+      const fingerprint = fingerprintTableData(initialTableData);
+      if (lastPersistedFingerprintRef.current === fingerprint) {
         return;
       }
-      const normalizedDefault = normalizeRows(defaultTableData);
-      lastPersistedFingerprintRef.current = fingerprintTableData(normalizedDefault);
-      committedRowsRef.current = normalizedDefault;
-      syncCommittedRowIds(normalizedDefault);
-      setInternalTableData(normalizedDefault);
-      notifyValidationRef.current();
-    }, [defaultTableData, normalizeRows, tableData, syncCommittedRowIds]);
+      lastPersistedFingerprintRef.current = fingerprint;
+      committedRowsRef.current = initialTableData;
+      syncCommittedRowIds(initialTableData);
+      setInternalTableData(initialTableData);
+      notifyValidationChange();
+    }, [initialTableData, notifyValidationChange, syncCommittedRowIds]);
 
     const cellErrorsByCellKeyRef = React.useRef<Record<string, true>>({});
-
-    React.useEffect(() => {
-      const validRowIds = new Set(internalTableData.map((row) => row.id));
-      const current = cellErrorsByCellKeyRef.current;
-
-      for (const cellKey of Object.keys(current)) {
-        const parsed = parseOffentligeYdelserCellKey(cellKey);
-        if (!parsed) continue;
-        if (!validRowIds.has(parsed.rowId)) {
-          delete current[cellKey];
-        }
-      }
-    }, [internalTableData]);
 
     const commitRowUpdate = React.useCallback(
       (rowId: string, updates: Partial<OffentligeYdelserRow>, colIndex: number) => {
@@ -215,9 +209,9 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
         } else {
           delete cellErrorsByCellKeyRef.current[cellKey];
         }
-        notifyValidationRef.current();
+        notifyValidationChange();
       },
-      []
+      [notifyValidationChange]
     );
 
     const ydelsestypeOptions = React.useMemo<readonly TableDropdownOption[]>(() => {
@@ -236,60 +230,30 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
       return (ydelsestypeKeys as readonly string[]).includes(value);
     }, []);
 
-    const [sortState, setSortState] = React.useState<GridSortState>({});
-
-    const getSortDirection = React.useCallback(
-      (colId: string): GridSortDirection => {
-        if (sortState.primary?.colId === colId) return sortState.primary.dir;
-        if (sortState.secondary?.colId === colId) return sortState.secondary.dir;
-        return 'asc';
+    const sortColumns = React.useMemo(() => [
+      { colId: 'fraDato', getSortValue: (row: OffentligeYdelserRow) => coerceToISODateString(row.fraDato?.trim() ?? '') ?? '' },
+      { colId: 'tilDato', getSortValue: (row: OffentligeYdelserRow) => coerceToISODateString(row.tilDato?.trim() ?? '') ?? '' },
+      { colId: 'ydelse', getSortValue: (row: OffentligeYdelserRow) => amountValueToNumber(row.ydelse) },
+      { colId: 'tillaeg', getSortValue: (row: OffentligeYdelserRow) => amountValueToNumber(row.tillaeg) },
+      {
+        colId: 'ydelsestype',
+        getSortValue: (row: OffentligeYdelserRow) => {
+          const key = row.ydelsestype?.trim() ?? '';
+          if (key === '') return '';
+          return isYdelsestypeKey(key) ? ydelsestyper[key].label : key;
+        },
       },
-      [sortState.primary?.colId, sortState.primary?.dir, sortState.secondary?.colId, sortState.secondary?.dir]
-    );
+      { colId: 'periodiseringLabel', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId?.get(row.id)?.periodiseringLabel ?? '' },
+      { colId: 'antalDageDisplay', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId?.get(row.id)?.antalDageDisplay ?? '' },
+      { colId: 'ydelsePerDagDisplay', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId?.get(row.id)?.ydelsePerDagDisplay ?? '' },
+    ], [derivedByRowId, isYdelsestypeKey]);
 
-    const parseAmountForSort = React.useCallback((raw: AmountValue | undefined): number | undefined => {
-      return amountValueToNumber(raw);
-    }, []);
-
-    const getSortValueByColId = React.useCallback(
-      (colId: string) => {
-        switch (colId) {
-          case 'fraDato':
-            return (row: OffentligeYdelserRow) => coerceToISODateString(row.fraDato?.trim() ?? '') ?? '';
-          case 'tilDato':
-            return (row: OffentligeYdelserRow) => coerceToISODateString(row.tilDato?.trim() ?? '') ?? '';
-          case 'ydelse':
-            return (row: OffentligeYdelserRow) => parseAmountForSort(row.ydelse);
-          case 'tillaeg':
-            return (row: OffentligeYdelserRow) => parseAmountForSort(row.tillaeg);
-          case 'ydelsestype':
-            return (row: OffentligeYdelserRow) => {
-              const key = row.ydelsestype?.trim() ?? '';
-              if (key === '') return '';
-              return isYdelsestypeKey(key) ? ydelsestyper[key].label : key;
-            };
-          case 'periodiseringLabel':
-            return (row: OffentligeYdelserRow) => derivedByRowId?.get(row.id)?.periodiseringLabel ?? '';
-          case 'antalDageDisplay':
-            return (row: OffentligeYdelserRow) => derivedByRowId?.get(row.id)?.antalDageDisplay ?? '';
-          case 'ydelsePerDagDisplay':
-            return (row: OffentligeYdelserRow) => derivedByRowId?.get(row.id)?.ydelsePerDagDisplay ?? '';
-          default:
-            return undefined;
-        }
-      },
-      [derivedByRowId, isYdelsestypeKey, parseAmountForSort]
-    );
-
-    const visibleRows = React.useMemo(() => {
-      return sortGridRows({
-        rows: internalTableData,
-        getRowId: (row) => row.id,
-        isRowEmpty,
-        sortState,
-        getSortValueByColId,
-      });
-    }, [getSortValueByColId, internalTableData, sortState]);
+    const { sortedRows: visibleRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
+      rows: internalTableData,
+      getRowId: (row) => row.id,
+      isRowEmpty,
+      columns: sortColumns,
+    });
     const visibleRowIds = React.useMemo(() => visibleRows.map((row) => row.id), [visibleRows]);
 
     React.useLayoutEffect(() => {
@@ -356,23 +320,6 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
       }
     }, [externalCellError]);
 
-    const getValidationResult = React.useCallback(() => {
-      return getOffentligeYdelserTableValidation({
-        rows: committedRowsRef.current,
-        cellErrorsByCellKey: cellErrorsByCellKeyRef.current,
-      });
-    }, []);
-
-    const notifyValidationChange = React.useCallback(() => {
-      if (!onValidationChange) return;
-      onValidationChange(getValidationResult().summary);
-    }, [getValidationResult, onValidationChange]);
-
-    const notifyValidationRef = React.useRef(notifyValidationChange);
-    React.useEffect(() => {
-      notifyValidationRef.current = notifyValidationChange;
-    }, [notifyValidationChange]);
-
     React.useImperativeHandle(
       ref,
       () => ({
@@ -410,62 +357,14 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
 
           <thead>
             <tr>
-              <StandardGridHeaderCell
-                onClick={() => setSortState((prev) => toggleGridSort(prev, 'fraDato'))}
-                sortRole={getGridSortRole(sortState, 'fraDato')}
-                sortDirection={getSortDirection('fraDato')}
-              >
-                Fra-dato
-              </StandardGridHeaderCell>
-              <StandardGridHeaderCell
-                onClick={() => setSortState((prev) => toggleGridSort(prev, 'tilDato'))}
-                sortRole={getGridSortRole(sortState, 'tilDato')}
-                sortDirection={getSortDirection('tilDato')}
-              >
-                Til-dato
-              </StandardGridHeaderCell>
-              <StandardGridHeaderCell
-                onClick={() => setSortState((prev) => toggleGridSort(prev, 'ydelse'))}
-                sortRole={getGridSortRole(sortState, 'ydelse')}
-                sortDirection={getSortDirection('ydelse')}
-              >
-                Ydelse
-              </StandardGridHeaderCell>
-              <StandardGridHeaderCell
-                onClick={() => setSortState((prev) => toggleGridSort(prev, 'tillaeg'))}
-                sortRole={getGridSortRole(sortState, 'tillaeg')}
-                sortDirection={getSortDirection('tillaeg')}
-              >
-                Evt. tillæg
-              </StandardGridHeaderCell>
-              <StandardGridHeaderCell
-                onClick={() => setSortState((prev) => toggleGridSort(prev, 'ydelsestype'))}
-                sortRole={getGridSortRole(sortState, 'ydelsestype')}
-                sortDirection={getSortDirection('ydelsestype')}
-              >
-                Ydelsestype
-              </StandardGridHeaderCell>
-              <StandardGridHeaderCell
-                onClick={() => setSortState((prev) => toggleGridSort(prev, 'periodiseringLabel'))}
-                sortRole={getGridSortRole(sortState, 'periodiseringLabel')}
-                sortDirection={getSortDirection('periodiseringLabel')}
-              >
-                Periodisering
-              </StandardGridHeaderCell>
-              <StandardGridHeaderCell
-                onClick={() => setSortState((prev) => toggleGridSort(prev, 'antalDageDisplay'))}
-                sortRole={getGridSortRole(sortState, 'antalDageDisplay')}
-                sortDirection={getSortDirection('antalDageDisplay')}
-              >
-                Antal dage
-              </StandardGridHeaderCell>
-              <StandardGridHeaderCell
-                onClick={() => setSortState((prev) => toggleGridSort(prev, 'ydelsePerDagDisplay'))}
-                sortRole={getGridSortRole(sortState, 'ydelsePerDagDisplay')}
-                sortDirection={getSortDirection('ydelsePerDagDisplay')}
-              >
-                Ydelse / dag
-              </StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('fraDato')} sortRole={getSortRole('fraDato')} sortDirection={getSortDirection('fraDato')}>Fra-dato</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('tilDato')} sortRole={getSortRole('tilDato')} sortDirection={getSortDirection('tilDato')}>Til-dato</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('ydelse')} sortRole={getSortRole('ydelse')} sortDirection={getSortDirection('ydelse')}>Ydelse</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('tillaeg')} sortRole={getSortRole('tillaeg')} sortDirection={getSortDirection('tillaeg')}>Evt. tillæg</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('ydelsestype')} sortRole={getSortRole('ydelsestype')} sortDirection={getSortDirection('ydelsestype')}>Ydelsestype</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('periodiseringLabel')} sortRole={getSortRole('periodiseringLabel')} sortDirection={getSortDirection('periodiseringLabel')}>Periodisering</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('antalDageDisplay')} sortRole={getSortRole('antalDageDisplay')} sortDirection={getSortDirection('antalDageDisplay')}>Antal dage</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('ydelsePerDagDisplay')} sortRole={getSortRole('ydelsePerDagDisplay')} sortDirection={getSortDirection('ydelsePerDagDisplay')}>Ydelse / dag</StandardGridHeaderCell>
             </tr>
           </thead>
 

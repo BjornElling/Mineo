@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { Box } from '@mui/material';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import type { SxProps, Theme } from '@mui/material/styles';
 import type { CSSProperties } from 'react';
 import { getHtmlTableStyles, tableColors } from '../../config/tableTheme';
 import { GridCoreProvider } from './gridCore/gridCoreContext';
 import { handleTableBlurCapture, handleTableDoubleClickCapture, handleTableFocusCapture, handleTableKeyDownCapture, handleTablePointerDownCapture } from './gridCore/tableKeyboardNavigation';
 import type { GridSortDirection, GridSortRole } from './gridCore/gridModel';
+import { SortIcon } from './SortIcon';
 import { assignRef } from '../inputs/table/assignRef';
 import { useGridCoreController } from './useGridCoreController';
 
@@ -25,7 +25,7 @@ export type StandardGridTableProps = Readonly<{
   /**
    * Optional max-width wrapper + horizontal scrolling.
    */
-  containerSx?: Record<string, unknown>;
+  containerSx?: SxProps<Theme>;
   /**
    * Optional table ref for focus coordination.
    */
@@ -45,7 +45,7 @@ export const StandardGridTable = React.memo(
     const { internalTableRef, contextValue } = useGridCoreController({ tableKind: 'grid' });
 
     return (
-      <Box sx={{ width: '100%', overflowX: 'auto', ...(containerSx ?? {}) }}>
+      <Box sx={[{ width: '100%', overflowX: 'auto' }, ...(containerSx === undefined ? [] : Array.isArray(containerSx) ? containerSx : [containerSx])]}>
         {beforeTable}
         <GridCoreProvider value={contextValue}>
           <table
@@ -79,13 +79,10 @@ export type StandardGridHeaderCellProps = Readonly<{
   children: React.ReactNode;
   onClick?: () => void;
   sortRole?: GridSortRole;
-  sortDirection?: GridSortDirection;
+  sortDirection?: GridSortDirection | undefined;
 }>;
 
 export const StandardGridHeaderCell = React.memo(({ children, onClick, sortRole = 'none', sortDirection = 'asc' }: StandardGridHeaderCellProps) => {
-  const showIcon = sortRole !== 'none';
-  const Icon = sortDirection === 'desc' ? KeyboardArrowDownIcon : KeyboardArrowUpIcon;
-  const iconColor = sortRole === 'primary' ? '#1976d2' : 'rgba(0, 0, 0, 0.45)';
   return (
     <th
       style={{
@@ -104,17 +101,7 @@ export const StandardGridHeaderCell = React.memo(({ children, onClick, sortRole 
       onClick={onClick}
     >
       {children}
-      {showIcon ? (
-        <Icon
-          sx={{
-            position: 'absolute',
-            bottom: 2,
-            right: 2,
-            fontSize: '14px',
-            color: iconColor,
-          }}
-        />
-      ) : null}
+      {sortRole !== 'none' ? <SortIcon sortRole={sortRole} sortDirection={sortDirection} /> : null}
     </th>
   );
 });

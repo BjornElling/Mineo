@@ -16,6 +16,8 @@ export const tableColors = {
   headerBackground: '#f8fafc',
   oddRowBackground: '#f9fafb',
   evenRowBackground: '#ffffff',
+  sortPrimaryColor: '#1976d2',
+  sortSecondaryColor: 'rgba(0, 0, 0, 0.45)',
 };
 
 // Ensartet tabel-typografi (match inputfelterne)

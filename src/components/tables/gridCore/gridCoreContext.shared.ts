@@ -1,11 +1,11 @@
 import * as React from 'react';
-import type { GridCorePublicAPI } from './gridCoreTypes';
+import type { GridCellCoord, GridCorePublicAPI } from './gridCoreTypes';
 
 export type GridCoreTableKind = 'grid' | 'loose';
 
 export type GridCoreStateContextValue = Readonly<{
-  focusedCell: import('./gridCoreTypes').GridCellCoord | null;
-  editingCell: import('./gridCoreTypes').GridCellCoord | null;
+  focusedCell: GridCellCoord | null;
+  editingCell: GridCellCoord | null;
 }>;
 
 export type GridCoreApiContextValue = Readonly<

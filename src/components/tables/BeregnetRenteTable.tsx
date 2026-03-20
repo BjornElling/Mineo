@@ -5,14 +5,15 @@ import TableAmountInput from '../inputs/table/TableAmountInput';
 import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
 import TableIntegerInput from '../inputs/table/TableIntegerInput';
 import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
-import StandardLooseTable from './StandardLooseTable';
+import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
+import { useTableSort } from './useTableSort';
 import { formatAsAmount } from '../../utils/formatUtils';
 import type { ISODateString } from '../../types/branded';
 import { minISO } from '../../utils/isoDateHelpers';
 import type { RentekravRow } from '../../schemas/formSchemas';
 import type { RentekravDraftRow } from '../../domain/renteberegning/tableDraftRows';
 import { computeRentekravCalculation, type RentekravCalculationResult, type ValidatedRentekravContext } from '../../domain/renteberegning/renteberegningRowEngine';
-import { amountValueToDraftString } from '../../utils/expressionAmount';
+import { amountValueToDraftString, amountValueToNumber } from '../../utils/expressionAmount';
 import { dateRanges_renteberegning } from '../../config/dateRanges';
 
 const ENHED_OPTIONS = [
@@ -198,8 +199,23 @@ const BeregnetRenteRow = React.memo(
 
 BeregnetRenteRow.displayName = 'BeregnetRenteRow';
 
+const getRowId = (row: RentekravDraftRow) => row.id;
+const isRowEmpty = (row: RentekravDraftRow) => row.belob.trim() === '' && row.renterFra.trim() === '';
+
 const BeregnetRenteTable = React.memo(
   ({ rows, onFieldChange, onRowBlur, beregningsdato, onDownloadSpecifikation, committedById, onError, beregningsdatoHasError }: BeregnetRenteTableProps) => {
+    const sortColumns = React.useMemo(() => [
+      { colId: 'belob', getSortValue: (row: RentekravDraftRow) => amountValueToNumber(committedById.get(row.id)?.belob) },
+      { colId: 'renterFra', getSortValue: (row: RentekravDraftRow) => committedById.get(row.id)?.renterFra },
+    ], [committedById]);
+
+    const { sortedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
+      rows,
+      getRowId,
+      isRowEmpty,
+      columns: sortColumns,
+    });
+
     return (
       <StandardLooseTable
         sx={{
@@ -225,8 +241,8 @@ const BeregnetRenteTable = React.memo(
         </colgroup>
         <TableHead>
           <TableRow>
-            <TableCell sx={{ width: '176px' }}>Beløb</TableCell>
-            <TableCell sx={{ width: '163px' }}>Renter fra</TableCell>
+            <StandardLooseHeaderCell sx={{ width: '176px' }} onClick={() => handleHeaderClick('belob')} sortRole={getSortRole('belob')} sortDirection={getSortDirection('belob')}>Beløb</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell sx={{ width: '163px' }} onClick={() => handleHeaderClick('renterFra')} sortRole={getSortRole('renterFra')} sortDirection={getSortDirection('renterFra')}>Renter fra</StandardLooseHeaderCell>
             <TableCell colSpan={2} sx={{ width: '314px' }}>Evt. tillægstid</TableCell>
             <TableCell align="center" sx={{ width: '163px' }}>Rentedato</TableCell>
             <TableCell align="center" sx={{ width: '151px' }}>Beregnet rente</TableCell>
@@ -234,7 +250,7 @@ const BeregnetRenteTable = React.memo(
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map((row, rowIndex) => {
+          {sortedRows.map((row, rowIndex) => {
             const committedRow = committedById.get(row.id) ?? {
               id: row.id,
               belob: undefined,

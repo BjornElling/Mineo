@@ -1,13 +1,14 @@
 import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
-import StandardLooseTable from './StandardLooseTable';
+import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { subtractOneDay } from '../../types/branded';
 import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/rowDateBounds';
 import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
+import { useTableSort } from './useTableSort';
 
 export type FerieperiodeTableProps = Readonly<{
   rows: FerieDraftRow[];
@@ -22,6 +23,9 @@ export type FerieperiodeTableProps = Readonly<{
   verserendeKlageEet: boolean;
 }>;
 
+const getRowId = (row: FerieDraftRow) => row.id;
+const isRowEmpty = (row: FerieDraftRow) => row.fra.trim() === '' && row.til.trim() === '';
+
 const FerieperiodeTable = React.memo(
   ({
     rows,
@@ -35,6 +39,19 @@ const FerieperiodeTable = React.memo(
     erErhvervssygdom,
     verserendeKlageEet,
   }: FerieperiodeTableProps) => {
+    const sortColumns = React.useMemo(() => [
+      { colId: 'fra', getSortValue: (row: FerieDraftRow) => committedById.get(row.id)?.fra },
+      { colId: 'til', getSortValue: (row: FerieDraftRow) => committedById.get(row.id)?.til },
+      { colId: 'feriedage', getSortValue: (row: FerieDraftRow) => feriedageById[row.id] ?? undefined },
+    ], [committedById, feriedageById]);
+
+    const { sortedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
+      rows,
+      getRowId,
+      isRowEmpty,
+      columns: sortColumns,
+    });
+
     return (
       <StandardLooseTable
         sx={{
@@ -52,13 +69,13 @@ const FerieperiodeTable = React.memo(
       >
         <TableHead>
           <TableRow>
-            <TableCell sx={{ width: 180 }}>Fra o.m.</TableCell>
-            <TableCell sx={{ width: 180 }}>Til o.m.</TableCell>
-            <TableCell sx={{ width: 160 }}>Feriedage</TableCell>
+            <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('fra')} sortRole={getSortRole('fra')} sortDirection={getSortDirection('fra')}>Fra o.m.</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('til')} sortRole={getSortRole('til')} sortDirection={getSortDirection('til')}>Til o.m.</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell sx={{ width: 160 }} onClick={() => handleHeaderClick('feriedage')} sortRole={getSortRole('feriedage')} sortDirection={getSortDirection('feriedage')}>Feriedage</StandardLooseHeaderCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map((row) => {
+          {sortedRows.map((row) => {
             const committed = committedById.get(row.id);
             const fraISO = committed?.fra;
             const tilISO = committed?.til;

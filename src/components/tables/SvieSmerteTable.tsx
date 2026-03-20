@@ -2,7 +2,8 @@ import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
 import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
-import StandardLooseTable from './StandardLooseTable';
+import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
+import { useTableSort } from './useTableSort';
 import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../config/dateRanges';
 import type { SvieSmertePeriodeRow, Tilstand } from '../../schemas/formSchemas';
 import { tilstandEnum } from '../../schemas/formSchemas';
@@ -39,8 +40,25 @@ const buildAfterVarigeMenErrorMessage = (menAfgoerelseDato: ISODateString): stri
   return `Der er angivet svie/smerte efter afgørelse om varige mén (${dateText})`;
 };
 
+const getRowId = (row: SvieSmerteDraftRow) => row.id;
+const isRowEmpty = (row: SvieSmerteDraftRow) => row.fra.trim() === '' && row.til.trim() === '';
+
 const SvieSmerteTable = React.memo(
   ({ rows, committedById, derivedById, overlappingIds, skadesdatoISO, menAfgoerelseDato, erErhvervssygdom, verserendeKlageMen, onFieldChange, onRowBlur }: SvieSmerteTableProps) => {
+    const sortColumns = React.useMemo(() => [
+      { colId: 'fra', getSortValue: (row: SvieSmerteDraftRow) => committedById.get(row.id)?.fra },
+      { colId: 'til', getSortValue: (row: SvieSmerteDraftRow) => committedById.get(row.id)?.til },
+      { colId: 'antalDage', getSortValue: (row: SvieSmerteDraftRow) => derivedById[row.id]?.antalDage ?? undefined },
+      { colId: 'tilstand', getSortValue: (row: SvieSmerteDraftRow) => committedById.get(row.id)?.tilstand },
+    ], [committedById, derivedById]);
+
+    const { sortedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
+      rows,
+      getRowId,
+      isRowEmpty,
+      columns: sortColumns,
+    });
+
     return (
       <StandardLooseTable
         sx={{
@@ -58,14 +76,14 @@ const SvieSmerteTable = React.memo(
       >
         <TableHead>
           <TableRow>
-            <TableCell sx={{ width: 180 }}>Fra o.m.</TableCell>
-            <TableCell sx={{ width: 180 }}>Til o.m.</TableCell>
-            <TableCell sx={{ width: 100 }}>Antal dage</TableCell>
-            <TableCell sx={{ width: 220 }}>Tilstand</TableCell>
+            <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('fra')} sortRole={getSortRole('fra')} sortDirection={getSortDirection('fra')}>Fra o.m.</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('til')} sortRole={getSortRole('til')} sortDirection={getSortDirection('til')}>Til o.m.</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell sx={{ width: 100 }} onClick={() => handleHeaderClick('antalDage')} sortRole={getSortRole('antalDage')} sortDirection={getSortDirection('antalDage')}>Antal dage</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell sx={{ width: 220 }} onClick={() => handleHeaderClick('tilstand')} sortRole={getSortRole('tilstand')} sortDirection={getSortDirection('tilstand')}>Tilstand</StandardLooseHeaderCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map((row) => {
+          {sortedRows.map((row) => {
             const committed = committedById.get(row.id);
             const derived = derivedById[row.id];
             const beregnetVaerdi = derived?.antalDage ?? null;

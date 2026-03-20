@@ -3,7 +3,7 @@ import { TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import TableDateInput from '../inputs/table/TableDateInput';
 import TablePercentInput from '../inputs/table/TablePercentInput';
 import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
-import StandardLooseTable from './StandardLooseTable';
+import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { dateRanges_erhvervsevnetab } from '../../config/dateRanges';
 import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import type { AslAfgoerelseRow, AfgoerelseType } from '../../schemas/formSchemas';
@@ -16,6 +16,7 @@ import {
   isAslAfgoerelseRowEmpty,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { normalizeGridRows } from './gridCore/gridModel';
+import { useTableSort } from './useTableSort';
 
 export type EetAslAfgoerelserTableProps = Readonly<{
   tableData: AslAfgoerelseRow[];
@@ -51,7 +52,7 @@ const fingerprintTableData = (rows: readonly AslAfgoerelseRow[]): string => {
 };
 
 const EetAslAfgoerelserTable = React.memo(
-  ({ tableData, skadesdato, skadesdatoMin, beregningsdato, skadelidteFodselsdato, onTableDataChange }: EetAslAfgoerelserTableProps) => {
+  ({ tableData, skadesdato, skadesdatoMin, beregningsdato: _beregningsdato, skadelidteFodselsdato, onTableDataChange }: EetAslAfgoerelserTableProps) => {
     const tabelAfgoerelsesdatoMax = dateRanges_erhvervsevnetab.tabelAfgoerelsesdato.max;
     const tabelVirkningsdatoMax = dateRanges_erhvervsevnetab.tabelVirkningsdato.max;
     const tabelKapitaliseringsdatoMax = dateRanges_erhvervsevnetab.tabelKapitaliseringsdato.max;
@@ -83,28 +84,19 @@ const EetAslAfgoerelserTable = React.memo(
       rows: AslAfgoerelseRow[];
       fingerprint: string;
     } | null>(null);
-    const [internalTableData, setInternalTableData] = React.useState<AslAfgoerelseRow[]>(() => {
-      const initial = tableData.length > 0 ? normalizeRows(tableData) : normalizeRows(defaultTableData);
-      lastPersistedFingerprintRef.current = fingerprintTableData(initial);
-      return initial;
-    });
+    const initialTableData = React.useMemo(
+      () => (tableData.length > 0 ? normalizeRows(tableData) : normalizeRows(defaultTableData)),
+      [defaultTableData, normalizeRows, tableData]
+    );
+    const [internalTableData, setInternalTableData] = React.useState<AslAfgoerelseRow[]>(initialTableData);
 
     React.useEffect(() => {
-      if (tableData.length > 0) {
-        const normalizedData = normalizeRows(tableData);
-        const fingerprint = fingerprintTableData(normalizedData);
-        if (lastPersistedFingerprintRef.current === fingerprint) return;
-        pendingPersistRef.current = null;
-        lastPersistedFingerprintRef.current = fingerprint;
-        setInternalTableData(normalizedData);
-        return;
-      }
-
-      const normalizedDefault = normalizeRows(defaultTableData);
+      const fingerprint = fingerprintTableData(initialTableData);
+      if (lastPersistedFingerprintRef.current === fingerprint) return;
       pendingPersistRef.current = null;
-      lastPersistedFingerprintRef.current = fingerprintTableData(normalizedDefault);
-      setInternalTableData(normalizedDefault);
-    }, [defaultTableData, normalizeRows, tableData]);
+      lastPersistedFingerprintRef.current = fingerprint;
+      setInternalTableData(initialTableData);
+    }, [initialTableData]);
 
     const persistTableData = React.useCallback(
       (rows: AslAfgoerelseRow[]) => {
@@ -159,6 +151,23 @@ const EetAslAfgoerelserTable = React.memo(
       return map;
     }, [internalTableData, skadelidteFodselsdato, skadesdato]);
 
+    const sortColumns = React.useMemo(() => [
+      { colId: 'afgoerelsesDato', getSortValue: (row: AslAfgoerelseRow) => row.afgoerelsesDato },
+      { colId: 'virkningsDato', getSortValue: (row: AslAfgoerelseRow) => row.virkningsDato },
+      { colId: 'eetPct', getSortValue: (row: AslAfgoerelseRow) => row.eetPct !== undefined ? Number.parseFloat(row.eetPct) : undefined },
+      { colId: 'afgoerelseType', getSortValue: (row: AslAfgoerelseRow) => row.afgoerelseType },
+      { colId: 'kapDato', getSortValue: (row: AslAfgoerelseRow) => row.kapDato },
+      { colId: 'kapPct', getSortValue: (row: AslAfgoerelseRow) => row.kapPct !== undefined ? Number.parseFloat(row.kapPct) : undefined },
+      { colId: 'tidlKapDato', getSortValue: (row: AslAfgoerelseRow) => row.tidlKapDato },
+    ], []);
+
+    const { sortedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
+      rows: internalTableData,
+      getRowId: (row) => row.id,
+      isRowEmpty: isAslAfgoerelseRowEmpty,
+      columns: sortColumns,
+    });
+
     return (
       <StandardLooseTable
         sx={{
@@ -184,21 +193,21 @@ const EetAslAfgoerelserTable = React.memo(
         </colgroup>
         <TableHead>
           <TableRow>
-            <TableCell>Afgørelsesdato</TableCell>
-            <TableCell>Virkningsdato</TableCell>
-            <TableCell>EET %</TableCell>
-            <TableCell>Afgørelsestype</TableCell>
-            <TableCell>Kap.dato</TableCell>
-            <TableCell>Kap. %</TableCell>
-            <TableCell>
+            <StandardLooseHeaderCell onClick={() => handleHeaderClick('afgoerelsesDato')} sortRole={getSortRole('afgoerelsesDato')} sortDirection={getSortDirection('afgoerelsesDato')}>Afgørelsesdato</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell onClick={() => handleHeaderClick('virkningsDato')} sortRole={getSortRole('virkningsDato')} sortDirection={getSortDirection('virkningsDato')}>Virkningsdato</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell onClick={() => handleHeaderClick('eetPct')} sortRole={getSortRole('eetPct')} sortDirection={getSortDirection('eetPct')}>EET %</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell onClick={() => handleHeaderClick('afgoerelseType')} sortRole={getSortRole('afgoerelseType')} sortDirection={getSortDirection('afgoerelseType')}>Afgørelsestype</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell onClick={() => handleHeaderClick('kapDato')} sortRole={getSortRole('kapDato')} sortDirection={getSortDirection('kapDato')}>Kap.dato</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell onClick={() => handleHeaderClick('kapPct')} sortRole={getSortRole('kapPct')} sortDirection={getSortDirection('kapPct')}>Kap. %</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell onClick={() => handleHeaderClick('tidlKapDato')} sortRole={getSortRole('tidlKapDato')} sortDirection={getSortDirection('tidlKapDato')}>
               Hvis genoptaget,
               <br />
               tidl. kap.dato
-            </TableCell>
+            </StandardLooseHeaderCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {internalTableData.map((row) => {
+          {sortedRows.map((row) => {
             const duplicateAfgoerelsesDatoError = validationMessageByCell.get(`${row.id}|afgoerelsesDato`);
             const duplicateVirkningsDatoError = validationMessageByCell.get(`${row.id}|virkningsDato`);
             const eetPctError = validationMessageByCell.get(`${row.id}|eetPct`);

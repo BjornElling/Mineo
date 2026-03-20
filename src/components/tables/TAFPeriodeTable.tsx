@@ -2,11 +2,12 @@ import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
 import TableIntegerInput from '../inputs/table/TableIntegerInput';
-import StandardLooseTable from './StandardLooseTable';
+import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
+import { useTableSort } from './useTableSort';
 import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import type { TafPeriodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { isoToDanish, subtractOneDay } from '../../types/branded';
+import { subtractOneDay } from '../../types/branded';
 import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/rowDateBounds';
 import type { TafDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
 import { calculateFerieHverdageMinusSHDage } from '../../domain/erstatningsopgoerelse/ferieCalculations';
@@ -30,6 +31,9 @@ export type TAFPeriodeTableProps = Readonly<{
   verserendeKlageEet: boolean;
 }>;
 
+const getRowId = (row: TafDraftRow) => row.id;
+const isRowEmpty = (row: TafDraftRow) => row.fra.trim() === '' && row.til.trim() === '';
+
 const TAFPeriodeTable = React.memo(
   ({
     rows,
@@ -47,6 +51,20 @@ const TAFPeriodeTable = React.memo(
     erErhvervssygdom,
     verserendeKlageEet,
   }: TAFPeriodeTableProps) => {
+    const sortColumns = React.useMemo(() => [
+      { colId: 'fra', getSortValue: (row: TafDraftRow) => committedById.get(row.id)?.fra },
+      { colId: 'til', getSortValue: (row: TafDraftRow) => committedById.get(row.id)?.til },
+      { colId: 'loseFeriedage', getSortValue: (row: TafDraftRow) => committedById.get(row.id)?.loseFeriedage },
+      { colId: 'beregnet', getSortValue: (row: TafDraftRow) => derivedById[row.id] ?? undefined },
+    ], [committedById, derivedById]);
+
+    const { sortedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
+      rows,
+      getRowId,
+      isRowEmpty,
+      columns: sortColumns,
+    });
+
     return (
       <StandardLooseTable
         sx={{
@@ -64,14 +82,14 @@ const TAFPeriodeTable = React.memo(
       >
         <TableHead>
           <TableRow>
-            <TableCell sx={{ width: 180 }}>Fra o.m.</TableCell>
-            <TableCell sx={{ width: 180 }}>Til o.m.</TableCell>
-            <TableCell sx={{ width: 180 }}>Løse feriedage</TableCell>
-            <TableCell sx={{ width: 180 }}>{derivedColumnHeader}</TableCell>
+            <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('fra')} sortRole={getSortRole('fra')} sortDirection={getSortDirection('fra')}>Fra o.m.</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('til')} sortRole={getSortRole('til')} sortDirection={getSortDirection('til')}>Til o.m.</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('loseFeriedage')} sortRole={getSortRole('loseFeriedage')} sortDirection={getSortDirection('loseFeriedage')}>Løse feriedage</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('beregnet')} sortRole={getSortRole('beregnet')} sortDirection={getSortDirection('beregnet')}>{derivedColumnHeader}</StandardLooseHeaderCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map((row) => {
+          {sortedRows.map((row) => {
             const committed = committedById.get(row.id);
             const beregnetVaerdi = derivedById[row.id] ?? null;
 
