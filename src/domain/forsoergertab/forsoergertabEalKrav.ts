@@ -23,8 +23,10 @@ export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravR
     erhvervsevnetab: {
       beregningsdato: input.beregningsdato,
       skadelidteFodselsdato: undefined,
-      // Beslutningsnote: Forsørgertab bruger EAL-beregningen som fast 30 %-pipeline uden kønsafhængigt tabelvalg.
-      // Risiko: hvis EET-EAL senere får kønsafhængig betydning, skal denne integration revurderes.
+      // Beslutningsnote: koen sendes ikke ind via erhvervsevnetab-blokken, fordi tabelvalget i EET-EAL
+      // for forsørgertab ikke er kønsafhængigt. skadelidteFodselsdato sendes via toplevel-parameteren
+      // (ikke via erhvervsevnetab.skadelidteFodselsdato), hvilket er intentionelt — aldersreduktionen
+      // beregnes korrekt herfra.
       koen: undefined,
       aslAfgoerelser: [],
       ealEetPct: 30,
@@ -57,6 +59,9 @@ export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravR
   const beregningsaar = eetResult.computation.beregningsaar;
   const minSats = foersoergertabEalMin[beregningsaar];
   const foersoergertabEalMinSats = Number.isFinite(minSats) ? minSats : null;
+  // foersoergertabEalMin[] forventes at indeholde heltal (hele kronebeløb).
+  // eetBeregnet er round0-afrundet og dermed også et heltal.
+  // Sammenligningen er dermed præcis uden floating-point-usikkerhed.
   const foersoergertabForhoejtetTilMin =
     foersoergertabEalMinSats !== null && eetResult.computation.eetBeregnet < foersoergertabEalMinSats;
 

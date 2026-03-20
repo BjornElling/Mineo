@@ -260,20 +260,6 @@ const createPdfCursor = (params: Readonly<{
     });
   };
 
-  const writeLeftRightTextSingleLine = (
-    leftText: string,
-    rightText: string,
-    x: number,
-    rightPadding: number,
-    options?: Readonly<{
-      rightFontStyle?: 'normal' | 'bold';
-      lineAboveRightWidth?: number;
-      lineAboveRightOffset?: number;
-    }>
-  ) => {
-    writeLeftRightText(leftText, rightText, x, rightPadding, { ...options, leftNoWrap: true });
-  };
-
   const writeUnderlinedLabel = (text: string, x: number) => {
     const normalized = normalizeTextForPdf(text).replace(/\n/g, ' ');
     doc.text(normalized, x, y);
@@ -319,7 +305,6 @@ const createPdfCursor = (params: Readonly<{
     writeWrappedText,
     writeWrappedTextContinued,
     writeLeftRightText,
-    writeLeftRightTextSingleLine,
     writeUnderlinedLabel,
     writeSignatureBlock,
     writeBrevhoved: (brevhovedData: BrevhovedData) => {
@@ -365,6 +350,10 @@ export type PdfWriter = {
   advanceY: (delta: number) => void;
   writeWrappedText: (text: string) => void;
   writeWrappedTextContinued: (text: string, maxWidth?: number, x?: number) => void;
+  /**
+   * Kanonisk valg til alle linjer med venstre/højre-kolonne.
+   * Venstretekst wrapper altid til næste linje ved pladsmangel — ingen trunkering.
+   */
   writeLeftRightText: (
     leftText: string,
     rightText: string,
@@ -374,15 +363,6 @@ export type PdfWriter = {
       lineAboveRightOffset?: number;
       leftNoWrap?: boolean;
       minRightColumnWidth?: number;
-    }>
-  ) => void;
-  writeLeftRightTextSingleLine: (
-    leftText: string,
-    rightText: string,
-    options?: Readonly<{
-      rightFontStyle?: 'normal' | 'bold';
-      lineAboveRightWidth?: number;
-      lineAboveRightOffset?: number;
     }>
   ) => void;
   writeSectionHeader: (text: string, nextLineHeight: number) => void;
@@ -596,12 +576,6 @@ export const createPdfWriter = (params: Readonly<{
     },
     writeLeftRightText: (leftText, rightText, options) => {
       cursor.writeLeftRightText(leftText, rightText, MARGINS.left, MARGINS.right, options);
-      previousBlockWasSectionHeader = false;
-      manualSpacingSinceLastContent = PDF_LINE_BOTTOM_SPACING_MM;
-      explicitSpacingSinceLastContent = 0;
-    },
-    writeLeftRightTextSingleLine: (leftText, rightText, options) => {
-      cursor.writeLeftRightTextSingleLine(leftText, rightText, MARGINS.left, MARGINS.right, options);
       previousBlockWasSectionHeader = false;
       manualSpacingSinceLastContent = PDF_LINE_BOTTOM_SPACING_MM;
       explicitSpacingSinceLastContent = 0;

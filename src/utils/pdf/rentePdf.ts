@@ -159,7 +159,7 @@ const generateDetailedSpecification = (
 
   const amountNum = parseAmountInput(amount);
 
-  if (isNaN(amountNum)) {
+  if (Number.isNaN(amountNum)) {
     return [];
   }
 

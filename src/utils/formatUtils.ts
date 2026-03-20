@@ -26,7 +26,7 @@ export const formatKr = (value: number, precision: 0 | 2 = 0): string =>
  * Formaterer tal til dansk beløbsformat med valgfri precision.
  */
 export const formatAsAmount = (value: number | null | undefined, precision: number = 2): string => {
-  if (value === null || value === undefined || isNaN(value)) {
+  if (value === null || value === undefined || Number.isNaN(value)) {
     return '';
   }
 

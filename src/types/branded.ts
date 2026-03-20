@@ -190,7 +190,7 @@ export function danishToISO(danishDate: string | undefined): ISODateString | und
   const monthNum = parseInt(month, 10);
   const yearNum = parseInt(year, 10);
 
-  if (isNaN(dayNum) || isNaN(monthNum) || isNaN(yearNum)) return undefined;
+  if (Number.isNaN(dayNum) || Number.isNaN(monthNum) || Number.isNaN(yearNum)) return undefined;
   if (dayNum < 1 || dayNum > 31) return undefined;
   if (monthNum < 1 || monthNum > 12) return undefined;
   if (yearNum < 1000 || yearNum > 9999) return undefined;
@@ -265,7 +265,7 @@ export function parseDanishDate(danishDate: DanishDateString | string | undefine
  * @returns ISO-formateret dato eller undefined hvis invalid
  */
 export function dateToISO(date: Date | undefined): ISODateString | undefined {
-  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+  if (!date || !(date instanceof Date) || Number.isNaN(date.getTime())) {
     return undefined;
   }
 
@@ -300,3 +300,13 @@ export function subtractOneDay(isoDate: ISODateString | undefined): ISODateStrin
 
   return dateToISO(newDate);
 }
+
+/**
+ * Returnerer den største af to ISODateStrings.
+ */
+export const maxIso = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
+
+/**
+ * Returnerer den mindste af to ISODateStrings.
+ */
+export const minIso = (a: ISODateString, b: ISODateString): ISODateString => (a < b ? a : b);

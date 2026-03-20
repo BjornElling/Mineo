@@ -208,9 +208,9 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       model.svieSmerte.satserPerDagFoerForlig.status === 'ok' &&
       model.svieSmerte.satserMaxFoerForlig.status === 'ok';
     if (model.svieSmerte.satserPerDag.status === 'ok') {
-      const delvisSatsOre = Math.round(model.svieSmerte.satserPerDag.value * model.svieSmerte.delvisFaktor);
+      const delvisSatsOre = roundByMethod(model.svieSmerte.satserPerDag.value * model.svieSmerte.delvisFaktor, 0, 'halfAwayFromZero');
       const delvisSatsOreFoerForlig = model.svieSmerte.satserPerDagFoerForlig.status === 'ok'
-        ? Math.round(model.svieSmerte.satserPerDagFoerForlig.value * model.svieSmerte.delvisFaktor)
+        ? roundByMethod(model.svieSmerte.satserPerDagFoerForlig.value * model.svieSmerte.delvisFaktor, 0, 'halfAwayFromZero')
         : null;
       const delvisSatsDisplayWithKr = formatMoneyOreWithKrTrimmed(delvisSatsOre);
       const delvisSatsDisplayWithKrFoerForlig = delvisSatsOreFoerForlig === null
@@ -273,7 +273,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     const sygedage = model.svieSmerte.sygedage;
     const delviseSygedage = model.svieSmerte.delviseSygedage;
     const perDagOre = model.svieSmerte.satserPerDag.status === 'ok' ? model.svieSmerte.satserPerDag.value : null;
-    const delvisOre = perDagOre !== null ? Math.round(perDagOre * model.svieSmerte.delvisFaktor) : null;
+    const delvisOre = perDagOre !== null ? roundByMethod(perDagOre * model.svieSmerte.delvisFaktor, 0, 'halfAwayFromZero') : null;
 
     const perDagText = perDagOre !== null ? formatCurrencyFromOreTrimmed(perDagOre) : '—';
     const delvisText = delvisOre !== null ? formatCurrencyFromOreTrimmed(delvisOre) : '—';

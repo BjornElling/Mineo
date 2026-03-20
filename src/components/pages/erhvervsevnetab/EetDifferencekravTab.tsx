@@ -39,7 +39,7 @@ type ProformaBoxProps = Readonly<{
   koen: ErhvervsevnetabValues['koen'];
 }>;
 
-const EetProformaKapitaliseringBox: React.FC<ProformaBoxProps> = ({ pk, koen }) => (
+const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => (
   <ContentBox className="content-box">
     <Typography className="section-header">Proformakapitalisering af rest-EET</Typography>
 
@@ -179,7 +179,7 @@ const EetProformaKapitaliseringBox: React.FC<ProformaBoxProps> = ({ pk, koen }) 
 );
 
 
-const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOplysninger }) => {
+const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger }: Props) => {
   const stamdata = usePersistedSection('stamdata');
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');

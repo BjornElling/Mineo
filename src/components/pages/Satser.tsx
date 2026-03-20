@@ -57,7 +57,7 @@ interface DataRowProps {
   rightAlign?: boolean;
 }
 
-const DataRow: React.FC<DataRowProps> = ({ label, value, rightAlign = true }) => {
+const DataRow = ({ label, value, rightAlign = true }: DataRowProps) => {
   // Skjul hele rækken hvis der ikke er nogen værdi
   if (!value) return null;
 

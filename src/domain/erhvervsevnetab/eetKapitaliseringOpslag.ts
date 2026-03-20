@@ -9,6 +9,7 @@ import type { ISODateString } from '../../types/branded';
 import { dateToISO, parseISODate } from '../../types/branded';
 import { addDays } from '../../utils/dateUtils';
 import type { ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
+import { roundByMethod } from '../../utils/rounding';
 
 export type AgeYearsMonths = Readonly<{
   years: number;
@@ -68,7 +69,7 @@ const parseAgeLabelToMonths = (label: string): number | null => {
   const trimmed = label.trim().replace(',', '.');
   const parsed = Number.parseFloat(trimmed);
   if (!Number.isFinite(parsed)) return null;
-  const months = Math.round(parsed * 12);
+  const months = roundByMethod(parsed * 12, 0, 'halfAwayFromZero');
   return months >= 0 ? months : null;
 };
 

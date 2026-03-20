@@ -53,7 +53,7 @@ describe('pdfWriter layout fallback', () => {
     const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
     const writer = createStandardPdfWriter();
 
-    writer.writeLeftRightTextSingleLine('Venstre', '123,45 kr.');
+    writer.writeLeftRightText('Venstre', '123,45 kr.');
 
     const renderedRightTextCall = writer.getDoc().text.mock.calls.find(
       (call: unknown[]) => call[0] === '123,45 kr.'

@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { tableAmountCellValue } from '../baseSchemas';
+import { positiveAmountValue } from '../baseSchemas';
 
 export const faellesAarsloenSchema = z.object({
-  aslAarsloen: tableAmountCellValue,
-  ealAarsloen: tableAmountCellValue,
+  aslAarsloen: positiveAmountValue,
+  ealAarsloen: positiveAmountValue,
 }).strict();
 
 export type FaellesAarsloenValues = z.infer<typeof faellesAarsloenSchema>;

@@ -257,7 +257,7 @@ const allocateOreByWeight = (
 
   for (const entry of positiveWeights) {
     const raw = (totalOre * entry.weight) / totalWeight;
-    const base = Math.floor(raw);
+    const base = roundByMethod(raw, 0, 'floor');
     sumBase += base;
     baseByYear.set(entry.year, base);
     remainders.push({ year: entry.year, remainder: raw - base });

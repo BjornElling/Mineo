@@ -30,6 +30,7 @@ export const brevhovedIndstillingerSchema = z.object({
   satser: z.boolean(),
   aarsloensberegning: z.boolean(),
   erhvervsevnetab: z.boolean(),
+  forsoergertab: z.boolean(),
 });
 
 export type BrevhovedIndstillinger = z.infer<typeof brevhovedIndstillingerSchema>;
@@ -43,6 +44,7 @@ export const DEFAULT_BREVHOVED_INDSTILLINGER: BrevhovedIndstillinger = {
   satser: false,
   aarsloensberegning: false,
   erhvervsevnetab: false,
+  forsoergertab: true,
 };
 
 export const APP_SETTINGS_AFSLUTTES_MED_OPTIONS = ['Bekræftet godkendt', 'Underskrift-linje'] as const;

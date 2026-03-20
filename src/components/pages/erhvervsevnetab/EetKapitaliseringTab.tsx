@@ -30,7 +30,7 @@ type Props = Readonly<{
 }>;
 
 
-const EetKapitaliseringTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
+const EetKapitaliseringTab = ({ values, onGoToEetOplysninger }: Props) => {
   const stamdata = usePersistedSection('stamdata');
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');

@@ -2,6 +2,7 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { computeForsoergertabCalculation } from '../../../domain/forsoergertab/forsoergertabCalculation';
 import { computeForsoergertabAslYdelser } from '../../../domain/forsoergertab/forsoergertabAslYdelser';
 import { aarsloenAslMax } from '../../../data/regulationRates';
+import { round2 } from '../../../domain/erhvervsevnetab/eetRounding';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -23,7 +24,7 @@ describe('computeForsoergertabCalculation', () => {
     const computation = result.aslComputation!;
     const expectedBenyttetAarsloen = 450000;
     const expectedOpreguleringsfaktor = aarsloenAslMax[2026] / aarsloenAslMax[2020];
-    const expectedOpreguleretAarligYdelse = Number((0.3 * expectedBenyttetAarsloen * expectedOpreguleringsfaktor).toFixed(2));
+    const expectedOpreguleretAarligYdelse = round2(0.3 * expectedBenyttetAarsloen * expectedOpreguleringsfaktor);
 
     expect(computation.benyttetAarsloen).toBe(expectedBenyttetAarsloen);
     expect(computation.aarsloenMaxSkadesaar).toBe(aarsloenAslMax[2020]);
@@ -309,4 +310,78 @@ describe('computeForsoergertabAslYdelser', () => {
       message: 'Tilkendt periode skal være mindst 1 år.',
     });
   });
+
+  it('afkorter lobendeYdelser ved periodens naturlige slutdato når den falder før beregningsdato', () => {
+    // virkningsdato 2025-01-01 + 1 år = periodens slutdato 2025-12-31
+    // beregningsdato 2026-03-19 er efter periodens slutdato
+    // lobendeYdelser skal stoppe ved 2025-12-31, ikke ved 2026-03-18
+    const result = computeForsoergertabAslYdelser({
+      skadesdato: '2020-05-01',
+      beregningsdato: '2026-03-19',
+      virkningsdato: '2025-01-01',
+      efterladteFodselsdato: '1976-01-01',
+      koen: undefined,
+      tilkendtForPeriodeAar: 1,
+      aslAarsloen: asAmount(450000),
+    });
+
+    expect(result.computation).not.toBeNull();
+    const ydelser = result.computation!.lobendeYdelser;
+    expect(ydelser.length).toBeGreaterThan(0);
+    const sidsteRaekke = ydelser[ydelser.length - 1];
+    expect(sidsteRaekke!.tilDato).toBe('2025-12-31');
+    // resterendeMaanederTotal skal være 0 fordi perioden er udløbet
+    expect(result.computation!.resterendeMaanederTotal).toBe(0);
+  });
+
+  it('beregner korrekt delvis første måned når virkningsdato er midt i måneden', () => {
+    // virkningsdato 2025-03-15: 17 dage ud af 31 i marts = 17/31 måneder (afrundet til 4 decimaler)
+    // beregningsdato 2025-03-31 (samme måned): 17 dage ud af 31
+    const result = computeForsoergertabAslYdelser({
+      skadesdato: '2020-05-01',
+      beregningsdato: '2025-03-31',
+      virkningsdato: '2025-03-15',
+      efterladteFodselsdato: '1976-01-01',
+      koen: undefined,
+      tilkendtForPeriodeAar: 1,
+      aslAarsloen: asAmount(450000),
+    });
+
+    expect(result.computation).not.toBeNull();
+    const ydelser = result.computation!.lobendeYdelser;
+    expect(ydelser.length).toBe(1);
+    const raekke = ydelser[0]!;
+    expect(raekke.fraDato).toBe('2025-03-15');
+    expect(raekke.tilDato).toBe('2025-03-31');
+    // 17 dage ud af 31 dage i marts
+    const forventetMaaneder = Math.round((17 / 31) * 10000) / 10000;
+    expect(raekke.maaneder).toBe(forventetMaaneder);
+  });
 });
+
+describe('computeForsoergertabCalculation — minimumssats', () => {
+  it('forhøjer EAL-krav til minimumssats når beregnet forsørgertab er under minimumsbeløbet', () => {
+    // Med ealAarsloen=100000 og kapitaliseringsfaktor ~3 bliver eetBeregnet langt under
+    // foersoergertabEalMin[2026]=1239000, så forhøjelse skal ske.
+    const result = computeForsoergertabCalculation({
+      skadesdato: '2020-05-01',
+      skadelidteFodselsdato: '1980-01-01',
+      efterladteFodselsdato: '1976-01-01',
+      beregningsdato: '2026-03-19',
+      virkningsdato: '2025-01-01',
+      koen: undefined,
+      tilkendtForPeriodeAar: 10,
+      aslAarsloen: asAmount(100000),
+      ealAarsloen: asAmount(100000),
+    });
+
+    expect(result.ealComputation).not.toBeNull();
+    expect(result.foersoergertabForhoejtetTilMin).toBe(true);
+    expect(result.foersoergertabEalMinSats).toBe(1239000);
+    // eetAnvendt skal være sat til minimumssatsen
+    expect(result.ealComputation!.eetAnvendt).toBe(1239000);
+    // ealKrav skal være >= 0
+    expect(result.result?.ealKrav ?? result.ealComputation!.ealKrav).toBeGreaterThanOrEqual(0);
+  });
+});
+

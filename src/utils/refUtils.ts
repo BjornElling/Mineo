@@ -7,6 +7,6 @@ export const assignRef = <T>(ref: React.Ref<T> | undefined, value: T | null): vo
     return;
   }
   if (typeof ref === 'object' && ref !== null && 'current' in ref) {
-    (ref as React.MutableRefObject<T | null>).current = value;
+    (ref as React.RefObject<T | null>).current = value;
   }
 };

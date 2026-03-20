@@ -28,12 +28,12 @@ interface ComputationErrorAlertProps {
  * )}
  * ```
  */
-const ComputationErrorAlert: React.FC<ComputationErrorAlertProps> = ({
+const ComputationErrorAlert = ({
   error,
   context,
   onRetry,
   showDetails = false,
-}) => {
+}: ComputationErrorAlertProps) => {
   const [detailsVisible, setDetailsVisible] = React.useState(false);
 
   const handleToggleDetails = () => {

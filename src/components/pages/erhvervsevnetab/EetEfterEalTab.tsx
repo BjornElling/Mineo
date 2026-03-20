@@ -27,7 +27,7 @@ type Props = Readonly<{
 const formatPct = (value: number): string => `${formatPercentTrimmedFromRounded4(value)} %`;
 
 
-const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
+const EetEfterEalTab = ({ values, onGoToEetOplysninger }: Props) => {
   const stamdata = usePersistedSection('stamdata');
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');

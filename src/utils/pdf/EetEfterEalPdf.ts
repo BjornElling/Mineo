@@ -43,7 +43,7 @@ export const renderEfterEalBody = (
   if (includeBeregningsdatoHeader) {
     writer.writeSectionHeader('Beregning', PDF_BASE_LINE_HEIGHT_MM);
 
-    writer.writeLeftRightTextSingleLine(
+    writer.writeLeftRightText(
       'Beregningsdato',
       formatIsoDateLong(computation.beregningsdato),
       rowOpts
@@ -56,20 +56,20 @@ export const renderEfterEalBody = (
 
   writer.writeSubheader('Årsløn', PDF_BASE_LINE_HEIGHT_MM);
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Årsløn på skadestidspunktet',
     formatKr(computation.aarsloen),
     rowOpts
   );
 
   if (computation.reguleringsaar.length > 0) {
-    writer.writeLeftRightTextSingleLine(
+    writer.writeLeftRightText(
       `Regulering fra skadesår ${computation.skadesaar} til beregningsår ${computation.beregningsaar}`,
       `+ ${formatPct(computation.reguleringsPctRounded4)}`,
       rowOpts
     );
 
-    writer.writeLeftRightTextSingleLine(
+    writer.writeLeftRightText(
       `${formatKr(computation.aarsloen)} x (100 % + ${formatPct(computation.reguleringsPctRounded4)}) (afrundet) =`,
       formatKr(computation.reguleretAarsloen),
       rowOpts
@@ -78,32 +78,32 @@ export const renderEfterEalBody = (
 
   writer.writeSubheader('Erhvervsevnetab', PDF_BASE_LINE_HEIGHT_MM);
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Endeligt erhvervsevnetab',
     formatPct(computation.eetPct),
     rowOpts
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Kapitaliseringsfaktor',
     // EAL-faktoren er altid 10 (fast ved lov) — vises som heltal uden decimaler
     formatAsAmount(computation.kapitaliseringsfaktor, 0),
     rowOpts
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     `Erhvervsevnetab (${formatKr(computation.reguleretAarsloen)} x 10 x ${formatPct(computation.eetPct)}) =`,
     formatKr(computation.eetBeregnet),
     rowOpts
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     `Maksimalt erhvervsevnetab i beregningsåret ${computation.beregningsaar}`,
     formatKr(computation.eetMaks),
     rowOpts
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     computation.eetReduceretTilMaks
       ? 'Skadelidtes erhvervsevnetab reduceres til det lovbestemte maksimum'
       : 'Skadelidtes erhvervsevnetab skal ikke reduceres, dvs. udgør',
@@ -113,13 +113,13 @@ export const renderEfterEalBody = (
 
   writer.writeSubheader('Aldersreduktion', PDF_BASE_LINE_HEIGHT_MM);
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Fødselsdato',
     formatIsoDateShort(computation.fodselsdato),
     rowOpts
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Alder på skadestidspunkt',
     `${computation.alderVedSkade} år`,
     rowOpts
@@ -130,13 +130,13 @@ export const renderEfterEalBody = (
     computation.alderVedSkadeCapped
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     `Aldersreduktion ${aldersreduktionFormula}`,
     formatPct(computation.aldersreduktionPct),
     rowOpts
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     `${formatKr(computation.eetAnvendt)} x (- ${formatPct(computation.aldersreduktionPct)}) =`,
     `- ${formatKr(computation.aldersreduktionBeloeb)}`,
     { rightFontStyle: 'bold' as const }
@@ -144,7 +144,7 @@ export const renderEfterEalBody = (
 
   writer.writeSubheader('Beregnet EAL-krav', PDF_BASE_LINE_HEIGHT_MM);
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     `${formatKr(computation.eetAnvendt)} - ${formatKr(computation.aldersreduktionBeloeb)} =`,
     formatKr(computation.ealKrav),
     { rightFontStyle: 'bold' as const }

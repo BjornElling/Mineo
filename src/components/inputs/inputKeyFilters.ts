@@ -4,7 +4,7 @@ import { isFractionDraftAllowed } from '../../utils/fraction';
 
 type KeyDownEvent = React.KeyboardEvent<HTMLInputElement>;
 type PasteEvent = React.ClipboardEvent<HTMLInputElement>;
-type BlockableEvent = Pick<React.SyntheticEvent<HTMLInputElement>, 'preventDefault' | 'stopPropagation'>;
+type BlockableEvent = { preventDefault(): void; stopPropagation(): void };
 type IntegerInputConstraints = Readonly<{
   maxDigits?: number;
   maxValue?: number;

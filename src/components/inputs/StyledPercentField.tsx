@@ -6,7 +6,7 @@ import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { filterPercentKeyDown } from './inputKeyFilters';
 import { prefixZeroBeforeLeadingComma, trimToNumericEdgesPreserveLeadingMinus } from '../../utils/draftNormalization';
-import { formatAsAmount } from '../../utils/formatUtils';
+import { formatAsAmount, formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 
 export type StyledPercentFieldValueChangeEvent = CommitEvent<number | undefined>;
@@ -63,12 +63,7 @@ const formatPercentMinimal = (
   decimals: 0 | 2
 ): string => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return '';
-  if (decimals === 0) return value.toFixed(0);
-  // Do not auto-fill decimals; show up to 2 decimals without unnecessary trailing zeros.
-  let fixed = value.toFixed(decimals).replace('.', ',');
-  while (fixed.endsWith('0')) fixed = fixed.slice(0, -1);
-  if (fixed.endsWith(',')) fixed = fixed.slice(0, -1);
-  return fixed;
+  return formatAsAmountTrimmed(value, decimals);
 };
 
 const stripTrailingPercent = (placeholder: string | undefined): string | undefined => {
@@ -225,7 +220,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       if (last && Object.is(normalizePercentValueForIdentity(last.value), normalized)) {
         const decimals = last.decimals;
         if (decimals === 0) return String(Math.trunc(v));
-        return v.toFixed(decimals).replace('.', ',');
+        return formatAsAmountTrimmed(v, decimals);
       }
 
       return formatPercentMinimal(v, allowDecimals ? 2 : 0);

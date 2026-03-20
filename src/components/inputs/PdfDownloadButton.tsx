@@ -8,7 +8,7 @@ type Props = Readonly<{
   disabled?: boolean;
 }>;
 
-const PdfDownloadButton: React.FC<Props> = ({ onClick, shake = false, disabled = false }) => {
+const PdfDownloadButton = ({ onClick, shake = false, disabled = false }: Props) => {
   return (
     <IconButton
       aria-label="Download specifikation"

@@ -20,14 +20,13 @@ const ScrollContainerContext = React.createContext<ScrollContainerContextValue>(
   container: null,
 });
 
-export const useScrollContainer = (): ScrollContainerContextValue => {
-  return React.useContext(ScrollContainerContext);
-};
+export { ScrollContainerContext };
+export type { ScrollContainerContextValue };
 
-export const ScrollContainerProvider: React.FC<{
+export const ScrollContainerProvider = ({ containerRef, children }: {
   containerRef: React.RefObject<HTMLElement | null>;
   children: React.ReactNode;
-}> = ({ containerRef, children }) => {
+}) => {
   // Track container-elementet direkte (ikke ref-objektet)
   // Dette sikrer at vi kun re-renderer når det faktiske DOM-element skifter
   const [containerElement, setContainerElement] = React.useState<HTMLElement | null>(null);

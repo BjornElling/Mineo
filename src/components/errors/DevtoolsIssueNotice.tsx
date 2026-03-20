@@ -15,11 +15,11 @@ const formatTimestamp = (timestamp: string): string => {
   return date.toLocaleString('da-DK');
 };
 
-const DevtoolsIssueNotice: React.FC<DevtoolsIssueNoticeProps> = ({
+const DevtoolsIssueNotice = ({
   snapshot,
   onDismiss,
   getExtraSections,
-}) => {
+}: DevtoolsIssueNoticeProps) => {
   const [showDetails, setShowDetails] = React.useState(false);
 
   const hasErrors = snapshot.counts.error > 0;

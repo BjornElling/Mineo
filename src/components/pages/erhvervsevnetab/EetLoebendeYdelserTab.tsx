@@ -60,7 +60,7 @@ const YDELSER_TABLE_COLUMNS: readonly StandardDisplayTableColumn[] = [
 ];
 
 
-const EetLoebendeYdelserTab: React.FC<Props> = ({ values, setValues, onGoToEetOplysninger }) => {
+const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger }: Props) => {
   const stamdata = usePersistedSection('stamdata');
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');

@@ -25,6 +25,7 @@ import {
   loadSatserPdfModule,
   loadTafFordeltPaaAarPdfModule,
   loadVarigeMenPdfModule,
+  loadForsoergertabPdfModule,
 } from './pdfLoader';
 import { coerceToDanishDateString, type ISODateString } from '../../types/branded';
 import type { VarigeMenBeregningResult } from '../../domain/varigemen/varigeMenCalculations';
@@ -32,6 +33,7 @@ import type { EetLoebendeComputation } from '../../domain/erhvervsevnetab/eetLoe
 import type { EetKapitaliseringComputation } from '../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
 import type { EetEalComputation } from '../../domain/erhvervsevnetab/eetEalCalculation';
 import type { EetDifferencekravComputation } from '../../domain/erhvervsevnetab/eetDifferencekravCalculation';
+import type { GenerateForsoergertabPdfParams } from './forsoergertabPdf';
 import type { BilagSelection } from './differencekravPdf';
 import type { EoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot';
 import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
@@ -477,6 +479,31 @@ export const downloadLoebendeYdelserPdf = async (params: Readonly<{
     return createPdfDownloadFailure(
       'Kunne ikke generere løbende ydelser-PDF',
       'pdfService.downloadLoebendeYdelserPdf',
+      error
+    );
+  }
+};
+
+export const downloadForsoergertabPdf = async (params: Readonly<{
+  pdfParams: Omit<GenerateForsoergertabPdfParams, 'visBrevhoved' | 'stamdata'>;
+  settings: AppSettings;
+  persistedStamdata: unknown;
+}>): Promise<PdfDownloadResult> => {
+  const { pdfParams, settings, persistedStamdata } = params;
+  const common = buildCommonPdfContext(settings, 'forsoergertab', persistedStamdata);
+
+  try {
+    const { generateForsoergertabPdf } = await loadForsoergertabPdfModule();
+    generateForsoergertabPdf({
+      ...pdfParams,
+      visBrevhoved: common.visBrevhoved,
+      stamdata: common.stamdata,
+    });
+    return PDF_DOWNLOAD_SUCCESS;
+  } catch (error) {
+    return createPdfDownloadFailure(
+      'Kunne ikke generere forsørgertab-PDF',
+      'pdfService.downloadForsoergertabPdf',
       error
     );
   }

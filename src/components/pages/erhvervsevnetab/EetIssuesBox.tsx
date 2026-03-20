@@ -12,7 +12,7 @@ type Props = Readonly<{
   onGoToEetOplysninger: () => void;
 }>;
 
-const EetIssuesBox: React.FC<Props> = ({ issues, onGoToEetOplysninger }) => {
+const EetIssuesBox = ({ issues, onGoToEetOplysninger }: Props) => {
   const navigate = useNavigate();
   const scrollToSectionWithRetry = useScrollToSectionWithRetry();
 

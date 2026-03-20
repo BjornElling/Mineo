@@ -70,7 +70,7 @@ import { getPersistedSectionSnapshot, usePersistedSectionSelector } from '../../
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { appSettingsSchema, DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../../settings/appSettingsSchema';
 import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '../../../utils/pdf/pdfService';
-import { formatCurrency } from '../../../utils/formatUtils';
+import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerelse/loenoplysningerInput';
 import { DEFAULT_ANCIENNITET_FIELDS } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import {
@@ -121,7 +121,7 @@ const getOffentligLoenEkstraGrundloenSuffix = (
 
 const formatManualBaseRowPercent = (value: number | undefined): string | undefined => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
-  return value.toFixed(2).replace('.', ',');
+  return formatAsAmount(value, 2);
 };
 
 const syncManualBaseRowSatser = (af: Ansaettelsesforhold): Ansaettelsesforhold => {
@@ -375,7 +375,7 @@ const LoenindkomstTab = React.memo(({
       const diff = Math.abs(actualValue - expectedPct);
       if (diff > 0.01) {
         const prefix = isFrom2024 ? 'Fra' : 'Før';
-        return `${prefix} 01-01-2024 udgjorde Store Bededagstillæg ${expectedPct.toFixed(2).replace('.', ',')} %`;
+        return `${prefix} 01-01-2024 udgjorde Store Bededagstillæg ${formatAsAmount(expectedPct, 2)} %`;
       }
 
       return undefined;
@@ -500,7 +500,7 @@ const LoenindkomstTab = React.memo(({
       // Sammenlign med tolerance på 0.01% (håndter afrundingsfejl)
       const diff = Math.abs(actualValue - expectedPct);
       if (diff > 0.01) {
-        return `${overenskomstNavn}s sats per ${danishDateShort} udgør ${expectedPct.toFixed(2).replace('.', ',')} %`;
+        return `${overenskomstNavn}s sats per ${danishDateShort} udgør ${formatAsAmount(expectedPct, 2)} %`;
       }
 
       return undefined;

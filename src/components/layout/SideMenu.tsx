@@ -97,7 +97,7 @@ interface SideMenuProps {
   onSletAlt: () => void;
 }
 
-const SideMenu: React.FC<SideMenuProps> = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAlt }) => {
+const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAlt }: SideMenuProps) => {
   const [isExpanded, setIsExpanded] = useState(() => {
     const storedValue = readStoredMenuState();
     return storedValue === null ? true : storedValue === 'true';

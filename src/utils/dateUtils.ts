@@ -107,7 +107,7 @@ export const parseWeekString = (weekStr: string): DateInterval | null => {
   const week = parseInt(parts[0], 10);
   const year = parseInt(parts[1], 10);
 
-  if (isNaN(week) || isNaN(year) || week < 1 || week > 53) {
+  if (Number.isNaN(week) || Number.isNaN(year) || week < 1 || week > 53) {
     return null;
   }
 

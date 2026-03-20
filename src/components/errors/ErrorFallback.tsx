@@ -28,7 +28,7 @@ interface ErrorFallbackProps {
  * - fejlrapport (med error context)
  * - tekniske detaljer (kun stack i DEV)
  */
-const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, errorInfo, onReset }) => {
+const ErrorFallback = ({ error, errorInfo, onReset }: ErrorFallbackProps) => {
   const canShowStack = import.meta.env.DEV;
   const [showDetails, setShowDetails] = React.useState(false);
   const [confirmReloadOpen, setConfirmReloadOpen] = React.useState(false);

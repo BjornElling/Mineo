@@ -75,7 +75,7 @@ const BeregnetRenteRow = React.memo(
     onRowBlur,
     beregningsdato,
     onDownloadSpecifikation,
-    onError,
+    onError: _onError,
     beregningsdatoHasError,
     referenceRates,
     surchargeRates,

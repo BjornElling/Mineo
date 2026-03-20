@@ -69,7 +69,7 @@ const addProformaKapitaliseringSection = (
     PDF_BASE_LINE_HEIGHT_MM
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Kapitaliseringsdato',
     formatIsoDateShort(pk.kapitaliseringsdato),
     rowOpts
@@ -77,7 +77,7 @@ const addProformaKapitaliseringSection = (
 
   writer.writeSubheader('Grundydelse og regulering', PDF_BASE_LINE_HEIGHT_MM);
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Proformakapitalisering',
     formatKapPct(pk.loebendeEetPct),
     rowOpts
@@ -100,13 +100,13 @@ const addProformaKapitaliseringSection = (
     rowOpts
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     `Reguleringsprocent (${formatIsoDateShort(pk.kapitaliseringsdato)})`,
     `${formatAsAmountTrimmed(pk.reguleringsPctRounded4, 4)} %`,
     rowOpts
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     `Årlig ydelse (${formatKr(pk.grundydelse, 2)} x ${formatAsAmountTrimmed(100 + pk.reguleringsPctRounded4, 4)} %)`,
     formatKr(pk.aarsydelse, 2),
     rowOpts
@@ -114,32 +114,32 @@ const addProformaKapitaliseringSection = (
 
   writer.writeSubheader('Kapitaliseringsbekendtgørelse og tabel', PDF_BASE_LINE_HEIGHT_MM);
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Kapitaliseringsbekendtgørelse',
     pk.kapitaliseringsbekendtgoerelseLabel,
     rowOpts
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Alder ved proformakapitalisering',
     `${pk.alderAar} år, ${pk.alderMaaneder} måneder`,
     rowOpts
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Folkepensionsalder',
     pk.folkepensionsalderLabel,
     rowOpts
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL,
     formatJaNej(pk.kapitaliseretPgaUnderToAarTilFp),
     rowOpts
   );
 
   if (pk.kapitaliseretPgaUnderToAarTilFp) {
-    writer.writeLeftRightTextSingleLine(
+    writer.writeLeftRightText(
       'Særfaktor (≤ 2 år til folkepension)',
       pk.saerfaktor === null ? '-' : formatFaktor(pk.saerfaktor),
       rowOpts
@@ -147,17 +147,17 @@ const addProformaKapitaliseringSection = (
   } else {
     writer.writeSubheader('Kapitaliseringsfaktor', PDF_BASE_LINE_HEIGHT_MM);
 
-    writer.writeLeftRightTextSingleLine(
+    writer.writeLeftRightText(
       'Faktor måneds-afhængig?',
       formatJaNej(pk.faktorMaanedsAfhaengig),
       rowOpts
     );
 
     if (pk.koenOpdelt && koen) {
-      writer.writeLeftRightTextSingleLine('Køn', koen, rowOpts);
+      writer.writeLeftRightText('Køn', koen, rowOpts);
     }
 
-    writer.writeLeftRightTextSingleLine(
+    writer.writeLeftRightText(
       'Kapitaliseringsfaktor',
       formatFaktor(pk.kapitaliseringsfaktor),
       rowOpts
@@ -166,7 +166,7 @@ const addProformaKapitaliseringSection = (
 
   writer.writeSubheader('Kapitalbeløb', PDF_BASE_LINE_HEIGHT_MM);
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     `Beregnet proformakapitalisering (${formatKr(pk.aarsydelse, 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)})`,
     formatKr(pk.proformaBeloeb),
     { rightFontStyle: 'bold' as const }
@@ -185,7 +185,7 @@ const renderDifferencekravPage = (
 
   writer.writeSectionHeader('Beregning', PDF_BASE_LINE_HEIGHT_MM);
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Beregningsdato',
     formatIsoDateShort(computation.beregningsdato),
     rowOpts
@@ -201,7 +201,7 @@ const renderDifferencekravPage = (
   writer.writeWrappedText(
     `Erhvervsevnetabet udgør ${formatKapPct(computation.ealEetPct)}.`
   );
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Det svarer til et beregnet erhvervsevnetab på:',
     formatKr(computation.ealKrav),
     rowOpts
@@ -237,7 +237,7 @@ const renderDifferencekravPage = (
     writer.writeWrappedText(typeLabel);
 
     if (foretages && afgoerelse.beloeb > 0) {
-      writer.writeLeftRightTextSingleLine(
+      writer.writeLeftRightText(
         `Løbende ydelser (${formatIsoDateShort(afgoerelse.virkningsdato)} - ${formatIsoDateShort(afgoerelse.fradragesTil)}):`,
         `- ${formatKr(afgoerelse.beloeb)}`,
         rowOpts
@@ -266,7 +266,7 @@ const renderDifferencekravPage = (
       afgoerelse.kapitaliseringsdato !== null &&
       afgoerelse.kapitaliseringspct !== null
     ) {
-      writer.writeLeftRightTextSingleLine(
+      writer.writeLeftRightText(
         `Kapitaliseret (${formatKapitaliseringsPct(afgoerelse.kapitaliseringspct)}) den ${formatIsoDateShort(afgoerelse.kapitaliseringsdato)}:`,
         `- ${formatKr(afgoerelse.kapitalbelob)}`,
         rowOpts
@@ -289,7 +289,7 @@ const renderDifferencekravPage = (
     writer.writeSubheader('Resterende erhvervsevnetab', PDF_BASE_LINE_HEIGHT_MM);
 
     writer.writeWrappedText('Der foretages fradrag med kapitaliseringsværdien af resterende EET.');
-    writer.writeLeftRightTextSingleLine(
+    writer.writeLeftRightText(
       `Proformakapitalisering (${formatKapPct(pk.loebendeEetPct)}) den ${formatIsoDateShort(pk.kapitaliseringsdato)}:`,
       `- ${formatKr(pk.proformaBeloeb)}`,
       rowOpts
@@ -299,7 +299,7 @@ const renderDifferencekravPage = (
   // Differencekrav
   writer.writeSubheader('Differencekrav', PDF_BASE_LINE_HEIGHT_MM);
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Beregnet differencekrav',
     formatKr(computation.differencekrav),
     { rightFontStyle: 'bold' as const }

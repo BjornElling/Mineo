@@ -5,18 +5,22 @@ import {
   type KapitaliseringsTabelData,
 } from '../../data/kapitalisering/kapitaliseringsTabeller';
 import type { ISODateString } from '../../types/branded';
+import { dateToISO } from '../../types/branded';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { Koen } from '../../schemas/formSchemas';
 import { amountValueToNumber } from '../../utils/expressionAmount';
+import { roundByMethod } from '../../utils/rounding';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { PRE_2015_CUTOFF } from './forsoergertabConstants';
+import { isoDateToDate } from '../dates/isoDate';
 import {
   calculateAgeYearsMonths,
   resolveKapitaliseringsbekendtgoerelseId,
   resolveKapitaliseringTabelvalg,
 } from '../erhvervsevnetab/eetKapitaliseringOpslag';
-import { ceil0, round2, round3, roundNearest1000 } from '../erhvervsevnetab/eetRounding';
-import type { ForsoergertabAslComputation, ForsoergertabAslResult, ForsoergertabIssue } from './forsoergertabTypes';
+import { ceil0, ceilNearest12, round0, round2, round3, round4, roundNearest1000 } from '../erhvervsevnetab/eetRounding';
+import type { EetIssue } from '../erhvervsevnetab/eetTypes';
+import type { AslLobendeYdelseRaekke, ForsoergertabAslComputation, ForsoergertabAslResult } from './forsoergertabTypes';
 
 type Input = Readonly<{
   skadesdato: ISODateString | undefined;
@@ -59,7 +63,7 @@ const FORSOERGERTAB_TABLE_CHOICES_FALLBACK: Readonly<Record<string, Readonly<{
   },
 };
 
-const toIssue = (id: string, message: string): ForsoergertabIssue => ({
+const toIssue = (id: string, message: string): EetIssue => ({
   id,
   severity: 'error',
   message,
@@ -142,8 +146,85 @@ const interpolateKapitalfaktor = (
   return round3(faktorX + (faktorXplus1 - faktorX) * (resterendeMaaneder / 12));
 };
 
+const daysInMonth = (year: number, month: number): number => new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+const computeLobendeYdelser = (
+  virkningsdato: ISODateString,
+  beregningsdato: ISODateString,
+  tilkendtForPeriodeAar: number,
+  benyttetAarsloen: number,
+  skadesaar: number,
+  aarsloenMaxSkadesaar: number,
+): readonly AslLobendeYdelseRaekke[] => {
+  const beregningsdatoDate = isoDateToDate(beregningsdato);
+
+  const periodSlutDate = isoDateToDate(virkningsdato);
+  periodSlutDate.setUTCFullYear(periodSlutDate.getUTCFullYear() + tilkendtForPeriodeAar);
+  periodSlutDate.setUTCDate(periodSlutDate.getUTCDate() - 1);
+
+  const effectiveLastDate = beregningsdatoDate < periodSlutDate ? beregningsdatoDate : periodSlutDate;
+  const lastDay = dateToISO(effectiveLastDate);
+  if (!lastDay) throw new Error('INVARIANT: dateToISO returnerede undefined for valid Date');
+
+  if (lastDay < virkningsdato) return [];
+
+  const rows: AslLobendeYdelseRaekke[] = [];
+  let fromDate = virkningsdato;
+
+  while (fromDate <= lastDay) {
+    const year = Number(fromDate.slice(0, 4));
+    const endOfYear = `${year}-12-31` as ISODateString;
+    const toDate: ISODateString = lastDay < endOfYear ? lastDay : endOfYear;
+
+    let maanedligYdelse: number;
+    if (year === skadesaar) {
+      const aarligYdelseSkadesaar = ceilNearest12(FORSOERGERTABSPROCENT * benyttetAarsloen);
+      maanedligYdelse = aarligYdelseSkadesaar / 12;
+    } else {
+      const aarsloenMaxYear = aarsloenAslMax[year];
+      if (!Number.isFinite(aarsloenMaxYear)) {
+        throw new Error(`INVARIANT: aarsloenAslMax mangler for år ${year} — burde være pre-valideret`);
+      }
+      const opreguleretAarligYdelseForAar = ceilNearest12(FORSOERGERTABSPROCENT * benyttetAarsloen * (aarsloenMaxYear / aarsloenMaxSkadesaar));
+      maanedligYdelse = opreguleretAarligYdelseForAar / 12;
+    }
+
+    const fromYear = Number(fromDate.slice(0, 4));
+    const fromMonth = Number(fromDate.slice(5, 7));
+    const fromDay = Number(fromDate.slice(8, 10));
+    const toYear = Number(toDate.slice(0, 4));
+    const toMonth = Number(toDate.slice(5, 7));
+    const toDay = Number(toDate.slice(8, 10));
+
+    let maaneder: number;
+    if (fromYear === toYear && fromMonth === toMonth) {
+      maaneder = (toDay - fromDay + 1) / daysInMonth(fromYear, fromMonth);
+    } else {
+      const firstPartial = (daysInMonth(fromYear, fromMonth) - fromDay + 1) / daysInMonth(fromYear, fromMonth);
+      const lastPartial = toDay / daysInMonth(toYear, toMonth);
+      const fullMonths = ((toYear - fromYear) * 12 + (toMonth - fromMonth) - 1);
+      maaneder = firstPartial + fullMonths + lastPartial;
+    }
+
+    maaneder = round4(maaneder);
+    const ydelseIAlt = round0(maanedligYdelse * maaneder);
+
+    rows.push({
+      fraDato: fromDate,
+      tilDato: toDate,
+      maaneder,
+      maanedligYdelse,
+      ydelseIAlt,
+    });
+
+    fromDate = `${year + 1}-01-01` as ISODateString;
+  }
+
+  return rows;
+};
+
 export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslResult => {
-  const issues: ForsoergertabIssue[] = [];
+  const issues: EetIssue[] = [];
 
   const aslAarsloen = amountValueToNumber(input.aslAarsloen);
   if (aslAarsloen === undefined) {
@@ -202,18 +283,28 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
+  const virkningsaar = Number(input.virkningsdato.slice(0, 4));
+
+  for (let yr = virkningsaar; yr < beregningsaar; yr++) {
+    if (yr === skadesaar) continue;
+    if (!Number.isFinite(aarsloenAslMax[yr])) {
+      issues.push(toIssue('aarsloen-max-missing-beregningsaar', `Årslønsmaksimum mangler for år ${yr}.`));
+    }
+  }
+  if (issues.length > 0) {
+    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+  }
+
   const aslAarsloenAfrundet1000 = roundNearest1000(aslAarsloen);
   const benyttetAarsloen = Math.min(aslAarsloenAfrundet1000, aarsloenMaxSkadesaar);
   const opreguleringsfaktor = aarsloenMaxBeregningsaar / aarsloenMaxSkadesaar;
   const opreguleretAarligYdelse = round2(FORSOERGERTABSPROCENT * benyttetAarsloen * opreguleringsfaktor);
-
-  const virkningsaar = Number(input.virkningsdato.slice(0, 4));
   const virkningsmaaned = Number(input.virkningsdato.slice(5, 7));
   const beregningsmaaned = Number(input.beregningsdato.slice(5, 7));
   const alleredeUdbetaltMaaneder = (beregningsaar - virkningsaar) * 12 + (beregningsmaaned - virkningsmaaned) + 1;
   const samletMaaneder = input.tilkendtForPeriodeAar * 12;
   const resterendeMaanederTotal = Math.max(0, samletMaaneder - alleredeUdbetaltMaaneder);
-  const resterendeAar = Math.floor(resterendeMaanederTotal / 12);
+  const resterendeAar = roundByMethod(resterendeMaanederTotal / 12, 0, 'floor');
   const resterendeMaaneder = resterendeMaanederTotal % 12;
 
   const kapitaliseringsbekendtgoerelseId = resolveKapitaliseringsbekendtgoerelseId(input.skadesdato, input.beregningsdato);
@@ -276,6 +367,16 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
       ? 0
       : ceil0(opreguleretAarligYdelse * kapitalfaktor);
 
+  const lobendeYdelser = computeLobendeYdelser(
+    input.virkningsdato,
+    input.beregningsdato,
+    input.tilkendtForPeriodeAar,
+    benyttetAarsloen,
+    skadesaar,
+    aarsloenMaxSkadesaar,
+  );
+  const aslLobendeYdelserTotal = lobendeYdelser.reduce((sum, r) => sum + r.ydelseIAlt, 0);
+
   const computation: ForsoergertabAslComputation = {
     skadesdato: input.skadesdato,
     beregningsdato: input.beregningsdato,
@@ -305,6 +406,8 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     harNaaetFolkepensionsalder,
     kapitalfaktor,
     kapitalbelob,
+    lobendeYdelser,
+    aslLobendeYdelserTotal,
   };
 
   return { issues: dedupeIssuesBySeverityAndMessage(issues), computation };

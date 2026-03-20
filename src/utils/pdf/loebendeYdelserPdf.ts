@@ -98,8 +98,8 @@ export const addLoebendeAfgoerelseSection = (
 
   const rowOpts = { rightFontStyle: 'normal' as const };
 
-  writer.writeLeftRightTextSingleLine('Type', typeLabel, rowOpts);
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText('Type', typeLabel, rowOpts);
+  writer.writeLeftRightText(
     formatEetLabel(afgoerelse.eetPct, afgoerelse.priorKapPct),
     formatEetValue(afgoerelse.eetPct, afgoerelse.priorKapPct),
     rowOpts
@@ -109,22 +109,22 @@ export const addLoebendeAfgoerelseSection = (
     const kapLabel = afgoerelse.harRestSektion
       ? `Delvist kapitaliseret (${formatPct(afgoerelse.kapPctAktuel)})`
       : 'Kapitaliseret';
-    writer.writeLeftRightTextSingleLine(
+    writer.writeLeftRightText(
       kapLabel,
       formatIsoDateShort(afgoerelse.kapitaliseringsdato),
       rowOpts
     );
   }
 
-  writer.writeLeftRightTextSingleLine('Årsløn', formatKr(computation.benyttetAarsloen), rowOpts);
+  writer.writeLeftRightText('Årsløn', formatKr(computation.benyttetAarsloen), rowOpts);
 
   writer.writeSubheader('Periodeafgrænsning', PDF_BASE_LINE_HEIGHT_MM);
 
-  writer.writeLeftRightTextSingleLine('Afgørelsesdato', formatIsoDateShort(afgoerelse.afgoerelsesdato), rowOpts);
-  writer.writeLeftRightTextSingleLine('Virkningsdato', formatIsoDateShort(afgoerelse.virkningsdato), rowOpts);
-  writer.writeLeftRightTextSingleLine('Afgørelse med tilbagevirkende kraft?', formatJaNej(afgoerelse.tilbagevirkendeKraft), rowOpts);
-  writer.writeLeftRightTextSingleLine('Løbende ydelse ophører', formatIsoDateShort(afgoerelse.ophoerDato), rowOpts);
-  writer.writeLeftRightTextSingleLine('Ophør skyldes', toOphoerAarsagLabel(afgoerelse.ophoerAarsag), rowOpts);
+  writer.writeLeftRightText('Afgørelsesdato', formatIsoDateShort(afgoerelse.afgoerelsesdato), rowOpts);
+  writer.writeLeftRightText('Virkningsdato', formatIsoDateShort(afgoerelse.virkningsdato), rowOpts);
+  writer.writeLeftRightText('Afgørelse med tilbagevirkende kraft?', formatJaNej(afgoerelse.tilbagevirkendeKraft), rowOpts);
+  writer.writeLeftRightText('Løbende ydelse ophører', formatIsoDateShort(afgoerelse.ophoerDato), rowOpts);
+  writer.writeLeftRightText('Ophør skyldes', toOphoerAarsagLabel(afgoerelse.ophoerAarsag), rowOpts);
 
   writer.addSpacer(PDF_BASE_LINE_HEIGHT_MM);
 
@@ -210,7 +210,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
   // Årsløn
   writer.writeSubheader('Årsløn', PDF_BASE_LINE_HEIGHT_MM);
   const aslLabel = `ASL årsløn (afrundet til nærmeste 1000 og maks. ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)} kr.)`;
-  writer.writeLeftRightTextSingleLine(aslLabel, formatKr(computation.benyttetAarsloen), rowOpts);
+  writer.writeLeftRightText(aslLabel, formatKr(computation.benyttetAarsloen), rowOpts);
 
   // Grundløn
   writer.writeSubheader('Grundløn', PDF_BASE_LINE_HEIGHT_MM);
@@ -235,7 +235,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
   // Ydelsesniveau
   writer.writeSubheader('Ydelsesniveau', PDF_BASE_LINE_HEIGHT_MM);
   if (computation.erstatningsniveauPct === 83) {
-    writer.writeLeftRightTextSingleLine(
+    writer.writeLeftRightText(
       'Da skaden er sket 1/1-2011 eller senere, udgør erstatningsniveauet',
       '83 %',
       rowOpts
@@ -246,7 +246,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
       rowOpts
     );
   } else {
-    writer.writeLeftRightTextSingleLine(
+    writer.writeLeftRightText(
       'Da skaden er før 1/1-2011, udgør erstatningsniveauet',
       '80 %',
       rowOpts
@@ -306,7 +306,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
       PDF_BASE_LINE_HEIGHT_MM
     );
 
-    writer.writeLeftRightTextSingleLine(
+    writer.writeLeftRightText(
       formatEetLabel(afgoerelse.eetPct, afgoerelse.priorKapPct),
       eetFaktor,
       rowOpts

@@ -50,7 +50,8 @@ export const computeForsoergertabCalculation = (input: Input): ForsoergertabCalc
 
   const ealKrav = ealResult.computation.ealKrav;
   const aslKapitalbelob = aslResult.computation.kapitalbelob;
-  const nettokrav = Math.max(0, ealKrav - aslKapitalbelob);
+  const aslLobendeYdelserTotal = aslResult.computation.aslLobendeYdelserTotal;
+  const nettokrav = Math.max(0, ealKrav - aslKapitalbelob - aslLobendeYdelserTotal);
 
   return {
     issues,
@@ -61,6 +62,7 @@ export const computeForsoergertabCalculation = (input: Input): ForsoergertabCalc
     result: {
       ealKrav,
       aslKapitalbelob,
+      aslLobendeYdelserTotal,
       nettokrav,
     },
   };

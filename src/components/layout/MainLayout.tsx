@@ -232,7 +232,7 @@ const buildPreflightBugReportError = (result: LoadFileResult): Error => {
   );
 };
 
-const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
+const MainLayout = React.memo(({ children }: MainLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { settings } = useAppSettings();
@@ -547,7 +547,7 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
       pendingPwaRequestRef.current = null;
       return 'error';
     }
-  }, [location.pathname, requestApplyLoadedSnapshot, settings]);
+  }, [location.pathname, requestApplyLoadedSnapshot]);
 
   const processNextPwaFileOpenRequest = React.useCallback(() => {
     const runNext = (): void => {

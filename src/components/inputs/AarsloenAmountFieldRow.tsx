@@ -12,7 +12,7 @@ type Props = Readonly<{
   onFieldError?: (errorMsg: string | undefined) => void;
 }>;
 
-const AarsloenAmountFieldRow: React.FC<Props> = ({ label, value, onCommit, errorMessage, onFieldError }) => {
+const AarsloenAmountFieldRow = ({ label, value, onCommit, errorMessage, onFieldError }: Props) => {
   return (
     <Box className="row--label-right-hover">
       <Typography className="row--text">{label}</Typography>

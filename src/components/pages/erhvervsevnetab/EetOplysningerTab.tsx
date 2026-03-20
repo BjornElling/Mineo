@@ -33,7 +33,7 @@ export type EetOplysningerTabProps = {
   skadesdato: string | undefined;
 };
 
-const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
+const EetOplysningerTab = ({
   values,
   setValues,
   handleChange,
@@ -41,7 +41,7 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
   handleAslAarsloenChange,
   handleEalAarsloenChange,
   skadesdato,
-}) => {
+}: EetOplysningerTabProps) => {
   const faellesPersondataFieldErrors = useFormFieldErrors('faellesPersondata');
   const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
   const reportSkadelidteFodselsdatoInputError = useFormFieldErrorReporter('faellesPersondata', 'skadelidteFodselsdato', {

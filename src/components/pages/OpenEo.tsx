@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Button, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
-const OpenEo: React.FC = React.memo(() => {
+const OpenEo = React.memo(() => {
   const navigate = useNavigate();
 
   return (

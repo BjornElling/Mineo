@@ -6,7 +6,7 @@
  */
 
 import type { ISODateString } from '../types/branded';
-import { toISODateString } from '../types/branded';
+import { maxIso, toISODateString } from '../types/branded';
 import { getTodayLocalISO } from '../utils/dateUtils';
 import { varigeMenPrGradYearBounds, svieSmerteMaxYearBounds, eetYearBounds, foersoergertabYearBounds } from '../data/regulationRates';
 import { MIN_INTEREST_DATE } from '../data/interestRates';
@@ -132,8 +132,6 @@ const DATE_FORSOERGERTAB_MAX = iso(`${foersoergertabYearBounds.maxYear}-12-31`);
 // Autoritativ kilde er svieSmerteMaxYearBounds (samme minYear som svieSmertePrDag i aktuelle datasæt).
 // Validatoren håndhæver datadækning via satserAngivAarYearBounds.
 export const MIN_SVIESMERTE_YEAR: number = svieSmerteMaxYearBounds.minYear;
-
-const maxIso = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
 
 const subtractYearsISO = (isoDate: ISODateString, years: number): ISODateString => {
   const [yearStr, monthStr, dayStr] = isoDate.split('-');
@@ -552,6 +550,19 @@ export const dateRanges_renteberegning: DateRanges_Renteberegning = {
 };
 
 // ============================================================================
+// DELT DATOINTERVAL — SKADELIDTES FØDSELSDATO
+// Bruges på alle sider der viser dette felt (EET, Forsørgertab, Varige mén).
+// ============================================================================
+
+export const dateRanges_skadelidteFodselsdato: StaticDateRange = {
+  type: 'static',
+  min: DATE_1900_01_01,
+  max: TODAY,
+  placeholder: 'dd-mm-åååå',
+  notes: 'Fra 1. januar 1900 til i dag.',
+};
+
+// ============================================================================
 // ERHVERVSEVNETAB-SIDEN
 // ============================================================================
 
@@ -565,13 +576,7 @@ export interface DateRanges_Erhvervsevnetab {
 }
 
 export const dateRanges_erhvervsevnetab: DateRanges_Erhvervsevnetab = {
-  skadelidteFodselsdato: {
-    type: 'static',
-    min: DATE_1900_01_01,
-    max: TODAY,
-    placeholder: 'dd-mm-åååå',
-    notes: 'Fra 1. januar 1900 til i dag.',
-  },
+  skadelidteFodselsdato: dateRanges_skadelidteFodselsdato,
   // Beregningsdato (fane 1 stamdata-boks)
   beregningsdato: {
     type: 'dynamic-min',

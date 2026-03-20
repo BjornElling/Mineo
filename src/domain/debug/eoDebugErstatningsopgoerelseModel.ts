@@ -865,7 +865,7 @@ export const buildEODebugSvieSmerteRows = (
     }
 
     const aar = parseInt(satserAarValue.trim(), 10);
-    if (isNaN(aar)) {
+    if (Number.isNaN(aar)) {
       return { label: 'Satser per dag/max', displayValue: '-', status: 'ok' as DebugStatus };
     }
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Fab, Tooltip, Zoom } from '@mui/material';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import { useScrollContainer } from '../../contexts/ScrollContainerContext';
+import { useScrollContainer } from '../../contexts/useScrollContainer';
 import {
   SCROLL_VISIBILITY_THRESHOLD_PX,
   SCROLL_BUTTON_POSITION_BOTTOM_PX,
@@ -23,7 +23,7 @@ import {
  * - Unmounter knappen når den ikke er synlig (tilgængelighed + cleanup)
  * - Event listeners bindes til container-element, ikke ref-objekt (undgår ref-identity issues)
  */
-const ScrollToTopButton: React.FC = React.memo(() => {
+const ScrollToTopButton = React.memo(() => {
   const containerContext = useScrollContainer();
   const [visible, setVisible] = React.useState(false);
   const lastVisibleRef = React.useRef(false);

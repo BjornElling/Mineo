@@ -10,13 +10,13 @@ type StyledCheckboxProps = Readonly<{
   size?: 'small' | 'medium';
 }>;
 
-const StyledCheckbox: React.FC<StyledCheckboxProps> = ({
+const StyledCheckbox = ({
   checked,
   onCommit,
   label,
   disabled = false,
   size = 'small',
-}) => {
+}: StyledCheckboxProps) => {
   const commitChecked = React.useCallback(
     (nextChecked: boolean) => {
       if (nextChecked === checked) return;

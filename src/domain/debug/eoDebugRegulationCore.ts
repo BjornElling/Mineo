@@ -3,7 +3,7 @@
  */
 
 import type { ISODateString, DanishDateString } from '../../types/branded';
-import { isoToDanish, toISODateString, dateToISO, isISODateString } from '../../types/branded';
+import { isoToDanish, minIso, toISODateString, dateToISO, isISODateString } from '../../types/branded';
 import type { DebugDay } from './eoDebugTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues, LoenPaaHelligdage } from '../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
@@ -112,8 +112,6 @@ const getStoreBededagPct = (iso: ISODateString, loenPaaHelligdage: LoenPaaHellig
   if (loenPaaHelligdage !== LOEN_PAA_HELLIGDAGE.ALMINDELIG) return 0;
   return iso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
 };
-
-const minIso = (a: ISODateString, b: ISODateString): ISODateString => (a <= b ? a : b);
 
 const getTidsenhedsvaerdier = (
   index: number,

@@ -2,9 +2,10 @@ import * as React from 'react';
 import { Box } from '@mui/material';
 import StandardDisplayTable from './StandardDisplayTable';
 import { varigeMenPrGrad } from '../../data/regulationRates';
+import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 
 const formatKronerPerMengrad = (value: number): string =>
-  `${value.toLocaleString('da-DK', { maximumFractionDigits: 2 })} kr.`;
+  `${formatAsAmountTrimmed(value, 2)} kr.`;
 
 const VarigeMenSatserTable = React.memo(() => {
   const years = Object.keys(varigeMenPrGrad)

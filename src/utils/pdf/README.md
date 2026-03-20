@@ -20,9 +20,18 @@ Alle typografiske/layout-mønstre skal implementeres i de delte API'er i `pdfWri
 - `writer.writeWrappedText(text)`
   - Løbende brødtekst.
 - `writer.writeLeftRightText(left, right, options)`
-  - Standard linje med venstre/højre-kolonne for almindeligt indhold, specifikationer og regnestykker.
+  - Eneste API til linjer med venstre/højre-kolonne. Bruges til alt: faste labels, formeltekster, dynamiske beløb.
+  - Venstretekst wrapper altid til næste linje ved pladsmangel — trunkering sker aldrig.
 - `renderEoStylePdfTable(...)`
   - Kun til faktiske tabeller med kolonneoverskrifter og tabelstruktur.
+
+## Wrapping-princip
+
+**Venstretekst wrappes altid — aldrig trunkeret.**
+
+`writeLeftRightText` er det eneste API til linjer med venstre/højre-kolonne. Venstreteksten bryder til næste linje hvis nødvendigt; beløbet højrejusteres på den afsluttende linje.
+
+`writeLeftRightTextSingleLine` er fjernet. Brug udelukkende `writeLeftRightText`.
 
 ## Forbudt mønster
 

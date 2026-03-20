@@ -41,17 +41,10 @@ const writeRows = (
       label: string;
       value: string;
       rightFontStyle?: 'normal' | 'bold';
-      singleLine?: boolean;
     }>
   >
 ): void => {
   for (const row of rows) {
-    if (row.singleLine) {
-      writer.writeLeftRightTextSingleLine(row.label, row.value, {
-        rightFontStyle: row.rightFontStyle ?? 'normal',
-      });
-      continue;
-    }
     writer.writeLeftRightText(row.label, row.value, {
       rightFontStyle: row.rightFontStyle ?? 'normal',
     });

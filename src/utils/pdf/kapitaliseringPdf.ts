@@ -65,7 +65,7 @@ export const addKapitaliseringAfgoerelseSection = (
 
   const rowOpts = { rightFontStyle: 'normal' as const };
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Kapitaliseringsdato',
     formatIsoDateShort(afgoerelse.kapitaliseringsdato),
     rowOpts
@@ -73,7 +73,7 @@ export const addKapitaliseringAfgoerelseSection = (
 
   writer.writeSubheader('Grundydelse og regulering', PDF_BASE_LINE_HEIGHT_MM);
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Kapitalisering',
     formatKapitaliseringsPct(afgoerelse.kapitaliseringspct),
     rowOpts
@@ -96,13 +96,13 @@ export const addKapitaliseringAfgoerelseSection = (
     rowOpts
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     `Reguleringsprocent (${formatIsoDateShort(afgoerelse.kapitaliseringsdato)})`,
     `${formatAsAmountTrimmed(afgoerelse.reguleringsPctRounded4, 4)} %`,
     rowOpts
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     `Årlig ydelse (${formatKr(afgoerelse.grundydelse, 2)} x ${formatAsAmountTrimmed(100 + afgoerelse.reguleringsPctRounded4, 4)} %)`,
     formatKr(afgoerelse.aarsydelse, 2),
     rowOpts
@@ -110,32 +110,32 @@ export const addKapitaliseringAfgoerelseSection = (
 
   writer.writeSubheader('Kapitaliseringsbekendtgørelse og tabel', PDF_BASE_LINE_HEIGHT_MM);
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Kapitaliseringsbekendtgørelse',
     afgoerelse.kapitaliseringsbekendtgoerelseLabel,
     rowOpts
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Alder ved kapitalisering',
     `${afgoerelse.alderAar} år, ${afgoerelse.alderMaaneder} måneder`,
     rowOpts
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     'Folkepensionsalder',
     afgoerelse.folkepensionsalderLabel,
     rowOpts
   );
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL,
     formatJaNej(afgoerelse.kapitaliseretPgaUnderToAarTilFp),
     rowOpts
   );
 
   if (afgoerelse.kapitaliseretPgaUnderToAarTilFp) {
-    writer.writeLeftRightTextSingleLine(
+    writer.writeLeftRightText(
       'Særfaktor (≤ 2 år til folkepension)',
       afgoerelse.saerfaktor === null ? '-' : formatFaktor(afgoerelse.saerfaktor),
       rowOpts
@@ -143,17 +143,17 @@ export const addKapitaliseringAfgoerelseSection = (
   } else {
     writer.writeSubheader('Kapitaliseringsfaktor', PDF_BASE_LINE_HEIGHT_MM);
 
-    writer.writeLeftRightTextSingleLine(
+    writer.writeLeftRightText(
       'Faktor måneds-afhængig?',
       formatJaNej(afgoerelse.faktorMaanedsAfhaengig),
       rowOpts
     );
 
     if (afgoerelse.koenOpdelt && koen) {
-      writer.writeLeftRightTextSingleLine('Køn', koen, rowOpts);
+      writer.writeLeftRightText('Køn', koen, rowOpts);
     }
 
-    writer.writeLeftRightTextSingleLine(
+    writer.writeLeftRightText(
       'Kapitaliseringsfaktor',
       formatFaktor(afgoerelse.kapitaliseringsfaktor),
       rowOpts
@@ -162,7 +162,7 @@ export const addKapitaliseringAfgoerelseSection = (
 
   writer.writeSubheader('Kapitalbeløb', PDF_BASE_LINE_HEIGHT_MM);
 
-  writer.writeLeftRightTextSingleLine(
+  writer.writeLeftRightText(
     `Beregnet kapitalbeløb (${formatKr(afgoerelse.aarsydelse, 2)} x ${formatFaktor(afgoerelse.kapitaliseringsfaktor)})`,
     formatKr(afgoerelse.kapitalbelob, 0),
     { rightFontStyle: 'bold' as const }

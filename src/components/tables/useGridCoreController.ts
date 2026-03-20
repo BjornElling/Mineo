@@ -6,7 +6,7 @@ import { attachGridCoreToTable, detachGridCoreFromTable } from './gridCore/gridC
 import type { GridCoreContextValue, GridCoreTableKind } from './gridCore/gridCoreContext.shared';
 
 type UseGridCoreControllerResult = Readonly<{
-  internalTableRef: React.MutableRefObject<HTMLTableElement | null>;
+  internalTableRef: React.RefObject<HTMLTableElement | null>;
   controller: GridCoreController;
   contextValue: GridCoreContextValue;
 }>;

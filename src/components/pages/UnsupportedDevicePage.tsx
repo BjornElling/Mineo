@@ -12,7 +12,7 @@ import { VERSION } from '../../config/version';
  *
  * Ændringerne er fuldt reversible og ryddes op ved unmount.
  */
-const UnsupportedDevicePage: React.FC = () => {
+const UnsupportedDevicePage = () => {
   useEffect(() => {
     const html = document.documentElement;
     const originalHtmlBg = html.style.backgroundColor;

@@ -2,6 +2,7 @@ import type { VarigeMenValues } from '../../schemas/formSchemas';
 import type { YearlyRate } from '../../data/regulationRates';
 import { coerceToDanishDateString, coerceToISODateString, parseISODate, type ISODateString } from '../../types/branded';
 import { parseDanishDate } from '../../utils/dateUtils';
+import { roundByMethod } from '../../utils/rounding';
 
 const getRateForYear = (dict: YearlyRate, year: number): number | undefined => {
   if (!Object.prototype.hasOwnProperty.call(dict, year)) return undefined;
@@ -65,7 +66,7 @@ export type VarigeMenBeregningResult = {
  */
 const roundMenAmount = (value: number): number => {
   // Afrund altid OP til nærmeste hele krone.
-  return Math.ceil(value);
+  return roundByMethod(value, 0, 'ceil');
 };
 
 export function beregnVarigeMenGodtgoerelseWithRates(

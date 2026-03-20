@@ -1,6 +1,6 @@
 # Forsørgertab
 
-**Sidst opdateret:** 2026-03-19
+**Sidst opdateret:** 2026-03-20
 **Status:** Implementeret
 
 ## 1. Formål
@@ -10,7 +10,7 @@ Dette dokument fastlægger den normative beregningslogik for forsørgertab i Min
 Forsørgertab beregnes som:
 
 ```text
-Nettokrav = max(0, ealKrav - aslKapitalbelob)
+Nettokrav = max(0, ealKrav - aslLobendeYdelserTotal - aslKapitalbelob)
 ```
 
 Begge led beregnes udelukkende på baggrund af data i `forsoergertab`, `faellesAarsloen`, `faellesPersondata` og `stamdata`.
@@ -59,6 +59,8 @@ Disse forhold er blokerende fejl og skal forhindre download af specifikation:
 - EAL-årsløn kan ikke fastlægges
 - ASL-årsløn kan ikke fastlægges
 - `beregningsdato < virkningsdato`
+- Årslønsmaksimum mangler for skadesåret, beregningsåret eller et mellemliggende år i ydelsesperioden
+- Kapitaliseringstabeldata mangler for den relevante bekendtgørelse
 - Der kan ikke findes relevant kapitaliseringsbekendtgørelse
 - Der kan ikke findes relevant forsørgertabstabel
 - Der kan ikke findes eksakt aldersrække for den efterladtes fyldte alder
@@ -84,6 +86,24 @@ Det anbefalede design er en selvstændig wrapperfunktion i `src/domain/forsoerge
 ### 4.2 Afrunding
 
 `ealKrav` følger samme afrundingsregler som EET efter EAL og ender som helt kronebeløb.
+
+### 4.3 Minimumssats
+
+Der gælder et lovbestemt minimumsbeløb for EAL-kravet pr. beregningsår (`foersoergertabEalMin[beregningsaar]`).
+
+Hvis `eetBeregnet < foersoergertabEalMin[beregningsaar]`, forhøjes beregningen:
+
+```text
+eetAnvendt = foersoergertabEalMin[beregningsaar]
+aldersreduktionBeloeb = round0(eetAnvendt * (aldersreduktionPct / 100))
+ealKrav = max(0, round0(eetAnvendt - aldersreduktionBeloeb))
+```
+
+Hvis `eetBeregnet >= foersoergertabEalMin[beregningsaar]`, bruges den ordinære beregning uden forhøjelse.
+
+Til UI eksponeres:
+- `foersoergertabEalMinSats`: minimumssatsen for beregningsåret (eller `null` hvis data mangler)
+- `foersoergertabForhoejtetTilMin`: `true` hvis forhøjelse er sket, ellers `false`
 
 ## 5. ASL-ydelser
 
@@ -114,12 +134,13 @@ Normativ præcisering:
 - Der anvendes ikke særskilt AM-bidragsreduktion i den løbende ASL-ydelse.
 - Der sker ikke oprunding til nærmeste højere beløb deleligt med 12.
 - Der sker alene afrunding til 2 decimaler på den opregulerede årlige ydelse.
+- `opreguleretAarligYdelse` bruges **udelukkende** som grundlag for kapitalisering (§8). De løbende ydelsers månedlige beløb beregnes efter en separat formel i §5a.4, som bruger `ceilNearest12` i stedet for `round2`.
 
 ### 5.3 Resterende periode
 
 Ydelserne behandles som månedsvise ydelser betalt forud.
 
-Allerede udbetalte måneder beregnes som antallet af kalendermåneder fra og med virkningsdatoens måned til og med beregningsdatoens måned:
+Allerede udbetalte måneder beregnes som antallet af kalendermåneder fra og med virkningsdatoens måned til og med beregningsdatoens måned. Opgørelsen er kalendermånedsbaseret — dagspræcision inden for måneden er ikke relevant, fordi ydelserne anses for forfaldne pr. hel kalendermåned:
 
 ```text
 alleredeUdbetaltMaaneder =
@@ -130,7 +151,7 @@ alleredeUdbetaltMaaneder =
 
 Eksempel:
 
-- virkningsdato: 2023-05-01
+- virkningsdato: 2023-05-15 (eller 2023-05-01 — resultatet er det samme)
 - beregningsdato: 2025-08-15
 - allerede udbetalt: 28 måneder
 
@@ -154,6 +175,80 @@ resterendeMaaneder = resterendeMaanederTotal % 12
 ```
 
 Hvis `resterendeMaanederTotal === 0`, er `aslKapitalbelob = 0`, og der skal ikke foretages tabelopslag.
+
+## 5a. Løbende ydelser (fradrag)
+
+### 5a.1 Formål
+
+Ud over kapitaliseringen af den fremtidige resterende periode fradrages de løbende ydelser, der allerede er forfaldne i perioden fra virkningsdatoen til og med dagen før beregningsdatoen.
+
+### 5a.2 Afgrænsning
+
+- Fra-dato: `virkningsdato` (inklusiv)
+- Til-dato: den mindste af `beregningsdato - 1 dag` og `virkningsdato + tilkendtForPeriodeAar - 1 dag` (inklusiv)
+- Perioden afkortes altså af periodens naturlige slutdato, hvis den falder før beregningsdatoen.
+- Hvis til-dato beregnet som ovenfor er tidligere end `virkningsdato`, er tabellen tom og `aslLobendeYdelserTotal = 0`.
+
+### 5a.3 Opdeling i kalenderårsrækker
+
+Der beregnes én række pr. kalenderår. Skæringen sker ved kalenderårsskiftet (1. januar).
+
+### 5a.4 Månedlig ydelse pr. år
+
+**Skadesåret:**
+
+```text
+aarligYdelseSkadesaar = ceilNearest12(0,30 × benyttetAarsloen)
+maanedligYdelse = aarligYdelseSkadesaar / 12
+```
+
+**Efterfølgende år:**
+
+```text
+aarligYdelseForAar = ceilNearest12(0,30 × benyttetAarsloen × (aarsloenMax[år] / aarsloenMax[skadesaar]))
+maanedligYdelse = aarligYdelseForAar / 12
+```
+
+`ceilNearest12(x)` = mindste heltal deleligt med 12, som er ≥ x.
+
+### 5a.5 Måneder pr. delperiode
+
+Delvise måneder beregnes dag for dag som 1/x-del af en månedlig ydelse, hvor x er antallet af kalenderdage i den pågældende måned.
+
+```text
+delvisFirsteMaaned = (daysInMonth(startMaaned) - startDag + 1) / daysInMonth(startMaaned)
+fulde måneder = antal hele kalendermåneder mellem første og sidste delvis måned
+delvisSidsteMaaned = slutDag / daysInMonth(slutMaaned)
+maaneder = delvisFirsteMaaned + fuldeMaaneder + delvisSidsteMaaned
+```
+
+Særtilfælde: hvis start- og slutdato er i samme måned:
+
+```text
+maaneder = (slutDag - startDag + 1) / daysInMonth(maaned)
+```
+
+`maaneder` afrundes til 4 decimaler.
+
+### 5a.6 Ydelse i alt pr. række
+
+```text
+ydelseIAlt = round0(maanedligYdelse × maaneder)
+```
+
+### 5a.7 Samlet fradrag
+
+```text
+aslLobendeYdelserTotal = sum af alle rækkers ydelseIAlt
+```
+
+Da hvert `ydelseIAlt` allerede er afrundet til 0 decimaler med `round0`, er summen altid et heltal. Der foretages ingen yderligere afrunding på summationsniveauet.
+
+### 5a.8 Indregning i nettokrav
+
+```text
+nettokrav = max(0, ealKrav - aslLobendeYdelserTotal - aslKapitalbelob)
+```
 
 ## 6. Kapitaliseringsbekendtgørelse og tabelvalg
 
@@ -284,12 +379,13 @@ Normative regler:
 ## 9. Nettoresultat
 
 ```text
-nettokrav = max(0, ealKrav - kapitalbelob)
+nettokrav = max(0, ealKrav - aslLobendeYdelserTotal - aslKapitalbelob)
 ```
 
-Alle tre outputtal vises som hele kronebeløb:
+Alle fire outputtal vises som hele kronebeløb:
 
 - EAL-krav
+- ASL løbende ydelser
 - ASL-kapitalbeløb
 - Forsørgertabserstatning
 

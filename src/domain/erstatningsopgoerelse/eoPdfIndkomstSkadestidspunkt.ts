@@ -2,7 +2,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, isISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { formatPercent, isSingularCount } from '../../utils/formatUtils';
+import { formatAsAmount, formatAsAmountTrimmed, formatPercent, isSingularCount } from '../../utils/formatUtils';
 import { roundByMethod } from '../../utils/rounding';
 import { buildIncomeForRanges } from './indtaegtPerioder';
 import { calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from './tafCalculations';
@@ -140,11 +140,8 @@ export const buildIndkomstSkadestidspunkt = (
         ? values.oevrigeFravaersdage
         : 0;
     if (periodeTilBeregning) {
-      const formatDaNumber = (value: number): string => value.toLocaleString('da-DK');
-      const formatMaaneder = (value: number): string => {
-        const rounded = roundByMethod(value, 2, 'halfAwayFromZero');
-        return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-      };
+      const formatDaNumber = (value: number): string => formatAsAmount(value, 0);
+      const formatMaaneder = (value: number): string => formatAsAmountTrimmed(value, 2);
       const dagOrd = (value: number, singular: string, plural: string): string => (isSingularCount(value) ? singular : plural);
 
       const maanederResult = calculateTafAntalMaaneder(

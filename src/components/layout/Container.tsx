@@ -56,7 +56,7 @@ const ROW_CONTAINER_SELECTOR =
 const NON_TEXT_EDITING_INPUT_TYPES = new Set(['checkbox', 'radio', 'range', 'button', 'submit', 'reset', 'file', 'color']);
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
-const Container: React.FC<ContainerProps> = React.memo(({ children }) => {
+const Container = React.memo(({ children }: ContainerProps) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const focusableCacheRef = React.useRef<FocusableElement[]>([]);
   const cacheValidRef = React.useRef(false);

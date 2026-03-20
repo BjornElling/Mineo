@@ -22,6 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { varigeMenPrGrad, varigeMenPrGradYearBounds } from '../../../data/regulationRates';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
+import { formatAsAmount } from '../../../utils/formatUtils';
 import { createCommitEvent, type CommitHandler } from '../../../types/fieldEvents';
 import { downloadVarigeMenPdf } from '../../../utils/pdf/pdfService';
 import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../../../domain/faellesPersondata/faellesPersondataInitialValues';
@@ -35,13 +36,13 @@ const VARIGE_MEN_BEREGNINGSDATO_MAX = toISODateString(
   `${varigeMenPrGradYearBounds.maxYear}-12-31`
 );
 
-const MenberegningTab: React.FC<{
+const MenberegningTab = ({ values, setValues, handleChange }: {
   values: VarigeMenValues;
   setValues: React.Dispatch<React.SetStateAction<VarigeMenValues>>;
   handleChange: <K extends keyof VarigeMenValues>(
     key: K
   ) => CommitHandler<VarigeMenValues[K]>;
-}> = ({ values, setValues, handleChange }) => {
+}) => {
   const { values: stamValues } = usePersistedForm(stamdataSchema, 'stamdata', STAMDATA_INITIAL_VALUES);
   const { values: faellesPersondataValues, handleChange: handleFaellesPersondataChange } = usePersistedForm(
     faellesPersondataSchema,
@@ -339,14 +340,14 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
       {beregningsResultat && (
         <Box className="row--label-right">
           <Typography className="row--text">
-            {`Grundbeløb: ${values.mengrad} % mén á ${beregningsResultat.satsPerMengrad.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kr.`}
+            {`Grundbeløb: ${values.mengrad} % mén á ${formatAsAmount(beregningsResultat.satsPerMengrad, 2)} kr.`}
           </Typography>
           <Box
             className="row--label-right-hover__content"
             style={{ justifyContent: 'flex-end' }}
           >
             <Typography className="row--text">
-              {beregningsResultat.grundbeloebUdenReduktion.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kr.
+              {formatAsAmount(beregningsResultat.grundbeloebUdenReduktion, 2)} kr.
             </Typography>
           </Box>
         </Box>
@@ -363,7 +364,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
             style={{ justifyContent: 'flex-end' }}
           >
             <Typography className="row--text">
-              {`- ${aldersreduktionsBeloeb.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kr.`}
+              {`- ${formatAsAmount(aldersreduktionsBeloeb, 2)} kr.`}
             </Typography>
           </Box>
         </Box>
@@ -386,7 +387,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
           ) : beregningsResultat ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography className="row--text">
-                {beregningsResultat.beregnetGodtgoerelse.toLocaleString('da-DK')} kr.
+                {formatAsAmount(beregningsResultat.beregnetGodtgoerelse, 0)} kr.
               </Typography>
               <Box
                 onClick={handlePdfDownload}

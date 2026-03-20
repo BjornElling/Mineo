@@ -27,16 +27,20 @@ type BrevhovedOption = Readonly<{
 
 const brevhovedOptionsRow1: readonly BrevhovedOption[] = [
   { key: 'erstatningsopgoerelse', label: 'Erstatningsopgørelse' },
-  { key: 'shDage', label: 'SH-dage' },
-  { key: 'renteberegning', label: 'Renteberegning' },
+  { key: 'erhvervsevnetab', label: 'Erhvervsevnetab' },
+  { key: 'varigeMen', label: 'Varige mén' },
 ];
 
 const brevhovedOptionsRow2: readonly BrevhovedOption[] = [
-  { key: 'regulering', label: 'Regulering' },
-  { key: 'varigeMen', label: 'Varige mén' },
-  { key: 'satser', label: 'Satser' },
+  { key: 'forsoergertab', label: 'Forsørgertab' },
   { key: 'aarsloensberegning', label: 'Årslønsberegning' },
-  { key: 'erhvervsevnetab', label: 'Erhvervsevnetab' },
+  { key: 'renteberegning', label: 'Renteberegning' },
+  { key: 'satser', label: 'Satser' },
+];
+
+const brevhovedOptionsRow3: readonly BrevhovedOption[] = [
+  { key: 'shDage', label: 'SH-dage' },
+  { key: 'regulering', label: 'Regulering' },
 ];
 
 const isLoenPaaHelligdageOption = (value: string): value is AppSettingsLoenPaaHelligdageOption => {
@@ -282,9 +286,13 @@ const Indstillinger = React.memo(() => {
                 checked={settings.brevhovedIndstillinger}
                 onToggle={handleBrevhovedToggle}
               />
-              {/* Anden række: Regulering, Varige mén, Satser, Årslønsberegning */}
               <BrevhovedCheckboxRow
                 items={brevhovedOptionsRow2}
+                checked={settings.brevhovedIndstillinger}
+                onToggle={handleBrevhovedToggle}
+              />
+              <BrevhovedCheckboxRow
+                items={brevhovedOptionsRow3}
                 checked={settings.brevhovedIndstillinger}
                 onToggle={handleBrevhovedToggle}
               />

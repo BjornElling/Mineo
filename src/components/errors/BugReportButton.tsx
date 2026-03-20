@@ -41,13 +41,13 @@ interface BugReportButtonProps {
  * - email (mailto:)
  * - download
  */
-const BugReportButton: React.FC<BugReportButtonProps> = ({
+const BugReportButton = ({
   variant = 'outlined',
   fullWidth = false,
   label = 'Rapportér fejl',
   context,
   getExtraSections,
-}) => {
+}: BugReportButtonProps) => {
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
     message: string;

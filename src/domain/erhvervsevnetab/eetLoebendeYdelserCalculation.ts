@@ -1,7 +1,7 @@
 import type { AslAfgoerelseRow, ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
 import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
-import { coerceToISODateString, dateToISO, parseISODate } from '../../types/branded';
+import { coerceToISODateString, dateToISO, minIso, parseISODate } from '../../types/branded';
 import {
   ASL_MAX_AARSLOEN_2003,
   ASL_MAX_AARSLOEN_2024,
@@ -12,7 +12,7 @@ import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { addDays, addMonths } from '../../utils/dateUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
-import { round0, round2, round4, roundNearest1000 } from './eetRounding';
+import { ceilNearest12, round0, round2, round4, roundNearest1000 } from './eetRounding';
 import { SKAERING_2011_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
 import { optaelMaanederPraecis } from '../erstatningsopgoerelse/periodiseringsMotor';
@@ -96,7 +96,6 @@ type ResolvedAfgoerelse = Readonly<{
 
 const toIssue = (id: string, message: string): EetIssue => ({ id, severity: 'error', message });
 const toWarning = (id: string, message: string): EetIssue => ({ id, severity: 'warning', message });
-const ceil12 = (value: number): number => Math.ceil(value / 12) * 12;
 
 const parsePct = (raw: string | undefined): number | undefined => {
   const parsed = parsePercentDraft(raw);
@@ -110,8 +109,6 @@ const formatPctForWarning = (value: number): string =>
 const toYear = (iso: ISODateString): number => Number.parseInt(iso.slice(0, 4), 10);
 
 const endOfYearIso = (year: number): ISODateString => `${year}-12-31` as ISODateString;
-
-const minIso = (a: ISODateString, b: ISODateString): ISODateString => (a < b ? a : b);
 
 const isoDayBefore = (iso: ISODateString): ISODateString | undefined => {
   const parsed = parseISODate(iso);
@@ -523,7 +520,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
       if (effektivGrundydelseBase === null) continue;
 
       const grundydelseAfrundet = effektivGrundydelseBase;
-      const aarsydelse = ceil12(effektivGrundydelseBase * rateInfo.factor);
+      const aarsydelse = ceilNearest12(effektivGrundydelseBase * rateInfo.factor);
       const maanedligYdelse = aarsydelse / 12;
       const maanederPraecis = optaelMaanederPraecis({
         fra: sectionRow.fra,

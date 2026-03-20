@@ -23,13 +23,14 @@ import { TODAY } from '../../config/dateRanges';
 import { krlSatstabeller } from '../../data/KRLrates';
 import type { DanishDateString } from '../../types/branded';
 import { resolvePdfFileName } from './pdfFormatUtils';
+import { formatAsAmount } from '../formatUtils';
 import type { PdfCommonOptions } from './pdfOptions';
 
 type KRLPdfParams = PdfCommonOptions;
 
 const formatPct = (value: number | undefined): string => {
   if (value === undefined || value === 0) return '';
-  return value.toLocaleString('da-DK', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' %';
+  return formatAsAmount(value, 4) + ' %';
 };
 
 export const buildKRLPdfFilename = (): string => resolvePdfFileName('KRL Satstabeller', false);

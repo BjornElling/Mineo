@@ -13,6 +13,7 @@ type PdfModuleMap = {
   kapitalisering: typeof import('./kapitaliseringPdf');
   efterEal: typeof import('./EetEfterEalPdf');
   differencekrav: typeof import('./differencekravPdf');
+  forsoergertab: typeof import('./forsoergertabPdf');
 };
 
 const moduleCache = new Map<keyof PdfModuleMap, Promise<PdfModuleMap[keyof PdfModuleMap]>>();
@@ -31,6 +32,7 @@ const moduleLoaders: { [K in keyof PdfModuleMap]: () => Promise<PdfModuleMap[K]>
   kapitalisering: () => import('./kapitaliseringPdf'),
   efterEal: () => import('./EetEfterEalPdf'),
   differencekrav: () => import('./differencekravPdf'),
+  forsoergertab: () => import('./forsoergertabPdf'),
 };
 
 const loadModule = async <TKey extends keyof PdfModuleMap>(key: TKey): Promise<PdfModuleMap[TKey]> => {
@@ -60,3 +62,4 @@ export const loadLoebendeYdelserPdfModule = () => loadModule('loebendeYdelser');
 export const loadKapitaliseringPdfModule = () => loadModule('kapitalisering');
 export const loadEfterEalPdfModule = () => loadModule('efterEal');
 export const loadDifferencekravPdfModule = () => loadModule('differencekrav');
+export const loadForsoergertabPdfModule = () => loadModule('forsoergertab');
