@@ -92,7 +92,7 @@ export const renderEfterEalBody = (
   );
 
   writer.writeLeftRightTextSingleLine(
-    `${formatKr(computation.reguleretAarsloen)} x 10 x ${formatPct(computation.eetPct)} =`,
+    `Erhvervsevnetab (${formatKr(computation.reguleretAarsloen)} x 10 x ${formatPct(computation.eetPct)}) =`,
     formatKr(computation.eetBeregnet),
     rowOpts
   );

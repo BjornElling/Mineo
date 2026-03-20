@@ -88,8 +88,12 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
   const { erstatningsopgoerelseValues, rowsBySection } = view;
   const viserSvieSmerte = erstatningsopgoerelseValues.beregnesSvieSmerteGodtgoerelse !== 'Nej';
   const viserTabtArbejdsfortjeneste = erstatningsopgoerelseValues.beregnesTabtArbejdsfortjeneste !== 'Nej';
+  const skjulerUdvidedeSvieSmerteRows = erstatningsopgoerelseValues.tidligereSsMax === 'Ja';
   const viserMidlertidigtEet = erstatningsopgoerelseValues.midlertidigtEetAfgorelse === 'Ja';
   const viserEndeligtEet = erstatningsopgoerelseValues.endeligtEetAfgorelse === 'Ja';
+  const svieSmerteRows = (rowsBySection.get('sviesmerte') ?? []).filter((row) =>
+    !skjulerUdvidedeSvieSmerteRows || row.id === 'sviesmerte.tidligereSsMax'
+  );
   const aesRows = rowsBySection.get('aes') ?? [];
   const visibleEmploymentIds = new Set(
     (erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? [])
@@ -130,7 +134,7 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
       <EODebugRowsSection title="Erstatningsopgørelse" rows={rowsBySection.get('erstatningsopgoerelse') ?? []} />
       <EODebugRowsSection title="Forlig" rows={rowsBySection.get('forlig') ?? []} />
       <EODebugRowsSection title="AES" rows={filtreredeAesRows} />
-      {viserSvieSmerte && <EODebugRowsSection title="Svie og smerte" rows={rowsBySection.get('sviesmerte') ?? []} />}
+      {viserSvieSmerte && <EODebugRowsSection title="Svie og smerte" rows={svieSmerteRows} />}
       {viserTabtArbejdsfortjeneste && <EODebugRowsSection title="Tabt arbejdsfortjeneste" rows={rowsBySection.get('taf') ?? []} />}
       {viserTabtArbejdsfortjeneste && <EODebugRowsSection title="TAF beregningsgrundlag" rows={rowsBySection.get('taf-beregningsgrundlag') ?? []} />}
       {viserTabtArbejdsfortjeneste && (

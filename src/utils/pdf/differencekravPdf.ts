@@ -46,7 +46,7 @@ import {
   addKapitaliseringEmptyState,
   PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL,
 } from './kapitaliseringPdf';
-import { renderEfterEalBody } from './efterEalPdf';
+import { renderEfterEalBody } from './EetEfterEalPdf';
 
 export const buildDifferencekravPdfFilename = (journalnr?: string): string =>
   resolvePdfFileName('Differencekrav (EET)', false, journalnr);

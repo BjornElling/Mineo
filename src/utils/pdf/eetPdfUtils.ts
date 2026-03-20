@@ -1,7 +1,7 @@
 /**
  * Delte formateringshjælpere for EET-PDF-generatorer.
  *
- * Bruges af differencekravPdf, loebendeYdelserPdf, kapitaliseringPdf og efterEalPdf.
+ * Bruges af differencekravPdf, loebendeYdelserPdf, kapitaliseringPdf og EetEfterEalPdf.
  */
 
 import { formatAsAmount, formatAsAmountTrimmed } from '../formatUtils';

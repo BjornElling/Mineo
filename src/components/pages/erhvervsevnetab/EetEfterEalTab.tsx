@@ -171,7 +171,7 @@ const EetEfterEalTab: React.FC<Props> = ({ values, onGoToEetOplysninger }) => {
 
             <Box className="row--label-right-hover">
               <Typography className="row--text">
-                {`${formatKr(computation.reguleretAarsloen)} x 10 x ${formatPct(computation.eetPct)} =`}
+                {`Erhvervsevnetab (${formatKr(computation.reguleretAarsloen)} x 10 x ${formatPct(computation.eetPct)}) =`}
               </Typography>
               <Box className="row--label-right-hover__content">
                 <Typography className="row--text">{formatKr(computation.eetBeregnet)}</Typography>

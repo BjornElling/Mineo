@@ -698,6 +698,57 @@ describe('EODebug', () => {
     expect(screen.queryByText('Svie/smerte satsen for 2026 kan anvendes.')).not.toBeInTheDocument();
   });
 
+  it('skjuler resten af svie/smerte-indholdet når tidligere S/S er beregnet til max', () => {
+    eoSnapshotToDebugViewMock.mockReturnValue({
+      kind: 'ready',
+      canonicalOutput: undefined,
+      debugSnapshot: {
+        sammentaellingRows: [],
+      },
+      stamdataValues: {},
+      erstatningsopgoerelseValues: {
+        beregnesSvieSmerteGodtgoerelse: 'Ja',
+        tidligereSsMax: 'Ja',
+        beregnesTabtArbejdsfortjeneste: 'Ja',
+        midlertidigtEetAfgorelse: 'Nej',
+        endeligtEetAfgorelse: 'Nej',
+      },
+      rowsBySection: new Map([
+        ['sviesmerte', [
+          {
+            id: 'sviesmerte.tidligereSsMax',
+            label: 'Tidligere beregnet S/S til max.',
+            displayValue: 'Ja',
+            status: 'ok',
+          },
+          {
+            id: 'sviesmerte.satserAar',
+            label: 'Hvilket års svie/smerte satser lægges til grund?',
+            displayValue: '2026',
+            status: 'ok',
+          },
+          {
+            id: 'sviesmerte.beregnetBeloeb',
+            label: 'Beregnet svie/smerte',
+            displayValue: '96.000,00 kr.',
+            status: 'ok',
+          },
+        ]],
+      ]),
+      regulationSections: [],
+    });
+
+    renderComponent({ revision: 'rev-1' } as never);
+
+    expect(screen.getByText('Svie og smerte')).toBeInTheDocument();
+    expect(screen.getByText('Tidligere beregnet S/S til max.')).toBeInTheDocument();
+    expect(screen.getByText('Ja')).toBeInTheDocument();
+    expect(screen.queryByText('Hvilket års svie/smerte satser lægges til grund?')).not.toBeInTheDocument();
+    expect(screen.queryByText('2026')).not.toBeInTheDocument();
+    expect(screen.queryByText('Beregnet svie/smerte')).not.toBeInTheDocument();
+    expect(screen.queryByText('96.000,00 kr.')).not.toBeInTheDocument();
+  });
+
   it('skjuler TAF-, beregningsgrundlag-, lønindkomst- og reguleringsbokse når TAF er fravalgt', () => {
     eoSnapshotToDebugViewMock.mockReturnValue({
       kind: 'ready',

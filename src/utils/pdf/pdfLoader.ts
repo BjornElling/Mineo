@@ -11,7 +11,7 @@ type PdfModuleMap = {
   varigeMen: typeof import('./varigeMenPdf');
   loebendeYdelser: typeof import('./loebendeYdelserPdf');
   kapitalisering: typeof import('./kapitaliseringPdf');
-  efterEal: typeof import('./efterEalPdf');
+  efterEal: typeof import('./EetEfterEalPdf');
   differencekrav: typeof import('./differencekravPdf');
 };
 
@@ -29,7 +29,7 @@ const moduleLoaders: { [K in keyof PdfModuleMap]: () => Promise<PdfModuleMap[K]>
   varigeMen: () => import('./varigeMenPdf'),
   loebendeYdelser: () => import('./loebendeYdelserPdf'),
   kapitalisering: () => import('./kapitaliseringPdf'),
-  efterEal: () => import('./efterEalPdf'),
+  efterEal: () => import('./EetEfterEalPdf'),
   differencekrav: () => import('./differencekravPdf'),
 };
 
