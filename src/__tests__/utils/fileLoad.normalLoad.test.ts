@@ -239,7 +239,7 @@ describe('fileLoad – normalLoadFlow', () => {
 
   it('afviser forkert filversion eksplicit', async () => {
     const content = await encryptToString({
-      version: '1.0.0',
+      version: '0.9.0',
       _metadata: {
         exportDate: '2026-03-20T00:00:00.000Z',
         appVersion: VERSION,

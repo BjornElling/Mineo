@@ -254,7 +254,7 @@ describe('eoFileContainerSchema', () => {
 
   it('load-schema afviser forkert formatversion', () => {
     const result = eoFileContainerLoadSchema.safeParse({
-      version: '1.0.0',
+      version: '0.9.0',
       _metadata: {
         exportDate: '2024-01-01T00:00:00Z',
         appVersion: '1.2.3',
