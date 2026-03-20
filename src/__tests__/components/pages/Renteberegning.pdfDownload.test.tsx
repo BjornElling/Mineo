@@ -49,7 +49,7 @@ vi.mock('../../../contexts/useFormPersistence', () => ({
 
 vi.mock('../../../contexts/useAppSettings', () => ({
   useAppSettings: () => ({
-    settings: { showBrevhovedRente: false },
+    settings: { brevhovedIndstillinger: { renteberegning: false } },
   }),
 }));
 
@@ -61,8 +61,6 @@ vi.mock('../../../components/pages/renteberegning/RenteberegningTab', () => ({
       beloeb: number;
       actualInterestDate: string;
       beregningsdato: string;
-      kravetDato: string;
-      calculatedInterest: number;
     }) => Promise<void>;
   }) => (
     <div>
@@ -84,10 +82,8 @@ vi.mock('../../../components/pages/renteberegning/RenteberegningTab', () => ({
         onClick={() => {
           void props.onDownloadSpecifikation({
             beloeb: 1000,
-            actualInterestDate: '01-01-2024',
-            beregningsdato: '31-01-2024',
-            kravetDato: '01-01-2024',
-            calculatedInterest: 10,
+            actualInterestDate: '2024-01-01',
+            beregningsdato: '2024-01-31',
           });
         }}
       >

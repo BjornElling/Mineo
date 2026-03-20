@@ -1,13 +1,10 @@
 import type { RateEntry } from '../../../data/interestRates';
-import { toDanishDateString, toISODateString } from '../../../types/branded';
+import { toDanishDateString, toISODateString, isoToDanish } from '../../../types/branded';
 import { parseDanishDate } from '../../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
-import { computeRenteberegning } from '../../../domain/renteberegning/renteberegningEngine';
+import { computeRenteberegning, computeRentekravRow } from '../../../domain/renteberegning/renteberegningEngine';
 import { calculateProcessInterestWithRates } from '../../../domain/renteberegning/procesrenteCalculator';
 import { roundByMethod } from '../../../utils/rounding';
-import { isoToDanish } from '../../../types/branded';
-import { computeRentekravCalculation } from '../../../domain/renteberegning/renteberegningRowEngine';
-import { referenceRates, surchargeRates } from '../../../data/interestRates';
 
 const buildRates = (referenceRatePct = 1, surchargeRatePct = 2): { referenceRates: RateEntry[]; surchargeRates: RateEntry[] } => ({
   referenceRates: [{ effectiveDate: toDanishDateString('01-01-2020'), ratePct: referenceRatePct }],
@@ -310,38 +307,79 @@ describe('renteberegningEngine', () => {
     expect(futureRow?.calculatedInterest).toBeNull();
   });
 
-  it('keeps parity between legacy row-engine and injected-rates engine for same rates', () => {
-    // referenceRates and surchargeRates imported directly above
-    const row = {
-      id: 'row-parity',
-      belob: amountNumber(87500),
-      renterFra: toISODateString('2024-02-10'),
-      tillaegstid: 14,
-      enhed: 'dage' as const,
-    };
-    const beregningsdato = toISODateString('2025-01-31');
+  describe('computeRentekravRow', () => {
+    it('returnerer pdfContext ved gyldig række', () => {
+      const { referenceRates, surchargeRates } = buildRates();
+      const row = {
+        id: 'row-1',
+        belob: amountNumber(1250),
+        renterFra: toISODateString('2024-01-01'),
+        tillaegstid: 10,
+        enhed: 'dage' as const,
+      };
+      const beregningsdato = toISODateString('2024-02-01');
 
-    const legacy = computeRentekravCalculation(row, beregningsdato);
-    const modern = computeRenteberegning({
-      renteberegning: { beregningsdato, rentekravRows: [row] },
-      referenceRates,
-      surchargeRates,
+      const result = computeRentekravRow(row, beregningsdato, referenceRates, surchargeRates);
+
+      expect(result.actualInterestDate).toBe(toISODateString('2024-01-11'));
+      expect(result.calculatedInterest).not.toBeNull();
+      expect(result.pdfContext).toEqual({
+        beloeb: 1250,
+        actualInterestDate: toISODateString('2024-01-11'),
+        beregningsdato,
+      });
     });
 
-    expect(legacy.context).not.toBeNull();
-    expect(modern.rows).toHaveLength(1);
+    it('manglende beløb → null rente og ingen pdfContext', () => {
+      const { referenceRates, surchargeRates } = buildRates();
+      const row = {
+        id: 'row-1',
+        belob: undefined,
+        renterFra: toISODateString('2024-01-01'),
+        tillaegstid: 0,
+        enhed: 'dage' as const,
+      };
 
-    const legacyContext = legacy.context;
-    const modernRow = modern.rows[0];
+      const result = computeRentekravRow(row, toISODateString('2024-01-31'), referenceRates, surchargeRates);
 
-    if (!legacyContext || !modernRow) {
-      throw new Error('Parity-test for rente-engines kræver gyldige beregningsresultater');
-    }
+      expect(result.actualInterestDate).toBe(toISODateString('2024-01-01'));
+      expect(result.calculatedInterest).toBeNull();
+      expect(result.pdfContext).toBeNull();
+    });
 
-    expect(legacyContext.calculatedInterest).not.toBeNull();
-    expect(modernRow.calculatedInterest).not.toBeNull();
-    expect(modernRow.id).toBe(row.id);
-    expect(legacyContext.actualInterestDate).toBe(isoToDanish(modernRow.actualInterestDate ?? undefined));
-    expect(legacyContext.calculatedInterest).toBe(modernRow.calculatedInterest);
+    it('manglende beregningsdato → actualInterestDate uden beregnet rente', () => {
+      const { referenceRates, surchargeRates } = buildRates();
+      const row = {
+        id: 'row-1',
+        belob: amountNumber(1000),
+        renterFra: toISODateString('2024-01-01'),
+        tillaegstid: 2,
+        enhed: 'uger' as const,
+      };
+
+      const result = computeRentekravRow(row, undefined, referenceRates, surchargeRates);
+
+      expect(result.actualInterestDate).toBe(toISODateString('2024-01-15'));
+      expect(result.calculatedInterest).toBeNull();
+      expect(result.pdfContext).toBeNull();
+    });
+
+    it('ugyldig rentedato-beregning → actualInterestDate=null og ingen pdfContext', () => {
+      const { referenceRates, surchargeRates } = buildRates();
+      const row = {
+        id: 'row-1',
+        belob: amountNumber(1000),
+        renterFra: undefined,
+        tillaegstid: 5,
+        enhed: 'dage' as const,
+      };
+
+      const result = computeRentekravRow(row, toISODateString('2024-01-31'), referenceRates, surchargeRates);
+
+      expect(result.actualInterestDate).toBeNull();
+      expect(result.calculatedInterest).toBeNull();
+      expect(result.pdfContext).toBeNull();
+    });
   });
+
 });

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
+import type { RateEntry } from '../../../data/interestRates';
 import StyledDateField from '../../inputs/StyledDateField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import StyledTextField from '../../inputs/StyledTextField';
@@ -8,7 +9,7 @@ import ContentBox from '../../layout/ContentBox';
 import type { RentekravRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import type { RentekravDraftRow } from '../../../domain/renteberegning/tableDraftRows';
-import type { ValidatedRentekravContext } from '../../../domain/renteberegning/renteberegningRowEngine';
+import type { RentePdfContext } from '../../tables/BeregnetRenteTable';
 import { createCommitEvent, type CommitHandler } from '../../../types/fieldEvents';
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
 import { dateRanges_renteberegning } from '../../../config/dateRanges';
@@ -35,9 +36,11 @@ export interface RenteberegningTabProps {
   rentekravRows: RentekravDraftRow[];
   onRentekravChange: (rowId: string, fieldId: 'belob' | 'renterFra' | 'tillaegstid' | 'enhed') => (value: string) => void;
   onRentekravBlur: (rowId: string) => void;
-  onDownloadSpecifikation: (validatedCalculation: ValidatedRentekravContext) => Promise<void>;
+  onDownloadSpecifikation: (pdfContext: RentePdfContext) => Promise<void>;
   committedRentekravById: ReadonlyMap<string, RentekravRow>;
   onError: (message: string, context: string, error?: unknown) => void;
+  referenceRates: ReadonlyArray<RateEntry>;
+  surchargeRates: ReadonlyArray<RateEntry>;
 }
 
 const RenteberegningTab = React.memo(({
@@ -51,6 +54,8 @@ const RenteberegningTab = React.memo(({
   onDownloadSpecifikation,
   committedRentekravById,
   onError,
+  referenceRates,
+  surchargeRates,
 }: RenteberegningTabProps) => {
   const [beregningsdatoHasError, setBeregningsdatoHasError] = React.useState(false);
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
@@ -93,6 +98,8 @@ const RenteberegningTab = React.memo(({
           committedById={committedRentekravById}
           onError={onError}
           beregningsdatoHasError={beregningsdatoHasError}
+          referenceRates={referenceRates}
+          surchargeRates={surchargeRates}
         />
       </ContentBox>
 

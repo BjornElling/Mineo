@@ -14,7 +14,7 @@ Modulet beregner procesrenter efter renteloven for hvert rentekrav i listen. Ren
 
 1. Rente beregnes i henhold til renteloven.
 2. Beregningsprincip: 365 rentedage pr. år — 366 i skudår.
-3. Beregningsdatoen indgår i renteberegningen.
+3. Rentesatsen udgør nationalbankens udlånsrente + 8 % (ved forfaldsdato før 01-03-2013 dog + 7 %)
 4. Der beregnes ikke renters rente.
 
 ### Rentedatoen
@@ -35,7 +35,7 @@ Renten er sammensat af to elementer:
 | Sats | Beskrivelse | Skæring |
 |---|---|---|
 | **Referencesats** | Nationalbankens udlånsrente | Opdateres halvårligt (1. jan og 1. jul) |
-| **Tillægssats** | Lovbestemt procenttillæg | 7 % for rentedatoer før 01-03-2013, 8 % derefter |
+| **Tillægssats** | Lovbestemt procenttillæg | 7 % for 'renter fra' datoer før 01-03-2013, 8 % derefter |
 
 Den totale rentesats for en given halvårlig periode:
 ```
@@ -104,40 +104,31 @@ Opfyldes betingelserne ikke, returneres `calculatedInterest: null` for den påg�
 
 | Fil | Ansvar |
 |---|---|
-| `src/domain/renteberegning/renteberegningEngine.ts` | Autoritativ aggregation engine med injicerede satser; `computeRenteberegning` |
-| `src/domain/renteberegning/renteEngine.ts` | Legacy per-række engine til tabel-kontekst; `computeRentekravCalculation` |
-| `src/utils/interestCalculator.ts` | Renteberegningsmotor; `calculateProcessInterestWithRates`, `calculateProcessInterest` (legacy) |
-| `src/utils/interestDomain.ts` | Domænefunktioner: `calculateInterestDate`, `validateInterestCalculation` |
+| `src/domain/renteberegning/renteberegningEngine.ts` | Autoritativ engine; `computeRenteberegning`, `computeRentekravRow` |
+| `src/domain/renteberegning/procesrenteCalculator.ts` | Renteberegningsmotor; `calculateProcessInterestWithRates` |
+| `src/domain/renteberegning/rentekravValidation.ts` | Domænefunktioner: `calculateInterestDate`, `validateInterestCalculation` |
 | `src/data/interestRates.ts` | Satser: `referenceRates`, `surchargeRates`, `MIN_INTEREST_DATE`, `MAX_INTEREST_YEAR` |
 | `src/domain/renteberegning/renteCalculationPrinciples.ts` | `RENTE_CALCULATION_PRINCIPLES` — de fire principper som array af strings |
 
-### To engines
+### Engine
 
-Der er to engines med forskellig ansvarsfordeling:
+Der er én autoritativ engine i `renteberegningEngine.ts` med to indgangspunkter:
 
-**`renteberegningEngine.ts` (autoritativ)**
-- Satser injiceres eksplicit i inputtet (`referenceRates`, `surchargeRates`).
-- Afrunding sker centralt i engine'en (`roundInterest`).
-- Returnerer `ISODateString | null` for `actualInterestDate`.
-- Bruges af snapshot-systemet og PDF.
+**`computeRenteberegning`** — aggregeret beregning for alle rækker i et snapshot. Satser injiceres eksplicit som input. Bruges af snapshot-systemet.
 
-**`renteEngine.ts` (legacy, tabel-kontekst)**
-- Bruger globale satser fra `interestRates.ts` via `calculateProcessInterest`.
-- Returnerer `DanishDateString | null` for `actualInterestDate`.
-- Afrunding sker inde i `calculateProcessInterest` (legacy).
-- Bevaret for bagudkompatibel tabel-adfærd.
+**`computeRentekravRow`** — per-række beregning til tabel-rendering. Bruger de globale produktionssatser. Returnerer `RentekravRowResult` inkl. `pdfContext` til PDF-download.
 
 ### Indgangspunkter
 
 ```typescript
-// Autoritativ engine
+// Aggregeret engine med sats-injektion
 computeRenteberegning(input: RenteberegningInputSnapshot): RenteberegningOutput
 
-// Legacy per-række engine
-computeRentekravCalculation(
+// Per-række engine til tabel (bruger globale satser)
+computeRentekravRow(
   committedRow: RentekravRow,
   beregningsdato: ISODateString | undefined
-): RentekravCalculationResult
+): RentekravRowResult
 
 // Lavniveau-motor
 calculateProcessInterestWithRates(
@@ -147,12 +138,6 @@ calculateProcessInterestWithRates(
   referenceRatesInput: ReadonlyArray<RateEntry>,
   surchargeRatesInput: ReadonlyArray<RateEntry>
 ): number | null  // uafrundet
-
-calculateProcessInterest(  // legacy, afrunder internt
-  amount: number,
-  interestStartDate: DanishDateString,
-  calculationDate: DanishDateString
-): number | null
 ```
 
 ### Nøgletyper
@@ -174,25 +159,20 @@ RenteberegningOutput = Readonly<{
   rows: ReadonlyArray<RentekravResult>;
 }>
 
+RentekravRowResult = Readonly<{
+  actualInterestDate: ISODateString | null;
+  calculatedInterest: number | null;
+  pdfContext: Readonly<{
+    beloeb: number;
+    actualInterestDate: ISODateString;
+    beregningsdato: ISODateString;
+  }> | null;
+}>
+
 RateEntry = {
   effectiveDate: DanishDateString;
   ratePct: number;  // fx 2.75 = 2,75 %
 }
-
-// Legacy
-RentekravCalculationResult = Readonly<{
-  context: ValidatedRentekravContext | null;
-  issue: InterestCalculationIssue | null;
-  actualInterestDate: DanishDateString | null;
-}>
-
-ValidatedRentekravContext = Readonly<{
-  actualInterestDate: DanishDateString;
-  kravetDato: DanishDateString;
-  beloeb: number;
-  beregningsdato: DanishDateString;
-  calculatedInterest: number;
-}>
 ```
 
 ### Rentedato-beregning
@@ -254,21 +234,19 @@ Begge er udledt dynamisk fra tabellens yderpunkter — ændres tabellen, ændres
 ### Afrunding
 
 ```typescript
-// autoritativ engine
 const roundInterest = (value: number): number =>
   roundByMethod(value, 2, 'halfAwayFromZero');
-
-// legacy
-calculateProcessInterest(...) bruger samme roundByMethod internt
 ```
+
+Afrunding sker centralt i engine'en efter beregning.
 
 ### Afhængigheder
 
 | Import | Kilde |
 |---|---|
 | `referenceRates`, `surchargeRates`, `RateEntry`, `MIN_INTEREST_DATE`, `MAX_INTEREST_YEAR` | `src/data/interestRates.ts` |
-| `calculateInterestDate`, `validateInterestCalculation` | `src/utils/interestDomain.ts` |
-| `calculateProcessInterestWithRates`, `calculateProcessInterest` | `src/utils/interestCalculator.ts` |
+| `calculateInterestDate`, `validateInterestCalculation` | `src/domain/renteberegning/rentekravValidation.ts` |
+| `calculateProcessInterestWithRates` | `src/domain/renteberegning/procesrenteCalculator.ts` |
 | `amountValueToNumber` | `src/utils/expressionAmount.ts` |
 | `roundByMethod` | `src/utils/rounding.ts` |
 
@@ -277,7 +255,7 @@ calculateProcessInterest(...) bruger samme roundByMethod internt
 | Testfil | Dækker |
 |---|---|
 | `src/__tests__/domain/renteberegning/renteberegningEngine.test.ts` | Autoritativ engine, sats-injektion, afrunding |
-| `src/__tests__/domain/renteberegning/renteEngine.test.ts` | Legacy per-række engine |
+| `src/__tests__/domain/renteberegning/procesrenteCalculator.test.ts` | Null-paths og edge cases for `calculateProcessInterestWithRates` |
 | `src/__tests__/domain/renteberegning/rowEmpty.test.ts` | Tom-række-detektion |
 
 ---

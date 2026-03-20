@@ -1,12 +1,14 @@
 import React from 'react';
 import { Box, Tab, Tabs, Typography } from '@mui/material';
+import { referenceRates, surchargeRates } from '../../data/interestRates';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { renteberegningSchema } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
+import { isoToDanish } from '../../types/branded';
 import useRentekravRows from '../tables/useRentekravRows';
 import { createEmptyRentekravCommittedRow, createRentekravRowId } from '../../domain/renteberegning/rentekravTableModel';
-import type { ValidatedRentekravContext } from '../../domain/renteberegning/renteberegningRowEngine';
+import type { RentePdfContext } from '../tables/BeregnetRenteTable';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { downloadRentePdf } from '../../utils/pdf/pdfService';
@@ -75,11 +77,17 @@ const Renteberegning = React.memo(() => {
   );
 
   const handleDownloadRentePdf = React.useCallback(
-    async (validatedCalculation: ValidatedRentekravContext) => {
+    async (pdfContext: RentePdfContext) => {
+      const actualInterestDateDanish = isoToDanish(pdfContext.actualInterestDate);
+      const beregningsdatoDanish = isoToDanish(pdfContext.beregningsdato);
+      if (!actualInterestDateDanish || !beregningsdatoDanish) {
+        handleError('Ugyldige datoer for PDF-generering', 'Renteberegning.PDFGeneration');
+        return;
+      }
       const result = await downloadRentePdf({
-        beloeb: validatedCalculation.beloeb,
-        actualInterestDate: validatedCalculation.actualInterestDate,
-        beregningsdato: validatedCalculation.beregningsdato,
+        beloeb: pdfContext.beloeb,
+        actualInterestDate: actualInterestDateDanish,
+        beregningsdato: beregningsdatoDanish,
         kommentarer: values.kommentarer,
         settings,
         persistedStamdata: getPersistedData('stamdata'),
@@ -158,6 +166,8 @@ const Renteberegning = React.memo(() => {
           onDownloadSpecifikation={handleDownloadRentePdf}
           committedRentekravById={rentekrav.committedById}
           onError={handleError}
+          referenceRates={referenceRates}
+          surchargeRates={surchargeRates}
         />
       )}
     </Box>

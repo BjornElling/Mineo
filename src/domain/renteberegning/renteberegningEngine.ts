@@ -50,8 +50,8 @@ const resolveActualInterestDateIso = (rowValues: RentekravRow): ISODateString | 
 const calculateRowInterest = (
   rowValues: RentekravRow,
   beregningsdato: ISODateString | undefined,
-  referenceRates: ReadonlyArray<RateEntry>,
-  surchargeRates: ReadonlyArray<RateEntry>
+  refRates: ReadonlyArray<RateEntry>,
+  surRates: ReadonlyArray<RateEntry>
 ): RentekravResult => {
   const actualInterestDate = resolveActualInterestDateIso(rowValues);
   const renterFra = rowValues.renterFra;
@@ -80,8 +80,8 @@ const calculateRowInterest = (
     validated.beloeb,
     validated.rentedato,
     validated.beregningsdato,
-    referenceRates,
-    surchargeRates
+    refRates,
+    surRates
   );
 
   return {
@@ -92,13 +92,54 @@ const calculateRowInterest = (
 };
 
 export const computeRenteberegning = (input: RenteberegningInputSnapshot): RenteberegningOutput => {
-  const { renteberegning, referenceRates, surchargeRates } = input;
+  const { renteberegning, referenceRates: refRates, surchargeRates: surRates } = input;
   const beregningsdato = renteberegning.beregningsdato;
 
   // Row order does not affect calculations; output preserves input order for stable rendering.
   const rows = renteberegning.rentekravRows.map((row) =>
-    calculateRowInterest(row, beregningsdato, referenceRates, surchargeRates)
+    calculateRowInterest(row, beregningsdato, refRates, surRates)
   );
 
   return { rows };
+};
+
+// Per-row entry point for table rendering. Callers must pass the same rate snapshot
+// they use for batch calculations to preserve determinism across UI and tests.
+export type RentekravRowResult = Readonly<{
+  actualInterestDate: ISODateString | null;
+  calculatedInterest: number | null;
+  // Populated only when interest was successfully calculated; used for PDF generation.
+  pdfContext: Readonly<{
+    beloeb: number;
+    actualInterestDate: ISODateString;
+    beregningsdato: ISODateString;
+  }> | null;
+}>;
+
+export const computeRentekravRow = (
+  committedRow: RentekravRow,
+  beregningsdato: ISODateString | undefined,
+  refRates: ReadonlyArray<RateEntry>,
+  surRates: ReadonlyArray<RateEntry>,
+): RentekravRowResult => {
+  const result = calculateRowInterest(committedRow, beregningsdato, refRates, surRates);
+
+  if (result.calculatedInterest === null || !result.actualInterestDate || !beregningsdato) {
+    return { actualInterestDate: result.actualInterestDate, calculatedInterest: null, pdfContext: null };
+  }
+
+  const beloeb = amountValueToNumber(committedRow.belob);
+  if (beloeb === undefined) {
+    return { actualInterestDate: result.actualInterestDate, calculatedInterest: null, pdfContext: null };
+  }
+
+  return {
+    actualInterestDate: result.actualInterestDate,
+    calculatedInterest: result.calculatedInterest,
+    pdfContext: {
+      beloeb,
+      actualInterestDate: result.actualInterestDate,
+      beregningsdato,
+    },
+  };
 };

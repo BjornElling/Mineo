@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Box, IconButton, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import { Download } from '@mui/icons-material';
+import type { RateEntry } from '../../data/interestRates';
 import TableAmountInput from '../inputs/table/TableAmountInput';
 import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
 import TableIntegerInput from '../inputs/table/TableIntegerInput';
@@ -9,12 +10,16 @@ import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTabl
 import { useTableSort } from './useTableSort';
 import { formatAsAmount } from '../../utils/formatUtils';
 import type { ISODateString } from '../../types/branded';
+import { isoToDanish } from '../../types/branded';
 import { minISO } from '../../utils/isoDateHelpers';
 import type { RentekravRow } from '../../schemas/formSchemas';
 import type { RentekravDraftRow } from '../../domain/renteberegning/tableDraftRows';
-import { computeRentekravCalculation, type RentekravCalculationResult, type ValidatedRentekravContext } from '../../domain/renteberegning/renteberegningRowEngine';
+import { computeRentekravRow, type RentekravRowResult } from '../../domain/renteberegning/renteberegningEngine';
+import { createEmptyRentekravCommittedRow } from '../../domain/renteberegning/rentekravTableModel';
 import { amountValueToDraftString, amountValueToNumber } from '../../utils/expressionAmount';
 import { dateRanges_renteberegning } from '../../config/dateRanges';
+
+export type RentePdfContext = NonNullable<RentekravRowResult['pdfContext']>;
 
 const ENHED_OPTIONS = [
   { value: 'dage', label: 'Dage' },
@@ -22,11 +27,16 @@ const ENHED_OPTIONS = [
   { value: 'maaneder', label: 'Måneder' },
 ] satisfies readonly TableDropdownOption[];
 
-const useRentekravCalculation = (
+const useRentekravRowResult = (
   committedRow: RentekravRow,
-  beregningsdato: ISODateString | undefined
-): RentekravCalculationResult => {
-  return React.useMemo(() => computeRentekravCalculation(committedRow, beregningsdato), [committedRow, beregningsdato]);
+  beregningsdato: ISODateString | undefined,
+  referenceRates: ReadonlyArray<RateEntry>,
+  surchargeRates: ReadonlyArray<RateEntry>,
+): RentekravRowResult => {
+  return React.useMemo(
+    () => computeRentekravRow(committedRow, beregningsdato, referenceRates, surchargeRates),
+    [committedRow, beregningsdato, referenceRates, surchargeRates]
+  );
 };
 
 export type BeregnetRenteTableProps = Readonly<{
@@ -35,9 +45,11 @@ export type BeregnetRenteTableProps = Readonly<{
   onFieldChange: (rowId: string, fieldId: 'belob' | 'renterFra' | 'tillaegstid' | 'enhed') => (value: string) => void;
   onRowBlur: (rowId: string) => void;
   beregningsdato: ISODateString | undefined;
-  onDownloadSpecifikation: (validatedCalculation: ValidatedRentekravContext) => Promise<void>;
+  onDownloadSpecifikation: (pdfContext: RentePdfContext) => Promise<void>;
   onError: (message: string, context: string, error?: unknown) => void;
   beregningsdatoHasError: boolean;
+  referenceRates: ReadonlyArray<RateEntry>;
+  surchargeRates: ReadonlyArray<RateEntry>;
 }>;
 
 type BeregnetRenteRowProps = Readonly<{
@@ -47,13 +59,27 @@ type BeregnetRenteRowProps = Readonly<{
   onFieldChange: (rowId: string, fieldId: 'belob' | 'renterFra' | 'tillaegstid' | 'enhed') => (value: string) => void;
   onRowBlur: (rowId: string) => void;
   beregningsdato: ISODateString | undefined;
-  onDownloadSpecifikation: (validatedCalculation: ValidatedRentekravContext) => Promise<void>;
+  onDownloadSpecifikation: (pdfContext: RentePdfContext) => Promise<void>;
   onError: (message: string, context: string, error?: unknown) => void;
   beregningsdatoHasError: boolean;
+  referenceRates: ReadonlyArray<RateEntry>;
+  surchargeRates: ReadonlyArray<RateEntry>;
 }>;
 
 const BeregnetRenteRow = React.memo(
-  ({ row, committedRow, rowIndex, onFieldChange, onRowBlur, beregningsdato, onDownloadSpecifikation, onError, beregningsdatoHasError }: BeregnetRenteRowProps) => {
+  ({
+    row,
+    committedRow,
+    rowIndex,
+    onFieldChange,
+    onRowBlur,
+    beregningsdato,
+    onDownloadSpecifikation,
+    onError,
+    beregningsdatoHasError,
+    referenceRates,
+    surchargeRates,
+  }: BeregnetRenteRowProps) => {
     const [renterFraHasError, setRenterFraHasError] = React.useState(false);
     const standardMaxDate = dateRanges_renteberegning.renteTil.max;
 
@@ -65,19 +91,15 @@ const BeregnetRenteRow = React.memo(
       return minISO(beregningsdato, standardMaxDate);
     }, [beregningsdato, standardMaxDate]);
 
-    const { context: validatedCalculation, issue: calculationIssue, actualInterestDate } = useRentekravCalculation(committedRow, beregningsdato);
+    const { actualInterestDate, calculatedInterest, pdfContext } = useRentekravRowResult(
+      committedRow,
+      beregningsdato,
+      referenceRates,
+      surchargeRates
+    );
 
-    const lastLoggedIssueKeyRef = React.useRef<string | null>(null);
-    React.useEffect(() => {
-      if (!calculationIssue) return;
-      const key = `${calculationIssue.context}:${calculationIssue.message}`;
-      if (lastLoggedIssueKeyRef.current === key) return;
-      lastLoggedIssueKeyRef.current = key;
-      onError(calculationIssue.message, calculationIssue.context, calculationIssue.error);
-    }, [calculationIssue, onError]);
-
-    const calculatedInterest = validatedCalculation?.calculatedInterest ?? null;
-    const showDownloadButton = calculatedInterest !== null && !renterFraHasError && !beregningsdatoHasError;
+    const actualInterestDateDanish = isoToDanish(actualInterestDate ?? undefined) ?? null;
+    const showDownloadButton = pdfContext !== null && !renterFraHasError && !beregningsdatoHasError;
 
     return (
       <TableRow data-mineo-row-id={row.id}>
@@ -147,7 +169,7 @@ const BeregnetRenteRow = React.memo(
         <TableCell align="center" sx={{ paddingTop: 0, paddingBottom: 0 }}>
           <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Typography className="row--text" sx={{ color: 'var(--color-text-secondary)', textAlign: 'center' }}>
-              {actualInterestDate || '-'}
+              {actualInterestDateDanish || '-'}
             </Typography>
           </Box>
         </TableCell>
@@ -164,14 +186,7 @@ const BeregnetRenteRow = React.memo(
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {showDownloadButton ? (
               <IconButton
-                onClick={async () => {
-                  if (!validatedCalculation) {
-                    onError('Kan ikke generere PDF: Manglende eller ugyldig data', 'BeregnetRenteRow.PDFGeneration');
-                    return;
-                  }
-
-                  await onDownloadSpecifikation(validatedCalculation);
-                }}
+                onClick={() => onDownloadSpecifikation(pdfContext)}
                 aria-label={`Download PDF-specifikation for række ${rowIndex + 1}`}
                 size="small"
                 sx={(theme) => ({
@@ -203,7 +218,18 @@ const getRowId = (row: RentekravDraftRow) => row.id;
 const isRowEmpty = (row: RentekravDraftRow) => row.belob.trim() === '' && row.renterFra.trim() === '';
 
 const BeregnetRenteTable = React.memo(
-  ({ rows, onFieldChange, onRowBlur, beregningsdato, onDownloadSpecifikation, committedById, onError, beregningsdatoHasError }: BeregnetRenteTableProps) => {
+  ({
+    rows,
+    onFieldChange,
+    onRowBlur,
+    beregningsdato,
+    onDownloadSpecifikation,
+    committedById,
+    onError,
+    beregningsdatoHasError,
+    referenceRates,
+    surchargeRates,
+  }: BeregnetRenteTableProps) => {
     const sortColumns = React.useMemo(() => [
       { colId: 'belob', getSortValue: (row: RentekravDraftRow) => amountValueToNumber(committedById.get(row.id)?.belob) },
       { colId: 'renterFra', getSortValue: (row: RentekravDraftRow) => committedById.get(row.id)?.renterFra },
@@ -251,13 +277,7 @@ const BeregnetRenteTable = React.memo(
         </TableHead>
         <TableBody>
           {sortedRows.map((row, rowIndex) => {
-            const committedRow = committedById.get(row.id) ?? {
-              id: row.id,
-              belob: undefined,
-              renterFra: undefined,
-              tillaegstid: undefined,
-              enhed: 'dage',
-            };
+            const committedRow = committedById.get(row.id) ?? createEmptyRentekravCommittedRow(row.id);
             return (
               <BeregnetRenteRow
                 key={row.id}
@@ -270,6 +290,8 @@ const BeregnetRenteTable = React.memo(
                 onDownloadSpecifikation={onDownloadSpecifikation}
                 onError={onError}
                 beregningsdatoHasError={beregningsdatoHasError}
+                referenceRates={referenceRates}
+                surchargeRates={surchargeRates}
               />
             );
           })}

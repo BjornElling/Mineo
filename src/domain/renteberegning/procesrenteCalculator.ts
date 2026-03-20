@@ -9,11 +9,9 @@
  */
 
 import type { RateEntry } from '../../data/interestRates';
-import { referenceRates, surchargeRates } from '../../data/interestRates';
 import type { DanishDateString } from '../../types/branded';
 import { createDate, getDaysInYear, parseDanishDate } from '../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
-import { roundByMethod } from '../../utils/rounding';
 
 type DatedRate = Readonly<{ date: Date; ratePct: number }>;
 
@@ -187,15 +185,4 @@ export const calculateProcessInterestWithRates = (
   }
 
   return totalInterest;
-};
-
-// Legacy path - returns rounded result and should not be used in new engines.
-export const calculateProcessInterest = (
-  amount: number,
-  interestStartDate: DanishDateString,
-  calculationDate: DanishDateString
-): number | null => {
-  const raw = calculateProcessInterestWithRates(amount, interestStartDate, calculationDate, referenceRates, surchargeRates);
-  if (raw === null) return null;
-  return roundByMethod(raw, 2, 'halfAwayFromZero');
 };
