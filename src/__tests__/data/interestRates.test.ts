@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { referenceRates, surchargeRates, MIN_INTEREST_DATE } from '../../data/interestRates';
 
 describe('referenceRates', () => {

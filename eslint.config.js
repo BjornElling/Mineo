@@ -89,9 +89,13 @@ module.exports = [
     languageOptions: {
       globals: {
         ...globals.jest, // Vitest er kompatibel med Jest globals
+        ...globals.node,
       },
     },
     rules: {
+      'react-hooks/globals': 'off',
+      'react-hooks/immutability': 'off',
+      'react-hooks/refs': 'off',
       'no-restricted-imports': [
         'error',
         {

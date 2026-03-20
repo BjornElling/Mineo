@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 import { persistenceSchemas } from '../../../config/persistenceRegistry';
@@ -108,9 +107,9 @@ describe('createErstatningsopgoerelseInitialValues – settings-integration', ()
   });
 
   it('ugyldig settings → falder tilbage til defaults og returnerer gyldigt skema', () => {
-    // Bevidst ugyldig settings-type (cast til any)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const values = createErstatningsopgoerelseInitialValues({ invalid: 'settings' } as any);
+    const values = createErstatningsopgoerelseInitialValues(
+      { invalid: 'settings' } as unknown as Parameters<typeof createErstatningsopgoerelseInitialValues>[0]
+    );
     const result = persistenceSchemas.erstatningsopgoerelse.safeParse(values);
     expect(result.success).toBe(true);
   });

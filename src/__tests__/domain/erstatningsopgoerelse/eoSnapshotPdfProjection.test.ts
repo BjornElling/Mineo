@@ -1,4 +1,3 @@
-import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../utils/logger', () => ({
   logError: vi.fn(),

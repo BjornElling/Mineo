@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { shouldClearField, trimValue } from '../../utils/inputValidation';
 
 describe('shouldClearField', () => {

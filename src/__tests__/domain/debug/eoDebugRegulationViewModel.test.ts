@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { buildRegulationDebugSections } from '../../../domain/debug/eoDebugRegulationViewModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';

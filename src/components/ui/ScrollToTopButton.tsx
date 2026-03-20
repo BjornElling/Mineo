@@ -27,6 +27,7 @@ const ScrollToTopButton: React.FC = React.memo(() => {
   const containerContext = useScrollContainer();
   const [visible, setVisible] = React.useState(false);
   const lastVisibleRef = React.useRef(false);
+  const container = containerContext.ready ? containerContext.container : null;
 
   // Track container-elementet direkte (ikke context-objektet)
   // Dette undgår re-binding af listeners ved context-object identity shifts
@@ -37,7 +38,9 @@ const ScrollToTopButton: React.FC = React.memo(() => {
       return;
     }
 
-    const container = containerContext.container;
+    if (!(container instanceof HTMLElement)) {
+      return;
+    }
     containerElementRef.current = container;
 
     const handleScroll = () => {
@@ -59,7 +62,7 @@ const ScrollToTopButton: React.FC = React.memo(() => {
       container.removeEventListener('scroll', handleScroll);
       containerElementRef.current = null;
     };
-  }, [containerContext.ready, containerContext.ready ? containerContext.container : null]);
+  }, [container, containerContext.ready]);
 
   const handleClick = React.useCallback(() => {
     const container = containerElementRef.current;

@@ -1,5 +1,4 @@
 import { renderHook } from '@testing-library/react';
-import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { useAarsloenBeregning } from '../../hooks/useAarsloenBeregning';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import type { AarsloenValues } from '../../schemas/formSchemas';

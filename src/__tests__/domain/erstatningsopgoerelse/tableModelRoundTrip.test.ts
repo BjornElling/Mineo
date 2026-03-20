@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { isFerieRowEmpty, isSvieSmerteRowEmpty, isTafRowEmpty } from '../../../domain/erstatningsopgoerelse/rowEmpty';
 import {
   committedToFerieDraftRows,

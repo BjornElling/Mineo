@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { isRentekravRowEmpty } from '../../../domain/renteberegning/rowEmpty';
 import type { RentekravRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';

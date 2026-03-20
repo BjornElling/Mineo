@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { LOCAL_STORAGE_KEY, readLocalStorage, writeLocalStorage } from '../../settings/appSettingsStorage';
 
 // ─── LOCAL_STORAGE_KEY ────────────────────────────────────────────────────────

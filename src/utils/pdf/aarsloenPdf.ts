@@ -11,9 +11,7 @@ import { createStandardPdfWriter, type PdfWriter } from './pdfWriter';
 import { createJsPdfAdapter } from './jsPdfAdapter';
 import {
   cellCenter,
-  cellLeft,
   cellRight,
-  cellRightBold,
   createPdfTableCell,
   createPdfFixedColumnStyles,
   createPdfTableHeaderCell,

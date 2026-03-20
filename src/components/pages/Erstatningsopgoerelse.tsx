@@ -82,8 +82,7 @@ const Erstatningsopgoerelse = React.memo(() => {
     'erstatningsopgoerelse',
     initialValues
   );
-  const initialValuesRef = React.useRef(initialValues);
-  initialValuesRef.current = initialValues;
+  const setFormValues = form.setValues;
 
   // Intentional split: useSectionRevisionSelector/useFieldErrorRevisionSelector (hooks) subscribe to
   // store changes and trigger re-renders when revisions change. buildDebugRevision and buildDebugSnapshot
@@ -108,11 +107,11 @@ const Erstatningsopgoerelse = React.memo(() => {
     return computeEoSnapshot({
       revision,
       stamdataValues: persistedStamdata ?? STAMDATA_INITIAL_VALUES,
-      eoValues: persistedEO ?? initialValuesRef.current,
+      eoValues: persistedEO ?? initialValues,
       stamdataErrors: getFieldErrorsBySourceSnapshot('stamdata'),
       eoErrors: getFieldErrorsBySourceSnapshot('erstatningsopgoerelse'),
     });
-  }, [buildDebugRevision]);
+  }, [buildDebugRevision, initialValues]);
 
   const buildDebugSnapshotRef = React.useRef(buildDebugSnapshot);
   React.useEffect(() => {
@@ -145,23 +144,23 @@ const Erstatningsopgoerelse = React.memo(() => {
   }, [currentDebugRevision, eoSnapshot?.revision, isSnapshotTabActive]);
 
   const handleOffentligeYdelserRowsChange = React.useCallback(
-    (newData: NonNullable<typeof form.values.offentligeYdelserRows>) => {
-      form.setValues((prev) => ({
+    (newData: NonNullable<ErstatningsopgoerelseValues['offentligeYdelserRows']>) => {
+      setFormValues((prev) => ({
         ...prev,
         offentligeYdelserRows: newData,
       }));
     },
-    [form.setValues]
+    [setFormValues]
   );
 
   const handleLoenindkomstAnsaettelsesforholdChange = React.useCallback(
     (updater: (prev: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold']) => ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold']) => {
-      form.setValues((prev) => ({
+      setFormValues((prev) => ({
         ...prev,
         loenindkomstAnsaettelsesforhold: updater(prev.loenindkomstAnsaettelsesforhold),
       }));
     },
-    [form.setValues]
+    [setFormValues]
   );
 
   const handleTabChange = React.useCallback(
@@ -374,7 +373,7 @@ const Erstatningsopgoerelse = React.memo(() => {
               eoSnapshot={eoSnapshot}
               stamdataValues={stamdataValuesForBeregningTab}
               eoValues={form.values}
-              setEOValues={form.setValues}
+              setEOValues={setFormValues}
             />
           </Box>
         )}

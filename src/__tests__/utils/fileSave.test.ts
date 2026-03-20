@@ -1,4 +1,3 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { eoFileDataSchema } from '../../schemas/eoFileSchema';
 import { decryptFromString } from '../../utils/encryption';
 import { readFromFileHandle } from '../../utils/fileSystemAccess';

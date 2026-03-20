@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import {
   appSettingsSchema,
   DEFAULT_APP_SETTINGS,

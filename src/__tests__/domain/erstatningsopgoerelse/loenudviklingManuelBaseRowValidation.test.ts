@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { validateLoenudviklingManualBaseRowSatser } from '../../../domain/erstatningsopgoerelse/loenudviklingManuelBaseRowValidation';
 import type { LoenudviklingManuelRow } from '../../../schemas/formSchemas';
 

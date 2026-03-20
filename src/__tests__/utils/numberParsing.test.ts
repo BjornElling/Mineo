@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { parsePercentToDecimal, parseAmount } from '../../utils/numberParsing';
 
 describe('parsePercentToDecimal', () => {

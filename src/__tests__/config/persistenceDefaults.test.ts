@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { buildPersistenceDefaults } from '../../config/persistenceDefaults';
 import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
 

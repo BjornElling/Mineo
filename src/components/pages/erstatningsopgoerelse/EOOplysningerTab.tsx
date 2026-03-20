@@ -1043,7 +1043,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   // Midlertidig EET-dato som TAF-afgrænsning — kun aktiv ved skadesdato < 2011-06-16.
   const midlertidigEETBeregnetDato = React.useMemo(
     () => resolveMidlertidigEetDatoHvisAktiv({ ...values, skadesdatoISO }),
-    [values.midlertidigtEetAfgorelse, values.midlertidigEETVirkningsdato, values.midlertidigEETAfgoerelseDato, skadesdatoISO]
+    [values, skadesdatoISO]
   );
 
   const erErhvervssygdom = skadestypeFromStamdata === 'Erhvervssygdom';

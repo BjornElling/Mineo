@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
 import { STORAGE_KEYS, UI_STORAGE_KEYS } from '../../config/storageManifest';
 import { eoFileDataSchema } from '../../schemas/eoFileSchema';
 import { LOCAL_STORAGE_KEY } from '../../settings/appSettingsStorage';

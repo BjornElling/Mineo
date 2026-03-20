@@ -1,6 +1,5 @@
 /// <reference types="vitest/globals" />
 
-import { describe, expect, it } from 'vitest';
 import { buildEODebugModel } from '../../../domain/debug/eoDebugModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 

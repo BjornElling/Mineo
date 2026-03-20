@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { getNavigationTargetFromRowId } from '../../../domain/debug/eoDebugNavigationMap';
 
 describe('getNavigationTargetFromRowId', () => {

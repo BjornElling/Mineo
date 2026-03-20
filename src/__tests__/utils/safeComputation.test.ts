@@ -1,4 +1,3 @@
-import { describe, expect, it, vi } from 'vitest';
 import { safeCompute } from '../../utils/safeComputation';
 
 vi.mock('../../utils/logger', () => ({
@@ -26,7 +25,6 @@ describe('safeCompute', () => {
 
   it('returnerer failure-result ved ikke-Error-kast (string)', () => {
     const result = safeCompute(() => {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'en streng';
     }, 'test.context.string');
     expect(result.success).toBe(false);

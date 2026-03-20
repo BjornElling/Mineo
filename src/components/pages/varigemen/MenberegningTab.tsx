@@ -42,7 +42,7 @@ const MenberegningTab: React.FC<{
     key: K
   ) => CommitHandler<VarigeMenValues[K]>;
 }> = ({ values, setValues, handleChange }) => {
-  const { values: stamValues, handleChange: handleStamChange } = usePersistedForm(stamdataSchema, 'stamdata', STAMDATA_INITIAL_VALUES);
+  const { values: stamValues } = usePersistedForm(stamdataSchema, 'stamdata', STAMDATA_INITIAL_VALUES);
   const { values: faellesPersondataValues, handleChange: handleFaellesPersondataChange } = usePersistedForm(
     faellesPersondataSchema,
     'faellesPersondata',

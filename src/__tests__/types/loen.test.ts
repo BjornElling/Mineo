@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import type { Loenperiode, LoenPaaHelligdage } from '../../types/loen';
 

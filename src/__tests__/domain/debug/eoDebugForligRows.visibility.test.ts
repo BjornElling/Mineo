@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { buildEODebugForligRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 

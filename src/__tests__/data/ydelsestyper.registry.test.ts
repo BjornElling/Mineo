@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { ydelsestyper, ydelsestypeKeys } from '../../data/ydelsestyper';
 
 describe('ydelsestyper registry', () => {

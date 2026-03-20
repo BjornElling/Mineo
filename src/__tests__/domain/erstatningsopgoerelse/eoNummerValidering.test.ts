@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatningsopgoerelse/eoNummerValidering';
 
 describe('erDetteFoersteErstatningsopgoerelse', () => {

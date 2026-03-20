@@ -214,15 +214,13 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
   const fieldErrorRevisions = persistenceSnapshot.fieldErrorRevisions;
   const authoritativeSnapshotEpoch = persistenceSnapshot.authoritativeSnapshotEpoch;
 
-  // Intentional one-time hydration from the bootstrap snapshot.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(() => {
     const store = formPersistenceStore.getState();
     store.hydrate(
       initialSectionsRef.current ?? createEmptyCache(),
       { hydrated: true, schemaFingerprint: CURRENT_VERSION }
     );
-  }, []);
+  }, [createEmptyCache]);
 
   React.useEffect(() => {
     const plan = initPlanRef.current;
@@ -243,15 +241,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     setDevtoolsProviderState('FormPersistenceProvider', true);
     return () => {
       setDevtoolsProviderState('FormPersistenceProvider', false);
-    };
-  }, []);
-
-  React.useEffect(() => {
-    const debugSaveState = debugSaveStateRef.current;
-    return () => {
-      if (!import.meta.env.DEV) return;
-      for (const [storageKey, entry] of debugSaveState.entries()) {
-      }
     };
   }, []);
 

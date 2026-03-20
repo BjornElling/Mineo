@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { ensureRowsWithTrailingEmpty } from '../../utils/tableRows';
 
 // ─── Test setup ───────────────────────────────────────────────────────────

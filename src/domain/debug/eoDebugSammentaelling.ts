@@ -392,7 +392,7 @@ export const buildEODebugSammentaellingModel = (args: {
    *  det samme resultat som beregningen. */
   svieSmerteEngine?: SvieSmerteEngineOutput;
 }): SammentaellingModel => {
-  const { values, errors, model, svieSmerteContext } = args;
+  const { values, model } = args;
 
   const beregningsenhed = computeTafBeregningsenhed(values);
   const isBeregningsperiode = values.beregnesUdFra === 'Beregningsperiode';

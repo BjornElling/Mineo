@@ -3,7 +3,6 @@
  * Ren formattering-utilities til EODebug display-værdier.
  */
 
-import { describe, it, expect } from 'vitest';
 import {
   formatIsoValue,
   formatDanishValue,

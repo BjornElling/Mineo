@@ -83,13 +83,6 @@ const dedupeMergedRegulationRows = (
   return regulationRows.filter((row) => !existingKeys.has(`${row.label}__${getRegulationDisplayValue(row)}`));
 };
 
-const REGULATION_LABEL_ORDER = [
-  'Valgt regulering',
-  'Navn på reguleringsform',
-  'Reguleringsdato',
-  'Alle reguleringsværdier udfyldt',
-] as const;
-
 const TAF_REGULATION_VALUE_LABELS = [
   'Reguleringsværdi på reguleringsdato for TAF',
   'Reguleringsværdi på start-dato for TAF',

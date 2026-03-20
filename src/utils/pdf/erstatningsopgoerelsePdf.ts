@@ -4,7 +4,6 @@
  * Genererer PDF-dokument med komplet erstatningsopgørelse
  */
 
-import type jsPDF from 'jspdf';
 import { PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
 import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from './pdfHelpers';
 import type { PdfCommonOptions } from './pdfOptions';

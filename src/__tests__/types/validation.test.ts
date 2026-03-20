@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import type { ValidationError, ValidationResult, ValidationErrorMap, FormValidator, FieldPath, ValidationSeverity } from '../../types/validation';
 
 // Note: validation.ts eksporterer kun typer — ingen runtime-funktioner at teste.

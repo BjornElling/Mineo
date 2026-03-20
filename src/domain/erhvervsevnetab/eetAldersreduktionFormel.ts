@@ -1,4 +1,4 @@
-export const buildAldersreduktionFormelTekst = (alderVedSkade: number, alderVedSkadeCapped: number): string => {
+export const buildAldersreduktionFormelTekst = (alderVedSkade: number, _alderVedSkadeCapped: number): string => {
   if (alderVedSkade <= 29) return '0 =';
   if (alderVedSkade > 54) {
     const uncappedPct = (alderVedSkade - 29) + (alderVedSkade - 54) * 2;

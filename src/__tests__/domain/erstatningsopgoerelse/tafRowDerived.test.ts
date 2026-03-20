@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import type { ISODateString } from '../../../types/branded';
 import type { TafPeriodeRow, FerieperiodeRow, ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';

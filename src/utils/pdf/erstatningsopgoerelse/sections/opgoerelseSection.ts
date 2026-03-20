@@ -131,7 +131,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     eoValues,
     stamdataValues,
     lineHeight,
-    doubleLineHeight,
     afsluttesMed,
     NBSP,
     rightColumnWidth,

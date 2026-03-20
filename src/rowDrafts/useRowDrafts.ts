@@ -113,7 +113,7 @@ export const useRowDrafts = <
       next[row.id] = config.validateDraftRow(row);
     }
     return next;
-  }, [draftRows, config.validateDraftRow]);
+  }, [draftRows, config]);
 
   const onFieldChange = React.useCallback(
     (rowId: RowId, field: TField) => (value: string) => {

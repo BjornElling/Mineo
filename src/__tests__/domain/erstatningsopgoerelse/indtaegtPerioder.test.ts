@@ -5,7 +5,6 @@
  * NOTE: `buildIncomeForRanges` er dækket i den separate `failClosed`-testfil.
  */
 
-import { describe, expect, it } from 'vitest';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';

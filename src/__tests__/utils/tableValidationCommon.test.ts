@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { isZeroOnlyString, isAmountValueStrict, isEffectivelyEmptyNumber, ZERO_ONLY_PATTERN } from '../../utils/tableValidationCommon';
 
 describe('ZERO_ONLY_PATTERN', () => {

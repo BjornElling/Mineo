@@ -109,7 +109,7 @@ export const sanitizePastedFraction = (text: string, options: Readonly<{ allowNe
   }
 
   const withoutDots = compact.replace(/\./g, '');
-  const allowedPattern = allowNegative ? /[0-9,/\-]/g : /[0-9,/]/g;
+  const allowedPattern = allowNegative ? /[0-9,/-]/g : /[0-9,/]/g;
   const allowed = withoutDots.match(allowedPattern) ?? [];
   return allowed.join('');
 };

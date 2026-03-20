@@ -297,7 +297,6 @@ export const buildTafPerYearBuildOutcome = (
   }
 
   const samletTafKravOre = clampMoneyOreToZero(source.tabtArbejdsfortjenesteOre);
-  const loenudviklingTotalOre = loenudvikling.loenudviklingTotal.value;
   const tafIndtaegterTotalOre =
     source.tafIndtaegter?.total.status === 'ok'
       ? source.tafIndtaegter.total.value

@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { calculateInterestDate, validateInterestCalculation } from '../../../domain/renteberegning/rentekravValidation';
 import type { DanishDateString } from '../../../types/branded';
 

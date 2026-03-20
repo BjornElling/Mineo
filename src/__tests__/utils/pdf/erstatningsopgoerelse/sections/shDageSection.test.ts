@@ -1,4 +1,3 @@
-import { describe, expect, it, vi } from 'vitest';
 import { renderShDageSection } from '../../../../../utils/pdf/erstatningsopgoerelse/sections/shDageSection';
 import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { toISODateString, isISODateString } from '../../../../../types/branded';

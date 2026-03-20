@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { act, render } from '@testing-library/react';
-import { describe, it, expect, beforeEach } from 'vitest';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { createActiveTabStorageKey } from '../../config/storageManifest';
 

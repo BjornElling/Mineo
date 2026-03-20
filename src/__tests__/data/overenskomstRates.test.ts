@@ -1,7 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import {
   overenskomster,
-  getOverenskomst,
   getOverenskomstMetaById,
   resolveOverenskomstNameOnlyDisplay,
   getOverenskomsterByOrg,
@@ -79,8 +77,6 @@ describe('overenskomster – dataintegritet', () => {
   });
 
   it('bygge-anlaeg overenskomst eksisterer og har expected grundloen', () => {
-    const o = getOverenskomst('bygge-anlaeg' as ReturnType<typeof getOverenskomst> extends infer T ? T extends undefined ? never : T : never extends { meta: { id: infer I } } ? I : never);
-    // Check via metadata lookup instead
     const meta = getOverenskomstMetaById('bygge-anlaeg');
     expect(meta).toBeDefined();
     expect(meta?.navn).toBe('Bygge-/anlægsoverenskomsten');

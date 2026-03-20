@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { IntegrityInvariant, type IntegrityIssue } from '../../../domain/debug/eoDebugTypes';
 import { maxDebugStatusFromIntegrityIssues, toDebugStatusRank } from '../../../domain/debug/eoDebugSeverity';
 

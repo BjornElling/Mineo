@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import type { ISODateString } from '../../../types/branded';
 import {
   normalizeBilagIndkomstYdelserMode,
@@ -6,7 +5,6 @@ import {
   BILAG_MODE_ALLE,
   BILAG_MODE_PERIODEN,
   type IsoRange,
-  type PeriodRangeGroup,
 } from '../../../domain/erstatningsopgoerelse/periodRangeGroups';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';

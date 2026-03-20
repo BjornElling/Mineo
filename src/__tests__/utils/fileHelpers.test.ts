@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { sanitizeFilename, generateFilename } from '../../utils/fileHelpers';
 
 // ─── sanitizeFilename ──────────────────────────────────────────────────────────

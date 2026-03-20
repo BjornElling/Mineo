@@ -114,7 +114,7 @@ const persistLog = (entry: Omit<LogEntry, 'id'>): void => {
  * @param {string} message - Besked at logge
  * @param {Record<string, unknown>} [data] - Ekstra data
  */
-export const logDebug = (message: string, data?: Record<string, unknown>): void => {
+export const logDebug = (_message: string, _data?: Record<string, unknown>): void => {
 };
 
 /**
@@ -123,7 +123,7 @@ export const logDebug = (message: string, data?: Record<string, unknown>): void 
  * @param {string} message - Besked at logge
  * @param {Record<string, unknown>} [data] - Ekstra data
  */
-export const logInfo = (message: string, data?: Record<string, unknown>): void => {
+export const logInfo = (_message: string, _data?: Record<string, unknown>): void => {
 };
 
 /**

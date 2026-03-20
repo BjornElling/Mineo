@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { eoFileDataSchema } from '../../schemas/eoFileSchema';
 
 describe('error-debug contract isolation', () => {

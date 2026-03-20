@@ -9,7 +9,6 @@
 
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { vi } from 'vitest';
 import EODebugRegulationSections from '../../../../components/pages/erstatningsopgoerelse/EODebugRegulationSections';
 import type { RegulationDebugSection } from '../../../../domain/debug/eoDebugRegulationViewModel';
 

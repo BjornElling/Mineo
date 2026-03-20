@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { parseForligsgrad } from '../../../domain/erstatningsopgoerelse/forligsgrad';
 
 describe('parseForligsgrad', () => {

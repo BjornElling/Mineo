@@ -54,13 +54,12 @@ export interface UsePersistedFormReturn<T> {
  * ```
  */
 export const usePersistedForm = <K extends StorageKey>(
-  _schema: z.ZodType<PersistedSectionMap[K]>,
+  schema: z.ZodType<PersistedSectionMap[K]>,
   pageKey: K,
   initialValues: PersistedSectionMap[K]
 ): UsePersistedFormReturn<PersistedSectionMap[K]> => {
   const { getPersistedData, persistData, clearPageData, clearFieldErrors, authoritativeSnapshotEpoch } = useFormPersistence();
   const initialValuesRef = React.useRef(initialValues);
-  const schemaRef = React.useRef(_schema);
   const getPersistedDataRef = React.useRef(getPersistedData);
   const persistDataRef = React.useRef(persistData);
   const clearPageDataRef = React.useRef(clearPageData);
@@ -69,9 +68,6 @@ export const usePersistedForm = <K extends StorageKey>(
     initialValuesRef.current = initialValues;
   }, [initialValues]);
   React.useEffect(() => {
-    schemaRef.current = _schema;
-  }, [_schema]);
-  React.useEffect(() => {
     getPersistedDataRef.current = getPersistedData;
     persistDataRef.current = persistData;
     clearPageDataRef.current = clearPageData;
@@ -79,25 +75,25 @@ export const usePersistedForm = <K extends StorageKey>(
   }, [clearFieldErrors, clearPageData, getPersistedData, persistData]);
 
   const parsePersisted = React.useCallback((persisted: unknown): PersistedSectionMap[K] | null => {
-    const parsed = schemaRef.current.safeParse(persisted);
+    const parsed = schema.safeParse(persisted);
     if (!parsed.success) {
       return null;
     }
     return parsed.data;
-  }, []);
+  }, [schema]);
 
   // Defensiv merge med Zod validation
   const [values, setValuesState] = React.useState<PersistedSectionMap[K]>(() => {
-    const persistedRaw = getPersistedDataRef.current(pageKey);
+    const persistedRaw = getPersistedData(pageKey);
 
     if (!persistedRaw) {
-      return initialValuesRef.current;
+      return initialValues;
     }
 
     const persisted = parsePersisted(persistedRaw);
-    if (!persisted) return initialValuesRef.current;
+    if (!persisted) return initialValues;
 
-    return { ...initialValuesRef.current, ...persisted };
+    return { ...initialValues, ...persisted };
   });
 
   const [formVersion, bumpFormVersion] = React.useReducer((v: number) => v + 1, 0);
@@ -115,7 +111,7 @@ export const usePersistedForm = <K extends StorageKey>(
         const persisted = parsePersisted(persistedRaw);
         setValuesState(persisted ? { ...initialValuesRef.current, ...persisted } : initialValuesRef.current);
       }
-    } catch (error) {
+    } catch {
       bumpFormVersion();
       clearFieldErrorsRef.current(pageKey);
       setValuesState(initialValuesRef.current);

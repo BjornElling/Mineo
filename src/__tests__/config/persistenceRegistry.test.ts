@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { persistenceSchemas, persistenceSchemaFingerprint } from '../../config/persistenceRegistry';
 import { STORAGE_KEYS } from '../../config/storageManifest';
 import type { StorageKey } from '../../config/storageManifest';

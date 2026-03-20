@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 
 import { eoSnapshotToBeregningView } from '../../../domain/erstatningsopgoerelse/eoSnapshotToBeregningView';
 import { buildControlMismatchInvariant, buildTafPerYearAfrundingInvariant } from '../../../domain/erstatningsopgoerelse/eoSnapshotInvariants';

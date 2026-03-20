@@ -12,7 +12,6 @@ import { amountValueToNumber } from '../../utils/expressionAmount';
 import { detectOverlappingPeriods } from './periodOverlapDetection';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { isoDateToDate } from '../dates/isoDate';
-import { addDays } from '../../utils/dateUtils';
 import { perioderCoverDate } from './sharedPdfUtils';
 import { isSvieSmerteRowEmpty } from './rowEmpty';
 import { parseForligsgrad } from './forligsgrad';
@@ -320,4 +319,3 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     totalOre: clampMoneyOreToZero(totalOre),
   };
 };
-

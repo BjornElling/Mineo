@@ -79,8 +79,7 @@ const buildMinimalRates = (): { ref: RateEntry[]; sur: RateEntry[] } => ({
 
 // Omgå branded-type-validering for null-path tests — parseDanishDate tager 'DanishDateString | string'
 // men calculateProcessInterestWithRates tager DanishDateString; vi caster til at teste null-paths.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const badDate = 'not-a-date' as any;
+const badDate = 'not-a-date' as unknown as Parameters<typeof calculateProcessInterestWithRates>[0];
 
 describe('calculateProcessInterestWithRates — null-paths', () => {
   it('ugyldig startdato (ikke-parseable) → null', () => {

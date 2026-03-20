@@ -221,7 +221,7 @@ const Aarsloen = React.memo(() => {
   );
   const shouldWarnFeriePct = React.useMemo(
     () => shouldWarnAarsloenFeriePct(values),
-    [values.feriePct, values.fuldLoenUnderFerie, values.retTilSjetteFerieuge]
+    [values]
   );
 
   const aarsloenPdfDownloadButton = canDownloadPdf ? (
@@ -711,5 +711,4 @@ const Aarsloen = React.memo(() => {
 Aarsloen.displayName = 'Aarsloen';
 
 export default Aarsloen;
-
 

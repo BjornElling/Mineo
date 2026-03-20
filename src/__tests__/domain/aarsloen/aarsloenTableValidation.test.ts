@@ -1,5 +1,4 @@
 /// <reference types="vitest/globals" />
-import { describe, expect, it } from 'vitest';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { AarsloenTableRow } from '../../../schemas/formSchemas';
 import { getAarsloenTableValidation } from '../../../domain/aarsloen/aarsloenTableValidation';

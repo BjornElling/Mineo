@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { persistenceSchemas } from '../../../config/persistenceRegistry';
 

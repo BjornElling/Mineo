@@ -1,4 +1,4 @@
-import { formatAsAmount, formatAsAmountTrimmed, formatKr } from '../../../utils/formatUtils';
+import { formatAsAmountTrimmed, formatKr } from '../../../utils/formatUtils';
 import type { EetIssue } from '../../../domain/erhvervsevnetab/eetTypes';
 
 export { formatKr };

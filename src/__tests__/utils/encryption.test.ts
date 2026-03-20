@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { beforeAll, describe, expect, it } from 'vitest';
 import { webcrypto } from 'node:crypto';
 import { decryptFromString, encryptToString, EncryptionError } from '../../utils/encryption';
 

@@ -133,7 +133,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     () => (eoSnapshot ? eoSnapshotToBeregningView(eoSnapshot) : null),
     [eoSnapshot]
   );
-  const authoritativeBlockingInvariants = beregningView?.authoritativeBlockingInvariants ?? [];
+  const authoritativeBlockingInvariants = React.useMemo(
+    () => beregningView?.authoritativeBlockingInvariants ?? [],
+    [beregningView]
+  );
 
   // ============================================================================
   // SAMLE ALLE DEBUG-ROWS MED NAVIGATION
@@ -166,13 +169,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     () => (eoSnapshot ? eoSnapshotToTafPerYearPdfDocument(eoSnapshot) : null),
     [eoSnapshot]
   );
-  const eoPdfBlockingInvariants = eoPdfProjection?.kind === 'blocked'
-    ? eoPdfProjection.invariants
-    : [];
-  const tafPdfBlockingInvariants = tafPdfProjection?.kind === 'blocked'
-    ? tafPdfProjection.invariants
-    : [];
-
+  const eoPdfBlockingInvariants = React.useMemo(
+    () => (eoPdfProjection?.kind === 'blocked' ? eoPdfProjection.invariants : []),
+    [eoPdfProjection]
+  );
   const isSystemInvariant = React.useCallback((invariant: EoInvariant): boolean => {
     return invariant.source === 'system';
   }, []);
@@ -264,7 +264,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     eoPdfBlockingInvariants,
     eoSnapshot,
     isSystemInvariant,
-    tafPdfBlockingInvariants,
   ]);
 
   // ============================================================================
@@ -348,15 +347,17 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   // CHECKBOX STATE FOR ERSTATNINGSOPGØRELSE-DOWNLOAD
   // ============================================================================
 
-  const selectedElements = eoValues.eoBilagSelection ?? {
-    opgoerelse: true as const,
-    loenindkomst: true,
-    offentligeYdelser: true,
-    shDage: false,
-    regulering: true,
-    okSatser: true,
-    sygeferiegodtgoerelse: false,
-  };
+  const selectedElements = React.useMemo(() => (
+    eoValues.eoBilagSelection ?? {
+      opgoerelse: true as const,
+      loenindkomst: true,
+      offentligeYdelser: true,
+      shDage: false,
+      regulering: true,
+      okSatser: true,
+      sygeferiegodtgoerelse: false,
+    }
+  ), [eoValues.eoBilagSelection]);
   const loenindkomstOgOffentligeYdelserIndgaar =
     eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
 

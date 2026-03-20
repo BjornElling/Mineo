@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest';
 
 type StorageMock = {
   getItem: (key: string) => string | null;

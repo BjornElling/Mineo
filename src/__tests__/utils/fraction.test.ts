@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { isFractionDraftAllowed, parseFractionString, sanitizePastedFraction } from '../../utils/fraction';
 
 describe('fraction utils', () => {

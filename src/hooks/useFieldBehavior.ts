@@ -53,7 +53,7 @@ export const useFieldBehavior = (
   const resetCaretColor = useCallback(() => {
     const maybeInput = inputRef.current?.querySelector?.('input') || inputRef.current;
     if (maybeInput && 'style' in maybeInput) {
-      (maybeInput as HTMLInputElement).style.caretColor = '';
+      (maybeInput as HTMLInputElement).style.removeProperty('caret-color');
     }
   }, []);
 
@@ -83,7 +83,7 @@ export const useFieldBehavior = (
       if (maybeInput && 'setSelectionRange' in maybeInput) {
         const input = maybeInput as HTMLInputElement;
         input.setSelectionRange?.(0, 0);
-        input.style.caretColor = 'transparent';
+        input.style.setProperty('caret-color', 'transparent');
       }
     }
   }, [onChange]);

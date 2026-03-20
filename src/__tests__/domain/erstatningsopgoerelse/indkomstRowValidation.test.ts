@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import type { AarsloenTableRow, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import {

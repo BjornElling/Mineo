@@ -269,12 +269,14 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
     }, 0);
   }, [getSectionRevision]);
   const combinedSectionRevisionRef = React.useRef<number>(combinedSectionRevision);
-  combinedSectionRevisionRef.current = combinedSectionRevision;
+  React.useEffect(() => {
+    combinedSectionRevisionRef.current = combinedSectionRevision;
+  }, [combinedSectionRevision]);
   const [savedRevisionBaseline, setSavedRevisionBaseline] = React.useState<number>(combinedSectionRevision);
   const hasUnsavedChanges = combinedSectionRevision > savedRevisionBaseline;
 
   React.useEffect(() => {
-    setSavedRevisionBaseline(combinedSectionRevision);
+    setSavedRevisionBaseline(combinedSectionRevisionRef.current);
   }, [authoritativeSnapshotEpoch]);
 
   React.useEffect(() => {
@@ -548,29 +550,33 @@ const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
       pendingPwaRequestRef.current = null;
       return 'error';
     }
-  }, [location.pathname, requestApplyLoadedSnapshot]);
+  }, [location.pathname, requestApplyLoadedSnapshot, settings]);
 
   const processNextPwaFileOpenRequest = React.useCallback(() => {
-    if (isPwaLoadInProgressRef.current) return;
-    if (pendingLoadResult !== null) return;
-    if (pendingOverwriteApply !== null) return;
+    const runNext = (): void => {
+      if (isPwaLoadInProgressRef.current) return;
+      if (pendingLoadResult !== null) return;
+      if (pendingOverwriteApply !== null) return;
 
-    const request = takeNextPwaFileOpenRequest();
-    if (!request) return;
+      const request = takeNextPwaFileOpenRequest();
+      if (!request) return;
 
-    isPwaLoadInProgressRef.current = true;
+      isPwaLoadInProgressRef.current = true;
 
-    void handleHentFromPwaRequest(request)
-      .then((outcome) => {
-        isPwaLoadInProgressRef.current = false;
-        if (outcome !== 'preflight' && outcome !== 'awaitingUser') {
-          processNextPwaFileOpenRequest();
-        }
-      })
-      .catch(() => {
-        isPwaLoadInProgressRef.current = false;
-        processNextPwaFileOpenRequest();
-      });
+      void handleHentFromPwaRequest(request)
+        .then((outcome) => {
+          isPwaLoadInProgressRef.current = false;
+          if (outcome !== 'preflight' && outcome !== 'awaitingUser') {
+            runNext();
+          }
+        })
+        .catch(() => {
+          isPwaLoadInProgressRef.current = false;
+          runNext();
+        });
+    };
+
+    runNext();
   }, [handleHentFromPwaRequest, pendingLoadResult, pendingOverwriteApply]);
 
   React.useEffect(() => {

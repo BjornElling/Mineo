@@ -178,7 +178,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
     expect(renderedText).toContain('- 25.000,00 kr.');
   });
 
-  it('viser forlig-sektion og forlig-reference i \"I alt\"-linjen når forlig er indgået', async () => {
+  it('viser forlig-sektion og forlig-reference i "I alt"-linjen når forlig er indgået', async () => {
     const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
 
     generateTafFordeltPaaAarPdf({

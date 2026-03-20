@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
 import { loadFromFile, validateEoFile } from '../../utils/fileLoad';
 import { encryptToString } from '../../utils/encryption';

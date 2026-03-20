@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { isLoenperiodeValue, isLoenPaaHelligdageValue } from '../../utils/zodTypeGuards';
 
 describe('isLoenperiodeValue', () => {

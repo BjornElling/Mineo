@@ -271,7 +271,7 @@ const EetDifferencekravTab: React.FC<Props> = ({ values, setValues, onGoToEetOpl
       (event: CommitEvent<boolean>) => {
         updateBilag(key, event.target.value);
       },
-    [bilagSelection, updateBilag]
+    [updateBilag]
   );
 
   return (

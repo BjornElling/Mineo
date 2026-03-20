@@ -42,7 +42,6 @@ const EetOplysningerTab: React.FC<EetOplysningerTabProps> = ({
   handleEalAarsloenChange,
   skadesdato,
 }) => {
-  const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
   const faellesPersondataFieldErrors = useFormFieldErrors('faellesPersondata');
   const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
   const reportSkadelidteFodselsdatoInputError = useFormFieldErrorReporter('faellesPersondata', 'skadelidteFodselsdato', {

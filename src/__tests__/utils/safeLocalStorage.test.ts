@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { getSafeLocalStorage } from '../../utils/safeLocalStorage';
 
 // ─── getSafeLocalStorage ──────────────────────────────────────────────────────

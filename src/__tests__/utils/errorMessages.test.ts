@@ -1,10 +1,9 @@
-import { describe, expect, it } from 'vitest';
 import { ERROR_MESSAGES, CalculationError, getUserMessage, isCalculationError } from '../../utils/errorMessages';
 import type { ErrorCode } from '../../utils/errorMessages';
 
 describe('ERROR_MESSAGES', () => {
   it('alle beskeder er ikke-tomme strenge', () => {
-    for (const [key, message] of Object.entries(ERROR_MESSAGES)) {
+    for (const [_key, message] of Object.entries(ERROR_MESSAGES)) {
       expect(typeof message).toBe('string');
       expect(message.trim().length).toBeGreaterThan(0);
     }

@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
 
 const SRC_ROOT = path.resolve(process.cwd(), 'src');
 

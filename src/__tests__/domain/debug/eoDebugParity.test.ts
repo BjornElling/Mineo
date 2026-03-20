@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { findFirstDebugTableParityDiff } from '../../../domain/debug/eoDebugParity';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

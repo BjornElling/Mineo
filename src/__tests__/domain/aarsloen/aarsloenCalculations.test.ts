@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import type { ISODateString } from '../../../types/branded';
 import type { PeriodeResult } from '../../../utils/periodeBeregning';
 import { beregnMetode, beregnOmregnetAarsloen } from '../../../domain/aarsloen/aarsloenCalculations';

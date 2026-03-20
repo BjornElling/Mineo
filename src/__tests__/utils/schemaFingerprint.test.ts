@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { computeSchemaFingerprint } from '../../utils/schemaFingerprint';
 import { z } from 'zod';
 

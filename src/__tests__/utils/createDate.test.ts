@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { createDate } from '../../types/branded';
 
 describe('createDate', () => {

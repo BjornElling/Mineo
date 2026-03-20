@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { computeRowDateBounds } from '../../../domain/erstatningsopgoerelse/rowDateBounds';
 import type { ISODateString } from '../../../types/branded';
 

@@ -1,4 +1,3 @@
-import { describe, expect, it, vi } from 'vitest';
 import { renderReguleringSection } from '../../../../../utils/pdf/erstatningsopgoerelse/sections/reguleringSection';
 import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../../../domain/stamdata/stamdataInitialValues';

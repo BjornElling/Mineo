@@ -10,7 +10,7 @@ import {
 import { klLoenSatser } from '../../data/KL/klLoenSatser';
 import { rltnLoenSatser } from '../../data/RLTN/rltnLoenSatser';
 import { toLoentrin } from '../../data/offentligLoenTypes';
-import type { OffentligOverenskomstType, Loengruppe, Loentrin } from '../../data/offentligLoenTypes';
+import type { OffentligOverenskomstType } from '../../data/offentligLoenTypes';
 
 const d = (s: string) => toDanishDateString(s);
 const lt = toLoentrin;

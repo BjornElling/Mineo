@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { commitIsoDateFromDraftString } from '../../../domain/dates/dateCommit';
 
 describe('commitIsoDateFromDraftString', () => {

@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { toReadableSummaryMessage } from '../../../domain/erstatningsopgoerelse/readableSummaryMessage';
 
 describe('toReadableSummaryMessage', () => {

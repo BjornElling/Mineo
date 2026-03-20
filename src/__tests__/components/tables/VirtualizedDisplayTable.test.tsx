@@ -30,7 +30,6 @@ describe('VirtualizedDisplayTable', () => {
           { id: 'col:a', header: 'A', width: 80, align: 'left' },
           { id: 'col:b', header: 'B', width: 80, align: 'left' },
         ]}
-        stickyHeader
         rowCount={1}
         rowHeight={28}
         height={28}

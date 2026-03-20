@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import type { ISODateString } from '../../../types/branded';
-import type { TafConstraintSource, TafConstraintBounds, IsoRange } from '../../../domain/erstatningsopgoerelse/tafPeriodConstraints';
+import type { IsoRange } from '../../../domain/erstatningsopgoerelse/tafPeriodConstraints';
 import {
   resolveTafConstraintBounds,
   resolveTafFejlgivendeBounds,

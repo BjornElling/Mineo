@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../../../domain/erstatningsopgoerelse/eoPdfMoneyUtils';
 
 describe('eoPdfMoneyUtils', () => {

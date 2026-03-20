@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { buildReguleringsvaerdierTableData, buildReguleringIndexRows } from '../../../domain/erstatningsopgoerelse/eoPdfReguleringEngine';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';

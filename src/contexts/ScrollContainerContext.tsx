@@ -30,11 +30,7 @@ export const ScrollContainerProvider: React.FC<{
 }> = ({ containerRef, children }) => {
   // Track container-elementet direkte (ikke ref-objektet)
   // Dette sikrer at vi kun re-renderer når det faktiske DOM-element skifter
-  const [containerElement, setContainerElement] = React.useState<HTMLElement | null>(() => {
-    // Initial state: Prøv at læse containerRef.current med det samme
-    const element = containerRef.current;
-    return element instanceof HTMLElement ? element : null;
-  });
+  const [containerElement, setContainerElement] = React.useState<HTMLElement | null>(null);
 
   React.useEffect(() => {
     const element = containerRef.current;

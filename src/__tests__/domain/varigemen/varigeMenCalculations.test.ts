@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import type { ISODateString } from '../../../types/branded';
 import type { VarigeMenValues } from '../../../schemas/formSchemas';
 import type { YearlyRate } from '../../../data/regulationRates';

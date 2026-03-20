@@ -1,4 +1,3 @@
-import { describe, expect, it, vi } from 'vitest';
 import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../../../types/branded';
 import { renderLoenindkomstSection } from '../../../../../utils/pdf/erstatningsopgoerelse/sections/loenindkomstSection';

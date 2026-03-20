@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { createRowId } from '../../utils/rowId';
 
 describe('createRowId', () => {

@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { act, render } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
 import { useFieldBehavior } from '../../hooks/useFieldBehavior';
 import type { UseFieldBehaviorReturn } from '../../hooks/useFieldBehavior';
 

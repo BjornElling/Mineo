@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { ok, err, isErr } from '../../types/result';
 import type { Result } from '../../types/result';
 

@@ -186,7 +186,7 @@ describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
     expect(eoLoenindkomstInputErrorStore.getState().errors).toEqual({ 'af-1': true });
 
     const storageProto = Object.getPrototypeOf(window.sessionStorage) as { setItem: (key: string, value: string) => void };
-    const setItemSpy = vi.spyOn(storageProto, 'setItem').mockImplementation((key: string, value: string) => {
+    const setItemSpy = vi.spyOn(storageProto, 'setItem').mockImplementation((_key: string, _value: string) => {
       throw new Error('Injected failure');
     });
 

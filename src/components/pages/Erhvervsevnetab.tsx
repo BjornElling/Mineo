@@ -1,6 +1,5 @@
 import React from 'react';
 import { Box, Tabs, Tab, Typography } from '@mui/material';
-import ContentBox from '../layout/ContentBox';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { usePersistedSection } from '../../hooks/usePersistedSection';

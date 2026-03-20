@@ -147,7 +147,6 @@ describe('LicenseModal', () => {
       const { container } = renderLicenseModal({ open: true, onClose });
 
       // Test outcome: pre-element eksisterer og indeholder tekst med linjeskift
-      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const preElement = container.querySelector('pre');
       expect(preElement).toBeInTheDocument();
 
