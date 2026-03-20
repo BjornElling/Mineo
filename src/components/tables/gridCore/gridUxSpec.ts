@@ -6,7 +6,7 @@
  *
  * Scope (current): HTML-grid tables using `StandardGridTable` + `Table*Input` components,
  * including (at least):
- * - Årsløn (`src/components/tables/AarsloenTable.tsx`)
+ * - Årsløn/Lønindkomst (`src/components/tables/StandardLoenTable.tsx`)
  * - Offentlige ydelser (`src/components/tables/OffentligeYdelserTable.tsx`)
  */
 

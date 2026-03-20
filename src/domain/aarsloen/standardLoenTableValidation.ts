@@ -1,20 +1,20 @@
-import type { AarsloenTableRow, Loenperiode } from '../../schemas/formSchemas';
+import type { StandardLoenTableRow, Loenperiode } from '../../schemas/formSchemas';
 import type {
-  AarsloenTableColumnKey,
-  AarsloenTableFirstErrorCell,
-  AarsloenTableValidationSummary,
+  StandardLoenTableColumnKey,
+  StandardLoenTableFirstErrorCell,
+  StandardLoenTableValidationSummary,
   TableError,
 } from '../../types/table';
 import { isAmountValueStrict } from '../../utils/tableValidationCommon';
 
-export type AarsloenTableCellErrorMap = Readonly<Record<string, true>>;
+export type StandardLoenTableCellErrorMap = Readonly<Record<string, true>>;
 
-export type AarsloenTableValidationResult = Readonly<{
-  summary: AarsloenTableValidationSummary;
+export type StandardLoenTableValidationResult = Readonly<{
+  summary: StandardLoenTableValidationSummary;
   errors: TableError[];
 }>;
 
-export const isAarsloenTableValueEffectivelyEmptyForValidation = (value: unknown): boolean => {
+export const isStandardLoenTableValueEffectivelyEmptyForValidation = (value: unknown): boolean => {
   if (value === undefined || value === null) return true;
   if (typeof value === 'string') {
     return value.trim() === '';
@@ -29,24 +29,24 @@ export const isAarsloenTableValueEffectivelyEmptyForValidation = (value: unknown
   return false;
 };
 
-const PERIOD_KEYS: Record<Loenperiode, readonly [AarsloenTableColumnKey, AarsloenTableColumnKey]> = {
+const PERIOD_KEYS: Record<Loenperiode, readonly [StandardLoenTableColumnKey, StandardLoenTableColumnKey]> = {
   maaned: ['col0_maaned', 'col1_maaned'],
   uge: ['col0_uge', 'col1_uge'],
   dag: ['col0_dag', 'col1_dag'],
 };
 
-const OTHER_KEYS: readonly AarsloenTableColumnKey[] = ['col2', 'col3', 'col4', 'col5'];
+const OTHER_KEYS: readonly StandardLoenTableColumnKey[] = ['col2', 'col3', 'col4', 'col5'];
 
-const hasAnyAmountInput = (row: AarsloenTableRow): boolean => {
+const hasAnyAmountInput = (row: StandardLoenTableRow): boolean => {
   return OTHER_KEYS.some((key) => row[key] !== undefined && row[key] !== null);
 };
 
-const getColumnOrder = (loenperiode: Loenperiode): readonly AarsloenTableColumnKey[] => {
+const getColumnOrder = (loenperiode: Loenperiode): readonly StandardLoenTableColumnKey[] => {
   const [startKey, endKey] = PERIOD_KEYS[loenperiode];
   return [startKey, endKey, ...OTHER_KEYS];
 };
 
-const isAarsloenTableColumnKey = (value: string): value is AarsloenTableColumnKey => {
+const isStandardLoenTableColumnKey = (value: string): value is StandardLoenTableColumnKey => {
   return (
     value === 'col0_maaned' ||
     value === 'col1_maaned' ||
@@ -61,15 +61,15 @@ const isAarsloenTableColumnKey = (value: string): value is AarsloenTableColumnKe
   );
 };
 
-const collectCellErrorsByRow = (cellErrorsByCellKey: AarsloenTableCellErrorMap): Map<string, Set<AarsloenTableColumnKey>> => {
-  const byRow = new Map<string, Set<AarsloenTableColumnKey>>();
+const collectCellErrorsByRow = (cellErrorsByCellKey: StandardLoenTableCellErrorMap): Map<string, Set<StandardLoenTableColumnKey>> => {
+  const byRow = new Map<string, Set<StandardLoenTableColumnKey>>();
 
   for (const cellKey of Object.keys(cellErrorsByCellKey)) {
     const separatorIdx = cellKey.indexOf(':');
     if (separatorIdx < 0) continue;
     const rowId = cellKey.slice(0, separatorIdx);
     const colKeyRaw = cellKey.slice(separatorIdx + 1);
-    if (!isAarsloenTableColumnKey(colKeyRaw)) continue;
+    if (!isStandardLoenTableColumnKey(colKeyRaw)) continue;
     const set = byRow.get(rowId);
     if (set) {
       set.add(colKeyRaw);
@@ -81,36 +81,36 @@ const collectCellErrorsByRow = (cellErrorsByCellKey: AarsloenTableCellErrorMap):
   return byRow;
 };
 
-export const getAarsloenTableValidation = ({
+export const getStandardLoenTableValidation = ({
   rows,
   loenperiode,
   cellErrorsByCellKey = {},
 }: Readonly<{
-  rows: readonly AarsloenTableRow[];
+  rows: readonly StandardLoenTableRow[];
   loenperiode: Loenperiode;
-  cellErrorsByCellKey?: AarsloenTableCellErrorMap;
-}>): AarsloenTableValidationResult => {
-  const rowIssues: AarsloenTableValidationSummary['rowIssues'] = [];
+  cellErrorsByCellKey?: StandardLoenTableCellErrorMap;
+}>): StandardLoenTableValidationResult => {
+  const rowIssues: StandardLoenTableValidationSummary['rowIssues'] = [];
   const errors: TableError[] = [];
   const cellErrorsByRow = collectCellErrorsByRow(cellErrorsByCellKey);
 
   let hasErrors = false;
   let hasWarnings = false;
-  let firstErrorCell: AarsloenTableFirstErrorCell | undefined;
+  let firstErrorCell: StandardLoenTableFirstErrorCell | undefined;
 
   const [periodStartKey, periodEndKey] = PERIOD_KEYS[loenperiode];
-  const relevantKeys = new Set<AarsloenTableColumnKey>([periodStartKey, periodEndKey, ...OTHER_KEYS]);
+  const relevantKeys = new Set<StandardLoenTableColumnKey>([periodStartKey, periodEndKey, ...OTHER_KEYS]);
   const columnOrder = getColumnOrder(loenperiode);
 
   for (const row of rows) {
-    const startFilled = !isAarsloenTableValueEffectivelyEmptyForValidation(row[periodStartKey]);
-    const endFilled = !isAarsloenTableValueEffectivelyEmptyForValidation(row[periodEndKey]);
+    const startFilled = !isStandardLoenTableValueEffectivelyEmptyForValidation(row[periodStartKey]);
+    const endFilled = !isStandardLoenTableValueEffectivelyEmptyForValidation(row[periodEndKey]);
     const periodComplete = startFilled && endFilled;
 
     const otherFilled = hasAnyAmountInput(row);
     const hasAnyFilled = startFilled || endFilled || otherFilled;
 
-    const rowErrorKeys = cellErrorsByRow.get(row.id) ?? new Set<AarsloenTableColumnKey>();
+    const rowErrorKeys = cellErrorsByRow.get(row.id) ?? new Set<StandardLoenTableColumnKey>();
     const hasInputError = Array.from(rowErrorKeys).some((colKey) => relevantKeys.has(colKey));
 
     for (const colKey of rowErrorKeys) {

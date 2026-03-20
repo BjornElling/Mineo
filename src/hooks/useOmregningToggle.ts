@@ -1,5 +1,5 @@
 import React from 'react';
-import type { AarsloenTableHandle, StyledToggleSwitchHandle } from '../types/handles';
+import type { StandardLoenTableHandle, StyledToggleSwitchHandle } from '../types/handles';
 import type { CommitEvent, CommitHandler } from '../types/fieldEvents';
 
 // ============================================================================
@@ -37,7 +37,7 @@ interface UseOmregningToggleProps {
   initialEnabled: boolean;
   tabelHarFejl: boolean;
   hasValidPeriod: boolean;
-  tabelRef: React.RefObject<AarsloenTableHandle | null>;
+  tabelRef: React.RefObject<StandardLoenTableHandle | null>;
   toggleRef: React.RefObject<StyledToggleSwitchHandle | null>;
   onEnabledChange: (enabled: boolean) => void;
 }

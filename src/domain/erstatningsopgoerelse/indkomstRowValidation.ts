@@ -1,9 +1,9 @@
-import type { OffentligeYdelserRow, AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../schemas/formSchemas';
+import type { OffentligeYdelserRow, StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../schemas/formSchemas';
 import { dateToISO } from '../../types/branded';
 import { parseDanishDate, parseWeekString } from '../../utils/dateUtils';
 import { MIN_YEAR, CURRENT_YEAR } from '../../config/dateRanges';
-import { getAarsloenTableValidation, isAarsloenTableValueEffectivelyEmptyForValidation } from '../aarsloen/aarsloenTableValidation';
-import type { AarsloenTableColumnKey } from '../../types/table';
+import { getStandardLoenTableValidation, isStandardLoenTableValueEffectivelyEmptyForValidation } from '../aarsloen/standardLoenTableValidation';
+import type { StandardLoenTableColumnKey } from '../../types/table';
 import {
   getOffentligeYdelserTableValidation,
   isOffentligeYdelserAmountValueValidForValidation,
@@ -16,7 +16,7 @@ import { buildLoenArbejdsdageSet } from './periodiseringsMotor';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
 import { formatDanishDate } from '../../utils/dateUtils';
 
-const AARSLOEN_AMOUNT_COLUMN_KEYS = ['col2', 'col3', 'col4', 'col5'] as const satisfies ReadonlyArray<AarsloenTableColumnKey>;
+const AARSLOEN_AMOUNT_COLUMN_KEYS = ['col2', 'col3', 'col4', 'col5'] as const satisfies ReadonlyArray<StandardLoenTableColumnKey>;
 
 export type AarsloenZeroArbejdsdageValidationInput = Pick<
   ErstatningsopgoerelseValues,
@@ -34,18 +34,18 @@ export const buildLoenindkomstZeroArbejdsdageMessage = (fra: Date, til: Date): s
 
 type AarsloenZeroArbejdsdageIssue = Readonly<{
   rowId: string;
-  colKeys: readonly AarsloenTableColumnKey[];
+  colKeys: readonly StandardLoenTableColumnKey[];
   message: string;
 }>;
 
 const isValidMonthValue = (value: string | undefined): boolean => {
-  if (isAarsloenTableValueEffectivelyEmptyForValidation(value)) return true;
+  if (isStandardLoenTableValueEffectivelyEmptyForValidation(value)) return true;
   const parsed = Number.parseInt((value ?? '').trim(), 10);
   return Number.isFinite(parsed) && parsed >= 1 && parsed <= 12;
 };
 
 const isValidYearValue = (value: string | undefined): boolean => {
-  if (isAarsloenTableValueEffectivelyEmptyForValidation(value)) return true;
+  if (isStandardLoenTableValueEffectivelyEmptyForValidation(value)) return true;
   const trimmed = (value ?? '').trim();
   if (!/^\d{4}$/.test(trimmed)) return false;
   const year = Number.parseInt(trimmed, 10);
@@ -53,7 +53,7 @@ const isValidYearValue = (value: string | undefined): boolean => {
 };
 
 const isValidWeekValue = (value: string | undefined): boolean => {
-  if (isAarsloenTableValueEffectivelyEmptyForValidation(value)) return true;
+  if (isStandardLoenTableValueEffectivelyEmptyForValidation(value)) return true;
   const trimmed = (value ?? '').trim();
   const parts = trimmed.split('/');
   if (parts.length !== 2) return false;
@@ -66,11 +66,11 @@ const isValidWeekValue = (value: string | undefined): boolean => {
 };
 
 const isValidDateValue = (value: string | undefined): boolean => {
-  if (isAarsloenTableValueEffectivelyEmptyForValidation(value)) return true;
+  if (isStandardLoenTableValueEffectivelyEmptyForValidation(value)) return true;
   return parseDanishDate((value ?? '').trim()) !== null;
 };
 
-const hasPeriodOrderError = (row: AarsloenTableRow, loenperiode: Loenperiode): boolean => {
+const hasPeriodOrderError = (row: StandardLoenTableRow, loenperiode: Loenperiode): boolean => {
   if (loenperiode === 'uge') {
     const fra = parseWeekString((row.col0_uge ?? '').trim());
     const til = parseWeekString((row.col1_uge ?? '').trim());
@@ -88,7 +88,7 @@ const hasPeriodOrderError = (row: AarsloenTableRow, loenperiode: Loenperiode): b
   return false;
 };
 
-export const buildAarsloenCellErrors = (rows: readonly AarsloenTableRow[], loenperiode: Loenperiode): Record<string, true> => {
+export const buildStandardLoenCellErrors = (rows: readonly StandardLoenTableRow[], loenperiode: Loenperiode): Record<string, true> => {
   const errors: Record<string, true> = {};
   for (const row of rows) {
     if (loenperiode === 'maaned') {
@@ -133,13 +133,13 @@ export const buildOffentligeYdelserCellErrors = (rows: readonly OffentligeYdelse
   return errors;
 };
 
-export const getAarsloenErrorRowIdSet = (rows: readonly AarsloenTableRow[], loenperiode: Loenperiode): ReadonlySet<string> => {
-  const cellErrors = buildAarsloenCellErrors(rows, loenperiode);
-  const validation = getAarsloenTableValidation({ rows, loenperiode, cellErrorsByCellKey: cellErrors });
+export const getStandardLoenErrorRowIdSet = (rows: readonly StandardLoenTableRow[], loenperiode: Loenperiode): ReadonlySet<string> => {
+  const cellErrors = buildStandardLoenCellErrors(rows, loenperiode);
+  const validation = getStandardLoenTableValidation({ rows, loenperiode, cellErrorsByCellKey: cellErrors });
   return new Set(validation.summary.rowIssues.filter((issue) => issue.level === 'error').map((issue) => issue.rowId));
 };
 
-const hasPositiveAmountInput = (row: AarsloenTableRow): boolean => {
+const hasPositiveAmountInput = (row: StandardLoenTableRow): boolean => {
   return AARSLOEN_AMOUNT_COLUMN_KEYS.some((colKey) => {
     // Zero beløb giver ikke denne fejl. Reglen gælder kun rækker med faktisk positiv lønindtastning.
     const value = amountValueToNumber(row[colKey]);
@@ -147,11 +147,11 @@ const hasPositiveAmountInput = (row: AarsloenTableRow): boolean => {
   });
 };
 
-const getFilledAmountColumnKeys = (row: AarsloenTableRow): readonly AarsloenTableColumnKey[] => {
-  return AARSLOEN_AMOUNT_COLUMN_KEYS.filter((colKey) => !isAarsloenTableValueEffectivelyEmptyForValidation(row[colKey]));
+const getFilledAmountColumnKeys = (row: StandardLoenTableRow): readonly StandardLoenTableColumnKey[] => {
+  return AARSLOEN_AMOUNT_COLUMN_KEYS.filter((colKey) => !isStandardLoenTableValueEffectivelyEmptyForValidation(row[colKey]));
 };
 
-export const buildAarsloenZeroArbejdsdageIssues = (
+export const buildStandardLoenZeroArbejdsdageIssues = (
   values: AarsloenZeroArbejdsdageValidationInput,
   employmentId: string
 ): ReadonlyArray<AarsloenZeroArbejdsdageIssue> => {
@@ -189,12 +189,12 @@ export const buildAarsloenZeroArbejdsdageIssues = (
   return issues;
 };
 
-export const buildAarsloenZeroArbejdsdageCellErrorMessages = (
+export const buildStandardLoenZeroArbejdsdageCellErrorMessages = (
   values: AarsloenZeroArbejdsdageValidationInput,
   employmentId: string
 ): Readonly<Record<string, string>> => {
   const messages: Record<string, string> = {};
-  for (const issue of buildAarsloenZeroArbejdsdageIssues(values, employmentId)) {
+  for (const issue of buildStandardLoenZeroArbejdsdageIssues(values, employmentId)) {
     for (const colKey of issue.colKeys) {
       messages[`${issue.rowId}:${colKey}`] = issue.message;
     }

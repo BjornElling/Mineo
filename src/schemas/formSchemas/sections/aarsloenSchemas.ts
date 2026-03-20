@@ -7,7 +7,7 @@ import {
 } from '../baseSchemas';
 import { loenPaaHelligdageSchema, loenperiodeSchema } from '../enumSchemas';
 
-export const aarsloenTableRowSchema = z.object({
+export const standardLoenTableRowSchema = z.object({
   id: z.string().min(1, 'Række-ID må ikke være tomt'),
   col0_maaned: allowEmptyString,
   col1_maaned: allowEmptyString,
@@ -21,7 +21,7 @@ export const aarsloenTableRowSchema = z.object({
   col5: tableAmountCellValue,
 }).strict();
 
-export type AarsloenTableRow = z.infer<typeof aarsloenTableRowSchema>;
+export type StandardLoenTableRow = z.infer<typeof standardLoenTableRowSchema>;
 
 export const aarsloenSchema = z.object({
   feriePct: percentageDecimal,
@@ -30,7 +30,7 @@ export const aarsloenSchema = z.object({
   storeBededagPct: percentageDecimal,
   pensionPct: percentageDecimal,
   loenperiode: loenperiodeSchema,
-  tableData: z.array(aarsloenTableRowSchema),
+  tableData: z.array(standardLoenTableRowSchema),
   omregningTilFuldtAar: z.boolean(),
   fuldLoenUnderFerie: z.boolean(),
   retTilSjetteFerieuge: z.boolean(),

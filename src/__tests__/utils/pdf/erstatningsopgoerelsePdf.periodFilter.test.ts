@@ -1,4 +1,4 @@
-import type { AarsloenTableRow, OffentligeYdelserRow } from '../../../schemas/formSchemas';
+import type { StandardLoenTableRow, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import {
@@ -13,7 +13,7 @@ import { resolveValgtReguleringDisplay } from '../../../domain/erstatningsopgoer
 
 const iso = (value: string) => toISODateString(value);
 
-const makeLoenRow = (overrides: Partial<AarsloenTableRow>): AarsloenTableRow => ({
+const makeLoenRow = (overrides: Partial<StandardLoenTableRow>): StandardLoenTableRow => ({
   id: 'row1',
   col0_maaned: '',
   col1_maaned: '',

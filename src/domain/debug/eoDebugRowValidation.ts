@@ -2,8 +2,8 @@
 // Rækkevalidering er et domæneansvar og ejes af indkomstRowValidation.
 // Debug-laget re-eksporterer kun for eksisterende imports.
 export {
-  buildAarsloenCellErrors,
+  buildStandardLoenCellErrors,
   buildOffentligeYdelserCellErrors,
-  getAarsloenErrorRowIdSet,
+  getStandardLoenErrorRowIdSet,
   getOffentligeYdelserErrorRowIdSet,
 } from '../erstatningsopgoerelse/indkomstRowValidation';

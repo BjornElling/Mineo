@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { AarsloenTableRow } from '../../../schemas/formSchemas';
+import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import AarsloenTable from '../../../components/tables/AarsloenTable';
+import StandardLoenTable from '../../../components/tables/StandardLoenTable';
 
 type Derived = { col6: string; col7: string; col8: string; col9: string };
 
@@ -49,7 +49,7 @@ const getDerivedTexts = (): Derived => {
   };
 };
 
-const makeRow = (overrides: Partial<AarsloenTableRow>): AarsloenTableRow => ({
+const makeRow = (overrides: Partial<StandardLoenTableRow>): StandardLoenTableRow => ({
   id: 'row1',
   col0_maaned: '',
   col1_maaned: '',
@@ -64,7 +64,7 @@ const makeRow = (overrides: Partial<AarsloenTableRow>): AarsloenTableRow => ({
   ...overrides,
 });
 
-describe('AarsloenTable', () => {
+describe('StandardLoenTable', () => {
   const TEST_TIMEOUT_MS = 30000;
 
   it.each([
@@ -79,7 +79,7 @@ describe('AarsloenTable', () => {
     const baseAmounts = { col2: 1000, col3: 500, col4: 200, col5: 300 };
 
     render(
-      <AarsloenTable
+      <StandardLoenTable
         loenperiode="maaned"
         satser={{ ferie: 12.5, fritvalg: 1, shSo: 2, bededag: 0, pension: 10 }}
         tableData={[
@@ -126,7 +126,7 @@ describe('AarsloenTable', () => {
     const onTableDataChange = vi.fn();
 
     render(
-      <AarsloenTable
+      <StandardLoenTable
         loenperiode="maaned"
         satser={{ ferie: 12.5, fritvalg: 1, shSo: 2, bededag: 0, pension: 10 }}
         tableData={[

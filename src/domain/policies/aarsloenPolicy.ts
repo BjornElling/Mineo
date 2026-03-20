@@ -1,6 +1,6 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import { LOEN_PAA_HELLIGDAGE, LOENPERIODE, type Loenperiode } from '../../types/loen';
-import { isAarsloenRowEffectivelyEmpty } from '../aarsloen/aarsloenRowCalculations';
+import { isStandardLoenRowEffectivelyEmpty } from '../aarsloen/standardLoenRowCalculations';
 
 export type AarsloenValues = PersistedSectionMap['aarsloen'];
 
@@ -14,7 +14,7 @@ export const resolveAarsloenDefaultLoenperiode = (aarsloen: AarsloenValues | nul
 export const hasAarsloenEffectiveRows = (aarsloen: AarsloenValues | null): boolean => {
   if (!aarsloen) return false;
   if (!Array.isArray(aarsloen.tableData) || aarsloen.tableData.length === 0) return false;
-  return aarsloen.tableData.some((row) => !isAarsloenRowEffectivelyEmpty(row));
+  return aarsloen.tableData.some((row) => !isStandardLoenRowEffectivelyEmpty(row));
 };
 
 export const shouldShowAarsloenFerieFields = (aarsloen: AarsloenValues | null): boolean => {

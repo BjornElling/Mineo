@@ -4,12 +4,12 @@ import type { ISODateString } from '../../types/branded';
 import { dateToISO, isoToDanish, subtractOneDay } from '../../types/branded';
 import { buildClampedTafRanges, resolveTafConstraintBounds, type IsoRange } from '../erstatningsopgoerelse/tafPeriodConstraints';
 import { formatCurrency } from '../../utils/formatUtils';
-import { isAarsloenRowEffectivelyEmpty } from '../aarsloen/aarsloenRowCalculations';
+import { isStandardLoenRowEffectivelyEmpty } from '../aarsloen/standardLoenRowCalculations';
 import { buildOffentligeYdelserColumns, parseOffentligDato } from './eoDebugOffentligeYdelserColumns';
 import { buildLoenindkomstColumns } from './eoDebugLoenColumns';
 import { debugTabelColumnId, type DebugTabelWageColumnKey } from './eoDebugLoenTypes';
 import { isoDateToDate } from '../dates/isoDate';
-import { getAarsloenErrorRowIdSet, getOffentligeYdelserErrorRowIdSet } from './eoDebugRowValidation';
+import { getStandardLoenErrorRowIdSet, getOffentligeYdelserErrorRowIdSet } from './eoDebugRowValidation';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
 import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/indtaegtPerioder';
 import { SYGEDAGPENGE_SH_CUTOFF } from '../erstatningsopgoerelse/periodiseringsMotor';
@@ -275,7 +275,7 @@ const collectMinMaxLoenindkomst = (
 
     for (const row of rows) {
       if (errorRowIds.has(row.id)) continue;
-      if (isAarsloenRowEffectivelyEmpty(row)) {
+      if (isStandardLoenRowEffectivelyEmpty(row)) {
         continue;
       }
       const interval = parseAarsloenRowInterval(row, af.loenperiode);
@@ -408,7 +408,7 @@ export const buildEODebugModel = (
   const isBeregningsperiode = values.beregnesUdFra === 'Beregningsperiode';
 
   const loenErrorRowIdsByIndex = (values.loenindkomstAnsaettelsesforhold ?? []).map((af) =>
-    getAarsloenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)
+    getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)
   );
   const offentligeErrorRowIds = getOffentligeYdelserErrorRowIdSet(values.offentligeYdelserRows ?? []);
 

@@ -1,11 +1,11 @@
 import type {
-  AarsloenTableRow,
+  StandardLoenTableRow,
   ErstatningsopgoerelseValues,
   Loenperiode,
   OffentligeYdelserRow,
 } from '../../schemas/formSchemas';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { isAarsloenRowEffectivelyEmpty } from '../aarsloen/aarsloenRowCalculations';
+import { isStandardLoenRowEffectivelyEmpty } from '../aarsloen/standardLoenRowCalculations';
 import { getOffentligeYdelserRowFilledState } from './offentligeYdelserTableValidation';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, parseAarsloenRowInterval } from './indtaegtPerioder';
 import { resolveLoenudviklingKilde } from './angivetLoenHelpers';
@@ -44,7 +44,7 @@ const shouldIncludeByBilagRanges = (
 };
 
 export const hasAarsloenRowOverlapWithRanges = (
-  row: AarsloenTableRow,
+  row: StandardLoenTableRow,
   loenperiode: Loenperiode,
   mode: BilagLoenindkomstOgOffentligeYdelserIndgaar,
   ranges: readonly IsoRange[]
@@ -78,20 +78,20 @@ const isOffentligeYdelserRowEmpty = (row: OffentligeYdelserRow): boolean => {
   return !getOffentligeYdelserRowFilledState(row).hasAnyFilled;
 };
 
-export const hasNonZeroLoenAmount = (value: AarsloenTableRow['col2']): boolean => {
+export const hasNonZeroLoenAmount = (value: StandardLoenTableRow['col2']): boolean => {
   const numeric = amountValueToNumber(value);
   return numeric !== undefined;
 };
 
 export const shouldIncludeLoenRowInBilag = (params: Readonly<{
-  row: AarsloenTableRow;
+  row: StandardLoenTableRow;
   loenperiode: Loenperiode;
   mode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
   ranges: readonly IsoRange[];
   errorRowIds: ReadonlySet<string>;
 }>): boolean => {
   const { row, loenperiode, mode, ranges, errorRowIds } = params;
-  if (isAarsloenRowEffectivelyEmpty(row)) return false;
+  if (isStandardLoenRowEffectivelyEmpty(row)) return false;
   // NOTE: Fail-closed by design.
   // PDF må kun vise rækker uden valideringsfejl.
   if (errorRowIds.has(row.id)) return false;

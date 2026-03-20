@@ -38,8 +38,8 @@ export {
 export { stamdataSchema, type StamdataValues } from './formSchemas/sections/stamdataSchemas';
 export { satserSchema, type SatserValues } from './formSchemas/sections/satserSchemas';
 export {
-  aarsloenTableRowSchema,
-  type AarsloenTableRow,
+  standardLoenTableRowSchema,
+  type StandardLoenTableRow,
   aarsloenSchema,
   type AarsloenValues,
 } from './formSchemas/sections/aarsloenSchemas';

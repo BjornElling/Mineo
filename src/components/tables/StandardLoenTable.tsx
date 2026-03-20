@@ -8,23 +8,24 @@ import TableDateInput from '../inputs/table/TableDateInput';
 import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
 
 import { CURRENT_YEAR, MIN_YEAR, dateRanges_aarsloen } from '../../config/dateRanges';
-import type { AarsloenTableRow, Loenperiode } from '../../schemas/formSchemas';
+import type { StandardLoenTableRow, Loenperiode } from '../../schemas/formSchemas';
+import { formatAsAmount } from '../../utils/formatUtils';
 import { danishToISO } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import type {
-  AarsloenTableColumnKey,
-  AarsloenTableFirstErrorCell,
-  AarsloenTableValidationSummary,
+  StandardLoenTableColumnKey,
+  StandardLoenTableFirstErrorCell,
+  StandardLoenTableValidationSummary,
   TableError,
 } from '../../types/table';
-import type { AarsloenTableHandle } from '../../types/handles';
+import type { StandardLoenTableHandle } from '../../types/handles';
 import { initialRow, generateRowId } from '../../domain/erstatningsopgoerelse/eoRowInitialValues';
 import {
-  calculateAarsloenRowDerived,
-  isAarsloenRowEffectivelyEmpty,
-  roundAarsloenAmountToTwoDecimals,
-} from '../../domain/aarsloen/aarsloenRowCalculations';
-import { getAarsloenTableValidation, isAarsloenTableValueEffectivelyEmptyForValidation } from '../../domain/aarsloen/aarsloenTableValidation';
+  calculateStandardLoenRowDerived,
+  isStandardLoenRowEffectivelyEmpty,
+  roundStandardLoenAmountToTwoDecimals,
+} from '../../domain/aarsloen/standardLoenRowCalculations';
+import { getStandardLoenTableValidation, isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../domain/aarsloen/standardLoenTableValidation';
 
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
@@ -36,7 +37,7 @@ import {
   type RowRemovalFocusPlan,
 } from './gridCore/tableRowFocus';
 
-export type AarsloenTableSatser = {
+export type StandardLoenTableSatser = {
   ferie?: number;
   fritvalg?: number;
   shSo?: number;
@@ -44,12 +45,12 @@ export type AarsloenTableSatser = {
   pension?: number;
 };
 
-export type AarsloenTableProps = {
+export type StandardLoenTableProps = {
   loenperiode: Loenperiode;
-  satser: AarsloenTableSatser;
-  tableData: AarsloenTableRow[];
-  onTableDataChange?: (data: AarsloenTableRow[]) => void;
-  onValidationChange?: (summary: AarsloenTableValidationSummary) => void;
+  satser: StandardLoenTableSatser;
+  tableData: StandardLoenTableRow[];
+  onTableDataChange?: (data: StandardLoenTableRow[]) => void;
+  onValidationChange?: (summary: StandardLoenTableValidationSummary) => void;
   externalCellErrorMessagesByCellKey?: Readonly<Record<string, string>>;
   useSmallFont?: boolean;
 };
@@ -68,26 +69,26 @@ const TABLE_FINGERPRINT_KEYS = [
   'col3',
   'col4',
   'col5',
-] as const satisfies ReadonlyArray<keyof AarsloenTableRow>;
+] as const satisfies ReadonlyArray<keyof StandardLoenTableRow>;
 
-const fingerprintTableData = (rows: readonly AarsloenTableRow[]): string => {
+const fingerprintTableData = (rows: readonly StandardLoenTableRow[]): string => {
   return JSON.stringify(rows.map((row) => TABLE_FINGERPRINT_KEYS.map((key) => row[key] ?? null)));
 };
 
-const isRowEmpty = (row: AarsloenTableRow): boolean => isAarsloenRowEffectivelyEmpty(row);
+const isRowEmpty = (row: StandardLoenTableRow): boolean => isStandardLoenRowEffectivelyEmpty(row);
 
-const resolveColIdxFromKey = (colKey: AarsloenTableColumnKey): number => {
+const resolveColIdxFromKey = (colKey: StandardLoenTableColumnKey): number => {
   return colKey.startsWith('col0_') ? 0 : colKey.startsWith('col1_') ? 1 : Number.parseInt(colKey.slice(3), 10);
 };
 
 type TableRowsState = {
-  draft: AarsloenTableRow[];
-  committed: AarsloenTableRow[];
+  draft: StandardLoenTableRow[];
+  committed: StandardLoenTableRow[];
 };
 
-const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenTableProps>(
+const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, StandardLoenTableProps>(
   ({ loenperiode, satser, tableData, onTableDataChange, onValidationChange, externalCellErrorMessagesByCellKey = {}, useSmallFont = false }, ref) => {
-    const defaultTableData = React.useMemo<AarsloenTableRow[]>(() => {
+    const defaultTableData = React.useMemo<StandardLoenTableRow[]>(() => {
       return [
         { ...initialRow, id: generateRowId() },
         { ...initialRow, id: generateRowId() },
@@ -95,13 +96,13 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
     }, []);
 
     const lastPersistedFingerprintRef = React.useRef<string | null>(null);
-    const pendingPersistRef = React.useRef<AarsloenTableRow[] | null>(null);
+    const pendingPersistRef = React.useRef<StandardLoenTableRow[] | null>(null);
     const tableRef = React.useRef<HTMLTableElement | null>(null);
     const pendingRowFocusPlanRef = React.useRef<RowRemovalFocusPlan | null>(null);
     const visibleRowIdsRef = React.useRef<readonly string[]>([]);
 
     const persistTableData = React.useCallback(
-      (internalData: AarsloenTableRow[]) => {
+      (internalData: StandardLoenTableRow[]) => {
         if (!onTableDataChange) return;
         lastPersistedFingerprintRef.current = fingerprintTableData(internalData);
         onTableDataChange(internalData);
@@ -109,12 +110,12 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
       [onTableDataChange]
     );
 
-    const createEmptyRow = React.useCallback((): AarsloenTableRow => {
+    const createEmptyRow = React.useCallback((): StandardLoenTableRow => {
       return { ...initialRow, id: generateRowId() };
     }, []);
 
     const manageRows = React.useCallback(
-      (rows: readonly AarsloenTableRow[]): AarsloenTableRow[] => {
+      (rows: readonly StandardLoenTableRow[]): StandardLoenTableRow[] => {
         return normalizeGridRows({ rows, minRows: MIN_VISIBLE_ROWS, isRowEmpty, createEmptyRow });
       },
       [createEmptyRow]
@@ -145,6 +146,8 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
       }
     }, [defaultTableData, manageRows, tableData]);
 
+    // Intentional: loenperiode change commits all draft edits and resets committed to the
+    // managed draft. Period-specific columns are cleared by manageRows (normalizeGridRows).
     React.useEffect(() => {
       setRowsState((current) => {
         const managed = manageRows(current.draft);
@@ -152,7 +155,7 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
       });
     }, [loenperiode, manageRows]);
 
-    const queuePersist = React.useCallback((dataToPersist: AarsloenTableRow[]) => {
+    const queuePersist = React.useCallback((dataToPersist: StandardLoenTableRow[]) => {
       pendingPersistRef.current = dataToPersist;
     }, []);
 
@@ -173,28 +176,28 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
     }, [rowsState.draft, persistTableData]);
 
     const setCellValue = React.useCallback(
-      (row: AarsloenTableRow, colKey: AarsloenTableColumnKey, value: AarsloenTableRow[AarsloenTableColumnKey]): AarsloenTableRow => {
+      (row: StandardLoenTableRow, colKey: StandardLoenTableColumnKey, value: StandardLoenTableRow[StandardLoenTableColumnKey]): StandardLoenTableRow => {
         switch (colKey) {
           case 'col0_maaned':
-            return (row.col0_maaned ?? '') === value ? row : { ...row, col0_maaned: value as AarsloenTableRow['col0_maaned'] };
+            return (row.col0_maaned ?? '') === value ? row : { ...row, col0_maaned: value as StandardLoenTableRow['col0_maaned'] };
           case 'col1_maaned':
-            return (row.col1_maaned ?? '') === value ? row : { ...row, col1_maaned: value as AarsloenTableRow['col1_maaned'] };
+            return (row.col1_maaned ?? '') === value ? row : { ...row, col1_maaned: value as StandardLoenTableRow['col1_maaned'] };
           case 'col0_uge':
-            return (row.col0_uge ?? '') === value ? row : { ...row, col0_uge: value as AarsloenTableRow['col0_uge'] };
+            return (row.col0_uge ?? '') === value ? row : { ...row, col0_uge: value as StandardLoenTableRow['col0_uge'] };
           case 'col1_uge':
-            return (row.col1_uge ?? '') === value ? row : { ...row, col1_uge: value as AarsloenTableRow['col1_uge'] };
+            return (row.col1_uge ?? '') === value ? row : { ...row, col1_uge: value as StandardLoenTableRow['col1_uge'] };
           case 'col0_dag':
-            return (row.col0_dag ?? '') === value ? row : { ...row, col0_dag: value as AarsloenTableRow['col0_dag'] };
+            return (row.col0_dag ?? '') === value ? row : { ...row, col0_dag: value as StandardLoenTableRow['col0_dag'] };
           case 'col1_dag':
-            return (row.col1_dag ?? '') === value ? row : { ...row, col1_dag: value as AarsloenTableRow['col1_dag'] };
+            return (row.col1_dag ?? '') === value ? row : { ...row, col1_dag: value as StandardLoenTableRow['col1_dag'] };
           case 'col2':
-            return row.col2 === value ? row : { ...row, col2: value as AarsloenTableRow['col2'] };
+            return row.col2 === value ? row : { ...row, col2: value as StandardLoenTableRow['col2'] };
           case 'col3':
-            return row.col3 === value ? row : { ...row, col3: value as AarsloenTableRow['col3'] };
+            return row.col3 === value ? row : { ...row, col3: value as StandardLoenTableRow['col3'] };
           case 'col4':
-            return row.col4 === value ? row : { ...row, col4: value as AarsloenTableRow['col4'] };
+            return row.col4 === value ? row : { ...row, col4: value as StandardLoenTableRow['col4'] };
           case 'col5':
-            return row.col5 === value ? row : { ...row, col5: value as AarsloenTableRow['col5'] };
+            return row.col5 === value ? row : { ...row, col5: value as StandardLoenTableRow['col5'] };
           default:
             return row;
         }
@@ -203,7 +206,7 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
     );
 
     const updateCellValueInTable = React.useCallback(
-      (rows: AarsloenTableRow[], rowId: string, colKey: AarsloenTableColumnKey, value: AarsloenTableRow[AarsloenTableColumnKey]): AarsloenTableRow[] => {
+      (rows: StandardLoenTableRow[], rowId: string, colKey: StandardLoenTableColumnKey, value: StandardLoenTableRow[StandardLoenTableColumnKey]): StandardLoenTableRow[] => {
         const rowIdx = rows.findIndex((row) => row.id === rowId);
         if (rowIdx < 0) return rows;
         const currentRow = rows[rowIdx];
@@ -217,7 +220,7 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
     );
 
     const handleFieldBlur = React.useCallback(
-      (rowId: string, colKey: AarsloenTableColumnKey, value: AarsloenTableRow[AarsloenTableColumnKey]) => {
+      (rowId: string, colKey: StandardLoenTableColumnKey, value: StandardLoenTableRow[StandardLoenTableColumnKey]) => {
         setRowsState((prev) => {
           const updated = updateCellValueInTable(prev.draft, rowId, colKey, value);
           const managed = manageRows(updated);
@@ -256,7 +259,7 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
     );
 
     const committedById = React.useMemo(() => new Map(committedTableData.map((row) => [row.id, row])), [committedTableData]);
-    const resolveCommittedRow = React.useCallback((row: AarsloenTableRow) => committedById.get(row.id) ?? row, [committedById]);
+    const resolveCommittedRow = React.useCallback((row: StandardLoenTableRow) => committedById.get(row.id) ?? row, [committedById]);
 
     const cellErrorsByCellKeyRef = React.useRef<Record<string, true>>({});
 
@@ -287,25 +290,27 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
     }, [satser?.bededag, satser?.ferie, satser?.fritvalg, satser?.pension, satser?.shSo]);
 
     const calculateRow = React.useCallback(
-      (row: AarsloenTableRow): { col6: number; col7: number; col8: number; col9: number } => {
-        const derived = calculateAarsloenRowDerived(row, getSatserInput());
+      (row: StandardLoenTableRow): { col6: number; col7: number; col8: number; col9: number } => {
+        const derived = calculateStandardLoenRowDerived(row, getSatserInput());
         return {
           col6: derived.ferieberet,
           col7: derived.fpFvShSo,
           col8: derived.pension,
-          col9: roundAarsloenAmountToTwoDecimals(derived.samlet),
+          col9: roundStandardLoenAmountToTwoDecimals(derived.samlet),
         };
       },
       [getSatserInput]
     );
 
+    // cellErrorsByCellKeyRef is intentionally NOT in the deps array — it is a mutable ref and is
+    // always read at call time, so the result is always current regardless of when React calls this.
     const getValidationResult = React.useCallback(() => {
       const combinedCellErrorsByCellKey: Record<string, true> = { ...cellErrorsByCellKeyRef.current };
       for (const [cellKey, message] of Object.entries(externalCellErrorMessagesByCellKey)) {
         if (message.trim() === '') continue;
         combinedCellErrorsByCellKey[cellKey] = true;
       }
-      return getAarsloenTableValidation({
+      return getStandardLoenTableValidation({
         rows: committedTableData,
         loenperiode,
         cellErrorsByCellKey: combinedCellErrorsByCellKey,
@@ -317,7 +322,7 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
       onValidationChange(getValidationResult().summary);
     }, [getValidationResult, onValidationChange]);
 
-    const handleErrorChange = React.useCallback((rowId: string, colKey: AarsloenTableColumnKey, info: TableInputErrorInfo) => {
+    const handleErrorChange = React.useCallback((rowId: string, colKey: StandardLoenTableColumnKey, info: TableInputErrorInfo) => {
       const key = `${rowId}:${colKey}`;
       if (info.hasError) cellErrorsByCellKeyRef.current[key] = true;
       else delete cellErrorsByCellKeyRef.current[key];
@@ -350,7 +355,7 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
     const sortColumns = React.useMemo(() => [
       {
         colId: 'col-0',
-        getSortValue: (row: AarsloenTableRow) => {
+        getSortValue: (row: StandardLoenTableRow) => {
           const committed = resolveCommittedRow(row);
           if (loenperiode === 'maaned') return parseSortableInteger(committed.col0_maaned);
           if (loenperiode === 'uge') return parseSortableWeekKey(committed.col0_uge);
@@ -359,21 +364,21 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
       },
       {
         colId: 'col-1',
-        getSortValue: (row: AarsloenTableRow) => {
+        getSortValue: (row: StandardLoenTableRow) => {
           const committed = resolveCommittedRow(row);
           if (loenperiode === 'maaned') return parseSortableInteger(committed.col1_maaned);
           if (loenperiode === 'uge') return parseSortableWeekKey(committed.col1_uge);
           return danishToISO(committed.col1_dag ?? '');
         },
       },
-      { colId: 'col-2', getSortValue: (row: AarsloenTableRow) => amountValueToNumber(resolveCommittedRow(row).col2) },
-      { colId: 'col-3', getSortValue: (row: AarsloenTableRow) => amountValueToNumber(resolveCommittedRow(row).col3) },
-      { colId: 'col-4', getSortValue: (row: AarsloenTableRow) => amountValueToNumber(resolveCommittedRow(row).col4) },
-      { colId: 'col-5', getSortValue: (row: AarsloenTableRow) => amountValueToNumber(resolveCommittedRow(row).col5) },
-      { colId: 'col-6', getSortValue: (row: AarsloenTableRow) => calculateRow(resolveCommittedRow(row)).col6 },
-      { colId: 'col-7', getSortValue: (row: AarsloenTableRow) => calculateRow(resolveCommittedRow(row)).col7 },
-      { colId: 'col-8', getSortValue: (row: AarsloenTableRow) => calculateRow(resolveCommittedRow(row)).col8 },
-      { colId: 'col-9', getSortValue: (row: AarsloenTableRow) => calculateRow(resolveCommittedRow(row)).col9 },
+      { colId: 'col-2', getSortValue: (row: StandardLoenTableRow) => amountValueToNumber(resolveCommittedRow(row).col2) },
+      { colId: 'col-3', getSortValue: (row: StandardLoenTableRow) => amountValueToNumber(resolveCommittedRow(row).col3) },
+      { colId: 'col-4', getSortValue: (row: StandardLoenTableRow) => amountValueToNumber(resolveCommittedRow(row).col4) },
+      { colId: 'col-5', getSortValue: (row: StandardLoenTableRow) => amountValueToNumber(resolveCommittedRow(row).col5) },
+      { colId: 'col-6', getSortValue: (row: StandardLoenTableRow) => calculateRow(resolveCommittedRow(row)).col6 },
+      { colId: 'col-7', getSortValue: (row: StandardLoenTableRow) => calculateRow(resolveCommittedRow(row)).col7 },
+      { colId: 'col-8', getSortValue: (row: StandardLoenTableRow) => calculateRow(resolveCommittedRow(row)).col8 },
+      { colId: 'col-9', getSortValue: (row: StandardLoenTableRow) => calculateRow(resolveCommittedRow(row)).col9 },
     ], [calculateRow, loenperiode, parseSortableInteger, parseSortableWeekKey, resolveCommittedRow]);
 
     const { sortedRows: visibleRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
@@ -396,7 +401,7 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
     }, [visibleRowIds]);
 
     const [errorCell, setErrorCell] = React.useState<{ rowId: string; colIdx: number } | null>(null);
-    const [externalCellError, setExternalCellError] = React.useState<{ rowId: string; colKey: AarsloenTableColumnKey; message: string } | null>(null);
+    const [externalCellError, setExternalCellError] = React.useState<{ rowId: string; colKey: StandardLoenTableColumnKey; message: string } | null>(null);
     const cellRefsByCellKeyRef = React.useRef<Record<string, HTMLInputElement | null>>({});
     const registerCellRef = React.useCallback(
       (rowId: string, colIdx: number) => (el: HTMLInputElement | null) => {
@@ -405,12 +410,8 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
       []
     );
 
-    const resolveColIdxFromKeyMemoized = React.useCallback((colKey: AarsloenTableColumnKey): number => {
-      return resolveColIdxFromKey(colKey);
-    }, []);
-
     const isVisibleColKey = React.useCallback(
-      (colKey: AarsloenTableColumnKey): boolean => {
+      (colKey: StandardLoenTableColumnKey): boolean => {
         if (colKey === 'col0_maaned' || colKey === 'col1_maaned') return loenperiode === 'maaned';
         if (colKey === 'col0_uge' || colKey === 'col1_uge') return loenperiode === 'uge';
         if (colKey === 'col0_dag' || colKey === 'col1_dag') return loenperiode === 'dag';
@@ -420,7 +421,7 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
     );
 
     const getExternalErrorMessage = React.useCallback(
-      (rowId: string, colKey: AarsloenTableColumnKey): string | undefined => {
+      (rowId: string, colKey: StandardLoenTableColumnKey): string | undefined => {
         if (externalCellError && externalCellError.rowId === rowId && externalCellError.colKey === colKey && isVisibleColKey(colKey)) {
           return externalCellError.message;
         }
@@ -443,7 +444,7 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
         return;
       }
       const value = row[externalCellError.colKey];
-      const isEmpty = isAarsloenTableValueEffectivelyEmptyForValidation(value);
+      const isEmpty = isStandardLoenTableValueEffectivelyEmptyForValidation(value);
       const cellKey = `${externalCellError.rowId}:${externalCellError.colKey}`;
       const hasInputError = Boolean(cellErrorsByCellKeyRef.current[cellKey]);
       if (!isEmpty || hasInputError) {
@@ -462,8 +463,8 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
       ref,
       () => ({
         getErrors: (): TableError[] => getValidationResult().errors,
-        getValidationSummary: (): AarsloenTableValidationSummary => getValidationResult().summary,
-        showMissingEntryError: (cell: AarsloenTableFirstErrorCell) => {
+        getValidationSummary: (): StandardLoenTableValidationSummary => getValidationResult().summary,
+        showMissingEntryError: (cell: StandardLoenTableFirstErrorCell) => {
           if (cell.reason !== 'missing') return;
           if (!isVisibleColKey(cell.colKey)) return;
           setExternalCellError({
@@ -471,7 +472,7 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
             colKey: cell.colKey,
             message: 'Indtastning mangler',
           });
-          const colIdx = resolveColIdxFromKeyMemoized(cell.colKey);
+          const colIdx = resolveColIdxFromKey(cell.colKey);
           if (!Number.isFinite(colIdx)) return;
           const el = cellRefsByCellKeyRef.current[`${cell.rowId}:${colIdx}`];
           if (!el) return;
@@ -479,7 +480,7 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
         },
         flashError: (error) => {
           const colKey = error.colKey;
-          const colIdx = resolveColIdxFromKeyMemoized(colKey);
+          const colIdx = resolveColIdxFromKey(colKey);
           if (!Number.isFinite(colIdx)) return;
           const el = cellRefsByCellKeyRef.current[`${error.rowId}:${colIdx}`];
           if (!el) return;
@@ -488,16 +489,8 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
           window.setTimeout(() => setErrorCell(null), 2000);
         },
       }),
-      [getValidationResult, isVisibleColKey, resolveColIdxFromKeyMemoized]
+      [getValidationResult, isVisibleColKey]
     );
-
-    const formatNumber = React.useCallback((num: number | null | undefined): string => {
-      if (num === null || num === undefined) return '';
-      const rounded = Math.round(num * 100) / 100;
-      const [int, dec] = rounded.toFixed(2).split('.');
-      const formatted = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-      return `${formatted},${dec}`;
-    }, []);
 
     const headers = React.useMemo(() => {
       const PERIOD: Record<Loenperiode, [string, string]> = {
@@ -695,7 +688,7 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
                     color: calculated.col6 === 0 ? 'rgba(0, 0, 0, 0.4)' : 'inherit',
                   }}
                 >
-                  {formatNumber(calculated.col6)}
+                  {formatAsAmount(calculated.col6)}
                 </td>
 
                 <td
@@ -706,7 +699,7 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
                     color: calculated.col7 === 0 ? 'rgba(0, 0, 0, 0.4)' : 'inherit',
                   }}
                 >
-                  {formatNumber(calculated.col7)}
+                  {formatAsAmount(calculated.col7)}
                 </td>
 
                 <td
@@ -717,7 +710,7 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
                     color: calculated.col8 === 0 ? 'rgba(0, 0, 0, 0.4)' : 'inherit',
                   }}
                 >
-                  {formatNumber(calculated.col8)}
+                  {formatAsAmount(calculated.col8)}
                 </td>
 
                 <td
@@ -728,7 +721,7 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
                     color: calculated.col9 === 0 ? 'rgba(0, 0, 0, 0.4)' : 'inherit',
                   }}
                 >
-                  {formatNumber(calculated.col9)}
+                  {formatAsAmount(calculated.col9)}
                 </td>
               </tr>
             );
@@ -739,6 +732,6 @@ const AarsloenTable = React.memo(React.forwardRef<AarsloenTableHandle, AarsloenT
   }
 ));
 
-AarsloenTable.displayName = 'AarsloenTable';
+StandardLoenTable.displayName = 'StandardLoenTable';
 
-export default AarsloenTable;
+export default StandardLoenTable;

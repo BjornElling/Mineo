@@ -1,15 +1,15 @@
 import type {
-  AarsloenTableFirstErrorCell,
-  AarsloenTableValidationSummary,
+  StandardLoenTableFirstErrorCell,
+  StandardLoenTableValidationSummary,
   OffentligeYdelserTableFirstErrorCell,
   OffentligeYdelserTableValidationSummary,
   TableError,
 } from './table';
 
-export interface AarsloenTableHandle {
+export interface StandardLoenTableHandle {
   getErrors: () => TableError[];
-  getValidationSummary: () => AarsloenTableValidationSummary;
-  showMissingEntryError: (cell: AarsloenTableFirstErrorCell) => void;
+  getValidationSummary: () => StandardLoenTableValidationSummary;
+  showMissingEntryError: (cell: StandardLoenTableFirstErrorCell) => void;
   flashError: (error: Extract<TableError, { kind: 'cell' }>) => void;
 }
 

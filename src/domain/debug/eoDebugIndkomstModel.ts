@@ -5,9 +5,9 @@ import { formatDanishDate } from '../../utils/dateUtils';
 import { STORE_BEDEDAG_START } from '../../config/dateRanges';
 import { STORE_BEDEDAG_PCT } from '../../config/regulatoryRates';
 import {
-  getAarsloenTableValidation,
-  isAarsloenTableValueEffectivelyEmptyForValidation,
-} from '../aarsloen/aarsloenTableValidation';
+  getStandardLoenTableValidation,
+  isStandardLoenTableValueEffectivelyEmptyForValidation,
+} from '../aarsloen/standardLoenTableValidation';
 import {
   OFFENTLIGE_YDELSER_COLUMN_ORDER,
   getOffentligeYdelserRowFilledState,
@@ -23,11 +23,11 @@ import {
   getOffentligTillaegsSatserForDato,
 } from '../../data/overenskomstRates';
 import type { DebugStatus } from './eoDebugTypes';
-import { buildAarsloenCellErrors, buildOffentligeYdelserCellErrors } from '../erstatningsopgoerelse/indkomstRowValidation';
-import type { AarsloenTableColumnKey, OffentligeYdelserTableColumnKey } from '../../types/table';
+import { buildStandardLoenCellErrors, buildOffentligeYdelserCellErrors } from '../erstatningsopgoerelse/indkomstRowValidation';
+import type { StandardLoenTableColumnKey, OffentligeYdelserTableColumnKey } from '../../types/table';
 import type { Loenperiode } from '../../types/loen';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { buildAarsloenZeroArbejdsdageIssues } from '../erstatningsopgoerelse/indkomstRowValidation';
+import { buildStandardLoenZeroArbejdsdageIssues } from '../erstatningsopgoerelse/indkomstRowValidation';
 import { DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../settings/appSettingsSchema';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
@@ -166,13 +166,13 @@ const resolveSatserErrorField = (
   return null;
 };
 
-const PERIOD_COLUMN_KEYS: Record<Loenperiode, readonly [AarsloenTableColumnKey, AarsloenTableColumnKey]> = {
+const PERIOD_COLUMN_KEYS: Record<Loenperiode, readonly [StandardLoenTableColumnKey, StandardLoenTableColumnKey]> = {
   maaned: ['col0_maaned', 'col1_maaned'],
   uge: ['col0_uge', 'col1_uge'],
   dag: ['col0_dag', 'col1_dag'],
 };
 
-const resolveAarsloenColumnLabel = (colKey: AarsloenTableColumnKey): string => {
+const resolveAarsloenColumnLabel = (colKey: StandardLoenTableColumnKey): string => {
   switch (colKey) {
     case 'col0_maaned':
       return 'Måned';
@@ -205,8 +205,8 @@ const countRowsWithPeriodOnly = (
 ): number => {
   const [startKey, endKey] = PERIOD_COLUMN_KEYS[loenperiode];
   return rows.reduce((count, row) => {
-    const startFilled = !isAarsloenTableValueEffectivelyEmptyForValidation(row[startKey]);
-    const endFilled = !isAarsloenTableValueEffectivelyEmptyForValidation(row[endKey]);
+    const startFilled = !isStandardLoenTableValueEffectivelyEmptyForValidation(row[startKey]);
+    const endFilled = !isStandardLoenTableValueEffectivelyEmptyForValidation(row[endKey]);
     const periodComplete = startFilled && endFilled;
     if (!periodComplete) return count;
 
@@ -224,15 +224,15 @@ const isLoenRowEffectivelyEmpty = (
   row: Ansaettelsesforhold['indtaegtsoplysningerTableData'][number],
   loenperiode: Loenperiode
 ): boolean => {
-  const periodKeys: ReadonlyArray<AarsloenTableColumnKey> = loenperiode === 'maaned'
+  const periodKeys: ReadonlyArray<StandardLoenTableColumnKey> = loenperiode === 'maaned'
     ? ['col0_maaned', 'col1_maaned']
     : loenperiode === 'uge'
       ? ['col0_uge', 'col1_uge']
       : ['col0_dag', 'col1_dag'];
-  const allKeys: ReadonlyArray<AarsloenTableColumnKey> = [...periodKeys, 'col2', 'col3', 'col4', 'col5'];
+  const allKeys: ReadonlyArray<StandardLoenTableColumnKey> = [...periodKeys, 'col2', 'col3', 'col4', 'col5'];
 
   return allKeys.every((key) =>
-    isAarsloenTableValueEffectivelyEmptyForValidation(row[key])
+    isStandardLoenTableValueEffectivelyEmptyForValidation(row[key])
   );
 };
 
@@ -241,7 +241,7 @@ const isManualReguleringRowEffectivelyEmpty = (
 ): boolean => {
   return (
     (row.dato?.trim() ?? '') === '' &&
-    isAarsloenTableValueEffectivelyEmptyForValidation(row.grundloen) &&
+    isStandardLoenTableValueEffectivelyEmptyForValidation(row.grundloen) &&
     (row.feriepenge?.trim() ?? '') === '' &&
     (row.shSoSats?.trim() ?? '') === '' &&
     (row.fritvalg?.trim() ?? '') === '' &&
@@ -349,8 +349,8 @@ export const buildIndkomstSectionStatuses = (
     const satserMessage = satserErrorField ? `Forkert værdi indtastet i ${satserErrorField}` : 'Ok';
 
     const tableRows = af.indtaegtsoplysningerTableData ?? [];
-    const cellErrors = buildAarsloenCellErrors(tableRows, af.loenperiode);
-    const tableValidation = getAarsloenTableValidation({
+    const cellErrors = buildStandardLoenCellErrors(tableRows, af.loenperiode);
+    const tableValidation = getStandardLoenTableValidation({
       rows: tableRows,
       loenperiode: af.loenperiode,
       cellErrorsByCellKey: cellErrors,
@@ -358,7 +358,7 @@ export const buildIndkomstSectionStatuses = (
 
     let tableStatus: DebugStatus = 'ok';
     let tableMessage = 'Ok';
-    const zeroArbejdsdageIssue = buildAarsloenZeroArbejdsdageIssues(values, af.id)[0];
+    const zeroArbejdsdageIssue = buildStandardLoenZeroArbejdsdageIssues(values, af.id)[0];
     if (zeroArbejdsdageIssue) {
       tableStatus = 'error';
       tableMessage = zeroArbejdsdageIssue.message;

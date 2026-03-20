@@ -1,4 +1,4 @@
-import type { AarsloenTableRow } from '../../schemas/formSchemas';
+import type { StandardLoenTableRow } from '../../schemas/formSchemas';
 import { createDate } from '../../utils/dateUtils';
 import {
   beregnDagPeriode,
@@ -30,7 +30,7 @@ const buildIsoSet = (start: Date, end: Date): Set<string> => {
 
 describe('periodeBeregning', () => {
   it('beregnDagPeriode counts inclusive days across DST', () => {
-    const rows: AarsloenTableRow[] = [
+    const rows: StandardLoenTableRow[] = [
       { id: 'row-1', col0_dag: '26-01-2024', col1_dag: '20-10-2024' },
     ];
     const result = beregnDagPeriode(rows);
@@ -49,14 +49,14 @@ describe('periodeBeregning', () => {
   });
 
   it('beregnUgePeriode counts week 53 when crossing year boundary', () => {
-    const rows: AarsloenTableRow[] = [{ id: 'row-1', col0_uge: '52/2020', col1_uge: '01/2021' }];
+    const rows: StandardLoenTableRow[] = [{ id: 'row-1', col0_uge: '52/2020', col1_uge: '01/2021' }];
     const result = beregnUgePeriode(rows);
     expect(result?.totalEnheder).toBe(3);
     expect(result?.unikkeEnheder).toBe(3);
   });
 
   it('beregnUgePeriode handles start week 53 at year boundary', () => {
-    const rows: AarsloenTableRow[] = [{ id: 'row-1', col0_uge: '53/2020', col1_uge: '01/2021' }];
+    const rows: StandardLoenTableRow[] = [{ id: 'row-1', col0_uge: '53/2020', col1_uge: '01/2021' }];
     const result = beregnUgePeriode(rows);
     expect(result?.totalEnheder).toBe(2);
     expect(result?.unikkeEnheder).toBe(2);
@@ -157,7 +157,7 @@ describe('erNoejagtEtAar', () => {
 
 // ─── beregnMaanedPeriode ──────────────────────────────────────────────────────
 
-const makeRow = (maaned: string, aar: string): AarsloenTableRow => ({
+const makeRow = (maaned: string, aar: string): StandardLoenTableRow => ({
   id: `r-${maaned}-${aar}`,
   col0_maaned: maaned,
   col1_maaned: aar,

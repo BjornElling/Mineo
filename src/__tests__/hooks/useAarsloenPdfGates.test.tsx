@@ -2,7 +2,7 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 import { useAarsloenPdfGates } from '../../hooks/useAarsloenPdfGates';
-import type { AarsloenTableHandle } from '../../types/handles';
+import type { StandardLoenTableHandle } from '../../types/handles';
 import type { AarsloenValues } from '../../schemas/formSchemas';
 import type { PeriodeResult } from '../../utils/periodeBeregning';
 
@@ -45,7 +45,7 @@ const makeBaseProps = (overrides: Partial<Parameters<typeof useAarsloenPdfGates>
   beregnetAarsloen: 0,
   beregningsData: { metode: 'ingen' as const, erEtAar: false },
   harFatalBeregningsFejl: false,
-  tabelRef: React.createRef<AarsloenTableHandle | null>(),
+  tabelRef: React.createRef<StandardLoenTableHandle | null>(),
   getPersistedData: vi.fn(() => null),
   settings: DEFAULT_APP_SETTINGS,
   ...overrides,

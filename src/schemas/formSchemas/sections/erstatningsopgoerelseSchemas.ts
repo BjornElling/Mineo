@@ -30,7 +30,7 @@ import {
   tilstandEnum,
 } from '../enumSchemas';
 // Reuse of årsløn row schema is intentional: EO lønindkomst rows share the same persisted table contract.
-import { aarsloenTableRowSchema } from './aarsloenSchemas';
+import { standardLoenTableRowSchema } from './aarsloenSchemas';
 
 export const svieSmertePeriodeRowSchema = z.object({
   id: z.string().min(1, 'Række-ID må ikke være tomt'),
@@ -241,7 +241,7 @@ const loenindkomstAnsaettelsesforholdBaseSchema = z.object({
   storeBededagPct: percentageDecimal,
   pensionPct: percentageDecimal,
   loenperiode: loenperiodeSchema,
-  indtaegtsoplysningerTableData: z.array(aarsloenTableRowSchema),
+  indtaegtsoplysningerTableData: z.array(standardLoenTableRowSchema),
   fuldLoenUnderFerie: jaNejEnum,
 }).strict();
 

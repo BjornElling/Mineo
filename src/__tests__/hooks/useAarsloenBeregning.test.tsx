@@ -12,9 +12,9 @@ vi.mock('../../utils/safeComputation', () => ({
   safeCompute: vi.fn(),
 }));
 
-vi.mock('../../domain/aarsloen/aarsloenRowCalculations', () => ({
-  calculateAarsloenRowDerived: vi.fn(() => ({ samlet: 100 })),
-  roundAarsloenAmountToTwoDecimals: vi.fn((value: number) => value),
+vi.mock('../../domain/aarsloen/standardLoenRowCalculations', () => ({
+  calculateStandardLoenRowDerived: vi.fn(() => ({ samlet: 100 })),
+  roundStandardLoenAmountToTwoDecimals: vi.fn((value: number) => value),
 }));
 
 vi.mock('../../utils/periodeBeregning', () => ({

@@ -1,21 +1,21 @@
-import type { AarsloenTableRow, OffentligeYdelserRow } from '../../../schemas/formSchemas';
+import type { StandardLoenTableRow, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import {
-  buildAarsloenCellErrors,
-  buildAarsloenZeroArbejdsdageCellErrorMessages,
-  buildAarsloenZeroArbejdsdageIssues,
+  buildStandardLoenCellErrors,
+  buildStandardLoenZeroArbejdsdageCellErrorMessages,
+  buildStandardLoenZeroArbejdsdageIssues,
   buildOffentligeYdelserCellErrors,
   buildLoenindkomstZeroArbejdsdageMessage,
-  getAarsloenErrorRowIdSet,
+  getStandardLoenErrorRowIdSet,
   getOffentligeYdelserErrorRowIdSet,
 } from '../../../domain/erstatningsopgoerelse/indkomstRowValidation';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
-// ─── AarsloenTableRow factory ─────────────────────────────────────────────
+// ─── StandardLoenTableRow factory ─────────────────────────────────────────────
 
-const baseAarsloenRow = (id: string): AarsloenTableRow => ({
+const baseAarsloenRow = (id: string): StandardLoenTableRow => ({
   id,
   col0_maaned: '',
   col1_maaned: '',
@@ -29,19 +29,19 @@ const baseAarsloenRow = (id: string): AarsloenTableRow => ({
   col5: undefined,
 });
 
-const maanedRow = (id: string, month: string, year: string): AarsloenTableRow => ({
+const maanedRow = (id: string, month: string, year: string): StandardLoenTableRow => ({
   ...baseAarsloenRow(id),
   col0_maaned: month,
   col1_maaned: year,
 });
 
-const ugeRow = (id: string, fra: string, til: string): AarsloenTableRow => ({
+const ugeRow = (id: string, fra: string, til: string): StandardLoenTableRow => ({
   ...baseAarsloenRow(id),
   col0_uge: fra,
   col1_uge: til,
 });
 
-const dagRow = (id: string, fra: string, til: string): AarsloenTableRow => ({
+const dagRow = (id: string, fra: string, til: string): StandardLoenTableRow => ({
   ...baseAarsloenRow(id),
   col0_dag: fra,
   col1_dag: til,
@@ -61,66 +61,66 @@ const offentligRow = (
   ydelsestype: opts.ydelsestype,
 });
 
-// ─── buildAarsloenCellErrors ──────────────────────────────────────────────
+// ─── buildStandardLoenCellErrors ──────────────────────────────────────────────
 
-describe('buildAarsloenCellErrors', () => {
+describe('buildStandardLoenCellErrors', () => {
   describe('loenperiode = maaned', () => {
     it('ingen fejl for tomme felter', () => {
-      const errors = buildAarsloenCellErrors([baseAarsloenRow('r1')], 'maaned');
+      const errors = buildStandardLoenCellErrors([baseAarsloenRow('r1')], 'maaned');
       expect(errors).toEqual({});
     });
 
     it('ingen fejl for gyldige måned og år', () => {
-      const errors = buildAarsloenCellErrors([maanedRow('r1', '6', '2024')], 'maaned');
+      const errors = buildStandardLoenCellErrors([maanedRow('r1', '6', '2024')], 'maaned');
       expect(errors).toEqual({});
     });
 
     it('fejl for måned = 0', () => {
-      const errors = buildAarsloenCellErrors([maanedRow('r1', '0', '2024')], 'maaned');
+      const errors = buildStandardLoenCellErrors([maanedRow('r1', '0', '2024')], 'maaned');
       expect(errors['r1:col0_maaned']).toBe(true);
     });
 
     it('fejl for måned = 13', () => {
-      const errors = buildAarsloenCellErrors([maanedRow('r1', '13', '2024')], 'maaned');
+      const errors = buildStandardLoenCellErrors([maanedRow('r1', '13', '2024')], 'maaned');
       expect(errors['r1:col0_maaned']).toBe(true);
     });
 
     it('ingen fejl for måned = 1 og måned = 12 (grænseværdier)', () => {
-      const errorsMin = buildAarsloenCellErrors([maanedRow('r1', '1', '2024')], 'maaned');
-      const errorsMax = buildAarsloenCellErrors([maanedRow('r1', '12', '2024')], 'maaned');
+      const errorsMin = buildStandardLoenCellErrors([maanedRow('r1', '1', '2024')], 'maaned');
+      const errorsMax = buildStandardLoenCellErrors([maanedRow('r1', '12', '2024')], 'maaned');
       expect(errorsMin).toEqual({});
       expect(errorsMax).toEqual({});
     });
 
     it('fejl for år = 1899 (under MIN_YEAR - tjek MIN_YEAR = 2005)', () => {
       // MIN_YEAR = 2005, MAX_YEAR = nuværende år
-      const errors = buildAarsloenCellErrors([maanedRow('r1', '6', '2004')], 'maaned');
+      const errors = buildStandardLoenCellErrors([maanedRow('r1', '6', '2004')], 'maaned');
       expect(errors['r1:col1_maaned']).toBe(true);
     });
 
     it('fejl for år > MAX_YEAR', () => {
-      const errors = buildAarsloenCellErrors([maanedRow('r1', '6', '2101')], 'maaned');
+      const errors = buildStandardLoenCellErrors([maanedRow('r1', '6', '2101')], 'maaned');
       expect(errors['r1:col1_maaned']).toBe(true);
     });
 
     it('fejl for år med ikke-4-cifre streng', () => {
-      const errors = buildAarsloenCellErrors([maanedRow('r1', '6', '24')], 'maaned');
+      const errors = buildStandardLoenCellErrors([maanedRow('r1', '6', '24')], 'maaned');
       expect(errors['r1:col1_maaned']).toBe(true);
     });
 
     it('fejl for ikke-numerisk måned', () => {
-      const errors = buildAarsloenCellErrors([maanedRow('r1', 'abc', '2024')], 'maaned');
+      const errors = buildStandardLoenCellErrors([maanedRow('r1', 'abc', '2024')], 'maaned');
       expect(errors['r1:col0_maaned']).toBe(true);
     });
 
     it('ingen fejl for år = 2005 (MIN_YEAR)', () => {
-      const errors = buildAarsloenCellErrors([maanedRow('r1', '1', '2005')], 'maaned');
+      const errors = buildStandardLoenCellErrors([maanedRow('r1', '1', '2005')], 'maaned');
       expect(errors).toEqual({});
     });
 
     it('returnerer fejl for alle rækker i listen', () => {
       const rows = [maanedRow('r1', '13', '2024'), maanedRow('r2', '6', '2024')];
-      const errors = buildAarsloenCellErrors(rows, 'maaned');
+      const errors = buildStandardLoenCellErrors(rows, 'maaned');
       expect(errors['r1:col0_maaned']).toBe(true);
       expect(errors['r2:col0_maaned']).toBeUndefined();
     });
@@ -128,27 +128,27 @@ describe('buildAarsloenCellErrors', () => {
 
   describe('loenperiode = uge', () => {
     it('ingen fejl for tomme felter', () => {
-      const errors = buildAarsloenCellErrors([baseAarsloenRow('r1')], 'uge');
+      const errors = buildStandardLoenCellErrors([baseAarsloenRow('r1')], 'uge');
       expect(errors).toEqual({});
     });
 
     it('ingen fejl for gyldig ugeangivelse', () => {
-      const errors = buildAarsloenCellErrors([ugeRow('r1', '1/2024', '4/2024')], 'uge');
+      const errors = buildStandardLoenCellErrors([ugeRow('r1', '1/2024', '4/2024')], 'uge');
       expect(errors).toEqual({});
     });
 
     it('fejl for ugtal = 0', () => {
-      const errors = buildAarsloenCellErrors([ugeRow('r1', '0/2024', '4/2024')], 'uge');
+      const errors = buildStandardLoenCellErrors([ugeRow('r1', '0/2024', '4/2024')], 'uge');
       expect(errors['r1:col0_uge']).toBe(true);
     });
 
     it('fejl for ugetal = 54', () => {
-      const errors = buildAarsloenCellErrors([ugeRow('r1', '54/2024', '54/2024')], 'uge');
+      const errors = buildStandardLoenCellErrors([ugeRow('r1', '54/2024', '54/2024')], 'uge');
       expect(errors['r1:col0_uge']).toBe(true);
     });
 
     it('ingen fejl for uge 53 (gyldig)', () => {
-      const errors = buildAarsloenCellErrors([ugeRow('r1', '1/2024', '53/2024')], 'uge');
+      const errors = buildStandardLoenCellErrors([ugeRow('r1', '1/2024', '53/2024')], 'uge');
       // Uge 53 er gyldig, men parseWeekString skal returnere et resultat
       // Uge 53 i 2024 kan muligvis ikke eksistere — vi tester bare format-validering
       // Faktisk returnerer parseWeekString null for uger der ikke eksisterer, så 53/2024 kan fejle
@@ -157,52 +157,52 @@ describe('buildAarsloenCellErrors', () => {
     });
 
     it('fejl for periode med fra > til (rækkefølgefejl)', () => {
-      const errors = buildAarsloenCellErrors([ugeRow('r1', '10/2024', '5/2024')], 'uge');
+      const errors = buildStandardLoenCellErrors([ugeRow('r1', '10/2024', '5/2024')], 'uge');
       expect(errors['r1:col0_uge']).toBe(true);
       expect(errors['r1:col1_uge']).toBe(true);
     });
 
     it('ingen fejl for tilstødende uger', () => {
-      const errors = buildAarsloenCellErrors([ugeRow('r1', '5/2024', '6/2024')], 'uge');
+      const errors = buildStandardLoenCellErrors([ugeRow('r1', '5/2024', '6/2024')], 'uge');
       expect(errors).toEqual({});
     });
 
     it('fejl for uggt forkert format (mangler /)', () => {
-      const errors = buildAarsloenCellErrors([ugeRow('r1', '2024', '2024')], 'uge');
+      const errors = buildStandardLoenCellErrors([ugeRow('r1', '2024', '2024')], 'uge');
       expect(errors['r1:col0_uge']).toBe(true);
     });
   });
 
   describe('loenperiode = dag', () => {
     it('ingen fejl for tomme felter', () => {
-      const errors = buildAarsloenCellErrors([baseAarsloenRow('r1')], 'dag');
+      const errors = buildStandardLoenCellErrors([baseAarsloenRow('r1')], 'dag');
       expect(errors).toEqual({});
     });
 
     it('ingen fejl for gyldigt dansk datoformat', () => {
-      const errors = buildAarsloenCellErrors([dagRow('r1', '01-01-2024', '31-01-2024')], 'dag');
+      const errors = buildStandardLoenCellErrors([dagRow('r1', '01-01-2024', '31-01-2024')], 'dag');
       expect(errors).toEqual({});
     });
 
     it('fejl for ugyldigt datoformat', () => {
-      const errors = buildAarsloenCellErrors([dagRow('r1', '2024-01-01', '2024-01-31')], 'dag');
+      const errors = buildStandardLoenCellErrors([dagRow('r1', '2024-01-01', '2024-01-31')], 'dag');
       // ISO-format er ikke gyldigt dansk datoformat
       expect(errors['r1:col0_dag']).toBe(true);
     });
 
     it('fejl for fra > til (rækkefølgefejl)', () => {
-      const errors = buildAarsloenCellErrors([dagRow('r1', '31-01-2024', '01-01-2024')], 'dag');
+      const errors = buildStandardLoenCellErrors([dagRow('r1', '31-01-2024', '01-01-2024')], 'dag');
       expect(errors['r1:col0_dag']).toBe(true);
       expect(errors['r1:col1_dag']).toBe(true);
     });
 
     it('ingen fejl for fra = til (samme dag)', () => {
-      const errors = buildAarsloenCellErrors([dagRow('r1', '15-06-2024', '15-06-2024')], 'dag');
+      const errors = buildStandardLoenCellErrors([dagRow('r1', '15-06-2024', '15-06-2024')], 'dag');
       expect(errors).toEqual({});
     });
 
     it('fejl for ugyldig dato (31. februar)', () => {
-      const errors = buildAarsloenCellErrors([dagRow('r1', '31-02-2024', '28-02-2024')], 'dag');
+      const errors = buildStandardLoenCellErrors([dagRow('r1', '31-02-2024', '28-02-2024')], 'dag');
       expect(errors['r1:col0_dag']).toBe(true);
     });
   });
@@ -289,33 +289,33 @@ describe('buildOffentligeYdelserCellErrors', () => {
   });
 });
 
-// ─── getAarsloenErrorRowIdSet ─────────────────────────────────────────────
+// ─── getStandardLoenErrorRowIdSet ─────────────────────────────────────────────
 
-describe('getAarsloenErrorRowIdSet', () => {
+describe('getStandardLoenErrorRowIdSet', () => {
   it('returnerer tomt sæt for ingen rækker', () => {
-    const result = getAarsloenErrorRowIdSet([], 'maaned');
+    const result = getStandardLoenErrorRowIdSet([], 'maaned');
     expect(result.size).toBe(0);
   });
 
   it('returnerer tomt sæt for rækker uden fejl', () => {
-    const result = getAarsloenErrorRowIdSet([maanedRow('r1', '6', '2024')], 'maaned');
+    const result = getStandardLoenErrorRowIdSet([maanedRow('r1', '6', '2024')], 'maaned');
     expect(result.size).toBe(0);
   });
 
   it('returnerer row id for række med cellfejl', () => {
-    const result = getAarsloenErrorRowIdSet([maanedRow('r1', '13', '2024')], 'maaned');
+    const result = getStandardLoenErrorRowIdSet([maanedRow('r1', '13', '2024')], 'maaned');
     expect(result.has('r1')).toBe(true);
   });
 
   it('kun rækker med fejl er inkluderet', () => {
     const rows = [maanedRow('r1', '13', '2024'), maanedRow('r2', '6', '2024')];
-    const result = getAarsloenErrorRowIdSet(rows, 'maaned');
+    const result = getStandardLoenErrorRowIdSet(rows, 'maaned');
     expect(result.has('r1')).toBe(true);
     expect(result.has('r2')).toBe(false);
   });
 });
 
-describe('buildAarsloenZeroArbejdsdageIssues', () => {
+describe('buildStandardLoenZeroArbejdsdageIssues', () => {
   it('returnerer fejl for lønrække med beløb og ingen arbejdsdage i arbejdsdags-sporet', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -331,7 +331,7 @@ describe('buildAarsloenZeroArbejdsdageIssues', () => {
     ];
     values.ferieperioder = [{ id: 'ferie-1', fra: '2024-07-01', til: '2024-07-31' }];
 
-    const result = buildAarsloenZeroArbejdsdageIssues(values, af.id);
+    const result = buildStandardLoenZeroArbejdsdageIssues(values, af.id);
 
     expect(result).toEqual([
       {
@@ -357,13 +357,13 @@ describe('buildAarsloenZeroArbejdsdageIssues', () => {
     ];
     values.ferieperioder = [{ id: 'ferie-1', fra: '2024-07-01', til: '2024-07-31' }];
 
-    const result = buildAarsloenZeroArbejdsdageIssues(values, af.id);
+    const result = buildStandardLoenZeroArbejdsdageIssues(values, af.id);
 
     expect(result).toEqual([]);
   });
 });
 
-describe('buildAarsloenZeroArbejdsdageCellErrorMessages', () => {
+describe('buildStandardLoenZeroArbejdsdageCellErrorMessages', () => {
   it('markerer alle udfyldte beløbsceller i den berørte række', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -380,7 +380,7 @@ describe('buildAarsloenZeroArbejdsdageCellErrorMessages', () => {
     ];
     values.ferieperioder = [{ id: 'ferie-1', fra: '2024-07-01', til: '2024-07-31' }];
 
-    const result = buildAarsloenZeroArbejdsdageCellErrorMessages(values, af.id);
+    const result = buildStandardLoenZeroArbejdsdageCellErrorMessages(values, af.id);
 
     expect(result).toEqual({
       'row-1:col2': buildLoenindkomstZeroArbejdsdageMessage(new Date(Date.UTC(2024, 6, 1)), new Date(Date.UTC(2024, 6, 31))),

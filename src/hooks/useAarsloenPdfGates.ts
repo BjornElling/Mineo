@@ -10,12 +10,12 @@
  */
 
 import React from 'react';
-import type { AarsloenTableHandle } from '../types/handles';
+import type { StandardLoenTableHandle } from '../types/handles';
 import type { AarsloenValues } from '../schemas/formSchemas';
 import type { PeriodeResult } from '../utils/periodeBeregning';
 import type { AarsloenBeregningResult } from '../types/calculation';
 import { harTabelValideringsFejl } from '../domain/aarsloen/aarsloenValidationPolicies';
-import { hasAtLeastOneValidRow } from '../domain/aarsloen/aarsloenRowCalculations';
+import { hasAtLeastOneValidRow } from '../domain/aarsloen/standardLoenRowCalculations';
 import type { StorageKey } from '../config/storageManifest';
 import type { AppSettings } from '../settings/appSettingsSchema';
 import { downloadAarsloenPdf, downloadSHDagePdf } from '../utils/pdf/pdfService';
@@ -37,7 +37,7 @@ type UseAarsloenPdfGatesProps = {
   beregnetAarsloen: number;
   beregningsData: AarsloenBeregningResult;
   harFatalBeregningsFejl: boolean;
-  tabelRef: React.RefObject<AarsloenTableHandle | null>;
+  tabelRef: React.RefObject<StandardLoenTableHandle | null>;
   getPersistedData: <K extends StorageKey>(formName: K) => unknown;
   settings: AppSettings;
 };

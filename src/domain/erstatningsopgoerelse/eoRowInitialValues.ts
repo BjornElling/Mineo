@@ -1,4 +1,4 @@
-import type { AarsloenTableRow } from '../../schemas/formSchemas';
+import type { StandardLoenTableRow } from '../../schemas/formSchemas';
 import { createRowId } from '../../utils/rowId';
 
 /**
@@ -6,7 +6,7 @@ import { createRowId } from '../../utils/rowId';
  *
  * VIGTIGT: `id` sættes af caller (fx `generateRowId()`), så her bruges en tom string.
  */
-export const initialRow: Omit<AarsloenTableRow, 'id'> & { id: '' } = {
+export const initialRow: Omit<StandardLoenTableRow, 'id'> & { id: '' } = {
   id: '',
   col0_maaned: '',
   col1_maaned: '',

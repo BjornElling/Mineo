@@ -17,7 +17,7 @@ import StyledRadioButton from '../../inputs/StyledRadioButton';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
 import StyledIntegerField from '../../inputs/StyledIntegerField';
 import type { CommitEvent, CommitHandler } from '../../../types/fieldEvents';
-import AarsloenTable, { type AarsloenTableSatser } from '../../tables/AarsloenTable';
+import StandardLoenTable, { type StandardLoenTableSatser } from '../../tables/StandardLoenTable';
 import LoenudviklingManuelTable from '../../tables/LoenudviklingManuelTable';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import FloatingActionButton from '../../ui/FloatingActionButton';
@@ -41,7 +41,7 @@ import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { isLoenperiodeValue } from '../../../utils/zodTypeGuards';
 import { generateAnsaettelsesforholdId, generateLoenudviklingRowId, initialLoenudviklingManuelRow } from '../../../domain/erstatningsopgoerelse/eoRowInitialValues';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
-import type { AarsloenTableValidationSummary } from '../../../types/table';
+import type { StandardLoenTableValidationSummary } from '../../../types/table';
 import { UI_STORAGE_KEYS } from '../../../config/storageManifest';
 import { STORE_BEDEDAG_START } from '../../../config/dateRanges';
 import { STORE_BEDEDAG_PCT } from '../../../config/regulatoryRates';
@@ -74,7 +74,7 @@ import { formatCurrency } from '../../../utils/formatUtils';
 import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerelse/loenoplysningerInput';
 import { DEFAULT_ANCIENNITET_FIELDS } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import {
-  buildAarsloenZeroArbejdsdageCellErrorMessages,
+  buildStandardLoenZeroArbejdsdageCellErrorMessages,
   type AarsloenZeroArbejdsdageValidationInput,
 } from '../../../domain/erstatningsopgoerelse/indkomstRowValidation';
 import {
@@ -277,7 +277,7 @@ const LoenindkomstTab = React.memo(({
 
   // State til fejlmeddelelser per Ansættelsesforhold
   const [satsErrors, setSatsErrors] = React.useState<Record<string, SatsErrorState>>({});
-  const [aarsloenTableHasErrorsByAfId, setAarsloenTableHasErrorsByAfId] = React.useState<Record<string, true>>({});
+  const [standardLoenTableHasErrorsByAfId, setStandardLoenTableHasErrorsByAfId] = React.useState<Record<string, true>>({});
   const [manuelReguleringHasErrorsByAfId, setManuelReguleringHasErrorsByAfId] = React.useState<Record<string, true>>({});
   const [loentrinFinderOpenForAfId, setLoentrinFinderOpenForAfId] = React.useState<string | null>(null);
   const [loentrinFinderAnsaettelse, setLoentrinFinderAnsaettelse] = React.useState<OffentligLoenTypeLabel>('Månedsløn');
@@ -328,7 +328,7 @@ const LoenindkomstTab = React.memo(({
   const aarsloenExternalCellErrorMessagesByAfId = React.useMemo<Record<string, Readonly<Record<string, string>>>>(() => {
     const result: Record<string, Readonly<Record<string, string>>> = {};
     for (const af of loenindkomstAnsaettelsesforhold) {
-      const messages = buildAarsloenZeroArbejdsdageCellErrorMessages(aarsloenZeroArbejdsdageValidationInput, af.id);
+      const messages = buildStandardLoenZeroArbejdsdageCellErrorMessages(aarsloenZeroArbejdsdageValidationInput, af.id);
       if (Object.keys(messages).length > 0) {
         result[af.id] = messages;
       }
@@ -585,12 +585,12 @@ const LoenindkomstTab = React.memo(({
       }
     }
     for (const id of currentIds) {
-      const hasError = Boolean(aarsloenTableHasErrorsByAfId[id] || manuelReguleringHasErrorsByAfId[id]);
+      const hasError = Boolean(standardLoenTableHasErrorsByAfId[id] || manuelReguleringHasErrorsByAfId[id]);
       setLoenindkomstManuelReguleringInputError(id, hasError);
     }
     syncedLoenindkomstErrorIdsRef.current = currentIds;
   }, [
-    aarsloenTableHasErrorsByAfId,
+    standardLoenTableHasErrorsByAfId,
     manuelReguleringHasErrorsByAfId,
     setLoenindkomstManuelReguleringInputError,
     loenindkomstAnsaettelsesforhold,
@@ -1293,8 +1293,8 @@ const LoenindkomstTab = React.memo(({
   );
 
   const handleAarsloenValidationChange = React.useCallback(
-    (id: string) => (summary: AarsloenTableValidationSummary) => {
-      setAarsloenTableHasErrorsByAfId((prev) => {
+    (id: string) => (summary: StandardLoenTableValidationSummary) => {
+      setStandardLoenTableHasErrorsByAfId((prev) => {
         return updateValidationFlagById(prev, id, summary.hasErrors);
       });
     },
@@ -1451,7 +1451,7 @@ const LoenindkomstTab = React.memo(({
   const handleDeleteConfirm = React.useCallback(() => {
     if (!deleteTargetId) return;
     try {
-      setAarsloenTableHasErrorsByAfId((prev) => {
+      setStandardLoenTableHasErrorsByAfId((prev) => {
         const next = { ...prev };
         delete next[deleteTargetId];
         return next;
@@ -1554,9 +1554,9 @@ const LoenindkomstTab = React.memo(({
   const cannotAddMore = totalAnsaettelsesforhold >= MAX_ANSAETTELSESFORHOLD;
   const showDeleteButton = totalAnsaettelsesforhold > 1;
 
-  // Stable per-af props for React.memo'd AarsloenTable.
+  // Stable per-af props for React.memo'd StandardLoenTable.
   const satserByAfId = React.useMemo(() => {
-    const map = new Map<string, AarsloenTableSatser>();
+    const map = new Map<string, StandardLoenTableSatser>();
     for (const af of loenindkomstAnsaettelsesforhold) {
       map.set(af.id, {
         ferie: af.feriePct,
@@ -1564,14 +1564,14 @@ const LoenindkomstTab = React.memo(({
         shSo: af.shSoPct,
         bededag: af.storeBededagPct,
         pension: af.pensionPct,
-      } satisfies AarsloenTableSatser);
+      } satisfies StandardLoenTableSatser);
     }
     return map;
   }, [loenindkomstAnsaettelsesforhold]);
 
   // Callback-maps afhænger kun af id-listen, ikke af tabeldata.
   // Ids ændrer sig kun ved tilføj/slet af ansaettelsesforhold — ikke ved normale dataredits.
-  // Dette sikrer at onTableDataChange/onValidationChange er stabile props til React.memo'd AarsloenTable.
+  // Dette sikrer at onTableDataChange/onValidationChange er stabile props til React.memo'd StandardLoenTable.
   const afIds = React.useMemo(
     () => loenindkomstAnsaettelsesforhold.map((af) => af.id).join(','),
     [loenindkomstAnsaettelsesforhold]
@@ -1987,7 +1987,7 @@ const LoenindkomstTab = React.memo(({
               </Box>
             </Box>
 
-            <AarsloenTable
+            <StandardLoenTable
               loenperiode={af.loenperiode}
               satser={satserByAfId.get(af.id)!}
               tableData={af.indtaegtsoplysningerTableData}

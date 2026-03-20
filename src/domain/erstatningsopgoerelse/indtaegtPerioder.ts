@@ -1,12 +1,12 @@
 import type {
-  AarsloenTableRow,
+  StandardLoenTableRow,
   ErstatningsopgoerelseValues,
   Loenperiode,
   OffentligeYdelserRow,
 } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, isISODateString } from '../../types/branded';
-import { calculateAarsloenRowDerived } from '../aarsloen/aarsloenRowCalculations';
+import { calculateStandardLoenRowDerived } from '../aarsloen/standardLoenRowCalculations';
 import { parseAmount } from '../../utils/numberParsing';
 import { createDate, parseDanishDate } from '../../utils/dateUtils';
 import { ydelsestyper } from '../../data/ydelsestyper';
@@ -18,8 +18,8 @@ import {
   resolveTafEoPeriodeBounds,
   resolveTafFejlgivendeBounds,
 } from './tafPeriodConstraints';
-import { getAarsloenErrorRowIdSet } from './indkomstRowValidation';
-import { isAarsloenTableValueEffectivelyEmptyForValidation } from '../aarsloen/aarsloenTableValidation';
+import { getStandardLoenErrorRowIdSet } from './indkomstRowValidation';
+import { isStandardLoenTableValueEffectivelyEmptyForValidation } from '../aarsloen/standardLoenTableValidation';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
 import { parseAarsloenRowInterval } from './aarsloenRowInterval';
 import { buildShDageSetFromIsoRange } from './tafDaySets';
@@ -69,15 +69,15 @@ export type IncomeCalculationContext = Readonly<{
 
 type RowEligibility = 'empty' | 'invalid' | 'valid';
 
-const isLoenRowEffectivelyEmptyForLoenperiode = (row: AarsloenTableRow, loenperiode: Loenperiode): boolean => {
-  const periodKeys: ReadonlyArray<keyof AarsloenTableRow> = loenperiode === 'maaned'
+const isLoenRowEffectivelyEmptyForLoenperiode = (row: StandardLoenTableRow, loenperiode: Loenperiode): boolean => {
+  const periodKeys: ReadonlyArray<keyof StandardLoenTableRow> = loenperiode === 'maaned'
     ? ['col0_maaned', 'col1_maaned']
     : loenperiode === 'uge'
       ? ['col0_uge', 'col1_uge']
       : ['col0_dag', 'col1_dag'];
 
-  const keys: ReadonlyArray<keyof AarsloenTableRow> = [...periodKeys, 'col2', 'col3', 'col4', 'col5'];
-  return keys.every((key) => isAarsloenTableValueEffectivelyEmptyForValidation(row[key]));
+  const keys: ReadonlyArray<keyof StandardLoenTableRow> = [...periodKeys, 'col2', 'col3', 'col4', 'col5'];
+  return keys.every((key) => isStandardLoenTableValueEffectivelyEmptyForValidation(row[key]));
 };
 
 const parseOffentligInterval = (row: OffentligeYdelserRow): DateInterval | null => {
@@ -220,7 +220,7 @@ export const buildIncomeCalculationContext = (
   const shDaysForYdelser = buildShDageSetFromIsoRange(bounds.boundsFra, bounds.boundsTil);
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
   const loenErrorRowIdsByEmploymentId = new Map<string, ReadonlySet<string>>(
-    ansaettelser.map((af) => [af.id, getAarsloenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)])
+    ansaettelser.map((af) => [af.id, getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)])
   );
 
   return {
@@ -264,14 +264,14 @@ export const buildIncomeForRanges = (
   const shDaysForYdelser = resolvedContext?.shDaysForYdelser ?? new Set<ISODateString>();
   const loenErrorRowIdsByEmploymentId = resolvedContext?.loenErrorRowIdsByEmploymentId
     ?? new Map<string, ReadonlySet<string>>(
-      ansaettelser.map((af) => [af.id, getAarsloenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)])
+      ansaettelser.map((af) => [af.id, getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)])
     );
   const employers: IncomeEmployerAmount[] = [];
 
   for (let index = 0; index < ansaettelser.length; index += 1) {
     const af = ansaettelser[index];
     const errorRowIds = loenErrorRowIdsByEmploymentId.get(af.id) ?? new Set<string>();
-    const classifyLoenRow = (row: AarsloenTableRow): RowEligibility => {
+    const classifyLoenRow = (row: StandardLoenTableRow): RowEligibility => {
       if (isLoenRowEffectivelyEmptyForLoenperiode(row, af.loenperiode)) return 'empty';
       if (errorRowIds.has(row.id)) return 'invalid';
       const interval = parseAarsloenRowInterval(row, af.loenperiode);
@@ -296,7 +296,7 @@ export const buildIncomeForRanges = (
       if (eligibility !== 'valid') continue;
       const interval = parseAarsloenRowInterval(row, af.loenperiode);
       if (!interval) continue; // defensiv: eligibility 'valid' kræver interval
-      const derived = calculateAarsloenRowDerived(row, satser);
+      const derived = calculateStandardLoenRowDerived(row, satser);
       const atp = parseAmount(row.col5);
       // NOTE: Fail-closed by design.
       // Ikke-finite afledte beløb må aldrig indgå tavst i summer.

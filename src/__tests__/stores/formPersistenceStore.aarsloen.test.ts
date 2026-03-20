@@ -9,7 +9,7 @@ import {
   shouldWarnAarsloenFeriePct,
 } from '../../domain/policies';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
-import type { AarsloenTableRow } from '../../schemas/formSchemas';
+import type { StandardLoenTableRow } from '../../schemas/formSchemas';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 
 const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
@@ -59,7 +59,7 @@ describe('formPersistenceStore (aarsloen selectors)', () => {
 
   it('detects non-empty rows', () => {
     // arrange
-    const emptyRow: AarsloenTableRow = {
+    const emptyRow: StandardLoenTableRow = {
       id: 'row-1',
       col0_maaned: '',
       col1_maaned: '',
@@ -73,7 +73,7 @@ describe('formPersistenceStore (aarsloen selectors)', () => {
       col5: undefined,
     };
 
-    const filledRow: AarsloenTableRow = {
+    const filledRow: StandardLoenTableRow = {
       ...emptyRow,
       id: 'row-2',
       col2: { kind: 'number', value: 1200 },

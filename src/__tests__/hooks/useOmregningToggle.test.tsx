@@ -4,9 +4,9 @@ import { act, render } from '@testing-library/react';
 import { useOmregningToggle } from '../../hooks/useOmregningToggle';
 import type { CommitEvent } from '../../types/fieldEvents';
 import type {
-  AarsloenTableValidationSummary,
+  StandardLoenTableValidationSummary,
 } from '../../types/table';
-import type { AarsloenTableHandle, StyledToggleSwitchHandle } from '../../types/handles';
+import type { StandardLoenTableHandle, StyledToggleSwitchHandle } from '../../types/handles';
 
 let lastHandleToggle: ((e: CommitEvent<boolean>) => void) | null = null;
 
@@ -15,7 +15,7 @@ type Props = {
   tabelHarFejl: boolean;
   hasValidPeriod: boolean;
   onEnabledChange: (enabled: boolean) => void;
-  tableRefMock: AarsloenTableHandle;
+  tableRefMock: StandardLoenTableHandle;
   toggleRefMock: StyledToggleSwitchHandle;
 };
 
@@ -54,7 +54,7 @@ describe('useOmregningToggle', () => {
     const showMissingEntryError = vi.fn();
     const flashError = vi.fn();
 
-    const summary: AarsloenTableValidationSummary = {
+    const summary: StandardLoenTableValidationSummary = {
       rowIssues: [],
       hasErrors: true,
       hasWarnings: false,
@@ -91,7 +91,7 @@ describe('useOmregningToggle', () => {
     const shake = vi.fn();
     const flashError = vi.fn();
 
-    const summary: AarsloenTableValidationSummary = {
+    const summary: StandardLoenTableValidationSummary = {
       rowIssues: [],
       hasErrors: true,
       hasWarnings: false,
@@ -270,7 +270,7 @@ describe('useOmregningToggle', () => {
   it('auto-disables when period becomes invalid', async () => {
     const onEnabledChange = vi.fn();
 
-    const tableRefMock: AarsloenTableHandle = {
+    const tableRefMock: StandardLoenTableHandle = {
       getErrors: vi.fn(),
       getValidationSummary: vi.fn(),
       showMissingEntryError: vi.fn(),

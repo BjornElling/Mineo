@@ -1,7 +1,7 @@
-import type { AarsloenTableRow, ErstatningsopgoerelseValues, JaNej, LoenPaaHelligdage } from '../../schemas/formSchemas';
+import type { StandardLoenTableRow, ErstatningsopgoerelseValues, JaNej, LoenPaaHelligdage } from '../../schemas/formSchemas';
 import type { DeepReadonly } from '../../types/deepReadonly';
 import { parseISODate } from '../../types/branded';
-import { isAarsloenTableValueEffectivelyEmptyForValidation } from '../aarsloen/aarsloenTableValidation';
+import { isStandardLoenTableValueEffectivelyEmptyForValidation } from '../aarsloen/standardLoenTableValidation';
 import { type DateInterval } from '../../utils/isoDateHelpers';
 import { parseAarsloenRowInterval } from './aarsloenRowInterval';
 
@@ -45,10 +45,10 @@ export const TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR = 0.048;
 
 const ALMINDELIG_LOEN_PAA_HELLIGDAGE: LoenPaaHelligdage = 'Almindelig løn';
 const JA: JaNej = 'Ja';
-const AMOUNT_KEYS: ReadonlyArray<keyof AarsloenTableRow> = ['col2', 'col3', 'col4', 'col5'];
+const AMOUNT_KEYS: ReadonlyArray<keyof StandardLoenTableRow> = ['col2', 'col3', 'col4', 'col5'];
 
-const rowHasIndtastetLoen = (row: AarsloenTableRow): boolean => {
-  return AMOUNT_KEYS.some((key) => !isAarsloenTableValueEffectivelyEmptyForValidation(row[key]));
+const rowHasIndtastetLoen = (row: StandardLoenTableRow): boolean => {
+  return AMOUNT_KEYS.some((key) => !isStandardLoenTableValueEffectivelyEmptyForValidation(row[key]));
 };
 
 const hasOverlap = (left: DateInterval, right: DateInterval): boolean => {

@@ -6,7 +6,7 @@ import StyledRadioButton from '../inputs/StyledRadioButton';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
 import StyledIntegerField from '../inputs/StyledIntegerField';
 import StyledDropdown from '../inputs/StyledDropdown';
-import AarsloenTable from '../tables/AarsloenTable';
+import StandardLoenTable from '../tables/StandardLoenTable';
 import ContentBox from '../layout/ContentBox';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
@@ -25,9 +25,9 @@ import {
 } from '../../domain/policies';
 import type { z } from 'zod';
 import type {
-  AarsloenTableValidationSummary,
+  StandardLoenTableValidationSummary,
 } from '../../types/table';
-import type { AarsloenTableHandle, StyledToggleSwitchHandle } from '../../types/handles';
+import type { StandardLoenTableHandle, StyledToggleSwitchHandle } from '../../types/handles';
 import { LOEN_PAA_HELLIGDAGE, LOENPERIODE } from '../../types/loen';
 import type { StyledPercentFieldValueChangeEvent } from '../inputs/StyledPercentField';
 import type { StyledIntegerFieldValueChangeEvent } from '../inputs/StyledIntegerField';
@@ -74,7 +74,7 @@ const Aarsloen = React.memo(() => {
 
   // Refs til fejl-validering
   const [tabelHarFejl, setTabelHarFejl] = React.useState(false);
-  const tabelRef = React.useRef<AarsloenTableHandle | null>(null);
+  const tabelRef = React.useRef<StandardLoenTableHandle | null>(null);
   const toggleRef = React.useRef<StyledToggleSwitchHandle | null>(null);
 
   // ============================================================================
@@ -203,9 +203,9 @@ const Aarsloen = React.memo(() => {
   ], []);
 
   /**
-   * Callback fra AarsloenTable når validerings-status ændres (type-safe)
+   * Callback fra StandardLoenTable når validerings-status ændres (type-safe)
    */
-  const handleValidationChange = React.useCallback((summary: AarsloenTableValidationSummary) => {
+  const handleValidationChange = React.useCallback((summary: StandardLoenTableValidationSummary) => {
     setTabelHarFejl(summary.hasErrors);
   }, []);
 
@@ -384,7 +384,7 @@ const Aarsloen = React.memo(() => {
       <ContentBox className="content-box">
         <Typography className="section-header">Indtægtsoplysninger</Typography>
 
-        <AarsloenTable
+        <StandardLoenTable
           ref={tabelRef}
           loenperiode={loenperiode}
           satser={{

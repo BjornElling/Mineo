@@ -1,4 +1,4 @@
-import type { AarsloenTableRow } from '../../../schemas/formSchemas';
+import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 import {
   beregnFejlmeddelelser,
   harTabelValideringsFejl,
@@ -7,7 +7,7 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
-const emptyRow = (id: string): AarsloenTableRow => ({
+const emptyRow = (id: string): StandardLoenTableRow => ({
   id,
   col0_maaned: '',
   col1_maaned: '',
@@ -21,19 +21,19 @@ const emptyRow = (id: string): AarsloenTableRow => ({
   col5: undefined,
 });
 
-const maanedRow = (id: string, month: string, year: string): AarsloenTableRow => ({
+const maanedRow = (id: string, month: string, year: string): StandardLoenTableRow => ({
   ...emptyRow(id),
   col0_maaned: month,
   col1_maaned: year,
 });
 
-const ugeRow = (id: string, fra: string, til: string): AarsloenTableRow => ({
+const ugeRow = (id: string, fra: string, til: string): StandardLoenTableRow => ({
   ...emptyRow(id),
   col0_uge: fra,
   col1_uge: til,
 });
 
-const dagRow = (id: string, fra: string, til: string): AarsloenTableRow => ({
+const dagRow = (id: string, fra: string, til: string): StandardLoenTableRow => ({
   ...emptyRow(id),
   col0_dag: fra,
   col1_dag: til,
@@ -153,7 +153,7 @@ describe('beregnFejlmeddelelser', () => {
 });
 
 // ─── harTabelValideringsFejl ──────────────────────────────────────────────
-// NB: harTabelValideringsFejl bruger getAarsloenTableValidation uden cellErrorsByCellKey.
+// NB: harTabelValideringsFejl bruger getStandardLoenTableValidation uden cellErrorsByCellKey.
 // Fejl opstår kun ved "delvis periode" (nogen felter udfyldt, men ikke alle).
 // Individuelle felt-format-fejl kræver at cellErrorsByCellKey sendes (hvilket sker i UI).
 
@@ -176,17 +176,17 @@ describe('harTabelValideringsFejl', () => {
 
   it('delvis månedsrække (kun startdato) → true (partial period error)', () => {
     // Kun col0_maaned er udfyldt, col1_maaned mangler → partial period error
-    const partialRow: AarsloenTableRow = { ...emptyRow('r1'), col0_maaned: '6' };
+    const partialRow: StandardLoenTableRow = { ...emptyRow('r1'), col0_maaned: '6' };
     expect(harTabelValideringsFejl([partialRow], 'maaned')).toBe(true);
   });
 
   it('delvis dagrække (kun fra) → true', () => {
-    const partialRow: AarsloenTableRow = { ...emptyRow('r1'), col0_dag: '01-01-2024' };
+    const partialRow: StandardLoenTableRow = { ...emptyRow('r1'), col0_dag: '01-01-2024' };
     expect(harTabelValideringsFejl([partialRow], 'dag')).toBe(true);
   });
 
   it('delvis ugerække (kun fra) → true', () => {
-    const partialRow: AarsloenTableRow = { ...emptyRow('r1'), col0_uge: '1/2024' };
+    const partialRow: StandardLoenTableRow = { ...emptyRow('r1'), col0_uge: '1/2024' };
     expect(harTabelValideringsFejl([partialRow], 'uge')).toBe(true);
   });
 });

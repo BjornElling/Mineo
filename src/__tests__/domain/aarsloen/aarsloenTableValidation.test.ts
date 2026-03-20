@@ -1,20 +1,20 @@
 /// <reference types="vitest/globals" />
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import type { AarsloenTableRow } from '../../../schemas/formSchemas';
-import { getAarsloenTableValidation } from '../../../domain/aarsloen/aarsloenTableValidation';
-import { isAarsloenTableValueEffectivelyEmptyForValidation } from '../../../domain/aarsloen/aarsloenTableValidation';
+import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
+import { getStandardLoenTableValidation } from '../../../domain/aarsloen/standardLoenTableValidation';
+import { isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../../domain/aarsloen/standardLoenTableValidation';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
-const row = (id: string, overrides: Partial<AarsloenTableRow>): AarsloenTableRow => ({
+const row = (id: string, overrides: Partial<StandardLoenTableRow>): StandardLoenTableRow => ({
   id,
   ...overrides,
 });
 
-describe('getAarsloenTableValidation', () => {
+describe('getStandardLoenTableValidation', () => {
   it('flags missing period start when row has other data', () => {
     const rows = [row('r1', { col2: amount(100) })];
-    const result = getAarsloenTableValidation({ rows, loenperiode: 'maaned' });
+    const result = getStandardLoenTableValidation({ rows, loenperiode: 'maaned' });
 
     expect(result.summary.hasErrors).toBe(true);
     expect(result.summary.firstErrorCell).toEqual({
@@ -26,7 +26,7 @@ describe('getAarsloenTableValidation', () => {
 
   it('flags missing period end when start is filled', () => {
     const rows = [row('r1', { col0_maaned: '1', col2: amount(100) })];
-    const result = getAarsloenTableValidation({ rows, loenperiode: 'maaned' });
+    const result = getStandardLoenTableValidation({ rows, loenperiode: 'maaned' });
 
     expect(result.summary.hasErrors).toBe(true);
     expect(result.summary.firstErrorCell).toEqual({
@@ -38,7 +38,7 @@ describe('getAarsloenTableValidation', () => {
 
   it('marks input errors as first error when present', () => {
     const rows = [row('r1', { col0_maaned: '13', col1_maaned: '2024' })];
-    const result = getAarsloenTableValidation({
+    const result = getStandardLoenTableValidation({
       rows,
       loenperiode: 'maaned',
       cellErrorsByCellKey: { 'r1:col0_maaned': true },
@@ -54,7 +54,7 @@ describe('getAarsloenTableValidation', () => {
 
   it('sets warning when only period is filled', () => {
     const rows = [row('r1', { col0_maaned: '1', col1_maaned: '2024' })];
-    const result = getAarsloenTableValidation({ rows, loenperiode: 'maaned' });
+    const result = getStandardLoenTableValidation({ rows, loenperiode: 'maaned' });
 
     expect(result.summary.hasErrors).toBe(false);
     expect(result.summary.hasWarnings).toBe(true);
@@ -63,7 +63,7 @@ describe('getAarsloenTableValidation', () => {
 
   it('does not set warning when amount column is explicitly set to 0', () => {
     const rows = [row('r1', { col0_maaned: '1', col1_maaned: '2024', col2: amount(0) })];
-    const result = getAarsloenTableValidation({ rows, loenperiode: 'maaned' });
+    const result = getStandardLoenTableValidation({ rows, loenperiode: 'maaned' });
 
     expect(result.summary.hasErrors).toBe(false);
     expect(result.summary.hasWarnings).toBe(false);
@@ -74,7 +74,7 @@ describe('getAarsloenTableValidation', () => {
       row('r1', { col0_maaned: '1', col1_maaned: '2024' }),
       row('r2', { col2: amount(200) }),
     ];
-    const result = getAarsloenTableValidation({ rows, loenperiode: 'maaned' });
+    const result = getStandardLoenTableValidation({ rows, loenperiode: 'maaned' });
 
     expect(result.summary.hasErrors).toBe(true);
     expect(result.summary.firstErrorCell).toEqual({
@@ -87,14 +87,14 @@ describe('getAarsloenTableValidation', () => {
   it('switches firstErrorCell reason between missing and input as state changes', () => {
     const rows = [row('r1', { col2: amount(100) })];
 
-    const missingResult = getAarsloenTableValidation({ rows, loenperiode: 'maaned' });
+    const missingResult = getStandardLoenTableValidation({ rows, loenperiode: 'maaned' });
     expect(missingResult.summary.firstErrorCell).toEqual({
       rowId: 'r1',
       colKey: 'col0_maaned',
       reason: 'missing',
     });
 
-    const inputResult = getAarsloenTableValidation({
+    const inputResult = getStandardLoenTableValidation({
       rows,
       loenperiode: 'maaned',
       cellErrorsByCellKey: { 'r1:col0_maaned': true },
@@ -105,7 +105,7 @@ describe('getAarsloenTableValidation', () => {
       reason: 'input',
     });
 
-    const missingAgainResult = getAarsloenTableValidation({ rows, loenperiode: 'maaned' });
+    const missingAgainResult = getStandardLoenTableValidation({ rows, loenperiode: 'maaned' });
     expect(missingAgainResult.summary.firstErrorCell).toEqual({
       rowId: 'r1',
       colKey: 'col0_maaned',
@@ -114,15 +114,15 @@ describe('getAarsloenTableValidation', () => {
   });
 
   it('treats non-finite numbers as empty', () => {
-    expect(isAarsloenTableValueEffectivelyEmptyForValidation(Number.NaN)).toBe(true);
-    expect(isAarsloenTableValueEffectivelyEmptyForValidation(Number.POSITIVE_INFINITY)).toBe(true);
+    expect(isStandardLoenTableValueEffectivelyEmptyForValidation(Number.NaN)).toBe(true);
+    expect(isStandardLoenTableValueEffectivelyEmptyForValidation(Number.POSITIVE_INFINITY)).toBe(true);
   });
 
   it('treats zero values as filled input', () => {
-    expect(isAarsloenTableValueEffectivelyEmptyForValidation('0')).toBe(false);
-    expect(isAarsloenTableValueEffectivelyEmptyForValidation('0,00')).toBe(false);
-    expect(isAarsloenTableValueEffectivelyEmptyForValidation(0)).toBe(false);
-    expect(isAarsloenTableValueEffectivelyEmptyForValidation({ kind: 'number', value: 0 })).toBe(false);
-    expect(isAarsloenTableValueEffectivelyEmptyForValidation({ kind: 'expression', expression: '0', value: 0 })).toBe(false);
+    expect(isStandardLoenTableValueEffectivelyEmptyForValidation('0')).toBe(false);
+    expect(isStandardLoenTableValueEffectivelyEmptyForValidation('0,00')).toBe(false);
+    expect(isStandardLoenTableValueEffectivelyEmptyForValidation(0)).toBe(false);
+    expect(isStandardLoenTableValueEffectivelyEmptyForValidation({ kind: 'number', value: 0 })).toBe(false);
+    expect(isStandardLoenTableValueEffectivelyEmptyForValidation({ kind: 'expression', expression: '0', value: 0 })).toBe(false);
   });
 });

@@ -2,10 +2,10 @@ import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
 import { formatAsAmount } from '../../../formatUtils';
 import { amountValueToDisplayString } from '../../../expressionAmount';
-import { calculateAarsloenRowDerived } from '../../../../domain/aarsloen/aarsloenRowCalculations';
-import { getAarsloenErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/indkomstRowValidation';
+import { calculateStandardLoenRowDerived } from '../../../../domain/aarsloen/standardLoenRowCalculations';
+import { getStandardLoenErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/indkomstRowValidation';
 import { PDF_CONTENT_WIDTH_MM } from '../../pdfConfig';
-import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../../../schemas/formSchemas';
+import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import { resolveOverenskomstNameOnlyDisplay } from '../../../../data/overenskomstRates';
 import type { SelectedElements } from '../types';
@@ -25,10 +25,10 @@ type LoenSectionContext = Readonly<{
   formatPctFromInput: (value: number | undefined) => string;
   isZeroPct: (value: number | undefined) => boolean;
   getLoenindkomstTableHeaders: (loenperiode: Loenperiode) => readonly string[];
-  resolvePeriodColumns: (row: AarsloenTableRow, loenperiode: Loenperiode) => readonly [string, string];
-  hasNonZeroLoenAmount: (value: AarsloenTableRow['col2']) => boolean;
+  resolvePeriodColumns: (row: StandardLoenTableRow, loenperiode: Loenperiode) => readonly [string, string];
+  hasNonZeroLoenAmount: (value: StandardLoenTableRow['col2']) => boolean;
   shouldIncludeLoenRowInBilag: (params: Readonly<{
-    row: AarsloenTableRow;
+    row: StandardLoenTableRow;
     loenperiode: Loenperiode;
     mode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
     ranges: readonly IsoRange[];
@@ -68,11 +68,11 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
   if (!selectedElements.loenindkomst) return;
   const normalizedBilagMode = normalizeBilagIndkomstYdelserMode(bilagIndkomstYdelserMode);
 
-  const formatAmountCell = (value: AarsloenTableRow['col2']): string => amountValueToDisplayString(value, 2);
+  const formatAmountCell = (value: StandardLoenTableRow['col2']): string => amountValueToDisplayString(value, 2);
   const loenErrorRowIdsByEmploymentId = new Map<string, ReadonlySet<string>>(
     (eoValues.loenindkomstAnsaettelsesforhold ?? []).map((af) => [
       af.id,
-      getAarsloenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode),
+      getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode),
     ])
   );
 
@@ -128,7 +128,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
 
     for (const row of rows) {
       const [col0, col1] = resolvePeriodColumns(row, ansaettelsesforhold.loenperiode);
-      const derived = calculateAarsloenRowDerived(row, satser);
+      const derived = calculateStandardLoenRowDerived(row, satser);
       const rowValues = [
         col0,
         col1,

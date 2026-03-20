@@ -4,11 +4,11 @@
  * Disse funktioner er rene (ingen side effects) og kan testes isoleret.
  */
 
-import type { AarsloenTableRow, LoenPaaHelligdage, Loenperiode } from '../../schemas/formSchemas';
+import type { StandardLoenTableRow, LoenPaaHelligdage, Loenperiode } from '../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import { formatPercent } from '../../utils/formatUtils';
-import { hasCompletePeriodForLoenperiode } from './aarsloenRowCalculations';
-import { getAarsloenTableValidation } from './aarsloenTableValidation';
+import { hasCompletePeriodForLoenperiode } from './standardLoenRowCalculations';
+import { getStandardLoenTableValidation } from './standardLoenTableValidation';
 
 /**
  * Tjekker om der er valideringsfejl i tabeldata
@@ -18,14 +18,14 @@ import { getAarsloenTableValidation } from './aarsloenTableValidation';
  * @returns true hvis der er valideringsfejl
  */
 export const harTabelValideringsFejl = (
-  tableData: AarsloenTableRow[],
+  tableData: StandardLoenTableRow[],
   loenperiode: Loenperiode
 ): boolean => {
   if (!tableData || tableData.length === 0) {
     return false;
   }
 
-  return getAarsloenTableValidation({ rows: tableData, loenperiode }).summary.hasErrors;
+  return getStandardLoenTableValidation({ rows: tableData, loenperiode }).summary.hasErrors;
 };
 
 /**
@@ -104,7 +104,7 @@ export const beregnFejlmeddelelser = (
  * @returns true hvis der er data
  */
 export const harTabelData = (
-  tableData: AarsloenTableRow[],
+  tableData: StandardLoenTableRow[],
   loenperiode: Loenperiode
 ): boolean => {
   if (!tableData || tableData.length === 0) {

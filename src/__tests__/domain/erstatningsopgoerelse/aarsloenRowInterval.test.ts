@@ -1,9 +1,9 @@
-import type { AarsloenTableRow } from '../../../schemas/formSchemas';
+import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 import { parseAarsloenRowInterval } from '../../../domain/erstatningsopgoerelse/aarsloenRowInterval';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
-const baseRow = (): AarsloenTableRow => ({
+const baseRow = (): StandardLoenTableRow => ({
   id: 'r1',
   col0_maaned: '',
   col1_maaned: '',
@@ -17,19 +17,19 @@ const baseRow = (): AarsloenTableRow => ({
   col5: undefined,
 });
 
-const maanedRow = (month: string, year: string): AarsloenTableRow => ({
+const maanedRow = (month: string, year: string): StandardLoenTableRow => ({
   ...baseRow(),
   col0_maaned: month,
   col1_maaned: year,
 });
 
-const ugeRow = (fraUge: string, tilUge: string): AarsloenTableRow => ({
+const ugeRow = (fraUge: string, tilUge: string): StandardLoenTableRow => ({
   ...baseRow(),
   col0_uge: fraUge,
   col1_uge: tilUge,
 });
 
-const dagRow = (fraDato: string, tilDato: string): AarsloenTableRow => ({
+const dagRow = (fraDato: string, tilDato: string): StandardLoenTableRow => ({
   ...baseRow(),
   col0_dag: fraDato,
   col1_dag: tilDato,

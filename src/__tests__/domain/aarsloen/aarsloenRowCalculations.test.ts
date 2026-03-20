@@ -1,15 +1,15 @@
 import {
-  calculateAarsloenRowDerived,
-  roundAarsloenAmountToTwoDecimals,
-  isAarsloenTableCellEffectivelyEmpty,
-  isAarsloenRowEffectivelyEmpty,
+  calculateStandardLoenRowDerived,
+  roundStandardLoenAmountToTwoDecimals,
+  isStandardLoenTableCellEffectivelyEmpty,
+  isStandardLoenRowEffectivelyEmpty,
   hasCompletePeriodForLoenperiode,
   hasAtLeastOneValidRow,
-  type AarsloenSatserInput,
-} from '../../../domain/aarsloen/aarsloenRowCalculations';
-import type { AarsloenTableRow } from '../../../schemas/formSchemas';
+  type StandardLoenSatserInput,
+} from '../../../domain/aarsloen/standardLoenRowCalculations';
+import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 
-const createRow = (overrides: Partial<AarsloenTableRow> = {}): AarsloenTableRow => ({
+const createRow = (overrides: Partial<StandardLoenTableRow> = {}): StandardLoenTableRow => ({
   id: 'row-1',
   col0_maaned: '',
   col1_maaned: '',
@@ -24,7 +24,7 @@ const createRow = (overrides: Partial<AarsloenTableRow> = {}): AarsloenTableRow 
   ...overrides,
 });
 
-describe('calculateAarsloenRowDerived', () => {
+describe('calculateStandardLoenRowDerived', () => {
   it('beregner ferieberettiget løn, fp/fv/sh/so, pension og samlet korrekt', () => {
     const row = createRow({
       col2: 30000,
@@ -32,7 +32,7 @@ describe('calculateAarsloenRowDerived', () => {
       col4: 1000,
       col5: 300,
     });
-    const satser: AarsloenSatserInput = {
+    const satser: StandardLoenSatserInput = {
       feriePct: '12,5',
       fritvalgPct: '1,0',
       shSoPct: '2,0',
@@ -40,7 +40,7 @@ describe('calculateAarsloenRowDerived', () => {
       pensionPct: '10,0',
     };
 
-    const result = calculateAarsloenRowDerived(row, satser);
+    const result = calculateStandardLoenRowDerived(row, satser);
     expect(result.ferieberet).toBe(33000);
     expect(result.fpFvShSo).toBeCloseTo(5263.5, 6);
     expect(result.pension).toBeCloseTo(3710.4, 6);
@@ -54,7 +54,7 @@ describe('calculateAarsloenRowDerived', () => {
       col4: 0,
       col5: 1000,
     });
-    const satser: AarsloenSatserInput = {
+    const satser: StandardLoenSatserInput = {
       feriePct: '0',
       fritvalgPct: '0',
       shSoPct: '0',
@@ -62,79 +62,79 @@ describe('calculateAarsloenRowDerived', () => {
       pensionPct: '10',
     };
 
-    const result = calculateAarsloenRowDerived(row, satser);
+    const result = calculateStandardLoenRowDerived(row, satser);
     expect(result.fpFvShSo).toBe(0);
     expect(result.pension).toBe(1500);
     expect(result.samlet).toBe(17500);
   });
 });
 
-// ─── roundAarsloenAmountToTwoDecimals ────────────────────────────────────────
+// ─── roundStandardLoenAmountToTwoDecimals ────────────────────────────────────────
 
-describe('roundAarsloenAmountToTwoDecimals', () => {
+describe('roundStandardLoenAmountToTwoDecimals', () => {
   it('afrunder til 2 decimaler med halfAwayFromZero', () => {
     // 1.005 er i floating-point faktisk 1.004999... → afrunder ned til 1.00
-    expect(roundAarsloenAmountToTwoDecimals(1.005)).toBe(1);
+    expect(roundStandardLoenAmountToTwoDecimals(1.005)).toBe(1);
     // 2.005 er i floating-point faktisk 2.005000... → afrunder op til 2.01
-    expect(roundAarsloenAmountToTwoDecimals(2.005)).toBe(2.01);
-    expect(roundAarsloenAmountToTwoDecimals(1.234)).toBe(1.23);
-    expect(roundAarsloenAmountToTwoDecimals(1.235)).toBe(1.24);
+    expect(roundStandardLoenAmountToTwoDecimals(2.005)).toBe(2.01);
+    expect(roundStandardLoenAmountToTwoDecimals(1.234)).toBe(1.23);
+    expect(roundStandardLoenAmountToTwoDecimals(1.235)).toBe(1.24);
   });
 
   it('NaN → 0 (fail-closed)', () => {
-    expect(roundAarsloenAmountToTwoDecimals(Number.NaN)).toBe(0);
+    expect(roundStandardLoenAmountToTwoDecimals(Number.NaN)).toBe(0);
   });
 
   it('Infinity → 0 (fail-closed)', () => {
-    expect(roundAarsloenAmountToTwoDecimals(Number.POSITIVE_INFINITY)).toBe(0);
-    expect(roundAarsloenAmountToTwoDecimals(Number.NEGATIVE_INFINITY)).toBe(0);
+    expect(roundStandardLoenAmountToTwoDecimals(Number.POSITIVE_INFINITY)).toBe(0);
+    expect(roundStandardLoenAmountToTwoDecimals(Number.NEGATIVE_INFINITY)).toBe(0);
   });
 
   it('heltal er uændret', () => {
-    expect(roundAarsloenAmountToTwoDecimals(42)).toBe(42);
-    expect(roundAarsloenAmountToTwoDecimals(0)).toBe(0);
+    expect(roundStandardLoenAmountToTwoDecimals(42)).toBe(42);
+    expect(roundStandardLoenAmountToTwoDecimals(0)).toBe(0);
   });
 });
 
-// ─── isAarsloenTableCellEffectivelyEmpty ─────────────────────────────────────
+// ─── isStandardLoenTableCellEffectivelyEmpty ─────────────────────────────────────
 
-describe('isAarsloenTableCellEffectivelyEmpty', () => {
+describe('isStandardLoenTableCellEffectivelyEmpty', () => {
   it('undefined → true', () => {
-    expect(isAarsloenTableCellEffectivelyEmpty(undefined)).toBe(true);
+    expect(isStandardLoenTableCellEffectivelyEmpty(undefined)).toBe(true);
   });
 
   it('null → true', () => {
-    expect(isAarsloenTableCellEffectivelyEmpty(null)).toBe(true);
+    expect(isStandardLoenTableCellEffectivelyEmpty(null)).toBe(true);
   });
 
   it('tom streng → true', () => {
-    expect(isAarsloenTableCellEffectivelyEmpty('')).toBe(true);
+    expect(isStandardLoenTableCellEffectivelyEmpty('')).toBe(true);
   });
 
   it('whitespace-streng → true', () => {
-    expect(isAarsloenTableCellEffectivelyEmpty('   ')).toBe(true);
+    expect(isStandardLoenTableCellEffectivelyEmpty('   ')).toBe(true);
   });
 
   it('streng med indhold → false', () => {
-    expect(isAarsloenTableCellEffectivelyEmpty('01-2024')).toBe(false);
-    expect(isAarsloenTableCellEffectivelyEmpty('1')).toBe(false);
+    expect(isStandardLoenTableCellEffectivelyEmpty('01-2024')).toBe(false);
+    expect(isStandardLoenTableCellEffectivelyEmpty('1')).toBe(false);
   });
 
   it('tal (0) → false (kun strenge er "empty")', () => {
     // Implementeringen returnerer false for ikke-strenge (typeof value !== 'string')
-    expect(isAarsloenTableCellEffectivelyEmpty(0)).toBe(false);
+    expect(isStandardLoenTableCellEffectivelyEmpty(0)).toBe(false);
   });
 
   it('tal (1000) → false', () => {
-    expect(isAarsloenTableCellEffectivelyEmpty(1000)).toBe(false);
+    expect(isStandardLoenTableCellEffectivelyEmpty(1000)).toBe(false);
   });
 });
 
-// ─── isAarsloenRowEffectivelyEmpty ───────────────────────────────────────────
+// ─── isStandardLoenRowEffectivelyEmpty ───────────────────────────────────────────
 
-describe('isAarsloenRowEffectivelyEmpty', () => {
+describe('isStandardLoenRowEffectivelyEmpty', () => {
   it('alle editable felter undefined → true', () => {
-    const row: AarsloenTableRow = {
+    const row: StandardLoenTableRow = {
       id: 'r',
       col0_maaned: undefined,
       col1_maaned: undefined,
@@ -147,11 +147,11 @@ describe('isAarsloenRowEffectivelyEmpty', () => {
       col4: undefined,
       col5: undefined,
     };
-    expect(isAarsloenRowEffectivelyEmpty(row)).toBe(true);
+    expect(isStandardLoenRowEffectivelyEmpty(row)).toBe(true);
   });
 
   it('alle editable felter er tomme strings og undefined → true', () => {
-    const row: AarsloenTableRow = {
+    const row: StandardLoenTableRow = {
       id: 'r',
       col0_maaned: '',
       col1_maaned: '',
@@ -164,17 +164,17 @@ describe('isAarsloenRowEffectivelyEmpty', () => {
       col4: undefined,
       col5: undefined,
     };
-    expect(isAarsloenRowEffectivelyEmpty(row)).toBe(true);
+    expect(isStandardLoenRowEffectivelyEmpty(row)).toBe(true);
   });
 
   it('createRow() med col2=0 (number) → false (0 er tal, ikke string)', () => {
-    // col2: 0 → typeof number → isAarsloenTableCellEffectivelyEmpty(0) = false
-    expect(isAarsloenRowEffectivelyEmpty(createRow({ col2: 0 }))).toBe(false);
+    // col2: 0 → typeof number → isStandardLoenTableCellEffectivelyEmpty(0) = false
+    expect(isStandardLoenRowEffectivelyEmpty(createRow({ col2: 0 }))).toBe(false);
   });
 
   it('row med col0_maaned = "1" og undefined numerics → ikke empty', () => {
-    const row: AarsloenTableRow = { id: 'r', col0_maaned: '1', col2: undefined, col3: undefined, col4: undefined, col5: undefined };
-    expect(isAarsloenRowEffectivelyEmpty(row)).toBe(false);
+    const row: StandardLoenTableRow = { id: 'r', col0_maaned: '1', col2: undefined, col3: undefined, col4: undefined, col5: undefined };
+    expect(isStandardLoenRowEffectivelyEmpty(row)).toBe(false);
   });
 });
 
@@ -215,7 +215,7 @@ describe('hasCompletePeriodForLoenperiode', () => {
 // ─── hasAtLeastOneValidRow ───────────────────────────────────────────────────
 
 describe('hasAtLeastOneValidRow', () => {
-  const satser: AarsloenSatserInput = { feriePct: '0', fritvalgPct: '0', shSoPct: '0', storeBededagPct: '0', pensionPct: '0' };
+  const satser: StandardLoenSatserInput = { feriePct: '0', fritvalgPct: '0', shSoPct: '0', storeBededagPct: '0', pensionPct: '0' };
 
   it('tom liste → false', () => {
     expect(hasAtLeastOneValidRow([], 'maaned', satser)).toBe(false);

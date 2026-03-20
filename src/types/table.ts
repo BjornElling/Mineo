@@ -1,4 +1,4 @@
-export type AarsloenTableColumnKey =
+export type StandardLoenTableColumnKey =
   | `col0_${'maaned' | 'uge' | 'dag'}`
   | `col1_${'maaned' | 'uge' | 'dag'}`
   | 'col2'
@@ -15,34 +15,34 @@ export type TableError =
       kind: 'cell';
       issue: 'invalid' | 'partial_period';
       rowId: string;
-      colKey: AarsloenTableColumnKey;
+      colKey: StandardLoenTableColumnKey;
     }
   | {
       kind: 'table';
       reason: 'no_valid_rows';
     };
 
-export type AarsloenTableRowIssueLevel = 'error' | 'warning';
+export type StandardLoenTableRowIssueLevel = 'error' | 'warning';
 export type TableRowIssueReason = 'input' | 'missing';
 
-export type AarsloenTableRowIssue = Readonly<{
+export type StandardLoenTableRowIssue = Readonly<{
   rowId: string;
-  level: AarsloenTableRowIssueLevel;
+  level: StandardLoenTableRowIssueLevel;
 }>;
 
-export type AarsloenTableFirstErrorReason = TableRowIssueReason;
+export type StandardLoenTableFirstErrorReason = TableRowIssueReason;
 
-export type AarsloenTableFirstErrorCell = Readonly<{
+export type StandardLoenTableFirstErrorCell = Readonly<{
   rowId: string;
-  colKey: AarsloenTableColumnKey;
-  reason: AarsloenTableFirstErrorReason;
+  colKey: StandardLoenTableColumnKey;
+  reason: StandardLoenTableFirstErrorReason;
 }>;
 
-export type AarsloenTableValidationSummary = Readonly<{
-  rowIssues: AarsloenTableRowIssue[];
+export type StandardLoenTableValidationSummary = Readonly<{
+  rowIssues: StandardLoenTableRowIssue[];
   hasErrors: boolean;
   hasWarnings: boolean;
-  firstErrorCell?: AarsloenTableFirstErrorCell;
+  firstErrorCell?: StandardLoenTableFirstErrorCell;
 }>;
 
 export type OffentligeYdelserTableRowIssueLevel = 'error' | 'warning';

@@ -18,10 +18,10 @@ import {
   renderEoStylePdfTable,
 } from './pdfTableRenderer';
 import { PDF_SECTION_HEADING_GAP, SECTION_SPACER } from './pdfConfig';
-import { calculateAarsloenRowDerived, type AarsloenSatserInput } from '../../domain/aarsloen/aarsloenRowCalculations';
+import { calculateStandardLoenRowDerived, type StandardLoenSatserInput } from '../../domain/aarsloen/standardLoenRowCalculations';
 import type { PdfCommonOptions } from './pdfOptions';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
-import type { AarsloenTableRow, LoenPaaHelligdage, Loenperiode } from '../../schemas/formSchemas';
+import type { StandardLoenTableRow, LoenPaaHelligdage, Loenperiode } from '../../schemas/formSchemas';
 import type { PeriodeResult } from '../periodeBeregning';
 import type { AarsloenBeregningResult } from '../../types/calculation';
 import { amountValueToDisplayString, amountValueToNumber } from '../expressionAmount';
@@ -131,10 +131,10 @@ const formatPdfPercent = (pct: unknown): string => {
  */
 const addSatserSection = (
   writer: PdfWriter,
-  satser: AarsloenSatserInput,
+  satser: StandardLoenSatserInput,
 ): void => {
   // Definer alle mulige satser
-  const satsDefinitioner: Array<{ key: keyof AarsloenSatserInput; label: string }> = [
+  const satsDefinitioner: Array<{ key: keyof StandardLoenSatserInput; label: string }> = [
     { key: 'feriePct', label: 'Feriegodtgørelse/-tillæg' },
     { key: 'fritvalgPct', label: 'Fritvalg' },
     { key: 'shSoPct', label: 'SH/SO-sats' },
@@ -166,9 +166,9 @@ const addSatserSection = (
  */
 const addIndtaegtsoplysningerTable = (
   doc: jsPDF,
-  tableData: readonly AarsloenTableRow[],
+  tableData: readonly StandardLoenTableRow[],
   loenperiode: Loenperiode,
-  satser: AarsloenSatserInput,
+  satser: StandardLoenSatserInput,
   beregnetAarsloen: number,
   currentY: number
 ): number => {
@@ -245,7 +245,7 @@ const addIndtaegtsoplysningerTable = (
       col1Val = row.col1_dag || '';
     }
 
-    const derived = calculateAarsloenRowDerived(row, {
+    const derived = calculateStandardLoenRowDerived(row, {
       feriePct: satser?.feriePct,
       fritvalgPct: satser?.fritvalgPct,
       shSoPct: satser?.shSoPct,
@@ -573,9 +573,9 @@ const addBeregningSection = (
  * @param {object} params - Parameter-objekt med alle nødvendige data
  */
 type GenerateAarsloenPdfParams = PdfCommonOptions & Readonly<{
-  satser: AarsloenSatserInput;
+  satser: StandardLoenSatserInput;
   loenperiode: Loenperiode;
-  tableData: readonly AarsloenTableRow[];
+  tableData: readonly StandardLoenTableRow[];
   beregnetAarsloen: number;
   omregningTilFuldtAar: boolean;
   periodeData: PeriodeResult | null;

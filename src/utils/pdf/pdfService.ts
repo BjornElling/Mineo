@@ -1,7 +1,7 @@
 import type { AppSettings } from '../../settings/appSettingsSchema';
 import {
   stamdataSchema,
-  type AarsloenTableRow,
+  type StandardLoenTableRow,
   type ErstatningsopgoerelseValues,
   type LoenPaaHelligdage,
   type Loenperiode,
@@ -75,7 +75,7 @@ export type AarsloenPdfInput = Readonly<{
     pensionPct: number | undefined;
   }>;
   loenperiode: Loenperiode;
-  tableData: readonly AarsloenTableRow[];
+  tableData: readonly StandardLoenTableRow[];
   beregnetAarsloen: number;
   omregningTilFuldtAar: boolean;
   periodeData: PeriodeResult | null;

@@ -1,8 +1,8 @@
-import type { AarsloenTableRow, Loenperiode } from '../../schemas/formSchemas';
+import type { StandardLoenTableRow, Loenperiode } from '../../schemas/formSchemas';
 import { parseAmount, parsePercentToDecimal } from '../../utils/numberParsing';
 import { roundByMethod } from '../../utils/rounding';
 
-export type AarsloenSatserInput = {
+export type StandardLoenSatserInput = {
   feriePct?: string | number;
   fritvalgPct?: string | number;
   shSoPct?: string | number;
@@ -10,25 +10,25 @@ export type AarsloenSatserInput = {
   pensionPct?: string | number;
 };
 
-export type AarsloenRowDerived = {
+export type StandardLoenRowDerived = {
   ferieberet: number;
   fpFvShSo: number;
   pension: number;
   samlet: number;
 };
 
-export const roundAarsloenAmountToTwoDecimals = (value: number): number => {
+export const roundStandardLoenAmountToTwoDecimals = (value: number): number => {
   if (!Number.isFinite(value)) return 0;
   return roundByMethod(value, 2, 'halfAwayFromZero');
 };
 
-export const isAarsloenTableCellEffectivelyEmpty = (value: unknown): boolean => {
+export const isStandardLoenTableCellEffectivelyEmpty = (value: unknown): boolean => {
   if (value === undefined || value === null) return true;
   if (typeof value !== 'string') return false;
   return value.trim() === '';
 };
 
-export const calculateAarsloenRowDerived = (row: AarsloenTableRow, satser: AarsloenSatserInput): AarsloenRowDerived => {
+export const calculateStandardLoenRowDerived = (row: StandardLoenTableRow, satser: StandardLoenSatserInput): StandardLoenRowDerived => {
   const ferie = parsePercentToDecimal(satser.feriePct);
   const fritvalg = parsePercentToDecimal(satser.fritvalgPct);
   const shSo = parsePercentToDecimal(satser.shSoPct);
@@ -55,7 +55,7 @@ export const calculateAarsloenRowDerived = (row: AarsloenTableRow, satser: Aarsl
   return { ferieberet, fpFvShSo, pension, samlet };
 };
 
-const EDITABLE_KEYS: Array<keyof AarsloenTableRow> = [
+const EDITABLE_KEYS: Array<keyof StandardLoenTableRow> = [
   'col0_maaned',
   'col1_maaned',
   'col0_uge',
@@ -68,22 +68,22 @@ const EDITABLE_KEYS: Array<keyof AarsloenTableRow> = [
   'col5',
 ];
 
-export const isAarsloenRowEffectivelyEmpty = (row: AarsloenTableRow): boolean => {
+export const isStandardLoenRowEffectivelyEmpty = (row: StandardLoenTableRow): boolean => {
   for (const key of EDITABLE_KEYS) {
-    if (!isAarsloenTableCellEffectivelyEmpty(row[key])) return false;
+    if (!isStandardLoenTableCellEffectivelyEmpty(row[key])) return false;
   }
   return true;
 };
 
-export const hasCompletePeriodForLoenperiode = (row: AarsloenTableRow, loenperiode: Loenperiode): boolean => {
-  if (loenperiode === 'maaned') return !isAarsloenTableCellEffectivelyEmpty(row.col0_maaned) && !isAarsloenTableCellEffectivelyEmpty(row.col1_maaned);
-  if (loenperiode === 'uge') return !isAarsloenTableCellEffectivelyEmpty(row.col0_uge) && !isAarsloenTableCellEffectivelyEmpty(row.col1_uge);
-  return !isAarsloenTableCellEffectivelyEmpty(row.col0_dag) && !isAarsloenTableCellEffectivelyEmpty(row.col1_dag);
+export const hasCompletePeriodForLoenperiode = (row: StandardLoenTableRow, loenperiode: Loenperiode): boolean => {
+  if (loenperiode === 'maaned') return !isStandardLoenTableCellEffectivelyEmpty(row.col0_maaned) && !isStandardLoenTableCellEffectivelyEmpty(row.col1_maaned);
+  if (loenperiode === 'uge') return !isStandardLoenTableCellEffectivelyEmpty(row.col0_uge) && !isStandardLoenTableCellEffectivelyEmpty(row.col1_uge);
+  return !isStandardLoenTableCellEffectivelyEmpty(row.col0_dag) && !isStandardLoenTableCellEffectivelyEmpty(row.col1_dag);
 };
 
-export const hasAtLeastOneValidRow = (rows: readonly AarsloenTableRow[], loenperiode: Loenperiode, satser: AarsloenSatserInput): boolean => {
+export const hasAtLeastOneValidRow = (rows: readonly StandardLoenTableRow[], loenperiode: Loenperiode, satser: StandardLoenSatserInput): boolean => {
   return rows.some((row) => {
     if (!hasCompletePeriodForLoenperiode(row, loenperiode)) return false;
-    return calculateAarsloenRowDerived(row, satser).samlet !== 0;
+    return calculateStandardLoenRowDerived(row, satser).samlet !== 0;
   });
 };

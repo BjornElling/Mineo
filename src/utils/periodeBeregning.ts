@@ -5,7 +5,7 @@
  */
 
 import type { DateInterval } from '../types/calculation';
-import type { AarsloenTableRow } from '../schemas/formSchemas';
+import type { StandardLoenTableRow } from '../schemas/formSchemas';
 import { parseISODate, toISODateString, type ISODateString } from '../types/branded';
 import { addDays, createDate, formatToISO, isLeapYear, parseDanishDate, parseWeekString } from './dateUtils';
 import { beregnSHDageForDatoSet } from '../domain/dates/shDageBeregning';
@@ -140,7 +140,7 @@ export const erNoejagtEtAar = (loenperiode: string, unikkeEnheder: number, datoS
  * Beregner maanedsperioder (inklusiv) ud fra tabeldata.
  * Bruger kalender-iteration for at bygge et datoSet (DST-safe uden ms-diff).
  */
-export const beregnMaanedPeriode = (tableData: AarsloenTableRow[]): PeriodeResult | null => {
+export const beregnMaanedPeriode = (tableData: StandardLoenTableRow[]): PeriodeResult | null => {
   const maaneder = new Set<string>();
   const datoSet = new Set<ISODateString>();
   const perioder: Array<{ start: Date; end: Date }> = [];
@@ -218,7 +218,7 @@ export const beregnMaanedPeriode = (tableData: AarsloenTableRow[]): PeriodeResul
  * Beregner ugeperioder (inklusiv) ud fra tabeldata.
  * Bruger kalender-iteration for at bygge et datoSet (DST-safe uden ms-diff).
  */
-export const beregnUgePeriode = (tableData: AarsloenTableRow[]): PeriodeResult | null => {
+export const beregnUgePeriode = (tableData: StandardLoenTableRow[]): PeriodeResult | null => {
   const uger = new Set<string>();
   const datoSet = new Set<ISODateString>();
   const perioder: Array<{ start: Date; end: Date }> = [];
@@ -337,7 +337,7 @@ const formatDanskDato = (date: Date): string => {
  * Beregner dagsperioder (inklusiv) ud fra tabeldata.
  * Bruger countInclusiveUtcDays for samlet antal dage.
  */
-export const beregnDagPeriode = (tableData: AarsloenTableRow[]): PeriodeResult | null => {
+export const beregnDagPeriode = (tableData: StandardLoenTableRow[]): PeriodeResult | null => {
   const dage = new Set<ISODateString>();
   const perioder: Array<{ start: Date; end: Date }> = [];
 

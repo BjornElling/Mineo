@@ -8,7 +8,7 @@ import { PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
 import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from './pdfHelpers';
 import type { PdfCommonOptions } from './pdfOptions';
 import { createStandardPdfWriter } from './pdfWriter';
-import type { AarsloenTableRow, ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../schemas/formSchemas';
+import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../schemas/formSchemas';
 import { type MoneyOre, type Calculable } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { formatPercent as formatPercentUtil } from '../formatUtils';
 import { TODAY } from '../../config/dateRanges';
@@ -113,7 +113,7 @@ const getLoenindkomstTableHeaders = (loenperiode: Loenperiode): readonly string[
   ];
 };
 
-const resolvePeriodColumns = (row: AarsloenTableRow, loenperiode: Loenperiode): readonly [string, string] => {
+const resolvePeriodColumns = (row: StandardLoenTableRow, loenperiode: Loenperiode): readonly [string, string] => {
   if (loenperiode === 'maaned') {
     return [row.col0_maaned?.trim() ?? '', row.col1_maaned?.trim() ?? ''];
   }

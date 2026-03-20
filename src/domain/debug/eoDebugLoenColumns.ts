@@ -1,10 +1,10 @@
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
-import type { AarsloenTableRow, Loenperiode } from '../../schemas/formSchemas';
+import type { StandardLoenTableRow, Loenperiode } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, isoToDanish } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { parseAmount } from '../../utils/numberParsing';
-import { calculateAarsloenRowDerived, isAarsloenRowEffectivelyEmpty } from '../aarsloen/aarsloenRowCalculations';
+import { calculateStandardLoenRowDerived, isStandardLoenRowEffectivelyEmpty } from '../aarsloen/standardLoenRowCalculations';
 import {
   resolveOverenskomstRef,
   getEffektiveSatserForPeriode,
@@ -33,7 +33,7 @@ export type DebugTabelColumnData = Readonly<{
 }>;
 
 const getWageAmountsForRow = (
-  row: AarsloenTableRow,
+  row: StandardLoenTableRow,
   satser: Readonly<{
     feriePct: number | undefined;
     fritvalgPct: number | undefined;
@@ -42,7 +42,7 @@ const getWageAmountsForRow = (
     pensionPct: number | undefined;
   }>
 ): Readonly<Record<(typeof WAGE_COLUMNS)[number]['key'], number>> => {
-  const derived = calculateAarsloenRowDerived(row, satser);
+  const derived = calculateStandardLoenRowDerived(row, satser);
 
   return {
     grundloen: parseAmount(row.col2),
@@ -57,7 +57,7 @@ const getWageAmountsForRow = (
 };
 
 const shouldIncludeWageColumn = (
-  rows: readonly AarsloenTableRow[],
+  rows: readonly StandardLoenTableRow[],
   loenperiode: Loenperiode,
   satser: Parameters<typeof getWageAmountsForRow>[1],
   key: (typeof WAGE_COLUMNS)[number]['key'],
@@ -65,7 +65,7 @@ const shouldIncludeWageColumn = (
 ): boolean => {
   for (const row of rows) {
     if (errorRowIds.has(row.id)) continue;
-    if (isAarsloenRowEffectivelyEmpty(row)) continue;
+    if (isStandardLoenRowEffectivelyEmpty(row)) continue;
     const interval = parseAarsloenRowInterval(row, loenperiode);
     if (!interval) continue;
     const amounts = getWageAmountsForRow(row, satser);
@@ -308,7 +308,7 @@ export const buildLoenindkomstColumns = (args: {
     const rows = af.indtaegtsoplysningerTableData ?? [];
     for (const row of rows) {
       if (errorRowIds.has(row.id)) continue;
-      if (isAarsloenRowEffectivelyEmpty(row)) continue;
+      if (isStandardLoenRowEffectivelyEmpty(row)) continue;
       const interval = parseAarsloenRowInterval(row, af.loenperiode);
       if (!interval) {
         const amounts = getWageAmountsForRow(row, satser);

@@ -6,11 +6,11 @@ import {
   shouldShowAarsloenShDageFields,
   shouldWarnAarsloenFeriePct,
 } from '../../../domain/policies/aarsloenPolicy';
-import type { AarsloenTableRow } from '../../../schemas/formSchemas';
+import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
-const emptyTableRow = (id: string): AarsloenTableRow => ({
+const emptyTableRow = (id: string): StandardLoenTableRow => ({
   id,
   col0_maaned: '',
   col1_maaned: '',
@@ -24,7 +24,7 @@ const emptyTableRow = (id: string): AarsloenTableRow => ({
   col5: undefined,
 });
 
-const filledTableRow = (id: string): AarsloenTableRow => ({
+const filledTableRow = (id: string): StandardLoenTableRow => ({
   ...emptyTableRow(id),
   col0_maaned: '6',
   col1_maaned: '2024',

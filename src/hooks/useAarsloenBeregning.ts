@@ -14,7 +14,7 @@ import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../types/loen';
 import type { AarsloenValues } from '../schemas/formSchemas';
 import { safeCompute } from '../utils/safeComputation';
 import { isErr, type Result } from '../types/result';
-import { calculateAarsloenRowDerived, roundAarsloenAmountToTwoDecimals } from '../domain/aarsloen/aarsloenRowCalculations';
+import { calculateStandardLoenRowDerived, roundStandardLoenAmountToTwoDecimals } from '../domain/aarsloen/standardLoenRowCalculations';
 import {
   beregnMaanedPeriode,
   beregnUgePeriode,
@@ -148,7 +148,7 @@ export const useAarsloenBeregning = ({
         if (!row) {
           return acc;
         }
-        const derived = calculateAarsloenRowDerived(row, {
+        const derived = calculateStandardLoenRowDerived(row, {
           feriePct,
           fritvalgPct,
           shSoPct,
@@ -156,7 +156,7 @@ export const useAarsloenBeregning = ({
           pensionPct,
         });
 
-        return acc + roundAarsloenAmountToTwoDecimals(derived.samlet);
+        return acc + roundStandardLoenAmountToTwoDecimals(derived.samlet);
       }, 0);
     }, 'useAarsloenBeregning.aarsloenBeregning');
   }, [tableData, feriePct, fritvalgPct, shSoPct, storeBededagPct, pensionPct]);
