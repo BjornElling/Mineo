@@ -7,7 +7,7 @@ import {
   resolveSvieSmerteEoPeriodeBounds,
   resolveSvieSmerteFejlgivendeBounds,
 } from './svieSmerteConstraints';
-import { svieSmerteMax, svieSmertePrDag } from '../../data/regulationRates';
+import { svieSmerteMax, svieSmertePrDag } from '../../data/lovbestemteRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { detectOverlappingPeriods } from './periodOverlapDetection';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';

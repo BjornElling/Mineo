@@ -81,7 +81,7 @@ import { getOffentligLoenTabelForDato } from '../../../data/offentligLoenLookup'
 import {
   ASL_AARSLOENSMAKSIMUM_MODEL_LABEL,
   getReguleringsDatoIntervalForStatistikModel,
-} from '../../../data/statistiskLoenudviklingRates';
+} from '../../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '../../../utils/pdf/pdfService';

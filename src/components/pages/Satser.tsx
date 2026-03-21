@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import StyledYearField from '../inputs/StyledYearField';
-import { getSatserForYear, satserAngivAarYearBounds } from '../../data/regulationRates';
+import { getSatserForYear, satserAngivAarYearBounds } from '../../data/lovbestemteRates';
 import { downloadSatserPdf } from '../../utils/pdf/pdfService';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { satserSchema } from '../../schemas/formSchemas';

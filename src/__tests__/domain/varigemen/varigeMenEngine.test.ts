@@ -1,6 +1,6 @@
 import { computeVarigeMenEngine } from '../../../domain/varigemen/varigeMenEngine';
 import { toISODateString } from '../../../types/branded';
-import type { YearlyRate } from '../../../data/regulationRates';
+import type { YearlyRate } from '../../../data/lovbestemteRates';
 
 const buildRates = (year: number, satsPerMengrad: number): YearlyRate => ({
   [year]: satsPerMengrad,

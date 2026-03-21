@@ -37,8 +37,8 @@ npm run import:loen
 
 ## Data der skal opdateres løbende
 
-- EAL/ASL-satser i `src/data/regulationRates.ts`
-- Statistiske satser i `src/data/statistiskLoenudviklingRates.ts`
+- EAL/ASL-satser i `src/data/lovbestemteRates.ts`
+- Statistiske satser i `src/data/statistiskeRates.ts`
 - Rentesatser i `src/data/interestRates.ts`
 - Private løndata i `src/data/overenskomstRates.ts`
 - Offentlige løndata (KL/RLTN) via `npm run import:loen`
@@ -62,6 +62,6 @@ Bjørn Elling
 
 ---
 
-**Version**: 2026.03.329
+**Version**: 2026.03.330
 
 **Status**: Under udvikling

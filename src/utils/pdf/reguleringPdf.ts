@@ -16,7 +16,7 @@ import { renderEoStylePdfTable } from './pdfTableRenderer';
 import { formatAsAmount, formatCurrency, formatPercent } from '../formatUtils';
 import { parseDanishDate, formatDanishDate, createDate } from '../dateUtils';
 import { roundByMethod } from '../rounding';
-import { aarsloenAslMax } from '../../data/regulationRates';
+import { aarsloenAslMax } from '../../data/lovbestemteRates';
 import { TODAY } from '../../config/dateRanges';
 import {
   formatAmountWithoutTrailingDecimals,
@@ -37,7 +37,7 @@ import { toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
 import {
   getStatistiskLoenudvikling,
   type StatistiskLoenudviklingId,
-} from '../../data/statistiskLoenudviklingRates';
+} from '../../data/statistiskeRates';
 import type { DanishDateString } from '../../types/branded';
 import type { PdfCommonOptions } from './pdfOptions';
 import { resolvePdfFileName, sanitizeFilenamePart } from './pdfFormatUtils';

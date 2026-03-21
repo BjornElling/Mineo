@@ -1,6 +1,6 @@
 import type { VarigeMenValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import type { YearlyRate } from '../../data/regulationRates';
+import type { YearlyRate } from '../../data/lovbestemteRates';
 import type { DeepReadonly } from '../../types/deepReadonly';
 import { beregnVarigeMenGodtgoerelseWithRates, type VarigeMenBeregningResult } from './varigeMenCalculations';
 

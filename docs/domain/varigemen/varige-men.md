@@ -157,7 +157,7 @@ const roundMenAmount = (value: number): number => Math.ceil(value);
 ### Satsnøgle
 
 ```typescript
-// src/data/regulationRates.ts
+// src/data/lovbestemteRates.ts
 export const varigeMenPrGrad: YearlyRate = {
   2026: 11035,
   2025: 10530,
@@ -177,7 +177,7 @@ Satserne injiceres i engine-inputtet (`rates: YearlyRate`) og passes videre til 
 | Import | Kilde |
 |---|---|
 | `VarigeMenValues` | `src/schemas/formSchemas` |
-| `YearlyRate` | `src/data/regulationRates` |
+| `YearlyRate` | `src/data/lovbestemteRates` |
 | `coerceToDanishDateString`, `coerceToISODateString`, `parseISODate`, `ISODateString` | `src/types/branded` |
 | `parseDanishDate` | `src/utils/dateUtils` |
 

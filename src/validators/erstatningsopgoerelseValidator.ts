@@ -19,7 +19,7 @@ import type { ErstatningsopgoerelseValues, SvieSmertePeriodeRow, TafPeriodeRow, 
 import { erstatningsopgoerelseSchema } from '../schemas/formSchemas';
 import type { FormValidator, ValidationError, ValidationResult } from '../types/validation';
 import { isISODateString } from '../types/branded';
-import { svieSmertePrDag, svieSmerteMax, satserAngivAarYearBounds } from '../data/regulationRates';
+import { svieSmertePrDag, svieSmerteMax, satserAngivAarYearBounds } from '../data/lovbestemteRates';
 import { amountValueToNumber } from '../utils/expressionAmount';
 import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/rowEmpty';
 import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/periodOverlapDetection';

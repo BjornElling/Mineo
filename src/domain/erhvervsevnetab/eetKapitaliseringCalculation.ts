@@ -10,7 +10,7 @@ import {
   ASL_MAX_AARSLOEN_2024,
   aarsloenAslMax,
   reguleringsprocentErhvervsevnetabFoer2024,
-} from '../../data/regulationRates';
+} from '../../data/lovbestemteRates';
 import {
   getKapitaliseringsTabelData,
 } from '../../data/kapitalisering/kapitaliseringsTabeller';

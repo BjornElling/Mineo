@@ -1,7 +1,7 @@
 import {
   reguleringsprocentErhvervsevnetab,
   reguleringsprocentErhvervsevnetabFra2024,
-} from '../../data/regulationRates';
+} from '../../data/lovbestemteRates';
 
 export type AslReguleringRateInfo = Readonly<{
   factor: number;

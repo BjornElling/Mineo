@@ -12,7 +12,7 @@ import { isoDateToDate } from '../dates/isoDate';
 import { addDays } from '../../utils/dateUtils';
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import { formatIsoDateLong, formatIsoDateShort } from '../../utils/dateFormatting';
-import type { StatistiskLoenudviklingId } from '../../data/statistiskLoenudviklingRates';
+import type { StatistiskLoenudviklingId } from '../../data/statistiskeRates';
 import { roundByMethod } from '../../utils/rounding';
 import { formatAsAmount } from '../../utils/formatUtils';
 import { TIMER_TIL_MAANED_FAKTOR } from '../../config/regulatoryRates';

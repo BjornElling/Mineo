@@ -3,7 +3,7 @@
  *
  * Scope:
  * - Faste procentsatser og faktorer der bruges på tværs af EO/PDF/debug
- * - Ikke årsafhængige satstabeller (de hører hjemme i src/data/regulationRates.ts)
+ * - Ikke årsafhængige satstabeller (de hører hjemme i src/data/lovbestemteRates.ts)
  */
 
 // Tillæg for afskaffelsen af Store Bededag (angivet i procentpoint)

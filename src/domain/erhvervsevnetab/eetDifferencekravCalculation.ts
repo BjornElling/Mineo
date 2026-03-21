@@ -11,7 +11,7 @@ import {
   erhvervsevnetabEalMax,
   reguleringssats,
   reguleringsprocentErhvervsevnetabFoer2024,
-} from '../../data/regulationRates';
+} from '../../data/lovbestemteRates';
 import { getKapitaliseringsTabelData } from '../../data/kapitalisering/kapitaliseringsTabeller';
 import { formatIsoDateShort } from '../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';

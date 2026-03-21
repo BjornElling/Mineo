@@ -14,9 +14,9 @@ import {
   aarsloenAslMinFra20240701,
   reguleringsprocentErhvervsevnetabFoer2024,
   reguleringsprocentErhvervsevnetabFra2024,
-} from '../../data/regulationRates';
+} from '../../data/lovbestemteRates';
 import { eetKapitaliseringsDatoMaxFraBekendtgoerelser } from '../../data/kapitalisering/kapitaliseringsbekendtgoerelser';
-import type { YearlyRate } from '../../data/regulationRates';
+import type { YearlyRate } from '../../data/lovbestemteRates';
 
 // ─── getYearBoundsForYearlyRate ──────────────────────────────────────────────
 

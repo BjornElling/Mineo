@@ -5,7 +5,7 @@ import {
   computeEetEalCalculation,
   formatPercentTrimmedFromRounded4,
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
-import { aarsloenAslMax, erhvervsevnetabEalMax, reguleringssats } from '../../../data/regulationRates';
+import { aarsloenAslMax, erhvervsevnetabEalMax, reguleringssats } from '../../../data/lovbestemteRates';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 

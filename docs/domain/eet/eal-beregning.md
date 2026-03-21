@@ -42,7 +42,7 @@ reguleringsår = [skadesår+1, skadesår+2, ..., beregningsår]
 reguleringsfaktor = ∏ (1 + reguleringssats[år] / 100) for hvert år
 ```
 
-`reguleringssats` er den generelle EAL-sats fra `regulationRates.ts` (ikke ASL-EET-satsen).
+`reguleringssats` er den generelle EAL-sats fra `lovbestemteRates.ts` (ikke ASL-EET-satsen).
 
 Reguleringsprocenten afrundes til 4 decimaler til visning og beregning:
 ```
@@ -164,7 +164,7 @@ eal_krav = 5.523.000 − 1.215.060 = 4.307.940 kr.
 computeEetEalCalculation(input: Input): EetEalCalculationResult
 ```
 
-`Input` indeholder `erhvervsevnetab`, `skadesdato`, `fodselsdato`, samt tre rate-tabeller: `reguleringssats`, `erhvervsevnetabMax`, `aarsloenMax` — alle af typen `YearlyRate` fra `regulationRates.ts`. Fane 4 injicerer disse direkte fra `regulationRates`; fane 5 gør det samme.
+`Input` indeholder `erhvervsevnetab`, `skadesdato`, `fodselsdato`, samt tre rate-tabeller: `reguleringssats`, `erhvervsevnetabMax`, `aarsloenMax` — alle af typen `YearlyRate` fra `lovbestemteRates.ts`. Fane 4 injicerer disse direkte fra `lovbestemteRates`; fane 5 gør det samme.
 
 ### Nøgletyper
 
@@ -214,7 +214,7 @@ const round500 = (value: number): number =>
 
 | Import | Kilde |
 |---|---|
-| `reguleringssats`, `erhvervsevnetabMax`, `aarsloenMax` | `src/data/regulationRates.ts` (injiceret som input, ikke importeret direkte i ts-filen) |
+| `reguleringssats`, `erhvervsevnetabMax`, `aarsloenMax` | `src/data/lovbestemteRates.ts` (injiceret som input, ikke importeret direkte i ts-filen) |
 | `parsePercentDraft`, `validatePercentDivisibleBy5FromDraft`, `validatePercentDivisibleBy5FromValue`, `ASL_IDENTICAL_AFGOERELSER_ID`, `hasIdenticalAfgoerelser` | `eetAslAfgoerelser.ts` |
 | `round0`, `round4` | `eetRounding.ts` |
 | `roundByMethod` | `src/utils/rounding.ts` (direkte, til `round500`) |

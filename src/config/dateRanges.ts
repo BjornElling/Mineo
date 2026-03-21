@@ -8,7 +8,7 @@
 import type { ISODateString } from '../types/branded';
 import { maxIso, toISODateString } from '../types/branded';
 import { getTodayLocalISO } from '../utils/dateUtils';
-import { varigeMenPrGradYearBounds, svieSmerteMaxYearBounds, eetYearBounds, foersoergertabYearBounds } from '../data/regulationRates';
+import { varigeMenPrGradYearBounds, svieSmerteMaxYearBounds, eetYearBounds, foersoergertabYearBounds } from '../data/lovbestemteRates';
 import { MIN_INTEREST_DATE } from '../data/interestRates';
 
 // ============================================================================
@@ -117,7 +117,7 @@ const DATE_PLUS_1_YEAR_END = iso(`${CURRENT_YEAR + 1}-12-31`);
 // 31. december 5 år frem fra aktuelt år (udledt af dags dato)
 const DATE_PLUS_5_YEARS_END = iso(`${CURRENT_YEAR + 5}-12-31`);
 
-// Seneste år med mén-per-grad-sats — udledt af varigeMenPrGrad i regulationRates.ts
+// Seneste år med mén-per-grad-sats — udledt af varigeMenPrGrad i lovbestemteRates.ts
 const DATE_VARIGEMEN_MAX = iso(`${varigeMenPrGradYearBounds.maxYear}-12-31`);
 
 // Seneste år med komplet EET-datadækning — sats-intersection capped af

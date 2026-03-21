@@ -42,7 +42,7 @@ import {
   ASL_MAX_AARSLOEN_2003,
   ASL_MAX_AARSLOEN_2024,
   reguleringsprocentErhvervsevnetabFoer2024,
-} from '../../data/regulationRates';
+} from '../../data/lovbestemteRates';
 import { formatJaNejEet as formatJaNej, formatKrEet as formatKr } from './eetPdfUtils';
 
 const formatRegulering = (value: number): string =>

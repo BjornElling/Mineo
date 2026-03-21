@@ -1,5 +1,5 @@
 import type { ISODateString } from '../../types/branded';
-import { aarsloenAslMax } from '../../data/regulationRates';
+import { aarsloenAslMax } from '../../data/lovbestemteRates';
 import { formatAsAmount } from '../../utils/formatUtils';
 
 export const validateAslAarsloenDivisibleBy1000 = (

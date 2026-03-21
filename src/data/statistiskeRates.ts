@@ -13,7 +13,7 @@
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
 import { addDays, addMonths, formatDanishDate, parseDanishDate } from '../utils/dateUtils';
-import { aarsloenAslMax, getYearBoundsForYearlyRate } from './regulationRates';
+import { aarsloenAslMax, getYearBoundsForYearlyRate } from './lovbestemteRates';
 
 // ===== TYPE DEFINITIONER =====
 

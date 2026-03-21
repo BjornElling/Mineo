@@ -39,7 +39,7 @@ import type { EoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot';
 import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
 import { eoSnapshotToTafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
 import { logError, logWarning } from '../logger';
-import { getSatserForYear } from '../../data/regulationRates';
+import { getSatserForYear } from '../../data/lovbestemteRates';
 
 type ReguleringInterval = Readonly<{
   fraDato: string;

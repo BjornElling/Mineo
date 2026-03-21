@@ -63,7 +63,7 @@ import { getOffentligLoenTabelForDato } from '../../../data/offentligLoenLookup'
 import {
   ASL_AARSLOENSMAKSIMUM_MODEL_LABEL,
   getReguleringsDatoIntervalForStatistikModel,
-} from '../../../data/statistiskLoenudviklingRates';
+} from '../../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
 import { useSetEOLoenindkomstInputError } from '../../../hooks/useEOLoenindkomstInputErrors';
 import { getPersistedSectionSnapshot, usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSelectors';

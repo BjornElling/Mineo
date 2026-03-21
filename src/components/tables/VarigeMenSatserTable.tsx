@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Box } from '@mui/material';
 import StandardDisplayTable from './StandardDisplayTable';
-import { varigeMenPrGrad } from '../../data/regulationRates';
+import { varigeMenPrGrad } from '../../data/lovbestemteRates';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 
 const formatKronerPerMengrad = (value: number): string =>

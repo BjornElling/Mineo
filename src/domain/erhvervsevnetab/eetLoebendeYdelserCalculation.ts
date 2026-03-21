@@ -7,7 +7,7 @@ import {
   ASL_MAX_AARSLOEN_2024,
   aarsloenAslMax,
   reguleringsprocentErhvervsevnetabFoer2024,
-} from '../../data/regulationRates';
+} from '../../data/lovbestemteRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { addDays, addMonths } from '../../utils/dateUtils';

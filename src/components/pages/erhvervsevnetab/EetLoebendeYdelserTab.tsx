@@ -15,7 +15,7 @@ import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
 import {
   ASL_MAX_AARSLOEN_2003,
   ASL_MAX_AARSLOEN_2024,
-} from '../../../data/regulationRates';
+} from '../../../data/lovbestemteRates';
 import {
   computeEetLoebendeYdelser,
   formatPct,

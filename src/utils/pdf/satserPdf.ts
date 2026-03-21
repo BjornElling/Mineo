@@ -10,7 +10,7 @@ import { PDF_BASE_LINE_HEIGHT_MM, type BrevhovedData } from './pdfHelpers';
 import { createStandardPdfWriter, type PdfWriter } from './pdfWriter';
 import { TODAY } from '../../config/dateRanges';
 import { formatCurrencyPerUnit, resolvePdfFileName } from './pdfFormatUtils';
-import { getSatserForYear } from '../../data/regulationRates';
+import { getSatserForYear } from '../../data/lovbestemteRates';
 import type { PdfCommonOptions } from './pdfOptions';
 
 type SatserData = ReturnType<typeof getSatserForYear>;

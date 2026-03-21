@@ -2,7 +2,7 @@ import type { ErhvervsevnetabComposedValues, AslAfgoerelseRow } from '../../sche
 import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, parseISODate } from '../../types/branded';
-import type { YearlyRate } from '../../data/regulationRates';
+import type { YearlyRate } from '../../data/lovbestemteRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { roundByMethod } from '../../utils/rounding';

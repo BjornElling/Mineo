@@ -28,7 +28,7 @@ import { amountValueToDisplayString, amountValueToNumber } from '../../utils/exp
 import { formatAsAmount, formatCurrency, formatPercent as formatPercentUtil } from '../../utils/formatUtils';
 import { parseAmount } from '../../utils/numberParsing';
 import { roundByMethod } from '../../utils/rounding';
-import { aarsloenAslMax } from '../../data/regulationRates';
+import { aarsloenAslMax } from '../../data/lovbestemteRates';
 import {
   assertOffentligReguleringsDatoGyldig,
   getEffektiveSatserForDato,
@@ -43,7 +43,7 @@ import {
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
 import { getKRLSatstabel, isKRLSatstabelId } from '../../data/KRLrates';
-import { getStatistiskLoenudvikling } from '../../data/statistiskLoenudviklingRates';
+import { getStatistiskLoenudvikling } from '../../data/statistiskeRates';
 import { STORE_BEDEDAG_PCT } from '../../config/regulatoryRates';
 import { STORE_BEDEDAG_START } from '../../config/dateRanges';
 import {

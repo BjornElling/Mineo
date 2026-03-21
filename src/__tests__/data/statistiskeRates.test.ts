@@ -2,7 +2,7 @@ import {
   statistiskLoenudvikling,
   getStatistiskLoenudvikling,
   getReguleringsDatoIntervalForStatistikModel,
-} from '../../data/statistiskLoenudviklingRates';
+} from '../../data/statistiskeRates';
 
 // ─── Dataintegritet ───────────────────────────────────────────────────────────
 
@@ -132,7 +132,7 @@ describe('getReguleringsDatoIntervalForStatistikModel', () => {
   });
 
   it('ASL-årslønsmaksimum → returnerer interval eller undefined (afhænger af data)', () => {
-    // Denne model bruger aarsloenAslMax fra regulationRates
+    // Denne model bruger aarsloenAslMax fra lovbestemteRates
     const interval = getReguleringsDatoIntervalForStatistikModel('ASL-årslønsmaksimum');
     // Enten defineret eller undefined – vi kontrollerer bare at det ikke kaster
     expect(interval === undefined || typeof interval === 'object').toBe(true);

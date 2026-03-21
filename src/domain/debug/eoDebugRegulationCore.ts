@@ -19,8 +19,8 @@ import {
 } from '../../data/overenskomstRates';
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
-import { aarsloenAslMax } from '../../data/regulationRates';
-import { getStatistiskLoenudvikling } from '../../data/statistiskLoenudviklingRates';
+import { aarsloenAslMax } from '../../data/lovbestemteRates';
+import { getStatistiskLoenudvikling } from '../../data/statistiskeRates';
 import { getKRLSatstabel, formatKRLSatstabelDisplay, isKRLSatstabelId } from '../../data/KRLrates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';

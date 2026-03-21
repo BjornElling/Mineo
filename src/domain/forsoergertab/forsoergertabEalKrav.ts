@@ -4,7 +4,7 @@ import {
   erhvervsevnetabEalMax,
   foersoergertabEalMin,
   reguleringssats,
-} from '../../data/regulationRates';
+} from '../../data/lovbestemteRates';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { computeEetEalCalculation } from '../erhvervsevnetab/eetEalCalculation';
 import { round0 } from '../erhvervsevnetab/eetRounding';

@@ -1,7 +1,7 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, isoToDanish, isISODateString, subtractOneDay } from '../../types/branded';
-import { aarsloenAslMax } from '../../data/regulationRates';
+import { aarsloenAslMax } from '../../data/lovbestemteRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { roundByMethod } from '../../utils/rounding';
@@ -30,7 +30,7 @@ import {
   type Loengruppe,
   type Loentrin,
 } from '../../data/offentligLoenTypes';
-import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../data/statistiskLoenudviklingRates';
+import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../data/statistiskeRates';
 import { getKRLSatstabel, type KRLSatstabelId } from '../../data/KRLrates';
 import { STORE_BEDEDAG_START } from '../../config/dateRanges';
 import { STORE_BEDEDAG_PCT } from '../../config/regulatoryRates';

@@ -7,7 +7,7 @@ import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
-import { aarsloenAslMax, erhvervsevnetabEalMax, reguleringssats } from '../../../data/regulationRates';
+import { aarsloenAslMax, erhvervsevnetabEalMax, reguleringssats } from '../../../data/lovbestemteRates';
 import {
   buildAldersreduktionFormelTekst,
   computeEetEalCalculation,

@@ -2,7 +2,7 @@ import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { FieldErrorBySource } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, isISODateString, isoToDanish, parseISODate, subtractOneDay } from '../../types/branded';
-import { svieSmertePrDag, svieSmerteMax } from '../../data/regulationRates';
+import { svieSmertePrDag, svieSmerteMax } from '../../data/lovbestemteRates';
 import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import { computeRowDateBounds } from '../erstatningsopgoerelse/rowDateBounds';
 import { validateISODateRange } from '../../utils/isoDateHelpers';
@@ -23,7 +23,7 @@ import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from '.
 import { mergeDateRanges } from '../erstatningsopgoerelse/periodMerging';
 import { buildTafCutoffErrorMessage, clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
 import { getReguleringsDatoIntervalForOverenskomst, isOffentligOverenskomstId } from '../../data/overenskomstRates';
-import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskLoenudviklingRates';
+import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/KRLrates';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/angivetLoenHelpers';
@@ -857,7 +857,7 @@ export const buildEODebugSvieSmerteRows = (
     status: delvisSygemeldingSatsStatus,
   });
 
-  // 3c) Satser per dag/max (opslag fra regulationRates)
+  // 3c) Satser per dag/max (opslag fra lovbestemteRates)
   const satserPerDagMax = (() => {
     // Hvis år ikke er valgt eller ugyldigt, returner tom
     if (!isNonEmptyString(satserAarValue) || satserAarResolved.status !== 'ok') {

@@ -1,7 +1,7 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { computeForsoergertabCalculation } from '../../../domain/forsoergertab/forsoergertabCalculation';
 import { computeForsoergertabAslYdelser } from '../../../domain/forsoergertab/forsoergertabAslYdelser';
-import { aarsloenAslMax } from '../../../data/regulationRates';
+import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { round2 } from '../../../domain/erhvervsevnetab/eetRounding';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });

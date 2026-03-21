@@ -1,6 +1,6 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
-import { aarsloenAslMax } from '../../../data/regulationRates';
+import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { roundByMethod } from '../../../utils/rounding';
 import {
   computeEetLoebendeYdelser,

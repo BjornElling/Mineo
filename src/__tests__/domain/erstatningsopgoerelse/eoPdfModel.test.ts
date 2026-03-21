@@ -8,12 +8,12 @@ import { ensureMoneyOre, resolveLoenudviklingRows } from '../../../domain/erstat
 import type { PdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModelTypes';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
-import * as statistikRatesData from '../../../data/statistiskLoenudviklingRates';
+import * as statistikRatesData from '../../../data/statistiskeRates';
 import * as krlRatesData from '../../../data/KRLrates';
 import * as overenskomstRatesData from '../../../data/overenskomstRates';
 import * as offentligLoenLookupData from '../../../data/offentligLoenLookup';
 import type { OffentligLoenResultat } from '../../../data/offentligLoenTypes';
-import { aarsloenAslMax } from '../../../data/regulationRates';
+import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/tafCalculations';
 import { beregningsmetodeEnum, loenPaaHelligdageSchema, loenudviklingStatistikModelEnum } from '../../../schemas/formSchemas';
 import { roundByMethod } from '../../../utils/rounding';

@@ -1,5 +1,5 @@
 import type { VarigeMenValues } from '../../schemas/formSchemas';
-import type { YearlyRate } from '../../data/regulationRates';
+import type { YearlyRate } from '../../data/lovbestemteRates';
 import { coerceToDanishDateString, coerceToISODateString, parseISODate, type ISODateString } from '../../types/branded';
 import { parseDanishDate } from '../../utils/dateUtils';
 import { roundByMethod } from '../../utils/rounding';

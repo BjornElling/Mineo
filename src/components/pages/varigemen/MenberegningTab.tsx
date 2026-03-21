@@ -19,7 +19,7 @@ import { coerceToISODateString, parseISODate, toISODateString } from '../../../t
 import { beregnVarigeMenGodtgoerelseWithRates } from '../../../domain/varigemen/varigeMenCalculations';
 import { usePersistedForm } from '../../../hooks/usePersistedForm';
 import { useNavigate } from 'react-router-dom';
-import { varigeMenPrGrad, varigeMenPrGradYearBounds } from '../../../data/regulationRates';
+import { varigeMenPrGrad, varigeMenPrGradYearBounds } from '../../../data/lovbestemteRates';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';

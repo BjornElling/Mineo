@@ -1,4 +1,4 @@
-import { aarsloenAslMax } from '../../data/regulationRates';
+import { aarsloenAslMax } from '../../data/lovbestemteRates';
 import {
   getKapitaliseringsTabelData,
   type ForsoergertabMatrixRaekke,
