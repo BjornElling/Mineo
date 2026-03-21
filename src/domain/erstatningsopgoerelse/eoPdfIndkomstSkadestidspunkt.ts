@@ -11,7 +11,8 @@ import { getAngivetLoenBaseretPaa } from './angivetLoenHelpers';
 import { isoDateToDate } from '../dates/isoDate';
 import type { Calculable, IndkomstSkadestidspunktPdfModel, MoneyOre } from './eoPdfModelTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from './eoPdfMoneyUtils';
-import { formatDateShort, formatPercentFixed2 } from './sharedPdfUtils';
+import { formatPercentFixed2 } from './sharedPdfUtils';
+import { formatIsoDateShort as formatDateShort } from '../../utils/dateFormatting';
 
 const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });

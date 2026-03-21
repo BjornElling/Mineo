@@ -7,11 +7,11 @@ import {
 } from '../../schemas/formSchemas';
 import type { ZodObject, ZodRawShape } from 'zod';
 
-const nonIdKeysFromSchema = <T extends ZodRawShape>(schema: ZodObject<T>): readonly (Exclude<keyof T, 'id'> & string)[] => {
+export const nonIdKeysFromSchema = <T extends ZodRawShape>(schema: ZodObject<T>): readonly (Exclude<keyof T, 'id'> & string)[] => {
   return Object.keys(schema.shape).filter((k): k is Exclude<keyof T, 'id'> & string => k !== 'id');
 };
 
-const isEmptyByKeys = <T extends Record<string, unknown>>(row: T, keys: readonly (keyof T)[]): boolean => {
+export const isEmptyByKeys = <T extends Record<string, unknown>>(row: T, keys: readonly (keyof T)[]): boolean => {
   for (const key of keys) {
     if (row[key] !== undefined) return false;
   }

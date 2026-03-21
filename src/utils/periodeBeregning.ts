@@ -14,6 +14,20 @@ import { countInclusiveUtcDays, diffUtcDaysAbs } from './utcDayMath';
 import { MONTH_NAMES_DA_SHORT } from './dateFormatting';
 
 /**
+ * Hyppigste gennemsnitlige antal hverdage på et kalenderår.
+ *
+ * Beregning: 365 kalenderdage / 7 kalenderdage pr. uge × 5 hverdage pr. uge = 260,71 → 261.
+ * Bruges som normtal ved omregning af lønperioder til årsløn.
+ */
+export const STANDARD_HVERDAGE_PAA_AAR = 261;
+
+/**
+ * Gennemsnitligt antal hele uger på et kalenderår (365 / 7 ≈ 52,14).
+ * Bruges ved omregning af ugebaserede lønperioder til årsløn.
+ */
+export const STANDARD_UGER_PAA_AAR = 52.14;
+
+/**
  * Periode-data returneret fra beregningsfunktioner
  */
 export interface PeriodeResult {

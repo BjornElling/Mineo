@@ -4,10 +4,7 @@ import type {
   PdfModel,
 } from './eoPdfModelTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, scaleMoneyOre } from './eoPdfMoneyUtils';
-import {
-  formatDateShort,
-  formatDateLong,
-} from './sharedPdfUtils';
+import { formatIsoDateShort as formatDateShort, formatIsoDateLong as formatDateLong } from '../../utils/dateFormatting';
 import type {
   ForligPdfModel,
   OevrigeKravPdfModel,

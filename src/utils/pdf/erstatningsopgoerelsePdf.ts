@@ -23,9 +23,8 @@ import {
 } from '../../domain/erstatningsopgoerelse/bilagRules';
 import {
   parseOptionalIsoDate,
-  formatDateShort,
-  formatDateLong,
 } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
+import { formatIsoDateShort as formatDateShort, formatIsoDateLong as formatDateLong } from '../dateFormatting';
 import {
   buildReguleringIndexRows,
   buildReguleringsvaerdierTableData,

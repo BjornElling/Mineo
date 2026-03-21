@@ -26,7 +26,7 @@ import {
   resolveKapitaliseringTabelvalg,
   resolveSaerfaktor,
 } from './eetKapitaliseringOpslag';
-import { ceil0, round0, round2, round3, round4 } from './eetRounding';
+import { ceil0, round0, round2, round3, round4 } from '../../utils/roundingShortcuts';
 import { resolveAslReguleringRateForKapAar } from './eetReguleringRater';
 import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2011_06_16, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { computeEetLoebendeYdelser } from './eetLoebendeYdelserCalculation';

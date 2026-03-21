@@ -13,7 +13,7 @@ import {
   validatePercentDivisibleBy5FromDraft,
   validatePercentDivisibleBy5FromValue,
 } from './eetAslAfgoerelser';
-import { round0, round4 } from './eetRounding';
+import { round0, round4 } from '../../utils/roundingShortcuts';
 
 export type EetEalResolvedEetPct = Readonly<{
   value: number;

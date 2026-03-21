@@ -18,7 +18,7 @@ import {
   resolveKapitaliseringsbekendtgoerelseId,
   resolveKapitaliseringTabelvalg,
 } from '../erhvervsevnetab/eetKapitaliseringOpslag';
-import { ceil0, ceilNearest12, round0, round2, round3, round4, roundNearest1000 } from '../erhvervsevnetab/eetRounding';
+import { ceil0, ceilNearest12, round0, round2, round3, round4, roundNearest1000 } from '../../utils/roundingShortcuts';
 import type { EetIssue } from '../erhvervsevnetab/eetTypes';
 import type { AslLobendeYdelseRaekke, ForsoergertabAslComputation, ForsoergertabAslResult } from './forsoergertabTypes';
 

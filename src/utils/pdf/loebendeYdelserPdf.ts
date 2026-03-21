@@ -37,7 +37,7 @@ import type { PdfCommonOptions } from './pdfOptions';
 import { TODAY } from '../../config/dateRanges';
 import { formatAsAmount } from '../formatUtils';
 import { resolvePdfFileName } from './pdfFormatUtils';
-import { round4 } from '../../domain/erhvervsevnetab/eetRounding';
+import { round4 } from '../roundingShortcuts';
 import {
   ASL_MAX_AARSLOEN_2003,
   ASL_MAX_AARSLOEN_2024,

@@ -4,12 +4,9 @@
  * Funktioner til at beregne omregnet årsløn baseret på forskellige metoder
  */
 
-import { beregnAntalHverdage, beregnFeriedagePaaEtAar, erNoejagtEtAar, type PeriodeResult } from '../../utils/periodeBeregning';
+import { beregnAntalHverdage, beregnFeriedagePaaEtAar, erNoejagtEtAar, STANDARD_HVERDAGE_PAA_AAR, STANDARD_UGER_PAA_AAR, type PeriodeResult } from '../../utils/periodeBeregning';
 import type { AarsloenMetode, AarsloenBeregningResult } from '../../types/calculation';
 import type { LoenPaaHelligdage, Loenperiode } from '../../types/loen';
-
-const STANDARD_HVERDAGE_PAA_AAR = Math.round((365 / 7) * 5); // 261
-const STANDARD_UGER_PAA_AAR = 52.14;
 
 /**
  * Parametre til årsløn-beregning

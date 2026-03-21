@@ -4,8 +4,8 @@ import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/tafBe
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import {
   getDayAfterIso,
-  roundToFourDecimals,
 } from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
+import { round4 as roundToFourDecimals } from '../../../../utils/roundingShortcuts';
 import { resolveOevrigeKravIntroLinjer } from '../../../../domain/erstatningsopgoerelse/oevrigeKravIntro';
 import type { Calculable, LoenudviklingSegment, MoneyOre, PdfModel } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';

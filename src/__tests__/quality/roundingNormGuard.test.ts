@@ -105,12 +105,10 @@ function scanLines(
 const MATH_ROUND_ALLOWLIST = new Set([
   // Kanonisk implementation — definerer roundByMethod
   'utils/rounding.ts',
-  // Kanonisk domain-wrapper — tyndt lag oven på roundByMethod
-  'domain/erhvervsevnetab/eetRounding.ts',
+  // Kanonisk domain-wrapper — tyndt lag oven på roundByMethod (tidl. eetRounding.ts)
+  'utils/roundingShortcuts.ts',
   // Påskealgortime (Meeus/Jones/Butcher) — ren talteori, intet finansielt output
   'domain/dates/shDageBeregning.ts',
-  // Compile-time konstant: Math.round((365/7)*5) = 261 hverdage
-  'domain/aarsloen/aarsloenCalculations.ts',
   // UI-virtualisering: scroll offset i pixels — aldrig vist til bruger som beløb
   'components/tables/VirtualizedDisplayTable.tsx',
   // UI-inputbredde: antal cifre til at dimensionere et tekstfelt
@@ -127,8 +125,6 @@ const MATH_ROUND_ALLOWLIST = new Set([
   'utils/formatUtils.ts',
   // pdfFormatUtils: Math.abs på allerede-afrundet tal til fortegnsfjernelse
   'utils/pdf/pdfFormatUtils.ts',
-  // Debug-output: Math.round til 4-decimal display i fejlsøgningsmodel
-  'domain/debug/eoDebugErstatningsopgoerelseModel.ts',
   // Canvas/PDF dimension: pixelbredde/-højde (ikke finansielt)
   'utils/pdf/pdfHelpers.ts',
   'utils/pdf/pdfWriter.ts',

@@ -9,8 +9,6 @@ import {
   convertAnciennitetSats,
   detectDecimalPlaces,
   formatAmountWithoutTrailingDecimals,
-  formatDateLong as formatDateLongShared,
-  formatDateShort as formatDateShortShared,
   hasAnyPctSourceOrInput,
   hasPctSourceOrInput,
   numOrZero,
@@ -21,11 +19,12 @@ import {
   resolveReguleringsdato as resolveReguleringsdatoShared,
   isAslStatistikModel,
   resolveStatistikModelId,
-  roundToTwoDecimals,
 } from './sharedPdfUtils';
+import { round2 as roundToTwoDecimals } from '../../utils/roundingShortcuts';
 import { maxISO, minISO } from '../../utils/isoDateHelpers';
 import { amountValueToDisplayString, amountValueToNumber } from '../../utils/expressionAmount';
 import { formatAsAmount, formatCurrency, formatPercent as formatPercentUtil } from '../../utils/formatUtils';
+import { formatIsoDateShort, formatIsoDateLong } from '../../utils/dateFormatting';
 import { parseAmount } from '../../utils/numberParsing';
 import { roundByMethod } from '../../utils/rounding';
 import { aarsloenAslMax } from '../../data/lovbestemteRates';
@@ -83,8 +82,8 @@ type IndexRowWithIso = ReguleringIndexRow & Readonly<{
 const parseOptionalIsoDate = parseOptionalIsoDateShared;
 const parseDanishToISO = parseDanishToIsoShared;
 export const resolveStatistikModelIdFromLabel = resolveStatistikModelId;
-const formatDateShort = formatDateShortShared;
-const formatDateLong = formatDateLongShared;
+const formatDateShort = formatIsoDateShort;
+const formatDateLong = formatIsoDateLong;
 
 const isLoengruppe = (value: number): value is Loengruppe =>
   Number.isInteger(value) && value >= 0 && value <= 4;

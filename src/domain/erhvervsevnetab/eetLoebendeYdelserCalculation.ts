@@ -12,7 +12,7 @@ import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { addDays, addMonths } from '../../utils/dateUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
-import { ceilNearest12, round0, round2, round4, roundNearest1000 } from './eetRounding';
+import { ceilNearest12, round0, round2, round4, roundNearest1000 } from '../../utils/roundingShortcuts';
 import { SKAERING_2011_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
 import { optaelMaanederPraecis } from '../erstatningsopgoerelse/periodiseringsMotor';

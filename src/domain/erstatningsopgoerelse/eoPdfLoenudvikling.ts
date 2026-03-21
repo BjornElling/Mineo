@@ -46,10 +46,10 @@ import {
   parseDanishToIso,
   resolvePctPointFromSatsOrInput,
   resolveOffentligLoenEkstraGrundloen,
-  roundToTwoDecimals,
   resolveReguleringsdato as resolveReguleringsdatoShared,
   resolveStatistikModelId,
 } from './sharedPdfUtils';
+import { round2 as roundToTwoDecimals } from '../../utils/roundingShortcuts';
 
 // =============================================================================
 // INVARIANT-NOTE: Alle throw new Error() i denne fil er defensive invarianter.

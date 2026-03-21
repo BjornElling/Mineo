@@ -7,7 +7,7 @@ import {
 } from '../../data/lovbestemteRates';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { computeEetEalCalculation } from '../erhvervsevnetab/eetEalCalculation';
-import { round0 } from '../erhvervsevnetab/eetRounding';
+import { round0 } from '../../utils/roundingShortcuts';
 import type { ForsoergertabEalKravResult } from './forsoergertabTypes';
 
 type Input = Readonly<{

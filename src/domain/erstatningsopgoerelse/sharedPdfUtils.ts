@@ -1,9 +1,13 @@
 /**
- * Delte utilities for erstatningsopgørelse PDF-system
+ * EO-domænespecifikke hjælpefunktioner til PDF-systemet.
  *
- * Disse funktioner bruges af både eoPdfModel.ts (modelbygger) og
- * erstatningsopgoerelsePdf.ts (renderer), og er samlet her for at
- * undgå duplikering og sikre konsistens.
+ * Indeholder logik der er specifik for erstatningsopgørelse-domænet:
+ * dato-parsing, overenskomst-procentresolvere, anciennitetkonvertering,
+ * reguleringsdata og periode-utilities.
+ *
+ * Generiske formatterere (datoer, beløb, procenter) importeres fra
+ * src/utils/dateFormatting.ts og src/utils/formatUtils.ts.
+ * Generiske runding-shortcuts importeres fra src/utils/roundingShortcuts.ts.
  */
 
 import type { ISODateString } from '../../types/branded';
@@ -11,7 +15,6 @@ import { danishToISO, dateToISO, isISODateString } from '../../types/branded';
 import { isoDateToDate } from '../dates/isoDate';
 import { addDays } from '../../utils/dateUtils';
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
-import { formatIsoDateLong, formatIsoDateShort } from '../../utils/dateFormatting';
 import type { StatistiskLoenudviklingId } from '../../data/statistiskeRates';
 import { roundByMethod } from '../../utils/rounding';
 import { formatAsAmount } from '../../utils/formatUtils';
@@ -61,20 +64,6 @@ export const getDayAfterIso = (isoDate: ISODateString): ISODateString => {
 // =============================================================================
 
 /**
- * Formaterer ISO-dato til kort dansk format (dd-mm-yyyy).
- */
-export const formatDateShort = (isoDate: ISODateString | undefined): string => {
-  return formatIsoDateShort(isoDate);
-};
-
-/**
- * Formaterer ISO-dato til langt dansk format (d. måned yyyy).
- */
-export const formatDateLong = (isoDate: ISODateString | undefined): string => {
-  return formatIsoDateLong(isoDate);
-};
-
-/**
  * Formaterer et tal som procent med præcis 2 decimaler i dansk format.
  */
 export const formatPercentFixed2 = (value: number): string => {
@@ -82,9 +71,8 @@ export const formatPercentFixed2 = (value: number): string => {
   return `${formatAsAmount(value, 2)} %`;
 };
 
-export const roundToTwoDecimals = (value: number): number => roundByMethod(value, 2, 'halfAwayFromZero');
-
-export const roundToFourDecimals = (value: number): number => roundByMethod(value, 4, 'halfAwayFromZero');
+// Intern runding-shortcut — eksporteres ikke; brug roundingShortcuts.ts (round2) eksternt.
+const roundToTwoDecimals = (value: number): number => roundByMethod(value, 2, 'halfAwayFromZero');
 
 export const formatAmount2 = (value: number): string =>
   formatAsAmount(value, 2);

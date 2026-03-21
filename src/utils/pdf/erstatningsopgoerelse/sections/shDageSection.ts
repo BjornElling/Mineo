@@ -1,6 +1,6 @@
 import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
-import { formatUtcDateLong, WEEKDAY_NAMES_DA } from '../../../dateFormatting';
+import { formatUtcDateLong, formatIsoDateLong as formatDateLong, WEEKDAY_NAMES_DA } from '../../../dateFormatting';
 import {
   createPdfTableCell,
   createPdfTableHeaderCell,
@@ -9,7 +9,6 @@ import {
 import { PDF_TABLE_NARROW_COLUMN_WIDTH } from '../../pdfConfig';
 import { parseISODate, type ISODateString } from '../../../../types/branded';
 import { beregnHelligdageMedNavn } from '../../../../domain/dates/shDageBeregning';
-import { formatDateLong } from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
 import { buildBeregningsperiodeRange } from '../../../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import type { IsoRange } from '../../../../domain/erstatningsopgoerelse/tafPeriodConstraints';

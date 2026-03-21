@@ -14,6 +14,7 @@ import { buildNoValidDateRangeMessage, collectPresentFieldErrors, isNonEmptyStri
 import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
 import { isoDateToDate } from '../dates/isoDate';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
+import { roundByMethod } from '../../utils/rounding';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/eoNummerValidering';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
 import { calculateTafArbejdsdageBreakdown, calculateTafAntalMaaneder, calculateTafAntalMaanederPraecis } from '../erstatningsopgoerelse/tafCalculations';
@@ -1441,7 +1442,7 @@ export const buildEODebugTaftRows = (
 
   const formatDaNumber = (n: number): string => n.toLocaleString('da-DK');
   const formatMaaneder = (n: number): string => {
-    const rounded = Math.round(n * 10000) / 10000;
+    const rounded = roundByMethod(n, 4, 'halfAwayFromZero');
     return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
   };
 
@@ -2240,7 +2241,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     const fravaerMaaneder = oevrigeFravaersdageValue * 0.048;
 
     const formatMaaneder = (value: number): string => {
-      const rounded = Math.round(value * 10000) / 10000;
+      const rounded = roundByMethod(value, 4, 'halfAwayFromZero');
       return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
     };
 

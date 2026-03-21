@@ -14,7 +14,7 @@ import { PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
 import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from './pdfHelpers';
 import { roundByMethod } from '../rounding';
 import { logWarning } from '../logger';
-import { formatDateLong } from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
+import { formatIsoDateLong as formatDateLong } from '../dateFormatting';
 import {
   formatCountWithUnit,
   formatCurrencyFromOre,

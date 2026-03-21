@@ -7,12 +7,11 @@ import {
   resolveStatistikModelId,
   detectDecimalPlaces,
   hasPctSourceOrInput,
-  formatDateShort,
-  formatDateLong,
   formatPercentFixed2,
   resolvePctDecimalFromSatsOrInput,
   resolvePctPointFromSatsOrInput,
 } from '../../../domain/erstatningsopgoerelse/sharedPdfUtils';
+import { formatIsoDateShort as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import { STORE_BEDEDAG_START } from '../../../config/dateRanges';
 import { STORE_BEDEDAG_PCT } from '../../../config/regulatoryRates';
 import type { ISODateString } from '../../../types/branded';

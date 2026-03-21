@@ -9,7 +9,8 @@ import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
 import { buildTafArbejdsstatusLinje } from './tafArbejdsstatusConfig';
 import type { Calculable, MoneyOre, OevrigeKravPdfModel, SvieSmertePdfModel, TabtArbejdsfortjenestePdfModel } from './eoPdfModelTypes';
 import { clampMoneyOreToZero, ensureMoneyOre } from './eoPdfMoneyUtils';
-import { formatDateShort, formatDateLong, getDayAfterIso, perioderCoverDate } from './sharedPdfUtils';
+import { getDayAfterIso, perioderCoverDate } from './sharedPdfUtils';
+import { formatIsoDateShort as formatDateShort, formatIsoDateLong as formatDateLong } from '../../utils/dateFormatting';
 import { parseOevrigeKravBeloeb } from './oevrigeKravAmountParser';
 import type { TafNettoBeregningResult } from './tafNettoBeregning';
 
