@@ -3,13 +3,8 @@ import { hasRealData, countFilledFields } from './dataCollection';
 import { encryptToString } from './encryption';
 import { generateFilename, downloadFile, type ResolvedDirectory, getStartInValue } from './fileHelpers';
 import {
-  logOperationStart,
-  logOperationEnd,
-  logDataStats,
-  logInfo,
   logError,
   logWarning,
-  sanitizeFilenameForLog,
 } from './logger';
 import {
   isFileSystemAccessSupported,
@@ -135,14 +130,10 @@ export const saveToFile = async (
   snapshot: SaveSnapshot,
   resolvedDirectory?: ResolvedDirectory
 ): Promise<SaveFileResult> => {
-  logOperationStart('Gem fil');
 
   try {
-    logInfo('Indsamler data fra persistence snapshot...');
     const allDataRaw = buildAllDataRawFromSnapshot(snapshot);
     const expectedFieldCount = countFilledFields(allDataRaw);
-    logInfo(`✓ Forventet data indsamlet: ${expectedFieldCount} felter`);
-    logDataStats(allDataRaw, 'Indsamlet data');
 
     // VIGTIGT: `.eo` fil må kun indeholde schema-valideret brugerinput.
     const parsedData = eoFileDataSchema.safeParse(allDataRaw);
@@ -162,11 +153,9 @@ export const saveToFile = async (
       });
       throw error;
     }
-    logInfo('✓ Data valideret - indeholder meningsfulde værdier');
 
     // 3. Tæl antal felter med data til preflight-rapportering ved hent
     const fieldCount = countFilledFields(canonicalData);
-    logInfo(`✓ Talt ${fieldCount} felter med data`);
 
     if (fieldCount === 0) {
       const error = new SaveValidationError('Ingen udfyldte felter fundet');
@@ -193,12 +182,8 @@ export const saveToFile = async (
       data: canonicalData,
     };
 
-    logInfo('✓ Fil-struktur opbygget med metadata');
-
     // 5. Krypter data
-    logInfo('Krypterer data...');
     const encrypted = await encryptToString(fileData);
-    logInfo(`✓ Data krypteret (${encrypted.length} bytes)`);
 
     // 6. Gem fil (File System Access API eller fallback)
     let filename: string;
@@ -206,7 +191,6 @@ export const saveToFile = async (
     const useFileSystemAPI = isFileSystemAccessSupported();
 
     if (useFileSystemAPI) {
-      logInfo('Bruger File System Access API');
 
       // Anmod om persistent storage (kun første gang)
       await requestPersistentStorage();
@@ -219,7 +203,6 @@ export const saveToFile = async (
 
       if (fileHandle && savedFilePath) {
         // Vi har et gemt handle - valider det
-        logInfo('Fundet gemt file handle - validerer...');
 
         // Hent gemte stamdata-værdier fra sidste gem
         const savedStamdataJson = sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
@@ -231,14 +214,12 @@ export const saveToFile = async (
 
         if (!stamdataChanged) {
           // Stamdata uændret (eller ikke gemt tidligere) - brug gemt handle
-          logInfo('✓ Stamdata uændret - genbruger fil-handle');
 
           // Valider at handle stadig virker
           const isValid = await verifyFileHandle(fileHandle);
 
           if (isValid) {
             // Handle er gyldigt - brug det direkte (browseren håndterer overskrivning)
-            logInfo('✓ File handle er gyldigt - gemmer direkte');
             shouldUseExistingHandle = true;
           } else {
             // Handle er ugyldigt - slet fra IndexedDB og åbn file picker
@@ -248,7 +229,6 @@ export const saveToFile = async (
           }
         } else {
           // Stamdata ændret - åbn file picker med nyt foreslået filnavn
-          logInfo('Stamdata er ændret - åbner file picker med nyt foreslået filnavn');
           fileHandle = null;
         }
       }
@@ -262,29 +242,24 @@ export const saveToFile = async (
 
         // Bestem startIn baseret på resolved directory
         const startIn = resolvedDirectory ? getStartInValue(resolvedDirectory) : 'desktop';
-
-        logInfo(`Åbner file picker med forslag: ${sanitizeFilenameForLog(suggestedFilename)}`);
         const pickedHandle: unknown = await saveFileWithPicker(suggestedFilename, startIn);
         fileHandle = isFileSystemFileHandle(pickedHandle) ? pickedHandle : null;
 
         if (!fileHandle) {
           // Bruger annullerede - returner stille uden fejl
-          logInfo('Bruger annullerede fil-valg');
           return { success: false, cancelled: true };
         }
 
-	      // Gem nyt handle til IndexedDB
-	      await saveFileHandleToIndexedDB(fileHandle);
-	    }
+        // Gem nyt handle til IndexedDB
+        await saveFileHandleToIndexedDB(fileHandle);
+      }
 
-	    if (!fileHandle) {
-	      throw new Error('Kunne ikke gemme: Ingen fil valgt');
-	    }
-	
-	    // Skriv til fil
-	    logInfo('Skriver til fil via File System Access API...');
-	    await writeToFileHandle(fileHandle, encrypted);
-      logInfo('✓ Fil gemt succesfuldt');
+      if (!fileHandle) {
+        throw new Error('Kunne ikke gemme: Ingen fil valgt');
+      }
+
+      // Skriv til fil
+      await writeToFileHandle(fileHandle, encrypted);
 
       filename = fileHandle.name;
 
@@ -349,16 +324,12 @@ export const saveToFile = async (
       // Brug sidste gemte filnavn hvis stamdata er uændret, ellers brug nyt baseret på stamdata
       if (lastSavedPath && !stamdataChanged) {
         filename = lastSavedPath;
-        logInfo(`Genbruger filnavn: ${sanitizeFilenameForLog(filename)}`);
       } else {
         filename = `${currentFilename}.eo`;
-        logInfo(`Nyt filnavn genereret: ${sanitizeFilenameForLog(filename)}`);
       }
 
       // Download fil (browseren håndterer "filen eksisterer allerede" hvis relevant)
-      logInfo('Downloader fil...');
       downloadFile(encrypted, filename, 'application/octet-stream');
-      logInfo('✓ Fil downloadet');
 
       // VERIFICER indholdet (vi har allerede encrypted data i memory)
       verification = await verifyAfterSave(encrypted, canonicalData, false);
@@ -405,10 +376,6 @@ export const saveToFile = async (
       saveFilenameMetadata(filename, fileData.data.stamdata);
     }
 
-    logInfo('✓ Filsti og stamdata gemt til sessionStorage');
-
-    logOperationEnd('Gem fil', true);
-
     // Returner success-info (inkl. verifikation hvis der var advarsler)
     const result: SaveFileResult = {
       success: true,
@@ -432,7 +399,6 @@ export const saveToFile = async (
     return result;
 
   } catch (error) {
-    logOperationEnd('Gem fil', false);
 
     const err = asError(error);
 
@@ -458,5 +424,4 @@ export const saveToFile = async (
 export const resetSavedFilePath = () => {
   sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilename);
   sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
-  logInfo('Filsti nulstillet - næste gem vil prompte for nyt navn');
 };

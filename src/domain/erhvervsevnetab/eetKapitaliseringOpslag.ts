@@ -1,4 +1,4 @@
-import { kapitaliseringsbekendtgoerelser } from '../../data/kapitalisering/kapitaliseringsbekendtgørelser';
+import { kapitaliseringsbekendtgoerelser } from '../../data/kapitalisering/kapitaliseringsbekendtgoerelser';
 import {
   getKapitaliseringsTabelData,
   type AldersFaktorRaekke,

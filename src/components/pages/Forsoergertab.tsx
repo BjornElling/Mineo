@@ -554,7 +554,7 @@ const Forsoergertab = React.memo(() => {
 
           <Box className="row--label-right-hover">
             <Typography className="row--text">
-              {`Aldersreduktion ${buildAldersreduktionFormelTekst(ealComputation.alderVedSkade, ealComputation.alderVedSkadeCapped)}`}
+              {`Aldersreduktion ${buildAldersreduktionFormelTekst(ealComputation.alderVedSkade)}`}
             </Typography>
             <Box className="row--label-right-hover__content">
               <Typography className="row--text">{`${ealComputation.aldersreduktionPct} %`}</Typography>

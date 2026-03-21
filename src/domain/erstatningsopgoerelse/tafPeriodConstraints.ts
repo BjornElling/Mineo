@@ -2,7 +2,7 @@ import type { TafPeriodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { isISODateString, isoToDanish, subtractOneDay } from '../../types/branded';
 import { minISO, maxISO } from '../../utils/isoDateHelpers';
-import { TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from './periodiseringsMotor';
+import { TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from './eoConstants';
 
 export type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
 

@@ -1,6 +1,6 @@
 import { coerceToDanishDateString } from '../types/branded';
 import { loadDefaultDirectoryHandle, verifyDirectoryHandle } from './fileHandleStorage';
-import { logInfo, logWarning } from './logger';
+import { logError, logWarning } from './logger';
 import type { AppSettings } from '../settings/appSettingsSchema';
 
 // Konstanter for filhåndtering
@@ -109,7 +109,7 @@ export const generateFilename = (data: FilenameSource | null | undefined): strin
     return sanitizeFilename(filename) || FALLBACK_FILENAME;
 
   } catch (error) {
-    console.error('Fejl ved filnavns-generering:', error);
+    logError('Fejl ved filnavns-generering', { context: 'generateFilename', error: error instanceof Error ? error : undefined });
     return FALLBACK_FILENAME;
   }
 };
@@ -141,7 +141,7 @@ export const downloadFile = (content: string, filename: string, mimeType = 'appl
     }, 100);
 
   } catch (error) {
-    console.error('Fejl ved fil-download:', error);
+    logError('Fejl ved fil-download', { context: 'downloadFile', error: error instanceof Error ? error : undefined });
     throw new Error('Kunne ikke downloade fil');
   }
 };
@@ -262,7 +262,6 @@ export const resolveDefaultDirectoryHandle = async (
 
   // Hvis ingen settings eller ingen brugervalgt placering, brug fallback
   if (!settings?.defaultDirectoryHandleId) {
-    logInfo('Ingen brugervalgt standardplacering - bruger skrivebord');
     return desktopFallback;
   }
 
@@ -273,7 +272,6 @@ export const resolveDefaultDirectoryHandle = async (
     if (!handle) {
       // Handle ikke fundet i IndexedDB (muligvis slettet)
       // Forventelig fallback-situation: logges som info (ikke warning).
-      logInfo('Directory handle ikke fundet i IndexedDB - falder tilbage til skrivebord');
       return desktopFallback;
     }
 
@@ -283,12 +281,10 @@ export const resolveDefaultDirectoryHandle = async (
     if (!isValid) {
       // Handle er ugyldigt (mappe slettet, permission nægtet, etc.)
       // Forventelig fallback-situation: logges som info (ikke warning).
-      logInfo('Directory handle er ikke længere gyldigt - falder tilbage til skrivebord');
       return desktopFallback;
     }
 
     // Handle er gyldigt - returnér det
-    logInfo(`✓ Brugervalgt standardplacering aktiv: ${handle.name}`);
     return {
       handle,
       wellKnown: 'desktop', // Fallback identifier hvis handle fejler ved brug

@@ -4,7 +4,7 @@ import type { StorageKey } from '../config/storageManifest';
 import { countFilledFields } from './dataCollection';
 import { decryptFromString } from './encryption';
 import { readFromFileHandle } from './fileSystemAccess';
-import { logError, logInfo, logWarning } from './logger';
+import { logError, logWarning } from './logger';
 import type {
   SaveSnapshot,
   CanonicalEoData,
@@ -160,7 +160,6 @@ export const verifyAfterSave = async (
   expectedData: CanonicalEoData,
   isFileHandle = true
 ): Promise<VerificationResult> => {
-  logInfo('Verificerer gemt fil...');
 
   try {
     let fileContent: string;
@@ -172,21 +171,18 @@ export const verifyAfterSave = async (
         throw new Error('Intern fejl: verifyAfterSave forventede et FileSystemFileHandle');
       }
       fileContent = await readFromFileHandle(fileHandleOrContent);
-      logInfo(`✓ Fil læst tilbage via handle (${fileContent.length} bytes)`);
     } else {
       // Fallback - vi har allerede indholdet (det der lige blev "downloadet")
       if (typeof fileHandleOrContent !== 'string') {
         throw new Error('Intern fejl: verifyAfterSave forventede fil-indhold som string');
       }
       fileContent = fileHandleOrContent;
-      logInfo(`✓ Krypteret indhold klar til round-trip-verifikation (${fileContent.length} bytes)`);
     }
 
     // Dekrypter filen
     let decrypted: unknown;
     try {
       decrypted = await decryptFromString(fileContent);
-      logInfo(isFileHandle ? '✓ Fil kan dekrypteres korrekt' : '✓ Krypterings-round-trip kan dekrypteres korrekt');
     } catch (error) {
       logError('⚠ KRITISK: Fil kan IKKE dekrypteres!');
       return {
@@ -231,10 +227,8 @@ export const verifyAfterSave = async (
 
     const expectedFieldCount = countFilledFields(expectedCanonicalJson);
     const actualFieldCount = countFilledFields(actualCanonicalJson);
-    logInfo(`✓ Felter - Forventet: ${expectedFieldCount}, Faktisk: ${actualFieldCount}`);
 
     // KRITISK: Sammenlign felt-for-felt
-    logInfo('Sammenligner persistence snapshot med gemt fil...');
     const differences = compareData(expectedCanonicalJson, actualCanonicalJson);
 
     if (differences.length > 0) {
@@ -261,7 +255,6 @@ export const verifyAfterSave = async (
       };
     }
 
-    logInfo('✓ Data matcher perfekt - ingen forskelle fundet!');
 
     // Valider at kritiske sektioner findes
     const criticalSections = ['stamdata'];
@@ -282,11 +275,6 @@ export const verifyAfterSave = async (
       };
     }
 
-    logInfo(
-      isFileHandle
-        ? '✓ Fil verificeret succesfuldt - alle data er gemt korrekt!'
-        : '✓ Krypterings-round-trip verificeret succesfuldt - data er serialiseret korrekt'
-    );
     return {
       success: true,
       verified: true,

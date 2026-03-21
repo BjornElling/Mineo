@@ -19,10 +19,6 @@ vi.mock('../../utils/fileHelpers', () => ({
 }));
 
 vi.mock('../../utils/logger', () => ({
-  logOperationStart: vi.fn(),
-  logOperationEnd: vi.fn(),
-  logDataStats: vi.fn(),
-  logDebug: vi.fn(),
   logWarning: vi.fn(),
   logError: vi.fn(),
   sanitizeFilenameForLog: (value: unknown) => String(value ?? ''),

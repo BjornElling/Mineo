@@ -1,3 +1,5 @@
+// .shared.ts: context-definition og types uden implementering.
+// Adskilt fra .tsx for at tillade import fra test og domænelag uden React-komponent-afhængigheder.
 import * as React from 'react';
 import type { AppSettings } from '../settings/appSettingsSchema';
 

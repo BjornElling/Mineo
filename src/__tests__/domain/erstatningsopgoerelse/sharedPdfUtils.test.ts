@@ -1,5 +1,5 @@
 import {
-  addOneDayIso,
+  getDayAfterIso,
   hasAnyPctSourceOrInput,
   parseOptionalIsoDate,
   parseDanishToIso,
@@ -75,18 +75,18 @@ describe('parseDanishToIso', () => {
   });
 });
 
-describe('addOneDayIso', () => {
+describe('getDayAfterIso', () => {
   it('lægger én dag til en almindelig dato', () => {
-    expect(addOneDayIso(iso('2024-01-15'))).toBe('2024-01-16');
+    expect(getDayAfterIso(iso('2024-01-15'))).toBe('2024-01-16');
   });
 
   it('håndterer årsskifte', () => {
-    expect(addOneDayIso(iso('2024-12-31'))).toBe('2025-01-01');
+    expect(getDayAfterIso(iso('2024-12-31'))).toBe('2025-01-01');
   });
 
   it('håndterer skudår korrekt', () => {
-    expect(addOneDayIso(iso('2024-02-28'))).toBe('2024-02-29');
-    expect(addOneDayIso(iso('2024-02-29'))).toBe('2024-03-01');
+    expect(getDayAfterIso(iso('2024-02-28'))).toBe('2024-02-29');
+    expect(getDayAfterIso(iso('2024-02-29'))).toBe('2024-03-01');
   });
 });
 

@@ -1,4 +1,4 @@
-import { logInfo, logWarning, logError } from './logger';
+import { logWarning, logError } from './logger';
 
 // IndexedDB database navn og version
 const DB_NAME = 'mineo_file_handles';
@@ -34,7 +34,6 @@ const openDatabase = (): Promise<IDBDatabase> => {
       // Opret object store hvis den ikke findes
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME);
-        logInfo('IndexedDB object store oprettet');
       }
     };
   });
@@ -55,12 +54,6 @@ export const requestPersistentStorage = async () => {
 
     const isPersisted = await navigator.storage.persist();
 
-    if (isPersisted) {
-      logInfo('✓ Persistent storage granted - file handle vil overleve browser-restart');
-    } else {
-      logInfo('Persistent storage ikke granted - file handle kan gå tabt');
-    }
-
     return isPersisted;
   } catch (error) {
     logWarning('Kunne ikke anmode om persistent storage:', error);
@@ -76,7 +69,6 @@ export const requestPersistentStorage = async () => {
  */
 export const saveFileHandleToIndexedDB = async (fileHandle: FileSystemFileHandle): Promise<boolean> => {
   try {
-    logInfo('Gemmer file handle til IndexedDB...');
 
     const db = await openDatabase();
 
@@ -86,7 +78,6 @@ export const saveFileHandleToIndexedDB = async (fileHandle: FileSystemFileHandle
       const request = store.put(fileHandle, HANDLE_KEY);
 
       request.onsuccess = () => {
-        logInfo('✓ File handle gemt til IndexedDB');
         resolve(true);
       };
 
@@ -116,7 +107,6 @@ export const saveFileHandleToIndexedDB = async (fileHandle: FileSystemFileHandle
  */
 export const loadFileHandleFromIndexedDB = async () => {
   try {
-    logInfo('Henter file handle fra IndexedDB...');
 
     const db = await openDatabase();
 
@@ -126,15 +116,7 @@ export const loadFileHandleFromIndexedDB = async () => {
       const request = store.get(HANDLE_KEY);
 
       request.onsuccess = () => {
-        const handle = request.result;
-
-        if (handle) {
-          logInfo('✓ File handle fundet i IndexedDB');
-        } else {
-          logInfo('Ingen file handle fundet i IndexedDB');
-        }
-
-        resolve(handle || null);
+        resolve(request.result || null);
       };
 
       request.onerror = () => {
@@ -163,7 +145,6 @@ export const loadFileHandleFromIndexedDB = async () => {
  */
 export const deleteFileHandleFromIndexedDB = async () => {
   try {
-    logInfo('Sletter file handle fra IndexedDB...');
 
     const db = await openDatabase();
 
@@ -173,7 +154,6 @@ export const deleteFileHandleFromIndexedDB = async () => {
       const request = store.delete(HANDLE_KEY);
 
       request.onsuccess = () => {
-        logInfo('✓ File handle slettet fra IndexedDB');
         resolve(true);
       };
 
@@ -220,7 +200,6 @@ export const verifyFileHandle = async (handle: FileSystemFileHandle | null | und
     // Tjek først om filen stadig eksisterer
     try {
       await handle.getFile();
-      logInfo('✓ Fil eksisterer stadig');
     } catch (error) {
       // Fil eksisterer ikke længere eller vi har ikke adgang
       if (error.name === 'NotFoundError') {
@@ -228,7 +207,6 @@ export const verifyFileHandle = async (handle: FileSystemFileHandle | null | und
         return false;
       }
       if (error.name === 'NotAllowedError') {
-        logInfo('File handle har ikke adgang endnu - vil anmode om permission');
         // Fortsæt til permission-tjek nedenfor
       } else {
         // Andre uventede fejl
@@ -245,20 +223,16 @@ export const verifyFileHandle = async (handle: FileSystemFileHandle | null | und
       const permission = await permissionHandle.queryPermission({ mode: 'readwrite' });
 
       if (permission === 'granted') {
-        logInfo('✓ File handle har readwrite permission');
         return true;
       }
 
       // Forsøg at anmode om permission
-      logInfo('File handle mangler readwrite permission - anmoder om adgang...');
       const newPermission = await permissionHandle.requestPermission({ mode: 'readwrite' });
 
       if (newPermission === 'granted') {
-        logInfo('✓ File handle readwrite permission granted');
         return true;
       }
 
-      logInfo('Bruger nægtede readwrite permission - åbner file picker');
       return false;
 
     } catch (permError: any) {
@@ -310,9 +284,8 @@ export interface DirectoryHandleMeta {
  * @returns {Promise<string>} Unikt ID for dette directory handle
  * @throws {Error} Hvis gemning fejler
  */
-export const saveDefaultDirectoryHandle = async (directoryHandle: FileSystemDirectoryHandle): Promise<string> => {
+export const saveDefaultDirectoryHandle = async (directoryHandle: FileSystemDirectoryHandle): Promise<string | null> => {
   try {
-    logInfo('Gemmer directory handle til IndexedDB...');
 
     const db = await openDatabase();
 
@@ -338,7 +311,6 @@ export const saveDefaultDirectoryHandle = async (directoryHandle: FileSystemDire
 
       const checkComplete = () => {
         if (handleDone && metaDone) {
-          logInfo(`✓ Directory handle gemt til IndexedDB (id: ${id})`);
           resolve(id);
         }
       };
@@ -376,7 +348,7 @@ export const saveDefaultDirectoryHandle = async (directoryHandle: FileSystemDire
 
   } catch (error) {
     logError('Fejl ved gemning af directory handle:', error);
-    throw error;
+    return null;
   }
 };
 
@@ -431,7 +403,6 @@ export const getDirectoryDisplayInfo = async (): Promise<DirectoryHandleMeta | n
  */
 export const loadDefaultDirectoryHandle = async (): Promise<FileSystemDirectoryHandle | null> => {
   try {
-    logInfo('Henter directory handle fra IndexedDB...');
 
     const db = await openDatabase();
 
@@ -441,15 +412,7 @@ export const loadDefaultDirectoryHandle = async (): Promise<FileSystemDirectoryH
       const request = store.get(DEFAULT_DIRECTORY_KEY);
 
       request.onsuccess = () => {
-        const handle = request.result;
-
-        if (handle) {
-          logInfo('✓ Directory handle fundet i IndexedDB');
-        } else {
-          logInfo('Ingen directory handle fundet i IndexedDB');
-        }
-
-        resolve(handle || null);
+        resolve(request.result || null);
       };
 
       request.onerror = () => {
@@ -478,7 +441,6 @@ export const loadDefaultDirectoryHandle = async (): Promise<FileSystemDirectoryH
  */
 export const deleteDefaultDirectoryHandle = async (): Promise<boolean> => {
   try {
-    logInfo('Sletter directory handle fra IndexedDB...');
 
     const db = await openDatabase();
 
@@ -495,7 +457,6 @@ export const deleteDefaultDirectoryHandle = async (): Promise<boolean> => {
 
       const checkComplete = () => {
         if (handleDone && metaDone) {
-          logInfo('✓ Directory handle og metadata slettet fra IndexedDB');
           resolve(true);
         }
       };
@@ -555,20 +516,16 @@ export const verifyDirectoryHandle = async (handle: FileSystemDirectoryHandle): 
       const permission = await handle.queryPermission({ mode: 'readwrite' });
 
       if (permission === 'granted') {
-        logInfo('✓ Directory handle har readwrite permission');
         return true;
       }
 
       // Forsøg at anmode om permission
-      logInfo('Directory handle mangler readwrite permission - anmoder om adgang...');
       const newPermission = await handle.requestPermission({ mode: 'readwrite' });
 
       if (newPermission === 'granted') {
-        logInfo('✓ Directory handle readwrite permission granted');
         return true;
       }
 
-      logInfo('Bruger nægtede readwrite permission');
       return false;
 
     } catch (permError: any) {

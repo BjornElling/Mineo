@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import {
-  copyBugReport,
+  copyBugReportToClipboard,
   downloadBugReport,
   openBugReportEmail,
   prepareBugReport,
@@ -93,7 +93,7 @@ const BugReportButton = ({
   const handleCopyToClipboard = React.useCallback(async () => {
     if (!prepared) return;
     try {
-      await copyBugReport(prepared);
+      await copyBugReportToClipboard(prepared.report);
       actionTakenRef.current = true;
       setSnackbar({
         open: true,

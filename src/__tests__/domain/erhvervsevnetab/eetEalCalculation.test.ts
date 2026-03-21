@@ -330,12 +330,12 @@ describe('formatPercentTrimmedFromRounded4', () => {
 
 describe('buildAldersreduktionFormelTekst', () => {
   it('tilføjer max 70 %-markering når den ubeskårne aldersreduktion ville overstige 70 %', () => {
-    expect(buildAldersreduktionFormelTekst(72, 69)).toBe('(72 - 29) + (72 - 54) x 2 (max 70 %) =');
+    expect(buildAldersreduktionFormelTekst(72)).toBe('(72 - 29) + (72 - 54) x 2 (max 70 %) =');
   });
 
   it('viser ikke max 70 %-markering når aldersreduktionen ikke capped ved 70 %', () => {
-    expect(buildAldersreduktionFormelTekst(54, 54)).toBe('(54 - 29) =');
-    expect(buildAldersreduktionFormelTekst(69, 69)).toBe('(69 - 29) + (69 - 54) x 2 =');
-    expect(buildAldersreduktionFormelTekst(70, 69)).toBe('(70 - 29) + (70 - 54) x 2 (max 70 %) =');
+    expect(buildAldersreduktionFormelTekst(54)).toBe('(54 - 29) =');
+    expect(buildAldersreduktionFormelTekst(69)).toBe('(69 - 29) + (69 - 54) x 2 =');
+    expect(buildAldersreduktionFormelTekst(70)).toBe('(70 - 29) + (70 - 54) x 2 (max 70 %) =');
   });
 });

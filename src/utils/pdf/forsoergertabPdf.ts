@@ -183,7 +183,7 @@ const addEalSection = (writer: PdfWriter, eal: EetEalComputation, foersoergertab
     { rightFontStyle: 'normal' }
   );
   writer.writeLeftRightText(
-    `Aldersreduktion ${buildAldersreduktionFormelTekst(eal.alderVedSkade, eal.alderVedSkadeCapped)}`,
+    `Aldersreduktion ${buildAldersreduktionFormelTekst(eal.alderVedSkade)}`,
     `${eal.aldersreduktionPct} %`,
     { rightFontStyle: 'normal' }
   );

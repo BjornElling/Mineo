@@ -197,8 +197,8 @@ export const buildLoenindkomstColumns = (args: {
 
   for (let i = 0; i < dates.length; i += 1) {
     const iso = dates[i];
-    const within = isWithinErstatningsByIndex[i] === true;
-    const isWork = isWorkdayByIndex[i] === true;
+    const within = isWithinErstatningsByIndex[i];
+    const isWork = isWorkdayByIndex[i];
 
     if (!within) {
       tafStatus[i] = 0;
@@ -281,7 +281,7 @@ export const buildLoenindkomstColumns = (args: {
     } as const;
     const isPeriodiseringsdag = (index: number): boolean => {
       if (globalPeriodiseringErKalenderdage) return true;
-      return isWorkdayByIndex[index] === true;
+      return isWorkdayByIndex[index];
     };
 
     const includeKeys = WAGE_COLUMNS.filter((col) =>

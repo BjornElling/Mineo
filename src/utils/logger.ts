@@ -109,24 +109,6 @@ const persistLog = (entry: Omit<LogEntry, 'id'>): void => {
 };
 
 /**
- * Logger debug-besked (kun development mode, ikke persisteret)
- *
- * @param {string} message - Besked at logge
- * @param {Record<string, unknown>} [data] - Ekstra data
- */
-export const logDebug = (_message: string, _data?: Record<string, unknown>): void => {
-};
-
-/**
- * Logger info-besked (kun development mode, ikke persisteret)
- *
- * @param {string} message - Besked at logge
- * @param {Record<string, unknown>} [data] - Ekstra data
- */
-export const logInfo = (_message: string, _data?: Record<string, unknown>): void => {
-};
-
-/**
  * Logger warning-besked (altid aktiv, persisteret til IndexedDB)
  *
  * @param {string} message - Besked at logge
@@ -197,46 +179,3 @@ export const logError = (
   });
 };
 
-/**
- * Logger start af operation (kun development mode, ikke persisteret)
- *
- * @param {string} operationName - Navn på operation
- */
-export const logOperationStart = (operationName: string): void => {
-  logDebug(`=== START: ${operationName} ===`);
-};
-
-/**
- * Logger afslutning af operation (kun development mode, ikke persisteret)
- *
- * @param {string} operationName - Navn på operation
- * @param {boolean} [success=true] - Om operation var succesfuld
- */
-export const logOperationEnd = (operationName: string, success = true): void => {
-  if (success) {
-    logDebug(`=== SUCCESS: ${operationName} ===`);
-  } else {
-    logError(`=== FAILED: ${operationName} ===`, { context: operationName });
-  }
-};
-
-/**
- * Logger data-statistik (kun development mode, ikke persisteret)
- *
- * @param {Record<string, unknown>} data - Data at logge statistik for
- * @param {string} [label='Data'] - Label til output
- */
-export const logDataStats = (data: Record<string, unknown>, label = 'Data'): void => {
-  if (!isDevelopment) return;
-
-  const sections = Object.keys(data).filter((k) => !k.startsWith('_'));
-  logDebug(`${label} indeholder ${sections.length} sektioner:`, { sections });
-
-  sections.forEach((section) => {
-    const sectionData = data[section];
-    if (typeof sectionData === 'object' && sectionData !== null) {
-      const fieldCount = Object.keys(sectionData as Record<string, unknown>).length;
-      logDebug(`  - ${section}: ${fieldCount} felter`);
-    }
-  });
-};

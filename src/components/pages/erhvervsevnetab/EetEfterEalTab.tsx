@@ -17,7 +17,7 @@ import { downloadEfterEalPdf } from '../../../utils/pdf/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
-import { formatKr, navigationSortKey, toFieldIssue } from './eetFormatUtils';
+import { formatKr, navigationSortKey, toFieldIssue } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabComposedValues;
@@ -89,7 +89,7 @@ const EetEfterEalTab = ({ values, onGoToEetOplysninger }: Props) => {
   }, [computation, settings, stamdata, triggerDownloadShake]);
 
   const aldersreduktionFormula = computation
-    ? buildAldersreduktionFormelTekst(computation.alderVedSkade, computation.alderVedSkadeCapped)
+    ? buildAldersreduktionFormelTekst(computation.alderVedSkade)
     : '';
 
   return (

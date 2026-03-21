@@ -3,7 +3,7 @@ import path from 'node:path';
 import {
   kapitaliseringsbekendtgoerelser,
   eetKapitaliseringsDatoMaxFraBekendtgoerelser,
-} from '../../data/kapitalisering/kapitaliseringsbekendtgørelser';
+} from '../../data/kapitalisering/kapitaliseringsbekendtgoerelser';
 import { dateToISO, parseISODate } from '../../types/branded';
 import { addDays } from '../../utils/dateUtils';
 
@@ -94,6 +94,11 @@ const readLokalKapitaliseringsTabelMeta = (): LokalTabelMeta[] => {
 };
 
 describe('kapitaliseringsbekendtgørelser', () => {
+  it('max-dato dækker mindst indeværende kalenderår — fejler hvis data ikke opdateres årligt', () => {
+    const currentYear = new Date().getFullYear();
+    expect(eetKapitaliseringsDatoMaxFraBekendtgoerelser >= `${currentYear}-01-01`).toBe(true);
+  });
+
   it('afleder EET max-dato som 31-12 i laveste seneste kapitaliseringsår på tværs af skadesintervaller', () => {
     const latestPerInterval = kapitaliseringsbekendtgoerelser.map((interval) => {
       const latestFraDate = interval.kapitaliseringer

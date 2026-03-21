@@ -3,7 +3,7 @@ import { ensureNonBreakingKr } from '../../pdfTextUtils';
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import {
-  addOneDayIso,
+  getDayAfterIso,
   roundToFourDecimals,
 } from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import { resolveOevrigeKravIntroLinjer } from '../../../../domain/erstatningsopgoerelse/oevrigeKravIntro';
@@ -85,7 +85,7 @@ const mergeLoenudviklingSegments = (segments: readonly LoenudviklingSegment[]): 
       continue;
     }
 
-    const isAdjacent = addOneDayIso(last.til) === segment.fra;
+    const isAdjacent = getDayAfterIso(last.til) === segment.fra;
     const isSameKind = last.kind === segment.kind;
     const isSameDelta = Math.abs(last.deltaPct - segment.deltaPct) < 0.00001;
 

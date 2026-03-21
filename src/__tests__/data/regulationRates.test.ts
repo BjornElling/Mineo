@@ -15,7 +15,7 @@ import {
   reguleringsprocentErhvervsevnetabFoer2024,
   reguleringsprocentErhvervsevnetabFra2024,
 } from '../../data/regulationRates';
-import { eetKapitaliseringsDatoMaxFraBekendtgoerelser } from '../../data/kapitalisering/kapitaliseringsbekendtgørelser';
+import { eetKapitaliseringsDatoMaxFraBekendtgoerelser } from '../../data/kapitalisering/kapitaliseringsbekendtgoerelser';
 import type { YearlyRate } from '../../data/regulationRates';
 
 // ─── getYearBoundsForYearlyRate ──────────────────────────────────────────────

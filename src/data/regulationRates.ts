@@ -1,4 +1,4 @@
-import { eetKapitaliseringsDatoMaxFraBekendtgoerelser } from './kapitalisering/kapitaliseringsbekendtgørelser';
+import { eetKapitaliseringsDatoMaxFraBekendtgoerelser } from './kapitalisering/kapitaliseringsbekendtgoerelser';
 
 /**
  * Satser på arbejdsskadeområdet 2005 og frem

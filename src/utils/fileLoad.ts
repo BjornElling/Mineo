@@ -2,13 +2,8 @@ import { countFilledFields } from './dataCollection';
 import { decryptFromString, EncryptionError } from './encryption';
 import { selectFile, readFile, type ResolvedDirectory, getStartInValue } from './fileHelpers';
 import {
-  logOperationStart,
-  logOperationEnd,
-  logDataStats,
-  logDebug,
   logWarning,
   logError,
-  sanitizeFilenameForLog,
 } from './logger';
 import { FILE_FORMAT_VERSION, MAX_FILE_SIZE } from '../config/version';
 import { STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
@@ -103,10 +98,6 @@ const processDecryptedContainer = (args: {
   const loadIssues: Array<{ path: string; reason: string }> = [];
 
   const fileVersion = fileContainer.version;
-  logDebug(`Fil version: ${fileVersion}`);
-  logDebug(`Forventet antal felter: ${expectedFieldCount}`);
-
-  logDataStats(fileData as unknown as Record<string, unknown>, 'Dekrypteret data');
 
   const fileFieldCount = countFilledFields(fileData as unknown as Record<string, unknown>);
   if (fileFieldCount === 0) {
@@ -192,7 +183,6 @@ const processDecryptedContainer = (args: {
 export const loadFromFile = async (
   resolvedDirectory?: ResolvedDirectory
 ): Promise<LoadFileResult> => {
-  logOperationStart('Hent fil');
 
   try {
     let file: File;
@@ -202,22 +192,18 @@ export const loadFromFile = async (
     const useFileSystemAPI = isFileSystemAccessSupported();
 
     if (useFileSystemAPI) {
-      logDebug('Bruger File System Access API');
 
       // Bestem startIn baseret på resolved directory
       const startIn = resolvedDirectory ? getStartInValue(resolvedDirectory) : 'desktop';
 
       const result = await openFileWithPicker(startIn);
       if (!result) {
-        logDebug('Bruger annullerede fil-valg');
         return { success: false, cancelled: true, source: 'manual' };
       }
 
       file = result.file;
       fileHandle = result.handle;
 
-      logDebug(`Fil valgt: ${sanitizeFilenameForLog(file.name)}`);
-
       if (!file.name.toLowerCase().endsWith('.eo')) {
         throw new Error('Valgt fil er ikke en .eo fil');
       }
@@ -227,22 +213,16 @@ export const loadFromFile = async (
         const maxSizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
         throw new Error(`Filen er for stor (${sizeMB} MB). Maksimum: ${maxSizeMB} MB`);
       }
-
-      logDebug('Læser fil via File System Access API...');
       fileContent = await readFromFileHandle(fileHandle);
-      logDebug(`✓ Fil læst (${fileContent.length} bytes)`);
     } else {
       logWarning('File System Access API ikke tilgængelig - bruger fallback file picker');
 
       const selected = await selectFile('.eo');
       if (!selected) {
-        logDebug('Bruger annullerede fil-valg');
         return { success: false, cancelled: true, source: 'manual' };
       }
 
       file = selected;
-
-      logDebug(`Fil valgt: ${sanitizeFilenameForLog(file.name)}`);
 
       if (!file.name.toLowerCase().endsWith('.eo')) {
         throw new Error('Valgt fil er ikke en .eo fil');
@@ -253,13 +233,8 @@ export const loadFromFile = async (
         const maxSizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
         throw new Error(`Filen er for stor (${sizeMB} MB). Maksimum: ${maxSizeMB} MB`);
       }
-
-      logDebug('Læser fil...');
       fileContent = await readFile(file);
-      logDebug(`✓ Fil læst (${fileContent.length} bytes)`);
     }
-
-    logDebug('Dekrypterer data...');
     let decrypted: unknown;
     try {
       decrypted = await decryptFromString(fileContent);
@@ -269,9 +244,8 @@ export const loadFromFile = async (
       }
       const message = error instanceof Error ? error.message : 'Ukendt fejl';
       logError('Dekryptering fejlede', { context: 'loadFromFile.decrypt', error: error instanceof Error ? error : undefined });
-      throw new Error(`Kunne ikke dekryptere fil: ${message}`);
+      throw new Error(`Kunne ikke dekryptere fil: ${message}`, { cause: error });
     }
-    logDebug('✓ Data dekrypteret (integritet OK)');
 
     const fileContainer = normalizeDecryptedContainer(decrypted);
     const result = processDecryptedContainer({
@@ -280,16 +254,11 @@ export const loadFromFile = async (
       source: 'manual',
       fileHandle: fileHandle ?? undefined,
     });
-
-    logOperationEnd('Hent fil', true);
     return result;
   } catch (error) {
     if (error instanceof CalculationError && error.code === 'FILE_LOAD_FAILED') {
-      logOperationEnd('Hent fil', true);
       throw error;
     }
-
-    logOperationEnd('Hent fil', false);
 
     const message = error instanceof Error ? error.message : 'Ukendt fejl';
     const safeErrorMessage = message.replace(/\b\d{6}-\d{4}\b/g, '[CPR]');
@@ -303,12 +272,9 @@ export const loadFromFileHandle = async (
   fileHandle: FileSystemFileHandle,
   options?: { requestId?: string }
 ): Promise<LoadFileResult> => {
-  logOperationStart('Hent fil');
 
   try {
     const file = await fileHandle.getFile();
-
-    logDebug(`Fil valgt: ${sanitizeFilenameForLog(file.name)}`);
 
     if (!file.name.toLowerCase().endsWith('.eo')) {
       throw new Error('Valgt fil er ikke en .eo fil');
@@ -319,12 +285,7 @@ export const loadFromFileHandle = async (
       const maxSizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
       throw new Error(`Filen er for stor (${sizeMB} MB). Maksimum: ${maxSizeMB} MB`);
     }
-
-    logDebug('Læser fil via File System Access API...');
     const fileContent = await readFromFileHandle(fileHandle);
-    logDebug(`✓ Fil læst (${fileContent.length} bytes)`);
-
-    logDebug('Dekrypterer data...');
     let decrypted: unknown;
     try {
       decrypted = await decryptFromString(fileContent);
@@ -334,9 +295,8 @@ export const loadFromFileHandle = async (
       }
       const message = error instanceof Error ? error.message : 'Ukendt fejl';
       logError('Dekryptering fejlede', { context: 'loadFromFileHandle.decrypt', error: error instanceof Error ? error : undefined });
-      throw new Error(`Kunne ikke dekryptere fil: ${message}`);
+      throw new Error(`Kunne ikke dekryptere fil: ${message}`, { cause: error });
     }
-    logDebug('✓ Data dekrypteret (integritet OK)');
 
     const fileContainer = normalizeDecryptedContainer(decrypted);
     const result = processDecryptedContainer({
@@ -346,16 +306,11 @@ export const loadFromFileHandle = async (
       requestId: options?.requestId,
       fileHandle,
     });
-
-    logOperationEnd('Hent fil', true);
     return result;
   } catch (error) {
     if (error instanceof CalculationError && error.code === 'FILE_LOAD_FAILED') {
-      logOperationEnd('Hent fil', true);
       throw error;
     }
-
-    logOperationEnd('Hent fil', false);
 
     const message = error instanceof Error ? error.message : 'Ukendt fejl';
     const safeErrorMessage = message.replace(/\b\d{6}-\d{4}\b/g, '[CPR]');

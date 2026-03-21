@@ -29,7 +29,7 @@ import TextHoverRow from './TextHoverRow';
 import UnderlinedHoverRow from './UnderlinedHoverRow';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
-import { formatJaNej, formatKr, navigationSortKey, toFieldIssue } from './eetFormatUtils';
+import { formatJaNej, formatKr, navigationSortKey, toFieldIssue } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabComposedValues;

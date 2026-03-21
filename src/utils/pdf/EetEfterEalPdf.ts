@@ -126,8 +126,7 @@ export const renderEfterEalBody = (
   );
 
   const aldersreduktionFormula = buildAldersreduktionFormelTekst(
-    computation.alderVedSkade,
-    computation.alderVedSkadeCapped
+    computation.alderVedSkade
   );
 
   writer.writeLeftRightText(

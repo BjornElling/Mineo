@@ -1,11 +1,12 @@
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { dateToISO, parseISODate, toISODateString } from '../../types/branded';
+import { dateToISO, parseISODate } from '../../types/branded';
 import { addDays } from '../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import type { Periodisering } from '../../data/ydelsestyper';
 import { buildDatoSetInclusiveFromDates, buildFerieDageSet, buildShDageSet, isWeekdayUtc, placeLoseFeriedage } from './tafDaySets';
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR } from './tafBeregningsenhed';
+import { SYGEDAGPENGE_SH_CUTOFF } from './eoConstants';
 import { roundByMethod } from '../../utils/rounding';
 import { type DateInterval, type IsoRange } from '../../utils/isoDateHelpers';
 import { toNonNegativeInt } from '../../utils/numberParsing';
@@ -42,15 +43,7 @@ import { assertNever } from '../../utils/assertNever';
 
 export type { IsoRange, DateInterval } from '../../utils/isoDateHelpers';
 
-export const SYGEDAGPENGE_SH_CUTOFF = toISODateString('2012-07-02');
-
-/**
- * Skæringsdato for midlertidig EET's virkning på TAF.
- * Skader opstået før denne dato (< 2011-06-16): en upåklaget midlertidig EET-afgørelse
- * bringer retten til tabt arbejdsfortjeneste til ophør på samme måde som en endelig afgørelse.
- * Hjemmel: arbejdsskadesikringslovens overgangsbestemmelse pr. 16. juni 2011.
- */
-export const TAF_MIDLERTIDIG_EET_SKAERINGSDATO = toISODateString('2011-06-16');
+export { SYGEDAGPENGE_SH_CUTOFF, TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from './eoConstants';
 
 const countOverlapCalendarDays = (interval: DateInterval, ranges: readonly IsoRange[]): number => {
   if (ranges.length === 0) return 0;

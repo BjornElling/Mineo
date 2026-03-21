@@ -7,7 +7,7 @@
  */
 
 import type { ISODateString } from '../../types/branded';
-import { danishToISO, dateToISO, isISODateString, parseISODate } from '../../types/branded';
+import { danishToISO, dateToISO, isISODateString } from '../../types/branded';
 import { isoDateToDate } from '../dates/isoDate';
 import { addDays } from '../../utils/dateUtils';
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
@@ -164,15 +164,6 @@ export const resolveOffentligLoenEkstraGrundloen = (
   return roundToTwoDecimals(convertAnciennitetSats(rawAmount, inputPer, grundloenPer));
 };
 
-export const addOneDayIso = (iso: ISODateString): ISODateString | null => {
-  const date = parseISODate(iso);
-  if (!date) return null;
-
-  const nextDate = new Date(date.getTime());
-  nextDate.setUTCDate(nextDate.getUTCDate() + 1);
-
-  return dateToISO(nextDate) ?? null;
-};
 
 export const convertAnciennitetSats = (
   satsValue: number,

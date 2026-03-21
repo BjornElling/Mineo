@@ -1,3 +1,5 @@
+// .shared.ts: context-definition og types uden implementering.
+// Adskilt fra .tsx for at tillade import fra test og domænelag uden React-komponent-afhængigheder.
 import React from 'react';
 import type { StorageKey } from '../config/storageManifest';
 import type { PersistedSectionMap } from '../config/persistenceRegistry';

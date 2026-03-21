@@ -12,6 +12,7 @@
 import { getRecentLogEntries } from './logStorage';
 import type { LogEntry } from './logStorage';
 import { getTodayLocalISO } from './dateUtils';
+import { logError } from './logger';
 
 export interface BugReportContext {
   source?: string;
@@ -61,20 +62,7 @@ const isPreparedBugReport = (value: unknown): value is PreparedBugReport => {
   );
 };
 
-/**
- * Hent MINEO version fra package.json
- *
- * @returns {Promise<string>} Version string (fx "0.1.0")
- */
-const getVersion = async (): Promise<string> => {
-  try {
-    // Vite loader package.json via import.meta.env
-    // Fallback til "ukendt" hvis ikke tilgængelig
-    return import.meta.env.VITE_APP_VERSION || '0.1.0';
-  } catch {
-    return '0.1.0';
-  }
-};
+const getVersion = (): string => import.meta.env.VITE_APP_VERSION || '0.1.0';
 
 const getCommitHash = (): string => {
   const candidates = [
@@ -224,7 +212,7 @@ export const generateBugReport = async (
   context?: BugReportContext,
   extraSections?: BugReportExtraSection[]
 ): Promise<string> => {
-  const version = await getVersion();
+  const version = getVersion();
   const commitHash = getCommitHash();
   const activeTestFlags = getActiveTestInjectionsAndFeatureFlags();
   const browserInfo = getBrowserInfo();
@@ -393,7 +381,7 @@ const buildMailtoPayload = (report: string, options?: { subjectPrefix?: string }
       bodyWasTrimmed,
     };
   } catch (error) {
-    console.error('Kunne ikke åbne mailto:', error);
+    logError('Kunne ikke åbne mailto', { context: 'buildMailtoPayload', error: error instanceof Error ? error : undefined });
     throw error;
   }
 };
@@ -409,7 +397,7 @@ export const copyBugReportToClipboard = async (report: string): Promise<void> =>
     await navigator.clipboard.writeText(report);
     return;
   } catch (error) {
-    console.error('Kunne ikke kopiere til clipboard:', error);
+    logError('Kunne ikke kopiere til clipboard', { context: 'copyBugReportToClipboard', error: error instanceof Error ? error : undefined });
     throw error;
   }
 };
@@ -435,7 +423,7 @@ export const prepareBugReport = async (options?: {
   const mailto = buildMailtoPayload(report);
 
   // Kopiér til clipboard (fallback)
-  const version = await getVersion();
+  const version = getVersion();
   const dato = getTodayLocalISO();
 
   return {
@@ -460,7 +448,7 @@ export const prepareContentBoxReport = async (options: {
   identity: ContentBoxIdentity;
   message?: string;
 }): Promise<PreparedBugReport> => {
-  const version = await getVersion();
+  const version = getVersion();
   const commitHash = getCommitHash();
   const activeTestFlags = getActiveTestInjectionsAndFeatureFlags();
   const browserInfo = getBrowserInfo();
@@ -517,12 +505,6 @@ export const openBugReportEmail = (prepared: PreparedBugReport): void => {
   window.location.href = prepared.email.mailtoLink;
 };
 
-/**
- * Kopiér bug report til clipboard.
- */
-export const copyBugReport = async (prepared: PreparedBugReport): Promise<void> => {
-  await copyBugReportToClipboard(prepared.report);
-};
 
 export type DownloadBugReportOptions = {
   report?: string;
@@ -540,7 +522,7 @@ export async function downloadBugReport(
   const report = isPreparedBugReport(arg) ? arg.report : arg?.report ?? (await generateBugReport(50));
   const filename =
     (isPreparedBugReport(arg) ? arg.download.filename : arg?.filename) ??
-    `MINEO-fejlrapport-v${await getVersion()}-${getTodayLocalISO()}.txt`;
+    `MINEO-fejlrapport-v${getVersion()}-${getTodayLocalISO()}.txt`;
 
   // Opret blob og download
   const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });

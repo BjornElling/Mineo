@@ -4,10 +4,6 @@ import { readFromFileHandle } from '../../utils/fileSystemAccess';
 import { buildAllDataRawFromSnapshot, compareData, verifyAfterSave } from '../../utils/fileSaveInternals';
 
 vi.mock('../../utils/logger', () => ({
-  logOperationStart: vi.fn(),
-  logOperationEnd: vi.fn(),
-  logDataStats: vi.fn(),
-  logInfo: vi.fn(),
   logError: vi.fn(),
   logWarning: vi.fn(),
   sanitizeFilenameForLog: (value: unknown) => String(value ?? ''),

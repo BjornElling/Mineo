@@ -9,7 +9,7 @@ import { useAppSettings } from '../../contexts/useAppSettings';
 import ContentBox from '../layout/ContentBox';
 import { getAlleLoenmodtagerOrg, getAlleArbejdsgiverOrg } from '../../data/overenskomstRates';
 import { saveDefaultDirectoryHandle, deleteDefaultDirectoryHandle, getDirectoryDisplayInfo } from '../../utils/fileHandleStorage';
-import { logInfo, logWarning } from '../../utils/logger';
+import { logWarning } from '../../utils/logger';
 import {
   APP_SETTINGS_AFSLUTTES_MED_OPTIONS,
   APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS,
@@ -176,12 +176,10 @@ const Indstillinger = React.memo(() => {
       const handleId = await saveDefaultDirectoryHandle(directoryHandle);
 
       // Opdater settings med det returnerede ID
-      updateSettings({ defaultDirectoryHandleId: handleId });
+      updateSettings({ defaultDirectoryHandleId: handleId ?? undefined });
 
       // Opdater display name
       setDirectoryDisplayName(directoryHandle.name);
-
-      logInfo(`Standardplacering sat til: ${directoryHandle.name}`);
 
     } catch (error: unknown) {
       if (error instanceof DOMException && error.name === 'AbortError') {
@@ -207,7 +205,6 @@ const Indstillinger = React.memo(() => {
       // Opdater display
       setDirectoryDisplayName('Skrivebord (standard)');
 
-      logInfo('Standardplacering nulstillet til skrivebord');
     } catch (error) {
       logWarning('Fejl ved nulstilling af standardplacering', {
         context: 'Indstillinger.handleResetDirectory',
