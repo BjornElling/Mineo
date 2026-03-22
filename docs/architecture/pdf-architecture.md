@@ -69,6 +69,8 @@ src/utils/pdf/
 ├── pdfOptions.ts                 # PdfCommonOptions og PdfStamdata (options-kontrakt)
 ├── pdfBrevhoved.ts               # PdfType → visBrevhoved-mapping fra settings
 ├── pdfLoader.ts                  # Lazy loader for alle generatorer
+├── pdfService.ts                 # Download-wrappers (buildCommonPdfContext, resolvePdfStamdata) — UI-lag kalder herfra
+├── eetPdfUtils.ts                # Fælles formateringshjælpere til EET-generatorerne (formatKrEet, formatJaNejEet, formatFaktorEet)
 │
 ├── satserPdf.ts                  # Generator: Arbejdsskadesatser
 ├── rentePdf.ts                   # Generator: Procesrente
@@ -77,6 +79,11 @@ src/utils/pdf/
 ├── varigeMenPdf.ts               # Generator: Méngodtgørelse
 ├── krlPdf.ts                     # Generator: KRL-satstabeller
 ├── reguleringPdf.ts              # Generator: Reguleringsgrundlag
+├── loebendeYdelserPdf.ts         # Generator: EET løbende ydelser
+├── kapitaliseringPdf.ts          # Generator: EET kapitalisering
+├── EetEfterEalPdf.ts             # Generator: EET efter EAL
+├── differencekravPdf.ts          # Generator: EET differencekrav
+├── forsoergertabPdf.ts           # Generator: Forsørgertab
 ├── erstatningsopgoerelsePdf.ts   # Generator: Erstatningsopgørelse (hoved-PDF)
 │   └── erstatningsopgoerelse/
 │       ├── types.ts              # SHDageTableRow og SelectedElements (domain-typer til sektionsrenderere)
@@ -89,9 +96,15 @@ src/utils/pdf/
 └── tafFordeltPaaAarPdf.ts        # Generator: TAF fordelt på år
 
 src/domain/erstatningsopgoerelse/
-├── eoPdfModel.ts                 # Model-builder for erstatningsopgørelse
-├── eoPdfModelTypes.ts            # Typer for PDF-modellen
+├── eoPdfModel.ts                 # Model-builder: buildEoPdfPresentation og buildErstatningsopgoerelsePdfModelFromComputed
+├── eoPdfModelTypes.ts            # Typer for PDF-modellen (PdfModel m.fl.)
 ├── eoPdfMoneyUtils.ts            # MoneyOre/MoneyKroner branded types, afrunding
+├── eoSnapshotToEoPdfDocument.ts  # Entry point: snapshot → EoPdfDocumentProjection (brugt af renderer)
+├── eoSnapshotToTafPerYearPdfDocument.ts  # Entry point: snapshot → TafPerYearPdfDocumentProjection
+├── eoPdfBuilders.ts              # Sektionsspecifikke builder-funktioner
+├── eoPdfIndkomstSkadestidspunkt.ts  # Builder: indkomst på skadestidspunktet
+├── eoPdfLoenudvikling.ts         # Builder: lønudvikling
+├── eoPdfReguleringEngine.ts      # Builder: reguleringsmotor
 └── sharedPdfUtils.ts             # Fælles dato/format/validering til EO-systemet
 ```
 
@@ -744,8 +757,8 @@ Brug `formatAmount2()` fra `sharedPdfUtils.ts` eller `formatAmount()` fra `pdfHe
 
 | Generator                  | Fil                            | Formål                                           | Anvender model-lag? | PdfCommonOptions? |
 |----------------------------|--------------------------------|--------------------------------------------------|---------------------|-------------------|
-| Erstatningsopgørelse       | `erstatningsopgoerelsePdf.ts`  | Hoved-PDF med TAF, svie/smerte, øvrige krav      | Ja (`eoPdfModel.ts`) | Ja               |
-| TAF fordelt på år          | `tafFordeltPaaAarPdf.ts`       | TAF-beregning brudt ned per kalenderår           | Ja (via snapshot)   | Ja               |
+| Erstatningsopgørelse       | `erstatningsopgoerelsePdf.ts`  | Hoved-PDF med TAF, svie/smerte, øvrige krav      | Ja (`eoSnapshotToEoPdfDocument`) | Ja  |
+| TAF fordelt på år          | `tafFordeltPaaAarPdf.ts`       | TAF-beregning brudt ned per kalenderår           | Ja (`eoSnapshotToTafPerYearPdfDocument`) | Ja |
 | Arbejdsskadesatser         | `satserPdf.ts`                 | Årsspecifikke satser (EAL, ASL, diverse)         | Nej                 | Ja               |
 | Procesrente                | `rentePdf.ts`                  | Halvårlige renteperioder med referencerenter     | Nej                 | Ja               |
 | Årslønsberegning           | `aarsloenPdf.ts`               | Årsløn med periodedata, satser og beregning      | Nej                 | Ja               |
@@ -753,6 +766,11 @@ Brug `formatAmount2()` fra `sharedPdfUtils.ts` eller `formatAmount()` fra `pdfHe
 | Méngodtgørelse             | `varigeMenPdf.ts`              | Varige mén med aldersreduktion                   | Nej                 | Ja               |
 | KRL-satstabeller           | `krlPdf.ts`                    | KTO/SHK × kommuner/regioner                     | Nej                 | Ja               |
 | Reguleringsgrundlag        | `reguleringPdf.ts`             | Overenskomst/statistikmodeller og offentlige satser | Nej             | Ja               |
+| EET løbende ydelser        | `loebendeYdelserPdf.ts`        | Erhvervsevnetab: løbende ydelser                 | Nej                 | Ja               |
+| EET kapitalisering         | `kapitaliseringPdf.ts`         | Erhvervsevnetab: kapitaliseret engangserstatning | Nej                 | Ja               |
+| EET efter EAL              | `EetEfterEalPdf.ts`            | Erhvervsevnetab beregnet efter EAL               | Nej                 | Ja               |
+| EET differencekrav         | `differencekravPdf.ts`         | Erhvervsevnetab: differencekrav                  | Nej                 | Ja               |
+| Forsørgertab               | `forsoergertabPdf.ts`          | Forsørgertabserstatning                          | Nej                 | Ja               |
 
 ### Pseudo-tabeller er forbudt
 
@@ -768,10 +786,13 @@ Headerløse 2-kolonne-layouts må ikke implementeres via `renderEoStylePdfTable(
 
 ### Erstatningsopgørelse: model-renderer-split
 
-Den komplekse EO-PDF bruger et to-lags design:
+Den komplekse EO-PDF bruger et tre-lags design:
 
-1. **Model-lag** (`eoPdfModel.ts`): Ren datastruktur. Bygger `PdfModel` med alle beløb som `MoneyOre`. Afhænger ikke af jsPDF.
-2. **Renderer-lag** (`erstatningsopgoerelsePdf.ts` + `sections/`): Modtager `PdfModel`, renderer til PDF via writeren.
+1. **Snapshot-lag** (`eoSnapshot.ts`): Beregner `EoSnapshot` fra form-state.
+2. **Projection-lag** (`eoSnapshotToEoPdfDocument.ts`): Omsætter snapshot til `EoPdfDocumentProjection` — en `PdfModel` med alle beløb som `MoneyOre`. Dette er den faktiske entry point som rendereren kalder. Bygger på en række specialiserede builders: `eoPdfModel.ts` (overordnet builder-API), `eoPdfBuilders.ts`, `eoPdfIndkomstSkadestidspunkt.ts`, `eoPdfLoenudvikling.ts` og `eoPdfReguleringEngine.ts`. Afhænger ikke af jsPDF.
+3. **Renderer-lag** (`erstatningsopgoerelsePdf.ts` + `sections/`): Modtager `PdfModel`, renderer til PDF via writeren.
+
+TAF-fordelt-på-år bruger et tilsvarende mønster via `eoSnapshotToTafPerYearPdfDocument.ts`.
 
 Dette mønster er **ikke påkrævet** for simple generatorer, men bør anvendes, når domænelogikken er kompleks nok til at fortjene selvstændig testning.
 
@@ -779,4 +800,4 @@ Dette mønster er **ikke påkrævet** for simple generatorer, men bør anvendes,
 
 ## 16. Udeståender
 
-*(ingen kendte udeståender)*
+*(ingen kendte udeståender — senest gennemgået 2026-03-21)*
