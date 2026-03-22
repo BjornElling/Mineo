@@ -14,8 +14,8 @@ import type { RegulationDebugSection } from '../../../domain/debug/eoDebugRegula
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import ContentBox from '../../layout/ContentBox';
-import { getRegulationTableColumns } from './RegulationTableColumns';
-import { renderRegulationTableCellContent } from './RegulationTableCellContent';
+import { getRegulationTableColumns } from './regulationTableColumns';
+import { renderRegulationTableCellContent } from './regulationTableCellContent';
 
 const LABEL_WIDTH = '250px';
 

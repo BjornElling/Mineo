@@ -6,8 +6,8 @@ import type { RegulationDebugSection } from '../../../domain/debug/eoDebugRegula
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import { Check, ErrorOutline, WarningAmber } from '@mui/icons-material';
-import { getRegulationTableColumns } from './RegulationTableColumns';
-import { renderRegulationTableCellContent } from './RegulationTableCellContent';
+import { getRegulationTableColumns } from './regulationTableColumns';
+import { renderRegulationTableCellContent } from './regulationTableCellContent';
 
 const LABEL_WIDTH = '320px';
 
