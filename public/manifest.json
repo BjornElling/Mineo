@@ -22,6 +22,9 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
   "theme_color": "#e9ecef",
   "background_color": "#ffffff",
   "file_handlers": [

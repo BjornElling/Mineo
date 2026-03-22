@@ -12,8 +12,19 @@ vi.mock('../../../utils/fileLoad', () => ({
   loadFromFileHandle: vi.fn(),
 }));
 
+let pendingPwaRequest: unknown = null;
+
+vi.mock('../../../utils/pwaLaunchQueue', () => ({
+  MINEO_PWA_FILE_OPEN_EVENT: 'mineo:pwa-file-open',
+  takeNextPwaFileOpenRequest: () => {
+    const next = pendingPwaRequest;
+    pendingPwaRequest = null;
+    return next;
+  },
+}));
+
 import MainLayout from '../../../components/layout/MainLayout';
-import { loadFromFile } from '../../../utils/fileLoad';
+import { loadFromFile, loadFromFileHandle } from '../../../utils/fileLoad';
 
 const persistedWrapper = (data: unknown) => ({
   version: PERSISTED_DATA_VERSION,
@@ -82,6 +93,91 @@ describe('MainLayout (overwrite gating)', () => {
     await act(async () => {
       screen.getByText('Hent').click();
     });
+    await screen.findByText('Overskriv eksisterende data?');
+
+    await act(async () => {
+      screen.getByText('Overskriv').click();
+    });
+
+    expect(sessionStorage.getItem('mineo_stamdata')).toContain('Y');
+    expect(sessionStorage.getItem('mineo_satser')).toContain('2021');
+  });
+
+  it('shows the same overwrite dialog for PWA-opened files and does not mutate until confirm', async () => {
+    sessionStorage.clear();
+    sessionStorage.setItem('mineo_stamdata', JSON.stringify(persistedWrapper(stampStamdata('X'))));
+    sessionStorage.setItem('mineo_satser', JSON.stringify(persistedWrapper(stampSatser(2020))));
+
+    const loadFromFileHandleMock = vi.mocked(loadFromFileHandle);
+    loadFromFileHandleMock.mockResolvedValue({
+      success: true,
+      source: 'pwa',
+      requestId: 'pwa-open-1',
+      filename: 'clean.eo',
+      snapshot: { stamdata: stampStamdata('Y'), satser: stampSatser(2021) },
+    } satisfies LoadFileResult);
+
+    render(
+      <AppSettingsProvider>
+        <FormPersistenceProvider>
+          <MemoryRouter initialEntries={['/stamdata']}>
+            <MainLayout>
+              <div />
+            </MainLayout>
+          </MemoryRouter>
+        </FormPersistenceProvider>
+      </AppSettingsProvider>
+    );
+
+    pendingPwaRequest = {
+      id: 'pwa-open-1',
+      createdAtEpochMs: Date.now(),
+      targetUrl: '/open',
+      fileHandle: {} as FileSystemFileHandle,
+      fileName: 'clean.eo',
+      ignoredFileCount: 0,
+    };
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
+    });
+
+    await screen.findByText('Overskriv eksisterende data?');
+
+    expect(sessionStorage.getItem('mineo_stamdata')).toContain('X');
+    expect(sessionStorage.getItem('mineo_satser')).toContain('2020');
+
+    await act(async () => {
+      screen.getByText('Stop og gør intet').click();
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Overskriv eksisterende data?')).toBeNull();
+    });
+    expect(sessionStorage.getItem('mineo_stamdata')).toContain('X');
+    expect(sessionStorage.getItem('mineo_satser')).toContain('2020');
+
+    pendingPwaRequest = {
+      id: 'pwa-open-2',
+      createdAtEpochMs: Date.now(),
+      targetUrl: '/open',
+      fileHandle: {} as FileSystemFileHandle,
+      fileName: 'clean.eo',
+      ignoredFileCount: 0,
+    };
+
+    loadFromFileHandleMock.mockResolvedValueOnce({
+      success: true,
+      source: 'pwa',
+      requestId: 'pwa-open-2',
+      filename: 'clean.eo',
+      snapshot: { stamdata: stampStamdata('Y'), satser: stampSatser(2021) },
+    } satisfies LoadFileResult);
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
+    });
+
     await screen.findByText('Overskriv eksisterende data?');
 
     await act(async () => {
