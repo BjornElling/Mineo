@@ -419,6 +419,16 @@ const Indstillinger = React.memo(() => {
         </Box>
 
         <Box className="row--label-right-hover">
+          <Typography className="row--text">Bilagsnumre i erstatningsopgørelser</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledToggleSwitch
+              checked={settings.defaultVisBilagsnumre}
+              onCommit={(e: CommitEvent<boolean>) => updateSettings({ defaultVisBilagsnumre: e.target.value })}
+            />
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
           <Typography className="row--text">Opgørelse afsluttes med</Typography>
           <Box className="row--label-right-hover__content">
             <StyledDropdown

@@ -7,6 +7,7 @@ import {
 } from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
 import { round4 as roundToFourDecimals } from '../../../../utils/roundingShortcuts';
 import { resolveOevrigeKravIntroLinjer } from '../../../../domain/erstatningsopgoerelse/oevrigeKravIntro';
+import { resolveBilagWarning } from '../../../../domain/erstatningsopgoerelse/bilagWarnings';
 import type { Calculable, LoenudviklingSegment, MoneyOre, PdfModel } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
@@ -71,6 +72,7 @@ type OpgorelseSectionContext = Readonly<{
     getTextWidth: (text: string) => number;
     setFont: (fontName: PdfFontFamily, fontStyle: PdfFontStyle) => void;
     writeUnderlinedLabel: (text: string, x: number) => void;
+    writeNormalThenBoldLine: (normalPart: string, boldPart: string) => void;
     writeSignatureBlock: (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => void;
   }>;
 }>;
@@ -159,6 +161,45 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     writer,
   } = ctx;
 
+  // Hjælpefunktion: skriver "Dokumentation vedlægges som bilag X." med "bilag X." i fed skrift.
+  // Kaldes kun når visBilagsnumre er 'Ja' OG der ikke er advarsel for det pågældende nummer.
+  const writeBilagReferenceLinje = (bilagsnummer: string | undefined): void => {
+    if (!bilagsnummer || bilagsnummer.trim() === '') return;
+    writer.writeNormalThenBoldLine('Dokumentation vedlægges som ', `bilag\u00A0${bilagsnummer.trim()}.`);
+  };
+
+  // Lønindkomst og offentlige ydelser præsenteres under samme indkomstafsnit i PDF'en,
+  // så deres bilagsreferencer skrives på én kombineret linje i stedet for to separate.
+  const writeCombinedBilagReferenceLinje = (a: string | undefined, b: string | undefined): void => {
+    const aTrimmed = a?.trim() ?? '';
+    const bTrimmed = b?.trim() ?? '';
+    if (aTrimmed && bTrimmed) {
+      writer.writeNormalThenBoldLine('Dokumentation vedlægges som ', `bilag\u00A0${aTrimmed} og ${bTrimmed}.`);
+    } else if (aTrimmed) {
+      writer.writeNormalThenBoldLine('Dokumentation vedlægges som ', `bilag\u00A0${aTrimmed}.`);
+    } else if (bTrimmed) {
+      writer.writeNormalThenBoldLine('Dokumentation vedlægges som ', `bilag\u00A0${bTrimmed}.`);
+    }
+  };
+
+  // Bestem hvilke bilagsnumre der skal vises (ingen advarsel = ingen inkonsistens).
+  // Returnerer undefined hvis visBilagsnumre er 'Nej', value er tom, eller der er en advarsel.
+  const getBilag = (fieldName: string, value: string | undefined): string | undefined => {
+    if (eoValues.visBilagsnumre !== 'Ja') return undefined;
+    const trimmed = value?.trim();
+    if (!trimmed) return undefined;
+    return !resolveBilagWarning(eoValues, fieldName, trimmed) ? trimmed : undefined;
+  };
+  const bilag = {
+    menAfgoerelse: getBilag('bilagsnumreMenAfgoerelse', eoValues.bilagsnumreMenAfgoerelse),
+    eetAfgoerelser: getBilag('bilagsnumreEetAfgoerelser', eoValues.bilagsnumreEetAfgoerelser),
+    svieSmerteDokumentation: getBilag('bilagsnumreSvieSmerteDokumentation', eoValues.bilagsnumreSvieSmerteDokumentation),
+    beregningsgrundlagTaf: getBilag('bilagsnumreBeregningsgrundlagTaf', eoValues.bilagsnumreBeregningsgrundlagTaf),
+    loenISygeperioden: getBilag('bilagsnumreLoenISygeperioden', eoValues.bilagsnumreLoenISygeperioden),
+    offentligeYdelser: getBilag('bilagsnumreOffentligeYdelser', eoValues.bilagsnumreOffentligeYdelser),
+    oevrigeErstatningskrav: getBilag('bilagsnumreOevrigeErstatningskrav', eoValues.bilagsnumreOevrigeErstatningskrav),
+  };
+
   if (model.forlig.erIndgaaet) {
     renderSectionHeader('Erstatningsniveau', lineHeight);
     const forligDatoTekst = model.forlig.dato ? `den ${formatDateLong(model.forlig.dato)}` : null;
@@ -175,6 +216,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   for (const line of model.svieSmerte.statusLinjer) {
     safeAddWrappedText(line);
   }
+  writeBilagReferenceLinje(bilag.menAfgoerelse);
 
   renderSubheader(model.svieSmerte.periodeHeading, lineHeight);
   assertModelInvariant(
@@ -189,6 +231,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     for (const line of model.svieSmerte.periodeLinjer) {
       safeAddWrappedText(line);
     }
+    writeBilagReferenceLinje(bilag.svieSmerteDokumentation);
 
     renderSubheader('Beregningsgrundlag', lineHeight);
     const satserAar = model.svieSmerte.satserAar !== null ? String(model.svieSmerte.satserAar) : '-';
@@ -329,6 +372,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   for (const line of model.tabtArbejdsfortjeneste.eetLinjer) {
     safeAddWrappedText(line);
   }
+  writeBilagReferenceLinje(bilag.eetAfgoerelser);
 
   if (model.tabtArbejdsfortjeneste.differencekravLinje) {
     safeAddWrappedText(model.tabtArbejdsfortjeneste.differencekravLinje);
@@ -524,6 +568,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         );
       }
     }
+    writeBilagReferenceLinje(bilag.beregningsgrundlagTaf);
 
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
     const saerligFraDatoLoenudvikling = (() => {
@@ -627,7 +672,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         renderLoenudviklingSegments(loenudvikling.beregnedeSegmenter, loenudvikling.loenudviklingTotal, false);
       }
     }
-
     const tafIndtaegter = model.tabtArbejdsfortjeneste.tafIndtaegter;
     if (tafIndtaegter) {
       assertModelInvariant(
@@ -648,6 +692,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         safeAddLeftRightText('I alt', '—', rightMaxWidth, { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 });
       }
     }
+    writeCombinedBilagReferenceLinje(bilag.loenISygeperioden, bilag.offentligeYdelser);
 
     const loenudviklingTotal = model.tabtArbejdsfortjeneste.loenudvikling?.loenudviklingTotal ?? null;
     const tafTotal = model.tabtArbejdsfortjeneste.tafIndtaegter?.total ?? null;
@@ -742,6 +787,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       safeAddLeftRightText(leftText, formatMoneyOreWithKr(model.oevrigeKrav.totalOre), kravRightMaxWidth, { rightFontStyle: 'bold' });
     }
   }
+  writeBilagReferenceLinje(bilag.oevrigeErstatningskrav);
   renderSectionHeader('Samlet erstatningskrav', lineHeight);
 
   const periodeFraKort = model.periode?.fra ? formatDateShort(model.periode.fra) : '';

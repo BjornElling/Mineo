@@ -75,6 +75,7 @@ export {
   type EOAngivetLoenLoenudvikling,
   erstatningsopgoerelseSchema,
   type ErstatningsopgoerelseValues,
+  type EoBilagLoenindkomstOgOffentligeYdelserIndgaar,
 } from './formSchemas/sections/erstatningsopgoerelseSchemas';
 export { type AarsloenMetode, type AarsloenBeregningResult, type DateInterval } from './formSchemas/formSchemaTypes';
 export {

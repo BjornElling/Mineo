@@ -169,6 +169,9 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   // Kommentarer
   saerligeKommentarer: '',
 
+  // Bilagsnumre
+  visBilagsnumre: safeSettings.defaultVisBilagsnumre ? 'Ja' : 'Nej',
+
   // EOberegning - bilag
   eoBilagSelection: {
     opgoerelse: true,

@@ -1,6 +1,7 @@
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 import { persistenceSchemas } from '../../../config/persistenceRegistry';
+import { erstatningsopgoerelseSchema } from '../../../schemas/formSchemas';
 
 // ─── Schema-validering ────────────────────────────────────────────────────────
 
@@ -106,6 +107,18 @@ describe('createErstatningsopgoerelseInitialValues – settings-integration', ()
     expect(values.svieSmerteDelvisSygemeldingSats).toBe('fuld');
   });
 
+  it('defaultVisBilagsnumre=false → visBilagsnumre="Nej"', () => {
+    const settings = { ...DEFAULT_APP_SETTINGS, defaultVisBilagsnumre: false };
+    const values = createErstatningsopgoerelseInitialValues(settings);
+    expect(values.visBilagsnumre).toBe('Nej');
+  });
+
+  it('defaultVisBilagsnumre=true → visBilagsnumre="Ja"', () => {
+    const settings = { ...DEFAULT_APP_SETTINGS, defaultVisBilagsnumre: true };
+    const values = createErstatningsopgoerelseInitialValues(settings);
+    expect(values.visBilagsnumre).toBe('Ja');
+  });
+
   it('ugyldig settings → falder tilbage til defaults og returnerer gyldigt skema', () => {
     const values = createErstatningsopgoerelseInitialValues(
       { invalid: 'settings' } as unknown as Parameters<typeof createErstatningsopgoerelseInitialValues>[0]
@@ -124,5 +137,58 @@ describe('createErstatningsopgoerelseInitialValues – settings-integration', ()
     expect(v1.loenindkomstAnsaettelsesforhold.length).toBe(v2.loenindkomstAnsaettelsesforhold.length);
     expect(v1.svieSmertePerioder.length).toBe(v2.svieSmertePerioder.length);
     expect(v1.tafPerioder.length).toBe(v2.tafPerioder.length);
+  });
+});
+
+// ─── Load-kompatibilitet: bilagsnumre-felter ──────────────────────────────────
+//
+// Verificerer at ældre .eo-filer uden bilagsnumre-felterne indlæses korrekt.
+// Kontrakten (schema-evolution.md Regel 1.1) kræver at alle nye felter har
+// .default() eller .optional(), så manglende felter ikke dropper hele sektionen.
+
+describe('erstatningsopgoerelseSchema – load-kompatibilitet for bilagsnumre', () => {
+  const baseValues = createErstatningsopgoerelseInitialValues();
+
+  it('manglende visBilagsnumre → "Nej" (skema-default)', () => {
+    const { visBilagsnumre: _, ...uden } = baseValues;
+    const result = erstatningsopgoerelseSchema.safeParse(uden);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.visBilagsnumre).toBe('Nej');
+  });
+
+  it('manglende bilagsnumreMenAfgoerelse → undefined', () => {
+    const { bilagsnumreMenAfgoerelse: _, ...uden } = baseValues;
+    const result = erstatningsopgoerelseSchema.safeParse(uden);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.bilagsnumreMenAfgoerelse).toBeUndefined();
+  });
+
+  it('manglende bilagsnumreSvieSmerteDokumentation → undefined', () => {
+    // Denne test dokumenterer at nøglen er korrekt og at manglende felt defaulter til undefined.
+    const { bilagsnumreSvieSmerteDokumentation: _, ...uden } = baseValues;
+    const result = erstatningsopgoerelseSchema.safeParse(uden);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.bilagsnumreSvieSmerteDokumentation).toBeUndefined();
+  });
+
+  it('manglende alle bilagsnumre-felter → sektion parses stadig korrekt', () => {
+    const {
+      visBilagsnumre: _v,
+      bilagsnumreMenAfgoerelse: _1,
+      bilagsnumreEetAfgoerelser: _2,
+      bilagsnumreSvieSmerteDokumentation: _3,
+      bilagsnumreBeregningsgrundlagTaf: _4,
+      bilagsnumreLoenISygeperioden: _5,
+      bilagsnumreOffentligeYdelser: _6,
+      bilagsnumreOevrigeErstatningskrav: _7,
+      ...uden
+    } = baseValues;
+    const result = erstatningsopgoerelseSchema.safeParse(uden);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.visBilagsnumre).toBe('Nej');
+      expect(result.data.bilagsnumreMenAfgoerelse).toBeUndefined();
+      expect(result.data.bilagsnumreSvieSmerteDokumentation).toBeUndefined();
+    }
   });
 });

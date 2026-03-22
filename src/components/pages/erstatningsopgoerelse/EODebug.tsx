@@ -152,6 +152,7 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
 
       <EODebugRowsSection title="Øvrige erstatningskrav" rows={rowsBySection.get('oevrige-krav') ?? []} />
       <EODebugRowsSection title="Eventuelle særlige kommentarer" rows={rowsBySection.get('saerlige-kommentarer') ?? []} />
+      <EODebugRowsSection title="Bilagsnumre" rows={rowsBySection.get('bilagsnumre') ?? []} />
     </Box>
   );
 };

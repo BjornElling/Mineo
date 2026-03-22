@@ -161,6 +161,18 @@ const eoBilagSelectionSchema = z.object({
 }).strict();
 
 const eoBilagLoenindkomstOgOffentligeYdelserIndgaarSchema = z.enum(['Alle', 'Perioden']);
+export type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = z.infer<typeof eoBilagLoenindkomstOgOffentligeYdelserIndgaarSchema>;
+
+const bilagsnumreSchema = z.object({
+  visBilagsnumre: jaNejEnum.default('Nej'),
+  bilagsnumreMenAfgoerelse: optionalString,
+  bilagsnumreEetAfgoerelser: optionalString,
+  bilagsnumreSvieSmerteDokumentation: optionalString,
+  bilagsnumreBeregningsgrundlagTaf: optionalString,
+  bilagsnumreLoenISygeperioden: optionalString,
+  bilagsnumreOffentligeYdelser: optionalString,
+  bilagsnumreOevrigeErstatningskrav: optionalString,
+}).strict();
 
 const erstatningsopgoerelseBaseSchema = z.object({
   eoNummer: optionalString,
@@ -178,7 +190,7 @@ const erstatningsopgoerelseBaseSchema = z.object({
   offentligeYdelserRows: z.array(offentligeYdelserRowSchema),
   loenudviklingPaaGrundlagAf: optionalString,
   saerligeKommentarer: optionalString,
-  eoBilagSelection: eoBilagSelectionSchema,
+  eoBilagSelection: eoBilagSelectionSchema.default({ opgoerelse: true, loenindkomst: true, offentligeYdelser: true, shDage: false, regulering: true, okSatser: true, sygeferiegodtgoerelse: false }),
   eoBilagLoenindkomstOgOffentligeYdelserIndgaar: eoBilagLoenindkomstOgOffentligeYdelserIndgaarSchema.default('Perioden'),
 }).strict();
 
@@ -241,7 +253,7 @@ const loenindkomstAnsaettelsesforholdBaseSchema = z.object({
   storeBededagPct: percentageDecimal,
   pensionPct: percentageDecimal,
   loenperiode: loenperiodeSchema,
-  indtaegtsoplysningerTableData: z.array(standardLoenTableRowSchema),
+  indtaegtsoplysningerTableData: z.array(standardLoenTableRowSchema).default([]),
   fuldLoenUnderFerie: jaNejEnum,
 }).strict();
 
@@ -266,12 +278,12 @@ const loenindkomstSchema = z.object({
 
 export const eoAngivetLoenLoenudviklingSchema = z.object({
   overenskomstId: optionalString,
-}).merge(z.object({
   harAnciennitetstillaegEfterSkadesdatoen: z.boolean().default(false),
   anciennitetstillaegDato: optionalIsoDateString,
   anciennitetstillaegSatsAngivesPer: anciennitetSatsPerEnum.default('Måned'),
   anciennitetstillaegSats: nonNegativeAmountValue,
-}).strict()).merge(eoLoenudviklingOgSatserSchema).strict();
+  ...eoLoenudviklingOgSatserSchema.shape,
+}).strict();
 
 export type EOAngivetLoenLoenudvikling = z.infer<typeof eoAngivetLoenLoenudviklingSchema>;
 
@@ -303,14 +315,16 @@ const eoAngivetLoenSchema = z.object({
   eoAngivetLoenLoenudvikling: eoAngivetLoenLoenudviklingSchema.default(defaultEoAngivetLoenLoenudvikling),
 }).strict();
 
-export const erstatningsopgoerelseSchema = erstatningsopgoerelseBaseSchema
-  .merge(aesAfgoerelserSchema)
-  .merge(svieSmerteSchema)
-  .merge(tafSchema)
-  .merge(indtaegtFoerSkadenSchema)
-  .merge(sygeferiegodtgoerelseSchema)
-  .merge(loenindkomstSchema)
-  .merge(eoAngivetLoenSchema)
-  .strict();
+export const erstatningsopgoerelseSchema = z.object({
+  ...erstatningsopgoerelseBaseSchema.shape,
+  ...aesAfgoerelserSchema.shape,
+  ...svieSmerteSchema.shape,
+  ...tafSchema.shape,
+  ...indtaegtFoerSkadenSchema.shape,
+  ...sygeferiegodtgoerelseSchema.shape,
+  ...loenindkomstSchema.shape,
+  ...eoAngivetLoenSchema.shape,
+  ...bilagsnumreSchema.shape,
+}).strict();
 
 export type ErstatningsopgoerelseValues = z.infer<typeof erstatningsopgoerelseSchema>;

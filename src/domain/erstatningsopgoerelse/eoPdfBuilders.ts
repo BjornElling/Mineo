@@ -236,10 +236,10 @@ export const buildTabtArbejdsfortjenesteModel = (
     midlertidigEetErTafRelevant && harTafDagenFoer(midlertidigEetReferenceDato);
   const differencekravBringTilOphoer = harTafDagenFoer(differencekravReferenceDato);
 
-  // Vælg hvilken afgrænsningskilde der skal vises.
-  // Prioritet: den kilde der faktisk bringer TAF til ophør og har den tidligste dato vinder.
+  // Vælg hvilken afgrænsningskilde der bestemmer ophørsmeddelelsen.
+  // EET-afgørelser vises altid informativt, men kun den valgte kilde får den
+  // supplerende ophørstekst og kan undertrykke differencekravslinjen.
   // Hvis midlertidig EET er aktiv (skadesdato < 2011-06-16), indgår den på linje med de øvrige.
-  // Kun den valgte kilde vises — de andre undertrykkes.
   type AfgraensningsKilde = 'endeligtEet' | 'midlertidigEet' | 'differencekrav';
 
   const findTidligsteDato = (
@@ -280,39 +280,38 @@ export const buildTabtArbejdsfortjenesteModel = (
 
   let differencekravLinje: string | null = differencekravLinjeBase;
 
-  if (valgtKilde === 'endeligtEet' && endeligtEetLinje) {
-    eetLinjer.push(endeligtEetLinje);
-    if (endeligtEetBringTilOphoer) {
+  const appendEetLinje = (
+    kilde: Extract<AfgraensningsKilde, 'endeligtEet' | 'midlertidigEet'>,
+    linje: string | null
+  ): void => {
+    if (!linje) return;
+    eetLinjer.push(linje);
+    if (kilde === 'endeligtEet' && valgtKilde === 'endeligtEet' && endeligtEetBringTilOphoer) {
       eetLinjer.push('Afgørelsen bringer retten til tabt arbejdsfortjeneste til ophør.');
     }
-    differencekravLinje = null; // undertrykkes — valgtKilde = endeligtEet
-  } else if (valgtKilde === 'midlertidigEet' && midlertidigEetLinje) {
-    eetLinjer.push(midlertidigEetLinje);
-    if (midlertidigEetBringTilOphoer) {
+    if (kilde === 'midlertidigEet' && valgtKilde === 'midlertidigEet' && midlertidigEetBringTilOphoer) {
       eetLinjer.push('Da skaden er sket før 16. juni 2011, bringer afgørelsen retten til tabt arbejdsfortjeneste til ophør.');
     }
-    differencekravLinje = null; // undertrykkes — valgtKilde = midlertidigEet
+  };
+
+  appendEetLinje('midlertidigEet', midlertidigEetLinje);
+  appendEetLinje('endeligtEet', endeligtEetLinje);
+
+  if (valgtKilde === 'endeligtEet' || valgtKilde === 'midlertidigEet') {
+    differencekravLinje = null;
   } else if (valgtKilde === 'differencekrav') {
-    // Differencekrav vises — ingen EET-linje.
     if (differencekravBringTilOphoer && differencekravLinje) {
       differencekravLinje = `${differencekravLinje} Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.`;
     }
-  } else {
-    // Ingen afgrænsningskilde med dato — vis informativt:
-    // endelig EET, midlertidig EET (kun PRE-2011) eller ingen-afgørelse-linje (afhænger af hvad der er angivet).
-    if (endeligtEetLinje) {
-      eetLinjer.push(endeligtEetLinje);
-    } else if (midlertidigEetErTafRelevant && midlertidigEetLinje) {
-      // Midlertidig EET vises kun informativt for PRE-2011-sager (skadesdato < 2011-06-16).
-      eetLinjer.push(midlertidigEetLinje);
-    } else if (values.opgørelseLavetDen) {
-      const dato = formatDateLong(values.opgørelseLavetDen);
-      const tekst = `Der er den ${dato} ikke truffet afgørelse om erhvervsevnetab med 15 % eller derover.`;
-      eetLinjer.push(values.verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
-    }
+  } else if (!endeligtEetLinje && !midlertidigEetLinje && values.opgørelseLavetDen) {
+    const dato = formatDateLong(values.opgørelseLavetDen);
+    const tekst = `Der er den ${dato} ikke truffet afgørelse om erhvervsevnetab med 15 % eller derover.`;
+    eetLinjer.push(values.verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
     if (differencekravBringTilOphoer && differencekravLinje) {
       differencekravLinje = `${differencekravLinje} Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.`;
     }
+  } else if (differencekravBringTilOphoer && differencekravLinje) {
+    differencekravLinje = `${differencekravLinje} Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.`;
   }
 
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);

@@ -22,6 +22,7 @@ describe('DEFAULT_APP_SETTINGS', () => {
     expect(DEFAULT_APP_SETTINGS.erstatningsopgoerelseAfsluttesMed).toBe('Bekræftet godkendt');
     expect(DEFAULT_APP_SETTINGS.allowReguleringMedUdloebMedMaaneder).toBe(6);
     expect(DEFAULT_APP_SETTINGS.brevhovedIndstillinger).toBeDefined();
+    expect(DEFAULT_APP_SETTINGS.defaultVisBilagsnumre).toBe(false);
   });
 
   it('defaultOverenskomstLoenmodtager = "ALLE"', () => {
@@ -39,17 +40,16 @@ describe('DEFAULT_BREVHOVED_INDSTILLINGER', () => {
     expect(result.success).toBe(true);
   });
 
-  it('erstatningsopgoerelse = true', () => {
+  it('korrekte PDF-defaults', () => {
     expect(DEFAULT_BREVHOVED_INDSTILLINGER.erstatningsopgoerelse).toBe(true);
-  });
-
-  it('alle andre PDF-typer = false', () => {
-    expect(DEFAULT_BREVHOVED_INDSTILLINGER.shDage).toBe(false);
-    expect(DEFAULT_BREVHOVED_INDSTILLINGER.renteberegning).toBe(false);
-    expect(DEFAULT_BREVHOVED_INDSTILLINGER.regulering).toBe(false);
-    expect(DEFAULT_BREVHOVED_INDSTILLINGER.varigeMen).toBe(false);
+    expect(DEFAULT_BREVHOVED_INDSTILLINGER.erhvervsevnetab).toBe(true);
+    expect(DEFAULT_BREVHOVED_INDSTILLINGER.varigeMen).toBe(true);
+    expect(DEFAULT_BREVHOVED_INDSTILLINGER.forsoergertab).toBe(true);
+    expect(DEFAULT_BREVHOVED_INDSTILLINGER.aarsloensberegning).toBe(true);
+    expect(DEFAULT_BREVHOVED_INDSTILLINGER.renteberegning).toBe(true);
     expect(DEFAULT_BREVHOVED_INDSTILLINGER.satser).toBe(false);
-    expect(DEFAULT_BREVHOVED_INDSTILLINGER.aarsloensberegning).toBe(false);
+    expect(DEFAULT_BREVHOVED_INDSTILLINGER.shDage).toBe(false);
+    expect(DEFAULT_BREVHOVED_INDSTILLINGER.regulering).toBe(false);
   });
 });
 

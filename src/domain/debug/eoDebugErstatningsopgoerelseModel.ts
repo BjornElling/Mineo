@@ -34,6 +34,7 @@ import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/oevrigeK
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
 import { parseForligsgrad } from '../erstatningsopgoerelse/forligsgrad';
+import { resolveBilagWarning } from '../erstatningsopgoerelse/bilagWarnings';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -103,7 +104,15 @@ export type DebugRowId =
   | `loenindkomst.${string}.regulering.alleVaerdier`
   | `offentligeYdelser.${string}`
   | `oevrigekrav.${string}`
-  | 'saerligekommentarer';
+  | 'saerligekommentarer'
+  | 'bilagsnumre.ingen'
+  | 'bilagsnumre.menAfgoerelse'
+  | 'bilagsnumre.eetAfgoerelser'
+  | 'bilagsnumre.svieSmerteDokumentation'
+  | 'bilagsnumre.beregningsgrundlagTaf'
+  | 'bilagsnumre.loenISygeperioden'
+  | 'bilagsnumre.offentligeYdelser'
+  | 'bilagsnumre.oevrigeErstatningskrav';
 
 type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];
 type ErstatningsopgoerelseFieldName = Extract<keyof ErstatningsopgoerelseValues, string>;
@@ -2954,4 +2963,61 @@ export const buildEODebugSaerligeKommentarerRows = (
       status: 'ok',
     },
   ];
+};
+
+// =============================================================================
+// BILAGSNUMRE
+// =============================================================================
+
+type BilagEntry = {
+  id: string;
+  fieldName: string;
+  label: string;
+  value: string | undefined;
+};
+
+/**
+ * Bygger debug-rækker for Bilagsnumre.
+ * Returnerer tom liste hvis visBilagsnumre !== 'Ja'.
+ */
+export const buildEODebugBilagsnumreRows = (
+  values: ErstatningsopgoerelseValues
+): DebugRowModel[] => {
+  if (values.visBilagsnumre !== 'Ja') return [];
+
+  const entries: BilagEntry[] = [
+    { id: 'bilagsnumre.menAfgoerelse', fieldName: 'bilagsnumreMenAfgoerelse', label: 'Ménafgørelse', value: values.bilagsnumreMenAfgoerelse },
+    { id: 'bilagsnumre.eetAfgoerelser', fieldName: 'bilagsnumreEetAfgoerelser', label: 'EET-afgørelser', value: values.bilagsnumreEetAfgoerelser },
+    { id: 'bilagsnumre.svieSmerteDokumentation', fieldName: 'bilagsnumreSvieSmerteDokumentation', label: 'Svie/smerte dokumentation', value: values.bilagsnumreSvieSmerteDokumentation },
+    { id: 'bilagsnumre.beregningsgrundlagTaf', fieldName: 'bilagsnumreBeregningsgrundlagTaf', label: 'Beregningsgrundlag for TAF', value: values.bilagsnumreBeregningsgrundlagTaf },
+    { id: 'bilagsnumre.loenISygeperioden', fieldName: 'bilagsnumreLoenISygeperioden', label: 'Løn i sygeperioden', value: values.bilagsnumreLoenISygeperioden },
+    { id: 'bilagsnumre.offentligeYdelser', fieldName: 'bilagsnumreOffentligeYdelser', label: 'Offentlige ydelser', value: values.bilagsnumreOffentligeYdelser },
+    { id: 'bilagsnumre.oevrigeErstatningskrav', fieldName: 'bilagsnumreOevrigeErstatningskrav', label: 'Øvrige erstatningskrav', value: values.bilagsnumreOevrigeErstatningskrav },
+  ];
+
+  const filledEntries = entries.filter((e) => isNonEmptyString(e.value));
+
+  if (filledEntries.length === 0) {
+    return [{ id: 'bilagsnumre.ingen', label: 'Ingen', displayValue: '-', status: 'ok' }];
+  }
+
+  return filledEntries.map((entry) => {
+    const warning = resolveBilagWarning(values, entry.fieldName, entry.value);
+    if (warning) {
+      return {
+        id: entry.id,
+        label: entry.label,
+        displayValue: warning,
+        status: 'warning' as DebugStatus,
+        message: warning,
+        summaryDisplay: 'messageOnly' as const,
+      };
+    }
+    return {
+      id: entry.id,
+      label: entry.label,
+      displayValue: entry.value!.trim(),
+      status: 'ok' as DebugStatus,
+    };
+  });
 };

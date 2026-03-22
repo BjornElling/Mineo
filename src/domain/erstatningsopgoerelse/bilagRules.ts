@@ -1,6 +1,7 @@
 import type {
   StandardLoenTableRow,
   ErstatningsopgoerelseValues,
+  EoBilagLoenindkomstOgOffentligeYdelserIndgaar,
   Loenperiode,
   OffentligeYdelserRow,
 } from '../../schemas/formSchemas';
@@ -12,15 +13,12 @@ import { resolveLoenudviklingKilde } from './angivetLoenHelpers';
 import type { IsoRange } from './periodRangeGroups';
 import { parseDanishToIso, parseOptionalIsoDate } from './sharedPdfUtils';
 
-type BilagLoenindkomstOgOffentligeYdelserIndgaar =
-  ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
-
 // Overlap er inklusiv begge endepunkter.
 const isIsoRangeOverlap = (a: IsoRange, b: IsoRange): boolean => a.fra <= b.til && b.fra <= a.til;
 
 export const buildBilagIndkomstYdelserRanges = (
   eoValues: ErstatningsopgoerelseValues,
-  mode: BilagLoenindkomstOgOffentligeYdelserIndgaar
+  mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar
 ): readonly IsoRange[] => {
   if (mode === 'Alle') return [];
   // "Perioden" skal følge de aktuelle TAF-perioder (clampet til gældende bounds).
@@ -29,7 +27,7 @@ export const buildBilagIndkomstYdelserRanges = (
 };
 
 const shouldIncludeByBilagRanges = (
-  mode: BilagLoenindkomstOgOffentligeYdelserIndgaar,
+  mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar,
   ranges: readonly IsoRange[],
   rowRange: IsoRange | null
 ): boolean => {
@@ -46,7 +44,7 @@ const shouldIncludeByBilagRanges = (
 export const hasAarsloenRowOverlapWithRanges = (
   row: StandardLoenTableRow,
   loenperiode: Loenperiode,
-  mode: BilagLoenindkomstOgOffentligeYdelserIndgaar,
+  mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar,
   ranges: readonly IsoRange[]
 ): boolean => {
   const interval = parseAarsloenRowInterval(row, loenperiode);
@@ -64,7 +62,7 @@ export const hasAarsloenRowOverlapWithRanges = (
 
 export const hasOffentligYdelseRowOverlapWithRanges = (
   row: OffentligeYdelserRow,
-  mode: BilagLoenindkomstOgOffentligeYdelserIndgaar,
+  mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar,
   ranges: readonly IsoRange[]
 ): boolean => {
   const fra = parseDanishToIso(row.fraDato);
@@ -86,7 +84,7 @@ export const hasNonZeroLoenAmount = (value: StandardLoenTableRow['col2']): boole
 export const shouldIncludeLoenRowInBilag = (params: Readonly<{
   row: StandardLoenTableRow;
   loenperiode: Loenperiode;
-  mode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
+  mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   ranges: readonly IsoRange[];
   errorRowIds: ReadonlySet<string>;
 }>): boolean => {
@@ -106,7 +104,7 @@ export const shouldIncludeLoenRowInBilag = (params: Readonly<{
 
 export const shouldIncludeOffentligYdelseRowInBilag = (params: Readonly<{
   row: OffentligeYdelserRow;
-  mode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
+  mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   ranges: readonly IsoRange[];
   errorRowIds: ReadonlySet<string>;
 }>): boolean => {

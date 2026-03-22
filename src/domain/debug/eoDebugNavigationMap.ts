@@ -23,7 +23,8 @@ export type SectionId =
   | 'taf-beregningsgrundlag'
   | 'taf'
   | 'oevrige-krav'
-  | 'saerlige-kommentarer';
+  | 'saerlige-kommentarer'
+  | 'bilagsnumre';
 
 /**
  * Navigation-target med discriminated union for type-sikkerhed
@@ -218,6 +219,20 @@ export const getNavigationTargetFromRowId = (rowId: string): NavigationTarget =>
       sectionId: 'saerlige-kommentarer',
       tabName: 'EO oplysninger',
       sectionTitle: 'Eventuelle særlige kommentarer',
+    };
+  }
+
+  // ============================================================================
+  // BILAGSNUMRE SEKTION
+  // ============================================================================
+
+  if (rowId.startsWith('bilagsnumre.')) {
+    return {
+      kind: 'erstatningsopgoerelse-tab',
+      tabId: 'eo_oplysninger',
+      sectionId: 'bilagsnumre',
+      tabName: 'EO oplysninger',
+      sectionTitle: 'Bilagsnumre',
     };
   }
 

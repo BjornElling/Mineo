@@ -13,6 +13,7 @@ import {
   buildEODebugTaftRows,
   buildEODebugOevrigeKravRows,
   buildEODebugSaerligeKommentarerRows,
+  buildEODebugBilagsnumreRows,
 } from './eoDebugErstatningsopgoerelseModel';
 import { buildSvieSmerteContext, buildTaftContext } from './eoDebugContextBuilders';
 
@@ -152,6 +153,14 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
       buildEODebugSaerligeKommentarerRows(
         ctx.eoValues,
         ctx.eoErrors
+      ),
+  },
+
+  {
+    section: 'bilagsnumre',
+    run: ({ eoValues }) =>
+      buildEODebugBilagsnumreRows(
+        eoValues
       ),
   },
 ] as const;

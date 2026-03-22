@@ -184,6 +184,31 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).toContain('Arbejdsgivers ATP-bidrag og anden indkomst uden tillæg');
   });
 
+  it('skriver kombineret bilagslinje for løn i sygeperioden og offentlige ydelser', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.visBilagsnumre = 'Ja';
+    eo.bilagsnumreLoenISygeperioden = '1';
+    eo.bilagsnumreOffentligeYdelser = '2';
+    eo.offentligeYdelserRows = [
+      {
+        id: 'oy-1',
+        fraDato: '01-01-2024',
+        tilDato: '31-01-2024',
+        ydelsestype: 'Sygedagpenge',
+        ydelse: asAmountValue(1000),
+        tillaeg: undefined,
+      },
+    ];
+
+    renderPdf(stamdata, eo);
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    expect(texts).toContain('Dokumentation vedlægges som ');
+    expect(texts).toContain('bilag\u00A01 og 2.');
+    expect(texts).not.toContain('bilag\u00A01.');
+    expect(texts).not.toContain('bilag\u00A02.');
+  });
+
   it('skjuler "I alt:" når kun én del-linje vises', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.loenindkomstAnsaettelsesforhold[0].feriePct = 0;

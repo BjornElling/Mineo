@@ -287,6 +287,19 @@ const createPdfCursor = (params: Readonly<{
     return lineHeight * lines.length + PDF_LINE_BOTTOM_SPACING_MM;
   };
 
+  // Skriver én linje med normal tekst efterfulgt af bold tekst på samme Y-position.
+  // Beregner X til bold-delen ud fra bredden af normal-delen.
+  // Afslutter med lineHeight + PDF_LINE_BOTTOM_SPACING_MM (som writeWrappedText).
+  const writeNormalThenBoldLine = (normalPart: string, boldPart: string) => {
+    ensureSpace(lineHeight + PDF_LINE_BOTTOM_SPACING_MM);
+    const normalWidth = doc.getTextWidth(normalizeTextForPdf(normalPart));
+    doc.text(normalizeTextForPdf(normalPart), MARGINS.left, y);
+    withFontStyle('bold', () => {
+      doc.text(normalizeTextForPdf(boldPart), MARGINS.left + normalWidth, y);
+    });
+    y += lineHeight + PDF_LINE_BOTTOM_SPACING_MM;
+  };
+
   return {
     setDisplayMode: (mode: string) => doc.setDisplayMode(mode),
     setProperties: (props: Parameters<jsPDF['setProperties']>[0]) => doc.setProperties(props),
@@ -304,6 +317,7 @@ const createPdfCursor = (params: Readonly<{
     },
     writeWrappedText,
     writeWrappedTextContinued,
+    writeNormalThenBoldLine,
     writeLeftRightText,
     writeUnderlinedLabel,
     writeSignatureBlock,
@@ -350,6 +364,7 @@ export type PdfWriter = {
   advanceY: (delta: number) => void;
   writeWrappedText: (text: string) => void;
   writeWrappedTextContinued: (text: string, maxWidth?: number, x?: number) => void;
+  writeNormalThenBoldLine: (normalPart: string, boldPart: string) => void;
   /**
    * Kanonisk valg til alle linjer med venstre/højre-kolonne.
    * Venstretekst wrapper altid til næste linje ved pladsmangel — ingen trunkering.
@@ -572,6 +587,12 @@ export const createPdfWriter = (params: Readonly<{
       cursor.writeWrappedTextContinued(text, maxWidth, x);
       previousBlockWasSectionHeader = false;
       manualSpacingSinceLastContent = 0;
+      explicitSpacingSinceLastContent = 0;
+    },
+    writeNormalThenBoldLine: (normalPart, boldPart) => {
+      cursor.writeNormalThenBoldLine(normalPart, boldPart);
+      previousBlockWasSectionHeader = false;
+      manualSpacingSinceLastContent = PDF_LINE_BOTTOM_SPACING_MM;
       explicitSpacingSinceLastContent = 0;
     },
     writeLeftRightText: (leftText, rightText, options) => {

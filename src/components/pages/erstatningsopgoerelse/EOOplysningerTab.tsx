@@ -155,7 +155,6 @@ const formatLabelDayAfterIsoDate = (defaultLabel: string, tilDato: ISODateString
   return `${prefix} den ${nextDay.getUTCDate()}. ${monthName} ${nextDay.getUTCFullYear()}:`;
 };
 
-// TODO: Implementer bilagsnummer-system og reintroducer felter til bilagsnumre de relevante steder.
 
 /**
  * EO oplysninger-fanen - sagsoplysninger og grunddata
@@ -2509,6 +2508,130 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           rows={4}
           placeholder="Indtast eventuelle kommentarer her..."
         />
+      </ContentBox>
+
+      {/* Sektion 9: Bilagsnumre */}
+      <ContentBox className="content-box" data-section-id="bilagsnumre">
+        <Typography className="section-header">Bilagsnumre</Typography>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Bilagsnumre i erstatningsopgørelser</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledToggleSwitch
+              checked={getChecked(values.visBilagsnumre)}
+              onCommit={handleToggleChange('visBilagsnumre')}
+            />
+          </Box>
+        </Box>
+
+        {getChecked(values.visBilagsnumre) && (
+          <>
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">Ménafgørelse</Typography>
+              <Box className="row--label-right-hover__content">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography className="row--text">Bilagsnr.</Typography>
+                  <StyledTextField
+                    width={130}
+                    value={values.bilagsnumreMenAfgoerelse || ''}
+                    onCommit={handleStringBlur('bilagsnumreMenAfgoerelse')}
+                    sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
+                  />
+                </Box>
+              </Box>
+            </Box>
+
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">EET-afgørelser</Typography>
+              <Box className="row--label-right-hover__content">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography className="row--text">Bilagsnr.</Typography>
+                  <StyledTextField
+                    width={130}
+                    value={values.bilagsnumreEetAfgoerelser || ''}
+                    onCommit={handleStringBlur('bilagsnumreEetAfgoerelser')}
+                    sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
+                  />
+                </Box>
+              </Box>
+            </Box>
+
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">Svie/smerte dokumentation</Typography>
+              <Box className="row--label-right-hover__content">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography className="row--text">Bilagsnr.</Typography>
+                  <StyledTextField
+                    width={130}
+                    value={values.bilagsnumreSvieSmerteDokumentation || ''}
+                    onCommit={handleStringBlur('bilagsnumreSvieSmerteDokumentation')}
+                    sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
+                  />
+                </Box>
+              </Box>
+            </Box>
+
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">Beregningsgrundlag for TAF</Typography>
+              <Box className="row--label-right-hover__content">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography className="row--text">Bilagsnr.</Typography>
+                  <StyledTextField
+                    width={130}
+                    value={values.bilagsnumreBeregningsgrundlagTaf || ''}
+                    onCommit={handleStringBlur('bilagsnumreBeregningsgrundlagTaf')}
+                    sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
+                  />
+                </Box>
+              </Box>
+            </Box>
+
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">Løn i sygeperioden</Typography>
+              <Box className="row--label-right-hover__content">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography className="row--text">Bilagsnr.</Typography>
+                  <StyledTextField
+                    width={130}
+                    value={values.bilagsnumreLoenISygeperioden || ''}
+                    onCommit={handleStringBlur('bilagsnumreLoenISygeperioden')}
+                    sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
+                  />
+                </Box>
+              </Box>
+            </Box>
+
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">Offentlige ydelser</Typography>
+              <Box className="row--label-right-hover__content">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography className="row--text">Bilagsnr.</Typography>
+                  <StyledTextField
+                    width={130}
+                    value={values.bilagsnumreOffentligeYdelser || ''}
+                    onCommit={handleStringBlur('bilagsnumreOffentligeYdelser')}
+                    sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
+                  />
+                </Box>
+              </Box>
+            </Box>
+
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">Øvrige erstatningskrav</Typography>
+              <Box className="row--label-right-hover__content">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography className="row--text">Bilagsnr.</Typography>
+                  <StyledTextField
+                    width={130}
+                    value={values.bilagsnumreOevrigeErstatningskrav || ''}
+                    onCommit={handleStringBlur('bilagsnumreOevrigeErstatningskrav')}
+                    sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
+                  />
+                </Box>
+              </Box>
+            </Box>
+          </>
+        )}
       </ContentBox>
 
       {/* TODO: Modul til beregning af sygeferiegodtgørelse skal implementeres */}

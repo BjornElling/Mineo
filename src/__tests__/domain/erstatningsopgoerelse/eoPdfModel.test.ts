@@ -1598,7 +1598,7 @@ describe('eoPdfModel', () => {
     );
   });
 
-  it('viser kun endelig EET-linje når både midlertidig og endelig EET er angivet', () => {
+  it('viser både midlertidig og endelig EET-linje når begge afgørelser er angivet', () => {
     const eoValues = makeValues({
       endeligtEetAfgorelse: 'Ja',
       endeligEETVirkningsdato: iso('2024-06-01'),
@@ -1610,10 +1610,10 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
     expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('endelig erhvervsevnetabsafgørelse'))).toBe(true);
-    expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('midlertidig erhvervsevnetabsafgørelse'))).toBe(false);
+    expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('midlertidig erhvervsevnetabsafgørelse'))).toBe(true);
   });
 
-  it('midlertidig EET tidligst, skadesdato < 2011-06-16 → midlertidig vises med PRE-2011-ophørstekst, endelig undertrykt', () => {
+  it('midlertidig EET tidligst, skadesdato < 2011-06-16 → begge EET-linjer vises, men midlertidig får PRE-2011-ophørstekst', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(30000),
@@ -1638,10 +1638,10 @@ describe('eoPdfModel', () => {
 
     expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('midlertidig erhvervsevnetabsafgørelse'))).toBe(true);
     expect(model.tabtArbejdsfortjeneste.eetLinjer).toContain('Da skaden er sket før 16. juni 2011, bringer afgørelsen retten til tabt arbejdsfortjeneste til ophør.');
-    expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('endelig erhvervsevnetabsafgørelse'))).toBe(false);
+    expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('endelig erhvervsevnetabsafgørelse'))).toBe(true);
   });
 
-  it('endelig EET tidligst, skadesdato < 2011-06-16 → endelig vises med ophørstekst, midlertidig undertrykt', () => {
+  it('endelig EET tidligst, skadesdato < 2011-06-16 → begge EET-linjer vises, men endelig får ophørstekst', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(30000),
@@ -1666,7 +1666,35 @@ describe('eoPdfModel', () => {
 
     expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('endelig erhvervsevnetabsafgørelse'))).toBe(true);
     expect(model.tabtArbejdsfortjeneste.eetLinjer).toContain('Afgørelsen bringer retten til tabt arbejdsfortjeneste til ophør.');
-    expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('midlertidig erhvervsevnetabsafgørelse'))).toBe(false);
+    expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('midlertidig erhvervsevnetabsafgørelse'))).toBe(true);
+  });
+
+  it('post-2011 med kun midlertidig EET viser afgørelsen informativt uden PRE-2011-ophørstekst', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(30000),
+      midlertidigtEetAfgorelse: 'Ja',
+      midlertidigEETVirkningsdato: iso('2024-06-01'),
+      endeligtEetAfgorelse: 'Nej',
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('midlertidig erhvervsevnetabsafgørelse'))).toBe(true);
+    expect(model.tabtArbejdsfortjeneste.eetLinjer).not.toContain(
+      'Da skaden er sket før 16. juni 2011, bringer afgørelsen retten til tabt arbejdsfortjeneste til ophør.'
+    );
   });
 
   it('tilføjer ophørstekst for differencekrav når TAF går til dagen før differencekrav', () => {
@@ -1722,7 +1750,7 @@ describe('eoPdfModel', () => {
     expect(model.tabtArbejdsfortjeneste.differencekravLinje).toBeNull();
   });
 
-  it('viser tidligste dato mellem endelig EET og differencekrav når ingen af dem bringer TAF til ophør', () => {
+  it('viser endelig EET informativt og bevarer differencekrav når ingen af dem bringer TAF til ophør', () => {
     const eoValues = makeValues({
       endeligtEetAfgorelse: 'Ja',
       endeligEETVirkningsdato: iso('2024-06-01'),
@@ -1733,7 +1761,7 @@ describe('eoPdfModel', () => {
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
-    expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('endelig erhvervsevnetabsafgørelse'))).toBe(false);
+    expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('endelig erhvervsevnetabsafgørelse'))).toBe(true);
     expect(model.tabtArbejdsfortjeneste.differencekravLinje).toBe('Der er opgjort differencekrav i sagen den 1. maj 2024.');
   });
 

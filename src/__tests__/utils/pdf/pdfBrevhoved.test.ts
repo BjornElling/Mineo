@@ -73,15 +73,15 @@ describe('getVisBrevhoved', () => {
     expect(result1).toBe(true);
   });
 
-  it('bruger DEFAULT_APP_SETTINGS korrekt - kun erstatningsopgoerelse aktiveret', () => {
-    const result = getVisBrevhoved(DEFAULT_APP_SETTINGS, 'erstatningsopgoerelse');
-    expect(result).toBe(true);
-
-    expect(getVisBrevhoved(DEFAULT_APP_SETTINGS, 'shDage')).toBe(false);
-    expect(getVisBrevhoved(DEFAULT_APP_SETTINGS, 'renteberegning')).toBe(false);
-    expect(getVisBrevhoved(DEFAULT_APP_SETTINGS, 'regulering')).toBe(false);
-    expect(getVisBrevhoved(DEFAULT_APP_SETTINGS, 'varigeMen')).toBe(false);
+  it('bruger DEFAULT_APP_SETTINGS korrekt - korrekte PDF-defaults', () => {
+    expect(getVisBrevhoved(DEFAULT_APP_SETTINGS, 'erstatningsopgoerelse')).toBe(true);
+    expect(getVisBrevhoved(DEFAULT_APP_SETTINGS, 'erhvervsevnetab')).toBe(true);
+    expect(getVisBrevhoved(DEFAULT_APP_SETTINGS, 'varigeMen')).toBe(true);
+    expect(getVisBrevhoved(DEFAULT_APP_SETTINGS, 'forsoergertab')).toBe(true);
+    expect(getVisBrevhoved(DEFAULT_APP_SETTINGS, 'aarsloensberegning')).toBe(true);
+    expect(getVisBrevhoved(DEFAULT_APP_SETTINGS, 'renteberegning')).toBe(true);
     expect(getVisBrevhoved(DEFAULT_APP_SETTINGS, 'satser')).toBe(false);
-    expect(getVisBrevhoved(DEFAULT_APP_SETTINGS, 'aarsloensberegning')).toBe(false);
+    expect(getVisBrevhoved(DEFAULT_APP_SETTINGS, 'shDage')).toBe(false);
+    expect(getVisBrevhoved(DEFAULT_APP_SETTINGS, 'regulering')).toBe(false);
   });
 });
