@@ -173,7 +173,7 @@ const processDecryptedContainer = (args: {
       ? {
         expectedCount: expectedFieldCount,
         loadedCount: loadedFieldCount,
-        failedCount: Math.max(expectedFieldCount - loadedFieldCount, 0),
+        failedCount: loadIssues.length,
         issues: loadIssues,
       }
       : undefined,

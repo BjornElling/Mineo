@@ -1,7 +1,15 @@
 import { eoFileDataSchema } from '../../schemas/eoFileSchema';
 import { decryptFromString } from '../../utils/encryption';
 import { readFromFileHandle } from '../../utils/fileSystemAccess';
+import { saveToFile } from '../../utils/fileSave';
 import { buildAllDataRawFromSnapshot, compareData, verifyAfterSave } from '../../utils/fileSaveInternals';
+import {
+  loadFileHandleFromIndexedDB,
+  requestPersistentStorage,
+  saveFileHandleToIndexedDB,
+  verifyFileHandle,
+} from '../../utils/fileHandleStorage';
+import { saveFileWithPicker, writeToFileHandle, isFileSystemAccessSupported } from '../../utils/fileSystemAccess';
 
 vi.mock('../../utils/logger', () => ({
   logError: vi.fn(),
@@ -21,12 +29,34 @@ vi.mock('../../utils/fileSystemAccess', () => ({
   readFromFileHandle: vi.fn(),
 }));
 
+vi.mock('../../utils/fileHandleStorage', () => ({
+  requestPersistentStorage: vi.fn(),
+  saveFileHandleToIndexedDB: vi.fn(),
+  loadFileHandleFromIndexedDB: vi.fn(),
+  verifyFileHandle: vi.fn(),
+  deleteFileHandleFromIndexedDB: vi.fn(),
+}));
+
+vi.mock('../../utils/fileHelpers', () => ({
+  generateFilename: vi.fn(() => 'foreslaaet-navn'),
+  downloadFile: vi.fn(),
+  getStartInValue: vi.fn(() => 'desktop'),
+}));
+
 const mockedDecryptFromString = vi.mocked(decryptFromString);
 const mockedReadFromFileHandle = vi.mocked(readFromFileHandle);
+const mockedIsFileSystemAccessSupported = vi.mocked(isFileSystemAccessSupported);
+const mockedSaveFileWithPicker = vi.mocked(saveFileWithPicker);
+const mockedWriteToFileHandle = vi.mocked(writeToFileHandle);
+const mockedRequestPersistentStorage = vi.mocked(requestPersistentStorage);
+const mockedLoadFileHandleFromIndexedDB = vi.mocked(loadFileHandleFromIndexedDB);
+const mockedSaveFileHandleToIndexedDB = vi.mocked(saveFileHandleToIndexedDB);
+const mockedVerifyFileHandle = vi.mocked(verifyFileHandle);
 
 describe('fileSave', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
   });
 
   describe('buildAllDataRawFromSnapshot', () => {
@@ -258,6 +288,82 @@ describe('fileSave', () => {
       const result = await verifyAfterSave('encrypted', expectedData, false);
       expect(result.success).toBe(true);
       expect(result.verified).toBe(true);
+    });
+  });
+
+  describe('saveToFile', () => {
+    const snapshot = {
+      stamdata: { journalnr: 'J-1' },
+      satser: undefined,
+      aarsloen: undefined,
+      faellesAarsloen: undefined,
+      faellesPersondata: undefined,
+      renteberegning: undefined,
+      varigemen: undefined,
+      forsoergertab: undefined,
+      erstatningsopgoerelse: undefined,
+      erhvervsevnetab: undefined,
+    } as const;
+
+    it('persisterer først nyt file handle efter write og verificering er lykkedes', async () => {
+      const pickedHandle = { name: 'sag.eo', getFile: vi.fn(), createWritable: vi.fn() } as unknown as FileSystemFileHandle;
+
+      mockedIsFileSystemAccessSupported.mockReturnValue(true);
+      mockedRequestPersistentStorage.mockResolvedValue(true);
+      mockedLoadFileHandleFromIndexedDB.mockResolvedValue(null);
+      mockedSaveFileWithPicker.mockResolvedValue(pickedHandle);
+      mockedWriteToFileHandle.mockResolvedValue();
+      mockedReadFromFileHandle.mockResolvedValue('encrypted');
+      mockedDecryptFromString.mockResolvedValue({
+        data: {
+          stamdata: { journalnr: 'J-1' },
+        },
+      });
+      mockedSaveFileHandleToIndexedDB.mockResolvedValue(true);
+      mockedVerifyFileHandle.mockResolvedValue(false);
+
+      const result = await saveToFile(snapshot);
+
+      expect(result.success).toBe(true);
+      expect(mockedSaveFileHandleToIndexedDB).toHaveBeenCalledWith(pickedHandle);
+      expect(mockedWriteToFileHandle.mock.invocationCallOrder[0]).toBeLessThan(
+        mockedSaveFileHandleToIndexedDB.mock.invocationCallOrder[0]
+      );
+    });
+
+    it('persisterer ikke nyt file handle når verificering fejler', async () => {
+      const pickedHandle = { name: 'sag.eo', getFile: vi.fn(), createWritable: vi.fn() } as unknown as FileSystemFileHandle;
+
+      mockedIsFileSystemAccessSupported.mockReturnValue(true);
+      mockedRequestPersistentStorage.mockResolvedValue(true);
+      mockedLoadFileHandleFromIndexedDB.mockResolvedValue(null);
+      mockedSaveFileWithPicker.mockResolvedValue(pickedHandle);
+      mockedWriteToFileHandle.mockResolvedValue();
+      mockedReadFromFileHandle.mockResolvedValue('encrypted');
+      mockedDecryptFromString.mockResolvedValue({
+        data: {
+          stamdata: { journalnr: 'forkert' },
+        },
+      });
+      mockedSaveFileHandleToIndexedDB.mockResolvedValue(true);
+
+      await expect(saveToFile(snapshot)).rejects.toThrow('INTEGRITETSKONTROL FEJLEDE');
+      expect(mockedSaveFileHandleToIndexedDB).not.toHaveBeenCalled();
+    });
+
+    it('fejler ikke på korrupt lastSavedFilenameBasis metadata', async () => {
+      sessionStorage.setItem('mineo_ui_lastSavedFilenameBasis', '{ikke-json');
+      sessionStorage.setItem('mineo_ui_lastSavedFilename', 'eksisterende.eo');
+
+      mockedIsFileSystemAccessSupported.mockReturnValue(true);
+      mockedRequestPersistentStorage.mockResolvedValue(true);
+      mockedLoadFileHandleFromIndexedDB.mockResolvedValue(null);
+      mockedSaveFileWithPicker.mockResolvedValue(null);
+
+      const result = await saveToFile(snapshot);
+
+      expect(result.cancelled).toBe(true);
+      expect(sessionStorage.getItem('mineo_ui_lastSavedFilenameBasis')).toBeNull();
     });
   });
 });

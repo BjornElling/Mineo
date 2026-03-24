@@ -39,7 +39,7 @@ const Mineo = React.memo(() => {
   return (
     <Box className="mineo-page">
       {/* Side-header */}
-      <Typography className="page-title">MinEO.dk</Typography>
+      <Typography className="page-title">MinEO</Typography>
 
       {/* ------------------------------------------------------ */}
       {/* Beskrivelse */}

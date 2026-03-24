@@ -73,6 +73,20 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 };
 
+const loadStoredFilenameBasis = (): Record<string, unknown> | null => {
+  const stored = sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
+  if (!stored) return null;
+  try {
+    const parsed: unknown = JSON.parse(stored);
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    // Bevidst robustness-valg:
+    // Korrupt UI-metadata må aldrig kunne blokere gem af autoritativt brugerinput.
+    sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
+    return null;
+  }
+};
+
 const buildFilenameBasis = (stamdata: unknown): { skadelidte?: string; skadestype?: string; skadesdato?: string } => {
   const stamdataRecord: Record<string, unknown> =
     isRecord(stamdata)
@@ -133,7 +147,6 @@ export const saveToFile = async (
 
   try {
     const allDataRaw = buildAllDataRawFromSnapshot(snapshot);
-    const expectedFieldCount = countFilledFields(allDataRaw);
 
     // VIGTIGT: `.eo` fil må kun indeholde schema-valideret brugerinput.
     const parsedData = eoFileDataSchema.safeParse(allDataRaw);
@@ -199,19 +212,16 @@ export const saveToFile = async (
       const loadedHandle: unknown = await loadFileHandleFromIndexedDB();
       let fileHandle: FileSystemFileHandle | null = isFileSystemFileHandle(loadedHandle) ? loadedHandle : null;
       const savedFilePath = sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilename);
+      const savedFilenameBasis = loadStoredFilenameBasis();
+      const currentStamdata = fileData.data.stamdata || {};
+      const stamdataChanged = hasFilenameBasisChanged(savedFilenameBasis, currentStamdata);
       let shouldUseExistingHandle = false;
+      let shouldPersistPickedHandleAfterSuccess = false;
 
       if (fileHandle && savedFilePath) {
         // Vi har et gemt handle - valider det
 
-        // Hent gemte stamdata-værdier fra sidste gem
-        const savedStamdataJson = sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
-        const savedStamdata = savedStamdataJson ? JSON.parse(savedStamdataJson) : null;
-        const currentStamdata = fileData.data.stamdata || {};
-
         // Sammenlign kun de felter der påvirker filnavnet
-        const stamdataChanged = hasFilenameBasisChanged(savedStamdata, currentStamdata);
-
         if (!stamdataChanged) {
           // Stamdata uændret (eller ikke gemt tidligere) - brug gemt handle
 
@@ -236,9 +246,10 @@ export const saveToFile = async (
       // Hvis vi ikke skal bruge eksisterende handle, åbn file picker
       if (!shouldUseExistingHandle) {
         const currentFilename = generateFilename(fileData.data);
-        const suggestedFilename = savedFilePath && !fileHandle
-          ? savedFilePath
-          : `${currentFilename}.eo`;
+        const suggestedFilename =
+          savedFilePath && !stamdataChanged
+            ? savedFilePath
+            : `${currentFilename}.eo`;
 
         // Bestem startIn baseret på resolved directory
         const startIn = resolvedDirectory ? getStartInValue(resolvedDirectory) : 'desktop';
@@ -250,8 +261,9 @@ export const saveToFile = async (
           return { success: false, cancelled: true };
         }
 
-        // Gem nyt handle til IndexedDB
-        await saveFileHandleToIndexedDB(fileHandle);
+        // Persist først efter succesfuld write+verify, så et halvt save-flow ikke
+        // efterlader et nyt "autorativt" overskrivnings-target i IndexedDB.
+        shouldPersistPickedHandleAfterSuccess = true;
       }
 
       if (!fileHandle) {
@@ -306,6 +318,15 @@ export const saveToFile = async (
         // Advarslen returneres til UI senere
       }
 
+      if (shouldPersistPickedHandleAfterSuccess) {
+        const persisted = await saveFileHandleToIndexedDB(fileHandle);
+        if (!persisted) {
+          logWarning('Gemt fil, men kunne ikke persistere file handle til senere overskrivning', {
+            context: 'saveToFile.persistFileHandleAfterSuccess',
+          });
+        }
+      }
+
       // Gem filnavn og stamdata til sessionStorage (til validering ved næste gem)
       saveFilenameMetadata(filename, fileData.data.stamdata);
 
@@ -316,8 +337,7 @@ export const saveToFile = async (
       // Generer filnavn baseret på stamdata eller brug gemt navn
       const lastSavedPath = sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilename);
       const currentFilename = generateFilename(fileData.data);
-      const savedStamdataJson = sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
-      const savedStamdata = savedStamdataJson ? JSON.parse(savedStamdataJson) : null;
+      const savedStamdata = loadStoredFilenameBasis();
       const currentStamdata = fileData.data.stamdata || {};
       const stamdataChanged = hasFilenameBasisChanged(savedStamdata, currentStamdata);
 

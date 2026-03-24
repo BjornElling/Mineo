@@ -211,6 +211,7 @@ describe('fileLoad – normalLoadFlow', () => {
     if (!result.success) return;
     expect(result.snapshot?.stamdata).toBeDefined();
     expect(result.snapshot?.renteberegning).toBeUndefined();
+    expect(result.preflightWarning?.failedCount).toBe(result.preflightWarning?.issues.length);
     expect(result.preflightWarning?.issues.some((issue) => issue.path.startsWith('renteberegning'))).toBe(true);
   });
 

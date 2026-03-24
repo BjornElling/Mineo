@@ -60,6 +60,11 @@ type PendingLoadApply = {
   navigateToStamdataAfterApply: boolean;
 };
 
+type CriticalActionCommitGuardResult = Readonly<{
+  ok: boolean;
+  focusTargetBeforeAction: HTMLElement | null;
+}>;
+
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 };
@@ -85,6 +90,7 @@ type GridCommitAttemptResult = Readonly<{
 const NON_TEXT_EDITING_INPUT_TYPES = new Set(['checkbox', 'radio', 'range', 'button', 'submit', 'reset', 'file', 'color']);
 const PWA_OPEN_REQUEST_RETRY_INTERVAL_MS = 100;
 const PWA_OPEN_REQUEST_RETRY_WINDOW_MS = 3000;
+const LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE = 'Kan ikke indlæse fil: afslut eller ret det aktive felt først.';
 
 const waitForAnimationFrame = (): Promise<void> =>
   new Promise<void>((resolve) => {
@@ -187,6 +193,29 @@ const commitPendingInputBeforeSave = async (): Promise<SaveCommitFlushResult> =>
     ok: failedGridCommitCount === 0,
     failedGridCommitCount,
   };
+};
+
+const prepareForCriticalDataReplacement = async (): Promise<CriticalActionCommitGuardResult> => {
+  const focusTargetBeforeAction = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+  if (isOpenTextEditorElement(focusTargetBeforeAction)) {
+    return { ok: false, focusTargetBeforeAction };
+  }
+
+  const gridCommitResult = commitActiveGridEditors();
+  if (gridCommitResult.failedCount > 0) {
+    restoreFocusIfPossible(gridCommitResult.firstFailedElement);
+    await waitForCommitFlush();
+    return { ok: false, focusTargetBeforeAction };
+  }
+
+  if (focusTargetBeforeAction) {
+    focusTargetBeforeAction.blur();
+  }
+
+  await waitForCommitFlush();
+
+  return { ok: true, focusTargetBeforeAction };
 };
 
 const isOverlayType = (value: unknown): value is OverlayData['type'] => {
@@ -355,7 +384,10 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
         if (!fieldSources) continue;
         for (const sourceKey of Object.keys(fieldSources)) {
           const entry = fieldSources[sourceKey as keyof typeof fieldSources] as unknown;
-          if (isRecord(entry) && entry.severity === 'error') {
+          // Bevidst designvalg:
+          // Gem blokeres kun af ikke-committable fejl. UI-fejl på allerede committede værdier
+          // (fx dato/tal uden for bounds) skal fortsat vises med rød markering, men må gemmes.
+          if (isRecord(entry) && entry.severity === 'error' && entry.blocksSave !== false) {
             return true;
           }
         }
@@ -468,8 +500,8 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
         setSavedRevisionBaseline(snapshotRevision);
         isUserFeedbackRef.current = true;
         setOverlay({
-          message: 'Gemt',
-          type: 'success',
+          message: result.warning ? `Gemt med advarsel\n\n${result.warning}` : 'Gemt',
+          type: result.warning ? 'warning' : 'success',
         });
       }
     } catch (error) {
@@ -485,7 +517,15 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
 
   // Hent-funktionalitet
   const handleHent = React.useCallback(async () => {
-    const focusTargetBeforeLoad = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const loadGuard = await prepareForCriticalDataReplacement();
+    if (!loadGuard.ok) {
+      isUserFeedbackRef.current = true;
+      setOverlay({
+        message: LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE,
+        type: 'warning',
+      });
+      return;
+    }
 
     try {
       setPendingLoadResult(null);
@@ -497,7 +537,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
       const result: LoadFileResult = await loadFromFile(resolvedDirectory);
 
       if (result.cancelled) {
-        restoreFocusIfPossible(focusTargetBeforeLoad);
+        restoreFocusIfPossible(loadGuard.focusTargetBeforeAction);
         return;
       }
 
@@ -510,7 +550,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
         await requestApplyLoadedSnapshot(result, { message: 'Hentet', type: 'success' }, true);
       }
     } catch (error) {
-      restoreFocusIfPossible(focusTargetBeforeLoad);
+      restoreFocusIfPossible(loadGuard.focusTargetBeforeAction);
       const resolved = resolveLoadError(error);
       if (!resolved.expected) {
         console.error('Hent fejlede:', error);
@@ -526,12 +566,23 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
   type PwaLoadOutcome = 'cancelled' | 'preflight' | 'awaitingUser' | 'applied' | 'error';
 
   const handleHentFromPwaRequest = React.useCallback(async (request: PwaFileOpenRequest): Promise<PwaLoadOutcome> => {
+    const loadGuard = await prepareForCriticalDataReplacement();
+    if (!loadGuard.ok) {
+      isUserFeedbackRef.current = true;
+      setOverlay({
+        message: LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE,
+        type: 'warning',
+      });
+      return 'error';
+    }
+
     try {
       setPendingLoadResult(null);
       setPendingOverwriteApply(null);
       const result: LoadFileResult = await loadFromFileHandle(request.fileHandle, { requestId: request.id });
 
       if (result.cancelled) {
+        restoreFocusIfPossible(loadGuard.focusTargetBeforeAction);
         return 'cancelled';
       }
 
@@ -555,6 +606,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
 
       return 'error';
     } catch (error) {
+      restoreFocusIfPossible(loadGuard.focusTargetBeforeAction);
       const resolved = resolveLoadError(error);
       if (!resolved.expected) {
         console.error('Hent (PWA) fejlede:', error);

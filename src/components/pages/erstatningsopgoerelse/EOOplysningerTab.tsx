@@ -34,6 +34,7 @@ import useFerieRows from '../../tables/useFerieRows';
 import useFravaerRows from '../../tables/useFravaerRows';
 import useOevrigeKravRows from '../../tables/useOevrigeKravRows';
 import { createCommitEvent, type CommitEvent, type CommitHandler } from '../../../types/fieldEvents';
+import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
 import type { UsePersistedFormReturn } from '../../../hooks/usePersistedForm';
 import {
   CURRENT_YEAR,
@@ -861,7 +862,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     severity: 'error',
     source: 'rule',
   });
-  const reportForligDatoInputErrorSafe = React.useCallback((errorMsg: string | undefined) => {
+  const reportForligDatoInputErrorSafe = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
     if (!hasNonEmptyDateValue(values.forligDato)) {
       reportForligDatoInputError(undefined);
       return;
@@ -2394,7 +2395,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       setLoentrinFinderBeloeb(event.target.value);
                       setLoentrinFinderErrors((prev) => ({ ...prev, beloeb: undefined }));
                     }}
-                    onFieldError={(errorMsg) => setLoentrinFinderAmountFieldError(errorMsg)}
+                    onFieldError={(errorMsg) => setLoentrinFinderAmountFieldError(getReportableFieldErrorMessage(errorMsg))}
                     error={Boolean(loentrinFinderErrors.beloeb)}
                     helperText={loentrinFinderErrors.beloeb ?? ''}
                   />
@@ -2411,7 +2412,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       setLoentrinFinderDato(event.target.value);
                       setLoentrinFinderErrors((prev) => ({ ...prev, dato: undefined }));
                     }}
-                    onFieldError={(errorMsg) => setLoentrinFinderDateFieldError(errorMsg)}
+                    onFieldError={(errorMsg) => setLoentrinFinderDateFieldError(getReportableFieldErrorMessage(errorMsg))}
                     error={Boolean(loentrinFinderErrors.dato)}
                     helperText={loentrinFinderErrors.dato ?? ''}
                   />

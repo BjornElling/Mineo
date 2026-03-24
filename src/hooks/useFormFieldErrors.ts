@@ -2,7 +2,13 @@ import React from 'react';
 import type { StorageKey } from '../config/storageManifest';
 import type { PersistedSectionMap } from '../config/persistenceRegistry';
 import { useFormPersistence } from '../contexts/useFormPersistence';
-import type { FieldErrorsForSection, FieldErrorSeverity, FieldErrorSource, FormFieldError } from '../types/fieldErrors';
+import type {
+  FieldErrorsForSection,
+  FieldErrorSeverity,
+  FieldErrorSource,
+  FormFieldError,
+  ReportableFieldError,
+} from '../types/fieldErrors';
 
 type FieldName<K extends StorageKey> = Extract<keyof PersistedSectionMap[K], string>;
 
@@ -56,29 +62,37 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
   pageKey: K,
   fieldName: FieldName<K>,
   options?: ReporterOptions
-): ((errorMsg: string | undefined) => void) => {
+): ((error: ReportableFieldError | undefined) => void) => {
   const { setFieldError } = useFormPersistence();
 
   const severity = options?.severity ?? 'error';
   const source = options?.source ?? 'input';
 
   const reportError = React.useCallback(
-    (errorMsg: string | undefined) => {
+    (error: ReportableFieldError | undefined) => {
       // Lifecycle contract:
       // - The producer (typically an input component) owns the error for this field and MUST clear it
       //   by calling the reporter with `undefined` once the field becomes valid again.
       // - The form layer may clear all field errors on authoritative state replacement (reset/load).
-      if (errorMsg === undefined || errorMsg.trim() === '') {
+      if (error === undefined || (typeof error === 'string' && error.trim() === '') || (typeof error !== 'string' && error.message.trim() === '')) {
         setFieldError(pageKey, fieldName, source, null);
         return;
       }
 
-      setFieldError(pageKey, fieldName, source, { message: errorMsg, severity });
+      if (typeof error === 'string') {
+        setFieldError(pageKey, fieldName, source, { message: error, severity, blocksSave: true });
+        return;
+      }
+
+      setFieldError(pageKey, fieldName, source, {
+        message: error.message,
+        severity,
+        blocksSave: error.blocksSave !== false,
+      });
     },
     [fieldName, pageKey, setFieldError, severity, source]
   );
 
   return reportError;
 };
-
 

@@ -24,6 +24,7 @@ import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { createCommitEvent, type CommitHandler } from '../../../types/fieldEvents';
+import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
 import { downloadVarigeMenPdf } from '../../../utils/pdf/pdfService';
 import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../../../domain/faellesPersondata/faellesPersondataInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
@@ -64,14 +65,14 @@ const [fodselsdatoError, setFodselsdatoError] = React.useState<string | undefine
 const [beregningsdatoError, setBeregningsdatoError] = React.useState<string | undefined>(undefined);
 const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
 
-const handleMengradError = React.useCallback((errorMsg: string | undefined) => {
-  setMengradError(errorMsg);
+const handleMengradError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
+  setMengradError(getReportableFieldErrorMessage(errorMsg));
 }, []);
-const handleFodselsdatoError = React.useCallback((errorMsg: string | undefined) => {
-  setFodselsdatoError(errorMsg);
+const handleFodselsdatoError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
+  setFodselsdatoError(getReportableFieldErrorMessage(errorMsg));
 }, []);
-const handleBeregningsdatoError = React.useCallback((errorMsg: string | undefined) => {
-  setBeregningsdatoError(errorMsg);
+const handleBeregningsdatoError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
+  setBeregningsdatoError(getReportableFieldErrorMessage(errorMsg));
 }, []);
 
 // Tjek om der er fejl - kun baseret på felt-errors fra onBlur

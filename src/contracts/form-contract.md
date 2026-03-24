@@ -169,6 +169,25 @@ eller library-opgraderinger må ikke bryde disse semantikker.
   - Ugyldigt format committes ikke
 - Undtagelse: visse EO-feltspecifikke bounds giver fejlvisning direkte i feltet fra commit-tidspunktet — se §13.
 
+### 4.4 Gem-gating følger commitbarhed, ikke al rød fejl-UI
+
+Dette er et bevidst designvalg og er normativt for Mineo:
+
+- `.eo`-gem må gerne fortsætte, når et felt allerede har committet en gyldig canonical værdi, selv om
+  feltet viser rød fejlmarkering pga. bounds/afgrænsning.
+- `.eo`-gem må kun blokeres af fejl, der betyder at brugerens aktuelle input **ikke kunne committes** til
+  committed state.
+- Konsekvens:
+  - Gyldig dato i forkert interval må gemmes.
+  - Gyldigt heltal uden for UI-only range må gemmes.
+  - Ugyldig dato, ugyldigt talformat eller andre ikke-committable input må ikke gemmes.
+
+Rationale:
+- Save/load skal persistere schema-valideret committed brugerinput.
+- Rød fejlvisning i UI er ikke i sig selv nok til at blokere save; blokering afhænger af om committed
+  state findes og er gyldig.
+- Dette skel skal bevares ved fremtidige refactors for at undgå regression i save-flowet.
+
 ---
 
 ## 5. Tables

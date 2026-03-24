@@ -217,6 +217,27 @@ describe('formPersistenceStore public API', () => {
     expect(afterNoop).toBe(afterSet);
   });
 
+  it('setFieldError increments revision when blocksSave changes', () => {
+    const store = __createTestStore();
+
+    store.getState().setFieldError('stamdata', 'skadelidte', 'input', {
+      message: 'Fejl',
+      severity: 'error',
+      blocksSave: true,
+    });
+    const afterBlocking = store.getState().fieldErrorRevisions.stamdata;
+
+    store.getState().setFieldError('stamdata', 'skadelidte', 'input', {
+      message: 'Fejl',
+      severity: 'error',
+      blocksSave: false,
+    });
+    const afterNonBlocking = store.getState().fieldErrorRevisions.stamdata;
+
+    expect(afterNonBlocking).toBe(afterBlocking + 1);
+    expect(store.getState().fieldErrors.stamdata.skadelidte?.input?.blocksSave).toBe(false);
+  });
+
   it('clearFieldErrorsForSection bumps only targeted field-error revision', () => {
     const store = __createTestStore();
     const before = store.getState().fieldErrorRevisions;

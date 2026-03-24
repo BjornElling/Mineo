@@ -8,6 +8,7 @@ import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import { getIntegerRangeErrorMessage } from '../../utils/integerRange';
 import { readClipboardText } from '../../utils/clipboardUtils';
+import type { ReportableFieldError } from '../../types/fieldErrors';
 
 export type StyledIntegerFieldValueChangeEvent = CommitEvent<number | undefined>;
 export type StyledIntegerFieldDraftChangeEvent = DraftChangeEvent;
@@ -22,7 +23,7 @@ export type StyledIntegerFieldProps = {
    *
    * Note: this intentionally does not report external errors/config errors.
    */
-  onFieldError?: (errorMsg: string | undefined) => void;
+  onFieldError?: (error: ReportableFieldError | undefined) => void;
 
   width?: number | string;
   minValue?: number;
@@ -264,7 +265,15 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
     // Notify parent of local error state (producer-owned reporting)
     React.useEffect(() => {
       if (typeof onFieldError !== 'function') return;
-      onFieldError(visibleLocalError?.message || (shouldShowRangeError ? rangeErrorMessage : undefined));
+      if (visibleLocalError?.message) {
+        onFieldError({ message: visibleLocalError.message, blocksSave: true });
+        return;
+      }
+      if (shouldShowRangeError) {
+        onFieldError({ message: rangeErrorMessage, blocksSave: false });
+        return;
+      }
+      onFieldError(undefined);
     }, [onFieldError, rangeErrorMessage, shouldShowRangeError, visibleLocalError?.message]);
 
     const skipNextBlurCommitRef = React.useRef(false);

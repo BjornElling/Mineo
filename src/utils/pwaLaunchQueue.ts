@@ -3,6 +3,7 @@ import {
   loadPendingPwaOpenRequestFromIndexedDB,
   savePendingPwaOpenRequestToIndexedDB,
 } from './fileHandleStorage';
+import { logWarning } from './logger';
 
 export const MINEO_PWA_FILE_OPEN_EVENT = 'mineo:pwa-file-open';
 
@@ -116,8 +117,24 @@ export const setupPwaLaunchQueueConsumer = (): void => {
 
     // Deterministisk strategi: seneste request vinder (overskriver evt. tidligere pending request).
     pendingRequest = request;
-    await savePendingPwaOpenRequestToIndexedDB(request);
     dispatchPendingRequestEvent(request);
+    void savePendingPwaOpenRequestToIndexedDB(request).then((saved) => {
+      if (!saved) {
+        logWarning('Pending PWA-open request kunne ikke persisteres; fortsætter med in-memory request', {
+          context: 'setupPwaLaunchQueueConsumer.persistPendingRequest',
+          data: { requestId: request.id, fileName: request.fileName },
+        });
+      }
+    }).catch((error: unknown) => {
+      logWarning('Pending PWA-open request kunne ikke persisteres; fortsætter med in-memory request', {
+        context: 'setupPwaLaunchQueueConsumer.persistPendingRequest',
+        data: {
+          requestId: request.id,
+          fileName: request.fileName,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        },
+      });
+    });
   });
 };
 

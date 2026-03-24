@@ -8,7 +8,7 @@ import {
 } from '../../hooks/useFormFieldErrors';
 import { FormPersistenceContext, type FormPersistenceContextValue } from '../../contexts/FormPersistenceContext.shared';
 import type { StorageKey } from '../../config/storageManifest';
-import type { FormFieldError } from '../../types/fieldErrors';
+import type { FormFieldError, ReportableFieldError } from '../../types/fieldErrors';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -111,7 +111,7 @@ describe('useFormFieldErrorReporter', () => {
     const setFieldError = vi.fn();
     const ctx = makeCtx({ setFieldError });
 
-    let reportError!: (msg: string | undefined) => void;
+    let reportError!: (msg: ReportableFieldError | undefined) => void;
     const Comp = () => {
       reportError = useFormFieldErrorReporter('stamdata' as StorageKey, 'journalnr' as never);
       return null;
@@ -131,7 +131,7 @@ describe('useFormFieldErrorReporter', () => {
       'stamdata',
       'journalnr',
       'input',
-      { message: 'Journalnummer mangler', severity: 'error' }
+      { message: 'Journalnummer mangler', severity: 'error', blocksSave: true }
     );
   });
 
@@ -139,7 +139,7 @@ describe('useFormFieldErrorReporter', () => {
     const setFieldError = vi.fn();
     const ctx = makeCtx({ setFieldError });
 
-    let reportError!: (msg: string | undefined) => void;
+    let reportError!: (msg: ReportableFieldError | undefined) => void;
     const Comp = () => {
       reportError = useFormFieldErrorReporter('stamdata' as StorageKey, 'journalnr' as never);
       return null;
@@ -162,7 +162,7 @@ describe('useFormFieldErrorReporter', () => {
     const setFieldError = vi.fn();
     const ctx = makeCtx({ setFieldError });
 
-    let reportError!: (msg: string | undefined) => void;
+    let reportError!: (msg: ReportableFieldError | undefined) => void;
     const Comp = () => {
       reportError = useFormFieldErrorReporter('stamdata' as StorageKey, 'journalnr' as never);
       return null;
@@ -185,7 +185,7 @@ describe('useFormFieldErrorReporter', () => {
     const setFieldError = vi.fn();
     const ctx = makeCtx({ setFieldError });
 
-    let reportError!: (msg: string | undefined) => void;
+    let reportError!: (msg: ReportableFieldError | undefined) => void;
     const Comp = () => {
       reportError = useFormFieldErrorReporter(
         'stamdata' as StorageKey,
@@ -209,7 +209,35 @@ describe('useFormFieldErrorReporter', () => {
       'stamdata',
       'journalnr',
       'input',
-      { message: 'Advarsel', severity: 'warning' }
+      { message: 'Advarsel', severity: 'warning', blocksSave: true }
+    );
+  });
+
+  it('videresender blocksSave=false for committede UI-only fejl', async () => {
+    const setFieldError = vi.fn();
+    const ctx = makeCtx({ setFieldError });
+
+    let reportError!: (msg: ReportableFieldError | undefined) => void;
+    const Comp = () => {
+      reportError = useFormFieldErrorReporter('stamdata' as StorageKey, 'journalnr' as never);
+      return null;
+    };
+
+    render(
+      <FormPersistenceContext.Provider value={ctx}>
+        <Comp />
+      </FormPersistenceContext.Provider>
+    );
+
+    await act(async () => {
+      reportError({ message: 'Datoen ligger uden for intervallet', blocksSave: false });
+    });
+
+    expect(setFieldError).toHaveBeenCalledWith(
+      'stamdata',
+      'journalnr',
+      'input',
+      { message: 'Datoen ligger uden for intervallet', severity: 'error', blocksSave: false }
     );
   });
 

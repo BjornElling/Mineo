@@ -13,6 +13,21 @@ vi.mock('../../../utils/fileLoad', () => ({
   loadFromFileHandle: vi.fn(),
 }));
 
+let pendingPwaRequest: unknown = null;
+
+vi.mock('../../../utils/pwaLaunchQueue', () => ({
+  MINEO_PWA_FILE_OPEN_EVENT: 'mineo:pwa-file-open',
+  clearPendingPwaFileOpenRequest: vi.fn(async () => {
+    pendingPwaRequest = null;
+  }),
+  getPendingPwaFileOpenRequest: () => pendingPwaRequest,
+  markPendingPwaFileOpenRequestHandled: vi.fn(async (requestId: string) => {
+    if ((pendingPwaRequest as { id?: string } | null)?.id === requestId) {
+      pendingPwaRequest = null;
+    }
+  }),
+}));
+
 vi.mock('../../../utils/fileSave', () => ({
   saveToFile: vi.fn(),
 }));
@@ -38,6 +53,7 @@ vi.mock('../../../components/tables/gridCore/gridCoreRegistry', () => ({
 }));
 
 import MainLayout from '../../../components/layout/MainLayout';
+import { loadFromFile, loadFromFileHandle } from '../../../utils/fileLoad';
 import { saveToFile } from '../../../utils/fileSave';
 import { deleteFileHandleFromIndexedDB } from '../../../utils/fileHandleStorage';
 import { getGridCoreForTable } from '../../../components/tables/gridCore/gridCoreRegistry';
@@ -98,6 +114,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    pendingPwaRequest = null;
   });
 
   afterEach(() => {
@@ -292,6 +309,227 @@ describe('MainLayout (unsaved beforeunload)', () => {
       expect(saveToFileMock).not.toHaveBeenCalled();
     });
 
+    await waitFor(() => {
+      expect(document.activeElement).toBe(failedInput);
+    });
+  });
+
+  it('allows save when field error is UI-only and committed data already exists', async () => {
+    const saveToFileMock = vi.mocked(saveToFile);
+    saveToFileMock.mockResolvedValue({
+      success: true,
+      filename: 'range-ok.eo',
+    } satisfies SaveFileResult);
+
+    let ctx: ReturnType<typeof useFormPersistence> | null = null;
+
+    const Probe = () => {
+      const value = useFormPersistence();
+      React.useEffect(() => {
+        ctx = value;
+      }, [value]);
+      return null;
+    };
+
+    render(
+      <AppSettingsProvider>
+        <FormPersistenceProvider>
+          <MemoryRouter initialEntries={['/stamdata']}>
+            <Probe />
+            <MainLayout>
+              <div />
+            </MainLayout>
+          </MemoryRouter>
+        </FormPersistenceProvider>
+      </AppSettingsProvider>
+    );
+
+    await waitFor(() => {
+      expect(ctx).not.toBeNull();
+    });
+
+    act(() => {
+      ctx!.persistData('stamdata', stampStamdata('Gem trods rangefejl'));
+      ctx!.setFieldError('stamdata', 'skadesdato', 'input', {
+        message: 'Datoen ligger uden for intervallet',
+        severity: 'error',
+        blocksSave: false,
+      });
+    });
+
+    await act(async () => {
+      screen.getByText('Gem').click();
+    });
+
+    await waitFor(() => {
+      expect(saveToFileMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(screen.queryByText('Kan ikke gemme: Der er ugyldige felter. Ret felter med rød markering, og prøv igen.')).not.toBeInTheDocument();
+  });
+
+  it('shows verification warning after successful save with warning details', async () => {
+    const saveToFileMock = vi.mocked(saveToFile);
+    saveToFileMock.mockResolvedValue({
+      success: true,
+      filename: 'warning.eo',
+      warning: 'ADVARSEL: Manglende sektioner: stamdata',
+    } satisfies SaveFileResult);
+
+    let ctx: ReturnType<typeof useFormPersistence> | null = null;
+
+    const Probe = () => {
+      const value = useFormPersistence();
+      React.useEffect(() => {
+        ctx = value;
+      }, [value]);
+      return null;
+    };
+
+    render(
+      <AppSettingsProvider>
+        <FormPersistenceProvider>
+          <MemoryRouter initialEntries={['/stamdata']}>
+            <Probe />
+            <MainLayout>
+              <div />
+            </MainLayout>
+          </MemoryRouter>
+        </FormPersistenceProvider>
+      </AppSettingsProvider>
+    );
+
+    await waitFor(() => {
+      expect(ctx).not.toBeNull();
+    });
+
+    act(() => {
+      ctx!.persistData('stamdata', stampStamdata('Gem med warning'));
+    });
+
+    await act(async () => {
+      screen.getByText('Gem').click();
+    });
+
+    const matches = await screen.findAllByText((_, element) => {
+      const text = element?.textContent ?? '';
+      return text.includes('Gemt med advarsel') && text.includes('ADVARSEL: Manglende sektioner: stamdata');
+    });
+    expect(matches.length).toBeGreaterThan(0);
+  });
+
+  it('blocks manual load when an open locked grid editor cannot be committed', async () => {
+    const loadFromFileMock = vi.mocked(loadFromFile);
+    const getGridCoreForTableMock = vi.mocked(getGridCoreForTable);
+
+    const failedInput = document.createElement('input');
+    failedInput.setAttribute('data-mineo-test-temp', 'true');
+    document.body.appendChild(failedInput);
+    const table = document.createElement('table');
+    table.setAttribute('data-mineo-test-temp', 'true');
+    table.setAttribute('data-mineo-table-navigation', 'true');
+    table.appendChild(document.createElement('tbody'));
+    document.body.appendChild(table);
+
+    getGridCoreForTableMock.mockImplementation((node: HTMLTableElement) => {
+      if (node !== table) return null;
+      return {
+        getEditingCell: () => ({ rowId: 'r1', colIndex: 0 }),
+        getEditor: () => ({
+          getElement: () => failedInput,
+          getIsLocked: () => true,
+          commitCurrent: () => false,
+          clearAndCommit: () => {},
+          cancelEdit: () => {},
+          prepareEditFromKey: () => false,
+          selectAll: () => {},
+        }),
+        clearFocusPlan: () => {},
+        closeEditing: () => {},
+      } as unknown as ReturnType<typeof getGridCoreForTable>;
+    });
+
+    render(
+      <AppSettingsProvider>
+        <FormPersistenceProvider>
+          <MemoryRouter initialEntries={['/stamdata']}>
+            <MainLayout>
+              <div />
+            </MainLayout>
+          </MemoryRouter>
+        </FormPersistenceProvider>
+      </AppSettingsProvider>
+    );
+
+    await act(async () => {
+      screen.getByText('Hent').click();
+    });
+
+    expect(loadFromFileMock).not.toHaveBeenCalled();
+    await screen.findByText('Kan ikke indlæse fil: afslut eller ret det aktive felt først.');
+    await waitFor(() => {
+      expect(document.activeElement).toBe(failedInput);
+    });
+  });
+
+  it('blocks PWA load when an open locked grid editor cannot be committed', async () => {
+    const loadFromFileHandleMock = vi.mocked(loadFromFileHandle);
+    const getGridCoreForTableMock = vi.mocked(getGridCoreForTable);
+
+    const failedInput = document.createElement('input');
+    failedInput.setAttribute('data-mineo-test-temp', 'true');
+    document.body.appendChild(failedInput);
+    const table = document.createElement('table');
+    table.setAttribute('data-mineo-test-temp', 'true');
+    table.setAttribute('data-mineo-table-navigation', 'true');
+    table.appendChild(document.createElement('tbody'));
+    document.body.appendChild(table);
+
+    getGridCoreForTableMock.mockImplementation((node: HTMLTableElement) => {
+      if (node !== table) return null;
+      return {
+        getEditingCell: () => ({ rowId: 'r1', colIndex: 0 }),
+        getEditor: () => ({
+          getElement: () => failedInput,
+          getIsLocked: () => true,
+          commitCurrent: () => false,
+          clearAndCommit: () => {},
+          cancelEdit: () => {},
+          prepareEditFromKey: () => false,
+          selectAll: () => {},
+        }),
+        clearFocusPlan: () => {},
+        closeEditing: () => {},
+      } as unknown as ReturnType<typeof getGridCoreForTable>;
+    });
+
+    render(
+      <AppSettingsProvider>
+        <FormPersistenceProvider>
+          <MemoryRouter initialEntries={['/stamdata']}>
+            <MainLayout>
+              <div />
+            </MainLayout>
+          </MemoryRouter>
+        </FormPersistenceProvider>
+      </AppSettingsProvider>
+    );
+
+    pendingPwaRequest = {
+      id: 'pwa-open-blocked',
+      createdAtEpochMs: Date.now(),
+      targetUrl: '/open',
+      fileHandle: {} as FileSystemFileHandle,
+      fileName: 'blocked.eo',
+      ignoredFileCount: 0,
+    };
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
+    });
+
+    expect(loadFromFileHandleMock).not.toHaveBeenCalled();
+    await screen.findByText('Kan ikke indlæse fil: afslut eller ret det aktive felt først.');
     await waitFor(() => {
       expect(document.activeElement).toBe(failedInput);
     });

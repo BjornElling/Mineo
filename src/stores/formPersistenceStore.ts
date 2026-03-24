@@ -61,7 +61,7 @@ export type FormPersistenceStoreState = {
     key: K,
     fieldName: Extract<keyof PersistedSectionMap[K], string>,
     source: FieldErrorSource,
-    error: { message: string; severity: FieldErrorSeverity } | null
+    error: { message: string; severity: FieldErrorSeverity; blocksSave?: boolean } | null
   ) => void;
   clearFieldErrorsForSection: <K extends keyof FormPersistenceSections>(key: K) => void;
   clearAllFieldErrors: () => void;
@@ -217,7 +217,8 @@ const applyFieldErrorUpdate = (
     existing &&
     existing.message === next.message &&
     existing.severity === next.severity &&
-    existing.source === next.source
+    existing.source === next.source &&
+    existing.blocksSave === next.blocksSave
   ) {
     return { kind: 'noop' };
   }
@@ -342,7 +343,14 @@ const createFormPersistenceStore = () =>
         const prevForPage = state.fieldErrors[key] as FieldErrorsForSection<typeof key>;
         const prevForField = (prevForPage[fieldName] ?? {}) as FieldErrorBySource;
         const nextForPage: FieldErrorsForSection<typeof key> = { ...prevForPage };
-        const normalized = error === null ? null : normalizeFieldError({ message: error.message, severity: error.severity, source });
+        const normalized = error === null
+          ? null
+          : normalizeFieldError({
+              message: error.message,
+              severity: error.severity,
+              source,
+              blocksSave: error.blocksSave,
+            });
         const update = applyFieldErrorUpdate(prevForField, source, normalized);
         if (update.kind === 'noop') return state;
         if (update.kind === 'deleteField') {

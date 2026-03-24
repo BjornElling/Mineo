@@ -497,7 +497,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     pageKey: K,
     fieldName: Extract<keyof PersistedSectionMap[K], string>,
     source: FieldErrorSource,
-    error: { message: string; severity: FieldErrorSeverity } | null
+    error: { message: string; severity: FieldErrorSeverity; blocksSave?: boolean } | null
   ) => {
     formPersistenceStore.getState().setFieldError(pageKey, fieldName, source, error);
   }, []);

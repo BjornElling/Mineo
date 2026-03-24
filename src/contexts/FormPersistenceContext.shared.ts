@@ -28,7 +28,7 @@ export type FormPersistenceContextValue = {
     pageKey: K,
     fieldName: Extract<keyof PersistedSectionMap[K], string>,
     source: FieldErrorSource,
-    error: { message: string; severity: FieldErrorSeverity } | null
+    error: { message: string; severity: FieldErrorSeverity; blocksSave?: boolean } | null
   ) => void;
   clearFieldErrors: (pageKey: StorageKey) => void;
   clearAllFieldErrors: () => void;
@@ -41,4 +41,3 @@ export type FormPersistenceContextValue = {
 };
 
 export const FormPersistenceContext = React.createContext<FormPersistenceContextValue | null>(null);
-

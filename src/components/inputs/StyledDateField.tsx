@@ -12,6 +12,7 @@ import { filterDateLikeKeyDown } from './inputKeyFilters';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
+import type { ReportableFieldError } from '../../types/fieldErrors';
 
 export type StyledDateFieldValueChangeEvent = CommitEvent<ISODateString | undefined>;
 export type StyledDateFieldDraftChangeEvent = DraftChangeEvent;
@@ -51,7 +52,7 @@ export type StyledDateFieldProps = {
   /**
    * Callback for current error message (for parent validation gating)
    */
-  onFieldError?: (errorMsg: string | undefined) => void;
+  onFieldError?: (error: ReportableFieldError | undefined) => void;
 
   error?: boolean;
   helperText?: string;
@@ -335,11 +336,19 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
     // Notify parent of error state
     React.useEffect(() => {
       if (typeof onFieldError === 'function') {
-        // Prioritér config, local, range errors (samme rækkefølge som vises)
-        const errorMsg = configErrorMessage.trim() !== ''
-          ? configErrorMessage
-          : visibleLocalError?.message || visibleRangeErrorMessage || undefined;
-        onFieldError(errorMsg);
+        if (configErrorMessage.trim() !== '') {
+          onFieldError({ message: configErrorMessage, blocksSave: false });
+          return;
+        }
+        if (visibleLocalError?.message) {
+          onFieldError({ message: visibleLocalError.message, blocksSave: true });
+          return;
+        }
+        if (visibleRangeErrorMessage) {
+          onFieldError({ message: visibleRangeErrorMessage, blocksSave: false });
+          return;
+        }
+        onFieldError(undefined);
       }
     }, [configErrorMessage, visibleLocalError?.message, visibleRangeErrorMessage, onFieldError]);
 

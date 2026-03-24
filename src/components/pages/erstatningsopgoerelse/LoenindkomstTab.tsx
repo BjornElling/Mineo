@@ -17,6 +17,7 @@ import StyledRadioButton from '../../inputs/StyledRadioButton';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
 import StyledIntegerField from '../../inputs/StyledIntegerField';
 import type { CommitEvent, CommitHandler } from '../../../types/fieldEvents';
+import { getReportableFieldErrorMessage } from '../../../types/fieldErrors';
 import StandardLoenTable, { type StandardLoenTableSatser } from '../../tables/StandardLoenTable';
 import LoenudviklingManuelTable from '../../tables/LoenudviklingManuelTable';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
@@ -2491,7 +2492,7 @@ const LoenindkomstTab = React.memo(({
                       setLoentrinFinderBeloeb(event.target.value);
                       setLoentrinFinderErrors((prev) => ({ ...prev, beloeb: undefined }));
                     }}
-                    onFieldError={(errorMsg) => setLoentrinFinderAmountFieldError(errorMsg)}
+                    onFieldError={(errorMsg) => setLoentrinFinderAmountFieldError(getReportableFieldErrorMessage(errorMsg))}
                     error={Boolean(loentrinFinderErrors.beloeb)}
                     helperText={loentrinFinderErrors.beloeb ?? ''}
                   />
@@ -2508,7 +2509,7 @@ const LoenindkomstTab = React.memo(({
                       setLoentrinFinderDato(event.target.value);
                       setLoentrinFinderErrors((prev) => ({ ...prev, dato: undefined }));
                     }}
-                    onFieldError={(errorMsg) => setLoentrinFinderDateFieldError(errorMsg)}
+                    onFieldError={(errorMsg) => setLoentrinFinderDateFieldError(getReportableFieldErrorMessage(errorMsg))}
                     error={Boolean(loentrinFinderErrors.dato)}
                     helperText={loentrinFinderErrors.dato ?? ''}
                   />
