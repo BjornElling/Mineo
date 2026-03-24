@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
@@ -44,16 +45,22 @@ describe('MainLayout (preflight apply)', () => {
 
     const Probe = () => {
       const value = useFormPersistence();
+      const location = useLocation();
       React.useEffect(() => {
         ctx = value;
       }, [value]);
-      return <div data-testid="epoch">{String(value.authoritativeSnapshotEpoch)}</div>;
+      return (
+        <>
+          <div data-testid="epoch">{String(value.authoritativeSnapshotEpoch)}</div>
+          <div data-testid="pathname">{location.pathname}</div>
+        </>
+      );
     };
 
     render(
       <AppSettingsProvider>
         <FormPersistenceProvider>
-          <MemoryRouter initialEntries={['/stamdata']}>
+          <MemoryRouter initialEntries={['/mineo']}>
             <Probe />
             <MainLayout>
               <div />
@@ -91,6 +98,7 @@ describe('MainLayout (preflight apply)', () => {
       const nextEpoch = Number(screen.getByTestId('epoch').textContent ?? '0');
       expect(nextEpoch).toBe(initialEpoch + 1);
     });
+    expect(screen.getByTestId('pathname')).toHaveTextContent('/stamdata');
 
     expect(ctx!.getFieldError('stamdata', 'skadelidte')).toBeUndefined();
     expect(ctx!.getFieldError('satser', 'aargang')).toBeUndefined();

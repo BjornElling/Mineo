@@ -49,6 +49,11 @@ type PendingOverwriteApply = {
   navigateToStamdataAfterApply: boolean;
 };
 
+type PendingLoadApply = {
+  result: LoadFileResult;
+  navigateToStamdataAfterApply: boolean;
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 };
@@ -72,6 +77,8 @@ type GridCommitAttemptResult = Readonly<{
 }>;
 
 const NON_TEXT_EDITING_INPUT_TYPES = new Set(['checkbox', 'radio', 'range', 'button', 'submit', 'reset', 'file', 'color']);
+const PWA_OPEN_REQUEST_RETRY_INTERVAL_MS = 100;
+const PWA_OPEN_REQUEST_RETRY_WINDOW_MS = 3000;
 
 const waitForAnimationFrame = (): Promise<void> =>
   new Promise<void>((resolve) => {
@@ -237,7 +244,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
   const location = useLocation();
   const { settings } = useAppSettings();
   const [overlay, setOverlay] = React.useState<OverlayData | null>(null);
-  const [pendingLoadResult, setPendingLoadResult] = React.useState<LoadFileResult | null>(null);
+  const [pendingLoadResult, setPendingLoadResult] = React.useState<PendingLoadApply | null>(null);
   const [pendingOverwriteApply, setPendingOverwriteApply] = React.useState<PendingOverwriteApply | null>(null);
   const {
     getPersistedData,
@@ -389,6 +396,10 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     overlayData: OverlayData,
     navigateToStamdataAfterApply: boolean
   ): Promise<'applied' | 'awaitingUser'> => {
+    // Bevidst UX-valg:
+    // Alle succesfulde hent-forløb (manuel hent, PWA-filåbning, preflight "Indlæs trods fejl",
+    // og overskrivelsesflow) skal føre brugeren til Stamdata-siden efter apply.
+    // Normal app-opstart styres derimod alene af root-route i App.tsx.
     if (hasAnyData()) {
       setPendingOverwriteApply({ result, overlay: overlayData, navigateToStamdataAfterApply });
       return 'awaitingUser';
@@ -481,11 +492,11 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
 
       if (result.success) {
         if (result.preflightWarning) {
-          setPendingLoadResult(result);
+          setPendingLoadResult({ result, navigateToStamdataAfterApply: true });
           return;
         }
 
-        await requestApplyLoadedSnapshot(result, { message: 'Hentet', type: 'success' }, false);
+        await requestApplyLoadedSnapshot(result, { message: 'Hentet', type: 'success' }, true);
       }
     } catch (error) {
       restoreFocusIfPossible(focusTargetBeforeLoad);
@@ -515,7 +526,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
 
       if (result.success) {
         if (result.preflightWarning) {
-          setPendingLoadResult(result);
+          setPendingLoadResult({ result, navigateToStamdataAfterApply: true });
           pendingPwaRequestRef.current = request;
           return 'preflight';
         }
@@ -526,7 +537,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
         const outcome = await requestApplyLoadedSnapshot(
           result,
           { message: `Hentet${ignoredSuffix}`, type: request.ignoredFileCount > 0 ? 'warning' : 'success' },
-          location.pathname === '/open'
+          true
         );
 
         pendingPwaRequestRef.current = null;
@@ -547,7 +558,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
       pendingPwaRequestRef.current = null;
       return 'error';
     }
-  }, [location.pathname, requestApplyLoadedSnapshot]);
+  }, [requestApplyLoadedSnapshot]);
 
   const processNextPwaFileOpenRequest = React.useCallback(() => {
     const runNext = (): void => {
@@ -600,20 +611,60 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     processNextPwaFileOpenRequest();
   }, [pendingLoadResult, pendingOverwriteApply, processNextPwaFileOpenRequest]);
 
-  const pendingPreflight = pendingLoadResult?.preflightWarning;
+  React.useEffect(() => {
+    if (location.pathname !== '/open') return;
+    if (pendingLoadResult !== null) return;
+    if (pendingOverwriteApply !== null) return;
+
+    // Bevidst robustness-guard:
+    // Nogle browsere/PWA-opstarter kan levere launchQueue-requesten lige efter initial render,
+    // men før vores event-listener er wired. I det tilfælde ligger requesten stadig pending i
+    // pwaLaunchQueue-modulet, men den første event er tabt. Vi re-checker derfor kortvarigt,
+    // så dobbeltklik-åbnede `.eo` filer ikke sporadisk strandes på OpenEo-siden.
+    const startedAt = Date.now();
+    let timeoutId: number | null = null;
+    let cancelled = false;
+
+    const tick = (): void => {
+      if (cancelled) return;
+      if (pendingLoadResult !== null || pendingOverwriteApply !== null) return;
+      processNextPwaFileOpenRequest();
+
+      if (Date.now() - startedAt >= PWA_OPEN_REQUEST_RETRY_WINDOW_MS) {
+        return;
+      }
+
+      timeoutId = window.setTimeout(tick, PWA_OPEN_REQUEST_RETRY_INTERVAL_MS);
+    };
+
+    timeoutId = window.setTimeout(tick, PWA_OPEN_REQUEST_RETRY_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [location.pathname, pendingLoadResult, pendingOverwriteApply, processNextPwaFileOpenRequest]);
+
+  const pendingPreflight = pendingLoadResult?.result.preflightWarning;
   const pendingPreflightBugReportError = React.useMemo(() => {
-    return pendingLoadResult ? buildPreflightBugReportError(pendingLoadResult) : null;
+    return pendingLoadResult ? buildPreflightBugReportError(pendingLoadResult.result) : null;
   }, [pendingLoadResult]);
 
   const handleLoadDespiteIssues = React.useCallback(async () => {
-    const result = pendingLoadResult;
-    if (!result) return;
+    const pending = pendingLoadResult;
+    if (!pending) return;
     setPendingLoadResult(null);
     setPendingOverwriteApply(null);
     pendingPwaRequestRef.current = null;
 
     try {
-      await requestApplyLoadedSnapshot(result, { message: 'Hentet (med fejl)', type: 'warning' }, location.pathname === '/open');
+      await requestApplyLoadedSnapshot(
+        pending.result,
+        { message: 'Hentet (med fejl)', type: 'warning' },
+        pending.navigateToStamdataAfterApply
+      );
     } catch (error) {
       console.error('Hent (trods fejl) fejlede:', error);
       isUserFeedbackRef.current = true;
@@ -622,7 +673,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
         type: 'error',
       });
     }
-  }, [location.pathname, pendingLoadResult, requestApplyLoadedSnapshot]);
+  }, [pendingLoadResult, requestApplyLoadedSnapshot]);
 
   const handleConfirmOverwriteApply = React.useCallback(async () => {
     const pending = pendingOverwriteApply;

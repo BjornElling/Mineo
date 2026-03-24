@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
@@ -26,6 +26,11 @@ import MainLayout from '../../../components/layout/MainLayout';
 import { loadFromFileHandle } from '../../../utils/fileLoad';
 
 describe('MainLayout (PWA concurrency)', () => {
+  const RouteProbe = () => {
+    const location = useLocation();
+    return <div data-testid="pathname">{location.pathname}</div>;
+  };
+
   it('drops new PWA file-opens while preflight dialog is open (policy A)', async () => {
     const loadFromFileHandleMock = vi.mocked(loadFromFileHandle);
 
@@ -47,6 +52,7 @@ describe('MainLayout (PWA concurrency)', () => {
       <AppSettingsProvider>
         <FormPersistenceProvider>
           <MemoryRouter initialEntries={['/open']}>
+            <RouteProbe />
             <MainLayout>
               <div />
             </MainLayout>
@@ -93,5 +99,50 @@ describe('MainLayout (PWA concurrency)', () => {
     const calls = loadFromFileHandleMock.mock.calls;
     expect(calls[0]?.[1]).toEqual(expect.objectContaining({ requestId: 'pwa-open-1' }));
     expect(calls.some((c) => c[1]?.requestId === 'pwa-open-2')).toBe(false);
+  });
+
+  it('recovers a pending PWA request on /open even if the initial event was missed during startup', async () => {
+    vi.useFakeTimers();
+
+    const loadFromFileHandleMock = vi.mocked(loadFromFileHandle);
+    loadFromFileHandleMock.mockResolvedValue({
+      success: true,
+      source: 'pwa',
+      requestId: 'pwa-open-late',
+      filename: 'late.eo',
+      snapshot: { stamdata: { skadelidte: 'Y' } },
+    } satisfies LoadFileResult);
+
+    render(
+      <AppSettingsProvider>
+        <FormPersistenceProvider>
+          <MemoryRouter initialEntries={['/open']}>
+            <RouteProbe />
+            <MainLayout>
+              <div />
+            </MainLayout>
+          </MemoryRouter>
+        </FormPersistenceProvider>
+      </AppSettingsProvider>
+    );
+
+    pendingPwaRequest = {
+      id: 'pwa-open-late',
+      createdAtEpochMs: Date.now(),
+      targetUrl: '/open',
+      fileHandle: {} as FileSystemFileHandle,
+      fileName: 'late.eo',
+      ignoredFileCount: 0,
+    };
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(150);
+    });
+
+    expect(loadFromFileHandleMock).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ requestId: 'pwa-open-late' })
+    );
+    expect(screen.getByTestId('pathname')).toHaveTextContent('/stamdata');
   });
 });

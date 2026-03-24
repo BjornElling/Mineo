@@ -4,6 +4,21 @@ import { useNavigate } from 'react-router-dom';
 
 const OpenEo = React.memo(() => {
   const navigate = useNavigate();
+  const [showFallbackContent, setShowFallbackContent] = React.useState(false);
+
+  React.useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setShowFallbackContent(true);
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  if (!showFallbackContent) {
+    return <Box sx={{ padding: 4 }} aria-hidden="true" />;
+  }
 
   return (
     <Box sx={{ padding: 4 }}>
