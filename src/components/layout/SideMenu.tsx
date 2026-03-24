@@ -76,7 +76,8 @@ const navigationItems: NavigationItem[] = [
 // Utilities (med active state)
 const utilityItems: NavigationItem[] = [
   { id: 'indstillinger', label: 'Indstillinger', icon: <Settings /> },
-  { id: 'om', label: 'Om', icon: <Info /> }
+  // Bevidst UX-valg: siden er internt navngivet `mineo`, men labelen i sidemenuen forbliver `Om`.
+  { id: 'mineo', label: 'Om', icon: <Info /> }
 ];
 
 /**

@@ -14,6 +14,7 @@ describe('DEFAULT_APP_SETTINGS', () => {
   });
 
   it('har alle forventede felter', () => {
+    expect(typeof DEFAULT_APP_SETTINGS.defaultStartsideErStamdata).toBe('boolean');
     expect(typeof DEFAULT_APP_SETTINGS.showContentBoxReportButton).toBe('boolean');
     expect(typeof DEFAULT_APP_SETTINGS.showEODebugMenu).toBe('boolean');
     expect(typeof DEFAULT_APP_SETTINGS.defaultFuldLoenUnderFerie).toBe('boolean');
@@ -23,6 +24,7 @@ describe('DEFAULT_APP_SETTINGS', () => {
     expect(DEFAULT_APP_SETTINGS.allowReguleringMedUdloebMedMaaneder).toBe(6);
     expect(DEFAULT_APP_SETTINGS.brevhovedIndstillinger).toBeDefined();
     expect(DEFAULT_APP_SETTINGS.defaultVisBilagsnumre).toBe(false);
+    expect(DEFAULT_APP_SETTINGS.defaultStartsideErStamdata).toBe(false);
   });
 
   it('defaultOverenskomstLoenmodtager = "ALLE"', () => {

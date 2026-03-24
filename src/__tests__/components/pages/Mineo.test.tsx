@@ -2,8 +2,10 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material';
-import Om from '../../../components/pages/Om';
+import Mineo from '../../../components/pages/Mineo';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
+import { LOCAL_STORAGE_KEY, readLocalStorage, writeLocalStorage } from '../../../settings/appSettingsStorage';
+import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 
 // Mock LICENSE filen
 vi.mock('../../../assets/LICENSE.txt?raw', () => ({
@@ -16,24 +18,28 @@ vi.mock('../../../utils/pwaInstallPrompt', () => ({
 }));
 
 /**
- * Helper til at rendere Om-siden med alle nødvendige providers
+ * Helper til at rendere Mineo-siden med alle nødvendige providers
  */
-const renderOm = () => {
+const renderMineo = () => {
   const theme = createTheme();
   return render(
     <BrowserRouter>
       <ThemeProvider theme={theme}>
         <AppSettingsProvider>
-          <Om />
+          <Mineo />
         </AppSettingsProvider>
       </ThemeProvider>
     </BrowserRouter>
   );
 };
 
-describe('Om - License Modal Integration', () => {
+describe('Mineo - License Modal Integration', () => {
+  beforeEach(() => {
+    writeLocalStorage(LOCAL_STORAGE_KEY, '');
+  });
+
   test('modal er lukket som standard (anti-regression)', () => {
-    renderOm();
+    renderMineo();
 
     // Modal skal ikke være i DOM'en (ikke bare skjult)
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -41,7 +47,7 @@ describe('Om - License Modal Integration', () => {
 
   test('klik på "MIT-licensen" åbner modal', async () => {
     const user = userEvent.setup();
-    renderOm();
+    renderMineo();
 
     // Verificer at modal er lukket (ikke i DOM)
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -61,7 +67,7 @@ describe('Om - License Modal Integration', () => {
 
   test('modal kan lukkes med Escape efter åbning', async () => {
     const user = userEvent.setup();
-    renderOm();
+    renderMineo();
 
     // Åbn modal
     const licenseLink = screen.getByRole('link', { name: /mit-licensen/i });
@@ -77,7 +83,7 @@ describe('Om - License Modal Integration', () => {
 
   test('modal kan lukkes med close-knap efter åbning', async () => {
     const user = userEvent.setup();
-    renderOm();
+    renderMineo();
 
     // Åbn modal
     const licenseLink = screen.getByRole('link', { name: /mit-licensen/i });
@@ -95,7 +101,7 @@ describe('Om - License Modal Integration', () => {
 
   test('modal kan åbnes og lukkes flere gange', async () => {
     const user = userEvent.setup();
-    renderOm();
+    renderMineo();
 
     const licenseLink = screen.getByRole('link', { name: /mit-licensen/i });
 
@@ -113,7 +119,7 @@ describe('Om - License Modal Integration', () => {
   });
 
   test('license-link er klikbart element', () => {
-    renderOm();
+    renderMineo();
 
     // Test semantik (role) i stedet for implementation detail (href)
     const licenseLink = screen.getByRole('link', { name: /mit-licensen/i });
@@ -121,14 +127,14 @@ describe('Om - License Modal Integration', () => {
     expect(licenseLink).toBeVisible();
   });
 
-  describe('Om-side indhold', () => {
+  describe('Mineo-side indhold', () => {
     test('viser side-titel', () => {
-      renderOm();
-      expect(screen.getByText('Om MINEO')).toBeInTheDocument();
+      renderMineo();
+      expect(screen.getByText('MinEO.dk')).toBeInTheDocument();
     });
 
     test('viser alle hovedsektioner', () => {
-      renderOm();
+      renderMineo();
 
       expect(screen.getByText('Programmet')).toBeInTheDocument();
       expect(screen.getByText('Teknisk')).toBeInTheDocument();
@@ -138,9 +144,42 @@ describe('Om - License Modal Integration', () => {
       expect(screen.getByText('Status')).toBeInTheDocument();
     });
 
+    test('kontakt er nederste sektion på siden', () => {
+      renderMineo();
+
+      const headings = screen.getAllByText(/^(Programmet|Teknisk|Persondata|Licensvilkår|Status|Kontakt)$/);
+      expect(headings[headings.length - 1]).toHaveTextContent('Kontakt');
+    });
+
     test('viser version nummer', () => {
-      renderOm();
+      renderMineo();
       expect(screen.getByText(/Aktuel version:/i)).toBeInTheDocument();
+    });
+
+    test('teknisk-boksen viser toggle for standardside', () => {
+      renderMineo();
+
+      expect(screen.getByText('Gør stamdata-siden til startside fremover')).toBeInTheDocument();
+      expect(screen.getByRole('checkbox')).not.toBeChecked();
+    });
+
+    test('toggle gemmes som device-lokal app-setting', async () => {
+      const user = userEvent.setup();
+      renderMineo();
+
+      const toggle = screen.getByRole('checkbox');
+      await user.click(toggle);
+
+      expect(toggle).toBeChecked();
+
+      const raw = readLocalStorage(LOCAL_STORAGE_KEY);
+      expect(raw).toBeDefined();
+      expect(JSON.parse(raw ?? '{}')).toMatchObject({
+        defaultStartsideErStamdata: true,
+        showContentBoxReportButton: DEFAULT_APP_SETTINGS.showContentBoxReportButton,
+        showEODebugMenu: DEFAULT_APP_SETTINGS.showEODebugMenu,
+        fontStyleColorDebug: DEFAULT_APP_SETTINGS.fontStyleColorDebug,
+      });
     });
   });
 });

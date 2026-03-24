@@ -4,6 +4,9 @@ import { VERSION } from '../../config/version';
 import { requestPwaInstall } from '../../utils/pwaInstallPrompt';
 import ContentBox from '../layout/ContentBox';
 import LicenseModal from '../ui/LicenseModal';
+import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
+import type { CommitEvent } from '../../types/fieldEvents';
+import { useAppSettings } from '../../contexts/useAppSettings';
 
 // Import af MUI ikoner til kontakt-sektionen
 import PersonIcon from '@mui/icons-material/Person';
@@ -13,9 +16,10 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import BrowserUpdatedIcon from '@mui/icons-material/BrowserUpdated';
 
 /**
- * Om-komponent
+ * Mineo-komponent
  */
-const Om = React.memo(() => {
+const Mineo = React.memo(() => {
+  const { settings, updateSettings } = useAppSettings();
   const [licenseOpen, setLicenseOpen] = React.useState(false);
 
   const handleInstallClick = React.useCallback((event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -33,9 +37,9 @@ const Om = React.memo(() => {
   }, []);
 
   return (
-    <Box className="om-page">
+    <Box className="mineo-page">
       {/* Side-header */}
-      <Typography className="page-title">Om MINEO</Typography>
+      <Typography className="page-title">MinEO.dk</Typography>
 
       {/* ------------------------------------------------------ */}
       {/* Beskrivelse */}
@@ -106,6 +110,16 @@ const Om = React.memo(() => {
         <Typography className="row--text">
           Bemærk, at hjælpeprogrammet kun kan installeres, hvis du benytter Google Chrome eller Microsoft Edge.
         </Typography>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Gør stamdata-siden til startside fremover</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledToggleSwitch
+              checked={settings.defaultStartsideErStamdata}
+              onCommit={(event: CommitEvent<boolean>) => updateSettings({ defaultStartsideErStamdata: event.target.value })}
+            />
+          </Box>
+        </Box>
 
       </ContentBox>
 
@@ -188,6 +202,34 @@ const Om = React.memo(() => {
       </ContentBox>
 
       {/* ------------------------------------------------------ */}
+      {/* License Modal */}
+      <LicenseModal
+        open={licenseOpen}
+        onClose={handleLicenseClose}
+      />
+
+      {/* ------------------------------------------------------ */}
+      {/* Status */}
+      {/* ------------------------------------------------------ */}
+      <ContentBox className="content-box flow--16">
+        <Typography className="section-header">Status</Typography>
+
+        <Typography className="row--text">
+          Programmet er fortsat under udvikling og vil løbende få opdateringer og nye funktioner.
+        </Typography>
+
+        <Typography className="row--text">
+          Udviklingen sker i fritiden og drives udelukkende af personlig interesse. Alle konstaterede fejl rettes straks,
+          men nye funktionaliteter udvikles og implementeres kun, når tid og overskud tillader det.
+        </Typography>
+
+        <Typography className="row--text">
+          Aktuel version: {VERSION}
+        </Typography>
+
+      </ContentBox>
+
+      {/* ------------------------------------------------------ */}
       {/* Kontakt */}
       {/* ------------------------------------------------------ */}
       <ContentBox className="content-box flow--16">
@@ -246,37 +288,10 @@ const Om = React.memo(() => {
         </Box>
       </ContentBox>
 
-      {/* ------------------------------------------------------ */}
-      {/* Status */}
-      {/* ------------------------------------------------------ */}
-      <ContentBox className="content-box flow--16">
-        <Typography className="section-header">Status</Typography>
-
-        <Typography className="row--text">
-          Programmet er fortsat under udvikling og vil løbende få opdateringer og nye funktioner.
-        </Typography>
-
-        <Typography className="row--text">
-          Udviklingen sker i fritiden og drives udelukkende af personlig interesse. Alle konstaterede fejl rettes straks,
-          men nye funktionaliteter udvikles og implementeres kun, når tid og overskud tillader det.
-        </Typography>
-
-        <Typography className="row--text">
-          Aktuel version: {VERSION}
-        </Typography>
-
-      </ContentBox>
-
-      {/* License Modal */}
-      <LicenseModal
-        open={licenseOpen}
-        onClose={handleLicenseClose}
-      />
-
     </Box>
   );
 });
 
-Om.displayName = 'Om';
+Mineo.displayName = 'Mineo';
 
-export default Om;
+export default Mineo;

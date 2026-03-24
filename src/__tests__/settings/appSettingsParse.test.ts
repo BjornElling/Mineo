@@ -83,6 +83,15 @@ describe('parseStoredSettings', () => {
     expect(result.brevhovedIndstillinger.regulering).toBe(DEFAULT_APP_SETTINGS.brevhovedIndstillinger.regulering);
     expect(result.brevhovedIndstillinger.aarsloensberegning).toBe(DEFAULT_APP_SETTINGS.brevhovedIndstillinger.aarsloensberegning);
   });
+
+  it('merger ny root-startside-setting med default ved schema-evolution', () => {
+    const result = parseStoredSettings({
+      showEODebugMenu: true,
+    });
+
+    expect(result.showEODebugMenu).toBe(true);
+    expect(result.defaultStartsideErStamdata).toBe(false);
+  });
 });
 
 describe('resolveAppSettings', () => {

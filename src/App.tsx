@@ -14,8 +14,9 @@ import Aarsloen from './components/pages/Aarsloen';
 import VarigeMen from './components/pages/VarigeMen';
 import Forsoergertab from './components/pages/Forsoergertab';
 import Indstillinger from './components/pages/Indstillinger';
-import Om from './components/pages/Om';
+import Mineo from './components/pages/Mineo';
 import OpenEo from './components/pages/OpenEo';
+import { useAppSettings } from './contexts/useAppSettings';
 
 type PageComponent = React.ComponentType<Record<string, never>>;
 type AppRoute = { path: string; component: PageComponent };
@@ -108,7 +109,7 @@ const routes: AppRoute[] = [
   { path: '/forsoergertab', component: Forsoergertab },
   { path: '/aarsloen', component: Aarsloen },
   { path: '/indstillinger', component: Indstillinger },
-  { path: '/om', component: Om },
+  { path: '/mineo', component: Mineo },
 ];
 
 /**
@@ -128,6 +129,17 @@ const createPageWrapper = (Component: PageComponent): PageComponent => {
   WrappedPage.displayName = `Page(${Component.displayName || Component.name || 'Component'})`;
   return WrappedPage;
 };
+
+const RootRedirect = React.memo(() => {
+  const { settings } = useAppSettings();
+
+  // Bevidst UX-valg:
+  // - Normal åbning af app/PWA går via root-route og styres af Mineo-toggle'en.
+  // - Filindlæsning er et separat flow i MainLayout og ender altid på Stamdata.
+  return <Navigate to={settings.defaultStartsideErStamdata ? '/stamdata' : '/mineo'} replace />;
+});
+
+RootRedirect.displayName = 'RootRedirect';
 
 /**
  * Hovedkomponent for MINEO applikationen
@@ -163,7 +175,7 @@ function App() {
         <FormPersistenceProvider>
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Navigate to="/stamdata" replace />} />
+              <Route path="/" element={<RootRedirect />} />
               {pageWrappers.map(({ path, element: PageWrapper }) => (
                 <Route key={path} path={path} element={<PageWrapper />} />
               ))}

@@ -137,8 +137,8 @@
   line-height: var(--line-height-base);
 }
 
-/* Om-siden: lidt større linjeafstand for bedre læsbarhed af længere tekst */
-.om-page .MuiTypography-root.row--text {
+/* Mineo-siden: lidt større linjeafstand for bedre læsbarhed af længere tekst */
+.mineo-page .MuiTypography-root.row--text {
   line-height: 1.6;
 }
 

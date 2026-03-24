@@ -24,6 +24,9 @@ Konsekvens:
 - **PDF-laget læser aldrig fra AppSettings**; PDF bygger udelukkende på EO-data (og eksplicitte options).
 - **KRL satstabeller har ingen separat brevhoved-toggle**:
   KRL skal altid arve `regulering`-indstillingen 1-til-1 for visning af brevhoved.
+- **Normal åbning af app/PWA**: startsiden bestemmes af den device-lokale toggle på Mineo-siden.
+- **Alle hent-forløb**: når en `.eo`-fil er indlæst og anvendt, skal brugerens visning gå til `Stamdata`,
+  uanset hvilken startside-toggle der ellers er valgt.
 
 ## Teknisk implementering
 - Programindstillinger persisteres i **`localStorage`** under en dedikeret nøgle: `mineo_app_settings_v1`

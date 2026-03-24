@@ -75,7 +75,7 @@ Sider der primært viser statisk eller let interaktiv information.
 
 Aktuelt eksempel:
 
-- `Om`
+- `Mineo`
 
 ### 2.4 Hjælpe-/systemruter
 
