@@ -30,6 +30,7 @@ import type {
 import {
   formatPct,
   formatSkadesdatoCompact,
+  shouldShowLoebende2024ConversionBlock,
   toAfgoerelseTypeLabel,
   toOphoerAarsagLabel,
 } from '../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
@@ -147,50 +148,51 @@ export const addLoebendeAfgoerelseSection = (
     writer.writeWrappedText('Afgørelsen giver ingen løbende ydelse i den valgte periode.');
     writer.addSpacer(2);
   }
+  if (!ingenLoebendeYdelse) {
+    const ydelserHeader: RowInput = [
+      createPdfTableCell('Fra o.m.', { halign: 'center', bold: true }),
+      createPdfTableCell('Til o.m.', { halign: 'center', bold: true }),
+      createPdfTableCell('Mdr.', { halign: 'right', bold: true }),
+      createPdfTableCell('Grundydelse', { halign: 'right', bold: true }),
+      createPdfTableCell('Regulering', { halign: 'right', bold: true }),
+      createPdfTableCell('Ydelse/md.', { halign: 'right', bold: true }),
+      createPdfTableCell('Beregnet EET', { halign: 'right', bold: true }),
+    ];
 
-  const ydelserHeader: RowInput = [
-    createPdfTableCell('Fra o.m.', { halign: 'center', bold: true }),
-    createPdfTableCell('Til o.m.', { halign: 'center', bold: true }),
-    createPdfTableCell('Mdr.', { halign: 'right', bold: true }),
-    createPdfTableCell('Grundydelse', { halign: 'right', bold: true }),
-    createPdfTableCell('Regulering', { halign: 'right', bold: true }),
-    createPdfTableCell('Ydelse/md.', { halign: 'right', bold: true }),
-    createPdfTableCell('Beregnet EET', { halign: 'right', bold: true }),
-  ];
+    const ydelserBody: RowInput[] = [
+      ydelserHeader,
+      ...afgoerelse.perioder.map(
+        (row): RowInput => [
+          createPdfTableCell(formatIsoDateShort(row.fra), { halign: 'center' }),
+          createPdfTableCell(formatIsoDateShort(row.til), { halign: 'center' }),
+          cellRight(formatMaaneder(row.maanederPraecis)),
+          cellRight(formatKr(row.grundydelseAfrundet, 2)),
+          cellRight(formatRegulering(row.reguleringPct)),
+          cellRight(formatKr(row.maanedligYdelse)),
+          cellRight(formatKr(row.beregnetEet)),
+        ]
+      ),
+      [
+        cellLeft('I alt'),
+        cellLeft(''),
+        cellLeft(''),
+        cellLeft(''),
+        cellLeft(''),
+        cellLeft(''),
+        cellRightBold(formatKr(afgoerelse.iAltBeregnetEet)),
+      ],
+    ];
 
-  const ydelserBody: RowInput[] = [
-    ydelserHeader,
-    ...afgoerelse.perioder.map(
-      (row): RowInput => [
-        createPdfTableCell(formatIsoDateShort(row.fra), { halign: 'center' }),
-        createPdfTableCell(formatIsoDateShort(row.til), { halign: 'center' }),
-        cellRight(formatMaaneder(row.maanederPraecis)),
-        cellRight(formatKr(row.grundydelseAfrundet, 2)),
-        cellRight(formatRegulering(row.reguleringPct)),
-        cellRight(formatKr(row.maanedligYdelse)),
-        cellRight(formatKr(row.beregnetEet)),
-      ]
-    ),
-    [
-      cellLeft('I alt'),
-      cellLeft(''),
-      cellLeft(''),
-      cellLeft(''),
-      cellLeft(''),
-      cellLeft(''),
-      cellRightBold(formatKr(afgoerelse.iAltBeregnetEet)),
-    ],
-  ];
-
-  const doc = writer.getDoc();
-  const startY = writer.getY();
-  const finalY = renderEoStylePdfTable({
-    doc,
-    startY,
-    body: ydelserBody,
-    hasHeaderRow: true,
-  });
-  writer.setY(resolvePdfSectionEndY(finalY, startY));
+    const doc = writer.getDoc();
+    const startY = writer.getY();
+    const finalY = renderEoStylePdfTable({
+      doc,
+      startY,
+      body: ydelserBody,
+      hasHeaderRow: true,
+    });
+    writer.setY(resolvePdfSectionEndY(finalY, startY));
+  }
 };
 
 // ============================================================================
@@ -262,8 +264,8 @@ export const addLoebendeUdvidetSpecifikationPage = (
   );
 
   for (const afgoerelse of computation.afgoerelser) {
-    const hasYdelseFrom2024 = afgoerelse.perioder.some((r) => r.satsAar >= 2024);
-    const show2024Block = computation.grundloenNiveau === '2003' && hasYdelseFrom2024;
+    const show2024Block =
+      computation.grundloenNiveau === '2003' && shouldShowLoebende2024ConversionBlock(afgoerelse);
     const hasKapitaliseringsdato = afgoerelse.kapitaliseringsdato !== null;
     const hasRestSection = afgoerelse.harRestSektion && hasKapitaliseringsdato;
     const kapitaliseringFra2024 =

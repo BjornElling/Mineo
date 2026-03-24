@@ -31,7 +31,12 @@ import { resolveAslReguleringRateForKapAar } from './eetReguleringRater';
 import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2011_06_16, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { computeEetLoebendeYdelser } from './eetLoebendeYdelserCalculation';
 import { computeEetEalCalculation } from './eetEalCalculation';
-import { computeEetKapitaliseringCalculation, WARN_NO_KAP_INPUT_ID } from './eetKapitaliseringCalculation';
+import {
+  computeEetKapitaliseringCalculation,
+  resolveKapitaliseringAarsydelseBreakdown,
+  WARN_NO_KAP_INPUT_ID,
+} from './eetKapitaliseringCalculation';
+import { hasTextValue } from './eetAslAfgoerelser';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -64,7 +69,10 @@ export type EetDifferencekravProformaKapitalisering = Readonly<{
   erstatningsniveauPct: number;
   amBidragPct: number;
   grundydelse: number;
-  reguleringsPctRounded4: number;
+  grundydelse2024: number | null;
+  opreguleringTil2024PctRounded4: number | null;
+  aarsydelseGrundlag: number;
+  aarsydelseReguleringsPctRounded4: number | null;
   aarsydelse: number;
   kapitaliseringsbekendtgoerelseLabel: string;
   folkepensionsalderLabel: string;
@@ -115,6 +123,24 @@ type Input = Readonly<{
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const toIssue = (id: string, message: string): EetIssue => ({ id, severity: 'error', message });
+const toWarning = (id: string, message: string): EetIssue => ({ id, severity: 'warning', message });
+
+type KnownAtBeregningsdatoAnalysis = Readonly<{
+  hasAnyEnteredRows: boolean;
+  hasAnyResolvedRows: boolean;
+  hasAnyKnownRows: boolean;
+  issues: readonly EetIssue[];
+}>;
+
+const hasAnyEetPctInput = (values: ErhvervsevnetabComposedValues): boolean => {
+  if (values.ealEetPct !== undefined && values.ealEetPct !== 0) {
+    return true;
+  }
+  return (values.aslAfgoerelser ?? []).some((row) => {
+    const eetPct = parsePercentDraft(row.eetPct);
+    return eetPct !== undefined && eetPct !== 0;
+  });
+};
 
 const filterAslRowsKnownAtBeregningsdato = (
   rows: readonly ErhvervsevnetabComposedValues['aslAfgoerelser'][number][],
@@ -124,11 +150,88 @@ const filterAslRowsKnownAtBeregningsdato = (
   return rows.filter((row) => {
     const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
     const virkningsdato = coerceToISODateString(row.virkningsDato);
-    // Fane 5 må kun se afgørelser, der både er truffet og har virkning senest på beregningsdatoen.
-    // Rækker uden begge datoer er derfor ikke "known at beregningsdato" og udelades fail-closed.
+    // Fane 5 afgrænser kun på virkningsdato. Afgørelsesdatoen kan godt ligge efter beregningsdatoen
+    // uden at afskære beregningen, men rækken skal stadig være en gyldig afgørelse med begge datoer.
     if (afgoerelsesdato === undefined || virkningsdato === undefined) return false;
-    return afgoerelsesdato <= beregningsdato && virkningsdato <= beregningsdato;
+    return virkningsdato <= beregningsdato;
   });
+};
+
+const analyzeAslRowsAtBeregningsdato = (
+  rows: readonly ErhvervsevnetabComposedValues['aslAfgoerelser'][number][],
+  beregningsdato: ISODateString | undefined
+): KnownAtBeregningsdatoAnalysis => {
+  const issues: EetIssue[] = [];
+  let hasAnyEnteredRows = false;
+  let hasAnyResolvedRows = false;
+  let hasAnyKnownRows = false;
+  let hasAfgoerelsesdatoAfterBeregningsdato = false;
+  let hasVirkningsdatoAfterBeregningsdato = false;
+  let hasKapDatoAfterBeregningsdato = false;
+
+  for (const row of rows) {
+    const rowHasAnyInput =
+      hasTextValue(row.afgoerelsesDato) ||
+      hasTextValue(row.virkningsDato) ||
+      hasTextValue(row.eetPct) ||
+      hasTextValue(row.kapDato) ||
+      hasTextValue(row.kapPct) ||
+      row.afgoerelseType !== undefined;
+    if (!rowHasAnyInput) continue;
+    hasAnyEnteredRows = true;
+
+    const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
+    const virkningsdato = coerceToISODateString(row.virkningsDato);
+    const kapDato = coerceToISODateString(row.kapDato);
+    const eetPct = parsePercentDraft(row.eetPct);
+
+    if (!afgoerelsesdato || !virkningsdato || !row.afgoerelseType || eetPct === undefined || eetPct <= 0) {
+      continue;
+    }
+
+    hasAnyResolvedRows = true;
+
+    if (beregningsdato && afgoerelsesdato > beregningsdato) {
+      hasAfgoerelsesdatoAfterBeregningsdato = true;
+    }
+    if (beregningsdato && virkningsdato > beregningsdato) {
+      hasVirkningsdatoAfterBeregningsdato = true;
+    }
+    if (beregningsdato && kapDato !== undefined && kapDato > beregningsdato) {
+      hasKapDatoAfterBeregningsdato = true;
+    }
+    if (!beregningsdato || virkningsdato <= beregningsdato) {
+      hasAnyKnownRows = true;
+    }
+  }
+
+  if (!hasAnyResolvedRows) {
+    issues.push(toIssue('asl-afgoerelser-empty', 'Ingen ASL-afgørelser er indtastet.'));
+  }
+  if (hasAnyResolvedRows && !hasAnyKnownRows) {
+    issues.push(toIssue('no-asl-afgoerelser-known-at-beregningsdato', 'Der er ingen ASL-afgørelser med virkningsdato på eller før beregningsdatoen.'));
+    return {
+      hasAnyEnteredRows,
+      hasAnyResolvedRows,
+      hasAnyKnownRows,
+      issues,
+    };
+  }
+  if (hasAfgoerelsesdatoAfterBeregningsdato) {
+    issues.push(toWarning('warn-afgoerelsesdato-after-beregningsdato', 'Der er angivet en afgørelsesdato efter beregningsdatoen.'));
+  }
+  if (hasVirkningsdatoAfterBeregningsdato) {
+    issues.push(toWarning('warn-virkningsdato-after-beregningsdato', 'Der er angivet en virkningsdato efter beregningsdatoen.'));
+  }
+  if (hasKapDatoAfterBeregningsdato) {
+    issues.push(toWarning('warn-kap-dato-after-beregningsdato', 'Der er angivet en kapitaliseringsdato efter beregningsdatoen.'));
+  }
+  return {
+    hasAnyEnteredRows,
+    hasAnyResolvedRows,
+    hasAnyKnownRows,
+    issues,
+  };
 };
 
 // ─── Proforma-kapitalisering ──────────────────────────────────────────────────
@@ -263,21 +366,20 @@ const computeProformaKapitalisering = (
   }
 
   const kapitaliseringsaar = Number.parseInt(beregningsdato.slice(0, 4), 10);
-  const rateInfo = resolveAslReguleringRateForKapAar(kapitaliseringsaar, args.before2024Skade, issues);
-  if (!rateInfo || kapitaliseringsfaktor === null) return null;
+  const aarsydelseBreakdown = resolveKapitaliseringAarsydelseBreakdown(
+    {
+      grundloen: args.grundloen,
+      kapitaliseringspct: loebendeEetPct,
+      erstatningsniveau: args.erstatningsniveau,
+      amFaktor: args.amFaktor,
+      kapitaliseringsaar,
+      before2024Skade: args.before2024Skade,
+    },
+    issues
+  );
+  if (!aarsydelseBreakdown || kapitaliseringsfaktor === null) return null;
 
-  const grundydelse = round2(args.grundloen * (loebendeEetPct / 100) * args.erstatningsniveau * args.amFaktor);
-  const reguleringFoer2024 = reguleringsprocentErhvervsevnetabFoer2024[2024];
-  if (args.before2024Skade && !Number.isFinite(reguleringFoer2024)) {
-    issues.push(toIssue('proforma-reguleringssats-missing', 'Reguleringssats mangler for år 2024.'));
-    return null;
-  }
-  const grundydelse2024 = args.before2024Skade
-    ? round2(grundydelse * (1 + reguleringFoer2024 / 100))
-    : grundydelse;
-  const effektivGrundydelse = args.before2024Skade && kapitaliseringsaar >= 2024 ? grundydelse2024 : grundydelse;
-  const aarsydelse = round2(effektivGrundydelse * rateInfo.factor);
-  const proformaBeloeb = ceil0(aarsydelse * kapitaliseringsfaktor);
+  const proformaBeloeb = ceil0(aarsydelseBreakdown.aarsydelse * kapitaliseringsfaktor);
   const typeLabel = tabeldata.kapitaliseringsType === 'vejl' ? 'Vejl.' : 'Bkg.';
 
   return {
@@ -286,9 +388,12 @@ const computeProformaKapitalisering = (
     grundloen: args.grundloen,
     erstatningsniveauPct: round0(args.erstatningsniveau * 100),
     amBidragPct: round0((1 - args.amFaktor) * 100),
-    grundydelse: effektivGrundydelse,
-    reguleringsPctRounded4: round4(rateInfo.reguleringPct),
-    aarsydelse,
+    grundydelse: aarsydelseBreakdown.grundydelse,
+    grundydelse2024: aarsydelseBreakdown.grundydelse2024,
+    opreguleringTil2024PctRounded4: aarsydelseBreakdown.opreguleringTil2024PctRounded4,
+    aarsydelseGrundlag: aarsydelseBreakdown.aarsydelseGrundlag,
+    aarsydelseReguleringsPctRounded4: aarsydelseBreakdown.aarsydelseReguleringsPctRounded4,
+    aarsydelse: aarsydelseBreakdown.aarsydelse,
     kapitaliseringsbekendtgoerelseLabel: `${typeLabel} ${controlBekId}, tabel ${tabelvalg.tabel}`,
     folkepensionsalderLabel: tabelvalg.folkepensionsalderLabel,
     alderAar: age.years,
@@ -362,6 +467,8 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   const beregningsdato = coerceToISODateString(input.erhvervsevnetab.beregningsdato);
   const skadesdato = input.skadesdato;
   const fodselsdato = input.skadelidteFodselsdato;
+  const hasAnyPctInput = hasAnyEetPctInput(input.erhvervsevnetab);
+  const aslRowsAnalysis = analyzeAslRowsAtBeregningsdato(input.erhvervsevnetab.aslAfgoerelser, beregningsdato);
   const aslRowsKnownAtBeregningsdato = filterAslRowsKnownAtBeregningsdato(input.erhvervsevnetab.aslAfgoerelser, beregningsdato);
   const filteredErhvervsevnetab = {
     ...input.erhvervsevnetab,
@@ -482,20 +589,44 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   // 'no-endelig-afgoerelser' er kun relevant på fane 3 og filtreres altid væk fra fane 5.
   // F5 proformakapitaliserer uafhængigt af om der tidligere er foretaget kapitalisering.
   const deduped = dedupeIssuesBySeverityAndMessage(allSourceIssues)
-    .filter((issue) => issue.id !== 'no-endelig-afgoerelser');
-  const hasAslAfgoerelserEmpty = deduped.some((issue) => issue.id === 'asl-afgoerelser-empty');
+    .filter((issue) => {
+      if (issue.id === 'no-endelig-afgoerelser') return false;
+      if (
+        issue.id === 'warn-afgoerelsesdato-after-beregningsdato' ||
+        issue.id === 'warn-virkningsdato-after-beregningsdato' ||
+        issue.id === 'warn-kap-dato-after-beregningsdato'
+      ) {
+        return false;
+      }
+      // Decision note:
+      // Reason: differencekrav filtrerer beregningsgrundlaget til afgørelser, der er kendt på beregningsdatoen.
+      // Den generiske "Ingen ASL-afgørelser er indtastet" må i differencekrav kun afhænge af, om der findes
+      // nogen gyldige afgørelser overhovedet. Underberegningernes tom-tabel-fejl er derfor misvisende her,
+      // fordi de udløses efter beregningsdato-filteret.
+      // Risk: hvis underberegninger senere får flere "tom input"-fejl, skal denne afgrænsning genbesøges.
+      if (issue.id === 'asl-afgoerelser-empty') return false;
+      return true;
+    });
+  const dedupedWithKnownAtBeregningsdatoIssues = dedupeIssuesBySeverityAndMessage([
+    ...deduped,
+    ...aslRowsAnalysis.issues,
+  ]);
+  const hasAslAfgoerelserEmpty = dedupedWithKnownAtBeregningsdatoIssues.some((issue) => issue.id === 'asl-afgoerelser-empty');
   // 'eet-pct-missing' undertrykkes når afgørelsestabellen er tom.
   // Ellers vises både den generelle tom-tabel-fejl og den afledte feltfejl for samme rodproblem.
   const aggregatedIssues = hasAslAfgoerelserEmpty
-    ? deduped.filter((issue) => issue.id !== 'eet-pct-missing')
-    : deduped;
+    ? dedupedWithKnownAtBeregningsdatoIssues.filter((issue) => issue.id !== 'eet-pct-missing')
+    : dedupedWithKnownAtBeregningsdatoIssues;
+  const finalIssues = hasAnyPctInput
+    ? aggregatedIssues.filter((issue) => issue.id !== 'eet-pct-missing')
+    : aggregatedIssues;
 
-  const blockingErrors = aggregatedIssues.filter((issue) => issue.severity === 'error');
+  const blockingErrors = finalIssues.filter((issue) => issue.severity === 'error');
 
   const hasBlockingErrors = blockingErrors.length > 0;
 
   if (hasBlockingErrors || !ealResult.computation || !beregningsdato || !skadesdato || !fodselsdato || !dagFoerBeregningsdato) {
-    return { issues: aggregatedIssues, computation: null, hasBlockingErrors };
+    return { issues: finalIssues, computation: null, hasBlockingErrors };
   }
 
   const loebendeComputation = loebendeResult?.computation ?? null;
@@ -590,7 +721,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   );
 
   return {
-    issues: aggregatedIssues,
+    issues: finalIssues,
     hasBlockingErrors: false,
     computation: {
       beregningsdato,

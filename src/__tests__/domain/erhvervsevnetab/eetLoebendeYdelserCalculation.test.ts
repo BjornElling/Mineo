@@ -3,7 +3,9 @@ import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { roundByMethod } from '../../../utils/rounding';
 import {
+  buildLoebendeAarsydelseReguleringSteps,
   computeEetLoebendeYdelser,
+  shouldShowLoebende2024ConversionBlock,
   toAfgoerelseTypeLabel,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 
@@ -153,6 +155,34 @@ describe('computeEetLoebendeYdelser', () => {
           issue.message === 'Der er indtastet en ugyldig EET-procent (55 %) for skader fra 1. juli 2024.'
       )
     ).toBe(true);
+  });
+
+  it('giver fortsat advarsel når en dato faktisk ligger efter beregningsdatoen i løbende-beregningen', () => {
+    const result = computeEetLoebendeYdelser({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: '2026-01-14',
+        aslAarsloen: asAmount(339000),
+        aslAfgoerelser: [
+          {
+            id: 'a1',
+            afgoerelsesDato: '15-01-2026',
+            virkningsDato: '15-01-2026',
+            eetPct: '15',
+            kapDato: '15-01-2026',
+            kapPct: '15',
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadesdato: '2022-09-17',
+      skadelidteFodselsdato: '1980-01-01',
+    });
+
+    expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(true);
+    expect(result.issues.some((issue) => issue.id === 'warn-virkningsdato-after-beregningsdato')).toBe(true);
+    expect(result.issues.some((issue) => issue.id === 'warn-kap-dato-after-beregningsdato')).toBe(true);
   });
 
   it('beregner rest-grundydelse proportionalt fra fuld grundydelse', () => {
@@ -450,6 +480,38 @@ describe('computeEetLoebendeYdelser', () => {
     expect(periode?.reguleringPct).toBe(0);
     expect(periode?.grundydelseAfrundet).toBe(168513.22);
     expect(periode?.maanedligYdelse).toBe(14043);
+  });
+
+  it('udelader reguleringstrin med 0 % fra den udvidede specifikation', () => {
+    const result = computeEetLoebendeYdelser({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: '2026-01-15',
+        aslAarsloen: asAmount(339000),
+        aslAfgoerelser: [
+          {
+            id: 'a1',
+            afgoerelsesDato: '15-01-2026',
+            virkningsDato: '15-01-2026',
+            eetPct: '15',
+            kapDato: '15-01-2026',
+            kapPct: '15',
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadesdato: '2022-09-17',
+      skadelidteFodselsdato: '1980-01-01',
+    });
+
+    expect(result.issues.some((issue) => issue.severity === 'error')).toBe(false);
+    const afgoerelse = result.computation?.afgoerelser[0];
+    if (!afgoerelse) throw new Error('expected first decision');
+
+    const steps = buildLoebendeAarsydelseReguleringSteps(afgoerelse);
+    expect(steps).toEqual([]);
+    expect(shouldShowLoebende2024ConversionBlock(afgoerelse)).toBe(true);
   });
 
   it('stopper løbende ydelse ved folkepensionsdato når endelig afgørelse er mere end 2 år før FP', () => {

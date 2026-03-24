@@ -55,6 +55,14 @@ export type EetLoebendeAfgoerelseComputation = Readonly<{
   iAltBeregnetEet: number;
 }>;
 
+export type EetLoebendeAarsydelseReguleringStep = Readonly<{
+  satsAar: number;
+  reguleringPct: number;
+  reguleringsfaktor: number;
+  aarsydelseFuldFoerAfrunding: number;
+  aarsydelseRestFoerAfrunding: number | null;
+}>;
+
 export type EetLoebendeComputation = Readonly<{
   beregningsdato: ISODateString;
   skadesdato: ISODateString;
@@ -599,6 +607,45 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
 
 export const formatPercentTrimmedFromRounded4 = (value: number): string => {
   return formatAsAmountTrimmed(round4(value), 4);
+};
+
+export const buildLoebendeAarsydelseReguleringSteps = (
+  afgoerelse: EetLoebendeAfgoerelseComputation
+): readonly EetLoebendeAarsydelseReguleringStep[] => {
+  const periodYears = [...new Set(afgoerelse.perioder
+    .filter((row) => row.satsAar > 2024)
+    .map((row) => row.satsAar))]
+    .sort((a, b) => a - b);
+  const fallbackYear = toYear(afgoerelse.afgoerelsesdato);
+  const uniqueYears = periodYears.length > 0
+    ? periodYears
+    : fallbackYear > 2024
+      ? [fallbackYear]
+      : [];
+
+  const restGrundydelse2024 = afgoerelse.grundydelse2024Rest ?? null;
+
+  return uniqueYears.map((satsAar) => {
+    const reguleringPct = afgoerelse.perioder.find((row) => row.satsAar === satsAar)?.reguleringPct ?? 0;
+    const reguleringsfaktor = round4(1 + reguleringPct / 100);
+    return {
+      satsAar,
+      reguleringPct,
+      reguleringsfaktor,
+      aarsydelseFuldFoerAfrunding: round2(afgoerelse.grundydelse2024Fuld * reguleringsfaktor),
+      aarsydelseRestFoerAfrunding:
+        restGrundydelse2024 === null ? null : round2(restGrundydelse2024 * reguleringsfaktor),
+    };
+  }).filter((step) => step.reguleringPct !== 0);
+};
+
+export const shouldShowLoebende2024ConversionBlock = (
+  afgoerelse: EetLoebendeAfgoerelseComputation
+): boolean => {
+  if (afgoerelse.perioder.some((row) => row.satsAar >= 2024)) {
+    return true;
+  }
+  return toYear(afgoerelse.afgoerelsesdato) >= 2024;
 };
 
 export const toAfgoerelseTypeLabel = (

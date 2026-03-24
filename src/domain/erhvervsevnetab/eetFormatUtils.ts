@@ -98,6 +98,7 @@ const ASL_IDS = new Set([
   'field-asl-afgoerelser',
   'asl-identiske-afgoerelser',
   'asl-afgoerelser-empty',
+  'no-asl-afgoerelser-known-at-beregningsdato',
   'asl-selected-eet-pct-invalid',
   'missing-afgoerelsesdato',
   'missing-eet-pct',

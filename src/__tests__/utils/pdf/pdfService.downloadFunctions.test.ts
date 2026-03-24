@@ -19,6 +19,10 @@ const {
   mockGenerateRentePdf,
   mockGenerateReguleringPdf,
   mockGenerateKRLPdf,
+  mockGenerateLoebendeYdelserPdf,
+  mockGenerateKapitaliseringPdf,
+  mockGenerateEfterEalPdf,
+  mockGenerateDifferencekravPdf,
   mockGenerateErstatningsopgoerelsePdf,
   mockGenerateTafFordeltPaaAarPdf,
   mockGenerateVarigeMenPdf,
@@ -31,6 +35,10 @@ const {
   mockGenerateRentePdf: vi.fn(),
   mockGenerateReguleringPdf: vi.fn(),
   mockGenerateKRLPdf: vi.fn(),
+  mockGenerateLoebendeYdelserPdf: vi.fn(),
+  mockGenerateKapitaliseringPdf: vi.fn(),
+  mockGenerateEfterEalPdf: vi.fn(),
+  mockGenerateDifferencekravPdf: vi.fn(),
   mockGenerateErstatningsopgoerelsePdf: vi.fn(),
   mockGenerateTafFordeltPaaAarPdf: vi.fn(),
   mockGenerateVarigeMenPdf: vi.fn(),
@@ -45,6 +53,10 @@ vi.mock('../../../utils/pdf/pdfLoader', () => ({
   loadRentePdfModule: vi.fn(async () => ({ generateRentePdf: mockGenerateRentePdf })),
   loadReguleringPdfModule: vi.fn(async () => ({ generateReguleringPdf: mockGenerateReguleringPdf })),
   loadKRLPdfModule: vi.fn(async () => ({ generateKRLPdf: mockGenerateKRLPdf })),
+  loadLoebendeYdelserPdfModule: vi.fn(async () => ({ generateLoebendeYdelserPdf: mockGenerateLoebendeYdelserPdf })),
+  loadKapitaliseringPdfModule: vi.fn(async () => ({ generateKapitaliseringPdf: mockGenerateKapitaliseringPdf })),
+  loadEfterEalPdfModule: vi.fn(async () => ({ generateEfterEalPdf: mockGenerateEfterEalPdf })),
+  loadDifferencekravPdfModule: vi.fn(async () => ({ generateDifferencekravPdf: mockGenerateDifferencekravPdf })),
   loadErstatningsopgoerelsePdfModule: vi.fn(async () => ({
     generateErstatningsopgoerelsePdf: mockGenerateErstatningsopgoerelsePdf,
   })),
@@ -69,6 +81,10 @@ import {
   downloadRentePdf,
   downloadReguleringPdf,
   downloadKrlPdf,
+  downloadLoebendeYdelserPdf,
+  downloadKapitaliseringPdf,
+  downloadEfterEalPdf,
+  downloadDifferencekravPdf,
   downloadErstatningsopgoerelsePdf,
   downloadTafFordeltPaaAarPdf,
   downloadVarigeMenPdf,
@@ -88,6 +104,10 @@ beforeEach(() => {
   mockGenerateRentePdf.mockReset();
   mockGenerateReguleringPdf.mockReset();
   mockGenerateKRLPdf.mockReset();
+  mockGenerateLoebendeYdelserPdf.mockReset();
+  mockGenerateKapitaliseringPdf.mockReset();
+  mockGenerateEfterEalPdf.mockReset();
+  mockGenerateDifferencekravPdf.mockReset();
   mockGenerateErstatningsopgoerelsePdf.mockReset();
   mockGenerateTafFordeltPaaAarPdf.mockReset();
   mockGenerateVarigeMenPdf.mockReset();
@@ -229,6 +249,96 @@ describe('downloadKrlPdf', () => {
     mockGenerateKRLPdf.mockImplementationOnce(() => { throw new Error('KRL fejl'); });
     const result = await downloadKrlPdf({ settings, persistedStamdata: null });
     expect(result.success).toBe(false);
+  });
+});
+
+// ─── EET-PDF downloads ───────────────────────────────────────────────────────
+
+describe('EET PDF downloads', () => {
+  it('videresender løbende-yddelser computation uændret til generatoren', async () => {
+    const computation = { beregningsdato: '2026-01-14', afgoerelser: [] } as never;
+
+    const result = await downloadLoebendeYdelserPdf({
+      computation,
+      visUdvidetSpecifikation: true,
+      settings,
+      persistedStamdata: stamdata,
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockGenerateLoebendeYdelserPdf).toHaveBeenCalledWith(
+      expect.objectContaining({
+        computation,
+        visUdvidetSpecifikation: true,
+      })
+    );
+  });
+
+  it('videresender kapitalisering-computation uændret til generatoren', async () => {
+    const computation = { afgoerelser: [] } as never;
+
+    const result = await downloadKapitaliseringPdf({
+      computation,
+      koen: 'Mand',
+      settings,
+      persistedStamdata: stamdata,
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockGenerateKapitaliseringPdf).toHaveBeenCalledWith(
+      expect.objectContaining({
+        computation,
+        koen: 'Mand',
+      })
+    );
+  });
+
+  it('videresender EET efter EAL-computation uændret til generatoren', async () => {
+    const computation = { beregningsdato: '2026-01-15', ealKrav: 123 } as never;
+
+    const result = await downloadEfterEalPdf({
+      computation,
+      settings,
+      persistedStamdata: stamdata,
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockGenerateEfterEalPdf).toHaveBeenCalledWith(
+      expect.objectContaining({
+        computation,
+      })
+    );
+  });
+
+  it('videresender differencekrav-computation uændret til generatoren, inklusive løbende bilag med dagen-før-beregningsdato', async () => {
+    const computation = {
+      beregningsdato: '2026-01-15',
+      dagFoerBeregningsdato: '2026-01-14',
+      loebendeComputation: { beregningsdato: '2026-01-14', afgoerelser: [] },
+    } as never;
+    const bilagSelection = {
+      loebendeYdelser: true,
+      kapitalisering: false,
+      eetEfterEal: false,
+      proformaKapitalisering: false,
+      visUdvidetSpecifikationLoebendeYdelserBilag: false,
+    } as const;
+
+    const result = await downloadDifferencekravPdf({
+      computation,
+      koen: 'Mand',
+      bilagSelection,
+      settings,
+      persistedStamdata: stamdata,
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockGenerateDifferencekravPdf).toHaveBeenCalledWith(
+      expect.objectContaining({
+        computation,
+        bilagSelection,
+      })
+    );
   });
 });
 

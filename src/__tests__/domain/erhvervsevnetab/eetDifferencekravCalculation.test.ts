@@ -279,7 +279,7 @@ describe('computeEetDifferencekravCalculation', () => {
     });
   });
 
-  it('ser bort fra afgørelser der først er truffet eller har virkning efter beregningsdatoen', () => {
+  it('ser bort fra afgørelser der har virkning efter beregningsdatoen', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -316,6 +316,36 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.computation?.afgoerelser).toHaveLength(1);
     expect(result.computation?.afgoerelser[0]?.rowId).toBe('a1');
     expect(result.computation?.proformaKapitalisering?.loebendeEetPct).toBe(30);
+  });
+
+  it('afgrænser ikke længere på afgørelsesdato når virkningsdatoen er på eller før beregningsdatoen', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: '2021-12-01',
+        aslAarsloen: asAmount(401000),
+        aslAfgoerelser: [
+          {
+            id: 'a1',
+            afgoerelsesDato: '01-02-2022',
+            virkningsDato: '01-10-2021',
+            eetPct: '60',
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadesdato: '2019-04-01',
+      skadelidteFodselsdato: '1955-07-01',
+    });
+
+    expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(true);
+    expect(result.issues.some((issue) => issue.id === 'no-asl-afgoerelser-known-at-beregningsdato')).toBe(false);
+    expect(result.hasBlockingErrors).toBe(false);
+    expect(result.computation?.afgoerelser).toHaveLength(1);
+    expect(result.computation?.afgoerelser[0]?.rowId).toBe('a1');
   });
 
   it('ser bort fra ufuldstændige afgørelser uden dokumenteret afgørelsesdato og virkningsdato på beregningsdatoen', () => {
@@ -357,6 +387,116 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.computation?.proformaKapitalisering?.loebendeEetPct).toBe(30);
   });
 
+  it('vurderer beregningsdato-advarsler mod den brugerangivne beregningsdato selv om løbende fradrag stopper dagen før', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: '2026-01-15',
+        aslAarsloen: asAmount(339000),
+        aslAfgoerelser: [{
+          id: 'a1',
+          afgoerelsesDato: '15-01-2026',
+          virkningsDato: '15-01-2026',
+          eetPct: '15',
+          kapDato: '15-01-2026',
+          kapPct: '15',
+          afgoerelseType: 'Endelig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadesdato: '2022-09-17',
+      skadelidteFodselsdato: '1978-05-03',
+    });
+
+    expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'warn-virkningsdato-after-beregningsdato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'warn-kap-dato-after-beregningsdato')).toBe(false);
+    expect(result.computation?.dagFoerBeregningsdato).toBe('2026-01-14');
+    expect(result.computation?.loebendeComputation?.beregningsdato).toBe('2026-01-14');
+  });
+
+  it('viser dato-advarsler og præcis fejl når alle indtastede afgørelser først har virkning efter beregningsdatoen', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: '2026-01-14',
+        aslAarsloen: asAmount(339000),
+        aslAfgoerelser: [{
+          id: 'a1',
+          afgoerelsesDato: '15-01-2026',
+          virkningsDato: '15-01-2026',
+          eetPct: '15',
+          kapDato: '15-01-2026',
+          kapPct: '15',
+          afgoerelseType: 'Endelig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadesdato: '2022-09-17',
+      skadelidteFodselsdato: '1978-05-03',
+    });
+
+    expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'warn-virkningsdato-after-beregningsdato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'warn-kap-dato-after-beregningsdato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'no-asl-afgoerelser-known-at-beregningsdato')).toBe(true);
+    expect(result.issues.some((issue) => issue.id === 'asl-afgoerelser-empty')).toBe(false);
+    expect(result.computation).toBeNull();
+    expect(result.hasBlockingErrors).toBe(true);
+  });
+
+  it('viser kun tom-fejl når der ikke findes nogen gyldige ASL-afgørelser overhovedet', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: '2026-01-14',
+        aslAarsloen: asAmount(339000),
+        aslAfgoerelser: [{
+          id: 'a1',
+          afgoerelsesDato: undefined,
+          virkningsDato: undefined,
+          eetPct: undefined,
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: undefined,
+          tidlKapDato: undefined,
+        }],
+      },
+      skadesdato: '2022-09-17',
+      skadelidteFodselsdato: '1978-05-03',
+    });
+
+    expect(result.issues.some((issue) => issue.id === 'asl-afgoerelser-empty')).toBe(true);
+    expect(result.issues.some((issue) => issue.id === 'no-asl-afgoerelser-known-at-beregningsdato')).toBe(false);
+  });
+
+  it('viser ikke EAL-fejlen om manglende erhvervsevnetabsprocent når der er indtastet ASL-procent, selv om virkningsdatoen ligger efter beregningsdatoen', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: '2026-01-14',
+        aslAarsloen: asAmount(339000),
+        ealEetPct: 0,
+        aslAfgoerelser: [{
+          id: 'a1',
+          afgoerelsesDato: '15-01-2026',
+          virkningsDato: '15-01-2026',
+          eetPct: '15',
+          kapDato: '15-01-2026',
+          kapPct: '15',
+          afgoerelseType: 'Endelig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadesdato: '2022-09-17',
+      skadelidteFodselsdato: '1978-05-03',
+    });
+
+    expect(result.issues.some((issue) => issue.id === 'eet-pct-missing')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'warn-virkningsdato-after-beregningsdato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === 'no-asl-afgoerelser-known-at-beregningsdato')).toBe(true);
+  });
+
   it('proformakapitaliserer med interpolation mod særfaktoren efter tabellens sidste hele alder', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
@@ -382,5 +522,38 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.computation?.proformaKapitalisering).not.toBeNull();
     expect(result.computation?.proformaKapitalisering?.kapitaliseretPgaUnderToAarTilFp).toBe(false);
     expect(result.computation?.proformaKapitalisering?.kapitaliseringsfaktor).toBe(1.759);
+  });
+
+  it('splitter proformakapitaliseringens opregulering i 2003→2024 og 2024→målår, når beregningen ligger i 2026', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: '2026-12-01',
+        aslAarsloen: asAmount(401000),
+        aslAfgoerelser: [{
+          id: 'a1',
+          afgoerelsesDato: '01-01-2024',
+          virkningsDato: '01-01-2024',
+          eetPct: '60',
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: 'Endelig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadesdato: '2019-04-01',
+      skadelidteFodselsdato: '1980-01-01',
+    });
+
+    expect(result.hasBlockingErrors).toBe(false);
+    const proforma = result.computation?.proformaKapitalisering;
+    expect(proforma).not.toBeNull();
+    expect(proforma?.grundydelse).toBeGreaterThan(0);
+    expect(proforma?.grundydelse2024).not.toBeNull();
+    expect(proforma?.grundydelse2024).toBeGreaterThan(proforma?.grundydelse ?? 0);
+    expect(proforma?.opreguleringTil2024PctRounded4).toBeGreaterThan(0);
+    expect(proforma?.aarsydelseGrundlag).toBe(proforma?.grundydelse2024);
+    expect(proforma?.aarsydelseReguleringsPctRounded4).toBe(8.9);
+    expect(proforma?.aarsydelse).toBeGreaterThan(proforma?.aarsydelseGrundlag ?? 0);
   });
 });

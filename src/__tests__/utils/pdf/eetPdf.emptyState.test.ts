@@ -250,4 +250,91 @@ describe('EET PDF empty states', () => {
       'Grundydelse (50 %): Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag) ='
     );
   });
+
+  it('generateDifferencekravPdf bruger løbende-bilagets computation med dagen før beregningsdatoen', async () => {
+    const { generateDifferencekravPdf } = await import('../../../utils/pdf/differencekravPdf');
+
+    generateDifferencekravPdf({
+      computation: {
+        beregningsdato: '2026-01-15',
+        skadesdato: '2022-09-17',
+        dagFoerBeregningsdato: '2026-01-14',
+        ealKrav: 100000,
+        ealEetPct: 15,
+        fradragLoebendeYdelser: 0,
+        fradragKapitaliseretEet: 0,
+        proformaKapitalisering: null,
+        proformaBeloeb: 0,
+        differencekrav: 100000,
+        afgoerelser: [],
+        kapitaliseringerAfgoerelser: [],
+        loebendeComputation: {
+          beregningsdato: '2026-01-14',
+          skadesdato: '2022-09-17',
+          maxAarsloenISkadesaar: 500000,
+          benyttetAarsloen: 339000,
+          grundloen: 300000,
+          grundloenNiveau: '2024',
+          erstatningsniveauPct: 83,
+          amBidragPct: 8,
+          reguleringFoer2024Pct: 0,
+          fodselsdato: '1978-05-03',
+          skadesaar: 2022,
+          afgoerelser: [{
+            rowId: 'a1',
+            afgoerelsesdato: '2026-01-15',
+            virkningsdato: '2026-01-15',
+            kapitaliseringsdato: '2026-01-15',
+            afgoerelseType: 'Endelig',
+            eetPct: 15,
+            priorKapPct: 0,
+            eetPctFoerAktuelKap: 15,
+            kapPctAktuel: 15,
+            kapPctKumulativ: 15,
+            restEetPct: 0,
+            harKapitalisering: true,
+            harRestSektion: false,
+            tilbagevirkendeKraft: false,
+            ophoerDato: '2026-01-14',
+            ophoerAarsag: 'beregningsdato',
+            grundydelseFuld: 0,
+            grundydelseRest: null,
+            grundydelse2024Fuld: 0,
+            grundydelse2024Rest: null,
+            perioder: [],
+            iAltBeregnetEet: 0,
+          }],
+          issues: [],
+        },
+        kapComputation: {
+          afgoerelser: [],
+          issues: [],
+        },
+        ealComputation: null,
+      } as never,
+      bilagSelection: {
+        loebendeYdelser: true,
+        kapitalisering: false,
+        eetEfterEal: false,
+        proformaKapitalisering: false,
+        visUdvidetSpecifikationLoebendeYdelserBilag: false,
+      },
+    });
+
+    const instance = MockJsPDF.instances.at(-1);
+    const renderedText = (instance?.text.mock.calls ?? []).map((call) => String(call[0]));
+    expect(renderedText).toContain('Beregningsdato');
+    expect(renderedText).toContain('15-01-2026');
+    expect(renderedText).toContain('Løbende ydelse ophører');
+    expect(renderedText).toContain('14-01-2026');
+    expect(renderedText).toContain('Afgørelsen giver ingen løbende ydelse i den valgte periode.');
+    expect(renderedText).not.toContain('Fra o.m.');
+    expect(renderedText).not.toContain('Til o.m.');
+    expect(renderedText).not.toContain('Mdr.');
+    expect(renderedText).not.toContain('Grundydelse');
+    expect(renderedText).not.toContain('Regulering');
+    expect(renderedText).not.toContain('Ydelse/md.');
+    expect(renderedText).not.toContain('Beregnet EET');
+    expect(renderedText).not.toContain('I alt');
+  });
 });
