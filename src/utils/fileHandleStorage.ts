@@ -6,6 +6,7 @@ const DB_VERSION = 1;
 const STORE_NAME = 'handles';
 const HANDLE_KEY = 'current_file_handle';
 const DEFAULT_DIRECTORY_KEY = 'default_directory_handle';
+const PENDING_PWA_OPEN_REQUEST_KEY = 'pending_pwa_open_request';
 
 /**
  * Åbner IndexedDB database for file handles
@@ -542,6 +543,117 @@ export const verifyDirectoryHandle = async (handle: FileSystemDirectoryHandle): 
       context: 'verifyDirectoryHandle',
       data: { errorName: error?.name, errorMessage: error?.message },
     });
+    return false;
+  }
+};
+
+type StoredPendingPwaOpenRequest = Readonly<{
+  id: string;
+  createdAtEpochMs: number;
+  targetUrl?: string;
+  fileHandle: FileSystemFileHandle;
+  fileName: string;
+  ignoredFileCount: number;
+}>;
+
+export const savePendingPwaOpenRequestToIndexedDB = async (request: StoredPendingPwaOpenRequest): Promise<boolean> => {
+  if (typeof indexedDB === 'undefined') {
+    return false;
+  }
+  try {
+    const db = await openDatabase();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const idbRequest = store.put(request, PENDING_PWA_OPEN_REQUEST_KEY);
+
+      idbRequest.onsuccess = () => {
+        resolve(true);
+      };
+
+      idbRequest.onerror = () => {
+        logError('Kunne ikke gemme pending PWA-open request', {
+          context: 'savePendingPwaOpenRequestToIndexedDB',
+          error: idbRequest.error as Error | undefined,
+        });
+        reject(idbRequest.error);
+      };
+
+      transaction.oncomplete = () => {
+        db.close();
+      };
+    });
+  } catch (error) {
+    logError('Fejl ved gemning af pending PWA-open request:', error);
+    return false;
+  }
+};
+
+export const loadPendingPwaOpenRequestFromIndexedDB = async (): Promise<StoredPendingPwaOpenRequest | null> => {
+  if (typeof indexedDB === 'undefined') {
+    return null;
+  }
+  try {
+    const db = await openDatabase();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORE_NAME], 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const idbRequest = store.get(PENDING_PWA_OPEN_REQUEST_KEY);
+
+      idbRequest.onsuccess = () => {
+        resolve((idbRequest.result as StoredPendingPwaOpenRequest | undefined) ?? null);
+      };
+
+      idbRequest.onerror = () => {
+        logError('Kunne ikke hente pending PWA-open request', {
+          context: 'loadPendingPwaOpenRequestFromIndexedDB',
+          error: idbRequest.error as Error | undefined,
+        });
+        reject(idbRequest.error);
+      };
+
+      transaction.oncomplete = () => {
+        db.close();
+      };
+    });
+  } catch (error) {
+    logError('Fejl ved hentning af pending PWA-open request:', error);
+    return null;
+  }
+};
+
+export const deletePendingPwaOpenRequestFromIndexedDB = async (): Promise<boolean> => {
+  if (typeof indexedDB === 'undefined') {
+    return false;
+  }
+  try {
+    const db = await openDatabase();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const idbRequest = store.delete(PENDING_PWA_OPEN_REQUEST_KEY);
+
+      idbRequest.onsuccess = () => {
+        resolve(true);
+      };
+
+      idbRequest.onerror = () => {
+        logError('Kunne ikke slette pending PWA-open request', {
+          context: 'deletePendingPwaOpenRequestFromIndexedDB',
+          error: idbRequest.error as Error | undefined,
+        });
+        reject(idbRequest.error);
+      };
+
+      transaction.oncomplete = () => {
+        db.close();
+      };
+    });
+  } catch (error) {
+    logError('Fejl ved sletning af pending PWA-open request:', error);
     return false;
   }
 };

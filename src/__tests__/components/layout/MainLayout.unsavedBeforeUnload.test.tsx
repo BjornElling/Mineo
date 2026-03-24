@@ -28,6 +28,9 @@ vi.mock('../../../utils/fileHelpers', async (importOriginal) => {
 vi.mock('../../../utils/fileHandleStorage', () => ({
   deleteFileHandleFromIndexedDB: vi.fn(async () => {}),
   saveFileHandleToIndexedDB: vi.fn(async () => {}),
+  deletePendingPwaOpenRequestFromIndexedDB: vi.fn(async () => true),
+  loadPendingPwaOpenRequestFromIndexedDB: vi.fn(async () => null),
+  savePendingPwaOpenRequestToIndexedDB: vi.fn(async () => true),
 }));
 
 vi.mock('../../../components/tables/gridCore/gridCoreRegistry', () => ({

@@ -7,7 +7,7 @@ import '@fontsource/montserrat/500.css';
 import '@fontsource/montserrat/600.css';
 import '@fontsource/montserrat/700.css';
 import './index.css';
-import { setupPwaLaunchQueueConsumer } from './utils/pwaLaunchQueue';
+import { hydratePendingPwaFileOpenRequest, setupPwaLaunchQueueConsumer } from './utils/pwaLaunchQueue';
 import { setupPwaInstallPromptCapture, suppressPwaInstallPrompt } from './utils/pwaInstallPrompt';
 import { VERSION } from './config/version';
 import AuthGate from './auth/AuthGate';
@@ -195,6 +195,7 @@ const setupServiceWorkerUpdateChecks = (): void => {
 const bootstrap = async (): Promise<void> => {
   // PWA file handler (Launch Queue) skal initialiseres tidligt, ogs hvis vi ender p unsupported-device gate.
   setupPwaLaunchQueueConsumer();
+  await hydratePendingPwaFileOpenRequest();
 
   if (isUnsupportedDevice()) {
     suppressPwaInstallPrompt();

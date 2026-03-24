@@ -1,3 +1,9 @@
+import {
+  deletePendingPwaOpenRequestFromIndexedDB,
+  loadPendingPwaOpenRequestFromIndexedDB,
+  savePendingPwaOpenRequestToIndexedDB,
+} from './fileHandleStorage';
+
 export const MINEO_PWA_FILE_OPEN_EVENT = 'mineo:pwa-file-open';
 
 export type PwaFileOpenRequest = {
@@ -15,6 +21,7 @@ let isInitialized = false;
 let support: PwaLaunchQueueSupport = 'unsupported';
 let requestCounter = 0;
 let pendingRequest: PwaFileOpenRequest | null = null;
+let hydratePendingRequestPromise: Promise<void> | null = null;
 
 const isFileHandle = (handle: FileSystemHandle): handle is FileSystemFileHandle => {
   return handle.kind === 'file';
@@ -38,6 +45,45 @@ const getLaunchQueue = (): LaunchQueueLike | null => {
 
 export const getPwaLaunchQueueSupport = (): PwaLaunchQueueSupport => {
   return support;
+};
+
+const isStoredPwaFileOpenRequest = (value: unknown): value is PwaFileOpenRequest => {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<PwaFileOpenRequest>;
+  return typeof candidate.id === 'string'
+    && typeof candidate.createdAtEpochMs === 'number'
+    && typeof candidate.fileName === 'string'
+    && typeof candidate.ignoredFileCount === 'number'
+    && !!candidate.fileHandle;
+};
+
+const dispatchPendingRequestEvent = (request: PwaFileOpenRequest): void => {
+  window.dispatchEvent(new CustomEvent(MINEO_PWA_FILE_OPEN_EVENT, { detail: { requestId: request.id } }));
+};
+
+export const hydratePendingPwaFileOpenRequest = async (): Promise<void> => {
+  if (pendingRequest !== null) return;
+  if (hydratePendingRequestPromise) {
+    await hydratePendingRequestPromise;
+    return;
+  }
+
+  hydratePendingRequestPromise = (async () => {
+    const stored = await loadPendingPwaOpenRequestFromIndexedDB();
+    if (isStoredPwaFileOpenRequest(stored)) {
+      pendingRequest = stored;
+      const numericSuffix = Number.parseInt(stored.id.replace(/^pwa-open-/, ''), 10);
+      if (Number.isFinite(numericSuffix) && numericSuffix > requestCounter) {
+        requestCounter = numericSuffix;
+      }
+    }
+  })();
+
+  try {
+    await hydratePendingRequestPromise;
+  } finally {
+    hydratePendingRequestPromise = null;
+  }
 };
 
 export const setupPwaLaunchQueueConsumer = (): void => {
@@ -70,8 +116,8 @@ export const setupPwaLaunchQueueConsumer = (): void => {
 
     // Deterministisk strategi: seneste request vinder (overskriver evt. tidligere pending request).
     pendingRequest = request;
-
-    window.dispatchEvent(new CustomEvent(MINEO_PWA_FILE_OPEN_EVENT, { detail: { requestId: request.id } }));
+    await savePendingPwaOpenRequestToIndexedDB(request);
+    dispatchPendingRequestEvent(request);
   });
 };
 
@@ -79,4 +125,19 @@ export const takeNextPwaFileOpenRequest = (): PwaFileOpenRequest | null => {
   const next = pendingRequest;
   pendingRequest = null;
   return next;
+};
+
+export const retryPendingPwaFileOpenRequest = async (): Promise<boolean> => {
+  await hydratePendingPwaFileOpenRequest();
+  if (!pendingRequest) {
+    return false;
+  }
+
+  dispatchPendingRequestEvent(pendingRequest);
+  return true;
+};
+
+export const clearPendingPwaFileOpenRequest = async (): Promise<void> => {
+  pendingRequest = null;
+  await deletePendingPwaOpenRequestFromIndexedDB();
 };

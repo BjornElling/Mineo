@@ -1,10 +1,11 @@
 import React from 'react';
 import { Box, Button, Typography } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { retryPendingPwaFileOpenRequest } from '../../utils/pwaLaunchQueue';
 
 const OpenEo = React.memo(() => {
-  const navigate = useNavigate();
   const [showFallbackContent, setShowFallbackContent] = React.useState(false);
+  const [retryMessage, setRetryMessage] = React.useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = React.useState(false);
 
   React.useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -20,25 +21,40 @@ const OpenEo = React.memo(() => {
     return <Box sx={{ padding: 4 }} aria-hidden="true" />;
   }
 
+  const handleRetryClick = async () => {
+    setRetryMessage(null);
+    setIsRetrying(true);
+    try {
+      const triggered = await retryPendingPwaFileOpenRequest();
+      if (!triggered) {
+        setRetryMessage('Kunne ikke finde den fil, der skulle indlæses. Prøv at åbne .eo-filen igen.');
+      }
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
   return (
     <Box sx={{ padding: 4 }}>
       <Typography variant="h5" sx={{ marginBottom: 2 }}>
-        Åbner fil…
+        Indlæsning af fil blev afbrudt
       </Typography>
       <Typography variant="body2">
-        Hvis du kom hertil ved at dobbeltklikke en `.eo`-fil, indlæses den i Mineo nu.
+        Programmet har fået en opdatering og kunne derfor ikke gennemføre indlæsningen af filen.
       </Typography>
       <Typography variant="body2" sx={{ marginTop: 1 }}>
-        Hvis der ikke sker noget, kræver det typisk at Mineo er installeret som PWA i Chrome/Edge.
-      </Typography>
-      <Typography variant="body2" sx={{ marginTop: 1 }}>
-        Du kan altid indlæse manuelt via menuen: <strong>Hent</strong>.
+        Tryk her for at færdiggøre indlæsningen.
       </Typography>
       <Box sx={{ marginTop: 3, display: 'flex', gap: 2 }}>
-        <Button variant="contained" onClick={() => navigate('/stamdata', { replace: true })}>
-          Gå til program
+        <Button variant="contained" onClick={() => { void handleRetryClick(); }} disabled={isRetrying}>
+          Færdiggør indlæsningen
         </Button>
       </Box>
+      {retryMessage ? (
+        <Typography variant="body2" sx={{ marginTop: 2 }}>
+          {retryMessage}
+        </Typography>
+      ) : null}
     </Box>
   );
 });

@@ -19,7 +19,12 @@ import { getGridCoreForTable } from '../tables/gridCore/gridCoreRegistry';
 import type { SaveFileResult, LoadFileResult } from '../../types/fileOperations';
 import { persistenceSchemas } from '../../config/persistenceRegistry';
 import { UI_STORAGE_KEYS, type StorageKey } from '../../config/storageManifest';
-import { MINEO_PWA_FILE_OPEN_EVENT, takeNextPwaFileOpenRequest, type PwaFileOpenRequest } from '../../utils/pwaLaunchQueue';
+import {
+  clearPendingPwaFileOpenRequest,
+  MINEO_PWA_FILE_OPEN_EVENT,
+  takeNextPwaFileOpenRequest,
+  type PwaFileOpenRequest,
+} from '../../utils/pwaLaunchQueue';
 import {
   getDevtoolsIssueSnapshot,
   startDevtoolsMonitor,
@@ -389,6 +394,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     if (result.fileHandle) {
       await saveFileHandleToIndexedDB(result.fileHandle);
     }
+    await clearPendingPwaFileOpenRequest();
   }, [replaceAllPersistedData]);
 
   const requestApplyLoadedSnapshot = React.useCallback(async (
