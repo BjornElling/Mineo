@@ -17,8 +17,10 @@ import {
 } from '../../../domain/erhvervsevnetab/eetDifferencekravCalculation';
 import { formatPct as formatKapPct } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import {
+  buildKapitaliseringAarsydelseExpression,
   buildKapitaliseringGrundydelseExpression,
   buildKapitaliseringGrundydelseLabel,
+  buildKapitaliseringOpreguleringTil2024Expression,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import { downloadDifferencekravPdf } from '../../../utils/pdf/pdfService';
 import EetIssuesBox from './EetIssuesBox';
@@ -79,18 +81,40 @@ const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => (
       </Box>
     </Box>
 
-    <Box className="row--label-right-hover">
-      <Typography className="row--text">
-        {`Reguleringsprocent (${formatIsoDateLong(pk.kapitaliseringsdato)})`}
-      </Typography>
-      <Box className="row--label-right-hover__content">
-        <Typography className="row--text">{`${formatAsAmountTrimmed(pk.reguleringsPctRounded4, 4)} %`}</Typography>
+    {pk.grundydelse2024 !== null && pk.opreguleringTil2024PctRounded4 !== null && (
+      <Box className="row--label-right-hover">
+        <Typography className="row--text">
+          {buildKapitaliseringOpreguleringTil2024Expression(
+            formatKr(pk.grundydelse, 2),
+            formatAsAmountTrimmed(1 + pk.opreguleringTil2024PctRounded4 / 100, 4),
+            `${formatAsAmountTrimmed(pk.opreguleringTil2024PctRounded4, 4)} %`
+          )}
+        </Typography>
+        <Box className="row--label-right-hover__content">
+          <Typography className="row--text">{formatKr(pk.grundydelse2024, 2)}</Typography>
+        </Box>
       </Box>
-    </Box>
+    )}
+
+    {pk.aarsydelseReguleringsPctRounded4 !== null && (
+      <Box className="row--label-right-hover">
+        <Typography className="row--text">
+          {`Reguleringsprocent (${formatIsoDateLong(pk.kapitaliseringsdato)})`}
+        </Typography>
+        <Box className="row--label-right-hover__content">
+          <Typography className="row--text">{`${formatAsAmountTrimmed(pk.aarsydelseReguleringsPctRounded4, 4)} %`}</Typography>
+        </Box>
+      </Box>
+    )}
 
     <Box className="row--label-right-hover">
       <Typography className="row--text">
-        {`Årlig ydelse (${formatKr(pk.grundydelse, 2)} x ${formatAsAmountTrimmed(100 + pk.reguleringsPctRounded4, 4)} %)`}
+        {buildKapitaliseringAarsydelseExpression(
+          formatKr(pk.aarsydelseGrundlag, 2),
+          pk.aarsydelseReguleringsPctRounded4 === null
+            ? null
+            : `${formatAsAmountTrimmed(100 + pk.aarsydelseReguleringsPctRounded4, 4)} %`
+        )}
       </Typography>
       <Box className="row--label-right-hover__content">
         <Typography className="row--text">{formatKr(pk.aarsydelse, 2)}</Typography>

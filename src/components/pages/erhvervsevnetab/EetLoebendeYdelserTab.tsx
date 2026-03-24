@@ -20,6 +20,7 @@ import {
   computeEetLoebendeYdelser,
   formatPct,
   formatSkadesdatoCompact,
+  shouldShowLoebende2024ConversionBlock,
   toAfgoerelseTypeLabel,
   toOphoerAarsagLabel,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
@@ -176,7 +177,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger }: Prop
             const hasRowsFrom2024 = afgoerelse.perioder.some((row) => row.satsAar >= 2024);
             const viserGrundydelseNiveauSkift =
               computation.grundloenNiveau === '2003' && hasRowsBefore2024 && hasRowsFrom2024;
-            const ingenLoebendeYdelse = afgoerelse.iAltBeregnetEet === 0;
+            const ingenLoebendeYdelse = afgoerelse.perioder.length === 0;
             return (
               <ContentBox key={afgoerelse.rowId} className="content-box">
                 <Typography className="section-header">{`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`}</Typography>
@@ -270,30 +271,32 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger }: Prop
                   <TextHoverRow text="Afgørelsen giver ingen løbende ydelse i den valgte periode." />
                 )}
 
-                <StandardDisplayTable
-                  columns={YDELSER_TABLE_COLUMNS}
-                  rows={[
-                    ...afgoerelse.perioder.map((row): StandardDisplayTableRow => ({
-                      key: `${row.fra}-${row.til}-${row.satsAar}`,
-                      cells: [
-                        formatIsoDateShort(row.fra),
-                        formatIsoDateShort(row.til),
-                        formatMaaneder(row.maanederPraecis),
-                        formatKr(row.grundydelseAfrundet, 2),
-                        formatRegulering(row.reguleringPct),
-                        formatKr(row.maanedligYdelse),
-                        formatKr(row.beregnetEet),
-                      ],
-                    })),
-                    {
-                      key: `${afgoerelse.rowId}-i-alt`,
-                      cells: ['I alt', '', '', '', '', '', formatKr(afgoerelse.iAltBeregnetEet)],
-                      rowSx: { '& .MuiTableCell-root': { fontWeight: 700 } },
-                    },
-                  ]}
-                  containerSx={{ width: '100%' }}
-                  tableSx={{ width: '100%' }}
-                />
+                {!ingenLoebendeYdelse && (
+                  <StandardDisplayTable
+                    columns={YDELSER_TABLE_COLUMNS}
+                    rows={[
+                      ...afgoerelse.perioder.map((row): StandardDisplayTableRow => ({
+                        key: `${row.fra}-${row.til}-${row.satsAar}`,
+                        cells: [
+                          formatIsoDateShort(row.fra),
+                          formatIsoDateShort(row.til),
+                          formatMaaneder(row.maanederPraecis),
+                          formatKr(row.grundydelseAfrundet, 2),
+                          formatRegulering(row.reguleringPct),
+                          formatKr(row.maanedligYdelse),
+                          formatKr(row.beregnetEet),
+                        ],
+                      })),
+                      {
+                        key: `${afgoerelse.rowId}-i-alt`,
+                        cells: ['I alt', '', '', '', '', '', formatKr(afgoerelse.iAltBeregnetEet)],
+                        rowSx: { '& .MuiTableCell-root': { fontWeight: 700 } },
+                      },
+                    ]}
+                    containerSx={{ width: '100%' }}
+                    tableSx={{ width: '100%' }}
+                  />
+                )}
               </ContentBox>
             );
           })}
@@ -373,8 +376,8 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger }: Prop
                 roundByMethod(1 + reguleringFoer2024Pct / 100, 3, 'halfAwayFromZero'),
                 3
               );
-              const hasYdelseFrom2024 = afgoerelse.perioder.some((row) => row.satsAar >= 2024);
-              const show2024ConversionBlock = computation.grundloenNiveau === '2003' && hasYdelseFrom2024;
+              const show2024ConversionBlock =
+                computation.grundloenNiveau === '2003' && shouldShowLoebende2024ConversionBlock(afgoerelse);
               const showSplitHeading = show2024ConversionBlock;
               const hasKapitaliseringsdato = afgoerelse.kapitaliseringsdato !== null;
               const hasRestSection = afgoerelse.harRestSektion && hasKapitaliseringsdato;
@@ -477,6 +480,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger }: Prop
                       )}
                     </>
                   )}
+
                 </Box>
               );
             })}

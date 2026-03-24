@@ -20,3 +20,26 @@ export const buildKapitaliseringGrundydelseExpression = (
 
   return grundydelseText === undefined ? `${expression} =` : `${expression} = ${grundydelseText}`;
 };
+
+export const buildKapitaliseringOpreguleringTil2024Expression = (
+  grundydelseText: string,
+  opreguleringsfaktorText: string,
+  opreguleringPctText: string,
+  opreguleretGrundydelseText?: string
+): string => {
+  const expression =
+    `Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${opreguleringPctText}): ` +
+    `${grundydelseText} × ${opreguleringsfaktorText}`;
+  return opreguleretGrundydelseText === undefined ? `${expression} =` : `${expression} = ${opreguleretGrundydelseText}`;
+};
+
+export const buildKapitaliseringAarsydelseExpression = (
+  aarsydelseGrundlagText: string,
+  reguleringsPctText: string | null,
+  aarsydelseText?: string
+): string => {
+  const expression = reguleringsPctText === null
+    ? `Årlig ydelse (${aarsydelseGrundlagText})`
+    : `Årlig ydelse (${aarsydelseGrundlagText} × ${reguleringsPctText})`;
+  return aarsydelseText === undefined ? `${expression} =` : `${expression} = ${aarsydelseText}`;
+};

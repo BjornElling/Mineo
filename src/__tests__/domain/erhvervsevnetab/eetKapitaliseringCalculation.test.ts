@@ -232,7 +232,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues).toEqual([]);
     expect(result.computation?.afgoerelser).toHaveLength(1);
     expect(result.computation?.afgoerelser[0]?.grundydelse).toBe(116067.2);
-    expect(result.computation?.afgoerelser[0]?.reguleringsPctRounded4).toBe(3.9);
+    expect(result.computation?.afgoerelser[0]?.aarsydelseReguleringsPctRounded4).toBe(3.9);
     expect(result.computation?.afgoerelser[0]?.kapitaliseringsfaktor).toBe(4.597);
     expect(result.computation?.afgoerelser[0]?.kapitalbelob).toBe(554370);
     expect(result.computation?.afgoerelser[0]?.kapitaliseretPgaUnderToAarTilFp).toBe(false);
@@ -292,9 +292,46 @@ describe('computeEetKapitaliseringCalculation', () => {
 
     expect(result.issues).toEqual([]);
     const afgoerelse = result.computation?.afgoerelser[0];
-    expect(afgoerelse?.reguleringsPctRounded4).toBe(0);
     expect(afgoerelse?.grundydelse).toBe(63561.11);
+    expect(afgoerelse?.grundydelse2024).toBe(105320.76);
+    expect(afgoerelse?.opreguleringTil2024PctRounded4).toBeGreaterThan(0);
+    expect(afgoerelse?.aarsydelseGrundlag).toBe(105320.76);
+    expect(afgoerelse?.aarsydelseReguleringsPctRounded4).toBeNull();
     expect(afgoerelse?.aarsydelse).toBe(105320.76);
+  });
+
+  it('splitter opregulering fra 2003- til 2024-niveau og videre regulering til 2026 i separate trin', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: asAmount(339000),
+        aslAfgoerelser: [
+          {
+            id: 'a',
+            afgoerelsesDato: '2026-01-15',
+            virkningsDato: '2026-01-15',
+            eetPct: '15',
+            kapDato: '2026-01-15',
+            kapPct: '15',
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadesdato: '2019-04-01',
+      skadelidteFodselsdato: '1978-05-15',
+    });
+
+    expect(result.issues).toEqual([]);
+    const afgoerelse = result.computation?.afgoerelser[0];
+    expect(afgoerelse?.grundloen).toBeGreaterThan(0);
+    expect(afgoerelse?.grundydelse).toBeGreaterThan(0);
+    expect(afgoerelse?.grundydelse2024).not.toBeNull();
+    expect(afgoerelse?.grundydelse2024).toBeGreaterThan(afgoerelse?.grundydelse ?? 0);
+    expect(afgoerelse?.opreguleringTil2024PctRounded4).toBeGreaterThan(0);
+    expect(afgoerelse?.aarsydelseGrundlag).toBe(afgoerelse?.grundydelse2024);
+    expect(afgoerelse?.aarsydelseReguleringsPctRounded4).toBe(8.9);
+    expect(afgoerelse?.aarsydelse).toBeGreaterThan(afgoerelse?.aarsydelseGrundlag ?? 0);
   });
 
   it('bruger særfaktor direkte når kontroltidspunktet er under to år til folkepension', () => {

@@ -14,8 +14,10 @@ import {
   formatKapitaliseringsPct,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
 import {
+  buildKapitaliseringAarsydelseExpression,
   buildKapitaliseringGrundydelseExpression,
   buildKapitaliseringGrundydelseLabel,
+  buildKapitaliseringOpreguleringTil2024Expression,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import { downloadKapitaliseringPdf } from '../../../utils/pdf/pdfService';
 import EetIssuesBox from './EetIssuesBox';
@@ -165,15 +167,39 @@ const EetKapitaliseringTab = ({ values, onGoToEetOplysninger }: Props) => {
               </Box>
             </Box>
 
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Reguleringsprocent ({formatIsoDateLong(afgoerelse.kapitaliseringsdato)})</Typography>
-              <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{`${formatAsAmountTrimmed(afgoerelse.reguleringsPctRounded4, 4)} %`}</Typography>
+            {afgoerelse.grundydelse2024 !== null && afgoerelse.opreguleringTil2024PctRounded4 !== null && (
+              <Box className="row--label-right-hover">
+                <Typography className="row--text">
+                  {buildKapitaliseringOpreguleringTil2024Expression(
+                    formatKr(afgoerelse.grundydelse, 2),
+                    formatAsAmountTrimmed(1 + afgoerelse.opreguleringTil2024PctRounded4 / 100, 4),
+                    `${formatAsAmountTrimmed(afgoerelse.opreguleringTil2024PctRounded4, 4)} %`
+                  )}
+                </Typography>
+                <Box className="row--label-right-hover__content">
+                  <Typography className="row--text">{formatKr(afgoerelse.grundydelse2024, 2)}</Typography>
+                </Box>
               </Box>
-            </Box>
+            )}
+
+            {afgoerelse.aarsydelseReguleringsPctRounded4 !== null && (
+              <Box className="row--label-right-hover">
+                <Typography className="row--text">Reguleringsprocent ({formatIsoDateLong(afgoerelse.kapitaliseringsdato)})</Typography>
+                <Box className="row--label-right-hover__content">
+                  <Typography className="row--text">{`${formatAsAmountTrimmed(afgoerelse.aarsydelseReguleringsPctRounded4, 4)} %`}</Typography>
+                </Box>
+              </Box>
+            )}
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text">{`Årlig ydelse (${formatKr(afgoerelse.grundydelse, 2)} x ${formatAsAmountTrimmed(100 + afgoerelse.reguleringsPctRounded4, 4)} %)`}</Typography>
+              <Typography className="row--text">
+                {buildKapitaliseringAarsydelseExpression(
+                  formatKr(afgoerelse.aarsydelseGrundlag, 2),
+                  afgoerelse.aarsydelseReguleringsPctRounded4 === null
+                    ? null
+                    : `${formatAsAmountTrimmed(100 + afgoerelse.aarsydelseReguleringsPctRounded4, 4)} %`
+                )}
+              </Typography>
               <Box className="row--label-right-hover__content">
                 <Typography className="row--text">{formatKr(afgoerelse.aarsydelse, 2)}</Typography>
               </Box>

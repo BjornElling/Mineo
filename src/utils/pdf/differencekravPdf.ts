@@ -29,8 +29,10 @@ import type {
 import { formatPct as formatKapPct } from '../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { formatKapitaliseringsPct } from '../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
 import {
+  buildKapitaliseringAarsydelseExpression,
   buildKapitaliseringGrundydelseExpression,
   buildKapitaliseringGrundydelseLabel,
+  buildKapitaliseringOpreguleringTil2024Expression,
 } from '../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import type { PdfCommonOptions } from './pdfOptions';
 import { TODAY } from '../../config/dateRanges';
@@ -100,14 +102,33 @@ const addProformaKapitaliseringSection = (
     rowOpts
   );
 
-  writer.writeLeftRightText(
-    `Reguleringsprocent (${formatIsoDateShort(pk.kapitaliseringsdato)})`,
-    `${formatAsAmountTrimmed(pk.reguleringsPctRounded4, 4)} %`,
-    rowOpts
-  );
+  if (pk.grundydelse2024 !== null && pk.opreguleringTil2024PctRounded4 !== null) {
+    writer.writeLeftRightText(
+      buildKapitaliseringOpreguleringTil2024Expression(
+        formatKr(pk.grundydelse, 2),
+        formatAsAmountTrimmed(1 + pk.opreguleringTil2024PctRounded4 / 100, 4),
+        `${formatAsAmountTrimmed(pk.opreguleringTil2024PctRounded4, 4)} %`
+      ),
+      formatKr(pk.grundydelse2024, 2),
+      rowOpts
+    );
+  }
+
+  if (pk.aarsydelseReguleringsPctRounded4 !== null) {
+    writer.writeLeftRightText(
+      `Reguleringsprocent (${formatIsoDateShort(pk.kapitaliseringsdato)})`,
+      `${formatAsAmountTrimmed(pk.aarsydelseReguleringsPctRounded4, 4)} %`,
+      rowOpts
+    );
+  }
 
   writer.writeLeftRightText(
-    `Årlig ydelse (${formatKr(pk.grundydelse, 2)} x ${formatAsAmountTrimmed(100 + pk.reguleringsPctRounded4, 4)} %)`,
+    buildKapitaliseringAarsydelseExpression(
+      formatKr(pk.aarsydelseGrundlag, 2),
+      pk.aarsydelseReguleringsPctRounded4 === null
+        ? null
+        : `${formatAsAmountTrimmed(100 + pk.aarsydelseReguleringsPctRounded4, 4)} %`
+    ),
     formatKr(pk.aarsydelse, 2),
     rowOpts
   );

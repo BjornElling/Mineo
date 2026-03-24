@@ -18,8 +18,10 @@ import type {
 } from '../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
 import { formatKapitaliseringsPct } from '../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
 import {
+  buildKapitaliseringAarsydelseExpression,
   buildKapitaliseringGrundydelseExpression,
   buildKapitaliseringGrundydelseLabel,
+  buildKapitaliseringOpreguleringTil2024Expression,
 } from '../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import type { PdfCommonOptions } from './pdfOptions';
 import { TODAY } from '../../config/dateRanges';
@@ -96,14 +98,33 @@ export const addKapitaliseringAfgoerelseSection = (
     rowOpts
   );
 
-  writer.writeLeftRightText(
-    `Reguleringsprocent (${formatIsoDateShort(afgoerelse.kapitaliseringsdato)})`,
-    `${formatAsAmountTrimmed(afgoerelse.reguleringsPctRounded4, 4)} %`,
-    rowOpts
-  );
+  if (afgoerelse.grundydelse2024 !== null && afgoerelse.opreguleringTil2024PctRounded4 !== null) {
+    writer.writeLeftRightText(
+      buildKapitaliseringOpreguleringTil2024Expression(
+        formatKr(afgoerelse.grundydelse, 2),
+        formatAsAmountTrimmed(1 + afgoerelse.opreguleringTil2024PctRounded4 / 100, 4),
+        `${formatAsAmountTrimmed(afgoerelse.opreguleringTil2024PctRounded4, 4)} %`
+      ),
+      formatKr(afgoerelse.grundydelse2024, 2),
+      rowOpts
+    );
+  }
+
+  if (afgoerelse.aarsydelseReguleringsPctRounded4 !== null) {
+    writer.writeLeftRightText(
+      `Reguleringsprocent (${formatIsoDateShort(afgoerelse.kapitaliseringsdato)})`,
+      `${formatAsAmountTrimmed(afgoerelse.aarsydelseReguleringsPctRounded4, 4)} %`,
+      rowOpts
+    );
+  }
 
   writer.writeLeftRightText(
-    `Årlig ydelse (${formatKr(afgoerelse.grundydelse, 2)} x ${formatAsAmountTrimmed(100 + afgoerelse.reguleringsPctRounded4, 4)} %)`,
+    buildKapitaliseringAarsydelseExpression(
+      formatKr(afgoerelse.aarsydelseGrundlag, 2),
+      afgoerelse.aarsydelseReguleringsPctRounded4 === null
+        ? null
+        : `${formatAsAmountTrimmed(100 + afgoerelse.aarsydelseReguleringsPctRounded4, 4)} %`
+    ),
     formatKr(afgoerelse.aarsydelse, 2),
     rowOpts
   );

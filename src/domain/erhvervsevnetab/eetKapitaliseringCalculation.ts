@@ -39,7 +39,10 @@ export type EetKapitaliseringAfgoerelseComputation = Readonly<{
   erstatningsniveauPct: 80 | 83;
   amBidragPct: 0 | 8;
   grundydelse: number;
-  reguleringsPctRounded4: number;
+  grundydelse2024: number | null;
+  opreguleringTil2024PctRounded4: number | null;
+  aarsydelseGrundlag: number;
+  aarsydelseReguleringsPctRounded4: number | null;
   aarsydelse: number;
   kapitaliseringsbekendtgoerelseLabel: string;
   tabelLabel: string;
@@ -82,6 +85,15 @@ type ResolvedKapitaliseringsRow = Readonly<{
   tidlKapDato: ISODateString | null;
 }>;
 
+type KapitaliseringAarsydelseBreakdown = Readonly<{
+  grundydelse: number;
+  grundydelse2024: number | null;
+  opreguleringTil2024PctRounded4: number | null;
+  aarsydelseGrundlag: number;
+  aarsydelseReguleringsPctRounded4: number | null;
+  aarsydelse: number;
+}>;
+
 const toIssue = (id: string, message: string): EetIssue => ({
   id,
   severity: 'error',
@@ -98,6 +110,60 @@ const toMissingFieldIssue = (fieldId: string, fieldLabel: string): EetIssue =>
   toIssue(`missing-${fieldId}`, `Der mangler indtastning af ${fieldLabel}.`);
 
 const formatAgeForIssue = (age: AgeYearsMonths): string => `${age.years} år, ${age.months} måneder`;
+
+export const resolveKapitaliseringAarsydelseBreakdown = (
+  args: Readonly<{
+    grundloen: number;
+    kapitaliseringspct: number;
+    erstatningsniveau: number;
+    amFaktor: number;
+    kapitaliseringsaar: number;
+    before2024Skade: boolean;
+  }>,
+  issues: EetIssue[]
+): KapitaliseringAarsydelseBreakdown | null => {
+  const rateInfo = resolveAslReguleringRateForKapAar(
+    args.kapitaliseringsaar,
+    args.before2024Skade,
+    issues
+  );
+  if (!rateInfo) return null;
+
+  const grundydelse = round2(
+    args.grundloen * (args.kapitaliseringspct / 100) * args.erstatningsniveau * args.amFaktor
+  );
+
+  if (args.before2024Skade) {
+    const opreguleringTil2024Pct = reguleringsprocentErhvervsevnetabFoer2024[2024];
+    if (!Number.isFinite(opreguleringTil2024Pct)) {
+      issues.push(toIssue('reguleringssats-missing', 'Reguleringssats mangler for år 2024.'));
+      return null;
+    }
+
+    if (args.kapitaliseringsaar >= 2024) {
+      const grundydelse2024 = round2(grundydelse * (1 + opreguleringTil2024Pct / 100));
+      const aarsydelse = round2(grundydelse2024 * rateInfo.factor);
+      return {
+        grundydelse,
+        grundydelse2024,
+        opreguleringTil2024PctRounded4: round4(opreguleringTil2024Pct),
+        aarsydelseGrundlag: grundydelse2024,
+        aarsydelseReguleringsPctRounded4:
+          args.kapitaliseringsaar === 2024 ? null : round4(rateInfo.reguleringPct),
+        aarsydelse,
+      };
+    }
+  }
+
+  return {
+    grundydelse,
+    grundydelse2024: null,
+    opreguleringTil2024PctRounded4: null,
+    aarsydelseGrundlag: grundydelse,
+    aarsydelseReguleringsPctRounded4: round4(rateInfo.reguleringPct),
+    aarsydelse: round2(grundydelse * rateInfo.factor),
+  };
+};
 
 const collectResolvedRows = (
   rows: readonly AslAfgoerelseRow[],
@@ -496,25 +562,20 @@ export const computeEetKapitaliseringCalculation = (
     }
 
     const kapitaliseringsaar = Number.parseInt(effectiveKapDato.slice(0, 4), 10);
-    const aslReguleringRateInfo = resolveAslReguleringRateForKapAar(
-      kapitaliseringsaar,
-      before2024Skade,
+    const aarsydelseBreakdown = resolveKapitaliseringAarsydelseBreakdown(
+      {
+        grundloen,
+        kapitaliseringspct: effectiveKapPct,
+        erstatningsniveau,
+        amFaktor,
+        kapitaliseringsaar,
+        before2024Skade,
+      },
       issues
     );
-    if (!aslReguleringRateInfo || kapitaliseringsfaktor === null) continue;
+    if (!aarsydelseBreakdown || kapitaliseringsfaktor === null) continue;
 
-    const grundydelse = round2(grundloen * (effectiveKapPct / 100) * erstatningsniveau * amFaktor);
-    const reguleringFoer2024 = reguleringsprocentErhvervsevnetabFoer2024[2024];
-    if (before2024Skade && !Number.isFinite(reguleringFoer2024)) {
-      issues.push(toIssue('reguleringssats-missing', 'Reguleringssats mangler for år 2024.'));
-      continue;
-    }
-    const grundydelse2024 = before2024Skade
-      ? round2(grundydelse * (1 + reguleringFoer2024 / 100))
-      : grundydelse;
-    const effektivGrundydelse = before2024Skade && kapitaliseringsaar >= 2024 ? grundydelse2024 : grundydelse;
-    const aarsydelse = round2(effektivGrundydelse * aslReguleringRateInfo.factor);
-    const kapitalbelob = ceil0(aarsydelse * kapitaliseringsfaktor);
+    const kapitalbelob = ceil0(aarsydelseBreakdown.aarsydelse * kapitaliseringsfaktor);
     const typeLabel = resolvedTabelData.kapitaliseringsType === 'vejl' ? 'Vejl.' : 'Bkg.';
 
     computations.push({
@@ -525,9 +586,12 @@ export const computeEetKapitaliseringCalculation = (
       grundloen,
       erstatningsniveauPct: from2011 ? 83 : 80,
       amBidragPct: from2011 ? 8 : 0,
-      grundydelse,
-      reguleringsPctRounded4: round4(aslReguleringRateInfo.reguleringPct),
-      aarsydelse,
+      grundydelse: aarsydelseBreakdown.grundydelse,
+      grundydelse2024: aarsydelseBreakdown.grundydelse2024,
+      opreguleringTil2024PctRounded4: aarsydelseBreakdown.opreguleringTil2024PctRounded4,
+      aarsydelseGrundlag: aarsydelseBreakdown.aarsydelseGrundlag,
+      aarsydelseReguleringsPctRounded4: aarsydelseBreakdown.aarsydelseReguleringsPctRounded4,
+      aarsydelse: aarsydelseBreakdown.aarsydelse,
       kapitaliseringsbekendtgoerelseLabel: `${typeLabel} ${resolvedKapId}, tabel ${resolvedTabelvalg.tabel}`,
       tabelLabel: resolvedTabelvalg.tabel,
       folkepensionsalderLabel: resolvedTabelvalg.folkepensionsalderLabel,
