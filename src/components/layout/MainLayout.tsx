@@ -21,8 +21,9 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 import { UI_STORAGE_KEYS, type StorageKey } from '../../config/storageManifest';
 import {
   clearPendingPwaFileOpenRequest,
+  getPendingPwaFileOpenRequest,
+  markPendingPwaFileOpenRequestHandled,
   MINEO_PWA_FILE_OPEN_EVENT,
-  takeNextPwaFileOpenRequest,
   type PwaFileOpenRequest,
 } from '../../utils/pwaLaunchQueue';
 import {
@@ -264,7 +265,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
   } = useFormPersistence();
   const manuelReguleringInputErrors = useEOLoenindkomstInputErrors();
   const isPwaLoadInProgressRef = React.useRef<boolean>(false);
-  const pendingPwaRequestRef = React.useRef<PwaFileOpenRequest | null>(null);
+  const activePwaRequestIdRef = React.useRef<string | null>(null);
 
   // Prioritering: Track om nuværende overlay er user-feedback (højere prioritet end system errors)
   const isUserFeedbackRef = React.useRef<boolean>(false);
@@ -394,7 +395,11 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     if (result.fileHandle) {
       await saveFileHandleToIndexedDB(result.fileHandle);
     }
-    await clearPendingPwaFileOpenRequest();
+    if (result.requestId) {
+      await markPendingPwaFileOpenRequestHandled(result.requestId);
+    } else {
+      await clearPendingPwaFileOpenRequest();
+    }
   }, [replaceAllPersistedData]);
 
   const requestApplyLoadedSnapshot = React.useCallback(async (
@@ -533,7 +538,6 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
       if (result.success) {
         if (result.preflightWarning) {
           setPendingLoadResult({ result, navigateToStamdataAfterApply: true });
-          pendingPwaRequestRef.current = request;
           return 'preflight';
         }
 
@@ -546,7 +550,6 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
           true
         );
 
-        pendingPwaRequestRef.current = null;
         return outcome === 'awaitingUser' ? 'awaitingUser' : 'applied';
       }
 
@@ -561,7 +564,6 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
         message: resolved.message,
         type: 'error',
       });
-      pendingPwaRequestRef.current = null;
       return 'error';
     }
   }, [requestApplyLoadedSnapshot]);
@@ -572,21 +574,21 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
       if (pendingLoadResult !== null) return;
       if (pendingOverwriteApply !== null) return;
 
-      const request = takeNextPwaFileOpenRequest();
+      const request = getPendingPwaFileOpenRequest();
       if (!request) return;
+      if (activePwaRequestIdRef.current === request.id) return;
 
+      activePwaRequestIdRef.current = request.id;
       isPwaLoadInProgressRef.current = true;
 
       void handleHentFromPwaRequest(request)
-        .then((outcome) => {
+        .then(() => {
+          activePwaRequestIdRef.current = null;
           isPwaLoadInProgressRef.current = false;
-          if (outcome !== 'preflight' && outcome !== 'awaitingUser') {
-            runNext();
-          }
         })
         .catch(() => {
+          activePwaRequestIdRef.current = null;
           isPwaLoadInProgressRef.current = false;
-          runNext();
         });
     };
 
@@ -596,8 +598,9 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
   React.useEffect(() => {
     const handler = () => {
       if (pendingLoadResult !== null || pendingOverwriteApply !== null) {
-        const dropped = takeNextPwaFileOpenRequest();
+        const dropped = getPendingPwaFileOpenRequest();
         if (dropped) {
+          void clearPendingPwaFileOpenRequest();
           isUserFeedbackRef.current = true;
           setOverlay({ message: 'Ny fil blev forsøgt åbnet – prøv igen når du er færdig', type: 'warning' });
         }
@@ -628,13 +631,18 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     // pwaLaunchQueue-modulet, men den første event er tabt. Vi re-checker derfor kortvarigt,
     // så dobbeltklik-åbnede `.eo` filer ikke sporadisk strandes på OpenEo-siden.
     const startedAt = Date.now();
+    let lastAutoRetriedRequestId: string | null = null;
     let timeoutId: number | null = null;
     let cancelled = false;
 
     const tick = (): void => {
       if (cancelled) return;
       if (pendingLoadResult !== null || pendingOverwriteApply !== null) return;
-      processNextPwaFileOpenRequest();
+      const request = getPendingPwaFileOpenRequest();
+      if (request && request.id !== lastAutoRetriedRequestId) {
+        lastAutoRetriedRequestId = request.id;
+        processNextPwaFileOpenRequest();
+      }
 
       if (Date.now() - startedAt >= PWA_OPEN_REQUEST_RETRY_WINDOW_MS) {
         return;
@@ -663,7 +671,6 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     if (!pending) return;
     setPendingLoadResult(null);
     setPendingOverwriteApply(null);
-    pendingPwaRequestRef.current = null;
 
     try {
       await requestApplyLoadedSnapshot(
@@ -685,7 +692,6 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     const pending = pendingOverwriteApply;
     if (!pending) return;
     setPendingOverwriteApply(null);
-    pendingPwaRequestRef.current = null;
 
     try {
       await applyLoadedSnapshot(pending.result);
@@ -916,7 +922,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
         confirmText="Indlæs trods fejl"
         confirmColor="primary"
         onCancel={() => {
-          pendingPwaRequestRef.current = null;
+          void clearPendingPwaFileOpenRequest();
           setPendingLoadResult(null);
         }}
         onConfirm={handleLoadDespiteIssues}
@@ -941,7 +947,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
         confirmText="Overskriv"
         confirmColor="error"
         onCancel={() => {
-          pendingPwaRequestRef.current = null;
+          void clearPendingPwaFileOpenRequest();
           setPendingOverwriteApply(null);
         }}
         onConfirm={handleConfirmOverwriteApply}

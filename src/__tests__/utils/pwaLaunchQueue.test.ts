@@ -1,8 +1,9 @@
 import {
   clearPendingPwaFileOpenRequest,
+  getPendingPwaFileOpenRequest,
   hydratePendingPwaFileOpenRequest,
+  markPendingPwaFileOpenRequestHandled,
   retryPendingPwaFileOpenRequest,
-  takeNextPwaFileOpenRequest,
 } from '../../utils/pwaLaunchQueue';
 
 const loadPendingPwaOpenRequestFromIndexedDBMock = vi.fn();
@@ -21,7 +22,7 @@ describe('pwaLaunchQueue', () => {
     await clearPendingPwaFileOpenRequest();
   });
 
-  it('rehydrates a persisted pending request and exposes it to retry/takeNext after reload-like state loss', async () => {
+  it('rehydrates a persisted pending request and keeps it pending until it is marked handled', async () => {
     const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
     loadPendingPwaOpenRequestFromIndexedDBMock.mockResolvedValue({
       id: 'pwa-open-7',
@@ -39,10 +40,13 @@ describe('pwaLaunchQueue', () => {
       type: 'mineo:pwa-file-open',
     }));
 
-    const next = takeNextPwaFileOpenRequest();
+    const next = getPendingPwaFileOpenRequest();
     expect(next).toEqual(expect.objectContaining({
       id: 'pwa-open-7',
       fileName: 'test.eo',
     }));
+
+    await markPendingPwaFileOpenRequestHandled('pwa-open-7');
+    expect(getPendingPwaFileOpenRequest()).toBeNull();
   });
 });

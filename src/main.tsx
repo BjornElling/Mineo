@@ -17,6 +17,11 @@ const SW_UPDATE_CHECK_TIMEOUT_MS = 5000;
 const SW_PERIODIC_UPDATE_CHECK_MS = 60 * 60 * 1000;
 const swUpdateLifecycleWired = new WeakSet<ServiceWorkerRegistration>();
 
+const isPwaFileOpenRoute = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return window.location.pathname === '/open';
+};
+
 const isTouchLikeDevice = (): boolean => {
   if (typeof window === 'undefined') return false;
   const touchPoints = typeof navigator !== 'undefined' ? navigator.maxTouchPoints ?? 0 : 0;
@@ -135,6 +140,7 @@ const ensureLatestVersionBeforeRender = async (): Promise<void> => {
   if (!import.meta.env.PROD) return;
   if (typeof navigator === 'undefined') return;
   if (!('serviceWorker' in navigator)) return;
+  if (isPwaFileOpenRoute()) return;
 
   await Promise.race([
     registerServiceWorker(),

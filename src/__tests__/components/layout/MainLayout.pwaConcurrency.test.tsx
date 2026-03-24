@@ -10,12 +10,15 @@ let pendingPwaRequest: unknown = null;
 
 vi.mock('../../../utils/pwaLaunchQueue', () => ({
   MINEO_PWA_FILE_OPEN_EVENT: 'mineo:pwa-file-open',
-  clearPendingPwaFileOpenRequest: vi.fn(async () => {}),
-  takeNextPwaFileOpenRequest: () => {
-    const next = pendingPwaRequest;
+  clearPendingPwaFileOpenRequest: vi.fn(async () => {
     pendingPwaRequest = null;
-    return next;
-  },
+  }),
+  getPendingPwaFileOpenRequest: () => pendingPwaRequest,
+  markPendingPwaFileOpenRequestHandled: vi.fn(async (requestId: string) => {
+    if ((pendingPwaRequest as { id?: string } | null)?.id === requestId) {
+      pendingPwaRequest = null;
+    }
+  }),
 }));
 
 vi.mock('../../../utils/fileLoad', () => ({
@@ -31,6 +34,12 @@ describe('MainLayout (PWA concurrency)', () => {
     const location = useLocation();
     return <div data-testid="pathname">{location.pathname}</div>;
   };
+
+  beforeEach(() => {
+    pendingPwaRequest = null;
+    vi.clearAllMocks();
+    vi.useRealTimers();
+  });
 
   it('drops new PWA file-opens while preflight dialog is open (policy A)', async () => {
     const loadFromFileHandleMock = vi.mocked(loadFromFileHandle);
@@ -145,5 +154,57 @@ describe('MainLayout (PWA concurrency)', () => {
       expect.objectContaining({ requestId: 'pwa-open-late' })
     );
     expect(screen.getByTestId('pathname')).toHaveTextContent('/stamdata');
+  });
+
+  it('keeps the same pending PWA request available for retry if the first load attempt fails', async () => {
+    const loadFromFileHandleMock = vi.mocked(loadFromFileHandle);
+    loadFromFileHandleMock
+      .mockRejectedValueOnce(new Error('Midlertidig fejl'))
+      .mockResolvedValueOnce({
+        success: true,
+        source: 'pwa',
+        requestId: 'pwa-open-retry',
+        filename: 'retry.eo',
+        snapshot: { stamdata: { skadelidte: 'Retry' } },
+      } satisfies LoadFileResult);
+
+    render(
+      <AppSettingsProvider>
+        <FormPersistenceProvider>
+          <MemoryRouter initialEntries={['/open']}>
+            <RouteProbe />
+            <MainLayout>
+              <div />
+            </MainLayout>
+          </MemoryRouter>
+        </FormPersistenceProvider>
+      </AppSettingsProvider>
+    );
+
+    pendingPwaRequest = {
+      id: 'pwa-open-retry',
+      createdAtEpochMs: Date.now(),
+      targetUrl: '/open',
+      fileHandle: {} as FileSystemFileHandle,
+      fileName: 'retry.eo',
+      ignoredFileCount: 0,
+    };
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
+    });
+
+    await waitFor(() => {
+      expect(loadFromFileHandleMock).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByTestId('pathname')).toHaveTextContent('/open');
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
+    });
+
+    await waitFor(() => {
+      expect(loadFromFileHandleMock).toHaveBeenCalledTimes(2);
+    });
   });
 });

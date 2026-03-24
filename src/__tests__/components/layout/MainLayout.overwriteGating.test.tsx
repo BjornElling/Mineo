@@ -16,12 +16,15 @@ let pendingPwaRequest: unknown = null;
 
 vi.mock('../../../utils/pwaLaunchQueue', () => ({
   MINEO_PWA_FILE_OPEN_EVENT: 'mineo:pwa-file-open',
-  clearPendingPwaFileOpenRequest: vi.fn(async () => {}),
-  takeNextPwaFileOpenRequest: () => {
-    const next = pendingPwaRequest;
+  clearPendingPwaFileOpenRequest: vi.fn(async () => {
     pendingPwaRequest = null;
-    return next;
-  },
+  }),
+  getPendingPwaFileOpenRequest: () => pendingPwaRequest,
+  markPendingPwaFileOpenRequestHandled: vi.fn(async (requestId: string) => {
+    if ((pendingPwaRequest as { id?: string } | null)?.id === requestId) {
+      pendingPwaRequest = null;
+    }
+  }),
 }));
 
 import MainLayout from '../../../components/layout/MainLayout';
@@ -51,6 +54,11 @@ describe('MainLayout (overwrite gating)', () => {
     const location = useLocation();
     return <div data-testid="pathname">{location.pathname}</div>;
   };
+
+  beforeEach(() => {
+    pendingPwaRequest = null;
+    vi.clearAllMocks();
+  });
 
   it('navigates to Stamdata after a successful manual load without overwrite dialog', async () => {
     sessionStorage.clear();

@@ -121,10 +121,8 @@ export const setupPwaLaunchQueueConsumer = (): void => {
   });
 };
 
-export const takeNextPwaFileOpenRequest = (): PwaFileOpenRequest | null => {
-  const next = pendingRequest;
-  pendingRequest = null;
-  return next;
+export const getPendingPwaFileOpenRequest = (): PwaFileOpenRequest | null => {
+  return pendingRequest;
 };
 
 export const retryPendingPwaFileOpenRequest = async (): Promise<boolean> => {
@@ -135,6 +133,18 @@ export const retryPendingPwaFileOpenRequest = async (): Promise<boolean> => {
 
   dispatchPendingRequestEvent(pendingRequest);
   return true;
+};
+
+export const markPendingPwaFileOpenRequestHandled = async (requestId: string): Promise<void> => {
+  if (!pendingRequest) {
+    return;
+  }
+  if (pendingRequest.id !== requestId) {
+    return;
+  }
+
+  pendingRequest = null;
+  await deletePendingPwaOpenRequestFromIndexedDB();
 };
 
 export const clearPendingPwaFileOpenRequest = async (): Promise<void> => {
