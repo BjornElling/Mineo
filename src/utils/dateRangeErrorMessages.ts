@@ -21,7 +21,7 @@ export type DateRangeSpecialErrors = {
    * When set, overrides the generic max-date error with "[fieldLabel] kan senest være 31. december ÅÅÅÅ".
    * The year is extracted from maxDate. Use for EET fields bounded by data coverage year.
    */
-  maxBoundKind?: 'eetDataMax' | 'dataCoverageMax' | 'foerAfgoerelsesdato';
+  maxBoundKind?: 'eetDataMax' | 'dataCoverageMax' | 'foerAfgoerelsesdato' | 'foerFoersteTafFraDato';
   /** The field label used in the maxBoundKind error message, e.g. "Beregningsdato". */
   maxBoundFieldLabel?: string;
   /**
@@ -71,6 +71,11 @@ export const resolveDateRangeErrorMessage = (args: {
   if (special?.maxBoundKind === 'foerAfgoerelsesdato' && maxDate && iso > maxDate) {
     const reference = special.maxBoundReferenceISO ?? maxDate;
     return `Tidl. kap.dato skal være før afgørelsesdatoen (${formatISOForTooltip(reference)})`;
+  }
+
+  if (special?.maxBoundKind === 'foerFoersteTafFraDato' && maxDate && iso > maxDate) {
+    const reference = special.maxBoundReferenceISO ?? maxDate;
+    return `Referenceperioden skal ligge før første TAF-periode (${formatISOForTooltip(reference)})`;
   }
 
   if (special?.fraTilRole === 'fra' && maxDate && iso > maxDate) {

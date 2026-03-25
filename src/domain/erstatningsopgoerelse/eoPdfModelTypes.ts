@@ -45,6 +45,7 @@ export type SygeferiegodtgoerelsePdfModel = Readonly<{
     ansaettelsesforholdId: string;
     ansaettelsesforholdNavn: string;
     sourceLabel: string;
+    feriepengekravTotalOre: MoneyOre;
     totalOre: MoneyOre;
     explanatoryLines: readonly string[];
     referenceperiode: Readonly<{ fra: ISODateString; til: ISODateString }> | null;
@@ -61,6 +62,7 @@ export type SygeferiegodtgoerelsePdfModel = Readonly<{
       til: ISODateString;
       satsOre: MoneyOre;
       antalDage: number;
+      feriepengekravOre: MoneyOre;
       beregnetSfggoereOre: MoneyOre;
     }>[];
   }>[];

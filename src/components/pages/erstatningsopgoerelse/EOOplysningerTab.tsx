@@ -42,6 +42,7 @@ import {
   computeSkadesdatoMinRule,
   dateRanges_erstatningsopgoerelse
 } from '../../../config/dateRanges';
+import { DAY_COUNT_MAX } from '../../../schemas/formSchemas/baseSchemas';
 import { resolveMidlertidigEetDatoHvisAktiv } from '../../../domain/erstatningsopgoerelse/tafPeriodConstraints';
 import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
 import { useSetEOLoenindkomstInputError } from '../../../hooks/useEOLoenindkomstInputErrors';
@@ -64,7 +65,7 @@ import { coerceToISODateString, parseISODate } from '../../../types/branded';
 import { isoDateToDate } from '../../../domain/dates/isoDate';
 import { calculateFerieHverdageMinusSHDage } from '../../../domain/erstatningsopgoerelse/ferieCalculations';
 import { EO_ANGIVET_LOEN_ID } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
-import { optaelArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/periodiseringsMotor';
+import { resolveSfggReferenceperiodeDayCount, resolveSfggReferenceperiodeMaxDate } from '../../../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
 import { buildBeregningsperiodeTafOverlap, buildTafDerived } from '../../../domain/erstatningsopgoerelse/tafRowDerived';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatningsopgoerelse/eoNummerValidering';
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
@@ -262,7 +263,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       const existing = prev.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === ansaettelsesforholdId);
       const baseRow = existing ?? {
         ansaettelsesforholdId,
-        beregnesUdFra: 'Ingen' as const,
+        beregnesUdFra: undefined,
         referenceperiodeFra: undefined,
         referenceperiodeTil: undefined,
         referenceperiodeFravaersdageUdenLoen: undefined,
@@ -283,25 +284,18 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   const getSfggReferenceperiodeAvailability = React.useCallback((
     row: ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number] | undefined
   ): Readonly<{ maxFravaersdage: number | undefined; hasNoArbejdsdageError: boolean }> => {
-    if (!row?.referenceperiodeFra || !row.referenceperiodeTil || row.referenceperiodeFra > row.referenceperiodeTil) {
+    const referenceDayCount = resolveSfggReferenceperiodeDayCount(values, row);
+    if (!referenceDayCount) {
       return { maxFravaersdage: undefined, hasNoArbejdsdageError: false };
     }
-    const breakdown = optaelArbejdsdageBreakdown({
-      fra: row.referenceperiodeFra,
-      til: row.referenceperiodeTil,
-      ferieperioder: values.ferieperioder ?? [],
-      loseFeriedage: 0,
-      context: {
-        kind: 'beregningsgrundlag',
-        oevrigeFravaersdage: 0,
-      },
-    });
-    const maxFravaersdage = breakdown?.tafDage ?? 0;
+    const maxFravaersdage = referenceDayCount.divisorLabel === 'hverdage'
+      ? referenceDayCount.hverdage
+      : referenceDayCount.divisorDage;
     return {
       maxFravaersdage,
       hasNoArbejdsdageError: maxFravaersdage <= 0,
     };
-  }, [values.ferieperioder]);
+  }, [values]);
 
   const handleHelbredsfoholdChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = helbredsstatusEnum.safeParse(event.target.value);
@@ -2608,35 +2602,41 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 const referenceperiodeErrorText = referenceperiodeAvailability.hasNoArbejdsdageError
                   ? 'Referenceperioden indeholder ingen arbejdsdage.'
                   : '';
+                const firstTafFraDato = (values.tafPerioder ?? [])
+                  .map((tafRow) => tafRow.fra)
+                  .filter((value): value is ISODateString => value !== undefined)
+                  .reduce<ISODateString | undefined>((earliest, current) => {
+                    if (!earliest) return current;
+                    return current < earliest ? current : earliest;
+                  }, undefined);
+                const sfggReferenceperiodeMaxDate = resolveSfggReferenceperiodeMaxDate(values);
+                // Hold inputgrænsen i sync med schemaets dayCount-loft.
+                // Vi blokkerer i feltet, før persistence kan ramme schema mismatch på > 366.
+                const sfggReferenceperiodeFravaersdageMax = Math.min(
+                  referenceperiodeAvailability.maxFravaersdage ?? DAY_COUNT_MAX,
+                  DAY_COUNT_MAX
+                );
 
                 return (
                   <React.Fragment key={ansaettelsesforhold.id}>
                     <Typography className="row--subheading">{label}</Typography>
-
-                    {row?.beregnesUdFra === 'Overenskomst' && overenskomstMeta ? (
-                      <Typography className="row--text" sx={{ mb: 1 }}>
-                        {sfggPolicy?.model === 'direkte_sats'
-                          ? `Overenskomsten ${overenskomstMeta.navn} bruger en direkte SFGG-sats.`
-                          : `Overenskomsten ${overenskomstMeta.navn} følger ferielovens SFGG-model${sfggPolicy?.referenceperiodeLabel ? ` med referenceperiode ${sfggPolicy.referenceperiodeLabel}` : ''}.`}
-                      </Typography>
-                    ) : null}
 
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">Sygeferiegodtgørelse beregnes ud fra</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledDropdown
                           width={200}
-                          value={row?.beregnesUdFra ?? 'Ingen'}
-                          allowEmpty={false}
+                          value={row?.beregnesUdFra}
+                          placeholder="Vælg..."
+                          allowEmpty={true}
                           onChange={(event: StyledDropdownChangeEvent<string | undefined>) => {
                             const nextValue = event.target.value;
-                            if (!nextValue) return;
                             updateSfggAnsaettelsesforhold(ansaettelsesforhold.id, (current) => ({
                               ...current,
                               beregnesUdFra:
                                 nextValue === 'Overenskomst' || nextValue === 'Manuelt angivet' || nextValue === 'Ferieloven' || nextValue === 'Ingen'
                                   ? nextValue
-                                  : 'Ingen',
+                                  : undefined,
                             }));
                           }}
                         >
@@ -2648,6 +2648,19 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       </Box>
                     </Box>
 
+                    {row?.beregnesUdFra === 'Overenskomst' && overenskomstMeta ? (
+                      <Box className="row--label-right-hover">
+                        <Typography className="row--text">Overenskomstens referenceperiode</Typography>
+                        <Box className="row--label-right-hover__content">
+                          <Typography className="row--text" sx={{ textAlign: 'right', maxWidth: '520px' }}>
+                            {sfggPolicy?.model === 'direkte_sats'
+                              ? `Overenskomsten ${overenskomstMeta.navn} bruger en direkte SFGG-sats.`
+                              : `Følger ferieloven${sfggPolicy?.referenceperiodeLabel ? ` (${sfggPolicy.referenceperiodeLabel})` : ''}`}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ) : null}
+
                     {requiresReferenceperiode ? (
                       <>
                         <Box className="row--label-right-hover">
@@ -2656,6 +2669,16 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <StyledDateField
                                 value={row?.referenceperiodeFra}
+                                maxDate={
+                                  row?.referenceperiodeTil && sfggReferenceperiodeMaxDate
+                                    ? (row.referenceperiodeTil < sfggReferenceperiodeMaxDate ? row.referenceperiodeTil : sfggReferenceperiodeMaxDate)
+                                    : (row?.referenceperiodeTil ?? sfggReferenceperiodeMaxDate)
+                                }
+                                specialRangeErrors={{
+                                  fraTilRole: 'fra',
+                                  maxBoundKind: sfggReferenceperiodeMaxDate ? 'foerFoersteTafFraDato' : undefined,
+                                  maxBoundReferenceISO: firstTafFraDato,
+                                }}
                                 error={referenceperiodeErrorText !== ''}
                                 helperText={referenceperiodeErrorText}
                                 onCommit={(event) => {
@@ -2668,6 +2691,13 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                             <Typography className="row--text">til og med</Typography>
                             <StyledDateField
                               value={row?.referenceperiodeTil}
+                              minDate={row?.referenceperiodeFra}
+                              maxDate={sfggReferenceperiodeMaxDate}
+                              specialRangeErrors={{
+                                fraTilRole: 'til',
+                                maxBoundKind: sfggReferenceperiodeMaxDate ? 'foerFoersteTafFraDato' : undefined,
+                                maxBoundReferenceISO: firstTafFraDato,
+                              }}
                               error={referenceperiodeErrorText !== ''}
                               helperText={referenceperiodeErrorText}
                               onCommit={(event) => {
@@ -2687,7 +2717,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                             <StyledIntegerField
                               width={100}
                               minValue={0}
-                              maxValue={referenceperiodeAvailability.maxFravaersdage}
+                              maxValue={sfggReferenceperiodeFravaersdageMax}
                               value={row?.referenceperiodeFravaersdageUdenLoen}
                               onCommit={(event) => {
                                 updateSfggAnsaettelsesforhold(ansaettelsesforhold.id, (current) => ({
@@ -2792,7 +2822,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                     </>
                   ) : null}
 
-                  {row?.beregnesUdFra !== 'Ingen' ? (
+                  {row?.beregnesUdFra !== undefined && row.beregnesUdFra !== 'Ingen' ? (
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">Evt. allerede betalt sygeferiegodtgørelse i perioden</Typography>
                       <Box className="row--label-right-hover__content">

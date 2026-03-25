@@ -64,10 +64,12 @@ export const yearInteger = z.preprocess(coerceToIntegerOrUndefined, z.number()
   .max(2100, 'Årstal må højst være 2100')
   .optional());
 
+export const DAY_COUNT_MAX = 366;
+
 export const dayCount = z.preprocess(coerceToIntegerOrUndefined, z.number()
   .int()
   .min(0, 'Kan ikke være negativ')
-  .max(366, 'Må højst være 366 dage')
+  .max(DAY_COUNT_MAX, `Må højst være ${DAY_COUNT_MAX} dage`)
   .optional());
 
 export const loseFeriedageCount = z.preprocess(coerceToIntegerOrUndefined, z.number()

@@ -9,11 +9,22 @@ import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapsho
 import EODebugRegulationSections from './EODebugRegulationSections';
 import EODebugRowsSection from './EODebugRowsSection';
 import EODebugEmploymentSections from './EODebugEmploymentSections';
+import EODebugGroupedRowsSection from './EODebugGroupedRowsSection';
 import type { RegulationDebugSection } from '../../../domain/debug/eoDebugRegulationViewModel';
 import { isLoenindkomstAnsaettelsesforholdEffectivelyEmpty } from '../../../domain/debug/eoDebugIndkomstModel';
 
 type EODebugProps = Readonly<{
   eoSnapshot?: EoSnapshot | null;
+}>;
+
+type SfggDisplayTable = Readonly<{
+  id: string;
+  title: string;
+  columns: readonly string[];
+  rows: readonly Readonly<{
+    id: string;
+    cells: readonly string[];
+  }>[];
 }>;
 
 const getLoenindkomstAnsaettelsesforholdId = (rowId: string): string | null => {
@@ -64,6 +75,75 @@ const getRegulationEmploymentId = (section: RegulationDebugSection): string | nu
   return match?.[1] ?? null;
 };
 
+const getSfggEmploymentId = (rowId: string): string | null => {
+  const postTableMatch = /^sfgg\.eftertabel\.[^.]+\.([^.]+)$/.exec(rowId);
+  if (postTableMatch) return postTableMatch[1] ?? null;
+
+  const match = /^sfgg\.[^.]+\.([^.]+)(?:\.|$)/.exec(rowId);
+  return match?.[1] ?? null;
+};
+
+const buildSfggSections = (
+  rows: readonly DebugRowModel[],
+  employmentNamesById: ReadonlyMap<string, string>
+) => {
+  const parseSfggTable = (row: DebugRowModel): SfggDisplayTable | null => {
+    const lines = row.displayValue
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line !== '');
+    if (lines.length < 2) return null;
+
+    const columns = lines[0]?.split('|').map((cell) => cell.trim()).filter((cell) => cell !== '') ?? [];
+    if (columns.length === 0) return null;
+
+    const parsedRows = lines.slice(1).map((line, index) => ({
+      id: `${row.id}.row.${index + 1}`,
+      cells: line.split('|').map((cell) => cell.trim()),
+    }));
+    const dataRows = parsedRows.filter((tableRow) => tableRow.cells[0] !== 'I alt');
+    const tableRows = dataRows.length > 1
+      ? parsedRows
+      : parsedRows.filter((tableRow) => tableRow.cells[0] !== 'I alt');
+
+    return {
+      id: row.id,
+      title: row.label,
+      columns,
+      rows: tableRows,
+    };
+  };
+
+  const grouped = new Map<string, DebugRowModel[]>();
+  const groupedTables = new Map<string, SfggDisplayTable[]>();
+  const order: string[] = [];
+
+  rows.forEach((row) => {
+    const employmentId = getSfggEmploymentId(row.id);
+    if (!employmentId) return;
+    if (!grouped.has(employmentId)) {
+      grouped.set(employmentId, []);
+      groupedTables.set(employmentId, []);
+      order.push(employmentId);
+    }
+    if (row.id.startsWith('sfgg.tabel.')) {
+      const parsedTable = parseSfggTable(row);
+      if (parsedTable) {
+        groupedTables.get(employmentId)?.push(parsedTable);
+        return;
+      }
+    }
+    grouped.get(employmentId)?.push(row);
+  });
+
+  return order.map((employmentId, index) => ({
+    id: employmentId,
+    title: employmentNamesById.get(employmentId) ?? `Arbejdssted ${index + 1}`,
+    rows: grouped.get(employmentId) ?? [],
+    tables: groupedTables.get(employmentId) ?? [],
+  }));
+};
+
 const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
   const manuelReguleringInputErrors = useEOLoenindkomstInputErrors();
   const { settings } = useAppSettings();
@@ -105,6 +185,12 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
     return ansaettelsesforholdId === null || visibleEmploymentIds.has(ansaettelsesforholdId);
   });
   const loenindkomstSections = buildLoenindkomstSections(loenindkomstRows);
+  const employmentNamesById = new Map(
+    (erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? []).map((af, index) => [
+      af.id,
+      (af.navnPaaArbejdssted ?? '').trim() || `Arbejdssted ${index + 1}`,
+    ])
+  );
   const regulationSectionsByEmploymentId = new Map<string, RegulationDebugSection>();
   view.regulationSections.forEach((section) => {
     const employmentId = getRegulationEmploymentId(section);
@@ -122,6 +208,7 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
     const employmentId = getRegulationEmploymentId(section);
     return !employmentId || !loenindkomstSections.some((loenSection) => loenSection.id === employmentId);
   });
+  const sfggSections = buildSfggSections(rowsBySection.get('sygeferiegodtgoerelse') ?? [], employmentNamesById);
   const filtreredeAesRows = aesRows.filter((row) => {
     if (!viserMidlertidigtEet && row.group === 'aes.midlertidigtEet' && row.id !== 'aes.midlertidigtEetAfgorelse') return false;
     if (!viserEndeligtEet && row.group === 'aes.endeligtEet' && row.id !== 'aes.endeligtEetAfgorelse') return false;
@@ -146,7 +233,7 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
         <EODebugRowsSection title="Offentlige ydelser" rows={rowsBySection.get('offentlige-ydelser') ?? []} />
       )}
       {viserTabtArbejdsfortjeneste && (
-        <EODebugRowsSection title="Sygeferiegodtgørelse" rows={rowsBySection.get('sygeferiegodtgoerelse') ?? []} />
+        <EODebugGroupedRowsSection title="Sygeferiegodtgørelse" sections={sfggSections} />
       )}
 
       {viserTabtArbejdsfortjeneste && orphanRegulationSections.length > 0 && (

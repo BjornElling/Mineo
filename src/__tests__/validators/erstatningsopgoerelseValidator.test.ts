@@ -222,6 +222,35 @@ describe('TAF validering', () => {
 });
 
 describe('SFGG validering', () => {
+  it('fanger manglende valg af beregningsgrundlag for SFGG', () => {
+    const values = makeValues({
+      loenindkomstAnsaettelsesforhold: [createEmployment()],
+      sfggAnsaettelsesforhold: [],
+    });
+
+    expect(hasError(values, 'Beregningsgrundlag for SFGG ikke valgt')).toBe(true);
+  });
+
+  it('tillader eksplicit valg af Ingen uden fejl', () => {
+    const values = makeValues({
+      loenindkomstAnsaettelsesforhold: [createEmployment()],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        beregnesUdFra: 'Ingen',
+        manuelDagssats: undefined,
+        manuelBeloebIHenholdTil: undefined,
+        manuelFoerstEfterSygeloen: 'Nej',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: undefined,
+        satsvalg: undefined,
+        alleredeBetaltBeloeb: undefined,
+      }],
+    });
+
+    expect(hasError(values, 'Beregningsgrundlag for SFGG ikke valgt')).toBe(false);
+  });
+
   it('kræver supplerende sygeperioder når præ-2015-opgørelse ikke dækkes af TAF-perioder', () => {
     const values = makeValues({
       loenindkomstAnsaettelsesforhold: [createEmployment()],
@@ -267,6 +296,29 @@ describe('SFGG validering', () => {
     });
 
     expect(hasError(values, 'Sygeperioder overlapper')).toBe(true);
+  });
+
+  it('fanger referenceperiode der ikke ligger før første TAF-periode', () => {
+    const values = makeValues({
+      loenindkomstAnsaettelsesforhold: [createEmployment()],
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-05-01'), til: iso('2024-05-31') },
+      ],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        beregnesUdFra: 'Ferieloven',
+        manuelDagssats: undefined,
+        manuelBeloebIHenholdTil: undefined,
+        manuelFoerstEfterSygeloen: 'Nej',
+        referenceperiodeFra: iso('2024-05-01'),
+        referenceperiodeTil: iso('2024-05-15'),
+        referenceperiodeFravaersdageUdenLoen: undefined,
+        satsvalg: undefined,
+        alleredeBetaltBeloeb: undefined,
+      }],
+    });
+
+    expect(hasError(values, 'Referenceperioden skal ligge før første TAF-periode')).toBe(true);
   });
 });
 

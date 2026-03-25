@@ -78,7 +78,7 @@ export type SygeferiegodtgoerelseSatsvalg = z.infer<typeof sygeferiegodtgoerelse
 
 export const sygeferiegodtgoerelseAnsaettelsesforholdRowSchema = z.object({
   ansaettelsesforholdId: z.string().min(1, 'Ansættelsesforhold-ID må ikke være tomt'),
-  beregnesUdFra: sygeferiegodtgoerelseBeregningskildeEnum.default('Ingen'),
+  beregnesUdFra: z.preprocess(normalizeEmptyToUndefined, sygeferiegodtgoerelseBeregningskildeEnum.optional()),
   referenceperiodeFra: optionalIsoDateString,
   referenceperiodeTil: optionalIsoDateString,
   referenceperiodeFravaersdageUdenLoen: dayCount,

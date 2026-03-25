@@ -430,13 +430,13 @@ export const generateErstatningsopgoerelsePdf = (
       entry.explanatoryLines.forEach((line) => safeAddWrappedText(line));
       const rows = entry.segments;
       if (rows.length > 0) {
-        safeAddWrappedText('Fra-dato | Til-dato | Sats | Antal dage | Beregnet SFGG');
+        safeAddWrappedText('Fra-dato | Til-dato | Sats | Antal dage | Feriepengekrav');
         rows.forEach((row) => {
           safeAddWrappedText(
-            `${formatDateShort(row.fra) ?? ''} | ${formatDateShort(row.til) ?? ''} | ${formatCurrencyFromOreTrimmed(row.satsOre)} | ${String(row.antalDage)} | ${formatCurrencyFromOreTrimmed(row.beregnetSfggoereOre)}`
+            `${formatDateShort(row.fra) ?? ''} | ${formatDateShort(row.til) ?? ''} | ${formatCurrencyFromOreTrimmed(row.satsOre)} | ${String(row.antalDage)} | ${formatCurrencyFromOreTrimmed(row.feriepengekravOre)}`
           );
         });
-        safeAddWrappedText(`I alt: ${formatMoneyOreWithKrTrimmed(entry.totalOre)}`);
+        safeAddWrappedText(`I alt: ${formatMoneyOreWithKrTrimmed(entry.feriepengekravTotalOre)}`);
       }
       if (entry.capRows.length > 0) {
         renderSubheader('Opgørelse af 4-månedersgrænsen', lineHeight);

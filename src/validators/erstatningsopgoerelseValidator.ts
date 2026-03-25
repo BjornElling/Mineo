@@ -26,6 +26,7 @@ import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/period
 import { resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/sharedPdfUtils';
 import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/loenoplysningerInput';
+import { getFirstIndtastedeTafFraDato } from '../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
 import {
   clampTafRow,
   getValidTafRange,
@@ -35,6 +36,7 @@ import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerels
 import { optaelArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/periodiseringsMotor';
 import { getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../data/overenskomstRates';
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../utils/fraction';
+import { isoToDanish } from '../types/branded';
 
 export const TAF_OVERLAP_ERROR_MESSAGE = 'TAF-perioder overlapper';
 
@@ -383,10 +385,26 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
     }
   }
 
-  (values.sfggAnsaettelsesforhold ?? []).forEach((row, index) => {
+  (values.loenindkomstAnsaettelsesforhold ?? []).forEach((employment) => {
+    const index = (values.sfggAnsaettelsesforhold ?? []).findIndex((entry) => entry.ansaettelsesforholdId === employment.id);
+    const row = index >= 0 ? values.sfggAnsaettelsesforhold[index] : undefined;
+    const errorPathPrefix = index >= 0
+      ? `sfggAnsaettelsesforhold[${index}]`
+      : 'sfggAnsaettelsesforhold';
+    const firstTafFraDato = getFirstIndtastedeTafFraDato(values);
+    const firstTafFraDatoDisplay = firstTafFraDato ? (isoToDanish(firstTafFraDato) ?? firstTafFraDato) : undefined;
+
+    if (!row?.beregnesUdFra) {
+      errors.push({
+        path: `${errorPathPrefix}.beregnesUdFra`,
+        message: 'Beregningsgrundlag for SFGG ikke valgt',
+        severity: 'error',
+      });
+      return;
+    }
+
     if (row.beregnesUdFra === 'Ingen') return;
 
-    const employment = (values.loenindkomstAnsaettelsesforhold ?? []).find((entry) => entry.id === row.ansaettelsesforholdId);
     const overenskomstPolicy =
       row.beregnesUdFra === 'Overenskomst' && employment?.overenskomstId && !getOffentligOverenskomstTypeById(employment.overenskomstId)
         ? getOverenskomstSfggPolicy(employment.overenskomstId)
@@ -397,7 +415,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
 
     if (row.beregnesUdFra === 'Manuelt angivet' && amountValueToNumber(row.manuelDagssats) === undefined) {
       errors.push({
-        path: `sfggAnsaettelsesforhold[${index}].manuelDagssats`,
+        path: `${errorPathPrefix}.manuelDagssats`,
         message: 'Dagssats for sygeferiegodtgørelse mangler',
         severity: 'error',
       });
@@ -405,7 +423,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
 
     if (row.beregnesUdFra === 'Overenskomst' && (!employment?.harOverenskomst || !employment.overenskomstId)) {
       errors.push({
-        path: `sfggAnsaettelsesforhold[${index}].beregnesUdFra`,
+        path: `${errorPathPrefix}.beregnesUdFra`,
         message: 'Der skal være valgt en overenskomst på ansættelsesforholdet for at beregne sygeferiegodtgørelse ud fra overenskomst',
         severity: 'error',
       });
@@ -413,7 +431,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
 
     if (requiresReferenceperiode && !row.referenceperiodeFra) {
       errors.push({
-        path: `sfggAnsaettelsesforhold[${index}].referenceperiodeFra`,
+        path: `${errorPathPrefix}.referenceperiodeFra`,
         message: 'Referenceperiode fra-dato mangler',
         severity: 'error',
       });
@@ -421,7 +439,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
 
     if (requiresReferenceperiode && !row.referenceperiodeTil) {
       errors.push({
-        path: `sfggAnsaettelsesforhold[${index}].referenceperiodeTil`,
+        path: `${errorPathPrefix}.referenceperiodeTil`,
         message: 'Referenceperiode til-dato mangler',
         severity: 'error',
       });
@@ -434,15 +452,41 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
       row.referenceperiodeFra > row.referenceperiodeTil
     ) {
       errors.push({
-        path: `sfggAnsaettelsesforhold[${index}].referenceperiodeFra`,
+        path: `${errorPathPrefix}.referenceperiodeFra`,
         message: 'Referenceperiode fra-dato må ikke være efter til-dato',
+        severity: 'error',
+      });
+    }
+
+    if (
+      requiresReferenceperiode &&
+      firstTafFraDato &&
+      row.referenceperiodeFra &&
+      row.referenceperiodeFra >= firstTafFraDato
+    ) {
+      errors.push({
+        path: `${errorPathPrefix}.referenceperiodeFra`,
+        message: `Referenceperioden skal ligge før første TAF-periode (${firstTafFraDatoDisplay})`,
+        severity: 'error',
+      });
+    }
+
+    if (
+      requiresReferenceperiode &&
+      firstTafFraDato &&
+      row.referenceperiodeTil &&
+      row.referenceperiodeTil >= firstTafFraDato
+    ) {
+      errors.push({
+        path: `${errorPathPrefix}.referenceperiodeTil`,
+        message: `Referenceperioden skal ligge før første TAF-periode (${firstTafFraDatoDisplay})`,
         severity: 'error',
       });
     }
 
     if (row.beregnesUdFra === 'Overenskomst' && overenskomstPolicy?.model === 'direkte_sats' && overenskomstPolicy.direkteSatsErDifferentieret && !row.satsvalg) {
       errors.push({
-        path: `sfggAnsaettelsesforhold[${index}].satsvalg`,
+        path: `${errorPathPrefix}.satsvalg`,
         message: 'Satsvalg mangler',
         severity: 'error',
       });
@@ -462,7 +506,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
       const availableWorkdays = availableBreakdown?.tafDage ?? 0;
       if (availableWorkdays <= 0) {
         errors.push({
-          path: `sfggAnsaettelsesforhold[${index}].referenceperiodeFra`,
+          path: `${errorPathPrefix}.referenceperiodeFra`,
           message: 'Referenceperioden indeholder ingen arbejdsdage',
           severity: 'error',
         });
@@ -471,7 +515,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
         row.referenceperiodeFravaersdageUdenLoen > availableWorkdays
       ) {
         errors.push({
-          path: `sfggAnsaettelsesforhold[${index}].referenceperiodeFravaersdageUdenLoen`,
+          path: `${errorPathPrefix}.referenceperiodeFravaersdageUdenLoen`,
           message: `Ferie- og fraværsdage uden løn overstiger mulige arbejdsdage i referenceperioden (maksimalt ${availableWorkdays})`,
           severity: 'error',
         });

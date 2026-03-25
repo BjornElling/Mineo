@@ -59,42 +59,46 @@ Forklaringsteksten bør derfor ikke låses til "inden skaden", men beskrive refe
 Referencesatsen beregnes sådan:
 
 ```text
-referencesats = beregnede feriepenge i referenceperioden / arbejdsdage i referenceperioden
+referencesats = (ferieberettiget løn i referenceperioden x FP-sats) / arbejdsdage i referenceperioden
 ```
 
 Det betyder:
-- at der tages de beregnede feriepenge fra ansættelsesforholdet i referenceperioden
+- at der tages den ferieberettigede løn fra ansættelsesforholdet i referenceperioden
+- at denne løn ganges med den almindelige feriepengeprocent (`FP-sats`)
 - at der tælles arbejdsdage i referenceperioden
-- at feriepengene divideres med arbejdsdagene
+- at feriepengebeløbet divideres med arbejdsdagene
 
 Referencesatsen er dermed feriepenge pr. arbejdsdag.
+Andre tillæg som fritvalg, SH/SO og Store Bededag indgår ikke i referencesatsen.
 
 #### 2.3. Arbejdsdage og korrektion af arbejdsdage
 
-Arbejdsdage i referenceperioden skal beregnes ved at genbruge programmets eksisterende centrale funktionalitet til at finde arbejdsdage som mandag-fredag.
+Optællingen i referenceperioden afhænger af, hvordan TAF beregnes:
 
-Programmet har allerede central funktionalitet til at beregne arbejdsdage efter fradrag af:
+- hvis TAF beregnes som arbejdsdage, bruges arbejdsdage i referenceperioden
+- hvis TAF beregnes som måneder, bruges hverdage i referenceperioden
+
+Ved arbejdsdagsmodellen skal referenceperiodens optælling reduceres med:
+- SH-dage
 - daterede feriedage
-- SH-dage
-
-Denne funktionalitet skal genbruges.
-
-Antallet af arbejdsdage i referenceperioden skal reduceres med:
 - fraværsdage uden løn
-- feriedage
-- SH-dage
+
+Ved månedsmodellen skal referenceperiodens optælling kun reduceres med:
+- fraværsdage uden løn
 
 Brugeren indtaster ikke SH-dage særskilt i SFGG-delen.
-SH-dage skal komme fra den eksisterende centrale funktionalitet.
+SH-dage skal komme fra den eksisterende centrale funktionalitet, når TAF beregnes som arbejdsdage.
 
 Brugeren indtaster heller ikke feriedage som et særskilt antal i SFGG-delen.
-Feriedage kommer fra de daterede ferieperioder, som allerede indgår i programmet.
+Feriedage kommer fra de daterede ferieperioder, som allerede indgår i programmet, når TAF beregnes som arbejdsdage.
 
 Ferieperioderne behandles som fælles for alle ansættelsesforhold i SFGG-beregningen.
 
-Det maksimale antal, brugeren kan indtaste som `Evt. ferie- og fraværsdage i perioden uden løn`, er derfor det antal arbejdsdage, der er tilbage, når de daterede feriedage og SH-dage allerede er trukket ud.
+Det maksimale antal, brugeren kan indtaste som `Evt. ferie- og fraværsdage i perioden uden løn`, følger derfor samme optællingsprincip:
+- ved arbejdsdagsmodellen: de resterende arbejdsdage efter fradrag af SH-dage og daterede feriedage
+- ved månedsmodellen: periodens samlede hverdage
 
-Hvis referenceperioden efter disse fradrag ikke indeholder nogen arbejdsdage, skal referenceperiodens datofelter markeres med fejl, og brugeren skal have besked om, at perioden ikke indeholder nogen arbejdsdage.
+Hvis referenceperioden efter disse fradrag ikke indeholder nogen relevante dage, skal referenceperiodens datofelter markeres med fejl, og brugeren skal have besked om, at perioden ikke indeholder nogen arbejdsdage.
 
 ### 3. Overenskomster
 
@@ -140,9 +144,9 @@ Fravigelsen består kun i, at referenceperioden er en anden end 4 uger.
 Den alternative referenceperiode er ofte 3 måneder, men skal defineres konkret pr. relevant overenskomst.
 
 I denne type gælder fortsat:
-- referencesatsen beregnes af feriepenge i referenceperioden
+- referencesatsen beregnes af ferieberettiget løn i referenceperioden og FP-satsen
 - referencesatsen beregnes af arbejdsdage i referenceperioden
-- referencesatsen findes ved at dividere feriepengene med arbejdsdagene
+- referencesatsen findes ved at dividere feriepengebeløbet med arbejdsdagene
 
 ##### Type 2: Direkte referencesats
 
@@ -204,7 +208,7 @@ Her bruges samme referencesats hele vejen igennem.
 Selve beregningen af SFGG skal foretages i følgende hovedtrin:
 
 ```text
-referencesats = beregningsgrundlag / antal arbejdsdage i referenceperioden
+referencesats = (ferieberettiget løn i referenceperioden x FP-sats) / antal arbejdsdage i referenceperioden
 ```
 
 Derefter beregnes kravet sådan:
@@ -216,7 +220,8 @@ Derefter beregnes kravet sådan:
 = beregnet SFGG-krav
 ```
 
-Feriepenge af sygeløn i SFGG-perioden skal beregnes automatisk som feriepenge-satsen af lønnen i perioden, baseret på lønindtastningerne på ansættelsesforholdet.
+Feriepenge af sygeløn i SFGG-perioden skal beregnes automatisk som `ferieberettiget løn x FP-sats` i perioden, baseret på lønindtastningerne på ansættelsesforholdet.
+Andre tillæg som fritvalg, SH/SO og Store Bededag skal ikke indgå i dette fradrag.
 
 `Allerede betalt SFGG i perioden` er et samlet manuelt indtastet beløb pr. ansættelsesforhold i den pågældende EO-periode.
 Ved en senere EO for en efterfølgende periode må brugeren selv ændre indtastningen til det beløb, der allerede er betalt i den nye EO-periode.
@@ -387,9 +392,17 @@ Tabellen skal have følgende kolonner:
 - `Til-dato`
 - `Sats`
 - `Antal dage`
-- `Beregnet SFGG`
+- `Feriepengekrav`
 
 Under rækkerne skal der være en `I alt`-række.
+
+`Feriepengekrav` i tabellen er bruttokravet før fradrag og beregnes som:
+
+```text
+sats x antal dage
+```
+
+Fradrag for feriepenge af sygeløn og allerede betalt SFGG samt eventuelt pensionstillæg hører til den efterfølgende nettoopgørelse og må ikke indbygges i tabellens `Feriepengekrav`.
 
 Ved skader før `1. januar 2015` skal der altid vises en særskilt tabel, som forklarer opgørelsen af det hidtidige antal måneder frem mod 4-månedersgrænsen.
 Dette gælder både når `TAF beregnes som` er arbejdsdage, og når `TAF beregnes som` er måneder.
@@ -546,8 +559,9 @@ Der skal ikke vises yderligere SFGG-indhold i EODebug.
 - SFGG-beregningen skal kunne vises i en tabel nederst på EODebug.
 - SFGG-beregningen skal kunne vises som særskilt side i erstatningsopgørelse-PDF'en, når brugeren har valgt bilaget på EOBeregningTab.
 - Valgmuligheden for SFGG-bilag på EOBeregningTab er foreløbigt deaktiveret og skal først aktiveres, når funktionaliteten er færdig.
-- Tabellen skal have kolonnerne `Fra-dato`, `Til-dato`, `Sats`, `Antal dage` og `Beregnet SFGG`.
+- Tabellen skal have kolonnerne `Fra-dato`, `Til-dato`, `Sats`, `Antal dage` og `Feriepengekrav`.
 - Tabellen skal afsluttes med en `I alt`-række.
+- Tabellens `Feriepengekrav` skal være et bruttobeløb beregnet som `sats x antal dage` og må ikke reduceres med feriepenge af sygeløn, allerede betalt SFGG eller pension.
 - Ved skader før `1. januar 2015` skal der altid vises en særskilt tabel, som forklarer opgørelsen af det hidtidige antal måneder frem mod 4-månedersgrænsen, uanset om `TAF beregnes som` er arbejdsdage eller måneder.
 - PDF'en skal kunne vise, at SFGG ophørte på grund af ansættelsesophør.
 - PDF'en skal kunne vise, at SFGG ophørte, fordi 4-månedersgrænsen blev nået.

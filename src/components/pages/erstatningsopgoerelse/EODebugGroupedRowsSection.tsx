@@ -1,0 +1,120 @@
+import * as React from 'react';
+import { Box, Typography } from '@mui/material';
+import { Check, ErrorOutline, WarningAmber } from '@mui/icons-material';
+import ContentBox from '../../layout/ContentBox';
+import type { DebugRowModel, DebugStatus } from '../../../domain/debug/eoDebugTypes';
+import StandardDisplayTable from '../../tables/StandardDisplayTable';
+import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
+
+const LABEL_WIDTH = '320px';
+
+type GroupedRowsSection = Readonly<{
+  id: string;
+  title: string;
+  rows: readonly DebugRowModel[];
+  tables?: readonly Readonly<{
+    id: string;
+    title: string;
+    columns: readonly string[];
+    rows: readonly Readonly<{
+      id: string;
+      cells: readonly string[];
+    }>[];
+  }>[];
+}>;
+
+const getStatusIcon = (status: DebugStatus): React.ReactElement => {
+  switch (status) {
+    case 'error':
+      return <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />;
+    case 'warning':
+      return <WarningAmber sx={{ color: 'orange', fontSize: 20 }} />;
+    case 'ok':
+      return <Check sx={{ color: 'green', fontSize: 20 }} />;
+  }
+};
+
+const getDisplayValueSx = (displayValue: string) => ({
+  whiteSpace: 'pre-line' as const,
+  textAlign: displayValue.includes('\n') ? 'right' as const : 'inherit',
+});
+
+const isSfggPostTableRow = (row: DebugRowModel): boolean => row.id.startsWith('sfgg.eftertabel.');
+const isSfggComputedTotalRow = (row: DebugRowModel): boolean => row.id.startsWith('sfgg.eftertabel.beregnet.');
+
+const renderDebugRow = (row: DebugRowModel) => (
+  <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+    <Typography className="row--text">{row.label}</Typography>
+    <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+      <Typography
+        className="row--text"
+        sx={[
+          getDisplayValueSx(row.displayValue),
+          ...(isSfggComputedTotalRow(row) ? [{ fontWeight: 700 }] : []),
+        ]}
+      >
+        {row.displayValue}
+      </Typography>
+      {getStatusIcon(row.status)}
+    </Box>
+  </Box>
+);
+
+const EODebugGroupedRowsSection = React.memo<{
+  title: string;
+  sections: readonly GroupedRowsSection[];
+}>(({ title, sections }) => {
+  const visibleSections = sections.filter((section) => section.rows.length > 0);
+  if (visibleSections.length === 0) {
+    return null;
+  }
+
+  return (
+    <ContentBox className="content-box">
+      <Typography className="section-header">{title}</Typography>
+
+      {visibleSections.map((section) => (
+        <React.Fragment key={section.id}>
+          <Typography className="row--subheading-underlined" sx={{ pl: 2, mb: 1 }}>
+            {section.title}
+          </Typography>
+
+          {section.rows.filter((row) => !isSfggPostTableRow(row)).map(renderDebugRow)}
+
+          {(section.tables ?? []).map((table) => (
+            <React.Fragment key={table.id}>
+              <StandardDisplayTable
+                useSmallFont
+                columns={table.columns.map((header) => ({
+                  header,
+                  align: header === 'Fra-dato' || header === 'Til-dato' ? 'center' as const : 'right' as const,
+                }))}
+                rows={table.rows.map((row): StandardDisplayTableRow => ({
+                  key: row.id,
+                  cells: row.cells.map((cell, index) => {
+                    const isTotalRow = row.cells[0] === 'I alt';
+                    const isLastCell = index === row.cells.length - 1;
+                    return isTotalRow && isLastCell
+                      ? <Box key={`${row.id}-${index}`} component="span" sx={{ fontWeight: 700 }}>{cell}</Box>
+                      : cell;
+                  }),
+                }))}
+                containerSx={{ mb: 2, width: '100%' }}
+                tableSx={{
+                  width: '100%',
+                  tableLayout: 'fixed',
+                }}
+              />
+            </React.Fragment>
+          ))}
+
+          {section.rows.filter(isSfggPostTableRow).map(renderDebugRow)}
+        </React.Fragment>
+      ))}
+    </ContentBox>
+  );
+});
+
+EODebugGroupedRowsSection.displayName = 'EODebugGroupedRowsSection';
+
+export default EODebugGroupedRowsSection;
