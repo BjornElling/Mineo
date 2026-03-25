@@ -1,11 +1,12 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { computeTafBeregningsenhed, TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR, TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 
-const initialEoValues = createErstatningsopgoerelseInitialValues();
-
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
-  const base = structuredClone(initialEoValues);
+  const base = structuredClone(createErstatningsopgoerelseInitialValues());
   return { ...base, ...patch };
 };
 
@@ -48,7 +49,7 @@ describe('computeTafBeregningsenhed', () => {
       beregnesUdFra: 'Angivet månedsløn',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenPaaHelligdage: 'SH-udbetaling',
         },
       ],
@@ -61,7 +62,7 @@ describe('computeTafBeregningsenhed', () => {
       beregnesUdFra: 'Angivet dagsløn',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           fuldLoenUnderFerie: 'Ja',
           loenPaaHelligdage: 'Almindelig løn',
         },
@@ -77,7 +78,7 @@ describe('computeTafBeregningsenhed', () => {
       periodeTilBeregningTil: '2024-12-31',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenPaaHelligdage: 'SH-udbetaling',
           indtaegtsoplysningerTableData: [
             {
@@ -105,7 +106,7 @@ describe('computeTafBeregningsenhed', () => {
       beregnesUdFra: 'Beregningsperiode',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenPaaHelligdage: 'Almindelig løn',
           fuldLoenUnderFerie: 'Ja',
         },
@@ -121,7 +122,7 @@ describe('computeTafBeregningsenhed', () => {
       periodeTilBeregningTil: '2024-12-31',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenPaaHelligdage: 'SH-udbetaling',
           indtaegtsoplysningerTableData: [
             {
@@ -151,7 +152,7 @@ describe('computeTafBeregningsenhed', () => {
       periodeTilBeregningTil: '2024-12-31',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenPaaHelligdage: 'SH-udbetaling',
           indtaegtsoplysningerTableData: [
             {
@@ -182,7 +183,7 @@ describe('computeTafBeregningsenhed', () => {
       periodeTilBeregningTil: '2024-01-01',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenPaaHelligdage: 'SH-udbetaling',
           indtaegtsoplysningerTableData: [
             {
@@ -224,7 +225,7 @@ describe('computeTafBeregningsenhed', () => {
       periodeTilBeregningTil: '2024-06-17',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...initialEoValues.loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenPaaHelligdage: 'SH-udbetaling',
           // Lønindkomst-rækken overlapper præcis enkeltdags-perioden (juni 2024)
           indtaegtsoplysningerTableData: [

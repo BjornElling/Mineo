@@ -378,7 +378,7 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
         const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
         handleDraftChange(draft.slice(0, start) + normalized + draft.slice(end));
       },
-      [activation, draft, effectiveMaxDigits, handleDraftChange, maxValue]
+      [activation, allowNegative, draft, effectiveMaxDigits, handleDraftChange, maxValue]
     );
 
     return (

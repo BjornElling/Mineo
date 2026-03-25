@@ -1,7 +1,10 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { EoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/eoCanonicalOutput';
 import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
@@ -22,7 +25,7 @@ const createValidBase = () => {
     vedroererPeriodeTil: iso('2024-12-31'),
     loenindkomstAnsaettelsesforhold: [
       {
-        ...initial.loenindkomstAnsaettelsesforhold[0],
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
         loenudviklingBeregningsgrundlag: 'Ingen' as const,
         indtaegtsoplysningerTableData: [],
       },
@@ -145,6 +148,7 @@ const projectCanonicalFromPdfModel = (
       pdfModel.tabtArbejdsfortjeneste.tidligereModtagetTaf.status === 'ok'
         ? pdfModel.tabtArbejdsfortjeneste.tidligereModtagetTaf.value
         : null,
+    sygeferiegodtgoerelseOre: pdfModel.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.totalOre,
   },
   periodiseringer: {
     // TAF-perioder kan ikke projiceres tabsfrit fra PDF-modellens formaterede linjer.

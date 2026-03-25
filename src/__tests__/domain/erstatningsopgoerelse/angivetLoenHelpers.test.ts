@@ -1,4 +1,7 @@
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import {
   EO_ANGIVET_LOEN_ID,
   LoenudviklingKildeError,
@@ -91,6 +94,7 @@ describe('resolveLoenudviklingKilde', () => {
 
     const beregningsperiodeValues = createErstatningsopgoerelseInitialValues();
     beregningsperiodeValues.beregnesUdFra = 'Beregningsperiode';
+    beregningsperiodeValues.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
     beregningsperiodeValues.loenindkomstAnsaettelsesforhold[0].harAnciennitetstillaegEfterSkadesdatoen = true;
     beregningsperiodeValues.loenindkomstAnsaettelsesforhold[0].anciennitetstillaegDato = anciennitetDato;
     beregningsperiodeValues.loenindkomstAnsaettelsesforhold[0].anciennitetstillaegSatsAngivesPer = 'Måned';

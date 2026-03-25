@@ -1,5 +1,8 @@
 import { buildEODebugIndkomstRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 
@@ -7,11 +10,7 @@ const iso = (value: string) => toISODateString(value);
 
 const cloneInitialValues = () => ({
   ...createErstatningsopgoerelseInitialValues(),
-  loenindkomstAnsaettelsesforhold: createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold.map((af) => ({
-    ...af,
-    indtaegtsoplysningerTableData: [...af.indtaegtsoplysningerTableData],
-    loenudviklingManuelTableData: [...af.loenudviklingManuelTableData],
-  })),
+  loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()],
 });
 
 describe('buildEODebugIndkomstRows regulering details', () => {

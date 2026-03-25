@@ -1,7 +1,6 @@
 import { eoFileDataSchema } from '../schemas/eoFileSchema';
 import { persistenceSchemas } from '../config/persistenceRegistry';
 import type { StorageKey } from '../config/storageManifest';
-import { countFilledFields } from './dataCollection';
 import { decryptFromString } from './encryption';
 import { readFromFileHandle } from './fileSystemAccess';
 import { logError, logWarning } from './logger';
@@ -224,9 +223,6 @@ export const verifyAfterSave = async (
 
     const expectedCanonicalJson = stripUndefinedDeep(expectedData);
     const actualCanonicalJson = stripUndefinedDeep(actualParsed.data);
-
-    const expectedFieldCount = countFilledFields(expectedCanonicalJson);
-    const actualFieldCount = countFilledFields(actualCanonicalJson);
 
     // KRITISK: Sammenlign felt-for-felt
     const differences = compareData(expectedCanonicalJson, actualCanonicalJson);

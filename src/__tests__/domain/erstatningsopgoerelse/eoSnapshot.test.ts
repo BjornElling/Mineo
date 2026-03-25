@@ -20,7 +20,6 @@ const createEmployment = (
   navnPaaArbejdssted: patch.navnPaaArbejdssted,
   harOverenskomst: patch.harOverenskomst ?? true,
   overenskomstId: patch.overenskomstId,
-  overenskomstFilter: patch.overenskomstFilter,
   ansatPaaSkadestidspunktet: patch.ansatPaaSkadestidspunktet ?? true,
   ansaettelsesforholdOphoert: patch.ansaettelsesforholdOphoert ?? false,
   sidsteArbejdsdag: patch.sidsteArbejdsdag,

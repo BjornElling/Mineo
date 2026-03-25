@@ -11,8 +11,6 @@
 import { saveLogEntry } from './logStorage';
 import type { LogEntry } from './logStorage';
 
-const isDevelopment = process.env.NODE_ENV === 'development';
-
 const EXTENSION_REGEX = /\.([a-zA-Z0-9]{1,8})$/;
 
 const hashString = (value: string): string => {
@@ -178,4 +176,3 @@ export const logError = (
     data: sanitizedData,
   });
 };
-

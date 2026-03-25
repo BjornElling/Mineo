@@ -1,16 +1,15 @@
 import { buildEODebugIndkomstRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
 const cloneInitialValues = () => ({
   ...createErstatningsopgoerelseInitialValues(),
-  loenindkomstAnsaettelsesforhold: createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold.map((af) => ({
-    ...af,
-    indtaegtsoplysningerTableData: [...af.indtaegtsoplysningerTableData],
-    loenudviklingManuelTableData: [...af.loenudviklingManuelTableData],
-  })),
+  loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()],
 });
 
 describe('buildEODebugIndkomstRows display', () => {

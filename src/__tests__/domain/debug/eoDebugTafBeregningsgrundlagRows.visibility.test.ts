@@ -1,6 +1,9 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { buildEODebugTafBeregningsgrundlagRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 
@@ -49,7 +52,7 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
       periodeTilBeregningTil: '2024-12-31',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           fuldLoenUnderFerie: 'Nej',
           indtaegtsoplysningerTableData: [
             {
@@ -84,7 +87,7 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
       periodeTilBeregningTil: '2025-01-31',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           indtaegtsoplysningerTableData: [],
         },
       ],
@@ -108,7 +111,7 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
       periodeTilBeregningTil: '2025-01-31',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           indtaegtsoplysningerTableData: [
             {
               id: 'row-1',

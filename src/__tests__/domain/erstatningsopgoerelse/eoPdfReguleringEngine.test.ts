@@ -1,5 +1,8 @@
 import { buildReguleringsvaerdierTableData, buildReguleringIndexRows } from '../../../domain/erstatningsopgoerelse/eoPdfReguleringEngine';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
 
@@ -8,7 +11,7 @@ const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value }
 
 const cloneInitialValues = () => ({
   ...createErstatningsopgoerelseInitialValues(),
-  loenindkomstAnsaettelsesforhold: createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold.map((af) => ({
+  loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()].map((af) => ({
     ...af,
     indtaegtsoplysningerTableData: [...af.indtaegtsoplysningerTableData],
     loenudviklingManuelTableData: [...af.loenudviklingManuelTableData],

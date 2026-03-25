@@ -1,5 +1,8 @@
 import { resolveDebugRowPresentation } from '../../../domain/debug/eoDebugRowPresentation';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { buildEODebugIndkomstRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
 
 describe('resolveDebugRowPresentation', () => {
@@ -47,14 +50,15 @@ describe('manual regulering message', () => {
     values.beregnesUdFra = 'Beregningsperiode';
     values.loenindkomstAnsaettelsesforhold = [
       {
-        ...values.loenindkomstAnsaettelsesforhold[0],
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
         loenudviklingBeregningsgrundlag: 'Manuelt angivet',
         loenudviklingManuelTableData: [],
       },
     ];
 
+    const af = values.loenindkomstAnsaettelsesforhold[0];
     const rows = buildEODebugIndkomstRows(values, undefined, {});
-    const row = rows.find((r) => r.id === 'loenindkomst.ansaettelsesforhold_1.regulering.alleVaerdier');
+    const row = rows.find((r) => r.id === `loenindkomst.${af.id}.regulering.alleVaerdier`);
 
     expect(row).toBeDefined();
     expect(row?.status).toBe('error');
@@ -64,6 +68,7 @@ describe('manual regulering message', () => {
 
   it('bruger messageOnly for lønoplysninger-række i beregningens summary', () => {
     const values = createErstatningsopgoerelseInitialValues();
+    values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.indtaegtsoplysningerTableData = [
       {

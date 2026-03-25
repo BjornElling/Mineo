@@ -9,7 +9,10 @@ import {
   getStandardLoenErrorRowIdSet,
   getOffentligeYdelserErrorRowIdSet,
 } from '../../../domain/erstatningsopgoerelse/indkomstRowValidation';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -319,6 +322,7 @@ describe('buildStandardLoenZeroArbejdsdageIssues', () => {
   it('returnerer fejl for lønrække med beløb og ingen arbejdsdage i arbejdsdags-sporet', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.fuldLoenUnderFerie = 'Nej';
     af.indtaegtsoplysningerTableData = [
@@ -344,6 +348,7 @@ describe('buildStandardLoenZeroArbejdsdageIssues', () => {
 
   it('returnerer ingen fejl i månedssporet', () => {
     const values = createErstatningsopgoerelseInitialValues();
+    values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.fuldLoenUnderFerie = 'Ja';
     af.loenPaaHelligdage = 'Almindelig løn';
@@ -367,6 +372,7 @@ describe('buildStandardLoenZeroArbejdsdageCellErrorMessages', () => {
   it('markerer alle udfyldte beløbsceller i den berørte række', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.fuldLoenUnderFerie = 'Nej';
     af.indtaegtsoplysningerTableData = [

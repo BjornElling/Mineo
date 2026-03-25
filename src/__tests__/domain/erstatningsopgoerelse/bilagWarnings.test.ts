@@ -1,6 +1,9 @@
 import { resolveBilagWarning } from '../../../domain/erstatningsopgoerelse/bilagWarnings';
 import { buildEODebugBilagsnumreRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 // ─── Hjælper ──────────────────────────────────────────────────────────────────
 
@@ -86,6 +89,7 @@ describe('resolveBilagWarning', () => {
 
     it('ingen advarsel når TAF beregnes og lønoplysninger er til stede', () => {
       const base = structuredClone(createErstatningsopgoerelseInitialValues());
+      base.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
       // Indsæt en lønrække med udfyldt col2 (ferieberettiget grundløn)
       base.loenindkomstAnsaettelsesforhold[0].indtaegtsoplysningerTableData = [
         {

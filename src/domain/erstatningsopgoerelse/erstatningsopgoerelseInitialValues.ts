@@ -4,6 +4,7 @@ import { ensureSvieRows } from './svieSmerteTableModel';
 import { ensureTafRows } from './tafTableModel';
 import { ensureFravaerRows, ensureTafFerieRows } from './ferieTableModel';
 import { ensureOevrigeKravRows } from './oevrigeKravTableModel';
+import { generateAnsaettelsesforholdId } from './eoRowInitialValues';
 import { resolveDefaultOverenskomstFilter, type AppSettings } from '../../settings/appSettingsSchema';
 import { resolveAppSettings } from '../../settings/appSettingsParse';
 import { erstatningsopgoerelseSchema } from '../../schemas/formSchemas';
@@ -32,6 +33,44 @@ export const DEFAULT_ANCIENNITET_FIELDS = {
   anciennitetstillaegSatsAngivesPer: 'Måned' as const,
   anciennitetstillaegSats: undefined,
 };
+
+export const createDefaultLoenindkomstAnsaettelsesforhold = (
+  settings?: AppSettings
+): PersistedSectionMap['erstatningsopgoerelse']['loenindkomstAnsaettelsesforhold'][number] => ({
+  ...(() => {
+    const safeSettings = resolveAppSettings(settings);
+    return {
+  id: generateAnsaettelsesforholdId(),
+  navnPaaArbejdssted: undefined,
+  harOverenskomst: true,
+  overenskomstId: undefined,
+  ansatPaaSkadestidspunktet: true,
+  ansaettelsesforholdOphoert: false,
+  sidsteArbejdsdag: undefined,
+  ...DEFAULT_ANCIENNITET_FIELDS,
+  feriePct: undefined,
+  fritvalgPct: undefined,
+  shSoPct: undefined,
+  storeBededagPct: undefined,
+  pensionPct: undefined,
+  loenperiode: LOENPERIODE.MAANED,
+  indtaegtsoplysningerTableData: [],
+  fuldLoenUnderFerie: safeSettings.defaultFuldLoenUnderFerie ? 'Ja' : 'Nej',
+  loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
+  saerligFraDatoRegulering: undefined,
+  loenudviklingBeregningsgrundlag: undefined,
+  loenudviklingStatistikModel: undefined,
+  loenudviklingKRLSatstabel: undefined,
+  loenudviklingManuelNavn: '',
+  loenudviklingManuelTableData: [],
+  offentligLoenType: 'Månedsløn',
+  offentligLoenTrin: undefined,
+  offentligLoenGruppe: undefined,
+  offentligLoenEkstraGrundloen: undefined,
+  overenskomstFilter: resolveDefaultOverenskomstFilter(safeSettings),
+    };
+  })(),
+});
 
 /**
  * Opretter initiale EO-værdier ud fra AppSettings.

@@ -1,13 +1,12 @@
 import { buildEODebugIndkomstRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 const cloneInitialValues = () => ({
   ...createErstatningsopgoerelseInitialValues(),
-  loenindkomstAnsaettelsesforhold: createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold.map((af) => ({
-    ...af,
-    indtaegtsoplysningerTableData: [...af.indtaegtsoplysningerTableData],
-    loenudviklingManuelTableData: [...af.loenudviklingManuelTableData],
-  })),
+  loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()],
 });
 
 describe('buildEODebugIndkomstRows regulering visibility', () => {

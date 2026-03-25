@@ -1,5 +1,8 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
 import { buildSvieSmerteContext, buildTaftContext } from '../../../domain/debug/eoDebugContextBuilders';
@@ -32,7 +35,7 @@ describe('eoDebug canonical parity', () => {
       periodeTilBeregningTil: iso('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         {
-          ...initial.loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen' as const,
           indtaegtsoplysningerTableData: [],
         },
@@ -71,7 +74,7 @@ describe('eoDebug canonical parity', () => {
       tidligereModtagetTaf: amount(12345.67),
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen' as const,
           indtaegtsoplysningerTableData: [],
         },

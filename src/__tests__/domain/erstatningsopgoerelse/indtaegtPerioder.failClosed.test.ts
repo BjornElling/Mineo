@@ -1,6 +1,9 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { buildIncomeCalculationContext, buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
@@ -9,6 +12,7 @@ const iso = (value: string) => toISODateString(value);
 describe('buildIncomeForRanges fail-closed', () => {
   it('kaster ikke fejl for rækker med data i inaktiv lønperiodekolonne', () => {
     const values = createErstatningsopgoerelseInitialValues();
+    values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenperiode = 'uge';
     af.indtaegtsoplysningerTableData = [
@@ -35,6 +39,7 @@ describe('buildIncomeForRanges fail-closed', () => {
 
   it('medregner ikke dag-rækker med fra-dato efter til-dato', () => {
     const values = createErstatningsopgoerelseInitialValues();
+    values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenperiode = 'dag';
     af.indtaegtsoplysningerTableData = [
@@ -61,6 +66,7 @@ describe('buildIncomeForRanges fail-closed', () => {
 
   it('medregner kun løn-/ydelsesrækker med gyldig fra/til og uden fejl', () => {
     const values = createErstatningsopgoerelseInitialValues();
+    values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenperiode = 'dag';
     af.indtaegtsoplysningerTableData = [
@@ -124,6 +130,7 @@ describe('buildIncomeForRanges fail-closed', () => {
 
   it('dobbelttæller ikke ved overlappende input-ranges', () => {
     const values = createErstatningsopgoerelseInitialValues();
+    values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenperiode = 'dag';
     af.indtaegtsoplysningerTableData = [
@@ -153,6 +160,7 @@ describe('buildIncomeForRanges fail-closed', () => {
 
   it('medregner ikke ikke-finite afledte lønbeløb', () => {
     const values = createErstatningsopgoerelseInitialValues();
+    values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenperiode = 'dag';
     af.indtaegtsoplysningerTableData = [

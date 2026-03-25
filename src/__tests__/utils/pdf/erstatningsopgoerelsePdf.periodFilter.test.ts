@@ -513,7 +513,6 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
   });
 
   it('viser navn på reguleringsform ved manuelt angivet regulering i stedet for generisk label', () => {
-    const eoValues = createErstatningsopgoerelseInitialValues();
     const af = createEmployment({
       loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
       loenudviklingManuelNavn: 'DA-tillægstrin',
@@ -523,7 +522,6 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
   });
 
   it('falder tilbage til Manuelt angivet når navn på reguleringsform mangler', () => {
-    const eoValues = createErstatningsopgoerelseInitialValues();
     const af = createEmployment({
       loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
       loenudviklingManuelNavn: '   ',

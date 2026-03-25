@@ -2,7 +2,6 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import EODebug from '../../../../components/pages/erstatningsopgoerelse/EODebug';
-import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 const { eoSnapshotToDebugViewMock } = vi.hoisted(() => ({
   eoSnapshotToDebugViewMock: vi.fn(),

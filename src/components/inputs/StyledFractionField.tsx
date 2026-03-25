@@ -269,7 +269,7 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
           }
         });
       },
-      [activation, allowNegative, applyDraft, draft]
+      [activation, applyDraft, draft]
     );
 
     return (

@@ -1,6 +1,9 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { EoCanonicalOutputSchema } from '../../../domain/erstatningsopgoerelse/eoCanonicalOutput';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
@@ -30,7 +33,7 @@ describe('eoCanonicalOutput', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...initial.loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen' as const,
           indtaegtsoplysningerTableData: [],
         },
@@ -97,7 +100,7 @@ describe('eoCanonicalOutput', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...initial.loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen' as const,
           indtaegtsoplysningerTableData: [],
         },
@@ -152,7 +155,7 @@ describe('eoCanonicalOutput', () => {
       periodeTilBeregningTil: iso('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         {
-          ...initial.loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen' as const,
           indtaegtsoplysningerTableData: [],
         },
