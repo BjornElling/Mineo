@@ -27,8 +27,37 @@ vi.mock('../../../../domain/erstatningsopgoerelse/eoSnapshotToDebugView', () => 
 
 describe('EODebug', () => {
   const createEmployment = (id: string) => ({
-    ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
     id,
+    navnPaaArbejdssted: undefined,
+    harOverenskomst: true,
+    overenskomstId: undefined,
+    ansatPaaSkadestidspunktet: true,
+    ansaettelsesforholdOphoert: false,
+    sidsteArbejdsdag: undefined,
+    harAnciennitetstillaegEfterSkadesdatoen: false,
+    anciennitetstillaegDato: undefined,
+    anciennitetstillaegSatsAngivesPer: 'Måned' as const,
+    anciennitetstillaegSats: undefined,
+    feriePct: undefined,
+    fritvalgPct: undefined,
+    shSoPct: undefined,
+    storeBededagPct: undefined,
+    pensionPct: undefined,
+    loenperiode: 'maaned' as const,
+    fuldLoenUnderFerie: 'Ja' as const,
+    loenPaaHelligdage: 'Almindelig løn' as const,
+    saerligFraDatoRegulering: undefined,
+    indtaegtsoplysningerTableData: [],
+    loenudviklingBeregningsgrundlag: undefined,
+    loenudviklingStatistikModel: undefined,
+    loenudviklingKRLSatstabel: undefined,
+    loenudviklingManuelNavn: '',
+    loenudviklingManuelTableData: [],
+    offentligLoenType: 'Månedsløn' as const,
+    offentligLoenTrin: undefined,
+    offentligLoenGruppe: undefined,
+    offentligLoenEkstraGrundloen: undefined,
+    overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   });
 
   const renderComponent = (snapshot: React.ComponentProps<typeof EODebug>['eoSnapshot']) => {

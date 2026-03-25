@@ -127,7 +127,6 @@ export type OverenskomstFilter = Readonly<{
  * - Misbrug ville lade settings-ændringer overskrive brugerens valg i eksisterende sager
  *
  * Godkendte anvendelser:
- * - createErstatningsopgoerelseInitialValues() – første ansættelsesforhold i ny sag
  * - createBlankAnsaettelsesforhold() – tilføjelse af nyt ansættelsesforhold
  *
  * Normalisering:

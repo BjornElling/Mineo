@@ -127,39 +127,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   andelSfggILoenen: undefined,
 
   // Lønindkomst
-  loenindkomstAnsaettelsesforhold: [
-    {
-      id: 'ansaettelsesforhold_1',
-      navnPaaArbejdssted: undefined,
-      harOverenskomst: true,
-      overenskomstId: undefined,
-      ansatPaaSkadestidspunktet: true,
-      ansaettelsesforholdOphoert: false,
-      sidsteArbejdsdag: undefined,
-      ...DEFAULT_ANCIENNITET_FIELDS,
-      feriePct: undefined,
-      fritvalgPct: undefined,
-      shSoPct: undefined,
-      storeBededagPct: undefined,
-      pensionPct: undefined,
-      loenperiode: LOENPERIODE.MAANED,
-      fuldLoenUnderFerie: safeSettings.defaultFuldLoenUnderFerie ? 'Ja' : 'Nej',
-      loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
-      saerligFraDatoRegulering: undefined,
-      indtaegtsoplysningerTableData: [],
-      loenudviklingBeregningsgrundlag: undefined,
-      loenudviklingStatistikModel: undefined,
-      loenudviklingKRLSatstabel: undefined,
-      loenudviklingManuelNavn: '',
-      loenudviklingManuelTableData: [],
-      offentligLoenType: 'Månedsløn',
-      offentligLoenTrin: undefined,
-      offentligLoenGruppe: undefined,
-      offentligLoenEkstraGrundloen: undefined,
-      // Overenskomst-filter: initialiseres fra settings ved oprettelse (centraliseret mapping)
-      overenskomstFilter: resolveDefaultOverenskomstFilter(safeSettings),
-    },
-  ],
+  loenindkomstAnsaettelsesforhold: [],
 
   eoAngivetLoenLoenudvikling: createDefaultAngivetLoenLoenudvikling(safeSettings),
 

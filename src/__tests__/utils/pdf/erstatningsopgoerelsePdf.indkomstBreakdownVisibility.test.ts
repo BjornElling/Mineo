@@ -123,6 +123,41 @@ const findTextY = (instance: MockJsPDF | null, text: string): number | null => {
 const EET_KLAGE_REGULERINGSLINJE =
   'Hvis der som følge af den verserende klagesag over erhvervsevnetab sker ændringer i ydelse eller virkningstidspunkt, vil kravet blive reguleret tilsvarende.';
 
+const createEmployment = (overrides: Record<string, unknown> = {}) => ({
+  id: 'af-base',
+  navnPaaArbejdssted: undefined,
+  harOverenskomst: true,
+  overenskomstId: undefined,
+  ansatPaaSkadestidspunktet: true,
+  ansaettelsesforholdOphoert: false,
+  sidsteArbejdsdag: undefined,
+  harAnciennitetstillaegEfterSkadesdatoen: false,
+  anciennitetstillaegDato: undefined,
+  anciennitetstillaegSatsAngivesPer: 'Måned' as const,
+  anciennitetstillaegSats: undefined,
+  feriePct: undefined,
+  fritvalgPct: undefined,
+  shSoPct: undefined,
+  storeBededagPct: undefined,
+  pensionPct: undefined,
+  loenperiode: 'maaned' as const,
+  fuldLoenUnderFerie: 'Ja' as const,
+  loenPaaHelligdage: 'Almindelig løn' as const,
+  saerligFraDatoRegulering: undefined,
+  indtaegtsoplysningerTableData: [],
+  loenudviklingBeregningsgrundlag: undefined,
+  loenudviklingStatistikModel: undefined,
+  loenudviklingKRLSatstabel: undefined,
+  loenudviklingManuelNavn: '',
+  loenudviklingManuelTableData: [],
+  offentligLoenType: 'Månedsløn' as const,
+  offentligLoenTrin: undefined,
+  offentligLoenGruppe: undefined,
+  offentligLoenEkstraGrundloen: undefined,
+  overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
+  ...overrides,
+});
+
 const buildBaseInput = () => {
   const stamdata = {
     ...structuredClone(STAMDATA_INITIAL_VALUES),
@@ -139,8 +174,7 @@ const buildBaseInput = () => {
   eo.tafPerioder = [{ id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined }];
 
   eo.loenindkomstAnsaettelsesforhold = [
-    {
-      ...eo.loenindkomstAnsaettelsesforhold[0],
+    createEmployment({
       id: 'af-1',
       navnPaaArbejdssted: 'AAB',
       loenudviklingBeregningsgrundlag: 'Ingen',
@@ -159,7 +193,7 @@ const buildBaseInput = () => {
           col5: undefined,
         },
       ],
-    },
+    }),
   ];
 
   return { stamdata, eo };
@@ -269,8 +303,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.periodeTilBeregningTil = iso('2023-07-31');
     eo.tafPerioder = [{ id: 'taf-1', fra: iso('2023-07-01'), til: iso('2025-12-21'), loseFeriedage: undefined }];
     eo.loenindkomstAnsaettelsesforhold = [
-      {
-        ...eo.loenindkomstAnsaettelsesforhold[0],
+      createEmployment({
         id: 'af-1',
         navnPaaArbejdssted: 'Tandlægerne Toft og Vedsted',
         loenudviklingBeregningsgrundlag: 'Overenskomst',
@@ -292,9 +325,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
             col5: undefined,
           },
         ],
-      },
-      {
-        ...eo.loenindkomstAnsaettelsesforhold[0],
+      }),
+      createEmployment({
         id: 'af-2',
         navnPaaArbejdssted: 'Nillers Nisseforretning',
         loenudviklingBeregningsgrundlag: 'Ingen',
@@ -313,7 +345,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
             col5: undefined,
           },
         ],
-      },
+      }),
     ];
 
     renderPdf(stamdata, eo);

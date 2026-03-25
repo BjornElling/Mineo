@@ -53,19 +53,9 @@ describe('createErstatningsopgoerelseInitialValues – defaults', () => {
     expect(values.varigeMenAfgorelse).toBe('Nej');
   });
 
-  it('loenindkomstAnsaettelsesforhold har præcis ét ansættelsesforhold', () => {
+  it('loenindkomstAnsaettelsesforhold starter tomt', () => {
     const values = createErstatningsopgoerelseInitialValues();
-    expect(values.loenindkomstAnsaettelsesforhold).toHaveLength(1);
-  });
-
-  it('ansættelsesforhold er ansat på skadestidspunktet', () => {
-    const values = createErstatningsopgoerelseInitialValues();
-    expect(values.loenindkomstAnsaettelsesforhold[0].ansatPaaSkadestidspunktet).toBe(true);
-  });
-
-  it('ansættelsesforhold har harOverenskomst = true', () => {
-    const values = createErstatningsopgoerelseInitialValues();
-    expect(values.loenindkomstAnsaettelsesforhold[0].harOverenskomst).toBe(true);
+    expect(values.loenindkomstAnsaettelsesforhold).toHaveLength(0);
   });
 
   it('opsagtFraStilling er "Nej"', () => {
@@ -89,16 +79,16 @@ describe('createErstatningsopgoerelseInitialValues – settings-integration', ()
     expect(values.indsaetUdkastStempel).toBe('Ja');
   });
 
-  it('defaultFuldLoenUnderFerie=true → fuldLoenUnderFerie="Ja" i ansættelsesforhold', () => {
+  it('defaultFuldLoenUnderFerie påvirker ikke initialt antal ansættelsesforhold', () => {
     const settings = { ...DEFAULT_APP_SETTINGS, defaultFuldLoenUnderFerie: true };
     const values = createErstatningsopgoerelseInitialValues(settings);
-    expect(values.loenindkomstAnsaettelsesforhold[0].fuldLoenUnderFerie).toBe('Ja');
+    expect(values.loenindkomstAnsaettelsesforhold).toHaveLength(0);
   });
 
-  it('defaultFuldLoenUnderFerie=false → fuldLoenUnderFerie="Nej" i ansættelsesforhold', () => {
+  it('defaultFuldLoenUnderFerie=false påvirker ikke initialt antal ansættelsesforhold', () => {
     const settings = { ...DEFAULT_APP_SETTINGS, defaultFuldLoenUnderFerie: false };
     const values = createErstatningsopgoerelseInitialValues(settings);
-    expect(values.loenindkomstAnsaettelsesforhold[0].fuldLoenUnderFerie).toBe('Nej');
+    expect(values.loenindkomstAnsaettelsesforhold).toHaveLength(0);
   });
 
   it('defaultSvieSmerteDelvisSygemeldingSats="fuld" → svieSmerteDelvisSygemeldingSats="fuld"', () => {

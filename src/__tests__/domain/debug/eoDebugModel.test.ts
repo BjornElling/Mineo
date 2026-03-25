@@ -35,13 +35,13 @@ describe('buildEODebugModel — tom input (ingen datoer)', () => {
 // ─── Kilde-bounds (sources) ────────────────────────────────────────────────────
 
 describe('buildEODebugModel — kilde-bounds (sources)', () => {
-  it('indeholder altid 4 kilde-entries', () => {
+  it('indeholder altid 5 kilde-entries', () => {
     const model = buildEODebugModel({
       ...base(),
       vedroererPeriodeFra: '2024-01-01' as never,
       vedroererPeriodeTil: '2024-01-31' as never,
     });
-    expect(model.sources).toHaveLength(4);
+    expect(model.sources).toHaveLength(5);
   });
 
   it('erstatningsperiode bounds er sat korrekt', () => {
@@ -107,6 +107,27 @@ describe('buildEODebugModel — kilde-bounds (sources)', () => {
       periodeTilBeregningTil: '2023-09-30' as never,
     });
     expect(model.combinedMaxTil).toBe('2023-09-30');
+  });
+
+  it('medtager svie/smerte som kilde når kun svie/smerte-perioder driver tabellen', () => {
+    const model = buildEODebugModel({
+      ...base(),
+      vedroererPeriodeFra: '2024-01-26' as never,
+      vedroererPeriodeTil: '2025-11-02' as never,
+      beregnesSvieSmerteGodtgoerelse: 'Ja' as const,
+      svieSmertePerioder: [
+        { id: 'ss-1', fra: '2024-01-26', til: '2024-10-20', tilstand: 'sygemeldt' },
+        { id: 'ss-2', fra: '2025-08-12', til: '2025-09-22', tilstand: 'sygemeldt' },
+        { id: 'ss-3', fra: '2025-09-23', til: '2025-11-02', tilstand: 'delvist-sygemeldt' },
+      ] as never,
+      loenindkomstAnsaettelsesforhold: [],
+      offentligeYdelserRows: [],
+    });
+
+    const src = model.sources.find((source) => source.label === 'Svie/smerte');
+    expect(src?.fra).toBe('2024-01-26');
+    expect(src?.til).toBe('2025-11-02');
+    expect(model.rowCount).toBeGreaterThan(0);
   });
 });
 

@@ -9,10 +9,46 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
+const createEmployment = (overrides: Record<string, unknown> = {}) => ({
+  id: 'af-1',
+  navnPaaArbejdssted: undefined,
+  harOverenskomst: true,
+  overenskomstId: undefined,
+  ansatPaaSkadestidspunktet: true,
+  ansaettelsesforholdOphoert: false,
+  sidsteArbejdsdag: undefined,
+  harAnciennitetstillaegEfterSkadesdatoen: false,
+  anciennitetstillaegDato: undefined,
+  anciennitetstillaegSatsAngivesPer: 'Måned' as const,
+  anciennitetstillaegSats: undefined,
+  feriePct: undefined,
+  fritvalgPct: undefined,
+  shSoPct: undefined,
+  storeBededagPct: undefined,
+  pensionPct: undefined,
+  loenperiode: 'maaned' as const,
+  fuldLoenUnderFerie: 'Ja' as const,
+  loenPaaHelligdage: 'Almindelig løn' as const,
+  saerligFraDatoRegulering: undefined,
+  indtaegtsoplysningerTableData: [],
+  loenudviklingBeregningsgrundlag: undefined,
+  loenudviklingStatistikModel: undefined,
+  loenudviklingKRLSatstabel: undefined,
+  loenudviklingManuelNavn: '',
+  loenudviklingManuelTableData: [],
+  offentligLoenType: 'Månedsløn' as const,
+  offentligLoenTrin: undefined,
+  offentligLoenGruppe: undefined,
+  offentligLoenEkstraGrundloen: undefined,
+  overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
+  ...overrides,
+});
 
 const buildValuesWithAnsForhold = () => {
   const values = createErstatningsopgoerelseInitialValues();
-  return { values, af: values.loenindkomstAnsaettelsesforhold[0] };
+  const af = createEmployment();
+  values.loenindkomstAnsaettelsesforhold = [af];
+  return { values, af };
 };
 
 describe('buildIndkomstSectionStatuses', () => {
@@ -157,8 +193,11 @@ describe('isLoenindkomstAnsaettelsesforholdEffectivelyEmpty', () => {
       defaultOverenskomstLoenmodtager: '3F',
       defaultOverenskomstArbejdsgiver: 'DI',
     };
-    const values = createErstatningsopgoerelseInitialValues(settings);
-    const af = values.loenindkomstAnsaettelsesforhold[0];
+    const af = createEmployment({
+      fuldLoenUnderFerie: 'Nej',
+      loenPaaHelligdage: 'SH-udbetaling',
+      overenskomstFilter: { loenmodtager: '3F', arbejdsgiver: 'DI' },
+    });
 
     expect(isLoenindkomstAnsaettelsesforholdEffectivelyEmpty(af, settings)).toBe(true);
   });

@@ -137,6 +137,13 @@ const isAngivetLoenHiddenStateInvalid = (
   );
 };
 
+const hasValidationErrorForPathPrefix = (
+  validationResult: ReturnType<typeof erstatningsopgoerelseValidator.validateParsed>,
+  prefix: string
+): boolean => {
+  return validationResult.errors.some((error) => error.path === prefix || error.path.startsWith(`${prefix}.`) || error.path.startsWith(`${prefix}[`));
+};
+
 export const computeEoSnapshot = (args: Readonly<{
   revision: string;
   stamdataValues: unknown;
@@ -211,14 +218,28 @@ export const computeEoSnapshot = (args: Readonly<{
   const validationResult = erstatningsopgoerelseValidator.validateParsed(parsedEo.data);
   const validationInvariants = buildValidationInvariants(validationResult.errors);
   if (hasAuthoritativeBlockingInvariant(validationInvariants)) {
-    // Validerings-fejl-sti: engines ikke kørt, tafRanges ikke beregnet endnu.
-    // debugSnapshot bygges uden clamping — debug-tabellen viser de rå committede datoer.
+    // Validerings-fejl-sti: autoritative totaler/PDF'er må ikke bygges.
+    // Debug-snapshotten må dog stadig vise sektions-uafhængige engine-data, når de kan beregnes sikkert.
+    // Vi beregner derfor svie/smerte-engine separat her, fordi den ikke afhænger af løn/TAF-validering.
+    // TAF-ranges bygges fortsat ikke i denne sti, så debug-tabellen viser stadig rå TAF-datoer uden clamping.
+    const svieSmerteForDebug = computeSvieSmerteEngine({
+      erstatningsopgoerelse: parsedEo.data,
+      stamdata: {
+        skadesdato: parsedStamdata.data.skadesdato,
+        skadestype: parsedStamdata.data.skadestype,
+      },
+    });
+    const tafRangesForDebug = hasValidationErrorForPathPrefix(validationResult, 'tafPerioder')
+      ? undefined
+      : buildTafRanges(parsedEo.data, { skadesdatoISO: parsedStamdata.data.skadesdato });
     const debugSnapshotForValidationError = buildDebugSnapshotForComputed({
       revision: args.revision,
       stamdata: parsedStamdata.data,
       eoValues: parsedEo.data,
       stamdataErrors,
       eoErrors,
+      tafRanges: tafRangesForDebug,
+      svieSmerteEngine: svieSmerteForDebug,
     });
     return {
       revision: args.revision,

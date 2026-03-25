@@ -3,6 +3,7 @@ import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnaps
 import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
+import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 
 const { logErrorMock } = vi.hoisted(() => ({
   logErrorMock: vi.fn(),
@@ -11,6 +12,47 @@ const { logErrorMock } = vi.hoisted(() => ({
 vi.mock('../../../utils/logger', () => ({
   logError: logErrorMock,
 }));
+
+const createEmployment = (
+  patch: Partial<ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]> = {}
+): ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number] => ({
+  id: patch.id ?? 'af-1',
+  navnPaaArbejdssted: patch.navnPaaArbejdssted,
+  harOverenskomst: patch.harOverenskomst ?? true,
+  overenskomstId: patch.overenskomstId,
+  overenskomstFilter: patch.overenskomstFilter,
+  ansatPaaSkadestidspunktet: patch.ansatPaaSkadestidspunktet ?? true,
+  ansaettelsesforholdOphoert: patch.ansaettelsesforholdOphoert ?? false,
+  sidsteArbejdsdag: patch.sidsteArbejdsdag,
+  feriePct: patch.feriePct,
+  fritvalgPct: patch.fritvalgPct,
+  shSoPct: patch.shSoPct,
+  storeBededagPct: patch.storeBededagPct,
+  pensionPct: patch.pensionPct,
+  loenperiode: patch.loenperiode ?? 'maaned',
+  fuldLoenUnderFerie: patch.fuldLoenUnderFerie ?? 'Nej',
+  harAnciennitetstillaegEfterSkadesdatoen: patch.harAnciennitetstillaegEfterSkadesdatoen ?? false,
+  anciennitetstillaegDato: patch.anciennitetstillaegDato,
+  anciennitetstillaegSatsAngivesPer: patch.anciennitetstillaegSatsAngivesPer ?? 'Måned',
+  anciennitetstillaegSats: patch.anciennitetstillaegSats,
+  loenPaaHelligdage: patch.loenPaaHelligdage ?? 'Almindelig løn',
+  saerligFraDatoRegulering: patch.saerligFraDatoRegulering,
+  loenudviklingBeregningsgrundlag: patch.loenudviklingBeregningsgrundlag,
+  loenudviklingStatistikModel: patch.loenudviklingStatistikModel,
+  loenudviklingKRLSatstabel: patch.loenudviklingKRLSatstabel,
+  loenudviklingManuelNavn: patch.loenudviklingManuelNavn ?? '',
+  loenudviklingManuelTableData: patch.loenudviklingManuelTableData ?? [],
+  offentligLoenType: patch.offentligLoenType ?? 'Månedsløn',
+  offentligLoenTrin: patch.offentligLoenTrin,
+  offentligLoenGruppe: patch.offentligLoenGruppe,
+  offentligLoenEkstraGrundloen: patch.offentligLoenEkstraGrundloen,
+  overenskomstFilter: patch.overenskomstFilter ?? {
+    loenmodtager: undefined,
+    arbejdsgiver: undefined,
+  },
+  indtaegtsoplysningerTableData: patch.indtaegtsoplysningerTableData ?? [],
+  ...patch,
+});
 
 describe('computeEoSnapshot', () => {
   beforeEach(() => {
@@ -97,10 +139,9 @@ describe('computeEoSnapshot', () => {
     eoValues.periodeTilBeregningTil = '2023-12-31';
     eoValues.differencekravDato = '2024-07-01';
     eoValues.loenindkomstAnsaettelsesforhold = [
-      {
-        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+      createEmployment({
         loenudviklingBeregningsgrundlag: 'Ingen',
-      },
+      }),
     ];
     eoValues.tafPerioder = [
       { id: 'r1', fra: '2024-01-01', til: '2024-07-15', loseFeriedage: 0 },
@@ -130,10 +171,9 @@ describe('computeEoSnapshot', () => {
     eoValues.periodeTilBeregningFra = '2023-01-01';
     eoValues.periodeTilBeregningTil = '2023-12-31';
     eoValues.loenindkomstAnsaettelsesforhold = [
-      {
-        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+      createEmployment({
         loenudviklingBeregningsgrundlag: 'Ingen',
-      },
+      }),
     ];
     eoValues.tafPerioder = [
       { id: 'r1', fra: '2024-01-01', til: '2024-12-31', loseFeriedage: 0 },
@@ -311,8 +351,7 @@ describe('computeEoSnapshot', () => {
       { id: 'taf-1', fra: '2024-01-01', til: '2024-01-31', loseFeriedage: 0 },
     ];
     eoValues.loenindkomstAnsaettelsesforhold = [
-      {
-        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+      createEmployment({
         indtaegtsoplysningerTableData: [
           {
             id: 'ind-1',
@@ -329,7 +368,7 @@ describe('computeEoSnapshot', () => {
           },
         ],
         loenudviklingBeregningsgrundlag: undefined,
-      },
+      }),
     ];
 
     const snapshot = computeEoSnapshot({
@@ -432,6 +471,98 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.debugSnapshot).not.toBeNull();
     // debugDays er bygget ud fra rå tafPerioder (uden clamping) — begge perioder eksisterer i model
     expect(snapshot.debugSnapshot!.model).toBeDefined();
+  });
+
+  it('validerings-fejl-sti: urelateret svie/smerte-fejl undertrykker ikke TAF-sammentælling', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.vedroererPeriodeFra = '2023-05-24';
+    eoValues.vedroererPeriodeTil = '2025-12-21';
+    eoValues.beregnesTabtArbejdsfortjeneste = 'Ja';
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.periodeTilBeregningFra = '2023-01-01';
+    eoValues.periodeTilBeregningTil = '2023-12-31';
+    eoValues.tafPerioder = [
+      { id: 'taf-1', fra: '2024-01-01', til: '2024-03-31', loseFeriedage: 0 },
+    ];
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      createEmployment({
+        navnPaaArbejdssted: 'Testarbejde',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        indtaegtsoplysningerTableData: [
+          {
+            id: 'ind-1',
+            col0_maaned: '01',
+            col1_maaned: '2024',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: '',
+            col1_dag: '',
+            col2: { kind: 'number', value: 30000 },
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          },
+        ],
+      }),
+    ];
+    eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
+    eoValues.tidligereSsMax = 'Nej';
+    eoValues.varigeMenAfgorelse = 'Ja';
+    eoValues.verserendeKlageMen = 'Nej';
+    eoValues.menAfgoerelseDato = '2024-04-22';
+    eoValues.svieSmerteSatserAar = 2025;
+    eoValues.svieSmerteDelvisSygemeldingSats = 'fuld';
+    eoValues.svieSmertePerioder = [
+      { id: 'ss-1', fra: '2023-05-24', til: '2025-04-21', tilstand: 'sygemeldt' },
+    ];
+
+    const snapshot = computeEoSnapshot({
+      revision: 'validation-error-preserves-taf-debug',
+      stamdataValues: STAMDATA_INITIAL_VALUES,
+      eoValues,
+    });
+
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.debugSnapshot).not.toBeNull();
+    expect(snapshot.debugSnapshot!.sammentaelling.taf.beregnetValue).not.toBeNull();
+    expect(snapshot.debugSnapshot!.sammentaelling.taf.tabelValue).not.toBeNull();
+    expect(snapshot.debugSnapshot!.sammentaelling.tafIndtaegter).toHaveLength(1);
+  });
+
+  it('validerings-fejl-sti: urelateret TAF-fejl undertrykker ikke svie/smerte i debug-sammentælling', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.vedroererPeriodeFra = '2024-01-26';
+    eoValues.vedroererPeriodeTil = '2025-11-02';
+    eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
+    eoValues.beregnesTabtArbejdsfortjeneste = 'Ja';
+    eoValues.tidligereSsMax = 'Nej';
+    eoValues.svieSmerteHelbredsstatus = 'Raskmeldt';
+    eoValues.svieSmerteSatserAar = 2025;
+    eoValues.svieSmerteDelvisSygemeldingSats = 'fuld';
+    eoValues.svieSmertePerioder = [
+      { id: 'ss-1', fra: '2024-01-26', til: '2024-10-20', tilstand: 'sygemeldt' },
+      { id: 'ss-2', fra: '2025-08-12', til: '2025-09-22', tilstand: 'sygemeldt' },
+      { id: 'ss-3', fra: '2025-09-23', til: '2025-11-02', tilstand: 'delvist-sygemeldt' },
+    ];
+    eoValues.tafPerioder = [
+      { id: 'taf-1', fra: '2024-02-01', til: '2024-06-30', loseFeriedage: 0 },
+      { id: 'taf-2', fra: '2024-06-15', til: '2024-08-01', loseFeriedage: 0 },
+    ];
+
+    const snapshot = computeEoSnapshot({
+      revision: 'validation-error-preserves-ss-debug',
+      stamdataValues: STAMDATA_INITIAL_VALUES,
+      eoValues,
+    });
+
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.debugSnapshot).not.toBeNull();
+    expect(snapshot.debugSnapshot!.sammentaelling.svieSmerteSygedage.beregnetValue).toBe(311);
+    expect(snapshot.debugSnapshot!.sammentaelling.svieSmerteSygedage.tabelValue).toBe(311);
+    expect(snapshot.debugSnapshot!.sammentaelling.svieSmerteDelvise.beregnetValue).toBe(41);
+    expect(snapshot.debugSnapshot!.sammentaelling.svieSmerteDelvise.tabelValue).toBe(41);
   });
 
   it('bygger et ok-snapshot for en simpel sag uden TAF med verificerede totals og EO-dokument', () => {

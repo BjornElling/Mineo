@@ -1421,33 +1421,12 @@ const LoenindkomstTab = React.memo(({
     return `${meta.navn} (${loenPart} / ${arbPart})`;
   }, []);
 
-  const [addTargetId, setAddTargetId] = React.useState<string | null>(null);
-  const addTargetName = React.useMemo(() => {
-    if (!addTargetId) return '';
-    const target = loenindkomstAnsaettelsesforhold.find((af) => af.id === addTargetId);
-    return target?.navnPaaArbejdssted?.trim() ?? '';
-  }, [addTargetId, loenindkomstAnsaettelsesforhold]);
-
   const handleAddConfirm = React.useCallback(() => {
-    if (!addTargetId) return;
-    // Nyt ansættelsesforhold oprettes med overenskomstFilter fra settings (via createBlankAnsaettelsesforhold)
     const newAf = createBlankAnsaettelsesforhold(settings);
-
-    onAnsaettelsesforholdChange((prev) => {
-      const index = prev.findIndex((af) => af.id === addTargetId);
-      if (index === -1) return prev;
-
-      // Indsæt nyt Ansættelsesforhold lige efter det nuværende
-      return [
-        ...prev.slice(0, index + 1),
-        newAf,
-        ...prev.slice(index + 1),
-      ];
-    });
+    onAnsaettelsesforholdChange((prev) => [...prev, newAf]);
 
     setAddDialogOpen(false);
-    setAddTargetId(null);
-  }, [addTargetId, onAnsaettelsesforholdChange, settings]);
+  }, [onAnsaettelsesforholdChange, settings]);
 
   const handleDeleteConfirm = React.useCallback(() => {
     if (!deleteTargetId) return;
@@ -1553,7 +1532,7 @@ const LoenindkomstTab = React.memo(({
 
   const totalAnsaettelsesforhold = loenindkomstAnsaettelsesforhold.length;
   const cannotAddMore = totalAnsaettelsesforhold >= MAX_ANSAETTELSESFORHOLD;
-  const showDeleteButton = totalAnsaettelsesforhold > 1;
+  const showDeleteButton = totalAnsaettelsesforhold > 0;
 
   // Stable per-af props for React.memo'd StandardLoenTable.
   const satserByAfId = React.useMemo(() => {
@@ -1605,11 +1584,50 @@ const LoenindkomstTab = React.memo(({
 
   return (
     <Box data-section-id="loenindkomst">
+      <ContentBox
+        className="content-box"
+        sx={{ position: 'relative', marginBottom: totalAnsaettelsesforhold > 0 ? '40px' : '60px' }}
+      >
+        <Typography className="section-header">Oplysninger om ansættelsesforhold</Typography>
+
+        <Box className="row--label-right-hover">
+          <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
+            <Typography className="row--text">
+              Brug knappen nedenfor til at indsætte ansættelsesforhold, både før og evt. efter skaden.
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
+            <Typography className="row--text">
+              Lønindkomst, tillæg og andre relevante oplysninger angives og beregnes individuelt for hvert enkelt
+              ansættelsesforhold.
+            </Typography>
+          </Box>
+        </Box>
+
+        {totalAnsaettelsesforhold === 0 ? (
+          <Box sx={{ position: 'absolute', bottom: -28, right: 44, display: 'flex', gap: '14px' }}>
+            <FloatingActionButton
+              icon={<AddIcon />}
+              color="primary"
+              disabled={cannotAddMore}
+              tooltip={cannotAddMore ? 'Maksimalt 10 ansættelsesforhold' : 'Tilføj nyt ansættelsesforhold'}
+              shake={cannotAddMore}
+              onClick={() => {
+                setAddDialogOpen(true);
+              }}
+            />
+          </Box>
+        ) : null}
+
+      </ContentBox>
+
       {loenindkomstAnsaettelsesforhold.map((af, index) => {
         const showOverenskomst = af.harOverenskomst;
         const showMedlemOpsagt = af.ansatPaaSkadestidspunktet;
         const showSidsteArbejdsdag = showMedlemOpsagt && af.ansaettelsesforholdOphoert;
-        const isFirstAnsaettelsesforhold = index === 0;
         const isLastAnsaettelsesforhold = index === totalAnsaettelsesforhold - 1;
         const displayNumber = index + 1;
         const saerligFraDatoReguleringLabel = getSaerligFraDatoReguleringLabel(af.saerligFraDatoRegulering);
@@ -1649,9 +1667,7 @@ const LoenindkomstTab = React.memo(({
         const hasReguleringsDatoInterval =
           Boolean(reguleringsDatoIntervalData?.fraDato) && Boolean(reguleringsDatoIntervalData?.tilDato);
 
-        const baseHeaderText = isFirstAnsaettelsesforhold
-          ? 'Ansættelsesforhold'
-          : `Ansættelsesforhold ${displayNumber}`;
+        const baseHeaderText = `Ansættelsesforhold ${displayNumber}`;
 
         const headerText = af.navnPaaArbejdssted
           ? `${baseHeaderText} (${af.navnPaaArbejdssted})`
@@ -2336,8 +2352,21 @@ const LoenindkomstTab = React.memo(({
 
             {/* Handlingsknapper – flex-container der fylder ud fra højre */}
             <Box sx={{ position: 'absolute', bottom: -28, right: 44, display: 'flex', gap: '14px' }}>
+              {isLastAnsaettelsesforhold && (
+                <FloatingActionButton
+                  icon={<AddIcon />}
+                  color="primary"
+                  disabled={cannotAddMore}
+                  tooltip={cannotAddMore ? 'Maksimalt 10 ansættelsesforhold' : 'Tilføj nyt ansættelsesforhold'}
+                  shake={cannotAddMore}
+                  onClick={() => {
+                    setAddDialogOpen(true);
+                  }}
+                />
+              )}
+
               {/* Flyt op (kun synlig hvis >1 Ansættelsesforhold og ikke det første) */}
-              {totalAnsaettelsesforhold > 1 && !isFirstAnsaettelsesforhold && (
+              {totalAnsaettelsesforhold > 1 && index > 0 && (
                 <FloatingActionButton
                   icon={<ArrowUpwardIcon />}
                   color="primary"
@@ -2369,18 +2398,6 @@ const LoenindkomstTab = React.memo(({
                 />
               )}
 
-              {/* Tilføj (vises på alle Ansættelsesforhold) */}
-              <FloatingActionButton
-                icon={<AddIcon />}
-                color="primary"
-                disabled={cannotAddMore}
-                tooltip={cannotAddMore ? 'Maksimalt 10 ansættelsesforhold' : 'Tilføj nyt ansættelsesforhold'}
-                shake={cannotAddMore}
-                onClick={() => {
-                  setAddTargetId(af.id);
-                  setAddDialogOpen(true);
-                }}
-              />
             </Box>
           </ContentBox>
         );
@@ -2581,9 +2598,7 @@ const LoenindkomstTab = React.memo(({
         title="Tilføj ansættelsesforhold"
         message={
           <>
-            {addTargetName !== ''
-              ? `Dette vil indsætte et nyt ansættelsesforhold lige efter det nuværende (${addTargetName}).`
-              : 'Dette vil indsætte et nyt ansættelsesforhold lige efter det nuværende.'}
+            Dette vil tilføje et nyt ansættelsesforhold nederst på siden.
             <br />
             <br />
             Bekræft venligst.
@@ -2594,7 +2609,6 @@ const LoenindkomstTab = React.memo(({
         onConfirm={handleAddConfirm}
         onCancel={() => {
           setAddDialogOpen(false);
-          setAddTargetId(null);
         }}
       />
 

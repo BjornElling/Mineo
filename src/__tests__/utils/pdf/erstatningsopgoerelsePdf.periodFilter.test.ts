@@ -28,6 +28,41 @@ const makeLoenRow = (overrides: Partial<StandardLoenTableRow>): StandardLoenTabl
   ...overrides,
 });
 
+const createEmployment = (overrides: Record<string, unknown> = {}) => ({
+  id: 'af-base',
+  navnPaaArbejdssted: undefined,
+  harOverenskomst: true,
+  overenskomstId: undefined,
+  ansatPaaSkadestidspunktet: true,
+  ansaettelsesforholdOphoert: false,
+  sidsteArbejdsdag: undefined,
+  harAnciennitetstillaegEfterSkadesdatoen: false,
+  anciennitetstillaegDato: undefined,
+  anciennitetstillaegSatsAngivesPer: 'Måned' as const,
+  anciennitetstillaegSats: undefined,
+  feriePct: undefined,
+  fritvalgPct: undefined,
+  shSoPct: undefined,
+  storeBededagPct: undefined,
+  pensionPct: undefined,
+  loenperiode: 'maaned' as const,
+  fuldLoenUnderFerie: 'Ja' as const,
+  loenPaaHelligdage: 'Almindelig løn' as const,
+  saerligFraDatoRegulering: undefined,
+  indtaegtsoplysningerTableData: [],
+  loenudviklingBeregningsgrundlag: undefined,
+  loenudviklingStatistikModel: undefined,
+  loenudviklingKRLSatstabel: undefined,
+  loenudviklingManuelNavn: '',
+  loenudviklingManuelTableData: [],
+  offentligLoenType: 'Månedsløn' as const,
+  offentligLoenTrin: undefined,
+  offentligLoenGruppe: undefined,
+  offentligLoenEkstraGrundloen: undefined,
+  overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
+  ...overrides,
+});
+
 describe('erstatningsopgoerelsePdf periodefilter', () => {
   it('ignorerer ranges og medtager række i Alle-mode', () => {
     const loenRow = makeLoenRow({
@@ -346,8 +381,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     eoValues.periodeTilBeregningFra = iso('2025-01-01');
     eoValues.periodeTilBeregningTil = iso('2025-01-31');
     eoValues.loenindkomstAnsaettelsesforhold = [
-      {
-        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+      createEmployment({
         id: 'af-1',
         loenudviklingBeregningsgrundlag: 'Ingen',
         indtaegtsoplysningerTableData: [
@@ -358,13 +392,12 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
             col2: { kind: 'number', value: 10000 },
           }),
         ],
-      },
-      {
-        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+      }),
+      createEmployment({
         id: 'af-2',
         loenudviklingBeregningsgrundlag: 'Overenskomst',
         indtaegtsoplysningerTableData: [],
-      },
+      }),
     ];
 
     expect(shouldIncludeReguleringBilag(eoValues)).toBe(false);
@@ -376,8 +409,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     eoValues.periodeTilBeregningFra = iso('2025-01-01');
     eoValues.periodeTilBeregningTil = iso('2025-01-31');
     eoValues.loenindkomstAnsaettelsesforhold = [
-      {
-        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+      createEmployment({
         id: 'af-1',
         loenudviklingBeregningsgrundlag: 'Overenskomst',
         indtaegtsoplysningerTableData: [
@@ -388,7 +420,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
             col2: { kind: 'number', value: 10000 },
           }),
         ],
-      },
+      }),
     ];
 
     expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
@@ -400,12 +432,11 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     eoValues.periodeTilBeregningFra = iso('2025-01-01');
     eoValues.periodeTilBeregningTil = iso('2025-01-31');
     eoValues.loenindkomstAnsaettelsesforhold = [
-      {
-        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+      createEmployment({
         id: 'af-1',
         loenudviklingBeregningsgrundlag: 'Ingen',
         indtaegtsoplysningerTableData: [],
-      },
+      }),
     ];
 
     expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
@@ -464,8 +495,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     eoValues.periodeTilBeregningTil = iso('2025-01-31');
     eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Ingen';
     eoValues.loenindkomstAnsaettelsesforhold = [
-      {
-        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+      createEmployment({
         id: 'af-1',
         loenudviklingBeregningsgrundlag: 'Overenskomst',
         indtaegtsoplysningerTableData: [
@@ -476,7 +506,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
             col2: { kind: 'number', value: 10000 },
           }),
         ],
-      },
+      }),
     ];
 
     expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
@@ -484,22 +514,20 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
 
   it('viser navn på reguleringsform ved manuelt angivet regulering i stedet for generisk label', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    const af = {
-      ...eoValues.loenindkomstAnsaettelsesforhold[0],
+    const af = createEmployment({
       loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
       loenudviklingManuelNavn: 'DA-tillægstrin',
-    };
+    });
 
     expect(resolveValgtReguleringDisplay(af)).toBe('Manuelt angivet (DA-tillægstrin)');
   });
 
   it('falder tilbage til Manuelt angivet når navn på reguleringsform mangler', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    const af = {
-      ...eoValues.loenindkomstAnsaettelsesforhold[0],
+    const af = createEmployment({
       loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
       loenudviklingManuelNavn: '   ',
-    };
+    });
 
     expect(resolveValgtReguleringDisplay(af)).toBe('Manuelt angivet');
   });

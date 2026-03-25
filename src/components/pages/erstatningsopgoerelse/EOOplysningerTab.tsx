@@ -2516,7 +2516,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
         <Typography className="section-header">Bilagsnumre</Typography>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Bilagsnumre i erstatningsopgørelser</Typography>
+          <Typography className="row--text">Indsæt bilagsnumre i erstatningsopgørelsen</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
               checked={getChecked(values.visBilagsnumre)}

@@ -30,6 +30,40 @@ const selectedElements: SelectedElements = {
   sygeferiegodtgoerelse: false,
 };
 
+const createEmployment = () => ({
+  id: 'af-base',
+  navnPaaArbejdssted: undefined,
+  harOverenskomst: true,
+  overenskomstId: undefined,
+  ansatPaaSkadestidspunktet: true,
+  ansaettelsesforholdOphoert: false,
+  sidsteArbejdsdag: undefined,
+  harAnciennitetstillaegEfterSkadesdatoen: false,
+  anciennitetstillaegDato: undefined,
+  anciennitetstillaegSatsAngivesPer: 'Måned' as const,
+  anciennitetstillaegSats: undefined,
+  feriePct: undefined,
+  fritvalgPct: undefined,
+  shSoPct: undefined,
+  storeBededagPct: undefined,
+  pensionPct: undefined,
+  loenperiode: 'maaned' as const,
+  fuldLoenUnderFerie: 'Ja' as const,
+  loenPaaHelligdage: 'Almindelig løn' as const,
+  saerligFraDatoRegulering: undefined,
+  indtaegtsoplysningerTableData: [],
+  loenudviklingBeregningsgrundlag: undefined,
+  loenudviklingStatistikModel: undefined,
+  loenudviklingKRLSatstabel: undefined,
+  loenudviklingManuelNavn: '',
+  loenudviklingManuelTableData: [],
+  offentligLoenType: 'Månedsløn' as const,
+  offentligLoenTrin: undefined,
+  offentligLoenGruppe: undefined,
+  offentligLoenEkstraGrundloen: undefined,
+  overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
+});
+
 const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
   const eoValues = createErstatningsopgoerelseInitialValues();
   eoValues.beregnesUdFra = 'Beregningsperiode';
@@ -46,7 +80,7 @@ const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
   ];
   eoValues.loenindkomstAnsaettelsesforhold = [
     {
-      ...eoValues.loenindkomstAnsaettelsesforhold[0],
+      ...createEmployment(),
       id: 'af-1',
       navnPaaArbejdssted: 'Kerteminde Kommune',
       ansatPaaSkadestidspunktet: false,

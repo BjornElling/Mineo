@@ -45,6 +45,41 @@ const renderTab = (props: React.ComponentProps<typeof EOberegningTab>) => {
   );
 };
 
+const createEmployment = (overrides: Record<string, unknown> = {}) => ({
+  id: 'af-base',
+  navnPaaArbejdssted: undefined,
+  harOverenskomst: true,
+  overenskomstId: undefined,
+  ansatPaaSkadestidspunktet: true,
+  ansaettelsesforholdOphoert: false,
+  sidsteArbejdsdag: undefined,
+  harAnciennitetstillaegEfterSkadesdatoen: false,
+  anciennitetstillaegDato: undefined,
+  anciennitetstillaegSatsAngivesPer: 'Måned' as const,
+  anciennitetstillaegSats: undefined,
+  feriePct: undefined,
+  fritvalgPct: undefined,
+  shSoPct: undefined,
+  storeBededagPct: undefined,
+  pensionPct: undefined,
+  loenperiode: 'maaned' as const,
+  fuldLoenUnderFerie: 'Ja' as const,
+  loenPaaHelligdage: 'Almindelig løn' as const,
+  saerligFraDatoRegulering: undefined,
+  indtaegtsoplysningerTableData: [],
+  loenudviklingBeregningsgrundlag: undefined,
+  loenudviklingStatistikModel: undefined,
+  loenudviklingKRLSatstabel: undefined,
+  loenudviklingManuelNavn: '',
+  loenudviklingManuelTableData: [],
+  offentligLoenType: 'Månedsløn' as const,
+  offentligLoenTrin: undefined,
+  offentligLoenGruppe: undefined,
+  offentligLoenEkstraGrundloen: undefined,
+  overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
+  ...overrides,
+});
+
 describe('EOberegningTab kontroltjek', () => {
   const baseStamdataValues = structuredClone(STAMDATA_INITIAL_VALUES);
   const baseEoValues = createErstatningsopgoerelseInitialValues();
@@ -430,10 +465,9 @@ describe('EOberegningTab kontroltjek', () => {
     eoValues.periodeTilBeregningTil = '2023-12-31';
     eoValues.differencekravDato = '2024-07-01';
     eoValues.loenindkomstAnsaettelsesforhold = [
-      {
-        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+      createEmployment({
         loenudviklingBeregningsgrundlag: 'Ingen',
-      },
+      }),
     ];
     eoValues.tafPerioder = [
       { id: 'r1', fra: '2024-01-01', til: '2024-07-15', loseFeriedage: 0 },

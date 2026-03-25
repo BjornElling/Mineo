@@ -320,6 +320,18 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       scrollToDebugRow(pendingNavigation.debugRowId);
     };
 
+    const isLoenindkomstEmploymentDebugRow =
+      pendingNavigation.target.tabId === 'loenindkomst' &&
+      pendingNavigation.debugRowId.startsWith('loenindkomst.');
+
+    if (isLoenindkomstEmploymentDebugRow) {
+      runRowScroll();
+      setPendingNavigation(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     if (pendingNavigation.target.sectionId) {
       scrollToSection(pendingNavigation.target.sectionId, {
         onSuccess: () => {

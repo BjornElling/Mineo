@@ -291,6 +291,50 @@ const collectMinMaxLoenindkomst = (
   return { min, max };
 };
 
+const collectMinMaxSvieSmerte = (
+  values: ErstatningsopgoerelseValues,
+  erstatningsFra: ISODateString | undefined,
+  erstatningsTil: ISODateString | undefined,
+  menStopDato: ISODateString | undefined,
+  constrainedPeriods?: readonly SvieSmerteConstrainedPeriod[]
+): { min: ISODateString | undefined; max: ISODateString | undefined } => {
+  let min: ISODateString | undefined;
+  let max: ISODateString | undefined;
+
+  if (constrainedPeriods) {
+    for (const periode of constrainedPeriods) {
+      min = minISO(min, periode.fra);
+      max = maxISO(max, periode.til);
+    }
+    return { min, max };
+  }
+
+  const erstatningsRange = validateIsoRange(erstatningsFra, erstatningsTil);
+  if (!erstatningsRange) {
+    return { min: undefined, max: undefined };
+  }
+
+  const maxSsDato = menStopDato ? subtractOneDay(menStopDato) : erstatningsRange.til;
+  const perioder: readonly SvieSmertePeriodeRow[] = values.svieSmertePerioder ?? [];
+
+  for (const periode of perioder) {
+    const tilstand = periode.tilstand;
+    if (tilstand !== 'sygemeldt' && tilstand !== 'delvist-sygemeldt') continue;
+    const periodeRange = validateIsoRange(periode.fra, periode.til);
+    if (!periodeRange) continue;
+
+    const clampedFra = maxISO(periodeRange.fra, erstatningsRange.fra);
+    const clampedTil = minISO(periodeRange.til, maxSsDato);
+    const clampedRange = validateIsoRange(clampedFra, clampedTil);
+    if (!clampedRange) continue;
+
+    min = minISO(min, clampedRange.fra);
+    max = maxISO(max, clampedRange.til);
+  }
+
+  return { min, max };
+};
+
 const buildSsCoverage = (
   dates: readonly ISODateString[],
   isoIndex: ReadonlyMap<ISODateString, number>,
@@ -406,6 +450,8 @@ export const buildEODebugModel = (
   const beregningsFra = values.periodeTilBeregningFra;
   const beregningsTil = values.periodeTilBeregningTil;
   const isBeregningsperiode = values.beregnesUdFra === 'Beregningsperiode';
+  const menStopDato =
+    values.varigeMenAfgorelse === 'Ja' && values.verserendeKlageMen === 'Nej' ? values.menAfgoerelseDato : undefined;
 
   const loenErrorRowIdsByIndex = (values.loenindkomstAnsaettelsesforhold ?? []).map((af) =>
     getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)
@@ -414,6 +460,13 @@ export const buildEODebugModel = (
 
   const loenBounds = collectMinMaxLoenindkomst(values.loenindkomstAnsaettelsesforhold ?? [], loenErrorRowIdsByIndex);
   const ydelserBounds = collectMinMaxOffentligeYdelser(values.offentligeYdelserRows ?? [], offentligeErrorRowIds);
+  const svieSmerteBounds = collectMinMaxSvieSmerte(
+    values,
+    erstatningsFra,
+    erstatningsTil,
+    menStopDato,
+    options.svieSmerteConstrainedPeriods
+  );
 
   const sources: DebugTabelDateSource[] = [
     { label: 'Erstatningsperiode', fra: erstatningsFra, til: erstatningsTil },
@@ -424,6 +477,7 @@ export const buildEODebugModel = (
     },
     { label: 'Lønindkomst', fra: loenBounds.min, til: loenBounds.max },
     { label: 'Offentlige ydelser', fra: ydelserBounds.min, til: ydelserBounds.max },
+    { label: 'Svie/smerte', fra: svieSmerteBounds.min, til: svieSmerteBounds.max },
   ];
 
   const combinedMinFra = sources.reduce<ISODateString | undefined>((acc, s) => minISO(acc, s.fra), undefined);
@@ -508,9 +562,6 @@ export const buildEODebugModel = (
     const withinBeregnings = beregningsRange ? iso >= beregningsRange.fra && iso <= beregningsRange.til : false;
     isWithinBeregningsByIndex[i] = withinBeregnings;
   }
-
-  const menStopDato =
-    values.varigeMenAfgorelse === 'Ja' && values.verserendeKlageMen === 'Nej' ? values.menAfgoerelseDato : undefined;
 
   const { statusByIndex: ssStatusByIndex } = buildSsCoverage(
     dates,

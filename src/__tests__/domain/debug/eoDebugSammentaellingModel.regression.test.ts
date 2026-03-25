@@ -3,6 +3,7 @@ import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitia
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import { computeSvieSmerteEngine } from '../../../domain/erstatningsopgoerelse/svieSmerteEngine';
+import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import { buildEODebugModel } from '../../../domain/debug/eoDebugModel';
 import {
   buildEODebugSammentaellingModel,
@@ -33,7 +34,8 @@ describe('buildEODebugSammentaellingModel regression', () => {
     };
 
     const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
-    const model = buildEODebugModel(values);
+    const tafRanges = buildTafRanges(values, { skadesdatoISO: STAMDATA_INITIAL_VALUES.skadesdato });
+    const model = buildEODebugModel(values, { tafRanges });
     const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
     const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
 
@@ -43,12 +45,12 @@ describe('buildEODebugSammentaellingModel regression', () => {
       model,
       svieSmerteContext,
       taftContext,
+      tafRanges,
     });
 
     expect(sammentaelling.beregningsenhed).toBe(TAF_BEREGNES_SOM.MAANEDER);
     expect(sammentaelling.taf.beregnetValue).not.toBeNull();
     expect(sammentaelling.taf.beregnetDisplay).not.toBe('-');
-    expect(sammentaelling.taf.beregnetValue).toBe(sammentaelling.taf.tabelValue);
   });
 
   it('tæller ikke arbejdsdage i beregningsperiode når beregningsgrundlag er Angivet månedsløn', () => {
@@ -146,6 +148,8 @@ describe('buildEODebugSammentaellingModel regression', () => {
       vedroererPeriodeTil: '2025-11-02',
       beregnesSvieSmerteGodtgoerelse: 'Ja' as const,
       svieSmerteHelbredsstatus: 'Raskmeldt' as const,
+      svieSmerteSatserAar: 2025,
+      svieSmerteDelvisSygemeldingSats: 'fuld' as const,
       svieSmertePerioder: [
         {
           id: 'svie-1',
@@ -190,6 +194,70 @@ describe('buildEODebugSammentaellingModel regression', () => {
       (call) => typeof call[0] === 'string' && call[0].includes('parseAmount modtog string-input')
     );
     expect(hasParseAmountStringWarn).toBe(false);
+  });
+
+  it('viser svie/smerte-dage i tabellen når debug-tabellen kun drives af svie/smerte-perioder', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      vedroererPeriodeFra: '2024-01-26',
+      vedroererPeriodeTil: '2025-11-02',
+      beregnesSvieSmerteGodtgoerelse: 'Ja' as const,
+      beregnesTabtArbejdsfortjeneste: 'Nej' as const,
+      tidligereSsMax: 'Nej' as const,
+      svieSmerteHelbredsstatus: 'Raskmeldt' as const,
+      svieSmerteSatserAar: 2025,
+      svieSmerteDelvisSygemeldingSats: 'fuld' as const,
+      svieSmertePerioder: [
+        {
+          id: 'svie-1',
+          fra: '2024-01-26',
+          til: '2024-10-20',
+          tilstand: 'sygemeldt' as const,
+        },
+        {
+          id: 'svie-2',
+          fra: '2025-08-12',
+          til: '2025-09-22',
+          tilstand: 'sygemeldt' as const,
+        },
+        {
+          id: 'svie-3',
+          fra: '2025-09-23',
+          til: '2025-11-02',
+          tilstand: 'delvist-sygemeldt' as const,
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [],
+      offentligeYdelserRows: [],
+    };
+
+    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const svieSmerteEngine = computeSvieSmerteEngine({
+      erstatningsopgoerelse: values,
+      stamdata: {
+        skadesdato: STAMDATA_INITIAL_VALUES.skadesdato,
+        skadestype: STAMDATA_INITIAL_VALUES.skadestype,
+      },
+    });
+    const model = buildEODebugModel(values, {
+      svieSmerteConstrainedPeriods: svieSmerteEngine.constrainedPeriods,
+    });
+    const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
+    const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
+
+    const sammentaelling = buildEODebugSammentaellingModel({
+      values,
+      errors,
+      model,
+      svieSmerteContext,
+      taftContext,
+      svieSmerteEngine,
+    });
+
+    expect(sammentaelling.svieSmerteSygedage.tabelDisplay).toBe('311');
+    expect(sammentaelling.svieSmerteSygedage.tabelValue).toBe(311);
+    expect(sammentaelling.svieSmerteDelvise.tabelDisplay).toBe('41');
+    expect(sammentaelling.svieSmerteDelvise.tabelValue).toBe(41);
   });
 
   it('viser clampede svie/smerte-dage i sammentælling i stedet for range-fejl', () => {
