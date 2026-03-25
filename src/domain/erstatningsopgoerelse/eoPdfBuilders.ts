@@ -330,6 +330,7 @@ export const buildTabtArbejdsfortjenesteModel = (
     loenudvikling: tafMonetary.loenudvikling,
     tafIndtaegter: tafMonetary.tafIndtaegter,
     tidligereModtagetTaf: tafMonetary.tidligereModtagetTaf,
+    sygeferiegodtgoerelse: tafMonetary.sygeferiegodtgoerelse,
     // Begge felter sættes til netto-værdien. buildErstatningsopgoerelsePdfModelFromComputed
     // applicerer forligskalering på tabtArbejdsfortjenesteOre; FoerForlig bevarer udgangspunktet.
     tabtArbejdsfortjenesteFoerForligOre: tafMonetary.tabtArbejdsfortjenesteOre,

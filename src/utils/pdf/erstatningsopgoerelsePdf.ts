@@ -10,7 +10,7 @@ import type { PdfCommonOptions } from './pdfOptions';
 import { createStandardPdfWriter } from './pdfWriter';
 import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../schemas/formSchemas';
 import { type MoneyOre, type Calculable } from '../../domain/erstatningsopgoerelse/eoPdfModel';
-import { formatPercent as formatPercentUtil } from '../formatUtils';
+import { formatAsAmount, formatPercent as formatPercentUtil } from '../formatUtils';
 import { TODAY } from '../../config/dateRanges';
 
 import { logWarning } from '../logger';
@@ -126,15 +126,6 @@ const resolvePeriodColumns = (row: StandardLoenTableRow, loenperiode: Loenperiod
 type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 const resolveUdkastStempelValue = (value: unknown): boolean => value === 'Ja';
 
-
-
-
-// Sygeferiegodtgørelse er ikke implementeret endnu — fail-closed guard.
-const assertNoUnsupportedSygeferiegodtgoerelseSelection = (selectedElements: SelectedElements): void => {
-  if (!selectedElements.sygeferiegodtgoerelse) return;
-  throw new Error('Valgte PDF-elementer er ikke understøttet endnu: Sygeferiegodtgørelse.');
-};
-
 /**
  * Options for erstatningsopgørelse PDF
  *
@@ -164,8 +155,6 @@ export const generateErstatningsopgoerelsePdf = (
   if (!selectedElements.opgoerelse) {
     throw new Error('PDF-generering kræver, at elementet "Opgørelse" er valgt.');
   }
-
-  assertNoUnsupportedSygeferiegodtgoerelseSelection(selectedElements);
 
   const { visBrevhoved = false } = options;
   const visUdkastStempel = options.visUdkastStempel ?? resolveUdkastStempelValue(eoValues.indsaetUdkastStempel);
@@ -424,6 +413,41 @@ export const generateErstatningsopgoerelsePdf = (
       renderSubheader,
       safeAddWrappedText,
       writer,
+    });
+  }
+
+  if (selectedElements.sygeferiegodtgoerelse && model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.length > 0) {
+    startBilagPage('Sygeferiegodtgørelse');
+    model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.forEach((entry) => {
+      renderSubheader(entry.ansaettelsesforholdNavn, lineHeight);
+      safeAddWrappedText(`Beregnes ud fra: ${entry.sourceLabel}`);
+      if (entry.referenceperiode) {
+        safeAddWrappedText(`Referenceperiode: ${formatDateShort(entry.referenceperiode.fra)} - ${formatDateShort(entry.referenceperiode.til)}`);
+      }
+      if (entry.referenceSats.status === 'ok') {
+        safeAddWrappedText(`Referencesats: ${formatCurrencyFromOre(entry.referenceSats.value)} kr.`);
+      }
+      entry.explanatoryLines.forEach((line) => safeAddWrappedText(line));
+      const rows = entry.segments;
+      if (rows.length > 0) {
+        safeAddWrappedText('Fra-dato | Til-dato | Sats | Antal dage | Beregnet SFGG');
+        rows.forEach((row) => {
+          safeAddWrappedText(
+            `${formatDateShort(row.fra) ?? ''} | ${formatDateShort(row.til) ?? ''} | ${formatCurrencyFromOreTrimmed(row.satsOre)} | ${String(row.antalDage)} | ${formatCurrencyFromOreTrimmed(row.beregnetSfggoereOre)}`
+          );
+        });
+        safeAddWrappedText(`I alt: ${formatMoneyOreWithKrTrimmed(entry.totalOre)}`);
+      }
+      if (entry.capRows.length > 0) {
+        renderSubheader('Opgørelse af 4-månedersgrænsen', lineHeight);
+        safeAddWrappedText('Fra-dato | Til-dato | Antal dage | Antal måneder');
+        entry.capRows.forEach((row) => {
+          safeAddWrappedText(
+            `${formatDateShort(row.fra) ?? ''} | ${formatDateShort(row.til) ?? ''} | ${String(row.antalDage)} | ${formatAsAmount(row.maanederPraecis, 3)}`
+          );
+        });
+      }
+      writer.advanceY(lineHeight);
     });
   }
 

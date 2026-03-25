@@ -4,6 +4,7 @@ import { buildIncomeForRanges, type IsoRange } from './indtaegtPerioder';
 import { computeTafBeregningsenhed } from './tafBeregningsenhed';
 import { buildIndkomstSkadestidspunkt } from './eoPdfIndkomstSkadestidspunkt';
 import { buildLoenudviklingModel } from './eoPdfLoenudvikling';
+import { computeSygeferiegodtgoerelse, type SygeferiegodtgoerelseResult } from './sygeferiegodtgoerelse';
 import type {
   Calculable,
   IndkomstSkadestidspunktPdfModel,
@@ -54,6 +55,7 @@ export type TafNettoBeregningResult = Readonly<{
   loenudvikling: LoenudviklingPdfModel | null;
   tafIndtaegter: TafIndtaegterPdfModel | null;
   tidligereModtagetTaf: Calculable<MoneyOre>;
+  sygeferiegodtgoerelse: SygeferiegodtgoerelseResult;
   tabtArbejdsfortjenesteOre: MoneyOre;
 }>;
 
@@ -75,6 +77,16 @@ export const computeTafNettoBeregning = (
     })
     : null;
   const tafIndtaegter = harTafPerioder ? buildTafIndtaegterModel(values, tafRanges) : null;
+  const sygeferiegodtgoerelse = harTafPerioder
+    ? computeSygeferiegodtgoerelse({
+      values,
+      stamdata: stamdataValues,
+      tafRanges,
+      loenudviklingPerAnsaettelse: loenudvikling
+        ? new Map(loenudvikling.perAnsaettelse.map((entry) => [entry.ansaettelsesforholdId, entry]))
+        : undefined,
+    })
+    : { totalOre: ensureMoneyOre(0), perAnsaettelsesforhold: [], firstExcludedDate: null };
 
   const tidligereModtagetTafKroner = amountValueToNumber(values.tidligereModtagetTaf);
   const tidligereModtagetTaf =
@@ -94,6 +106,7 @@ export const computeTafNettoBeregning = (
         loenudvikling,
         tafIndtaegter,
         tidligereModtagetTaf,
+        sygeferiegodtgoerelse,
         tabtArbejdsfortjenesteOre,
       };
     }
@@ -110,13 +123,14 @@ export const computeTafNettoBeregning = (
         loenudvikling,
         tafIndtaegter,
         tidligereModtagetTaf,
+        sygeferiegodtgoerelse,
         tabtArbejdsfortjenesteOre,
       };
     }
     // Invariant: tidligere modtaget TAF er valgfrit input. Manglende værdi betyder 0 kr. fradrag.
     const tidligereModtagetTafOre = tidligereModtagetTaf.status === 'ok' ? tidligereModtagetTaf.value : ensureMoneyOre(0);
     tabtArbejdsfortjenesteOre = clampMoneyOreToZero(
-      ensureMoneyOre(loenTotal.value - indtaegterTotal.value - tidligereModtagetTafOre)
+      ensureMoneyOre(loenTotal.value - indtaegterTotal.value - tidligereModtagetTafOre - sygeferiegodtgoerelse.totalOre)
     );
   }
 
@@ -127,6 +141,7 @@ export const computeTafNettoBeregning = (
     loenudvikling,
     tafIndtaegter,
     tidligereModtagetTaf,
+    sygeferiegodtgoerelse,
     tabtArbejdsfortjenesteOre,
   };
 };

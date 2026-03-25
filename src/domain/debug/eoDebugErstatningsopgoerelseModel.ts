@@ -30,6 +30,8 @@ import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offent
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/angivetLoenHelpers';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/loenudviklingDisplay';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges } from '../erstatningsopgoerelse/indtaegtPerioder';
+import { buildLoenudviklingModel } from '../erstatningsopgoerelse/eoPdfLoenudvikling';
+import { computeSygeferiegodtgoerelse, findSfggSixMonthWarningEmploymentIds } from '../erstatningsopgoerelse/sygeferiegodtgoerelse';
 import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/oevrigeKravIntro';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
@@ -94,7 +96,6 @@ export type DebugRowId =
   | 'taf.ophoerSkyldes'
   | `taf.periode.${string}`
   | `taf.ferie.${string}`
-  | 'taf.andelSfggILoenen'
   | 'taf.tidligereModtagetTaf'
   | `loenindkomst.${string}.arbejdsstedNavn`
   | `loenindkomst.${string}.satserSkadestidspunkt`
@@ -103,6 +104,7 @@ export type DebugRowId =
   | `loenindkomst.${string}.regulering.navn`
   | `loenindkomst.${string}.regulering.alleVaerdier`
   | `offentligeYdelser.${string}`
+  | `sfgg.${string}`
   | `oevrigekrav.${string}`
   | 'saerligekommentarer'
   | 'bilagsnumre.ingen'
@@ -117,6 +119,7 @@ export type DebugRowId =
 type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];
 type ErstatningsopgoerelseFieldName = Extract<keyof ErstatningsopgoerelseValues, string>;
 type ErstatningsopgoerelseFieldErrorsBySource = Partial<Record<ErstatningsopgoerelseFieldName, FieldErrorBySource>>;
+type StamdataValues = PersistedSectionMap['stamdata'];
 
 const formatPercentUpToTwoDecimals = (value: number): string =>
   `${value.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`;
@@ -1769,15 +1772,7 @@ export const buildEODebugTaftRows = (
     });
   }
 
-  // 3) Andel af løn i perioden, der består af SFGG
-  const andelSfggDisplay = formatCurrency(amountValueToNumber(values.andelSfggILoenen));
-  rows.push({
-    id: 'taf.andelSfggILoenen',
-    label: 'Andel af løn i perioden, der består af SFGG',
-    ...resolveDebugDisplay({ value: andelSfggDisplay, errors: errors.andelSfggILoenen, emptyState: 'ok' }),
-  });
-
-  // 4) Evt. allerede modtaget tabt arbejdsfortjeneste for nuværende erstatningsperiode
+  // 3) Evt. allerede modtaget tabt arbejdsfortjeneste for nuværende erstatningsperiode
   const tidligereModtagetTafDisplay =
     canonicalOutput?.taf.tidligereModtagetTafOre !== null &&
     canonicalOutput?.taf.tidligereModtagetTafOre !== undefined
@@ -2835,6 +2830,131 @@ export const buildEODebugOffentligeYdelserRows = (
       summaryDisplay: row.summaryDisplay ?? 'default',
     });
   });
+
+  return rows;
+};
+
+export const buildEODebugSygeferiegodtgoerelseRows = (
+  values: ErstatningsopgoerelseValues,
+  stamdata: StamdataValues,
+  canonicalOutput?: EoCanonicalOutput
+): DebugRowModel[] => {
+  const rows: DebugRowModel[] = [];
+  const tafRanges = canonicalOutput?.periodiseringer.tafPerioder ?? buildTafRanges(values);
+
+  const loenudvikling = buildLoenudviklingModel(values, stamdata, computeTafBeregningsenhed(values), null, {
+    tafRanges,
+  });
+  const sfgg = computeSygeferiegodtgoerelse({
+    values,
+    stamdata,
+    tafRanges,
+    loenudviklingPerAnsaettelse: new Map((loenudvikling?.perAnsaettelse ?? []).map((entry) => [entry.ansaettelsesforholdId, entry])),
+  });
+  const seksMaanedersWarnings = new Set(findSfggSixMonthWarningEmploymentIds({
+    values,
+    stamdata,
+    tafRanges,
+  }));
+
+  for (const employment of values.loenindkomstAnsaettelsesforhold ?? []) {
+    const row = values.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
+    const result = sfgg.perAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
+    const arbejdsstedNavn = (employment.navnPaaArbejdssted ?? '').trim() || 'Arbejdssted';
+    const kilde = row?.beregnesUdFra ?? 'Ingen';
+
+    rows.push({
+      id: `sfgg.beregningskilde.${employment.id}`,
+      label: `Sygeferiegodtgørelse, beregnes ud fra (${arbejdsstedNavn})`,
+      displayValue: kilde,
+      status: 'ok',
+    });
+
+    if (kilde === 'Ingen') {
+      continue;
+    }
+
+    if (result?.referenceperiode) {
+      const referenceDisplay =
+        `${isoToDanish(result.referenceperiode.fra) ?? result.referenceperiode.fra} - ${isoToDanish(result.referenceperiode.til) ?? result.referenceperiode.til}`;
+      rows.push({
+        id: `sfgg.referenceperiode.${employment.id}`,
+        label: `Referenceperiode (${arbejdsstedNavn})`,
+        displayValue: referenceDisplay,
+        status: result.referenceSats.status === 'ok' ? 'ok' : 'error',
+        message: result.referenceSats.status === 'ok' ? undefined : result.referenceSats.reason,
+      });
+    }
+
+    if (result?.referenceSats.status === 'ok') {
+      rows.push({
+        id: `sfgg.referencesats.${employment.id}`,
+        label: `Referencesats (${arbejdsstedNavn})`,
+        displayValue: formatCurrency(result.referenceSats.value / 100),
+        status: 'ok',
+      });
+    } else if (result) {
+      rows.push({
+        id: `sfgg.referencesats.${employment.id}`,
+        label: `Referencesats (${arbejdsstedNavn})`,
+        displayValue: formatStatusMessage('error', result.referenceSats.reason),
+        status: 'error',
+        summaryDisplay: 'messageOnly',
+        message: result.referenceSats.reason,
+      });
+    }
+
+    if (result?.segments.length) {
+      const lines = [
+        'Fra-dato | Til-dato | Sats | Antal dage | Beregnet SFGG',
+        ...result.segments.map((segment) =>
+          `${isoToDanish(segment.fra) ?? segment.fra} | ${isoToDanish(segment.til) ?? segment.til} | ${formatCurrency(segment.satsOre / 100)} | ${String(segment.antalDage)} | ${formatCurrency(segment.beregnetSfggoereOre / 100)}`
+        ),
+        `I alt |  |  |  | ${formatCurrency(result.totalOre / 100)}`,
+      ];
+      rows.push({
+        id: `sfgg.tabel.${employment.id}`,
+        label: `SFGG-beregning (${arbejdsstedNavn})`,
+        displayValue: lines.join('\n'),
+        status: 'ok',
+      });
+    }
+
+    if (result?.capRows.length) {
+      const lines = [
+        'Fra-dato | Til-dato | Antal dage | Antal måneder',
+        ...result.capRows.map((capRow) =>
+          `${isoToDanish(capRow.fra) ?? capRow.fra} | ${isoToDanish(capRow.til) ?? capRow.til} | ${String(capRow.antalDage)} | ${capRow.maanederPraecis.toLocaleString('da-DK', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`
+        ),
+      ];
+      rows.push({
+        id: `sfgg.firemaanedertabel.${employment.id}`,
+        label: `4-månedersgrænse (${arbejdsstedNavn})`,
+        displayValue: lines.join('\n'),
+        status: 'ok',
+      });
+    }
+
+    result?.explanatoryLines.forEach((line, index) => {
+      rows.push({
+        id: `sfgg.forklaring.${employment.id}.${index + 1}`,
+        label: `Forklaring (${arbejdsstedNavn})`,
+        displayValue: line,
+        status: 'ok',
+      });
+    });
+
+    if (seksMaanedersWarnings.has(employment.id)) {
+      rows.push({
+        id: `sfgg.advarsel.seksmaaneder.${employment.id}`,
+        label: `Advarsel (${arbejdsstedNavn})`,
+        displayValue: 'Advarsel (Der beregnes fortsat sygeferiegodtgørelse mere end 6 måneder efter sidste registrerede lønindkomst.)',
+        status: 'warning',
+        summaryDisplay: 'messageOnly',
+        message: 'Der beregnes fortsat sygeferiegodtgørelse mere end 6 måneder efter sidste registrerede lønindkomst.',
+      });
+    }
+  }
 
   return rows;
 };

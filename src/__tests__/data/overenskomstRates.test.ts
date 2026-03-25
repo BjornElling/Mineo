@@ -14,6 +14,7 @@ import {
   getReguleringsDatoIntervalForOverenskomst,
   getEffektiveSatserForDato,
   getEffektiveSatserForPeriode,
+  getOverenskomstSfggPolicy,
 } from '../../data/overenskomstRates';
 import { toDanishDateString } from '../../types/branded';
 
@@ -147,6 +148,24 @@ describe('getOverenskomstMetaById', () => {
     const meta = getOverenskomstMetaById('metal-transport-overenskomsten');
     expect(meta).toBeDefined();
     expect(meta?.navn).toBe('Metal-Transport overenskomsten');
+  });
+});
+
+describe('getOverenskomstSfggPolicy', () => {
+  it('har eksplicit policy for både offentlige og private overenskomster', () => {
+    expect(getOverenskomstSfggPolicy('kl-overenskomst')).toEqual(expect.objectContaining({
+      fravigerFerielov: false,
+      model: 'ferielov',
+    }));
+    expect(getOverenskomstSfggPolicy('bygge-anlaeg')).toEqual(expect.objectContaining({
+      fravigerFerielov: true,
+      model: 'direkte_sats',
+      direkteSatsErDifferentieret: true,
+    }));
+  });
+
+  it('returnerer undefined for ukendt overenskomst', () => {
+    expect(getOverenskomstSfggPolicy('ukendt-overenskomst')).toBeUndefined();
   });
 });
 

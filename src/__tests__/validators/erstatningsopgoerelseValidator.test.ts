@@ -7,6 +7,43 @@ import type { AmountValue } from '../../schemas/amountExpressionSchema';
 const iso = (value: string) => toISODateString(value);
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
+const createEmployment = (
+  patch: Partial<ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]> = {}
+): ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number] => ({
+  id: patch.id ?? 'af-1',
+  navnPaaArbejdssted: patch.navnPaaArbejdssted ?? 'Arbejdssted 1',
+  harOverenskomst: patch.harOverenskomst ?? false,
+  overenskomstId: patch.overenskomstId,
+  overenskomstFilter: patch.overenskomstFilter ?? { loenmodtager: undefined, arbejdsgiver: undefined },
+  ansatPaaSkadestidspunktet: patch.ansatPaaSkadestidspunktet ?? true,
+  ansaettelsesforholdOphoert: patch.ansaettelsesforholdOphoert ?? false,
+  sidsteArbejdsdag: patch.sidsteArbejdsdag,
+  feriePct: patch.feriePct,
+  fritvalgPct: patch.fritvalgPct,
+  shSoPct: patch.shSoPct,
+  storeBededagPct: patch.storeBededagPct,
+  pensionPct: patch.pensionPct ?? 0,
+  loenperiode: patch.loenperiode ?? 'maaned',
+  fuldLoenUnderFerie: patch.fuldLoenUnderFerie ?? 'Ja',
+  harAnciennitetstillaegEfterSkadesdatoen: patch.harAnciennitetstillaegEfterSkadesdatoen ?? false,
+  anciennitetstillaegDato: patch.anciennitetstillaegDato,
+  anciennitetstillaegSatsAngivesPer: patch.anciennitetstillaegSatsAngivesPer ?? 'Måned',
+  anciennitetstillaegSats: patch.anciennitetstillaegSats,
+  loenPaaHelligdage: patch.loenPaaHelligdage ?? 'Almindelig løn',
+  saerligFraDatoRegulering: patch.saerligFraDatoRegulering,
+  loenudviklingBeregningsgrundlag: patch.loenudviklingBeregningsgrundlag,
+  loenudviklingStatistikModel: patch.loenudviklingStatistikModel,
+  loenudviklingKRLSatstabel: patch.loenudviklingKRLSatstabel,
+  loenudviklingManuelNavn: patch.loenudviklingManuelNavn ?? '',
+  loenudviklingManuelTableData: patch.loenudviklingManuelTableData ?? [],
+  offentligLoenType: patch.offentligLoenType ?? 'Månedsløn',
+  offentligLoenTrin: patch.offentligLoenTrin,
+  offentligLoenGruppe: patch.offentligLoenGruppe,
+  offentligLoenEkstraGrundloen: patch.offentligLoenEkstraGrundloen,
+  indtaegtsoplysningerTableData: patch.indtaegtsoplysningerTableData ?? [],
+  ...patch,
+});
+
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
   const base = structuredClone(createErstatningsopgoerelseInitialValues());
   return { ...base, ...patch };
@@ -181,6 +218,55 @@ describe('TAF validering', () => {
       ],
     });
     expect(hasError(values, 'Fra-dato må ikke være efter til-dato')).toBe(true);
+  });
+});
+
+describe('SFGG validering', () => {
+  it('kræver supplerende sygeperioder når præ-2015-opgørelse ikke dækkes af TAF-perioder', () => {
+    const values = makeValues({
+      loenindkomstAnsaettelsesforhold: [createEmployment()],
+      sfggAlleSygeperioderErTafPerioder: false,
+      sfggSygeperioderFoer2015: [{ id: 's1', fra: undefined, til: undefined }],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        beregnesUdFra: 'Manuelt angivet',
+        manuelDagssats: asAmount(100),
+        manuelBeloebIHenholdTil: undefined,
+        manuelFoerstEfterSygeloen: 'Nej',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: undefined,
+        satsvalg: undefined,
+        alleredeBetaltBeloeb: undefined,
+      }],
+    });
+
+    expect(hasError(values, 'Angiv mindst én supplerende sygeperiode')).toBe(true);
+  });
+
+  it('fanger overlappende supplerende SFGG-sygeperioder', () => {
+    const values = makeValues({
+      loenindkomstAnsaettelsesforhold: [createEmployment()],
+      sfggAlleSygeperioderErTafPerioder: false,
+      sfggSygeperioderFoer2015: [
+        { id: 's1', fra: iso('2014-01-01'), til: iso('2014-01-15') },
+        { id: 's2', fra: iso('2014-01-10'), til: iso('2014-01-20') },
+      ],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        beregnesUdFra: 'Manuelt angivet',
+        manuelDagssats: asAmount(100),
+        manuelBeloebIHenholdTil: undefined,
+        manuelFoerstEfterSygeloen: 'Nej',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: undefined,
+        satsvalg: undefined,
+        alleredeBetaltBeloeb: undefined,
+      }],
+    });
+
+    expect(hasError(values, 'Sygeperioder overlapper')).toBe(true);
   });
 });
 

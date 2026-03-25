@@ -820,14 +820,12 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                 control={(
                   <Checkbox
                     checked={selectedElements.sygeferiegodtgoerelse}
-                    disabled
+                    onChange={(event) => {
+                      updateSelectedElement('sygeferiegodtgoerelse', event.target.checked);
+                    }}
                   />
                 )}
-                label={(
-                  <span style={{ textDecoration: 'line-through' }}>
-                    Sygeferiegodtgørelse
-                  </span>
-                )}
+                label="Sygeferiegodtgørelse"
               />
             </Box>
           </Box>

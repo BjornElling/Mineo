@@ -8,6 +8,7 @@ import {
   buildEODebugAesRows,
   buildEODebugIndkomstRows,
   buildEODebugOffentligeYdelserRows,
+  buildEODebugSygeferiegodtgoerelseRows,
   buildEODebugSvieSmerteRows,
   buildEODebugTafBeregningsgrundlagRows,
   buildEODebugTaftRows,
@@ -90,6 +91,16 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
     run: (ctx) =>
       buildEODebugOffentligeYdelserRows(
         ctx.eoValues
+      ),
+  },
+
+  {
+    section: 'sygeferiegodtgoerelse',
+    run: (ctx) =>
+      buildEODebugSygeferiegodtgoerelseRows(
+        ctx.eoValues,
+        ctx.stamdataValues,
+        ctx.canonicalOutput
       ),
   },
 

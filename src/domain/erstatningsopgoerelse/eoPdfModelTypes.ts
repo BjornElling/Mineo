@@ -38,6 +38,34 @@ export type PdfModel = Readonly<{
   tafRanges: readonly IsoRange[];
 }>;
 
+export type SygeferiegodtgoerelsePdfModel = Readonly<{
+  totalOre: MoneyOre;
+  firstExcludedDate: ISODateString | null;
+  perAnsaettelsesforhold: readonly Readonly<{
+    ansaettelsesforholdId: string;
+    ansaettelsesforholdNavn: string;
+    sourceLabel: string;
+    totalOre: MoneyOre;
+    explanatoryLines: readonly string[];
+    referenceperiode: Readonly<{ fra: ISODateString; til: ISODateString }> | null;
+    referenceSats: Calculable<MoneyOre>;
+    capReachedDate: ISODateString | null;
+    capRows: readonly Readonly<{
+      fra: ISODateString;
+      til: ISODateString;
+      antalDage: number;
+      maanederPraecis: number;
+    }>[];
+    segments: readonly Readonly<{
+      fra: ISODateString;
+      til: ISODateString;
+      satsOre: MoneyOre;
+      antalDage: number;
+      beregnetSfggoereOre: MoneyOre;
+    }>[];
+  }>[];
+}>;
+
 export type ForligPdfModel =
   | Readonly<{
     erIndgaaet: false;
@@ -88,6 +116,7 @@ export type TabtArbejdsfortjenestePdfModel = Readonly<{
   loenudvikling: LoenudviklingPdfModel | null;
   tafIndtaegter: TafIndtaegterPdfModel | null;
   tidligereModtagetTaf: Calculable<MoneyOre>;
+  sygeferiegodtgoerelse: SygeferiegodtgoerelsePdfModel;
   tabtArbejdsfortjenesteFoerForligOre: MoneyOre;
   tabtArbejdsfortjenesteOre: MoneyOre;
 }>;

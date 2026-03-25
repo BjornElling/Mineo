@@ -201,6 +201,7 @@ const isRowRelevantForEoValues = (
     // Hvis lønindkomst senere bliver et selvstændigt domæne,
     // skal denne filtrering og EODebug UI genovervejes.
     if (row.id.startsWith('taf.')) return false;
+    if (row.id.startsWith('sfgg.')) return false;
     // Lønindkomst-sektionen er kun relevant når TAF beregnes.
     if (row.id.startsWith('loenindkomst.')) return false;
   }

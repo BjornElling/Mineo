@@ -90,6 +90,8 @@ SH-dage skal komme fra den eksisterende centrale funktionalitet.
 Brugeren indtaster heller ikke feriedage som et særskilt antal i SFGG-delen.
 Feriedage kommer fra de daterede ferieperioder, som allerede indgår i programmet.
 
+Ferieperioderne behandles som fælles for alle ansættelsesforhold i SFGG-beregningen.
+
 Det maksimale antal, brugeren kan indtaste som `Evt. ferie- og fraværsdage i perioden uden løn`, er derfor det antal arbejdsdage, der er tilbage, når de daterede feriedage og SH-dage allerede er trukket ud.
 
 Hvis referenceperioden efter disse fradrag ikke indeholder nogen arbejdsdage, skal referenceperiodens datofelter markeres med fejl, og brugeren skal have besked om, at perioden ikke indeholder nogen arbejdsdage.
@@ -164,6 +166,10 @@ Der skal være en yderligere boolean på hver overenskomst for, om der ikke er r
 
 Hvis denne boolean er `true`, skal programmet automatisk udlede fra lønindkomstindtastningerne på det konkrete ansættelsesforhold, i hvilke perioder den pågældende arbejdsgiver har betalt løn.
 
+Hvis brugeren har indtastet løn i en lønperiode i tabellen med indtægtsoplysninger for ansættelsesforholdet, skal denne lønperiode behandles som en periode med arbejdsgiverbetalt sygeløn.
+
+Hvis der ikke er indtastet løn i en lønperiode, skal den periode ikke behandles som arbejdsgiverbetalt sygeløn.
+
 Der skal ikke beregnes SFGG i disse perioder.
 
 Hvis der er huller mellem sådanne perioder, skal der beregnes SFGG i hullerne, forudsat:
@@ -193,6 +199,37 @@ Det gælder både:
 I andre tilfælde ændrer SFGG-satsen sig ikke over tid.
 Her bruges samme referencesats hele vejen igennem.
 
+### 4.4. Beregning af SFGG-kravet
+
+Selve beregningen af SFGG skal foretages i følgende hovedtrin:
+
+```text
+referencesats = beregningsgrundlag / antal arbejdsdage i referenceperioden
+```
+
+Derefter beregnes kravet sådan:
+
+```text
+(antal arbejdsdage i SFGG-perioden x referencesats)
+- feriepenge af sygeløn i SFGG-perioden
+- allerede betalt SFGG i perioden
+= beregnet SFGG-krav
+```
+
+Feriepenge af sygeløn i SFGG-perioden skal beregnes automatisk som feriepenge-satsen af lønnen i perioden, baseret på lønindtastningerne på ansættelsesforholdet.
+
+`Allerede betalt SFGG i perioden` er et samlet manuelt indtastet beløb pr. ansættelsesforhold i den pågældende EO-periode.
+Ved en senere EO for en efterfølgende periode må brugeren selv ændre indtastningen til det beløb, der allerede er betalt i den nye EO-periode.
+
+Hertil lægges arbejdsgivers pensionsbidrag, beregnet af det resterende beløb efter disse fradrag.
+Pensionsprocenten følger ansættelsesforholdets almindelige pensionssats.
+
+SFGG-perioden vil typisk svare til TAF-perioden, men kan være afkortet som følge af:
+- at SFGG først beregnes fra anden sygedag
+- at SFGG først beregnes efter ophør af arbejdsgiverbetalt sygeløn
+- at retten ophører ved ansættelsesophør
+- at retten ved skader før `1. januar 2015` ophører, når 4-månedersgrænsen er nået
+
 ### 5. Tidsmæssige regler
 
 #### 5.1. Skæringsdato 1. januar 2015
@@ -220,6 +257,8 @@ Hvis skadesdatoen er fra og med `1. januar 2015`:
 - er udbetalingen tidsubegrænset
 
 Hvis der er tale om første erstatningsopgørelse, skal den første TAF-dag udgå af beregningen af SFGG, og dette skal forklares i teksten.
+
+Hvis der er flere adskilte TAF-perioder, er det kun den kronologisk første sygedag i hele forløbet, der skal udgå.
 
 Hvis der ikke er tale om første erstatningsopgørelse, beregnes SFGG på alle TAF-dage.
 
@@ -256,8 +295,14 @@ Beregningslogikken er:
 - hvis togglen er `true`, bruges de indtastede TAF-perioder
 - hvis togglen er `false`, bruges de særskilt indtastede sygeperioder
 
-Der skal tælles unikke arbejdsdage.
+Der skal tælles unikke datoer efter den relevante optællingsmetode.
 Overlappende perioder må derfor aldrig medføre, at samme dato tælles dobbelt.
+
+Optællingsmetoden afhænger her af feltet `TAF beregnes som`.
+
+Hvis `TAF beregnes som` er arbejdsdage, skal 4-månedersgrænsen beregnes ud fra rene hverdage (mandag-fredag) og ikke arbejdsdage efter fradrag af ferie og SH-dage.
+
+Hvis `TAF beregnes som` er måneder, skal 4-månedersgrænsen i stedet beregnes ud fra kalenderdage (mandag-søndag) uden fradrag for ferie- eller SH-dage.
 
 Resultatet af denne beregning skal være én konkret dato:
 - den dato, hvor summen bliver `>= 4` måneder
@@ -308,7 +353,7 @@ Hvis brugeren vælger `Ferieloven`, skal der vises:
 
 For integerfeltet gælder:
 - minimum = `0`
-- maksimum = det samlede antal arbejdsdage i den indtastede beregningsperiode efter fradrag af ferie- og SH-dage
+- maksimum = det samlede antal arbejdsdage i den indtastede referenceperiode efter fradrag af ferie- og SH-dage
 
 #### 7.3. Valg: Manuelt angivet
 
@@ -346,6 +391,10 @@ Tabellen skal have følgende kolonner:
 
 Under rækkerne skal der være en `I alt`-række.
 
+Ved skader før `1. januar 2015` skal der altid vises en særskilt tabel, som forklarer opgørelsen af det hidtidige antal måneder frem mod 4-månedersgrænsen.
+Dette gælder både når `TAF beregnes som` er arbejdsdage, og når `TAF beregnes som` er måneder.
+Denne tabel skal vise, hvordan perioderne er omsat til måneder efter den relevante optællingsmetode.
+
 #### 8.2. PDF-oplysninger
 
 PDF'en skal kunne oplyse:
@@ -370,6 +419,9 @@ Ved overenskomstbestemt bortfald under arbejdsgiverbetalt sygeløn er det tilstr
 Ved skader før `1. januar 2015` skal forklaringsteksten over tabellen være:
 
 `Da skaden er sket/anmeldt, afhængigt af om det er en arbejdsulykke eller erhvervssygdom, før 1. januar 2015, er retten til sygeferiegodtgørelse tidsbegrænset til 4 måneder.`
+
+Ordvalget `sket` eller `anmeldt` skal styres deterministisk af skadestype-feltet på stamdata-siden.
+Programmet skal her genbruge den eksisterende formuleringstilgang, som allerede anvendes andre steder i systemet ved sondringen mellem arbejdsulykke og erhvervssygdom.
 
 #### 8.3. Advarsel om muligt stiltiende ophør
 
@@ -405,6 +457,7 @@ Der skal ikke vises yderligere SFGG-indhold i EODebug.
 - Eksisterende central funktionalitet til fradrag af daterede feriedage og SH-dage skal genbruges.
 - Brugeren skal ikke indtaste SH-dage særskilt i SFGG-delen.
 - Brugeren skal ikke indtaste feriedage som særskilt antal i SFGG-delen; ferie skal komme fra de daterede ferieperioder i programmet.
+- De daterede ferieperioder skal behandles som fælles for alle ansættelsesforhold i SFGG-beregningen.
 - Maksimum i feltet `Evt. ferie- og fraværsdage i perioden uden løn` skal være de resterende arbejdsdage efter fradrag af daterede feriedage og SH-dage.
 - Hvis referenceperioden efter disse fradrag indeholder `0` arbejdsdage, skal referenceperiodens datofelter markeres med fejl, og brugeren skal have besked om, at perioden ikke indeholder nogen arbejdsdage.
 - Overenskomstregler går forud for ferielovens standardregler, når ansættelsesforholdet er overenskomstdækket, og overenskomsten er markeret som fravigende.
@@ -430,8 +483,19 @@ Der skal ikke vises yderligere SFGG-indhold i EODebug.
 - Hvis ansættelsesforholdet er overenskomstdækket, men referencesatsen beregnes efter ferieloven, skal SFGG-satsen forhøjes på samme tidspunkt og med samme procentsats som TAF efter overenskomsten.
 - Hvis overenskomstens sygelønsboolean er `true`, må der ikke beregnes SFGG i perioder, hvor lønindkomstindtastningerne viser, at arbejdsgiver betaler sygeløn.
 - Perioder med arbejdsgiverbetalt sygeløn skal vurderes pr. ansættelsesforhold.
+- En lønperiode skal behandles som arbejdsgiverbetalt sygeløn, hvis brugeren har indtastet løn i lønperioden i tabellen med indtægtsoplysninger for ansættelsesforholdet.
+- Hvis der ikke er indtastet løn i en lønperiode, må perioden ikke behandles som arbejdsgiverbetalt sygeløn.
 - Hvis der er huller mellem perioder med arbejdsgiverbetalt sygeløn, skal der beregnes SFGG i hullerne, forudsat at hullerne indeholder arbejdsdage, som ikke allerede er undtaget.
 - I øvrige tilfælde skal referencesatsen være konstant gennem hele beregningsforløbet.
+- Referencesatsen skal beregnes som `beregningsgrundlag / antal arbejdsdage i referenceperioden`.
+- SFGG-kravet skal beregnes som arbejdsdage i SFGG-perioden ganget med referencesatsen.
+- Feriepenge af sygeløn i SFGG-perioden skal beregnes automatisk som feriepenge-satsen af lønnen i perioden, baseret på lønindtastningerne på ansættelsesforholdet.
+- Fra dette beløb skal feriepenge af sygeløn i SFGG-perioden fratrækkes.
+- Allerede betalt SFGG i perioden skal være ét samlet manuelt indtastet beløb pr. ansættelsesforhold i den pågældende EO-periode.
+- Fra dette beløb skal allerede betalt SFGG i perioden fratrækkes.
+- Arbejdsgivers pensionsbidrag skal beregnes af det resterende beløb efter disse fradrag.
+- Til det beregnede SFGG-krav skal arbejdsgivers pensionsbidrag lægges.
+- Pensionsprocenten skal følge ansættelsesforholdets almindelige pensionssats.
 - Hvis skadesdatoen er før `1. januar 2015`, skal SFGG beregnes fra første sygedag.
 - Hvis skadesdatoen er før `1. januar 2015`, skal udbetalingen begrænses til højst 4 måneder.
 - Hvis skadesdatoen er før `1. januar 2015`, skal hver sygedag beregnes som `1/x` måned, hvor `x` er antallet af hverdage i måneden.
@@ -441,7 +505,9 @@ Der skal ikke vises yderligere SFGG-indhold i EODebug.
 - Hvis togglen er `true`, skal 4-månedersberegningen baseres på de indtastede TAF-perioder.
 - Hvis togglen er `false`, skal 4-månedersberegningen baseres på de særskilt indtastede sygeperioder.
 - 4-månedersberegningen skal resultere i én konkret dato, hvor summen bliver `>= 4` måneder.
-- Der skal tælles unikke arbejdsdage i 4-månedersberegningen, og overlappende perioder må ikke tælles dobbelt.
+- Der skal tælles unikke datoer i 4-månedersberegningen efter den relevante optællingsmetode, og overlappende perioder må ikke tælles dobbelt.
+- Hvis `TAF beregnes som` er arbejdsdage, skal 4-månedersgrænsen før `1. januar 2015` beregnes ud fra rene hverdage og ikke arbejdsdage efter fradrag af ferie og SH-dage.
+- Hvis `TAF beregnes som` er måneder, skal 4-månedersgrænsen før `1. januar 2015` beregnes ud fra kalenderdage uden fradrag for ferie- eller SH-dage.
 - Datoen, hvor summen bliver `>= 4` måneder, er sidste dag med ret til SFGG.
 - Efter denne dato må der ikke længere beregnes SFGG.
 - Hvis togglen står på `true`, og der ikke findes TAF-perioder, må resultatet gerne være tomt.
@@ -449,6 +515,7 @@ Der skal ikke vises yderligere SFGG-indhold i EODebug.
 - Hvis skadesdatoen er fra og med `1. januar 2015`, skal SFGG beregnes fra anden sygedag.
 - Hvis skadesdatoen er fra og med `1. januar 2015`, skal udbetalingen være tidsubegrænset.
 - Ved første erstatningsopgørelse efter skader fra og med `1. januar 2015` skal den første TAF-dag udgå af SFGG-beregningen.
+- Hvis der er flere adskilte TAF-perioder ved første erstatningsopgørelse efter skader fra og med `1. januar 2015`, er det kun den kronologisk første sygedag i hele forløbet, der skal udgå.
 - Ved senere erstatningsopgørelser efter skader fra og med `1. januar 2015` skal SFGG beregnes på alle TAF-dage.
 - SFGG-perioden skal være identisk med den indtastede TAF-periode og må ikke have selvstændig periodeindtastning.
 - SFGG skal i alle tilfælde ophøre automatisk ved ansættelsesophør.
@@ -468,7 +535,7 @@ Der skal ikke vises yderligere SFGG-indhold i EODebug.
 - Hvis brugeren vælger `Ferieloven`, skal der vises en linje `Referenceperiode` med `Fra`- og `Til`-dato.
 - Hvis brugeren vælger `Ferieloven`, skal der vises en linje `Evt. ferie- og fraværsdage i perioden uden løn` med et integerfelt.
 - Integerfeltets minimum skal være `0`.
-- Integerfeltets maksimum skal være det samlede antal arbejdsdage i den indtastede beregningsperiode efter fradrag af ferie- og SH-dage.
+- Integerfeltets maksimum skal være det samlede antal arbejdsdage i den indtastede referenceperiode efter fradrag af ferie- og SH-dage.
 - Hvis brugeren vælger `Manuelt angivet`, skal der vises en linje `Dagssats for sygeferiegodtgørelse (mandag-fredag)` med et ikke-negativt beløbsfelt.
 - Hvis brugeren vælger `Manuelt angivet`, skal der vises en linje `Beløbet er i henhold til` med et tekstfelt.
 - Hvis brugeren vælger `Manuelt angivet`, skal der vises en linje `Først sygeferiegodtgørelse efter ophør af sygeløn` med en toggle.
@@ -481,6 +548,7 @@ Der skal ikke vises yderligere SFGG-indhold i EODebug.
 - Valgmuligheden for SFGG-bilag på EOBeregningTab er foreløbigt deaktiveret og skal først aktiveres, når funktionaliteten er færdig.
 - Tabellen skal have kolonnerne `Fra-dato`, `Til-dato`, `Sats`, `Antal dage` og `Beregnet SFGG`.
 - Tabellen skal afsluttes med en `I alt`-række.
+- Ved skader før `1. januar 2015` skal der altid vises en særskilt tabel, som forklarer opgørelsen af det hidtidige antal måneder frem mod 4-månedersgrænsen, uanset om `TAF beregnes som` er arbejdsdage eller måneder.
 - PDF'en skal kunne vise, at SFGG ophørte på grund af ansættelsesophør.
 - PDF'en skal kunne vise, at SFGG ophørte, fordi 4-månedersgrænsen blev nået.
 - PDF'en skal kunne vise, at bestemte perioder er undtaget på grund af arbejdsgiverbetalt sygeløn efter overenskomsten.
@@ -490,6 +558,8 @@ Der skal ikke vises yderligere SFGG-indhold i EODebug.
 - Teksten ved ansættelsesophør skal være `Retten til sygeferiegodtgørelse bortfaldt den dd-mm-åååå som følge af ansættelsesforholdets ophør.`
 - Ved overenskomstbestemt bortfald under arbejdsgiverbetalt sygeløn er det tilstrækkeligt at vise linjen om ret først efter ophør af sygeløn og derefter den almindelige linje om eventuelt senere ansættelsesophør.
 - Ved skader før `1. januar 2015` skal forklaringsteksten over tabellen være `Da skaden er sket/anmeldt, afhængigt af om det er en arbejdsulykke eller erhvervssygdom, før 1. januar 2015, er retten til sygeferiegodtgørelse tidsbegrænset til 4 måneder.`
+- Ordvalget `sket` eller `anmeldt` i denne tekst skal styres af skadestype-feltet på stamdata-siden.
+- Programmet skal genbruge den eksisterende formuleringstilgang, som allerede anvendes andre steder i systemet ved sondringen mellem arbejdsulykke og erhvervssygdom.
 
 ### Eksisterende funktionalitet til genbrug
 
@@ -503,7 +573,7 @@ Til optælling af rene hverdage (mandag-fredag) findes allerede:
 
 Disse er især relevante for:
 - `1/x`-reglen før 1. januar 2015, hvor `x` nu er afklaret til at være antal hverdage i måneden
-- eventuelle afledte kontroller og forklaringer, hvor SFGG skal bruge hverdagsoptælling uden ferie-/SH-fradrag
+- eventuelle afledte kontroller og forklaringer, hvor SFGG skal bruge hverdagsoptælling uden ferie-/SH-fradrag, når `TAF beregnes som` arbejdsdage
 
 #### 2. Arbejdsdage med fradrag af SH-dage og daterede ferieperioder
 
@@ -648,21 +718,20 @@ Der findes allerede et lille `sygeferiegodtgoerelseSchema` i EO-schemaet med fel
 
 Disse matcher ikke den nu specificerede SFGG-model.
 
-Det betyder, at den eksisterende persisted SFGG-sektion ikke i sig selv er tilstrækkelig til den nye funktionalitet.
-Ved senere implementering skal det vurderes, om denne schema-del skal:
-- erstattes
-- udvides markant
-- eller migreres til en ny struktur
+Den gamle struktur skal betragtes som en legacy-rest og skal slettes ved implementeringen af den nye SFGG-model.
 
-Det skal dog først ske, når selve implementeringen påbegyndes.
+Før sletning skal det kontrolleres, om felterne fortsat bruges noget sted i den eksisterende kode.
+Hvis de gør, skal brugen kort identificeres og ryddes op som led i implementeringen.
+
+Det er allerede observeret, at mindst feltet `andelSfggILoenen` aktuelt stadig er eksponeret i EO-oplysninger og i EODebug.
+Det betyder, at oprydningen ikke kan behandles som en ren schema-intern detalje.
 
 ### Kendte åbne punkter for implementering
 
 Dette afsnit er ikke beslutninger, men de punkter der skal afklares, før implementering kan anses som fuldt specificeret.
 
 - Den præcise danske ordlyd i PDF-tekster og advarsler.
-- Den præcise regel for om teksten skal sige `sket` eller `anmeldt` ved 4-månedersbegrænsningen, og hvilket eksisterende skadetypefelt der skal styre dette.
-- Den præcise datamodel for de nye SFGG-felter i schemaet, herunder hvordan de skal sameksistere med eller afløse det nuværende `sygeferiegodtgoerelseSchema`.
+- Den præcise datamodel for de nye SFGG-felter i schemaet, herunder hvordan referenceperiode, eventuel manuel sats, sygelønslogik, allerede betalt SFGG og eventuelle særskilte sygeperioder før 2015 skal persisted.
 
 ---
 
@@ -672,9 +741,4 @@ Spørgsmålene nedenfor er skrevet som konkrete brugersituationer. Formålet er 
 
 ### Resterende spørgsmål
 
-1. En bruger har skade før `1. januar 2015`, og PDF-teksten skal sige, at skaden er `sket` eller `anmeldt` før denne dato, afhængigt af om der er tale om arbejdsulykke eller erhvervssygdom. Hvilket eksisterende felt i EO/stamdata skal styre dette ordvalg helt konkret, så teksten kan vælges deterministisk?
-
-2. En bruger får SFGG-funktionaliteten implementeret. Der findes allerede et gammelt `sygeferiegodtgoerelseSchema` med felterne `ferieMedLon`, `maanedsloennetMedFerielon`, `forstSfgEfterSygelon` og `andelSfggILoenen`, som ikke matcher den nye model. Skal denne gamle struktur ved implementering:
-- erstattes helt
-- udvides
-- eller bevares ved siden af en ny struktur?
+Ingen yderligere åbne domænespørgsmål er registreret på nuværende tidspunkt.

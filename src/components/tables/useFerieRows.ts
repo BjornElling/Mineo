@@ -7,7 +7,9 @@ import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tableDraf
 import {
   committedToFerieDraftRows,
   createEmptyFerieCommittedRow,
+  createSfggSygeperiodeRowId,
   createTafFerieRowId,
+  ensureSfggSygeperioderRows,
   ensureTafFerieRows,
   ferieDraftToCommittedRow,
 } from '../../domain/erstatningsopgoerelse/ferieTableModel';
@@ -16,6 +18,7 @@ export type UseFerieRowsArgs = Readonly<{
   values: ErstatningsopgoerelseValues;
   setValues: React.Dispatch<React.SetStateAction<ErstatningsopgoerelseValues>>;
   resyncToken: unknown;
+  fieldName?: 'ferieperioder' | 'sfggSygeperioderFoer2015';
 }>;
 
 export type UseFerieRowsResult = UseRowDraftsResult<FerieDraftRow, 'fra' | 'til'> &
@@ -24,26 +27,28 @@ export type UseFerieRowsResult = UseRowDraftsResult<FerieDraftRow, 'fra' | 'til'
     committedById: ReadonlyMap<string, FerieperiodeRow>;
   }>;
 
-const useFerieRows = ({ values, setValues, resyncToken }: UseFerieRowsArgs): UseFerieRowsResult => {
+const useFerieRows = ({ values, setValues, resyncToken, fieldName = 'ferieperioder' }: UseFerieRowsArgs): UseFerieRowsResult => {
+  const ensureRows = fieldName === 'sfggSygeperioderFoer2015' ? ensureSfggSygeperioderRows : ensureTafFerieRows;
+  const createId = fieldName === 'sfggSygeperioderFoer2015' ? createSfggSygeperiodeRowId : createTafFerieRowId;
   const ferieRows = useRowDrafts<FerieDraftRow, FerieperiodeRow, 'fra' | 'til'>({
-    getCommitted: () => values.ferieperioder,
+    getCommitted: () => values[fieldName],
     setCommitted: (updater) => {
       setValues((prev) => {
-        const nextRows = updater(prev.ferieperioder);
+        const nextRows = updater(prev[fieldName]);
         if (!nextRows) return prev;
-        return { ...prev, ferieperioder: nextRows };
+        return { ...prev, [fieldName]: nextRows };
       });
     },
     toDraft: committedToFerieDraftRows,
     toCommittedRow: (draft) => ferieDraftToCommittedRow(draft),
     isRowEmpty: isFerieRowEmpty,
-    ensureRows: ensureTafFerieRows,
-    createId: createTafFerieRowId,
+    ensureRows,
+    createId,
     createEmptyCommittedRow: createEmptyFerieCommittedRow,
     resyncToken,
   });
 
-  const committedRowsEnsured = React.useMemo(() => ensureTafFerieRows(values.ferieperioder), [values.ferieperioder]);
+  const committedRowsEnsured = React.useMemo(() => ensureRows(values[fieldName]), [ensureRows, fieldName, values]);
   const committedById = React.useMemo(() => new Map(committedRowsEnsured.map((row) => [row.id, row] as const)), [committedRowsEnsured]);
 
   return { ...ferieRows, committedRowsEnsured, committedById };

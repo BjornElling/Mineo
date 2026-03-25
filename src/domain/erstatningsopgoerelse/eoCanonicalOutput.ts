@@ -45,6 +45,7 @@ const eoCanonicalOutputSchema = z.object({
     harTafPerioder: z.boolean(),
     tafIndtaegterOre: moneyOreSchema.nullable(),
     tidligereModtagetTafOre: moneyOreSchema.nullable(),
+    sygeferiegodtgoerelseOre: moneyOreSchema,
   }).strict(),
   periodiseringer: z.object({
     tafPerioder: z.array(z.object({
@@ -151,6 +152,7 @@ export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
       harTafPerioder: args.tafNetto.harTafPerioder,
       tafIndtaegterOre: calculableMoneyToNullable(args.tafNetto.tafIndtaegter?.total),
       tidligereModtagetTafOre: calculableMoneyToNullable(args.tafNetto.tidligereModtagetTaf),
+      sygeferiegodtgoerelseOre: args.tafNetto.sygeferiegodtgoerelse.totalOre,
     },
     periodiseringer: {
       tafPerioder: args.tafRanges,
@@ -162,4 +164,3 @@ export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
     },
   });
 };
-

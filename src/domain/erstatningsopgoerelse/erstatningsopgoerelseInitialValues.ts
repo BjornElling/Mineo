@@ -121,10 +121,9 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   angivetDagsloenOpreguleresFraDato: undefined,
 
   // Sygeferiegodtgørelse
-  ferieMedLon: 'Nej',
-  maanedsloennetMedFerielon: 'Nej',
-  forstSfgEfterSygelon: 'Nej',
-  andelSfggILoenen: undefined,
+  sfggAlleSygeperioderErTafPerioder: true,
+  sfggSygeperioderFoer2015: [],
+  sfggAnsaettelsesforhold: [],
 
   // Lønindkomst
   loenindkomstAnsaettelsesforhold: [],

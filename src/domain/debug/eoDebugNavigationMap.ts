@@ -22,6 +22,7 @@ export type SectionId =
   | 'sviesmerte'
   | 'taf-beregningsgrundlag'
   | 'taf'
+  | 'sygeferiegodtgoerelse'
   | 'oevrige-krav'
   | 'saerlige-kommentarer'
   | 'bilagsnumre';
@@ -191,6 +192,16 @@ export const getNavigationTargetFromRowId = (rowId: string): NavigationTarget =>
       sectionId: 'taf',
       tabName: 'EO oplysninger',
       sectionTitle: 'Tabt arbejdsfortjeneste',
+    };
+  }
+
+  if (rowId.startsWith('sfgg.')) {
+    return {
+      kind: 'erstatningsopgoerelse-tab',
+      tabId: 'eo_oplysninger',
+      sectionId: 'sygeferiegodtgoerelse',
+      tabName: 'EO oplysninger',
+      sectionTitle: 'Sygeferiegodtgørelse',
     };
   }
 

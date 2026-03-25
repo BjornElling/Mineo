@@ -21,7 +21,7 @@ import type { FormValidator, ValidationError, ValidationResult } from '../types/
 import { isISODateString } from '../types/branded';
 import { svieSmertePrDag, svieSmerteMax, satserAngivAarYearBounds } from '../data/lovbestemteRates';
 import { amountValueToNumber } from '../utils/expressionAmount';
-import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/rowEmpty';
+import { isFerieRowEmpty, isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/rowEmpty';
 import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/periodOverlapDetection';
 import { resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/sharedPdfUtils';
@@ -32,6 +32,8 @@ import {
   resolveTafConstraintBounds,
 } from '../domain/erstatningsopgoerelse/tafPeriodConstraints';
 import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/tafCalculations';
+import { optaelArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/periodiseringsMotor';
+import { getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../data/overenskomstRates';
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../utils/fraction';
 
 export const TAF_OVERLAP_ERROR_MESSAGE = 'TAF-perioder overlapper';
@@ -347,6 +349,139 @@ function validateTAF(values: ErstatningsopgoerelseValues): ValidationError[] {
   return errors;
 }
 
+function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  if (values.sfggAlleSygeperioderErTafPerioder === false) {
+    const sygeperioder = values.sfggSygeperioderFoer2015 ?? [];
+    const nonEmpty = sygeperioder.filter((row) => !isFerieRowEmpty(row));
+
+    if (nonEmpty.length === 0) {
+      errors.push({
+        path: 'sfggSygeperioderFoer2015[0].fra',
+        message: 'Angiv mindst én supplerende sygeperiode til opgørelsen af 4-månedersgrænsen',
+        severity: 'error',
+      });
+    }
+
+    for (let i = 0; i < sygeperioder.length; i += 1) {
+      const row = sygeperioder[i];
+      if (isFerieRowEmpty(row)) continue;
+      errors.push(...validateFerieperiodeRowCompleteness(row, `sfggSygeperioderFoer2015[${i}]`));
+    }
+
+    if (nonEmpty.length > 1) {
+      const overlapIds = detectOverlappingPeriods(nonEmpty);
+      for (let i = 0; i < sygeperioder.length; i += 1) {
+        if (!overlapIds.has(sygeperioder[i].id)) continue;
+        errors.push({
+          path: `sfggSygeperioderFoer2015[${i}].fra`,
+          message: 'Sygeperioder overlapper',
+          severity: 'error',
+        });
+      }
+    }
+  }
+
+  (values.sfggAnsaettelsesforhold ?? []).forEach((row, index) => {
+    if (row.beregnesUdFra === 'Ingen') return;
+
+    const employment = (values.loenindkomstAnsaettelsesforhold ?? []).find((entry) => entry.id === row.ansaettelsesforholdId);
+    const overenskomstPolicy =
+      row.beregnesUdFra === 'Overenskomst' && employment?.overenskomstId && !getOffentligOverenskomstTypeById(employment.overenskomstId)
+        ? getOverenskomstSfggPolicy(employment.overenskomstId)
+        : undefined;
+    const requiresReferenceperiode =
+      row.beregnesUdFra === 'Ferieloven'
+      || (row.beregnesUdFra === 'Overenskomst' && overenskomstPolicy?.model !== 'direkte_sats');
+
+    if (row.beregnesUdFra === 'Manuelt angivet' && amountValueToNumber(row.manuelDagssats) === undefined) {
+      errors.push({
+        path: `sfggAnsaettelsesforhold[${index}].manuelDagssats`,
+        message: 'Dagssats for sygeferiegodtgørelse mangler',
+        severity: 'error',
+      });
+    }
+
+    if (row.beregnesUdFra === 'Overenskomst' && (!employment?.harOverenskomst || !employment.overenskomstId)) {
+      errors.push({
+        path: `sfggAnsaettelsesforhold[${index}].beregnesUdFra`,
+        message: 'Der skal være valgt en overenskomst på ansættelsesforholdet for at beregne sygeferiegodtgørelse ud fra overenskomst',
+        severity: 'error',
+      });
+    }
+
+    if (requiresReferenceperiode && !row.referenceperiodeFra) {
+      errors.push({
+        path: `sfggAnsaettelsesforhold[${index}].referenceperiodeFra`,
+        message: 'Referenceperiode fra-dato mangler',
+        severity: 'error',
+      });
+    }
+
+    if (requiresReferenceperiode && !row.referenceperiodeTil) {
+      errors.push({
+        path: `sfggAnsaettelsesforhold[${index}].referenceperiodeTil`,
+        message: 'Referenceperiode til-dato mangler',
+        severity: 'error',
+      });
+    }
+
+    if (
+      requiresReferenceperiode &&
+      row.referenceperiodeFra &&
+      row.referenceperiodeTil &&
+      row.referenceperiodeFra > row.referenceperiodeTil
+    ) {
+      errors.push({
+        path: `sfggAnsaettelsesforhold[${index}].referenceperiodeFra`,
+        message: 'Referenceperiode fra-dato må ikke være efter til-dato',
+        severity: 'error',
+      });
+    }
+
+    if (row.beregnesUdFra === 'Overenskomst' && overenskomstPolicy?.model === 'direkte_sats' && overenskomstPolicy.direkteSatsErDifferentieret && !row.satsvalg) {
+      errors.push({
+        path: `sfggAnsaettelsesforhold[${index}].satsvalg`,
+        message: 'Satsvalg mangler',
+        severity: 'error',
+      });
+    }
+
+    if (requiresReferenceperiode && row.referenceperiodeFra && row.referenceperiodeTil) {
+      const availableBreakdown = optaelArbejdsdageBreakdown({
+        fra: row.referenceperiodeFra,
+        til: row.referenceperiodeTil,
+        ferieperioder: values.ferieperioder ?? [],
+        loseFeriedage: 0,
+        context: {
+          kind: 'beregningsgrundlag',
+          oevrigeFravaersdage: 0,
+        },
+      });
+      const availableWorkdays = availableBreakdown?.tafDage ?? 0;
+      if (availableWorkdays <= 0) {
+        errors.push({
+          path: `sfggAnsaettelsesforhold[${index}].referenceperiodeFra`,
+          message: 'Referenceperioden indeholder ingen arbejdsdage',
+          severity: 'error',
+        });
+      } else if (
+        typeof row.referenceperiodeFravaersdageUdenLoen === 'number' &&
+        row.referenceperiodeFravaersdageUdenLoen > availableWorkdays
+      ) {
+        errors.push({
+          path: `sfggAnsaettelsesforhold[${index}].referenceperiodeFravaersdageUdenLoen`,
+          message: `Ferie- og fraværsdage uden løn overstiger mulige arbejdsdage i referenceperioden (maksimalt ${availableWorkdays})`,
+          severity: 'error',
+        });
+      }
+    }
+  });
+
+  return errors;
+}
+
 export function validateTafLoseFeriedage(values: ErstatningsopgoerelseValues): ValidationError[] {
   const errors: ValidationError[] = [];
   const ferieperioder = [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])];
@@ -416,8 +551,14 @@ export function validateBeregningsperiodeLoseFeriedage(values: Erstatningsopgoer
  * Validér at en ikke-tom TAF-række er fuldt udfyldt
  */
 function validateTafRowCompleteness(row: TafPeriodeRow, index: number): ValidationError[] {
+  return validateFerieperiodeRowCompleteness(row, `tafPerioder[${index}]`);
+}
+
+function validateFerieperiodeRowCompleteness(
+  row: Readonly<{ fra?: string; til?: string }>,
+  prefix: string
+): ValidationError[] {
   const errors: ValidationError[] = [];
-  const prefix = `tafPerioder[${index}]`;
 
   const hasFra = typeof row.fra === 'string' && row.fra.trim() !== '';
   const hasTil = typeof row.til === 'string' && row.til.trim() !== '';
@@ -691,6 +832,7 @@ export const erstatningsopgoerelseValidator: ErstatningsopgoerelseValidator = {
       ...validateForligAnsvarsgrad(values),
       ...validateSvieSmerte(values),
       ...validateTAF(values),
+      ...validateSygeferiegodtgoerelse(values),
       ...validateOevrigeKrav(values),
     ];
 

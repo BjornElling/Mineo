@@ -22,6 +22,7 @@ export type {
   OevrigeKravPdfModel,
   PdfModel,
   SvieSmertePdfModel,
+  SygeferiegodtgoerelsePdfModel,
   TabtArbejdsfortjenestePdfModel,
   TafIndtaegterPdfModel,
 } from './eoPdfModelTypes';

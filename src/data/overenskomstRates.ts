@@ -80,6 +80,14 @@ export interface OverenskomstMeta {
   readonly grundloenAngivetPer: GrundloenAngivetPer;
 }
 
+export type OverenskomstSfggPolicy = Readonly<{
+  readonly fravigerFerielov: boolean;
+  readonly model: 'ferielov' | 'direkte_sats';
+  readonly direkteSatsErDifferentieret: boolean;
+  readonly bortfalderUnderArbejdsgiverbetaltSygeloen: boolean;
+  readonly referenceperiodeLabel: string | null;
+}>;
+
 /**
  * Komplet overenskomst med metadata og satser
  */
@@ -974,6 +982,180 @@ const overenskomstMetaSortedByNavn: ReadonlyArray<OverenskomstMeta> = (() => {
     });
 })();
 
+const OVERENSKOMST_SFGG_POLICY_BY_ID = {
+  'kl-overenskomst': {
+    fravigerFerielov: false,
+    model: 'ferielov',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: '4 uger',
+  },
+  'rltn-overenskomst': {
+    fravigerFerielov: false,
+    model: 'ferielov',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: '4 uger',
+  },
+  'laerer-overenskomsten': {
+    fravigerFerielov: false,
+    model: 'ferielov',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: '4 uger',
+  },
+  'bygge-anlaeg': {
+    fravigerFerielov: true,
+    model: 'direkte_sats',
+    direkteSatsErDifferentieret: true,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: null,
+  },
+  'bygningsoverenskomsten': {
+    fravigerFerielov: true,
+    model: 'direkte_sats',
+    direkteSatsErDifferentieret: true,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: null,
+  },
+  'el-overenskomsten': {
+    fravigerFerielov: true,
+    model: 'direkte_sats',
+    direkteSatsErDifferentieret: true,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: null,
+  },
+  'elektrikeroverenskomsten': {
+    fravigerFerielov: false,
+    model: 'ferielov',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: '4 uger',
+  },
+  'faellesoverenskomsten-dio-ii': {
+    fravigerFerielov: true,
+    model: 'direkte_sats',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: null,
+  },
+  'glasoverenskomsten': {
+    fravigerFerielov: true,
+    model: 'direkte_sats',
+    direkteSatsErDifferentieret: true,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: null,
+  },
+  'hoteloverenskomsten': {
+    fravigerFerielov: false,
+    model: 'ferielov',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: '4 uger',
+  },
+  'industri-og-vvs-overenskomsten': {
+    fravigerFerielov: false,
+    model: 'ferielov',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: '4 uger',
+  },
+  'industri-trae-og-moebeloverenskomsten': {
+    fravigerFerielov: false,
+    model: 'ferielov',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: '4 uger',
+  },
+  'industriens-overenskomst': {
+    fravigerFerielov: false,
+    model: 'ferielov',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: '4 uger',
+  },
+  'landsoverenskomsten-akt': {
+    fravigerFerielov: false,
+    model: 'ferielov',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: '4 uger',
+  },
+  'laasesmedeoverenskomsten': {
+    fravigerFerielov: false,
+    model: 'ferielov',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: '4 uger',
+  },
+  'maskinhandler-overenskomsten': {
+    fravigerFerielov: false,
+    model: 'ferielov',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: '4 uger',
+  },
+  'mejeribranchens-faellesoverenskomst': {
+    fravigerFerielov: false,
+    model: 'ferielov',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: '4 uger',
+  },
+  'metal-transport-overenskomsten': {
+    fravigerFerielov: false,
+    model: 'ferielov',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: '4 uger',
+  },
+  'mureroverenskomsten': {
+    fravigerFerielov: true,
+    model: 'direkte_sats',
+    direkteSatsErDifferentieret: true,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: null,
+  },
+  'postoverenskomsten': {
+    fravigerFerielov: false,
+    model: 'ferielov',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: '4 uger',
+  },
+  'serviceoverenskomsten-sba': {
+    fravigerFerielov: false,
+    model: 'ferielov',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: '4 uger',
+  },
+  'transportoverenskomsten-atl': {
+    fravigerFerielov: true,
+    model: 'direkte_sats',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: null,
+  },
+  'transportoverenskomsten-dtl': {
+    fravigerFerielov: true,
+    model: 'direkte_sats',
+    direkteSatsErDifferentieret: false,
+    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+    referenceperiodeLabel: null,
+  },
+} as const satisfies Readonly<Record<string, OverenskomstSfggPolicy>>;
+
+const assertOverenskomstSfggPolicyCoverage = (): void => {
+  for (const meta of overenskomstMetaById.values()) {
+    if (!(meta.id in OVERENSKOMST_SFGG_POLICY_BY_ID)) {
+      throw new Error(`Manglende SFGG-policy for overenskomst: "${meta.id}"`);
+    }
+  }
+};
+
+assertOverenskomstSfggPolicyCoverage();
+
 // ===== OPSLAGS-FUNKTIONER =====
 
 /**
@@ -1065,6 +1247,12 @@ export const getOffentligOverenskomstTypeById = (rawId: string): OffentligOveren
   const ref = resolveOverenskomstRefFromString(rawId);
   if (!ref) return undefined;
   return offentligOverenskomstTypeById.get(ref.baseId);
+};
+
+export const getOverenskomstSfggPolicy = (rawId: string): OverenskomstSfggPolicy | undefined => {
+  const ref = resolveOverenskomstRefFromString(rawId);
+  if (!ref) return undefined;
+  return OVERENSKOMST_SFGG_POLICY_BY_ID[ref.baseId as keyof typeof OVERENSKOMST_SFGG_POLICY_BY_ID];
 };
 
 export const isOffentligOverenskomstId = (rawId: string): boolean =>

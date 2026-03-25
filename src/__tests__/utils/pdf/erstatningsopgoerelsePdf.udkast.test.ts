@@ -119,14 +119,14 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
     expect(fileName.includes(' (udkast).pdf')).toBe(false);
   });
 
-  it('throws for unsupported selected PDF elements', () => {
+  it('tillader sygeferiegodtgørelse som valgt PDF-element', () => {
     const selectedWithUnsupported = {
       ...selected,
       sygeferiegodtgoerelse: true,
     };
 
     expect(() => generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selectedWithUnsupported, { visUdkastStempel: false }))
-      .toThrow(/Valgte PDF-elementer er ikke underst.*ttet endnu/);
+      .not.toThrow();
   });
 
   it('adds page when wrapped text exceeds page height', () => {

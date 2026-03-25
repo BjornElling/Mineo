@@ -22,8 +22,48 @@ const iso = (value: string) => toISODateString(value);
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 
+const makeBlankAnsaettelsesforhold = (): ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number] => ({
+  id: 'af-1',
+  navnPaaArbejdssted: 'Arbejdssted',
+  harOverenskomst: false,
+  overenskomstId: undefined,
+  ansatPaaSkadestidspunktet: true,
+  ansaettelsesforholdOphoert: false,
+  sidsteArbejdsdag: undefined,
+  harAnciennitetstillaegEfterSkadesdatoen: false,
+  anciennitetstillaegDato: undefined,
+  anciennitetstillaegSatsAngivesPer: 'Måned',
+  anciennitetstillaegSats: undefined,
+  feriePct: 0,
+  fritvalgPct: 0,
+  shSoPct: 0,
+  storeBededagPct: 0,
+  pensionPct: 0,
+  loenperiode: 'maaned',
+  indtaegtsoplysningerTableData: [],
+  fuldLoenUnderFerie: 'Ja',
+  loenPaaHelligdage: 'Almindelig løn',
+  saerligFraDatoRegulering: undefined,
+  loenudviklingBeregningsgrundlag: 'Ingen',
+  loenudviklingStatistikModel: undefined,
+  loenudviklingKRLSatstabel: undefined,
+  loenudviklingManuelNavn: '',
+  loenudviklingManuelTableData: [],
+  offentligLoenType: 'Månedsløn',
+  offentligLoenTrin: undefined,
+  offentligLoenGruppe: undefined,
+  offentligLoenEkstraGrundloen: undefined,
+  overenskomstFilter: {
+    loenmodtager: undefined,
+    arbejdsgiver: undefined,
+  },
+});
+
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
   const base = structuredClone(createErstatningsopgoerelseInitialValues());
+  if (base.loenindkomstAnsaettelsesforhold.length === 0) {
+    base.loenindkomstAnsaettelsesforhold = [makeBlankAnsaettelsesforhold()];
+  }
   // Sæt minimums-gyldige defaults så computeEoSnapshot passerer validering i tests der ikke tester TAF-specifik logik.
   // De tilsvarende tests der tester specifikke valideringsfejl overstyrer disse defaults.
   if (base.beregnesUdFra === 'Beregningsperiode' && !base.periodeTilBeregningFra) {
@@ -37,24 +77,47 @@ const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): Erstatningsopg
     );
   }
   const merged = { ...base, ...patch };
+  merged.loenindkomstAnsaettelsesforhold = (merged.loenindkomstAnsaettelsesforhold ?? []).map((af, index) => ({
+    ...makeBlankAnsaettelsesforhold(),
+    ...af,
+    id: af.id ?? `af-${index + 1}`,
+    overenskomstFilter: af.overenskomstFilter ?? {
+      loenmodtager: undefined,
+      arbejdsgiver: undefined,
+    },
+  }));
+  const preferNonEmpty = <T>(current: T, fallback: T): T => {
+    if (Array.isArray(current) && current.length === 0) return fallback;
+    if (typeof current === 'string' && current.trim() === '') return fallback;
+    return current ?? fallback;
+  };
   const isAngivet = merged.beregnesUdFra === 'Angivet månedsløn' || merged.beregnesUdFra === 'Angivet dagsløn';
-  if (isAngivet && patch.eoAngivetLoenLoenudvikling === undefined) {
-    const first = (patch.loenindkomstAnsaettelsesforhold ?? merged.loenindkomstAnsaettelsesforhold)?.[0];
+  if (isAngivet) {
+    const first = merged.loenindkomstAnsaettelsesforhold?.[0];
     if (first) {
       merged.eoAngivetLoenLoenudvikling = {
         ...merged.eoAngivetLoenLoenudvikling,
-        overenskomstId: first.overenskomstId,
-        feriePct: first.feriePct,
-        loenPaaHelligdage: first.loenPaaHelligdage,
-        saerligFraDatoRegulering: first.saerligFraDatoRegulering,
-        loenudviklingBeregningsgrundlag: first.loenudviklingBeregningsgrundlag,
-        loenudviklingStatistikModel: first.loenudviklingStatistikModel,
-        loenudviklingKRLSatstabel: first.loenudviklingKRLSatstabel,
-        loenudviklingManuelNavn: first.loenudviklingManuelNavn,
-        loenudviklingManuelTableData: first.loenudviklingManuelTableData,
-        offentligLoenType: first.offentligLoenType,
-        offentligLoenTrin: first.offentligLoenTrin,
-        offentligLoenGruppe: first.offentligLoenGruppe,
+        overenskomstId: merged.eoAngivetLoenLoenudvikling.overenskomstId ?? first.overenskomstId,
+        feriePct: merged.eoAngivetLoenLoenudvikling.feriePct ?? first.feriePct,
+        loenPaaHelligdage: merged.eoAngivetLoenLoenudvikling.loenPaaHelligdage ?? first.loenPaaHelligdage,
+        saerligFraDatoRegulering: merged.eoAngivetLoenLoenudvikling.saerligFraDatoRegulering ?? first.saerligFraDatoRegulering,
+        loenudviklingBeregningsgrundlag:
+          merged.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag ?? first.loenudviklingBeregningsgrundlag,
+        loenudviklingStatistikModel:
+          merged.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel ?? first.loenudviklingStatistikModel,
+        loenudviklingKRLSatstabel:
+          merged.eoAngivetLoenLoenudvikling.loenudviklingKRLSatstabel ?? first.loenudviklingKRLSatstabel,
+        loenudviklingManuelNavn: preferNonEmpty(
+          merged.eoAngivetLoenLoenudvikling.loenudviklingManuelNavn,
+          first.loenudviklingManuelNavn
+        ),
+        loenudviklingManuelTableData: preferNonEmpty(
+          merged.eoAngivetLoenLoenudvikling.loenudviklingManuelTableData,
+          first.loenudviklingManuelTableData
+        ),
+        offentligLoenType: merged.eoAngivetLoenLoenudvikling.offentligLoenType ?? first.offentligLoenType,
+        offentligLoenTrin: merged.eoAngivetLoenLoenudvikling.offentligLoenTrin ?? first.offentligLoenTrin,
+        offentligLoenGruppe: merged.eoAngivetLoenLoenudvikling.offentligLoenGruppe ?? first.offentligLoenGruppe,
       };
     }
   }

@@ -145,6 +145,9 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
       {viserTabtArbejdsfortjeneste && (
         <EODebugRowsSection title="Offentlige ydelser" rows={rowsBySection.get('offentlige-ydelser') ?? []} />
       )}
+      {viserTabtArbejdsfortjeneste && (
+        <EODebugRowsSection title="Sygeferiegodtgørelse" rows={rowsBySection.get('sygeferiegodtgoerelse') ?? []} />
+      )}
 
       {viserTabtArbejdsfortjeneste && orphanRegulationSections.length > 0 && (
         <EODebugRegulationSections sections={orphanRegulationSections} />

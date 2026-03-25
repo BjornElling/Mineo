@@ -58,6 +58,40 @@ export const ferieperiodeRowSchema = z.object({
 
 export type FerieperiodeRow = z.infer<typeof ferieperiodeRowSchema>;
 
+export const sygeferiegodtgoerelseBeregningskildeEnum = z.enum([
+  'Overenskomst',
+  'Manuelt angivet',
+  'Ferieloven',
+  'Ingen',
+]);
+
+export type SygeferiegodtgoerelseBeregningskilde = z.infer<typeof sygeferiegodtgoerelseBeregningskildeEnum>;
+
+export const sygeferiegodtgoerelseSatsvalgEnum = z.enum([
+  'Faglaert-Koebenhavn',
+  'Faglaert-Provinsen',
+  'Ufaglaert-Koebenhavn',
+  'Ufaglaert-Provinsen',
+]);
+
+export type SygeferiegodtgoerelseSatsvalg = z.infer<typeof sygeferiegodtgoerelseSatsvalgEnum>;
+
+export const sygeferiegodtgoerelseAnsaettelsesforholdRowSchema = z.object({
+  ansaettelsesforholdId: z.string().min(1, 'Ansættelsesforhold-ID må ikke være tomt'),
+  beregnesUdFra: sygeferiegodtgoerelseBeregningskildeEnum.default('Ingen'),
+  referenceperiodeFra: optionalIsoDateString,
+  referenceperiodeTil: optionalIsoDateString,
+  referenceperiodeFravaersdageUdenLoen: dayCount,
+  manuelDagssats: nonNegativeAmountValue,
+  manuelBeloebIHenholdTil: optionalString,
+  manuelFoerstEfterSygeloen: jaNejEnum.default('Nej'),
+  satsvalg: z.preprocess(normalizeEmptyToUndefined, sygeferiegodtgoerelseSatsvalgEnum.optional()),
+  alleredeBetaltBeloeb: nonNegativeAmountValue,
+}).strict();
+
+export type SygeferiegodtgoerelseAnsaettelsesforholdRow =
+  z.infer<typeof sygeferiegodtgoerelseAnsaettelsesforholdRowSchema>;
+
 export const oevrigeKravRowSchema = z.object({
   id: z.string().min(1, 'Række-ID må ikke være tomt'),
   dato: optionalIsoDateString,
@@ -144,10 +178,9 @@ const indtaegtFoerSkadenSchema = z.object({
 }).strict();
 
 const sygeferiegodtgoerelseSchema = z.object({
-  ferieMedLon: jaNejEnum,
-  maanedsloennetMedFerielon: jaNejEnum,
-  forstSfgEfterSygelon: jaNejEnum,
-  andelSfggILoenen: nonNegativeAmountValue,
+  sfggAlleSygeperioderErTafPerioder: z.boolean().default(true),
+  sfggSygeperioderFoer2015: z.array(ferieperiodeRowSchema).default([]),
+  sfggAnsaettelsesforhold: z.array(sygeferiegodtgoerelseAnsaettelsesforholdRowSchema).default([]),
 }).strict();
 
 const eoBilagSelectionSchema = z.object({
