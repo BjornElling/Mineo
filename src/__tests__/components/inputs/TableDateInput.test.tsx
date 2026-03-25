@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { createEvent, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';
@@ -168,5 +168,70 @@ describe('TableDateInput', () => {
       describedBy = input.getAttribute('aria-describedby');
       expect(describedBy).toBeNull();
     });
+  });
+
+  it('normalizes pasted text while not editing', async () => {
+    const user = userEvent.setup();
+    const gridCell = { rowId: 'row-5', colIndex: 0 };
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState('');
+      const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(null);
+      const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
+
+      return (
+        <GridCoreProvider value={gridValue}>
+          <TableDateInput
+            gridCell={gridCell}
+            value={value}
+            onBlur={(e) => {
+              setValue(e.target.value);
+              setEditingCell(null);
+            }}
+          />
+        </GridCoreProvider>
+      );
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.paste(input, 'adffergregs//sgd1712,56//');
+
+    expect(input).toHaveValue('17-12-1956');
+  });
+
+  it('copies the full field value while focused and not editing', async () => {
+    const user = userEvent.setup();
+    const gridCell = { rowId: 'row-6', colIndex: 0 };
+
+    const Wrapper = () => {
+      const [editingCell] = React.useState<GridCellCoord | null>(null);
+      const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
+
+      return (
+        <GridCoreProvider value={gridValue}>
+          <TableDateInput gridCell={gridCell} value="01-05-2023" />
+        </GridCoreProvider>
+      );
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    await user.click(input);
+
+    const clipboardData = {
+      setData: vi.fn(),
+      getData: vi.fn(),
+    } as unknown as DataTransfer;
+    const copyEvent = createEvent.copy(input);
+    Object.defineProperty(copyEvent, 'clipboardData', { value: clipboardData });
+
+    fireEvent(input, copyEvent);
+
+    expect(clipboardData.setData).toHaveBeenCalledWith('text/plain', '01-05-2023');
+    expect(copyEvent.defaultPrevented).toBe(true);
   });
 });

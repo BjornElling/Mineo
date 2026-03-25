@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { createEvent, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { toISODateString, type ISODateString } from '../../../types/branded';
 import StyledDateField from '../../../components/inputs/StyledDateField';
@@ -125,6 +125,45 @@ describe('StyledDateField', () => {
 
     expect(input).not.toHaveValue('-2022');
     expect(String((input as HTMLInputElement).value)).toContain('1');
+  });
+
+  it('normalizes pasted text to date parts while editor is closed', async () => {
+    const user = userEvent.setup();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<ISODateString | undefined>(undefined);
+      return <StyledDateField value={value} onCommit={(e) => setValue(e.target.value)} />;
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.paste(input, 'adffergregs//sgd1712,56//');
+    await user.tab();
+
+    expect(input).toHaveValue('17-12-1956');
+  });
+
+  it('copies the full field value while focused and editor is closed', async () => {
+    const user = userEvent.setup();
+
+    render(<StyledDateField value={toISODateString('2023-05-01')} />);
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    await user.click(input);
+
+    const clipboardData = {
+      setData: vi.fn(),
+      getData: vi.fn(),
+    } as unknown as DataTransfer;
+    const copyEvent = createEvent.copy(input);
+    Object.defineProperty(copyEvent, 'clipboardData', { value: clipboardData });
+
+    fireEvent(input, copyEvent);
+
+    expect(clipboardData.setData).toHaveBeenCalledWith('text/plain', '01-05-2023');
+    expect(copyEvent.defaultPrevented).toBe(true);
   });
 
 });

@@ -3,6 +3,8 @@ import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
 import { formatAsAmount } from '../../../utils/formatUtils';
+import { copyWholeValueFromReadOnlyField, readClipboardText } from '../../../utils/clipboardUtils';
+import { normalizePercentPaste } from '../../../utils/inputPasteNormalization';
 import { useGridCoreApi, useGridCoreState } from '../../tables/useGridCore';
 import { areSameGridCell } from '../../tables/gridCore/gridCoreUtils';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
@@ -56,6 +58,7 @@ export type TablePercentInputProps = Readonly<{
 
 const TABLE_PERCENT_DECIMAL_PRECISION = 2;
 const MAX_PERCENT_RAW_LENGTH = 64;
+const TABLE_PERCENT_PASTE_MAX = 100;
 
 type ParsedPercent =
   | { ok: true; numeric: number }
@@ -545,12 +548,59 @@ const TablePercentInput = React.memo(
       [allowDecimals, allowNegative, isEditing]
     );
 
+    const handlePaste = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        const normalized = normalizePercentPaste(readClipboardText(e), { maxValue: TABLE_PERCENT_PASTE_MAX });
+
+        if (!isEditing) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (normalized === '') return;
+          setDraft(normalized);
+          draftRef.current = normalized;
+          const ok = commitAndEmitBlur(normalized);
+          if (!ok) return;
+          setIsFocused(true);
+          return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+        if (normalized === '') return;
+
+        const input = inputElRef.current;
+        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
+        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
+        const nextDraft = draft.slice(0, start) + normalized + draft.slice(end);
+        setHasError(false);
+        setErrorMessage('');
+        draftRef.current = nextDraft;
+        setDraft(nextDraft);
+      },
+      [commitAndEmitBlur, draft, isEditing]
+    );
+
     const a11yErrorId = React.useId();
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
     const showError = (hasExternalError || (touched && hasError)) && !isFocused;
     const tooltipText = hasExternalError ? externalErrorText : errorMessage;
     const showDraftWhenError = !isEditing && (preserveInvalidDraft || (touched && hasError));
+    const displayValue = toDisplayString(value, allowDecimals);
+    const readOnlyDisplayValue = showDraftWhenError ? draft : displayValue === '' ? '' : `${displayValue} %`;
+    const renderedValue = isEditing ? draft : readOnlyDisplayValue;
+
+    const handleCopy = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        copyWholeValueFromReadOnlyField(e, {
+          isReadOnly,
+          value: renderedValue,
+          selectionStart: e.currentTarget.selectionStart,
+          selectionEnd: e.currentTarget.selectionEnd,
+        });
+      },
+      [isReadOnly, renderedValue]
+    );
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
@@ -630,8 +680,6 @@ const TablePercentInput = React.memo(
       };
     }, [editorHandle, gridApi, gridCell]);
 
-    const displayValue = toDisplayString(value, allowDecimals);
-
     return (
       <Box sx={{ position: 'relative', width: '100%', height: '100%', ...sx }}>
         <Tooltip title={showError ? tooltipText : ''} arrow placement="top">
@@ -642,21 +690,15 @@ const TablePercentInput = React.memo(
                 assignRef(inputRef, el);
               }}
               autoComplete="off"
-              value={
-                isEditing
-                  ? draft
-                  : showDraftWhenError
-                    ? draft
-                    : displayValue === ''
-                      ? ''
-                      : `${displayValue} %`
-              }
+              value={renderedValue}
               readOnly={isReadOnly}
               disabled={locked}
               onChange={handleChange}
               onFocus={handleFocus}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              onCopy={handleCopy}
               placeholder={cellFocused && !isReadOnly ? '' : placeholder}
               inputProps={{
                 readOnly: isReadOnly,

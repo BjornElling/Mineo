@@ -5,7 +5,9 @@ import StyledTextFieldBase from './StyledTextFieldBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { filterYearKeyDown } from './inputKeyFilters';
+import { readClipboardText } from '../../utils/clipboardUtils';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
+import { normalizeYearPaste } from '../../utils/inputPasteNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitHandler, type DraftChangeHandler } from '../../types/fieldEvents';
 
 export type StyledYearFieldProps = {
@@ -228,6 +230,7 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
     const activation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled),
       getDraftForKey,
+      normalizePasteText: normalizeYearPaste,
       onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
     });
 
@@ -277,6 +280,26 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
       [activation, onCommit, onKeyDown, onKeyDownProp, parseYear, setDraft]
     );
 
+    const handlePaste = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        if (!activation.isEditorOpen) {
+          activation.handlePaste(e);
+          return;
+        }
+
+        const normalized = normalizeYearPaste(readClipboardText(e));
+        e.preventDefault();
+        e.stopPropagation();
+        if (normalized === '') return;
+
+        const input = inputElementRef.current;
+        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
+        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
+        handleDraftChange(draft.slice(0, start) + normalized + draft.slice(end));
+      },
+      [activation, draft, handleDraftChange]
+    );
+
     return (
       <StyledTextFieldBase
         ref={ref}
@@ -297,7 +320,7 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
         onKeyDown={handleKeyDown}
         onMouseDown={activation.handleMouseDown}
         onClick={activation.handleClick}
-        onPaste={activation.handlePaste}
+        onPaste={handlePaste}
         placeholder={placeholder}
         width={width}
         disabled={disabled}

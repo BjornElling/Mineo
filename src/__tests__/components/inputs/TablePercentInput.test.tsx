@@ -101,4 +101,41 @@ describe('TablePercentInput', () => {
       expect(onBlur).toHaveBeenLastCalledWith('101');
     }
   });
+
+  it('normalizes pasted text to the longest prefix under 100 while not editing', async () => {
+    const user = userEvent.setup();
+    const gridCell = { rowId: 'row-2', colIndex: 0 };
+    const onBlur = vi.fn();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<string>('');
+      const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(null);
+      const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
+
+      return (
+        <GridCoreProvider value={gridValue}>
+          <TablePercentInput
+            gridCell={gridCell}
+            value={value}
+            minValue={0}
+            maxValue={200}
+            onBlur={(e) => {
+              onBlur(e.target.value);
+              setValue(e.target.value);
+              setEditingCell(null);
+            }}
+          />
+        </GridCoreProvider>
+      );
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.paste(input, 'adffergregs//sgd1712,56//');
+
+    expect(onBlur).toHaveBeenCalledWith('17,00');
+    expect(input).toHaveValue('17,00 %');
+  });
 });

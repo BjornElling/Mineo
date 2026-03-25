@@ -11,6 +11,8 @@ import { yearHas53Weeks } from '../../../utils/dateUtils';
 import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit, type TableCommitResult, type TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import { assignRef } from './assignRef';
 import { filterWeekKeyDown } from '../inputKeyFilters';
+import { copyWholeValueFromReadOnlyField, readClipboardText } from '../../../utils/clipboardUtils';
+import { normalizeWeekPaste } from '../../../utils/inputPasteNormalization';
 import { makeWeekFingerprintFromCanonical, type CommittedPayload, type WeekFingerprint } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
@@ -317,12 +319,57 @@ const TableWeekInput = React.memo(
       [hasError, isEditing, preserveInvalidDraft]
     );
 
+    const handlePaste = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        const normalized = normalizeWeekPaste(readClipboardText(e));
+
+        if (!isEditing) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (normalized === '') return;
+          setDraft(normalized);
+          draftRef.current = normalized;
+          const ok = commitAndEmitBlur(normalized);
+          if (!ok) return;
+          setIsFocused(true);
+          return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+        if (normalized === '') return;
+
+        const input = inputElRef.current;
+        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
+        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
+        const nextDraft = draft.slice(0, start) + normalized + draft.slice(end);
+        setHasError(false);
+        setErrorMessage('');
+        draftRef.current = nextDraft;
+        setDraft(nextDraft);
+      },
+      [commitAndEmitBlur, draft, isEditing]
+    );
+
     const a11yErrorId = React.useId();
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
     const showError = (hasExternalError || (touched && hasError)) && !isFocused;
     const tooltipText = hasExternalError ? externalErrorText : errorMessage;
     const showDraftWhenError = !isEditing && (preserveInvalidDraft || (touched && hasError));
+    const displayValue = isEditing ? draft : showDraftWhenError ? draft : (value ?? '');
+
+    const handleCopy = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        copyWholeValueFromReadOnlyField(e, {
+          isReadOnly,
+          value: displayValue,
+          selectionStart: e.currentTarget.selectionStart,
+          selectionEnd: e.currentTarget.selectionEnd,
+        });
+      },
+      [displayValue, isReadOnly]
+    );
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
@@ -406,13 +453,15 @@ const TableWeekInput = React.memo(
               assignRef(inputRef, el);
             }}
             autoComplete="off"
-            value={isEditing ? draft : showDraftWhenError ? draft : (value ?? '')}
+            value={displayValue}
             readOnly={isReadOnly}
             disabled={locked}
             onChange={handleChange}
             onFocus={handleFocus}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            onCopy={handleCopy}
             placeholder={cellFocused && !isReadOnly ? '' : placeholder}
             inputProps={{
               readOnly: isReadOnly,

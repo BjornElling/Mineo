@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Box, MenuItem, OutlinedInput, Popover, Tooltip } from '@mui/material';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { copyTextToClipboard, readClipboardText } from '../../utils/clipboardUtils';
 import { createCommitEvent, type CommitEvent } from '../../types/fieldEvents';
 
 /**
@@ -411,6 +412,20 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     [allowEmpty, handleClose, name, onChange]
   );
 
+  const findValueByExactLabel = React.useCallback(
+    (label: string): TValue | undefined | null => {
+      for (let index = 0; index < visualOptions.length; index += 1) {
+        const opt = visualOptions[index];
+        const optionLabel = visualOptionLabels[index] ?? '';
+        if (optionLabel !== label) continue;
+        if (opt?.kind === 'empty') return undefined;
+        if (opt?.kind === 'value') return opt.value;
+      }
+      return null;
+    },
+    [visualOptionLabels, visualOptions]
+  );
+
   const handleInputBlur = React.useCallback(
     (e: React.FocusEvent<HTMLElement>) => {
       onBlur?.(e);
@@ -624,6 +639,17 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         disabled={disabled || hasConfigError}
         onBlur={handleInputBlur}
         onClick={handleOpen}
+        onCopy={(e) => {
+          copyTextToClipboard(e, { value: selectedLabel });
+        }}
+        onPaste={(e) => {
+          if (disabled || hasConfigError) return;
+          const nextValue = findValueByExactLabel(readClipboardText(e));
+          e.preventDefault();
+          e.stopPropagation();
+          if (nextValue === null) return;
+          handleSelect(nextValue);
+        }}
         placeholder={placeholder}
         inputProps={{
           ...userInputProps,
@@ -671,9 +697,9 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
               if (highlightedIndex < 0) return;
               e.preventDefault();
               e.stopPropagation();
-              handleSelect(getValueAtVisualIndex(highlightedIndex));
-              return;
-            }
+            handleSelect(getValueAtVisualIndex(highlightedIndex));
+            return;
+          }
             if (e.key === 'Escape') {
               e.preventDefault();
               e.stopPropagation();

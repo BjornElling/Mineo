@@ -3,11 +3,12 @@ import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from './StyledTextFieldBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
-import { filterIntegerKeyDown, filterIntegerPaste, isIntegerDraftAllowed } from './inputKeyFilters';
-import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
+import { filterIntegerKeyDown } from './inputKeyFilters';
+import { trimToNumericEdgesPreserveLeadingMinus } from '../../utils/draftNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import { getIntegerRangeErrorMessage } from '../../utils/integerRange';
 import { readClipboardText } from '../../utils/clipboardUtils';
+import { normalizeIntegerPaste } from '../../utils/inputPasteNormalization';
 import type { ReportableFieldError } from '../../types/fieldErrors';
 
 export type StyledIntegerFieldValueChangeEvent = CommitEvent<number | undefined>;
@@ -221,7 +222,7 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
         value,
         format: formatInteger,
         parse: parseInteger,
-        normalizeDraftOnCommit: trimToAlphanumericEdges,
+        normalizeDraftOnCommit: trimToNumericEdgesPreserveLeadingMinus,
         onCommit: (nextValue) => {
           onCommit?.(createCommitEvent(nextValue));
         },
@@ -296,6 +297,12 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
     const activation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled || hasConfigError),
       getDraftForKey,
+      normalizePasteText: (text) =>
+        normalizeIntegerPaste(text, {
+          maxDigits: effectiveMaxDigits,
+          maxValue,
+          allowNegative,
+        }),
       onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
     });
 
@@ -315,7 +322,7 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
             e.stopPropagation();
             // UNDTAGELSE TIL "INGEN LIVE PREVIEW": Commit øjeblikkeligt ved DELETE/Backspace
             // Parse og commit direkte (synkront) som table-felter gør
-            const normalized = trimToAlphanumericEdges('');
+            const normalized = trimToNumericEdgesPreserveLeadingMinus('');
             const result = parseInteger(normalized, { mode: 'commit' });
             if (result.ok) {
               onCommit?.(createCommitEvent(result.value));
@@ -352,26 +359,26 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
 
     const handlePaste = React.useCallback(
       (e: React.ClipboardEvent<HTMLInputElement>) => {
-        const constraints = {
-          maxDigits: effectiveMaxDigits,
-          maxValue,
-          allowNegative,
-        };
-
         if (!activation.isEditorOpen) {
-          const pastedText = readClipboardText(e);
-          if (pastedText !== '' && !isIntegerDraftAllowed(pastedText, constraints)) {
-            e.preventDefault();
-            e.stopPropagation();
-            return;
-          }
           activation.handlePaste(e);
           return;
         }
 
-        filterIntegerPaste(e, constraints);
+        const normalized = normalizeIntegerPaste(readClipboardText(e), {
+          maxDigits: effectiveMaxDigits,
+          maxValue,
+          allowNegative,
+        });
+        e.preventDefault();
+        e.stopPropagation();
+        if (normalized === '') return;
+
+        const input = inputElementRef.current;
+        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
+        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
+        handleDraftChange(draft.slice(0, start) + normalized + draft.slice(end));
       },
-      [activation, allowNegative, effectiveMaxDigits, maxValue]
+      [activation, draft, effectiveMaxDigits, handleDraftChange, maxValue]
     );
 
     return (

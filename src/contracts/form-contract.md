@@ -113,7 +113,7 @@ eller library-opgraderinger må ikke bryde disse semantikker.
 - Klik på et allerede fokuseret felt må åbne editor (cursor placeres ved musen via browserens normale caret-placement).
 - Når editor er lukket og feltet har fokus:
   - Et printbart tegn må åbne editor og **overskrive** eksisterende indhold (feltets draft sættes til den tastede karakter).
-  - Paste må åbne editor og **overskrive** eksisterende indhold (feltets draft sættes til den indsatte tekst).
+  - Paste må **aldrig** åbne editor. Paste håndteres i lukket editor-tilstand efter feltets egne paste-regler.
   - `Backspace`/`Delete` må rydde feltets indhold, men må **ikke** åbne editor.
 - `Enter` må **aldrig** åbne editor i fokus-men-ikke-redigær:
   - På sider opfører `Enter` sig som navigations-tast (som hidtil via `Container`).

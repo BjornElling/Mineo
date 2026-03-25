@@ -2,6 +2,7 @@ import * as React from 'react';
 import { TextField, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
+import { copyWholeValueFromReadOnlyField } from '../../utils/clipboardUtils';
 
 type AllowedInputAttributes = Pick<
   React.InputHTMLAttributes<HTMLInputElement>,
@@ -68,6 +69,7 @@ export type StyledTextFieldBaseProps = {
   onMouseDown?: (e: React.MouseEvent<HTMLDivElement>) => void;
   onDoubleClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
+  onCopy?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
 
   inputType?: StyledTextFieldBaseInputType;
   htmlInputAttributes?: AllowedInputAttributes;
@@ -92,6 +94,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
       onMouseDown,
       onDoubleClick,
       onPaste,
+      onCopy,
       inputRef,
       error = false,
       helperText = '',
@@ -170,6 +173,19 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
       [onPaste]
     );
 
+    const handleCopy = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        copyWholeValueFromReadOnlyField(e, {
+          isReadOnly: htmlInputAttributes?.readOnly === true,
+          value: draft,
+          selectionStart: e.currentTarget.selectionStart,
+          selectionEnd: e.currentTarget.selectionEnd,
+        });
+        onCopy?.(e);
+      },
+      [draft, htmlInputAttributes?.readOnly, onCopy]
+    );
+
     const showError = error && helperText.trim() !== '';
     const a11yErrorId = `${resolvedId}-error`;
 
@@ -185,6 +201,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
       onBlur: handleBlur,
       onKeyDown: handleKeyDown,
       onPaste: handlePaste,
+      onCopy: handleCopy,
     };
 
     const wrapperWidth = fullWidth ? '100%' : typeof width === 'number' ? `${width}px` : width;

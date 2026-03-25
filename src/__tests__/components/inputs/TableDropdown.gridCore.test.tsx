@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { createEvent, fireEvent, render, screen } from '@testing-library/react';
 import TableDropdown from '../../../components/inputs/table/TableDropdown';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCore/gridCoreTypes';
+import userEvent from '@testing-library/user-event';
 
 describe('TableDropdown GridCore integration', () => {
   it('registrerer editor-handle når gridCell er sat', () => {
@@ -106,5 +107,78 @@ describe('TableDropdown GridCore integration', () => {
     const emptyHandle = registerEditor.mock.calls[registerEditor.mock.calls.length - 1]?.[1];
     emptyHandle?.clearAndCommit();
     expect(onChange).toHaveBeenCalledWith({ target: { value: '' } });
+  });
+
+  it('kopierer den viste label fra focused table dropdown', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <GridCoreProvider
+        value={{
+          focusedCell: null,
+          editingCell: null,
+          openEditing: vi.fn(),
+          closeEditing: vi.fn(),
+          registerEditor: vi.fn(),
+          unregisterEditor: vi.fn(),
+          getEditor: vi.fn().mockReturnValue(null),
+          requestFocusPlan: vi.fn(),
+        }}
+      >
+        <TableDropdown
+          value="a"
+          options={[{ value: 'a', label: 'Alfa' }]}
+        />
+      </GridCoreProvider>
+    );
+
+    const trigger = screen.getByRole('combobox');
+    await user.click(trigger);
+
+    const clipboardData = {
+      setData: vi.fn(),
+    };
+    const copyEvent = createEvent.copy(trigger);
+    Object.defineProperty(copyEvent, 'clipboardData', { value: clipboardData });
+
+    fireEvent(trigger, copyEvent);
+
+    expect(clipboardData.setData).toHaveBeenCalledWith('text/plain', 'Alfa');
+    expect(copyEvent.defaultPrevented).toBe(true);
+  });
+
+  it('vælger matching option ved paste af præcis label', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <GridCoreProvider
+        value={{
+          focusedCell: null,
+          editingCell: null,
+          openEditing: vi.fn(),
+          closeEditing: vi.fn(),
+          registerEditor: vi.fn(),
+          unregisterEditor: vi.fn(),
+          getEditor: vi.fn().mockReturnValue(null),
+          requestFocusPlan: vi.fn(),
+        }}
+      >
+        <TableDropdown
+          value="a"
+          options={[
+            { value: 'a', label: 'Alfa' },
+            { value: 'b', label: 'Beta' },
+          ]}
+          onChange={onChange}
+        />
+      </GridCoreProvider>
+    );
+
+    const trigger = screen.getByRole('combobox');
+    await user.click(trigger);
+    await user.paste(trigger, 'Beta');
+
+    expect(onChange).toHaveBeenCalledWith({ target: { value: 'b' } });
   });
 });

@@ -136,17 +136,17 @@ describe('StyledAmountField expression behavior', () => {
     const input = renderField(undefined, onCommit);
 
     await user.click(input);
-    await user.paste(input, 'ab1c2,3d');
+    await user.paste(input, 'adffergregs//sgd1712,56//');
     await user.tab();
 
     expect(onCommit).toHaveBeenCalledWith(
       expect.objectContaining({
         target: {
-          value: { kind: 'number', value: 12.3 },
+          value: { kind: 'number', value: 1712.56 },
         },
       })
     );
-    expect(input).toHaveValue('12,30');
+    expect(input).toHaveValue('1.712,56');
   }, TEST_TIMEOUT_MS);
 
   it('normalizes pasted currency text during edit before commit', async () => {
@@ -166,6 +166,25 @@ describe('StyledAmountField expression behavior', () => {
       })
     );
     expect(input).toHaveValue('9.602,05');
+  }, TEST_TIMEOUT_MS);
+
+  it('pastes only the first numeric token from an expression-like string', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn<OnCommit>();
+    const input = renderField(undefined, onCommit);
+
+    await user.click(input);
+    await user.paste(input, '100+25');
+    await user.tab();
+
+    expect(onCommit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          value: { kind: 'number', value: 100 },
+        },
+      })
+    );
+    expect(input).toHaveValue('100,00');
   }, TEST_TIMEOUT_MS);
 
   it('commits pasted currency text while editor is closed', async () => {
@@ -241,7 +260,7 @@ describe('StyledAmountField expression behavior', () => {
     expect(input).toHaveValue('1,00');
   }, TEST_TIMEOUT_MS);
 
-  it('blocks unary minus paste when allowNegative=false', async () => {
+  it('ignores pasted minus and uses the first numeric token when allowNegative=false', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn<OnCommit>();
     const input = renderField(undefined, onCommit, { allowNegative: false });
@@ -250,7 +269,43 @@ describe('StyledAmountField expression behavior', () => {
     await user.paste(input, '-123');
     await user.tab();
 
-    expect(onCommit).not.toHaveBeenCalled();
-    expect(input).toHaveValue('');
+    expect(onCommit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          value: { kind: 'number', value: 123 },
+        },
+      })
+    );
+    expect(input).toHaveValue('123,00');
+  }, TEST_TIMEOUT_MS);
+
+  it('keeps pasted amount negative when the nearest real prefix character is minus and negatives are allowed', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn<OnCommit>();
+    const input = renderField(undefined, onCommit, { allowNegative: true });
+
+    await user.click(input);
+    await user.paste(input, 'abc - 123,45 kr.');
+    await user.tab();
+
+    expect(onCommit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          value: { kind: 'number', value: -123.45 },
+        },
+      })
+    );
+    expect(input).toHaveValue('-123,45');
+  }, TEST_TIMEOUT_MS);
+
+  it('blocks point typing and only blocks commas that would become adjacent', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn<OnCommit>();
+    const input = renderField(undefined, onCommit);
+
+    await openEditor(user, input);
+    await user.type(input, '1.2,3,4');
+
+    expect(input).toHaveValue('12,3,4');
   }, TEST_TIMEOUT_MS);
 });

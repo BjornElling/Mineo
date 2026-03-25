@@ -5,9 +5,10 @@ import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { containsUnaryMinusToken, filterAmountExpressionKeyDown } from './inputKeyFilters';
 import { stripAmountGroupingSeparators } from '../../utils/draftNormalization';
-import { normalizePastedAmount, sanitizePastedAmount } from '../../utils/amountInputUtils';
+import { sanitizePastedAmount } from '../../utils/amountInputUtils';
 import { readClipboardText } from '../../utils/clipboardUtils';
 import { formatAsAmount } from '../../utils/formatUtils';
+import { normalizeAmountPaste } from '../../utils/inputPasteNormalization';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import {
   amountValueToDisplayString,
@@ -260,6 +261,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
     const activation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled),
       getDraftForKey,
+      normalizePasteText: (text) => normalizeAmountPaste(text, { allowNegative }),
       onReplaceDraft: (nextDraft) => {
         if (!allowNegative && containsUnaryMinusToken(nextDraft)) return;
         handleDraftChange(nextDraft);
@@ -354,7 +356,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
     const handlePaste = React.useCallback(
       (e: React.ClipboardEvent<HTMLInputElement>) => {
         const raw = readClipboardText(e);
-        const normalized = normalizePastedAmount(raw);
+        const normalized = normalizeAmountPaste(raw, { allowNegative });
 
         if (!activation.isEditorOpen) {
           e.preventDefault();
@@ -364,8 +366,6 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
           commitDraft(normalized);
           return;
         }
-
-        if (!allowDecimals && normalized.includes(',')) return;
 
         e.preventDefault();
         e.stopPropagation();
@@ -389,7 +389,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
           }
         });
       },
-      [activation.isEditorOpen, allowDecimals, allowNegative, commitDraft, draft, handleDraftChange]
+      [activation.isEditorOpen, allowNegative, commitDraft, draft, handleDraftChange]
     );
 
     return (

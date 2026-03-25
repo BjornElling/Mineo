@@ -9,7 +9,9 @@ import { interpretYear } from '../../utils/dateInputValidation';
 import { validateISODateRange } from '../../utils/isoDateHelpers';
 import { resolveDateRangeErrorMessage, type DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import { filterDateLikeKeyDown } from './inputKeyFilters';
+import { readClipboardText } from '../../utils/clipboardUtils';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
+import { normalizeDatePaste } from '../../utils/inputPasteNormalization';
 import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { ReportableFieldError } from '../../types/fieldErrors';
@@ -287,6 +289,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
     const activation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled),
       getDraftForKey,
+      normalizePasteText: normalizeDatePaste,
       onReplaceDraft: (nextDraft) => setDraft(nextDraft),
     });
 
@@ -399,6 +402,37 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       [activation, error?.kind, onCommit, onKeyDown, onKeyDownBase, parseDate, setDraft, touched]
     );
 
+    const handlePaste = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        if (!activation.isEditorOpen) {
+          activation.handlePaste(e);
+          return;
+        }
+
+        const normalized = normalizeDatePaste(readClipboardText(e));
+        e.preventDefault();
+        e.stopPropagation();
+        if (normalized === '') return;
+
+        const input = inputElementRef.current;
+        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
+        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
+        setDraft(draft.slice(0, start) + normalized + draft.slice(end));
+
+        const nextCaret = start + normalized.length;
+        requestAnimationFrame(() => {
+          const el = inputElementRef.current;
+          if (!el) return;
+          try {
+            el.setSelectionRange(nextCaret, nextCaret);
+          } catch {
+            // no-op
+          }
+        });
+      },
+      [activation, draft, setDraft]
+    );
+
     return (
       <StyledTextFieldBase
         ref={ref}
@@ -419,7 +453,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
         onKeyDown={handleKeyDown}
         onMouseDown={activation.handleMouseDown}
         onClick={activation.handleClick}
-        onPaste={activation.handlePaste}
+        onPaste={handlePaste}
         placeholder={placeholder}
         width={width}
         disabled={disabled}

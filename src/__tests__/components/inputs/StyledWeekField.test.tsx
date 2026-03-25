@@ -39,4 +39,22 @@ describe('StyledWeekField', () => {
     expect(input).not.toHaveValue('/2022');
     expect(String((input as HTMLInputElement).value)).toContain('1');
   }, TEST_TIMEOUT_MS);
+
+  it('normalizes pasted text to week and year parts', async () => {
+    const user = userEvent.setup();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<string | undefined>(undefined);
+      return <StyledWeekField value={value} onCommit={(e) => setValue(e.target.value)} />;
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.paste(input, 'adffergregs//sgd1712,56//');
+    await user.tab();
+
+    expect(input).toHaveValue('17/2012');
+  }, TEST_TIMEOUT_MS);
 });

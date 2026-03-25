@@ -79,4 +79,21 @@ describe('StyledPercentField', () => {
       expect.objectContaining({ target: { value: 20.01 } })
     );
   });
+
+  it('normalizes pasted text to the longest prefix under 100', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn();
+
+    render(<StyledPercentField value={undefined} useDefaultPercentRange onCommit={onCommit} />);
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    await user.click(input);
+    await user.paste(input, 'adffergregs//sgd1712,56//');
+    await user.tab();
+
+    expect(onCommit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ target: { value: 17 } })
+    );
+    expect(input).toHaveValue('17');
+  });
 });

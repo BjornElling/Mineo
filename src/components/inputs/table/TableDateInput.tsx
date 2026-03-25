@@ -5,6 +5,8 @@ import { shouldClearField } from '../../../utils/inputValidation';
 import { interpretYear } from '../../../utils/dateInputValidation';
 import { validateISODateRange } from '../../../utils/isoDateHelpers';
 import { resolveDateRangeErrorMessage, type DateRangeSpecialErrors } from '../../../utils/dateRangeErrorMessages';
+import { copyWholeValueFromReadOnlyField, readClipboardText } from '../../../utils/clipboardUtils';
+import { normalizeDatePaste } from '../../../utils/inputPasteNormalization';
 import { coerceToDanishDateString, coerceToISODateString, type ISODateString } from '../../../types/branded';
 import { asTableCommittedString, normalizeTableDraftOnCommit, type TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import { assignRef } from './assignRef';
@@ -482,12 +484,56 @@ const TableDateInput = React.memo(
       [hasError, isEditing, preserveInvalidDraft]
     );
 
+    const handlePaste = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        const normalized = normalizeDatePaste(readClipboardText(e));
+
+        if (!isEditing) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (normalized === '') return;
+          setDraft(normalized);
+          draftRef.current = normalized;
+          const ok = commitAndEmitBlur(normalized);
+          if (!ok) return;
+          setIsFocused(true);
+          return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+        if (normalized === '') return;
+
+        const input = inputElRef.current;
+        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
+        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
+        const nextDraft = draft.slice(0, start) + normalized + draft.slice(end);
+        draftRef.current = nextDraft;
+        setDraft(nextDraft);
+        setLocalErrorState(false, '');
+      },
+      [commitAndEmitBlur, draft, isEditing, setLocalErrorState]
+    );
+
     const a11yInputId = React.useId();
     const a11yErrorId = `${a11yInputId}-error`;
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
     const showError = (hasExternalError || configErrorMessage !== '' || (touched && hasError)) && !isFocused;
     const showDraftWhenError = !isEditing && touched && hasError && preserveInvalidDraft;
+    const displayValue = isEditing ? draft : showDraftWhenError ? draft : (value ?? '');
+
+    const handleCopy = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        copyWholeValueFromReadOnlyField(e, {
+          isReadOnly,
+          value: displayValue,
+          selectionStart: e.currentTarget.selectionStart,
+          selectionEnd: e.currentTarget.selectionEnd,
+        });
+      },
+      [displayValue, isReadOnly]
+    );
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
@@ -570,13 +616,15 @@ const TableDateInput = React.memo(
               assignRef(inputRef, el);
             }}
             autoComplete="off"
-            value={isEditing ? draft : showDraftWhenError ? draft : (value ?? '')}
+            value={displayValue}
             readOnly={isReadOnly}
             disabled={locked}
             onChange={handleChange}
             onFocus={handleFocus}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            onCopy={handleCopy}
             placeholder={cellFocused && !isReadOnly ? '' : placeholder}
             inputProps={{
               id: a11yInputId,
@@ -633,4 +681,3 @@ const TableDateInput = React.memo(
 TableDateInput.displayName = 'TableDateInput';
 
 export default TableDateInput;
-

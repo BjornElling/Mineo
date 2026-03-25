@@ -2,6 +2,7 @@ import * as React from 'react';
 import { TextField, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
+import { copyWholeValueFromReadOnlyField } from '../../utils/clipboardUtils';
 
 type AllowedInputAttributes = Pick<
   React.TextareaHTMLAttributes<HTMLTextAreaElement>,
@@ -48,6 +49,7 @@ export type StyledTextAreaBaseProps = {
   onMouseDown?: (e: React.MouseEvent<HTMLTextAreaElement>) => void;
   onDoubleClick?: (e: React.MouseEvent<HTMLTextAreaElement>) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
+  onCopy?: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
 
   htmlTextAreaAttributes?: AllowedInputAttributes;
   sx?: SxProps<Theme>;
@@ -70,6 +72,7 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
       onMouseDown,
       onDoubleClick,
       onPaste,
+      onCopy,
       inputRef,
       error = false,
       helperText = '',
@@ -147,6 +150,19 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
       [onPaste]
     );
 
+    const handleCopy = React.useCallback(
+      (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        copyWholeValueFromReadOnlyField(e, {
+          isReadOnly: htmlTextAreaAttributes?.readOnly === true,
+          value: draft,
+          selectionStart: e.currentTarget.selectionStart,
+          selectionEnd: e.currentTarget.selectionEnd,
+        });
+        onCopy?.(e);
+      },
+      [draft, htmlTextAreaAttributes?.readOnly, onCopy]
+    );
+
     const showError = error && helperText.trim() !== '';
     const a11yErrorId = `${resolvedId}-error`;
 
@@ -198,6 +214,7 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
                 onMouseDown: handleMouseDown,
                 onDoubleClick: handleDoubleClick,
                 onPaste: handlePaste,
+                onCopy: handleCopy,
               },
             }}
             disabled={disabled}

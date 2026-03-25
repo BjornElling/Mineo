@@ -9,8 +9,9 @@ import { assignRef } from './assignRef';
 import { type TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import { containsUnaryMinusToken, filterAmountExpressionKeyDown } from '../inputKeyFilters';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import { normalizePastedAmount, sanitizePastedAmount } from '../../../utils/amountInputUtils';
-import { readClipboardText } from '../../../utils/clipboardUtils';
+import { sanitizePastedAmount } from '../../../utils/amountInputUtils';
+import { copyWholeValueFromReadOnlyField, readClipboardText } from '../../../utils/clipboardUtils';
+import { normalizeAmountPaste } from '../../../utils/inputPasteNormalization';
 import {
   amountValueToDisplayString,
   amountValueToDraftString,
@@ -312,7 +313,7 @@ const TableAmountInput = React.memo(
     const handlePaste = React.useCallback(
       (e: React.ClipboardEvent<HTMLInputElement>) => {
         const raw = readClipboardText(e);
-        const normalized = normalizePastedAmount(raw);
+        const normalized = normalizeAmountPaste(raw, { allowNegative: canBeNegative });
 
         if (!isEditing) {
           e.preventDefault();
@@ -361,7 +362,19 @@ const TableAmountInput = React.memo(
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
     const showError = (hasExternalError || (touched && hasError)) && !isFocused;
-    const displayValue = !isEditing && touched && hasError ? draft : toDisplayString(value);
+    const displayValue = isEditing ? draft : (!isEditing && touched && hasError ? draft : toDisplayString(value));
+
+    const handleCopy = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        copyWholeValueFromReadOnlyField(e, {
+          isReadOnly,
+          value: displayValue,
+          selectionStart: e.currentTarget.selectionStart,
+          selectionEnd: e.currentTarget.selectionEnd,
+        });
+      },
+      [displayValue, isReadOnly]
+    );
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
@@ -448,7 +461,7 @@ const TableAmountInput = React.memo(
                 assignRef(inputRef, el);
               }}
               autoComplete="off"
-              value={isEditing ? draft : displayValue}
+              value={displayValue}
               readOnly={isReadOnly}
               disabled={locked}
               onChange={handleChange}
@@ -456,6 +469,7 @@ const TableAmountInput = React.memo(
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
+              onCopy={handleCopy}
               onDoubleClick={handleDoubleClick}
               placeholder={cellFocused && !isReadOnly ? '' : placeholder}
               inputProps={{
@@ -527,4 +541,3 @@ const TableAmountInput = React.memo(
 TableAmountInput.displayName = 'TableAmountInput';
 
 export default TableAmountInput;
-

@@ -15,8 +15,13 @@ describe('sanitizePastedAmount', () => {
     expect(sanitizePastedAmount('−12,50')).toBe('-12,50');
   });
 
-  it('bevarer tilladte operatorer (+, -, *, /, x, (, ), .)', () => {
+  it('bevarer tilladte operatorer (+, -, *, /, x, (, ))', () => {
     expect(sanitizePastedAmount('1+2*3/4')).toBe('1+2*3/4');
+  });
+
+  it('fjerner punktum og kollapser kun kommaer der står direkte op ad hinanden', () => {
+    expect(sanitizePastedAmount('1.2,3,4')).toBe('12,3,4');
+    expect(sanitizePastedAmount('1,,2')).toBe('1,2');
   });
 
   it('tom streng → tom streng', () => {

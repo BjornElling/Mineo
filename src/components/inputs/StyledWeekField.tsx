@@ -6,7 +6,9 @@ import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivati
 import { interpretYear } from '../../utils/dateInputValidation';
 import { yearHas53Weeks } from '../../utils/dateUtils';
 import { filterWeekKeyDown } from './inputKeyFilters';
+import { readClipboardText } from '../../utils/clipboardUtils';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
+import { normalizeWeekPaste } from '../../utils/inputPasteNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 
 export type StyledWeekFieldValueChangeEvent = CommitEvent<string | undefined>;
@@ -206,6 +208,7 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
     const activation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled),
       getDraftForKey,
+      normalizePasteText: normalizeWeekPaste,
       onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
     });
 
@@ -255,6 +258,26 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
       [activation, error?.kind, onCommit, onKeyDown, onKeyDownBase, parseWeek, setDraft, touched]
     );
 
+    const handlePaste = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        if (!activation.isEditorOpen) {
+          activation.handlePaste(e);
+          return;
+        }
+
+        const normalized = normalizeWeekPaste(readClipboardText(e));
+        e.preventDefault();
+        e.stopPropagation();
+        if (normalized === '') return;
+
+        const input = inputElementRef.current;
+        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
+        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
+        handleDraftChange(draft.slice(0, start) + normalized + draft.slice(end));
+      },
+      [activation, draft, handleDraftChange]
+    );
+
     return (
       <StyledTextFieldBase
         ref={ref}
@@ -275,7 +298,7 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
         onKeyDown={handleKeyDown}
         onMouseDown={activation.handleMouseDown}
         onClick={activation.handleClick}
-        onPaste={activation.handlePaste}
+        onPaste={handlePaste}
         placeholder={placeholder}
         width={width}
         disabled={disabled}

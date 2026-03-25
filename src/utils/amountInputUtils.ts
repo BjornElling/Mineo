@@ -136,8 +136,17 @@ export const normalizeTrailingSeparator = (input: string): string => {
 
 export const sanitizePastedAmount = (text: string): string => {
   const normalizedMinus = normalizePasteMinus(text);
-  const allowed = normalizedMinus.match(/[0-9+\-*/x()., ]/g) ?? [];
-  return allowed.join('');
+  const allowed = normalizedMinus.match(/[0-9+\-*/x(), ]/g) ?? [];
+  let sanitized = '';
+
+  for (const char of allowed) {
+    if (char === ',') {
+      if (sanitized.endsWith(',')) continue;
+    }
+    sanitized += char;
+  }
+
+  return sanitized;
 };
 
 export const normalizePastedAmount = (text: string): string => {
@@ -145,7 +154,9 @@ export const normalizePastedAmount = (text: string): string => {
   if (normalizedMoneyLike !== null) {
     return normalizedMoneyLike;
   }
-  return sanitizePastedAmount(text);
+  const normalizedMinus = normalizePasteMinus(text);
+  const allowed = normalizedMinus.match(/[0-9+\-*/x()., ]/g) ?? [];
+  return allowed.join('');
 };
 
 export const normalizeZero = (value: number): number => {

@@ -8,9 +8,11 @@ import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/
 import { shouldClearField } from '../../../utils/inputValidation';
 import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit, type TableCommitResult, type TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import { assignRef } from './assignRef';
-import { filterIntegerKeyDown, filterIntegerPaste } from '../inputKeyFilters';
+import { filterIntegerKeyDown } from '../inputKeyFilters';
+import { copyWholeValueFromReadOnlyField, readClipboardText } from '../../../utils/clipboardUtils';
 import { makeIntegerFingerprintFromCanonical, type CommittedPayload, type IntegerFingerprint } from '../../../types/parserSpec';
 import { getIntegerRangeErrorMessage } from '../../../utils/integerRange';
+import { normalizeIntegerPaste } from '../../../utils/inputPasteNormalization';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
 export type TableIntegerInputChangeEvent = { target: { value: string } };
@@ -320,10 +322,38 @@ const TableIntegerInput = React.memo(
 
     const handlePaste = React.useCallback(
       (e: React.ClipboardEvent<HTMLInputElement>) => {
-        if (!isEditing) return;
-        filterIntegerPaste(e, { maxDigits });
+        const normalized = normalizeIntegerPaste(readClipboardText(e), {
+          maxDigits,
+          maxValue,
+          allowNegative: false,
+        });
+
+        if (!isEditing) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (normalized === '') return;
+          setDraft(normalized);
+          draftRef.current = normalized;
+          const ok = commitAndEmitBlur(normalized);
+          if (!ok) return;
+          setIsFocused(true);
+          return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+        if (normalized === '') return;
+
+        const input = inputElRef.current;
+        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
+        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
+        const nextDraft = draft.slice(0, start) + normalized + draft.slice(end);
+        setHasError(false);
+        setErrorMessage('');
+        draftRef.current = nextDraft;
+        setDraft(nextDraft);
       },
-      [isEditing, maxDigits]
+      [commitAndEmitBlur, draft, isEditing, maxDigits, maxValue]
     );
 
     const a11yErrorId = React.useId();
@@ -332,6 +362,19 @@ const TableIntegerInput = React.memo(
     const showError = (hasExternalError || (touched && hasError)) && !isFocused;
     const tooltipText = hasExternalError ? externalErrorText : errorMessage;
     const showDraftWhenError = !isEditing && (preserveInvalidDraft || (touched && hasError));
+    const displayValue = isEditing ? draft : showDraftWhenError ? draft : (value ?? '');
+
+    const handleCopy = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        copyWholeValueFromReadOnlyField(e, {
+          isReadOnly,
+          value: displayValue,
+          selectionStart: e.currentTarget.selectionStart,
+          selectionEnd: e.currentTarget.selectionEnd,
+        });
+      },
+      [displayValue, isReadOnly]
+    );
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
@@ -417,7 +460,7 @@ const TableIntegerInput = React.memo(
               assignRef(inputRef, el);
             }}
             autoComplete="off"
-            value={isEditing ? draft : showDraftWhenError ? draft : (value ?? '')}
+            value={displayValue}
             readOnly={isReadOnly}
             disabled={locked}
             onChange={handleChange}
@@ -425,6 +468,7 @@ const TableIntegerInput = React.memo(
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
+            onCopy={handleCopy}
             placeholder={cellFocused && !isReadOnly ? '' : placeholder}
             inputProps={{
               readOnly: isReadOnly,
@@ -478,7 +522,3 @@ const TableIntegerInput = React.memo(
 TableIntegerInput.displayName = 'TableIntegerInput';
 
 export default TableIntegerInput;
-
-
-
-

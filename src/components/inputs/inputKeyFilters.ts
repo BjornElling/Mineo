@@ -42,6 +42,15 @@ const getNextValueFromInsertion = (input: HTMLInputElement, insertion: string): 
   return current.slice(0, start) + insertion + current.slice(end);
 };
 
+const wouldInsertAdjacentComma = (input: HTMLInputElement): boolean => {
+  const current = input.value ?? '';
+  const start = typeof input.selectionStart === 'number' ? input.selectionStart : current.length;
+  const end = typeof input.selectionEnd === 'number' ? input.selectionEnd : start;
+  const previousChar = start > 0 ? current[start - 1] : undefined;
+  const nextChar = end < current.length ? current[end] : undefined;
+  return previousChar === ',' || nextChar === ',';
+};
+
 const block = (e: BlockableEvent): void => {
   e.preventDefault();
   e.stopPropagation();
@@ -131,7 +140,7 @@ export const filterCommaDecimal2KeyDown = (e: KeyDownEvent, options?: { allowNeg
 };
 
 /**
- * Amount expressions: allow digits, comma/dot, operators, parentheses, and spaces.
+ * Amount expressions: allow digits, one comma, operators, parentheses, and spaces.
  */
 export const filterAmountExpressionKeyDown = (
   e: KeyDownEvent,
@@ -145,8 +154,16 @@ export const filterAmountExpressionKeyDown = (
     block(e);
     return;
   }
+  if (e.key === '.') {
+    block(e);
+    return;
+  }
+  if (e.key === ',' && wouldInsertAdjacentComma(e.currentTarget)) {
+    block(e);
+    return;
+  }
   const allowed = allowDecimals
-    ? /^[0-9+\-*/x()., ]$/
+    ? /^[0-9+\-*/x(), ]$/
     : /^[0-9+\-*/x() ]$/;
   if (!allowed.test(e.key)) block(e);
 };

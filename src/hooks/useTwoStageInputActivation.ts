@@ -106,9 +106,8 @@ export const useTwoStageInputActivation = <TElement extends HTMLElement>(
 
     e.preventDefault();
     e.stopPropagation();
-    openEditor('paste');
     onReplaceDraft?.(normalized, 'paste');
-  }, [disabled, isEditorOpen, normalizePasteText, onReplaceDraft, openEditor]);
+  }, [disabled, isEditorOpen, normalizePasteText, onReplaceDraft]);
 
   return {
     isEditorOpen,

@@ -8,6 +8,7 @@ import { readClipboardText } from '../../utils/clipboardUtils';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { DEFAULT_FRACTION_MAX_DIGITS, getFractionMaxLength, INTEGER_FRACTION_FORMAT_MESSAGE, parseFractionString, sanitizePastedFraction } from '../../utils/fraction';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
+import { normalizeFractionPaste } from '../../utils/inputPasteNormalization';
 
 export type StyledFractionFieldValueChangeEvent = CommitEvent<string | undefined>;
 export type StyledFractionFieldDraftChangeEvent = DraftChangeEvent;
@@ -189,7 +190,7 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
     const activation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled),
       getDraftForKey,
-      normalizePasteText: (text) => sanitizePastedFraction(text, { allowNegative }),
+      normalizePasteText: normalizeFractionPaste,
       onReplaceDraft: (nextDraft) => applyDraft(nextDraft),
     });
 
@@ -246,7 +247,7 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
           return;
         }
 
-        const normalized = sanitizePastedFraction(readClipboardText(e), { allowNegative });
+        const normalized = normalizeFractionPaste(readClipboardText(e));
         e.preventDefault();
         e.stopPropagation();
         if (normalized === '') return;

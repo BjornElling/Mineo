@@ -5,8 +5,10 @@ import StyledTextFieldBase from './StyledTextFieldBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { filterPercentKeyDown } from './inputKeyFilters';
+import { readClipboardText } from '../../utils/clipboardUtils';
 import { prefixZeroBeforeLeadingComma, trimToNumericEdgesPreserveLeadingMinus } from '../../utils/draftNormalization';
 import { formatAsAmount, formatAsAmountTrimmed } from '../../utils/formatUtils';
+import { normalizePercentPaste } from '../../utils/inputPasteNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 
 export type StyledPercentFieldValueChangeEvent = CommitEvent<number | undefined>;
@@ -388,6 +390,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
     const activation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled || hasConfigError),
       getDraftForKey,
+      normalizePasteText: (text) => normalizePercentPaste(text, { maxValue: MAX_TYPING_PERCENT }),
       onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
     });
 
@@ -460,6 +463,26 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       </InputAdornment>
     );
 
+    const handlePaste = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        if (!activation.isEditorOpen) {
+          activation.handlePaste(e);
+          return;
+        }
+
+        const normalized = normalizePercentPaste(readClipboardText(e), { maxValue: MAX_TYPING_PERCENT });
+        e.preventDefault();
+        e.stopPropagation();
+        if (normalized === '') return;
+
+        const input = inputElementRef.current;
+        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
+        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
+        handleDraftChange(draft.slice(0, start) + normalized + draft.slice(end));
+      },
+      [activation, draft, handleDraftChange]
+    );
+
     return (
       <StyledTextFieldBase
         ref={ref}
@@ -488,7 +511,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         onKeyDown={handleKeyDown}
         onMouseDown={activation.handleMouseDown}
         onClick={activation.handleClick}
-        onPaste={activation.handlePaste}
+        onPaste={handlePaste}
         placeholder={stripTrailingPercent(placeholder)}
         width={width}
         disabled={disabled || hasConfigError}

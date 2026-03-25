@@ -6,6 +6,7 @@ import { useGridCoreApi, useGridCoreState } from '../../tables/useGridCore';
 import { areSameGridCell } from '../../tables/gridCore/gridCoreUtils';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
 import { assignRef } from './assignRef';
+import { copyWholeValueFromReadOnlyField } from '../../../utils/clipboardUtils';
 import type { TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import { trimWhitespaceEdges } from '../../../utils/draftNormalization';
 import { makeStringFingerprintFromCanonical, type CommittedPayload, type StringFingerprint } from '../../../types/parserSpec';
@@ -158,6 +159,18 @@ const TableTextInput = React.memo(
       [commitAndEmitBlur, isEditing]
     );
 
+    const handleCopy = React.useCallback(
+      (e: React.ClipboardEvent<HTMLInputElement>) => {
+        copyWholeValueFromReadOnlyField(e, {
+          isReadOnly,
+          value: isEditing ? draft : (value ?? ''),
+          selectionStart: e.currentTarget.selectionStart,
+          selectionEnd: e.currentTarget.selectionEnd,
+        });
+      },
+      [draft, isEditing, isReadOnly, value]
+    );
+
     const a11yInputId = React.useId();
     const a11yErrorId = `${a11yInputId}-error`;
     const externalErrorText = (externalErrorMessage ?? '').trim();
@@ -239,6 +252,7 @@ const TableTextInput = React.memo(
             onChange={handleChange}
             onFocus={handleFocus}
             onBlur={handleBlur}
+            onCopy={handleCopy}
             placeholder={cellFocused && !isReadOnly ? '' : placeholder}
             inputProps={{
               id: a11yInputId,
@@ -288,7 +302,6 @@ const TableTextInput = React.memo(
 TableTextInput.displayName = 'TableTextInput';
 
 export default TableTextInput;
-
 
 
 

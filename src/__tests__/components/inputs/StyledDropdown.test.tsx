@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { createEvent, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import StyledDropdown from '../../../components/inputs/StyledDropdown';
 
@@ -150,5 +150,49 @@ describe('StyledDropdown', () => {
     }).toThrow('Ugyldig konfiguration: value mangler (allowEmpty=false)');
 
     errSpy.mockRestore();
+  });
+
+  it('kopierer den viste label ved copy-genvej', async () => {
+    const user = userEvent.setup();
+    render(<ControlledDropdown initialValue="B" />);
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+
+    const clipboardData = {
+      setData: vi.fn(),
+    };
+    const copyEvent = createEvent.copy(input);
+    Object.defineProperty(copyEvent, 'clipboardData', { value: clipboardData });
+
+    fireEvent(input, copyEvent);
+
+    expect(clipboardData.setData).toHaveBeenCalledWith('text/plain', 'Beta');
+    expect(copyEvent.defaultPrevented).toBe(true);
+  });
+
+  it('vælger matching option ved paste af præcis label', async () => {
+    const user = userEvent.setup();
+    render(<ControlledDropdown initialValue="A" />);
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    expect((input as HTMLInputElement).value).toBe('Alfa');
+
+    await user.paste(input, 'Charlie');
+
+    expect((input as HTMLInputElement).value).toBe('Charlie');
+  });
+
+  it('ignorerer paste når label ikke matcher en option præcist', async () => {
+    const user = userEvent.setup();
+    render(<ControlledDropdown initialValue="A" />);
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+
+    await user.paste(input, 'charlie');
+
+    expect((input as HTMLInputElement).value).toBe('Alfa');
   });
 });

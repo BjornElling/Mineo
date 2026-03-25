@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Divider, MenuItem, Select, Tooltip, type SelectChangeEvent } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { assignRef } from './assignRef';
+import { copyTextToClipboard, readClipboardText } from '../../../utils/clipboardUtils';
 import { useGridCoreApi } from '../../tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
@@ -178,6 +179,21 @@ const TableDropdown = React.memo(
       [allowEmpty, isDividerOption, onChange, options, readOnly, value]
     );
 
+    const selectedLabel = React.useMemo(() => {
+      const selectedOption = options.find((opt) => !isDividerOption(opt) && opt.value === (value ?? ''));
+      return selectedOption && !isDividerOption(selectedOption) ? selectedOption.label : '';
+    }, [isDividerOption, options, value]);
+
+    const findValueByExactLabel = React.useCallback(
+      (label: string): string | null => {
+        if (allowEmpty && placeholder === label) return '';
+        const matched = options.find((opt) => !isDividerOption(opt) && opt.label === label);
+        if (!matched || isDividerOption(matched)) return null;
+        return matched.value;
+      },
+      [allowEmpty, isDividerOption, options, placeholder]
+    );
+
     const a11yErrorId = React.useId();
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const showError = externalErrorText !== '';
@@ -220,6 +236,17 @@ const TableDropdown = React.memo(
           data-mineo-table-dropdown="true"
           style={{ display: 'block' }}
           onKeyDownCapture={handleKeyDown}
+          onCopyCapture={(e) => {
+            copyTextToClipboard(e, { value: selectedLabel });
+          }}
+          onPasteCapture={(e) => {
+            if (readOnly) return;
+            const nextValue = findValueByExactLabel(readClipboardText(e));
+            e.preventDefault();
+            e.stopPropagation();
+            if (nextValue === null) return;
+            onChange?.({ target: { value: nextValue } });
+          }}
           ref={(el) => {
             wrapperRef.current = el;
             assignRef(inputRef, el);
@@ -357,6 +384,4 @@ const TableDropdown = React.memo(
 TableDropdown.displayName = 'TableDropdown';
 
 export default TableDropdown;
-
-
 

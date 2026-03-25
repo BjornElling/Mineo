@@ -213,17 +213,17 @@ describe('TableAmountInput expression behavior', () => {
     const { input, onBlur } = setup(undefined);
 
     await user.click(input);
-    await user.paste(input, 'ab1c2,3d');
+    await user.paste(input, 'adffergregs//sgd1712,56//');
     await user.tab();
 
     expect(onBlur).toHaveBeenCalledWith(
       expect.objectContaining({
         target: {
-          value: { kind: 'number', value: 12.3 },
+          value: { kind: 'number', value: 1712.56 },
         },
       })
     );
-    expect(input).toHaveValue('12,30');
+    expect(input).toHaveValue('1.712,56');
   }, TEST_TIMEOUT_MS);
 
   it('commits pasted currency text without opening table edit mode', async () => {
@@ -248,7 +248,7 @@ describe('TableAmountInput expression behavior', () => {
     expect(document.activeElement).toBe(input);
   }, TEST_TIMEOUT_MS);
 
-  it('shows error and does not commit invalid normalized paste while not editing', async () => {
+  it('normalizes pasted minus away while not editing when negatives are forbidden', async () => {
     const user = userEvent.setup();
     const { input, onBlur, setEditingCell } = setup(undefined, { canBeNegative: false });
 
@@ -257,11 +257,37 @@ describe('TableAmountInput expression behavior', () => {
     await user.paste(input, '-9.602,05 kr.');
 
     await waitFor(() => {
-      expect(onBlur).not.toHaveBeenCalled();
-      expect(input).toHaveValue('-9602,05');
+      expect(onBlur).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target: {
+            value: { kind: 'number', value: 9602.05 },
+          },
+        })
+      );
+      expect(input).toHaveValue('9.602,05');
     });
     expect(input).toHaveAttribute('readonly');
     expect(document.activeElement).toBe(input);
+  }, TEST_TIMEOUT_MS);
+
+  it('keeps pasted amount negative while not editing when negatives are allowed', async () => {
+    const user = userEvent.setup();
+    const { input, onBlur, setEditingCell } = setup(undefined, { canBeNegative: true });
+
+    setEditingCell(null);
+    await user.click(input);
+    await user.paste(input, 'abc - 123,45 kr.');
+
+    await waitFor(() => {
+      expect(onBlur).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target: {
+            value: { kind: 'number', value: -123.45 },
+          },
+        })
+      );
+      expect(input).toHaveValue('-123,45');
+    });
   }, TEST_TIMEOUT_MS);
 
   it('does not clear existing value when non-editing paste normalizes to empty', async () => {
@@ -307,7 +333,7 @@ describe('TableAmountInput expression behavior', () => {
     expect(input).toHaveValue('1,00');
   }, TEST_TIMEOUT_MS);
 
-  it('blocks unary minus paste when canBeNegative=false', async () => {
+  it('ignores unary minus paste when canBeNegative=false and uses the first numeric token', async () => {
     const user = userEvent.setup();
     const { input, onBlur } = setup(undefined, { canBeNegative: false });
 
@@ -315,7 +341,23 @@ describe('TableAmountInput expression behavior', () => {
     await user.paste(input, '-123');
     await user.tab();
 
-    expect(onBlur).not.toHaveBeenCalled();
-    expect(input).toHaveValue('');
+    expect(onBlur).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          value: { kind: 'number', value: 123 },
+        },
+      })
+    );
+    expect(input).toHaveValue('123,00');
+  }, TEST_TIMEOUT_MS);
+
+  it('blocks point typing and only blocks commas that would become adjacent', async () => {
+    const user = userEvent.setup();
+    const { input } = setup(undefined);
+
+    await user.click(input);
+    await user.type(input, '1.2,3,4');
+
+    expect(input).toHaveValue('12,3,4');
   }, TEST_TIMEOUT_MS);
 });

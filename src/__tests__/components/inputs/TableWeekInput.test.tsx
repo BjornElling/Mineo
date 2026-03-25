@@ -133,4 +133,36 @@ describe('TableWeekInput', () => {
     expect(onBlur).toHaveBeenCalledWith('53/2004');
     expect(input).toHaveValue('53/2004');
   });
+
+  it('normalizes pasted text while not editing', async () => {
+    const user = userEvent.setup();
+    const gridCell = { rowId: 'row-4', colIndex: 0 };
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState('');
+      const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(null);
+      const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
+
+      return (
+        <GridCoreProvider value={gridValue}>
+          <TableWeekInput
+            gridCell={gridCell}
+            value={value}
+            onBlur={(e) => {
+              setValue(e.target.value);
+              setEditingCell(null);
+            }}
+          />
+        </GridCoreProvider>
+      );
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.paste(input, 'adffergregs//sgd1712,56//');
+
+    expect(input).toHaveValue('17/2012');
+  });
 });
