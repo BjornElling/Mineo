@@ -174,6 +174,18 @@ describe('computeEoSnapshot', () => {
         loenudviklingBeregningsgrundlag: 'Ingen',
       }),
     ];
+    eoValues.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: eoValues.loenindkomstAnsaettelsesforhold[0].id,
+      beregnesUdFra: 'Ingen',
+      manuelDagssats: undefined,
+      manuelBeloebIHenholdTil: undefined,
+      manuelFoerstEfterSygeloen: 'Nej',
+      referenceperiodeFra: undefined,
+      referenceperiodeTil: undefined,
+      referenceperiodeFravaersdageUdenLoen: undefined,
+      satsvalg: undefined,
+      alleredeBetaltBeloeb: undefined,
+    }];
     eoValues.tafPerioder = [
       { id: 'r1', fra: '2024-01-01', til: '2024-12-31', loseFeriedage: 0 },
     ];
@@ -562,6 +574,42 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.debugSnapshot!.sammentaelling.svieSmerteSygedage.tabelValue).toBe(311);
     expect(snapshot.debugSnapshot!.sammentaelling.svieSmerteDelvise.beregnetValue).toBe(41);
     expect(snapshot.debugSnapshot!.sammentaelling.svieSmerteDelvise.tabelValue).toBe(41);
+  });
+
+  it('SFGG-valideringsfejl registreres uden at blokere autoritativ snapshot-data', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.vedroererPeriodeFra = '2024-01-01';
+    eoValues.vedroererPeriodeTil = '2024-12-31';
+    eoValues.periodeTilBeregningFra = '2023-01-01';
+    eoValues.periodeTilBeregningTil = '2023-12-31';
+    eoValues.tafPerioder = [
+      { id: 'taf-1', fra: '2024-01-01', til: '2024-06-30', loseFeriedage: 0 },
+    ];
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      createEmployment({
+        loenudviklingBeregningsgrundlag: 'Ingen',
+      }),
+    ];
+    eoValues.sfggAnsaettelsesforhold = [];
+
+    const snapshot = computeEoSnapshot({
+      revision: 'sfgg-nonblocking-validation',
+      stamdataValues: STAMDATA_INITIAL_VALUES,
+      eoValues,
+    });
+
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.data).not.toBeNull();
+    expect(snapshot.debugSnapshot).not.toBeNull();
+    const sfggInvariant = snapshot.invariants.find((invariant) => invariant.message === 'Beregningsgrundlag for SFGG ikke valgt');
+    expect(sfggInvariant).toEqual(expect.objectContaining({
+      source: 'validation',
+      blocksAuthoritativeComputation: false,
+      blocksOutputs: [],
+    }));
+    expect(snapshot.data?.canonicalOutput.periodiseringer.tafPerioder).toEqual([
+      { fra: '2024-01-01', til: '2024-06-30' },
+    ]);
   });
 
   it('bygger et ok-snapshot for en simpel sag uden TAF med verificerede totals og EO-dokument', () => {

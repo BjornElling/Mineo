@@ -86,6 +86,20 @@ const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): Erstatningsopg
       arbejdsgiver: undefined,
     },
   }));
+  if ((merged.sfggAnsaettelsesforhold ?? []).length === 0 && merged.loenindkomstAnsaettelsesforhold.length > 0) {
+    merged.sfggAnsaettelsesforhold = merged.loenindkomstAnsaettelsesforhold.map((af) => ({
+      ansaettelsesforholdId: af.id,
+      beregnesUdFra: 'Ingen' as const,
+      manuelDagssats: undefined,
+      manuelBeloebIHenholdTil: undefined,
+      manuelFoerstEfterSygeloen: 'Nej' as const,
+      referenceperiodeFra: undefined,
+      referenceperiodeTil: undefined,
+      referenceperiodeFravaersdageUdenLoen: undefined,
+      satsvalg: undefined,
+      alleredeBetaltBeloeb: undefined,
+    }));
+  }
   const preferNonEmpty = <T>(current: T, fallback: T): T => {
     if (Array.isArray(current) && current.length === 0) return fallback;
     if (typeof current === 'string' && current.trim() === '') return fallback;

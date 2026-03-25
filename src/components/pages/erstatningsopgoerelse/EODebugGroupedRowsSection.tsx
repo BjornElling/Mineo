@@ -47,11 +47,8 @@ const renderDebugRow = (row: DebugRowModel) => (
     <Typography className="row--text">{row.label}</Typography>
     <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
       <Typography
-        className="row--text"
-        sx={[
-          getDisplayValueSx(row.displayValue),
-          ...(isSfggComputedTotalRow(row) ? [{ fontWeight: 700 }] : []),
-        ]}
+        className={`row--text${isSfggComputedTotalRow(row) ? ' text-bold' : ''}`}
+        sx={getDisplayValueSx(row.displayValue)}
       >
         {row.displayValue}
       </Typography>
@@ -75,9 +72,12 @@ const EODebugGroupedRowsSection = React.memo<{
 
       {visibleSections.map((section) => (
         <React.Fragment key={section.id}>
-          <Typography className="row--subheading-underlined" sx={{ pl: 2, mb: 1 }}>
-            {section.title}
-          </Typography>
+          <Box className="row--label-right-hover">
+            <Typography className="row--subheading-underlined" sx={{ pl: 2 }}>
+              {section.title}
+            </Typography>
+            <Box className="row--label-right-hover__content" />
+          </Box>
 
           {section.rows.filter((row) => !isSfggPostTableRow(row)).map(renderDebugRow)}
 
