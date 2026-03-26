@@ -102,6 +102,12 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
           status: 'ok',
         }),
         expect.objectContaining({
+          id: `sfgg.foerstEfterSygeloen.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'Først sygeferiegodtgørelse efter ophør af sygeløn',
+          displayValue: 'Nej',
+          status: 'ok',
+        }),
+        expect.objectContaining({
           id: `sfgg.referenceperiodeantal.${values.loenindkomstAnsaettelsesforhold[0].id}`,
           label: 'Antal arbejdsdage (21 hverdage - 2 SH-dage) =',
           displayValue: '19 arbejdsdage',
@@ -136,6 +142,74 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
           label: 'Beregnet sygeferiegodtgørelse',
           displayValue: '65,79',
           status: 'ok',
+        }),
+      ])
+    );
+  });
+
+  it('viser Ja når manuelt angivet SFGG først beregnes efter ophør af sygeløn', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      feriePct: 12.5,
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-dec-2023',
+        col0_maaned: '12',
+        col1_maaned: '2023',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '',
+        col1_dag: '',
+        col2: { kind: 'number', value: 10000 },
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    };
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        beregnesUdFra: 'Manuelt angivet',
+        referenceperiodeFra: '2023-12-01',
+        referenceperiodeTil: '2023-12-31',
+        referenceperiodeFravaersdageUdenLoen: 0,
+        manuelDagssats: { kind: 'number', value: 100 },
+        manuelFoerstEfterSygeloen: 'Ja',
+        alleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2024-01-15',
+        til: '2024-01-15',
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const rows = buildEODebugSygeferiegodtgoerelseRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2024-01-01',
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `sfgg.foerstEfterSygeloen.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'Først sygeferiegodtgørelse efter ophør af sygeløn',
+          displayValue: 'Ja',
+          status: 'ok',
+        }),
+      ])
+    );
+    expect(rows).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: 'Forklaring',
+          displayValue: 'Der beregnes først sygeferiegodtgørelse efter ophør af arbejdsgiverbetalt sygeløn.',
         }),
       ])
     );

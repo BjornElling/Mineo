@@ -939,4 +939,86 @@ describe('EODebug', () => {
     expect(screen.getByText('Valgt regulering')).toBeInTheDocument();
     expect(container.querySelectorAll('[data-testid="CheckIcon"]').length).toBeGreaterThan(0);
   });
+
+  it('samler SFGG-eftertabel-rækker i én hover-row', () => {
+    eoSnapshotToDebugViewMock.mockReturnValue({
+      kind: 'ready',
+      canonicalOutput: undefined,
+      debugSnapshot: {
+        sammentaellingRows: [],
+      },
+      stamdataValues: {},
+      erstatningsopgoerelseValues: {
+        beregnesTabtArbejdsfortjeneste: 'Ja',
+        midlertidigtEetAfgorelse: 'Nej',
+        endeligtEetAfgorelse: 'Nej',
+        loenindkomstAnsaettelsesforhold: [
+          { ...createEmployment('af1'), navnPaaArbejdssted: 'Arbejdssted 1' },
+        ],
+      },
+      rowsBySection: new Map([
+        ['sygeferiegodtgoerelse', [
+          {
+            id: 'sfgg.beregningskilde.af1',
+            label: 'Sygeferiegodtgørelse beregnes ud fra',
+            displayValue: 'Ferieloven',
+            status: 'ok',
+          },
+          {
+            id: 'sfgg.tabel.af1',
+            label: 'SFGG-beregning',
+            displayValue: [
+              'Fra-dato | Til-dato | Sats | Antal arbejdsdage | Feriepengekrav',
+              '01-01-2024 | 31-01-2024 | 100,00 | 22 | 2.200,00',
+              'I alt |  |  |  | 2.200,00',
+            ].join('\n'),
+            status: 'ok',
+          },
+          {
+            id: 'sfgg.eftertabel.feriepengeHvisIkkeSkade.af1',
+            label: 'Feriepenge, hvis skaden ikke var sket',
+            displayValue: '4.576,50',
+            status: 'ok',
+          },
+          {
+            id: 'sfgg.eftertabel.feriepengeModtaget.af1',
+            label: 'Feriepenge modtaget i perioden (16.450,95 x 16,95 %) =',
+            displayValue: '-2.788,44',
+            status: 'ok',
+          },
+          {
+            id: 'sfgg.eftertabel.alleredeBetalt.af1',
+            label: 'Allerede betalt sygeferiegodtgørelse i perioden',
+            displayValue: '-1.234,56',
+            status: 'ok',
+          },
+          {
+            id: 'sfgg.eftertabel.beregnet.af1',
+            label: 'Beregnet sygeferiegodtgørelse',
+            displayValue: '553,50',
+            status: 'ok',
+          },
+        ]],
+      ]),
+      regulationSections: [],
+    });
+
+    const { container } = renderComponent({ revision: 'rev-1' } as never);
+
+    const firstLabel = screen.getByText('Feriepenge, hvis skaden ikke var sket');
+    const secondLabel = screen.getByText('Feriepenge modtaget i perioden (16.450,95 x 16,95 %) =');
+    const thirdLabel = screen.getByText('Allerede betalt sygeferiegodtgørelse i perioden');
+    const fourthLabel = screen.getByText('Beregnet sygeferiegodtgørelse');
+    const combinedRow = firstLabel.closest('.row--label-right-hover');
+
+    expect(screen.getByText('Sygeferiegodtgørelse')).toBeInTheDocument();
+    expect(screen.getByText('Arbejdssted 1')).toBeInTheDocument();
+    expect(screen.getByText('553,50')).toBeInTheDocument();
+    expect(combinedRow).not.toBeNull();
+    expect(secondLabel.closest('.row--label-right-hover')).toBe(combinedRow);
+    expect(thirdLabel.closest('.row--label-right-hover')).toBe(combinedRow);
+    expect(fourthLabel.closest('.row--label-right-hover')).toBe(combinedRow);
+    expect(combinedRow?.querySelectorAll('[data-testid=\"CheckIcon\"]')).toHaveLength(1);
+    expect(container.querySelectorAll('.row--label-right-hover')).toHaveLength(3);
+  });
 });

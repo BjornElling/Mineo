@@ -127,6 +127,7 @@ const formatPercentUpToTwoDecimals = (value: number): string =>
 
 const SFGG_DEBUG_SUPPRESSED_EXPLANATORY_LINES = new Set<string>([
   'Den første TAF-dag er undtaget, fordi skaden er fra 1. januar 2015 eller senere, og dette er første erstatningsopgørelse.',
+  'Der beregnes først sygeferiegodtgørelse efter ophør af arbejdsgiverbetalt sygeløn.',
 ]);
 
 const getYearAfterAddingOneMonth = (isoDate: ISODateString | undefined): number | undefined => {
@@ -2912,6 +2913,18 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
     if (!kilde || kilde === 'Ingen') {
       continue;
     }
+
+    const overenskomstPolicy = employment.overenskomstId ? getOverenskomstSfggPolicy(employment.overenskomstId) : undefined;
+    const foerstEfterSygeloen =
+      (kilde === 'Manuelt angivet' && row?.manuelFoerstEfterSygeloen === 'Ja')
+      || (kilde !== 'Manuelt angivet' && overenskomstPolicy?.bortfalderUnderArbejdsgiverbetaltSygeloen === true);
+
+    rows.push({
+      id: `sfgg.foerstEfterSygeloen.${employment.id}`,
+      label: 'Først sygeferiegodtgørelse efter ophør af sygeløn',
+      displayValue: foerstEfterSygeloen ? 'Ja' : 'Nej',
+      status: 'ok',
+    });
 
     if (result?.referenceperiode) {
       const referenceDisplay =
