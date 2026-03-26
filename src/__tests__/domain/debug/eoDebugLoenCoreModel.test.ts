@@ -6,7 +6,7 @@ import { buildLoenTimeline } from '../../../domain/debug/eoDebugLoenCoreModel';
 import type { DebugDay } from '../../../domain/debug/eoDebugTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { svieSmertePrDag } from '../../../data/lovbestemteRates';
 
 const makeDebugDay = (
@@ -47,7 +47,7 @@ const makeEOValues = (
       pensionPct: undefined,
       loenperiode: 'maaned',
       indtaegtsoplysningerTableData: [],
-      fuldLoenUnderFerie: 'Nej',
+      fuldLoenUnderFerie: 'Nej', // Bevidst testvalg — system-default er 'Ja'
       loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
       saerligFraDatoRegulering: undefined,
       loenudviklingBeregningsgrundlag: 'Ingen',
@@ -124,7 +124,7 @@ describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
       makeInput(debugDays, {
         loenindkomstAnsaettelsesforhold: [
           {
-            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            ...createDefaultLoenindkomstAnsaettelsesforhold(),
             id: 'af-1',
             harOverenskomst: true,
             overenskomstId: 'bygge-anlaeg',
@@ -154,7 +154,7 @@ describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
       makeInput(debugDays, {
         loenindkomstAnsaettelsesforhold: [
           {
-            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            ...createDefaultLoenindkomstAnsaettelsesforhold(),
             id: 'af-1',
             harOverenskomst: true,
             overenskomstId: 'ukendt-overenskomst-der-ikke-eksisterer',
@@ -173,7 +173,7 @@ describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
       makeInput(debugDays, {
         loenindkomstAnsaettelsesforhold: [
           {
-            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            ...createDefaultLoenindkomstAnsaettelsesforhold(),
             id: 'af-1',
             harOverenskomst: false,
             overenskomstId: undefined,
@@ -203,7 +203,7 @@ describe('buildLoenTimeline — offentlig løn-path (KL)', () => {
       svieSmerteDelvisSygemeldingSats: 'halv',
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           id: 'af-kl',
           harOverenskomst: true,
           overenskomstId: 'kl-overenskomst',
@@ -268,7 +268,7 @@ describe('buildLoenTimeline — offentlig løn-path (KL)', () => {
       makeKLInput(debugDays, {
         loenindkomstAnsaettelsesforhold: [
           {
-            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            ...createDefaultLoenindkomstAnsaettelsesforhold(),
             id: 'af-kl',
             harOverenskomst: true,
             overenskomstId: 'laerer-overenskomsten',
@@ -292,7 +292,7 @@ describe('buildLoenTimeline — offentlig løn-path (KL)', () => {
       makeKLInput(debugDays, {
         loenindkomstAnsaettelsesforhold: [
           {
-            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            ...createDefaultLoenindkomstAnsaettelsesforhold(),
             id: 'af-kl',
             harOverenskomst: true,
             overenskomstId: 'kl-overenskomst',

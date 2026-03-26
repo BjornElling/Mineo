@@ -19,9 +19,7 @@ import { eoFileContainerLoadSchema, type EoFileContainerLoad } from '../schemas/
 import { CalculationError } from './errorMessages';
 import { stripUnknownFieldsBySchema, type UnknownPath } from './persistenceLoadSanitization';
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return !!value && typeof value === 'object' && !Array.isArray(value);
-};
+import { isRecord } from './typeGuards';
 
 const formatZodIssues = (issues: Array<{ path: Array<string | number | symbol>; message: string }>, max: number): string => {
   return issues
@@ -238,7 +236,7 @@ export const loadFromFile = async (
     let decrypted: unknown;
     try {
       decrypted = await decryptFromString(fileContent);
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof EncryptionError) {
         throw new CalculationError('FILE_LOAD_FAILED', { cause: error });
       }
@@ -255,7 +253,7 @@ export const loadFromFile = async (
       fileHandle: fileHandle ?? undefined,
     });
     return result;
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof CalculationError && error.code === 'FILE_LOAD_FAILED') {
       throw error;
     }
@@ -289,7 +287,7 @@ export const loadFromFileHandle = async (
     let decrypted: unknown;
     try {
       decrypted = await decryptFromString(fileContent);
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof EncryptionError) {
         throw new CalculationError('FILE_LOAD_FAILED', { cause: error });
       }
@@ -307,7 +305,7 @@ export const loadFromFileHandle = async (
       fileHandle,
     });
     return result;
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof CalculationError && error.code === 'FILE_LOAD_FAILED') {
       throw error;
     }
@@ -343,7 +341,7 @@ export const validateEoFile = async (file: File): Promise<boolean> => {
       typeof parsed.ivB64 === 'string' &&
       typeof parsed.ctB64 === 'string'
     );
-  } catch (error) {
+  } catch (error: unknown) {
     logError('Fil-validering fejlede', { context: 'validateEoFile', error: error instanceof Error ? error : undefined });
     return false;
   }

@@ -1,5 +1,5 @@
 import { renderReguleringSection } from '../../../../../utils/pdf/erstatningsopgoerelse/sections/reguleringSection';
-import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../../../types/branded';
 
@@ -98,7 +98,7 @@ describe('renderReguleringSection – ansættelsesforhold med ingen regulering',
     eoValues.beregnesUdFra = 'Beregningsperiode';
     eoValues.loenindkomstAnsaettelsesforhold = [
       {
-        ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'af-1',
         navnPaaArbejdssted: 'Test Arbejdssted',
         loenudviklingBeregningsgrundlag: 'Ingen',
@@ -116,7 +116,7 @@ describe('renderReguleringSection – ansættelsesforhold med ingen regulering',
     eoValues.beregnesUdFra = 'Beregningsperiode';
     eoValues.loenindkomstAnsaettelsesforhold = [
       {
-        ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'af-2',
         navnPaaArbejdssted: 'Kerteminde Kommune',
         loenudviklingBeregningsgrundlag: 'Ingen',
@@ -138,7 +138,7 @@ describe('renderReguleringSection – ansættelsesforhold med ingen regulering',
     eoValues.beregnesUdFra = 'Beregningsperiode';
     eoValues.loenindkomstAnsaettelsesforhold = [
       {
-        ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'af-3',
         navnPaaArbejdssted: '',
         loenudviklingBeregningsgrundlag: 'Ingen',
@@ -160,7 +160,7 @@ describe('renderReguleringSection – ansættelsesforhold med ingen regulering',
     eoValues.beregnesUdFra = 'Beregningsperiode';
     eoValues.loenindkomstAnsaettelsesforhold = [
       {
-        ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'custom-id',
         navnPaaArbejdssted: 'EO-oplysninger',
         loenudviklingBeregningsgrundlag: 'Ingen',
@@ -184,7 +184,7 @@ describe('renderReguleringSection – loenSkadesdatoText input', () => {
     eoValues.beregnesUdFra = 'Beregningsperiode';
     eoValues.loenindkomstAnsaettelsesforhold = [
       {
-        ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'af-raw-dato',
         navnPaaArbejdssted: 'Test',
         loenudviklingBeregningsgrundlag: 'Ingen',
@@ -208,7 +208,7 @@ describe('renderReguleringSection – KRL satstabel-note', () => {
     eoValues.beregnesUdFra = 'Beregningsperiode';
     eoValues.loenindkomstAnsaettelsesforhold = [
       {
-        ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'af-krl',
         navnPaaArbejdssted: 'KRL-sted',
         loenudviklingBeregningsgrundlag: 'KRL satstabel',
@@ -226,7 +226,7 @@ describe('renderReguleringSection – KRL satstabel-note', () => {
 
 describe('renderReguleringSection – statistik-noter', () => {
   const makeAnsaettelsesforhold = (grundlag: string) => ({
-    ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+    ...createDefaultLoenindkomstAnsaettelsesforhold(),
     id: 'af-stat',
     navnPaaArbejdssted: 'Statistik-sted',
     loenudviklingBeregningsgrundlag: grundlag as never,
@@ -281,7 +281,7 @@ describe('renderReguleringSection – reguleringstekst', () => {
     eoValues.beregnesUdFra = 'Beregningsperiode';
     eoValues.loenindkomstAnsaettelsesforhold = [
       {
-        ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'af-manuel',
         navnPaaArbejdssted: 'Manuel regulering',
         loenudviklingBeregningsgrundlag: 'Manuelt angivet',
@@ -305,7 +305,7 @@ describe('renderReguleringSection – reguleringstekst', () => {
     eoValues.beregnesUdFra = 'Beregningsperiode';
     eoValues.loenindkomstAnsaettelsesforhold = [
       {
-        ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'af-manuel-stigning',
         navnPaaArbejdssted: 'Manuel regulering med stigning',
         loenudviklingBeregningsgrundlag: 'Manuelt angivet',
@@ -345,7 +345,7 @@ describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => 
     eoValues.beregnesUdFra = 'Beregningsperiode';
     eoValues.loenindkomstAnsaettelsesforhold = [
       {
-        ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'af-kolonnefilter',
         navnPaaArbejdssted: 'Teststed',
         loenudviklingBeregningsgrundlag: 'Manuelt angivet',

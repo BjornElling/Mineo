@@ -69,7 +69,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         referenceperiodeFra: '2023-12-01',
         referenceperiodeTil: '2023-12-31',
         referenceperiodeFravaersdageUdenLoen: 0,
-        alleredeBetaltSfggoerelse: '0,00',
+        alleredeBetaltBeloeb: '0,00',
       },
     ];
     values.tafPerioder = [
@@ -243,7 +243,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         referenceperiodeFra: '2023-12-01',
         referenceperiodeTil: '2023-12-31',
         referenceperiodeFravaersdageUdenLoen: 1,
-        alleredeBetaltSfggoerelse: '0,00',
+        alleredeBetaltBeloeb: '0,00',
       },
     ];
     values.tafPerioder = [

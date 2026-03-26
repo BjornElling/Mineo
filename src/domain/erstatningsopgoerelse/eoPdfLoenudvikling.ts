@@ -31,7 +31,7 @@ import {
   type Loentrin,
 } from '../../data/offentligLoenTypes';
 import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../data/statistiskeRates';
-import { getKRLSatstabel, type KRLSatstabelId } from '../../data/KRLrates';
+import { getKRLSatstabel, type KRLSatstabelId } from '../../data/krlRates';
 import { STORE_BEDEDAG_START } from '../../config/dateRanges';
 import { STORE_BEDEDAG_PCT } from '../../config/regulatoryRates';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, type LoenudviklingSource } from './angivetLoenHelpers';

@@ -25,19 +25,19 @@ import { mergeDateRanges, mergeIsoDateRanges } from '../erstatningsopgoerelse/pe
 import { buildTafCutoffErrorMessage, clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
 import { getOverenskomstMetaById, getOverenskomstSfggPolicy, getReguleringsDatoIntervalForOverenskomst, isOffentligOverenskomstId } from '../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';
-import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/KRLrates';
+import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/krlRates';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/angivetLoenHelpers';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/loenudviklingDisplay';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges } from '../erstatningsopgoerelse/indtaegtPerioder';
 import { buildLoenudviklingModel } from '../erstatningsopgoerelse/eoPdfLoenudvikling';
-import { computeSygeferiegodtgoerelse, findSfggSixMonthWarningEmploymentIds, sumFerieberettigetLoenInRangesKroner } from '../erstatningsopgoerelse/sygeferiegodtgoerelse';
+import { computeSygeferiegodtgoerelse, findSfggSixMonthWarningEmploymentIds, sumFerieberettigetLoenInRangesKroner, EMPTY_RESULT } from '../erstatningsopgoerelse/sygeferiegodtgoerelse';
 import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/oevrigeKravIntro';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
 import { parseForligsgrad } from '../erstatningsopgoerelse/forligsgrad';
 import { resolveBilagWarning } from '../erstatningsopgoerelse/bilagWarnings';
-import { clampMoneyOreToZero, ensureMoneyOre } from '../erstatningsopgoerelse/eoPdfMoneyUtils';
+import { ensureMoneyOre } from '../erstatningsopgoerelse/eoPdfMoneyUtils';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -105,7 +105,20 @@ export type DebugRowId =
   | `loenindkomst.${string}.regulering.navn`
   | `loenindkomst.${string}.regulering.alleVaerdier`
   | `offentligeYdelser.${string}`
-  | `sfgg.${string}`
+  | `sfgg.beregningskilde.${string}`
+  | `sfgg.overenskomstensReferenceperiode.${string}`
+  | `sfgg.foerstEfterSygeloen.${string}`
+  | `sfgg.referenceperiode.${string}`
+  | `sfgg.referenceperiodeantal.${string}`
+  | `sfgg.referencesats.${string}`
+  | `sfgg.tabel.${string}`
+  | `sfgg.eftertabel.feriepengeHvisIkkeSkade.${string}`
+  | `sfgg.eftertabel.feriepengeModtaget.${string}`
+  | `sfgg.eftertabel.alleredeBetalt.${string}`
+  | `sfgg.eftertabel.beregnet.${string}`
+  | `sfgg.firemaanedertabel.${string}`
+  | `sfgg.forklaring.${string}`
+  | `sfgg.advarsel.seksmaaneder.${string}`
   | `oevrigekrav.${string}`
   | 'saerligekommentarer'
   | 'bilagsnumre.ingen'
@@ -2871,19 +2884,17 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       tafRanges,
       loenudviklingPerAnsaettelse: new Map((loenudvikling?.perAnsaettelse ?? []).map((entry) => [entry.ansaettelsesforholdId, entry])),
     })
-    : { totalOre: 0, perAnsaettelsesforhold: [], firstExcludedDate: null };
+    : EMPTY_RESULT;
   const seksMaanedersWarnings = hasActiveSfggSource
     ? new Set(findSfggSixMonthWarningEmploymentIds({
       values,
-      stamdata,
-      tafRanges,
+      result: sfgg,
     }))
     : new Set<string>();
 
   for (const employment of values.loenindkomstAnsaettelsesforhold ?? []) {
     const row = values.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
     const result = sfgg.perAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
-    const arbejdsstedNavn = (employment.navnPaaArbejdssted ?? '').trim() || 'Arbejdssted';
     const kilde = row?.beregnesUdFra;
 
     rows.push({
@@ -3015,9 +3026,8 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
         result.segments.reduce((sum, segment) => sum + segment.feriepengeAfSygeloenOre, 0)
       );
       const alleredeBetaltOre = result.alleredeBetaltOre;
-      const beregnetSygeferiegodtgoerelseOre = clampMoneyOreToZero(ensureMoneyOre(
-        feriepengeHvisIkkeSkadeOre - feriepengeModtagetOre - alleredeBetaltOre
-      ));
+      // result.totalOre er summen af beregnetSfggoereOre pr. segment (netto efter feriepenge og allerede betalt, inkl. pensionsandel tillagt).
+      const beregnetSygeferiegodtgoerelseOre = result.totalOre;
       const tafPeriodeRanges = mergeIsoDateRanges(
         result.segments.map((segment) => ({ fra: segment.fra, til: segment.til }))
       );

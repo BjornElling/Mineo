@@ -51,6 +51,9 @@ describe('buildEODebugSammentaellingModel regression', () => {
     expect(sammentaelling.beregningsenhed).toBe(TAF_BEREGNES_SOM.MAANEDER);
     expect(sammentaelling.taf.beregnetValue).not.toBeNull();
     expect(sammentaelling.taf.beregnetDisplay).not.toBe('-');
+    // tabelValue er null fordi tabellen ikke er udfyldt (tafPerioder er sat, men ingen løn er indtastet).
+    // beregnetValue ≠ tabelValue er forventet og korrekt i dette tilfælde.
+    expect(sammentaelling.taf.tabelValue).toBeNull();
   });
 
   it('tæller ikke arbejdsdage i beregningsperiode når beregningsgrundlag er Angivet månedsløn', () => {

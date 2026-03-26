@@ -21,7 +21,7 @@ import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../data/
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
 import { aarsloenAslMax } from '../../data/lovbestemteRates';
 import { getStatistiskLoenudvikling } from '../../data/statistiskeRates';
-import { getKRLSatstabel, formatKRLSatstabelDisplay, isKRLSatstabelId } from '../../data/KRLrates';
+import { getKRLSatstabel, formatKRLSatstabelDisplay, isKRLSatstabelId } from '../../data/krlRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { beregnHelligdage } from '../dates/shDageBeregning';

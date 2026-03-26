@@ -511,7 +511,9 @@ describe('computeEetLoebendeYdelser', () => {
 
     const steps = buildLoebendeAarsydelseReguleringSteps(afgoerelse);
     expect(steps).toEqual([]);
-    expect(shouldShowLoebende2024ConversionBlock(afgoerelse)).toBe(true);
+    // Afgørelsen ophører dagen inden virkningsdatoen (kapitaliseringsdato = virkningsdato),
+    // så perioder er tomme — 2024-konverteringsblokken skal IKKE vises.
+    expect(shouldShowLoebende2024ConversionBlock(afgoerelse)).toBe(false);
   });
 
   it('stopper løbende ydelse ved folkepensionsdato når endelig afgørelse er mere end 2 år før FP', () => {

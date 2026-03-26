@@ -133,26 +133,37 @@ export const resolveKapitaliseringAarsydelseBreakdown = (
     args.grundloen * (args.kapitaliseringspct / 100) * args.erstatningsniveau * args.amFaktor
   );
 
+  if (args.before2024Skade && args.kapitaliseringsaar < 2024) {
+    return {
+      grundydelse,
+      grundydelse2024: null,
+      opreguleringTil2024PctRounded4: null,
+      aarsydelseGrundlag: grundydelse,
+      aarsydelseReguleringsPctRounded4: round4(rateInfo.reguleringPct),
+      aarsydelse: round2(grundydelse * rateInfo.factor),
+    };
+  }
+
   if (args.before2024Skade) {
+    // kapitaliseringsaar >= 2024: opregulér grundydelse til 2024-niveau
     const opreguleringTil2024Pct = reguleringsprocentErhvervsevnetabFoer2024[2024];
     if (!Number.isFinite(opreguleringTil2024Pct)) {
       issues.push(toIssue('reguleringssats-missing', 'Reguleringssats mangler for år 2024.'));
       return null;
     }
 
-    if (args.kapitaliseringsaar >= 2024) {
-      const grundydelse2024 = round2(grundydelse * (1 + opreguleringTil2024Pct / 100));
-      const aarsydelse = round2(grundydelse2024 * rateInfo.factor);
-      return {
-        grundydelse,
-        grundydelse2024,
-        opreguleringTil2024PctRounded4: round4(opreguleringTil2024Pct),
-        aarsydelseGrundlag: grundydelse2024,
-        aarsydelseReguleringsPctRounded4:
-          args.kapitaliseringsaar === 2024 ? null : round4(rateInfo.reguleringPct),
-        aarsydelse,
-      };
-    }
+    const grundydelse2024 = round2(grundydelse * (1 + opreguleringTil2024Pct / 100));
+    const aarsydelse = round2(grundydelse2024 * rateInfo.factor);
+    return {
+      grundydelse,
+      grundydelse2024,
+      opreguleringTil2024PctRounded4: round4(opreguleringTil2024Pct),
+      aarsydelseGrundlag: grundydelse2024,
+      // År 2024 er referenceåret; regulering er per definition 0 og vises ikke (null).
+      aarsydelseReguleringsPctRounded4:
+        args.kapitaliseringsaar === 2024 ? null : round4(rateInfo.reguleringPct),
+      aarsydelse,
+    };
   }
 
   return {

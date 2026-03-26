@@ -136,7 +136,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       manuelFoerstEfterSygeloen: 'Nej',
       referenceperiodeFra: undefined,
       referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: undefined,
+      referenceperiodeFravaersdageUdenLoen: 0, // 0 svarer til parsed schema-default (ingen fraværsdage uden løn)
       satsvalg: undefined,
       alleredeBetaltBeloeb: undefined,
     }];
@@ -165,7 +165,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       manuelFoerstEfterSygeloen: 'Nej',
       referenceperiodeFra: undefined,
       referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: undefined,
+      referenceperiodeFravaersdageUdenLoen: 0, // 0 svarer til parsed schema-default (ingen fraværsdage uden løn)
       satsvalg: undefined,
       alleredeBetaltBeloeb: undefined,
     }];
@@ -196,7 +196,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       manuelFoerstEfterSygeloen: 'Nej',
       referenceperiodeFra: undefined,
       referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: undefined,
+      referenceperiodeFravaersdageUdenLoen: 0, // 0 svarer til parsed schema-default (ingen fraværsdage uden løn)
       satsvalg: undefined,
       alleredeBetaltBeloeb: undefined,
     }];
@@ -225,7 +225,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       manuelFoerstEfterSygeloen: 'Nej',
       referenceperiodeFra: undefined,
       referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: undefined,
+      referenceperiodeFravaersdageUdenLoen: 0, // 0 svarer til parsed schema-default (ingen fraværsdage uden løn)
       satsvalg: undefined,
       alleredeBetaltBeloeb: undefined,
     }];
@@ -269,15 +269,17 @@ describe('findSfggSixMonthWarningEmploymentIds', () => {
       manuelFoerstEfterSygeloen: 'Nej',
       referenceperiodeFra: undefined,
       referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: undefined,
+      referenceperiodeFravaersdageUdenLoen: 0, // 0 svarer til parsed schema-default (ingen fraværsdage uden løn)
       satsvalg: undefined,
       alleredeBetaltBeloeb: undefined,
     }];
 
+    const stamdata = { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') };
+    const tafRanges = [{ fra: iso('2024-08-01'), til: iso('2024-08-31') }];
+    const sfggResult = computeSygeferiegodtgoerelse({ values, stamdata, tafRanges, loenudviklingPerAnsaettelse: new Map() });
     const warningIds = findSfggSixMonthWarningEmploymentIds({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
-      tafRanges: [{ fra: iso('2024-08-01'), til: iso('2024-08-31') }],
+      result: sfggResult,
     });
 
     expect(warningIds).toEqual(['af-1']);

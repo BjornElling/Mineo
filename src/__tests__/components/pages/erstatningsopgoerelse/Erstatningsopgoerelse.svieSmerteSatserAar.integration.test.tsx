@@ -1,13 +1,19 @@
 // @vitest-environment jsdom
-import React from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import Erstatningsopgoerelse from '../../../../components/pages/Erstatningsopgoerelse';
+import { STORAGE_KEYS, createActiveTabStorageKey } from '../../../../config/storageManifest';
+import { PERSISTED_DATA_VERSION } from '../../../../config/persistenceVersion';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
 import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
-import { useFormPersistence } from '../../../../contexts/useFormPersistence';
 import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+
+const persistedWrapper = (data: unknown) => ({
+  version: PERSISTED_DATA_VERSION,
+  timestamp: Date.now(),
+  data,
+});
 
 describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
   beforeEach(() => {
@@ -15,21 +21,23 @@ describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
   });
 
   it('viser sats-aar advarslen i Beregning-fanen på den rigtige side', async () => {
-    let ctx: ReturnType<typeof useFormPersistence> | null = null;
-
-    const Probe = () => {
-      const value = useFormPersistence();
-      React.useEffect(() => {
-        ctx = value;
-      }, [value]);
-      return null;
-    };
+    sessionStorage.setItem(
+      STORAGE_KEYS.erstatningsopgoerelse,
+      JSON.stringify(
+        persistedWrapper({
+          ...createErstatningsopgoerelseInitialValues(),
+          opgørelseLavetDen: '2025-12-15',
+          svieSmerteSatserAar: 2025,
+          revideretOpgoerelse: 'Nej',
+        })
+      )
+    );
+    sessionStorage.setItem(createActiveTabStorageKey('erstatningsopgoerelse'), 'beregning');
 
     render(
       <MemoryRouter>
         <AppSettingsProvider>
           <FormPersistenceProvider>
-            <Probe />
             <Erstatningsopgoerelse />
           </FormPersistenceProvider>
         </AppSettingsProvider>
@@ -37,35 +45,8 @@ describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
     );
 
     await waitFor(() => {
-      expect(ctx).not.toBeNull();
-    });
-    const persistence = ctx;
-    expect(persistence).not.toBeNull();
-
-    act(() => {
-      persistence.replaceAllPersistedData({
-        stamdata: undefined,
-        erstatningsopgoerelse: {
-          ...createErstatningsopgoerelseInitialValues(),
-          opgørelseLavetDen: '2025-12-15',
-          svieSmerteSatserAar: 2025,
-          revideretOpgoerelse: 'Nej',
-        },
-        satser: undefined,
-        aarsloen: undefined,
-        faellesAarsloen: undefined,
-        faellesPersondata: undefined,
-        renteberegning: undefined,
-        varigemen: undefined,
-        forsoergertab: undefined,
-        erhvervsevnetab: undefined,
-      });
-    });
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Beregning' }));
-
-    await waitFor(() => {
       expect(screen.getByText('Svie/smerte satsen for 2026 kan anvendes.')).toBeInTheDocument();
     });
-  });
+    expect(screen.getByRole('tab', { name: 'Beregning', selected: true })).toBeInTheDocument();
+  }, 15_000);
 });

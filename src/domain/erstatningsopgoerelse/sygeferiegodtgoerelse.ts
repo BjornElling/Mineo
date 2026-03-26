@@ -27,7 +27,6 @@ const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calc
 
 type SfgSourceType = 'ingen' | 'manuel' | 'ferielov' | 'overenskomst_direkte' | 'overenskomst_ferielov';
 
-const formatIsoDate = (value: ISODateString): string => isoToDanish(value) ?? value;
 
 export type SygeferiegodtgoerelseSegment = Readonly<{
   ansaettelsesforholdId: string;
@@ -82,7 +81,7 @@ export type SygeferiegodtgoerelseResult = Readonly<{
   firstExcludedDate: ISODateString | null;
 }>;
 
-const EMPTY_RESULT: SygeferiegodtgoerelseResult = {
+export const EMPTY_RESULT: SygeferiegodtgoerelseResult = {
   totalOre: ensureMoneyOre(0),
   perAnsaettelsesforhold: [],
   firstExcludedDate: null,
@@ -277,6 +276,11 @@ const resolveSource = (
 const getEmploymentName = (employment: LoenindkomstAnsaettelsesforhold): string =>
   (employment.navnPaaArbejdssted ?? '').trim() || 'Arbejdssted';
 
+// Bevidst juridisk/faglig beslutning: enhver positiv lønindkomst — uanset art — betragtes
+// som udtryk for, at arbejdsgiver har betalt sygeløn i perioden. Col4 (ikke-pensionsgivende
+// tillæg) og col5 (ATP) er bevidst medtaget, fordi selv disse ydelsestyper indikerer en
+// løbende lønudbetaling under sygdom. En snævrere afgrænsning (f.eks. kun grundløn) er
+// fravalgt: er der overhovedet udbetalt løn, betragtes sygelønskriteriet som opfyldt.
 const rowHasPositiveIncome = (row: StandardLoenTableRow): boolean => {
   const values = [row.col2, row.col3, row.col4, row.col5]
     .map((value) => amountValueToNumber(value))
@@ -494,6 +498,11 @@ const resolveAdjustedRateOre = (
   if (source.kind !== 'overenskomst_ferielov') return baseRateOre;
   const segment = loenudvikling?.beregnedeSegmenter.find((entry) => iso >= entry.fra && iso <= entry.til);
   if (!segment) return baseRateOre;
+  // Bevidst undtagelse fra no-prerounding-princippet i form-contract.md:
+  // Referencesatsen er en dagssats, der udgør et selvstændigt beregningsresultat —
+  // ikke et delresultat i en længere beregningskæde. Afrunding pr. dag til øre-niveau
+  // er intentionel og afspejler, at den justerede dagssats er den kanoniske størrelse
+  // der ganges på antal dage. Ændres dette, opstår der akkumulerede afrundingsfejl.
   return toOre(roundKroner((baseRateOre / 100) * (100 + segment.deltaPct)));
 };
 
@@ -548,7 +557,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
           dateSet.delete(iso);
         }
       }
-      explanatoryLines.push(`Retten til sygeferiegodtgørelse er tidsbegrænset til 4 måneder og bortfaldt den ${formatIsoDate(capComputation.cutoffDate)}.`);
+      explanatoryLines.push(`Retten til sygeferiegodtgørelse er tidsbegrænset til 4 måneder og bortfaldt den ${isoToDanish(capComputation.cutoffDate) ?? capComputation.cutoffDate}.`);
     }
 
     if (employment.ansaettelsesforholdOphoert && employment.sidsteArbejdsdag) {
@@ -557,7 +566,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
           dateSet.delete(iso);
         }
       }
-      explanatoryLines.push(`Retten til sygeferiegodtgørelse bortfaldt den ${formatIsoDate(employment.sidsteArbejdsdag)} som følge af ansættelsesforholdets ophør.`);
+      explanatoryLines.push(`Retten til sygeferiegodtgørelse bortfaldt den ${isoToDanish(employment.sidsteArbejdsdag) ?? employment.sidsteArbejdsdag} som følge af ansættelsesforholdets ophør.`);
     }
 
     const overenskomstPolicy = employment.overenskomstId ? getOverenskomstSfggPolicy(employment.overenskomstId) : undefined;
@@ -690,14 +699,12 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
 
 export const findSfggSixMonthWarningEmploymentIds = (args: Readonly<{
   values: ErstatningsopgoerelseValues;
-  stamdata: StamdataValues;
-  tafRanges: readonly IsoRange[];
+  result: SygeferiegodtgoerelseResult;
 }>): readonly string[] => {
-  const result = computeSygeferiegodtgoerelse(args);
   const warningIds: string[] = [];
 
   for (const employment of args.values.loenindkomstAnsaettelsesforhold ?? []) {
-    const calculation = result.perAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
+    const calculation = args.result.perAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
     if (!calculation || calculation.segments.length === 0) continue;
     const lastIncomeDate = getLastIncomeDate(employment);
     if (!lastIncomeDate) continue;

@@ -41,7 +41,7 @@ import {
 } from '../../data/overenskomstRates';
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
-import { getKRLSatstabel, isKRLSatstabelId } from '../../data/KRLrates';
+import { getKRLSatstabel, isKRLSatstabelId } from '../../data/krlRates';
 import { getStatistiskLoenudvikling } from '../../data/statistiskeRates';
 import { STORE_BEDEDAG_PCT } from '../../config/regulatoryRates';
 import { STORE_BEDEDAG_START } from '../../config/dateRanges';

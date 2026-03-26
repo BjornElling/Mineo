@@ -2,6 +2,7 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import EODebug from '../../../../components/pages/erstatningsopgoerelse/EODebug';
+import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 const { eoSnapshotToDebugViewMock } = vi.hoisted(() => ({
   eoSnapshotToDebugViewMock: vi.fn(),
@@ -26,37 +27,8 @@ vi.mock('../../../../domain/erstatningsopgoerelse/eoSnapshotToDebugView', () => 
 
 describe('EODebug', () => {
   const createEmployment = (id: string) => ({
+    ...createDefaultLoenindkomstAnsaettelsesforhold(),
     id,
-    navnPaaArbejdssted: undefined,
-    harOverenskomst: true,
-    overenskomstId: undefined,
-    ansatPaaSkadestidspunktet: true,
-    ansaettelsesforholdOphoert: false,
-    sidsteArbejdsdag: undefined,
-    harAnciennitetstillaegEfterSkadesdatoen: false,
-    anciennitetstillaegDato: undefined,
-    anciennitetstillaegSatsAngivesPer: 'Måned' as const,
-    anciennitetstillaegSats: undefined,
-    feriePct: undefined,
-    fritvalgPct: undefined,
-    shSoPct: undefined,
-    storeBededagPct: undefined,
-    pensionPct: undefined,
-    loenperiode: 'maaned' as const,
-    fuldLoenUnderFerie: 'Ja' as const,
-    loenPaaHelligdage: 'Almindelig løn' as const,
-    saerligFraDatoRegulering: undefined,
-    indtaegtsoplysningerTableData: [],
-    loenudviklingBeregningsgrundlag: undefined,
-    loenudviklingStatistikModel: undefined,
-    loenudviklingKRLSatstabel: undefined,
-    loenudviklingManuelNavn: '',
-    loenudviklingManuelTableData: [],
-    offentligLoenType: 'Månedsløn' as const,
-    offentligLoenTrin: undefined,
-    offentligLoenGruppe: undefined,
-    offentligLoenEkstraGrundloen: undefined,
-    overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   });
 
   const renderComponent = (snapshot: React.ComponentProps<typeof EODebug>['eoSnapshot']) => {
@@ -1018,7 +990,7 @@ describe('EODebug', () => {
     expect(secondLabel.closest('.row--label-right-hover')).toBe(combinedRow);
     expect(thirdLabel.closest('.row--label-right-hover')).toBe(combinedRow);
     expect(fourthLabel.closest('.row--label-right-hover')).toBe(combinedRow);
-    expect(combinedRow?.querySelectorAll('[data-testid=\"CheckIcon\"]')).toHaveLength(1);
+    expect(combinedRow?.querySelectorAll('[data-testid="CheckIcon"]')).toHaveLength(1);
     expect(container.querySelectorAll('.row--label-right-hover')).toHaveLength(3);
   });
 });

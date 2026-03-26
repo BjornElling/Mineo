@@ -4,8 +4,8 @@ import {
   isKRLSatstabelId,
   formatKRLSatstabelDisplay,
   getReguleringsDatoIntervalForKRL,
-} from '../../data/KRLrates';
-import type { KRLSatstabelId } from '../../data/KRLrates';
+} from '../../data/krlRates';
+import type { KRLSatstabelId } from '../../data/krlRates';
 
 const KRL_IDS: KRLSatstabelId[] = [
   'KTO (kommuner)',

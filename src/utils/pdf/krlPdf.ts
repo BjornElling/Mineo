@@ -20,7 +20,7 @@ import {
   renderEoStylePdfTable,
 } from './pdfTableRenderer';
 import { TODAY } from '../../config/dateRanges';
-import { krlSatstabeller } from '../../data/KRLrates';
+import { krlSatstabeller } from '../../data/krlRates';
 import type { DanishDateString } from '../../types/branded';
 import { resolvePdfFileName } from './pdfFormatUtils';
 import { formatAsAmount } from '../formatUtils';

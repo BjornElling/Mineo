@@ -111,6 +111,12 @@ const Mineo = React.memo(() => {
           Bemærk, at hjælpeprogrammet kun kan installeres, hvis du benytter Google Chrome eller Microsoft Edge.
         </Typography>
 
+        {/* Bevidst UX-beslutning: denne toggle er placeret på Mineo-siden — ikke på
+            Indstillinger-siden. Mineo-siden er den første side nye brugere møder, og
+            det giver kontekst til valget: brugeren ser programbeskrivelsen og kan
+            derfra beslutte, om Stamdata skal være standardstart. Placeringen i
+            Indstillinger er fravalgt, fordi indstillingen er tæt knyttet til
+            introduktionen til programmet snarere end til tekniske præferencer. */}
         <Box className="row--label-right-hover">
           <Typography className="row--text">Gør stamdata-siden til startside fremover</Typography>
           <Box className="row--label-right-hover__content">

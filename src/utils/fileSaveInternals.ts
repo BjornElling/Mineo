@@ -10,9 +10,7 @@ import type {
   VerificationResult,
 } from './fileSaveTypes';
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return !!value && typeof value === 'object' && !Array.isArray(value);
-};
+import { isRecord } from './typeGuards';
 
 const getValueType = (value: unknown): string => {
   if (value === null) return 'null';

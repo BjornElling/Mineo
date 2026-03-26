@@ -1,6 +1,10 @@
 import { logWarning, logError } from './logger';
+import { isRecord } from './typeGuards';
 
 // IndexedDB database navn og version
+// VIGTIGT: Ved fremtidige skemaændringer skal DB_VERSION øges og logik tilføjes
+// til onupgradeneeded-handleren nedenfor. Undlad aldrig at opdatere onupgradeneeded
+// ved versionsskift — det er den eneste migrationsvej for IndexedDB.
 const DB_NAME = 'mineo_file_handles';
 const DB_VERSION = 1;
 const STORE_NAME = 'handles';
@@ -20,7 +24,7 @@ const openDatabase = (): Promise<IDBDatabase> => {
     request.onerror = () => {
       logError('Kunne ikke åbne IndexedDB', {
         context: 'openDatabase',
-        error: request.error as Error | undefined,
+        error: request.error ?? undefined,
       });
       reject(request.error);
     };
@@ -29,8 +33,8 @@ const openDatabase = (): Promise<IDBDatabase> => {
       resolve(request.result);
     };
 
-    request.onupgradeneeded = (event: any) => {
-      const db = (event.target as any).result as IDBDatabase;
+    request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
+      const db = (event.target as IDBOpenDBRequest).result;
 
       // Opret object store hvis den ikke findes
       if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -46,7 +50,7 @@ const openDatabase = (): Promise<IDBDatabase> => {
  *
  * @returns {Promise<boolean>} True hvis persistent storage er granted
  */
-export const requestPersistentStorage = async () => {
+export const requestPersistentStorage = async (): Promise<boolean> => {
   try {
     if (!navigator.storage || !navigator.storage.persist) {
       logWarning('Persistent storage API ikke tilgængelig');
@@ -56,8 +60,11 @@ export const requestPersistentStorage = async () => {
     const isPersisted = await navigator.storage.persist();
 
     return isPersisted;
-  } catch (error) {
-    logWarning('Kunne ikke anmode om persistent storage:', error);
+  } catch (error: unknown) {
+    logWarning('Kunne ikke anmode om persistent storage', {
+      context: 'requestPersistentStorage',
+      data: { errorMessage: error instanceof Error ? error.message : isRecord(error) ? String(error.message ?? '') : String(error) },
+    });
     return false;
   }
 };
@@ -69,6 +76,9 @@ export const requestPersistentStorage = async () => {
  * @returns {Promise<boolean>} True hvis gemt succesfuldt
  */
 export const saveFileHandleToIndexedDB = async (fileHandle: FileSystemFileHandle): Promise<boolean> => {
+  if (typeof indexedDB === 'undefined') {
+    return false;
+  }
   try {
 
     const db = await openDatabase();
@@ -85,7 +95,7 @@ export const saveFileHandleToIndexedDB = async (fileHandle: FileSystemFileHandle
       request.onerror = () => {
         logError('Kunne ikke gemme file handle', {
           context: 'saveFileHandleToIndexedDB',
-          error: request.error as Error | undefined,
+          error: request.error ?? undefined,
         });
         reject(request.error);
       };
@@ -95,8 +105,8 @@ export const saveFileHandleToIndexedDB = async (fileHandle: FileSystemFileHandle
       };
     });
 
-  } catch (error) {
-    logError('Fejl ved gemning af file handle:', error);
+  } catch (error: unknown) {
+    logError('Fejl ved gemning af file handle:', error instanceof Error ? error : new Error(String(error)));
     return false;
   }
 };
@@ -106,24 +116,27 @@ export const saveFileHandleToIndexedDB = async (fileHandle: FileSystemFileHandle
  *
  * @returns {Promise<FileSystemFileHandle|null>} File handle eller null
  */
-export const loadFileHandleFromIndexedDB = async () => {
+export const loadFileHandleFromIndexedDB = async (): Promise<FileSystemFileHandle | null> => {
+  if (typeof indexedDB === 'undefined') {
+    return null;
+  }
   try {
 
     const db = await openDatabase();
 
-    return new Promise((resolve, reject) => {
+    return new Promise<FileSystemFileHandle | null>((resolve, reject) => {
       const transaction = db.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
       const request = store.get(HANDLE_KEY);
 
       request.onsuccess = () => {
-        resolve(request.result || null);
+        resolve((request.result as FileSystemFileHandle | undefined) ?? null);
       };
 
       request.onerror = () => {
         logError('Kunne ikke hente file handle', {
           context: 'loadFileHandleFromIndexedDB',
-          error: request.error as Error | undefined,
+          error: request.error ?? undefined,
         });
         reject(request.error);
       };
@@ -133,8 +146,8 @@ export const loadFileHandleFromIndexedDB = async () => {
       };
     });
 
-  } catch (error) {
-    logError('Fejl ved hentning af file handle:', error);
+  } catch (error: unknown) {
+    logError('Fejl ved hentning af file handle:', error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 };
@@ -144,7 +157,10 @@ export const loadFileHandleFromIndexedDB = async () => {
  *
  * @returns {Promise<boolean>} True hvis slettet succesfuldt
  */
-export const deleteFileHandleFromIndexedDB = async () => {
+export const deleteFileHandleFromIndexedDB = async (): Promise<boolean> => {
+  if (typeof indexedDB === 'undefined') {
+    return false;
+  }
   try {
 
     const db = await openDatabase();
@@ -161,7 +177,7 @@ export const deleteFileHandleFromIndexedDB = async () => {
       request.onerror = () => {
         logError('Kunne ikke slette file handle', {
           context: 'deleteFileHandleFromIndexedDB',
-          error: request.error as Error | undefined,
+          error: request.error ?? undefined,
         });
         reject(request.error);
       };
@@ -171,8 +187,8 @@ export const deleteFileHandleFromIndexedDB = async () => {
       };
     });
 
-  } catch (error) {
-    logError('Fejl ved sletning af file handle:', error);
+  } catch (error: unknown) {
+    logError('Fejl ved sletning af file handle:', error instanceof Error ? error : new Error(String(error)));
     return false;
   }
 };
@@ -191,64 +207,61 @@ export const verifyFileHandle = async (handle: FileSystemFileHandle | null | und
     }
     type PermissionCapableHandle = FileSystemFileHandle & {
       queryPermission: (descriptor?: { mode?: 'read' | 'readwrite' }) => Promise<PermissionState>;
-      requestPermission: (descriptor?: { mode?: 'read' | 'readwrite' }) => Promise<PermissionState>;
     };
     const permissionHandle = handle as Partial<PermissionCapableHandle>;
-    if (typeof permissionHandle.queryPermission !== 'function' || typeof permissionHandle.requestPermission !== 'function') {
+    if (typeof permissionHandle.queryPermission !== 'function') {
       return false;
     }
 
     // Tjek først om filen stadig eksisterer
     try {
       await handle.getFile();
-    } catch (error) {
+    } catch (error: unknown) {
       // Fil eksisterer ikke længere eller vi har ikke adgang
-      if (error.name === 'NotFoundError') {
+      const errName = error instanceof Error ? error.name : isRecord(error) ? String(error.name ?? '') : undefined;
+      const errMessage = error instanceof Error ? error.message : isRecord(error) ? String(error.message ?? '') : undefined;
+      if (errName === 'NotFoundError') {
         logWarning('Fil blev ikke fundet - er sandsynligvis blevet slettet eller flyttet');
         return false;
       }
-      if (error.name === 'NotAllowedError') {
+      if (errName === 'NotAllowedError') {
         // Fortsæt til permission-tjek nedenfor
       } else {
         // Andre uventede fejl
         logWarning('Kunne ikke få adgang til fil', {
           context: 'verifyFileHandle',
-          data: { errorName: error.name, errorMessage: error.message },
+          data: { errorName: errName, errorMessage: errMessage },
         });
         // Fortsæt til permission-tjek for at se om vi kan få adgang
       }
     }
 
     // Tjek om vi stadig har read/write permission
+    // Kalder kun queryPermission — requestPermission må kun kaldes fra direkte brugergestus-handlers
     try {
       const permission = await permissionHandle.queryPermission({ mode: 'readwrite' });
 
-      if (permission === 'granted') {
-        return true;
-      }
+      return permission === 'granted';
 
-      // Forsøg at anmode om permission
-      const newPermission = await permissionHandle.requestPermission({ mode: 'readwrite' });
-
-      if (newPermission === 'granted') {
-        return true;
-      }
-
-      return false;
-
-    } catch (permError: any) {
+    } catch (permError: unknown) {
       // Permission API kan fejle hvis browseren ikke understøtter det
       logWarning('Permission API fejlede', {
         context: 'verifyFileHandle.permissionCheck',
-        data: { errorName: permError?.name, errorMessage: permError?.message },
+        data: {
+          errorName: permError instanceof Error ? permError.name : isRecord(permError) ? String(permError.name ?? '') : undefined,
+          errorMessage: permError instanceof Error ? permError.message : isRecord(permError) ? String(permError.message ?? '') : undefined,
+        },
       });
       return false;
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logWarning('File handle validering fejlede', {
       context: 'verifyFileHandle',
-      data: { errorName: error?.name, errorMessage: error?.message },
+      data: {
+        errorName: error instanceof Error ? error.name : isRecord(error) ? String(error.name ?? '') : undefined,
+        errorMessage: error instanceof Error ? error.message : isRecord(error) ? String(error.message ?? '') : undefined,
+      },
     });
     return false;
   }
@@ -286,6 +299,9 @@ export interface DirectoryHandleMeta {
  * @throws {Error} Hvis gemning fejler
  */
 export const saveDefaultDirectoryHandle = async (directoryHandle: FileSystemDirectoryHandle): Promise<string | null> => {
+  if (typeof indexedDB === 'undefined') {
+    return null;
+  }
   try {
 
     const db = await openDatabase();
@@ -329,7 +345,7 @@ export const saveDefaultDirectoryHandle = async (directoryHandle: FileSystemDire
       handleRequest.onerror = () => {
         logError('Kunne ikke gemme directory handle', {
           context: 'saveDefaultDirectoryHandle',
-          error: handleRequest.error as Error | undefined,
+          error: handleRequest.error ?? undefined,
         });
         reject(handleRequest.error);
       };
@@ -337,7 +353,7 @@ export const saveDefaultDirectoryHandle = async (directoryHandle: FileSystemDire
       metaRequest.onerror = () => {
         logError('Kunne ikke gemme directory metadata', {
           context: 'saveDefaultDirectoryHandle',
-          error: metaRequest.error as Error | undefined,
+          error: metaRequest.error ?? undefined,
         });
         reject(metaRequest.error);
       };
@@ -347,8 +363,8 @@ export const saveDefaultDirectoryHandle = async (directoryHandle: FileSystemDire
       };
     });
 
-  } catch (error) {
-    logError('Fejl ved gemning af directory handle:', error);
+  } catch (error: unknown) {
+    logError('Fejl ved gemning af directory handle:', error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 };
@@ -403,6 +419,9 @@ export const getDirectoryDisplayInfo = async (): Promise<DirectoryHandleMeta | n
  * @returns {Promise<FileSystemDirectoryHandle|null>} Directory handle eller null
  */
 export const loadDefaultDirectoryHandle = async (): Promise<FileSystemDirectoryHandle | null> => {
+  if (typeof indexedDB === 'undefined') {
+    return null;
+  }
   try {
 
     const db = await openDatabase();
@@ -419,7 +438,7 @@ export const loadDefaultDirectoryHandle = async (): Promise<FileSystemDirectoryH
       request.onerror = () => {
         logError('Kunne ikke hente directory handle', {
           context: 'loadDefaultDirectoryHandle',
-          error: request.error as Error | undefined,
+          error: request.error ?? undefined,
         });
         reject(request.error);
       };
@@ -429,8 +448,8 @@ export const loadDefaultDirectoryHandle = async (): Promise<FileSystemDirectoryH
       };
     });
 
-  } catch (error) {
-    logError('Fejl ved hentning af directory handle:', error);
+  } catch (error: unknown) {
+    logError('Fejl ved hentning af directory handle:', error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 };
@@ -441,6 +460,9 @@ export const loadDefaultDirectoryHandle = async (): Promise<FileSystemDirectoryH
  * @returns {Promise<boolean>} True hvis slettet succesfuldt
  */
 export const deleteDefaultDirectoryHandle = async (): Promise<boolean> => {
+  if (typeof indexedDB === 'undefined') {
+    return false;
+  }
   try {
 
     const db = await openDatabase();
@@ -475,7 +497,7 @@ export const deleteDefaultDirectoryHandle = async (): Promise<boolean> => {
       handleRequest.onerror = () => {
         logError('Kunne ikke slette directory handle', {
           context: 'deleteDefaultDirectoryHandle',
-          error: handleRequest.error as Error | undefined,
+          error: handleRequest.error ?? undefined,
         });
         reject(handleRequest.error);
       };
@@ -483,7 +505,7 @@ export const deleteDefaultDirectoryHandle = async (): Promise<boolean> => {
       metaRequest.onerror = () => {
         logError('Kunne ikke slette directory metadata', {
           context: 'deleteDefaultDirectoryHandle',
-          error: metaRequest.error as Error | undefined,
+          error: metaRequest.error ?? undefined,
         });
         reject(metaRequest.error);
       };
@@ -493,8 +515,8 @@ export const deleteDefaultDirectoryHandle = async (): Promise<boolean> => {
       };
     });
 
-  } catch (error) {
-    logError('Fejl ved sletning af directory handle:', error);
+  } catch (error: unknown) {
+    logError('Fejl ved sletning af directory handle:', error instanceof Error ? error : new Error(String(error)));
     return false;
   }
 };
@@ -513,35 +535,32 @@ export const verifyDirectoryHandle = async (handle: FileSystemDirectoryHandle): 
     }
 
     // Tjek om vi har readwrite permission
+    // Kalder kun queryPermission — requestPermission må kun kaldes fra direkte brugergestus-handlers
     try {
       const permission = await handle.queryPermission({ mode: 'readwrite' });
 
-      if (permission === 'granted') {
-        return true;
-      }
+      return permission === 'granted';
 
-      // Forsøg at anmode om permission
-      const newPermission = await handle.requestPermission({ mode: 'readwrite' });
-
-      if (newPermission === 'granted') {
-        return true;
-      }
-
-      return false;
-
-    } catch (permError: any) {
+    } catch (permError: unknown) {
       // Permission kan fejle hvis mappen er slettet
+      const permErr = permError instanceof Error ? permError : isRecord(permError) ? permError : null;
       logWarning('Directory permission tjek fejlede', {
         context: 'verifyDirectoryHandle.permissionCheck',
-        data: { errorName: permError?.name, errorMessage: permError?.message },
+        data: {
+          errorName: permErr instanceof Error ? permErr.name : isRecord(permErr) ? String(permErr.name ?? '') : undefined,
+          errorMessage: permErr instanceof Error ? permErr.message : isRecord(permErr) ? String(permErr.message ?? '') : undefined,
+        },
       });
       return false;
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logWarning('Directory handle validering fejlede', {
       context: 'verifyDirectoryHandle',
-      data: { errorName: error?.name, errorMessage: error?.message },
+      data: {
+        errorName: error instanceof Error ? error.name : isRecord(error) ? String(error.name ?? '') : undefined,
+        errorMessage: error instanceof Error ? error.message : isRecord(error) ? String(error.message ?? '') : undefined,
+      },
     });
     return false;
   }
@@ -575,7 +594,7 @@ export const savePendingPwaOpenRequestToIndexedDB = async (request: StoredPendin
       idbRequest.onerror = () => {
         logError('Kunne ikke gemme pending PWA-open request', {
           context: 'savePendingPwaOpenRequestToIndexedDB',
-          error: idbRequest.error as Error | undefined,
+          error: idbRequest.error ?? undefined,
         });
         reject(idbRequest.error);
       };
@@ -584,8 +603,8 @@ export const savePendingPwaOpenRequestToIndexedDB = async (request: StoredPendin
         db.close();
       };
     });
-  } catch (error) {
-    logError('Fejl ved gemning af pending PWA-open request:', error);
+  } catch (error: unknown) {
+    logError('Fejl ved gemning af pending PWA-open request:', error instanceof Error ? error : new Error(String(error)));
     return false;
   }
 };
@@ -609,7 +628,7 @@ export const loadPendingPwaOpenRequestFromIndexedDB = async (): Promise<StoredPe
       idbRequest.onerror = () => {
         logError('Kunne ikke hente pending PWA-open request', {
           context: 'loadPendingPwaOpenRequestFromIndexedDB',
-          error: idbRequest.error as Error | undefined,
+          error: idbRequest.error ?? undefined,
         });
         reject(idbRequest.error);
       };
@@ -618,8 +637,8 @@ export const loadPendingPwaOpenRequestFromIndexedDB = async (): Promise<StoredPe
         db.close();
       };
     });
-  } catch (error) {
-    logError('Fejl ved hentning af pending PWA-open request:', error);
+  } catch (error: unknown) {
+    logError('Fejl ved hentning af pending PWA-open request:', error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 };
@@ -643,7 +662,7 @@ export const deletePendingPwaOpenRequestFromIndexedDB = async (): Promise<boolea
       idbRequest.onerror = () => {
         logError('Kunne ikke slette pending PWA-open request', {
           context: 'deletePendingPwaOpenRequestFromIndexedDB',
-          error: idbRequest.error as Error | undefined,
+          error: idbRequest.error ?? undefined,
         });
         reject(idbRequest.error);
       };
@@ -652,8 +671,8 @@ export const deletePendingPwaOpenRequestFromIndexedDB = async (): Promise<boolea
         db.close();
       };
     });
-  } catch (error) {
-    logError('Fejl ved sletning af pending PWA-open request:', error);
+  } catch (error: unknown) {
+    logError('Fejl ved sletning af pending PWA-open request:', error instanceof Error ? error : new Error(String(error)));
     return false;
   }
 };

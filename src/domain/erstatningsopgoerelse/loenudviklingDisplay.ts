@@ -1,6 +1,6 @@
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import { getOverenskomstMetaById } from '../../data/overenskomstRates';
-import { formatKRLSatstabelDisplay } from '../../data/KRLrates';
+import { formatKRLSatstabelDisplay } from '../../data/krlRates';
 
 export const resolveValgtReguleringDisplay = (
   ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]

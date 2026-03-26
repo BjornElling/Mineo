@@ -55,7 +55,8 @@ const isStoredPwaFileOpenRequest = (value: unknown): value is PwaFileOpenRequest
     && typeof candidate.createdAtEpochMs === 'number'
     && typeof candidate.fileName === 'string'
     && typeof candidate.ignoredFileCount === 'number'
-    && !!candidate.fileHandle;
+    && !!candidate.fileHandle
+    && (candidate.targetUrl === undefined || typeof candidate.targetUrl === 'string');
 };
 
 const dispatchPendingRequestEvent = (request: PwaFileOpenRequest): void => {

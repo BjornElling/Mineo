@@ -642,10 +642,7 @@ export const buildLoebendeAarsydelseReguleringSteps = (
 export const shouldShowLoebende2024ConversionBlock = (
   afgoerelse: EetLoebendeAfgoerelseComputation
 ): boolean => {
-  if (afgoerelse.perioder.some((row) => row.satsAar >= 2024)) {
-    return true;
-  }
-  return toYear(afgoerelse.afgoerelsesdato) >= 2024;
+  return afgoerelse.perioder.some((row) => row.satsAar >= 2024);
 };
 
 export const toAfgoerelseTypeLabel = (

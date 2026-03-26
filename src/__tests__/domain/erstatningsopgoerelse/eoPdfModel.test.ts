@@ -1,7 +1,7 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { LoenudviklingPdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
 import { ensureMoneyOre, resolveLoenudviklingRows } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
@@ -9,7 +9,7 @@ import type { PdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModelT
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
 import * as statistikRatesData from '../../../data/statistiskeRates';
-import * as krlRatesData from '../../../data/KRLrates';
+import * as krlRatesData from '../../../data/krlRates';
 import * as overenskomstRatesData from '../../../data/overenskomstRates';
 import * as offentligLoenLookupData from '../../../data/offentligLoenLookup';
 import type { OffentligLoenResultat } from '../../../data/offentligLoenTypes';
@@ -22,47 +22,24 @@ const iso = (value: string) => toISODateString(value);
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 
-const makeBlankAnsaettelsesforhold = (): ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number] => ({
-  id: 'af-1',
+// Baseline for test-ansættelsesforhold: kanonisk factory med bevidst testspecifikke overrides.
+// Værdier som feriePct: 0, harOverenskomst: false m.fl. er testvalg, ikke system-defaults.
+const makeTestAnsaettelsesforholdBase = (): ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number] => ({
+  ...createDefaultLoenindkomstAnsaettelsesforhold(),
   navnPaaArbejdssted: 'Arbejdssted',
   harOverenskomst: false,
-  overenskomstId: undefined,
-  ansatPaaSkadestidspunktet: true,
-  ansaettelsesforholdOphoert: false,
-  sidsteArbejdsdag: undefined,
-  harAnciennitetstillaegEfterSkadesdatoen: false,
-  anciennitetstillaegDato: undefined,
-  anciennitetstillaegSatsAngivesPer: 'Måned',
-  anciennitetstillaegSats: undefined,
   feriePct: 0,
   fritvalgPct: 0,
   shSoPct: 0,
   storeBededagPct: 0,
   pensionPct: 0,
-  loenperiode: 'maaned',
-  indtaegtsoplysningerTableData: [],
-  fuldLoenUnderFerie: 'Ja',
-  loenPaaHelligdage: 'Almindelig løn',
-  saerligFraDatoRegulering: undefined,
   loenudviklingBeregningsgrundlag: 'Ingen',
-  loenudviklingStatistikModel: undefined,
-  loenudviklingKRLSatstabel: undefined,
-  loenudviklingManuelNavn: '',
-  loenudviklingManuelTableData: [],
-  offentligLoenType: 'Månedsløn',
-  offentligLoenTrin: undefined,
-  offentligLoenGruppe: undefined,
-  offentligLoenEkstraGrundloen: undefined,
-  overenskomstFilter: {
-    loenmodtager: undefined,
-    arbejdsgiver: undefined,
-  },
 });
 
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
   const base = structuredClone(createErstatningsopgoerelseInitialValues());
   if (base.loenindkomstAnsaettelsesforhold.length === 0) {
-    base.loenindkomstAnsaettelsesforhold = [makeBlankAnsaettelsesforhold()];
+    base.loenindkomstAnsaettelsesforhold = [makeTestAnsaettelsesforholdBase()];
   }
   // Sæt minimums-gyldige defaults så computeEoSnapshot passerer validering i tests der ikke tester TAF-specifik logik.
   // De tilsvarende tests der tester specifikke valideringsfejl overstyrer disse defaults.
@@ -70,15 +47,9 @@ const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): Erstatningsopg
     base.periodeTilBeregningFra = iso('2024-01-01');
     base.periodeTilBeregningTil = iso('2024-12-31');
   }
-  // Sæt loenudviklingBeregningsgrundlag: 'Ingen' på primær ansættelse hvis ikke allerede sat
-  if (base.loenindkomstAnsaettelsesforhold[0]?.loenudviklingBeregningsgrundlag === undefined) {
-    base.loenindkomstAnsaettelsesforhold = base.loenindkomstAnsaettelsesforhold.map((af, i) =>
-      i === 0 ? { ...af, loenudviklingBeregningsgrundlag: 'Ingen' as const } : af
-    );
-  }
   const merged = { ...base, ...patch };
   merged.loenindkomstAnsaettelsesforhold = (merged.loenindkomstAnsaettelsesforhold ?? []).map((af, index) => ({
-    ...makeBlankAnsaettelsesforhold(),
+    ...makeTestAnsaettelsesforholdBase(),
     ...af,
     id: af.id ?? `af-${index + 1}`,
     overenskomstFilter: af.overenskomstFilter ?? {
@@ -207,8 +178,8 @@ describe('eoPdfModel', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
       loenindkomstAnsaettelsesforhold: [
-        { ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0], id: 'a1' },
-        { ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0], id: 'a2' },
+        { ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'a1' },
+        { ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'a2' },
       ],
     });
     const rows = resolveLoenudviklingRows(values);
@@ -219,8 +190,8 @@ describe('eoPdfModel', () => {
     const values = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       loenindkomstAnsaettelsesforhold: [
-        { ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0], id: 'a1' },
-        { ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0], id: 'a2' },
+        { ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'a1' },
+        { ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'a2' },
       ],
     });
     const rows = resolveLoenudviklingRows(values);
@@ -266,7 +237,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           indtaegtsoplysningerTableData: [],
         },
@@ -291,7 +262,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           indtaegtsoplysningerTableData: [],
         },
@@ -325,7 +296,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           indtaegtsoplysningerTableData: [],
         },
@@ -399,7 +370,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           indtaegtsoplysningerTableData: [],
         },
@@ -434,7 +405,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           indtaegtsoplysningerTableData: [],
         },
@@ -598,7 +569,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: 'ASL-årslønsmaksimum',
         },
@@ -622,7 +593,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           navnPaaArbejdssted: 'Ansættelse A',
           loenperiode: 'dag',
           loenudviklingBeregningsgrundlag: 'Ingen',
@@ -693,7 +664,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -730,7 +701,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: undefined,
         },
       ],
@@ -761,7 +732,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Manuelt angivet',
           feriePct: 12.5,
           loenudviklingManuelNavn: 'Manuel test',
@@ -795,7 +766,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Manuelt angivet',
           feriePct: undefined,
           loenudviklingManuelNavn: 'Manuel test',
@@ -831,7 +802,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           overenskomstId: 'bygge-anlaeg',
           feriePct: undefined,
@@ -866,7 +837,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           id: 'a1',
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           overenskomstId: 'bygge-anlaeg',
@@ -915,7 +886,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: loenudviklingStatistikModelEnum.enum['ASL-årslønsmaksimum'],
         },
@@ -952,7 +923,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           overenskomstId: 'bygge-anlaeg',
           feriePct: 12.5,
@@ -990,7 +961,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           overenskomstId: 'laerer-overenskomsten',
           offentligLoenType: 'Månedsløn',
@@ -1024,7 +995,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           overenskomstId: 'laerer-overenskomsten',
           offentligLoenType: 'Månedsløn',
@@ -1132,7 +1103,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Manuelt angivet',
           feriePct: 12.5,
           loenudviklingManuelNavn: 'Manuel test',
@@ -1176,7 +1147,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Manuelt angivet',
           feriePct: 12.5,
           loenudviklingManuelNavn: 'Manuel test',
@@ -1217,7 +1188,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Manuelt angivet',
           feriePct: 12.5,
           loenudviklingManuelNavn: 'Manuel test',
@@ -1258,7 +1229,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Manuelt angivet',
           feriePct: 12.5,
           loenudviklingManuelNavn: 'Manuel test',
@@ -1297,7 +1268,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Manuelt angivet',
           feriePct: 12.5,
           loenudviklingManuelNavn: 'Manuel test',
@@ -1336,7 +1307,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Manuelt angivet',
           feriePct: 15,
           loenudviklingManuelNavn: 'Manuel test',
@@ -1376,7 +1347,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           id: 'a1',
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: loenudviklingStatistikModelEnum.enum['ASL-årslønsmaksimum'],
@@ -1397,7 +1368,7 @@ describe('eoPdfModel', () => {
           ],
         },
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           id: 'a2',
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
@@ -1452,7 +1423,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           id: 'a1',
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           overenskomstId: 'bygge-anlaeg',
@@ -1475,7 +1446,7 @@ describe('eoPdfModel', () => {
           ],
         },
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           id: 'a2',
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
@@ -1529,7 +1500,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           id: 'a1',
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
@@ -1550,7 +1521,7 @@ describe('eoPdfModel', () => {
           ],
         },
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           id: 'a2',
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
@@ -1610,7 +1581,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           indtaegtsoplysningerTableData: [],
         },
@@ -1634,7 +1605,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           indtaegtsoplysningerTableData: [],
         },
@@ -1703,7 +1674,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           indtaegtsoplysningerTableData: [],
         },
@@ -1731,7 +1702,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           indtaegtsoplysningerTableData: [],
         },
@@ -1758,7 +1729,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           indtaegtsoplysningerTableData: [],
         },
@@ -1784,7 +1755,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           indtaegtsoplysningerTableData: [],
         },
@@ -1812,7 +1783,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           indtaegtsoplysningerTableData: [],
         },
@@ -1862,7 +1833,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           fuldLoenUnderFerie: 'Ja',
           loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
@@ -1916,7 +1887,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           fuldLoenUnderFerie: 'Ja',
           loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
@@ -1976,7 +1947,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           fuldLoenUnderFerie: 'Nej',
           loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
@@ -2026,7 +1997,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           indtaegtsoplysningerTableData: [],
         },
@@ -2060,7 +2031,7 @@ describe('eoPdfModel', () => {
     ['Angivet dagsløn'],
   ] as const)('anvender statistik-fallback (variant B) for manglende basisdækning ved %s', (beregningsmetode) => {
     const baseAf = {
-      ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
       loenudviklingBeregningsgrundlag: 'Statistik' as const,
       loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
       indtaegtsoplysningerTableData: [
@@ -2128,7 +2099,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
           saerligFraDatoRegulering: iso('2000-01-01'),
@@ -2167,7 +2138,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: loenudviklingStatistikModelEnum.enum['ASL-årslønsmaksimum'],
         },
@@ -2190,7 +2161,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'KRL satstabel',
           loenudviklingKRLSatstabel: 'KTO (kommuner)',
         },
@@ -2213,7 +2184,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           overenskomstId: 'bygge-anlaeg',
           feriePct: 12.5,
@@ -2238,7 +2209,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           overenskomstId: 'laerer-overenskomsten',
           offentligLoenType: 'Månedsløn',
@@ -2266,7 +2237,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           overenskomstId: 'kl-overenskomst',
           offentligLoenType: 'Timeløn',
@@ -2293,7 +2264,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           overenskomstId: 'laasesmedeoverenskomsten',
           feriePct: 12.5,
@@ -2327,7 +2298,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Manuelt angivet',
           loenudviklingManuelNavn: 'overenskomst Tandlægeforening/HK',
           loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
@@ -2388,7 +2359,7 @@ describe('eoPdfModel', () => {
         tafPerioder: [{ id: 'taf-1', fra: iso('2006-01-01'), til: iso('2006-12-31'), loseFeriedage: undefined }],
         loenindkomstAnsaettelsesforhold: [
           {
-            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            ...createDefaultLoenindkomstAnsaettelsesforhold(),
             loenudviklingBeregningsgrundlag: 'Statistik',
             loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
           },
@@ -2416,7 +2387,7 @@ describe('eoPdfModel', () => {
         tafPerioder: [{ id: 'taf-1', fra: iso('2005-01-01'), til: iso('2006-12-31'), loseFeriedage: undefined }],
         loenindkomstAnsaettelsesforhold: [
           {
-            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            ...createDefaultLoenindkomstAnsaettelsesforhold(),
             loenudviklingBeregningsgrundlag: 'Statistik',
             loenudviklingStatistikModel: loenudviklingStatistikModelEnum.enum['ASL-årslønsmaksimum'],
           },
@@ -2448,7 +2419,7 @@ describe('eoPdfModel', () => {
         tafPerioder: [{ id: 'taf-1', fra: iso('2001-04-01'), til: iso('2002-01-01'), loseFeriedage: undefined }],
         loenindkomstAnsaettelsesforhold: [
           {
-            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            ...createDefaultLoenindkomstAnsaettelsesforhold(),
             loenudviklingBeregningsgrundlag: 'KRL satstabel',
             loenudviklingKRLSatstabel: 'KTO (kommuner)',
           },
@@ -2484,7 +2455,7 @@ describe('eoPdfModel', () => {
         tafPerioder: [{ id: 'taf-1', fra: iso('2011-03-01'), til: iso('2011-12-31'), loseFeriedage: undefined }],
         loenindkomstAnsaettelsesforhold: [
           {
-            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            ...createDefaultLoenindkomstAnsaettelsesforhold(),
             loenudviklingBeregningsgrundlag: 'Overenskomst',
             overenskomstId: 'bygge-anlaeg',
             feriePct: 12.5,
@@ -2518,7 +2489,7 @@ describe('eoPdfModel', () => {
         tafPerioder: [{ id: 'taf-1', fra: iso('2012-01-01'), til: iso('2012-12-31'), loseFeriedage: undefined }],
         loenindkomstAnsaettelsesforhold: [
           {
-            ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+            ...createDefaultLoenindkomstAnsaettelsesforhold(),
             loenudviklingBeregningsgrundlag: 'Overenskomst',
             overenskomstId: 'laerer-overenskomsten',
             offentligLoenType: 'Månedsløn',

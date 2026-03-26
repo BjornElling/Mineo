@@ -16,13 +16,9 @@ import { isoDateToDate } from '../dates/isoDate';
 import { addDays } from '../../utils/dateUtils';
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import type { StatistiskLoenudviklingId } from '../../data/statistiskeRates';
-import { roundByMethod } from '../../utils/rounding';
+import { round2 } from '../../utils/roundingShortcuts';
 import { formatAsAmount } from '../../utils/formatUtils';
 import { TIMER_TIL_MAANED_FAKTOR } from '../../config/regulatoryRates';
-
-// =============================================================================
-// KONSTANTER
-// =============================================================================
 
 // =============================================================================
 // DATO-FUNKTIONER
@@ -71,8 +67,6 @@ export const formatPercentFixed2 = (value: number): string => {
   return `${formatAsAmount(value, 2)} %`;
 };
 
-// Intern runding-shortcut — eksporteres ikke; brug roundingShortcuts.ts (round2) eksternt.
-const roundToTwoDecimals = (value: number): number => roundByMethod(value, 2, 'halfAwayFromZero');
 
 export const formatAmount2 = (value: number): string =>
   formatAsAmount(value, 2);
@@ -94,9 +88,9 @@ export const resolvePctPointFromSatsOrInput = (
   inputPct: number | undefined
 ): number => {
   if (typeof overenskomstPctDecimal === 'number' && Number.isFinite(overenskomstPctDecimal)) {
-    return roundToTwoDecimals(overenskomstPctDecimal * 100);
+    return round2(overenskomstPctDecimal * 100);
   }
-  return typeof inputPct === 'number' && Number.isFinite(inputPct) ? roundToTwoDecimals(inputPct) : 0;
+  return typeof inputPct === 'number' && Number.isFinite(inputPct) ? round2(inputPct) : 0;
 };
 
 /**
@@ -149,7 +143,7 @@ export const resolveOffentligLoenEkstraGrundloen = (
   grundloenPer: 'Måned' | 'Time'
 ): number => {
   if (typeof rawAmount !== 'number' || !Number.isFinite(rawAmount) || rawAmount <= 0) return 0;
-  return roundToTwoDecimals(convertAnciennitetSats(rawAmount, inputPer, grundloenPer));
+  return round2(convertAnciennitetSats(rawAmount, inputPer, grundloenPer));
 };
 
 
@@ -170,8 +164,8 @@ export const formatAnciennitetConversion = (
   grundloenAngivetPer: 'Time' | 'Måned',
   formatAmount: (value: number) => string
 ): Readonly<{ displayText: string; convertedValue: number }> => {
-  const roundedInput = roundToTwoDecimals(inputAmount);
-  const convertedValue = roundToTwoDecimals(convertAnciennitetSats(roundedInput, inputPer, grundloenAngivetPer));
+  const roundedInput = round2(inputAmount);
+  const convertedValue = round2(convertAnciennitetSats(roundedInput, inputPer, grundloenAngivetPer));
   const inputText = formatAmount(roundedInput);
   const convertedText = formatAmount(convertedValue);
   const factorText = formatAmount(TIMER_TIL_MAANED_FAKTOR);

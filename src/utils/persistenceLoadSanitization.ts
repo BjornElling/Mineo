@@ -3,9 +3,7 @@ import { z } from 'zod';
 type ZodSchema = z.ZodType;
 export type UnknownPath = Array<string | number>;
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return !!value && typeof value === 'object' && !Array.isArray(value);
-};
+import { isRecord } from './typeGuards';
 
 /**
  * Pakker et Zod-schema ud til dets inderste ZodObject eller ZodArray.

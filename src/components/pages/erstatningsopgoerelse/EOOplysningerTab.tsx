@@ -86,7 +86,7 @@ import {
   ASL_AARSLOENSMAKSIMUM_MODEL_LABEL,
   getReguleringsDatoIntervalForStatistikModel,
 } from '../../../data/statistiskeRates';
-import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
+import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/krlRates';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '../../../utils/pdf/pdfService';
 import { formatCurrency } from '../../../utils/formatUtils';
@@ -266,7 +266,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
         beregnesUdFra: undefined,
         referenceperiodeFra: undefined,
         referenceperiodeTil: undefined,
-        referenceperiodeFravaersdageUdenLoen: undefined,
+        referenceperiodeFravaersdageUdenLoen: 0,
         manuelDagssats: undefined,
         manuelBeloebIHenholdTil: undefined,
         manuelFoerstEfterSygeloen: 'Nej' as const,
@@ -2717,12 +2717,12 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                             <StyledIntegerField
                               width={100}
                               minValue={0}
-                              maxValue={sfggReferenceperiodeFravaersdageMax}
-                              value={row?.referenceperiodeFravaersdageUdenLoen}
+                              maxValue={sfggReferenceperiodeFravaersdageMax ?? DAY_COUNT_MAX}
+                              value={row?.referenceperiodeFravaersdageUdenLoen ?? 0}
                               onCommit={(event) => {
                                 updateSfggAnsaettelsesforhold(ansaettelsesforhold.id, (current) => ({
                                   ...current,
-                                  referenceperiodeFravaersdageUdenLoen: event.target.value,
+                                  referenceperiodeFravaersdageUdenLoen: event.target.value ?? 0,
                               }));
                             }}
                           />

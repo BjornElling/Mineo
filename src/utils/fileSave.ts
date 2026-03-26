@@ -31,6 +31,7 @@ import {
   buildAllDataRawFromSnapshot,
   verifyAfterSave,
 } from './fileSaveInternals';
+import { isRecord, asError } from './typeGuards';
 
 export class SaveIntegrityError extends Error {
   readonly kind = 'integrity' as const;
@@ -56,9 +57,6 @@ export class SaveValidationError extends Error {
   }
 }
 
-const asError = (value: unknown): Error => {
-  return value instanceof Error ? value : new Error(String(value));
-};
 
 /**
  * Sammenligner to datasæt felt-for-felt og finder forskelle.
@@ -69,9 +67,6 @@ const asError = (value: unknown): Error => {
  * @param {number} depth - Rekursions-dybde (sikkerhed)
  * @returns {Array<string>} Liste af forskelle
  */
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return !!value && typeof value === 'object' && !Array.isArray(value);
-};
 
 const loadStoredFilenameBasis = (): Record<string, unknown> | null => {
   const stored = sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
@@ -418,7 +413,7 @@ export const saveToFile = async (
 
     return result;
 
-  } catch (error) {
+  } catch (error: unknown) {
 
     const err = asError(error);
 

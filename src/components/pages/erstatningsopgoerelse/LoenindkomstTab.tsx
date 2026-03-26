@@ -65,7 +65,7 @@ import {
   ASL_AARSLOENSMAKSIMUM_MODEL_LABEL,
   getReguleringsDatoIntervalForStatistikModel,
 } from '../../../data/statistiskeRates';
-import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/KRLrates';
+import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/krlRates';
 import { useSetEOLoenindkomstInputError } from '../../../hooks/useEOLoenindkomstInputErrors';
 import { getPersistedSectionSnapshot, usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSelectors';
 import { useAppSettings } from '../../../contexts/useAppSettings';

@@ -9,8 +9,8 @@ import BugReportButton from '../errors/BugReportButton';
 import DevtoolsIssueNotice from '../errors/DevtoolsIssueNotice';
 import { saveToFile } from '../../utils/fileSave';
 import { loadFromFile, loadFromFileHandle } from '../../utils/fileLoad';
-import { deleteFileHandleFromIndexedDB } from '../../utils/fileHandleStorage';
-import { saveFileHandleToIndexedDB } from '../../utils/fileHandleStorage';
+import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from '../../utils/fileHandleStorage';
+import { isRecord } from '../../utils/typeGuards';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { useEOLoenindkomstInputErrors } from '../../hooks/useEOLoenindkomstInputErrors';
@@ -65,9 +65,6 @@ type CriticalActionCommitGuardResult = Readonly<{
   focusTargetBeforeAction: HTMLElement | null;
 }>;
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return !!value && typeof value === 'object' && !Array.isArray(value);
-};
 
 const parseFilenameBasisFromStamdata = (stamdata: unknown): { skadelidte?: string; skadestype?: string; skadesdato?: string } | null => {
   if (!isRecord(stamdata)) return null;

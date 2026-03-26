@@ -1,4 +1,4 @@
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
@@ -124,37 +124,8 @@ const EET_KLAGE_REGULERINGSLINJE =
   'Hvis der som følge af den verserende klagesag over erhvervsevnetab sker ændringer i ydelse eller virkningstidspunkt, vil kravet blive reguleret tilsvarende.';
 
 const createEmployment = (overrides: Record<string, unknown> = {}) => ({
+  ...createDefaultLoenindkomstAnsaettelsesforhold(),
   id: 'af-base',
-  navnPaaArbejdssted: undefined,
-  harOverenskomst: true,
-  overenskomstId: undefined,
-  ansatPaaSkadestidspunktet: true,
-  ansaettelsesforholdOphoert: false,
-  sidsteArbejdsdag: undefined,
-  harAnciennitetstillaegEfterSkadesdatoen: false,
-  anciennitetstillaegDato: undefined,
-  anciennitetstillaegSatsAngivesPer: 'Måned' as const,
-  anciennitetstillaegSats: undefined,
-  feriePct: undefined,
-  fritvalgPct: undefined,
-  shSoPct: undefined,
-  storeBededagPct: undefined,
-  pensionPct: undefined,
-  loenperiode: 'maaned' as const,
-  fuldLoenUnderFerie: 'Ja' as const,
-  loenPaaHelligdage: 'Almindelig løn' as const,
-  saerligFraDatoRegulering: undefined,
-  indtaegtsoplysningerTableData: [],
-  loenudviklingBeregningsgrundlag: undefined,
-  loenudviklingStatistikModel: undefined,
-  loenudviklingKRLSatstabel: undefined,
-  loenudviklingManuelNavn: '',
-  loenudviklingManuelTableData: [],
-  offentligLoenType: 'Månedsløn' as const,
-  offentligLoenTrin: undefined,
-  offentligLoenGruppe: undefined,
-  offentligLoenEkstraGrundloen: undefined,
-  overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   ...overrides,
 });
 

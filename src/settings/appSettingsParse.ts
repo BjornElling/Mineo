@@ -7,10 +7,7 @@
 
 import { DEFAULT_APP_SETTINGS, type AppSettings, appSettingsSchema } from './appSettingsSchema';
 import { LOCAL_STORAGE_KEY, readLocalStorage } from './appSettingsStorage';
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-};
+import { isRecord } from '../utils/typeGuards';
 
 // Vi kloner nested defaults, så flere fallback-objekter ikke deler samme reference.
 const cloneDefaultAppSettings = (): AppSettings => ({

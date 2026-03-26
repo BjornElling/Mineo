@@ -81,7 +81,7 @@ export const sygeferiegodtgoerelseAnsaettelsesforholdRowSchema = z.object({
   beregnesUdFra: z.preprocess(normalizeEmptyToUndefined, sygeferiegodtgoerelseBeregningskildeEnum.optional()),
   referenceperiodeFra: optionalIsoDateString,
   referenceperiodeTil: optionalIsoDateString,
-  referenceperiodeFravaersdageUdenLoen: dayCount,
+  referenceperiodeFravaersdageUdenLoen: dayCount.default(0),
   manuelDagssats: nonNegativeAmountValue,
   manuelBeloebIHenholdTil: optionalString,
   manuelFoerstEfterSygeloen: jaNejEnum.default('Nej'),
@@ -179,6 +179,9 @@ const indtaegtFoerSkadenSchema = z.object({
 
 const sygeferiegodtgoerelseSchema = z.object({
   sfggAlleSygeperioderErTafPerioder: z.boolean().default(true),
+  // ferieperiodeRowSchema genbruges bevidst her: sfggSygeperioderFoer2015 har samme struktur
+  // (fra/til/id) som ferieperioder. Invariant: kun fra, til og id bruges — øvrige evt. ferieperiode-felter
+  // er irrelevante for dette domæne og ignoreres ved læsning.
   sfggSygeperioderFoer2015: z.array(ferieperiodeRowSchema).default([]),
   sfggAnsaettelsesforhold: z.array(sygeferiegodtgoerelseAnsaettelsesforholdRowSchema).default([]),
 }).strict();

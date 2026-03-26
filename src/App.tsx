@@ -130,16 +130,14 @@ const createPageWrapper = (Component: PageComponent): PageComponent => {
   return WrappedPage;
 };
 
-const RootRedirect = React.memo(() => {
+const RootRedirect = () => {
   const { settings } = useAppSettings();
 
   // Bevidst UX-valg:
   // - Normal åbning af app/PWA går via root-route og styres af Mineo-toggle'en.
   // - Filindlæsning er et separat flow i MainLayout og ender altid på Stamdata.
   return <Navigate to={settings.defaultStartsideErStamdata ? '/stamdata' : '/mineo'} replace />;
-});
-
-RootRedirect.displayName = 'RootRedirect';
+};
 
 /**
  * Hovedkomponent for MINEO applikationen

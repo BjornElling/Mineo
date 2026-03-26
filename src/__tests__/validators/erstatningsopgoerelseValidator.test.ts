@@ -1,48 +1,12 @@
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import { toISODateString } from '../../types/branded';
-import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import { erstatningsopgoerelseValidator } from '../../validators/erstatningsopgoerelseValidator';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 
 const iso = (value: string) => toISODateString(value);
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
-const createEmployment = (
-  patch: Partial<ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]> = {}
-): ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number] => ({
-  id: patch.id ?? 'af-1',
-  navnPaaArbejdssted: patch.navnPaaArbejdssted ?? 'Arbejdssted 1',
-  harOverenskomst: patch.harOverenskomst ?? false,
-  overenskomstId: patch.overenskomstId,
-  overenskomstFilter: patch.overenskomstFilter ?? { loenmodtager: undefined, arbejdsgiver: undefined },
-  ansatPaaSkadestidspunktet: patch.ansatPaaSkadestidspunktet ?? true,
-  ansaettelsesforholdOphoert: patch.ansaettelsesforholdOphoert ?? false,
-  sidsteArbejdsdag: patch.sidsteArbejdsdag,
-  feriePct: patch.feriePct,
-  fritvalgPct: patch.fritvalgPct,
-  shSoPct: patch.shSoPct,
-  storeBededagPct: patch.storeBededagPct,
-  pensionPct: patch.pensionPct ?? 0,
-  loenperiode: patch.loenperiode ?? 'maaned',
-  fuldLoenUnderFerie: patch.fuldLoenUnderFerie ?? 'Ja',
-  harAnciennitetstillaegEfterSkadesdatoen: patch.harAnciennitetstillaegEfterSkadesdatoen ?? false,
-  anciennitetstillaegDato: patch.anciennitetstillaegDato,
-  anciennitetstillaegSatsAngivesPer: patch.anciennitetstillaegSatsAngivesPer ?? 'Måned',
-  anciennitetstillaegSats: patch.anciennitetstillaegSats,
-  loenPaaHelligdage: patch.loenPaaHelligdage ?? 'Almindelig løn',
-  saerligFraDatoRegulering: patch.saerligFraDatoRegulering,
-  loenudviklingBeregningsgrundlag: patch.loenudviklingBeregningsgrundlag,
-  loenudviklingStatistikModel: patch.loenudviklingStatistikModel,
-  loenudviklingKRLSatstabel: patch.loenudviklingKRLSatstabel,
-  loenudviklingManuelNavn: patch.loenudviklingManuelNavn ?? '',
-  loenudviklingManuelTableData: patch.loenudviklingManuelTableData ?? [],
-  offentligLoenType: patch.offentligLoenType ?? 'Månedsløn',
-  offentligLoenTrin: patch.offentligLoenTrin,
-  offentligLoenGruppe: patch.offentligLoenGruppe,
-  offentligLoenEkstraGrundloen: patch.offentligLoenEkstraGrundloen,
-  indtaegtsoplysningerTableData: patch.indtaegtsoplysningerTableData ?? [],
-  ...patch,
-});
 
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
   const base = structuredClone(createErstatningsopgoerelseInitialValues());
@@ -224,7 +188,7 @@ describe('TAF validering', () => {
 describe('SFGG validering', () => {
   it('fanger manglende valg af beregningsgrundlag for SFGG', () => {
     const values = makeValues({
-      loenindkomstAnsaettelsesforhold: [createEmployment()],
+      loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
       sfggAnsaettelsesforhold: [],
     });
 
@@ -233,7 +197,7 @@ describe('SFGG validering', () => {
 
   it('tillader eksplicit valg af Ingen uden fejl', () => {
     const values = makeValues({
-      loenindkomstAnsaettelsesforhold: [createEmployment()],
+      loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
       sfggAnsaettelsesforhold: [{
         ansaettelsesforholdId: 'af-1',
         beregnesUdFra: 'Ingen',
@@ -253,7 +217,7 @@ describe('SFGG validering', () => {
 
   it('kræver supplerende sygeperioder når præ-2015-opgørelse ikke dækkes af TAF-perioder', () => {
     const values = makeValues({
-      loenindkomstAnsaettelsesforhold: [createEmployment()],
+      loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
       sfggAlleSygeperioderErTafPerioder: false,
       sfggSygeperioderFoer2015: [{ id: 's1', fra: undefined, til: undefined }],
       sfggAnsaettelsesforhold: [{
@@ -275,7 +239,7 @@ describe('SFGG validering', () => {
 
   it('fanger overlappende supplerende SFGG-sygeperioder', () => {
     const values = makeValues({
-      loenindkomstAnsaettelsesforhold: [createEmployment()],
+      loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
       sfggAlleSygeperioderErTafPerioder: false,
       sfggSygeperioderFoer2015: [
         { id: 's1', fra: iso('2014-01-01'), til: iso('2014-01-15') },
@@ -300,7 +264,7 @@ describe('SFGG validering', () => {
 
   it('fanger referenceperiode der ikke ligger før første TAF-periode', () => {
     const values = makeValues({
-      loenindkomstAnsaettelsesforhold: [createEmployment()],
+      loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-05-01'), til: iso('2024-05-31') },
       ],
@@ -394,7 +358,7 @@ describe('TAF lønudviklingskrav for aktiv kilde', () => {
       periodeTilBeregningTil: iso('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           overenskomstId: 'bygge-anlaeg',
           loenPaaHelligdage: 'Almindelig løn',
@@ -428,7 +392,7 @@ describe('TAF lønudviklingskrav for aktiv kilde', () => {
       periodeTilBeregningTil: iso('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           overenskomstId: 'bygge-anlaeg',
           loenPaaHelligdage: 'Almindelig løn',
@@ -534,7 +498,7 @@ describe('TAF — clampede feriedage', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -560,7 +524,7 @@ describe('TAF — clampede feriedage', () => {
       ],
       loenindkomstAnsaettelsesforhold: [
         {
-          ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
@@ -646,7 +610,7 @@ describe('validateBeregnesUdFra', () => {
 
 describe('validateLoenudviklingKonsistens', () => {
   const makeAF = (overrides: Record<string, unknown> = {}) => ({
-    ...createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold[0],
+    ...createDefaultLoenindkomstAnsaettelsesforhold(),
     ...overrides,
   });
 
