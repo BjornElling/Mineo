@@ -152,6 +152,33 @@ describe('getOverenskomstMetaById', () => {
 });
 
 describe('getOverenskomstSfggPolicy', () => {
+  it('alle SFGG-policyer er logisk konsistente med referenceperiode, bortfald og satsdata', () => {
+    for (const overenskomst of overenskomster) {
+      const policy = overenskomst.meta.sfggPolicy;
+      const hasDirekteSats = overenskomst.satser.some((sats) =>
+        [sats.sfgg, sats.sfggFaglKbh, sats.sfggFaglProv, sats.sfggUfaglKbh, sats.sfggUfaglProv]
+          .some((value) => value !== null)
+      );
+      const hasDifferentieretDirekteSats = overenskomst.satser.some((sats) =>
+        [sats.sfggFaglKbh, sats.sfggFaglProv, sats.sfggUfaglKbh, sats.sfggUfaglProv]
+          .some((value) => value !== null)
+      );
+      const shouldFravigeFerielov = policy.model === 'direkte_sats'
+        || policy.bortfalderUnderArbejdsgiverbetaltSygeloen
+        || (policy.referenceperiodeLabel !== null && policy.referenceperiodeLabel !== '4 uger');
+
+      expect(policy.fravigerFerielov).toBe(shouldFravigeFerielov);
+      expect(policy.model === 'direkte_sats').toBe(hasDirekteSats);
+      expect(policy.direkteSatsErDifferentieret).toBe(hasDifferentieretDirekteSats);
+      expect(policy.model === 'direkte_sats' ? policy.referenceperiodeLabel : 'ok').toBe(
+        policy.model === 'direkte_sats' ? null : 'ok'
+      );
+      expect(policy.model === 'ferielov' ? policy.referenceperiodeLabel : 'ok').not.toBe(
+        policy.model === 'ferielov' ? null : 'mismatch'
+      );
+    }
+  });
+
   it('har eksplicit policy for både offentlige og private overenskomster', () => {
     expect(getOverenskomstSfggPolicy('kl-overenskomst')).toEqual(expect.objectContaining({
       fravigerFerielov: false,
@@ -161,6 +188,14 @@ describe('getOverenskomstSfggPolicy', () => {
       fravigerFerielov: true,
       model: 'direkte_sats',
       direkteSatsErDifferentieret: true,
+    }));
+  });
+
+  it('markerer industriens overenskomst som ferielovsmodel med 3 måneders referenceperiode', () => {
+    expect(getOverenskomstSfggPolicy('industriens-overenskomst')).toEqual(expect.objectContaining({
+      fravigerFerielov: true,
+      model: 'ferielov',
+      referenceperiodeLabel: '3 måneder',
     }));
   });
 

@@ -78,6 +78,7 @@ export interface OverenskomstMeta {
   readonly loenmodtagerOrg: ReadonlyArray<string>;  // Kan have flere parter
   readonly arbejdsgiverOrg: ReadonlyArray<string>;  // Kan have flere parter
   readonly grundloenAngivetPer: GrundloenAngivetPer;
+  readonly sfggPolicy: OverenskomstSfggPolicy;
 }
 
 export type OverenskomstSfggPolicy = Readonly<{
@@ -236,7 +237,14 @@ const offentligeOverenskomster: ReadonlyArray<OffentligOverenskomstMeta> = [
     loenmodtagerOrg: ['Forhandlingsfællesskabet'],
     arbejdsgiverOrg: ['KL'],
     grundloenAngivetPer: 'Måned',
+    sfggPolicy: {
+      fravigerFerielov: false,
+      model: 'ferielov',
+      direkteSatsErDifferentieret: false,
+      bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+      referenceperiodeLabel: '4 uger',
     },
+  },
   {
     offentligType: 'RLTN',
     id: toOverenskomstId('rltn-overenskomst'),
@@ -244,7 +252,14 @@ const offentligeOverenskomster: ReadonlyArray<OffentligOverenskomstMeta> = [
     loenmodtagerOrg: ['Forhandlingsfællesskabet'],
     arbejdsgiverOrg: ['RLTN'],
     grundloenAngivetPer: 'Måned',
+    sfggPolicy: {
+      fravigerFerielov: false,
+      model: 'ferielov',
+      direkteSatsErDifferentieret: false,
+      bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+      referenceperiodeLabel: '4 uger',
     },
+  },
   {
     offentligType: 'KL',
     id: toOverenskomstId('laerer-overenskomsten'),
@@ -252,6 +267,13 @@ const offentligeOverenskomster: ReadonlyArray<OffentligOverenskomstMeta> = [
     loenmodtagerOrg: ['Lærernes Centralorganisation'],
     arbejdsgiverOrg: ['KL'],
     grundloenAngivetPer: 'Måned',
+    sfggPolicy: {
+      fravigerFerielov: false,
+      model: 'ferielov',
+      direkteSatsErDifferentieret: false,
+      bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+      referenceperiodeLabel: '4 uger',
+    },
   },
 ];
 
@@ -287,6 +309,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri', 'Dansk Byggeri'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: true,
+        model: 'direkte_sats',
+        direkteSatsErDifferentieret: true,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: true,
+        referenceperiodeLabel: null,
+      },
     },
     shDageAlmindeligLoenRegel: { shSoDelta: -0.059 },
     satser: satserFromTable(
@@ -325,6 +354,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri', 'Dansk Byggeri'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: true,
+        model: 'direkte_sats',
+        direkteSatsErDifferentieret: true,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: true,
+        referenceperiodeLabel: null,
+      },
     },
     shDageAlmindeligLoenRegel: { shSoDelta: -0.059 },
     satser: satserFromTable(
@@ -363,6 +399,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['Dansk El-Forbund'],
       arbejdsgiverOrg:  ['Dansk Industri', 'Dansk Byggeri'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: true,
+        model: 'direkte_sats',
+        direkteSatsErDifferentieret: true,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: true,
+        referenceperiodeLabel: null,
+      },
     },
     satser: satserFromTable(
       { sfgg: null },
@@ -390,6 +433,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['Dansk El-Forbund'],
       arbejdsgiverOrg:  ['Tekniq'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: true,
+        model: 'ferielov',
+        direkteSatsErDifferentieret: false,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+        referenceperiodeLabel: '3 måneder',
+      },
     },
     satser: satserFromTable(
       { sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
@@ -423,6 +473,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: true,
+        model: 'direkte_sats',
+        direkteSatsErDifferentieret: false,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+        referenceperiodeLabel: null,
+      },
     },
     satser: satserFromTable(
       { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
@@ -459,6 +516,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Glarmesterlauget'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: true,
+        model: 'direkte_sats',
+        direkteSatsErDifferentieret: true,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: true,
+        referenceperiodeLabel: null,
+      },
     },
     satser: satserFromTable(
       { fritvalg: null, sfgg: null },
@@ -495,6 +559,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Horesta'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: false,
+        model: 'ferielov',
+        direkteSatsErDifferentieret: false,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+        referenceperiodeLabel: '4 uger',
+      },
     },
     satser: satserFromTable(
       { fritvalg: null, shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
@@ -530,6 +601,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['Dansk Metal', '3F', 'Blik&Rør'],
       arbejdsgiverOrg:  ['Tekniq'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: true,
+        model: 'ferielov',
+        direkteSatsErDifferentieret: false,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+        referenceperiodeLabel: '3 måneder',
+      },
     },
     shDageAlmindeligLoenRegel: { fritvalgDelta: -0.04 },
     satser: satserFromTable(
@@ -552,6 +630,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: false,
+        model: 'ferielov',
+        direkteSatsErDifferentieret: false,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+        referenceperiodeLabel: '4 uger',
+      },
     },
     shDageAlmindeligLoenRegel: { shSoDelta: -0.049 },
     satser: satserFromTable(
@@ -589,6 +674,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['CO-Industri', '3F', 'Blik&Rør', 'Dansk El-Forbund', 'Dansk Metal', 'HK Privat', 'Malerforbundet', 'Teknisk Landsforbund', 'Serviceforbundet', 'Dansk Jernbaneforbund'],
       arbejdsgiverOrg:  ['Dansk Industri'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: true,
+        model: 'ferielov',
+        direkteSatsErDifferentieret: false,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: true,
+        referenceperiodeLabel: '3 måneder',
+      },
     },
     shDageAlmindeligLoenRegel: { fritvalgDelta: -0.04 },
     satser: satserFromTable(
@@ -626,6 +718,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: false,
+        model: 'ferielov',
+        direkteSatsErDifferentieret: false,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+        referenceperiodeLabel: '4 uger',
+      },
     },
     satser: satserFromTable(
       { fritvalg: null, sfgg: null, shSoSats: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
@@ -661,6 +760,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['Dansk Metal', '3F'],
       arbejdsgiverOrg:  ['Låsesmedeforeningen'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: true,
+        model: 'ferielov',
+        direkteSatsErDifferentieret: false,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+        referenceperiodeLabel: '3 måneder',
+      },
     },
     shDageAlmindeligLoenRegel: { fritvalgDelta: -0.04 },
     satser: satserFromTable(
@@ -683,6 +789,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['Dansk Metal', '3F'],
       arbejdsgiverOrg:  ['DM-Arbejdsgiver'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: true,
+        model: 'ferielov',
+        direkteSatsErDifferentieret: false,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+        referenceperiodeLabel: '3 måneder',
+      },
     },
     shDageAlmindeligLoenRegel: { fritvalgDelta: -0.045 },
     satser: satserFromTable(
@@ -705,6 +818,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['NNF', '3F'],
       arbejdsgiverOrg:  ['Dansk Industri'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: false,
+        model: 'ferielov',
+        direkteSatsErDifferentieret: false,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+        referenceperiodeLabel: '4 uger',
+      },
     },
     satser: satserFromTable(
       { fritvalg: null, sfgg: null, shSoSats: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
@@ -740,6 +860,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['Dansk Metal'],
       arbejdsgiverOrg:  ['Dansk Industri'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: false,
+        model: 'ferielov',
+        direkteSatsErDifferentieret: false,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+        referenceperiodeLabel: '4 uger',
+      },
     },
     satser: satserFromTable(
       { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
@@ -761,6 +888,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri', 'Dansk Byggeri'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: true,
+        model: 'direkte_sats',
+        direkteSatsErDifferentieret: true,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: true,
+        referenceperiodeLabel: null,
+      },
     },
     shDageAlmindeligLoenRegel: { shSoDelta: -0.059 },
     satser: satserFromTable(
@@ -799,6 +933,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Postnord'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: true,
+        model: 'ferielov',
+        direkteSatsErDifferentieret: false,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: true,
+        referenceperiodeLabel: '3 måneder',
+      },
     },
     shDageAlmindeligLoenRegel: { shSoOverride: 0 },
     satser: satserFromTable(
@@ -832,6 +973,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: false,
+        model: 'ferielov',
+        direkteSatsErDifferentieret: false,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+        referenceperiodeLabel: '4 uger',
+      },
     },
     satser: satserFromTable(
       { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
@@ -867,6 +1015,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['Dansk Industri'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: true,
+        model: 'direkte_sats',
+        direkteSatsErDifferentieret: false,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+        referenceperiodeLabel: null,
+      },
     },
     satser: satserFromTable(
       { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
@@ -903,6 +1058,13 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       loenmodtagerOrg:  ['3F'],
       arbejdsgiverOrg:  ['DTL-A'],
       grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: true,
+        model: 'direkte_sats',
+        direkteSatsErDifferentieret: false,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+        referenceperiodeLabel: null,
+      },
     },
     satser: satserFromTable(
       { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
@@ -982,179 +1144,56 @@ const overenskomstMetaSortedByNavn: ReadonlyArray<OverenskomstMeta> = (() => {
     });
 })();
 
-const OVERENSKOMST_SFGG_POLICY_BY_ID = {
-  'kl-overenskomst': {
-    fravigerFerielov: false,
-    model: 'ferielov',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: '4 uger',
-  },
-  'rltn-overenskomst': {
-    fravigerFerielov: false,
-    model: 'ferielov',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: '4 uger',
-  },
-  'laerer-overenskomsten': {
-    fravigerFerielov: false,
-    model: 'ferielov',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: '4 uger',
-  },
-  'bygge-anlaeg': {
-    fravigerFerielov: true,
-    model: 'direkte_sats',
-    direkteSatsErDifferentieret: true,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: null,
-  },
-  'bygningsoverenskomsten': {
-    fravigerFerielov: true,
-    model: 'direkte_sats',
-    direkteSatsErDifferentieret: true,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: null,
-  },
-  'el-overenskomsten': {
-    fravigerFerielov: true,
-    model: 'direkte_sats',
-    direkteSatsErDifferentieret: true,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: null,
-  },
-  'elektrikeroverenskomsten': {
-    fravigerFerielov: false,
-    model: 'ferielov',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: '4 uger',
-  },
-  'faellesoverenskomsten-dio-ii': {
-    fravigerFerielov: true,
-    model: 'direkte_sats',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: null,
-  },
-  'glasoverenskomsten': {
-    fravigerFerielov: true,
-    model: 'direkte_sats',
-    direkteSatsErDifferentieret: true,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: null,
-  },
-  'hoteloverenskomsten': {
-    fravigerFerielov: false,
-    model: 'ferielov',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: '4 uger',
-  },
-  'industri-og-vvs-overenskomsten': {
-    fravigerFerielov: false,
-    model: 'ferielov',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: '4 uger',
-  },
-  'industri-trae-og-moebeloverenskomsten': {
-    fravigerFerielov: false,
-    model: 'ferielov',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: '4 uger',
-  },
-  'industriens-overenskomst': {
-    fravigerFerielov: false,
-    model: 'ferielov',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: '4 uger',
-  },
-  'landsoverenskomsten-akt': {
-    fravigerFerielov: false,
-    model: 'ferielov',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: '4 uger',
-  },
-  'laasesmedeoverenskomsten': {
-    fravigerFerielov: false,
-    model: 'ferielov',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: '4 uger',
-  },
-  'maskinhandler-overenskomsten': {
-    fravigerFerielov: false,
-    model: 'ferielov',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: '4 uger',
-  },
-  'mejeribranchens-faellesoverenskomst': {
-    fravigerFerielov: false,
-    model: 'ferielov',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: '4 uger',
-  },
-  'metal-transport-overenskomsten': {
-    fravigerFerielov: false,
-    model: 'ferielov',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: '4 uger',
-  },
-  'mureroverenskomsten': {
-    fravigerFerielov: true,
-    model: 'direkte_sats',
-    direkteSatsErDifferentieret: true,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: null,
-  },
-  'postoverenskomsten': {
-    fravigerFerielov: false,
-    model: 'ferielov',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: '4 uger',
-  },
-  'serviceoverenskomsten-sba': {
-    fravigerFerielov: false,
-    model: 'ferielov',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: '4 uger',
-  },
-  'transportoverenskomsten-atl': {
-    fravigerFerielov: true,
-    model: 'direkte_sats',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: null,
-  },
-  'transportoverenskomsten-dtl': {
-    fravigerFerielov: true,
-    model: 'direkte_sats',
-    direkteSatsErDifferentieret: false,
-    bortfalderUnderArbejdsgiverbetaltSygeloen: false,
-    referenceperiodeLabel: null,
-  },
-} as const satisfies Readonly<Record<string, OverenskomstSfggPolicy>>;
+const hasDirekteSfggSats = (satser: ReadonlyArray<OverenskomstPeriodeSats>): boolean =>
+  satser.some((sats) =>
+    [sats.sfgg, sats.sfggFaglKbh, sats.sfggFaglProv, sats.sfggUfaglKbh, sats.sfggUfaglProv]
+      .some((value) => value !== null)
+  );
 
-const assertOverenskomstSfggPolicyCoverage = (): void => {
-  for (const meta of overenskomstMetaById.values()) {
-    if (!(meta.id in OVERENSKOMST_SFGG_POLICY_BY_ID)) {
-      throw new Error(`Manglende SFGG-policy for overenskomst: "${meta.id}"`);
-    }
+const hasDifferentieretSfggSats = (satser: ReadonlyArray<OverenskomstPeriodeSats>): boolean =>
+  satser.some((sats) =>
+    [sats.sfggFaglKbh, sats.sfggFaglProv, sats.sfggUfaglKbh, sats.sfggUfaglProv]
+      .some((value) => value !== null)
+  );
+
+const inferFravigerFerielovFromPolicy = (policy: OverenskomstSfggPolicy): boolean =>
+  policy.model === 'direkte_sats'
+  || policy.bortfalderUnderArbejdsgiverbetaltSygeloen
+  || (policy.referenceperiodeLabel !== null && policy.referenceperiodeLabel !== '4 uger');
+
+const assertValidSfggPolicy = (
+  meta: OverenskomstMeta,
+  satser?: ReadonlyArray<OverenskomstPeriodeSats>
+): void => {
+  const { sfggPolicy } = meta;
+
+  if (inferFravigerFerielovFromPolicy(sfggPolicy) !== sfggPolicy.fravigerFerielov) {
+    throw new Error(`Ugyldig SFGG-policy for overenskomst: "${meta.id}"`);
+  }
+
+  if (sfggPolicy.model === 'direkte_sats' && sfggPolicy.referenceperiodeLabel !== null) {
+    throw new Error(`Direkte SFGG-sats må ikke have referenceperiode på overenskomst: "${meta.id}"`);
+  }
+
+  if (sfggPolicy.model === 'ferielov' && sfggPolicy.referenceperiodeLabel === null) {
+    throw new Error(`Ferielovsmodel skal have referenceperiode på overenskomst: "${meta.id}"`);
+  }
+
+  if (!satser) return;
+
+  if (hasDirekteSfggSats(satser) !== (sfggPolicy.model === 'direkte_sats')) {
+    throw new Error(`SFGG-model matcher ikke satsdata for overenskomst: "${meta.id}"`);
+  }
+
+  if (hasDifferentieretSfggSats(satser) !== sfggPolicy.direkteSatsErDifferentieret) {
+    throw new Error(`SFGG-differentiering matcher ikke satsdata for overenskomst: "${meta.id}"`);
   }
 };
 
-assertOverenskomstSfggPolicyCoverage();
+overenskomster.forEach((overenskomst) => assertValidSfggPolicy(overenskomst.meta, overenskomst.satser));
+offentligeOverenskomster.forEach((meta) =>
+  assertValidSfggPolicy(meta, offentligOverenskomstSatserById.get(meta.id)?.satser)
+);
 
 // ===== OPSLAGS-FUNKTIONER =====
 
@@ -1252,7 +1291,7 @@ export const getOffentligOverenskomstTypeById = (rawId: string): OffentligOveren
 export const getOverenskomstSfggPolicy = (rawId: string): OverenskomstSfggPolicy | undefined => {
   const ref = resolveOverenskomstRefFromString(rawId);
   if (!ref) return undefined;
-  return OVERENSKOMST_SFGG_POLICY_BY_ID[ref.baseId as keyof typeof OVERENSKOMST_SFGG_POLICY_BY_ID];
+  return overenskomstMetaById.get(ref.baseId)?.sfggPolicy;
 };
 
 export const isOffentligOverenskomstId = (rawId: string): boolean =>

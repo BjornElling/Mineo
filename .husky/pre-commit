@@ -7,6 +7,9 @@ set -e
 # Stop commit hvis der er encoding/mojibake-fejl
 npm run check:mojibake
 
+# Stop commit hvis Git og filsystem er uenige om filnavns-casing
+npm run check:filename-case
+
 # Generér ny versionsfil
 node scripts/generate-version.js
 
