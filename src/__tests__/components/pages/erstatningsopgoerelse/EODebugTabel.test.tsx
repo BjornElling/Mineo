@@ -33,6 +33,7 @@ const makeModel = (patch: Partial<EODebugModel>): EODebugModel => {
       isWorkdayByIndex: [],
       ssStatusByIndex: [],
       svieSmerteByIndex: [],
+      tafDayStatusByIndex: [],
       tafColumnIds: [],
       tafFlagsByIndex: [],
     },

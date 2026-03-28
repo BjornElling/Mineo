@@ -32,6 +32,74 @@ export type DebugTabelColumnData = Readonly<{
   rawValues?: readonly number[];
 }>;
 
+export const buildTafDayStatusValues = (args: Readonly<{
+  dates: readonly ISODateString[];
+  erstatningsFra: ISODateString | undefined;
+  erstatningsTil: ISODateString | undefined;
+  differencekravDato: ISODateString | undefined;
+  endeligEetDato: ISODateString | undefined;
+  tafDates: ReadonlySet<ISODateString>;
+  isWorkdayByIndex: readonly boolean[];
+  isWithinBeregningsByIndex: readonly boolean[];
+}>): readonly string[] => {
+  const {
+    dates,
+    erstatningsFra,
+    erstatningsTil,
+    differencekravDato,
+    endeligEetDato,
+    tafDates,
+    isWorkdayByIndex,
+    isWithinBeregningsByIndex,
+  } = args;
+
+  const erstatningsRange = validateIsoRange(erstatningsFra, erstatningsTil);
+  const isWithinErstatningsByIndex: ReadonlyArray<boolean> = dates.map((iso) =>
+    erstatningsRange ? iso >= erstatningsRange.fra && iso <= erstatningsRange.til : false
+  );
+
+  const tafStatus = new Uint8Array(dates.length);
+  for (let i = 0; i < dates.length; i += 1) {
+    const iso = dates[i];
+    const within = isWithinErstatningsByIndex[i];
+    const isWork = isWorkdayByIndex[i];
+
+    if (!within) {
+      tafStatus[i] = 0;
+      continue;
+    }
+
+    if (endeligEetDato && iso === endeligEetDato) {
+      tafStatus[i] = 2;
+      continue;
+    }
+    if (endeligEetDato && iso > endeligEetDato) {
+      tafStatus[i] = 0;
+      continue;
+    }
+
+    if (differencekravDato && iso >= differencekravDato) {
+      tafStatus[i] = 0;
+      continue;
+    }
+
+    if (!tafDates.has(iso)) {
+      tafStatus[i] = 0;
+      continue;
+    }
+
+    tafStatus[i] = isWork ? 1 : 0;
+  }
+
+  return dates.map((_iso, rowIndex) => {
+    if (!isWithinErstatningsByIndex[rowIndex] && !isWithinBeregningsByIndex[rowIndex]) return '';
+    const code = tafStatus[rowIndex];
+    if (code === 2) return 'Endeligt EET';
+    if (code === 1) return 'Ja';
+    return isWithinErstatningsByIndex[rowIndex] ? '-' : '';
+  });
+};
+
 const getWageAmountsForRow = (
   row: StandardLoenTableRow,
   satser: Readonly<{
@@ -188,54 +256,18 @@ export const buildLoenindkomstColumns = (args: {
   const differencekravDato = values.differencekravDato;
 
   const hasMultiple = ansaettelser.length > 1;
-  const erstatningsRange = validateIsoRange(erstatningsFra, erstatningsTil);
-  const isWithinErstatningsByIndex: ReadonlyArray<boolean> = dates.map((iso) =>
-    erstatningsRange ? iso >= erstatningsRange.fra && iso <= erstatningsRange.til : false
-  );
-
-  const tafStatus = new Uint8Array(dates.length);
-
-  for (let i = 0; i < dates.length; i += 1) {
-    const iso = dates[i];
-    const within = isWithinErstatningsByIndex[i];
-    const isWork = isWorkdayByIndex[i];
-
-    if (!within) {
-      tafStatus[i] = 0;
-      continue;
-    }
-
-    if (endeligEetDato && iso === endeligEetDato) {
-      tafStatus[i] = 2;
-      continue;
-    }
-    if (endeligEetDato && iso > endeligEetDato) {
-      tafStatus[i] = 0;
-      continue;
-    }
-
-    if (differencekravDato && iso >= differencekravDato) {
-      tafStatus[i] = 0;
-      continue;
-    }
-
-    if (!tafDates.has(iso)) {
-      tafStatus[i] = 0;
-      continue;
-    }
-
-    tafStatus[i] = isWork ? 1 : 0;
-  }
+  const tafValues = buildTafDayStatusValues({
+    dates,
+    erstatningsFra,
+    erstatningsTil,
+    differencekravDato,
+    endeligEetDato,
+    tafDates,
+    isWorkdayByIndex,
+    isWithinBeregningsByIndex,
+  });
 
   if (ansaettelser.length > 0) {
-    const tafValues: string[] = dates.map((_iso, rowIndex) => {
-      if (!isWithinErstatningsByIndex[rowIndex] && !isWithinBeregningsByIndex[rowIndex]) return '';
-      const code = tafStatus[rowIndex];
-      if (code === 2) return 'Endeligt EET';
-      if (code === 1) return 'Ja';
-      return isWithinErstatningsByIndex[rowIndex] ? '-' : '';
-    });
-
     columns.push({
       id: debugTabelColumnId.taf,
       header: 'TAF dag',

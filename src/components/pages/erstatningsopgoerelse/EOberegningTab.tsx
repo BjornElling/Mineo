@@ -42,6 +42,8 @@ interface EOberegningTabProps {
 type SystemIssueRow = Readonly<{
   id: string;
   message: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }>;
 
 const FEJL_ADVARSLER_ROW_SX = {
@@ -259,6 +261,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         pushIssue({
           id: invariant.id,
           message: invariant.message,
+          actionLabel: invariant.id === 'debug:control_mismatch' ? 'Debug tabel' : undefined,
+          onAction: invariant.id === 'debug:control_mismatch'
+            ? () => setActiveTab('debug_tabel')
+            : undefined,
         });
       });
 
@@ -614,8 +620,38 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         }}
       >
         <Typography className="row--text">{row.message}</Typography>
-        <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-          <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
+        <Box
+          className="row--label-right-hover__content"
+          sx={{
+            gap: 1,
+            alignItems: row.actionLabel ? 'center' : 'flex-start',
+          }}
+        >
+          {row.actionLabel && row.onAction && (
+            <Typography
+              className="row--text icon-text-link"
+              component="button"
+              type="button"
+              onClick={row.onAction}
+              sx={{
+                cursor: 'pointer',
+                border: 0,
+                background: 'transparent',
+                p: 0,
+                m: 0,
+                font: 'inherit',
+              }}
+            >
+              {row.actionLabel}
+            </Typography>
+          )}
+          <ErrorOutline
+            sx={{
+              color: 'red',
+              fontSize: 20,
+              alignSelf: row.actionLabel ? 'center' : 'flex-start',
+            }}
+          />
         </Box>
       </Box>
     ));

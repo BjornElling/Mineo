@@ -351,16 +351,18 @@ const countArbejdsdageInRange = (
 
 const countTafDaysFromTable = (model: EODebugModel): number | null => {
   if (model.rowCount === 0) return null;
-  if (model.tableData.tafColumnIds.length === 0) return null;
+  const statuses = model.tableData.tafDayStatusByIndex;
+  if (statuses.length === 0) return null;
 
   let count = 0;
-  for (let rowIndex = 0; rowIndex < model.rowCount; rowIndex += 1) {
-    const row = model.rows[rowIndex];
-    if (!row) continue;
-    const hasTaf = model.tableData.tafColumnIds.some((colId) => (row.cells[colId] ?? '').trim() === 'Ja');
-    if (hasTaf) count += 1;
+  let hasVisibleStatus = false;
+  for (const status of statuses) {
+    if (status === '') continue;
+    hasVisibleStatus = true;
+    if (status === 'Ja') count += 1;
   }
-  return count;
+
+  return hasVisibleStatus ? count : null;
 };
 
 const countSvieSmerteFromTable = (

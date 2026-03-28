@@ -6,7 +6,7 @@ import { buildClampedTafRanges, resolveTafConstraintBounds, type IsoRange } from
 import { formatCurrency } from '../../utils/formatUtils';
 import { isStandardLoenRowEffectivelyEmpty } from '../aarsloen/standardLoenRowCalculations';
 import { buildOffentligeYdelserColumns, parseOffentligDato } from './eoDebugOffentligeYdelserColumns';
-import { buildLoenindkomstColumns } from './eoDebugLoenColumns';
+import { buildLoenindkomstColumns, buildTafDayStatusValues } from './eoDebugLoenColumns';
 import { debugTabelColumnId, type DebugTabelWageColumnKey } from './eoDebugLoenTypes';
 import { isoDateToDate } from '../dates/isoDate';
 import { getStandardLoenErrorRowIdSet, getOffentligeYdelserErrorRowIdSet } from './eoDebugRowValidation';
@@ -80,6 +80,7 @@ type EODebugTableData = Readonly<{
   isWorkdayByIndex: readonly boolean[];
   ssStatusByIndex: readonly string[];
   svieSmerteByIndex: readonly DebugDay['svieSmerte'][];
+  tafDayStatusByIndex: readonly string[];
   tafColumnIds: readonly DebugTabelColumnId[];
   tafFlagsByIndex: readonly ReadonlySet<string>[];
 }>;
@@ -510,6 +511,7 @@ export const buildEODebugModel = (
         isWorkdayByIndex: [],
         ssStatusByIndex: [],
         svieSmerteByIndex: [],
+        tafDayStatusByIndex: [],
         tafColumnIds: [],
         tafFlagsByIndex: [],
       },
@@ -666,6 +668,19 @@ export const buildEODebugModel = (
   }));
 
   const columnData: DebugTabelColumnData[] = [...baseColumns, ...loenColumns, ...offentligeColumns];
+  const tafDayStatusByIndex = buildTafDayStatusValues({
+    dates,
+    erstatningsFra,
+    erstatningsTil,
+    differencekravDato: values.differencekravDato,
+    endeligEetDato:
+      values.endeligtEetAfgorelse === 'Ja' && values.verserendeKlageEet === 'Nej'
+        ? values.endeligEETVirkningsdato || values.endeligEETAfgoerelseDato
+        : undefined,
+    tafDates,
+    isWorkdayByIndex,
+    isWithinBeregningsByIndex,
+  });
   const columnRawValues = new Map<DebugTabelColumnId, readonly number[]>();
   for (const col of columnData) {
     if (col.rawValues) {
@@ -699,7 +714,7 @@ export const buildEODebugModel = (
     .filter((col) => col.id === DEBUG_TABEL_COLUMN_IDS.tafDay)
     .map((col) => col.id);
   const tafFlagsByIndex = dates.map((_, rowIndex) => {
-    const activeColumns = tafColumnIds.filter((columnId) => (rows[rowIndex]?.cells[columnId] ?? '') !== '');
+    const activeColumns = tafDayStatusByIndex[rowIndex] === 'Ja' ? tafColumnIds : [];
     return new Set<string>(activeColumns);
   });
   const weekdayIndexByRow = dates.map((iso) => isoDateToDate(iso).getUTCDay() as DebugDay['weekday']);
@@ -732,6 +747,7 @@ export const buildEODebugModel = (
       isWorkdayByIndex,
       ssStatusByIndex,
       svieSmerteByIndex,
+      tafDayStatusByIndex,
       tafColumnIds,
       tafFlagsByIndex,
     },

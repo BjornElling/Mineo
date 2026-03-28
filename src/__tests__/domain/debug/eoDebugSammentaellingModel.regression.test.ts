@@ -51,9 +51,100 @@ describe('buildEODebugSammentaellingModel regression', () => {
     expect(sammentaelling.beregningsenhed).toBe(TAF_BEREGNES_SOM.MAANEDER);
     expect(sammentaelling.taf.beregnetValue).not.toBeNull();
     expect(sammentaelling.taf.beregnetDisplay).not.toBe('-');
-    // tabelValue er null fordi tabellen ikke er udfyldt (tafPerioder er sat, men ingen løn er indtastet).
-    // beregnetValue ≠ tabelValue er forventet og korrekt i dette tilfælde.
-    expect(sammentaelling.taf.tabelValue).toBeNull();
+    expect(sammentaelling.taf.tabelValue).toBe(sammentaelling.taf.beregnetValue);
+    expect(sammentaelling.taf.tabelDisplay).toBe(sammentaelling.taf.beregnetDisplay);
+  });
+
+  it('tæller TAF-dage uden ansættelsesforhold også når TAF beregnes som arbejdsdage', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      vedroererPeriodeFra: '2024-03-01',
+      vedroererPeriodeTil: '2024-03-10',
+      beregnesUdFra: 'Angivet dagsløn' as const,
+      beregnesTabtArbejdsfortjeneste: 'Ja' as const,
+      tafPerioder: [
+        {
+          id: 'taf-1',
+          fra: '2024-03-01',
+          til: '2024-03-10',
+          loseFeriedage: 2,
+        },
+      ],
+      ferieperioder: [],
+      fravaerPerioder: [],
+      loenindkomstAnsaettelsesforhold: [],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-03-2024',
+          tilDato: '10-03-2024',
+          ydelse: 1000,
+          tillaeg: 0,
+          ydelsestype: 'sygedagpenge',
+        },
+      ],
+    };
+
+    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const tafRanges = buildTafRanges(values, { skadesdatoISO: STAMDATA_INITIAL_VALUES.skadesdato });
+    const model = buildEODebugModel(values, { tafRanges });
+    const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
+    const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
+
+    const sammentaelling = buildEODebugSammentaellingModel({
+      values,
+      errors,
+      model,
+      svieSmerteContext,
+      taftContext,
+      tafRanges,
+    });
+
+    expect(sammentaelling.beregningsenhed).toBe(TAF_BEREGNES_SOM.ARBEJDSDAGE);
+    expect(sammentaelling.taf.beregnetValue).toBe(4);
+    expect(sammentaelling.taf.tabelValue).toBe(4);
+    expect(sammentaelling.taf.tabelDisplay).toBe('6 (- 2)');
+  });
+
+  it('tæller ikke Endeligt EET-dagen som TAF-dag uden ansættelsesforhold', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      vedroererPeriodeFra: '2024-01-01',
+      vedroererPeriodeTil: '2024-01-10',
+      beregnesUdFra: 'Angivet månedsløn' as const,
+      beregnesTabtArbejdsfortjeneste: 'Ja' as const,
+      endeligtEetAfgorelse: 'Ja' as const,
+      verserendeKlageEet: 'Nej' as const,
+      endeligEETVirkningsdato: '2024-01-06',
+      tafPerioder: [
+        {
+          id: 'taf-1',
+          fra: '2024-01-01',
+          til: '2024-01-10',
+          loseFeriedage: 0,
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [],
+    };
+
+    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const tafRanges = buildTafRanges(values, { skadesdatoISO: STAMDATA_INITIAL_VALUES.skadesdato });
+    const model = buildEODebugModel(values, { tafRanges });
+    const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
+    const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
+
+    const sammentaelling = buildEODebugSammentaellingModel({
+      values,
+      errors,
+      model,
+      svieSmerteContext,
+      taftContext,
+      tafRanges,
+    });
+
+    expect(model.tableData.tafDayStatusByIndex).toContain('Endeligt EET');
+    expect(sammentaelling.taf.beregnetValue).toBe(5);
+    expect(sammentaelling.taf.tabelValue).toBe(5);
   });
 
   it('tæller ikke arbejdsdage i beregningsperiode når beregningsgrundlag er Angivet månedsløn', () => {

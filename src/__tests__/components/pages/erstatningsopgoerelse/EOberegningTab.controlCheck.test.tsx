@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import EOberegningTab from '../../../../components/pages/erstatningsopgoerelse/EOberegningTab';
@@ -74,6 +74,7 @@ describe('EOberegningTab kontroltjek', () => {
   });
 
   it('samler kontroluoverensstemmelse i én contentbox for fejl og advarsler', () => {
+    const setActiveTab = vi.fn();
     const snapshot: EoSnapshot = {
       revision: 'rev-1',
       status: 'error',
@@ -91,7 +92,7 @@ describe('EOberegningTab kontroltjek', () => {
 
     renderTab({
       activeTab: 'beregning',
-      setActiveTab: vi.fn(),
+      setActiveTab,
       isActive: true,
       eoSnapshot: snapshot,
       stamdataValues: baseStamdataValues,
@@ -101,6 +102,10 @@ describe('EOberegningTab kontroltjek', () => {
 
     expect(screen.getByText('Fejl og advarsler')).toBeInTheDocument();
     expect(screen.getByText('Der er konstateret kontroluoverensstemmelser i EO-beregningen.')).toBeInTheDocument();
+    const debugTableLink = screen.getByRole('button', { name: 'Debug tabel' });
+    expect(debugTableLink).toBeInTheDocument();
+    fireEvent.click(debugTableLink);
+    expect(setActiveTab).toHaveBeenCalledWith('debug_tabel');
     expect(screen.queryByText('Download-kontroller')).not.toBeInTheDocument();
     expect(screen.queryByText('Systemfejl')).not.toBeInTheDocument();
     expect(screen.queryByText('Beregning blokeret')).not.toBeInTheDocument();

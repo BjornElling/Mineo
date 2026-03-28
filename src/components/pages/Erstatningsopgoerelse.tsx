@@ -35,6 +35,8 @@ const TAB_KEYS = {
 
 type TabKey = typeof TAB_KEYS[keyof typeof TAB_KEYS];
 
+const EO_SNAPSHOT_VERSION = 'eo-snapshot-v2';
+
 /**
  * Erstatningsopgørelse-komponent til samlet opgørelse af erstatningskrav
  */
@@ -91,6 +93,7 @@ const Erstatningsopgoerelse = React.memo(() => {
   // a useCallback would be illegal, and reading hook values via closure would give stale snapshots.
   const buildDebugRevision = React.useCallback((): string => {
     return [
+      EO_SNAPSHOT_VERSION,
       getSectionRevisionSnapshot('stamdata'),
       getSectionRevisionSnapshot('erstatningsopgoerelse'),
       getFieldErrorRevisionSnapshot('stamdata'),
@@ -131,7 +134,7 @@ const Erstatningsopgoerelse = React.memo(() => {
   const stamdataErrorRevision = useFieldErrorRevisionSelector('stamdata');
   const eoErrorRevision = useFieldErrorRevisionSelector('erstatningsopgoerelse');
   const currentDebugRevision = React.useMemo(
-    () => [stamdataRevision, eoRevision, stamdataErrorRevision, eoErrorRevision].join('-'),
+    () => [EO_SNAPSHOT_VERSION, stamdataRevision, eoRevision, stamdataErrorRevision, eoErrorRevision].join('-'),
     [eoErrorRevision, eoRevision, stamdataErrorRevision, stamdataRevision]
   );
   const isSnapshotTabActive =
