@@ -78,6 +78,7 @@ import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerel
 import { DEFAULT_ANCIENNITET_FIELDS } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 import {
   hasSfggSelectedOverenskomst,
+  resolveSfggSource,
   resolveSfggReferenceperiodeDayCount,
   resolveSfggReferenceperiodeMaxDate,
 } from '../../../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
@@ -645,18 +646,25 @@ const LoenindkomstTab = React.memo(({
   }, [setEOValues]);
 
   const getSfggReferenceperiodeAvailability = React.useCallback((
+    employment: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number],
     row: ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number] | undefined
-  ): Readonly<{ maxFravaersdage: number | undefined; hasNoArbejdsdageError: boolean }> => {
-    const referenceDayCount = resolveSfggReferenceperiodeDayCount(eoValues, row);
+  ): Readonly<{
+    maxFravaersdage: number | undefined;
+    hasNoRelevantDaysError: boolean;
+    dayLabel: 'kalenderdage' | 'arbejdsdage' | null;
+  }> => {
+    const source = resolveSfggSource(row, employment);
+    const referenceDayCount = resolveSfggReferenceperiodeDayCount(eoValues, row, source);
     if (!referenceDayCount) {
-      return { maxFravaersdage: undefined, hasNoArbejdsdageError: false };
+      return { maxFravaersdage: undefined, hasNoRelevantDaysError: false, dayLabel: null };
     }
-    const maxFravaersdage = referenceDayCount.divisorLabel === 'hverdage'
-      ? referenceDayCount.hverdage
+    const maxFravaersdage = referenceDayCount.divisorLabel === 'kalenderdage'
+      ? referenceDayCount.kalenderdage
       : referenceDayCount.divisorDage;
     return {
       maxFravaersdage,
-      hasNoArbejdsdageError: maxFravaersdage <= 0,
+      hasNoRelevantDaysError: maxFravaersdage <= 0,
+      dayLabel: referenceDayCount.divisorLabel,
     };
   }, [eoValues]);
 
@@ -1761,9 +1769,11 @@ const LoenindkomstTab = React.memo(({
           && hasSfggOverenskomst
           && sfggPolicy?.model === 'direkte_sats'
           && sfggPolicy.direkteSatsErDifferentieret;
-        const referenceperiodeAvailability = getSfggReferenceperiodeAvailability(sfggRow);
-        const referenceperiodeErrorText = referenceperiodeAvailability.hasNoArbejdsdageError
-          ? 'Referenceperioden indeholder ingen arbejdsdage.'
+        const referenceperiodeAvailability = getSfggReferenceperiodeAvailability(af, sfggRow);
+        const referenceperiodeErrorText = referenceperiodeAvailability.hasNoRelevantDaysError
+          ? referenceperiodeAvailability.dayLabel === 'kalenderdage'
+            ? 'Referenceperioden indeholder ingen kalenderdage.'
+            : 'Referenceperioden indeholder ingen arbejdsdage.'
           : '';
         const firstTafFraDato = (eoValues.tafPerioder ?? [])
           .map((tafRow) => tafRow.fra)

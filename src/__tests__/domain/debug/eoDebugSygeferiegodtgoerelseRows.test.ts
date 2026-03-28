@@ -475,7 +475,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it('viser referencesatsen med kr./dag når TAF beregnes som måneder', () => {
+  it('viser kalenderdage i referencesatsen når referenceperiode-sporet bruges og TAF beregnes som måneder', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet månedsløn';
@@ -525,18 +525,66 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: `sfgg.referenceperiodeantal.${values.loenindkomstAnsaettelsesforhold[0].id}`,
-          label: 'Antal hverdage i perioden (21 hverdage - 1 fraværsdage u. løn) =',
-          displayValue: '20 hverdage',
+          label: 'Antal kalenderdage i perioden (31 kalenderdage - 1 fraværsdage u. løn) =',
+          displayValue: '30 kalenderdage',
           status: 'ok',
         }),
         expect.objectContaining({
           id: `sfgg.referencesats.${values.loenindkomstAnsaettelsesforhold[0].id}`,
-          label: 'Referencesats (10.000,00 x 12,5 % / 20 hverdage) =',
-          displayValue: '62,50 kr./dag',
+          label: 'Referencesats (10.000,00 x 12,5 % / 30 kalenderdage) =',
+          displayValue: '41,67 kr./dag',
           status: 'ok',
         }),
       ])
     );
+  });
+
+  it('viser fortsat arbejdsdage i SFGG-tabellen for manuelt angivet dagssats selv når TAF beregnes som måneder', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        beregnesUdFra: 'Manuelt angivet',
+        manuelDagssats: { kind: 'number', value: 100 },
+        manuelBeloebIHenholdTil: undefined,
+        manuelFoerstEfterSygeloen: 'Nej',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: 0,
+        satsvalg: undefined,
+        alleredeBetaltBeloeb: undefined,
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2024-01-29',
+        til: '2024-02-04',
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const rows = buildEODebugSygeferiegodtgoerelseRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2024-01-01',
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `sfgg.referencesats.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'Referencesats',
+          displayValue: '100,00 kr./arbejdsdag',
+          status: 'ok',
+        }),
+      ])
+    );
+    const tableRow = rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`);
+    expect(tableRow?.displayValue).toContain('Fra-dato | Til-dato | Sats | Antal arbejdsdage | Feriepengekrav');
+    expect(tableRow?.displayValue).toContain('29-01-2024 | 02-02-2024 | 100,00 | 5 | 500,00');
   });
 
   it('viser reguleringsindeks i SFGG-tabellen ved overenskomstbaseret referencesats og splitter ved reguleringsdato', () => {
@@ -692,9 +740,9 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     });
 
     const tableRow = rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`);
-    expect(tableRow?.displayValue).toContain('Fra-dato | Til-dato | Indeks | Sats |');
-    expect(tableRow?.displayValue).toContain('26-02-2024 | 29-02-2024 | 100,00 | 21,52 |');
-    expect(tableRow?.displayValue).toContain('01-03-2024 | 05-03-2024 | 105,08 | 22,61 |');
+    expect(tableRow?.displayValue).toContain('Fra-dato | Til-dato | Indeks | Sats | Antal kalenderdage | Feriepengekrav');
+    expect(tableRow?.displayValue).toContain('26-02-2024 | 29-02-2024 | 100,00 | 14,58 | 4 | 58,32');
+    expect(tableRow?.displayValue).toContain('01-03-2024 | 05-03-2024 | 105,08 | 15,32 | 5 | 76,60');
   });
 
   it('viser referencesats som overenskomstfastsat ved direkte overenskomstsats uden referenceperiode', () => {

@@ -26,14 +26,19 @@ import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/period
 import { resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/sharedPdfUtils';
 import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/loenoplysningerInput';
-import { getFirstIndtastedeTafFraDato } from '../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
+import {
+  getFirstIndtastedeTafFraDato,
+  resolveSfggReferenceperiodeDayCount,
+  resolveSfggSource,
+  SFGG_NO_CALENDAR_DAYS_REASON,
+  SFGG_NO_WORKDAYS_REASON,
+} from '../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
 import {
   clampTafRow,
   getValidTafRange,
   resolveTafConstraintBounds,
 } from '../domain/erstatningsopgoerelse/tafPeriodConstraints';
 import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/tafCalculations';
-import { optaelArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/periodiseringsMotor';
 import { getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../data/overenskomstRates';
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../utils/fraction';
 import { isoToDanish } from '../types/branded';
@@ -462,30 +467,29 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
     }
 
     if (requiresReferenceperiode && row.referenceperiodeFra && row.referenceperiodeTil) {
-      const availableBreakdown = optaelArbejdsdageBreakdown({
-        fra: row.referenceperiodeFra,
-        til: row.referenceperiodeTil,
-        ferieperioder: values.ferieperioder ?? [],
-        loseFeriedage: 0,
-        context: {
-          kind: 'beregningsgrundlag',
-          oevrigeFravaersdage: 0,
-        },
-      });
-      const availableWorkdays = availableBreakdown?.tafDage ?? 0;
-      if (availableWorkdays <= 0) {
+      const referenceDayCount = resolveSfggReferenceperiodeDayCount(values, row, resolveSfggSource(row, employment));
+      const availableRelevantDays = referenceDayCount?.divisorLabel === 'kalenderdage'
+        ? referenceDayCount.kalenderdage
+        : (referenceDayCount?.divisorDage ?? 0);
+
+      if (availableRelevantDays <= 0) {
         errors.push({
           path: `${errorPathPrefix}.referenceperiodeFra`,
-          message: 'Referenceperioden indeholder ingen arbejdsdage',
+          message: referenceDayCount?.divisorLabel === 'kalenderdage'
+            ? SFGG_NO_CALENDAR_DAYS_REASON
+            : SFGG_NO_WORKDAYS_REASON,
           severity: 'error',
         });
       } else if (
         typeof row.referenceperiodeFravaersdageUdenLoen === 'number' &&
-        row.referenceperiodeFravaersdageUdenLoen > availableWorkdays
+        row.referenceperiodeFravaersdageUdenLoen > availableRelevantDays
       ) {
         errors.push({
           path: `${errorPathPrefix}.referenceperiodeFravaersdageUdenLoen`,
-          message: `Ferie- og fraværsdage uden løn overstiger mulige arbejdsdage i referenceperioden (maksimalt ${availableWorkdays})`,
+          message:
+            referenceDayCount?.divisorLabel === 'kalenderdage'
+              ? `Ferie- og fraværsdage uden løn overstiger mulige kalenderdage i referenceperioden (maksimalt ${availableRelevantDays})`
+              : `Ferie- og fraværsdage uden løn overstiger mulige arbejdsdage i referenceperioden (maksimalt ${availableRelevantDays})`,
           severity: 'error',
         });
       }

@@ -40,6 +40,9 @@ import { buildLoenudviklingModel } from '../erstatningsopgoerelse/eoPdfLoenudvik
 import {
   computeSygeferiegodtgoerelse,
   findSfggSixMonthWarningEmploymentIds,
+  resolveSfggDayBasis,
+  SFGG_NO_CALENDAR_DAYS_REASON,
+  SFGG_NO_WORKDAYS_REASON,
   sumFerieberettigetLoenInRangesKroner,
   EMPTY_RESULT,
   hasSfggSelectedOverenskomst,
@@ -3025,6 +3028,7 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
     if (!kilde || kilde === 'Ingen') {
       continue;
     }
+    const sfggDayBasis = resolveSfggDayBasis(source, tafBeregnesSom);
 
     const foerstEfterSygeloen =
       (source.kind === 'manuel' && row?.manuelFoerstEfterSygeloen === 'Ja')
@@ -3059,7 +3063,8 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       && result
       && result.segments.length === 0
       && result.referenceSats.status === 'not_calculable'
-      && result.referenceSats.reason !== 'Ingen arbejdsdage i SFGG-perioden'
+      && result.referenceSats.reason !== SFGG_NO_WORKDAYS_REASON
+      && result.referenceSats.reason !== SFGG_NO_CALENDAR_DAYS_REASON
     ) {
       direkteOverenskomstDagssatsMangler = 'Dagssats kunne ikke fastsættes for den valgte overenskomst i TAF-perioden';
     }
@@ -3100,11 +3105,11 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
 
     if (result?.referenceSatsFormula) {
       const arbejdsdageLabel = (() => {
-        if (result.referenceSatsFormula.divisorLabel === 'hverdage') {
+        if (result.referenceSatsFormula.divisorLabel === 'kalenderdage') {
           if (result.referenceSatsFormula.oevrigeFravaersdage > 0) {
-            return `Antal hverdage i perioden (${result.referenceSatsFormula.hverdage.toLocaleString('da-DK')} hverdage - ${result.referenceSatsFormula.oevrigeFravaersdage.toLocaleString('da-DK')} fraværsdage u. løn) =`;
+            return `Antal kalenderdage i perioden (${result.referenceSatsFormula.kalenderdage.toLocaleString('da-DK')} kalenderdage - ${result.referenceSatsFormula.oevrigeFravaersdage.toLocaleString('da-DK')} fraværsdage u. løn) =`;
           }
-          return 'Antal hverdage i perioden';
+          return 'Antal kalenderdage i perioden';
         }
 
         const ferieOgFravaersdage = result.referenceSatsFormula.feriedage + result.referenceSatsFormula.oevrigeFravaersdage;
@@ -3136,7 +3141,7 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       const referenceSatsLabel = result.referenceSatsFormula
         ? `Referencesats (${formatCurrency(result.referenceSatsFormula.ferieberettigetLoenKroner)} x ${formatPercent(result.referenceSatsFormula.feriePctDecimal * 100)} / ${divisorText}) =`
         : 'Referencesats';
-      const referenceSatsUnit = tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER ? 'kr./dag' : 'kr./arbejdsdag';
+      const referenceSatsUnit = sfggDayBasis === 'kalenderdage' ? 'kr./dag' : 'kr./arbejdsdag';
       rows.push({
         id: `sfgg.referencesats.${employment.id}`,
         label: referenceSatsLabel,
@@ -3155,7 +3160,9 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
     }
 
     if (result?.segments.length) {
-      const antalDageHeader = tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER ? 'Antal hverdage' : 'Antal arbejdsdage';
+      const antalDageHeader = sfggDayBasis === 'kalenderdage'
+        ? 'Antal kalenderdage'
+        : 'Antal arbejdsdage';
       const hasReguleringsindeks = result.segments.some((segment) => segment.reguleringsindeks !== null);
       const lines = [
         hasReguleringsindeks

@@ -21,12 +21,36 @@ import { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from './eoPdf
 import type { Calculable, LoenudviklingSegment, MoneyOre } from './eoPdfModelTypes';
 import { getEffektiveSatserForDato, getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../../data/overenskomstRates';
 import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
+import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 
 const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 
 type SfgSourceType = 'ingen' | 'manuel' | 'ferielov' | 'overenskomst_direkte' | 'overenskomst_ferielov';
 export type SfggSource = Readonly<{ kind: SfgSourceType; label: string }>;
+export type SfggDayBasis = 'kalenderdage' | 'arbejdsdage';
+export const SFGG_NO_CALENDAR_DAYS_REASON = 'Ingen kalenderdage i SFGG-perioden';
+export const SFGG_NO_WORKDAYS_REASON = 'Ingen arbejdsdage i SFGG-perioden';
+
+const SFGG_REFERENCEPERIODE_KILDER_MED_BEREGNINGSPERIODE = new Set<SfgSourceType>([
+  'ferielov',
+  'overenskomst_ferielov',
+]);
+
+/**
+ * Normativ SFGG-regel:
+ * - Kun når SFGG beregnes via referenceperiode/ferielov-sporet OG TAF beregnes som måneder,
+ *   opgøres SFGG på kalenderdage.
+ * - I alle øvrige spor opgøres SFGG på arbejdsdage, uanset om dagssatsen kommer manuelt
+ *   eller direkte fra overenskomsten.
+ */
+export const resolveSfggDayBasis = (
+  source: Readonly<{ kind: SfgSourceType }>,
+  tafBeregningsenhed: TafBeregningsenhed
+): SfggDayBasis =>
+  tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER && SFGG_REFERENCEPERIODE_KILDER_MED_BEREGNINGSPERIODE.has(source.kind)
+    ? 'kalenderdage'
+    : 'arbejdsdage';
 
 
 export type SygeferiegodtgoerelseSegment = Readonly<{
@@ -70,7 +94,8 @@ export type SygeferiegodtgoerelseAnsaettelsesforholdResult = Readonly<{
     feriePctDecimal: number;
     feriepengeKroner: number;
     divisorDage: number;
-    divisorLabel: 'hverdage' | 'arbejdsdage';
+    divisorLabel: 'kalenderdage' | 'arbejdsdage';
+    kalenderdage: number;
     hverdage: number;
     shDage: number;
     feriedage: number;
@@ -103,10 +128,12 @@ export const resolveSfggReferenceperiodeDayCount = (
   row: Pick<
     SygeferiegodtgoerelseAnsaettelsesforholdRow,
     'referenceperiodeFra' | 'referenceperiodeTil' | 'referenceperiodeFravaersdageUdenLoen'
-  > | undefined
+  > | undefined,
+  source: Readonly<{ kind: SfgSourceType }>
 ): Readonly<{
   divisorDage: number;
-  divisorLabel: 'hverdage' | 'arbejdsdage';
+  divisorLabel: 'kalenderdage' | 'arbejdsdage';
+  kalenderdage: number;
   hverdage: number;
   shDage: number;
   feriedage: number;
@@ -129,13 +156,18 @@ export const resolveSfggReferenceperiodeDayCount = (
   if (!breakdown) return null;
 
   const tafBeregnesSom = computeTafBeregningsenhed(values);
-  const divisorDage = tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER
-    ? Math.max(0, breakdown.arbejdsdage - breakdown.oevrigeFravaersdage)
+  const dayBasis = resolveSfggDayBasis(source, tafBeregnesSom);
+  const fraDate = parseISODate(row.referenceperiodeFra);
+  const tilDate = parseISODate(row.referenceperiodeTil);
+  const kalenderdage = fraDate && tilDate ? countInclusiveUtcDays(fraDate, tilDate) ?? 0 : 0;
+  const divisorDage = dayBasis === 'kalenderdage'
+    ? Math.max(0, kalenderdage - breakdown.oevrigeFravaersdage)
     : Math.max(0, breakdown.tafDage);
 
   return {
     divisorDage,
-    divisorLabel: tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER ? 'hverdage' : 'arbejdsdage',
+    divisorLabel: dayBasis,
+    kalenderdage,
     hverdage: breakdown.arbejdsdage,
     shDage: breakdown.shDage,
     feriedage: breakdown.feriedage,
@@ -491,7 +523,8 @@ const resolveBaseRate = (
     feriePctDecimal: number;
     feriepengeKroner: number;
     divisorDage: number;
-    divisorLabel: 'hverdage' | 'arbejdsdage';
+    divisorLabel: 'kalenderdage' | 'arbejdsdage';
+    kalenderdage: number;
     hverdage: number;
     shDage: number;
     feriedage: number;
@@ -520,7 +553,7 @@ const resolveBaseRate = (
       formula: null,
     };
   }
-  const referenceDayCount = resolveSfggReferenceperiodeDayCount(values, sfggRow);
+  const referenceDayCount = resolveSfggReferenceperiodeDayCount(values, sfggRow, source);
   const arbejdsdage = referenceDayCount?.divisorDage ?? 0;
   const ferieberettigetLoenKroner = sumFerieberettigetLoenInRangesKroner(
     employment,
@@ -531,8 +564,12 @@ const resolveBaseRate = (
   const feriepengeKroner = ferieberettigetLoenKroner * feriePctDecimal;
   if (arbejdsdage <= 0) {
     return {
-      referenceperiode: { fra: sfggRow.referenceperiodeFra, til: sfggRow.referenceperiodeTil },
-      satsOre: notCalculable('Referenceperioden indeholder ingen arbejdsdage'),
+        referenceperiode: { fra: sfggRow.referenceperiodeFra, til: sfggRow.referenceperiodeTil },
+      satsOre: notCalculable(
+        referenceDayCount?.divisorLabel === 'kalenderdage'
+          ? 'Referenceperioden indeholder ingen kalenderdage'
+          : 'Referenceperioden indeholder ingen arbejdsdage'
+      ),
       formula: null,
     };
   }
@@ -545,6 +582,7 @@ const resolveBaseRate = (
       feriepengeKroner,
       divisorDage: arbejdsdage,
       divisorLabel: referenceDayCount?.divisorLabel ?? 'arbejdsdage',
+      kalenderdage: referenceDayCount?.kalenderdage ?? 0,
       hverdage: referenceDayCount?.hverdage ?? 0,
       shDage: referenceDayCount?.shDage ?? 0,
       feriedage: referenceDayCount?.feriedage ?? 0,
@@ -605,10 +643,10 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     tafDateSet.delete(firstExcludedDate);
   }
 
-  const capMode = computeTafBeregningsenhed(values);
+  const tafBeregningsenhed = computeTafBeregningsenhed(values);
   const capComputation =
     skadesdato !== undefined && skadesdato < '2015-01-01'
-      ? buildCapComputation(tafRanges, capMode)
+      ? buildCapComputation(tafRanges, tafBeregningsenhed)
       : { cutoffDate: null, rows: [] };
 
   const boundsDates = sortIsoDates(tafDateSet);
@@ -622,6 +660,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     const sfggRow = getSfgRowForEmployment(values, employment.id);
     const source = resolveSfggSource(sfggRow, employment);
     if (source.kind === 'ingen') continue;
+    const dayBasis = resolveSfggDayBasis(source, tafBeregningsenhed);
 
     const explanatoryLines: string[] = [];
     const dateSet = new Set<ISODateString>(tafDateSet);
@@ -666,8 +705,10 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       }
     }
 
-    const eligibleWorkdays = sortIsoDates(dateSet).filter((iso) => tafArbejdsdageSet.has(iso));
-    if (eligibleWorkdays.length === 0) {
+    const eligibleDates = dayBasis === 'kalenderdage'
+      ? sortIsoDates(dateSet)
+      : sortIsoDates(dateSet).filter((iso) => tafArbejdsdageSet.has(iso));
+    if (eligibleDates.length === 0) {
       totalPerEmployment.push({
         ansaettelsesforholdId: employment.id,
         ansaettelsesforholdNavn: getEmploymentName(employment),
@@ -678,7 +719,11 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
         totalOre: ensureMoneyOre(0),
         alleredeBetaltOre: ensureMoneyOre(0),
         referenceperiode: null,
-        referenceSats: notCalculable('Ingen arbejdsdage i SFGG-perioden'),
+        referenceSats: notCalculable(
+          dayBasis === 'kalenderdage'
+            ? SFGG_NO_CALENDAR_DAYS_REASON
+            : SFGG_NO_WORKDAYS_REASON
+        ),
         referenceSatsFormula: null,
         explanatoryLines,
         capRows: capComputation.rows,
@@ -695,7 +740,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       satsOre: MoneyOre;
       dates: ISODateString[];
     }> = [];
-    for (const iso of eligibleWorkdays) {
+    for (const iso of eligibleDates) {
       let satsOre: MoneyOre | null = null;
       let reguleringsindeks: number | null = null;
       if (source.kind === 'overenskomst_direkte') {

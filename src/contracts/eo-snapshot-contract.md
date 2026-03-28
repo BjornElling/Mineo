@@ -398,3 +398,25 @@ Når du tilføjer et nyt felt eller gør et eksisterende felt betinget:
 
 Manglende guard er en **Kritisk** fejl i review — den kan udskrive stale data i tillid-kritiske
 PDF-dokumenter.
+
+## 11. Semantisk fravalg skal undertrykke PDF-indhold og afledte visninger
+
+Visse EO-valg har en stærkere betydning end rene visningsvalg i PDF-UI'et: når brugeren
+semantisk har fravalgt en beregning, må senere outputvalg ikke genindføre indholdet.
+
+### 11.1 Sygeferiegodtgørelse
+
+Hvis sygeferiegodtgørelse for den konkrete sag er sat til `Ingen` for alle relevante
+ansættelsesforhold, er sygeferiegodtgørelse semantisk fravalgt.
+
+I dette tilfælde gælder følgende ufravigelige regler:
+- EO-PDF må ikke vise sygeferiegodtgørelse nogen steder.
+- EO-PDF må ikke medtage sygeferiegodtgørelse i mellemregninger, indtægtslinjer, bilag eller andre beregninger.
+- Bilags-checkboxen for sygeferiegodtgørelse i EOBeregningTab er kun et visningsønske og må ikke overstyre det semantiske fravalg.
+- TAF fordelt på år må ikke vise eller beregne fradragslinjer for sygeferiegodtgørelse.
+
+### 11.2 Samme princip for andre semantisk fravalgte delberegninger
+
+Samme regel gælder for andre delberegninger med tilsvarende semantisk fravalg. Hvis en
+delberegning er autoritativt fravalgt i snapshot-/engine-laget, må hverken EO-PDF eller
+TAF fordelt på år-PDF vise indhold, fradrag, bilag eller mellemregninger for den.

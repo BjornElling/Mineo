@@ -398,6 +398,48 @@ describe('buildTafPerYearResult', () => {
     expect(sfggDeduction?.amountOre).toBe(0);
   });
 
+  it('udelader sygeferiegodtgørelse helt fra TAF fordelt på år når alle relevante ansættelsesforhold står til Ingen', () => {
+    const eoValues = makeValues({
+      eoNummer: '2',
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmountValue(1500),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-12-30'), til: iso('2025-01-03'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          id: 'af-1',
+          loenudviklingBeregningsgrundlag: 'Ingen',
+        },
+      ],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        beregnesUdFra: 'Ingen',
+        manuelDagssats: undefined,
+        manuelBeloebIHenholdTil: undefined,
+        manuelFoerstEfterSygeloen: 'Nej',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: 0,
+        satsvalg: undefined,
+        alleredeBetaltBeloeb: undefined,
+      }],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
+    const result = snapshotData.engines.tafPerYear;
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    expect(snapshotData.pdfModel.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold).toEqual([]);
+    expect(snapshotData.pdfModel.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.totalOre).toBe(0);
+    expect(
+      result.years.every((year) => year.deductions.every((deduction) => deduction.label !== 'Sygeferiegodtgørelse'))
+    ).toBe(true);
+  });
+
   it('afstemmer enkeltår med autoritativ EO-total når SFGG alene clampper netto til 0', () => {
     const eoValues = makeValues({
       eoNummer: '2',

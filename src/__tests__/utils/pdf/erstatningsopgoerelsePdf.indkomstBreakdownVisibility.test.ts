@@ -80,6 +80,17 @@ const renderPdf = (
   });
 };
 
+const renderPdfWithSelected = (
+  stamdata: typeof STAMDATA_INITIAL_VALUES,
+  eo: ReturnType<typeof createErstatningsopgoerelseInitialValues>,
+  selectedElements: typeof selected
+) => {
+  generateErstatningsopgoerelsePdf(stamdata, eo, selectedElements, {
+    visUdkastStempel: false,
+    document: buildProjectedDocument(stamdata, eo),
+  });
+};
+
 const collectTextStrings = (instance: MockJsPDF | null): string[] => {
   if (!instance) return [];
   const values: string[] = [];
@@ -483,6 +494,33 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     expect(texts).not.toContain('Sygeferiegodtgørelse');
     expect(beregnetKravLinje).not.toContain(' - 0,00');
+  });
+
+  it('viser ikke bilagssiden for sygeferiegodtgørelse når PDF-elementet er valgt men alle relevante ansættelsesforhold står til Ingen', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      beregnesUdFra: 'Ingen',
+      manuelDagssats: undefined,
+      manuelBeloebIHenholdTil: undefined,
+      manuelFoerstEfterSygeloen: 'Nej',
+      referenceperiodeFra: undefined,
+      referenceperiodeTil: undefined,
+      referenceperiodeFravaersdageUdenLoen: 0,
+      satsvalg: undefined,
+      alleredeBetaltBeloeb: undefined,
+    }];
+
+    renderPdfWithSelected(stamdata, eo, {
+      ...selected,
+      sygeferiegodtgoerelse: true,
+    });
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+
+    expect(texts).not.toContain('Sygeferiegodtgørelse');
+    expect(texts).not.toContain('Beregnes ud fra:');
+    expect(texts).not.toContain('Fra-dato | Til-dato | Sats | Antal dage | Feriepengekrav');
   });
 
   it('viser sygeferiegodtgørelse med 0 kr. i indtægter men udelader 0-fradrag i TAF-mellemregningen', () => {
