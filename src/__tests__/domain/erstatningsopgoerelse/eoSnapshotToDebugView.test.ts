@@ -2,9 +2,11 @@
 const {
   buildRegulationTimelineMock,
   buildRegulationDebugSectionsMock,
+  executeEODebugBuilderEntriesBySectionMock,
 } = vi.hoisted(() => ({
   buildRegulationTimelineMock: vi.fn(() => ({ ansaettelser: [] })),
   buildRegulationDebugSectionsMock: vi.fn(() => []),
+  executeEODebugBuilderEntriesBySectionMock: vi.fn(() => new Map()),
 }));
 
 vi.mock('../../../domain/debug/eoDebugBuilderRegistry', () => ({
@@ -22,23 +24,7 @@ vi.mock('../../../domain/debug/eoDebugBuilderRegistry', () => ({
       },
     },
   ],
-  executeEODebugBuilderEntriesBySection: (entries: Array<{ section: string; run: (ctx: unknown) => unknown[] }>, ctx: unknown) => {
-    const map = new Map<string, unknown[]>();
-    entries.forEach((entry) => {
-      try {
-        map.set(entry.section, entry.run(ctx));
-      } catch (error) {
-        const message = error instanceof Error && error.message.trim() !== '' ? error.message : 'Ukendt fejl';
-        map.set(entry.section, [{
-          id: `debug.builder.${entry.section}.exception`,
-          label: `Fejl i debug-builder (${entry.section})`,
-          displayValue: `Fejl (Builder-fejl: ${message})`,
-          status: 'error',
-        }]);
-      }
-    });
-    return map;
-  },
+  executeEODebugBuilderEntriesBySection: executeEODebugBuilderEntriesBySectionMock,
 }));
 
 vi.mock('../../../domain/debug/eoDebugRegulationCore', () => ({
@@ -53,7 +39,29 @@ import { eoSnapshotToDebugView } from '../../../domain/erstatningsopgoerelse/eoS
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 
 describe('eoSnapshotToDebugView', () => {
-  it('bruger strukturerede snapshot-data og isolerer builder-fejl pr. sektion', () => {
+  beforeEach(() => {
+    executeEODebugBuilderEntriesBySectionMock.mockReset();
+    executeEODebugBuilderEntriesBySectionMock.mockReturnValue(new Map());
+    buildRegulationTimelineMock.mockClear();
+    buildRegulationDebugSectionsMock.mockClear();
+    buildRegulationDebugSectionsMock.mockReturnValue([]);
+  });
+
+  it('bruger strukturerede snapshot-data og delegerer builder-kørslen til registry', () => {
+    executeEODebugBuilderEntriesBySectionMock.mockReturnValue(new Map([
+      ['stamdata', [
+        { id: 'stamdata.journalnr', label: 'Journalnr', displayValue: 'J-1', status: 'ok' },
+      ]],
+      ['taf', [
+        {
+          id: 'debug.builder.taf.exception',
+          label: 'Fejl i debug-builder (taf)',
+          displayValue: 'Fejl (Builder-fejl: Builder sprængte)',
+          status: 'error',
+        },
+      ]],
+    ]));
+
     const debugSnapshot = {
       model: {
         tableData: {
@@ -127,6 +135,18 @@ describe('eoSnapshotToDebugView', () => {
         status: 'error',
       },
     ]);
+    expect(executeEODebugBuilderEntriesBySectionMock).toHaveBeenCalledTimes(1);
+    const [entriesArg, ctxArg] = executeEODebugBuilderEntriesBySectionMock.mock.calls[0] ?? [];
+    expect(entriesArg).toEqual(expect.any(Array));
+    expect(ctxArg).toMatchObject({
+      stamdataValues: debugSnapshot.stamdataValues,
+      eoValues: debugSnapshot.eoValues,
+      stamdataErrors: debugSnapshot.fieldErrors.stamdata,
+      eoErrors: debugSnapshot.fieldErrors.erstatningsopgoerelse,
+      loenindkomstManuelReguleringInputErrors: {},
+      appSettings: DEFAULT_APP_SETTINGS,
+      canonicalOutput: { marker: 'canonical' },
+    });
     expect(buildRegulationTimelineMock).toHaveBeenCalledWith({
       debugDays: debugSnapshot.debugDays,
       eoValues: debugSnapshot.eoValues,

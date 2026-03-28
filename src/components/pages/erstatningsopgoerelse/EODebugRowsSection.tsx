@@ -26,6 +26,9 @@ const EODebugRowsSection = React.memo<{
   title: string;
   rows: readonly DebugRowModel[];
 }>(({ title, rows }) => {
+  // Render-contract: en sektion med 0 rækker skal være helt skjult.
+  // Det gør komponenten sikker som fallback, selv om de primære show/hide-beslutninger
+  // normalt træffes højere oppe i EO-debug viewmodellen.
   if (rows.length === 0) {
     return null;
   }

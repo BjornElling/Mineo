@@ -32,6 +32,8 @@ export type EODebugGroupedSectionViewModel = Readonly<{
 }>;
 
 export type EODebugPageViewModel = Readonly<{
+  showSvieSmerteSection: boolean;
+  showTabtArbejdsfortjenesteSections: boolean;
   stamdataRows: readonly DebugRowModel[];
   erstatningsopgoerelseRows: readonly DebugRowModel[];
   forligRows: readonly DebugRowModel[];
@@ -49,6 +51,10 @@ export type EODebugPageViewModel = Readonly<{
   bilagsnumreRows: readonly DebugRowModel[];
 }>;
 
+// NOTE:
+// Disse helpers afleder struktur fra builder-id-konventioner.
+// Hvis builders senere får eksplicit metadata for section/employment-tilhørsforhold,
+// skal disse regex-baserede helpers erstattes af den strukturerede metadata-kilde.
 const getLoenindkomstAnsaettelsesforholdId = (rowId: string): string | null => {
   const match = /^loenindkomst\.([^.]+)\./.exec(rowId);
   return match?.[1] ?? null;
@@ -119,8 +125,8 @@ const parseSfggTable = (row: DebugRowModel): EODebugDisplayTable | null => {
     id: `${row.id}.row.${index + 1}`,
     cells: line.split('|').map((cell) => cell.trim()),
   }));
-  const dataRows = parsedRows.filter((tableRow) => tableRow.cells[0] !== 'I alt');
-  const tableRows = dataRows.length > 1
+  const hasMultipleDataRows = parsedRows.filter((tableRow) => tableRow.cells[0] !== 'I alt').length > 1;
+  const tableRows = hasMultipleDataRows
     ? parsedRows
     : parsedRows.filter((tableRow) => tableRow.cells[0] !== 'I alt');
 
@@ -255,6 +261,8 @@ export const buildEODebugPageViewModel = (
     : [];
 
   return {
+    showSvieSmerteSection: viserSvieSmerte,
+    showTabtArbejdsfortjenesteSections: viserTabtArbejdsfortjeneste,
     stamdataRows: rowsBySection.get('stamdata') ?? [],
     erstatningsopgoerelseRows: rowsBySection.get('erstatningsopgoerelse') ?? [],
     forligRows: rowsBySection.get('forlig') ?? [],

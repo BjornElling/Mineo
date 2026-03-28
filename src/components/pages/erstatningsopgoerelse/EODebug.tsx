@@ -44,20 +44,30 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
       <EODebugRowsSection title="Erstatningsopgørelse" rows={pageView.erstatningsopgoerelseRows} />
       <EODebugRowsSection title="Forlig" rows={pageView.forligRows} />
       <EODebugRowsSection title="AES" rows={pageView.aesRows} />
-      <EODebugRowsSection title="Svie og smerte" rows={pageView.svieSmerteRows} />
-      <EODebugRowsSection title="Tabt arbejdsfortjeneste" rows={pageView.tafRows} />
-      <EODebugRowsSection title="TAF beregningsgrundlag" rows={pageView.tafBeregningsgrundlagRows} />
-      {pageView.employmentSections.length > 0
-        ? <EODebugEmploymentSections sections={pageView.employmentSections} />
-        : (
-          <EODebugRowsSection title="Lønindkomst" rows={pageView.loenindkomstRows} />
-        )}
-      <EODebugRowsSection title="Offentlige ydelser" rows={pageView.offentligeYdelserRows} />
-      {pageView.orphanSfggSections.length > 0 && (
+      {pageView.showSvieSmerteSection && (
+        <EODebugRowsSection title="Svie og smerte" rows={pageView.svieSmerteRows} />
+      )}
+      {pageView.showTabtArbejdsfortjenesteSections && (
+        <EODebugRowsSection title="Tabt arbejdsfortjeneste" rows={pageView.tafRows} />
+      )}
+      {pageView.showTabtArbejdsfortjenesteSections && (
+        <EODebugRowsSection title="TAF beregningsgrundlag" rows={pageView.tafBeregningsgrundlagRows} />
+      )}
+      {pageView.showTabtArbejdsfortjenesteSections && (
+        pageView.employmentSections.length > 0
+          ? <EODebugEmploymentSections sections={pageView.employmentSections} />
+          : (
+            <EODebugRowsSection title="Lønindkomst" rows={pageView.loenindkomstRows} />
+          )
+      )}
+      {pageView.showTabtArbejdsfortjenesteSections && (
+        <EODebugRowsSection title="Offentlige ydelser" rows={pageView.offentligeYdelserRows} />
+      )}
+      {pageView.showTabtArbejdsfortjenesteSections && pageView.orphanSfggSections.length > 0 && (
         <EODebugGroupedRowsSection title="Sygeferiegodtgørelse" sections={pageView.orphanSfggSections} />
       )}
 
-      {pageView.orphanRegulationSections.length > 0 && (
+      {pageView.showTabtArbejdsfortjenesteSections && pageView.orphanRegulationSections.length > 0 && (
         <EODebugRegulationSections sections={pageView.orphanRegulationSections} />
       )}
 

@@ -7,6 +7,17 @@ vi.mock('../../../../contexts/useAppSettings', () => ({
 }));
 
 describe('EODebugRowsSection', () => {
+  it('renderer ingenting når rows er tom', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <EODebugRowsSection title="Svie og smerte" rows={[]} />
+      </MemoryRouter>
+    );
+
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByText('Svie og smerte')).not.toBeInTheDocument();
+  });
+
   it('renderer multiline displayValue med bevarende linjeskift', () => {
     render(
       <MemoryRouter>
