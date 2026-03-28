@@ -31,6 +31,7 @@ import {
   evaluateRowCommit,
   type RowRemovalFocusPlan,
 } from './gridCore/tableRowFocus';
+import { OFFENTLIGE_YDELSER_TABLE_HEADERS } from '../../domain/erstatningsopgoerelse/offentligeYdelserTableColumns';
 
 export type OffentligeYdelserDerivedCellValues = Readonly<{
   periodiseringLabel: string;
@@ -357,14 +358,14 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
 
           <thead>
             <tr>
-              <StandardGridHeaderCell onClick={() => handleHeaderClick('fraDato')} sortRole={getSortRole('fraDato')} sortDirection={getSortDirection('fraDato')}>Fra-dato</StandardGridHeaderCell>
-              <StandardGridHeaderCell onClick={() => handleHeaderClick('tilDato')} sortRole={getSortRole('tilDato')} sortDirection={getSortDirection('tilDato')}>Til-dato</StandardGridHeaderCell>
-              <StandardGridHeaderCell onClick={() => handleHeaderClick('ydelse')} sortRole={getSortRole('ydelse')} sortDirection={getSortDirection('ydelse')}>Ydelse</StandardGridHeaderCell>
-              <StandardGridHeaderCell onClick={() => handleHeaderClick('tillaeg')} sortRole={getSortRole('tillaeg')} sortDirection={getSortDirection('tillaeg')}>Evt. tillæg</StandardGridHeaderCell>
-              <StandardGridHeaderCell onClick={() => handleHeaderClick('ydelsestype')} sortRole={getSortRole('ydelsestype')} sortDirection={getSortDirection('ydelsestype')}>Ydelsestype</StandardGridHeaderCell>
-              <StandardGridHeaderCell onClick={() => handleHeaderClick('periodiseringLabel')} sortRole={getSortRole('periodiseringLabel')} sortDirection={getSortDirection('periodiseringLabel')}>Periodisering</StandardGridHeaderCell>
-              <StandardGridHeaderCell onClick={() => handleHeaderClick('antalDageDisplay')} sortRole={getSortRole('antalDageDisplay')} sortDirection={getSortDirection('antalDageDisplay')}>Antal dage</StandardGridHeaderCell>
-              <StandardGridHeaderCell onClick={() => handleHeaderClick('ydelsePerDagDisplay')} sortRole={getSortRole('ydelsePerDagDisplay')} sortDirection={getSortDirection('ydelsePerDagDisplay')}>Ydelse / dag</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('fraDato')} sortRole={getSortRole('fraDato')} sortDirection={getSortDirection('fraDato')}>{OFFENTLIGE_YDELSER_TABLE_HEADERS[0]}</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('tilDato')} sortRole={getSortRole('tilDato')} sortDirection={getSortDirection('tilDato')}>{OFFENTLIGE_YDELSER_TABLE_HEADERS[1]}</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('ydelse')} sortRole={getSortRole('ydelse')} sortDirection={getSortDirection('ydelse')}>{OFFENTLIGE_YDELSER_TABLE_HEADERS[2]}</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('tillaeg')} sortRole={getSortRole('tillaeg')} sortDirection={getSortDirection('tillaeg')}>{OFFENTLIGE_YDELSER_TABLE_HEADERS[3]}</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('ydelsestype')} sortRole={getSortRole('ydelsestype')} sortDirection={getSortDirection('ydelsestype')}>{OFFENTLIGE_YDELSER_TABLE_HEADERS[4]}</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('periodiseringLabel')} sortRole={getSortRole('periodiseringLabel')} sortDirection={getSortDirection('periodiseringLabel')}>{OFFENTLIGE_YDELSER_TABLE_HEADERS[5]}</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('antalDageDisplay')} sortRole={getSortRole('antalDageDisplay')} sortDirection={getSortDirection('antalDageDisplay')}>{OFFENTLIGE_YDELSER_TABLE_HEADERS[6]}</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('ydelsePerDagDisplay')} sortRole={getSortRole('ydelsePerDagDisplay')} sortDirection={getSortDirection('ydelsePerDagDisplay')}>{OFFENTLIGE_YDELSER_TABLE_HEADERS[7]}</StandardGridHeaderCell>
             </tr>
           </thead>
 

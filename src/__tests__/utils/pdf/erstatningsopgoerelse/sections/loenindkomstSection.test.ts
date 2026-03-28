@@ -1,4 +1,5 @@
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { getStandardLoenTableHeaders } from '../../../../../domain/aarsloen/standardLoenTableColumns';
 import { toISODateString } from '../../../../../types/branded';
 import { renderLoenindkomstSection } from '../../../../../utils/pdf/erstatningsopgoerelse/sections/loenindkomstSection';
 import type { SelectedElements } from '../../../../../utils/pdf/erstatningsopgoerelse/types';
@@ -90,7 +91,7 @@ const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
       resolveOverenskomstDisplay: vi.fn(() => ''),
       formatPctFromInput: vi.fn(() => ''),
       isZeroPct: vi.fn(() => true),
-      getLoenindkomstTableHeaders: vi.fn(() => ['Dato fra', 'Dato til', 'Grundløn', 'A', 'B', 'C', 'Ferie', 'FP/FV', 'Pension', 'Samlet']),
+      getLoenindkomstTableHeaders: vi.fn(() => getStandardLoenTableHeaders('dag')),
       resolvePeriodColumns: vi.fn(() => ['01-10-2022', '31-10-2022'] as const),
       hasNonZeroLoenAmount: vi.fn((value) => Boolean(value && value.kind === 'number' && value.value !== 0)),
       shouldIncludeLoenRowInBilag: vi.fn(({ ranges }) => {

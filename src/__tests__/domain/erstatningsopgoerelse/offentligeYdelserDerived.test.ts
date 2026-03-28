@@ -93,6 +93,27 @@ describe('deriveOffentligeYdelserRow', () => {
     expect(result.ydelsePerDag).toBe(100);
   });
 
+  it('behandler de to ydelsesfelter ens og summerer dem blot i beregningen', () => {
+    const kunFoersteFelt: OffentligeYdelserRow = {
+      ...baseRow,
+      fraDato: '01-01-2024',
+      tilDato: '10-01-2024',
+      ydelsestype: 'dagpenge',
+      ydelse: asAmountValue(1000),
+      tillaeg: asAmountValue(0),
+    };
+    const fordeltMellemBegge: OffentligeYdelserRow = {
+      ...baseRow,
+      fraDato: '01-01-2024',
+      tilDato: '10-01-2024',
+      ydelsestype: 'dagpenge',
+      ydelse: asAmountValue(800),
+      tillaeg: asAmountValue(200),
+    };
+
+    expect(deriveOffentligeYdelserRow(fordeltMellemBegge)).toEqual(deriveOffentligeYdelserRow(kunFoersteFelt));
+  });
+
   it('sygedagpenge bruger arbejdsdage-periodisering (periodiseringLabel = Arbejdsdage)', () => {
     const row: OffentligeYdelserRow = {
       ...baseRow,

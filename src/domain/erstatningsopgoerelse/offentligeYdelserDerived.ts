@@ -23,10 +23,11 @@ export const deriveOffentligeYdelserRow = (row: OffentligeYdelserRow): Offentlig
   if (!antalDage || antalDage <= 0) return { periodiseringLabel, antalDage: null, ydelsePerDag: null };
 
   const ydelseValue = amountValueToNumber(row.ydelse);
-  const tillaegValue = amountValueToNumber(row.tillaeg);
-  const hasAnyAmount = ydelseValue !== undefined || tillaegValue !== undefined;
+  const ydelse2Value = amountValueToNumber(row.tillaeg);
+  const hasAnyAmount = ydelseValue !== undefined || ydelse2Value !== undefined;
   if (!hasAnyAmount) return { periodiseringLabel, antalDage, ydelsePerDag: null };
 
-  const samletYdelse = (ydelseValue ?? 0) + (tillaegValue ?? 0);
+  // De to ydelsesfelter er semantisk ens og indgår derfor kun som en samlet ydelse.
+  const samletYdelse = (ydelseValue ?? 0) + (ydelse2Value ?? 0);
   return { periodiseringLabel, antalDage, ydelsePerDag: samletYdelse / antalDage };
 };

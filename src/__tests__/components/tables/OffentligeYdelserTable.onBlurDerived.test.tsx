@@ -94,6 +94,14 @@ const DerivedHarness = ({ initial, onPersist }: { initial: OffentligeYdelserRow[
 describe('OffentligeYdelserTable (Ydelse / dag)', () => {
   const TEST_TIMEOUT_MS = 30000;
 
+  it('viser de nye ydelseskolonneoverskrifter', () => {
+    render(<DerivedHarness onPersist={vi.fn()} initial={[makeRow({})]} />);
+
+    expect(screen.getByText('Ydelse')).toBeInTheDocument();
+    expect(screen.getByText('Ydelse (2)')).toBeInTheDocument();
+    expect(screen.queryByText('Evt. tillæg')).not.toBeInTheDocument();
+  });
+
   it('recomputes ydelse/dag when clearing ydelse via Backspace in focus-only mode', async () => {
     const user = userEvent.setup();
     const onPersist = vi.fn();

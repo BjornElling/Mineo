@@ -8,15 +8,9 @@ import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatning
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
 import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/periodRangeGroups';
 import { renderEoStylePdfTable } from '../../pdfTableRenderer';
+import { OFFENTLIGE_YDELSER_PDF_HEADERS } from '../../../../domain/erstatningsopgoerelse/offentligeYdelserTableColumns';
 
 type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
-const OFFENTLIGE_YDELSER_HEADERS = [
-  'Fra-dato',
-  'Til-dato',
-  'Ydelse',
-  'Evt. tillæg',
-  'I alt',
-] as const;
 
 type OffentligeYdelserSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
@@ -55,7 +49,7 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
   const offentligeErrorRowIds = getOffentligeYdelserErrorRowIdSet(eoValues.offentligeYdelserRows ?? []);
 
   const renderOffentligeYdelserTable = (rowsToRender: readonly OffentligeYdelserRow[]) => {
-    const headerRow: RowInput = OFFENTLIGE_YDELSER_HEADERS.map((header) => ({
+    const headerRow: RowInput = OFFENTLIGE_YDELSER_PDF_HEADERS.map((header) => ({
       content: header,
       styles: { fontStyle: 'bold', halign: 'center' as const },
     }));
@@ -64,8 +58,8 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
       const tableRows: RowInput[] = [headerRow];
       for (const row of groupRows) {
         const ydelseValue = amountValueToNumber(row.ydelse) ?? 0;
-        const tillaegValue = amountValueToNumber(row.tillaeg) ?? 0;
-        const samletValue = ydelseValue + tillaegValue;
+        const ydelse2Value = amountValueToNumber(row.tillaeg) ?? 0;
+        const samletValue = ydelseValue + ydelse2Value;
         const samletDisplay = row.ydelse !== undefined || row.tillaeg !== undefined ? formatAsAmount(samletValue, 2) : '';
         const rowValues = [
           row.fraDato?.trim() ?? '',
@@ -100,9 +94,9 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
     }
 
     const doc = writer.getDoc() as jsPDF;
-    const equalColumnWidth = PDF_CONTENT_WIDTH_MM / OFFENTLIGE_YDELSER_HEADERS.length;
+    const equalColumnWidth = PDF_CONTENT_WIDTH_MM / OFFENTLIGE_YDELSER_PDF_HEADERS.length;
     const columnStyles = Object.fromEntries(
-      Array.from({ length: OFFENTLIGE_YDELSER_HEADERS.length }, (_, index) => [index, { cellWidth: equalColumnWidth }])
+      Array.from({ length: OFFENTLIGE_YDELSER_PDF_HEADERS.length }, (_, index) => [index, { cellWidth: equalColumnWidth }])
     );
 
     for (const [index, label] of groupOrder.entries()) {

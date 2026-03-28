@@ -97,8 +97,8 @@ export const debugTabelColumnId = {
 } as const;
 
 export const WAGE_COLUMNS: ReadonlyArray<Readonly<{ key: DebugTabelWageColumnKey; header: string }>> = [
-  { key: 'grundloen', header: 'Grundløn' },
-  { key: 'tillaeg', header: 'Tillæg' },
+  { key: 'grundloen', header: 'Løn' },
+  { key: 'tillaeg', header: 'Løn (2)' },
   { key: 'ikkePensionsgivende', header: 'Ikke-pens.\ngivende løn' },
   { key: 'atp', header: 'ATP og anden ikke-FB løn' },
   { key: 'ferieberettiget', header: 'Ferieberet.\nløn' },

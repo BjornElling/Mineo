@@ -67,6 +67,21 @@ describe('calculateStandardLoenRowDerived', () => {
     expect(result.pension).toBe(1500);
     expect(result.samlet).toBe(17500);
   });
+
+  it('behandler de to lønfelter ens og summerer dem blot i beregningen', () => {
+    const satser: StandardLoenSatserInput = {
+      feriePct: '12,5',
+      fritvalgPct: '1,0',
+      shSoPct: '2,0',
+      storeBededagPct: '0,45',
+      pensionPct: '10,0',
+    };
+
+    const samletICol2 = calculateStandardLoenRowDerived(createRow({ col2: 32000, col3: 0, col4: 1000, col5: 300 }), satser);
+    const fordeltMellemBegge = calculateStandardLoenRowDerived(createRow({ col2: 30000, col3: 2000, col4: 1000, col5: 300 }), satser);
+
+    expect(fordeltMellemBegge).toEqual(samletICol2);
+  });
 });
 
 // ─── roundStandardLoenAmountToTwoDecimals ────────────────────────────────────────

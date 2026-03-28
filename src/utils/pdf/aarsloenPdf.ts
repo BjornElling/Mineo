@@ -28,6 +28,10 @@ import { amountValueToDisplayString, amountValueToNumber } from '../expressionAm
 import { TODAY } from '../../config/dateRanges';
 import { formatAsAmount, formatCountWithUnit, formatPercent } from '../formatUtils';
 import { resolvePdfFileName } from './pdfFormatUtils';
+import {
+  STANDARD_LOEN_COL2_LABEL,
+  STANDARD_LOEN_COL3_LABEL,
+} from '../../domain/aarsloen/standardLoenTableColumns';
 
 const NBSP = '\u00A0';
 
@@ -180,7 +184,7 @@ const addIndtaegtsoplysningerTable = (
       harPeriode = !isEmptyOrZero(row.col0_dag) || !isEmptyOrZero(row.col1_dag);
     }
 
-    // Tjek beløbsfelter (Grundløn, Tillæg, Ikke-pensionsgivende løn, ATP og anden ikke-FB løn)
+    // Tjek beløbsfelter (Løn, Løn (2), Ikke-pensionsgivende løn, ATP og anden ikke-FB løn)
     const harLoen = !isEmptyOrZero(row.col2) || !isEmptyOrZero(row.col3) || !isEmptyOrZero(row.col4) ||
                      !isEmptyOrZero(row.col5);
 
@@ -209,8 +213,8 @@ const addIndtaegtsoplysningerTable = (
 
   // Tilføj resten af headers
   headers.push(
-    createPdfTableHeaderCell('Grundløn', 'center'),
-    createPdfTableHeaderCell('Tillæg', 'center'),
+    createPdfTableHeaderCell(STANDARD_LOEN_COL2_LABEL, 'center'),
+    createPdfTableHeaderCell(STANDARD_LOEN_COL3_LABEL, 'center'),
     createPdfTableHeaderCell('Ikke-pens. giv. løn', 'center'),
     createPdfTableHeaderCell('ATP mv.\nu. FP', 'center'),
     createPdfTableHeaderCell('Ferieber.\nløn', 'center'),

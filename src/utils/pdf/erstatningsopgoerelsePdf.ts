@@ -12,6 +12,7 @@ import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, St
 import { type MoneyOre, type Calculable } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { formatAsAmount, formatPercent as formatPercentUtil } from '../formatUtils';
 import { TODAY } from '../../config/dateRanges';
+import { getStandardLoenTableHeaders } from '../../domain/aarsloen/standardLoenTableColumns';
 
 import { logWarning } from '../logger';
 import {
@@ -92,24 +93,12 @@ const capitalizeFirstChar = (value: string): string => {
 };
 
 const getLoenindkomstTableHeaders = (loenperiode: Loenperiode): readonly string[] => {
-  const periodColumns =
-    loenperiode === 'maaned'
-      ? ['Måned', 'År']
-      : loenperiode === 'uge'
-        ? ['Uge fra', 'Uge til']
-        : ['Dato fra', 'Dato til'];
-
-  return [
-    ...periodColumns,
-    'Grundløn',
-    'Tillæg',
-    'Ikke-pens. giv. løn',
-    'ATP mv.\nu. FP',
-    'Ferieber.\nløn',
-    'FP/FV/SH/\nSO/St.B.',
-    'Arb.g. Pension',
-    'Samlet løn',
-  ];
+  return getStandardLoenTableHeaders(loenperiode).map((header) => {
+    if (header === 'Ikke-pensions-\ngivende løn') return 'Ikke-pens. giv. løn';
+    if (header === 'ATP og anden\nikke FB-løn') return 'ATP mv.\nu. FP';
+    if (header === 'Arb.g.\nPension') return 'Arb.g. Pension';
+    return header;
+  });
 };
 
 const resolvePeriodColumns = (row: StandardLoenTableRow, loenperiode: Loenperiode): readonly [string, string] => {

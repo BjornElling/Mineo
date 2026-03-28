@@ -67,6 +67,21 @@ const makeRow = (overrides: Partial<StandardLoenTableRow>): StandardLoenTableRow
 describe('StandardLoenTable', () => {
   const TEST_TIMEOUT_MS = 30000;
 
+  it('viser de nye lønkolonneoverskrifter', () => {
+    render(
+      <StandardLoenTable
+        loenperiode="maaned"
+        satser={{ ferie: 12.5, fritvalg: 1, shSo: 2, bededag: 0, pension: 10 }}
+        tableData={[makeRow({ col0_maaned: '1', col1_maaned: '2024' })]}
+      />
+    );
+
+    expect(screen.getByText('Løn')).toBeInTheDocument();
+    expect(screen.getByText('Løn (2)')).toBeInTheDocument();
+    expect(screen.queryByText('Grundløn')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tillæg')).not.toBeInTheDocument();
+  });
+
   it.each([
     { colIdx: 2, colKey: 'col2', nextValue: '2000' },
     { colIdx: 3, colKey: 'col3', nextValue: '600' },

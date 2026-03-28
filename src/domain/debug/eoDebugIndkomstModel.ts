@@ -29,6 +29,8 @@ import type { Loenperiode } from '../../types/loen';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { buildStandardLoenZeroArbejdsdageIssues } from '../erstatningsopgoerelse/indkomstRowValidation';
 import { DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../settings/appSettingsSchema';
+import { resolveStandardLoenColumnLabel } from '../aarsloen/standardLoenTableColumns';
+import { resolveOffentligeYdelserColumnLabel } from '../erstatningsopgoerelse/offentligeYdelserTableColumns';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -172,33 +174,6 @@ const PERIOD_COLUMN_KEYS: Record<Loenperiode, readonly [StandardLoenTableColumnK
   dag: ['col0_dag', 'col1_dag'],
 };
 
-const resolveAarsloenColumnLabel = (colKey: StandardLoenTableColumnKey): string => {
-  switch (colKey) {
-    case 'col0_maaned':
-      return 'Måned';
-    case 'col1_maaned':
-      return 'År';
-    case 'col0_uge':
-      return 'Uge fra';
-    case 'col1_uge':
-      return 'Uge til';
-    case 'col0_dag':
-      return 'Dato fra';
-    case 'col1_dag':
-      return 'Dato til';
-    case 'col2':
-      return 'Grundløn';
-    case 'col3':
-      return 'Tillæg';
-    case 'col4':
-      return 'Ikke-pensionsgivende løn';
-    case 'col5':
-      return 'ATP og anden ikke FB-løn';
-    default:
-      return 'felt';
-  }
-};
-
 const countRowsWithPeriodOnly = (
   rows: ReadonlyArray<Ansaettelsesforhold['indtaegtsoplysningerTableData'][number]>,
   loenperiode: Loenperiode
@@ -299,23 +274,6 @@ export const isLoenindkomstAnsaettelsesforholdEffectivelyEmpty = (
   );
 };
 
-const resolveOffentligeYdelserColumnLabel = (colKey: OffentligeYdelserTableColumnKey): string => {
-  switch (colKey) {
-    case 'fraDato':
-      return 'Fra dato';
-    case 'tilDato':
-      return 'Til dato';
-    case 'ydelse':
-      return 'Ydelse';
-    case 'tillaeg':
-      return 'Tillæg';
-    case 'ydelsestype':
-      return 'Ydelsestype';
-    default:
-      return 'felt';
-  }
-};
-
 const collectOffentligeYdelserCellErrorsByRow = (
   cellErrorsByCellKey: Readonly<Record<string, true>>
 ): ReadonlyMap<string, ReadonlySet<OffentligeYdelserTableColumnKey>> => {
@@ -368,9 +326,9 @@ export const buildIndkomstSectionStatuses = (
       if (!firstErrorCell) {
         tableMessage = 'Fejl i indtastning';
       } else if (firstErrorCell.reason === 'input') {
-        tableMessage = `Ugyldig værdi i ${resolveAarsloenColumnLabel(firstErrorCell.colKey)}`;
+        tableMessage = `Ugyldig værdi i ${resolveStandardLoenColumnLabel(firstErrorCell.colKey)}`;
       } else {
-        tableMessage = `${resolveAarsloenColumnLabel(firstErrorCell.colKey)} mangler`;
+        tableMessage = `${resolveStandardLoenColumnLabel(firstErrorCell.colKey)} mangler`;
       }
     } else if (tableValidation.summary.hasWarnings) {
       tableStatus = 'warning';

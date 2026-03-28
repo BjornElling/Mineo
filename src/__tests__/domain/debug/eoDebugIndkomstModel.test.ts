@@ -247,6 +247,25 @@ describe('buildOffentligeYdelserDebugRows', () => {
     expect(result[0]?.summaryDisplay).toBe('messageOnly');
   });
 
+  it('giver præcis fejltekst ved ugyldig værdi i det andet ydelsesfelt', () => {
+    const rows = [
+      {
+        id: 'row-1',
+        fraDato: '01-01-2024',
+        tilDato: '31-01-2024',
+        ydelsestype: 'dagpenge',
+        ydelse: undefined,
+        tillaeg: { kind: 'expression' as const, value: 100, expression: '' },
+      },
+    ];
+
+    const result = buildOffentligeYdelserDebugRows(rows);
+
+    expect(result[0]?.status).toBe('error');
+    expect(result[0]?.message).toBe('Ugyldig værdi i Ydelse (2)');
+    expect(result[0]?.summaryDisplay).toBe('messageOnly');
+  });
+
   it('giver warningteksten "Beløb mangler" ved periode uden beløb', () => {
     const rows = [
       {

@@ -26,6 +26,7 @@ import {
   roundStandardLoenAmountToTwoDecimals,
 } from '../../domain/aarsloen/standardLoenRowCalculations';
 import { getStandardLoenTableValidation, isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../domain/aarsloen/standardLoenTableValidation';
+import { getStandardLoenTableHeaders } from '../../domain/aarsloen/standardLoenTableColumns';
 
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
@@ -493,23 +494,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     );
 
     const headers = React.useMemo(() => {
-      const PERIOD: Record<Loenperiode, [string, string]> = {
-        maaned: ['Måned', 'År'],
-        uge: ['Uge fra', 'Uge til'],
-        dag: ['Dato fra', 'Dato til'],
-      };
-
-      return [
-        ...PERIOD[loenperiode],
-        'Grundløn',
-        'Tillæg',
-        'Ikke-pensions-\ngivende løn',
-        'ATP og anden\nikke FB-løn',
-        'Ferieberet.\nløn',
-        'FP/FV/SH/\nSO/St.B.',
-        'Arb.g.\nPension',
-        'Samlet løn',
-      ];
+      return getStandardLoenTableHeaders(loenperiode);
     }, [loenperiode]);
 
     return (

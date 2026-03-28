@@ -29,7 +29,8 @@ import {
   offentligLoenTypeEnum,
   tilstandEnum,
 } from '../enumSchemas';
-// Reuse of årsløn row schema is intentional: EO lønindkomst rows share the same persisted table contract.
+// Reuse of årsløn row schema is intentional: EO lønindkomst rows share the same persisted table contract,
+// herunder at col2 og col3 er to visuelt adskilte lønfelter med identisk beregningsmæssig betydning.
 import { standardLoenTableRowSchema } from './aarsloenSchemas';
 
 export const svieSmertePeriodeRowSchema = z.object({
@@ -105,6 +106,8 @@ export const offentligeYdelserRowSchema = z.object({
   id: z.string().min(1, 'Række-ID må ikke være tomt'),
   fraDato: tableDateCellString,
   tilDato: tableDateCellString,
+  // `ydelse` og `tillaeg` er to visuelt adskilte ydelsesfelter med identisk domænebetydning.
+  // Beregninger må ikke skelne mellem dem; de lægges blot sammen til én samlet ydelse.
   ydelse: tableAmountCellValue,
   tillaeg: tableAmountCellValue,
   ydelsestype: tableCellString,

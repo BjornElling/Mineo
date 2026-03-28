@@ -219,6 +219,22 @@ Tables er rene UI-komponenter.
 - parent-komponent
 - eller dedikerede hooks
 
+### 5.3 Standardiseret løntabel
+
+- Den standardiserede løntabel i `Årsløn` og `Lønindkomst` har to separate lønfelter med overskrifterne `Løn` og `Løn (2)`.
+- De to felter har identisk domænebetydning.
+- Beregninger må ikke gøre forskel på felterne; værdierne indgår blot samlet i løngrundlaget.
+- Opdelingen i to felter findes alene for at give brugeren mulighed for en visuel opdeling af lønindtastningen.
+- UI-tekster, PDF-headere, debug-visninger og tests skal afspejle denne regel.
+
+### 5.4 Offentlige ydelser-tabel
+
+- Tabellen for `Offentlige ydelser` har to separate ydelsesfelter med overskrifterne `Ydelse` og `Ydelse (2)`.
+- De to felter har identisk domænebetydning.
+- Beregninger må ikke gøre forskel på felterne; værdierne indgår blot samlet i én samlet ydelse.
+- Opdelingen i to felter findes alene for at give brugeren mulighed for en visuel opdeling af ydelsesindtastningen.
+- UI-tekster, PDF-headere, debug-visninger og tests skal afspejle denne regel.
+
 ---
 
 ## 6. Row-drafts

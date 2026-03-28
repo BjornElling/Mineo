@@ -37,16 +37,16 @@ export const calculateStandardLoenRowDerived = (row: StandardLoenTableRow, satse
 
   const totalPct = ferie + fritvalg + shSo + storeBededag;
 
-  const grundloen = parseAmount(row.col2);
-  const tillaegInput = parseAmount(row.col3);
+  const loen = parseAmount(row.col2);
+  const loen2 = parseAmount(row.col3);
   const ikkePensionsgivende = parseAmount(row.col4);
   const atp = parseAmount(row.col5);
 
-  const ferieberet = grundloen + tillaegInput + ikkePensionsgivende;
+  const ferieberet = loen + loen2 + ikkePensionsgivende;
   const fpFvShSo = totalPct > 0 ? ferieberet * totalPct : 0;
 
-  // Pension beregnes kun på (grundløn + tillæg) og deres forholdsmæssige andel af FP/FV/SH.. (via (1 + totalPct)).
-  const pensionBase = (grundloen + tillaegInput) * (1 + totalPct);
+  // De to lønfelter er semantisk ens og medtages derfor identisk i beregningsgrundlaget.
+  const pensionBase = (loen + loen2) * (1 + totalPct);
   const pension = pensionPct > 0 ? pensionBase * pensionPct : 0;
 
   // ATP er et tillæg, som lægges til til sidst (ingen afledte ydelser beregnes af ATP).

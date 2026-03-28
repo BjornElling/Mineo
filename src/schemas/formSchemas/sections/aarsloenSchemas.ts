@@ -15,6 +15,8 @@ export const standardLoenTableRowSchema = z.object({
   col1_uge: allowEmptyString,
   col0_dag: allowEmptyString,
   col1_dag: allowEmptyString,
+  // col2 og col3 er to visuelt adskilte lønfelter med identisk domænebetydning.
+  // Beregninger må ikke skelne mellem dem; de lægges blot sammen.
   col2: tableAmountCellValue,
   col3: tableAmountCellValue,
   col4: tableAmountCellValue,
