@@ -37,6 +37,7 @@ import {
   getOffentligTillaegsSatserForDato,
   getOffentligTillaegsSatserForPeriode,
   getOverenskomst,
+  getOverenskomstSfggPolicy,
   resolveOverenskomstRef,
 } from '../../data/overenskomstRates';
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
@@ -45,6 +46,7 @@ import { getKRLSatstabel, isKRLSatstabelId } from '../../data/krlRates';
 import { getStatistiskLoenudvikling } from '../../data/statistiskeRates';
 import { STORE_BEDEDAG_PCT } from '../../config/regulatoryRates';
 import { STORE_BEDEDAG_START } from '../../config/dateRanges';
+import { resolveSfggSource } from './sygeferiegodtgoerelse';
 import {
   buildFormulaText,
   computeFormulaValue,
@@ -253,13 +255,14 @@ const mergeConsecutiveRowsWithSameCalculation = (rows: readonly IndexRowWithIso[
 };
 
 export const buildReguleringsvaerdierTableData = (params: Readonly<{
+  eoValues?: ErstatningsopgoerelseValues;
   ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
   reguleringsdato: ISODateString | undefined;
   tafFra: ISODateString;
   tafTil: ISODateString;
   tafBeregningsenhed: TafBeregningsenhed;
 }>): ReguleringValuesTableData | null => {
-  const { ansaettelsesforhold, reguleringsdato, tafFra, tafTil, tafBeregningsenhed } = params;
+  const { eoValues, ansaettelsesforhold, reguleringsdato, tafFra, tafTil, tafBeregningsenhed } = params;
   // Bevidst forskel: Reguleringsværdier-tabellen må starte tidligere end TAF ved tidlig reguleringsdato.
   const reguleringTableStartIso = resolveReguleringTableStartIso(reguleringsdato, tafFra);
   const grundlag = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
@@ -434,11 +437,53 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const hasShSo = allSatser.some((sats) => sats.shSoSats !== null);
     const hasFritvalg = allSatser.some((sats) => sats.fritvalg !== null);
     const hasAgPension = allSatser.some((sats) => sats.agPension !== null);
-    const hasSfgg = allSatser.some((sats) => sats.sfgg !== null);
-    const hasSfggFaglKbh = allSatser.some((sats) => sats.sfggFaglKbh !== null);
-    const hasSfggFaglProv = allSatser.some((sats) => sats.sfggFaglProv !== null);
-    const hasSfggUfaglKbh = allSatser.some((sats) => sats.sfggUfaglKbh !== null);
-    const hasSfggUfaglProv = allSatser.some((sats) => sats.sfggUfaglProv !== null);
+    const sfggRow = eoValues?.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === ansaettelsesforhold.id);
+    const sfggSource = eoValues ? resolveSfggSource(sfggRow, ansaettelsesforhold) : null;
+    const sfggPolicy = getOverenskomstSfggPolicy(overenskomstId);
+    const hasSfggData = allSatser.some((sats) => sats.sfgg !== null);
+    const hasSfggFaglKbhData = allSatser.some((sats) => sats.sfggFaglKbh !== null);
+    const hasSfggFaglProvData = allSatser.some((sats) => sats.sfggFaglProv !== null);
+    const hasSfggUfaglKbhData = allSatser.some((sats) => sats.sfggUfaglKbh !== null);
+    const hasSfggUfaglProvData = allSatser.some((sats) => sats.sfggUfaglProv !== null);
+    const hasSfgg = eoValues
+      ? Boolean(
+          sfggSource?.kind === 'overenskomst_direkte'
+          && !sfggPolicy?.direkteSatsErDifferentieret
+          && hasSfggData
+        )
+      : hasSfggData;
+    const hasSfggFaglKbh = eoValues
+      ? Boolean(
+          sfggSource?.kind === 'overenskomst_direkte'
+          && sfggPolicy?.direkteSatsErDifferentieret
+          && sfggRow?.sfggSatsvalg === 'Faglaert-Koebenhavn'
+          && hasSfggFaglKbhData
+        )
+      : hasSfggFaglKbhData;
+    const hasSfggFaglProv = eoValues
+      ? Boolean(
+          sfggSource?.kind === 'overenskomst_direkte'
+          && sfggPolicy?.direkteSatsErDifferentieret
+          && sfggRow?.sfggSatsvalg === 'Faglaert-Provinsen'
+          && hasSfggFaglProvData
+        )
+      : hasSfggFaglProvData;
+    const hasSfggUfaglKbh = eoValues
+      ? Boolean(
+          sfggSource?.kind === 'overenskomst_direkte'
+          && sfggPolicy?.direkteSatsErDifferentieret
+          && sfggRow?.sfggSatsvalg === 'Ufaglaert-Koebenhavn'
+          && hasSfggUfaglKbhData
+        )
+      : hasSfggUfaglKbhData;
+    const hasSfggUfaglProv = eoValues
+      ? Boolean(
+          sfggSource?.kind === 'overenskomst_direkte'
+          && sfggPolicy?.direkteSatsErDifferentieret
+          && sfggRow?.sfggSatsvalg === 'Ufaglaert-Provinsen'
+          && hasSfggUfaglProvData
+        )
+      : hasSfggUfaglProvData;
     const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
     const showFeriePctColumn = !isZeroPct(ansaettelsesforhold.feriePct);
     const loenHeader = resolveReguleringsvaerdierLoenHeader(tafBeregningsenhed);

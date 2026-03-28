@@ -1,7 +1,11 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { computeSygeferiegodtgoerelse, findSfggSixMonthWarningEmploymentIds } from '../../../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
+import {
+  buildSfggReferenceperiodeCountLabel,
+  computeSygeferiegodtgoerelse,
+  findSfggSixMonthWarningEmploymentIds,
+} from '../../../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
 
@@ -46,6 +50,49 @@ const createEmployment = (
 });
 
 describe('computeSygeferiegodtgoerelse', () => {
+  it('formaterer arbejdsdage-label med kun ikke-nul fradrag', () => {
+    expect(buildSfggReferenceperiodeCountLabel({
+      ferieberettigetLoenKroner: 0,
+      feriePctDecimal: 0,
+      feriepengeKroner: 0,
+      divisorDage: 16,
+      divisorLabel: 'arbejdsdage',
+      kalenderdage: 0,
+      hverdage: 21,
+      shDage: 2,
+      feriedage: 1,
+      oevrigeFravaersdage: 2,
+    })).toBe('Antal arbejdsdage (21 hverdage - 2 SH-dage - 3 ferie- og fraværsdage) =');
+
+    expect(buildSfggReferenceperiodeCountLabel({
+      ferieberettigetLoenKroner: 0,
+      feriePctDecimal: 0,
+      feriepengeKroner: 0,
+      divisorDage: 18,
+      divisorLabel: 'arbejdsdage',
+      kalenderdage: 0,
+      hverdage: 21,
+      shDage: 0,
+      feriedage: 1,
+      oevrigeFravaersdage: 2,
+    })).toBe('Antal arbejdsdage (21 hverdage - 3 ferie- og fraværsdage) =');
+  });
+
+  it('formaterer kalenderdage-label uden SH-dage', () => {
+    expect(buildSfggReferenceperiodeCountLabel({
+      ferieberettigetLoenKroner: 0,
+      feriePctDecimal: 0,
+      feriepengeKroner: 0,
+      divisorDage: 30,
+      divisorLabel: 'kalenderdage',
+      kalenderdage: 31,
+      hverdage: 23,
+      shDage: 1,
+      feriedage: 0,
+      oevrigeFravaersdage: 1,
+    })).toBe('Antal kalenderdage i perioden (31 kalenderdage - 1 fraværsdage u. løn) =');
+  });
+
   it('beregner referencesatsen ud fra ferieberettiget løn og kun FP-satsen', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.eoNummer = '2';
@@ -385,6 +432,84 @@ describe('computeSygeferiegodtgoerelse', () => {
     expect(result.totalOre).toBe(40000);
     expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(1);
     expect(result.perAnsaettelsesforhold[0]?.segments[0]?.antalDage).toBe(4);
+  });
+
+  it('lader første dag efter arbejdsgiverbetalt sygeløn indgå, når første sygedag allerede er undtaget efter 1. januar 2015-reglen', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      harOverenskomst: true,
+      overenskomstId: 'bygge-anlaeg',
+      loenperiode: 'dag',
+      indtaegtsoplysningerTableData: [
+        {
+          id: 'loen-1',
+          col0_maaned: '',
+          col1_maaned: '',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '06-01-2025',
+          col1_dag: '06-01-2025',
+          col2: asAmount(100),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+        {
+          id: 'loen-2',
+          col0_maaned: '',
+          col1_maaned: '',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '07-01-2025',
+          col1_dag: '07-01-2025',
+          col2: asAmount(100),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+        {
+          id: 'loen-3',
+          col0_maaned: '',
+          col1_maaned: '',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '08-01-2025',
+          col1_dag: '08-01-2025',
+          col2: asAmount(100),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+      ],
+    })];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Overenskomst',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: 'Ufaglaert-Koebenhavn',
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2025-01-06') },
+      tafRanges: [{ fra: iso('2025-01-06'), til: iso('2025-01-10') }],
+    });
+
+    expect(result.firstExcludedDate).toBe(iso('2025-01-06'));
+    expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(1);
+    expect(result.perAnsaettelsesforhold[0]?.segments[0]).toEqual(
+      expect.objectContaining({
+        fra: iso('2025-01-09'),
+        til: iso('2025-01-10'),
+        antalDage: 2,
+      })
+    );
   });
 
   it('afkorter præ-2015-forløb ved 4 måneder beregnet på kalenderdage når TAF beregnes som måneder', () => {

@@ -944,6 +944,13 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
               flexDirection: 'column',
               gap: 0,
               alignItems: 'flex-end',
+              '& .MuiFormControlLabel-label': {
+                fontFamily: 'var(--font-family-base)',
+                fontSize: '15px',
+                fontWeight: 'var(--font-weight-regular)',
+                lineHeight: 'var(--line-height-base)',
+                color: 'var(--mineo-color-row-text)',
+              },
               '& .MuiFormControlLabel-label.Mui-disabled': {
                 color: 'text.primary',
                 opacity: 1,

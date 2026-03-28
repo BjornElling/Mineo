@@ -51,6 +51,7 @@ export type SygeferiegodtgoerelsePdfModel = Readonly<{
     sfggSourceLabel: string;
     feriepengekravTotalOre: MoneyOre;
     totalOre: MoneyOre;
+    alleredeBetaltOre: MoneyOre;
     explanatoryLines: readonly string[];
     sfggReferenceperiode: Readonly<{ fra: ISODateString; til: ISODateString }> | null;
     sfggReferencesats: Calculable<MoneyOre>;
@@ -68,6 +69,8 @@ export type SygeferiegodtgoerelsePdfModel = Readonly<{
       antalDage: number;
       feriepengekravOre: MoneyOre;
       beregnetSfggoereOre: MoneyOre;
+      feriepengeAfSygeloenOre: MoneyOre;
+      alleredeBetaltOre: MoneyOre;
     }>[];
   }>[];
 }>;

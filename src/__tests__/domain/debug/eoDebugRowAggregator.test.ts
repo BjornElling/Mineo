@@ -462,6 +462,30 @@ describe('collectAllDebugRows', () => {
     expect(warnings).toEqual([]);
   });
 
+  it('suppresses sfgg dagssats child error when satsvalg root error is present', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [
+          makeRow('sfgg.satsvalg.af1', 'error'),
+          makeRow('sfgg.dagssats.af1', 'error', [
+            { kind: 'id', id: 'sfgg.satsvalg.af1' },
+          ]),
+        ],
+      },
+    ]);
+
+    const { errors, warnings } = collectAllDebugRows(
+      STAMDATA_INITIAL_VALUES,
+      stamdataErrors,
+      createErstatningsopgoerelseInitialValues(),
+      eoErrors
+    );
+
+    expect(errors.map((row) => row.id)).toEqual(['sfgg.satsvalg.af1']);
+    expect(warnings).toEqual([]);
+  });
+
   it('throws on dependency cycles', () => {
     registry.__setBuilders([
       {

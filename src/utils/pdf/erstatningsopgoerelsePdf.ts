@@ -4,6 +4,8 @@
  * Genererer PDF-dokument med komplet erstatningsopgørelse
  */
 
+import type jsPDF from 'jspdf';
+import type { RowInput } from 'jspdf-autotable';
 import { MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
 import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from './pdfHelpers';
 import type { PdfCommonOptions } from './pdfOptions';
@@ -13,6 +15,7 @@ import { type MoneyOre, type Calculable } from '../../domain/erstatningsopgoerel
 import { formatAsAmount, formatPercent as formatPercentUtil } from '../formatUtils';
 import { TODAY } from '../../config/dateRanges';
 import { getStandardLoenTableHeaders } from '../../domain/aarsloen/standardLoenTableColumns';
+import { createPdfTableCell, createPdfTableHeaderCell, renderEoStylePdfTable } from './pdfTableRenderer';
 
 import { logWarning } from '../logger';
 import {
@@ -56,8 +59,11 @@ import { computeEoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot
 import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
 import type { PdfModel } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { getEffektiveSatserForDato, getOverenskomstMetaById, getOverenskomstSfggPolicy } from '../../data/overenskomstRates';
+import { mergeIsoDateRanges } from '../../domain/erstatningsopgoerelse/periodMerging';
 import {
+  buildSfggReferenceperiodeCountLabel,
   isSfggReferenceperiodeSource,
+  resolveSfggDayBasis,
   resolveSfggReferenceperiodeDayCount,
   resolveSfggSource,
   sumFerieberettigetLoenInRangesKroner,
@@ -149,6 +155,38 @@ const resolveSfggPdfIntroText = (
 
 const resolveSfggReferenceSatsUnit = (divisorLabel: 'kalenderdage' | 'arbejdsdage'): string =>
   divisorLabel === 'kalenderdage' ? 'kr./kalenderdag' : 'kr./arbejdsdag';
+
+const SFGG_FIRST_TAF_DAY_EXCLUDED_LINE =
+  'Den første TAF-dag er undtaget, fordi skaden er fra 1. januar 2015 eller senere, og dette er første erstatningsopgørelse.';
+const SFGG_AFTER_EMPLOYER_SICK_PAY_LINE =
+  'Der beregnes først sygeferiegodtgørelse efter ophør af arbejdsgiverbetalt sygeløn.';
+
+const resolveSfggPeriodDayUnitSingular = (divisorLabel: 'kalenderdage' | 'arbejdsdage'): 'kalenderdag' | 'arbejdsdag' =>
+  divisorLabel === 'kalenderdage' ? 'kalenderdag' : 'arbejdsdag';
+
+const buildSfggPeriodRateAdjustmentText = (sfggSource: ReturnType<typeof resolveSfggSource>): string => {
+  if (sfggSource.kind === 'ferielov') {
+    return ' tillagt senere lønudvikling';
+  }
+  if (sfggSource.kind === 'overenskomst_ferielov' || sfggSource.kind === 'overenskomst_direkte') {
+    return ' tillagt senere overenskomstmæssige stigninger';
+  }
+  return '';
+};
+
+const buildSfggDisplayedTafPeriodText = (tafPerioderLinjer: readonly string[], tafRanges: PdfModel['tafRanges']): string => {
+  if (tafPerioderLinjer.length > 0) {
+    return tafPerioderLinjer.join(', ');
+  }
+  return tafRanges
+    .map((range) => {
+      const fraText = formatDateShort(range.fra);
+      const tilText = formatDateShort(range.til);
+      return fraText && tilText ? `${fraText} - ${tilText}` : '';
+    })
+    .filter((value) => value !== '')
+    .join(', ');
+};
 
 const resolveSfggReferenceperiodeAuthorityText = (
   eoValues: ErstatningsopgoerelseValues,
@@ -423,22 +461,153 @@ export const generateErstatningsopgoerelsePdf = (
     const feriePctDecimal = parsePercentToDecimal(employment.feriePct);
 
     safeAddWrappedText(
-      'Sygeferiegodtgørelse opgøres på baggrund af en referencesats, opgjort som den gennemsnitlige feriepengebetaling i en referenceperiode før sygeforløbet.'
+      `Opgøres på baggrund af den gennemsnitlige feriepengebetaling i en referenceperiode før sygeforløbet. Perioden udgør i ${resolveSfggReferenceperiodeAuthorityText(eoValues, entry.ansaettelsesforholdId)} ${resolveSfggReferenceperiodeLabel(eoValues, entry.ansaettelsesforholdId)}.`
     );
-    safeAddWrappedText(
-      `Referenceperioden udgør i henhold til ${resolveSfggReferenceperiodeAuthorityText(eoValues, entry.ansaettelsesforholdId)} ${resolveSfggReferenceperiodeLabel(eoValues, entry.ansaettelsesforholdId)}.`
+    writeLabelValueLine(
+      'Referenceperiode',
+      `${formatDateShort(entry.sfggReferenceperiode.fra)} - ${formatDateShort(entry.sfggReferenceperiode.til)}`
     );
     writeLabelValueLine(
       'Den ferieberettigede løn i referenceperioden udgør',
       `${formatAsAmount(ferieberettigetLoenKroner, 2)} kr.`
     );
     writeLabelValueLine(
-      'I referenceperioden var der',
+      buildSfggReferenceperiodeCountLabel({
+        ferieberettigetLoenKroner,
+        feriePctDecimal,
+        feriepengeKroner: ferieberettigetLoenKroner * feriePctDecimal,
+        divisorDage: sfggReferenceperiodeDayCount.divisorDage,
+        divisorLabel: sfggReferenceperiodeDayCount.divisorLabel,
+        kalenderdage: sfggReferenceperiodeDayCount.kalenderdage,
+        hverdage: sfggReferenceperiodeDayCount.hverdage,
+        shDage: sfggReferenceperiodeDayCount.shDage,
+        feriedage: sfggReferenceperiodeDayCount.feriedage,
+        oevrigeFravaersdage: sfggReferenceperiodeDayCount.oevrigeFravaersdage,
+      }),
       `${sfggReferenceperiodeDayCount.divisorDage.toLocaleString('da-DK')} ${sfggReferenceperiodeDayCount.divisorLabel}`
     );
-    writeLabelValueLine(
-      `Referencesatsen udgør: ${formatPercentUtil(feriePctDecimal * 100)} x ${formatAsAmount(ferieberettigetLoenKroner, 2)} / ${sfggReferenceperiodeDayCount.divisorDage.toLocaleString('da-DK')}:`,
-      `${formatCurrencyFromOre(entry.sfggReferencesats.value)} ${resolveSfggReferenceSatsUnit(sfggReferenceperiodeDayCount.divisorLabel)}`
+    safeAddLeftRightText(
+      `Referencesats (${formatAsAmount(ferieberettigetLoenKroner, 2)} x ${formatPercentUtil(feriePctDecimal * 100)} / ${sfggReferenceperiodeDayCount.divisorDage.toLocaleString('da-DK')} ${sfggReferenceperiodeDayCount.divisorLabel}) =`,
+      `${formatCurrencyFromOre(entry.sfggReferencesats.value)} ${resolveSfggReferenceSatsUnit(sfggReferenceperiodeDayCount.divisorLabel)}`,
+      standardRightMaxWidth,
+      { rightFontStyle: 'bold' }
+    );
+  };
+
+  const renderSfggPeriodBlock = (
+    entry: PdfModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number],
+    sfggSource: ReturnType<typeof resolveSfggSource> | null,
+    employment: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number] | undefined
+  ) => {
+    writer.writeUnderlinedLabel('Beregningsgrundlag', MARGINS.left);
+
+    const tafPeriodeText = buildSfggDisplayedTafPeriodText(
+      model.tabtArbejdsfortjeneste.tafPerioderLinjer,
+      model.tafRanges
+    );
+    if (tafPeriodeText !== '') {
+      writeLabelValueLine('Der beregnes sygeferiegodtgørelse i TAF-perioden', tafPeriodeText);
+    }
+
+    const divisorLabel = sfggSource
+      ? resolveSfggDayBasis(sfggSource, model.tabtArbejdsfortjeneste.tafBeregningsenhed)
+      : 'arbejdsdage';
+    const dayUnit = resolveSfggPeriodDayUnitSingular(divisorLabel);
+    const rateAdjustmentText = sfggSource ? buildSfggPeriodRateAdjustmentText(sfggSource) : '';
+    const baseAdjustmentText = divisorLabel === 'arbejdsdage'
+      ? 'Der beregnes ikke sygeferiegodtgørelse på SH-dage, under ferie og på andre fraværsdage uden løn.'
+      : 'Der beregnes ikke sygeferiegodtgørelse på eventuelle fraværsdage uden løn.';
+    safeAddWrappedText(
+      `Kravet beregnes per ${dayUnit} med referencesatsen${rateAdjustmentText}.`
+    );
+
+    const overenskomstPolicy = employment?.overenskomstId
+      ? getOverenskomstSfggPolicy(employment.overenskomstId)
+      : undefined;
+    const firstDayAdjustmentText = entry.explanatoryLines.includes(SFGG_FIRST_TAF_DAY_EXCLUDED_LINE)
+      ? ' Da skaden er fra 1. januar 2015, er der desuden først krav på sygeferiegodtgørelse fra anden sygedag.'
+      : '';
+    safeAddWrappedText(`${baseAdjustmentText}${firstDayAdjustmentText}`);
+
+    if (sfggSource && sfggSource.kind !== 'manuel' && overenskomstPolicy?.bortfalderUnderArbejdsgiverbetaltSygeloen === true) {
+      safeAddWrappedText(
+        'I medfør af overenskomsten beregnes ikke sygeferiegodtgørelse på dage, hvor der betales sygeløn.'
+      );
+    }
+
+    entry.explanatoryLines
+      .filter((line) => line !== SFGG_FIRST_TAF_DAY_EXCLUDED_LINE && line !== SFGG_AFTER_EMPLOYER_SICK_PAY_LINE)
+      .forEach((line) => safeAddWrappedText(line));
+
+    const rows = entry.segments;
+    if (rows.length === 0) return;
+
+    const antalDageHeader = divisorLabel === 'kalenderdage' ? 'Antal kalenderdage' : 'Antal arbejdsdage';
+    const tableRows: RowInput[] = [
+      [
+        createPdfTableHeaderCell('Fra-dato', 'center'),
+        createPdfTableHeaderCell('Til-dato', 'center'),
+        createPdfTableHeaderCell('Sats', 'center'),
+        createPdfTableHeaderCell(antalDageHeader, 'center'),
+        createPdfTableHeaderCell('Feriepengekrav', 'center'),
+      ],
+    ];
+
+    for (const row of rows) {
+      tableRows.push(
+        [
+          createPdfTableCell(formatDateShort(row.fra) ?? '', { halign: 'center' }),
+          createPdfTableCell(formatDateShort(row.til) ?? '', { halign: 'center' }),
+          createPdfTableCell(formatCurrencyFromOreTrimmed(row.satsOre), { halign: 'right' }),
+          createPdfTableCell(String(row.antalDage), { halign: 'right' }),
+          createPdfTableCell(formatCurrencyFromOreTrimmed(row.feriepengekravOre), { halign: 'right' }),
+        ]
+      );
+    }
+
+    if (rows.length > 1) {
+      tableRows.push(
+        [
+          createPdfTableCell('I alt', { halign: 'left', bold: true, transparent: true }),
+          createPdfTableCell('', { bold: true, transparent: true }),
+          createPdfTableCell('', { bold: true, transparent: true }),
+          createPdfTableCell('', { bold: true, transparent: true }),
+          createPdfTableCell(formatMoneyOreWithKrTrimmed(entry.feriepengekravTotalOre), { halign: 'right', bold: true, transparent: true }),
+        ]
+      );
+    }
+
+    const finalY = renderEoStylePdfTable({
+      doc: writer.getDoc() as jsPDF,
+      startY: writer.getY(),
+      body: tableRows,
+      transparentRowIndices: rows.length > 1 ? [tableRows.length - 1] : [],
+    });
+    writer.setY(finalY + lineHeight);
+
+    const feriepengeHvisIkkeSkadeOre = entry.feriepengekravTotalOre;
+    const feriepengeModtagetOre = entry.segments.reduce((sum, segment) => sum + (segment.feriepengeAfSygeloenOre ?? 0), 0);
+    const alleredeBetaltOre = entry.alleredeBetaltOre ?? 0;
+    const beregnetSygeferiegodtgoerelseOre = entry.totalOre;
+    const tafPeriodeRanges = entry.segments.map((segment) => ({ fra: segment.fra, til: segment.til }));
+    const ferieberettigetIndkomstIKroner = employment
+      ? sumFerieberettigetLoenInRangesKroner(employment, tafPeriodeRanges, eoValues.ferieperioder ?? [])
+      : 0;
+    const feriePct = employment?.feriePct ?? 0;
+    const feriepengeModtagetLabel =
+      ferieberettigetIndkomstIKroner > 0
+        ? `Feriepenge modtaget i perioden (${formatAsAmount(ferieberettigetIndkomstIKroner, 2)} x ${formatPercentUtil(feriePct)}) =`
+        : 'Feriepenge modtaget i perioden';
+
+    writer.writeUnderlinedLabel('Beregnet krav', MARGINS.left);
+    writeLabelValueLine('Feriepenge, hvis skaden ikke var sket', formatCurrencyFromOre(feriepengeHvisIkkeSkadeOre));
+    writeLabelValueLine(feriepengeModtagetLabel, formatCurrencyFromOre(-feriepengeModtagetOre));
+    writeLabelValueLine('Allerede betalt sygeferiegodtgørelse i perioden', formatCurrencyFromOre(-alleredeBetaltOre));
+    safeAddLeftRightText(
+      'Beregnet sygeferiegodtgørelse',
+      formatCurrencyFromOre(beregnetSygeferiegodtgoerelseOre),
+      standardRightMaxWidth,
+      { rightFontStyle: 'bold' }
     );
   };
 
@@ -603,9 +772,21 @@ export const generateErstatningsopgoerelsePdf = (
   }
 
   if (selectedElements.shDage) {
+    const sfggReferenceperiodeRanges = mergeIsoDateRanges(
+      model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.flatMap((entry) => {
+        const sfggRow = eoValues.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === entry.ansaettelsesforholdId);
+        const employment = eoValues.loenindkomstAnsaettelsesforhold.find((row) => row.id === entry.ansaettelsesforholdId);
+        if (!sfggRow || !employment) return [];
+        const sfggSource = resolveSfggSource(sfggRow, employment);
+        if (!isSfggReferenceperiodeSource(sfggSource)) return [];
+        return entry.sfggReferenceperiode ? [entry.sfggReferenceperiode] : [];
+      }),
+      { mergeAdjacent: true }
+    );
     renderShDageSection({
       eoValues: eoValues,
       tafRanges: model.tafRanges,
+      sfggReferenceperiodeRanges,
       lineHeight,
       startBilagPage,
       renderSubheader,
@@ -633,17 +814,7 @@ export const generateErstatningsopgoerelsePdf = (
       if (!usesReferenceperiodeRate && entry.sfggReferencesats.status === 'ok') {
         safeAddWrappedText(`Referencesats: ${formatCurrencyFromOre(entry.sfggReferencesats.value)} kr.`);
       }
-      entry.explanatoryLines.forEach((line) => safeAddWrappedText(line));
-      const rows = entry.segments;
-      if (rows.length > 0) {
-        safeAddWrappedText('Fra-dato | Til-dato | Sats | Antal dage | Feriepengekrav');
-        rows.forEach((row) => {
-          safeAddWrappedText(
-            `${formatDateShort(row.fra) ?? ''} | ${formatDateShort(row.til) ?? ''} | ${formatCurrencyFromOreTrimmed(row.satsOre)} | ${String(row.antalDage)} | ${formatCurrencyFromOreTrimmed(row.feriepengekravOre)}`
-          );
-        });
-        safeAddWrappedText(`I alt: ${formatMoneyOreWithKrTrimmed(entry.feriepengekravTotalOre)}`);
-      }
+      renderSfggPeriodBlock(entry, sfggSource, employment);
       if (entry.capRows.length > 0) {
         renderSubheader('Opgørelse af 4-månedersgrænsen', lineHeight);
         safeAddWrappedText('Fra-dato | Til-dato | Antal dage | Antal måneder');

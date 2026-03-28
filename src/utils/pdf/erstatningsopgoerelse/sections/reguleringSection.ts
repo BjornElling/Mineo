@@ -57,6 +57,7 @@ type ReguleringSectionContext = Readonly<{
   }>) => string;
   resolveTafDateBounds: (eoValues: ErstatningsopgoerelseValues) => Readonly<{ foerste: ISODateString; sidste: ISODateString }> | null;
   buildReguleringsvaerdierTableData: (params: Readonly<{
+    eoValues?: ErstatningsopgoerelseValues;
     ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
     reguleringsdato: ISODateString | undefined;
     tafFra: ISODateString;
@@ -396,6 +397,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     const reguleringsvaerdierTableData =
       tafBounds
         ? buildReguleringsvaerdierTableData({
+            eoValues,
             ansaettelsesforhold,
             reguleringsdato,
             tafFra: tafBounds.foerste,

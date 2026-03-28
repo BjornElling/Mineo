@@ -13,6 +13,7 @@ import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchema
 import { buildBeregningsperiodeRange } from '../../../../domain/erstatningsopgoerelse/indtaegtPerioder';
 import type { IsoRange } from '../../../../domain/erstatningsopgoerelse/tafPeriodConstraints';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../../domain/erstatningsopgoerelse/eoNummerValidering';
+import { mergeIsoDateRanges } from '../../../../domain/erstatningsopgoerelse/periodMerging';
 
 type SHDageTableRow = Readonly<{
   ugedag: string;
@@ -24,6 +25,7 @@ type SHDageTableRow = Readonly<{
 type SHDageSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
   tafRanges: readonly IsoRange[];
+  sfggReferenceperiodeRanges?: readonly IsoRange[];
   lineHeight: number;
   startBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
@@ -72,10 +74,30 @@ const findHelligdageInRange = (fra: ISODateString | undefined, til: ISODateStrin
   return rows.map(({ sortTs: _sortTs, ...row }) => row);
 };
 
+const findHelligdageInRanges = (ranges: readonly IsoRange[]): SHDageTableRow[] => {
+  const mergedRanges = mergeIsoDateRanges(ranges, { mergeAdjacent: true });
+  if (mergedRanges.length === 0) return [];
+
+  const rows: SHDageTableRow[] = [];
+  const seen = new Set<string>();
+
+  for (const range of mergedRanges) {
+    for (const row of findHelligdageInRange(range.fra, range.til)) {
+      const key = `${row.datoDisplay}|${row.helligdagNavn}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push(row);
+    }
+  }
+
+  return rows;
+};
+
 export const renderShDageSection = (ctx: SHDageSectionContext): void => {
   const {
     eoValues,
     tafRanges,
+    sfggReferenceperiodeRanges = [],
     lineHeight,
     startBilagPage,
     renderSubheader,
@@ -161,6 +183,11 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
     eoValues.beregnesUdFra === 'Beregningsperiode' ? buildBeregningsperiodeRange(eoValues) : undefined;
   const tafFra = tafRanges.length > 0 ? tafRanges[0].fra : undefined;
   const tafTil = tafRanges.length > 0 ? tafRanges[tafRanges.length - 1].til : undefined;
+  const mergedSfggReferenceperiodeRanges = mergeIsoDateRanges(sfggReferenceperiodeRanges, { mergeAdjacent: true });
+  const sfggReferenceperiodeFra = mergedSfggReferenceperiodeRanges.length > 0 ? mergedSfggReferenceperiodeRanges[0].fra : undefined;
+  const sfggReferenceperiodeTil = mergedSfggReferenceperiodeRanges.length > 0
+    ? mergedSfggReferenceperiodeRanges[mergedSfggReferenceperiodeRanges.length - 1].til
+    : undefined;
 
   if (erFoersteOpgoerelse && beregningsperiodeRange) {
     writer.addSpacer(lineHeight);
@@ -169,4 +196,14 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
   }
 
   renderPeriodeSection('TAF-periode', tafFra, tafTil);
+
+  const sfggHelligdage = findHelligdageInRanges(mergedSfggReferenceperiodeRanges);
+  const harSfggShDage = sfggHelligdage.some((row) => row.erSHDag);
+  if (sfggReferenceperiodeFra && sfggReferenceperiodeTil && harSfggShDage) {
+    writer.addSpacer(lineHeight);
+    renderSubheader('SFGG-referenceperiode', lineHeight, { addTopSpacing: false });
+    safeAddWrappedText(formatRangeLong(sfggReferenceperiodeFra, sfggReferenceperiodeTil));
+    renderShDageTable(sfggHelligdage);
+    writer.addSpacer(lineHeight);
+  }
 };

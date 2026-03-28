@@ -40,6 +40,7 @@ const makeContext = (eoValues: ReturnType<typeof createErstatningsopgoerelseInit
     ctx: {
       eoValues,
       tafRanges: tafRangesFromEoValues(eoValues),
+      sfggReferenceperiodeRanges: [],
       lineHeight: 4,
       startBilagPage,
       renderSubheader,
@@ -152,5 +153,39 @@ describe('renderShDageSection – beregningsperiode for første opgørelse', () 
     renderShDageSection(ctx);
 
     expect(renderSubheader).not.toHaveBeenCalledWith('Beregningsperiode', expect.anything(), expect.anything());
+  });
+});
+
+describe('renderShDageSection – SFGG-referenceperiode', () => {
+  it('viser SFGG-referenceperiode når referenceperioden indeholder SH-dage', () => {
+    autoTableMock.mockClear();
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.tafPerioder = [];
+    const { renderSubheader, safeAddWrappedText, ctx } = makeContext(eoValues);
+    const ctxWithSfggRange = {
+      ...ctx,
+      sfggReferenceperiodeRanges: [{ fra: iso('2024-03-28'), til: iso('2024-05-20') }],
+    };
+
+    renderShDageSection(ctxWithSfggRange);
+
+    expect(renderSubheader).toHaveBeenCalledWith('SFGG-referenceperiode', expect.anything(), expect.anything());
+    expect(safeAddWrappedText).toHaveBeenCalledWith('28. marts 2024 - 20. maj 2024');
+    expect(autoTableMock).toHaveBeenCalled();
+  });
+
+  it('viser ikke SFGG-referenceperiode når perioden ikke indeholder SH-dage', () => {
+    autoTableMock.mockClear();
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.tafPerioder = [];
+    const { renderSubheader, ctx } = makeContext(eoValues);
+    const ctxWithSfggRange = {
+      ...ctx,
+      sfggReferenceperiodeRanges: [{ fra: iso('2024-07-08'), til: iso('2024-07-12') }],
+    };
+
+    renderShDageSection(ctxWithSfggRange);
+
+    expect(renderSubheader).not.toHaveBeenCalledWith('SFGG-referenceperiode', expect.anything(), expect.anything());
   });
 });

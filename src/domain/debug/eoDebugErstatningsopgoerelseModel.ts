@@ -38,6 +38,7 @@ import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges } fro
 import { buildIndkomstSkadestidspunkt } from '../erstatningsopgoerelse/eoPdfIndkomstSkadestidspunkt';
 import { buildLoenudviklingModel } from '../erstatningsopgoerelse/eoPdfLoenudvikling';
 import {
+  buildSfggReferenceperiodeCountLabel,
   computeSygeferiegodtgoerelse,
   findSfggSixMonthWarningEmploymentIds,
   resolveSfggDayBasis,
@@ -3081,6 +3082,9 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
     }
 
     if (direkteOverenskomstDagssatsMangler) {
+      const dagssatsDependsOn = overenskomstPolicy?.direkteSatsErDifferentieret
+        ? [{ kind: 'id' as const, id: `sfgg.satsvalg.${employment.id}` }]
+        : undefined;
       rows.push({
         id: `sfgg.dagssats.${employment.id}`,
         label: 'Dagssats',
@@ -3088,6 +3092,7 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
         status: 'error',
         summaryDisplay: 'messageOnly',
         message: direkteOverenskomstDagssatsMangler,
+        dependsOn: dagssatsDependsOn,
       });
     }
 
@@ -3104,27 +3109,7 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
     }
 
     if (result?.sfggReferencesatsFormula) {
-      const arbejdsdageLabel = (() => {
-        if (result.sfggReferencesatsFormula.divisorLabel === 'kalenderdage') {
-          if (result.sfggReferencesatsFormula.oevrigeFravaersdage > 0) {
-            return `Antal kalenderdage i perioden (${result.sfggReferencesatsFormula.kalenderdage.toLocaleString('da-DK')} kalenderdage - ${result.sfggReferencesatsFormula.oevrigeFravaersdage.toLocaleString('da-DK')} fraværsdage u. løn) =`;
-          }
-          return 'Antal kalenderdage i perioden';
-        }
-
-        const ferieOgFravaersdage = result.sfggReferencesatsFormula.feriedage + result.sfggReferencesatsFormula.oevrigeFravaersdage;
-        if (result.sfggReferencesatsFormula.shDage + ferieOgFravaersdage > 0) {
-          const parts = [`${result.sfggReferencesatsFormula.hverdage.toLocaleString('da-DK')} hverdage`];
-          if (result.sfggReferencesatsFormula.shDage > 0) {
-            parts.push(`${result.sfggReferencesatsFormula.shDage.toLocaleString('da-DK')} SH-dage`);
-          }
-          if (ferieOgFravaersdage > 0) {
-            parts.push(`${ferieOgFravaersdage.toLocaleString('da-DK')} ferie- og fraværsdage`);
-          }
-          return `Antal arbejdsdage (${parts.join(' - ')}) =`;
-        }
-        return 'Antal arbejdsdage';
-      })();
+      const arbejdsdageLabel = buildSfggReferenceperiodeCountLabel(result.sfggReferencesatsFormula);
 
       rows.push({
         id: `sfgg.referenceperiodeantal.${employment.id}`,
@@ -3173,9 +3158,13 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
             ? `${isoToDanish(segment.fra) ?? segment.fra} | ${isoToDanish(segment.til) ?? segment.til} | ${segment.reguleringsindeks === null ? '-' : formatAsAmount(segment.reguleringsindeks, 2)} | ${formatCurrency(segment.satsOre / 100)} | ${String(segment.antalDage)} | ${formatCurrency(segment.feriepengekravOre / 100)}`
             : `${isoToDanish(segment.fra) ?? segment.fra} | ${isoToDanish(segment.til) ?? segment.til} | ${formatCurrency(segment.satsOre / 100)} | ${String(segment.antalDage)} | ${formatCurrency(segment.feriepengekravOre / 100)}`
         ),
-        hasReguleringsindeks
-          ? `I alt |  |  |  |  | ${formatCurrency(result.feriepengekravTotalOre / 100)}`
-          : `I alt |  |  |  | ${formatCurrency(result.feriepengekravTotalOre / 100)}`,
+        ...(
+          result.segments.length > 1
+            ? [hasReguleringsindeks
+              ? `I alt |  |  |  |  | ${formatCurrency(result.feriepengekravTotalOre / 100)}`
+              : `I alt |  |  |  | ${formatCurrency(result.feriepengekravTotalOre / 100)}`]
+            : []
+        ),
       ];
       rows.push({
         id: `sfgg.tabel.${employment.id}`,

@@ -79,6 +79,19 @@ export type SygeferiegodtgoerelseCapRow = Readonly<{
   maanederPraecis: number;
 }>;
 
+export type SfggReferencesatsFormula = Readonly<{
+  ferieberettigetLoenKroner: number;
+  feriePctDecimal: number;
+  feriepengeKroner: number;
+  divisorDage: number;
+  divisorLabel: 'kalenderdage' | 'arbejdsdage';
+  kalenderdage: number;
+  hverdage: number;
+  shDage: number;
+  feriedage: number;
+  oevrigeFravaersdage: number;
+}>;
+
 export type SygeferiegodtgoerelseAnsaettelsesforholdResult = Readonly<{
   ansaettelsesforholdId: string;
   ansaettelsesforholdNavn: string;
@@ -93,18 +106,7 @@ export type SygeferiegodtgoerelseAnsaettelsesforholdResult = Readonly<{
   alleredeBetaltOre: MoneyOre;
   sfggReferenceperiode: Readonly<{ fra: ISODateString; til: ISODateString }> | null;
   sfggReferencesats: Calculable<MoneyOre>;
-  sfggReferencesatsFormula: Readonly<{
-    ferieberettigetLoenKroner: number;
-    feriePctDecimal: number;
-    feriepengeKroner: number;
-    divisorDage: number;
-    divisorLabel: 'kalenderdage' | 'arbejdsdage';
-    kalenderdage: number;
-    hverdage: number;
-    shDage: number;
-    feriedage: number;
-    oevrigeFravaersdage: number;
-  }> | null;
+  sfggReferencesatsFormula: SfggReferencesatsFormula | null;
   explanatoryLines: readonly string[];
   capRows: readonly SygeferiegodtgoerelseCapRow[];
   capReachedDate: ISODateString | null;
@@ -179,6 +181,30 @@ export const resolveSfggReferenceperiodeDayCount = (
     feriedage: breakdown.feriedage,
     oevrigeFravaersdage: breakdown.oevrigeFravaersdage,
   };
+};
+
+export const buildSfggReferenceperiodeCountLabel = (
+  formula: SfggReferencesatsFormula
+): string => {
+  if (formula.divisorLabel === 'kalenderdage') {
+    if (formula.oevrigeFravaersdage > 0) {
+      return `Antal kalenderdage i perioden (${formula.kalenderdage.toLocaleString('da-DK')} kalenderdage - ${formula.oevrigeFravaersdage.toLocaleString('da-DK')} fraværsdage u. løn) =`;
+    }
+    return 'Antal kalenderdage i perioden';
+  }
+
+  const ferieOgFravaersdage = formula.feriedage + formula.oevrigeFravaersdage;
+  if (formula.shDage + ferieOgFravaersdage > 0) {
+    const parts = [`${formula.hverdage.toLocaleString('da-DK')} hverdage`];
+    if (formula.shDage > 0) {
+      parts.push(`${formula.shDage.toLocaleString('da-DK')} SH-dage`);
+    }
+    if (ferieOgFravaersdage > 0) {
+      parts.push(`${ferieOgFravaersdage.toLocaleString('da-DK')} ferie- og fraværsdage`);
+    }
+    return `Antal arbejdsdage (${parts.join(' - ')}) =`;
+  }
+  return 'Antal arbejdsdage';
 };
 
 export const getFirstIndtastedeTafFraDato = (
@@ -524,18 +550,7 @@ const resolveSfggBaseRate = (
 ): Readonly<{
   sfggReferenceperiode: { fra: ISODateString; til: ISODateString } | null;
   sfggReferencesatsOre: Calculable<MoneyOre>;
-  sfggReferencesatsFormula: Readonly<{
-    ferieberettigetLoenKroner: number;
-    feriePctDecimal: number;
-    feriepengeKroner: number;
-    divisorDage: number;
-    divisorLabel: 'kalenderdage' | 'arbejdsdage';
-    kalenderdage: number;
-    hverdage: number;
-    shDage: number;
-    feriedage: number;
-    oevrigeFravaersdage: number;
-  }> | null;
+  sfggReferencesatsFormula: SfggReferencesatsFormula | null;
 }> => {
   if (sfggSource.kind === 'manuel') {
     const manual = amountValueToNumber(sfggRow?.sfggManuelDagssats);

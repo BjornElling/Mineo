@@ -122,6 +122,106 @@ describe('eoPdfReguleringEngine', () => {
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
+  it.each([
+    'Ingen',
+    'Manuelt angivet',
+    'Ferieloven',
+  ] as const)('viser ingen SFGG-kolonner når SFGG-kilde er %s', (sfggBeregningskilde) => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'bygge-anlaeg';
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.feriePct = 15;
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: af.id,
+        sfggBeregningskilde,
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: 'Faglaert-Koebenhavn',
+        sfggAlleredeBetaltBeloeb: '0,00',
+      },
+    ];
+
+    const table = buildReguleringsvaerdierTableData({
+      eoValues: values,
+      ansaettelsesforhold: af,
+      reguleringsdato: iso('2023-05-24'),
+      tafFra: iso('2023-06-01'),
+      tafTil: iso('2024-04-30'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.columns.filter((column) => column.includes('SFGG'))).toEqual([]);
+  });
+
+  it('viser kun valgt differentieret SFGG-kolonne når SFGG beregnes efter overenskomst', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'bygge-anlaeg';
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.feriePct = 15;
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: af.id,
+        sfggBeregningskilde: 'Overenskomst',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: 'Ufaglaert-Koebenhavn',
+        sfggAlleredeBetaltBeloeb: '0,00',
+      },
+    ];
+
+    const table = buildReguleringsvaerdierTableData({
+      eoValues: values,
+      ansaettelsesforhold: af,
+      reguleringsdato: iso('2023-05-24'),
+      tafFra: iso('2023-06-01'),
+      tafTil: iso('2024-04-30'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.columns.filter((column) => column.includes('SFGG'))).toEqual(['SFGG\nufagl. Kbh']);
+  });
+
+  it('viser fortsat én samlet SFGG-kolonne ved ikke-differentieret overenskomst-SFGG', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'transportoverenskomsten-atl';
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.feriePct = 12.5;
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: af.id,
+        sfggBeregningskilde: 'Overenskomst',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: 'Faglaert-Koebenhavn',
+        sfggAlleredeBetaltBeloeb: '0,00',
+      },
+    ];
+
+    const table = buildReguleringsvaerdierTableData({
+      eoValues: values,
+      ansaettelsesforhold: af,
+      reguleringsdato: iso('2010-01-01'),
+      tafFra: iso('2010-01-04'),
+      tafTil: iso('2010-01-05'),
+      tafBeregningsenhed: 'Arbejdsdage',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.columns.filter((column) => column.includes('SFGG'))).toEqual(['SFGG']);
+  });
+
   it('splitter private indeksrækker ved 01-01-2024 selv når inputsegmentet krydser datoen', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
