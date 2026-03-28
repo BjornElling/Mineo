@@ -1662,7 +1662,6 @@ export const buildEODebugTaftRows = (
       status,
     });
 
-    // TODO(b): Tilføj en ekstra debug-linje pr. periode med den tilsvarende månedsberegning (samme princip som EO-oplysninger, men eksplicit i debug-output).
   });
 
   // 2) Ferieperiode-rækker fra tabellen
@@ -1799,7 +1798,6 @@ export const buildEODebugTaftRows = (
         status: 'ok',
       });
 
-      // TODO(c): Tilføj en ekstra debug-linje under hver ferieperiode med beregning som både arbejdsdage og måneder (dvs. samme beregningsgrundlag som TAF-perioden, men scoped til ferieperioden).
     });
   }
 

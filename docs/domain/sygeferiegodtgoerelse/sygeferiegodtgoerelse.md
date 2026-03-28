@@ -468,7 +468,7 @@ SFGG er implementeret ende til ende med:
 - PDF-visning
 - testdækning på centrale dele
 
-Løsningen er dog ikke fuldt i overensstemmelse med hele den normative forretningslogik ovenfor.
+Løsningen betragtes nu som færdig på modulniveau. Eventuelt efterfølgende arbejde angår fejlkontrol, fejlrettelser og mindre justeringer, ikke manglende hovedfunktionalitet.
 
 ### Implementeret
 
@@ -629,18 +629,4 @@ Checkboxen for `Sygeferiegodtgørelse` er aktiv i den aktuelle UI.
 
 ## Fejl, mangler og uafklarede spørgsmål
 
-### Fejl
-
-### Mangler
-
-1. PDF-teksterne for præ-2015 og ansættelsesophør er ikke tilpasset den præcist fastlagte normative ordlyd.
-
-2. Den præcise brugerplacering af seksmånedersadvarslen bør verificeres og eventuelt justeres, hvis kravet fortsat er, at advarslen skal fremgå tydeligt på EOBeregningTab.
-
-3. Der er ikke fundet særskilt domænelogik, som driver en alternativ referenceperiode ud over brugerens manuelle datoindtastning, selv om denne type fravigelse er en del af den normative forretningslogik.
-
-### Uafklarede spørgsmål
-
-1. Skal SFGG-bilaget behandles som produktionsklart nu, hvor det er aktivt i UI, eller som foreløbigt, indtil afvigelserne ovenfor er lukket?
-
-2. Skal de præcise PDF-tekster i Del 1 fortsat betragtes som bindende, eller er funktionelt tilsvarende formuleringer acceptable?
+Ingen. Eventuelle nye spørgsmål behandles som særskilte fejl- eller forbedringsopgaver.

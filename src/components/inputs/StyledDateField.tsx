@@ -37,13 +37,6 @@ export type StyledDateFieldProps = {
    */
   noValidRangeCause?: string;
 
-  /**
-   * Range validation is always UI-only for date fields.
-   * Out-of-range values still commit when the date format is valid.
-   *
-   * Deprecated: kept for API compatibility, but no longer affects behavior.
-   */
-  enforceRange?: boolean;
   placeholder?: string;
   disabled?: boolean;
 
@@ -102,7 +95,6 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       maxDate,
       specialRangeErrors,
       noValidRangeCause,
-      enforceRange: _enforceRange = false,
       placeholder = 'dd-mm-åååå',
       disabled,
       onFocus,

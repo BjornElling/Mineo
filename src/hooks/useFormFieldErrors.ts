@@ -23,20 +23,6 @@ export const useFormFieldErrors = <K extends StorageKey>(pageKey: K): Partial<Re
 };
 
 /**
- * Full error state by source per field.
- *
- * Use when you want diagnostics: "where does this error come from?"
- *
- * @deprecated Brug `useFieldErrorsBySourceForSection` i stedet — de er identiske.
- * Denne hook bevares midlertidigt for at undgå brud på eksisterende test-importer.
- * Bruges stadig af `src/__tests__/hooks/useFormFieldErrors.test.tsx` — kan slettes når den fil er opdateret.
- */
-export const useFormFieldErrorsBySource = <K extends StorageKey>(pageKey: K): FieldErrorsForSection<K> => {
-  const { getFieldErrorsBySource } = useFormPersistence();
-  return getFieldErrorsBySource(pageKey);
-};
-
-/**
  * Selector-style hook for field errors by source, scoped to a single section.
  */
 export const useFieldErrorsBySourceForSection = <K extends StorageKey>(pageKey: K): FieldErrorsForSection<K> => {

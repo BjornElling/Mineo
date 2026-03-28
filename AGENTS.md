@@ -17,6 +17,11 @@ Priority order:
 - Do not judge legal/economic/factual domain assumptions; implement them exactly as specified.
 - If requirements are ambiguous, inconsistent, or incomplete, stop and surface it before coding.
 
+## Project phase
+- All major program modules and overall product functionalities are considered implemented.
+- The default assumption for future work is therefore bug fixing, verification, robustness improvements, and smaller supplements.
+- Do not assume that new large primary modules or major product areas remain to be built unless the user explicitly requests them.
+
 ## Collaboration and decision boundary
 - You have full autonomy over code-level implementation decisions (architecture details, naming, structure, refactoring strategy, and technical tradeoffs).
 - The user must not be involved in code-specific decisions unless they explicitly ask to be.

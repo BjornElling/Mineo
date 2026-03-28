@@ -14,6 +14,7 @@ import type { LogEntry } from './logStorage';
 import { getTodayLocalISO } from './dateUtils';
 import { logError } from './logger';
 import { isSystemIssueLogData } from './systemIssueReporter';
+import { VERSION } from '../config/version';
 
 export interface BugReportContext {
   source?: string;
@@ -63,7 +64,7 @@ const isPreparedBugReport = (value: unknown): value is PreparedBugReport => {
   );
 };
 
-const getVersion = (): string => import.meta.env.VITE_APP_VERSION || '0.1.0';
+const getVersion = (): string => import.meta.env.VITE_APP_VERSION || VERSION;
 
 const getCommitHash = (): string => {
   const candidates = [

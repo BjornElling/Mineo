@@ -3,7 +3,7 @@ import React from 'react';
 import { render, act } from '@testing-library/react';
 import {
   useFormFieldErrors,
-  useFormFieldErrorsBySource,
+  useFieldErrorsBySourceForSection,
   useFormFieldErrorReporter,
 } from '../../hooks/useFormFieldErrors';
 import { FormPersistenceContext, type FormPersistenceContextValue } from '../../contexts/FormPersistenceContext.shared';
@@ -82,15 +82,15 @@ describe('useFormFieldErrors', () => {
   });
 });
 
-// ─── useFormFieldErrorsBySource ────────────────────────────────────────────────
+// ─── useFieldErrorsBySourceForSection ─────────────────────────────────────────
 
-describe('useFormFieldErrorsBySource', () => {
+describe('useFieldErrorsBySourceForSection', () => {
   it('kalder getFieldErrorsBySource med korrekt pageKey', () => {
     const getFieldErrorsBySource = vi.fn(() => ({}) as ReturnType<FormPersistenceContextValue['getFieldErrorsBySource']>);
     const ctx = makeCtx({ getFieldErrorsBySource });
 
     const Comp = () => {
-      useFormFieldErrorsBySource('aarsloen' as StorageKey);
+      useFieldErrorsBySourceForSection('aarsloen' as StorageKey);
       return null;
     };
 
