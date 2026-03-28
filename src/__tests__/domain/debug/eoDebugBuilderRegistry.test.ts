@@ -1,7 +1,10 @@
 import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
 import type { EODebugExecutionContext } from '../../../domain/debug/eoDebugExecutionContext';
 import type { EODebugBuilderEntry } from '../../../domain/debug/eoDebugBuilderRegistry';
-import { executeEODebugBuilderEntries } from '../../../domain/debug/eoDebugBuilderRegistry';
+import {
+  executeEODebugBuilderEntries,
+  executeEODebugBuilderEntriesBySection,
+} from '../../../domain/debug/eoDebugBuilderRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
@@ -42,5 +45,31 @@ describe('executeEODebugBuilderEntries', () => {
     const errorRow = rows.find((row) => row.id === 'debug.builder.aes.exception');
     expect(errorRow?.status).toBe('error');
     expect(errorRow?.displayValue).toContain('Test-fejl');
+  });
+
+  it('returns rows grouped by section with the same exception isolation', () => {
+    const entries: EODebugBuilderEntry[] = [
+      {
+        section: 'stamdata',
+        run: () => [makeRow('stamdata.journalnr', 'ok')],
+      },
+      {
+        section: 'taf',
+        run: () => {
+          throw new Error('Sektion fejlede');
+        },
+      },
+    ];
+
+    const rowsBySection = executeEODebugBuilderEntriesBySection(entries, ctx);
+
+    expect(rowsBySection.get('stamdata')).toEqual([makeRow('stamdata.journalnr', 'ok')]);
+    expect(rowsBySection.get('taf')).toEqual([
+      expect.objectContaining({
+        id: 'debug.builder.taf.exception',
+        status: 'error',
+        displayValue: expect.stringContaining('Sektion fejlede'),
+      }),
+    ]);
   });
 });

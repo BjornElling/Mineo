@@ -3,146 +3,17 @@ import { Alert, AlertTitle, Box } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
 import { useEOLoenindkomstInputErrors } from '../../../hooks/useEOLoenindkomstInputErrors';
 import { useAppSettings } from '../../../contexts/useAppSettings';
+import { buildEODebugPageViewModel } from '../../../domain/debug/eoDebugPageViewModel';
 import { eoSnapshotToDebugView } from '../../../domain/erstatningsopgoerelse/eoSnapshotToDebugView';
-import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
 import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
 import EODebugRegulationSections from './EODebugRegulationSections';
 import EODebugRowsSection from './EODebugRowsSection';
 import EODebugEmploymentSections from './EODebugEmploymentSections';
 import EODebugGroupedRowsSection from './EODebugGroupedRowsSection';
-import type { RegulationDebugSection } from '../../../domain/debug/eoDebugRegulationViewModel';
-import { isLoenindkomstAnsaettelsesforholdEffectivelyEmpty } from '../../../domain/debug/eoDebugIndkomstModel';
 
 type EODebugProps = Readonly<{
   eoSnapshot?: EoSnapshot | null;
 }>;
-
-type SfggDisplayTable = Readonly<{
-  id: string;
-  title: string;
-  columns: readonly string[];
-  rows: readonly Readonly<{
-    id: string;
-    cells: readonly string[];
-  }>[];
-}>;
-
-const getLoenindkomstAnsaettelsesforholdId = (rowId: string): string | null => {
-  const match = /^loenindkomst\.([^.]+)\./.exec(rowId);
-  return match?.[1] ?? null;
-};
-
-const isLoenindkomstRegulationRow = (row: DebugRowModel): boolean => row.id.includes('.regulering.');
-
-const buildLoenindkomstSections = (rows: readonly DebugRowModel[]) => {
-  const grouped = new Map<string, DebugRowModel[]>();
-  const order: string[] = [];
-
-  rows.forEach((row) => {
-    const ansaettelsesforholdId = getLoenindkomstAnsaettelsesforholdId(row.id);
-    if (!ansaettelsesforholdId) return;
-    if (!grouped.has(ansaettelsesforholdId)) {
-      grouped.set(ansaettelsesforholdId, []);
-      order.push(ansaettelsesforholdId);
-    }
-    grouped.get(ansaettelsesforholdId)?.push(row);
-  });
-
-  return order.map((ansaettelsesforholdId, index) => {
-    const sectionRows = grouped.get(ansaettelsesforholdId) ?? [];
-    const arbejdsstedNavn = sectionRows.find((row) => row.label === 'Navn på arbejdssted')?.displayValue.trim() ?? '';
-    const hasNamedArbejdssted = arbejdsstedNavn !== '' && arbejdsstedNavn !== '-';
-    const title = hasNamedArbejdssted
-      ? arbejdsstedNavn
-      : `Arbejdssted ${index + 1}`;
-    const visibleRows = hasNamedArbejdssted
-      ? sectionRows.filter((row) => row.label !== 'Navn på arbejdssted')
-      : sectionRows;
-    const loenRows = visibleRows.filter((row) => !isLoenindkomstRegulationRow(row));
-    const regulationRows = visibleRows.filter(isLoenindkomstRegulationRow);
-
-    return {
-      id: ansaettelsesforholdId,
-      title,
-      loenRows,
-      regulationRows,
-    };
-  });
-};
-
-const getRegulationEmploymentId = (section: RegulationDebugSection): string | null => {
-  const match = /^regulation\.(.+)$/.exec(section.id);
-  return match?.[1] ?? null;
-};
-
-const getSfggEmploymentId = (rowId: string): string | null => {
-  const postTableMatch = /^sfgg\.eftertabel\.[^.]+\.([^.]+)$/.exec(rowId);
-  if (postTableMatch) return postTableMatch[1] ?? null;
-
-  const match = /^sfgg\.[^.]+\.([^.]+)(?:\.|$)/.exec(rowId);
-  return match?.[1] ?? null;
-};
-
-const buildSfggSections = (
-  rows: readonly DebugRowModel[],
-  employmentNamesById: ReadonlyMap<string, string>
-) => {
-  const parseSfggTable = (row: DebugRowModel): SfggDisplayTable | null => {
-    const lines = row.displayValue
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line !== '');
-    if (lines.length < 2) return null;
-
-    const columns = lines[0]?.split('|').map((cell) => cell.trim()).filter((cell) => cell !== '') ?? [];
-    if (columns.length === 0) return null;
-
-    const parsedRows = lines.slice(1).map((line, index) => ({
-      id: `${row.id}.row.${index + 1}`,
-      cells: line.split('|').map((cell) => cell.trim()),
-    }));
-    const dataRows = parsedRows.filter((tableRow) => tableRow.cells[0] !== 'I alt');
-    const tableRows = dataRows.length > 1
-      ? parsedRows
-      : parsedRows.filter((tableRow) => tableRow.cells[0] !== 'I alt');
-
-    return {
-      id: row.id,
-      title: row.label,
-      columns,
-      rows: tableRows,
-    };
-  };
-
-  const grouped = new Map<string, DebugRowModel[]>();
-  const groupedTables = new Map<string, SfggDisplayTable[]>();
-  const order: string[] = [];
-
-  rows.forEach((row) => {
-    const employmentId = getSfggEmploymentId(row.id);
-    if (!employmentId) return;
-    if (!grouped.has(employmentId)) {
-      grouped.set(employmentId, []);
-      groupedTables.set(employmentId, []);
-      order.push(employmentId);
-    }
-    if (row.id.startsWith('sfgg.tabel.')) {
-      const parsedTable = parseSfggTable(row);
-      if (parsedTable) {
-        groupedTables.get(employmentId)?.push(parsedTable);
-        return;
-      }
-    }
-    grouped.get(employmentId)?.push(row);
-  });
-
-  return order.map((employmentId, index) => ({
-    id: employmentId,
-    title: employmentNamesById.get(employmentId) ?? `Arbejdssted ${index + 1}`,
-    rows: grouped.get(employmentId) ?? [],
-    tables: groupedTables.get(employmentId) ?? [],
-  }));
-};
 
 const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
   const manuelReguleringInputErrors = useEOLoenindkomstInputErrors();
@@ -165,98 +36,34 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
     );
   }
 
-  const { erstatningsopgoerelseValues, rowsBySection } = view;
-  const viserSvieSmerte = erstatningsopgoerelseValues.beregnesSvieSmerteGodtgoerelse !== 'Nej';
-  const viserTabtArbejdsfortjeneste = erstatningsopgoerelseValues.beregnesTabtArbejdsfortjeneste !== 'Nej';
-  const skjulerUdvidedeSvieSmerteRows = erstatningsopgoerelseValues.tidligereSsMax === 'Ja';
-  const viserMidlertidigtEet = erstatningsopgoerelseValues.midlertidigtEetAfgorelse === 'Ja';
-  const viserEndeligtEet = erstatningsopgoerelseValues.endeligtEetAfgorelse === 'Ja';
-  const svieSmerteRows = (rowsBySection.get('sviesmerte') ?? []).filter((row) =>
-    !skjulerUdvidedeSvieSmerteRows || row.id === 'sviesmerte.tidligereSsMax'
-  );
-  const aesRows = rowsBySection.get('aes') ?? [];
-  const visibleEmploymentIds = new Set(
-    (erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? [])
-      .filter((af) => !isLoenindkomstAnsaettelsesforholdEffectivelyEmpty(af, settings))
-      .map((af) => af.id)
-  );
-  const loenindkomstRows = (rowsBySection.get('loenindkomst') ?? []).filter((row) => {
-    const ansaettelsesforholdId = getLoenindkomstAnsaettelsesforholdId(row.id);
-    return ansaettelsesforholdId === null || visibleEmploymentIds.has(ansaettelsesforholdId);
-  });
-  const loenindkomstSections = buildLoenindkomstSections(loenindkomstRows);
-  const employmentNamesById = new Map(
-    (erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? []).map((af, index) => [
-      af.id,
-      (af.navnPaaArbejdssted ?? '').trim() || `Arbejdssted ${index + 1}`,
-    ])
-  );
-  const regulationSectionsByEmploymentId = new Map<string, RegulationDebugSection>();
-  view.regulationSections.forEach((section) => {
-    const employmentId = getRegulationEmploymentId(section);
-    if (!employmentId) return;
-    regulationSectionsByEmploymentId.set(employmentId, section);
-  });
-  const employmentSections = loenindkomstSections.map((section) => ({
-    id: section.id,
-    title: section.title,
-    loenRows: section.loenRows,
-    regulationRows: section.regulationRows,
-    regulationSection: regulationSectionsByEmploymentId.get(section.id),
-    sfggRows: [],
-    sfggTables: [],
-  }));
-  const orphanRegulationSections = view.regulationSections.filter((section) => {
-    const employmentId = getRegulationEmploymentId(section);
-    return !employmentId || !loenindkomstSections.some((loenSection) => loenSection.id === employmentId);
-  });
-  const sfggSections = buildSfggSections(rowsBySection.get('sygeferiegodtgoerelse') ?? [], employmentNamesById);
-  const sfggSectionsByEmploymentId = new Map(sfggSections.map((section) => [section.id, section]));
-  const employmentSectionsWithSfgg = employmentSections.map((section) => {
-    const sfggSection = sfggSectionsByEmploymentId.get(section.id);
-    return {
-      ...section,
-      sfggRows: sfggSection?.rows ?? [],
-      sfggTables: sfggSection?.tables ?? [],
-    };
-  });
-  const orphanSfggSections = sfggSections.filter((section) =>
-    !employmentSections.some((employmentSection) => employmentSection.id === section.id)
-  );
-  const filtreredeAesRows = aesRows.filter((row) => {
-    if (!viserMidlertidigtEet && row.group === 'aes.midlertidigtEet' && row.id !== 'aes.midlertidigtEetAfgorelse') return false;
-    if (!viserEndeligtEet && row.group === 'aes.endeligtEet' && row.id !== 'aes.endeligtEetAfgorelse') return false;
-    return true;
-  });
+  const pageView = buildEODebugPageViewModel(view, settings);
 
   return (
     <Box>
-      <EODebugRowsSection title="Stamdata" rows={rowsBySection.get('stamdata') ?? []} />
-      <EODebugRowsSection title="Erstatningsopgørelse" rows={rowsBySection.get('erstatningsopgoerelse') ?? []} />
-      <EODebugRowsSection title="Forlig" rows={rowsBySection.get('forlig') ?? []} />
-      <EODebugRowsSection title="AES" rows={filtreredeAesRows} />
-      {viserSvieSmerte && <EODebugRowsSection title="Svie og smerte" rows={svieSmerteRows} />}
-      {viserTabtArbejdsfortjeneste && <EODebugRowsSection title="Tabt arbejdsfortjeneste" rows={rowsBySection.get('taf') ?? []} />}
-      {viserTabtArbejdsfortjeneste && <EODebugRowsSection title="TAF beregningsgrundlag" rows={rowsBySection.get('taf-beregningsgrundlag') ?? []} />}
-      {viserTabtArbejdsfortjeneste && (
-        employmentSectionsWithSfgg.length > 0
-          ? <EODebugEmploymentSections sections={employmentSectionsWithSfgg} />
-          : <EODebugRowsSection title="Lønindkomst" rows={loenindkomstRows} />
-      )}
-      {viserTabtArbejdsfortjeneste && (
-        <EODebugRowsSection title="Offentlige ydelser" rows={rowsBySection.get('offentlige-ydelser') ?? []} />
-      )}
-      {viserTabtArbejdsfortjeneste && orphanSfggSections.length > 0 && (
-        <EODebugGroupedRowsSection title="Sygeferiegodtgørelse" sections={orphanSfggSections} />
+      <EODebugRowsSection title="Stamdata" rows={pageView.stamdataRows} />
+      <EODebugRowsSection title="Erstatningsopgørelse" rows={pageView.erstatningsopgoerelseRows} />
+      <EODebugRowsSection title="Forlig" rows={pageView.forligRows} />
+      <EODebugRowsSection title="AES" rows={pageView.aesRows} />
+      <EODebugRowsSection title="Svie og smerte" rows={pageView.svieSmerteRows} />
+      <EODebugRowsSection title="Tabt arbejdsfortjeneste" rows={pageView.tafRows} />
+      <EODebugRowsSection title="TAF beregningsgrundlag" rows={pageView.tafBeregningsgrundlagRows} />
+      {pageView.employmentSections.length > 0
+        ? <EODebugEmploymentSections sections={pageView.employmentSections} />
+        : (
+          <EODebugRowsSection title="Lønindkomst" rows={pageView.loenindkomstRows} />
+        )}
+      <EODebugRowsSection title="Offentlige ydelser" rows={pageView.offentligeYdelserRows} />
+      {pageView.orphanSfggSections.length > 0 && (
+        <EODebugGroupedRowsSection title="Sygeferiegodtgørelse" sections={pageView.orphanSfggSections} />
       )}
 
-      {viserTabtArbejdsfortjeneste && orphanRegulationSections.length > 0 && (
-        <EODebugRegulationSections sections={orphanRegulationSections} />
+      {pageView.orphanRegulationSections.length > 0 && (
+        <EODebugRegulationSections sections={pageView.orphanRegulationSections} />
       )}
 
-      <EODebugRowsSection title="Øvrige erstatningskrav" rows={rowsBySection.get('oevrige-krav') ?? []} />
-      <EODebugRowsSection title="Eventuelle særlige kommentarer" rows={rowsBySection.get('saerlige-kommentarer') ?? []} />
-      <EODebugRowsSection title="Bilagsnumre" rows={rowsBySection.get('bilagsnumre') ?? []} />
+      <EODebugRowsSection title="Øvrige erstatningskrav" rows={pageView.oevrigeKravRows} />
+      <EODebugRowsSection title="Eventuelle særlige kommentarer" rows={pageView.saerligeKommentarerRows} />
+      <EODebugRowsSection title="Bilagsnumre" rows={pageView.bilagsnumreRows} />
     </Box>
   );
 };

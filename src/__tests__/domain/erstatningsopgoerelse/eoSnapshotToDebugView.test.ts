@@ -22,6 +22,23 @@ vi.mock('../../../domain/debug/eoDebugBuilderRegistry', () => ({
       },
     },
   ],
+  executeEODebugBuilderEntriesBySection: (entries: Array<{ section: string; run: (ctx: unknown) => unknown[] }>, ctx: unknown) => {
+    const map = new Map<string, unknown[]>();
+    entries.forEach((entry) => {
+      try {
+        map.set(entry.section, entry.run(ctx));
+      } catch (error) {
+        const message = error instanceof Error && error.message.trim() !== '' ? error.message : 'Ukendt fejl';
+        map.set(entry.section, [{
+          id: `debug.builder.${entry.section}.exception`,
+          label: `Fejl i debug-builder (${entry.section})`,
+          displayValue: `Fejl (Builder-fejl: ${message})`,
+          status: 'error',
+        }]);
+      }
+    });
+    return map;
+  },
 }));
 
 vi.mock('../../../domain/debug/eoDebugRegulationCore', () => ({

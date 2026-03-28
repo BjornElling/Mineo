@@ -4,8 +4,8 @@
  * Samler alle DebugRowModel fra centraliseret builder-registry og tilføjer navigation-metadata.
  * Returnerer grupperet efter status (error/warning) til visning i Beregning-fanen.
  *
- * REFACTORET: Bruger nu centraliseret builder-registry som single source of truth.
- * Ingen risiko for divergens mellem EODebug og EOberegningTab.
+ * Bruger samme builder-registry som EO-debug siden for rå debug-rækker.
+ * EO-debug siden og Beregning-fanen har stadig forskellig post-processing oven på disse rækker.
  */
 
 import type { DebugRowModel } from './eoDebugTypes';
@@ -236,8 +236,8 @@ const isRowRelevantForEoValues = (
 /**
  * Samler alle debug-rows fra registry og tilføjer navigation
  *
- * FORENKLET: Bruger nu centraliseret builder-registry.
- * Ingen risiko for divergens mellem EODebug og EOberegningTab.
+ * Bruger samme builder-registry som EO-debug siden for rå debug-rækker.
+ * EO-debug siden og Beregning-fanen har stadig forskellig post-processing.
  *
  * @param stamdataValues - Stamdata values fra FormPersistence
  * @param stamdataErrors - Stamdata field errors by source

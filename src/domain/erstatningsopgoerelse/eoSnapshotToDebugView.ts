@@ -1,6 +1,7 @@
 import type { AppSettings } from '../../settings/appSettingsSchema';
 import {
   EO_DEBUG_BUILDERS,
+  executeEODebugBuilderEntriesBySection,
 } from '../debug/eoDebugBuilderRegistry';
 import type { EODebugExecutionContext } from '../debug/eoDebugExecutionContext';
 import { buildRegulationTimeline } from '../debug/eoDebugRegulationCore';
@@ -29,26 +30,7 @@ type EoDebugViewReady = Readonly<{
 }>;
 
 export type EoDebugView = EoDebugViewBlocked | EoDebugViewReady;
-
-const buildRowsBySection = (ctx: EODebugExecutionContext): ReadonlyMap<SectionId, readonly DebugRowModel[]> => {
-  const map = new Map<SectionId, DebugRowModel[]>();
-
-  for (const entry of EO_DEBUG_BUILDERS) {
-    try {
-      map.set(entry.section, entry.run(ctx));
-    } catch (error) {
-      const message = error instanceof Error && error.message.trim() !== '' ? error.message : 'Ukendt fejl';
-      map.set(entry.section, [{
-        id: `debug.builder.${entry.section}.exception`,
-        label: `Fejl i debug-builder (${entry.section})`,
-        displayValue: `Fejl (Builder-fejl: ${message})`,
-        status: 'error',
-      }]);
-    }
-  }
-
-  return map;
-};
+export type { EoDebugViewReady };
 
 export const eoSnapshotToDebugView = (args: Readonly<{
   snapshot?: EoSnapshot | null;
@@ -97,7 +79,7 @@ export const eoSnapshotToDebugView = (args: Readonly<{
       debugSnapshot,
       stamdataValues,
       erstatningsopgoerelseValues,
-      rowsBySection: buildRowsBySection(ctx),
+      rowsBySection: executeEODebugBuilderEntriesBySection(EO_DEBUG_BUILDERS, ctx),
       regulationSections: buildRegulationDebugSections({
         timeline: buildRegulationTimeline({
           debugDays: debugSnapshot.debugDays,

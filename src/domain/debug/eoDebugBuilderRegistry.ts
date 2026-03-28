@@ -178,6 +178,25 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
   },
 ] as const;
 
+const executeEODebugBuilderEntry = (
+  entry: EODebugBuilderEntry,
+  ctx: EODebugExecutionContext
+): DebugRowModel[] => {
+  try {
+    return entry.run(ctx);
+  } catch (error) {
+    const message = error instanceof Error && error.message.trim() !== '' ? error.message : 'Ukendt fejl';
+    return [
+      {
+        id: `debug.builder.${entry.section}.exception`,
+        label: `Fejl i debug-builder (${entry.section})`,
+        displayValue: `Fejl (Builder-fejl: ${message})`,
+        status: 'error',
+      },
+    ];
+  }
+};
+
 /**
  * Udfører et givent set af builders og isolerer fejl pr. builder
  *
@@ -189,21 +208,24 @@ export const executeEODebugBuilderEntries = (
   entries: ReadonlyArray<EODebugBuilderEntry>,
   ctx: EODebugExecutionContext
 ): DebugRowModel[] => {
-  return entries.flatMap((entry) => {
-    try {
-      return entry.run(ctx);
-    } catch (error) {
-      const message = error instanceof Error && error.message.trim() !== '' ? error.message : 'Ukendt fejl';
-      return [
-        {
-          id: `debug.builder.${entry.section}.exception`,
-          label: `Fejl i debug-builder (${entry.section})`,
-          displayValue: `Fejl (Builder-fejl: ${message})`,
-          status: 'error',
-        },
-      ];
-    }
+  return entries.flatMap((entry) => executeEODebugBuilderEntry(entry, ctx));
+};
+
+/**
+ * Udfører builders og returnerer rows grupperet pr. section
+ *
+ * Bruges af EO-debug siden, som har brug for sektioneret output
+ * men stadig skal dele samme exception-isolation som resten af debug-laget.
+ */
+export const executeEODebugBuilderEntriesBySection = (
+  entries: ReadonlyArray<EODebugBuilderEntry>,
+  ctx: EODebugExecutionContext
+): ReadonlyMap<SectionId, readonly DebugRowModel[]> => {
+  const map = new Map<SectionId, readonly DebugRowModel[]>();
+  entries.forEach((entry) => {
+    map.set(entry.section, executeEODebugBuilderEntry(entry, ctx));
   });
+  return map;
 };
 
 /**
