@@ -48,25 +48,41 @@ export const StandardGridTable = React.memo(
       <Box sx={[{ width: '100%', overflowX: 'auto' }, ...(containerSx === undefined ? [] : Array.isArray(containerSx) ? containerSx : [containerSx])]}>
         {beforeTable}
         <GridCoreProvider value={contextValue}>
-          <table
-            ref={(node) => {
-              internalTableRef.current = node;
-              assignRef(tableRef, node);
-            }}
-            data-mineo-table-navigation="true"
-            onKeyDownCapture={handleTableKeyDownCapture}
-            onBlurCapture={handleTableBlurCapture}
-            onFocusCapture={handleTableFocusCapture}
-            onPointerDownCapture={handleTablePointerDownCapture}
-            onDoubleClickCapture={handleTableDoubleClickCapture}
-            style={{
-              ...getHtmlTableStyles(useSmallFont),
-              width: tableWidth,
-              tableLayout,
+          <Box
+            sx={{
+              display: 'block',
+              width: 'fit-content',
+              border: `1px solid ${tableColors.border}`,
+              borderRadius: '16px',
+              overflow: 'hidden',
+              '& tbody tr:last-of-type td:first-of-type .MuiInputBase-root': {
+                borderBottomLeftRadius: '16px',
+              },
             }}
           >
-            {children}
-          </table>
+            <table
+              ref={(node) => {
+                internalTableRef.current = node;
+                assignRef(tableRef, node);
+              }}
+              data-mineo-table-navigation="true"
+              onKeyDownCapture={handleTableKeyDownCapture}
+              onBlurCapture={handleTableBlurCapture}
+              onFocusCapture={handleTableFocusCapture}
+              onPointerDownCapture={handleTablePointerDownCapture}
+              onDoubleClickCapture={handleTableDoubleClickCapture}
+              style={{
+                ...getHtmlTableStyles(useSmallFont),
+                width: tableWidth,
+                tableLayout,
+                border: 'none',
+                borderRadius: 0,
+                overflow: 'visible',
+              }}
+            >
+              {children}
+            </table>
+          </Box>
         </GridCoreProvider>
       </Box>
     );

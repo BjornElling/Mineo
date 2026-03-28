@@ -299,7 +299,45 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
   const [devtoolsNoticeVisible, setDevtoolsNoticeVisible] = React.useState(false);
   const dismissedDevtoolsIssueIdRef = React.useRef<number | null>(null);
   const suppressDevtoolsNoticeUntilRef = React.useRef<number>(0);
+  const pendingDevtoolsSnapshotRef = React.useRef<DevtoolsIssueSnapshot | null>(null);
+  const pendingDevtoolsNoticeTimerRef = React.useRef<number | null>(null);
   const allowExitWithoutUnsavedWarningRef = React.useRef<boolean>(false);
+
+  const clearPendingDevtoolsNoticeTimer = React.useCallback(() => {
+    if (pendingDevtoolsNoticeTimerRef.current !== null) {
+      window.clearTimeout(pendingDevtoolsNoticeTimerRef.current);
+      pendingDevtoolsNoticeTimerRef.current = null;
+    }
+  }, []);
+
+  const flushPendingDevtoolsNotice = React.useCallback(() => {
+    clearPendingDevtoolsNoticeTimer();
+    const pendingSnapshot = pendingDevtoolsSnapshotRef.current;
+    if (!pendingSnapshot) return;
+
+    const dismissedId = dismissedDevtoolsIssueIdRef.current;
+    const hasNewIssues = pendingSnapshot.issues.some((issue) => dismissedId === null || issue.id > dismissedId);
+    if (!hasNewIssues) {
+      pendingDevtoolsSnapshotRef.current = null;
+      return;
+    }
+
+    pendingDevtoolsSnapshotRef.current = null;
+    setDevtoolsSnapshot(pendingSnapshot);
+    setDevtoolsNoticeVisible(true);
+  }, [clearPendingDevtoolsNoticeTimer]);
+
+  const queuePendingDevtoolsNotice = React.useCallback((snapshot: DevtoolsIssueSnapshot) => {
+    pendingDevtoolsSnapshotRef.current = snapshot;
+    if (pendingDevtoolsNoticeTimerRef.current !== null) {
+      return;
+    }
+
+    const delay = Math.max(0, suppressDevtoolsNoticeUntilRef.current - Date.now());
+    pendingDevtoolsNoticeTimerRef.current = window.setTimeout(() => {
+      flushPendingDevtoolsNotice();
+    }, delay);
+  }, [flushPendingDevtoolsNotice]);
 
   const activePage = location.pathname.substring(1) || 'stamdata';
   const combinedSectionRevision = React.useMemo(() => {
@@ -865,8 +903,11 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     const unsubscribe = subscribeDevtoolsIssues((snapshot, issue) => {
       const now = Date.now();
       if (now < suppressDevtoolsNoticeUntilRef.current) {
+        queuePendingDevtoolsNotice(snapshot);
         return;
       }
+      pendingDevtoolsSnapshotRef.current = null;
+      clearPendingDevtoolsNoticeTimer();
       const dismissedId = dismissedDevtoolsIssueIdRef.current;
       if (dismissedId !== null && issue.id <= dismissedId) {
         return;
@@ -884,10 +925,12 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     }
 
     return () => {
+      clearPendingDevtoolsNoticeTimer();
+      pendingDevtoolsSnapshotRef.current = null;
       unsubscribe();
       stop();
     };
-  }, []);
+  }, [clearPendingDevtoolsNoticeTimer, queuePendingDevtoolsNotice]);
 
   React.useEffect(() => {
     const route = `${location.pathname}${location.search}${location.hash}`;
@@ -1025,6 +1068,8 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
               sessionStorage.setItem(UI_STORAGE_KEYS.devtoolsLastSeenIssueId, String(lastIssueId));
             }
             suppressDevtoolsNoticeUntilRef.current = Date.now() + 1000;
+            pendingDevtoolsSnapshotRef.current = null;
+            clearPendingDevtoolsNoticeTimer();
             setDevtoolsNoticeVisible(false);
           }}
           getExtraSections={buildDevtoolsReportExtras}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
@@ -73,6 +73,10 @@ describe('MainLayout (devtools notice persistence)', () => {
     devtoolsMocks.getDevtoolsIssueSnapshot.mockReturnValue(buildSnapshot([]));
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('viser ikke notice for allerede sete issues fra initial snapshot', () => {
     sessionStorage.setItem('mineo_ui_devtools_lastSeenIssueId', '1');
     devtoolsMocks.getDevtoolsIssueSnapshot.mockReturnValue(buildSnapshot([buildIssue(1)]));
@@ -89,5 +93,39 @@ describe('MainLayout (devtools notice persistence)', () => {
     renderLayout();
 
     expect(await screen.findByText('Teknisk advarsel registreret')).toBeInTheDocument();
+  });
+
+  it('viser ny notice efter kort suppression-vindue, hvis ny issue kommer lige efter skjul', async () => {
+    vi.useFakeTimers();
+    let listener: ((snapshot: DevtoolsIssueSnapshot, issue: DevtoolsIssue) => void) | null = null;
+    devtoolsMocks.subscribeDevtoolsIssues.mockImplementation((callback) => {
+      listener = callback;
+      return vi.fn();
+    });
+
+    renderLayout();
+
+    const firstIssue = buildIssue(1);
+    await act(async () => {
+      listener?.(buildSnapshot([firstIssue]), firstIssue);
+    });
+
+    expect(screen.getByText('Teknisk advarsel registreret')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Skjul' }));
+    expect(screen.queryByText('Teknisk advarsel registreret')).toBeNull();
+
+    const secondIssue = buildIssue(2);
+    await act(async () => {
+      listener?.(buildSnapshot([firstIssue, secondIssue]), secondIssue);
+    });
+
+    expect(screen.queryByText('Teknisk advarsel registreret')).toBeNull();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(screen.getByText('Teknisk advarsel registreret')).toBeInTheDocument();
   });
 });
