@@ -32,13 +32,17 @@ import type {
   ReguleringIndexRow,
   ReguleringValuesTableData,
 } from '../../../../domain/erstatningsopgoerelse/eoPdfReguleringEngine';
+import { resolveLoenudviklingSegmentBounds } from '../../../../domain/erstatningsopgoerelse/eoPdfReguleringEngine';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
 
 type ReguleringSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
   stamdataValues: StamdataValues;
   lineHeight: number;
-  modelLoenudviklingSegmenter: readonly LoenudviklingSegment[];
+  modelLoenudviklingPerAnsaettelse: readonly Readonly<{
+    ansaettelsesforholdId: string;
+    beregnedeSegmenter: readonly LoenudviklingSegment[];
+  }>[];
   startBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
@@ -206,7 +210,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     eoValues,
     stamdataValues,
     lineHeight,
-    modelLoenudviklingSegmenter,
+    modelLoenudviklingPerAnsaettelse,
     startBilagPage,
     renderSubheader,
     safeAddWrappedText,
@@ -326,6 +330,10 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
   writer.addSpacer(lineHeight);
 
   for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
+    const perAnsaettelseSegments =
+      modelLoenudviklingPerAnsaettelse.find((entry) => entry.ansaettelsesforholdId === ansaettelsesforhold.id)?.beregnedeSegmenter
+      ?? [];
+    const coverageBounds = resolveLoenudviklingSegmentBounds(perAnsaettelseSegments) ?? tafBounds;
     const underoverskrift = ansaettelsesforhold.navnPaaArbejdssted?.trim() || `Ansættelsesforhold ${index + 1}`;
     const visUnderoverskrift = ansaettelsesforhold.id !== EO_ANGIVET_LOEN_ID;
     if (index > 0) writer.addSpacer(lineHeight);
@@ -395,13 +403,13 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     safeAddWrappedText('Reguleringsværdier:');
 
     const reguleringsvaerdierTableData =
-      tafBounds
+      coverageBounds
         ? buildReguleringsvaerdierTableData({
             eoValues,
             ansaettelsesforhold,
             reguleringsdato,
-            tafFra: tafBounds.foerste,
-            tafTil: tafBounds.sidste,
+            tafFra: coverageBounds.foerste,
+            tafTil: coverageBounds.sidste,
             tafBeregningsenhed: tafBeregnesSom,
           })
         : null;
@@ -411,21 +419,19 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     safeAddWrappedText('Beregnet regulering');
 
     const reguleringTableRows = buildReguleringIndexRows({
-      segments: modelLoenudviklingSegmenter,
+      segments: perAnsaettelseSegments,
       ansaettelsesforhold,
       reguleringsdato,
     });
     renderReguleringIndeksTable(reguleringTableRows);
 
     const loenudviklingGrundlag = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
-    if ((loenudviklingGrundlag === 'Overenskomst' || loenudviklingGrundlag === 'Manuelt angivet') && tafBounds) {
-      const reguleringTableStartIso = reguleringsdato && reguleringsdato < tafBounds.foerste
-        ? reguleringsdato
-        : tafBounds.foerste;
+    if ((loenudviklingGrundlag === 'Overenskomst' || loenudviklingGrundlag === 'Manuelt angivet') && coverageBounds) {
+      const reguleringTableStartIso = coverageBounds.foerste;
       const tillægsStigninger = resolveOverenskomstTillægsStigninger({
         ansaettelsesforhold,
         reguleringTableStartIso,
-        tafTilIso: tafBounds.sidste,
+        tafTilIso: coverageBounds.sidste,
         reguleringsvaerdierTableData,
       });
       const text = tillægsStigninger.length > 0

@@ -749,13 +749,12 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       renderSubheader('Beregnet krav på tabt arbejdsfortjeneste', lineHeight);
 
       const ledFoerLigmed = [formatCurrencyFromOre(loenudviklingTotal.value)];
-      if (tafTotal.value !== 0) {
-        ledFoerLigmed.push(formatCurrencyFromOre(tafTotal.value));
-      }
       const sygeferiegodtgoerelseOre = model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.totalOre;
       const harValgtSygeferiegodtgoerelse = model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.length > 0;
-      if (harValgtSygeferiegodtgoerelse && sygeferiegodtgoerelseOre !== 0) {
-        ledFoerLigmed.push(formatCurrencyFromOre(sygeferiegodtgoerelseOre));
+      const samledeIndtaegterIErstatningsperiodenOre =
+        tafTotal.value + (harValgtSygeferiegodtgoerelse ? sygeferiegodtgoerelseOre : 0);
+      if (samledeIndtaegterIErstatningsperiodenOre !== 0) {
+        ledFoerLigmed.push(formatCurrencyFromOre(samledeIndtaegterIErstatningsperiodenOre));
       }
       if (tidligereModtagetTaf.status === 'ok' && tidligereModtagetTaf.value !== 0) {
         ledFoerLigmed.push(formatCurrencyFromOre(tidligereModtagetTaf.value));

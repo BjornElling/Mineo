@@ -1,4 +1,4 @@
-import type { ISODateString } from '../../types/branded';
+import type { DanishDateString, ISODateString } from '../../types/branded';
 import { isoToDanish, parseISODate, subtractOneDay } from '../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { LoenudviklingSegment } from './eoPdfModelTypes';
@@ -101,14 +101,6 @@ const parseIsoDateToUtcDate = (iso: ISODateString | undefined): Date | null => {
   return parseISODate(iso) ?? null;
 };
 
-const resolveReguleringTableStartIso = (
-  reguleringsdato: ISODateString | undefined,
-  tafFra: ISODateString
-): ISODateString => {
-  if (!reguleringsdato) return tafFra;
-  return reguleringsdato < tafFra ? reguleringsdato : tafFra;
-};
-
 export const resolveTafDateBounds = (
   eoValues: ErstatningsopgoerelseValues
 ): Readonly<{ foerste: ISODateString; sidste: ISODateString }> | null => {
@@ -122,6 +114,21 @@ export const resolveTafDateBounds = (
     if (!clamped) continue;
     foerste = foerste ? minISO(foerste, clamped.fra) : clamped.fra;
     sidste = sidste ? maxISO(sidste, clamped.til) : clamped.til;
+  }
+
+  if (!foerste || !sidste) return null;
+  return { foerste, sidste };
+};
+
+export const resolveLoenudviklingSegmentBounds = (
+  segments: readonly LoenudviklingSegment[]
+): Readonly<{ foerste: ISODateString; sidste: ISODateString }> | null => {
+  let foerste: ISODateString | undefined;
+  let sidste: ISODateString | undefined;
+
+  for (const segment of segments) {
+    foerste = foerste ? minISO(foerste, segment.fra) : segment.fra;
+    sidste = sidste ? maxISO(sidste, segment.til) : segment.til;
   }
 
   if (!foerste || !sidste) return null;
@@ -216,8 +223,12 @@ const resolveReguleringsvaerdierLoenHeader = (
 const REGULERINGSVAERDIER_FRA_DATO_HEADER = 'Fra-dato';
 const REGULERINGSVAERDIER_PENSION_HEADER = 'AG pens. bidrag';
 
-const mergeConsecutiveValueRows = (rows: readonly string[][]): readonly string[][] => {
+const mergeConsecutiveValueRows = (
+  rows: readonly string[][],
+  options?: Readonly<{ preserveFirstColumnValues?: readonly string[] }>
+): readonly string[][] => {
   if (rows.length <= 1) return rows;
+  const preservedValues = new Set(options?.preserveFirstColumnValues ?? []);
   const merged: string[][] = [];
   for (const row of rows) {
     const last = merged[merged.length - 1];
@@ -226,7 +237,17 @@ const mergeConsecutiveValueRows = (rows: readonly string[][]): readonly string[]
       last.length === row.length &&
       last.slice(1).every((cell, index) => cell === row[index + 1])
     );
-    if (!hasSameValues) {
+    const currentFirstColumn = row[0] ?? '';
+    const lastFirstColumn = last?.[0] ?? '';
+    const shouldPreserveCurrent = preservedValues.has(currentFirstColumn);
+    const shouldPreserveLast = preservedValues.has(lastFirstColumn);
+    // preserveFirstColumnValues matcher første kolonnens formatterede strengværdi.
+    // Det bruges typisk til at forhindre, at en "mærkedato"-række (fx reguleringsdatoen)
+    // bliver absorberet af en ellers identisk nabørække med en anden første kolonne-værdi.
+    // Hvis både last og current er preserved og ellers identiske, sammenklappes de fortsat
+    // bevidst til én række; funktionen modellerer visuel de-duplikering, ikke audit-log af
+    // flere særskilte markeringsrækker med samme første kolonne-værdi.
+    if (!hasSameValues || (shouldPreserveCurrent && !shouldPreserveLast)) {
       merged.push(row);
     }
   }
@@ -263,8 +284,8 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
   tafBeregningsenhed: TafBeregningsenhed;
 }>): ReguleringValuesTableData | null => {
   const { eoValues, ansaettelsesforhold, reguleringsdato, tafFra, tafTil, tafBeregningsenhed } = params;
-  // Bevidst forskel: Reguleringsværdier-tabellen må starte tidligere end TAF ved tidlig reguleringsdato.
-  const reguleringTableStartIso = resolveReguleringTableStartIso(reguleringsdato, tafFra);
+  const reguleringTableStartIso = tafFra;
+  const preservedDateLabels = reguleringsdato ? [formatDateShort(reguleringsdato)].filter((value) => value !== '') : [];
   const grundlag = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
 
   if (grundlag === 'Overenskomst') {
@@ -407,8 +428,20 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       if (harAnciennitetstillaeg && anciennitetDatoIso && anciennitetDatoIso > overenskomstTableStartIso && anciennitetDatoIso <= tafTil) {
         rowDates.add(anciennitetDatoIso);
       }
+      if (reguleringsdato && reguleringsdato >= overenskomstTableStartIso && reguleringsdato <= tafTil) {
+        rowDates.add(reguleringsdato);
+      }
 
       const sortedDates = Array.from(rowDates).sort((a, b) => (a < b ? -1 : 1));
+      if (reguleringsdato && reguleringsdato < overenskomstTableStartIso) {
+        const reguleringsdatoDanish = isoToDanish(reguleringsdato);
+        if (reguleringsdatoDanish) {
+          const loenVedReguleringsdato = getOffentligLoenForDato(offentligType, reguleringsdatoDanish, loentrin, gruppeValue);
+          if (loenVedReguleringsdato) {
+            addRow(reguleringsdato, loenVedReguleringsdato.maanedsLoen, loenVedReguleringsdato.timeLoen);
+          }
+        }
+      }
       for (const iso of sortedDates) {
         const danish = isoToDanish(iso);
         if (!danish) continue;
@@ -417,7 +450,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         addRow(iso, loen.maanedsLoen, loen.timeLoen);
       }
 
-      return { columns, rows: mergeConsecutiveValueRows(rows) };
+      return { columns, rows: mergeConsecutiveValueRows(rows, { preserveFirstColumnValues: preservedDateLabels }) };
     }
 
     const ref = resolveOverenskomstRef(overenskomstId);
@@ -513,19 +546,22 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     ) {
       rowDates.add(STORE_BEDEDAG_START);
     }
+    if (reguleringsdato && reguleringsdato >= overenskomstTableStartIso && reguleringsdato <= tafTil) {
+      rowDates.add(reguleringsdato);
+    }
 
-    const rows = Array.from(rowDates)
-      .sort((a, b) => (a < b ? -1 : 1))
-      .map((iso) => {
-        const danish = isoToDanish(iso);
-        if (!danish) return null;
-        const sats = getEffektiveSatserForDato({
-          overenskomstId: ref.baseId,
-          dato: danish,
-          applyAlmindeligLoenPaaShDageRegel: ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn',
-        });
-        if (!sats) return null;
-        const row: string[] = [danish];
+    const buildPrivateOverenskomstRow = (
+      iso: ISODateString,
+      danish: DanishDateString,
+      displayDate: string
+    ): string[] | null => {
+      const sats = getEffektiveSatserForDato({
+        overenskomstId: ref.baseId,
+        dato: danish,
+        applyAlmindeligLoenPaaShDageRegel: ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn',
+      });
+      if (!sats) return null;
+      const row: string[] = [displayDate];
       if (hasGrundloen) row.push(formatOverenskomstAmount(sats.grundloen));
       if (hasGrundloen && showFeriePctColumn) row.push(mergeFeriepengeDisplay(feriePctDisplay, undefined));
       if (hasShSo) row.push(formatOverenskomstPercent(sats.shSoSats));
@@ -537,9 +573,25 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       if (hasSfggUfaglKbh) row.push(formatOverenskomstAmount(sats.sfggUfaglKbh));
       if (hasSfggUfaglProv) row.push(formatOverenskomstAmount(sats.sfggUfaglProv));
       return row;
-      })
-      .filter((row): row is string[] => Boolean(row));
-    return { columns, rows: mergeConsecutiveValueRows(rows) };
+    };
+    const rows = Array.from(rowDates)
+      .sort((a, b) => (a < b ? -1 : 1))
+      .flatMap((iso) => {
+        const danish = isoToDanish(iso);
+        if (!danish) return [];
+        const row = buildPrivateOverenskomstRow(iso, danish, danish);
+        return row ? [row] : [];
+      });
+    if (reguleringsdato && reguleringsdato < overenskomstTableStartIso) {
+      const reguleringsdatoDanish = isoToDanish(reguleringsdato);
+      const extraRow = reguleringsdatoDanish
+        ? buildPrivateOverenskomstRow(reguleringsdato, reguleringsdatoDanish, formatDateShort(reguleringsdato))
+        : null;
+      if (extraRow) {
+        rows.unshift(extraRow);
+      }
+    }
+    return { columns, rows: mergeConsecutiveValueRows(rows, { preserveFirstColumnValues: preservedDateLabels }) };
   }
 
   if (grundlag === 'Manuelt angivet') {
@@ -550,13 +602,19 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       reguleringTableStartIso < STORE_BEDEDAG_START &&
       tafTil >= STORE_BEDEDAG_START;
     const manualRows = ansaettelsesforhold.loenudviklingManuelTableData ?? [];
-    const normalizedRows = manualRows
-      .map((row, index) => {
-        const iso = index === 0 ? reguleringTableStartIso : parseDanishToISO(row.dato);
-        if (!iso || iso < reguleringTableStartIso || iso > tafTil) return null;
-        return { iso, row };
-      })
-      .filter((row): row is Readonly<{ iso: ISODateString; row: NonNullable<typeof manualRows>[number] }> => Boolean(row))
+    const normalizedRowsByIso = new Map<ISODateString, NonNullable<typeof manualRows>[number]>();
+    manualRows.forEach((row, index) => {
+      const iso = index === 0 ? reguleringTableStartIso : parseDanishToISO(row.dato);
+      if (!iso || iso < reguleringTableStartIso || iso > tafTil) return;
+      normalizedRowsByIso.set(iso, row);
+    });
+    // Reguleringsdatoen får kun en syntetisk "første række"-visning når brugeren ikke
+    // allerede har angivet en eksplicit manuel række på den dato.
+    if (reguleringsdato && reguleringsdato !== reguleringTableStartIso && manualRows[0] && !normalizedRowsByIso.has(reguleringsdato)) {
+      normalizedRowsByIso.set(reguleringsdato, manualRows[0]);
+    }
+    const normalizedRows = Array.from(normalizedRowsByIso.entries())
+      .map(([iso, row]) => ({ iso, row }))
       .sort((a, b) => (a.iso < b.iso ? -1 : 1));
 
     if (applyStoreBededagRegulering && !normalizedRows.some((entry) => entry.iso === STORE_BEDEDAG_START)) {
@@ -593,7 +651,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         ...(applyStoreBededagRegulering ? ['Store Bededag'] : []),
         REGULERINGSVAERDIER_PENSION_HEADER,
       ],
-      rows: mergeConsecutiveValueRows(rows),
+      rows: mergeConsecutiveValueRows(rows, { preserveFirstColumnValues: preservedDateLabels }),
     };
   }
 

@@ -76,7 +76,13 @@ Ved arbejdsdagsmodellen reduceres optællingen med:
 - fraværsdage uden løn
 
 Ved månedsmodellen reduceres optællingen kun med:
+- daterede feriedage
 - fraværsdage uden løn
+
+Ved optælling af daterede feriedage gælder:
+- hvis SFGG beregnes på kalenderdage, tæller alle kalenderdage i ferieperioden med, herunder lørdag og søndag
+- hvis SFGG beregnes på arbejdsdage, tæller kun mandag-fredag med
+- en SH-dag kan aldrig samtidig tælle som feriedag
 
 Brugeren indtaster ikke SH-dage særskilt i SFGG-delen.
 SH-dage skal komme fra den eksisterende centrale funktionalitet.
@@ -88,7 +94,7 @@ Ferieperioder behandles som fælles for alle ansættelsesforhold i SFGG-beregnin
 
 Feltet `Evt. ferie- og fraværsdage i perioden uden løn` følger derfor disse maksimumregler:
 - ved arbejdsdagsmodellen: maksimalt de resterende arbejdsdage efter fradrag af SH-dage og daterede feriedage
-- ved månedsmodellen: maksimalt periodens samlede kalenderdage
+- ved månedsmodellen: maksimalt periodens samlede kalenderdage efter fradrag af daterede feriedage
 
 Hvis referenceperioden efter disse fradrag ikke indeholder nogen relevante dage, skal referenceperiodens datofelter markeres med fejl.
 
@@ -234,8 +240,13 @@ Hver sygedag beregnes som:
 ```
 
 hvor `x` er:
-- antal hverdage i måneden, når TAF beregnes som arbejdsdage
+- antal arbejdsdage i måneden, når SFGG beregnes på arbejdsdage
 - antal kalenderdage i måneden, når TAF beregnes som måneder
+
+Ved arbejdsdagsmodellen gælder desuden:
+- dage uden ret til SFGG på grund af SH-dage tæller ikke med
+- dage uden ret til SFGG på grund af daterede feriedage tæller ikke med
+- dage uden ret til SFGG alene fordi arbejdsgiver betaler sygeløn, tæller alligevel med til 4-månedersgrænsen
 
 #### 6.2. Skader fra og med 1. januar 2015
 
@@ -257,6 +268,17 @@ Hvis der ikke er tale om første erstatningsopgørelse, beregnes SFGG på alle T
 
 SFGG beregnes i samme periode som den indtastede TAF-periode.
 Der må ikke være en særskilt SFGG-periodeindtastning.
+
+Når SFGG beregnes på arbejdsdage:
+- udgår SH-dage
+- udgår daterede feriedage
+- udgår øvrige fraværsdage uden løn
+
+Når SFGG beregnes på kalenderdage:
+- udgår SH-dage ikke
+- udgår daterede feriedage, og her tælles hele ferieperiodens kalenderdage med, herunder lørdag og søndag
+- udgår øvrige fraværsdage uden løn
+- en SH-dag udgår dog ikke som feriedag, fordi en SH-dag aldrig samtidig er en feriedag
 
 #### 6.4. Ophør ved ansættelsesophør
 
@@ -289,8 +311,12 @@ Der skal tælles unikke datoer.
 Overlappende perioder må aldrig medføre dobbeltoptælling.
 
 Optællingsmetoden afhænger af `TAF beregnes som`:
-- ved arbejdsdage tælles rene hverdage uden fradrag for ferie og SH-dage
+- ved arbejdsdage tælles kun arbejdsdage med fradrag for SH-dage og daterede feriedage
 - ved måneder tælles kalenderdage uden fradrag for ferie og SH-dage
+
+Særlig regel ved bortfald under arbejdsgiverbetalt sygeløn:
+- hvis en overenskomst eller manuel SFGG-regel medfører, at der ikke beregnes SFGG under arbejdsgiverbetalt sygeløn, tæller disse dage stadig med ved optællingen af de 4 måneder
+- disse dage skal altså tælle med til 4-månedersgrænsen, men ikke til selve SFGG-kravet
 
 Resultatet skal være én konkret dato:
 - den dato, hvor summen bliver `>= 4` måneder
@@ -504,6 +530,20 @@ Der er implementeret beregning for:
 - ophør ved ansættelsesophør
 - bortfald under arbejdsgiverbetalt sygeløn
 - seksmånedersadvarsel
+
+#### 4a. Reguleringstabeller i EODebug og EO-PDF
+
+Ved overenskomstregulering skal den øverste reguleringstabel altid indeholde en række på reguleringsdatoen:
+- hvis brugeren har indtastet en manuel reguleringsdato, anvendes den
+- ellers anvendes skadesdatoen
+
+Rækken skal vise de satser, der gælder på denne dato, og den skal indgå som en helt almindelig række på sin naturlige plads i kronologien.
+
+Denne særregel må ikke udvide tabellen til alle mellemliggende reguleringsdatoer mellem reguleringsdatoen og TAF-perioden. Tabellen skal fortsat kun vise:
+- reguleringsdatoer, der ligger i TAF-perioden
+- samt én ekstra række på reguleringsdatoen, hvis den ligger uden for TAF-perioden
+
+Der må ikke indsættes en dublet, hvis tabellen allerede har en række på den pågældende dato. Den særskilte række på reguleringsdatoen må desuden ikke bortfalde ved sammenklapning af efterfølgende eller foregående rækker med identiske værdier.
 
 #### 5. Overenskomstdata
 

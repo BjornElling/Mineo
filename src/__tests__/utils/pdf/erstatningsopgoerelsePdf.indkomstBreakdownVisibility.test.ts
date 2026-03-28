@@ -475,7 +475,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).toContain('Sygeferiegodtgørelse');
     expect(texts.some((text) => text.includes(formatCurrencyFromOre(sygeferiegodtgoerelseOre)))).toBe(true);
     expect(texts).toContain(
-      `${formatCurrencyFromOre(loenudviklingTotal.value)} - ${formatCurrencyFromOre(tafIndtaegterTotal.value)} - ${formatCurrencyFromOre(sygeferiegodtgoerelseOre)}\u00A0kr. =`
+      `${formatCurrencyFromOre(loenudviklingTotal.value)} - ${formatCurrencyFromOre(tafIndtaegterTotal.value + sygeferiegodtgoerelseOre)}\u00A0kr. =`
     );
   });
 
@@ -555,7 +555,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
-    expect(texts).toContain('Sygeferiegodtgørelse beregnes i henhold til kollegas lønoplysninger.');
+    expect(texts).toContain('Sygeferiegodtgørelse beregnes i henhold til');
+    expect(texts).toContain('kollegas lønoplysninger.');
     expect(texts).not.toContain('Beregnes ud fra: Manuelt angivet');
   });
 
@@ -604,9 +605,9 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     )).toBe(true);
     expect(texts.some((text) =>
       text === 'Der beregnes ikke sygeferiegodtgørelse på SH-dage, under ferie og på andre fraværsdage uden løn. Da skaden er fra 1. januar 2015, er der desuden først krav på sygeferiegodtgørelse fra anden sygedag.'
-      || text === 'Der beregnes ikke sygeferiegodtgørelse på eventuelle fraværsdage uden løn. Da skaden er fra 1. januar 2015, er der desuden først krav på sygeferiegodtgørelse fra anden sygedag.'
+      || text === 'Der beregnes ikke sygeferiegodtgørelse under ferie og på eventuelle andre fraværsdage uden løn. Da skaden er fra 1. januar 2015, er der desuden først krav på sygeferiegodtgørelse fra anden sygedag.'
       || text === 'Der beregnes ikke sygeferiegodtgørelse på SH-dage, under ferie og på andre fraværsdage uden løn.'
-      || text === 'Der beregnes ikke sygeferiegodtgørelse på eventuelle fraværsdage uden løn.'
+      || text === 'Der beregnes ikke sygeferiegodtgørelse under ferie og på eventuelle andre fraværsdage uden løn.'
     )).toBe(true);
     expect(texts.some((text) => text.includes('Referencesats ('))).toBe(true);
     const lastAutoTableCall = autoTableMock.mock.calls.at(-1);
@@ -661,10 +662,58 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const kalenderdagTekst = texts.find((text) => text.includes('Antal kalenderdage i perioden'));
 
     expect(texts).toContain('Kravet beregnes per kalenderdag med referencesatsen tillagt senere lønudvikling.');
-    expect(texts.some((text) => text.startsWith('Der beregnes ikke sygeferiegodtgørelse på eventuelle fraværsdage uden løn.'))).toBe(true);
+    expect(texts.some((text) => text.startsWith('Der beregnes ikke sygeferiegodtgørelse under ferie og på eventuelle andre fraværsdage uden løn.'))).toBe(true);
     expect(kalenderdagTekst).toContain('31 kalenderdage - 1 fraværsdage u. løn');
     expect(kalenderdagTekst).not.toContain('SH-dage');
     expect(texts).toContain('30 kalenderdage');
+  });
+
+  it('placerer SFGG-ophørslinjen direkte under linjen om TAF-perioden i pdf', () => {
+    const { stamdata, eo } = buildBaseInput();
+    stamdata.skadesdato = iso('2014-01-01');
+    eo.beregnesUdFra = 'Angivet dagsløn';
+    eo.dagsloenenUdgoer = asAmountValue(1500);
+    eo.eoAngivetLoenLoenudvikling.loenPaaHelligdage = 'Almindelig løn';
+    eo.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Ingen';
+    eo.opgørelseLavetDen = iso('2014-02-01');
+    eo.vedroererPeriodeFra = iso('2014-01-01');
+    eo.vedroererPeriodeTil = iso('2014-12-31');
+    eo.periodeTilBeregningFra = iso('2014-01-01');
+    eo.periodeTilBeregningTil = iso('2014-01-31');
+    eo.tafPerioder = [{
+      id: 'taf-1',
+      fra: iso('2014-01-01'),
+      til: iso('2014-12-31'),
+      loseFeriedage: undefined,
+    }];
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmountValue(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    renderPdfWithSelected(stamdata, eo, {
+      ...selected,
+      sygeferiegodtgoerelse: true,
+    });
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const tafIndex = texts.findIndex((text) => text === 'Der beregnes sygeferiegodtgørelse i TAF-perioden');
+    const ophoerLabelIndex = texts.findIndex((text) => text === 'Skaden er før 01-01-2015 og retten er begrænset til 4 måneder, som bortfalder');
+    const ophoerDatoIndex = texts.findIndex((text) => text === '30-04-2014');
+    const kravIndex = texts.findIndex((text) => text.startsWith('Kravet beregnes per '));
+
+    expect(tafIndex).toBeGreaterThanOrEqual(0);
+    expect(ophoerLabelIndex).toBe(tafIndex + 2);
+    expect(ophoerDatoIndex).toBe(ophoerLabelIndex + 1);
+    expect(kravIndex).toBeGreaterThan(ophoerDatoIndex);
   });
 
   it('viser ikke SFGG-referenceperiode på SH-dage-siden når aktuelt SFGG-grundlag ikke er referenceperiode, selv om dokumentet indeholder gammel referenceperiode', () => {
@@ -779,7 +828,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
-    expect(texts).toContain('Sygeferiegodtgørelse beregnes i henhold til KL-overenskomsten, der følger ferielovens regler.');
+    expect(texts).toContain('Sygeferiegodtgørelse beregnes i henhold til');
+    expect(texts).toContain('KL-overenskomsten, der følger ferielovens regler.');
     expect(texts).toContain('Opgøres på baggrund af den gennemsnitlige feriepengebetaling i en referenceperiode før sygeforløbet. Perioden udgør i overenskomsten 4 uger.');
     expect(texts).toContain('Kravet beregnes per kalenderdag med referencesatsen tillagt senere overenskomstmæssige stigninger.');
   });

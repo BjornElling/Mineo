@@ -42,7 +42,10 @@ import {
   resolveSfggSource,
 } from '../erstatningsopgoerelse/sygeferiegodtgoerelse';
 import type { PdfModel } from '../erstatningsopgoerelse/eoPdfModel';
-import { buildSfggReferenceperiodeCountLabel as buildSfggReferenceperiodeCountLabelPresentation } from '../erstatningsopgoerelse/sygeferiegodtgoerelsePresentation';
+import {
+  buildSfggReferenceperiodeCountLabel as buildSfggReferenceperiodeCountLabelPresentation,
+  parseSfggExplanatoryLine,
+} from '../erstatningsopgoerelse/sygeferiegodtgoerelsePresentation';
 import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/oevrigeKravIntro';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
@@ -118,10 +121,10 @@ export type DebugRowId =
   | `offentligeYdelser.${string}`
   | `sfgg.beregningskilde.${string}`
   | `sfgg.overenskomst.${string}`
-  | `sfgg.bemaerkningFoer2015.${string}`
   | `sfgg.overenskomstensReferenceperiode.${string}`
   | `sfgg.satsvalg.${string}`
   | `sfgg.foerstEfterSygeloen.${string}`
+  | `sfgg.ansaettelsesforholdOphoert.${string}`
   | `sfgg.referenceperiode.${string}`
   | `sfgg.referenceperiodeantal.${string}`
   | `sfgg.referencesats.${string}`
@@ -131,7 +134,6 @@ export type DebugRowId =
   | `sfgg.eftertabel.feriepengeModtaget.${string}`
   | `sfgg.eftertabel.alleredeBetalt.${string}`
   | `sfgg.eftertabel.beregnet.${string}`
-  | `sfgg.firemaanedertabel.${string}`
   | `sfgg.forklaring.${string}`
   | `sfgg.advarsel.seksmaaneder.${string}`
   | `oevrigekrav.${string}`
@@ -2139,7 +2141,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     return { displayValue: `${formatDaNumber(oevrigeFravaersdage)} dage`, status: 'ok' as DebugStatus };
   })();
 
-  if (isBeregningsperiode) {
+  if (oevrigtFravaerAktivt) {
     rows.push({
       id: 'taf.beregningsgrundlag.oevrigeFravaersdage',
       label: 'Antal fraværsdage',
@@ -2157,7 +2159,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     return { displayValue: oevrigeFravaerBeskrivelse, status: 'ok' as DebugStatus };
   })();
 
-  if (isBeregningsperiode) {
+  if (oevrigtFravaerAktivt) {
     rows.push({
       id: 'taf.beregningsgrundlag.oevrigeFravaersdageBeskrivelse',
       label: 'Beskrivelse',
@@ -2282,8 +2284,9 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     const fravaerLabelTekst = fravaerBeskrivelse && fravaerBeskrivelse !== ''
       ? `fraværsdage pga. ${fravaerBeskrivelse}`
       : 'fraværsdage';
-    const fravaerLabel = `${formatDaNumber(oevrigeFravaersdageValue)} ${fravaerLabelTekst} uden løn x 4,8 % måned`;
-    const label = `${formatMaaneder(totalMaaneder)} - ${formatMaaneder(fravaerMaaneder)} måneder (${fravaerLabel}) =`;
+    const label = oevrigeFravaersdageValue === 0
+      ? `Beregningsperiode: ${formatMaaneder(totalMaaneder)} måneder (0 ${fravaerLabelTekst} uden løn) =`
+      : `Beregningsperiode: ${formatMaaneder(totalMaaneder)} - ${formatMaaneder(fravaerMaaneder)} måneder (${formatDaNumber(oevrigeFravaersdageValue)} ${fravaerLabelTekst} uden løn x 4,8 % måned) =`;
     const maanederEfterFradrag = Math.max(0, totalMaaneder - fravaerMaaneder);
     const formatted = formatMaaneder(maanederEfterFradrag);
     const displayValue = `${formatted} måneder`;
@@ -2932,15 +2935,6 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       continue;
     }
 
-    if (stamdata.skadesdato && stamdata.skadesdato < '2015-01-01') {
-      rows.push({
-        id: `sfgg.bemaerkningFoer2015.${employment.id}`,
-        label: 'Bemærk',
-        displayValue: 'Bemærk, at da skaden er før 01-01-2015, er det afgørende for beregningen af sygeferiegodtgørelse, at samtlige TAF-perioder er indtastet ovenfor.',
-        status: 'ok',
-      });
-    }
-
     if (kilde === 'Overenskomst') {
       if (overenskomstPolicy && overenskomstPolicy.model !== 'direkte_sats') {
         rows.push({
@@ -2984,6 +2978,15 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       id: `sfgg.foerstEfterSygeloen.${employment.id}`,
       label: 'Først sygeferiegodtgørelse efter ophør af sygeløn',
       displayValue: foerstEfterSygeloen ? 'Ja' : 'Nej',
+      status: 'ok',
+    });
+    rows.push({
+      id: `sfgg.ansaettelsesforholdOphoert.${employment.id}`,
+      label: 'Ansættelsesforholdet ophørt',
+      displayValue:
+        employment.ansaettelsesforholdOphoert && employment.sidsteArbejdsdag
+          ? (isoToDanish(employment.sidsteArbejdsdag) ?? employment.sidsteArbejdsdag)
+          : 'Nej',
       status: 'ok',
     });
 
@@ -3169,22 +3172,20 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       }
     }
 
-    if (result?.capRows.length) {
-      const lines = [
-        'Fra-dato | Til-dato | Antal dage | Antal måneder',
-        ...result.capRows.map((capRow) =>
-          `${isoToDanish(capRow.fra) ?? capRow.fra} | ${isoToDanish(capRow.til) ?? capRow.til} | ${String(capRow.antalDage)} | ${capRow.maanederPraecis.toLocaleString('da-DK', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`
-        ),
-      ];
-      rows.push({
-        id: `sfgg.firemaanedertabel.${employment.id}`,
-        label: '4-månedersgrænse',
-        displayValue: lines.join('\n'),
-        status: 'ok',
-      });
-    }
-
     result?.pdfExplanatoryLines.forEach((line, index) => {
+      const parsedLine = parseSfggExplanatoryLine(line);
+      if (parsedLine?.kind === 'four_month_cap') {
+        rows.push({
+          id: `sfgg.forklaring.${employment.id}.${index + 1}`,
+          label: 'Ophør af 4-måneders begrænsning',
+          displayValue: `${parsedLine.verb} den ${parsedLine.date}`,
+          status: 'ok',
+        });
+        return;
+      }
+      if (parsedLine?.kind === 'employment_end') {
+        return;
+      }
       rows.push({
         id: `sfgg.forklaring.${employment.id}.${index + 1}`,
         label: 'Forklaring',

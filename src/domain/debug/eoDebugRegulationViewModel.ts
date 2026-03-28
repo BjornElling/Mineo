@@ -14,7 +14,11 @@ import { resolveLoenudviklingKilde } from '../erstatningsopgoerelse/angivetLoenH
 import { resolveReguleringsdato } from '../erstatningsopgoerelse/sharedPdfUtils';
 import { getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../erstatningsopgoerelse/tafBeregningsenhed';
-import { buildReguleringIndexRows } from '../erstatningsopgoerelse/eoPdfReguleringEngine';
+import {
+  buildReguleringIndexRows,
+  buildReguleringsvaerdierTableData,
+  resolveLoenudviklingSegmentBounds,
+} from '../erstatningsopgoerelse/eoPdfReguleringEngine';
 
 export type RegulationDebugSection = {
   readonly id: string;
@@ -256,11 +260,6 @@ export function buildRegulationDebugSections(
       : `Regulering (Ansættelsesforhold ${idx + 1})`;
 
     const sectionId = `regulation.${af.ansaettelsesforholdId}`;
-    const visibleColumns = COLUMN_DEFS.filter((column) =>
-      column.key !== 'arbejdsdage' &&
-      column.key !== 'maaneder' &&
-      column.shouldInclude(timeline, af.entries)
-    );
     const rows: RegulationDebugRow[] = [
       {
         id: `${sectionId}:kilde`,
@@ -274,17 +273,6 @@ export function buildRegulationDebugSections(
       },
     ];
 
-    const valueRows = mergeConsecutiveDebugRows(af.entries.map((entry) => ({
-      id: `regulation.table:${af.ansaettelsesforholdId}:${entry.effectiveFrom}`,
-      cells: visibleColumns.map((column) => column.getCell(entry)),
-    })));
-
-    const tables: RegulationDebugTable[] = [{
-      id: `${sectionId}:vaerdier`,
-      columns: visibleColumns.map((column) => resolveVisibleColumnHeader(column, timeline)),
-      rows: valueRows,
-    }];
-
     const ansaettelsesforhold = loenudviklingsKilderById.get(af.ansaettelsesforholdId);
     const canonicalSegments = canonicalSegmentsByEmploymentId.get(af.ansaettelsesforholdId) ?? [];
     const segmentsForDebug = canonicalSegments.length > 0
@@ -294,6 +282,7 @@ export function buildRegulationDebugSections(
           tafBeregningsenhed: timeline.tafBeregningsenhed,
           tafRanges,
         });
+    const coverageBounds = resolveLoenudviklingSegmentBounds(segmentsForDebug);
     const reguleringsdato = ansaettelsesforhold
       ? resolveReguleringsdato({
           beregnesUdFra: eoValues.beregnesUdFra,
@@ -302,6 +291,44 @@ export function buildRegulationDebugSections(
           skadesdato: stamdataValues.skadesdato,
         })
       : undefined;
+    const reguleringsvaerdierTableData =
+      ansaettelsesforhold && coverageBounds
+        ? buildReguleringsvaerdierTableData({
+            eoValues,
+            ansaettelsesforhold,
+            reguleringsdato,
+            tafFra: coverageBounds.foerste,
+            tafTil: coverageBounds.sidste,
+            tafBeregningsenhed: computeTafBeregningsenhed(eoValues),
+          })
+        : null;
+    const tables: RegulationDebugTable[] = [];
+    if (reguleringsvaerdierTableData) {
+      tables.push({
+        id: `${sectionId}:vaerdier`,
+        columns: reguleringsvaerdierTableData.columns,
+        rows: reguleringsvaerdierTableData.rows.map((row, rowIndex) => ({
+          id: `${sectionId}:vaerdier:${rowIndex}`,
+          cells: row,
+        })),
+      });
+    } else {
+      const visibleColumns = COLUMN_DEFS.filter((column) =>
+        column.key !== 'arbejdsdage' &&
+        column.key !== 'maaneder' &&
+        column.shouldInclude(timeline, af.entries)
+      );
+      const valueRows = mergeConsecutiveDebugRows(af.entries.map((entry) => ({
+        id: `regulation.table:${af.ansaettelsesforholdId}:${entry.effectiveFrom}`,
+        cells: visibleColumns.map((column) => column.getCell(entry)),
+      })));
+      tables.push({
+        id: `${sectionId}:vaerdier`,
+        columns: visibleColumns.map((column) => resolveVisibleColumnHeader(column, timeline)),
+        rows: valueRows,
+      });
+    }
+
     if (ansaettelsesforhold && segmentsForDebug.length > 0) {
       const indeksRows = buildReguleringIndexRows({
         segments: segmentsForDebug,

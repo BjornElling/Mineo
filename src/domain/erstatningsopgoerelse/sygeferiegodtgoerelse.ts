@@ -5,13 +5,14 @@ import type {
   StandardLoenTableRow,
   SygeferiegodtgoerelseAnsaettelsesforholdRow,
 } from '../../schemas/formSchemas';
+import { TODAY } from '../../config/dateRanges';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { addDays, addMonths } from '../../utils/dateUtils';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { roundByMethod } from '../../utils/rounding';
 import { calculateStandardLoenRowDerived } from '../aarsloen/standardLoenRowCalculations';
 import { parseAarsloenRowInterval } from './indtaegtPerioder';
-import { buildLoenArbejdsdageSet, optaelArbejdsdageBreakdown } from './periodiseringsMotor';
+import { buildLoenArbejdsdageSet, optaelArbejdsdage, optaelArbejdsdageBreakdown } from './periodiseringsMotor';
 import { buildDatoSetInclusiveFromDates, buildFerieDageSet, isWeekdayUtc } from './tafDaySets';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from './tafBeregningsenhed';
 import type { IsoRange } from './tafPeriodConstraints';
@@ -227,8 +228,16 @@ export const resolveSfggReferenceperiodeDayCount = (
   const fraDate = parseISODate(row.sfggReferenceperiodeFra);
   const tilDate = parseISODate(row.sfggReferenceperiodeTil);
   const kalenderdage = fraDate && tilDate ? countInclusiveUtcDays(fraDate, tilDate) ?? 0 : 0;
+  const kalenderFerieDage =
+    fraDate && tilDate
+      ? buildFerieDageSet(
+        values.ferieperioder ?? [],
+        buildDatoSetInclusiveFromDates(fraDate, tilDate),
+        { includeWeekends: true }
+      ).size
+      : 0;
   const divisorDage = dayBasis === 'kalenderdage'
-    ? Math.max(0, kalenderdage - breakdown.oevrigeFravaersdage)
+    ? Math.max(0, kalenderdage - kalenderFerieDage - breakdown.oevrigeFravaersdage)
     : Math.max(0, breakdown.tafDage);
 
   return {
@@ -237,7 +246,7 @@ export const resolveSfggReferenceperiodeDayCount = (
     kalenderdage,
     hverdage: breakdown.arbejdsdage,
     shDage: breakdown.shDage,
-    feriedage: breakdown.feriedage,
+    feriedage: dayBasis === 'kalenderdage' ? kalenderFerieDage : breakdown.feriedage,
     oevrigeFravaersdage: breakdown.oevrigeFravaersdage,
   };
 };
@@ -297,6 +306,13 @@ const buildRangesFromSortedDates = (sortedDates: readonly ISODateString[]): IsoR
   return result;
 };
 
+const resolveSfggOphoerVerb = (
+  ophoersdato: ISODateString,
+  opgoerelsesdato: ISODateString
+): 'bortfaldt' | 'bortfalder' => (
+  ophoersdato <= opgoerelsesdato ? 'bortfaldt' : 'bortfalder'
+);
+
 const dateInMonthFraction = (iso: ISODateString, mode: TafBeregningsenhed): number => {
   const date = parseISODate(iso);
   if (!date) return 0;
@@ -306,25 +322,24 @@ const dateInMonthFraction = (iso: ISODateString, mode: TafBeregningsenhed): numb
   }
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth();
-  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-  let weekdaysInMonth = 0;
-  for (let day = 1; day <= lastDay; day += 1) {
-    const monthDate = new Date(Date.UTC(year, month, day));
-    if (isWeekdayUtc(monthDate)) weekdaysInMonth += 1;
-  }
-  return weekdaysInMonth > 0 ? 1 / weekdaysInMonth : 0;
+  const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01` as ISODateString;
+  const monthEnd = dateToISO(new Date(Date.UTC(year, month + 1, 0)));
+  if (!monthEnd) return 0;
+  const arbejdsdageIMaaneden = optaelArbejdsdage({
+    fra: monthStart,
+    til: monthEnd,
+    ferieperioder: [],
+    loseFeriedage: 0,
+    context: { kind: 'taf' },
+  }) ?? 0;
+  return arbejdsdageIMaaneden > 0 ? 1 / arbejdsdageIMaaneden : 0;
 };
 
 const buildCapComputation = (
-  sourceRanges: readonly IsoRange[],
+  sortedCountedDates: readonly ISODateString[],
   mode: TafBeregningsenhed
 ): Readonly<{ cutoffDate: ISODateString | null; rows: readonly SygeferiegodtgoerelseCapRow[] }> => {
-  const dateSet = buildDateSetFromRanges(sourceRanges);
-  const dates = sortIsoDates(dateSet).filter((iso) => {
-    if (mode === TAF_BEREGNES_SOM.MAANEDER) return true;
-    const date = parseISODate(iso);
-    return Boolean(date && isWeekdayUtc(date));
-  });
+  const dates = [...sortedCountedDates];
   if (dates.length === 0) {
     return { cutoffDate: null, rows: [] };
   }
@@ -852,6 +867,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
   loenudviklingPerAnsaettelse?: ReadonlyMap<string, PerEmploymentLoenudvikling>;
 }>): SygeferiegodtgoerelseResult => {
   const { values, stamdata, tafRanges } = args;
+  const opgoerelsesdato = values.opgørelseLavetDen ?? TODAY;
   if (tafRanges.length === 0) return EMPTY_RESULT;
   const skadesdato = stamdata.skadesdato;
   const tafDateSetIncludingFirstExcluded = buildDateSetFromRanges(tafRanges);
@@ -865,13 +881,6 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
   }
 
   const tafBeregningsenhed = computeTafBeregningsenhed(values);
-  const capComputation =
-    skadesdato !== undefined && skadesdato < '2015-01-01'
-      ? buildCapComputation(tafRanges, tafBeregningsenhed)
-      : { cutoffDate: null, rows: [] };
-
-  const boundsDates = sortIsoDates(tafDateSet);
-  if (boundsDates.length === 0) return { ...EMPTY_RESULT, firstExcludedDate };
   const tafArbejdsdageSet = new Set<ISODateString>();
   const tafArbejdsdageSetIncludingFirstExcluded = new Set<ISODateString>();
   for (const range of tafRanges) {
@@ -884,6 +893,18 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       }
     }
   }
+  const capComputation =
+    skadesdato !== undefined && skadesdato < '2015-01-01'
+      ? buildCapComputation(
+        tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
+          ? sortIsoDates(tafDateSetIncludingFirstExcluded)
+          : sortIsoDates(tafArbejdsdageSetIncludingFirstExcluded),
+        tafBeregningsenhed
+      )
+      : { cutoffDate: null, rows: [] };
+
+  const boundsDates = sortIsoDates(tafDateSet);
+  if (boundsDates.length === 0) return { ...EMPTY_RESULT, firstExcludedDate };
   const totalPerEmployment: SygeferiegodtgoerelseAnsaettelsesforholdResult[] = [];
   const totalPerYear = new Map<number, MoneyOre>();
 
@@ -893,6 +914,11 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     if (sfggSource.kind === 'ingen') continue;
     const sfggDayBasis = resolveSfggDayBasis(sfggSource, tafBeregningsenhed);
     const pdfExplanatoryLines: string[] = [];
+    const capReachedDate = capComputation.cutoffDate;
+    const ansaettelsesophorDate =
+      employment.ansaettelsesforholdOphoert && employment.sidsteArbejdsdag
+        ? employment.sidsteArbejdsdag
+        : null;
     const dateSet = new Set<ISODateString>(tafDateSet);
     const employmentHadFirstExcludedDate =
       firstExcludedDate !== null
@@ -901,22 +927,26 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
           ? tafDateSetIncludingFirstExcluded.has(firstExcludedDate)
           : tafArbejdsdageSetIncludingFirstExcluded.has(firstExcludedDate)
       );
-    if (capComputation.cutoffDate) {
+    if (capReachedDate) {
       for (const iso of [...dateSet]) {
-        if (iso > capComputation.cutoffDate) {
+        if (iso > capReachedDate) {
           dateSet.delete(iso);
         }
       }
-      pdfExplanatoryLines.push(`Retten til sygeferiegodtgørelse er tidsbegrænset til 4 måneder og bortfaldt den ${isoToDanish(capComputation.cutoffDate) ?? capComputation.cutoffDate}.`);
     }
 
-    if (employment.ansaettelsesforholdOphoert && employment.sidsteArbejdsdag) {
+    if (ansaettelsesophorDate) {
       for (const iso of [...dateSet]) {
-        if (iso > employment.sidsteArbejdsdag) {
+        if (iso > ansaettelsesophorDate) {
           dateSet.delete(iso);
         }
       }
-      pdfExplanatoryLines.push(`Retten til sygeferiegodtgørelse bortfaldt den ${isoToDanish(employment.sidsteArbejdsdag) ?? employment.sidsteArbejdsdag} som følge af ansættelsesforholdets ophør.`);
+    }
+
+    if (capReachedDate && (!ansaettelsesophorDate || capReachedDate <= ansaettelsesophorDate)) {
+      pdfExplanatoryLines.push(`Retten til sygeferiegodtgørelse er tidsbegrænset til 4 måneder og ${resolveSfggOphoerVerb(capReachedDate, opgoerelsesdato)} den ${isoToDanish(capReachedDate) ?? capReachedDate}.`);
+    } else if (ansaettelsesophorDate) {
+      pdfExplanatoryLines.push(`Retten til sygeferiegodtgørelse ${resolveSfggOphoerVerb(ansaettelsesophorDate, opgoerelsesdato)} den ${isoToDanish(ansaettelsesophorDate) ?? ansaettelsesophorDate} som følge af ansættelsesforholdets ophør.`);
     }
 
     const overenskomstPolicy = employment.overenskomstId ? getOverenskomstSfggPolicy(employment.overenskomstId) : undefined;
@@ -953,8 +983,13 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     });
     const sfggAfterEmployerSickPayText = sfggAfterEmployerSickPayProjection.text;
 
+    const ferieBreakDateSet = buildFerieDageSet(
+      values.ferieperioder ?? [],
+      dateSet,
+      { includeWeekends: sfggDayBasis === 'kalenderdage' }
+    );
     const eligibleDates = sfggDayBasis === 'kalenderdage'
-      ? sortIsoDates(dateSet)
+      ? sortIsoDates(dateSet).filter((iso) => !ferieBreakDateSet.has(iso))
       : sortIsoDates(dateSet).filter((iso) => tafArbejdsdageSet.has(iso));
     if (eligibleDates.length === 0) {
       totalPerEmployment.push({
@@ -989,7 +1024,6 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
 
     const sfggBaseRate = resolveSfggBaseRate(values, employment, sfggRow, sfggSource);
     const eligibleDateSet = new Set<ISODateString>(eligibleDates);
-    const ferieBreakDateSet = buildFerieDageSet(values.ferieperioder ?? [], dateSet);
     const grouped: Array<{
       fra: ISODateString;
       til: ISODateString;

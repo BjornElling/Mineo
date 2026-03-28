@@ -136,4 +136,52 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
     const indkomstRow = rows.find((row) => row.id === 'taf.beregningsgrundlag.indkomst');
     expect(indkomstRow).toBeUndefined();
   });
+
+  it('hides Antal fraværsdage og Beskrivelse når Øvrigt fravær uden løn er Nej', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: '2024-01-01',
+      periodeTilBeregningTil: '2024-12-31',
+      oevrigtFravaerUdenLoen: 'Nej',
+      oevrigeFravaersdage: 0,
+      oevrigeFravaersdageBeskrivelse: '',
+    });
+
+    const rows = buildEODebugTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
+    const ids = new Set(rows.map((row) => row.id));
+
+    expect(ids.has('taf.beregningsgrundlag.oevrigeFravaersdage')).toBe(false);
+    expect(ids.has('taf.beregningsgrundlag.oevrigeFravaersdageBeskrivelse')).toBe(false);
+  });
+
+  it('viser månedsrækken med Beregningsperiode-prefix og uden fradragsled når der ikke er fraværsdage uden løn', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: '2024-01-01',
+      periodeTilBeregningTil: '2024-12-31',
+      oevrigtFravaerUdenLoen: 'Nej',
+    });
+
+    const rows = buildEODebugTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
+    const maanederRow = rows.find((row) => row.id === 'taf.beregningsgrundlag.maaneder');
+
+    expect(maanederRow?.label).toBe('Beregningsperiode: 12 måneder (0 fraværsdage uden løn) =');
+    expect(maanederRow?.displayValue).toBe('12 måneder');
+  });
+
+  it('viser månedsrækken med Beregningsperiode-prefix og fradragsled når der er fraværsdage uden løn', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: '2024-01-01',
+      periodeTilBeregningTil: '2024-12-31',
+      oevrigtFravaerUdenLoen: 'Ja',
+      oevrigeFravaersdage: 1,
+    });
+
+    const rows = buildEODebugTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
+    const maanederRow = rows.find((row) => row.id === 'taf.beregningsgrundlag.maaneder');
+
+    expect(maanederRow?.label).toBe('Beregningsperiode: 12 - 0,048 måneder (1 fraværsdage uden løn x 4,8 % måned) =');
+    expect(maanederRow?.displayValue).toBe('11,952 måneder');
+  });
 });

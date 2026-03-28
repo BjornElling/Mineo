@@ -41,9 +41,16 @@ export const buildDatoSetInclusive = (fra: ISODateString, til: ISODateString): S
 
 export const buildFerieDageSet = (
   ferieperioder: readonly { fra?: ISODateString; til?: ISODateString }[],
-  datoSet: ReadonlySet<ISODateString>
+  datoSet: ReadonlySet<ISODateString>,
+  options: Readonly<{ includeWeekends?: boolean }> = {}
 ): Set<ISODateString> => {
   const ferieDageSet = new Set<ISODateString>();
+  const includeWeekends = options.includeWeekends === true;
+  if (datoSet.size === 0) return ferieDageSet;
+  const sortedDates = Array.from(datoSet).sort();
+  const rangeFra = sortedDates[0];
+  const rangeTil = sortedDates[sortedDates.length - 1];
+  const shDageSet = buildShDageSet(isoDateToDate(rangeFra), isoDateToDate(rangeTil), datoSet);
   for (const periode of ferieperioder) {
     if (!periode.fra || !periode.til) continue;
     if (periode.fra > periode.til) continue;
@@ -52,7 +59,9 @@ export const buildFerieDageSet = (
     let ferieCurrent = new Date(ferieFra);
     while (ferieCurrent <= ferieTil) {
       const isoStr = toIsoOrThrow(ferieCurrent, 'ferieperiode');
-      if (datoSet.has(isoStr) && isWeekdayUtc(ferieCurrent)) {
+      // SH-dage omfatter kun hverdagshelligdage. Ved kalenderdage skal helligdage på weekend
+      // derfor fortsat tælle som kalenderdage og må ikke filtreres bort her.
+      if (datoSet.has(isoStr) && !shDageSet.has(isoStr) && (includeWeekends || isWeekdayUtc(ferieCurrent))) {
         ferieDageSet.add(isoStr);
       }
       ferieCurrent = addDays(ferieCurrent, 1);

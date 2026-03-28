@@ -125,12 +125,6 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
       expect(rows).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            id: `sfgg.bemaerkningFoer2015.${values.loenindkomstAnsaettelsesforhold[0].id}`,
-            label: 'Bemærk',
-            displayValue: expect.stringContaining('samtlige TAF-perioder er indtastet ovenfor'),
-            status: 'ok',
-          }),
-          expect.objectContaining({
             id: `sfgg.satsvalg.${values.loenindkomstAnsaettelsesforhold[0].id}`,
             label: 'Uddannelse og arbejdssted',
             displayValue: 'Intet valgt',
@@ -139,6 +133,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
           }),
         ])
       );
+      expect(rows.find((row) => row.id === `sfgg.bemaerkningFoer2015.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toBeUndefined();
       expect(rows).not.toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -157,6 +152,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
       ...values.loenindkomstAnsaettelsesforhold[0],
       harOverenskomst: true,
       overenskomstId: 'bygge-anlaeg',
+      indtaegtsoplysningerTableData: [],
     };
     values.sfggAnsaettelsesforhold = [
       {
@@ -651,6 +647,194 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         expect.objectContaining({
           label: 'Forklaring',
           displayValue: 'I medfør af overenskomsten beregnes ikke sygeferiegodtgørelse på dage, hvor der betales sygeløn.',
+        }),
+      ])
+    );
+  });
+
+  it('viser Ansættelsesforholdet ophørt som Nej i debug når ansættelsen ikke er ophørt', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggManuelDagssats: { kind: 'number', value: 100 },
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2024-01-15',
+        til: '2024-01-15',
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const rows = buildRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2024-01-01',
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `sfgg.ansaettelsesforholdOphoert.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'Ansættelsesforholdet ophørt',
+          displayValue: 'Nej',
+          status: 'ok',
+        }),
+      ])
+    );
+  });
+
+  it('viser Ansættelsesforholdet ophørt som dato og uden ophørsforklaring i debug når ansættelsen er ophørt', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      ansaettelsesforholdOphoert: true,
+      sidsteArbejdsdag: '2024-02-15',
+    };
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggManuelDagssats: { kind: 'number', value: 100 },
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2024-01-15',
+        til: '2024-03-15',
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const rows = buildRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2024-01-01',
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `sfgg.ansaettelsesforholdOphoert.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'Ansættelsesforholdet ophørt',
+          displayValue: '15-02-2024',
+          status: 'ok',
+        }),
+      ])
+    );
+    expect(rows).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: 'Forklaring',
+          displayValue: 'Retten til sygeferiegodtgørelse bortfaldt den 15-02-2024 som følge af ansættelsesforholdets ophør.',
+        }),
+      ])
+    );
+  });
+
+  it('viser ikke 4-måneders-tabellen i debug', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggManuelDagssats: { kind: 'number', value: 100 },
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2024-01-26',
+        til: '2024-12-31',
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const rows = buildRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2014-01-01',
+    });
+
+    expect(rows.find((row) => row.label === '4-månedersgrænse')).toBeUndefined();
+  });
+
+  it('viser ikke præ-2015-bemærkningen om at samtlige TAF-perioder skal være indtastet i debug', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggManuelDagssats: { kind: 'number', value: 100 },
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2024-01-26',
+        til: '2024-12-31',
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const rows = buildRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2014-01-01',
+    });
+
+    expect(rows).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: 'Bemærk',
+        }),
+      ])
+    );
+    expect(rows).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          displayValue: expect.stringContaining('samtlige TAF-perioder'),
         }),
       ])
     );

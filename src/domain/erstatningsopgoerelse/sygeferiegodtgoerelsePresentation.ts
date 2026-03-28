@@ -3,12 +3,17 @@ import type {
   SygeferiegodtgoerelseAnsaettelsesforholdRow,
 } from '../../schemas/formSchemas';
 import { getOverenskomstMetaById, getOverenskomstSfggPolicy } from '../../data/overenskomstRates';
+import { formatAsAmount } from '../../utils/formatUtils';
 import type { SfggReferencesatsFormula, SfggSource, SfggSourceKind } from './sygeferiegodtgoerelse';
 
-const formatDaCount = (value: number): string => value.toLocaleString('da-DK');
+const formatDaCount = (value: number): string => formatAsAmount(value, 0);
 const ensureSentencePunctuation = (value: string): string => (
   /[.!?]$/.test(value) ? value : `${value}.`
 );
+
+export type ParsedSfggExplanatoryLine =
+  | Readonly<{ kind: 'four_month_cap'; verb: 'bortfaldt' | 'bortfalder'; date: string }>
+  | Readonly<{ kind: 'employment_end'; verb: 'bortfaldt' | 'bortfalder'; date: string }>;
 
 export const buildSfggIntroText = (
   sfggRow: SygeferiegodtgoerelseAnsaettelsesforholdRow | undefined,
@@ -65,15 +70,15 @@ export const resolveSfggDifferentieretSatsLabel = (
 ): string => {
   switch (sfggSatsvalg) {
     case 'Faglaert-Koebenhavn':
-      return 'Skadelidte var faglært og ansat i København, og satsen er i overenskomsten fastsat til';
+      return 'Skadelidte var faglært og ansat i København, og satsen udgør';
     case 'Faglaert-Provinsen':
-      return 'Skadelidte var faglært og ansat uden for København, og satsen er i overenskomsten fastsat til';
+      return 'Skadelidte var faglært og ansat uden for København, og satsen udgør';
     case 'Ufaglaert-Koebenhavn':
-      return 'Skadelidte var ufaglært og ansat i København, og satsen er i overenskomsten fastsat til';
+      return 'Skadelidte var ufaglært og ansat i København, og satsen udgør';
     case 'Ufaglaert-Provinsen':
-      return 'Skadelidte var ufaglært og ansat uden for København, og satsen er i overenskomsten fastsat til';
+      return 'Skadelidte var ufaglært og ansat uden for København, og satsen udgør';
     default:
-      return 'Referencesatsen er i overenskomsten fastsat til';
+      return 'Referencesatsen udgør';
   }
 };
 
@@ -101,8 +106,15 @@ export const buildSfggReferenceperiodeCountLabel = (
   formula: SfggReferencesatsFormula
 ): string => {
   if (formula.divisorLabel === 'kalenderdage') {
+    const parts = [`${formatDaCount(formula.kalenderdage)} kalenderdage`];
+    if (formula.feriedage > 0) {
+      parts.push(`${formatDaCount(formula.feriedage)} feriedage`);
+    }
     if (formula.oevrigeFravaersdage > 0) {
-      return `Antal kalenderdage i perioden (${formatDaCount(formula.kalenderdage)} kalenderdage - ${formatDaCount(formula.oevrigeFravaersdage)} fraværsdage u. løn) =`;
+      parts.push(`${formatDaCount(formula.oevrigeFravaersdage)} fraværsdage u. løn`);
+    }
+    if (parts.length > 1) {
+      return `Antal kalenderdage i perioden (${parts.join(' - ')}) =`;
     }
     return 'Antal kalenderdage i perioden';
   }
@@ -119,4 +131,30 @@ export const buildSfggReferenceperiodeCountLabel = (
     return `Antal arbejdsdage (${parts.join(' - ')}) =`;
   }
   return 'Antal arbejdsdage';
+};
+
+export const parseSfggExplanatoryLine = (
+  line: string
+): ParsedSfggExplanatoryLine | null => {
+  const fourMonthMatch = /^Retten til sygeferiegodtgørelse er tidsbegrænset til 4 måneder og (bortfaldt|bortfalder) den (\d{2}-\d{2}-\d{4})\.$/.exec(line);
+  if (fourMonthMatch) {
+    const [, verb, date] = fourMonthMatch;
+    return {
+      kind: 'four_month_cap',
+      verb: verb as 'bortfaldt' | 'bortfalder',
+      date,
+    };
+  }
+
+  const employmentMatch = /^Retten til sygeferiegodtgørelse (bortfaldt|bortfalder) den (\d{2}-\d{2}-\d{4}) som følge af ansættelsesforholdets ophør\.$/.exec(line);
+  if (employmentMatch) {
+    const [, verb, date] = employmentMatch;
+    return {
+      kind: 'employment_end',
+      verb: verb as 'bortfaldt' | 'bortfalder',
+      date,
+    };
+  }
+
+  return null;
 };

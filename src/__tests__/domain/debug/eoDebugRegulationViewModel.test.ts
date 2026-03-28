@@ -117,11 +117,8 @@ describe('buildRegulationDebugSections', () => {
     expect(sections).toHaveLength(1);
     expect(sections[0]?.tables).toHaveLength(2);
     expect(sections[0]?.tables?.[0]?.columns).toEqual([
-      'Dato',
-      'Månedsløn',
-      'Feriepenge',
-      'Fritvalg',
-      'Pension',
+      'År',
+      'Maksimum årsløn',
     ]);
     expect(sections[0]?.tables?.[1]?.columns).toEqual(['Fra-dato', 'Til-dato', 'Indeksberegning', 'Indeks', 'Lønudvikling']);
     expect(sections[0]?.tables?.[1]?.rows.length).toBeGreaterThan(0);
@@ -530,5 +527,318 @@ describe('buildRegulationDebugSections', () => {
       ['01-04-2021', '30-09-2021'],
       ['01-10-2021', '30-09-2022'],
     ]);
+  });
+
+  it('afgrænser første debug-tabel til den konkrete ansættelses segmentdækning', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.vedroererPeriodeFra = iso('2024-01-26');
+    eoValues.vedroererPeriodeTil = iso('2025-05-31');
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+        id: 'af-bounds',
+        navnPaaArbejdssted: 'Bounds',
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+        feriePct: 16.95,
+        loenudviklingManuelTableData: [
+          {
+            dato: '',
+            grundloen: asAmountValue(115.2),
+            feriepenge: '',
+            shSoSats: '1,00',
+            fritvalg: '',
+            agPension: '8,15',
+          },
+          {
+            dato: '01-03-2024',
+            grundloen: asAmountValue(142.65),
+            feriepenge: '',
+            shSoSats: '8,80',
+            fritvalg: '',
+            agPension: '10,15',
+          },
+          {
+            dato: '01-05-2025',
+            grundloen: asAmountValue(146.4),
+            feriepenge: '',
+            shSoSats: '8,80',
+            fritvalg: '',
+            agPension: '11,15',
+          },
+        ],
+      },
+    ];
+    const stamdataValues = {
+      ...STAMDATA_INITIAL_VALUES,
+      skadesdato: iso('2024-01-26'),
+    };
+
+    const sections = buildRegulationDebugSections({
+      timeline: {
+        tafBeregningsenhed: 'Arbejdsdage',
+        ansaettelser: [
+          {
+            ansaettelsesforholdId: 'af-bounds',
+            navn: 'Bounds',
+            kildeLabel: 'Manuelt angivet',
+            kildeVaerdi: 'Manuelt angivet',
+            referenceIso: iso('2024-01-26'),
+            referenceLabel: 'Skadedato',
+            referenceValue: 138.15,
+            entries: [
+              {
+                effectiveFrom: iso('2024-01-26'),
+                grundloen: 115.2,
+                feriePct: 0.1695,
+                shSoPct: 0.01,
+                fritvalgPct: 0,
+                storeBededagPct: 0,
+                pensionPct: 0.0815,
+                packageValue: 138.15,
+                index: 100,
+                arbejdsdage: 1,
+                maaneder: null,
+              },
+              {
+                effectiveFrom: iso('2024-03-01'),
+                grundloen: 142.65,
+                feriePct: 0.1695,
+                shSoPct: 0.088,
+                fritvalgPct: 0,
+                storeBededagPct: 0.0045,
+                pensionPct: 0.1015,
+                packageValue: 177.32,
+                index: 128.35,
+                arbejdsdage: 0,
+                maaneder: null,
+              },
+              {
+                effectiveFrom: iso('2025-05-01'),
+                grundloen: 146.4,
+                feriePct: 0.1695,
+                shSoPct: 0.088,
+                fritvalgPct: 0,
+                storeBededagPct: 0.0045,
+                pensionPct: 0.1115,
+                packageValue: 184.11,
+                index: 133.26,
+                arbejdsdage: 0,
+                maaneder: null,
+              },
+            ],
+          },
+        ],
+      },
+      canonicalOutput: {
+        totals: {
+          svieSmerteOre: 0,
+          tabtArbejdsfortjenesteFoerForligOre: 0,
+          tabtArbejdsfortjenesteOre: 0,
+          oevrigeKravFoerForligOre: 0,
+          oevrigeKravOre: 0,
+          samletTotalOre: 0,
+        },
+        svieSmerte: { maxApplied: false },
+        taf: {
+          harTafPerioder: true,
+          tafIndtaegterOre: 0,
+          tidligereModtagetTafOre: 0,
+        },
+        periodiseringer: {
+          tafPerioder: [
+            {
+              id: 'taf-1',
+              fra: iso('2024-01-26'),
+              til: iso('2025-05-31'),
+              loseFeriedage: undefined,
+            },
+          ],
+        },
+        regulering: {
+          loenudviklingTotalFoerForligOre: 0,
+          loenudviklingSegmenter: [],
+          perAnsaettelse: [
+            {
+              ansaettelsesforholdId: 'af-bounds',
+              loenudviklingTotalFoerForligOre: 0,
+              loenudviklingSegmenter: [
+                {
+                  kind: 'arbejdsdage',
+                  fra: iso('2024-01-26'),
+                  til: iso('2024-02-29'),
+                  arbejdsdage: 1,
+                  dagsloenOre: 0,
+                  deltaPct: 28.35,
+                  amountOre: 0,
+                },
+                {
+                  kind: 'arbejdsdage',
+                  fra: iso('2024-03-01'),
+                  til: iso('2025-02-01'),
+                  arbejdsdage: 1,
+                  dagsloenOre: 0,
+                  deltaPct: 34.46,
+                  amountOre: 0,
+                },
+              ],
+            },
+          ],
+        },
+      },
+      eoValues,
+      stamdataValues,
+    });
+
+    const firstTableRows = sections[0]?.tables?.[0]?.rows ?? [];
+    const firstColumnValues = firstTableRows.map((row) => typeof row.cells[0] === 'string' ? row.cells[0] : row.cells[0].displayValue);
+
+    expect(firstColumnValues).toEqual(['26-01-2024', '01-03-2024']);
+    expect(firstColumnValues).not.toContain('01-05-2025');
+  });
+
+  it('viser en særskilt række på manuel reguleringsdato i første debug-tabel selv når TAF starter senere', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+        id: 'af-manuel-regdato',
+        navnPaaArbejdssted: 'Manuel reg.dato',
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+        feriePct: 16.95,
+        saerligFraDatoRegulering: iso('2024-01-26'),
+        loenudviklingManuelTableData: [
+          {
+            dato: '',
+            grundloen: asAmountValue(138.15),
+            feriepenge: '',
+            shSoSats: '12,90',
+            fritvalg: '',
+            agPension: '10,15',
+          },
+          {
+            dato: '01-03-2024',
+            grundloen: asAmountValue(142.65),
+            feriepenge: '',
+            shSoSats: '14,70',
+            fritvalg: '',
+            agPension: '10,15',
+          },
+        ],
+      },
+    ];
+    const stamdataValues = {
+      ...STAMDATA_INITIAL_VALUES,
+      skadesdato: iso('2024-01-01'),
+    };
+
+    const sections = buildRegulationDebugSections({
+      timeline: {
+        tafBeregningsenhed: 'Arbejdsdage',
+        ansaettelser: [
+          {
+            ansaettelsesforholdId: 'af-manuel-regdato',
+            navn: 'Manuel reg.dato',
+            kildeLabel: 'Manuelt angivet',
+            kildeVaerdi: 'Manuelt angivet',
+            referenceIso: iso('2024-01-26'),
+            referenceLabel: 'Manuelt angivet',
+            referenceValue: 0,
+            entries: [
+              {
+                effectiveFrom: iso('2024-01-26'),
+                grundloen: 138.15,
+                feriePct: 0.1695,
+                shSoPct: 0.129,
+                fritvalgPct: 0,
+                storeBededagPct: 0,
+                pensionPct: 0.1015,
+                packageValue: 0,
+                index: 100,
+                arbejdsdage: 0,
+                maaneder: null,
+              },
+              {
+                effectiveFrom: iso('2024-03-01'),
+                grundloen: 142.65,
+                feriePct: 0.1695,
+                shSoPct: 0.147,
+                fritvalgPct: 0,
+                storeBededagPct: 0,
+                pensionPct: 0.1015,
+                packageValue: 0,
+                index: 100,
+                arbejdsdage: 0,
+                maaneder: null,
+              },
+            ],
+          },
+        ],
+      },
+      canonicalOutput: {
+        totals: {
+          svieSmerteOre: 0,
+          tabtArbejdsfortjenesteFoerForligOre: 0,
+          tabtArbejdsfortjenesteOre: 0,
+          oevrigeKravFoerForligOre: 0,
+          oevrigeKravOre: 0,
+          samletTotalOre: 0,
+        },
+        svieSmerte: { maxApplied: false },
+        taf: {
+          harTafPerioder: true,
+          tafIndtaegterOre: 0,
+          tidligereModtagetTafOre: 0,
+        },
+        periodiseringer: {
+          tafPerioder: [
+            {
+              id: 'taf-1',
+              fra: iso('2024-02-01'),
+              til: iso('2025-02-01'),
+              loseFeriedage: undefined,
+            },
+          ],
+        },
+        regulering: {
+          loenudviklingTotalFoerForligOre: 0,
+          loenudviklingSegmenter: [],
+          perAnsaettelse: [
+            {
+              ansaettelsesforholdId: 'af-manuel-regdato',
+              loenudviklingTotalFoerForligOre: 0,
+              loenudviklingSegmenter: [
+                {
+                  kind: 'arbejdsdage',
+                  fra: iso('2024-02-01'),
+                  til: iso('2024-02-29'),
+                  arbejdsdage: 0,
+                  dagsloenOre: 0,
+                  deltaPct: 0,
+                  amountOre: 0,
+                },
+                {
+                  kind: 'arbejdsdage',
+                  fra: iso('2024-03-01'),
+                  til: iso('2025-02-01'),
+                  arbejdsdage: 0,
+                  dagsloenOre: 0,
+                  deltaPct: 0,
+                  amountOre: 0,
+                },
+              ],
+            },
+          ],
+        },
+      },
+      eoValues,
+      stamdataValues,
+    });
+
+    const firstTableRows = sections[0]?.tables?.[0]?.rows ?? [];
+    const firstColumnValues = firstTableRows.map((row) => typeof row.cells[0] === 'string' ? row.cells[0] : row.cells[0].displayValue);
+
+    expect(firstColumnValues).toEqual(['26-01-2024', '01-03-2024']);
   });
 });

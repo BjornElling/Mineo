@@ -59,7 +59,10 @@ import { computeEoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot
 import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
 import type { PdfModel } from '../../domain/erstatningsopgoerelse/eoPdfModel';
 import { mergeIsoDateRanges } from '../../domain/erstatningsopgoerelse/periodMerging';
-import { buildSfggReferenceperiodeCountLabel } from '../../domain/erstatningsopgoerelse/sygeferiegodtgoerelsePresentation';
+import {
+  buildSfggReferenceperiodeCountLabel,
+  parseSfggExplanatoryLine,
+} from '../../domain/erstatningsopgoerelse/sygeferiegodtgoerelsePresentation';
 
 const NBSP = '\u00A0';
 const EO_RIGHT_COLUMN_WIDTH = 33.125;
@@ -121,6 +124,23 @@ const buildSfggDisplayedTafPeriodText = (tafPerioderLinjer: readonly string[], t
     })
     .filter((value) => value !== '')
     .join(', ');
+};
+
+const parseSfggPdfExplanatoryLine = (
+  line: string
+): Readonly<{ left: string; right: string }> | null => {
+  const parsed = parseSfggExplanatoryLine(line);
+  if (!parsed) return null;
+  if (parsed.kind === 'four_month_cap') {
+    return {
+      left: `Skaden er før 01-01-2015 og retten er begrænset til 4 måneder, som ${parsed.verb}`,
+      right: parsed.date,
+    };
+  }
+  return {
+    left: `Retten ${parsed.verb} ved ansættelsesforholdets ophør`,
+    right: parsed.date,
+  };
 };
 
 const getLoenindkomstTableHeaders = (loenperiode: Loenperiode): readonly string[] => {
@@ -311,10 +331,10 @@ export const generateErstatningsopgoerelsePdf = (
     );
     writeLabelValueLine(
       buildSfggReferenceperiodeCountLabel(sfggReferencesatsFormula),
-      `${sfggReferencesatsFormula.divisorDage.toLocaleString('da-DK')} ${sfggReferencesatsFormula.divisorLabel}`
+      `${formatAsAmount(sfggReferencesatsFormula.divisorDage, 0)} ${sfggReferencesatsFormula.divisorLabel}`
     );
     safeAddLeftRightText(
-      `Referencesats (${formatAsAmount(sfggReferencesatsFormula.ferieberettigetLoenKroner, 2)} x ${formatPercentUtil(sfggReferencesatsFormula.feriePctDecimal * 100)} / ${sfggReferencesatsFormula.divisorDage.toLocaleString('da-DK')} ${sfggReferencesatsFormula.divisorLabel}) =`,
+      `Referencesats (${formatAsAmount(sfggReferencesatsFormula.ferieberettigetLoenKroner, 2)} x ${formatPercentUtil(sfggReferencesatsFormula.feriePctDecimal * 100)} / ${formatAsAmount(sfggReferencesatsFormula.divisorDage, 0)} ${sfggReferencesatsFormula.divisorLabel}) =`,
       `${formatCurrencyFromOre(entry.sfggReferencesats.value)} ${resolveSfggReferenceSatsUnit(sfggReferencesatsFormula.divisorLabel)}`,
       standardRightMaxWidth,
       { rightFontStyle: 'bold' }
@@ -334,14 +354,24 @@ export const generateErstatningsopgoerelsePdf = (
       writeLabelValueLine('Der beregnes sygeferiegodtgørelse i TAF-perioden', tafPeriodeText);
     }
 
+    entry.pdfExplanatoryLines.forEach((line) => {
+      const parsedLine = parseSfggPdfExplanatoryLine(line);
+      if (parsedLine) {
+        safeAddLeftRightText(parsedLine.left, parsedLine.right, standardRightMaxWidth, { rightFontStyle: 'normal' });
+        return;
+      }
+      safeAddWrappedText(line);
+    });
+
     const divisorLabel = entry.sfggDayBasis;
     const dayUnit = resolveSfggPeriodDayUnitSingular(divisorLabel);
     const rateAdjustmentText = buildSfggPeriodRateAdjustmentText(entry.sfggSourceKind);
+    const rateLabel = entry.sfggSourceKind === 'overenskomst_direkte' ? 'overenskomstens referencesats' : 'referencesatsen';
     const baseAdjustmentText = divisorLabel === 'arbejdsdage'
       ? 'Der beregnes ikke sygeferiegodtgørelse på SH-dage, under ferie og på andre fraværsdage uden løn.'
-      : 'Der beregnes ikke sygeferiegodtgørelse på eventuelle fraværsdage uden løn.';
+      : 'Der beregnes ikke sygeferiegodtgørelse under ferie og på eventuelle andre fraværsdage uden løn.';
     safeAddWrappedText(
-      `Kravet beregnes per ${dayUnit} med referencesatsen${rateAdjustmentText}.`
+      `Kravet beregnes per ${dayUnit} med ${rateLabel}${rateAdjustmentText}.`
     );
 
     const firstDayAdjustmentText = entry.sfggFirstTafDayExcludedText
@@ -352,8 +382,6 @@ export const generateErstatningsopgoerelsePdf = (
     if (entry.sfggAfterEmployerSickPayText) {
       safeAddWrappedText(entry.sfggAfterEmployerSickPayText);
     }
-
-    entry.pdfExplanatoryLines.forEach((line) => safeAddWrappedText(line));
 
     const rows = entry.segments;
     if (rows.length === 0) return;
@@ -552,7 +580,7 @@ export const generateErstatningsopgoerelsePdf = (
       eoValues: eoValues,
       stamdataValues,
       lineHeight,
-      modelLoenudviklingSegmenter: model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [],
+      modelLoenudviklingPerAnsaettelse: model.tabtArbejdsfortjeneste.loenudvikling?.perAnsaettelse ?? [],
       startBilagPage,
       renderSubheader: writer.writeSubheader,
       safeAddWrappedText: writer.writeWrappedText,
@@ -602,7 +630,12 @@ export const generateErstatningsopgoerelsePdf = (
     model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.forEach((entry) => {
       renderSubheader(entry.ansaettelsesforholdNavn, lineHeight);
       if (entry.sfggIntroText) {
-        safeAddWrappedText(entry.sfggIntroText);
+        const introPrefix = 'Sygeferiegodtgørelse beregnes i henhold til ';
+        if (entry.sfggIntroText.startsWith(introPrefix)) {
+          safeAddLeftRightText(introPrefix.trimEnd(), entry.sfggIntroText.slice(introPrefix.length), standardRightMaxWidth, { rightFontStyle: 'normal' });
+        } else {
+          safeAddWrappedText(entry.sfggIntroText);
+        }
       }
       const usesReferenceperiodeRate = entry.sfggReferencesatsFormula !== null;
       renderSfggReferenceSatsBlock(entry);
@@ -613,15 +646,6 @@ export const generateErstatningsopgoerelsePdf = (
         safeAddWrappedText(`Referencesats: ${formatCurrencyFromOre(entry.sfggReferencesats.value)} kr.`);
       }
       renderSfggPeriodBlock(entry);
-      if (entry.capRows.length > 0) {
-        renderSubheader('Opgørelse af 4-månedersgrænsen', lineHeight);
-        safeAddWrappedText('Fra-dato | Til-dato | Antal dage | Antal måneder');
-        entry.capRows.forEach((row) => {
-          safeAddWrappedText(
-            `${formatDateShort(row.fra) ?? ''} | ${formatDateShort(row.til) ?? ''} | ${String(row.antalDage)} | ${formatAsAmount(row.maanederPraecis, 3)}`
-          );
-        });
-      }
       writer.advanceY(lineHeight);
     });
   }

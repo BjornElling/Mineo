@@ -5,7 +5,10 @@ import {
   computeSygeferiegodtgoerelse,
   findSfggSixMonthWarningEmploymentIds,
 } from '../../../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
-import { buildSfggReferenceperiodeCountLabel } from '../../../domain/erstatningsopgoerelse/sygeferiegodtgoerelsePresentation';
+import {
+  buildSfggReferenceperiodeCountLabel,
+  parseSfggExplanatoryLine,
+} from '../../../domain/erstatningsopgoerelse/sygeferiegodtgoerelsePresentation';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
 
@@ -91,6 +94,33 @@ describe('computeSygeferiegodtgoerelse', () => {
       feriedage: 0,
       oevrigeFravaersdage: 1,
     })).toBe('Antal kalenderdage i perioden (31 kalenderdage - 1 fraværsdage u. løn) =');
+  });
+
+  it('formaterer kalenderdage-label med feriedage og uden SH-dage', () => {
+    expect(buildSfggReferenceperiodeCountLabel({
+      ferieberettigetLoenKroner: 0,
+      feriePctDecimal: 0,
+      feriepengeKroner: 0,
+      divisorDage: 28,
+      divisorLabel: 'kalenderdage',
+      kalenderdage: 31,
+      hverdage: 23,
+      shDage: 1,
+      feriedage: 2,
+      oevrigeFravaersdage: 1,
+    })).toBe('Antal kalenderdage i perioden (31 kalenderdage - 2 feriedage - 1 fraværsdage u. løn) =');
+  });
+
+  it('parser bortfalder-varianten for 4-månedersforklaringen struktureret', () => {
+    expect(
+      parseSfggExplanatoryLine(
+        'Retten til sygeferiegodtgørelse er tidsbegrænset til 4 måneder og bortfalder den 30-04-2014.'
+      )
+    ).toEqual({
+      kind: 'four_month_cap',
+      verb: 'bortfalder',
+      date: '30-04-2014',
+    });
   });
 
   it('beregner referencesatsen ud fra ferieberettiget løn og kun FP-satsen', () => {
@@ -884,10 +914,266 @@ describe('computeSygeferiegodtgoerelse', () => {
     expect(result.perAnsaettelsesforhold[0]?.segments.at(-1)?.til).toBe(iso('2014-04-30'));
   });
 
+  it('lader arbejdsgiverbetalt sygeløn tælle med til præ-2015-4-månedersgrænsen selv om dagene ikke giver SFGG', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      harOverenskomst: true,
+      overenskomstId: 'bygge-anlaeg',
+      indtaegtsoplysningerTableData: [
+        {
+          id: 'loen-jan-2014',
+          col0_maaned: '1',
+          col1_maaned: '2014',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '',
+          col1_dag: '',
+          col2: asAmount(10000),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+        {
+          id: 'loen-feb-2014',
+          col0_maaned: '2',
+          col1_maaned: '2014',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '',
+          col1_dag: '',
+          col2: asAmount(10000),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+        {
+          id: 'loen-mar-2014',
+          col0_maaned: '3',
+          col1_maaned: '2014',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '',
+          col1_dag: '',
+          col2: asAmount(10000),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+      ],
+    })];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Overenskomst',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: 'Ufaglaert-Koebenhavn',
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2014-01-01') },
+      tafRanges: [{ fra: iso('2014-01-01'), til: iso('2014-06-30') }],
+    });
+
+    expect(result.perAnsaettelsesforhold[0]?.capReachedDate).toBe(iso('2014-04-30'));
+    expect(result.perAnsaettelsesforhold[0]?.segments).toEqual([
+      expect.objectContaining({
+        fra: iso('2014-04-01'),
+        til: iso('2014-04-30'),
+      }),
+    ]);
+  });
+
+  it('medregner ikke SH-dage og daterede feriedage i præ-2015-4-månedersgrænsen for arbejdsdagsbaseret SFGG', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.ferieperioder = [{
+      id: 'ferie-okt-2014',
+      fra: iso('2014-10-01'),
+      til: iso('2014-10-10'),
+    }];
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      harOverenskomst: true,
+      overenskomstId: 'bygge-anlaeg',
+      indtaegtsoplysningerTableData: [
+        {
+          id: 'loen-jul-2014',
+          col0_maaned: '7',
+          col1_maaned: '2014',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '',
+          col1_dag: '',
+          col2: asAmount(10000),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+        {
+          id: 'loen-aug-2014',
+          col0_maaned: '8',
+          col1_maaned: '2014',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '',
+          col1_dag: '',
+          col2: asAmount(10000),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+        {
+          id: 'loen-sep-2014',
+          col0_maaned: '9',
+          col1_maaned: '2014',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '',
+          col1_dag: '',
+          col2: asAmount(10000),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+      ],
+    })];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Overenskomst',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: 'Ufaglaert-Koebenhavn',
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2014-07-01') },
+      tafRanges: [{ fra: iso('2014-07-01'), til: iso('2014-12-31') }],
+    });
+
+    expect(result.perAnsaettelsesforhold[0]?.capReachedDate).toBe(iso('2014-11-11'));
+    expect(result.perAnsaettelsesforhold[0]?.segments[0]).toEqual(
+      expect.objectContaining({
+        til: iso('2014-11-11'),
+      })
+    );
+  });
+
+  it('beholder kun den tidligste pdf-forklaring når både 4-månedersgrænse og ansættelsesophør er aktuelle', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      ansaettelsesforholdOphoert: true,
+      sidsteArbejdsdag: iso('2014-02-15'),
+    })];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2014-01-01') },
+      tafRanges: [{ fra: iso('2014-01-01'), til: iso('2014-12-31') }],
+    });
+
+    expect(result.perAnsaettelsesforhold[0]?.pdfExplanatoryLines).toEqual([
+      'Retten til sygeferiegodtgørelse bortfaldt den 15-02-2014 som følge af ansættelsesforholdets ophør.',
+    ]);
+  });
+
+  it('bruger bortfalder i 4-månedersforklaringen når ophørsdatoen ligger efter opgørelsesdatoen', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.opgørelseLavetDen = iso('2014-03-01');
+    values.loenindkomstAnsaettelsesforhold = [createEmployment()];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2014-01-01') },
+      tafRanges: [{ fra: iso('2014-01-01'), til: iso('2014-12-31') }],
+    });
+
+    expect(result.perAnsaettelsesforhold[0]?.pdfExplanatoryLines).toEqual([
+      'Retten til sygeferiegodtgørelse er tidsbegrænset til 4 måneder og bortfalder den 30-04-2014.',
+    ]);
+  });
+
+  it('bruger bortfalder i ansættelsesophørsforklaringen når ophørsdatoen ligger efter opgørelsesdatoen', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.opgørelseLavetDen = iso('2024-02-01');
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      ansaettelsesforholdOphoert: true,
+      sidsteArbejdsdag: iso('2024-02-15'),
+    })];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-03-15') }],
+    });
+
+    expect(result.perAnsaettelsesforhold[0]?.pdfExplanatoryLines).toEqual([
+      'Retten til sygeferiegodtgørelse bortfalder den 15-02-2024 som følge af ansættelsesforholdets ophør.',
+    ]);
+  });
+
   it('beregner referencesats på kalenderdage når SFGG følger referenceperiode og TAF beregnes som måneder', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet månedsløn';
+    values.ferieperioder = [{
+      id: 'ferie-jan-2024',
+      fra: iso('2024-01-20'),
+      til: iso('2024-01-21'),
+    }];
     values.loenindkomstAnsaettelsesforhold = [createEmployment({
       feriePct: 12.5,
       indtaegtsoplysningerTableData: [{
@@ -924,17 +1210,17 @@ describe('computeSygeferiegodtgoerelse', () => {
     });
 
     expect(result.perAnsaettelsesforhold[0]?.sfggReferencesats.status).toBe('ok');
-    expect(result.perAnsaettelsesforhold[0]?.sfggReferencesats.value).toBe(4167);
+    expect(result.perAnsaettelsesforhold[0]?.sfggReferencesats.value).toBe(4464);
     expect(result.perAnsaettelsesforhold[0]?.sfggReferencesatsFormula).toEqual({
       ferieberettigetLoenKroner: 10000,
       feriePctDecimal: 0.125,
       feriepengeKroner: 1250,
-      divisorDage: 30,
+      divisorDage: 28,
       divisorLabel: 'kalenderdage',
       kalenderdage: 31,
       hverdage: 23,
       shDage: 1,
-      feriedage: 0,
+      feriedage: 2,
       oevrigeFravaersdage: 1,
     });
   });
@@ -1028,6 +1314,11 @@ describe('computeSygeferiegodtgoerelse', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet månedsløn';
+    values.ferieperioder = [{
+      id: 'ferie-feb-2024',
+      fra: iso('2024-02-03'),
+      til: iso('2024-02-04'),
+    }];
     values.loenindkomstAnsaettelsesforhold = [createEmployment({
       feriePct: 12.5,
       indtaegtsoplysningerTableData: [{
@@ -1064,8 +1355,8 @@ describe('computeSygeferiegodtgoerelse', () => {
     });
 
     expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(1);
-    expect(result.perAnsaettelsesforhold[0]?.segments[0]?.antalDage).toBe(7);
-    expect(result.perAnsaettelsesforhold[0]?.segments[0]?.feriepengekravOre).toBe(29169);
+    expect(result.perAnsaettelsesforhold[0]?.segments[0]?.antalDage).toBe(5);
+    expect(result.perAnsaettelsesforhold[0]?.segments[0]?.feriepengekravOre).toBe(20835);
   });
 
   it('bruger kalenderdage kun i referenceperiode-sporet og ikke i manuelt spor ved weekend-only TAF-periode', () => {

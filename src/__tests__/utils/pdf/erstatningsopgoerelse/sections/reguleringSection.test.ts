@@ -41,7 +41,7 @@ const makeContext = (
       eoValues,
       stamdataValues,
       lineHeight: 4,
-      modelLoenudviklingSegmenter: [] as const,
+      modelLoenudviklingPerAnsaettelse: [] as const,
       startBilagPage,
       renderSubheader,
       safeAddWrappedText,
@@ -335,6 +335,55 @@ describe('renderReguleringSection – reguleringstekst', () => {
     expect(safeAddWrappedText).toHaveBeenCalledWith(
       expect.stringContaining('pension')
     );
+  });
+
+  it('afgrænser reguleringstabeller til den konkrete ansættelses segmentspænd og ikke globale tafBounds', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-per-af',
+        navnPaaArbejdssted: 'Per-afgrænset regulering',
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      },
+    ];
+    const { ctx } = makeContext(eoValues);
+    ctx.resolveTafDateBounds = vi.fn(() => ({
+      foerste: iso('2024-01-26'),
+      sidste: iso('2025-05-31'),
+    }));
+    ctx.modelLoenudviklingPerAnsaettelse = [
+      {
+        ansaettelsesforholdId: 'af-per-af',
+        beregnedeSegmenter: [
+          {
+            kind: 'maaneder',
+            fra: iso('2024-01-26'),
+            til: iso('2025-02-01'),
+            maaneder: 12,
+            maanedsloenOre: 0,
+            deltaPct: 0,
+            amountOre: 0,
+          },
+        ],
+      },
+    ];
+
+    renderReguleringSection(ctx);
+
+    expect(ctx.buildReguleringsvaerdierTableData).toHaveBeenCalledWith(expect.objectContaining({
+      tafFra: iso('2024-01-26'),
+      tafTil: iso('2025-02-01'),
+    }));
+    expect(ctx.buildReguleringIndexRows).toHaveBeenCalledWith(expect.objectContaining({
+      segments: [
+        expect.objectContaining({
+          fra: iso('2024-01-26'),
+          til: iso('2025-02-01'),
+        }),
+      ],
+    }));
   });
 });
 

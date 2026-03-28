@@ -102,6 +102,47 @@ describe('eoPdfReguleringEngine', () => {
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(false);
   });
 
+  it('bevarer en særskilt række på reguleringsdatoen i privat reguleringsværdier-tabel selv når næste sats er uændret', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'bygge-anlaeg';
+    af.loenPaaHelligdage = 'SH/SO udbetales';
+    af.feriePct = 15;
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      reguleringsdato: iso('2023-05-24'),
+      tafFra: iso('2023-06-01'),
+      tafTil: iso('2024-04-30'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.rows[0]?.[0]).toBe('24-05-2023');
+  });
+
+  it('bevarer kolonneantal i privat reguleringsværdier-tabel når reguleringsdato ligger før tafFra', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'bygge-anlaeg';
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.feriePct = 15;
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      reguleringsdato: iso('2023-05-24'),
+      tafFra: iso('2023-06-01'),
+      tafTil: iso('2024-04-30'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.rows[0]?.[0]).toBe('24-05-2023');
+    expect(table?.rows.every((row) => row.length === table.columns.length)).toBe(true);
+  });
+
   it('indsætter 01-01-2024 som separat række i privat reguleringsværdier-tabel fordi bygge-anlaeg har en overenskomstregulering på den dato', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
@@ -331,6 +372,86 @@ describe('eoPdfReguleringEngine', () => {
     expect(table).not.toBeNull();
     expect(table?.columns).toContain('Store Bededag');
     expect(table?.rows.some((row) => row[0] === '01-01-2024' && row[5] === '0,45 %')).toBe(true);
+  });
+
+  it('bevarer en særskilt række på manuel reguleringsdato i kronologien selv når værdierne er uændrede', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    af.feriePct = 16.95;
+    af.saerligFraDatoRegulering = iso('2024-01-26');
+    af.loenudviklingManuelTableData = [
+      {
+        dato: '',
+        grundloen: asAmountValue(138.15),
+        feriepenge: '',
+        shSoSats: '12,90',
+        fritvalg: '',
+        agPension: '10,15',
+      },
+      {
+        dato: '01-03-2024',
+        grundloen: asAmountValue(142.65),
+        feriepenge: '',
+        shSoSats: '14,70',
+        fritvalg: '',
+        agPension: '10,15',
+      },
+    ];
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      reguleringsdato: iso('2024-01-26'),
+      tafFra: iso('2024-02-01'),
+      tafTil: iso('2025-02-01'),
+      tafBeregningsenhed: 'Arbejdsdage',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.rows.map((row) => row[0])).toEqual(['26-01-2024', '01-03-2024']);
+  });
+
+  it('overskriver ikke en eksplicit manuel række på reguleringsdatoen med første manuelle række', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    af.feriePct = 16.95;
+    af.loenudviklingManuelTableData = [
+      {
+        dato: '',
+        grundloen: asAmountValue(100),
+        feriepenge: '',
+        shSoSats: '10,00',
+        fritvalg: '',
+        agPension: '10,00',
+      },
+      {
+        dato: '15-02-2024',
+        grundloen: asAmountValue(200),
+        feriepenge: '',
+        shSoSats: '20,00',
+        fritvalg: '',
+        agPension: '20,00',
+      },
+    ];
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      reguleringsdato: iso('2024-02-15'),
+      tafFra: iso('2024-02-01'),
+      tafTil: iso('2024-03-31'),
+      tafBeregningsenhed: 'Arbejdsdage',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.rows.find((row) => row[0] === '15-02-2024')).toEqual([
+      '15-02-2024',
+      '200,00',
+      '16,95 %',
+      '20,00 %',
+      '-',
+      '20,00 %',
+    ]);
   });
 
   it('splitter manuelle indeksrækker ved 01-01-2024 selv når næste manuelle række er 01-03-2024', () => {

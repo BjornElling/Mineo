@@ -161,6 +161,40 @@ describe('buildFerieDageSet', () => {
     expect(result.size).toBe(0);
   });
 
+  it('SH-dage i ferieperioden medtages ikke ved arbejdsdage', () => {
+    const datoSet = buildDatoSetInclusive(iso('2023-12-30'), iso('2024-01-01'));
+    const result = buildFerieDageSet(
+      [{ fra: iso('2023-12-30'), til: iso('2024-01-01') }],
+      datoSet
+    );
+    expect(result.size).toBe(0);
+    expect(result.has(iso('2024-01-01'))).toBe(false);
+  });
+
+  it('weekenddage i ferieperioden medtages ved kalenderdage, men SH-dage gør ikke', () => {
+    const datoSet = buildDatoSetInclusive(iso('2023-12-30'), iso('2024-01-01'));
+    const result = buildFerieDageSet(
+      [{ fra: iso('2023-12-30'), til: iso('2024-01-01') }],
+      datoSet,
+      { includeWeekends: true }
+    );
+    expect(result.size).toBe(2);
+    expect(result.has(iso('2023-12-30'))).toBe(true);
+    expect(result.has(iso('2023-12-31'))).toBe(true);
+    expect(result.has(iso('2024-01-01'))).toBe(false);
+  });
+
+  it('weekendhelligdag medtages fortsat ved kalenderdage', () => {
+    const datoSet = buildDatoSetInclusive(iso('2021-12-25'), iso('2021-12-25'));
+    const result = buildFerieDageSet(
+      [{ fra: iso('2021-12-25'), til: iso('2021-12-25') }],
+      datoSet,
+      { includeWeekends: true }
+    );
+    expect(result.size).toBe(1);
+    expect(result.has(iso('2021-12-25'))).toBe(true);
+  });
+
   it('hverdage i ferieperioden medtages', () => {
     // 2024-01-01 = mandag (og helligdag, men buildFerieDageSet tjekker ikke helligdage)
     // 2024-01-02 = tirsdag, 2024-01-03 = onsdag
@@ -213,10 +247,10 @@ describe('buildFerieDageSet', () => {
       [{ fra: iso('2024-03-29'), til: iso('2024-04-01') }],
       datoSet
     );
-    // 29/3 = fredag ✓, 30/3 = lørdag ✗, 31/3 = søndag ✗, 01/4 = mandag ✓
-    expect(result.size).toBe(2);
-    expect(result.has(iso('2024-03-29'))).toBe(true);
-    expect(result.has(iso('2024-04-01'))).toBe(true);
+    // 29/3 = langfredag (SH) ✗, 30/3 = lørdag ✗, 31/3 = søndag ✗, 01/4 = 2. påskedag (SH) ✗
+    expect(result.size).toBe(0);
+    expect(result.has(iso('2024-03-29'))).toBe(false);
+    expect(result.has(iso('2024-04-01'))).toBe(false);
   });
 });
 
