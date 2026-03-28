@@ -160,7 +160,6 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   angivetDagsloenOpreguleresFraDato: undefined,
 
   // Sygeferiegodtgørelse
-  sfggAlleSygeperioderErTafPerioder: true,
   sfggSygeperioderFoer2015: [],
   sfggAnsaettelsesforhold: [],
 

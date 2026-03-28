@@ -7,7 +7,7 @@ import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } fro
 import { computeRowDateBounds } from '../erstatningsopgoerelse/rowDateBounds';
 import { validateISODateRange } from '../../utils/isoDateHelpers';
 import { detectConflictingSvieSmerteOverlaps, detectOverlappingPeriods } from '../erstatningsopgoerelse/periodOverlapDetection';
-import { formatCurrency, formatPercent } from '../../utils/formatUtils';
+import { formatAsAmount, formatCurrency, formatPercent } from '../../utils/formatUtils';
 import { addDays, addMonths, parseDanishDate } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { buildNoValidDateRangeMessage, collectPresentFieldErrors, isNonEmptyString, resolveDebugDisplay } from './eoDebugCommon';
@@ -23,15 +23,28 @@ import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoDebugIndkomstModel';
 import { mergeDateRanges, mergeIsoDateRanges } from '../erstatningsopgoerelse/periodMerging';
 import { buildTafCutoffErrorMessage, clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
-import { getOverenskomstSfggPolicy, getReguleringsDatoIntervalForOverenskomst, isOffentligOverenskomstId } from '../../data/overenskomstRates';
+import {
+  getOverenskomstMetaById,
+  getOverenskomstSfggPolicy,
+  getReguleringsDatoIntervalForOverenskomst,
+  isOffentligOverenskomstId,
+} from '../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/krlRates';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/angivetLoenHelpers';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/loenudviklingDisplay';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges } from '../erstatningsopgoerelse/indtaegtPerioder';
+import { buildIndkomstSkadestidspunkt } from '../erstatningsopgoerelse/eoPdfIndkomstSkadestidspunkt';
 import { buildLoenudviklingModel } from '../erstatningsopgoerelse/eoPdfLoenudvikling';
-import { computeSygeferiegodtgoerelse, findSfggSixMonthWarningEmploymentIds, sumFerieberettigetLoenInRangesKroner, EMPTY_RESULT } from '../erstatningsopgoerelse/sygeferiegodtgoerelse';
+import {
+  computeSygeferiegodtgoerelse,
+  findSfggSixMonthWarningEmploymentIds,
+  sumFerieberettigetLoenInRangesKroner,
+  EMPTY_RESULT,
+  hasSfggSelectedOverenskomst,
+  resolveSfggSource,
+} from '../erstatningsopgoerelse/sygeferiegodtgoerelse';
 import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/oevrigeKravIntro';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
@@ -106,6 +119,7 @@ export type DebugRowId =
   | `loenindkomst.${string}.regulering.alleVaerdier`
   | `offentligeYdelser.${string}`
   | `sfgg.beregningskilde.${string}`
+  | `sfgg.overenskomst.${string}`
   | `sfgg.bemaerkningFoer2015.${string}`
   | `sfgg.overenskomstensReferenceperiode.${string}`
   | `sfgg.satsvalg.${string}`
@@ -113,6 +127,7 @@ export type DebugRowId =
   | `sfgg.referenceperiode.${string}`
   | `sfgg.referenceperiodeantal.${string}`
   | `sfgg.referencesats.${string}`
+  | `sfgg.dagssats.${string}`
   | `sfgg.tabel.${string}`
   | `sfgg.eftertabel.feriepengeHvisIkkeSkade.${string}`
   | `sfgg.eftertabel.feriepengeModtaget.${string}`
@@ -2878,11 +2893,27 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
     return getReguleringsDatoIntervalForOverenskomst(employment.overenskomstId) !== undefined;
   });
 
-  const loenudvikling = hasActiveSfggSource && requiresLoenudviklingModel
-    ? buildLoenudviklingModel(values, stamdata, computeTafBeregningsenhed(values), null, {
-      tafRanges,
-    })
-    : null;
+  const loenudvikling = (() => {
+    if (!(hasActiveSfggSource && requiresLoenudviklingModel)) {
+      return null;
+    }
+
+    try {
+      const tafBeregningsenhed = computeTafBeregningsenhed(values);
+      const indkomstSkadestidspunkt = buildIndkomstSkadestidspunkt(values, stamdata, tafBeregningsenhed);
+      return buildLoenudviklingModel(values, stamdata, tafBeregningsenhed, indkomstSkadestidspunkt, {
+        tafRanges,
+      });
+    } catch (error) {
+      // Debug er et visningslag. Hvis lønudviklingsmodellen ikke kan bygges pga.
+      // manglende reguleringsforudsætninger, skal SFGG-debug ikke fejle hele sektionen.
+      // I den situation falder debug tilbage til beregning uden lønudviklingsjustering.
+      if (error instanceof Error && error.message.startsWith('Loenudvikling kan ikke beregnes:')) {
+        return null;
+      }
+      throw error;
+    }
+  })();
   const sfgg = hasActiveSfggSource
     ? computeSygeferiegodtgoerelse({
       values,
@@ -2902,14 +2933,55 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
     const row = values.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
     const result = sfgg.perAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
     const kilde = row?.beregnesUdFra;
+    const source = resolveSfggSource(row, employment);
+    const hasSelectedOverenskomst = hasSfggSelectedOverenskomst(row, employment);
+    const overenskomstDisplay = hasSelectedOverenskomst
+      ? (getOverenskomstMetaById(employment.overenskomstId!)?.navn ?? employment.overenskomstId!.trim())
+      : 'Ingen overenskomst valgt';
+    const hasKnownPublicOverenskomst = Boolean(employment.overenskomstId && isOffentligOverenskomstId(employment.overenskomstId));
+    const hasKnownPrivateOverenskomstPolicy = Boolean(employment.overenskomstId && getOverenskomstSfggPolicy(employment.overenskomstId));
+    // Når harOverenskomst=false, behandler både beregning og debug bevidst valget "Overenskomst"
+    // som et ferielov-spor uden policy-opslag. Et hængende eller frit tekst-ID skal derfor ikke
+    // udløse "ukendt overenskomst-ID" i det spor.
+    const hasActivePrivateOverenskomst = employment.harOverenskomst && !!employment.overenskomstId && !hasKnownPublicOverenskomst;
+    const overenskomstPolicy = employment.overenskomstId
+      ? getOverenskomstSfggPolicy(employment.overenskomstId)
+      : undefined;
+    const hasUnknownOverenskomstId =
+      kilde === 'Overenskomst'
+      && hasActivePrivateOverenskomst
+      && !hasKnownPrivateOverenskomstPolicy;
+    const beregningskildeMessage = !kilde
+      ? 'Intet valgt'
+      : hasUnknownOverenskomstId
+        ? 'Ukendt overenskomst-ID'
+        : undefined;
+    const beregningskildeStatus: DebugStatus = !kilde || hasUnknownOverenskomstId ? 'error' : 'ok';
 
     rows.push({
       id: `sfgg.beregningskilde.${employment.id}`,
       label: 'Sygeferiegodtgørelse beregnes ud fra',
       displayValue: kilde ?? 'Intet valgt',
-      status: kilde ? 'ok' : 'error',
-      message: kilde ? undefined : 'Intet valgt',
+      status: beregningskildeStatus,
+      message: beregningskildeMessage,
     });
+
+    if (kilde === 'Overenskomst') {
+      rows.push({
+        id: `sfgg.overenskomst.${employment.id}`,
+        label: 'Overenskomst (angivet ovenfor)',
+        displayValue: overenskomstDisplay,
+        status: hasSelectedOverenskomst ? 'ok' : 'error',
+        message: hasSelectedOverenskomst ? undefined : 'Ingen overenskomst valgt',
+      });
+    }
+
+    // Når brugeren har valgt "Overenskomst" uden faktisk overenskomst-ID, stopper debug-sporet her.
+    // Det er bevidst: alle efterfølgende overenskomstafledte rækker, inkl. før-2015-bemærkningen,
+    // ville ellers fremstå som om beregningssporet var konfigureret.
+    if (kilde === 'Overenskomst' && !hasSelectedOverenskomst) {
+      continue;
+    }
 
     if (stamdata.skadesdato && stamdata.skadesdato < '2015-01-01') {
       rows.push({
@@ -2920,18 +2992,17 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       });
     }
 
-    if (kilde === 'Overenskomst' && employment.overenskomstId) {
-      const sfggPolicy = getOverenskomstSfggPolicy(employment.overenskomstId);
-      if (sfggPolicy && sfggPolicy.model !== 'direkte_sats') {
+    if (kilde === 'Overenskomst') {
+      if (overenskomstPolicy && overenskomstPolicy.model !== 'direkte_sats') {
         rows.push({
           id: `sfgg.overenskomstensReferenceperiode.${employment.id}`,
           label: 'Overenskomstens referenceperiode',
-          displayValue: `Følger ferieloven${sfggPolicy.referenceperiodeLabel ? ` (${sfggPolicy.referenceperiodeLabel})` : ''}`,
+          displayValue: `Følger ferieloven${overenskomstPolicy.referenceperiodeLabel ? ` (${overenskomstPolicy.referenceperiodeLabel})` : ''}`,
           status: 'ok',
         });
       }
 
-      if (sfggPolicy?.model === 'direkte_sats' && sfggPolicy.direkteSatsErDifferentieret) {
+      if (source.kind === 'overenskomst_direkte' && overenskomstPolicy?.direkteSatsErDifferentieret) {
         const satsvalgDisplay = row?.satsvalg === 'Faglaert-Koebenhavn'
           ? 'Faglært-København'
           : row?.satsvalg === 'Faglaert-Provinsen'
@@ -2943,7 +3014,7 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
                 : 'Intet valgt';
         rows.push({
           id: `sfgg.satsvalg.${employment.id}`,
-          label: 'Angiv skadelidtes uddannelse og arbejdssted',
+          label: 'Uddannelse og arbejdssted',
           displayValue: satsvalgDisplay,
           status: row?.satsvalg ? 'ok' : 'error',
           message: row?.satsvalg ? undefined : 'Intet valgt',
@@ -2955,10 +3026,9 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       continue;
     }
 
-    const overenskomstPolicy = employment.overenskomstId ? getOverenskomstSfggPolicy(employment.overenskomstId) : undefined;
     const foerstEfterSygeloen =
-      (kilde === 'Manuelt angivet' && row?.manuelFoerstEfterSygeloen === 'Ja')
-      || (kilde !== 'Manuelt angivet' && overenskomstPolicy?.bortfalderUnderArbejdsgiverbetaltSygeloen === true);
+      (source.kind === 'manuel' && row?.manuelFoerstEfterSygeloen === 'Ja')
+      || (source.kind !== 'manuel' && overenskomstPolicy?.bortfalderUnderArbejdsgiverbetaltSygeloen === true);
 
     rows.push({
       id: `sfgg.foerstEfterSygeloen.${employment.id}`,
@@ -2966,6 +3036,55 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       displayValue: foerstEfterSygeloen ? 'Ja' : 'Nej',
       status: 'ok',
     });
+
+    if (source.kind === 'overenskomst_direkte') {
+      rows.push({
+        id: `sfgg.referencesats.${employment.id}`,
+        label: 'Referencesats',
+        displayValue: 'Fastsættes i overenskomsten',
+        status: 'ok',
+      });
+    }
+
+    let manuelDagssatsMangler: string | undefined;
+    if (source.kind === 'manuel' && result && result.referenceSats.status !== 'ok') {
+      manuelDagssatsMangler = result.referenceSats.reason;
+    } else if (source.kind === 'manuel' && !result && amountValueToNumber(row?.manuelDagssats) === undefined) {
+      manuelDagssatsMangler = 'Dagssats mangler';
+    }
+
+    let direkteOverenskomstDagssatsMangler: string | undefined;
+    if (
+      source.kind === 'overenskomst_direkte'
+      && result
+      && result.segments.length === 0
+      && result.referenceSats.status === 'not_calculable'
+      && result.referenceSats.reason !== 'Ingen arbejdsdage i SFGG-perioden'
+    ) {
+      direkteOverenskomstDagssatsMangler = 'Dagssats kunne ikke fastsættes for den valgte overenskomst i TAF-perioden';
+    }
+
+    if (manuelDagssatsMangler) {
+      rows.push({
+        id: `sfgg.dagssats.${employment.id}`,
+        label: 'Dagssats',
+        displayValue: formatStatusMessage('error', manuelDagssatsMangler),
+        status: 'error',
+        summaryDisplay: 'messageOnly',
+        message: manuelDagssatsMangler,
+      });
+    }
+
+    if (direkteOverenskomstDagssatsMangler) {
+      rows.push({
+        id: `sfgg.dagssats.${employment.id}`,
+        label: 'Dagssats',
+        displayValue: formatStatusMessage('error', direkteOverenskomstDagssatsMangler),
+        status: 'error',
+        summaryDisplay: 'messageOnly',
+        message: direkteOverenskomstDagssatsMangler,
+      });
+    }
 
     if (result?.referenceperiode) {
       const referenceDisplay =
@@ -3024,7 +3143,7 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
         displayValue: `${formatCurrency(result.referenceSats.value / 100)} ${referenceSatsUnit}`,
         status: 'ok',
       });
-    } else if (result) {
+    } else if (result && result.referenceperiode) {
       rows.push({
         id: `sfgg.referencesats.${employment.id}`,
         label: 'Referencesats',
@@ -3037,12 +3156,19 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
 
     if (result?.segments.length) {
       const antalDageHeader = tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER ? 'Antal hverdage' : 'Antal arbejdsdage';
+      const hasReguleringsindeks = result.segments.some((segment) => segment.reguleringsindeks !== null);
       const lines = [
-        `Fra-dato | Til-dato | Sats | ${antalDageHeader} | Feriepengekrav`,
+        hasReguleringsindeks
+          ? `Fra-dato | Til-dato | Indeks | Sats | ${antalDageHeader} | Feriepengekrav`
+          : `Fra-dato | Til-dato | Sats | ${antalDageHeader} | Feriepengekrav`,
         ...result.segments.map((segment) =>
-          `${isoToDanish(segment.fra) ?? segment.fra} | ${isoToDanish(segment.til) ?? segment.til} | ${formatCurrency(segment.satsOre / 100)} | ${String(segment.antalDage)} | ${formatCurrency(segment.feriepengekravOre / 100)}`
+          hasReguleringsindeks
+            ? `${isoToDanish(segment.fra) ?? segment.fra} | ${isoToDanish(segment.til) ?? segment.til} | ${segment.reguleringsindeks === null ? '-' : formatAsAmount(segment.reguleringsindeks, 2)} | ${formatCurrency(segment.satsOre / 100)} | ${String(segment.antalDage)} | ${formatCurrency(segment.feriepengekravOre / 100)}`
+            : `${isoToDanish(segment.fra) ?? segment.fra} | ${isoToDanish(segment.til) ?? segment.til} | ${formatCurrency(segment.satsOre / 100)} | ${String(segment.antalDage)} | ${formatCurrency(segment.feriepengekravOre / 100)}`
         ),
-        `I alt |  |  |  | ${formatCurrency(result.feriepengekravTotalOre / 100)}`,
+        hasReguleringsindeks
+          ? `I alt |  |  |  |  | ${formatCurrency(result.feriepengekravTotalOre / 100)}`
+          : `I alt |  |  |  | ${formatCurrency(result.feriepengekravTotalOre / 100)}`,
       ];
       rows.push({
         id: `sfgg.tabel.${employment.id}`,

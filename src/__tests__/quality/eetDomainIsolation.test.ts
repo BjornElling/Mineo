@@ -4,6 +4,8 @@ import path from 'node:path';
 const SRC_ROOT = path.resolve(process.cwd(), 'src');
 const EO_OPLYSNINGER_TAB_PATH = path.resolve(SRC_ROOT, 'components/pages/erstatningsopgoerelse/EOOplysningerTab.tsx');
 const EO_DEBUG_PATH = path.resolve(SRC_ROOT, 'components/pages/erstatningsopgoerelse/EODebug.tsx');
+const EO_DEBUG_VIEW_PATH = path.resolve(SRC_ROOT, 'domain/debug/eoDebugPageViewModel.ts');
+const EO_DEBUG_SNAPSHOT_VIEW_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/eoSnapshotToDebugView.ts');
 const EO_PDF_MODEL_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/eoPdfModel.ts');
 const EO_PDF_BUILDERS_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/eoPdfBuilders.ts');
 const ERHVERVSEVNETAB_PAGE_PATH = path.resolve(SRC_ROOT, 'components/pages/Erhvervsevnetab.tsx');
@@ -67,7 +69,11 @@ describe('eetDomainIsolation', () => {
   });
 
   it('læser EET-oplysninger i debug/PDF fra EO-values (ikke fra erhvervsevnetab-side)', () => {
-    const debugSource = fs.readFileSync(EO_DEBUG_PATH, 'utf8');
+    const debugSource = [
+      fs.readFileSync(EO_DEBUG_PATH, 'utf8'),
+      fs.readFileSync(EO_DEBUG_VIEW_PATH, 'utf8'),
+      fs.readFileSync(EO_DEBUG_SNAPSHOT_VIEW_PATH, 'utf8'),
+    ].join('\n');
     const pdfModelSource = fs.readFileSync(EO_PDF_MODEL_PATH, 'utf8');
     const pdfBuildersSource = fs.readFileSync(EO_PDF_BUILDERS_PATH, 'utf8');
     const pdfSource = `${pdfModelSource}\n${pdfBuildersSource}`;

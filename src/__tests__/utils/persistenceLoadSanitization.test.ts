@@ -1,6 +1,7 @@
 import { stripUnknownFieldsBySchema } from '../../utils/persistenceLoadSanitization';
-import { stamdataSchema } from '../../schemas/formSchemas';
+import { erstatningsopgoerelseSchema, stamdataSchema } from '../../schemas/formSchemas';
 import { z } from 'zod';
+import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
 
 describe('persistenceLoadSanitization', () => {
   it('stripper ukendte felter og rapporterer deres stier', () => {
@@ -62,5 +63,17 @@ describe('persistenceLoadSanitization', () => {
     expect(sanitized.items[0]).toEqual({ id: 'a', value: 1 });
     expect(sanitized.items[1]).toEqual({ id: 'b', value: 2 });
     expect(sanitized.items[2]).toEqual({ id: 'c', value: 3 });
+  });
+
+  it('stripper fjernede EO-felter før strict load-parse af gamle filer', () => {
+    const legacyPayload = {
+      ...createErstatningsopgoerelseInitialValues(),
+      sfggAlleSygeperioderErTafPerioder: true,
+    };
+
+    const result = stripUnknownFieldsBySchema(erstatningsopgoerelseSchema, legacyPayload);
+
+    expect(result.unknownPaths).toContainEqual(['sfggAlleSygeperioderErTafPerioder']);
+    expect(erstatningsopgoerelseSchema.safeParse(result.sanitized).success).toBe(true);
   });
 });

@@ -178,7 +178,6 @@ const indtaegtFoerSkadenSchema = z.object({
 }).strict();
 
 const sygeferiegodtgoerelseSchema = z.object({
-  sfggAlleSygeperioderErTafPerioder: z.boolean().default(true),
   // ferieperiodeRowSchema genbruges bevidst her: sfggSygeperioderFoer2015 har samme struktur
   // (fra/til/id) som ferieperioder. Invariant: kun fra, til og id bruges — øvrige evt. ferieperiode-felter
   // er irrelevante for dette domæne og ignoreres ved læsning.

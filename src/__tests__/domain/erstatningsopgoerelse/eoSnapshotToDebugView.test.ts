@@ -43,6 +43,7 @@ describe('eoSnapshotToDebugView', () => {
     executeEODebugBuilderEntriesBySectionMock.mockReset();
     executeEODebugBuilderEntriesBySectionMock.mockReturnValue(new Map());
     buildRegulationTimelineMock.mockClear();
+    buildRegulationTimelineMock.mockReturnValue({ ansaettelser: [] });
     buildRegulationDebugSectionsMock.mockClear();
     buildRegulationDebugSectionsMock.mockReturnValue([]);
   });

@@ -415,6 +415,151 @@ describe('getEffektiveSatserForDato', () => {
     }
   });
 
+  it('bygge-anlaeg skifter differentieret SFGG 1. januar 2024 uden samtidig ændring af øvrige satser', () => {
+    const januar = getEffektiveSatserForDato({
+      overenskomstId: 'bygge-anlaeg' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-01-2024'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+    const marts = getEffektiveSatserForDato({
+      overenskomstId: 'bygge-anlaeg' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2024'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+
+    expect(januar?.grundloen).toBe(138.15);
+    expect(januar?.shSoSats).toBe(0.129);
+    expect(januar?.agPension).toBe(0.1015);
+    expect(januar?.sfggFaglKbh).toBe(207.9);
+    expect(januar?.sfggFaglProv).toBe(195.9);
+    expect(januar?.sfggUfaglKbh).toBe(184.45);
+    expect(januar?.sfggUfaglProv).toBe(186.45);
+
+    expect(marts?.grundloen).toBe(142.65);
+    expect(marts?.shSoSats).toBe(0.147);
+    expect(marts?.agPension).toBe(0.1015);
+    expect(marts?.sfggFaglKbh).toBe(207.9);
+    expect(marts?.sfggFaglProv).toBe(195.9);
+    expect(marts?.sfggUfaglKbh).toBe(184.45);
+    expect(marts?.sfggUfaglProv).toBe(186.45);
+  });
+
+  it('bygningsoverenskomsten skifter differentieret SFGG 1. januar 2024 uden samtidig ændring af øvrige satser', () => {
+    const januar = getEffektiveSatserForDato({
+      overenskomstId: 'bygningsoverenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-01-2024'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+    const marts = getEffektiveSatserForDato({
+      overenskomstId: 'bygningsoverenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2024'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+
+    expect(januar?.grundloen).toBe(137.9);
+    expect(januar?.shSoSats).toBe(0.129);
+    expect(januar?.agPension).toBe(0.1015);
+    expect(januar?.sfggFaglKbh).toBe(207.9);
+    expect(januar?.sfggFaglProv).toBe(195.9);
+    expect(januar?.sfggUfaglKbh).toBe(184.45);
+    expect(januar?.sfggUfaglProv).toBe(186.45);
+
+    expect(marts?.grundloen).toBe(142.4);
+    expect(marts?.shSoSats).toBe(0.147);
+    expect(marts?.agPension).toBe(0.1015);
+    expect(marts?.sfggFaglKbh).toBe(207.9);
+    expect(marts?.sfggFaglProv).toBe(195.9);
+    expect(marts?.sfggUfaglKbh).toBe(184.45);
+    expect(marts?.sfggUfaglProv).toBe(186.45);
+  });
+
+  it('glasoverenskomsten skifter differentieret SFGG 1. januar 2024 uden samtidig ændring af øvrige satser', () => {
+    const januar = getEffektiveSatserForDato({
+      overenskomstId: 'glasoverenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-01-2024'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+    const marts = getEffektiveSatserForDato({
+      overenskomstId: 'glasoverenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2024'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+
+    expect(januar?.grundloen).toBe(137.9);
+    expect(januar?.shSoSats).toBe(0.129);
+    expect(januar?.agPension).toBe(0.1015);
+    expect(januar?.sfggFaglKbh).toBe(207.9);
+    expect(januar?.sfggFaglProv).toBe(195.9);
+    expect(januar?.sfggUfaglKbh).toBe(184.45);
+    expect(januar?.sfggUfaglProv).toBe(186.45);
+
+    expect(marts?.grundloen).toBe(142.4);
+    expect(marts?.shSoSats).toBe(0.147);
+    expect(marts?.agPension).toBe(0.1015);
+    expect(marts?.sfggFaglKbh).toBe(207.9);
+    expect(marts?.sfggFaglProv).toBe(195.9);
+    expect(marts?.sfggUfaglKbh).toBe(184.45);
+    expect(marts?.sfggUfaglProv).toBe(186.45);
+  });
+
+  it('mureroverenskomsten skifter differentieret SFGG 1. januar 2024 uden samtidig ændring af øvrige satser', () => {
+    const januar = getEffektiveSatserForDato({
+      overenskomstId: 'mureroverenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-01-2024'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+    const marts = getEffektiveSatserForDato({
+      overenskomstId: 'mureroverenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2024'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+
+    expect(januar?.grundloen).toBe(137.9);
+    expect(januar?.shSoSats).toBe(0.129);
+    expect(januar?.agPension).toBe(0.1015);
+    expect(januar?.sfggFaglKbh).toBe(207.9);
+    expect(januar?.sfggFaglProv).toBe(195.9);
+    expect(januar?.sfggUfaglKbh).toBe(184.45);
+    expect(januar?.sfggUfaglProv).toBe(186.45);
+
+    expect(marts?.grundloen).toBe(142.4);
+    expect(marts?.shSoSats).toBe(0.147);
+    expect(marts?.agPension).toBe(0.1015);
+    expect(marts?.sfggFaglKbh).toBe(207.9);
+    expect(marts?.sfggFaglProv).toBe(195.9);
+    expect(marts?.sfggUfaglKbh).toBe(184.45);
+    expect(marts?.sfggUfaglProv).toBe(186.45);
+  });
+
+  it('el-overenskomsten skifter differentieret SFGG 1. januar 2023 uden samtidig ændring af øvrige satser', () => {
+    const januar = getEffektiveSatserForDato({
+      overenskomstId: 'el-overenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-01-2023'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+    const maj = getEffektiveSatserForDato({
+      overenskomstId: 'el-overenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-05-2023'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+
+    expect(januar?.grundloen).toBe(127.1);
+    expect(januar?.fritvalg).toBe(0.03);
+    expect(januar?.agPension).toBe(0.0815);
+    expect(januar?.sfggFaglKbh).toBe(204.25);
+    expect(januar?.sfggFaglProv).toBe(190.75);
+    expect(januar?.sfggUfaglKbh).toBe(185.4);
+    expect(januar?.sfggUfaglProv).toBe(183.9);
+
+    expect(maj?.grundloen).toBe(131.6);
+    expect(maj?.fritvalg).toBe(0.03);
+    expect(maj?.agPension).toBe(0.0815);
+    expect(maj?.sfggFaglKbh).toBe(204.25);
+    expect(maj?.sfggFaglProv).toBe(190.75);
+    expect(maj?.sfggUfaglKbh).toBe(185.4);
+    expect(maj?.sfggUfaglProv).toBe(183.9);
+  });
+
   it('shDageRegel true → justerer shSoSats', () => {
     const uden = getEffektiveSatserForDato({
       overenskomstId: 'bygge-anlaeg' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],

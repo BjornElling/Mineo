@@ -113,6 +113,10 @@ const getCustomDebugRowMessage = (
     return 'Der er indtastet forligsdato, men ikke forligsprocent eller -brøk';
   }
 
+  if (row.id.startsWith('sfgg.overenskomst.') && message === 'Ingen overenskomst valgt') {
+    return 'Det er angivet, at SFGG fastsættes efter overenskomst, men ingen overenskomst er valgt';
+  }
+
   return null;
 };
 
@@ -322,7 +326,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 
     const isLoenindkomstEmploymentDebugRow =
       pendingNavigation.target.tabId === 'loenindkomst' &&
-      pendingNavigation.debugRowId.startsWith('loenindkomst.');
+      (
+        pendingNavigation.debugRowId.startsWith('loenindkomst.')
+        || pendingNavigation.debugRowId.startsWith('sfgg.')
+      );
 
     if (isLoenindkomstEmploymentDebugRow) {
       runRowScroll();

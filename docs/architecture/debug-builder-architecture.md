@@ -420,55 +420,22 @@ Registry er ikke det eneste sted der skal opdateres.
 
 ## 16. Udestående teknisk gæld
 
-### A. `parseSfggTable` — uklar filtreringslogik
-
-I `src/domain/debug/eoDebugPageViewModel.ts`:
-
-```ts
-const dataRows = parsedRows.filter((tableRow) => tableRow.cells[0] !== 'I alt');
-const tableRows = dataRows.length > 1
-  ? parsedRows                                                         // inkl. "I alt"
-  : parsedRows.filter((tableRow) => tableRow.cells[0] !== 'I alt');   // excl. "I alt"
-```
-
-Semantikken er: "hvis der er mere end én dataræk, vis også 'I alt'-rækken, ellers skjul den". Det er muligvis tilsigtet adfærd, men intentionen fremgår ikke af koden. En navngivning som:
-
-```ts
-const showSummaryRow = dataRows.length > 1;
-const tableRows = showSummaryRow ? parsedRows : dataRows;
-```
-
-ville gøre det eksplicit og eliminere den redundante `filter`-kald i else-grenen.
-
-### B. `eoSnapshotToDebugView.test.ts` — mock genimplementerer exception-isolation
-
-Mocken af `executeEODebugBuilderEntriesBySection` i testfilen re-implementerer exception-isolation-logikken fra registry i stedet for at bruge en simpel delegation:
-
-```ts
-// Nuværende: fuld re-implementering i mock
-executeEODebugBuilderEntriesBySection: (entries, ctx) => {
-  const map = new Map();
-  entries.forEach((entry) => {
-    try { ... } catch (error) { /* genimplementeret fallback */ }
-  });
-  return map;
-}
-```
-
-Konsekvens: hvis fallback-formatet ændres i registry, vil testen stadig bestå, fordi den bruger sin egen kopi. En mere robust mock ville bare kalde entries direkte uden isolation:
-
-```ts
-executeEODebugBuilderEntriesBySection: vi.fn((entries, ctx) =>
-  new Map(entries.map((e) => [e.section, e.run(ctx)]))
-)
-```
-
-Isolation-adfærden er allerede dækket af `eoDebugBuilderRegistry.test.ts`.
-
-### C. `buildReguleringIndexRows` er importeret fra PDF-engine
+### A. `buildReguleringIndexRows` er importeret fra PDF-engine
 
 Se afsnit 8. Udestår som arkitektonisk afklaring.
 
-### D. Regex-baseret id-parsing i `eoDebugPageViewModel.ts`
+### B. Regex-baseret id-parsing i `eoDebugPageViewModel.ts`
 
 Se afsnit 11 og 13. En mere robust løsning ville være eksplicit metadata på `DebugRowModel` (fx `employmentId?: string`). Udestår som forbedring.
+
+### C. `EODebugPageViewModel` eksponerer både rows og synlighedsflag
+
+Viewmodellen returnerer i dag både:
+- sektionernes rækker
+- eksplicitte synlighedsflag som `showSvieSmerteSection` og `showTabtArbejdsfortjenesteSections`
+
+Det fungerer og er bevidst valgt for at holde UI-adfærden eksplicit i `EODebug.tsx`, men det er ikke en ideel sluttilstand:
+- det skaber to relaterede sandheder, som skal holdes i sync manuelt
+- ved fremtidige sektioner kan man glemme at gate renderingen på det relevante flag
+
+På sigt bør viewmodellen være mere deklarativ, så sektionernes tilstedeværelse i højere grad kan udledes direkte af viewmodellens struktur frem for en kombination af `rows` og særskilte synlighedsflag.

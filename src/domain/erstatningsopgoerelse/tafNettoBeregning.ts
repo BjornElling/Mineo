@@ -18,6 +18,36 @@ const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculable<MoneyOre>(reason);
 
+const buildSfggLoenudviklingMap = (
+  values: ErstatningsopgoerelseValues,
+  loenudvikling: LoenudviklingPdfModel | null
+): ReadonlyMap<string, LoenudviklingPdfModel['perAnsaettelse'][number]> | undefined => {
+  if (!loenudvikling) return undefined;
+
+  if (loenudvikling.perAnsaettelse.length > 0) {
+    return new Map(loenudvikling.perAnsaettelse.map((entry) => [entry.ansaettelsesforholdId, entry]));
+  }
+
+  const sharedSegments = loenudvikling.beregnedeSegmenter;
+  if (sharedSegments.length === 0) return undefined;
+
+  // Shared fallback bruges kun til globale modeller uden per-ansættelse-opdeling
+  // (f.eks. angivet løn med fælles reguleringsforløb). Ved overenskomst-/KRL-/statistikspor
+  // med reel per-ansættelse-beregning forventes buildLoenudviklingModel at udfylde perAnsaettelse.
+  const entries = (values.loenindkomstAnsaettelsesforhold ?? []).map((employment, index) => [
+    employment.id,
+    {
+      ansaettelsesforholdId: employment.id,
+      ansaettelsesforholdNavn: (employment.navnPaaArbejdssted?.trim() ?? '') || `Arbejdssted ${index + 1}`,
+      loenudviklingLabel: loenudvikling.loenudviklingLabel,
+      loenudviklingTotal: loenudvikling.loenudviklingTotal,
+      beregnedeSegmenter: sharedSegments,
+    },
+  ] as const);
+
+  return new Map(entries);
+};
+
 const buildTafIndtaegterModel = (
   values: ErstatningsopgoerelseValues,
   ranges: readonly IsoRange[]
@@ -82,9 +112,7 @@ export const computeTafNettoBeregning = (
       values,
       stamdata: stamdataValues,
       tafRanges,
-      loenudviklingPerAnsaettelse: loenudvikling
-        ? new Map(loenudvikling.perAnsaettelse.map((entry) => [entry.ansaettelsesforholdId, entry]))
-        : undefined,
+      loenudviklingPerAnsaettelse: buildSfggLoenudviklingMap(values, loenudvikling),
     })
     : { totalOre: ensureMoneyOre(0), perAnsaettelsesforhold: [], firstExcludedDate: null };
 

@@ -15,6 +15,11 @@ const { collectAllDebugRowsMock } = vi.hoisted(() => ({
   collectAllDebugRowsMock: vi.fn(),
 }));
 
+const { scrollToSectionMock, scrollToDebugRowMock } = vi.hoisted(() => ({
+  scrollToSectionMock: vi.fn(),
+  scrollToDebugRowMock: vi.fn(),
+}));
+
 vi.mock('../../../../hooks/useFormFieldErrors', () => ({
   useFieldErrorsBySourceForSection: () => ({}),
 }));
@@ -24,7 +29,11 @@ vi.mock('../../../../domain/debug/eoDebugRowAggregator', () => ({
 }));
 
 vi.mock('../../../../utils/scrollToSection', () => ({
-  scrollToSection: vi.fn(),
+  scrollToSection: scrollToSectionMock,
+}));
+
+vi.mock('../../../../utils/scrollToDebugRow', () => ({
+  scrollToDebugRow: scrollToDebugRowMock,
 }));
 
 vi.mock('../../../../utils/logger', () => ({
@@ -59,6 +68,8 @@ describe('EOberegningTab kontroltjek', () => {
   beforeEach(() => {
     baseSetEoValues.mockReset();
     collectAllDebugRowsMock.mockReset();
+    scrollToSectionMock.mockReset();
+    scrollToDebugRowMock.mockReset();
     collectAllDebugRowsMock.mockReturnValue({ errors: [], warnings: [], allRows: [], relevantRows: [] });
   });
 
@@ -150,6 +161,96 @@ describe('EOberegningTab kontroltjek', () => {
     expect(screen.queryByText('Send fejloplysninger')).not.toBeInTheDocument();
     expect(screen.queryByText('Systemfejl')).not.toBeInTheDocument();
     expect(screen.queryByText('TAF fordelt på år kan ikke genereres, fordi lønudvikling ikke kunne beregnes autoritativt.')).not.toBeInTheDocument();
+  });
+
+  it('viser custom fejltekst for manglende SFGG-overenskomst i fejlboksen', () => {
+    collectAllDebugRowsMock.mockReturnValue({
+      errors: [{
+        id: 'sfgg.overenskomst.af1',
+        label: 'Overenskomst (angivet ovenfor)',
+        displayValue: 'Ingen overenskomst valgt',
+        status: 'error',
+        message: 'Ingen overenskomst valgt',
+        summaryDisplay: 'default',
+        navigation: {
+          kind: 'erstatningsopgoerelse-tab',
+          tabId: 'loenindkomst',
+          tabName: 'Lønindkomst',
+          sectionTitle: 'Ansættelsesforhold',
+        },
+      }],
+      warnings: [],
+      allRows: [],
+      relevantRows: [],
+    });
+
+    renderTab({
+      activeTab: 'beregning',
+      setActiveTab: vi.fn(),
+      isActive: true,
+      eoSnapshot: null,
+      stamdataValues: baseStamdataValues,
+      eoValues: baseEoValues,
+      setEOValues: baseSetEoValues,
+    });
+
+    expect(screen.getByText('Det er angivet, at SFGG fastsættes efter overenskomst, men ingen overenskomst er valgt')).toBeInTheDocument();
+    expect(screen.queryByText('Overenskomst (angivet ovenfor): Ingen overenskomst valgt')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ansættelsesforhold' })).toBeInTheDocument();
+  });
+
+  it('navigerer SFGG-fejl direkte til ansættelsesforholdet i lønindkomst-fanen', async () => {
+    const user = (await import('@testing-library/user-event')).default.setup();
+
+    collectAllDebugRowsMock.mockReturnValue({
+      errors: [{
+        id: 'sfgg.overenskomst.af1',
+        label: 'Overenskomst (angivet ovenfor)',
+        displayValue: 'Ingen overenskomst valgt',
+        status: 'error',
+        message: 'Ingen overenskomst valgt',
+        summaryDisplay: 'default',
+        navigation: {
+          kind: 'erstatningsopgoerelse-tab',
+          tabId: 'loenindkomst',
+          tabName: 'Lønindkomst',
+          sectionTitle: 'Ansættelsesforhold',
+        },
+      }],
+      warnings: [],
+      allRows: [],
+      relevantRows: [],
+    });
+
+    const Wrapper = () => {
+      const [activeTab, setActiveTab] = React.useState<'beregning' | 'loenindkomst'>('beregning');
+      return (
+        <EOberegningTab
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          isActive={true}
+          eoSnapshot={null}
+          stamdataValues={baseStamdataValues}
+          eoValues={baseEoValues}
+          setEOValues={baseSetEoValues}
+        />
+      );
+    };
+
+    render(
+      <MemoryRouter>
+        <AppSettingsProvider>
+          <FormPersistenceProvider>
+            <Wrapper />
+          </FormPersistenceProvider>
+        </AppSettingsProvider>
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Ansættelsesforhold' }));
+
+    expect(scrollToDebugRowMock).toHaveBeenCalledWith('sfgg.overenskomst.af1');
+    expect(scrollToSectionMock).not.toHaveBeenCalled();
   });
 
   it('viser overlap-fejl uden label-prefiks for beregningsperioden', () => {

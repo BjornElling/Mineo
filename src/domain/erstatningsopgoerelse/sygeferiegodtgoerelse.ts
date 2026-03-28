@@ -18,7 +18,7 @@ import type { IsoRange } from './tafPeriodConstraints';
 import { dateToISO, parseISODate, subtractOneDay, type ISODateString } from '../../types/branded';
 import { isoToDanish, toDanishDateString } from '../../types/branded';
 import { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from './eoPdfMoneyUtils';
-import type { Calculable, MoneyOre } from './eoPdfModelTypes';
+import type { Calculable, LoenudviklingSegment, MoneyOre } from './eoPdfModelTypes';
 import { getEffektiveSatserForDato, getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../../data/overenskomstRates';
 import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
 
@@ -26,6 +26,7 @@ const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 
 type SfgSourceType = 'ingen' | 'manuel' | 'ferielov' | 'overenskomst_direkte' | 'overenskomst_ferielov';
+export type SfggSource = Readonly<{ kind: SfgSourceType; label: string }>;
 
 
 export type SygeferiegodtgoerelseSegment = Readonly<{
@@ -33,6 +34,7 @@ export type SygeferiegodtgoerelseSegment = Readonly<{
   ansaettelsesforholdNavn: string;
   fra: ISODateString;
   til: ISODateString;
+  reguleringsindeks: number | null;
   satsOre: MoneyOre;
   antalDage: number;
   feriepengekravOre: MoneyOre;
@@ -256,10 +258,20 @@ const getSfgRowForEmployment = (
 ): SygeferiegodtgoerelseAnsaettelsesforholdRow | undefined =>
   values.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === ansaettelsesforholdId);
 
-const resolveSource = (
+export const hasSfggSelectedOverenskomst = (
+  sfggRow: Pick<SygeferiegodtgoerelseAnsaettelsesforholdRow, 'beregnesUdFra'> | undefined,
+  employment: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId'>
+): boolean =>
+  Boolean(
+    sfggRow?.beregnesUdFra === 'Overenskomst'
+    && employment.harOverenskomst
+    && employment.overenskomstId?.trim()
+  );
+
+export const resolveSfggSource = (
   sfggRow: SygeferiegodtgoerelseAnsaettelsesforholdRow | undefined,
   employment: LoenindkomstAnsaettelsesforhold
-): Readonly<{ kind: SfgSourceType; label: string }> => {
+): SfggSource => {
   const selected = sfggRow?.beregnesUdFra ?? 'Ingen';
   if (selected === 'Ingen') return { kind: 'ingen', label: 'Ingen' };
   if (selected === 'Manuelt angivet') return { kind: 'manuel', label: 'Manuelt angivet' };
@@ -338,15 +350,21 @@ const resolveOverenskomstDagssatsOre = (
     applyAlmindeligLoenPaaShDageRegel: employment.loenPaaHelligdage === 'Almindelig løn',
   });
   if (!satser) return null;
-  const value = satsvalg === 'Faglaert-Koebenhavn'
-    ? satser.sfggFaglKbh
-    : satsvalg === 'Faglaert-Provinsen'
-      ? satser.sfggFaglProv
-      : satsvalg === 'Ufaglaert-Koebenhavn'
-        ? satser.sfggUfaglKbh
-        : satsvalg === 'Ufaglaert-Provinsen'
-          ? satser.sfggUfaglProv
-          : satser.sfgg;
+  const sfggPolicy = getOverenskomstSfggPolicy(employment.overenskomstId);
+  // Ved skift fra en differentieret SFGG-overenskomst til en ikke-differentieret
+  // kan et gammelt satsvalg lovligt blive hængende i formstate. Det må ikke gøre
+  // en standard direkte SFGG-sats uberegnelig; i det spor er kun den samlede sfgg relevant.
+  const value = sfggPolicy?.direkteSatsErDifferentieret
+    ? satsvalg === 'Faglaert-Koebenhavn'
+      ? satser.sfggFaglKbh
+      : satsvalg === 'Faglaert-Provinsen'
+        ? satser.sfggFaglProv
+        : satsvalg === 'Ufaglaert-Koebenhavn'
+          ? satser.sfggUfaglKbh
+          : satsvalg === 'Ufaglaert-Provinsen'
+            ? satser.sfggUfaglProv
+            : satser.sfgg
+    : satser.sfgg;
   return typeof value === 'number' && Number.isFinite(value)
     ? toOre(roundKroner(value))
     : null;
@@ -486,24 +504,37 @@ const resolveBaseRate = (
 };
 
 type PerEmploymentLoenudvikling =
-  Readonly<{ beregnedeSegmenter: readonly Readonly<{ fra: ISODateString; til: ISODateString; deltaPct: number }>[] }>
+  Readonly<{ beregnedeSegmenter: readonly LoenudviklingSegment[] }>
   | undefined;
 
-const resolveAdjustedRateOre = (
+const resolveLoenudviklingSegment = (
+  iso: ISODateString,
+  loenudvikling: PerEmploymentLoenudvikling
+): LoenudviklingSegment | undefined =>
+  loenudvikling?.beregnedeSegmenter.find((entry) => iso >= entry.fra && iso <= entry.til);
+
+const resolveAdjustedRate = (
   iso: ISODateString,
   baseRateOre: MoneyOre,
   source: Readonly<{ kind: SfgSourceType }>,
   loenudvikling: PerEmploymentLoenudvikling
-): MoneyOre => {
-  if (source.kind !== 'overenskomst_ferielov') return baseRateOre;
-  const segment = loenudvikling?.beregnedeSegmenter.find((entry) => iso >= entry.fra && iso <= entry.til);
-  if (!segment) return baseRateOre;
+): Readonly<{ satsOre: MoneyOre; reguleringsindeks: number | null }> => {
+  if (source.kind !== 'overenskomst_ferielov') {
+    return { satsOre: baseRateOre, reguleringsindeks: null };
+  }
+  const segment = resolveLoenudviklingSegment(iso, loenudvikling);
+  if (!segment) {
+    return { satsOre: baseRateOre, reguleringsindeks: null };
+  }
   // Bevidst undtagelse fra no-prerounding-princippet i form-contract.md:
   // Referencesatsen er en dagssats, der udgør et selvstændigt beregningsresultat —
   // ikke et delresultat i en længere beregningskæde. Afrunding pr. dag til øre-niveau
   // er intentionel og afspejler, at den justerede dagssats er den kanoniske størrelse
   // der ganges på antal dage. Ændres dette, opstår der akkumulerede afrundingsfejl.
-  return toOre(roundKroner((baseRateOre / 100) * (100 + segment.deltaPct)));
+  return {
+    satsOre: toOre(roundKroner((baseRateOre / 100) * (1 + segment.deltaPct / 100))),
+    reguleringsindeks: roundByMethod(100 + segment.deltaPct, 2, 'halfAwayFromZero'),
+  };
 };
 
 export const computeSygeferiegodtgoerelse = (args: Readonly<{
@@ -538,7 +569,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
 
   for (const employment of values.loenindkomstAnsaettelsesforhold ?? []) {
     const sfggRow = getSfgRowForEmployment(values, employment.id);
-    const source = resolveSource(sfggRow, employment);
+    const source = resolveSfggSource(sfggRow, employment);
     if (source.kind === 'ingen') continue;
 
     const explanatoryLines: string[] = [];
@@ -605,26 +636,39 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     }
 
     const baseRate = resolveBaseRate(values, employment, sfggRow, source);
-    const grouped: Array<{ fra: ISODateString; til: ISODateString; satsOre: MoneyOre; dates: ISODateString[] }> = [];
+    const grouped: Array<{
+      fra: ISODateString;
+      til: ISODateString;
+      reguleringsindeks: number | null;
+      satsOre: MoneyOre;
+      dates: ISODateString[];
+    }> = [];
     for (const iso of eligibleWorkdays) {
       let satsOre: MoneyOre | null = null;
+      let reguleringsindeks: number | null = null;
       if (source.kind === 'overenskomst_direkte') {
         satsOre = resolveOverenskomstDagssatsOre(employment, iso, sfggRow?.satsvalg);
       } else if (baseRate.satsOre.status === 'ok') {
-        satsOre = resolveAdjustedRateOre(
+        const adjusted = resolveAdjustedRate(
           iso,
           baseRate.satsOre.value,
           source,
           args.loenudviklingPerAnsaettelse?.get(employment.id)
         );
+        satsOre = adjusted.satsOre;
+        reguleringsindeks = adjusted.reguleringsindeks;
       }
       if (satsOre === null) continue;
       const previous = grouped[grouped.length - 1];
-      if (previous && previous.satsOre === satsOre) {
+      if (
+        previous &&
+        previous.satsOre === satsOre &&
+        previous.reguleringsindeks === reguleringsindeks
+      ) {
         previous.til = iso;
         previous.dates.push(iso);
       } else {
-        grouped.push({ fra: iso, til: iso, satsOre, dates: [iso] });
+        grouped.push({ fra: iso, til: iso, reguleringsindeks, satsOre, dates: [iso] });
       }
     }
 
@@ -659,6 +703,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
         ansaettelsesforholdNavn: getEmploymentName(employment),
         fra: group.fra,
         til: group.til,
+        reguleringsindeks: group.reguleringsindeks,
         satsOre: group.satsOre,
         antalDage: group.dates.length,
         feriepengekravOre: grossOre,

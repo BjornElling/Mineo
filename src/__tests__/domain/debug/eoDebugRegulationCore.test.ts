@@ -90,7 +90,7 @@ describe('buildRegulationTimeline - Index model', () => {
     expect(hasSbd).toBe(true);
   });
 
-  it('udelader store bededag-dato uden almindelig loen paa helligdage', () => {
+  it('indsætter 01-01-2024 som entry for bygge-anlaeg fordi overenskomsten har en regulering på den dato', () => {
     const input = makeInput();
     input.eoValues.vedroererPeriodeFra = '2023-12-01';
     input.eoValues.vedroererPeriodeTil = '2024-06-01';
@@ -100,7 +100,22 @@ describe('buildRegulationTimeline - Index model', () => {
     const result = buildRegulationTimeline(input);
     const entries = result.ansaettelser[0]?.entries ?? [];
     const hasSbd = entries.some((entry) => entry.effectiveFrom === '2024-01-01');
-    expect(hasSbd).toBe(false);
+    expect(hasSbd).toBe(true);
+  });
+
+  it('udelader 01-01-2024 for overenskomst uden regulering på datoen når SH-dage udbetales særskilt', () => {
+    const input = makeInput();
+    input.eoValues.vedroererPeriodeFra = '2023-12-01';
+    input.eoValues.vedroererPeriodeTil = '2024-06-01';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = 'industriens-overenskomst';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.SH_UDBETALING;
+    input.stamdataValues.skadesdato = iso('2023-12-01');
+
+    const result = buildRegulationTimeline(input);
+    const entries = result.ansaettelser[0]?.entries ?? [];
+    const hasFirstJanuaryEntry = entries.some((entry) => entry.effectiveFrom === '2024-01-01');
+
+    expect(hasFirstJanuaryEntry).toBe(false);
   });
 });
 

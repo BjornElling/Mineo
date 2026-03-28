@@ -82,7 +82,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
           }),
           expect.objectContaining({
             id: `sfgg.satsvalg.${values.loenindkomstAnsaettelsesforhold[0].id}`,
-            label: 'Angiv skadelidtes uddannelse og arbejdssted',
+            label: 'Uddannelse og arbejdssted',
             displayValue: 'Intet valgt',
             status: 'error',
             message: 'Intet valgt',
@@ -99,6 +99,42 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     } finally {
       buildLoenudviklingModelSpy.mockRestore();
     }
+  });
+
+  it('viser valgt overenskomstnavn som separat debug-række ved overenskomstbaseret SFGG', () => {
+    const values = createValues();
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      harOverenskomst: true,
+      overenskomstId: 'bygge-anlaeg',
+    };
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        beregnesUdFra: 'Overenskomst',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: 0,
+        alleredeBetaltBeloeb: '0,00',
+      },
+    ];
+
+    const rows = buildEODebugSygeferiegodtgoerelseRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2024-01-01',
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `sfgg.overenskomst.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'Overenskomst (angivet ovenfor)',
+          displayValue: 'Bygge-/anlægsoverenskomsten',
+          status: 'ok',
+        }),
+      ])
+    );
   });
 
   it('viser overenskomstens referenceperiode som separat debug-række ved overenskomstbaseret SFGG', () => {
@@ -207,6 +243,165 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
           label: 'Beregnet sygeferiegodtgørelse',
           displayValue: '65,79',
           status: 'ok',
+        }),
+      ])
+    );
+  });
+
+  it('viser fejl på beregningskilden når overenskomst-ID ikke kan slås op', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      harOverenskomst: true,
+      overenskomstId: 'ukendt-overenskomst-id',
+    };
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        beregnesUdFra: 'Overenskomst',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: 0,
+        alleredeBetaltBeloeb: '0,00',
+      },
+    ];
+
+    const rows = buildEODebugSygeferiegodtgoerelseRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2024-01-01',
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `sfgg.beregningskilde.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          displayValue: 'Overenskomst',
+          status: 'error',
+          message: 'Ukendt overenskomst-ID',
+        }),
+      ])
+    );
+  });
+
+  it('viser fejl-række når overenskomst ikke er valgt ovenfor og skjuler efterfølgende SFGG-rækker', () => {
+    const values = createValues();
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      harOverenskomst: false,
+      overenskomstId: undefined,
+    };
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        beregnesUdFra: 'Overenskomst',
+        referenceperiodeFra: '2023-12-01',
+        referenceperiodeTil: '2023-12-31',
+        referenceperiodeFravaersdageUdenLoen: 0,
+        alleredeBetaltBeloeb: '0,00',
+      },
+    ];
+
+    const rows = buildEODebugSygeferiegodtgoerelseRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2024-01-01',
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `sfgg.beregningskilde.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          displayValue: 'Overenskomst',
+          status: 'ok',
+        }),
+        expect.objectContaining({
+          id: `sfgg.overenskomst.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'Overenskomst (angivet ovenfor)',
+          displayValue: 'Ingen overenskomst valgt',
+          status: 'error',
+          message: 'Ingen overenskomst valgt',
+        }),
+      ])
+    );
+    expect(rows.find((row) => row.id === `sfgg.foerstEfterSygeloen.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toBeUndefined();
+    expect(rows.find((row) => row.id === `sfgg.referenceperiode.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toBeUndefined();
+    expect(rows.find((row) => row.id === `sfgg.referencesats.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toBeUndefined();
+  });
+
+  it('viser dagssats-fejl ved manuelt angivet SFGG uden dagssats', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        beregnesUdFra: 'Manuelt angivet',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: 0,
+        manuelDagssats: undefined,
+        manuelFoerstEfterSygeloen: 'Nej',
+        alleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2024-01-15',
+        til: '2024-01-15',
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const rows = buildEODebugSygeferiegodtgoerelseRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2024-01-01',
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `sfgg.dagssats.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'Dagssats',
+          status: 'error',
+          message: 'Dagssats mangler',
+        }),
+      ])
+    );
+  });
+
+  it('viser dagssats-fejl også uden TAF-perioder når manuel dagssats mangler', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        beregnesUdFra: 'Manuelt angivet',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: 0,
+        manuelDagssats: undefined,
+        manuelFoerstEfterSygeloen: 'Nej',
+        alleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    values.tafPerioder = [];
+
+    const rows = buildEODebugSygeferiegodtgoerelseRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2024-01-01',
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `sfgg.dagssats.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'Dagssats',
+          status: 'error',
+          message: 'Dagssats mangler',
         }),
       ])
     );
@@ -342,6 +537,416 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         }),
       ])
     );
+  });
+
+  it('viser reguleringsindeks i SFGG-tabellen ved overenskomstbaseret referencesats og splitter ved reguleringsdato', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      harOverenskomst: true,
+      overenskomstId: 'industriens-overenskomst',
+      feriePct: 12.5,
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-dec-2023',
+        col0_maaned: '12',
+        col1_maaned: '2023',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '',
+        col1_dag: '',
+        col2: { kind: 'number', value: 10000 },
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    };
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        beregnesUdFra: 'Overenskomst',
+        referenceperiodeFra: '2023-12-01',
+        referenceperiodeTil: '2023-12-31',
+        referenceperiodeFravaersdageUdenLoen: 0,
+        alleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2024-02-26',
+        til: '2024-03-05',
+        loseFeriedage: undefined,
+      },
+    ];
+    const buildLoenudviklingModelSpy = vi
+      .spyOn(eoPdfLoenudviklingModule, 'buildLoenudviklingModel')
+      .mockImplementation(() => ({
+        loenudviklingLabel: 'Overenskomst',
+        loenudviklingTotal: { status: 'ok', value: 0 },
+        beregnedeSegmenter: [],
+        perAnsaettelse: [
+          {
+            ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+            loenudviklingLabel: 'Overenskomst',
+            loenudviklingTotal: { status: 'ok', value: 0 },
+            beregnedeSegmenter: [
+              {
+                kind: 'arbejdsdage',
+                fra: '2024-02-26',
+                til: '2024-02-29',
+                arbejdsdage: 4,
+                dagsloenOre: 0,
+                deltaPct: 0,
+                amountOre: 0,
+              },
+              {
+                kind: 'arbejdsdage',
+                fra: '2024-03-01',
+                til: '2024-03-05',
+                arbejdsdage: 3,
+                dagsloenOre: 0,
+                deltaPct: 5.03,
+                amountOre: 0,
+              },
+            ],
+          },
+        ],
+      }));
+
+    try {
+      const rows = buildEODebugSygeferiegodtgoerelseRows(values, {
+        journalnr: undefined,
+        skadestype: 'Arbejdsulykke',
+        skadesdato: '2024-01-01',
+      });
+
+      const tableRow = rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`);
+      expect(tableRow).toEqual(
+        expect.objectContaining({
+          id: `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'SFGG-beregning',
+          status: 'ok',
+        })
+      );
+      expect(tableRow?.displayValue).toContain('Fra-dato | Til-dato | Indeks | Sats | Antal arbejdsdage | Feriepengekrav');
+      expect(tableRow?.displayValue).toContain('26-02-2024 | 29-02-2024 | 100,00 | 65,79 |');
+      expect(tableRow?.displayValue).toContain('01-03-2024 | 05-03-2024 | 105,03 | 69,10 |');
+      expect(tableRow?.displayValue).toContain('I alt |  |  |  |  | ');
+    } finally {
+      buildLoenudviklingModelSpy.mockRestore();
+    }
+  });
+
+  it('viser reguleringsindeks i SFGG-tabellen med reel beregningsperiode-model', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.periodeTilBeregningFra = '2023-12-01';
+    values.periodeTilBeregningTil = '2023-12-31';
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      harOverenskomst: true,
+      overenskomstId: 'industriens-overenskomst',
+      feriePct: 16.95,
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-dec-2023',
+        col0_maaned: '12',
+        col1_maaned: '2023',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '',
+        col1_dag: '',
+        col2: { kind: 'number', value: 2666.28 },
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    };
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        beregnesUdFra: 'Overenskomst',
+        referenceperiodeFra: '2023-12-01',
+        referenceperiodeTil: '2023-12-31',
+        referenceperiodeFravaersdageUdenLoen: 0,
+        alleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2024-02-26',
+        til: '2024-03-05',
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const rows = buildEODebugSygeferiegodtgoerelseRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2024-01-01',
+    });
+
+    const tableRow = rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`);
+    expect(tableRow?.displayValue).toContain('Fra-dato | Til-dato | Indeks | Sats |');
+    expect(tableRow?.displayValue).toContain('26-02-2024 | 29-02-2024 | 100,00 | 21,52 |');
+    expect(tableRow?.displayValue).toContain('01-03-2024 | 05-03-2024 | 105,08 | 22,61 |');
+  });
+
+  it('viser referencesats som overenskomstfastsat ved direkte overenskomstsats uden referenceperiode', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      harOverenskomst: true,
+      overenskomstId: 'bygningsoverenskomsten',
+      feriePct: 12.5,
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-jan-2024',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '',
+        col1_dag: '',
+        col2: { kind: 'number', value: 10000 },
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    };
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        beregnesUdFra: 'Overenskomst',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: undefined,
+        satsvalg: 'Faglaert-Koebenhavn',
+        alleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2024-01-15',
+        til: '2024-01-15',
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const rows = buildEODebugSygeferiegodtgoerelseRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2024-01-01',
+    });
+
+    expect(rows.find((row) => row.id === `sfgg.referencesats.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toEqual(
+      expect.objectContaining({
+        id: `sfgg.referencesats.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+        label: 'Referencesats',
+        displayValue: 'Fastsættes i overenskomsten',
+        status: 'ok',
+      })
+    );
+    expect(rows.find((row) => row.id === `sfgg.referenceperiode.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toBeUndefined();
+    expect(rows.find((row) => row.id === `sfgg.referenceperiodeantal.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toBeUndefined();
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `sfgg.satsvalg.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          status: 'ok',
+        }),
+      ])
+    );
+  });
+
+  it('viser SFGG-tabel for Transportoverenskomsten (ATL) ved direkte overenskomstsats', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      harOverenskomst: true,
+      overenskomstId: 'transportoverenskomsten-atl',
+      feriePct: 12.5,
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
+    };
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        beregnesUdFra: 'Overenskomst',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: undefined,
+        satsvalg: 'Faglaert-Provinsen',
+        alleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2024-01-26',
+        til: '2024-03-05',
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const rows = buildEODebugSygeferiegodtgoerelseRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2024-01-01',
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'SFGG-beregning',
+          displayValue: expect.stringContaining('26-01-2024 | 29-02-2024 | 146,20 |'),
+        }),
+      ])
+    );
+  });
+
+  it('viser fejl når direkte overenskomstsats ikke kan fastsættes i TAF-perioden', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      harOverenskomst: true,
+      overenskomstId: 'transportoverenskomsten-atl',
+      feriePct: 12.5,
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
+    };
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        beregnesUdFra: 'Overenskomst',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: undefined,
+        satsvalg: undefined,
+        alleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2010-01-04',
+        til: '2010-01-05',
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const rows = buildEODebugSygeferiegodtgoerelseRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2010-01-01',
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `sfgg.referencesats.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'Referencesats',
+          displayValue: 'Fastsættes i overenskomsten',
+          status: 'ok',
+        }),
+        expect.objectContaining({
+          id: `sfgg.dagssats.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'Dagssats',
+          status: 'error',
+          message: 'Dagssats kunne ikke fastsættes for den valgte overenskomst i TAF-perioden',
+        }),
+      ])
+    );
+    expect(rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toBeUndefined();
+  });
+
+  it('fejler ikke hele SFGG-debug når lønudviklingsmodellen mangler beregningsgrundlag', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      harOverenskomst: true,
+      overenskomstId: 'industriens-overenskomst',
+      feriePct: 12.5,
+      loenudviklingBeregningsgrundlag: undefined,
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-dec-2023',
+        col0_maaned: '12',
+        col1_maaned: '2023',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '',
+        col1_dag: '',
+        col2: { kind: 'number', value: 10000 },
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    };
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        beregnesUdFra: 'Overenskomst',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: undefined,
+        alleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2024-01-15',
+        til: '2024-01-15',
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const buildLoenudviklingModelSpy = vi
+      .spyOn(eoPdfLoenudviklingModule, 'buildLoenudviklingModel')
+      .mockImplementation(() => {
+        throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
+      });
+
+    try {
+      expect(() =>
+        buildEODebugSygeferiegodtgoerelseRows(values, {
+          journalnr: undefined,
+          skadestype: 'Arbejdsulykke',
+          skadesdato: '2024-01-01',
+        })
+      ).not.toThrow();
+
+      const rows = buildEODebugSygeferiegodtgoerelseRows(values, {
+        journalnr: undefined,
+        skadestype: 'Arbejdsulykke',
+        skadesdato: '2024-01-01',
+      });
+
+      expect(rows).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: `sfgg.beregningskilde.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+            displayValue: 'Overenskomst',
+            status: 'ok',
+          }),
+        ])
+      );
+    } finally {
+      buildLoenudviklingModelSpy.mockRestore();
+    }
   });
 
   it('viser formel på feriepenge modtaget i perioden når der er lønindkomst i TAF-perioden', () => {

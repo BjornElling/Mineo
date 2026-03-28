@@ -102,7 +102,7 @@ describe('eoPdfReguleringEngine', () => {
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(false);
   });
 
-  it('indsætter Store Bededag som separat række 01-01-2024 i privat reguleringsværdier-tabel', () => {
+  it('indsætter 01-01-2024 som separat række i privat reguleringsværdier-tabel fordi bygge-anlaeg har en overenskomstregulering på den dato', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
@@ -119,7 +119,7 @@ describe('eoPdfReguleringEngine', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(false);
+    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
   it('splitter private indeksrækker ved 01-01-2024 selv når inputsegmentet krydser datoen', () => {

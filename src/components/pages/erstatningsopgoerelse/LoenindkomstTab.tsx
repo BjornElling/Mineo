@@ -76,7 +76,11 @@ import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '
 import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerelse/loenoplysningerInput';
 import { DEFAULT_ANCIENNITET_FIELDS } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { resolveSfggReferenceperiodeDayCount, resolveSfggReferenceperiodeMaxDate } from '../../../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
+import {
+  hasSfggSelectedOverenskomst,
+  resolveSfggReferenceperiodeDayCount,
+  resolveSfggReferenceperiodeMaxDate,
+} from '../../../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
 import {
   buildStandardLoenZeroArbejdsdageCellErrorMessages,
   type AarsloenZeroArbejdsdageValidationInput,
@@ -1739,11 +1743,22 @@ const LoenindkomstTab = React.memo(({
         const sfggOverenskomstMeta = af.overenskomstId
           ? getOverenskomstMetaById(af.overenskomstId)
           : undefined;
+        const hasSfggOverenskomst = hasSfggSelectedOverenskomst(sfggRow, af);
+        const sfggSelectedOverenskomstLabel = hasSfggOverenskomst
+          ? (sfggOverenskomstMeta?.navn ?? af.overenskomstId!.trim())
+          : 'Ingen overenskomst valgt';
+        const canShowSfggOverenskomstDetails =
+          sfggRow?.beregnesUdFra !== 'Overenskomst' || hasSfggOverenskomst;
         const requiresReferenceperiode =
           sfggRow?.beregnesUdFra === 'Ferieloven'
-          || (sfggRow?.beregnesUdFra === 'Overenskomst' && sfggPolicy?.model !== 'direkte_sats');
+          || (
+            sfggRow?.beregnesUdFra === 'Overenskomst'
+            && hasSfggOverenskomst
+            && sfggPolicy?.model !== 'direkte_sats'
+          );
         const showSatsvalg =
           sfggRow?.beregnesUdFra === 'Overenskomst'
+          && hasSfggOverenskomst
           && sfggPolicy?.model === 'direkte_sats'
           && sfggPolicy.direkteSatsErDifferentieret;
         const referenceperiodeAvailability = getSfggReferenceperiodeAvailability(sfggRow);
@@ -2485,7 +2500,18 @@ const LoenindkomstTab = React.memo(({
                   </Box>
                 </Box>
 
-                {sfggRow?.beregnesUdFra === 'Overenskomst' && sfggOverenskomstMeta && sfggPolicy?.model !== 'direkte_sats' ? (
+                {sfggRow?.beregnesUdFra === 'Overenskomst' ? (
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">Overenskomst (angivet ovenfor)</Typography>
+                    <Box className="row--label-right-hover__content">
+                      <Typography className="row--text" sx={{ textAlign: 'right', maxWidth: '520px' }}>
+                        {sfggSelectedOverenskomstLabel}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ) : null}
+
+                {sfggRow?.beregnesUdFra === 'Overenskomst' && canShowSfggOverenskomstDetails && sfggPolicy?.model !== 'direkte_sats' ? (
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Overenskomstens referenceperiode</Typography>
                     <Box className="row--label-right-hover__content">
@@ -2496,7 +2522,7 @@ const LoenindkomstTab = React.memo(({
                   </Box>
                 ) : null}
 
-                {showSatsvalg ? (
+                {canShowSfggOverenskomstDetails && showSatsvalg ? (
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Angiv skadelidtes uddannelse og arbejdssted</Typography>
                     <Box className="row--label-right-hover__content">
@@ -2528,7 +2554,7 @@ const LoenindkomstTab = React.memo(({
                   </Box>
                 ) : null}
 
-                {requiresReferenceperiode ? (
+                {canShowSfggOverenskomstDetails && requiresReferenceperiode ? (
                   <>
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">Referenceperiode</Typography>
@@ -2599,7 +2625,7 @@ const LoenindkomstTab = React.memo(({
                   </>
                 ) : null}
 
-                {sfggRow?.beregnesUdFra === 'Overenskomst' && sfggPolicy?.model === 'direkte_sats' && !showSatsvalg ? (
+                {sfggRow?.beregnesUdFra === 'Overenskomst' && canShowSfggOverenskomstDetails && sfggPolicy?.model === 'direkte_sats' && !showSatsvalg ? (
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Referencesats</Typography>
                     <Box className="row--label-right-hover__content">
@@ -2660,7 +2686,7 @@ const LoenindkomstTab = React.memo(({
                   </>
                 ) : null}
 
-                {sfggRow?.beregnesUdFra !== undefined && sfggRow.beregnesUdFra !== 'Ingen' ? (
+                {sfggRow?.beregnesUdFra !== undefined && sfggRow.beregnesUdFra !== 'Ingen' && canShowSfggOverenskomstDetails ? (
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Evt. allerede betalt sygeferiegodtgørelse i denne erstatningsperiode</Typography>
                     <Box className="row--label-right-hover__content">
