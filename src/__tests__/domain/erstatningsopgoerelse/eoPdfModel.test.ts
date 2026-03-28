@@ -227,6 +227,51 @@ describe('eoPdfModel', () => {
     expect(model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre).toBe(0);
   });
 
+  it('nulstiller tabt arbejdsfortjeneste i PDF-model når beregnesTabtArbejdsfortjeneste er Nej trods stale TAF-data', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      beregnesTabtArbejdsfortjeneste: 'Nej',
+      maanedsloenenUdgoer: asAmountValue(39099),
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-01-31'),
+      tafArbejdsstatus: 'Førtidspension',
+      differencekravDato: iso('2024-02-01'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [],
+        },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2024',
+          tilDato: '31-01-2024',
+          ydelse: asAmountValue(1000),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-10') });
+
+    expect(model.tabtArbejdsfortjeneste.beregnes).toBe(false);
+    expect(model.tabtArbejdsfortjeneste.harTafPerioder).toBe(false);
+    expect(model.tabtArbejdsfortjeneste.statusLinjer).toEqual([]);
+    expect(model.tabtArbejdsfortjeneste.tafPerioderLinjer).toEqual([]);
+    expect(model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt).toBeNull();
+    expect(model.tabtArbejdsfortjeneste.loenudvikling).toBeNull();
+    expect(model.tabtArbejdsfortjeneste.tafIndtaegter).toBeNull();
+    expect(model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre).toBe(0);
+    expect(model.samlet.tabtArbejdsfortjenesteOre).toBe(0);
+  });
+
   it('treats missing TAF-period income as 0 kr. for angivet månedsløn', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
@@ -343,6 +388,30 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
     expect(model.svieSmerte.satserPerDag.status).toBe('not_calculable');
+  });
+
+  it('markerer svie/smerte som fravalgt i PDF-model når tidligereSsMax er Ja trods stale periodefelter', () => {
+    const eoValues = makeValues({
+      beregnesSvieSmerteGodtgoerelse: 'Ja',
+      tidligereSsMax: 'Ja',
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-01-31'),
+      svieSmerteHelbredsstatus: 'Sygemeldt',
+      svieSmerteSatserAar: 2026,
+      svieSmerteDelvisSygemeldingSats: 'fuld',
+      svieSmerteTidligereTotal: asAmountValue(1000),
+      svieSmerteAktuelPeriode: asAmountValue(500),
+      svieSmertePerioder: [
+        { id: 'ss-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), tilstand: 'sygemeldt' },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.svieSmerte.beregnes).toBe(false);
+    expect(model.svieSmerte.harPerioder).toBe(false);
+    expect(model.svieSmerte.totalOre).toBe(0);
   });
 
   it('summerer øvrige krav i øre', () => {

@@ -24,6 +24,13 @@ type OpgorelseSectionContext = Readonly<{
   rightColumnWidth: number;
   renderSectionHeader: (text: string, nextLineHeight: number) => void;
   renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
+  renderSubheaderIfContent: (params: Readonly<{
+    text: string;
+    nextLineHeight: number;
+    hasContent: boolean;
+    renderContent: () => void;
+    options?: Readonly<{ addTopSpacing?: boolean }>;
+  }>) => boolean;
   renderSubheaderWithWrappedText: (subheaderText: string, bodyText: string) => void;
   safeAddWrappedText: (text: string) => void;
   safeAddLeftRightText: (
@@ -138,6 +145,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     rightColumnWidth,
     renderSectionHeader,
     renderSubheader,
+    renderSubheaderIfContent,
     renderSubheaderWithWrappedText,
     safeAddWrappedText,
     safeAddLeftRightText,
@@ -210,24 +218,31 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   }
 
   renderSectionHeader('Svie- og smertegodtgørelse', lineHeight);
-  renderSubheader('Status', lineHeight, { addTopSpacing: false });
-  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
-
-  for (const line of model.svieSmerte.statusLinjer) {
-    safeAddWrappedText(line);
-  }
-  writeBilagReferenceLinje(bilag.menAfgoerelse);
-
-  renderSubheader(model.svieSmerte.periodeHeading, lineHeight);
   assertModelInvariant(
     model.svieSmerte.harPerioder === (model.svieSmerte.periodeLinjer.length > 0),
     'svieSmerte.harPerioder matcher ikke svieSmerte.periodeLinjer.'
   );
-  if (!model.svieSmerte.harPerioder) {
-    safeAddWrappedText('Ingen');
-  } else if (!model.svieSmerte.beregnes) {
+  if (!model.svieSmerte.beregnes) {
     safeAddWrappedText('Ingen');
   } else {
+    renderSubheaderIfContent({
+      text: 'Status',
+      nextLineHeight: lineHeight,
+      hasContent: model.svieSmerte.statusLinjer.length > 0,
+      options: { addTopSpacing: false },
+      renderContent: () => {
+        writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+        for (const line of model.svieSmerte.statusLinjer) {
+          safeAddWrappedText(line);
+        }
+        writeBilagReferenceLinje(bilag.menAfgoerelse);
+      },
+    });
+
+    renderSubheader(model.svieSmerte.periodeHeading, lineHeight);
+    if (!model.svieSmerte.harPerioder) {
+      safeAddWrappedText('Ingen');
+    } else {
     for (const line of model.svieSmerte.periodeLinjer) {
       safeAddWrappedText(line);
     }
@@ -359,37 +374,50 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
     const beloebDisplay = formatMoneyOreWithKr(model.svieSmerte.totalOre);
     safeAddLeftRightText(lineLeft, beloebDisplay, writer.getTextWidth('000.000.000,00'), { rightFontStyle: 'bold' });
+    }
   }
 
   renderSectionHeader('Tabt arbejdsfortjeneste', lineHeight);
-  renderSubheader('Status', lineHeight, { addTopSpacing: false });
-  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
-
-  for (const line of model.tabtArbejdsfortjeneste.statusLinjer) {
-    safeAddWrappedText(line);
-  }
-
-  for (const line of model.tabtArbejdsfortjeneste.eetLinjer) {
-    safeAddWrappedText(line);
-  }
-  writeBilagReferenceLinje(bilag.eetAfgoerelser);
-
-  if (model.tabtArbejdsfortjeneste.differencekravLinje) {
-    safeAddWrappedText(model.tabtArbejdsfortjeneste.differencekravLinje);
-  }
-
-  const tafPeriodeHeader = model.tabtArbejdsfortjeneste.tafPerioderLinjer.length > 1
-    ? 'Erstatningsperioder, hvor der beregnes tabt arbejdsfortjeneste'
-    : 'Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste';
-  renderSubheader(tafPeriodeHeader, lineHeight);
-
   const tafPerioderLines = model.tabtArbejdsfortjeneste.tafPerioderLinjer;
   const hasTafPerioder = model.tabtArbejdsfortjeneste.harTafPerioder;
   assertModelInvariant(hasTafPerioder === (tafPerioderLines.length > 0), 'harTafPerioder matcher ikke tafPerioderLinjer.');
 
-  if (!hasTafPerioder) {
+  if (!model.tabtArbejdsfortjeneste.beregnes) {
     safeAddWrappedText('Ingen');
   } else {
+    renderSubheaderIfContent({
+      text: 'Status',
+      nextLineHeight: lineHeight,
+      hasContent:
+        model.tabtArbejdsfortjeneste.statusLinjer.length > 0 ||
+        model.tabtArbejdsfortjeneste.eetLinjer.length > 0 ||
+        model.tabtArbejdsfortjeneste.differencekravLinje !== null,
+      options: { addTopSpacing: false },
+      renderContent: () => {
+        writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+        for (const line of model.tabtArbejdsfortjeneste.statusLinjer) {
+          safeAddWrappedText(line);
+        }
+
+        for (const line of model.tabtArbejdsfortjeneste.eetLinjer) {
+          safeAddWrappedText(line);
+        }
+        writeBilagReferenceLinje(bilag.eetAfgoerelser);
+
+        if (model.tabtArbejdsfortjeneste.differencekravLinje) {
+          safeAddWrappedText(model.tabtArbejdsfortjeneste.differencekravLinje);
+        }
+      },
+    });
+
+    const tafPeriodeHeader = model.tabtArbejdsfortjeneste.tafPerioderLinjer.length > 1
+      ? 'Erstatningsperioder, hvor der beregnes tabt arbejdsfortjeneste'
+      : 'Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste';
+    renderSubheader(tafPeriodeHeader, lineHeight);
+
+    if (!hasTafPerioder) {
+      safeAddWrappedText('Ingen');
+    } else {
     for (const line of tafPerioderLines) {
       safeAddWrappedText(line);
     }
@@ -730,6 +758,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       renderSubheader('Beregnet krav på tabt arbejdsfortjeneste', lineHeight);
       const rightMaxWidth = writer.getTextWidth('000.000.000,00');
       safeAddLeftRightText('Beregnet krav på tabt arbejdsfortjeneste', '—', rightMaxWidth, { rightFontStyle: 'bold' });
+    }
     }
   }
 

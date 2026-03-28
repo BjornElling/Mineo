@@ -41,6 +41,7 @@ const FAKE_MODEL = {
   skadestypeLinje: 'Arbejdsulykke den 1. januar 2024',
   forlig: { erIndgaaet: false, label: null, dato: null, factor: null },
   tabtArbejdsfortjeneste: {
+    beregnes: true,
     statusLinjer: ['Status: aktiv'],
     eetLinjer: [],
     differencekravLinje: null,
@@ -112,6 +113,34 @@ describe('tafFordeltPaaAarPdf wiring', () => {
         },
       })
     ).not.toThrow();
+  });
+
+  it('viser ikke tom status-underoverskrift når statusblokken er uden indhold', async () => {
+    const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
+
+    generateTafFordeltPaaAarPdf({
+      document: {
+        model: {
+          ...FAKE_MODEL,
+          tabtArbejdsfortjeneste: {
+            ...FAKE_MODEL.tabtArbejdsfortjeneste,
+            statusLinjer: [],
+            eetLinjer: [],
+            differencekravLinje: null,
+            harTafPerioder: false,
+            tafPerioderLinjer: [],
+          },
+        } as never,
+        presentation: null,
+      },
+    });
+
+    const instance = MockJsPDF.instances.at(-1);
+    const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
+    expect(renderedText).not.toContain('Status');
+    expect(renderedText).toContain('Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste');
+    expect(renderedText).toContain('TAF fordelt på kalenderår');
+    expect(renderedText.filter((text) => text === 'Ingen')).toHaveLength(2);
   });
 
   it('gemmer PDF med korrekt filnavn', async () => {

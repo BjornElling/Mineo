@@ -95,7 +95,8 @@ export const computeTafNettoBeregning = (
   options: Readonly<{ tafRanges: readonly IsoRange[] }>
 ): TafNettoBeregningResult => {
   const tafRanges = options.tafRanges;
-  const harTafPerioder = tafRanges.length > 0;
+  const beregnes = values.beregnesTabtArbejdsfortjeneste === 'Ja';
+  const harTafPerioder = beregnes && tafRanges.length > 0;
   const tafBeregningsenhed = computeTafBeregningsenhed(values);
 
   const indkomstSkadestidspunkt = harTafPerioder

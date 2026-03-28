@@ -107,6 +107,7 @@ export type SvieSmertePdfModel = Readonly<{
 }>;
 
 export type TabtArbejdsfortjenestePdfModel = Readonly<{
+  beregnes: boolean;
   statusLinjer: readonly string[];
   eetLinjer: readonly string[];
   differencekravLinje: string | null;

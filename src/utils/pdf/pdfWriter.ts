@@ -387,6 +387,13 @@ export type PdfWriter = {
     nextLineHeight: number,
     options?: Readonly<{ addTopSpacing?: boolean }>
   ) => void;
+  writeSubheaderIfContent: (params: Readonly<{
+    text: string;
+    nextLineHeight: number;
+    hasContent: boolean;
+    renderContent: () => void;
+    options?: Readonly<{ addTopSpacing?: boolean }>;
+  }>) => boolean;
   writeSubheaderWithWrappedText: (subheaderText: string, bodyText: string) => void;
   writeAtomicTableChunks: <T>(params: Readonly<{
     rows: readonly T[];
@@ -484,11 +491,30 @@ export const createPdfWriter = (params: Readonly<{
     explicitSpacingSinceLastContent = 0;
   };
 
+  const writeSubheaderIfContent = (params: Readonly<{
+    text: string;
+    nextLineHeight: number;
+    hasContent: boolean;
+    renderContent: () => void;
+    options?: Readonly<{ addTopSpacing?: boolean }>;
+  }>): boolean => {
+    if (!params.hasContent) return false;
+    writeSubheader(params.text, params.nextLineHeight, params.options);
+    params.renderContent();
+    return true;
+  };
+
   const writeSubheaderWithWrappedText = (subheaderText: string, bodyText: string) => {
     const bodyHeight = cursor.measureWrappedTextHeight(bodyText);
-    writeSubheader(subheaderText, bodyHeight);
-    cursor.writeWrappedText(bodyText);
-    manualSpacingSinceLastContent = 0;
+    writeSubheaderIfContent({
+      text: subheaderText,
+      nextLineHeight: bodyHeight,
+      hasContent: bodyText.trim() !== '',
+      renderContent: () => {
+        cursor.writeWrappedText(bodyText);
+        manualSpacingSinceLastContent = 0;
+      },
+    });
   };
 
   const writeAtomicTableChunks = <T,>(params: Readonly<{
@@ -604,6 +630,7 @@ export const createPdfWriter = (params: Readonly<{
     writeSectionHeader,
     writeTitle,
     writeSubheader,
+    writeSubheaderIfContent,
     writeSubheaderWithWrappedText,
     writeAtomicTableChunks,
     writeUnderlinedLabel,

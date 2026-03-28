@@ -214,6 +214,45 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).not.toContain('bilag\u00A02.');
   });
 
+  it('viser kun "Ingen" i TAF-sektionen når tabt arbejdsfortjeneste er fravalgt trods stale felter', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.beregnesTabtArbejdsfortjeneste = 'Nej';
+    eo.tafArbejdsstatus = 'Førtidspension';
+    eo.differencekravDato = iso('2024-02-01');
+
+    renderPdf(stamdata, eo);
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const tafBlock = getTextsBetween(texts, 'Tabt arbejdsfortjeneste', 'Øvrige krav');
+
+    expect(tafBlock).toContain('Ingen');
+    expect(tafBlock).not.toContain('Den 1. februar 2024 var skadelidte på førtidspension og således fortsat uarbejdsdygtig.');
+    expect(tafBlock).not.toContain('Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste');
+    expect(tafBlock).not.toContain('01-01-2024 - 31-01-2024');
+  });
+
+  it('viser kun "Ingen" i svie/smerte-sektionen når tidligere S/S max er valgt trods stale felter', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.beregnesSvieSmerteGodtgoerelse = 'Ja';
+    eo.tidligereSsMax = 'Ja';
+    eo.svieSmerteHelbredsstatus = 'Sygemeldt';
+    eo.svieSmerteSatserAar = 2026;
+    eo.svieSmerteDelvisSygemeldingSats = 'fuld';
+    eo.svieSmertePerioder = [
+      { id: 'ss-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), tilstand: 'sygemeldt' },
+    ];
+
+    renderPdf(stamdata, eo);
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const svieBlock = getTextsBetween(texts, 'Svie- og smertegodtgørelse', 'Tabt arbejdsfortjeneste');
+
+    expect(svieBlock).toContain('Ingen');
+    expect(svieBlock).not.toContain('Den 1. februar 2024 var skadelidte fortsat sygemeldt.');
+    expect(svieBlock).not.toContain('Sygeperiode, hvor der beregnes svie- og smertegodtgørelse');
+    expect(svieBlock).not.toContain('01-01-2024 - 31-01-2024');
+  });
+
   it('skjuler "I alt:" når kun én del-linje vises', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.loenindkomstAnsaettelsesforhold[0].feriePct = 0;

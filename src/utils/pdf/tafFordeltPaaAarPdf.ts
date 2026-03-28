@@ -107,18 +107,26 @@ export const generateTafFordeltPaaAarPdf = (
 
   writer.writeSectionHeader('Tabt arbejdsfortjeneste', lineHeight);
 
-  // Status
-  writer.writeSubheader('Status', lineHeight);
-  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
-  for (const line of model.tabtArbejdsfortjeneste.statusLinjer) {
-    writer.writeWrappedText(line);
-  }
-  for (const line of model.tabtArbejdsfortjeneste.eetLinjer) {
-    writer.writeWrappedText(line);
-  }
-  if (model.tabtArbejdsfortjeneste.differencekravLinje) {
-    writer.writeWrappedText(model.tabtArbejdsfortjeneste.differencekravLinje);
-  }
+  writer.writeSubheaderIfContent({
+    text: 'Status',
+    nextLineHeight: lineHeight,
+    hasContent:
+      model.tabtArbejdsfortjeneste.statusLinjer.length > 0 ||
+      model.tabtArbejdsfortjeneste.eetLinjer.length > 0 ||
+      model.tabtArbejdsfortjeneste.differencekravLinje !== null,
+    renderContent: () => {
+      writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+      for (const line of model.tabtArbejdsfortjeneste.statusLinjer) {
+        writer.writeWrappedText(line);
+      }
+      for (const line of model.tabtArbejdsfortjeneste.eetLinjer) {
+        writer.writeWrappedText(line);
+      }
+      if (model.tabtArbejdsfortjeneste.differencekravLinje) {
+        writer.writeWrappedText(model.tabtArbejdsfortjeneste.differencekravLinje);
+      }
+    },
+  });
 
   // TAF-perioder
   const tafPeriodeHeader = model.tabtArbejdsfortjeneste.tafPerioderLinjer.length > 1

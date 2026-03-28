@@ -208,6 +208,14 @@ export const generateErstatningsopgoerelsePdf = (
     writer.writeSubheader(text, nextLineHeight, options);
   };
 
+  const renderSubheaderIfContent = (params: Readonly<{
+    text: string;
+    nextLineHeight: number;
+    hasContent: boolean;
+    renderContent: () => void;
+    options?: Readonly<{ addTopSpacing?: boolean }>;
+  }>) => writer.writeSubheaderIfContent(params);
+
   const safeAddWrappedText = (text: string) => {
     writer.writeWrappedText(text);
   };
@@ -316,6 +324,7 @@ export const generateErstatningsopgoerelsePdf = (
     rightColumnWidth: EO_RIGHT_COLUMN_WIDTH,
     renderSectionHeader,
     renderSubheader,
+    renderSubheaderIfContent,
     renderSubheaderWithWrappedText,
     safeAddWrappedText,
     safeAddLeftRightText,

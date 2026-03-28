@@ -22,7 +22,7 @@ export const buildSvieSmerteModel = (
   values: ErstatningsopgoerelseValues,
   options: Readonly<{ engine: SvieSmerteEngineOutput }>
 ): SvieSmertePdfModel => {
-  const beregnes = values.beregnesSvieSmerteGodtgoerelse === 'Ja';
+  const beregnes = values.beregnesSvieSmerteGodtgoerelse === 'Ja' && values.tidligereSsMax === 'Nej';
   const statusLinjer: string[] = [];
   const periodeTilISO = values.vedroererPeriodeTil;
 
@@ -156,6 +156,27 @@ export const buildTabtArbejdsfortjenesteModel = (
     skadesdatoISO?: ISODateString;
   }>
 ): TabtArbejdsfortjenestePdfModel => {
+  const beregnes = values.beregnesTabtArbejdsfortjeneste === 'Ja';
+  if (!beregnes) {
+    return {
+      beregnes,
+      statusLinjer: [],
+      eetLinjer: [],
+      differencekravLinje: null,
+      tafPerioderLinjer: [],
+      harTafPerioder: false,
+      tafBeregningsenhed: options.tafNetto.tafBeregningsenhed,
+      skalKomprimereIndkomstBeregning: false,
+      indkomstSkadestidspunkt: null,
+      loenudvikling: null,
+      tafIndtaegter: null,
+      tidligereModtagetTaf: asCalculable(ensureMoneyOre(0)),
+      sygeferiegodtgoerelse: { totalOre: ensureMoneyOre(0), perAnsaettelsesforhold: [], firstExcludedDate: null },
+      tabtArbejdsfortjenesteFoerForligOre: ensureMoneyOre(0),
+      tabtArbejdsfortjenesteOre: ensureMoneyOre(0),
+    };
+  }
+
   const statusLinjer: string[] = [];
   const periodeTilISO = values.vedroererPeriodeTil;
   const tafRanges = options.tafRanges;
@@ -319,6 +340,7 @@ export const buildTabtArbejdsfortjenesteModel = (
     !erFoersteOpgoerelse && values.komprimerBeregningEfterFoersteOpgoerelse === 'Ja';
 
   return {
+    beregnes,
     statusLinjer,
     eetLinjer,
     differencekravLinje,
