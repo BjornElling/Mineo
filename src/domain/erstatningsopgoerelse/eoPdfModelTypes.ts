@@ -40,6 +40,10 @@ export type PdfModel = Readonly<{
 
 export type SygeferiegodtgoerelsePdfModel = Readonly<{
   totalOre: MoneyOre;
+  perYear: readonly Readonly<{
+    year: number;
+    amountOre: MoneyOre;
+  }>[];
   firstExcludedDate: ISODateString | null;
   perAnsaettelsesforhold: readonly Readonly<{
     ansaettelsesforholdId: string;

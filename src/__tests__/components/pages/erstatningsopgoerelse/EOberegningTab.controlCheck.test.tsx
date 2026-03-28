@@ -64,13 +64,19 @@ describe('EOberegningTab kontroltjek', () => {
   const baseStamdataValues = structuredClone(STAMDATA_INITIAL_VALUES);
   const baseEoValues = createErstatningsopgoerelseInitialValues();
   const baseSetEoValues = vi.fn();
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     baseSetEoValues.mockReset();
     collectAllDebugRowsMock.mockReset();
     scrollToSectionMock.mockReset();
     scrollToDebugRowMock.mockReset();
     collectAllDebugRowsMock.mockReturnValue({ errors: [], warnings: [], allRows: [], relevantRows: [] });
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   it('samler kontroluoverensstemmelse i én contentbox for fejl og advarsler', () => {
@@ -109,6 +115,13 @@ describe('EOberegningTab kontroltjek', () => {
     expect(screen.queryByText('Download-kontroller')).not.toBeInTheDocument();
     expect(screen.queryByText('Systemfejl')).not.toBeInTheDocument();
     expect(screen.queryByText('Beregning blokeret')).not.toBeInTheDocument();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[EOberegningTab] Systemfejl registreret: Der er konstateret kontroluoverensstemmelser i EO-beregningen.',
+      expect.objectContaining({
+        invariantId: 'debug:control_mismatch',
+        revision: 'rev-1',
+      })
+    );
   });
 
   it('viser brugerens manglende indtastning som navigerbar fejl og ikke som systemfejl', () => {
@@ -574,7 +587,7 @@ describe('EOberegningTab kontroltjek', () => {
     expect(screen.getByText('01-01-2024 - 30-06-2024')).toBeInTheDocument();
   });
 
-  it('viser ikke TAF afrunding over 1 kr. som systemfejl i fejlsektionen', () => {
+  it('viser TAF afrunding over 1 kr. som systemfejl og logger den til devtools-flowet', () => {
     const snapshot: EoSnapshot = {
       revision: 'rev-3',
       status: 'error',
@@ -603,7 +616,15 @@ describe('EOberegningTab kontroltjek', () => {
       setEOValues: baseSetEoValues,
     });
 
-    expect(screen.queryByText('Fejl og advarsler')).not.toBeInTheDocument();
-    expect(screen.queryByText('TAF fordelt på år kan ikke afstemmes inden for 1 kr.')).not.toBeInTheDocument();
+    expect(screen.getByText('Fejl og advarsler')).toBeInTheDocument();
+    expect(screen.getByText('TAF fordelt på år kan ikke afstemmes inden for 1 kr.')).toBeInTheDocument();
+    expect(screen.queryByText('Send fejloplysninger')).not.toBeInTheDocument();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[EOberegningTab] Systemfejl registreret: TAF fordelt på år kan ikke afstemmes inden for 1 kr.',
+      expect.objectContaining({
+        invariantId: 'taf_per_year:afrunding_over_100',
+        revision: 'rev-3',
+      })
+    );
   });
 });

@@ -39,6 +39,12 @@ const makeStamdata = (patch: Partial<StamdataValues>): StamdataValues => {
 };
 
 const dagsDatoISO = iso('2026-02-04');
+const EMPTY_SFGG_RESULT = {
+  totalOre: 0,
+  perAnsaettelsesforhold: [],
+  perYear: [],
+  firstExcludedDate: null,
+} as const;
 
 const buildSnapshotData = (
   stamdata: StamdataValues,
@@ -303,6 +309,136 @@ describe('buildTafPerYearResult', () => {
     // Total deductions skal matche EO-model (pga. proratering)
     const totalDeductionsOre = result.years.reduce((sum, y) => sum + y.yearDeductionsOre, 0);
     expect(totalDeductionsOre).toBeGreaterThan(0);
+  });
+
+  it('fordeler sygeferiegodtgørelse pr. kalenderår og afstemmer med EO-totalen', () => {
+    const eoValues = makeValues({
+      eoNummer: '2',
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmountValue(1500),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-12-30'), til: iso('2025-01-03'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          id: 'af-1',
+          loenudviklingBeregningsgrundlag: 'Ingen',
+        },
+      ],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        beregnesUdFra: 'Manuelt angivet',
+        manuelDagssats: asAmountValue(100),
+        manuelBeloebIHenholdTil: undefined,
+        manuelFoerstEfterSygeloen: 'Nej',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: 0,
+        satsvalg: undefined,
+        alleredeBetaltBeloeb: undefined,
+      }],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
+    const result = snapshotData.engines.tafPerYear;
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    assertTotals(result, snapshotData.pdfModel);
+    const sfggPerYearOre = result.years
+      .flatMap((year) => year.deductions)
+      .filter((deduction) => deduction.label === 'Sygeferiegodtgørelse')
+      .reduce((sum, deduction) => sum + deduction.amountOre, 0);
+
+    expect(sfggPerYearOre).toBe(snapshotData.pdfModel.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.totalOre);
+    expect(result.years.map((year) => year.year)).toEqual([2024, 2025]);
+    expect(result.years.every((year) => year.deductions.some((deduction) => deduction.label === 'Sygeferiegodtgørelse'))).toBe(true);
+  });
+
+  it('viser sygeferiegodtgørelse med 0 kr. pr. år når den er valgt men ender på 0', () => {
+    const eoValues = makeValues({
+      eoNummer: '2',
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmountValue(1500),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-29'), til: iso('2024-01-29'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          id: 'af-1',
+          loenudviklingBeregningsgrundlag: 'Ingen',
+        },
+      ],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        beregnesUdFra: 'Manuelt angivet',
+        manuelDagssats: asAmountValue(100),
+        manuelBeloebIHenholdTil: undefined,
+        manuelFoerstEfterSygeloen: 'Nej',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: 0,
+        satsvalg: undefined,
+        alleredeBetaltBeloeb: asAmountValue(1000),
+      }],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
+    const result = snapshotData.engines.tafPerYear;
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    assertTotals(result, snapshotData.pdfModel);
+    const sfggDeduction = result.years[0].deductions.find((deduction) => deduction.label === 'Sygeferiegodtgørelse');
+    expect(snapshotData.pdfModel.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.totalOre).toBe(0);
+    expect(sfggDeduction?.amountOre).toBe(0);
+  });
+
+  it('afstemmer enkeltår med autoritativ EO-total når SFGG alene clampper netto til 0', () => {
+    const eoValues = makeValues({
+      eoNummer: '2',
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmountValue(50),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-29'), til: iso('2024-01-29'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          id: 'af-1',
+          loenudviklingBeregningsgrundlag: 'Ingen',
+        },
+      ],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        beregnesUdFra: 'Manuelt angivet',
+        manuelDagssats: asAmountValue(100),
+        manuelBeloebIHenholdTil: undefined,
+        manuelFoerstEfterSygeloen: 'Nej',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: 0,
+        satsvalg: undefined,
+        alleredeBetaltBeloeb: undefined,
+      }],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
+    const result = snapshotData.engines.tafPerYear;
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    expect(snapshotData.pdfModel.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre).toBe(0);
+    expect(result.years).toHaveLength(1);
+    expect(result.years[0].yearTafFoerForligOre).toBe(0);
+    expect(result.years[0].yearTafOre).toBe(0);
+    expect(result.sumYearTafOre).toBe(0);
+    expect(result.afrundingOre).toBe(0);
   });
 
   it('sorterer benefits alfabetisk som EO i per-år fradrag', () => {
@@ -651,8 +787,9 @@ describe('buildTafPerYearResult', () => {
     expect(Math.abs(perYearEmployerOre - modelEmployerOre)).toBeLessThanOrEqual(100);
   });
 
-  it('returnerer null når EO-netto er clamped til 0 pga. fradrag over indkomst', () => {
+  it('afstemmer enkeltår til 0 når EO-netto er clamped til 0 pga. fradrag over indkomst', () => {
     const source: TafPerYearSource = {
+      stamdataValues: structuredClone(STAMDATA_INITIAL_VALUES),
       loenudvikling: {
         loenudviklingTotal: { status: 'ok', value: 10000000 },
         beregnedeSegmenter: [
@@ -673,6 +810,7 @@ describe('buildTafPerYearResult', () => {
       tafBeregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
       tabtArbejdsfortjenesteOre: 0,
       tidligereModtagetTaf: { status: 'ok', value: 0 },
+      sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
       tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 15000000 } },
       forligFactor: null,
     };
@@ -686,7 +824,13 @@ describe('buildTafPerYearResult', () => {
     });
 
     const outcome = buildTafPerYearBuildOutcome(source, eoValues, { tafRanges: eoValues.tafPerioder });
-    expect(outcome.kind).not.toBe('ok');
+    expect(outcome.kind).toBe('ok');
+    if (outcome.kind !== 'ok') return;
+    expect(outcome.result.years).toHaveLength(1);
+    expect(outcome.result.years[0].yearTafFoerForligOre).toBe(0);
+    expect(outcome.result.years[0].yearTafOre).toBe(0);
+    expect(outcome.result.sumYearTafOre).toBe(0);
+    expect(outcome.result.afrundingOre).toBe(0);
   });
 
   it('segment der starter og slutter samme dag (hverdag) → 1 år, 1 segment', () => {
@@ -843,6 +987,7 @@ describe('buildTafPerYearResult', () => {
   it('returnerer null når loenudviklingTotal.status !== "ok"', () => {
     // Konstruér et minimalt source-objekt der trigger ikke-ok loenudviklingTotal
     const source: TafPerYearSource = {
+      stamdataValues: structuredClone(STAMDATA_INITIAL_VALUES),
       loenudvikling: {
         loenudviklingTotal: { status: 'not_calculable', reason: 'test-fejl' },
         beregnedeSegmenter: [
@@ -863,6 +1008,7 @@ describe('buildTafPerYearResult', () => {
       tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
       tabtArbejdsfortjenesteOre: 0,
       tidligereModtagetTaf: { status: 'not_calculable', reason: 'test' },
+      sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
       tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 0 } },
       forligFactor: null,
     };
@@ -879,6 +1025,7 @@ describe('buildTafPerYearResult', () => {
     // Inkonsistent tilstand: beregningsenhed=MAANEDER men segmenter har kind='arbejdsdage'
     // Forventer at buildSubSegment returnerer null → segment springes over
     const source: TafPerYearSource = {
+      stamdataValues: structuredClone(STAMDATA_INITIAL_VALUES),
       loenudvikling: {
         loenudviklingTotal: { status: 'ok', value: 0 },
         beregnedeSegmenter: [
@@ -899,6 +1046,7 @@ describe('buildTafPerYearResult', () => {
       tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
       tabtArbejdsfortjenesteOre: 0,
       tidligereModtagetTaf: { status: 'not_calculable', reason: 'test' },
+      sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
       tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 0 } },
       forligFactor: null,
     };
@@ -961,6 +1109,7 @@ describe('buildTafPerYearResult', () => {
     // TAF-perioden dækker kun weekend (lørdag-søndag) → tafArbejdsdageSet bliver tom
     // → alle årsvægte = 0 → allocateOreByWeight tildeler hele tidligereModtagetTaf til første år.
     const source: TafPerYearSource = {
+      stamdataValues: structuredClone(STAMDATA_INITIAL_VALUES),
       loenudvikling: {
         loenudviklingTotal: { status: 'ok', value: 100 },
         beregnedeSegmenter: [
@@ -981,6 +1130,7 @@ describe('buildTafPerYearResult', () => {
       tafBeregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
       tabtArbejdsfortjenesteOre: 0,
       tidligereModtagetTaf: { status: 'ok', value: 100 },
+      sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
       tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 0 } },
       forligFactor: null,
     };

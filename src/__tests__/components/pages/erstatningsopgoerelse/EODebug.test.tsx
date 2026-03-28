@@ -912,7 +912,7 @@ describe('EODebug', () => {
     expect(container.querySelectorAll('[data-testid="CheckIcon"]').length).toBeGreaterThan(0);
   });
 
-  it('samler SFGG-eftertabel-rækker i én hover-row', () => {
+  it('viser SFGG-eftertabel-rækker som individuelle hover-rows med hver sin kontrol', () => {
     eoSnapshotToDebugViewMock.mockReturnValue({
       kind: 'ready',
       canonicalOutput: undefined,
@@ -978,6 +978,15 @@ describe('EODebug', () => {
             displayValue: '553,50',
             status: 'ok',
           },
+          {
+            id: 'sfgg.aarsfordeling.af1',
+            label: 'Sygeferiegodtgørelse fordelt på år (til TAF pr. år)',
+            displayValue: [
+              'Sygeferiegodtgørelse fordelt på år | År | Beløb',
+              ' | 2024 | 25.113,13',
+            ].join('\n'),
+            status: 'ok',
+          },
         ]],
       ]),
       regulationSections: [],
@@ -989,16 +998,30 @@ describe('EODebug', () => {
     const secondLabel = screen.getByText('Feriepenge modtaget i perioden (16.450,95 x 16,95 %) =');
     const thirdLabel = screen.getByText('Allerede betalt sygeferiegodtgørelse i perioden');
     const fourthLabel = screen.getByText('Beregnet sygeferiegodtgørelse');
-    const combinedRow = firstLabel.closest('.row--label-right-hover');
+    const firstRow = firstLabel.closest('.row--label-right-hover');
+    const secondRow = secondLabel.closest('.row--label-right-hover');
+    const thirdRow = thirdLabel.closest('.row--label-right-hover');
+    const fourthRow = fourthLabel.closest('.row--label-right-hover');
 
     expect(screen.getAllByText('Sygeferiegodtgørelse').every((element) => element.classList.contains('row--subheading-underlined'))).toBe(true);
     expect(screen.getByText('Arbejdssted 1')).toBeInTheDocument();
     expect(screen.getByText('553,50')).toBeInTheDocument();
-    expect(combinedRow).not.toBeNull();
-    expect(secondLabel.closest('.row--label-right-hover')).toBe(combinedRow);
-    expect(thirdLabel.closest('.row--label-right-hover')).toBe(combinedRow);
-    expect(fourthLabel.closest('.row--label-right-hover')).toBe(combinedRow);
-    expect(combinedRow?.querySelectorAll('[data-testid="CheckIcon"]')).toHaveLength(1);
+    expect(screen.getByText('Sygeferiegodtgørelse fordelt på år')).toBeInTheDocument();
+    expect(screen.getByText('År')).toBeInTheDocument();
+    expect(screen.getByText('Beløb')).toBeInTheDocument();
+    expect(screen.getByText('2024')).toBeInTheDocument();
+    expect(screen.getByText('25.113,13')).toBeInTheDocument();
+    expect(firstRow).not.toBeNull();
+    expect(secondRow).not.toBeNull();
+    expect(thirdRow).not.toBeNull();
+    expect(fourthRow).not.toBeNull();
+    expect(secondRow).not.toBe(firstRow);
+    expect(thirdRow).not.toBe(firstRow);
+    expect(fourthRow).not.toBe(firstRow);
+    expect(firstRow?.querySelectorAll('[data-testid="CheckIcon"]')).toHaveLength(1);
+    expect(secondRow?.querySelectorAll('[data-testid="CheckIcon"]')).toHaveLength(1);
+    expect(thirdRow?.querySelectorAll('[data-testid="CheckIcon"]')).toHaveLength(1);
+    expect(fourthRow?.querySelectorAll('[data-testid="CheckIcon"]')).toHaveLength(1);
     expect(container.querySelectorAll('.content-box')).toHaveLength(1);
   });
 });

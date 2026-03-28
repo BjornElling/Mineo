@@ -316,6 +316,14 @@ Den hører ikke hjemme i normale beregningstabs eller resultatvisninger som del 
 - I download-fejl-dialog eller enhver anden dialog
 - Som del af nogen visning der vises som fast element ved normale brugerscenarier
 
+Præcisering:
+- `EOberegningTab` må vise systemfejl-rækker for snapshot-invarianterne
+  `debug:control_mismatch` og `taf_per_year:afrunding_over_100`, fordi de er interne
+  beregningsinkonsistenser.
+- Disse rækker må ikke indeholde `BugReportButton`.
+- De skal samtidig logges via `console.error`, så det eksisterende `DevtoolsIssueNotice`-flow
+  åbner og giver brugeren mulighed for at sende fejloplysninger.
+
 **`fail_closed`-snapshot:** `schema_guard`-fejl (forventelig committed-state-inkonsistens)
 vises som en neutral fejlbesked i `EOberegningTab` uden `BugReportButton`. `runtime_exception`
 logges via `console.error` og routes til `ErrorFallback`/ErrorBoundary-flowet.

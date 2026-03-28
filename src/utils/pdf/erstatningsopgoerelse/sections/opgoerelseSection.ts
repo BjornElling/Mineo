@@ -711,12 +711,24 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       for (const entry of tafIndtaegter.entries) {
         safeAddLeftRightText(entry.label, formatMoneyOreWithKr(entry.amountOre), rightMaxWidth, { rightFontStyle: 'normal' });
       }
+      const sygeferiegodtgoerelseOre = model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.totalOre;
+      const harValgtSygeferiegodtgoerelse = model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.length > 0;
+      if (harValgtSygeferiegodtgoerelse) {
+        safeAddLeftRightText('Sygeferiegodtgørelse', formatMoneyOreWithKr(sygeferiegodtgoerelseOre), rightMaxWidth, { rightFontStyle: 'normal' });
+      }
 
-      if (tafIndtaegter.entries.length === 0) {
+      const harTafIndtaegterEntries = tafIndtaegter.entries.length > 0 || harValgtSygeferiegodtgoerelse;
+      const skalViseTotal = tafIndtaegter.entries.length + (harValgtSygeferiegodtgoerelse ? 1 : 0) > 1;
+      const tafIndtaegterTotalOre =
+        tafIndtaegter.total.status === 'ok'
+          ? tafIndtaegter.total.value + (harValgtSygeferiegodtgoerelse ? sygeferiegodtgoerelseOre : 0)
+          : null;
+
+      if (!harTafIndtaegterEntries) {
         safeAddWrappedText('Ingen');
-      } else if (tafIndtaegter.entries.length > 1 && tafIndtaegter.total.status === 'ok') {
-        safeAddLeftRightText('I alt', formatMoneyOreWithKr(tafIndtaegter.total.value), rightMaxWidth, { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 });
-      } else if (tafIndtaegter.entries.length > 1) {
+      } else if (skalViseTotal && tafIndtaegterTotalOre !== null) {
+        safeAddLeftRightText('I alt', formatMoneyOreWithKr(tafIndtaegterTotalOre), rightMaxWidth, { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 });
+      } else if (skalViseTotal) {
         safeAddLeftRightText('I alt', '—', rightMaxWidth, { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 });
       }
     }
@@ -740,10 +752,16 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       renderSubheader('Beregnet krav på tabt arbejdsfortjeneste', lineHeight);
 
       const rightMaxWidth = writer.getTextWidth('000.000.000,00');
-      const loenudviklingUdenKr = formatCurrencyFromOre(loenudviklingTotal.value);
-      const tafUdenKr = formatCurrencyFromOre(tafTotal.value);
-      const ledFoerLigmed = [loenudviklingUdenKr, tafUdenKr];
-      if (tidligereModtagetTaf.status === 'ok') {
+      const ledFoerLigmed = [formatCurrencyFromOre(loenudviklingTotal.value)];
+      if (tafTotal.value !== 0) {
+        ledFoerLigmed.push(formatCurrencyFromOre(tafTotal.value));
+      }
+      const sygeferiegodtgoerelseOre = model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.totalOre;
+      const harValgtSygeferiegodtgoerelse = model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.length > 0;
+      if (harValgtSygeferiegodtgoerelse && sygeferiegodtgoerelseOre !== 0) {
+        ledFoerLigmed.push(formatCurrencyFromOre(sygeferiegodtgoerelseOre));
+      }
+      if (tidligereModtagetTaf.status === 'ok' && tidligereModtagetTaf.value !== 0) {
         ledFoerLigmed.push(formatCurrencyFromOre(tidligereModtagetTaf.value));
       }
       const expressionText = `${ledFoerLigmed

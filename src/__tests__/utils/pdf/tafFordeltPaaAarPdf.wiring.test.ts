@@ -207,6 +207,54 @@ describe('tafFordeltPaaAarPdf wiring', () => {
     expect(renderedText).toContain('- 25.000,00 kr.');
   });
 
+  it('renderer sygeferiegodtgørelse som fradragslinje når den er valgt i årsfordelingen', async () => {
+    const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
+
+    generateTafFordeltPaaAarPdf({
+      document: {
+        model: FAKE_MODEL as never,
+        presentation: {
+          ...FAKE_RESULT,
+          years: [{
+            ...FAKE_RESULT.years[0],
+            deductions: [
+              ...FAKE_RESULT.years[0].deductions,
+              { label: 'Sygeferiegodtgørelse', amountOre: 40000 as MoneyOre },
+            ],
+          }],
+        },
+      },
+    });
+    const instance = MockJsPDF.instances.at(-1);
+    const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
+    expect(renderedText).toContain('Sygeferiegodtgørelse');
+    expect(renderedText).toContain('- 400,00 kr.');
+  });
+
+  it('renderer valgt sygeferiegodtgørelse med 0 kr. uden minus-prefix', async () => {
+    const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
+
+    generateTafFordeltPaaAarPdf({
+      document: {
+        model: FAKE_MODEL as never,
+        presentation: {
+          ...FAKE_RESULT,
+          years: [{
+            ...FAKE_RESULT.years[0],
+            deductions: [
+              { label: 'Sygeferiegodtgørelse', amountOre: 0 as MoneyOre },
+            ],
+          }],
+        },
+      },
+    });
+    const instance = MockJsPDF.instances.at(-1);
+    const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
+    expect(renderedText).toContain('Sygeferiegodtgørelse');
+    expect(renderedText).toContain('0,00 kr.');
+    expect(renderedText).not.toContain('- 0,00 kr.');
+  });
+
   it('viser forlig-sektion og forlig-reference i "I alt"-linjen når forlig er indgået', async () => {
     const { generateTafFordeltPaaAarPdf } = await import('../../../utils/pdf/tafFordeltPaaAarPdf');
 

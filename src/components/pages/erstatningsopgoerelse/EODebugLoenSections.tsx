@@ -28,7 +28,7 @@ const EODebugLoenSections = React.memo<{
   return (
     <Box>
       {sections.map((section) => (
-        <Box key={section.id} sx={{ mb: 4 }}>
+        <Box key={section.id}>
           <Typography className="row--subheading" sx={{ mb: 1 }}>
             {section.header}
           </Typography>
@@ -46,7 +46,6 @@ const EODebugLoenSections = React.memo<{
                 typeof cell === 'string' ? cell : cell.displayValue
               ),
             }))}
-            containerSx={{ mb: 2 }}
           />
         </Box>
       ))}

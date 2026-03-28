@@ -207,53 +207,6 @@ const renderSfggRow = (row: DebugRowModel) => (
   </Box>
 );
 
-const renderSfggPostTableGroup = (rows: readonly DebugRowModel[]) => {
-  if (rows.length === 0) return null;
-  const combinedStatus: DebugStatus = rows.some((row) => row.status === 'error')
-    ? 'error'
-    : rows.some((row) => row.status === 'warning')
-      ? 'warning'
-      : 'ok';
-
-  return (
-    <Box
-      key={rows.map((row) => row.id).join('|')}
-      className="row--label-right-hover"
-      sx={{ alignItems: 'stretch' }}
-    >
-      <Box sx={{ display: 'flex', flex: 1, minWidth: 0, flexDirection: 'column', justifyContent: 'center', pr: 2 }}>
-        {rows.map((row) => (
-          <Typography
-            key={row.id}
-            className="row--text"
-            sx={{ minHeight: 0, display: 'block', py: 0 }}
-          >
-            {row.label}
-          </Typography>
-        ))}
-      </Box>
-
-      <Box className="row--label-right-hover__content" sx={{ gap: 2, alignItems: 'stretch' }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end' }}>
-          {rows.map((row) => (
-            <Typography
-              key={row.id}
-              className={`row--text${isSfggComputedTotalRow(row) ? ' text-bold' : ''}`}
-              sx={{ ...getDisplayValueSx(row.displayValue), minHeight: 0, display: 'block', py: 0 }}
-            >
-              {row.displayValue}
-            </Typography>
-          ))}
-        </Box>
-
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {getStatusIcon(combinedStatus)}
-        </Box>
-      </Box>
-    </Box>
-  );
-};
-
 const EODebugEmploymentSections = React.memo<{
   sections: readonly EmploymentDebugSection[];
 }>(({ sections }) => {
@@ -275,6 +228,8 @@ const EODebugEmploymentSections = React.memo<{
             const regulationTables = section.regulationSection?.tables ?? [];
             const sfggRows = section.sfggRows ?? [];
             const sfggTables = section.sfggTables ?? [];
+            const sfggFooterTables = sfggTables.filter((table) => table.id.startsWith('sfgg.aarsfordeling.'));
+            const sfggPrimaryTables = sfggTables.filter((table) => !table.id.startsWith('sfgg.aarsfordeling.'));
             const sfggPostTableRows = sfggRows.filter(isSfggPostTableRow);
             const sfggPrimaryRows = sfggRows.filter((row) => !isSfggPostTableRow(row));
 
@@ -305,7 +260,7 @@ const EODebugEmploymentSections = React.memo<{
                     {regulationTables.length > 0 ? (
                       <>
                         <UnderlinedHoverRow text="Beregnet regulering" />
-                        {regulationTables.map((table, tableIndex) => (
+                        {regulationTables.map((table) => (
                           <StandardDisplayTable
                             key={table.id}
                             useSmallFont
@@ -318,9 +273,7 @@ const EODebugEmploymentSections = React.memo<{
                               : renderRegulationTableCellContent(cell.displayValue)
                           ),
                         }))}
-                        containerSx={{ mb: tableIndex === regulationTables.length - 1 ? 2 : 4, width: '100%' }}
                         tableSx={{
-                          width: '100%',
                           tableLayout: 'fixed',
                           '& .MuiTableCell-root': {
                             whiteSpace: 'normal',
@@ -352,7 +305,7 @@ const EODebugEmploymentSections = React.memo<{
                   <>
                     <UnderlinedHoverRow text="Sygeferiegodtgørelse" />
                     {sfggPrimaryRows.map(renderSfggRow)}
-                    {sfggTables.map((table) => (
+                    {sfggPrimaryTables.map((table) => (
                       <StandardDisplayTable
                         key={table.id}
                         useSmallFont
@@ -370,14 +323,36 @@ const EODebugEmploymentSections = React.memo<{
                               : cell;
                           }),
                         }))}
-                        containerSx={{ mb: 2, width: '100%' }}
                         tableSx={{
-                          width: '100%',
                           tableLayout: 'fixed',
                         }}
                       />
                     ))}
-                    {renderSfggPostTableGroup(sfggPostTableRows)}
+                    {sfggPostTableRows.map(renderSfggRow)}
+                    {sfggFooterTables.map((table) => (
+                      <StandardDisplayTable
+                        key={table.id}
+                        useSmallFont
+                        columns={table.columns.map((header, index) => ({
+                          header,
+                          align:
+                            index === 0
+                              ? 'left' as const
+                              : header === 'År'
+                                ? 'center' as const
+                                : 'right' as const,
+                          width: index === 0 ? '65%' : '17.5%',
+                          cellSx: index === 0 ? { textAlign: 'left' } : undefined,
+                        }))}
+                        rows={table.rows.map((row): StandardDisplayTableRow => ({
+                          key: row.id,
+                          cells: row.cells,
+                        }))}
+                        tableSx={{
+                          tableLayout: 'fixed',
+                        }}
+                      />
+                    ))}
                   </>
                 ) : null}
               </>

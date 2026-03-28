@@ -18,7 +18,7 @@ const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculable<MoneyOre>(reason);
 
-const buildSfggLoenudviklingMap = (
+export const buildSfggLoenudviklingMap = (
   values: ErstatningsopgoerelseValues,
   loenudvikling: LoenudviklingPdfModel | null
 ): ReadonlyMap<string, LoenudviklingPdfModel['perAnsaettelse'][number]> | undefined => {
@@ -115,7 +115,7 @@ export const computeTafNettoBeregning = (
       tafRanges,
       loenudviklingPerAnsaettelse: buildSfggLoenudviklingMap(values, loenudvikling),
     })
-    : { totalOre: ensureMoneyOre(0), perAnsaettelsesforhold: [], firstExcludedDate: null };
+    : { totalOre: ensureMoneyOre(0), perAnsaettelsesforhold: [], perYear: [], firstExcludedDate: null };
 
   const tidligereModtagetTafKroner = amountValueToNumber(values.tidligereModtagetTaf);
   const tidligereModtagetTaf =

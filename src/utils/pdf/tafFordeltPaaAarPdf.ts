@@ -195,7 +195,9 @@ export const generateTafFordeltPaaAarPdf = (
 
     // Fradrag (med minus-prefix)
     for (const deduction of yearEntry.deductions) {
-      const rightText = ensureNonBreakingKr(`- ${formatMoneyOreWithKr(deduction.amountOre)}`);
+      const rightText = deduction.amountOre === 0
+        ? ensureNonBreakingKr(formatMoneyOreWithKr(deduction.amountOre))
+        : ensureNonBreakingKr(`- ${formatMoneyOreWithKr(deduction.amountOre)}`);
       writer.writeLeftRightText(deduction.label, rightText, { rightFontStyle: 'normal', minRightColumnWidth: rightMaxWidth });
     }
 

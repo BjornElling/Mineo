@@ -171,7 +171,7 @@ export const buildTabtArbejdsfortjenesteModel = (
       loenudvikling: null,
       tafIndtaegter: null,
       tidligereModtagetTaf: asCalculable(ensureMoneyOre(0)),
-      sygeferiegodtgoerelse: { totalOre: ensureMoneyOre(0), perAnsaettelsesforhold: [], firstExcludedDate: null },
+      sygeferiegodtgoerelse: { totalOre: ensureMoneyOre(0), perAnsaettelsesforhold: [], perYear: [], firstExcludedDate: null },
       tabtArbejdsfortjenesteFoerForligOre: ensureMoneyOre(0),
       tabtArbejdsfortjenesteOre: ensureMoneyOre(0),
     };

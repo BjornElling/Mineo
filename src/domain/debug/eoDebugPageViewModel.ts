@@ -154,7 +154,7 @@ const buildSfggSections = (
       groupedTables.set(employmentId, []);
       order.push(employmentId);
     }
-    if (row.id.startsWith('sfgg.tabel.')) {
+    if (row.id.startsWith('sfgg.tabel.') || row.id.startsWith('sfgg.aarsfordeling.')) {
       const parsedTable = parseSfggTable(row);
       if (parsedTable) {
         groupedTables.get(employmentId)?.push(parsedTable);

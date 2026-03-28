@@ -1062,4 +1062,69 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
       ])
     );
   });
+
+  it('viser sygeferiegodtgørelse fordelt på år pr. ansættelsesforhold til fejlsøgning af TAF pr. år', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      feriePct: 12.5,
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-dec-2024',
+        col0_maaned: '12',
+        col1_maaned: '2024',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '',
+        col1_dag: '',
+        col2: { kind: 'number', value: 10000 },
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    };
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        beregnesUdFra: 'Manuelt angivet',
+        manuelDagssats: { kind: 'number', value: 100 },
+        manuelBeloebIHenholdTil: undefined,
+        manuelFoerstEfterSygeloen: 'Nej',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: 0,
+        satsvalg: undefined,
+        alleredeBetaltBeloeb: undefined,
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2024-12-30',
+        til: '2025-01-03',
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const rows = buildEODebugSygeferiegodtgoerelseRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadesdato: '2024-01-01',
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `sfgg.aarsfordeling.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'Sygeferiegodtgørelse fordelt på år (til TAF pr. år)',
+          displayValue: expect.stringContaining('Sygeferiegodtgørelse fordelt på år | År | Beløb'),
+          status: 'ok',
+        }),
+      ])
+    );
+    const yearRow = rows.find((row) => row.id === `sfgg.aarsfordeling.${values.loenindkomstAnsaettelsesforhold[0].id}`);
+    expect(yearRow?.displayValue).toContain(' | 2024 |');
+    expect(yearRow?.displayValue).toContain(' | 2025 |');
+  });
 });

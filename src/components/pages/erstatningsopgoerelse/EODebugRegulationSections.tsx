@@ -61,8 +61,8 @@ const EODebugRegulationSections = React.memo<{
                 ))}
 
                 {tables.length > 0 ? (
-                  <Box sx={{ mt: 2 }}>
-                    {tables.map((table, tableIndex) => (
+                  <>
+                    {tables.map((table) => (
                       <StandardDisplayTable
                         key={table.id}
                         useSmallFont
@@ -75,9 +75,7 @@ const EODebugRegulationSections = React.memo<{
                               : renderRegulationTableCellContent(cell.displayValue)
                           ),
                         }))}
-                        containerSx={{ mb: tableIndex === tables.length - 1 ? 2 : 4, width: '100%' }}
                         tableSx={{
-                          width: '100%',
                           tableLayout: 'fixed',
                           '& .MuiTableCell-root': {
                             whiteSpace: 'normal',
@@ -86,7 +84,7 @@ const EODebugRegulationSections = React.memo<{
                         }}
                       />
                     ))}
-                  </Box>
+                  </>
                 ) : null}
               </>
             );

@@ -33,6 +33,50 @@ const Test = React.memo(() => {
   const [yearValue, setYearValue] = React.useState<number | undefined>(undefined);
   const [toggleValue, setToggleValue] = React.useState(false);
 
+  const triggerDevtoolsWarning = React.useCallback(() => {
+    markDevtoolsTestScenario('Devtools test warning (intentional)', { source: 'Test page' });
+    console.warn('Devtools test warning (intentional)');
+  }, []);
+
+  const triggerDevtoolsError = React.useCallback(() => {
+    markDevtoolsTestScenario('Devtools test error (intentional)', { source: 'Test page' });
+    console.error('Devtools test error (intentional)');
+  }, []);
+
+  const triggerTafPerYearAfrundingError = React.useCallback(() => {
+    markDevtoolsTestScenario('EO TAF fordelt på år: afstemningsfejl over 1 kr. (intentional)', {
+      source: 'Test page',
+      page: 'Erstatningsopgørelse',
+      tab: 'Beregning',
+      invariantId: 'taf_per_year:afrunding_over_100',
+    });
+    console.error(
+      '[EOberegningTab] Systemfejl registreret: TAF fordelt på år kan ikke afstemmes inden for 1 kr.',
+      {
+        invariantId: 'taf_per_year:afrunding_over_100',
+        revision: 'test-trigger',
+        evidence: ['Afrunding: 123', 'Årssum: 100000', 'Samlet TAF-krav: 99877'],
+      }
+    );
+  }, []);
+
+  const triggerControlMismatchError = React.useCallback(() => {
+    markDevtoolsTestScenario('EO debugtabel: kontroluoverensstemmelse i sammentælling (intentional)', {
+      source: 'Test page',
+      page: 'Erstatningsopgørelse',
+      tab: 'Debug tabel',
+      invariantId: 'debug:control_mismatch',
+    });
+    console.error(
+      '[EOberegningTab] Systemfejl registreret: Der er konstateret kontroluoverensstemmelser i EO-beregningen.',
+      {
+        invariantId: 'debug:control_mismatch',
+        revision: 'test-trigger',
+        evidence: ['Ansættelsesforhold: beregnet=100, tabel=90'],
+      }
+    );
+  }, []);
+
   return (
     <Box>
 
@@ -190,26 +234,56 @@ const Test = React.memo(() => {
       <ContentBox className="content-box">
         <Typography className="section-header">Devtools test</Typography>
 
-        <Box sx={{ display: 'flex', gap: 2, marginTop: 1 }}>
-          <Button
-            variant="outlined"
-            onClick={() => {
-              markDevtoolsTestScenario('Devtools test warning (intentional)', { source: 'Test page' });
-              console.warn('Devtools test warning (intentional)');
-            }}
-          >
-            Udløs advarsel
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() => {
-              markDevtoolsTestScenario('Devtools test error (intentional)', { source: 'Test page' });
-              console.error('Devtools test error (intentional)');
-            }}
-          >
-            Udløs fejl
-          </Button>
+        <Typography className="row--subheading" sx={{ marginTop: 1 }}>
+          Generelle devtools-hændelser
+        </Typography>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">
+            Udløser en almindelig devtools-advarsel fra testsiden. Bruges til at kontrollere, at popupen åbner og kan skjules igen.
+          </Typography>
+          <Box className="row--label-right-hover__content">
+            <Button variant="outlined" onClick={triggerDevtoolsWarning}>
+              Udløs advarsel
+            </Button>
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">
+            Udløser en almindelig devtools-fejl fra testsiden. Bruges til at kontrollere det generelle fejlrapporteringsflow.
+          </Typography>
+          <Box className="row--label-right-hover__content">
+            <Button variant="outlined" color="error" onClick={triggerDevtoolsError}>
+              Udløs fejl
+            </Button>
+          </Box>
+        </Box>
+
+        <Typography className="row--subheading" sx={{ marginTop: 3 }}>
+          Erstatningsopgørelse
+        </Typography>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">
+            Simulerer fejlen fra siden Erstatningsopgørelse, fanen Beregning, hvor TAF fordelt på år ikke kan afstemmes inden for 1 kr. og derfor blokerer års-PDF’en.
+          </Typography>
+          <Box className="row--label-right-hover__content">
+            <Button variant="outlined" color="error" onClick={triggerTafPerYearAfrundingError}>
+              Udløs TAF-afvigelse
+            </Button>
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">
+            Simulerer kontroluoverensstemmelse fra siden Erstatningsopgørelse, fanen Debug tabel, hvor beregnet værdi og tabelværdi i sammentællingsboksen ikke stemmer.
+          </Typography>
+          <Box className="row--label-right-hover__content">
+            <Button variant="outlined" color="error" onClick={triggerControlMismatchError}>
+              Udløs sammentællingsfejl
+            </Button>
+          </Box>
         </Box>
       </ContentBox>
     </Box>

@@ -294,6 +294,7 @@ export const computeEoSnapshot = (args: Readonly<{
     const presentation = buildEoPdfPresentation(parsedStamdata.data, parsedEo.data, { dagsDatoISO });
     const tafPerYearOutcome = buildTafPerYearBuildOutcome(
       buildTafPerYearSourceFromComputed({
+        stamdataValues: parsedStamdata.data,
         tafNetto,
         tabtArbejdsfortjenesteOre: totals.tabtArbejdsfortjenesteOre,
         forligFactor,

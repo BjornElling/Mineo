@@ -18,7 +18,7 @@
  */
 
 import type { ISODateString } from '../../types/branded';
-import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { TafNettoBeregningResult } from './tafNettoBeregning';
 import type {
   MoneyOre,
@@ -27,6 +27,7 @@ import type {
   LoenudviklingPdfModel,
   TafIndtaegterPdfModel,
 } from './eoPdfModel';
+import type { SygeferiegodtgoerelseResult } from './sygeferiegodtgoerelse';
 import {
   buildTafArbejdsdageSet,
   countTafArbejdsdageInRange,
@@ -94,9 +95,11 @@ export type TafPerYearResult = Readonly<{
 }>;
 
 export type TafPerYearSource = Readonly<{
+  stamdataValues: StamdataValues;
   loenudvikling: LoenudviklingPdfModel | null;
   tafIndtaegter: TafIndtaegterPdfModel | null;
   tidligereModtagetTaf: Calculable<MoneyOre>;
+  sygeferiegodtgoerelse: SygeferiegodtgoerelseResult;
   tabtArbejdsfortjenesteOre: MoneyOre;
   tafBeregningsenhed: TafBeregningsenhed;
   forligFactor: number | null;
@@ -114,13 +117,16 @@ export type TafPerYearBuildOutcome =
   }>;
 
 export const buildTafPerYearSourceFromComputed = (args: Readonly<{
+  stamdataValues: StamdataValues;
   tafNetto: TafNettoBeregningResult;
   tabtArbejdsfortjenesteOre: MoneyOre;
   forligFactor: number | null;
 }>): TafPerYearSource => ({
+  stamdataValues: args.stamdataValues,
   loenudvikling: args.tafNetto.loenudvikling,
   tafIndtaegter: args.tafNetto.tafIndtaegter,
   tidligereModtagetTaf: args.tafNetto.tidligereModtagetTaf,
+  sygeferiegodtgoerelse: args.tafNetto.sygeferiegodtgoerelse,
   tabtArbejdsfortjenesteOre: args.tabtArbejdsfortjenesteOre,
   tafBeregningsenhed: args.tafNetto.tafBeregningsenhed,
   forligFactor: args.forligFactor,
@@ -313,6 +319,10 @@ export const buildTafPerYearBuildOutcome = (
   const tafArbejdsdageSet = isArbejdsdage
     ? buildTafArbejdsdageSet(eoValues, options.tafRanges)
     : null;
+  const sygeferiegodtgoerelseByYear = new Map(
+    source.sygeferiegodtgoerelse.perYear.map((entry) => [entry.year, entry.amountOre] as const)
+  );
+  const harValgtSygeferiegodtgoerelse = source.sygeferiegodtgoerelse.perAnsaettelsesforhold.length > 0;
 
   // 1. Split segmenter per kalenderår
   const yearSegmentsMap = new Map<number, TafYearSegment[]>();
@@ -393,6 +403,12 @@ export const buildTafPerYearBuildOutcome = (
       const amountOre = toOre(roundKroner(ben.amount));
       deductions.push({ label: ben.label, amountOre });
     }
+    if (harValgtSygeferiegodtgoerelse && sygeferiegodtgoerelseByYear.has(year)) {
+      deductions.push({
+        label: 'Sygeferiegodtgørelse',
+        amountOre: sygeferiegodtgoerelseByYear.get(year) ?? (0 as MoneyOre),
+      });
+    }
     const yearTidligereModtagetTafOre = tidligereModtagetTafByYear.get(year) ?? (0 as MoneyOre);
     if (yearTidligereModtagetTafOre > 0) {
       deductions.push({ label: 'Allerede betalt TAF', amountOre: yearTidligereModtagetTafOre });
@@ -416,7 +432,22 @@ export const buildTafPerYearBuildOutcome = (
     });
   }
 
-  const sumYearTafOre = years.reduce((sum, y) => sum + y.yearTafOre, 0) as MoneyOre;
+  const reconciledYears = years.length === 1
+    ? (() => {
+      const [onlyYear] = years;
+      if (!onlyYear) return years;
+      return [{
+        ...onlyYear,
+        // Ét år betyder ingen reel årsfordeling. I det tilfælde skal årslinjen
+        // vise den autoritative EO-total direkte, så clampet netto ikke blokerer
+        // PDF-download pga. et rent projectionsmismatch.
+        yearTafFoerForligOre: samletTafKravOre === 0 ? (0 as MoneyOre) : onlyYear.yearTafFoerForligOre,
+        yearTafOre: samletTafKravOre,
+      }] satisfies TafYearEntry[];
+    })()
+    : years;
+
+  const sumYearTafOre = reconciledYears.reduce((sum, y) => sum + y.yearTafOre, 0) as MoneyOre;
   const afrundingOre = (samletTafKravOre - sumYearTafOre) as MoneyOre;
   if (Math.abs(afrundingOre) > MAX_AFRUNDING_AFVIGELSE_ORE) {
     return {
@@ -440,7 +471,7 @@ export const buildTafPerYearBuildOutcome = (
   return {
     kind: 'ok',
     result: {
-      years,
+      years: reconciledYears,
       sumYearTafOre,
       afrundingOre,
       samletTafKravOre,

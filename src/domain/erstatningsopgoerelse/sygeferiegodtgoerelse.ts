@@ -56,6 +56,10 @@ export type SygeferiegodtgoerelseAnsaettelsesforholdResult = Readonly<{
   ansaettelsesforholdNavn: string;
   sourceLabel: string;
   segments: readonly SygeferiegodtgoerelseSegment[];
+  perYear: readonly Readonly<{
+    year: number;
+    amountOre: MoneyOre;
+  }>[];
   feriepengekravTotalOre: MoneyOre;
   totalOre: MoneyOre;
   alleredeBetaltOre: MoneyOre;
@@ -80,12 +84,14 @@ export type SygeferiegodtgoerelseAnsaettelsesforholdResult = Readonly<{
 export type SygeferiegodtgoerelseResult = Readonly<{
   totalOre: MoneyOre;
   perAnsaettelsesforhold: readonly SygeferiegodtgoerelseAnsaettelsesforholdResult[];
+  perYear: readonly Readonly<{ year: number; amountOre: MoneyOre }>[];
   firstExcludedDate: ISODateString | null;
 }>;
 
 export const EMPTY_RESULT: SygeferiegodtgoerelseResult = {
   totalOre: ensureMoneyOre(0),
   perAnsaettelsesforhold: [],
+  perYear: [],
   firstExcludedDate: null,
 };
 
@@ -428,6 +434,50 @@ const allocateOreByWeights = (
   return result;
 };
 
+const buildYearAllocationsForGroupedSegment = (args: Readonly<{
+  yearDates: ReadonlyMap<number, readonly ISODateString[]>;
+  employment: LoenindkomstAnsaettelsesforhold;
+  values: ErstatningsopgoerelseValues;
+  satsOre: MoneyOre;
+  alreadyPaidSegmentOre: MoneyOre;
+  segmentTotalOre: MoneyOre;
+  pensionPct: number;
+}>): ReadonlyMap<number, MoneyOre> => {
+  const { yearDates, employment, values, satsOre, alreadyPaidSegmentOre, segmentTotalOre, pensionPct } = args;
+  const entries = [...yearDates.entries()].sort((a, b) => a[0] - b[0]);
+  if (entries.length === 0) return new Map<number, MoneyOre>();
+
+  const alreadyPaidByYear = allocateOreByWeights(
+    alreadyPaidSegmentOre,
+    entries.map(([year, dates]) => ({ key: String(year), weight: satsOre * dates.length }))
+  );
+
+  const weightedYears = entries.map(([year, dates]) => {
+    const ranges = buildRangesFromSortedDates(dates);
+    const grossOre = ensureMoneyOre(satsOre * dates.length);
+    const ferieberettigetLoenKroner = sumFerieberettigetLoenInRangesKroner(
+      employment,
+      ranges,
+      values.ferieperioder ?? []
+    );
+    const feriepengeOre = toOre(roundKroner(ferieberettigetLoenKroner * parsePercentToDecimal(employment.feriePct)));
+    const alreadyPaidYearOre = alreadyPaidByYear.get(String(year)) ?? ensureMoneyOre(0);
+    const remainingOre = clampMoneyOreToZero(ensureMoneyOre(grossOre - feriepengeOre - alreadyPaidYearOre));
+    const pensionOre = pensionPct > 0 ? toOre(roundKroner((remainingOre / 100) * pensionPct)) : ensureMoneyOre(0);
+    const weight = ensureMoneyOre(remainingOre + pensionOre);
+    return { year, weight: weight > 0 ? weight : dates.length };
+  });
+
+  const allocated = allocateOreByWeights(
+    segmentTotalOre,
+    weightedYears.map((entry) => ({ key: String(entry.year), weight: entry.weight }))
+  );
+
+  return new Map<number, MoneyOre>(
+    entries.map(([year]) => [year, allocated.get(String(year)) ?? ensureMoneyOre(0)] as const)
+  );
+};
+
 const resolveBaseRate = (
   values: ErstatningsopgoerelseValues,
   employment: LoenindkomstAnsaettelsesforhold,
@@ -566,6 +616,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
   const bounds: IsoRange = { fra: boundsDates[0], til: boundsDates[boundsDates.length - 1] };
   const tafArbejdsdageSet = buildLoenArbejdsdageSet(bounds, values.ferieperioder ?? []);
   const totalPerEmployment: SygeferiegodtgoerelseAnsaettelsesforholdResult[] = [];
+  const totalPerYear = new Map<number, MoneyOre>();
 
   for (const employment of values.loenindkomstAnsaettelsesforhold ?? []) {
     const sfggRow = getSfgRowForEmployment(values, employment.id);
@@ -622,6 +673,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
         ansaettelsesforholdNavn: getEmploymentName(employment),
         sourceLabel: source.label,
         segments: [],
+        perYear: [],
         feriepengekravTotalOre: ensureMoneyOre(0),
         totalOre: ensureMoneyOre(0),
         alleredeBetaltOre: ensureMoneyOre(0),
@@ -690,6 +742,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     }));
     const allocatedAlreadyPaid = allocateOreByWeights(alreadyPaidOre, grossWeights);
     const pensionPct = parsePercentToDecimal(employment.pensionPct);
+    const employmentPerYear = new Map<number, MoneyOre>();
 
     const segments: SygeferiegodtgoerelseSegment[] = grouped.map((group, index) => {
       const key = `${group.fra}:${index}`;
@@ -698,6 +751,29 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       const alreadyPaidSegmentOre = allocatedAlreadyPaid.get(key) ?? ensureMoneyOre(0);
       const remainingOre = clampMoneyOreToZero(ensureMoneyOre(grossOre - feriepengeOre - alreadyPaidSegmentOre));
       const pensionOre = pensionPct > 0 ? toOre(roundKroner((remainingOre / 100) * pensionPct)) : ensureMoneyOre(0);
+      const segmentTotalOre = ensureMoneyOre(remainingOre + pensionOre);
+
+      const yearDates = new Map<number, ISODateString[]>();
+      group.dates.forEach((iso) => {
+        const year = Number.parseInt(iso.slice(0, 4), 10);
+        const dates = yearDates.get(year) ?? [];
+        dates.push(iso);
+        yearDates.set(year, dates);
+      });
+      const yearAllocations = buildYearAllocationsForGroupedSegment({
+        yearDates,
+        employment,
+        values,
+        satsOre: group.satsOre,
+        alreadyPaidSegmentOre,
+        segmentTotalOre,
+        pensionPct,
+      });
+      yearAllocations.forEach((amountOre, year) => {
+        totalPerYear.set(year, ensureMoneyOre((totalPerYear.get(year) ?? 0) + amountOre));
+        employmentPerYear.set(year, ensureMoneyOre((employmentPerYear.get(year) ?? 0) + amountOre));
+      });
+
       return {
         ansaettelsesforholdId: employment.id,
         ansaettelsesforholdNavn: getEmploymentName(employment),
@@ -707,7 +783,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
         satsOre: group.satsOre,
         antalDage: group.dates.length,
         feriepengekravOre: grossOre,
-        beregnetSfggoereOre: ensureMoneyOre(remainingOre + pensionOre),
+        beregnetSfggoereOre: segmentTotalOre,
         feriepengeAfSygeloenOre: feriepengeOre,
         alleredeBetaltOre: alreadyPaidSegmentOre,
         pensionOre,
@@ -719,6 +795,9 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       ansaettelsesforholdNavn: getEmploymentName(employment),
       sourceLabel: source.label,
       segments,
+      perYear: [...employmentPerYear.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([year, amountOre]) => ({ year, amountOre })),
       feriepengekravTotalOre: ensureMoneyOre(segments.reduce((sum, segment) => sum + segment.feriepengekravOre, 0)),
       totalOre: ensureMoneyOre(segments.reduce((sum, segment) => sum + segment.beregnetSfggoereOre, 0)),
       alleredeBetaltOre: alreadyPaidOre,
@@ -734,6 +813,9 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
   return {
     totalOre: ensureMoneyOre(totalPerEmployment.reduce((sum, entry) => sum + entry.totalOre, 0)),
     perAnsaettelsesforhold: totalPerEmployment,
+    perYear: [...totalPerYear.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([year, amountOre]) => ({ year, amountOre })),
     firstExcludedDate,
   };
 };

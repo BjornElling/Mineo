@@ -293,8 +293,6 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger }: Prop
                         rowSx: { '& .MuiTableCell-root': { fontWeight: 700 } },
                       },
                     ]}
-                    containerSx={{ width: '100%' }}
-                    tableSx={{ width: '100%' }}
                   />
                 )}
               </ContentBox>

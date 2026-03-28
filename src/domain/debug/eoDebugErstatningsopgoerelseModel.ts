@@ -3221,6 +3221,19 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
         displayValue: formatCurrency(beregnetSygeferiegodtgoerelseOre / 100),
         status: 'ok',
       });
+
+      if (result.perYear.length > 0) {
+        const lines = [
+          'Sygeferiegodtgørelse fordelt på år | År | Beløb',
+          ...result.perYear.map((entry) => ` | ${String(entry.year)} | ${formatCurrency(entry.amountOre / 100)}`),
+        ];
+        rows.push({
+          id: `sfgg.aarsfordeling.${employment.id}`,
+          label: 'Sygeferiegodtgørelse fordelt på år (til TAF pr. år)',
+          displayValue: lines.join('\n'),
+          status: 'ok',
+        });
+      }
     }
 
     if (result?.capRows.length) {

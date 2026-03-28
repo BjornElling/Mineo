@@ -447,7 +447,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
         safeAddWrappedText('Det Standardberegnede Lønindeks fra Danmarks Statistik (SBLON2) anvendes som et retvisende reguleringsgrundlag for lønudvikling i samfundet. Regulering foretages med afsæt i værdierne for K1 (1. kvartal 2016 = indeksværdi 100).');
       } else if (isAslStatistikModel(statistikLabel)) {
         writer.addSpacer(lineHeight);
-        safeAddWrappedText('ASL-årslønsmaksimum fremgår ikke eksplicit som reguleringsgrundlag i EAL § 15, men anvendes til fremskrivning på erstatnings- og arbejdsskadeområdet, og beror på den statslige tilpasningsprocent, der i almindelighed anvendes til fremskrivning af ydelser i samfundet.');
+        safeAddWrappedText('ASL-årslønsmaksimum fremgår ikke eksplicit som reguleringsgrundlag i EAL § 15, men anvendes til fremskrivning på erstatnings- og arbejdsskadeområdet, og beror på den statslige tilpasningsprocent, der udgør den beregnede, statistiske lønudvikling i samfundet, som i almindelighed anvendes til fremskrivning af offentlige ydelser.');
       }
     }
   }

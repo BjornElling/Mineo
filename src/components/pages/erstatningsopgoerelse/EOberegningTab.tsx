@@ -46,6 +46,101 @@ type SystemIssueRow = Readonly<{
   onAction?: () => void;
 }>;
 
+const DEVTOOLS_REPORTABLE_INVARIANT_IDS = new Set([
+  'debug:control_mismatch',
+  'taf_per_year:afrunding_over_100',
+]);
+
+const isDevtoolsReportableInvariant = (invariant: EoInvariant): boolean =>
+  invariant.source === 'system' && DEVTOOLS_REPORTABLE_INVARIANT_IDS.has(invariant.id);
+
+const buildInvariantDevtoolsContext = (
+  invariant: EoInvariant,
+  snapshot: EoSnapshot | null | undefined
+): Record<string, unknown> => {
+  const baseContext: Record<string, unknown> = {
+    invariantId: invariant.id,
+    revision: snapshot?.revision ?? 'no-snapshot',
+    evidence: invariant.evidence ?? [],
+  };
+
+  if (!snapshot?.data) {
+    return baseContext;
+  }
+
+  if (invariant.id === 'taf_per_year:afrunding_over_100') {
+    return {
+      ...baseContext,
+      tafTotals: {
+        tabtArbejdsfortjenesteOre: snapshot.data.totals.tabtArbejdsfortjenesteOre,
+        tabtArbejdsfortjenesteFoerForligOre: snapshot.data.totals.tabtArbejdsfortjenesteFoerForligOre,
+        tidligereModtagetTafOre: snapshot.data.totals.tidligereModtagetTafOre,
+        forligFactor: snapshot.data.totals.forligFactor,
+      },
+      tafNetto: {
+        harTafPerioder: snapshot.data.engines.tafNetto.harTafPerioder,
+        tafBeregningsenhed: snapshot.data.engines.tafNetto.tafBeregningsenhed,
+        tafIndtaegterTotalOre:
+          snapshot.data.engines.tafNetto.tafIndtaegter?.total.status === 'ok'
+            ? snapshot.data.engines.tafNetto.tafIndtaegter.total.value
+            : snapshot.data.engines.tafNetto.tafIndtaegter?.total.status,
+        loenudviklingTotalOre:
+          snapshot.data.engines.tafNetto.loenudvikling?.loenudviklingTotal.status === 'ok'
+            ? snapshot.data.engines.tafNetto.loenudvikling.loenudviklingTotal.value
+            : snapshot.data.engines.tafNetto.loenudvikling?.loenudviklingTotal.status,
+      },
+      sygeferiegodtgoerelse: {
+        totalOre: snapshot.data.engines.tafNetto.sygeferiegodtgoerelse.totalOre,
+        perYear: snapshot.data.engines.tafNetto.sygeferiegodtgoerelse.perYear,
+        perAnsaettelsesforhold: snapshot.data.engines.tafNetto.sygeferiegodtgoerelse.perAnsaettelsesforhold.map((entry) => ({
+          ansaettelsesforholdId: entry.ansaettelsesforholdId,
+          ansaettelsesforholdNavn: entry.ansaettelsesforholdNavn,
+          totalOre: entry.totalOre,
+          perYear: entry.perYear,
+          segmentCount: entry.segments.length,
+        })),
+      },
+      canonicalTafPerioder: snapshot.data.canonicalOutput.periodiseringer.tafPerioder,
+    };
+  }
+
+  if (invariant.id === 'debug:control_mismatch') {
+    const mismatchRows = snapshot.debugSnapshot?.sammentaellingRows
+      .filter((row) => (invariant.evidence ?? []).some((message) => message.startsWith(`${row.label}:`)))
+      .map((row) => ({
+        key: row.key,
+        label: row.label,
+        beregnetDisplay: row.control.beregnetDisplay,
+        tabelDisplay: row.control.tabelDisplay,
+        beregnetValue: row.control.beregnetValue,
+        tabelValue: row.control.tabelValue,
+        loseFeriedage: row.control.loseFeriedage,
+        oevrigeFravaersdage: row.control.oevrigeFravaersdage,
+      })) ?? [];
+
+    return {
+      ...baseContext,
+      debugControlMismatch: {
+        mismatchCount: invariant.evidence?.length ?? 0,
+        mismatches: invariant.evidence ?? [],
+        matchedRows: mismatchRows,
+        allSammentaellingRowCount: snapshot.debugSnapshot?.sammentaellingRows.length ?? 0,
+      },
+      tafContext: {
+        harTafPerioder: snapshot.data.engines.tafNetto.harTafPerioder,
+        tafBeregningsenhed: snapshot.data.engines.tafNetto.tafBeregningsenhed,
+        canonicalTafPerioder: snapshot.data.canonicalOutput.periodiseringer.tafPerioder,
+      },
+      snapshotTotals: {
+        tabtArbejdsfortjenesteOre: snapshot.data.totals.tabtArbejdsfortjenesteOre,
+        tabtArbejdsfortjenesteFoerForligOre: snapshot.data.totals.tabtArbejdsfortjenesteFoerForligOre,
+      },
+    };
+  }
+
+  return baseContext;
+};
+
 const FEJL_ADVARSLER_ROW_SX = {
   display: 'grid',
   gridTemplateColumns: 'minmax(0, 58ch) max-content',
@@ -228,6 +323,33 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     return null;
   }, [authoritativeBlockingInvariants, eoSnapshot, tafPdfProjection, firstBlockingDebugErrorMessage]);
 
+  const reportableSystemInvariants = React.useMemo(() => {
+    return [
+      ...authoritativeBlockingInvariants,
+      ...eoPdfBlockingInvariants,
+      ...(tafPdfProjection?.kind === 'blocked' ? tafPdfProjection.invariants : []),
+    ].filter((invariant, index, array) =>
+      isDevtoolsReportableInvariant(invariant)
+      && array.findIndex((candidate) => candidate.id === invariant.id && candidate.message === invariant.message) === index
+    );
+  }, [authoritativeBlockingInvariants, eoPdfBlockingInvariants, tafPdfProjection]);
+
+  const reportedSystemInvariantKeysRef = React.useRef<Set<string>>(new Set());
+
+  React.useEffect(() => {
+    const revision = eoSnapshot?.revision ?? 'no-snapshot';
+    reportableSystemInvariants.forEach((invariant) => {
+      const key = `${revision}:${invariant.id}:${invariant.message}`;
+      if (reportedSystemInvariantKeysRef.current.has(key)) return;
+      reportedSystemInvariantKeysRef.current.add(key);
+
+      console.error(
+        `[EOberegningTab] Systemfejl registreret: ${invariant.message}`,
+        buildInvariantDevtoolsContext(invariant, eoSnapshot)
+      );
+    });
+  }, [eoSnapshot?.revision, reportableSystemInvariants]);
+
   const systemIssueRows = React.useMemo<readonly SystemIssueRow[]>(() => {
     const rows: SystemIssueRow[] = [];
     const seen = new Set<string>();
@@ -250,13 +372,14 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       });
     }
 
-    // Kun autoritative og EO-PDF-blokerende system-invarianter vises i systemfejl-sektionen.
-    // tafPdfBlockingInvariants blokerer kun TAF-PDF-download og vises ikke som globale systemfejl.
+    // Systeminvarianter med reel systemfejl-semantik vises samlet her.
+    // TAF-afstemningsfejl bevarer fortsat også tooltip-blokeringen på downloadknappen.
     [
       ...authoritativeBlockingInvariants,
       ...eoPdfBlockingInvariants,
+      ...(tafPdfProjection?.kind === 'blocked' ? tafPdfProjection.invariants : []),
     ]
-      .filter(isSystemInvariant)
+      .filter((invariant) => isSystemInvariant(invariant) && isDevtoolsReportableInvariant(invariant))
       .forEach((invariant) => {
         pushIssue({
           id: invariant.id,
@@ -274,6 +397,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     eoPdfBlockingInvariants,
     eoSnapshot,
     isSystemInvariant,
+    tafPdfProjection,
   ]);
 
   // ============================================================================

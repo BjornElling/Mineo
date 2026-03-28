@@ -3,6 +3,7 @@ import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnaps
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import { formatCurrencyFromOre } from '../../../utils/pdf/pdfFormatUtils';
 
 const MockJsPDF = vi.hoisted(() =>
   class MockJsPDF {
@@ -392,6 +393,130 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       'Skadelidte har modtaget kontanthjælp i erstatningsperioden. Kræves ydelsen tilbagebetalt som følge af erstatningsudbetaling, vil kravet blive forhøjet.'
     );
     expect(hasTextAfterHeader(texts, 'Øvrige krav', 'Ingen')).toBe(false);
+  });
+
+  it('viser sygeferiegodtgørelse som særskilt indtægt og fradrag i beregnet TAF-krav', () => {
+    const { stamdata, eo } = buildBaseInput();
+    stamdata.skadesdato = iso('2025-01-06');
+    eo.vedroererPeriodeFra = iso('2025-01-06');
+    eo.vedroererPeriodeTil = iso('2025-01-10');
+    eo.tafPerioder = [{ id: 'taf-1', fra: iso('2025-01-06'), til: iso('2025-01-10'), loseFeriedage: undefined }];
+    eo.loenindkomstAnsaettelsesforhold = [
+      createEmployment({
+        id: 'af-1',
+        navnPaaArbejdssted: 'AAB',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        indtaegtsoplysningerTableData: [
+          {
+            id: 'row-1',
+            col0_maaned: '1',
+            col1_maaned: '2025',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: '',
+            col1_dag: '',
+            col2: asAmountValue(10000),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          },
+        ],
+      }),
+    ];
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      beregnesUdFra: 'Manuelt angivet',
+      manuelDagssats: asAmountValue(100),
+      manuelBeloebIHenholdTil: undefined,
+      manuelFoerstEfterSygeloen: 'Nej',
+      referenceperiodeFra: undefined,
+      referenceperiodeTil: undefined,
+      referenceperiodeFravaersdageUdenLoen: 0,
+      satsvalg: undefined,
+      alleredeBetaltBeloeb: undefined,
+    }];
+
+    const model = buildProjectedDocument(stamdata, eo);
+    const loenudviklingTotal = model.tabtArbejdsfortjeneste.loenudvikling?.loenudviklingTotal;
+    const tafIndtaegterTotal = model.tabtArbejdsfortjeneste.tafIndtaegter?.total;
+    const sygeferiegodtgoerelseOre = model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.totalOre;
+
+    expect(sygeferiegodtgoerelseOre).toBe(40000);
+    expect(loenudviklingTotal?.status).toBe('ok');
+    expect(tafIndtaegterTotal?.status).toBe('ok');
+    if (loenudviklingTotal?.status !== 'ok' || tafIndtaegterTotal?.status !== 'ok') {
+      throw new Error('Forventede beregnelige TAF-totaler i EO-PDF-test');
+    }
+
+    renderPdf(stamdata, eo);
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+
+    expect(texts).toContain('Sygeferiegodtgørelse');
+    expect(texts.some((text) => text.includes(formatCurrencyFromOre(sygeferiegodtgoerelseOre)))).toBe(true);
+    expect(texts).toContain(
+      `${formatCurrencyFromOre(loenudviklingTotal.value)} - ${formatCurrencyFromOre(tafIndtaegterTotal.value)} - ${formatCurrencyFromOre(sygeferiegodtgoerelseOre)}\u00A0kr. =`
+    );
+  });
+
+  it('skjuler sygeferiegodtgørelse i EO-pdf når alle relevante ansættelsesforhold står til Ingen', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      beregnesUdFra: 'Ingen',
+      manuelDagssats: undefined,
+      manuelBeloebIHenholdTil: undefined,
+      manuelFoerstEfterSygeloen: 'Nej',
+      referenceperiodeFra: undefined,
+      referenceperiodeTil: undefined,
+      referenceperiodeFravaersdageUdenLoen: 0,
+      satsvalg: undefined,
+      alleredeBetaltBeloeb: undefined,
+    }];
+
+    const model = buildProjectedDocument(stamdata, eo);
+    expect(model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold).toEqual([]);
+
+    renderPdf(stamdata, eo);
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const beregnetKravHeaderIndex = texts.indexOf('Beregnet krav på tabt arbejdsfortjeneste');
+    const beregnetKravLinje = beregnetKravHeaderIndex === -1 ? null : texts[beregnetKravHeaderIndex + 1];
+
+    expect(texts).not.toContain('Sygeferiegodtgørelse');
+    expect(beregnetKravLinje).not.toContain(' - 0,00');
+  });
+
+  it('viser sygeferiegodtgørelse med 0 kr. i indtægter men udelader 0-fradrag i TAF-mellemregningen', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.eoNummer = '2';
+    eo.vedroererPeriodeFra = iso('2024-01-29');
+    eo.vedroererPeriodeTil = iso('2024-01-29');
+    eo.tafPerioder = [{ id: 'taf-1', fra: iso('2024-01-29'), til: iso('2024-01-29'), loseFeriedage: undefined }];
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      beregnesUdFra: 'Manuelt angivet',
+      manuelDagssats: asAmountValue(100),
+      manuelBeloebIHenholdTil: undefined,
+      manuelFoerstEfterSygeloen: 'Nej',
+      referenceperiodeFra: undefined,
+      referenceperiodeTil: undefined,
+      referenceperiodeFravaersdageUdenLoen: 0,
+      satsvalg: undefined,
+      alleredeBetaltBeloeb: asAmountValue(1000),
+    }];
+
+    const model = buildProjectedDocument(stamdata, eo);
+    expect(model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold).toHaveLength(1);
+    expect(model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.totalOre).toBe(0);
+
+    renderPdf(stamdata, eo);
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const beregnetKravHeaderIndex = texts.indexOf('Beregnet krav på tabt arbejdsfortjeneste');
+    const beregnetKravLinje = beregnetKravHeaderIndex === -1 ? null : texts[beregnetKravHeaderIndex + 1];
+
+    expect(texts).toContain('Sygeferiegodtgørelse');
+    expect(texts.some((text) => text.includes('0,00'))).toBe(true);
+    expect(beregnetKravLinje).toBe(`${formatCurrencyFromOre(model.tabtArbejdsfortjeneste.loenudvikling?.loenudviklingTotal.status === 'ok' ? model.tabtArbejdsfortjeneste.loenudvikling.loenudviklingTotal.value : 0)} - ${formatCurrencyFromOre(model.tabtArbejdsfortjeneste.tafIndtaegter?.total.status === 'ok' ? model.tabtArbejdsfortjeneste.tafIndtaegter.total.value : 0)}\u00A0kr. =`);
+    expect(beregnetKravLinje).not.toContain(' - 0,00');
   });
 
   it('viser begge ydelser adskilt med "og" i forbeholdsteksten', () => {

@@ -158,6 +158,11 @@ out-of-range-input, som håndteres via feltfejl og EOBeregningTab-blokering.
 - I download-fejl-dialog eller enhver anden dialog som del af normale brugerflows
 - Enhver visning der vises som fast element ved normale og forventelige brugerscenarier
 
+Bemærk:
+- `EOberegningTab` må godt vise en systemfejl-række for snapshot-invarianter med systemfejl-semantik.
+- Denne række må ikke selv indeholde `BugReportButton`.
+- Fejlrapportering skal i stedet ske via devtools-monitor-flowet (`console.error` -> `DevtoolsIssueNotice`).
+
 ### 7.3 `fail_closed`-snapshot og BugReportButton
 
 `fail_closed` med `schema_guard` (forventelig inkonsistens i committed state, fx ved
@@ -213,8 +218,25 @@ delresultater. Debug skal i stedet vise tom/ikke-beregnet tilstand for sådanne 
 Hvis `debugSnapshot` er `null` (ved `fail_closed` inden engines kørte), vises en passende
 tom-/fejltilstand uden at forsøge at rendere beregningsindhold. Dette er forventelig adfærd.
 
+### 8.2a Tabeltyper i EODebug
+
+EODebug må ikke introducere nye ad hoc-tabeltyper i komponenter eller row-builders.
+
+Regler:
+- Hvis debug-indhold skal vises som tabel, skal det renderes via en eksisterende, forhåndsdefineret tabeltype.
+- For rene visningstabeller i EODebug er den kanoniske tabeltype `StandardDisplayTable`.
+- For `StandardDisplayTable` i EODebug er samlet tabelbredde centralt styret til 100 %; kolonnebredder må gerne være automatiske eller sættes manuelt pr. kolonne, men den samlede bredde må ikke overstyres lokalt.
+- Row-builders må ikke opfinde nye tabel-layouts som fritekstblokke, pseudo-tabeller eller specialmarkup, når indholdet semantisk er en tabel.
+- Nye tabelbehov skal først vurderes mod de eksisterende tabeltyper; hvis ingen passer, kræver det en eksplicit kontraktændring før implementering.
+
 ### 8.3 Generel regel
 
 Al fejlhåndtering der viser `BugReportButton` som del af sideflowet skal overholde §7.
 Runtime-fejl der opstår i beregningstabs skal logges via `logError`/devtools-monitor og
 routes til eksisterende systemfejl-flow — ikke vises som inline-elementer i normale visninger.
+
+Undtagelse:
+- Snapshot-invarianterne `debug:control_mismatch` og `taf_per_year:afrunding_over_100` må både
+  vises som systemfejl-rækker i `EOberegningTab` og logges til devtools-monitor-flowet, fordi de
+  repræsenterer interne beregningsinkonsistenser der skal kunne indrapporteres. `BugReportButton`
+  må fortsat kun vises i `DevtoolsIssueNotice`.

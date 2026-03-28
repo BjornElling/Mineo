@@ -260,9 +260,8 @@ const EODebugTabel = React.memo(({ debugSnapshot = null }: EODebugTabelProps) =>
                 { header: 'Til', align: 'center', width: 180 },
               ]}
               rows={summaryRows}
-              containerSx={{ mb: 2 }}
             />
-            <Box className="row--label-right-hover" sx={{ mt: 2 }}>
+            <Box className="row--label-right-hover">
               <Typography className="row--text">Download tabel (CSV-format)</Typography>
               <Box className="row--label-right-hover__content" sx={{ mr: '90px' }}>
                 <Box
@@ -311,7 +310,6 @@ const EODebugTabel = React.memo(({ debugSnapshot = null }: EODebugTabelProps) =>
             { header: 'Kontrol', align: 'center', width: 120 },
           ]}
           rows={sammentaellingTables.basis}
-          containerSx={{ mb: 4 }}
         />
 
         <StandardDisplayTable
@@ -323,7 +321,6 @@ const EODebugTabel = React.memo(({ debugSnapshot = null }: EODebugTabelProps) =>
             { header: 'Kontrol', align: 'center', width: 120 },
           ]}
           rows={sammentaellingTables.beregningsperiode}
-          containerSx={{ mb: 4 }}
         />
 
         <StandardDisplayTable
@@ -338,7 +335,7 @@ const EODebugTabel = React.memo(({ debugSnapshot = null }: EODebugTabelProps) =>
         />
       </ContentBox>
 
-      <Box sx={{ mt: 2 }}>
+      <Box>
         {!snapshot ? null : model?.rowCount === 0 ? (
           <Alert severity="info" sx={{ borderRadius: '10px' }}>
             <AlertTitle sx={{ fontWeight: 500 }}>Kan ikke oprette debug-tabel</AlertTitle>

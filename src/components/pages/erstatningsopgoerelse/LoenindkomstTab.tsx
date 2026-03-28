@@ -1656,7 +1656,7 @@ const LoenindkomstTab = React.memo(({
         <Box className="row--label-right-hover">
           <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
             <Typography className="row--text">
-              Lønindkomst, tillæg og andre relevante oplysninger angives og beregnes individuelt for hvert enkelt
+              Lønindkomst, tillæg og andre relevante oplysninger angives individuelt for hvert enkelt
               ansættelsesforhold.
             </Typography>
           </Box>
@@ -1665,7 +1665,7 @@ const LoenindkomstTab = React.memo(({
         <Box className="row--label-right-hover">
           <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
             <Typography className="row--text">
-              Programmet sondrer selv mellem lønindkomst før og efter skaden.
+              Det er ikke nødvendigt at dele indtastninger op i før og efter skaden. Programmet sondrer selv.
             </Typography>
           </Box>
         </Box>

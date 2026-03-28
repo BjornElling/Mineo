@@ -57,53 +57,6 @@ const renderDebugRow = (row: DebugRowModel) => (
   </Box>
 );
 
-const renderSfggPostTableGroup = (rows: readonly DebugRowModel[]) => {
-  if (rows.length === 0) return null;
-  const combinedStatus: DebugStatus = rows.some((row) => row.status === 'error')
-    ? 'error'
-    : rows.some((row) => row.status === 'warning')
-      ? 'warning'
-      : 'ok';
-
-  return (
-    <Box
-      key={rows.map((row) => row.id).join('|')}
-      className="row--label-right-hover"
-      sx={{ alignItems: 'stretch' }}
-    >
-      <Box sx={{ display: 'flex', flex: 1, minWidth: 0, flexDirection: 'column', justifyContent: 'center', pr: 2 }}>
-        {rows.map((row) => (
-          <Typography
-            key={row.id}
-            className="row--text"
-            sx={{ minHeight: 0, display: 'block', py: 0 }}
-          >
-            {row.label}
-          </Typography>
-        ))}
-      </Box>
-
-      <Box className="row--label-right-hover__content" sx={{ gap: 2, alignItems: 'stretch' }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end' }}>
-          {rows.map((row) => (
-            <Typography
-              key={row.id}
-              className={`row--text${isSfggComputedTotalRow(row) ? ' text-bold' : ''}`}
-              sx={{ ...getDisplayValueSx(row.displayValue), minHeight: 0, display: 'block', py: 0 }}
-            >
-              {row.displayValue}
-            </Typography>
-          ))}
-        </Box>
-
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {getStatusIcon(combinedStatus)}
-        </Box>
-      </Box>
-    </Box>
-  );
-};
-
 const EODebugGroupedRowsSection = React.memo<{
   title: string;
   sections: readonly GroupedRowsSection[];
@@ -151,16 +104,14 @@ const EODebugGroupedRowsSection = React.memo<{
                       : cell;
                   }),
                 }))}
-                containerSx={{ mb: 2, width: '100%' }}
                 tableSx={{
-                  width: '100%',
                   tableLayout: 'fixed',
                 }}
               />
             </React.Fragment>
           ))}
 
-          {renderSfggPostTableGroup(sfggPostTableRows)}
+          {sfggPostTableRows.map(renderDebugRow)}
               </>
             );
           })()}
