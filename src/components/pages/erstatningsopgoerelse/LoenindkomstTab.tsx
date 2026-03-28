@@ -131,15 +131,15 @@ const updateSfggAnsaettelsesforholdRow = (
   const existing = prev.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === ansaettelsesforholdId);
   const baseRow = existing ?? {
     ansaettelsesforholdId,
-    beregnesUdFra: undefined,
-    referenceperiodeFra: undefined,
-    referenceperiodeTil: undefined,
-    referenceperiodeFravaersdageUdenLoen: 0,
-    manuelDagssats: undefined,
-    manuelBeloebIHenholdTil: undefined,
-    manuelFoerstEfterSygeloen: 'Nej' as const,
-    satsvalg: undefined,
-    alleredeBetaltBeloeb: undefined,
+    sfggBeregningskilde: undefined,
+    sfggReferenceperiodeFra: undefined,
+    sfggReferenceperiodeTil: undefined,
+    sfggReferenceperiodeFravaersdageUdenLoen: 0,
+    sfggManuelDagssats: undefined,
+    sfggManuelBeloebIHenholdTil: undefined,
+    sfggManuelFoerstEfterSygeloen: 'Nej' as const,
+    sfggSatsvalg: undefined,
+    sfggAlleredeBetaltBeloeb: undefined,
   };
   const nextRow = updater(baseRow);
   const nextRows = prev.sfggAnsaettelsesforhold.some((row) => row.ansaettelsesforholdId === ansaettelsesforholdId)
@@ -1756,16 +1756,16 @@ const LoenindkomstTab = React.memo(({
           ? (sfggOverenskomstMeta?.navn ?? af.overenskomstId!.trim())
           : 'Ingen overenskomst valgt';
         const canShowSfggOverenskomstDetails =
-          sfggRow?.beregnesUdFra !== 'Overenskomst' || hasSfggOverenskomst;
+          sfggRow?.sfggBeregningskilde !== 'Overenskomst' || hasSfggOverenskomst;
         const requiresReferenceperiode =
-          sfggRow?.beregnesUdFra === 'Ferieloven'
+          sfggRow?.sfggBeregningskilde === 'Ferieloven'
           || (
-            sfggRow?.beregnesUdFra === 'Overenskomst'
+            sfggRow?.sfggBeregningskilde === 'Overenskomst'
             && hasSfggOverenskomst
             && sfggPolicy?.model !== 'direkte_sats'
           );
         const showSatsvalg =
-          sfggRow?.beregnesUdFra === 'Overenskomst'
+          sfggRow?.sfggBeregningskilde === 'Overenskomst'
           && hasSfggOverenskomst
           && sfggPolicy?.model === 'direkte_sats'
           && sfggPolicy.direkteSatsErDifferentieret;
@@ -2488,14 +2488,14 @@ const LoenindkomstTab = React.memo(({
                   <Box className="row--label-right-hover__content">
                     <StyledDropdown
                       width={200}
-                      value={sfggRow?.beregnesUdFra}
+                      value={sfggRow?.sfggBeregningskilde}
                       placeholder="Vælg..."
                       allowEmpty={true}
                       onChange={(event: StyledDropdownChangeEvent<string | undefined>) => {
                         const nextValue = event.target.value;
                         updateSfggAnsaettelsesforhold(af.id, (current) => ({
                           ...current,
-                          beregnesUdFra:
+                          sfggBeregningskilde:
                             nextValue === 'Overenskomst' || nextValue === 'Manuelt angivet' || nextValue === 'Ferieloven' || nextValue === 'Ingen'
                               ? nextValue
                               : undefined,
@@ -2510,7 +2510,7 @@ const LoenindkomstTab = React.memo(({
                   </Box>
                 </Box>
 
-                {sfggRow?.beregnesUdFra === 'Overenskomst' ? (
+                {sfggRow?.sfggBeregningskilde === 'Overenskomst' ? (
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Overenskomst (angivet ovenfor)</Typography>
                     <Box className="row--label-right-hover__content">
@@ -2521,7 +2521,7 @@ const LoenindkomstTab = React.memo(({
                   </Box>
                 ) : null}
 
-                {sfggRow?.beregnesUdFra === 'Overenskomst' && canShowSfggOverenskomstDetails && sfggPolicy?.model !== 'direkte_sats' ? (
+                {sfggRow?.sfggBeregningskilde === 'Overenskomst' && canShowSfggOverenskomstDetails && sfggPolicy?.model !== 'direkte_sats' ? (
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Overenskomstens referenceperiode</Typography>
                     <Box className="row--label-right-hover__content">
@@ -2538,14 +2538,14 @@ const LoenindkomstTab = React.memo(({
                     <Box className="row--label-right-hover__content">
                       <StyledDropdown
                         width={220}
-                        value={sfggRow?.satsvalg}
+                        value={sfggRow?.sfggSatsvalg}
                         placeholder="Vælg..."
                         allowEmpty={true}
                         onChange={(event: StyledDropdownChangeEvent<string | undefined>) => {
                           const nextValue = event.target.value;
                           updateSfggAnsaettelsesforhold(af.id, (current) => ({
                             ...current,
-                            satsvalg:
+                            sfggSatsvalg:
                               nextValue === 'Faglaert-Koebenhavn' ||
                               nextValue === 'Faglaert-Provinsen' ||
                               nextValue === 'Ufaglaert-Koebenhavn' ||
@@ -2571,11 +2571,11 @@ const LoenindkomstTab = React.memo(({
                       <Box className="row--label-right-hover__content">
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <StyledDateField
-                            value={sfggRow?.referenceperiodeFra}
+                            value={sfggRow?.sfggReferenceperiodeFra}
                             maxDate={
-                              sfggRow?.referenceperiodeTil && sfggReferenceperiodeMaxDate
-                                ? (sfggRow.referenceperiodeTil < sfggReferenceperiodeMaxDate ? sfggRow.referenceperiodeTil : sfggReferenceperiodeMaxDate)
-                                : (sfggRow?.referenceperiodeTil ?? sfggReferenceperiodeMaxDate)
+                              sfggRow?.sfggReferenceperiodeTil && sfggReferenceperiodeMaxDate
+                                ? (sfggRow.sfggReferenceperiodeTil < sfggReferenceperiodeMaxDate ? sfggRow.sfggReferenceperiodeTil : sfggReferenceperiodeMaxDate)
+                                : (sfggRow?.sfggReferenceperiodeTil ?? sfggReferenceperiodeMaxDate)
                             }
                             specialRangeErrors={{
                               fraTilRole: 'fra',
@@ -2587,14 +2587,14 @@ const LoenindkomstTab = React.memo(({
                             onCommit={(event) => {
                               updateSfggAnsaettelsesforhold(af.id, (current) => ({
                                 ...current,
-                                referenceperiodeFra: event.target.value,
+                                sfggReferenceperiodeFra: event.target.value,
                               }));
                             }}
                           />
                           <Typography className="row--text">til og med</Typography>
                           <StyledDateField
-                            value={sfggRow?.referenceperiodeTil}
-                            minDate={sfggRow?.referenceperiodeFra}
+                            value={sfggRow?.sfggReferenceperiodeTil}
+                            minDate={sfggRow?.sfggReferenceperiodeFra}
                             maxDate={sfggReferenceperiodeMaxDate}
                             specialRangeErrors={{
                               fraTilRole: 'til',
@@ -2606,7 +2606,7 @@ const LoenindkomstTab = React.memo(({
                             onCommit={(event) => {
                               updateSfggAnsaettelsesforhold(af.id, (current) => ({
                                 ...current,
-                                referenceperiodeTil: event.target.value,
+                                sfggReferenceperiodeTil: event.target.value,
                               }));
                             }}
                           />
@@ -2621,11 +2621,11 @@ const LoenindkomstTab = React.memo(({
                           width={100}
                           minValue={0}
                           maxValue={sfggReferenceperiodeFravaersdageMax ?? DAY_COUNT_MAX}
-                          value={sfggRow?.referenceperiodeFravaersdageUdenLoen ?? 0}
+                          value={sfggRow?.sfggReferenceperiodeFravaersdageUdenLoen ?? 0}
                           onCommit={(event) => {
                             updateSfggAnsaettelsesforhold(af.id, (current) => ({
                               ...current,
-                              referenceperiodeFravaersdageUdenLoen: event.target.value ?? 0,
+                              sfggReferenceperiodeFravaersdageUdenLoen: event.target.value ?? 0,
                             }));
                           }}
                         />
@@ -2635,7 +2635,7 @@ const LoenindkomstTab = React.memo(({
                   </>
                 ) : null}
 
-                {sfggRow?.beregnesUdFra === 'Overenskomst' && canShowSfggOverenskomstDetails && sfggPolicy?.model === 'direkte_sats' && !showSatsvalg ? (
+                {sfggRow?.sfggBeregningskilde === 'Overenskomst' && canShowSfggOverenskomstDetails && sfggPolicy?.model === 'direkte_sats' && !showSatsvalg ? (
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Referencesats</Typography>
                     <Box className="row--label-right-hover__content">
@@ -2644,19 +2644,19 @@ const LoenindkomstTab = React.memo(({
                   </Box>
                 ) : null}
 
-                {sfggRow?.beregnesUdFra === 'Manuelt angivet' ? (
+                {sfggRow?.sfggBeregningskilde === 'Manuelt angivet' ? (
                   <>
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">Dagssats for sygeferiegodtgørelse (mandag-fredag)</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledAmountField
                           width={150}
-                          value={sfggRow?.manuelDagssats}
+                          value={sfggRow?.sfggManuelDagssats}
                           allowNegative={false}
                           onCommit={(event) => {
                             updateSfggAnsaettelsesforhold(af.id, (current) => ({
                               ...current,
-                              manuelDagssats: event.target.value,
+                              sfggManuelDagssats: event.target.value,
                             }));
                           }}
                         />
@@ -2668,11 +2668,11 @@ const LoenindkomstTab = React.memo(({
                       <Box className="row--label-right-hover__content">
                         <StyledTextField
                           width={260}
-                          value={sfggRow?.manuelBeloebIHenholdTil ?? ''}
+                          value={sfggRow?.sfggManuelBeloebIHenholdTil ?? ''}
                           onCommit={(event) => {
                             updateSfggAnsaettelsesforhold(af.id, (current) => ({
                               ...current,
-                              manuelBeloebIHenholdTil: normalizeOptionalFreeText(event.target.value),
+                              sfggManuelBeloebIHenholdTil: normalizeOptionalFreeText(event.target.value),
                             }));
                           }}
                         />
@@ -2683,11 +2683,11 @@ const LoenindkomstTab = React.memo(({
                       <Typography className="row--text">Først sygeferiegodtgørelse efter ophør af sygeløn</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledToggleSwitch
-                          checked={sfggRow?.manuelFoerstEfterSygeloen === 'Ja'}
+                          checked={sfggRow?.sfggManuelFoerstEfterSygeloen === 'Ja'}
                           onCommit={(event) => {
                             updateSfggAnsaettelsesforhold(af.id, (current) => ({
                               ...current,
-                              manuelFoerstEfterSygeloen: event.target.value ? 'Ja' : 'Nej',
+                              sfggManuelFoerstEfterSygeloen: event.target.value ? 'Ja' : 'Nej',
                             }));
                           }}
                         />
@@ -2696,18 +2696,18 @@ const LoenindkomstTab = React.memo(({
                   </>
                 ) : null}
 
-                {sfggRow?.beregnesUdFra !== undefined && sfggRow.beregnesUdFra !== 'Ingen' && canShowSfggOverenskomstDetails ? (
+                {sfggRow?.sfggBeregningskilde !== undefined && sfggRow.sfggBeregningskilde !== 'Ingen' && canShowSfggOverenskomstDetails ? (
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Evt. allerede betalt sygeferiegodtgørelse i denne erstatningsperiode</Typography>
                     <Box className="row--label-right-hover__content">
                       <StyledAmountField
                         width={150}
-                        value={sfggRow?.alleredeBetaltBeloeb}
+                        value={sfggRow?.sfggAlleredeBetaltBeloeb}
                         allowNegative={false}
                         onCommit={(event) => {
                           updateSfggAnsaettelsesforhold(af.id, (current) => ({
                             ...current,
-                            alleredeBetaltBeloeb: event.target.value,
+                            sfggAlleredeBetaltBeloeb: event.target.value,
                           }));
                         }}
                       />

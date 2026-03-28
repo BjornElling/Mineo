@@ -176,15 +176,15 @@ describe('computeEoSnapshot', () => {
     ];
     eoValues.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: eoValues.loenindkomstAnsaettelsesforhold[0].id,
-      beregnesUdFra: 'Ingen',
-      manuelDagssats: undefined,
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: undefined,
-      referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: undefined,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Ingen',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
     eoValues.tafPerioder = [
       { id: 'r1', fra: '2024-01-01', til: '2024-12-31', loseFeriedage: 0 },

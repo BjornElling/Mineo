@@ -73,15 +73,15 @@ describe('computeTafNettoBeregning', () => {
     })];
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Overenskomst',
-      manuelDagssats: undefined,
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: iso('2023-12-01'),
-      referenceperiodeTil: iso('2023-12-31'),
-      referenceperiodeFravaersdageUdenLoen: 0,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Overenskomst',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2023-12-01'),
+      sfggReferenceperiodeTil: iso('2023-12-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const result = computeTafNettoBeregning(
@@ -139,15 +139,15 @@ describe('computeTafNettoBeregning', () => {
     })];
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-global',
-      beregnesUdFra: 'Overenskomst',
-      manuelDagssats: undefined,
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: iso('2023-12-01'),
-      referenceperiodeTil: iso('2023-12-31'),
-      referenceperiodeFravaersdageUdenLoen: 0,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Overenskomst',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2023-12-01'),
+      sfggReferenceperiodeTil: iso('2023-12-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const result = computeTafNettoBeregning(

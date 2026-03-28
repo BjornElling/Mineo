@@ -60,15 +60,15 @@ const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): Erstatningsopg
   if ((merged.sfggAnsaettelsesforhold ?? []).length === 0 && merged.loenindkomstAnsaettelsesforhold.length > 0) {
     merged.sfggAnsaettelsesforhold = merged.loenindkomstAnsaettelsesforhold.map((af) => ({
       ansaettelsesforholdId: af.id,
-      beregnesUdFra: 'Ingen' as const,
-      manuelDagssats: undefined,
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej' as const,
-      referenceperiodeFra: undefined,
-      referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: undefined,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Ingen' as const,
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej' as const,
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }));
   }
   const preferNonEmpty = <T>(current: T, fallback: T): T => {

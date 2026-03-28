@@ -71,15 +71,15 @@ describe('computeSygeferiegodtgoerelse', () => {
     })];
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Ferieloven',
-      manuelDagssats: undefined,
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: iso('2024-01-01'),
-      referenceperiodeTil: iso('2024-01-31'),
-      referenceperiodeFravaersdageUdenLoen: 0,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Ferieloven',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2024-01-01'),
+      sfggReferenceperiodeTil: iso('2024-01-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const result = computeSygeferiegodtgoerelse({
@@ -88,12 +88,12 @@ describe('computeSygeferiegodtgoerelse', () => {
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
     });
 
-    expect(result.perAnsaettelsesforhold[0]?.referenceSats.status).toBe('ok');
-    if (result.perAnsaettelsesforhold[0]?.referenceSats.status !== 'ok') {
+    expect(result.perAnsaettelsesforhold[0]?.sfggReferencesats.status).toBe('ok');
+    if (result.perAnsaettelsesforhold[0]?.sfggReferencesats.status !== 'ok') {
       throw new Error('ReferenceSats forventedes beregnelig');
     }
-    expect(result.perAnsaettelsesforhold[0].referenceSats.value).toBe(5682);
-    expect(result.perAnsaettelsesforhold[0].referenceSatsFormula).toEqual({
+    expect(result.perAnsaettelsesforhold[0].sfggReferencesats.value).toBe(5682);
+    expect(result.perAnsaettelsesforhold[0].sfggReferencesatsFormula).toEqual({
       ferieberettigetLoenKroner: 10000,
       feriePctDecimal: 0.125,
       feriepengeKroner: 1250,
@@ -131,15 +131,15 @@ describe('computeSygeferiegodtgoerelse', () => {
     })];
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Manuelt angivet',
-      manuelDagssats: asAmount(100),
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: undefined,
-      referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: 0, // 0 svarer til parsed schema-default (ingen fraværsdage uden løn)
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0, // 0 svarer til parsed schema-default (ingen fraværsdage uden løn)
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const result = computeSygeferiegodtgoerelse({
@@ -160,15 +160,15 @@ describe('computeSygeferiegodtgoerelse', () => {
     values.loenindkomstAnsaettelsesforhold = [createEmployment()];
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Manuelt angivet',
-      manuelDagssats: asAmount(100),
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: undefined,
-      referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: 0, // 0 svarer til parsed schema-default (ingen fraværsdage uden løn)
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0, // 0 svarer til parsed schema-default (ingen fraværsdage uden løn)
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const result = computeSygeferiegodtgoerelse({
@@ -186,7 +186,7 @@ describe('computeSygeferiegodtgoerelse', () => {
     expect(result.perAnsaettelsesforhold[0]?.totalOre).toBe(100000);
   });
 
-  it('ignorerer hængende satsvalg ved direkte ikke-differentieret overenskomst-SFGG', () => {
+  it('ignorerer hængende sfggSatsvalg ved direkte ikke-differentieret overenskomst-SFGG', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.eoNummer = '2';
     values.loenindkomstAnsaettelsesforhold = [createEmployment({
@@ -196,15 +196,15 @@ describe('computeSygeferiegodtgoerelse', () => {
     })];
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Overenskomst',
-      manuelDagssats: undefined,
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: undefined,
-      referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: 0,
-      satsvalg: 'Faglaert-Provinsen',
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Overenskomst',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: 'Faglaert-Provinsen',
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const result = computeSygeferiegodtgoerelse({
@@ -245,15 +245,15 @@ describe('computeSygeferiegodtgoerelse', () => {
     })];
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Ferieloven',
-      manuelDagssats: undefined,
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: iso('2023-12-01'),
-      referenceperiodeTil: iso('2023-12-31'),
-      referenceperiodeFravaersdageUdenLoen: 0,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Ferieloven',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2023-12-01'),
+      sfggReferenceperiodeTil: iso('2023-12-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const ferieloven = computeSygeferiegodtgoerelse({
@@ -264,7 +264,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     values.sfggAnsaettelsesforhold = [{
       ...values.sfggAnsaettelsesforhold[0],
-      beregnesUdFra: 'Overenskomst',
+      sfggBeregningskilde: 'Overenskomst',
     }];
 
     const overenskomst = computeSygeferiegodtgoerelse({
@@ -273,11 +273,11 @@ describe('computeSygeferiegodtgoerelse', () => {
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
-    expect(overenskomst.perAnsaettelsesforhold[0]?.referenceperiode).toEqual(
-      ferieloven.perAnsaettelsesforhold[0]?.referenceperiode
+    expect(overenskomst.perAnsaettelsesforhold[0]?.sfggReferenceperiode).toEqual(
+      ferieloven.perAnsaettelsesforhold[0]?.sfggReferenceperiode
     );
-    expect(overenskomst.perAnsaettelsesforhold[0]?.referenceSats).toEqual(
-      ferieloven.perAnsaettelsesforhold[0]?.referenceSats
+    expect(overenskomst.perAnsaettelsesforhold[0]?.sfggReferencesats).toEqual(
+      ferieloven.perAnsaettelsesforhold[0]?.sfggReferencesats
     );
     expect(overenskomst.totalOre).toBe(ferieloven.totalOre);
   });
@@ -324,15 +324,15 @@ describe('computeSygeferiegodtgoerelse', () => {
     })];
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Overenskomst',
-      manuelDagssats: undefined,
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: iso('2023-12-01'),
-      referenceperiodeTil: iso('2023-12-31'),
-      referenceperiodeFravaersdageUdenLoen: 0,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Overenskomst',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2023-12-01'),
+      sfggReferenceperiodeTil: iso('2023-12-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const decemberOnly = computeSygeferiegodtgoerelse({
@@ -343,8 +343,8 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     values.sfggAnsaettelsesforhold = [{
       ...values.sfggAnsaettelsesforhold[0],
-      referenceperiodeFra: iso('2023-11-01'),
-      referenceperiodeTil: iso('2023-12-31'),
+      sfggReferenceperiodeFra: iso('2023-11-01'),
+      sfggReferenceperiodeTil: iso('2023-12-31'),
     }];
 
     const novemberDecember = computeSygeferiegodtgoerelse({
@@ -353,8 +353,8 @@ describe('computeSygeferiegodtgoerelse', () => {
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
-    expect(novemberDecember.perAnsaettelsesforhold[0]?.referenceSats).not.toEqual(
-      decemberOnly.perAnsaettelsesforhold[0]?.referenceSats
+    expect(novemberDecember.perAnsaettelsesforhold[0]?.sfggReferencesats).not.toEqual(
+      decemberOnly.perAnsaettelsesforhold[0]?.sfggReferencesats
     );
     expect(novemberDecember.totalOre).not.toBe(decemberOnly.totalOre);
   });
@@ -364,15 +364,15 @@ describe('computeSygeferiegodtgoerelse', () => {
     values.loenindkomstAnsaettelsesforhold = [createEmployment()];
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Manuelt angivet',
-      manuelDagssats: asAmount(100),
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: undefined,
-      referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: 0, // 0 svarer til parsed schema-default (ingen fraværsdage uden løn)
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0, // 0 svarer til parsed schema-default (ingen fraværsdage uden løn)
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const result = computeSygeferiegodtgoerelse({
@@ -393,15 +393,15 @@ describe('computeSygeferiegodtgoerelse', () => {
     values.loenindkomstAnsaettelsesforhold = [createEmployment()];
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Manuelt angivet',
-      manuelDagssats: asAmount(100),
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: undefined,
-      referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: 0, // 0 svarer til parsed schema-default (ingen fraværsdage uden løn)
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0, // 0 svarer til parsed schema-default (ingen fraværsdage uden løn)
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const result = computeSygeferiegodtgoerelse({
@@ -438,15 +438,15 @@ describe('computeSygeferiegodtgoerelse', () => {
     })];
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Ferieloven',
-      manuelDagssats: undefined,
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: iso('2024-01-01'),
-      referenceperiodeTil: iso('2024-01-31'),
-      referenceperiodeFravaersdageUdenLoen: 1,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Ferieloven',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2024-01-01'),
+      sfggReferenceperiodeTil: iso('2024-01-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 1,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const result = computeSygeferiegodtgoerelse({
@@ -455,9 +455,9 @@ describe('computeSygeferiegodtgoerelse', () => {
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
     });
 
-    expect(result.perAnsaettelsesforhold[0]?.referenceSats.status).toBe('ok');
-    expect(result.perAnsaettelsesforhold[0]?.referenceSats.value).toBe(4167);
-    expect(result.perAnsaettelsesforhold[0]?.referenceSatsFormula).toEqual({
+    expect(result.perAnsaettelsesforhold[0]?.sfggReferencesats.status).toBe('ok');
+    expect(result.perAnsaettelsesforhold[0]?.sfggReferencesats.value).toBe(4167);
+    expect(result.perAnsaettelsesforhold[0]?.sfggReferencesatsFormula).toEqual({
       ferieberettigetLoenKroner: 10000,
       feriePctDecimal: 0.125,
       feriepengeKroner: 1250,
@@ -471,6 +471,62 @@ describe('computeSygeferiegodtgoerelse', () => {
     });
   });
 
+  it('er upåvirket af EO-beregningsperioden når SFGG beregnes ud fra egen referenceperiode', () => {
+    const baseValues = createErstatningsopgoerelseInitialValues();
+    baseValues.eoNummer = '2';
+    baseValues.beregnesUdFra = 'Beregningsperiode';
+    baseValues.periodeTilBeregningFra = iso('2023-01-01');
+    baseValues.periodeTilBeregningTil = iso('2023-12-31');
+    baseValues.loenindkomstAnsaettelsesforhold = [createEmployment({
+      feriePct: 12.5,
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-jan-2024',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '',
+        col1_dag: '',
+        col2: asAmount(10000),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    })];
+    baseValues.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Ferieloven',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2024-01-01'),
+      sfggReferenceperiodeTil: iso('2024-01-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 1,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const changedBeregningsperiodeValues = structuredClone(baseValues);
+    changedBeregningsperiodeValues.periodeTilBeregningFra = iso('2019-01-01');
+    changedBeregningsperiodeValues.periodeTilBeregningTil = iso('2019-06-30');
+
+    const tafRanges = [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }] as const;
+    const stamdata = { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') };
+
+    const baseResult = computeSygeferiegodtgoerelse({
+      values: baseValues,
+      stamdata,
+      tafRanges,
+    });
+    const changedBeregningsperiodeResult = computeSygeferiegodtgoerelse({
+      values: changedBeregningsperiodeValues,
+      stamdata,
+      tafRanges,
+    });
+
+    expect(changedBeregningsperiodeResult).toEqual(baseResult);
+  });
+
   it('bevarer arbejdsdage for manuelt angivet SFGG selv når TAF beregnes som måneder', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.eoNummer = '2';
@@ -478,15 +534,15 @@ describe('computeSygeferiegodtgoerelse', () => {
     values.loenindkomstAnsaettelsesforhold = [createEmployment()];
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Manuelt angivet',
-      manuelDagssats: asAmount(100),
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: undefined,
-      referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: 0,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const result = computeSygeferiegodtgoerelse({
@@ -522,15 +578,15 @@ describe('computeSygeferiegodtgoerelse', () => {
     })];
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Ferieloven',
-      manuelDagssats: undefined,
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: iso('2024-01-01'),
-      referenceperiodeTil: iso('2024-01-31'),
-      referenceperiodeFravaersdageUdenLoen: 1,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Ferieloven',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2024-01-01'),
+      sfggReferenceperiodeTil: iso('2024-01-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 1,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const result = computeSygeferiegodtgoerelse({
@@ -569,15 +625,15 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Ferieloven',
-      manuelDagssats: undefined,
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: iso('2024-01-01'),
-      referenceperiodeTil: iso('2024-01-31'),
-      referenceperiodeFravaersdageUdenLoen: 0,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Ferieloven',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2024-01-01'),
+      sfggReferenceperiodeTil: iso('2024-01-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const ferielovResult = computeSygeferiegodtgoerelse({
@@ -588,15 +644,15 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Manuelt angivet',
-      manuelDagssats: asAmount(100),
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: undefined,
-      referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: 0,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const manuelResult = computeSygeferiegodtgoerelse({
@@ -608,7 +664,7 @@ describe('computeSygeferiegodtgoerelse', () => {
     expect(ferielovResult.perAnsaettelsesforhold[0]?.segments[0]?.antalDage).toBe(2);
     expect(ferielovResult.perAnsaettelsesforhold[0]?.totalOre).toBeGreaterThan(0);
     expect(manuelResult.perAnsaettelsesforhold[0]?.segments).toEqual([]);
-    expect(manuelResult.perAnsaettelsesforhold[0]?.referenceSats.status).toBe('not_calculable');
+    expect(manuelResult.perAnsaettelsesforhold[0]?.sfggReferencesats.status).toBe('not_calculable');
   });
 
   it('genbruger lønudviklingsindeks i SFGG-segmenter og splitter ved reguleringsskift', () => {
@@ -636,15 +692,15 @@ describe('computeSygeferiegodtgoerelse', () => {
     })];
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Overenskomst',
-      manuelDagssats: undefined,
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: iso('2023-12-01'),
-      referenceperiodeTil: iso('2023-12-31'),
-      referenceperiodeFravaersdageUdenLoen: 0,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Overenskomst',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2023-12-01'),
+      sfggReferenceperiodeTil: iso('2023-12-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const result = computeSygeferiegodtgoerelse({
@@ -721,15 +777,15 @@ describe('computeSygeferiegodtgoerelse', () => {
     })];
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Overenskomst',
-      manuelDagssats: undefined,
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: iso('2024-01-01'),
-      referenceperiodeTil: iso('2024-01-31'),
-      referenceperiodeFravaersdageUdenLoen: 0,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Overenskomst',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2024-01-01'),
+      sfggReferenceperiodeTil: iso('2024-01-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const result = computeSygeferiegodtgoerelse({
@@ -783,15 +839,15 @@ describe('findSfggSixMonthWarningEmploymentIds', () => {
     })];
     values.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Manuelt angivet',
-      manuelDagssats: asAmount(100),
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: undefined,
-      referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: 0, // 0 svarer til parsed schema-default (ingen fraværsdage uden løn)
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0, // 0 svarer til parsed schema-default (ingen fraværsdage uden løn)
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const stamdata = { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') };

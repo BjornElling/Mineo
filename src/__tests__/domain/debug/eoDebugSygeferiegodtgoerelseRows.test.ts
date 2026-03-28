@@ -37,7 +37,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     ]);
   });
 
-  it('viser bemærkning og fejl på satsvalg ved differentieret direkte SFGG-sats', () => {
+  it('viser bemærkning og fejl på sfggSatsvalg ved differentieret direkte SFGG-sats', () => {
     const values = createValues();
     values.periodeTilBeregningFra = '2014-06-01';
     values.periodeTilBeregningTil = '2014-06-30';
@@ -51,15 +51,15 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Overenskomst',
-        manuelDagssats: undefined,
-        manuelBeloebIHenholdTil: undefined,
-        manuelFoerstEfterSygeloen: 'Nej',
-        referenceperiodeFra: undefined,
-        referenceperiodeTil: undefined,
-        referenceperiodeFravaersdageUdenLoen: undefined,
-        satsvalg: undefined,
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Overenskomst',
+        sfggManuelDagssats: undefined,
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
     const buildLoenudviklingModelSpy = vi.spyOn(eoPdfLoenudviklingModule, 'buildLoenudviklingModel');
@@ -111,11 +111,11 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Overenskomst',
-        referenceperiodeFra: undefined,
-        referenceperiodeTil: undefined,
-        referenceperiodeFravaersdageUdenLoen: 0,
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Overenskomst',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
 
@@ -166,11 +166,11 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Overenskomst',
-        referenceperiodeFra: '2023-12-01',
-        referenceperiodeTil: '2023-12-31',
-        referenceperiodeFravaersdageUdenLoen: 0,
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Overenskomst',
+        sfggReferenceperiodeFra: '2023-12-01',
+        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
     values.tafPerioder = [
@@ -259,11 +259,11 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Overenskomst',
-        referenceperiodeFra: undefined,
-        referenceperiodeTil: undefined,
-        referenceperiodeFravaersdageUdenLoen: 0,
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Overenskomst',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
 
@@ -295,11 +295,11 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Overenskomst',
-        referenceperiodeFra: '2023-12-01',
-        referenceperiodeTil: '2023-12-31',
-        referenceperiodeFravaersdageUdenLoen: 0,
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Overenskomst',
+        sfggReferenceperiodeFra: '2023-12-01',
+        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
 
@@ -336,13 +336,13 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Manuelt angivet',
-        referenceperiodeFra: undefined,
-        referenceperiodeTil: undefined,
-        referenceperiodeFravaersdageUdenLoen: 0,
-        manuelDagssats: undefined,
-        manuelFoerstEfterSygeloen: 'Nej',
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggManuelDagssats: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
     values.tafPerioder = [
@@ -378,13 +378,13 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Manuelt angivet',
-        referenceperiodeFra: undefined,
-        referenceperiodeTil: undefined,
-        referenceperiodeFravaersdageUdenLoen: 0,
-        manuelDagssats: undefined,
-        manuelFoerstEfterSygeloen: 'Nej',
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggManuelDagssats: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
     values.tafPerioder = [];
@@ -431,13 +431,13 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Manuelt angivet',
-        referenceperiodeFra: '2023-12-01',
-        referenceperiodeTil: '2023-12-31',
-        referenceperiodeFravaersdageUdenLoen: 0,
-        manuelDagssats: { kind: 'number', value: 100 },
-        manuelFoerstEfterSygeloen: 'Ja',
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggReferenceperiodeFra: '2023-12-01',
+        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggManuelDagssats: { kind: 'number', value: 100 },
+        sfggManuelFoerstEfterSygeloen: 'Ja',
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
     values.tafPerioder = [
@@ -499,11 +499,11 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Ferieloven',
-        referenceperiodeFra: '2023-12-01',
-        referenceperiodeTil: '2023-12-31',
-        referenceperiodeFravaersdageUdenLoen: 1,
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Ferieloven',
+        sfggReferenceperiodeFra: '2023-12-01',
+        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFravaersdageUdenLoen: 1,
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
     values.tafPerioder = [
@@ -546,15 +546,15 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Manuelt angivet',
-        manuelDagssats: { kind: 'number', value: 100 },
-        manuelBeloebIHenholdTil: undefined,
-        manuelFoerstEfterSygeloen: 'Nej',
-        referenceperiodeFra: undefined,
-        referenceperiodeTil: undefined,
-        referenceperiodeFravaersdageUdenLoen: 0,
-        satsvalg: undefined,
-        alleredeBetaltBeloeb: undefined,
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggManuelDagssats: { kind: 'number', value: 100 },
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: undefined,
       },
     ];
     values.tafPerioder = [
@@ -614,11 +614,11 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Overenskomst',
-        referenceperiodeFra: '2023-12-01',
-        referenceperiodeTil: '2023-12-31',
-        referenceperiodeFravaersdageUdenLoen: 0,
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Overenskomst',
+        sfggReferenceperiodeFra: '2023-12-01',
+        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
     values.tafPerioder = [
@@ -717,11 +717,11 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Overenskomst',
-        referenceperiodeFra: '2023-12-01',
-        referenceperiodeTil: '2023-12-31',
-        referenceperiodeFravaersdageUdenLoen: 0,
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Overenskomst',
+        sfggReferenceperiodeFra: '2023-12-01',
+        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
     values.tafPerioder = [
@@ -772,12 +772,12 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Overenskomst',
-        referenceperiodeFra: undefined,
-        referenceperiodeTil: undefined,
-        referenceperiodeFravaersdageUdenLoen: undefined,
-        satsvalg: 'Faglaert-Koebenhavn',
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Overenskomst',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: 'Faglaert-Koebenhavn',
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
     values.tafPerioder = [
@@ -829,12 +829,12 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Overenskomst',
-        referenceperiodeFra: undefined,
-        referenceperiodeTil: undefined,
-        referenceperiodeFravaersdageUdenLoen: undefined,
-        satsvalg: 'Faglaert-Provinsen',
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Overenskomst',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: 'Faglaert-Provinsen',
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
     values.tafPerioder = [
@@ -877,12 +877,12 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Overenskomst',
-        referenceperiodeFra: undefined,
-        referenceperiodeTil: undefined,
-        referenceperiodeFravaersdageUdenLoen: undefined,
-        satsvalg: undefined,
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Overenskomst',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
     values.tafPerioder = [
@@ -946,11 +946,11 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Overenskomst',
-        referenceperiodeFra: undefined,
-        referenceperiodeTil: undefined,
-        referenceperiodeFravaersdageUdenLoen: undefined,
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Overenskomst',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
     values.tafPerioder = [
@@ -1021,11 +1021,11 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Ferieloven',
-        referenceperiodeFra: '2023-12-01',
-        referenceperiodeTil: '2023-12-31',
-        referenceperiodeFravaersdageUdenLoen: 0,
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Ferieloven',
+        sfggReferenceperiodeFra: '2023-12-01',
+        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
     values.tafPerioder = [
@@ -1077,11 +1077,11 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Ferieloven',
-        referenceperiodeFra: '2023-12-01',
-        referenceperiodeTil: '2023-12-31',
-        referenceperiodeFravaersdageUdenLoen: 0,
-        alleredeBetaltBeloeb: '100,00',
+        sfggBeregningskilde: 'Ferieloven',
+        sfggReferenceperiodeFra: '2023-12-01',
+        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggAlleredeBetaltBeloeb: '100,00',
       },
     ];
     values.tafPerioder = [
@@ -1135,15 +1135,15 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        beregnesUdFra: 'Manuelt angivet',
-        manuelDagssats: { kind: 'number', value: 100 },
-        manuelBeloebIHenholdTil: undefined,
-        manuelFoerstEfterSygeloen: 'Nej',
-        referenceperiodeFra: undefined,
-        referenceperiodeTil: undefined,
-        referenceperiodeFravaersdageUdenLoen: 0,
-        satsvalg: undefined,
-        alleredeBetaltBeloeb: undefined,
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggManuelDagssats: { kind: 'number', value: 100 },
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: undefined,
       },
     ];
     values.tafPerioder = [

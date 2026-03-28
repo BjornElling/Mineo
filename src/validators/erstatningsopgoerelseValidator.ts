@@ -368,52 +368,52 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
     const firstTafFraDato = getFirstIndtastedeTafFraDato(values);
     const firstTafFraDatoDisplay = firstTafFraDato ? (isoToDanish(firstTafFraDato) ?? firstTafFraDato) : undefined;
 
-    if (!row?.beregnesUdFra) {
+    if (!row?.sfggBeregningskilde) {
       errors.push({
-        path: `${errorPathPrefix}.beregnesUdFra`,
+        path: `${errorPathPrefix}.sfggBeregningskilde`,
         message: 'Beregningsgrundlag for SFGG ikke valgt',
         severity: 'error',
       });
       return;
     }
 
-    if (row.beregnesUdFra === 'Ingen') return;
+    if (row.sfggBeregningskilde === 'Ingen') return;
 
     const overenskomstPolicy =
-      row.beregnesUdFra === 'Overenskomst' && employment?.overenskomstId && !getOffentligOverenskomstTypeById(employment.overenskomstId)
+      row.sfggBeregningskilde === 'Overenskomst' && employment?.overenskomstId && !getOffentligOverenskomstTypeById(employment.overenskomstId)
         ? getOverenskomstSfggPolicy(employment.overenskomstId)
         : undefined;
     const requiresReferenceperiode =
-      row.beregnesUdFra === 'Ferieloven'
-      || (row.beregnesUdFra === 'Overenskomst' && overenskomstPolicy?.model !== 'direkte_sats');
+      row.sfggBeregningskilde === 'Ferieloven'
+      || (row.sfggBeregningskilde === 'Overenskomst' && overenskomstPolicy?.model !== 'direkte_sats');
 
-    if (row.beregnesUdFra === 'Manuelt angivet' && amountValueToNumber(row.manuelDagssats) === undefined) {
+    if (row.sfggBeregningskilde === 'Manuelt angivet' && amountValueToNumber(row.sfggManuelDagssats) === undefined) {
       errors.push({
-        path: `${errorPathPrefix}.manuelDagssats`,
+        path: `${errorPathPrefix}.sfggManuelDagssats`,
         message: 'Dagssats for sygeferiegodtgørelse mangler',
         severity: 'error',
       });
     }
 
-    if (row.beregnesUdFra === 'Overenskomst' && (!employment?.harOverenskomst || !employment.overenskomstId)) {
+    if (row.sfggBeregningskilde === 'Overenskomst' && (!employment?.harOverenskomst || !employment.overenskomstId)) {
       errors.push({
-        path: `${errorPathPrefix}.beregnesUdFra`,
+        path: `${errorPathPrefix}.sfggBeregningskilde`,
         message: 'Der skal være valgt en overenskomst på ansættelsesforholdet for at beregne sygeferiegodtgørelse ud fra overenskomst',
         severity: 'error',
       });
     }
 
-    if (requiresReferenceperiode && !row.referenceperiodeFra) {
+    if (requiresReferenceperiode && !row.sfggReferenceperiodeFra) {
       errors.push({
-        path: `${errorPathPrefix}.referenceperiodeFra`,
+        path: `${errorPathPrefix}.sfggReferenceperiodeFra`,
         message: 'Referenceperiode fra-dato mangler',
         severity: 'error',
       });
     }
 
-    if (requiresReferenceperiode && !row.referenceperiodeTil) {
+    if (requiresReferenceperiode && !row.sfggReferenceperiodeTil) {
       errors.push({
-        path: `${errorPathPrefix}.referenceperiodeTil`,
+        path: `${errorPathPrefix}.sfggReferenceperiodeTil`,
         message: 'Referenceperiode til-dato mangler',
         severity: 'error',
       });
@@ -421,12 +421,12 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
 
     if (
       requiresReferenceperiode &&
-      row.referenceperiodeFra &&
-      row.referenceperiodeTil &&
-      row.referenceperiodeFra > row.referenceperiodeTil
+      row.sfggReferenceperiodeFra &&
+      row.sfggReferenceperiodeTil &&
+      row.sfggReferenceperiodeFra > row.sfggReferenceperiodeTil
     ) {
       errors.push({
-        path: `${errorPathPrefix}.referenceperiodeFra`,
+        path: `${errorPathPrefix}.sfggReferenceperiodeFra`,
         message: 'Referenceperiode fra-dato må ikke være efter til-dato',
         severity: 'error',
       });
@@ -435,11 +435,11 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
     if (
       requiresReferenceperiode &&
       firstTafFraDato &&
-      row.referenceperiodeFra &&
-      row.referenceperiodeFra >= firstTafFraDato
+      row.sfggReferenceperiodeFra &&
+      row.sfggReferenceperiodeFra >= firstTafFraDato
     ) {
       errors.push({
-        path: `${errorPathPrefix}.referenceperiodeFra`,
+        path: `${errorPathPrefix}.sfggReferenceperiodeFra`,
         message: `Referenceperioden skal ligge før første TAF-periode (${firstTafFraDatoDisplay})`,
         severity: 'error',
       });
@@ -448,25 +448,25 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
     if (
       requiresReferenceperiode &&
       firstTafFraDato &&
-      row.referenceperiodeTil &&
-      row.referenceperiodeTil >= firstTafFraDato
+      row.sfggReferenceperiodeTil &&
+      row.sfggReferenceperiodeTil >= firstTafFraDato
     ) {
       errors.push({
-        path: `${errorPathPrefix}.referenceperiodeTil`,
+        path: `${errorPathPrefix}.sfggReferenceperiodeTil`,
         message: `Referenceperioden skal ligge før første TAF-periode (${firstTafFraDatoDisplay})`,
         severity: 'error',
       });
     }
 
-    if (row.beregnesUdFra === 'Overenskomst' && overenskomstPolicy?.model === 'direkte_sats' && overenskomstPolicy.direkteSatsErDifferentieret && !row.satsvalg) {
+    if (row.sfggBeregningskilde === 'Overenskomst' && overenskomstPolicy?.model === 'direkte_sats' && overenskomstPolicy.direkteSatsErDifferentieret && !row.sfggSatsvalg) {
       errors.push({
-        path: `${errorPathPrefix}.satsvalg`,
+        path: `${errorPathPrefix}.sfggSatsvalg`,
         message: 'Satsvalg mangler',
         severity: 'error',
       });
     }
 
-    if (requiresReferenceperiode && row.referenceperiodeFra && row.referenceperiodeTil) {
+    if (requiresReferenceperiode && row.sfggReferenceperiodeFra && row.sfggReferenceperiodeTil) {
       const referenceDayCount = resolveSfggReferenceperiodeDayCount(values, row, resolveSfggSource(row, employment));
       const availableRelevantDays = referenceDayCount?.divisorLabel === 'kalenderdage'
         ? referenceDayCount.kalenderdage
@@ -474,18 +474,18 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
 
       if (availableRelevantDays <= 0) {
         errors.push({
-          path: `${errorPathPrefix}.referenceperiodeFra`,
+          path: `${errorPathPrefix}.sfggReferenceperiodeFra`,
           message: referenceDayCount?.divisorLabel === 'kalenderdage'
             ? SFGG_NO_CALENDAR_DAYS_REASON
             : SFGG_NO_WORKDAYS_REASON,
           severity: 'error',
         });
       } else if (
-        typeof row.referenceperiodeFravaersdageUdenLoen === 'number' &&
-        row.referenceperiodeFravaersdageUdenLoen > availableRelevantDays
+        typeof row.sfggReferenceperiodeFravaersdageUdenLoen === 'number' &&
+        row.sfggReferenceperiodeFravaersdageUdenLoen > availableRelevantDays
       ) {
         errors.push({
-          path: `${errorPathPrefix}.referenceperiodeFravaersdageUdenLoen`,
+          path: `${errorPathPrefix}.sfggReferenceperiodeFravaersdageUdenLoen`,
           message:
             referenceDayCount?.divisorLabel === 'kalenderdage'
               ? `Ferie- og fraværsdage uden løn overstiger mulige kalenderdage i referenceperioden (maksimalt ${availableRelevantDays})`

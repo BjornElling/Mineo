@@ -415,6 +415,35 @@ I dette tilfælde gælder følgende ufravigelige regler:
 - Bilags-checkboxen for sygeferiegodtgørelse i EOBeregningTab er kun et visningsønske og må ikke overstyre det semantiske fravalg.
 - TAF fordelt på år må ikke vise eller beregne fradragslinjer for sygeferiegodtgørelse.
 
+### 11.1a TAF-beregningsperiode og SFGG-referenceperiode er adskilte domæner
+
+`periodeTilBeregningFra` / `periodeTilBeregningTil` tilhører TAF-beregningsgrundlaget.
+SFGG-referenceperioden tilhører udelukkende den konkrete SFGG-række
+(`sfggAnsaettelsesforhold[].sfggReferenceperiodeFra/Til`).
+
+Ufravigelige regler:
+- EO's TAF-beregningsperiode må aldrig bruges som fallback, default, visningsgate eller beregningsinput for SFGG-referenceperioden.
+- SFGG-referenceperioden må aldrig bruges som fallback, default, visningsgate eller beregningsinput for TAF-beregningsperioden.
+- At perioderne i en konkret sag tilfældigvis er identiske giver ingen implicit kobling i kode eller projektioner.
+- PDF-, debug- og view-lag må ikke betinge SFGG-referenceperiode-indhold på `values.beregnesUdFra === 'Beregningsperiode'`.
+
+Tilladte relationer:
+- SFGG må gerne forholde sig til TAF-forløbet som sygeforløb, fx ved kravet om at SFGG-referenceperioden skal ligge før første TAF-dag/periode.
+- SFGG må gerne bruge TAF-beregningsenheden (`Måneder`/`Arbejdsdage`) dér hvor domænet eksplicit kræver det for kalenderdage vs. arbejdsdage.
+
+Disse undtagelser ændrer ikke hovedreglen: TAF-beregningsperioden og SFGG-referenceperioden er
+to forskellige inputdomæner og må ikke sammenblandes.
+
+Interne navngivningsregler:
+- Tvetydige interne symboler for TAF-beregningsperioden skal navngives med `taf`-præfiks, fx `tafBeregningsperiode`.
+- Tvetydige interne symboler for SFGG-referenceperiode eller SFGG-afledte satser skal navngives med `sfgg`-præfiks, fx `sfggReferenceperiode`, `sfggReferencesats` og `sfggSource`.
+- Persisted schemafelter er kun undtaget fra denne regel, når stabile load/save-kontrakter kræver eksisterende feltnavne.
+
+Aktuel undtagelse:
+- TAF's persisted felter `periodeTilBeregningFra/Til` og root-feltet `beregnesUdFra` er fortsat uændrede af hensyn til den eksisterende EO-kontrakt.
+- SFGG-rækkens persisted felter er eksplicit omlagt til `sfgg`-præfiks, herunder `sfggBeregningskilde`. Ældre `.eo`-filer med de tidligere SFGG-feltnavne er derfor ikke bagudkompatible på dette punkt.
+- Denne bagudinkompatibilitet er fail-closed, ikke fail-fast: ved load af gamle SFGG-feltnavne parses rækken fortsat, men manglende `sfggBeregningskilde` behandles efterfølgende som `Ingen`. Det giver semantisk fravalg af SFGG i stedet for parse-fejl eller gætteri.
+
 ### 11.2 Samme princip for andre semantisk fravalgte delberegninger
 
 Samme regel gælder for andre delberegninger med tilsvarende semantisk fravalg. Hvis en

@@ -48,12 +48,12 @@ export type SygeferiegodtgoerelsePdfModel = Readonly<{
   perAnsaettelsesforhold: readonly Readonly<{
     ansaettelsesforholdId: string;
     ansaettelsesforholdNavn: string;
-    sourceLabel: string;
+    sfggSourceLabel: string;
     feriepengekravTotalOre: MoneyOre;
     totalOre: MoneyOre;
     explanatoryLines: readonly string[];
-    referenceperiode: Readonly<{ fra: ISODateString; til: ISODateString }> | null;
-    referenceSats: Calculable<MoneyOre>;
+    sfggReferenceperiode: Readonly<{ fra: ISODateString; til: ISODateString }> | null;
+    sfggReferencesats: Calculable<MoneyOre>;
     capReachedDate: ISODateString | null;
     capRows: readonly Readonly<{
       fra: ISODateString;

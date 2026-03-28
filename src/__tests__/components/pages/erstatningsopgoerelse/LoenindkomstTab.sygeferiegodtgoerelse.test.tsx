@@ -42,15 +42,15 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
     eoValues.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: ansaettelsesforhold.id,
-        beregnesUdFra: 'Overenskomst',
-        referenceperiodeFra: '2023-12-01',
-        referenceperiodeTil: '2023-12-31',
-        referenceperiodeFravaersdageUdenLoen: 0,
-        manuelDagssats: undefined,
-        manuelBeloebIHenholdTil: undefined,
-        manuelFoerstEfterSygeloen: 'Nej',
-        satsvalg: undefined,
-        alleredeBetaltBeloeb: '0,00',
+        sfggBeregningskilde: 'Overenskomst',
+        sfggReferenceperiodeFra: '2023-12-01',
+        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggManuelDagssats: undefined,
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
 

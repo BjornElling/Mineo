@@ -79,15 +79,15 @@ export type SygeferiegodtgoerelseSatsvalg = z.infer<typeof sygeferiegodtgoerelse
 
 export const sygeferiegodtgoerelseAnsaettelsesforholdRowSchema = z.object({
   ansaettelsesforholdId: z.string().min(1, 'Ansættelsesforhold-ID må ikke være tomt'),
-  beregnesUdFra: z.preprocess(normalizeEmptyToUndefined, sygeferiegodtgoerelseBeregningskildeEnum.optional()),
-  referenceperiodeFra: optionalIsoDateString,
-  referenceperiodeTil: optionalIsoDateString,
-  referenceperiodeFravaersdageUdenLoen: dayCount.default(0),
-  manuelDagssats: nonNegativeAmountValue,
-  manuelBeloebIHenholdTil: optionalString,
-  manuelFoerstEfterSygeloen: jaNejEnum.default('Nej'),
-  satsvalg: z.preprocess(normalizeEmptyToUndefined, sygeferiegodtgoerelseSatsvalgEnum.optional()),
-  alleredeBetaltBeloeb: nonNegativeAmountValue,
+  sfggBeregningskilde: z.preprocess(normalizeEmptyToUndefined, sygeferiegodtgoerelseBeregningskildeEnum.optional()),
+  sfggReferenceperiodeFra: optionalIsoDateString,
+  sfggReferenceperiodeTil: optionalIsoDateString,
+  sfggReferenceperiodeFravaersdageUdenLoen: dayCount.default(0),
+  sfggManuelDagssats: nonNegativeAmountValue,
+  sfggManuelBeloebIHenholdTil: optionalString,
+  sfggManuelFoerstEfterSygeloen: jaNejEnum.default('Nej'),
+  sfggSatsvalg: z.preprocess(normalizeEmptyToUndefined, sygeferiegodtgoerelseSatsvalgEnum.optional()),
+  sfggAlleredeBetaltBeloeb: nonNegativeAmountValue,
 }).strict();
 
 export type SygeferiegodtgoerelseAnsaettelsesforholdRow =

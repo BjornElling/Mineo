@@ -4,7 +4,7 @@
  * Genererer PDF-dokument med komplet erstatningsopgørelse
  */
 
-import { PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
+import { MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES } from './pdfConfig';
 import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from './pdfHelpers';
 import type { PdfCommonOptions } from './pdfOptions';
 import { createStandardPdfWriter } from './pdfWriter';
@@ -55,6 +55,15 @@ import { renderOpgorelseSection } from './erstatningsopgoerelse/sections/opgoere
 import { computeEoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot';
 import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
 import type { PdfModel } from '../../domain/erstatningsopgoerelse/eoPdfModel';
+import { getEffektiveSatserForDato, getOverenskomstMetaById, getOverenskomstSfggPolicy } from '../../data/overenskomstRates';
+import {
+  isSfggReferenceperiodeSource,
+  resolveSfggReferenceperiodeDayCount,
+  resolveSfggSource,
+  sumFerieberettigetLoenInRangesKroner,
+} from '../../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
+import { parsePercentToDecimal } from '../numberParsing';
+import { isoToDanish } from '../../types/branded';
 
 const NBSP = '\u00A0';
 const EO_RIGHT_COLUMN_WIDTH = 33.125;
@@ -90,6 +99,94 @@ const isZeroPct = (value: number | undefined): boolean => Math.abs(value ?? 0) <
 const capitalizeFirstChar = (value: string): string => {
   if (value.length === 0) return value;
   return `${value.charAt(0).toLocaleUpperCase('da-DK')}${value.slice(1)}`;
+};
+
+const ensureSentencePunctuation = (value: string): string => (
+  /[.!?]$/.test(value) ? value : `${value}.`
+);
+
+const resolveSfggPdfIntroText = (
+  eoValues: ErstatningsopgoerelseValues,
+  ansaettelsesforholdId: string
+): string | null => {
+  const sfggRow = eoValues.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === ansaettelsesforholdId);
+  const employment = eoValues.loenindkomstAnsaettelsesforhold.find((row) => row.id === ansaettelsesforholdId);
+  const beregningskilde = sfggRow?.sfggBeregningskilde;
+
+  if (beregningskilde === 'Manuelt angivet') {
+    const manualSource = sfggRow?.sfggManuelBeloebIHenholdTil?.trim();
+    if (manualSource) {
+      return ensureSentencePunctuation(`Sygeferiegodtgørelse beregnes i henhold til ${manualSource}`);
+    }
+    return 'Sygeferiegodtgørelse beregnes på baggrund af en manuelt angivet sats.';
+  }
+
+  if (beregningskilde === 'Ferieloven') {
+    return 'Sygeferiegodtgørelse beregnes i henhold til ferieloven.';
+  }
+
+  if (beregningskilde === 'Overenskomst') {
+    const overenskomstNavn = employment?.overenskomstId
+      ? (getOverenskomstMetaById(employment.overenskomstId)?.navn ?? employment.overenskomstId.trim())
+      : null;
+    const sfggPolicy = employment?.overenskomstId
+      ? getOverenskomstSfggPolicy(employment.overenskomstId)
+      : undefined;
+
+    if (!overenskomstNavn) {
+      return 'Sygeferiegodtgørelse beregnes i henhold til overenskomsten.';
+    }
+
+    if (sfggPolicy?.fravigerFerielov === false) {
+      return `Sygeferiegodtgørelse beregnes i henhold til ${overenskomstNavn}, der følger ferielovens regler.`;
+    }
+
+    return `Sygeferiegodtgørelse beregnes i henhold til ${overenskomstNavn}.`;
+  }
+
+  return null;
+};
+
+const resolveSfggReferenceSatsUnit = (divisorLabel: 'kalenderdage' | 'arbejdsdage'): string =>
+  divisorLabel === 'kalenderdage' ? 'kr./kalenderdag' : 'kr./arbejdsdag';
+
+const resolveSfggReferenceperiodeAuthorityText = (
+  eoValues: ErstatningsopgoerelseValues,
+  ansaettelsesforholdId: string
+): string => {
+  const sfggRow = eoValues.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === ansaettelsesforholdId);
+  const employment = eoValues.loenindkomstAnsaettelsesforhold.find((row) => row.id === ansaettelsesforholdId);
+  if (!sfggRow || !employment) return 'ferieloven';
+
+  return resolveSfggSource(sfggRow, employment).kind === 'overenskomst_ferielov'
+    ? 'overenskomsten'
+    : 'ferieloven';
+};
+
+const resolveSfggReferenceperiodeLabel = (
+  eoValues: ErstatningsopgoerelseValues,
+  ansaettelsesforholdId: string
+): string => {
+  const employment = eoValues.loenindkomstAnsaettelsesforhold.find((row) => row.id === ansaettelsesforholdId);
+  if (!employment?.overenskomstId) return '4 uger';
+  return getOverenskomstSfggPolicy(employment.overenskomstId)?.referenceperiodeLabel ?? '4 uger';
+};
+
+const resolveSfggDifferentieretSatsLabel = (
+  sfggSatsvalg: ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number]['sfggSatsvalg']
+): string => {
+  switch (sfggSatsvalg) {
+    case 'Faglaert-Koebenhavn':
+      return 'Skadelidte var faglært og ansat i København, og satsen er i overenskomsten fastsat til';
+    case 'Faglaert-Provinsen':
+      return 'Skadelidte var faglært og ansat uden for København, og satsen er i overenskomsten fastsat til';
+    case 'Ufaglaert-Koebenhavn':
+      return 'Skadelidte var ufaglært og ansat i København, og satsen er i overenskomsten fastsat til';
+    case 'Ufaglaert-Provinsen':
+      return 'Skadelidte var ufaglært og ansat uden for København, og satsen er i overenskomsten fastsat til';
+    default:
+      return 'Referencesatsen er i overenskomsten fastsat til';
+  }
 };
 
 const getLoenindkomstTableHeaders = (loenperiode: Loenperiode): readonly string[] => {
@@ -240,6 +337,109 @@ export const generateErstatningsopgoerelsePdf = (
 
   const writeLabelValueLine = (label: string, value: string) => {
     safeAddLeftRightText(label, capitalizeFirstChar(value), standardRightMaxWidth, { rightFontStyle: 'normal' });
+  };
+
+  const renderSfggReferenceSatsBlock = (
+    entry: PdfModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number]
+  ) => {
+    const sfggRow = eoValues.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === entry.ansaettelsesforholdId);
+    const employment = eoValues.loenindkomstAnsaettelsesforhold.find((row) => row.id === entry.ansaettelsesforholdId);
+    if (!sfggRow || !employment) return;
+
+    const sfggSource = resolveSfggSource(sfggRow, employment);
+    const usesReferenceperiodeRate = isSfggReferenceperiodeSource(sfggSource);
+
+    if (usesReferenceperiodeRate) {
+      writer.writeUnderlinedLabel('Referencesats', MARGINS.left);
+    }
+
+    if (sfggSource.kind === 'manuel') {
+      if (entry.sfggReferencesats.status === 'ok') {
+        writeLabelValueLine('Referencesatsen udgør', `${formatCurrencyFromOre(entry.sfggReferencesats.value)} kr./arbejdsdag`);
+      }
+      return;
+    }
+
+    if (sfggSource.kind === 'overenskomst_direkte') {
+      const overenskomstPolicy = employment.overenskomstId
+        ? getOverenskomstSfggPolicy(employment.overenskomstId)
+        : undefined;
+      const label = overenskomstPolicy?.direkteSatsErDifferentieret
+        ? resolveSfggDifferentieretSatsLabel(sfggRow.sfggSatsvalg)
+        : 'Referencesatsen er i overenskomsten fastsat til';
+      const satsText = (() => {
+        const satsOre = entry.segments[0]?.satsOre;
+        if (typeof satsOre === 'number') {
+          return `${formatCurrencyFromOre(satsOre)} kr./arbejdsdag`;
+        }
+
+        const firstTafDate = entry.segments[0]?.fra ?? model.tafRanges[0]?.fra;
+        const lookupDate = isoToDanish(firstTafDate);
+        if (!employment.overenskomstId || !lookupDate) return null;
+        const satser = getEffektiveSatserForDato({
+          overenskomstId: employment.overenskomstId as never,
+          dato: lookupDate,
+          applyAlmindeligLoenPaaShDageRegel: employment.loenPaaHelligdage === 'Almindelig løn',
+        });
+        if (!satser) return null;
+
+        const satsValue = overenskomstPolicy?.direkteSatsErDifferentieret
+          ? sfggRow.sfggSatsvalg === 'Faglaert-Koebenhavn'
+            ? satser.sfggFaglKbh
+            : sfggRow.sfggSatsvalg === 'Faglaert-Provinsen'
+              ? satser.sfggFaglProv
+              : sfggRow.sfggSatsvalg === 'Ufaglaert-Koebenhavn'
+                ? satser.sfggUfaglKbh
+                : sfggRow.sfggSatsvalg === 'Ufaglaert-Provinsen'
+                  ? satser.sfggUfaglProv
+                  : satser.sfgg
+          : satser.sfgg;
+
+        return typeof satsValue === 'number' ? `${formatAsAmount(satsValue, 2)} kr./arbejdsdag` : null;
+      })();
+      if (satsText) {
+        safeAddWrappedText(label);
+        safeAddLeftRightText('', satsText, standardRightMaxWidth, { rightFontStyle: 'normal' });
+      }
+      return;
+    }
+
+    const sfggReferenceperiodeDayCount = resolveSfggReferenceperiodeDayCount(eoValues, sfggRow, sfggSource);
+    if (
+      !entry.sfggReferenceperiode
+      || !entry.sfggReferenceperiode.fra
+      || !entry.sfggReferenceperiode.til
+      || !sfggReferenceperiodeDayCount
+      || entry.sfggReferencesats.status !== 'ok'
+    ) {
+      return;
+    }
+
+    const ferieberettigetLoenKroner = sumFerieberettigetLoenInRangesKroner(
+      employment,
+      [{ fra: entry.sfggReferenceperiode.fra, til: entry.sfggReferenceperiode.til }],
+      eoValues.ferieperioder ?? []
+    );
+    const feriePctDecimal = parsePercentToDecimal(employment.feriePct);
+
+    safeAddWrappedText(
+      'Sygeferiegodtgørelse opgøres på baggrund af en referencesats, opgjort som den gennemsnitlige feriepengebetaling i en referenceperiode før sygeforløbet.'
+    );
+    safeAddWrappedText(
+      `Referenceperioden udgør i henhold til ${resolveSfggReferenceperiodeAuthorityText(eoValues, entry.ansaettelsesforholdId)} ${resolveSfggReferenceperiodeLabel(eoValues, entry.ansaettelsesforholdId)}.`
+    );
+    writeLabelValueLine(
+      'Den ferieberettigede løn i referenceperioden udgør',
+      `${formatAsAmount(ferieberettigetLoenKroner, 2)} kr.`
+    );
+    writeLabelValueLine(
+      'I referenceperioden var der',
+      `${sfggReferenceperiodeDayCount.divisorDage.toLocaleString('da-DK')} ${sfggReferenceperiodeDayCount.divisorLabel}`
+    );
+    writeLabelValueLine(
+      `Referencesatsen udgør: ${formatPercentUtil(feriePctDecimal * 100)} x ${formatAsAmount(ferieberettigetLoenKroner, 2)} / ${sfggReferenceperiodeDayCount.divisorDage.toLocaleString('da-DK')}:`,
+      `${formatCurrencyFromOre(entry.sfggReferencesats.value)} ${resolveSfggReferenceSatsUnit(sfggReferenceperiodeDayCount.divisorLabel)}`
+    );
   };
 
   const startBilagPage = (titleText: string) => {
@@ -418,12 +618,20 @@ export const generateErstatningsopgoerelsePdf = (
     startBilagPage('Sygeferiegodtgørelse');
     model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.forEach((entry) => {
       renderSubheader(entry.ansaettelsesforholdNavn, lineHeight);
-      safeAddWrappedText(`Beregnes ud fra: ${entry.sourceLabel}`);
-      if (entry.referenceperiode) {
-        safeAddWrappedText(`Referenceperiode: ${formatDateShort(entry.referenceperiode.fra)} - ${formatDateShort(entry.referenceperiode.til)}`);
+      const sfggIntroText = resolveSfggPdfIntroText(eoValues, entry.ansaettelsesforholdId);
+      if (sfggIntroText) {
+        safeAddWrappedText(sfggIntroText);
       }
-      if (entry.referenceSats.status === 'ok') {
-        safeAddWrappedText(`Referencesats: ${formatCurrencyFromOre(entry.referenceSats.value)} kr.`);
+      const sfggRow = eoValues.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === entry.ansaettelsesforholdId);
+      const employment = eoValues.loenindkomstAnsaettelsesforhold.find((row) => row.id === entry.ansaettelsesforholdId);
+      const sfggSource = sfggRow && employment ? resolveSfggSource(sfggRow, employment) : null;
+      const usesReferenceperiodeRate = sfggSource ? isSfggReferenceperiodeSource(sfggSource) : false;
+      renderSfggReferenceSatsBlock(entry);
+      if (!usesReferenceperiodeRate && entry.sfggReferenceperiode) {
+        safeAddWrappedText(`Referenceperiode: ${formatDateShort(entry.sfggReferenceperiode.fra)} - ${formatDateShort(entry.sfggReferenceperiode.til)}`);
+      }
+      if (!usesReferenceperiodeRate && entry.sfggReferencesats.status === 'ok') {
+        safeAddWrappedText(`Referencesats: ${formatCurrencyFromOre(entry.sfggReferencesats.value)} kr.`);
       }
       entry.explanatoryLines.forEach((line) => safeAddWrappedText(line));
       const rows = entry.segments;

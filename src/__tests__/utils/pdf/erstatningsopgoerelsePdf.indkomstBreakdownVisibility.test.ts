@@ -436,15 +436,15 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     ];
     eo.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Manuelt angivet',
-      manuelDagssats: asAmountValue(100),
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: undefined,
-      referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: 0,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmountValue(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const model = buildProjectedDocument(stamdata, eo);
@@ -473,15 +473,15 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Ingen',
-      manuelDagssats: undefined,
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: undefined,
-      referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: 0,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Ingen',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     const model = buildProjectedDocument(stamdata, eo);
@@ -500,15 +500,15 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Ingen',
-      manuelDagssats: undefined,
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: undefined,
-      referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: 0,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: undefined,
+      sfggBeregningskilde: 'Ingen',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
     }];
 
     renderPdfWithSelected(stamdata, eo, {
@@ -523,6 +523,282 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).not.toContain('Fra-dato | Til-dato | Sats | Antal dage | Feriepengekrav');
   });
 
+  it('viser manuel SFGG-tekst med brugerens "Beløbet er i henhold til"-tekst', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmountValue(100),
+      sfggManuelBeloebIHenholdTil: 'kollegas lønoplysninger',
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    renderPdfWithSelected(stamdata, eo, {
+      ...selected,
+      sygeferiegodtgoerelse: true,
+    });
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+
+    expect(texts).toContain('Sygeferiegodtgørelse beregnes i henhold til kollegas lønoplysninger.');
+    expect(texts).not.toContain('Beregnes ud fra: Manuelt angivet');
+  });
+
+  it('viser referencesats-blok med referenceperiodeoplysninger ved referenceperiodebaseret SFGG', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Ferieloven',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2024-01-01'),
+      sfggReferenceperiodeTil: iso('2024-01-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const document = buildProjectedDocument(stamdata, eo);
+    const renderValues = structuredClone(eo);
+    renderValues.beregnesUdFra = 'Angivet dagsløn';
+    renderValues.dagsloenenUdgoer = asAmountValue(1500);
+
+    generateErstatningsopgoerelsePdf(stamdata, renderValues, {
+      ...selected,
+      sygeferiegodtgoerelse: true,
+    }, {
+      visUdkastStempel: false,
+      document,
+    });
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+
+    expect(texts).toContain('Referencesats');
+    expect(texts).toContain('Sygeferiegodtgørelse opgøres på baggrund af en referencesats, opgjort som den gennemsnitlige feriepengebetaling i en referenceperiode før sygeforløbet.');
+    expect(texts).toContain('Referenceperioden udgør i henhold til ferieloven 4 uger.');
+    expect(texts).toContain('Den ferieberettigede løn i referenceperioden udgør');
+    expect(texts).toContain('I referenceperioden var der');
+    expect(texts.some((text) => text.includes('Referencesatsen udgør:'))).toBe(true);
+    expect(texts).not.toContain('Referenceperiode: 01-01-2024 - 31-01-2024');
+    expect(texts.every((text) => text !== 'Referencesats: 40,32 kr.')).toBe(true);
+  });
+
+  it('viser overenskomstens navn og ferielovsnote for overenskomster der følger ferieloven', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.loenindkomstAnsaettelsesforhold[0] = createEmployment({
+      id: 'af-1',
+      navnPaaArbejdssted: 'KL-arbejdssted',
+      harOverenskomst: true,
+      overenskomstId: 'kl-overenskomst',
+      loenudviklingBeregningsgrundlag: 'Ingen',
+      indtaegtsoplysningerTableData: [
+        {
+          id: 'row-1',
+          col0_maaned: '1',
+          col1_maaned: '2024',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '',
+          col1_dag: '',
+          col2: asAmountValue(10000),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+      ],
+    });
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Overenskomst',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2024-01-01'),
+      sfggReferenceperiodeTil: iso('2024-01-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    renderPdfWithSelected(stamdata, eo, {
+      ...selected,
+      sygeferiegodtgoerelse: true,
+    });
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+
+    expect(texts).toContain('Sygeferiegodtgørelse beregnes i henhold til KL-overenskomsten, der følger ferielovens regler.');
+    expect(texts).toContain('Referenceperioden udgør i henhold til overenskomsten 4 uger.');
+  });
+
+  it('viser differentieret overenskomstsats i referencesats-blokken', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.loenindkomstAnsaettelsesforhold[0] = createEmployment({
+      id: 'af-1',
+      navnPaaArbejdssted: 'BKL',
+      harOverenskomst: true,
+      overenskomstId: 'bygge-anlaeg',
+      loenudviklingBeregningsgrundlag: 'Ingen',
+      loenPaaHelligdage: 'Almindelig løn',
+      indtaegtsoplysningerTableData: [
+        {
+          id: 'row-1',
+          col0_maaned: '1',
+          col1_maaned: '2024',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '',
+          col1_dag: '',
+          col2: asAmountValue(10000),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+      ],
+    });
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Overenskomst',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: 'Faglaert-Koebenhavn',
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    renderPdfWithSelected(stamdata, eo, {
+      ...selected,
+      sygeferiegodtgoerelse: true,
+    });
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+
+    expect(texts).not.toContain('Referencesats');
+    expect(texts.some((text) => text.includes('faglært'))).toBe(true);
+    expect(texts.some((text) => text.includes('København'))).toBe(true);
+    expect(texts.some((text) => text.includes('overenskomsten'))).toBe(true);
+    expect(texts).not.toContain('Referencesats: 207,90 kr.');
+  });
+
+  it('viser manuel sats i referencesats-blokken ved beregningsperiode', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmountValue(123.45),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    renderPdfWithSelected(stamdata, eo, {
+      ...selected,
+      sygeferiegodtgoerelse: true,
+    });
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+
+    expect(texts).not.toContain('Referencesats');
+    expect(texts).toContain('Referencesatsen udgør');
+    expect(texts).not.toContain('Referencesats: 123,45 kr.');
+  });
+
+  it('viser kun SFGG-ansættelser der ikke står til Ingen', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.loenindkomstAnsaettelsesforhold = [
+      createEmployment({
+        id: 'af-1',
+        navnPaaArbejdssted: 'Hårup Ungdomsklub',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        indtaegtsoplysningerTableData: [
+          {
+            id: 'row-1',
+            col0_maaned: '1',
+            col1_maaned: '2024',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: '',
+            col1_dag: '',
+            col2: asAmountValue(10000),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          },
+        ],
+      }),
+      createEmployment({
+        id: 'af-2',
+        navnPaaArbejdssted: 'Skjult arbejdssted',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        indtaegtsoplysningerTableData: [
+          {
+            id: 'row-2',
+            col0_maaned: '1',
+            col1_maaned: '2024',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: '',
+            col1_dag: '',
+            col2: asAmountValue(5000),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          },
+        ],
+      }),
+    ];
+    eo.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: 'af-1',
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggManuelDagssats: asAmountValue(100),
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: undefined,
+      },
+      {
+        ansaettelsesforholdId: 'af-2',
+        sfggBeregningskilde: 'Ingen',
+        sfggManuelDagssats: undefined,
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: undefined,
+      },
+    ];
+
+    renderPdfWithSelected(stamdata, eo, {
+      ...selected,
+      sygeferiegodtgoerelse: true,
+    });
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const sfggSectionTexts = texts.slice(Math.max(0, texts.indexOf('Sygeferiegodtgørelse')));
+
+    expect(sfggSectionTexts).toContain('Hårup Ungdomsklub');
+    expect(sfggSectionTexts).not.toContain('Skjult arbejdssted');
+  });
+
   it('viser sygeferiegodtgørelse med 0 kr. i indtægter men udelader 0-fradrag i TAF-mellemregningen', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.eoNummer = '2';
@@ -531,15 +807,15 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.tafPerioder = [{ id: 'taf-1', fra: iso('2024-01-29'), til: iso('2024-01-29'), loseFeriedage: undefined }];
     eo.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
-      beregnesUdFra: 'Manuelt angivet',
-      manuelDagssats: asAmountValue(100),
-      manuelBeloebIHenholdTil: undefined,
-      manuelFoerstEfterSygeloen: 'Nej',
-      referenceperiodeFra: undefined,
-      referenceperiodeTil: undefined,
-      referenceperiodeFravaersdageUdenLoen: 0,
-      satsvalg: undefined,
-      alleredeBetaltBeloeb: asAmountValue(1000),
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmountValue(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: asAmountValue(1000),
     }];
 
     const model = buildProjectedDocument(stamdata, eo);

@@ -2883,11 +2883,11 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
   const tafBeregnesSom = computeTafBeregningsenhed(values);
   const hasActiveSfggSource = (values.loenindkomstAnsaettelsesforhold ?? []).some((employment) => {
     const row = values.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
-    return row?.beregnesUdFra !== undefined && row.beregnesUdFra !== 'Ingen';
+    return row?.sfggBeregningskilde !== undefined && row.sfggBeregningskilde !== 'Ingen';
   });
   const requiresLoenudviklingModel = (values.loenindkomstAnsaettelsesforhold ?? []).some((employment) => {
     const row = values.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
-    if (row?.beregnesUdFra !== 'Overenskomst') return false;
+    if (row?.sfggBeregningskilde !== 'Overenskomst') return false;
     if (!employment.overenskomstId || isOffentligOverenskomstId(employment.overenskomstId)) return false;
     const sfggPolicy = getOverenskomstSfggPolicy(employment.overenskomstId);
     // Debug må kun kalde lønudviklingsmotoren for SFGG, når policyen faktisk følger referenceperiode/ferielov-sporet.
@@ -2935,8 +2935,8 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
   for (const employment of values.loenindkomstAnsaettelsesforhold ?? []) {
     const row = values.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
     const result = sfgg.perAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
-    const kilde = row?.beregnesUdFra;
-    const source = resolveSfggSource(row, employment);
+    const kilde = row?.sfggBeregningskilde;
+    const sfggSource = resolveSfggSource(row, employment);
     const hasSelectedOverenskomst = hasSfggSelectedOverenskomst(row, employment);
     const overenskomstDisplay = hasSelectedOverenskomst
       ? (getOverenskomstMetaById(employment.overenskomstId!)?.navn ?? employment.overenskomstId!.trim())
@@ -3005,22 +3005,22 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
         });
       }
 
-      if (source.kind === 'overenskomst_direkte' && overenskomstPolicy?.direkteSatsErDifferentieret) {
-        const satsvalgDisplay = row?.satsvalg === 'Faglaert-Koebenhavn'
+      if (sfggSource.kind === 'overenskomst_direkte' && overenskomstPolicy?.direkteSatsErDifferentieret) {
+        const sfggSatsvalgDisplay = row?.sfggSatsvalg === 'Faglaert-Koebenhavn'
           ? 'Faglært-København'
-          : row?.satsvalg === 'Faglaert-Provinsen'
+          : row?.sfggSatsvalg === 'Faglaert-Provinsen'
             ? 'Faglært-Provinsen'
-            : row?.satsvalg === 'Ufaglaert-Koebenhavn'
+            : row?.sfggSatsvalg === 'Ufaglaert-Koebenhavn'
               ? 'Ufaglært-København'
-              : row?.satsvalg === 'Ufaglaert-Provinsen'
+              : row?.sfggSatsvalg === 'Ufaglaert-Provinsen'
                 ? 'Ufaglært-Provinsen'
                 : 'Intet valgt';
         rows.push({
           id: `sfgg.satsvalg.${employment.id}`,
           label: 'Uddannelse og arbejdssted',
-          displayValue: satsvalgDisplay,
-          status: row?.satsvalg ? 'ok' : 'error',
-          message: row?.satsvalg ? undefined : 'Intet valgt',
+          displayValue: sfggSatsvalgDisplay,
+          status: row?.sfggSatsvalg ? 'ok' : 'error',
+          message: row?.sfggSatsvalg ? undefined : 'Intet valgt',
         });
       }
     }
@@ -3028,11 +3028,11 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
     if (!kilde || kilde === 'Ingen') {
       continue;
     }
-    const sfggDayBasis = resolveSfggDayBasis(source, tafBeregnesSom);
+    const sfggDayBasis = resolveSfggDayBasis(sfggSource, tafBeregnesSom);
 
     const foerstEfterSygeloen =
-      (source.kind === 'manuel' && row?.manuelFoerstEfterSygeloen === 'Ja')
-      || (source.kind !== 'manuel' && overenskomstPolicy?.bortfalderUnderArbejdsgiverbetaltSygeloen === true);
+      (sfggSource.kind === 'manuel' && row?.sfggManuelFoerstEfterSygeloen === 'Ja')
+      || (sfggSource.kind !== 'manuel' && overenskomstPolicy?.bortfalderUnderArbejdsgiverbetaltSygeloen === true);
 
     rows.push({
       id: `sfgg.foerstEfterSygeloen.${employment.id}`,
@@ -3041,7 +3041,7 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       status: 'ok',
     });
 
-    if (source.kind === 'overenskomst_direkte') {
+    if (sfggSource.kind === 'overenskomst_direkte') {
       rows.push({
         id: `sfgg.referencesats.${employment.id}`,
         label: 'Referencesats',
@@ -3050,33 +3050,33 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       });
     }
 
-    let manuelDagssatsMangler: string | undefined;
-    if (source.kind === 'manuel' && result && result.referenceSats.status !== 'ok') {
-      manuelDagssatsMangler = result.referenceSats.reason;
-    } else if (source.kind === 'manuel' && !result && amountValueToNumber(row?.manuelDagssats) === undefined) {
-      manuelDagssatsMangler = 'Dagssats mangler';
+    let sfggManuelDagssatsMangler: string | undefined;
+    if (sfggSource.kind === 'manuel' && result && result.sfggReferencesats.status !== 'ok') {
+      sfggManuelDagssatsMangler = result.sfggReferencesats.reason;
+    } else if (sfggSource.kind === 'manuel' && !result && amountValueToNumber(row?.sfggManuelDagssats) === undefined) {
+      sfggManuelDagssatsMangler = 'Dagssats mangler';
     }
 
     let direkteOverenskomstDagssatsMangler: string | undefined;
     if (
-      source.kind === 'overenskomst_direkte'
+      sfggSource.kind === 'overenskomst_direkte'
       && result
       && result.segments.length === 0
-      && result.referenceSats.status === 'not_calculable'
-      && result.referenceSats.reason !== SFGG_NO_WORKDAYS_REASON
-      && result.referenceSats.reason !== SFGG_NO_CALENDAR_DAYS_REASON
+      && result.sfggReferencesats.status === 'not_calculable'
+      && result.sfggReferencesats.reason !== SFGG_NO_WORKDAYS_REASON
+      && result.sfggReferencesats.reason !== SFGG_NO_CALENDAR_DAYS_REASON
     ) {
       direkteOverenskomstDagssatsMangler = 'Dagssats kunne ikke fastsættes for den valgte overenskomst i TAF-perioden';
     }
 
-    if (manuelDagssatsMangler) {
+    if (sfggManuelDagssatsMangler) {
       rows.push({
         id: `sfgg.dagssats.${employment.id}`,
         label: 'Dagssats',
-        displayValue: formatStatusMessage('error', manuelDagssatsMangler),
+        displayValue: formatStatusMessage('error', sfggManuelDagssatsMangler),
         status: 'error',
         summaryDisplay: 'messageOnly',
-        message: manuelDagssatsMangler,
+        message: sfggManuelDagssatsMangler,
       });
     }
 
@@ -3091,32 +3091,32 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       });
     }
 
-    if (result?.referenceperiode) {
+    if (result?.sfggReferenceperiode) {
       const referenceDisplay =
-        `${isoToDanish(result.referenceperiode.fra) ?? result.referenceperiode.fra} - ${isoToDanish(result.referenceperiode.til) ?? result.referenceperiode.til}`;
+        `${isoToDanish(result.sfggReferenceperiode.fra) ?? result.sfggReferenceperiode.fra} - ${isoToDanish(result.sfggReferenceperiode.til) ?? result.sfggReferenceperiode.til}`;
       rows.push({
         id: `sfgg.referenceperiode.${employment.id}`,
         label: 'Referenceperiode',
         displayValue: referenceDisplay,
-        status: result.referenceSats.status === 'ok' ? 'ok' : 'error',
-        message: result.referenceSats.status === 'ok' ? undefined : result.referenceSats.reason,
+        status: result.sfggReferencesats.status === 'ok' ? 'ok' : 'error',
+        message: result.sfggReferencesats.status === 'ok' ? undefined : result.sfggReferencesats.reason,
       });
     }
 
-    if (result?.referenceSatsFormula) {
+    if (result?.sfggReferencesatsFormula) {
       const arbejdsdageLabel = (() => {
-        if (result.referenceSatsFormula.divisorLabel === 'kalenderdage') {
-          if (result.referenceSatsFormula.oevrigeFravaersdage > 0) {
-            return `Antal kalenderdage i perioden (${result.referenceSatsFormula.kalenderdage.toLocaleString('da-DK')} kalenderdage - ${result.referenceSatsFormula.oevrigeFravaersdage.toLocaleString('da-DK')} fraværsdage u. løn) =`;
+        if (result.sfggReferencesatsFormula.divisorLabel === 'kalenderdage') {
+          if (result.sfggReferencesatsFormula.oevrigeFravaersdage > 0) {
+            return `Antal kalenderdage i perioden (${result.sfggReferencesatsFormula.kalenderdage.toLocaleString('da-DK')} kalenderdage - ${result.sfggReferencesatsFormula.oevrigeFravaersdage.toLocaleString('da-DK')} fraværsdage u. løn) =`;
           }
           return 'Antal kalenderdage i perioden';
         }
 
-        const ferieOgFravaersdage = result.referenceSatsFormula.feriedage + result.referenceSatsFormula.oevrigeFravaersdage;
-        if (result.referenceSatsFormula.shDage + ferieOgFravaersdage > 0) {
-          const parts = [`${result.referenceSatsFormula.hverdage.toLocaleString('da-DK')} hverdage`];
-          if (result.referenceSatsFormula.shDage > 0) {
-            parts.push(`${result.referenceSatsFormula.shDage.toLocaleString('da-DK')} SH-dage`);
+        const ferieOgFravaersdage = result.sfggReferencesatsFormula.feriedage + result.sfggReferencesatsFormula.oevrigeFravaersdage;
+        if (result.sfggReferencesatsFormula.shDage + ferieOgFravaersdage > 0) {
+          const parts = [`${result.sfggReferencesatsFormula.hverdage.toLocaleString('da-DK')} hverdage`];
+          if (result.sfggReferencesatsFormula.shDage > 0) {
+            parts.push(`${result.sfggReferencesatsFormula.shDage.toLocaleString('da-DK')} SH-dage`);
           }
           if (ferieOgFravaersdage > 0) {
             parts.push(`${ferieOgFravaersdage.toLocaleString('da-DK')} ferie- og fraværsdage`);
@@ -3129,33 +3129,33 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       rows.push({
         id: `sfgg.referenceperiodeantal.${employment.id}`,
         label: arbejdsdageLabel,
-        displayValue: `${result.referenceSatsFormula.divisorDage.toLocaleString('da-DK')} ${result.referenceSatsFormula.divisorLabel}`,
+        displayValue: `${result.sfggReferencesatsFormula.divisorDage.toLocaleString('da-DK')} ${result.sfggReferencesatsFormula.divisorLabel}`,
         status: 'ok',
       });
     }
 
-    if (result?.referenceSats.status === 'ok') {
-      const divisorText = result.referenceSatsFormula
-        ? `${result.referenceSatsFormula.divisorDage.toLocaleString('da-DK')} ${result.referenceSatsFormula.divisorLabel}`
+    if (result?.sfggReferencesats.status === 'ok') {
+      const divisorText = result.sfggReferencesatsFormula
+        ? `${result.sfggReferencesatsFormula.divisorDage.toLocaleString('da-DK')} ${result.sfggReferencesatsFormula.divisorLabel}`
         : 'arbejdsdage';
-      const referenceSatsLabel = result.referenceSatsFormula
-        ? `Referencesats (${formatCurrency(result.referenceSatsFormula.ferieberettigetLoenKroner)} x ${formatPercent(result.referenceSatsFormula.feriePctDecimal * 100)} / ${divisorText}) =`
+      const referenceSatsLabel = result.sfggReferencesatsFormula
+        ? `Referencesats (${formatCurrency(result.sfggReferencesatsFormula.ferieberettigetLoenKroner)} x ${formatPercent(result.sfggReferencesatsFormula.feriePctDecimal * 100)} / ${divisorText}) =`
         : 'Referencesats';
       const referenceSatsUnit = sfggDayBasis === 'kalenderdage' ? 'kr./dag' : 'kr./arbejdsdag';
       rows.push({
         id: `sfgg.referencesats.${employment.id}`,
         label: referenceSatsLabel,
-        displayValue: `${formatCurrency(result.referenceSats.value / 100)} ${referenceSatsUnit}`,
+        displayValue: `${formatCurrency(result.sfggReferencesats.value / 100)} ${referenceSatsUnit}`,
         status: 'ok',
       });
-    } else if (result && result.referenceperiode) {
+    } else if (result && result.sfggReferenceperiode) {
       rows.push({
         id: `sfgg.referencesats.${employment.id}`,
         label: 'Referencesats',
-        displayValue: formatStatusMessage('error', result.referenceSats.reason),
+        displayValue: formatStatusMessage('error', result.sfggReferencesats.reason),
         status: 'error',
         summaryDisplay: 'messageOnly',
-        message: result.referenceSats.reason,
+        message: result.sfggReferencesats.reason,
       });
     }
 
