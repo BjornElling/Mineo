@@ -20,6 +20,10 @@ const { scrollToSectionMock, scrollToDebugRowMock } = vi.hoisted(() => ({
   scrollToDebugRowMock: vi.fn(),
 }));
 
+const { reportSystemIssueMock } = vi.hoisted(() => ({
+  reportSystemIssueMock: vi.fn(),
+}));
+
 vi.mock('../../../../hooks/useFormFieldErrors', () => ({
   useFieldErrorsBySourceForSection: () => ({}),
 }));
@@ -36,10 +40,8 @@ vi.mock('../../../../utils/scrollToDebugRow', () => ({
   scrollToDebugRow: scrollToDebugRowMock,
 }));
 
-vi.mock('../../../../utils/logger', () => ({
-  logError: vi.fn(),
-  logWarning: vi.fn(),
-  logInfo: vi.fn(),
+vi.mock('../../../../utils/systemIssueReporter', () => ({
+  reportSystemIssue: reportSystemIssueMock,
 }));
 
 const renderTab = (props: React.ComponentProps<typeof EOberegningTab>) => {
@@ -64,19 +66,14 @@ describe('EOberegningTab kontroltjek', () => {
   const baseStamdataValues = structuredClone(STAMDATA_INITIAL_VALUES);
   const baseEoValues = createErstatningsopgoerelseInitialValues();
   const baseSetEoValues = vi.fn();
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     baseSetEoValues.mockReset();
+    reportSystemIssueMock.mockReset();
     collectAllDebugRowsMock.mockReset();
     scrollToSectionMock.mockReset();
     scrollToDebugRowMock.mockReset();
     collectAllDebugRowsMock.mockReturnValue({ errors: [], warnings: [], allRows: [], relevantRows: [] });
-  });
-
-  afterEach(() => {
-    consoleErrorSpy.mockRestore();
   });
 
   it('samler kontroluoverensstemmelse i én contentbox for fejl og advarsler', () => {
@@ -115,10 +112,10 @@ describe('EOberegningTab kontroltjek', () => {
     expect(screen.queryByText('Download-kontroller')).not.toBeInTheDocument();
     expect(screen.queryByText('Systemfejl')).not.toBeInTheDocument();
     expect(screen.queryByText('Beregning blokeret')).not.toBeInTheDocument();
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      '[EOberegningTab] Systemfejl registreret: Der er konstateret kontroluoverensstemmelser i EO-beregningen.',
+    expect(reportSystemIssueMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        invariantId: 'debug:control_mismatch',
+        code: 'debug:control_mismatch',
+        context: 'EOberegningTab',
         revision: 'rev-1',
       })
     );
@@ -619,10 +616,10 @@ describe('EOberegningTab kontroltjek', () => {
     expect(screen.getByText('Fejl og advarsler')).toBeInTheDocument();
     expect(screen.getByText('TAF fordelt på år kan ikke afstemmes inden for 1 kr.')).toBeInTheDocument();
     expect(screen.queryByText('Send fejloplysninger')).not.toBeInTheDocument();
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      '[EOberegningTab] Systemfejl registreret: TAF fordelt på år kan ikke afstemmes inden for 1 kr.',
+    expect(reportSystemIssueMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        invariantId: 'taf_per_year:afrunding_over_100',
+        code: 'taf_per_year:afrunding_over_100',
+        context: 'EOberegningTab',
         revision: 'rev-3',
       })
     );

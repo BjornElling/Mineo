@@ -100,6 +100,9 @@ export async function saveLogEntry(entry: Omit<LogEntry, 'id'>): Promise<void> {
 
 /**
  * Hent alle log entries (seneste først)
+ *
+ * Bemærk: denne funktion læser hele object store og sorterer i memory.
+ * Brug `getRecentLogEntries()` hvis kun de seneste entries er nødvendige.
  */
 export async function getAllLogEntries(): Promise<LogEntry[]> {
   if (!hasIndexedDbSupport()) {
@@ -136,8 +139,41 @@ export async function getAllLogEntries(): Promise<LogEntry[]> {
  * Hent N seneste log entries
  */
 export async function getRecentLogEntries(count: number): Promise<LogEntry[]> {
-  const allEntries = await getAllLogEntries();
-  return allEntries.slice(0, count);
+  if (!hasIndexedDbSupport() || count <= 0) {
+    return [];
+  }
+  try {
+    const db = await openDatabase();
+    const transaction = db.transaction([STORE_NAME], 'readonly');
+    const store = transaction.objectStore(STORE_NAME);
+    const timestampIndex = store.index('timestamp');
+
+    return await new Promise<LogEntry[]>((resolve, reject) => {
+      const entries: LogEntry[] = [];
+      const request = timestampIndex.openCursor(null, 'prev');
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          resolve(entries);
+          return;
+        }
+        entries.push(cursor.value as LogEntry);
+        if (entries.length >= count) {
+          resolve(entries);
+          return;
+        }
+        cursor.continue();
+      };
+
+      request.onerror = () => {
+        reject(request.error);
+      };
+    });
+  } catch (error) {
+    console.error('Kunne ikke hente seneste log entries:', error);
+    return [];
+  }
 }
 
 /**

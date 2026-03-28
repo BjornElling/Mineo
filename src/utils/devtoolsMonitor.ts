@@ -1,3 +1,5 @@
+import { isSystemIssueLogData, type SystemIssueEnvelope } from './systemIssueReporter';
+
 export type DevtoolsIssueLevel = 'warn' | 'error';
 export type DevtoolsIssueSource = 'console' | 'window' | 'unhandledrejection';
 
@@ -47,6 +49,7 @@ export type DevtoolsIssue = {
   args: string[];
   stack?: string;
   context?: DevtoolsIssueContext;
+  systemIssue?: SystemIssueEnvelope;
 };
 
 export type DevtoolsIssueSnapshot = {
@@ -142,6 +145,15 @@ const formatConsoleArg = (arg: unknown): string => {
 
 const formatConsoleArgs = (args: unknown[]): string[] => {
   return args.map((arg) => truncate(formatConsoleArg(arg), 1200));
+};
+
+const extractSystemIssueFromArgs = (args: unknown[]): SystemIssueEnvelope | undefined => {
+  for (const arg of args) {
+    if (isSystemIssueLogData(arg)) {
+      return arg.systemIssue;
+    }
+  }
+  return undefined;
 };
 
 const toRelativeMs = (timestampMs: number): number => {
@@ -345,6 +357,7 @@ const captureIssue = (payload: DevtoolsIssuePayload): void => {
     args: payload.args,
     stack: payload.stack,
     context,
+    systemIssue: payload.systemIssue,
   };
 
   issues = [issue, ...issues];
@@ -356,8 +369,12 @@ const captureIssue = (payload: DevtoolsIssuePayload): void => {
 };
 
 const captureConsole = (level: DevtoolsIssueLevel, args: unknown[]): void => {
+  const systemIssue = extractSystemIssueFromArgs(args);
   const formattedArgs = formatConsoleArgs(args);
-  const message = formattedArgs.join(' ');
+  const message =
+    systemIssue && typeof args[0] === 'string'
+      ? args[0]
+      : formattedArgs.join(' ');
 
   let stack: string | undefined;
   for (const arg of args) {
@@ -381,7 +398,27 @@ const captureConsole = (level: DevtoolsIssueLevel, args: unknown[]): void => {
     message,
     args: formattedArgs,
     stack,
+    systemIssue,
   });
+};
+
+const resetDevtoolsMonitorState = (): void => {
+  issues = [];
+  timeline = [];
+  nextId = 1;
+  nextTimelineId = 1;
+  nextCorrelationId = 1;
+  lastEntryKey = '';
+  lastEntryTime = 0;
+  lastTimelineKey = '';
+  lastTimelineTime = 0;
+  monitorStartedAt = 0;
+  lastInteractionId = null;
+  lastInteractionAt = null;
+  currentRoute = null;
+  providers = {};
+  testScenario = null;
+  activeCorrelationId = null;
 };
 
 const captureWindowError = (event: ErrorEvent): void => {
@@ -537,6 +574,29 @@ export const startDevtoolsMonitor = (): (() => void) => {
     removeVisibilityListener = null;
     recordTimelineEvent({ kind: 'lifecycle', message: 'Devtools monitor stopped' });
   };
+};
+
+export const resetDevtoolsMonitor = (): void => {
+  if (started) {
+    if (originalConsoleWarn) console.warn = originalConsoleWarn;
+    if (originalConsoleError) console.error = originalConsoleError;
+    originalConsoleWarn = null;
+    originalConsoleError = null;
+    removeWindowErrorListener?.();
+    removeUnhandledListener?.();
+    removeUserClickListener?.();
+    removeUserKeyListener?.();
+    removeVisibilityListener?.();
+    removeWindowErrorListener = null;
+    removeUnhandledListener = null;
+    removeUserClickListener = null;
+    removeUserKeyListener = null;
+    removeVisibilityListener = null;
+  }
+  started = false;
+  startCount = 0;
+  listeners.clear();
+  resetDevtoolsMonitorState();
 };
 
 export const subscribeDevtoolsIssues = (listener: DevtoolsIssueListener): (() => void) => {

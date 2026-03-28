@@ -154,7 +154,7 @@ out-of-range-input, som håndteres via feltfejl og EOBeregningTab-blokering.
 - Som inline-element i normale beregningstabs, inputsider eller resultatvisninger
 - I `EODebug` eller `EODebugTabel`
 - I “Fejl og advarsler”-sektionen i `EOberegningTab` — hverken ved `fail_closed` med
-  `runtime_exception` eller `schema_guard`
+  `runtime_exception`, `schema_guard` eller `invariant_guard`
 - I download-fejl-dialog eller enhver anden dialog som del af normale brugerflows
 - Enhver visning der vises som fast element ved normale og forventelige brugerscenarier
 
@@ -165,13 +165,15 @@ Bemærk:
 
 ### 7.3 `fail_closed`-snapshot og BugReportButton
 
-`fail_closed` med `schema_guard` (forventelig inkonsistens i committed state, fx ved
-korrupt `.eo`-fil) vises som en neutral fejlbesked i `EOberegningTab` uden `BugReportButton`.
+`fail_closed` med `schema_guard` (schema/parsing-fejl) eller `invariant_guard`
+(afledt intern datainkonsistens efter vellykket parsing) vises som en neutral
+fejlbesked i `EOberegningTab` uden `BugReportButton`.
 Brugeren vejledes om at rette manglende felter.
 
 `fail_closed` med `runtime_exception` er en uventet systemfejl. Den logges via
-`console.error` og routes til `ErrorFallback`/ErrorBoundary-flowet der allerede
-indeholder `BugReportButton`. Fejlen vises ikke som inline-element i `EOberegningTab`.
+`console.error`/system issue-flowet og skal kunne indrapporteres via det eksisterende
+devtools-/bug-report-flow. `EOberegningTab` må højst vise en neutral inline-række uden
+`BugReportButton`, og den må ikke selv forsøge at rapportere fejlen igen.
 
 ---
 
@@ -234,6 +236,34 @@ Regler:
 Al fejlhåndtering der viser `BugReportButton` som del af sideflowet skal overholde §7.
 Runtime-fejl der opstår i beregningstabs skal logges via `logError`/devtools-monitor og
 routes til eksisterende systemfejl-flow — ikke vises som inline-elementer i normale visninger.
+
+### 8.4 Standardiseret systemfejl-payload
+
+Tekniske fejl der skal kunne fejlsøges og indrapporteres, skal så vidt muligt routes gennem
+den centrale helper `reportSystemIssue(...)`.
+
+Formål:
+- sikre ensartet payload til devtools-monitor, persisted logs og bug report
+- sikre minimumskontrakt for kode, område, revision, evidens og diagnostik
+- undgå ad hoc `console.error`-payloads som varierer fra komponent til komponent
+
+Minimum:
+- stabil `code`
+- kort `userMessage`
+- teknisk `context`
+- `area`
+- `revision` når der findes en snapshot-/beregningsrevision
+- `diagnostics` med den konkrete tekniske tilstand der er nødvendig for fejlsøgning
+
+Persondata må ikke lægges i payloaden; loggerens sanitizering er et sikkerhedsnet, ikke den primære kontrakt.
+Diagnostics-nøgler bør desuden undgå navne som ligner persondatafelter (`navn`, `email`,
+`telefon`, osv.), hvis værdien er teknisk og ikke personhenførbar, da loggerens sanitizering
+ellers med vilje kan fjerne feltet.
+
+Devtools-noticen og fejlrapporten læser ikke fra samme retention-lag:
+- `DevtoolsIssueNotice` viser kun den aktuelle in-memory devtools-session.
+- Fejlrapporten medtager også persisted loghistorik fra IndexedDB og kan derfor indeholde fejl
+  som ikke længere vises i den aktuelle notice efter reload eller ny session.
 
 Undtagelse:
 - Snapshot-invarianterne `debug:control_mismatch` og `taf_per_year:afrunding_over_100` må både

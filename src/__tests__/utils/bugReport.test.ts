@@ -95,4 +95,88 @@ describe('bugReport', () => {
     expect(report).toContain('[Symbol]');
     expect(report).toContain('[Function]');
   });
+
+  it('udskiller strukturerede systemfejl i egen rapportsektion', async () => {
+    const { getRecentLogEntries } = await import('../../utils/logStorage');
+    const mockGetRecent = getRecentLogEntries as unknown as Mock;
+    mockGetRecent.mockResolvedValue([
+      {
+        timestamp: new Date('2026-03-28T11:49:59.461Z').toISOString(),
+        level: 'error',
+        context: 'EOberegningTab',
+        message: 'Systemfejl registreret: Der er konstateret kontroluoverensstemmelser i EO-beregningen.',
+        data: {
+          systemIssue: {
+            schemaVersion: 1,
+            kind: 'system_issue',
+            code: 'debug:control_mismatch',
+            area: 'eo',
+            severity: 'error',
+            context: 'EOberegningTab',
+            route: '/erstatningsopgoerelse',
+            timestamp: '2026-03-28T11:49:59.461Z',
+            userMessage: 'Der er konstateret kontroluoverensstemmelser i EO-beregningen.',
+            revision: 'rev-1',
+            evidence: ['Ansættelsesforhold: beregnet=100, tabel=90'],
+          },
+        },
+      },
+    ]);
+
+    const { generateBugReport } = await import('../../utils/bugReport');
+    const report = await generateBugReport(5);
+
+    expect(report).toContain('=== Systemfejl payloads ===');
+    expect(report).toContain('debug:control_mismatch');
+    expect(report).toContain('Ansættelsesforhold: beregnet=100, tabel=90');
+  });
+
+  it('udelader log entries uden gyldig systemIssue-payload fra systemfejlsektionen', async () => {
+    const { getRecentLogEntries } = await import('../../utils/logStorage');
+    const mockGetRecent = getRecentLogEntries as unknown as Mock;
+    mockGetRecent.mockResolvedValue([
+      {
+        timestamp: new Date('2026-03-28T11:49:59.461Z').toISOString(),
+        level: 'error',
+        context: 'EOberegningTab',
+        message: 'Rå fejl',
+        data: {
+          systemIssue: {
+            kind: 'system_issue',
+            userMessage: 'Mangler code',
+          },
+        },
+      },
+      {
+        timestamp: new Date('2026-03-28T11:50:00.000Z').toISOString(),
+        level: 'error',
+        context: 'Other',
+        message: 'Almindelig loglinje',
+        data: {
+          foo: 'bar',
+        },
+      },
+    ]);
+
+    const { generateBugReport } = await import('../../utils/bugReport');
+    const report = await generateBugReport(5);
+
+    expect(report).not.toContain('=== Systemfejl payloads ===');
+    expect(report).toContain('Almindelig loglinje');
+  });
+
+  it('medtager ContentBox-identifikation også når boxIndex er 0', async () => {
+    const { prepareContentBoxReport } = await import('../../utils/bugReport');
+
+    const result = await prepareContentBoxReport({
+      identity: {
+        routePath: '/test',
+        boxIndex: 0,
+        boxCount: 3,
+      },
+      message: 'Hej',
+    });
+
+    expect(result.report).toContain('ContentBox: 0 af 3');
+  });
 });

@@ -16,6 +16,7 @@ import StyledWeekField from '../inputs/StyledWeekField';
 import StyledYearField from '../inputs/StyledYearField';
 import ContentBox from '../layout/ContentBox';
 import { markDevtoolsTestScenario } from '../../utils/devtoolsMonitor';
+import { reportSystemIssue } from '../../utils/systemIssueReporter';
 
 /**
  * Test-side til afprøvning af styled-komponenter
@@ -40,7 +41,13 @@ const Test = React.memo(() => {
 
   const triggerDevtoolsError = React.useCallback(() => {
     markDevtoolsTestScenario('Devtools test error (intentional)', { source: 'Test page' });
-    console.error('Devtools test error (intentional)');
+    reportSystemIssue({
+      code: 'devtools:test_error',
+      area: 'devtools',
+      context: 'TestPage',
+      userMessage: 'Devtools test error (intentional)',
+      revision: 'test-trigger',
+    });
   }, []);
 
   const triggerTafPerYearAfrundingError = React.useCallback(() => {
@@ -50,14 +57,17 @@ const Test = React.memo(() => {
       tab: 'Beregning',
       invariantId: 'taf_per_year:afrunding_over_100',
     });
-    console.error(
-      '[EOberegningTab] Systemfejl registreret: TAF fordelt på år kan ikke afstemmes inden for 1 kr.',
-      {
+    reportSystemIssue({
+      code: 'taf_per_year:afrunding_over_100',
+      area: 'eo',
+      context: 'EOberegningTab',
+      userMessage: 'TAF fordelt på år kan ikke afstemmes inden for 1 kr.',
+      revision: 'test-trigger',
+      evidence: ['Afrunding: 123', 'Årssum: 100000', 'Samlet TAF-krav: 99877'],
+      diagnostics: {
         invariantId: 'taf_per_year:afrunding_over_100',
-        revision: 'test-trigger',
-        evidence: ['Afrunding: 123', 'Årssum: 100000', 'Samlet TAF-krav: 99877'],
-      }
-    );
+      },
+    });
   }, []);
 
   const triggerControlMismatchError = React.useCallback(() => {
@@ -67,14 +77,17 @@ const Test = React.memo(() => {
       tab: 'Debug tabel',
       invariantId: 'debug:control_mismatch',
     });
-    console.error(
-      '[EOberegningTab] Systemfejl registreret: Der er konstateret kontroluoverensstemmelser i EO-beregningen.',
-      {
+    reportSystemIssue({
+      code: 'debug:control_mismatch',
+      area: 'eo',
+      context: 'EOberegningTab',
+      userMessage: 'Der er konstateret kontroluoverensstemmelser i EO-beregningen.',
+      revision: 'test-trigger',
+      evidence: ['Ansættelsesforhold: beregnet=100, tabel=90'],
+      diagnostics: {
         invariantId: 'debug:control_mismatch',
-        revision: 'test-trigger',
-        evidence: ['Ansættelsesforhold: beregnet=100, tabel=90'],
-      }
-    );
+      },
+    });
   }, []);
 
   return (

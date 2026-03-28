@@ -13,6 +13,7 @@ import { getRecentLogEntries } from './logStorage';
 import type { LogEntry } from './logStorage';
 import { getTodayLocalISO } from './dateUtils';
 import { logError } from './logger';
+import { isSystemIssueLogData } from './systemIssueReporter';
 
 export interface BugReportContext {
   source?: string;
@@ -201,6 +202,22 @@ const formatLogEntry = (entry: LogEntry): string => {
   return formatted;
 };
 
+const extractStructuredSystemIssues = (
+  logEntries: readonly LogEntry[]
+): readonly Record<string, unknown>[] => {
+  return logEntries
+    .flatMap((entry) => {
+      // Log storage er append-only output. Vi laver kun en minimal strukturgaranti her
+      // og gengiver payloaden som den blev logget, også hvis ældre entries mangler nyere felter.
+      if (!isSystemIssueLogData(entry.data)) return [];
+      return [{
+        timestamp: entry.timestamp,
+        level: entry.level,
+        systemIssue: entry.data.systemIssue,
+      }];
+    });
+};
+
 /**
  * Generér komplet bug report
  *
@@ -220,6 +237,7 @@ export const generateBugReport = async (
 
   // Hent seneste log entries fra IndexedDB
   const logEntries = await getRecentLogEntries(maxEntries);
+  const systemIssues = extractStructuredSystemIssues(logEntries);
 
   // Byg rapport
   let report = '=== MINEO Fejlrapport ===\n';
@@ -257,6 +275,11 @@ export const generateBugReport = async (
       report += `--- ${section.title} ---\n`;
       report += `${stringifyReportData(section.data)}\n\n`;
     });
+  }
+
+  if (systemIssues.length > 0) {
+    report += '=== Systemfejl payloads ===\n';
+    report += `${stringifyReportData(systemIssues)}\n\n`;
   }
 
   if (logEntries.length === 0) {
@@ -467,7 +490,7 @@ export const prepareContentBoxReport = async (options: {
   report += `Sti: ${options.identity.routePath}\n`;
   if (options.identity.pageTitle) report += `Side: ${options.identity.pageTitle}\n`;
   if (options.identity.sectionTitle) report += `Sektion: ${options.identity.sectionTitle}\n`;
-  if (options.identity.boxIndex && options.identity.boxCount) {
+  if (options.identity.boxIndex != null && options.identity.boxCount != null) {
     report += `ContentBox: ${options.identity.boxIndex} af ${options.identity.boxCount}\n`;
   }
   if (options.identity.contentBoxId) report += `ContentBox ID: ${options.identity.contentBoxId}\n`;

@@ -27,7 +27,15 @@
 
 import { ok, err } from '../types/result';
 import type { Result } from '../types/result';
-import { logError } from './logger';
+import { reportSystemIssue } from './systemIssueReporter';
+
+const toSafeComputeCodeSuffix = (context: string): string => {
+  return context
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'unknown';
+};
 
 /**
  * Wrap beregning i try-catch + automatisk logging
@@ -36,19 +44,27 @@ import { logError } from './logger';
  * @param {string} context - Kontekst til logging (fx 'Aarsloen.periodeBeregning')
  * @returns {Result<T>} Success med value, eller failure med error
  */
-export function safeCompute<T>(fn: () => T, context: string): Result<T> {
+export function safeCompute<T>(
+  fn: () => T,
+  context: string,
+  options?: Readonly<{ code?: string }>
+): Result<T> {
   try {
     const value = fn();
     return ok(value);
   } catch (error) {
-    // Log fejl til IndexedDB
-    logError('Beregningsfejl', {
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    reportSystemIssue({
+      code: options?.code ?? `safe_compute:${toSafeComputeCodeSuffix(context)}`,
+      area: 'calculation',
       context,
-      error: error instanceof Error ? error : new Error(String(error)),
+      userMessage: 'Beregningsfejl',
+      developerMessage: normalizedError.message,
+      error: normalizedError,
     });
 
     // Returner failure result
-    return err(error instanceof Error ? error : new Error(String(error)));
+    return err(normalizedError);
   }
 }
 

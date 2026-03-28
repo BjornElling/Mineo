@@ -60,35 +60,45 @@ const getReadableTimestamp = (): string => {
  * @param {unknown} data - Data at sanitere
  * @returns {Record<string, unknown>} Saniteret data
  */
-const sanitizeData = (data: unknown): Record<string, unknown> => {
-  if (!data || typeof data !== 'object') {
-    return {};
+const PERSONDATA_KEY_MARKERS = ['cpr', 'navn', 'adresse', 'email', 'telefon'];
+
+const isPersondataKey = (key: string): boolean => {
+  const lowerKey = key.toLowerCase();
+  return PERSONDATA_KEY_MARKERS.some((marker) => lowerKey.includes(marker));
+};
+
+const sanitizeValue = (value: unknown, seen: WeakSet<object>): unknown => {
+  if (value === null || value === undefined) return value;
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizeValue(entry, seen));
   }
+  if (typeof value !== 'object') {
+    return value;
+  }
+  if (seen.has(value as object)) {
+    return '[Circular]';
+  }
+  seen.add(value as object);
 
   const sanitized: Record<string, unknown> = {};
-  const obj = data as Record<string, unknown>;
-
-  // Kopiér felter, men fjern potentielle persondata
-  for (const key in obj) {
-    const lowerKey = key.toLowerCase();
-
-    // Skip felter med persondata
-    if (
-      lowerKey.includes('cpr') ||
-      lowerKey.includes('navn') ||
-      lowerKey.includes('adresse') ||
-      lowerKey.includes('email') ||
-      lowerKey.includes('telefon')
-    ) {
-      // Log kun at feltet eksisterer, ikke værdien
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (isPersondataKey(key)) {
       sanitized[`has${key.charAt(0).toUpperCase()}${key.slice(1)}`] = true;
       continue;
     }
-
-    sanitized[key] = obj[key];
+    sanitized[key] = sanitizeValue(entry, seen);
   }
-
   return sanitized;
+};
+
+const sanitizeData = (data: unknown): Record<string, unknown> => {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return {};
+  }
+  const sanitized = sanitizeValue(data, new WeakSet());
+  return sanitized && typeof sanitized === 'object' && !Array.isArray(sanitized)
+    ? sanitized as Record<string, unknown>
+    : {};
 };
 
 /**

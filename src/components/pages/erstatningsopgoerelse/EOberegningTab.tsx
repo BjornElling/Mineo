@@ -26,6 +26,7 @@ import { eoSnapshotToBeregningView } from '../../../domain/erstatningsopgoerelse
 import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
 import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
 import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/eoSnapshotInvariants';
+import { reportSystemIssue } from '../../../utils/systemIssueReporter';
 
 type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
 
@@ -54,7 +55,7 @@ const DEVTOOLS_REPORTABLE_INVARIANT_IDS = new Set([
 const isDevtoolsReportableInvariant = (invariant: EoInvariant): boolean =>
   invariant.source === 'system' && DEVTOOLS_REPORTABLE_INVARIANT_IDS.has(invariant.id);
 
-const buildInvariantDevtoolsContext = (
+const buildInvariantDiagnostics = (
   invariant: EoInvariant,
   snapshot: EoSnapshot | null | undefined
 ): Record<string, unknown> => {
@@ -343,10 +344,15 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       if (reportedSystemInvariantKeysRef.current.has(key)) return;
       reportedSystemInvariantKeysRef.current.add(key);
 
-      console.error(
-        `[EOberegningTab] Systemfejl registreret: ${invariant.message}`,
-        buildInvariantDevtoolsContext(invariant, eoSnapshot)
-      );
+      reportSystemIssue({
+        code: invariant.id,
+        area: 'eo',
+        context: 'EOberegningTab',
+        userMessage: invariant.message,
+        revision,
+        evidence: invariant.evidence ?? [],
+        diagnostics: buildInvariantDiagnostics(invariant, eoSnapshot),
+      });
     });
   }, [eoSnapshot?.revision, reportableSystemInvariants]);
 
@@ -362,14 +368,26 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     };
 
     if (eoSnapshot?.status === 'fail_closed') {
-      // Neutral fejlbesked uden BugReportButton for alle fail_closed-årsager.
-      // schema_guard: forventelig inkonsistens (manglende felter, korrupt .eo).
-      // runtime_exception: logges via console.error i computeEoSnapshot og routes til
-      // ErrorFallback/ErrorBoundary. BugReportButton vises ikke her (jf. eo-snapshot-contract.md §7).
-      pushIssue({
-        id: 'snapshot-fail-closed',
-        message: eoSnapshot.invariants[0]?.message ?? 'Beregningen kan ikke gennemføres — ret manglende eller ugyldige felter.',
-      });
+      switch (eoSnapshot.failClosedReason) {
+        case 'runtime_exception':
+          // Runtime-undtagelser skal allerede være rapporteret centralt i computeEoSnapshot
+          // via reportSystemIssue. Her vises kun en neutral inline-række uden rapportknap,
+          // så UI-kontrakten ikke er implicit koblet til catch-blokken.
+          pushIssue({
+            id: 'snapshot-fail-closed-runtime',
+            message: eoSnapshot.invariants[0]?.message ?? 'Beregningen kan ikke gennemføres på grund af en intern runtimefejl.',
+          });
+          break;
+        case 'invariant_guard':
+        case 'schema_guard':
+        default:
+          // Neutral fejlbesked uden BugReportButton for deterministiske fail_closed-tilstande.
+          pushIssue({
+            id: 'snapshot-fail-closed',
+            message: eoSnapshot.invariants[0]?.message ?? 'Beregningen kan ikke gennemføres — ret manglende eller ugyldige felter.',
+          });
+          break;
+      }
     }
 
     // Systeminvarianter med reel systemfejl-semantik vises samlet her.

@@ -15,6 +15,17 @@ const formatTimestamp = (timestamp: string): string => {
   return date.toLocaleString('da-DK');
 };
 
+const formatSystemIssueSummary = (snapshot: DevtoolsIssueSnapshot): string | null => {
+  const systemIssue = snapshot.lastIssue?.systemIssue;
+  if (!systemIssue) return null;
+  const segments = [
+    `Kode: ${systemIssue.code}`,
+    `Område: ${systemIssue.area}`,
+    systemIssue.revision ? `Revision: ${systemIssue.revision}` : null,
+  ].filter(Boolean);
+  return segments.length > 0 ? segments.join(' · ') : null;
+};
+
 const DevtoolsIssueNotice = ({
   snapshot,
   onDismiss,
@@ -28,6 +39,7 @@ const DevtoolsIssueNotice = ({
   const summary = lastIssue
     ? `${lastIssue.level.toUpperCase()} · ${formatTimestamp(lastIssue.timestamp)}`
     : 'Ingen detaljer tilgængelige';
+  const structuredSummary = formatSystemIssueSummary(snapshot);
 
   const guidance =
     'Der er fundet en fejl i den underliggende kode. Hvis programmet stadig virker, er det ikke et egentligt problem. ' +
@@ -65,6 +77,12 @@ const DevtoolsIssueNotice = ({
           Registrerede hændelser: {snapshot.counts.error} fejl · {snapshot.counts.warn} advarsler
           {lastIssue ? ` · Seneste: ${summary}` : ''}
         </Typography>
+
+        {structuredSummary && (
+          <Typography variant="body2" color="text.secondary" sx={{ marginBottom: 2 }}>
+            {structuredSummary}
+          </Typography>
+        )}
 
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Button variant="outlined" onClick={onDismiss} sx={{ borderRadius: '10px' }}>
@@ -117,6 +135,15 @@ const DevtoolsIssueNotice = ({
                 >
                   {issue.message}
                 </Typography>
+                {issue.systemIssue && (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', marginTop: 0.5, whiteSpace: 'pre-wrap' }}
+                  >
+                    {`Kode: ${issue.systemIssue.code} · Område: ${issue.systemIssue.area}${issue.systemIssue.revision ? ` · Revision: ${issue.systemIssue.revision}` : ''}`}
+                  </Typography>
+                )}
               </Box>
             ))}
             {snapshot.issues.length > detailItems.length && (

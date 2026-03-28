@@ -321,12 +321,14 @@ Præcisering:
   `debug:control_mismatch` og `taf_per_year:afrunding_over_100`, fordi de er interne
   beregningsinkonsistenser.
 - Disse rækker må ikke indeholde `BugReportButton`.
-- De skal samtidig logges via `console.error`, så det eksisterende `DevtoolsIssueNotice`-flow
-  åbner og giver brugeren mulighed for at sende fejloplysninger.
+- De skal samtidig logges via `console.error`/system issue-flowet, så det eksisterende
+  `DevtoolsIssueNotice`-flow åbner og giver brugeren mulighed for at sende fejloplysninger.
 
-**`fail_closed`-snapshot:** `schema_guard`-fejl (forventelig committed-state-inkonsistens)
-vises som en neutral fejlbesked i `EOberegningTab` uden `BugReportButton`. `runtime_exception`
-logges via `console.error` og routes til `ErrorFallback`/ErrorBoundary-flowet.
+**`fail_closed`-snapshot:** `schema_guard`-fejl (schema/parsing) og `invariant_guard`
+(afledt intern datainkonsistens efter vellykket parsing) vises som en neutral
+fejlbesked i `EOberegningTab` uden `BugReportButton`. `runtime_exception`
+logges via `console.error`/system issue-flowet og vises kun som neutral inline-række
+uden rapportknap.
 
 **PDF-download-gating og download-fejl:** Download-knappen er aktiv hvis og kun hvis
 `errors`-listen er tom (ingen feltfejl fra EO-oplysninger eller stamdata). Kan PDF'en

@@ -1,10 +1,18 @@
 import { safeCompute } from '../../utils/safeComputation';
 
-vi.mock('../../utils/logger', () => ({
-  logError: vi.fn(),
+const { reportSystemIssueMock } = vi.hoisted(() => ({
+  reportSystemIssueMock: vi.fn(),
+}));
+
+vi.mock('../../utils/systemIssueReporter', () => ({
+  reportSystemIssue: reportSystemIssueMock,
 }));
 
 describe('safeCompute', () => {
+  beforeEach(() => {
+    reportSystemIssueMock.mockReset();
+  });
+
   it('returnerer success-result ved succes', () => {
     const result = safeCompute(() => 42, 'test.context');
     expect(result.success).toBe(true);
@@ -21,6 +29,12 @@ describe('safeCompute', () => {
     if (!result.success) {
       expect(result.error.message).toBe('boom');
     }
+    expect(reportSystemIssueMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'safe_compute:test_context_error',
+        context: 'test.context.error',
+      })
+    );
   });
 
   it('returnerer failure-result ved ikke-Error-kast (string)', () => {
@@ -32,6 +46,20 @@ describe('safeCompute', () => {
       expect(result.error).toBeInstanceOf(Error);
       expect(result.error.message).toBe('en streng');
     }
+  });
+
+  it('kan modtage eksplicit system issue-kode', () => {
+    const result = safeCompute(() => {
+      throw new Error('boom');
+    }, 'test.context.custom', { code: 'custom:calculation_failure' });
+
+    expect(result.success).toBe(false);
+    expect(reportSystemIssueMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'custom:calculation_failure',
+        context: 'test.context.custom',
+      })
+    );
   });
 
   it('value kan returnere undefined', () => {

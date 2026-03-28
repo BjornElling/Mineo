@@ -119,4 +119,63 @@ describe('devtoolsMonitor', () => {
     expect(monitor.getDevtoolsIssueSnapshot().issues.length).toBe(1);
     stop();
   });
+
+  it('bevarer systemIssue som struktureret payload fra console args', async () => {
+    const monitor = await loadMonitor();
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const stop = monitor.startDevtoolsMonitor();
+
+    console.error(
+      'Systemfejl registreret: EO mismatch',
+      {
+        systemIssue: {
+          schemaVersion: 1,
+          kind: 'system_issue',
+          code: 'debug:control_mismatch',
+          area: 'eo',
+          severity: 'error',
+          context: 'EOberegningTab',
+          route: '/erstatningsopgoerelse',
+          timestamp: '2026-03-28T11:49:59.461Z',
+          userMessage: 'EO mismatch',
+          revision: 'rev-7',
+          evidence: ['foo'],
+        },
+      }
+    );
+
+    const issue = monitor.getDevtoolsIssueSnapshot().issues[0];
+    expect(issue?.message).toBe('Systemfejl registreret: EO mismatch');
+    expect(issue?.systemIssue).toEqual(expect.objectContaining({
+      code: 'debug:control_mismatch',
+      revision: 'rev-7',
+    }));
+
+    stop();
+    errorSpy.mockRestore();
+  });
+
+  it('kan nulstilles eksplicit mellem sessioner', async () => {
+    const monitor = await loadMonitor();
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const interceptedBaseError = console.error;
+    const stop = monitor.startDevtoolsMonitor();
+    const monitorPatchedError = console.error;
+
+    expect(monitorPatchedError).not.toBe(interceptedBaseError);
+
+    console.error('reset-me');
+    expect(monitor.getDevtoolsIssueSnapshot().issues.length).toBe(1);
+
+    monitor.resetDevtoolsMonitor();
+    expect(monitor.getDevtoolsIssueSnapshot().issues.length).toBe(0);
+    expect(console.error).toBe(interceptedBaseError);
+    expect(console.error).not.toBe(monitorPatchedError);
+
+    console.error('after-reset');
+    expect(monitor.getDevtoolsIssueSnapshot().issues.length).toBe(0);
+
+    stop();
+    errorSpy.mockRestore();
+  });
 });

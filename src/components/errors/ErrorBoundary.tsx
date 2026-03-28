@@ -1,6 +1,6 @@
 import React from 'react';
 import ErrorFallback from './ErrorFallback';
-import { logError } from '../../utils/logger';
+import { reportSystemIssue } from '../../utils/systemIssueReporter';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -71,10 +71,15 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     });
 
     // Log til centraliseret logging-system (persisteres til IndexedDB)
-    logError('React component error', {
+    reportSystemIssue({
+      code: 'react:error_boundary',
+      area: 'react',
       context: 'ErrorBoundary',
+      userMessage: 'React component error',
+      developerMessage: error.message,
+      error,
       stack: ErrorBoundary.truncateMultiline(error.stack, 40, 8000),
-      data: {
+      diagnostics: {
         componentStack: ErrorBoundary.truncateMultiline(errorInfo.componentStack, 80, 12000),
         errorName: error.name,
         errorMessage: error.message,

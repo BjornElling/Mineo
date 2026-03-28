@@ -5,12 +5,12 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 
-const { logErrorMock } = vi.hoisted(() => ({
-  logErrorMock: vi.fn(),
+const { reportSystemIssueMock } = vi.hoisted(() => ({
+  reportSystemIssueMock: vi.fn(),
 }));
 
-vi.mock('../../../utils/logger', () => ({
-  logError: logErrorMock,
+vi.mock('../../../utils/systemIssueReporter', () => ({
+  reportSystemIssue: reportSystemIssueMock,
 }));
 
 const createEmployment = (
@@ -55,7 +55,7 @@ const createEmployment = (
 
 describe('computeEoSnapshot', () => {
   beforeEach(() => {
-    logErrorMock.mockReset();
+    reportSystemIssueMock.mockReset();
   });
 
   it('returnerer fail_closed og logger systemfejl når skjult EO-lønfelt mangler ved angivet løn', () => {
@@ -70,20 +70,20 @@ describe('computeEoSnapshot', () => {
     });
 
     expect(snapshot.status).toBe('fail_closed');
-    expect(snapshot.failClosedReason).toBe('schema_guard');
+    expect(snapshot.failClosedReason).toBe('invariant_guard');
     expect(snapshot.data).toBeNull();
     expect(snapshot.invariants).toEqual([
       expect.objectContaining({
-        id: 'schema_guard:eo_angivet_loen_loen_paa_helligdage',
+        id: 'invariant_guard:eo_angivet_loen_loen_paa_helligdage',
         source: 'system',
       }),
     ]);
-    expect(logErrorMock).toHaveBeenCalledWith(
-      'EO-snapshot afvist pga. intern datainkonsistens i angivet løn',
+    expect(reportSystemIssueMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        code: 'eo_snapshot:hidden_angivet_loen_state_invalid',
         context: 'eoSnapshot.computeEoSnapshot',
-        data: expect.objectContaining({
-          revision: 'eo-hidden-loen-state',
+        revision: 'eo-hidden-loen-state',
+        diagnostics: expect.objectContaining({
           beregnesUdFra: 'Angivet månedsløn',
         }),
       })

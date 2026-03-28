@@ -18,7 +18,7 @@ import {
   type EoCanonicalOutput,
 } from './eoCanonicalOutput';
 import { buildTafRanges } from './indtaegtPerioder';
-import { logError } from '../../utils/logger';
+import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import {
   buildControlMismatchInvariant,
   buildTafPerYearAfrundingInvariant,
@@ -67,7 +67,7 @@ export type EoSnapshot = Readonly<{
     stamdata: StamdataValues | null;
     erstatningsopgoerelse: ErstatningsopgoerelseValues | null;
   }>;
-  failClosedReason?: 'schema_guard' | 'runtime_exception';
+  failClosedReason?: 'schema_guard' | 'invariant_guard' | 'runtime_exception';
 }>;
 
 const EMPTY_STAMDATA_ERRORS: FieldErrorsForSection<'stamdata'> = {};
@@ -186,9 +186,13 @@ export const computeEoSnapshot = (args: Readonly<{
   }
 
   if (isAngivetLoenHiddenStateInvalid(parsedEo.data)) {
-    logError('EO-snapshot afvist pga. intern datainkonsistens i angivet løn', {
+    reportSystemIssue({
+      code: 'eo_snapshot:hidden_angivet_loen_state_invalid',
+      area: 'eo',
       context: 'eoSnapshot.computeEoSnapshot',
-      data: {
+      userMessage: 'EO-snapshot afvist pga. intern datainkonsistens i angivet løn',
+      revision: args.revision,
+      diagnostics: {
         revision: args.revision,
         beregnesUdFra: parsedEo.data.beregnesUdFra,
       },
@@ -197,7 +201,7 @@ export const computeEoSnapshot = (args: Readonly<{
       revision: args.revision,
       status: 'fail_closed',
       invariants: [{
-        id: 'schema_guard:eo_angivet_loen_loen_paa_helligdage',
+        id: 'invariant_guard:eo_angivet_loen_loen_paa_helligdage',
         passed: false,
         severity: 'error' as const,
         source: 'system' as const,
@@ -211,7 +215,7 @@ export const computeEoSnapshot = (args: Readonly<{
         stamdata: parsedStamdata.data,
         erstatningsopgoerelse: parsedEo.data,
       },
-      failClosedReason: 'schema_guard',
+      failClosedReason: 'invariant_guard',
     };
   }
 
@@ -379,11 +383,17 @@ export const computeEoSnapshot = (args: Readonly<{
       },
     };
   } catch (error) {
-    logError('Uventet runtimefejl i EO-snapshot', {
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    reportSystemIssue({
+      code: 'eo_snapshot:runtime_exception',
+      area: 'eo',
       context: 'eoSnapshot.computeEoSnapshot',
-      error: error instanceof Error ? error : new Error(String(error)),
-      data: {
-        revision: args.revision,
+      userMessage: 'Uventet runtimefejl i EO-snapshot',
+      revision: args.revision,
+      error: normalizedError,
+      diagnostics: {
+        errorName: normalizedError.name,
+        debugSnapshotAvailable: debugSnapshot !== null,
       },
     });
     return {

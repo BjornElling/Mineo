@@ -38,7 +38,8 @@ import type { BilagSelection } from './differencekravPdf';
 import type { EoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot';
 import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
 import { eoSnapshotToTafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
-import { logError, logWarning } from '../logger';
+import { logWarning } from '../logger';
+import { reportSystemIssue } from '../systemIssueReporter';
 import { getSatserForYear } from '../../data/lovbestemteRates';
 
 type ReguleringInterval = Readonly<{
@@ -106,9 +107,14 @@ const createPdfDownloadFailure = (
   context: string,
   error: unknown
 ): PdfDownloadResult => {
-  logError(userError, {
+  const normalizedError = toError(error);
+  reportSystemIssue({
+    code: 'pdf:download_failure',
+    area: 'pdf',
     context,
-    error: toError(error),
+    userMessage: userError,
+    developerMessage: normalizedError.message,
+    error: normalizedError,
   });
   return { success: false, error: userError };
 };
