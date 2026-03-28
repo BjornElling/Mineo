@@ -68,7 +68,7 @@ Andre tillæg som fritvalg, SH/SO og Store Bededag indgår ikke i referencesatse
 
 Optællingen afhænger af, hvordan TAF beregnes:
 - hvis TAF beregnes som arbejdsdage, bruges arbejdsdage
-- hvis TAF beregnes som måneder, bruges hverdage
+- hvis TAF beregnes som måneder, bruges kalenderdage
 
 Ved arbejdsdagsmodellen reduceres optællingen med:
 - SH-dage
@@ -88,7 +88,7 @@ Ferieperioder behandles som fælles for alle ansættelsesforhold i SFGG-beregnin
 
 Feltet `Evt. ferie- og fraværsdage i perioden uden løn` følger derfor disse maksimumregler:
 - ved arbejdsdagsmodellen: maksimalt de resterende arbejdsdage efter fradrag af SH-dage og daterede feriedage
-- ved månedsmodellen: maksimalt periodens samlede hverdage
+- ved månedsmodellen: maksimalt periodens samlede kalenderdage
 
 Hvis referenceperioden efter disse fradrag ikke indeholder nogen relevante dage, skal referenceperiodens datofelter markeres med fejl.
 
@@ -247,6 +247,10 @@ Hvis der er tale om første erstatningsopgørelse:
 - skal den første TAF-dag udgå af SFGG-beregningen
 - hvis der er flere adskilte TAF-perioder, er det kun den kronologisk første sygedag i hele forløbet, der udgår
 
+Hvis der samtidig gælder bortfald under arbejdsgiverbetalt sygeløn:
+- skal den første sygedag-regel anses for opfyldt af den første sygedag i hele TAF-forløbet, også hvis denne dag allerede ligger i en periode uden ret til SFGG på grund af arbejdsgiverbetalt sygeløn
+- den første dag efter ophør af arbejdsgiverbetalt sygeløn må derfor ikke udgå som en ekstra "første sygedag"
+
 Hvis der ikke er tale om første erstatningsopgørelse, beregnes SFGG på alle TAF-dage.
 
 #### 6.3. Kobling til TAF-perioden
@@ -366,10 +370,10 @@ Tabellen skal have kolonnerne:
 - `Fra-dato`
 - `Til-dato`
 - `Sats`
-- `Antal dage`
+- `Antal arbejdsdage` eller `Antal kalenderdage`
 - `Feriepengekrav`
 
-Der skal være en `I alt`-række.
+Der skal være en `I alt`-række, når tabellen indeholder mere end én datalinje.
 
 `Feriepengekrav` er altid bruttokravet:
 
@@ -416,11 +420,11 @@ Ved valg af `Ingen` skal EODebug stadig vise én linje med den valgte værdi og 
 
 ## Del 2: Implementeringsstatus
 
-Dette afsnit beskriver status på den faktiske implementation pr. `26. marts 2026`.
+Dette afsnit beskriver status på den faktiske implementation pr. `28. marts 2026`.
 
 Status er gennemgået mod den aktuelle kode i især:
 - `src/schemas/formSchemas/sections/erstatningsopgoerelseSchemas.ts`
-- `src/components/pages/erstatningsopgoerelse/EOOplysningerTab.tsx`
+- `src/components/pages/erstatningsopgoerelse/LoenindkomstTab.tsx`
 - `src/validators/erstatningsopgoerelseValidator.ts`
 - `src/domain/erstatningsopgoerelse/sygeferiegodtgoerelse.ts`
 - `src/domain/debug/eoDebugErstatningsopgoerelseModel.ts`
@@ -535,15 +539,21 @@ Der findes tests for blandt andet:
 
 ### Afvigelser fra den normative forretningslogik
 
-#### 1. UI for differentierede direkte overenskomstsatser ser fejlbehæftet ud
+#### 1. Referencesatsens dagoptælling ved månedsbaseret TAF afviger fra den tidligere dokumentation
 
-Validatoren kræver satsvalg for differentierede direkte satser.
-I `EOOplysningerTab` ligger `Satsvalg`-dropdownen i den gren, som kun rendres, når der også kræves referenceperiode.
+Den aktuelle kode bruger kalenderdage, når SFGG følger referenceperiode og TAF beregnes som måneder.
 
-Ved direkte sats er referenceperiode netop ikke påkrævet.
-Det ser derfor ud til, at satsvalget ikke vises i nogle tilfælde, hvor det burde vises.
+Eksempel:
+- referenceperiode `01-01-2024` til `31-01-2024`
+- `1` fraværsdag uden løn
 
-Det er en konkret fejl.
+Aktuel kode:
+- divisor = `31 kalenderdage - 1 = 30`
+
+Tidligere dokumentation:
+- divisor = periodens hverdage minus fravær
+
+Denne dokumentation er nu opdateret til at afspejle den aktuelle beregningslogik.
 
 #### 2. PDF-ordlyd matcher ikke fuldt de normative tekster
 
@@ -554,12 +564,22 @@ Der genereres funktionelle forklaringslinjer for:
 
 Men ordlyden matcher ikke fuldt de præcist fastlagte normative tekster i Del 1.
 
-#### 3. Seksmånedersadvarsel er ikke fuldt verificeret på EOBeregningTab
+#### 3. SFGG-tabellens `I alt`-række vises ikke altid
+
+Den aktuelle kode viser kun `I alt`-rækken, når der er mere end én datalinje i tabellen.
+
+Eksempel:
+- én sammenhængende SFGG-periode giver én datalinje
+- her vises ingen `I alt`-række i hverken EODebug eller PDF
+
+Denne dokumentation er nu opdateret til at afspejle den aktuelle visningslogik.
+
+#### 4. Seksmånedersadvarsel er ikke fuldt verificeret på EOBeregningTab
 
 Der findes beregning og debug-visning af seksmånedersadvarslen.
 Ved denne gennemgang er den konkrete slutbrugerplacering på EOBeregningTab ikke verificeret som selvstændig advarsel uden for debug.
 
-#### 4. SFGG-bilaget er aktivt i UI
+#### 5. SFGG-bilaget er aktivt i UI
 
 Den tidligere dokumentation beskrev bilagsvalget som deaktiveret.
 Det passer ikke længere.
@@ -570,8 +590,6 @@ Checkboxen for `Sygeferiegodtgørelse` er aktiv i den aktuelle UI.
 ## Fejl, mangler og uafklarede spørgsmål
 
 ### Fejl
-
-1. `Satsvalg` for differentierede direkte overenskomstsatser ser ud til ikke at blive vist i UI, fordi feltet er placeret i en rendergren, som forudsætter referenceperiode.
 
 ### Mangler
 
