@@ -67,7 +67,11 @@ const StyledCheckbox = ({
       sx={{
         marginRight: 1,
         '& .MuiFormControlLabel-label': {
-          fontSize: '0.875rem',
+          fontFamily: 'var(--font-family-base)',
+          fontSize: '15px',
+          fontWeight: 'var(--font-weight-regular)',
+          lineHeight: 'var(--line-height-base)',
+          color: 'var(--mineo-color-row-text)',
         },
       }}
     />

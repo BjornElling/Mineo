@@ -61,11 +61,13 @@ const theme = createTheme({
           fontFamily: 'Montserrat, sans-serif',
           fontSize: '14px',
           fontWeight: 400,
+          color: 'var(--mineo-color-input-text, rgba(0, 0, 0, 0.87))',
         },
         input: {
           fontFamily: 'Montserrat, sans-serif',
           fontSize: '14px',
           fontWeight: 400,
+          color: 'inherit',
         },
       },
     },

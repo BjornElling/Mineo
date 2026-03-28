@@ -51,6 +51,9 @@
   /* MUI Typography default (debug marker) */
   --mineo-color-mui-typography-default: var(--color-text-primary);
 
+  /* Input text (shared marker for all field content) */
+  --mineo-color-input-text: var(--mineo-color-mui-typography-default);
+
   /* Grid table text (debug marker) */
   --mineo-color-grid-table-text: var(--color-text-primary);
 }
@@ -60,6 +63,7 @@
   --mineo-color-row-text: red;
   --mineo-color-row-subheading: green;
   --mineo-color-mui-typography-default: #ff1493;
+  --mineo-color-input-text: var(--mineo-color-mui-typography-default);
   --mineo-color-grid-table-text: #9370db; /* Medium Purple */
 }
 
