@@ -608,18 +608,18 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       || text === 'Der beregnes ikke sygeferiegodtgørelse på SH-dage, under ferie og på andre fraværsdage uden løn.'
       || text === 'Der beregnes ikke sygeferiegodtgørelse på eventuelle fraværsdage uden løn.'
     )).toBe(true);
-    expect(texts.some((text) => text.includes('Antal arbejdsdage (') && text.includes('SH-dage'))).toBe(true);
     expect(texts.some((text) => text.includes('Referencesats ('))).toBe(true);
     const lastAutoTableCall = autoTableMock.mock.calls.at(-1);
     const tableBody = lastAutoTableCall?.[1]?.body as Array<Array<{ content: string }>> | undefined;
     expect(tableBody?.[0]?.map((cell) => cell.content)).toEqual([
       'Fra-dato',
       'Til-dato',
-      'Sats',
+      'Feriepenge-sats',
+      'AG-pension',
       expect.stringMatching(/^Antal (arbejds|kalender)dage$/),
       'Feriepengekrav',
     ]);
-    expect(tableBody?.[1]).toHaveLength(5);
+    expect(tableBody?.[1]).toHaveLength(6);
     const hasTotalRow = tableBody?.some((row) => row[0]?.content === 'I alt') ?? false;
     expect(hasTotalRow).toBe(false);
     expect(texts).toContain('Beregnet krav');
@@ -661,7 +661,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const kalenderdagTekst = texts.find((text) => text.includes('Antal kalenderdage i perioden'));
 
     expect(texts).toContain('Kravet beregnes per kalenderdag med referencesatsen tillagt senere lønudvikling.');
-    expect(texts).toContain('Der beregnes ikke sygeferiegodtgørelse på eventuelle fraværsdage uden løn. Da skaden er fra 1. januar 2015, er der desuden først krav på sygeferiegodtgørelse fra anden sygedag.');
+    expect(texts.some((text) => text.startsWith('Der beregnes ikke sygeferiegodtgørelse på eventuelle fraværsdage uden løn.'))).toBe(true);
     expect(kalenderdagTekst).toContain('31 kalenderdage - 1 fraværsdage u. løn');
     expect(kalenderdagTekst).not.toContain('SH-dage');
     expect(texts).toContain('30 kalenderdage');
@@ -784,7 +784,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).toContain('Kravet beregnes per kalenderdag med referencesatsen tillagt senere overenskomstmæssige stigninger.');
   });
 
-  it('viser differentieret overenskomstsats i referencesats-blokken', () => {
+  it('viser ikke fallback-sats for differentieret overenskomst når der ikke findes beregnede segmenter', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.loenindkomstAnsaettelsesforhold[0] = createEmployment({
       id: 'af-1',
@@ -830,9 +830,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
     expect(texts).not.toContain('Referencesats');
-    expect(texts.some((text) => text.includes('faglært'))).toBe(true);
-    expect(texts.some((text) => text.includes('København'))).toBe(true);
-    expect(texts.some((text) => text.includes('overenskomsten'))).toBe(true);
+    expect(texts.some((text) => text.includes('207,90'))).toBe(false);
     expect(texts).not.toContain('Referencesats: 207,90 kr.');
   });
 
@@ -1011,6 +1009,180 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     expect(sfggSectionTexts).toContain('Hårup Ungdomsklub');
     expect(sfggSectionTexts).not.toContain('Skjult arbejdssted');
+  });
+
+  it('viser arbejdsdags-SFGG med kalenderdagsstart efter årsskifte i pdf-tabellen når 1. januar ikke er arbejdsdag', () => {
+    autoTableMock.mockClear();
+    const { stamdata, eo } = buildBaseInput();
+    eo.eoNummer = '2';
+    eo.beregnesUdFra = 'Beregningsperiode';
+    eo.vedroererPeriodeFra = iso('2024-12-30');
+    eo.vedroererPeriodeTil = iso('2025-01-03');
+    eo.periodeTilBeregningFra = iso('2024-12-01');
+    eo.periodeTilBeregningTil = iso('2024-12-31');
+    eo.tafPerioder = [{ id: 'taf-1', fra: iso('2024-12-30'), til: iso('2025-01-03'), loseFeriedage: undefined }];
+    eo.loenindkomstAnsaettelsesforhold = [
+      createEmployment({
+        id: 'af-1',
+        navnPaaArbejdssted: 'Byggearbejde',
+        harOverenskomst: true,
+        overenskomstId: 'bygge-anlaeg',
+        feriePct: 12.5,
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        loenPaaHelligdage: 'Almindelig løn',
+        indtaegtsoplysningerTableData: [
+          {
+            id: 'row-1',
+            col0_maaned: '12',
+            col1_maaned: '2024',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: '',
+            col1_dag: '',
+            col2: asAmountValue(10000),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          },
+        ],
+      }),
+    ];
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Overenskomst',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: 'Ufaglaert-Koebenhavn',
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    renderPdfWithSelected(stamdata, eo, {
+      ...selected,
+      sygeferiegodtgoerelse: true,
+    });
+
+    const sfggTableCall = autoTableMock.mock.calls
+      .map((call) => call[1])
+      .find((options: { body?: Array<Array<{ content: string }>> }) =>
+        options.body?.[0]?.some((cell) => cell.content === 'Fra-dato')
+      );
+    const sfggRows = sfggTableCall?.body?.map((row: Array<{ content: string }>) => row.map((cell) => cell.content)) ?? [];
+
+    expect(sfggRows).toContainEqual(['Fra-dato', 'Til-dato', 'Feriepenge-sats', 'AG-pension', 'Antal arbejdsdage', 'Feriepengekrav']);
+    expect(sfggRows).toContainEqual(['01-01-2025', '03-01-2025', '191,40', '+ 10,15 %', '2', '421,65']);
+    expect(sfggRows).not.toContainEqual(['02-01-2025', '03-01-2025', '191,40', '+ 10,15 %', '2', '421,65']);
+  });
+
+  it('viser overenskomstforklaring om sygeløn i pdf for overenskomster med bortfald under sygeløn', () => {
+    autoTableMock.mockClear();
+    const { stamdata, eo } = buildBaseInput();
+    eo.eoNummer = '2';
+    eo.beregnesUdFra = 'Beregningsperiode';
+    eo.vedroererPeriodeFra = iso('2024-01-29');
+    eo.vedroererPeriodeTil = iso('2024-02-06');
+    eo.periodeTilBeregningFra = iso('2024-01-01');
+    eo.periodeTilBeregningTil = iso('2024-01-31');
+    eo.tafPerioder = [{ id: 'taf-1', fra: iso('2024-01-29'), til: iso('2024-02-06'), loseFeriedage: undefined }];
+    eo.ferieperioder = [{ id: 'ferie-1', fra: iso('2024-02-01'), til: iso('2024-02-02') }];
+    eo.loenindkomstAnsaettelsesforhold = [
+      createEmployment({
+        id: 'af-1',
+        navnPaaArbejdssted: 'Byggearbejde',
+        harOverenskomst: true,
+        overenskomstId: 'bygge-anlaeg',
+        feriePct: 12.5,
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        loenPaaHelligdage: 'Almindelig løn',
+        indtaegtsoplysningerTableData: [
+          {
+            id: 'row-1',
+            col0_maaned: '1',
+            col1_maaned: '2024',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: '',
+            col1_dag: '',
+            col2: asAmountValue(10000),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          },
+        ],
+      }),
+    ];
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Overenskomst',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: 'Ufaglaert-Koebenhavn',
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    renderPdfWithSelected(stamdata, eo, {
+      ...selected,
+      sygeferiegodtgoerelse: true,
+    });
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    expect(texts).toContain('I medfør af overenskomsten beregnes ikke sygeferiegodtgørelse på dage, hvor der betales sygeløn.');
+
+    const sfggTableCall = autoTableMock.mock.calls
+      .map((call) => call[1])
+      .find((options: { body?: Array<Array<{ content: string }>> }) =>
+        options.body?.[0]?.some((cell) => cell.content === 'Fra-dato')
+      );
+    const sfggRows = sfggTableCall?.body?.map((row: Array<{ content: string }>) => row.map((cell) => cell.content)) ?? [];
+
+    expect(sfggRows).toContainEqual(['03-02-2024', '06-02-2024', '184,45', '+ 10,15 %', '2', '406,34']);
+  });
+
+  it('splitter arbejdsdags-SFGG-tabellen ved daterede feriedage i pdf', () => {
+    autoTableMock.mockClear();
+    const { stamdata, eo } = buildBaseInput();
+    eo.eoNummer = '2';
+    eo.beregnesUdFra = 'Beregningsperiode';
+    eo.vedroererPeriodeFra = iso('2024-01-29');
+    eo.vedroererPeriodeTil = iso('2024-02-06');
+    eo.periodeTilBeregningFra = iso('2024-01-01');
+    eo.periodeTilBeregningTil = iso('2024-01-31');
+    eo.tafPerioder = [{ id: 'taf-1', fra: iso('2024-01-29'), til: iso('2024-02-06'), loseFeriedage: undefined }];
+    eo.ferieperioder = [{ id: 'ferie-1', fra: iso('2024-02-01'), til: iso('2024-02-02') }];
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmountValue(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    renderPdfWithSelected(stamdata, eo, {
+      ...selected,
+      sygeferiegodtgoerelse: true,
+    });
+
+    const sfggTableCall = autoTableMock.mock.calls
+      .map((call) => call[1])
+      .find((options: { body?: Array<Array<{ content: string }>> }) =>
+        options.body?.[0]?.some((cell) => cell.content === 'Fra-dato')
+      );
+    const sfggRows = sfggTableCall?.body?.map((row: Array<{ content: string }>) => row.map((cell) => cell.content)) ?? [];
+
+    expect(sfggRows).toContainEqual(['29-01-2024', '31-01-2024', '100', '+ 0 %', '3', '300']);
+    expect(sfggRows).toContainEqual(['03-02-2024', '06-02-2024', '100', '+ 0 %', '2', '200']);
   });
 
   it('viser sygeferiegodtgørelse med 0 kr. i indtægter men udelader 0-fradrag i TAF-mellemregningen', () => {

@@ -432,20 +432,25 @@ export const buildTafPerYearBuildOutcome = (
     });
   }
 
-  const reconciledYears = years.length === 1
-    ? (() => {
-      const [onlyYear] = years;
-      if (!onlyYear) return years;
-      return [{
-        ...onlyYear,
-        // Ét år betyder ingen reel årsfordeling. I det tilfælde skal årslinjen
-        // vise den autoritative EO-total direkte, så clampet netto ikke blokerer
-        // PDF-download pga. et rent projectionsmismatch.
-        yearTafFoerForligOre: samletTafKravOre === 0 ? (0 as MoneyOre) : onlyYear.yearTafFoerForligOre,
-        yearTafOre: samletTafKravOre,
-      }] satisfies TafYearEntry[];
-    })()
-    : years;
+  const reconciledYears = samletTafKravOre === 0
+    ? years.map((year) => ({
+      ...year,
+      // Når den autoritative EO-total er clampet til 0, må årsfordelingen ikke
+      // fortsat indeholde negative nettobeløb. Årslinjerne skal derfor også være 0,
+      // ellers opstår et kunstigt afstemningsbrud mod facit.
+      yearTafFoerForligOre: 0 as MoneyOre,
+      yearTafOre: 0 as MoneyOre,
+    }))
+    : years.length === 1
+      ? (() => {
+        const [onlyYear] = years;
+        if (!onlyYear) return years;
+        return [{
+          ...onlyYear,
+          yearTafOre: samletTafKravOre,
+        }] satisfies TafYearEntry[];
+      })()
+      : years;
 
   const sumYearTafOre = reconciledYears.reduce((sum, y) => sum + y.yearTafOre, 0) as MoneyOre;
   const afrundingOre = (samletTafKravOre - sumYearTafOre) as MoneyOre;

@@ -62,6 +62,7 @@ export const eoSnapshotToDebugView = (args: Readonly<{
     const stamdataValues = debugSnapshot.stamdataValues;
     const erstatningsopgoerelseValues = debugSnapshot.eoValues;
     const canonicalOutput = hasEoSnapshotData(snapshot) ? snapshot.data.canonicalOutput : undefined;
+    const pdfModel = hasEoSnapshotData(snapshot) ? snapshot.data.pdfModel : undefined;
 
     const ctx: EODebugExecutionContext = {
       stamdataValues,
@@ -71,6 +72,7 @@ export const eoSnapshotToDebugView = (args: Readonly<{
       loenindkomstManuelReguleringInputErrors: args.loenindkomstManuelReguleringInputErrors,
       appSettings: args.appSettings,
       canonicalOutput,
+      pdfModel,
     };
 
     return {

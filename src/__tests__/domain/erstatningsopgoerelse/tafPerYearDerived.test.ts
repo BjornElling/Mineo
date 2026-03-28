@@ -483,6 +483,49 @@ describe('buildTafPerYearResult', () => {
     expect(result.afrundingOre).toBe(0);
   });
 
+  it('afstemmer flerårigt med autoritativ EO-total når SFGG clampper netto til 0', () => {
+    const eoValues = makeValues({
+      eoNummer: '2',
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmountValue(10),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-12-30'), til: iso('2025-01-03'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          id: 'af-1',
+          loenudviklingBeregningsgrundlag: 'Ingen',
+        },
+      ],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggManuelDagssats: asAmountValue(100),
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: undefined,
+      }],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
+    const result = snapshotData.engines.tafPerYear;
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    expect(snapshotData.pdfModel.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre).toBe(0);
+    expect(result.years).toHaveLength(2);
+    expect(result.years.every((year) => year.yearTafFoerForligOre === 0)).toBe(true);
+    expect(result.years.every((year) => year.yearTafOre === 0)).toBe(true);
+    expect(result.sumYearTafOre).toBe(0);
+    expect(result.afrundingOre).toBe(0);
+  });
+
   it('sorterer benefits alfabetisk som EO i per-år fradrag', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet dagsløn',

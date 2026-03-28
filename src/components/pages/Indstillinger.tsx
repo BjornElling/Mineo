@@ -1,6 +1,7 @@
 import React from 'react';
-import { Box, Checkbox, FormControlLabel, IconButton, MenuItem, Tooltip, Typography } from '@mui/material';
+import { Box, IconButton, MenuItem, Tooltip, Typography } from '@mui/material';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import StyledCheckbox from '../inputs/StyledCheckbox';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../inputs/StyledDropdown';
 import StyledRadioButton from '../inputs/StyledRadioButton';
@@ -73,22 +74,12 @@ const BrevhovedCheckboxRow = React.memo((props: {
   return (
     <Box sx={{ display: 'flex', gap: 0.5 }}>
       {items.map(({ key, label }) => (
-        <FormControlLabel
+        <StyledCheckbox
           key={key}
-          control={(
-            <Checkbox
-              checked={checked[key]}
-              onChange={(e) => onToggle(key, e.target.checked)}
-              size="small"
-            />
-          )}
+          checked={checked[key]}
+          onCommit={(event) => onToggle(key, event.target.value)}
           label={label}
-          sx={{
-            marginRight: 1,
-            '& .MuiFormControlLabel-label': {
-              fontSize: '0.875rem',
-            },
-          }}
+          size="small"
         />
       ))}
     </Box>

@@ -62,6 +62,45 @@ describe('pdfWriter layout fallback', () => {
     expect(renderedRightTextCall).toBeDefined();
     expect(writer.getDoc().text.mock.calls.some((call: unknown[]) => call[0] === '123,45\u00A0kr.')).toBe(false);
   });
+
+  it('placerer højreteksten på nederste venstrelinje og wrapper venstreteksten inden kolonnerne mødes', async () => {
+    const { createStandardPdfWriter } = await import('../../../utils/pdf/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const doc = writer.getDoc();
+
+    doc.splitTextToSize.mockImplementation((text: string, maxWidth: number) => {
+      const words = text.split(' ');
+      const lines: string[] = [];
+      let current = '';
+      for (const word of words) {
+        const candidate = current ? `${current} ${word}` : word;
+        if ((candidate.length * 2) <= maxWidth || current === '') {
+          current = candidate;
+          continue;
+        }
+        lines.push(current);
+        current = word;
+      }
+      if (current) lines.push(current);
+      return lines;
+    });
+
+    writer.writeLeftRightText(
+      'Skadelidte var ufaglært og ansat i København, og satsen er i overenskomsten fastsat til',
+      '184,45 kr./arbejdsdag',
+      { minRightColumnWidth: 33 }
+    );
+
+    const renderedTexts = doc.text.mock.calls.map((call: unknown[]) => call[0]);
+    const rightCall = doc.text.mock.calls.find((call: unknown[]) => call[0] === '184,45 kr./arbejdsdag');
+
+    expect(renderedTexts.filter((value) => typeof value === 'string' && value !== '184,45 kr./arbejdsdag').length).toBeGreaterThan(1);
+    expect(rightCall).toBeDefined();
+    const leftLineCalls = doc.text.mock.calls.filter(
+      (call: unknown[]) => typeof call[0] === 'string' && call[0] !== '184,45 kr./arbejdsdag'
+    );
+    expect(rightCall?.[2]).toBe(leftLineCalls[leftLineCalls.length - 1]?.[2]);
+  });
 });
 
 // ─── Cursor / Y-position ─────────────────────────────────────────────────────

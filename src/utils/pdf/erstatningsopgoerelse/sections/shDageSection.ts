@@ -26,6 +26,7 @@ type SHDageSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
   tafRanges: readonly IsoRange[];
   sfggReferenceperiodeRanges?: readonly IsoRange[];
+  harSfggReferenceperiodeMedShFradrag?: boolean;
   lineHeight: number;
   startBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
@@ -34,7 +35,7 @@ type SHDageSectionContext = Readonly<{
     addSpacer: (height: number) => void;
     setY: (y: number) => void;
     getY: () => number;
-    getDoc: () => unknown;
+    getDoc: () => jsPDF;
   }>;
 }>;
 
@@ -98,6 +99,7 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
     eoValues,
     tafRanges,
     sfggReferenceperiodeRanges = [],
+    harSfggReferenceperiodeMedShFradrag = false,
     lineHeight,
     startBilagPage,
     renderSubheader,
@@ -110,6 +112,7 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
     const tilDisplay = formatDateLong(til);
     return `${fraDisplay || '-'} - ${tilDisplay || '-'}`;
   };
+  const formatRangesLong = (ranges: readonly IsoRange[]): string[] => ranges.map((range) => formatRangeLong(range.fra, range.til));
 
   const renderShDageTable = (rows: readonly SHDageTableRow[]) => {
     const antalShDage = rows.filter((row) => row.erSHDag).length;
@@ -138,7 +141,7 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
       createPdfTableCell(String(antalShDage), { halign: 'center', bold: true, transparent: true }),
     ]);
 
-    const doc = writer.getDoc() as jsPDF;
+    const doc = writer.getDoc();
     const finalY = renderEoStylePdfTable({
       doc,
       startY: writer.getY(),
@@ -157,7 +160,11 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
   startBilagPage('SH-dage');
 
   writer.addSpacer(lineHeight);
-  safeAddWrappedText('Helligdage, der falder på hverdage (mandag-fredag).');
+  safeAddWrappedText(
+    eoValues.beregnesUdFra === 'Beregningsperiode'
+      ? 'Helligdage i de viste perioder. SH-dage er helligdage, der falder på hverdage (mandag-fredag).'
+      : 'Helligdage, der falder på hverdage (mandag-fredag).'
+  );
   writer.addSpacer(lineHeight);
 
   const renderPeriodeSection = (label: string, fra: ISODateString | undefined, til: ISODateString | undefined) => {
@@ -181,28 +188,36 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(eoValues.eoNummer);
   const beregningsperiodeRange =
     eoValues.beregnesUdFra === 'Beregningsperiode' ? buildBeregningsperiodeRange(eoValues) : undefined;
-  const tafFra = tafRanges.length > 0 ? tafRanges[0].fra : undefined;
-  const tafTil = tafRanges.length > 0 ? tafRanges[tafRanges.length - 1].til : undefined;
   const mergedSfggReferenceperiodeRanges = mergeIsoDateRanges(sfggReferenceperiodeRanges, { mergeAdjacent: true });
-  const sfggReferenceperiodeFra = mergedSfggReferenceperiodeRanges.length > 0 ? mergedSfggReferenceperiodeRanges[0].fra : undefined;
-  const sfggReferenceperiodeTil = mergedSfggReferenceperiodeRanges.length > 0
-    ? mergedSfggReferenceperiodeRanges[mergedSfggReferenceperiodeRanges.length - 1].til
-    : undefined;
 
-  if (erFoersteOpgoerelse && beregningsperiodeRange) {
+  if (erFoersteOpgoerelse && beregningsperiodeRange && harSfggReferenceperiodeMedShFradrag) {
     writer.addSpacer(lineHeight);
     renderPeriodeSection('Beregningsperiode', beregningsperiodeRange.fra, beregningsperiodeRange.til);
     writer.addSpacer(lineHeight);
   }
 
-  renderPeriodeSection('TAF-periode', tafFra, tafTil);
+  renderSubheader('TAF-periode', lineHeight, { addTopSpacing: false });
+  if (tafRanges.length === 0) {
+    safeAddWrappedText('Ingen periode');
+    writer.addSpacer(lineHeight);
+  } else {
+    formatRangesLong(tafRanges).forEach((line) => safeAddWrappedText(line));
+    const tafHelligdage = findHelligdageInRanges(tafRanges);
+    if (tafHelligdage.length === 0) {
+      safeAddWrappedText('Ingen helligdage');
+      writer.addSpacer(lineHeight);
+    } else {
+      renderShDageTable(tafHelligdage);
+      writer.addSpacer(lineHeight);
+    }
+  }
 
   const sfggHelligdage = findHelligdageInRanges(mergedSfggReferenceperiodeRanges);
   const harSfggShDage = sfggHelligdage.some((row) => row.erSHDag);
-  if (sfggReferenceperiodeFra && sfggReferenceperiodeTil && harSfggShDage) {
+  if (mergedSfggReferenceperiodeRanges.length > 0 && harSfggReferenceperiodeMedShFradrag && harSfggShDage) {
     writer.addSpacer(lineHeight);
     renderSubheader('SFGG-referenceperiode', lineHeight, { addTopSpacing: false });
-    safeAddWrappedText(formatRangeLong(sfggReferenceperiodeFra, sfggReferenceperiodeTil));
+    formatRangesLong(mergedSfggReferenceperiodeRanges).forEach((line) => safeAddWrappedText(line));
     renderShDageTable(sfggHelligdage);
     writer.addSpacer(lineHeight);
   }

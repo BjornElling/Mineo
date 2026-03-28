@@ -207,6 +207,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     offentligeYdelser: getBilag('bilagsnumreOffentligeYdelser', eoValues.bilagsnumreOffentligeYdelser),
     oevrigeErstatningskrav: getBilag('bilagsnumreOevrigeErstatningskrav', eoValues.bilagsnumreOevrigeErstatningskrav),
   };
+  const rightMaxWidth = writer.getTextWidth('000.000.000,00');
 
   if (model.forlig.erIndgaaet) {
     renderSectionHeader('Erstatningsniveau', lineHeight);
@@ -373,7 +374,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     })();
 
     const beloebDisplay = formatMoneyOreWithKr(model.svieSmerte.totalOre);
-    safeAddLeftRightText(lineLeft, beloebDisplay, writer.getTextWidth('000.000.000,00'), { rightFontStyle: 'bold' });
+    safeAddLeftRightText(lineLeft, beloebDisplay, rightMaxWidth, { rightFontStyle: 'bold' });
     }
   }
 
@@ -434,7 +435,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       safeAddLeftRightText(
         `${loenLabel} er i tidligere erstatningsopgørelse beregnet til`,
         beloebDisplay,
-        writer.getTextWidth('000.000.000,00'),
+        rightMaxWidth,
         { rightFontStyle: 'normal' }
       );
     } else {
@@ -448,7 +449,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           safeAddLeftRightText(
             indkomst.beregningsgrundlagMellemregningLabel,
             indkomst.beregningsgrundlagMellemregningResultat,
-            writer.getTextWidth('000.000.000,00'),
+            rightMaxWidth,
             { rightFontStyle: 'normal' }
           );
           writer.advanceY(lineHeight);
@@ -491,13 +492,13 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
             safeAddLeftRightText(
               row.label,
               formatMoneyOreWithKr(row.amountOre),
-              writer.getTextWidth('000.000.000,00'),
+              rightMaxWidth,
               { rightFontStyle: 'normal' }
             );
           }
 
           if (visibleComponentRows.length > 1) {
-            safeAddLeftRightText('I alt:', formatMoneyOreWithKr(arbejdssted.breakdown.samletOre), writer.getTextWidth('000.000.000,00'),
+            safeAddLeftRightText('I alt:', formatMoneyOreWithKr(arbejdssted.breakdown.samletOre), rightMaxWidth,
               { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
             );
           }
@@ -513,7 +514,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
             safeAddLeftRightText(
               ydelse.label,
               formatMoneyOreWithKr(ydelse.amountOre),
-              writer.getTextWidth('000.000.000,00'),
+              rightMaxWidth,
               { rightFontStyle: 'normal' }
             );
           }
@@ -521,7 +522,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
             safeAddLeftRightText(
               'I alt:',
               formatMoneyOreWithKr(indkomst.offentligeYdelserTotalOre),
-              writer.getTextWidth('000.000.000,00'),
+              rightMaxWidth,
               { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
             );
           }
@@ -540,7 +541,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
               safeAddLeftRightText(
                 indkomst.beregningsgrundlagMellemregningLabel,
                 indkomst.beregningsgrundlagMellemregningResultat,
-                writer.getTextWidth('000.000.000,00'),
+                rightMaxWidth,
                 { rightFontStyle: 'normal' }
               );
             } else if (indkomst.beregningsgrundlagMellemregningLabel) {
@@ -557,7 +558,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
             safeAddLeftRightText(
               basisText,
               renderMoneyWithKr(indkomst.dagsloen),
-              writer.getTextWidth('000.000.000,00'),
+              rightMaxWidth,
               { rightFontStyle: 'normal' }
             );
           } else if (indkomst.maaneder) {
@@ -569,7 +570,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
             safeAddLeftRightText(
               basisText,
               renderMoneyWithKr(indkomst.maanedsloen),
-              writer.getTextWidth('000.000.000,00'),
+              rightMaxWidth,
               { rightFontStyle: 'normal' }
             );
           }
@@ -581,7 +582,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         safeAddLeftRightText(
           venstreTekst,
           renderMoneyWithKrOrError(indkomst.maanedsloen),
-          writer.getTextWidth('000.000.000,00'),
+          rightMaxWidth,
           { rightFontStyle: 'normal' }
         );
       } else if (indkomst?.beregnesUdFra === 'Angivet dagsløn') {
@@ -591,7 +592,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         safeAddLeftRightText(
           venstreTekst,
           renderMoneyWithKrOrError(indkomst.dagsloen),
-          writer.getTextWidth('000.000.000,00'),
+          rightMaxWidth,
           { rightFontStyle: 'normal' }
         );
       }
@@ -645,7 +646,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           safeAddWrappedText('Lønudvikling kan ikke beregnes for den valgte opsætning.');
           return;
         }
-        const rightMaxWidth = writer.getTextWidth('000.000.000,00');
         const segmentsForDisplay = mergeLoenudviklingSegments(segments);
         for (const segment of segmentsForDisplay) {
           const roundedDeltaPct = roundByMethod(segment.deltaPct, 2, 'halfAwayFromZero');
@@ -688,7 +688,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         }
         if (loenudvikling.loenudviklingTotal.status === 'ok') {
           writer.addSpacer(lineHeight);
-          const rightMaxWidth = writer.getTextWidth('000.000.000,00');
           safeAddLeftRightText(
             'I alt',
             formatMoneyOreWithKr(loenudvikling.loenudviklingTotal.value),
@@ -707,7 +706,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         'tafIndtaegter.total har en uventet status.'
       );
       renderSubheader('Indtægter i erstatningsperioden', lineHeight);
-      const rightMaxWidth = writer.getTextWidth('000.000.000,00');
       for (const entry of tafIndtaegter.entries) {
         safeAddLeftRightText(entry.label, formatMoneyOreWithKr(entry.amountOre), rightMaxWidth, { rightFontStyle: 'normal' });
       }
@@ -739,7 +737,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     const tidligereModtagetTaf = model.tabtArbejdsfortjeneste.tidligereModtagetTaf;
     if (tidligereModtagetTaf.status === 'ok') {
       renderSubheader('Tidligere betalt erstatning', lineHeight);
-      const rightMaxWidth = writer.getTextWidth('000.000.000,00');
       safeAddLeftRightText(
         'Der er allerede betalt tabt arbejdsfortjeneste for perioden med',
         formatMoneyOreWithKr(tidligereModtagetTaf.value),
@@ -751,7 +748,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     if (loenudviklingTotal && tafTotal && loenudviklingTotal.status === 'ok' && tafTotal.status === 'ok') {
       renderSubheader('Beregnet krav på tabt arbejdsfortjeneste', lineHeight);
 
-      const rightMaxWidth = writer.getTextWidth('000.000.000,00');
       const ledFoerLigmed = [formatCurrencyFromOre(loenudviklingTotal.value)];
       if (tafTotal.value !== 0) {
         ledFoerLigmed.push(formatCurrencyFromOre(tafTotal.value));
@@ -774,14 +770,13 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'bold' });
     } else if (model.tabtArbejdsfortjeneste.harTafPerioder) {
       renderSubheader('Beregnet krav på tabt arbejdsfortjeneste', lineHeight);
-      const rightMaxWidth = writer.getTextWidth('000.000.000,00');
       safeAddLeftRightText('Beregnet krav på tabt arbejdsfortjeneste', '—', rightMaxWidth, { rightFontStyle: 'bold' });
     }
     }
   }
 
   const kravEntries = model.oevrigeKrav.entries;
-  const kravRightMaxWidth = writer.getTextWidth('000.000.000,00');
+  const kravRightMaxWidth = rightMaxWidth;
   const kravHeaderHeight = lineHeight * 4;
   const oevrigeKravIntroLinjer = resolveOevrigeKravIntroLinjer({
     eoValues,
@@ -846,7 +841,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   safeAddWrappedText(periodeText);
   writer.advanceY(lineHeight);
 
-  const summaryRightMaxWidth = writer.getTextWidth('000.000.000,00');
+  const summaryRightMaxWidth = rightMaxWidth;
   safeAddLeftRightText('Svie- og smertegodtgørelse', formatMoneyOreWithKr(model.samlet.svieSmerteOre), summaryRightMaxWidth, { rightFontStyle: 'normal' });
   safeAddLeftRightText('Tabt arbejdsfortjeneste', formatMoneyOreWithKr(model.samlet.tabtArbejdsfortjenesteOre), summaryRightMaxWidth, { rightFontStyle: 'normal' });
   safeAddLeftRightText('Øvrige krav', formatMoneyOreWithKr(model.samlet.oevrigeKravOre), summaryRightMaxWidth, { rightFontStyle: 'normal' });

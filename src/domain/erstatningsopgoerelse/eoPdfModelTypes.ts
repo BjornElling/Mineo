@@ -2,6 +2,12 @@ import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import type { TafBeregningsenhed } from './tafBeregningsenhed';
 import type { IsoRange } from './tafPeriodConstraints';
+import type {
+  SfggDayBasis,
+  SfggFeriepengeModtagetFormula,
+  SfggReferencesatsCalculable,
+  SfggReferencesatsFormula,
+} from './sygeferiegodtgoerelse';
 
 export type MoneyOre = number;
 export type MoneyKroner = number;
@@ -49,12 +55,26 @@ export type SygeferiegodtgoerelsePdfModel = Readonly<{
     ansaettelsesforholdId: string;
     ansaettelsesforholdNavn: string;
     sfggSourceLabel: string;
+    sfggSourceKind: 'ingen' | 'manuel' | 'ferielov' | 'overenskomst_direkte' | 'overenskomst_ferielov';
+    sfggDayBasis: SfggDayBasis;
+    sfggIntroText: string | null;
+    sfggReferenceperiodeAuthorityText: string | null;
+    sfggReferenceperiodeLabel: string;
+    sfggDirectRateLabel: string | null;
+    sfggFirstTafDayExcludedText: string | null;
+    sfggAfterEmployerSickPayText: string | null;
+    pdfExplanatoryLines: readonly string[];
+    perYear: readonly Readonly<{
+      year: number;
+      amountOre: MoneyOre;
+    }>[];
     feriepengekravTotalOre: MoneyOre;
     totalOre: MoneyOre;
     alleredeBetaltOre: MoneyOre;
-    explanatoryLines: readonly string[];
     sfggReferenceperiode: Readonly<{ fra: ISODateString; til: ISODateString }> | null;
-    sfggReferencesats: Calculable<MoneyOre>;
+    sfggReferencesats: SfggReferencesatsCalculable;
+    sfggReferencesatsFormula: SfggReferencesatsFormula | null;
+    feriepengeModtagetFormula: SfggFeriepengeModtagetFormula | null;
     capReachedDate: ISODateString | null;
     capRows: readonly Readonly<{
       fra: ISODateString;
@@ -65,10 +85,13 @@ export type SygeferiegodtgoerelsePdfModel = Readonly<{
     segments: readonly Readonly<{
       fra: ISODateString;
       til: ISODateString;
+      reguleringsindeks: number | null;
       satsOre: MoneyOre;
+      agPensionPct: number;
       antalDage: number;
       feriepengekravOre: MoneyOre;
       beregnetSfggoereOre: MoneyOre;
+      ferieberettigetLoenKroner: number;
       feriepengeAfSygeloenOre: MoneyOre;
       alleredeBetaltOre: MoneyOre;
     }>[];

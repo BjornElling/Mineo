@@ -2,6 +2,7 @@ import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { FieldErrorBySource } from '../../types/fieldErrors';
 import type { AppSettings } from '../../settings/appSettingsSchema';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
+import type { PdfModel } from '../erstatningsopgoerelse/eoPdfModel';
 
 /**
  * Type aliases for læsbarhed
@@ -29,4 +30,5 @@ export type EODebugExecutionContext = {
   loenindkomstManuelReguleringInputErrors: LoenindkomstManuelReguleringInputErrors;
   appSettings: AppSettings;
   canonicalOutput?: EoCanonicalOutput;
+  pdfModel?: PdfModel;
 };

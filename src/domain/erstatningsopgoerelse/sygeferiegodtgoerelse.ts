@@ -12,25 +12,68 @@ import { roundByMethod } from '../../utils/rounding';
 import { calculateStandardLoenRowDerived } from '../aarsloen/standardLoenRowCalculations';
 import { parseAarsloenRowInterval } from './indtaegtPerioder';
 import { buildLoenArbejdsdageSet, optaelArbejdsdageBreakdown } from './periodiseringsMotor';
-import { buildDatoSetInclusiveFromDates, isWeekdayUtc } from './tafDaySets';
+import { buildDatoSetInclusiveFromDates, buildFerieDageSet, isWeekdayUtc } from './tafDaySets';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from './tafBeregningsenhed';
 import type { IsoRange } from './tafPeriodConstraints';
 import { dateToISO, parseISODate, subtractOneDay, type ISODateString } from '../../types/branded';
 import { isoToDanish, toDanishDateString } from '../../types/branded';
 import { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from './eoPdfMoneyUtils';
 import type { Calculable, LoenudviklingSegment, MoneyOre } from './eoPdfModelTypes';
-import { getEffektiveSatserForDato, getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../../data/overenskomstRates';
+import { resolvePctDecimalFromSatsOrInput } from './sharedPdfUtils';
+import {
+  getEffektiveSatserForDato,
+  getOffentligOverenskomstTypeById,
+  getOverenskomstSfggPolicy,
+  resolveOverenskomstRef,
+} from '../../data/overenskomstRates';
 import { erDetteFoersteErstatningsopgoerelse } from './eoNummerValidering';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
+import {
+  buildSfggAfterEmployerSickPayText,
+  buildSfggNoEligibleDaysReason,
+  SFGG_FIRST_TAF_DAY_EXCLUDED_TEXT,
+  buildSfggIntroText,
+  resolveSfggDifferentieretSatsLabel,
+  resolveSfggReferenceperiodeAuthorityText,
+  resolveSfggReferenceperiodeLabel,
+} from './sygeferiegodtgoerelsePresentation';
 
-const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
-const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
-
-type SfggSourceKind = 'ingen' | 'manuel' | 'ferielov' | 'overenskomst_direkte' | 'overenskomst_ferielov';
+export type SfggSourceKind = 'ingen' | 'manuel' | 'ferielov' | 'overenskomst_direkte' | 'overenskomst_ferielov';
 export type SfggSource = Readonly<{ kind: SfggSourceKind; label: string }>;
 export type SfggDayBasis = 'kalenderdage' | 'arbejdsdage';
-export const SFGG_NO_CALENDAR_DAYS_REASON = 'Ingen kalenderdage i SFGG-perioden';
-export const SFGG_NO_WORKDAYS_REASON = 'Ingen arbejdsdage i SFGG-perioden';
+export type SfggReferencesatsNotCalculableKind =
+  | 'missing_rate'
+  | 'per_period_rate'
+  | 'missing_referenceperiode'
+  | 'unresolvable_referenceperiode'
+  | 'no_calendar_days'
+  | 'no_workdays';
+export type SfggReferencesatsCalculable =
+  | Readonly<{ status: 'ok'; value: MoneyOre }>
+  | Readonly<{ status: 'not_calculable'; kind: SfggReferencesatsNotCalculableKind; reason: string }>;
+
+const resolveSfggReferencesatsNotCalculableReason = (
+  kind: SfggReferencesatsNotCalculableKind
+): string => {
+  switch (kind) {
+    case 'missing_rate':
+      return 'Dagssats mangler';
+    case 'per_period_rate':
+      return 'Direkte overenskomstsats beregnes pr. periode';
+    case 'missing_referenceperiode':
+      return 'Referenceperiode mangler';
+    case 'unresolvable_referenceperiode':
+      return 'Referenceperioden kan ikke opgøres';
+    case 'no_calendar_days':
+      return buildSfggNoEligibleDaysReason('kalenderdage');
+    case 'no_workdays':
+      return buildSfggNoEligibleDaysReason('arbejdsdage');
+  }
+};
+
+export const isSfggNoEligibleDaysNotCalculable = (
+  value: SfggReferencesatsCalculable
+): boolean => value.status === 'not_calculable' && (value.kind === 'no_calendar_days' || value.kind === 'no_workdays');
 
 const SFGG_REFERENCEPERIODE_KILDER_MED_BEREGNINGSPERIODE = new Set<SfggSourceKind>([
   'ferielov',
@@ -64,12 +107,13 @@ export type SygeferiegodtgoerelseSegment = Readonly<{
   til: ISODateString;
   reguleringsindeks: number | null;
   satsOre: MoneyOre;
+  agPensionPct: number;
   antalDage: number;
   feriepengekravOre: MoneyOre;
   beregnetSfggoereOre: MoneyOre;
+  ferieberettigetLoenKroner: number;
   feriepengeAfSygeloenOre: MoneyOre;
   alleredeBetaltOre: MoneyOre;
-  pensionOre: MoneyOre;
 }>;
 
 export type SygeferiegodtgoerelseCapRow = Readonly<{
@@ -92,10 +136,25 @@ export type SfggReferencesatsFormula = Readonly<{
   oevrigeFravaersdage: number;
 }>;
 
+export type SfggFeriepengeModtagetFormula = Readonly<{
+  ferieberettigetLoenKroner: number;
+  feriePctDecimal: number | undefined;
+  feriepengeOre: MoneyOre;
+}>;
+
 export type SygeferiegodtgoerelseAnsaettelsesforholdResult = Readonly<{
   ansaettelsesforholdId: string;
   ansaettelsesforholdNavn: string;
   sfggSourceLabel: string;
+  sfggSourceKind: SfggSourceKind;
+  sfggDayBasis: SfggDayBasis;
+  sfggIntroText: string | null;
+  sfggReferenceperiodeAuthorityText: string | null;
+  sfggReferenceperiodeLabel: string;
+  sfggDirectRateLabel: string | null;
+  sfggFirstTafDayExcludedText: string | null;
+  sfggAfterEmployerSickPayText: string | null;
+  pdfExplanatoryLines: readonly string[];
   segments: readonly SygeferiegodtgoerelseSegment[];
   perYear: readonly Readonly<{
     year: number;
@@ -105,9 +164,9 @@ export type SygeferiegodtgoerelseAnsaettelsesforholdResult = Readonly<{
   totalOre: MoneyOre;
   alleredeBetaltOre: MoneyOre;
   sfggReferenceperiode: Readonly<{ fra: ISODateString; til: ISODateString }> | null;
-  sfggReferencesats: Calculable<MoneyOre>;
+  sfggReferencesats: SfggReferencesatsCalculable;
   sfggReferencesatsFormula: SfggReferencesatsFormula | null;
-  explanatoryLines: readonly string[];
+  feriepengeModtagetFormula: SfggFeriepengeModtagetFormula | null;
   capRows: readonly SygeferiegodtgoerelseCapRow[];
   capReachedDate: ISODateString | null;
 }>;
@@ -183,30 +242,6 @@ export const resolveSfggReferenceperiodeDayCount = (
   };
 };
 
-export const buildSfggReferenceperiodeCountLabel = (
-  formula: SfggReferencesatsFormula
-): string => {
-  if (formula.divisorLabel === 'kalenderdage') {
-    if (formula.oevrigeFravaersdage > 0) {
-      return `Antal kalenderdage i perioden (${formula.kalenderdage.toLocaleString('da-DK')} kalenderdage - ${formula.oevrigeFravaersdage.toLocaleString('da-DK')} fraværsdage u. løn) =`;
-    }
-    return 'Antal kalenderdage i perioden';
-  }
-
-  const ferieOgFravaersdage = formula.feriedage + formula.oevrigeFravaersdage;
-  if (formula.shDage + ferieOgFravaersdage > 0) {
-    const parts = [`${formula.hverdage.toLocaleString('da-DK')} hverdage`];
-    if (formula.shDage > 0) {
-      parts.push(`${formula.shDage.toLocaleString('da-DK')} SH-dage`);
-    }
-    if (ferieOgFravaersdage > 0) {
-      parts.push(`${ferieOgFravaersdage.toLocaleString('da-DK')} ferie- og fraværsdage`);
-    }
-    return `Antal arbejdsdage (${parts.join(' - ')}) =`;
-  }
-  return 'Antal arbejdsdage';
-};
-
 export const getFirstIndtastedeTafFraDato = (
   values: ErstatningsopgoerelseValues
 ): ISODateString | undefined => {
@@ -224,7 +259,7 @@ export const resolveSfggReferenceperiodeMaxDate = (
   return subtractOneDay(getFirstIndtastedeTafFraDato(values));
 };
 
-const FOUR_MONTHS_EPSILON = 1e-9;
+const FOUR_MONTHS_EPSILON = 1e-12;
 
 const buildDateSetFromRanges = (ranges: readonly IsoRange[]): Set<ISODateString> => {
   const result = new Set<ISODateString>();
@@ -294,14 +329,12 @@ const buildCapComputation = (
     return { cutoffDate: null, rows: [] };
   }
 
-  let totalMonths = 0;
   let cutoffDate: ISODateString | null = null;
   const rows: SygeferiegodtgoerelseCapRow[] = [];
 
   for (const range of buildRangesFromSortedDates(dates)) {
     const rangeDates = dates.filter((iso) => iso >= range.fra && iso <= range.til);
     const monthsPrecise = rangeDates.reduce((sum, iso) => sum + dateInMonthFraction(iso, mode), 0);
-    totalMonths += monthsPrecise;
     rows.push({
       fra: range.fra,
       til: range.til,
@@ -310,7 +343,7 @@ const buildCapComputation = (
     });
   }
 
-  totalMonths = 0;
+  let totalMonths = 0;
   for (const iso of dates) {
     totalMonths += dateInMonthFraction(iso, mode);
     if (totalMonths + FOUR_MONTHS_EPSILON >= 4) {
@@ -322,7 +355,7 @@ const buildCapComputation = (
   return { cutoffDate, rows };
 };
 
-const getSfgRowForEmployment = (
+const getSfggRowForEmployment = (
   values: ErstatningsopgoerelseValues,
   ansaettelsesforholdId: string
 ): SygeferiegodtgoerelseAnsaettelsesforholdRow | undefined =>
@@ -358,6 +391,51 @@ export const resolveSfggSource = (
 const getEmploymentName = (employment: LoenindkomstAnsaettelsesforhold): string =>
   (employment.navnPaaArbejdssted ?? '').trim() || 'Arbejdssted';
 
+const notCalculableSfggReferencesats = (
+  kind: SfggReferencesatsNotCalculableKind
+): SfggReferencesatsCalculable => ({
+  status: 'not_calculable',
+  kind,
+  reason: resolveSfggReferencesatsNotCalculableReason(kind),
+});
+
+const calculableSfggReferencesats = (value: MoneyOre): SfggReferencesatsCalculable => ({
+  status: 'ok',
+  value,
+});
+
+const assertNeverSfggSourceKind = (value: never): never => {
+  throw new Error(`Ukendt SFGG-kildetype: ${String(value)}`);
+};
+
+const resolveSfggAfterEmployerSickPayProjection = (args: Readonly<{
+  excludedAny: boolean;
+  sfggSourceKind: SfggSourceKind;
+  manualFoerstEfterSygeloen: boolean;
+  overenskomstPolicy: ReturnType<typeof getOverenskomstSfggPolicy> | undefined;
+}>): Readonly<{
+  hasExplanation: boolean;
+  text: string | null;
+}> => {
+  switch (args.sfggSourceKind) {
+    case 'ingen':
+      return { hasExplanation: false, text: null };
+    case 'manuel':
+      return args.excludedAny && args.manualFoerstEfterSygeloen
+        ? { hasExplanation: true, text: buildSfggAfterEmployerSickPayText({ kind: 'manual' }) }
+        : { hasExplanation: false, text: null };
+    case 'ferielov':
+      return { hasExplanation: false, text: null };
+    case 'overenskomst_direkte':
+    case 'overenskomst_ferielov':
+      return args.overenskomstPolicy?.bortfalderUnderArbejdsgiverbetaltSygeloen === true
+        ? { hasExplanation: true, text: buildSfggAfterEmployerSickPayText({ kind: 'overenskomst' }) }
+        : { hasExplanation: false, text: null };
+    default:
+      return assertNeverSfggSourceKind(args.sfggSourceKind);
+  }
+};
+
 // Bevidst juridisk/faglig beslutning: enhver positiv lønindkomst — uanset art — betragtes
 // som udtryk for, at arbejdsgiver har betalt sygeløn i perioden. Col4 (ikke-pensionsgivende
 // tillæg) og col5 (ATP) er bevidst medtaget, fordi selv disse ydelsestyper indikerer en
@@ -376,6 +454,8 @@ export const sumFerieberettigetLoenInRangesKroner = (
   ferieperioder: ErstatningsopgoerelseValues['ferieperioder']
 ): number => {
   if (ranges.length === 0) return 0;
+  const includedDateSet = buildDateSetFromRanges(ranges);
+  if (includedDateSet.size === 0) return 0;
   const satser = {
     feriePct: employment.feriePct,
     fritvalgPct: employment.fritvalgPct,
@@ -394,14 +474,38 @@ export const sumFerieberettigetLoenInRangesKroner = (
     if (!intervalFra || !intervalTil) continue;
     const rowArbejdsdageSet = buildLoenArbejdsdageSet({ fra: intervalFra, til: intervalTil }, ferieperioder ?? []);
     const totalArbejdsdage = rowArbejdsdageSet.size;
-    const overlapArbejdsdage = Array.from(rowArbejdsdageSet).filter((iso) =>
-      ranges.some((range) => iso >= range.fra && iso <= range.til)
-    ).length;
+    const overlapArbejdsdage = Array.from(rowArbejdsdageSet).filter((iso) => includedDateSet.has(iso)).length;
     if (totalArbejdsdage > 0 && overlapArbejdsdage > 0) {
       sum += derived.ferieberet * (overlapArbejdsdage / totalArbejdsdage);
     }
   }
   return sum;
+};
+
+export const resolveSfggDirectSatsValue = (
+  sfggSatsvalg: SygeferiegodtgoerelseAnsaettelsesforholdRow['sfggSatsvalg'],
+  direkteSatsErDifferentieret: boolean,
+  satser: Readonly<{
+    sfgg: number | null;
+    sfggFaglKbh: number | null;
+    sfggFaglProv: number | null;
+    sfggUfaglKbh: number | null;
+    sfggUfaglProv: number | null;
+  }>
+): number | null => {
+  if (!direkteSatsErDifferentieret) return satser.sfgg;
+  switch (sfggSatsvalg) {
+    case 'Faglaert-Koebenhavn':
+      return satser.sfggFaglKbh;
+    case 'Faglaert-Provinsen':
+      return satser.sfggFaglProv;
+    case 'Ufaglaert-Koebenhavn':
+      return satser.sfggUfaglKbh;
+    case 'Ufaglaert-Provinsen':
+      return satser.sfggUfaglProv;
+    default:
+      return satser.sfgg;
+  }
 };
 
 const resolveOverenskomstDagssatsOre = (
@@ -410,10 +514,12 @@ const resolveOverenskomstDagssatsOre = (
   sfggSatsvalg: SygeferiegodtgoerelseAnsaettelsesforholdRow['sfggSatsvalg']
 ): MoneyOre | null => {
   if (!employment.overenskomstId || getOffentligOverenskomstTypeById(employment.overenskomstId)) return null;
+  const overenskomstRef = resolveOverenskomstRef(employment.overenskomstId);
+  if (!overenskomstRef) return null;
   const date = parseISODate(iso);
   if (!date) return null;
   const satser = getEffektiveSatserForDato({
-    overenskomstId: employment.overenskomstId as never,
+    overenskomstId: overenskomstRef.baseId,
     dato: toDanishDateString(
       `${String(date.getUTCDate()).padStart(2, '0')}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${date.getUTCFullYear()}`
     ),
@@ -424,21 +530,47 @@ const resolveOverenskomstDagssatsOre = (
   // Ved skift fra en differentieret SFGG-overenskomst til en ikke-differentieret
   // kan et gammelt sfggSatsvalg lovligt blive hængende i formstate. Det må ikke gøre
   // en standard direkte SFGG-sats uberegnelig; i det spor er kun den samlede sfgg relevant.
-  const value = sfggPolicy?.direkteSatsErDifferentieret
-    ? sfggSatsvalg === 'Faglaert-Koebenhavn'
-      ? satser.sfggFaglKbh
-      : sfggSatsvalg === 'Faglaert-Provinsen'
-        ? satser.sfggFaglProv
-        : sfggSatsvalg === 'Ufaglaert-Koebenhavn'
-          ? satser.sfggUfaglKbh
-          : sfggSatsvalg === 'Ufaglaert-Provinsen'
-            ? satser.sfggUfaglProv
-            : satser.sfgg
-    : satser.sfgg;
+  const value = resolveSfggDirectSatsValue(
+    sfggSatsvalg,
+    sfggPolicy?.direkteSatsErDifferentieret === true,
+    satser
+  );
   return typeof value === 'number' && Number.isFinite(value)
     ? toOre(roundKroner(value))
     : null;
 };
+
+const resolveSfggAgPensionPctDecimalForDate = (
+  employment: LoenindkomstAnsaettelsesforhold,
+  iso: ISODateString
+): number => {
+  if (!employment.overenskomstId || getOffentligOverenskomstTypeById(employment.overenskomstId)) {
+    return resolvePctDecimalFromSatsOrInput(undefined, employment.pensionPct);
+  }
+  const overenskomstRef = resolveOverenskomstRef(employment.overenskomstId);
+  if (!overenskomstRef) {
+    return resolvePctDecimalFromSatsOrInput(undefined, employment.pensionPct);
+  }
+  const date = parseISODate(iso);
+  if (!date) {
+    return resolvePctDecimalFromSatsOrInput(undefined, employment.pensionPct);
+  }
+  const satser = getEffektiveSatserForDato({
+    overenskomstId: overenskomstRef.baseId,
+    dato: toDanishDateString(
+      `${String(date.getUTCDate()).padStart(2, '0')}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${date.getUTCFullYear()}`
+    ),
+    applyAlmindeligLoenPaaShDageRegel: employment.loenPaaHelligdage === 'Almindelig løn',
+  });
+  return resolvePctDecimalFromSatsOrInput(satser?.agPension, employment.pensionPct);
+};
+
+const buildSfggGrossOre = (
+  satsOre: MoneyOre,
+  agPensionPct: number,
+  antalDage: number
+): MoneyOre =>
+  ensureMoneyOre(toOre(roundKroner((satsOre / 100) * ((100 + agPensionPct) / 100) * antalDage)));
 
 const buildIncomeExcludedDateSet = (employment: LoenindkomstAnsaettelsesforhold): Set<ISODateString> => {
   const result = new Set<ISODateString>();
@@ -475,6 +607,10 @@ const allocateOreByWeights = (
   if (totalOre <= 0 || segments.length === 0) return new Map<string, MoneyOre>();
   const positive = segments.filter((segment) => segment.weight > 0);
   if (positive.length === 0) {
+    // Beslutningsnote: Når alle vægte er 0, findes der intet fagligt grundlag for en proportional
+    // segmentfordeling. Vi lægger derfor hele beløbet på første segment for at bevare totalen
+    // deterministisk uden at fejle lukket. Revurdér hvis nul-sats-segmenter senere får en
+    // særskilt visningsregel eller anden autoritativ fordelingsnøgle.
     return new Map<string, MoneyOre>([[segments[0].key, totalOre]]);
   }
   const totalWeight = positive.reduce((sum, segment) => sum + segment.weight, 0);
@@ -503,22 +639,25 @@ const buildYearAllocationsForGroupedSegment = (args: Readonly<{
   employment: LoenindkomstAnsaettelsesforhold;
   values: ErstatningsopgoerelseValues;
   satsOre: MoneyOre;
+  agPensionPct: number;
   alreadyPaidSegmentOre: MoneyOre;
   segmentTotalOre: MoneyOre;
-  pensionPct: number;
 }>): ReadonlyMap<number, MoneyOre> => {
-  const { yearDates, employment, values, satsOre, alreadyPaidSegmentOre, segmentTotalOre, pensionPct } = args;
+  const { yearDates, employment, values, satsOre, agPensionPct, alreadyPaidSegmentOre, segmentTotalOre } = args;
   const entries = [...yearDates.entries()].sort((a, b) => a[0] - b[0]);
   if (entries.length === 0) return new Map<number, MoneyOre>();
 
   const alreadyPaidByYear = allocateOreByWeights(
     alreadyPaidSegmentOre,
-    entries.map(([year, dates]) => ({ key: String(year), weight: satsOre * dates.length }))
+    entries.map(([year, dates]) => ({
+      key: String(year),
+      weight: buildSfggGrossOre(satsOre, agPensionPct, dates.length),
+    }))
   );
 
   const weightedYears = entries.map(([year, dates]) => {
     const ranges = buildRangesFromSortedDates(dates);
-    const grossOre = ensureMoneyOre(satsOre * dates.length);
+    const grossOre = buildSfggGrossOre(satsOre, agPensionPct, dates.length);
     const ferieberettigetLoenKroner = sumFerieberettigetLoenInRangesKroner(
       employment,
       ranges,
@@ -527,8 +666,7 @@ const buildYearAllocationsForGroupedSegment = (args: Readonly<{
     const feriepengeOre = toOre(roundKroner(ferieberettigetLoenKroner * parsePercentToDecimal(employment.feriePct)));
     const alreadyPaidYearOre = alreadyPaidByYear.get(String(year)) ?? ensureMoneyOre(0);
     const remainingOre = clampMoneyOreToZero(ensureMoneyOre(grossOre - feriepengeOre - alreadyPaidYearOre));
-    const pensionOre = pensionPct > 0 ? toOre(roundKroner((remainingOre / 100) * pensionPct)) : ensureMoneyOre(0);
-    const weight = ensureMoneyOre(remainingOre + pensionOre);
+    const weight = remainingOre;
     return { year, weight: weight > 0 ? weight : dates.length };
   });
 
@@ -549,33 +687,40 @@ const resolveSfggBaseRate = (
   sfggSource: Readonly<{ kind: SfggSourceKind }>
 ): Readonly<{
   sfggReferenceperiode: { fra: ISODateString; til: ISODateString } | null;
-  sfggReferencesatsOre: Calculable<MoneyOre>;
+  sfggReferencesatsOre: SfggReferencesatsCalculable;
   sfggReferencesatsFormula: SfggReferencesatsFormula | null;
 }> => {
   if (sfggSource.kind === 'manuel') {
     const manual = amountValueToNumber(sfggRow?.sfggManuelDagssats);
     return {
       sfggReferenceperiode: null,
-      sfggReferencesatsOre: manual !== undefined ? asCalculable(toOre(roundKroner(manual))) : notCalculable('Dagssats mangler'),
+      sfggReferencesatsOre: manual !== undefined ? calculableSfggReferencesats(toOre(roundKroner(manual))) : notCalculableSfggReferencesats('missing_rate'),
       sfggReferencesatsFormula: null,
     };
   }
   if (sfggSource.kind === 'overenskomst_direkte') {
     return {
       sfggReferenceperiode: null,
-      sfggReferencesatsOre: notCalculable('Direkte overenskomstsats beregnes pr. periode'),
+      sfggReferencesatsOre: notCalculableSfggReferencesats('per_period_rate'),
       sfggReferencesatsFormula: null,
     };
   }
   if (!sfggRow?.sfggReferenceperiodeFra || !sfggRow.sfggReferenceperiodeTil || sfggRow.sfggReferenceperiodeFra > sfggRow.sfggReferenceperiodeTil) {
     return {
       sfggReferenceperiode: null,
-      sfggReferencesatsOre: notCalculable('Referenceperiode mangler'),
+      sfggReferencesatsOre: notCalculableSfggReferencesats('missing_referenceperiode'),
       sfggReferencesatsFormula: null,
     };
   }
   const sfggReferenceperiodeDayCount = resolveSfggReferenceperiodeDayCount(values, sfggRow, sfggSource);
-  const arbejdsdage = sfggReferenceperiodeDayCount?.divisorDage ?? 0;
+  if (!sfggReferenceperiodeDayCount) {
+    return {
+      sfggReferenceperiode: { fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil },
+      sfggReferencesatsOre: notCalculableSfggReferencesats('unresolvable_referenceperiode'),
+      sfggReferencesatsFormula: null,
+    };
+  }
+  const arbejdsdage = sfggReferenceperiodeDayCount.divisorDage;
   const ferieberettigetLoenKroner = sumFerieberettigetLoenInRangesKroner(
     employment,
     [{ fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil }],
@@ -586,28 +731,26 @@ const resolveSfggBaseRate = (
   if (arbejdsdage <= 0) {
     return {
       sfggReferenceperiode: { fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil },
-      sfggReferencesatsOre: notCalculable(
-        sfggReferenceperiodeDayCount?.divisorLabel === 'kalenderdage'
-          ? 'Referenceperioden indeholder ingen kalenderdage'
-          : 'Referenceperioden indeholder ingen arbejdsdage'
+      sfggReferencesatsOre: notCalculableSfggReferencesats(
+        sfggReferenceperiodeDayCount.divisorLabel === 'kalenderdage' ? 'no_calendar_days' : 'no_workdays'
       ),
       sfggReferencesatsFormula: null,
     };
   }
   return {
     sfggReferenceperiode: { fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil },
-    sfggReferencesatsOre: asCalculable(toOre(roundKroner(feriepengeKroner / arbejdsdage))),
+    sfggReferencesatsOre: calculableSfggReferencesats(toOre(roundKroner(feriepengeKroner / arbejdsdage))),
     sfggReferencesatsFormula: {
       ferieberettigetLoenKroner,
       feriePctDecimal,
       feriepengeKroner,
       divisorDage: arbejdsdage,
-      divisorLabel: sfggReferenceperiodeDayCount?.divisorLabel ?? 'arbejdsdage',
-      kalenderdage: sfggReferenceperiodeDayCount?.kalenderdage ?? 0,
-      hverdage: sfggReferenceperiodeDayCount?.hverdage ?? 0,
-      shDage: sfggReferenceperiodeDayCount?.shDage ?? 0,
-      feriedage: sfggReferenceperiodeDayCount?.feriedage ?? 0,
-      oevrigeFravaersdage: sfggReferenceperiodeDayCount?.oevrigeFravaersdage ?? 0,
+      divisorLabel: sfggReferenceperiodeDayCount.divisorLabel,
+      kalenderdage: sfggReferenceperiodeDayCount.kalenderdage,
+      hverdage: sfggReferenceperiodeDayCount.hverdage,
+      shDage: sfggReferenceperiodeDayCount.shDage,
+      feriedage: sfggReferenceperiodeDayCount.feriedage,
+      oevrigeFravaersdage: sfggReferenceperiodeDayCount.oevrigeFravaersdage,
     },
   };
 };
@@ -646,6 +789,62 @@ const resolveAdjustedRate = (
   };
 };
 
+const areAdjacentIsoDates = (left: ISODateString, right: ISODateString): boolean => {
+  const leftDate = parseISODate(left);
+  if (!leftDate) return false;
+  return dateToISO(addDays(leftDate, 1)) === right;
+};
+
+const resolveSfggSegmentRateForDate = (args: Readonly<{
+  iso: ISODateString;
+  employment: LoenindkomstAnsaettelsesforhold;
+  sfggRow: SygeferiegodtgoerelseAnsaettelsesforholdRow | undefined;
+  sfggSource: Readonly<{ kind: SfggSourceKind }>;
+  sfggBaseRate: Readonly<{
+    sfggReferenceperiode: { fra: ISODateString; til: ISODateString } | null;
+    sfggReferencesatsOre: SfggReferencesatsCalculable;
+    sfggReferencesatsFormula: SfggReferencesatsFormula | null;
+  }>;
+  loenudvikling: PerEmploymentLoenudvikling;
+}>): Readonly<{ satsOre: MoneyOre; agPensionPct: number; reguleringsindeks: number | null }> | null => {
+  const {
+    iso,
+    employment,
+    sfggRow,
+    sfggSource,
+    sfggBaseRate,
+    loenudvikling,
+  } = args;
+
+  if (sfggSource.kind === 'overenskomst_direkte') {
+    const satsOre = resolveOverenskomstDagssatsOre(employment, iso, sfggRow?.sfggSatsvalg);
+    if (satsOre === null) return null;
+    const agPensionPctDecimal = resolveSfggAgPensionPctDecimalForDate(employment, iso);
+    return {
+      satsOre,
+      agPensionPct: roundByMethod(agPensionPctDecimal * 100, 2, 'halfAwayFromZero'),
+      reguleringsindeks: null,
+    };
+  }
+
+  if (sfggBaseRate.sfggReferencesatsOre.status !== 'ok') {
+    return null;
+  }
+
+  const adjusted = resolveAdjustedRate(
+    iso,
+    sfggBaseRate.sfggReferencesatsOre.value,
+    sfggSource,
+    loenudvikling
+  );
+  const agPensionPctDecimal = resolveSfggAgPensionPctDecimalForDate(employment, iso);
+  return {
+    satsOre: adjusted.satsOre,
+    agPensionPct: roundByMethod(agPensionPctDecimal * 100, 2, 'halfAwayFromZero'),
+    reguleringsindeks: adjusted.reguleringsindeks,
+  };
+};
+
 export const computeSygeferiegodtgoerelse = (args: Readonly<{
   values: ErstatningsopgoerelseValues;
   stamdata: StamdataValues;
@@ -655,11 +854,12 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
   const { values, stamdata, tafRanges } = args;
   if (tafRanges.length === 0) return EMPTY_RESULT;
   const skadesdato = stamdata.skadesdato;
+  const tafDateSetIncludingFirstExcluded = buildDateSetFromRanges(tafRanges);
   const firstExcludedDate =
     skadesdato !== undefined && skadesdato >= '2015-01-01' && erDetteFoersteErstatningsopgoerelse(values.eoNummer)
-      ? sortIsoDates(buildDateSetFromRanges(tafRanges))[0] ?? null
+      ? sortIsoDates(tafDateSetIncludingFirstExcluded)[0] ?? null
       : null;
-  const tafDateSet = buildDateSetFromRanges(tafRanges);
+  const tafDateSet = new Set<ISODateString>(tafDateSetIncludingFirstExcluded);
   if (firstExcludedDate) {
     tafDateSet.delete(firstExcludedDate);
   }
@@ -672,30 +872,42 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
 
   const boundsDates = sortIsoDates(tafDateSet);
   if (boundsDates.length === 0) return { ...EMPTY_RESULT, firstExcludedDate };
-  const bounds: IsoRange = { fra: boundsDates[0], til: boundsDates[boundsDates.length - 1] };
-  const tafArbejdsdageSet = buildLoenArbejdsdageSet(bounds, values.ferieperioder ?? []);
+  const tafArbejdsdageSet = new Set<ISODateString>();
+  const tafArbejdsdageSetIncludingFirstExcluded = new Set<ISODateString>();
+  for (const range of tafRanges) {
+    for (const iso of buildLoenArbejdsdageSet(range, values.ferieperioder ?? [])) {
+      if (tafDateSetIncludingFirstExcluded.has(iso)) {
+        tafArbejdsdageSetIncludingFirstExcluded.add(iso);
+      }
+      if (tafDateSet.has(iso)) {
+        tafArbejdsdageSet.add(iso);
+      }
+    }
+  }
   const totalPerEmployment: SygeferiegodtgoerelseAnsaettelsesforholdResult[] = [];
   const totalPerYear = new Map<number, MoneyOre>();
 
   for (const employment of values.loenindkomstAnsaettelsesforhold ?? []) {
-    const sfggRow = getSfgRowForEmployment(values, employment.id);
+    const sfggRow = getSfggRowForEmployment(values, employment.id);
     const sfggSource = resolveSfggSource(sfggRow, employment);
     if (sfggSource.kind === 'ingen') continue;
     const sfggDayBasis = resolveSfggDayBasis(sfggSource, tafBeregningsenhed);
-
-    const explanatoryLines: string[] = [];
+    const pdfExplanatoryLines: string[] = [];
     const dateSet = new Set<ISODateString>(tafDateSet);
-    if (firstExcludedDate) {
-      explanatoryLines.push('Den første TAF-dag er undtaget, fordi skaden er fra 1. januar 2015 eller senere, og dette er første erstatningsopgørelse.');
-    }
-
+    const employmentHadFirstExcludedDate =
+      firstExcludedDate !== null
+      && (
+        sfggDayBasis === 'kalenderdage'
+          ? tafDateSetIncludingFirstExcluded.has(firstExcludedDate)
+          : tafArbejdsdageSetIncludingFirstExcluded.has(firstExcludedDate)
+      );
     if (capComputation.cutoffDate) {
       for (const iso of [...dateSet]) {
         if (iso > capComputation.cutoffDate) {
           dateSet.delete(iso);
         }
       }
-      explanatoryLines.push(`Retten til sygeferiegodtgørelse er tidsbegrænset til 4 måneder og bortfaldt den ${isoToDanish(capComputation.cutoffDate) ?? capComputation.cutoffDate}.`);
+      pdfExplanatoryLines.push(`Retten til sygeferiegodtgørelse er tidsbegrænset til 4 måneder og bortfaldt den ${isoToDanish(capComputation.cutoffDate) ?? capComputation.cutoffDate}.`);
     }
 
     if (employment.ansaettelsesforholdOphoert && employment.sidsteArbejdsdag) {
@@ -704,27 +916,42 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
           dateSet.delete(iso);
         }
       }
-      explanatoryLines.push(`Retten til sygeferiegodtgørelse bortfaldt den ${isoToDanish(employment.sidsteArbejdsdag) ?? employment.sidsteArbejdsdag} som følge af ansættelsesforholdets ophør.`);
+      pdfExplanatoryLines.push(`Retten til sygeferiegodtgørelse bortfaldt den ${isoToDanish(employment.sidsteArbejdsdag) ?? employment.sidsteArbejdsdag} som følge af ansættelsesforholdets ophør.`);
     }
 
     const overenskomstPolicy = employment.overenskomstId ? getOverenskomstSfggPolicy(employment.overenskomstId) : undefined;
+    const manualFoerstEfterSygeloen = sfggSource.kind === 'manuel' && sfggRow?.sfggManuelFoerstEfterSygeloen === 'Ja';
     const foerstEfterSygeloen =
-      (sfggSource.kind === 'manuel' && sfggRow?.sfggManuelFoerstEfterSygeloen === 'Ja')
+      manualFoerstEfterSygeloen
       || (sfggSource.kind !== 'manuel' && overenskomstPolicy?.bortfalderUnderArbejdsgiverbetaltSygeloen === true);
 
+    let afterEmployerSickPayExcludedAny = false;
     if (foerstEfterSygeloen) {
       const excluded = buildIncomeExcludedDateSet(employment);
-      let excludedAny = false;
       for (const iso of [...dateSet]) {
         if (excluded.has(iso)) {
           dateSet.delete(iso);
-          excludedAny = true;
+          afterEmployerSickPayExcludedAny = true;
         }
       }
-      if (excludedAny) {
-        explanatoryLines.push('Der beregnes først sygeferiegodtgørelse efter ophør af arbejdsgiverbetalt sygeløn.');
-      }
     }
+
+    const sfggIntroText = buildSfggIntroText(sfggRow, employment, sfggSource);
+    const sfggReferenceperiodeAuthorityText = resolveSfggReferenceperiodeAuthorityText(sfggSource.kind);
+    const sfggReferenceperiodeLabel = resolveSfggReferenceperiodeLabel(employment);
+    const sfggDirectRateLabel = sfggSource.kind === 'overenskomst_direkte'
+      ? resolveSfggDifferentieretSatsLabel(sfggRow?.sfggSatsvalg)
+      : null;
+    const sfggFirstTafDayExcludedText = employmentHadFirstExcludedDate
+      ? SFGG_FIRST_TAF_DAY_EXCLUDED_TEXT
+      : null;
+    const sfggAfterEmployerSickPayProjection = resolveSfggAfterEmployerSickPayProjection({
+      excludedAny: afterEmployerSickPayExcludedAny,
+      sfggSourceKind: sfggSource.kind,
+      manualFoerstEfterSygeloen,
+      overenskomstPolicy,
+    });
+    const sfggAfterEmployerSickPayText = sfggAfterEmployerSickPayProjection.text;
 
     const eligibleDates = sfggDayBasis === 'kalenderdage'
       ? sortIsoDates(dateSet)
@@ -734,19 +961,26 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
         ansaettelsesforholdId: employment.id,
         ansaettelsesforholdNavn: getEmploymentName(employment),
         sfggSourceLabel: sfggSource.label,
+        sfggSourceKind: sfggSource.kind,
+        sfggDayBasis,
+        sfggIntroText,
+        sfggReferenceperiodeAuthorityText,
+        sfggReferenceperiodeLabel,
+        sfggDirectRateLabel,
+        sfggFirstTafDayExcludedText,
+        sfggAfterEmployerSickPayText,
+        pdfExplanatoryLines,
         segments: [],
         perYear: [],
         feriepengekravTotalOre: ensureMoneyOre(0),
         totalOre: ensureMoneyOre(0),
         alleredeBetaltOre: ensureMoneyOre(0),
         sfggReferenceperiode: null,
-        sfggReferencesats: notCalculable(
-          sfggDayBasis === 'kalenderdage'
-            ? SFGG_NO_CALENDAR_DAYS_REASON
-            : SFGG_NO_WORKDAYS_REASON
+        sfggReferencesats: notCalculableSfggReferencesats(
+          sfggDayBasis === 'kalenderdage' ? 'no_calendar_days' : 'no_workdays'
         ),
         sfggReferencesatsFormula: null,
-        explanatoryLines,
+        feriepengeModtagetFormula: null,
         capRows: capComputation.rows,
         capReachedDate: capComputation.cutoffDate,
       });
@@ -754,70 +988,86 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     }
 
     const sfggBaseRate = resolveSfggBaseRate(values, employment, sfggRow, sfggSource);
+    const eligibleDateSet = new Set<ISODateString>(eligibleDates);
+    const ferieBreakDateSet = buildFerieDageSet(values.ferieperioder ?? [], dateSet);
     const grouped: Array<{
       fra: ISODateString;
       til: ISODateString;
       reguleringsindeks: number | null;
       satsOre: MoneyOre;
+      agPensionPct: number;
       dates: ISODateString[];
     }> = [];
-    for (const iso of eligibleDates) {
-      let satsOre: MoneyOre | null = null;
-      let reguleringsindeks: number | null = null;
-      if (sfggSource.kind === 'overenskomst_direkte') {
-        satsOre = resolveOverenskomstDagssatsOre(employment, iso, sfggRow?.sfggSatsvalg);
-      } else if (sfggBaseRate.sfggReferencesatsOre.status === 'ok') {
-        const adjusted = resolveAdjustedRate(
-          iso,
-          sfggBaseRate.sfggReferencesatsOre.value,
-          sfggSource,
-          args.loenudviklingPerAnsaettelse?.get(employment.id)
-        );
-        satsOre = adjusted.satsOre;
-        reguleringsindeks = adjusted.reguleringsindeks;
+    const rightDates = sortIsoDates(dateSet);
+    for (const iso of rightDates) {
+      if (!eligibleDateSet.has(iso) && ferieBreakDateSet.has(iso)) {
+        continue;
       }
-      if (satsOre === null) continue;
+      const rate = resolveSfggSegmentRateForDate({
+        iso,
+        employment,
+        sfggRow,
+        sfggSource,
+        sfggBaseRate,
+        loenudvikling: args.loenudviklingPerAnsaettelse?.get(employment.id),
+      });
+      if (rate === null) continue;
       const previous = grouped[grouped.length - 1];
-      if (
-        previous &&
-        previous.satsOre === satsOre &&
-        previous.reguleringsindeks === reguleringsindeks
-      ) {
-        previous.til = iso;
-        previous.dates.push(iso);
-      } else {
-        grouped.push({ fra: iso, til: iso, reguleringsindeks, satsOre, dates: [iso] });
-      }
-    }
+      const canExtendPrevious =
+        previous
+        && areAdjacentIsoDates(previous.til, iso)
+        && previous.satsOre === rate.satsOre
+        && previous.agPensionPct === rate.agPensionPct
+        && previous.reguleringsindeks === rate.reguleringsindeks;
 
+      if (canExtendPrevious) {
+        previous.til = iso;
+        if (eligibleDateSet.has(iso)) {
+          previous.dates.push(iso);
+        }
+        continue;
+      }
+
+      grouped.push({
+        fra: iso,
+        til: iso,
+        reguleringsindeks: rate.reguleringsindeks,
+        satsOre: rate.satsOre,
+        agPensionPct: rate.agPensionPct,
+        dates: eligibleDateSet.has(iso) ? [iso] : [],
+      });
+    }
+    const groupedWithEligibleDays = grouped.filter((group) => group.dates.length > 0);
+
+    const ferieberettigetLoenBySegment = new Map<string, number>();
     const feriepengeBySegment = new Map<string, MoneyOre>();
-    grouped.forEach((group, index) => {
+    groupedWithEligibleDays.forEach((group, index) => {
       const ferieberettigetLoenKroner = sumFerieberettigetLoenInRangesKroner(
         employment,
         [{ fra: group.fra, til: group.til }],
         values.ferieperioder ?? []
       );
       const feriePctDecimal = parsePercentToDecimal(employment.feriePct);
+      ferieberettigetLoenBySegment.set(`${group.fra}:${index}`, ferieberettigetLoenKroner);
       feriepengeBySegment.set(`${group.fra}:${index}`, toOre(roundKroner(ferieberettigetLoenKroner * feriePctDecimal)));
     });
 
     const alreadyPaidOre = ensureMoneyOre(toOre(roundKroner(amountValueToNumber(sfggRow?.sfggAlleredeBetaltBeloeb) ?? 0)));
-    const grossWeights = grouped.map((group, index) => ({
+    const grossWeights = groupedWithEligibleDays.map((group, index) => ({
       key: `${group.fra}:${index}`,
-      weight: group.satsOre * group.dates.length,
+      weight: buildSfggGrossOre(group.satsOre, group.agPensionPct, group.dates.length),
     }));
     const allocatedAlreadyPaid = allocateOreByWeights(alreadyPaidOre, grossWeights);
-    const pensionPct = parsePercentToDecimal(employment.pensionPct);
     const employmentPerYear = new Map<number, MoneyOre>();
 
-    const segments: SygeferiegodtgoerelseSegment[] = grouped.map((group, index) => {
+    const segments: SygeferiegodtgoerelseSegment[] = groupedWithEligibleDays.map((group, index) => {
       const key = `${group.fra}:${index}`;
-      const grossOre = ensureMoneyOre(group.satsOre * group.dates.length);
+      const grossOre = buildSfggGrossOre(group.satsOre, group.agPensionPct, group.dates.length);
+      const ferieberettigetLoenKroner = ferieberettigetLoenBySegment.get(key) ?? 0;
       const feriepengeOre = feriepengeBySegment.get(key) ?? ensureMoneyOre(0);
       const alreadyPaidSegmentOre = allocatedAlreadyPaid.get(key) ?? ensureMoneyOre(0);
       const remainingOre = clampMoneyOreToZero(ensureMoneyOre(grossOre - feriepengeOre - alreadyPaidSegmentOre));
-      const pensionOre = pensionPct > 0 ? toOre(roundKroner((remainingOre / 100) * pensionPct)) : ensureMoneyOre(0);
-      const segmentTotalOre = ensureMoneyOre(remainingOre + pensionOre);
+      const segmentTotalOre = remainingOre;
 
       const yearDates = new Map<number, ISODateString[]>();
       group.dates.forEach((iso) => {
@@ -831,9 +1081,9 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
         employment,
         values,
         satsOre: group.satsOre,
+        agPensionPct: group.agPensionPct,
         alreadyPaidSegmentOre,
         segmentTotalOre,
-        pensionPct,
       });
       yearAllocations.forEach((amountOre, year) => {
         totalPerYear.set(year, ensureMoneyOre((totalPerYear.get(year) ?? 0) + amountOre));
@@ -847,19 +1097,40 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
         til: group.til,
         reguleringsindeks: group.reguleringsindeks,
         satsOre: group.satsOre,
+        agPensionPct: group.agPensionPct,
         antalDage: group.dates.length,
         feriepengekravOre: grossOre,
         beregnetSfggoereOre: segmentTotalOre,
+        ferieberettigetLoenKroner,
         feriepengeAfSygeloenOre: feriepengeOre,
         alleredeBetaltOre: alreadyPaidSegmentOre,
-        pensionOre,
       };
     });
+
+    const feriepengeModtagetOre = ensureMoneyOre(
+      segments.reduce((sum, segment) => sum + segment.feriepengeAfSygeloenOre, 0)
+    );
+    const feriepengeModtagetFormula = feriepengeModtagetOre > 0 || segments.some((segment) => segment.ferieberettigetLoenKroner > 0)
+      ? {
+        ferieberettigetLoenKroner: segments.reduce((sum, segment) => sum + segment.ferieberettigetLoenKroner, 0),
+        feriePctDecimal: typeof employment.feriePct === 'number' ? parsePercentToDecimal(employment.feriePct) : undefined,
+        feriepengeOre: feriepengeModtagetOre,
+      }
+      : null;
 
     totalPerEmployment.push({
       ansaettelsesforholdId: employment.id,
       ansaettelsesforholdNavn: getEmploymentName(employment),
       sfggSourceLabel: sfggSource.label,
+      sfggSourceKind: sfggSource.kind,
+      sfggDayBasis,
+      sfggIntroText,
+      sfggReferenceperiodeAuthorityText,
+      sfggReferenceperiodeLabel,
+      sfggDirectRateLabel,
+      sfggFirstTafDayExcludedText,
+      sfggAfterEmployerSickPayText,
+      pdfExplanatoryLines,
       segments,
       perYear: [...employmentPerYear.entries()]
         .sort((a, b) => a[0] - b[0])
@@ -870,7 +1141,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       sfggReferenceperiode: sfggBaseRate.sfggReferenceperiode,
       sfggReferencesats: sfggBaseRate.sfggReferencesatsOre,
       sfggReferencesatsFormula: sfggBaseRate.sfggReferencesatsFormula,
-      explanatoryLines,
+      feriepengeModtagetFormula,
       capRows: capComputation.rows,
       capReachedDate: capComputation.cutoffDate,
     });

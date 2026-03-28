@@ -30,9 +30,8 @@ import {
   getFirstIndtastedeTafFraDato,
   resolveSfggReferenceperiodeDayCount,
   resolveSfggSource,
-  SFGG_NO_CALENDAR_DAYS_REASON,
-  SFGG_NO_WORKDAYS_REASON,
 } from '../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
+import { buildSfggNoEligibleDaysReason } from '../domain/erstatningsopgoerelse/sygeferiegodtgoerelsePresentation';
 import {
   clampTafRow,
   getValidTafRange,
@@ -475,9 +474,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
       if (availableRelevantDays <= 0) {
         errors.push({
           path: `${errorPathPrefix}.sfggReferenceperiodeFra`,
-          message: referenceDayCount?.divisorLabel === 'kalenderdage'
-            ? SFGG_NO_CALENDAR_DAYS_REASON
-            : SFGG_NO_WORKDAYS_REASON,
+          message: buildSfggNoEligibleDaysReason(referenceDayCount?.divisorLabel === 'kalenderdage' ? 'kalenderdage' : 'arbejdsdage'),
           severity: 'error',
         });
       } else if (

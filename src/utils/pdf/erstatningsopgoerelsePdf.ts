@@ -58,25 +58,11 @@ import { renderOpgorelseSection } from './erstatningsopgoerelse/sections/opgoere
 import { computeEoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot';
 import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
 import type { PdfModel } from '../../domain/erstatningsopgoerelse/eoPdfModel';
-import { getEffektiveSatserForDato, getOverenskomstMetaById, getOverenskomstSfggPolicy } from '../../data/overenskomstRates';
 import { mergeIsoDateRanges } from '../../domain/erstatningsopgoerelse/periodMerging';
-import {
-  buildSfggReferenceperiodeCountLabel,
-  isSfggReferenceperiodeSource,
-  resolveSfggDayBasis,
-  resolveSfggReferenceperiodeDayCount,
-  resolveSfggSource,
-  sumFerieberettigetLoenInRangesKroner,
-} from '../../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
-import { parsePercentToDecimal } from '../numberParsing';
-import { isoToDanish } from '../../types/branded';
+import { buildSfggReferenceperiodeCountLabel } from '../../domain/erstatningsopgoerelse/sygeferiegodtgoerelsePresentation';
 
 const NBSP = '\u00A0';
 const EO_RIGHT_COLUMN_WIDTH = 33.125;
-const CSS_PIXELS_PER_INCH = 96;
-const MILLIMETERS_PER_INCH = 25.4;
-const EO_LEFT_WRAP_EXTRA_WIDTH_PX = 50;
-const EO_LEFT_WRAP_EXTRA_WIDTH_MM = (EO_LEFT_WRAP_EXTRA_WIDTH_PX * MILLIMETERS_PER_INCH) / CSS_PIXELS_PER_INCH;
 
 const renderMoney = (value: Calculable<MoneyOre>): string => {
   return value.status === 'ok' ? formatCurrencyFromOre(value.value) : '—';
@@ -107,68 +93,17 @@ const capitalizeFirstChar = (value: string): string => {
   return `${value.charAt(0).toLocaleUpperCase('da-DK')}${value.slice(1)}`;
 };
 
-const ensureSentencePunctuation = (value: string): string => (
-  /[.!?]$/.test(value) ? value : `${value}.`
-);
-
-const resolveSfggPdfIntroText = (
-  eoValues: ErstatningsopgoerelseValues,
-  ansaettelsesforholdId: string
-): string | null => {
-  const sfggRow = eoValues.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === ansaettelsesforholdId);
-  const employment = eoValues.loenindkomstAnsaettelsesforhold.find((row) => row.id === ansaettelsesforholdId);
-  const beregningskilde = sfggRow?.sfggBeregningskilde;
-
-  if (beregningskilde === 'Manuelt angivet') {
-    const manualSource = sfggRow?.sfggManuelBeloebIHenholdTil?.trim();
-    if (manualSource) {
-      return ensureSentencePunctuation(`Sygeferiegodtgørelse beregnes i henhold til ${manualSource}`);
-    }
-    return 'Sygeferiegodtgørelse beregnes på baggrund af en manuelt angivet sats.';
-  }
-
-  if (beregningskilde === 'Ferieloven') {
-    return 'Sygeferiegodtgørelse beregnes i henhold til ferieloven.';
-  }
-
-  if (beregningskilde === 'Overenskomst') {
-    const overenskomstNavn = employment?.overenskomstId
-      ? (getOverenskomstMetaById(employment.overenskomstId)?.navn ?? employment.overenskomstId.trim())
-      : null;
-    const sfggPolicy = employment?.overenskomstId
-      ? getOverenskomstSfggPolicy(employment.overenskomstId)
-      : undefined;
-
-    if (!overenskomstNavn) {
-      return 'Sygeferiegodtgørelse beregnes i henhold til overenskomsten.';
-    }
-
-    if (sfggPolicy?.fravigerFerielov === false) {
-      return `Sygeferiegodtgørelse beregnes i henhold til ${overenskomstNavn}, der følger ferielovens regler.`;
-    }
-
-    return `Sygeferiegodtgørelse beregnes i henhold til ${overenskomstNavn}.`;
-  }
-
-  return null;
-};
-
 const resolveSfggReferenceSatsUnit = (divisorLabel: 'kalenderdage' | 'arbejdsdage'): string =>
   divisorLabel === 'kalenderdage' ? 'kr./kalenderdag' : 'kr./arbejdsdag';
-
-const SFGG_FIRST_TAF_DAY_EXCLUDED_LINE =
-  'Den første TAF-dag er undtaget, fordi skaden er fra 1. januar 2015 eller senere, og dette er første erstatningsopgørelse.';
-const SFGG_AFTER_EMPLOYER_SICK_PAY_LINE =
-  'Der beregnes først sygeferiegodtgørelse efter ophør af arbejdsgiverbetalt sygeløn.';
 
 const resolveSfggPeriodDayUnitSingular = (divisorLabel: 'kalenderdage' | 'arbejdsdage'): 'kalenderdag' | 'arbejdsdag' =>
   divisorLabel === 'kalenderdage' ? 'kalenderdag' : 'arbejdsdag';
 
-const buildSfggPeriodRateAdjustmentText = (sfggSource: ReturnType<typeof resolveSfggSource>): string => {
-  if (sfggSource.kind === 'ferielov') {
+const buildSfggPeriodRateAdjustmentText = (sfggSourceKind: PdfModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number]['sfggSourceKind']): string => {
+  if (sfggSourceKind === 'ferielov') {
     return ' tillagt senere lønudvikling';
   }
-  if (sfggSource.kind === 'overenskomst_ferielov' || sfggSource.kind === 'overenskomst_direkte') {
+  if (sfggSourceKind === 'overenskomst_ferielov') {
     return ' tillagt senere overenskomstmæssige stigninger';
   }
   return '';
@@ -186,45 +121,6 @@ const buildSfggDisplayedTafPeriodText = (tafPerioderLinjer: readonly string[], t
     })
     .filter((value) => value !== '')
     .join(', ');
-};
-
-const resolveSfggReferenceperiodeAuthorityText = (
-  eoValues: ErstatningsopgoerelseValues,
-  ansaettelsesforholdId: string
-): string => {
-  const sfggRow = eoValues.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === ansaettelsesforholdId);
-  const employment = eoValues.loenindkomstAnsaettelsesforhold.find((row) => row.id === ansaettelsesforholdId);
-  if (!sfggRow || !employment) return 'ferieloven';
-
-  return resolveSfggSource(sfggRow, employment).kind === 'overenskomst_ferielov'
-    ? 'overenskomsten'
-    : 'ferieloven';
-};
-
-const resolveSfggReferenceperiodeLabel = (
-  eoValues: ErstatningsopgoerelseValues,
-  ansaettelsesforholdId: string
-): string => {
-  const employment = eoValues.loenindkomstAnsaettelsesforhold.find((row) => row.id === ansaettelsesforholdId);
-  if (!employment?.overenskomstId) return '4 uger';
-  return getOverenskomstSfggPolicy(employment.overenskomstId)?.referenceperiodeLabel ?? '4 uger';
-};
-
-const resolveSfggDifferentieretSatsLabel = (
-  sfggSatsvalg: ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number]['sfggSatsvalg']
-): string => {
-  switch (sfggSatsvalg) {
-    case 'Faglaert-Koebenhavn':
-      return 'Skadelidte var faglært og ansat i København, og satsen er i overenskomsten fastsat til';
-    case 'Faglaert-Provinsen':
-      return 'Skadelidte var faglært og ansat uden for København, og satsen er i overenskomsten fastsat til';
-    case 'Ufaglaert-Koebenhavn':
-      return 'Skadelidte var ufaglært og ansat i København, og satsen er i overenskomsten fastsat til';
-    case 'Ufaglaert-Provinsen':
-      return 'Skadelidte var ufaglært og ansat uden for København, og satsen er i overenskomsten fastsat til';
-    default:
-      return 'Referencesatsen er i overenskomsten fastsat til';
-  }
 };
 
 const getLoenindkomstTableHeaders = (loenperiode: Loenperiode): readonly string[] => {
@@ -324,28 +220,12 @@ export const generateErstatningsopgoerelsePdf = (
     creator: 'mineo.dk',
   });
 
-  const renderSectionHeader = (text: string, nextLineHeight: number) => {
-    writer.writeSectionHeader(text, nextLineHeight);
-  };
-
   const renderSubheader = (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => {
     writer.writeSubheader(text, nextLineHeight, options);
   };
 
-  const renderSubheaderIfContent = (params: Readonly<{
-    text: string;
-    nextLineHeight: number;
-    hasContent: boolean;
-    renderContent: () => void;
-    options?: Readonly<{ addTopSpacing?: boolean }>;
-  }>) => writer.writeSubheaderIfContent(params);
-
   const safeAddWrappedText = (text: string) => {
     writer.writeWrappedText(text);
-  };
-
-  const renderSubheaderWithWrappedText = (subheaderText: string, bodyText: string) => {
-    writer.writeSubheaderWithWrappedText(subheaderText, bodyText);
   };
 
   const safeAddLeftRightText = (
@@ -363,10 +243,7 @@ export const generateErstatningsopgoerelsePdf = (
       rightText,
       {
         ...options,
-        minRightColumnWidth: Math.max(
-          rightMaxWidth,
-          Math.max(0, EO_RIGHT_COLUMN_WIDTH - EO_LEFT_WRAP_EXTRA_WIDTH_MM)
-        ),
+        minRightColumnWidth: Math.max(rightMaxWidth, EO_RIGHT_COLUMN_WIDTH),
       }
     );
   };
@@ -380,88 +257,49 @@ export const generateErstatningsopgoerelsePdf = (
   const renderSfggReferenceSatsBlock = (
     entry: PdfModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number]
   ) => {
-    const sfggRow = eoValues.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === entry.ansaettelsesforholdId);
-    const employment = eoValues.loenindkomstAnsaettelsesforhold.find((row) => row.id === entry.ansaettelsesforholdId);
-    if (!sfggRow || !employment) return;
-
-    const sfggSource = resolveSfggSource(sfggRow, employment);
-    const usesReferenceperiodeRate = isSfggReferenceperiodeSource(sfggSource);
+    const usesReferenceperiodeRate = entry.sfggReferencesatsFormula !== null;
 
     if (usesReferenceperiodeRate) {
       writer.writeUnderlinedLabel('Referencesats', MARGINS.left);
     }
 
-    if (sfggSource.kind === 'manuel') {
+    if (entry.sfggSourceKind === 'manuel') {
       if (entry.sfggReferencesats.status === 'ok') {
         writeLabelValueLine('Referencesatsen udgør', `${formatCurrencyFromOre(entry.sfggReferencesats.value)} kr./arbejdsdag`);
       }
       return;
     }
 
-    if (sfggSource.kind === 'overenskomst_direkte') {
-      const overenskomstPolicy = employment.overenskomstId
-        ? getOverenskomstSfggPolicy(employment.overenskomstId)
-        : undefined;
-      const label = overenskomstPolicy?.direkteSatsErDifferentieret
-        ? resolveSfggDifferentieretSatsLabel(sfggRow.sfggSatsvalg)
-        : 'Referencesatsen er i overenskomsten fastsat til';
+    if (entry.sfggSourceKind === 'overenskomst_direkte') {
       const satsText = (() => {
         const satsOre = entry.segments[0]?.satsOre;
         if (typeof satsOre === 'number') {
           return `${formatCurrencyFromOre(satsOre)} kr./arbejdsdag`;
         }
-
-        const firstTafDate = entry.segments[0]?.fra ?? model.tafRanges[0]?.fra;
-        const lookupDate = isoToDanish(firstTafDate);
-        if (!employment.overenskomstId || !lookupDate) return null;
-        const satser = getEffektiveSatserForDato({
-          overenskomstId: employment.overenskomstId as never,
-          dato: lookupDate,
-          applyAlmindeligLoenPaaShDageRegel: employment.loenPaaHelligdage === 'Almindelig løn',
-        });
-        if (!satser) return null;
-
-        const satsValue = overenskomstPolicy?.direkteSatsErDifferentieret
-          ? sfggRow.sfggSatsvalg === 'Faglaert-Koebenhavn'
-            ? satser.sfggFaglKbh
-            : sfggRow.sfggSatsvalg === 'Faglaert-Provinsen'
-              ? satser.sfggFaglProv
-              : sfggRow.sfggSatsvalg === 'Ufaglaert-Koebenhavn'
-                ? satser.sfggUfaglKbh
-                : sfggRow.sfggSatsvalg === 'Ufaglaert-Provinsen'
-                  ? satser.sfggUfaglProv
-                  : satser.sfgg
-          : satser.sfgg;
-
-        return typeof satsValue === 'number' ? `${formatAsAmount(satsValue, 2)} kr./arbejdsdag` : null;
+        return null;
       })();
-      if (satsText) {
-        safeAddWrappedText(label);
-        safeAddLeftRightText('', satsText, standardRightMaxWidth, { rightFontStyle: 'normal' });
+      if (satsText && entry.sfggDirectRateLabel) {
+        safeAddLeftRightText(entry.sfggDirectRateLabel, satsText, standardRightMaxWidth, { rightFontStyle: 'normal' });
       }
       return;
     }
 
-    const sfggReferenceperiodeDayCount = resolveSfggReferenceperiodeDayCount(eoValues, sfggRow, sfggSource);
     if (
       !entry.sfggReferenceperiode
       || !entry.sfggReferenceperiode.fra
       || !entry.sfggReferenceperiode.til
-      || !sfggReferenceperiodeDayCount
+      || !entry.sfggReferencesatsFormula
       || entry.sfggReferencesats.status !== 'ok'
     ) {
       return;
     }
-
-    const ferieberettigetLoenKroner = sumFerieberettigetLoenInRangesKroner(
-      employment,
-      [{ fra: entry.sfggReferenceperiode.fra, til: entry.sfggReferenceperiode.til }],
-      eoValues.ferieperioder ?? []
-    );
-    const feriePctDecimal = parsePercentToDecimal(employment.feriePct);
+    const { sfggReferencesatsFormula } = entry;
+    if (!entry.sfggReferenceperiodeAuthorityText) {
+      return;
+    }
 
     safeAddWrappedText(
-      `Opgøres på baggrund af den gennemsnitlige feriepengebetaling i en referenceperiode før sygeforløbet. Perioden udgør i ${resolveSfggReferenceperiodeAuthorityText(eoValues, entry.ansaettelsesforholdId)} ${resolveSfggReferenceperiodeLabel(eoValues, entry.ansaettelsesforholdId)}.`
+      `Opgøres på baggrund af den gennemsnitlige feriepengebetaling i en referenceperiode før sygeforløbet. Perioden udgør i ${entry.sfggReferenceperiodeAuthorityText} ${entry.sfggReferenceperiodeLabel}.`
     );
     writeLabelValueLine(
       'Referenceperiode',
@@ -469,35 +307,22 @@ export const generateErstatningsopgoerelsePdf = (
     );
     writeLabelValueLine(
       'Den ferieberettigede løn i referenceperioden udgør',
-      `${formatAsAmount(ferieberettigetLoenKroner, 2)} kr.`
+      `${formatAsAmount(sfggReferencesatsFormula.ferieberettigetLoenKroner, 2)} kr.`
     );
     writeLabelValueLine(
-      buildSfggReferenceperiodeCountLabel({
-        ferieberettigetLoenKroner,
-        feriePctDecimal,
-        feriepengeKroner: ferieberettigetLoenKroner * feriePctDecimal,
-        divisorDage: sfggReferenceperiodeDayCount.divisorDage,
-        divisorLabel: sfggReferenceperiodeDayCount.divisorLabel,
-        kalenderdage: sfggReferenceperiodeDayCount.kalenderdage,
-        hverdage: sfggReferenceperiodeDayCount.hverdage,
-        shDage: sfggReferenceperiodeDayCount.shDage,
-        feriedage: sfggReferenceperiodeDayCount.feriedage,
-        oevrigeFravaersdage: sfggReferenceperiodeDayCount.oevrigeFravaersdage,
-      }),
-      `${sfggReferenceperiodeDayCount.divisorDage.toLocaleString('da-DK')} ${sfggReferenceperiodeDayCount.divisorLabel}`
+      buildSfggReferenceperiodeCountLabel(sfggReferencesatsFormula),
+      `${sfggReferencesatsFormula.divisorDage.toLocaleString('da-DK')} ${sfggReferencesatsFormula.divisorLabel}`
     );
     safeAddLeftRightText(
-      `Referencesats (${formatAsAmount(ferieberettigetLoenKroner, 2)} x ${formatPercentUtil(feriePctDecimal * 100)} / ${sfggReferenceperiodeDayCount.divisorDage.toLocaleString('da-DK')} ${sfggReferenceperiodeDayCount.divisorLabel}) =`,
-      `${formatCurrencyFromOre(entry.sfggReferencesats.value)} ${resolveSfggReferenceSatsUnit(sfggReferenceperiodeDayCount.divisorLabel)}`,
+      `Referencesats (${formatAsAmount(sfggReferencesatsFormula.ferieberettigetLoenKroner, 2)} x ${formatPercentUtil(sfggReferencesatsFormula.feriePctDecimal * 100)} / ${sfggReferencesatsFormula.divisorDage.toLocaleString('da-DK')} ${sfggReferencesatsFormula.divisorLabel}) =`,
+      `${formatCurrencyFromOre(entry.sfggReferencesats.value)} ${resolveSfggReferenceSatsUnit(sfggReferencesatsFormula.divisorLabel)}`,
       standardRightMaxWidth,
       { rightFontStyle: 'bold' }
     );
   };
 
   const renderSfggPeriodBlock = (
-    entry: PdfModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number],
-    sfggSource: ReturnType<typeof resolveSfggSource> | null,
-    employment: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number] | undefined
+    entry: PdfModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number]
   ) => {
     writer.writeUnderlinedLabel('Beregningsgrundlag', MARGINS.left);
 
@@ -509,11 +334,9 @@ export const generateErstatningsopgoerelsePdf = (
       writeLabelValueLine('Der beregnes sygeferiegodtgørelse i TAF-perioden', tafPeriodeText);
     }
 
-    const divisorLabel = sfggSource
-      ? resolveSfggDayBasis(sfggSource, model.tabtArbejdsfortjeneste.tafBeregningsenhed)
-      : 'arbejdsdage';
+    const divisorLabel = entry.sfggDayBasis;
     const dayUnit = resolveSfggPeriodDayUnitSingular(divisorLabel);
-    const rateAdjustmentText = sfggSource ? buildSfggPeriodRateAdjustmentText(sfggSource) : '';
+    const rateAdjustmentText = buildSfggPeriodRateAdjustmentText(entry.sfggSourceKind);
     const baseAdjustmentText = divisorLabel === 'arbejdsdage'
       ? 'Der beregnes ikke sygeferiegodtgørelse på SH-dage, under ferie og på andre fraværsdage uden løn.'
       : 'Der beregnes ikke sygeferiegodtgørelse på eventuelle fraværsdage uden løn.';
@@ -521,23 +344,16 @@ export const generateErstatningsopgoerelsePdf = (
       `Kravet beregnes per ${dayUnit} med referencesatsen${rateAdjustmentText}.`
     );
 
-    const overenskomstPolicy = employment?.overenskomstId
-      ? getOverenskomstSfggPolicy(employment.overenskomstId)
-      : undefined;
-    const firstDayAdjustmentText = entry.explanatoryLines.includes(SFGG_FIRST_TAF_DAY_EXCLUDED_LINE)
-      ? ' Da skaden er fra 1. januar 2015, er der desuden først krav på sygeferiegodtgørelse fra anden sygedag.'
+    const firstDayAdjustmentText = entry.sfggFirstTafDayExcludedText
+      ? ` ${entry.sfggFirstTafDayExcludedText}`
       : '';
     safeAddWrappedText(`${baseAdjustmentText}${firstDayAdjustmentText}`);
 
-    if (sfggSource && sfggSource.kind !== 'manuel' && overenskomstPolicy?.bortfalderUnderArbejdsgiverbetaltSygeloen === true) {
-      safeAddWrappedText(
-        'I medfør af overenskomsten beregnes ikke sygeferiegodtgørelse på dage, hvor der betales sygeløn.'
-      );
+    if (entry.sfggAfterEmployerSickPayText) {
+      safeAddWrappedText(entry.sfggAfterEmployerSickPayText);
     }
 
-    entry.explanatoryLines
-      .filter((line) => line !== SFGG_FIRST_TAF_DAY_EXCLUDED_LINE && line !== SFGG_AFTER_EMPLOYER_SICK_PAY_LINE)
-      .forEach((line) => safeAddWrappedText(line));
+    entry.pdfExplanatoryLines.forEach((line) => safeAddWrappedText(line));
 
     const rows = entry.segments;
     if (rows.length === 0) return;
@@ -547,7 +363,8 @@ export const generateErstatningsopgoerelsePdf = (
       [
         createPdfTableHeaderCell('Fra-dato', 'center'),
         createPdfTableHeaderCell('Til-dato', 'center'),
-        createPdfTableHeaderCell('Sats', 'center'),
+        createPdfTableHeaderCell('Feriepenge-sats', 'center'),
+        createPdfTableHeaderCell('AG-pension', 'center'),
         createPdfTableHeaderCell(antalDageHeader, 'center'),
         createPdfTableHeaderCell('Feriepengekrav', 'center'),
       ],
@@ -559,6 +376,7 @@ export const generateErstatningsopgoerelsePdf = (
           createPdfTableCell(formatDateShort(row.fra) ?? '', { halign: 'center' }),
           createPdfTableCell(formatDateShort(row.til) ?? '', { halign: 'center' }),
           createPdfTableCell(formatCurrencyFromOreTrimmed(row.satsOre), { halign: 'right' }),
+          createPdfTableCell(`+ ${formatPercentUtil(row.agPensionPct)}`, { halign: 'right' }),
           createPdfTableCell(String(row.antalDage), { halign: 'right' }),
           createPdfTableCell(formatCurrencyFromOreTrimmed(row.feriepengekravOre), { halign: 'right' }),
         ]
@@ -569,6 +387,7 @@ export const generateErstatningsopgoerelsePdf = (
       tableRows.push(
         [
           createPdfTableCell('I alt', { halign: 'left', bold: true, transparent: true }),
+          createPdfTableCell('', { bold: true, transparent: true }),
           createPdfTableCell('', { bold: true, transparent: true }),
           createPdfTableCell('', { bold: true, transparent: true }),
           createPdfTableCell('', { bold: true, transparent: true }),
@@ -586,17 +405,13 @@ export const generateErstatningsopgoerelsePdf = (
     writer.setY(finalY + lineHeight);
 
     const feriepengeHvisIkkeSkadeOre = entry.feriepengekravTotalOre;
-    const feriepengeModtagetOre = entry.segments.reduce((sum, segment) => sum + (segment.feriepengeAfSygeloenOre ?? 0), 0);
+    const feriepengeModtagetOre = entry.feriepengeModtagetFormula?.feriepengeOre ?? 0;
     const alleredeBetaltOre = entry.alleredeBetaltOre ?? 0;
     const beregnetSygeferiegodtgoerelseOre = entry.totalOre;
-    const tafPeriodeRanges = entry.segments.map((segment) => ({ fra: segment.fra, til: segment.til }));
-    const ferieberettigetIndkomstIKroner = employment
-      ? sumFerieberettigetLoenInRangesKroner(employment, tafPeriodeRanges, eoValues.ferieperioder ?? [])
-      : 0;
-    const feriePct = employment?.feriePct ?? 0;
+    const ferieberettigetIndkomstIKroner = entry.feriepengeModtagetFormula?.ferieberettigetLoenKroner ?? 0;
     const feriepengeModtagetLabel =
-      ferieberettigetIndkomstIKroner > 0
-        ? `Feriepenge modtaget i perioden (${formatAsAmount(ferieberettigetIndkomstIKroner, 2)} x ${formatPercentUtil(feriePct)}) =`
+      ferieberettigetIndkomstIKroner > 0 && entry.feriepengeModtagetFormula?.feriePctDecimal !== undefined
+        ? `Feriepenge modtaget i perioden (${formatAsAmount(ferieberettigetIndkomstIKroner, 2)} x ${formatPercentUtil(entry.feriepengeModtagetFormula.feriePctDecimal * 100)}) =`
         : 'Feriepenge modtaget i perioden';
 
     writer.writeUnderlinedLabel('Beregnet krav', MARGINS.left);
@@ -614,23 +429,6 @@ export const generateErstatningsopgoerelsePdf = (
   const startBilagPage = (titleText: string) => {
     writer.addPage();
     writer.writeTitle(titleText);
-  };
-
-  const renderAtomicTableChunks = <T,>(params: Readonly<{
-    rows: readonly T[];
-    renderHeader: () => void;
-    renderRow: (row: T) => void;
-    estimateRowHeight: number;
-    headerHeight: number;
-  }>) => {
-    const { rows, renderHeader, renderRow, estimateRowHeight, headerHeight } = params;
-    writer.writeAtomicTableChunks({ rows, renderHeader, renderRow, estimateRowHeight, headerHeight });
-  };
-
-  const assertModelInvariant = (condition: boolean, message: string) => {
-    if (condition) return;
-    const invariantMessage = `Inkonsekvent PDF-model: ${message}`;
-    throw new Error(invariantMessage);
   };
 
   writer.addUdkastWatermark();
@@ -654,20 +452,20 @@ export const generateErstatningsopgoerelsePdf = (
   // Tilføj erstatningsperiode-datoer direkte under titel
   writer.setNormalTextStyle();
   if (model.periodeDisplay) {
-    safeAddWrappedText(model.periodeDisplay);
+    writer.writeWrappedText(model.periodeDisplay);
     writer.advanceY(lineHeight);
   }
 
   // Tilføj skadelidtes navn (fed skrift)
   writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
   if (model.skadelidteNavn) {
-    safeAddWrappedText(model.skadelidteNavn);
+    writer.writeWrappedText(model.skadelidteNavn);
   }
 
   // Tilføj skadestype og skadesdato (normal skrift)
   writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
   if (model.skadestypeLinje) {
-    safeAddWrappedText(model.skadestypeLinje);
+    writer.writeWrappedText(model.skadestypeLinje);
     writer.advanceY(lineHeight);
   }
 
@@ -680,14 +478,17 @@ export const generateErstatningsopgoerelsePdf = (
     afsluttesMed,
     NBSP,
     rightColumnWidth: EO_RIGHT_COLUMN_WIDTH,
-    renderSectionHeader,
-    renderSubheader,
-    renderSubheaderIfContent,
-    renderSubheaderWithWrappedText,
-    safeAddWrappedText,
+    renderSectionHeader: writer.writeSectionHeader,
+    renderSubheader: writer.writeSubheader,
+    renderSubheaderIfContent: writer.writeSubheaderIfContent,
+    renderSubheaderWithWrappedText: writer.writeSubheaderWithWrappedText,
+    safeAddWrappedText: writer.writeWrappedText,
     safeAddLeftRightText,
-    renderAtomicTableChunks,
-    assertModelInvariant,
+    renderAtomicTableChunks: writer.writeAtomicTableChunks,
+    assertModelInvariant: (condition, message) => {
+      if (condition) return;
+      throw new Error(`Inkonsekvent PDF-model: ${message}`);
+    },
     renderMoneyWithKr,
     renderMoneyWithKrTrimmed,
     renderMoneyWithKrOrError,
@@ -717,8 +518,8 @@ export const generateErstatningsopgoerelsePdf = (
       eoValues: eoValues,
       lineHeight,
       startBilagPage,
-      renderSubheader,
-      safeAddWrappedText,
+      renderSubheader: writer.writeSubheader,
+      safeAddWrappedText: writer.writeWrappedText,
       writeLabelValueLine,
       formatDateLong,
       formatPctFromInput,
@@ -738,7 +539,7 @@ export const generateErstatningsopgoerelsePdf = (
       eoValues: eoValues,
       lineHeight,
       startBilagPage,
-      renderSubheader,
+      renderSubheader: writer.writeSubheader,
       shouldIncludeOffentligYdelseRowInBilag,
       bilagIndkomstYdelserMode,
       bilagIndkomstYdelserRanges,
@@ -753,8 +554,8 @@ export const generateErstatningsopgoerelsePdf = (
       lineHeight,
       modelLoenudviklingSegmenter: model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [],
       startBilagPage,
-      renderSubheader,
-      safeAddWrappedText,
+      renderSubheader: writer.writeSubheader,
+      safeAddWrappedText: writer.writeWrappedText,
       writeLabelValueLine,
       resolveValgtReguleringDisplay,
       resolveReguleringsdato,
@@ -774,23 +575,24 @@ export const generateErstatningsopgoerelsePdf = (
   if (selectedElements.shDage) {
     const sfggReferenceperiodeRanges = mergeIsoDateRanges(
       model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.flatMap((entry) => {
-        const sfggRow = eoValues.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === entry.ansaettelsesforholdId);
-        const employment = eoValues.loenindkomstAnsaettelsesforhold.find((row) => row.id === entry.ansaettelsesforholdId);
-        if (!sfggRow || !employment) return [];
-        const sfggSource = resolveSfggSource(sfggRow, employment);
-        if (!isSfggReferenceperiodeSource(sfggSource)) return [];
+        if (entry.sfggDayBasis !== 'arbejdsdage' || entry.sfggReferencesatsFormula === null) return [];
         return entry.sfggReferenceperiode ? [entry.sfggReferenceperiode] : [];
       }),
       { mergeAdjacent: true }
     );
+    const harSfggReferenceperiodeMedShFradrag =
+      model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.some((entry) =>
+        entry.sfggDayBasis === 'arbejdsdage' && entry.sfggReferencesatsFormula !== null
+      );
     renderShDageSection({
       eoValues: eoValues,
       tafRanges: model.tafRanges,
       sfggReferenceperiodeRanges,
+      harSfggReferenceperiodeMedShFradrag,
       lineHeight,
       startBilagPage,
-      renderSubheader,
-      safeAddWrappedText,
+      renderSubheader: writer.writeSubheader,
+      safeAddWrappedText: writer.writeWrappedText,
       writer,
     });
   }
@@ -799,14 +601,10 @@ export const generateErstatningsopgoerelsePdf = (
     startBilagPage('Sygeferiegodtgørelse');
     model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.forEach((entry) => {
       renderSubheader(entry.ansaettelsesforholdNavn, lineHeight);
-      const sfggIntroText = resolveSfggPdfIntroText(eoValues, entry.ansaettelsesforholdId);
-      if (sfggIntroText) {
-        safeAddWrappedText(sfggIntroText);
+      if (entry.sfggIntroText) {
+        safeAddWrappedText(entry.sfggIntroText);
       }
-      const sfggRow = eoValues.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === entry.ansaettelsesforholdId);
-      const employment = eoValues.loenindkomstAnsaettelsesforhold.find((row) => row.id === entry.ansaettelsesforholdId);
-      const sfggSource = sfggRow && employment ? resolveSfggSource(sfggRow, employment) : null;
-      const usesReferenceperiodeRate = sfggSource ? isSfggReferenceperiodeSource(sfggSource) : false;
+      const usesReferenceperiodeRate = entry.sfggReferencesatsFormula !== null;
       renderSfggReferenceSatsBlock(entry);
       if (!usesReferenceperiodeRate && entry.sfggReferenceperiode) {
         safeAddWrappedText(`Referenceperiode: ${formatDateShort(entry.sfggReferenceperiode.fra)} - ${formatDateShort(entry.sfggReferenceperiode.til)}`);
@@ -814,7 +612,7 @@ export const generateErstatningsopgoerelsePdf = (
       if (!usesReferenceperiodeRate && entry.sfggReferencesats.status === 'ok') {
         safeAddWrappedText(`Referencesats: ${formatCurrencyFromOre(entry.sfggReferencesats.value)} kr.`);
       }
-      renderSfggPeriodBlock(entry, sfggSource, employment);
+      renderSfggPeriodBlock(entry);
       if (entry.capRows.length > 0) {
         renderSubheader('Opgørelse af 4-månedersgrænsen', lineHeight);
         safeAddWrappedText('Fra-dato | Til-dato | Antal dage | Antal måneder');

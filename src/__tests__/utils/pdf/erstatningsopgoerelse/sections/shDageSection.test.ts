@@ -41,6 +41,7 @@ const makeContext = (eoValues: ReturnType<typeof createErstatningsopgoerelseInit
       eoValues,
       tafRanges: tafRangesFromEoValues(eoValues),
       sfggReferenceperiodeRanges: [],
+      harSfggReferenceperiodeMedShFradrag: false,
       lineHeight: 4,
       startBilagPage,
       renderSubheader,
@@ -135,8 +136,12 @@ describe('renderShDageSection – beregningsperiode for første opgørelse', () 
     eoValues.periodeTilBeregningTil = iso('2024-01-31');
     eoValues.tafPerioder = [];
     const { renderSubheader, ctx } = makeContext(eoValues);
+    const ctxWithBeregningsperiode = {
+      ...ctx,
+      harSfggReferenceperiodeMedShFradrag: true,
+    };
 
-    renderShDageSection(ctx);
+    renderShDageSection(ctxWithBeregningsperiode);
 
     expect(renderSubheader).toHaveBeenCalledWith('Beregningsperiode', expect.anything(), expect.anything());
   });
@@ -165,6 +170,7 @@ describe('renderShDageSection – SFGG-referenceperiode', () => {
     const ctxWithSfggRange = {
       ...ctx,
       sfggReferenceperiodeRanges: [{ fra: iso('2024-03-28'), til: iso('2024-05-20') }],
+      harSfggReferenceperiodeMedShFradrag: true,
     };
 
     renderShDageSection(ctxWithSfggRange);

@@ -102,7 +102,8 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
       buildEODebugSygeferiegodtgoerelseRows(
         ctx.eoValues,
         ctx.stamdataValues,
-        ctx.canonicalOutput
+        ctx.canonicalOutput,
+        ctx.pdfModel
       ),
   },
 

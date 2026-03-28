@@ -201,11 +201,11 @@ const createPdfCursor = (params: Readonly<{
     const actualRightWidth = measureTextWidthWithFont(normalizedRightText, rightFontStyle);
     const minRightWidth = options?.minRightColumnWidth ?? 0;
     const rightWidth = Math.max(actualRightWidth, minRightWidth);
-    const wrapPadding = doc.getTextWidth('000000');
+    const columnGap = Math.max(6, doc.getTextWidth('   '));
     const hasRightOverflow = rightWidth > maxRightDrawableWidth;
     const leftMaxWidth = hasRightOverflow
       ? Math.max(30, pageWidth - x - rightPadding - 5)
-      : Math.max(30, pageWidth - x - rightPadding - rightWidth - 5 - wrapPadding);
+      : Math.max(30, pageWidth - x - rightPadding - rightWidth - columnGap);
     const leftLines = options?.leftNoWrap ? [normalizeTextForPdf(leftText)] : splitWrappedLines(leftText, leftMaxWidth);
 
     if (hasRightOverflow) {
