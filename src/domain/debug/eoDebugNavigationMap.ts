@@ -198,10 +198,10 @@ export const getNavigationTargetFromRowId = (rowId: string): NavigationTarget =>
   if (rowId.startsWith('sfgg.')) {
     return {
       kind: 'erstatningsopgoerelse-tab',
-      tabId: 'eo_oplysninger',
-      sectionId: 'sygeferiegodtgoerelse',
-      tabName: 'EO oplysninger',
-      sectionTitle: 'Sygeferiegodtgørelse',
+      tabId: 'loenindkomst',
+      sectionId: 'loenindkomst',
+      tabName: 'Lønindkomst',
+      sectionTitle: 'Ansættelsesforhold',
     };
   }
 

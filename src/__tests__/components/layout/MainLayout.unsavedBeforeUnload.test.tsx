@@ -55,7 +55,7 @@ vi.mock('../../../components/tables/gridCore/gridCoreRegistry', () => ({
 import MainLayout from '../../../components/layout/MainLayout';
 import { loadFromFile, loadFromFileHandle } from '../../../utils/fileLoad';
 import { saveToFile } from '../../../utils/fileSave';
-import { deleteFileHandleFromIndexedDB } from '../../../utils/fileHandleStorage';
+import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from '../../../utils/fileHandleStorage';
 import { getGridCoreForTable } from '../../../components/tables/gridCore/gridCoreRegistry';
 
 const stampStamdata = (skadelidte: string) => ({
@@ -470,6 +470,42 @@ describe('MainLayout (unsaved beforeunload)', () => {
     await waitFor(() => {
       expect(document.activeElement).toBe(failedInput);
     });
+  });
+
+  it('persists loaded file handle for later overwrite', async () => {
+    const loadFromFileMock = vi.mocked(loadFromFile);
+    const saveFileHandleMock = vi.mocked(saveFileHandleToIndexedDB);
+    const loadedHandle = { name: 'indlaest.eo', getFile: vi.fn() } as unknown as FileSystemFileHandle;
+
+    loadFromFileMock.mockResolvedValue({
+      success: true,
+      source: 'manual',
+      filename: 'indlaest.eo',
+      fileHandle: loadedHandle,
+      snapshot: createSnapshot('Indlæst sag'),
+      fieldCount: 1,
+      sections: 1,
+      version: '1.0.0',
+    });
+
+    render(
+      <AppSettingsProvider>
+        <FormPersistenceProvider>
+          <MemoryRouter initialEntries={['/stamdata']}>
+            <MainLayout>
+              <div />
+            </MainLayout>
+          </MemoryRouter>
+        </FormPersistenceProvider>
+      </AppSettingsProvider>
+    );
+
+    await act(async () => {
+      screen.getByText('Hent').click();
+    });
+
+    await screen.findByText('Hentet');
+    expect(saveFileHandleMock).toHaveBeenCalledWith(loadedHandle);
   });
 
   it('blocks PWA load when an open locked grid editor cannot be committed', async () => {

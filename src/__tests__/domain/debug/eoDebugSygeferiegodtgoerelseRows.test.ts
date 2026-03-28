@@ -1,4 +1,5 @@
 import { buildEODebugSygeferiegodtgoerelseRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
+import * as eoPdfLoenudviklingModule from '../../../domain/erstatningsopgoerelse/eoPdfLoenudvikling';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -34,6 +35,70 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         message: 'Intet valgt',
       },
     ]);
+  });
+
+  it('viser bemærkning og fejl på satsvalg ved differentieret direkte SFGG-sats', () => {
+    const values = createValues();
+    values.periodeTilBeregningFra = '2014-06-01';
+    values.periodeTilBeregningTil = '2014-06-30';
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      harOverenskomst: true,
+      overenskomstId: 'bygningsoverenskomsten',
+      feriePct: 12.5,
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
+    };
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        beregnesUdFra: 'Overenskomst',
+        manuelDagssats: undefined,
+        manuelBeloebIHenholdTil: undefined,
+        manuelFoerstEfterSygeloen: 'Nej',
+        referenceperiodeFra: undefined,
+        referenceperiodeTil: undefined,
+        referenceperiodeFravaersdageUdenLoen: undefined,
+        satsvalg: undefined,
+        alleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    const buildLoenudviklingModelSpy = vi.spyOn(eoPdfLoenudviklingModule, 'buildLoenudviklingModel');
+
+    try {
+      const rows = buildEODebugSygeferiegodtgoerelseRows(values, {
+        journalnr: undefined,
+        skadestype: 'Arbejdsulykke',
+        skadesdato: '2014-12-31',
+      });
+
+      expect(buildLoenudviklingModelSpy).not.toHaveBeenCalled();
+      expect(rows).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: `sfgg.bemaerkningFoer2015.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+            label: 'Bemærk',
+            displayValue: expect.stringContaining('samtlige TAF-perioder er indtastet ovenfor'),
+            status: 'ok',
+          }),
+          expect.objectContaining({
+            id: `sfgg.satsvalg.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+            label: 'Angiv skadelidtes uddannelse og arbejdssted',
+            displayValue: 'Intet valgt',
+            status: 'error',
+            message: 'Intet valgt',
+          }),
+        ])
+      );
+      expect(rows).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: `sfgg.overenskomstensReferenceperiode.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          }),
+        ])
+      );
+    } finally {
+      buildLoenudviklingModelSpy.mockRestore();
+    }
   });
 
   it('viser overenskomstens referenceperiode som separat debug-række ved overenskomstbaseret SFGG', () => {

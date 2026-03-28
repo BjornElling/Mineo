@@ -15,7 +15,7 @@ import {
   requestPersistentStorage,
   saveFileHandleToIndexedDB,
   loadFileHandleFromIndexedDB,
-  verifyFileHandle,
+  verifyFileHandleDetailed,
   deleteFileHandleFromIndexedDB,
 } from './fileHandleStorage';
 import type { SaveFileResult } from '../types/fileOperations';
@@ -118,6 +118,29 @@ const isFileSystemFileHandle = (value: unknown): value is FileSystemFileHandle =
   return typeof obj.getFile === 'function';
 };
 
+const buildInvalidHandleUserWarning = (
+  verification: Awaited<ReturnType<typeof verifyFileHandleDetailed>>
+): string => {
+  if (verification.valid) return '';
+
+  switch (verification.reason) {
+    case 'not_found':
+      return 'Den tidligere valgte fil blev ikke fundet og kunne derfor ikke overskrives automatisk. Vælg filplacering igen.';
+    case 'permission_denied':
+      return 'Mineo har ikke længere adgang til den tidligere valgte fil og kunne derfor ikke overskrive den automatisk. Vælg filplacering igen.';
+    case 'missing_permission_api':
+    case 'permission_api_failed':
+      return 'Mineo kunne ikke bekræfte adgangen til den tidligere valgte fil og kunne derfor ikke overskrive den automatisk. Vælg filplacering igen.';
+    case 'file_access_failed':
+    case 'validation_failed':
+      return 'Den tidligere valgte fil kunne ikke bruges til automatisk overskrivning. Vælg filplacering igen.';
+    case 'missing_handle':
+      return 'Der var ikke længere en gemt filreference til automatisk overskrivning. Vælg filplacering igen.';
+    default:
+      return 'Den tidligere valgte fil kunne ikke overskrives automatisk. Vælg filplacering igen.';
+  }
+};
+
 /**
  * Gemmer alle applikationsdata til krypteret .eo fil.
  *
@@ -196,6 +219,7 @@ export const saveToFile = async (
     // 6. Gem fil (File System Access API eller fallback)
     let filename: string;
     let verification: VerificationResult = { success: true, verified: false }; // Gem verifikationsresultat til returværdi
+    let fallbackWarning: string | undefined;
     const useFileSystemAPI = isFileSystemAccessSupported();
 
     if (useFileSystemAPI) {
@@ -221,14 +245,23 @@ export const saveToFile = async (
           // Stamdata uændret (eller ikke gemt tidligere) - brug gemt handle
 
           // Valider at handle stadig virker
-          const isValid = await verifyFileHandle(fileHandle);
+          const handleVerification = await verifyFileHandleDetailed(fileHandle, {
+            allowRequestPermission: true,
+          });
 
-          if (isValid) {
+          if (handleVerification.valid) {
             // Handle er gyldigt - brug det direkte (browseren håndterer overskrivning)
             shouldUseExistingHandle = true;
           } else {
             // Handle er ugyldigt - slet fra IndexedDB og åbn file picker
-            logWarning('File handle er ikke længere gyldigt - sletter fra IndexedDB');
+            fallbackWarning = buildInvalidHandleUserWarning(handleVerification);
+            logWarning('Tidligere file handle kunne ikke genbruges - sletter fra IndexedDB', {
+              context: 'saveToFile.invalidStoredHandle',
+              data: {
+                reason: handleVerification.reason,
+                detail: handleVerification.detail,
+              },
+            });
             await deleteFileHandleFromIndexedDB();
             fileHandle = null;
           }
@@ -398,9 +431,9 @@ export const saveToFile = async (
       fieldCount,
       sections: Object.keys(canonicalData).length,
       verified: verification?.verified ?? false,
-      ...(verification?.warning
+      ...((fallbackWarning || verification?.warning)
         ? {
-            warning: verification.message,
+            warning: [fallbackWarning, verification.message].filter(Boolean).join('\n\n'),
             verificationDetails: {
               expected: verification.expected,
               actual: verification.actual,

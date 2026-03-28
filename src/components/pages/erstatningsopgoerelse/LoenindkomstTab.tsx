@@ -34,6 +34,7 @@ import {
   type ErstatningsopgoerelseValues,
 } from '../../../schemas/formSchemas';
 import { optionalAmountValueSchema } from '../../../schemas/amountExpressionSchema';
+import { DAY_COUNT_MAX } from '../../../schemas/formSchemas/baseSchemas';
 import { LOENPERIODE } from '../../../types/loen';
 import type { ISODateString } from '../../../types/branded';
 import { isISODateString, parseISODate } from '../../../types/branded';
@@ -51,6 +52,7 @@ import {
   getAlleArbejdsgiverOrg,
   getOverenskomsterByOrg,
   getOverenskomstMetaById,
+  getOverenskomstSfggPolicy,
   getEffektiveSatserForDato,
   getOffentligOverenskomstTypeById,
   getOffentligTillaegsSatserForDato,
@@ -74,6 +76,7 @@ import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '
 import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerelse/loenoplysningerInput';
 import { DEFAULT_ANCIENNITET_FIELDS } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { resolveSfggReferenceperiodeDayCount, resolveSfggReferenceperiodeMaxDate } from '../../../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
 import {
   buildStandardLoenZeroArbejdsdageCellErrorMessages,
   type AarsloenZeroArbejdsdageValidationInput,
@@ -95,6 +98,8 @@ type Props = {
   periodeTilBeregningTil: ErstatningsopgoerelseValues['periodeTilBeregningTil'];
   ferieperioder: ErstatningsopgoerelseValues['ferieperioder'];
   fravaerPerioder: ErstatningsopgoerelseValues['fravaerPerioder'];
+  eoValues: ErstatningsopgoerelseValues;
+  setEOValues: React.Dispatch<React.SetStateAction<ErstatningsopgoerelseValues>>;
   onAnsaettelsesforholdChange: (updater: (prev: AnsaettelsesforholdList) => AnsaettelsesforholdList) => void;
 };
 
@@ -109,6 +114,33 @@ const normalizeOptionalFreeText = (value: string | undefined): string | undefine
   const asString = typeof value === 'string' ? value : '';
   const trimmed = asString.trim();
   return trimmed === '' ? undefined : trimmed;
+};
+
+const updateSfggAnsaettelsesforholdRow = (
+  prev: ErstatningsopgoerelseValues,
+  ansaettelsesforholdId: string,
+  updater: (
+    current: ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number]
+  ) => ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number]
+): ErstatningsopgoerelseValues => {
+  const existing = prev.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === ansaettelsesforholdId);
+  const baseRow = existing ?? {
+    ansaettelsesforholdId,
+    beregnesUdFra: undefined,
+    referenceperiodeFra: undefined,
+    referenceperiodeTil: undefined,
+    referenceperiodeFravaersdageUdenLoen: 0,
+    manuelDagssats: undefined,
+    manuelBeloebIHenholdTil: undefined,
+    manuelFoerstEfterSygeloen: 'Nej' as const,
+    satsvalg: undefined,
+    alleredeBetaltBeloeb: undefined,
+  };
+  const nextRow = updater(baseRow);
+  const nextRows = prev.sfggAnsaettelsesforhold.some((row) => row.ansaettelsesforholdId === ansaettelsesforholdId)
+    ? prev.sfggAnsaettelsesforhold.map((row) => row.ansaettelsesforholdId === ansaettelsesforholdId ? nextRow : row)
+    : [...prev.sfggAnsaettelsesforhold, nextRow];
+  return { ...prev, sfggAnsaettelsesforhold: nextRows };
 };
 
 const formatReguleringsDatoInterval = (interval?: { fraDato: string; tilDato: string }): string => {
@@ -260,6 +292,8 @@ const LoenindkomstTab = React.memo(({
   periodeTilBeregningTil,
   ferieperioder,
   fravaerPerioder,
+  eoValues,
+  setEOValues,
   onAnsaettelsesforholdChange,
 }: Props) => {
   const setLoenindkomstManuelReguleringInputError = useSetEOLoenindkomstInputError();
@@ -596,6 +630,31 @@ const LoenindkomstTab = React.memo(({
     setLoenindkomstManuelReguleringInputError,
     loenindkomstAnsaettelsesforhold,
   ]);
+
+  const updateSfggAnsaettelsesforhold = React.useCallback((
+    ansaettelsesforholdId: string,
+    updater: (
+      current: ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number]
+    ) => ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number]
+  ) => {
+    setEOValues((prev) => updateSfggAnsaettelsesforholdRow(prev, ansaettelsesforholdId, updater));
+  }, [setEOValues]);
+
+  const getSfggReferenceperiodeAvailability = React.useCallback((
+    row: ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number] | undefined
+  ): Readonly<{ maxFravaersdage: number | undefined; hasNoArbejdsdageError: boolean }> => {
+    const referenceDayCount = resolveSfggReferenceperiodeDayCount(eoValues, row);
+    if (!referenceDayCount) {
+      return { maxFravaersdage: undefined, hasNoArbejdsdageError: false };
+    }
+    const maxFravaersdage = referenceDayCount.divisorLabel === 'hverdage'
+      ? referenceDayCount.hverdage
+      : referenceDayCount.divisorDage;
+    return {
+      maxFravaersdage,
+      hasNoArbejdsdageError: maxFravaersdage <= 0,
+    };
+  }, [eoValues]);
 
   const getSaerligFraDatoReguleringLabel = React.useCallback((iso: ISODateString | undefined): string | undefined => {
     if (!iso) return undefined;
@@ -1672,6 +1731,40 @@ const LoenindkomstTab = React.memo(({
         const headerText = af.navnPaaArbejdssted
           ? `${baseHeaderText} (${af.navnPaaArbejdssted})`
           : baseHeaderText;
+        const showSygeferiegodtgoerelseSection = getCheckedJaNej(eoValues.beregnesTabtArbejdsfortjeneste);
+        const sfggRow = eoValues.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === af.id);
+        const sfggPolicy = af.overenskomstId
+          ? getOverenskomstSfggPolicy(af.overenskomstId)
+          : undefined;
+        const sfggOverenskomstMeta = af.overenskomstId
+          ? getOverenskomstMetaById(af.overenskomstId)
+          : undefined;
+        const requiresReferenceperiode =
+          sfggRow?.beregnesUdFra === 'Ferieloven'
+          || (sfggRow?.beregnesUdFra === 'Overenskomst' && sfggPolicy?.model !== 'direkte_sats');
+        const showSatsvalg =
+          sfggRow?.beregnesUdFra === 'Overenskomst'
+          && sfggPolicy?.model === 'direkte_sats'
+          && sfggPolicy.direkteSatsErDifferentieret;
+        const referenceperiodeAvailability = getSfggReferenceperiodeAvailability(sfggRow);
+        const referenceperiodeErrorText = referenceperiodeAvailability.hasNoArbejdsdageError
+          ? 'Referenceperioden indeholder ingen arbejdsdage.'
+          : '';
+        const firstTafFraDato = (eoValues.tafPerioder ?? [])
+          .map((tafRow) => tafRow.fra)
+          .filter((value): value is ISODateString => value !== undefined)
+          .reduce<ISODateString | undefined>((earliest, current) => {
+            if (!earliest) return current;
+            return current < earliest ? current : earliest;
+          }, undefined);
+        const sfggReferenceperiodeMaxDate = resolveSfggReferenceperiodeMaxDate(eoValues);
+        const sfggReferenceperiodeFravaersdageMax = Math.min(
+          referenceperiodeAvailability.maxFravaersdage ?? DAY_COUNT_MAX,
+          DAY_COUNT_MAX
+        );
+        const showSharedSfggBefore2015 = Boolean(
+          stamdataValues?.skadesdato && stamdataValues.skadesdato < '2015-01-01'
+        );
 
         return (
           <ContentBox
@@ -2346,6 +2439,244 @@ const LoenindkomstTab = React.memo(({
                       </Box>
                     </Box>
                   </>
+                ) : null}
+              </>
+            ) : null}
+
+            {showSygeferiegodtgoerelseSection ? (
+              <>
+                <Typography className="row--subheading">Sygeferiegodtgørelse</Typography>
+
+                {showSharedSfggBefore2015 ? (
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">Bemærk</Typography>
+                    <Box className="row--label-right-hover__content">
+                      <Typography className="row--text" sx={{ textAlign: 'right', maxWidth: '520px' }}>
+                        Bemærk, at da skaden er før 01-01-2015, er det afgørende for beregningen af sygeferiegodtgørelse, at samtlige TAF-perioder er indtastet ovenfor.
+                      </Typography>
+                    </Box>
+                  </Box>
+                ) : null}
+
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">Sygeferiegodtgørelse beregnes ud fra</Typography>
+                  <Box className="row--label-right-hover__content">
+                    <StyledDropdown
+                      width={200}
+                      value={sfggRow?.beregnesUdFra}
+                      placeholder="Vælg..."
+                      allowEmpty={true}
+                      onChange={(event: StyledDropdownChangeEvent<string | undefined>) => {
+                        const nextValue = event.target.value;
+                        updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                          ...current,
+                          beregnesUdFra:
+                            nextValue === 'Overenskomst' || nextValue === 'Manuelt angivet' || nextValue === 'Ferieloven' || nextValue === 'Ingen'
+                              ? nextValue
+                              : undefined,
+                        }));
+                      }}
+                    >
+                      <MenuItem value="Overenskomst">Overenskomst</MenuItem>
+                      <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
+                      <MenuItem value="Ferieloven">Ferieloven</MenuItem>
+                      <MenuItem value="Ingen">Ingen</MenuItem>
+                    </StyledDropdown>
+                  </Box>
+                </Box>
+
+                {sfggRow?.beregnesUdFra === 'Overenskomst' && sfggOverenskomstMeta && sfggPolicy?.model !== 'direkte_sats' ? (
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">Overenskomstens referenceperiode</Typography>
+                    <Box className="row--label-right-hover__content">
+                      <Typography className="row--text" sx={{ textAlign: 'right', maxWidth: '520px' }}>
+                        {`Følger ferieloven${sfggPolicy?.referenceperiodeLabel ? ` (${sfggPolicy.referenceperiodeLabel})` : ''}`}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ) : null}
+
+                {showSatsvalg ? (
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">Angiv skadelidtes uddannelse og arbejdssted</Typography>
+                    <Box className="row--label-right-hover__content">
+                      <StyledDropdown
+                        width={220}
+                        value={sfggRow?.satsvalg}
+                        placeholder="Vælg..."
+                        allowEmpty={true}
+                        onChange={(event: StyledDropdownChangeEvent<string | undefined>) => {
+                          const nextValue = event.target.value;
+                          updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                            ...current,
+                            satsvalg:
+                              nextValue === 'Faglaert-Koebenhavn' ||
+                              nextValue === 'Faglaert-Provinsen' ||
+                              nextValue === 'Ufaglaert-Koebenhavn' ||
+                              nextValue === 'Ufaglaert-Provinsen'
+                                ? nextValue
+                                : undefined,
+                          }));
+                        }}
+                      >
+                        <MenuItem value="Faglaert-Koebenhavn">Faglært-København</MenuItem>
+                        <MenuItem value="Faglaert-Provinsen">Faglært-Provinsen</MenuItem>
+                        <MenuItem value="Ufaglaert-Koebenhavn">Ufaglært-København</MenuItem>
+                        <MenuItem value="Ufaglaert-Provinsen">Ufaglært-Provinsen</MenuItem>
+                      </StyledDropdown>
+                    </Box>
+                  </Box>
+                ) : null}
+
+                {requiresReferenceperiode ? (
+                  <>
+                    <Box className="row--label-right-hover">
+                      <Typography className="row--text">Referenceperiode</Typography>
+                      <Box className="row--label-right-hover__content">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <StyledDateField
+                            value={sfggRow?.referenceperiodeFra}
+                            maxDate={
+                              sfggRow?.referenceperiodeTil && sfggReferenceperiodeMaxDate
+                                ? (sfggRow.referenceperiodeTil < sfggReferenceperiodeMaxDate ? sfggRow.referenceperiodeTil : sfggReferenceperiodeMaxDate)
+                                : (sfggRow?.referenceperiodeTil ?? sfggReferenceperiodeMaxDate)
+                            }
+                            specialRangeErrors={{
+                              fraTilRole: 'fra',
+                              maxBoundKind: sfggReferenceperiodeMaxDate ? 'foerFoersteTafFraDato' : undefined,
+                              maxBoundReferenceISO: firstTafFraDato,
+                            }}
+                            error={referenceperiodeErrorText !== ''}
+                            helperText={referenceperiodeErrorText}
+                            onCommit={(event) => {
+                              updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                                ...current,
+                                referenceperiodeFra: event.target.value,
+                              }));
+                            }}
+                          />
+                          <Typography className="row--text">til og med</Typography>
+                          <StyledDateField
+                            value={sfggRow?.referenceperiodeTil}
+                            minDate={sfggRow?.referenceperiodeFra}
+                            maxDate={sfggReferenceperiodeMaxDate}
+                            specialRangeErrors={{
+                              fraTilRole: 'til',
+                              maxBoundKind: sfggReferenceperiodeMaxDate ? 'foerFoersteTafFraDato' : undefined,
+                              maxBoundReferenceISO: firstTafFraDato,
+                            }}
+                            error={referenceperiodeErrorText !== ''}
+                            helperText={referenceperiodeErrorText}
+                            onCommit={(event) => {
+                              updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                                ...current,
+                                referenceperiodeTil: event.target.value,
+                              }));
+                            }}
+                          />
+                        </Box>
+                      </Box>
+                    </Box>
+
+                    <Box className="row--label-right-hover">
+                      <Typography className="row--text">Evt. ferie- og fraværsdage i perioden uden løn</Typography>
+                      <Box className="row--label-right-hover__content">
+                        <StyledIntegerField
+                          width={100}
+                          minValue={0}
+                          maxValue={sfggReferenceperiodeFravaersdageMax ?? DAY_COUNT_MAX}
+                          value={sfggRow?.referenceperiodeFravaersdageUdenLoen ?? 0}
+                          onCommit={(event) => {
+                            updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                              ...current,
+                              referenceperiodeFravaersdageUdenLoen: event.target.value ?? 0,
+                            }));
+                          }}
+                        />
+                      </Box>
+                    </Box>
+
+                  </>
+                ) : null}
+
+                {sfggRow?.beregnesUdFra === 'Overenskomst' && sfggPolicy?.model === 'direkte_sats' && !showSatsvalg ? (
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">Referencesats</Typography>
+                    <Box className="row--label-right-hover__content">
+                      <Typography className="row--text">Fastlægges automatisk af overenskomsten</Typography>
+                    </Box>
+                  </Box>
+                ) : null}
+
+                {sfggRow?.beregnesUdFra === 'Manuelt angivet' ? (
+                  <>
+                    <Box className="row--label-right-hover">
+                      <Typography className="row--text">Dagssats for sygeferiegodtgørelse (mandag-fredag)</Typography>
+                      <Box className="row--label-right-hover__content">
+                        <StyledAmountField
+                          width={150}
+                          value={sfggRow?.manuelDagssats}
+                          allowNegative={false}
+                          onCommit={(event) => {
+                            updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                              ...current,
+                              manuelDagssats: event.target.value,
+                            }));
+                          }}
+                        />
+                      </Box>
+                    </Box>
+
+                    <Box className="row--label-right-hover">
+                      <Typography className="row--text">Beløbet er i henhold til</Typography>
+                      <Box className="row--label-right-hover__content">
+                        <StyledTextField
+                          width={260}
+                          value={sfggRow?.manuelBeloebIHenholdTil ?? ''}
+                          onCommit={(event) => {
+                            updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                              ...current,
+                              manuelBeloebIHenholdTil: normalizeOptionalFreeText(event.target.value),
+                            }));
+                          }}
+                        />
+                      </Box>
+                    </Box>
+
+                    <Box className="row--label-right-hover">
+                      <Typography className="row--text">Først sygeferiegodtgørelse efter ophør af sygeløn</Typography>
+                      <Box className="row--label-right-hover__content">
+                        <StyledToggleSwitch
+                          checked={sfggRow?.manuelFoerstEfterSygeloen === 'Ja'}
+                          onCommit={(event) => {
+                            updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                              ...current,
+                              manuelFoerstEfterSygeloen: event.target.value ? 'Ja' : 'Nej',
+                            }));
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  </>
+                ) : null}
+
+                {sfggRow?.beregnesUdFra !== undefined && sfggRow.beregnesUdFra !== 'Ingen' ? (
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">Evt. allerede betalt sygeferiegodtgørelse i denne erstatningsperiode</Typography>
+                    <Box className="row--label-right-hover__content">
+                      <StyledAmountField
+                        width={150}
+                        value={sfggRow?.alleredeBetaltBeloeb}
+                        allowNegative={false}
+                        onCommit={(event) => {
+                          updateSfggAnsaettelsesforhold(af.id, (current) => ({
+                            ...current,
+                            alleredeBetaltBeloeb: event.target.value,
+                          }));
+                        }}
+                      />
+                    </Box>
+                  </Box>
                 ) : null}
               </>
             ) : null}

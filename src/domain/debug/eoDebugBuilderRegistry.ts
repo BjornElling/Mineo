@@ -33,6 +33,8 @@ export type EODebugBuilderEntry = {
  * Centraliseret registry af alle EODebug builders
  *
  * SINGLE SOURCE OF TRUTH - alle steder der bruger EODebug skal hente herfra.
+ * Builders er visningsprojektioner og skal foretrække canonical output frem for
+ * at genkalde tunge motorer. Se docs/architecture/debug-builder-architecture.md.
  *
  * Rækkefølge: Samme som i original EODebug.tsx for konsistens i visning.
  *

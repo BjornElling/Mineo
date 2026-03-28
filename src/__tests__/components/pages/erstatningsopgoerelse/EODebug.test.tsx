@@ -929,6 +929,14 @@ describe('EODebug', () => {
         ],
       },
       rowsBySection: new Map([
+        ['loenindkomst', [
+          {
+            id: 'loenindkomst.af1.loenoplysninger',
+            label: 'Alle lønoplysninger indtastet korrekt',
+            displayValue: 'Ja',
+            status: 'ok',
+          },
+        ]],
         ['sygeferiegodtgoerelse', [
           {
             id: 'sfgg.beregningskilde.af1',
@@ -983,7 +991,7 @@ describe('EODebug', () => {
     const fourthLabel = screen.getByText('Beregnet sygeferiegodtgørelse');
     const combinedRow = firstLabel.closest('.row--label-right-hover');
 
-    expect(screen.getByText('Sygeferiegodtgørelse')).toBeInTheDocument();
+    expect(screen.getAllByText('Sygeferiegodtgørelse').every((element) => element.classList.contains('row--subheading-underlined'))).toBe(true);
     expect(screen.getByText('Arbejdssted 1')).toBeInTheDocument();
     expect(screen.getByText('553,50')).toBeInTheDocument();
     expect(combinedRow).not.toBeNull();
@@ -991,6 +999,6 @@ describe('EODebug', () => {
     expect(thirdLabel.closest('.row--label-right-hover')).toBe(combinedRow);
     expect(fourthLabel.closest('.row--label-right-hover')).toBe(combinedRow);
     expect(combinedRow?.querySelectorAll('[data-testid="CheckIcon"]')).toHaveLength(1);
-    expect(container.querySelectorAll('.row--label-right-hover')).toHaveLength(3);
+    expect(container.querySelectorAll('.content-box')).toHaveLength(1);
   });
 });

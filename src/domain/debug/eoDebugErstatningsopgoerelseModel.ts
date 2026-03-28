@@ -23,7 +23,7 @@ import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoDebugIndkomstModel';
 import { mergeDateRanges, mergeIsoDateRanges } from '../erstatningsopgoerelse/periodMerging';
 import { buildTafCutoffErrorMessage, clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
-import { getOverenskomstMetaById, getOverenskomstSfggPolicy, getReguleringsDatoIntervalForOverenskomst, isOffentligOverenskomstId } from '../../data/overenskomstRates';
+import { getOverenskomstSfggPolicy, getReguleringsDatoIntervalForOverenskomst, isOffentligOverenskomstId } from '../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/krlRates';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
@@ -106,7 +106,9 @@ export type DebugRowId =
   | `loenindkomst.${string}.regulering.alleVaerdier`
   | `offentligeYdelser.${string}`
   | `sfgg.beregningskilde.${string}`
+  | `sfgg.bemaerkningFoer2015.${string}`
   | `sfgg.overenskomstensReferenceperiode.${string}`
+  | `sfgg.satsvalg.${string}`
   | `sfgg.foerstEfterSygeloen.${string}`
   | `sfgg.referenceperiode.${string}`
   | `sfgg.referenceperiodeantal.${string}`
@@ -2869,6 +2871,10 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
     const row = values.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
     if (row?.beregnesUdFra !== 'Overenskomst') return false;
     if (!employment.overenskomstId || isOffentligOverenskomstId(employment.overenskomstId)) return false;
+    const sfggPolicy = getOverenskomstSfggPolicy(employment.overenskomstId);
+    // Debug må kun kalde lønudviklingsmotoren for SFGG, når policyen faktisk følger referenceperiode/ferielov-sporet.
+    // Direkte SFGG-sats kan godt sameksistere med reguleringsdata på overenskomsten, men kræver ikke lønudviklingsmodellen.
+    if (sfggPolicy?.model === 'direkte_sats') return false;
     return getReguleringsDatoIntervalForOverenskomst(employment.overenskomstId) !== undefined;
   });
 
@@ -2905,18 +2911,42 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       message: kilde ? undefined : 'Intet valgt',
     });
 
+    if (stamdata.skadesdato && stamdata.skadesdato < '2015-01-01') {
+      rows.push({
+        id: `sfgg.bemaerkningFoer2015.${employment.id}`,
+        label: 'Bemærk',
+        displayValue: 'Bemærk, at da skaden er før 01-01-2015, er det afgørende for beregningen af sygeferiegodtgørelse, at samtlige TAF-perioder er indtastet ovenfor.',
+        status: 'ok',
+      });
+    }
+
     if (kilde === 'Overenskomst' && employment.overenskomstId) {
       const sfggPolicy = getOverenskomstSfggPolicy(employment.overenskomstId);
-      const overenskomstMeta = getOverenskomstMetaById(employment.overenskomstId);
-      if (sfggPolicy) {
+      if (sfggPolicy && sfggPolicy.model !== 'direkte_sats') {
         rows.push({
           id: `sfgg.overenskomstensReferenceperiode.${employment.id}`,
           label: 'Overenskomstens referenceperiode',
-          displayValue:
-            sfggPolicy.model === 'direkte_sats'
-              ? `Overenskomsten ${overenskomstMeta?.navn ?? employment.overenskomstId} bruger en direkte SFGG-sats.`
-              : `Følger ferieloven${sfggPolicy.referenceperiodeLabel ? ` (${sfggPolicy.referenceperiodeLabel})` : ''}`,
+          displayValue: `Følger ferieloven${sfggPolicy.referenceperiodeLabel ? ` (${sfggPolicy.referenceperiodeLabel})` : ''}`,
           status: 'ok',
+        });
+      }
+
+      if (sfggPolicy?.model === 'direkte_sats' && sfggPolicy.direkteSatsErDifferentieret) {
+        const satsvalgDisplay = row?.satsvalg === 'Faglaert-Koebenhavn'
+          ? 'Faglært-København'
+          : row?.satsvalg === 'Faglaert-Provinsen'
+            ? 'Faglært-Provinsen'
+            : row?.satsvalg === 'Ufaglaert-Koebenhavn'
+              ? 'Ufaglært-København'
+              : row?.satsvalg === 'Ufaglaert-Provinsen'
+                ? 'Ufaglært-Provinsen'
+                : 'Intet valgt';
+        rows.push({
+          id: `sfgg.satsvalg.${employment.id}`,
+          label: 'Angiv skadelidtes uddannelse og arbejdssted',
+          displayValue: satsvalgDisplay,
+          status: row?.satsvalg ? 'ok' : 'error',
+          message: row?.satsvalg ? undefined : 'Intet valgt',
         });
       }
     }

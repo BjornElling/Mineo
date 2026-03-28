@@ -423,6 +423,8 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     }
     if (result.fileHandle) {
       await saveFileHandleToIndexedDB(result.fileHandle);
+    } else {
+      await deleteFileHandleFromIndexedDB();
     }
     if (result.requestId) {
       await markPendingPwaFileOpenRequestHandled(result.requestId);

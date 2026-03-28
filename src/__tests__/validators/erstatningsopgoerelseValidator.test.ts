@@ -215,53 +215,6 @@ describe('SFGG validering', () => {
     expect(hasError(values, 'Beregningsgrundlag for SFGG ikke valgt')).toBe(false);
   });
 
-  it('kræver supplerende sygeperioder når præ-2015-opgørelse ikke dækkes af TAF-perioder', () => {
-    const values = makeValues({
-      loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
-      sfggAlleSygeperioderErTafPerioder: false,
-      sfggSygeperioderFoer2015: [{ id: 's1', fra: undefined, til: undefined }],
-      sfggAnsaettelsesforhold: [{
-        ansaettelsesforholdId: 'af-1',
-        beregnesUdFra: 'Manuelt angivet',
-        manuelDagssats: asAmount(100),
-        manuelBeloebIHenholdTil: undefined,
-        manuelFoerstEfterSygeloen: 'Nej',
-        referenceperiodeFra: undefined,
-        referenceperiodeTil: undefined,
-        referenceperiodeFravaersdageUdenLoen: undefined,
-        satsvalg: undefined,
-        alleredeBetaltBeloeb: undefined,
-      }],
-    });
-
-    expect(hasError(values, 'Angiv mindst én supplerende sygeperiode')).toBe(true);
-  });
-
-  it('fanger overlappende supplerende SFGG-sygeperioder', () => {
-    const values = makeValues({
-      loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
-      sfggAlleSygeperioderErTafPerioder: false,
-      sfggSygeperioderFoer2015: [
-        { id: 's1', fra: iso('2014-01-01'), til: iso('2014-01-15') },
-        { id: 's2', fra: iso('2014-01-10'), til: iso('2014-01-20') },
-      ],
-      sfggAnsaettelsesforhold: [{
-        ansaettelsesforholdId: 'af-1',
-        beregnesUdFra: 'Manuelt angivet',
-        manuelDagssats: asAmount(100),
-        manuelBeloebIHenholdTil: undefined,
-        manuelFoerstEfterSygeloen: 'Nej',
-        referenceperiodeFra: undefined,
-        referenceperiodeTil: undefined,
-        referenceperiodeFravaersdageUdenLoen: undefined,
-        satsvalg: undefined,
-        alleredeBetaltBeloeb: undefined,
-      }],
-    });
-
-    expect(hasError(values, 'Sygeperioder overlapper')).toBe(true);
-  });
-
   it('fanger referenceperiode der ikke ligger før første TAF-periode', () => {
     const values = makeValues({
       loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],

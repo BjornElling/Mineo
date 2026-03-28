@@ -10,7 +10,7 @@ import { addDays, addMonths } from '../../utils/dateUtils';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { roundByMethod } from '../../utils/rounding';
 import { calculateStandardLoenRowDerived } from '../aarsloen/standardLoenRowCalculations';
-import { parseAarsloenRowInterval, buildTafRanges } from './indtaegtPerioder';
+import { parseAarsloenRowInterval } from './indtaegtPerioder';
 import { buildLoenArbejdsdageSet, optaelArbejdsdageBreakdown } from './periodiseringsMotor';
 import { buildDatoSetInclusiveFromDates, isWeekdayUtc } from './tafDaySets';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from './tafBeregningsenhed';
@@ -524,14 +524,10 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     tafDateSet.delete(firstExcludedDate);
   }
 
-  const capSourceRanges =
-    skadesdato !== undefined && skadesdato < '2015-01-01' && values.sfggAlleSygeperioderErTafPerioder === false
-      ? buildTafRanges({ ...values, tafPerioder: values.sfggSygeperioderFoer2015.map((row) => ({ ...row, loseFeriedage: undefined })) as never }, { skadesdatoISO: stamdata.skadesdato })
-      : tafRanges;
   const capMode = computeTafBeregningsenhed(values);
   const capComputation =
     skadesdato !== undefined && skadesdato < '2015-01-01'
-      ? buildCapComputation(capSourceRanges, capMode)
+      ? buildCapComputation(tafRanges, capMode)
       : { cutoffDate: null, rows: [] };
 
   const boundsDates = sortIsoDates(tafDateSet);

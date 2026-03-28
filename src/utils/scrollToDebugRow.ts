@@ -9,6 +9,10 @@ import { scrollWithRetry } from './scrollWithRetry';
 const resolveAnchorIdFromDebugRowId = (debugRowId: string): string | null => {
   const loenindkomstMatch = debugRowId.match(/^loenindkomst\.([^.]+)(?:\.|$)/);
   if (loenindkomstMatch) return loenindkomstMatch[1];
+  const sfggPostTableMatch = debugRowId.match(/^sfgg\.eftertabel\.[^.]+\.([^.]+)$/);
+  if (sfggPostTableMatch) return sfggPostTableMatch[1];
+  const sfggMatch = debugRowId.match(/^sfgg\.[^.]+\.([^.]+)(?:\.|$)/);
+  if (sfggMatch) return sfggMatch[1];
 
   const patterns: readonly RegExp[] = [
     /^sviesmerte\.periode\.([^.]+)(?:\.|$)/,

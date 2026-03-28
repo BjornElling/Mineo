@@ -193,66 +193,94 @@ export const deleteFileHandleFromIndexedDB = async (): Promise<boolean> => {
   }
 };
 
+export type FileHandleVerificationResult = Readonly<
+  | { valid: true }
+  | {
+      valid: false;
+      reason:
+        | 'missing_handle'
+        | 'missing_permission_api'
+        | 'not_found'
+        | 'permission_denied'
+        | 'permission_api_failed'
+        | 'file_access_failed'
+        | 'validation_failed';
+      detail?: string;
+    }
+>;
+
 /**
  * Validerer at et gemt file handle stadig er gyldigt og har adgang
  * Tjekker både permissions OG at filen stadig eksisterer
  *
  * @param {FileSystemFileHandle} handle - File handle der skal valideres
- * @returns {Promise<boolean>} True hvis handle er gyldigt og filen eksisterer
+ * @returns {Promise<FileHandleVerificationResult>} Resultat med konkret årsag ved fejl
  */
-export const verifyFileHandle = async (handle: FileSystemFileHandle | null | undefined): Promise<boolean> => {
+export const verifyFileHandleDetailed = async (
+  handle: FileSystemFileHandle | null | undefined,
+  options: Readonly<{ allowRequestPermission?: boolean }> = {}
+): Promise<FileHandleVerificationResult> => {
   try {
     if (!handle) {
-      return false;
+      return { valid: false, reason: 'missing_handle' };
     }
     type PermissionCapableHandle = FileSystemFileHandle & {
       queryPermission: (descriptor?: { mode?: 'read' | 'readwrite' }) => Promise<PermissionState>;
+      requestPermission?: (descriptor?: { mode?: 'read' | 'readwrite' }) => Promise<PermissionState>;
     };
     const permissionHandle = handle as Partial<PermissionCapableHandle>;
     if (typeof permissionHandle.queryPermission !== 'function') {
-      return false;
+      return { valid: false, reason: 'missing_permission_api' };
     }
 
-    // Tjek først om filen stadig eksisterer
     try {
+      let permission = await permissionHandle.queryPermission({ mode: 'readwrite' });
+
+      if (
+        permission !== 'granted' &&
+        options.allowRequestPermission === true &&
+        typeof permissionHandle.requestPermission === 'function'
+      ) {
+        permission = await permissionHandle.requestPermission({ mode: 'readwrite' });
+      }
+
+      if (permission !== 'granted') {
+        return {
+          valid: false,
+          reason: 'permission_denied',
+          detail: `permission=${permission}`,
+        };
+      }
+
+      // Når write-adgang er bekræftet, tjekker vi at filen stadig eksisterer.
       await handle.getFile();
-    } catch (error: unknown) {
-      // Fil eksisterer ikke længere eller vi har ikke adgang
-      const errName = error instanceof Error ? error.name : isRecord(error) ? String(error.name ?? '') : undefined;
-      const errMessage = error instanceof Error ? error.message : isRecord(error) ? String(error.message ?? '') : undefined;
-      if (errName === 'NotFoundError') {
-        logWarning('Fil blev ikke fundet - er sandsynligvis blevet slettet eller flyttet');
-        return false;
-      }
-      if (errName === 'NotAllowedError') {
-        // Fortsæt til permission-tjek nedenfor
-      } else {
-        // Andre uventede fejl
-        logWarning('Kunne ikke få adgang til fil', {
-          context: 'verifyFileHandle',
-          data: { errorName: errName, errorMessage: errMessage },
-        });
-        // Fortsæt til permission-tjek for at se om vi kan få adgang
-      }
-    }
 
-    // Tjek om vi stadig har read/write permission
-    // Kalder kun queryPermission — requestPermission må kun kaldes fra direkte brugergestus-handlers
-    try {
-      const permission = await permissionHandle.queryPermission({ mode: 'readwrite' });
-
-      return permission === 'granted';
+      return { valid: true };
 
     } catch (permError: unknown) {
-      // Permission API kan fejle hvis browseren ikke understøtter det
-      logWarning('Permission API fejlede', {
+      const errName = permError instanceof Error ? permError.name : isRecord(permError) ? String(permError.name ?? '') : undefined;
+      const errMessage = permError instanceof Error ? permError.message : isRecord(permError) ? String(permError.message ?? '') : undefined;
+
+      if (errName === 'NotFoundError') {
+        logWarning('Fil blev ikke fundet - er sandsynligvis blevet slettet eller flyttet');
+        return { valid: false, reason: 'not_found', detail: errMessage };
+      }
+      if (errName === 'NotAllowedError') {
+        return { valid: false, reason: 'permission_denied', detail: errMessage };
+      }
+
+      logWarning('Permission API eller file handle-validering fejlede', {
         context: 'verifyFileHandle.permissionCheck',
         data: {
-          errorName: permError instanceof Error ? permError.name : isRecord(permError) ? String(permError.name ?? '') : undefined,
-          errorMessage: permError instanceof Error ? permError.message : isRecord(permError) ? String(permError.message ?? '') : undefined,
+          errorName: errName,
+          errorMessage: errMessage,
         },
       });
-      return false;
+      return {
+        valid: false,
+        reason: 'permission_api_failed',
+        detail: errMessage ?? errName,
+      };
     }
 
   } catch (error: unknown) {
@@ -263,8 +291,17 @@ export const verifyFileHandle = async (handle: FileSystemFileHandle | null | und
         errorMessage: error instanceof Error ? error.message : isRecord(error) ? String(error.message ?? '') : undefined,
       },
     });
-    return false;
+    return {
+      valid: false,
+      reason: 'validation_failed',
+      detail: error instanceof Error ? error.message : isRecord(error) ? String(error.message ?? '') : String(error),
+    };
   }
+};
+
+export const verifyFileHandle = async (handle: FileSystemFileHandle | null | undefined): Promise<boolean> => {
+  const result = await verifyFileHandleDetailed(handle);
+  return result.valid;
 };
 
 // ============================================================================

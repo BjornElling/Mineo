@@ -7,7 +7,7 @@ import {
   loadFileHandleFromIndexedDB,
   requestPersistentStorage,
   saveFileHandleToIndexedDB,
-  verifyFileHandle,
+  verifyFileHandleDetailed,
 } from '../../utils/fileHandleStorage';
 import { saveFileWithPicker, writeToFileHandle, isFileSystemAccessSupported } from '../../utils/fileSystemAccess';
 
@@ -33,7 +33,7 @@ vi.mock('../../utils/fileHandleStorage', () => ({
   requestPersistentStorage: vi.fn(),
   saveFileHandleToIndexedDB: vi.fn(),
   loadFileHandleFromIndexedDB: vi.fn(),
-  verifyFileHandle: vi.fn(),
+  verifyFileHandleDetailed: vi.fn(),
   deleteFileHandleFromIndexedDB: vi.fn(),
 }));
 
@@ -51,7 +51,7 @@ const mockedWriteToFileHandle = vi.mocked(writeToFileHandle);
 const mockedRequestPersistentStorage = vi.mocked(requestPersistentStorage);
 const mockedLoadFileHandleFromIndexedDB = vi.mocked(loadFileHandleFromIndexedDB);
 const mockedSaveFileHandleToIndexedDB = vi.mocked(saveFileHandleToIndexedDB);
-const mockedVerifyFileHandle = vi.mocked(verifyFileHandle);
+const mockedVerifyFileHandleDetailed = vi.mocked(verifyFileHandleDetailed);
 
 describe('fileSave', () => {
   beforeEach(() => {
@@ -306,11 +306,13 @@ describe('fileSave', () => {
     } as const;
 
     it('persisterer først nyt file handle efter write og verificering er lykkedes', async () => {
+      const existingHandle = { name: 'eksisterende.eo', getFile: vi.fn(), createWritable: vi.fn() } as unknown as FileSystemFileHandle;
       const pickedHandle = { name: 'sag.eo', getFile: vi.fn(), createWritable: vi.fn() } as unknown as FileSystemFileHandle;
 
+      sessionStorage.setItem('mineo_ui_lastSavedFilename', 'eksisterende.eo');
       mockedIsFileSystemAccessSupported.mockReturnValue(true);
       mockedRequestPersistentStorage.mockResolvedValue(true);
-      mockedLoadFileHandleFromIndexedDB.mockResolvedValue(null);
+      mockedLoadFileHandleFromIndexedDB.mockResolvedValue(existingHandle);
       mockedSaveFileWithPicker.mockResolvedValue(pickedHandle);
       mockedWriteToFileHandle.mockResolvedValue();
       mockedReadFromFileHandle.mockResolvedValue('encrypted');
@@ -320,15 +322,40 @@ describe('fileSave', () => {
         },
       });
       mockedSaveFileHandleToIndexedDB.mockResolvedValue(true);
-      mockedVerifyFileHandle.mockResolvedValue(false);
+      mockedVerifyFileHandleDetailed.mockResolvedValue({ valid: false, reason: 'not_found' });
 
       const result = await saveToFile(snapshot);
 
       expect(result.success).toBe(true);
+      expect(result.warning).toContain('Den tidligere valgte fil blev ikke fundet');
       expect(mockedSaveFileHandleToIndexedDB).toHaveBeenCalledWith(pickedHandle);
       expect(mockedWriteToFileHandle.mock.invocationCallOrder[0]).toBeLessThan(
         mockedSaveFileHandleToIndexedDB.mock.invocationCallOrder[0]
       );
+    });
+
+    it('genbruger indlæst file handle når write-adgang kan anmodes ved gem', async () => {
+      const loadedHandle = { name: 'indlaest.eo', getFile: vi.fn(), createWritable: vi.fn() } as unknown as FileSystemFileHandle;
+
+      sessionStorage.setItem('mineo_ui_lastSavedFilename', 'indlaest.eo');
+      mockedIsFileSystemAccessSupported.mockReturnValue(true);
+      mockedRequestPersistentStorage.mockResolvedValue(true);
+      mockedLoadFileHandleFromIndexedDB.mockResolvedValue(loadedHandle);
+      mockedVerifyFileHandleDetailed.mockResolvedValue({ valid: true });
+      mockedWriteToFileHandle.mockResolvedValue();
+      mockedReadFromFileHandle.mockResolvedValue('encrypted');
+      mockedDecryptFromString.mockResolvedValue({
+        data: {
+          stamdata: { journalnr: 'J-1' },
+        },
+      });
+
+      const result = await saveToFile(snapshot);
+
+      expect(result.success).toBe(true);
+      expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
+      expect(mockedWriteToFileHandle).toHaveBeenCalledTimes(1);
+      expect(mockedWriteToFileHandle.mock.calls[0]?.[0]).toBe(loadedHandle);
     });
 
     it('persisterer ikke nyt file handle når verificering fejler', async () => {

@@ -21,7 +21,7 @@ import type { FormValidator, ValidationError, ValidationResult } from '../types/
 import { isISODateString } from '../types/branded';
 import { svieSmertePrDag, svieSmerteMax, satserAngivAarYearBounds } from '../data/lovbestemteRates';
 import { amountValueToNumber } from '../utils/expressionAmount';
-import { isFerieRowEmpty, isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/rowEmpty';
+import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/rowEmpty';
 import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/periodOverlapDetection';
 import { resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/angivetLoenHelpers';
 import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/sharedPdfUtils';
@@ -353,37 +353,6 @@ function validateTAF(values: ErstatningsopgoerelseValues): ValidationError[] {
 
 function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): ValidationError[] {
   const errors: ValidationError[] = [];
-
-  if (values.sfggAlleSygeperioderErTafPerioder === false) {
-    const sygeperioder = values.sfggSygeperioderFoer2015 ?? [];
-    const nonEmpty = sygeperioder.filter((row) => !isFerieRowEmpty(row));
-
-    if (nonEmpty.length === 0) {
-      errors.push({
-        path: 'sfggSygeperioderFoer2015[0].fra',
-        message: 'Angiv mindst én supplerende sygeperiode til opgørelsen af 4-månedersgrænsen',
-        severity: 'error',
-      });
-    }
-
-    for (let i = 0; i < sygeperioder.length; i += 1) {
-      const row = sygeperioder[i];
-      if (isFerieRowEmpty(row)) continue;
-      errors.push(...validateFerieperiodeRowCompleteness(row, `sfggSygeperioderFoer2015[${i}]`));
-    }
-
-    if (nonEmpty.length > 1) {
-      const overlapIds = detectOverlappingPeriods(nonEmpty);
-      for (let i = 0; i < sygeperioder.length; i += 1) {
-        if (!overlapIds.has(sygeperioder[i].id)) continue;
-        errors.push({
-          path: `sfggSygeperioderFoer2015[${i}].fra`,
-          message: 'Sygeperioder overlapper',
-          severity: 'error',
-        });
-      }
-    }
-  }
 
   (values.loenindkomstAnsaettelsesforhold ?? []).forEach((employment) => {
     const index = (values.sfggAnsaettelsesforhold ?? []).findIndex((entry) => entry.ansaettelsesforholdId === employment.id);

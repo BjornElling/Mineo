@@ -203,12 +203,26 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
     loenRows: section.loenRows,
     regulationRows: section.regulationRows,
     regulationSection: regulationSectionsByEmploymentId.get(section.id),
+    sfggRows: [],
+    sfggTables: [],
   }));
   const orphanRegulationSections = view.regulationSections.filter((section) => {
     const employmentId = getRegulationEmploymentId(section);
     return !employmentId || !loenindkomstSections.some((loenSection) => loenSection.id === employmentId);
   });
   const sfggSections = buildSfggSections(rowsBySection.get('sygeferiegodtgoerelse') ?? [], employmentNamesById);
+  const sfggSectionsByEmploymentId = new Map(sfggSections.map((section) => [section.id, section]));
+  const employmentSectionsWithSfgg = employmentSections.map((section) => {
+    const sfggSection = sfggSectionsByEmploymentId.get(section.id);
+    return {
+      ...section,
+      sfggRows: sfggSection?.rows ?? [],
+      sfggTables: sfggSection?.tables ?? [],
+    };
+  });
+  const orphanSfggSections = sfggSections.filter((section) =>
+    !employmentSections.some((employmentSection) => employmentSection.id === section.id)
+  );
   const filtreredeAesRows = aesRows.filter((row) => {
     if (!viserMidlertidigtEet && row.group === 'aes.midlertidigtEet' && row.id !== 'aes.midlertidigtEetAfgorelse') return false;
     if (!viserEndeligtEet && row.group === 'aes.endeligtEet' && row.id !== 'aes.endeligtEetAfgorelse') return false;
@@ -225,15 +239,15 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
       {viserTabtArbejdsfortjeneste && <EODebugRowsSection title="Tabt arbejdsfortjeneste" rows={rowsBySection.get('taf') ?? []} />}
       {viserTabtArbejdsfortjeneste && <EODebugRowsSection title="TAF beregningsgrundlag" rows={rowsBySection.get('taf-beregningsgrundlag') ?? []} />}
       {viserTabtArbejdsfortjeneste && (
-        employmentSections.length > 0
-          ? <EODebugEmploymentSections sections={employmentSections} />
+        employmentSectionsWithSfgg.length > 0
+          ? <EODebugEmploymentSections sections={employmentSectionsWithSfgg} />
           : <EODebugRowsSection title="Lønindkomst" rows={loenindkomstRows} />
       )}
       {viserTabtArbejdsfortjeneste && (
         <EODebugRowsSection title="Offentlige ydelser" rows={rowsBySection.get('offentlige-ydelser') ?? []} />
       )}
-      {viserTabtArbejdsfortjeneste && (
-        <EODebugGroupedRowsSection title="Sygeferiegodtgørelse" sections={sfggSections} />
+      {viserTabtArbejdsfortjeneste && orphanSfggSections.length > 0 && (
+        <EODebugGroupedRowsSection title="Sygeferiegodtgørelse" sections={orphanSfggSections} />
       )}
 
       {viserTabtArbejdsfortjeneste && orphanRegulationSections.length > 0 && (

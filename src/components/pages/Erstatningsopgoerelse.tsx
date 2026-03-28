@@ -344,6 +344,8 @@ const Erstatningsopgoerelse = React.memo(() => {
               periodeTilBeregningTil={form.values.periodeTilBeregningTil}
               ferieperioder={form.values.ferieperioder}
               fravaerPerioder={form.values.fravaerPerioder}
+              eoValues={form.values}
+              setEOValues={setFormValues}
               onAnsaettelsesforholdChange={handleLoenindkomstAnsaettelsesforholdChange}
             />
           </Box>
