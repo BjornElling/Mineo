@@ -370,6 +370,7 @@ export const generateErstatningsopgoerelsePdf = (
     const baseAdjustmentText = divisorLabel === 'arbejdsdage'
       ? 'Der beregnes ikke sygeferiegodtgørelse på SH-dage, under ferie og på andre fraværsdage uden løn.'
       : 'Der beregnes ikke sygeferiegodtgørelse under ferie og på eventuelle andre fraværsdage uden løn.';
+    writer.addSpacer(lineHeight);
     safeAddWrappedText(
       `Kravet beregnes per ${dayUnit} med ${rateLabel}${rateAdjustmentText}.`
     );
