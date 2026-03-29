@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material';
 import { FormPersistenceProvider } from './contexts/FormPersistenceContext';
 import { AppSettingsProvider } from './contexts/AppSettingsContext';
+// Side-effect: registrerer EO-domænets cleanup/rollback hooks i det generiske registry
+import './domain/erstatningsopgoerelse/eoCleanupRegistration';
 import MainLayout from './components/layout/MainLayout';
 import ErrorBoundary from './components/errors/ErrorBoundary';
 import Stamdata from './components/pages/Stamdata';
@@ -172,8 +174,8 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <AppSettingsProvider>
-        <FormPersistenceProvider>
-          <BrowserRouter>
+        <BrowserRouter>
+          <FormPersistenceProvider>
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               {pageWrappers.map(({ path, element: PageWrapper }) => (
@@ -189,8 +191,8 @@ function App() {
                 }
               />
             </Routes>
-          </BrowserRouter>
-        </FormPersistenceProvider>
+          </FormPersistenceProvider>
+        </BrowserRouter>
       </AppSettingsProvider>
     </ThemeProvider>
   );

@@ -91,6 +91,7 @@ import {
   type ManualBaseRowCellErrors,
 } from '../../../domain/erstatningsopgoerelse/loenudviklingManuelBaseRowValidation';
 import { updateValidationFlagById } from '../../../utils/validationFlagMap';
+import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 
 type AnsaettelsesforholdList = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'];
 
@@ -104,7 +105,7 @@ type Props = {
   ferieperioder: ErstatningsopgoerelseValues['ferieperioder'];
   fravaerPerioder: ErstatningsopgoerelseValues['fravaerPerioder'];
   eoValues: ErstatningsopgoerelseValues;
-  setEOValues: React.Dispatch<React.SetStateAction<ErstatningsopgoerelseValues>>;
+  setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
   onAnsaettelsesforholdChange: (updater: (prev: AnsaettelsesforholdList) => AnsaettelsesforholdList) => void;
 };
 

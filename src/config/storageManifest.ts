@@ -44,6 +44,8 @@ const STORAGE_KEY_SET: ReadonlySet<string> = new Set([
   ...Object.values(UI_STORAGE_KEYS),
 ]);
 
+const DOMAIN_STORAGE_KEY_SET: ReadonlySet<string> = new Set(Object.values(STORAGE_KEYS));
+
 /**
  * Type-safe storage key type
  *
@@ -75,7 +77,8 @@ export const isValidStorageKey = (key: string): boolean => {
 /**
  * Hent alle MINEO keys fra sessionStorage
  *
- * Returnerer kun keys der matcher vores manifest.
+ * Returnerer kun keys der matcher vores manifest (domæne-data + UI-state).
+ * Brug getDomainStorageKeys() hvis kun domæne-data skal ryddes.
  *
  * @returns Array af gyldige sessionStorage keys
  */
@@ -84,6 +87,25 @@ export const getAllMineoKeys = (): string[] => {
   for (let i = 0; i < sessionStorage.length; i++) {
     const key = sessionStorage.key(i);
     if (key && isValidStorageKey(key)) {
+      keys.push(key);
+    }
+  }
+  return keys;
+};
+
+/**
+ * Hent kun domæne-data keys fra sessionStorage (udelader UI-state keys)
+ *
+ * Bruges ved "ryd sagsdata"-operationer, hvor UI-præferencer
+ * (filnavn, sidebar-tilstand, overlay-tilstand) skal bevares.
+ *
+ * @returns Array af domæne-relaterede sessionStorage keys
+ */
+export const getDomainStorageKeys = (): string[] => {
+  const keys: string[] = [];
+  for (let i = 0; i < sessionStorage.length; i++) {
+    const key = sessionStorage.key(i);
+    if (key && DOMAIN_STORAGE_KEY_SET.has(key)) {
       keys.push(key);
     }
   }

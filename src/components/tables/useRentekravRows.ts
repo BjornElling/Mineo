@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { UseRowDraftsResult } from '../../rowDrafts/useRowDrafts';
 import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
 import type { RenteberegningValues, RentekravRow } from '../../schemas/formSchemas';
+import { type SetValuesUpdater } from '../../hooks/usePersistedForm';
 import type { RentekravDraftRow } from '../../domain/renteberegning/tableDraftRows';
 import { isRentekravRowEmpty } from '../../domain/renteberegning/rowEmpty';
 import {
@@ -14,7 +15,7 @@ import {
 
 export type UseRentekravRowsArgs = Readonly<{
   values: RenteberegningValues;
-  setValues: React.Dispatch<React.SetStateAction<RenteberegningValues>>;
+  setValues: SetValuesUpdater<RenteberegningValues>;
   resyncToken: unknown;
 }>;
 

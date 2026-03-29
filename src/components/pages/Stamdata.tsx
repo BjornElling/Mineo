@@ -12,7 +12,7 @@ import StyledDateField from '../inputs/StyledDateField';
 import StyledDropdown from '../inputs/StyledDropdown';
 import StyledTextField, { type StyledTextFieldValueCommitEvent } from '../inputs/StyledTextField';
 import ContentBox from '../layout/ContentBox';
-import Test from './Test';
+import StamdataDebugTab from './StamdataDebugTab';
 
 const SKADESTYPER = ['Arbejdsulykke', 'Erhvervssygdom'] as const;
 
@@ -187,7 +187,7 @@ const Stamdata = React.memo(() => {
             hidden={activeTab !== 'test'}
             sx={{ display: activeTab === 'test' ? 'block' : 'none' }}
           >
-            <Test />
+            <StamdataDebugTab />
           </Box>
         )}
       </Box>

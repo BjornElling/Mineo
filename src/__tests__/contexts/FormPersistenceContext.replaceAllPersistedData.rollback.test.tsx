@@ -5,6 +5,7 @@ import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import type { StorageKey } from '../../config/storageManifest';
 import { eoLoenindkomstInputErrorStore } from '../../stores/eoLoenindkomstInputErrorStore';
+import '../../domain/erstatningsopgoerelse/eoCleanupRegistration';
 
 const stampStamdata = (skadelidte: string) => ({
   journalnr: '',

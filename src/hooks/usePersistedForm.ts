@@ -6,11 +6,30 @@ import type { PersistedSectionMap } from '../config/persistenceRegistry';
 import type { CommitHandler } from '../types/fieldEvents';
 
 /**
+ * Signatur for setValues: funktionel updater-baseret felt-commit.
+ * Se UsePersistedFormReturn for fuld dokumentation.
+ */
+export type SetValuesUpdater<T> = (updater: (prev: T) => T) => void;
+
+/**
  * Return type for usePersistedForm hook
  */
 export interface UsePersistedFormReturn<T> {
   values: T;
-  setValues: React.Dispatch<React.SetStateAction<T>>;
+  /**
+   * Felt-commit via funktionel updater (prev => next). Bumper ikke formVersion.
+   * Brug til normale per-felt commits (identisk med handleChange-semantik).
+   *
+   * Til autoritative replacements (reset, migration, ekstern data-injektion):
+   * brug replaceValues(next) i stedet.
+   */
+  setValues: (updater: (prev: T) => T) => void;
+  /**
+   * Autoritative replace af alle formularværdier.
+   * Bumper formVersion og rydder field errors — signalerer til consumers at alle
+   * afledte visninger skal re-evalueres fra bunden.
+   */
+  replaceValues: (next: T) => void;
   handleChange: <K extends keyof T>(fieldName: K) => CommitHandler<T[K]>;
   resetForm: () => void;
   /**
@@ -96,6 +115,12 @@ export const usePersistedForm = <K extends StorageKey>(
     return { ...initialValues, ...persisted };
   });
 
+  // Ref der altid holder den seneste values synkront.
+  // Bruges til at beregne next-value i handleChange og setValues uden at afvente
+  // næste render — eliminerer behovet for persist via useEffect.
+  const valuesRef = React.useRef(values);
+  valuesRef.current = values;
+
   const [formVersion, bumpFormVersion] = React.useReducer((v: number) => v + 1, 0);
 
   // Re-hydrate when an authoritative snapshot has been applied (e.g. file load).
@@ -118,27 +143,28 @@ export const usePersistedForm = <K extends StorageKey>(
     }
   }, [authoritativeSnapshotEpoch, pageKey, parsePersisted]);
 
-  const setValues: React.Dispatch<React.SetStateAction<PersistedSectionMap[K]>> = React.useCallback(
-    (updater) => {
-      if (typeof updater === 'function') {
-        setValuesState((prev) => {
-          const fn = updater as (prevValues: PersistedSectionMap[K]) => PersistedSectionMap[K];
-          return fn(prev);
-        });
-        return;
-      }
-
-      bumpFormVersion();
-      clearFieldErrorsRef.current(pageKey);
-      setValuesState(updater);
+  // Felt-commit via funktionel updater. Bumper ikke formVersion.
+  const setValues = React.useCallback(
+    (updater: (prev: PersistedSectionMap[K]) => PersistedSectionMap[K]) => {
+      const next = updater(valuesRef.current);
+      valuesRef.current = next;
+      setValuesState(next);
+      persistDataRef.current(pageKey, next);
     },
     [pageKey]
   );
 
-  // Persist ved hver ændring (schema-valideres i persistence-laget)
-  React.useEffect(() => {
-    persistDataRef.current(pageKey, values);
-  }, [pageKey, values]);
+  // Autoritative replace: bumper formVersion og rydder field errors.
+  const replaceValues = React.useCallback(
+    (next: PersistedSectionMap[K]) => {
+      bumpFormVersion();
+      clearFieldErrorsRef.current(pageKey);
+      valuesRef.current = next;
+      setValuesState(next);
+      persistDataRef.current(pageKey, next);
+    },
+    [pageKey]
+  );
 
   /**
    * Håndterer feltændringer med type-aware konvertering
@@ -161,14 +187,15 @@ export const usePersistedForm = <K extends StorageKey>(
    * Dette er en destruktiv operation - data kan ikke gendannes.
    */
   const resetForm = React.useCallback(() => {
-    setValues(initialValuesRef.current);
+    replaceValues(initialValuesRef.current);
     clearPageDataRef.current(pageKey);
     clearFieldErrorsRef.current(pageKey);
-  }, [pageKey, setValues]);
+  }, [pageKey, replaceValues]);
 
   return {
     values,
     setValues,
+    replaceValues,
     handleChange,
     resetForm,
     formVersion,

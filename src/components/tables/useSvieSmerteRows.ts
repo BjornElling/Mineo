@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { UseRowDraftsResult } from '../../rowDrafts/useRowDrafts';
 import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
 import type { ErstatningsopgoerelseValues, SvieSmertePeriodeRow } from '../../schemas/formSchemas';
+import { type SetValuesUpdater } from '../../hooks/usePersistedForm';
 import { calculateKalenderdageInclusive } from '../../domain/erstatningsopgoerelse/tafCalculations';
 import { isSvieSmerteRowEmpty } from '../../domain/erstatningsopgoerelse/rowEmpty';
 import type { SvieSmerteDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
@@ -10,7 +11,7 @@ import { detectConflictingSvieSmerteOverlaps } from '../../domain/erstatningsopg
 
 export type UseSvieSmerteRowsArgs = Readonly<{
   values: ErstatningsopgoerelseValues;
-  setValues: React.Dispatch<React.SetStateAction<ErstatningsopgoerelseValues>>;
+  setValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
   resyncToken: unknown;
 }>;
 

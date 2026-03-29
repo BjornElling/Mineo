@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
 import type { ErhvervsevnetabComposedValues } from '../../../schemas/formSchemas';
-import { usePersistedSection } from '../../../hooks/usePersistedSection';
+import { usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSelectors';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
@@ -33,7 +33,7 @@ type Props = Readonly<{
 
 
 const EetKapitaliseringTab = ({ values, onGoToEetOplysninger }: Props) => {
-  const stamdata = usePersistedSection('stamdata');
+  const stamdata = usePersistedSectionSelector('stamdata');
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
   const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');

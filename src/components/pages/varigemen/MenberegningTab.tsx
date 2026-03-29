@@ -17,7 +17,7 @@ import {
 } from '../../../schemas/formSchemas';
 import { coerceToISODateString, parseISODate, toISODateString } from '../../../types/branded';
 import { beregnVarigeMenGodtgoerelseWithRates } from '../../../domain/varigemen/varigeMenCalculations';
-import { usePersistedForm } from '../../../hooks/usePersistedForm';
+import { usePersistedForm, type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import { useNavigate } from 'react-router-dom';
 import { varigeMenPrGrad, varigeMenPrGradYearBounds } from '../../../data/lovbestemteRates';
 import { useAppSettings } from '../../../contexts/useAppSettings';
@@ -39,7 +39,7 @@ const VARIGE_MEN_BEREGNINGSDATO_MAX = toISODateString(
 
 const MenberegningTab = ({ values, setValues, handleChange }: {
   values: VarigeMenValues;
-  setValues: React.Dispatch<React.SetStateAction<VarigeMenValues>>;
+  setValues: SetValuesUpdater<VarigeMenValues>;
   handleChange: <K extends keyof VarigeMenValues>(
     key: K
   ) => CommitHandler<VarigeMenValues[K]>;

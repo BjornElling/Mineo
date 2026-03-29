@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Tabs, Tab, Typography } from '@mui/material';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
-import { usePersistedSection } from '../../hooks/usePersistedSection';
+import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import {
   erhvervsevnetabSchema,
@@ -63,7 +63,7 @@ const ErhvervsevnetabPage = React.memo(() => {
     'faellesAarsloen',
     FAELLES_AARSLOEN_INITIAL_VALUES
   );
-  const stamdata = usePersistedSection('stamdata');
+  const stamdata = usePersistedSectionSelector('stamdata');
   const reportAslAfgoerelserRuleError = useFormFieldErrorReporter('erhvervsevnetab', 'aslAfgoerelser', {
     severity: 'error',
     source: 'rule',

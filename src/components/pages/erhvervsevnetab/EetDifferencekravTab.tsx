@@ -5,7 +5,7 @@ import StyledCheckbox from '../../inputs/StyledCheckbox';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
 import type { CommitEvent } from '../../../types/fieldEvents';
 import type { ErhvervsevnetabComposedValues, ErhvervsevnetabValues } from '../../../schemas/formSchemas';
-import { usePersistedSection } from '../../../hooks/usePersistedSection';
+import { usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSelectors';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
@@ -29,10 +29,11 @@ import UnderlinedHoverRow from './UnderlinedHoverRow';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
 import { formatFaktor, formatJaNej, formatKr, navigationSortKey, toFieldIssue } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 
 type Props = Readonly<{
   values: ErhvervsevnetabComposedValues;
-  setValues: React.Dispatch<React.SetStateAction<ErhvervsevnetabValues>>;
+  setValues: SetValuesUpdater<ErhvervsevnetabValues>;
   onGoToEetOplysninger: () => void;
 }>;
 
@@ -204,7 +205,7 @@ const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => (
 
 
 const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger }: Props) => {
-  const stamdata = usePersistedSection('stamdata');
+  const stamdata = usePersistedSectionSelector('stamdata');
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
   const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');

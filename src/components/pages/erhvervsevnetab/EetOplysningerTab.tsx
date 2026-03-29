@@ -20,10 +20,11 @@ import {
   validatePercentDivisibleBy5FromValue,
 } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import AarsloenAmountFieldRow from '../../inputs/AarsloenAmountFieldRow';
+import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 
 export type EetOplysningerTabProps = {
   values: ErhvervsevnetabComposedValues;
-  setValues: React.Dispatch<React.SetStateAction<ErhvervsevnetabValues>>;
+  setValues: SetValuesUpdater<ErhvervsevnetabValues>;
   handleChange: <K extends keyof ErhvervsevnetabValues>(
     key: K
   ) => CommitHandler<ErhvervsevnetabValues[K]>;

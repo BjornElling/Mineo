@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { UseRowDraftsResult } from '../../rowDrafts/useRowDrafts';
 import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
 import type { ErstatningsopgoerelseValues, OevrigeKravRow } from '../../schemas/formSchemas';
+import { type SetValuesUpdater } from '../../hooks/usePersistedForm';
 import { isOevrigeKravRowEmpty } from '../../domain/erstatningsopgoerelse/rowEmpty';
 import type { OevrigeKravDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
 import {
@@ -14,7 +15,7 @@ import {
 
 export type UseOevrigeKravRowsArgs = Readonly<{
   values: ErstatningsopgoerelseValues;
-  setValues: React.Dispatch<React.SetStateAction<ErstatningsopgoerelseValues>>;
+  setValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
   resyncToken: unknown;
 }>;
 

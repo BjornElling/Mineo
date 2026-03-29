@@ -5,8 +5,9 @@ import { useFormPersistence } from '../contexts/useFormPersistence';
 /**
  * Selector-style hook for a single persisted section.
  *
- * Returns the exact persisted section reference for the given key.
- * Intended to keep consumers aligned to per-section changes only.
+ * @deprecated Brug usePersistedSectionSelector fra hooks/useFormPersistenceSelectors i stedet.
+ * Denne hook går via React context og re-rendrer ved enhver store-ændring.
+ * usePersistedSectionSelector er kanonisk og re-rendrer kun ved ændringer i den specifikke sektion.
  */
 export const usePersistedSection = <K extends StorageKey>(pageKey: K): PersistedSectionMap[K] | null => {
   const { getPersistedData } = useFormPersistence();

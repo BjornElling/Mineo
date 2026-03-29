@@ -8,7 +8,7 @@ import { createCommitEvent } from '../../types/fieldEvents';
 import ContentBox from '../layout/ContentBox';
 import { dateRanges_forsoergertab, dateRanges_skadelidteFodselsdato } from '../../config/dateRanges';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
-import { usePersistedSection } from '../../hooks/usePersistedSection';
+import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
 import { useFormFieldErrorReporter, useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import { useAslAarsloenRuleReporter } from '../../hooks/useAslAarsloenRuleReporter';
 import { faellesAarsloenSchema, faellesPersondataSchema, forsoergertabSchema, koenEnum } from '../../schemas/formSchemas';
@@ -42,7 +42,7 @@ const Forsoergertab = React.memo(() => {
     'faellesPersondata',
     FAELLES_PERSONDATA_INITIAL_VALUES
   );
-  const stamdata = usePersistedSection('stamdata');
+  const stamdata = usePersistedSectionSelector('stamdata');
   const { settings } = useAppSettings();
 
   const forsoergertabFieldErrors = useFormFieldErrors('forsoergertab');

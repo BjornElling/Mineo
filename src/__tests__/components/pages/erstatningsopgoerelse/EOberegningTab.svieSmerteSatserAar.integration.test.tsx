@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { type SetValuesUpdater } from '../../../../../hooks/usePersistedForm';
 
 import EOberegningTab from '../../../../components/pages/erstatningsopgoerelse/EOberegningTab';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
@@ -34,7 +35,7 @@ describe('EOberegningTab svie/smerte sats-aar integration', () => {
               eoSnapshot={null}
               stamdataValues={STAMDATA_INITIAL_VALUES}
               eoValues={eoValues}
-              setEOValues={vi.fn() as React.Dispatch<React.SetStateAction<typeof eoValues>>}
+              setEOValues={vi.fn() as SetValuesUpdater<typeof eoValues>}
             />
           </FormPersistenceProvider>
         </AppSettingsProvider>

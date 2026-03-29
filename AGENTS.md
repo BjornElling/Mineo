@@ -158,6 +158,11 @@ Effects that synchronize props to state must never overwrite already committed u
 - Successful no-issue load must satisfy strict save->load round-trip for user input.
 - Persist only user-entered/chosen data; recompute derived values after load.
 
+## Kanoniske hooks for persistence-adgang
+- Brug `usePersistedSectionSelector(pageKey)` fra `src/hooks/useFormPersistenceSelectors.ts` til read-only adgang til en persisted sektion. Denne hook bruger `useSyncExternalStore` direkte på storen og re-rendrer kun ved ændringer i den specifikke sektion.
+- `usePersistedSection` er deprecated — brug ikke den i ny kode.
+- Brug `usePersistedForm(schema, pageKey, initialValues)` til sider der har write-adgang til en sektion.
+
 ## Convergence and exceptions
 - Solve similar problems with shared patterns.
 - Avoid competing implementations for the same concern.

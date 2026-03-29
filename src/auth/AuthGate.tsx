@@ -11,6 +11,10 @@ const AuthGate = (): React.JSX.Element => {
       setAuthenticated(isAuthenticated());
     };
 
+    // 'storage'-events fyrer kun i andre browsertabs (per Web Storage spec) — ikke i
+    // den tab der skriver. Det er acceptabelt her: der er ingen logout-funktion, og
+    // sessionStorage er tab-isoleret. Eventet bruges udelukkende til at synkronisere
+    // auth-tilstand ved login i en anden tab.
     window.addEventListener('storage', handleStorage);
     return () => {
       window.removeEventListener('storage', handleStorage);

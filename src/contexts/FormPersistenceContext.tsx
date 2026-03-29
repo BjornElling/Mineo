@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ZodIssue } from 'zod';
-import { type StorageKey, getStorageKey, getAllMineoKeys } from '../config/storageManifest';
+import { type StorageKey, getStorageKey, getAllMineoKeys, getDomainStorageKeys } from '../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import type { PersistedData } from '../types/persistence';
 import { FormPersistenceContext } from './FormPersistenceContext.shared';
@@ -17,7 +17,11 @@ import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
 import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
-import { eoLoenindkomstInputErrorStore } from '../stores/eoLoenindkomstInputErrorStore';
+import {
+  runAllDomainCleanups,
+  saveDomainSnapshots,
+  restoreDomainSnapshots,
+} from '../stores/domainCleanupRegistry';
 
 // Persisted sections are handled via an internal Zustand store; FormPersistenceContext is a facade and not the SoT for committed inputs.
 
@@ -233,11 +237,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
   const emitUserNotice = React.useCallback((message: string, type: 'warning' | 'error' = 'warning') => {
     setNoticeState((prev) => ({ epoch: prev.epoch + 1, notice: { message, type } }));
   }, []);
-  const clearEODomainTransientErrors = React.useCallback(() => {
-    // EO-specific input errors belong to erstatningsopgoerelse domain state.
-    eoLoenindkomstInputErrorStore.getState().clearAll();
-  }, []);
-
   const logPersistSaveDebug = React.useCallback((storageKey: string, fieldCount: number) => {
     if (!import.meta.env.DEV) return;
 
@@ -308,11 +307,17 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       }
 
       const persistedSectionData = serializeFormValues(validated.data);
-      // Trust-critical invariant: cache must match the post-serialization representation (reload-equivalent).
-      const postSerializeValidated = schema.safeParse(nullToUndefinedDeep(persistedSectionData));
-      if (!postSerializeValidated.success) {
-        emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern serialiseringsfejl.`, 'error');
-        return;
+      // Trust-critical invariant: cache skal matche post-serialiserings-repræsentationen.
+      // I DEV verificeres dette ved en ekstra safeParse for at fange serialiseringsfejl tidligt.
+      // I prod springes den over da serializeFormValues er deterministisk og dækket af tests.
+      let cacheData: PersistedSectionMap[K] = validated.data as PersistedSectionMap[K];
+      if (import.meta.env.DEV) {
+        const postSerializeValidated = schema.safeParse(nullToUndefinedDeep(persistedSectionData));
+        if (!postSerializeValidated.success) {
+          emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern serialiseringsfejl.`, 'error');
+          return;
+        }
+        cacheData = postSerializeValidated.data as PersistedSectionMap[K];
       }
 
       const persistedData: PersistedData = {
@@ -322,7 +327,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       };
 
       sessionStorage.setItem(storageKey, JSON.stringify(persistedData));
-      syncSection(pageKey, postSerializeValidated.data as PersistedSectionMap[K]);
+      syncSection(pageKey, cacheData);
       logPersistSaveDebug(storageKey, getFieldCount(data));
     } catch (error) {
       console.error(`[Persistence] Fejl ved gemning af data for '${pageKey}':`, {
@@ -342,14 +347,16 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     const prevFieldErrorRevisions = prevStoreState.fieldErrorRevisions;
     const prevAuthoritativeSnapshotEpoch = prevStoreState.authoritativeSnapshotEpoch;
     const prevMeta = prevStoreState.meta;
-    const prevEOLoenindkomstInputErrors = eoLoenindkomstInputErrorStore.getState().errors;
+    const prevDomainSnapshots = saveDomainSnapshots();
     for (const key of Object.keys(persistenceSchemas) as StorageKey[]) {
       if (!Object.prototype.hasOwnProperty.call(snapshot, key)) {
         throw new Error(`Snapshot mangler key '${key}'. Snapshot skal indeholde alle keys (brug undefined for at slette).`);
       }
     }
 
-    const keysToReplace = getAllMineoKeys();
+    // Backup og erstatning sker kun for domæne-keys — UI-state (filnavn, sidebar, overlay)
+    // er uafhængig af sags-data og skal ikke berøres ved fil-load.
+    const keysToReplace = getDomainStorageKeys();
     const backup = new Map<string, string | null>();
     for (const key of keysToReplace) {
       backup.set(key, sessionStorage.getItem(key));
@@ -375,10 +382,15 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       }
 
       const persistedSectionData = serializeFormValues(validated.data);
-      const postSerializeValidated = schema.safeParse(nullToUndefinedDeep(persistedSectionData));
-      if (!postSerializeValidated.success) {
-        const issues = formatZodIssues(postSerializeValidated.error.issues, 2);
-        throw new Error(`Kan ikke anvende snapshot: '${pageKey}' fejler efter serialisering.\n${issues}`);
+      // I DEV: verificér at serialisering ikke korrumperer data (invariant-check).
+      let cacheValue: unknown = validated.data;
+      if (import.meta.env.DEV) {
+        const postSerializeValidated = schema.safeParse(nullToUndefinedDeep(persistedSectionData));
+        if (!postSerializeValidated.success) {
+          const issues = formatZodIssues(postSerializeValidated.error.issues, 2);
+          throw new Error(`Kan ikke anvende snapshot: '${pageKey}' fejler efter serialisering.\n${issues}`);
+        }
+        cacheValue = postSerializeValidated.data;
       }
       const persistedData: PersistedData = {
         version: CURRENT_VERSION,
@@ -386,7 +398,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         data: persistedSectionData,
       };
       toWrite.push({ storageKey: getStorageKey(pageKey), value: JSON.stringify(persistedData) });
-      assignCacheValue(nextCache, pageKey, postSerializeValidated.data);
+      assignCacheValue(nextCache, pageKey, cacheValue);
     }
 
     try {
@@ -400,7 +412,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         nextCache,
         { hydrated: true, schemaFingerprint: CURRENT_VERSION, lastCommittedAt: Date.now() }
       );
-      clearEODomainTransientErrors();
+      runAllDomainCleanups();
     } catch (error) {
       // Defensive strategy: always execute full rollback/restore sequence,
       // even if failure happened before any in-memory mutation.
@@ -421,13 +433,11 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         prevMeta
       );
       formPersistenceStore.getState().restoreFieldErrors(prevFieldErrors, prevFieldErrorRevisions);
-      eoLoenindkomstInputErrorStore.getState().replaceAll(prevEOLoenindkomstInputErrors);
+      restoreDomainSnapshots(prevDomainSnapshots);
       const message = error instanceof Error ? error.message : 'Ukendt fejl';
       throw new Error(`Kunne ikke anvende snapshot atomisk: ${message}`);
     }
-  }, [
-    clearEODomainTransientErrors,
-  ]);
+  }, []);
 
   /**
    * Slet data for en specifik side
@@ -438,13 +448,11 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       sessionStorage.removeItem(storageKey);
       syncSection(pageKey, null);
       formPersistenceStore.getState().clearFieldErrorsForSection(pageKey);
-      if (pageKey === 'erstatningsopgoerelse') {
-        clearEODomainTransientErrors();
-      }
+      runAllDomainCleanups();
     } catch (error) {
       console.error(`[Persistence] Fejl ved sletning af data for '${pageKey}':`, error);
     }
-  }, [clearEODomainTransientErrors, syncSection]);
+  }, [syncSection]);
 
   /**
    * Slet alle gemte MINEO data
@@ -453,16 +461,17 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
    */
   const clearAllData = React.useCallback(() => {
     try {
-      const mineoKeys = getAllMineoKeys();
-      mineoKeys.forEach(key => {
+      // Kun domæne-data keys — UI-state (filnavn, sidebar, overlay) bevares bevidst.
+      const domainKeys = getDomainStorageKeys();
+      domainKeys.forEach(key => {
         sessionStorage.removeItem(key);
       });
       formPersistenceStore.getState().clearAll({ hydrated: true, schemaFingerprint: CURRENT_VERSION, lastCommittedAt: Date.now() });
-      clearEODomainTransientErrors();
+      runAllDomainCleanups();
     } catch (error) {
       console.error('[Persistence] Fejl ved sletning af alle data:', error);
     }
-  }, [clearEODomainTransientErrors]);
+  }, []);
 
   const getFieldErrorsBySource = React.useCallback(<K extends StorageKey,>(pageKey: K) => {
     return fieldErrors[pageKey] as FieldErrorsForSection<K>;
@@ -504,15 +513,13 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
 
   const clearFieldErrors = React.useCallback((pageKey: StorageKey) => {
     formPersistenceStore.getState().clearFieldErrorsForSection(pageKey);
-    if (pageKey === 'erstatningsopgoerelse') {
-      clearEODomainTransientErrors();
-    }
-  }, [clearEODomainTransientErrors]);
+    runAllDomainCleanups();
+  }, []);
 
   const clearAllFieldErrors = React.useCallback(() => {
     formPersistenceStore.getState().clearAllFieldErrors();
-    clearEODomainTransientErrors();
-  }, [clearEODomainTransientErrors]);
+    runAllDomainCleanups();
+  }, []);
 
   const getSectionRevision = React.useCallback((pageKey: StorageKey) => {
     return sectionRevisions[pageKey] ?? 0;

@@ -20,9 +20,9 @@ import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import BatchReviewPanel from '../../devtools/batchReview/ui/BatchReviewPanel';
 
 /**
- * Test-side til afprøvning af styled-komponenter
+ * Debug-tab til afprøvning af styled-komponenter og devtools (kun synlig i dev-mode).
  */
-const Test = React.memo(() => {
+const StamdataDebugTab = React.memo(() => {
   // Lokale state-værdier til test af komponenterne
   const [textValue, setTextValue] = React.useState('');
   const [dateValue, setDateValue] = React.useState<ISODateString | undefined>(undefined);
@@ -314,6 +314,6 @@ const Test = React.memo(() => {
   );
 });
 
-Test.displayName = 'Test';
+StamdataDebugTab.displayName = 'StamdataDebugTab';
 
-export default Test;
+export default StamdataDebugTab;

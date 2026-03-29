@@ -27,6 +27,7 @@ import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse
 import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
 import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/eoSnapshotInvariants';
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
+import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 
 type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
 
@@ -37,7 +38,7 @@ interface EOberegningTabProps {
   eoSnapshot?: EoSnapshot | null;
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
-  setEOValues: React.Dispatch<React.SetStateAction<ErstatningsopgoerelseValues>>;
+  setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
 }
 
 type SystemIssueRow = Readonly<{

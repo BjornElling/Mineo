@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { UseRowDraftsResult } from '../../rowDrafts/useRowDrafts';
 import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
 import type { ErstatningsopgoerelseValues, TafPeriodeRow } from '../../schemas/formSchemas';
+import { type SetValuesUpdater } from '../../hooks/usePersistedForm';
 import { isTafRowEmpty } from '../../domain/erstatningsopgoerelse/rowEmpty';
 import type { TafDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
 import {
@@ -15,7 +16,7 @@ import { detectOverlappingPeriods } from '../../domain/erstatningsopgoerelse/per
 
 export type UseTafRowsArgs = Readonly<{
   values: ErstatningsopgoerelseValues;
-  setValues: React.Dispatch<React.SetStateAction<ErstatningsopgoerelseValues>>;
+  setValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
   resyncToken: unknown;
 }>;
 
