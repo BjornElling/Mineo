@@ -231,6 +231,80 @@ describe('computeSygeferiegodtgoerelse', () => {
     expect(result.perAnsaettelsesforhold[0]?.segments[0]?.beregnetSfggoereOre).toBe(4318);
   });
 
+  it('ignorerer stale referenceperiodefelter når SFGG beregnes manuelt', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment()];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2020-01-01'),
+      sfggReferenceperiodeTil: iso('2020-12-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 200,
+      sfggSatsvalg: 'Faglaert-Koebenhavn',
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+    });
+
+    expect(result.perAnsaettelsesforhold[0]?.segments[0]?.feriepengekravOre).toBe(10000);
+    expect(result.perAnsaettelsesforhold[0]?.segments[0]?.beregnetSfggoereOre).toBe(10000);
+    expect(result.perAnsaettelsesforhold[0]?.sfggReferenceperiode).toBeNull();
+  });
+
+  it('ignorerer stale manuelle felter når SFGG beregnes efter Ferieloven', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      feriePct: 12.5,
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-jan-2024',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '',
+        col1_dag: '',
+        col2: asAmount(10000),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    })];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Ferieloven',
+      sfggManuelDagssats: asAmount(9999),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Ja',
+      sfggReferenceperiodeFra: iso('2024-01-01'),
+      sfggReferenceperiodeTil: iso('2024-01-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: 'Faglaert-Koebenhavn',
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
+    });
+
+    expect(result.perAnsaettelsesforhold[0]?.sfggReferencesats.status).toBe('ok');
+    if (result.perAnsaettelsesforhold[0]?.sfggReferencesats.status !== 'ok') {
+      throw new Error('ReferenceSats forventedes beregnelig');
+    }
+    expect(result.perAnsaettelsesforhold[0].sfggReferencesats.value).toBe(5682);
+  });
+
   it('medregner AG-pension i feriepengekravet uden at pensionsbidrag tælles med to gange', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.eoNummer = '2';

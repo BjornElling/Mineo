@@ -184,4 +184,20 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
     expect(maanederRow?.label).toBe('Beregningsperiode: 12 - 0,048 måneder (1 fraværsdage uden løn x 4,8 % måned) =');
     expect(maanederRow?.displayValue).toBe('11,952 måneder');
   });
+
+  it('ignorerer stale fraværsbeskrivelse i månedsrækken når Øvrigt fravær uden løn er Nej', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: '2024-01-01',
+      periodeTilBeregningTil: '2024-12-31',
+      oevrigtFravaerUdenLoen: 'Nej',
+      oevrigeFravaersdage: 1,
+      oevrigeFravaersdageBeskrivelse: 'orlov',
+    });
+
+    const rows = buildEODebugTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
+    const maanederRow = rows.find((row) => row.id === 'taf.beregningsgrundlag.maaneder');
+
+    expect(maanederRow?.label).not.toContain('orlov');
+  });
 });

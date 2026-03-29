@@ -1,4 +1,4 @@
-import { logError, logWarning } from './logger';
+import { getTimestamp, logError, logWarning } from './logger';
 
 export type SystemIssueSeverity = 'error' | 'warning';
 
@@ -63,7 +63,7 @@ export const createSystemIssueEnvelope = (
     severity: input.severity ?? 'error',
     context: input.context,
     route: getRoute(),
-    timestamp: new Date().toISOString(),
+    timestamp: getTimestamp(),
     userMessage: input.userMessage,
     developerMessage: input.developerMessage,
     revision: input.revision,

@@ -17,6 +17,7 @@ import StyledYearField from '../inputs/StyledYearField';
 import ContentBox from '../layout/ContentBox';
 import { markDevtoolsTestScenario } from '../../utils/devtoolsMonitor';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
+import BatchReviewPanel from '../../devtools/batchReview/ui/BatchReviewPanel';
 
 /**
  * Test-side til afprøvning af styled-komponenter
@@ -298,6 +299,16 @@ const Test = React.memo(() => {
             </Button>
           </Box>
         </Box>
+      </ContentBox>
+
+      <ContentBox className="content-box">
+        <Typography className="section-header">Batch-review</Typography>
+        <Typography className="row--text" sx={{ marginBottom: 2 }}>
+          Genererer et langt PDF-dokument med systematisk gennemgang af beregningsoutput på tværs af mange scenarier.
+          Vælg output-track (PDF-dokument eller Fejl og advarsler) og profil (antal scenarier), og klik Start.
+          PDF'en downloades automatisk når alle scenarier er behandlet.
+        </Typography>
+        <BatchReviewPanel />
       </ContentBox>
     </Box>
   );

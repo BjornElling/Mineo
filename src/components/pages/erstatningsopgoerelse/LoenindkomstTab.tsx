@@ -110,6 +110,8 @@ type Props = {
 
 type Ansaettelsesforhold =
   ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
+type SfggAnsaettelsesforholdRow =
+  ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number];
 
 const MAX_ANSAETTELSESFORHOLD = 10;
 
@@ -119,6 +121,74 @@ const normalizeOptionalFreeText = (value: string | undefined): string | undefine
   const asString = typeof value === 'string' ? value : '';
   const trimmed = asString.trim();
   return trimmed === '' ? undefined : trimmed;
+};
+
+export const applyAnsaettelsesforholdToggleCleanup = (
+  prev: Ansaettelsesforhold,
+  field: 'harOverenskomst' | 'ansatPaaSkadestidspunktet' | 'ansaettelsesforholdOphoert' | 'harAnciennitetstillaegEfterSkadesdatoen',
+  nextValue: boolean,
+  defaultOverenskomstFilter: Ansaettelsesforhold['overenskomstFilter']
+): Ansaettelsesforhold => {
+  const next: Ansaettelsesforhold = { ...prev, [field]: nextValue };
+
+  if (field === 'harOverenskomst' && !nextValue) {
+    next.overenskomstId = undefined;
+    next.overenskomstFilter = defaultOverenskomstFilter;
+  }
+
+  if (field === 'ansatPaaSkadestidspunktet' && !nextValue) {
+    next.ansaettelsesforholdOphoert = false;
+    next.sidsteArbejdsdag = undefined;
+  }
+
+  if (field === 'ansaettelsesforholdOphoert' && !nextValue) {
+    next.sidsteArbejdsdag = undefined;
+  }
+
+  if (field === 'harAnciennitetstillaegEfterSkadesdatoen' && !nextValue) {
+    next.anciennitetstillaegDato = DEFAULT_ANCIENNITET_FIELDS.anciennitetstillaegDato;
+    next.anciennitetstillaegSatsAngivesPer = DEFAULT_ANCIENNITET_FIELDS.anciennitetstillaegSatsAngivesPer;
+    next.anciennitetstillaegSats = DEFAULT_ANCIENNITET_FIELDS.anciennitetstillaegSats;
+  }
+
+  return next;
+};
+
+export const sanitizeSfggRowForBeregningskilde = (
+  current: SfggAnsaettelsesforholdRow,
+  nextBeregningskilde: SfggAnsaettelsesforholdRow['sfggBeregningskilde'],
+  visibility: Readonly<{
+    showReferenceperiodeFields: boolean;
+    showManualFields: boolean;
+    showSatsvalgField: boolean;
+  }>
+): SfggAnsaettelsesforholdRow => {
+  // Visibility-flags kommer bevidst fra kaldsstedet. Cleanup skal følge præcis den samme
+  // policy-/renderlogik som UI'et bruger for den kommende tilstand, så skjulte felter ryddes
+  // uden at denne helper selv duplikerer policy-opslag. Ved ændringer i SFGG-visibility skal
+  // kaldsstedets beregning af disse flags opdateres samtidig.
+  const next: SfggAnsaettelsesforholdRow = {
+    ...current,
+    sfggBeregningskilde: nextBeregningskilde,
+  };
+
+  if (!visibility.showReferenceperiodeFields) {
+    next.sfggReferenceperiodeFra = undefined;
+    next.sfggReferenceperiodeTil = undefined;
+    next.sfggReferenceperiodeFravaersdageUdenLoen = 0;
+  }
+
+  if (!visibility.showManualFields) {
+    next.sfggManuelDagssats = undefined;
+    next.sfggManuelBeloebIHenholdTil = undefined;
+    next.sfggManuelFoerstEfterSygeloen = 'Nej';
+  }
+
+  if (!visibility.showSatsvalgField) {
+    next.sfggSatsvalg = undefined;
+  }
+
+  return next;
 };
 
 const updateSfggAnsaettelsesforholdRow = (
@@ -1098,9 +1168,12 @@ const LoenindkomstTab = React.memo(({
       >
     ): CommitHandler<boolean> =>
       (event: CommitEvent<boolean>) => {
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, [field]: event.target.value }));
+        const defaultOverenskomstFilter = resolveDefaultOverenskomstFilter(settings);
+        updateAnsaettelsesforhold(id, (prev) =>
+          applyAnsaettelsesforholdToggleCleanup(prev, field, event.target.value, defaultOverenskomstFilter)
+        );
       },
-    [updateAnsaettelsesforhold]
+    [settings, updateAnsaettelsesforhold]
   );
 
   const handleOverenskomstChange = React.useCallback(
@@ -2493,13 +2566,43 @@ const LoenindkomstTab = React.memo(({
                       allowEmpty={true}
                       onChange={(event: StyledDropdownChangeEvent<string | undefined>) => {
                         const nextValue = event.target.value;
-                        updateSfggAnsaettelsesforhold(af.id, (current) => ({
-                          ...current,
-                          sfggBeregningskilde:
-                            nextValue === 'Overenskomst' || nextValue === 'Manuelt angivet' || nextValue === 'Ferieloven' || nextValue === 'Ingen'
-                              ? nextValue
-                              : undefined,
-                        }));
+                        const nextBeregningskilde =
+                          nextValue === 'Overenskomst' || nextValue === 'Manuelt angivet' || nextValue === 'Ferieloven' || nextValue === 'Ingen'
+                            ? nextValue
+                            : undefined;
+                        const nextSourceKind =
+                          nextBeregningskilde === 'Ingen' || nextBeregningskilde === undefined
+                            ? 'ingen'
+                            : nextBeregningskilde === 'Manuelt angivet'
+                              ? 'manuel'
+                              : nextBeregningskilde === 'Ferieloven'
+                                ? 'ferielov'
+                                : !af.harOverenskomst || !af.overenskomstId || getOffentligOverenskomstTypeById(af.overenskomstId)
+                                  ? 'overenskomst_ferielov'
+                                  : sfggPolicy?.model === 'direkte_sats'
+                                    ? 'overenskomst_direkte'
+                                    : 'overenskomst_ferielov';
+                        const showReferenceperiodeFields =
+                          nextBeregningskilde === 'Ferieloven'
+                          || (
+                            nextBeregningskilde === 'Overenskomst'
+                            && nextSourceKind === 'overenskomst_ferielov'
+                          );
+                        const showManualFields = nextBeregningskilde === 'Manuelt angivet';
+                        const showSatsvalgField =
+                          nextBeregningskilde === 'Overenskomst'
+                          && nextSourceKind === 'overenskomst_direkte'
+                          && sfggPolicy?.direkteSatsErDifferentieret === true;
+
+                        updateSfggAnsaettelsesforhold(af.id, (current) => sanitizeSfggRowForBeregningskilde(
+                          current,
+                          nextBeregningskilde,
+                          {
+                            showReferenceperiodeFields,
+                            showManualFields,
+                            showSatsvalgField,
+                          }
+                        ));
                       }}
                     >
                       <MenuItem value="Overenskomst">Overenskomst</MenuItem>

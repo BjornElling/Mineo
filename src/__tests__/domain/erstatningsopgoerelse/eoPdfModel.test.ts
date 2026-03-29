@@ -1986,6 +1986,59 @@ describe('eoPdfModel', () => {
     expect(indkomst?.beregningsgrundlagMellemregningLabel).toContain('1 fraværsdag pga. orlov uden løn x 4,8 % måned');
   });
 
+  it('ignorerer stale fraværsbeskrivelse når øvrigt fravær uden løn er Nej', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      periodeTilBeregningFra: iso('2021-03-01'),
+      periodeTilBeregningTil: iso('2022-02-28'),
+      oevrigtFravaerUdenLoen: 'Nej',
+      oevrigeFravaersdage: 1,
+      oevrigeFravaersdageBeskrivelse: 'orlov',
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-1',
+          fraDato: '01-01-2024',
+          tilDato: '01-01-2024',
+          ydelse: asAmountValue(1),
+          tillaeg: asAmountValue(0),
+          ydelsestype: 'Sygedagpenge',
+        },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          fuldLoenUnderFerie: 'Ja',
+          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'r1',
+              col0_maaned: '3',
+              col1_maaned: '2021',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: asAmountValue(10000),
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
+
+    expect(indkomst?.beregningsgrundlagMellemregningLabel).not.toContain('orlov');
+  });
+
   it('viser arbejdsdage-mellemregning med feriedage inkl. løse feriedage', () => {
     const periodeFra = iso('2024-01-01');
     const periodeTil = iso('2024-01-10');

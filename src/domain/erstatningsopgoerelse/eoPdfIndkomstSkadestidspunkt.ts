@@ -192,7 +192,10 @@ export const buildIndkomstSkadestidspunkt = (
           beregningsgrundlagMellemregningLabel = `I perioden var der ${formatMaaneder(totalMaaneder)} ${maanedsOrd}.`;
           beregningsgrundlagMellemregningResultat = null;
         } else {
-          const fravaerBeskrivelse = values.oevrigeFravaersdageBeskrivelse?.trim();
+          const fravaerBeskrivelse =
+            values.oevrigtFravaerUdenLoen === 'Ja'
+              ? values.oevrigeFravaersdageBeskrivelse?.trim()
+              : '';
           const fravaersdagOrd = dagOrd(oevrigeFravaersdageValue, 'fraværsdag', 'fraværsdage');
           const fravaerLabelTekst = fravaerBeskrivelse && fravaerBeskrivelse !== ''
             ? `${fravaersdagOrd} pga. ${fravaerBeskrivelse}`
@@ -279,4 +282,3 @@ export const buildIndkomstSkadestidspunkt = (
     beregningsgrundlagMellemregningResultat,
   };
 };
-

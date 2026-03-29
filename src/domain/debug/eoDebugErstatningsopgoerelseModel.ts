@@ -2278,7 +2278,10 @@ export const buildEODebugTafBeregningsgrundlagRows = (
       return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
     };
 
-    const fravaerBeskrivelse = values.oevrigeFravaersdageBeskrivelse?.trim();
+    const fravaerBeskrivelse =
+      values.oevrigtFravaerUdenLoen === 'Ja'
+        ? values.oevrigeFravaersdageBeskrivelse?.trim()
+        : '';
     const fravaerLabelTekst = fravaerBeskrivelse && fravaerBeskrivelse !== ''
       ? `fraværsdage pga. ${fravaerBeskrivelse}`
       : 'fraværsdage';

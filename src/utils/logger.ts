@@ -37,7 +37,7 @@ export const sanitizeFilenameForLog = (filename: unknown): string => {
 /**
  * Formaterer timestamp til ISO string
  */
-const getTimestamp = (): string => {
+export const getTimestamp = (): string => {
   return new Date().toISOString();
 };
 
