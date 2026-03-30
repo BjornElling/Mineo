@@ -19,6 +19,11 @@ registerDomainCleanup('eo-loenindkomst-input-errors', () => {
 registerDomainRollbackHooks('eo-loenindkomst-input-errors', {
   save: () => eoLoenindkomstInputErrorStore.getState().errors,
   restore: (snapshot) => {
+    if (typeof snapshot !== 'object' || snapshot === null || Array.isArray(snapshot)) {
+      console.error('[eoCleanupRegistration] Ugyldigt rollback-snapshot:', snapshot);
+      eoLoenindkomstInputErrorStore.getState().clearAll();
+      return;
+    }
     eoLoenindkomstInputErrorStore.getState().replaceAll(snapshot as Readonly<Record<string, true>>);
   },
 });

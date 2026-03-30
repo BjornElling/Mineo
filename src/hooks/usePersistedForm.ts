@@ -19,17 +19,8 @@ export interface UsePersistedFormReturn<T> {
   /**
    * Felt-commit via funktionel updater (prev => next). Bumper ikke formVersion.
    * Brug til normale per-felt commits (identisk med handleChange-semantik).
-   *
-   * Til autoritative replacements (reset, migration, ekstern data-injektion):
-   * brug replaceValues(next) i stedet.
    */
-  setValues: (updater: (prev: T) => T) => void;
-  /**
-   * Autoritative replace af alle formularværdier.
-   * Bumper formVersion og rydder field errors — signalerer til consumers at alle
-   * afledte visninger skal re-evalueres fra bunden.
-   */
-  replaceValues: (next: T) => void;
+  setValues: SetValuesUpdater<T>;
   handleChange: <K extends keyof T>(fieldName: K) => CommitHandler<T[K]>;
   resetForm: () => void;
   /**
@@ -154,18 +145,6 @@ export const usePersistedForm = <K extends StorageKey>(
     [pageKey]
   );
 
-  // Autoritative replace: bumper formVersion og rydder field errors.
-  const replaceValues = React.useCallback(
-    (next: PersistedSectionMap[K]) => {
-      bumpFormVersion();
-      clearFieldErrorsRef.current(pageKey);
-      valuesRef.current = next;
-      setValuesState(next);
-      persistDataRef.current(pageKey, next);
-    },
-    [pageKey]
-  );
-
   /**
    * Håndterer feltændringer med type-aware konvertering
    *
@@ -185,17 +164,21 @@ export const usePersistedForm = <K extends StorageKey>(
   /**
    * Nulstiller formular til initialValues OG sletter gemt data fra storage.
    * Dette er en destruktiv operation - data kan ikke gendannes.
+   *
+   * clearPageData håndterer: sessionStorage-sletning, cache-sync(null),
+   * clearFieldErrorsForSection og runAllDomainCleanups.
+   * Vi sætter kun lokal state + bumper formVersion her.
    */
   const resetForm = React.useCallback(() => {
-    replaceValues(initialValuesRef.current);
+    valuesRef.current = initialValuesRef.current;
+    setValuesState(initialValuesRef.current);
+    bumpFormVersion();
     clearPageDataRef.current(pageKey);
-    clearFieldErrorsRef.current(pageKey);
-  }, [pageKey, replaceValues]);
+  }, [pageKey]);
 
   return {
     values,
     setValues,
-    replaceValues,
     handleChange,
     resetForm,
     formVersion,

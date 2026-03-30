@@ -307,17 +307,11 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       }
 
       const persistedSectionData = serializeFormValues(validated.data);
-      // Trust-critical invariant: cache skal matche post-serialiserings-repræsentationen.
-      // I DEV verificeres dette ved en ekstra safeParse for at fange serialiseringsfejl tidligt.
-      // I prod springes den over da serializeFormValues er deterministisk og dækket af tests.
-      let cacheData: PersistedSectionMap[K] = validated.data as PersistedSectionMap[K];
-      if (import.meta.env.DEV) {
-        const postSerializeValidated = schema.safeParse(nullToUndefinedDeep(persistedSectionData));
-        if (!postSerializeValidated.success) {
-          emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern serialiseringsfejl.`, 'error');
-          return;
-        }
-        cacheData = postSerializeValidated.data as PersistedSectionMap[K];
+      // Trust-critical invariant: cache must match the post-serialization representation (reload-equivalent).
+      const postSerializeValidated = schema.safeParse(nullToUndefinedDeep(persistedSectionData));
+      if (!postSerializeValidated.success) {
+        emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern serialiseringsfejl.`, 'error');
+        return;
       }
 
       const persistedData: PersistedData = {
@@ -327,7 +321,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       };
 
       sessionStorage.setItem(storageKey, JSON.stringify(persistedData));
-      syncSection(pageKey, cacheData);
+      syncSection(pageKey, postSerializeValidated.data as PersistedSectionMap[K]);
       logPersistSaveDebug(storageKey, getFieldCount(data));
     } catch (error) {
       console.error(`[Persistence] Fejl ved gemning af data for '${pageKey}':`, {
@@ -382,15 +376,11 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       }
 
       const persistedSectionData = serializeFormValues(validated.data);
-      // I DEV: verificér at serialisering ikke korrumperer data (invariant-check).
-      let cacheValue: unknown = validated.data;
-      if (import.meta.env.DEV) {
-        const postSerializeValidated = schema.safeParse(nullToUndefinedDeep(persistedSectionData));
-        if (!postSerializeValidated.success) {
-          const issues = formatZodIssues(postSerializeValidated.error.issues, 2);
-          throw new Error(`Kan ikke anvende snapshot: '${pageKey}' fejler efter serialisering.\n${issues}`);
-        }
-        cacheValue = postSerializeValidated.data;
+      // Trust-critical invariant: cache must match the post-serialization representation.
+      const postSerializeValidated = schema.safeParse(nullToUndefinedDeep(persistedSectionData));
+      if (!postSerializeValidated.success) {
+        const issues = formatZodIssues(postSerializeValidated.error.issues, 2);
+        throw new Error(`Kan ikke anvende snapshot: '${pageKey}' fejler efter serialisering.\n${issues}`);
       }
       const persistedData: PersistedData = {
         version: CURRENT_VERSION,
@@ -398,7 +388,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         data: persistedSectionData,
       };
       toWrite.push({ storageKey: getStorageKey(pageKey), value: JSON.stringify(persistedData) });
-      assignCacheValue(nextCache, pageKey, cacheValue);
+      assignCacheValue(nextCache, pageKey, postSerializeValidated.data);
     }
 
     try {

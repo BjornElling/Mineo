@@ -43,6 +43,9 @@ export const registerDomainRollbackHooks = (id: string, hooks: RollbackHooks): v
 
 /** Kør alle registrerede cleanup-hooks. Bruges ved clearAllData, clearAllFieldErrors og clearPageData. */
 export const runAllDomainCleanups = (): void => {
+  if (import.meta.env.DEV && cleanupHooks.size === 0) {
+    console.warn('[domainCleanupRegistry] runAllDomainCleanups kaldt men ingen hooks er registreret. Er side-effect importen i App.tsx kørt?');
+  }
   for (const fn of cleanupHooks.values()) {
     fn();
   }
@@ -60,9 +63,8 @@ export const saveDomainSnapshots = (): Map<string, unknown> => {
 /** Gendan domæne-state fra snapshots. Bruges ved rollback i replaceAllPersistedData. */
 export const restoreDomainSnapshots = (snapshots: Map<string, unknown>): void => {
   for (const [id, hooks] of rollbackHooks.entries()) {
-    const snapshot = snapshots.get(id);
-    if (snapshot !== undefined) {
-      hooks.restore(snapshot);
+    if (snapshots.has(id)) {
+      hooks.restore(snapshots.get(id));
     }
   }
 };
