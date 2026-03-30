@@ -10,6 +10,7 @@ vi.mock('../../../utils/logger', () => ({
   logError: vi.fn(),
   logWarning: vi.fn(),
   logInfo: vi.fn(),
+  getTimestamp: vi.fn(() => '2024-01-01T00:00:00.000Z'),
 }));
 
 // ─── Mocks til loadXxxPdfModule-funktionerne ──────────────────────────────────

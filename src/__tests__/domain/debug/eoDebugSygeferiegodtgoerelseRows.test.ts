@@ -39,6 +39,9 @@ const buildRows = (
   if (snapshotValues.beregnesUdFra === 'Angivet månedsløn' && snapshotValues.maanedsloenenUdgoer === undefined) {
     snapshotValues.maanedsloenenUdgoer = { kind: 'number', value: 10000 };
   }
+  if (snapshotValues.beregnesUdFra === 'Angivet dagsløn' || snapshotValues.beregnesUdFra === 'Angivet månedsløn') {
+    snapshotValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag ??= 'Ingen';
+  }
   if ((snapshotValues.tafPerioder?.length ?? 0) === 0) {
     snapshotValues.tafPerioder = [{
       id: 'taf-1',
@@ -183,7 +186,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it.skip('viser overenskomstens referenceperiode som separat debug-række ved overenskomstbaseret SFGG', () => {
+  it('viser overenskomstens referenceperiode som separat debug-række ved overenskomstbaseret SFGG', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -294,7 +297,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it.skip('viser ikke SH-dage i debug-label når referenceperioden opgøres på kalenderdage', () => {
+  it('viser ikke SH-dage i debug-label når referenceperioden opgøres på kalenderdage', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet månedsløn';
@@ -840,7 +843,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it.skip('viser kalenderdage i referencesatsen når referenceperiode-sporet bruges og TAF beregnes som måneder', () => {
+  it('viser kalenderdage i referencesatsen når referenceperiode-sporet bruges og TAF beregnes som måneder', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet månedsløn';
@@ -904,7 +907,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it.skip('viser fortsat arbejdsdage i SFGG-tabellen for manuelt angivet dagssats selv når TAF beregnes som måneder', () => {
+  it('viser fortsat arbejdsdage i SFGG-tabellen for manuelt angivet dagssats selv når TAF beregnes som måneder', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet månedsløn';
@@ -949,10 +952,10 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     );
     const tableRow = rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`);
     expect(tableRow?.displayValue).toContain('Fra-dato | Til-dato | Feriepenge-sats | AG-pension | Antal arbejdsdage | Feriepengekrav');
-    expect(tableRow?.displayValue).toContain('29-01-2024 | 02-02-2024 | 100,00 | 5 | 500,00');
+    expect(tableRow?.displayValue).toContain('29-01-2024 | 04-02-2024 | 100,00 | + 0 % | 5 | 500,00');
   });
 
-  it.skip('viser reguleringsindeks i SFGG-tabellen ved overenskomstbaseret referencesats og splitter ved reguleringsdato', () => {
+  it('viser reguleringsindeks i SFGG-tabellen ved overenskomstbaseret referencesats og splitter ved reguleringsdato', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -1238,7 +1241,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it.skip('viser SFGG-tabel for Transportoverenskomsten (ATL) ved direkte overenskomstsats', () => {
+  it('viser SFGG-tabel for Transportoverenskomsten (ATL) ved direkte overenskomstsats', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -1286,7 +1289,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it.skip('viser fejl når direkte overenskomstsats ikke kan fastsættes i TAF-perioden', () => {
+  it('viser fejl når direkte overenskomstsats ikke kan fastsættes i TAF-perioden', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -1342,7 +1345,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     expect(rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toBeUndefined();
   });
 
-  it.skip('gør dagssats-fejlen afhængig af satsvalg ved differentieret direkte overenskomstsats', () => {
+  it('gør dagssats-fejlen afhængig af satsvalg ved differentieret direkte overenskomstsats', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -1476,7 +1479,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     }
   });
 
-  it.skip('viser formel på feriepenge modtaget i perioden når der er lønindkomst i TAF-perioden', () => {
+  it('viser formel på feriepenge modtaget i perioden når der er lønindkomst i TAF-perioden', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -1532,7 +1535,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it.skip("clamp'er beregnet sygeferiegodtgørelse til 0 når fradragene overstiger feriepengekravet", () => {
+  it("clamp'er beregnet sygeferiegodtgørelse til 0 når fradragene overstiger feriepengekravet", () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -1590,7 +1593,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it.skip('viser sygeferiegodtgørelse fordelt på år pr. ansættelsesforhold til fejlsøgning af TAF pr. år', () => {
+  it('viser sygeferiegodtgørelse fordelt på år pr. ansættelsesforhold til fejlsøgning af TAF pr. år', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
