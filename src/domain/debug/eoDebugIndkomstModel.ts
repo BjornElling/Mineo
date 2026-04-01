@@ -13,7 +13,7 @@ import {
   getOffentligeYdelserRowFilledState,
   getOffentligeYdelserTableValidation,
   parseOffentligeYdelserCellKey,
-} from '../erstatningsopgoerelse/offentligeYdelserTableValidation';
+} from '../erstatningsopgoerelse/validation/offentligeYdelserTableValidation';
 import { ydelsestyper } from '../../data/ydelsestyper';
 import {
   getEffektiveSatserForDato,
@@ -23,14 +23,14 @@ import {
   getOffentligTillaegsSatserForDato,
 } from '../../data/overenskomstRates';
 import type { DebugStatus } from './eoDebugTypes';
-import { buildStandardLoenCellErrors, buildOffentligeYdelserCellErrors } from '../erstatningsopgoerelse/indkomstRowValidation';
+import { buildStandardLoenCellErrors, buildOffentligeYdelserCellErrors } from '../erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { StandardLoenTableColumnKey, OffentligeYdelserTableColumnKey } from '../../types/table';
 import type { Loenperiode } from '../../types/loen';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { buildStandardLoenZeroArbejdsdageIssues } from '../erstatningsopgoerelse/indkomstRowValidation';
+import { buildStandardLoenZeroArbejdsdageIssues } from '../erstatningsopgoerelse/validation/indkomstRowValidation';
 import { DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../settings/appSettingsSchema';
 import { resolveStandardLoenColumnLabel } from '../aarsloen/standardLoenTableColumns';
-import { resolveOffentligeYdelserColumnLabel } from '../erstatningsopgoerelse/offentligeYdelserTableColumns';
+import { resolveOffentligeYdelserColumnLabel } from '../erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 

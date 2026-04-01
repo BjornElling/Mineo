@@ -1,5 +1,5 @@
 import { toISODateString } from '../../../types/branded';
-import { calculateFerieHverdageMinusSHDage } from '../../../domain/erstatningsopgoerelse/ferieCalculations';
+import { calculateFerieHverdageMinusSHDage } from '../../../domain/erstatningsopgoerelse/engines/ferieCalculations';
 
 const iso = (value: string) => toISODateString(value);
 

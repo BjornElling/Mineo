@@ -3,8 +3,8 @@ import {
   buildOffentligeYdelserDebugRows,
   isLoenindkomstAnsaettelsesforholdEffectivelyEmpty,
 } from '../../../domain/debug/eoDebugIndkomstModel';
-import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { buildLoenindkomstZeroArbejdsdageMessage } from '../../../domain/erstatningsopgoerelse/indkomstRowValidation';
+import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { buildLoenindkomstZeroArbejdsdageMessage } from '../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 

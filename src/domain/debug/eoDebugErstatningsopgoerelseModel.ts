@@ -4,9 +4,9 @@ import type { ISODateString } from '../../types/branded';
 import { dateToISO, isISODateString, isoToDanish, parseISODate, subtractOneDay } from '../../types/branded';
 import { svieSmertePrDag, svieSmerteMax } from '../../data/lovbestemteRates';
 import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
-import { computeRowDateBounds } from '../erstatningsopgoerelse/rowDateBounds';
+import { computeRowDateBounds } from '../erstatningsopgoerelse/helpers/rowDateBounds';
 import { validateISODateRange } from '../../utils/isoDateHelpers';
-import { detectConflictingSvieSmerteOverlaps, detectOverlappingPeriods } from '../erstatningsopgoerelse/periodOverlapDetection';
+import { detectConflictingSvieSmerteOverlaps, detectOverlappingPeriods } from '../erstatningsopgoerelse/engines/periodOverlapDetection';
 import { formatAsAmount, formatCurrency, formatPercent } from '../../utils/formatUtils';
 import { addDays, addMonths, parseDanishDate } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
@@ -15,14 +15,14 @@ import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
 import { isoDateToDate } from '../dates/isoDate';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { roundByMethod } from '../../utils/rounding';
-import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/eoNummerValidering';
-import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
-import { calculateTafArbejdsdageBreakdown, calculateTafAntalMaaneder, calculateTafAntalMaanederPraecis } from '../erstatningsopgoerelse/tafCalculations';
-import { calculateFerieHverdageMinusSHDage } from '../erstatningsopgoerelse/ferieCalculations';
-import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/beregningsperiodeTafOverlap';
+import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { calculateTafArbejdsdageBreakdown, calculateTafAntalMaaneder, calculateTafAntalMaanederPraecis } from '../erstatningsopgoerelse/engines/tafCalculations';
+import { calculateFerieHverdageMinusSHDage } from '../erstatningsopgoerelse/engines/ferieCalculations';
+import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/engines/beregningsperiodeTafOverlap';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoDebugIndkomstModel';
-import { mergeDateRanges, mergeIsoDateRanges } from '../erstatningsopgoerelse/periodMerging';
-import { buildTafCutoffErrorMessage, clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
+import { mergeDateRanges } from '../erstatningsopgoerelse/engines/periodMerging';
+import { buildTafCutoffErrorMessage, clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import {
   getOverenskomstMetaById,
   getOverenskomstSfggPolicy,
@@ -32,26 +32,26 @@ import {
 import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/krlRates';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
-import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/angivetLoenHelpers';
-import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/loenudviklingDisplay';
-import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges } from '../erstatningsopgoerelse/indtaegtPerioder';
+import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/pdf/loenudviklingDisplay';
+import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import {
   isSfggNoEligibleDaysNotCalculable,
   resolveSfggDayBasis,
   hasSfggSelectedOverenskomst,
   resolveSfggSource,
-} from '../erstatningsopgoerelse/sygeferiegodtgoerelse';
-import type { PdfModel } from '../erstatningsopgoerelse/eoPdfModel';
+} from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
+import type { PdfModel } from '../erstatningsopgoerelse/pdf/eoPdfModel';
 import {
   buildSfggReferenceperiodeCountLabel as buildSfggReferenceperiodeCountLabelPresentation,
   parseSfggExplanatoryLine,
-} from '../erstatningsopgoerelse/sygeferiegodtgoerelsePresentation';
-import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/oevrigeKravIntro';
+} from '../erstatningsopgoerelse/pdf/sygeferiegodtgoerelsePresentation';
+import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/helpers/oevrigeKravIntro';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
-import type { EoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
-import { parseForligsgrad } from '../erstatningsopgoerelse/forligsgrad';
-import { resolveBilagWarning } from '../erstatningsopgoerelse/bilagWarnings';
-import { ensureMoneyOre } from '../erstatningsopgoerelse/eoPdfMoneyUtils';
+import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
+import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
+import { resolveBilagWarning } from '../erstatningsopgoerelse/helpers/bilagWarnings';
+import { ensureMoneyOre } from '../erstatningsopgoerelse/pdf/eoPdfMoneyUtils';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -2875,10 +2875,6 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
   const tafBeregnesSom = computeTafBeregningsenhed(values);
-  const hasActiveSfggSource = (values.loenindkomstAnsaettelsesforhold ?? []).some((employment) => {
-    const row = values.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
-    return row?.sfggBeregningskilde !== undefined && row.sfggBeregningskilde !== 'Ingen';
-  });
   const sfgg = pdfModel?.tabtArbejdsfortjeneste.sygeferiegodtgoerelse;
   const seksMaanedersWarnings = new Set<string>();
 

@@ -2,7 +2,7 @@ import { buildEODebugIndkomstRows } from '../../../domain/debug/eoDebugErstatnin
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
-} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });

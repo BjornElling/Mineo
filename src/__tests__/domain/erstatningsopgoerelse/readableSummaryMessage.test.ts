@@ -1,4 +1,4 @@
-import { toReadableSummaryMessage } from '../../../domain/erstatningsopgoerelse/readableSummaryMessage';
+import { toReadableSummaryMessage } from '../../../domain/erstatningsopgoerelse/pdf/readableSummaryMessage';
 
 describe('toReadableSummaryMessage', () => {
   // ─── Tomme strenge ───────────────────────────────────────────────────────────

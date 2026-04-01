@@ -35,7 +35,7 @@ vi.mock('../../../domain/debug/eoDebugRegulationViewModel', () => ({
   buildRegulationDebugSections: buildRegulationDebugSectionsMock,
 }));
 
-import { eoSnapshotToDebugView } from '../../../domain/erstatningsopgoerelse/eoSnapshotToDebugView';
+import { eoSnapshotToDebugView } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToDebugView';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 
 describe('eoSnapshotToDebugView', () => {

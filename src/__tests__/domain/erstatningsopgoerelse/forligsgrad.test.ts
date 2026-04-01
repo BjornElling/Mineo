@@ -1,4 +1,4 @@
-import { parseForligsgrad } from '../../../domain/erstatningsopgoerelse/forligsgrad';
+import { parseForligsgrad } from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
 
 describe('parseForligsgrad', () => {
   it('returnerer korrekt factor/label for procentværdier', () => {

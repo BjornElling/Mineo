@@ -10,7 +10,7 @@ import {
   wrapIndexFormulaAfterSlashWhenLong,
   type FormulaComponents,
   type FormulaVisibility,
-} from '../../../domain/erstatningsopgoerelse/reguleringFormulaUtils';
+} from '../../../domain/erstatningsopgoerelse/engines/reguleringFormulaUtils';
 
 describe('computeFormulaValue', () => {
   it('fortolker pct-felter som procentpoint (12 = 12%)', () => {

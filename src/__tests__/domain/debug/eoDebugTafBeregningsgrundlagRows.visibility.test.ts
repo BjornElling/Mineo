@@ -3,7 +3,7 @@ import { buildEODebugTafBeregningsgrundlagRows } from '../../../domain/debug/eoD
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
-} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 

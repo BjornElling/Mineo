@@ -4,7 +4,7 @@ import {
   computeTafOverlapWithBeregningsperiode,
   isValidClosedDateRange,
   rangesOverlap,
-} from '../../../domain/erstatningsopgoerelse/beregningsperiodeTafOverlap';
+} from '../../../domain/erstatningsopgoerelse/engines/beregningsperiodeTafOverlap';
 
 describe('beregningsperiodeTafOverlap', () => {
   it('formats overlap error message with Danish date ranges', () => {

@@ -2,7 +2,7 @@ import { buildReguleringsvaerdierTableData, buildReguleringIndexRows } from '../
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
-} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
 

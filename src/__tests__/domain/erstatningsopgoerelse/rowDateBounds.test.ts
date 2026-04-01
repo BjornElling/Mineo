@@ -1,4 +1,4 @@
-import { computeRowDateBounds } from '../../../domain/erstatningsopgoerelse/rowDateBounds';
+import { computeRowDateBounds } from '../../../domain/erstatningsopgoerelse/helpers/rowDateBounds';
 import type { ISODateString } from '../../../types/branded';
 
 const iso = (s: string): ISODateString => s as ISODateString;

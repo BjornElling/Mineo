@@ -1,7 +1,7 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { computeSvieSmerteEngine } from '../../../domain/erstatningsopgoerelse/svieSmerteEngine';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { computeSvieSmerteEngine } from '../../../domain/erstatningsopgoerelse/engines/svieSmerteEngine';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 
 const iso = (value: string) => toISODateString(value);

@@ -3,9 +3,9 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
+import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { buildEODebugSvieSmerteRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
 
 const iso = (value: string) => toISODateString(value);

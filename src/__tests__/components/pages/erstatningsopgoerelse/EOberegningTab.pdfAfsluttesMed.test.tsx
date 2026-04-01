@@ -5,17 +5,15 @@ import { MemoryRouter } from 'react-router-dom';
 import EOberegningTab from '../../../../components/pages/erstatningsopgoerelse/EOberegningTab';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
 import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
-import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { computeEoSnapshot } from '../../../../domain/erstatningsopgoerelse/eoSnapshot';
+import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { computeEoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
-import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/eoSnapshot';
+import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 
-const { generateErstatningsopgoerelsePdfMock, loadErstatningsopgoerelsePdfModuleMock } = vi.hoisted(() => {
+const { downloadErstatningsopgoerelsePdfMock, downloadTafFordeltPaaAarPdfMock } = vi.hoisted(() => {
   return {
-    generateErstatningsopgoerelsePdfMock: vi.fn(),
-    loadErstatningsopgoerelsePdfModuleMock: vi.fn(async () => ({
-      generateErstatningsopgoerelsePdf: generateErstatningsopgoerelsePdfMock,
-    })),
+    downloadErstatningsopgoerelsePdfMock: vi.fn(async () => ({ success: true as const })),
+    downloadTafFordeltPaaAarPdfMock: vi.fn(async () => ({ success: true as const })),
   };
 });
 
@@ -35,9 +33,9 @@ vi.mock('../../../../utils/scrollToSection', () => ({
   scrollToSection: vi.fn(),
 }));
 
-vi.mock('../../../../utils/pdf/pdfLoader', () => ({
-  loadErstatningsopgoerelsePdfModule: loadErstatningsopgoerelsePdfModuleMock,
-  loadTafFordeltPaaAarPdfModule: vi.fn(async () => ({ generateTafFordeltPaaAarPdf: vi.fn() })),
+vi.mock('../../../../pdf/infrastructure/pdfService', () => ({
+  downloadErstatningsopgoerelsePdf: downloadErstatningsopgoerelsePdfMock,
+  downloadTafFordeltPaaAarPdf: downloadTafFordeltPaaAarPdfMock,
 }));
 
 describe('EOberegningTab PDF-afslutning', () => {
@@ -45,8 +43,10 @@ describe('EOberegningTab PDF-afslutning', () => {
   let eoSnapshot: EoSnapshot;
 
   beforeEach(() => {
-    generateErstatningsopgoerelsePdfMock.mockReset();
-    loadErstatningsopgoerelsePdfModuleMock.mockClear();
+    downloadErstatningsopgoerelsePdfMock.mockReset();
+    downloadTafFordeltPaaAarPdfMock.mockReset();
+    downloadErstatningsopgoerelsePdfMock.mockResolvedValue({ success: true });
+    downloadTafFordeltPaaAarPdfMock.mockResolvedValue({ success: true });
     collectAllDebugRowsMock.mockReset();
     collectAllDebugRowsMock.mockReturnValue({ errors: [], warnings: [], allRows: [], relevantRows: [] });
 
@@ -83,10 +83,10 @@ describe('EOberegningTab PDF-afslutning', () => {
 
     fireEvent.click(screen.getAllByTestId('DownloadIcon')[0]);
 
-    await waitFor(() => expect(generateErstatningsopgoerelsePdfMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(downloadErstatningsopgoerelsePdfMock).toHaveBeenCalledTimes(1));
 
-    const options = generateErstatningsopgoerelsePdfMock.mock.calls[0]?.[3];
-    expect(options.erstatningsopgoerelseAfsluttesMed).toBe('Underskrift-linje');
+    const callArgs = downloadErstatningsopgoerelsePdfMock.mock.calls[0]?.[0];
+    expect(callArgs.eoValues.erstatningsopgoerelseAfsluttesMed).toBe('Underskrift-linje');
   });
 
   it('bruger aktuelle EO-værdier ved PDF-download, ikke stale persisted snapshot', async () => {
@@ -110,9 +110,9 @@ describe('EOberegningTab PDF-afslutning', () => {
 
     fireEvent.click(screen.getAllByTestId('DownloadIcon')[0]);
 
-    await waitFor(() => expect(generateErstatningsopgoerelsePdfMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(downloadErstatningsopgoerelsePdfMock).toHaveBeenCalledTimes(1));
 
-    const submittedEo = generateErstatningsopgoerelsePdfMock.mock.calls[0]?.[1];
+    const submittedEo = downloadErstatningsopgoerelsePdfMock.mock.calls[0]?.[0]?.eoValues;
     expect(submittedEo.differencekravDato).toBe('2026-01-15');
   });
 
@@ -156,7 +156,7 @@ describe('EOberegningTab PDF-afslutning', () => {
     fireEvent.click(screen.getAllByTestId('DownloadIcon')[0]);
 
     await waitFor(() => {
-      expect(generateErstatningsopgoerelsePdfMock).not.toHaveBeenCalled();
+      expect(downloadErstatningsopgoerelsePdfMock).not.toHaveBeenCalled();
     });
   });
 });

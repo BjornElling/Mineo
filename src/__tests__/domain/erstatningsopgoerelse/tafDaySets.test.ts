@@ -7,7 +7,7 @@ import {
   buildShDageSetFromIsoRange,
   isWeekdayUtc,
   placeLoseFeriedage,
-} from '../../../domain/erstatningsopgoerelse/tafDaySets';
+} from '../../../domain/erstatningsopgoerelse/engines/tafDaySets';
 import { isoDateToDate } from '../../../domain/dates/isoDate';
 
 const iso = (value: string): ISODateString => value as ISODateString;

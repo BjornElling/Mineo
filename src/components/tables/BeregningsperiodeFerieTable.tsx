@@ -3,7 +3,7 @@ import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/mate
 
 import type { ISODateString } from '../../types/branded';
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
-import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
+import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { useTableSort } from './useTableSort';

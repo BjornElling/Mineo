@@ -1,6 +1,6 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
-import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/offentligeYdelserDerived';
+import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 

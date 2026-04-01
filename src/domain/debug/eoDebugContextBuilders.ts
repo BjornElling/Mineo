@@ -1,7 +1,7 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { ISODateString } from '../../types/branded';
 import { subtractOneDay } from '../../types/branded';
-import { resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/tafPeriodConstraints';
+import { resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 
 type StamdataValues = PersistedSectionMap['stamdata'];
 type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];

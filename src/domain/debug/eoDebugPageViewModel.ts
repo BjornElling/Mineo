@@ -2,7 +2,7 @@ import type { AppSettings } from '../../settings/appSettingsSchema';
 import { isLoenindkomstAnsaettelsesforholdEffectivelyEmpty } from './eoDebugIndkomstModel';
 import type { RegulationDebugSection } from './eoDebugRegulationViewModel';
 import type { DebugRowModel } from './eoDebugTypes';
-import type { EoDebugViewReady } from '../erstatningsopgoerelse/eoSnapshotToDebugView';
+import type { EoDebugViewReady } from '../erstatningsopgoerelse/snapshot/eoSnapshotToDebugView';
 
 export type EODebugDisplayTable = Readonly<{
   id: string;

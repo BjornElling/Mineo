@@ -3,7 +3,7 @@
  */
 
 import type { ISODateString } from '../../types/branded';
-import type { TafBeregningsenhed } from '../erstatningsopgoerelse/tafBeregningsenhed';
+import type { TafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 
 export type IndeksEntry = Readonly<{
   effectiveFrom: ISODateString;

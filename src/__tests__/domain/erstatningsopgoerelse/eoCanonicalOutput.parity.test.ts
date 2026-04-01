@@ -4,12 +4,12 @@ import { toISODateString } from '../../../types/branded';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
-} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import type { EoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/eoCanonicalOutput';
-import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
-import type { PdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModelTypes';
-import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
+import type { EoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/snapshot/eoCanonicalOutput';
+import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import type { PdfModel } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfModelTypes';
+import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);

@@ -3,16 +3,16 @@ import type { UseRowDraftsResult } from '../../rowDrafts/useRowDrafts';
 import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
 import type { ErstatningsopgoerelseValues, TafPeriodeRow } from '../../schemas/formSchemas';
 import { type SetValuesUpdater } from '../../hooks/usePersistedForm';
-import { isTafRowEmpty } from '../../domain/erstatningsopgoerelse/rowEmpty';
-import type { TafDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
+import { isTafRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
+import type { TafDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import {
   committedToTafDraftRows,
   createEmptyTafCommittedRow,
   createTafRowId,
   ensureTafRows,
   tafDraftToCommittedRow,
-} from '../../domain/erstatningsopgoerelse/tafTableModel';
-import { detectOverlappingPeriods } from '../../domain/erstatningsopgoerelse/periodOverlapDetection';
+} from '../../domain/erstatningsopgoerelse/tables/tafTableModel';
+import { detectOverlappingPeriods } from '../../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
 
 export type UseTafRowsArgs = Readonly<{
   values: ErstatningsopgoerelseValues;

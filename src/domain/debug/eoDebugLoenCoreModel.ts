@@ -27,11 +27,11 @@ import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { svieSmertePrDag } from '../../data/lovbestemteRates';
 import { STORE_BEDEDAG_START } from '../../config/dateRanges';
 import { STORE_BEDEDAG_PCT as STORE_BEDEDAG_PCT_PCT } from '../../config/regulatoryRates';
-import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
   resolveOffentligLoenEkstraGrundloen,
   resolvePctDecimalFromSatsOrInput,
-} from '../erstatningsopgoerelse/sharedPdfUtils';
+} from '../erstatningsopgoerelse/pdf/sharedPdfUtils';
 
 const STORE_BEDEDAG_PCT = STORE_BEDEDAG_PCT_PCT / 100;
 

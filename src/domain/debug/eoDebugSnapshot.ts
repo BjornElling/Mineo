@@ -1,7 +1,7 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { FieldErrorsForSection } from '../../types/fieldErrors';
-import type { IsoRange } from '../erstatningsopgoerelse/tafPeriodConstraints';
-import type { SvieSmerteEngineOutput } from '../erstatningsopgoerelse/svieSmerteEngine';
+import type { IsoRange } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
+import type { SvieSmerteEngineOutput } from '../erstatningsopgoerelse/engines/svieSmerteEngine';
 import { buildEODebugModel } from './eoDebugModel';
 import type { DebugDay } from './eoDebugTypes';
 import {

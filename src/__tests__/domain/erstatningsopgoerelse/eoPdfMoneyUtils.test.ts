@@ -1,4 +1,4 @@
-import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../../../domain/erstatningsopgoerelse/eoPdfMoneyUtils';
+import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfMoneyUtils';
 
 describe('eoPdfMoneyUtils', () => {
   describe('toOre', () => {

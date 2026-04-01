@@ -19,7 +19,7 @@ import type {
   TableError,
 } from '../../types/table';
 import type { StandardLoenTableHandle } from '../../types/handles';
-import { initialRow, generateRowId } from '../../domain/erstatningsopgoerelse/eoRowInitialValues';
+import { initialRow, generateRowId } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
 import {
   calculateStandardLoenRowDerived,
   isStandardLoenRowEffectivelyEmpty,

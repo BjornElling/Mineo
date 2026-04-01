@@ -1,5 +1,5 @@
 import { buildEODebugModel } from '../../../domain/debug/eoDebugModel';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 const createBaseValues = () => ({
   ...createErstatningsopgoerelseInitialValues(),

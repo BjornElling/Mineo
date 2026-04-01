@@ -2,7 +2,7 @@ import { buildEODebugIndkomstRows } from '../../../domain/debug/eoDebugErstatnin
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
-} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import type { TafPeriodeRow } from '../../../schemas/formSchemas';
-import type { TafDraftRow } from '../../../domain/erstatningsopgoerelse/tableDraftRows';
+import type { TafDraftRow } from '../../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import { toISODateString } from '../../../types/branded';
 import TAFPeriodeTable from '../../../components/tables/TAFPeriodeTable';
 

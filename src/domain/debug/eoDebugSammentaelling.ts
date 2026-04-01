@@ -5,14 +5,14 @@ import { subtractOneDay } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { debugTabelColumnId } from './eoDebugLoenTypes';
 import type { EODebugModel } from './eoDebugModel';
-import { calculateTafArbejdsdageBreakdown } from '../erstatningsopgoerelse/tafCalculations';
-import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/beregningsperiodeTafOverlap';
-import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../erstatningsopgoerelse/tafBeregningsenhed';
-import { buildBeregningsperiodeRange, buildIncomeForRanges, type IsoRange } from '../erstatningsopgoerelse/indtaegtPerioder';
-import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
+import { calculateTafArbejdsdageBreakdown } from '../erstatningsopgoerelse/engines/tafCalculations';
+import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/engines/beregningsperiodeTafOverlap';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { buildBeregningsperiodeRange, buildIncomeForRanges, type IsoRange } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { buildFerieDageSet, buildSHDageSet } from './eoDebugRegulationCore';
-import { computeTafArbejdsdageAggregation } from '../erstatningsopgoerelse/tafBeregningsEngine';
-import type { SvieSmerteEngineOutput } from '../erstatningsopgoerelse/svieSmerteEngine';
+import { computeTafArbejdsdageAggregation } from '../erstatningsopgoerelse/engines/tafBeregningsEngine';
+import type { SvieSmerteEngineOutput } from '../erstatningsopgoerelse/engines/svieSmerteEngine';
 
 export type SvieSmerteContext = Readonly<{
   skadesdatoISO: ISODateString | undefined;

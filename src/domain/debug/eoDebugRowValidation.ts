@@ -6,4 +6,4 @@ export {
   buildOffentligeYdelserCellErrors,
   getStandardLoenErrorRowIdSet,
   getOffentligeYdelserErrorRowIdSet,
-} from '../erstatningsopgoerelse/indkomstRowValidation';
+} from '../erstatningsopgoerelse/validation/indkomstRowValidation';

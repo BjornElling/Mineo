@@ -6,7 +6,7 @@ import {
   executeEODebugBuilderEntriesBySection,
 } from '../../../domain/debug/eoDebugBuilderRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 const makeRow = (id: string, status: DebugRowModel['status']): DebugRowModel => ({
   id,

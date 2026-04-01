@@ -5,7 +5,7 @@ import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
 import TableTextInput from '../inputs/table/TableTextInput';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import type { OevrigeKravRow } from '../../schemas/formSchemas';
-import type { OevrigeKravDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
+import type { OevrigeKravDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
 import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';

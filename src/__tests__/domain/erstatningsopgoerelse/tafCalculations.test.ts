@@ -3,7 +3,7 @@ import type { ISODateString } from '../../../types/branded';
 import {
   calculateTafAntalArbejdsdage,
   calculateTafArbejdsdageBreakdown,
-} from '../../../domain/erstatningsopgoerelse/tafCalculations';
+} from '../../../domain/erstatningsopgoerelse/engines/tafCalculations';
 
 const iso = (value: string): ISODateString => value as ISODateString;
 

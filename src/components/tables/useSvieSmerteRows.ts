@@ -3,11 +3,11 @@ import type { UseRowDraftsResult } from '../../rowDrafts/useRowDrafts';
 import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
 import type { ErstatningsopgoerelseValues, SvieSmertePeriodeRow } from '../../schemas/formSchemas';
 import { type SetValuesUpdater } from '../../hooks/usePersistedForm';
-import { calculateKalenderdageInclusive } from '../../domain/erstatningsopgoerelse/tafCalculations';
-import { isSvieSmerteRowEmpty } from '../../domain/erstatningsopgoerelse/rowEmpty';
-import type { SvieSmerteDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
-import { committedToSvieDraftRows, createEmptySvieCommittedRow, createSvieRowId, ensureSvieRows, svieDraftToCommittedRow, type SvieSmerteDerived } from '../../domain/erstatningsopgoerelse/svieSmerteTableModel';
-import { detectConflictingSvieSmerteOverlaps } from '../../domain/erstatningsopgoerelse/periodOverlapDetection';
+import { calculateKalenderdageInclusive } from '../../domain/erstatningsopgoerelse/engines/tafCalculations';
+import { isSvieSmerteRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
+import type { SvieSmerteDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
+import { committedToSvieDraftRows, createEmptySvieCommittedRow, createSvieRowId, ensureSvieRows, svieDraftToCommittedRow, type SvieSmerteDerived } from '../../domain/erstatningsopgoerelse/tables/svieSmerteTableModel';
+import { detectConflictingSvieSmerteOverlaps } from '../../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
 
 export type UseSvieSmerteRowsArgs = Readonly<{
   values: ErstatningsopgoerelseValues;

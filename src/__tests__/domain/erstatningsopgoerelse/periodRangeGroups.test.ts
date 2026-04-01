@@ -5,8 +5,8 @@ import {
   BILAG_MODE_ALLE,
   BILAG_MODE_PERIODEN,
   type IsoRange,
-} from '../../../domain/erstatningsopgoerelse/periodRangeGroups';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+} from '../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

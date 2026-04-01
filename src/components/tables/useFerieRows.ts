@@ -3,8 +3,8 @@ import type { UseRowDraftsResult } from '../../rowDrafts/useRowDrafts';
 import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
 import type { ErstatningsopgoerelseValues, FerieperiodeRow } from '../../schemas/formSchemas';
 import { type SetValuesUpdater } from '../../hooks/usePersistedForm';
-import { isFerieRowEmpty } from '../../domain/erstatningsopgoerelse/rowEmpty';
-import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
+import { isFerieRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
+import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import {
   committedToFerieDraftRows,
   createEmptyFerieCommittedRow,
@@ -13,7 +13,7 @@ import {
   ensureSfggSygeperioderRows,
   ensureTafFerieRows,
   ferieDraftToCommittedRow,
-} from '../../domain/erstatningsopgoerelse/ferieTableModel';
+} from '../../domain/erstatningsopgoerelse/tables/ferieTableModel';
 
 export type UseFerieRowsArgs = Readonly<{
   values: ErstatningsopgoerelseValues;

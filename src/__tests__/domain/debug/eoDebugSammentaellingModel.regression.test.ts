@@ -1,9 +1,9 @@
 
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
-import { computeSvieSmerteEngine } from '../../../domain/erstatningsopgoerelse/svieSmerteEngine';
-import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { computeSvieSmerteEngine } from '../../../domain/erstatningsopgoerelse/engines/svieSmerteEngine';
+import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { buildEODebugModel } from '../../../domain/debug/eoDebugModel';
 import {
   buildEODebugSammentaellingModel,

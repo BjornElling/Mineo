@@ -1,8 +1,8 @@
 import type { ISODateString } from '../../../types/branded';
 import type { TafPeriodeRow, FerieperiodeRow, ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { buildTafDerived, buildBeregningsperiodeTafOverlap } from '../../../domain/erstatningsopgoerelse/tafRowDerived';
-import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { buildTafDerived, buildBeregningsperiodeTafOverlap } from '../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
+import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 
 const iso = (value: string): ISODateString => value as ISODateString;
 

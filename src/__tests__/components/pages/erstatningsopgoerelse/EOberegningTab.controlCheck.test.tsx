@@ -5,11 +5,11 @@ import { MemoryRouter } from 'react-router-dom';
 import EOberegningTab from '../../../../components/pages/erstatningsopgoerelse/EOberegningTab';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
 import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
-import { buildControlMismatchInvariant } from '../../../../domain/erstatningsopgoerelse/eoSnapshotInvariants';
-import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { computeEoSnapshot } from '../../../../domain/erstatningsopgoerelse/eoSnapshot';
+import { buildControlMismatchInvariant } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
+import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { computeEoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
-import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/eoSnapshot';
+import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 
 const { collectAllDebugRowsMock } = vi.hoisted(() => ({
   collectAllDebugRowsMock: vi.fn(),

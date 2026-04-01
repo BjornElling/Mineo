@@ -1,5 +1,5 @@
 import { buildEODebugForligRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 describe('buildEODebugForligRows visibility', () => {
   it('viser kun den samlede forligsrække med bindestreg når ingen værdi er udfyldt', () => {

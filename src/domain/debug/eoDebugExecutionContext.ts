@@ -1,8 +1,8 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { FieldErrorBySource } from '../../types/fieldErrors';
 import type { AppSettings } from '../../settings/appSettingsSchema';
-import type { EoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
-import type { PdfModel } from '../erstatningsopgoerelse/eoPdfModel';
+import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
+import type { PdfModel } from '../erstatningsopgoerelse/pdf/eoPdfModel';
 
 /**
  * Type aliases for læsbarhed

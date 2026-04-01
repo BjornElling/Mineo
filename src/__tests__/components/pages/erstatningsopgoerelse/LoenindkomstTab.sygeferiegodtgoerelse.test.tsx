@@ -5,7 +5,7 @@ import LoenindkomstTab from '../../../../components/pages/erstatningsopgoerelse/
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
-} from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+} from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 vi.mock('../../../../hooks/useEOLoenindkomstInputErrors', () => ({
   useSetEOLoenindkomstInputError: () => vi.fn(),

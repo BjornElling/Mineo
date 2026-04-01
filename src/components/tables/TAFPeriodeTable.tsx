@@ -8,10 +8,10 @@ import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } fro
 import type { TafPeriodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { subtractOneDay } from '../../types/branded';
-import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/rowDateBounds';
-import type { TafDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
-import { calculateFerieHverdageMinusSHDage } from '../../domain/erstatningsopgoerelse/ferieCalculations';
-import { buildTafCutoffErrorMessage } from '../../domain/erstatningsopgoerelse/tafPeriodConstraints';
+import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/helpers/rowDateBounds';
+import type { TafDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
+import { calculateFerieHverdageMinusSHDage } from '../../domain/erstatningsopgoerelse/engines/ferieCalculations';
+import { buildTafCutoffErrorMessage } from '../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 
 export type TAFPeriodeTableProps = Readonly<{
   rows: TafDraftRow[];

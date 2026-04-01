@@ -7,12 +7,12 @@
 
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
   buildTafRanges,
   buildBeregningsperiodeRange,
   buildIncomeCalculationContext,
-} from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
+} from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

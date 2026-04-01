@@ -1,4 +1,4 @@
-import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatningsopgoerelse/eoNummerValidering';
+import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatningsopgoerelse/validation/eoNummerValidering';
 
 describe('erDetteFoersteErstatningsopgoerelse', () => {
   describe('tomt input → første', () => {

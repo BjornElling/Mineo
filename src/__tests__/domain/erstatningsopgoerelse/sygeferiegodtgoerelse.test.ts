@@ -1,14 +1,14 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
   computeSygeferiegodtgoerelse,
   findSfggSixMonthWarningEmploymentIds,
-} from '../../../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
+} from '../../../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
 import {
   buildSfggReferenceperiodeCountLabel,
   parseSfggExplanatoryLine,
-} from '../../../domain/erstatningsopgoerelse/sygeferiegodtgoerelsePresentation';
+} from '../../../domain/erstatningsopgoerelse/pdf/sygeferiegodtgoerelsePresentation';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
 

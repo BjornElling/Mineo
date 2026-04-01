@@ -120,7 +120,7 @@ const MATH_ROUND_ALLOWLIST = new Set([
   // Dato-aritmetik: Math.min til clamping af månedsdag
   'utils/dateUtils.ts',
   // detectDecimalPlaces: tolerance-tjek (Math.abs + Math.round til heltalstjek)
-  'domain/erstatningsopgoerelse/sharedPdfUtils.ts',
+  'domain/erstatningsopgoerelse/pdf/sharedPdfUtils.ts',
   // formatUtils: Math.abs og Math.trunc til sign-håndtering — aldrig selvstændig runding
   'utils/formatUtils.ts',
   // pdfFormatUtils: Math.abs på allerede-afrundet tal til fortegnsfjernelse
@@ -280,12 +280,12 @@ describe('Afrundingsnorm-guard', () => {
         'config/dateRanges.ts',
         'components/inputs/StyledDateField.tsx',
         'domain/forsoergertab/forsoergertabAslYdelser.ts',
-        'domain/erstatningsopgoerelse/periodMerging.ts',
-        'domain/erstatningsopgoerelse/periodiseringsMotor.ts',
-        'domain/erstatningsopgoerelse/sharedPdfUtils.ts',
-        'domain/erstatningsopgoerelse/tafDaySets.ts',
-        'domain/erstatningsopgoerelse/ferieCalculations.ts',
-        'domain/erstatningsopgoerelse/eoPdfIndkomstSkadestidspunkt.ts',
+        'domain/erstatningsopgoerelse/engines/periodMerging.ts',
+        'domain/erstatningsopgoerelse/engines/periodiseringsMotor.ts',
+        'domain/erstatningsopgoerelse/pdf/sharedPdfUtils.ts',
+        'domain/erstatningsopgoerelse/engines/tafDaySets.ts',
+        'domain/erstatningsopgoerelse/engines/ferieCalculations.ts',
+        'domain/erstatningsopgoerelse/pdf/eoPdfIndkomstSkadestidspunkt.ts',
         'domain/debug/eoDebugErstatningsopgoerelseModel.ts',
         'domain/debug/eoDebugCoreModel.ts',
         'domain/debug/eoDebugRegulationCore.ts',
@@ -304,7 +304,7 @@ describe('Afrundingsnorm-guard', () => {
         'domain/renteberegning/rentekravValidation.ts',
         // Periode-iteration: new Date(dateObj) — kopi af UTC Date-objekt, ikke string-parsing
         'utils/periodeBeregning.ts',
-        'domain/erstatningsopgoerelse/arbejdsdageMaaneder.ts',
+        'domain/erstatningsopgoerelse/engines/arbejdsdageMaaneder.ts',
         // Devtools-fejlnotice: ny Date fra ISO timestamp til lokal display (ikke domæne-dato)
         'components/errors/DevtoolsIssueNotice.tsx',
       ]),

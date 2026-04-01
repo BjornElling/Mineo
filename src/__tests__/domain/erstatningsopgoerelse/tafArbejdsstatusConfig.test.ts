@@ -1,4 +1,4 @@
-import { buildTafArbejdsstatusLinje, TAF_ARBEJDSSTATUS_CONFIG } from '../../../domain/erstatningsopgoerelse/tafArbejdsstatusConfig';
+import { buildTafArbejdsstatusLinje, TAF_ARBEJDSSTATUS_CONFIG } from '../../../domain/erstatningsopgoerelse/tables/tafArbejdsstatusConfig';
 import type { Arbejdsstatus } from '../../../schemas/formSchemas';
 
 const ALLE_STATUSER: Arbejdsstatus[] = [

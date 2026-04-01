@@ -15,17 +15,17 @@ import { useAppSettings } from '../../../contexts/useAppSettings';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { isoToDanish } from '../../../types/branded';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../../inputs/StyledDropdown';
-import { toReadableSummaryMessage } from '../../../domain/erstatningsopgoerelse/readableSummaryMessage';
+import { toReadableSummaryMessage } from '../../../domain/erstatningsopgoerelse/pdf/readableSummaryMessage';
 import type { StamdataValues } from '../../../schemas/formSchemas';
 import {
   downloadErstatningsopgoerelsePdf,
   downloadTafFordeltPaaAarPdf,
-} from '../../../utils/pdf/pdfService';
-import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
-import { eoSnapshotToBeregningView } from '../../../domain/erstatningsopgoerelse/eoSnapshotToBeregningView';
-import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
-import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
-import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/eoSnapshotInvariants';
+} from '../../../pdf/infrastructure/pdfService';
+import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { eoSnapshotToBeregningView } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToBeregningView';
+import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
+import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument';
+import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 
@@ -355,7 +355,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         diagnostics: buildInvariantDiagnostics(invariant, eoSnapshot),
       });
     });
-  }, [eoSnapshot?.revision, reportableSystemInvariants]);
+  }, [eoSnapshot, eoSnapshot?.revision, reportableSystemInvariants]);
 
   const systemIssueRows = React.useMemo<readonly SystemIssueRow[]>(() => {
     const rows: SystemIssueRow[] = [];
@@ -416,6 +416,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     eoPdfBlockingInvariants,
     eoSnapshot,
     isSystemInvariant,
+    setActiveTab,
     tafPdfProjection,
   ]);
 

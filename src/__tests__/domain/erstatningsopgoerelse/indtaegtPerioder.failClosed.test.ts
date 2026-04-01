@@ -3,8 +3,8 @@ import { toISODateString } from '../../../types/branded';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
-} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { buildIncomeCalculationContext, buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/indtaegtPerioder';
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { buildIncomeCalculationContext, buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);

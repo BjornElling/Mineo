@@ -5,14 +5,14 @@ vi.mock('../../../utils/logger', () => ({
   logInfo: vi.fn(),
 }));
 
-import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
-import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
-import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
-import { buildControlMismatchInvariant } from '../../../domain/erstatningsopgoerelse/eoSnapshotInvariants';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
+import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument';
+import { buildControlMismatchInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/tafPerYearDerived';
-import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
+import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
+import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfModel';
 
 const buildBaseSnapshot = () => {
   const eoValues = createErstatningsopgoerelseInitialValues();

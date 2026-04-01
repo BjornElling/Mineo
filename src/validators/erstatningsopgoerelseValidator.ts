@@ -21,23 +21,23 @@ import type { FormValidator, ValidationError, ValidationResult } from '../types/
 import { isISODateString } from '../types/branded';
 import { svieSmertePrDag, svieSmerteMax, satserAngivAarYearBounds } from '../data/lovbestemteRates';
 import { amountValueToNumber } from '../utils/expressionAmount';
-import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/rowEmpty';
-import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/periodOverlapDetection';
-import { resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/angivetLoenHelpers';
-import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/sharedPdfUtils';
-import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/loenoplysningerInput';
+import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/helpers/rowEmpty';
+import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
+import { resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/pdf/sharedPdfUtils';
+import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
 import {
   getFirstIndtastedeTafFraDato,
   resolveSfggReferenceperiodeDayCount,
   resolveSfggSource,
-} from '../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
-import { buildSfggNoEligibleDaysReason } from '../domain/erstatningsopgoerelse/sygeferiegodtgoerelsePresentation';
+} from '../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
+import { buildSfggNoEligibleDaysReason } from '../domain/erstatningsopgoerelse/pdf/sygeferiegodtgoerelsePresentation';
 import {
   clampTafRow,
   getValidTafRange,
   resolveTafConstraintBounds,
-} from '../domain/erstatningsopgoerelse/tafPeriodConstraints';
-import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/tafCalculations';
+} from '../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
+import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/engines/tafCalculations';
 import { getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../data/overenskomstRates';
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../utils/fraction';
 import { isoToDanish } from '../types/branded';

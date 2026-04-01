@@ -7,7 +7,7 @@ import { parseAmount } from '../../utils/numberParsing';
 import { ydelsestyper, type Periodisering } from '../../data/ydelsestyper';
 import { isoDateToDate } from '../dates/isoDate';
 import type { DebugTabelIntegrityIssue } from './eoDebugModel';
-import { isOffentligYdelseDatoMedregnet as isOffentligYdelseDatoMedregnetCentral } from '../erstatningsopgoerelse/periodiseringsMotor';
+import { isOffentligYdelseDatoMedregnet as isOffentligYdelseDatoMedregnetCentral } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
 import { iterateDatesInclusive, validateIsoRange } from '../../utils/isoDateHelpers';
 import { sumFloat64Array, isWithinIntegrityTolerance } from './eoDebugMathUtils';
 

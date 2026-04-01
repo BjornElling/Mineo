@@ -3,15 +3,15 @@ import type { UseRowDraftsResult } from '../../rowDrafts/useRowDrafts';
 import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
 import type { ErstatningsopgoerelseValues, OevrigeKravRow } from '../../schemas/formSchemas';
 import { type SetValuesUpdater } from '../../hooks/usePersistedForm';
-import { isOevrigeKravRowEmpty } from '../../domain/erstatningsopgoerelse/rowEmpty';
-import type { OevrigeKravDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
+import { isOevrigeKravRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
+import type { OevrigeKravDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import {
   committedToOevrigeKravDraftRows,
   createEmptyOevrigeKravCommittedRow,
   createOevrigeKravRowId,
   ensureOevrigeKravRows,
   oevrigeKravDraftToCommittedRow,
-} from '../../domain/erstatningsopgoerelse/oevrigeKravTableModel';
+} from '../../domain/erstatningsopgoerelse/tables/oevrigeKravTableModel';
 
 export type UseOevrigeKravRowsArgs = Readonly<{
   values: ErstatningsopgoerelseValues;

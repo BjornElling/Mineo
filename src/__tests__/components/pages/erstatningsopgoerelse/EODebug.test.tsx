@@ -2,7 +2,7 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import EODebug from '../../../../components/pages/erstatningsopgoerelse/EODebug';
-import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 const { eoSnapshotToDebugViewMock } = vi.hoisted(() => ({
   eoSnapshotToDebugViewMock: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock('../../../../contexts/useAppSettings', () => ({
   }),
 }));
 
-vi.mock('../../../../domain/erstatningsopgoerelse/eoSnapshotToDebugView', () => ({
+vi.mock('../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToDebugView', () => ({
   eoSnapshotToDebugView: eoSnapshotToDebugViewMock,
 }));
 

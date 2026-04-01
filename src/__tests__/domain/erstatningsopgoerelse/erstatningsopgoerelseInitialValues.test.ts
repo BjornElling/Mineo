@@ -1,4 +1,4 @@
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 import { persistenceSchemas } from '../../../config/persistenceRegistry';
 import { erstatningsopgoerelseSchema } from '../../../schemas/formSchemas';

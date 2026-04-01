@@ -42,7 +42,7 @@ vi.mock('../../../../components/pages/erstatningsopgoerelse/EODebugTabel', () =>
   default: () => <div>Debug tabel indhold</div>,
 }));
 
-vi.mock('../../../../domain/erstatningsopgoerelse/eoSnapshot', () => ({
+vi.mock('../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot', () => ({
   computeEoSnapshot: computeEoSnapshotMock,
 }));
 

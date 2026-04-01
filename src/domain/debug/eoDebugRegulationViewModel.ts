@@ -7,18 +7,18 @@ import { subtractOneDay } from '../../types/branded';
 import type { DebugCellValue } from './eoDebugTypes';
 import { formatIsoValue, formatAmountDisplay, formatDecimal, formatPercent } from './eoDebugFormat';
 import type { RegulationIndexTimeline } from './eoDebugRegulationTypes';
-import { TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
-import type { EoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
+import { TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
-import { resolveLoenudviklingKilde } from '../erstatningsopgoerelse/angivetLoenHelpers';
-import { resolveReguleringsdato } from '../erstatningsopgoerelse/sharedPdfUtils';
-import { getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/angivetLoenHelpers';
-import { computeTafBeregningsenhed } from '../erstatningsopgoerelse/tafBeregningsenhed';
+import { resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { resolveReguleringsdato } from '../erstatningsopgoerelse/pdf/sharedPdfUtils';
+import { getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { computeTafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
   buildReguleringIndexRows,
   buildReguleringsvaerdierTableData,
-  resolveLoenudviklingSegmentBounds,
-} from '../erstatningsopgoerelse/eoPdfReguleringEngine';
+} from '../erstatningsopgoerelse/pdf/eoPdfRegulering';
+import { resolveLoenudviklingSegmentBounds } from '../erstatningsopgoerelse/engines/reguleringsBeregning';
 
 export type RegulationDebugSection = {
   readonly id: string;

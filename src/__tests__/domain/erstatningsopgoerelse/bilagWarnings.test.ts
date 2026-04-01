@@ -1,9 +1,9 @@
-import { resolveBilagWarning } from '../../../domain/erstatningsopgoerelse/bilagWarnings';
+import { resolveBilagWarning } from '../../../domain/erstatningsopgoerelse/helpers/bilagWarnings';
 import { buildEODebugBilagsnumreRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
-} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 // ─── Hjælper ──────────────────────────────────────────────────────────────────
 

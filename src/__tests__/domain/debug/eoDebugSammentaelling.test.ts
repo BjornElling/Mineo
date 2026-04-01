@@ -1,5 +1,5 @@
 
-import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
+import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
   buildSammentaellingDisplayTables,
   getSammentaellingControlStatus,

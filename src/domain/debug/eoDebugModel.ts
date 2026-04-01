@@ -1,8 +1,8 @@
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow, SvieSmertePeriodeRow } from '../../schemas/formSchemas';
-import type { SvieSmerteConstrainedPeriod } from '../erstatningsopgoerelse/svieSmerteEngine';
+import type { SvieSmerteConstrainedPeriod } from '../erstatningsopgoerelse/engines/svieSmerteEngine';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, isoToDanish, subtractOneDay } from '../../types/branded';
-import { buildClampedTafRanges, resolveTafConstraintBounds, type IsoRange } from '../erstatningsopgoerelse/tafPeriodConstraints';
+import { buildClampedTafRanges, resolveTafConstraintBounds, type IsoRange } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { formatCurrency } from '../../utils/formatUtils';
 import { isStandardLoenRowEffectivelyEmpty } from '../aarsloen/standardLoenRowCalculations';
 import { buildOffentligeYdelserColumns, parseOffentligDato } from './eoDebugOffentligeYdelserColumns';
@@ -10,10 +10,10 @@ import { buildLoenindkomstColumns, buildTafDayStatusValues } from './eoDebugLoen
 import { debugTabelColumnId, type DebugTabelWageColumnKey } from './eoDebugLoenTypes';
 import { isoDateToDate } from '../dates/isoDate';
 import { getStandardLoenErrorRowIdSet, getOffentligeYdelserErrorRowIdSet } from './eoDebugRowValidation';
-import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
-import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/indtaegtPerioder';
-import { SYGEDAGPENGE_SH_CUTOFF } from '../erstatningsopgoerelse/periodiseringsMotor';
-import { buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/tafDaySets';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { SYGEDAGPENGE_SH_CUTOFF } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
+import { buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/engines/tafDaySets';
 import { iterateDatesInclusive, maxISO, minISO, validateIsoRange } from '../../utils/isoDateHelpers';
 import type { DebugDay } from './eoDebugTypes';
 

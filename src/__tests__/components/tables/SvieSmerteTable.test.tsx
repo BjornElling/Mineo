@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import type { ErstatningsopgoerelseValues, SvieSmertePeriodeRow } from '../../../schemas/formSchemas';
-import type { SvieSmerteDraftRow } from '../../../domain/erstatningsopgoerelse/tableDraftRows';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import type { SvieSmerteDraftRow } from '../../../domain/erstatningsopgoerelse/tables/tableDraftRows';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import useSvieSmerteRows from '../../../components/tables/useSvieSmerteRows';
 import { toISODateString } from '../../../types/branded';
 import SvieSmerteTable from '../../../components/tables/SvieSmerteTable';

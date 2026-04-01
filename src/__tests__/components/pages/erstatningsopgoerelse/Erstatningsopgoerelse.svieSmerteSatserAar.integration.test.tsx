@@ -7,7 +7,7 @@ import { STORAGE_KEYS, createActiveTabStorageKey } from '../../../../config/stor
 import { PERSISTED_DATA_VERSION } from '../../../../config/persistenceVersion';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
 import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
-import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 const persistedWrapper = (data: unknown) => ({
   version: PERSISTED_DATA_VERSION,

@@ -1,6 +1,6 @@
 
-import { eoSnapshotToBeregningView } from '../../../domain/erstatningsopgoerelse/eoSnapshotToBeregningView';
-import { buildControlMismatchInvariant, buildTafPerYearAfrundingInvariant } from '../../../domain/erstatningsopgoerelse/eoSnapshotInvariants';
+import { eoSnapshotToBeregningView } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToBeregningView';
+import { buildControlMismatchInvariant, buildTafPerYearAfrundingInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 
 describe('eoSnapshotToBeregningView', () => {
   it('filtrerer autoritative blokeringer deterministisk og bevarer snapshot-invarianter', () => {

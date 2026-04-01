@@ -1,6 +1,6 @@
 import { collectAllDebugRows } from '../../../domain/debug/eoDebugRowAggregator';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 describe('collectAllDebugRows integration', () => {
   it('materialises svie/smerte sats-aar warning with summary message', () => {

@@ -1,7 +1,7 @@
 /// <reference types="vitest/globals" />
 
 import { buildEODebugModel } from '../../../domain/debug/eoDebugModel';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 

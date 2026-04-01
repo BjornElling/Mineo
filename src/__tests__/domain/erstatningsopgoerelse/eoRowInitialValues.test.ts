@@ -6,7 +6,7 @@ import {
   generateLoenudviklingRowId,
   initialOffentligYdelseRow,
   initialLoenudviklingManuelRow,
-} from '../../../domain/erstatningsopgoerelse/eoRowInitialValues';
+} from '../../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
 
 // ─── initialRow ───────────────────────────────────────────────────────────────
 

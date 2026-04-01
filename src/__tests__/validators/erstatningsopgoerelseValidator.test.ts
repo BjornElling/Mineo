@@ -1,6 +1,6 @@
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import { toISODateString } from '../../types/branded';
-import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { erstatningsopgoerelseValidator } from '../../validators/erstatningsopgoerelseValidator';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 

@@ -1,5 +1,5 @@
 import { toISODateString } from '../../../types/branded';
-import { beregnArbejdsdageOgMaaneder } from '../../../domain/erstatningsopgoerelse/arbejdsdageMaaneder';
+import { beregnArbejdsdageOgMaaneder } from '../../../domain/erstatningsopgoerelse/engines/arbejdsdageMaaneder';
 import { roundByMethod } from '../../../utils/rounding';
 
 const iso = (value: string) => toISODateString(value);

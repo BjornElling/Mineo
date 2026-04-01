@@ -1,5 +1,5 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { buildEODebugOevrigeKravRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
 import { toISODateString } from '../../../types/branded';
 

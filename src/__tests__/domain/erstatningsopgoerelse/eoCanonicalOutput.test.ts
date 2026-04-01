@@ -3,10 +3,10 @@ import { toISODateString } from '../../../types/branded';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
-} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { EoCanonicalOutputSchema } from '../../../domain/erstatningsopgoerelse/eoCanonicalOutput';
-import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
+import { EoCanonicalOutputSchema } from '../../../domain/erstatningsopgoerelse/snapshot/eoCanonicalOutput';
+import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);

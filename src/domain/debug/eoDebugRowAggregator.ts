@@ -22,7 +22,7 @@ import { getNavigationTargetFromRowId } from './eoDebugNavigationMap';
 import { executeAllEODebugBuilders } from './eoDebugBuilderRegistry';
 import { resolveDebugRowPresentation } from './eoDebugRowPresentation';
 import { toDebugStatusRank } from './eoDebugSeverity';
-import type { EoCanonicalOutput } from '../erstatningsopgoerelse/eoCanonicalOutput';
+import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 
 /**
  * DebugRowModel udvidet med navigation-metadata

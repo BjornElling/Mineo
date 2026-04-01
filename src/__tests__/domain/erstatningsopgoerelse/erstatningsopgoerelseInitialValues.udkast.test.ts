@@ -1,7 +1,7 @@
 /// <reference types="vitest/globals" />
 
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 describe('erstatningsopgoerelse initial values - udkaststempel defaults', () => {
   it('sætter indsaetUdkastStempel til Nej når defaultIndsaetUdkastStempel=false', () => {

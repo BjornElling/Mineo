@@ -1,4 +1,4 @@
-import { validateLoenudviklingManualBaseRowSatser } from '../../../domain/erstatningsopgoerelse/loenudviklingManuelBaseRowValidation';
+import { validateLoenudviklingManualBaseRowSatser } from '../../../domain/erstatningsopgoerelse/validation/loenudviklingManuelBaseRowValidation';
 import type { LoenudviklingManuelRow } from '../../../schemas/formSchemas';
 
 const makeBaseRow = (overrides: Partial<LoenudviklingManuelRow> = {}): LoenudviklingManuelRow => ({

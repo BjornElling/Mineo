@@ -15,8 +15,8 @@ import type {
 import type { DebugDay, SvieSmerte } from './eoDebugTypes';
 import { getIsoRange, minDate, maxDate, tryParseIso } from './eoDebugDateUtils';
 import { subtractOneDay } from '../../types/branded';
-import { clampTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
-import { buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/tafDaySets';
+import { clampTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
+import { buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/engines/tafDaySets';
 
 /**
  * Input til debug core model

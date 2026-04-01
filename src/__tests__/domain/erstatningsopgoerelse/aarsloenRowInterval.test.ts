@@ -1,5 +1,5 @@
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
-import { parseAarsloenRowInterval } from '../../../domain/erstatningsopgoerelse/aarsloenRowInterval';
+import { parseAarsloenRowInterval } from '../../../domain/erstatningsopgoerelse/helpers/aarsloenRowInterval';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 

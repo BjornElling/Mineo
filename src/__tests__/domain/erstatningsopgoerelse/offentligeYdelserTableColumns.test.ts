@@ -2,7 +2,7 @@ import {
   OFFENTLIGE_YDELSER_PDF_HEADERS,
   OFFENTLIGE_YDELSER_TABLE_HEADERS,
   resolveOffentligeYdelserColumnLabel,
-} from '../../../domain/erstatningsopgoerelse/offentligeYdelserTableColumns';
+} from '../../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 
 describe('offentligeYdelserTableColumns', () => {
   it('bruger Ydelse og Ydelse (2) som de to standard ydelseskolonner', () => {

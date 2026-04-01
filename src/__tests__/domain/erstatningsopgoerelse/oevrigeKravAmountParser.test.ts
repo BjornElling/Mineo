@@ -1,6 +1,6 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { OevrigeKravRow } from '../../../schemas/formSchemas';
-import { parseOevrigeKravBeloeb } from '../../../domain/erstatningsopgoerelse/oevrigeKravAmountParser';
+import { parseOevrigeKravBeloeb } from '../../../domain/erstatningsopgoerelse/helpers/oevrigeKravAmountParser';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 

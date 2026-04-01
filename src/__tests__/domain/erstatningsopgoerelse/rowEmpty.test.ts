@@ -10,7 +10,7 @@ import {
   isTafRowEmpty,
   isFerieRowEmpty,
   isOevrigeKravRowEmpty,
-} from '../../../domain/erstatningsopgoerelse/rowEmpty';
+} from '../../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 

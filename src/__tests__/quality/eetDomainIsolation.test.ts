@@ -5,9 +5,9 @@ const SRC_ROOT = path.resolve(process.cwd(), 'src');
 const EO_OPLYSNINGER_TAB_PATH = path.resolve(SRC_ROOT, 'components/pages/erstatningsopgoerelse/EOOplysningerTab.tsx');
 const EO_DEBUG_PATH = path.resolve(SRC_ROOT, 'components/pages/erstatningsopgoerelse/EODebug.tsx');
 const EO_DEBUG_VIEW_PATH = path.resolve(SRC_ROOT, 'domain/debug/eoDebugPageViewModel.ts');
-const EO_DEBUG_SNAPSHOT_VIEW_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/eoSnapshotToDebugView.ts');
-const EO_PDF_MODEL_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/eoPdfModel.ts');
-const EO_PDF_BUILDERS_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/eoPdfBuilders.ts');
+const EO_DEBUG_SNAPSHOT_VIEW_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/snapshot/eoSnapshotToDebugView.ts');
+const EO_PDF_MODEL_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/pdf/eoPdfModel.ts');
+const EO_PDF_BUILDERS_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/pdf/eoPdfBuilders.ts');
 const ERHVERVSEVNETAB_PAGE_PATH = path.resolve(SRC_ROOT, 'components/pages/Erhvervsevnetab.tsx');
 
 const FORBIDDEN_CROSS_DOMAIN_PATTERNS: ReadonlyArray<RegExp> = [

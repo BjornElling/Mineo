@@ -8,11 +8,11 @@ import {
   buildLoenindkomstZeroArbejdsdageMessage,
   getStandardLoenErrorRowIdSet,
   getOffentligeYdelserErrorRowIdSet,
-} from '../../../domain/erstatningsopgoerelse/indkomstRowValidation';
+} from '../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
-} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import type { FerieperiodeRow } from '../../../schemas/formSchemas';
-import type { FerieDraftRow } from '../../../domain/erstatningsopgoerelse/tableDraftRows';
+import type { FerieDraftRow } from '../../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import { toISODateString } from '../../../types/branded';
 import BeregningsperiodeFerieTable from '../../../components/tables/BeregningsperiodeFerieTable';
 

@@ -9,8 +9,8 @@ import type { SvieSmertePeriodeRow, Tilstand } from '../../schemas/formSchemas';
 import { tilstandEnum } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish, subtractOneDay } from '../../types/branded';
-import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/rowDateBounds';
-import type { SvieSmerteDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
+import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/helpers/rowDateBounds';
+import type { SvieSmerteDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 
 type SvieSmerteDerived = Readonly<{
   hasRangeError: boolean;

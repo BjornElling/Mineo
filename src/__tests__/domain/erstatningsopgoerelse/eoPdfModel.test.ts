@@ -1,20 +1,20 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
-import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import type { LoenudviklingPdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
-import { ensureMoneyOre, resolveLoenudviklingRows } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
-import type { PdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModelTypes';
-import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
-import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
+import type { LoenudviklingPdfModel } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfModel';
+import { ensureMoneyOre, resolveLoenudviklingRows } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfModel';
+import type { PdfModel } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfModelTypes';
+import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import * as statistikRatesData from '../../../data/statistiskeRates';
 import * as krlRatesData from '../../../data/krlRates';
 import * as overenskomstRatesData from '../../../data/overenskomstRates';
 import * as offentligLoenLookupData from '../../../data/offentligLoenLookup';
 import type { OffentligLoenResultat } from '../../../data/offentligLoenTypes';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
-import { calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/tafCalculations';
+import { calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/engines/tafCalculations';
 import { beregningsmetodeEnum, loenPaaHelligdageSchema, loenudviklingStatistikModelEnum } from '../../../schemas/formSchemas';
 import { roundByMethod } from '../../../utils/rounding';
 

@@ -4,17 +4,17 @@ import { toISODateString } from '../../../types/branded';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
-} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import type { PdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModelTypes';
-import { computeEoSnapshot, type EoSnapshotComputedData } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
+import type { PdfModel } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfModelTypes';
+import { computeEoSnapshot, type EoSnapshotComputedData } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import {
   splitRangeByCalendarYearsInclusive,
   buildTafPerYearBuildOutcome,
   type TafPerYearSource,
   type TafPerYearResult,
-} from '../../../domain/erstatningsopgoerelse/tafPerYearDerived';
-import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
+} from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
+import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 
 const iso = (value: string) => toISODateString(value);
 

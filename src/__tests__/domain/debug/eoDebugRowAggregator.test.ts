@@ -5,7 +5,7 @@ import * as Registry from '../../../domain/debug/eoDebugBuilderRegistry';
 import type { FieldErrorBySource } from '../../../types/fieldErrors';
 import type { PersistedSectionMap } from '../../../config/persistenceRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 type Builder = {
   name: string;

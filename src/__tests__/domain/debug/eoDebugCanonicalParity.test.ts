@@ -2,9 +2,9 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
-} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
+import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { buildSvieSmerteContext, buildTaftContext } from '../../../domain/debug/eoDebugContextBuilders';
 import {
   buildEODebugSvieSmerteRows,

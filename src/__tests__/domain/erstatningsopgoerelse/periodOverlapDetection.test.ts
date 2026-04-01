@@ -1,5 +1,5 @@
 import { toISODateString } from '../../../types/branded';
-import { detectConflictingSvieSmerteOverlaps, detectOverlappingPeriods } from '../../../domain/erstatningsopgoerelse/periodOverlapDetection';
+import { detectConflictingSvieSmerteOverlaps, detectOverlappingPeriods } from '../../../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
 
 const iso = (value: string) => toISODateString(value);
 

@@ -1,5 +1,5 @@
 import type { ISODateString } from '../../../types/branded';
-import type { IsoRange } from '../../../domain/erstatningsopgoerelse/tafPeriodConstraints';
+import type { IsoRange } from '../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import {
   resolveTafConstraintBounds,
   resolveTafFejlgivendeBounds,
@@ -7,7 +7,7 @@ import {
   getValidTafRange,
   clampTafRow,
   buildClampedTafRanges,
-} from '../../../domain/erstatningsopgoerelse/tafPeriodConstraints';
+} from '../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import type { TafPeriodeRow } from '../../../schemas/formSchemas';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────

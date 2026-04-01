@@ -13,7 +13,7 @@ import { IntegrityInvariant, type DebugDay, type IntegrityIssue, type DateRange 
 import type { DebugModelInput } from './eoDebugCoreModel';
 import { getOverlap, getIsoRange, tryParseIso } from './eoDebugDateUtils';
 import { subtractOneDay } from '../../types/branded';
-import { clampTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/tafPeriodConstraints';
+import { clampTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 
 /**
  * Tjek for overlappende TAF-perioder

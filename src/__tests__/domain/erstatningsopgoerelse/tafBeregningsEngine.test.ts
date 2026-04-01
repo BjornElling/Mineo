@@ -1,6 +1,6 @@
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
-import { computeTafArbejdsdageAggregation, computeTafEngine } from '../../../domain/erstatningsopgoerelse/tafBeregningsEngine';
-import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { computeTafArbejdsdageAggregation, computeTafEngine } from '../../../domain/erstatningsopgoerelse/engines/tafBeregningsEngine';
+import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { toISODateString } from '../../../types/branded';
 import type { TafPeriodeRow } from '../../../schemas/formSchemas';
 

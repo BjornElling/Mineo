@@ -19,7 +19,7 @@ import {
   type RowRemovalFocusPlan,
 } from './gridCore/tableRowFocus';
 import { coerceToISODateString } from '../../types/branded';
-import { initialLoenudviklingManuelRow, generateLoenudviklingRowId } from '../../domain/erstatningsopgoerelse/eoRowInitialValues';
+import { initialLoenudviklingManuelRow, generateLoenudviklingRowId } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
 import type { LoenudviklingManuelRow } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';

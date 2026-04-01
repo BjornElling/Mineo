@@ -1,14 +1,14 @@
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
-} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
   EO_ANGIVET_LOEN_ID,
   LoenudviklingKildeError,
   getAngivetLoenBaseretPaa,
   getAngivetLoenOpreguleresFraDato,
   resolveLoenudviklingKilde,
-} from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
+} from '../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import { toISODateString } from '../../../types/branded';
 

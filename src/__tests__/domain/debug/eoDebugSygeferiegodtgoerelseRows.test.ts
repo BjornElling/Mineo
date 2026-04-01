@@ -1,10 +1,10 @@
 import { buildEODebugSygeferiegodtgoerelseRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
-import * as eoPdfLoenudviklingModule from '../../../domain/erstatningsopgoerelse/eoPdfLoenudvikling';
-import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
+import * as loenudviklingBeregningModule from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
+import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
-} from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 
 const createValues = () => ({
@@ -115,7 +115,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         sfggAlleredeBetaltBeloeb: '0,00',
       },
     ];
-    const buildLoenudviklingModelSpy = vi.spyOn(eoPdfLoenudviklingModule, 'buildLoenudviklingModel');
+    const buildLoenudviklingModelSpy = vi.spyOn(loenudviklingBeregningModule, 'buildLoenudviklingModel');
 
     try {
       const rows = buildRows(values, {
@@ -998,7 +998,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
       },
     ];
     const buildLoenudviklingModelSpy = vi
-      .spyOn(eoPdfLoenudviklingModule, 'buildLoenudviklingModel')
+      .spyOn(loenudviklingBeregningModule, 'buildLoenudviklingModel')
       .mockImplementation(() => ({
         loenudviklingLabel: 'Overenskomst',
         loenudviklingTotal: { status: 'ok', value: 0 },
@@ -1445,7 +1445,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     ];
 
     const buildLoenudviklingModelSpy = vi
-      .spyOn(eoPdfLoenudviklingModule, 'buildLoenudviklingModel')
+      .spyOn(loenudviklingBeregningModule, 'buildLoenudviklingModel')
       .mockImplementation(() => {
         throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
       });
@@ -1658,6 +1658,5 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     expect(yearRow?.displayValue).toContain(' | 2025 |');
   });
 });
-
 
 

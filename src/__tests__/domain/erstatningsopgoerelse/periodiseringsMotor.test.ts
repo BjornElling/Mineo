@@ -9,7 +9,7 @@ import {
   periodiserBeloebForArbejdsdage,
   periodiserBeloebForMaaneder,
   periodiserBeloebForOffentligYdelse,
-} from '../../../domain/erstatningsopgoerelse/periodiseringsMotor';
+} from '../../../domain/erstatningsopgoerelse/engines/periodiseringsMotor';
 
 const iso = (value: string): ISODateString => toISODateString(value);
 const d = (value: string): Date => new Date(`${value}T00:00:00.000Z`);

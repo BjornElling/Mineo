@@ -6,7 +6,7 @@ import { buildLoenTimeline } from '../../../domain/debug/eoDebugLoenCoreModel';
 import type { DebugDay } from '../../../domain/debug/eoDebugTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
-import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { svieSmertePrDag } from '../../../data/lovbestemteRates';
 
 const makeDebugDay = (

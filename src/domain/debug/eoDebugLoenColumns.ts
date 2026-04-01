@@ -15,8 +15,8 @@ import { getReguleringsDatoer } from '../../data/offentligLoenLookup';
 import { parseOffentligDato } from './eoDebugOffentligeYdelserColumns';
 import type { DebugTabelColumnId, DebugTabelIntegrityIssue } from './eoDebugModel';
 import { debugTabelColumnId, WAGE_COLUMNS } from './eoDebugLoenTypes';
-import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/tafBeregningsenhed';
-import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/indtaegtPerioder';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { type DateInterval, iterateDatesInclusive, validateIsoRange } from '../../utils/isoDateHelpers';
 import { sumFloat64Array, isWithinIntegrityTolerance } from './eoDebugMathUtils';
 

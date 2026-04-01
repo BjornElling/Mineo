@@ -42,7 +42,7 @@ import {
   computeSkadesdatoMinRule,
   dateRanges_erstatningsopgoerelse
 } from '../../../config/dateRanges';
-import { resolveMidlertidigEetDatoHvisAktiv } from '../../../domain/erstatningsopgoerelse/tafPeriodConstraints';
+import { resolveMidlertidigEetDatoHvisAktiv } from '../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
 import { useSetEOLoenindkomstInputError } from '../../../hooks/useEOLoenindkomstInputErrors';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
@@ -62,10 +62,10 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../../types/branded';
 import { coerceToISODateString, parseISODate } from '../../../types/branded';
 import { isoDateToDate } from '../../../domain/dates/isoDate';
-import { calculateFerieHverdageMinusSHDage } from '../../../domain/erstatningsopgoerelse/ferieCalculations';
-import { EO_ANGIVET_LOEN_ID } from '../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
-import { buildBeregningsperiodeTafOverlap, buildTafDerived } from '../../../domain/erstatningsopgoerelse/tafRowDerived';
-import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatningsopgoerelse/eoNummerValidering';
+import { calculateFerieHverdageMinusSHDage } from '../../../domain/erstatningsopgoerelse/engines/ferieCalculations';
+import { EO_ANGIVET_LOEN_ID } from '../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { buildBeregningsperiodeTafOverlap, buildTafDerived } from '../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
+import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatningsopgoerelse/validation/eoNummerValidering';
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
 import { formatDanishDate } from '../../../utils/dateUtils';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
@@ -85,7 +85,7 @@ import {
 } from '../../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/krlRates';
 import { useAppSettings } from '../../../contexts/useAppSettings';
-import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '../../../utils/pdf/pdfService';
+import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '../../../pdf/infrastructure/pdfService';
 import { formatCurrency } from '../../../utils/formatUtils';
 
 type JaNej = 'Ja' | 'Nej';

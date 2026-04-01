@@ -6,7 +6,7 @@ import { buildRegulationTimeline, buildSHDageSet, buildFerieDageSet } from '../.
 import type { DebugDay } from '../../../domain/debug/eoDebugTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { ISODateString } from '../../../types/branded';
 import { aarsloenAslMax, getYearBoundsForYearlyRate } from '../../../data/lovbestemteRates';
 

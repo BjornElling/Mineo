@@ -1,25 +1,25 @@
-import { isFerieRowEmpty, isSvieSmerteRowEmpty, isTafRowEmpty } from '../../../domain/erstatningsopgoerelse/rowEmpty';
+import { isFerieRowEmpty, isSvieSmerteRowEmpty, isTafRowEmpty } from '../../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import {
   committedToFerieDraftRows,
   ensureFravaerRows,
   ensureTafFerieRows,
   ferieDraftToCommittedRow,
-} from '../../../domain/erstatningsopgoerelse/ferieTableModel';
+} from '../../../domain/erstatningsopgoerelse/tables/ferieTableModel';
 import {
   committedToSvieDraftRows,
   ensureSvieRows,
   svieDraftToCommittedRow,
-} from '../../../domain/erstatningsopgoerelse/svieSmerteTableModel';
+} from '../../../domain/erstatningsopgoerelse/tables/svieSmerteTableModel';
 import {
   committedToTafDraftRows,
   ensureTafRows,
   tafDraftToCommittedRow,
-} from '../../../domain/erstatningsopgoerelse/tafTableModel';
+} from '../../../domain/erstatningsopgoerelse/tables/tafTableModel';
 import {
   committedToOevrigeKravDraftRows,
   ensureOevrigeKravRows,
   oevrigeKravDraftToCommittedRow,
-} from '../../../domain/erstatningsopgoerelse/oevrigeKravTableModel';
+} from '../../../domain/erstatningsopgoerelse/tables/oevrigeKravTableModel';
 
 describe('tableModel roundtrip', () => {
   it('ferie draft↔committed bevarer id og værdier', () => {

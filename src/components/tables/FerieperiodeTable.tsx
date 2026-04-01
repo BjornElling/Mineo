@@ -6,8 +6,8 @@ import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } fro
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { subtractOneDay } from '../../types/branded';
-import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/rowDateBounds';
-import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tableDraftRows';
+import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/helpers/rowDateBounds';
+import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import { useTableSort } from './useTableSort';
 
 export type FerieperiodeTableProps = Readonly<{

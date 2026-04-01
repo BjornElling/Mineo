@@ -6,8 +6,8 @@ import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
 import type { EODebugModel } from '../../../../domain/debug/eoDebugModel';
 import type { EODebugSnapshot } from '../../../../domain/debug/eoDebugSnapshot';
 import type { SammentaellingDisplayTables, SammentaellingModel } from '../../../../domain/debug/eoDebugSammentaelling';
-import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
-import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 
 const makeModel = (patch: Partial<EODebugModel>): EODebugModel => {

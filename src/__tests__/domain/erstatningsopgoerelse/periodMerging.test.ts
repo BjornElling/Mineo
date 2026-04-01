@@ -1,5 +1,5 @@
 import { toISODateString } from '../../../types/branded';
-import { mergeIsoDateRanges, mergeDateRanges } from '../../../domain/erstatningsopgoerelse/periodMerging';
+import { mergeIsoDateRanges, mergeDateRanges } from '../../../domain/erstatningsopgoerelse/engines/periodMerging';
 
 const iso = (value: string) => toISODateString(value);
 const d = (value: string) => new Date(`${value}T00:00:00.000Z`);
