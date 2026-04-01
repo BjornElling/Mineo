@@ -377,7 +377,7 @@ To eksisterende mønstre er acceptable:
 
 **Mønster A — sektionsniveau:** Engine returnerer nul-output når toggle er slukket.
 PDF-renderer tjekker `model.beregnes`-flaget inden sektionen tegnes.
-Eksempel: `beregnesSvieSmerteGodtgoerelse` i `eoPdfBuilders.ts`.
+Eksempel: `beregnesSvieSmerteGodtgoerelse` i `eoPresentationSectionBuilders.ts`.
 
 **Mønster B — feltniveau:** Inline `if`-guard direkte i renderer-funktionen.
 Foretrukket mønster for enkeltfelter og felter med overlappende afhængigheder.

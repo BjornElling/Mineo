@@ -1,6 +1,6 @@
 import type { ISODateString } from '../../../types/branded';
 import { getReguleringsDatoIntervalForOverenskomst } from '../../../data/overenskomstRates';
-import { parseDanishToIso } from '../pdf/sharedPdfUtils';
+import { parseDanishToIso } from '../helpers/eoSharedUtils';
 
 export const resolveOverenskomstEffectiveStartIso = (
   overenskomstId: string | undefined,

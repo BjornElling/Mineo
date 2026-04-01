@@ -12,7 +12,7 @@ import { buildControlMismatchInvariant } from '../../../domain/erstatningsopgoer
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
-import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfModel';
+import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 
 const buildBaseSnapshot = () => {
   const eoValues = createErstatningsopgoerelseInitialValues();

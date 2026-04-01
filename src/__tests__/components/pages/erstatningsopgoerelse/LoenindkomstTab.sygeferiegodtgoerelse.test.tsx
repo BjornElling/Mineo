@@ -7,8 +7,8 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
-vi.mock('../../../../hooks/useEOLoenindkomstInputErrors', () => ({
-  useSetEOLoenindkomstInputError: () => vi.fn(),
+vi.mock('../../../../hooks/useFormFieldErrors', () => ({
+  useDynamicFormFieldErrorReporter: () => vi.fn(),
 }));
 
 vi.mock('../../../../hooks/useFormPersistenceSelectors', () => ({

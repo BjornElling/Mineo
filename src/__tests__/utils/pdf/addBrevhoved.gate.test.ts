@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 
-import { addBrevhoved, type BrevhovedData } from '../../../utils/pdf/pdfHelpers';
+import { addBrevhoved, type BrevhovedData } from '../../../pdf/shared/pdfHelpers';
 import { toISODateString } from '../../../types/branded';
 import { createMockPdfDocumentAdapter } from './mockPdfDocumentAdapter';
 

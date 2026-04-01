@@ -1,4 +1,4 @@
-import type { PdfModel } from '../pdf/eoPdfModelTypes';
+import type { PdfModel } from '../shared/eoTypes';
 import { hasEoSnapshotData, type EoSnapshot } from './eoSnapshot';
 import type { EoInvariant } from './eoSnapshotInvariants';
 import {

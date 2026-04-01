@@ -1,8 +1,8 @@
 import type { OevrigeKravRow } from '../../../schemas/formSchemas';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { isOevrigeKravRowEmpty } from './rowEmpty';
-import { clampMoneyOreToZero, ensureMoneyOre, toOre } from '../pdf/eoPdfMoneyUtils';
-import type { MoneyOre } from '../pdf/eoPdfModelTypes';
+import { clampMoneyOreToZero, ensureMoneyOre, toOre } from '../shared/eoMoney';
+import type { MoneyOre } from '../shared/eoTypes';
 
 export type ParsedOevrigeKravRow = Readonly<{
   original: OevrigeKravRow;
@@ -49,4 +49,3 @@ export const parseOevrigeKravBeloeb = (
     return null;
   }
 };
-

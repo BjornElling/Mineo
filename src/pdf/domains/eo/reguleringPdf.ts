@@ -10,19 +10,19 @@ import {
   resolvePdfSectionEndY,
   PDF_BASE_LINE_HEIGHT_MM,
   type BrevhovedData,
-} from './pdfHelpers';
-import { createStandardPdfWriter } from './pdfWriter';
-import { renderEoStylePdfTable } from './pdfTableRenderer';
-import { formatAsAmount, formatCurrency, formatPercent } from '../formatUtils';
-import { parseDanishDate, formatDanishDate, createDate } from '../dateUtils';
-import { roundByMethod } from '../rounding';
-import { aarsloenAslMax } from '../../data/lovbestemteRates';
-import { TODAY } from '../../config/dateRanges';
+} from '../../shared/pdfHelpers';
+import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
+import { renderEoStylePdfTable } from '../../shared/pdfTableRenderer';
+import { formatAsAmount, formatCurrency, formatPercent } from '../../../utils/formatUtils';
+import { parseDanishDate, formatDanishDate, createDate } from '../../../utils/dateUtils';
+import { roundByMethod } from '../../../utils/rounding';
+import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import { TODAY } from '../../../config/dateRanges';
 import {
   formatAmountWithoutTrailingDecimals,
   isAslStatistikModel,
   resolveStatistikModelId,
-} from '../../domain/erstatningsopgoerelse/pdf/sharedPdfUtils';
+} from '../../../domain/erstatningsopgoerelse/pdf/sharedPdfUtils';
 import {
   getEffektiveSatserForPeriode,
   getOffentligTillaegsSatserForDato,
@@ -31,16 +31,16 @@ import {
   getOffentligOverenskomstTypeById,
   resolveOverenskomstRef,
   type OverenskomstId,
-} from '../../data/overenskomstRates';
-import { getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
-import { toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
+} from '../../../data/overenskomstRates';
+import { getOffentligLoenForPeriode } from '../../../data/offentligLoenLookup';
+import { toLoentrin, type Loengruppe } from '../../../data/offentligLoenTypes';
 import {
   getStatistiskLoenudvikling,
   type StatistiskLoenudviklingId,
-} from '../../data/statistiskeRates';
-import type { DanishDateString } from '../../types/branded';
-import type { PdfCommonOptions } from './pdfOptions';
-import { resolvePdfFileName, sanitizeFilenamePart } from './pdfFormatUtils';
+} from '../../../data/statistiskeRates';
+import type { DanishDateString } from '../../../types/branded';
+import type { PdfCommonOptions } from '../../shared/pdfOptions';
+import { resolvePdfFileName, sanitizeFilenamePart } from '../../shared/pdfFormatUtils';
 
 type ReguleringPdfParams = Readonly<{
   overenskomstLabel: string;

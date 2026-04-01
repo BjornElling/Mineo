@@ -9,7 +9,7 @@ import {
   shouldIncludeLoenRowInBilag,
   shouldIncludeOffentligYdelseRowInBilag,
 } from '../../../domain/erstatningsopgoerelse/helpers/bilagRules';
-import { resolveValgtReguleringDisplay } from '../../../domain/erstatningsopgoerelse/pdf/loenudviklingDisplay';
+import { resolveValgtReguleringDisplay } from '../../../domain/erstatningsopgoerelse/helpers/loenudviklingDisplay';
 
 const iso = (value: string) => toISODateString(value);
 

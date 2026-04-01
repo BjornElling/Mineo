@@ -56,7 +56,7 @@ vi.mock('../../../utils/logger', () => ({
 describe('erstatningsopgoerelsePdf udkaststempel', () => {
   let baseStamdata: typeof STAMDATA_INITIAL_VALUES;
   let baseEo: ReturnType<typeof createErstatningsopgoerelseInitialValues>;
-  let generateErstatningsopgoerelsePdf: typeof import('../../../utils/pdf/erstatningsopgoerelsePdf').generateErstatningsopgoerelsePdf;
+  let generateErstatningsopgoerelsePdf: typeof import('../../../pdf/domains/eo/erstatningsopgoerelsePdf').generateErstatningsopgoerelsePdf;
 
   const selected = {
     opgoerelse: true,
@@ -71,7 +71,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   beforeAll(async () => {
     const { STAMDATA_INITIAL_VALUES } = await import('../../../domain/stamdata/stamdataInitialValues');
     const { createErstatningsopgoerelseInitialValues } = await import('../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues');
-    const pdfModule = await import('../../../utils/pdf/erstatningsopgoerelsePdf');
+    const pdfModule = await import('../../../pdf/domains/eo/erstatningsopgoerelsePdf');
 
     baseStamdata = structuredClone(STAMDATA_INITIAL_VALUES);
     baseEo = createErstatningsopgoerelseInitialValues();

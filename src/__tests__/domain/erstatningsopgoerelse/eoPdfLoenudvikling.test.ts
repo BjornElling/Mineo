@@ -4,7 +4,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import {
   buildTafArbejdsdageSet,
   countTafArbejdsdageInRange,
-} from '../../../domain/erstatningsopgoerelse/eoPdfLoenudvikling';
+} from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
 
 describe('buildTafArbejdsdageSet', () => {
   it('bevarer loseFeriedage paa den oprindelige TAF-raekke, selv naar autoritative tafRanges merger perioder', () => {

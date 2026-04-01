@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 
-import { normalizeRightAlignedTextForPdf, normalizeTextForPdf } from '../../../utils/pdf/pdfTextUtils';
+import { normalizeRightAlignedTextForPdf, normalizeTextForPdf } from '../../../pdf/shared/pdfTextUtils';
 
 describe('pdfTextUtils', () => {
   describe('normalizeTextForPdf', () => {

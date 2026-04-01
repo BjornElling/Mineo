@@ -37,9 +37,9 @@ import {
   resolveOffentligLoenEkstraGrundloen,
   resolvePctDecimalFromSatsOrInput,
   resolveReguleringsdato,
-} from '../erstatningsopgoerelse/pdf/sharedPdfUtils';
+} from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
-import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/pdf/loenudviklingDisplay';
+import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
 
 const STORE_BEDEDAG_PCT = STORE_BEDEDAG_PCT_PCT / 100;
 

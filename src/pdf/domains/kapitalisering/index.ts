@@ -1,1 +1,1 @@
-export * from './kapitaliseringPdf';
+export * from '../kapitalisering/kapitaliseringPdf';

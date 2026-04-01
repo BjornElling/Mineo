@@ -6,7 +6,7 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import type { PdfModel } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfModelTypes';
+import type { PdfModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModelTypes';
 import { computeEoSnapshot, type EoSnapshotComputedData } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import {
   splitRangeByCalendarYearsInclusive,

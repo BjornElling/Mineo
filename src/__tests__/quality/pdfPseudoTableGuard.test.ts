@@ -4,9 +4,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const SRC_ROOT = path.resolve(__dirname, '../../');
-const VARIGE_MEN_PDF_PATH = path.resolve(SRC_ROOT, 'utils/pdf/varigeMenPdf.ts');
-const SATSER_PDF_PATH = path.resolve(SRC_ROOT, 'utils/pdf/satserPdf.ts');
-const AARSLOEN_PDF_PATH = path.resolve(SRC_ROOT, 'utils/pdf/aarsloenPdf.ts');
+const VARIGE_MEN_PDF_PATH = path.resolve(SRC_ROOT, 'pdf/domains/varigemen/varigeMenPdf.ts');
+const SATSER_PDF_PATH = path.resolve(SRC_ROOT, 'pdf/domains/satser/satserPdf.ts');
+const AARSLOEN_PDF_PATH = path.resolve(SRC_ROOT, 'pdf/domains/aarsloen/aarsloenPdf.ts');
 
 describe('PDF pseudo-table guard', () => {
   it('forbyder tabelrenderer i varige mén PDF for almindelige oplysningslinjer', () => {

@@ -1,4 +1,4 @@
-import { renderShDageSection } from '../../../../../utils/pdf/erstatningsopgoerelse/sections/shDageSection';
+import { renderShDageSection } from '../../../../../pdf/domains/eo/sections/shDageSection';
 import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString, isISODateString } from '../../../../../types/branded';
 import type { IsoRange } from '../../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';

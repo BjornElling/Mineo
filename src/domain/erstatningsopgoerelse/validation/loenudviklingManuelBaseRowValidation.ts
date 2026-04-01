@@ -1,5 +1,5 @@
 import type { LoenudviklingManuelRow } from '../../../schemas/formSchemas';
-import { formatPercentFixed2 } from '../pdf/sharedPdfUtils';
+import { formatPercentFixed2 } from '../helpers/eoSharedUtils';
 
 export type ManualBaseRowPercentField = 'feriepenge' | 'fritvalg' | 'shSoSats' | 'agPension';
 

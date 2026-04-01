@@ -38,8 +38,8 @@ import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, type Loenu
 import { buildTafArbejdsdageSetFromRows } from './tafDaySets';
 import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
 import { isTafRowEmpty } from '../helpers/rowEmpty';
-import type { Calculable, IndkomstSkadestidspunktPdfModel, LoenudviklingPdfModel, LoenudviklingSegment, MoneyOre } from '../pdf/eoPdfModelTypes';
-import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../pdf/eoPdfMoneyUtils';
+import type { Calculable, IndkomstSkadestidspunktPdfModel, LoenudviklingPdfModel, LoenudviklingSegment, MoneyOre } from '../shared/eoTypes';
+import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
 import {
   convertAnciennitetSats,
   isAslStatistikModel,
@@ -48,7 +48,7 @@ import {
   resolveOffentligLoenEkstraGrundloen,
   resolveReguleringsdato as resolveReguleringsdatoShared,
   resolveStatistikModelId,
-} from '../pdf/sharedPdfUtils';
+} from '../helpers/eoSharedUtils';
 import { round2 as roundToTwoDecimals } from '../../../utils/roundingShortcuts';
 
 // =============================================================================

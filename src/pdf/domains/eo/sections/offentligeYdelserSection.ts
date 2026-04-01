@@ -1,13 +1,13 @@
 import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
-import { amountValueToDisplayString, amountValueToNumber } from '../../../expressionAmount';
-import { formatAsAmount } from '../../../formatUtils';
-import { PDF_CONTENT_WIDTH_MM } from '../../pdfConfig';
+import { amountValueToDisplayString, amountValueToNumber } from '../../../../utils/expressionAmount';
+import { formatAsAmount } from '../../../../utils/formatUtils';
+import { PDF_CONTENT_WIDTH_MM } from '../../../infrastructure/pdfConfig';
 import { ydelsestyper } from '../../../../data/ydelsestyper';
 import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
 import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
-import { renderEoStylePdfTable } from '../../pdfTableRenderer';
+import { renderEoStylePdfTable } from '../../../shared/pdfTableRenderer';
 import { OFFENTLIGE_YDELSER_PDF_HEADERS } from '../../../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 
 type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];

@@ -11,7 +11,7 @@ import { getOffentligeYdelserRowFilledState } from '../validation/offentligeYdel
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, parseAarsloenRowInterval } from './indtaegtPerioder';
 import { resolveLoenudviklingKilde } from './angivetLoenHelpers';
 import type { IsoRange } from '../engines/periodRangeGroups';
-import { parseDanishToIso, parseOptionalIsoDate } from '../pdf/sharedPdfUtils';
+import { parseDanishToIso, parseOptionalIsoDate } from '../helpers/eoSharedUtils';
 
 // Overlap er inklusiv begge endepunkter.
 const isIsoRangeOverlap = (a: IsoRange, b: IsoRange): boolean => a.fra <= b.til && b.fra <= a.til;

@@ -4,7 +4,7 @@
  * Bruges af differencekravPdf, loebendeYdelserPdf, kapitaliseringPdf og EetEfterEalPdf.
  */
 
-import { formatAsAmount, formatAsAmountTrimmed } from '../formatUtils';
+import { formatAsAmount, formatAsAmountTrimmed } from '../../../utils/formatUtils';
 
 export const formatKrEet = (value: number, decimals = 0): string =>
   `${formatAsAmount(value, decimals)} kr.`;

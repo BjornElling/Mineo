@@ -2,7 +2,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schem
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { buildIncomeForRanges, type IsoRange } from '../helpers/indtaegtPerioder';
 import { computeTafBeregningsenhed } from '../helpers/tafBeregningsenhed';
-import { buildIndkomstSkadestidspunkt } from '../pdf/eoPdfIndkomstSkadestidspunkt';
+import { buildIndkomstSkadestidspunkt } from './indkomstSkadestidspunktBeregning';
 import { buildLoenudviklingModel } from './loenudviklingBeregning';
 import { computeSygeferiegodtgoerelse, type SygeferiegodtgoerelseResult } from './sygeferiegodtgoerelse';
 import type {
@@ -11,8 +11,8 @@ import type {
   LoenudviklingPdfModel,
   MoneyOre,
   TafIndtaegterPdfModel,
-} from '../pdf/eoPdfModelTypes';
-import { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../pdf/eoPdfMoneyUtils';
+} from '../shared/eoTypes';
+import { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../shared/eoMoney';
 
 const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });

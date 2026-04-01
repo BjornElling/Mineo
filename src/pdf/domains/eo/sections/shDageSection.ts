@@ -1,12 +1,12 @@
 import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
-import { formatUtcDateLong, formatIsoDateLong as formatDateLong, WEEKDAY_NAMES_DA } from '../../../dateFormatting';
+import { formatUtcDateLong, formatIsoDateLong as formatDateLong, WEEKDAY_NAMES_DA } from '../../../../utils/dateFormatting';
 import {
   createPdfTableCell,
   createPdfTableHeaderCell,
   renderEoStylePdfTable,
-} from '../../pdfTableRenderer';
-import { PDF_TABLE_NARROW_COLUMN_WIDTH } from '../../pdfConfig';
+} from '../../../shared/pdfTableRenderer';
+import { PDF_TABLE_NARROW_COLUMN_WIDTH } from '../../../infrastructure/pdfConfig';
 import { parseISODate, type ISODateString } from '../../../../types/branded';
 import { beregnHelligdageMedNavn } from '../../../../domain/dates/shDageBeregning';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';

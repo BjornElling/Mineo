@@ -10,7 +10,7 @@
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
 import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import type { PdfModel } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfModelTypes';
+import type { PdfModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamdataSchemas';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas/sections/erstatningsopgoerelseSchemas';
 

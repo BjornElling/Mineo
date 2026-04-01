@@ -3,7 +3,7 @@ import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapsho
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import { formatCurrencyFromOre } from '../../../utils/pdf/pdfFormatUtils';
+import { formatCurrencyFromOre } from '../../../pdf/shared/pdfFormatUtils';
 
 const MockJsPDF = vi.hoisted(() =>
   class MockJsPDF {
@@ -61,7 +61,7 @@ const selected = {
   sygeferiegodtgoerelse: false,
 };
 
-let generateErstatningsopgoerelsePdf: typeof import('../../../utils/pdf/erstatningsopgoerelsePdf').generateErstatningsopgoerelsePdf;
+let generateErstatningsopgoerelsePdf: typeof import('../../../pdf/domains/eo/erstatningsopgoerelsePdf').generateErstatningsopgoerelsePdf;
 
 const buildProjectedDocument = (
   stamdata: typeof STAMDATA_INITIAL_VALUES,
@@ -194,7 +194,7 @@ const buildBaseInput = () => {
 
 describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
   beforeAll(async () => {
-    const pdfModule = await import('../../../utils/pdf/erstatningsopgoerelsePdf');
+    const pdfModule = await import('../../../pdf/domains/eo/erstatningsopgoerelsePdf');
     generateErstatningsopgoerelsePdf = pdfModule.generateErstatningsopgoerelsePdf;
   });
 

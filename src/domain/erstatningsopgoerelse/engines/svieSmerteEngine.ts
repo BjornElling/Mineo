@@ -12,11 +12,11 @@ import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { detectOverlappingPeriods } from './periodOverlapDetection';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
 import { isoDateToDate } from '../../dates/isoDate';
-import { perioderCoverDate } from '../pdf/sharedPdfUtils';
+import { perioderCoverDate } from '../helpers/eoSharedUtils';
 import { isSvieSmerteRowEmpty } from '../helpers/rowEmpty';
 import { parseForligsgrad } from './forligsgrad';
-import type { MoneyOre } from '../pdf/eoPdfModelTypes';
-import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../pdf/eoPdfMoneyUtils';
+import type { MoneyOre } from '../shared/eoTypes';
+import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
 
 export type SvieSmerteConstrainedPeriod = Readonly<{
   fra: ISODateString;

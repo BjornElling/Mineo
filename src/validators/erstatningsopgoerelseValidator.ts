@@ -24,14 +24,14 @@ import { amountValueToNumber } from '../utils/expressionAmount';
 import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
 import { resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
-import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/pdf/sharedPdfUtils';
+import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
 import {
   getFirstIndtastedeTafFraDato,
   resolveSfggReferenceperiodeDayCount,
   resolveSfggSource,
 } from '../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
-import { buildSfggNoEligibleDaysReason } from '../domain/erstatningsopgoerelse/pdf/sygeferiegodtgoerelsePresentation';
+import { buildSfggNoEligibleDaysReason } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelsePresentation';
 import {
   clampTafRow,
   getValidTafRange,

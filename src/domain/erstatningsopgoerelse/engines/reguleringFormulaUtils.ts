@@ -1,5 +1,5 @@
 import { formatCurrency, formatPercent } from '../../../utils/formatUtils';
-import { formatPercentFixed2 } from '../pdf/sharedPdfUtils';
+import { formatPercentFixed2 } from '../helpers/eoSharedUtils';
 import { roundByMethod } from '../../../utils/rounding';
 
 export type FormulaComponents = Readonly<{

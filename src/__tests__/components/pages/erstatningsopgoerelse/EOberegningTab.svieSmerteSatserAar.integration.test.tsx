@@ -11,10 +11,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../../../domain/ers
 
 vi.mock('../../../../hooks/useFormFieldErrors', () => ({
   useFieldErrorsBySourceForSection: () => ({}),
-}));
-
-vi.mock('../../../../hooks/useEOLoenindkomstInputErrors', () => ({
-  useEOLoenindkomstInputErrors: () => ({}),
+  useBlockingFieldIdsBySuffixForSection: () => ({}),
 }));
 
 describe('EOberegningTab svie/smerte sats-aar integration', () => {

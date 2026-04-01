@@ -1,14 +1,14 @@
 /// <reference types="vitest/globals" />
 
 import { createDate } from '../../../utils/dateUtils';
-import { buildAarsloenPdfFilename } from '../../../utils/pdf/aarsloenPdf';
-import { buildVarigeMenPdfFilename } from '../../../utils/pdf/varigeMenPdf';
-import { buildRentePdfBaseTitle, buildRentePdfFilename } from '../../../utils/pdf/rentePdf';
-import { buildSHDagePdfFilename } from '../../../utils/pdf/shDagePdf';
-import { buildSatserPdfFilename } from '../../../utils/pdf/satserPdf';
-import { buildReguleringPdfFilename } from '../../../utils/pdf/reguleringPdf';
-import { buildKRLPdfFilename } from '../../../utils/pdf/krlPdf';
-import { resolvePdfFileName } from '../../../utils/pdf/pdfFormatUtils';
+import { buildAarsloenPdfFilename } from '../../../pdf/domains/aarsloen/aarsloenPdf';
+import { buildVarigeMenPdfFilename } from '../../../pdf/domains/varigemen/varigeMenPdf';
+import { buildRentePdfBaseTitle, buildRentePdfFilename } from '../../../pdf/domains/renteberegning/rentePdf';
+import { buildSHDagePdfFilename } from '../../../pdf/domains/aarsloen/shDagePdf';
+import { buildSatserPdfFilename } from '../../../pdf/domains/satser/satserPdf';
+import { buildReguleringPdfFilename } from '../../../pdf/domains/eo/reguleringPdf';
+import { buildKRLPdfFilename } from '../../../pdf/domains/krl/krlPdf';
+import { resolvePdfFileName } from '../../../pdf/shared/pdfFormatUtils';
 import { toDanishDateString } from '../../../types/branded';
 
 describe('pdf filename builders', () => {

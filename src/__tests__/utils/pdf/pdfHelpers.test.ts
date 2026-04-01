@@ -1,7 +1,7 @@
 /// <reference types="vitest/globals" />
 
-import { ensurePdfPageSpace, addFooter, clearFooterImageCacheForTests } from '../../../utils/pdf/pdfHelpers';
-import { MARGINS } from '../../../utils/pdf/pdfConfig';
+import { ensurePdfPageSpace, addFooter, clearFooterImageCacheForTests } from '../../../pdf/shared/pdfHelpers';
+import { MARGINS } from '../../../pdf/infrastructure/pdfConfig';
 import { createMockPdfDocumentAdapter } from './mockPdfDocumentAdapter';
 
 /**

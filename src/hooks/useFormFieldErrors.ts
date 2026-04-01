@@ -11,6 +11,7 @@ import type {
 } from '../types/fieldErrors';
 
 type FieldName<K extends StorageKey> = Extract<keyof PersistedSectionMap[K], string>;
+type DynamicFieldName<K extends StorageKey> = FieldName<K> | string;
 
 /**
  * Resolved "active" errors per field (flattened across sources via the deterministic resolver).
@@ -28,6 +29,39 @@ export const useFormFieldErrors = <K extends StorageKey>(pageKey: K): Partial<Re
 export const useFieldErrorsBySourceForSection = <K extends StorageKey>(pageKey: K): FieldErrorsForSection<K> => {
   const { getFieldErrorsBySource } = useFormPersistence();
   return getFieldErrorsBySource(pageKey);
+};
+
+export const selectBlockingFieldIdsBySuffix = (
+  fieldErrors: Readonly<Record<string, Record<string, FormFieldError | undefined> | undefined>>,
+  suffix: string
+): Readonly<Record<string, true>> => {
+  const result: Record<string, true> = {};
+
+  for (const [fieldKey, bySource] of Object.entries(fieldErrors)) {
+    if (!fieldKey.endsWith(suffix) || !bySource) continue;
+    const hasBlockingError = Object.values(bySource).some((entry) => entry?.severity === 'error' && entry.blocksSave !== false);
+    if (!hasBlockingError) continue;
+    const entityId = fieldKey.slice(0, -suffix.length);
+    if (entityId !== '') {
+      result[entityId] = true;
+    }
+  }
+
+  return result;
+};
+
+export const useBlockingFieldIdsBySuffixForSection = <K extends StorageKey>(
+  pageKey: K,
+  suffix: string
+): Readonly<Record<string, true>> => {
+  const fieldErrors = useFieldErrorsBySourceForSection(pageKey);
+
+  return React.useMemo(() => {
+    return selectBlockingFieldIdsBySuffix(
+      fieldErrors as Readonly<Record<string, Record<string, FormFieldError | undefined> | undefined>>,
+      suffix
+    );
+  }, [fieldErrors, suffix]);
 };
 
 type ReporterOptions = {
@@ -86,3 +120,34 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
   return reportError;
 };
 
+export const useDynamicFormFieldErrorReporter = <K extends StorageKey>(
+  pageKey: K,
+  options?: ReporterOptions
+): ((fieldName: DynamicFieldName<K>, error: ReportableFieldError | undefined) => void) => {
+  const { setFieldError } = useFormPersistence();
+
+  const severity = options?.severity ?? 'error';
+  const source = options?.source ?? 'input';
+
+  return React.useCallback((fieldName: DynamicFieldName<K>, error: ReportableFieldError | undefined) => {
+    if (
+      error === undefined
+      || (typeof error === 'string' && error.trim() === '')
+      || (typeof error !== 'string' && error.message.trim() === '')
+    ) {
+      setFieldError(pageKey, fieldName, source, null);
+      return;
+    }
+
+    if (typeof error === 'string') {
+      setFieldError(pageKey, fieldName, source, { message: error, severity, blocksSave: true });
+      return;
+    }
+
+    setFieldError(pageKey, fieldName, source, {
+      message: error.message,
+      severity,
+      blocksSave: error.blocksSave !== false,
+    });
+  }, [pageKey, setFieldError, severity, source]);
+};

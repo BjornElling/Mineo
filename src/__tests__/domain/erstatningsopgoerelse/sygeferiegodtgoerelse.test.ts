@@ -8,7 +8,7 @@ import {
 import {
   buildSfggReferenceperiodeCountLabel,
   parseSfggExplanatoryLine,
-} from '../../../domain/erstatningsopgoerelse/pdf/sygeferiegodtgoerelsePresentation';
+} from '../../../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelsePresentation';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
 

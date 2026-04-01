@@ -31,7 +31,7 @@ import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoe
 import {
   resolveOffentligLoenEkstraGrundloen,
   resolvePctDecimalFromSatsOrInput,
-} from '../erstatningsopgoerelse/pdf/sharedPdfUtils';
+} from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 
 const STORE_BEDEDAG_PCT = STORE_BEDEDAG_PCT_PCT / 100;
 

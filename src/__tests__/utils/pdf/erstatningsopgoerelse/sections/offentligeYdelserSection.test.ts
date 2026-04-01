@@ -1,5 +1,5 @@
 import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { renderOffentligeYdelserSection } from '../../../../../utils/pdf/erstatningsopgoerelse/sections/offentligeYdelserSection';
+import { renderOffentligeYdelserSection } from '../../../../../pdf/domains/eo/sections/offentligeYdelserSection';
 
 const { autoTableMock } = vi.hoisted(() => ({
   autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number }) => {

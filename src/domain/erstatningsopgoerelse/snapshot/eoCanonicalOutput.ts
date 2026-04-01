@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import { isoDateString } from '../../../schemas/formSchemas/baseSchemas';
-import { clampMoneyOreToZero, ensureMoneyOre, moneyOreSchema, scaleMoneyOre } from '../pdf/eoPdfMoneyUtils';
+import { clampMoneyOreToZero, ensureMoneyOre, moneyOreSchema, scaleMoneyOre } from '../shared/eoMoney';
 import type { SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import type { TafNettoBeregningResult } from '../engines/tafNettoBeregning';
-import type { Calculable, LoenudviklingSegment, MoneyOre } from '../pdf/eoPdfModelTypes';
-import type { OevrigeKravPdfModel } from '../pdf/eoPdfModel';
+import type { Calculable, LoenudviklingSegment, MoneyOre } from '../shared/eoTypes';
+import type { OevrigeKravPdfModel } from './eoPresentationModel';
 
 const isoDateSchema = isoDateString;
 

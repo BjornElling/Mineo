@@ -68,7 +68,6 @@ import {
   getReguleringsDatoIntervalForStatistikModel,
 } from '../../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/krlRates';
-import { useSetEOLoenindkomstInputError } from '../../../hooks/useEOLoenindkomstInputErrors';
 import { getPersistedSectionSnapshot, usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSelectors';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { appSettingsSchema, DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../../settings/appSettingsSchema';
@@ -90,6 +89,7 @@ import {
   validateLoenudviklingManualBaseRowSatser,
   type ManualBaseRowCellErrors,
 } from '../../../domain/erstatningsopgoerelse/validation/loenudviklingManuelBaseRowValidation';
+import { useDynamicFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
 import { updateValidationFlagById } from '../../../utils/validationFlagMap';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 
@@ -115,6 +115,7 @@ type SfggAnsaettelsesforholdRow =
   ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number];
 
 const MAX_ANSAETTELSESFORHOLD = 10;
+const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 
 const getCheckedJaNej = (value: 'Ja' | 'Nej'): boolean => value === 'Ja';
 
@@ -372,7 +373,7 @@ const LoenindkomstTab = React.memo(({
   setEOValues,
   onAnsaettelsesforholdChange,
 }: Props) => {
-  const setLoenindkomstManuelReguleringInputError = useSetEOLoenindkomstInputError();
+  const reportDynamicFieldError = useDynamicFormFieldErrorReporter('erstatningsopgoerelse', { source: 'input' });
   const stamdataValues = usePersistedSectionSelector('stamdata');
   const { settings } = useAppSettings();
 
@@ -692,18 +693,21 @@ const LoenindkomstTab = React.memo(({
     const currentIds = new Set(loenindkomstAnsaettelsesforhold.map((af) => af.id));
     for (const id of syncedLoenindkomstErrorIdsRef.current) {
       if (!currentIds.has(id)) {
-        setLoenindkomstManuelReguleringInputError(id, false);
+        reportDynamicFieldError(`${id}${EO_LOENINDKOMST_INPUT_ERROR_SUFFIX}`, undefined);
       }
     }
     for (const id of currentIds) {
       const hasError = Boolean(standardLoenTableHasErrorsByAfId[id] || manuelReguleringHasErrorsByAfId[id]);
-      setLoenindkomstManuelReguleringInputError(id, hasError);
+      reportDynamicFieldError(
+        `${id}${EO_LOENINDKOMST_INPUT_ERROR_SUFFIX}`,
+        hasError ? 'Ugyldig manuel regulering' : undefined
+      );
     }
     syncedLoenindkomstErrorIdsRef.current = currentIds;
   }, [
     standardLoenTableHasErrorsByAfId,
     manuelReguleringHasErrorsByAfId,
-    setLoenindkomstManuelReguleringInputError,
+    reportDynamicFieldError,
     loenindkomstAnsaettelsesforhold,
   ]);
 

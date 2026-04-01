@@ -1,7 +1,9 @@
 export {
+  buildReguleringIndexRows,
+  buildReguleringsvaerdierTableData,
   resolveLoenSkadesdatoText,
   resolveLoenudviklingSegmentBounds,
   resolveReguleringsdato,
   resolveStatistikModelIdFromLabel,
   resolveTafDateBounds,
-} from './reguleringsPresentation';
+} from '../pdf/eoPdfRegulering';

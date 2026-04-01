@@ -9,9 +9,9 @@ import { calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from '../
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { getAngivetLoenBaseretPaa } from '../helpers/angivetLoenHelpers';
 import { isoDateToDate } from '../../dates/isoDate';
-import type { Calculable, IndkomstSkadestidspunktPdfModel, MoneyOre } from './eoPdfModelTypes';
-import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from './eoPdfMoneyUtils';
-import { formatPercentFixed2 } from './sharedPdfUtils';
+import type { Calculable, IndkomstSkadestidspunktPdfModel, MoneyOre } from '../pdf/eoPdfModelTypes';
+import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../pdf/eoPdfMoneyUtils';
+import { formatPercentFixed2 } from '../pdf/sharedPdfUtils';
 import { formatIsoDateShort as formatDateShort } from '../../../utils/dateFormatting';
 
 const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });

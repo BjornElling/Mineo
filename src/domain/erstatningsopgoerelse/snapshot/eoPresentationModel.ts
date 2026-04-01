@@ -2,15 +2,15 @@ import type { ISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type {
   PdfModel,
-} from './eoPdfModelTypes';
-import { clampMoneyOreToZero, ensureMoneyOre, scaleMoneyOre } from './eoPdfMoneyUtils';
+} from '../pdf/eoPdfModelTypes';
+import { clampMoneyOreToZero, ensureMoneyOre, scaleMoneyOre } from '../pdf/eoPdfMoneyUtils';
 import { formatIsoDateShort as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import type {
   ForligPdfModel,
   OevrigeKravPdfModel,
   SvieSmertePdfModel,
   TabtArbejdsfortjenestePdfModel,
-} from './eoPdfModelTypes';
+} from '../pdf/eoPdfModelTypes';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 
 export type {
@@ -25,9 +25,9 @@ export type {
   SygeferiegodtgoerelsePdfModel,
   TabtArbejdsfortjenestePdfModel,
   TafIndtaegterPdfModel,
-} from './eoPdfModelTypes';
-export { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from './eoPdfMoneyUtils';
-export { buildTafArbejdsdageSet, countTafArbejdsdageInRange, resolveLoenudviklingRows, segmentAmountOre } from './eoPdfLoenudvikling';
+} from '../pdf/eoPdfModelTypes';
+export { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../pdf/eoPdfMoneyUtils';
+export { buildTafArbejdsdageSet, countTafArbejdsdageInRange, resolveLoenudviklingRows, segmentAmountOre } from '../pdf/eoPdfLoenudvikling';
 
 export type EoPdfPresentation = Readonly<{
   titel: string;

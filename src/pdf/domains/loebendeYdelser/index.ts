@@ -1,1 +1,1 @@
-export * from './loebendeYdelserPdf';
+export * from '../loebendeYdelser/loebendeYdelserPdf';

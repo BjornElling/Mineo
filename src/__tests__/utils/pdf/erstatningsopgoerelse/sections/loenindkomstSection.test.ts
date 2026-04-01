@@ -1,8 +1,8 @@
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { getStandardLoenTableHeaders } from '../../../../../domain/aarsloen/standardLoenTableColumns';
 import { toISODateString } from '../../../../../types/branded';
-import { renderLoenindkomstSection } from '../../../../../utils/pdf/erstatningsopgoerelse/sections/loenindkomstSection';
-import type { SelectedElements } from '../../../../../utils/pdf/erstatningsopgoerelse/types';
+import { renderLoenindkomstSection } from '../../../../../pdf/domains/eo/sections/loenindkomstSection';
+import type { SelectedElements } from '../../../../../pdf/domains/eo/types';
 
 const { autoTableMock } = vi.hoisted(() => ({
   autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number }) => {

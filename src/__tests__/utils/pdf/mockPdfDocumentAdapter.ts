@@ -1,7 +1,7 @@
 /// <reference types="vitest/globals" />
 
 import type { Mocked } from 'vitest';
-import type { PdfDocumentAdapter } from '../../../utils/pdf/pdfDocumentAdapter';
+import type { PdfDocumentAdapter } from '../../../pdf/infrastructure/pdfDocumentAdapter';
 
 /**
  * Fælles test-factory for PdfDocumentAdapter mocks.

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert, AlertTitle, Box } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import { useEOLoenindkomstInputErrors } from '../../../hooks/useEOLoenindkomstInputErrors';
+import { useBlockingFieldIdsBySuffixForSection } from '../../../hooks/useFormFieldErrors';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { buildEODebugPageViewModel } from '../../../domain/debug/eoDebugPageViewModel';
 import { eoSnapshotToDebugView } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToDebugView';
@@ -15,8 +15,10 @@ type EODebugProps = Readonly<{
   eoSnapshot?: EoSnapshot | null;
 }>;
 
+const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
+
 const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
-  const manuelReguleringInputErrors = useEOLoenindkomstInputErrors();
+  const manuelReguleringInputErrors = useBlockingFieldIdsBySuffixForSection('erstatningsopgoerelse', EO_LOENINDKOMST_INPUT_ERROR_SUFFIX);
   const { settings } = useAppSettings();
 
   const view = React.useMemo(() => eoSnapshotToDebugView({

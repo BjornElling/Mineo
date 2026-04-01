@@ -18,9 +18,9 @@ import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } 
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { dateToISO, parseISODate, subtractOneDay, type ISODateString } from '../../../types/branded';
 import { isoToDanish, toDanishDateString } from '../../../types/branded';
-import { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../pdf/eoPdfMoneyUtils';
-import type { LoenudviklingSegment, MoneyOre } from '../pdf/eoPdfModelTypes';
-import { resolvePctDecimalFromSatsOrInput } from '../pdf/sharedPdfUtils';
+import { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../shared/eoMoney';
+import type { LoenudviklingSegment, MoneyOre } from '../shared/eoTypes';
+import { resolvePctDecimalFromSatsOrInput } from '../helpers/eoSharedUtils';
 import {
   getEffektiveSatserForDato,
   getOffentligOverenskomstTypeById,
@@ -37,7 +37,7 @@ import {
   resolveSfggDifferentieretSatsLabel,
   resolveSfggReferenceperiodeAuthorityText,
   resolveSfggReferenceperiodeLabel,
-} from '../pdf/sygeferiegodtgoerelsePresentation';
+} from '../helpers/sygeferiegodtgoerelsePresentation';
 
 export type SfggSourceKind = 'ingen' | 'manuel' | 'ferielov' | 'overenskomst_direkte' | 'overenskomst_ferielov';
 export type SfggSource = Readonly<{ kind: SfggSourceKind; label: string }>;

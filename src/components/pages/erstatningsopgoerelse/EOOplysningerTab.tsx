@@ -43,9 +43,8 @@ import {
   dateRanges_erstatningsopgoerelse
 } from '../../../config/dateRanges';
 import { resolveMidlertidigEetDatoHvisAktiv } from '../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
-import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
+import { useDynamicFormFieldErrorReporter, useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
 import { usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSelectors';
-import { useSetEOLoenindkomstInputError } from '../../../hooks/useEOLoenindkomstInputErrors';
 import {
   type ErstatningsopgoerelseValues,
   type EOAngivetLoenLoenudvikling,
@@ -111,6 +110,7 @@ type LoentrinFinderResult = Readonly<{
   diff: number;
 }>;
 const LOENGRUPPER = [0, 1, 2, 3, 4] as const;
+const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 
 const parseLoentrinSortValue = (loentrin: number | '55+'): number => (loentrin === '55+' ? 56 : loentrin);
 const hasExactDisplayedAmountMatch = (inputAmount: number, resultAmount: number): boolean => {
@@ -155,7 +155,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   const skadesdatoISO = persistedStamdata?.skadesdato;
   const skadestypeFromStamdata = persistedStamdata?.skadestype ?? '';
   const { settings } = useAppSettings();
-  const setLoenindkomstManuelReguleringInputError = useSetEOLoenindkomstInputError();
+  const reportDynamicFieldError = useDynamicFormFieldErrorReporter('erstatningsopgoerelse', { source: 'input' });
 
   // Beregn minDate for øvrige krav-tabel
   const oevrigeKravMinDate = React.useMemo(() => {
@@ -692,8 +692,11 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   }, [updateEoLoenudvikling]);
 
   const handleLoenudviklingManuelInputErrorChange = React.useCallback((hasError: boolean) => {
-    setLoenindkomstManuelReguleringInputError(EO_ANGIVET_LOEN_ID, hasError);
-  }, [setLoenindkomstManuelReguleringInputError]);
+    reportDynamicFieldError(
+      `${EO_ANGIVET_LOEN_ID}${EO_LOENINDKOMST_INPUT_ERROR_SUFFIX}`,
+      hasError ? 'Ugyldig manuel regulering' : undefined
+    );
+  }, [reportDynamicFieldError]);
 
   const alleLoenmodtagerOrg = React.useMemo(() => getAlleLoenmodtagerOrg(), []);
   const alleArbejdsgiverOrg = React.useMemo(() => getAlleArbejdsgiverOrg(), []);

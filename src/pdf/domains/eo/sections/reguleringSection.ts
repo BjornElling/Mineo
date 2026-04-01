@@ -1,11 +1,11 @@
 import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
-import { MARGINS } from '../../pdfConfig';
+import { MARGINS } from '../../../infrastructure/pdfConfig';
 import {
   createPdfTableCell,
   createPdfTableHeaderCell,
   renderEoStylePdfTable,
-} from '../../pdfTableRenderer';
+} from '../../../shared/pdfTableRenderer';
 import {
   getEffektiveSatserForDato,
   getGrundloenAngivetPerForOverenskomst,
@@ -14,7 +14,7 @@ import {
   resolveOverenskomstNameOnlyDisplay,
   resolveOverenskomstRef,
 } from '../../../../data/overenskomstRates';
-import type { PdfWriter } from '../../pdfWriter';
+import type { PdfWriter } from '../../../infrastructure/pdfWriter';
 import { EO_ANGIVET_LOEN_ID, resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
@@ -27,7 +27,7 @@ import { STORE_BEDEDAG_START } from '../../../../config/dateRanges';
 import { STORE_BEDEDAG_PCT } from '../../../../config/regulatoryRates';
 import { isoToDanish, type ISODateString } from '../../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
-import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/pdf/eoPdfModel';
+import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type {
   ReguleringIndexRow,
   ReguleringValuesTableData,

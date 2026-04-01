@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Checkbox, FormControlLabel, Tooltip, MenuItem } from '@mui/material';
 import { Download, ErrorOutline, WarningAmber } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
-import { useFieldErrorsBySourceForSection } from '../../../hooks/useFormFieldErrors';
-import { useEOLoenindkomstInputErrors } from '../../../hooks/useEOLoenindkomstInputErrors';
+import { useBlockingFieldIdsBySuffixForSection, useFieldErrorsBySourceForSection } from '../../../hooks/useFormFieldErrors';
 import { collectAllDebugRows } from '../../../domain/debug/eoDebugRowAggregator';
 import type { DebugRowWithNavigation } from '../../../domain/debug/eoDebugRowAggregator';
 import type { NavigationTarget } from '../../../domain/debug/eoDebugNavigationMap';
@@ -15,7 +14,7 @@ import { useAppSettings } from '../../../contexts/useAppSettings';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { isoToDanish } from '../../../types/branded';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../../inputs/StyledDropdown';
-import { toReadableSummaryMessage } from '../../../domain/erstatningsopgoerelse/pdf/readableSummaryMessage';
+import { toReadableSummaryMessage } from '../../../domain/erstatningsopgoerelse/helpers/readableSummaryMessage';
 import type { StamdataValues } from '../../../schemas/formSchemas';
 import {
   downloadErstatningsopgoerelsePdf,
@@ -47,6 +46,8 @@ type SystemIssueRow = Readonly<{
   actionLabel?: string;
   onAction?: () => void;
 }>;
+
+const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 
 const DEVTOOLS_REPORTABLE_INVARIANT_IDS = new Set([
   'debug:control_mismatch',
@@ -230,7 +231,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   const { settings } = useAppSettings();
   const stamdataErrors = useFieldErrorsBySourceForSection('stamdata');
   const eoErrors = useFieldErrorsBySourceForSection('erstatningsopgoerelse');
-  const manuelReguleringInputErrors = useEOLoenindkomstInputErrors();
+  const manuelReguleringInputErrors = useBlockingFieldIdsBySuffixForSection('erstatningsopgoerelse', EO_LOENINDKOMST_INPUT_ERROR_SUFFIX);
 
   const beregningView = React.useMemo(
     () => (eoSnapshot ? eoSnapshotToBeregningView(eoSnapshot) : null),

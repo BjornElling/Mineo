@@ -42,7 +42,7 @@ describe('EET PDF empty states', () => {
   });
 
   it('generateLoebendeYdelserPdf viser tom-tilstand i stedet for tom titelside', async () => {
-    const { generateLoebendeYdelserPdf } = await import('../../../utils/pdf/loebendeYdelserPdf');
+    const { generateLoebendeYdelserPdf } = await import('../../../pdf/domains/loebendeYdelser/loebendeYdelserPdf');
 
     generateLoebendeYdelserPdf({
       computation: {
@@ -66,7 +66,7 @@ describe('EET PDF empty states', () => {
   });
 
   it('generateKapitaliseringPdf viser tom-tilstand når der ikke er kapitaliserede afgørelser', async () => {
-    const { generateKapitaliseringPdf } = await import('../../../utils/pdf/kapitaliseringPdf');
+    const { generateKapitaliseringPdf } = await import('../../../pdf/domains/kapitalisering/kapitaliseringPdf');
 
     generateKapitaliseringPdf({
       computation: {
@@ -82,7 +82,7 @@ describe('EET PDF empty states', () => {
   });
 
   it('generateKapitaliseringPdf udelader AM-bidrag i grundydelseslinjer for skader foer 2011', async () => {
-    const { generateKapitaliseringPdf } = await import('../../../utils/pdf/kapitaliseringPdf');
+    const { generateKapitaliseringPdf } = await import('../../../pdf/domains/kapitalisering/kapitaliseringPdf');
 
     generateKapitaliseringPdf({
       computation: {
@@ -128,7 +128,7 @@ describe('EET PDF empty states', () => {
   });
 
   it('generateDifferencekravPdf viser tom-tilstand for tomme bilag i stedet for blanke bilagssider', async () => {
-    const { generateDifferencekravPdf } = await import('../../../utils/pdf/differencekravPdf');
+    const { generateDifferencekravPdf } = await import('../../../pdf/domains/differencekrav/differencekravPdf');
 
     generateDifferencekravPdf({
       computation: {
@@ -177,7 +177,7 @@ describe('EET PDF empty states', () => {
   });
 
   it('generateDifferencekravPdf udelader AM-bidrag i proforma-grundydelseslinjer for skader foer 2011', async () => {
-    const { generateDifferencekravPdf } = await import('../../../utils/pdf/differencekravPdf');
+    const { generateDifferencekravPdf } = await import('../../../pdf/domains/differencekrav/differencekravPdf');
 
     generateDifferencekravPdf({
       computation: {
@@ -252,7 +252,7 @@ describe('EET PDF empty states', () => {
   });
 
   it('generateDifferencekravPdf bruger løbende-bilagets computation med dagen før beregningsdatoen', async () => {
-    const { generateDifferencekravPdf } = await import('../../../utils/pdf/differencekravPdf');
+    const { generateDifferencekravPdf } = await import('../../../pdf/domains/differencekrav/differencekravPdf');
 
     generateDifferencekravPdf({
       computation: {

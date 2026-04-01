@@ -26,7 +26,7 @@ import type {
   Calculable,
   LoenudviklingPdfModel,
   TafIndtaegterPdfModel,
-} from '../pdf/eoPdfModel';
+} from '../snapshot/eoPresentationModel';
 import type { SygeferiegodtgoerelseResult } from './sygeferiegodtgoerelse';
 import {
   buildTafArbejdsdageSet,
@@ -35,12 +35,12 @@ import {
   segmentAmountOre,
   roundKroner,
   toOre,
-} from '../pdf/eoPdfModel';
+} from '../snapshot/eoPresentationModel';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { buildIncomeCalculationContext, buildIncomeForRanges } from '../helpers/indtaegtPerioder';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { roundByMethod } from '../../../utils/rounding';
-import { scaleMoneyOre } from '../pdf/eoPdfMoneyUtils';
+import { scaleMoneyOre } from '../shared/eoMoney';
 
 const MAX_AFRUNDING_AFVIGELSE_ORE = 100 as MoneyOre;
 

@@ -11,13 +11,13 @@ import { TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregnings
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import { resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
-import { resolveReguleringsdato } from '../erstatningsopgoerelse/pdf/sharedPdfUtils';
+import { resolveReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 import { getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
   buildReguleringIndexRows,
   buildReguleringsvaerdierTableData,
-} from '../erstatningsopgoerelse/pdf/eoPdfRegulering';
+} from '../erstatningsopgoerelse/engines/reguleringsPresentation';
 import { resolveLoenudviklingSegmentBounds } from '../erstatningsopgoerelse/engines/reguleringsBeregning';
 
 export type RegulationDebugSection = {

@@ -15,7 +15,7 @@
  */
 
 import type { PdfWriter } from '../../../pdf/infrastructure/pdfWriter';
-import type { PdfModel } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfModelTypes';
+import type { PdfModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import type { BatchScenario } from '../types';
 import { renderScenarioHeader } from './scenarioHeaderRenderer';
 import { formatCurrencyFromOre, formatMoneyOreWithKr } from '../../../pdf/shared/pdfFormatUtils';

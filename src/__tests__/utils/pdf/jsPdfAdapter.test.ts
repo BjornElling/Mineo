@@ -1,7 +1,7 @@
 /// <reference types="vitest/globals" />
 
 import jsPDF from 'jspdf';
-import { createJsPdfAdapter } from '../../../utils/pdf/jsPdfAdapter';
+import { createJsPdfAdapter } from '../../../pdf/infrastructure/jsPdfAdapter';
 
 /**
  * Tests for jsPdfAdapter

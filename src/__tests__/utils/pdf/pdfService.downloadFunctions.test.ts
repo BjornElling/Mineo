@@ -49,7 +49,7 @@ const {
   mockEoSnapshotToTafPerYearPdfDocument: vi.fn(),
 }));
 
-vi.mock('../../../utils/pdf/pdfLoader', () => ({
+vi.mock('../../../pdf/infrastructure/pdfLoader', () => ({
   loadSatserPdfModule: vi.fn(async () => ({ generateSatserPdf: mockGenerateSatserPdf })),
   loadRentePdfModule: vi.fn(async () => ({ generateRentePdf: mockGenerateRentePdf })),
   loadReguleringPdfModule: vi.fn(async () => ({ generateReguleringPdf: mockGenerateReguleringPdf })),
@@ -91,7 +91,7 @@ import {
   downloadVarigeMenPdf,
   downloadAarsloenPdf,
   downloadSHDagePdf,
-} from '../../../utils/pdf/pdfService';
+} from '../../../pdf/infrastructure/pdfService';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 

@@ -8,7 +8,7 @@
  * Kanonisk hierarki:
  *   Beregning:   roundByMethod(v, n, method)       — utils/rounding.ts
  *   Beløb UI:    formatAsAmount() / formatCurrency() — utils/formatUtils.ts
- *   Beløb PDF:   formatCurrencyFromOre() m.fl.      — utils/pdf/pdfFormatUtils.ts
+ *   Beløb PDF:   formatCurrencyFromOre() m.fl.      — pdf/shared/pdfFormatUtils.ts
  *   Procent:     formatPercent()                    — utils/formatUtils.ts
  *
  * Forbudte mønstre og deres kanoniske erstatning:
@@ -120,14 +120,14 @@ const MATH_ROUND_ALLOWLIST = new Set([
   // Dato-aritmetik: Math.min til clamping af månedsdag
   'utils/dateUtils.ts',
   // detectDecimalPlaces: tolerance-tjek (Math.abs + Math.round til heltalstjek)
-  'domain/erstatningsopgoerelse/pdf/sharedPdfUtils.ts',
+  'domain/erstatningsopgoerelse/helpers/eoSharedUtils.ts',
   // formatUtils: Math.abs og Math.trunc til sign-håndtering — aldrig selvstændig runding
   'utils/formatUtils.ts',
   // pdfFormatUtils: Math.abs på allerede-afrundet tal til fortegnsfjernelse
-  'utils/pdf/pdfFormatUtils.ts',
+  'pdf/shared/pdfFormatUtils.ts',
   // Canvas/PDF dimension: pixelbredde/-højde (ikke finansielt)
-  'utils/pdf/pdfHelpers.ts',
-  'utils/pdf/pdfWriter.ts',
+  'pdf/shared/pdfHelpers.ts',
+  'pdf/infrastructure/pdfWriter.ts',
 ]);
 
 /**
@@ -149,7 +149,7 @@ const TO_FIXED_ALLOWLIST = new Set([
   // Filstørrelse: bytes→MB i fejlbeskeder til brugeren (ikke finansielt beløb)
   'utils/fileLoad.ts',
   // PDF canvas: cache-nøgle baseret på dimensioner (ikke finansielt)
-  'utils/pdf/pdfWriter.ts',
+  'pdf/infrastructure/pdfWriter.ts',
   // UI procentinput: genskaber nøjagtigt brugerens commit-format i tabellen
   'components/inputs/table/TablePercentInput.tsx',
 ]);
@@ -165,7 +165,7 @@ const TO_FIXED_ALLOWLIST = new Set([
 const TO_LOCALE_STRING_ALLOWLIST = new Set([
   // Kanoniske implementations
   'utils/formatUtils.ts',
-  'utils/pdf/pdfFormatUtils.ts',
+  'pdf/shared/pdfFormatUtils.ts',
   // Logging og teknisk fejlrapport — ikke brugersynligt finansielt tal
   'utils/bugReport.ts',
   'utils/logger.ts',
@@ -275,22 +275,22 @@ describe('Afrundingsnorm-guard', () => {
         'utils/isoDateHelpers.ts', // new Date(start.getTime()) — kopi, ikke parsing
         // Renteberegning — bruger Date.UTC til månedsafgrænsning
         'domain/renteberegning/procesrenteCalculator.ts',
-        'utils/pdf/rentePdf.ts',
+        'pdf/domains/renteberegning/rentePdf.ts',
         // Måned-slutdag-beregning via Date.UTC(y, m, 0) — kanonisk trick
         'config/dateRanges.ts',
         'components/inputs/StyledDateField.tsx',
         'domain/forsoergertab/forsoergertabAslYdelser.ts',
         'domain/erstatningsopgoerelse/engines/periodMerging.ts',
         'domain/erstatningsopgoerelse/engines/periodiseringsMotor.ts',
-        'domain/erstatningsopgoerelse/pdf/sharedPdfUtils.ts',
+        'domain/erstatningsopgoerelse/helpers/eoSharedUtils.ts',
         'domain/erstatningsopgoerelse/engines/tafDaySets.ts',
         'domain/erstatningsopgoerelse/engines/ferieCalculations.ts',
-        'domain/erstatningsopgoerelse/pdf/eoPdfIndkomstSkadestidspunkt.ts',
+        'domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning.ts',
         'domain/debug/eoDebugErstatningsopgoerelseModel.ts',
         'domain/debug/eoDebugCoreModel.ts',
         'domain/debug/eoDebugRegulationCore.ts',
         'domain/dates/shDageBeregning.ts',
-        'utils/pdf/shDagePdf.ts',
+        'pdf/domains/aarsloen/shDagePdf.ts',
         // Logging/rapport — timestamp, ikke dato-aritmetik
         'utils/devtoolsMonitor.ts',
         'utils/bugReport.ts',

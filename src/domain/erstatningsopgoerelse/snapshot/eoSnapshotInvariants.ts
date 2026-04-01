@@ -1,5 +1,5 @@
 import type { ValidationError } from '../../../types/validation';
-import type { MoneyOre } from '../pdf/eoPdfModelTypes';
+import type { MoneyOre } from '../shared/eoTypes';
 import {
   TAF_OVERLAP_ERROR_MESSAGE,
 } from '../../../validators/erstatningsopgoerelseValidator';

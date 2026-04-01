@@ -8,8 +8,8 @@ const { eoSnapshotToDebugViewMock } = vi.hoisted(() => ({
   eoSnapshotToDebugViewMock: vi.fn(),
 }));
 
-vi.mock('../../../../hooks/useEOLoenindkomstInputErrors', () => ({
-  useEOLoenindkomstInputErrors: () => ({}),
+vi.mock('../../../../hooks/useFormFieldErrors', () => ({
+  useBlockingFieldIdsBySuffixForSection: () => ({}),
 }));
 
 vi.mock('../../../../contexts/useAppSettings', () => ({

@@ -33,7 +33,7 @@ import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statisti
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/krlRates';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
-import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/pdf/loenudviklingDisplay';
+import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import {
   isSfggNoEligibleDaysNotCalculable,
@@ -41,17 +41,17 @@ import {
   hasSfggSelectedOverenskomst,
   resolveSfggSource,
 } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
-import type { PdfModel } from '../erstatningsopgoerelse/pdf/eoPdfModel';
+import type { PdfModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
 import {
   buildSfggReferenceperiodeCountLabel as buildSfggReferenceperiodeCountLabelPresentation,
   parseSfggExplanatoryLine,
-} from '../erstatningsopgoerelse/pdf/sygeferiegodtgoerelsePresentation';
+} from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelsePresentation';
 import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/helpers/oevrigeKravIntro';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
 import { resolveBilagWarning } from '../erstatningsopgoerelse/helpers/bilagWarnings';
-import { ensureMoneyOre } from '../erstatningsopgoerelse/pdf/eoPdfMoneyUtils';
+import { ensureMoneyOre } from '../erstatningsopgoerelse/shared/eoMoney';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).

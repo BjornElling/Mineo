@@ -26,6 +26,7 @@ const { reportSystemIssueMock } = vi.hoisted(() => ({
 
 vi.mock('../../../../hooks/useFormFieldErrors', () => ({
   useFieldErrorsBySourceForSection: () => ({}),
+  useBlockingFieldIdsBySuffixForSection: () => ({}),
 }));
 
 vi.mock('../../../../domain/debug/eoDebugRowAggregator', () => ({
