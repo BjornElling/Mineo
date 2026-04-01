@@ -34,8 +34,8 @@ const hashPassword = async (password: string): Promise<string> => {
 
 export const isAuthenticated = (): boolean => {
   const storage = getSafeLocalStorage();
-  // Midlertidig udviklingsgate: localStorage-flag bruges kun som bekvemmelighed,
-  // ikke som sikkerhedsmekanisme. Hele auth-skallen fjernes ved afsluttet udvikling.
+  // Midlertidig udviklingsbarriere: localStorage-flagget er kun en svag UX-gate,
+  // ikke en sikkerhedsmekanisme.
   return storage.getItem(AUTH_STORAGE_KEY) === AUTH_STORAGE_VALUE;
 };
 

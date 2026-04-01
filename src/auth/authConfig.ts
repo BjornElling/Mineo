@@ -3,14 +3,14 @@ export const AUTH_STORAGE_VALUE = 'true';
 
 /**
  * Beslutningsnote (bevidst undtagelse):
- * - Denne gate er en midlertidig udviklingsskal.
- * - Den fungerer kun som en svag UX-barriere mod almindelig adgang under udvikling.
- * - Den er ikke en sikkerhedsgrænse og kan omgås via DevTools/localStorage.
- * - Den skal fjernes helt, når programmet er færdigudviklet.
+ * - Denne gate er en midlertidig udviklingsbarriere.
+ * - Den er bevidst svag og skal kun holde uvedkommende fra siden, mens programmet udvikles.
+ * - Den er ikke reel sikkerhed og må ikke behandles som sikkerhedsgrænse.
+ * - Den skal fjernes igen, når programmet ikke længere er under udvikling.
  * Risiko:
- * - Kan skabe falsk tryghed, hvis den opfattes som reel sikkerhed.
+ * - Kan omgås via DevTools/localStorage og beskytter ikke mod målrettet adgang.
  * Re-evaluering:
- * - Ved release fjernes den. Hvis der mod forventning senere opstår krav om egentlig adgangskontrol,
- *   skal auth flyttes til server/infrastruktur-lag.
+ * - Fjernes ved afsluttet udvikling. Hvis der senere opstår krav om reel adgangskontrol,
+ *   skal det løses i et egentligt sikkerheds-/infrastrukturlag.
  */
 export const SHARED_PASSWORD_HASH = '324ae39817dc46525ab92dde7a1263e27b218aa14a9eb64cde10948c0a71869e';

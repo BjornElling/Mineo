@@ -75,13 +75,6 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
         <p style={{ margin: 0, marginBottom: '18px', color: '#475569' }}>
           Indtast adgangskode for at åbne Mineo.
         </p>
-        <p style={{ margin: 0, marginBottom: '12px', color: '#475569', lineHeight: 1.5 }}>
-          Denne adgangskontrol er kun en midlertidig foranstaltning, mens programmet er under udvikling.
-        </p>
-        <p style={{ margin: 0, marginBottom: '18px', color: '#475569', lineHeight: 1.5 }}>
-          Den udgør ikke egentlig sikkerhed, men kun en enkel og skrøbelig begrænsning af almindelig adgang.
-          Når programmet er færdigudviklet, bliver denne kontrol fjernet helt.
-        </p>
         <form onSubmit={handleSubmit}>
           <label
             htmlFor="mineo-login-password"
