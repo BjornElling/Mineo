@@ -3,7 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import StyledYearField from '../inputs/StyledYearField';
 import { getSatserForYear, satserAngivAarYearBounds } from '../../data/lovbestemteRates';
-import { downloadSatserPdf } from '../../utils/pdf/pdfService';
+import { downloadSatserPdf } from '../../pdf/infrastructure/pdfService';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { satserSchema } from '../../schemas/formSchemas';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
@@ -333,5 +333,4 @@ const Satser = React.memo(() => {
 Satser.displayName = 'Satser';
 
 export default Satser;
-
 

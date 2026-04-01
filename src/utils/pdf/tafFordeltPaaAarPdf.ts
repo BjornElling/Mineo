@@ -24,7 +24,7 @@ import {
   isSingularCount,
   resolvePdfFileName,
 } from './pdfFormatUtils';
-import type { TafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
+import type { TafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument';
 
 const NBSP = '\u00A0';
 const FILE_BASE_NAME = 'Tabt arbejdsfortjeneste fordelt på år';

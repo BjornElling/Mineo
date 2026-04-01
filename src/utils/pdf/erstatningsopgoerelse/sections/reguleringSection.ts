@@ -15,24 +15,24 @@ import {
   resolveOverenskomstRef,
 } from '../../../../data/overenskomstRates';
 import type { PdfWriter } from '../../pdfWriter';
-import { EO_ANGIVET_LOEN_ID, resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
-import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
+import { EO_ANGIVET_LOEN_ID, resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
   formatAmount2,
   formatAmountWithoutTrailingDecimals,
   formatAnciennitetConversion,
   isAslStatistikModel,
-} from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
+} from '../../../../domain/erstatningsopgoerelse/pdf/sharedPdfUtils';
 import { STORE_BEDEDAG_START } from '../../../../config/dateRanges';
 import { STORE_BEDEDAG_PCT } from '../../../../config/regulatoryRates';
 import { isoToDanish, type ISODateString } from '../../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
-import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
+import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/pdf/eoPdfModel';
 import type {
   ReguleringIndexRow,
   ReguleringValuesTableData,
-} from '../../../../domain/erstatningsopgoerelse/eoPdfReguleringEngine';
-import { resolveLoenudviklingSegmentBounds } from '../../../../domain/erstatningsopgoerelse/eoPdfReguleringEngine';
+} from '../../../../domain/erstatningsopgoerelse/pdf/eoPdfRegulering';
+import { resolveLoenudviklingSegmentBounds } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsBeregning';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
 
 type ReguleringSectionContext = Readonly<{

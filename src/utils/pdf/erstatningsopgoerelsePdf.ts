@@ -11,7 +11,7 @@ import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from './pdfHelpers';
 import type { PdfCommonOptions } from './pdfOptions';
 import { createStandardPdfWriter } from './pdfWriter';
 import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../schemas/formSchemas';
-import { type MoneyOre, type Calculable } from '../../domain/erstatningsopgoerelse/eoPdfModel';
+import { type MoneyOre, type Calculable } from '../../domain/erstatningsopgoerelse/pdf/eoPdfModel';
 import { formatAsAmount, formatPercent as formatPercentUtil } from '../formatUtils';
 import { TODAY } from '../../config/dateRanges';
 import { getStandardLoenTableHeaders } from '../../domain/aarsloen/standardLoenTableColumns';
@@ -24,20 +24,22 @@ import {
   shouldIncludeLoenRowInBilag,
   shouldIncludeOffentligYdelseRowInBilag,
   shouldIncludeReguleringBilag,
-} from '../../domain/erstatningsopgoerelse/bilagRules';
+} from '../../domain/erstatningsopgoerelse/helpers/bilagRules';
 import {
   parseOptionalIsoDate,
-} from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
+} from '../../domain/erstatningsopgoerelse/pdf/sharedPdfUtils';
 import { formatIsoDateShort as formatDateShort, formatIsoDateLong as formatDateLong } from '../dateFormatting';
 import {
   buildReguleringIndexRows,
   buildReguleringsvaerdierTableData,
+} from '../../domain/erstatningsopgoerelse/pdf/eoPdfRegulering';
+import {
   resolveLoenSkadesdatoText,
   resolveReguleringsdato,
   resolveStatistikModelIdFromLabel,
   resolveTafDateBounds,
-} from '../../domain/erstatningsopgoerelse/eoPdfReguleringEngine';
-import { resolveValgtReguleringDisplay } from '../../domain/erstatningsopgoerelse/loenudviklingDisplay';
+} from '../../domain/erstatningsopgoerelse/engines/reguleringsBeregning';
+import { resolveValgtReguleringDisplay } from '../../domain/erstatningsopgoerelse/pdf/loenudviklingDisplay';
 import {
   formatCountWithUnit,
   formatCurrencyFromOre,
@@ -55,14 +57,14 @@ import { renderOffentligeYdelserSection } from './erstatningsopgoerelse/sections
 import { renderShDageSection } from './erstatningsopgoerelse/sections/shDageSection';
 import { renderReguleringSection } from './erstatningsopgoerelse/sections/reguleringSection';
 import { renderOpgorelseSection } from './erstatningsopgoerelse/sections/opgoerelseSection';
-import { computeEoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot';
-import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
-import type { PdfModel } from '../../domain/erstatningsopgoerelse/eoPdfModel';
-import { mergeIsoDateRanges } from '../../domain/erstatningsopgoerelse/periodMerging';
+import { computeEoSnapshot } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
+import type { PdfModel } from '../../domain/erstatningsopgoerelse/pdf/eoPdfModel';
+import { mergeIsoDateRanges } from '../../domain/erstatningsopgoerelse/engines/periodMerging';
 import {
   buildSfggReferenceperiodeCountLabel,
   parseSfggExplanatoryLine,
-} from '../../domain/erstatningsopgoerelse/sygeferiegodtgoerelsePresentation';
+} from '../../domain/erstatningsopgoerelse/pdf/sygeferiegodtgoerelsePresentation';
 
 const NBSP = '\u00A0';
 const EO_RIGHT_COLUMN_WIDTH = 33.125;

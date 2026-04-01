@@ -1,7 +1,7 @@
 /// <reference types="vitest/globals" />
 
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 
 // ─── Logger mock (forhindrer console-output fra error-stier) ─────────────────
@@ -69,11 +69,11 @@ vi.mock('../../../utils/pdf/pdfLoader', () => ({
   loadSHDagePdfModule: vi.fn(async () => ({ generateSHDagePdf: mockGenerateSHDagePdf })),
 }));
 
-vi.mock('../../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument', () => ({
+vi.mock('../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument', () => ({
   eoSnapshotToEoPdfDocument: mockEoSnapshotToEoPdfDocument,
 }));
 
-vi.mock('../../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument', () => ({
+vi.mock('../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument', () => ({
   eoSnapshotToTafPerYearPdfDocument: mockEoSnapshotToTafPerYearPdfDocument,
 }));
 

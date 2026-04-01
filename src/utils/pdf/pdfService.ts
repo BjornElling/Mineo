@@ -35,9 +35,9 @@ import type { EetEalComputation } from '../../domain/erhvervsevnetab/eetEalCalcu
 import type { EetDifferencekravComputation } from '../../domain/erhvervsevnetab/eetDifferencekravCalculation';
 import type { GenerateForsoergertabPdfParams } from './forsoergertabPdf';
 import type { BilagSelection } from './differencekravPdf';
-import type { EoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot';
-import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
-import { eoSnapshotToTafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
+import type { EoSnapshot } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
+import { eoSnapshotToTafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument';
 import { logWarning } from '../logger';
 import { reportSystemIssue } from '../systemIssueReporter';
 import { getSatserForYear } from '../../data/lovbestemteRates';

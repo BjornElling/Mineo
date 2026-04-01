@@ -22,7 +22,7 @@ import {
   buildKapitaliseringGrundydelseLabel,
   buildKapitaliseringOpreguleringTil2024Expression,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
-import { downloadDifferencekravPdf } from '../../../utils/pdf/pdfService';
+import { downloadDifferencekravPdf } from '../../../pdf/infrastructure/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import TextHoverRow from './TextHoverRow';
 import UnderlinedHoverRow from './UnderlinedHoverRow';

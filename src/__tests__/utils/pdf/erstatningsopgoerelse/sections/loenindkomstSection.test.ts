@@ -1,4 +1,4 @@
-import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { getStandardLoenTableHeaders } from '../../../../../domain/aarsloen/standardLoenTableColumns';
 import { toISODateString } from '../../../../../types/branded';
 import { renderLoenindkomstSection } from '../../../../../utils/pdf/erstatningsopgoerelse/sections/loenindkomstSection';

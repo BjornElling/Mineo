@@ -1,7 +1,7 @@
 import { renderShDageSection } from '../../../../../utils/pdf/erstatningsopgoerelse/sections/shDageSection';
-import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString, isISODateString } from '../../../../../types/branded';
-import type { IsoRange } from '../../../../../domain/erstatningsopgoerelse/tafPeriodConstraints';
+import type { IsoRange } from '../../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 
 const { autoTableMock } = vi.hoisted(() => ({
   autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number }) => {

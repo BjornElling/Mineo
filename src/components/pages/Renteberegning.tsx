@@ -11,7 +11,7 @@ import { createEmptyRentekravCommittedRow, createRentekravRowId } from '../../do
 import type { RentePdfContext } from '../tables/BeregnetRenteTable';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAppSettings } from '../../contexts/useAppSettings';
-import { downloadRentePdf } from '../../utils/pdf/pdfService';
+import { downloadRentePdf } from '../../pdf/infrastructure/pdfService';
 import type { CommitHandler } from '../../types/fieldEvents';
 import RenteberegningTab from './renteberegning/RenteberegningTab';
 import RentesatserTab from './renteberegning/RentesatserTab';

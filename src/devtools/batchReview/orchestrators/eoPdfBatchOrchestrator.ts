@@ -10,7 +10,7 @@
  * Bruger runBatchChunked for at undgå at blokere UI-tråden.
  */
 
-import { createStandardPdfWriter } from '../../../utils/pdf/pdfWriter';
+import { createStandardPdfWriter } from '../../../pdf/infrastructure/pdfWriter';
 import { computeEoScenario } from '../adapters/eoAdapter';
 import { getSfggPdfScenarios } from '../scenarios/eo/sfgg/pdf/sfggPdfScenarios';
 import { renderEoSfggBatchPage } from '../renderers/eoPdfBatchRenderer';

@@ -12,7 +12,7 @@
  */
 
 import { toISODateString } from '../../../../../../types/branded';
-import { createErstatningsopgoerelseInitialValues } from '../../../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { BatchScenario, BatchProfile } from '../../../../types';
 import type { EoScenarioInput } from '../../../../adapters/eoAdapter';
 import type { AmountValue } from '../../../../../../schemas/amountExpressionSchema';

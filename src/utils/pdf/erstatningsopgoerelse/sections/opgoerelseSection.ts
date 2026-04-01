@@ -1,14 +1,14 @@
 import { MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES, type PdfFontFamily, type PdfFontStyle } from '../../pdfConfig';
 import { ensureNonBreakingKr } from '../../pdfTextUtils';
-import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/tafBeregningsenhed';
-import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/angivetLoenHelpers';
+import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import {
   getDayAfterIso,
-} from '../../../../domain/erstatningsopgoerelse/sharedPdfUtils';
+} from '../../../../domain/erstatningsopgoerelse/pdf/sharedPdfUtils';
 import { round4 as roundToFourDecimals } from '../../../../utils/roundingShortcuts';
-import { resolveOevrigeKravIntroLinjer } from '../../../../domain/erstatningsopgoerelse/oevrigeKravIntro';
-import { resolveBilagWarning } from '../../../../domain/erstatningsopgoerelse/bilagWarnings';
-import type { Calculable, LoenudviklingSegment, MoneyOre, PdfModel } from '../../../../domain/erstatningsopgoerelse/eoPdfModel';
+import { resolveOevrigeKravIntroLinjer } from '../../../../domain/erstatningsopgoerelse/helpers/oevrigeKravIntro';
+import { resolveBilagWarning } from '../../../../domain/erstatningsopgoerelse/helpers/bilagWarnings';
+import type { Calculable, LoenudviklingSegment, MoneyOre, PdfModel } from '../../../../domain/erstatningsopgoerelse/pdf/eoPdfModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import { roundByMethod } from '../../../../utils/rounding';

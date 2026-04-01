@@ -15,7 +15,7 @@ import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { ceilNearest12, round0, round2, round4, roundNearest1000 } from '../../utils/roundingShortcuts';
 import { SKAERING_2011_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
-import { optaelMaanederPraecis } from '../erstatningsopgoerelse/periodiseringsMotor';
+import { optaelMaanederPraecis } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
 import { ASL_IDENTICAL_AFGOERELSER_ID, collectIncompleteRowIssues, hasIdenticalAfgoerelser, hasTextValue, isAslAfgoerelseRowEmpty, parsePercentDraft } from './eetAslAfgoerelser';
 import { isUnderOrEqualTwoYearsToFpByBekendtgoerelse, resolveKapitaliseringTabelvalgForControlDate } from './eetKapitaliseringOpslag';
 

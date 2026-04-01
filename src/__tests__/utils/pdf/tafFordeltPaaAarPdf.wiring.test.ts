@@ -1,8 +1,8 @@
 /// <reference types="vitest/globals" />
 
-import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/tafPerYearDerived';
-import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/eoPdfModel';
-import type { TafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument';
+import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
+import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfModel';
+import type { TafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument';
 
 class MockJsPDF {
   static instances: MockJsPDF[] = [];

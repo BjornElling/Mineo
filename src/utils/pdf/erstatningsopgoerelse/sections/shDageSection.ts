@@ -10,10 +10,10 @@ import { PDF_TABLE_NARROW_COLUMN_WIDTH } from '../../pdfConfig';
 import { parseISODate, type ISODateString } from '../../../../types/branded';
 import { beregnHelligdageMedNavn } from '../../../../domain/dates/shDageBeregning';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
-import { buildBeregningsperiodeRange } from '../../../../domain/erstatningsopgoerelse/indtaegtPerioder';
-import type { IsoRange } from '../../../../domain/erstatningsopgoerelse/tafPeriodConstraints';
-import { erDetteFoersteErstatningsopgoerelse } from '../../../../domain/erstatningsopgoerelse/eoNummerValidering';
-import { mergeIsoDateRanges } from '../../../../domain/erstatningsopgoerelse/periodMerging';
+import { buildBeregningsperiodeRange } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import type { IsoRange } from '../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
+import { erDetteFoersteErstatningsopgoerelse } from '../../../../domain/erstatningsopgoerelse/validation/eoNummerValidering';
+import { mergeIsoDateRanges } from '../../../../domain/erstatningsopgoerelse/engines/periodMerging';
 
 type SHDageTableRow = Readonly<{
   ugedag: string;

@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 import type { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import type { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import type { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 const mockInstances: MockJsPDF[] = [];
 
@@ -70,7 +70,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
 
   beforeAll(async () => {
     const { STAMDATA_INITIAL_VALUES } = await import('../../../domain/stamdata/stamdataInitialValues');
-    const { createErstatningsopgoerelseInitialValues } = await import('../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues');
+    const { createErstatningsopgoerelseInitialValues } = await import('../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues');
     const pdfModule = await import('../../../utils/pdf/erstatningsopgoerelsePdf');
 
     baseStamdata = structuredClone(STAMDATA_INITIAL_VALUES);

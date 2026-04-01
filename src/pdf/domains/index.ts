@@ -1,0 +1,12 @@
+export * as aarsloen from './aarsloen';
+export * as eo from './eo';
+export * as eet from './eet';
+export * as differencekrav from './differencekrav';
+export * as forsoergertab from './forsoergertab';
+export * as kapitalisering from './kapitalisering';
+export * as krl from './krl';
+export * as loebendeYdelser from './loebendeYdelser';
+export * as renteberegning from './renteberegning';
+export * as satser from './satser';
+export * as tafFordelt from './tafFordelt';
+export * as varigemen from './varigemen';

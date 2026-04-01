@@ -5,7 +5,7 @@
  * Bruges som indledende afsnit for hvert scenarie i batch-review PDF'en.
  */
 
-import type { PdfWriter } from '../../../utils/pdf/pdfWriter';
+import type { PdfWriter } from '../../../pdf/infrastructure/pdfWriter';
 import type { BatchScenario } from '../types';
 
 const STATUS_LABELS: Record<'ok' | 'blocked' | 'error', string> = {

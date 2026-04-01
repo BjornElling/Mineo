@@ -22,7 +22,7 @@ import {
   formatAmountWithoutTrailingDecimals,
   isAslStatistikModel,
   resolveStatistikModelId,
-} from '../../domain/erstatningsopgoerelse/sharedPdfUtils';
+} from '../../domain/erstatningsopgoerelse/pdf/sharedPdfUtils';
 import {
   getEffektiveSatserForPeriode,
   getOffentligTillaegsSatserForDato,

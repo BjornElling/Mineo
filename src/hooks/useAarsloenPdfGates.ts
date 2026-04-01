@@ -18,7 +18,7 @@ import { harTabelValideringsFejl } from '../domain/aarsloen/aarsloenValidationPo
 import { hasAtLeastOneValidRow } from '../domain/aarsloen/standardLoenRowCalculations';
 import type { StorageKey } from '../config/storageManifest';
 import type { AppSettings } from '../settings/appSettingsSchema';
-import { downloadAarsloenPdf, downloadSHDagePdf } from '../utils/pdf/pdfService';
+import { downloadAarsloenPdf, downloadSHDagePdf } from '../pdf/infrastructure/pdfService';
 
 // ============================================================================
 // TYPES

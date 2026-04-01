@@ -3,13 +3,13 @@ import type { RowInput } from 'jspdf-autotable';
 import { formatAsAmount } from '../../../formatUtils';
 import { amountValueToDisplayString } from '../../../expressionAmount';
 import { calculateStandardLoenRowDerived } from '../../../../domain/aarsloen/standardLoenRowCalculations';
-import { getStandardLoenErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/indkomstRowValidation';
+import { getStandardLoenErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
 import { PDF_CONTENT_WIDTH_MM } from '../../pdfConfig';
 import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import { resolveOverenskomstNameOnlyDisplay } from '../../../../data/overenskomstRates';
 import type { SelectedElements } from '../types';
-import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/periodRangeGroups';
+import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
 import { renderEoStylePdfTable } from '../../pdfTableRenderer';
 
 type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];

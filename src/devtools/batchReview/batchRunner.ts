@@ -18,7 +18,7 @@ export type BatchRunResult = {
   readonly aborted: boolean;
 };
 
-export type BatchRunCallbacks<TInput, TRenderOutput> = {
+export type BatchRunCallbacks<_TInput, TRenderOutput> = {
   readonly onProgress: (progress: BatchRunProgress) => void;
   readonly onScenarioResult: (result: BatchScenarioResult<TRenderOutput>) => void;
   readonly onDone: (result: BatchRunResult) => void;

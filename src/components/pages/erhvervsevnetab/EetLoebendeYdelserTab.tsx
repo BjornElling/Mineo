@@ -8,7 +8,7 @@ import type { ErhvervsevnetabComposedValues, ErhvervsevnetabValues } from '../..
 import { usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSelectors';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import { useAppSettings } from '../../../contexts/useAppSettings';
-import { downloadLoebendeYdelserPdf } from '../../../utils/pdf/pdfService';
+import { downloadLoebendeYdelserPdf } from '../../../pdf/infrastructure/pdfService';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';

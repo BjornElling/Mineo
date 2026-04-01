@@ -25,7 +25,7 @@ import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { createCommitEvent, type CommitHandler } from '../../../types/fieldEvents';
 import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
-import { downloadVarigeMenPdf } from '../../../utils/pdf/pdfService';
+import { downloadVarigeMenPdf } from '../../../pdf/infrastructure/pdfService';
 import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../../../domain/faellesPersondata/faellesPersondataInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 

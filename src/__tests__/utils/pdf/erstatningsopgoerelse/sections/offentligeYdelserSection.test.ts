@@ -1,4 +1,4 @@
-import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { renderOffentligeYdelserSection } from '../../../../../utils/pdf/erstatningsopgoerelse/sections/offentligeYdelserSection';
 
 const { autoTableMock } = vi.hoisted(() => ({

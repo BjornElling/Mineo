@@ -16,7 +16,7 @@ vi.mock('../../utils/logger', () => ({
 
 // ─── PDF service mock ─────────────────────────────────────────────────────────
 
-vi.mock('../../utils/pdf/pdfService', () => ({
+vi.mock('../../pdf/infrastructure/pdfService', () => ({
   downloadAarsloenPdf: vi.fn(async () => ({ success: true })),
   downloadSHDagePdf: vi.fn(async () => ({ success: true })),
 }));

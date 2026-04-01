@@ -10,7 +10,7 @@
  * 4. "Ingen fejl eller advarsler" hvis begge sektioner er tomme
  */
 
-import type { PdfWriter } from '../../../utils/pdf/pdfWriter';
+import type { PdfWriter } from '../../../pdf/infrastructure/pdfWriter';
 import type { BeregningErrorSummary } from '../../../domain/debug/eoDebugRowAggregator';
 import type { BatchScenario } from '../types';
 import { renderScenarioHeader } from './scenarioHeaderRenderer';

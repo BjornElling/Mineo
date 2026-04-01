@@ -22,7 +22,7 @@ import { formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatKr } 
 import PdfDownloadButton from '../inputs/PdfDownloadButton';
 import AarsloenAmountFieldRow from '../inputs/AarsloenAmountFieldRow';
 import { useAppSettings } from '../../contexts/useAppSettings';
-import { downloadForsoergertabPdf } from '../../utils/pdf/pdfService';
+import { downloadForsoergertabPdf } from '../../pdf/infrastructure/pdfService';
 import { buildAldersreduktionFormelTekst } from '../../domain/erhvervsevnetab/eetAldersreduktionFormel';
 import StandardLooseTable from '../tables/StandardLooseTable';
 

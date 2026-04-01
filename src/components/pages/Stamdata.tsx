@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, MenuItem, Typography } from '@mui/material';
+import { Box, CircularProgress, MenuItem, Typography } from '@mui/material';
 
 import { dateRanges_stamdata } from '../../config/dateRanges';
 import { useAppSettings } from '../../contexts/useAppSettings';
@@ -12,7 +12,7 @@ import StyledDateField from '../inputs/StyledDateField';
 import StyledDropdown from '../inputs/StyledDropdown';
 import StyledTextField, { type StyledTextFieldValueCommitEvent } from '../inputs/StyledTextField';
 import ContentBox from '../layout/ContentBox';
-import StamdataDebugTab from './StamdataDebugTab';
+const StamdataDebugTab = React.lazy(async () => import('./StamdataDebugTab'));
 
 const SKADESTYPER = ['Arbejdsulykke', 'Erhvervssygdom'] as const;
 
@@ -187,7 +187,9 @@ const Stamdata = React.memo(() => {
             hidden={activeTab !== 'test'}
             sx={{ display: activeTab === 'test' ? 'block' : 'none' }}
           >
-            <StamdataDebugTab />
+            <React.Suspense fallback={<CircularProgress />}>
+              <StamdataDebugTab />
+            </React.Suspense>
           </Box>
         )}
       </Box>

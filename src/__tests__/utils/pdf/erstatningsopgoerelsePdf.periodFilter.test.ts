@@ -1,6 +1,6 @@
 import type { StandardLoenTableRow, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
-import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
   buildBilagIndkomstYdelserRanges,
   hasAarsloenRowOverlapWithRanges,
@@ -8,8 +8,8 @@ import {
   shouldIncludeReguleringBilag,
   shouldIncludeLoenRowInBilag,
   shouldIncludeOffentligYdelseRowInBilag,
-} from '../../../domain/erstatningsopgoerelse/bilagRules';
-import { resolveValgtReguleringDisplay } from '../../../domain/erstatningsopgoerelse/loenudviklingDisplay';
+} from '../../../domain/erstatningsopgoerelse/helpers/bilagRules';
+import { resolveValgtReguleringDisplay } from '../../../domain/erstatningsopgoerelse/pdf/loenudviklingDisplay';
 
 const iso = (value: string) => toISODateString(value);
 

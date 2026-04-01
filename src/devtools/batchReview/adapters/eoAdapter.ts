@@ -7,10 +7,10 @@
  * Bruger udelukkende de autoritative entry points — ingen reimplementering af logik.
  */
 
-import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
-import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument';
-import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/eoSnapshot';
-import type { PdfModel } from '../../../domain/erstatningsopgoerelse/eoPdfModelTypes';
+import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
+import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import type { PdfModel } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfModelTypes';
 import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamdataSchemas';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas/sections/erstatningsopgoerelseSchemas';
 
