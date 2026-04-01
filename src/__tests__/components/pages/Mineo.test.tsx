@@ -130,7 +130,7 @@ describe('Mineo - License Modal Integration', () => {
   describe('Mineo-side indhold', () => {
     test('viser side-titel', () => {
       renderMineo();
-      expect(screen.getByText('MinEO')).toBeInTheDocument();
+      expect(screen.getByText('minEO.dk')).toBeInTheDocument();
     });
 
     test('viser alle hovedsektioner', () => {

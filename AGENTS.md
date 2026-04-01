@@ -159,9 +159,17 @@ Effects that synchronize props to state must never overwrite already committed u
 - Persist only user-entered/chosen data; recompute derived values after load.
 
 ## Kanoniske hooks for persistence-adgang
-- Brug `usePersistedSectionSelector(pageKey)` fra `src/hooks/useFormPersistenceSelectors.ts` til read-only adgang til en persisted sektion. Denne hook bruger `useSyncExternalStore` direkte på storen og re-rendrer kun ved ændringer i den specifikke sektion.
-- `usePersistedSection` er deprecated — brug ikke den i ny kode.
-- Brug `usePersistedForm(schema, pageKey, initialValues)` til sider der har write-adgang til en sektion.
+
+Tre adgangsniveauer — brug det mest restriktive der dækker behovet:
+
+| Niveau | Hook / API | Bruges af | Formål |
+|--------|-----------|-----------|--------|
+| **Læs** | `usePersistedSectionSelector(pageKey)` fra `hooks/useFormPersistenceSelectors` | Al kode der læser persisted data | Read-only adgang. Bruger `useSyncExternalStore` direkte på storen — re-rendrer kun ved ændringer i den specifikke sektion. |
+| **Rediger** | `usePersistedForm(schema, pageKey, initialValues)` | Sidekomponenter med formularer | Formular-binding med `setValues`, `handleChange`, commitOnBlur. |
+| **System** | `useFormPersistence()` context direkte | Kun `MainLayout`, `FormPersistenceProvider` og persistence-infrastruktur | Fuld API inkl. `replaceAllPersistedData`, `clearAllData`, `persistData`. Må ikke importeres fra almindelige sidekomponenter. |
+
+- `FormPersistenceContext` er en facade over `formPersistenceStore` (Zustand) — storen er source of truth.
+- Import aldrig `FormPersistenceContext` direkte fra domæne- eller sidekomponenter.
 
 ## Convergence and exceptions
 - Solve similar problems with shared patterns.

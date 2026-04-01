@@ -7,35 +7,21 @@ import Overlay from '../ui/Overlay';
 import ConfirmationDialog from '../ui/ConfirmationDialog';
 import BugReportButton from '../errors/BugReportButton';
 import DevtoolsIssueNotice from '../errors/DevtoolsIssueNotice';
-import { saveToFile } from '../../utils/fileSave';
-import { loadFromFile, loadFromFileHandle } from '../../utils/fileLoad';
-import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from '../../utils/fileHandleStorage';
 import { isRecord } from '../../utils/typeGuards';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAppSettings } from '../../contexts/useAppSettings';
-import { useEOLoenindkomstInputErrors } from '../../hooks/useEOLoenindkomstInputErrors';
-import { resolveDefaultDirectoryHandle } from '../../utils/fileHelpers';
-import { getGridCoreForTable } from '../tables/gridCore/gridCoreRegistry';
-import type { SaveFileResult, LoadFileResult } from '../../types/fileOperations';
+import {
+  commitActiveGridEditors,
+  restoreFocusIfPossible,
+  isOpenTextEditorElement,
+} from '../../utils/commitFlush';
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import { persistenceSchemas } from '../../config/persistenceRegistry';
 import { UI_STORAGE_KEYS, type StorageKey } from '../../config/storageManifest';
-import {
-  clearPendingPwaFileOpenRequest,
-  getPendingPwaFileOpenRequest,
-  markPendingPwaFileOpenRequestHandled,
-  MINEO_PWA_FILE_OPEN_EVENT,
-  type PwaFileOpenRequest,
-} from '../../utils/pwaLaunchQueue';
-import {
-  getDevtoolsIssueSnapshot,
-  startDevtoolsMonitor,
-  subscribeDevtoolsIssues,
-  setDevtoolsRoute,
-  type DevtoolsIssueSnapshot,
-} from '../../utils/devtoolsMonitor';
-import type { BugReportExtraSection } from '../../utils/bugReport';
-import { getUserMessage, isCalculationError } from '../../utils/errorMessages';
-import { EncryptionError } from '../../utils/encryption';
+import { clearPendingPwaFileOpenRequest } from '../../utils/pwaLaunchQueue';
+import { useDevtoolsMonitoring } from '../../hooks/useDevtoolsMonitoring';
+import { useFileSaveLoad, type OverlayData } from '../../hooks/useFileSaveLoad';
+import { usePwaLaunchQueue } from '../../hooks/usePwaLaunchQueue';
 
 /**
  * Hovedlayout for applikationen
@@ -44,231 +30,8 @@ interface MainLayoutProps {
   children?: React.ReactNode;
 }
 
-type OverlayData = {
-  message: string;
-  type: 'success' | 'error' | 'warning' | 'info';
-};
-
-type PendingOverwriteApply = {
-  result: LoadFileResult;
-  overlay: OverlayData;
-  navigateToStamdataAfterApply: boolean;
-};
-
-type PendingLoadApply = {
-  result: LoadFileResult;
-  navigateToStamdataAfterApply: boolean;
-};
-
-type CriticalActionCommitGuardResult = Readonly<{
-  ok: boolean;
-  focusTargetBeforeAction: HTMLElement | null;
-}>;
-
-
-const parseFilenameBasisFromStamdata = (stamdata: unknown): { skadelidte?: string; skadestype?: string; skadesdato?: string } | null => {
-  if (!isRecord(stamdata)) return null;
-  const skadelidte = typeof stamdata.skadelidte === 'string' ? stamdata.skadelidte : undefined;
-  const skadestype = typeof stamdata.skadestype === 'string' ? stamdata.skadestype : undefined;
-  const skadesdato = typeof stamdata.skadesdato === 'string' ? stamdata.skadesdato : undefined;
-  return skadelidte || skadestype || skadesdato ? { skadelidte, skadestype, skadesdato } : null;
-};
-
-type SaveCommitFlushResult = Readonly<{
-  ok: boolean;
-  failedGridCommitCount: number;
-}>;
-
-type GridCommitAttemptResult = Readonly<{
-  failedCount: number;
-  firstFailedElement: HTMLElement | null;
-}>;
-
-const NON_TEXT_EDITING_INPUT_TYPES = new Set(['checkbox', 'radio', 'range', 'button', 'submit', 'reset', 'file', 'color']);
-const PWA_OPEN_REQUEST_RETRY_INTERVAL_MS = 100;
-const PWA_OPEN_REQUEST_RETRY_WINDOW_MS = 3000;
-const LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE = 'Kan ikke indlæse fil: afslut eller ret det aktive felt først.';
-
-const waitForAnimationFrame = (): Promise<void> =>
-  new Promise<void>((resolve) => {
-    requestAnimationFrame(() => resolve());
-  });
-
-const focusElementWithoutScroll = (element: HTMLElement): void => {
-  try {
-    element.focus({ preventScroll: true });
-  } catch {
-    element.focus();
-  }
-};
-
-const restoreFocusIfPossible = (element: HTMLElement | null): void => {
-  if (!element || !element.isConnected) return;
-  if (element.matches(':disabled')) return;
-  focusElementWithoutScroll(element);
-};
-
-const isOpenTextEditorElement = (element: Element | null): element is HTMLInputElement | HTMLTextAreaElement => {
-  if (element instanceof HTMLTextAreaElement) {
-    return !element.readOnly;
-  }
-  if (!(element instanceof HTMLInputElement)) {
-    return false;
-  }
-  if (NON_TEXT_EDITING_INPUT_TYPES.has(element.type)) {
-    return false;
-  }
-  return !element.readOnly;
-};
-
-const waitForCommitFlush = async (): Promise<void> => {
-  await Promise.resolve();
-  // Wait two frames to allow blur-driven commit state and post-render effects to settle.
-  await waitForAnimationFrame();
-  await waitForAnimationFrame();
-};
-
-const commitActiveGridEditors = (): GridCommitAttemptResult => {
-  let failedCount = 0;
-  let firstFailedElement: HTMLElement | null = null;
-  const tables = Array.from(document.querySelectorAll<HTMLTableElement>('table[data-mineo-table-navigation="true"]'));
-  for (const table of tables) {
-    const core = getGridCoreForTable(table);
-    if (!core) continue;
-
-    const editingCell = core.getEditingCell();
-    if (!editingCell) continue;
-
-    const editor = core.getEditor(editingCell);
-    if (!editor) {
-      continue;
-    }
-    if (editor.getIsLocked()) {
-      failedCount += 1;
-      if (firstFailedElement === null) {
-        firstFailedElement = editor.getElement();
-      }
-      continue;
-    }
-
-    core.clearFocusPlan();
-    const ok = editor.commitCurrent();
-    if (!ok) {
-      failedCount += 1;
-      if (firstFailedElement === null) {
-        firstFailedElement = editor.getElement();
-      }
-    }
-  }
-  return { failedCount, firstFailedElement };
-};
-
-const commitPendingInputBeforeSave = async (): Promise<SaveCommitFlushResult> => {
-  const gridCommitResult = commitActiveGridEditors();
-  const failedGridCommitCount = gridCommitResult.failedCount;
-
-  if (failedGridCommitCount > 0) {
-    const failedElement = gridCommitResult.firstFailedElement;
-    if (failedElement && failedElement.isConnected) {
-      focusElementWithoutScroll(failedElement);
-    }
-    await waitForCommitFlush();
-    return {
-      ok: false,
-      failedGridCommitCount,
-    };
-  }
-
-  const active = document.activeElement;
-  if (active instanceof HTMLElement) {
-    active.blur();
-  }
-
-  await waitForCommitFlush();
-
-  return {
-    ok: failedGridCommitCount === 0,
-    failedGridCommitCount,
-  };
-};
-
-const prepareForCriticalDataReplacement = async (): Promise<CriticalActionCommitGuardResult> => {
-  const focusTargetBeforeAction = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-
-  if (isOpenTextEditorElement(focusTargetBeforeAction)) {
-    return { ok: false, focusTargetBeforeAction };
-  }
-
-  const gridCommitResult = commitActiveGridEditors();
-  if (gridCommitResult.failedCount > 0) {
-    restoreFocusIfPossible(gridCommitResult.firstFailedElement);
-    await waitForCommitFlush();
-    return { ok: false, focusTargetBeforeAction };
-  }
-
-  if (focusTargetBeforeAction) {
-    focusTargetBeforeAction.blur();
-  }
-
-  await waitForCommitFlush();
-
-  return { ok: true, focusTargetBeforeAction };
-};
-
 const isOverlayType = (value: unknown): value is OverlayData['type'] => {
   return value === 'success' || value === 'error' || value === 'warning' || value === 'info';
-};
-
-const parseSessionJson = (value: string | null): unknown => {
-  if (!value) return null;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return value;
-  }
-};
-
-const parseNonNegativeInteger = (value: string | null): number | null => {
-  if (!value) return null;
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed < 0) return null;
-  return parsed;
-};
-
-const resolveLoadError = (error: unknown): { message: string; expected: boolean } => {
-  if (error instanceof Error && isCalculationError(error) && error.code === 'FILE_LOAD_FAILED') {
-    const expected = error.cause instanceof EncryptionError;
-    return { message: getUserMessage(error), expected };
-  }
-  if (error instanceof Error) {
-    return { message: error.message || 'Kunne ikke hente fil', expected: false };
-  }
-  return { message: 'Kunne ikke hente fil', expected: false };
-};
-
-const buildPreflightBugReportError = (result: LoadFileResult): Error => {
-  const warning = result.preflightWarning;
-  if (!warning) {
-    return new Error('Hent fil: Ingen preflight advarsel (uventet).');
-  }
-
-  const issues = warning.issues.slice(0, 30).map((i) => `- ${i.path}: ${i.reason}`).join('\n');
-  const suffix = warning.issues.length > 30 ? `\n... +${warning.issues.length - 30} flere` : '';
-  const expected = warning.expectedCount ?? -1;
-  const failed = warning.failedCount ?? -1;
-
-  return new Error(
-    [
-      'Hent fil: Preflight advarsel',
-      `Fil: ${result.filename ?? '(ukendt)'}`,
-      `Forventet: ${expected === -1 ? 'ukendt' : String(expected)}`,
-      `Indlæst: ${String(warning.loadedCount)}`,
-      `Fejlede: ${failed === -1 ? 'ukendt' : String(failed)}`,
-      '',
-      'Problemer:',
-      issues + suffix,
-    ].join('\n')
-  );
 };
 
 const MainLayout = React.memo(({ children }: MainLayoutProps) => {
@@ -276,8 +39,6 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
   const location = useLocation();
   const { settings } = useAppSettings();
   const [overlay, setOverlay] = React.useState<OverlayData | null>(null);
-  const [pendingLoadResult, setPendingLoadResult] = React.useState<PendingLoadApply | null>(null);
-  const [pendingOverwriteApply, setPendingOverwriteApply] = React.useState<PendingOverwriteApply | null>(null);
   const {
     getPersistedData,
     getFieldErrorsBySource,
@@ -289,89 +50,30 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     getSectionRevision,
     authoritativeSnapshotEpoch,
   } = useFormPersistence();
-  const manuelReguleringInputErrors = useEOLoenindkomstInputErrors();
-  const isPwaLoadInProgressRef = React.useRef<boolean>(false);
-  const activePwaRequestIdRef = React.useRef<string | null>(null);
 
   // Prioritering: Track om nuværende overlay er user-feedback (højere prioritet end system errors)
   const isUserFeedbackRef = React.useRef<boolean>(false);
-  const [devtoolsSnapshot, setDevtoolsSnapshot] = React.useState<DevtoolsIssueSnapshot | null>(null);
-  const [devtoolsNoticeVisible, setDevtoolsNoticeVisible] = React.useState(false);
-  const dismissedDevtoolsIssueIdRef = React.useRef<number | null>(null);
-  const suppressDevtoolsNoticeUntilRef = React.useRef<number>(0);
-  const pendingDevtoolsSnapshotRef = React.useRef<DevtoolsIssueSnapshot | null>(null);
-  const pendingDevtoolsNoticeTimerRef = React.useRef<number | null>(null);
-  const allowExitWithoutUnsavedWarningRef = React.useRef<boolean>(false);
-
-  const clearPendingDevtoolsNoticeTimer = React.useCallback(() => {
-    if (pendingDevtoolsNoticeTimerRef.current !== null) {
-      window.clearTimeout(pendingDevtoolsNoticeTimerRef.current);
-      pendingDevtoolsNoticeTimerRef.current = null;
-    }
+  const markUserFeedback = React.useCallback(() => {
+    isUserFeedbackRef.current = true;
+  }, []);
+  const showOverlay = React.useCallback((overlayData: OverlayData) => {
+    setOverlay(overlayData);
   }, []);
 
-  const flushPendingDevtoolsNotice = React.useCallback(() => {
-    clearPendingDevtoolsNoticeTimer();
-    const pendingSnapshot = pendingDevtoolsSnapshotRef.current;
-    if (!pendingSnapshot) return;
-
-    const dismissedId = dismissedDevtoolsIssueIdRef.current;
-    const hasNewIssues = pendingSnapshot.issues.some((issue) => dismissedId === null || issue.id > dismissedId);
-    if (!hasNewIssues) {
-      pendingDevtoolsSnapshotRef.current = null;
-      return;
-    }
-
-    pendingDevtoolsSnapshotRef.current = null;
-    setDevtoolsSnapshot(pendingSnapshot);
-    setDevtoolsNoticeVisible(true);
-  }, [clearPendingDevtoolsNoticeTimer]);
-
-  const queuePendingDevtoolsNotice = React.useCallback((snapshot: DevtoolsIssueSnapshot) => {
-    pendingDevtoolsSnapshotRef.current = snapshot;
-    if (pendingDevtoolsNoticeTimerRef.current !== null) {
-      return;
-    }
-
-    const delay = Math.max(0, suppressDevtoolsNoticeUntilRef.current - Date.now());
-    pendingDevtoolsNoticeTimerRef.current = window.setTimeout(() => {
-      flushPendingDevtoolsNotice();
-    }, delay);
-  }, [flushPendingDevtoolsNotice]);
+  const {
+    devtoolsSnapshot,
+    devtoolsNoticeVisible,
+    dismissDevtools,
+    getExtraSections: buildDevtoolsReportExtras,
+  } = useDevtoolsMonitoring({ getPersistedData, getFieldErrorsBySource, location });
 
   const activePage = location.pathname.substring(1) || 'stamdata';
-  const combinedSectionRevision = React.useMemo(() => {
-    return (Object.keys(persistenceSchemas) as StorageKey[]).reduce((sum, pageKey) => {
-      return sum + getSectionRevision(pageKey);
-    }, 0);
-  }, [getSectionRevision]);
-  const combinedSectionRevisionRef = React.useRef<number>(combinedSectionRevision);
-  React.useEffect(() => {
-    combinedSectionRevisionRef.current = combinedSectionRevision;
-  }, [combinedSectionRevision]);
-  const [savedRevisionBaseline, setSavedRevisionBaseline] = React.useState<number>(combinedSectionRevision);
-  const hasUnsavedChanges = combinedSectionRevision > savedRevisionBaseline;
-
-  React.useEffect(() => {
-    setSavedRevisionBaseline(combinedSectionRevisionRef.current);
-  }, [authoritativeSnapshotEpoch]);
-
-  React.useEffect(() => {
-    if (!hasUnsavedChanges) return;
-
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (allowExitWithoutUnsavedWarningRef.current) {
-        return;
-      }
-      event.preventDefault();
-      event.returnValue = '';
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [hasUnsavedChanges]);
+  const {
+    hasUnsavedChanges: _hasUnsavedChanges,
+    combinedSectionRevisionRef,
+    markSaved,
+    allowExitWithoutWarning,
+  } = useUnsavedChangesGuard({ getSectionRevision, authoritativeSnapshotEpoch });
 
   const handlePageChange = React.useCallback(async (pageId: string) => {
     if (location.pathname === `/${pageId}`) {
@@ -428,376 +130,45 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
         }
       }
     }
+    return false;
+  }, [getFieldErrorsBySource]);
 
-    return Object.keys(manuelReguleringInputErrors).length > 0;
-  }, [getFieldErrorsBySource, manuelReguleringInputErrors]);
+  const {
+    pendingLoadResult,
+    setPendingLoadResult,
+    pendingOverwriteApply,
+    setPendingOverwriteApply,
+    pendingPreflight,
+    pendingPreflightBugReportError,
+    handleGem,
+    handleHent,
+    handleSletAlt,
+    handleLoadDespiteIssues,
+    handleConfirmOverwriteApply,
+    handleHentFromPwaRequest,
+  } = useFileSaveLoad({
+    settings,
+    navigate,
+    combinedSectionRevisionRef,
+    markSaved,
+    hasBlockingInputErrors,
+    getPersistedData,
+    replaceAllPersistedData,
+    clearAllData,
+    hasAnyData,
+    allowExitWithoutWarning,
+    showOverlay,
+    markUserFeedback,
+  });
 
-  const applyLoadedSnapshot = React.useCallback(async (result: LoadFileResult) => {
-    if (!result.snapshot) {
-      throw new Error('Kunne ikke anvende indlæst data: mangler snapshot');
-    }
-
-    const fullSnapshot = Object.keys(persistenceSchemas).reduce((acc, key) => {
-      acc[key as StorageKey] = result.snapshot?.[key as StorageKey];
-      return acc;
-    }, {} as Record<StorageKey, unknown | undefined>);
-
-    try {
-      replaceAllPersistedData(fullSnapshot);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Ukendt fejl';
-      throw new Error(`Indlæsning mislykkedes. Ingen data blev anvendt.\n\n${message}`);
-    }
-
-    // UI/diagnostik-metadata (ikke autoritativt input; må ikke bruges som datakilde)
-    if (result.filename) {
-      sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilename, result.filename);
-    }
-    const basis = parseFilenameBasisFromStamdata(result.snapshot.stamdata);
-    if (basis) {
-      sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, JSON.stringify(basis));
-    } else {
-      sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
-    }
-    if (result.fileHandle) {
-      await saveFileHandleToIndexedDB(result.fileHandle);
-    } else {
-      await deleteFileHandleFromIndexedDB();
-    }
-    if (result.requestId) {
-      await markPendingPwaFileOpenRequestHandled(result.requestId);
-    } else {
-      await clearPendingPwaFileOpenRequest();
-    }
-  }, [replaceAllPersistedData]);
-
-  const requestApplyLoadedSnapshot = React.useCallback(async (
-    result: LoadFileResult,
-    overlayData: OverlayData,
-    navigateToStamdataAfterApply: boolean
-  ): Promise<'applied' | 'awaitingUser'> => {
-    // Bevidst UX-valg:
-    // Alle succesfulde hent-forløb (manuel hent, PWA-filåbning, preflight "Indlæs trods fejl",
-    // og overskrivelsesflow) skal føre brugeren til Stamdata-siden efter apply.
-    // Normal app-opstart styres derimod alene af root-route i App.tsx.
-    if (hasAnyData()) {
-      setPendingOverwriteApply({ result, overlay: overlayData, navigateToStamdataAfterApply });
-      return 'awaitingUser';
-    }
-
-    await applyLoadedSnapshot(result);
-    isUserFeedbackRef.current = true;
-    setOverlay(overlayData);
-    if (navigateToStamdataAfterApply) {
-      navigate('/stamdata', { replace: true });
-    }
-    return 'applied';
-  }, [applyLoadedSnapshot, hasAnyData, navigate]);
-
-  // Gem-funktionalitet
-  const handleGem = React.useCallback(async () => {
-    const focusTargetBeforeSave = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-
-    try {
-      const commitFlush = await commitPendingInputBeforeSave();
-      const hasInputErrors = hasBlockingInputErrors();
-      if (!commitFlush.ok || hasInputErrors) {
-        if (commitFlush.ok) {
-          restoreFocusIfPossible(focusTargetBeforeSave);
-        }
-        isUserFeedbackRef.current = true;
-        setOverlay({
-          message: 'Kan ikke gemme: Der er ugyldige felter. Ret felter med rød markering, og prøv igen.',
-          type: 'warning',
-        });
-        return;
-      }
-
-      const snapshot = Object.keys(persistenceSchemas).reduce((acc, key) => {
-        const pageKey = key as StorageKey;
-        const value = getPersistedData(pageKey);
-        acc[pageKey] = value ?? undefined;
-        return acc;
-      }, {} as Record<StorageKey, unknown | undefined>);
-      const snapshotRevision = combinedSectionRevisionRef.current;
-
-      // Resolve default directory for file picker startIn
-      const resolvedDirectory = await resolveDefaultDirectoryHandle(settings);
-
-      const result: SaveFileResult = await saveToFile(snapshot, resolvedDirectory);
-
-      if (result.cancelled) {
-        restoreFocusIfPossible(focusTargetBeforeSave);
-        return;
-      }
-
-      if (result.success) {
-        restoreFocusIfPossible(focusTargetBeforeSave);
-        // Saved baseline tracks the exact committed snapshot used for this save operation.
-        setSavedRevisionBaseline(snapshotRevision);
-        isUserFeedbackRef.current = true;
-        setOverlay({
-          message: result.warning ? `Gemt med advarsel\n\n${result.warning}` : 'Gemt',
-          type: result.warning ? 'warning' : 'success',
-        });
-      }
-    } catch (error) {
-      restoreFocusIfPossible(focusTargetBeforeSave);
-      console.error('Gem fejlede:', error);
-      isUserFeedbackRef.current = true;
-      setOverlay({
-        message: (error as Error)?.message || 'Kunne ikke gemme fil',
-        type: 'error',
-      });
-    }
-  }, [getPersistedData, hasBlockingInputErrors, settings]);
-
-  // Hent-funktionalitet
-  const handleHent = React.useCallback(async () => {
-    const loadGuard = await prepareForCriticalDataReplacement();
-    if (!loadGuard.ok) {
-      isUserFeedbackRef.current = true;
-      setOverlay({
-        message: LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE,
-        type: 'warning',
-      });
-      return;
-    }
-
-    try {
-      setPendingLoadResult(null);
-      setPendingOverwriteApply(null);
-
-      // Resolve default directory for file picker startIn
-      const resolvedDirectory = await resolveDefaultDirectoryHandle(settings);
-
-      const result: LoadFileResult = await loadFromFile(resolvedDirectory);
-
-      if (result.cancelled) {
-        restoreFocusIfPossible(loadGuard.focusTargetBeforeAction);
-        return;
-      }
-
-      if (result.success) {
-        if (result.preflightWarning) {
-          setPendingLoadResult({ result, navigateToStamdataAfterApply: true });
-          return;
-        }
-
-        await requestApplyLoadedSnapshot(result, { message: 'Hentet', type: 'success' }, true);
-      }
-    } catch (error) {
-      restoreFocusIfPossible(loadGuard.focusTargetBeforeAction);
-      const resolved = resolveLoadError(error);
-      if (!resolved.expected) {
-        console.error('Hent fejlede:', error);
-      }
-      isUserFeedbackRef.current = true;
-      setOverlay({
-        message: resolved.message,
-        type: 'error',
-      });
-    }
-  }, [requestApplyLoadedSnapshot, settings]);
-
-  type PwaLoadOutcome = 'cancelled' | 'preflight' | 'awaitingUser' | 'applied' | 'error';
-
-  const handleHentFromPwaRequest = React.useCallback(async (request: PwaFileOpenRequest): Promise<PwaLoadOutcome> => {
-    const loadGuard = await prepareForCriticalDataReplacement();
-    if (!loadGuard.ok) {
-      isUserFeedbackRef.current = true;
-      setOverlay({
-        message: LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE,
-        type: 'warning',
-      });
-      return 'error';
-    }
-
-    try {
-      setPendingLoadResult(null);
-      setPendingOverwriteApply(null);
-      const result: LoadFileResult = await loadFromFileHandle(request.fileHandle, { requestId: request.id });
-
-      if (result.cancelled) {
-        restoreFocusIfPossible(loadGuard.focusTargetBeforeAction);
-        return 'cancelled';
-      }
-
-      if (result.success) {
-        if (result.preflightWarning) {
-          setPendingLoadResult({ result, navigateToStamdataAfterApply: true });
-          return 'preflight';
-        }
-
-        const ignoredSuffix = request.ignoredFileCount > 0
-          ? `\n\nBemærk: ${request.ignoredFileCount} yderligere fil(er) blev ignoreret.`
-          : '';
-        const outcome = await requestApplyLoadedSnapshot(
-          result,
-          { message: `Hentet${ignoredSuffix}`, type: request.ignoredFileCount > 0 ? 'warning' : 'success' },
-          true
-        );
-
-        return outcome === 'awaitingUser' ? 'awaitingUser' : 'applied';
-      }
-
-      return 'error';
-    } catch (error) {
-      restoreFocusIfPossible(loadGuard.focusTargetBeforeAction);
-      const resolved = resolveLoadError(error);
-      if (!resolved.expected) {
-        console.error('Hent (PWA) fejlede:', error);
-      }
-      isUserFeedbackRef.current = true;
-      setOverlay({
-        message: resolved.message,
-        type: 'error',
-      });
-      return 'error';
-    }
-  }, [requestApplyLoadedSnapshot]);
-
-  const processNextPwaFileOpenRequest = React.useCallback(() => {
-    const runNext = (): void => {
-      if (isPwaLoadInProgressRef.current) return;
-      if (pendingLoadResult !== null) return;
-      if (pendingOverwriteApply !== null) return;
-
-      const request = getPendingPwaFileOpenRequest();
-      if (!request) return;
-      if (activePwaRequestIdRef.current === request.id) return;
-
-      activePwaRequestIdRef.current = request.id;
-      isPwaLoadInProgressRef.current = true;
-
-      void handleHentFromPwaRequest(request)
-        .then(() => {
-          activePwaRequestIdRef.current = null;
-          isPwaLoadInProgressRef.current = false;
-        })
-        .catch(() => {
-          activePwaRequestIdRef.current = null;
-          isPwaLoadInProgressRef.current = false;
-        });
-    };
-
-    runNext();
-  }, [handleHentFromPwaRequest, pendingLoadResult, pendingOverwriteApply]);
-
-  React.useEffect(() => {
-    const handler = () => {
-      if (pendingLoadResult !== null || pendingOverwriteApply !== null) {
-        const dropped = getPendingPwaFileOpenRequest();
-        if (dropped) {
-          void clearPendingPwaFileOpenRequest();
-          isUserFeedbackRef.current = true;
-          setOverlay({ message: 'Ny fil blev forsøgt åbnet – prøv igen når du er færdig', type: 'warning' });
-        }
-        return;
-      }
-      processNextPwaFileOpenRequest();
-    };
-    window.addEventListener(MINEO_PWA_FILE_OPEN_EVENT, handler);
-    return () => {
-      window.removeEventListener(MINEO_PWA_FILE_OPEN_EVENT, handler);
-    };
-  }, [pendingLoadResult, pendingOverwriteApply, processNextPwaFileOpenRequest]);
-
-  React.useEffect(() => {
-    if (pendingLoadResult !== null) return;
-    if (pendingOverwriteApply !== null) return;
-    processNextPwaFileOpenRequest();
-  }, [pendingLoadResult, pendingOverwriteApply, processNextPwaFileOpenRequest]);
-
-  React.useEffect(() => {
-    if (location.pathname !== '/open') return;
-    if (pendingLoadResult !== null) return;
-    if (pendingOverwriteApply !== null) return;
-
-    // Bevidst robustness-guard:
-    // Nogle browsere/PWA-opstarter kan levere launchQueue-requesten lige efter initial render,
-    // men før vores event-listener er wired. I det tilfælde ligger requesten stadig pending i
-    // pwaLaunchQueue-modulet, men den første event er tabt. Vi re-checker derfor kortvarigt,
-    // så dobbeltklik-åbnede `.eo` filer ikke sporadisk strandes på OpenEo-siden.
-    const startedAt = Date.now();
-    let lastAutoRetriedRequestId: string | null = null;
-    let timeoutId: number | null = null;
-    let cancelled = false;
-
-    const tick = (): void => {
-      if (cancelled) return;
-      if (pendingLoadResult !== null || pendingOverwriteApply !== null) return;
-      const request = getPendingPwaFileOpenRequest();
-      if (request && request.id !== lastAutoRetriedRequestId) {
-        lastAutoRetriedRequestId = request.id;
-        processNextPwaFileOpenRequest();
-      }
-
-      if (Date.now() - startedAt >= PWA_OPEN_REQUEST_RETRY_WINDOW_MS) {
-        return;
-      }
-
-      timeoutId = window.setTimeout(tick, PWA_OPEN_REQUEST_RETRY_INTERVAL_MS);
-    };
-
-    timeoutId = window.setTimeout(tick, PWA_OPEN_REQUEST_RETRY_INTERVAL_MS);
-
-    return () => {
-      cancelled = true;
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId);
-      }
-    };
-  }, [location.pathname, pendingLoadResult, pendingOverwriteApply, processNextPwaFileOpenRequest]);
-
-  const pendingPreflight = pendingLoadResult?.result.preflightWarning;
-  const pendingPreflightBugReportError = React.useMemo(() => {
-    return pendingLoadResult ? buildPreflightBugReportError(pendingLoadResult.result) : null;
-  }, [pendingLoadResult]);
-
-  const handleLoadDespiteIssues = React.useCallback(async () => {
-    const pending = pendingLoadResult;
-    if (!pending) return;
-    setPendingLoadResult(null);
-    setPendingOverwriteApply(null);
-
-    try {
-      await requestApplyLoadedSnapshot(
-        pending.result,
-        { message: 'Hentet (med fejl)', type: 'warning' },
-        pending.navigateToStamdataAfterApply
-      );
-    } catch (error) {
-      console.error('Hent (trods fejl) fejlede:', error);
-      isUserFeedbackRef.current = true;
-      setOverlay({
-        message: (error as Error)?.message || 'Kunne ikke hente fil',
-        type: 'error',
-      });
-    }
-  }, [pendingLoadResult, requestApplyLoadedSnapshot]);
-
-  const handleConfirmOverwriteApply = React.useCallback(async () => {
-    const pending = pendingOverwriteApply;
-    if (!pending) return;
-    setPendingOverwriteApply(null);
-
-    try {
-      await applyLoadedSnapshot(pending.result);
-      isUserFeedbackRef.current = true;
-      setOverlay(pending.overlay);
-      if (pending.navigateToStamdataAfterApply) {
-        navigate('/stamdata', { replace: true });
-      }
-    } catch (error) {
-      console.error('Overskriv og hent fejlede:', error);
-      isUserFeedbackRef.current = true;
-      setOverlay({
-        message: (error as Error)?.message || 'Kunne ikke hente fil',
-        type: 'error',
-      });
-    }
-  }, [applyLoadedSnapshot, navigate, pendingOverwriteApply]);
+  usePwaLaunchQueue({
+    locationPathname: location.pathname,
+    pendingLoadResultOpen: pendingLoadResult !== null,
+    pendingOverwriteApplyOpen: pendingOverwriteApply !== null,
+    handleHentFromPwaRequest,
+    showOverlay,
+    markUserFeedback,
+  });
 
   // Persistence-notices (fx versionsmismatch og korrupt storage)
   React.useEffect(() => {
@@ -805,46 +176,6 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     isUserFeedbackRef.current = true;
     setOverlay({ message: lastNotice.message, type: lastNotice.type });
   }, [lastNoticeEpoch, lastNotice]);
-
-  // Slet alt-funktionalitet
-  const handleSletAlt = React.useCallback(async () => {
-    const focusTargetBeforeDeleteAll = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const confirmed = window.confirm(
-      'ADVARSEL: Dette vil slette alle indtastede oplysninger!\n\nEr du sikker på at du vil fortsætte?'
-    );
-
-    if (!confirmed) {
-      restoreFocusIfPossible(focusTargetBeforeDeleteAll);
-      return;
-    }
-
-    try {
-      clearAllData();
-
-      sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilename);
-      sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
-
-      await deleteFileHandleFromIndexedDB();
-
-      sessionStorage.setItem(UI_STORAGE_KEYS.pendingOverlay, JSON.stringify({
-        message: 'Alt data slettet',
-        type: 'info',
-        isUserFeedback: true,
-      }));
-
-      allowExitWithoutUnsavedWarningRef.current = true;
-      window.location.href = '/stamdata';
-    } catch (error) {
-      restoreFocusIfPossible(focusTargetBeforeDeleteAll);
-      allowExitWithoutUnsavedWarningRef.current = false;
-      console.error('Slet alt fejlede:', error);
-      isUserFeedbackRef.current = true;
-      setOverlay({
-        message: 'Kunne ikke slette data',
-        type: 'error',
-      });
-    }
-  }, [clearAllData]);
 
   // Tjek for pending overlay efter reload
   React.useEffect(() => {
@@ -893,81 +224,6 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleGem]);
-
-  React.useEffect(() => {
-    dismissedDevtoolsIssueIdRef.current = parseNonNegativeInteger(
-      sessionStorage.getItem(UI_STORAGE_KEYS.devtoolsLastSeenIssueId),
-    );
-
-    const stop = startDevtoolsMonitor();
-    const unsubscribe = subscribeDevtoolsIssues((snapshot, issue) => {
-      const now = Date.now();
-      if (now < suppressDevtoolsNoticeUntilRef.current) {
-        queuePendingDevtoolsNotice(snapshot);
-        return;
-      }
-      pendingDevtoolsSnapshotRef.current = null;
-      clearPendingDevtoolsNoticeTimer();
-      const dismissedId = dismissedDevtoolsIssueIdRef.current;
-      if (dismissedId !== null && issue.id <= dismissedId) {
-        return;
-      }
-      setDevtoolsSnapshot(snapshot);
-      setDevtoolsNoticeVisible(true);
-    });
-
-    const initial = getDevtoolsIssueSnapshot();
-    const dismissedId = dismissedDevtoolsIssueIdRef.current;
-    const hasNewIssues = initial.issues.some((issue) => dismissedId === null || issue.id > dismissedId);
-    if (hasNewIssues) {
-      setDevtoolsSnapshot(initial);
-      setDevtoolsNoticeVisible(true);
-    }
-
-    return () => {
-      clearPendingDevtoolsNoticeTimer();
-      pendingDevtoolsSnapshotRef.current = null;
-      unsubscribe();
-      stop();
-    };
-  }, [clearPendingDevtoolsNoticeTimer, queuePendingDevtoolsNotice]);
-
-  React.useEffect(() => {
-    const route = `${location.pathname}${location.search}${location.hash}`;
-    setDevtoolsRoute(route);
-  }, [location.hash, location.pathname, location.search]);
-
-  const buildDevtoolsReportExtras = React.useCallback((): BugReportExtraSection[] => {
-    const persistedSnapshot = Object.keys(persistenceSchemas).reduce((acc, key) => {
-      const pageKey = key as StorageKey;
-      acc[pageKey] = getPersistedData(pageKey) ?? null;
-      return acc;
-    }, {} as Record<StorageKey, unknown>);
-
-    const fieldErrorsSnapshot = Object.keys(persistenceSchemas).reduce((acc, key) => {
-      const pageKey = key as StorageKey;
-      acc[pageKey] = getFieldErrorsBySource(pageKey);
-      return acc;
-    }, {} as Record<StorageKey, unknown>);
-
-    const uiMeta = {
-      lastSavedFilename: sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilename),
-      lastSavedFilenameBasis: parseSessionJson(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)),
-      route: {
-        pathname: location.pathname,
-        search: location.search,
-        hash: location.hash,
-      },
-    };
-
-    return [
-      { title: 'DevTools hændelser', data: getDevtoolsIssueSnapshot() },
-      { title: 'UI metadata', data: uiMeta },
-      // getPersistedData() is intended to return schema-validated, canonical values from persistence.
-      { title: 'Persisted brugerinput (schema-valideret)', data: persistedSnapshot },
-      { title: 'Field errors (by source)', data: fieldErrorsSnapshot },
-    ];
-  }, [getFieldErrorsBySource, getPersistedData, location.hash, location.pathname, location.search]);
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -1061,17 +317,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
       {devtoolsSnapshot && devtoolsNoticeVisible && (
         <DevtoolsIssueNotice
           snapshot={devtoolsSnapshot}
-          onDismiss={() => {
-            const lastIssueId = devtoolsSnapshot.lastIssue?.id ?? null;
-            dismissedDevtoolsIssueIdRef.current = lastIssueId;
-            if (lastIssueId !== null) {
-              sessionStorage.setItem(UI_STORAGE_KEYS.devtoolsLastSeenIssueId, String(lastIssueId));
-            }
-            suppressDevtoolsNoticeUntilRef.current = Date.now() + 1000;
-            pendingDevtoolsSnapshotRef.current = null;
-            clearPendingDevtoolsNoticeTimer();
-            setDevtoolsNoticeVisible(false);
-          }}
+          onDismiss={dismissDevtools}
           getExtraSections={buildDevtoolsReportExtras}
         />
       )}

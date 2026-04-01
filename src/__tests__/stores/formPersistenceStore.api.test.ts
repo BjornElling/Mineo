@@ -3,7 +3,7 @@ import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
 import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../../domain/faellesPersondata/faellesPersondataInitialValues';
-import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 
 const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };

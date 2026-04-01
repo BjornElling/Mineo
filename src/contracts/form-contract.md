@@ -272,6 +272,20 @@ Drafts resynkroniseres **ikke** ved almindelig commit-flow (onBlur).
 Debug-regel:
 Hvis en række “nulstilles”, skal man altid kunne pege på en `resyncToken`-ændring.
 
+### 6.4 Draft-systemernes ansvarsfordeling
+
+To hooks implementerer draft/committed-separationen. De løser det samme grundproblem (brugerinput ≠ domænestate) men for forskellige datastrukturer:
+
+| Hook | Datastruktur | Bruges til |
+|------|-------------|-----------|
+| `useDraftField` | Enkelt felt (string → parsed value) | Alle individuelle text/number-inputs. Håndterer parse-on-blur, focus snapshot, cancel (Escape), error state per felt. |
+| `useRowDrafts` | Array af rækker (draft rows ↔ committed rows) | Dynamiske tabelrækker. Håndterer add/remove/commit row, resync via `resyncToken`, row-level validering. |
+
+**Hvornår bruges hvad:**
+- Er inputtet et enkelt felt (tekst, tal, dato)? → `useDraftField`
+- Er inputtet en dynamisk tabel med rækker der kan tilføjes/fjernes? → `useRowDrafts`
+- Disse to hooks bruges aldrig sammen for det samme stykke data.
+
 ---
 
 ## 7. Validering

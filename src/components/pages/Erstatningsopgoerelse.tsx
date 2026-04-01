@@ -12,7 +12,7 @@ import {
   useSectionRevisionSelector,
 } from '../../hooks/useFormPersistenceSelectors';
 import { erstatningsopgoerelseSchema, type ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
-import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import EOOplysningerTab from './erstatningsopgoerelse/EOOplysningerTab';
 import LoenindkomstTab from './erstatningsopgoerelse/LoenindkomstTab';
@@ -22,7 +22,7 @@ import EODebug from './erstatningsopgoerelse/EODebug';
 import EODebugTabel from './erstatningsopgoerelse/EODebugTabel';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
 import type { StamdataValues } from '../../schemas/formSchemas';
-import { computeEoSnapshot, type EoSnapshot } from '../../domain/erstatningsopgoerelse/eoSnapshot';
+import { computeEoSnapshot, type EoSnapshot } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 
 const TAB_KEYS = {
   EO_OPLYSNINGER: 'eo_oplysninger',

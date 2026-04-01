@@ -5,7 +5,7 @@ import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDr
 import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
 import { dateRanges_offentligeYdelser } from '../../config/dateRanges';
 import { coerceToISODateString } from '../../types/branded';
-import { initialOffentligYdelseRow, generateOffentligYdelseRowId } from '../../domain/erstatningsopgoerelse/eoRowInitialValues';
+import { initialOffentligYdelseRow, generateOffentligYdelseRowId } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
 import type { OffentligeYdelserRow } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';
@@ -21,7 +21,7 @@ import {
   getOffentligeYdelserTableValidation,
   isOffentligeYdelserTableValueEffectivelyEmptyForValidation,
   parseOffentligeYdelserCellKey,
-} from '../../domain/erstatningsopgoerelse/offentligeYdelserTableValidation';
+} from '../../domain/erstatningsopgoerelse/validation/offentligeYdelserTableValidation';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { normalizeGridRows } from './gridCore/gridModel';
@@ -31,7 +31,7 @@ import {
   evaluateRowCommit,
   type RowRemovalFocusPlan,
 } from './gridCore/tableRowFocus';
-import { OFFENTLIGE_YDELSER_TABLE_HEADERS } from '../../domain/erstatningsopgoerelse/offentligeYdelserTableColumns';
+import { OFFENTLIGE_YDELSER_TABLE_HEADERS } from '../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 
 export type OffentligeYdelserDerivedCellValues = Readonly<{
   periodiseringLabel: string;

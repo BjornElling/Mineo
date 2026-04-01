@@ -17,11 +17,6 @@ import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
 import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
-import {
-  runAllDomainCleanups,
-  saveDomainSnapshots,
-  restoreDomainSnapshots,
-} from '../stores/domainCleanupRegistry';
 
 // Persisted sections are handled via an internal Zustand store; FormPersistenceContext is a facade and not the SoT for committed inputs.
 
@@ -341,7 +336,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     const prevFieldErrorRevisions = prevStoreState.fieldErrorRevisions;
     const prevAuthoritativeSnapshotEpoch = prevStoreState.authoritativeSnapshotEpoch;
     const prevMeta = prevStoreState.meta;
-    const prevDomainSnapshots = saveDomainSnapshots();
     for (const key of Object.keys(persistenceSchemas) as StorageKey[]) {
       if (!Object.prototype.hasOwnProperty.call(snapshot, key)) {
         throw new Error(`Snapshot mangler key '${key}'. Snapshot skal indeholde alle keys (brug undefined for at slette).`);
@@ -402,7 +396,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         nextCache,
         { hydrated: true, schemaFingerprint: CURRENT_VERSION, lastCommittedAt: Date.now() }
       );
-      runAllDomainCleanups();
     } catch (error) {
       // Defensive strategy: always execute full rollback/restore sequence,
       // even if failure happened before any in-memory mutation.
@@ -423,7 +416,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         prevMeta
       );
       formPersistenceStore.getState().restoreFieldErrors(prevFieldErrors, prevFieldErrorRevisions);
-      restoreDomainSnapshots(prevDomainSnapshots);
       const message = error instanceof Error ? error.message : 'Ukendt fejl';
       throw new Error(`Kunne ikke anvende snapshot atomisk: ${message}`);
     }
@@ -438,7 +430,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       sessionStorage.removeItem(storageKey);
       syncSection(pageKey, null);
       formPersistenceStore.getState().clearFieldErrorsForSection(pageKey);
-      runAllDomainCleanups();
     } catch (error) {
       console.error(`[Persistence] Fejl ved sletning af data for '${pageKey}':`, error);
     }
@@ -457,7 +448,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         sessionStorage.removeItem(key);
       });
       formPersistenceStore.getState().clearAll({ hydrated: true, schemaFingerprint: CURRENT_VERSION, lastCommittedAt: Date.now() });
-      runAllDomainCleanups();
     } catch (error) {
       console.error('[Persistence] Fejl ved sletning af alle data:', error);
     }
@@ -469,9 +459,9 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
 
   const getFieldErrors = React.useCallback(<K extends StorageKey,>(pageKey: K) => {
     const bySource = fieldErrors[pageKey] as FieldErrorsForSection<K>;
-    const resolved: Partial<Record<Extract<keyof PersistedSectionMap[K], string>, FormFieldError>> = {};
+    const resolved: Partial<Record<string, FormFieldError>> = {};
 
-    for (const fieldName of Object.keys(bySource) as Array<Extract<keyof PersistedSectionMap[K], string>>) {
+    for (const fieldName of Object.keys(bySource)) {
       const fieldErrorsBySource = bySource[fieldName];
       if (!fieldErrorsBySource) continue;
       const active = resolveActiveFieldError(fieldErrorsBySource);
@@ -484,7 +474,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
 
   const getFieldError = React.useCallback(<K extends StorageKey,>(
     pageKey: K,
-    fieldName: Extract<keyof PersistedSectionMap[K], string>
+    fieldName: string
   ): FormFieldError | undefined => {
     const bySource = fieldErrors[pageKey] as FieldErrorsForSection<K>;
     const forField = bySource[fieldName];
@@ -494,7 +484,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
 
   const setFieldError = React.useCallback(<K extends StorageKey,>(
     pageKey: K,
-    fieldName: Extract<keyof PersistedSectionMap[K], string>,
+    fieldName: string,
     source: FieldErrorSource,
     error: { message: string; severity: FieldErrorSeverity; blocksSave?: boolean } | null
   ) => {
@@ -503,12 +493,10 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
 
   const clearFieldErrors = React.useCallback((pageKey: StorageKey) => {
     formPersistenceStore.getState().clearFieldErrorsForSection(pageKey);
-    runAllDomainCleanups();
   }, []);
 
   const clearAllFieldErrors = React.useCallback(() => {
     formPersistenceStore.getState().clearAllFieldErrors();
-    runAllDomainCleanups();
   }, []);
 
   const getSectionRevision = React.useCallback((pageKey: StorageKey) => {

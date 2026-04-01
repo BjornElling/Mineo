@@ -4,8 +4,8 @@ import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import type { StorageKey } from '../../config/storageManifest';
-import { eoLoenindkomstInputErrorStore } from '../../stores/eoLoenindkomstInputErrorStore';
-import '../../domain/erstatningsopgoerelse/eoCleanupRegistration';
+
+const LOENINDKOMST_FIELD_KEY = 'af-1:loenindkomst';
 
 const stampStamdata = (skadelidte: string) => ({
   journalnr: '',
@@ -40,10 +40,6 @@ const emptySnapshot = (): Record<StorageKey, unknown | undefined> => ({
 });
 
 describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
-  beforeEach(() => {
-    eoLoenindkomstInputErrorStore.getState().clearAll();
-  });
-
   it('rolls back sessionStorage and cache when sessionStorage setItem fails mid-apply', async () => {
     sessionStorage.clear();
     sessionStorage.setItem('mineo_stamdata', JSON.stringify(persistedWrapper(stampStamdata('X'))));
@@ -160,7 +156,7 @@ describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
     expect(ctx!.getPersistedData('satser')?.aargang).toBe(2020);
   });
 
-  it('restores EO input-error store on rollback failure', async () => {
+  it('restores EO lønindkomst field-errors on rollback failure', async () => {
     sessionStorage.clear();
     sessionStorage.setItem('mineo_stamdata', JSON.stringify(persistedWrapper(stampStamdata('X'))));
 
@@ -183,8 +179,13 @@ describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
       expect(ctx).not.toBeNull();
     });
 
-    eoLoenindkomstInputErrorStore.getState().setError('af-1', true);
-    expect(eoLoenindkomstInputErrorStore.getState().errors).toEqual({ 'af-1': true });
+    await act(async () => {
+      ctx!.setFieldError('erstatningsopgoerelse', LOENINDKOMST_FIELD_KEY, 'input', {
+        message: 'Ugyldig manuel regulering',
+        severity: 'error',
+      });
+    });
+    expect(ctx!.getFieldError('erstatningsopgoerelse', LOENINDKOMST_FIELD_KEY)?.message).toBe('Ugyldig manuel regulering');
 
     const storageProto = Object.getPrototypeOf(window.sessionStorage) as { setItem: (key: string, value: string) => void };
     const setItemSpy = vi.spyOn(storageProto, 'setItem').mockImplementation((_key: string, _value: string) => {
@@ -200,7 +201,7 @@ describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
 
     setItemSpy.mockRestore();
 
-    expect(eoLoenindkomstInputErrorStore.getState().errors).toEqual({ 'af-1': true });
+    expect(ctx!.getFieldError('erstatningsopgoerelse', LOENINDKOMST_FIELD_KEY)?.message).toBe('Ugyldig manuel regulering');
   });
 
   it('restores form field-errors on rollback failure', async () => {
@@ -252,7 +253,7 @@ describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
     expect(ctx!.getFieldErrorRevision('stamdata')).toBe(beforeRevision);
   });
 
-  it('clears form field-errors and EO input-errors on successful replaceAllPersistedData', async () => {
+  it('clears form field-errors and EO lønindkomst field-errors on successful replaceAllPersistedData', async () => {
     sessionStorage.clear();
 
     let ctx: ReturnType<typeof useFormPersistence> | null = null;
@@ -281,8 +282,13 @@ describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
       expect(ctx!.getFieldError('stamdata', 'skadelidte')?.message).toBe('Skal ryddes');
     });
 
-    eoLoenindkomstInputErrorStore.getState().setError('af-1', true);
-    expect(eoLoenindkomstInputErrorStore.getState().errors).toEqual({ 'af-1': true });
+    await act(async () => {
+      ctx!.setFieldError('erstatningsopgoerelse', LOENINDKOMST_FIELD_KEY, 'input', {
+        message: 'Ugyldig manuel regulering',
+        severity: 'error',
+      });
+    });
+    expect(ctx!.getFieldError('erstatningsopgoerelse', LOENINDKOMST_FIELD_KEY)?.message).toBe('Ugyldig manuel regulering');
 
     const next = emptySnapshot();
     next.stamdata = stampStamdata('Efter replace');
@@ -292,6 +298,6 @@ describe('FormPersistenceContext.replaceAllPersistedData (rollback)', () => {
     });
 
     expect(ctx!.getFieldError('stamdata', 'skadelidte')).toBeUndefined();
-    expect(eoLoenindkomstInputErrorStore.getState().errors).toEqual({});
+    expect(ctx!.getFieldError('erstatningsopgoerelse', LOENINDKOMST_FIELD_KEY)).toBeUndefined();
   });
 });

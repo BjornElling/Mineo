@@ -2,7 +2,7 @@ import {
   applyAnsaettelsesforholdToggleCleanup,
   sanitizeSfggRowForBeregningskilde,
 } from '../../../../components/pages/erstatningsopgoerelse/LoenindkomstTab';
-import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 describe('LoenindkomstTab hidden state cleanup', () => {
   it('rydder overenskomstafhængige felter når harOverenskomst slås fra', () => {

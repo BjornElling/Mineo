@@ -59,7 +59,7 @@ export type FormPersistenceStoreState = {
   ) => void;
   setFieldError: <K extends keyof FormPersistenceSections>(
     key: K,
-    fieldName: Extract<keyof PersistedSectionMap[K], string>,
+    fieldName: string,
     source: FieldErrorSource,
     error: { message: string; severity: FieldErrorSeverity; blocksSave?: boolean } | null
   ) => void;

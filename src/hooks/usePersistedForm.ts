@@ -106,12 +106,6 @@ export const usePersistedForm = <K extends StorageKey>(
     return { ...initialValues, ...persisted };
   });
 
-  // Ref der altid holder den seneste values synkront.
-  // Bruges til at beregne next-value i handleChange og setValues uden at afvente
-  // næste render — eliminerer behovet for persist via useEffect.
-  const valuesRef = React.useRef(values);
-  valuesRef.current = values;
-
   const [formVersion, bumpFormVersion] = React.useReducer((v: number) => v + 1, 0);
 
   // Re-hydrate when an authoritative snapshot has been applied (e.g. file load).
@@ -137,10 +131,11 @@ export const usePersistedForm = <K extends StorageKey>(
   // Felt-commit via funktionel updater. Bumper ikke formVersion.
   const setValues = React.useCallback(
     (updater: (prev: PersistedSectionMap[K]) => PersistedSectionMap[K]) => {
-      const next = updater(valuesRef.current);
-      valuesRef.current = next;
-      setValuesState(next);
-      persistDataRef.current(pageKey, next);
+      setValuesState((prev) => {
+        const next = updater(prev);
+        persistDataRef.current(pageKey, next);
+        return next;
+      });
     },
     [pageKey]
   );
@@ -170,7 +165,6 @@ export const usePersistedForm = <K extends StorageKey>(
    * Vi sætter kun lokal state + bumper formVersion her.
    */
   const resetForm = React.useCallback(() => {
-    valuesRef.current = initialValuesRef.current;
     setValuesState(initialValuesRef.current);
     bumpFormVersion();
     clearPageDataRef.current(pageKey);

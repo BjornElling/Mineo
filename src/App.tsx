@@ -4,7 +4,6 @@ import { ThemeProvider, createTheme } from '@mui/material';
 import { FormPersistenceProvider } from './contexts/FormPersistenceContext';
 import { AppSettingsProvider } from './contexts/AppSettingsContext';
 // Side-effect: registrerer EO-domænets cleanup/rollback hooks i det generiske registry
-import './domain/erstatningsopgoerelse/eoCleanupRegistration';
 import MainLayout from './components/layout/MainLayout';
 import ErrorBoundary from './components/errors/ErrorBoundary';
 import Stamdata from './components/pages/Stamdata';

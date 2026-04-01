@@ -41,7 +41,7 @@ import { isISODateString, parseISODate } from '../../../types/branded';
 import { formatDanishDate } from '../../../utils/dateUtils';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { isLoenperiodeValue } from '../../../utils/zodTypeGuards';
-import { generateAnsaettelsesforholdId, generateLoenudviklingRowId, initialLoenudviklingManuelRow } from '../../../domain/erstatningsopgoerelse/eoRowInitialValues';
+import { generateAnsaettelsesforholdId, generateLoenudviklingRowId, initialLoenudviklingManuelRow } from '../../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import type { StandardLoenTableValidationSummary } from '../../../types/table';
 import { UI_STORAGE_KEYS } from '../../../config/storageManifest';
@@ -72,24 +72,24 @@ import { useSetEOLoenindkomstInputError } from '../../../hooks/useEOLoenindkomst
 import { getPersistedSectionSnapshot, usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSelectors';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { appSettingsSchema, DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../../settings/appSettingsSchema';
-import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '../../../utils/pdf/pdfService';
+import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '../../../pdf/infrastructure/pdfService';
 import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
-import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerelse/loenoplysningerInput';
-import { DEFAULT_ANCIENNITET_FIELDS } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
+import { DEFAULT_ANCIENNITET_FIELDS } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
   hasSfggSelectedOverenskomst,
   resolveSfggSource,
   resolveSfggReferenceperiodeDayCount,
   resolveSfggReferenceperiodeMaxDate,
-} from '../../../domain/erstatningsopgoerelse/sygeferiegodtgoerelse';
+} from '../../../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
 import {
   buildStandardLoenZeroArbejdsdageCellErrorMessages,
   type AarsloenZeroArbejdsdageValidationInput,
-} from '../../../domain/erstatningsopgoerelse/indkomstRowValidation';
+} from '../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
 import {
   validateLoenudviklingManualBaseRowSatser,
   type ManualBaseRowCellErrors,
-} from '../../../domain/erstatningsopgoerelse/loenudviklingManuelBaseRowValidation';
+} from '../../../domain/erstatningsopgoerelse/validation/loenudviklingManuelBaseRowValidation';
 import { updateValidationFlagById } from '../../../utils/validationFlagMap';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 

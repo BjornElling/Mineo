@@ -1,7 +1,7 @@
 import { stripUnknownFieldsBySchema } from '../../utils/persistenceLoadSanitization';
 import { erstatningsopgoerelseSchema, stamdataSchema } from '../../schemas/formSchemas';
 import { z } from 'zod';
-import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 describe('persistenceLoadSanitization', () => {
   it('stripper ukendte felter og rapporterer deres stier', () => {

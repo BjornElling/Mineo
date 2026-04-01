@@ -1,4 +1,3 @@
-import type { PersistedSectionMap } from '../config/persistenceRegistry';
 import type { StorageKey } from '../config/storageManifest';
 
 export type FieldErrorSeverity = 'error' | 'warning';
@@ -35,8 +34,8 @@ export const getReportableFieldErrorMessage = (
 
 export type FieldErrorBySource = Partial<Record<FieldErrorSource, FormFieldError>>;
 
-export type FieldErrorsForSection<K extends StorageKey> = Partial<
-  Record<Extract<keyof PersistedSectionMap[K], string>, FieldErrorBySource>
+export type FieldErrorsForSection<_K extends StorageKey> = Partial<
+  Record<string, FieldErrorBySource>
 >;
 
 /**

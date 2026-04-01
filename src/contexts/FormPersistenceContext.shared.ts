@@ -18,15 +18,15 @@ export type FormPersistenceContextValue = {
   hasAnyData: () => boolean;
   getFieldErrors: <K extends StorageKey>(
     pageKey: K
-  ) => Partial<Record<Extract<keyof PersistedSectionMap[K], string>, FormFieldError>>;
+  ) => Partial<Record<string, FormFieldError>>;
   getFieldErrorsBySource: <K extends StorageKey>(pageKey: K) => FieldErrorsForSection<K>;
   getFieldError: <K extends StorageKey>(
     pageKey: K,
-    fieldName: Extract<keyof PersistedSectionMap[K], string>
+    fieldName: string
   ) => FormFieldError | undefined;
   setFieldError: <K extends StorageKey>(
     pageKey: K,
-    fieldName: Extract<keyof PersistedSectionMap[K], string>,
+    fieldName: string,
     source: FieldErrorSource,
     error: { message: string; severity: FieldErrorSeverity; blocksSave?: boolean } | null
   ) => void;

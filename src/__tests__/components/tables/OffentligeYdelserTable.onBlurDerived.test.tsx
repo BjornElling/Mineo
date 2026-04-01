@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import OffentligeYdelserTable from '../../../components/tables/OffentligeYdelserTable';
-import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/offentligeYdelserDerived';
+import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
 import { formatCurrency } from '../../../utils/formatUtils';
 
 type Derived = { periodiseringLabel: string; antalDageDisplay: string; ydelsePerDagDisplay: string };

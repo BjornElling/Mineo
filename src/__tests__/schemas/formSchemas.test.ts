@@ -15,7 +15,7 @@ import {
   oevrigeKravRowSchema,
   offentligeYdelserRowSchema,
 } from '../../schemas/formSchemas';
-import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 // ─── aarsloenSchema ────────────────────────────────────────────────────────────
 

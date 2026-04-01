@@ -3,7 +3,7 @@ import { Typography } from '@mui/material';
 import OffentligeYdelserTable from '../../tables/OffentligeYdelserTable';
 import ContentBox from '../../layout/ContentBox';
 import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
-import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/offentligeYdelserDerived';
+import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
 import { formatCurrency } from '../../../utils/formatUtils';
 
 type Props = Readonly<{
