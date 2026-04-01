@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { webcrypto } from 'node:crypto';
-import { loadFromFile, loadFromFileHandle, validateEoFile } from '../../utils/fileLoad';
+import { loadFromFile, loadFromFileHandle } from '../../utils/fileLoad';
 import { encryptToString } from '../../utils/encryption';
 import { countFilledFields } from '../../utils/dataCollection';
 import { FILE_FORMAT_VERSION, VERSION } from '../../config/version';
@@ -297,39 +297,5 @@ describe('loadFromFileHandle', () => {
     expect(result.source).toBe('pwa');
     expect(result.requestId).toBe('req-1');
     expect(result.snapshot?.stamdata).toBeDefined();
-  });
-});
-
-// ─── validateEoFile ───────────────────────────────────────────────────────────
-
-describe('validateEoFile', () => {
-  it('returnerer true for gyldig krypteret .eo fil', async () => {
-    const container = { version: FILE_FORMAT_VERSION, data: {} };
-    const encrypted = await encryptToString(container);
-    const file = new File([encrypted], 'sag.eo', { type: 'application/octet-stream' });
-    readFileMock.mockResolvedValueOnce(encrypted);
-
-    const isValid = await validateEoFile(file);
-    expect(isValid).toBe(true);
-  });
-
-  it('returnerer false for forkert filendelse', async () => {
-    const file = new File(['data'], 'sag.txt', { type: 'text/plain' });
-    const isValid = await validateEoFile(file);
-    expect(isValid).toBe(false);
-  });
-
-  it('returnerer false for ikke-krypteret JSON', async () => {
-    const file = new File(['{"not":"encrypted"}'], 'sag.eo', { type: 'application/octet-stream' });
-    readFileMock.mockResolvedValueOnce('{"not":"encrypted"}');
-    const isValid = await validateEoFile(file);
-    expect(isValid).toBe(false);
-  });
-
-  it('returnerer false for ugyldig JSON', async () => {
-    const file = new File(['ikke json'], 'sag.eo', { type: 'application/octet-stream' });
-    readFileMock.mockResolvedValueOnce('ikke json');
-    const isValid = await validateEoFile(file);
-    expect(isValid).toBe(false);
   });
 });

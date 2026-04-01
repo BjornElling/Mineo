@@ -9,7 +9,7 @@ import StyledDropdown from '../inputs/StyledDropdown';
 import StandardLoenTable from '../tables/StandardLoenTable';
 import ContentBox from '../layout/ContentBox';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
-import { useFormPersistence } from '../../contexts/useFormPersistence';
+import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
 import { useAarsloenBeregning } from '../../hooks/useAarsloenBeregning';
 import { useOmregningToggle } from '../../hooks/useOmregningToggle';
 import { useAarsloenPdfGates } from '../../hooks/useAarsloenPdfGates';
@@ -24,6 +24,7 @@ import {
   shouldShowAarsloenShDageFields,
   shouldWarnAarsloenFeriePct,
 } from '../../domain/policies';
+import { AARSLOEN_INITIAL_VALUES } from '../../domain/aarsloen/aarsloenInitialValues';
 import type { z } from 'zod';
 import type {
   StandardLoenTableValidationSummary,
@@ -48,24 +49,11 @@ const Aarsloen = React.memo(() => {
   const { values, setValues } = usePersistedForm(
     aarsloenSchema,
     'aarsloen',
-    {
-      feriePct: undefined,
-      fritvalgPct: undefined,
-      shSoPct: undefined,
-      storeBededagPct: undefined,
-      pensionPct: undefined,
-      loenperiode: LOENPERIODE.MAANED,
-      tableData: [],
-      omregningTilFuldtAar: false,
-      fuldLoenUnderFerie: true,
-      retTilSjetteFerieuge: true,
-      antalFeriedage: undefined,
-      loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
-    }
+    AARSLOEN_INITIAL_VALUES
   );
 
   // Destrukturér værdier for nem adgang
-  const { getPersistedData } = useFormPersistence();
+  const persistedStamdata = usePersistedSectionSelector('stamdata');
   const { settings } = useAppSettings();
 
   const {
@@ -129,7 +117,7 @@ const Aarsloen = React.memo(() => {
     beregningsData,
     harFatalBeregningsFejl,
     tabelRef,
-    getPersistedData,
+    persistedStamdata,
     settings,
   });
 
@@ -712,4 +700,3 @@ const Aarsloen = React.memo(() => {
 Aarsloen.displayName = 'Aarsloen';
 
 export default Aarsloen;
-

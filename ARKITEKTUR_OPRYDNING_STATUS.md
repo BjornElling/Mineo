@@ -65,6 +65,29 @@ Der er dermed kun ét autoritativt fejlspor i runtime-state.
 
 Det har forbedret importfladen og givet en tydeligere retning for strukturen, men ikke afsluttet hele den fysiske migrering.
 
+### 1.6 Fase 1-oprydning af page-/tab-lag og tydelige legacy-rester blev gennemført
+
+Følgende kontraktnære oprydning er nu implementeret:
+
+- `R5` blev gennemført for de konkrete UI-callsites i:
+  - `src/components/pages/Aarsloen.tsx`
+  - `src/components/pages/Satser.tsx`
+  - `src/components/pages/Renteberegning.tsx`
+  - `src/components/pages/erstatningsopgoerelse/EOOplysningerTab.tsx`
+- direkte read-only adgang via `useFormPersistence()` / `getPersistedData()` blev her erstattet af selector-baseret persisted læsning eller page-level projektion
+- `R6` blev gennemført ved at flytte `stamdata`- og `faellesPersondata`-ejerskab ud af `src/components/pages/varigemen/MenberegningTab.tsx` og tilbage til `src/components/pages/VarigeMen.tsx`
+- `R7` blev gennemført ved at oprette kanoniske domænemoduler for initial values:
+  - `src/domain/aarsloen/aarsloenInitialValues.ts`
+  - `src/domain/satser/satserInitialValues.ts`
+  - `src/domain/renteberegning/renteberegningInitialValues.ts`
+  - `src/domain/varigemen/varigeMenInitialValues.ts`
+- legacy-cleanups med lav risiko blev gennemført:
+  - `L1`: de ubrugte `collectAllData()`- og `saveDataToSessionStorage()`-spor blev slettet fra `src/utils/dataCollection.ts`
+  - `L2`: den ubrugte `validateEoFile()`-probe blev slettet fra `src/utils/fileLoad.ts` og tilhørende test blev fjernet
+  - `L6`: stale cleanup-registry-kommentaren blev fjernet fra `src/App.tsx`
+
+Den gennemførte batch dækker dermed hele den planlagte Fase 1 samt de lavrisiko legacy-sletninger.
+
 ---
 
 ## 2. Samlet status i dag
@@ -77,9 +100,8 @@ De resterende problemer er ikke først og fremmest funktionelle fejl. De handler
 
 - dobbeltstruktur og kompatibilitetslag
 - restkobling mellem domænelag og PDF-navngivne moduler
-- for brede persistens-adgange i page-/tab-laget
-- enkelte brud på page-/tab-kontrakten
-- manglende fuld konvergens om kanoniske initial values og læsemønstre
+- enkelte tilbageværende kompatibilitets- og adapterlag
+- de endnu ikke afsluttede EO-/PDF-migreringer
 
 Det betyder:
 
@@ -236,6 +258,11 @@ Det ses bl.a. i:
 - størrelse: mellemstor
 - risiko: middel
 
+**Opdateret status**
+
+- gennemført for de konkrete UI-callsites nævnt ovenfor
+- dette punkt vurderes nu som lukket i den planlagte Fase 1-batch
+
 ### R6. Flyt persisted form-ejerskab fra tabs tilbage til page-niveau
 
 **Nuværende situation**
@@ -265,6 +292,11 @@ via `usePersistedForm(...)` i tabben.
 
 - størrelse: lille til mellemstor
 - risiko: middel
+
+**Opdateret status**
+
+- gennemført for `src/components/pages/varigemen/MenberegningTab.tsx` / `src/components/pages/VarigeMen.tsx`
+- dette punkt vurderes nu som lukket
 
 ### R7. Flyt inline `initialValues` ud af page-filer og ind i kanoniske domænemoduler
 
@@ -297,6 +329,11 @@ Mens andre områder allerede bruger navngivne domænemoduler som:
 
 - størrelse: lille til mellemstor
 - risiko: lav
+
+**Opdateret status**
+
+- gennemført for `Aarsloen`, `Satser`, `Renteberegning` og `VarigeMen`
+- dette punkt vurderes nu som lukket
 
 ---
 
@@ -573,6 +610,11 @@ De er ikke fundet i runtime-kode uden for filen selv, mens `countFilledFields()`
 - højt
 - lav risiko, hvis der først bekræftes nul runtime-forbrug
 
+**Opdateret status**
+
+- gennemført
+- de ubrugte sessionStorage-helperfunktioner er slettet
+
 ### L2. `validateEoFile()` i `fileLoad.ts` ligner en ubrugt kompatibilitetsprobe for den krypterede wrapper
 
 **Fund**
@@ -601,6 +643,11 @@ De er ikke fundet i runtime-kode uden for filen selv, mens `countFilledFields()`
 
 - højt
 - lav risiko
+
+**Opdateret status**
+
+- gennemført
+- `validateEoFile()` og dens særskilte tests er slettet
 
 ### L3. Load-pipelinen indeholder et bevidst backward-compat-spor for ældre `.eo`-filer
 
@@ -708,6 +755,10 @@ Af disse er følgende gode clean-cut kandidater med lav risiko:
 - sletning af `validateEoFile()` hvis den fortsat er ubrugt
 - fjernelse af stale kommentaren i `App.tsx`
 
+**Opdateret status**
+
+- alle tre lavrisiko clean-cut kandidater ovenfor er nu gennemført
+
 Den store clean-cut beslutning er derimod:
 
 - om backward-kompatibel, best-effort `.eo`-load skal bevares eller erstattes af strict same-version load
@@ -762,6 +813,18 @@ Hvis alle ovenstående rettelser skal gennemføres, bør de udføres i denne ræ
 
 - høj ift. arkitekturdisciplin
 - moderat ift. vedligeholdelse
+
+**Opdateret status**
+
+- gennemført som samlet batch
+- verifikation gennemført med:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm test`
+
+**Præcisering**
+
+- `R4` er ikke del af Fase 1 og udestår fortsat under Fase 2
 
 ### Fase 2. Afslut EO-fejl- og entrypoint-konvergens
 

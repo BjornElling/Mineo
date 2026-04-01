@@ -2,9 +2,12 @@ import React from 'react';
 import { Box, Tabs, Tab, Typography } from '@mui/material';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
-import { varigeMenSchema } from '../../schemas/formSchemas';
+import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
+import { faellesPersondataSchema, varigeMenSchema } from '../../schemas/formSchemas';
 import MenberegningTab from './varigemen/MenberegningTab';
 import SatserTab from './varigemen/SatserTab';
+import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../../domain/faellesPersondata/faellesPersondataInitialValues';
+import { VARIGE_MEN_INITIAL_VALUES } from '../../domain/varigemen/varigeMenInitialValues';
 
 const TAB_KEYS = {
   MENBEREGNING: 'menberegning',
@@ -20,10 +23,20 @@ const VarigeMen = React.memo(() => {
     defaultTab: TAB_KEYS.MENBEREGNING,
   });
 
-  const { values, setValues, handleChange } = usePersistedForm(varigeMenSchema, 'varigemen', {
-    mengrad: undefined,
-    beregningsdato: undefined,
-  });
+  const { values, setValues, handleChange } = usePersistedForm(varigeMenSchema, 'varigemen', VARIGE_MEN_INITIAL_VALUES);
+  const stamdata = usePersistedSectionSelector('stamdata');
+  const { values: faellesPersondataValues, handleChange: handleFaellesPersondataChange } = usePersistedForm(
+    faellesPersondataSchema,
+    'faellesPersondata',
+    FAELLES_PERSONDATA_INITIAL_VALUES
+  );
+  const menberegningStamdata = React.useMemo(
+    () => ({
+      skadesdato: stamdata?.skadesdato,
+      skadestype: stamdata?.skadestype,
+    }),
+    [stamdata?.skadesdato, stamdata?.skadestype]
+  );
 
   const handleTabChange = React.useCallback(
     (_: React.SyntheticEvent, value: unknown) => {
@@ -87,7 +100,14 @@ const VarigeMen = React.memo(() => {
       {activeTab === TAB_KEYS.SATSER ? (
         <SatserTab />
       ) : (
-        <MenberegningTab values={values} setValues={setValues} handleChange={handleChange} />
+        <MenberegningTab
+          values={values}
+          setValues={setValues}
+          handleChange={handleChange}
+          stamdata={menberegningStamdata}
+          faellesPersondataValues={faellesPersondataValues}
+          handleFaellesPersondataChange={handleFaellesPersondataChange}
+        />
       )}
     </Box>
   );

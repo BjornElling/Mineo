@@ -317,32 +317,3 @@ export const loadFromFileHandle = async (
     throw new Error(`Kunne ikke indlæse fil: ${safeErrorMessage}`);
   }
 };
-
-/**
- * Validerer om en fil er en gyldig .eo fil uden at indlæse den.
- *
- * NOTE: Dette tjekker kun den ydre krypterede container (JSON), ikke indholdet efter dekryptering.
- */
-export const validateEoFile = async (file: File): Promise<boolean> => {
-  try {
-    if (!file.name.toLowerCase().endsWith('.eo')) {
-      return false;
-    }
-
-    const content = await readFile(file);
-    const parsed: unknown = JSON.parse(content);
-    if (!isRecord(parsed)) {
-      return false;
-    }
-
-    return (
-      parsed.version === 1 &&
-      parsed.alg === 'A256GCM' &&
-      typeof parsed.ivB64 === 'string' &&
-      typeof parsed.ctB64 === 'string'
-    );
-  } catch (error: unknown) {
-    logError('Fil-validering fejlede', { context: 'validateEoFile', error: error instanceof Error ? error : undefined });
-    return false;
-  }
-};

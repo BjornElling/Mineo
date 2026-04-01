@@ -3,13 +3,13 @@ import { Box, Tab, Tabs, Typography } from '@mui/material';
 import { referenceRates, surchargeRates } from '../../data/interestRates';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
+import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
 import { renteberegningSchema } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
 import useRentekravRows from '../tables/useRentekravRows';
-import { createEmptyRentekravCommittedRow, createRentekravRowId } from '../../domain/renteberegning/rentekravTableModel';
+import { createRenteberegningInitialValues } from '../../domain/renteberegning/renteberegningInitialValues';
 import type { RentePdfContext } from '../tables/BeregnetRenteTable';
-import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { downloadRentePdf } from '../../pdf/infrastructure/pdfService';
 import type { CommitHandler } from '../../types/fieldEvents';
@@ -27,8 +27,9 @@ const TAB_KEYS = {
 } as const;
 
 const Renteberegning = React.memo(() => {
-  const { getPersistedData } = useFormPersistence();
+  const persistedStamdata = usePersistedSectionSelector('stamdata');
   const { settings } = useAppSettings();
+  const initialValues = React.useMemo(() => createRenteberegningInitialValues(), []);
   const { activeTab, setActiveTab, isAllowedTab } = usePersistedActiveTab<TabKey>({
     pageId: 'renteberegning',
     allowedTabs: [TAB_KEYS.RATES, TAB_KEYS.CALCULATION],
@@ -38,11 +39,7 @@ const Renteberegning = React.memo(() => {
   const { values, setValues, formVersion } = usePersistedForm(
     renteberegningSchema,
     'renteberegning',
-    {
-      beregningsdato: undefined,
-      kommentarer: undefined,
-      rentekravRows: [createEmptyRentekravCommittedRow(createRentekravRowId())],
-    }
+    initialValues
   );
 
   const handleError = React.useCallback((message: string, context: string, error?: unknown) => {
@@ -90,13 +87,13 @@ const Renteberegning = React.memo(() => {
         beregningsdato: beregningsdatoDanish,
         kommentarer: values.kommentarer,
         settings,
-        persistedStamdata: getPersistedData('stamdata'),
+        persistedStamdata,
       });
       if (!result.success) {
         handleError(result.error, 'Renteberegning.PDFGeneration');
       }
     },
-    [getPersistedData, handleError, settings, values.kommentarer]
+    [persistedStamdata, handleError, settings, values.kommentarer]
   );
 
   return (

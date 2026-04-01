@@ -11,13 +11,12 @@ import StyledPercentField from '../../inputs/StyledPercentField';
 import ContentBox from '../../layout/ContentBox';
 import { dateRanges_erhvervsevnetab } from '../../../config/dateRanges';
 import {
-  faellesPersondataSchema,
-  stamdataSchema,
+  type FaellesPersondataValues,
   type VarigeMenValues,
 } from '../../../schemas/formSchemas';
 import { coerceToISODateString, parseISODate, toISODateString } from '../../../types/branded';
 import { beregnVarigeMenGodtgoerelseWithRates } from '../../../domain/varigemen/varigeMenCalculations';
-import { usePersistedForm, type SetValuesUpdater } from '../../../hooks/usePersistedForm';
+import type { SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import { useNavigate } from 'react-router-dom';
 import { varigeMenPrGrad, varigeMenPrGradYearBounds } from '../../../data/lovbestemteRates';
 import { useAppSettings } from '../../../contexts/useAppSettings';
@@ -26,8 +25,6 @@ import { formatAsAmount } from '../../../utils/formatUtils';
 import { createCommitEvent, type CommitHandler } from '../../../types/fieldEvents';
 import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
 import { downloadVarigeMenPdf } from '../../../pdf/infrastructure/pdfService';
-import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../../../domain/faellesPersondata/faellesPersondataInitialValues';
-import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 
 const VARIGE_MEN_BEREGNINGSDATO_MIN = toISODateString(
   `${varigeMenPrGradYearBounds.minYear}-01-01`
@@ -37,19 +34,24 @@ const VARIGE_MEN_BEREGNINGSDATO_MAX = toISODateString(
   `${varigeMenPrGradYearBounds.maxYear}-12-31`
 );
 
-const MenberegningTab = ({ values, setValues, handleChange }: {
+type MenberegningStamdataView = Readonly<{
+  skadesdato: string | undefined;
+  skadestype: string | undefined;
+}>;
+
+const MenberegningTab = ({ values, setValues, handleChange, stamdata, faellesPersondataValues, handleFaellesPersondataChange }: {
   values: VarigeMenValues;
   setValues: SetValuesUpdater<VarigeMenValues>;
   handleChange: <K extends keyof VarigeMenValues>(
     key: K
   ) => CommitHandler<VarigeMenValues[K]>;
+  stamdata: MenberegningStamdataView;
+  faellesPersondataValues: FaellesPersondataValues;
+  handleFaellesPersondataChange: <K extends keyof FaellesPersondataValues>(
+    key: K
+  ) => CommitHandler<FaellesPersondataValues[K]>;
 }) => {
-  const { values: stamValues } = usePersistedForm(stamdataSchema, 'stamdata', STAMDATA_INITIAL_VALUES);
-  const { values: faellesPersondataValues, handleChange: handleFaellesPersondataChange } = usePersistedForm(
-    faellesPersondataSchema,
-    'faellesPersondata',
-    FAELLES_PERSONDATA_INITIAL_VALUES
-  );
+  const stamValues = stamdata;
 
   const { settings } = useAppSettings();
   const navigate = useNavigate();

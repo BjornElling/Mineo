@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { CommitHandler } from '../../../../types/fieldEvents';
-import type { VarigeMenValues } from '../../../../schemas/formSchemas';
+import type { FaellesPersondataValues, VarigeMenValues } from '../../../../schemas/formSchemas';
 
 const { mockDownloadVarigeMenPdf, mockBeregnVarigeMenGodtgoerelseWithRates, mockStamValues, mockFaellesPersondataValues } = vi.hoisted(() => ({
   mockDownloadVarigeMenPdf: vi.fn(),
@@ -24,21 +24,6 @@ vi.mock('../../../../domain/varigemen/varigeMenCalculations', () => ({
   beregnVarigeMenGodtgoerelseWithRates: mockBeregnVarigeMenGodtgoerelseWithRates,
 }));
 
-vi.mock('../../../../hooks/usePersistedForm', () => ({
-  usePersistedForm: (_schema: unknown, pageKey: string) => {
-    if (pageKey === 'faellesPersondata') {
-      return {
-        values: mockFaellesPersondataValues,
-        handleChange: vi.fn(),
-      };
-    }
-    return {
-      values: mockStamValues,
-      handleChange: vi.fn(),
-    };
-  },
-}));
-
 vi.mock('../../../../contexts/useAppSettings', () => ({
   useAppSettings: () => ({
     settings: {},
@@ -48,6 +33,8 @@ vi.mock('../../../../contexts/useAppSettings', () => ({
 import MenberegningTab from '../../../../components/pages/varigemen/MenberegningTab';
 
 const handleChange: <K extends keyof VarigeMenValues>(key: K) => CommitHandler<VarigeMenValues[K]> = () => vi.fn();
+const handleFaellesPersondataChange:
+  <K extends keyof FaellesPersondataValues>(key: K) => CommitHandler<FaellesPersondataValues[K]> = () => vi.fn();
 
 describe('MenberegningTab', () => {
   beforeEach(() => {
@@ -71,6 +58,12 @@ describe('MenberegningTab', () => {
           values={{ mengrad: 10, beregningsdato: '2026-01-01' }}
           setValues={vi.fn()}
           handleChange={handleChange}
+          stamdata={{
+            skadesdato: mockStamValues.skadesdato,
+            skadestype: mockStamValues.skadestype,
+          }}
+          faellesPersondataValues={mockFaellesPersondataValues}
+          handleFaellesPersondataChange={handleFaellesPersondataChange}
         />
       </MemoryRouter>
     );
@@ -80,7 +73,10 @@ describe('MenberegningTab', () => {
     expect(mockDownloadVarigeMenPdf).toHaveBeenCalledTimes(1);
     expect(mockDownloadVarigeMenPdf).toHaveBeenCalledWith(
       expect.objectContaining({
-        persistedStamdata: mockStamValues,
+        persistedStamdata: {
+          skadesdato: mockStamValues.skadesdato,
+          skadestype: mockStamValues.skadestype,
+        },
       })
     );
   });

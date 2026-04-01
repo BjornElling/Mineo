@@ -1,18 +1,9 @@
-import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { UI_STORAGE_KEYS } from '../config/storageManifest';
-import type { PersistedData } from '../types/persistence';
 
 const debugEnabled = import.meta.env.DEV;
 const debugLog = (...args: unknown[]): void => {
   if (debugEnabled) console.debug(...args);
 };
-const debugGroup = (label: string): void => {
-  if (debugEnabled) console.group(label);
-};
-const debugGroupEnd = (): void => {
-  if (debugEnabled) console.groupEnd();
-};
-
 /**
  * Tjekker om en værdi indeholder meningsfulde data (ikke tom/null).
  */
@@ -120,83 +111,6 @@ export const countFilledFields = (data: unknown): number => {
   return totalCount;
 };
 
-const isPersistedDataWrapper = (value: unknown): value is PersistedData<unknown> => {
-  if (!value || typeof value !== 'object') return false;
-  const obj = value as Record<string, unknown>;
-  return (
-    typeof obj.version === 'string' &&
-    typeof obj.timestamp === 'number' &&
-    'data' in obj
-  );
-};
-
-/**
- * Indsamler alle data fra sessionStorage.
- * Scanner alle mineo_* keys og strukturerer data per menupunkt.
- *
- * VIGTIGT: Unwrapper PersistedData-struktur (version, timestamp, data)
- * for at få fat i den faktiske data.
- */
-export const collectAllData = (): Record<string, unknown> => {
-  const allData: Record<string, unknown> = {};
-
-  // Liste over metadata-keys der skal ignoreres
-  const metadataKeys: string[] = [
-    UI_STORAGE_KEYS.pendingOverlay,
-    UI_STORAGE_KEYS.lastSavedFilename,
-    UI_STORAGE_KEYS.lastSavedFilenameBasis,
-    UI_STORAGE_KEYS.sideMenuExpanded,
-  ];
-
-  debugGroup('[collectAllData] Scanning sessionStorage');
-  debugLog(`Total keys in sessionStorage: ${sessionStorage.length}`);
-
-  // Scan alle sessionStorage keys
-  for (let i = 0; i < sessionStorage.length; i++) {
-    const key = sessionStorage.key(i);
-
-    // Kun interesseret i mineo_* keys
-    if (key && key.startsWith('mineo_')) {
-      // UI-state keys er ikke persisted brugerinput og kan være ikke-JSON (fx 'satser')
-      if (key.startsWith('mineo_ui_')) {
-        debugLog(`  Skipping UI key: ${key}`);
-        continue;
-      }
-
-      // Ignorer metadata-keys
-      if (metadataKeys.includes(key)) {
-        debugLog(`  Skipping metadata key: ${key}`);
-        continue;
-      }
-
-      const pageKey = key.replace('mineo_', '');
-      debugLog(`  Found data key: ${key} → pageKey: ${pageKey}`);
-
-      try {
-        const value = sessionStorage.getItem(key);
-        if (value) {
-          const parsed: unknown = JSON.parse(value);
-
-          if (isPersistedDataWrapper(parsed)) {
-            debugLog(`    ✓ PersistedData format detected (version: ${parsed.version})`);
-            allData[pageKey] = parsed.data;
-          } else {
-            debugLog(`    Skipping non-PersistedData payload for key: ${key}`);
-          }
-        }
-      } catch (error) {
-        console.warn(`Fejl ved parsing af sessionStorage key '${key}':`, error);
-        // Spring denne key over ved fejl
-      }
-    }
-  }
-
-  debugLog(`Collected data keys: ${Object.keys(allData).join(', ')}`);
-  debugGroupEnd();
-
-  return allData;
-};
-
 /**
  * Tjekker om datasættet indeholder egentligt brugerindhold.
  */
@@ -228,49 +142,4 @@ export const clearAllData = (): void => {
   });
 
   debugLog(`Ryddet ${keysToRemove.length} mineo_* keys fra sessionStorage (beholdt ${keysToPreserve.size})`);
-};
-
-/**
- * Gemmer data til sessionStorage med PersistedData-struktur.
- *
- * VIGTIGT: Wrapper data i PersistedData-format (version, timestamp, data)
- * for at matche det format FormPersistenceContext forventer.
- */
-export const saveDataToSessionStorage = (data: unknown): void => {
-  if (!data || typeof data !== 'object') {
-    throw new Error('Ugyldig data - skal være et objekt');
-  }
-
-  debugGroup('[saveDataToSessionStorage] Gemmer data fra fil til sessionStorage');
-  debugLog(`Input data keys: ${Object.keys(data).join(', ')}`);
-
-  // Gem hver sektion til sessionStorage i PersistedData-format
-  for (const [pageKey, pageData] of Object.entries(data as Record<string, unknown>)) {
-    // Spring metadata over
-    if (pageKey.startsWith('_')) {
-      debugLog(`  Skipping metadata key: ${pageKey}`);
-      continue;
-    }
-
-    try {
-      // Wrap i PersistedData-struktur (matcher FormPersistenceContext)
-      const persistedData: PersistedData<unknown> = {
-        version: PERSISTED_DATA_VERSION,
-        timestamp: Date.now(),
-        data: pageData,
-      };
-
-      const storageKey = `mineo_${pageKey}`;
-      sessionStorage.setItem(storageKey, JSON.stringify(persistedData));
-      const fieldCount = (pageData && typeof pageData === 'object' && !Array.isArray(pageData))
-        ? Object.keys(pageData as Record<string, unknown>).length
-        : 0;
-      debugLog(`  ✓ Saved: ${storageKey} (${fieldCount} fields)`);
-    } catch (error) {
-      console.warn(`Fejl ved gemning af ${pageKey} til sessionStorage:`, error);
-      throw new Error(`Kunne ikke gemme ${pageKey}`);
-    }
-  }
-
-  debugGroupEnd();
 };

@@ -16,7 +16,7 @@ import type { PeriodeResult } from '../utils/periodeBeregning';
 import type { AarsloenBeregningResult } from '../types/calculation';
 import { harTabelValideringsFejl } from '../domain/aarsloen/aarsloenValidationPolicies';
 import { hasAtLeastOneValidRow } from '../domain/aarsloen/standardLoenRowCalculations';
-import type { StorageKey } from '../config/storageManifest';
+import type { PersistedSectionMap } from '../config/persistenceRegistry';
 import type { AppSettings } from '../settings/appSettingsSchema';
 import { downloadAarsloenPdf, downloadSHDagePdf } from '../pdf/infrastructure/pdfService';
 
@@ -38,7 +38,7 @@ type UseAarsloenPdfGatesProps = {
   beregningsData: AarsloenBeregningResult;
   harFatalBeregningsFejl: boolean;
   tabelRef: React.RefObject<StandardLoenTableHandle | null>;
-  getPersistedData: <K extends StorageKey>(formName: K) => unknown;
+  persistedStamdata: PersistedSectionMap['stamdata'] | null;
   settings: AppSettings;
 };
 
@@ -69,7 +69,7 @@ export const useAarsloenPdfGates = ({
   beregningsData,
   harFatalBeregningsFejl,
   tabelRef,
-  getPersistedData,
+  persistedStamdata,
   settings,
 }: UseAarsloenPdfGatesProps): UseAarsloenPdfGatesReturn => {
   const {
@@ -230,7 +230,7 @@ export const useAarsloenPdfGates = ({
         beregningsData,
       },
       settings,
-      persistedStamdata: getPersistedData('stamdata'),
+      persistedStamdata,
     });
     if (!result.success) {
       triggerDownloadShake();
@@ -254,7 +254,7 @@ export const useAarsloenPdfGates = ({
     beregningsData,
     triggerDownloadShake,
     harFatalBeregningsFejl,
-    getPersistedData,
+    persistedStamdata,
     tabelRef,
     settings,
   ]);
@@ -274,12 +274,12 @@ export const useAarsloenPdfGates = ({
     const result = await downloadSHDagePdf({
       perioder,
       settings,
-      persistedStamdata: getPersistedData('stamdata'),
+      persistedStamdata,
     });
     if (!result.success) {
       triggerDownloadShake();
     }
-  }, [periodeData, shDageAntal, settings, getPersistedData, triggerDownloadShake]);
+  }, [periodeData, shDageAntal, settings, persistedStamdata, triggerDownloadShake]);
 
   return {
     canDownloadPdf,

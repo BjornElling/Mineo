@@ -44,8 +44,8 @@ import {
 } from '../../../config/dateRanges';
 import { resolveMidlertidigEetDatoHvisAktiv } from '../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
+import { usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSelectors';
 import { useSetEOLoenindkomstInputError } from '../../../hooks/useEOLoenindkomstInputErrors';
-import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import {
   type ErstatningsopgoerelseValues,
   type EOAngivetLoenLoenudvikling,
@@ -128,23 +128,6 @@ const hasNonEmptyDateValue = (value: ISODateString | string | undefined | null):
   return String(value).trim() !== '';
 };
 
-/**
- * Henter skadesdato fra persisted stamdata (via FormPersistenceContext).
- * Ingen direkte sessionStorage-læsning i UI-laget.
- */
-const useSkadesdatoFromStamdata = (): ISODateString | undefined => {
-  const { getPersistedData } = useFormPersistence();
-  return getPersistedData('stamdata')?.skadesdato;
-};
-
-/**
- * Henter skadestype fra persisted stamdata (via FormPersistenceContext).
- */
-const useSkadestypeFromStamdata = (): '' | 'Arbejdsulykke' | 'Erhvervssygdom' => {
-  const { getPersistedData } = useFormPersistence();
-  return getPersistedData('stamdata')?.skadestype ?? '';
-};
-
 const formatLabelDayAfterIsoDate = (defaultLabel: string, tilDato: ISODateString | undefined, prefix: string): string => {
   if (!tilDato) return defaultLabel;
   const dateObj = isoDateToDate(tilDato);
@@ -168,10 +151,10 @@ type ErstatningsopgoerelseFormApi = Pick<
 const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseFormApi }) => {
   const { values, setValues, handleChange, formVersion } = form;
 
-  const skadesdatoISO = useSkadesdatoFromStamdata();
-  const skadestypeFromStamdata = useSkadestypeFromStamdata();
+  const persistedStamdata = usePersistedSectionSelector('stamdata');
+  const skadesdatoISO = persistedStamdata?.skadesdato;
+  const skadestypeFromStamdata = persistedStamdata?.skadestype ?? '';
   const { settings } = useAppSettings();
-  const { getPersistedData } = useFormPersistence();
   const setLoenindkomstManuelReguleringInputError = useSetEOLoenindkomstInputError();
 
   // Beregn minDate for øvrige krav-tabel
@@ -998,18 +981,18 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       await downloadReguleringPdf({
         input,
         settings,
-        persistedStamdata: getPersistedData('stamdata'),
+        persistedStamdata,
       });
     },
-    [getPersistedData, settings]
+    [persistedStamdata, settings]
   );
 
   const handleDownloadKRLPdf = React.useCallback(async () => {
     await downloadKrlPdf({
       settings,
-      persistedStamdata: getPersistedData('stamdata'),
+      persistedStamdata,
     });
-  }, [getPersistedData, settings]);
+  }, [persistedStamdata, settings]);
 
   const statusSubheaderLabel = React.useMemo(() => {
     const label = formatLabelDayAfterIsoDate(

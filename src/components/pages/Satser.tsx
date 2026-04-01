@@ -6,13 +6,14 @@ import { getSatserForYear, satserAngivAarYearBounds } from '../../data/lovbestem
 import { downloadSatserPdf } from '../../pdf/infrastructure/pdfService';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { satserSchema } from '../../schemas/formSchemas';
-import { useFormPersistence } from '../../contexts/useFormPersistence';
+import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import {
   canDownloadSatser,
   resolveSatserAargangErrorMessage,
   resolveSatserEffectiveAargang,
 } from '../../domain/policies';
+import { SATSER_INITIAL_VALUES } from '../../domain/satser/satserInitialValues';
 import ContentBox from '../layout/ContentBox';
 import { formatAsAmount, formatPercent } from '../../utils/formatUtils';
 
@@ -89,12 +90,10 @@ const Satser = React.memo(() => {
   const { values, setValues } = usePersistedForm(
     satserSchema,
     'satser',
-    {
-      aargang: MAX_SATSER_YEAR,
-    }
+    SATSER_INITIAL_VALUES
   );
 
-  const { getPersistedData } = useFormPersistence();
+  const persistedStamdata = usePersistedSectionSelector('stamdata');
   const { settings } = useAppSettings();
 
   /**
@@ -132,10 +131,10 @@ const Satser = React.memo(() => {
         year: gyldigtAar,
         satser,
         settings,
-        persistedStamdata: getPersistedData('stamdata'),
+        persistedStamdata,
       });
     }
-  }, [satser, gyldigtAar, getPersistedData, settings]);
+  }, [satser, gyldigtAar, persistedStamdata, settings]);
 
   return (
     <Box>
@@ -333,4 +332,3 @@ const Satser = React.memo(() => {
 Satser.displayName = 'Satser';
 
 export default Satser;
-
