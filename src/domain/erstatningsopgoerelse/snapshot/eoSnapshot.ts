@@ -8,7 +8,7 @@ import { parseForligsgrad } from '../engines/forligsgrad';
 import { buildOevrigeKravModel, buildSvieSmerteModel, buildTabtArbejdsfortjenesteModel } from './eoPresentationSectionBuilders';
 import { buildEoPdfPresentation, buildErstatningsopgoerelsePdfModelFromComputed, type EoPdfPresentation } from './eoPresentationModel';
 import type { MoneyOre } from './eoPresentationModel';
-import type { PdfModel } from '../shared/eoTypes';
+import type { EoModel } from '../shared/eoTypes';
 import { computeSvieSmerteEngine, type SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import { computeTafNettoBeregning, type TafNettoBeregningResult } from '../engines/tafNettoBeregning';
 import { buildTafPerYearBuildOutcome, buildTafPerYearSourceFromComputed, type TafPerYearResult } from '../engines/tafPerYearDerived';
@@ -54,7 +54,7 @@ export type EoSnapshotComputedData = Readonly<{
   canonicalOutput: EoCanonicalOutput;
   /** Færdigbygget PDF-dokumentmodel. Caches i snapshot for at undgå dobbeltkald
    *  fra eoSnapshotToEoPdfDocument og eoSnapshotToTafPerYearPdfDocument. */
-  pdfModel: PdfModel;
+  pdfModel: EoModel;
 }>;
 
 export type EoSnapshot = Readonly<{

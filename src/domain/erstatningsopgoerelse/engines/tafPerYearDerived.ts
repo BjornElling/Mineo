@@ -13,7 +13,7 @@
  *   Afrunding mellem summen af år og samlet TAF-krav accepteres kun op til 1 kr. (100 øre).
  *   Overstiger afvigelsen 1 kr., returneres null (fail-closed) i stedet for en misvisende fordeling.
  *
- * samletTafKravOre beregnes ALDRIG her – det modtages fra PdfModel
+ * samletTafKravOre beregnes ALDRIG her – det modtages fra EoModel
  * og bruges kun som facit for afrundingslinjen.
  */
 
@@ -24,8 +24,8 @@ import type {
   MoneyOre,
   LoenudviklingSegment,
   Calculable,
-  LoenudviklingPdfModel,
-  TafIndtaegterPdfModel,
+  LoenudviklingModel,
+  TafIndtaegterModel,
 } from '../snapshot/eoPresentationModel';
 import type { SygeferiegodtgoerelseResult } from './sygeferiegodtgoerelse';
 import {
@@ -96,8 +96,8 @@ export type TafPerYearResult = Readonly<{
 
 export type TafPerYearSource = Readonly<{
   stamdataValues: StamdataValues;
-  loenudvikling: LoenudviklingPdfModel | null;
-  tafIndtaegter: TafIndtaegterPdfModel | null;
+  loenudvikling: LoenudviklingModel | null;
+  tafIndtaegter: TafIndtaegterModel | null;
   tidligereModtagetTaf: Calculable<MoneyOre>;
   sygeferiegodtgoerelse: SygeferiegodtgoerelseResult;
   tabtArbejdsfortjenesteOre: MoneyOre;

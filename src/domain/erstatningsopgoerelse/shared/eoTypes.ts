@@ -16,7 +16,7 @@ export type Calculable<T> =
   | Readonly<{ status: 'ok'; value: T }>
   | Readonly<{ status: 'not_calculable'; reason: string }>;
 
-export type PdfModel = Readonly<{
+export type EoModel = Readonly<{
   titel: string;
   titelMetadata: string;
   periode: Readonly<{ fra: ISODateString; til: ISODateString }> | null;
@@ -29,10 +29,10 @@ export type PdfModel = Readonly<{
     sagsbehandler?: string;
     dagsDatoISO: ISODateString;
   }> | null;
-  svieSmerte: SvieSmertePdfModel;
-  forlig: ForligPdfModel;
-  tabtArbejdsfortjeneste: TabtArbejdsfortjenestePdfModel;
-  oevrigeKrav: OevrigeKravPdfModel;
+  svieSmerte: SvieSmerteModel;
+  forlig: ForligModel;
+  tabtArbejdsfortjeneste: TabtArbejdsfortjenesteModel;
+  oevrigeKrav: OevrigeKravModel;
   samlet: Readonly<{
     svieSmerteOre: MoneyOre;
     tabtArbejdsfortjenesteOre: MoneyOre;
@@ -43,7 +43,7 @@ export type PdfModel = Readonly<{
   tafRanges: readonly IsoRange[];
 }>;
 
-export type SygeferiegodtgoerelsePdfModel = Readonly<{
+export type SygeferiegodtgoerelseModel = Readonly<{
   totalOre: MoneyOre;
   perYear: readonly Readonly<{
     year: number;
@@ -97,7 +97,7 @@ export type SygeferiegodtgoerelsePdfModel = Readonly<{
   }>[];
 }>;
 
-export type ForligPdfModel =
+export type ForligModel =
   | Readonly<{
     erIndgaaet: false;
     label: null;
@@ -111,7 +111,7 @@ export type ForligPdfModel =
     factor: number;
   }>;
 
-export type SvieSmertePdfModel = Readonly<{
+export type SvieSmerteModel = Readonly<{
   beregnes: boolean;
   statusLinjer: readonly string[];
   opgjortFremTilPeriodeTil: boolean;
@@ -135,7 +135,7 @@ export type SvieSmertePdfModel = Readonly<{
   totalOre: MoneyOre;
 }>;
 
-export type TabtArbejdsfortjenestePdfModel = Readonly<{
+export type TabtArbejdsfortjenesteModel = Readonly<{
   beregnes: boolean;
   statusLinjer: readonly string[];
   eetLinjer: readonly string[];
@@ -144,16 +144,16 @@ export type TabtArbejdsfortjenestePdfModel = Readonly<{
   harTafPerioder: boolean;
   tafBeregningsenhed: TafBeregningsenhed;
   skalKomprimereIndkomstBeregning: boolean;
-  indkomstSkadestidspunkt: IndkomstSkadestidspunktPdfModel | null;
-  loenudvikling: LoenudviklingPdfModel | null;
-  tafIndtaegter: TafIndtaegterPdfModel | null;
+  indkomstSkadestidspunkt: IndkomstSkadestidspunktModel | null;
+  loenudvikling: LoenudviklingModel | null;
+  tafIndtaegter: TafIndtaegterModel | null;
   tidligereModtagetTaf: Calculable<MoneyOre>;
-  sygeferiegodtgoerelse: SygeferiegodtgoerelsePdfModel;
+  sygeferiegodtgoerelse: SygeferiegodtgoerelseModel;
   tabtArbejdsfortjenesteFoerForligOre: MoneyOre;
   tabtArbejdsfortjenesteOre: MoneyOre;
 }>;
 
-export type IndkomstSkadestidspunktPdfModel = Readonly<{
+export type IndkomstSkadestidspunktModel = Readonly<{
   beregningsenhed: TafBeregningsenhed;
   beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'];
   loenBaseretPaa: string | null;
@@ -214,7 +214,7 @@ export type LoenudviklingSegment =
     amountOre: MoneyOre;
   }>;
 
-export type LoenudviklingPdfModel = Readonly<{
+export type LoenudviklingModel = Readonly<{
   loenudviklingLabel: string;
   loenudviklingTotal: Calculable<MoneyOre>;
   beregningsenhed: TafBeregningsenhed;
@@ -228,13 +228,13 @@ export type LoenudviklingPdfModel = Readonly<{
   }>[];
 }>;
 
-export type TafIndtaegterPdfModel = Readonly<{
+export type TafIndtaegterModel = Readonly<{
   entries: readonly { label: string; amountOre: MoneyOre }[];
   oevrigeKravForbeholdYdelsestyper: readonly string[];
   total: Calculable<MoneyOre>;
 }>;
 
-export type OevrigeKravPdfModel = Readonly<{
+export type OevrigeKravModel = Readonly<{
   entries: readonly { dateText: string; udgiftTil: string; amountOre: MoneyOre }[];
   totalFoerForligOre: MoneyOre;
   totalOre: MoneyOre;

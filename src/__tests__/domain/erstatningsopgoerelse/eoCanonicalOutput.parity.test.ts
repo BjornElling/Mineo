@@ -8,7 +8,7 @@ import {
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { EoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
-import type { PdfModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModelTypes';
+import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModelTypes';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
@@ -125,7 +125,7 @@ const scenarios: readonly Scenario[] = [
 // Den beviser ikke domænekorrekthed i sig selv; korrekthed ligger i engine/enhedstests.
 const projectCanonicalFromPdfModel = (
   eoValues: ErstatningsopgoerelseValues,
-  pdfModel: PdfModel
+  pdfModel: EoModel
 ): EoCanonicalOutput => ({
   totals: {
     svieSmerteOre: pdfModel.samlet.svieSmerteOre,

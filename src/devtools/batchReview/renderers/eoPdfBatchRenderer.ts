@@ -1,8 +1,8 @@
 /**
- * Renderer for EO SFGG-data fra PdfModel til en eksisterende PdfWriter.
+ * Renderer for EO SFGG-data fra EoModel til en eksisterende PdfWriter.
  *
  * Opretter IKKE sin egen writer og kalder IKKE writer.save().
- * Bruger PdfModel-data direkte — ingen genberegning.
+ * Bruger EoModel-data direkte — ingen genberegning.
  *
  * Renderingsrækkefølge per scenarie:
  * 1. Scenarie-header (via scenarioHeaderRenderer)
@@ -15,7 +15,7 @@
  */
 
 import type { PdfWriter } from '../../../pdf/infrastructure/pdfWriter';
-import type { PdfModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
+import type { EoModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import type { BatchScenario } from '../types';
 import { renderScenarioHeader } from './scenarioHeaderRenderer';
 import { formatCurrencyFromOre, formatMoneyOreWithKr } from '../../../pdf/shared/pdfFormatUtils';
@@ -34,7 +34,7 @@ const formatIso = (iso: string | null | undefined): string => {
  */
 const renderSfggPerAnsaettelse = (
   writer: PdfWriter,
-  af: PdfModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number]
+  af: EoModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number]
 ): void => {
   writer.writeSectionHeader(af.ansaettelsesforholdNavn, 6);
 
@@ -118,7 +118,7 @@ const renderSfggPerAnsaettelse = (
 };
 
 /**
- * Renderer EO SFGG-data fra en PdfModel ind i en eksisterende PdfWriter.
+ * Renderer EO SFGG-data fra en EoModel ind i en eksisterende PdfWriter.
  *
  * Kalder renderScenarioHeader og renderer derefter SFGG-sektionen.
  * Forudsætter at writer er klar — tilføjer ikke footer.
@@ -126,7 +126,7 @@ const renderSfggPerAnsaettelse = (
 export const renderEoSfggBatchPage = (
   writer: PdfWriter,
   scenario: BatchScenario<unknown>,
-  model: PdfModel
+  model: EoModel
 ): void => {
   renderScenarioHeader(writer, scenario, 'ok');
 

@@ -31,7 +31,7 @@ import {
   resolveSfggReferenceperiodeDayCount,
   resolveSfggSource,
 } from '../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
-import { buildSfggNoEligibleDaysReason } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelsePresentation';
+import { buildSfggNoEligibleDaysReason } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import {
   clampTafRow,
   getValidTafRange,

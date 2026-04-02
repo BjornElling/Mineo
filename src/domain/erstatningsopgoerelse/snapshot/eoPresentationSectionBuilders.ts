@@ -7,9 +7,9 @@ import { isTafRowEmpty } from '../helpers/rowEmpty';
 import type { SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValidering';
 import { buildTafArbejdsstatusLinje } from '../tables/tafArbejdsstatusConfig';
-import type { Calculable, MoneyOre, OevrigeKravPdfModel, SvieSmertePdfModel, TabtArbejdsfortjenestePdfModel } from '../pdf/eoPdfModelTypes';
-import { clampMoneyOreToZero, ensureMoneyOre } from '../pdf/eoPdfMoneyUtils';
-import { getDayAfterIso, perioderCoverDate } from '../pdf/sharedPdfUtils';
+import type { Calculable, MoneyOre, OevrigeKravModel, SvieSmerteModel, TabtArbejdsfortjenesteModel } from '../shared/eoTypes';
+import { clampMoneyOreToZero, ensureMoneyOre } from '../shared/eoMoney';
+import { getDayAfterIso, perioderCoverDate } from '../helpers/eoSharedUtils';
 import { formatIsoDateShort as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import { parseOevrigeKravBeloeb } from '../helpers/oevrigeKravAmountParser';
 import type { TafNettoBeregningResult } from '../engines/tafNettoBeregning';
@@ -21,7 +21,7 @@ const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculab
 export const buildSvieSmerteModel = (
   values: ErstatningsopgoerelseValues,
   options: Readonly<{ engine: SvieSmerteEngineOutput }>
-): SvieSmertePdfModel => {
+): SvieSmerteModel => {
   const beregnes = values.beregnesSvieSmerteGodtgoerelse === 'Ja' && values.tidligereSsMax === 'Nej';
   const statusLinjer: string[] = [];
   const periodeTilISO = values.vedroererPeriodeTil;
@@ -155,7 +155,7 @@ export const buildTabtArbejdsfortjenesteModel = (
     tafRanges: readonly { fra: ISODateString; til: ISODateString }[];
     skadesdatoISO?: ISODateString;
   }>
-): TabtArbejdsfortjenestePdfModel => {
+): TabtArbejdsfortjenesteModel => {
   const beregnes = values.beregnesTabtArbejdsfortjeneste === 'Ja';
   if (!beregnes) {
     return {
@@ -360,7 +360,7 @@ export const buildTabtArbejdsfortjenesteModel = (
   };
 };
 
-export const buildOevrigeKravModel = (rows: OevrigeKravRow[]): OevrigeKravPdfModel => {
+export const buildOevrigeKravModel = (rows: OevrigeKravRow[]): OevrigeKravModel => {
   const parsed = parseOevrigeKravBeloeb(rows);
   if (!parsed) {
     return { entries: [], totalFoerForligOre: ensureMoneyOre(0), totalOre: ensureMoneyOre(0) };

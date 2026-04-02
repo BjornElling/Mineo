@@ -1,32 +1,30 @@
 import type { ISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type {
-  PdfModel,
-} from '../pdf/eoPdfModelTypes';
-import { clampMoneyOreToZero, ensureMoneyOre, scaleMoneyOre } from '../pdf/eoPdfMoneyUtils';
+  EoModel,
+  ForligModel,
+  OevrigeKravModel,
+  SvieSmerteModel,
+  TabtArbejdsfortjenesteModel,
+} from '../shared/eoTypes';
+import { clampMoneyOreToZero, ensureMoneyOre, scaleMoneyOre } from '../shared/eoMoney';
 import { formatIsoDateShort as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
-import type {
-  ForligPdfModel,
-  OevrigeKravPdfModel,
-  SvieSmertePdfModel,
-  TabtArbejdsfortjenestePdfModel,
-} from '../pdf/eoPdfModelTypes';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 
 export type {
   Calculable,
-  IndkomstSkadestidspunktPdfModel,
-  LoenudviklingPdfModel,
+  IndkomstSkadestidspunktModel,
+  LoenudviklingModel,
   LoenudviklingSegment,
   MoneyOre,
-  OevrigeKravPdfModel,
-  PdfModel,
-  SvieSmertePdfModel,
-  SygeferiegodtgoerelsePdfModel,
-  TabtArbejdsfortjenestePdfModel,
-  TafIndtaegterPdfModel,
-} from '../pdf/eoPdfModelTypes';
-export { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../pdf/eoPdfMoneyUtils';
+  OevrigeKravModel,
+  EoModel,
+  SvieSmerteModel,
+  SygeferiegodtgoerelseModel,
+  TabtArbejdsfortjenesteModel,
+  TafIndtaegterModel,
+} from '../shared/eoTypes';
+export { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../shared/eoMoney';
 export { buildTafArbejdsdageSet, countTafArbejdsdageInRange, resolveLoenudviklingRows, segmentAmountOre } from '../pdf/eoPdfLoenudvikling';
 
 export type EoPdfPresentation = Readonly<{
@@ -89,12 +87,12 @@ export const buildEoPdfPresentation = (
 
 export const buildErstatningsopgoerelsePdfModelFromComputed = (args: Readonly<{
   presentation: EoPdfPresentation;
-  svieSmerte: SvieSmertePdfModel;
-  tabtArbejdsfortjeneste: TabtArbejdsfortjenestePdfModel;
-  oevrigeKrav: OevrigeKravPdfModel;
-  forlig: ForligPdfModel;
+  svieSmerte: SvieSmerteModel;
+  tabtArbejdsfortjeneste: TabtArbejdsfortjenesteModel;
+  oevrigeKrav: OevrigeKravModel;
+  forlig: ForligModel;
   tafRanges: readonly IsoRange[];
-}>): PdfModel => {
+}>): EoModel => {
   const tabtArbejdsfortjenesteOre = args.forlig.erIndgaaet
     ? clampMoneyOreToZero(scaleMoneyOre(args.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteFoerForligOre, args.forlig.factor))
     : args.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteFoerForligOre;

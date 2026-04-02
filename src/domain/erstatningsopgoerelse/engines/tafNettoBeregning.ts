@@ -7,10 +7,10 @@ import { buildLoenudviklingModel } from './loenudviklingBeregning';
 import { computeSygeferiegodtgoerelse, type SygeferiegodtgoerelseResult } from './sygeferiegodtgoerelse';
 import type {
   Calculable,
-  IndkomstSkadestidspunktPdfModel,
-  LoenudviklingPdfModel,
+  IndkomstSkadestidspunktModel,
+  LoenudviklingModel,
   MoneyOre,
-  TafIndtaegterPdfModel,
+  TafIndtaegterModel,
 } from '../shared/eoTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../shared/eoMoney';
 
@@ -20,8 +20,8 @@ const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculab
 
 export const buildSfggLoenudviklingMap = (
   values: ErstatningsopgoerelseValues,
-  loenudvikling: LoenudviklingPdfModel | null
-): ReadonlyMap<string, LoenudviklingPdfModel['perAnsaettelse'][number]> | undefined => {
+  loenudvikling: LoenudviklingModel | null
+): ReadonlyMap<string, LoenudviklingModel['perAnsaettelse'][number]> | undefined => {
   if (!loenudvikling) return undefined;
 
   if (loenudvikling.perAnsaettelse.length > 0) {
@@ -51,7 +51,7 @@ export const buildSfggLoenudviklingMap = (
 const buildTafIndtaegterModel = (
   values: ErstatningsopgoerelseValues,
   ranges: readonly IsoRange[]
-): TafIndtaegterPdfModel => {
+): TafIndtaegterModel => {
   const indtaegter = buildIncomeForRanges(values, ranges);
   const employerEntries: Array<{ label: string; amountOre: MoneyOre }> = [];
   indtaegter.employers.forEach((entry) => {
@@ -81,9 +81,9 @@ const buildTafIndtaegterModel = (
 export type TafNettoBeregningResult = Readonly<{
   harTafPerioder: boolean;
   tafBeregningsenhed: ReturnType<typeof computeTafBeregningsenhed>;
-  indkomstSkadestidspunkt: IndkomstSkadestidspunktPdfModel | null;
-  loenudvikling: LoenudviklingPdfModel | null;
-  tafIndtaegter: TafIndtaegterPdfModel | null;
+  indkomstSkadestidspunkt: IndkomstSkadestidspunktModel | null;
+  loenudvikling: LoenudviklingModel | null;
+  tafIndtaegter: TafIndtaegterModel | null;
   tidligereModtagetTaf: Calculable<MoneyOre>;
   sygeferiegodtgoerelse: SygeferiegodtgoerelseResult;
   tabtArbejdsfortjenesteOre: MoneyOre;

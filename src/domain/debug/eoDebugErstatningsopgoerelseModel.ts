@@ -41,11 +41,11 @@ import {
   hasSfggSelectedOverenskomst,
   resolveSfggSource,
 } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
-import type { PdfModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
+import type { EoModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
 import {
   buildSfggReferenceperiodeCountLabel as buildSfggReferenceperiodeCountLabelPresentation,
   parseSfggExplanatoryLine,
-} from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelsePresentation';
+} from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/helpers/oevrigeKravIntro';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
@@ -2871,7 +2871,7 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
   values: ErstatningsopgoerelseValues,
   stamdata: StamdataValues,
   canonicalOutput?: EoCanonicalOutput,
-  pdfModel?: PdfModel
+  pdfModel?: EoModel
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
   const tafBeregnesSom = computeTafBeregningsenhed(values);

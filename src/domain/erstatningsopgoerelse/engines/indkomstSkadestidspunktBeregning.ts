@@ -9,9 +9,9 @@ import { calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from '../
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { getAngivetLoenBaseretPaa } from '../helpers/angivetLoenHelpers';
 import { isoDateToDate } from '../../dates/isoDate';
-import type { Calculable, IndkomstSkadestidspunktPdfModel, MoneyOre } from '../pdf/eoPdfModelTypes';
-import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../pdf/eoPdfMoneyUtils';
-import { formatPercentFixed2 } from '../pdf/sharedPdfUtils';
+import type { Calculable, IndkomstSkadestidspunktModel, MoneyOre } from '../shared/eoTypes';
+import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
+import { formatPercentFixed2 } from '../helpers/eoSharedUtils';
 import { formatIsoDateShort as formatDateShort } from '../../../utils/dateFormatting';
 
 const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
@@ -22,7 +22,7 @@ export const buildIndkomstSkadestidspunkt = (
   values: ErstatningsopgoerelseValues,
   stamdataValues: StamdataValues,
   tafBeregningsenhed: TafBeregningsenhed
-): IndkomstSkadestidspunktPdfModel | null => {
+): IndkomstSkadestidspunktModel | null => {
   const beregnesUdFra = values.beregnesUdFra;
   const loenBaseretPaa = getAngivetLoenBaseretPaa(values)?.trim() ?? '';
   const skadesdato = isISODateString(stamdataValues.skadesdato) ? stamdataValues.skadesdato : null;
@@ -37,11 +37,11 @@ export const buildIndkomstSkadestidspunkt = (
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
   const ansaettelserNavne: string[] = [];
 
-  const arbejdssteder: Array<IndkomstSkadestidspunktPdfModel['arbejdssteder'][number]> = [];
-  let offentligeYdelser: Array<IndkomstSkadestidspunktPdfModel['offentligeYdelser'][number]> = [];
+  const arbejdssteder: Array<IndkomstSkadestidspunktModel['arbejdssteder'][number]> = [];
+  let offentligeYdelser: Array<IndkomstSkadestidspunktModel['offentligeYdelser'][number]> = [];
   let offentligeYdelserTotalOre: MoneyOre = ensureMoneyOre(0);
   let samletBeregningsgrundlagOre: MoneyOre | null = null;
-  let totalBreakdown: IndkomstSkadestidspunktPdfModel['totalBreakdown'] = null;
+  let totalBreakdown: IndkomstSkadestidspunktModel['totalBreakdown'] = null;
   let arbejdsdage: number | null = null;
   let maaneder: number | null = null;
   let maanedsloen: Calculable<MoneyOre> = notCalculableMoney('Ikke angivet');

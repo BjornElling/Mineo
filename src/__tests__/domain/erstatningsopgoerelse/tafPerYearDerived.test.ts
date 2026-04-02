@@ -6,7 +6,7 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import type { PdfModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModelTypes';
+import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModelTypes';
 import { computeEoSnapshot, type EoSnapshotComputedData } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import {
   splitRangeByCalendarYearsInclusive,
@@ -125,7 +125,7 @@ describe('buildTafPerYearResult', () => {
    */
   const assertTotals = (
     result: TafPerYearResult,
-    pdfModel: PdfModel
+    pdfModel: EoModel
   ) => {
     const sum = result.years.reduce((s, y) => s + y.yearTafOre, 0);
     expect(sum).toBe(result.sumYearTafOre);

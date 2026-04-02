@@ -59,12 +59,12 @@ import { renderReguleringSection } from './sections/reguleringSection';
 import { renderOpgorelseSection } from './sections/opgoerelseSection';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
-import type { PdfModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { mergeIsoDateRanges } from '../../../domain/erstatningsopgoerelse/engines/periodMerging';
 import {
   buildSfggReferenceperiodeCountLabel,
   parseSfggExplanatoryLine,
-} from '../../../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelsePresentation';
+} from '../../../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 
 const NBSP = '\u00A0';
 const EO_RIGHT_COLUMN_WIDTH = 33.125;
@@ -104,7 +104,7 @@ const resolveSfggReferenceSatsUnit = (divisorLabel: 'kalenderdage' | 'arbejdsdag
 const resolveSfggPeriodDayUnitSingular = (divisorLabel: 'kalenderdage' | 'arbejdsdage'): 'kalenderdag' | 'arbejdsdag' =>
   divisorLabel === 'kalenderdage' ? 'kalenderdag' : 'arbejdsdag';
 
-const buildSfggPeriodRateAdjustmentText = (sfggSourceKind: PdfModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number]['sfggSourceKind']): string => {
+const buildSfggPeriodRateAdjustmentText = (sfggSourceKind: EoModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number]['sfggSourceKind']): string => {
   if (sfggSourceKind === 'ferielov') {
     return ' tillagt senere lønudvikling';
   }
@@ -114,7 +114,7 @@ const buildSfggPeriodRateAdjustmentText = (sfggSourceKind: PdfModel['tabtArbejds
   return '';
 };
 
-const buildSfggDisplayedTafPeriodText = (tafPerioderLinjer: readonly string[], tafRanges: PdfModel['tafRanges']): string => {
+const buildSfggDisplayedTafPeriodText = (tafPerioderLinjer: readonly string[], tafRanges: EoModel['tafRanges']): string => {
   if (tafPerioderLinjer.length > 0) {
     return tafPerioderLinjer.join(', ');
   }
@@ -177,7 +177,7 @@ const resolveUdkastStempelValue = (value: unknown): boolean => value === 'Ja';
 interface ErstatningsopgoerelsePdfOptions extends PdfCommonOptions {
   erstatningsopgoerelseAfsluttesMed?: 'Bekræftet godkendt' | 'Underskrift-linje';
   visUdkastStempel?: boolean;
-  document?: PdfModel;
+  document?: EoModel;
 }
 
 /**
@@ -277,7 +277,7 @@ export const generateErstatningsopgoerelsePdf = (
   };
 
   const renderSfggReferenceSatsBlock = (
-    entry: PdfModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number]
+    entry: EoModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number]
   ) => {
     const usesReferenceperiodeRate = entry.sfggReferencesatsFormula !== null;
 
@@ -344,7 +344,7 @@ export const generateErstatningsopgoerelsePdf = (
   };
 
   const renderSfggPeriodBlock = (
-    entry: PdfModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number]
+    entry: EoModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number]
   ) => {
     writer.writeUnderlinedLabel('Beregningsgrundlag', MARGINS.left);
 

@@ -3,9 +3,9 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import type { LoenudviklingPdfModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import type { LoenudviklingModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { ensureMoneyOre, resolveLoenudviklingRows } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
-import type { PdfModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModelTypes';
+import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModelTypes';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import * as statistikRatesData from '../../../data/statistiskeRates';
@@ -118,7 +118,7 @@ const buildPdfModel = (
   stamdata: StamdataValues,
   eoValues: ErstatningsopgoerelseValues,
   options: Readonly<{ dagsDatoISO: ReturnType<typeof iso> }>
-): PdfModel => {
+): EoModel => {
   const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues, dagsDatoISO: options.dagsDatoISO });
   if (!snapshot.data) {
     const message = snapshot.invariants[0]?.message ?? 'Snapshot fejlede uden invariant-besked';
@@ -127,7 +127,7 @@ const buildPdfModel = (
   return snapshot.data.pdfModel;
 };
 
-type LoenSegment = LoenudviklingPdfModel['beregnedeSegmenter'][number];
+type LoenSegment = LoenudviklingModel['beregnedeSegmenter'][number];
 type IsoRange = Readonly<{ fra: string; til: string }>;
 
 const nextDayIso = (isoDate: string): string => {
@@ -157,7 +157,7 @@ const assertCoveragePerRange = (segments: readonly LoenSegment[], ranges: readon
   }
 };
 
-const assertTotalMatchesSegmentSum = (loenudvikling: LoenudviklingPdfModel | null | undefined): void => {
+const assertTotalMatchesSegmentSum = (loenudvikling: LoenudviklingModel | null | undefined): void => {
   expect(loenudvikling?.loenudviklingTotal.status).toBe('ok');
   if (!loenudvikling || loenudvikling.loenudviklingTotal.status !== 'ok') return;
   const segmentSum = loenudvikling.beregnedeSegmenter.reduce((sum, segment) => sum + segment.amountOre, 0);

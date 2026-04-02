@@ -5,10 +5,10 @@ import {
   buildBlockingMessageForOutput,
   getBlockingInvariantsForOutput,
 } from './eoSnapshotInvariants';
-import type { PdfModel } from '../shared/eoTypes';
+import type { EoModel } from '../shared/eoTypes';
 
 export type TafPerYearPdfDocument = Readonly<{
-  model: PdfModel;
+  model: EoModel;
   presentation: TafPerYearResult | null;
 }>;
 

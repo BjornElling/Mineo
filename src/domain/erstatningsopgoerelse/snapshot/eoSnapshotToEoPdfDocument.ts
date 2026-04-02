@@ -1,4 +1,4 @@
-import type { PdfModel } from '../shared/eoTypes';
+import type { EoModel } from '../shared/eoTypes';
 import { hasEoSnapshotData, type EoSnapshot } from './eoSnapshot';
 import type { EoInvariant } from './eoSnapshotInvariants';
 import {
@@ -7,7 +7,7 @@ import {
 } from './eoSnapshotInvariants';
 
 export type EoPdfDocumentProjection =
-  | Readonly<{ kind: 'ok'; document: PdfModel }>
+  | Readonly<{ kind: 'ok'; document: EoModel }>
   | Readonly<{ kind: 'blocked'; message: string; invariants: readonly EoInvariant[] }>;
 
 export const eoSnapshotToEoPdfDocument = (snapshot: EoSnapshot): EoPdfDocumentProjection => {

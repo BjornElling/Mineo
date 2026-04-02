@@ -4,7 +4,7 @@ import { clampMoneyOreToZero, ensureMoneyOre, moneyOreSchema, scaleMoneyOre } fr
 import type { SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import type { TafNettoBeregningResult } from '../engines/tafNettoBeregning';
 import type { Calculable, LoenudviklingSegment, MoneyOre } from '../shared/eoTypes';
-import type { OevrigeKravPdfModel } from './eoPresentationModel';
+import type { OevrigeKravModel } from './eoPresentationModel';
 
 const isoDateSchema = isoDateString;
 
@@ -89,7 +89,7 @@ const toCanonicalSegment = (segment: LoenudviklingSegment): z.infer<typeof loenu
 export const buildEoComputedTotals = (args: Readonly<{
   svieSmerte: SvieSmerteEngineOutput;
   tafNetto: TafNettoBeregningResult;
-  oevrige: OevrigeKravPdfModel;
+  oevrige: OevrigeKravModel;
   forligFactor: number | null;
 }>): EoComputedTotals => {
   const tabtArbejdsfortjenesteFoerForligOre = clampMoneyOreToZero(ensureMoneyOre(args.tafNetto.tabtArbejdsfortjenesteOre));
@@ -126,7 +126,7 @@ export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
   tafRanges: ReadonlyArray<{ fra: z.infer<typeof isoDateSchema>; til: z.infer<typeof isoDateSchema> }>;
   svieSmerte: SvieSmerteEngineOutput;
   tafNetto: TafNettoBeregningResult;
-  oevrige: OevrigeKravPdfModel;
+  oevrige: OevrigeKravModel;
   totals: EoComputedTotals;
 }>): EoCanonicalOutput => {
   const loenudviklingSegmenter = (args.tafNetto.loenudvikling?.beregnedeSegmenter ?? []).map(toCanonicalSegment);

@@ -38,7 +38,7 @@ import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, type Loenu
 import { buildTafArbejdsdageSetFromRows } from './tafDaySets';
 import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
 import { isTafRowEmpty } from '../helpers/rowEmpty';
-import type { Calculable, IndkomstSkadestidspunktPdfModel, LoenudviklingPdfModel, LoenudviklingSegment, MoneyOre } from '../shared/eoTypes';
+import type { Calculable, IndkomstSkadestidspunktModel, LoenudviklingModel, LoenudviklingSegment, MoneyOre } from '../shared/eoTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
 import {
   convertAnciennitetSats,
@@ -1211,9 +1211,9 @@ export const buildLoenudviklingModel = (
   values: ErstatningsopgoerelseValues,
   stamdataValues: StamdataValues,
   tafBeregningsenhed: TafBeregningsenhed,
-  indkomstSkadestidspunkt: IndkomstSkadestidspunktPdfModel | null,
+  indkomstSkadestidspunkt: IndkomstSkadestidspunktModel | null,
   options: Readonly<{ tafRanges: readonly IsoRange[] }>
-): LoenudviklingPdfModel => {
+): LoenudviklingModel => {
   const tafRanges = options.tafRanges;
   const buildFromStrategiAndBase = (
     strategiData: Readonly<{ strategi: LoenudviklingStrategi; label: string; konsolideret: KonsolideretLoenudvikling | null }>,
@@ -1253,7 +1253,7 @@ export const buildLoenudviklingModel = (
       throw new Error('Loenudvikling kan ikke beregnes: ingen reguleringssegmenter');
     }
 
-    const beregnedeSegmenter: Array<LoenudviklingPdfModel['beregnedeSegmenter'][number]> = [];
+    const beregnedeSegmenter: Array<LoenudviklingModel['beregnedeSegmenter'][number]> = [];
     for (const segment of loenreguleringssegmenter) {
       const roundedDeltaPct = roundByMethod(segment.deltaPct, 2, 'halfAwayFromZero');
       if (tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER) {
@@ -1307,7 +1307,7 @@ export const buildLoenudviklingModel = (
     return { loenudviklingLabel, loenudviklingTotal: asCalculable(totalOre), beregnedeSegmenter };
   };
 
-  const buildPerAnsaettelseModel = (): LoenudviklingPdfModel => {
+  const buildPerAnsaettelseModel = (): LoenudviklingModel => {
     const beregningsperiodeRange = buildBeregningsperiodeRange(values);
     if (!beregningsperiodeRange) {
       throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
@@ -1368,7 +1368,7 @@ export const buildLoenudviklingModel = (
       throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
     }
 
-    const perAnsaettelse: Array<LoenudviklingPdfModel['perAnsaettelse'][number]> = [];
+    const perAnsaettelse: Array<LoenudviklingModel['perAnsaettelse'][number]> = [];
 
     for (const employer of income.employers) {
       const ansaettelsesforhold = ansaettelser[employer.index];
@@ -1476,7 +1476,7 @@ const resolveReguleringsdato = (
 
 const resolveMaanedsloenBase = (
   eoValues: ErstatningsopgoerelseValues,
-  indkomstSkadestidspunkt: IndkomstSkadestidspunktPdfModel | null
+  indkomstSkadestidspunkt: IndkomstSkadestidspunktModel | null
 ): number | null => {
   if (eoValues.beregnesUdFra === 'Angivet månedsløn') {
     const value = amountValueToNumber(eoValues.maanedsloenenUdgoer);
@@ -1490,7 +1490,7 @@ const resolveMaanedsloenBase = (
 
 const resolveDagsloenBase = (
   eoValues: ErstatningsopgoerelseValues,
-  indkomstSkadestidspunkt: IndkomstSkadestidspunktPdfModel | null
+  indkomstSkadestidspunkt: IndkomstSkadestidspunktModel | null
 ): number | null => {
   if (eoValues.beregnesUdFra === 'Angivet dagsløn') {
     const value = amountValueToNumber(eoValues.dagsloenenUdgoer);

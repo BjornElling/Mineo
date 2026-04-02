@@ -37,7 +37,7 @@ import {
   resolveSfggDifferentieretSatsLabel,
   resolveSfggReferenceperiodeAuthorityText,
   resolveSfggReferenceperiodeLabel,
-} from '../helpers/sygeferiegodtgoerelsePresentation';
+} from '../helpers/sygeferiegodtgoerelseTexts';
 
 export type SfggSourceKind = 'ingen' | 'manuel' | 'ferielov' | 'overenskomst_direkte' | 'overenskomst_ferielov';
 export type SfggSource = Readonly<{ kind: SfggSourceKind; label: string }>;

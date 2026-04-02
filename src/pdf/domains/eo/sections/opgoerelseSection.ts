@@ -8,13 +8,13 @@ import {
 import { round4 as roundToFourDecimals } from '../../../../utils/roundingShortcuts';
 import { resolveOevrigeKravIntroLinjer } from '../../../../domain/erstatningsopgoerelse/helpers/oevrigeKravIntro';
 import { resolveBilagWarning } from '../../../../domain/erstatningsopgoerelse/helpers/bilagWarnings';
-import type { Calculable, LoenudviklingSegment, MoneyOre, PdfModel } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import type { Calculable, LoenudviklingSegment, MoneyOre, EoModel } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import { roundByMethod } from '../../../../utils/rounding';
 
 type OpgorelseSectionContext = Readonly<{
-  model: PdfModel;
+  model: EoModel;
   eoValues: ErstatningsopgoerelseValues;
   stamdataValues: StamdataValues;
   lineHeight: number;
