@@ -13,6 +13,17 @@ type TabAnchor = CellLocator;
 
 const tabAnchorByTable = new WeakMap<HTMLTableElement, TabAnchor>();
 const pendingRecoveryByTable = new WeakMap<HTMLTableElement, Readonly<{ desired: CellLocator }>>();
+const CONTAINER_ROW_SELECTOR =
+  '.row--label-right-hover,.row--label-right,.row--label-offset,.row,[class*="row--label-right"],[class*="row--label-offset"],[class*="hover-row"]';
+const CONTAINER_FOCUSABLE_SELECTOR =
+  'input[role="combobox"]:not([disabled]):not([tabindex="-1"]):not([type="hidden"]):not([type="button"]),' +
+  'input:not([disabled]):not([tabindex="-1"]):not([type="hidden"]):not([type="button"]),' +
+  'select:not([disabled]):not([tabindex="-1"]),' +
+  'textarea:not([disabled]):not([tabindex="-1"]),' +
+  'button[data-mineo-focusable-button="true"]:not([tabindex="-1"]),' +
+  '[role="combobox"][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"]),' +
+  '[aria-haspopup][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"]),' +
+  '[aria-controls][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"])';
 
 // Navigation semantics (owned by this module):
 // - Enter / Shift+Enter: move vertically while keeping the "anchor cell" if one exists; otherwise use current cell.
@@ -127,6 +138,97 @@ type TableGrid = Readonly<{
   cellFocusables: ReadonlyArray<ReadonlyArray<ReadonlyArray<HTMLElement>>>;
   rowIds: readonly (string | null)[];
 }>;
+
+type OutsideFocusRow = Readonly<{
+  top: number;
+  elements: readonly HTMLElement[];
+}>;
+
+const moveFocusOutsideTable = (
+  table: HTMLTableElement,
+  fromElement: HTMLElement,
+  direction: 'up' | 'down'
+): boolean => {
+  const scrollContainer = table.closest('[data-mineo-scroll-container="true"]');
+  if (!(scrollContainer instanceof HTMLElement)) return false;
+
+  const focusables = Array.from(scrollContainer.querySelectorAll<HTMLElement>(CONTAINER_FOCUSABLE_SELECTOR))
+    .filter((el) => isTableElementVisible(el))
+    .filter((el) => !table.contains(el));
+  if (focusables.length === 0) return false;
+
+  const visualRowTolerancePx = 8;
+  const rectByElement = new Map<HTMLElement, DOMRect>();
+  const getRect = (element: HTMLElement): DOMRect => {
+    const cached = rectByElement.get(element);
+    if (cached) return cached;
+    const rect = element.getBoundingClientRect();
+    rectByElement.set(element, rect);
+    return rect;
+  };
+
+  const sortByHorizontalPosition = (items: readonly HTMLElement[]): HTMLElement[] => {
+    return items
+      .slice()
+      .sort((a, b) => {
+        const aRect = getRect(a);
+        const bRect = getRect(b);
+        if (aRect.left !== bRect.left) return aRect.left - bRect.left;
+        return aRect.top - bRect.top;
+      });
+  };
+
+  const rowsByContainer = new Map<HTMLElement, HTMLElement[]>();
+  const rowsWithoutContainer: Array<{ top: number; elements: HTMLElement[] }> = [];
+
+  for (const element of focusables) {
+    const rowContainer = element.closest(CONTAINER_ROW_SELECTOR);
+    if (rowContainer instanceof HTMLElement && scrollContainer.contains(rowContainer)) {
+      if (!rowsByContainer.has(rowContainer)) {
+        rowsByContainer.set(rowContainer, []);
+      }
+      rowsByContainer.get(rowContainer)?.push(element);
+      continue;
+    }
+
+    const top = getRect(element).top;
+    const existing = rowsWithoutContainer.find((row) => Math.abs(row.top - top) <= visualRowTolerancePx);
+    if (existing) {
+      existing.elements.push(element);
+    } else {
+      rowsWithoutContainer.push({ top, elements: [element] });
+    }
+  }
+
+  const rows: OutsideFocusRow[] = [
+    ...Array.from(rowsByContainer.entries()).map(([container, elements]) => ({
+      top: container.getBoundingClientRect().top,
+      elements: sortByHorizontalPosition(elements),
+    })),
+    ...rowsWithoutContainer.map((row) => ({
+      top: row.top,
+      elements: sortByHorizontalPosition(row.elements),
+    })),
+  ]
+    .filter((row) => row.elements.length > 0)
+    .sort((a, b) => a.top - b.top);
+
+  if (rows.length === 0) return false;
+
+  const activeTop = fromElement.getBoundingClientRect().top;
+  const targetRow = direction === 'down'
+    ? rows.find((row) => row.top > activeTop + visualRowTolerancePx) ?? rows[0]
+    : [...rows].reverse().find((row) => row.top < activeTop - visualRowTolerancePx) ?? rows[rows.length - 1];
+  if (!targetRow) return false;
+
+  const target = direction === 'down'
+    ? targetRow.elements[0]
+    : targetRow.elements[targetRow.elements.length - 1];
+  if (!target) return false;
+
+  focusTableElement(target);
+  return true;
+};
 
 const buildGrid = (table: HTMLTableElement): TableGrid => {
   const bodyRows = Array.from(table.querySelectorAll('tbody tr')).filter((row): row is HTMLTableRowElement => row instanceof HTMLTableRowElement);
@@ -445,9 +547,12 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
 
     // Release edge arrows so Container can continue navigation outside the table.
     if (atTopEdge || atBottomEdge) {
-      const native = e.nativeEvent as KeyboardEvent & { mineoTableBoundaryExit?: boolean };
-      native.mineoTableBoundaryExit = true;
+      e.preventDefault();
+      e.stopPropagation();
       tabAnchorByTable.delete(table);
+      if (activeFocusable) {
+        moveFocusOutsideTable(table, activeFocusable, key === 'ArrowUp' ? 'up' : 'down');
+      }
       return;
     }
 

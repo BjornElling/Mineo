@@ -195,14 +195,20 @@ Container finder fokusbare elementer via selector:
 input:not([disabled]):not([tabindex='-1']):not([type="hidden"]):not([type="button"])
 select:not([disabled]):not([tabindex='-1'])
 textarea:not([disabled]):not([tabindex='-1'])
+button[data-mineo-focusable-button="true"]:not([tabindex='-1'])
 [role="combobox"][tabindex]:not([tabindex='-1']):not([aria-disabled='true'])
 ```
 
 Ekskluderer:
-- BUTTON tags
+- almindelige `button`-tags uden eksplicit opt-in
 - Skjulte elementer (display: none, visibility: hidden)
 - Disabled felter
 - tabindex="-1" (bevidst ekskluderet fra navigation)
+
+Opt-in-undtagelse:
+- Knapper kan indgå i Container-styret tab-flow, hvis de eksplicit markeres med `data-mineo-focusable-button="true"`.
+- Dette bruges til sideintegrerede handlingsknapper, som brugeren skal kunne nå i den normale feltsekvens.
+- Hvis en sådan knap skal være inaktiv men stadig fokusérbar, må den ikke bruge nativ `disabled`; brug i stedet `aria-disabled="true"` og inert click-handler.
 
 ---
 

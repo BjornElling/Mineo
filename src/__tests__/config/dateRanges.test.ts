@@ -5,6 +5,7 @@ import {
   MIN_SVIESMERTE_YEAR,
   dateRanges_stamdata,
   dateRanges_erstatningsopgoerelse,
+  dateRanges_offentligeYdelser,
   computeSkadesdatoMinRule,
 } from '../../config/dateRanges';
 import { toISODateString } from '../../types/branded';
@@ -122,6 +123,18 @@ describe('dateRanges_erstatningsopgoerelse', () => {
 
   it('tabelTAFFra er dynamic-both', () => {
     expect(dateRanges_erstatningsopgoerelse.tabelTAFFra.type).toBe('dynamic-both');
+  });
+});
+
+describe('dateRanges_offentligeYdelser', () => {
+  it('afgrænser fra-dato til første sygedagpengesats', () => {
+    expect(dateRanges_offentligeYdelser.fraDato.min).toBe('2005-01-03');
+    expect(dateRanges_offentligeYdelser.fraDato.fallbackMax).toBe('2027-01-03');
+  });
+
+  it('afgrænser til-dato til sidste sygedagpengesats', () => {
+    expect(dateRanges_offentligeYdelser.tilDato.fallbackMin).toBe('2005-01-03');
+    expect(dateRanges_offentligeYdelser.tilDato.max).toBe('2027-01-03');
   });
 });
 

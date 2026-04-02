@@ -3,6 +3,7 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Container from '../../../components/layout/Container';
 import StyledIntegerField from '../../../components/inputs/StyledIntegerField';
+import InlineActionButton from '../../../components/inputs/InlineActionButton';
 import { StandardGridTable } from '../../../components/tables/StandardGridTable';
 
 /**
@@ -351,6 +352,56 @@ describe('Container keyboard navigation', () => {
     await waitForSelectionClear();
 
     expect(document.activeElement).toBe(popupTrigger);
+  });
+
+  it('Enter paa InlineActionButton aktiverer knappen og flytter ikke fokus videre', async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+
+    render(
+      <Container>
+        <input data-testid="field1" type="text" style={{ position: 'fixed' }} />
+        <InlineActionButton onClick={onClick}>Indsæt</InlineActionButton>
+        <input data-testid="field3" type="text" style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const button = screen.getByRole('button', { name: 'Indsæt' });
+    const field3 = screen.getByTestId('field3');
+
+    (button as HTMLButtonElement).focus();
+    expect(document.activeElement).toBe(button);
+
+    await user.keyboard('{Enter}');
+
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(button);
+    expect(document.activeElement).not.toBe(field3);
+  });
+
+  it('Enter paa inaktiv InlineActionButton flytter ikke fokus videre og udloeser ikke handling', async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+
+    render(
+      <Container>
+        <input data-testid="field1" type="text" style={{ position: 'fixed' }} />
+        <InlineActionButton onClick={onClick} disabled>Indsæt</InlineActionButton>
+        <input data-testid="field3" type="text" style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const button = screen.getByRole('button', { name: 'Indsæt' });
+    const field3 = screen.getByTestId('field3');
+
+    (button as HTMLButtonElement).focus();
+    expect(document.activeElement).toBe(button);
+
+    await user.keyboard('{Enter}');
+
+    expect(onClick).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(button);
+    expect(document.activeElement).not.toBe(field3);
   });
 
   it('Enter i textarea giver newline (ikke fokus-flytning)', async () => {

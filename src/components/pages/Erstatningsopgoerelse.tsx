@@ -11,7 +11,11 @@ import {
   usePersistedSectionSelector,
   useSectionRevisionSelector,
 } from '../../hooks/useFormPersistenceSelectors';
-import { erstatningsopgoerelseSchema, type ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
+import {
+  erstatningsopgoerelseSchema,
+  type ErstatningsopgoerelseValues,
+  type ErhvervsevnetabComposedValues,
+} from '../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import EOOplysningerTab from './erstatningsopgoerelse/EOOplysningerTab';
@@ -21,6 +25,9 @@ import EOberegningTab from './erstatningsopgoerelse/EOberegningTab';
 import EODebug from './erstatningsopgoerelse/EODebug';
 import EODebugTabel from './erstatningsopgoerelse/EODebugTabel';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
+import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
+import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
+import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../../domain/faellesPersondata/faellesPersondataInitialValues';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { computeEoSnapshot, type EoSnapshot } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 
@@ -127,6 +134,27 @@ const Erstatningsopgoerelse = React.memo(() => {
     if (!nextPersistedStamdata) return STAMDATA_INITIAL_VALUES;
     return { ...STAMDATA_INITIAL_VALUES, ...nextPersistedStamdata };
   }, [persistedStamdata]);
+  const getMidlertidigtEetInsertSource = React.useCallback((): Readonly<{
+    eetValues: ErhvervsevnetabComposedValues;
+    skadesdato: StamdataValues['skadesdato'];
+  }> => {
+    const persistedErhvervsevnetab = getPersistedSectionSnapshot('erhvervsevnetab');
+    const persistedFaellesAarsloen = getPersistedSectionSnapshot('faellesAarsloen');
+    const persistedFaellesPersondata = getPersistedSectionSnapshot('faellesPersondata');
+    const persistedStamdataForInsert = getPersistedSectionSnapshot('stamdata');
+
+    return {
+      eetValues: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        ...(persistedErhvervsevnetab ?? {}),
+        ...FAELLES_AARSLOEN_INITIAL_VALUES,
+        ...(persistedFaellesAarsloen ?? {}),
+        ...FAELLES_PERSONDATA_INITIAL_VALUES,
+        ...(persistedFaellesPersondata ?? {}),
+      },
+      skadesdato: persistedStamdataForInsert?.skadesdato,
+    };
+  }, []);
 
   const [eoSnapshot, setEoSnapshot] = React.useState<EoSnapshot | null>(null);
   const stamdataRevision = useSectionRevisionSelector('stamdata');
@@ -362,6 +390,7 @@ const Erstatningsopgoerelse = React.memo(() => {
             <OffentligeYdelserTab
               rows={form.values.offentligeYdelserRows ?? []}
               onRowsChange={handleOffentligeYdelserRowsChange}
+              getMidlertidigtEetInsertSource={getMidlertidigtEetInsertSource}
             />
           </Box>
         )}

@@ -53,6 +53,15 @@ interface ContainerProps {
 
 const ROW_CONTAINER_SELECTOR =
   '.row--label-right-hover,.row--label-right,.row--label-offset,.row,[class*="row--label-right"],[class*="row--label-offset"],[class*="hover-row"]';
+const CONTAINER_FOCUSABLE_SELECTOR =
+  "input:not([disabled]):not([tabindex='-1']):not([type=\"hidden\"]):not([type=\"button\"]), " +
+  "input[role=\"combobox\"]:not([disabled]):not([tabindex='-1']):not([type=\"hidden\"]):not([type=\"button\"]), " +
+  "select:not([disabled]):not([tabindex='-1']), " +
+  "textarea:not([disabled]):not([tabindex='-1']), " +
+  "button[data-mineo-focusable-button=\"true\"]:not([tabindex='-1']), " +
+  "[role=\"combobox\"][tabindex]:not([tabindex='-1']):not([aria-disabled='true']), " +
+  "[aria-haspopup][tabindex]:not([tabindex='-1']):not([aria-disabled='true']), " +
+  "[aria-controls][tabindex]:not([tabindex='-1']):not([aria-disabled='true'])";
 const NON_TEXT_EDITING_INPUT_TYPES = new Set(['checkbox', 'radio', 'range', 'button', 'submit', 'reset', 'file', 'color']);
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
@@ -163,13 +172,9 @@ const Container = React.memo(({ children }: ContainerProps) => {
     }
 
     focusableCacheRef.current = Array.from(
-      containerRef.current.querySelectorAll(
-        "input:not([disabled]):not([tabindex='-1']):not([type=\"hidden\"]):not([type=\"button\"]), input[role=\"combobox\"]:not([disabled]):not([tabindex='-1']):not([type=\"hidden\"]):not([type=\"button\"]), select:not([disabled]):not([tabindex='-1']), textarea:not([disabled]):not([tabindex='-1']), [role=\"combobox\"][tabindex]:not([tabindex='-1']):not([aria-disabled='true']), [aria-haspopup][tabindex]:not([tabindex='-1']):not([aria-disabled='true']), [aria-controls][tabindex]:not([tabindex='-1']):not([aria-disabled='true'])"
-      )
+      containerRef.current.querySelectorAll(CONTAINER_FOCUSABLE_SELECTOR)
     ).filter((el): el is FocusableElement => {
       if (!(el instanceof HTMLElement)) return false;
-      // Ekskluder BUTTON tags
-      if (el.tagName === 'BUTTON') return false;
       // Tjek synlighed (hurtig check)
       return isElementVisible(el);
     });
@@ -212,7 +217,7 @@ const Container = React.memo(({ children }: ContainerProps) => {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['disabled', 'style', 'class', 'hidden']
+      attributeFilter: ['disabled', 'style', 'class', 'hidden', 'tabindex', 'aria-disabled']
     });
 
     // Byg initial cache
@@ -254,11 +259,12 @@ const Container = React.memo(({ children }: ContainerProps) => {
     const activeElement = document.activeElement;
     const activeFocusable: FocusableElement | null = (() => {
       if (!(activeElement instanceof HTMLElement)) return null;
-      const closest = activeElement.closest('input,select,textarea,[role="combobox"],[aria-haspopup],[aria-controls]');
+      const closest = activeElement.closest('input,select,textarea,button[data-mineo-focusable-button="true"],[role="combobox"],[aria-haspopup],[aria-controls]');
       if (!closest) return null;
       if (closest instanceof HTMLInputElement) return closest;
       if (closest instanceof HTMLSelectElement) return closest;
       if (closest instanceof HTMLTextAreaElement) return closest;
+      if (closest instanceof HTMLButtonElement && closest.matches('button[data-mineo-focusable-button="true"]')) return closest;
       if (closest instanceof HTMLElement && closest.getAttribute('role') === 'combobox') return closest;
       if (closest instanceof HTMLElement && (closest.hasAttribute('aria-haspopup') || closest.hasAttribute('aria-controls'))) return closest;
       return null;

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import Container from '../../../components/layout/Container';
 import StandardLooseTable from '../../../components/tables/StandardLooseTable';
 import TableIntegerInput from '../../../components/inputs/table/TableIntegerInput';
 import TableDropdown from '../../../components/inputs/table/TableDropdown';
@@ -52,7 +53,7 @@ describe('tableKeyboardNavigation dropdown-celle integration', () => {
     expect(document.activeElement).toBe(combobox);
   }, TEST_TIMEOUT_MS);
 
-  it('ArrowDown i TableDropdown triggere ikke tabel-vertikal navigation', async () => {
+  it('ArrowDown i TableDropdown foelger tabel-vertikal navigation', async () => {
     const user = userEvent.setup();
 
     render(
@@ -85,11 +86,86 @@ describe('tableKeyboardNavigation dropdown-celle integration', () => {
     );
 
     const combobox = screen.getByRole('combobox');
-    await user.click(combobox);
+    await act(async () => {
+      combobox.focus();
+    });
+    expect(document.activeElement).toBe(combobox);
 
     await user.keyboard('{ArrowDown}');
     const secondRowCell = screen.getByDisplayValue('3');
-    expect(document.activeElement).not.toBe(secondRowCell);
+    expect(document.activeElement).toBe(secondRowCell);
+  }, TEST_TIMEOUT_MS);
+
+  it('ArrowDown i nederste TableDropdown-række aabner ikke menuen, men forlader tabellen som andre felter', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <StandardLooseTable>
+          <tbody>
+            <tr data-mineo-row-id="r1">
+              <td>
+                <TableIntegerInput gridCell={{ rowId: 'r1', colIndex: 0 }} value="1" onBlur={vi.fn()} />
+              </td>
+              <td>
+                <TableIntegerInput gridCell={{ rowId: 'r1', colIndex: 1 }} value="2" onBlur={vi.fn()} />
+              </td>
+            </tr>
+            <tr data-mineo-row-id="r2">
+              <td>
+                <TableIntegerInput gridCell={{ rowId: 'r2', colIndex: 0 }} value="3" onBlur={vi.fn()} />
+              </td>
+              <td>
+                <TableDropdown
+                  gridCell={{ rowId: 'r2', colIndex: 1 }}
+                  value=""
+                  allowEmpty
+                  options={[{ value: 'a', label: 'A' }]}
+                  onChange={vi.fn()}
+                />
+              </td>
+            </tr>
+          </tbody>
+        </StandardLooseTable>
+        <div className="row--label-right-hover">
+          <input data-testid="below-first" type="text" readOnly style={{ position: 'fixed' }} />
+          <input data-testid="below-last" type="text" readOnly style={{ position: 'fixed' }} />
+        </div>
+      </Container>
+    );
+
+    const combobox = screen.getByRole('combobox');
+    const belowFirst = screen.getByTestId('below-first') as HTMLInputElement;
+    const belowLast = screen.getByTestId('below-last') as HTMLInputElement;
+    const belowRow = belowFirst.closest('.row--label-right-hover') as HTMLDivElement;
+
+    Object.defineProperty(combobox, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({ x: 220, y: 240, width: 100, height: 20, top: 240, left: 220, right: 320, bottom: 260, toJSON: () => ({}) }) as DOMRect,
+    });
+    Object.defineProperty(belowFirst, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({ x: 10, y: 340, width: 100, height: 20, top: 340, left: 10, right: 110, bottom: 360, toJSON: () => ({}) }) as DOMRect,
+    });
+    Object.defineProperty(belowLast, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({ x: 220, y: 340, width: 100, height: 20, top: 340, left: 220, right: 320, bottom: 360, toJSON: () => ({}) }) as DOMRect,
+    });
+    Object.defineProperty(belowRow, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({ x: 0, y: 340, width: 600, height: 40, top: 340, left: 0, right: 600, bottom: 380, toJSON: () => ({}) }) as DOMRect,
+    });
+
+    await act(async () => {
+      combobox.focus();
+    });
+    expect(document.activeElement).toBe(combobox);
+
+    await user.keyboard('{ArrowDown}');
+
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(belowFirst);
+    expect(document.activeElement).not.toBe(belowLast);
   }, TEST_TIMEOUT_MS);
 
   it('ArrowRight navigerer ikke væk når TableDropdown er åben', async () => {

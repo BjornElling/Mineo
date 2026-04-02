@@ -10,6 +10,7 @@ import { maxIso, toISODateString } from '../types/branded';
 import { getTodayLocalISO } from '../utils/dateUtils';
 import { varigeMenPrGradYearBounds, svieSmerteMaxYearBounds, eetYearBounds, foersoergertabYearBounds } from '../data/lovbestemteRates';
 import { MIN_INTEREST_DATE } from '../data/interestRates';
+import { SYGEDAGPENGE_RATE_MAX_DATE, SYGEDAGPENGE_RATE_MIN_DATE } from './regulatoryRates';
 
 // ============================================================================
 // KONSTANTER (VALIDEREDE ISO-DATOER)
@@ -420,19 +421,19 @@ export interface DateRanges_OffentligeYdelser {
 export const dateRanges_offentligeYdelser: DateRanges_OffentligeYdelser = {
   fraDato: {
     type: 'dynamic-max',
-    min: DATE_2005_01_01,
+    min: SYGEDAGPENGE_RATE_MIN_DATE,
     max: 'DYNAMIC', // Den laveste værdi af: tilDato (hvis udfyldt) eller fallbackMax
-    fallbackMax: TODAY,
+    fallbackMax: SYGEDAGPENGE_RATE_MAX_DATE,
     placeholder: 'dd-mm-åååå',
-    notes: 'Fra 1. januar 2005 til tilDato (eller i dag)',
+    notes: 'Fra tidligste sygedagpengesats til tilDato (eller seneste satsdato)',
   },
   tilDato: {
     type: 'dynamic-min',
     min: 'DYNAMIC', // Den højeste værdi af: fraDato (hvis udfyldt) eller fallbackMin
-    fallbackMin: DATE_2005_01_01,
-    max: DATE_PLUS_1_YEAR_END,
+    fallbackMin: SYGEDAGPENGE_RATE_MIN_DATE,
+    max: SYGEDAGPENGE_RATE_MAX_DATE,
     placeholder: 'dd-mm-åååå',
-    notes: 'Fra fraDato (eller 1. januar 2005) til 31. december ét år frem',
+    notes: 'Fra fraDato (eller tidligste sygedagpengesats) til seneste satsdato',
   },
 };
 

@@ -1,7 +1,7 @@
 import {
   applyAnsaettelsesforholdToggleCleanup,
   sanitizeSfggRowForBeregningskilde,
-} from '../../../../components/pages/erstatningsopgoerelse/LoenindkomstTab';
+} from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstStateCleanup';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 describe('LoenindkomstTab hidden state cleanup', () => {
